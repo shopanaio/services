@@ -7,7 +7,10 @@ import type { UniqueIdentifier } from "@dnd-kit/core";
 import isEqual from "lodash/isEqual";
 import { Boards, type Items, type RenderColumnProps, type RenderItemProps } from "../dnd";
 import { useMoveFulfillmentTicket, useReorderFulfillmentStages } from "../hooks";
-import type { LegacyFulfillmentBoardView, LegacyFulfillmentColumnView } from "../models/legacy-fulfillment-board-view";
+import type {
+  LegacyFulfillmentBoardView,
+  LegacyFulfillmentColumnView,
+} from "../models/legacy-fulfillment-board-view";
 import { FulfillmentColumn } from "./fulfillment-column";
 import { FulfillmentTicket } from "./fulfillment-ticket";
 import { useFulfillmentBoardStyles } from "./fulfillment-board.styles";
@@ -137,9 +140,7 @@ export function FulfillmentBoard({
       view.columns.reduce((acc: Items, column) => {
         return {
           ...acc,
-          [column.id]:
-            view.columnTicketsMapping[column.id]?.map((ticket) => ticket.id) ||
-            [],
+          [column.id]: view.columnTicketsMapping[column.id]?.map((ticket) => ticket.id) || [],
         };
       }, {}),
     );

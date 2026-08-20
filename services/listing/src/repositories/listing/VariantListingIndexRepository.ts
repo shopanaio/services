@@ -25,8 +25,8 @@ export class VariantListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          eq(variantListingIndex.variantId, variantId)
-        )
+          eq(variantListingIndex.variantId, variantId),
+        ),
       )
       .limit(1);
 
@@ -42,8 +42,8 @@ export class VariantListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          eq(variantListingIndex.variantDocId, variantDocId)
-        )
+          eq(variantListingIndex.variantDocId, variantDocId),
+        ),
       )
       .limit(1);
 
@@ -58,8 +58,8 @@ export class VariantListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          eq(variantListingIndex.variantId, variantId)
-        )
+          eq(variantListingIndex.variantId, variantId),
+        ),
       )
       .limit(1);
 
@@ -67,9 +67,7 @@ export class VariantListingIndexRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findByVariantDocId(
-    variantDocId: number
-  ): Promise<VariantListingIndex | null> {
+  async findByVariantDocId(variantDocId: number): Promise<VariantListingIndex | null> {
     assertPositiveDocId(variantDocId, "variantDocId");
     const rows = await this.connection
       .select()
@@ -77,8 +75,8 @@ export class VariantListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          eq(variantListingIndex.variantDocId, variantDocId)
-        )
+          eq(variantListingIndex.variantDocId, variantDocId),
+        ),
       )
       .limit(1);
 
@@ -86,9 +84,7 @@ export class VariantListingIndexRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getByVariantIds(
-    variantIds: readonly string[]
-  ): Promise<VariantListingIndex[]> {
+  async getByVariantIds(variantIds: readonly string[]): Promise<VariantListingIndex[]> {
     if (variantIds.length === 0) {
       return [];
     }
@@ -99,15 +95,13 @@ export class VariantListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          inArray(variantListingIndex.variantId, [...new Set(variantIds)])
-        )
+          inArray(variantListingIndex.variantId, [...new Set(variantIds)]),
+        ),
       );
   }
 
   @ReadOnly()
-  async getByVariantDocIds(
-    variantDocIds: readonly number[]
-  ): Promise<VariantListingIndex[]> {
+  async getByVariantDocIds(variantDocIds: readonly number[]): Promise<VariantListingIndex[]> {
     if (variantDocIds.length === 0) {
       return [];
     }
@@ -122,15 +116,13 @@ export class VariantListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          inArray(variantListingIndex.variantDocId, [...new Set(variantDocIds)])
-        )
+          inArray(variantListingIndex.variantDocId, [...new Set(variantDocIds)]),
+        ),
       );
   }
 
   @ReadOnly()
-  async getByProductIds(
-    productIds: readonly string[]
-  ): Promise<VariantListingIndex[]> {
+  async getByProductIds(productIds: readonly string[]): Promise<VariantListingIndex[]> {
     if (productIds.length === 0) {
       return [];
     }
@@ -141,15 +133,13 @@ export class VariantListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          inArray(variantListingIndex.productId, [...new Set(productIds)])
-        )
+          inArray(variantListingIndex.productId, [...new Set(productIds)]),
+        ),
       );
   }
 
   @ReadOnly()
-  async getByProductDocIds(
-    productDocIds: readonly number[]
-  ): Promise<VariantListingIndex[]> {
+  async getByProductDocIds(productDocIds: readonly number[]): Promise<VariantListingIndex[]> {
     if (productDocIds.length === 0) {
       return [];
     }
@@ -164,8 +154,8 @@ export class VariantListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          inArray(variantListingIndex.productDocId, [...new Set(productDocIds)])
-        )
+          inArray(variantListingIndex.productDocId, [...new Set(productDocIds)]),
+        ),
       );
   }
 
@@ -185,7 +175,7 @@ export class VariantListingIndexRepository extends BaseRepository {
   }
 
   async upsertMany(
-    rows: readonly VariantListingIndexUpsertInput[]
+    rows: readonly VariantListingIndexUpsertInput[],
   ): Promise<VariantListingIndex[]> {
     if (rows.length === 0) {
       return [];
@@ -221,7 +211,7 @@ export class VariantListingIndexRepository extends BaseRepository {
 
   async update(
     variantId: string,
-    patch: VariantListingIndexPatchInput
+    patch: VariantListingIndexPatchInput,
   ): Promise<VariantListingIndex | null> {
     const rows = await this.connection
       .update(variantListingIndex)
@@ -229,8 +219,8 @@ export class VariantListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          eq(variantListingIndex.variantId, variantId)
-        )
+          eq(variantListingIndex.variantId, variantId),
+        ),
       )
       .returning();
 
@@ -243,8 +233,8 @@ export class VariantListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          eq(variantListingIndex.variantId, variantId)
-        )
+          eq(variantListingIndex.variantId, variantId),
+        ),
       )
       .returning({ variantId: variantListingIndex.variantId });
 
@@ -263,8 +253,8 @@ export class VariantListingIndexRepository extends BaseRepository {
         .where(
           and(
             eq(variantListingIndex.storeId, this.storeId),
-            inArray(variantListingIndex.variantId, chunk)
-          )
+            inArray(variantListingIndex.variantId, chunk),
+          ),
         )
         .returning({ variantId: variantListingIndex.variantId });
 
@@ -280,8 +270,8 @@ export class VariantListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          eq(variantListingIndex.productId, productId)
-        )
+          eq(variantListingIndex.productId, productId),
+        ),
       )
       .returning({ variantId: variantListingIndex.variantId });
 
@@ -300,8 +290,8 @@ export class VariantListingIndexRepository extends BaseRepository {
         .where(
           and(
             eq(variantListingIndex.storeId, this.storeId),
-            inArray(variantListingIndex.productId, chunk)
-          )
+            inArray(variantListingIndex.productId, chunk),
+          ),
         )
         .returning({ variantId: variantListingIndex.variantId });
 
@@ -313,7 +303,7 @@ export class VariantListingIndexRepository extends BaseRepository {
 
   @ReadOnly()
   async getActiveVariantIdsByProductIds(
-    productIds: readonly string[]
+    productIds: readonly string[],
   ): Promise<Map<string, string[]>> {
     const result = new Map<string, string[]>();
     for (const productId of productIds) {
@@ -333,8 +323,8 @@ export class VariantListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          inArray(variantListingIndex.productId, [...new Set(productIds)])
-        )
+          inArray(variantListingIndex.productId, [...new Set(productIds)]),
+        ),
       );
 
     for (const row of rows) {
@@ -346,10 +336,7 @@ export class VariantListingIndexRepository extends BaseRepository {
     return result;
   }
 
-  private toInsertRow(
-    row: VariantListingIndexUpsertInput,
-    now: string
-  ): NewVariantListingIndex {
+  private toInsertRow(row: VariantListingIndexUpsertInput, now: string): NewVariantListingIndex {
     assertPositiveDocId(row.productDocId, "productDocId");
     assertPositiveDocId(row.variantDocId, "variantDocId");
     assertNonNegativeInteger(row.totalStock, "totalStock");
@@ -365,9 +352,7 @@ export class VariantListingIndexRepository extends BaseRepository {
     };
   }
 
-  private toPatchRow(
-    patch: VariantListingIndexPatchInput
-  ): Partial<NewVariantListingIndex> {
+  private toPatchRow(patch: VariantListingIndexPatchInput): Partial<NewVariantListingIndex> {
     const updateData: Partial<NewVariantListingIndex> = {
       updatedAt: nowIso(),
     };

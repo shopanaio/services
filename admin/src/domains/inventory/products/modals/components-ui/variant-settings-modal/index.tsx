@@ -13,11 +13,7 @@ import {
   SelectionChangedEvent,
   RowDragEndEvent,
 } from "ag-grid-community";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { useAgGridTheme } from "@/hooks";
 import { Dash } from "@/shared/components/editor-grid";
 import { ComponentPriceType } from "@/domains/inventory/products/components/product-details-card/components-ui/types";
@@ -58,7 +54,7 @@ interface IVariantRow {
 const calculateFinalPrice = (
   basePrice: number,
   priceType: PriceType,
-  priceValue: number | null
+  priceValue: number | null,
 ): number => {
   switch (priceType) {
     case ComponentPriceType.Base:
@@ -180,7 +176,9 @@ const useStyles = createStyles(({ token }) => ({
 
 const BasePriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
   if (!data) return null;
-  return <span style={{ color: "var(--ant-color-text-secondary)" }}>{formatPrice(data.price)}</span>;
+  return (
+    <span style={{ color: "var(--ant-color-text-secondary)" }}>{formatPrice(data.price)}</span>
+  );
 };
 
 const FinalPriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
@@ -188,9 +186,7 @@ const FinalPriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
   return <span style={{ fontWeight: 500 }}>{formatPrice(data.finalPrice)}</span>;
 };
 
-const PriceRuleCellRenderer = ({
-  value,
-}: ICellRendererParams<IVariantRow>) => {
+const PriceRuleCellRenderer = ({ value }: ICellRendererParams<IVariantRow>) => {
   return value == null ? <Dash /> : <span>{String(value)}</span>;
 };
 
@@ -220,7 +216,7 @@ export const VariantSettingsModal = () => {
 
   // Local state
   const [selectedVariantIds, setSelectedVariantIds] = useState<string[]>(
-    () => initialVariantIds ?? variants.map((v) => v.id)
+    () => initialVariantIds ?? variants.map((v) => v.id),
   );
   const [showAsVariants, setShowAsVariants] = useState(initialShowAsVariants);
 
@@ -235,7 +231,7 @@ export const VariantSettingsModal = () => {
       sortIndex: index,
       options: v.options,
       finalPrice: calculateFinalPrice(v.price, priceType, priceValue),
-    }))
+    })),
   );
 
   // Get unique option values grouped by option
@@ -244,17 +240,12 @@ export const VariantSettingsModal = () => {
 
     return options.map((option) => {
       // Find which values are available based on selected variants
-      const selectedVariants = variants.filter((v) =>
-        selectedVariantIds.includes(v.id)
-      );
+      const selectedVariants = variants.filter((v) => selectedVariantIds.includes(v.id));
 
       const availableValues = new Set(
         selectedVariants.flatMap(
-          (v) =>
-            v.options
-              ?.filter((o) => o.optionId === option.id)
-              .map((o) => o.value) ?? []
-        )
+          (v) => v.options?.filter((o) => o.optionId === option.id).map((o) => o.value) ?? [],
+        ),
       );
 
       return {
@@ -264,9 +255,7 @@ export const VariantSettingsModal = () => {
           value,
           isSelected: availableValues.has(value),
           count: selectedVariants.filter((v) =>
-            v.options?.some(
-              (o) => o.optionId === option.id && o.value === value
-            )
+            v.options?.some((o) => o.optionId === option.id && o.value === value),
           ).length,
         })),
       };
@@ -274,47 +263,41 @@ export const VariantSettingsModal = () => {
   }, [options, variants, selectedVariantIds]);
 
   // Handle selection change from grid
-  const handleSelectionChanged = useCallback(
-    (event: SelectionChangedEvent<IVariantRow>) => {
-      const selectedNodes = event.api.getSelectedNodes();
-      const selectedIds = selectedNodes
-        .map((node) => node.data?.id)
-        .filter((id): id is string => !!id);
-      setSelectedVariantIds(selectedIds);
-    },
-    []
-  );
+  const handleSelectionChanged = useCallback((event: SelectionChangedEvent<IVariantRow>) => {
+    const selectedNodes = event.api.getSelectedNodes();
+    const selectedIds = selectedNodes
+      .map((node) => node.data?.id)
+      .filter((id): id is string => !!id);
+    setSelectedVariantIds(selectedIds);
+  }, []);
 
   // Handle row drag end
-  const handleRowDragEnd = useCallback(
-    (event: RowDragEndEvent<IVariantRow>) => {
-      const { node, overIndex } = event;
-      if (overIndex === undefined || overIndex === null) return;
+  const handleRowDragEnd = useCallback((event: RowDragEndEvent<IVariantRow>) => {
+    const { node, overIndex } = event;
+    if (overIndex === undefined || overIndex === null) return;
 
-      const movedItem = node.data;
-      if (!movedItem) return;
+    const movedItem = node.data;
+    if (!movedItem) return;
 
-      setRowData((prev) => {
-        const newData = [...prev];
-        const oldIndex = newData.findIndex((item) => item.id === movedItem.id);
-        newData.splice(oldIndex, 1);
-        newData.splice(overIndex, 0, movedItem);
+    setRowData((prev) => {
+      const newData = [...prev];
+      const oldIndex = newData.findIndex((item) => item.id === movedItem.id);
+      newData.splice(oldIndex, 1);
+      newData.splice(overIndex, 0, movedItem);
 
-        // Update sort indices
-        return newData.map((item, index) => ({
-          ...item,
-          sortIndex: index,
-        }));
-      });
-    },
-    []
-  );
+      // Update sort indices
+      return newData.map((item, index) => ({
+        ...item,
+        sortIndex: index,
+      }));
+    });
+  }, []);
 
   // Toggle by option value
   const handleOptionValueToggle = useCallback(
     (optionId: string, value: string, checked: boolean) => {
       const variantsWithValue = variants.filter((v) =>
-        v.options?.some((o) => o.optionId === optionId && o.value === value)
+        v.options?.some((o) => o.optionId === optionId && o.value === value),
       );
 
       if (checked) {
@@ -323,12 +306,10 @@ export const VariantSettingsModal = () => {
         ]);
       } else {
         const variantIdsToRemove = variantsWithValue.map((v) => v.id);
-        setSelectedVariantIds((prev) =>
-          prev.filter((id) => !variantIdsToRemove.includes(id))
-        );
+        setSelectedVariantIds((prev) => prev.filter((id) => !variantIdsToRemove.includes(id)));
       }
     },
-    [variants]
+    [variants],
   );
 
   // Save changes
@@ -354,7 +335,7 @@ export const VariantSettingsModal = () => {
   // Price rule label for display
   const priceRuleLabel = useMemo(
     () => formatPriceRule(priceType, priceValue),
-    [priceType, priceValue]
+    [priceType, priceValue],
   );
 
   // Column definitions
@@ -397,7 +378,7 @@ export const VariantSettingsModal = () => {
         cellRenderer: FinalPriceCellRenderer,
       },
     ],
-    [priceRuleLabel]
+    [priceRuleLabel],
   );
 
   const defaultColDef = useMemo<ColDef>(
@@ -406,13 +387,10 @@ export const VariantSettingsModal = () => {
       sortable: true,
       suppressMovable: true,
     }),
-    []
+    [],
   );
 
-  const getRowId = useCallback(
-    (params: GetRowIdParams<IVariantRow>) => params.data.id,
-    []
-  );
+  const getRowId = useCallback((params: GetRowIdParams<IVariantRow>) => params.data.id, []);
 
   // Sync grid selection with state
   const onGridReady = useCallback(() => {
@@ -463,22 +441,16 @@ export const VariantSettingsModal = () => {
         {/* Option Filters */}
         {optionGroups.length > 0 && (
           <div className={styles.section}>
-            <Typography.Text className={styles.sectionTitle}>
-              Filter by Options
-            </Typography.Text>
+            <Typography.Text className={styles.sectionTitle}>Filter by Options</Typography.Text>
             {optionGroups.map((group) => (
               <div key={group.id} className={styles.optionGroup}>
-                <Typography.Text className={styles.optionGroupTitle}>
-                  {group.name}
-                </Typography.Text>
+                <Typography.Text className={styles.optionGroupTitle}>{group.name}</Typography.Text>
                 <div className={styles.optionValues}>
                   {group.values.map(({ value, isSelected, count }) => (
                     <Tag.CheckableTag
                       key={value}
                       checked={isSelected}
-                      onChange={(checked) =>
-                        handleOptionValueToggle(group.id, value, checked)
-                      }
+                      onChange={(checked) => handleOptionValueToggle(group.id, value, checked)}
                     >
                       {value} ({count})
                     </Tag.CheckableTag>
@@ -503,10 +475,7 @@ export const VariantSettingsModal = () => {
           </div>
 
           {variants.length === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No variants"
-            />
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No variants" />
           ) : (
             <div className={styles.gridWrapper}>
               <AgGridReact<IVariantRow>
@@ -543,10 +512,7 @@ export const VariantSettingsModal = () => {
               Display each variant as a separate row in the component items table
             </Typography.Text>
           </div>
-          <Switch
-            checked={showAsVariants}
-            onChange={setShowAsVariants}
-          />
+          <Switch checked={showAsVariants} onChange={setShowAsVariants} />
         </Flex>
       </div>
     </ModalLayout>

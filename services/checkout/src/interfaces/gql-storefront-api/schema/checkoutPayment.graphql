@@ -63,7 +63,9 @@ input CheckoutPaymentMethodUpdateInput {
   """
   checkoutId: ID!
 
-  """Opaque handle returned by the current checkout snapshot."""
+  """
+  Opaque handle returned by the current checkout snapshot.
+  """
   methodHandle: String!
 
   """
@@ -73,12 +75,18 @@ input CheckoutPaymentMethodUpdateInput {
   customerInput: JSON
 }
 
-"""Input used to place one immutable checkout snapshot."""
+"""
+Input used to place one immutable checkout snapshot.
+"""
 input PlaceOrderInput {
-  """Checkout identifier."""
+  """
+  Checkout identifier.
+  """
   checkoutId: ID!
 
-  """Pipeline revision returned by Checkout.resultRevision."""
+  """
+  Pipeline revision returned by Checkout.resultRevision.
+  """
   expectedResultRevision: String!
 
   """
@@ -87,7 +95,9 @@ input PlaceOrderInput {
   """
   idempotencyKey: String!
 
-  """HTTPS URL to which an online payment provider may return the customer."""
+  """
+  HTTPS URL to which an online payment provider may return the customer.
+  """
   returnUrl: String
 }
 
@@ -120,7 +130,9 @@ enum PlaceOrderPaymentFailureCategory {
   UNKNOWN
 }
 
-"""Customer interaction required to continue payment."""
+"""
+Customer interaction required to continue payment.
+"""
 type PlaceOrderCustomerAction {
   type: PlaceOrderCustomerActionType!
   url: String
@@ -130,7 +142,9 @@ type PlaceOrderCustomerAction {
   data: JSON
 }
 
-"""Normalized terminal or retryable payment failure."""
+"""
+Normalized terminal or retryable payment failure.
+"""
 type PlaceOrderPaymentFailure {
   category: PlaceOrderPaymentFailureCategory!
   code: String!
@@ -139,15 +153,25 @@ type PlaceOrderPaymentFailure {
   providerCode: String
 }
 
-"""Result of the durable place-order workflow."""
+"""
+Result of the durable place-order workflow.
+"""
 type PlaceOrderPayload {
-  """Durable placement identifier used by Query.checkoutPlacement."""
+  """
+  Durable placement identifier used by Query.checkoutPlacement.
+  """
   placementId: ID
-  """Persisted orchestration state used for recovery and reconciliation."""
+  """
+  Persisted orchestration state used for recovery and reconciliation.
+  """
   placementState: CheckoutPlacementState
-  """Checkout snapshot committed by this placement."""
+  """
+  Checkout snapshot committed by this placement.
+  """
   checkoutId: ID
-  """Checkout.resultRevision captured by this placement."""
+  """
+  Checkout.resultRevision captured by this placement.
+  """
   resultRevision: String
   orderId: ID
   status: PlaceOrderStatus
@@ -156,7 +180,9 @@ type PlaceOrderPayload {
   paymentOperationId: ID
   customerAction: PlaceOrderCustomerAction
   paymentFailure: PlaceOrderPaymentFailure
-  """Validation, stale-snapshot, and business errors produced before placement."""
+  """
+  Validation, stale-snapshot, and business errors produced before placement.
+  """
   userErrors: [CheckoutUserError!]!
 }
 

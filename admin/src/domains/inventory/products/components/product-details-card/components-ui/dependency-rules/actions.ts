@@ -35,20 +35,21 @@ export const ACTIONS_BY_CATEGORY: Record<ActionCategory, ProductComponentDepende
   [ActionCategory.PRICE]: [ProductComponentDependencyActionType.AdjustPrice],
 };
 
-export const CATEGORIES_BY_TARGET: Record<ProductComponentDependencyTargetType, ActionCategory[]> = {
-  [ProductComponentDependencyTargetType.Item]: [
-    ActionCategory.VISIBILITY,
-    ActionCategory.PRICE,
-  ],
-  [ProductComponentDependencyTargetType.Group]: [
-    ActionCategory.VISIBILITY,
-    ActionCategory.SELECTION,
-    ActionCategory.PRICE,
-  ],
-  [ProductComponentDependencyTargetType.Configuration]: [ActionCategory.PRICE],
-};
+export const CATEGORIES_BY_TARGET: Record<ProductComponentDependencyTargetType, ActionCategory[]> =
+  {
+    [ProductComponentDependencyTargetType.Item]: [ActionCategory.VISIBILITY, ActionCategory.PRICE],
+    [ProductComponentDependencyTargetType.Group]: [
+      ActionCategory.VISIBILITY,
+      ActionCategory.SELECTION,
+      ActionCategory.PRICE,
+    ],
+    [ProductComponentDependencyTargetType.Configuration]: [ActionCategory.PRICE],
+  };
 
-export const ACTIONS_BY_TARGET: Record<ProductComponentDependencyTargetType, ProductComponentDependencyActionType[]> = {
+export const ACTIONS_BY_TARGET: Record<
+  ProductComponentDependencyTargetType,
+  ProductComponentDependencyActionType[]
+> = {
   [ProductComponentDependencyTargetType.Item]: [
     ProductComponentDependencyActionType.Show,
     ProductComponentDependencyActionType.Hide,

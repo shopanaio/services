@@ -1,8 +1,5 @@
 import DataLoader from "dataloader";
-import {
-  authorizeAdminContext,
-  type AdminContextClaims,
-} from "@shopana/shared-context";
+import { authorizeAdminContext, type AdminContextClaims } from "@shopana/shared-context";
 
 export interface AuthRequest {
   userId: string;
@@ -15,9 +12,7 @@ export interface AuthRequest {
 /**
  * Creates a DataLoader for request-local authorization checks.
  */
-export function createAuthorizationLoader(
-  adminContext?: AdminContextClaims,
-) {
+export function createAuthorizationLoader(adminContext?: AdminContextClaims) {
   return new DataLoader<AuthRequest, boolean, string>(
     async (requests) =>
       requests.map((request) =>
@@ -39,7 +34,7 @@ export function createAuthorizationLoader(
           req.resource,
           req.action,
         ]),
-    }
+    },
   );
 }
 

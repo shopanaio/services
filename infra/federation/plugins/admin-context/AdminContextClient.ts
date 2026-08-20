@@ -15,32 +15,20 @@ export class AdminContextClient {
       throw new Error("Admin context resolver configuration is required");
     }
     if (Buffer.byteLength(serviceToken, "utf8") < 32) {
-      throw new Error(
-        "ADMIN_CONTEXT_RESOLVER_INTERNAL_TOKEN must be at least 32 bytes",
-      );
+      throw new Error("ADMIN_CONTEXT_RESOLVER_INTERNAL_TOKEN must be at least 32 bytes");
     }
-    if (
-      !Number.isInteger(timeoutMs) ||
-      timeoutMs < 1 ||
-      timeoutMs > 60_000
-    ) {
-      throw new Error(
-        "ADMIN_CONTEXT_RESOLVE_TIMEOUT_MS must be an integer between 1 and 60000",
-      );
+    if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 60_000) {
+      throw new Error("ADMIN_CONTEXT_RESOLVE_TIMEOUT_MS must be an integer between 1 and 60000");
     }
     const parsedOrigin = new URL(origin);
     if (
-      (parsedOrigin.protocol !== "http:" &&
-        parsedOrigin.protocol !== "https:") ||
+      (parsedOrigin.protocol !== "http:" && parsedOrigin.protocol !== "https:") ||
       parsedOrigin.username ||
       parsedOrigin.password
     ) {
       throw new Error("ADMIN_CONTEXT_RESOLVER_URL is invalid");
     }
-    this.endpoint = new URL(
-      "/internal/admin-context/resolve",
-      parsedOrigin,
-    );
+    this.endpoint = new URL("/internal/admin-context/resolve", parsedOrigin);
   }
 
   async resolve(input: {
@@ -67,18 +55,14 @@ export class AdminContextClient {
       await discardResponse(response);
       throw new Error(`Admin context resolver returned ${response.status}`);
     }
-    return parseResolvedAdminAccessContext(
-      (await response.json()) as unknown,
-    );
+    return parseResolvedAdminAccessContext((await response.json()) as unknown);
   }
 }
 
 async function readErrorCode(response: Response): Promise<string | undefined> {
   try {
     const value = (await response.json()) as unknown;
-    return isRecord(value) && typeof value.code === "string"
-      ? value.code
-      : undefined;
+    return isRecord(value) && typeof value.code === "string" ? value.code : undefined;
   } catch {
     await discardResponse(response);
     return undefined;

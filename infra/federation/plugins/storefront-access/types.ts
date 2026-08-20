@@ -27,9 +27,7 @@ export function parseResolvedStorefrontAccessContext(
     (store.segmentConfigurationRevision as number) < 0 ||
     !Array.isArray(permissions) ||
     !permissions.every(
-      (permission) =>
-        typeof permission === "string" &&
-        isStorefrontPermission(permission),
+      (permission) => typeof permission === "string" && isStorefrontPermission(permission),
     ) ||
     new Set(permissions).size !== permissions.length ||
     access.mode !== expectedMode ||
@@ -49,8 +47,7 @@ export function parseResolvedStorefrontAccessContext(
     defaultLocale: requiredString(store, "defaultLocale"),
     locales: Object.freeze([...locales] as string[]),
     currencyCode: requiredString(store, "currencyCode"),
-    segmentConfigurationRevision:
-      store.segmentConfigurationRevision as number,
+    segmentConfigurationRevision: store.segmentConfigurationRevision as number,
   };
   if (!parsedStore.locales.includes(parsedStore.defaultLocale)) {
     throw new Error("Invalid storefront resolver response");
@@ -63,24 +60,15 @@ export function parseResolvedStorefrontAccessContext(
       installationId: requiredString(access, "installationId"),
       credentialId: requiredString(access, "credentialId"),
       mode: expectedMode,
-      permissions: Object.freeze(
-        [...permissions] as StorefrontPermission[],
-      ),
+      permissions: Object.freeze([...permissions] as StorefrontPermission[]),
       policyRevision: access.policyRevision as number,
     }),
   });
 }
 
-function requiredString(
-  value: Record<string, unknown>,
-  key: string,
-): string {
+function requiredString(value: Record<string, unknown>, key: string): string {
   const current = value[key];
-  if (
-    typeof current !== "string" ||
-    current.length === 0 ||
-    current.length > 1_024
-  ) {
+  if (typeof current !== "string" || current.length === 0 || current.length > 1_024) {
     throw new Error("Invalid storefront resolver response");
   }
   return current;

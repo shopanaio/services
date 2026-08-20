@@ -34,7 +34,10 @@ export function ReviewModal() {
   const handleDelete = async () => {
     if (!review) return;
     const result = await actions.deleteReview({ id: review.id, expectedRevision: review.revision });
-    if (!result.id || result.errors.length) throw new Error(result.errors.map((item) => item.message).join(" ") || "Unable to delete review");
+    if (!result.id || result.errors.length)
+      throw new Error(
+        result.errors.map((item) => item.message).join(" ") || "Unable to delete review",
+      );
     await value.onSaved?.();
     message.success("Review deleted");
     forcePop();
@@ -43,7 +46,10 @@ export function ReviewModal() {
   const handleRedact = async () => {
     if (!review) return;
     const result = await actions.redact(review.id, review.revision);
-    if (!result.content || result.errors.length) throw new Error(result.errors.map((item) => item.message).join(" ") || "Unable to redact review");
+    if (!result.content || result.errors.length)
+      throw new Error(
+        result.errors.map((item) => item.message).join(" ") || "Unable to redact review",
+      );
     await refresh();
     message.success("Review redacted");
   };
@@ -59,7 +65,10 @@ export function ReviewModal() {
   };
 
   return (
-    <ModalLayout name="review-details" headerProps={{ title: "Review details", onClose: pop, submitButtonProps: null }}>
+    <ModalLayout
+      name="review-details"
+      headerProps={{ title: "Review details", onClose: pop, submitButtonProps: null }}
+    >
       {query.loading && !review ? (
         <Flex vertical gap={12}>
           <Skeleton active paragraph={{ rows: 4 }} />
@@ -86,7 +95,14 @@ export function ReviewModal() {
           onRedact={handleRedact}
           onOpenTechnicalMetadata={() => openTechnicalMetadata({ entityId: review.id })}
           onOpenProduct={() => openProduct({ entityId: review.product.id })}
-          onOpenMediaItem={(item) => openEdit({ entityId: review.id, section: "media", initialMediaFileId: item.file.id, onSaved: refresh })}
+          onOpenMediaItem={(item) =>
+            openEdit({
+              entityId: review.id,
+              section: "media",
+              initialMediaFileId: item.file.id,
+              onSaved: refresh,
+            })
+          }
           onAddExternalReference={() => editExternalReference()}
           onEditExternalReference={editExternalReference}
         />

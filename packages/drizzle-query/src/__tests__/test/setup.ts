@@ -69,7 +69,7 @@ export const productsView = pgView("products_view").as((qb) =>
       `.as("price_range"),
     })
     .from(products)
-    .where(sql`${products.deletedAt} IS NULL`)
+    .where(sql`${products.deletedAt} IS NULL`),
 );
 
 // Qualified table in "analytics" schema

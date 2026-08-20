@@ -26,7 +26,9 @@ import {
 export const reservations = loyaltySchema.table(
   "reservation",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     programId: uuid("program_id").notNull(),
     programVersionId: uuid("program_version_id").notNull(),
@@ -88,11 +90,7 @@ export const reservations = loyaltySchema.table(
     foreignKey({
       name: "loyalty_reservation_program_version_fk",
       columns: [table.programVersionId, table.programId, table.storeId],
-      foreignColumns: [
-        programVersions.id,
-        programVersions.programId,
-        programVersions.storeId,
-      ],
+      foreignColumns: [programVersions.id, programVersions.programId, programVersions.storeId],
     }),
     foreignKey({
       name: "loyalty_reservation_account_fk",
@@ -100,10 +98,7 @@ export const reservations = loyaltySchema.table(
       foreignColumns: [accounts.id, accounts.programId, accounts.storeId],
     }),
     unique("loyalty_reservation_id_store_unique").on(table.id, table.storeId),
-    unique("loyalty_reservation_store_idempotency_unique").on(
-      table.storeId,
-      table.idempotencyKey,
-    ),
+    unique("loyalty_reservation_store_idempotency_unique").on(table.storeId, table.idempotencyKey),
     uniqueIndex("loyalty_reservation_one_active_checkout_idx")
       .on(table.storeId, table.accountId, table.checkoutId)
       .where(sql`${table.status} = 'ACTIVE'`),
@@ -113,35 +108,17 @@ export const reservations = loyaltySchema.table(
     index("loyalty_reservation_order_idx")
       .on(table.storeId, table.orderId, table.id)
       .where(sql`${table.orderId} IS NOT NULL`),
-    check(
-      "loyalty_reservation_checkout_version_check",
-      sql`${table.checkoutVersion} > 0`,
-    ),
+    check("loyalty_reservation_checkout_version_check", sql`${table.checkoutVersion} > 0`),
     check("loyalty_reservation_points_check", sql`${table.points} > 0`),
-    check(
-      "loyalty_reservation_discount_check",
-      sql`${table.discountAmountMinor} > 0`,
-    ),
-    check(
-      "loyalty_reservation_currency_check",
-      sql`${table.currencyCode} ~ '^[A-Z]{3}$'`,
-    ),
-    check(
-      "loyalty_reservation_request_hash_check",
-      sql`${table.requestHash} ~ '^[0-9a-f]{64}$'`,
-    ),
+    check("loyalty_reservation_discount_check", sql`${table.discountAmountMinor} > 0`),
+    check("loyalty_reservation_currency_check", sql`${table.currencyCode} ~ '^[A-Z]{3}$'`),
+    check("loyalty_reservation_request_hash_check", sql`${table.requestHash} ~ '^[0-9a-f]{64}$'`),
     check(
       "loyalty_reservation_quote_revision_check",
       sql`${table.quoteRevision} ~ '^[0-9a-f]{64}$'`,
     ),
-    check(
-      "loyalty_reservation_expiry_check",
-      sql`${table.expiresAt} > ${table.createdAt}`,
-    ),
-    check(
-      "loyalty_reservation_revision_check",
-      sql`${table.revision} > 0`,
-    ),
+    check("loyalty_reservation_expiry_check", sql`${table.expiresAt} > ${table.createdAt}`),
+    check("loyalty_reservation_revision_check", sql`${table.revision} > 0`),
     check(
       "loyalty_reservation_order_pair_check",
       sql`(${table.orderId} IS NULL) = (${table.orderRevision} IS NULL)`,
@@ -170,7 +147,9 @@ export const reservations = loyaltySchema.table(
 export const reservationEvents = loyaltySchema.table(
   "reservation_event",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     reservationId: uuid("reservation_id").notNull(),
     eventType: reservationEventTypeEnum("event_type").notNull(),
@@ -217,10 +196,7 @@ export const reservationEvents = loyaltySchema.table(
       table.occurredAt,
       table.id,
     ),
-    check(
-      "loyalty_reservation_event_reason_check",
-      sql`btrim(${table.reasonCode}) <> ''`,
-    ),
+    check("loyalty_reservation_event_reason_check", sql`btrim(${table.reasonCode}) <> ''`),
     check(
       "loyalty_reservation_event_metadata_check",
       sql`jsonb_typeof(${table.metadata}) = 'object'`,

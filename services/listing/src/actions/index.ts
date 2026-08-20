@@ -43,10 +43,7 @@ export class ListingBrokerActions extends BrokerActions {
     params: PreviewCollectionRulesParams,
     ctx: BrokerCallContext,
   ): Promise<PreviewCollectionRulesResult> {
-    if (
-      ctx.caller.kind !== "action" ||
-      ctx.caller.service !== "catalog"
-    ) {
+    if (ctx.caller.kind !== "action" || ctx.caller.service !== "catalog") {
       return {
         ok: false,
         code: "INVALID_COLLECTION_RULES",
@@ -54,9 +51,7 @@ export class ListingBrokerActions extends BrokerActions {
         retryable: false,
       };
     }
-    if (
-      !params.storeId
-    ) {
+    if (!params.storeId) {
       return {
         ok: false,
         code: "INVALID_COLLECTION_RULES",
@@ -79,17 +74,13 @@ export class ListingBrokerActions extends BrokerActions {
       return {
         ok: false,
         code: "INVALID_COLLECTION_RULES",
-        message:
-          error instanceof Error ? error.message : "Collection rules are invalid",
+        message: error instanceof Error ? error.message : "Collection rules are invalid",
         retryable: false,
         field: ["rules"],
       };
     }
     const expectedHash = hashCanonicalCollectionRulesV1(rules);
-    if (
-      typeof params.rulesHash !== "string" ||
-      !safeHashEquals(expectedHash, params.rulesHash)
-    ) {
+    if (typeof params.rulesHash !== "string" || !safeHashEquals(expectedHash, params.rulesHash)) {
       return {
         ok: false,
         code: "COLLECTION_RULE_HASH_MISMATCH",
@@ -98,9 +89,7 @@ export class ListingBrokerActions extends BrokerActions {
         field: ["rulesHash"],
       };
     }
-    const callerStoreId =
-      ctx.adminContext?.store?.id ??
-      ctx.app?.storeId;
+    const callerStoreId = ctx.adminContext?.store?.id ?? ctx.app?.storeId;
     if (callerStoreId && callerStoreId !== params.storeId) {
       return {
         ok: false,
@@ -111,10 +100,10 @@ export class ListingBrokerActions extends BrokerActions {
     }
     let storeResult: PreviewStoreContextResult;
     try {
-      storeResult = await this.broker.call<
-        PreviewStoreContextResult,
-        { id: string }
-      >("project.getStoreById", { id: params.storeId });
+      storeResult = await this.broker.call<PreviewStoreContextResult, { id: string }>(
+        "project.getStoreById",
+        { id: params.storeId },
+      );
     } catch {
       return {
         ok: false,
@@ -152,8 +141,5 @@ export class ListingBrokerActions extends BrokerActions {
 function safeHashEquals(left: string, right: string): boolean {
   const leftBytes = Buffer.from(left);
   const rightBytes = Buffer.from(right);
-  return (
-    leftBytes.length === rightBytes.length &&
-    timingSafeEqual(leftBytes, rightBytes)
-  );
+  return leftBytes.length === rightBytes.length && timingSafeEqual(leftBytes, rightBytes);
 }

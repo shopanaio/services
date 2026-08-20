@@ -5,10 +5,7 @@ import {
   type FileDeleteResult,
 } from "./dto/FileDeleteDto.js";
 
-export class FileDeleteScript extends BaseScript<
-  FileDeleteParams,
-  FileDeleteResult
-> {
+export class FileDeleteScript extends BaseScript<FileDeleteParams, FileDeleteResult> {
   @ZodSchema(fileDeleteSchema)
   protected async execute(params: FileDeleteParams): Promise<FileDeleteResult> {
     const file = await this.findStoreFile(params.id, true);
@@ -25,9 +22,7 @@ export class FileDeleteScript extends BaseScript<
       };
     }
 
-    const deletionState = await this.repository.fileDeletionState.findByFileId(
-      params.id
-    );
+    const deletionState = await this.repository.fileDeletionState.findByFileId(params.id);
 
     if (deletionState?.deletionState === "DELETING") {
       return {
@@ -59,15 +54,11 @@ export class FileDeleteScript extends BaseScript<
   }
 
   private async startHardDeleteWorkflow(fileId: string): Promise<void> {
-    await this.services.broker.runWorkflow(
-      "media.fileHardDelete",
-      fileId,
-      {
-        source: "workflow",
-        workflowId: `fileDelete:${fileId}`,
-        stepId: "startHardDelete",
-      }
-    );
+    await this.services.broker.runWorkflow("media.fileHardDelete", fileId, {
+      source: "workflow",
+      workflowId: `fileDelete:${fileId}`,
+      stepId: "startHardDelete",
+    });
   }
 
   protected handleError(error: unknown): FileDeleteResult {

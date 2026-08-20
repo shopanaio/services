@@ -2,9 +2,7 @@
 
 import { useMutation } from "@apollo/client/react";
 import type { ApiProductOptionCategoryCreateInput } from "@/graphql/types";
-import {
-  PRODUCT_OPTION_CATEGORY_CREATE_MUTATION,
-} from "../graphql/mutations";
+import { PRODUCT_OPTION_CATEGORY_CREATE_MUTATION } from "../graphql/mutations";
 import { PRODUCT_OPTION_CATEGORIES_QUERY } from "../graphql/queries";
 import type {
   ProductOptionCategoryCreateMutationData,

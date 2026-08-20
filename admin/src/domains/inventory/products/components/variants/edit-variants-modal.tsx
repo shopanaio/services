@@ -7,14 +7,8 @@ import { ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { useDefaultCurrency } from "@/domains/workspace";
 import { useVariantsEditorStore } from "./hooks";
 import { VariantsColumnSettings } from "./components/variants-column-settings";
-import {
-  extractOptionGroups,
-  VariantsEditorGrid,
-} from "./components/variants-editor-grid";
-import type {
-  IVariantEditorRow,
-  IOptionGroup,
-} from "./config/types";
+import { extractOptionGroups, VariantsEditorGrid } from "./components/variants-editor-grid";
+import type { IVariantEditorRow, IOptionGroup } from "./config/types";
 import type { IEditVariantsModalPayload } from "../../modals";
 import {
   apiVariantsToVariantOptionRows,
@@ -84,8 +78,7 @@ export const EditVariantsModal = () => {
   const { payload, pop, forcePop, setDirty } = useModalStackContext();
   const typedPayload = payload as IEditVariantsModalPayload;
   const storeDefaultCurrency = useDefaultCurrency();
-  const defaultCurrency =
-    typedPayload.defaultCurrency ?? storeDefaultCurrency ?? null;
+  const defaultCurrency = typedPayload.defaultCurrency ?? storeDefaultCurrency ?? null;
   const allowDraftRows = typedPayload.allowDraftRows ?? true;
   const allowDeleteRows = typedPayload.allowDeleteRows ?? allowDraftRows;
 
@@ -101,9 +94,7 @@ export const EditVariantsModal = () => {
   const setRowErrors = useVariantsEditorStore((s) => s.setRowErrors);
   const commitDeletedRows = useVariantsEditorStore((s) => s.commitDeletedRows);
   const restoreDeletedRows = useVariantsEditorStore((s) => s.restoreDeletedRows);
-  const materializeDraftRows = useVariantsEditorStore(
-    (s) => s.materializeDraftRows,
-  );
+  const materializeDraftRows = useVariantsEditorStore((s) => s.materializeDraftRows);
   const getCurrentRows = useVariantsEditorStore((s) => s.getCurrentRows);
   const getRowsForSave = useVariantsEditorStore((s) => s.getRowsForSave);
 
@@ -117,36 +108,24 @@ export const EditVariantsModal = () => {
   // Transform variants to input format
   const variantInputs = useMemo(
     () =>
-      mapApiVariantsToEditorInputs(
-        typedPayload.variants,
-        typedPayload.productOptions,
-        { productMediaFiles: typedPayload.productMediaFiles },
-      ),
-    [
-      typedPayload.productOptions,
-      typedPayload.productMediaFiles,
-      typedPayload.variants,
-    ],
+      mapApiVariantsToEditorInputs(typedPayload.variants, typedPayload.productOptions, {
+        productMediaFiles: typedPayload.productMediaFiles,
+      }),
+    [typedPayload.productOptions, typedPayload.productMediaFiles, typedPayload.variants],
   );
 
   // Extract option groups for column settings
   const optionGroups = useMemo<IOptionGroup[]>(
     () => extractOptionGroups(variantInputs, typedPayload.productOptions),
-    [typedPayload.productOptions, variantInputs]
+    [typedPayload.productOptions, variantInputs],
   );
 
   const originalOptionRows = useMemo(
-    () => apiVariantsToVariantOptionRows(
-      typedPayload.variants,
-      typedPayload.productOptions,
-    ),
+    () => apiVariantsToVariantOptionRows(typedPayload.variants, typedPayload.productOptions),
     [typedPayload.productOptions, typedPayload.variants],
   );
 
-  const baseRows = useMemo(
-    () => mapVariantEditorInputsToRows(variantInputs),
-    [variantInputs],
-  );
+  const baseRows = useMemo(() => mapVariantEditorInputsToRows(variantInputs), [variantInputs]);
 
   // Sync dirty state
   useEffect(() => {
@@ -169,13 +148,8 @@ export const EditVariantsModal = () => {
 
   // Handle save
   const handleSave = useCallback(async () => {
-    const currentRows = getCurrentRows(baseRows).filter(
-      (row) => row.kind !== "blank",
-    );
-    const optionValidation = validateVariantOptionRows(
-      currentRows,
-      typedPayload.productOptions,
-    );
+    const currentRows = getCurrentRows(baseRows).filter((row) => row.kind !== "blank");
+    const optionValidation = validateVariantOptionRows(currentRows, typedPayload.productOptions);
 
     if (optionValidation.hasErrors) {
       const validationRowErrors: Record<string, string | null> = {};
@@ -195,17 +169,13 @@ export const EditVariantsModal = () => {
 
     setRowErrors({});
     const { existingRows, draftRows, deletedRows } = getRowsForSave(baseRows);
-    const existingCurrentRows = currentRows.filter(
-      (row) => row.kind !== "draft",
-    );
+    const existingCurrentRows = currentRows.filter((row) => row.kind !== "draft");
     const optionOperations = variantOptionRowsToProductUpdateInput(
       existingCurrentRows,
       originalOptionRows,
       typedPayload.productOptions,
     );
-    const additionalOperations = optionOperations.variants?.length
-      ? optionOperations
-      : undefined;
+    const additionalOperations = optionOperations.variants?.length ? optionOperations : undefined;
 
     startSaving();
 
@@ -247,11 +217,7 @@ export const EditVariantsModal = () => {
       );
     } catch (err) {
       onSaveError();
-      message.error(
-        err instanceof Error
-          ? err.message
-          : "Variant changes could not be saved.",
-      );
+      message.error(err instanceof Error ? err.message : "Variant changes could not be saved.");
     }
   }, [
     baseRows,
@@ -306,9 +272,7 @@ export const EditVariantsModal = () => {
           children: (
             <>
               Save
-              {hasChanges && (
-                <Tag className={styles.countTag}>{changesCount}</Tag>
-              )}
+              {hasChanges && <Tag className={styles.countTag}>{changesCount}</Tag>}
             </>
           ),
         },

@@ -16,7 +16,8 @@ export class SegmentRegistry {
       if (!IDENTIFIER.test(descriptor.name)) {
         throw new Error(`Invalid segment registry identifier: ${descriptor.name}`);
       }
-      if (map.has(descriptor.name)) throw new Error(`Duplicate segment registry entry: ${descriptor.name}`);
+      if (map.has(descriptor.name))
+        throw new Error(`Duplicate segment registry entry: ${descriptor.name}`);
       if (descriptor.kind === "FUNCTION") {
         const names = new Set<string>();
         for (const parameter of descriptor.parameters) {

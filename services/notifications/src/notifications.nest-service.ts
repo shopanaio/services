@@ -1,10 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from "@nestjs/common";
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import type { FastifyInstance } from "fastify";
 import {
   DATABASE_CLIENT,
@@ -22,9 +16,7 @@ import { Kernel } from "./kernel/Kernel.js";
 const { global, service } = getServiceConfig("notifications");
 
 @Injectable()
-export class NotificationsNestService
-  implements OnModuleInit, OnModuleDestroy
-{
+export class NotificationsNestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NotificationsNestService.name);
   private kernel!: Kernel;
   private server: FastifyInstance | null = null;
@@ -33,7 +25,7 @@ export class NotificationsNestService
   constructor(
     @InjectBroker("notifications") private readonly broker: ServiceBroker,
     @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
-    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
+    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -43,16 +35,9 @@ export class NotificationsNestService
         ? ""
         : "shopana-development-notifications-data-protection-key");
     if (!masterKey) {
-      throw new Error(
-        "NOTIFICATIONS_DATA_PROTECTION_KEY is required in production"
-      );
+      throw new Error("NOTIFICATIONS_DATA_PROTECTION_KEY is required in production");
     }
-    this.kernel = Kernel.create(
-      this.broker,
-      this.workflow,
-      this.dbClient,
-      masterKey
-    );
+    this.kernel = Kernel.create(this.broker, this.workflow, this.dbClient, masterKey);
     this.server = await startServer({
       port: service.ports?.admin_graphql ?? 0,
     });

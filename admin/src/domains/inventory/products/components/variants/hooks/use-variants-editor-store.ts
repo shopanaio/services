@@ -1,19 +1,10 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import type { ApiGenericUserError } from "@/graphql/types";
-import type {
-  IFieldEdit,
-  IRowEdits,
-} from "@/shared/components/editor-grid/types";
-import type {
-  IVariantEditorRow,
-  VariantEditorRowKind,
-} from "../config/types";
+import type { IFieldEdit, IRowEdits } from "@/shared/components/editor-grid/types";
+import type { IVariantEditorRow, VariantEditorRowKind } from "../config/types";
 import type { VariantEditorSaveRow } from "../../../mappers/product-variant-editor.mapper";
-import {
-  DEFAULT_DIMENSION_UNIT,
-  DEFAULT_WEIGHT_UNIT,
-} from "../../../utils/product-measurements";
+import { DEFAULT_DIMENSION_UNIT, DEFAULT_WEIGHT_UNIT } from "../../../utils/product-measurements";
 
 // ============================================================================
 // Types
@@ -65,9 +56,7 @@ function createEmptyEditorRow(kind: VariantEditorRowKind): IVariantEditorRow {
   return {
     id: createEditorId(isDraft ? DRAFT_ROW_PREFIX : BLANK_ROW_PREFIX),
     kind,
-    clientMutationId: isDraft
-      ? createEditorId("variant-create:")
-      : undefined,
+    clientMutationId: isDraft ? createEditorId("variant-create:") : undefined,
     title: isDraft ? "New variant" : "Add variant",
     imageUrl: null,
     media: [],
@@ -171,10 +160,7 @@ function withRowError(
   };
 }
 
-function applyRowEdits(
-  row: IVariantEditorRow,
-  rowEdits: IRowEdits | undefined,
-): IVariantEditorRow {
+function applyRowEdits(row: IVariantEditorRow, rowEdits: IRowEdits | undefined): IVariantEditorRow {
   if (!rowEdits) {
     return row;
   }
@@ -186,9 +172,7 @@ function applyRowEdits(
 
   if (rowEdits.media) {
     const media = rowEdits.media.currentValue;
-    updatedRow.imageUrl = Array.isArray(media)
-      ? media[0]?.url ?? null
-      : updatedRow.imageUrl;
+    updatedRow.imageUrl = Array.isArray(media) ? (media[0]?.url ?? null) : updatedRow.imageUrl;
   }
 
   return updatedRow;
@@ -224,12 +208,7 @@ interface VariantsEditorStore {
   resetSession: () => void;
 
   // Actions - Editing
-  setFieldValue: (
-    rowId: string,
-    field: string,
-    originalValue: unknown,
-    newValue: unknown
-  ) => void;
+  setFieldValue: (rowId: string, field: string, originalValue: unknown, newValue: unknown) => void;
   discardAll: () => void;
   discardRow: (rowId: string) => void;
   resetEdits: () => void;
@@ -239,9 +218,7 @@ interface VariantsEditorStore {
   deleteVariantRow: (row: IVariantEditorRow) => void;
   commitDeletedRows: (rowIds: string[]) => void;
   restoreDeletedRows: (rowErrors: Record<string, string | null>) => void;
-  materializeDraftRows: (
-    results: VariantDraftMaterializationResult[],
-  ) => void;
+  materializeDraftRows: (results: VariantDraftMaterializationResult[]) => void;
   setRowErrors: (errors: Record<string, string | null>) => void;
 
   // Actions - Saving
@@ -299,9 +276,7 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
             materializedRows: [],
             deletedExistingRows: [],
             committedDeletedRowIds: [],
-            blankRow: options?.includeBlankRow
-              ? createEmptyEditorRow("blank")
-              : null,
+            blankRow: options?.includeBlankRow ? createEmptyEditorRow("blank") : null,
             rowErrors: {},
             status: "idle",
           }),
@@ -408,12 +383,8 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
             return {
               edits: restEdits,
               draftRows: state.draftRows.filter((row) => row.id !== rowId),
-              materializedRows: state.materializedRows.filter(
-                (row) => row.id !== rowId,
-              ),
-              deletedExistingRows: state.deletedExistingRows.filter(
-                (row) => row.id !== rowId,
-              ),
+              materializedRows: state.materializedRows.filter((row) => row.id !== rowId),
+              deletedExistingRows: state.deletedExistingRows.filter((row) => row.id !== rowId),
               rowErrors: restErrors,
             };
           }),
@@ -448,17 +419,13 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
 
             if (row.kind === "draft") {
               return {
-                draftRows: state.draftRows.filter(
-                  (draftRow) => draftRow.id !== row.id,
-                ),
+                draftRows: state.draftRows.filter((draftRow) => draftRow.id !== row.id),
                 rowErrors: restErrors,
               };
             }
 
             if (
-              state.deletedExistingRows.some(
-                (deletedRow) => deletedRow.id === row.id,
-              ) ||
+              state.deletedExistingRows.some((deletedRow) => deletedRow.id === row.id) ||
               state.committedDeletedRowIds.includes(row.id)
             ) {
               return {
@@ -482,9 +449,7 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
             const rowIdSet = new Set(rowIds);
 
             return {
-              deletedExistingRows: state.deletedExistingRows.filter(
-                (row) => !rowIdSet.has(row.id),
-              ),
+              deletedExistingRows: state.deletedExistingRows.filter((row) => !rowIdSet.has(row.id)),
               committedDeletedRowIds: Array.from(
                 new Set([...state.committedDeletedRowIds, ...rowIds]),
               ),
@@ -493,9 +458,7 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
         restoreDeletedRows: (rowErrors) =>
           set((state) => {
             const restoreRowIds = new Set(
-              state.deletedExistingRows
-                .map((row) => row.id)
-                .filter((rowId) => rowErrors[rowId]),
+              state.deletedExistingRows.map((row) => row.id).filter((rowId) => rowErrors[rowId]),
             );
 
             if (restoreRowIds.size === 0) {
@@ -509,10 +472,7 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
               rowErrors: {
                 ...state.rowErrors,
                 ...Object.fromEntries(
-                  Array.from(restoreRowIds).map((rowId) => [
-                    rowId,
-                    rowErrors[rowId],
-                  ]),
+                  Array.from(restoreRowIds).map((rowId) => [rowId, rowErrors[rowId]]),
                 ),
               },
             };
@@ -632,25 +592,13 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
           ]);
           const rows = baseRows
             .filter((row) => !hiddenRowIds.has(row.id))
-            .map((row) =>
-              withRowError(
-                applyRowEdits(row, state.edits[row.id]),
-                state.rowErrors,
-              ),
-            );
+            .map((row) => withRowError(applyRowEdits(row, state.edits[row.id]), state.rowErrors));
 
           const sessionRows = [
             ...state.materializedRows
               .filter((row) => !hiddenRowIds.has(row.id))
-              .map((row) =>
-                withRowError(
-                  applyRowEdits(row, state.edits[row.id]),
-                  state.rowErrors,
-                ),
-              ),
-            ...state.draftRows.map((row) =>
-              withRowError(row, state.rowErrors),
-            ),
+              .map((row) => withRowError(applyRowEdits(row, state.edits[row.id]), state.rowErrors)),
+            ...state.draftRows.map((row) => withRowError(row, state.rowErrors)),
           ];
 
           if (state.blankRow) {
@@ -660,25 +608,20 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
           return [...rows, ...sessionRows];
         },
         getRowsForSave: (baseRows) => {
-          const rows = get().getCurrentRows(baseRows).filter(
-            (row) => row.kind !== "blank",
-          );
+          const rows = get()
+            .getCurrentRows(baseRows)
+            .filter((row) => row.kind !== "blank");
 
           return {
-            existingRows: rows
-              .filter((row) => row.kind !== "draft")
-              .map(rowToSaveRow),
-            draftRows: rows
-              .filter((row) => row.kind === "draft")
-              .map(rowToSaveRow),
+            existingRows: rows.filter((row) => row.kind !== "draft").map(rowToSaveRow),
+            draftRows: rows.filter((row) => row.kind === "draft").map(rowToSaveRow),
             deletedRows: get().deletedExistingRows.map(rowToSaveRow),
           };
         },
         getRowEdits: (rowId) => get().edits[rowId],
         getFieldEdit: (rowId, field) => get().edits[rowId]?.[field],
         isColumnVisible: (field) => get().columnVisibility[field] ?? true,
-        isOptionColumnVisible: (optionName) =>
-          get().optionColumnVisibility[optionName] ?? true,
+        isOptionColumnVisible: (optionName) => get().optionColumnVisibility[optionName] ?? true,
       }),
       {
         name: "variants-editor-store",
@@ -686,8 +629,8 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
           columnVisibility: state.columnVisibility,
           optionColumnVisibility: state.optionColumnVisibility,
         }),
-      }
+      },
     ),
-    { name: "variants-editor" }
-  )
+    { name: "variants-editor" },
+  ),
 );

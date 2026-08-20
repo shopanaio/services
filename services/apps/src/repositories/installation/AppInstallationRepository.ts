@@ -1,21 +1,10 @@
-import {
-  and,
-  desc,
-  eq,
-  inArray,
-  ne,
-  sql,
-  type SQL,
-} from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql, type SQL } from "drizzle-orm";
 import type { AppInstallationStatus } from "@shopana/app-sdk";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { AppInstallationRecord } from "../../control-plane/types.js";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  appInstallations,
-  type AppInstallationModel,
-} from "../models/index.js";
+import { appInstallations, type AppInstallationModel } from "../models/index.js";
 
 export interface CreateAppInstallationInput {
   readonly appCode: string;
@@ -29,22 +18,24 @@ export interface CreateAppInstallationInput {
 }
 
 export type UpdateAppInstallationInput = {
-  -readonly [Key in keyof Pick<
-    AppInstallationRecord,
-    | "status"
-    | "installedVersion"
-    | "targetVersion"
-    | "manifestHash"
-    | "configuration"
-    | "configurationVersion"
-    | "installedByUserId"
-    | "healthStatus"
-    | "lastErrorCode"
-    | "lastErrorMessage"
-    | "installedAt"
-    | "suspendedAt"
-    | "uninstalledAt"
-  >]?: Pick<
+  -readonly [
+    Key in keyof Pick<
+      AppInstallationRecord,
+      | "status"
+      | "installedVersion"
+      | "targetVersion"
+      | "manifestHash"
+      | "configuration"
+      | "configurationVersion"
+      | "installedByUserId"
+      | "healthStatus"
+      | "lastErrorCode"
+      | "lastErrorMessage"
+      | "installedAt"
+      | "suspendedAt"
+      | "uninstalledAt"
+    >
+  ]?: Pick<
     AppInstallationRecord,
     | "status"
     | "installedVersion"
@@ -63,17 +54,11 @@ export type UpdateAppInstallationInput = {
 };
 
 export class AppInstallationRepository extends BaseRepository {
-  constructor(
-    db: Database,
-    txManager: TransactionManager<Database>,
-  ) {
+  constructor(db: Database, txManager: TransactionManager<Database>) {
     super(db, txManager);
   }
 
-  async lockInstallSlot(
-    storeId: string,
-    appCode: string,
-  ): Promise<void> {
+  async lockInstallSlot(storeId: string, appCode: string): Promise<void> {
     const lockKey = `apps:installation:${storeId}:${appCode}`;
     await this.connection.execute(sql`
       SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))
@@ -92,32 +77,20 @@ export class AppInstallationRepository extends BaseRepository {
   /**
    * GraphQL-facing lookup scoped to the current store.
    */
-  async findByIdForStore(
-    id: string,
-  ): Promise<AppInstallationRecord | null> {
+  async findByIdForStore(id: string): Promise<AppInstallationRecord | null> {
     return this.findByIdAndStore(id, this.storeId);
   }
 
-  async findByIdAndStore(
-    id: string,
-    storeId: string,
-  ): Promise<AppInstallationRecord | null> {
+  async findByIdAndStore(id: string, storeId: string): Promise<AppInstallationRecord | null> {
     const rows = await this.connection
       .select()
       .from(appInstallations)
-      .where(
-        and(
-          eq(appInstallations.storeId, storeId),
-          eq(appInstallations.id, id),
-        ),
-      )
+      .where(and(eq(appInstallations.storeId, storeId), eq(appInstallations.id, id)))
       .limit(1);
     return rows[0] ? mapInstallation(rows[0]) : null;
   }
 
-  async getByIdsForStore(
-    ids: readonly string[],
-  ): Promise<AppInstallationRecord[]> {
+  async getByIdsForStore(ids: readonly string[]): Promise<AppInstallationRecord[]> {
     if (ids.length === 0) {
       return [];
     }
@@ -133,9 +106,7 @@ export class AppInstallationRepository extends BaseRepository {
     return rows.map(mapInstallation);
   }
 
-  async lockById(
-    id: string,
-  ): Promise<AppInstallationRecord | null> {
+  async lockById(id: string): Promise<AppInstallationRecord | null> {
     const rows = await this.connection
       .select()
       .from(appInstallations)
@@ -145,25 +116,15 @@ export class AppInstallationRepository extends BaseRepository {
     return rows[0] ? mapInstallation(rows[0]) : null;
   }
 
-  async lockByIdForStore(
-    id: string,
-  ): Promise<AppInstallationRecord | null> {
+  async lockByIdForStore(id: string): Promise<AppInstallationRecord | null> {
     return this.lockByIdAndStore(id, this.storeId);
   }
 
-  async lockByIdAndStore(
-    id: string,
-    storeId: string,
-  ): Promise<AppInstallationRecord | null> {
+  async lockByIdAndStore(id: string, storeId: string): Promise<AppInstallationRecord | null> {
     const rows = await this.connection
       .select()
       .from(appInstallations)
-      .where(
-        and(
-          eq(appInstallations.storeId, storeId),
-          eq(appInstallations.id, id),
-        ),
-      )
+      .where(and(eq(appInstallations.storeId, storeId), eq(appInstallations.id, id)))
       .limit(1)
       .for("update");
     return rows[0] ? mapInstallation(rows[0]) : null;
@@ -206,9 +167,7 @@ export class AppInstallationRepository extends BaseRepository {
     return rows[0] ? mapInstallation(rows[0]) : null;
   }
 
-  async findNonTerminalByAppForStore(
-    appCode: string,
-  ): Promise<AppInstallationRecord | null> {
+  async findNonTerminalByAppForStore(appCode: string): Promise<AppInstallationRecord | null> {
     return this.findNonTerminalByStoreAndApp(this.storeId, appCode);
   }
 
@@ -233,25 +192,17 @@ export class AppInstallationRepository extends BaseRepository {
     storeId: string,
     statuses?: readonly AppInstallationStatus[],
   ): Promise<AppInstallationRecord[]> {
-    return this.list(
-      eq(appInstallations.storeId, storeId),
-      statuses,
-    );
+    return this.list(eq(appInstallations.storeId, storeId), statuses);
   }
 
   listByOrganization(
     organizationId: string,
     statuses?: readonly AppInstallationStatus[],
   ): Promise<AppInstallationRecord[]> {
-    return this.list(
-      eq(appInstallations.organizationId, organizationId),
-      statuses,
-    );
+    return this.list(eq(appInstallations.organizationId, organizationId), statuses);
   }
 
-  async create(
-    input: CreateAppInstallationInput,
-  ): Promise<AppInstallationRecord> {
+  async create(input: CreateAppInstallationInput): Promise<AppInstallationRecord> {
     const rows = await this.connection
       .insert(appInstallations)
       .values({
@@ -276,10 +227,7 @@ export class AppInstallationRepository extends BaseRepository {
       .update(appInstallations)
       .set({
         ...input,
-        configuration:
-          input.configuration === undefined
-            ? undefined
-            : { ...input.configuration },
+        configuration: input.configuration === undefined ? undefined : { ...input.configuration },
         updatedAt: new Date().toISOString(),
       })
       .where(eq(appInstallations.id, id))
@@ -295,18 +243,10 @@ export class AppInstallationRepository extends BaseRepository {
       .update(appInstallations)
       .set({
         ...input,
-        configuration:
-          input.configuration === undefined
-            ? undefined
-            : { ...input.configuration },
+        configuration: input.configuration === undefined ? undefined : { ...input.configuration },
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          eq(appInstallations.storeId, this.storeId),
-          eq(appInstallations.id, id),
-        ),
-      )
+      .where(and(eq(appInstallations.storeId, this.storeId), eq(appInstallations.id, id)))
       .returning();
     return rows[0] ? mapInstallation(rows[0]) : null;
   }
@@ -326,10 +266,7 @@ export class AppInstallationRepository extends BaseRepository {
       .where(
         and(
           eq(appInstallations.id, input.id),
-          eq(
-            appInstallations.configurationVersion,
-            input.expectedVersion,
-          ),
+          eq(appInstallations.configurationVersion, input.expectedVersion),
         ),
       )
       .returning();
@@ -352,10 +289,7 @@ export class AppInstallationRepository extends BaseRepository {
         and(
           eq(appInstallations.storeId, this.storeId),
           eq(appInstallations.id, input.id),
-          eq(
-            appInstallations.configurationVersion,
-            input.expectedVersion,
-          ),
+          eq(appInstallations.configurationVersion, input.expectedVersion),
         ),
       )
       .returning();
@@ -367,9 +301,7 @@ export class AppInstallationRepository extends BaseRepository {
     statuses?: readonly AppInstallationStatus[],
   ): Promise<AppInstallationRecord[]> {
     const statusCondition =
-      statuses && statuses.length > 0
-        ? inArray(appInstallations.status, [...statuses])
-        : undefined;
+      statuses && statuses.length > 0 ? inArray(appInstallations.status, [...statuses]) : undefined;
     const rows = await this.connection
       .select()
       .from(appInstallations)
@@ -379,9 +311,7 @@ export class AppInstallationRepository extends BaseRepository {
   }
 }
 
-function mapInstallation(
-  row: AppInstallationModel,
-): AppInstallationRecord {
+function mapInstallation(row: AppInstallationModel): AppInstallationRecord {
   return {
     ...row,
     configuration: Object.freeze({ ...row.configuration }),

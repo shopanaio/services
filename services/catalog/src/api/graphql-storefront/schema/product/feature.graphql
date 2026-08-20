@@ -1,4 +1,6 @@
-"""A localized product specification such as material or screen size."""
+"""
+A localized product specification such as material or screen size.
+"""
 type ProductFeature implements Node @key(fields: "id") {
   id: ID!
   handle: String!
@@ -9,7 +11,9 @@ type ProductFeature implements Node @key(fields: "id") {
   values: [ProductFeatureValue!]!
 }
 
-"""A localized value assigned to a product specification."""
+"""
+A localized value assigned to a product specification.
+"""
 type ProductFeatureValue implements Node @key(fields: "id") {
   id: ID!
   handle: String!
@@ -18,7 +22,9 @@ type ProductFeatureValue implements Node @key(fields: "id") {
   feature: ProductFeature!
 }
 
-"""A presentation group containing related product specifications."""
+"""
+A presentation group containing related product specifications.
+"""
 type ProductFeatureGroup implements Node @key(fields: "id") {
   id: ID!
   handle: String!

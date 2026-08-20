@@ -45,8 +45,7 @@ export const PriceChangeIndicator = ({
       color={isIncrease ? "error" : "success"}
       className={size === "small" ? styles.tagSmall : styles.tagDefault}
     >
-      {isIncrease ? <ArrowUpOutlined /> : <ArrowDownOutlined />}{" "}
-      {isIncrease ? "+" : ""}
+      {isIncrease ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {isIncrease ? "+" : ""}
       {percentChange}%
     </Tag>
   );

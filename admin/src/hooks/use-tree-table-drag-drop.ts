@@ -57,7 +57,10 @@ export interface IUseTreeTableDragDropResult<T extends ITreeTableRow> {
   /** Delete a row (and its children if it's a group) */
   deleteRow: (id: string) => void;
   /** Duplicate a group with all its children */
-  duplicateGroup: (groupId: string, createNewIds: (row: T, isGroup: boolean, index: number) => string) => void;
+  duplicateGroup: (
+    groupId: string,
+    createNewIds: (row: T, isGroup: boolean, index: number) => string,
+  ) => void;
   /** Duplicate a child row */
   duplicateChild: (childId: string, createNewId: () => string) => void;
   /** Update a specific row */
@@ -176,7 +179,7 @@ export function useTreeTableDragDrop<T extends ITreeTableRow>({
         setExpandedIds(new Set());
       }
     },
-    [groupType]
+    [groupType],
   );
 
   const handleRowDragEnd = useCallback(
@@ -257,7 +260,7 @@ export function useTreeTableDragDrop<T extends ITreeTableRow>({
         setExpandedIds(savedExpandedIds);
       }
     },
-    [groupType, onRowsChange]
+    [groupType, onRowsChange],
   );
 
   // ========================================
@@ -274,7 +277,7 @@ export function useTreeTableDragDrop<T extends ITreeTableRow>({
       }
       return "row-child";
     },
-    [groupType]
+    [groupType],
   );
 
   // ========================================
@@ -290,7 +293,7 @@ export function useTreeTableDragDrop<T extends ITreeTableRow>({
       });
       setExpandedIds((prev) => new Set([...prev, group.id]));
     },
-    [onRowsChange]
+    [onRowsChange],
   );
 
   const addChild = useCallback(
@@ -304,7 +307,7 @@ export function useTreeTableDragDrop<T extends ITreeTableRow>({
         setExpandedIds((prev) => new Set([...prev, child.parentId!]));
       }
     },
-    [onRowsChange]
+    [onRowsChange],
   );
 
   const deleteRow = useCallback(
@@ -326,7 +329,7 @@ export function useTreeTableDragDrop<T extends ITreeTableRow>({
         return updated;
       });
     },
-    [groupType, onRowsChange]
+    [groupType, onRowsChange],
   );
 
   const duplicateGroup = useCallback(
@@ -340,7 +343,7 @@ export function useTreeTableDragDrop<T extends ITreeTableRow>({
 
         const maxRootSortIndex = Math.max(
           -1,
-          ...prev.filter((r) => r.parentId === null).map((r) => r.sortIndex)
+          ...prev.filter((r) => r.parentId === null).map((r) => r.sortIndex),
         );
 
         const newGroupRow: T = {
@@ -362,7 +365,7 @@ export function useTreeTableDragDrop<T extends ITreeTableRow>({
         return updated;
       });
     },
-    [groupType, onRowsChange]
+    [groupType, onRowsChange],
   );
 
   const duplicateChild = useCallback(
@@ -372,7 +375,7 @@ export function useTreeTableDragDrop<T extends ITreeTableRow>({
         if (!childRow) return prev;
 
         const siblingChildren = prev.filter(
-          (r) => r.type !== groupType && r.parentId === childRow.parentId
+          (r) => r.type !== groupType && r.parentId === childRow.parentId,
         );
         const maxSortIndex = Math.max(-1, ...siblingChildren.map((r) => r.sortIndex));
 
@@ -387,7 +390,7 @@ export function useTreeTableDragDrop<T extends ITreeTableRow>({
         return updated;
       });
     },
-    [groupType, onRowsChange]
+    [groupType, onRowsChange],
   );
 
   const updateRow = useCallback(
@@ -398,7 +401,7 @@ export function useTreeTableDragDrop<T extends ITreeTableRow>({
         return updated;
       });
     },
-    [onRowsChange]
+    [onRowsChange],
   );
 
   // ========================================

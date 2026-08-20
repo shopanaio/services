@@ -1,7 +1,4 @@
-import {
-  runWithCheckoutDeadline,
-  type CheckoutPipelineRuntime,
-} from "../CheckoutPipeline.js";
+import { runWithCheckoutDeadline, type CheckoutPipelineRuntime } from "../CheckoutPipeline.js";
 
 class ControlledRuntime implements CheckoutPipelineRuntime {
   time = 0;
@@ -9,14 +6,18 @@ class ControlledRuntime implements CheckoutPipelineRuntime {
   delays: number[] = [];
   cancelled: unknown[] = [];
 
-  now(): number { return this.time; }
+  now(): number {
+    return this.time;
+  }
   schedule(callback: () => void, delayMs: number): unknown {
     const handle = {};
     this.callbacks.push(callback);
     this.delays.push(delayMs);
     return handle;
   }
-  cancel(handle: unknown): void { this.cancelled.push(handle); }
+  cancel(handle: unknown): void {
+    this.cancelled.push(handle);
+  }
 }
 
 describe("checkout deadline settlement guard", () => {
@@ -34,7 +35,14 @@ describe("checkout deadline settlement guard", () => {
   it("accepts settlement observed exactly at the deadline", async () => {
     const runtime = new ControlledRuntime();
     let resolve!: (value: string) => void;
-    const pending = runWithCheckoutDeadline(runtime, 10, () => new Promise((done) => { resolve = done; }));
+    const pending = runWithCheckoutDeadline(
+      runtime,
+      10,
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
     runtime.time = 10;
     resolve("ok");
     await expect(pending).resolves.toEqual({ accepted: true, value: "ok", resultObservedAt: 10 });
@@ -44,7 +52,14 @@ describe("checkout deadline settlement guard", () => {
   it("turns a late rejection into timeout and consumes it", async () => {
     const runtime = new ControlledRuntime();
     let reject!: (error: unknown) => void;
-    const pending = runWithCheckoutDeadline(runtime, 10, () => new Promise((_done, fail) => { reject = fail; }));
+    const pending = runWithCheckoutDeadline(
+      runtime,
+      10,
+      () =>
+        new Promise((_done, fail) => {
+          reject = fail;
+        }),
+    );
     runtime.time = 11;
     reject(new Error("private"));
     await expect(pending).resolves.toEqual({ accepted: false, deadlineObservedAt: 11 });
@@ -56,7 +71,10 @@ describe("checkout deadline settlement guard", () => {
     const pending = runWithCheckoutDeadline(
       runtime,
       10,
-      () => new Promise((done) => { resolve = done; }),
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
     );
     runtime.time = 11;
     resolve("late");
@@ -89,7 +107,10 @@ describe("checkout deadline settlement guard", () => {
     const pending = runWithCheckoutDeadline(
       runtime,
       10,
-      () => new Promise((done) => { resolve = done; }),
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
     );
     runtime.time = 9;
     runtime.callbacks[0]!();
@@ -114,11 +135,7 @@ describe("checkout deadline settlement guard", () => {
       cancel: jest.fn(),
     };
     await expect(
-      runWithCheckoutDeadline(
-        runtime,
-        10,
-        () => new Promise<string>(() => undefined),
-      ),
+      runWithCheckoutDeadline(runtime, 10, () => new Promise<string>(() => undefined)),
     ).resolves.toMatchObject({
       accepted: true,
       resultObservedAt: 0,
@@ -137,18 +154,18 @@ describe("checkout deadline settlement guard", () => {
       cancel: jest.fn(),
     };
     await expect(
-      runWithCheckoutDeadline(
-        runtime,
-        10,
-        () => new Promise<string>(() => undefined),
-      ),
+      runWithCheckoutDeadline(runtime, 10, () => new Promise<string>(() => undefined)),
     ).resolves.toEqual({ accepted: false, deadlineObservedAt: 11 });
   });
 
   it("handles a synchronous throw without scheduling or cancelling", async () => {
     const runtime = new ControlledRuntime();
     const error = new Error("sync");
-    await expect(runWithCheckoutDeadline(runtime, 10, () => { throw error; })).resolves.toEqual({
+    await expect(
+      runWithCheckoutDeadline(runtime, 10, () => {
+        throw error;
+      }),
+    ).resolves.toEqual({
       accepted: true,
       error,
       resultObservedAt: 0,
@@ -165,9 +182,7 @@ describe("checkout deadline settlement guard", () => {
         throw privateError;
       },
     } as unknown as Promise<string>;
-    await expect(
-      runWithCheckoutDeadline(runtime, 10, () => malformed),
-    ).resolves.toEqual({
+    await expect(runWithCheckoutDeadline(runtime, 10, () => malformed)).resolves.toEqual({
       accepted: true,
       error: privateError,
       resultObservedAt: 0,

@@ -1,19 +1,13 @@
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import fastify from "fastify";
 import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import {
-  getServiceConfig,
-  buildS3Config,
-  isDevelopment,
-} from "@shopana/shared-service-config";
+import { getServiceConfig, buildS3Config, isDevelopment } from "@shopana/shared-service-config";
 import { setContext, ServiceContext } from "../../context/index.js";
 import { getBucketName } from "../../infrastructure/s3/index.js";
 import { buildQueryProtectionOptions } from "../../infrastructure/graphql/queryProtection.js";
@@ -52,8 +46,7 @@ export async function startServer(serverConfig: ServerConfig) {
   if (kernel) {
     const bucketName = getBucketName();
     try {
-      const existingBucket =
-        await kernel.repository.bucket.findByBucketName(bucketName);
+      const existingBucket = await kernel.repository.bucket.findByBucketName(bucketName);
       if (!existingBucket) {
         // Create a system-level bucket record
         // Using a fixed UUID for the system project
@@ -123,10 +116,7 @@ export async function startServer(serverConfig: ServerConfig) {
     ...buildQueryProtectionOptions(global),
     // @ts-expect-error - buildSubgraphSchema expects ServiceContext but we pass ServiceContextOptions
     schema: buildSubgraphSchema(modules),
-    plugins: [
-      fastifyApolloDrainPlugin(app),
-      ApolloServerPluginInlineTraceDisabled(),
-    ],
+    plugins: [fastifyApolloDrainPlugin(app), ApolloServerPluginInlineTraceDisabled()],
   });
 
   await apollo.start();

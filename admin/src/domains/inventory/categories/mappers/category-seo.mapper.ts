@@ -13,9 +13,7 @@ function emptyToNull(value: string | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-export function mapCategorySeoToUpdateInput(
-  values: CategorySeoFormValues,
-): ApiCategoryUpdateInput {
+export function mapCategorySeoToUpdateInput(values: CategorySeoFormValues): ApiCategoryUpdateInput {
   return {
     seo: {
       seoTitle: emptyToNull(values.seoTitle),

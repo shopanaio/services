@@ -67,10 +67,7 @@ export abstract class BaseWorkflow<TInput, TOutput>
   }
 
   /** Workflow entry point - must be decorated with @Workflow("name") */
-  abstract run(
-    input: TInput,
-    context?: WorkflowExecutionContext,
-  ): Promise<TOutput>;
+  abstract run(input: TInput, context?: WorkflowExecutionContext): Promise<TOutput>;
 
   onModuleInit(): void {
     this.registerWorkflow();
@@ -88,9 +85,7 @@ export abstract class BaseWorkflow<TInput, TOutput>
   private registerWorkflow(): void {
     const metadata = this.getWorkflowMetadata();
     if (!metadata) {
-      throw new Error(
-        `@Workflow decorator missing on ${this.constructor.name}.run()`,
-      );
+      throw new Error(`@Workflow decorator missing on ${this.constructor.name}.run()`);
     }
 
     const qualifiedName = this.qualifyName(metadata.name);

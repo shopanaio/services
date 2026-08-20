@@ -1,10 +1,5 @@
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-} from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { Tag } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 
@@ -39,9 +34,7 @@ export class TagResolver extends CatalogType<string, Tag> {
    * Falls back to handle if no translation exists
    */
   async name(): Promise<string> {
-    const translation = await this.$ctx.loaders.tagTranslation.load(
-      this.$props
-    );
+    const translation = await this.$ctx.loaders.tagTranslation.load(this.$props);
     if (translation?.name) {
       return translation.name;
     }

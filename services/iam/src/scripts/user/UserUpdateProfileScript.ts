@@ -1,9 +1,4 @@
-import {
-  BaseScript,
-  ZodSchema,
-  Transactional,
-  ValidationError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, Transactional, ValidationError } from "../../kernel/BaseScript.js";
 import {
   userUpdateProfileParamsSchema,
   type UserUpdateProfileParams,
@@ -22,9 +17,7 @@ export class UserUpdateProfileScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(userUpdateProfileParamsSchema)
-  protected async execute(
-    params: UserUpdateProfileParams
-  ): Promise<UserUpdateProfileResult> {
+  protected async execute(params: UserUpdateProfileParams): Promise<UserUpdateProfileResult> {
     const { userId, firstName, lastName, language, image } = params;
 
     // Check if there's anything to update
@@ -79,15 +72,11 @@ export class UserUpdateProfileScript extends BaseScript<
 
       const newFirstName = firstName ?? currentUserData.firstName ?? "";
       const newLastName = lastName ?? currentUserData.lastName ?? "";
-      updateData.name =
-        `${newFirstName} ${newLastName}`.trim() || currentUserData.name;
+      updateData.name = `${newFirstName} ${newLastName}`.trim() || currentUserData.name;
     }
 
     // Update the user profile
-    const updated = await this.repository.user.updateProfile(
-      userId,
-      updateData
-    );
+    const updated = await this.repository.user.updateProfile(userId, updateData);
 
     if (!updated) {
       return {

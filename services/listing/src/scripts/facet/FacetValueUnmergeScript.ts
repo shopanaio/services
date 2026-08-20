@@ -1,22 +1,13 @@
-import {
-  BaseScript,
-  Transactional,
-  type UserError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import type { FacetValue } from "../../repositories/models/index.js";
-import type {
-  FacetValueUnmergeParams,
-  FacetValueUnmergeResult,
-} from "./dto/index.js";
+import type { FacetValueUnmergeParams, FacetValueUnmergeResult } from "./dto/index.js";
 
 export class FacetValueUnmergeScript extends BaseScript<
   FacetValueUnmergeParams,
   FacetValueUnmergeResult
 > {
   @Transactional()
-  protected async execute(
-    params: FacetValueUnmergeParams
-  ): Promise<FacetValueUnmergeResult> {
+  protected async execute(params: FacetValueUnmergeParams): Promise<FacetValueUnmergeResult> {
     const sourceValueIds = [...new Set(params.sourceValueIds)];
     if (sourceValueIds.length === 0) {
       return {
@@ -48,7 +39,7 @@ export class FacetValueUnmergeScript extends BaseScript<
     }
 
     const oldGroupIds = [
-      ...new Set(sourceValues.flatMap((value) => value.parentId ? [value.parentId] : [])),
+      ...new Set(sourceValues.flatMap((value) => (value.parentId ? [value.parentId] : []))),
     ];
 
     await this.repository.facetValue.detachSources(sourceValueIds);
@@ -75,7 +66,7 @@ export class FacetValueUnmergeScript extends BaseScript<
 
   private validateSourceValues(
     requestedIds: readonly string[],
-    sourceValues: readonly FacetValue[]
+    sourceValues: readonly FacetValue[],
   ): UserError[] {
     const valuesById = new Map(sourceValues.map((value) => [value.id, value]));
     const errors: UserError[] = [];
@@ -112,7 +103,7 @@ export class FacetValueUnmergeScript extends BaseScript<
   }
 
   private async validateRootHandleConflicts(
-    sourceValues: readonly FacetValue[]
+    sourceValues: readonly FacetValue[],
   ): Promise<UserError[]> {
     const valuesByFacetId = new Map<string, FacetValue[]>();
     for (const sourceValue of sourceValues) {
@@ -126,7 +117,7 @@ export class FacetValueUnmergeScript extends BaseScript<
     for (const [facetId, values] of valuesByFacetId.entries()) {
       const roots = await this.repository.facetValue.getRootValuesByFacetIdAndHandles(
         facetId,
-        values.map((value) => value.handle)
+        values.map((value) => value.handle),
       );
       const conflictingRoot = roots.find((root) => !sourceValueIds.has(root.id));
       if (conflictingRoot) {
@@ -141,9 +132,7 @@ export class FacetValueUnmergeScript extends BaseScript<
     return errors;
   }
 
-  private async deleteEmptyGroupValues(
-    groupValueIds: readonly string[]
-  ): Promise<FacetValue[]> {
+  private async deleteEmptyGroupValues(groupValueIds: readonly string[]): Promise<FacetValue[]> {
     if (groupValueIds.length === 0) {
       return [];
     }

@@ -267,10 +267,7 @@ export class OrderReadRepository {
   private readonly port: OrderReadPort;
   private readonly lineItemsReadRepository: OrderLineItemsReadRepository;
 
-  constructor(
-    port: OrderReadPort,
-    lineItemsReadRepository: OrderLineItemsReadRepository
-  ) {
+  constructor(port: OrderReadPort, lineItemsReadRepository: OrderLineItemsReadRepository) {
     this.port = port;
     this.lineItemsReadRepository = lineItemsReadRepository;
   }
@@ -296,23 +293,25 @@ export class OrderReadRepository {
 
     // Collect unique address and recipient IDs
     const addressIds = deliveryGroups
-      .map(g => g.addressId)
+      .map((g) => g.addressId)
       .filter((id): id is string => id !== null);
     const recipientIds = deliveryGroups
-      .map(g => g.recipientId)
+      .map((g) => g.recipientId)
       .filter((id): id is string => id !== null);
-    const deliveryGroupIds = deliveryGroups.map(g => g.id);
+    const deliveryGroupIds = deliveryGroups.map((g) => g.id);
 
     // Fetch addresses, recipients and delivery methods
     const [addressRows, recipientRows, deliveryMethodRows] = await Promise.all([
       addressIds.length > 0 ? this.port.findDeliveryAddresses(addressIds) : Promise.resolve([]),
       recipientIds.length > 0 ? this.port.findRecipients(recipientIds) : Promise.resolve([]),
-      deliveryGroupIds.length > 0 ? this.port.findDeliveryMethods(deliveryGroupIds) : Promise.resolve([]),
+      deliveryGroupIds.length > 0
+        ? this.port.findDeliveryMethods(deliveryGroupIds)
+        : Promise.resolve([]),
     ]);
 
     // Build maps
     const deliveryAddresses = new Map<string, OrderDeliveryAddress>(
-      addressRows.map(addr => [
+      addressRows.map((addr) => [
         addr.id,
         {
           id: addr.id,
@@ -325,12 +324,12 @@ export class OrderReadRepository {
           metadata: addr.metadata,
           createdAt: addr.created_at,
           updatedAt: addr.updated_at,
-        }
-      ])
+        },
+      ]),
     );
 
     const recipients = new Map<string, OrderRecipient>(
-      recipientRows.map(rec => [
+      recipientRows.map((rec) => [
         rec.id,
         {
           id: rec.id,
@@ -343,8 +342,8 @@ export class OrderReadRepository {
           metadata: rec.metadata,
           createdAt: rec.created_at,
           updatedAt: rec.updated_at,
-        }
-      ])
+        },
+      ]),
     );
 
     // Build delivery methods map grouped by delivery group
@@ -365,7 +364,7 @@ export class OrderReadRepository {
     }
 
     // Map payment methods
-    const mappedPaymentMethods: OrderPaymentMethod[] = paymentMethods.map(pm => ({
+    const mappedPaymentMethods: OrderPaymentMethod[] = paymentMethods.map((pm) => ({
       orderId: pm.order_id,
       storeId: pm.store_id,
       code: pm.code,
@@ -385,43 +384,22 @@ export class OrderReadRepository {
         }
       : null;
 
-    const totalQuantity = lineItems.reduce(
-      (total, item) => total + item.quantity,
-      0
-    );
+    const totalQuantity = lineItems.reduce((total, item) => total + item.quantity, 0);
 
     // Normalize Money currency in lines to cart currency
     const normalizedLineItems = lineItems.map((item) => ({
       ...item,
       unit: {
         ...item.unit,
-        price: Money.fromMinor(
-          item.unit.price.amountMinor(),
-          row.currency_code
-        ),
+        price: Money.fromMinor(item.unit.price.amountMinor(), row.currency_code),
         compareAtPrice: item.unit.compareAtPrice
-          ? Money.fromMinor(
-              item.unit.compareAtPrice.amountMinor(),
-              row.currency_code
-            )
+          ? Money.fromMinor(item.unit.compareAtPrice.amountMinor(), row.currency_code)
           : null,
       },
-      subtotalAmount: Money.fromMinor(
-        item.subtotalAmount.amountMinor(),
-        row.currency_code
-      ),
-      discountAmount: Money.fromMinor(
-        item.discountAmount.amountMinor(),
-        row.currency_code
-      ),
-      taxAmount: Money.fromMinor(
-        item.taxAmount.amountMinor(),
-        row.currency_code
-      ),
-      totalAmount: Money.fromMinor(
-        item.totalAmount.amountMinor(),
-        row.currency_code
-      ),
+      subtotalAmount: Money.fromMinor(item.subtotalAmount.amountMinor(), row.currency_code),
+      discountAmount: Money.fromMinor(item.discountAmount.amountMinor(), row.currency_code),
+      taxAmount: Money.fromMinor(item.taxAmount.amountMinor(), row.currency_code),
+      totalAmount: Money.fromMinor(item.totalAmount.amountMinor(), row.currency_code),
     }));
 
     return {
@@ -474,5 +452,4 @@ export class OrderReadRepository {
       totalQuantity,
     };
   }
-
 }

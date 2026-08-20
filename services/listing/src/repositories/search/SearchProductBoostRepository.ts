@@ -43,14 +43,11 @@ export const searchProductBoostRelayQuery = createRelayQuery(
   { name: "searchProductBoost", tieBreaker: "id" },
 );
 
-export type SearchProductBoostRelayInput = InferRelayInput<
-  typeof searchProductBoostRelayQuery
->;
+export type SearchProductBoostRelayInput = InferRelayInput<typeof searchProductBoostRelayQuery>;
 
-export type SearchProductBoostConnectionInput =
-  SearchProductBoostRelayInput & {
-    productIds?: readonly string[];
-  };
+export type SearchProductBoostConnectionInput = SearchProductBoostRelayInput & {
+  productIds?: readonly string[];
+};
 
 export interface SearchProductBoostConnectionResult {
   edges: Array<{ cursor: string; node: SearchProductBoostListView }>;
@@ -68,8 +65,7 @@ export interface SearchProductBoostCreateInput {
   productIds: readonly string[];
 }
 
-export interface SearchProductBoostUpdateInput
-  extends SearchProductBoostCreateInput {
+export interface SearchProductBoostUpdateInput extends SearchProductBoostCreateInput {
   boostId: string;
   expectedVersion: number;
 }
@@ -102,10 +98,7 @@ export class SearchProductBoostRepository extends BaseRepository {
       .select()
       .from(searchProductBoost)
       .where(
-        and(
-          eq(searchProductBoost.storeId, this.storeId),
-          eq(searchProductBoost.boostId, boostId),
-        ),
+        and(eq(searchProductBoost.storeId, this.storeId), eq(searchProductBoost.boostId, boostId)),
       )
       .limit(1);
     const boost = boosts[0];
@@ -120,12 +113,10 @@ export class SearchProductBoostRepository extends BaseRepository {
   @ReadOnly()
   async list(locale?: string): Promise<SearchProductBoostAggregate[]> {
     if (locale !== undefined) assertNonEmpty(locale, "locale");
-    const scope = locale !== undefined
-      ? and(
-          eq(searchProductBoost.storeId, this.storeId),
-          eq(searchProductBoost.locale, locale),
-        )
-      : eq(searchProductBoost.storeId, this.storeId);
+    const scope =
+      locale !== undefined
+        ? and(eq(searchProductBoost.storeId, this.storeId), eq(searchProductBoost.locale, locale))
+        : eq(searchProductBoost.storeId, this.storeId);
     const boosts = await this.connection
       .select()
       .from(searchProductBoost)
@@ -145,28 +136,26 @@ export class SearchProductBoostRepository extends BaseRepository {
     const { productIds, ...relayInput } = args;
     const normalizedInput = normalizeSearchRelayPagination(relayInput);
     const { where, orderBy, ...paginationArgs } = normalizedInput;
-    const effectiveOrderBy = orderBy ?? [
-      { field: "updatedAt", direction: "desc" },
-    ];
-    const normalizedProductIds = productIds === undefined
-      ? undefined
-      : [...new Set(productIds)].sort();
-    const matchingBoostIds = normalizedProductIds === undefined
-      ? undefined
-      : await this.findBoostIdsByProductIds(normalizedProductIds);
+    const effectiveOrderBy = orderBy ?? [{ field: "updatedAt", direction: "desc" }];
+    const normalizedProductIds =
+      productIds === undefined ? undefined : [...new Set(productIds)].sort();
+    const matchingBoostIds =
+      normalizedProductIds === undefined
+        ? undefined
+        : await this.findBoostIdsByProductIds(normalizedProductIds);
     const mergedWhere: SearchProductBoostRelayInput["where"] = {
       _and: [
         { storeId: { _eq: this.storeId } },
         ...(where ? [where] : []),
         ...(matchingBoostIds === undefined
           ? []
-          : [{
-              id: {
-                _in: matchingBoostIds.length > 0
-                  ? matchingBoostIds
-                  : [IMPOSSIBLE_UUID],
+          : [
+              {
+                id: {
+                  _in: matchingBoostIds.length > 0 ? matchingBoostIds : [IMPOSSIBLE_UUID],
+                },
               },
-            }]),
+            ]),
       ],
     };
     const executeInput: SearchProductBoostRelayInput = {
@@ -237,9 +226,7 @@ export class SearchProductBoostRepository extends BaseRepository {
   }
 
   @Transactional()
-  async create(
-    input: SearchProductBoostCreateInput,
-  ): Promise<SearchProductBoostAggregate> {
+  async create(input: SearchProductBoostCreateInput): Promise<SearchProductBoostAggregate> {
     this.assertWriteInput(input);
     const now = new Date().toISOString();
     const boostId = await this.generateUuidV7();
@@ -253,10 +240,7 @@ export class SearchProductBoostRepository extends BaseRepository {
       createdAt: now,
       updatedAt: now,
     };
-    const boosts = await this.connection
-      .insert(searchProductBoost)
-      .values(row)
-      .returning();
+    const boosts = await this.connection.insert(searchProductBoost).values(row).returning();
     const boost = boosts[0];
     if (!boost) throw new Error("Failed to create search product boost");
     const phrases = await this.insertPhrases(boostId, input.phrases);
@@ -351,10 +335,7 @@ export class SearchProductBoostRepository extends BaseRepository {
       .select()
       .from(searchProductBoost)
       .where(
-        and(
-          eq(searchProductBoost.storeId, this.storeId),
-          eq(searchProductBoost.boostId, boostId),
-        ),
+        and(eq(searchProductBoost.storeId, this.storeId), eq(searchProductBoost.boostId, boostId)),
       )
       .limit(1)
       .for("update");
@@ -378,10 +359,7 @@ export class SearchProductBoostRepository extends BaseRepository {
           inArray(searchProductBoostPhrase.boostId, [...new Set(boostIds)]),
         ),
       )
-      .orderBy(
-        asc(searchProductBoostPhrase.boostId),
-        asc(searchProductBoostPhrase.position),
-      );
+      .orderBy(asc(searchProductBoostPhrase.boostId), asc(searchProductBoostPhrase.position));
   }
 
   private async getProducts(boostIds: readonly string[]): Promise<SearchProductBoostProduct[]> {
@@ -395,15 +373,10 @@ export class SearchProductBoostRepository extends BaseRepository {
           inArray(searchProductBoostProduct.boostId, [...new Set(boostIds)]),
         ),
       )
-      .orderBy(
-        asc(searchProductBoostProduct.boostId),
-        asc(searchProductBoostProduct.position),
-      );
+      .orderBy(asc(searchProductBoostProduct.boostId), asc(searchProductBoostProduct.position));
   }
 
-  private async findBoostIdsByProductIds(
-    productIds: readonly string[],
-  ): Promise<string[]> {
+  private async findBoostIdsByProductIds(productIds: readonly string[]): Promise<string[]> {
     if (productIds.length === 0) return [];
 
     const rows = await this.connection
@@ -424,10 +397,7 @@ export class SearchProductBoostRepository extends BaseRepository {
     boosts: readonly SearchProductBoost[],
   ): Promise<SearchProductBoostAggregate[]> {
     const ids = boosts.map((boost) => boost.boostId);
-    const [phrases, products] = await Promise.all([
-      this.getPhrases(ids),
-      this.getProducts(ids),
-    ]);
+    const [phrases, products] = await Promise.all([this.getPhrases(ids), this.getProducts(ids)]);
     const phrasesByBoost = new Map<string, SearchProductBoostPhrase[]>();
     const productsByBoost = new Map<string, SearchProductBoostProduct[]>();
     for (const phrase of phrases) {
@@ -469,28 +439,20 @@ export class SearchProductBoostRepository extends BaseRepository {
       position: index + 1,
       ...phrase,
     }));
-    return this.connection
-      .insert(searchProductBoostPhrase)
-      .values(rows)
-      .returning();
+    return this.connection.insert(searchProductBoostPhrase).values(rows).returning();
   }
 
   private async insertProducts(
     boostId: string,
     productIds: readonly string[],
   ): Promise<SearchProductBoostProduct[]> {
-    const rows: NewSearchProductBoostProduct[] = productIds.map(
-      (productId, index) => ({
-        storeId: this.storeId,
-        boostId,
-        productId,
-        position: index + 1,
-      }),
-    );
-    return this.connection
-      .insert(searchProductBoostProduct)
-      .values(rows)
-      .returning();
+    const rows: NewSearchProductBoostProduct[] = productIds.map((productId, index) => ({
+      storeId: this.storeId,
+      boostId,
+      productId,
+      position: index + 1,
+    }));
+    return this.connection.insert(searchProductBoostProduct).values(rows).returning();
   }
 
   private assertWriteInput(input: SearchProductBoostCreateInput): void {
@@ -502,33 +464,20 @@ export class SearchProductBoostRepository extends BaseRepository {
     if (input.productIds.length < 1 || input.productIds.length > 50) {
       throw new Error("A product boost must contain between 1 and 50 products");
     }
-    assertUnique(
-      input.phrases,
-      (phrase) => phrase.normalizedPhrase,
-      "product boost phrase",
-    );
+    assertUnique(input.phrases, (phrase) => phrase.normalizedPhrase, "product boost phrase");
     assertUnique(input.productIds, (productId) => productId, "boost product");
     const firstPhrase = input.phrases[0];
     for (const phrase of input.phrases) {
       assertNonEmpty(phrase.displayPhrase, "displayPhrase");
       assertNonEmpty(phrase.normalizedPhrase, "normalizedPhrase");
-      assertNonEmpty(
-        phrase.normalizationContractVersion,
-        "normalizationContractVersion",
-      );
-      assertNonEmpty(
-        phrase.normalizationProfileRevision,
-        "normalizationProfileRevision",
-      );
+      assertNonEmpty(phrase.normalizationContractVersion, "normalizationContractVersion");
+      assertNonEmpty(phrase.normalizationProfileRevision, "normalizationProfileRevision");
       if (
-        phrase.normalizationContractVersion !==
-          firstPhrase.normalizationContractVersion ||
-        phrase.normalizationProfileRevision !==
-          firstPhrase.normalizationProfileRevision
+        phrase.normalizationContractVersion !== firstPhrase.normalizationContractVersion ||
+        phrase.normalizationProfileRevision !== firstPhrase.normalizationProfileRevision
       ) {
         throw new Error("All boost phrases must use one normalization profile");
       }
     }
   }
-
 }

@@ -6,11 +6,7 @@ import {
   type NavigationMenuItemModel,
   type NewNavigationMenuItemModel,
 } from "./models/index.js";
-import type {
-  NavigationItemTarget,
-  NavigationMenuItemRecord,
-  OnlineStoreScope,
-} from "./types.js";
+import type { NavigationItemTarget, NavigationMenuItemRecord, OnlineStoreScope } from "./types.js";
 
 export interface CreateNavigationMenuItemInput {
   readonly handle: string;
@@ -52,12 +48,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(navigationMenuItems)
-      .where(
-        and(
-          this.itemScope(scope),
-          inArray(navigationMenuItems.id, [...new Set(itemIds)]),
-        ),
-      );
+      .where(and(this.itemScope(scope), inArray(navigationMenuItems.id, [...new Set(itemIds)])));
     return Object.freeze(rows.map(mapItem));
   }
 
@@ -68,12 +59,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(navigationMenuItems)
-      .where(
-        and(
-          this.itemScope(scope),
-          eq(navigationMenuItems.menuId, menuId),
-        ),
-      )
+      .where(and(this.itemScope(scope), eq(navigationMenuItems.menuId, menuId)))
       .orderBy(
         asc(navigationMenuItems.parentId),
         asc(navigationMenuItems.lexoRank),
@@ -94,13 +80,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(navigationMenuItems)
-      .where(
-        and(
-          this.itemScope(scope),
-          eq(navigationMenuItems.menuId, menuId),
-          parentCondition,
-        ),
-      )
+      .where(and(this.itemScope(scope), eq(navigationMenuItems.menuId, menuId), parentCondition))
       .orderBy(asc(navigationMenuItems.lexoRank), asc(navigationMenuItems.id));
     return Object.freeze(rows.map(mapItem));
   }
@@ -110,9 +90,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
     menuId: string,
     input: CreateNavigationMenuItemInput,
   ): Promise<NavigationMenuItemRecord | null> {
-    return this.txManager.run(() =>
-      this.createInTransaction(scope, menuId, input),
-    );
+    return this.txManager.run(() => this.createInTransaction(scope, menuId, input));
   }
 
   update(
@@ -120,9 +98,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
     itemId: string,
     input: UpdateNavigationMenuItemInput,
   ): Promise<NavigationMenuItemRecord | null> {
-    return this.txManager.run(() =>
-      this.updateInTransaction(scope, itemId, input),
-    );
+    return this.txManager.run(() => this.updateInTransaction(scope, itemId, input));
   }
 
   deleteSubtree(
@@ -130,9 +106,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
     itemId: string,
     expectedRevision?: number,
   ): Promise<boolean> {
-    return this.txManager.run(() =>
-      this.deleteInTransaction(scope, itemId, expectedRevision),
-    );
+    return this.txManager.run(() => this.deleteInTransaction(scope, itemId, expectedRevision));
   }
 
   private async createInTransaction(
@@ -165,10 +139,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
       createdAt: now(),
       updatedAt: now(),
     };
-    const rows = await this.connection
-      .insert(navigationMenuItems)
-      .values(insert)
-      .returning();
+    const rows = await this.connection.insert(navigationMenuItems).values(insert).returning();
     const created = requiredRow(rows[0]);
     await this.reorderSiblings(scope, {
       menuId,
@@ -192,8 +163,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
     item = await this.findById(scope, itemId);
     if (!item) return null;
     const oldParentId = item.parentId;
-    const nextParentId =
-      input.parentId === undefined ? item.parentId : input.parentId;
+    const nextParentId = input.parentId === undefined ? item.parentId : input.parentId;
     const shouldReorder =
       oldParentId !== nextParentId ||
       input.afterItemId !== undefined ||
@@ -205,13 +175,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
       if (await this.parentCreatesCycle(scope, itemId, parent.id)) return null;
     }
     const nextHandle = input.handle ?? item.handle;
-    await this.assertHandleAvailable(
-      scope,
-      item.menuId,
-      nextParentId,
-      nextHandle,
-      itemId,
-    );
+    await this.assertHandleAvailable(scope, item.menuId, nextParentId, nextHandle, itemId);
 
     const target = input.target ? normalizeTarget(input.target) : undefined;
     const rows = await this.connection
@@ -310,17 +274,12 @@ export class NavigationMenuItemRepository extends BaseRepository {
           eq(navigationMenuItems.menuId, menuId),
           parentCondition,
           eq(navigationMenuItems.handle, handle),
-          excludeItemId
-            ? sql`${navigationMenuItems.id} <> ${excludeItemId}`
-            : undefined,
+          excludeItemId ? sql`${navigationMenuItems.id} <> ${excludeItemId}` : undefined,
         ),
       )
       .limit(1);
     if (rows[0]) {
-      throw operationError(
-        "ONLINE_STORE_NAVIGATION_ITEM_HANDLE_TAKEN",
-        "input.handle",
-      );
+      throw operationError("ONLINE_STORE_NAVIGATION_ITEM_HANDLE_TAKEN", "input.handle");
     }
   }
 
@@ -334,16 +293,12 @@ export class NavigationMenuItemRepository extends BaseRepository {
       readonly beforeItemId?: string | null;
     },
   ): Promise<void> {
-    const siblings = (
-      await this.listChildren(scope, input.menuId, input.parentId)
-    ).filter(({ id }) => id !== input.itemId);
+    const siblings = (await this.listChildren(scope, input.menuId, input.parentId)).filter(
+      ({ id }) => id !== input.itemId,
+    );
     const ids = siblings.map(({ id }) => id);
-    const afterIndex = input.afterItemId
-      ? ids.indexOf(input.afterItemId)
-      : -1;
-    const beforeIndex = input.beforeItemId
-      ? ids.indexOf(input.beforeItemId)
-      : -1;
+    const afterIndex = input.afterItemId ? ids.indexOf(input.afterItemId) : -1;
+    const beforeIndex = input.beforeItemId ? ids.indexOf(input.beforeItemId) : -1;
 
     if (input.afterItemId && afterIndex < 0) {
       throw operationError("NAVIGATION_AFTER_ITEM_INVALID");
@@ -351,11 +306,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
     if (input.beforeItemId && beforeIndex < 0) {
       throw operationError("NAVIGATION_BEFORE_ITEM_INVALID");
     }
-    if (
-      input.afterItemId &&
-      input.beforeItemId &&
-      beforeIndex !== afterIndex + 1
-    ) {
+    if (input.afterItemId && input.beforeItemId && beforeIndex !== afterIndex + 1) {
       throw operationError("NAVIGATION_PLACEMENT_INVALID");
     }
 
@@ -374,13 +325,13 @@ export class NavigationMenuItemRepository extends BaseRepository {
     parentId: string | null,
   ): Promise<void> {
     const siblings = await this.listChildren(scope, menuId, parentId);
-    await this.assignRanks(scope, siblings.map(({ id }) => id));
+    await this.assignRanks(
+      scope,
+      siblings.map(({ id }) => id),
+    );
   }
 
-  private async assignRanks(
-    scope: OnlineStoreScope,
-    itemIds: readonly string[],
-  ): Promise<void> {
+  private async assignRanks(scope: OnlineStoreScope, itemIds: readonly string[]): Promise<void> {
     for (const [index, itemId] of itemIds.entries()) {
       await this.connection
         .update(navigationMenuItems)
@@ -418,9 +369,7 @@ function mapItem(row: NavigationMenuItemModel): NavigationMenuItemRecord {
   return Object.freeze({ ...row });
 }
 
-function requiredRow(
-  row: NavigationMenuItemModel | undefined,
-): NavigationMenuItemModel {
+function requiredRow(row: NavigationMenuItemModel | undefined): NavigationMenuItemModel {
   if (!row) {
     throw new Error("navigation menu item was not returned by PostgreSQL");
   }
@@ -439,9 +388,6 @@ function rankForIndex(index: number): string {
   return String((index + 1) * 1024).padStart(16, "0");
 }
 
-function operationError(
-  code: string,
-  field?: string,
-): Error & { code: string; field?: string } {
+function operationError(code: string, field?: string): Error & { code: string; field?: string } {
   return Object.assign(new Error(code), { code, field });
 }

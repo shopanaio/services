@@ -1,11 +1,5 @@
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-} from "@shopana/type-resolver";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { User } from "../../repositories/user/UserRepository.js";
 import { IAMType, Cache } from "./IAMType.js";
 

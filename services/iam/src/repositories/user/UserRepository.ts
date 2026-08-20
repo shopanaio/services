@@ -1,9 +1,5 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
-import {
-  createLocalJWKSet,
-  jwtVerify,
-  type JSONWebKeySet,
-} from "jose";
+import { createLocalJWKSet, jwtVerify, type JSONWebKeySet } from "jose";
 import type { Auth } from "../../auth/auth.js";
 import type { Database } from "../../infrastructure/db/database.js";
 import type { AuthSessionRepositoryFactory } from "../auth-session/AuthSessionRepository.js";
@@ -53,7 +49,7 @@ export class UserRepository extends BetterAuthUserRepository<User> {
   constructor(
     private readonly db: Database,
     auth: Auth,
-    private readonly authSession: AuthSessionRepositoryFactory
+    private readonly authSession: AuthSessionRepositoryFactory,
   ) {
     super(auth);
   }
@@ -127,8 +123,7 @@ export class UserRepository extends BetterAuthUserRepository<User> {
       return {
         success: false,
         payload: null,
-        error:
-          error instanceof Error ? error.message : "JWT verification failed",
+        error: error instanceof Error ? error.message : "JWT verification failed",
       };
     }
   }
@@ -141,10 +136,7 @@ export class UserRepository extends BetterAuthUserRepository<User> {
   async findByIds(ids: string[]): Promise<Map<string, User>> {
     if (ids.length === 0) return new Map();
 
-    const rows = await this.db
-      .select()
-      .from(user)
-      .where(inArray(user.id, ids));
+    const rows = await this.db.select().from(user).where(inArray(user.id, ids));
 
     return new Map(rows.map((row) => [row.id, this.mapDbUser(row)]));
   }
@@ -164,7 +156,7 @@ export class UserRepository extends BetterAuthUserRepository<User> {
       firstName?: string;
       lastName?: string;
       image?: string | null;
-    }
+    },
   ): Promise<User | null> {
     const [row] = await this.db
       .update(user)
@@ -188,10 +180,7 @@ export class UserRepository extends BetterAuthUserRepository<User> {
   }
 
   async delete(userId: string): Promise<boolean> {
-    const rows = await this.db
-      .delete(user)
-      .where(eq(user.id, userId))
-      .returning({ id: user.id });
+    const rows = await this.db.delete(user).where(eq(user.id, userId)).returning({ id: user.id });
     return rows.length > 0;
   }
 
@@ -205,10 +194,7 @@ export class UserRepository extends BetterAuthUserRepository<User> {
   }
 
   async isAdmin(userId: string): Promise<boolean> {
-    const [row] = await this.db
-      .select({ admin: user.admin })
-      .from(user)
-      .where(eq(user.id, userId));
+    const [row] = await this.db.select({ admin: user.admin }).from(user).where(eq(user.id, userId));
     return row?.admin ?? false;
   }
 
@@ -217,12 +203,7 @@ export class UserRepository extends BetterAuthUserRepository<User> {
     const rows = await this.db
       .select({ id: user.id })
       .from(user)
-      .where(
-        and(
-          inArray(user.id, [...new Set(userIds)]),
-          eq(user.admin, true)
-        )
-      );
+      .where(and(inArray(user.id, [...new Set(userIds)]), eq(user.admin, true)));
     return rows.map(({ id }) => id);
   }
 
@@ -269,9 +250,7 @@ export class UserRepository extends BetterAuthUserRepository<User> {
     };
   }
 
-  private async getLocalJwks(): Promise<ReturnType<
-    typeof createLocalJWKSet
-  > | null> {
+  private async getLocalJwks(): Promise<ReturnType<typeof createLocalJWKSet> | null> {
     const now = Date.now();
     if (this.jwksCache && now - this.jwksCacheTime < this.jwksCacheTtl) {
       return this.jwksCache;

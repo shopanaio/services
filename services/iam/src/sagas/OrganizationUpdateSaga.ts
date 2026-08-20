@@ -51,19 +51,13 @@ export class OrganizationUpdateSaga extends BrokerSaga<
     action: "write",
     organizationId: (_self, input) => input.organizationId,
   })
-  async run(
-    input: OrganizationUpdateSagaInput,
-  ): Promise<OrganizationUpdateResult> {
+  async run(input: OrganizationUpdateSagaInput): Promise<OrganizationUpdateResult> {
     const { previousLogoId, nextLogoId, ...updateParams } = input;
-    const logoChanged =
-      nextLogoId !== undefined && previousLogoId !== nextLogoId;
+    const logoChanged = nextLogoId !== undefined && previousLogoId !== nextLogoId;
     let nextLogoLinked = false;
 
     if (logoChanged && nextLogoId) {
-      const linkResult = await this.linkLogoBackRef(
-        input.organizationId,
-        nextLogoId,
-      );
+      const linkResult = await this.linkLogoBackRef(input.organizationId, nextLogoId);
       if (!linkResult.success) {
         return {
           organization: null,
@@ -110,20 +104,14 @@ export class OrganizationUpdateSaga extends BrokerSaga<
     return result;
   }
 
-  private async compensateLinkLogoBackRef(
-    organizationId: string,
-    fileId: string,
-  ): Promise<void> {
+  private async compensateLinkLogoBackRef(organizationId: string, fileId: string): Promise<void> {
     await this.unlinkLogoMediaReference(organizationId, fileId);
   }
 
   @SagaStep({
     retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
   })
-  private async cleanupLogoBackRef(
-    organizationId: string,
-    fileId: string,
-  ): Promise<void> {
+  private async cleanupLogoBackRef(organizationId: string, fileId: string): Promise<void> {
     await this.unlinkLogoMediaReference(organizationId, fileId);
   }
 
@@ -133,36 +121,28 @@ export class OrganizationUpdateSaga extends BrokerSaga<
   ): Promise<void> {
     const result = await this.linkLogoMediaReference(organizationId, fileId);
     if (!result.success) {
-      throw new RetryableError(
-        "Unable to restore organization logo media reference",
-      );
+      throw new RetryableError("Unable to restore organization logo media reference");
     }
   }
 
   @SagaStep()
-  private async unlinkLogoBackRef(
-    organizationId: string,
-    fileId: string,
-  ): Promise<void> {
+  private async unlinkLogoBackRef(organizationId: string, fileId: string): Promise<void> {
     await this.unlinkLogoMediaReference(organizationId, fileId);
   }
 
-  private async unlinkLogoMediaReference(
-    organizationId: string,
-    fileId: string,
-  ): Promise<void> {
-    const result = await this.broker.call<
-      Media.FileUnlinkResult,
-      Media.FileUnlinkParams
-    >("media.fileUnlink", {
-      fileId,
-      entityRef: {
-        service: "iam",
-        entityType: "organization",
-        entityId: organizationId,
+  private async unlinkLogoMediaReference(organizationId: string, fileId: string): Promise<void> {
+    const result = await this.broker.call<Media.FileUnlinkResult, Media.FileUnlinkParams>(
+      "media.fileUnlink",
+      {
+        fileId,
+        entityRef: {
+          service: "iam",
+          entityType: "organization",
+          entityId: organizationId,
+        },
+        role: "logo",
       },
-      role: "logo",
-    });
+    );
     if (!result.success) {
       throw new RetryableError("Unable to detach organization logo media file");
     }
@@ -172,18 +152,15 @@ export class OrganizationUpdateSaga extends BrokerSaga<
     organizationId: string,
     fileId: string,
   ): Promise<Media.FileLinkResult> {
-    return this.broker.call<Media.FileLinkResult, Media.FileLinkParams>(
-      "media.fileLink",
-      {
-        fileId,
-        entityRef: {
-          service: "iam",
-          entityType: "organization",
-          entityId: organizationId,
-        },
-        owner: { type: "organization", id: organizationId },
-        role: "logo",
+    return this.broker.call<Media.FileLinkResult, Media.FileLinkParams>("media.fileLink", {
+      fileId,
+      entityRef: {
+        service: "iam",
+        entityType: "organization",
+        entityId: organizationId,
       },
-    );
+      owner: { type: "organization", id: organizationId },
+      role: "logo",
+    });
   }
 }

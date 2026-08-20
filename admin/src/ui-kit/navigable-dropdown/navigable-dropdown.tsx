@@ -34,11 +34,7 @@ interface INavigableDropdownProps {
 // Component
 // ============================================================================
 
-export const NavigableDropdown = ({
-  levels,
-  children,
-  testId,
-}: INavigableDropdownProps) => {
+export const NavigableDropdown = ({ levels, children, testId }: INavigableDropdownProps) => {
   const { styles } = useStyles();
   const [open, setOpen] = useState(false);
   const [activeParent, setActiveParent] = useState<string | null>(null);
@@ -89,10 +85,7 @@ export const NavigableDropdown = ({
       }}
       popupRender={(menu) =>
         activeParent && activeLevel && activeLevel.children?.length ? (
-          <div
-            className={styles.panel}
-            data-testid={testId ? `${testId}-children` : undefined}
-          >
+          <div className={styles.panel} data-testid={testId ? `${testId}-children` : undefined}>
             <div
               className={styles.back}
               onClick={() => {

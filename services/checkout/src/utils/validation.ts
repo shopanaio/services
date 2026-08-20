@@ -1,9 +1,5 @@
-import { plainToInstance, type ClassTransformOptions } from 'class-transformer';
-import {
-  type ValidationError,
-  type ValidatorOptions,
-  validateSync,
-} from 'class-validator';
+import { plainToInstance, type ClassTransformOptions } from "class-transformer";
+import { type ValidationError, type ValidatorOptions, validateSync } from "class-validator";
 
 type ClassConstructor<T> = new (...args: unknown[]) => T;
 
@@ -22,7 +18,7 @@ const defaultValidateOptions: ValidatorOptions = {
   forbidNonWhitelisted: false,
 };
 
-function formatValidationErrors(errors: ValidationError[], parentPath = ''): string[] {
+function formatValidationErrors(errors: ValidationError[], parentPath = ""): string[] {
   const messages: string[] = [];
   for (const error of errors) {
     const path = parentPath ? `${parentPath}.${error.property}` : error.property;
@@ -50,7 +46,7 @@ export function createValidated<T>(
   const errors = validateSync(instance as object, validateOptions);
   if (errors.length > 0) {
     const messages = formatValidationErrors(errors);
-    throw new Error(`Validation failed: ${messages.join('; ')}`);
+    throw new Error(`Validation failed: ${messages.join("; ")}`);
   }
   return instance;
 }
@@ -61,7 +57,7 @@ export function createValidatedArray<T>(
   options?: ValidationFactoryOptions,
 ): T[] {
   if (!Array.isArray(plainArray)) {
-    throw new Error('Validation failed: expected an array input');
+    throw new Error("Validation failed: expected an array input");
   }
   const transformOptions = { ...defaultTransformOptions, ...(options?.transform ?? {}) };
   const validateOptions = { ...defaultValidateOptions, ...(options?.validate ?? {}) };
@@ -77,7 +73,7 @@ export function createValidatedArray<T>(
     }
   }
   if (allErrors.length > 0) {
-    throw new Error(`Validation failed: ${allErrors.join('; ')}`);
+    throw new Error(`Validation failed: ${allErrors.join("; ")}`);
   }
   return instances;
 }

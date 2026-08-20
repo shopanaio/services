@@ -1,19 +1,12 @@
 import type { ServiceContext } from "../../context/types.js";
-import type {
-  InventoryItem,
-  Product,
-  Variant,
-} from "../../repositories/models/index.js";
+import type { InventoryItem, Product, Variant } from "../../repositories/models/index.js";
 
 export function isPublishedProduct(
   product: Product | null | undefined,
   now = Date.now(),
 ): product is Product {
   return Boolean(
-    product &&
-      !product.deletedAt &&
-      product.publishedAt &&
-      Date.parse(product.publishedAt) <= now,
+    product && !product.deletedAt && product.publishedAt && Date.parse(product.publishedAt) <= now,
   );
 }
 
@@ -63,16 +56,11 @@ export async function inventoryState(
   const quantityAvailable = Math.max(
     0,
     stocks.reduce(
-      (sum, stock) =>
-        sum +
-        stock.quantityOnHand -
-        stock.reservedQty -
-        stock.unavailableQty,
+      (sum, stock) => sum + stock.quantityOnHand - stock.reservedQty - stock.unavailableQty,
       0,
     ),
   );
-  const availableForSale =
-    quantityAvailable > 0 || item.continueSellingWhenOutOfStock;
+  const availableForSale = quantityAvailable > 0 || item.continueSellingWhenOutOfStock;
 
   return {
     item,

@@ -7,10 +7,7 @@ import type {
 } from "../../repositories/models/index.js";
 import type { CdnConfigurationInput } from "../../repositories/CdnConfigurationRepository.js";
 import { CdnDeliveryService } from "../../infrastructure/cdn/index.js";
-import type {
-  CdnDeliveryResult,
-  ImageTransformOptions,
-} from "../../infrastructure/cdn/index.js";
+import type { CdnDeliveryResult, ImageTransformOptions } from "../../infrastructure/cdn/index.js";
 import {
   cdnConfigurationCreateSchema,
   cdnConfigurationUpdateSchema,
@@ -20,8 +17,7 @@ import {
 
 export interface CdnConfigurationCreateParams extends CdnConfigurationInput {}
 
-export interface CdnConfigurationUpdateParams
-  extends Partial<CdnConfigurationInput> {
+export interface CdnConfigurationUpdateParams extends Partial<CdnConfigurationInput> {
   id: string;
 }
 
@@ -39,8 +35,7 @@ export interface CdnConfigurationDeleteResult {
   userErrors: UserError[];
 }
 
-export interface CdnConfigurationTestParams
-  extends CdnConfigurationCreateParams {
+export interface CdnConfigurationTestParams extends CdnConfigurationCreateParams {
   objectPath: string;
   transform?: ImageTransformOptions | null;
 }
@@ -88,9 +83,7 @@ export class CdnConfigurationCreateScript extends BaseScript<
   CdnConfigurationResult
 > {
   @ZodSchema(cdnConfigurationCreateSchema)
-  protected async execute(
-    params: CdnConfigurationCreateParams
-  ): Promise<CdnConfigurationResult> {
+  protected async execute(params: CdnConfigurationCreateParams): Promise<CdnConfigurationResult> {
     const input = normalizeInput(params);
     // Zod already enforced field shape/bounds; the remaining checks
     // (baseUrl protocol, secretRef-required-when-signing) are business
@@ -106,10 +99,7 @@ export class CdnConfigurationCreateScript extends BaseScript<
     if (userErrors.length > 0) return { configuration: null, userErrors };
 
     const assetGroup = await this.getOrCreateStoreAssetGroup();
-    const configuration = await this.repository.cdnConfiguration.create(
-      assetGroup.id,
-      input
-    );
+    const configuration = await this.repository.cdnConfiguration.create(assetGroup.id, input);
     return { configuration, userErrors: [] };
   }
 
@@ -134,16 +124,11 @@ export class CdnConfigurationUpdateScript extends BaseScript<
   CdnConfigurationResult
 > {
   @ZodSchema(cdnConfigurationUpdateSchema)
-  protected async execute(
-    params: CdnConfigurationUpdateParams
-  ): Promise<CdnConfigurationResult> {
+  protected async execute(params: CdnConfigurationUpdateParams): Promise<CdnConfigurationResult> {
     const { id, ...changes } = params;
     const input = normalizeInput(changes);
     const assetGroup = await this.getOrCreateStoreAssetGroup();
-    const existing = await this.repository.cdnConfiguration.findById(
-      assetGroup.id,
-      id
-    );
+    const existing = await this.repository.cdnConfiguration.findById(assetGroup.id, id);
     if (!existing) {
       return {
         configuration: null,
@@ -162,11 +147,7 @@ export class CdnConfigurationUpdateScript extends BaseScript<
     if (userErrors.length > 0) return { configuration: null, userErrors };
 
     return {
-      configuration: await this.repository.cdnConfiguration.update(
-        assetGroup.id,
-        id,
-        input
-      ),
+      configuration: await this.repository.cdnConfiguration.update(assetGroup.id, id, input),
       userErrors: [],
     };
   }
@@ -192,13 +173,11 @@ export class CdnConfigurationSetDefaultScript extends BaseScript<
   CdnConfigurationResult
 > {
   @ZodSchema(cdnConfigurationIdSchema)
-  protected async execute(
-    params: CdnConfigurationIdParams
-  ): Promise<CdnConfigurationResult> {
+  protected async execute(params: CdnConfigurationIdParams): Promise<CdnConfigurationResult> {
     const assetGroup = await this.getOrCreateStoreAssetGroup();
     const configuration = await this.repository.cdnConfiguration.setDefault(
       assetGroup.id,
-      params.id
+      params.id,
     );
     return configuration
       ? { configuration, userErrors: [] }
@@ -216,9 +195,7 @@ export class CdnConfigurationSetDefaultScript extends BaseScript<
     }
     return {
       configuration: null,
-      userErrors: [
-        { code: "CDN_DEFAULT_UPDATE_FAILED", message: "Failed to set default CDN" },
-      ],
+      userErrors: [{ code: "CDN_DEFAULT_UPDATE_FAILED", message: "Failed to set default CDN" }],
     };
   }
 }
@@ -228,14 +205,9 @@ export class CdnConfigurationDeleteScript extends BaseScript<
   CdnConfigurationDeleteResult
 > {
   @ZodSchema(cdnConfigurationIdSchema)
-  protected async execute(
-    params: CdnConfigurationIdParams
-  ): Promise<CdnConfigurationDeleteResult> {
+  protected async execute(params: CdnConfigurationIdParams): Promise<CdnConfigurationDeleteResult> {
     const assetGroup = await this.getOrCreateStoreAssetGroup();
-    const deleted = await this.repository.cdnConfiguration.delete(
-      assetGroup.id,
-      params.id
-    );
+    const deleted = await this.repository.cdnConfiguration.delete(assetGroup.id, params.id);
     return deleted
       ? { deletedConfigurationId: params.id, userErrors: [] }
       : {
@@ -264,9 +236,7 @@ export class CdnConfigurationTestScript extends BaseScript<
   CdnConfigurationTestResult
 > {
   @ZodSchema(cdnConfigurationTestSchema)
-  protected async execute(
-    params: CdnConfigurationTestParams
-  ): Promise<CdnConfigurationTestResult> {
+  protected async execute(params: CdnConfigurationTestParams): Promise<CdnConfigurationTestResult> {
     const { objectPath, transform, ...configurationInput } = params;
     const input = normalizeInput(configurationInput);
     // Shape/bounds (including objectPath) are enforced by
@@ -296,7 +266,7 @@ export class CdnConfigurationTestScript extends BaseScript<
     const delivery = await new CdnDeliveryService(this.repository).preview(
       configuration,
       objectPath,
-      transform
+      transform,
     );
 
     return {

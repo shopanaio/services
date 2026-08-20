@@ -10,7 +10,9 @@ export class ContentExternalReferenceDeleteScript extends BaseScript<
   ContentExternalReferenceDeleteResult
 > {
   @Transactional()
-  protected async execute(params: ContentExternalReferenceDeleteParams): Promise<ContentExternalReferenceDeleteResult> {
+  protected async execute(
+    params: ContentExternalReferenceDeleteParams,
+  ): Promise<ContentExternalReferenceDeleteResult> {
     if (Number.isNaN(Date.parse(params.expectedUpdatedAt))) {
       return { userErrors: invalidDate("expectedUpdatedAt") };
     }
@@ -19,9 +21,13 @@ export class ContentExternalReferenceDeleteScript extends BaseScript<
       expectedUpdatedAt: params.expectedUpdatedAt,
       permanent: params.permanent ?? false,
     });
-    if (result.status === "not_found") return { userErrors: notFound("Content external reference") };
+    if (result.status === "not_found")
+      return { userErrors: notFound("Content external reference") };
     if (result.status === "conflict") return { userErrors: conflict("expectedUpdatedAt") };
-    this.logger.info({ externalReferenceId: result.value.id, permanent: params.permanent ?? false }, "Review content external reference deleted");
+    this.logger.info(
+      { externalReferenceId: result.value.id, permanent: params.permanent ?? false },
+      "Review content external reference deleted",
+    );
     return {
       deletedExternalReferenceId: result.value.id,
       contentId: result.value.contentId,

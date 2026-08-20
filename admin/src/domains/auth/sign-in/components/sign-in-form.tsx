@@ -80,9 +80,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
         <Typography.Title level={3} className={styles.title}>
           Sign In
         </Typography.Title>
-        <Typography.Text className={styles.subtitle}>
-          Welcome back to Shopana
-        </Typography.Text>
+        <Typography.Text className={styles.subtitle}>Welcome back to Shopana</Typography.Text>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -103,9 +101,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
             )}
           />
           {errors.email && (
-            <Typography.Text className={styles.error}>
-              {errors.email.message}
-            </Typography.Text>
+            <Typography.Text className={styles.error}>{errors.email.message}</Typography.Text>
           )}
         </div>
 
@@ -127,9 +123,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
             )}
           />
           {errors.password && (
-            <Typography.Text className={styles.error}>
-              {errors.password.message}
-            </Typography.Text>
+            <Typography.Text className={styles.error}>{errors.password.message}</Typography.Text>
           )}
         </div>
 
@@ -138,11 +132,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
             name="rememberMe"
             control={control}
             render={({ field: { value, onChange, ...field } }) => (
-              <Checkbox
-                {...field}
-                checked={value}
-                onChange={(e) => onChange(e.target.checked)}
-              >
+              <Checkbox {...field} checked={value} onChange={(e) => onChange(e.target.checked)}>
                 Remember me
               </Checkbox>
             )}

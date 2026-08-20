@@ -35,10 +35,7 @@ export function getContextSafe(): OrderContext | null {
  * Runs a function within a specific order context
  * Useful for testing or special execution scenarios
  */
-export async function runWithContext<T>(
-  context: OrderContext,
-  fn: () => Promise<T>
-): Promise<T> {
+export async function runWithContext<T>(context: OrderContext, fn: () => Promise<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     storage.run(context, async () => {
       try {

@@ -43,10 +43,7 @@ export function EntityTagsSection({
   const hasTags = tags.length > 0;
 
   return (
-    <Paper
-      className={className}
-      data-testid={`${testIdPrefix}-section`}
-    >
+    <Paper className={className} data-testid={`${testIdPrefix}-section`}>
       <PaperHeader
         title="Tags"
         className={headerClassName}
@@ -76,9 +73,7 @@ export function EntityTagsSection({
                     key: "delete",
                     label: (
                       <span
-                        data-testid={`${testIdPrefix}-delete-menu-item-${
-                          tag.handle ?? tag.id
-                        }`}
+                        data-testid={`${testIdPrefix}-delete-menu-item-${tag.handle ?? tag.id}`}
                       >
                         Delete tag
                       </span>

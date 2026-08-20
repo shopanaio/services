@@ -1,8 +1,5 @@
 import { gql } from "@apollo/client";
-import {
-  WAREHOUSE_DETAILS_FRAGMENT,
-  WAREHOUSE_LIST_FRAGMENT,
-} from "./fragments";
+import { WAREHOUSE_DETAILS_FRAGMENT, WAREHOUSE_LIST_FRAGMENT } from "./fragments";
 
 export const WAREHOUSES_QUERY = gql`
   query Warehouses(

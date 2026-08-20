@@ -18,22 +18,20 @@ export const resourceManagement = iamSchema.table(
     managementMode: varchar("management_mode", { length: 32 })
       .$type<ResourceManagementMode>()
       .notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     check("resource_management_kind_not_empty", sql`${table.resourceKind} <> ''`),
     check(
       "resource_management_mode_check",
-      sql`${table.managementMode} IN ('organization', 'service')`
+      sql`${table.managementMode} IN ('organization', 'service')`,
     ),
     uniqueIndex("uq_resource_management_resource").on(
       table.organizationId,
       table.resourceKind,
-      table.resourceId
+      table.resourceId,
     ),
-  ]
+  ],
 );
 
 export type ResourceManagement = typeof resourceManagement.$inferSelect;

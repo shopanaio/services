@@ -32,11 +32,13 @@ export const EditAction = ({
             disabled: isDisabled,
           },
         ],
-        onClick: items ? undefined : () => {
-          if (!isDisabled) {
-            void onEdit();
-          }
-        },
+        onClick: items
+          ? undefined
+          : () => {
+              if (!isDisabled) {
+                void onEdit();
+              }
+            },
       }}
       trigger={["click"]}
     >

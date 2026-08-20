@@ -171,7 +171,9 @@ enum ProductQuestionAnswerState {
   UNANSWERED
 }
 
-"""Logical sections executed by unified admin update workflows."""
+"""
+Logical sections executed by unified admin update workflows.
+"""
 enum ReviewsOperationType {
   STORE_CONFIGURATION_UPDATE
   RATING_CRITERION_DEFINITION_UPDATE

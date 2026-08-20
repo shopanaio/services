@@ -9,8 +9,10 @@ export const roleAssignmentSchema = z.object({
     .string()
     .min(1, "Domain is required")
     .refine(
-      (d) => d === "org" || /^store:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(d),
-      "Domain must be 'org' or 'store:{uuid}'"
+      (d) =>
+        d === "org" ||
+        /^store:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(d),
+      "Domain must be 'org' or 'store:{uuid}'",
     ),
   role: z.string().min(1, "Role is required"),
 });
@@ -28,9 +30,7 @@ export const memberInviteInputSchema = z.object({
     .string()
     .email("Invalid email address")
     .transform((e) => e.toLowerCase()),
-  roles: z
-    .array(roleAssignmentSchema)
-    .min(1, "At least one role assignment is required"),
+  roles: z.array(roleAssignmentSchema).min(1, "At least one role assignment is required"),
 });
 
 export type MemberInviteInput = z.infer<typeof memberInviteInputSchema>;

@@ -1,9 +1,4 @@
-import {
-  BaseScript,
-  ZodSchema,
-  Transactional,
-  ValidationError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, Transactional, ValidationError } from "../../kernel/BaseScript.js";
 import { AuthorizationError } from "@shopana/shared-kernel";
 import {
   InvitedMember,
@@ -26,15 +21,10 @@ import type { Domain } from "../../casbin/CasbinService.js";
  *    - Assign role in Casbin
  * 5. Return the first role assignment as the member result
  */
-export class MemberInviteScript extends BaseScript<
-  MemberInviteParams,
-  MemberInviteResult
-> {
+export class MemberInviteScript extends BaseScript<MemberInviteParams, MemberInviteResult> {
   @Transactional()
   @ZodSchema(memberInviteInputSchema)
-  protected async execute(
-    params: MemberInviteParams
-  ): Promise<MemberInviteResult> {
+  protected async execute(params: MemberInviteParams): Promise<MemberInviteResult> {
     const { organizationId, invitedBy, email, roles } = params;
 
     // 1. Find user by email
@@ -53,10 +43,7 @@ export class MemberInviteScript extends BaseScript<
     }
 
     // 2. Add user as organization member (if not already)
-    const existingMember = await this.repository.organization.findMember(
-      organizationId,
-      user.id
-    );
+    const existingMember = await this.repository.organization.findMember(organizationId, user.id);
 
     if (existingMember) {
       return {
@@ -85,11 +72,7 @@ export class MemberInviteScript extends BaseScript<
       const { domain, role: roleName } = roleAssignment;
 
       // Find role in the specified domain
-      const role = await this.repository.organization.findRole(
-        organizationId,
-        domain,
-        roleName
-      );
+      const role = await this.repository.organization.findRole(organizationId, domain, roleName);
 
       if (!role) {
         throw new ValidationError([
@@ -105,7 +88,7 @@ export class MemberInviteScript extends BaseScript<
       const existingRole = await this.repository.organization.findUserRole(
         organizationId,
         user.id,
-        domain
+        domain,
       );
 
       if (existingRole) {
@@ -158,7 +141,7 @@ export class MemberInviteScript extends BaseScript<
 
       this.logger.debug(
         { userId: user.id, organizationId, domain, roleName },
-        "MemberInviteScript: Role assigned successfully"
+        "MemberInviteScript: Role assigned successfully",
       );
     }
 

@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import type { BrokerCallContext } from './BrokerCallContext.js';
+import { Injectable } from "@nestjs/common";
+import type { BrokerCallContext } from "./BrokerCallContext.js";
 
 /** @deprecated Use BrokerCallContext. */
 export type ActionCallContext = BrokerCallContext;
@@ -49,9 +49,7 @@ export class ActionRegistry {
   /**
    * Resolves an action handler or throws if it does not exist.
    */
-  resolve<TParams = unknown, TResult = unknown>(
-    action: string,
-  ): ActionHandler<TParams, TResult> {
+  resolve<TParams = unknown, TResult = unknown>(action: string): ActionHandler<TParams, TResult> {
     const entry = this.actions.get(action);
     if (!entry) {
       throw new Error(`Action "${action}" not found`);

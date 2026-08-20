@@ -19,10 +19,7 @@ function assertAllowedManifestUrl(manifestUrl: string): void {
   }
 }
 
-async function assertManifestIntegrity(
-  manifestUrl: string,
-  expectedHash: string,
-): Promise<void> {
+async function assertManifestIntegrity(manifestUrl: string, expectedHash: string): Promise<void> {
   if (!/^[a-f0-9]{64}$/i.test(expectedHash)) {
     return;
   }
@@ -49,18 +46,13 @@ async function assertManifestIntegrity(
   verifiedManifests.add(cacheKey);
 }
 
-export async function registerAdminAppRemote(
-  descriptor: AdminAppUiDescriptor,
-): Promise<void> {
+export async function registerAdminAppRemote(descriptor: AdminAppUiDescriptor): Promise<void> {
   if (descriptor.remote.manifestUrl.startsWith("local:")) {
     return;
   }
 
   assertAllowedManifestUrl(descriptor.remote.manifestUrl);
-  await assertManifestIntegrity(
-    descriptor.remote.manifestUrl,
-    descriptor.remote.contentHash,
-  );
+  await assertManifestIntegrity(descriptor.remote.manifestUrl, descriptor.remote.contentHash);
   const current = registered.get(descriptor.remote.name);
   if (current === descriptor.remote.manifestUrl) {
     return;

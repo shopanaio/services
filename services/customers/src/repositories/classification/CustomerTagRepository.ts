@@ -1,15 +1,8 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, count, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  normalizeRelayPagination,
-  type RepositoryConnectionResult,
-} from "../connection.js";
+import { normalizeRelayPagination, type RepositoryConnectionResult } from "../connection.js";
 import {
   decodeCustomerGlobalId,
   decodeCustomerTagAssignmentGlobalId,
@@ -31,7 +24,7 @@ export const customerTagRelayQuery = createRelayQuery(
     .mapWhereField("id", decodeCustomerTagGlobalId)
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerTag", tieBreaker: "id" }
+  { name: "customerTag", tieBreaker: "id" },
 );
 
 export const customerTagAssignmentRelayQuery = createRelayQuery(
@@ -44,18 +37,17 @@ export const customerTagAssignmentRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerTagAssignment", tieBreaker: "id" }
+  { name: "customerTagAssignment", tieBreaker: "id" },
 );
 
 export type CustomerTagRelayInput = InferRelayInput<typeof customerTagRelayQuery>;
 export type CustomerTagAssignmentRelayInput = InferRelayInput<
   typeof customerTagAssignmentRelayQuery
 >;
-export type CustomerTagAssignmentConnectionInput =
-  CustomerTagAssignmentRelayInput & {
-    customerId?: string;
-    tagId?: string;
-  };
+export type CustomerTagAssignmentConnectionInput = CustomerTagAssignmentRelayInput & {
+  customerId?: string;
+  tagId?: string;
+};
 
 export class CustomerTagRepository extends BaseRepository {
   @ReadOnly()
@@ -63,10 +55,12 @@ export class CustomerTagRepository extends BaseRepository {
     const rows = await this.connection
       .select({ customerId: customerTagAssignment.customerId })
       .from(customerTagAssignment)
-      .where(and(
-        eq(customerTagAssignment.storeId, this.storeId),
-        eq(customerTagAssignment.tagId, tagId),
-      ));
+      .where(
+        and(
+          eq(customerTagAssignment.storeId, this.storeId),
+          eq(customerTagAssignment.tagId, tagId),
+        ),
+      );
     return [...new Set(rows.map((row) => row.customerId))].sort();
   }
 
@@ -79,8 +73,8 @@ export class CustomerTagRepository extends BaseRepository {
         and(
           eq(customerTag.storeId, this.storeId),
           eq(customerTag.id, id),
-          isNull(customerTag.deletedAt)
-        )
+          isNull(customerTag.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -95,8 +89,8 @@ export class CustomerTagRepository extends BaseRepository {
         and(
           eq(customerTag.storeId, this.storeId),
           eq(customerTag.normalizedName, normalizeTagName(name)),
-          isNull(customerTag.deletedAt)
-        )
+          isNull(customerTag.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -112,8 +106,8 @@ export class CustomerTagRepository extends BaseRepository {
         and(
           eq(customerTag.storeId, this.storeId),
           inArray(customerTag.id, [...new Set(ids)]),
-          isNull(customerTag.deletedAt)
-        )
+          isNull(customerTag.deletedAt),
+        ),
       );
   }
 
@@ -122,12 +116,7 @@ export class CustomerTagRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(customerTagAssignment)
-      .where(
-        and(
-          eq(customerTagAssignment.storeId, this.storeId),
-          eq(customerTagAssignment.id, id)
-        )
-      )
+      .where(and(eq(customerTagAssignment.storeId, this.storeId), eq(customerTagAssignment.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -141,8 +130,8 @@ export class CustomerTagRepository extends BaseRepository {
       .where(
         and(
           eq(customerTagAssignment.storeId, this.storeId),
-          inArray(customerTagAssignment.id, [...new Set(ids)])
-        )
+          inArray(customerTagAssignment.id, [...new Set(ids)]),
+        ),
       );
   }
 
@@ -175,8 +164,8 @@ export class CustomerTagRepository extends BaseRepository {
         and(
           eq(customerTag.storeId, this.storeId),
           eq(customerTag.id, id),
-          isNull(customerTag.deletedAt)
-        )
+          isNull(customerTag.deletedAt),
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -191,8 +180,8 @@ export class CustomerTagRepository extends BaseRepository {
         and(
           eq(customerTag.storeId, this.storeId),
           eq(customerTag.id, id),
-          isNull(customerTag.deletedAt)
-        )
+          isNull(customerTag.deletedAt),
+        ),
       )
       .returning({ id: customerTag.id });
     return rows.length > 0;
@@ -201,7 +190,7 @@ export class CustomerTagRepository extends BaseRepository {
   async assign(
     customerId: string,
     tagId: string,
-    assignedById?: string | null
+    assignedById?: string | null,
   ): Promise<CustomerTagAssignment> {
     const existing = await this.findAssignment(customerId, tagId);
     if (existing) return existing;
@@ -226,8 +215,8 @@ export class CustomerTagRepository extends BaseRepository {
         and(
           eq(customerTagAssignment.storeId, this.storeId),
           eq(customerTagAssignment.customerId, customerId),
-          eq(customerTagAssignment.tagId, tagId)
-        )
+          eq(customerTagAssignment.tagId, tagId),
+        ),
       )
       .returning({ id: customerTagAssignment.id });
     return rows[0]?.id ?? null;
@@ -237,15 +226,15 @@ export class CustomerTagRepository extends BaseRepository {
   async replaceForCustomer(
     customerId: string,
     tagIds: readonly string[],
-    assignedById?: string | null
+    assignedById?: string | null,
   ): Promise<CustomerTagAssignment[]> {
     await this.connection
       .delete(customerTagAssignment)
       .where(
         and(
           eq(customerTagAssignment.storeId, this.storeId),
-          eq(customerTagAssignment.customerId, customerId)
-        )
+          eq(customerTagAssignment.customerId, customerId),
+        ),
       );
     const uniqueIds = [...new Set(tagIds)];
     if (uniqueIds.length === 0) return [];
@@ -261,7 +250,7 @@ export class CustomerTagRepository extends BaseRepository {
           tagId,
           assignedById: assignedById ?? null,
           assignedAt,
-        }))
+        })),
       )
       .returning();
   }
@@ -273,9 +262,7 @@ export class CustomerTagRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async countCustomersByTagIds(
-    tagIds: readonly string[]
-  ): Promise<Map<string, number>> {
+  async countCustomersByTagIds(tagIds: readonly string[]): Promise<Map<string, number>> {
     if (tagIds.length === 0) return new Map();
     const rows = await this.connection
       .select({
@@ -288,14 +275,14 @@ export class CustomerTagRepository extends BaseRepository {
         and(
           eq(customer.storeId, customerTagAssignment.storeId),
           eq(customer.id, customerTagAssignment.customerId),
-          isNull(customer.deletedAt)
-        )
+          isNull(customer.deletedAt),
+        ),
       )
       .where(
         and(
           eq(customerTagAssignment.storeId, this.storeId),
-          inArray(customerTagAssignment.tagId, [...new Set(tagIds)])
-        )
+          inArray(customerTagAssignment.tagId, [...new Set(tagIds)]),
+        ),
       )
       .groupBy(customerTagAssignment.tagId);
     return new Map(rows.map((row) => [row.tagId, row.count]));
@@ -332,7 +319,7 @@ export class CustomerTagRepository extends BaseRepository {
 
   @ReadOnly()
   async getAssignmentConnection(
-    input: CustomerTagAssignmentConnectionInput
+    input: CustomerTagAssignmentConnectionInput,
   ): Promise<RepositoryConnectionResult> {
     const normalized = normalizeRelayPagination(input);
     const { customerId, tagId, where, orderBy, ...pagination } = normalized;
@@ -382,10 +369,7 @@ export class CustomerTagRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findAssignment(
-    customerId: string,
-    tagId: string
-  ): Promise<CustomerTagAssignment | null> {
+  async findAssignment(customerId: string, tagId: string): Promise<CustomerTagAssignment | null> {
     const rows = await this.connection
       .select()
       .from(customerTagAssignment)
@@ -393,8 +377,8 @@ export class CustomerTagRepository extends BaseRepository {
         and(
           eq(customerTagAssignment.storeId, this.storeId),
           eq(customerTagAssignment.customerId, customerId),
-          eq(customerTagAssignment.tagId, tagId)
-        )
+          eq(customerTagAssignment.tagId, tagId),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -407,6 +391,9 @@ function normalizeTagName(name: string): string {
 
 export function normalizeTagDisplayName(name: string): string {
   return fullUnicodeNfkc(name)
-    .replace(/[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+/gu, " ")
+    .replace(
+      /[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+/gu,
+      " ",
+    )
     .trim();
 }

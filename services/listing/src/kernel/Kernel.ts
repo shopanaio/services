@@ -6,11 +6,7 @@ import type {
   ServiceBroker,
   WorkflowRegistry,
 } from "@shopana/shared-kernel";
-import {
-  getContextSafe,
-  runWithContext,
-  ServiceContext,
-} from "../context/index.js";
+import { getContextSafe, runWithContext, ServiceContext } from "../context/index.js";
 import { createDatabase, type Database } from "../infrastructure/db/database.js";
 import { Loader } from "../loaders/Loader.js";
 import { Repository } from "../repositories/Repository.js";
@@ -35,7 +31,7 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
     workflow: WorkflowRegistry,
     cache: Cache,
     db: Database,
-    searchExecution: SearchExecutionService
+    searchExecution: SearchExecutionService,
   ) {
     super(broker, logger, { repository, workflow, cache, searchExecution });
     this.repository = repository;
@@ -48,7 +44,7 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
   static async create(
     broker: ServiceBroker,
     workflow: WorkflowRegistry,
-    dbClient: DatabaseClient
+    dbClient: DatabaseClient,
   ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
@@ -58,12 +54,8 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
     const repository = await Repository.create({
       db,
       broker,
-      heavyOptionFacetCountsEnabled: booleanEnv(
-        "LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED"
-      ),
-      facetCountsProfilingEnabled: booleanEnv(
-        "LISTING_FACET_COUNTS_PROFILE_ENABLED"
-      ),
+      heavyOptionFacetCountsEnabled: booleanEnv("LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED"),
+      facetCountsProfilingEnabled: booleanEnv("LISTING_FACET_COUNTS_PROFILE_ENABLED"),
     });
     const cache = createCache({
       ttl: 5 * 60 * 1000,
@@ -86,7 +78,7 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
       workflow,
       cache,
       db,
-      searchExecution
+      searchExecution,
     );
     return this.instance;
   }
@@ -94,7 +86,7 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
   static getInstance(): Kernel {
     if (!this.instance) {
       throw new Error(
-        "Kernel not initialized. Call Kernel.create(broker, workflow, dbClient) first."
+        "Kernel not initialized. Call Kernel.create(broker, workflow, dbClient) first.",
       );
     }
     return this.instance;
@@ -109,11 +101,9 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
   }
 
   async runScript<TParams, TResult>(
-    ScriptClass: new (
-      services: ListingKernelServices
-    ) => BaseScript<TParams, TResult>,
+    ScriptClass: new (services: ListingKernelServices) => BaseScript<TParams, TResult>,
     params: TParams,
-    context?: RunScriptContext
+    context?: RunScriptContext,
   ): Promise<TResult> {
     const script = new ScriptClass(this.services);
 
@@ -144,9 +134,7 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
         currencyCode: defaultCurrency,
         locales: ctx.locales ?? [defaultLocale],
       },
-      user: ctx.userId
-        ? { id: ctx.userId, name: "workflow-user" }
-        : undefined,
+      user: ctx.userId ? { id: ctx.userId, name: "workflow-user" } : undefined,
     });
   }
 

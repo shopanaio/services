@@ -21,14 +21,7 @@ export function SortableItem({
   containerId,
   wrapperStyle,
 }: SortableItemProps) {
-  const {
-    setNodeRef,
-    listeners,
-    isDragging,
-    isSorting,
-    transform,
-    transition,
-  } = useSortable({
+  const { setNodeRef, listeners, isDragging, isSorting, transform, transition } = useSortable({
     id,
     data: {
       type: "item",

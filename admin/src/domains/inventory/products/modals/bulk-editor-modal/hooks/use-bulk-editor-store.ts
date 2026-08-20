@@ -1,11 +1,6 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import {
-  IColumnVisibility,
-  IFieldEdit,
-  IRowEdits,
-  DEFAULT_COLUMN_VISIBILITY,
-} from "../types";
+import { IColumnVisibility, IFieldEdit, IRowEdits, DEFAULT_COLUMN_VISIBILITY } from "../types";
 
 interface BulkEditorStore {
   // State
@@ -24,12 +19,7 @@ interface BulkEditorStore {
   closeEditor: () => void;
 
   // Actions - Editing
-  setFieldValue: (
-    rowId: string,
-    field: string,
-    originalValue: unknown,
-    newValue: unknown
-  ) => void;
+  setFieldValue: (rowId: string, field: string, originalValue: unknown, newValue: unknown) => void;
   discardAll: () => void;
   discardRow: (rowId: string) => void;
 
@@ -121,15 +111,14 @@ export const useBulkEditorStore = create<BulkEditorStore>()(
               [field]: !state.columnVisibility[field],
             },
           })),
-        resetColumnsToDefault: () =>
-          set({ columnVisibility: DEFAULT_COLUMN_VISIBILITY }),
+        resetColumnsToDefault: () => set({ columnVisibility: DEFAULT_COLUMN_VISIBILITY }),
 
         // Selectors
         hasChanges: () => Object.keys(get().edits).length > 0,
         getChangesCount: () => {
           return Object.values(get().edits).reduce(
             (count, rowEdits) => count + Object.keys(rowEdits).length,
-            0
+            0,
           );
         },
         getRowEdits: (rowId) => get().edits[rowId],
@@ -141,8 +130,8 @@ export const useBulkEditorStore = create<BulkEditorStore>()(
         partialize: (state) => ({
           columnVisibility: state.columnVisibility,
         }),
-      }
+      },
     ),
-    { name: "bulk-editor" }
-  )
+    { name: "bulk-editor" },
+  ),
 );

@@ -3,9 +3,7 @@
   "entryPoint": "src/index.ts",
   "outFile": "dist/index.js",
   "graphql": {
-    "admin": [
-      "src/api/graphql-admin/schema/**/*.graphql"
-    ],
+    "admin": ["src/api/graphql-admin/schema/**/*.graphql"],
     "storefront": [
       "src/api/graphql-storefront/schema/**/*.graphql",
       "../../packages/storefront-graphql/graphql/foundation.graphql",

@@ -3,11 +3,7 @@ import { createStyles } from "antd-style";
 import { Popover, Checkbox, Divider, Typography, Button } from "antd";
 import { LuSettings as SettingOutlined } from "react-icons/lu";
 import { useBulkEditorStore } from "../hooks/use-bulk-editor-store";
-import {
-  PRODUCT_COLUMNS,
-  PRICING_COLUMNS,
-  ATTRIBUTES_COLUMNS,
-} from "../types";
+import { PRODUCT_COLUMNS, PRICING_COLUMNS, ATTRIBUTES_COLUMNS } from "../types";
 
 const { Text } = Typography;
 
@@ -79,13 +75,10 @@ export const ColumnSettingsPopover: React.FC = () => {
   );
 
   return (
-    <Popover
-      content={content}
-      title="Columns"
-      trigger="click"
-      placement="bottomLeft"
-    >
-      <Button size="small" icon={<SettingOutlined />}>Columns</Button>
+    <Popover content={content} title="Columns" trigger="click" placement="bottomLeft">
+      <Button size="small" icon={<SettingOutlined />}>
+        Columns
+      </Button>
     </Popover>
   );
 };

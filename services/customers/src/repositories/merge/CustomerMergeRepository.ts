@@ -103,9 +103,7 @@ export class CustomerMergeRepository extends BaseRepository {
     const targetRows = rows.filter(
       (row) => row.customerId === targetCustomerId && row.deletedAt === null,
     );
-    const targetBySignature = new Map(
-      targetRows.map((row) => [addressSignature(row), row]),
-    );
+    const targetBySignature = new Map(targetRows.map((row) => [addressSignature(row), row]));
     let hasShippingDefault = targetRows.some((row) => row.isDefaultShipping);
     let hasBillingDefault = targetRows.some((row) => row.isDefaultBilling);
     const resolution = emptyResolution();
@@ -130,10 +128,7 @@ export class CustomerMergeRepository extends BaseRepository {
               updatedAt: now,
             })
             .where(
-              and(
-                eq(customerAddress.storeId, this.storeId),
-                eq(customerAddress.id, duplicate.id),
-              ),
+              and(eq(customerAddress.storeId, this.storeId), eq(customerAddress.id, duplicate.id)),
             );
           hasShippingDefault ||= inheritShipping;
           hasBillingDefault ||= inheritBilling;
@@ -191,9 +186,7 @@ export class CustomerMergeRepository extends BaseRepository {
     const targetRows = rows.filter(
       (row) => row.customerId === targetCustomerId && row.deletedAt === null,
     );
-    const targetByKey = new Map(
-      targetRows.map((row) => [taxIdentifierKey(row), row]),
-    );
+    const targetByKey = new Map(targetRows.map((row) => [taxIdentifierKey(row), row]));
     let hasPrimary = targetRows.some((row) => row.isPrimary);
     const resolution = emptyResolution();
 
@@ -325,9 +318,7 @@ export class CustomerMergeRepository extends BaseRepository {
       )
       .orderBy(asc(customerConsent.createdAt), asc(customerConsent.id));
     const targetByChannel = new Map(
-      rows
-        .filter((row) => row.customerId === targetCustomerId)
-        .map((row) => [row.channel, row]),
+      rows.filter((row) => row.customerId === targetCustomerId).map((row) => [row.channel, row]),
     );
     const resolution = emptyResolution();
     let evidenceTransferred = 0;
@@ -338,12 +329,7 @@ export class CustomerMergeRepository extends BaseRepository {
         await this.connection
           .update(customerConsent)
           .set({ customerId: targetCustomerId, updatedAt: now })
-          .where(
-            and(
-              eq(customerConsent.storeId, this.storeId),
-              eq(customerConsent.id, source.id),
-            ),
-          );
+          .where(and(eq(customerConsent.storeId, this.storeId), eq(customerConsent.id, source.id)));
         const events = await this.connection
           .update(customerConsentEvent)
           .set({ customerId: targetCustomerId })
@@ -380,10 +366,7 @@ export class CustomerMergeRepository extends BaseRepository {
             updatedAt: now,
           })
           .where(
-            and(
-              eq(customerConsent.storeId, this.storeId),
-              eq(customerConsent.id, duplicate.id),
-            ),
+            and(eq(customerConsent.storeId, this.storeId), eq(customerConsent.id, duplicate.id)),
           );
       }
       const events = await this.connection
@@ -399,12 +382,7 @@ export class CustomerMergeRepository extends BaseRepository {
       evidenceTransferred += events.length;
       await this.connection
         .delete(customerConsent)
-        .where(
-          and(
-            eq(customerConsent.storeId, this.storeId),
-            eq(customerConsent.id, source.id),
-          ),
-        );
+        .where(and(eq(customerConsent.storeId, this.storeId), eq(customerConsent.id, source.id)));
       resolution.deduplicated += 1;
       resolution.conflicts.push({
         sourceId: source.id,
@@ -432,25 +410,19 @@ export class CustomerMergeRepository extends BaseRepository {
       .orderBy(asc(customerGroupMembership.assignedAt), asc(customerGroupMembership.id));
     const targets = rows.filter((row) => row.customerId === targetCustomerId);
     const targetByGroup = new Map(targets.map((row) => [row.groupId, row]));
-    let hasPrimary = targets.some(
-      (row) => row.isPrimary && row.expiresAt === null,
-    );
+    let hasPrimary = targets.some((row) => row.isPrimary && row.expiresAt === null);
     const resolution = emptyResolution();
 
     for (const source of rows.filter((row) => row.customerId === sourceCustomerId)) {
       const duplicate = targetByGroup.get(source.groupId);
       if (duplicate) {
         const expiresAt = mergeExpiration(duplicate.expiresAt, source.expiresAt);
-        const inheritPrimary =
-          source.isPrimary && expiresAt === null && !hasPrimary;
+        const inheritPrimary = source.isPrimary && expiresAt === null && !hasPrimary;
         const isPrimary =
           expiresAt === null
             ? (duplicate.isPrimary && duplicate.expiresAt === null) || inheritPrimary
             : duplicate.isPrimary;
-        if (
-          isPrimary !== duplicate.isPrimary ||
-          expiresAt !== duplicate.expiresAt
-        ) {
+        if (isPrimary !== duplicate.isPrimary || expiresAt !== duplicate.expiresAt) {
           await this.connection
             .update(customerGroupMembership)
             .set({
@@ -481,8 +453,7 @@ export class CustomerMergeRepository extends BaseRepository {
         });
         continue;
       }
-      const isPrimary =
-        source.isPrimary && (source.expiresAt !== null || !hasPrimary);
+      const isPrimary = source.isPrimary && (source.expiresAt !== null || !hasPrimary);
       await this.connection
         .update(customerGroupMembership)
         .set({ customerId: targetCustomerId, isPrimary })
@@ -527,20 +498,14 @@ export class CustomerMergeRepository extends BaseRepository {
           .update(customerTagAssignment)
           .set({ customerId: targetCustomerId })
           .where(
-            and(
-              eq(customerTagAssignment.storeId, this.storeId),
-              eq(customerTagAssignment.id, id),
-            ),
+            and(eq(customerTagAssignment.storeId, this.storeId), eq(customerTagAssignment.id, id)),
           );
       },
       remove: async (id) => {
         await this.connection
           .delete(customerTagAssignment)
           .where(
-            and(
-              eq(customerTagAssignment.storeId, this.storeId),
-              eq(customerTagAssignment.id, id),
-            ),
+            and(eq(customerTagAssignment.storeId, this.storeId), eq(customerTagAssignment.id, id)),
           );
       },
     });
@@ -561,9 +526,7 @@ export class CustomerMergeRepository extends BaseRepository {
       )
       .orderBy(asc(customerSegmentMembership.evaluatedAt), asc(customerSegmentMembership.id));
     const targetBySegment = new Map(
-      rows
-        .filter((row) => row.customerId === targetCustomerId)
-        .map((row) => [row.segmentId, row]),
+      rows.filter((row) => row.customerId === targetCustomerId).map((row) => [row.segmentId, row]),
     );
     const resolution = emptyResolution();
     for (const source of rows.filter((row) => row.customerId === sourceCustomerId)) {
@@ -629,10 +592,7 @@ export class CustomerMergeRepository extends BaseRepository {
           inArray(customerExternalReference.customerId, [sourceCustomerId, targetCustomerId]),
         ),
       )
-      .orderBy(
-        asc(customerExternalReference.createdAt),
-        asc(customerExternalReference.id),
-      );
+      .orderBy(asc(customerExternalReference.createdAt), asc(customerExternalReference.id));
     const targetByOwnerKey = new Map(
       rows
         .filter((row) => row.customerId === targetCustomerId && row.deletedAt === null)
@@ -702,20 +662,14 @@ export class CustomerMergeRepository extends BaseRepository {
           )
           .orderBy(asc(customerWishlistItem.addedAt), asc(customerWishlistItem.id))
       : [];
-    const targetRows = wishlists.filter(
-      (row) => row.customerId === targetCustomerId,
-    );
-    const targetByName = new Map(
-      targetRows.map((row) => [row.normalizedName, row]),
-    );
+    const targetRows = wishlists.filter((row) => row.customerId === targetCustomerId);
+    const targetByName = new Map(targetRows.map((row) => [row.normalizedName, row]));
     let hasDefault = targetRows.some((row) => row.isDefault);
     const resolution = emptyResolution();
     let itemsTransferred = 0;
     let itemsDeduplicated = 0;
 
-    for (const source of wishlists.filter(
-      (row) => row.customerId === sourceCustomerId,
-    )) {
+    for (const source of wishlists.filter((row) => row.customerId === sourceCustomerId)) {
       const duplicate = targetByName.get(source.normalizedName);
       if (!duplicate) {
         const isDefault = source.isDefault && !hasDefault;
@@ -723,10 +677,7 @@ export class CustomerMergeRepository extends BaseRepository {
           .update(customerWishlist)
           .set({ customerId: targetCustomerId, isDefault, updatedAt: now })
           .where(
-            and(
-              eq(customerWishlist.storeId, this.storeId),
-              eq(customerWishlist.id, source.id),
-            ),
+            and(eq(customerWishlist.storeId, this.storeId), eq(customerWishlist.id, source.id)),
           );
         hasDefault ||= isDefault;
         targetByName.set(source.normalizedName, {
@@ -735,16 +686,12 @@ export class CustomerMergeRepository extends BaseRepository {
           isDefault,
         });
         resolution.transferred += 1;
-        itemsTransferred += items.filter(
-          (item) => item.wishlistId === source.id,
-        ).length;
+        itemsTransferred += items.filter((item) => item.wishlistId === source.id).length;
         continue;
       }
 
       const duplicateProducts = new Set(
-        items
-          .filter((item) => item.wishlistId === duplicate.id)
-          .map((item) => item.productId),
+        items.filter((item) => item.wishlistId === duplicate.id).map((item) => item.productId),
       );
       for (const item of items.filter((row) => row.wishlistId === source.id)) {
         if (duplicateProducts.has(item.productId)) {
@@ -776,21 +723,13 @@ export class CustomerMergeRepository extends BaseRepository {
           .update(customerWishlist)
           .set({ isDefault: true, updatedAt: now })
           .where(
-            and(
-              eq(customerWishlist.storeId, this.storeId),
-              eq(customerWishlist.id, duplicate.id),
-            ),
+            and(eq(customerWishlist.storeId, this.storeId), eq(customerWishlist.id, duplicate.id)),
           );
         hasDefault = true;
       }
       await this.connection
         .delete(customerWishlist)
-        .where(
-          and(
-            eq(customerWishlist.storeId, this.storeId),
-            eq(customerWishlist.id, source.id),
-          ),
-        );
+        .where(and(eq(customerWishlist.storeId, this.storeId), eq(customerWishlist.id, source.id)));
       resolution.deduplicated += 1;
       resolution.conflicts.push({
         sourceId: source.id,
@@ -832,10 +771,7 @@ export class CustomerMergeRepository extends BaseRepository {
           updatedAt: now,
         })
         .where(
-          and(
-            eq(customerComparison.storeId, this.storeId),
-            eq(customerComparison.id, source.id),
-          ),
+          and(eq(customerComparison.storeId, this.storeId), eq(customerComparison.id, source.id)),
         );
       const itemRows = await this.connection
         .select({ id: customerComparisonItem.id })
@@ -862,9 +798,7 @@ export class CustomerMergeRepository extends BaseRepository {
       )
       .orderBy(asc(customerComparisonItem.position), asc(customerComparisonItem.id));
     const targetVariants = new Set(
-      items
-        .filter((item) => item.comparisonId === target.id)
-        .map((item) => item.variantId),
+      items.filter((item) => item.comparisonId === target.id).map((item) => item.variantId),
     );
     let position = items
       .filter((item) => item.comparisonId === target.id)
@@ -900,10 +834,7 @@ export class CustomerMergeRepository extends BaseRepository {
     await this.connection
       .delete(customerComparison)
       .where(
-        and(
-          eq(customerComparison.storeId, this.storeId),
-          eq(customerComparison.id, source.id),
-        ),
+        and(eq(customerComparison.storeId, this.storeId), eq(customerComparison.id, source.id)),
       );
     await this.connection
       .update(customerComparison)
@@ -912,10 +843,7 @@ export class CustomerMergeRepository extends BaseRepository {
         updatedAt: now,
       })
       .where(
-        and(
-          eq(customerComparison.storeId, this.storeId),
-          eq(customerComparison.id, target.id),
-        ),
+        and(eq(customerComparison.storeId, this.storeId), eq(customerComparison.id, target.id)),
       );
     resolution.deduplicated = 1;
     resolution.conflicts.push({
@@ -1043,9 +971,7 @@ export class CustomerMergeRepository extends BaseRepository {
     };
   }
 
-  private async mergeSimpleAssignments<
-    T extends { id: string; customerId: string },
-  >(input: {
+  private async mergeSimpleAssignments<T extends { id: string; customerId: string }>(input: {
     rows: T[];
     sourceCustomerId: string;
     targetCustomerId: string;
@@ -1059,9 +985,7 @@ export class CustomerMergeRepository extends BaseRepository {
         .map((row) => [input.key(row), row]),
     );
     const resolution = emptyResolution();
-    for (const source of input.rows.filter(
-      (row) => row.customerId === input.sourceCustomerId,
-    )) {
+    for (const source of input.rows.filter((row) => row.customerId === input.sourceCustomerId)) {
       const duplicate = targetByKey.get(input.key(source));
       if (duplicate) {
         await input.remove(source.id);
@@ -1083,20 +1007,11 @@ export class CustomerMergeRepository extends BaseRepository {
     return resolution;
   }
 
-  private moveAddress(
-    id: string,
-    targetCustomerId: string,
-    patch: Partial<CustomerAddress>,
-  ) {
+  private moveAddress(id: string, targetCustomerId: string, patch: Partial<CustomerAddress>) {
     return this.connection
       .update(customerAddress)
       .set({ ...patch, customerId: targetCustomerId })
-      .where(
-        and(
-          eq(customerAddress.storeId, this.storeId),
-          eq(customerAddress.id, id),
-        ),
-      );
+      .where(and(eq(customerAddress.storeId, this.storeId), eq(customerAddress.id, id)));
   }
 
   private moveTaxIdentifier(
@@ -1108,10 +1023,7 @@ export class CustomerMergeRepository extends BaseRepository {
       .update(customerTaxIdentifier)
       .set({ ...patch, customerId: targetCustomerId })
       .where(
-        and(
-          eq(customerTaxIdentifier.storeId, this.storeId),
-          eq(customerTaxIdentifier.id, id),
-        ),
+        and(eq(customerTaxIdentifier.storeId, this.storeId), eq(customerTaxIdentifier.id, id)),
       );
   }
 }
@@ -1144,11 +1056,7 @@ function taxIdentifierKey(row: {
   countryCode: string | null;
   normalizedValue: string;
 }): string {
-  return JSON.stringify([
-    row.identifierType.trim(),
-    row.countryCode ?? "",
-    row.normalizedValue,
-  ]);
+  return JSON.stringify([row.identifierType.trim(), row.countryCode ?? "", row.normalizedValue]);
 }
 
 function taxExemptionKey(row: {
@@ -1159,10 +1067,7 @@ function taxExemptionKey(row: {
   return JSON.stringify([row.code, row.countryCode ?? "", row.regionCode ?? ""]);
 }
 
-function consentWinner(
-  source: CustomerConsent,
-  target: CustomerConsent,
-): CustomerConsent {
+function consentWinner(source: CustomerConsent, target: CustomerConsent): CustomerConsent {
   const rank: Record<CustomerConsent["state"], number> = {
     SUBSCRIBED: 1,
     PENDING: 2,
@@ -1177,17 +1082,11 @@ function consentWinner(
   return source.updatedAt > target.updatedAt ? source : target;
 }
 
-function externalReferenceOwnerKey(row: {
-  externalSystem: string;
-  externalType: string;
-}): string {
+function externalReferenceOwnerKey(row: { externalSystem: string; externalType: string }): string {
   return JSON.stringify([row.externalSystem, row.externalType]);
 }
 
-function mergeExpiration(
-  target: string | null,
-  source: string | null,
-): string | null {
+function mergeExpiration(target: string | null, source: string | null): string | null {
   if (target === null || source === null) return null;
   return target >= source ? target : source;
 }

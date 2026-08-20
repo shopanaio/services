@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { ModalStackItem } from './modal';
-import { useModalStackStore } from '../store/modals';
-import type { IModalStackItem } from '../types';
+import { ModalStackItem } from "./modal";
+import { useModalStackStore } from "../store/modals";
+import type { IModalStackItem } from "../types";
 
 interface INestedModalStackProps {
   items: IModalStackItem[];
@@ -20,9 +20,7 @@ const NestedModalStack = ({ items, totalCount, level = 0 }: INestedModalStackPro
 
   return (
     <ModalStackItem item={current} level={level} totalCount={totalCount}>
-      {hasMore && (
-        <NestedModalStack items={rest} totalCount={totalCount} level={level + 1} />
-      )}
+      {hasMore && <NestedModalStack items={rest} totalCount={totalCount} level={level + 1} />}
     </ModalStackItem>
   );
 };

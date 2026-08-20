@@ -2,14 +2,9 @@ import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
 import { unwrapResolverError } from "@apollo/server/errors";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import { requireStorefrontPermission } from "@shopana/shared-context";
-import {
-  getServiceConfig,
-  isDevelopment,
-} from "@shopana/shared-service-config";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import { ResolverError } from "@shopana/type-resolver";
 import fastify from "fastify";
 import { existsSync, readFileSync } from "node:fs";
@@ -52,9 +47,7 @@ const userErrorsPlugin: ApolloServerPlugin<ServiceContext> = {
   },
 };
 
-export async function startStorefrontServer(
-  serverConfig: StorefrontServerConfig,
-) {
+export async function startStorefrontServer(serverConfig: StorefrontServerConfig) {
   const kernel = Kernel.getInstance();
   const app = fastify({
     disableRequestLogging: true,
@@ -77,9 +70,7 @@ export async function startStorefrontServer(
 
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const packagedSchemaDir = join(currentDir, "schema", "storefront");
-  const schemaDir = existsSync(packagedSchemaDir)
-    ? packagedSchemaDir
-    : join(currentDir, "schema");
+  const schemaDir = existsSync(packagedSchemaDir) ? packagedSchemaDir : join(currentDir, "schema");
   const schemaFiles = [
     "foundation.graphql",
     "shared-currency.graphql",
@@ -102,9 +93,7 @@ export async function startStorefrontServer(
 
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
-    schema: buildSubgraphSchema(
-      modules as unknown as Parameters<typeof buildSubgraphSchema>[0],
-    ),
+    schema: buildSubgraphSchema(modules as unknown as Parameters<typeof buildSubgraphSchema>[0]),
     plugins: [
       fastifyApolloDrainPlugin(app),
       userErrorsPlugin,
@@ -146,10 +135,7 @@ export async function startStorefrontServer(
             extensions: { code: "UNAUTHENTICATED" },
           });
         }
-        requireStorefrontPermission(
-          request.storefrontAccess,
-          "storefront.catalog.read",
-        );
+        requireStorefrontPermission(request.storefrontAccess, "storefront.catalog.read");
 
         const ctx = new ServiceContext({
           requestId: request.id as string,

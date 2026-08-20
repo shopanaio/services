@@ -126,10 +126,7 @@ interface DiscountTypeSelectorProps {
   selectedKind?: DiscountKind;
 }
 
-export function DiscountTypeSelector({
-  onSelect,
-  selectedKind,
-}: DiscountTypeSelectorProps) {
+export function DiscountTypeSelector({ onSelect, selectedKind }: DiscountTypeSelectorProps) {
   const { styles, cx } = useStyles();
 
   return (
@@ -143,27 +140,17 @@ export function DiscountTypeSelector({
         <button
           key={option.kind}
           type="button"
-          className={cx(
-            styles.option,
-            selectedKind === option.kind && styles.optionSelected,
-          )}
+          className={cx(styles.option, selectedKind === option.kind && styles.optionSelected)}
           onClick={() => onSelect(option.kind)}
           role="radio"
           aria-checked={selectedKind === option.kind}
           data-testid={`discount-type-${option.kind.toLowerCase()}`}
         >
-          <span
-            className={cx(
-              styles.icon,
-              selectedKind === option.kind && styles.iconSelected,
-            )}
-          >
+          <span className={cx(styles.icon, selectedKind === option.kind && styles.iconSelected)}>
             {option.icon}
           </span>
           <span className={styles.content}>
-            <Typography.Text className={styles.title}>
-              {option.title}
-            </Typography.Text>
+            <Typography.Text className={styles.title}>{option.title}</Typography.Text>
             <Typography.Text type="secondary" className={styles.description}>
               {option.description}
             </Typography.Text>

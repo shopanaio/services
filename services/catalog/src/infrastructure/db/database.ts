@@ -25,9 +25,7 @@ export function createDatabase(client: Sql): Database {
  * Create a request-scoped Drizzle wrapper over the active DBOS datasource
  * transaction. This must never use the singleton root database cache.
  */
-export function createTransactionalDatabase(
-  client: TransactionSql
-): Database {
+export function createTransactionalDatabase(client: TransactionSql): Database {
   return drizzle(client, { schema });
 }
 

@@ -10,10 +10,7 @@ export class Loader {
   public readonly effectiveTemplate: TemplateLoader["effectiveTemplate"];
   public readonly webhook: WebhookLoader["webhook"];
 
-  constructor(
-    repository: Repository,
-    renderer: NotificationTemplateRenderer
-  ) {
+  constructor(repository: Repository, renderer: NotificationTemplateRenderer) {
     const settings = new SettingsLoader(repository);
     const templates = new TemplateLoader(renderer);
     const webhooks = new WebhookLoader(repository);

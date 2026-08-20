@@ -59,9 +59,7 @@ abstract class StorefrontCustomerWorkflow extends BrokerWorkflows {
     return Kernel.getInstance();
   }
 
-  protected scriptContext(
-    context: StorefrontCustomerWorkflowContext
-  ): RunScriptContext {
+  protected scriptContext(context: StorefrontCustomerWorkflowContext): RunScriptContext {
     return {
       organizationId: context.organizationId,
       storeId: context.storeId,
@@ -73,13 +71,9 @@ abstract class StorefrontCustomerWorkflow extends BrokerWorkflows {
 
   protected async emitCustomerUpdated(
     context: StorefrontCustomerWorkflowContext,
-    result: StorefrontCustomerMutationResult
+    result: StorefrontCustomerMutationResult,
   ): Promise<void> {
-    if (
-      !result.customer ||
-      result.userErrors.length > 0 ||
-      result.updatedReasons.length === 0
-    ) {
+    if (!result.customer || result.userErrors.length > 0 || result.updatedReasons.length === 0) {
       return;
     }
     await this.broker.runWorkflow(
@@ -101,7 +95,7 @@ abstract class StorefrontCustomerWorkflow extends BrokerWorkflows {
         workflowId: DBOS.workflowID!,
         stepId: `emitCustomerUpdated:${reasonKey(result.updatedReasons)}`,
         callId: result.customer.id,
-      }
+      },
     );
   }
 }
@@ -114,7 +108,7 @@ export class StorefrontCustomerUpdateWorkflow extends StorefrontCustomerWorkflow
 
   @Workflow("storefrontCustomerUpdate", { idempotencyStrategy: "client" })
   async run(
-    input: StorefrontCustomerUpdateWorkflowInput
+    input: StorefrontCustomerUpdateWorkflowInput,
   ): Promise<StorefrontCustomerUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
     await this.emitCustomerUpdated(input.context, result);
@@ -126,7 +120,7 @@ export class StorefrontCustomerUpdateWorkflow extends StorefrontCustomerWorkflow
     return this.kernel.runScript(
       StorefrontCustomerUpdateScript,
       { ...input.params, customerId: input.context.customerId },
-      this.scriptContext(input.context)
+      this.scriptContext(input.context),
     );
   }
 }
@@ -139,7 +133,7 @@ export class StorefrontCustomerAddressCreateWorkflow extends StorefrontCustomerW
 
   @Workflow("storefrontCustomerAddressCreate", { idempotencyStrategy: "client" })
   async run(
-    input: StorefrontCustomerAddressCreateWorkflowInput
+    input: StorefrontCustomerAddressCreateWorkflowInput,
   ): Promise<StorefrontCustomerAddressCreateWorkflowResult> {
     const result = await this.stepCreate(input);
     await this.emitCustomerUpdated(input.context, result);
@@ -151,7 +145,7 @@ export class StorefrontCustomerAddressCreateWorkflow extends StorefrontCustomerW
     return this.kernel.runScript(
       StorefrontCustomerAddressCreateScript,
       { ...input.params, customerId: input.context.customerId },
-      this.scriptContext(input.context)
+      this.scriptContext(input.context),
     );
   }
 }
@@ -164,7 +158,7 @@ export class StorefrontCustomerAddressUpdateWorkflow extends StorefrontCustomerW
 
   @Workflow("storefrontCustomerAddressUpdate", { idempotencyStrategy: "client" })
   async run(
-    input: StorefrontCustomerAddressUpdateWorkflowInput
+    input: StorefrontCustomerAddressUpdateWorkflowInput,
   ): Promise<StorefrontCustomerAddressUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
     await this.emitCustomerUpdated(input.context, result);
@@ -176,7 +170,7 @@ export class StorefrontCustomerAddressUpdateWorkflow extends StorefrontCustomerW
     return this.kernel.runScript(
       StorefrontCustomerAddressUpdateScript,
       { ...input.params, customerId: input.context.customerId },
-      this.scriptContext(input.context)
+      this.scriptContext(input.context),
     );
   }
 }
@@ -189,7 +183,7 @@ export class StorefrontCustomerAddressDeleteWorkflow extends StorefrontCustomerW
 
   @Workflow("storefrontCustomerAddressDelete", { idempotencyStrategy: "client" })
   async run(
-    input: StorefrontCustomerAddressDeleteWorkflowInput
+    input: StorefrontCustomerAddressDeleteWorkflowInput,
   ): Promise<StorefrontCustomerAddressDeleteWorkflowResult> {
     const result = await this.stepDelete(input);
     await this.emitCustomerUpdated(input.context, result);
@@ -201,7 +195,7 @@ export class StorefrontCustomerAddressDeleteWorkflow extends StorefrontCustomerW
     return this.kernel.runScript(
       StorefrontCustomerAddressDeleteScript,
       { ...input.params, customerId: input.context.customerId },
-      this.scriptContext(input.context)
+      this.scriptContext(input.context),
     );
   }
 }
@@ -214,7 +208,7 @@ export class StorefrontCustomerAddressDefaultSetWorkflow extends StorefrontCusto
 
   @Workflow("storefrontCustomerAddressDefaultSet", { idempotencyStrategy: "client" })
   async run(
-    input: StorefrontCustomerAddressDefaultSetWorkflowInput
+    input: StorefrontCustomerAddressDefaultSetWorkflowInput,
   ): Promise<StorefrontCustomerAddressDefaultSetWorkflowResult> {
     const result = await this.stepSet(input);
     await this.emitCustomerUpdated(input.context, result);
@@ -226,7 +220,7 @@ export class StorefrontCustomerAddressDefaultSetWorkflow extends StorefrontCusto
     return this.kernel.runScript(
       StorefrontCustomerAddressDefaultSetScript,
       { ...input.params, customerId: input.context.customerId },
-      this.scriptContext(input.context)
+      this.scriptContext(input.context),
     );
   }
 }
@@ -241,7 +235,7 @@ export class StorefrontCustomerMarketingConsentUpdateWorkflow extends Storefront
     idempotencyStrategy: "client",
   })
   async run(
-    input: StorefrontCustomerMarketingConsentUpdateWorkflowInput
+    input: StorefrontCustomerMarketingConsentUpdateWorkflowInput,
   ): Promise<StorefrontCustomerMarketingConsentUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
     await this.emitCustomerUpdated(input.context, result);
@@ -249,9 +243,7 @@ export class StorefrontCustomerMarketingConsentUpdateWorkflow extends Storefront
   }
 
   @WorkflowStep()
-  private stepUpdate(
-    input: StorefrontCustomerMarketingConsentUpdateWorkflowInput
-  ) {
+  private stepUpdate(input: StorefrontCustomerMarketingConsentUpdateWorkflowInput) {
     return this.kernel.runScript(
       StorefrontCustomerMarketingConsentUpdateScript,
       {
@@ -259,7 +251,7 @@ export class StorefrontCustomerMarketingConsentUpdateWorkflow extends Storefront
         customerId: input.context.customerId,
         requestId: input.context.requestId,
       },
-      this.scriptContext(input.context)
+      this.scriptContext(input.context),
     );
   }
 }
@@ -272,7 +264,7 @@ export class StorefrontCustomerDataRequestCreateWorkflow extends StorefrontCusto
 
   @Workflow("storefrontCustomerDataRequestCreate", { idempotencyStrategy: "client" })
   async run(
-    input: StorefrontCustomerDataRequestCreateWorkflowInput
+    input: StorefrontCustomerDataRequestCreateWorkflowInput,
   ): Promise<StorefrontCustomerDataRequestCreateWorkflowResult> {
     const result = await this.stepCreate(input);
     if (result.dataRequest && result.userErrors.length === 0) {
@@ -286,7 +278,7 @@ export class StorefrontCustomerDataRequestCreateWorkflow extends StorefrontCusto
     return this.kernel.runScript(
       StorefrontCustomerDataRequestCreateScript,
       { ...input.params, customerId: input.context.customerId },
-      this.scriptContext(input.context)
+      this.scriptContext(input.context),
     );
   }
 
@@ -328,7 +320,7 @@ export class StorefrontCustomerDataRequestCancelWorkflow extends StorefrontCusto
 
   @Workflow("storefrontCustomerDataRequestCancel", { idempotencyStrategy: "client" })
   run(
-    input: StorefrontCustomerDataRequestCancelWorkflowInput
+    input: StorefrontCustomerDataRequestCancelWorkflowInput,
   ): Promise<StorefrontCustomerDataRequestCancelWorkflowResult> {
     return this.stepCancel(input);
   }
@@ -338,7 +330,7 @@ export class StorefrontCustomerDataRequestCancelWorkflow extends StorefrontCusto
     return this.kernel.runScript(
       StorefrontCustomerDataRequestCancelScript,
       { ...input.params, customerId: input.context.customerId },
-      this.scriptContext(input.context)
+      this.scriptContext(input.context),
     );
   }
 }
@@ -351,7 +343,7 @@ export class StorefrontCustomerTaxIdentifierCreateWorkflow extends StorefrontCus
 
   @Workflow("storefrontCustomerTaxIdentifierCreate", { idempotencyStrategy: "client" })
   async run(
-    input: StorefrontCustomerTaxIdentifierCreateWorkflowInput
+    input: StorefrontCustomerTaxIdentifierCreateWorkflowInput,
   ): Promise<StorefrontCustomerTaxIdentifierCreateWorkflowResult> {
     const result = await this.stepCreate(input);
     await this.emitCustomerUpdated(input.context, result);
@@ -359,13 +351,11 @@ export class StorefrontCustomerTaxIdentifierCreateWorkflow extends StorefrontCus
   }
 
   @WorkflowStep()
-  private stepCreate(
-    input: StorefrontCustomerTaxIdentifierCreateWorkflowInput
-  ) {
+  private stepCreate(input: StorefrontCustomerTaxIdentifierCreateWorkflowInput) {
     return this.kernel.runScript(
       StorefrontCustomerTaxIdentifierCreateScript,
       { ...input.params, customerId: input.context.customerId },
-      this.scriptContext(input.context)
+      this.scriptContext(input.context),
     );
   }
 }
@@ -378,7 +368,7 @@ export class StorefrontCustomerTaxIdentifierUpdateWorkflow extends StorefrontCus
 
   @Workflow("storefrontCustomerTaxIdentifierUpdate", { idempotencyStrategy: "client" })
   async run(
-    input: StorefrontCustomerTaxIdentifierUpdateWorkflowInput
+    input: StorefrontCustomerTaxIdentifierUpdateWorkflowInput,
   ): Promise<StorefrontCustomerTaxIdentifierUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
     await this.emitCustomerUpdated(input.context, result);
@@ -386,13 +376,11 @@ export class StorefrontCustomerTaxIdentifierUpdateWorkflow extends StorefrontCus
   }
 
   @WorkflowStep()
-  private stepUpdate(
-    input: StorefrontCustomerTaxIdentifierUpdateWorkflowInput
-  ) {
+  private stepUpdate(input: StorefrontCustomerTaxIdentifierUpdateWorkflowInput) {
     return this.kernel.runScript(
       StorefrontCustomerTaxIdentifierUpdateScript,
       { ...input.params, customerId: input.context.customerId },
-      this.scriptContext(input.context)
+      this.scriptContext(input.context),
     );
   }
 }
@@ -405,7 +393,7 @@ export class StorefrontCustomerTaxIdentifierDeleteWorkflow extends StorefrontCus
 
   @Workflow("storefrontCustomerTaxIdentifierDelete", { idempotencyStrategy: "client" })
   async run(
-    input: StorefrontCustomerTaxIdentifierDeleteWorkflowInput
+    input: StorefrontCustomerTaxIdentifierDeleteWorkflowInput,
   ): Promise<StorefrontCustomerTaxIdentifierDeleteWorkflowResult> {
     const result = await this.stepDelete(input);
     await this.emitCustomerUpdated(input.context, result);
@@ -413,13 +401,11 @@ export class StorefrontCustomerTaxIdentifierDeleteWorkflow extends StorefrontCus
   }
 
   @WorkflowStep()
-  private stepDelete(
-    input: StorefrontCustomerTaxIdentifierDeleteWorkflowInput
-  ) {
+  private stepDelete(input: StorefrontCustomerTaxIdentifierDeleteWorkflowInput) {
     return this.kernel.runScript(
       StorefrontCustomerTaxIdentifierDeleteScript,
       { ...input.params, customerId: input.context.customerId },
-      this.scriptContext(input.context)
+      this.scriptContext(input.context),
     );
   }
 }

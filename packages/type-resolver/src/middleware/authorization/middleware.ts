@@ -1,10 +1,7 @@
 import type { Middleware, AfterCreateContext } from "../../types.js";
 import type { TypePolicyOptions } from "./types.js";
 import type { AuthorizeParams, Authorizer } from "@shopana/rbac";
-import {
-  TypeAuthorizationConfigurationError,
-  TypeAuthorizationError,
-} from "./error.js";
+import { TypeAuthorizationConfigurationError, TypeAuthorizationError } from "./error.js";
 
 /**
  * Resolve the minimal authorization capability required by @TypePolicy.
@@ -73,17 +70,14 @@ export interface AuthorizationMiddlewareOptions {
  * ```
  */
 export function createAuthorizationMiddleware<TContext = unknown>(
-  options: AuthorizationMiddlewareOptions = {}
+  options: AuthorizationMiddlewareOptions = {},
 ): Middleware<TContext> {
   const { name = "authorization" } = options;
 
   return {
     name,
 
-    async afterCreate({
-      Type,
-      instance,
-    }: AfterCreateContext<TContext>): Promise<void | null> {
+    async afterCreate({ Type, instance }: AfterCreateContext<TContext>): Promise<void | null> {
       const policy = getPolicy(Type);
 
       // No policy - skip authorization
@@ -110,16 +104,11 @@ export function createAuthorizationMiddleware<TContext = unknown>(
       }
 
       // Resolve domain (can be a function)
-      const domain =
-        typeof policy.domain === "function"
-          ? policy.domain(instance)
-          : policy.domain;
+      const domain = typeof policy.domain === "function" ? policy.domain(instance) : policy.domain;
 
       // Resolve subject (can be a function, defaults to the authorizer's subject)
       const subject =
-        typeof policy.subject === "function"
-          ? policy.subject(instance)
-          : policy.subject;
+        typeof policy.subject === "function" ? policy.subject(instance) : policy.subject;
 
       const authorizeParams: AuthorizeParams = {
         resource: policy.resource,
@@ -143,5 +132,4 @@ export function createAuthorizationMiddleware<TContext = unknown>(
 /**
  * Default authorization middleware instance.
  */
-export const authorizationMiddleware: Middleware =
-  createAuthorizationMiddleware();
+export const authorizationMiddleware: Middleware = createAuthorizationMiddleware();

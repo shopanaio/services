@@ -1,15 +1,8 @@
 "use client";
 
-import {
-  Suspense,
-  use,
-  useSyncExternalStore,
-} from "react";
+import { Suspense, use, useSyncExternalStore } from "react";
 import { Skeleton } from "antd";
-import type {
-  AdminAppExtensionComponent,
-  AdminExtensionPointMap,
-} from "../sdk";
+import type { AdminAppExtensionComponent, AdminExtensionPointMap } from "../sdk";
 import { AppRuntimeBoundary } from "./app-runtime-boundary";
 import { loadAdminAppRemoteModule } from "./federation/load-remote-module";
 import { adminAppRegistry } from "./registry/app-registry";
@@ -36,9 +29,7 @@ function Contribution({ appCode, module, context }: ContributionProps) {
   );
 }
 
-export function AdminAppExtensionPoint<
-  TPoint extends keyof AdminExtensionPointMap,
->({
+export function AdminAppExtensionPoint<TPoint extends keyof AdminExtensionPointMap>({
   point,
   context,
 }: {

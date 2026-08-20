@@ -9,8 +9,7 @@ export interface CanonicalUnitRange {
 }
 
 export type BuyXGetYRequirement =
-  | { type: "QUANTITY"; requiredQuantity: number }
-  | { type: "SUBTOTAL"; requiredSubtotal: bigint };
+  { type: "QUANTITY"; requiredQuantity: number } | { type: "SUBTOTAL"; requiredSubtotal: bigint };
 
 export interface BuyXGetYUnitPlan {
   uses: bigint;
@@ -29,34 +28,22 @@ export function planBuyXGetYUnits(input: {
   const preorderByLineId = new Map(
     input.allLinesInPreorder.map((line, index) => [line.lineId, index]),
   );
-  const qualifierRanges = canonicalRanges(
-    input.qualifierLines,
-    preorderByLineId,
-  );
-  const possibleUses = countPossibleUses(
-    qualifierRanges,
-    input.requirement,
-  );
-  const uses = input.usesPerOrderLimit === null
-    ? possibleUses
-    : min(possibleUses, BigInt(input.usesPerOrderLimit));
+  const qualifierRanges = canonicalRanges(input.qualifierLines, preorderByLineId);
+  const possibleUses = countPossibleUses(qualifierRanges, input.requirement);
+  const uses =
+    input.usesPerOrderLimit === null
+      ? possibleUses
+      : min(possibleUses, BigInt(input.usesPerOrderLimit));
   if (uses === 0n) {
     return { uses, qualifierReservations: [], benefitSelections: [] };
   }
 
-  const qualifierReservations = reserveQualifierRanges(
-    qualifierRanges,
-    input.requirement,
-    uses,
-  );
+  const qualifierReservations = reserveQualifierRanges(qualifierRanges, input.requirement, uses);
   const reservedByLineId = new Map<string, number>();
   for (const range of qualifierReservations) {
     reservedByLineId.set(
       range.lineId,
-      Math.max(
-        reservedByLineId.get(range.lineId) ?? 0,
-        range.startUnitIndex + range.quantity,
-      ),
+      Math.max(reservedByLineId.get(range.lineId) ?? 0, range.startUnitIndex + range.quantity),
     );
   }
   const benefitRanges = canonicalRanges(
@@ -64,10 +51,7 @@ export function planBuyXGetYUnits(input: {
     preorderByLineId,
     reservedByLineId,
   ).sort(compareBenefitRange);
-  const benefitSelections = takeUnits(
-    benefitRanges,
-    uses * BigInt(input.benefitQuantity),
-  );
+  const benefitSelections = takeUnits(benefitRanges, uses * BigInt(input.benefitQuantity));
 
   return { uses, qualifierReservations, benefitSelections };
 }
@@ -79,14 +63,10 @@ export function canonicalRanges(
 ): CanonicalUnitRange[] {
   return lines
     .map((line) => {
-      const startUnitIndex = Math.min(
-        line.quantity,
-        excludedPrefixByLineId.get(line.lineId) ?? 0,
-      );
+      const startUnitIndex = Math.min(line.quantity, excludedPrefixByLineId.get(line.lineId) ?? 0);
       return {
         lineId: line.lineId,
-        linePreorderIndex:
-          preorderByLineId.get(line.lineId) ?? Number.MAX_SAFE_INTEGER,
+        linePreorderIndex: preorderByLineId.get(line.lineId) ?? Number.MAX_SAFE_INTEGER,
         startUnitIndex,
         quantity: line.quantity - startUnitIndex,
         unitPrice: BigInt(line.unitPrice.amountMinor),
@@ -105,10 +85,10 @@ function countPossibleUses(
   requirement: BuyXGetYRequirement,
 ): bigint {
   if (requirement.type === "QUANTITY") {
-    return qualifierRanges.reduce(
-      (sum, range) => sum + BigInt(range.quantity),
-      0n,
-    ) / BigInt(requirement.requiredQuantity);
+    return (
+      qualifierRanges.reduce((sum, range) => sum + BigInt(range.quantity), 0n) /
+      BigInt(requirement.requiredQuantity)
+    );
   }
 
   let uses = 0n;
@@ -117,10 +97,7 @@ function countPossibleUses(
     if (range.unitPrice === 0n) continue;
     let available = BigInt(range.quantity);
     if (currentUseSubtotal > 0n) {
-      const needed = ceilDivide(
-        requirement.requiredSubtotal - currentUseSubtotal,
-        range.unitPrice,
-      );
+      const needed = ceilDivide(requirement.requiredSubtotal - currentUseSubtotal, range.unitPrice);
       if (available < needed) {
         currentUseSubtotal += available * range.unitPrice;
         continue;
@@ -130,12 +107,9 @@ function countPossibleUses(
       currentUseSubtotal = 0n;
     }
 
-    const unitsPerUse = ceilDivide(
-      requirement.requiredSubtotal,
-      range.unitPrice,
-    );
+    const unitsPerUse = ceilDivide(requirement.requiredSubtotal, range.unitPrice);
     uses += available / unitsPerUse;
-    currentUseSubtotal = available % unitsPerUse * range.unitPrice;
+    currentUseSubtotal = (available % unitsPerUse) * range.unitPrice;
   }
   return uses;
 }
@@ -146,10 +120,7 @@ function reserveQualifierRanges(
   uses: bigint,
 ): CanonicalUnitRange[] {
   if (requirement.type === "QUANTITY") {
-    return takeUnits(
-      ranges,
-      uses * BigInt(requirement.requiredQuantity),
-    );
+    return takeUnits(ranges, uses * BigInt(requirement.requiredQuantity));
   }
 
   let remainingUses = uses;
@@ -165,10 +136,7 @@ function reserveQualifierRanges(
     let available = BigInt(range.quantity);
     let consumed = 0n;
     if (currentUseSubtotal > 0n) {
-      const needed = ceilDivide(
-        requirement.requiredSubtotal - currentUseSubtotal,
-        range.unitPrice,
-      );
+      const needed = ceilDivide(requirement.requiredSubtotal - currentUseSubtotal, range.unitPrice);
       const taken = min(available, needed);
       available -= taken;
       consumed += taken;
@@ -180,14 +148,8 @@ function reserveQualifierRanges(
     }
 
     if (remainingUses > 0n && available > 0n) {
-      const unitsPerUse = ceilDivide(
-        requirement.requiredSubtotal,
-        range.unitPrice,
-      );
-      const completeUses = min(
-        remainingUses,
-        available / unitsPerUse,
-      );
+      const unitsPerUse = ceilDivide(requirement.requiredSubtotal, range.unitPrice);
+      const completeUses = min(remainingUses, available / unitsPerUse);
       const completeUnits = completeUses * unitsPerUse;
       available -= completeUnits;
       consumed += completeUnits;
@@ -239,15 +201,11 @@ function takeUnits(
   return result;
 }
 
-function compareBenefitRange(
-  left: CanonicalUnitRange,
-  right: CanonicalUnitRange,
-): number {
+function compareBenefitRange(left: CanonicalUnitRange, right: CanonicalUnitRange): number {
   if (left.unitPrice < right.unitPrice) return -1;
   if (left.unitPrice > right.unitPrice) return 1;
   return (
-    left.linePreorderIndex - right.linePreorderIndex ||
-    left.startUnitIndex - right.startUnitIndex
+    left.linePreorderIndex - right.linePreorderIndex || left.startUnitIndex - right.startUnitIndex
   );
 }
 

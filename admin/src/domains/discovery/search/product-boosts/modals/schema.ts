@@ -6,10 +6,7 @@ const requiredText = (label: string) =>
     .string()
     .trim()
     .refine((value) => unicodeLength(value) > 0, `${label} is required`)
-    .refine(
-      (value) => unicodeLength(value) <= 128,
-      `${label} must be at most 128 characters`,
-    );
+    .refine((value) => unicodeLength(value) <= 128, `${label} must be at most 128 characters`);
 
 export const productBoostFormSchema = z.object({
   name: requiredText("Name"),

@@ -19,17 +19,15 @@ export class DiscountUpdateEligibilityScript extends BaseDiscountUpdateScript<Di
     if (mapped.errors.length > 0 || !mapped.value) {
       return sectionErrors(mapped.errors);
     }
-    await this.repository.discount.replaceBuyerContext(
-      aggregate.discount.id,
-      mapped.value,
-    );
+    await this.repository.discount.replaceBuyerContext(aggregate.discount.id, mapped.value);
     return sectionSuccess();
   }
 }
 
-function mapBuyerContext(
-  input: DiscountUpdateEligibilityParams["eligibility"],
-): { value: DiscountBuyerContextWriteInput; errors: UserError[] } {
+function mapBuyerContext(input: DiscountUpdateEligibilityParams["eligibility"]): {
+  value: DiscountBuyerContextWriteInput;
+  errors: UserError[];
+} {
   const errors: UserError[] = [];
   const customerIds = [...new Set(input.customerIds ?? [])];
   const segmentIds = [...new Set(input.segmentIds ?? [])];
@@ -47,32 +45,21 @@ function mapBuyerContext(
       field: ["segmentIds"],
     });
   }
-  if (
-    input.type === "ALL" &&
-    (customerIds.length > 0 || segmentIds.length > 0)
-  ) {
+  if (input.type === "ALL" && (customerIds.length > 0 || segmentIds.length > 0)) {
     errors.push({
       message: "ALL eligibility cannot contain customers or segments",
       code: "INVALID_ELIGIBILITY",
     });
   }
-  if (
-    input.type === "CUSTOMERS" &&
-    (customerIds.length === 0 || segmentIds.length > 0)
-  ) {
+  if (input.type === "CUSTOMERS" && (customerIds.length === 0 || segmentIds.length > 0)) {
     errors.push({
-      message:
-        "CUSTOMERS eligibility requires customers and cannot contain segments",
+      message: "CUSTOMERS eligibility requires customers and cannot contain segments",
       code: "INVALID_ELIGIBILITY",
     });
   }
-  if (
-    input.type === "SEGMENTS" &&
-    (segmentIds.length === 0 || customerIds.length > 0)
-  ) {
+  if (input.type === "SEGMENTS" && (segmentIds.length === 0 || customerIds.length > 0)) {
     errors.push({
-      message:
-        "SEGMENTS eligibility requires segments and cannot contain customers",
+      message: "SEGMENTS eligibility requires segments and cannot contain customers",
       code: "INVALID_ELIGIBILITY",
     });
   }

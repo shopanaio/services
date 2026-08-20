@@ -6,24 +6,14 @@ import {
 } from "@shopana/drizzle-query";
 import { ReadOnly } from "@shopana/shared-kernel";
 import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
-import {
-  and,
-  eq,
-  inArray,
-  isNull,
-  or,
-  sql,
-} from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   normalizeRelayPagination,
   type RepositoryConnectionResult,
   IMPOSSIBLE_UUID,
 } from "../connection.js";
-import {
-  decodeCustomerGlobalId,
-  mapGraphQlBigInt,
-} from "../global-id-where-mappers.js";
+import { decodeCustomerGlobalId, mapGraphQlBigInt } from "../global-id-where-mappers.js";
 import {
   customer,
   customerAddress,
@@ -75,7 +65,7 @@ export const customerRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customer", tieBreaker: "id" }
+  { name: "customer", tieBreaker: "id" },
 );
 
 type CustomerRelayInput = InferRelayInput<typeof customerRelayQuery>;
@@ -89,10 +79,7 @@ type SegmentIdFilter = {
   _isNot?: boolean | null;
 };
 
-export type CustomerConnectionWhere = Omit<
-  CustomerRelayWhere,
-  "_and" | "_or" | "_not"
-> & {
+export type CustomerConnectionWhere = Omit<CustomerRelayWhere, "_and" | "_or" | "_not"> & {
   segmentId?: SegmentIdFilter | string | null;
   _and?: CustomerConnectionWhere[] | null;
   _or?: CustomerConnectionWhere[] | null;
@@ -187,10 +174,7 @@ export type CustomerRevisionAcquireResult =
 
 export class CustomerRepository extends BaseRepository {
   @ReadOnly()
-  async scanIds(
-    afterCursor: string | null,
-    limit: number,
-  ): Promise<readonly string[]> {
+  async scanIds(afterCursor: string | null, limit: number): Promise<readonly string[]> {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 500) {
       throw new Error("Customer scan limit must be between 1 and 500");
     }
@@ -198,11 +182,13 @@ export class CustomerRepository extends BaseRepository {
     const rows = await this.connection
       .select({ id: customer.id })
       .from(customer)
-      .where(and(
-        eq(customer.storeId, this.storeId),
-        isNull(customer.deletedAt),
-        afterId ? sql`${customer.id} > ${afterId}::uuid` : undefined,
-      ))
+      .where(
+        and(
+          eq(customer.storeId, this.storeId),
+          isNull(customer.deletedAt),
+          afterId ? sql`${customer.id} > ${afterId}::uuid` : undefined,
+        ),
+      )
       .orderBy(customer.id)
       .limit(limit);
     return rows.map((row) => row.id);
@@ -218,11 +204,7 @@ export class CustomerRepository extends BaseRepository {
       .select({ id: customer.id })
       .from(customer)
       .where(
-        and(
-          eq(customer.storeId, this.storeId),
-          eq(customer.id, id),
-          isNull(customer.deletedAt)
-        )
+        and(eq(customer.storeId, this.storeId), eq(customer.id, id), isNull(customer.deletedAt)),
       )
       .limit(1);
     return rows.length > 0;
@@ -234,11 +216,7 @@ export class CustomerRepository extends BaseRepository {
       .select()
       .from(customer)
       .where(
-        and(
-          eq(customer.storeId, this.storeId),
-          eq(customer.id, id),
-          isNull(customer.deletedAt)
-        )
+        and(eq(customer.storeId, this.storeId), eq(customer.id, id), isNull(customer.deletedAt)),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -263,8 +241,8 @@ export class CustomerRepository extends BaseRepository {
         and(
           eq(customer.storeId, this.storeId),
           eq(customer.normalizedEmail, normalizeEmail(email)),
-          isNull(customer.deletedAt)
-        )
+          isNull(customer.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -279,8 +257,8 @@ export class CustomerRepository extends BaseRepository {
         and(
           eq(customer.storeId, this.storeId),
           eq(customer.phoneE164, phoneE164),
-          isNull(customer.deletedAt)
-        )
+          isNull(customer.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -303,26 +281,19 @@ export class CustomerRepository extends BaseRepository {
         and(
           eq(customer.storeId, storeId),
           eq(customer.iamPrincipalId, iamPrincipalId),
-          isNull(customer.deletedAt)
-        )
+          isNull(customer.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
   }
 
   @ReadOnly()
-  async findByIamPrincipalIdIncludingDeleted(
-    iamPrincipalId: string,
-  ): Promise<Customer | null> {
+  async findByIamPrincipalIdIncludingDeleted(iamPrincipalId: string): Promise<Customer | null> {
     const rows = await this.connection
       .select()
       .from(customer)
-      .where(
-        and(
-          eq(customer.storeId, this.storeId),
-          eq(customer.iamPrincipalId, iamPrincipalId),
-        ),
-      )
+      .where(and(eq(customer.storeId, this.storeId), eq(customer.iamPrincipalId, iamPrincipalId)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -337,8 +308,8 @@ export class CustomerRepository extends BaseRepository {
         and(
           eq(customer.storeId, this.storeId),
           inArray(customer.id, [...new Set(ids)]),
-          isNull(customer.deletedAt)
-        )
+          isNull(customer.deletedAt),
+        ),
       );
   }
 
@@ -448,7 +419,7 @@ export class CustomerRepository extends BaseRepository {
   async update(
     id: string,
     patch: CustomerPatch,
-    expectedRevision?: number
+    expectedRevision?: number,
   ): Promise<Customer | null> {
     const now = new Date().toISOString();
     const update = {
@@ -468,10 +439,7 @@ export class CustomerRepository extends BaseRepository {
       });
     }
     if (patch.phoneE164 === null) Object.assign(update, { phoneVerified: false });
-    if (
-      patch.lifecycleStatus !== undefined &&
-      patch.iamLifecycleDisabled === undefined
-    ) {
+    if (patch.lifecycleStatus !== undefined && patch.iamLifecycleDisabled === undefined) {
       Object.assign(update, { iamLifecycleDisabled: false });
     }
 
@@ -506,10 +474,7 @@ export class CustomerRepository extends BaseRepository {
     id: string,
     correction: CustomerPrivacyCorrection,
   ): Promise<Customer | null> {
-    const email =
-      correction.email === undefined
-        ? undefined
-        : correction.email?.trim() || null;
+    const email = correction.email === undefined ? undefined : correction.email?.trim() || null;
     const rows = await this.connection
       .update(customer)
       .set({
@@ -523,9 +488,7 @@ export class CustomerRepository extends BaseRepository {
               emailVerified: false,
             }
           : {}),
-        ...(correction.phoneE164 !== undefined
-          ? { phoneVerified: false }
-          : {}),
+        ...(correction.phoneE164 !== undefined ? { phoneVerified: false } : {}),
         updatedAt: new Date().toISOString(),
         revision: sql`${customer.revision} + 1`,
       })
@@ -581,11 +544,7 @@ export class CustomerRepository extends BaseRepository {
         revision: sql`${customer.revision} + 1`,
       })
       .where(
-        and(
-          eq(customer.storeId, this.storeId),
-          eq(customer.id, id),
-          isNull(customer.deletedAt),
-        ),
+        and(eq(customer.storeId, this.storeId), eq(customer.id, id), isNull(customer.deletedAt)),
       )
       .returning();
     return rows[0] ?? null;
@@ -597,7 +556,7 @@ export class CustomerRepository extends BaseRepository {
    */
   async acquireActiveRevision(
     id: string,
-    expectedRevision: number
+    expectedRevision: number,
   ): Promise<CustomerRevisionAcquireResult> {
     const rows = await this.connection
       .update(customer)
@@ -611,8 +570,8 @@ export class CustomerRepository extends BaseRepository {
           eq(customer.id, id),
           eq(customer.lifecycleStatus, "ACTIVE"),
           eq(customer.revision, expectedRevision),
-          isNull(customer.deletedAt)
-        )
+          isNull(customer.deletedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "acquired", customer: rows[0] };
@@ -627,10 +586,7 @@ export class CustomerRepository extends BaseRepository {
    * Apply fields after the aggregate revision has already been acquired by a
    * customer-scoped command. This deliberately does not increment revision.
    */
-  async patchWithinRevision(
-    id: string,
-    patch: CustomerPatch
-  ): Promise<Customer | null> {
+  async patchWithinRevision(id: string, patch: CustomerPatch): Promise<Customer | null> {
     const update: Record<string, unknown> = {
       ...patch,
       ...customerPatchNormalizationProjection(patch),
@@ -649,10 +605,7 @@ export class CustomerRepository extends BaseRepository {
     if (patch.phoneE164 === null) {
       Object.assign(update, { phoneVerified: false });
     }
-    if (
-      patch.lifecycleStatus !== undefined &&
-      patch.iamLifecycleDisabled === undefined
-    ) {
+    if (patch.lifecycleStatus !== undefined && patch.iamLifecycleDisabled === undefined) {
       Object.assign(update, { iamLifecycleDisabled: false });
     }
 
@@ -660,11 +613,7 @@ export class CustomerRepository extends BaseRepository {
       .update(customer)
       .set(update)
       .where(
-        and(
-          eq(customer.storeId, this.storeId),
-          eq(customer.id, id),
-          isNull(customer.deletedAt)
-        )
+        and(eq(customer.storeId, this.storeId), eq(customer.id, id), isNull(customer.deletedAt)),
       )
       .returning();
     return rows[0] ?? null;
@@ -675,20 +624,19 @@ export class CustomerRepository extends BaseRepository {
     const rows = await this.connection
       .update(customer)
       .set({ revision: sql`${customer.revision} - 1` })
-      .where(and(
-        eq(customer.storeId, this.storeId),
-        eq(customer.id, id),
-        eq(customer.revision, acquiredRevision),
-        isNull(customer.deletedAt),
-      ))
+      .where(
+        and(
+          eq(customer.storeId, this.storeId),
+          eq(customer.id, id),
+          eq(customer.revision, acquiredRevision),
+          isNull(customer.deletedAt),
+        ),
+      )
       .returning({ id: customer.id });
     return rows.length === 1;
   }
 
-  async softDelete(
-    id: string,
-    expectedRevision?: number
-  ): Promise<Customer | null> {
+  async softDelete(id: string, expectedRevision?: number): Promise<Customer | null> {
     const now = new Date().toISOString();
     const conditions = [
       eq(customer.storeId, this.storeId),
@@ -741,9 +689,7 @@ export class CustomerRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getConnection(
-    input: CustomerConnectionInput
-  ): Promise<RepositoryConnectionResult> {
+  async getConnection(input: CustomerConnectionInput): Promise<RepositoryConnectionResult> {
     const normalized = normalizeRelayPagination(input);
     const { where, orderBy, ...pagination } = normalized;
     const resolvedWhere = await this.resolveSegmentWhere(where);
@@ -752,17 +698,12 @@ export class CustomerRepository extends BaseRepository {
         { storeId: { _eq: this.storeId } },
         { deletedAt: { _is: null } },
         {
-          _or: [
-            { currencyCode: { _eq: this.currency } },
-            { currencyCode: { _is: null } },
-          ],
+          _or: [{ currencyCode: { _eq: this.currency } }, { currencyCode: { _is: null } }],
         },
         ...(resolvedWhere ? [resolvedWhere] : []),
       ],
     };
-    const effectiveOrder = orderBy ?? [
-      { field: "createdAt", direction: "desc" },
-    ];
+    const effectiveOrder = orderBy ?? [{ field: "createdAt", direction: "desc" }];
     const executeInput: CustomerRelayInput = {
       ...pagination,
       where: mergedWhere,
@@ -793,45 +734,34 @@ export class CustomerRepository extends BaseRepository {
   }
 
   private async resolveSegmentWhere(
-    where: CustomerConnectionWhere | null | undefined
+    where: CustomerConnectionWhere | null | undefined,
   ): Promise<CustomerRelayWhere | undefined> {
     if (!where) return undefined;
     const { segmentId, _and, _or, _not, ...fields } = where;
     const resolved: Record<string, unknown> = { ...fields };
 
     if (_and) {
-      resolved._and = await Promise.all(
-        _and.map((entry) => this.resolveSegmentWhere(entry))
-      );
+      resolved._and = await Promise.all(_and.map((entry) => this.resolveSegmentWhere(entry)));
     }
     if (_or) {
-      resolved._or = await Promise.all(
-        _or.map((entry) => this.resolveSegmentWhere(entry))
-      );
+      resolved._or = await Promise.all(_or.map((entry) => this.resolveSegmentWhere(entry)));
     }
     if (_not) resolved._not = await this.resolveSegmentWhere(_not);
     if (segmentId !== undefined && segmentId !== null) {
       const segmentWhere = await this.customerIdsForSegmentFilter(segmentId);
-      resolved._and = [
-        ...((resolved._and as unknown[] | undefined) ?? []),
-        segmentWhere,
-      ];
+      resolved._and = [...((resolved._and as unknown[] | undefined) ?? []), segmentWhere];
     }
     return resolved as CustomerRelayWhere;
   }
 
   private async customerIdsForSegmentFilter(
-    filter: SegmentIdFilter | string
+    filter: SegmentIdFilter | string,
   ): Promise<CustomerRelayWhere> {
     const input: SegmentIdFilter = typeof filter === "string" ? { _eq: filter } : filter;
-    const positive = [
-      ...(input._eq ? [input._eq] : []),
-      ...(input._in ?? []),
-    ].map(decodeSegmentId);
-    const negative = [
-      ...(input._neq ? [input._neq] : []),
-      ...(input._notIn ?? []),
-    ].map(decodeSegmentId);
+    const positive = [...(input._eq ? [input._eq] : []), ...(input._in ?? [])].map(decodeSegmentId);
+    const negative = [...(input._neq ? [input._neq] : []), ...(input._notIn ?? [])].map(
+      decodeSegmentId,
+    );
     const clauses: CustomerRelayWhere[] = [];
 
     if (positive.length > 0) {
@@ -855,12 +785,10 @@ export class CustomerRepository extends BaseRepository {
     return clauses.length === 1 ? clauses[0] : { _and: clauses };
   }
 
-  private async findCurrentMemberCustomerIds(
-    segmentIds?: readonly string[]
-  ): Promise<string[]> {
+  private async findCurrentMemberCustomerIds(segmentIds?: readonly string[]): Promise<string[]> {
     const active = or(
       isNull(customerSegmentMembership.expiresAt),
-      sql`${customerSegmentMembership.expiresAt} > now()`
+      sql`${customerSegmentMembership.expiresAt} > now()`,
     );
     const rows = await this.connection
       .selectDistinct({ customerId: customerSegmentMembership.customerId })
@@ -900,8 +828,8 @@ export class CustomerRepository extends BaseRepository {
           sql`${customerSegmentMembership.evaluatedAt} <= transaction_timestamp()`,
           segmentIds && segmentIds.length > 0
             ? inArray(customerSegmentMembership.segmentId, [...segmentIds])
-            : undefined
-        )
+            : undefined,
+        ),
       );
     return rows.map((row) => row.customerId);
   }
@@ -964,15 +892,14 @@ export function encodeCustomerIdCursor(customerId: string): string {
 
 export function decodeCustomerIdCursor(cursor: string): string {
   try {
-    const value = JSON.parse(
-      Buffer.from(cursor, "base64url").toString("utf8"),
-    ) as unknown;
+    const value = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as unknown;
     if (
       !value ||
       typeof value !== "object" ||
       (value as { version?: unknown }).version !== 1 ||
       typeof (value as { customerId?: unknown }).customerId !== "string"
-    ) throw new Error("invalid");
+    )
+      throw new Error("invalid");
     const customerId = (value as { customerId: string }).customerId;
     assertCustomerId(customerId);
     return customerId.toLowerCase();

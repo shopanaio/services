@@ -5,9 +5,10 @@ import { QUESTION_EDITOR_CONTEXT_QUERY } from "../graphql";
 import type { QuestionEditorContextQueryData } from "../graphql/operation-types";
 
 export function useQuestionEditorContext() {
-  const { data, previousData, loading, error, refetch } = useQuery<
-    QuestionEditorContextQueryData
-  >(QUESTION_EDITOR_CONTEXT_QUERY, { fetchPolicy: "cache-and-network" });
+  const { data, previousData, loading, error, refetch } = useQuery<QuestionEditorContextQueryData>(
+    QUESTION_EDITOR_CONTEXT_QUERY,
+    { fetchPolicy: "cache-and-network" },
+  );
   const result = data ?? previousData;
 
   return {

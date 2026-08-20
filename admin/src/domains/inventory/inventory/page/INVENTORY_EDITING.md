@@ -2,7 +2,8 @@
 
 ## Overview
 
-This document describes the editing behavior for the inventory table with linked field calculations and business logic.
+This document describes the editing behavior for the inventory table with linked field calculations
+and business logic.
 
 ---
 
@@ -16,12 +17,12 @@ Available = On Hand - Unavailable - Reserved
 
 ### Field Definitions
 
-| Field         | Type   | Editable      | Description                                    |
-| ------------- | ------ | ------------- | ---------------------------------------------- |
-| `onHand`      | number | Yes           | Total quantity in stock                        |
-| `unavailable` | number | Yes           | Unavailable (damaged, on hold)                 |
-| `reserved`    | number | System        | Reserved for orders (managed by order system)  |
-| `available`   | number | Calculated    | Available for sale (auto-calculated)           |
+| Field         | Type   | Editable   | Description                                   |
+| ------------- | ------ | ---------- | --------------------------------------------- |
+| `onHand`      | number | Yes        | Total quantity in stock                       |
+| `unavailable` | number | Yes        | Unavailable (damaged, on hold)                |
+| `reserved`    | number | System     | Reserved for orders (managed by order system) |
+| `available`   | number | Calculated | Available for sale (auto-calculated)          |
 
 ---
 
@@ -41,6 +42,7 @@ User edits cells → sees diff (old → new) → clicks Save to apply all change
 #### States
 
 **Default state:**
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ Product          │ SKU       │ On hand │ Unavail │ Reserved │ Available │
@@ -51,6 +53,7 @@ User edits cells → sees diff (old → new) → clicks Save to apply all change
 ```
 
 **Editing state (input active):**
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ Product          │ SKU       │ On hand │ Unavail │ Reserved │ Available │
@@ -61,6 +64,7 @@ User edits cells → sees diff (old → new) → clicks Save to apply all change
 ```
 
 **Pending changes state (after edit, before save):**
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ Product          │ SKU       │ On hand   │ Unavail │ Reserved │ Available │
@@ -80,7 +84,7 @@ User edits cells → sees diff (old → new) → clicks Save to apply all change
 interface CellDiffProps {
   originalValue: number;
   newValue: number;
-  isCalculated?: boolean;  // true for 'available' field
+  isCalculated?: boolean; // true for 'available' field
 }
 
 // Render:
@@ -102,13 +106,13 @@ interface CellDiffProps {
 
 #### Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| `Enter` | Confirm cell edit, stay in pending state |
-| `Escape` | Cancel current cell edit |
-| `Tab` | Confirm and move to next editable cell |
-| `Ctrl+S` | Save all pending changes |
-| `Ctrl+Z` | Discard all pending changes |
+| Key      | Action                                   |
+| -------- | ---------------------------------------- |
+| `Enter`  | Confirm cell edit, stay in pending state |
+| `Escape` | Cancel current cell edit                 |
+| `Tab`    | Confirm and move to next editable cell   |
+| `Ctrl+S` | Save all pending changes                 |
+| `Ctrl+Z` | Discard all pending changes              |
 
 ---
 
@@ -255,7 +259,12 @@ interface InventoryEditStore {
 
   // Actions
   startEdit: (itemId: string, field: EditableField) => void;
-  updateValue: (itemId: string, field: EditableField, originalValue: number, newValue: number) => void;
+  updateValue: (
+    itemId: string,
+    field: EditableField,
+    originalValue: number,
+    newValue: number,
+  ) => void;
   cancelCellEdit: () => void;
   discardAll: () => void;
   saveChanges: () => void;
@@ -332,10 +341,7 @@ export const useInventoryEditStore = create<InventoryEditStore>((set, get) => ({
 
   getChangesCount: () => {
     const changes = get().pendingChanges;
-    return Object.values(changes).reduce(
-      (count, fields) => count + Object.keys(fields).length,
-      0
-    );
+    return Object.values(changes).reduce((count, fields) => count + Object.keys(fields).length, 0);
   },
 
   getItemChange: (itemId, field) => {
@@ -348,13 +354,8 @@ export const useInventoryEditStore = create<InventoryEditStore>((set, get) => ({
 
 ```tsx
 function InventoryCell({ itemId, field, currentValue }: Props) {
-  const {
-    activeCell,
-    startEdit,
-    updateValue,
-    cancelCellEdit,
-    getItemChange,
-  } = useInventoryEditStore();
+  const { activeCell, startEdit, updateValue, cancelCellEdit, getItemChange } =
+    useInventoryEditStore();
 
   const change = getItemChange(itemId, field);
   const isEditing = activeCell?.itemId === itemId && activeCell?.field === field;
@@ -379,11 +380,7 @@ function InventoryCell({ itemId, field, currentValue }: Props) {
     );
   }
 
-  return (
-    <span onClick={() => startEdit(itemId, field)}>
-      {currentValue}
-    </span>
-  );
+  return <span onClick={() => startEdit(itemId, field)}>{currentValue}</span>;
 }
 ```
 
@@ -391,8 +388,7 @@ function InventoryCell({ itemId, field, currentValue }: Props) {
 
 ```tsx
 function InventoryActionBar() {
-  const { hasChanges, getChangesCount, discardAll, saveChanges, status } =
-    useInventoryEditStore();
+  const { hasChanges, getChangesCount, discardAll, saveChanges, status } = useInventoryEditStore();
 
   if (!hasChanges()) return null;
 
@@ -413,7 +409,7 @@ function InventoryActionBar() {
 ```typescript
 function calculateInventory(
   values: Partial<InventoryValues>,
-  base: InventoryValues
+  base: InventoryValues,
 ): CalculationResult {
   const onHand = values.onHand ?? base.onHand;
   const unavailable = values.unavailable ?? base.unavailable;
@@ -461,7 +457,7 @@ interface InventoryAuditEntry {
     newValue: number;
     delta: number;
   };
-  reason: "manual";  // always manual
+  reason: "manual"; // always manual
 
   // Computed fields that changed as result
   computedChanges: {

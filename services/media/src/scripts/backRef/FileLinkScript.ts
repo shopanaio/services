@@ -41,8 +41,7 @@ export class FileLinkScript extends BaseScript<FileLinkParams, FileLinkResult> {
       return {
         success: false,
         code: link.code,
-        activeRefCount:
-          await this.repository.fileBackRef.countByFileId(fileId),
+        activeRefCount: await this.repository.fileBackRef.countByFileId(fileId),
         fileExists: true,
         fileActive: true,
       };

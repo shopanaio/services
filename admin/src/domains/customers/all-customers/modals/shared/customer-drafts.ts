@@ -1,5 +1,15 @@
-import type { ApiCustomer, ApiCustomerAddress, ApiCustomerTaxExemption, ApiCustomerTaxIdentifier, ApiFile } from "@/graphql/types";
-import { CustomerAddressValidationStatus, CustomerTaxExemptionStatus, CustomerTaxIdentifierStatus } from "@/graphql/types";
+import type {
+  ApiCustomer,
+  ApiCustomerAddress,
+  ApiCustomerTaxExemption,
+  ApiCustomerTaxIdentifier,
+  ApiFile,
+} from "@/graphql/types";
+import {
+  CustomerAddressValidationStatus,
+  CustomerTaxExemptionStatus,
+  CustomerTaxIdentifierStatus,
+} from "@/graphql/types";
 
 export type CustomerAddressDraft = {
   key: string;
@@ -79,8 +89,10 @@ export function addressToDraft(address: ApiCustomerAddress): CustomerAddressDraf
 export function customerAddressDrafts(customer: ApiCustomer) {
   const loaded = customer.addresses.edges.map((edge) => edge.node);
   const byId = new Map(loaded.map((item) => [item.id, item]));
-  if (customer.defaultShippingAddress) byId.set(customer.defaultShippingAddress.id, customer.defaultShippingAddress);
-  if (customer.defaultBillingAddress) byId.set(customer.defaultBillingAddress.id, customer.defaultBillingAddress);
+  if (customer.defaultShippingAddress)
+    byId.set(customer.defaultShippingAddress.id, customer.defaultShippingAddress);
+  if (customer.defaultBillingAddress)
+    byId.set(customer.defaultBillingAddress.id, customer.defaultBillingAddress);
   return [...byId.values()].map(addressToDraft);
 }
 
@@ -144,7 +156,13 @@ export function exemptionToDraft(item: ApiCustomerTaxExemption): CustomerTaxExem
     regionCode: item.regionCode ?? "",
     reason: item.reason ?? "",
     status: item.status,
-    certificateFile: item.certificateFile ? { id: item.certificateFile.id, originalName: item.certificateFile.originalName, url: item.certificateFile.url } : null,
+    certificateFile: item.certificateFile
+      ? {
+          id: item.certificateFile.id,
+          originalName: item.certificateFile.originalName,
+          url: item.certificateFile.url,
+        }
+      : null,
     validFrom: item.validFrom ?? "",
     validTo: item.validTo ?? "",
   };

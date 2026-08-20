@@ -27,7 +27,9 @@ export const TARGET_TYPE_LABELS: Record<ProductComponentDependencyTargetType, st
   [ProductComponentDependencyTargetType.Configuration]: "Components",
 };
 
-export const COMPARISON_OPERATOR_LABELS: Partial<Record<ProductComponentConditionOperator, string>> = {
+export const COMPARISON_OPERATOR_LABELS: Partial<
+  Record<ProductComponentConditionOperator, string>
+> = {
   [ProductComponentConditionOperator.Gte]: ">=",
   [ProductComponentConditionOperator.Eq]: "=",
   [ProductComponentConditionOperator.Lte]: "<=",

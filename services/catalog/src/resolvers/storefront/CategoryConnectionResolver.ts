@@ -10,15 +10,12 @@ import {
 } from "./connection/BaseConnectionResolver.js";
 
 export type StorefrontCategoryConnectionInput =
-  | QueryCategoriesArgs
-  | CategoryChildrenArgs
-  | ProductCategoriesArgs;
+  QueryCategoriesArgs | CategoryChildrenArgs | ProductCategoriesArgs;
 
-export type CategoryConnectionResolverInput =
-  StorefrontCategoryConnectionInput & {
-    parentId?: string;
-    categoryIds?: string[];
-  };
+export type CategoryConnectionResolverInput = StorefrontCategoryConnectionInput & {
+  parentId?: string;
+  categoryIds?: string[];
+};
 
 export class CategoryConnectionResolver extends BaseConnectionResolver<CategoryConnectionResolverInput> {
   async $preload(): Promise<ConnectionData> {

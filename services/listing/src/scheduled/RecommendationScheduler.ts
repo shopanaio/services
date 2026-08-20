@@ -34,9 +34,10 @@ export class RecommendationScheduler {
 
   private async dispatch(kind: "calculation" | "manual"): Promise<void> {
     const now = new Date();
-    const bucket = kind === "manual"
-      ? new Date(Math.floor(now.getTime() / 60_000) * 60_000).toISOString()
-      : new Date(Math.floor(now.getTime() / 3_600_000) * 3_600_000).toISOString();
+    const bucket =
+      kind === "manual"
+        ? new Date(Math.floor(now.getTime() / 60_000) * 60_000).toISOString()
+        : new Date(Math.floor(now.getTime() / 3_600_000) * 3_600_000).toISOString();
     const input: RecommendationGlobalTriggerInput = { kind, bucket };
     const idempotency: IdempotencyContext = {
       source: "content",
@@ -46,10 +47,15 @@ export class RecommendationScheduler {
     };
     const workflowId = buildIdempotencyKey("listing.recommendationGlobalTrigger", idempotency);
     try {
-      await this.broker.startWorkflow("listing.recommendationGlobalTrigger", input, idempotency, { workflowId });
+      await this.broker.startWorkflow("listing.recommendationGlobalTrigger", input, idempotency, {
+        workflowId,
+      });
     } catch (error) {
       if (isDuplicateWorkflowStartError(error, workflowId)) return;
-      this.logger.error({ error, kind, bucket }, "Failed to start recommendation scheduler trigger");
+      this.logger.error(
+        { error, kind, bucket },
+        "Failed to start recommendation scheduler trigger",
+      );
     }
   }
 }

@@ -12,16 +12,7 @@ import {
   startOfCalendarDayUtc,
 } from "@shopana/customer-segment-dsl";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import {
-  and,
-  asc,
-  eq,
-  inArray,
-  isNull,
-  lte,
-  or,
-  sql,
-} from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import { compileCustomerSegmentMatchQuery } from "../../segments/compiler.js";
 import {
@@ -46,23 +37,27 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     await this.connection
       .update(customerSegment)
       .set({ materializationStatus: "FAILED", updatedAt: new Date().toISOString() })
-      .where(and(
-        eq(customerSegment.storeId, this.storeId),
-        eq(customerSegment.id, segmentId),
-        eq(customerSegment.type, "DYNAMIC"),
-        isNull(customerSegment.deletedAt),
-      ));
+      .where(
+        and(
+          eq(customerSegment.storeId, this.storeId),
+          eq(customerSegment.id, segmentId),
+          eq(customerSegment.type, "DYNAMIC"),
+          isNull(customerSegment.deletedAt),
+        ),
+      );
   }
 
   async failCurrencyDependentSegments(): Promise<number> {
     const segments = await this.connection
       .select()
       .from(customerSegment)
-      .where(and(
-        eq(customerSegment.storeId, this.storeId),
-        eq(customerSegment.type, "DYNAMIC"),
-        isNull(customerSegment.deletedAt),
-      ));
+      .where(
+        and(
+          eq(customerSegment.storeId, this.storeId),
+          eq(customerSegment.type, "DYNAMIC"),
+          isNull(customerSegment.deletedAt),
+        ),
+      );
     const ids = segments
       .filter((segment) => {
         const definition = segment.definition as unknown as SegmentDefinitionV1;
@@ -73,33 +68,24 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     const rows = await this.connection
       .update(customerSegment)
       .set({ materializationStatus: "FAILED", updatedAt: new Date().toISOString() })
-      .where(and(
-        eq(customerSegment.storeId, this.storeId),
-        inArray(customerSegment.id, ids),
-      ))
+      .where(and(eq(customerSegment.storeId, this.storeId), inArray(customerSegment.id, ids)))
       .returning({ id: customerSegment.id });
     return rows.length;
   }
 
-  async schedule(
-    segment: CustomerSegment,
-    effectiveAt: string,
-    retry = false,
-  ): Promise<void> {
+  async schedule(segment: CustomerSegment, effectiveAt: string, retry = false): Promise<void> {
     if (segment.type !== "DYNAMIC" || segment.status !== "ACTIVE") return;
     const sequence = await this.nextCauseSequence();
-    const insert = this.connection
-      .insert(customerSegmentMaterializationRun)
-      .values({
-        id: await this.generateUuidV7(),
-        storeId: this.storeId,
-        segmentId: segment.id,
-        definitionRevision: segment.definitionRevision,
-        evaluationGeneration: segment.evaluationGeneration,
-        causeSequence: sequence,
-        scanEffectiveAt: effectiveAt,
-        status: "PENDING",
-      });
+    const insert = this.connection.insert(customerSegmentMaterializationRun).values({
+      id: await this.generateUuidV7(),
+      storeId: this.storeId,
+      segmentId: segment.id,
+      definitionRevision: segment.definitionRevision,
+      evaluationGeneration: segment.evaluationGeneration,
+      causeSequence: sequence,
+      scanEffectiveAt: effectiveAt,
+      status: "PENDING",
+    });
     if (retry) {
       await insert.onConflictDoUpdate({
         target: [
@@ -125,12 +111,14 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
       await this.connection
         .update(customerSegment)
         .set({ materializationStatus: "PENDING", updatedAt: new Date().toISOString() })
-        .where(and(
-          eq(customerSegment.storeId, this.storeId),
-          eq(customerSegment.id, segment.id),
-          eq(customerSegment.definitionRevision, segment.definitionRevision),
-          eq(customerSegment.evaluationGeneration, segment.evaluationGeneration),
-        ));
+        .where(
+          and(
+            eq(customerSegment.storeId, this.storeId),
+            eq(customerSegment.id, segment.id),
+            eq(customerSegment.definitionRevision, segment.definitionRevision),
+            eq(customerSegment.evaluationGeneration, segment.evaluationGeneration),
+          ),
+        );
     } else {
       await insert.onConflictDoNothing();
     }
@@ -145,15 +133,17 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(customerSegmentMaterializationRun)
-      .where(and(
-        eq(customerSegmentMaterializationRun.storeId, this.storeId),
-        inArray(customerSegmentMaterializationRun.status, ["PENDING", "RUNNING"]),
-        or(
-          eq(customerSegmentMaterializationRun.claimedBy, workerId),
-          isNull(customerSegmentMaterializationRun.leaseUntil),
-          lte(customerSegmentMaterializationRun.leaseUntil, now),
+      .where(
+        and(
+          eq(customerSegmentMaterializationRun.storeId, this.storeId),
+          inArray(customerSegmentMaterializationRun.status, ["PENDING", "RUNNING"]),
+          or(
+            eq(customerSegmentMaterializationRun.claimedBy, workerId),
+            isNull(customerSegmentMaterializationRun.leaseUntil),
+            lte(customerSegmentMaterializationRun.leaseUntil, now),
+          ),
         ),
-      ))
+      )
       .orderBy(asc(customerSegmentMaterializationRun.createdAt))
       .limit(1)
       .for("update", { skipLocked: true });
@@ -172,12 +162,14 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     await this.connection
       .update(customerSegment)
       .set({ materializationStatus: "RUNNING", updatedAt: now })
-      .where(and(
-        eq(customerSegment.storeId, this.storeId),
-        eq(customerSegment.id, run.segmentId),
-        eq(customerSegment.definitionRevision, run.definitionRevision),
-        eq(customerSegment.evaluationGeneration, run.evaluationGeneration),
-      ));
+      .where(
+        and(
+          eq(customerSegment.storeId, this.storeId),
+          eq(customerSegment.id, run.segmentId),
+          eq(customerSegment.definitionRevision, run.definitionRevision),
+          eq(customerSegment.evaluationGeneration, run.evaluationGeneration),
+        ),
+      );
     return claimed[0] ?? null;
   }
 
@@ -185,26 +177,26 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     await this.connection
       .update(customerSegmentMaterializationRun)
       .set({ scanCursor: cursor, updatedAt: new Date().toISOString() })
-      .where(and(
-        eq(customerSegmentMaterializationRun.storeId, this.storeId),
-        eq(customerSegmentMaterializationRun.id, runId),
-      ));
+      .where(
+        and(
+          eq(customerSegmentMaterializationRun.storeId, this.storeId),
+          eq(customerSegmentMaterializationRun.id, runId),
+        ),
+      );
   }
 
-  async renewRunLease(
-    runId: string,
-    workerId: string,
-    leaseUntil: string,
-  ): Promise<boolean> {
+  async renewRunLease(runId: string, workerId: string, leaseUntil: string): Promise<boolean> {
     const rows = await this.connection
       .update(customerSegmentMaterializationRun)
       .set({ leaseUntil, updatedAt: new Date().toISOString() })
-      .where(and(
-        eq(customerSegmentMaterializationRun.storeId, this.storeId),
-        eq(customerSegmentMaterializationRun.id, runId),
-        eq(customerSegmentMaterializationRun.claimedBy, workerId),
-        eq(customerSegmentMaterializationRun.status, "RUNNING"),
-      ))
+      .where(
+        and(
+          eq(customerSegmentMaterializationRun.storeId, this.storeId),
+          eq(customerSegmentMaterializationRun.id, runId),
+          eq(customerSegmentMaterializationRun.claimedBy, workerId),
+          eq(customerSegmentMaterializationRun.status, "RUNNING"),
+        ),
+      )
       .returning({ id: customerSegmentMaterializationRun.id });
     return rows.length === 1;
   }
@@ -228,10 +220,12 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
         publicationEffectiveAt: now,
         updatedAt: now,
       })
-      .where(and(
-        eq(customerSegmentMaterializationRun.storeId, this.storeId),
-        eq(customerSegmentMaterializationRun.id, runId),
-      ));
+      .where(
+        and(
+          eq(customerSegmentMaterializationRun.storeId, this.storeId),
+          eq(customerSegmentMaterializationRun.id, runId),
+        ),
+      );
     return { watermark, publicationEffectiveAt: now };
   }
 
@@ -241,29 +235,33 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     const rows = await this.connection
       .select({ sequence: customerSegmentReevaluationQueue.sequence })
       .from(customerSegmentReevaluationQueue)
-      .where(and(
-        eq(customerSegmentReevaluationQueue.storeId, this.storeId),
-        eq(customerSegmentReevaluationQueue.segmentId, run.segmentId),
-        eq(customerSegmentReevaluationQueue.definitionRevision, run.definitionRevision),
-        eq(customerSegmentReevaluationQueue.evaluationGeneration, run.evaluationGeneration),
-        lte(customerSegmentReevaluationQueue.sequence, run.queueWatermark),
-        isNull(customerSegmentReevaluationQueue.completedAt),
-      ))
+      .where(
+        and(
+          eq(customerSegmentReevaluationQueue.storeId, this.storeId),
+          eq(customerSegmentReevaluationQueue.segmentId, run.segmentId),
+          eq(customerSegmentReevaluationQueue.definitionRevision, run.definitionRevision),
+          eq(customerSegmentReevaluationQueue.evaluationGeneration, run.evaluationGeneration),
+          lte(customerSegmentReevaluationQueue.sequence, run.queueWatermark),
+          isNull(customerSegmentReevaluationQueue.completedAt),
+        ),
+      )
       .limit(1);
     if (rows.length > 0) return false;
     const dueTemporal = await this.connection
       .select({ id: customerSegmentTemporalSchedule.id })
       .from(customerSegmentTemporalSchedule)
-      .where(and(
-        eq(customerSegmentTemporalSchedule.storeId, this.storeId),
-        eq(customerSegmentTemporalSchedule.segmentId, run.segmentId),
-        eq(customerSegmentTemporalSchedule.definitionRevision, run.definitionRevision),
-        eq(customerSegmentTemporalSchedule.evaluationGeneration, run.evaluationGeneration),
-        lte(
-          customerSegmentTemporalSchedule.evaluateAt,
-          run.publicationEffectiveAt ?? run.scanEffectiveAt,
+      .where(
+        and(
+          eq(customerSegmentTemporalSchedule.storeId, this.storeId),
+          eq(customerSegmentTemporalSchedule.segmentId, run.segmentId),
+          eq(customerSegmentTemporalSchedule.definitionRevision, run.definitionRevision),
+          eq(customerSegmentTemporalSchedule.evaluationGeneration, run.evaluationGeneration),
+          lte(
+            customerSegmentTemporalSchedule.evaluateAt,
+            run.publicationEffectiveAt ?? run.scanEffectiveAt,
+          ),
         ),
-      ))
+      )
       .limit(1);
     return dueTemporal.length === 0;
   }
@@ -273,14 +271,16 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     const rows = await this.connection
       .update(customerSegment)
       .set({ materializationStatus: "READY", updatedAt: now })
-      .where(and(
-        eq(customerSegment.storeId, this.storeId),
-        eq(customerSegment.id, run.segmentId),
-        eq(customerSegment.status, "ACTIVE"),
-        sql`${customerSegment.materializationStatus} <> 'FAILED'`,
-        eq(customerSegment.definitionRevision, run.definitionRevision),
-        eq(customerSegment.evaluationGeneration, run.evaluationGeneration),
-      ))
+      .where(
+        and(
+          eq(customerSegment.storeId, this.storeId),
+          eq(customerSegment.id, run.segmentId),
+          eq(customerSegment.status, "ACTIVE"),
+          sql`${customerSegment.materializationStatus} <> 'FAILED'`,
+          eq(customerSegment.definitionRevision, run.definitionRevision),
+          eq(customerSegment.evaluationGeneration, run.evaluationGeneration),
+        ),
+      )
       .returning({ id: customerSegment.id });
     if (rows.length === 0) {
       await this.connection
@@ -292,10 +292,12 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
           claimedBy: null,
           updatedAt: now,
         })
-        .where(and(
-          eq(customerSegmentMaterializationRun.storeId, this.storeId),
-          eq(customerSegmentMaterializationRun.id, run.id),
-        ));
+        .where(
+          and(
+            eq(customerSegmentMaterializationRun.storeId, this.storeId),
+            eq(customerSegmentMaterializationRun.id, run.id),
+          ),
+        );
       return false;
     }
     await this.connection
@@ -316,23 +318,27 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     const message = error instanceof Error ? error.message : String(error);
     await this.connection
       .update(customerSegmentMaterializationRun)
-      .set({ status: "FAILED", lastError: message.slice(0, 8_192), leaseUntil: null, updatedAt: now })
+      .set({
+        status: "FAILED",
+        lastError: message.slice(0, 8_192),
+        leaseUntil: null,
+        updatedAt: now,
+      })
       .where(eq(customerSegmentMaterializationRun.id, run.id));
     await this.connection
       .update(customerSegment)
       .set({ materializationStatus: "FAILED", updatedAt: now })
-      .where(and(
-        eq(customerSegment.storeId, this.storeId),
-        eq(customerSegment.id, run.segmentId),
-        eq(customerSegment.definitionRevision, run.definitionRevision),
-        eq(customerSegment.evaluationGeneration, run.evaluationGeneration),
-      ));
+      .where(
+        and(
+          eq(customerSegment.storeId, this.storeId),
+          eq(customerSegment.id, run.segmentId),
+          eq(customerSegment.definitionRevision, run.definitionRevision),
+          eq(customerSegment.evaluationGeneration, run.evaluationGeneration),
+        ),
+      );
   }
 
-  async recordRunFailure(
-    run: CustomerSegmentMaterializationRun,
-    error: unknown,
-  ): Promise<boolean> {
+  async recordRunFailure(run: CustomerSegmentMaterializationRun, error: unknown): Promise<boolean> {
     const now = new Date().toISOString();
     const nextAttemptCount = run.attemptCount + 1;
     const terminal = nextAttemptCount >= 20;
@@ -347,20 +353,24 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
         claimedBy: null,
         updatedAt: now,
       })
-      .where(and(
-        eq(customerSegmentMaterializationRun.storeId, this.storeId),
-        eq(customerSegmentMaterializationRun.id, run.id),
-      ));
+      .where(
+        and(
+          eq(customerSegmentMaterializationRun.storeId, this.storeId),
+          eq(customerSegmentMaterializationRun.id, run.id),
+        ),
+      );
     if (terminal) {
       await this.connection
         .update(customerSegment)
         .set({ materializationStatus: "FAILED", updatedAt: now })
-        .where(and(
-          eq(customerSegment.storeId, this.storeId),
-          eq(customerSegment.id, run.segmentId),
-          eq(customerSegment.definitionRevision, run.definitionRevision),
-          eq(customerSegment.evaluationGeneration, run.evaluationGeneration),
-        ));
+        .where(
+          and(
+            eq(customerSegment.storeId, this.storeId),
+            eq(customerSegment.id, run.segmentId),
+            eq(customerSegment.definitionRevision, run.definitionRevision),
+            eq(customerSegment.evaluationGeneration, run.evaluationGeneration),
+          ),
+        );
     }
     return terminal;
   }
@@ -393,22 +403,26 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     await this.connection
       .select({ id: customerSegmentEvaluationLock.id })
       .from(customerSegmentEvaluationLock)
-      .where(and(
-        eq(customerSegmentEvaluationLock.storeId, this.storeId),
-        eq(customerSegmentEvaluationLock.customerId, input.customerId),
-        eq(customerSegmentEvaluationLock.segmentId, input.segment.id),
-      ))
+      .where(
+        and(
+          eq(customerSegmentEvaluationLock.storeId, this.storeId),
+          eq(customerSegmentEvaluationLock.customerId, input.customerId),
+          eq(customerSegmentEvaluationLock.segmentId, input.segment.id),
+        ),
+      )
       .for("update");
 
     if (input.expectedScheduleToken) {
       const schedules = await this.connection
         .select({ scheduleToken: customerSegmentTemporalSchedule.scheduleToken })
         .from(customerSegmentTemporalSchedule)
-        .where(and(
-          eq(customerSegmentTemporalSchedule.storeId, this.storeId),
-          eq(customerSegmentTemporalSchedule.customerId, input.customerId),
-          eq(customerSegmentTemporalSchedule.segmentId, input.segment.id),
-        ))
+        .where(
+          and(
+            eq(customerSegmentTemporalSchedule.storeId, this.storeId),
+            eq(customerSegmentTemporalSchedule.customerId, input.customerId),
+            eq(customerSegmentTemporalSchedule.segmentId, input.segment.id),
+          ),
+        )
         .limit(1);
       if (schedules[0]?.scheduleToken !== input.expectedScheduleToken) {
         return false;
@@ -433,9 +447,8 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
 
     await this.connection.execute(sql`SELECT set_config('statement_timeout', '10000', true)`);
     const temporal = input.definition.temporal
-      ? await evaluateSegmentTemporalBoundary(
-          input.definition.root,
-          async (leaf) => this.evaluateTemporalLeaf(
+      ? await evaluateSegmentTemporalBoundary(input.definition.root, async (leaf) =>
+          this.evaluateTemporalLeaf(
             leaf,
             input.definition,
             input.customerId,
@@ -465,11 +478,13 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
         evaluatorToken: customerSegmentEvaluationState.evaluatorToken,
       })
       .from(customerSegmentEvaluationState)
-      .where(and(
-        eq(customerSegmentEvaluationState.storeId, this.storeId),
-        eq(customerSegmentEvaluationState.customerId, input.customerId),
-        eq(customerSegmentEvaluationState.segmentId, input.segment.id),
-      ))
+      .where(
+        and(
+          eq(customerSegmentEvaluationState.storeId, this.storeId),
+          eq(customerSegmentEvaluationState.customerId, input.customerId),
+          eq(customerSegmentEvaluationState.segmentId, input.segment.id),
+        ),
+      )
       .limit(1);
 
     const token = evaluationToken(input);
@@ -547,12 +562,14 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     } else {
       await this.connection
         .delete(customerSegmentMembership)
-        .where(and(
-          eq(customerSegmentMembership.storeId, this.storeId),
-          eq(customerSegmentMembership.customerId, input.customerId),
-          eq(customerSegmentMembership.segmentId, input.segment.id),
-          eq(customerSegmentMembership.source, "RULE"),
-        ));
+        .where(
+          and(
+            eq(customerSegmentMembership.storeId, this.storeId),
+            eq(customerSegmentMembership.customerId, input.customerId),
+            eq(customerSegmentMembership.segmentId, input.segment.id),
+            eq(customerSegmentMembership.source, "RULE"),
+          ),
+        );
     }
 
     if (nextChangeAt) {
@@ -591,19 +608,19 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     } else {
       await this.connection
         .delete(customerSegmentTemporalSchedule)
-        .where(and(
-          eq(customerSegmentTemporalSchedule.storeId, this.storeId),
-          eq(customerSegmentTemporalSchedule.segmentId, input.segment.id),
-          eq(customerSegmentTemporalSchedule.customerId, input.customerId),
-        ));
+        .where(
+          and(
+            eq(customerSegmentTemporalSchedule.storeId, this.storeId),
+            eq(customerSegmentTemporalSchedule.segmentId, input.segment.id),
+            eq(customerSegmentTemporalSchedule.customerId, input.customerId),
+          ),
+        );
     }
     await this.completeQueueInTransaction(input.queueSequence);
     return true;
   }
 
-  private async completeQueueInTransaction(
-    sequence: bigint | null | undefined,
-  ): Promise<void> {
+  private async completeQueueInTransaction(sequence: bigint | null | undefined): Promise<void> {
     if (sequence === null || sequence === undefined) return;
     await this.connection
       .update(customerSegmentReevaluationQueue)
@@ -613,10 +630,12 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
         claimedBy: null,
         updatedAt: sql`transaction_timestamp()`,
       })
-      .where(and(
-        eq(customerSegmentReevaluationQueue.storeId, this.storeId),
-        eq(customerSegmentReevaluationQueue.sequence, sequence),
-      ));
+      .where(
+        and(
+          eq(customerSegmentReevaluationQueue.storeId, this.storeId),
+          eq(customerSegmentReevaluationQueue.sequence, sequence),
+        ),
+      );
   }
 
   @Transactional()
@@ -633,46 +652,59 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     const segments = await this.connection
       .select()
       .from(customerSegment)
-      .where(and(
-        eq(customerSegment.storeId, this.storeId),
-        eq(customerSegment.type, "DYNAMIC"),
-        eq(customerSegment.status, "ACTIVE"),
-        isNull(customerSegment.deletedAt),
-      ));
-    const affected = segments.filter((segment) => {
-      const definition = segment.definition as unknown as SegmentDefinitionV1;
-      return dependencies.has("customer.any") ||
-        definition.dependencies?.includes("customer.any") ||
-        definition.dependencies?.some((dependency) => dependencies.has(dependency));
-    }).sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
+      .where(
+        and(
+          eq(customerSegment.storeId, this.storeId),
+          eq(customerSegment.type, "DYNAMIC"),
+          eq(customerSegment.status, "ACTIVE"),
+          isNull(customerSegment.deletedAt),
+        ),
+      );
+    const affected = segments
+      .filter((segment) => {
+        const definition = segment.definition as unknown as SegmentDefinitionV1;
+        return (
+          dependencies.has("customer.any") ||
+          definition.dependencies?.includes("customer.any") ||
+          definition.dependencies?.some((dependency) => dependencies.has(dependency))
+        );
+      })
+      .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0));
     if (affected.length === 0) return 0;
 
-    await this.lockPairs(customerId, affected.map((segment) => segment.id));
+    await this.lockPairs(
+      customerId,
+      affected.map((segment) => segment.id),
+    );
 
     const inserted = await this.connection
       .insert(customerSegmentReevaluationQueue)
-      .values(affected.map((segment) => ({
-        storeId: this.storeId,
-        customerId,
-        segmentId: segment.id,
-        definitionRevision: segment.definitionRevision,
-        evaluationGeneration: segment.evaluationGeneration,
-        sourceEventId,
-        requestedEffectiveAt: sql`transaction_timestamp()`,
-        availableAt: sql`transaction_timestamp()`,
-      })))
+      .values(
+        affected.map((segment) => ({
+          storeId: this.storeId,
+          customerId,
+          segmentId: segment.id,
+          definitionRevision: segment.definitionRevision,
+          evaluationGeneration: segment.evaluationGeneration,
+          sourceEventId,
+          requestedEffectiveAt: sql`transaction_timestamp()`,
+          availableAt: sql`transaction_timestamp()`,
+        })),
+      )
       .onConflictDoNothing()
       .returning({ segmentId: customerSegmentReevaluationQueue.segmentId });
     if (inserted.length === 0) return 0;
     const ids = inserted.map((row) => row.segmentId);
     await this.connection
       .delete(customerSegmentMembership)
-      .where(and(
-        eq(customerSegmentMembership.storeId, this.storeId),
-        eq(customerSegmentMembership.customerId, customerId),
-        eq(customerSegmentMembership.source, "RULE"),
-        inArray(customerSegmentMembership.segmentId, ids),
-      ));
+      .where(
+        and(
+          eq(customerSegmentMembership.storeId, this.storeId),
+          eq(customerSegmentMembership.customerId, customerId),
+          eq(customerSegmentMembership.source, "RULE"),
+          inArray(customerSegmentMembership.segmentId, ids),
+        ),
+      );
     return inserted.length;
   }
 
@@ -698,15 +730,17 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(customerSegmentReevaluationQueue)
-      .where(and(
-        eq(customerSegmentReevaluationQueue.storeId, this.storeId),
-        isNull(customerSegmentReevaluationQueue.completedAt),
-        lte(customerSegmentReevaluationQueue.availableAt, now),
-        or(
-          isNull(customerSegmentReevaluationQueue.leaseUntil),
-          lte(customerSegmentReevaluationQueue.leaseUntil, now),
+      .where(
+        and(
+          eq(customerSegmentReevaluationQueue.storeId, this.storeId),
+          isNull(customerSegmentReevaluationQueue.completedAt),
+          lte(customerSegmentReevaluationQueue.availableAt, now),
+          or(
+            isNull(customerSegmentReevaluationQueue.leaseUntil),
+            lte(customerSegmentReevaluationQueue.leaseUntil, now),
+          ),
         ),
-      ))
+      )
       .orderBy(asc(customerSegmentReevaluationQueue.sequence))
       .limit(limit)
       .for("update", { skipLocked: true });
@@ -722,7 +756,9 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
       })
       .where(inArray(customerSegmentReevaluationQueue.sequence, sequences))
       .returning();
-    return claimed.sort((left, right) => left.sequence < right.sequence ? -1 : left.sequence > right.sequence ? 1 : 0);
+    return claimed.sort((left, right) =>
+      left.sequence < right.sequence ? -1 : left.sequence > right.sequence ? 1 : 0,
+    );
   }
 
   @Transactional()
@@ -735,10 +771,11 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(customerSegmentTemporalSchedule)
-      .where(and(
-        eq(customerSegmentTemporalSchedule.storeId, this.storeId),
-        lte(customerSegmentTemporalSchedule.evaluateAt, now),
-        sql`EXISTS (
+      .where(
+        and(
+          eq(customerSegmentTemporalSchedule.storeId, this.storeId),
+          lte(customerSegmentTemporalSchedule.evaluateAt, now),
+          sql`EXISTS (
           SELECT 1
           FROM customers.customer_segment AS active_segment
           WHERE active_segment.store_id = ${this.storeId}::uuid
@@ -750,11 +787,12 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
             AND active_segment.definition_revision = ${customerSegmentTemporalSchedule.definitionRevision}
             AND active_segment.evaluation_generation = ${customerSegmentTemporalSchedule.evaluationGeneration}
         )`,
-        or(
-          isNull(customerSegmentTemporalSchedule.leaseUntil),
-          lte(customerSegmentTemporalSchedule.leaseUntil, now),
+          or(
+            isNull(customerSegmentTemporalSchedule.leaseUntil),
+            lte(customerSegmentTemporalSchedule.leaseUntil, now),
+          ),
         ),
-      ))
+      )
       .orderBy(
         asc(customerSegmentTemporalSchedule.evaluateAt),
         asc(customerSegmentTemporalSchedule.id),
@@ -793,17 +831,19 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(customerSegmentTemporalSchedule)
-      .where(and(
-        eq(customerSegmentTemporalSchedule.storeId, this.storeId),
-        eq(customerSegmentTemporalSchedule.segmentId, run.segmentId),
-        eq(customerSegmentTemporalSchedule.definitionRevision, run.definitionRevision),
-        eq(customerSegmentTemporalSchedule.evaluationGeneration, run.evaluationGeneration),
-        lte(customerSegmentTemporalSchedule.evaluateAt, run.publicationEffectiveAt),
-        or(
-          isNull(customerSegmentTemporalSchedule.leaseUntil),
-          lte(customerSegmentTemporalSchedule.leaseUntil, now),
+      .where(
+        and(
+          eq(customerSegmentTemporalSchedule.storeId, this.storeId),
+          eq(customerSegmentTemporalSchedule.segmentId, run.segmentId),
+          eq(customerSegmentTemporalSchedule.definitionRevision, run.definitionRevision),
+          eq(customerSegmentTemporalSchedule.evaluationGeneration, run.evaluationGeneration),
+          lte(customerSegmentTemporalSchedule.evaluateAt, run.publicationEffectiveAt),
+          or(
+            isNull(customerSegmentTemporalSchedule.leaseUntil),
+            lte(customerSegmentTemporalSchedule.leaseUntil, now),
+          ),
         ),
-      ))
+      )
       .orderBy(
         asc(customerSegmentTemporalSchedule.evaluateAt),
         asc(customerSegmentTemporalSchedule.id),
@@ -834,16 +874,15 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     await this.connection
       .update(customerSegmentReevaluationQueue)
       .set({ completedAt, leaseUntil: null, claimedBy: null, updatedAt: completedAt })
-      .where(and(
-        eq(customerSegmentReevaluationQueue.storeId, this.storeId),
-        eq(customerSegmentReevaluationQueue.sequence, sequence),
-      ));
+      .where(
+        and(
+          eq(customerSegmentReevaluationQueue.storeId, this.storeId),
+          eq(customerSegmentReevaluationQueue.sequence, sequence),
+        ),
+      );
   }
 
-  async failQueue(
-    item: CustomerSegmentReevaluationQueue,
-    error: unknown,
-  ): Promise<boolean> {
+  async failQueue(item: CustomerSegmentReevaluationQueue, error: unknown): Promise<boolean> {
     const now = new Date().toISOString();
     const terminal = item.attemptCount >= 20;
     const message = error instanceof Error ? error.message : String(error);
@@ -857,10 +896,12 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
         lastError: message.slice(0, 8_192),
         updatedAt: now,
       })
-      .where(and(
-        eq(customerSegmentReevaluationQueue.storeId, this.storeId),
-        eq(customerSegmentReevaluationQueue.sequence, item.sequence),
-      ));
+      .where(
+        and(
+          eq(customerSegmentReevaluationQueue.storeId, this.storeId),
+          eq(customerSegmentReevaluationQueue.sequence, item.sequence),
+        ),
+      );
     if (terminal) await this.failCurrentSegment(item, now);
     return terminal;
   }
@@ -868,17 +909,16 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
   async deleteTemporal(id: string, scheduleToken: string): Promise<void> {
     await this.connection
       .delete(customerSegmentTemporalSchedule)
-      .where(and(
-        eq(customerSegmentTemporalSchedule.storeId, this.storeId),
-        eq(customerSegmentTemporalSchedule.id, id),
-        eq(customerSegmentTemporalSchedule.scheduleToken, scheduleToken),
-      ));
+      .where(
+        and(
+          eq(customerSegmentTemporalSchedule.storeId, this.storeId),
+          eq(customerSegmentTemporalSchedule.id, id),
+          eq(customerSegmentTemporalSchedule.scheduleToken, scheduleToken),
+        ),
+      );
   }
 
-  async failTemporal(
-    item: CustomerSegmentTemporalSchedule,
-    error: unknown,
-  ): Promise<boolean> {
+  async failTemporal(item: CustomerSegmentTemporalSchedule, error: unknown): Promise<boolean> {
     const now = new Date().toISOString();
     const terminal = item.attemptCount >= 20;
     const message = error instanceof Error ? error.message : String(error);
@@ -888,17 +928,17 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
         claimedBy: terminal ? "terminal" : null,
         // Preserve the semantic boundary so publication cannot skip a failed
         // due row. The lease is also the retry-not-before timestamp.
-        leaseUntil: terminal
-          ? "9999-12-31T23:59:59.999Z"
-          : retryAt(item.attemptCount),
+        leaseUntil: terminal ? "9999-12-31T23:59:59.999Z" : retryAt(item.attemptCount),
         lastError: message.slice(0, 8_192),
         updatedAt: now,
       })
-      .where(and(
-        eq(customerSegmentTemporalSchedule.storeId, this.storeId),
-        eq(customerSegmentTemporalSchedule.id, item.id),
-        eq(customerSegmentTemporalSchedule.scheduleToken, item.scheduleToken),
-      ));
+      .where(
+        and(
+          eq(customerSegmentTemporalSchedule.storeId, this.storeId),
+          eq(customerSegmentTemporalSchedule.id, item.id),
+          eq(customerSegmentTemporalSchedule.scheduleToken, item.scheduleToken),
+        ),
+      );
     if (terminal) await this.failCurrentSegment(item, now);
     return terminal;
   }
@@ -907,37 +947,52 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     const segments = await this.connection
       .select({ id: customerSegment.id })
       .from(customerSegment)
-      .where(and(
-        eq(customerSegment.storeId, this.storeId),
-        isNull(customerSegment.deletedAt),
-      ))
+      .where(and(eq(customerSegment.storeId, this.storeId), isNull(customerSegment.deletedAt)))
       .orderBy(asc(customerSegment.id));
-    await this.lockPairs(customerId, segments.map((segment) => segment.id));
-    await this.connection.delete(customerSegmentReevaluationQueue)
-      .where(and(
-        eq(customerSegmentReevaluationQueue.storeId, this.storeId),
-        eq(customerSegmentReevaluationQueue.customerId, customerId),
-      ));
-    await this.connection.delete(customerSegmentTemporalSchedule)
-      .where(and(
-        eq(customerSegmentTemporalSchedule.storeId, this.storeId),
-        eq(customerSegmentTemporalSchedule.customerId, customerId),
-      ));
-    await this.connection.delete(customerSegmentEvaluationState)
-      .where(and(
-        eq(customerSegmentEvaluationState.storeId, this.storeId),
-        eq(customerSegmentEvaluationState.customerId, customerId),
-      ));
-    await this.connection.delete(customerSegmentEvaluationLock)
-      .where(and(
-        eq(customerSegmentEvaluationLock.storeId, this.storeId),
-        eq(customerSegmentEvaluationLock.customerId, customerId),
-      ));
-    await this.connection.delete(customerSegmentMembership)
-      .where(and(
-        eq(customerSegmentMembership.storeId, this.storeId),
-        eq(customerSegmentMembership.customerId, customerId),
-      ));
+    await this.lockPairs(
+      customerId,
+      segments.map((segment) => segment.id),
+    );
+    await this.connection
+      .delete(customerSegmentReevaluationQueue)
+      .where(
+        and(
+          eq(customerSegmentReevaluationQueue.storeId, this.storeId),
+          eq(customerSegmentReevaluationQueue.customerId, customerId),
+        ),
+      );
+    await this.connection
+      .delete(customerSegmentTemporalSchedule)
+      .where(
+        and(
+          eq(customerSegmentTemporalSchedule.storeId, this.storeId),
+          eq(customerSegmentTemporalSchedule.customerId, customerId),
+        ),
+      );
+    await this.connection
+      .delete(customerSegmentEvaluationState)
+      .where(
+        and(
+          eq(customerSegmentEvaluationState.storeId, this.storeId),
+          eq(customerSegmentEvaluationState.customerId, customerId),
+        ),
+      );
+    await this.connection
+      .delete(customerSegmentEvaluationLock)
+      .where(
+        and(
+          eq(customerSegmentEvaluationLock.storeId, this.storeId),
+          eq(customerSegmentEvaluationLock.customerId, customerId),
+        ),
+      );
+    await this.connection
+      .delete(customerSegmentMembership)
+      .where(
+        and(
+          eq(customerSegmentMembership.storeId, this.storeId),
+          eq(customerSegmentMembership.customerId, customerId),
+        ),
+      );
   }
 
   private async matchesExpression(
@@ -948,38 +1003,40 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     effectiveAt: string,
   ): Promise<boolean> {
     const matches = await this.connection.execute<{ id: string }>(
-      compileCustomerSegmentMatchQuery(
-        { ...definition, root },
-        customerId,
-        { store: storeContext, effectiveAt },
-      ),
+      compileCustomerSegmentMatchQuery({ ...definition, root }, customerId, {
+        store: storeContext,
+        effectiveAt,
+      }),
     );
     return matches.length > 0;
   }
 
-  private async lockPairs(
-    customerId: string,
-    segmentIds: readonly string[],
-  ): Promise<void> {
+  private async lockPairs(customerId: string, segmentIds: readonly string[]): Promise<void> {
     const ids = [...new Set(segmentIds)].sort();
     if (ids.length === 0) return;
     await this.connection
       .insert(customerSegmentEvaluationLock)
-      .values(await Promise.all(ids.map(async (segmentId) => ({
-        id: await this.generateUuidV7(),
-        storeId: this.storeId,
-        customerId,
-        segmentId,
-      }))))
+      .values(
+        await Promise.all(
+          ids.map(async (segmentId) => ({
+            id: await this.generateUuidV7(),
+            storeId: this.storeId,
+            customerId,
+            segmentId,
+          })),
+        ),
+      )
       .onConflictDoNothing();
     await this.connection
       .select({ id: customerSegmentEvaluationLock.id })
       .from(customerSegmentEvaluationLock)
-      .where(and(
-        eq(customerSegmentEvaluationLock.storeId, this.storeId),
-        eq(customerSegmentEvaluationLock.customerId, customerId),
-        inArray(customerSegmentEvaluationLock.segmentId, ids),
-      ))
+      .where(
+        and(
+          eq(customerSegmentEvaluationLock.storeId, this.storeId),
+          eq(customerSegmentEvaluationLock.customerId, customerId),
+          inArray(customerSegmentEvaluationLock.segmentId, ids),
+        ),
+      )
       .orderBy(asc(customerSegmentEvaluationLock.segmentId))
       .for("update");
   }
@@ -1004,14 +1061,8 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
       boundaries.push(nextCalendarDayStartUtc(effectiveAt, storeContext.timeZone));
     }
     if (leaf.kind === "predicate" && leaf.attribute === "customer_groups") {
-      const groupId = "value" in leaf && leaf.value.kind === "entityId"
-        ? leaf.value.id
-        : null;
-      const expiry = await this.nextGroupExpiryForEvaluation(
-        customerId,
-        effectiveAt,
-        groupId,
-      );
+      const groupId = "value" in leaf && leaf.value.kind === "entityId" ? leaf.value.id : null;
+      const expiry = await this.nextGroupExpiryForEvaluation(customerId, effectiveAt, groupId);
       if (expiry) boundaries.push(expiry);
     }
     if (
@@ -1039,12 +1090,14 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     const rows = await this.connection
       .select({ value: sql<string | null>`min(${customerGroupMembership.expiresAt})` })
       .from(customerGroupMembership)
-      .where(and(
-        eq(customerGroupMembership.storeId, this.storeId),
-        eq(customerGroupMembership.customerId, customerId),
-        sql`${customerGroupMembership.expiresAt} > ${effectiveAt}::timestamptz`,
-        ...(groupId ? [eq(customerGroupMembership.groupId, groupId)] : []),
-      ));
+      .where(
+        and(
+          eq(customerGroupMembership.storeId, this.storeId),
+          eq(customerGroupMembership.customerId, customerId),
+          sql`${customerGroupMembership.expiresAt} > ${effectiveAt}::timestamptz`,
+          ...(groupId ? [eq(customerGroupMembership.groupId, groupId)] : []),
+        ),
+      );
     return rows[0]?.value ?? null;
   }
 
@@ -1054,31 +1107,36 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     effectiveAt: string,
     timeZone: string,
   ): Promise<string | null> {
-    const rows = attribute === "tax_identifier_statuses"
-      ? await this.connection
-          .select({
-            status: customerTaxIdentifier.status,
-            validFrom: customerTaxIdentifier.validFrom,
-            validTo: customerTaxIdentifier.validTo,
-          })
-          .from(customerTaxIdentifier)
-          .where(and(
-            eq(customerTaxIdentifier.storeId, this.storeId),
-            eq(customerTaxIdentifier.customerId, customerId),
-            isNull(customerTaxIdentifier.deletedAt),
-          ))
-      : await this.connection
-          .select({
-            status: customerTaxExemption.status,
-            validFrom: customerTaxExemption.validFrom,
-            validTo: customerTaxExemption.validTo,
-          })
-          .from(customerTaxExemption)
-          .where(and(
-            eq(customerTaxExemption.storeId, this.storeId),
-            eq(customerTaxExemption.customerId, customerId),
-            isNull(customerTaxExemption.deletedAt),
-          ));
+    const rows =
+      attribute === "tax_identifier_statuses"
+        ? await this.connection
+            .select({
+              status: customerTaxIdentifier.status,
+              validFrom: customerTaxIdentifier.validFrom,
+              validTo: customerTaxIdentifier.validTo,
+            })
+            .from(customerTaxIdentifier)
+            .where(
+              and(
+                eq(customerTaxIdentifier.storeId, this.storeId),
+                eq(customerTaxIdentifier.customerId, customerId),
+                isNull(customerTaxIdentifier.deletedAt),
+              ),
+            )
+        : await this.connection
+            .select({
+              status: customerTaxExemption.status,
+              validFrom: customerTaxExemption.validFrom,
+              validTo: customerTaxExemption.validTo,
+            })
+            .from(customerTaxExemption)
+            .where(
+              and(
+                eq(customerTaxExemption.storeId, this.storeId),
+                eq(customerTaxExemption.customerId, customerId),
+                isNull(customerTaxExemption.deletedAt),
+              ),
+            );
     const boundaries: string[] = [];
     for (const row of rows) {
       if (row.validFrom) {
@@ -1105,11 +1163,13 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     return this.connection
       .select()
       .from(customerSegment)
-      .where(and(
-        eq(customerSegment.storeId, this.storeId),
-        eq(customerSegment.id, segmentId),
-        isNull(customerSegment.deletedAt),
-      ))
+      .where(
+        and(
+          eq(customerSegment.storeId, this.storeId),
+          eq(customerSegment.id, segmentId),
+          isNull(customerSegment.deletedAt),
+        ),
+      )
       .limit(1)
       .then((rows) => rows[0] ?? null);
   }
@@ -1131,12 +1191,14 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     await this.connection
       .update(customerSegment)
       .set({ materializationStatus: "FAILED", updatedAt: now })
-      .where(and(
-        eq(customerSegment.storeId, this.storeId),
-        eq(customerSegment.id, item.segmentId),
-        eq(customerSegment.definitionRevision, item.definitionRevision),
-        eq(customerSegment.evaluationGeneration, item.evaluationGeneration),
-      ));
+      .where(
+        and(
+          eq(customerSegment.storeId, this.storeId),
+          eq(customerSegment.id, item.segmentId),
+          eq(customerSegment.definitionRevision, item.definitionRevision),
+          eq(customerSegment.evaluationGeneration, item.evaluationGeneration),
+        ),
+      );
   }
 }
 

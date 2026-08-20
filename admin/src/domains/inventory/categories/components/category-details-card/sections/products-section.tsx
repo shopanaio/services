@@ -2,7 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { Alert, App, Button, Dropdown, Flex, Skeleton, Tag, Typography } from "antd";
-import { LuEllipsis as MoreOutlined, LuEye as EyeOutlined, LuImage as PictureOutlined, LuPlus as PlusOutlined, LuShoppingBag as ShoppingOutlined, LuArrowDownAZ as SortAscendingOutlined } from "react-icons/lu";
+import {
+  LuEllipsis as MoreOutlined,
+  LuEye as EyeOutlined,
+  LuImage as PictureOutlined,
+  LuPlus as PlusOutlined,
+  LuShoppingBag as ShoppingOutlined,
+  LuArrowDownAZ as SortAscendingOutlined,
+} from "react-icons/lu";
 import type { MenuProps } from "antd";
 import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import { RelayCursorPagination, useRelayCursorPagination } from "@/ui-kit/cursor-pagination";

@@ -1,11 +1,7 @@
 import { and, eq, inArray, sql, ne, or, gt } from "drizzle-orm";
 import type { PageInfo } from "@shopana/drizzle-query";
 import { BaseRepository } from "./BaseRepository.js";
-import {
-  bulkEditItem,
-  type BulkEditItem,
-  type NewBulkEditItem,
-} from "./models/bulkEditItems";
+import { bulkEditItem, type BulkEditItem, type NewBulkEditItem } from "./models/bulkEditItems";
 
 export interface BulkEditItemCreateInput {
   id: string;
@@ -114,12 +110,7 @@ export class BulkEditItemRepository extends BaseRepository {
     const [item] = await this.connection
       .select()
       .from(bulkEditItem)
-      .where(
-        and(
-          eq(bulkEditItem.storeId, this.storeId),
-          eq(bulkEditItem.id, itemId),
-        ),
-      );
+      .where(and(eq(bulkEditItem.storeId, this.storeId), eq(bulkEditItem.id, itemId)));
 
     return item ?? null;
   }
@@ -130,34 +121,21 @@ export class BulkEditItemRepository extends BaseRepository {
     return this.connection
       .select()
       .from(bulkEditItem)
-      .where(
-        and(
-          eq(bulkEditItem.storeId, this.storeId),
-          inArray(bulkEditItem.id, [...itemIds]),
-        ),
-      );
+      .where(and(eq(bulkEditItem.storeId, this.storeId), inArray(bulkEditItem.id, [...itemIds])));
   }
 
   async findByJobId(jobId: string): Promise<BulkEditItem[]> {
     return this.connection
       .select()
       .from(bulkEditItem)
-      .where(
-        and(
-          eq(bulkEditItem.storeId, this.storeId),
-          eq(bulkEditItem.jobId, jobId),
-        ),
-      )
+      .where(and(eq(bulkEditItem.storeId, this.storeId), eq(bulkEditItem.jobId, jobId)))
       .orderBy(bulkEditItem.chunkIndex, bulkEditItem.opIndex);
   }
 
   /**
    * Supersede active items for products in new job
    */
-  async supersedeActiveItems(
-    productIds: string[],
-    newJobId: string,
-  ): Promise<void> {
+  async supersedeActiveItems(productIds: string[], newJobId: string): Promise<void> {
     if (productIds.length === 0) return;
 
     await this.connection
@@ -274,10 +252,7 @@ export class BulkEditItemRepository extends BaseRepository {
    * Finalize step 2: remaining PENDING items → CANCELLED
    * Reason depends on job status
    */
-  async cancelRemainingPendingItems(
-    jobId: string,
-    reason: "USER" | "SYSTEM",
-  ): Promise<void> {
+  async cancelRemainingPendingItems(jobId: string, reason: "USER" | "SYSTEM"): Promise<void> {
     await this.connection
       .update(bulkEditItem)
       .set({
@@ -304,12 +279,7 @@ export class BulkEditItemRepository extends BaseRepository {
         count: sql<number>`count(*)::int`,
       })
       .from(bulkEditItem)
-      .where(
-        and(
-          eq(bulkEditItem.storeId, this.storeId),
-          eq(bulkEditItem.jobId, jobId),
-        ),
-      )
+      .where(and(eq(bulkEditItem.storeId, this.storeId), eq(bulkEditItem.jobId, jobId)))
       .groupBy(bulkEditItem.status);
 
     const result: Record<string, number> = {};
@@ -332,12 +302,7 @@ export class BulkEditItemRepository extends BaseRepository {
         count: sql<number>`count(*)::int`,
       })
       .from(bulkEditItem)
-      .where(
-        and(
-          eq(bulkEditItem.storeId, this.storeId),
-          inArray(bulkEditItem.jobId, [...jobIds]),
-        ),
-      )
+      .where(and(eq(bulkEditItem.storeId, this.storeId), inArray(bulkEditItem.jobId, [...jobIds])))
       .groupBy(bulkEditItem.jobId, bulkEditItem.status);
 
     for (const row of rows) {
@@ -355,19 +320,12 @@ export class BulkEditItemRepository extends BaseRepository {
         count: sql<number>`count(distinct ${bulkEditItem.productId})::int`,
       })
       .from(bulkEditItem)
-      .where(
-        and(
-          eq(bulkEditItem.storeId, this.storeId),
-          eq(bulkEditItem.jobId, jobId),
-        ),
-      );
+      .where(and(eq(bulkEditItem.storeId, this.storeId), eq(bulkEditItem.jobId, jobId)));
 
     return row?.count ?? 0;
   }
 
-  async countDistinctProductsForJobs(
-    jobIds: readonly string[],
-  ): Promise<Map<string, number>> {
+  async countDistinctProductsForJobs(jobIds: readonly string[]): Promise<Map<string, number>> {
     const result = new Map<string, number>();
     if (jobIds.length === 0) return result;
 
@@ -377,12 +335,7 @@ export class BulkEditItemRepository extends BaseRepository {
         count: sql<number>`count(distinct ${bulkEditItem.productId})::int`,
       })
       .from(bulkEditItem)
-      .where(
-        and(
-          eq(bulkEditItem.storeId, this.storeId),
-          inArray(bulkEditItem.jobId, [...jobIds]),
-        ),
-      )
+      .where(and(eq(bulkEditItem.storeId, this.storeId), inArray(bulkEditItem.jobId, [...jobIds])))
       .groupBy(bulkEditItem.jobId);
 
     for (const row of rows) {
@@ -392,13 +345,8 @@ export class BulkEditItemRepository extends BaseRepository {
     return result;
   }
 
-  async getConnection(
-    input: BulkEditItemConnectionInput,
-  ): Promise<BulkEditItemConnectionResult> {
-    const limit = Math.min(
-      Math.max(input.first ?? DEFAULT_PAGE_SIZE, 1),
-      MAX_PAGE_SIZE,
-    );
+  async getConnection(input: BulkEditItemConnectionInput): Promise<BulkEditItemConnectionResult> {
+    const limit = Math.min(Math.max(input.first ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
 
     const baseFilters = [
       eq(bulkEditItem.storeId, this.storeId),
@@ -413,15 +361,10 @@ export class BulkEditItemRepository extends BaseRepository {
     const cursorCondition = cursor
       ? or(
           gt(bulkEditItem.opIndex, cursor.opIndex),
-          and(
-            eq(bulkEditItem.opIndex, cursor.opIndex),
-            gt(bulkEditItem.id, cursor.id),
-          ),
+          and(eq(bulkEditItem.opIndex, cursor.opIndex), gt(bulkEditItem.id, cursor.id)),
         )
       : null;
-    const filters = cursorCondition
-      ? [...baseFilters, cursorCondition]
-      : baseFilters;
+    const filters = cursorCondition ? [...baseFilters, cursorCondition] : baseFilters;
 
     const rows = await this.connection
       .select({ id: bulkEditItem.id, opIndex: bulkEditItem.opIndex })

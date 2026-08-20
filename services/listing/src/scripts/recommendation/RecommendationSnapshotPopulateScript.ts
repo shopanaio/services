@@ -26,13 +26,14 @@ export class RecommendationSnapshotPopulateScript extends BaseScript<
       anchorProductId: snapshot.anchorProductId,
       policy,
       manualRows,
-      loadFbt: (limit) => snapshot.calculationRunId
-        ? this.repository.recommendationCandidateSource.fbt({
-            anchorProductId: snapshot.anchorProductId,
-            limit,
-            runId: snapshot.calculationRunId,
-          })
-        : Promise.resolve([]),
+      loadFbt: (limit) =>
+        snapshot.calculationRunId
+          ? this.repository.recommendationCandidateSource.fbt({
+              anchorProductId: snapshot.anchorProductId,
+              limit,
+              runId: snapshot.calculationRunId,
+            })
+          : Promise.resolve([]),
       loadCategoryPopularity: (limit) =>
         snapshot.calculationRunId
           ? this.repository.recommendationCandidateSource.categoryPopularity({
@@ -49,8 +50,7 @@ export class RecommendationSnapshotPopulateScript extends BaseScript<
               runId: snapshot.calculationRunId,
             })
           : Promise.resolve([]),
-      eligibility: (ids) =>
-        this.repository.recommendationCandidateSource.currentEligibility(ids),
+      eligibility: (ids) => this.repository.recommendationCandidateSource.currentEligibility(ids),
     });
     return this.repository.recommendationSnapshot.populate(input.snapshotId, result.candidates);
   }

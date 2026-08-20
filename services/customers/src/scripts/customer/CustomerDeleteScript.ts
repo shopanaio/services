@@ -1,46 +1,27 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type {
-  CustomerDeleteParams,
-  CustomerDeleteResult,
-} from "./dto/index.js";
+import type { CustomerDeleteParams, CustomerDeleteResult } from "./dto/index.js";
 
-export class CustomerDeleteScript extends BaseScript<
-  CustomerDeleteParams,
-  CustomerDeleteResult
-> {
+export class CustomerDeleteScript extends BaseScript<CustomerDeleteParams, CustomerDeleteResult> {
   @Transactional()
-  protected async execute(
-    params: CustomerDeleteParams
-  ): Promise<CustomerDeleteResult> {
+  protected async execute(params: CustomerDeleteParams): Promise<CustomerDeleteResult> {
     const customer = await this.repository.customer.findById(params.id);
     if (!customer) {
       return {
         deletedCustomerId: undefined,
-        userErrors: [
-          { message: "Customer not found", field: ["id"], code: "NOT_FOUND" },
-        ],
+        userErrors: [{ message: "Customer not found", field: ["id"], code: "NOT_FOUND" }],
       };
     }
 
-    if (
-      params.expectedRevision !== undefined &&
-      customer.revision !== params.expectedRevision
-    ) {
+    if (params.expectedRevision !== undefined && customer.revision !== params.expectedRevision) {
       return revisionConflict();
     }
 
     await this.repository.segmentMaterialization.cleanupCustomer(params.id);
     await this.repository.customer.deleteCascadeOwnedEntities(params.id);
-    const deleted = await this.repository.customer.softDelete(
-      params.id,
-      params.expectedRevision
-    );
+    const deleted = await this.repository.customer.softDelete(params.id, params.expectedRevision);
     if (!deleted || !deleted.deletedAt) return revisionConflict();
 
-    this.logger.info(
-      { customerId: deleted.id, revision: deleted.revision },
-      "Customer deleted"
-    );
+    this.logger.info({ customerId: deleted.id, revision: deleted.revision }, "Customer deleted");
 
     return {
       deletedCustomerId: deleted.id,

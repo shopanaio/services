@@ -22,9 +22,7 @@ import type {
   UpdateSmtpProfileInput,
 } from "../types";
 
-const useMockEmailMutation = <TInput, TData>(
-  mutation: (input: TInput) => Promise<TData>,
-) => {
+const useMockEmailMutation = <TInput, TData>(mutation: (input: TInput) => Promise<TData>) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -36,9 +34,7 @@ const useMockEmailMutation = <TInput, TData>(
         return { data: await mutation(input), userErrors: [] };
       } catch (caughtError) {
         const nextError =
-          caughtError instanceof Error
-            ? caughtError
-            : new Error("Unexpected email settings error");
+          caughtError instanceof Error ? caughtError : new Error("Unexpected email settings error");
         setError(nextError);
         return { data: null, userErrors: [] };
       } finally {
@@ -64,9 +60,7 @@ export const useUpdateEmailSettings = () => {
 };
 
 export const useUpdateSmtpProfile = () => {
-  const mutation = useMockEmailMutation<UpdateSmtpProfileInput, SmtpProfile>(
-    updateMockSmtpProfile,
-  );
+  const mutation = useMockEmailMutation<UpdateSmtpProfileInput, SmtpProfile>(updateMockSmtpProfile);
   return { ...mutation, updateSmtpProfile: mutation.mutate };
 };
 
@@ -85,15 +79,11 @@ export const useUpdateEmailTemplate = () => {
 };
 
 export const useDeleteEmailTemplate = () => {
-  const mutation = useMockEmailMutation<DeleteEmailTemplateInput, string>(
-    deleteMockEmailTemplate,
-  );
+  const mutation = useMockEmailMutation<DeleteEmailTemplateInput, string>(deleteMockEmailTemplate);
   return { ...mutation, deleteEmailTemplate: mutation.mutate };
 };
 
 export const useSendTestEmail = () => {
-  const mutation = useMockEmailMutation<SendTestEmailInput, boolean>(
-    sendMockTestEmail,
-  );
+  const mutation = useMockEmailMutation<SendTestEmailInput, boolean>(sendMockTestEmail);
   return { ...mutation, sendTestEmail: mutation.mutate };
 };

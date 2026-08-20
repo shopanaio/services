@@ -41,15 +41,12 @@ export function useCreateWarehouseStock(): UseCreateWarehouseStockReturn {
   >(WAREHOUSE_STOCK_CREATE_MUTATION);
 
   const createWarehouseStock = useCallback(
-    async (
-      input: ApiWarehouseStockCreateInput,
-    ): Promise<CreateWarehouseStockResult> => {
+    async (input: ApiWarehouseStockCreateInput): Promise<CreateWarehouseStockResult> => {
       try {
         const result = await createWarehouseStockMutation({
           variables: { input },
         });
-        const payload =
-          result.data?.inventoryMutation.warehouseStockCreate ?? null;
+        const payload = result.data?.inventoryMutation.warehouseStockCreate ?? null;
 
         return {
           warehouseStocks: payload?.warehouseStocks ?? [],

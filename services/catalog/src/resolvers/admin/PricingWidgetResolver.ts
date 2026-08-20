@@ -18,10 +18,7 @@ export class PricingWidgetResolver extends CatalogType<PricingWidgetInput> {
 
   private getDateRange() {
     const to = this.toDate(this.$props.to, new Date());
-    const from = this.toDate(
-      this.$props.from,
-      new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000)
-    );
+    const from = this.toDate(this.$props.from, new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000));
     return { from, to };
   }
 
@@ -68,7 +65,7 @@ export class PricingWidgetResolver extends CatalogType<PricingWidgetInput> {
       result.edges.map(async (edge) => ({
         node: await this.resolvers.variantPrice(edge.node.id),
         cursor: edge.cursor,
-      }))
+      })),
     );
 
     return {

@@ -21,13 +21,15 @@ export class SearchSynonymGroupCreateScript extends BaseScript<
   protected async execute(
     params: SearchSynonymGroupCreateParams,
   ): Promise<SearchSynonymGroupResult> {
-    if (!await this.repository.searchSettings.find()) {
+    if (!(await this.repository.searchSettings.find())) {
       return {
-        userErrors: [{
-          message: "Search settings are not initialized",
-          field: ["input"],
-          code: "SETTINGS_NOT_INITIALIZED",
-        }],
+        userErrors: [
+          {
+            message: "Search settings are not initialized",
+            field: ["input"],
+            code: "SETTINGS_NOT_INITIALIZED",
+          },
+        ],
       };
     }
     const storeId = this.context.store.id;
@@ -67,11 +69,13 @@ export class SearchSynonymGroupCreateScript extends BaseScript<
       values.map((value) => value.normalizedValue),
     );
     if (conflicts.length > 0) {
-      throw new SearchConfigurationInputError([{
-        message: "Synonym value is already claimed by another active group",
-        field: ["input", "values"],
-        code: "SYNONYM_CONFLICT",
-      }]);
+      throw new SearchConfigurationInputError([
+        {
+          message: "Synonym value is already claimed by another active group",
+          field: ["input", "values"],
+          code: "SYNONYM_CONFLICT",
+        },
+      ]);
     }
   }
 }
@@ -86,11 +90,13 @@ export class SearchSynonymGroupUpdateScript extends BaseScript<
     const current = await this.repository.searchSynonym.findById(params.groupId);
     if (!current) {
       return {
-        userErrors: [{
-          message: "Synonym group not found",
-          field: ["input", "id"],
-          code: "NOT_FOUND",
-        }],
+        userErrors: [
+          {
+            message: "Synonym group not found",
+            field: ["input", "id"],
+            code: "NOT_FOUND",
+          },
+        ],
       };
     }
     const storeId = this.context.store.id;
@@ -108,11 +114,13 @@ export class SearchSynonymGroupUpdateScript extends BaseScript<
         params.groupId,
       );
       if (conflicts.length > 0) {
-        throw new SearchConfigurationInputError([{
-          message: "Synonym value is already claimed by another active group",
-          field: ["input", "values"],
-          code: "SYNONYM_CONFLICT",
-        }]);
+        throw new SearchConfigurationInputError([
+          {
+            message: "Synonym value is already claimed by another active group",
+            field: ["input", "values"],
+            code: "SYNONYM_CONFLICT",
+          },
+        ]);
       }
     }
     const result = await this.repository.searchSynonym.update({
@@ -124,21 +132,27 @@ export class SearchSynonymGroupUpdateScript extends BaseScript<
       values,
     });
     if (result.status === "not_found") {
-      return { userErrors: [{ message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" }] };
+      return {
+        userErrors: [
+          { message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" },
+        ],
+      };
     }
     if (result.status === "conflict") {
       return {
-        userErrors: [{
-          message: `Synonym group version conflict; current version is ${result.currentVersion}`,
-          field: ["input", "expectedVersion"],
-          code: "VERSION_CONFLICT",
-        }],
+        userErrors: [
+          {
+            message: `Synonym group version conflict; current version is ${result.currentVersion}`,
+            field: ["input", "expectedVersion"],
+            code: "VERSION_CONFLICT",
+          },
+        ],
       };
     }
     return {
       synonymGroup: result.value,
       cacheKeys: [current.group.locale, locale].map((value) =>
-        searchSynonymsCacheKey(storeId, value)
+        searchSynonymsCacheKey(storeId, value),
       ),
       userErrors: [],
     };
@@ -158,30 +172,38 @@ export class SearchSynonymGroupDeleteScript extends BaseScript<
   ): Promise<SearchSynonymGroupResult> {
     const current = await this.repository.searchSynonym.findById(params.groupId);
     if (!current) {
-      return { userErrors: [{ message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" }] };
+      return {
+        userErrors: [
+          { message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" },
+        ],
+      };
     }
     const result = await this.repository.searchSynonym.delete({
       groupId: params.groupId,
       expectedVersion: params.expectedVersion,
     });
     if (result.status === "not_found") {
-      return { userErrors: [{ message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" }] };
+      return {
+        userErrors: [
+          { message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" },
+        ],
+      };
     }
     if (result.status === "conflict") {
       return {
-        userErrors: [{
-          message: `Synonym group version conflict; current version is ${result.currentVersion}`,
-          field: ["input", "expectedVersion"],
-          code: "VERSION_CONFLICT",
-        }],
+        userErrors: [
+          {
+            message: `Synonym group version conflict; current version is ${result.currentVersion}`,
+            field: ["input", "expectedVersion"],
+            code: "VERSION_CONFLICT",
+          },
+        ],
       };
     }
     return {
       synonymGroup: result.value,
       deletedSynonymGroupId: params.groupId,
-      cacheKeys: [
-        searchSynonymsCacheKey(this.context.store.id, current.group.locale),
-      ],
+      cacheKeys: [searchSynonymsCacheKey(this.context.store.id, current.group.locale)],
       userErrors: [],
     };
   }

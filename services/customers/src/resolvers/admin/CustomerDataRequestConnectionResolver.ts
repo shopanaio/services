@@ -6,9 +6,7 @@ import {
 
 export class CustomerDataRequestConnectionResolver extends BaseConnectionResolver<CustomerDataRequestRelayInput> {
   $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel.repository.lifecycle.getDataRequestConnection(
-      this.$props
-    );
+    return this.$ctx.kernel.repository.lifecycle.getDataRequestConnection(this.$props);
   }
 
   protected createNodeResolver(nodeId: string) {

@@ -9,7 +9,10 @@ export class CheckoutLineReplaceItemDto {
   lineId!: string;
 
   @Expose()
-  @IsGlobalId({ entityType: GlobalIdEntity.Variant, message: "Invalid target purchasable ID format" })
+  @IsGlobalId({
+    entityType: GlobalIdEntity.Variant,
+    message: "Invalid target purchasable ID format",
+  })
   purchasableId!: string;
 
   @Expose()

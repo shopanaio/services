@@ -22,20 +22,25 @@ import type { RunScriptContext } from "../kernel/types.js";
 
 export type { ProductCreateParams, ProductCreateResult };
 
-const InventoryItemInputSchema = z.object({
-  tracked: z.boolean(),
-  requiresShipping: z.boolean(),
-  sku: z.string().nullish(),
-  continueSellingWhenOutOfStock: z.boolean().nullish(),
-}).refine(
-  (data) => {
-    if (!data.tracked && (data.sku != null || data.continueSellingWhenOutOfStock != null)) {
-      return false;
-    }
-    return true;
-  },
-  { message: "Cannot provide inventory data (sku, continueSellingWhenOutOfStock) when tracked is false" }
-);
+const InventoryItemInputSchema = z
+  .object({
+    tracked: z.boolean(),
+    requiresShipping: z.boolean(),
+    sku: z.string().nullish(),
+    continueSellingWhenOutOfStock: z.boolean().nullish(),
+  })
+  .refine(
+    (data) => {
+      if (!data.tracked && (data.sku != null || data.continueSellingWhenOutOfStock != null)) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message:
+        "Cannot provide inventory data (sku, continueSellingWhenOutOfStock) when tracked is false",
+    },
+  );
 
 /**
  * Saga for product creation.
@@ -95,7 +100,11 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
     // Step 2: Create inventory items for all variants
     const variants = result.product._variants ?? [];
     if (variants.length > 0) {
-      await this.createInventoryItems(variants.map((v) => v.id), input.inventoryItem, input.storeId);
+      await this.createInventoryItems(
+        variants.map((v) => v.id),
+        input.inventoryItem,
+        input.storeId,
+      );
     }
 
     // Child workflows cannot be started from a DBOS step. Emit after inventory
@@ -111,13 +120,16 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
   }
 
   @SagaStep()
-  private async createProduct(input: ProductCreateParams, ctx: RunScriptContext): Promise<ProductCreateResult> {
+  private async createProduct(
+    input: ProductCreateParams,
+    ctx: RunScriptContext,
+  ): Promise<ProductCreateResult> {
     return this.kernel.runScript(ProductCreateScript, input, ctx);
   }
 
   private async emitProductCreated(
     product: NonNullable<ProductCreateResult["product"]>,
-    input: ProductCreateParams
+    input: ProductCreateParams,
   ): Promise<void> {
     await this.broker.runWorkflow(
       "events.emit",
@@ -133,9 +145,7 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
           userId: input.userId,
         },
         subject: { type: "product", id: product.id },
-        actor: input.userId
-          ? { type: "user", id: input.userId }
-          : undefined,
+        actor: input.userId ? { type: "user", id: input.userId } : undefined,
         emitKey: `product:${product.id}`,
       },
       {
@@ -177,10 +187,10 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
   ): Promise<void> {
     for (const variantId of variantIds) {
       try {
-        await this.broker.call<Inventory.DeleteItemByVariantIdResult, Inventory.DeleteItemByVariantIdParams>(
-          "inventory.deleteItemByVariantId",
-          { storeId, variantId },
-        );
+        await this.broker.call<
+          Inventory.DeleteItemByVariantIdResult,
+          Inventory.DeleteItemByVariantIdParams
+        >("inventory.deleteItemByVariantId", { storeId, variantId });
         this.logger.log({ variantId }, "Compensated: deleted inventory item");
       } catch (error) {
         this.logger.warn({ variantId, error }, "Failed to compensate inventory item");
@@ -189,10 +199,7 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
   }
 
   @SagaStep()
-  private async syncProductBackRefs(
-    entry: ProductMediaEntry,
-    storeId: string,
-  ): Promise<void> {
+  private async syncProductBackRefs(entry: ProductMediaEntry, storeId: string): Promise<void> {
     try {
       await this.broker.call<Media.SyncEntityFilesResult, Media.SyncEntityFilesParams>(
         "media.syncEntityFiles",
@@ -209,13 +216,13 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
 
       this.logger.log(
         { productId: entry.productId, fileCount: entry.fileIds.length },
-        "Synced product media back-refs"
+        "Synced product media back-refs",
       );
     } catch (error) {
       // Log but don't fail the saga - back-refs are best-effort
       this.logger.warn(
         { productId: entry.productId, error },
-        "Failed to sync product media back-refs"
+        "Failed to sync product media back-refs",
       );
     }
   }

@@ -9,9 +9,7 @@ import {
 export class StoreBrandUpdateScript extends StoreSettingsUpdateScript<StoreBrandUpdateParams> {
   @ZodSchema(storeBrandUpdateSchema)
   @Transactional()
-  protected async execute(
-    params: StoreBrandUpdateParams,
-  ): Promise<StoreSettingsUpdateResult> {
+  protected async execute(params: StoreBrandUpdateParams): Promise<StoreSettingsUpdateResult> {
     if (!(await this.findStore(params))) return this.notFound();
 
     const { storeId, organizationId: _organizationId, ...brand } = params;

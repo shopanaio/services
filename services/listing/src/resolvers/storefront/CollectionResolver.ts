@@ -1,7 +1,5 @@
 import { GraphQLError } from "graphql";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { CanonicalCollectionRule } from "@shopana/broker-types";
 import { ListingType } from "./ListingType.js";
 import { ListingSort } from "./generated/types.js";
@@ -26,10 +24,9 @@ export class CollectionResolver extends ListingType<CollectionResolverProps> {
   }
 
   async products(args: CollectionProductsArgs) {
-    const state =
-      await this.$ctx.kernel.repository.collectionState.findStateWithVisibility(
-        this.$props.id,
-      );
+    const state = await this.$ctx.kernel.repository.collectionState.findStateWithVisibility(
+      this.$props.id,
+    );
     if (!state || state.listingRevision !== this.$props.listingRevision) {
       throw new GraphQLError("Collection index is not ready", {
         extensions: { code: "COLLECTION_INDEX_NOT_READY" },
@@ -40,8 +37,7 @@ export class CollectionResolver extends ListingType<CollectionResolverProps> {
         extensions: { code: "NOT_FOUND" },
       });
     }
-    const currency =
-      this.$ctx.currency || this.$ctx.store.currencyCode;
+    const currency = this.$ctx.currency || this.$ctx.store.currencyCode;
     const evaluated =
       state.collectionType === "manual"
         ? null
@@ -54,8 +50,7 @@ export class CollectionResolver extends ListingType<CollectionResolverProps> {
               rulesHash: state.rulesHash,
             },
           });
-    const membershipBitmap =
-      evaluated?.membershipBitmap ?? await this.manualMembershipBitmap();
+    const membershipBitmap = evaluated?.membershipBitmap ?? (await this.manualMembershipBitmap());
     return this.resolvers.productConnection({
       entryPoint: "collection",
       collectionId: this.$props.id,
@@ -65,10 +60,7 @@ export class CollectionResolver extends ListingType<CollectionResolverProps> {
       collectionProductBitmap: evaluated?.productBitmap ?? membershipBitmap,
       collectionVariantBitmap: evaluated?.variantBitmap ?? undefined,
       collectionType: state.collectionType,
-      collectionDefaultSort: defaultSort(
-        state.defaultSort,
-        state.defaultSortDirection,
-      ),
+      collectionDefaultSort: defaultSort(state.defaultSort, state.defaultSortDirection),
       query: args.query,
       first: args.first,
       after: args.after,
@@ -78,29 +70,21 @@ export class CollectionResolver extends ListingType<CollectionResolverProps> {
   }
 
   private async manualMembershipBitmap(): Promise<string> {
-    return this.$ctx.kernel.repository.collectionRuleEvaluation
-      .getManualMembership(
-        this.$props.id,
-        "storefront",
-      );
+    return this.$ctx.kernel.repository.collectionRuleEvaluation.getManualMembership(
+      this.$props.id,
+      "storefront",
+    );
   }
 }
 
-function defaultSort(
-  sort: string,
-  direction: string,
-): ListingSort {
+function defaultSort(sort: string, direction: string): ListingSort {
   switch (sort) {
     case "manual":
       return ListingSort.Manual;
     case "price":
-      return direction === "asc"
-        ? ListingSort.PriceAsc
-        : ListingSort.PriceDesc;
+      return direction === "asc" ? ListingSort.PriceAsc : ListingSort.PriceDesc;
     case "name":
-      return direction === "asc"
-        ? ListingSort.TitleAsc
-        : ListingSort.TitleDesc;
+      return direction === "asc" ? ListingSort.TitleAsc : ListingSort.TitleDesc;
     case "newest":
     default:
       return ListingSort.Newest;

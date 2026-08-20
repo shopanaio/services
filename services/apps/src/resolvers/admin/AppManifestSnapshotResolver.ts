@@ -1,11 +1,5 @@
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-  TypePolicy,
-} from "@shopana/type-resolver";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import { PreloadNotFoundError, SubgraphReference, TypePolicy } from "@shopana/type-resolver";
 import type { AppManifestSnapshotRecord } from "../../repositories/manifest/AppManifestSnapshotRepository.js";
 import { AppsType } from "./AppsType.js";
 
@@ -17,26 +11,17 @@ import { AppsType } from "./AppsType.js";
   domain: (resolver) => `store:${resolver.$ctx.store.id}`,
   onDeny: "null",
 })
-export class AppManifestSnapshotResolver extends AppsType<
-  string,
-  AppManifestSnapshotRecord
-> {
+export class AppManifestSnapshotResolver extends AppsType<string, AppManifestSnapshotRecord> {
   async $preload(): Promise<AppManifestSnapshotRecord> {
-    const snapshot =
-      await this.$ctx.loaders.manifestSnapshot.load(this.$props);
+    const snapshot = await this.$ctx.loaders.manifestSnapshot.load(this.$props);
     if (!snapshot) {
-      throw new PreloadNotFoundError(
-        `App manifest snapshot "${this.$props}" not found`,
-      );
+      throw new PreloadNotFoundError(`App manifest snapshot "${this.$props}" not found`);
     }
     return snapshot;
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.AppManifestSnapshot,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.AppManifestSnapshot);
   }
 
   appCode() {

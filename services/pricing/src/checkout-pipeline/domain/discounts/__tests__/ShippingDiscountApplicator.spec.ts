@@ -9,11 +9,7 @@ import type { DiscountOwner } from "../NativeDiscountEngine.js";
 describe("ordered shipping discount application", () => {
   it("orders native and function candidates before combination checks", () => {
     const native = candidate(owner("native", 10), "native", "NATIVE");
-    const functionCandidate = candidate(
-      owner("function", 20),
-      "function-candidate",
-      "FUNCTION",
-    );
+    const functionCandidate = candidate(owner("function", 20), "function-candidate", "FUNCTION");
 
     const result = applyShippingDiscountCandidates({
       context: context(),
@@ -60,11 +56,7 @@ describe("ordered shipping discount application", () => {
   });
 
   it("applies free shipping only to groups within the configured price limit", () => {
-    const freeShipping = candidate(
-      owner("free-shipping", 10),
-      "free-shipping",
-      "NATIVE",
-    );
+    const freeShipping = candidate(owner("free-shipping", 10), "free-shipping", "NATIVE");
     freeShipping.maximumShippingPrice = {
       amountMinor: "50",
       currencyCode: "USD",
@@ -104,18 +96,19 @@ function candidate(
     groupIds: ["group-a", "group-b"],
     value: { type: "FREE" },
     maximumShippingPrice: null,
-    source: source === "NATIVE"
-      ? { kind: "NATIVE" }
-      : {
-          kind: "FUNCTION",
-          binding: { functionBindingId: "binding" } as never,
-          implementationId: "implementation",
-          trace: {
-            target: "cart.delivery-options.discounts.generate.run",
-            executionId: "function-execution",
-            planRevision: "plan-revision",
-          } as never,
-        },
+    source:
+      source === "NATIVE"
+        ? { kind: "NATIVE" }
+        : {
+            kind: "FUNCTION",
+            binding: { functionBindingId: "binding" } as never,
+            implementationId: "implementation",
+            trace: {
+              target: "cart.delivery-options.discounts.generate.run",
+              executionId: "function-execution",
+              planRevision: "plan-revision",
+            } as never,
+          },
   };
 }
 
@@ -150,10 +143,7 @@ function delivery(
   secondCost: bigint = 50n,
 ): Pricing.PricingCheckoutDeliverySnapshot {
   return {
-    groups: [
-      selectedGroup("group-a", firstCost),
-      selectedGroup("group-b", secondCost),
-    ],
+    groups: [selectedGroup("group-a", firstCost), selectedGroup("group-b", secondCost)],
   } as Pricing.PricingCheckoutDeliverySnapshot;
 }
 
@@ -161,13 +151,15 @@ function selectedGroup(groupId: string, cost: bigint) {
   return {
     groupId,
     lineIds: [`${groupId}-line`],
-    options: [{
-      handle: "selected",
-      code: "standard",
-      carrierCode: null,
-      deliveryMethodType: "SHIPPING" as const,
-      cost: { amountMinor: cost.toString(), currencyCode: "USD" },
-    }],
+    options: [
+      {
+        handle: "selected",
+        code: "standard",
+        carrierCode: null,
+        deliveryMethodType: "SHIPPING" as const,
+        cost: { amountMinor: cost.toString(), currencyCode: "USD" },
+      },
+    ],
     selectedOptionHandle: "selected",
   };
 }

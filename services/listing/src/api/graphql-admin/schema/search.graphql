@@ -1,5 +1,7 @@
 type ListingSearchQuery {
-  """Current search settings for the selected store, if initialized."""
+  """
+  Current search settings for the selected store, if initialized.
+  """
   settings: SearchSettings
   synonymGroup(id: ID!): SearchSynonymGroup
   synonymGroups(
@@ -20,16 +22,24 @@ type ListingSearchQuery {
     orderBy: [SearchProductBoostOrderByInput!]
     meta: SearchProductBoostsMetaInput
   ): SearchProductBoostConnection!
-  """Explain the canonical request-level search plan and its candidate membership."""
+  """
+  Explain the canonical request-level search plan and its candidate membership.
+  """
   explain(query: String!, locale: LocaleCode!): SearchExplain!
 }
 
 type ListingSearchMutation {
-  """Update the store-level search settings."""
+  """
+  Update the store-level search settings.
+  """
   settingsUpdate(
-    """Expected search settings version."""
+    """
+    Expected search settings version.
+    """
     expectedVersion: Int!
-    """Operations to apply."""
+    """
+    Operations to apply.
+    """
     operations: SearchSettingsOperationsInput!
   ): SearchSettingsUpdatePayload!
   synonymGroupCreate(input: SearchSynonymGroupCreateInput!): SearchSynonymGroupPayload!
@@ -99,7 +109,9 @@ type SearchProductBoostEdge {
 }
 
 input SearchProductBoostsMetaInput {
-  """Match boosts containing any selected Product global ID."""
+  """
+  Match boosts containing any selected Product global ID.
+  """
   productIds: [ID!]!
 }
 
@@ -173,9 +185,13 @@ type SearchExplainUnit {
   kind: SearchLexicalUnitKind!
   removedAsStopword: Boolean!
   lexemes: [String!]!
-  """Required plan unit containing this token, or null for a removed stopword."""
+  """
+  Required plan unit containing this token, or null for a removed stopword.
+  """
   planUnitIndex: Int
-  """Executed clauses; emitted once on the first token of a grouped plan unit."""
+  """
+  Executed clauses; emitted once on the first token of a grouped plan unit.
+  """
   clauses: [SearchExplainClause!]!
   typoAlternatives: [SearchExplainTypoAlternative!]!
 }
@@ -224,7 +240,9 @@ type SearchFieldConfiguration {
 }
 
 input SearchSettingsOperationsInput {
-  """Main search settings replacement."""
+  """
+  Main search settings replacement.
+  """
   settings: SearchSettingsValuesInput!
 }
 

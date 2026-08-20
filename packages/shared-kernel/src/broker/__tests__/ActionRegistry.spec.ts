@@ -1,60 +1,60 @@
-import { jest } from '@jest/globals';
-import { ActionRegistry } from '../ActionRegistry';
+import { jest } from "@jest/globals";
+import { ActionRegistry } from "../ActionRegistry";
 
-describe('ActionRegistry', () => {
-  it('registers and resolves actions', async () => {
+describe("ActionRegistry", () => {
+  it("registers and resolves actions", async () => {
     const registry = new ActionRegistry();
-    const handler = jest.fn(async () => 'ok');
+    const handler = jest.fn(async () => "ok");
 
-    registry.register('payments.test', handler);
-    const resolved = registry.resolve('payments.test');
+    registry.register("payments.test", handler);
+    const resolved = registry.resolve("payments.test");
 
     const context = {
-      caller: { kind: 'action' as const, service: 'payments' },
+      caller: { kind: "action" as const, service: "payments" },
     };
-    await expect(resolved(undefined, context)).resolves.toBe('ok');
+    await expect(resolved(undefined, context)).resolves.toBe("ok");
     expect(handler).toHaveBeenCalledWith(undefined, context);
   });
 
-  it('prevents duplicates', () => {
+  it("prevents duplicates", () => {
     const registry = new ActionRegistry();
     const handler = jest.fn();
 
-    registry.register('payments.test', handler);
-    expect(() => registry.register('payments.test', handler)).toThrow(
+    registry.register("payments.test", handler);
+    expect(() => registry.register("payments.test", handler)).toThrow(
       'Action "payments.test" already registered',
     );
   });
 
-  it('deregisters actions', () => {
+  it("deregisters actions", () => {
     const registry = new ActionRegistry();
     const handler = jest.fn();
 
-    registry.register('payments.test', handler);
-    registry.deregister('payments.test');
+    registry.register("payments.test", handler);
+    registry.deregister("payments.test");
 
-    expect(() => registry.resolve('payments.test')).toThrow('Action "payments.test" not found');
+    expect(() => registry.resolve("payments.test")).toThrow('Action "payments.test" not found');
   });
 
-  it('lists registered actions', () => {
+  it("lists registered actions", () => {
     const registry = new ActionRegistry();
 
-    registry.register('payments.a', jest.fn());
-    registry.register('inventory.b', jest.fn());
+    registry.register("payments.a", jest.fn());
+    registry.register("inventory.b", jest.fn());
 
-    expect(registry.list().sort()).toEqual(['inventory.b', 'payments.a']);
+    expect(registry.list().sort()).toEqual(["inventory.b", "payments.a"]);
   });
 
-  it('stores metadata and reports presence', () => {
+  it("stores metadata and reports presence", () => {
     const registry = new ActionRegistry();
     const handler = jest.fn();
 
-    registry.register('payments.retryable', handler, {
+    registry.register("payments.retryable", handler, {
       retryPolicy: { maxAttempts: 5, intervalSeconds: 2, backoffRate: 2 },
     });
 
-    expect(registry.has('payments.retryable')).toBe(true);
-    expect(registry.getMetadata('payments.retryable')).toEqual({
+    expect(registry.has("payments.retryable")).toBe(true);
+    expect(registry.getMetadata("payments.retryable")).toEqual({
       retryPolicy: { maxAttempts: 5, intervalSeconds: 2, backoffRate: 2 },
     });
   });

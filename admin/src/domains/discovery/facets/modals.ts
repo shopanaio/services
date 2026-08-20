@@ -106,21 +106,10 @@ declare module "@/layouts/modals" {
   }
 }
 
-export const useCreateFacetModal =
-  createModalStackHook(FACET_CREATE_MODAL_TYPE);
+export const useCreateFacetModal = createModalStackHook(FACET_CREATE_MODAL_TYPE);
 export const useEditFacetModal = createModalStackHook(FACET_EDIT_MODAL_TYPE);
-export const useFacetSourcePickerModal = createModalStackHook(
-  FACET_SOURCE_PICKER_MODAL_TYPE,
-);
-export const useFacetScopePickerModal = createModalStackHook(
-  FACET_SCOPE_PICKER_MODAL_TYPE,
-);
-export const useLinkSourceValuesModal = createModalStackHook(
-  FACET_VALUE_LINK_SOURCES_MODAL_TYPE,
-);
-export const useFacetValueGroupModal = createModalStackHook(
-  FACET_VALUE_GROUP_MODAL_TYPE,
-);
-export const useFacetValueCandidatesModal = createModalStackHook(
-  FACET_VALUE_CANDIDATES_MODAL_TYPE,
-);
+export const useFacetSourcePickerModal = createModalStackHook(FACET_SOURCE_PICKER_MODAL_TYPE);
+export const useFacetScopePickerModal = createModalStackHook(FACET_SCOPE_PICKER_MODAL_TYPE);
+export const useLinkSourceValuesModal = createModalStackHook(FACET_VALUE_LINK_SOURCES_MODAL_TYPE);
+export const useFacetValueGroupModal = createModalStackHook(FACET_VALUE_GROUP_MODAL_TYPE);
+export const useFacetValueCandidatesModal = createModalStackHook(FACET_VALUE_CANDIDATES_MODAL_TYPE);

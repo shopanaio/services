@@ -45,7 +45,7 @@ export function useUpdateEmail(): UseUpdateEmailReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

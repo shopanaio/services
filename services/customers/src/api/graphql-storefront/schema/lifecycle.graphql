@@ -13,12 +13,16 @@ enum CustomerDataRequestStatus {
   CANCELLED
 }
 
-"""A customer-created, auditable privacy workflow."""
+"""
+A customer-created, auditable privacy workflow.
+"""
 type CustomerDataRequest implements Node @key(fields: "id") {
   id: ID!
   type: CustomerDataRequestType!
   status: CustomerDataRequestStatus!
-  """Customer-provided details for a correction request, when applicable."""
+  """
+  Customer-provided details for a correction request, when applicable.
+  """
   correctionDetails: JSON
   resultFile: GenericFile
   rejectionReason: String
@@ -43,7 +47,9 @@ type CustomerDataRequestEdge {
 
 input CustomerDataRequestCreateInput {
   type: CustomerDataRequestType!
-  """Required only for CORRECTION and rejected for all other request types."""
+  """
+  Required only for CORRECTION and rejected for all other request types.
+  """
   correctionDetails: JSON
   idempotencyKey: String!
 }

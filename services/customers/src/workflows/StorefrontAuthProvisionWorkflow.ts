@@ -34,18 +34,14 @@ export class StorefrontAuthProvisionWorkflow extends BrokerWorkflows<
   }
 
   @Workflow("storefrontAuthProvision")
-  async run(
-    input: StorefrontAuthProvisionInput,
-  ): Promise<StorefrontAuthProvisionOutput> {
+  async run(input: StorefrontAuthProvisionInput): Promise<StorefrontAuthProvisionOutput> {
     const applicationId = await this.resolveApplicationId(input);
     await this.createIamApplication(applicationId, input);
     return { applicationId };
   }
 
   @WorkflowStep()
-  private async resolveApplicationId(
-    input: StorefrontAuthProvisionInput,
-  ): Promise<string> {
+  private async resolveApplicationId(input: StorefrontAuthProvisionInput): Promise<string> {
     const repository = Kernel.getInstance().repository.storefrontAuth;
     const existing = await repository.findByStoreId(input.storeId);
     if (existing) {
@@ -84,27 +80,27 @@ export class StorefrontAuthProvisionWorkflow extends BrokerWorkflows<
     applicationId: string,
     input: StorefrontAuthProvisionInput,
   ): Promise<void> {
-    const result = await this.broker.call<
-      IAM.CreateApplicationResult,
-      IAM.CreateApplicationParams
-    >("iam.createApplication", {
-      applicationId,
-      userId: input.userId,
-      organizationId: input.organizationId,
-      name: input.name,
-      displayName: input.displayName,
-      description: `Store application for ${input.displayName}`,
-      applicationAuth: {
-        ...resolveStorefrontAuthUrls(input.name),
-        defaultLocale: "en",
-        emailVerificationRequired: true,
+    const result = await this.broker.call<IAM.CreateApplicationResult, IAM.CreateApplicationParams>(
+      "iam.createApplication",
+      {
+        applicationId,
+        userId: input.userId,
+        organizationId: input.organizationId,
+        name: input.name,
+        displayName: input.displayName,
+        description: `Store application for ${input.displayName}`,
+        applicationAuth: {
+          ...resolveStorefrontAuthUrls(input.name),
+          defaultLocale: "en",
+          emailVerificationRequired: true,
+        },
+        managementMode: "service",
+        linkedOwner: {
+          linkedOwnerType: "store",
+          linkedOwnerId: input.storeId,
+        },
       },
-      managementMode: "service",
-      linkedOwner: {
-        linkedOwnerType: "store",
-        linkedOwnerId: input.storeId,
-      },
-    });
+    );
 
     if (!result.success) {
       throw new FatalError(

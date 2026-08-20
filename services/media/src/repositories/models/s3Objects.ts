@@ -1,9 +1,4 @@
-import {
-  uuid,
-  varchar,
-  index,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { uuid, varchar, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { mediaSchema } from "./schema";
 import { files } from "./files";
 import { buckets } from "./buckets";
@@ -23,15 +18,13 @@ export const s3Objects = mediaSchema.table(
       .references(() => buckets.id, { onDelete: "restrict" }),
     objectKey: varchar("object_key", { length: 1024 }).notNull(),
     etag: varchar("etag", { length: 64 }),
-    storageClass: varchar("storage_class", { length: 32 })
-      .notNull()
-      .default("STANDARD"),
+    storageClass: varchar("storage_class", { length: 32 }).notNull().default("STANDARD"),
   },
   (table) => [
     uniqueIndex("idx_s3_objects_key").on(table.bucketId, table.objectKey),
     index("idx_s3_objects_bucket").on(table.bucketId),
     index("idx_s3_objects_asset_group").on(table.assetGroupId),
-  ]
+  ],
 );
 
 export type S3Object = typeof s3Objects.$inferSelect;

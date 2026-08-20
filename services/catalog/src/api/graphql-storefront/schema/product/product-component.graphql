@@ -1,4 +1,6 @@
-"""How the resolved component configurator should be presented."""
+"""
+How the resolved component configurator should be presented.
+"""
 enum ProductComponentDisplayStyle {
   ACCORDION
   TABS
@@ -30,7 +32,9 @@ interpreting component rules themselves.
 type ProductComponentConfiguration {
   id: ID!
 
-  """The presentation selected by the merchant for this configurator."""
+  """
+  The presentation selected by the merchant for this configurator.
+  """
   displayStyle: ProductComponentDisplayStyle!
 
   """
@@ -39,7 +43,9 @@ type ProductComponentConfiguration {
   """
   groups: [ProductComponentGroup!]!
 
-  """Sum of totalPrice for all selected component items."""
+  """
+  Sum of totalPrice for all selected component items.
+  """
   componentsSubtotal: Money!
 
   """
@@ -49,20 +55,30 @@ type ProductComponentConfiguration {
   totalPrice: Money!
 }
 
-"""A presentation-ready component group after backend rule evaluation."""
+"""
+A presentation-ready component group after backend rule evaluation.
+"""
 type ProductComponentGroup {
   id: ID!
 
-  """Localized display title resolved by Catalog."""
+  """
+  Localized display title resolved by Catalog.
+  """
   title: String!
 
-  """Whether the effective group state requires at least one selection."""
+  """
+  Whether the effective group state requires at least one selection.
+  """
   required: Boolean!
 
-  """Effective minimum number of selected items."""
+  """
+  Effective minimum number of selected items.
+  """
   minSelection: Int
 
-  """Effective maximum number of selected items."""
+  """
+  Effective maximum number of selected items.
+  """
   maxSelection: Int
 
   """
@@ -85,7 +101,9 @@ type ProductComponentItem {
   """
   title: String!
 
-  """Referenced published product."""
+  """
+  Referenced published product.
+  """
   product: Product!
 
   """
@@ -99,22 +117,34 @@ type ProductComponentItem {
   """
   featuredMedia: Media
 
-  """Whether this item is selected in the resolved state."""
+  """
+  Whether this item is selected in the resolved state.
+  """
   selected: Boolean!
 
-  """Whether backend dependency rules require this item."""
+  """
+  Whether backend dependency rules require this item.
+  """
   required: Boolean!
 
-  """Whether the resolved merchandise variant can currently be purchased."""
+  """
+  Whether the resolved merchandise variant can currently be purchased.
+  """
   availableForSale: Boolean!
 
-  """Resolved quantity. Zero means the item is not selected."""
+  """
+  Resolved quantity. Zero means the item is not selected.
+  """
   quantity: Int!
 
-  """Effective minimum quantity when the item is selected."""
+  """
+  Effective minimum quantity when the item is selected.
+  """
   minQuantity: Int!
 
-  """Effective maximum quantity, or null when no maximum is configured."""
+  """
+  Effective maximum quantity, or null when no maximum is configured.
+  """
   maxQuantity: Int
 
   """
@@ -123,6 +153,8 @@ type ProductComponentItem {
   """
   unitPrice: Money!
 
-  """Final unitPrice multiplied by quantity."""
+  """
+  Final unitPrice multiplied by quantity.
+  """
   totalPrice: Money!
 }

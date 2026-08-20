@@ -3,11 +3,7 @@
 import { useCallback, useState } from "react";
 import { useMutation } from "@apollo/client/react";
 import { AVATAR_UPLOAD_MUTATION } from "../graphql";
-import type {
-  ApiFile,
-  ApiGenericUserError,
-  ApiAvatarUploadInput,
-} from "@/graphql/types";
+import type { ApiFile, ApiGenericUserError, ApiAvatarUploadInput } from "@/graphql/types";
 
 // ============================================
 // Types
@@ -45,10 +41,9 @@ export function useAvatarUpload(): UseAvatarUploadReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const [uploadMutation] = useMutation<
-    AvatarUploadResponse,
-    { input: ApiAvatarUploadInput }
-  >(AVATAR_UPLOAD_MUTATION);
+  const [uploadMutation] = useMutation<AvatarUploadResponse, { input: ApiAvatarUploadInput }>(
+    AVATAR_UPLOAD_MUTATION,
+  );
 
   const uploadAvatar = useCallback(
     async (file: File, ownerId: string): Promise<AvatarUploadResult> => {
@@ -72,8 +67,7 @@ export function useAvatarUpload(): UseAvatarUploadReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const errorObj =
-          err instanceof Error ? err : new Error("Avatar upload failed");
+        const errorObj = err instanceof Error ? err : new Error("Avatar upload failed");
         setError(errorObj);
         return {
           file: null,
@@ -83,7 +77,7 @@ export function useAvatarUpload(): UseAvatarUploadReturn {
         setLoading(false);
       }
     },
-    [uploadMutation]
+    [uploadMutation],
   );
 
   return {

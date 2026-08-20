@@ -6,10 +6,7 @@ import {
   relationOperators,
 } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
-import {
-  ProductQuestionAnswerState,
-  ReviewContentStatus,
-} from "@/graphql/types";
+import { ProductQuestionAnswerState, ReviewContentStatus } from "@/graphql/types";
 
 /** Required operational filters for question answering and moderation queues. */
 export const filterSchema: IFilterSchema[] = [

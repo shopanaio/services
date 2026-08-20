@@ -19,32 +19,36 @@ describe("native checkout discount evaluation", () => {
         [second.lineId, 200n],
       ]),
       snapshot({
-        amountOff: [{
-          discountId: "amount-off-products",
-          allocationMethod: "ACROSS",
-          valueType: "PERCENTAGE",
-          percentageBps: 5_000,
-          amountMinor: null,
-          maximumDiscountMinor: null,
-        }],
-        selections: [{
-          discountId: "amount-off-products",
-          role: "BENEFIT",
-          targetType: "PRODUCTS",
-        }],
-        targets: [{
-          discountId: "amount-off-products",
-          role: "BENEFIT",
-          targetType: "PRODUCTS",
-          targetId: "product-a",
-          referenceStatus: "VALID",
-        }],
+        amountOff: [
+          {
+            discountId: "amount-off-products",
+            allocationMethod: "ACROSS",
+            valueType: "PERCENTAGE",
+            percentageBps: 5_000,
+            amountMinor: null,
+            maximumDiscountMinor: null,
+          },
+        ],
+        selections: [
+          {
+            discountId: "amount-off-products",
+            role: "BENEFIT",
+            targetType: "PRODUCTS",
+          },
+        ],
+        targets: [
+          {
+            discountId: "amount-off-products",
+            role: "BENEFIT",
+            targetType: "PRODUCTS",
+            targetId: "product-a",
+            referenceStatus: "VALID",
+          },
+        ],
       }),
     );
 
-    expect(allocations).toEqual([
-      { lineId: "first", amount: 50n, quantity: null },
-    ]);
+    expect(allocations).toEqual([{ lineId: "first", amount: 50n, quantity: null }]);
   });
 
   it("fails closed when amount-off-products has no BENEFIT selection", () => {
@@ -54,14 +58,16 @@ describe("native checkout discount evaluation", () => {
       [product],
       new Map([[product.lineId, 100n]]),
       snapshot({
-        amountOff: [{
-          discountId: "amount-off-products",
-          allocationMethod: "ACROSS",
-          valueType: "PERCENTAGE",
-          percentageBps: 5_000,
-          amountMinor: null,
-          maximumDiscountMinor: null,
-        }],
+        amountOff: [
+          {
+            discountId: "amount-off-products",
+            allocationMethod: "ACROSS",
+            valueType: "PERCENTAGE",
+            percentageBps: 5_000,
+            amountMinor: null,
+            maximumDiscountMinor: null,
+          },
+        ],
       }),
     );
 
@@ -79,14 +85,16 @@ describe("native checkout discount evaluation", () => {
         [second.lineId, 200n],
       ]),
       snapshot({
-        amountOff: [{
-          discountId: "amount-off-order",
-          allocationMethod: "ACROSS",
-          valueType: "FIXED_AMOUNT",
-          percentageBps: null,
-          amountMinor: 90n,
-          maximumDiscountMinor: null,
-        }],
+        amountOff: [
+          {
+            discountId: "amount-off-order",
+            allocationMethod: "ACROSS",
+            valueType: "FIXED_AMOUNT",
+            percentageBps: null,
+            amountMinor: 90n,
+            maximumDiscountMinor: null,
+          },
+        ],
       }),
     );
 
@@ -107,18 +115,20 @@ describe("native checkout discount evaluation", () => {
         [benefit.lineId, 40n],
       ]),
       snapshot({
-        buyXGetY: [{
-          discountId: "buy-x-get-y",
-          requirementType: "QUANTITY",
-          requiredQuantity: 1,
-          requiredSubtotalMinor: null,
-          benefitQuantity: 1,
-          benefitStrategy: "FREE",
-          benefitValueType: null,
-          benefitPercentageBps: null,
-          benefitAmountMinor: null,
-          usesPerOrderLimit: 1,
-        }],
+        buyXGetY: [
+          {
+            discountId: "buy-x-get-y",
+            requirementType: "QUANTITY",
+            requiredQuantity: 1,
+            requiredSubtotalMinor: null,
+            benefitQuantity: 1,
+            benefitStrategy: "FREE",
+            benefitValueType: null,
+            benefitPercentageBps: null,
+            benefitAmountMinor: null,
+            usesPerOrderLimit: 1,
+          },
+        ],
         selections: [
           {
             discountId: "buy-x-get-y",
@@ -150,9 +160,7 @@ describe("native checkout discount evaluation", () => {
       }),
     );
 
-    expect(allocations).toEqual([
-      { lineId: "benefit", amount: 40n, quantity: 1 },
-    ]);
+    expect(allocations).toEqual([{ lineId: "benefit", amount: 40n, quantity: 1 }]);
   });
 });
 
@@ -165,13 +173,9 @@ describe("native discount allocation", () => {
 
     const allocations = allocateProportionally(99n, values);
 
-    expect(
-      allocations.reduce((sum, allocation) => sum + allocation.amount, 0n),
-    ).toBe(99n);
+    expect(allocations.reduce((sum, allocation) => sum + allocation.amount, 0n)).toBe(99n);
     expect(allocations).toHaveLength(99);
-    expect(
-      allocations.every((allocation) => allocation.amount <= 1n),
-    ).toBe(true);
+    expect(allocations.every((allocation) => allocation.amount <= 1n)).toBe(true);
     expect(allocations.map(({ lineId }) => lineId)).toEqual(
       values.slice(1).map(({ lineId }) => lineId),
     );
@@ -219,9 +223,7 @@ describe("native discount counter revisions", () => {
       [...ordered.codeCounters].reverse(),
     );
 
-    expect(canonicalCounterVersions(reversed)).toEqual(
-      canonicalCounterVersions(ordered),
-    );
+    expect(canonicalCounterVersions(reversed)).toEqual(canonicalCounterVersions(ordered));
   });
 });
 
@@ -234,10 +236,8 @@ function counterSnapshot(
   }>,
 ): Pick<DiscountEvaluationSnapshot, "counters" | "codeCounters"> {
   return {
-    counters:
-      counters as unknown as DiscountEvaluationSnapshot["counters"],
-    codeCounters:
-      codeCounters as unknown as DiscountEvaluationSnapshot["codeCounters"],
+    counters: counters as unknown as DiscountEvaluationSnapshot["counters"],
+    codeCounters: codeCounters as unknown as DiscountEvaluationSnapshot["codeCounters"],
   };
 }
 
@@ -273,9 +273,7 @@ function line(
   } as Pricing.PricingCheckoutQuotedLine;
 }
 
-function snapshot(
-  overrides: Record<string, unknown>,
-): DiscountEvaluationSnapshot {
+function snapshot(overrides: Record<string, unknown>): DiscountEvaluationSnapshot {
   return {
     amountOff: [],
     buyXGetY: [],

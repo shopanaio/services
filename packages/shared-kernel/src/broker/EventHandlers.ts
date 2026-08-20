@@ -29,16 +29,13 @@ export abstract class EventHandlers implements OnModuleInit {
     const registeredBatchHandlers: string[] = [];
 
     for (const methodName of methodNames) {
-      const metadata = Reflect.getMetadata(
-        EVENT_HANDLER_METADATA_KEY,
-        prototype,
-        methodName
-      ) as EventHandlerMetadata | undefined;
+      const metadata = Reflect.getMetadata(EVENT_HANDLER_METADATA_KEY, prototype, methodName) as
+        EventHandlerMetadata | undefined;
 
       if (metadata) {
         const method = (this as Record<string, unknown>)[methodName] as (
           params: unknown,
-          context: BrokerCallContext
+          context: BrokerCallContext,
         ) => Promise<unknown>;
 
         const boundMethod = method.bind(this);
@@ -51,13 +48,13 @@ export abstract class EventHandlers implements OnModuleInit {
       const batchMetadata = Reflect.getMetadata(
         BATCH_EVENT_HANDLER_METADATA_KEY,
         prototype,
-        methodName
+        methodName,
       ) as BatchEventHandlerMetadata | undefined;
 
       if (batchMetadata) {
         const method = (this as Record<string, unknown>)[methodName] as (
           params: unknown,
-          context: BrokerCallContext
+          context: BrokerCallContext,
         ) => Promise<unknown>;
 
         const boundMethod = method.bind(this);
@@ -66,22 +63,18 @@ export abstract class EventHandlers implements OnModuleInit {
           boundMethod,
           {
             retryPolicy: batchMetadata.retryPolicy,
-          }
+          },
         );
         registeredBatchHandlers.push(batchMetadata.eventType);
       }
     }
 
     if (registeredHandlers.length > 0) {
-      this.logger.debug(
-        `Registered event handlers: ${registeredHandlers.join(", ")}`
-      );
+      this.logger.debug(`Registered event handlers: ${registeredHandlers.join(", ")}`);
     }
 
     if (registeredBatchHandlers.length > 0) {
-      this.logger.debug(
-        `Registered batch event handlers: ${registeredBatchHandlers.join(", ")}`
-      );
+      this.logger.debug(`Registered batch event handlers: ${registeredBatchHandlers.join(", ")}`);
     }
   }
 

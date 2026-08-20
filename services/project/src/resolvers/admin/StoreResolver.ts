@@ -1,8 +1,5 @@
 import { Cache, TypePolicy } from "@shopana/type-resolver";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { Store } from "../../repositories/store/StoreRepository.js";
 import type { StoreSettingsSnapshot } from "../../repositories/storeSettings/StoreSettingsRepository.js";
 import type { LocaleCode } from "@shopana/shared-references";
@@ -22,16 +19,12 @@ export interface StoreResolverInput extends Store {
  */
 @TypePolicy<StoreResolver>({
   organizationId: (resolver) => resolver.$props.organizationId,
-  domain: (resolver) =>
-    resolver.$props.authorizationDomain ?? `store:${resolver.$props.id}`,
+  domain: (resolver) => resolver.$props.authorizationDomain ?? `store:${resolver.$props.id}`,
   resource: "store.profile",
   action: "read",
   onDeny: "null",
 })
-export class StoreResolver extends BaseResolver<
-  StoreResolverInput,
-  StoreResolverInput
-> {
+export class StoreResolver extends BaseResolver<StoreResolverInput, StoreResolverInput> {
   private settingsPromise?: Promise<StoreSettingsSnapshot>;
 
   async $preload() {
@@ -139,13 +132,11 @@ export class StoreResolver extends BaseResolver<
     return {
       orderNumberPrefix: orderProcessing?.orderNumberPrefix ?? "#",
       orderNumberSuffix: orderProcessing?.orderNumberSuffix ?? null,
-      requireCheckoutConfirmation:
-        orderProcessing?.requireCheckoutConfirmation ?? true,
+      requireCheckoutConfirmation: orderProcessing?.requireCheckoutConfirmation ?? true,
       automaticFulfillmentMode: this.automaticFulfillmentMode(
         orderProcessing?.automaticFulfillmentMode ?? "disabled",
       ),
-      automaticallyArchiveOrders:
-        orderProcessing?.automaticallyArchiveOrders ?? true,
+      automaticallyArchiveOrders: orderProcessing?.automaticallyArchiveOrders ?? true,
     };
   }
 
@@ -162,26 +153,14 @@ export class StoreResolver extends BaseResolver<
     const { currencyFormatting } = await this.loadSettings();
     return {
       currencyCode: this.$props.currencyCode,
-      currencyDisplay: this.enumValue(
-        currencyFormatting?.currencyDisplay ?? "symbol",
-      ),
-      currencySign: this.enumValue(
-        currencyFormatting?.currencySign ?? "standard",
-      ),
+      currencyDisplay: this.enumValue(currencyFormatting?.currencyDisplay ?? "symbol"),
+      currencySign: this.enumValue(currencyFormatting?.currencySign ?? "standard"),
       grouping: this.enumValue(currencyFormatting?.grouping ?? "auto"),
-      signDisplay: this.enumValue(
-        currencyFormatting?.signDisplay ?? "auto",
-      ),
-      minimumFractionDigits:
-        currencyFormatting?.minimumFractionDigits ?? 2,
-      maximumFractionDigits:
-        currencyFormatting?.maximumFractionDigits ?? 2,
-      roundingMode: this.enumValue(
-        currencyFormatting?.roundingMode ?? "halfExpand",
-      ),
-      trailingZeroDisplay: this.enumValue(
-        currencyFormatting?.trailingZeroDisplay ?? "auto",
-      ),
+      signDisplay: this.enumValue(currencyFormatting?.signDisplay ?? "auto"),
+      minimumFractionDigits: currencyFormatting?.minimumFractionDigits ?? 2,
+      maximumFractionDigits: currencyFormatting?.maximumFractionDigits ?? 2,
+      roundingMode: this.enumValue(currencyFormatting?.roundingMode ?? "halfExpand"),
+      trailingZeroDisplay: this.enumValue(currencyFormatting?.trailingZeroDisplay ?? "auto"),
     };
   }
 
@@ -202,9 +181,7 @@ export class StoreResolver extends BaseResolver<
   }
 
   async languageSettings() {
-    const languages = await this.$ctx.kernel.repository.locale.findByStoreId(
-      this.$props.id,
-    );
+    const languages = await this.$ctx.kernel.repository.locale.findByStoreId(this.$props.id);
     const names = new Intl.DisplayNames(["en"], { type: "language" });
     return languages.map(({ code, isActive }) => ({
       code,

@@ -6,9 +6,7 @@ import {
 import type { ServiceBroker } from "@shopana/shared-kernel";
 import type { PaymentFunctionRoutesPort } from "../../contracts/ports.js";
 
-export class BrokerPaymentFunctionRouteResolver
-  implements PaymentFunctionRoutesPort
-{
+export class BrokerPaymentFunctionRouteResolver implements PaymentFunctionRoutesPort {
   constructor(private readonly broker: ServiceBroker) {}
 
   async resolveRoute(input: {
@@ -26,8 +24,7 @@ export class BrokerPaymentFunctionRouteResolver
     });
     const matches = result.routes.filter(
       (route) =>
-        route.installationId === input.installationId &&
-        route.functionKey === input.functionKey,
+        route.installationId === input.installationId && route.functionKey === input.functionKey,
     );
     return matches.length === 1 ? matches[0]! : null;
   }

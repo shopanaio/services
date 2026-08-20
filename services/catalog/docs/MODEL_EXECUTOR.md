@@ -2,20 +2,22 @@
 
 ## Overview
 
-Model Executor is a library for recursive data resolution similar to GraphQL, but without GraphQL. It uses classes as types where each method is a resolver. Context is accessed via AsyncLocalStorage.
+Model Executor is a library for recursive data resolution similar to GraphQL, but without GraphQL.
+It uses classes as types where each method is a resolver. Context is accessed via AsyncLocalStorage.
 
 ---
 
 ## Context
 
-Context is available globally via `getContext()`. It contains DataLoaders and request-scoped parameters:
+Context is available globally via `getContext()`. It contains DataLoaders and request-scoped
+parameters:
 
 ```typescript
 interface Context {
   loaders: DataLoaders;
   locale: string;
   currency: string;
-  imageSize: 'thumb' | 'full';
+  imageSize: "thumb" | "full";
   // ... other request-scoped data
 }
 
@@ -24,7 +26,7 @@ const contextStorage = new AsyncLocalStorage<Context>();
 
 export function getContext(): Context {
   const ctx = contextStorage.getStore();
-  if (!ctx) throw new Error('No context available');
+  if (!ctx) throw new Error("No context available");
   return ctx;
 }
 ```
@@ -34,6 +36,7 @@ export function getContext(): Context {
 ## Type Definition
 
 Each type is a class:
+
 - `static fields` — mapping to child types for recursive resolution
 - `constructor(public value: T)` — holds raw data
 - Methods — resolvers that return field values
@@ -95,13 +98,13 @@ class VariantType {
   async images() {
     const { loaders, imageSize } = getContext();
     const images = await loaders.images.load(this.value.id);
-    return images.filter(i => i.size === imageSize);
+    return images.filter((i) => i.size === imageSize);
   }
 
   async prices() {
     const { loaders, currency } = getContext();
     const prices = await loaders.prices.load(this.value.id);
-    return prices.filter(p => p.currency === currency);
+    return prices.filter((p) => p.currency === currency);
   }
 }
 
@@ -135,7 +138,7 @@ class PriceType {
 
   formatted() {
     return new Intl.NumberFormat(getContext().locale, {
-      style: 'currency',
+      style: "currency",
       currency: this.value.currency,
     }).format(this.value.amount);
   }
@@ -183,16 +186,14 @@ class Executor {
           const ChildType = getChildType();
 
           if (Array.isArray(resolved)) {
-            result[key] = await Promise.all(
-              resolved.map((item) => this.resolve(ChildType, item))
-            );
+            result[key] = await Promise.all(resolved.map((item) => this.resolve(ChildType, item)));
           } else {
             result[key] = await this.resolve(ChildType, resolved);
           }
         } else {
           result[key] = resolved;
         }
-      })
+      }),
     );
 
     return result;
@@ -201,7 +202,7 @@ class Executor {
   private getResolverMethods(instance: any): string[] {
     const proto = Object.getPrototypeOf(instance);
     return Object.getOwnPropertyNames(proto).filter(
-      (key) => key !== 'constructor' && typeof proto[key] === 'function'
+      (key) => key !== "constructor" && typeof proto[key] === "function",
     );
   }
 }
@@ -312,9 +313,15 @@ class ProductFullType {
 
   constructor(public value: Product) {}
 
-  id() { return this.value.id }
-  title() { return this.value.title }
-  description() { return this.value.description }
+  id() {
+    return this.value.id;
+  }
+  title() {
+    return this.value.title;
+  }
+  description() {
+    return this.value.description;
+  }
 
   async variants() {
     return getContext().loaders.variants.load(this.value.id);
@@ -341,25 +348,29 @@ class ProductCardType {
 
   constructor(public value: Product) {}
 
-  id() { return this.value.id }
-  title() { return this.value.title }
-  slug() { return this.value.slug }
+  id() {
+    return this.value.id;
+  }
+  title() {
+    return this.value.title;
+  }
+  slug() {
+    return this.value.slug;
+  }
 
   async primaryImage() {
     const { loaders } = getContext();
     const variants = await loaders.variants.load(this.value.id);
     if (!variants[0]) return null;
     const images = await loaders.images.load(variants[0].id);
-    return images.find(i => i.isPrimary) || images[0] || null;
+    return images.find((i) => i.isPrimary) || images[0] || null;
   }
 
   async minPrice() {
     const { loaders } = getContext();
     const variants = await loaders.variants.load(this.value.id);
-    const prices = await Promise.all(
-      variants.map(v => loaders.prices.load(v.id))
-    );
-    return Math.min(...prices.flat().map(p => p.amount));
+    const prices = await Promise.all(variants.map((v) => loaders.prices.load(v.id)));
+    return Math.min(...prices.flat().map((p) => p.amount));
   }
 }
 ```
@@ -386,11 +397,15 @@ class ProductType extends BaseType<Product> {
     variants: () => VariantType,
   };
 
-  id() { return this.get('id') }
-  title() { return this.get('title') }
+  id() {
+    return this.get("id");
+  }
+  title() {
+    return this.get("title");
+  }
 
   async variants() {
-    return this.ctx().loaders.variants.load(this.get('id'));
+    return this.ctx().loaders.variants.load(this.get("id"));
   }
 }
 ```
@@ -401,7 +416,7 @@ class ProductType extends BaseType<Product> {
 
 ```typescript
 interface ExecutorOptions {
-  onError?: 'throw' | 'null' | 'partial';
+  onError?: "throw" | "null" | "partial";
 }
 
 class Executor {
@@ -425,7 +440,7 @@ class Executor {
 
             if (Array.isArray(resolved)) {
               result[key] = await Promise.all(
-                resolved.map((item) => this.resolve(ChildType, item))
+                resolved.map((item) => this.resolve(ChildType, item)),
               );
             } else {
               result[key] = await this.resolve(ChildType, resolved);
@@ -435,18 +450,18 @@ class Executor {
           }
         } catch (error) {
           switch (this.options.onError) {
-            case 'null':
+            case "null":
               result[key] = null;
               break;
-            case 'partial':
+            case "partial":
               result[key] = { __error: (error as Error).message };
               break;
-            case 'throw':
+            case "throw":
             default:
               throw error;
           }
         }
-      })
+      }),
     );
 
     return result;
@@ -468,18 +483,19 @@ interface TypeClass<T = any> {
 type ResolverMethod<T> = () => T | Promise<T>;
 
 type TypeResult<T extends TypeClass> = {
-  [K in keyof InstanceType<T> as InstanceType<T>[K] extends Function ? K : never]:
-    InstanceType<T>[K] extends ResolverMethod<infer R>
-      ? K extends keyof NonNullable<T['fields']>
-        ? NonNullable<T['fields']>[K] extends () => infer ChildType
-          ? ChildType extends TypeClass
-            ? R extends any[]
-              ? TypeResult<ChildType>[]
-              : TypeResult<ChildType>
-            : R
+  [
+    K in keyof InstanceType<T> as InstanceType<T>[K] extends Function ? K : never
+  ]: InstanceType<T>[K] extends ResolverMethod<infer R>
+    ? K extends keyof NonNullable<T["fields"]>
+      ? NonNullable<T["fields"]>[K] extends () => infer ChildType
+        ? ChildType extends TypeClass
+          ? R extends any[]
+            ? TypeResult<ChildType>[]
+            : TypeResult<ChildType>
           : R
         : R
-      : never;
+      : R
+    : never;
 };
 ```
 
@@ -488,85 +504,109 @@ type TypeResult<T extends TypeClass> = {
 ## Tests
 
 ```typescript
-describe('Executor', () => {
+describe("Executor", () => {
   beforeEach(() => {
     // Setup context in AsyncLocalStorage
     contextStorage.enterWith({
       loaders: createMockLoaders(),
-      locale: 'en',
-      currency: 'USD',
-      imageSize: 'full',
+      locale: "en",
+      currency: "USD",
+      imageSize: "full",
     });
   });
 
-  it('resolves scalar fields', async () => {
+  it("resolves scalar fields", async () => {
     class SimpleType {
       constructor(public value: { id: string; name: string }) {}
-      id() { return this.value.id }
-      name() { return this.value.name }
+      id() {
+        return this.value.id;
+      }
+      name() {
+        return this.value.name;
+      }
     }
 
-    const result = await executor.resolve(SimpleType, { id: '1', name: 'Test' });
+    const result = await executor.resolve(SimpleType, { id: "1", name: "Test" });
 
-    expect(result).toEqual({ id: '1', name: 'Test' });
+    expect(result).toEqual({ id: "1", name: "Test" });
   });
 
-  it('resolves nested types', async () => {
+  it("resolves nested types", async () => {
     class ChildType {
       constructor(public value: { id: string }) {}
-      id() { return this.value.id }
+      id() {
+        return this.value.id;
+      }
     }
 
     class ParentType {
       static fields = { child: () => ChildType };
       constructor(public value: { id: string; child: { id: string } }) {}
-      id() { return this.value.id }
-      child() { return this.value.child }
+      id() {
+        return this.value.id;
+      }
+      child() {
+        return this.value.child;
+      }
     }
 
     const result = await executor.resolve(ParentType, {
-      id: 'p1',
-      child: { id: 'c1' }
+      id: "p1",
+      child: { id: "c1" },
     });
 
-    expect(result).toEqual({ id: 'p1', child: { id: 'c1' } });
+    expect(result).toEqual({ id: "p1", child: { id: "c1" } });
   });
 
-  it('resolves arrays of nested types', async () => {
+  it("resolves arrays of nested types", async () => {
     class ItemType {
       constructor(public value: { id: string }) {}
-      id() { return this.value.id }
+      id() {
+        return this.value.id;
+      }
     }
 
     class ListType {
       static fields = { items: () => ItemType };
       constructor(public value: { items: { id: string }[] }) {}
-      items() { return this.value.items }
+      items() {
+        return this.value.items;
+      }
     }
 
     const result = await executor.resolve(ListType, {
-      items: [{ id: '1' }, { id: '2' }]
+      items: [{ id: "1" }, { id: "2" }],
     });
 
-    expect(result).toEqual({ items: [{ id: '1' }, { id: '2' }] });
+    expect(result).toEqual({ items: [{ id: "1" }, { id: "2" }] });
   });
 
-  it('executes resolvers in parallel', async () => {
+  it("executes resolvers in parallel", async () => {
     const order: string[] = [];
 
     class ParallelType {
       constructor(public value: any) {}
-      async a() { order.push('a-start'); await delay(50); order.push('a-end'); return 'a' }
-      async b() { order.push('b-start'); await delay(30); order.push('b-end'); return 'b' }
+      async a() {
+        order.push("a-start");
+        await delay(50);
+        order.push("a-end");
+        return "a";
+      }
+      async b() {
+        order.push("b-start");
+        await delay(30);
+        order.push("b-end");
+        return "b";
+      }
     }
 
     await executor.resolve(ParallelType, {});
 
-    expect(order[0]).toBe('a-start');
-    expect(order[1]).toBe('b-start');
+    expect(order[0]).toBe("a-start");
+    expect(order[1]).toBe("b-start");
   });
 
-  it('uses context from AsyncLocalStorage', async () => {
+  it("uses context from AsyncLocalStorage", async () => {
     class LocalizedType {
       constructor(public value: { translations: Record<string, string> }) {}
       title() {
@@ -576,14 +616,14 @@ describe('Executor', () => {
     }
 
     const result = await executor.resolve(LocalizedType, {
-      translations: { en: 'Hello', ru: 'Привет' }
+      translations: { en: "Hello", ru: "Привет" },
     });
 
-    expect(result).toEqual({ title: 'Hello' });
+    expect(result).toEqual({ title: "Hello" });
   });
 
-  it('batches DataLoader calls', async () => {
-    const batchFn = jest.fn(async (ids: string[]) => ids.map(id => ({ id })));
+  it("batches DataLoader calls", async () => {
+    const batchFn = jest.fn(async (ids: string[]) => ids.map((id) => ({ id })));
     const loader = new DataLoader(batchFn);
 
     contextStorage.enterWith({
@@ -593,7 +633,9 @@ describe('Executor', () => {
 
     class ItemType {
       constructor(public value: { id: string }) {}
-      id() { return this.value.id }
+      id() {
+        return this.value.id;
+      }
     }
 
     class RootType {
@@ -601,14 +643,14 @@ describe('Executor', () => {
       constructor(public value: { ids: string[] }) {}
       async items() {
         const { loaders } = getContext();
-        return Promise.all(this.value.ids.map(id => loaders.items.load(id)));
+        return Promise.all(this.value.ids.map((id) => loaders.items.load(id)));
       }
     }
 
-    await executor.resolve(RootType, { ids: ['1', '2', '3'] });
+    await executor.resolve(RootType, { ids: ["1", "2", "3"] });
 
     expect(batchFn).toHaveBeenCalledTimes(1);
-    expect(batchFn).toHaveBeenCalledWith(['1', '2', '3']);
+    expect(batchFn).toHaveBeenCalledWith(["1", "2", "3"]);
   });
 });
 ```

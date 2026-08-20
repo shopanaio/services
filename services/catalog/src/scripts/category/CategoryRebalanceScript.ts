@@ -1,16 +1,11 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  CategoryRebalanceParams,
-  CategoryRebalanceResult,
-} from "./dto/index.js";
+import type { CategoryRebalanceParams, CategoryRebalanceResult } from "./dto/index.js";
 
 export class CategoryRebalanceScript extends BaseScript<
   CategoryRebalanceParams,
   CategoryRebalanceResult
 > {
-  protected async execute(
-    params: CategoryRebalanceParams
-  ): Promise<CategoryRebalanceResult> {
+  protected async execute(params: CategoryRebalanceParams): Promise<CategoryRebalanceResult> {
     const category = await this.repository.category.findById(params.categoryId);
     if (!category) {
       return {
@@ -20,9 +15,7 @@ export class CategoryRebalanceScript extends BaseScript<
     }
 
     const affectedProductIds = (
-      await this.repository.category.getOrderedCategoryProducts(
-        params.categoryId
-      )
+      await this.repository.category.getOrderedCategoryProducts(params.categoryId)
     ).map((item) => item.productId);
 
     await this.repository.category.rebalanceCategoryProductRanks(params.categoryId);

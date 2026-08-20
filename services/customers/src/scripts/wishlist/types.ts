@@ -45,11 +45,9 @@ export function normalizeWishlistName(
       name: null,
       normalizedName: null,
       userErrors: [
-        wishlistError(
-          "INVALID_NAME",
-          "Wishlist name must contain between 1 and 128 characters",
-          ["name"],
-        ),
+        wishlistError("INVALID_NAME", "Wishlist name must contain between 1 and 128 characters", [
+          "name",
+        ]),
       ],
     };
   }
@@ -59,13 +57,7 @@ export function normalizeWishlistName(
     return {
       name: null,
       normalizedName: null,
-      userErrors: [
-        wishlistError(
-          "INVALID_NAME",
-          "Normalized wishlist name is too long",
-          ["name"],
-        ),
-      ],
+      userErrors: [wishlistError("INVALID_NAME", "Normalized wishlist name is too long", ["name"])],
     };
   }
   return { name, normalizedName, userErrors: [] };

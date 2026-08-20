@@ -2,8 +2,8 @@
 
 ## Назначение
 
-Документ описывает implementation-ready план repository layer для записи и
-базового CRUD над таблицами listing read model:
+Документ описывает implementation-ready план repository layer для записи и базового CRUD над
+таблицами listing read model:
 
 - `listing.listing_doc_id_allocator`
 - `listing.product_listing_index`
@@ -16,13 +16,12 @@
 - `listing.listing_posting_variant_storeion_block`
 - `listing.product_title_bm25_search_index`
 
-Фокус документа: repository API, транзакционные границы, базовые CRUD методы,
-bulk replace/upsert/delete методы и правила записи в таблицы.
+Фокус документа: repository API, транзакционные границы, базовые CRUD методы, bulk
+replace/upsert/delete методы и правила записи в таблицы.
 
-Финальный storefront listing query, page collectors, facet aggregation,
-`ListingQueryRepository`, `FacetAggregationRepository`,
-`ProductTitleSearchQueryRepository` и SQL query builder не входят в скоуп этого
-документа. Для них остаются отдельные документы по query shape.
+Финальный storefront listing query, page collectors, facet aggregation, `ListingQueryRepository`,
+`FacetAggregationRepository`, `ProductTitleSearchQueryRepository` и SQL query builder не входят в
+скоуп этого документа. Для них остаются отдельные документы по query shape.
 
 ## Использованные draft-источники
 
@@ -38,67 +37,62 @@ bulk replace/upsert/delete методы и правила записи в таб
 
 ## Текущий baseline в коде
 
-В `services/listing/src/repositories/models/listingIndex.ts` уже описаны целевые
-Drizzle models and inferred types. `BaseRepository` уже дает:
+В `services/listing/src/repositories/models/listingIndex.ts` уже описаны целевые Drizzle models and
+inferred types. `BaseRepository` уже дает:
 
 - `this.connection` через `TransactionManager`;
 - `this.ctx`;
 - `this.storeId` как текущий `store_id`.
 
-`services/listing/src/repositories/Repository.ts` пока содержит только
-`txManager` и `db`. План ниже добавляет concrete repositories and registers them
-in the aggregator.
+`services/listing/src/repositories/Repository.ts` пока содержит только `txManager` и `db`. План ниже
+добавляет concrete repositories and registers them in the aggregator.
 
 ## Скоуп
 
 ### Входит
 
-- Базовый CRUD для каждой listing таблицы: `exists`, `find`, `getBy...`,
-  `count`, `create` or `upsert`, `update`, `delete`.
-- Bulk методы для sync scripts: `upsertMany`, `replaceFor...`,
-  `deleteBy...`.
+- Базовый CRUD для каждой listing таблицы: `exists`, `find`, `getBy...`, `count`, `create` or
+  `upsert`, `update`, `delete`.
+- Bulk методы для sync scripts: `upsertMany`, `replaceFor...`, `deleteBy...`.
 - Методы allocation для stable `product_doc_id` / `variant_doc_id`.
 - Методы записи roaring bitmap rows and membership replacement.
 - Методы записи physical sort, runtime variant price and projection block rows.
 - Методы записи BM25 title index rows without search query execution.
-- Минимальные read helpers, которые нужны write side: aggregate reads,
-  existing row lookup and row lookup by ids.
+- Минимальные read helpers, которые нужны write side: aggregate reads, existing row lookup and row
+  lookup by ids.
 
 ### Не входит
 
 - Storefront page collection and pagination.
-- `collectProductPage`, `collectMatchedPricePage`,
-  `projectVariantBitmapToProductsSql` as query macro.
+- `collectProductPage`, `collectMatchedPricePage`, `projectVariantBitmapToProductsSql` as query
+  macro.
 - Facet count SQL and total count SQL.
 - BM25 search candidate query and relevance sorting.
 - GraphQL/admin API mutations.
-- DBOS workflows, event handlers and builders. Repositories must be ready for
-  these callers, but callers are implemented separately.
+- DBOS workflows, event handlers and builders. Repositories must be ready for these callers, but
+  callers are implemented separately.
 - Manual changeset edits.
 
 ## Общие правила repository layer
 
 1. Every repository extends `BaseRepository`.
 2. Every query uses `this.connection`, never `this.db`.
-3. Public repository methods derive `store_id` from `this.storeId`. They must
-   not accept user-provided `storeId`.
-4. Methods may accept doc ids, product ids or variant ids, but every SQL
-   statement must include `eq(table.storeId, this.storeId)` when the table has
-   `store_id`.
-5. Write methods are transaction-safe and should be called inside script-level
-   transactions. Methods that perform multi-step replace operations must either
-   be decorated with `@Transactional()` or documented as requiring the caller's
-   active transaction.
+3. Public repository methods derive `store_id` from `this.storeId`. They must not accept
+   user-provided `storeId`.
+4. Methods may accept doc ids, product ids or variant ids, but every SQL statement must include
+   `eq(table.storeId, this.storeId)` when the table has `store_id`.
+5. Write methods are transaction-safe and should be called inside script-level transactions. Methods
+   that perform multi-step replace operations must either be decorated with `@Transactional()` or
+   documented as requiring the caller's active transaction.
 6. Read methods used by write-side code may be decorated with `@ReadOnly()`.
 7. Insert/update methods set `updatedAt = new Date().toISOString()`.
 8. Rows with `indexedAt` set it on insert and refresh it on full sync/upsert.
-9. Raw source handles are never persisted. Repositories accept resolved ids and
-   `valueKey` values only.
-10. Missing posting bitmap row means empty bitmap. Empty bitmap rows should be
-    deleted after membership removal unless the caller explicitly asks to keep a
-    metadata-only row.
-11. `price` and `in_stock` are virtual facets. Do not create generic
-    `listing_posting_bitmap` rows for them.
+9. Raw source handles are never persisted. Repositories accept resolved ids and `valueKey` values
+   only.
+10. Missing posting bitmap row means empty bitmap. Empty bitmap rows should be deleted after
+    membership removal unless the caller explicitly asks to keep a metadata-only row.
+11. `price` and `in_stock` are virtual facets. Do not create generic `listing_posting_bitmap` rows
+    for them.
 12. `product_doc_id` and `variant_doc_id` are never reused after deletion.
 
 ## Target file structure
@@ -122,9 +116,8 @@ services/listing/src/repositories/
     ProductTitleBm25SearchIndexRepository.ts
 ```
 
-`listingRepositoryTypes.ts` contains shared input DTOs, literal unions and
-constants. The repository files import Drizzle models from
-`../models/index.js`.
+`listingRepositoryTypes.ts` contains shared input DTOs, literal unions and constants. The repository
+files import Drizzle models from `../models/index.js`.
 
 ## Shared types
 
@@ -133,12 +126,7 @@ export type ProductEntityType = "product";
 export type ListingStatus = "published" | "draft";
 export type PostingEntityType = "product" | "variant";
 
-export type PostingField =
-  | "category"
-  | "vendor"
-  | "facet"
-  | "variant_product"
-  | string;
+export type PostingField = "category" | "vendor" | "facet" | "variant_product" | string;
 
 export interface PostingKeyInput {
   entityType: PostingEntityType;
@@ -265,8 +253,8 @@ export const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 export const DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE = 4096;
 ```
 
-The projection block size must be defined in one place. Initial block `0` covers
-variant doc ids `[1, 4097)`, block `1` covers `[4097, 8193)`, and so on:
+The projection block size must be defined in one place. Initial block `0` covers variant doc ids
+`[1, 4097)`, block `1` covers `[4097, 8193)`, and so on:
 
 ```ts
 blockId = Math.floor((variantDocId - 1) / blockSize);
@@ -294,15 +282,15 @@ export class Repository {
 }
 ```
 
-`Repository.create({ db })` creates one shared `TransactionManager` and passes it
-to every repository instance.
+`Repository.create({ db })` creates one shared `TransactionManager` and passes it to every
+repository instance.
 
 ## Transaction strategy
 
 Single-row `find` and `exists` methods are read-only.
 
-Single-row `upsert`, `update`, `delete` methods can run inside or outside a
-larger transaction, but must still use `this.connection`.
+Single-row `upsert`, `update`, `delete` methods can run inside or outside a larger transaction, but
+must still use `this.connection`.
 
 Multi-step methods must be transactional:
 
@@ -375,13 +363,11 @@ class ListingDocIdAllocatorRepository extends BaseRepository {
 
 - `ensureAllocatorRow()` uses `insert ... on conflict do nothing`.
 - `lockAllocatorRow()` selects the allocator row with `FOR UPDATE`.
-- Allocation reads existing doc ids from
-  `product_listing_index` / `variant_listing_index` first.
+- Allocation reads existing doc ids from `product_listing_index` / `variant_listing_index` first.
 - Only missing canonical ids receive new doc ids.
 - Allocation increments counters in the same transaction after ids are assigned.
 - Deleted ids are not returned to the allocator.
-- `updateCounters` is not used for normal sync except internal allocation and
-  repair tooling.
+- `updateCounters` is not used for normal sync except internal allocation and repair tooling.
 
 ### Acceptance
 
@@ -393,8 +379,7 @@ class ListingDocIdAllocatorRepository extends BaseRepository {
 
 Table: `listing.product_listing_index`.
 
-Purpose: source/debug listing row for product-level state and stable
-`product_doc_id`.
+Purpose: source/debug listing row for product-level state and stable `product_doc_id`.
 
 ### Methods
 
@@ -414,16 +399,24 @@ class ProductListingIndexRepository extends BaseRepository {
     productCreatedAt: string;
     productUpdatedAt: string;
   }): Promise<ProductListingIndex>;
-  ensureBootstrapRows(rows: readonly ProductListingIndexBootstrapInput[]): Promise<ProductListingIndex[]>;
+  ensureBootstrapRows(
+    rows: readonly ProductListingIndexBootstrapInput[],
+  ): Promise<ProductListingIndex[]>;
 
   upsert(input: ProductListingIndexUpsertInput): Promise<ProductListingIndex>;
   upsertMany(rows: readonly ProductListingIndexUpsertInput[]): Promise<ProductListingIndex[]>;
 
-  update(productId: string, patch: ProductListingIndexPatchInput): Promise<ProductListingIndex | null>;
-  updateStockAggregate(productId: string, input: {
-    inStock: boolean;
-    totalStock: number;
-  }): Promise<ProductListingIndex | null>;
+  update(
+    productId: string,
+    patch: ProductListingIndexPatchInput,
+  ): Promise<ProductListingIndex | null>;
+  updateStockAggregate(
+    productId: string,
+    input: {
+      inStock: boolean;
+      totalStock: number;
+    },
+  ): Promise<ProductListingIndex | null>;
 
   delete(productId: string): Promise<boolean>;
   deleteByProductIds(productIds: readonly string[]): Promise<number>;
@@ -433,9 +426,8 @@ class ProductListingIndexRepository extends BaseRepository {
 
 ### Bootstrap row rules
 
-`ensureBootstrapRows` exists for variant sync, because
-`variant_listing_index` references parent product listing rows. Bootstrap rows
-must be safe placeholders:
+`ensureBootstrapRows` exists for variant sync, because `variant_listing_index` references parent
+product listing rows. Bootstrap rows must be safe placeholders:
 
 - `storeId = this.storeId`;
 - allocated `productDocId`;
@@ -452,16 +444,15 @@ Final product sync overwrites the bootstrap row.
 - Conflict target follows the table key: `product_id`.
 - Insert sets `storeId`, `indexedAt` and `updatedAt`.
 - Update never changes `productDocId`.
-- Update sets product state, aggregate stock fields, `indexedAt` and
-  `updatedAt`.
+- Update sets product state, aggregate stock fields, `indexedAt` and `updatedAt`.
 - All `find/update/delete` predicates include `store_id = this.storeId`.
 
 ### Acceptance
 
-- No raw `tag_handles`, `feature_value_handles`, `category_handles` or other
-  source handles are accepted.
-- `delete` removes the product row and lets local dependent rows cascade where
-  FK exists. Posting memberships still need explicit removal before delete.
+- No raw `tag_handles`, `feature_value_handles`, `category_handles` or other source handles are
+  accepted.
+- `delete` removes the product row and lets local dependent rows cascade where FK exists. Posting
+  memberships still need explicit removal before delete.
 
 ## `ProductListingPriceIndexRepository`
 
@@ -476,14 +467,22 @@ class ProductListingPriceIndexRepository extends BaseRepository {
   exists(productId: string, currency: string): Promise<boolean>;
   find(productId: string, currency: string): Promise<ProductListingPriceIndex | null>;
   getByProductId(productId: string): Promise<ProductListingPriceIndex[]>;
-  getByProductIds(productIds: readonly string[], currencies?: readonly string[]): Promise<ProductListingPriceIndex[]>;
+  getByProductIds(
+    productIds: readonly string[],
+    currencies?: readonly string[],
+  ): Promise<ProductListingPriceIndex[]>;
   count(): Promise<number>;
 
   upsert(row: ProductListingPriceRowInput): Promise<ProductListingPriceIndex>;
   upsertMany(rows: readonly ProductListingPriceRowInput[]): Promise<ProductListingPriceIndex[]>;
 
-  replaceForProduct(productId: string, rows: readonly ProductListingPriceRowInput[]): Promise<ProductListingPriceIndex[]>;
-  replaceForProducts(rowsByProductId: ReadonlyMap<string, readonly ProductListingPriceRowInput[]>): Promise<ProductListingPriceIndex[]>;
+  replaceForProduct(
+    productId: string,
+    rows: readonly ProductListingPriceRowInput[],
+  ): Promise<ProductListingPriceIndex[]>;
+  replaceForProducts(
+    rowsByProductId: ReadonlyMap<string, readonly ProductListingPriceRowInput[]>,
+  ): Promise<ProductListingPriceIndex[]>;
 
   delete(productId: string, currency: string): Promise<boolean>;
   deleteByProductId(productId: string): Promise<number>;
@@ -493,13 +492,12 @@ class ProductListingPriceIndexRepository extends BaseRepository {
 
 ### Replace rules
 
-- `replaceForProduct` deletes current rows for the product in current project,
-  then inserts the provided rows.
+- `replaceForProduct` deletes current rows for the product in current project, then inserts the
+  provided rows.
 - Callers must pass one row per enabled currency.
-- No priced in-stock variants means `hasPrice = false`,
-  `minPriceMinor = null`, `maxPriceMinor = null`.
-- `hasPrice = true` requires non-null non-negative min/max and
-  `maxPriceMinor >= minPriceMinor`.
+- No priced in-stock variants means `hasPrice = false`, `minPriceMinor = null`,
+  `maxPriceMinor = null`.
+- `hasPrice = true` requires non-null non-negative min/max and `maxPriceMinor >= minPriceMinor`.
 
 ### Acceptance
 
@@ -510,8 +508,7 @@ class ProductListingPriceIndexRepository extends BaseRepository {
 
 Table: `listing.variant_listing_index`.
 
-Purpose: source/debug listing row for variant-level stock and stable
-`variant_doc_id`.
+Purpose: source/debug listing row for variant-level stock and stable `variant_doc_id`.
 
 ### Methods
 
@@ -530,11 +527,17 @@ class VariantListingIndexRepository extends BaseRepository {
   upsert(row: VariantListingIndexUpsertInput): Promise<VariantListingIndex>;
   upsertMany(rows: readonly VariantListingIndexUpsertInput[]): Promise<VariantListingIndex[]>;
 
-  update(variantId: string, patch: VariantListingIndexPatchInput): Promise<VariantListingIndex | null>;
-  updateStock(variantId: string, input: {
-    inStock: boolean;
-    totalStock: number;
-  }): Promise<VariantListingIndex | null>;
+  update(
+    variantId: string,
+    patch: VariantListingIndexPatchInput,
+  ): Promise<VariantListingIndex | null>;
+  updateStock(
+    variantId: string,
+    input: {
+      inStock: boolean;
+      totalStock: number;
+    },
+  ): Promise<VariantListingIndex | null>;
 
   delete(variantId: string): Promise<boolean>;
   deleteByVariantIds(variantIds: readonly string[]): Promise<number>;
@@ -542,10 +545,15 @@ class VariantListingIndexRepository extends BaseRepository {
   deleteByProductIds(productIds: readonly string[]): Promise<number>;
 
   getActiveVariantIdsByProductIds(productIds: readonly string[]): Promise<Map<string, string[]>>;
-  getStockAggregatesByProductIds(productIds: readonly string[]): Promise<Map<string, {
-    inStock: boolean;
-    totalStock: number;
-  }>>;
+  getStockAggregatesByProductIds(productIds: readonly string[]): Promise<
+    Map<
+      string,
+      {
+        inStock: boolean;
+        totalStock: number;
+      }
+    >
+  >;
 }
 ```
 
@@ -554,9 +562,8 @@ class VariantListingIndexRepository extends BaseRepository {
 - Conflict target follows the table key: `variant_id`.
 - Insert sets `storeId`, `indexedAt`, `updatedAt`.
 - Update never changes `variantDocId`.
-- Update may change parent `productId` / `productDocId` only when the upstream
-  variant parent changed and caller also refreshes projection blocks and
-  `variant_product` posting memberships.
+- Update may change parent `productId` / `productDocId` only when the upstream variant parent
+  changed and caller also refreshes projection blocks and `variant_product` posting memberships.
 - `totalStock` must be non-negative.
 
 ### Aggregate rules
@@ -566,8 +573,8 @@ class VariantListingIndexRepository extends BaseRepository {
 - `inStock = bool_or(variant.in_stock)`;
 - `totalStock = sum(variant.total_stock)`.
 
-These aggregate helpers are write-side support for product sync, not storefront
-listing query methods.
+These aggregate helpers are write-side support for product sync, not storefront listing query
+methods.
 
 ## `VariantListingPriceIndexRepository`
 
@@ -582,15 +589,26 @@ class VariantListingPriceIndexRepository extends BaseRepository {
   exists(variantId: string, currency: string): Promise<boolean>;
   find(variantId: string, currency: string): Promise<VariantListingPriceIndex | null>;
   getByVariantId(variantId: string): Promise<VariantListingPriceIndex[]>;
-  getByVariantIds(variantIds: readonly string[], currencies?: readonly string[]): Promise<VariantListingPriceIndex[]>;
-  getByProductIds(productIds: readonly string[], currencies?: readonly string[]): Promise<VariantListingPriceIndex[]>;
+  getByVariantIds(
+    variantIds: readonly string[],
+    currencies?: readonly string[],
+  ): Promise<VariantListingPriceIndex[]>;
+  getByProductIds(
+    productIds: readonly string[],
+    currencies?: readonly string[],
+  ): Promise<VariantListingPriceIndex[]>;
   count(): Promise<number>;
 
   upsert(row: VariantListingPriceRowInput): Promise<VariantListingPriceIndex>;
   upsertMany(rows: readonly VariantListingPriceRowInput[]): Promise<VariantListingPriceIndex[]>;
 
-  replaceForVariant(variantId: string, rows: readonly VariantListingPriceRowInput[]): Promise<VariantListingPriceIndex[]>;
-  replaceForVariants(rowsByVariantId: ReadonlyMap<string, readonly VariantListingPriceRowInput[]>): Promise<VariantListingPriceIndex[]>;
+  replaceForVariant(
+    variantId: string,
+    rows: readonly VariantListingPriceRowInput[],
+  ): Promise<VariantListingPriceIndex[]>;
+  replaceForVariants(
+    rowsByVariantId: ReadonlyMap<string, readonly VariantListingPriceRowInput[]>,
+  ): Promise<VariantListingPriceIndex[]>;
 
   delete(variantId: string, currency: string): Promise<boolean>;
   deleteByVariantId(variantId: string): Promise<number>;
@@ -598,22 +616,23 @@ class VariantListingPriceIndexRepository extends BaseRepository {
   deleteByProductId(productId: string): Promise<number>;
   deleteByProductIds(productIds: readonly string[]): Promise<number>;
 
-  getPriceAggregatesByProductIds(productIds: readonly string[], currencies: readonly string[]): Promise<Map<string, ProductListingPriceRowInput[]>>;
+  getPriceAggregatesByProductIds(
+    productIds: readonly string[],
+    currencies: readonly string[],
+  ): Promise<Map<string, ProductListingPriceRowInput[]>>;
 }
 ```
 
 ### Replace rules
 
-- `replaceForVariant` deletes current rows for one variant and inserts provided
-  rows.
+- `replaceForVariant` deletes current rows for one variant and inserts provided rows.
 - Callers pass one row per enabled currency.
 - No price means `hasPrice = false`, `priceMinor = null`.
 - `hasPrice = true` requires non-null non-negative `priceMinor`.
 
 ### Product aggregate rules
 
-`getPriceAggregatesByProductIds` joins `variant_listing_index` and
-`variant_listing_price_index`:
+`getPriceAggregatesByProductIds` joins `variant_listing_index` and `variant_listing_price_index`:
 
 - only current project rows;
 - only `variant_listing_index.in_stock = true`;
@@ -621,15 +640,13 @@ class VariantListingPriceIndexRepository extends BaseRepository {
 - group by product and currency;
 - return min/max for product aggregate rows.
 
-This method supports product price row writes. It is not a storefront price
-filter query.
+This method supports product price row writes. It is not a storefront price filter query.
 
 ## `ListingPostingBitmapRepository`
 
 Table: `listing.listing_posting_bitmap`.
 
-Purpose: write and maintain roaring bitmap rows keyed by
-`entity_type + field + value_key`.
+Purpose: write and maintain roaring bitmap rows keyed by `entity_type + field + value_key`.
 
 ### Methods
 
@@ -717,8 +734,7 @@ After removal, delete rows where `cardinality = 0`.
 
 ### Membership replacement rules
 
-`replaceProductMemberships` and `replaceVariantMemberships` operate per field.
-They:
+`replaceProductMemberships` and `replaceVariantMemberships` operate per field. They:
 
 1. load current posting keys where `bitmap @> docId`;
 2. optionally restrict current keys by `valueKeyPrefixes`;
@@ -742,13 +758,13 @@ For full product facet refresh, omit prefixes and use `field = "facet"`.
   `valueKey = "<facet_id>:<facet_value_id>"`.
 - Variant option facets: `entityType = "variant"`, `field = "facet"`,
   `valueKey = "<facet_id>:<facet_value_id>"`.
-- Variant parent mapping: `entityType = "variant"`,
-  `field = "variant_product"`, `valueKey = "<product_doc_id>"`.
+- Variant parent mapping: `entityType = "variant"`, `field = "variant_product"`,
+  `valueKey = "<product_doc_id>"`.
 
 ### Acceptance
 
-- No repository method accepts `product_id`, `variant_id`, `facet_id` or
-  `facet_value_id` columns for posting row keys.
+- No repository method accepts `product_id`, `variant_id`, `facet_id` or `facet_value_id` columns
+  for posting row keys.
 - `cardinality` always equals `rb_cardinality(bitmap)` after write.
 - Missing posting row is a valid empty state.
 
@@ -772,8 +788,13 @@ class ListingPostingProductSortRepository extends BaseRepository {
   upsert(row: ProductSortRowInput): Promise<ListingPostingProductSort>;
   upsertMany(rows: readonly ProductSortRowInput[]): Promise<ListingPostingProductSort[]>;
 
-  replaceForProduct(productDocId: number, rows: readonly ProductSortRowInput[]): Promise<ListingPostingProductSort[]>;
-  replaceForProducts(rowsByProductDocId: ReadonlyMap<number, readonly ProductSortRowInput[]>): Promise<ListingPostingProductSort[]>;
+  replaceForProduct(
+    productDocId: number,
+    rows: readonly ProductSortRowInput[],
+  ): Promise<ListingPostingProductSort[]>;
+  replaceForProducts(
+    rowsByProductDocId: ReadonlyMap<number, readonly ProductSortRowInput[]>,
+  ): Promise<ListingPostingProductSort[]>;
 
   delete(key: ProductSortKeyInput): Promise<boolean>;
   deleteByProductDocId(productDocId: number): Promise<number>;
@@ -801,26 +822,24 @@ interface ProductSortKeyInput {
 - `locale` defaults to empty string.
 - `currency` defaults to empty string.
 - `manualScopeId` defaults to zero UUID.
-- `replaceForProduct` deletes current sort rows for product doc id and inserts
-  the provided derived rows.
-- Sort rows should be written only for expected sort dimensions. Do not add one
-  generic catch-all sort row.
+- `replaceForProduct` deletes current sort rows for product doc id and inserts the provided derived
+  rows.
+- Sort rows should be written only for expected sort dimensions. Do not add one generic catch-all
+  sort row.
 - `boolValue` stores availability bucket for hot storefront sorts.
 
 ### Acceptance
 
-- Repository writes rows for sort indexes only. It does not expose
-  `collectProductPage`.
-- Product sort rows are deleted before the parent product listing row is
-  deleted if the caller needs explicit cleanup. FK cascade also removes them
-  when parent row is deleted.
+- Repository writes rows for sort indexes only. It does not expose `collectProductPage`.
+- Product sort rows are deleted before the parent product listing row is deleted if the caller needs
+  explicit cleanup. FK cascade also removes them when parent row is deleted.
 
 ## `ListingPostingVariantPriceRepository`
 
 Table: `listing.listing_posting_variant_price`.
 
-Purpose: write runtime typed price rows for price range filtering and matched
-price sort. It does not execute price page collection.
+Purpose: write runtime typed price rows for price range filtering and matched price sort. It does
+not execute price page collection.
 
 ### Methods
 
@@ -837,9 +856,17 @@ class ListingPostingVariantPriceRepository extends BaseRepository {
   upsert(row: RuntimeVariantPriceRowInput): Promise<ListingPostingVariantPrice>;
   upsertMany(rows: readonly RuntimeVariantPriceRowInput[]): Promise<ListingPostingVariantPrice[]>;
 
-  replaceForVariant(variantDocId: number, rows: readonly RuntimeVariantPriceRowInput[]): Promise<ListingPostingVariantPrice[]>;
-  replaceForVariants(rowsByVariantDocId: ReadonlyMap<number, readonly RuntimeVariantPriceRowInput[]>): Promise<ListingPostingVariantPrice[]>;
-  replaceForProductDocId(productDocId: number, rows: readonly RuntimeVariantPriceRowInput[]): Promise<ListingPostingVariantPrice[]>;
+  replaceForVariant(
+    variantDocId: number,
+    rows: readonly RuntimeVariantPriceRowInput[],
+  ): Promise<ListingPostingVariantPrice[]>;
+  replaceForVariants(
+    rowsByVariantDocId: ReadonlyMap<number, readonly RuntimeVariantPriceRowInput[]>,
+  ): Promise<ListingPostingVariantPrice[]>;
+  replaceForProductDocId(
+    productDocId: number,
+    rows: readonly RuntimeVariantPriceRowInput[],
+  ): Promise<ListingPostingVariantPrice[]>;
 
   delete(currency: string, variantDocId: number): Promise<boolean>;
   deleteByVariantDocId(variantDocId: number): Promise<number>;
@@ -855,10 +882,10 @@ class ListingPostingVariantPriceRepository extends BaseRepository {
 - Rows exist only for variants that are active, in stock and priced.
 - Repository input should already be filtered by builder/script.
 - Repository still validates `priceMinor >= 0`.
-- `replaceForVariant` deletes all current runtime price rows for the variant doc
-  id and inserts the new rows.
-- Out-of-stock or unpriced variant means an empty row list and therefore delete
-  all runtime rows for that variant.
+- `replaceForVariant` deletes all current runtime price rows for the variant doc id and inserts the
+  new rows.
+- Out-of-stock or unpriced variant means an empty row list and therefore delete all runtime rows for
+  that variant.
 
 ### Acceptance
 
@@ -869,8 +896,7 @@ class ListingPostingVariantPriceRepository extends BaseRepository {
 
 Table: `listing.listing_posting_variant_storeion_block`.
 
-Purpose: write projection helper blocks that map broad variant bitmap matches to
-product bitmaps.
+Purpose: write projection helper blocks that map broad variant bitmap matches to product bitmaps.
 
 ### Methods
 
@@ -879,20 +905,33 @@ class ListingPostingVariantProjectionBlockRepository extends BaseRepository {
   exists(blockId: number): Promise<boolean>;
   findByBlockId(blockId: number): Promise<ListingPostingVariantProjectionBlock | null>;
   getByBlockIds(blockIds: readonly number[]): Promise<ListingPostingVariantProjectionBlock[]>;
-  getBlocksForVariantDocIds(variantDocIds: readonly number[], blockSize?: number): Promise<ListingPostingVariantProjectionBlock[]>;
+  getBlocksForVariantDocIds(
+    variantDocIds: readonly number[],
+    blockSize?: number,
+  ): Promise<ListingPostingVariantProjectionBlock[]>;
   count(): Promise<number>;
 
   upsertBlock(row: ProjectionBlockRowInput): Promise<ListingPostingVariantProjectionBlock>;
-  upsertBlocks(rows: readonly ProjectionBlockRowInput[]): Promise<ListingPostingVariantProjectionBlock[]>;
-  replaceBlocks(rows: readonly ProjectionBlockRowInput[]): Promise<ListingPostingVariantProjectionBlock[]>;
+  upsertBlocks(
+    rows: readonly ProjectionBlockRowInput[],
+  ): Promise<ListingPostingVariantProjectionBlock[]>;
+  replaceBlocks(
+    rows: readonly ProjectionBlockRowInput[],
+  ): Promise<ListingPostingVariantProjectionBlock[]>;
 
   deleteBlock(blockId: number): Promise<boolean>;
   deleteBlocks(blockIds: readonly number[]): Promise<number>;
   deleteAllForCurrentProject(): Promise<number>;
 
   getBlockIdsForVariantDocIds(variantDocIds: readonly number[], blockSize?: number): number[];
-  refreshBlocksForVariantDocIds(variantDocIds: readonly number[], blockSize?: number): Promise<ListingPostingVariantProjectionBlock[]>;
-  refreshBlocksForProductDocIds(productDocIds: readonly number[], blockSize?: number): Promise<ListingPostingVariantProjectionBlock[]>;
+  refreshBlocksForVariantDocIds(
+    variantDocIds: readonly number[],
+    blockSize?: number,
+  ): Promise<ListingPostingVariantProjectionBlock[]>;
+  refreshBlocksForProductDocIds(
+    productDocIds: readonly number[],
+    blockSize?: number,
+  ): Promise<ListingPostingVariantProjectionBlock[]>;
   rebuildProjectBlocks(blockSize?: number): Promise<ListingPostingVariantProjectionBlock[]>;
 }
 ```
@@ -902,8 +941,7 @@ class ListingPostingVariantProjectionBlockRepository extends BaseRepository {
 `refreshBlocksForVariantDocIds`:
 
 1. derive touched `blockId` values from `variantDocIds`;
-2. for each block, read current `variant_listing_index` rows in
-   `[variantDocFrom, variantDocTo)`;
+2. for each block, read current `variant_listing_index` rows in `[variantDocFrom, variantDocTo)`;
 3. build `variantBitmap = rb_build_agg(variant_doc_id)`;
 4. build `productBitmap = rb_build_agg(product_doc_id)`;
 5. set counts from `rb_cardinality`;
@@ -913,8 +951,8 @@ class ListingPostingVariantProjectionBlockRepository extends BaseRepository {
 `refreshBlocksForProductDocIds` finds current variants for products, then calls
 `refreshBlocksForVariantDocIds`.
 
-`rebuildProjectBlocks` deletes current project blocks and rebuilds them from
-all current `variant_listing_index` rows.
+`rebuildProjectBlocks` deletes current project blocks and rebuilds them from all current
+`variant_listing_index` rows.
 
 ### Acceptance
 
@@ -926,8 +964,7 @@ all current `variant_listing_index` rows.
 
 Table: `listing.product_title_bm25_search_index`.
 
-Purpose: write localized product title rows for BM25. It does not execute search
-queries.
+Purpose: write localized product title rows for BM25. It does not execute search queries.
 
 ### Methods
 
@@ -936,15 +973,23 @@ class ProductTitleBm25SearchIndexRepository extends BaseRepository {
   exists(productId: string, locale: string): Promise<boolean>;
   find(productId: string, locale: string): Promise<ProductTitleBm25SearchIndex | null>;
   getByProductId(productId: string): Promise<ProductTitleBm25SearchIndex[]>;
-  getByProductIds(productIds: readonly string[], locales?: readonly string[]): Promise<ProductTitleBm25SearchIndex[]>;
+  getByProductIds(
+    productIds: readonly string[],
+    locales?: readonly string[],
+  ): Promise<ProductTitleBm25SearchIndex[]>;
   getLocalesByProductId(productId: string): Promise<string[]>;
   count(): Promise<number>;
 
   upsert(row: ProductTitleBm25RowInput): Promise<ProductTitleBm25SearchIndex>;
   upsertMany(rows: readonly ProductTitleBm25RowInput[]): Promise<ProductTitleBm25SearchIndex[]>;
 
-  replaceForProduct(productId: string, rows: readonly ProductTitleBm25RowInput[]): Promise<ProductTitleBm25SearchIndex[]>;
-  replaceForProducts(rowsByProductId: ReadonlyMap<string, readonly ProductTitleBm25RowInput[]>): Promise<ProductTitleBm25SearchIndex[]>;
+  replaceForProduct(
+    productId: string,
+    rows: readonly ProductTitleBm25RowInput[],
+  ): Promise<ProductTitleBm25SearchIndex[]>;
+  replaceForProducts(
+    rowsByProductId: ReadonlyMap<string, readonly ProductTitleBm25RowInput[]>,
+  ): Promise<ProductTitleBm25SearchIndex[]>;
 
   delete(productId: string, locale: string): Promise<boolean>;
   deleteByProductId(productId: string): Promise<number>;
@@ -960,8 +1005,7 @@ class ProductTitleBm25SearchIndexRepository extends BaseRepository {
 - Update preserves existing `searchId`.
 - Conflict target is `(product_id, locale)`.
 - Row contains title only as searchable text.
-- Do not persist description, SEO text, handle, vendor, tag, feature, option or
-  category text.
+- Do not persist description, SEO text, handle, vendor, tag, feature, option or category text.
 - Deleted/missing product means `deleteByProductId`.
 - Locale removal means delete rows for locales no longer enabled.
 
@@ -972,8 +1016,7 @@ class ProductTitleBm25SearchIndexRepository extends BaseRepository {
 
 ## Cross-table delete flows
 
-Repositories expose small delete methods, but scripts must call them in safe
-order.
+Repositories expose small delete methods, but scripts must call them in safe order.
 
 ### Product delete
 
@@ -1003,8 +1046,8 @@ order.
 
 ## Error handling and validation
 
-Repositories should throw project errors before hitting DB constraints when the
-input is structurally invalid:
+Repositories should throw project errors before hitting DB constraints when the input is
+structurally invalid:
 
 - empty id lists are no-op;
 - duplicate rows in one bulk input are collapsed or rejected consistently;
@@ -1022,15 +1065,14 @@ DB constraint errors are still possible and should not be swallowed.
 - Empty input returns empty result/counter and does not execute SQL.
 - Bulk writes should chunk large inputs to avoid parameter limits.
 - Bulk replace methods must delete and insert in one transaction.
-- Result ordering should match input ordering when practical. If not practical,
-  document that rows are returned in DB order.
-- `rowsByProductId` / `rowsByVariantId` maps must not include rows whose id
-  differs from the map key.
+- Result ordering should match input ordering when practical. If not practical, document that rows
+  are returned in DB order.
+- `rowsByProductId` / `rowsByVariantId` maps must not include rows whose id differs from the map
+  key.
 
 ## Observability hooks
 
-Repositories do not own structured business logging, but return enough counters
-for scripts:
+Repositories do not own structured business logging, but return enough counters for scripts:
 
 ```ts
 interface PostingMembershipReplaceResult {
@@ -1054,20 +1096,17 @@ Scripts can log these counters together with workflow id and sync reason.
 1. Add `services/listing/src/repositories/listing/listingRepositoryTypes.ts`.
 2. Add listing repository barrel `services/listing/src/repositories/listing/index.ts`.
 3. Implement and register `ListingDocIdAllocatorRepository`.
-4. Implement `ProductListingIndexRepository` and
-   `VariantListingIndexRepository`.
-5. Implement `ProductListingPriceIndexRepository` and
-   `VariantListingPriceIndexRepository`.
-6. Implement `ListingPostingBitmapRepository` with raw SQL helpers for roaring
-   bitmap mutation.
+4. Implement `ProductListingIndexRepository` and `VariantListingIndexRepository`.
+5. Implement `ProductListingPriceIndexRepository` and `VariantListingPriceIndexRepository`.
+6. Implement `ListingPostingBitmapRepository` with raw SQL helpers for roaring bitmap mutation.
 7. Implement `ListingPostingProductSortRepository`.
 8. Implement `ListingPostingVariantPriceRepository`.
 9. Implement `ListingPostingVariantProjectionBlockRepository`.
 10. Implement `ProductTitleBm25SearchIndexRepository`.
 11. Update `Repository.ts` constructor and `create`.
-12. Add repository-level unit coverage only when project testing rules allow it.
-    For normal verification in this project, do not run standalone `test` or
-    `tsc`; use build when a code version needs verification.
+12. Add repository-level unit coverage only when project testing rules allow it. For normal
+    verification in this project, do not run standalone `test` or `tsc`; use build when a code
+    version needs verification.
 
 ## Acceptance checklist
 
@@ -1079,20 +1118,15 @@ Scripts can log these counters together with workflow id and sync reason.
 - [ ] Public write DTOs do not accept user-provided `storeId`.
 - [ ] Doc id allocator locks the allocator row and never reuses deleted ids.
 - [ ] Product and variant listing upserts preserve stable doc ids.
-- [ ] Product and variant price replace methods preserve empty currency rows
-      with `hasPrice = false`.
-- [ ] Posting bitmap writes update `bitmap`, `cardinality` and `updatedAt`
-      together.
-- [ ] Posting membership replacement can remove old memberships and add new ones
-      in one transaction.
+- [ ] Product and variant price replace methods preserve empty currency rows with
+      `hasPrice = false`.
+- [ ] Posting bitmap writes update `bitmap`, `cardinality` and `updatedAt` together.
+- [ ] Posting membership replacement can remove old memberships and add new ones in one transaction.
 - [ ] Empty posting rows are deleted or consistently treated as missing.
 - [ ] Product sort repository does not expose page collector methods.
 - [ ] Runtime variant price repository writes only priced in-stock variants.
-- [ ] Projection block repository can refresh touched blocks and rebuild current
-      project blocks.
-- [ ] BM25 title repository preserves `searchId` on upsert and does not expose
-      search query methods.
-- [ ] Product/variant delete flows remove posting memberships before deleting
-      parent listing rows.
-- [ ] No final storefront listing query implementation is added as part of this
-      repository layer scope.
+- [ ] Projection block repository can refresh touched blocks and rebuild current project blocks.
+- [ ] BM25 title repository preserves `searchId` on upsert and does not expose search query methods.
+- [ ] Product/variant delete flows remove posting memberships before deleting parent listing rows.
+- [ ] No final storefront listing query implementation is added as part of this repository layer
+      scope.

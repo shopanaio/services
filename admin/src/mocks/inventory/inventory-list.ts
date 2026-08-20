@@ -48,17 +48,19 @@ export const mockInventoryList: IInventoryListItem[] = products.flatMap(
       const reserved = Math.floor(Math.random() * Math.min(20, onHand - unavailable));
       const available = onHand - unavailable - reserved;
 
-      return [{
-        id: String(++itemId),
-        productName: product.name,
-        variantName: null,
-        sku: generateSku(productIndex, null),
-        onHand,
-        unavailable,
-        reserved,
-        available,
-        image: `https://picsum.photos/seed/${productIndex + 1}/40/40`,
-      }];
+      return [
+        {
+          id: String(++itemId),
+          productName: product.name,
+          variantName: null,
+          sku: generateSku(productIndex, null),
+          onHand,
+          unavailable,
+          reserved,
+          available,
+          image: `https://picsum.photos/seed/${productIndex + 1}/40/40`,
+        },
+      ];
     }
 
     return product.variants.map((variant, variantIndex) => {
@@ -79,5 +81,5 @@ export const mockInventoryList: IInventoryListItem[] = products.flatMap(
         image: `https://picsum.photos/seed/${productIndex + 1}/40/40`,
       };
     });
-  }
+  },
 );

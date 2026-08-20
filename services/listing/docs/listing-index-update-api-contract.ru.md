@@ -2,28 +2,27 @@
 
 ## Цель
 
-Документ фиксирует публичный broker API сервиса `listing`, через который
-`catalog` передает изменения, влияющие на товарный листинг.
+Документ фиксирует публичный broker API сервиса `listing`, через который `catalog` передает
+изменения, влияющие на товарный листинг.
 
-API описывает доменные snapshot-контракты sellable items, а не физическое
-устройство индекса. В контракте намеренно нет таблиц, posting lists, bitmap,
-doc ids, BM25, SQL, search engine schemas или внутренних mapping rules listing
-service.
+API описывает доменные snapshot-контракты sellable items, а не физическое устройство индекса. В
+контракте намеренно нет таблиц, posting lists, bitmap, doc ids, BM25, SQL, search engine schemas или
+внутренних mapping rules listing service.
 
 ## Границы владения
 
-| Область | Владелец | Как участвует в update API |
-| --- | --- | --- |
-| Product canonical data | `catalog` | Передается как snapshot sellable item. |
-| Variant canonical data | `catalog` | Передается внутри snapshot родительского item. |
-| Category, collection, vendor, tag assignments | `catalog` | Передаются как публичные listing dimensions. |
-| Facet handles и value handles | `catalog` | Передаются как стабильные публичные ключи фильтрации. |
-| Facet labels, ui type, swatches | `catalog` | Не передаются в update API; читаются через canonical API / federation. |
-| Listing order, filters, searchability, availability | `listing` | Вычисляются из публичного snapshot. |
-| Internal index layout | `listing` | Не является частью API. |
+| Область                                             | Владелец  | Как участвует в update API                                             |
+| --------------------------------------------------- | --------- | ---------------------------------------------------------------------- |
+| Product canonical data                              | `catalog` | Передается как snapshot sellable item.                                 |
+| Variant canonical data                              | `catalog` | Передается внутри snapshot родительского item.                         |
+| Category, collection, vendor, tag assignments       | `catalog` | Передаются как публичные listing dimensions.                           |
+| Facet handles и value handles                       | `catalog` | Передаются как стабильные публичные ключи фильтрации.                  |
+| Facet labels, ui type, swatches                     | `catalog` | Не передаются в update API; читаются через canonical API / federation. |
+| Listing order, filters, searchability, availability | `listing` | Вычисляются из публичного snapshot.                                    |
+| Internal index layout                               | `listing` | Не является частью API.                                                |
 
-Главное правило: `catalog` сообщает, что представляет собой sellable item для
-листинга. `catalog` не сообщает, как `listing` должен это индексировать.
+Главное правило: `catalog` сообщает, что представляет собой sellable item для листинга. `catalog` не
+сообщает, как `listing` должен это индексировать.
 
 ## Broker actions
 
@@ -37,8 +36,8 @@ await broker.call("listing.syncSellableItem", params);
 
 Полная замена публичного listing snapshot для одного sellable item.
 
-Используется для product create, update, publish, unpublish, variant,
-price, stock, category, vendor, tag, facet и searchable content changes.
+Используется для product create, update, publish, unpublish, variant, price, stock, category,
+vendor, tag, facet и searchable content changes.
 
 ```ts
 interface SyncSellableItemParams {
@@ -54,9 +53,9 @@ type SyncSellableItemResult = ListingUpdateResult;
 
 Удаление sellable item из листинга.
 
-Используется, когда canonical item удален или больше не должен существовать в
-read model listing service. Unpublish не обязан вызывать delete: для unpublish
-достаточно `syncSellableItem` со статусом `draft`.
+Используется, когда canonical item удален или больше не должен существовать в read model listing
+service. Unpublish не обязан вызывать delete: для unpublish достаточно `syncSellableItem` со
+статусом `draft`.
 
 ```ts
 interface DeleteSellableItemParams {
@@ -75,9 +74,8 @@ type DeleteSellableItemResult = ListingUpdateResult;
 
 Batch wrapper над `listing.syncSellableItem`.
 
-Каждый item обрабатывается независимо. Ошибка одного item не должна менять
-контракт результата для остальных items. Рекомендуемый размер batch: до 100
-items.
+Каждый item обрабатывается независимо. Ошибка одного item не должна менять контракт результата для
+остальных items. Рекомендуемый размер batch: до 100 items.
 
 ```ts
 interface SyncSellableItemsParams {
@@ -115,8 +113,8 @@ interface ListingUpdateSource {
 Правила:
 
 - `operationId` нужен для trace/log correlation.
-- `idempotencyKey` должен быть стабильным для одного и того же source update.
-  Рекомендуемый формат: `catalog:<storeId>:<entityType>:<entityId>:<revision>`.
+- `idempotencyKey` должен быть стабильным для одного и того же source update. Рекомендуемый формат:
+  `catalog:<storeId>:<entityType>:<entityId>:<revision>`.
 - `occurredAt` всегда ISO 8601.
 - `contractVersion` меняется только при breaking change публичного DTO.
 
@@ -129,13 +127,13 @@ interface ListingSellableItemRef {
 }
 ```
 
-`id` - canonical ID сущности, которой владеет `catalog`. Это не listing doc id,
-не database row id listing service и не cursor.
+`id` - canonical ID сущности, которой владеет `catalog`. Это не listing doc id, не database row id
+listing service и не cursor.
 
 ## Sellable item snapshot
 
-Snapshot всегда полный. Отсутствующее значение в массиве означает, что такого
-значения больше нет. Partial patch semantics в этом API нет.
+Snapshot всегда полный. Отсутствующее значение в массиве означает, что такого значения больше нет.
+Partial patch semantics в этом API нет.
 
 ```ts
 interface ListingSellableItemSnapshot extends ListingSellableItemRef {
@@ -175,8 +173,8 @@ interface ListingLocalizedContentSnapshot {
 }
 ```
 
-`plainDescription` передается как plain text. Rich text, HTML и editor AST не
-являются частью listing update contract.
+`plainDescription` передается как plain text. Rich text, HTML и editor AST не являются частью
+listing update contract.
 
 ### Availability
 
@@ -187,13 +185,13 @@ interface ListingAvailabilitySnapshot {
 }
 ```
 
-`availableForSale` - публичный sellable-state flag. Конкретные складские правила
-и warehouse-level данные в этот контракт не входят.
+`availableForSale` - публичный sellable-state flag. Конкретные складские правила и warehouse-level
+данные в этот контракт не входят.
 
 Listing materializer использует `availableForSale` как единственный источник
-`criterion.availability=available|unavailable`. `totalQuantity` не меняет этот
-term: quantity-zero variant с разрешённым backorder остаётся `available`.
-Broker payload не содержит и не может передать raw/encoded physical term key.
+`criterion.availability=available|unavailable`. `totalQuantity` не меняет этот term: quantity-zero
+variant с разрешённым backorder остаётся `available`. Broker payload не содержит и не может передать
+raw/encoded physical term key.
 
 ### Prices
 
@@ -210,16 +208,15 @@ interface ListingVariantPriceSnapshot {
 }
 ```
 
-Money values передаются в minor units. `currencyCode` - ISO 4217 uppercase.
-Если проект пока работает только в default currency, `catalog` передает только
-эту currency. Мультивалютность остается расширением того же публичного shape.
+Money values передаются в minor units. `currencyCode` - ISO 4217 uppercase. Если проект пока
+работает только в default currency, `catalog` передает только эту currency. Мультивалютность
+остается расширением того же публичного shape.
 
 ### Scopes
 
 ```ts
 type ListingScopeMembershipSnapshot =
-  | ListingCategoryScopeMembershipSnapshot
-  | ListingCollectionScopeMembershipSnapshot;
+  ListingCategoryScopeMembershipSnapshot | ListingCollectionScopeMembershipSnapshot;
 
 interface ListingCategoryScopeMembershipSnapshot {
   scopeType: "category";
@@ -235,9 +232,8 @@ interface ListingCollectionScopeMembershipSnapshot {
 }
 ```
 
-`manualRank` - публичная позиция item внутри scope. Формат rank принадлежит
-`catalog`; `listing` может использовать его для manual sort, но API не требует
-конкретный алгоритм сортировки.
+`manualRank` - публичная позиция item внутри scope. Формат rank принадлежит `catalog`; `listing`
+может использовать его для manual sort, но API не требует конкретный алгоритм сортировки.
 
 ### Facets
 
@@ -260,14 +256,13 @@ interface ListingFacetValueRef {
 }
 ```
 
-Facet contract использует публичные `handle` values, которые могут быть
-использованы в listing filter input. Labels, translations, swatches, source
-child values, ui type и sort presentation metadata не передаются здесь.
+Facet contract использует публичные `handle` values, которые могут быть использованы в listing
+filter input. Labels, translations, swatches, source child values, ui type и sort presentation
+metadata не передаются здесь.
 
-Если изменился только label, translation, swatch или ui type facet value,
-`catalog` не вызывает `listing.syncSellableItem`. Если изменился public handle
-facet/value или membership item в facet value, `catalog` вызывает sync для
-затронутых items.
+Если изменился только label, translation, swatch или ui type facet value, `catalog` не вызывает
+`listing.syncSellableItem`. Если изменился public handle facet/value или membership item в facet
+value, `catalog` вызывает sync для затронутых items.
 
 ### Variants
 
@@ -282,14 +277,13 @@ interface ListingVariantSnapshot {
 }
 ```
 
-Variant snapshot содержит только данные, которые влияют на variant-level
-filtering, price filtering, availability или matched variant selection.
-Canonical SKU, barcode, media, dimensions и inventory rows не входят в
-listing update API, если они не влияют на публичный listing behavior.
+Variant snapshot содержит только данные, которые влияют на variant-level filtering, price filtering,
+availability или matched variant selection. Canonical SKU, barcode, media, dimensions и inventory
+rows не входят в listing update API, если они не влияют на публичный listing behavior.
 
-Только `status=active` materializes в `system.state=indexable`, criterion/OPTION
-terms и runtime variant price index. `inactive`/`archived` source values могут
-присутствовать в snapshot, но не попадают в runtime index.
+Только `status=active` materializes в `system.state=indexable`, criterion/OPTION terms и runtime
+variant price index. `inactive`/`archived` source values могут присутствовать в snapshot, но не
+попадают в runtime index.
 
 ## Result contract
 
@@ -325,8 +319,7 @@ Status semantics:
 - `storeId` обязателен и всегда принадлежит source project/store.
 - `sourceSequence` должен монотонно расти для одного `storeId + entityType + id`.
 - `content.defaultLocale` обязателен.
-- `content.translations[defaultLocale].title` должен быть непустым для
-  `published` item.
+- `content.translations[defaultLocale].title` должен быть непустым для `published` item.
 - `currencyCode` uppercase ISO 4217.
 - Amount fields are integer minor units or `null`.
 - Duplicate variant IDs inside one snapshot are invalid.
@@ -338,8 +331,8 @@ Status semantics:
 
 ## Error contract
 
-Validation and contract errors should be stable enough for callers to log,
-retry or fail the producer workflow.
+Validation and contract errors should be stable enough for callers to log, retry or fail the
+producer workflow.
 
 ```ts
 interface ListingUpdateError {
@@ -359,25 +352,25 @@ Retry rules:
 
 - `TRANSIENT_UNAVAILABLE` is retryable.
 - `INTERNAL_ERROR` may be retryable depending on broker/runtime metadata.
-- `VALIDATION_FAILED`, `PROJECT_MISMATCH` and
-  `UNSUPPORTED_CONTRACT_VERSION` are not retryable without producer changes.
+- `VALIDATION_FAILED`, `PROJECT_MISMATCH` and `UNSUPPORTED_CONTRACT_VERSION` are not retryable
+  without producer changes.
 
 ## Catalog call matrix
 
-| Catalog change | Required listing action |
-| --- | --- |
-| Product created | `listing.syncSellableItem` |
-| Title, description, SEO text or keywords changed | `listing.syncSellableItem` |
-| Published/unpublished/archive status changed | `listing.syncSellableItem` |
-| Product deleted | `listing.deleteSellableItem` |
-| Variant created/updated/deleted | `listing.syncSellableItem` for parent item |
-| Price changed | `listing.syncSellableItem` for parent item |
-| Stock availability changed | `listing.syncSellableItem` for parent item |
-| Category/collection membership changed | `listing.syncSellableItem` |
+| Catalog change                                     | Required listing action                                                      |
+| -------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Product created                                    | `listing.syncSellableItem`                                                   |
+| Title, description, SEO text or keywords changed   | `listing.syncSellableItem`                                                   |
+| Published/unpublished/archive status changed       | `listing.syncSellableItem`                                                   |
+| Product deleted                                    | `listing.deleteSellableItem`                                                 |
+| Variant created/updated/deleted                    | `listing.syncSellableItem` for parent item                                   |
+| Price changed                                      | `listing.syncSellableItem` for parent item                                   |
+| Stock availability changed                         | `listing.syncSellableItem` for parent item                                   |
+| Category/collection membership changed             | `listing.syncSellableItem`                                                   |
 | Manual position inside category/collection changed | `listing.syncSellableItem` or `listing.syncSellableItems` for affected items |
-| Vendor/tag/facet membership changed | `listing.syncSellableItem` |
-| Facet label/translation/swatch/ui type changed | No listing update; canonical read API owns presentation |
-| Facet handle/value handle changed | `listing.syncSellableItem` or batch sync for affected items |
+| Vendor/tag/facet membership changed                | `listing.syncSellableItem`                                                   |
+| Facet label/translation/swatch/ui type changed     | No listing update; canonical read API owns presentation                      |
+| Facet handle/value handle changed                  | `listing.syncSellableItem` or batch sync for affected items                  |
 
 ## Example
 
@@ -485,5 +478,5 @@ await broker.call("listing.syncSellableItem", {
 - GraphQL cursor payloads;
 - generated read-model row shapes from `listing` repositories.
 
-Если такое значение нужно для реализации, оно должно вычисляться внутри
-`listing` после приема публичного snapshot.
+Если такое значение нужно для реализации, оно должно вычисляться внутри `listing` после приема
+публичного snapshot.

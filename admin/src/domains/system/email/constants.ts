@@ -114,8 +114,4 @@ const testOrder = {
 };
 
 export const getEmailTemplateVariables = (type: EmailTemplateType) =>
-  JSON.stringify(
-    type.startsWith("CustomerOrder") ? testOrder : testCustomer,
-    null,
-    2,
-  );
+  JSON.stringify(type.startsWith("CustomerOrder") ? testOrder : testCustomer, null, 2);

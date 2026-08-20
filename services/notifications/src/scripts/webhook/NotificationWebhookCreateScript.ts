@@ -1,16 +1,11 @@
-import {
-  isSupportedWebhookApiVersion,
-} from "../../infrastructure/webhooks/WebhookCapabilities.js";
+import { isSupportedWebhookApiVersion } from "../../infrastructure/webhooks/WebhookCapabilities.js";
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import {
   adminUserErrors,
   recordAdminAudit,
   type AdminUserError,
 } from "../shared/adminScriptSupport.js";
-import type {
-  NotificationWebhookCreateParams,
-  NotificationWebhookView,
-} from "./dto/index.js";
+import type { NotificationWebhookCreateParams, NotificationWebhookView } from "./dto/index.js";
 
 export interface NotificationWebhookCreateResult {
   webhook?: NotificationWebhookView;
@@ -22,9 +17,7 @@ export class NotificationWebhookCreateScript extends BaseScript<
   NotificationWebhookCreateResult
 > {
   @Transactional()
-  protected async execute(
-    params: NotificationWebhookCreateParams
-  ) {
+  protected async execute(params: NotificationWebhookCreateParams) {
     if (this.definitions.forEvent(params.eventType).length === 0) {
       throw new Error("UNSUPPORTED_WEBHOOK_EVENT");
     }
@@ -41,7 +34,7 @@ export class NotificationWebhookCreateScript extends BaseScript<
       "webhook.created",
       "webhook",
       webhook.id,
-      { eventType: params.eventType, format: params.format }
+      { eventType: params.eventType, format: params.format },
     );
     return { webhook, userErrors: [] };
   }

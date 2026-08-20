@@ -1,14 +1,9 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { ResolveFacetsParams, ResolveFacetsResult } from "./dto/index.js";
 
-export class ResolveFacetsScript extends BaseScript<
-  ResolveFacetsParams,
-  ResolveFacetsResult
-> {
+export class ResolveFacetsScript extends BaseScript<ResolveFacetsParams, ResolveFacetsResult> {
   protected async execute(params: ResolveFacetsParams): Promise<ResolveFacetsResult> {
-    const resolved = await this.repository.facet.resolveFacetFilterValues(
-      params.facetFilters
-    );
+    const resolved = await this.repository.facet.resolveFacetFilterValues(params.facetFilters);
 
     const tagHandles = new Set<string>();
     const featureSlugs = new Set<string>();

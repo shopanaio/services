@@ -1,8 +1,4 @@
-import {
-  AuthorizationError,
-  ValidationError,
-  type Authorizable,
-} from "@shopana/shared-kernel";
+import { AuthorizationError, ValidationError, type Authorizable } from "@shopana/shared-kernel";
 import { getContext } from "../context/index.js";
 import { AuthProvider } from "./Authorizable.js";
 import type { NotificationKernelServices } from "./types.js";
@@ -37,10 +33,7 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
     try {
       return await this.execute(params);
     } catch (error) {
-      if (
-        !(error instanceof ValidationError) &&
-        !(error instanceof AuthorizationError)
-      ) {
+      if (!(error instanceof ValidationError) && !(error instanceof AuthorizationError)) {
         this.logger.error({ error }, `${this.constructor.name} failed`);
       }
       return this.handleError(error);

@@ -1,7 +1,4 @@
-import type {
-  ApiListingOrderByInput,
-  ApiListingProductFilter,
-} from "@/graphql/types";
+import type { ApiListingOrderByInput, ApiListingProductFilter } from "@/graphql/types";
 
 export interface ListingPreviewState {
   query: string;

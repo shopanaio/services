@@ -14,7 +14,9 @@ enum CustomerConsentState {
   REDACTED
 }
 
-"""Consent states that a merchant administrator may set explicitly."""
+"""
+Consent states that a merchant administrator may set explicitly.
+"""
 enum CustomerConsentAdminState {
   NOT_SUBSCRIBED
   PENDING
@@ -28,7 +30,9 @@ enum CustomerConsentOptInLevel {
   CONFIRMED_OPT_IN
 }
 
-"""Current consent state for one customer and channel."""
+"""
+Current consent state for one customer and channel.
+"""
 type CustomerConsent implements Node {
   id: ID!
   customer: Customer!
@@ -53,7 +57,9 @@ type CustomerConsent implements Node {
   ): CustomerConsentEventConnection!
 }
 
-"""Immutable evidence record for a consent transition."""
+"""
+Immutable evidence record for a consent transition.
+"""
 type CustomerConsentEvent implements Node {
   id: ID!
   customer: Customer!
@@ -86,18 +92,24 @@ type CustomerConsentEventEdge {
   cursor: String!
 }
 
-"""Consent transition scoped to the customer being updated."""
+"""
+Consent transition scoped to the customer being updated.
+"""
 input CustomerConsentUpdateOperationInput {
   channel: CustomerConsentChannel!
   state: CustomerConsentAdminState!
-  """Defaults to UNKNOWN when omitted."""
+  """
+  Defaults to UNKNOWN when omitted.
+  """
   optInLevel: CustomerConsentOptInLevel
   contactPoint: String!
   sourceLocationId: ID
   evidence: JSON
 }
 
-"""Batched consent transitions keyed by channel."""
+"""
+Batched consent transitions keyed by channel.
+"""
 input CustomerConsentsUpdateInput {
   set: [CustomerConsentUpdateOperationInput!]!
 }

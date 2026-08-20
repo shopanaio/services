@@ -2,19 +2,14 @@ import { and, eq } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
 import type { Database } from "../Repository.js";
-import {
-  storefrontAuthConfiguration,
-  type StorefrontAuthConfiguration,
-} from "../models/index.js";
+import { storefrontAuthConfiguration, type StorefrontAuthConfiguration } from "../models/index.js";
 
 export class StorefrontAuthConfigurationRepository extends BaseRepository {
   constructor(db: Database, txManager: TransactionManager<Database>) {
     super(db, txManager);
   }
 
-  async findByStoreId(
-    storeId: string,
-  ): Promise<StorefrontAuthConfiguration | null> {
+  async findByStoreId(storeId: string): Promise<StorefrontAuthConfiguration | null> {
     const rows = await this.connection
       .select()
       .from(storefrontAuthConfiguration)
@@ -24,9 +19,7 @@ export class StorefrontAuthConfigurationRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async findByApplicationId(
-    applicationId: string,
-  ): Promise<StorefrontAuthConfiguration | null> {
+  async findByApplicationId(applicationId: string): Promise<StorefrontAuthConfiguration | null> {
     const rows = await this.connection
       .select()
       .from(storefrontAuthConfiguration)
@@ -57,10 +50,7 @@ export class StorefrontAuthConfigurationRepository extends BaseRepository {
     return configuration;
   }
 
-  async delete(input: {
-    storeId: string;
-    organizationId: string;
-  }): Promise<boolean> {
+  async delete(input: { storeId: string; organizationId: string }): Promise<boolean> {
     const rows = await this.connection
       .delete(storefrontAuthConfiguration)
       .where(

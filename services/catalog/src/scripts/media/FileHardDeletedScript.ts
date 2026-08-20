@@ -12,15 +12,14 @@ export class FileHardDeletedScript extends BaseScript<
   FileHardDeletedParams,
   FileHardDeletedResult
 > {
-  protected async execute(
-    params: FileHardDeletedParams
-  ): Promise<FileHardDeletedResult> {
-    const deletedProductMediaCount =
-      await this.repository.media.removeProductMediaByFileId(params.fileId);
+  protected async execute(params: FileHardDeletedParams): Promise<FileHardDeletedResult> {
+    const deletedProductMediaCount = await this.repository.media.removeProductMediaByFileId(
+      params.fileId,
+    );
 
     this.logger.info(
       { fileId: params.fileId, deletedProductMediaCount },
-      "Cleaned up product media registry for hard-deleted file"
+      "Cleaned up product media registry for hard-deleted file",
     );
 
     return { deletedProductMediaCount };

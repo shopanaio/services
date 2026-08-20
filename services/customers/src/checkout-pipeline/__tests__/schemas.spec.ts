@@ -13,9 +13,7 @@ const params = {
 describe("customer checkout eligibility schemas", () => {
   it("accepts an offset timestamp and rejects unknown request fields", () => {
     expect(parseResolveBuyerEligibilityParams(params)).toEqual(params);
-    expect(() =>
-      parseResolveBuyerEligibilityParams({ ...params, unexpected: true })
-    ).toThrow();
+    expect(() => parseResolveBuyerEligibilityParams({ ...params, unexpected: true })).toThrow();
   });
 
   it("rejects duplicate segment IDs and mismatched success identity", () => {
@@ -31,19 +29,19 @@ describe("customer checkout eligibility schemas", () => {
         ...result,
         storeId: "other-store",
         segmentIds: [],
-      })
+      }),
     ).toThrow();
     expect(() =>
       resolveBuyerEligibilityResultSchema.parse({
         ...result,
         segmentIds: ["segment-2", "segment-1"],
-      })
+      }),
     ).toThrow();
     expect(() =>
       resolveBuyerEligibilityResultSchema.parse({
         ...result,
         segmentIds: Array.from({ length: 501 }, (_, index) => `segment-${index}`),
-      })
+      }),
     ).toThrow();
   });
 
@@ -55,7 +53,7 @@ describe("customer checkout eligibility schemas", () => {
         reason: "UNKNOWN",
         message: "Not eligible",
         retryable: false,
-      })
+      }),
     ).toThrow();
     expect(() =>
       resolveBuyerEligibilityResultSchema.parse({
@@ -63,7 +61,7 @@ describe("customer checkout eligibility schemas", () => {
         code: "CUSTOMER_NOT_FOUND",
         message: "Not found",
         retryable: true,
-      })
+      }),
     ).toThrow();
   });
 });

@@ -8,9 +8,7 @@ import {
 
 export class ProductQuestionConnectionResolver extends BaseConnectionResolver<ProductQuestionConnectionInput> {
   $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel.repository.productQuestion.getConnection(
-      this.$props
-    );
+    return this.$ctx.kernel.repository.productQuestion.getConnection(this.$props);
   }
 
   protected createNodeResolver(nodeId: string) {
@@ -18,8 +16,9 @@ export class ProductQuestionConnectionResolver extends BaseConnectionResolver<Pr
   }
 }
 
-export type ScopedProductQuestionAnswerConnectionInput =
-  ProductQuestionAnswerConnectionInput & { questionId?: string };
+export type ScopedProductQuestionAnswerConnectionInput = ProductQuestionAnswerConnectionInput & {
+  questionId?: string;
+};
 
 export class ProductQuestionAnswerConnectionResolver extends BaseConnectionResolver<ScopedProductQuestionAnswerConnectionInput> {
   $preload(): Promise<ConnectionData> {
@@ -28,10 +27,7 @@ export class ProductQuestionAnswerConnectionResolver extends BaseConnectionResol
       ...args,
       where: questionId
         ? {
-            _and: [
-              { questionId: { _eq: questionId } },
-              ...(where ? [where] : []),
-            ],
+            _and: [{ questionId: { _eq: questionId } }, ...(where ? [where] : [])],
           }
         : where,
     });
@@ -49,10 +45,7 @@ type QuestionSubscriptionConnectionInput = QuestionSubscriptionRelayInput & {
 export class QuestionSubscriptionConnectionResolver extends BaseConnectionResolver<QuestionSubscriptionConnectionInput> {
   $preload(): Promise<ConnectionData> {
     const { questionId, ...args } = this.$props;
-    return this.$ctx.kernel.repository.questionSubscription.getConnection(
-      questionId,
-      args
-    );
+    return this.$ctx.kernel.repository.questionSubscription.getConnection(questionId, args);
   }
 
   protected createNodeResolver(nodeId: string) {

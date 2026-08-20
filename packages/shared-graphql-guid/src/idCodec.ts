@@ -22,7 +22,7 @@ function decode(globalId: string): DecodedGlobalId {
 
 function ensureType(
   decoded: DecodedGlobalId,
-  expectedTypes: readonly GlobalIdType[]
+  expectedTypes: readonly GlobalIdType[],
 ): DecodedGlobalId {
   if (expectedTypes.length > 0) {
     const matchesType = expectedTypes.some((type) => decoded.typeName === type);
@@ -31,7 +31,7 @@ function ensureType(
       throw new Error(
         `Unexpected Global ID type: ${
           decoded.typeName
-        }. Expected one of: ${expectedTypes.join(", ")}`
+        }. Expected one of: ${expectedTypes.join(", ")}`,
       );
     }
   }
@@ -76,10 +76,7 @@ export function encodeGlobalIdByType(id: string, type: GlobalIdType): string {
  * const anyUuid = decodeGlobalIdByType(globalId); // Any valid type
  * ```
  */
-export function decodeGlobalIdByType(
-  globalId: string,
-  expectedType?: GlobalIdType
-): string {
+export function decodeGlobalIdByType(globalId: string, expectedType?: GlobalIdType): string {
   if (expectedType) {
     return decodeId(globalId, expectedType);
   } else {

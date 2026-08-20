@@ -15,8 +15,6 @@ export function buildDiscountCreateInput({
     currency,
     kind: values.kind,
     method: values.method,
-    ...(values.method === DiscountMethod.Automatic
-      ? { title: values.title.trim() }
-      : {}),
+    ...(values.method === DiscountMethod.Automatic ? { title: values.title.trim() } : {}),
   };
 }

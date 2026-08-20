@@ -1,7 +1,5 @@
 import { BaseScript } from "../kernel/BaseScript.js";
-import type {
-  ProductSortRowInput,
-} from "../repositories/listing/listingRepositoryTypes.js";
+import type { ProductSortRowInput } from "../repositories/listing/listingRepositoryTypes.js";
 
 export class ListingCleanupStaleVariantsScript extends BaseScript<
   {
@@ -23,12 +21,10 @@ export class ListingCleanupStaleVariantsScript extends BaseScript<
     ).filter((variant) => !keep.has(variant.variantId));
 
     for (const variant of stale) {
-      await this.repository.listingPostingBitmap.deleteVariantMemberships(
-        variant.variantDocId
-      );
+      await this.repository.listingPostingBitmap.deleteVariantMemberships(variant.variantDocId);
     }
     await this.repository.variantListingIndex.deleteByVariantIds(
-      stale.map((variant) => variant.variantId)
+      stale.map((variant) => variant.variantId),
     );
 
     return {
@@ -55,7 +51,7 @@ export class ListingReplaceProductSortRowsScript extends BaseScript<
   }): Promise<void> {
     await this.repository.listingPostingProductSort.replaceForProduct(
       input.productDocId,
-      input.rows
+      input.rows,
     );
   }
 

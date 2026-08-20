@@ -8,11 +8,7 @@ import type {
   ApiGenericUserError,
   ApiOperationResult,
 } from "@/graphql/types";
-import {
-  CATEGORIES_QUERY,
-  CATEGORY_DETAILS_QUERY,
-  CATEGORY_UPDATE_MUTATION,
-} from "../graphql";
+import { CATEGORIES_QUERY, CATEGORY_DETAILS_QUERY, CATEGORY_UPDATE_MUTATION } from "../graphql";
 import type {
   CategoryUpdateMutationData,
   CategoryUpdateMutationVariables,
@@ -74,8 +70,7 @@ export function useUpdateCategory(): UseUpdateCategoryReturn {
           }),
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
         const userErrors = [{ message, code: "UNEXPECTED_ERROR" }];
 
         return {

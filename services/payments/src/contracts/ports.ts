@@ -6,11 +6,13 @@ export interface PaymentsProviderAppsPort {
   listRoutes(
     params: Apps.ListPaymentProviderRoutesParams,
   ): Promise<readonly Payments.PaymentProviderRouteSnapshot[]>;
-  resolveRoute(input: Readonly<{
-    storeId: string;
-    installationId: string;
-    operation: Payments.PaymentProviderOperation;
-  }>): Promise<Payments.PaymentProviderRouteSnapshot | null>;
+  resolveRoute(
+    input: Readonly<{
+      storeId: string;
+      installationId: string;
+      operation: Payments.PaymentProviderOperation;
+    }>,
+  ): Promise<Payments.PaymentProviderRouteSnapshot | null>;
   validateConfiguration(
     route: Payments.PaymentProviderRouteSnapshot,
     request: Payments.PaymentProviderConfigurationValidationRequest,
@@ -50,9 +52,7 @@ export interface PaymentsProviderAppsPort {
 }
 
 export interface PaymentProviderAccountsPort {
-  listActiveForStore(
-    storeId: string,
-  ): Promise<readonly Payments.PaymentProviderAccountSnapshot[]>;
+  listActiveForStore(storeId: string): Promise<readonly Payments.PaymentProviderAccountSnapshot[]>;
   getById(
     storeId: string,
     providerAccountId: string,
@@ -77,27 +77,38 @@ export interface PaymentProviderAccountsPort {
 }
 
 export interface PaymentFunctionRoutesPort {
-  resolveRoute(input: Readonly<{
-    storeId: string;
-    installationId: string;
-    functionKey: string;
-  }>): Promise<Apps.CapabilityRoute | null>;
+  resolveRoute(
+    input: Readonly<{
+      storeId: string;
+      installationId: string;
+      functionKey: string;
+    }>,
+  ): Promise<Apps.CapabilityRoute | null>;
 }
 
 export interface PaymentCustomizationBindingsPort {
-  listActive(storeId: string): Promise<Readonly<{
-    policyRevision: string;
-    bindingSetRevision: string;
-    bindings: readonly CommerceFunctionBindingRef[];
-  }>>;
-  listForCustomization(input: Readonly<{
-    storeId: string;
-    customizationId: string;
-  }>): Promise<readonly Payments.PaymentMethodCustomizationBindingSnapshot[]>;
-  configure(input: Payments.ConfigurePaymentMethodCustomizationParams & Readonly<{
-    policyRevision: string;
-  }>): Promise<Payments.ConfigurePaymentMethodCustomizationResult>;
-  setStatus(input: Payments.SetPaymentMethodCustomizationStatusParams): Promise<Payments.PaymentMethodCustomizationSnapshot | null>;
+  listActive(storeId: string): Promise<
+    Readonly<{
+      policyRevision: string;
+      bindingSetRevision: string;
+      bindings: readonly CommerceFunctionBindingRef[];
+    }>
+  >;
+  listForCustomization(
+    input: Readonly<{
+      storeId: string;
+      customizationId: string;
+    }>,
+  ): Promise<readonly Payments.PaymentMethodCustomizationBindingSnapshot[]>;
+  configure(
+    input: Payments.ConfigurePaymentMethodCustomizationParams &
+      Readonly<{
+        policyRevision: string;
+      }>,
+  ): Promise<Payments.ConfigurePaymentMethodCustomizationResult>;
+  setStatus(
+    input: Payments.SetPaymentMethodCustomizationStatusParams,
+  ): Promise<Payments.PaymentMethodCustomizationSnapshot | null>;
 }
 
 export interface PaymentMethodBindingCandidate {
@@ -106,40 +117,55 @@ export interface PaymentMethodBindingCandidate {
 }
 
 export interface PaymentMethodBindingsPort {
-  resolveCommittedSelection(input: Readonly<{
-    storeId: string;
-    checkoutId: string;
-    checkoutVersion: number;
-    methodHandle: string;
-    effectiveAt: string;
-  }>): Promise<Payments.PaymentMethodBindingSnapshot | null>;
-  stageCheckoutSnapshot(input: Readonly<{
-    storeId: string;
-    checkoutId: string;
-    basedOnCheckoutVersion: number;
-    targetCheckoutVersion: number;
-    finalQuoteRevision: string;
-    deliveryRevision: string;
-    discoveryRevision: string;
-    customizationRevision: string;
-    paymentRevision: string;
-    result: Payments.GetCheckoutAvailablePaymentMethodsResult;
-    methods: readonly PaymentMethodBindingCandidate[];
-    executions: readonly Readonly<{ kind: "PROVIDER" | "FUNCTION"; ownerId: string; status: string; classification: string | null; revision: string | null; audit: Record<string, unknown> }>[];
-    retainUntil: string;
-  }>): Promise<Readonly<{ result: Payments.GetCheckoutAvailablePaymentMethodsResult; reused: boolean }>>;
+  resolveCommittedSelection(
+    input: Readonly<{
+      storeId: string;
+      checkoutId: string;
+      checkoutVersion: number;
+      methodHandle: string;
+      effectiveAt: string;
+    }>,
+  ): Promise<Payments.PaymentMethodBindingSnapshot | null>;
+  stageCheckoutSnapshot(
+    input: Readonly<{
+      storeId: string;
+      checkoutId: string;
+      basedOnCheckoutVersion: number;
+      targetCheckoutVersion: number;
+      finalQuoteRevision: string;
+      deliveryRevision: string;
+      discoveryRevision: string;
+      customizationRevision: string;
+      paymentRevision: string;
+      result: Payments.GetCheckoutAvailablePaymentMethodsResult;
+      methods: readonly PaymentMethodBindingCandidate[];
+      executions: readonly Readonly<{
+        kind: "PROVIDER" | "FUNCTION";
+        ownerId: string;
+        status: string;
+        classification: string | null;
+        revision: string | null;
+        audit: Record<string, unknown>;
+      }>[];
+      retainUntil: string;
+    }>,
+  ): Promise<
+    Readonly<{ result: Payments.GetCheckoutAvailablePaymentMethodsResult; reused: boolean }>
+  >;
 }
 
 export interface PaymentLifecycleMethodBindingsPort {
-  resolvePaymentSelection(input: Readonly<{
-    storeId: string;
-    checkoutId: string;
-    checkoutVersion: number;
-    finalQuoteRevision: string;
-    paymentMethodsRevision: string;
-    methodHandle: string;
-    effectiveAt: string;
-  }>): Promise<Payments.PaymentMethodBindingSnapshot | null>;
+  resolvePaymentSelection(
+    input: Readonly<{
+      storeId: string;
+      checkoutId: string;
+      checkoutVersion: number;
+      finalQuoteRevision: string;
+      paymentMethodsRevision: string;
+      methodHandle: string;
+      effectiveAt: string;
+    }>,
+  ): Promise<Payments.PaymentMethodBindingSnapshot | null>;
 }
 
 export interface CreatePaymentSessionRecord {
@@ -170,11 +196,13 @@ export type PaymentIdempotentCreateResult<T> =
  * normalizedRequest excludes idempotencyKey, correlationId and transport metadata.
  */
 export interface PaymentIdempotencyPort {
-  createSnapshot(input: Readonly<{
-    scope: string;
-    key: string;
-    normalizedRequest: unknown;
-  }>): Payments.PaymentIdempotencySnapshot;
+  createSnapshot(
+    input: Readonly<{
+      scope: string;
+      key: string;
+      normalizedRequest: unknown;
+    }>,
+  ): Payments.PaymentIdempotencySnapshot;
 }
 
 export interface PaymentCollectionsPort {
@@ -193,13 +221,15 @@ export interface PaymentCollectionsPort {
 }
 
 export interface PaymentProviderEventsPort {
-  recordIdempotently(input: Readonly<{
-    storeId: string;
-    providerAccountId: string;
-    providerEventId: string;
-    eventHash: string;
-    occurredAt: string;
-  }>): Promise<
+  recordIdempotently(
+    input: Readonly<{
+      storeId: string;
+      providerAccountId: string;
+      providerEventId: string;
+      eventHash: string;
+      occurredAt: string;
+    }>,
+  ): Promise<
     | Readonly<{ status: "RECORDED" }>
     | Readonly<{ status: "DUPLICATE" }>
     | Readonly<{ status: "IDEMPOTENCY_CONFLICT" }>
@@ -229,10 +259,7 @@ export interface PaymentSessionsPort {
   createIdempotently(
     record: CreatePaymentSessionRecord,
   ): Promise<PaymentIdempotentCreateResult<CreatePaymentSessionRecord>>;
-  get(
-    storeId: string,
-    paymentSessionId: string,
-  ): Promise<Payments.PaymentSessionSnapshot | null>;
+  get(storeId: string, paymentSessionId: string): Promise<Payments.PaymentSessionSnapshot | null>;
   findByProviderReference(
     storeId: string,
     providerAccountId: string,
@@ -242,35 +269,41 @@ export interface PaymentSessionsPort {
     storeId: string,
     paymentSessionId: string,
   ): Promise<readonly Payments.PaymentOperationSnapshot[]>;
-  appendOperationAtomically(input: Readonly<{
-    storeId: string;
-    expectedCollectionRevision: number;
-    expectedSessionRevision: number;
-    collection: Payments.PaymentCollectionSnapshot;
-    session: Payments.PaymentSessionSnapshot;
-    operation: Payments.PaymentOperationSnapshot;
-  }>): Promise<Readonly<{
-    collectionRevision: number;
-    sessionRevision: number;
-  }>>;
-  completeOperationAtomically(
-    record: CompletePaymentOperationRecord,
-  ): Promise<Readonly<{
-    duplicate: boolean;
-    collectionRevision: number;
-    sessionRevision: number;
-  }>>;
+  appendOperationAtomically(
+    input: Readonly<{
+      storeId: string;
+      expectedCollectionRevision: number;
+      expectedSessionRevision: number;
+      collection: Payments.PaymentCollectionSnapshot;
+      session: Payments.PaymentSessionSnapshot;
+      operation: Payments.PaymentOperationSnapshot;
+    }>,
+  ): Promise<
+    Readonly<{
+      collectionRevision: number;
+      sessionRevision: number;
+    }>
+  >;
+  completeOperationAtomically(record: CompletePaymentOperationRecord): Promise<
+    Readonly<{
+      duplicate: boolean;
+      collectionRevision: number;
+      sessionRevision: number;
+    }>
+  >;
 }
 
 /** Checkout/inventory authority used before an irreversible provider settlement. */
 export interface PaymentSettlementConfirmationPort {
-  confirm(input: Readonly<{
-    collection: Payments.PaymentCollectionSnapshot;
-    session: Payments.PaymentSessionSnapshot;
-    operation: Payments.PaymentOperationSnapshot;
-    correlationId: string;
-    deadlineAt: string;
-  }>): Promise<Payments.PaymentSettlementConfirmation>;
+  confirm(
+    input: Readonly<{
+      collection: Payments.PaymentCollectionSnapshot;
+      session: Payments.PaymentSessionSnapshot;
+      operation: Payments.PaymentOperationSnapshot;
+      correlationId: string;
+      deadlineAt: string;
+    }>,
+  ): Promise<Payments.PaymentSettlementConfirmation>;
 }
 
 export type PaymentDomainEvent =
@@ -322,9 +355,7 @@ export interface PaymentWorkflowPort {
   startCapture(
     params: Payments.CapturePaymentParams,
   ): Promise<Payments.PaymentOperationAcceptedResult>;
-  startVoid(
-    params: Payments.VoidPaymentParams,
-  ): Promise<Payments.PaymentOperationAcceptedResult>;
+  startVoid(params: Payments.VoidPaymentParams): Promise<Payments.PaymentOperationAcceptedResult>;
   startRefund(
     params: Payments.RefundPaymentParams,
   ): Promise<Payments.PaymentOperationAcceptedResult>;
@@ -334,14 +365,16 @@ export interface PaymentWorkflowPort {
   startExpire(
     params: Payments.ExpirePaymentParams,
   ): Promise<Payments.PaymentOperationAcceptedResult>;
-  startConfirmation(input: Readonly<{
-    storeId: string;
-    paymentSessionId: string;
-    expectedSessionRevision: number;
-    triggeringOperationId: string;
-    idempotency: Payments.PaymentIdempotencySnapshot;
-    correlationId: string;
-  }>): Promise<Payments.PaymentOperationAcceptedResult>;
+  startConfirmation(
+    input: Readonly<{
+      storeId: string;
+      paymentSessionId: string;
+      expectedSessionRevision: number;
+      triggeringOperationId: string;
+      idempotency: Payments.PaymentIdempotencySnapshot;
+      correlationId: string;
+    }>,
+  ): Promise<Payments.PaymentOperationAcceptedResult>;
   startProviderCompletion(
     params: Payments.CompleteProviderOperationParams,
     context: PaymentProviderCompletionContext,

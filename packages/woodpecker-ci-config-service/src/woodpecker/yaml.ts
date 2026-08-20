@@ -9,17 +9,21 @@ export interface WhenConstraint {
   cron?: StringOrStringArray;
   status?: StringOrStringArray;
   event?: StringOrStringArray;
-  matrix?: {
-    include?: StringMap;
-    exclude?: StringMap;
-  } | StringMap;
+  matrix?:
+    | {
+        include?: StringMap;
+        exclude?: StringMap;
+      }
+    | StringMap;
   local?: boolean;
-  path?: {
-    include?: string[];
-    exclude?: string[];
-    ignore_message?: string;
-    on_empty?: boolean;
-  } | string[];
+  path?:
+    | {
+        include?: string[];
+        exclude?: string[];
+        ignore_message?: string;
+        on_empty?: boolean;
+      }
+    | string[];
   evaluate?: string;
 }
 
@@ -79,7 +83,7 @@ export interface WorkflowYaml {
 }
 
 export function isWorkflowYaml(value: unknown): value is WorkflowYaml {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== "object") return false;
   const v = value as Partial<WorkflowYaml>;
   return Array.isArray(v.steps);
 }

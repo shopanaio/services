@@ -146,11 +146,7 @@ export interface ProductMediaParams {
   fileIds: string[];
 }
 
-export type ProductCategoryOperationAction =
-  | "add"
-  | "remove"
-  | "setPrimary"
-  | "move";
+export type ProductCategoryOperationAction = "add" | "remove" | "setPrimary" | "move";
 
 export interface ProductCategoryUpdateParams {
   productId: string;
@@ -178,11 +174,7 @@ export interface ProductFeaturesSyncParams {
   features: FeatureSyncItemInput[];
 }
 
-export type ProductComponentDisplayStyle =
-  | "ACCORDION"
-  | "TABS"
-  | "FLAT"
-  | "WIZARD";
+export type ProductComponentDisplayStyle = "ACCORDION" | "TABS" | "FLAT" | "WIZARD";
 
 export interface ProductComponentSettingsUpdateParams {
   productId: string;
@@ -322,11 +314,7 @@ export interface ProductComponentConditionSyncItem {
 
 export interface ProductComponentDependencyActionSyncItem {
   id?: string;
-  actionType:
-    | "SHOW"
-    | "HIDE"
-    | "SET_REQUIRED"
-    | "ADJUST_PRICE";
+  actionType: "SHOW" | "HIDE" | "SET_REQUIRED" | "ADJUST_PRICE";
   targetType: "ITEM" | "GROUP" | "CONFIGURATION";
   targetId: string;
   requiredValue?: boolean | null;

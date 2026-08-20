@@ -9,7 +9,10 @@ export interface ConditionSubjectMetadata {
   description: string;
 }
 
-export const CONDITION_SUBJECT_META: Record<ProductComponentConditionSubject, ConditionSubjectMetadata> = {
+export const CONDITION_SUBJECT_META: Record<
+  ProductComponentConditionSubject,
+  ConditionSubjectMetadata
+> = {
   [ProductComponentConditionSubject.ItemSelected]: {
     category: ProductComponentConditionCategory.StateCheck,
     label: "selection",

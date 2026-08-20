@@ -24,10 +24,10 @@ import {
 export class MonetaryWalletRepository extends BaseRepository {
   async getWalletsByIds(ids: readonly string[]): Promise<MonetaryWallet[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(monetaryWallets).where(and(
-      eq(monetaryWallets.storeId, this.storeId),
-      inArray(monetaryWallets.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(monetaryWallets)
+      .where(and(eq(monetaryWallets.storeId, this.storeId), inArray(monetaryWallets.id, [...ids])));
   }
 
   async listWalletsFiltered(input: {
@@ -37,61 +37,107 @@ export class MonetaryWalletRepository extends BaseRepository {
     statuses?: readonly MonetaryWallet["status"][];
     limit: number;
   }): Promise<MonetaryWallet[]> {
-    return this.connection.select().from(monetaryWallets).where(and(
-      eq(monetaryWallets.storeId, this.storeId),
-      input.accountIds?.length ? inArray(monetaryWallets.accountId, [...input.accountIds]) : undefined,
-      input.walletTypes?.length ? inArray(monetaryWallets.walletType, [...input.walletTypes]) : undefined,
-      input.currencyCodes?.length ? inArray(monetaryWallets.currencyCode, [...input.currencyCodes]) : undefined,
-      input.statuses?.length ? inArray(monetaryWallets.status, [...input.statuses]) : undefined,
-    )).orderBy(desc(monetaryWallets.updatedAt), desc(monetaryWallets.id)).limit(input.limit);
+    return this.connection
+      .select()
+      .from(monetaryWallets)
+      .where(
+        and(
+          eq(monetaryWallets.storeId, this.storeId),
+          input.accountIds?.length
+            ? inArray(monetaryWallets.accountId, [...input.accountIds])
+            : undefined,
+          input.walletTypes?.length
+            ? inArray(monetaryWallets.walletType, [...input.walletTypes])
+            : undefined,
+          input.currencyCodes?.length
+            ? inArray(monetaryWallets.currencyCode, [...input.currencyCodes])
+            : undefined,
+          input.statuses?.length ? inArray(monetaryWallets.status, [...input.statuses]) : undefined,
+        ),
+      )
+      .orderBy(desc(monetaryWallets.updatedAt), desc(monetaryWallets.id))
+      .limit(input.limit);
   }
 
   async getTransactionsByIds(ids: readonly string[]): Promise<MonetaryTransaction[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(monetaryTransactions).where(and(
-      eq(monetaryTransactions.storeId, this.storeId),
-      inArray(monetaryTransactions.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(monetaryTransactions)
+      .where(
+        and(
+          eq(monetaryTransactions.storeId, this.storeId),
+          inArray(monetaryTransactions.id, [...ids]),
+        ),
+      );
   }
 
   async getEntriesByIds(ids: readonly string[]): Promise<MonetaryLedgerEntry[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(monetaryLedgerEntries).where(and(
-      eq(monetaryLedgerEntries.storeId, this.storeId),
-      inArray(monetaryLedgerEntries.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(monetaryLedgerEntries)
+      .where(
+        and(
+          eq(monetaryLedgerEntries.storeId, this.storeId),
+          inArray(monetaryLedgerEntries.id, [...ids]),
+        ),
+      );
   }
 
   async getEntriesByTransactionIds(ids: readonly string[]): Promise<MonetaryLedgerEntry[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(monetaryLedgerEntries).where(and(
-      eq(monetaryLedgerEntries.storeId, this.storeId),
-      inArray(monetaryLedgerEntries.transactionId, [...ids]),
-    )).orderBy(asc(monetaryLedgerEntries.transactionId), asc(monetaryLedgerEntries.sequence));
+    return this.connection
+      .select()
+      .from(monetaryLedgerEntries)
+      .where(
+        and(
+          eq(monetaryLedgerEntries.storeId, this.storeId),
+          inArray(monetaryLedgerEntries.transactionId, [...ids]),
+        ),
+      )
+      .orderBy(asc(monetaryLedgerEntries.transactionId), asc(monetaryLedgerEntries.sequence));
   }
 
   async getCreditLotsByIds(ids: readonly string[]): Promise<MonetaryCreditLot[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(monetaryCreditLots).where(and(
-      eq(monetaryCreditLots.storeId, this.storeId),
-      inArray(monetaryCreditLots.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(monetaryCreditLots)
+      .where(
+        and(eq(monetaryCreditLots.storeId, this.storeId), inArray(monetaryCreditLots.id, [...ids])),
+      );
   }
 
   async getCreditLotsByWalletIds(ids: readonly string[]): Promise<MonetaryCreditLot[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(monetaryCreditLots).where(and(
-      eq(monetaryCreditLots.storeId, this.storeId),
-      inArray(monetaryCreditLots.walletId, [...ids]),
-    )).orderBy(asc(monetaryCreditLots.walletId), asc(monetaryCreditLots.expiresAt), asc(monetaryCreditLots.id));
+    return this.connection
+      .select()
+      .from(monetaryCreditLots)
+      .where(
+        and(
+          eq(monetaryCreditLots.storeId, this.storeId),
+          inArray(monetaryCreditLots.walletId, [...ids]),
+        ),
+      )
+      .orderBy(
+        asc(monetaryCreditLots.walletId),
+        asc(monetaryCreditLots.expiresAt),
+        asc(monetaryCreditLots.id),
+      );
   }
 
   async getLotAllocationsByIds(ids: readonly string[]): Promise<MonetaryLotAllocation[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(monetaryLotAllocations).where(and(
-      eq(monetaryLotAllocations.storeId, this.storeId),
-      inArray(monetaryLotAllocations.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(monetaryLotAllocations)
+      .where(
+        and(
+          eq(monetaryLotAllocations.storeId, this.storeId),
+          inArray(monetaryLotAllocations.id, [...ids]),
+        ),
+      );
   }
 
   async getLotAllocationsByLotIds(ids: readonly string[]): Promise<MonetaryLotAllocation[]> {
@@ -100,18 +146,21 @@ export class MonetaryWalletRepository extends BaseRepository {
 
   async getBalancesByWalletIds(ids: readonly string[]): Promise<MonetaryWalletBalance[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(monetaryWalletBalances).where(and(
-      eq(monetaryWalletBalances.storeId, this.storeId),
-      inArray(monetaryWalletBalances.walletId, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(monetaryWalletBalances)
+      .where(
+        and(
+          eq(monetaryWalletBalances.storeId, this.storeId),
+          inArray(monetaryWalletBalances.walletId, [...ids]),
+        ),
+      );
   }
   async findById(id: string): Promise<MonetaryWallet | null> {
     const rows = await this.connection
       .select()
       .from(monetaryWallets)
-      .where(
-        and(eq(monetaryWallets.storeId, this.storeId), eq(monetaryWallets.id, id)),
-      )
+      .where(and(eq(monetaryWallets.storeId, this.storeId), eq(monetaryWallets.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -120,9 +169,7 @@ export class MonetaryWalletRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(monetaryWallets)
-      .where(
-        and(eq(monetaryWallets.storeId, this.storeId), eq(monetaryWallets.id, id)),
-      )
+      .where(and(eq(monetaryWallets.storeId, this.storeId), eq(monetaryWallets.id, id)))
       .limit(1)
       .for("update");
     return rows[0] ?? null;
@@ -133,10 +180,7 @@ export class MonetaryWalletRepository extends BaseRepository {
       .select()
       .from(monetaryWallets)
       .where(
-        and(
-          eq(monetaryWallets.storeId, this.storeId),
-          eq(monetaryWallets.accountId, accountId),
-        ),
+        and(eq(monetaryWallets.storeId, this.storeId), eq(monetaryWallets.accountId, accountId)),
       )
       .orderBy(asc(monetaryWallets.currencyCode), asc(monetaryWallets.id));
   }
@@ -161,9 +205,7 @@ export class MonetaryWalletRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async createWallet(
-    input: Omit<NewMonetaryWallet, "storeId">,
-  ): Promise<MonetaryWallet> {
+  async createWallet(input: Omit<NewMonetaryWallet, "storeId">): Promise<MonetaryWallet> {
     const rows = await this.connection
       .insert(monetaryWallets)
       .values({ ...input, storeId: this.storeId })
@@ -171,9 +213,7 @@ export class MonetaryWalletRepository extends BaseRepository {
     return rows[0]!;
   }
 
-  async createWalletIfMissing(
-    input: Omit<NewMonetaryWallet, "storeId">,
-  ): Promise<MonetaryWallet> {
+  async createWalletIfMissing(input: Omit<NewMonetaryWallet, "storeId">): Promise<MonetaryWallet> {
     const rows = await this.connection
       .insert(monetaryWallets)
       .values({ ...input, storeId: this.storeId })
@@ -192,9 +232,7 @@ export class MonetaryWalletRepository extends BaseRepository {
   async updateWalletState(
     id: string,
     expectedRevision: number,
-    input: Partial<
-      Pick<NewMonetaryWallet, "status" | "mergedIntoWalletId" | "closedAt">
-    >,
+    input: Partial<Pick<NewMonetaryWallet, "status" | "mergedIntoWalletId" | "closedAt">>,
   ): Promise<MonetaryWallet | null> {
     const rows = await this.connection
       .update(monetaryWallets)
@@ -218,12 +256,7 @@ export class MonetaryWalletRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(monetaryTransactions)
-      .where(
-        and(
-          eq(monetaryTransactions.storeId, this.storeId),
-          eq(monetaryTransactions.id, id),
-        ),
-      )
+      .where(and(eq(monetaryTransactions.storeId, this.storeId), eq(monetaryTransactions.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -246,10 +279,7 @@ export class MonetaryWalletRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async listTransactions(
-    walletId: string,
-    limit = 100,
-  ): Promise<MonetaryTransaction[]> {
+  async listTransactions(walletId: string, limit = 100): Promise<MonetaryTransaction[]> {
     return this.connection
       .select()
       .from(monetaryTransactions)
@@ -259,10 +289,7 @@ export class MonetaryWalletRepository extends BaseRepository {
           eq(monetaryTransactions.walletId, walletId),
         ),
       )
-      .orderBy(
-        desc(monetaryTransactions.occurredAt),
-        desc(monetaryTransactions.id),
-      )
+      .orderBy(desc(monetaryTransactions.occurredAt), desc(monetaryTransactions.id))
       .limit(limit);
   }
 
@@ -270,22 +297,18 @@ export class MonetaryWalletRepository extends BaseRepository {
     return this.connection
       .select()
       .from(monetaryTransactions)
-      .where(and(
-        eq(monetaryTransactions.storeId, this.storeId),
-        eq(monetaryTransactions.walletId, walletId),
-      ))
+      .where(
+        and(
+          eq(monetaryTransactions.storeId, this.storeId),
+          eq(monetaryTransactions.walletId, walletId),
+        ),
+      )
       .orderBy(asc(monetaryTransactions.createdAt), asc(monetaryTransactions.id));
   }
 
   async appendTransaction(
-    transaction: Omit<
-      NewMonetaryTransaction,
-      "storeId" | "entriesFinalized"
-    >,
-    entries: readonly Omit<
-      NewMonetaryLedgerEntry,
-      "storeId" | "transactionId" | "walletId"
-    >[],
+    transaction: Omit<NewMonetaryTransaction, "storeId" | "entriesFinalized">,
+    entries: readonly Omit<NewMonetaryLedgerEntry, "storeId" | "transactionId" | "walletId">[],
   ): Promise<{
     transaction: MonetaryTransaction;
     entries: MonetaryLedgerEntry[];
@@ -349,10 +372,12 @@ export class MonetaryWalletRepository extends BaseRepository {
     return this.connection
       .select()
       .from(monetaryLedgerEntries)
-      .where(and(
-        eq(monetaryLedgerEntries.storeId, this.storeId),
-        eq(monetaryLedgerEntries.walletId, walletId),
-      ))
+      .where(
+        and(
+          eq(monetaryLedgerEntries.storeId, this.storeId),
+          eq(monetaryLedgerEntries.walletId, walletId),
+        ),
+      )
       .orderBy(asc(monetaryLedgerEntries.createdAt), asc(monetaryLedgerEntries.id));
   }
 
@@ -360,12 +385,7 @@ export class MonetaryWalletRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(monetaryLedgerEntries)
-      .where(
-        and(
-          eq(monetaryLedgerEntries.storeId, this.storeId),
-          eq(monetaryLedgerEntries.id, id),
-        ),
-      )
+      .where(and(eq(monetaryLedgerEntries.storeId, this.storeId), eq(monetaryLedgerEntries.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -409,7 +429,11 @@ export class MonetaryWalletRepository extends BaseRepository {
           or(isNull(monetaryCreditLots.expiresAt), gt(monetaryCreditLots.expiresAt, at)),
         ),
       )
-      .orderBy(asc(monetaryCreditLots.expiresAt), asc(monetaryCreditLots.activatedAt), asc(monetaryCreditLots.id))
+      .orderBy(
+        asc(monetaryCreditLots.expiresAt),
+        asc(monetaryCreditLots.activatedAt),
+        asc(monetaryCreditLots.id),
+      )
       .for("update");
   }
 
@@ -436,12 +460,18 @@ export class MonetaryWalletRepository extends BaseRepository {
     return this.connection
       .select()
       .from(monetaryCreditLots)
-      .where(and(
-        eq(monetaryCreditLots.storeId, this.storeId),
-        eq(monetaryCreditLots.walletId, walletId),
-        inArray(monetaryCreditLots.id, [...ids]),
-      ))
-      .orderBy(asc(monetaryCreditLots.expiresAt), asc(monetaryCreditLots.activatedAt), asc(monetaryCreditLots.id))
+      .where(
+        and(
+          eq(monetaryCreditLots.storeId, this.storeId),
+          eq(monetaryCreditLots.walletId, walletId),
+          inArray(monetaryCreditLots.id, [...ids]),
+        ),
+      )
+      .orderBy(
+        asc(monetaryCreditLots.expiresAt),
+        asc(monetaryCreditLots.activatedAt),
+        asc(monetaryCreditLots.id),
+      )
       .for("update");
   }
 
@@ -449,11 +479,17 @@ export class MonetaryWalletRepository extends BaseRepository {
     return this.connection
       .select()
       .from(monetaryCreditLots)
-      .where(and(
-        eq(monetaryCreditLots.storeId, this.storeId),
-        eq(monetaryCreditLots.walletId, walletId),
-      ))
-      .orderBy(asc(monetaryCreditLots.expiresAt), asc(monetaryCreditLots.activatedAt), asc(monetaryCreditLots.id))
+      .where(
+        and(
+          eq(monetaryCreditLots.storeId, this.storeId),
+          eq(monetaryCreditLots.walletId, walletId),
+        ),
+      )
+      .orderBy(
+        asc(monetaryCreditLots.expiresAt),
+        asc(monetaryCreditLots.activatedAt),
+        asc(monetaryCreditLots.id),
+      )
       .for("update");
   }
 
@@ -467,9 +503,7 @@ export class MonetaryWalletRepository extends BaseRepository {
       .returning();
   }
 
-  async listLotAllocations(
-    lotIds: readonly string[],
-  ): Promise<MonetaryLotAllocation[]> {
+  async listLotAllocations(lotIds: readonly string[]): Promise<MonetaryLotAllocation[]> {
     if (lotIds.length === 0) return [];
     return this.connection
       .select()
@@ -480,10 +514,7 @@ export class MonetaryWalletRepository extends BaseRepository {
           inArray(monetaryLotAllocations.lotId, [...lotIds]),
         ),
       )
-      .orderBy(
-        asc(monetaryLotAllocations.createdAt),
-        asc(monetaryLotAllocations.id),
-      );
+      .orderBy(asc(monetaryLotAllocations.createdAt), asc(monetaryLotAllocations.id));
   }
 
   async findBalance(walletId: string): Promise<MonetaryWalletBalance | null> {
@@ -589,10 +620,12 @@ export class MonetaryWalletRepository extends BaseRepository {
         revision: sql`${monetaryWalletBalances.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
-      .where(and(
-        eq(monetaryWalletBalances.storeId, this.storeId),
-        eq(monetaryWalletBalances.walletId, walletId),
-      ))
+      .where(
+        and(
+          eq(monetaryWalletBalances.storeId, this.storeId),
+          eq(monetaryWalletBalances.walletId, walletId),
+        ),
+      )
       .returning();
     return rows[0] ?? null;
   }

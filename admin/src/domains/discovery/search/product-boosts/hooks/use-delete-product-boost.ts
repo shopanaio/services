@@ -2,10 +2,7 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
-import type {
-  ApiGenericUserError,
-  ApiSearchConfigurationDeleteInput,
-} from "@/graphql/types";
+import type { ApiGenericUserError, ApiSearchConfigurationDeleteInput } from "@/graphql/types";
 import { SEARCH_PRODUCT_BOOST_DELETE_MUTATION } from "../graphql";
 import type {
   SearchProductBoostDeleteMutationData,
@@ -33,16 +30,11 @@ export function useDeleteProductBoost() {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (cause) {
-        const message =
-          cause instanceof Error
-            ? cause.message
-            : "An unexpected error occurred";
+        const message = cause instanceof Error ? cause.message : "An unexpected error occurred";
 
         return {
           productBoost: null,
-          userErrors: [
-            { code: "UNEXPECTED_ERROR", message },
-          ] satisfies ApiGenericUserError[],
+          userErrors: [{ code: "UNEXPECTED_ERROR", message }] satisfies ApiGenericUserError[],
         };
       }
     },

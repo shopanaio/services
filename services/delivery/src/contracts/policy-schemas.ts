@@ -20,21 +20,14 @@ export const DeliveryCustomerInputSchemaPolicySnapshotSchema = z
 export const DeliveryProviderPublicDataPolicySnapshotSchema = z
   .object({
     revision: revisionSchema,
-    allowedTopLevelKeys: z
-      .array(z.string().trim().min(1).max(128))
-      .max(250),
+    allowedTopLevelKeys: z.array(z.string().trim().min(1).max(128)).max(250),
     maxBytes: z.number().int().safe().min(2).max(65_536),
   })
   .strict()
-  .refine(
-    (value) =>
-      new Set(value.allowedTopLevelKeys).size ===
-      value.allowedTopLevelKeys.length,
-    {
-      path: ["allowedTopLevelKeys"],
-      message: "Allowed public-data keys must be unique",
-    },
-  );
+  .refine((value) => new Set(value.allowedTopLevelKeys).size === value.allowedTopLevelKeys.length, {
+    path: ["allowedTopLevelKeys"],
+    message: "Allowed public-data keys must be unique",
+  });
 
 export function parseDeliveryCustomerInputSchemaPolicySnapshot(
   value: unknown,

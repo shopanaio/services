@@ -14,7 +14,19 @@ import {
   Tag,
   Tooltip,
 } from "antd";
-import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuChevronLeft as LeftOutlined, LuChevronRight as RightOutlined, LuSquareCheckBig as CheckSquareOutlined, LuHash as NumberOutlined, LuListOrdered as OrderedListOutlined, LuCircleDollarSign as DollarOutlined, LuEye as EyeOutlined, LuZap as ThunderboltOutlined, LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
+import {
+  LuPlus as PlusOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuChevronLeft as LeftOutlined,
+  LuChevronRight as RightOutlined,
+  LuSquareCheckBig as CheckSquareOutlined,
+  LuHash as NumberOutlined,
+  LuListOrdered as OrderedListOutlined,
+  LuCircleDollarSign as DollarOutlined,
+  LuEye as EyeOutlined,
+  LuZap as ThunderboltOutlined,
+  LuCircleHelp as InfoCircleOutlined,
+} from "react-icons/lu";
 
 import type {
   ApiProductComponentCondition,
@@ -71,9 +83,7 @@ interface IRuleInspectorProps {
 // ============================================================================
 
 /** Check if a condition needs a value input */
-const conditionNeedsValue = (
-  condition: ApiProductComponentCondition,
-): boolean => {
+const conditionNeedsValue = (condition: ApiProductComponentCondition): boolean => {
   if (condition.category !== ProductComponentConditionCategory.Numeric) return false;
   const meta = COMPARISON_OPERATOR_META[condition.operator];
   return meta?.requiresValue ?? false;
@@ -188,11 +198,7 @@ const buildActionLevels = (
 // Component
 // ============================================================================
 
-export const RuleInspector = ({
-  rule,
-  groups,
-  onRuleChange,
-}: IRuleInspectorProps) => {
+export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProps) => {
   const { styles, cx } = useStyles();
 
   const {
@@ -220,12 +226,7 @@ export const RuleInspector = ({
         <PaperHeader
           bordered={false}
           extra={
-            <Button
-              type="text"
-              size="small"
-              icon={<LeftOutlined />}
-              onClick={toggleCollapsed}
-            />
+            <Button type="text" size="small" icon={<LeftOutlined />} onClick={toggleCollapsed} />
           }
         />
         <div className={styles.collapsedContent}>
@@ -243,19 +244,11 @@ export const RuleInspector = ({
           icon={CHART_NODE_ICONS.rule}
           title="Rule Inspector"
           actions={
-            <Button
-              type="text"
-              size="small"
-              icon={<RightOutlined />}
-              onClick={toggleCollapsed}
-            />
+            <Button type="text" size="small" icon={<RightOutlined />} onClick={toggleCollapsed} />
           }
         />
         <div className={styles.content}>
-          <Empty
-            description="Select a rule to edit"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
+          <Empty description="Select a rule to edit" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       </Paper>
     );
@@ -267,12 +260,7 @@ export const RuleInspector = ({
         icon={<ThunderboltOutlined className={styles.titleIcon} />}
         title="Rule Inspector"
         actions={
-          <Button
-            type="text"
-            size="small"
-            icon={<RightOutlined />}
-            onClick={toggleCollapsed}
-          />
+          <Button type="text" size="small" icon={<RightOutlined />} onClick={toggleCollapsed} />
         }
       />
 
@@ -280,9 +268,7 @@ export const RuleInspector = ({
         {/* Basic Info */}
         <div className={styles.section}>
           <div className={styles.field}>
-            <Typography.Text className={styles.fieldLabel}>
-              Name
-            </Typography.Text>
+            <Typography.Text className={styles.fieldLabel}>Name</Typography.Text>
             <Input
               data-testid="dependency-rule-name-input"
               value={rule.name}
@@ -292,9 +278,7 @@ export const RuleInspector = ({
           </div>
           <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
             <div className={styles.field} style={{ flex: 1, marginBottom: 0 }}>
-              <Typography.Text className={styles.fieldLabel}>
-                Priority
-              </Typography.Text>
+              <Typography.Text className={styles.fieldLabel}>Priority</Typography.Text>
               <InputNumber
                 data-testid="dependency-rule-priority-input"
                 value={rule.priority}
@@ -353,29 +337,23 @@ export const RuleInspector = ({
                 <div className={styles.conditionRow}>
                   <NavigableDropdown
                     testId="dependency-rule-condition-target-menu"
-                    levels={buildTargetLevels(
-                      groups,
-                      (targetType, targetId) => {
-                        const subjects = SUBJECTS_BY_TARGET[targetType];
-                        const firstSubject = subjects[0];
-                        const operators = firstSubject
-                          ? OPERATORS_BY_SUBJECT[firstSubject]
-                          : [];
-                        const firstOperator = operators[0];
-                        const subjectMeta = firstSubject
-                          ? CONDITION_SUBJECT_META[firstSubject]
-                          : null;
-                        handleUpdateCondition(condition.id, {
-                          targetType,
-                          targetId,
-                          subject: firstSubject,
-                          operator: firstOperator,
-                          category:
-                            subjectMeta?.category ??
-                            ProductComponentConditionCategory.StateCheck,
-                        } as Partial<ApiProductComponentCondition>);
-                      },
-                    )}
+                    levels={buildTargetLevels(groups, (targetType, targetId) => {
+                      const subjects = SUBJECTS_BY_TARGET[targetType];
+                      const firstSubject = subjects[0];
+                      const operators = firstSubject ? OPERATORS_BY_SUBJECT[firstSubject] : [];
+                      const firstOperator = operators[0];
+                      const subjectMeta = firstSubject
+                        ? CONDITION_SUBJECT_META[firstSubject]
+                        : null;
+                      handleUpdateCondition(condition.id, {
+                        targetType,
+                        targetId,
+                        subject: firstSubject,
+                        operator: firstOperator,
+                        category:
+                          subjectMeta?.category ?? ProductComponentConditionCategory.StateCheck,
+                      } as Partial<ApiProductComponentCondition>);
+                    })}
                   >
                     <Button
                       className={styles.operatorChip}
@@ -388,11 +366,7 @@ export const RuleInspector = ({
                         {CHART_NODE_ICONS[condition.targetType]}
                       </Tag>
                       <span className={styles.chipSubject}>
-                        {getTargetLabel(
-                          condition.targetType,
-                          condition.targetId,
-                          groups,
-                        )}
+                        {getTargetLabel(condition.targetType, condition.targetId, groups)}
                       </span>
                     </Button>
                   </NavigableDropdown>
@@ -407,26 +381,20 @@ export const RuleInspector = ({
                 <div className={styles.conditionRow}>
                   <NavigableDropdown
                     testId="dependency-rule-condition-operator-menu"
-                    levels={buildConditionLevels(
-                      condition.targetType,
-                      (subject, operator) => {
-                        const subjectMeta = CONDITION_SUBJECT_META[subject];
-                        handleUpdateCondition(condition.id, {
-                          subject,
-                          operator,
-                          category: subjectMeta.category,
-                        } as Partial<ApiProductComponentCondition>);
-                      },
-                    )}
+                    levels={buildConditionLevels(condition.targetType, (subject, operator) => {
+                      const subjectMeta = CONDITION_SUBJECT_META[subject];
+                      handleUpdateCondition(condition.id, {
+                        subject,
+                        operator,
+                        category: subjectMeta.category,
+                      } as Partial<ApiProductComponentCondition>);
+                    })}
                   >
                     <Button
                       className={styles.operatorChip}
                       data-testid="dependency-rule-condition-operator-button"
                     >
-                      {getConditionChipLabel(
-                        condition.subject,
-                        condition.operator,
-                      )}
+                      {getConditionChipLabel(condition.subject, condition.operator)}
                     </Button>
                   </NavigableDropdown>
                   {conditionNeedsValue(condition) && (
@@ -487,24 +455,20 @@ export const RuleInspector = ({
                 <div className={styles.conditionRow}>
                   <NavigableDropdown
                     testId="dependency-rule-action-target-menu"
-                    levels={buildTargetLevels(
-                      groups,
-                      (targetType, targetId) => {
-                        const categories = CATEGORIES_BY_TARGET[targetType];
-                        const firstCategory = categories[0];
-                        const actionsInCategory =
-                          ACTIONS_BY_CATEGORY[firstCategory];
-                        const newActionType = actionsInCategory[0];
-                        handleUpdateAction(action.id, {
-                          targetType,
-                          actionType: newActionType,
-                          targetId:
-                            targetType === ProductComponentDependencyTargetType.Configuration
-                              ? ""
-                              : targetId,
-                        });
-                      },
-                    )}
+                    levels={buildTargetLevels(groups, (targetType, targetId) => {
+                      const categories = CATEGORIES_BY_TARGET[targetType];
+                      const firstCategory = categories[0];
+                      const actionsInCategory = ACTIONS_BY_CATEGORY[firstCategory];
+                      const newActionType = actionsInCategory[0];
+                      handleUpdateAction(action.id, {
+                        targetType,
+                        actionType: newActionType,
+                        targetId:
+                          targetType === ProductComponentDependencyTargetType.Configuration
+                            ? ""
+                            : targetId,
+                      });
+                    })}
                   >
                     <Button
                       className={styles.operatorChip}
@@ -517,11 +481,7 @@ export const RuleInspector = ({
                         {CHART_NODE_ICONS[action.targetType]}
                       </Tag>
                       <span className={styles.chipSubject}>
-                        {getTargetLabel(
-                          action.targetType,
-                          action.targetId,
-                          groups,
-                        )}
+                        {getTargetLabel(action.targetType, action.targetId, groups)}
                       </span>
                     </Button>
                   </NavigableDropdown>

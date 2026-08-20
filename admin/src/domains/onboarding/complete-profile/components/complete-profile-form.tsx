@@ -35,11 +35,7 @@ interface CompleteProfileFormProps {
  * Form for completing user profile during onboarding.
  * Requires firstName and lastName to proceed.
  */
-export function CompleteProfileForm({
-  onSubmit,
-  isLoading,
-  error,
-}: CompleteProfileFormProps) {
+export function CompleteProfileForm({ onSubmit, isLoading, error }: CompleteProfileFormProps) {
   const { styles } = useStyles();
 
   const {
@@ -57,9 +53,7 @@ export function CompleteProfileForm({
 
   return (
     <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
-      {error && (
-        <Alert message={error} type="error" showIcon />
-      )}
+      {error && <Alert message={error} type="error" showIcon />}
 
       <div className={styles.row}>
         <Form.Item

@@ -21,9 +21,7 @@ const FATAL_S3_CODES = [
   "NoSuchBucket",
 ];
 
-function isS3Error(
-  error: unknown
-): error is { Code?: string; code?: string; $metadata?: unknown } {
+function isS3Error(error: unknown): error is { Code?: string; code?: string; $metadata?: unknown } {
   return (
     typeof error === "object" &&
     error !== null &&

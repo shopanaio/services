@@ -16,6 +16,6 @@ export const tagListView = catalogSchema.view("tag_list_view").as((qb) =>
     .from(tag)
     .innerJoin(
       tagTranslation,
-      sql`${tagTranslation.storeId} = ${tag.storeId} AND ${tagTranslation.tagId} = ${tag.id}`
-    )
+      sql`${tagTranslation.storeId} = ${tag.storeId} AND ${tagTranslation.tagId} = ${tag.id}`,
+    ),
 );

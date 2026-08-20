@@ -17,10 +17,7 @@ export function isValidGroupHandle(handle: string): boolean {
   return isValidSlug(handle);
 }
 
-export function isValidSourceHandle(
-  facetType: string,
-  handle: string
-): boolean {
+export function isValidSourceHandle(facetType: string, handle: string): boolean {
   const normalizedType = normalizeFacetType(facetType);
   if (normalizedType === "TAG") {
     return isValidSlug(handle);

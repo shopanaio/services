@@ -32,9 +32,7 @@ abstract class CustomerComparisonWorkflow extends BrokerWorkflows {
     return Kernel.getInstance();
   }
 
-  protected scriptContext(
-    context: CustomerComparisonWorkflowContext,
-  ): RunScriptContext {
+  protected scriptContext(context: CustomerComparisonWorkflowContext): RunScriptContext {
     return {
       organizationId: context.organizationId,
       storeId: context.storeId,
@@ -118,4 +116,3 @@ export class CustomerComparisonCategoryClearWorkflow extends CustomerComparisonW
     );
   }
 }
-

@@ -1,10 +1,7 @@
 import { and, eq, inArray, or } from "drizzle-orm";
 import type { NotificationChannel, NotificationDefinitionKey } from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  notificationChannelSettings,
-  notificationDefinitionSettings,
-} from "../models/index.js";
+import { notificationChannelSettings, notificationDefinitionSettings } from "../models/index.js";
 
 export class SettingsRepository extends BaseRepository {
   async getDefinitionSetting(key: NotificationDefinitionKey) {
@@ -14,8 +11,8 @@ export class SettingsRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDefinitionSettings.storeId, this.storeId),
-          eq(notificationDefinitionSettings.definitionKey, key)
-        )
+          eq(notificationDefinitionSettings.definitionKey, key),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -35,8 +32,8 @@ export class SettingsRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDefinitionSettings.storeId, this.storeId),
-          inArray(notificationDefinitionSettings.definitionKey, [...keys])
-        )
+          inArray(notificationDefinitionSettings.definitionKey, [...keys]),
+        ),
       );
   }
 
@@ -72,18 +69,15 @@ export class SettingsRepository extends BaseRepository {
         and(
           eq(notificationDefinitionSettings.storeId, this.storeId),
           eq(notificationDefinitionSettings.definitionKey, input.key),
-          eq(notificationDefinitionSettings.version, input.expectedVersion)
-        )
+          eq(notificationDefinitionSettings.version, input.expectedVersion),
+        ),
       )
       .returning();
     if (!rows[0]) throw new Error("VERSION_CONFLICT");
     return rows[0];
   }
 
-  async getChannelSetting(
-    key: NotificationDefinitionKey,
-    channel: NotificationChannel
-  ) {
+  async getChannelSetting(key: NotificationDefinitionKey, channel: NotificationChannel) {
     const rows = await this.connection
       .select()
       .from(notificationChannelSettings)
@@ -91,8 +85,8 @@ export class SettingsRepository extends BaseRepository {
         and(
           eq(notificationChannelSettings.storeId, this.storeId),
           eq(notificationChannelSettings.definitionKey, key),
-          eq(notificationChannelSettings.channel, channel)
-        )
+          eq(notificationChannelSettings.channel, channel),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -102,20 +96,17 @@ export class SettingsRepository extends BaseRepository {
     const where = key
       ? and(
           eq(notificationChannelSettings.storeId, this.storeId),
-          eq(notificationChannelSettings.definitionKey, key)
+          eq(notificationChannelSettings.definitionKey, key),
         )
       : eq(notificationChannelSettings.storeId, this.storeId);
-    return this.connection
-      .select()
-      .from(notificationChannelSettings)
-      .where(where);
+    return this.connection.select().from(notificationChannelSettings).where(where);
   }
 
   async getChannelSettings(
     keys: readonly {
       key: NotificationDefinitionKey;
       channel: NotificationChannel;
-    }[]
+    }[],
   ) {
     return this.connection
       .select()
@@ -127,11 +118,11 @@ export class SettingsRepository extends BaseRepository {
             ...keys.map(({ key, channel }) =>
               and(
                 eq(notificationChannelSettings.definitionKey, key),
-                eq(notificationChannelSettings.channel, channel)
-              )
-            )
-          )
-        )
+                eq(notificationChannelSettings.channel, channel),
+              ),
+            ),
+          ),
+        ),
       );
   }
 
@@ -176,8 +167,8 @@ export class SettingsRepository extends BaseRepository {
           eq(notificationChannelSettings.storeId, this.storeId),
           eq(notificationChannelSettings.definitionKey, input.key),
           eq(notificationChannelSettings.channel, input.channel),
-          eq(notificationChannelSettings.version, input.expectedVersion)
-        )
+          eq(notificationChannelSettings.version, input.expectedVersion),
+        ),
       )
       .returning();
     if (!rows[0]) throw new Error("VERSION_CONFLICT");

@@ -1,4 +1,6 @@
-"""A navigation menu owned by an Online Store installation."""
+"""
+A navigation menu owned by an Online Store installation.
+"""
 type OnlineStoreNavigationMenu implements Node @key(fields: "id") {
   id: ID!
   handle: String!
@@ -24,7 +26,9 @@ type OnlineStoreNavigationTarget {
   url: String
 }
 
-"""A localized item in a navigation menu tree."""
+"""
+A localized item in a navigation menu tree.
+"""
 type OnlineStoreNavigationMenuItem implements Node @key(fields: "id") {
   id: ID!
   handle: String!

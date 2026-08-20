@@ -2,7 +2,9 @@
 
 ## Архитектура
 
-**Snapshot + change log** — текущее состояние хранится в `warehouse_stock`, а история изменений пишется в тонкий `stock_changes` (только дельты + баланс после изменения). Чтение текущих значений — без агрегаций, история — без копирования полного снапшота.
+**Snapshot + change log** — текущее состояние хранится в `warehouse_stock`, а история изменений
+пишется в тонкий `stock_changes` (только дельты + баланс после изменения). Чтение текущих значений —
+без агрегаций, история — без копирования полного снапшота.
 
 ---
 
@@ -154,9 +156,12 @@ CREATE INDEX idx_variant_product_active
 
 ### Атомарный UPSERT с идемпотентностью (критично!)
 
-**Проблема**: при параллельных запросах SELECT-проверка идемпотентности не блокирует — два потока могут оба увидеть "нет записи" и оба применить дельты. Также использование `EXCLUDED.*` в `ON CONFLICT DO UPDATE` приводит к lost-update при конкурентных операциях.
+**Проблема**: при параллельных запросах SELECT-проверка идемпотентности не блокирует — два потока
+могут оба увидеть "нет записи" и оба применить дельты. Также использование `EXCLUDED.*` в
+`ON CONFLICT DO UPDATE` приводит к lost-update при конкурентных операциях.
 
 **Решение**:
+
 - Идемпотентность через `INSERT ... ON CONFLICT DO NOTHING RETURNING`
 - Инкремент от текущей строки в `DO UPDATE` (не от `EXCLUDED`)
 - Валидность проверяется на реальной строке в `WHERE` (race-safe)
@@ -277,23 +282,27 @@ LEFT JOIN inventory.stock_changes sc ON sc.id = r.id;
 ```
 
 **Статусы**:
+
 - `APPLIED` — операция выполнена, `sc.*` содержит запись
 - `DUPLICATE` — идемпотентный повтор (событие уже обработано)
-- `REJECTED` — результат невалиден (недостаточно стока, нарушение CHECK или конкурирующее обновление); запись сохранена с `apply_status = 'REJECTED'`
+- `REJECTED` — результат невалиден (недостаточно стока, нарушение CHECK или конкурирующее
+  обновление); запись сохранена с `apply_status = 'REJECTED'`
 
 **Гарантии**:
+
 - `INSERT ... ON CONFLICT DO NOTHING` — единственный race-free способ идемпотентности
 - Инкремент от `warehouse_stock.*` а не от `EXCLUDED.*` — нет lost-update
 - Валидность на `warehouse_stock.* + delta` в WHERE — race-safe проверка
 - `reject` фиксирует REJECTED с текущими балансами — событие остаётся идемпотентным
 - INSERT-ветка проверяет валидность дельт для новой строки
 
-`movement_type`, `reason` и `apply_status` оформлены как ENUM, чтобы избежать мусорных значений.
-Для идемпотентности `source_system` и `source_event_id` обязательны; `source_event_id`
-должен быть уникальным на уровне SKU+склада (например, `order_id:line_id:warehouse_id`).
-Если нужен event-level идемпотентный ключ на несколько строк — добавить отдельный `stock_events`.
+`movement_type`, `reason` и `apply_status` оформлены как ENUM, чтобы избежать мусорных значений. Для
+идемпотентности `source_system` и `source_event_id` обязательны; `source_event_id` должен быть
+уникальным на уровне SKU+склада (например, `order_id:line_id:warehouse_id`). Если нужен event-level
+идемпотентный ключ на несколько строк — добавить отдельный `stock_events`.
 
 **Семантика дельт по movement_type (минимум):**
+
 - `RECEIVE`: `delta_on_hand = +qty`
 - `SELL`: `delta_on_hand = -qty`, `delta_reserved = -qty` (если списание из резерва)
 - `RETURN`: `delta_on_hand = +qty`
@@ -337,10 +346,10 @@ CREATE INDEX idx_reservations_variant ON inventory.reservations(variant_id);
 CREATE INDEX idx_reservations_order ON inventory.reservations(order_system, order_id);
 ```
 
-`reserved_qty` в `warehouse_stock` — агрегат по активным резервам; нужна строгая транзакция и периодическая сверка
-с `reservations` (SUM quantity WHERE status = 'ACTIVE').
-Для идемпотентности резервов — `INSERT ... ON CONFLICT DO NOTHING` по UNIQUE; `order_id` должен быть
-уникальным на уровне позиции (если у заказа есть несколько line-items с одинаковым SKU).
+`reserved_qty` в `warehouse_stock` — агрегат по активным резервам; нужна строгая транзакция и
+периодическая сверка с `reservations` (SUM quantity WHERE status = 'ACTIVE'). Для идемпотентности
+резервов — `INSERT ... ON CONFLICT DO NOTHING` по UNIQUE; `order_id` должен быть уникальным на
+уровне позиции (если у заказа есть несколько line-items с одинаковым SKU).
 
 ### 4. Настройки алертов `product_inventory_settings`
 
@@ -391,6 +400,7 @@ CREATE INDEX idx_inbound_supply_variant_date
 ## Как считать данные для виджета
 
 ### quantities.onHand
+
 ```sql
 SELECT COALESCE(SUM(ws.quantity_on_hand), 0)
 FROM inventory.warehouse_stock ws
@@ -400,6 +410,7 @@ WHERE v.product_id = $1
 ```
 
 ### quantities.reserved
+
 ```sql
 SELECT COALESCE(SUM(ws.reserved_qty), 0)
 FROM inventory.warehouse_stock ws
@@ -409,6 +420,7 @@ WHERE v.product_id = $1
 ```
 
 ### quantities.availableForSale
+
 ```sql
 -- availableForSale = onHand - reserved - unavailable
 SELECT
@@ -419,6 +431,7 @@ WHERE v.product_id = $1 AND v.deleted_at IS NULL;
 ```
 
 ### backorder.quantity
+
 ```sql
 -- backorder = max(0, -SUM(available_for_sale))
 SELECT GREATEST(COALESCE(-SUM(ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty), 0), 0) as backorder_qty
@@ -428,6 +441,7 @@ WHERE v.product_id = $1 AND v.deleted_at IS NULL;
 ```
 
 ### backorder.etaAvgDays
+
 ```sql
 -- Средневзвешенное ETA по планируемым поставкам
 SELECT
@@ -443,6 +457,7 @@ WHERE v.product_id = $1
 ```
 
 ### availableChange7d
+
 ```sql
 -- net change available за 7 дней
 -- Оптимизация: сначала получаем variant_id, затем фильтруем stock_changes по IN
@@ -458,6 +473,7 @@ WHERE sc.variant_id IN (SELECT id FROM product_variants)
 ```
 
 ### skuStatus (low stock, out of stock, backorder)
+
 ```sql
 WITH product_variants AS (
   -- Сначала определяем варианты продукта для фильтрации stock_changes
@@ -555,10 +571,13 @@ LEFT JOIN variant_oos vo ON vo.variant_id = variant_stock.id;
 ```
 
 ### Семантика out_of_stock_since / backorder_expected_at
-- `out_of_stock_since`: вычисляется по `stock_changes` как момент последнего перехода `available_after` из `> 0` в `<= 0`
-  (по складу, затем `MIN` по складам).
-- `backorder_expected_at`: вычисляется из `inbound_supply` (можно кэшировать отдельно, но в `warehouse_stock` не храним).
-- В виджете используется `MIN(expected_at)` по `inbound_supply`; при необходимости заменить на расчет по дефициту.
+
+- `out_of_stock_since`: вычисляется по `stock_changes` как момент последнего перехода
+  `available_after` из `> 0` в `<= 0` (по складу, затем `MIN` по складам).
+- `backorder_expected_at`: вычисляется из `inbound_supply` (можно кэшировать отдельно, но в
+  `warehouse_stock` не храним).
+- В виджете используется `MIN(expected_at)` по `inbound_supply`; при необходимости заменить на
+  расчет по дефициту.
 
 ### Seed миграция для существующих остатков
 
@@ -592,9 +611,11 @@ SELECT
 FROM inventory.warehouse_stock ws;
 ```
 
-**Fallback для SKU без истории**: если `stock_changes` пустой — использовать `warehouse_stock.updated_at` как `out_of_stock_since`.
+**Fallback для SKU без истории**: если `stock_changes` пустой — использовать
+`warehouse_stock.updated_at` как `out_of_stock_since`.
 
 ### Расчет backorder_expected_at (по складу)
+
 ```sql
 -- deficit = max(0, reserved_qty + unavailable_qty - quantity_on_hand)
 WITH deficit AS (
@@ -627,6 +648,7 @@ LIMIT 1;
 ```
 
 ### Политика backorder
+
 - `backorder_enabled = false`: запрет на `RESERVE` если `available_for_sale <= 0`.
 - `backorder_enabled = true`: `RESERVE` разрешен, `available_for_sale` может быть отрицательным.
 - Лимиты `backorder_max_days` / `backorder_max_qty` применяются на уровне бизнес-логики.
@@ -722,20 +744,24 @@ extend type WidgetQuery {
 ## Файлы для создания/изменения (Inventory Service)
 
 ### Новые модели (Drizzle)
+
 1. `repositories/models/stock-changes.ts`
 2. `repositories/models/reservations.ts`
 3. `repositories/models/product-inventory-settings.ts`
 4. `repositories/models/inbound-supply.ts`
 
 ### Изменить модели
+
 1. `repositories/models/stock.ts` — добавить reserved_qty, unavailable_qty
 
 ### Новые файлы
+
 1. `repositories/inventory-widget/InventoryWidgetRepository.ts`
 2. `resolvers/admin/InventoryWidgetResolver.ts`
 3. `api/graphql-admin/schema/inventory-widget.graphql`
 
 ### Изменить
+
 1. `repositories/models/index.ts` — экспорт новых моделей
 2. `resolvers/admin/index.ts` — добавить resolver
 
@@ -744,6 +770,7 @@ extend type WidgetQuery {
 ## Порядок реализации
 
 ### Phase 1: Database
+
 1. Миграция: CREATE stock_changes (с seq BIGINT GENERATED ALWAYS AS IDENTITY)
 2. Миграция: CREATE reservations
 3. Миграция: CREATE product_inventory_settings
@@ -753,10 +780,13 @@ extend type WidgetQuery {
 7. Drizzle models
 
 ### Phase 2: API
+
 1. InventoryWidgetRepository с SQL запросами
 2. GraphQL schema
 3. Resolver
 
 ### Phase 3: Интеграция
-1. Обновить существующие операции (variantSetStock и др.) чтобы писали в stock_changes и обновляли warehouse_stock в одной транзакции
+
+1. Обновить существующие операции (variantSetStock и др.) чтобы писали в stock_changes и обновляли
+   warehouse_stock в одной транзакции
 2. Добавить reconcile job для сверки `reserved_qty` с `reservations` (на случай рассинхронизации)

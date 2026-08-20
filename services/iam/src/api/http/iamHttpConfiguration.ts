@@ -1,8 +1,5 @@
 import { isIP } from "node:net";
-import type {
-  GlobalConfig,
-  ServiceConfig,
-} from "@shopana/shared-service-config";
+import type { GlobalConfig, ServiceConfig } from "@shopana/shared-service-config";
 import { z } from "zod";
 
 export const IAM_EXTERNAL_REVERSE_PROXY_PATHS = [
@@ -41,9 +38,7 @@ export function resolveIamHttpRuntimeConfiguration(input: {
     portFromDeprecatedAlias !== undefined &&
     portFromCommonListener !== portFromDeprecatedAlias
   ) {
-    throw new Error(
-      "IAM ports.iam_http conflicts with deprecated ports.admin_graphql"
-    );
+    throw new Error("IAM ports.iam_http conflicts with deprecated ports.admin_graphql");
   }
   const port = portFromCommonListener ?? portFromDeprecatedAlias;
   if (!port) {
@@ -51,49 +46,36 @@ export function resolveIamHttpRuntimeConfiguration(input: {
   }
 
   const customConfiguration = applicationAuthHttpConfigurationSchema.parse(
-    input.service.application_auth_http ?? {}
+    input.service.application_auth_http ?? {},
   );
-  if (
-    input.global.environment === "production" &&
-    !env.IAM_PUBLIC_BASE_URL
-  ) {
+  if (input.global.environment === "production" && !env.IAM_PUBLIC_BASE_URL) {
     throw new Error("Production IAM_PUBLIC_BASE_URL environment value is required");
   }
-  const configuredPublicBaseUrl =
-    env.IAM_PUBLIC_BASE_URL ?? customConfiguration.public_base_url;
+  const configuredPublicBaseUrl = env.IAM_PUBLIC_BASE_URL ?? customConfiguration.public_base_url;
   if (!configuredPublicBaseUrl) {
     throw new Error("IAM_PUBLIC_BASE_URL is required for the IAM HTTP listener");
   }
   const publicBaseUrl = normalizePublicBaseUrl(configuredPublicBaseUrl);
-  if (
-    input.global.environment === "production" &&
-    !publicBaseUrl.startsWith("https://")
-  ) {
+  if (input.global.environment === "production" && !publicBaseUrl.startsWith("https://")) {
     throw new Error("Production IAM_PUBLIC_BASE_URL must use HTTPS");
   }
 
-  const trustedProxyCidrs = customConfiguration.trusted_proxy_cidrs.map(
-    validateProxyAddress
-  );
+  const trustedProxyCidrs = customConfiguration.trusted_proxy_cidrs.map(validateProxyAddress);
   if (
     input.global.environment === "production" &&
     customConfiguration.behind_reverse_proxy &&
     trustedProxyCidrs.length === 0
   ) {
     throw new Error(
-      "Production IAM listener behind a reverse proxy requires a trusted proxy allowlist"
+      "Production IAM listener behind a reverse proxy requires a trusted proxy allowlist",
     );
   }
 
   const externalPaths =
     customConfiguration.external_paths ??
-    (input.global.environment === "production"
-      ? undefined
-      : [...IAM_EXTERNAL_REVERSE_PROXY_PATHS]);
+    (input.global.environment === "production" ? undefined : [...IAM_EXTERNAL_REVERSE_PROXY_PATHS]);
   if (!externalPaths) {
-    throw new Error(
-      "Production IAM application_auth_http.external_paths manifest is required"
-    );
+    throw new Error("Production IAM application_auth_http.external_paths manifest is required");
   }
   assertExternalPathManifest(externalPaths);
 
@@ -104,8 +86,7 @@ export function resolveIamHttpRuntimeConfiguration(input: {
     behindReverseProxy: customConfiguration.behind_reverse_proxy,
     externalPaths: Object.freeze([...externalPaths]),
     deprecatedAdminGraphqlPortAliasUsed:
-      portFromCommonListener === undefined &&
-      portFromDeprecatedAlias !== undefined,
+      portFromCommonListener === undefined && portFromDeprecatedAlias !== undefined,
   };
 }
 
@@ -147,12 +128,9 @@ function assertExternalPathManifest(paths: readonly string[]): void {
   }
   const actual = [...paths].sort();
   const expected = [...IAM_EXTERNAL_REVERSE_PROXY_PATHS].sort();
-  if (
-    actual.length !== expected.length ||
-    actual.some((path, index) => path !== expected[index])
-  ) {
+  if (actual.length !== expected.length || actual.some((path, index) => path !== expected[index])) {
     throw new Error(
-      "IAM external reverse-proxy path manifest must expose only approved OAuth/OIDC paths"
+      "IAM external reverse-proxy path manifest must expose only approved OAuth/OIDC paths",
     );
   }
 }

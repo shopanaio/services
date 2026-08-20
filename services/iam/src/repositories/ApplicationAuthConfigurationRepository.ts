@@ -90,8 +90,7 @@ export interface ApplicationAuthProviderSummary {
   updatedBy: string;
 }
 
-export interface ApplicationAuthProviderCredentials
-  extends ApplicationAuthProviderSummary {
+export interface ApplicationAuthProviderCredentials extends ApplicationAuthProviderSummary {
   enabled: true;
   clientId: string;
   clientSecret: string;
@@ -110,15 +109,13 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
     db: Database,
     txManager: TransactionManager<Database>,
     private readonly keyring: ApplicationAuthKeyring,
-    private readonly invalidation: ApplicationAuthLiveStateInvalidationBus
+    private readonly invalidation: ApplicationAuthLiveStateInvalidationBus,
   ) {
     super(db, txManager);
   }
 
   @Transactional()
-  async provisionApplication(
-    input: ProvisionApplicationInput
-  ): Promise<ProvisionedApplication> {
+  async provisionApplication(input: ProvisionApplicationInput): Promise<ProvisionedApplication> {
     const value = provisionApplicationSchema.parse(input);
     const configuration = applicationAuthMutableConfigurationSchema.parse({
       ...DEFAULT_APPLICATION_AUTH_CONFIGURATION,
@@ -131,12 +128,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
     const [activeOrganization] = await this.connection
       .select({ id: organization.id })
       .from(organization)
-      .where(
-        and(
-          eq(organization.id, value.organizationId),
-          isNull(organization.deletedAt)
-        )
-      )
+      .where(and(eq(organization.id, value.organizationId), isNull(organization.deletedAt)))
       .limit(1);
     if (!activeOrganization) {
       throw new Error("Active organization does not exist");
@@ -233,9 +225,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async find(
-    applicationId: string
-  ): Promise<ApplicationAuthConfigurationRecord | null> {
+  async find(applicationId: string): Promise<ApplicationAuthConfigurationRecord | null> {
     assertApplicationId(applicationId);
     const [record] = await this.connection
       .select()
@@ -247,10 +237,8 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
 
   @ReadOnly()
   async findActive(
-    applicationId: string
-  ): Promise<
-    (ApplicationAuthConfigurationRecord & { organizationId: string }) | null
-  > {
+    applicationId: string,
+  ): Promise<(ApplicationAuthConfigurationRecord & { organizationId: string }) | null> {
     assertApplicationId(applicationId);
     const [record] = await this.connection
       .select({
@@ -258,30 +246,25 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
         organizationId: application.organizationId,
       })
       .from(applicationAuthConfiguration)
-      .innerJoin(
-        application,
-        eq(application.id, applicationAuthConfiguration.applicationId)
-      )
+      .innerJoin(application, eq(application.id, applicationAuthConfiguration.applicationId))
       .innerJoin(organization, eq(organization.id, application.organizationId))
       .where(
         and(
           eq(applicationAuthConfiguration.applicationId, applicationId),
           eq(applicationAuthConfiguration.realmEnabled, true),
           isNull(application.deletedAt),
-          isNull(organization.deletedAt)
-        )
+          isNull(organization.deletedAt),
+        ),
       )
       .limit(1);
-    return record
-      ? { ...record.configuration, organizationId: record.organizationId }
-      : null;
+    return record ? { ...record.configuration, organizationId: record.organizationId } : null;
   }
 
   @Transactional()
   async update(
     applicationId: string,
     expectedRevision: number,
-    patch: ApplicationAuthConfigurationPatch
+    patch: ApplicationAuthConfigurationPatch,
   ): Promise<ApplicationAuthConfigurationRecord> {
     const current = await this.requireConfiguration(applicationId);
     if (current.revision !== expectedRevision) {
@@ -318,8 +301,8 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthConfiguration.applicationId, applicationId),
-          eq(applicationAuthConfiguration.revision, expectedRevision)
-        )
+          eq(applicationAuthConfiguration.revision, expectedRevision),
+        ),
       )
       .returning();
     if (!updated) {
@@ -331,12 +314,10 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   @Transactional()
   async enableRealm(
     applicationId: string,
-    expectedRevision: number
+    expectedRevision: number,
   ): Promise<ApplicationAuthConfigurationRecord> {
     const configuration = await this.requireConfiguration(applicationId);
-    this.keyring.assertVersionsAvailable(
-      await this.listUsedKeyVersions(applicationId)
-    );
+    this.keyring.assertVersionsAvailable(await this.listUsedKeyVersions(applicationId));
     if (configuration.revision !== expectedRevision) {
       throw new Error("Application auth configuration revision conflict");
     }
@@ -350,8 +331,8 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthConfiguration.applicationId, applicationId),
-          eq(applicationAuthConfiguration.revision, expectedRevision)
-        )
+          eq(applicationAuthConfiguration.revision, expectedRevision),
+        ),
       )
       .returning();
     if (!updated) {
@@ -360,9 +341,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
     return updated;
   }
 
-  async emergencyDisable(
-    applicationId: string
-  ): Promise<ApplicationAuthConfigurationRecord> {
+  async emergencyDisable(applicationId: string): Promise<ApplicationAuthConfigurationRecord> {
     assertApplicationId(applicationId);
     const updated = await this.txManager.run(async () => {
       const [record] = await this.connection
@@ -383,7 +362,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       createApplicationAuthLiveStateInvalidationEvent({
         kind: "application",
         applicationId,
-      })
+      }),
     );
     return updated;
   }
@@ -392,7 +371,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   async rotateRealmSecret(
     applicationId: string,
     expectedRevision: number,
-    targetKeyVersion: number
+    targetKeyVersion: number,
   ): Promise<ApplicationAuthConfigurationRecord> {
     this.keyring.assertVersionsAvailable([targetKeyVersion]);
     const now = new Date();
@@ -406,8 +385,8 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthConfiguration.applicationId, applicationId),
-          eq(applicationAuthConfiguration.revision, expectedRevision)
-        )
+          eq(applicationAuthConfiguration.revision, expectedRevision),
+        ),
       )
       .returning();
     if (!updated) {
@@ -426,8 +405,8 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationOauthRefreshToken.applicationId, applicationId),
-          isNull(applicationOauthRefreshToken.revoked)
-        )
+          isNull(applicationOauthRefreshToken.revoked),
+        ),
       );
     await this.connection
       .delete(applicationOauthAccessToken)
@@ -442,7 +421,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   async addOrigin(
     applicationId: string,
     origin: string,
-    options: { allowInsecureLocalhost: boolean }
+    options: { allowInsecureLocalhost: boolean },
   ): Promise<ApplicationAuthOrigin> {
     assertApplicationId(applicationId);
     const normalizedOrigin = normalizeApplicationAuthOrigin(origin, options);
@@ -472,8 +451,8 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthOrigin.applicationId, applicationId),
-          eq(applicationAuthOrigin.id, originId)
-        )
+          eq(applicationAuthOrigin.id, originId),
+        ),
       )
       .returning({ id: applicationAuthOrigin.id });
     if (rows.length === 1) {
@@ -485,7 +464,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   @Transactional()
   async upsertProvider(
     applicationId: string,
-    input: ApplicationAuthProviderCredentialsInput
+    input: ApplicationAuthProviderCredentialsInput,
   ): Promise<ApplicationAuthProviderSummary> {
     assertApplicationId(applicationId);
     const value = applicationAuthProviderCredentialsSchema.parse(input);
@@ -516,10 +495,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
         updatedBy: value.updatedBy,
       })
       .onConflictDoUpdate({
-        target: [
-          applicationAuthProvider.applicationId,
-          applicationAuthProvider.provider,
-        ],
+        target: [applicationAuthProvider.applicationId, applicationAuthProvider.provider],
         set: {
           enabled: value.enabled,
           encryptedClientId,
@@ -538,15 +514,13 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
 
   @ReadOnly()
   async listConfiguredProviders(
-    applicationId: string
+    applicationId: string,
   ): Promise<ApplicationAuthConfiguredProvider[]> {
     assertApplicationId(applicationId);
     const records = await this.connection
       .select()
       .from(applicationAuthProvider)
-      .where(
-        eq(applicationAuthProvider.applicationId, applicationId)
-      );
+      .where(eq(applicationAuthProvider.applicationId, applicationId));
     return records
       .map((record) => {
         if (record.applicationId !== applicationId) {
@@ -572,15 +546,12 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
           provider: summary.provider,
           field: "clientId",
         });
-        const clientSecret = this.keyring.decrypt(
-          record.encryptedClientSecret,
-          {
-            applicationId,
-            model: "provider",
-            provider: summary.provider,
-            field: "clientSecret",
-          }
-        );
+        const clientSecret = this.keyring.decrypt(record.encryptedClientSecret, {
+          applicationId,
+          model: "provider",
+          provider: summary.provider,
+          field: "clientSecret",
+        });
         const validated = applicationAuthProviderCredentialsSchema.parse({
           provider: summary.provider,
           enabled: true,
@@ -600,14 +571,14 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .sort(
         (left, right) =>
           APPLICATION_AUTH_PROVIDER_NAMES.indexOf(left.provider) -
-          APPLICATION_AUTH_PROVIDER_NAMES.indexOf(right.provider)
+          APPLICATION_AUTH_PROVIDER_NAMES.indexOf(right.provider),
       );
   }
 
   @Transactional()
   async removeProvider(
     applicationId: string,
-    provider: ApplicationAuthProviderName
+    provider: ApplicationAuthProviderName,
   ): Promise<boolean> {
     assertApplicationId(applicationId);
     const validProvider = parseApplicationAuthProviderName(provider);
@@ -617,8 +588,8 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
         and(
           eq(applicationAuthProvider.applicationId, applicationId),
           eq(applicationAuthProvider.provider, validProvider),
-          eq(applicationAuthProvider.enabled, false)
-        )
+          eq(applicationAuthProvider.enabled, false),
+        ),
       )
       .returning({ id: applicationAuthProvider.id });
     if (rows.length === 1) await this.bumpRevision(applicationId);
@@ -628,7 +599,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   @Transactional()
   async setProviderEnabled(
     applicationId: string,
-    input: ApplicationAuthProviderStateInput
+    input: ApplicationAuthProviderStateInput,
   ): Promise<ApplicationAuthProviderSummary> {
     assertApplicationId(applicationId);
     const value = applicationAuthProviderStateSchema.parse(input);
@@ -638,8 +609,8 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthProvider.applicationId, applicationId),
-          eq(applicationAuthProvider.provider, value.provider)
-        )
+          eq(applicationAuthProvider.provider, value.provider),
+        ),
       )
       .limit(1);
     if (!current) {
@@ -648,10 +619,8 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
     const summary = providerSummary(current);
     this.keyring.assertVersionsAvailable([current.secretKeyVersion]);
     if (
-      this.keyring.getEnvelopeKeyVersion(current.encryptedClientId) !==
-        current.secretKeyVersion ||
-      this.keyring.getEnvelopeKeyVersion(current.encryptedClientSecret) !==
-        current.secretKeyVersion
+      this.keyring.getEnvelopeKeyVersion(current.encryptedClientId) !== current.secretKeyVersion ||
+      this.keyring.getEnvelopeKeyVersion(current.encryptedClientSecret) !== current.secretKeyVersion
     ) {
       throw new Error("Application auth provider key version mismatch");
     }
@@ -665,15 +634,12 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
           provider: summary.provider,
           field: "clientId",
         }),
-        clientSecret: this.keyring.decrypt(
-          current.encryptedClientSecret,
-          {
-            applicationId,
-            model: "provider",
-            provider: summary.provider,
-            field: "clientSecret",
-          }
-        ),
+        clientSecret: this.keyring.decrypt(current.encryptedClientSecret, {
+          applicationId,
+          model: "provider",
+          provider: summary.provider,
+          field: "clientSecret",
+        }),
         scopes: summary.scopes,
         updatedBy: value.updatedBy,
       });
@@ -689,8 +655,8 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
         and(
           eq(applicationAuthProvider.id, current.id),
           eq(applicationAuthProvider.applicationId, applicationId),
-          eq(applicationAuthProvider.provider, value.provider)
-        )
+          eq(applicationAuthProvider.provider, value.provider),
+        ),
       )
       .returning();
     if (!updated) {
@@ -703,7 +669,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   @Transactional()
   async upsertDeliveryProfile(
     applicationId: string,
-    input: ApplicationAuthDeliveryProfileInput
+    input: ApplicationAuthDeliveryProfileInput,
   ): Promise<ApplicationAuthDeliveryProfile> {
     assertApplicationId(applicationId);
     const value = applicationAuthDeliveryProfileSchema.parse(input);
@@ -723,9 +689,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findDeliveryProfile(
-    applicationId: string
-  ): Promise<ApplicationAuthDeliveryProfile | null> {
+  async findDeliveryProfile(applicationId: string): Promise<ApplicationAuthDeliveryProfile | null> {
     assertApplicationId(applicationId);
     const [record] = await this.connection
       .select()
@@ -741,30 +705,18 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .select({ version: applicationAuthConfiguration.secretKeyVersion })
       .from(applicationAuthConfiguration)
       .where(
-        applicationId
-          ? eq(applicationAuthConfiguration.applicationId, applicationId)
-          : undefined
+        applicationId ? eq(applicationAuthConfiguration.applicationId, applicationId) : undefined,
       );
     const providerRows = await this.connection
       .select({ version: applicationAuthProvider.secretKeyVersion })
       .from(applicationAuthProvider)
-      .where(
-        applicationId
-          ? eq(applicationAuthProvider.applicationId, applicationId)
-          : undefined
-      );
+      .where(applicationId ? eq(applicationAuthProvider.applicationId, applicationId) : undefined);
     const jwksRows = await this.connection
       .select({ version: applicationJwks.privateKeyKeyVersion })
       .from(applicationJwks)
-      .where(
-        applicationId ? eq(applicationJwks.applicationId, applicationId) : undefined
-      );
+      .where(applicationId ? eq(applicationJwks.applicationId, applicationId) : undefined);
     return [
-      ...new Set(
-        [...configurationRows, ...providerRows, ...jwksRows].map(
-          (row) => row.version
-        )
-      ),
+      ...new Set([...configurationRows, ...providerRows, ...jwksRows].map((row) => row.version)),
     ].sort((left, right) => left - right);
   }
 
@@ -780,7 +732,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   async reencryptStoredSecrets(
     sourceVersion: number,
     targetVersion: number,
-    batchSize = 100
+    batchSize = 100,
   ): Promise<{ providers: number; signingKeys: number; remaining: number }> {
     if (!Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > 500) {
       throw new Error("Application auth re-encryption batch size is invalid");
@@ -809,12 +761,12 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       const encryptedClientId = this.keyring.reencrypt(
         provider.encryptedClientId,
         clientIdContext,
-        targetVersion
+        targetVersion,
       );
       const encryptedClientSecret = this.keyring.reencrypt(
         provider.encryptedClientSecret,
         clientSecretContext,
-        targetVersion
+        targetVersion,
       );
       const rows = await this.connection
         .update(applicationAuthProvider)
@@ -829,15 +781,9 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
             eq(applicationAuthProvider.id, provider.id),
             eq(applicationAuthProvider.applicationId, provider.applicationId),
             eq(applicationAuthProvider.secretKeyVersion, sourceVersion),
-            eq(
-              applicationAuthProvider.encryptedClientId,
-              provider.encryptedClientId
-            ),
-            eq(
-              applicationAuthProvider.encryptedClientSecret,
-              provider.encryptedClientSecret
-            )
-          )
+            eq(applicationAuthProvider.encryptedClientId, provider.encryptedClientId),
+            eq(applicationAuthProvider.encryptedClientSecret, provider.encryptedClientSecret),
+          ),
         )
         .returning({ id: applicationAuthProvider.id });
       if (rows.length !== 1) {
@@ -863,11 +809,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
         rowId: signingKey.id,
         field: "privateKey" as const,
       };
-      const privateKey = this.keyring.reencrypt(
-        signingKey.privateKey,
-        context,
-        targetVersion
-      );
+      const privateKey = this.keyring.reencrypt(signingKey.privateKey, context, targetVersion);
       const rows = await this.connection
         .update(applicationJwks)
         .set({ privateKey, privateKeyKeyVersion: targetVersion })
@@ -876,8 +818,8 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
             eq(applicationJwks.applicationId, signingKey.applicationId),
             eq(applicationJwks.id, signingKey.id),
             eq(applicationJwks.privateKeyKeyVersion, sourceVersion),
-            eq(applicationJwks.privateKey, signingKey.privateKey)
-          )
+            eq(applicationJwks.privateKey, signingKey.privateKey),
+          ),
         )
         .returning({ id: applicationJwks.id });
       if (rows.length !== 1) {
@@ -900,13 +842,12 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       providers: providerCount,
       signingKeys: signingKeyCount,
       remaining:
-        Number(providerRemaining[0]?.value ?? 0) +
-        Number(signingKeyRemaining[0]?.value ?? 0),
+        Number(providerRemaining[0]?.value ?? 0) + Number(signingKeyRemaining[0]?.value ?? 0),
     };
   }
 
   private async requireConfiguration(
-    applicationId: string
+    applicationId: string,
   ): Promise<ApplicationAuthConfigurationRecord> {
     const configuration = await this.find(applicationId);
     if (!configuration) {
@@ -931,7 +872,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
 }
 
 function providerSummary(
-  record: typeof applicationAuthProvider.$inferSelect
+  record: typeof applicationAuthProvider.$inferSelect,
 ): ApplicationAuthProviderSummary {
   const provider = parseApplicationAuthProviderName(record.provider);
   const scopes = applicationAuthProviderScopesSchema.parse(record.scopesJson);

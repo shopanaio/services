@@ -30,7 +30,7 @@ describe("DatabaseModule connection options", () => {
         typeof candidate === "object" &&
         candidate !== null &&
         "provide" in candidate &&
-        candidate.provide === DATABASE_CONNECTION_OPTIONS
+        candidate.provide === DATABASE_CONNECTION_OPTIONS,
     );
 
     expect(provider).toBeDefined();

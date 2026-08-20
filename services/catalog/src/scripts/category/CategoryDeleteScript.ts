@@ -1,14 +1,9 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CategoryDeleteParams, CategoryDeleteResult } from "./dto/index.js";
 
-export class CategoryDeleteScript extends BaseScript<
-  CategoryDeleteParams,
-  CategoryDeleteResult
-> {
+export class CategoryDeleteScript extends BaseScript<CategoryDeleteParams, CategoryDeleteResult> {
   @Transactional()
-  protected async execute(
-    params: CategoryDeleteParams
-  ): Promise<CategoryDeleteResult> {
+  protected async execute(params: CategoryDeleteParams): Promise<CategoryDeleteResult> {
     const { id, permanent = false } = params;
 
     // 1. Check if category exists
@@ -16,9 +11,7 @@ export class CategoryDeleteScript extends BaseScript<
     if (!existing) {
       return {
         deletedCategoryId: undefined,
-        userErrors: [
-          { message: "Category not found", field: ["id"], code: "NOT_FOUND" },
-        ],
+        userErrors: [{ message: "Category not found", field: ["id"], code: "NOT_FOUND" }],
       };
     }
 

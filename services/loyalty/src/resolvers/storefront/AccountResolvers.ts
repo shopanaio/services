@@ -18,24 +18,35 @@ export class StorefrontLoyaltyAccountResolver extends LoyaltyStorefrontType<stri
     return row;
   }
 
-  id() { return this.encodeId(this.$props, GlobalIdEntity.LoyaltyAccount); }
-  status() { return this.$get("status"); }
-  balance() { return new StorefrontLoyaltyBalanceResolver(this.$props, this.$ctx); }
+  id() {
+    return this.encodeId(this.$props, GlobalIdEntity.LoyaltyAccount);
+  }
+  status() {
+    return this.$get("status");
+  }
+  balance() {
+    return new StorefrontLoyaltyBalanceResolver(this.$props, this.$ctx);
+  }
 
   async tier() {
     const membership = await this.$ctx.loaders.activeTierMembership.load(this.$props);
     if (!membership) return null;
     const now = Date.parse(this.$ctx.loaders.effectiveAt);
-    if (Date.parse(membership.effectiveFrom) > now
-      || (membership.effectiveTo !== null && Date.parse(membership.effectiveTo) <= now)) return null;
+    if (
+      Date.parse(membership.effectiveFrom) > now ||
+      (membership.effectiveTo !== null && Date.parse(membership.effectiveTo) <= now)
+    )
+      return null;
     const tier = await this.$ctx.loaders.tier.load(membership.tierId);
-    return tier ? {
-      code: tier.code,
-      name: tier.name,
-      rank: tier.rank,
-      effectiveFrom: membership.effectiveFrom,
-      effectiveTo: membership.effectiveTo,
-    } : null;
+    return tier
+      ? {
+          code: tier.code,
+          name: tier.name,
+          rank: tier.rank,
+          effectiveFrom: membership.effectiveFrom,
+          effectiveTo: membership.effectiveTo,
+        }
+      : null;
   }
 
   opportunities() {
@@ -79,8 +90,16 @@ class StorefrontLoyaltyBalanceResolver extends LoyaltyStorefrontType<string, Acc
     if (!row) throw new PreloadNotFoundError(`Loyalty balance ${this.$props} was not found`);
     return row;
   }
-  async pendingPoints() { return String(await this.$get("pendingPoints")); }
-  async availablePoints() { return String(await this.$get("availablePoints")); }
-  async reservedPoints() { return String(await this.$get("reservedPoints")); }
-  async debtPoints() { return String(await this.$get("debtPoints")); }
+  async pendingPoints() {
+    return String(await this.$get("pendingPoints"));
+  }
+  async availablePoints() {
+    return String(await this.$get("availablePoints"));
+  }
+  async reservedPoints() {
+    return String(await this.$get("reservedPoints"));
+  }
+  async debtPoints() {
+    return String(await this.$get("debtPoints"));
+  }
 }

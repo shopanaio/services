@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable, Logger } from "@nestjs/common";
+import { Cron, CronExpression } from "@nestjs/schedule";
 import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
-import { Kernel } from '../kernel/Kernel.js';
-import type { FileGarbageCollectorOutput } from '../workflows/index.js';
+import { Kernel } from "../kernel/Kernel.js";
+import type { FileGarbageCollectorOutput } from "../workflows/index.js";
 
 /**
  * Scheduled service for file garbage collection.
@@ -15,18 +15,16 @@ import type { FileGarbageCollectorOutput } from '../workflows/index.js';
 export class FileGarbageCollectorScheduler {
   private readonly logger = new Logger(FileGarbageCollectorScheduler.name);
 
-  constructor(
-    @InjectBroker('media') private readonly broker: ServiceBroker
-  ) {}
+  constructor(@InjectBroker("media") private readonly broker: ServiceBroker) {}
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleGarbageCollection(): Promise<void> {
     if (!Kernel.isInitialized()) {
-      this.logger.warn('Kernel not initialized, skipping GC run');
+      this.logger.warn("Kernel not initialized, skipping GC run");
       return;
     }
 
-    this.logger.debug('Starting garbage collection run');
+    this.logger.debug("Starting garbage collection run");
 
     try {
       const result = await this.broker.runWorkflow<FileGarbageCollectorOutput, void>(
@@ -36,14 +34,14 @@ export class FileGarbageCollectorScheduler {
           source: "workflow",
           workflowId: `gc:scheduled:${Date.now()}`,
           stepId: "run",
-        }
+        },
       );
 
       this.logger.debug(
-        `Garbage collection completed: ${result.stuckReset} stuck reset, ${result.batchesProcessed} batches processed`
+        `Garbage collection completed: ${result.stuckReset} stuck reset, ${result.batchesProcessed} batches processed`,
       );
     } catch (error) {
-      this.logger.error('Failed to run garbage collection workflow', error);
+      this.logger.error("Failed to run garbage collection workflow", error);
     }
   }
 }

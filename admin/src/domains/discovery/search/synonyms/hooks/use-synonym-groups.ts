@@ -15,8 +15,7 @@ import type {
   SearchSynonymGroupsQueryVariables,
 } from "../graphql/operation-types";
 
-export interface UseSynonymGroupsOptions
-  extends RelayCursorPaginationVariables {
+export interface UseSynonymGroupsOptions extends RelayCursorPaginationVariables {
   where?: ApiSearchSynonymGroupWhereInput | null;
   orderBy?: ApiSearchSynonymGroupOrderByInput[] | null;
   skip?: boolean;
@@ -32,9 +31,7 @@ export interface UseSynonymGroupsReturn {
   refetch: () => Promise<unknown>;
 }
 
-export function useSynonymGroups(
-  options: UseSynonymGroupsOptions = {},
-): UseSynonymGroupsReturn {
+export function useSynonymGroups(options: UseSynonymGroupsOptions = {}): UseSynonymGroupsReturn {
   const {
     first,
     after = null,

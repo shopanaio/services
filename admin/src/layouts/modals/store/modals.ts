@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import type { IModalStackItem, IModalStackPayload } from '../types';
+import { create } from "zustand";
+import type { IModalStackItem, IModalStackPayload } from "../types";
 
 interface IModalStackState {
   items: IModalStackItem[];
@@ -84,9 +84,7 @@ export const useModalStackStore = create<IModalStackState>((set, get) => ({
 
   pop: (uuid) => {
     const items = get().items;
-    const itemIdx = uuid
-      ? items.findIndex((item) => item.uuid === uuid)
-      : items.length - 1;
+    const itemIdx = uuid ? items.findIndex((item) => item.uuid === uuid) : items.length - 1;
     const removed = itemIdx < 0 ? [] : items.slice(itemIdx);
 
     set((state) => {
@@ -128,9 +126,7 @@ export const useModalStackStore = create<IModalStackState>((set, get) => ({
       }
 
       return {
-        items: state.items.map((it) =>
-          it.uuid === uuid ? { ...it, isDirty } : it
-        ),
+        items: state.items.map((it) => (it.uuid === uuid ? { ...it, isDirty } : it)),
       };
     });
   },
@@ -138,9 +134,7 @@ export const useModalStackStore = create<IModalStackState>((set, get) => ({
   updatePayload: (uuid, payload) => {
     set((state) => ({
       items: state.items.map((it) =>
-        it.uuid === uuid
-          ? { ...it, payload: { ...it.payload, ...payload } }
-          : it
+        it.uuid === uuid ? { ...it, payload: { ...it.payload, ...payload } } : it,
       ),
     }));
   },

@@ -12,19 +12,13 @@ import {
   type RecommendationSnapshot,
   type RecommendationSnapshotItem,
 } from "../models/recommendationRuntime.js";
-import {
-  canonicalByteLength,
-  sha256Canonical,
-} from "../../recommendation/canonical.js";
+import { canonicalByteLength, sha256Canonical } from "../../recommendation/canonical.js";
 import {
   MAX_RECOMMENDATION_ITEM_BYTES,
   MAX_RECOMMENDATION_SNAPSHOT_BYTES,
 } from "../../recommendation/constants.js";
 import { RecommendationIntegrityError } from "../../recommendation/errors.js";
-import type {
-  RankedRecommendationCandidate,
-  RecommendationBuildInputs,
-} from "./types.js";
+import type { RankedRecommendationCandidate, RecommendationBuildInputs } from "./types.js";
 
 export interface SnapshotActivationLocks {
   policy: RecommendationPlacementPolicy | null;
@@ -143,12 +137,18 @@ export class RecommendationSnapshotRepository extends BaseRepository {
     `);
     const snapshot = lockedRows[0];
     if (!snapshot || snapshot.status !== "BUILDING") {
-      throw new RecommendationIntegrityError("INVALID_SNAPSHOT_CONTENT", "Snapshot is not populateable");
+      throw new RecommendationIntegrityError(
+        "INVALID_SNAPSHOT_CONTENT",
+        "Snapshot is not populateable",
+      );
     }
     if (snapshot.contentHash !== null) return this.verifyPersisted(snapshot);
     const existing = await this.listItems(snapshotId);
     if (existing.length > 0) {
-      throw new RecommendationIntegrityError("INVALID_SNAPSHOT_CONTENT", "Snapshot has items without a content hash");
+      throw new RecommendationIntegrityError(
+        "INVALID_SNAPSHOT_CONTENT",
+        "Snapshot has items without a content hash",
+      );
     }
     validateContent(items);
     const contentHash = snapshotContentHash(items);
@@ -318,7 +318,40 @@ export class RecommendationSnapshotRepository extends BaseRepository {
     snapshot: RecommendationSnapshot,
   ): Promise<{ itemCount: number; contentHash: string }> {
     const items = await this.listItems(snapshot.snapshotId);
-    const contentHash = snapshotContentHash(items.map((item) => ({
+    const contentHash = snapshotContentHash(
+      items.map((item) => ({
+        targetProductId: item.targetProductId,
+        rank: item.rank,
+        score: item.score,
+        primarySource: item.primarySource,
+        pinned: item.pinned,
+        features: item.features,
+        sourceBreakdown: item.sourceBreakdown,
+      })),
+    );
+    if (items.length !== snapshot.itemCount || contentHash !== snapshot.contentHash) {
+      throw new RecommendationIntegrityError(
+        "INVALID_SNAPSHOT_CONTENT",
+        "Persisted snapshot content hash mismatch",
+      );
+    }
+    return { itemCount: items.length, contentHash };
+  }
+}
+
+function snapshotContentHash(
+  items: readonly Array<{
+    targetProductId: string;
+    rank: number;
+    score: string;
+    primarySource: string;
+    pinned: boolean;
+    features: unknown;
+    sourceBreakdown: unknown;
+  }>,
+): string {
+  return sha256Canonical(
+    items.map((item) => ({
       targetProductId: item.targetProductId,
       rank: item.rank,
       score: item.score,
@@ -326,32 +359,8 @@ export class RecommendationSnapshotRepository extends BaseRepository {
       pinned: item.pinned,
       features: item.features,
       sourceBreakdown: item.sourceBreakdown,
-    })));
-    if (items.length !== snapshot.itemCount || contentHash !== snapshot.contentHash) {
-      throw new RecommendationIntegrityError("INVALID_SNAPSHOT_CONTENT", "Persisted snapshot content hash mismatch");
-    }
-    return { itemCount: items.length, contentHash };
-  }
-}
-
-function snapshotContentHash(items: readonly Array<{
-  targetProductId: string;
-  rank: number;
-  score: string;
-  primarySource: string;
-  pinned: boolean;
-  features: unknown;
-  sourceBreakdown: unknown;
-}>): string {
-  return sha256Canonical(items.map((item) => ({
-    targetProductId: item.targetProductId,
-    rank: item.rank,
-    score: item.score,
-    primarySource: item.primarySource,
-    pinned: item.pinned,
-    features: item.features,
-    sourceBreakdown: item.sourceBreakdown,
-  })));
+    })),
+  );
 }
 
 function validateContent(items: readonly RankedRecommendationCandidate[]): void {
@@ -367,55 +376,72 @@ function validateContent(items: readonly RankedRecommendationCandidate[]): void 
       );
     }
     if (item.rank !== expectedRank++ || targets.has(item.targetProductId)) {
-      throw new RecommendationIntegrityError("INVALID_SNAPSHOT_CONTENT", "Recommendation ranks or targets are invalid");
+      throw new RecommendationIntegrityError(
+        "INVALID_SNAPSHOT_CONTENT",
+        "Recommendation ranks or targets are invalid",
+      );
     }
     targets.add(item.targetProductId);
     const bytes = canonicalByteLength(item);
     if (bytes > MAX_RECOMMENDATION_ITEM_BYTES) {
-      throw new RecommendationIntegrityError("INVALID_SNAPSHOT_CONTENT", "Recommendation item exceeds byte limit");
+      throw new RecommendationIntegrityError(
+        "INVALID_SNAPSHOT_CONTENT",
+        "Recommendation item exceeds byte limit",
+      );
     }
     totalBytes += bytes;
   }
   if (totalBytes > MAX_RECOMMENDATION_SNAPSHOT_BYTES) {
-    throw new RecommendationIntegrityError("INVALID_SNAPSHOT_CONTENT", "Recommendation snapshot exceeds byte limit");
+    throw new RecommendationIntegrityError(
+      "INVALID_SNAPSHOT_CONTENT",
+      "Recommendation snapshot exceeds byte limit",
+    );
   }
 }
 
 const decimalSchema = z.string().regex(/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/);
-const manualBreakdownSchema = z.object({
-  action: z.enum(["PIN", "BOOST"]),
-  position: z.number().int().nullable(),
-  boost: decimalSchema.nullable(),
-}).strict();
-const sourceBreakdownSchema = z.object({
-  version: z.literal(1),
-  manual: manualBreakdownSchema.optional(),
-  fbt: z.object({ runId: z.string().uuid(), sourceScore: decimalSchema }).strict().optional(),
-  categoryPopularity: z.object({ score: decimalSchema }).strict().optional(),
-  storePopularity: z.object({ score: decimalSchema }).strict().optional(),
-}).strict();
-const rankedRecommendationCandidateSchema = z.object({
-  targetProductId: z.string().uuid(),
-  manualAction: z.enum(["PIN", "BOOST"]).nullable(),
-  manualPosition: z.number().int().nullable(),
-  manualBoost: decimalSchema.nullable(),
-  fbtSourceScore: decimalSchema.nullable(),
-  popularityScore: decimalSchema.nullable(),
-  primarySource: z.enum([
-    "MANUAL",
-    "FREQUENTLY_BOUGHT_TOGETHER",
-    "CONTENT_SIMILARITY",
-    "POPULARITY",
-    "FALLBACK",
-  ]),
-  sourceBreakdown: sourceBreakdownSchema,
-  rank: z.number().int().positive(),
-  score: decimalSchema,
-  pinned: z.boolean(),
-  features: z.object({
+const manualBreakdownSchema = z
+  .object({
+    action: z.enum(["PIN", "BOOST"]),
+    position: z.number().int().nullable(),
+    boost: decimalSchema.nullable(),
+  })
+  .strict();
+const sourceBreakdownSchema = z
+  .object({
     version: z.literal(1),
+    manual: manualBreakdownSchema.optional(),
+    fbt: z.object({ runId: z.string().uuid(), sourceScore: decimalSchema }).strict().optional(),
+    categoryPopularity: z.object({ score: decimalSchema }).strict().optional(),
+    storePopularity: z.object({ score: decimalSchema }).strict().optional(),
+  })
+  .strict();
+const rankedRecommendationCandidateSchema = z
+  .object({
+    targetProductId: z.string().uuid(),
+    manualAction: z.enum(["PIN", "BOOST"]).nullable(),
+    manualPosition: z.number().int().nullable(),
     manualBoost: decimalSchema.nullable(),
-    fbtNormalized: decimalSchema,
-    popularity: decimalSchema,
-  }).strict(),
-}).strict();
+    fbtSourceScore: decimalSchema.nullable(),
+    popularityScore: decimalSchema.nullable(),
+    primarySource: z.enum([
+      "MANUAL",
+      "FREQUENTLY_BOUGHT_TOGETHER",
+      "CONTENT_SIMILARITY",
+      "POPULARITY",
+      "FALLBACK",
+    ]),
+    sourceBreakdown: sourceBreakdownSchema,
+    rank: z.number().int().positive(),
+    score: decimalSchema,
+    pinned: z.boolean(),
+    features: z
+      .object({
+        version: z.literal(1),
+        manualBoost: decimalSchema.nullable(),
+        fbtNormalized: decimalSchema,
+        popularity: decimalSchema,
+      })
+      .strict(),
+  })
+  .strict();

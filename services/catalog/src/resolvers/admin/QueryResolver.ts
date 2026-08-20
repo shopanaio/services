@@ -1,7 +1,4 @@
-import {
-  GlobalIdEntity,
-  type GlobalIdType,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity, type GlobalIdType } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
 import { GraphQLError } from "graphql";
 import type { CurrencyCode } from "@shopana/shared-references";
@@ -36,10 +33,7 @@ type InventoryItemInventoryItemsMetaArgs = {
   warehouseScope?: InventoryItemWarehouseScopeArgs | null;
 };
 
-type InventoryItemsArgs = Omit<
-  InventoryItemConnectionResolverInput,
-  "meta"
-> & {
+type InventoryItemsArgs = Omit<InventoryItemConnectionResolverInput, "meta"> & {
   meta?: InventoryItemInventoryItemsMetaArgs | null;
 };
 
@@ -74,18 +68,12 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
  */
 export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
   inventory(args: { productId: string }) {
-    const productId = this.decodeId(
-      args.productId,
-      GlobalIdEntity.Product
-    );
+    const productId = this.decodeId(args.productId, GlobalIdEntity.Product);
     return this.resolvers.inventoryWidget(productId);
   }
 
   pricing(args: { input: PricingWidgetInput }) {
-    const variantId = this.decodeId(
-      args.input.variantId,
-      GlobalIdEntity.Variant
-    );
+    const variantId = this.decodeId(args.input.variantId, GlobalIdEntity.Variant);
 
     return this.resolvers.pricingWidget({
       variantId,
@@ -104,10 +92,7 @@ export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
  * Does NOT contain inventory queries (warehouses, stock).
  */
 export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
-  private safeDecodeId(
-    globalId: string,
-    expectedType: GlobalIdType
-  ): string | null {
+  private safeDecodeId(globalId: string, expectedType: GlobalIdType): string | null {
     try {
       return this.decodeId(globalId, expectedType);
     } catch {
@@ -122,10 +107,42 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    */
   async node(args: { id: string }) {
     for (const [entity, loader] of [
-      [GlobalIdEntity.ComparisonProfile, async (id: string) => (await this.$ctx.loaders.comparisonProfile.load(id)) ? this.resolvers.comparisonProfile(id) : null],
-      [GlobalIdEntity.ComparisonGroup, async (id: string) => { const row = await this.$ctx.loaders.comparisonGroup.load(id); if (!row) return null; const { ComparisonGroupResolver } = await import("./ComparisonProfileResolver.js"); return new ComparisonGroupResolver(row, this.$ctx); }],
-      [GlobalIdEntity.ComparisonField, async (id: string) => { const row = await this.$ctx.loaders.comparisonField.load(id); if (!row) return null; const { ComparisonFieldResolver } = await import("./ComparisonProfileResolver.js"); return new ComparisonFieldResolver(row, this.$ctx); }],
-      [GlobalIdEntity.ComparisonFieldOption, async (id: string) => { const row = await this.$ctx.loaders.comparisonFieldOption.load(id); if (!row) return null; const field = await this.$ctx.loaders.comparisonField.load(row.fieldId); if (!field) return null; const { ComparisonFieldOptionResolver } = await import("./ComparisonProfileResolver.js"); return new ComparisonFieldOptionResolver({ row, profileId: field.profileId }, this.$ctx); }],
+      [
+        GlobalIdEntity.ComparisonProfile,
+        async (id: string) =>
+          (await this.$ctx.loaders.comparisonProfile.load(id))
+            ? this.resolvers.comparisonProfile(id)
+            : null,
+      ],
+      [
+        GlobalIdEntity.ComparisonGroup,
+        async (id: string) => {
+          const row = await this.$ctx.loaders.comparisonGroup.load(id);
+          if (!row) return null;
+          const { ComparisonGroupResolver } = await import("./ComparisonProfileResolver.js");
+          return new ComparisonGroupResolver(row, this.$ctx);
+        },
+      ],
+      [
+        GlobalIdEntity.ComparisonField,
+        async (id: string) => {
+          const row = await this.$ctx.loaders.comparisonField.load(id);
+          if (!row) return null;
+          const { ComparisonFieldResolver } = await import("./ComparisonProfileResolver.js");
+          return new ComparisonFieldResolver(row, this.$ctx);
+        },
+      ],
+      [
+        GlobalIdEntity.ComparisonFieldOption,
+        async (id: string) => {
+          const row = await this.$ctx.loaders.comparisonFieldOption.load(id);
+          if (!row) return null;
+          const field = await this.$ctx.loaders.comparisonField.load(row.fieldId);
+          if (!field) return null;
+          const { ComparisonFieldOptionResolver } = await import("./ComparisonProfileResolver.js");
+          return new ComparisonFieldOptionResolver({ row, profileId: field.profileId }, this.$ctx);
+        },
+      ],
     ] as const) {
       const id = this.safeDecodeId(args.id, entity);
       if (id) return loader(id);
@@ -169,8 +186,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Returns null if product doesn't exist.
    */
   async product(args: { id: string }) {
-    const productId =
-      this.safeDecodeId(args.id, GlobalIdEntity.Product) ?? args.id;
+    const productId = this.safeDecodeId(args.id, GlobalIdEntity.Product) ?? args.id;
     const product = await this.$ctx.loaders.product.load(productId);
     if (!product) {
       return null;
@@ -185,9 +201,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     return this.resolvers.productConnection({
       ...args,
       meta: {
-        categoriesScope: normalizeProductCategoriesScopeInput(
-          args.meta?.categoriesScope
-        ),
+        categoriesScope: normalizeProductCategoriesScopeInput(args.meta?.categoriesScope),
       },
     });
   }
@@ -198,8 +212,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Get a single variant by ID.
    */
   async variant(args: { id: string }) {
-    const variantId =
-      this.safeDecodeId(args.id, GlobalIdEntity.Variant) ?? args.id;
+    const variantId = this.safeDecodeId(args.id, GlobalIdEntity.Variant) ?? args.id;
     const variant = await this.$ctx.loaders.variant.load(variantId);
     if (!variant) {
       return null;
@@ -221,8 +234,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Returns null if vendor doesn't exist.
    */
   async vendor(args: { id: string }) {
-    const vendorId =
-      this.safeDecodeId(args.id, GlobalIdEntity.Vendor) ?? args.id;
+    const vendorId = this.safeDecodeId(args.id, GlobalIdEntity.Vendor) ?? args.id;
     const vendor = await this.$ctx.loaders.vendor.load(vendorId);
     if (!vendor) {
       return null;
@@ -272,12 +284,8 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     return this.resolvers.categoryConnection({
       ...args,
       meta: {
-        hierarchyScope: normalizeCategoryHierarchyScopeInput(
-          args.meta?.hierarchyScope
-        ),
-        productsScope: normalizeCategoryProductsScopeInput(
-          args.meta?.productsScope
-        ),
+        hierarchyScope: normalizeCategoryHierarchyScopeInput(args.meta?.hierarchyScope),
+        productsScope: normalizeCategoryProductsScopeInput(args.meta?.productsScope),
       },
     });
   }
@@ -324,10 +332,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Get a bulk update job by ID.
    */
   async productBulkUpdateJob(args: { jobId: string }) {
-    const jobId = this.decodeId(
-      args.jobId,
-      GlobalIdEntity.ProductBulkUpdateJob
-    );
+    const jobId = this.decodeId(args.jobId, GlobalIdEntity.ProductBulkUpdateJob);
 
     const job = await this.$ctx.kernel.repository.bulkEditJob.findById(jobId);
     if (!job) return null;
@@ -342,10 +347,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
 export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
   async node(args: { id: string }) {
     try {
-      const warehouseId = this.decodeId(
-        args.id,
-        GlobalIdEntity.Warehouse
-      );
+      const warehouseId = this.decodeId(args.id, GlobalIdEntity.Warehouse);
       const warehouse = await this.$ctx.loaders.warehouse.load(warehouseId);
       if (warehouse) {
         return this.resolvers.warehouse(warehouseId);
@@ -355,10 +357,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
     }
 
     try {
-      const inventoryItemId = this.decodeId(
-        args.id,
-        GlobalIdEntity.InventoryItem
-      );
+      const inventoryItemId = this.decodeId(args.id, GlobalIdEntity.InventoryItem);
       const item = await this.$ctx.loaders.inventoryItem.load(inventoryItemId);
       if (item) {
         return this.resolvers.inventoryItem(item.id);
@@ -368,10 +367,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
     }
 
     try {
-      const stockId = this.decodeId(
-        args.id,
-        GlobalIdEntity.WarehouseStock
-      );
+      const stockId = this.decodeId(args.id, GlobalIdEntity.WarehouseStock);
       const stock = await this.$ctx.kernel.repository.stock.findById(stockId);
       if (stock) {
         return this.resolvers.stock(stock.id);
@@ -411,10 +407,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
   }
 
   async inventoryItemByVariant(args: { variantId: string }) {
-    const variantUuid = this.decodeId(
-      args.variantId,
-      GlobalIdEntity.Variant
-    );
+    const variantUuid = this.decodeId(args.variantId, GlobalIdEntity.Variant);
     const item = await this.$ctx.loaders.inventoryItemByVariant.load(variantUuid);
     if (!item) return null;
     return this.resolvers.inventoryItem(item.id);
@@ -422,7 +415,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
 
   async inventoryItems(args: InventoryItemsArgs) {
     const warehouseScope = await this.normalizeInventoryItemWarehouseScopeInput(
-      args.meta?.warehouseScope
+      args.meta?.warehouseScope,
     );
 
     if (warehouseScope.kind === "invalid") {
@@ -431,24 +424,15 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
       });
     }
 
-    return this.resolvers.inventoryItemConnection(
-      {
-        ...args,
-        meta: { warehouseScope },
-      } as InventoryItemConnectionResolverInput
-    );
+    return this.resolvers.inventoryItemConnection({
+      ...args,
+      meta: { warehouseScope },
+    } as InventoryItemConnectionResolverInput);
   }
 
-  async warehouseAssignableVariants(
-    args: WarehouseAssignableVariantConnectionInput
-  ) {
-    const warehouseId = this.decodeId(
-      args.warehouseId,
-      GlobalIdEntity.Warehouse
-    );
-    const warehouse = await this.$ctx.kernel.repository.warehouse.findById(
-      warehouseId
-    );
+  async warehouseAssignableVariants(args: WarehouseAssignableVariantConnectionInput) {
+    const warehouseId = this.decodeId(args.warehouseId, GlobalIdEntity.Warehouse);
+    const warehouse = await this.$ctx.kernel.repository.warehouse.findById(warehouseId);
 
     return this.resolvers.warehouseAssignableVariantConnection({
       ...args,
@@ -458,7 +442,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
   }
 
   private async normalizeInventoryItemWarehouseScopeInput(
-    input: InventoryItemWarehouseScopeArgs | null | undefined
+    input: InventoryItemWarehouseScopeArgs | null | undefined,
   ): Promise<NormalizedInventoryItemWarehouseScope> {
     if (!input) {
       return { kind: "all" };
@@ -483,17 +467,12 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
 
     let warehouseId: string;
     try {
-      warehouseId = this.decodeId(
-        referenceIds[0]!,
-        GlobalIdEntity.Warehouse
-      );
+      warehouseId = this.decodeId(referenceIds[0]!, GlobalIdEntity.Warehouse);
     } catch {
       return { kind: "empty" };
     }
 
-    const warehouse = await this.$ctx.kernel.repository.warehouse.findById(
-      warehouseId
-    );
+    const warehouse = await this.$ctx.kernel.repository.warehouse.findById(warehouseId);
     if (!warehouse) {
       return { kind: "empty" };
     }

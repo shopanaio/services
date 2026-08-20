@@ -1,8 +1,5 @@
 import type { DiscountAggregate } from "../../repositories/DiscountRepository.js";
-import type {
-  DiscountUpdateLifecycleParams,
-  DiscountUpdateLifecycleResult,
-} from "./dto/index.js";
+import type { DiscountUpdateLifecycleParams, DiscountUpdateLifecycleResult } from "./dto/index.js";
 import { BaseDiscountUpdateScript } from "./BaseDiscountUpdateScript.js";
 import { sectionErrors, sectionSuccess } from "./types.js";
 

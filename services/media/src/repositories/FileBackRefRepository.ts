@@ -1,11 +1,6 @@
 import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Database } from "../infrastructure/db/database";
-import {
-  assetGroups,
-  fileBackRefs,
-  files,
-  type FileBackRef,
-} from "./models";
+import { assetGroups, fileBackRefs, files, type FileBackRef } from "./models";
 
 export interface FileBackRefEntityRef {
   service: string;
@@ -50,15 +45,7 @@ export class FileBackRefRepository {
    * media owner.
    */
   async link(params: FileLinkKey): Promise<LinkResult> {
-    const {
-      fileId,
-      service,
-      entityType,
-      entityId,
-      ownerType,
-      ownerId,
-      role,
-    } = params;
+    const { fileId, service, entityType, entityId, ownerType, ownerId, role } = params;
 
     const [file] = await this.db
       .select({
@@ -79,10 +66,7 @@ export class FileBackRefRepository {
       return { inserted: false, code: "FILE_INACTIVE" };
     }
 
-    if (
-      file.ownerType !== ownerType ||
-      file.ownerId !== ownerId
-    ) {
+    if (file.ownerType !== ownerType || file.ownerId !== ownerId) {
       return { inserted: false, code: "OWNER_MISMATCH" };
     }
 
@@ -113,14 +97,7 @@ export class FileBackRefRepository {
     ownerType: "organization" | "store" | "user_profile";
     ownerId: string;
   }): Promise<LinkManyResult> {
-    const {
-      items,
-      service,
-      entityType,
-      entityId,
-      ownerType,
-      ownerId,
-    } = params;
+    const { items, service, entityType, entityId, ownerType, ownerId } = params;
 
     if (items.length === 0) {
       return { linkedCount: 0 };
@@ -128,7 +105,7 @@ export class FileBackRefRepository {
 
     // Deduplicate by fileId+role
     const uniqueItems = Array.from(
-      new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values()
+      new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values(),
     );
 
     const fileIds = uniqueItems.map((item) => item.fileId);
@@ -144,10 +121,7 @@ export class FileBackRefRepository {
 
     const activeIds = new Set(
       activeFiles
-        .filter(
-          (file) =>
-            file.ownerType === ownerType && file.ownerId === ownerId,
-        )
+        .filter((file) => file.ownerType === ownerType && file.ownerId === ownerId)
         .map((file) => file.id),
     );
     const activeItems = uniqueItems.filter((item) => activeIds.has(item.fileId));
@@ -188,8 +162,8 @@ export class FileBackRefRepository {
           eq(fileBackRefs.service, service),
           eq(fileBackRefs.entityType, entityType),
           eq(fileBackRefs.entityId, entityId),
-          eq(fileBackRefs.role, role)
-        )
+          eq(fileBackRefs.role, role),
+        ),
       );
   }
 
@@ -205,8 +179,8 @@ export class FileBackRefRepository {
         and(
           eq(fileBackRefs.service, service),
           eq(fileBackRefs.entityType, entityType),
-          eq(fileBackRefs.entityId, entityId)
-        )
+          eq(fileBackRefs.entityId, entityId),
+        ),
       )
       .returning({ fileId: fileBackRefs.fileId });
 
@@ -230,7 +204,7 @@ export class FileBackRefRepository {
 
     // Deduplicate by fileId+role
     const uniqueItems = Array.from(
-      new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values()
+      new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values(),
     );
 
     // Delete each item individually and count successes
@@ -244,8 +218,8 @@ export class FileBackRefRepository {
             eq(fileBackRefs.service, service),
             eq(fileBackRefs.entityType, entityType),
             eq(fileBackRefs.entityId, entityId),
-            eq(fileBackRefs.role, item.role)
-          )
+            eq(fileBackRefs.role, item.role),
+          ),
         )
         .returning({ fileId: fileBackRefs.fileId });
 

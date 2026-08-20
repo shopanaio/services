@@ -1,7 +1,4 @@
-import {
-  DBOS,
-  type ServiceBroker,
-} from "@shopana/shared-kernel";
+import { DBOS, type ServiceBroker } from "@shopana/shared-kernel";
 import type { ListingFacetReferenceSyncPlan } from "../../scripts/ListingBuildFacetReferenceSyncPlanScript.js";
 import {
   buildFacetReferenceStateSyncQueuePartitionKey,
@@ -32,7 +29,7 @@ export type ListingBatchStartFacetReferenceStateSyncResult = {
 };
 
 export async function startFacetReferenceStateSyncBatch(
-  input: ListingBatchStartFacetReferenceStateSyncInput
+  input: ListingBatchStartFacetReferenceStateSyncInput,
 ): Promise<ListingBatchStartFacetReferenceStateSyncResult> {
   const workflowIdsByProductId: Record<string, string | null> = {};
 
@@ -50,7 +47,7 @@ export async function startFacetReferenceStateSyncBatch(
 
 async function startFacetReferenceStateSyncForPlan(
   input: Pick<ListingBatchStartFacetReferenceStateSyncInput, "broker" | "logger">,
-  plan: ListingFacetReferenceSyncPlan
+  plan: ListingFacetReferenceSyncPlan,
 ): Promise<string | null> {
   if (plan.refs.length === 0) {
     return null;
@@ -64,16 +61,15 @@ async function startFacetReferenceStateSyncForPlan(
     refs: plan.refs,
     checkValues: true,
   };
-  const idempotencyCtx =
-    buildFacetReferenceStateSyncWorkflowIdempotencyContext({
-      organizationId: plan.organizationId,
-      productId: plan.productId,
-      reason: plan.reason,
-      eventSequence: plan.eventSequence,
-      operationId: plan.operationId,
-      actionType: plan.actionType,
-      refsHash: plan.refsHash,
-    });
+  const idempotencyCtx = buildFacetReferenceStateSyncWorkflowIdempotencyContext({
+    organizationId: plan.organizationId,
+    productId: plan.productId,
+    reason: plan.reason,
+    eventSequence: plan.eventSequence,
+    operationId: plan.operationId,
+    actionType: plan.actionType,
+    refsHash: plan.refsHash,
+  });
   const workflowId = buildFacetReferenceStateSyncWorkflowId({
     idempotencyCtx,
   });
@@ -93,7 +89,7 @@ async function startFacetReferenceStateSyncForPlan(
         },
         timeoutMS: 120_000,
         workflowId,
-      }
+      },
     );
 
     return started.workflowId;
@@ -113,7 +109,7 @@ async function startFacetReferenceStateSyncForPlan(
         eventSequence: plan.eventSequence,
         reason: plan.reason,
       },
-      "Failed to start facet reference state sync workflow"
+      "Failed to start facet reference state sync workflow",
     );
     throw error;
   }

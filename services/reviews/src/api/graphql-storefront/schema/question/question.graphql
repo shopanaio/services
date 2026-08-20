@@ -86,24 +86,34 @@ type ProductQuestionAnswerEdge {
   node: ProductQuestionAnswer!
 }
 
-"""Input for a customer or guest product-question submission."""
+"""
+Input for a customer or guest product-question submission.
+"""
 input ProductQuestionCreateInput {
-  """Shared text, locale, guest identity, and idempotency metadata."""
+  """
+  Shared text, locale, guest identity, and idempotency metadata.
+  """
   content: ReviewContentSubmissionInput!
   productId: ID!
   variantId: ID
 }
 
-"""Result of submitting a product question."""
+"""
+Result of submitting a product question.
+"""
 type ProductQuestionCreatePayload {
   productQuestion: ProductQuestion
   userErrors: [ReviewUserError!]!
 }
 
-"""Input for an authenticated customer answer to a product question."""
+"""
+Input for an authenticated customer answer to a product question.
+"""
 input ProductQuestionAnswerCreateInput {
   productQuestionId: ID!
-  """Revision returned by ProductQuestion.revision."""
+  """
+  Revision returned by ProductQuestion.revision.
+  """
   expectedRevision: Int!
   """
   Shared text, locale, and idempotency metadata. Guest author data is rejected
@@ -112,14 +122,18 @@ input ProductQuestionAnswerCreateInput {
   content: ReviewContentSubmissionInput!
 }
 
-"""Result of adding a customer answer to a product question."""
+"""
+Result of adding a customer answer to a product question.
+"""
 type ProductQuestionAnswerCreatePayload {
   productQuestion: ProductQuestion
   answer: ProductQuestionAnswer
   userErrors: [ReviewUserError!]!
 }
 
-"""Customer-editable fields of an existing product question."""
+"""
+Customer-editable fields of an existing product question.
+"""
 input ProductQuestionUpdateInput {
   productQuestionId: ID!
   expectedRevision: Int!
@@ -136,7 +150,9 @@ type ProductQuestionDeletePayload {
   userErrors: [ReviewUserError!]!
 }
 
-"""Customer-editable fields of an existing question answer."""
+"""
+Customer-editable fields of an existing question answer.
+"""
 input ProductQuestionAnswerUpdateInput {
   answerId: ID!
   expectedRevision: Int!

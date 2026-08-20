@@ -33,9 +33,7 @@ export const TagsSection = ({
   const { message } = App.useApp();
   const { updateProduct } = useUpdateProduct();
   const [pendingTagId, setPendingTagId] = useState<string | null>(null);
-  const [tags, setTags] = useState<EntityDetailsTagItem[]>(() =>
-    initialTags.map(toTagItem),
-  );
+  const [tags, setTags] = useState<EntityDetailsTagItem[]>(() => initialTags.map(toTagItem));
   const initialTagsKey = initialTags.map((tag) => tag.id).join("|");
 
   useEffect(() => {
@@ -101,10 +99,7 @@ export const TagsSection = ({
       .map((entity): EntityDetailsTagItem => ({
         id: entity.id,
         name: entity.title,
-        handle:
-          "handle" in entity && typeof entity.handle === "string"
-            ? entity.handle
-            : null,
+        handle: "handle" in entity && typeof entity.handle === "string" ? entity.handle : null,
       }));
 
     if (newTags.length === 0) {
@@ -126,11 +121,7 @@ export const TagsSection = ({
 
       setTags((prev) => [...prev, ...newTags]);
       await refreshProduct();
-      message.success(
-        newTags.length === 1
-          ? "Tag added to product"
-          : "Tags added to product",
-      );
+      message.success(newTags.length === 1 ? "Tag added to product" : "Tags added to product");
     } finally {
       setPendingTagId(null);
     }

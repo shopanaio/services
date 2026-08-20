@@ -36,9 +36,7 @@ export function useSaveInventoryVariantEdits() {
   >(INVENTORY_PRODUCT_BULK_UPDATE_MUTATION);
 
   const saveInventoryVariantEdits = useCallback(
-    async (
-      input: ApiProductBulkUpdateInput,
-    ): Promise<SaveInventoryVariantEditsResult> => {
+    async (input: ApiProductBulkUpdateInput): Promise<SaveInventoryVariantEditsResult> => {
       const result = await mutate({
         variables: { input },
         context: {

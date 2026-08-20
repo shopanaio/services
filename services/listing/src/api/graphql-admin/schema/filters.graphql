@@ -1,79 +1,147 @@
-"""Filter conditions for FacetSourceCandidate."""
+"""
+Filter conditions for FacetSourceCandidate.
+"""
 input FacetSourceCandidateWhereInput {
-  """Logical AND of multiple conditions."""
+  """
+  Logical AND of multiple conditions.
+  """
   _and: [FacetSourceCandidateWhereInput!]
-  """Logical OR of multiple conditions."""
+  """
+  Logical OR of multiple conditions.
+  """
   _or: [FacetSourceCandidateWhereInput!]
-  """Negate the condition."""
+  """
+  Negate the condition.
+  """
   _not: FacetSourceCandidateWhereInput
-  """Filter by id."""
+  """
+  Filter by id.
+  """
   id: IDFilter
-  """Filter by facetType."""
+  """
+  Filter by facetType.
+  """
   facetType: StringFilter
-  """Filter by handle."""
+  """
+  Filter by handle.
+  """
   handle: StringFilter
-  """Filter by name."""
+  """
+  Filter by name.
+  """
   name: StringFilter
-  """Filter by sourceSortBucket."""
+  """
+  Filter by sourceSortBucket.
+  """
   sourceSortBucket: IntFilter
-  """Filter by sortName."""
+  """
+  Filter by sortName.
+  """
   sortName: StringFilter
 }
 
-"""Fields available for sorting FacetSourceCandidate."""
+"""
+Fields available for sorting FacetSourceCandidate.
+"""
 enum FacetSourceCandidateOrderField {
-  """Sort by id."""
+  """
+  Sort by id.
+  """
   id
-  """Sort by facetType."""
+  """
+  Sort by facetType.
+  """
   facetType
-  """Sort by handle."""
+  """
+  Sort by handle.
+  """
   handle
-  """Sort by name."""
+  """
+  Sort by name.
+  """
   name
-  """Sort by sourceSortBucket."""
+  """
+  Sort by sourceSortBucket.
+  """
   sourceSortBucket
-  """Sort by sortName."""
+  """
+  Sort by sortName.
+  """
   sortName
 }
 
-"""Ordering configuration for FacetSourceCandidate."""
+"""
+Ordering configuration for FacetSourceCandidate.
+"""
 input FacetSourceCandidateOrderByInput {
-  """Field to order by."""
+  """
+  Field to order by.
+  """
   field: FacetSourceCandidateOrderField!
-  """Sort direction."""
+  """
+  Sort direction.
+  """
   direction: SortDirection!
 }
 
-"""Filter conditions for FacetValueCandidate."""
+"""
+Filter conditions for FacetValueCandidate.
+"""
 input FacetValueCandidateWhereInput {
-  """Logical AND of multiple conditions."""
+  """
+  Logical AND of multiple conditions.
+  """
   _and: [FacetValueCandidateWhereInput!]
-  """Logical OR of multiple conditions."""
+  """
+  Logical OR of multiple conditions.
+  """
   _or: [FacetValueCandidateWhereInput!]
-  """Negate the condition."""
+  """
+  Negate the condition.
+  """
   _not: FacetValueCandidateWhereInput
-  """Filter by id."""
+  """
+  Filter by id.
+  """
   id: IDFilter
-  """Filter by handle."""
+  """
+  Filter by handle.
+  """
   handle: StringFilter
-  """Filter by label."""
+  """
+  Filter by label.
+  """
   label: StringFilter
 }
 
-"""Fields available for sorting FacetValueCandidate."""
+"""
+Fields available for sorting FacetValueCandidate.
+"""
 enum FacetValueCandidateOrderField {
-  """Sort by id."""
+  """
+  Sort by id.
+  """
   id
-  """Sort by handle."""
+  """
+  Sort by handle.
+  """
   handle
-  """Sort by label."""
+  """
+  Sort by label.
+  """
   label
 }
 
-"""Ordering configuration for FacetValueCandidate."""
+"""
+Ordering configuration for FacetValueCandidate.
+"""
 input FacetValueCandidateOrderByInput {
-  """Field to order by."""
+  """
+  Field to order by.
+  """
   field: FacetValueCandidateOrderField!
-  """Sort direction."""
+  """
+  Sort direction.
+  """
   direction: SortDirection!
 }

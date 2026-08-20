@@ -29,7 +29,7 @@ export class ContentExternalReferenceCreateWorkflow extends ReviewsMutationWorkf
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: ContentExternalReferenceCreateWorkflowInput
+    input: ContentExternalReferenceCreateWorkflowInput,
   ): Promise<ContentExternalReferenceCreateWorkflowResult> {
     const result = await this.stepCreate(input);
     if (result.externalReference && result.userErrors.length === 0) {
@@ -43,13 +43,13 @@ export class ContentExternalReferenceCreateWorkflow extends ReviewsMutationWorkf
     return this.kernel.runScript(
       ContentExternalReferenceCreateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
   private async workflowEmitEvent(
     input: ContentExternalReferenceCreateWorkflowInput,
-    reference: { id: string; contentId: string }
+    reference: { id: string; contentId: string },
   ): Promise<void> {
     const payload: ReviewContentExternalReferenceCreatedEvent["payload"] = {
       externalReferenceId: reference.id,
@@ -76,7 +76,7 @@ export class ContentExternalReferenceCreateWorkflow extends ReviewsMutationWorkf
         workflowId: DBOS.workflowID!,
         stepId: "emitReviewContentExternalReferenceCreated",
         callId: reference.id,
-      }
+      },
     );
   }
 }

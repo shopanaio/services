@@ -80,9 +80,7 @@ export function SignUpForm({ form, onSubmit, loading }: SignUpFormProps) {
         <Typography.Title level={3} className={styles.title}>
           Create Account
         </Typography.Title>
-        <Typography.Text className={styles.subtitle}>
-          Join Shopana today
-        </Typography.Text>
+        <Typography.Text className={styles.subtitle}>Join Shopana today</Typography.Text>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -102,9 +100,7 @@ export function SignUpForm({ form, onSubmit, loading }: SignUpFormProps) {
             )}
           />
           {errors.email && (
-            <Typography.Text className={styles.error}>
-              {errors.email.message}
-            </Typography.Text>
+            <Typography.Text className={styles.error}>{errors.email.message}</Typography.Text>
           )}
         </div>
 
@@ -134,10 +130,7 @@ export function SignUpForm({ form, onSubmit, loading }: SignUpFormProps) {
             )}
           />
           {errors.password && (
-            <Typography.Text
-              className={styles.error}
-              style={{ display: "block" }}
-            >
+            <Typography.Text className={styles.error} style={{ display: "block" }}>
               {errors.password.message}
             </Typography.Text>
           )}

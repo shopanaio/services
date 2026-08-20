@@ -1,16 +1,15 @@
 # Implementation plan: heavy OR optimization для option facet counts
 
-> **LEGACY DRAFT:** option signatures удалены. Canonical counts используют
-> universal variant terms; см. `../listing-index-db-contract.ru.md`.
+> **LEGACY DRAFT:** option signatures удалены. Canonical counts используют universal variant terms;
+> см. `../listing-index-db-contract.ru.md`.
 
 ## Статус
 
 Документ описывает implementation-ready изменение для
 `services/listing/src/repositories/storefront/sql/compileFacetCountsQuerySql.ts`.
 
-Цель - сохранить текущую storefront semantics, но заменить дорогой
-candidate-oriented signature lookup на facet-oriented reuse для тяжелых OR
-запросов.
+Цель - сохранить текущую storefront semantics, но заменить дорогой candidate-oriented signature
+lookup на facet-oriented reuse для тяжелых OR запросов.
 
 ## Runtime semantics
 
@@ -41,11 +40,10 @@ color IN (...) AND size IN (...) AND material IN (...)
 
 Facet isolation всегда по `facet_id`, не по `facet_type` и не по slug.
 
-Текущий candidate path не полностью `facet_id`-native: TypeScript helper
-строит request-level комбинации через `facetSlug`/`valueHandle`, а SQL потом
-резолвит их в `resolved_facets` и дополнительно отсекает current facet через
-`rf.facet_id <> ofv.facet_id`. Planned state для этой оптимизации: option
-combination generation использует `request.request.filterPlan.optionFacetGroups`
+Текущий candidate path не полностью `facet_id`-native: TypeScript helper строит request-level
+комбинации через `facetSlug`/`valueHandle`, а SQL потом резолвит их в `resolved_facets` и
+дополнительно отсекает current facet через `rf.facet_id <> ofv.facet_id`. Planned state для этой
+оптимизации: option combination generation использует `request.request.filterPlan.optionFacetGroups`
 (`facetId`, `valueKeys`) и не использует slug/handle как internal key.
 
 ## Current path
@@ -144,8 +142,8 @@ total = 342 base signature checks
 base signatures -> listing_option_signature_value by current facet_id
 ```
 
-Эта работа линейна по найденным base signatures и не повторяет поиск signatures
-для каждого bucket value.
+Эта работа линейна по найденным base signatures и не повторяет поиск signatures для каждого bucket
+value.
 
 ## Correct OR matching rule
 
@@ -188,8 +186,8 @@ HAVING COUNT(DISTINCT required_facet_id) = required_facet_count
 
 ## Strategy guard
 
-Heavy path должен быть закрыт feature flag-ом и выбираться per target
-`facet_id`, а не глобально для всего option-count запроса.
+Heavy path должен быть закрыт feature flag-ом и выбираться per target `facet_id`, а не глобально для
+всего option-count запроса.
 
 Heavy path используется для конкретной target facet только если:
 
@@ -198,9 +196,8 @@ Heavy path используется для конкретной target facet т�
 - оценка candidate checks для этой target facet выше threshold;
 - base requirement после facet isolation не пустой.
 
-Feature flag обязателен, потому новый path меняет физический SQL план для
-storefront runtime. Начальный rollout должен уметь быстро вернуть старый
-candidate path без code rollback.
+Feature flag обязателен, потому новый path меняет физический SQL план для storefront runtime.
+Начальный rollout должен уметь быстро вернуть старый candidate path без code rollback.
 
 Начальный default:
 
@@ -208,8 +205,7 @@ candidate path без code rollback.
 const LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT = false;
 ```
 
-Flag подключается как поле repository config, а не через чтение env/config в SQL
-compiler:
+Flag подключается как поле repository config, а не через чтение env/config в SQL compiler:
 
 ```ts
 interface RepositoryConfig {
@@ -222,13 +218,11 @@ interface RepositoryConfig {
 
 ```ts
 const heavyOptionFacetCountsEnabled =
-  config.heavyOptionFacetCountsEnabled ??
-  LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT;
+  config.heavyOptionFacetCountsEnabled ?? LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT;
 ```
 
-Значение передается в `StorefrontListingQueryRepository` через constructor
-dependency, затем в `toListingSqlRequest`, и только после этого попадает в SQL
-compiler:
+Значение передается в `StorefrontListingQueryRepository` через constructor dependency, затем в
+`toListingSqlRequest`, и только после этого попадает в SQL compiler:
 
 ```ts
 class StorefrontListingQueryRepository extends BaseRepository {
@@ -236,7 +230,7 @@ class StorefrontListingQueryRepository extends BaseRepository {
     db: Database,
     txManager: TransactionManager<Database>,
     // ...
-    private readonly heavyOptionFacetCountsEnabled: boolean
+    private readonly heavyOptionFacetCountsEnabled: boolean,
   ) {
     super(db, txManager);
   }
@@ -248,9 +242,8 @@ interface ListingSqlRequest {
 }
 ```
 
-Начальное значение во всех call sites должно быть `false` через default.
-Включение делать явно при создании `Repository` после проверки query plan и
-parity на fixtures.
+Начальное значение во всех call sites должно быть `false` через default. Включение делать явно при
+создании `Repository` после проверки query plan и parity на fixtures.
 
 Начальный threshold:
 
@@ -258,21 +251,18 @@ parity на fixtures.
 const HEAVY_OPTION_FACET_CHECK_THRESHOLD = 1000;
 ```
 
-Guard должен учитывать реальные visible bucket counts из SQL CTE
-`option_facet_values`, потому TypeScript знает active selected values, но не
-знает runtime candidate buckets.
+Guard должен учитывать реальные visible bucket counts из SQL CTE `option_facet_values`, потому
+TypeScript знает active selected values, но не знает runtime candidate buckets.
 
-Оценка `candidate_combination_checks` - это estimate стоимости текущего
-candidate path. Она не является точной стоимостью heavy path: heavy SQL ищет
-base signatures через индекс по selected `value_key`, затем делает bucket
-expansion по найденным signatures. Реальный выигрыш зависит от selectivity
-selected option values, количества matched signatures и индекса для
+Оценка `candidate_combination_checks` - это estimate стоимости текущего candidate path. Она не
+является точной стоимостью heavy path: heavy SQL ищет base signatures через индекс по selected
+`value_key`, затем делает bucket expansion по найденным signatures. Реальный выигрыш зависит от
+selectivity selected option values, количества matched signatures и индекса для
 `store_id + facet_id + signature_key`.
 
 ### TypeScript helper
 
-Добавить в `compileFacetCountsQuerySql.ts` рядом с
-`compileOptionRequiredCombinationSetSql`.
+Добавить в `compileFacetCountsQuerySql.ts` рядом с `compileOptionRequiredCombinationSetSql`.
 
 ```ts
 const HEAVY_OPTION_FACET_CHECK_THRESHOLD = 1000;
@@ -290,7 +280,7 @@ interface OptionFacetCombinationEstimate {
 }
 
 function buildOptionFacetCombinationEstimate(
-  request: ListingSqlRequest
+  request: ListingSqlRequest,
 ): OptionFacetCombinationEstimate {
   const groups = request.request.filterPlan.optionFacetGroups
     .map((group) => ({
@@ -307,15 +297,11 @@ function buildOptionFacetCombinationEstimate(
     defaultRequiredFacetCount: groups.length,
     hasOptionOr: groups.some((group) => group.selectedValueCount > 1),
     perActiveFacet: groups.map((group) => {
-      const requiredGroups = groups.filter(
-        (other) => other.facetId !== group.facetId
-      );
+      const requiredGroups = groups.filter((other) => other.facetId !== group.facetId);
 
       return {
         facetId: group.facetId,
-        combinationCount: multiplyClamped(
-          requiredGroups.map((other) => other.selectedValueCount)
-        ),
+        combinationCount: multiplyClamped(requiredGroups.map((other) => other.selectedValueCount)),
         requiredFacetCount: requiredGroups.length,
       };
     }),
@@ -329,26 +315,22 @@ function multiplyClamped(values: readonly number[]): number {
     }
 
     const next = acc * value;
-    return Number.isSafeInteger(next)
-      ? next
-      : MAX_OPTION_FACET_CHECK_ESTIMATE;
+    return Number.isSafeInteger(next) ? next : MAX_OPTION_FACET_CHECK_ESTIMATE;
   }, 1);
 }
 ```
 
 ### Strategy CTE helper
 
-Добавить helper, который использует `option_facet_values`, поэтому вставлять
-его нужно после объявления `option_facet_values`.
+Добавить helper, который использует `option_facet_values`, поэтому вставлять его нужно после
+объявления `option_facet_values`.
 
 ```ts
-function compileOptionFacetCountStrategySql(
-  request: ListingSqlRequest
-): SQL {
+function compileOptionFacetCountStrategySql(request: ListingSqlRequest): SQL {
   const estimate = buildOptionFacetCombinationEstimate(request);
   const estimateRows = estimate.perActiveFacet.map(
     (row) =>
-      sql`(${row.facetId}::text, ${row.combinationCount}::numeric, ${row.requiredFacetCount}::int)`
+      sql`(${row.facetId}::text, ${row.combinationCount}::numeric, ${row.requiredFacetCount}::int)`,
   );
 
   return sql`
@@ -361,7 +343,7 @@ function compileOptionFacetCountStrategySql(
           NULL::text AS facet_id,
           NULL::numeric AS combination_count,
           NULL::int AS required_facet_count
-        WHERE false`
+        WHERE false`,
       )}
     ),
     option_facet_bucket_counts AS (
@@ -452,19 +434,16 @@ use_heavy_signature_path = false
 
 ### Resolved filter plan source
 
-Перед переводом SQL helpers на `request.request.filterPlan.optionFacetGroups`
-нужно сделать `ResolvedListingRequest.filterPlan` настоящим resolved plan, а не
-debug-shaped snapshot.
+Перед переводом SQL helpers на `request.request.filterPlan.optionFacetGroups` нужно сделать
+`ResolvedListingRequest.filterPlan` настоящим resolved plan, а не debug-shaped snapshot.
 
-Текущий `StorefrontListingQueryRepository.normalize()` заполняет `filterPlan`
-через `toDebugFilterPlan(filters)`. Этот helper сохраняет только
-`vendorIds`/`priceRange`/`inStock`, но оставляет `productFacetGroups` и
-`optionFacetGroups` пустыми. Поэтому heavy OR implementation не должен просто
-начать читать `filterPlan.optionFacetGroups` из текущего listing path: это даст
-empty active option rows и сломает candidate combination generation.
+Текущий `StorefrontListingQueryRepository.normalize()` заполняет `filterPlan` через
+`toDebugFilterPlan(filters)`. Этот helper сохраняет только `vendorIds`/`priceRange`/`inStock`, но
+оставляет `productFacetGroups` и `optionFacetGroups` пустыми. Поэтому heavy OR implementation не
+должен просто начать читать `filterPlan.optionFacetGroups` из текущего listing path: это даст empty
+active option rows и сломает candidate combination generation.
 
-Перед изменением `compileOptionRequiredCombinationSetSql` нужно подключить
-реальный resolver:
+Перед изменением `compileOptionRequiredCombinationSetSql` нужно подключить реальный resolver:
 
 ```ts
 const filterPlan = await this.facets.resolveFilterPlan({
@@ -472,30 +451,25 @@ const filterPlan = await this.facets.resolveFilterPlan({
 });
 ```
 
-Практически это означает, что `normalize()` больше не может оставаться полностью
-sync, если resolved plan загружается из repository. Нужно либо:
+Практически это означает, что `normalize()` больше не может оставаться полностью sync, если resolved
+plan загружается из repository. Нужно либо:
 
-- сделать `normalize()` async и вызвать `this.facets.resolveFilterPlan(...)`
-  внутри него;
+- сделать `normalize()` async и вызвать `this.facets.resolveFilterPlan(...)` внутри него;
 - либо оставить `normalize()` sync для базовой normalization, но после него в
-  `getStorefrontListing()` загрузить resolved filter plan и собрать
-  `ResolvedListingRequest` с этим plan.
+  `getStorefrontListing()` загрузить resolved filter plan и собрать `ResolvedListingRequest` с этим
+  plan.
 
-После этого `toDebugFilterPlan` нужно удалить или переименовать так, чтобы он не
-выглядел как источник runtime semantics. Единственный source of truth для
-`filterPlan.optionFacetGroups` должен быть
-`StorefrontFacetResolutionRepository.resolveFilterPlan`, потому он резолвит
-`facetSlug`/`valueHandle` в `facetId`/`valueKey` и разделяет
-`TAG`/`FEATURE`/`OPTION`.
+После этого `toDebugFilterPlan` нужно удалить или переименовать так, чтобы он не выглядел как
+источник runtime semantics. Единственный source of truth для `filterPlan.optionFacetGroups` должен
+быть `StorefrontFacetResolutionRepository.resolveFilterPlan`, потому он резолвит
+`facetSlug`/`valueHandle` в `facetId`/`valueKey` и разделяет `TAG`/`FEATURE`/`OPTION`.
 
 В начале `compileFacetCountsQuerySql`:
 
 ```ts
 export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
-  const optionRequiredCombinationSetSql =
-    compileOptionRequiredCombinationSetSql(request);
-  const optionFacetCountStrategySql =
-    compileOptionFacetCountStrategySql(request);
+  const optionRequiredCombinationSetSql = compileOptionRequiredCombinationSetSql(request);
+  const optionFacetCountStrategySql = compileOptionFacetCountStrategySql(request);
 
   return sql`
     WITH
@@ -510,9 +484,9 @@ export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
 }
 ```
 
-Candidate path оставить, но отключать через strategy. Producer ownership должен
-быть per target facet: если `strategy.use_heavy_signature_path = true`, candidate
-path не должен возвращать строки для этого facet даже при `force_zero`.
+Candidate path оставить, но отключать через strategy. Producer ownership должен быть per target
+facet: если `strategy.use_heavy_signature_path = true`, candidate path не должен возвращать строки
+для этого facet даже при `force_zero`.
 
 ```sql
 option_signature_base_state AS (
@@ -540,20 +514,16 @@ WHERE NOT state.use_heavy_signature_path
   AND (state.force_zero OR state.use_signature)
 ```
 
-Это важно для `in_stock=false`: candidate path сейчас умеет отдавать zero rows
-через `force_zero`, а heavy final CTE тоже возвращает zero rows для heavy facets.
-Без producer ownership финальный `UNION ALL` даст duplicate `(facet_id,
-value_key)` rows.
+Это важно для `in_stock=false`: candidate path сейчас умеет отдавать zero rows через `force_zero`, а
+heavy final CTE тоже возвращает zero rows для heavy facets. Без producer ownership финальный
+`UNION ALL` даст duplicate `(facet_id, value_key)` rows.
 
-`compileOptionRequiredCombinationSetSql` нужно перевести с
-`request.request.filters.facetFilters` на
-`request.request.filterPlan.optionFacetGroups`. Generated rows должны содержать
-resolved `excluded_facet_id`, `combination_ordinal` и `value_key`; slug/handle
-остаются только input-resolution detail в `resolved_facets`, но не internal key
-для option count combinations.
+`compileOptionRequiredCombinationSetSql` нужно перевести с `request.request.filters.facetFilters` на
+`request.request.filterPlan.optionFacetGroups`. Generated rows должны содержать resolved
+`excluded_facet_id`, `combination_ordinal` и `value_key`; slug/handle остаются только
+input-resolution detail в `resolved_facets`, но не internal key для option count combinations.
 
-Этот же helper должен сгенерировать плоский список active option values для
-heavy path:
+Этот же helper должен сгенерировать плоский список active option values для heavy path:
 
 ```sql
 option_active_filter_value_rows AS (
@@ -564,18 +534,17 @@ option_active_filter_value_rows AS (
 )
 ```
 
-Если active option filters отсутствуют, `option_active_filter_value_rows`
-должен быть empty SELECT с теми же колонками:
+Если active option filters отсутствуют, `option_active_filter_value_rows` должен быть empty SELECT с
+теми же колонками:
 
 ```sql
 SELECT NULL::text AS facet_id, NULL::text AS value_key WHERE false
 ```
 
-Так как `visible_facet_values.facet_id` в текущем компиляторе объявлен как
-`f.id::text`, generated `facet_id` rows в strategy/helper CTE должны оставаться
-`text`, чтобы join к `option_facet_values` не смешивал типы. При join к physical
-index tables, где `facet_id` хранится как `uuid`, нужно явно кастовать strategy
-target к `uuid`, а не кастовать indexed column к `text`:
+Так как `visible_facet_values.facet_id` в текущем компиляторе объявлен как `f.id::text`, generated
+`facet_id` rows в strategy/helper CTE должны оставаться `text`, чтобы join к `option_facet_values`
+не смешивал типы. При join к physical index tables, где `facet_id` хранится как `uuid`, нужно явно
+кастовать strategy target к `uuid`, а не кастовать indexed column к `text`:
 
 ```sql
 sv.facet_id = base.target_facet_id::uuid
@@ -587,12 +556,11 @@ sv.facet_id = base.target_facet_id::uuid
 sv.facet_id::text = base.target_facet_id
 ```
 
-Иначе Postgres может не использовать индекс по `facet_id` эффективно. Если позже
-весь CTE pipeline будет переведен на uuid, менять нужно consistently во всех
-joins.
+Иначе Postgres может не использовать индекс по `facet_id` эффективно. Если позже весь CTE pipeline
+будет переведен на uuid, менять нужно consistently во всех joins.
 
-`option_candidate_combination_set` после этого выбирает isolated combination
-set по `ofv.facet_id`, а не по `ofv.facet_slug`:
+`option_candidate_combination_set` после этого выбирает isolated combination set по `ofv.facet_id`,
+а не по `ofv.facet_slug`:
 
 ```sql
 option_candidate_combination_set AS (
@@ -628,8 +596,7 @@ option_facet_counts AS (
 
 ## Heavy SQL CTE shape
 
-Добавить CTE после candidate signature bitmaps или перед
-`option_facet_counts`.
+Добавить CTE после candidate signature bitmaps или перед `option_facet_counts`.
 
 ```sql
 option_heavy_targets AS (
@@ -705,19 +672,15 @@ Why this is correct:
 
 - `option_heavy_required_values` excludes current target facet.
 - `COUNT(DISTINCT required_facet_id)` implements OR within each required facet.
-- `sv.facet_id = required.required_facet_id::uuid` keeps the selected value
-  lookup tied to the resolved facet identity instead of relying only on
-  `value_key` encoding.
-- active filter values come from resolved `filterPlan.optionFacetGroups`, so
-  heavy path uses the same `facet_id`/`value_key` internal identity as the new
-  candidate combination generator.
-- `option_heavy_bucket_signatures` adds the candidate bucket value by expanding
-  base signatures only through values of the current target facet.
-- `base.target_facet_id::uuid` keeps the join to
-  `listing_option_signature_value.facet_id` index-friendly while the surrounding
-  CTE pipeline still exposes `facet_id` as text.
-- `option_facet_values` limits returned buckets to visible configured group
-  values.
+- `sv.facet_id = required.required_facet_id::uuid` keeps the selected value lookup tied to the
+  resolved facet identity instead of relying only on `value_key` encoding.
+- active filter values come from resolved `filterPlan.optionFacetGroups`, so heavy path uses the
+  same `facet_id`/`value_key` internal identity as the new candidate combination generator.
+- `option_heavy_bucket_signatures` adds the candidate bucket value by expanding base signatures only
+  through values of the current target facet.
+- `base.target_facet_id::uuid` keeps the join to `listing_option_signature_value.facet_id`
+  index-friendly while the surrounding CTE pipeline still exposes `facet_id` as text.
+- `option_facet_values` limits returned buckets to visible configured group values.
 
 ## Heavy count without price
 
@@ -739,14 +702,13 @@ option_heavy_signature_product_bitmaps AS (
 )
 ```
 
-`listing_option_signature.product_bitmap` уже deduplicated по `product_doc_id`
-и построен только из storefront-eligible in-stock variants.
+`listing_option_signature.product_bitmap` уже deduplicated по `product_doc_id` и построен только из
+storefront-eligible in-stock variants.
 
 ## Heavy count with active price
 
-Для active price filter нельзя использовать только
-`listing_option_signature.product_bitmap`: price должен совпасть с variant, у
-которого есть нужная option signature.
+Для active price filter нельзя использовать только `listing_option_signature.product_bitmap`: price
+должен совпасть с variant, у которого есть нужная option signature.
 
 Нужно считать через `listing.variant_listing_price_index`:
 
@@ -784,8 +746,8 @@ option_heavy_signature_price_product_bitmaps AS (
 )
 ```
 
-`rb_build_agg(vp.product_doc_id)` naturally deduplicates products in the bitmap,
-so multiple priced variants of the same product do not double-count.
+`rb_build_agg(vp.product_doc_id)` naturally deduplicates products in the bitmap, so multiple priced
+variants of the same product do not double-count.
 
 ## Heavy final counts
 
@@ -823,8 +785,8 @@ option_heavy_signature_facet_counts AS (
 )
 ```
 
-`in_stock = false` сохраняет текущую behavior: option signature index построен
-из in-stock variants, поэтому option counts forced to zero.
+`in_stock = false` сохраняет текущую behavior: option signature index построен из in-stock variants,
+поэтому option counts forced to zero.
 
 ## Required index
 
@@ -845,10 +807,9 @@ CREATE INDEX idx_listing_option_signature_value_lookup
 store_id + facet_id + signature_key -> value_key
 ```
 
-Добавить migration вместе с heavy path. `EXPLAIN` использовать для проверки
-выбранного плана и порядка колонок, но не оставлять индекс условным: без него
-heavy bucket expansion может превратиться в scan/hash на большой части
-`listing_option_signature_value`.
+Добавить migration вместе с heavy path. `EXPLAIN` использовать для проверки выбранного плана и
+порядка колонок, но не оставлять индекс условным: без него heavy bucket expansion может превратиться
+в scan/hash на большой части `listing_option_signature_value`.
 
 ```sql
 CREATE INDEX idx_listing_option_signature_value_facet_signature
@@ -867,8 +828,8 @@ index("idx_listing_option_signature_value_facet_signature").on(
   table.storeId,
   table.facetId,
   table.signatureKey,
-  table.valueKey
-)
+  table.valueKey,
+);
 ```
 
 ## Example with real data shape
@@ -919,32 +880,26 @@ counts before product scope:
   XL = 0
 ```
 
-`sig4` is excluded because it has `color:red`, which does not match the active
-Color OR group.
+`sig4` is excluded because it has `color:red`, which does not match the active Color OR group.
 
 ## Implementation steps
 
-1. Replace the current `toDebugFilterPlan(filters)` usage in
-   `StorefrontListingQueryRepository` with a real resolved
-   `StorefrontFilterPlan` from
-   `StorefrontFacetResolutionRepository.resolveFilterPlan(...)`. After this
-   step, `ResolvedListingRequest.filterPlan.optionFacetGroups` must contain
-   resolved `{ facetId, facetType: "OPTION", valueKeys }` groups for active
-   option filters.
-2. Add `HEAVY_OPTION_FACET_CHECK_THRESHOLD`,
-   `buildOptionFacetCombinationEstimate`,
-   `multiplyClamped` and `compileOptionFacetCountStrategySql` to
-   `compileFacetCountsQuerySql.ts`.
-3. Add `heavyOptionFacetCountsEnabled?: boolean` to `RepositoryConfig`, normalize
-   it in `Repository.create` with default `false`, pass it into
-   `StorefrontListingQueryRepository` constructor, and include it in
-   `toListingSqlRequest` / `ListingSqlRequest`.
+1. Replace the current `toDebugFilterPlan(filters)` usage in `StorefrontListingQueryRepository` with
+   a real resolved `StorefrontFilterPlan` from
+   `StorefrontFacetResolutionRepository.resolveFilterPlan(...)`. After this step,
+   `ResolvedListingRequest.filterPlan.optionFacetGroups` must contain resolved
+   `{ facetId, facetType: "OPTION", valueKeys }` groups for active option filters.
+2. Add `HEAVY_OPTION_FACET_CHECK_THRESHOLD`, `buildOptionFacetCombinationEstimate`,
+   `multiplyClamped` and `compileOptionFacetCountStrategySql` to `compileFacetCountsQuerySql.ts`.
+3. Add `heavyOptionFacetCountsEnabled?: boolean` to `RepositoryConfig`, normalize it in
+   `Repository.create` with default `false`, pass it into `StorefrontListingQueryRepository`
+   constructor, and include it in `toListingSqlRequest` / `ListingSqlRequest`.
 4. Convert option required-combination generation from slug/handle rows to
-   `filterPlan.optionFacetGroups` rows keyed by `facet_id` and `value_key`.
-   Reuse the same generated source for `option_active_filter_value_rows`.
+   `filterPlan.optionFacetGroups` rows keyed by `facet_id` and `value_key`. Reuse the same generated
+   source for `option_active_filter_value_rows`.
 5. Insert `${optionFacetCountStrategySql}` after `option_facet_values` exists.
-6. Update `option_signature_base_state` so candidate path runs per facet only
-   when `NOT strategy.use_heavy_signature_path`.
+6. Update `option_signature_base_state` so candidate path runs per facet only when
+   `NOT strategy.use_heavy_signature_path`.
 7. Add heavy CTEs:
    - `option_heavy_targets`;
    - `option_active_filter_values`;
@@ -957,15 +912,14 @@ Color OR group.
    - `option_heavy_signature_facet_counts`.
 8. Change `option_facet_counts` to `UNION ALL` candidate and heavy counts.
 9. Add the facet/signature lookup index migration and Drizzle model entry.
-10. Add a fixture/parity verification mode that can force heavy strategy for a
-   target facet and compare sorted `(facet_id, value_key, count)` rows against
-   the candidate path.
-11. Keep existing result mapper unchanged. Output columns stay:
-   `facet_id`, `facet_type`, `value_key`, `count`.
+10. Add a fixture/parity verification mode that can force heavy strategy for a target facet and
+    compare sorted `(facet_id, value_key, count)` rows against the candidate path.
+11. Keep existing result mapper unchanged. Output columns stay: `facet_id`, `facet_type`,
+    `value_key`, `count`.
 
-Implementation note: in the current file `facet_id` is `text` in
-`visible_facet_values`, so all new generated helper rows and joins should use
-`text` too. Do not mix `uuid` and `text` in strategy/heavy CTEs.
+Implementation note: in the current file `facet_id` is `text` in `visible_facet_values`, so all new
+generated helper rows and joins should use `text` too. Do not mix `uuid` and `text` in
+strategy/heavy CTEs.
 
 ## Verification matrix
 
@@ -1024,9 +978,8 @@ Compare old candidate path and new heavy path on the same fixtures:
     by `(facet_id, value_key)` match candidate path counts exactly
 ```
 
-Не запускать `test` или `tsc` по проектному правилу. Для проверки новой версии
-кода запускать только build через project tooling, когда implementation уже
-сделана.
+Не запускать `test` или `tsc` по проектному правилу. Для проверки новой версии кода запускать только
+build через project tooling, когда implementation уже сделана.
 
 ## Rollback
 

@@ -1,6 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import type { Delivery } from "@shopana/broker-types";
-import { BrokerWorkflows, DBOS, InjectBroker, type ServiceBroker, Workflow, WorkflowStep } from "@shopana/shared-kernel";
+import {
+  BrokerWorkflows,
+  DBOS,
+  InjectBroker,
+  type ServiceBroker,
+  Workflow,
+  WorkflowStep,
+} from "@shopana/shared-kernel";
 import { DeliveryProviderAccountService } from "../application/providers/DeliveryProviderAccountService.js";
 
 export interface ConfigureDeliveryProviderAccountWorkflowInput {
@@ -9,8 +16,16 @@ export interface ConfigureDeliveryProviderAccountWorkflowInput {
 }
 
 @Injectable()
-export class ConfigureDeliveryProviderAccountWorkflow extends BrokerWorkflows<ConfigureDeliveryProviderAccountWorkflowInput, Delivery.ConfigureDeliveryProviderAccountResult> {
-  constructor(@InjectBroker("delivery") broker: ServiceBroker, private readonly accounts: DeliveryProviderAccountService) { super(broker); }
+export class ConfigureDeliveryProviderAccountWorkflow extends BrokerWorkflows<
+  ConfigureDeliveryProviderAccountWorkflowInput,
+  Delivery.ConfigureDeliveryProviderAccountResult
+> {
+  constructor(
+    @InjectBroker("delivery") broker: ServiceBroker,
+    private readonly accounts: DeliveryProviderAccountService,
+  ) {
+    super(broker);
+  }
 
   @Workflow("configureProviderAccount", { idempotencyStrategy: "content" })
   async run(input: ConfigureDeliveryProviderAccountWorkflowInput) {

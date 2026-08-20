@@ -1,20 +1,14 @@
 import { sql } from "drizzle-orm";
-import {
-  check,
-  index,
-  smallint,
-  timestamp,
-  uniqueIndex,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { check, index, smallint, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 import { storeSchema } from "./schema.js";
 
 /** Customer-visible legal/contact address configured for a store. */
 export const storeAddress = storeSchema.table(
   "store_address",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     companyName: varchar("company_name", { length: 255 }),
     countryCode: varchar("country_code", { length: 2 }).notNull(),
@@ -38,10 +32,7 @@ export const storeAddress = storeSchema.table(
   },
   (table) => [
     uniqueIndex("store_address_store_unique").on(table.storeId),
-    check(
-      "store_address_country_code_format_check",
-      sql`${table.countryCode} ~ '^[A-Z]{2}$'`,
-    ),
+    check("store_address_country_code_format_check", sql`${table.countryCode} ~ '^[A-Z]{2}$'`),
     check(
       "store_address_company_name_not_blank_check",
       sql`${table.companyName} IS NULL OR btrim(${table.companyName}) <> ''`,
@@ -73,7 +64,9 @@ export const storeAddress = storeSchema.table(
 export const storePhone = storeSchema.table(
   "store_phone",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     phoneNumber: varchar("phone_number", { length: 16 }).notNull(),
     position: smallint("position").notNull().default(0),
@@ -91,19 +84,9 @@ export const storePhone = storeSchema.table(
       .defaultNow(),
   },
   (table) => [
-    uniqueIndex("store_phone_store_number_unique").on(
-      table.storeId,
-      table.phoneNumber,
-    ),
-    index("store_phone_store_position_idx").on(
-      table.storeId,
-      table.position,
-      table.id,
-    ),
-    check(
-      "store_phone_number_e164_check",
-      sql`${table.phoneNumber} ~ '^[+][1-9][0-9]{1,14}$'`,
-    ),
+    uniqueIndex("store_phone_store_number_unique").on(table.storeId, table.phoneNumber),
+    index("store_phone_store_position_idx").on(table.storeId, table.position, table.id),
+    check("store_phone_number_e164_check", sql`${table.phoneNumber} ~ '^[+][1-9][0-9]{1,14}$'`),
     check("store_phone_position_check", sql`${table.position} >= 0`),
   ],
 );

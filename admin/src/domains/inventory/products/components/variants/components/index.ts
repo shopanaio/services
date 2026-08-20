@@ -1,8 +1,5 @@
 export { VariantsColumnSettings } from "./variants-column-settings";
-export {
-  VariantsEditorGrid,
-  extractOptionGroups,
-} from "./variants-editor-grid";
+export { VariantsEditorGrid, extractOptionGroups } from "./variants-editor-grid";
 export {
   ImageCellRenderer,
   TitleCellRenderer,

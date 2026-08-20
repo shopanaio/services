@@ -26,9 +26,7 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-export function FacetPickerNameCell(
-  props: CustomCellRendererProps<FacetPickerEntity>,
-) {
+export function FacetPickerNameCell(props: CustomCellRendererProps<FacetPickerEntity>) {
   const { styles } = useStyles();
   const { data } = props;
   if (!data) return null;

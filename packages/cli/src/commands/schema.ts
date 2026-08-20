@@ -1,9 +1,5 @@
 import chalk from "chalk";
-import {
-  exportSchemas,
-  composeSupergraph,
-  buildSchemas,
-} from "../scripts/schema.js";
+import { exportSchemas, composeSupergraph, buildSchemas } from "../scripts/schema.js";
 
 interface SchemaOptions {
   output?: string;

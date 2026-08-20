@@ -1,9 +1,5 @@
 import { randomUUID } from "crypto";
-import {
-  BaseScript,
-  Transactional,
-  type UserError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import type { InventoryItem } from "../../repositories/models/index.js";
 import type { CurrencyCode } from "@shopana/shared-references";
 import {
@@ -74,10 +70,7 @@ export interface InventoryItemUpdateChanges {
   costCurrency?: CurrencyCode;
 }
 
-export type InventoryItemUpdateResult = ScriptResult<
-  InventoryItem,
-  InventoryItemUpdateChanges
->;
+export type InventoryItemUpdateResult = ScriptResult<InventoryItem, InventoryItemUpdateChanges>;
 
 class InventoryItemUpdateRollbackError extends Error {
   constructor(readonly userErrors: UserError[]) {
@@ -93,9 +86,7 @@ export class InventoryItemUpdateScript extends BaseScript<
   InventoryItemUpdateResult
 > {
   @Transactional()
-  protected async execute(
-    params: InventoryItemUpdateParams,
-  ): Promise<InventoryItemUpdateResult> {
+  protected async execute(params: InventoryItemUpdateParams): Promise<InventoryItemUpdateResult> {
     const existingItem = await this.loadInventoryItem(params);
     if (!existingItem) {
       return singleError("Inventory item not found", "NOT_FOUND", [
@@ -143,24 +134,21 @@ export class InventoryItemUpdateScript extends BaseScript<
     } = {};
     const changes: InventoryItemUpdateChanges = {};
 
-    const skuChanged =
-      params.sku !== undefined && params.sku !== existingItem.sku;
+    const skuChanged = params.sku !== undefined && params.sku !== existingItem.sku;
     if (skuChanged) {
       itemUpdateData.sku = params.sku ?? null;
       changes.sku = params.sku ?? null;
     }
 
     const trackInventoryChanged =
-      params.trackInventory != null &&
-      params.trackInventory !== existingItem.trackInventory;
+      params.trackInventory != null && params.trackInventory !== existingItem.trackInventory;
     if (trackInventoryChanged) {
       itemUpdateData.trackInventory = params.trackInventory;
       changes.trackInventory = params.trackInventory;
     }
 
     const requiresShippingChanged =
-      params.requiresShipping != null &&
-      params.requiresShipping !== existingItem.requiresShipping;
+      params.requiresShipping != null && params.requiresShipping !== existingItem.requiresShipping;
     if (requiresShippingChanged) {
       itemUpdateData.requiresShipping = params.requiresShipping;
       changes.requiresShipping = params.requiresShipping;
@@ -168,31 +156,22 @@ export class InventoryItemUpdateScript extends BaseScript<
 
     const continueSellingChanged =
       params.continueSellingWhenOutOfStock != null &&
-      params.continueSellingWhenOutOfStock !==
-        existingItem.continueSellingWhenOutOfStock;
+      params.continueSellingWhenOutOfStock !== existingItem.continueSellingWhenOutOfStock;
     if (continueSellingChanged) {
-      itemUpdateData.continueSellingWhenOutOfStock =
-        params.continueSellingWhenOutOfStock;
-      changes.continueSellingWhenOutOfStock =
-        params.continueSellingWhenOutOfStock;
+      itemUpdateData.continueSellingWhenOutOfStock = params.continueSellingWhenOutOfStock;
+      changes.continueSellingWhenOutOfStock = params.continueSellingWhenOutOfStock;
     }
 
     const existingStock = stockInput
-      ? await this.repository.stock.findByVariantWarehouse(
-          variantId,
-          stockInput.warehouseId,
-        )
+      ? await this.repository.stock.findByVariantWarehouse(variantId, stockInput.warehouseId)
       : null;
     const currentOnHand = existingStock?.quantityOnHand ?? 0;
     const currentUnavailable = existingStock?.unavailableQty ?? 0;
     const nextUnavailable = stockInput?.unavailable ?? 0;
     const deltaOnHand = stockInput ? stockInput.onHand - currentOnHand : 0;
-    const deltaUnavailable = stockInput
-      ? nextUnavailable - currentUnavailable
-      : 0;
+    const deltaUnavailable = stockInput ? nextUnavailable - currentUnavailable : 0;
     const stockChanged =
-      stockInput !== undefined &&
-      (deltaOnHand !== 0 || deltaUnavailable !== 0 || !existingStock);
+      stockInput !== undefined && (deltaOnHand !== 0 || deltaUnavailable !== 0 || !existingStock);
 
     if (stockInput && stockChanged) {
       changes.warehouseId = stockInput.warehouseId;
@@ -201,9 +180,7 @@ export class InventoryItemUpdateScript extends BaseScript<
     }
 
     const currentDimensions = params.dimensions
-      ? (
-          await this.repository.physical.getDimensionsByVariantIds([variantId])
-        )[0]
+      ? (await this.repository.physical.getDimensionsByVariantIds([variantId]))[0]
       : null;
     const dimensionsChanged =
       params.dimensions !== undefined &&
@@ -220,8 +197,7 @@ export class InventoryItemUpdateScript extends BaseScript<
         ? await this.repository.physical.getWeightsByVariantIds([variantId])
         : [];
     const currentWeight = currentWeights[0]?.weightGr ?? null;
-    const weightChanged =
-      weightGrams !== undefined && weightGrams !== currentWeight;
+    const weightChanged = weightGrams !== undefined && weightGrams !== currentWeight;
     if (weightChanged && weightGrams !== undefined) {
       changes.weight = weightGrams;
     }
@@ -242,11 +218,7 @@ export class InventoryItemUpdateScript extends BaseScript<
 
     const hasItemUpdates = Object.keys(itemUpdateData).length > 0;
     const hasChanges =
-      hasItemUpdates ||
-      stockChanged ||
-      dimensionsChanged ||
-      weightChanged ||
-      costChanged;
+      hasItemUpdates || stockChanged || dimensionsChanged || weightChanged || costChanged;
 
     if (!hasChanges) {
       this.logger.debug(
@@ -307,8 +279,7 @@ export class InventoryItemUpdateScript extends BaseScript<
     }
 
     const updatedItem =
-      (await this.repository.inventoryItem.findById(existingItem.id)) ??
-      existingItem;
+      (await this.repository.inventoryItem.findById(existingItem.id)) ?? existingItem;
 
     this.logger.info(
       { inventoryItemId: updatedItem.id, variantId, changes },
@@ -369,16 +340,12 @@ export class InventoryItemUpdateScript extends BaseScript<
     };
   }
 
-  private getWeightGrams(
-    params: InventoryItemUpdateParams,
-  ): number | undefined {
+  private getWeightGrams(params: InventoryItemUpdateParams): number | undefined {
     if (params.weight == null) {
       return undefined;
     }
 
-    return typeof params.weight === "number"
-      ? params.weight
-      : params.weight.weightGrams;
+    return typeof params.weight === "number" ? params.weight : params.weight.weightGrams;
   }
 
   private getUnitCostInput(
@@ -412,11 +379,10 @@ export class InventoryItemUpdateScript extends BaseScript<
   ): Promise<InventoryItemUpdateResult | null> {
     if (stockInput) {
       if (!Number.isInteger(stockInput.onHand) || stockInput.onHand < 0) {
-        return singleError(
-          "On-hand quantity must be a non-negative integer",
-          "INVALID_QUANTITY",
-          ["stock", "onHand"],
-        );
+        return singleError("On-hand quantity must be a non-negative integer", "INVALID_QUANTITY", [
+          "stock",
+          "onHand",
+        ]);
       }
 
       const unavailable = stockInput.unavailable ?? 0;
@@ -428,75 +394,51 @@ export class InventoryItemUpdateScript extends BaseScript<
         );
       }
 
-      const warehouseExists = await this.repository.warehouse.exists(
-        stockInput.warehouseId,
-      );
+      const warehouseExists = await this.repository.warehouse.exists(stockInput.warehouseId);
       if (!warehouseExists) {
-        return singleError("Warehouse not found", "NOT_FOUND", [
-          "stock",
-          "warehouseId",
-        ]);
+        return singleError("Warehouse not found", "NOT_FOUND", ["stock", "warehouseId"]);
       }
 
-      const existingStock =
-        await this.repository.stock.findByVariantWarehouse(
-          item.variantId,
-          stockInput.warehouseId,
-        );
+      const existingStock = await this.repository.stock.findByVariantWarehouse(
+        item.variantId,
+        stockInput.warehouseId,
+      );
       const reservedQuantity = existingStock?.reservedQty ?? 0;
       if (stockInput.onHand - reservedQuantity - unavailable < 0) {
-        return singleError(
-          "Available quantity cannot be negative",
-          "INVALID_QUANTITY",
-          ["stock", "onHand"],
-        );
+        return singleError("Available quantity cannot be negative", "INVALID_QUANTITY", [
+          "stock",
+          "onHand",
+        ]);
       }
     }
 
     if (params.sku !== undefined && params.sku !== null && params.sku !== "") {
-      const itemWithSku = await this.repository.inventoryItem.findBySku(
-        params.sku,
-      );
+      const itemWithSku = await this.repository.inventoryItem.findBySku(params.sku);
       if (itemWithSku && itemWithSku.id !== item.id) {
-        return singleError(
-          `SKU "${params.sku}" is already in use`,
-          "SKU_ALREADY_EXISTS",
-          ["sku"],
-        );
+        return singleError(`SKU "${params.sku}" is already in use`, "SKU_ALREADY_EXISTS", ["sku"]);
       }
     }
 
     if (params.dimensions) {
-      if (
-        !Number.isInteger(params.dimensions.widthMm) ||
-        params.dimensions.widthMm <= 0
-      ) {
+      if (!Number.isInteger(params.dimensions.widthMm) || params.dimensions.widthMm <= 0) {
         return singleError("Width must be a positive integer", "INVALID_DIMENSION", [
           "dimensions",
           "widthMm",
         ]);
       }
 
-      if (
-        !Number.isInteger(params.dimensions.heightMm) ||
-        params.dimensions.heightMm <= 0
-      ) {
-        return singleError(
-          "Height must be a positive integer",
-          "INVALID_DIMENSION",
-          ["dimensions", "heightMm"],
-        );
+      if (!Number.isInteger(params.dimensions.heightMm) || params.dimensions.heightMm <= 0) {
+        return singleError("Height must be a positive integer", "INVALID_DIMENSION", [
+          "dimensions",
+          "heightMm",
+        ]);
       }
 
-      if (
-        !Number.isInteger(params.dimensions.lengthMm) ||
-        params.dimensions.lengthMm <= 0
-      ) {
-        return singleError(
-          "Length must be a positive integer",
-          "INVALID_DIMENSION",
-          ["dimensions", "lengthMm"],
-        );
+      if (!Number.isInteger(params.dimensions.lengthMm) || params.dimensions.lengthMm <= 0) {
+        return singleError("Length must be a positive integer", "INVALID_DIMENSION", [
+          "dimensions",
+          "lengthMm",
+        ]);
       }
     }
 
@@ -510,15 +452,11 @@ export class InventoryItemUpdateScript extends BaseScript<
     }
 
     if (unitCostInput) {
-      if (
-        !Number.isInteger(unitCostInput.amountMinor) ||
-        unitCostInput.amountMinor < 0
-      ) {
-        return singleError(
-          "Unit cost must be a non-negative integer",
-          "INVALID_COST",
-          ["unitCost", "amountMinor"],
-        );
+      if (!Number.isInteger(unitCostInput.amountMinor) || unitCostInput.amountMinor < 0) {
+        return singleError("Unit cost must be a non-negative integer", "INVALID_COST", [
+          "unitCost",
+          "amountMinor",
+        ]);
       }
     }
 
@@ -535,13 +473,9 @@ export class InventoryItemUpdateScript extends BaseScript<
     }
 
     const msg = error instanceof Error ? error.message : String(error);
-    const cause =
-      error instanceof Error && "cause" in error ? String(error.cause) : "";
+    const cause = error instanceof Error && "cause" in error ? String(error.cause) : "";
     const stack = error instanceof Error ? error.stack : "";
-    this.logger.error(
-      { error, msg, cause, stack },
-      "InventoryItemUpdateScript failed",
-    );
+    this.logger.error({ error, msg, cause, stack }, "InventoryItemUpdateScript failed");
     return {
       result: null,
       changes: null,

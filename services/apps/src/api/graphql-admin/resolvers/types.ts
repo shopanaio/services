@@ -1,7 +1,4 @@
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { GraphQLResolveInfo } from "graphql";
 import type { ServiceContext } from "../../../context/types.js";
@@ -58,10 +55,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) =>
       AppInstallationResolver.load(
-        decodeGlobalIdByType(
-          reference.id,
-          GlobalIdEntity.AppInstallation,
-        ),
+        decodeGlobalIdByType(reference.id, GlobalIdEntity.AppInstallation),
         parseGraphqlInfo(info),
         context,
       ),
@@ -77,10 +71,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) =>
       AppCapabilityBindingResolver.load(
-        decodeGlobalIdByType(
-          reference.id,
-          GlobalIdEntity.AppCapabilityBinding,
-        ),
+        decodeGlobalIdByType(reference.id, GlobalIdEntity.AppCapabilityBinding),
         parseGraphqlInfo(info),
         context,
       ),
@@ -96,10 +87,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) =>
       AppLifecycleOperationResolver.load(
-        decodeGlobalIdByType(
-          reference.id,
-          GlobalIdEntity.AppLifecycleOperation,
-        ),
+        decodeGlobalIdByType(reference.id, GlobalIdEntity.AppLifecycleOperation),
         parseGraphqlInfo(info),
         context,
       ),
@@ -115,10 +103,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) =>
       AppManifestSnapshotResolver.load(
-        decodeGlobalIdByType(
-          reference.id,
-          GlobalIdEntity.AppManifestSnapshot,
-        ),
+        decodeGlobalIdByType(reference.id, GlobalIdEntity.AppManifestSnapshot),
         parseGraphqlInfo(info),
         context,
       ),

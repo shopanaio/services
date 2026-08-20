@@ -1,5 +1,11 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import { type CoreCustomer, type CoreStore, type FetchContextHeaders, createCoreContextClient, type GrpcConfigPort } from "@shopana/platform-api";
+import {
+  type CoreCustomer,
+  type CoreStore,
+  type FetchContextHeaders,
+  createCoreContextClient,
+  type GrpcConfigPort,
+} from "@shopana/platform-api";
 import {
   STOREFRONT_CONTEXT_HEADER,
   StorefrontContextVerifier,
@@ -26,8 +32,7 @@ function headerIsTrue(value: unknown): boolean {
  * Checks if request is a GraphQL introspection query
  */
 function isGraphqlIntrospectionRequest(request: FastifyRequest): boolean {
-  const isGraphqlPath =
-    typeof request.url === "string" && request.url.startsWith("/graphql");
+  const isGraphqlPath = typeof request.url === "string" && request.url.startsWith("/graphql");
   if (!isGraphqlPath) return false;
 
   if (request.headers["user-agent"]?.includes("rover")) {
@@ -42,17 +47,11 @@ function isGraphqlIntrospectionRequest(request: FastifyRequest): boolean {
 /**
  * Build core context middleware using gRPC client
  */
-export function buildCoreContextMiddleware(
-  grpcConfig: GrpcConfigPort,
-  storefront = false,
-) {
+export function buildCoreContextMiddleware(grpcConfig: GrpcConfigPort, storefront = false) {
   const contextClient = createCoreContextClient({ config: grpcConfig });
   const verifier = storefront ? new StorefrontContextVerifier() : null;
 
-  return async function coreContextMiddleware(
-    request: FastifyRequest,
-    reply: FastifyReply
-  ) {
+  return async function coreContextMiddleware(request: FastifyRequest, reply: FastifyReply) {
     try {
       if (verifier) {
         const raw = request.headers[STOREFRONT_CONTEXT_HEADER];
@@ -60,9 +59,7 @@ export function buildCoreContextMiddleware(
         const claims = verifier.verify(raw);
         request.store = toCoreStore(claims.store);
         request.storefrontAccess = claims.storefront;
-        request.customer = claims.customer
-          ? toCoreCustomer(claims.customer)
-          : null;
+        request.customer = claims.customer ? toCoreCustomer(claims.customer) : null;
         setContext({
           apiKey: claims.storefront.credentialId,
           store: request.store,
@@ -84,9 +81,7 @@ export function buildCoreContextMiddleware(
 
       const ctx = await contextClient.fetchContext(headers);
       if (!ctx) {
-        return reply
-          .status(401)
-          .send({ data: null, errors: [{ message: "Unauthorized" }] });
+        return reply.status(401).send({ data: null, errors: [{ message: "Unauthorized" }] });
       }
 
       request.store = ctx.store!;
@@ -100,10 +95,8 @@ export function buildCoreContextMiddleware(
         user: null, // TODO: Add user support if needed
       });
     } catch (error) {
-      console.error('Failed to fetch context via gRPC:', error);
-      return reply
-        .status(401)
-        .send({ data: null, errors: [{ message: "Unauthorized" }] });
+      console.error("Failed to fetch context via gRPC:", error);
+      return reply.status(401).send({ data: null, errors: [{ message: "Unauthorized" }] });
     }
   };
 }
@@ -132,11 +125,13 @@ function toCoreStore(store: import("@shopana/shared-context").ContextStore): Cor
     country: "",
     timezone: store.timezone,
     currency: store.currencyCode,
-    currencies: [{
-      code: store.currencyCode,
-      exchangeRate: 1,
-      isActive: true,
-    }],
+    currencies: [
+      {
+        code: store.currencyCode,
+        exchangeRate: 1,
+        isActive: true,
+      },
+    ],
     locale: store.defaultLocale,
     locales: store.locales.map((code) => ({ code, isActive: true })),
     stockStatuses: [],

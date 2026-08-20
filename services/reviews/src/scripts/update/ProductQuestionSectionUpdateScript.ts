@@ -36,15 +36,11 @@ export class ProductQuestionSectionUpdateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: ProductQuestionSectionUpdateParams
+    params: ProductQuestionSectionUpdateParams,
   ): Promise<ReviewSectionResult> {
-    const aggregate = await this.repository.productQuestion.findById(
-      params.productQuestionId
-    );
+    const aggregate = await this.repository.productQuestion.findById(params.productQuestionId);
     if (!aggregate) {
-      return sectionErrors([
-        { message: "Product question not found", code: "NOT_FOUND" },
-      ]);
+      return sectionErrors([{ message: "Product question not found", code: "NOT_FOUND" }]);
     }
 
     const { operation } = params;
@@ -52,21 +48,17 @@ export class ProductQuestionSectionUpdateScript extends BaseScript<
       case "contentUpdate":
         return this.updateContentPatch(
           params.productQuestionId,
-          mapContentTextUpdate(
-            aggregate.content,
-            operation.params,
-            "PRODUCT_QUESTION"
-          )
+          mapContentTextUpdate(aggregate.content, operation.params, "PRODUCT_QUESTION"),
         );
       case "contentAuthorUpdate":
         return this.updateContentPatch(
           params.productQuestionId,
-          mapContentAuthorUpdate(aggregate.content, operation.params)
+          mapContentAuthorUpdate(aggregate.content, operation.params),
         );
       case "contentSourceUpdate":
         return this.updateContentPatch(
           params.productQuestionId,
-          mapContentSourceUpdate(aggregate.content, operation.params)
+          mapContentSourceUpdate(aggregate.content, operation.params),
         );
       case "contentModerationUpdate":
         return this.updateContentPatch(
@@ -74,37 +66,27 @@ export class ProductQuestionSectionUpdateScript extends BaseScript<
           mapContentModerationUpdate(
             aggregate.content,
             operation.params,
-            this.context.hasUser ? this.context.user.id : undefined
-          )
+            this.context.hasUser ? this.context.user.id : undefined,
+          ),
         );
       case "contentTranslationsSync": {
         const mapped = mapContentTranslations(
           operation.params.items,
           "PRODUCT_QUESTION",
-          this.context.hasUser ? this.context.user.id : undefined
+          this.context.hasUser ? this.context.user.id : undefined,
         );
         if (mapped.errors.length > 0) return sectionErrors(mapped.errors);
-        await this.repository.content.replaceTranslations(
-          params.productQuestionId,
-          mapped.items
-        );
+        await this.repository.content.replaceTranslations(params.productQuestionId, mapped.items);
         return sectionSuccess();
       }
       case "contentPublicationsSync": {
         const mapped = mapContentPublications(operation.params.items);
         if (mapped.errors.length > 0) return sectionErrors(mapped.errors);
-        await this.repository.content.replacePublications(
-          params.productQuestionId,
-          mapped.items
-        );
+        await this.repository.content.replacePublications(params.productQuestionId, mapped.items);
         return sectionSuccess();
       }
       case "productQuestionUpdate":
-        return this.updateSubject(
-          params.productQuestionId,
-          aggregate.question,
-          operation.params
-        );
+        return this.updateSubject(params.productQuestionId, aggregate.question, operation.params);
     }
   }
 
@@ -126,19 +108,17 @@ export class ProductQuestionSectionUpdateScript extends BaseScript<
     mapped: {
       patch: ContentPatch;
       errors: ReviewSectionResult["userErrors"];
-    }
+    },
   ): Promise<ReviewSectionResult> {
     if (mapped.errors.length > 0) return sectionErrors(mapped.errors);
     if (Object.keys(mapped.patch).length === 0) return sectionSuccess(false);
     const updated = await this.repository.content.updateWithinRevision(
       productQuestionId,
-      mapped.patch
+      mapped.patch,
     );
     return updated
       ? sectionSuccess()
-      : sectionErrors([
-          { message: "Product question not found", code: "NOT_FOUND" },
-        ]);
+      : sectionErrors([{ message: "Product question not found", code: "NOT_FOUND" }]);
   }
 
   private async updateSubject(
@@ -147,7 +127,7 @@ export class ProductQuestionSectionUpdateScript extends BaseScript<
     input: Extract<
       ProductQuestionAggregateSectionOperation,
       { type: "productQuestionUpdate" }
-    >["params"]
+    >["params"],
   ): Promise<ReviewSectionResult> {
     const patch: ProductQuestionPatch = {};
     if (hasOwn(input, "productId")) {
@@ -166,21 +146,16 @@ export class ProductQuestionSectionUpdateScript extends BaseScript<
 
     const changed = changedQuestionPatch(current, patch);
     if (Object.keys(changed).length === 0) return sectionSuccess(false);
-    const updated = await this.repository.productQuestion.updateSubject(
-      productQuestionId,
-      changed
-    );
+    const updated = await this.repository.productQuestion.updateSubject(productQuestionId, changed);
     return updated
       ? sectionSuccess()
-      : sectionErrors([
-          { message: "Product question not found", code: "NOT_FOUND" },
-        ]);
+      : sectionErrors([{ message: "Product question not found", code: "NOT_FOUND" }]);
   }
 }
 
 function changedQuestionPatch(
   current: { productId: string; variantId: string | null },
-  patch: ProductQuestionPatch
+  patch: ProductQuestionPatch,
 ): ProductQuestionPatch {
   const changed: ProductQuestionPatch = {};
   if (patch.productId !== undefined && patch.productId !== current.productId) {

@@ -5,10 +5,7 @@
 
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import { Logger } from "@nestjs/common";
-import {
-  type RetryPolicy,
-  DEFAULT_RETRY_POLICY,
-} from "../core/types.js";
+import { type RetryPolicy, DEFAULT_RETRY_POLICY } from "../core/types.js";
 import {
   StepTimeoutError,
   isRetryableError,
@@ -68,8 +65,7 @@ export async function runStep<T>(
     ...options.retry,
   };
 
-  const retriesAllowed =
-    options.retriesAllowed ?? retryPolicy.maxAttempts > 1;
+  const retriesAllowed = options.retriesAllowed ?? retryPolicy.maxAttempts > 1;
 
   let stepResult: InternalStepResult<T>;
 
@@ -120,14 +116,9 @@ export async function runStep<T>(
   }
 
   // Handle non-retryable results
-  if (
-    stepResult.kind === "timeout" ||
-    stepResult.kind === "nonRetryableFailure"
-  ) {
+  if (stepResult.kind === "timeout" || stepResult.kind === "nonRetryableFailure") {
     const failureError = restoreOperationError(stepResult.error);
-    logger.debug(
-      `Step ${stepName} failed with non-retryable error: ${failureError.message}`,
-    );
+    logger.debug(`Step ${stepName} failed with non-retryable error: ${failureError.message}`);
 
     if (!isCritical) {
       logger.warn(`Non-critical step ${stepName} failed, continuing workflow`);

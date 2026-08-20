@@ -1,8 +1,4 @@
-import type {
-  AdminContextClaims,
-  ContextStore,
-  ContextUser,
-} from "@shopana/shared-context";
+import type { AdminContextClaims, ContextStore, ContextUser } from "@shopana/shared-context";
 import type { ServiceBroker } from "@shopana/shared-kernel";
 import type { AppInstallationStore } from "../control-plane/AppInstallationStore.js";
 import type { AppLifecycleService } from "../control-plane/AppLifecycleService.js";

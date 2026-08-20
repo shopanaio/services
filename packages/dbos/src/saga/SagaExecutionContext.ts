@@ -20,12 +20,7 @@ export class SagaExecutionContext {
   }
 
   /** Record successfully executed step (for compensation) */
-  recordStep(
-    method: string,
-    stepName: string,
-    args: unknown[],
-    config: SagaStepConfig,
-  ): void {
+  recordStep(method: string, stepName: string, args: unknown[], config: SagaStepConfig): void {
     this.executedSteps.push({ method, stepName, args, config });
   }
 

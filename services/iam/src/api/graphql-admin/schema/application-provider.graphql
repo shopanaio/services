@@ -2,41 +2,55 @@
 # APPLICATION AUTH PROVIDER TYPES
 # ============================================================================
 
-"""Social authentication providers supported by the code-owned catalog."""
+"""
+Social authentication providers supported by the code-owned catalog.
+"""
 enum ApplicationAuthProviderName {
   GOOGLE
   FACEBOOK
 }
 
-"""Result status of a safe provider configuration validation."""
+"""
+Result status of a safe provider configuration validation.
+"""
 enum ApplicationAuthProviderValidationStatus {
   VALID
   INVALID
   UNAVAILABLE
 }
 
-"""Non-secret status of a social authentication provider."""
+"""
+Non-secret status of a social authentication provider.
+"""
 type ApplicationAuthProvider {
   applicationId: ID!
   provider: ApplicationAuthProviderName!
   supported: Boolean!
   configured: Boolean!
   enabled: Boolean!
-  """Masked client identifier safe for administrative display."""
+  """
+  Masked client identifier safe for administrative display.
+  """
   maskedClientId: String
   scopes: [String!]!
-  """Exact callback URL computed by IAM."""
+  """
+  Exact callback URL computed by IAM.
+  """
   callbackUrl: String!
   revision: Int!
   updatedAt: DateTime
   updatedBy: ID
 }
 
-"""Safe validation result for a social provider configuration."""
+"""
+Safe validation result for a social provider configuration.
+"""
 type ApplicationAuthProviderValidation {
   provider: ApplicationAuthProviderName!
   status: ApplicationAuthProviderValidationStatus!
-  """Stable non-secret reason code when validation did not succeed."""
+  """
+  Stable non-secret reason code when validation did not succeed.
+  """
   reasonCode: String
   revision: Int!
   checkedAt: DateTime!
@@ -46,7 +60,9 @@ type ApplicationAuthProviderValidation {
 # INPUTS
 # ============================================================================
 
-"""Input for configuring credentials and scopes of a social provider."""
+"""
+Input for configuring credentials and scopes of a social provider.
+"""
 input ApplicationAuthProviderConfigureInput {
   organizationId: ID!
   applicationId: ID!
@@ -57,7 +73,9 @@ input ApplicationAuthProviderConfigureInput {
   expectedRevision: Int!
 }
 
-"""Input for updating non-secret social provider settings."""
+"""
+Input for updating non-secret social provider settings.
+"""
 input ApplicationAuthProviderUpdateInput {
   organizationId: ID!
   applicationId: ID!
@@ -67,7 +85,9 @@ input ApplicationAuthProviderUpdateInput {
   expectedRevision: Int!
 }
 
-"""Input for replacing social provider credentials."""
+"""
+Input for replacing social provider credentials.
+"""
 input ApplicationAuthProviderCredentialsRotateInput {
   organizationId: ID!
   applicationId: ID!
@@ -77,7 +97,9 @@ input ApplicationAuthProviderCredentialsRotateInput {
   expectedRevision: Int!
 }
 
-"""Input for deleting credentials from a disabled social provider."""
+"""
+Input for deleting credentials from a disabled social provider.
+"""
 input ApplicationAuthProviderCredentialsDeleteInput {
   organizationId: ID!
   applicationId: ID!
@@ -85,7 +107,9 @@ input ApplicationAuthProviderCredentialsDeleteInput {
   expectedRevision: Int!
 }
 
-"""Input for safely validating a social provider configuration."""
+"""
+Input for safely validating a social provider configuration.
+"""
 input ApplicationAuthProviderValidateInput {
   organizationId: ID!
   applicationId: ID!
@@ -97,13 +121,17 @@ input ApplicationAuthProviderValidateInput {
 # PAYLOADS
 # ============================================================================
 
-"""Result of changing a social provider configuration."""
+"""
+Result of changing a social provider configuration.
+"""
 type ApplicationAuthProviderPayload {
   provider: ApplicationAuthProvider
   userErrors: [GenericUserError!]!
 }
 
-"""Result of validating a social provider configuration."""
+"""
+Result of validating a social provider configuration.
+"""
 type ApplicationAuthProviderValidationPayload {
   validation: ApplicationAuthProviderValidation
   userErrors: [GenericUserError!]!

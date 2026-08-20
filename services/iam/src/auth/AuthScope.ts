@@ -1,6 +1,5 @@
 export type AuthAdapterScope =
-  | { kind: "platform" }
-  | { kind: "application"; applicationId: string };
+  { kind: "platform" } | { kind: "application"; applicationId: string };
 
 export function assertApplicationId(applicationId: string): void {
   if (typeof applicationId !== "string" || !applicationId.trim()) {

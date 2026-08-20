@@ -36,29 +36,25 @@ export interface StorefrontCustomerUpdateWorkflowInput {
   params: Omit<StorefrontCustomerUpdateParams, "customerId">;
   context: StorefrontCustomerWorkflowContext;
 }
-export type StorefrontCustomerUpdateWorkflowResult =
-  StorefrontCustomerUpdateResult;
+export type StorefrontCustomerUpdateWorkflowResult = StorefrontCustomerUpdateResult;
 
 export interface StorefrontCustomerAddressCreateWorkflowInput {
   params: Omit<StorefrontCustomerAddressCreateParams, "customerId">;
   context: StorefrontCustomerWorkflowContext;
 }
-export type StorefrontCustomerAddressCreateWorkflowResult =
-  StorefrontCustomerAddressCreateResult;
+export type StorefrontCustomerAddressCreateWorkflowResult = StorefrontCustomerAddressCreateResult;
 
 export interface StorefrontCustomerAddressUpdateWorkflowInput {
   params: Omit<StorefrontCustomerAddressUpdateParams, "customerId">;
   context: StorefrontCustomerWorkflowContext;
 }
-export type StorefrontCustomerAddressUpdateWorkflowResult =
-  StorefrontCustomerAddressUpdateResult;
+export type StorefrontCustomerAddressUpdateWorkflowResult = StorefrontCustomerAddressUpdateResult;
 
 export interface StorefrontCustomerAddressDeleteWorkflowInput {
   params: Omit<StorefrontCustomerAddressDeleteParams, "customerId">;
   context: StorefrontCustomerWorkflowContext;
 }
-export type StorefrontCustomerAddressDeleteWorkflowResult =
-  StorefrontCustomerAddressDeleteResult;
+export type StorefrontCustomerAddressDeleteWorkflowResult = StorefrontCustomerAddressDeleteResult;
 
 export interface StorefrontCustomerAddressDefaultSetWorkflowInput {
   params: Omit<StorefrontCustomerAddressDefaultSetParams, "customerId">;
@@ -68,10 +64,7 @@ export type StorefrontCustomerAddressDefaultSetWorkflowResult =
   StorefrontCustomerAddressDefaultSetResult;
 
 export interface StorefrontCustomerMarketingConsentUpdateWorkflowInput {
-  params: Omit<
-    StorefrontCustomerMarketingConsentUpdateParams,
-    "customerId" | "requestId"
-  >;
+  params: Omit<StorefrontCustomerMarketingConsentUpdateParams, "customerId" | "requestId">;
   context: StorefrontCustomerWorkflowContext;
 }
 export type StorefrontCustomerMarketingConsentUpdateWorkflowResult =

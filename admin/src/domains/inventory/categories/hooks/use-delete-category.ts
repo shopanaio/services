@@ -15,9 +15,7 @@ interface DeleteCategoryResult {
 }
 
 interface UseDeleteCategoryReturn {
-  deleteCategory: (
-    input: ApiCategoryDeleteInput,
-  ) => Promise<DeleteCategoryResult>;
+  deleteCategory: (input: ApiCategoryDeleteInput) => Promise<DeleteCategoryResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
@@ -45,8 +43,7 @@ export function useDeleteCategory(): UseDeleteCategoryReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
 
         return {
           deletedCategoryId: null,

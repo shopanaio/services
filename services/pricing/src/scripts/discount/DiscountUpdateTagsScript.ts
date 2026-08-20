@@ -1,9 +1,6 @@
 import type { UserError } from "../../kernel/BaseScript.js";
 import type { DiscountAggregate } from "../../repositories/DiscountRepository.js";
-import type {
-  DiscountUpdateTagsParams,
-  DiscountUpdateTagsResult,
-} from "./dto/index.js";
+import type { DiscountUpdateTagsParams, DiscountUpdateTagsResult } from "./dto/index.js";
 import { BaseDiscountUpdateScript } from "./BaseDiscountUpdateScript.js";
 import { sectionErrors, sectionSuccess } from "./types.js";
 

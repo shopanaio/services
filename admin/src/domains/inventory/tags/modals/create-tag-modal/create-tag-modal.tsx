@@ -7,17 +7,10 @@ import { App, Input, Tooltip } from "antd";
 import { LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useCreateTag } from "../../hooks";
-import {
-  mapTagIdentityToCreateInput,
-  mapTagUserErrorsToFormErrors,
-} from "../../mappers";
+import { mapTagIdentityToCreateInput, mapTagUserErrorsToFormErrors } from "../../mappers";
 import type { ICreateTagModalPayload } from "../../modals";
 import { createTagSchema, type CreateTagFormValues } from "./schema";
 
@@ -84,9 +77,7 @@ export const CreateTagModal = () => {
 
   const onSubmit = useCallback(
     async (data: CreateTagFormValues) => {
-      const { tag, userErrors } = await createTag(
-        mapTagIdentityToCreateInput(data),
-      );
+      const { tag, userErrors } = await createTag(mapTagIdentityToCreateInput(data));
 
       if (userErrors.length > 0) {
         mapTagUserErrorsToFormErrors(userErrors).forEach((error) => {
@@ -144,9 +135,7 @@ export const CreateTagModal = () => {
                         placeholder="e.g. Summer essentials"
                         status={error ? "error" : undefined}
                       />
-                      {error && (
-                        <div className={styles.error}>{error.message}</div>
-                      )}
+                      {error && <div className={styles.error}>{error.message}</div>}
                     </>
                   )}
                 />
@@ -156,9 +145,7 @@ export const CreateTagModal = () => {
                 <div className={styles.label}>
                   Handle
                   <Tooltip title="URL-friendly identifier. Auto-generated from name if left empty.">
-                    <InfoCircleOutlined
-                      style={{ color: "var(--ant-color-text-secondary)" }}
-                    />
+                    <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
                   </Tooltip>
                 </div>
                 <Controller
@@ -175,13 +162,9 @@ export const CreateTagModal = () => {
                           setIsHandleManual(true);
                           field.onChange(slugify(e.target.value));
                         }}
-                        addonBefore={
-                          <span className={styles.handlePrefix}>#</span>
-                        }
+                        addonBefore={<span className={styles.handlePrefix}>#</span>}
                       />
-                      {error && (
-                        <div className={styles.error}>{error.message}</div>
-                      )}
+                      {error && <div className={styles.error}>{error.message}</div>}
                     </>
                   )}
                 />

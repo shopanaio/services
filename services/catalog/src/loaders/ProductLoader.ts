@@ -31,27 +31,21 @@ export class ProductLoader {
       return productIds.map((id) => results.find((p) => p.id === id) ?? null);
     });
 
-    this.productReference = new DataLoader<string, Product | null>(
-      async (productIds) => {
-        const results = await repository.product.getByIdsIncludingDeleted(
-          productIds
-        );
-        return productIds.map(
-          (id) => results.find((product) => product.id === id) ?? null
-        );
-      }
-    );
-
-    this.productTranslation = new DataLoader<string, ProductTranslation | null>(async (productIds) => {
-      const results = await repository.product.getTranslationsByProductIds(productIds);
-      return productIds.map((id) => results.find((t) => t.productId === id) ?? null);
+    this.productReference = new DataLoader<string, Product | null>(async (productIds) => {
+      const results = await repository.product.getByIdsIncludingDeleted(productIds);
+      return productIds.map((id) => results.find((product) => product.id === id) ?? null);
     });
+
+    this.productTranslation = new DataLoader<string, ProductTranslation | null>(
+      async (productIds) => {
+        const results = await repository.product.getTranslationsByProductIds(productIds);
+        return productIds.map((id) => results.find((t) => t.productId === id) ?? null);
+      },
+    );
 
     this.productTranslations = new DataLoader<string, ProductTranslation[]>(async (productIds) => {
       const results = await repository.product.getAllTranslationsByProductIds(productIds);
-      return productIds.map((id) =>
-        results.filter((translation) => translation.productId === id)
-      );
+      return productIds.map((id) => results.filter((translation) => translation.productId === id));
     });
 
     this.productSeo = new DataLoader<string, ProductSeo | null>(async (productIds) => {
@@ -61,35 +55,23 @@ export class ProductLoader {
 
     this.productSeos = new DataLoader<string, ProductSeo[]>(async (productIds) => {
       const results = await repository.translation.getProductSeoByProductIds(productIds);
-      return productIds.map((id) =>
-        results.filter((seo) => seo.productId === id)
-      );
+      return productIds.map((id) => results.filter((seo) => seo.productId === id));
     });
 
     this.productOptionIds = new DataLoader<string, string[]>(async (productIds) => {
       const results = await repository.product.getOptionIdsByProductIds(productIds);
-      return productIds.map((id) =>
-        results.filter((o) => o.productId === id).map((o) => o.id)
-      );
+      return productIds.map((id) => results.filter((o) => o.productId === id).map((o) => o.id));
     });
 
     this.productFeatureIds = new DataLoader<string, string[]>(async (productIds) => {
       const results = await repository.product.getFeatureIdsByProductIds(productIds);
-      return productIds.map((id) =>
-        results.filter((f) => f.productId === id).map((f) => f.id)
-      );
+      return productIds.map((id) => results.filter((f) => f.productId === id).map((f) => f.id));
     });
 
-    this.productRootFeatureIds = new DataLoader<string, string[]>(
-      async (productIds) => {
-        const results = await repository.product.getRootFeatureIdsByProductIds(
-          productIds
-        );
-        return productIds.map((id) =>
-          results.filter((f) => f.productId === id).map((f) => f.id)
-        );
-      }
-    );
+    this.productRootFeatureIds = new DataLoader<string, string[]>(async (productIds) => {
+      const results = await repository.product.getRootFeatureIdsByProductIds(productIds);
+      return productIds.map((id) => results.filter((f) => f.productId === id).map((f) => f.id));
+    });
 
     this.productOption = new DataLoader<string, ProductOption | null>(async (optionIds) => {
       const results = await repository.product.getOptionsByIds(optionIds);
@@ -103,20 +85,14 @@ export class ProductLoader {
 
     this.productMedia = new DataLoader<string, ProductMedia[]>(async (productIds) => {
       const results = await repository.media.getProductMediaByProductIds(productIds);
-      return productIds.map((id) =>
-        results.filter((media) => media.productId === id)
-      );
+      return productIds.map((id) => results.filter((media) => media.productId === id));
     });
 
     this.productPriceRange = new DataLoader<string, ProductPriceRange | null>(
       async (productIds) => {
-        const results = await repository.product.getPriceRangesByProductIds(
-          productIds
-        );
-        return productIds.map(
-          (id) => results.find((range) => range.productId === id) ?? null
-        );
-      }
+        const results = await repository.product.getPriceRangesByProductIds(productIds);
+        return productIds.map((id) => results.find((range) => range.productId === id) ?? null);
+      },
     );
   }
 }

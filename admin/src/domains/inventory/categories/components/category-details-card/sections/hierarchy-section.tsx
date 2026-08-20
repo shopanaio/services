@@ -1,14 +1,11 @@
 "use client";
 
+import { Breadcrumb, Button, Dropdown, Flex, Tag, Typography } from "antd";
 import {
-  Breadcrumb,
-  Button,
-  Dropdown,
-  Flex,
-  Tag,
-  Typography,
-} from "antd";
-import { LuFolder as FolderOutlined, LuEllipsis as MoreOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
+  LuFolder as FolderOutlined,
+  LuEllipsis as MoreOutlined,
+  LuPlus as PlusOutlined,
+} from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiCategory } from "@/graphql/types";
 import { useHierarchyStyles } from "../category-details-card.styles";
@@ -50,7 +47,9 @@ export const HierarchySection = ({
               items: [
                 {
                   key: "edit-parent",
-                  label: <span data-testid="category-hierarchy-edit-parent-menu-item">Edit parent</span>,
+                  label: (
+                    <span data-testid="category-hierarchy-edit-parent-menu-item">Edit parent</span>
+                  ),
                   disabled: !onEditParent,
                 },
                 {
@@ -88,21 +87,14 @@ export const HierarchySection = ({
         <Typography.Text type="secondary" className={styles.sectionLabel}>
           Breadcrumbs
         </Typography.Text>
-        <Breadcrumb
-          items={breadcrumbItems}
-          data-testid="category-hierarchy-breadcrumb"
-        />
+        <Breadcrumb items={breadcrumbItems} data-testid="category-hierarchy-breadcrumb" />
       </Flex>
 
       <Flex vertical gap={8} style={{ marginBottom: 16 }}>
         <Typography.Text type="secondary" className={styles.sectionLabel}>
           Parent
         </Typography.Text>
-        <Flex
-          align="center"
-          gap={8}
-          data-testid="category-hierarchy-parent"
-        >
+        <Flex align="center" gap={8} data-testid="category-hierarchy-parent">
           {category.parent ? (
             <Dropdown
               trigger={["click"]}

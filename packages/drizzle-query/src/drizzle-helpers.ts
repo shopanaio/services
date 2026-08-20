@@ -48,9 +48,7 @@ export function withProjectScope(projectIdColumn: Column, storeId: string): SQL 
  * );
  * ```
  */
-export function combineAnd(
-  ...conditions: (SQL | undefined | null)[]
-): SQL | undefined {
+export function combineAnd(...conditions: (SQL | undefined | null)[]): SQL | undefined {
   const filtered = conditions.filter((c): c is SQL => c != null);
   if (filtered.length === 0) return undefined;
   if (filtered.length === 1) return filtered[0];
@@ -79,7 +77,7 @@ export type DefaultFiltersOptions<T extends Table> = {
 
 export function applyDefaultFilters<T extends PgTable>(
   table: T,
-  options: DefaultFiltersOptions<T>
+  options: DefaultFiltersOptions<T>,
 ): SQL | undefined {
   const conditions: SQL[] = [];
   const columns = table["_"]["columns"];

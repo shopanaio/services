@@ -3,13 +3,8 @@ import type {
   CheckoutCartLineIntent,
   CheckoutPipelineJsonObject,
 } from "../pipeline/contracts/index.js";
-import type {
-  CheckoutLineCommand,
-} from "../checkout/types.js";
-import type {
-  CheckoutCommittedSnapshot,
-  CheckoutMutationDraft,
-} from "./contracts.js";
+import type { CheckoutLineCommand } from "../checkout/types.js";
+import type { CheckoutCommittedSnapshot, CheckoutMutationDraft } from "./contracts.js";
 import { CheckoutMutationError } from "./contracts.js";
 
 export function addLines(
@@ -55,12 +50,17 @@ export function updateLineQuantities(
   draft: CheckoutMutationDraft,
   updates: readonly { lineId: string; quantity: number }[],
 ): void {
-  assertUniqueIds(updates.map(({ lineId }) => lineId), "checkout line");
+  assertUniqueIds(
+    updates.map(({ lineId }) => lineId),
+    "checkout line",
+  );
   const updateById = new Map(updates.map((update) => [update.lineId, update.quantity]));
   const known = new Set(draft.cartIntent.lines.map(({ lineId }) => lineId));
   for (const { lineId, quantity } of updates) {
-    if (!known.has(lineId)) throw invalid("CHECKOUT_LINE_NOT_FOUND", "Checkout line was not found.");
-    if (quantity < 0) throw invalid("CHECKOUT_LINE_QUANTITY_INVALID", "Checkout line quantity cannot be negative.");
+    if (!known.has(lineId))
+      throw invalid("CHECKOUT_LINE_NOT_FOUND", "Checkout line was not found.");
+    if (quantity < 0)
+      throw invalid("CHECKOUT_LINE_QUANTITY_INVALID", "Checkout line quantity cannot be negative.");
   }
   const removed = new Set<string>();
   const map = (lines: readonly CheckoutCartLineIntent[]): CheckoutCartLineIntent[] =>
@@ -70,11 +70,13 @@ export function updateLineQuantities(
         for (const nested of flattenLines([line])) removed.add(nested.lineId);
         return [];
       }
-      return [{
-        ...line,
-        ...(quantity === undefined ? {} : { quantity }),
-        children: line.children,
-      }];
+      return [
+        {
+          ...line,
+          ...(quantity === undefined ? {} : { quantity }),
+          children: line.children,
+        },
+      ];
     });
   draft.cartIntent = {
     ...draft.cartIntent,
@@ -84,15 +86,10 @@ export function updateLineQuantities(
       lineIds: destination.lineIds.filter((lineId) => !removed.has(lineId)),
     })),
   };
-  draft.lineTagAssignments = draft.lineTagAssignments.filter(
-    ({ lineId }) => !removed.has(lineId),
-  );
+  draft.lineTagAssignments = draft.lineTagAssignments.filter(({ lineId }) => !removed.has(lineId));
 }
 
-export function deleteLines(
-  draft: CheckoutMutationDraft,
-  lineIds: readonly string[],
-): void {
+export function deleteLines(draft: CheckoutMutationDraft, lineIds: readonly string[]): void {
   updateLineQuantities(
     draft,
     lineIds.map((lineId) => ({ lineId, quantity: 0 })),
@@ -117,7 +114,10 @@ export function replaceLines(
   draft: CheckoutMutationDraft,
   replacements: readonly { lineId: string; variantId: string; quantity?: number }[],
 ): void {
-  assertUniqueIds(replacements.map(({ lineId }) => lineId), "checkout line");
+  assertUniqueIds(
+    replacements.map(({ lineId }) => lineId),
+    "checkout line",
+  );
   const byId = new Map(replacements.map((replacement) => [replacement.lineId, replacement]));
   const found = new Set<string>();
   const map = (lines: readonly CheckoutCartLineIntent[]): CheckoutCartLineIntent[] =>
@@ -137,13 +137,18 @@ export function replaceLines(
     });
   draft.cartIntent = { ...draft.cartIntent, lines: map(draft.cartIntent.lines) };
   for (const { lineId } of replacements) {
-    if (!found.has(lineId)) throw invalid("CHECKOUT_LINE_NOT_FOUND", "Checkout line was not found.");
+    if (!found.has(lineId))
+      throw invalid("CHECKOUT_LINE_NOT_FOUND", "Checkout line was not found.");
   }
 }
 
 export function updateDeliverySelection(
   draft: CheckoutMutationDraft,
-  input: { groupId: string; optionHandle: string; customerInput: CheckoutPipelineJsonObject | null },
+  input: {
+    groupId: string;
+    optionHandle: string;
+    customerInput: CheckoutPipelineJsonObject | null;
+  },
 ): void {
   const others = draft.cartIntent.selectedDeliveryOptions.filter(
     ({ groupId }) => groupId !== input.groupId,
@@ -174,27 +179,27 @@ export function updatePaymentSelection(
   };
 }
 
-export function destinationIdForGroup(
-  current: CheckoutCommittedSnapshot,
-  groupId: string,
-): string {
+export function destinationIdForGroup(current: CheckoutCommittedSnapshot, groupId: string): string {
   if (current.result.delivery.status !== "SUCCESS") {
     throw invalid("CHECKOUT_DELIVERY_UNAVAILABLE", "Checkout delivery snapshot is unavailable.");
   }
   const group = current.result.delivery.data.groups.find((item) => item.groupId === groupId);
-  if (!group) throw invalid("CHECKOUT_DELIVERY_GROUP_NOT_FOUND", "Checkout delivery group was not found.");
+  if (!group)
+    throw invalid("CHECKOUT_DELIVERY_GROUP_NOT_FOUND", "Checkout delivery group was not found.");
   return group.destinationId;
 }
 
 export function normalizeDiscountCode(value: string): string {
   const code = value.trim().toUpperCase();
-  if (!code || code.length > 256) throw invalid("CHECKOUT_DISCOUNT_CODE_INVALID", "Discount code is invalid.");
+  if (!code || code.length > 256)
+    throw invalid("CHECKOUT_DISCOUNT_CODE_INVALID", "Discount code is invalid.");
   return code;
 }
 
 function boundedHandle(value: string): string {
   const handle = value.trim();
-  if (!handle || handle.length > 256) throw invalid("CHECKOUT_SELECTION_HANDLE_INVALID", "Checkout selection handle is invalid.");
+  if (!handle || handle.length > 256)
+    throw invalid("CHECKOUT_SELECTION_HANDLE_INVALID", "Checkout selection handle is invalid.");
   return handle;
 }
 
@@ -219,10 +224,7 @@ function toIntent(command: CheckoutLineCommand): CheckoutCartLineIntent {
 }
 
 function sameLineIntent(a: CheckoutCartLineIntent, b: CheckoutCartLineIntent): boolean {
-  const withoutIdentity = (
-    line: CheckoutCartLineIntent,
-    includeQuantity: boolean,
-  ): unknown => ({
+  const withoutIdentity = (line: CheckoutCartLineIntent, includeQuantity: boolean): unknown => ({
     variantId: line.variantId,
     componentSelection: line.componentSelection,
     ...(includeQuantity ? { quantity: line.quantity } : {}),
@@ -233,9 +235,7 @@ function sameLineIntent(a: CheckoutCartLineIntent, b: CheckoutCartLineIntent): b
   return canonicalJson(withoutIdentity(a, false)) === canonicalJson(withoutIdentity(b, false));
 }
 
-export function flattenLines(
-  lines: readonly CheckoutCartLineIntent[],
-): CheckoutCartLineIntent[] {
+export function flattenLines(lines: readonly CheckoutCartLineIntent[]): CheckoutCartLineIntent[] {
   return lines.flatMap((line) => [line, ...flattenLines(line.children)]);
 }
 

@@ -4,13 +4,9 @@ import * as schema from "./models/index.js";
 
 export type OnlineStoreDatabase = PostgresJsDatabase<typeof schema>;
 
-export function createOnlineStoreDatabase(
-  databaseClient: unknown,
-): OnlineStoreDatabase {
+export function createOnlineStoreDatabase(databaseClient: unknown): OnlineStoreDatabase {
   if (typeof databaseClient !== "function") {
-    throw new TypeError(
-      "Online Store App host.databaseClient must be a postgres.js client",
-    );
+    throw new TypeError("Online Store App host.databaseClient must be a postgres.js client");
   }
   return drizzle(databaseClient as DatabaseClient, { schema });
 }

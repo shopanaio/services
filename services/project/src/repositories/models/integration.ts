@@ -1,11 +1,4 @@
-import {
-  uuid,
-  varchar,
-  timestamp,
-  jsonb,
-  index,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { uuid, varchar, timestamp, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { storeSchema } from "./schema.js";
 import { store } from "./store.js";
@@ -14,12 +7,12 @@ import { store } from "./store.js";
  * Integration types supported by the platform
  */
 export const integrationTypeEnum = storeSchema.enum("integration_type", [
-  "iam",        // Identity & Access Management (Casdoor, Auth0, etc.)
-  "payment",    // Payment providers (Stripe, LiqPay, etc.)
-  "shipping",   // Shipping providers (NovaPoshta, Meest, etc.)
-  "storage",    // File storage (S3, GCS, etc.)
-  "email",      // Email providers (SendGrid, Mailgun, etc.)
-  "analytics",  // Analytics (GA, Mixpanel, etc.)
+  "iam", // Identity & Access Management (Casdoor, Auth0, etc.)
+  "payment", // Payment providers (Stripe, LiqPay, etc.)
+  "shipping", // Shipping providers (NovaPoshta, Meest, etc.)
+  "storage", // File storage (S3, GCS, etc.)
+  "email", // Email providers (SendGrid, Mailgun, etc.)
+  "analytics", // Analytics (GA, Mixpanel, etc.)
 ]);
 
 /**
@@ -40,7 +33,9 @@ export const integrationStatusEnum = storeSchema.enum("integration_status", [
 export const storeIntegration = storeSchema.table(
   "store_integration",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id")
       .notNull()
       .references(() => store.id, { onDelete: "cascade" }),
@@ -73,17 +68,20 @@ export const storeIntegration = storeSchema.table(
     /** Error message if status is 'error' */
     errorMessage: varchar("error_message", { length: 1000 }),
 
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
   },
   (table) => [
     // Each store can have only one integration per type
-    uniqueIndex("idx_store_integration_unique")
-      .on(table.storeId, table.type),
+    uniqueIndex("idx_store_integration_unique").on(table.storeId, table.type),
     index("idx_store_integration_store_id").on(table.storeId),
     index("idx_store_integration_type").on(table.type),
     index("idx_store_integration_status").on(table.status),
-  ]
+  ],
 );
 
 export type StoreIntegration = typeof storeIntegration.$inferSelect;

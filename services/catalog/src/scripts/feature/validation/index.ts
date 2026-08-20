@@ -5,20 +5,8 @@ export {
   type ValidatedSyncInput,
 } from "./schema.js";
 
-export {
-  validateSemantic,
-  indexToKey,
-  getParentIndex,
-  getPosition,
-} from "./semantic.js";
+export { validateSemantic, indexToKey, getParentIndex, getPosition } from "./semantic.js";
 
-export {
-  loadDbContext,
-  validateDatabase,
-  type DbValidationContext,
-} from "./database.js";
+export { loadDbContext, validateDatabase, type DbValidationContext } from "./database.js";
 
-export {
-  validateFeatureSyncParams,
-  type FeatureSyncValidationResult,
-} from "./validate.js";
+export { validateFeatureSyncParams, type FeatureSyncValidationResult } from "./validate.js";

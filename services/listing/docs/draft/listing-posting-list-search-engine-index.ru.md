@@ -6,14 +6,14 @@
 - `services/listing/docs/listing-index-db-schema.ru.md`
 - `services/listing/docs/listing-query-sql-examples.ru.md`
 
-Цель - описать PostgreSQL-based listing engine поверх денормализованной read
-model, который хранит физические inverted posting lists в `pg_roaringbitmap`.
-Это не замена upstream product/source services и не предрасчет facet counts.
-Counts остаются результатом runtime set operations в PostgreSQL.
+Цель - описать PostgreSQL-based listing engine поверх денормализованной read model, который хранит
+физические inverted posting lists в `pg_roaringbitmap`. Это не замена upstream product/source
+services и не предрасчет facet counts. Counts остаются результатом runtime set operations в
+PostgreSQL.
 
-Posting engine работает как current-state индекс с incremental maintenance.
-Изменение товара, варианта, цены, остатка, facet membership или scope membership
-должно обновлять только затронутые listing/posting rows.
+Posting engine работает как current-state индекс с incremental maintenance. Изменение товара,
+варианта, цены, остатка, facet membership или scope membership должно обновлять только затронутые
+listing/posting rows.
 
 ## Проблема row-based inverted index
 
@@ -32,8 +32,8 @@ brand    | nike           | p2
 brand    | nike           | p3
 ```
 
-Для каждого request PostgreSQL должен читать index ranges, строить рабочие
-наборы rows, делать joins/semi-joins, дедупликацию и `GROUP BY`.
+Для каждого request PostgreSQL должен читать index ranges, строить рабочие наборы rows, делать
+joins/semi-joins, дедупликацию и `GROUP BY`.
 
 Posting engine хранит готовые compressed posting lists:
 
@@ -51,17 +51,16 @@ matches = category_mens_sneakers & brand_nike & projected(size_42 & color_black)
 
 ## Цели
 
-1. Хранить posting lists как `roaringbitmap` rows сразу, без row-based facet
-   posting tables.
+1. Хранить posting lists как `roaringbitmap` rows сразу, без row-based facet posting tables.
 2. Делать filtering, totalCount и facet counts через set intersections.
-3. Сохранить facet isolation: для counts конкретного `facet_id` исключать
-   active filters этого же `facet_id`, но применять остальные filters.
-4. Сохранить variant-correct semantics: option и price predicates должны
-   совпадать на одном in-stock variant.
+3. Сохранить facet isolation: для counts конкретного `facet_id` исключать active filters этого же
+   `facet_id`, но применять остальные filters.
+4. Сохранить variant-correct semantics: option и price predicates должны совпадать на одном in-stock
+   variant.
 5. Поддержать deterministic sort через PostgreSQL physical sort tables.
 6. Поддерживать current-state индекс incremental sync операциями.
-7. Оставить PostgreSQL listing tables как source/debug read model для
-   diagnostics и SQL fallback paths.
+7. Оставить PostgreSQL listing tables как source/debug read model для diagnostics и SQL fallback
+   paths.
 
 ## Не цели
 
@@ -69,10 +68,9 @@ matches = category_mens_sneakers & brand_nike & projected(size_42 & color_black)
 - Не делать full-text search по названию. BM25 title search описан отдельно.
 - Не заменять upstream product/source services.
 - Не обслуживать admin CRUD напрямую из posting index.
-- Не выносить posting index в отдельный сервис, custom binary format или
-  MinIO/S3 artifact storage.
-- Не публиковать immutable posting versions. Runtime index обновляется как
-  current-state physical index.
+- Не выносить posting index в отдельный сервис, custom binary format или MinIO/S3 artifact storage.
+- Не публиковать immutable posting versions. Runtime index обновляется как current-state physical
+  index.
 
 ## Термины
 
@@ -83,12 +81,11 @@ matches = category_mens_sneakers & brand_nike & projected(size_42 & color_black)
 - `posting bitmap` - `roaringbitmap` set of doc ids for one field/value.
 - `posting row` - строка `listing.listing_posting_bitmap` для одного
   `entity_type + field + value_key`.
-- `projection` - перевод variant bitmap в product bitmap с дедупликацией
-  parent product docs.
+- `projection` - перевод variant bitmap в product bitmap с дедупликацией parent product docs.
 
-`product_doc_id` и `variant_doc_id` выделяются один раз и не переиспользуются
-после удаления canonical entity. Это предотвращает ситуацию, когда старый
-bitmap membership начинает означать другой товар или вариант.
+`product_doc_id` и `variant_doc_id` выделяются один раз и не переиспользуются после удаления
+canonical entity. Это предотвращает ситуацию, когда старый bitmap membership начинает означать
+другой товар или вариант.
 
 ## Высокоуровневая архитектура
 
@@ -110,9 +107,8 @@ bitmaps + sort rows + typed variant price rows + projection blocks
 storefront listing SQL query engine
 ```
 
-SQL listing read model остается источником для diagnostics и SQL fallback paths.
-Целевой storefront read path для category/global/search listing работает через
-roaring posting tables.
+SQL listing read model остается источником для diagnostics и SQL fallback paths. Целевой storefront
+read path для category/global/search listing работает через roaring posting tables.
 
 ## Хранилище индекса
 
@@ -122,22 +118,22 @@ roaring posting tables.
 CREATE EXTENSION IF NOT EXISTS roaringbitmap;
 ```
 
-Runtime code использует `pg_roaringbitmap` напрямую. Query builder использует extension API без промежуточных project-owned функций:
+Runtime code использует `pg_roaringbitmap` напрямую. Query builder использует extension API без
+промежуточных project-owned функций:
 
-| Capability | Direct SQL |
-| --- | --- |
-| Build bitmap aggregate | `rb_build_agg(int)` |
-| AND | `a & b`, `rb_and_agg(bitmap)` |
-| OR | `a \| b`, `rb_or_agg(bitmap)` |
-| Difference | `a - b` |
-| Cardinality | `rb_cardinality(bitmap)` |
-| Membership check | `bitmap @> doc_id` |
-| Iteration | `rb_iterate(bitmap)` |
+| Capability             | Direct SQL                    |
+| ---------------------- | ----------------------------- |
+| Build bitmap aggregate | `rb_build_agg(int)`           |
+| AND                    | `a & b`, `rb_and_agg(bitmap)` |
+| OR                     | `a \| b`, `rb_or_agg(bitmap)` |
+| Difference             | `a - b`                       |
+| Cardinality            | `rb_cardinality(bitmap)`      |
+| Membership check       | `bitmap @> doc_id`            |
+| Iteration              | `rb_iterate(bitmap)`          |
 
 ## Stable doc ids
 
-Отдельные posting dictionary tables не создаются. Stable ids живут в listing
-rows:
+Отдельные posting dictionary tables не создаются. Stable ids живут в listing rows:
 
 ```text
 listing.product_listing_index(store_id, product_doc_id, product_id)
@@ -170,8 +166,7 @@ WHERE store_id = :storeId
 FOR UPDATE;
 ```
 
-После allocation counter инкрементируется в той же transaction. Удаленные ids не
-переиспользуются.
+После allocation counter инкрементируется в той же transaction. Удаленные ids не переиспользуются.
 
 ## Posting bitmap table
 
@@ -192,8 +187,8 @@ CREATE TABLE listing.listing_posting_bitmap (
 );
 ```
 
-`entity_type = 'product'` означает, что bitmap содержит `product_doc_id`.
-`entity_type = 'variant'` означает, что bitmap содержит `variant_doc_id`.
+`entity_type = 'product'` означает, что bitmap содержит `product_doc_id`. `entity_type = 'variant'`
+означает, что bitmap содержит `variant_doc_id`.
 
 Recommended value keys:
 
@@ -205,17 +200,15 @@ field=facet, value_key=<facet_id>:<facet_value_id>
 field=variant_product, value_key=<product_doc_id>
 ```
 
-Mutable storefront handles допустимы только как transient sync input из
-upstream indexing snapshots/commands. В posting index сохраняются external ids
-или stable typed values.
+Mutable storefront handles допустимы только как transient sync input из upstream indexing
+snapshots/commands. В posting index сохраняются external ids или stable typed values.
 
-`cardinality` должен равняться `rb_cardinality(bitmap)`. Sync code
-обновляет его вместе с `bitmap`.
+`cardinality` должен равняться `rb_cardinality(bitmap)`. Sync code обновляет его вместе с `bitmap`.
 
 ## Product sort table
 
-Bitmap хорошо отвечает на вопрос “какие docs подходят”, но не задает порядок.
-Для page collection используются physical sort rows:
+Bitmap хорошо отвечает на вопрос “какие docs подходят”, но не задает порядок. Для page collection
+используются physical sort rows:
 
 ```sql
 CREATE TABLE listing.listing_posting_product_sort (
@@ -310,27 +303,25 @@ CREATE INDEX idx_listing_posting_product_sort_bigint_desc
   INCLUDE (product_doc_id);
 ```
 
-Sort rows являются physical index, а не source data. Они строятся из
-`product_listing_index`, `product_listing_price_index`, snapshot title data,
-category/collection ranks и других listing/read-model источников.
+Sort rows являются physical index, а не source data. Они строятся из `product_listing_index`,
+`product_listing_price_index`, snapshot title data, category/collection ranks и других
+listing/read-model источников.
 
-Sort rows use sort-specific indexes. Do not use one generic multi-value index
-for all sort kinds: PostgreSQL can use an ordered index scan only when the index
-prefix matches the requested `ORDER BY` shape.
+Sort rows use sort-specific indexes. Do not use one generic multi-value index for all sort kinds:
+PostgreSQL can use an ordered index scan only when the index prefix matches the requested `ORDER BY`
+shape.
 
 Index routing:
 
 - `newest` / `created`: `idx_listing_posting_product_sort_newest`
 - `name` and text-based manual ranks: `idx_listing_posting_product_sort_text`
-- `price_asc` and other integer ascending sorts:
-  `idx_listing_posting_product_sort_bigint_asc`
-- `price_desc` and other integer descending sorts:
-  `idx_listing_posting_product_sort_bigint_desc`
+- `price_asc` and other integer ascending sorts: `idx_listing_posting_product_sort_bigint_asc`
+- `price_desc` and other integer descending sorts: `idx_listing_posting_product_sort_bigint_desc`
 
 ## Variant price table
 
-Exact price values не хранятся как one posting bitmap per price. Для price range
-и matched variant price sort используется typed table:
+Exact price values не хранятся как one posting bitmap per price. Для price range и matched variant
+price sort используется typed table:
 
 ```sql
 CREATE TABLE listing.listing_posting_variant_price (
@@ -393,16 +384,15 @@ CREATE INDEX idx_listing_posting_variant_price_product_order
   );
 ```
 
-Rows exist only for active variants that are both priced in the row currency and
-currently in stock. Storefront listing normally uses project default currency.
-Out-of-stock priced variants remain in `variant_listing_price_index`, but must
-not exist in `listing_posting_variant_price`.
+Rows exist only for active variants that are both priced in the row currency and currently in stock.
+Storefront listing normally uses project default currency. Out-of-stock priced variants remain in
+`variant_listing_price_index`, but must not exist in `listing_posting_variant_price`.
 
 ## Variant projection blocks
 
-Variant-level option filters produce `variant_doc_id` bitmaps. Listing response,
-totalCount and product-level facet counts need product docs. Broad option
-filters must not expand every matching variant through `rb_iterate`.
+Variant-level option filters produce `variant_doc_id` bitmaps. Listing response, totalCount and
+product-level facet counts need product docs. Broad option filters must not expand every matching
+variant through `rb_iterate`.
 
 Projection helper:
 
@@ -421,14 +411,13 @@ CREATE TABLE listing.listing_posting_variant_storeion_block (
 );
 ```
 
-Recommended block size is 4096 or 8192 variant docs. If a block is fully matched,
-query can OR its `product_bitmap` directly. Partial block matches map exact
-variants through `variant_listing_index` and deduplicate `product_doc_id`.
+Recommended block size is 4096 or 8192 variant docs. If a block is fully matched, query can OR its
+`product_bitmap` directly. Partial block matches map exact variants through `variant_listing_index`
+and deduplicate `product_doc_id`.
 
 ## Project isolation
 
-`store_id` is the tenant boundary. Every posting table row and query must be
-scoped by `store_id`.
+`store_id` is the tenant boundary. Every posting table row and query must be scoped by `store_id`.
 
 Doc ids are stable only inside project:
 
@@ -440,21 +429,18 @@ project B:
   product_doc_id 1 -> product B1
 ```
 
-Repositories must not expose methods that accept only doc ids. Public/internal
-repository methods must accept `store_id` together with any `product_doc_id` or
-`variant_doc_id`.
+Repositories must not expose methods that accept only doc ids. Public/internal repository methods
+must accept `store_id` together with any `product_doc_id` or `variant_doc_id`.
 
 ## Query pipeline
 
 1. Resolve project context, default currency and locale.
-2. Load scope bitmap: category, collection, search candidate set or global
-   published product set.
+2. Load scope bitmap: category, collection, search candidate set or global published product set.
 3. Build product-level filter bitmap from product facets/vendor/scopes.
 4. Build variant-level filter bitmap from option facets, availability and price.
 5. Project variant matches to product docs when variant filters exist.
 6. Combine product bitmap and projected variant bitmap.
-7. Collect page through `listing_posting_product_sort` or
-   `listing_posting_variant_price`.
+7. Collect page through `listing_posting_product_sort` or `listing_posting_variant_price`.
 8. Hydrate products by `product_id`.
 9. Compute facet counts from the same base candidate bitmaps.
 
@@ -479,8 +465,7 @@ material = facet:<material_facet_id>:<leather_value_id>
 product_matches = base & brand & material
 ```
 
-Product-level facet groups use OR within one facet and AND between different
-facets:
+Product-level facet groups use OR within one facet and AND between different facets:
 
 ```text
 brand_filter = brand:nike | brand:adidas
@@ -490,24 +475,23 @@ product_matches = base & brand_filter & material_filter
 
 ## Variant-level filters
 
-Variant option postings store `variant_doc_id`. Option filters must match the
-same variant. For example, `color=black` and `size=42` means:
+Variant option postings store `variant_doc_id`. Option filters must match the same variant. For
+example, `color=black` and `size=42` means:
 
 ```text
 variant_matches = color_black & size_42 & in_stock_variant_scope
 product_matches = project_variants_to_products(variant_matches)
 ```
 
-`field=variant_product, value_key=<product_doc_id>` can be used for narrow
-product-to-variant lookups, but broad projection should prefer projection blocks.
+`field=variant_product, value_key=<product_doc_id>` can be used for narrow product-to-variant
+lookups, but broad projection should prefer projection blocks.
 
 ## Price filters
 
-`price` is a virtual facet. It is not represented as
-`listing_posting_bitmap(field='price')`.
+`price` is a virtual facet. It is not represented as `listing_posting_bitmap(field='price')`.
 
-Price range query scans `listing_posting_variant_price` in project default
-currency and builds a variant bitmap:
+Price range query scans `listing_posting_variant_price` in project default currency and builds a
+variant bitmap:
 
 ```sql
 SELECT rb_build_agg(vp.variant_doc_id) AS price_variant_bitmap
@@ -518,8 +502,7 @@ WHERE vp.store_id = :storeId
   AND vp.price_minor <= :maxPriceMinor;
 ```
 
-When option and price filters are both active, combine them on variant docs
-before projection:
+When option and price filters are both active, combine them on variant docs before projection:
 
 ```text
 variant_matches = option_bitmap & price_bitmap & in_stock_variant_bitmap
@@ -528,23 +511,20 @@ product_matches = project_variants_to_products(variant_matches)
 
 ## Availability
 
-`in_stock` is a virtual facet. It is not stored as a default
-`listing_posting_bitmap` row.
+`in_stock` is a virtual facet. It is not stored as a default `listing_posting_bitmap` row.
 
 - Product-level availability lives in `product_listing_index.in_stock` and in
   `listing_posting_product_sort.bool_value` for ordered collection.
-- Variant-level availability lives in `variant_listing_index.in_stock` and is
-  applied before option/price projection.
+- Variant-level availability lives in `variant_listing_index.in_stock` and is applied before
+  option/price projection.
 
-If a hot path needs an explicit in-stock bitmap later, add it as a controlled
-physical index with clear sync rules. Do not treat it as a generic configurable
-facet.
+If a hot path needs an explicit in-stock bitmap later, add it as a controlled physical index with
+clear sync rules. Do not treat it as a generic configurable facet.
 
 ## Sorting and page collection
 
-For product-level sorts (`newest`, `created`, `name`, `manual`, product price
-aggregate sort), collector scans `listing_posting_product_sort` in desired order
-and checks bitmap membership:
+For product-level sorts (`newest`, `created`, `name`, `manual`, product price aggregate sort),
+collector scans `listing_posting_product_sort` in desired order and checks bitmap membership:
 
 ```sql
 SELECT s.product_doc_id, s.product_id
@@ -563,8 +543,8 @@ ORDER BY
 LIMIT :limit;
 ```
 
-For matched variant price sort, collector scans `listing_posting_variant_price`
-in price order and deduplicates by product:
+For matched variant price sort, collector scans `listing_posting_variant_price` in price order and
+deduplicates by product:
 
 ```sql
 SELECT DISTINCT ON (vp.product_id)
@@ -580,13 +560,13 @@ ORDER BY vp.product_id, vp.price_minor ASC, vp.variant_doc_id
 LIMIT :candidateLimit;
 ```
 
-Final product ordering for price sort must preserve chosen price order and use
-stable tie-breakers (`product_id`, `variant_doc_id`) for keyset pagination.
+Final product ordering for price sort must preserve chosen price order and use stable tie-breakers
+(`product_id`, `variant_doc_id`) for keyset pagination.
 
 ## Facet counts
 
-Counts are computed by product cardinality. Product-level facets count
-`product_doc_id` directly. Variant-level facets first deduplicate to products.
+Counts are computed by product cardinality. Product-level facets count `product_doc_id` directly.
+Variant-level facets first deduplicate to products.
 
 Facet isolation rule:
 
@@ -610,21 +590,19 @@ value_products = project_variants_to_products(value_variants) & product_base
 value_count = cardinality(value_products)
 ```
 
-Do not run one full independent SQL query per facet value. Build common base
-bitmaps once and reuse them.
+Do not run one full independent SQL query per facet value. Build common base bitmaps once and reuse
+them.
 
 ## Search integration
 
-BM25 title search is a separate candidate source. Search returns product ids or
-product doc ids for one project/locale/query. Listing engine intersects search
-candidates with posting filters:
+BM25 title search is a separate candidate source. Search returns product ids or product doc ids for
+one project/locale/query. Listing engine intersects search candidates with posting filters:
 
 ```text
 matches = search_candidates & scope_bitmap & product_filters & projected_variant_filters
 ```
 
-If BM25 returns `product_id`, join to `product_listing_index` to get
-`product_doc_id`:
+If BM25 returns `product_id`, join to `product_listing_index` to get `product_doc_id`:
 
 ```sql
 SELECT pli.product_doc_id
@@ -639,8 +617,7 @@ WHERE s.store_id = :storeId
 
 ## Incremental maintenance
 
-Posting tables are current-state physical indexes. Sync code updates only
-affected rows.
+Posting tables are current-state physical indexes. Sync code updates only affected rows.
 
 Product created:
 
@@ -655,8 +632,8 @@ Variant created:
 - allocate `variant_doc_id`;
 - insert `variant_listing_index`;
 - insert `variant_listing_price_index`;
-- insert `listing_posting_variant_price` only if the variant is active, in stock
-  and priced in the currency;
+- insert `listing_posting_variant_price` only if the variant is active, in stock and priced in the
+  currency;
 - add `variant_doc_id` to option posting rows and
   `field=variant_product,value_key=<product_doc_id>`.
 
@@ -685,8 +662,8 @@ Stock changed:
 - update `variant_listing_index.in_stock`;
 - update `product_listing_index.in_stock`;
 - update availability sort rows;
-- insert/delete affected `listing_posting_variant_price` rows, because this
-  physical index contains only priced in-stock variants.
+- insert/delete affected `listing_posting_variant_price` rows, because this physical index contains
+  only priced in-stock variants.
 
 Name/manual rank changed:
 
@@ -700,42 +677,38 @@ Projection block maintenance:
 
 ## Consistency
 
-The listing read model is the source/debug layer for storefront reads. Posting
-rows are physical indexes. If diagnostics detect mismatch, affected posting rows
-are stale and must be repaired from listing rows or a new upstream indexing
-snapshot/command.
+The listing read model is the source/debug layer for storefront reads. Posting rows are physical
+indexes. If diagnostics detect mismatch, affected posting rows are stale and must be repaired from
+listing rows or a new upstream indexing snapshot/command.
 
 Recommended diagnostics:
 
 - `listing_posting_bitmap.cardinality` equals `rb_cardinality(bitmap)`;
-- product/variant doc ids in bitmaps exist in listing rows unless entity was
-  just deleted in the same transaction;
+- product/variant doc ids in bitmaps exist in listing rows unless entity was just deleted in the
+  same transaction;
 - sort rows exist for published product docs and expected sort dimensions;
-- variant price rows exist only for priced in-stock variants in supported
-  currencies;
+- variant price rows exist only for priced in-stock variants in supported currencies;
 - projection block `variant_count` and `product_count` match the stored bitmaps.
 
-For strict storefront reads, query layer may require a freshness watermark from
-the sync pipeline. If the watermark is behind the requested source revision,
-return a consistency error or wait according to the caller policy.
+For strict storefront reads, query layer may require a freshness watermark from the sync pipeline.
+If the watermark is behind the requested source revision, return a consistency error or wait
+according to the caller policy.
 
 ## Concurrency
 
-Doc id allocation must run under row-level lock on
-`listing_doc_id_allocator(store_id)`.
+Doc id allocation must run under row-level lock on `listing_doc_id_allocator(store_id)`.
 
-Posting row updates for the same `(store_id, entity_type, field, value_key)`
-must be serialized by transaction boundaries or advisory locks. A sync operation
-that moves a doc id from one posting row to another must update both rows in the
-same transaction where practical.
+Posting row updates for the same `(store_id, entity_type, field, value_key)` must be serialized by
+transaction boundaries or advisory locks. A sync operation that moves a doc id from one posting row
+to another must update both rows in the same transaction where practical.
 
-For high-frequency updates, sync may batch multiple changes for one project and
-one field group. Batching must preserve final current-state membership.
+For high-frequency updates, sync may batch multiple changes for one project and one field group.
+Batching must preserve final current-state membership.
 
 ## Partitioning
 
-Initial implementation can use non-partitioned tables. If posting rows grow too
-large, partition by `store_id`, not by doc id.
+Initial implementation can use non-partitioned tables. If posting rows grow too large, partition by
+`store_id`, not by doc id.
 
 Candidate partitioned tables:
 
@@ -746,25 +719,23 @@ listing_posting_variant_price
 listing_posting_variant_storeion_block
 ```
 
-Partitioning must preserve the same logical primary keys and query shape:
-`store_id` remains the leading filter.
+Partitioning must preserve the same logical primary keys and query shape: `store_id` remains the
+leading filter.
 
 ## Future segmented storage
 
-If current-state roaring rows become too expensive to mutate for high-churn
-projects, add segmented storage in a separate design. Segment storage may shard
-bitmap/projection/sort/price physical indexes, but must keep the same external
-semantics:
+If current-state roaring rows become too expensive to mutate for high-churn projects, add segmented
+storage in a separate design. Segment storage may shard bitmap/projection/sort/price physical
+indexes, but must keep the same external semantics:
 
 - stable doc ids remain in listing rows;
 - raw source handles are not stored in runtime index;
-- source of truth for storefront reads remains listing read model plus upstream
-  indexing snapshots/commands;
+- source of truth for storefront reads remains listing read model plus upstream indexing
+  snapshots/commands;
 - query result must be equivalent to current-state posting rows.
 
-Segment storage is an implementation detail for write amplification and
-compaction. It must not reintroduce immutable published posting versions as the
-primary correctness model.
+Segment storage is an implementation detail for write amplification and compaction. It must not
+reintroduce immutable published posting versions as the primary correctness model.
 
 ## PostgreSQL roaring operations
 
@@ -784,21 +755,21 @@ rb_iterate(bitmap roaringbitmap) -> setof int
 
 ## Repository boundary
 
-Application code should expose posting operations through focused repositories,
-not raw SQL fragments spread across resolvers:
+Application code should expose posting operations through focused repositories, not raw SQL
+fragments spread across resolvers:
 
 ```ts
 interface ListingPostingRepository {
   getPostingBitmap(input: {
     storeId: string;
-    entityType: 'product' | 'variant';
+    entityType: "product" | "variant";
     field: string;
     valueKey: string;
   }): Promise<RoaringBitmap | null>;
 
   upsertPostingBitmap(input: {
     storeId: string;
-    entityType: 'product' | 'variant';
+    entityType: "product" | "variant";
     field: string;
     valueKey: string;
     bitmap: RoaringBitmap;
@@ -814,8 +785,7 @@ Repositories must always require `storeId`.
 
 ## Summary
 
-PostgreSQL roaring posting index is a current-state runtime index over the SQL
-listing read model. Stable doc ids live in `product_listing_index` and
-`variant_listing_index`. `listing_posting_bitmap` stores product/variant
-predicate bitmaps. Sort, price and projection tables are controlled physical
+PostgreSQL roaring posting index is a current-state runtime index over the SQL listing read model.
+Stable doc ids live in `product_listing_index` and `variant_listing_index`. `listing_posting_bitmap`
+stores product/variant predicate bitmaps. Sort, price and projection tables are controlled physical
 indexes for hot paths. Updates are incremental and scoped to affected rows.

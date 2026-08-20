@@ -14,7 +14,7 @@ export class WorkflowRegistry {
           return (await script.build(context)) || [];
         }
         return [];
-      })
+      }),
     );
 
     return results.flat();

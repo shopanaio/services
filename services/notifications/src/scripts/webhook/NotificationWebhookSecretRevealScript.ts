@@ -21,7 +21,7 @@ export class NotificationWebhookSecretRevealScript extends BaseScript<
       this.context.user.id,
       "webhook.secret.revealed",
       "webhookSecret",
-      this.context.store.id
+      this.context.store.id,
     );
     return { secret, userErrors: [] };
   }

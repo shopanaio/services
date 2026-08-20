@@ -21,7 +21,7 @@ export function getContextSafe(): ServiceContext | null {
 
 export function runWithContext<T>(
   context: ServiceContext,
-  operation: () => Promise<T>
+  operation: () => Promise<T>,
 ): Promise<T> {
   return storage.run(context, operation);
 }

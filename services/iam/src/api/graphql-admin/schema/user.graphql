@@ -289,4 +289,3 @@ type UserUpdatePasswordPayload {
   """
   userErrors: [GenericUserError!]!
 }
-

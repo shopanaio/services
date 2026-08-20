@@ -1,7 +1,4 @@
-import type {
-  CdnConfiguration,
-  CdnRoutingRule,
-} from "../../repositories/models/index.js";
+import type { CdnConfiguration, CdnRoutingRule } from "../../repositories/models/index.js";
 
 export interface CdnNormalizedTransform {
   fit?: string;
@@ -21,17 +18,13 @@ export interface CdnAdapterContext {
   url: string;
 }
 
-export type CdnTransformAdapter = (
-  context: CdnAdapterContext
-) => string | Promise<string>;
+export type CdnTransformAdapter = (context: CdnAdapterContext) => string | Promise<string>;
 
 /**
  * Signing adapters receive only a secret reference. Resolving the referenced
  * secret remains the responsibility of the external adapter/runtime.
  */
-export type CdnSigningAdapter = (
-  context: CdnAdapterContext
-) => string | Promise<string>;
+export type CdnSigningAdapter = (context: CdnAdapterContext) => string | Promise<string>;
 
 export class CdnAdapterRegistry {
   private readonly transformAdapters = new Map<string, CdnTransformAdapter>();

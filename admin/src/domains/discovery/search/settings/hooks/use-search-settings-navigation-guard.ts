@@ -2,13 +2,9 @@
 
 import { useEffect, useRef } from "react";
 
-const UNSAVED_MESSAGE =
-  "You have unsaved search settings. Are you sure you want to leave?";
+const UNSAVED_MESSAGE = "You have unsaved search settings. Are you sure you want to leave?";
 
-export function useSearchSettingsNavigationGuard(
-  isDirty: boolean,
-  isSaving: boolean,
-) {
+export function useSearchSettingsNavigationGuard(isDirty: boolean, isSaving: boolean) {
   const stateRef = useRef({ isDirty, isSaving });
 
   useEffect(() => {

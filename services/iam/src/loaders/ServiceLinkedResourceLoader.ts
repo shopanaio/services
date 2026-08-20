@@ -13,16 +13,13 @@ export class ServiceLinkedResourceLoader {
   constructor(repository: Repository) {
     this.serviceLinkedResource = new DataLoader(
       async (keys) => {
-        const records =
-          await repository.serviceLinkedResource.findActiveByResources(keys);
+        const records = await repository.serviceLinkedResource.findActiveByResources(keys);
         const recordsByKey = new Map(
-          records.map((record) => [serviceLinkedResourceKey(record), record])
+          records.map((record) => [serviceLinkedResourceKey(record), record]),
         );
-        return keys.map(
-          (key) => recordsByKey.get(serviceLinkedResourceKey(key)) ?? null
-        );
+        return keys.map((key) => recordsByKey.get(serviceLinkedResourceKey(key)) ?? null);
       },
-      { cacheKeyFn: serviceLinkedResourceKey }
+      { cacheKeyFn: serviceLinkedResourceKey },
     );
   }
 }

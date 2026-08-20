@@ -1,11 +1,6 @@
 import { and, eq, sql, type SQL } from "drizzle-orm";
 import type { Selectable } from "../types.js";
-import {
-  ObjectSchema,
-  tablePrefix,
-  type JoinInfo,
-  type AliasedTable,
-} from "../schema.js";
+import { ObjectSchema, tablePrefix, type JoinInfo, type AliasedTable } from "../schema.js";
 import type { FieldsDef } from "../types.js";
 import { JoinCollector } from "./join-collector.js";
 
@@ -83,7 +78,7 @@ export function formatAliasedTableReference(targetAliased: AliasedTable): SQL {
 export function buildJoinSql(
   joinType: JoinInfo["type"],
   targetAliased: AliasedTable,
-  onCondition: SQL
+  onCondition: SQL,
 ): SQL {
   const keyword = JOIN_KEYWORDS[joinType];
   const tableSql = formatAliasedTableReference(targetAliased);
@@ -102,28 +97,18 @@ type CountRenderOptions = {
   whereSql?: SQL;
 };
 
-export class SqlRenderer<
-  Fields extends FieldsDef,
-> {
+export class SqlRenderer<Fields extends FieldsDef> {
   constructor(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private readonly schema: ObjectSchema<Selectable, string, Fields, any>,
-    private readonly joinCollector: JoinCollector
+    private readonly joinCollector: JoinCollector,
   ) {}
 
   render(options: RenderOptions): SQL {
     const mainAlias = tablePrefix(this.schema.tableName, 0);
-    const mainAliased = this.joinCollector.getOrCreateAliasedTable(
-      this.schema.table,
-      mainAlias
-    );
+    const mainAliased = this.joinCollector.getOrCreateAliasedTable(this.schema.table, mainAlias);
 
-    const selectSql = this.buildSelectFieldsSql(
-      options.select,
-      mainAlias,
-      this.schema,
-      0
-    );
+    const selectSql = this.buildSelectFieldsSql(options.select, mainAlias, this.schema, 0);
 
     const fromSql = formatAliasedTableReference(mainAliased);
     const joinParts = this.buildJoinClauses(this.joinCollector.getJoins());
@@ -136,10 +121,7 @@ export class SqlRenderer<
 
   renderCount(options: CountRenderOptions): SQL {
     const mainAlias = tablePrefix(this.schema.tableName, 0);
-    const mainAliased = this.joinCollector.getOrCreateAliasedTable(
-      this.schema.table,
-      mainAlias
-    );
+    const mainAliased = this.joinCollector.getOrCreateAliasedTable(this.schema.table, mainAlias);
 
     const fromSql = formatAliasedTableReference(mainAliased);
     const joinParts = this.buildJoinClauses(this.joinCollector.getJoins());
@@ -153,12 +135,11 @@ export class SqlRenderer<
     fields: string[] | undefined,
     defaultAlias: string,
     schema: ObjectSchema,
-    depth: number
+    depth: number,
   ): SQL {
     // When no fields specified, select all schema fields with proper aliases
-    const fieldsToSelect = fields && fields.length > 0
-      ? fields
-      : schema.fieldNames.filter((f) => !schema.hasJoin(f));
+    const fieldsToSelect =
+      fields && fields.length > 0 ? fields : schema.fieldNames.filter((f) => !schema.hasJoin(f));
 
     // Check for duplicate field aliases
     const usedAliases = new Set<string>();
@@ -185,7 +166,7 @@ export class SqlRenderer<
     parts: string[],
     fieldAlias: string,
     schema: ObjectSchema,
-    depth: number
+    depth: number,
   ): SQL | undefined {
     if (parts.length === 0) {
       return undefined;
@@ -216,19 +197,20 @@ export class SqlRenderer<
       const conditionParts = join.conditions.map((condition) => {
         const sourceCol = this.joinCollector.getAliasedColumn(
           join.sourceTable,
-          condition.sourceCol
+          condition.sourceCol,
         );
         const targetCol = this.joinCollector.getAliasedColumn(
           join.targetTable,
-          condition.targetCol
+          condition.targetCol,
         );
         return eq(sourceCol, targetCol);
       });
 
-      const onCondition = conditionParts.length === 1
-        ? conditionParts[0]
-        // and() returns undefined only for empty arrays, but we know length > 1 here
-        : and(...conditionParts)!;
+      const onCondition =
+        conditionParts.length === 1
+          ? conditionParts[0]
+          : // and() returns undefined only for empty arrays, but we know length > 1 here
+            and(...conditionParts)!;
 
       clauses.push(buildJoinSql(join.type, join.targetTable, onCondition));
     }

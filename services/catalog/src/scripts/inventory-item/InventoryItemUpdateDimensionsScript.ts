@@ -25,36 +25,23 @@ export class InventoryItemUpdateDimensionsScript extends BaseScript<
   InventoryItemUpdateDimensionsResult
 > {
   protected async execute(
-    params: InventoryItemUpdateDimensionsParams
+    params: InventoryItemUpdateDimensionsParams,
   ): Promise<InventoryItemUpdateDimensionsResult> {
     const { variantId, width, height, length } = params;
 
     // Validate dimensions
     if (width <= 0) {
-      return singleError(
-        "Width must be a positive value",
-        "INVALID_DIMENSION",
-        ["width"]
-      );
+      return singleError("Width must be a positive value", "INVALID_DIMENSION", ["width"]);
     }
     if (height <= 0) {
-      return singleError(
-        "Height must be a positive value",
-        "INVALID_DIMENSION",
-        ["height"]
-      );
+      return singleError("Height must be a positive value", "INVALID_DIMENSION", ["height"]);
     }
     if (length <= 0) {
-      return singleError(
-        "Length must be a positive value",
-        "INVALID_DIMENSION",
-        ["length"]
-      );
+      return singleError("Length must be a positive value", "INVALID_DIMENSION", ["length"]);
     }
 
     // Get current dimensions to compare
-    const currentDimensions =
-      await this.repository.physical.getDimensionsByVariantIds([variantId]);
+    const currentDimensions = await this.repository.physical.getDimensionsByVariantIds([variantId]);
     const current = currentDimensions[0];
 
     const dimensionsChanged =
@@ -78,7 +65,7 @@ export class InventoryItemUpdateDimensionsScript extends BaseScript<
 
     this.logger.info(
       { variantId, width, height, length },
-      "Inventory item dimensions updated successfully"
+      "Inventory item dimensions updated successfully",
     );
 
     return successResult(result, changes);

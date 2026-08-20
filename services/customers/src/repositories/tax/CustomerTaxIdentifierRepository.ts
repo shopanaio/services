@@ -1,15 +1,8 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  normalizeRelayPagination,
-  type RepositoryConnectionResult,
-} from "../connection.js";
+import { normalizeRelayPagination, type RepositoryConnectionResult } from "../connection.js";
 import {
   decodeCustomerGlobalId,
   decodeCustomerTaxIdentifierGlobalId,
@@ -29,14 +22,15 @@ export const customerTaxIdentifierRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerTaxIdentifier", tieBreaker: "id" }
+  { name: "customerTaxIdentifier", tieBreaker: "id" },
 );
 
 export type CustomerTaxIdentifierRelayInput = InferRelayInput<
   typeof customerTaxIdentifierRelayQuery
 >;
-export type CustomerTaxIdentifierConnectionInput =
-  CustomerTaxIdentifierRelayInput & { customerId: string };
+export type CustomerTaxIdentifierConnectionInput = CustomerTaxIdentifierRelayInput & {
+  customerId: string;
+};
 
 export interface CustomerTaxIdentifierCreateData {
   customerId: string;
@@ -75,18 +69,15 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
         and(
           eq(customerTaxIdentifier.storeId, this.storeId),
           eq(customerTaxIdentifier.id, id),
-          isNull(customerTaxIdentifier.deletedAt)
-        )
+          isNull(customerTaxIdentifier.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
   }
 
   @ReadOnly()
-  async findOwnedById(
-    customerId: string,
-    id: string
-  ): Promise<CustomerTaxIdentifier | null> {
+  async findOwnedById(customerId: string, id: string): Promise<CustomerTaxIdentifier | null> {
     const rows = await this.connection
       .select()
       .from(customerTaxIdentifier)
@@ -95,8 +86,8 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
           eq(customerTaxIdentifier.storeId, this.storeId),
           eq(customerTaxIdentifier.customerId, customerId),
           eq(customerTaxIdentifier.id, id),
-          isNull(customerTaxIdentifier.deletedAt)
-        )
+          isNull(customerTaxIdentifier.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -120,19 +111,11 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
           eq(customerTaxIdentifier.identifierType, input.identifierType.trim()),
           input.countryCode == null
             ? isNull(customerTaxIdentifier.countryCode)
-            : eq(
-                customerTaxIdentifier.countryCode,
-                input.countryCode.trim().toUpperCase()
-              ),
-          eq(
-            customerTaxIdentifier.normalizedValue,
-            normalizeTaxIdentifier(input.value)
-          ),
-          input.exceptId
-            ? ne(customerTaxIdentifier.id, input.exceptId)
-            : undefined,
-          isNull(customerTaxIdentifier.deletedAt)
-        )
+            : eq(customerTaxIdentifier.countryCode, input.countryCode.trim().toUpperCase()),
+          eq(customerTaxIdentifier.normalizedValue, normalizeTaxIdentifier(input.value)),
+          input.exceptId ? ne(customerTaxIdentifier.id, input.exceptId) : undefined,
+          isNull(customerTaxIdentifier.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -148,8 +131,8 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
         and(
           eq(customerTaxIdentifier.storeId, this.storeId),
           inArray(customerTaxIdentifier.id, [...new Set(ids)]),
-          isNull(customerTaxIdentifier.deletedAt)
-        )
+          isNull(customerTaxIdentifier.deletedAt),
+        ),
       );
   }
 
@@ -163,8 +146,8 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
         and(
           eq(customerTaxIdentifier.storeId, this.storeId),
           inArray(customerTaxIdentifier.customerId, [...new Set(customerIds)]),
-          isNull(customerTaxIdentifier.deletedAt)
-        )
+          isNull(customerTaxIdentifier.deletedAt),
+        ),
       );
   }
 
@@ -179,8 +162,7 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
       identifierType: data.identifierType.trim(),
       countryCode: data.countryCode?.trim().toUpperCase() ?? null,
       value: data.value.trim(),
-      normalizedValue:
-        data.normalizedValue ?? normalizeTaxIdentifier(data.value),
+      normalizedValue: data.normalizedValue ?? normalizeTaxIdentifier(data.value),
       status: data.status ?? "UNVERIFIED",
       isPrimary: data.isPrimary ?? false,
       verifiedAt: data.status === "VERIFIED" ? now : null,
@@ -188,17 +170,14 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
       updatedAt: now,
       deletedAt: null,
     };
-    const rows = await this.connection
-      .insert(customerTaxIdentifier)
-      .values(row)
-      .returning();
+    const rows = await this.connection.insert(customerTaxIdentifier).values(row).returning();
     return rows[0];
   }
 
   @Transactional()
   async update(
     id: string,
-    patch: CustomerTaxIdentifierPatch
+    patch: CustomerTaxIdentifierPatch,
   ): Promise<CustomerTaxIdentifier | null> {
     const current = await this.findById(id);
     if (!current) return null;
@@ -209,7 +188,7 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
   async updateOwned(
     customerId: string,
     id: string,
-    patch: CustomerTaxIdentifierPatch
+    patch: CustomerTaxIdentifierPatch,
   ): Promise<CustomerTaxIdentifier | null> {
     const current = await this.findOwnedById(customerId, id);
     if (!current) return null;
@@ -228,15 +207,14 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
         ...(value !== undefined
           ? {
               value,
-              normalizedValue:
-                patch.normalizedValue ?? normalizeTaxIdentifier(value),
+              normalizedValue: patch.normalizedValue ?? normalizeTaxIdentifier(value),
             }
           : {}),
         ...(patch.status === "VERIFIED" && current.status !== "VERIFIED"
           ? { verifiedAt: new Date().toISOString() }
           : patch.status !== undefined && patch.status !== "VERIFIED"
             ? { verifiedAt: null }
-          : {}),
+            : {}),
         updatedAt: new Date().toISOString(),
       })
       .where(
@@ -244,8 +222,8 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
           eq(customerTaxIdentifier.storeId, this.storeId),
           eq(customerTaxIdentifier.customerId, customerId),
           eq(customerTaxIdentifier.id, id),
-          isNull(customerTaxIdentifier.deletedAt)
-        )
+          isNull(customerTaxIdentifier.deletedAt),
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -253,9 +231,7 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
 
   async softDelete(id: string): Promise<boolean> {
     const current = await this.findById(id);
-    return current
-      ? this.softDeleteOwned(current.customerId, id)
-      : false;
+    return current ? this.softDeleteOwned(current.customerId, id) : false;
   }
 
   async softDeleteOwned(customerId: string, id: string): Promise<boolean> {
@@ -268,17 +244,14 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
           eq(customerTaxIdentifier.storeId, this.storeId),
           eq(customerTaxIdentifier.customerId, customerId),
           eq(customerTaxIdentifier.id, id),
-          isNull(customerTaxIdentifier.deletedAt)
-        )
+          isNull(customerTaxIdentifier.deletedAt),
+        ),
       )
       .returning({ id: customerTaxIdentifier.id });
     return rows.length > 0;
   }
 
-  async redactForCustomer(
-    customerId: string,
-    redactedAt: string,
-  ): Promise<number> {
+  async redactForCustomer(customerId: string, redactedAt: string): Promise<number> {
     const identifiers = await this.connection
       .select({ id: customerTaxIdentifier.id })
       .from(customerTaxIdentifier)
@@ -317,7 +290,7 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
 
   @ReadOnly()
   async getConnection(
-    input: CustomerTaxIdentifierConnectionInput
+    input: CustomerTaxIdentifierConnectionInput,
   ): Promise<RepositoryConnectionResult> {
     const normalized = normalizeRelayPagination(input);
     const { customerId, where, orderBy, ...pagination } = normalized;
@@ -329,9 +302,7 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
         ...(where ? [where] : []),
       ],
     };
-    const effectiveOrder = orderBy ?? [
-      { field: "createdAt", direction: "desc" },
-    ];
+    const effectiveOrder = orderBy ?? [{ field: "createdAt", direction: "desc" }];
     const query: CustomerTaxIdentifierRelayInput = {
       ...pagination,
       where: mergedWhere,
@@ -366,8 +337,8 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
           eq(customerTaxIdentifier.customerId, customerId),
           eq(customerTaxIdentifier.isPrimary, true),
           isNull(customerTaxIdentifier.deletedAt),
-          exceptId ? sql`${customerTaxIdentifier.id} <> ${exceptId}` : undefined
-        )
+          exceptId ? sql`${customerTaxIdentifier.id} <> ${exceptId}` : undefined,
+        ),
       );
   }
 }

@@ -15,8 +15,7 @@ export const PricingEmptyState = () => {
           No price set for this variant
         </Typography.Title>
         <Typography.Text type="secondary" className={styles.emptyText}>
-          Add the first price to start tracking current pricing, history, and
-          period statistics.
+          Add the first price to start tracking current pricing, history, and period statistics.
         </Typography.Text>
       </div>
     </div>

@@ -4,15 +4,10 @@ import type {
   AppInstallationContextProvider,
   AppManifest,
 } from "@shopana/app-sdk";
-import {
-  ActionRegistry,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { ActionRegistry, ServiceBroker } from "@shopana/shared-kernel";
 import { AppBrokerFacadeFactory } from "./AppBrokerFacadeFactory.js";
 import { AppContextRunner } from "./AppContextRunner.js";
-import {
-  AppOutboundAuthorizationError,
-} from "./AppOutboundAuthorizationError.js";
+import { AppOutboundAuthorizationError } from "./AppOutboundAuthorizationError.js";
 
 describe("AppBrokerFacadeFactory Commerce Function policy", () => {
   it("allows explicitly read-only actions and blocks writes and workflows", async () => {
@@ -26,19 +21,13 @@ describe("AppBrokerFacadeFactory Commerce Function policy", () => {
     const paymentsBroker = new ServiceBroker(registry, {
       serviceName: "payments",
     });
-    catalogBroker.register(
-      "readSnapshot",
-      async () => ({ version: 1 }),
-      { readOnly: true },
-    );
+    catalogBroker.register("readSnapshot", async () => ({ version: 1 }), { readOnly: true });
     catalogBroker.register("updateItem", async () => ({
       updated: true,
     }));
-    paymentsBroker.register(
-      "readInternalContract",
-      async () => ({ secret: true }),
-      { readOnly: true },
-    );
+    paymentsBroker.register("readInternalContract", async () => ({ secret: true }), {
+      readOnly: true,
+    });
     const contextRunner = new AppContextRunner();
     const facade = new AppBrokerFacadeFactory().create({
       appCode: "function-test",
@@ -59,19 +48,13 @@ describe("AppBrokerFacadeFactory Commerce Function policy", () => {
     };
 
     await expect(
-      contextRunner.run(context, () =>
-        facade.call("catalog.readSnapshot"),
-      ),
+      contextRunner.run(context, () => facade.call("catalog.readSnapshot")),
     ).resolves.toEqual({ version: 1 });
+    expect(() => contextRunner.run(context, () => facade.call("catalog.updateItem"))).toThrow(
+      AppOutboundAuthorizationError,
+    );
     expect(() =>
-      contextRunner.run(context, () =>
-        facade.call("catalog.updateItem"),
-      ),
-    ).toThrow(AppOutboundAuthorizationError);
-    expect(() =>
-      contextRunner.run(context, () =>
-        facade.call("payments.readInternalContract"),
-      ),
+      contextRunner.run(context, () => facade.call("payments.readInternalContract")),
     ).toThrow(AppOutboundAuthorizationError);
     expect(() =>
       contextRunner.run(context, () =>

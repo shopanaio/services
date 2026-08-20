@@ -2,7 +2,10 @@ import type { CustomerAddressConnectionInput } from "../../repositories/address/
 import type { CustomerDataRequestConnectionInput } from "../../repositories/lifecycle/CustomerLifecycleRepository.js";
 import type { CustomerTaxExemptionConnectionInput } from "../../repositories/tax/CustomerTaxExemptionRepository.js";
 import type { CustomerTaxIdentifierConnectionInput } from "../../repositories/tax/CustomerTaxIdentifierRepository.js";
-import { BaseConnectionResolver, type ConnectionData } from "./connection/BaseConnectionResolver.js";
+import {
+  BaseConnectionResolver,
+  type ConnectionData,
+} from "./connection/BaseConnectionResolver.js";
 
 export class StorefrontCustomerAddressConnectionResolver extends BaseConnectionResolver<CustomerAddressConnectionInput> {
   $preload(): Promise<ConnectionData> {
@@ -16,9 +19,7 @@ export class StorefrontCustomerAddressConnectionResolver extends BaseConnectionR
 
 export class StorefrontCustomerDataRequestConnectionResolver extends BaseConnectionResolver<CustomerDataRequestConnectionInput> {
   $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel.repository.lifecycle.getOwnedDataRequestConnection(
-      this.$props
-    );
+    return this.$ctx.kernel.repository.lifecycle.getOwnedDataRequestConnection(this.$props);
   }
 
   protected createNodeResolver(nodeId: string) {

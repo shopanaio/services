@@ -23,7 +23,10 @@ export const SegmentValueSchema: z.ZodType<SegmentValue> = z.union([
   }),
   strict({
     kind: z.literal("date"),
-    value: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).refine((value) => parseCalendarDate(value) !== null),
+    value: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/u)
+      .refine((value) => parseCalendarDate(value) !== null),
   }),
   strict({
     kind: z.literal("dateTime"),

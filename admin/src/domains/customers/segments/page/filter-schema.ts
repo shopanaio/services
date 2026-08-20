@@ -1,9 +1,4 @@
-import {
-  FilterType,
-  dateOperators,
-  enumOperators,
-  numberOperators,
-} from "@/layouts/filters";
+import { FilterType, dateOperators, enumOperators, numberOperators } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
 import { CustomerSegmentType } from "@/graphql/types";
 

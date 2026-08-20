@@ -11,7 +11,7 @@ export class CustomerExternalReferenceUpsertScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: CustomerExternalReferenceUpsertParams
+    params: CustomerExternalReferenceUpsertParams,
   ): Promise<CustomerExternalReferenceUpsertResult> {
     const externalSystem = params.externalSystem.trim();
     const externalType = params.externalType?.trim() || "customer";
@@ -27,11 +27,7 @@ export class CustomerExternalReferenceUpsertScript extends BaseScript<
     if (!externalId) {
       return invalid("External ID cannot be empty", "externalId");
     }
-    if (
-      typeof metadata !== "object" ||
-      metadata === null ||
-      Array.isArray(metadata)
-    ) {
+    if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata)) {
       return invalid("Metadata must be an object", "metadata");
     }
     if (!(await this.repository.customer.findById(params.customerId))) {
@@ -46,18 +42,16 @@ export class CustomerExternalReferenceUpsertScript extends BaseScript<
       };
     }
 
-    const currentByExternalKey =
-      await this.repository.externalReference.findByExternalKey({
-        externalSystem,
-        externalType,
-        externalId,
-      });
-    const currentForCustomer =
-      await this.repository.externalReference.findByCustomerAndSystem({
-        customerId: params.customerId,
-        externalSystem,
-        externalType,
-      });
+    const currentByExternalKey = await this.repository.externalReference.findByExternalKey({
+      externalSystem,
+      externalType,
+      externalId,
+    });
+    const currentForCustomer = await this.repository.externalReference.findByCustomerAndSystem({
+      customerId: params.customerId,
+      externalSystem,
+      externalType,
+    });
 
     if (
       currentByExternalKey &&
@@ -75,15 +69,11 @@ export class CustomerExternalReferenceUpsertScript extends BaseScript<
       };
     }
 
-    if (
-      currentForCustomer &&
-      currentForCustomer.id !== currentByExternalKey?.id
-    ) {
+    if (currentForCustomer && currentForCustomer.id !== currentByExternalKey?.id) {
       return {
         userErrors: [
           {
-            message:
-              "Customer already has another reference for this external system and type",
+            message: "Customer already has another reference for this external system and type",
             code: "CUSTOMER_EXTERNAL_REFERENCE_CONFLICT",
             field: ["customerId"],
           },
@@ -103,7 +93,7 @@ export class CustomerExternalReferenceUpsertScript extends BaseScript<
         {
           existingReferenceId: currentByExternalKey?.id,
           expectedCustomerId: currentByExternalKey?.customerId,
-        }
+        },
       );
       if (!externalReference) {
         return {
@@ -133,7 +123,7 @@ export class CustomerExternalReferenceUpsertScript extends BaseScript<
           previousCustomerId,
           outcome,
         },
-        "Customer external reference upserted"
+        "Customer external reference upserted",
       );
 
       return {
@@ -143,34 +133,22 @@ export class CustomerExternalReferenceUpsertScript extends BaseScript<
         userErrors: [],
       };
     } catch (error) {
-      if (
-        isUniqueViolation(
-          error,
-          "customer_external_reference_lookup_unique"
-        )
-      ) {
+      if (isUniqueViolation(error, "customer_external_reference_lookup_unique")) {
         return {
           userErrors: [
             {
-              message:
-                "External reference was concurrently assigned to another customer",
+              message: "External reference was concurrently assigned to another customer",
               code: "EXTERNAL_REFERENCE_CONFLICT",
               field: ["externalId"],
             },
           ],
         };
       }
-      if (
-        isUniqueViolation(
-          error,
-          "customer_external_reference_customer_unique"
-        )
-      ) {
+      if (isUniqueViolation(error, "customer_external_reference_customer_unique")) {
         return {
           userErrors: [
             {
-              message:
-                "Customer already has another reference for this external system and type",
+              message: "Customer already has another reference for this external system and type",
               code: "CUSTOMER_EXTERNAL_REFERENCE_CONFLICT",
               field: ["customerId"],
             },
@@ -193,10 +171,7 @@ export class CustomerExternalReferenceUpsertScript extends BaseScript<
   }
 }
 
-function invalid(
-  message: string,
-  field: string
-): CustomerExternalReferenceUpsertResult {
+function invalid(message: string, field: string): CustomerExternalReferenceUpsertResult {
   return {
     userErrors: [
       {

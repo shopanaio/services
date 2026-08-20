@@ -1,13 +1,11 @@
 "use client";
 
+import { Typography, Button, Tag, Skeleton, Flex } from "antd";
 import {
-  Typography,
-  Button,
-  Tag,
-  Skeleton,
-  Flex,
-} from "antd";
-import { LuClock as ClockCircleFilled, LuTriangleAlert as WarningOutlined, LuBan as StopOutlined } from "react-icons/lu";
+  LuClock as ClockCircleFilled,
+  LuTriangleAlert as WarningOutlined,
+  LuBan as StopOutlined,
+} from "react-icons/lu";
 import { useState } from "react";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
@@ -25,11 +23,7 @@ const InventoryLoadingSkeleton = () => {
 
   return (
     <Paper className={styles.inventoryCard}>
-      <Flex
-        align="center"
-        justify="space-between"
-        style={{ marginBottom: 8, paddingBottom: 8 }}
-      >
+      <Flex align="center" justify="space-between" style={{ marginBottom: 8, paddingBottom: 8 }}>
         <Flex align="center" gap={12}>
           <Skeleton.Input size="small" active style={{ width: 70 }} />
           <Skeleton.Input size="small" active style={{ width: 140 }} />
@@ -58,17 +52,9 @@ const InventoryNoData = () => {
 
   return (
     <Paper className={styles.inventoryCard}>
-      <Flex
-        vertical
-        align="center"
-        justify="center"
-        gap={8}
-        className={styles.noDataContainer}
-      >
+      <Flex vertical align="center" justify="center" gap={8} className={styles.noDataContainer}>
         <StopOutlined className={styles.noDataIcon} />
-        <Typography.Text type="secondary">
-          No inventory sync for this product
-        </Typography.Text>
+        <Typography.Text type="secondary">No inventory sync for this product</Typography.Text>
         <Button size="small" type="link">
           Set up inventory tracking
         </Button>
@@ -82,17 +68,9 @@ const InventoryError = ({ message }: { message: string }) => {
 
   return (
     <Paper className={styles.inventoryCard}>
-      <Flex
-        vertical
-        align="center"
-        justify="center"
-        gap={8}
-        className={styles.noDataContainer}
-      >
+      <Flex vertical align="center" justify="center" gap={8} className={styles.noDataContainer}>
         <WarningOutlined className={styles.colorError} />
-        <Typography.Text type="secondary">
-          Inventory data could not be loaded
-        </Typography.Text>
+        <Typography.Text type="secondary">Inventory data could not be loaded</Typography.Text>
         <Typography.Text type="secondary">{message}</Typography.Text>
       </Flex>
     </Paper>
@@ -115,15 +93,9 @@ interface IInventorySectionProps {
   product: ApiProduct;
 }
 
-export const InventorySection = ({
-  product,
-}: IInventorySectionProps) => {
+export const InventorySection = ({ product }: IInventorySectionProps) => {
   const { styles } = useInventoryStyles();
-  const {
-    data: stats,
-    isLoading,
-    error,
-  } = useProductInventoryWidget({ productId: product.id });
+  const { data: stats, isLoading, error } = useProductInventoryWidget({ productId: product.id });
   const [activeKPI, setActiveKPI] = useState<string | undefined>();
 
   const handleKPIClick = (kpi: string) => {
@@ -147,10 +119,7 @@ export const InventorySection = ({
       <PaperHeader title="Inventory" />
 
       {/* Section A: Quantity */}
-      <Typography.Text
-        type="secondary"
-        className={styles.inventorySectionLabel}
-      >
+      <Typography.Text type="secondary" className={styles.inventorySectionLabel}>
         Quantity
       </Typography.Text>
       <div className={styles.tilesGroup}>
@@ -160,9 +129,7 @@ export const InventorySection = ({
           value={stats.quantities.availableForSale.toLocaleString()}
           secondary={
             stats.availableChange7d !== 0
-              ? `${stats.availableChange7d > 0 ? "+" : ""}${
-                  stats.availableChange7d
-                } vs 7d`
+              ? `${stats.availableChange7d > 0 ? "+" : ""}${stats.availableChange7d} vs 7d`
               : `across ${stats.skuStatus.total} SKUs`
           }
           isPrimary
@@ -222,18 +189,12 @@ export const InventorySection = ({
           secondary={
             stats.skuStatus.lowStock.averageDays != null
               ? `~${stats.skuStatus.lowStock.averageDays}d until stockout`
-              : formatSkuPercent(
-                  stats.skuStatus.lowStock.count,
-                  stats.skuStatus.total,
-                )
+              : formatSkuPercent(stats.skuStatus.lowStock.count, stats.skuStatus.total)
           }
           variant={stats.skuStatus.lowStock.count > 0 ? "warning" : "default"}
           badge={
             stats.skuStatus.lowStock.count > 0 ? (
-              <WarningOutlined
-                className={styles.colorWarning}
-                style={{ fontSize: 11 }}
-              />
+              <WarningOutlined className={styles.colorWarning} style={{ fontSize: 11 }} />
             ) : undefined
           }
           active={activeKPI === "lowstock"}
@@ -247,18 +208,12 @@ export const InventorySection = ({
           secondary={
             stats.skuStatus.outOfStock.averageDays != null
               ? `for ~${stats.skuStatus.outOfStock.averageDays}d`
-              : formatSkuPercent(
-                  stats.skuStatus.outOfStock.count,
-                  stats.skuStatus.total,
-                )
+              : formatSkuPercent(stats.skuStatus.outOfStock.count, stats.skuStatus.total)
           }
           variant={stats.skuStatus.outOfStock.count > 0 ? "danger" : "default"}
           badge={
             stats.skuStatus.outOfStock.count > 0 ? (
-              <StopOutlined
-                className={styles.colorError}
-                style={{ fontSize: 11 }}
-              />
+              <StopOutlined className={styles.colorError} style={{ fontSize: 11 }} />
             ) : undefined
           }
           active={activeKPI === "outofstock"}
@@ -276,12 +231,7 @@ export const InventorySection = ({
                 : undefined
             }
             variant="purple"
-            badge={
-              <ClockCircleFilled
-                className={styles.colorPurple}
-                style={{ fontSize: 11 }}
-              />
-            }
+            badge={<ClockCircleFilled className={styles.colorPurple} style={{ fontSize: 11 }} />}
             active={activeKPI === "backorder"}
             onClick={() => handleKPIClick("backorder")}
             dataTestId="inventory-widget-kpi-backorder"

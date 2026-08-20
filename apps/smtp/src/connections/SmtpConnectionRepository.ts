@@ -61,9 +61,7 @@ export class SmtpConnectionRepository {
       .where(
         and(
           this.scope(scope),
-          statuses?.length
-            ? inArray(smtpConnections.status, [...new Set(statuses)])
-            : undefined,
+          statuses?.length ? inArray(smtpConnections.status, [...new Set(statuses)]) : undefined,
         ),
       )
       .orderBy(asc(smtpConnections.createdAt), asc(smtpConnections.id));
@@ -103,9 +101,7 @@ export class SmtpConnectionRepository {
     return rows[0] ?? null;
   }
 
-  async findActive(
-    scope: SmtpConnectionScope,
-  ): Promise<SmtpConnectionSecretRecord | null> {
+  async findActive(scope: SmtpConnectionScope): Promise<SmtpConnectionSecretRecord | null> {
     const rows = await this.connection
       .select()
       .from(smtpConnections)
@@ -211,9 +207,7 @@ function publicRecord(row: SmtpConnectionModel): SmtpConnectionRecord {
   });
 }
 
-function required(
-  row: SmtpConnectionModel | undefined,
-): SmtpConnectionModel {
+function required(row: SmtpConnectionModel | undefined): SmtpConnectionModel {
   if (!row) {
     throw new Error("SMTP_CONNECTION_CREATE_FAILED");
   }

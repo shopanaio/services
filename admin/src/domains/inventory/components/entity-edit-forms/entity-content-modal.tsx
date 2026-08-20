@@ -40,10 +40,9 @@ export const EntityContentModal = ({
 }: EntityContentModalProps) => {
   const [submitting, setSubmitting] = useState(false);
 
-  const { control, handleSubmit, setValue } =
-    useForm<EntityContentFormValues>({
-      defaultValues: initialValues,
-    });
+  const { control, handleSubmit, setValue } = useForm<EntityContentFormValues>({
+    defaultValues: initialValues,
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

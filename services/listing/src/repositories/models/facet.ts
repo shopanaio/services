@@ -16,10 +16,7 @@ import {
 import { sql } from "drizzle-orm";
 import { listingSchema, localeCodeEnum } from "./schema.js";
 
-export const referenceStatusEnum = listingSchema.enum("reference_status", [
-  "VALID",
-  "STALE",
-]);
+export const referenceStatusEnum = listingSchema.enum("reference_status", ["VALID", "STALE"]);
 
 export const facet = listingSchema.table(
   "facet",
@@ -28,9 +25,7 @@ export const facet = listingSchema.table(
     storeId: uuid("store_id").notNull(),
     facetType: varchar("facet_type", { length: 32 }).notNull(),
     uiType: varchar("ui_type", { length: 16 }).notNull().default("checkbox"),
-    selectionMode: varchar("selection_mode", { length: 16 })
-      .notNull()
-      .default("multi"),
+    selectionMode: varchar("selection_mode", { length: 16 }).notNull().default("multi"),
     lexoRank: varchar("lexo_rank", { length: 64 }).notNull(),
     slug: varchar("slug", { length: 255 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
@@ -43,7 +38,7 @@ export const facet = listingSchema.table(
   (table) => [
     unique("facet_store_id_slug_uniq").on(table.storeId, table.slug),
     index("idx_facet_rank").on(table.storeId, table.lexoRank),
-  ]
+  ],
 );
 
 export const facetTranslation = listingSchema.table(
@@ -59,7 +54,7 @@ export const facetTranslation = listingSchema.table(
   (table) => [
     primaryKey({ columns: [table.facetId, table.locale] }),
     index("idx_facet_translation_store_locale").on(table.storeId, table.locale),
-  ]
+  ],
 );
 
 export const facetScope = listingSchema.table(
@@ -75,14 +70,10 @@ export const facetScope = listingSchema.table(
     primaryKey({ columns: [table.facetId, table.scopeType] }),
     check(
       "facet_scope_type_check",
-      sql`${table.scopeType} IN ('SEARCH', 'CATEGORY', 'COLLECTION')`
+      sql`${table.scopeType} IN ('SEARCH', 'CATEGORY', 'COLLECTION')`,
     ),
-    index("idx_facet_scope_store_lookup").on(
-      table.storeId,
-      table.scopeType,
-      table.facetId
-    ),
-  ]
+    index("idx_facet_scope_store_lookup").on(table.storeId, table.scopeType, table.facetId),
+  ],
 );
 
 export const facetSource = listingSchema.table(
@@ -95,9 +86,7 @@ export const facetSource = listingSchema.table(
       .references(() => facet.id, { onDelete: "cascade" }),
     facetType: varchar("facet_type", { length: 32 }).notNull(),
     handle: text("handle").notNull(),
-    referenceStatus: referenceStatusEnum("reference_status")
-      .notNull()
-      .default("VALID"),
+    referenceStatus: referenceStatusEnum("reference_status").notNull().default("VALID"),
     referenceStatusChangedAt: timestamp("reference_status_changed_at", {
       withTimezone: true,
       mode: "string",
@@ -111,30 +100,12 @@ export const facetSource = listingSchema.table(
       .defaultNow(),
   },
   (table) => [
-    check(
-      "facet_source_type_check",
-      sql`${table.facetType} IN ('OPTION', 'FEATURE')`
-    ),
-    unique("facet_source_store_facet_handle_uniq").on(
-      table.storeId,
-      table.facetId,
-      table.handle
-    ),
-    unique("facet_source_store_type_handle_uniq").on(
-      table.storeId,
-      table.facetType,
-      table.handle
-    ),
-    index("idx_facet_source_store_facet").on(
-      table.storeId,
-      table.facetId
-    ),
-    index("idx_facet_source_store_type_handle").on(
-      table.storeId,
-      table.facetType,
-      table.handle
-    ),
-  ]
+    check("facet_source_type_check", sql`${table.facetType} IN ('OPTION', 'FEATURE')`),
+    unique("facet_source_store_facet_handle_uniq").on(table.storeId, table.facetId, table.handle),
+    unique("facet_source_store_type_handle_uniq").on(table.storeId, table.facetType, table.handle),
+    index("idx_facet_source_store_facet").on(table.storeId, table.facetId),
+    index("idx_facet_source_store_type_handle").on(table.storeId, table.facetType, table.handle),
+  ],
 );
 
 export const facetSourceTranslation = listingSchema.table(
@@ -149,11 +120,8 @@ export const facetSourceTranslation = listingSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.facetSourceId, table.locale] }),
-    index("idx_facet_source_translation_store_locale").on(
-      table.storeId,
-      table.locale
-    ),
-  ]
+    index("idx_facet_source_translation_store_locale").on(table.storeId, table.locale),
+  ],
 );
 
 export const facetSwatch = listingSchema.table("facet_swatch", {
@@ -174,10 +142,9 @@ export const facetValue = listingSchema.table(
     facetId: uuid("facet_id")
       .notNull()
       .references(() => facet.id, { onDelete: "cascade" }),
-    parentId: uuid("parent_id").references(
-      (): AnyPgColumn => facetValue.id,
-      { onDelete: "no action" }
-    ),
+    parentId: uuid("parent_id").references((): AnyPgColumn => facetValue.id, {
+      onDelete: "no action",
+    }),
     kind: varchar("kind", { length: 16 }).notNull(),
     handle: text("handle").notNull(),
     swatchId: uuid("swatch_id").references(() => facetSwatch.id, {
@@ -185,9 +152,7 @@ export const facetValue = listingSchema.table(
     }),
     sortIndex: integer("sort_index").notNull().default(0),
     enabled: boolean("enabled").notNull().default(true),
-    referenceStatus: referenceStatusEnum("reference_status")
-      .notNull()
-      .default("VALID"),
+    referenceStatus: referenceStatusEnum("reference_status").notNull().default("VALID"),
     referenceStatusChangedAt: timestamp("reference_status_changed_at", {
       withTimezone: true,
       mode: "string",
@@ -207,11 +172,11 @@ export const facetValue = listingSchema.table(
     check("facet_value_kind_check", sql`${table.kind} IN ('source', 'group')`),
     check(
       "facet_value_group_root_check",
-      sql`${table.kind} <> 'group' OR ${table.parentId} IS NULL`
+      sql`${table.kind} <> 'group' OR ${table.parentId} IS NULL`,
     ),
     check(
       "facet_value_group_reference_status_check",
-      sql`${table.kind} <> 'group' OR ${table.referenceStatus} = 'VALID'`
+      sql`${table.kind} <> 'group' OR ${table.referenceStatus} = 'VALID'`,
     ),
     uniqueIndex("facet_value_source_store_facet_handle_uniq")
       .on(table.storeId, table.facetId, table.handle)
@@ -228,7 +193,7 @@ export const facetValue = listingSchema.table(
     index("idx_facet_value_store_facet_source_handle")
       .on(table.storeId, table.facetId, table.handle)
       .where(sql`kind = 'source'`),
-  ]
+  ],
 );
 
 export const facetValueTranslation = listingSchema.table(
@@ -243,11 +208,8 @@ export const facetValueTranslation = listingSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.facetValueId, table.locale] }),
-    index("idx_facet_value_translation_store_locale").on(
-      table.storeId,
-      table.locale
-    ),
-  ]
+    index("idx_facet_value_translation_store_locale").on(table.storeId, table.locale),
+  ],
 );
 
 export type Facet = typeof facet.$inferSelect;

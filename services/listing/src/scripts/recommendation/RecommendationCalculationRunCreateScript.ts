@@ -12,7 +12,9 @@ export class RecommendationCalculationRunCreateScript extends BaseScript<
   @Transactional()
   protected async execute(): Promise<RecommendationCalculationRunResult> {
     const cursor = await this.repository.recommendationIngestionCursor.lockOrCreate();
-    const window = await this.repository.recommendationCalculationRun.currentWindow(FBT_RULES_V1.windowDays);
+    const window = await this.repository.recommendationCalculationRun.currentWindow(
+      FBT_RULES_V1.windowDays,
+    );
     const idempotencyKey = sha256Canonical({
       version: 1,
       calculationType: "FREQUENTLY_BOUGHT_TOGETHER",

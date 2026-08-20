@@ -1,9 +1,4 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  randomBytes,
-  timingSafeEqual,
-} from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from "node:crypto";
 import type { ApplicationAuthProviderName } from "../auth/applicationSocialProviders.js";
 
 const ENVELOPE_PREFIX = "iam-auth-keyring.v1";
@@ -35,9 +30,7 @@ export interface ApplicationAuthRootKeyProvider {
  * Development adapter for the platform secrets port. Production composition
  * must supply the same interface from its secrets backend.
  */
-export class EnvironmentApplicationAuthRootKeyProvider
-  implements ApplicationAuthRootKeyProvider
-{
+export class EnvironmentApplicationAuthRootKeyProvider implements ApplicationAuthRootKeyProvider {
   public readonly activeVersion: number;
   private readonly keys: ReadonlyMap<number, Buffer>;
 
@@ -45,34 +38,30 @@ export class EnvironmentApplicationAuthRootKeyProvider
     this.activeVersion = assertPositiveVersion(input.activeVersion);
     this.keys = new Map(input.keys);
     if (!this.keys.has(this.activeVersion)) {
-      throw new Error(
-        `IAM application auth root key version ${this.activeVersion} is unavailable`
-      );
+      throw new Error(`IAM application auth root key version ${this.activeVersion} is unavailable`);
     }
     for (const [version, key] of this.keys) {
       assertPositiveVersion(version);
       if (key.byteLength !== KEY_BYTES) {
         throw new Error(
-          `IAM application auth root key version ${version} must be ${KEY_BYTES} bytes`
+          `IAM application auth root key version ${version} must be ${KEY_BYTES} bytes`,
         );
       }
     }
   }
 
   static fromEnvironment(
-    environment: NodeJS.ProcessEnv
+    environment: NodeJS.ProcessEnv,
   ): EnvironmentApplicationAuthRootKeyProvider {
     if (environment.NODE_ENV === "production") {
       throw new Error(
-        "Environment application auth root keys are disabled in production; configure the platform secrets provider"
+        "Environment application auth root keys are disabled in production; configure the platform secrets provider",
       );
     }
     const activeRaw = environment.IAM_APPLICATION_AUTH_ACTIVE_KEY_VERSION;
     const keysRaw = environment.IAM_APPLICATION_AUTH_ROOT_KEYS;
     if (!activeRaw || !keysRaw) {
-      throw new Error(
-        "IAM application auth root keys are not configured"
-      );
+      throw new Error("IAM application auth root keys are not configured");
     }
 
     const activeVersion = Number(activeRaw);
@@ -82,11 +71,7 @@ export class EnvironmentApplicationAuthRootKeyProvider
     } catch {
       throw new Error("IAM application auth root keys configuration is invalid");
     }
-    if (
-      !encodedKeys ||
-      typeof encodedKeys !== "object" ||
-      Array.isArray(encodedKeys)
-    ) {
+    if (!encodedKeys || typeof encodedKeys !== "object" || Array.isArray(encodedKeys)) {
       throw new Error("IAM application auth root keys configuration is invalid");
     }
 
@@ -94,14 +79,12 @@ export class EnvironmentApplicationAuthRootKeyProvider
     for (const [versionRaw, encodedKey] of Object.entries(encodedKeys)) {
       const version = Number(versionRaw);
       if (typeof encodedKey !== "string") {
-        throw new Error(
-          `IAM application auth root key version ${versionRaw} is invalid`
-        );
+        throw new Error(`IAM application auth root key version ${versionRaw} is invalid`);
       }
       const key = Buffer.from(encodedKey, "base64");
       if (key.toString("base64") !== encodedKey && key.toString("base64url") !== encodedKey) {
         throw new Error(
-          `IAM application auth root key version ${versionRaw} is not canonical base64`
+          `IAM application auth root key version ${versionRaw} is not canonical base64`,
         );
       }
       keys.set(assertPositiveVersion(version), key);
@@ -151,7 +134,7 @@ export class ApplicationAuthKeyring {
   encrypt(
     plaintext: string,
     context: ApplicationAuthEncryptionContext,
-    keyVersion = this.activeVersion
+    keyVersion = this.activeVersion,
   ): string {
     if (!plaintext) {
       throw new Error("Application auth secret plaintext must not be empty");
@@ -163,10 +146,7 @@ export class ApplicationAuthKeyring {
         authTagLength: AUTH_TAG_BYTES,
       });
       cipher.setAAD(serializeContext(context));
-      const ciphertext = Buffer.concat([
-        cipher.update(plaintext, "utf8"),
-        cipher.final(),
-      ]);
+      const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
       const authTag = cipher.getAuthTag();
       return [
         ENVELOPE_PREFIX,
@@ -180,10 +160,7 @@ export class ApplicationAuthKeyring {
     }
   }
 
-  decrypt(
-    envelope: string,
-    context: ApplicationAuthEncryptionContext
-  ): string {
+  decrypt(envelope: string, context: ApplicationAuthEncryptionContext): string {
     const parsed = parseEnvelope(envelope);
     const key = this.getRequiredKey(parsed.keyVersion);
     try {
@@ -192,10 +169,7 @@ export class ApplicationAuthKeyring {
       });
       decipher.setAAD(serializeContext(context));
       decipher.setAuthTag(parsed.authTag);
-      return Buffer.concat([
-        decipher.update(parsed.ciphertext),
-        decipher.final(),
-      ]).toString("utf8");
+      return Buffer.concat([decipher.update(parsed.ciphertext), decipher.final()]).toString("utf8");
     } catch {
       throw new Error("Application auth secret could not be decrypted");
     } finally {
@@ -206,7 +180,7 @@ export class ApplicationAuthKeyring {
   reencrypt(
     envelope: string,
     context: ApplicationAuthEncryptionContext,
-    targetVersion = this.activeVersion
+    targetVersion = this.activeVersion,
   ): string {
     const plaintext = this.decrypt(envelope, context);
     return this.encrypt(plaintext, context, targetVersion);
@@ -217,10 +191,7 @@ export class ApplicationAuthKeyring {
   }
 
   /** Used only by the realm-secret derivation service. */
-  withRootKey<TResult>(
-    version: number,
-    operation: (key: Buffer) => TResult
-  ): TResult {
+  withRootKey<TResult>(version: number, operation: (key: Buffer) => TResult): TResult {
     const key = this.getRequiredKey(version);
     try {
       return operation(key);
@@ -233,14 +204,10 @@ export class ApplicationAuthKeyring {
     const validVersion = assertPositiveVersion(version);
     const key = this.rootKeys.getKey(validVersion);
     if (!key) {
-      throw new Error(
-        `IAM application auth root key version ${validVersion} is unavailable`
-      );
+      throw new Error(`IAM application auth root key version ${validVersion} is unavailable`);
     }
     if (key.byteLength !== KEY_BYTES) {
-      throw new Error(
-        `IAM application auth root key version ${validVersion} is invalid`
-      );
+      throw new Error(`IAM application auth root key version ${validVersion} is invalid`);
     }
     return key;
   }
@@ -249,12 +216,7 @@ export class ApplicationAuthKeyring {
 function serializeContext(context: ApplicationAuthEncryptionContext): Buffer {
   const entries =
     context.model === "provider"
-      ? [
-          context.applicationId,
-          context.model,
-          context.provider,
-          context.field,
-        ]
+      ? [context.applicationId, context.model, context.provider, context.field]
       : [context.applicationId, context.model, context.rowId, context.field];
   return Buffer.from(JSON.stringify(entries), "utf8");
 }
@@ -266,10 +228,7 @@ function parseEnvelope(envelope: string): {
   ciphertext: Buffer;
 } {
   const parts = envelope.split(".");
-  if (
-    parts.length !== 6 ||
-    `${parts[0]}.${parts[1]}` !== ENVELOPE_PREFIX
-  ) {
+  if (parts.length !== 6 || `${parts[0]}.${parts[1]}` !== ENVELOPE_PREFIX) {
     throw new Error("Application auth secret envelope is invalid");
   }
   const keyVersion = assertPositiveVersion(Number(parts[2]));
@@ -286,10 +245,7 @@ function decodeCanonicalBase64Url(value: string): Buffer {
   const decoded = Buffer.from(value, "base64url");
   const canonical = Buffer.from(decoded.toString("base64url"), "utf8");
   const input = Buffer.from(value, "utf8");
-  if (
-    canonical.byteLength !== input.byteLength ||
-    !timingSafeEqual(canonical, input)
-  ) {
+  if (canonical.byteLength !== input.byteLength || !timingSafeEqual(canonical, input)) {
     throw new Error("Application auth secret envelope is invalid");
   }
   return decoded;

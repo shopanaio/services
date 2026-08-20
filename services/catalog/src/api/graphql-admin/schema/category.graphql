@@ -4,67 +4,109 @@
 A category represents a hierarchical grouping of products.
 """
 type Category implements Node @key(fields: "id") {
-  """The globally unique ID of the category."""
+  """
+  The globally unique ID of the category.
+  """
   id: ID!
 
-  """The URL-friendly handle for the category."""
+  """
+  The URL-friendly handle for the category.
+  """
   handle: String!
 
-  """The date and time when the category was published, or null if unpublished."""
+  """
+  The date and time when the category was published, or null if unpublished.
+  """
   publishedAt: DateTime
 
-  """Whether the category is currently published."""
+  """
+  Whether the category is currently published.
+  """
   isPublished: Boolean!
 
-  """The date and time when the category was created."""
+  """
+  The date and time when the category was created.
+  """
   createdAt: DateTime!
 
-  """The date and time when the category was last updated."""
+  """
+  The date and time when the category was last updated.
+  """
   updatedAt: DateTime!
 
-  """The date and time when the category was deleted (soft delete)."""
+  """
+  The date and time when the category was deleted (soft delete).
+  """
   deletedAt: DateTime
 
-  """Optimistic locking revision number. Incremented on each update."""
+  """
+  Optimistic locking revision number. Incremented on each update.
+  """
   revision: Int!
 
-  """The depth of this category in the hierarchy (0 for root)."""
+  """
+  The depth of this category in the hierarchy (0 for root).
+  """
   depth: Int!
 
-  """The materialized path for this category."""
+  """
+  The materialized path for this category.
+  """
   path: String!
 
-  """The display name of the category."""
+  """
+  The display name of the category.
+  """
   name: String!
 
-  """The category description."""
+  """
+  The category description.
+  """
   description: RichText
 
-  """Short category excerpt."""
+  """
+  Short category excerpt.
+  """
   excerpt: RichText
 
-  """Default product sort for this category PLP."""
+  """
+  Default product sort for this category PLP.
+  """
   defaultSort: ProductSortBy!
 
-  """Default sort direction for this category PLP."""
+  """
+  Default sort direction for this category PLP.
+  """
   defaultSortDirection: SortDirection!
 
-  """SEO metadata."""
+  """
+  SEO metadata.
+  """
   seo: Seo
 
-  """The parent category, if any."""
+  """
+  The parent category, if any.
+  """
   parent: Category
 
-  """Direct child categories."""
+  """
+  Direct child categories.
+  """
   children: [Category!]!
 
-  """All ancestor categories from root to parent."""
+  """
+  All ancestor categories from root to parent.
+  """
   ancestors: [Category!]!
 
-  """Media files associated with this category."""
+  """
+  Media files associated with this category.
+  """
   media: [CategoryMediaItem!]!
 
-  """The total number of products in this category."""
+  """
+  The total number of products in this category.
+  """
   productsCount: Int!
 
   directComparisonProfile: ComparisonProfile
@@ -75,10 +117,14 @@ type Category implements Node @key(fields: "id") {
 A media item for a category.
 """
 type CategoryMediaItem {
-  """The file reference."""
+  """
+  The file reference.
+  """
   file: File!
 
-  """The sort index for ordering."""
+  """
+  The sort index for ordering.
+  """
   sortIndex: Int!
 }
 
@@ -86,13 +132,19 @@ type CategoryMediaItem {
 A connection to a list of Category items.
 """
 type CategoryConnection {
-  """A list of edges."""
+  """
+  A list of edges.
+  """
   edges: [CategoryEdge!]!
 
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
 
-  """The total number of categories."""
+  """
+  The total number of categories.
+  """
   totalCount: Int!
 }
 
@@ -100,10 +152,14 @@ type CategoryConnection {
 An edge in a Category connection.
 """
 type CategoryEdge {
-  """The item at the end of the edge."""
+  """
+  The item at the end of the edge.
+  """
   node: Category!
 
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: String!
 }
 
@@ -140,54 +196,82 @@ input CategoryProductsScopeInput {
 Input for creating a category.
 """
 input CategoryCreateInput {
-  """The URL-friendly handle for the category."""
+  """
+  The URL-friendly handle for the category.
+  """
   handle: String!
 
-  """The display name of the category."""
+  """
+  The display name of the category.
+  """
   name: String!
 
-  """Optional parent category ID."""
+  """
+  Optional parent category ID.
+  """
   parentId: ID
 
-  """Optional description."""
+  """
+  Optional description.
+  """
   description: RichTextInput
 
-  """Optional short excerpt."""
+  """
+  Optional short excerpt.
+  """
   excerpt: RichTextInput
 
-  """SEO metadata."""
+  """
+  SEO metadata.
+  """
   seo: SeoInput
 
-  """File IDs for category media."""
+  """
+  File IDs for category media.
+  """
   mediaFileIds: [ID!]
 
-  """Whether to publish immediately."""
+  """
+  Whether to publish immediately.
+  """
   publish: Boolean
 }
 
 input CategoryContentInput {
-  """The category description."""
+  """
+  The category description.
+  """
   description: RichTextInput
 
-  """The short category excerpt."""
+  """
+  The short category excerpt.
+  """
   excerpt: RichTextInput
 }
 
 input CategoryMediaInput {
-  """File IDs for category media."""
+  """
+  File IDs for category media.
+  """
   fileIds: [ID!]!
 }
 
 input CategoryHierarchyInput {
-  """The new parent category ID, or null for root."""
+  """
+  The new parent category ID, or null for root.
+  """
   parentId: ID
 }
 
 input CategorySortInput {
-  """Default product sort for this category PLP."""
+  """
+  Default product sort for this category PLP.
+  """
   defaultSort: ProductSortBy!
 
-  """Default sort direction for this category PLP."""
+  """
+  Default sort direction for this category PLP.
+  """
   defaultSortDirection: SortDirection!
 }
 
@@ -200,28 +284,44 @@ enum CategoryStatus {
 Input for updating a category through section-based operations.
 """
 input CategoryUpdateInput {
-  """The URL-friendly handle for the category."""
+  """
+  The URL-friendly handle for the category.
+  """
   handle: String
 
-  """The display name of the category."""
+  """
+  The display name of the category.
+  """
   name: String
 
-  """Translated content."""
+  """
+  Translated content.
+  """
   content: CategoryContentInput
 
-  """SEO metadata."""
+  """
+  SEO metadata.
+  """
   seo: SeoInput
 
-  """Category status."""
+  """
+  Category status.
+  """
   status: CategoryStatus
 
-  """Category media replacement."""
+  """
+  Category media replacement.
+  """
   media: CategoryMediaInput
 
-  """Hierarchy move."""
+  """
+  Hierarchy move.
+  """
   hierarchy: CategoryHierarchyInput
 
-  """PLP sort preferences."""
+  """
+  PLP sort preferences.
+  """
   sort: CategorySortInput
 }
 
@@ -229,10 +329,14 @@ input CategoryUpdateInput {
 Input for moving a category in the hierarchy.
 """
 input CategoryMoveInput {
-  """The ID of the category to move."""
+  """
+  The ID of the category to move.
+  """
   id: ID!
 
-  """The new parent category ID, or null for root."""
+  """
+  The new parent category ID, or null for root.
+  """
   newParentId: ID
 }
 
@@ -240,10 +344,14 @@ input CategoryMoveInput {
 Input for deleting a category.
 """
 input CategoryDeleteInput {
-  """The ID of the category to delete."""
+  """
+  The ID of the category to delete.
+  """
   id: ID!
 
-  """Whether to permanently delete (hard delete)."""
+  """
+  Whether to permanently delete (hard delete).
+  """
   permanent: Boolean
 }
 
@@ -257,10 +365,14 @@ input CategoryRebalanceInput {
 Payload for category creation.
 """
 type CategoryCreatePayload {
-  """The created category."""
+  """
+  The created category.
+  """
   category: Category
 
-  """List of errors that occurred during the mutation."""
+  """
+  List of errors that occurred during the mutation.
+  """
   userErrors: [GenericUserError!]!
 }
 
@@ -268,13 +380,19 @@ type CategoryCreatePayload {
 Payload for category update.
 """
 type CategoryUpdatePayload {
-  """The updated category."""
+  """
+  The updated category.
+  """
   category: Category
 
-  """Results of requested category update operations."""
+  """
+  Results of requested category update operations.
+  """
   operationResults: [OperationResult!]!
 
-  """List of errors that occurred during the mutation."""
+  """
+  List of errors that occurred during the mutation.
+  """
   userErrors: [GenericUserError!]!
 }
 
@@ -282,10 +400,14 @@ type CategoryUpdatePayload {
 Payload for category move.
 """
 type CategoryMovePayload {
-  """The moved category."""
+  """
+  The moved category.
+  """
   category: Category
 
-  """List of errors that occurred during the mutation."""
+  """
+  List of errors that occurred during the mutation.
+  """
   userErrors: [GenericUserError!]!
 }
 
@@ -293,10 +415,14 @@ type CategoryMovePayload {
 Payload for category deletion.
 """
 type CategoryDeletePayload {
-  """The ID of the deleted category."""
+  """
+  The ID of the deleted category.
+  """
   deletedCategoryId: ID
 
-  """List of errors that occurred during the mutation."""
+  """
+  List of errors that occurred during the mutation.
+  """
   userErrors: [GenericUserError!]!
 }
 

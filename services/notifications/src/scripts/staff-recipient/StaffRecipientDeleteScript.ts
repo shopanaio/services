@@ -21,7 +21,7 @@ export class StaffRecipientDeleteScript extends BaseScript<
     if (!deleted) {
       throw new KernelError(
         "Staff notification recipient was not found",
-        "STAFF_RECIPIENT_NOT_FOUND"
+        "STAFF_RECIPIENT_NOT_FOUND",
       );
     }
     await recordAdminAudit(
@@ -29,7 +29,7 @@ export class StaffRecipientDeleteScript extends BaseScript<
       this.context.user.id,
       "staff.recipient.deleted",
       "staffRecipient",
-      params.id
+      params.id,
     );
     return { deletedStaffRecipientId: params.id, userErrors: [] };
   }

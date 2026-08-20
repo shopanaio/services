@@ -46,11 +46,10 @@ export function compileCollectionRules(input: {
   definitionKey?: CollectionRuleDefinitionKey;
   rules: readonly CanonicalCollectionRule[];
 }): CollectionRulePlan {
-  const definitionKey =
-    input.definitionKey ?? {
-      kind: "transient" as const,
-      rulesHash: hashCanonicalCollectionRulesV1(input.rules),
-    };
+  const definitionKey = input.definitionKey ?? {
+    kind: "transient" as const,
+    rulesHash: hashCanonicalCollectionRulesV1(input.rules),
+  };
   const productPostingGroups: CollectionPostingGroup[] = [];
   const productCreatedAtPredicates: CollectionCreatedAtPredicate[] = [];
   const variantPostingGroups: CollectionPostingGroup[] = [];
@@ -80,34 +79,25 @@ export function compileCollectionRules(input: {
       continue;
     }
     if (rule.field === "feature" || rule.field === "option") {
-      const terms = rule.value.values.map(
-        (value): CollectionRuleTerm => ({
-          entityType: rule.field === "feature" ? "product" : "variant",
-          kind: rule.field,
-          sourceHandle: value.sourceHandle,
-          valueHandle: value.valueHandle,
-        }),
-      );
+      const terms = rule.value.values.map((value): CollectionRuleTerm => ({
+        entityType: rule.field === "feature" ? "product" : "variant",
+        kind: rule.field,
+        sourceHandle: value.sourceHandle,
+        valueHandle: value.valueHandle,
+      }));
       const group: CollectionPostingGroup = {
         field: "rule_term",
         operator: rule.operator === "all" ? "and" : "or",
         valueKeys: terms.map(encodeCollectionRuleTerm),
       };
-      (rule.field === "feature"
-        ? productPostingGroups
-        : variantPostingGroups
-      ).push(group);
+      (rule.field === "feature" ? productPostingGroups : variantPostingGroups).push(group);
       continue;
     }
     if (rule.field === "in_stock") {
       variantPostingGroups.push({
         field: "term",
         operator: "and",
-        valueKeys: [
-          encodeListingVariantTerm(
-            buildAvailabilityVariantTerm(rule.value.value),
-          ),
-        ],
+        valueKeys: [encodeListingVariantTerm(buildAvailabilityVariantTerm(rule.value.value))],
       });
       continue;
     }
@@ -149,8 +139,6 @@ export function compileCollectionRules(input: {
     productCreatedAtPredicates: Object.freeze(productCreatedAtPredicates),
     variantPostingGroups: Object.freeze(variantPostingGroups),
     variantPricePredicates: Object.freeze(variantPricePredicates),
-    hasVariantPredicates:
-      variantPostingGroups.length > 0 ||
-      variantPricePredicates.length > 0,
+    hasVariantPredicates: variantPostingGroups.length > 0 || variantPricePredicates.length > 0,
   });
 }

@@ -60,34 +60,26 @@ export const PriceStats = ({
         <Typography.Text type="secondary" className={styles.labelText}>
           Min
         </Typography.Text>
-        <Typography.Text className={styles.minValue}>
-          {formatPrice(min, currency)}
-        </Typography.Text>
+        <Typography.Text className={styles.minValue}>{formatPrice(min, currency)}</Typography.Text>
       </Flex>
       <Flex vertical align="center">
         <Typography.Text type="secondary" className={styles.labelText}>
           Max
         </Typography.Text>
-        <Typography.Text className={styles.maxValue}>
-          {formatPrice(max, currency)}
-        </Typography.Text>
+        <Typography.Text className={styles.maxValue}>{formatPrice(max, currency)}</Typography.Text>
       </Flex>
       <Flex vertical align="center">
         <Typography.Text type="secondary" className={styles.labelText}>
           Avg
         </Typography.Text>
-        <Typography.Text className={styles.valueText}>
-          {formatPrice(avg, currency)}
-        </Typography.Text>
+        <Typography.Text className={styles.valueText}>{formatPrice(avg, currency)}</Typography.Text>
       </Flex>
       {showChangesCount && (
         <Flex vertical align="center">
           <Typography.Text type="secondary" className={styles.labelText}>
             Changes
           </Typography.Text>
-          <Typography.Text className={styles.valueText}>
-            {history.length - 1}
-          </Typography.Text>
+          <Typography.Text className={styles.valueText}>{history.length - 1}</Typography.Text>
         </Flex>
       )}
     </Flex>

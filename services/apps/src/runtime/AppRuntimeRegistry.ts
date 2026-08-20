@@ -21,9 +21,7 @@ export interface AppRuntimeRecord {
 export class AppRuntimeRegistry {
   private readonly records = new Map<string, AppRuntimeRecord>();
 
-  register(
-    record: Omit<AppRuntimeRecord, "status">,
-  ): AppRuntimeRecord {
+  register(record: Omit<AppRuntimeRecord, "status">): AppRuntimeRecord {
     const appCode = record.definition.manifest.code;
     if (this.records.has(appCode)) {
       throw new Error(`App runtime "${appCode}" already registered`);
@@ -54,7 +52,6 @@ export class AppRuntimeRegistry {
     }
     return runtime.app.health();
   }
-
 
   remove(appCode: string): void {
     this.records.delete(appCode);

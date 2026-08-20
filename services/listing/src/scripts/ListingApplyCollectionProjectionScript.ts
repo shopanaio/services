@@ -43,10 +43,7 @@ export class ListingApplyCollectionProjectionScript extends BaseScript<
   protected async execute(
     input: ListingApplyCollectionProjectionInput,
   ): Promise<ListingApplyCollectionProjectionResult> {
-    if (
-      !Number.isSafeInteger(input.eventSequence) ||
-      input.eventSequence <= 0
-    ) {
+    if (!Number.isSafeInteger(input.eventSequence) || input.eventSequence <= 0) {
       throw new ListingCollectionProjectionError(
         "INVALID_COLLECTION_EVENT_SEQUENCE",
         "Collection event sequence must be a positive safe integer",
@@ -81,10 +78,7 @@ export class ListingApplyCollectionProjectionScript extends BaseScript<
     try {
       status =
         input.snapshot.state === "live"
-          ? await this.repository.collectionState.applyLive(
-              input.snapshot,
-              input.eventSequence,
-            )
+          ? await this.repository.collectionState.applyLive(input.snapshot, input.eventSequence)
           : await this.applyDeleted(input.snapshot, input.eventSequence);
     } catch (error) {
       if (error instanceof CollectionProjectionConflictError) {
@@ -105,8 +99,7 @@ export class ListingApplyCollectionProjectionScript extends BaseScript<
         operation: input.snapshot.state === "live" ? "apply" : "delete",
         status,
         collectionId: input.snapshot.id,
-        collectionType:
-          input.snapshot.state === "live" ? input.snapshot.type : "deleted",
+        collectionType: input.snapshot.state === "live" ? input.snapshot.type : "deleted",
         listingRevision: input.snapshot.listingRevision,
         projectionLagMs: Math.max(
           0,
@@ -136,19 +129,14 @@ export class ListingApplyCollectionProjectionScript extends BaseScript<
     snapshot: Extract<CatalogCollectionSnapshot, { state: "deleted" }>,
     eventSequence: number,
   ): Promise<CollectionProjectionApplyStatus> {
-    const status = await this.repository.collectionState.applyDeleted(
-      snapshot,
-      eventSequence,
-    );
+    const status = await this.repository.collectionState.applyDeleted(snapshot, eventSequence);
     if (status !== "applied") return status;
     await this.repository.listingPostingBitmap.deleteByKey({
       entityType: "product",
       field: "collection",
       valueKey: snapshot.id,
     });
-    await this.repository.listingPostingProductSort.deleteByManualScopeId(
-      snapshot.id,
-    );
+    await this.repository.listingPostingProductSort.deleteByManualScopeId(snapshot.id);
     return status;
   }
 }

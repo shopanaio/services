@@ -26,8 +26,7 @@ export const APPLICATION_AUTH_TTL = {
 } as const;
 
 export const APPLICATION_AUTH_UI_LOCALES = ["en"] as const;
-export type ApplicationAuthUiLocale =
-  (typeof APPLICATION_AUTH_UI_LOCALES)[number];
+export type ApplicationAuthUiLocale = (typeof APPLICATION_AUTH_UI_LOCALES)[number];
 
 export const APPLICATION_AUTH_PRIMARY_COLOR_TOKENS = [
   "blue",
@@ -35,10 +34,7 @@ export const APPLICATION_AUTH_PRIMARY_COLOR_TOKENS = [
   "violet",
   "emerald",
 ] as const;
-export const APPLICATION_AUTH_BACKGROUND_COLOR_TOKENS = [
-  "white",
-  "slate",
-] as const;
+export const APPLICATION_AUTH_BACKGROUND_COLOR_TOKENS = ["white", "slate"] as const;
 
 export const applicationAuthBrandingSchema = z
   .object({
@@ -52,18 +48,12 @@ export const applicationAuthBrandingSchema = z
         message: "Branding logoUrl must use HTTPS",
       })
       .optional(),
-    primaryColor: z
-      .enum(APPLICATION_AUTH_PRIMARY_COLOR_TOKENS)
-      .optional(),
-    backgroundColor: z
-      .enum(APPLICATION_AUTH_BACKGROUND_COLOR_TOKENS)
-      .optional(),
+    primaryColor: z.enum(APPLICATION_AUTH_PRIMARY_COLOR_TOKENS).optional(),
+    backgroundColor: z.enum(APPLICATION_AUTH_BACKGROUND_COLOR_TOKENS).optional(),
   })
   .strict();
 
-export const applicationAuthLocaleSchema = z.enum(
-  APPLICATION_AUTH_UI_LOCALES
-);
+export const applicationAuthLocaleSchema = z.enum(APPLICATION_AUTH_UI_LOCALES);
 
 /**
  * Complete mutable configuration contract. The canonical resource, revision,
@@ -110,16 +100,14 @@ export const applicationAuthMutableConfigurationSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["emailOtpSignUpEnabled"],
-        message:
-          "emailOtpSignUpEnabled requires emailOtpSignInEnabled to be enabled",
+        message: "emailOtpSignUpEnabled requires emailOtpSignInEnabled to be enabled",
       });
     }
     if (value.phoneOtpSignUpEnabled && !value.phoneOtpSignInEnabled) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["phoneOtpSignUpEnabled"],
-        message:
-          "phoneOtpSignUpEnabled requires phoneOtpSignInEnabled to be enabled",
+        message: "phoneOtpSignUpEnabled requires phoneOtpSignInEnabled to be enabled",
       });
     }
   });
@@ -210,32 +198,29 @@ export type ApplicationAuthConfigurationPatch = z.infer<
 export type ApplicationAuthProviderCredentialsInput = z.infer<
   typeof applicationAuthProviderCredentialsSchema
 >;
-export type ApplicationAuthProviderStateInput = z.infer<
-  typeof applicationAuthProviderStateSchema
->;
+export type ApplicationAuthProviderStateInput = z.infer<typeof applicationAuthProviderStateSchema>;
 export type ApplicationAuthDeliveryProfileInput = z.infer<
   typeof applicationAuthDeliveryProfileSchema
 >;
 
-export const DEFAULT_APPLICATION_AUTH_CONFIGURATION: ApplicationAuthMutableConfiguration =
-  {
-    registrationMode: "disabled",
-    passwordSignUpEnabled: false,
-    passwordSignInEnabled: false,
-    passwordResetEnabled: false,
-    emailVerificationRequired: true,
-    emailOtpSignInEnabled: false,
-    emailOtpSignUpEnabled: false,
-    phoneOtpSignInEnabled: false,
-    phoneOtpSignUpEnabled: false,
-    consentMode: "explicit",
-    accessTokenTtlSeconds: APPLICATION_AUTH_TTL.accessToken.default,
-    idTokenTtlSeconds: APPLICATION_AUTH_TTL.idToken.default,
-    refreshTokenTtlSeconds: APPLICATION_AUTH_TTL.refreshToken.default,
-    sessionTtlSeconds: APPLICATION_AUTH_TTL.session.default,
-    brandingJson: {},
-    defaultLocale: "en",
-  };
+export const DEFAULT_APPLICATION_AUTH_CONFIGURATION: ApplicationAuthMutableConfiguration = {
+  registrationMode: "disabled",
+  passwordSignUpEnabled: false,
+  passwordSignInEnabled: false,
+  passwordResetEnabled: false,
+  emailVerificationRequired: true,
+  emailOtpSignInEnabled: false,
+  emailOtpSignUpEnabled: false,
+  phoneOtpSignInEnabled: false,
+  phoneOtpSignUpEnabled: false,
+  consentMode: "explicit",
+  accessTokenTtlSeconds: APPLICATION_AUTH_TTL.accessToken.default,
+  idTokenTtlSeconds: APPLICATION_AUTH_TTL.idToken.default,
+  refreshTokenTtlSeconds: APPLICATION_AUTH_TTL.refreshToken.default,
+  sessionTtlSeconds: APPLICATION_AUTH_TTL.session.default,
+  brandingJson: {},
+  defaultLocale: "en",
+};
 
 export interface EffectiveApplicationAuthPolicy {
   realmEnabled: boolean;
@@ -273,33 +258,22 @@ export function calculateEffectiveApplicationAuthPolicy(
   providers: readonly {
     provider: ApplicationAuthProviderName;
     enabled: boolean;
-  }[]
+  }[],
 ): EffectiveApplicationAuthPolicy {
   const realmEnabled = configuration.realmEnabled;
-  const signUpAllowed =
-    realmEnabled && configuration.registrationMode === "open";
-  if (
-    new Set(providers.map(({ provider }) => provider)).size !==
-    providers.length
-  ) {
+  const signUpAllowed = realmEnabled && configuration.registrationMode === "open";
+  if (new Set(providers.map(({ provider }) => provider)).size !== providers.length) {
     throw new Error("Application social provider configuration is duplicated");
   }
   return {
     realmEnabled,
-    passwordSignInAllowed:
-      realmEnabled && configuration.passwordSignInEnabled,
-    passwordSignUpAllowed:
-      signUpAllowed && configuration.passwordSignUpEnabled,
-    passwordResetAllowed:
-      realmEnabled && configuration.passwordResetEnabled,
-    emailOtpSignInAllowed:
-      realmEnabled && configuration.emailOtpSignInEnabled,
-    emailOtpSignUpAllowed:
-      signUpAllowed && configuration.emailOtpSignUpEnabled,
-    phoneOtpSignInAllowed:
-      realmEnabled && configuration.phoneOtpSignInEnabled,
-    phoneOtpSignUpAllowed:
-      signUpAllowed && configuration.phoneOtpSignUpEnabled,
+    passwordSignInAllowed: realmEnabled && configuration.passwordSignInEnabled,
+    passwordSignUpAllowed: signUpAllowed && configuration.passwordSignUpEnabled,
+    passwordResetAllowed: realmEnabled && configuration.passwordResetEnabled,
+    emailOtpSignInAllowed: realmEnabled && configuration.emailOtpSignInEnabled,
+    emailOtpSignUpAllowed: signUpAllowed && configuration.emailOtpSignUpEnabled,
+    phoneOtpSignInAllowed: realmEnabled && configuration.phoneOtpSignInEnabled,
+    phoneOtpSignUpAllowed: signUpAllowed && configuration.phoneOtpSignUpEnabled,
     socialProviders: Object.freeze(
       providers.map(({ provider, enabled }) =>
         Object.freeze({
@@ -308,8 +282,8 @@ export function calculateEffectiveApplicationAuthPolicy(
           enabled,
           signInAllowed: realmEnabled && enabled,
           signUpAllowed: signUpAllowed && enabled,
-        })
-      )
+        }),
+      ),
     ),
   };
 }
@@ -321,7 +295,7 @@ export function createApplicationResource(applicationId: string): string {
 
 export function normalizeApplicationAuthOrigin(
   input: string,
-  options: { allowInsecureLocalhost: boolean }
+  options: { allowInsecureLocalhost: boolean },
 ): string {
   const url = new URL(input);
   if (
@@ -332,17 +306,13 @@ export function normalizeApplicationAuthOrigin(
     url.hash ||
     (url.pathname !== "" && url.pathname !== "/")
   ) {
-    throw new Error(
-      "Origin must not contain userinfo, path, query, or fragment"
-    );
+    throw new Error("Origin must not contain userinfo, path, query, or fragment");
   }
 
   const localHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
   const secure = url.protocol === "https:";
   const allowedLocalHttp =
-    options.allowInsecureLocalhost &&
-    url.protocol === "http:" &&
-    localHosts.has(url.hostname);
+    options.allowInsecureLocalhost && url.protocol === "http:" && localHosts.has(url.hostname);
   if (!secure && !allowedLocalHttp) {
     throw new Error("Origin must use HTTPS outside explicit localhost development");
   }

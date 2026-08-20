@@ -6,11 +6,7 @@ import { createStyles } from "antd-style";
 import { LuSearch } from "react-icons/lu";
 import { shopLocales } from "@/defs/localization";
 import type { LocaleCode } from "@/graphql/types";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
 import { useLanguageSettingsMutations } from "../../hooks";
 import type { AddStoreLanguageModalPayload } from "../../modals";
@@ -141,10 +137,7 @@ export const StoreLanguageModal = () => {
               aria-selected={selected === code}
             >
               <span className={styles.language}>{name}</span>
-              <Checkbox
-                checked={selected === code}
-                onChange={() => setSelected(code)}
-              />
+              <Checkbox checked={selected === code} onChange={() => setSelected(code)} />
             </div>
           ))}
         </div>

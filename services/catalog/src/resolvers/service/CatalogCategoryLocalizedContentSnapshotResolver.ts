@@ -12,15 +12,11 @@ export class CatalogCategoryLocalizedContentSnapshotResolver extends ServiceType
   CatalogCategoryLocalizedContentSnapshot
 > {
   protected async $preload(): Promise<CatalogCategoryLocalizedContentSnapshot> {
-    const translations = await this.$ctx.loaders.categoryTranslations.load(
-      this.$props.categoryId
-    );
-    const translation = translations.find(
-      (candidate) => candidate.locale === this.$props.locale
-    );
+    const translations = await this.$ctx.loaders.categoryTranslations.load(this.$props.categoryId);
+    const translation = translations.find((candidate) => candidate.locale === this.$props.locale);
     if (!translation) {
       throw new PreloadNotFoundError(
-        `Category translation ${this.$props.categoryId}:${this.$props.locale} not found`
+        `Category translation ${this.$props.categoryId}:${this.$props.locale} not found`,
       );
     }
 

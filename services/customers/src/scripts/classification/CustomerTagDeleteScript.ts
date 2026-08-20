@@ -15,9 +15,7 @@ export class CustomerTagDeleteScript extends BaseScript<
   CustomerTagDeleteResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerTagDeleteParams
-  ): Promise<CustomerTagDeleteResult> {
+  protected async execute(params: CustomerTagDeleteParams): Promise<CustomerTagDeleteResult> {
     const tag = await this.repository.tag.findById(params.id);
     if (!tag) {
       return notFound();
@@ -32,11 +30,7 @@ export class CustomerTagDeleteScript extends BaseScript<
       return notFound();
     }
     for (const customerId of customerIds) {
-      await this.invalidateDynamicSegments(
-        customerId,
-        ["tag"],
-        `tagDeleted:${params.id}`,
-      );
+      await this.invalidateDynamicSegments(customerId, ["tag"], `tagDeleted:${params.id}`);
     }
 
     this.logger.info({ tagId: params.id }, "Customer tag deleted");
@@ -54,8 +48,6 @@ export class CustomerTagDeleteScript extends BaseScript<
 function notFound(): CustomerTagDeleteResult {
   return {
     deletedTagId: undefined,
-    userErrors: [
-      { message: "Customer tag not found", field: ["id"], code: "NOT_FOUND" },
-    ],
+    userErrors: [{ message: "Customer tag not found", field: ["id"], code: "NOT_FOUND" }],
   };
 }

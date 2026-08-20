@@ -25,10 +25,7 @@ export class DiscountUpdateCombinationsScript extends BaseDiscountUpdateScript<D
       seen.add(item);
     }
     if (errors.length > 0) return sectionErrors(errors);
-    await this.repository.discount.replaceCombinations(
-      aggregate.discount.id,
-      params.combinations,
-    );
+    await this.repository.discount.replaceCombinations(aggregate.discount.id, params.combinations);
     return sectionSuccess();
   }
 }

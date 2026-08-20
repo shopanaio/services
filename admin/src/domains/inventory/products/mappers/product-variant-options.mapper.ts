@@ -1,8 +1,4 @@
-import type {
-  ApiProductOption,
-  ApiProductUpdateInput,
-  ApiVariant,
-} from "@/graphql/types";
+import type { ApiProductOption, ApiProductUpdateInput, ApiVariant } from "@/graphql/types";
 import { VariantOperationAction } from "@/graphql/types";
 import type {
   IVariantEditorRow,
@@ -70,17 +66,12 @@ export function validateVariantOptionRows(
   rows: IVariantEditorRow[],
   productOptions: ApiProductOption[],
 ): VariantOptionRowsValidationResult {
-  const maxCombinations = productOptions.length === 0
-    ? 1
-    : productOptions.reduce(
-        (count, option) => count * Math.max(option.values.length, 1),
-        1,
-      );
+  const maxCombinations =
+    productOptions.length === 0
+      ? 1
+      : productOptions.reduce((count, option) => count * Math.max(option.values.length, 1), 1);
   const valueIdsByOptionId = new Map(
-    productOptions.map((option) => [
-      option.id,
-      new Set(option.values.map((value) => value.id)),
-    ]),
+    productOptions.map((option) => [option.id, new Set(option.values.map((value) => value.id))]),
   );
   const incompleteRowIds = new Set<string>();
   const invalidRowIds = new Set<string>();
@@ -110,13 +101,9 @@ export function validateVariantOptionRows(
       invalidRowIds.add(row.id);
     }
 
-    const combinationKey =
-      incomplete || invalid ? null : buildCombinationKey(row, productOptions);
+    const combinationKey = incomplete || invalid ? null : buildCombinationKey(row, productOptions);
     if (combinationKey) {
-      keyToRowIds.set(combinationKey, [
-        ...(keyToRowIds.get(combinationKey) ?? []),
-        row.id,
-      ]);
+      keyToRowIds.set(combinationKey, [...(keyToRowIds.get(combinationKey) ?? []), row.id]);
     }
   }
 
@@ -150,9 +137,7 @@ export function validateVariantOptionRows(
 
   const messages: string[] = [];
   if (rows.length > maxCombinations) {
-    messages.push(
-      `Variant rows exceed the ${maxCombinations} possible option combination(s).`,
-    );
+    messages.push(`Variant rows exceed the ${maxCombinations} possible option combination(s).`);
   }
   if (incompleteRowIds.size > 0) {
     messages.push(`${incompleteRowIds.size} variant row(s) have incomplete options.`);

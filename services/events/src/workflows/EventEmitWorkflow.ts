@@ -31,10 +31,10 @@ export interface EmitParams<TType extends string = string, TPayload = unknown> {
   dispatch?: EmitDispatchOptions;
 }
 
-type TrustedEmitParams<
-  TType extends string = string,
-  TPayload = unknown,
-> = EmitParams<TType, TPayload> & { readonly source: string };
+type TrustedEmitParams<TType extends string = string, TPayload = unknown> = EmitParams<
+  TType,
+  TPayload
+> & { readonly source: string };
 
 @Injectable()
 export class EventEmitWorkflow extends BrokerWorkflows {
@@ -125,8 +125,7 @@ export class EventEmitWorkflow extends BrokerWorkflows {
     });
 
     const correlationId =
-      params.context.correlationId ??
-      makeDeterministicCorrelationId(parentWorkflowId);
+      params.context.correlationId ?? makeDeterministicCorrelationId(parentWorkflowId);
 
     const event: DomainEvent = {
       eventId,
@@ -160,8 +159,6 @@ function normalizeDispatch(params: EmitParams): PersistDispatchOptions {
   return {
     mode: "deferred",
     batchKey: params.dispatch.batchKey,
-    aggregateKey:
-      params.dispatch.aggregateKey ??
-      `${params.subject.type}:${params.subject.id}`,
+    aggregateKey: params.dispatch.aggregateKey ?? `${params.subject.type}:${params.subject.id}`,
   };
 }

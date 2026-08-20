@@ -1,9 +1,6 @@
 import { and, eq, max, or } from "drizzle-orm";
 import { createHash } from "node:crypto";
-import type {
-  NotificationChannel,
-  NotificationDefinitionKey,
-} from "@shopana/broker-types";
+import type { NotificationChannel, NotificationDefinitionKey } from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   notificationTemplateActiveRevisions,
@@ -28,8 +25,8 @@ export class TemplateRepository extends BaseRepository {
           eq(notificationTemplateRevisions.storeId, this.storeId),
           eq(notificationTemplateRevisions.definitionKey, input.key),
           eq(notificationTemplateRevisions.channel, input.channel),
-          eq(notificationTemplateRevisions.locale, input.locale)
-        )
+          eq(notificationTemplateRevisions.locale, input.locale),
+        ),
       );
     const revision = (aggregate?.revision ?? 0) + 1;
     const sourceHash = createHash("sha256")
@@ -38,7 +35,7 @@ export class TemplateRepository extends BaseRepository {
           subject: input.subjectTemplate,
           body: input.bodyTemplate,
           text: input.plainTextTemplate,
-        })
+        }),
       )
       .digest("hex");
     const rows = await this.connection
@@ -68,28 +65,21 @@ export class TemplateRepository extends BaseRepository {
       .where(
         and(
           eq(notificationTemplateRevisions.storeId, this.storeId),
-          eq(notificationTemplateRevisions.id, id)
-        )
+          eq(notificationTemplateRevisions.id, id),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
   }
 
-  async activate(input: {
-    revisionId: string;
-    expectedVersion: number;
-    updatedBy?: string;
-  }) {
+  async activate(input: { revisionId: string; expectedVersion: number; updatedBy?: string }) {
     const revision = await this.findRevision(input.revisionId);
     if (!revision) throw new Error("TEMPLATE_REVISION_NOT_FOUND");
     const identity = and(
       eq(notificationTemplateActiveRevisions.storeId, this.storeId),
-      eq(
-        notificationTemplateActiveRevisions.definitionKey,
-        revision.definitionKey
-      ),
+      eq(notificationTemplateActiveRevisions.definitionKey, revision.definitionKey),
       eq(notificationTemplateActiveRevisions.channel, revision.channel),
-      eq(notificationTemplateActiveRevisions.locale, revision.locale)
+      eq(notificationTemplateActiveRevisions.locale, revision.locale),
     );
     const current = (
       await this.connection
@@ -121,25 +111,13 @@ export class TemplateRepository extends BaseRepository {
         updatedBy: input.updatedBy,
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          identity,
-          eq(
-            notificationTemplateActiveRevisions.version,
-            input.expectedVersion
-          )
-        )
-      )
+      .where(and(identity, eq(notificationTemplateActiveRevisions.version, input.expectedVersion)))
       .returning();
     if (!rows[0]) throw new Error("VERSION_CONFLICT");
     return rows[0];
   }
 
-  async findActive(
-    key: NotificationDefinitionKey,
-    channel: NotificationChannel,
-    locale: string
-  ) {
+  async findActive(key: NotificationDefinitionKey, channel: NotificationChannel, locale: string) {
     const rows = await this.connection
       .select({
         revision: notificationTemplateRevisions,
@@ -148,18 +126,15 @@ export class TemplateRepository extends BaseRepository {
       .from(notificationTemplateActiveRevisions)
       .innerJoin(
         notificationTemplateRevisions,
-        eq(
-          notificationTemplateRevisions.id,
-          notificationTemplateActiveRevisions.revisionId
-        )
+        eq(notificationTemplateRevisions.id, notificationTemplateActiveRevisions.revisionId),
       )
       .where(
         and(
           eq(notificationTemplateActiveRevisions.storeId, this.storeId),
           eq(notificationTemplateActiveRevisions.definitionKey, key),
           eq(notificationTemplateActiveRevisions.channel, channel),
-          eq(notificationTemplateActiveRevisions.locale, locale)
-        )
+          eq(notificationTemplateActiveRevisions.locale, locale),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -170,7 +145,7 @@ export class TemplateRepository extends BaseRepository {
       key: NotificationDefinitionKey;
       channel: NotificationChannel;
       locale: string;
-    }[]
+    }[],
   ) {
     return this.connection
       .select({
@@ -180,10 +155,7 @@ export class TemplateRepository extends BaseRepository {
       .from(notificationTemplateActiveRevisions)
       .innerJoin(
         notificationTemplateRevisions,
-        eq(
-          notificationTemplateRevisions.id,
-          notificationTemplateActiveRevisions.revisionId
-        )
+        eq(notificationTemplateRevisions.id, notificationTemplateActiveRevisions.revisionId),
       )
       .where(
         and(
@@ -193,12 +165,11 @@ export class TemplateRepository extends BaseRepository {
               and(
                 eq(notificationTemplateActiveRevisions.definitionKey, key),
                 eq(notificationTemplateActiveRevisions.channel, channel),
-                eq(notificationTemplateActiveRevisions.locale, locale)
-              )
-            )
-          )
-        )
+                eq(notificationTemplateActiveRevisions.locale, locale),
+              ),
+            ),
+          ),
+        ),
       );
   }
-
 }

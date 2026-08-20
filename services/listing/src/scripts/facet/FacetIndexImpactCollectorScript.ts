@@ -25,15 +25,12 @@ export class FacetIndexImpactCollectorScript extends BaseScript<
   FacetIndexImpactCollectorResult
 > {
   protected async execute(
-    params: FacetIndexImpactCollectorParams
+    params: FacetIndexImpactCollectorParams,
   ): Promise<FacetIndexImpactCollectorResult> {
     const activeOnly = params.activeOnly ?? false;
     const sourceValues = await this.collectSourceValues(params);
     const facetIds = [
-      ...new Set([
-        ...(params.facetIds ?? []),
-        ...sourceValues.map((value) => value.facetId),
-      ]),
+      ...new Set([...(params.facetIds ?? []), ...sourceValues.map((value) => value.facetId)]),
     ];
     const facets = await this.repository.facet.getByIds(facetIds);
     const facetById = new Map(facets.map((facet) => [facet.id, facet]));
@@ -57,15 +54,13 @@ export class FacetIndexImpactCollectorScript extends BaseScript<
   }
 
   private async collectSourceValues(
-    params: FacetIndexImpactCollectorParams
+    params: FacetIndexImpactCollectorParams,
   ): Promise<FacetValue[]> {
     const sourceValuesById = new Map<string, FacetValue>();
 
     const facetIds = [...new Set(params.facetIds ?? [])];
     if (facetIds.length > 0) {
-      const values = await this.repository.facetValue.getSourceValuesByFacetIds(
-        facetIds
-      );
+      const values = await this.repository.facetValue.getSourceValuesByFacetIds(facetIds);
       for (const value of values) {
         sourceValuesById.set(value.id, value);
       }
@@ -74,13 +69,8 @@ export class FacetIndexImpactCollectorScript extends BaseScript<
     const valueIds = [...new Set(params.valueIds ?? [])];
     if (valueIds.length > 0) {
       const values = await this.repository.facetValue.getByIds(valueIds);
-      const groupIds = values
-        .filter((value) => value.kind === "group")
-        .map((value) => value.id);
-      const groupChildren =
-        await this.repository.facetValue.getSourceChildrenByParentIds(
-          groupIds
-        );
+      const groupIds = values.filter((value) => value.kind === "group").map((value) => value.id);
+      const groupChildren = await this.repository.facetValue.getSourceChildrenByParentIds(groupIds);
 
       for (const value of [...values, ...groupChildren]) {
         if (value.kind === "source") {
@@ -93,7 +83,7 @@ export class FacetIndexImpactCollectorScript extends BaseScript<
       (left, right) =>
         left.facetId.localeCompare(right.facetId) ||
         left.handle.localeCompare(right.handle) ||
-        left.id.localeCompare(right.id)
+        left.id.localeCompare(right.id),
     );
   }
 }
@@ -105,7 +95,7 @@ function isValueEligible(value: FacetValue, activeOnly: boolean): boolean {
 
 function sourceRefFromValue(
   facet: Facet | undefined,
-  value: FacetValue
+  value: FacetValue,
 ): FacetIndexImpactSourceRef | null {
   if (!facet || !FACET_TYPES_WITH_VALUES.has(facet.facetType)) {
     return null;
@@ -135,20 +125,18 @@ function sourceHandleFromComposite(handle: string): string | null {
   return handle.slice(0, separator);
 }
 
-function uniqueSourceRefs(
-  refs: readonly FacetIndexImpactSourceRef[]
-): FacetIndexImpactSourceRef[] {
+function uniqueSourceRefs(refs: readonly FacetIndexImpactSourceRef[]): FacetIndexImpactSourceRef[] {
   return [
     ...new Map(
       refs.map((ref) => [
         `${ref.facetType}\0${ref.sourceHandle}\0${ref.sourceValueHandle ?? ""}`,
         ref,
-      ])
+      ]),
     ).values(),
   ].sort(
     (left, right) =>
       left.facetType.localeCompare(right.facetType) ||
       left.sourceHandle.localeCompare(right.sourceHandle) ||
-      (left.sourceValueHandle ?? "").localeCompare(right.sourceValueHandle ?? "")
+      (left.sourceValueHandle ?? "").localeCompare(right.sourceValueHandle ?? ""),
   );
 }

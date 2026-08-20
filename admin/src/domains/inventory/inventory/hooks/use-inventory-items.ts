@@ -13,17 +13,10 @@ import { InventoryItemWarehouseScopeMode } from "@/graphql/types";
 import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { INVENTORY_ITEMS_QUERY } from "../graphql";
-import type {
-  InventoryItemsQueryData,
-  InventoryItemsQueryVariables,
-} from "../graphql";
-import {
-  mapInventoryVariantEdgesToRows,
-  type InventoryVariantRow,
-} from "../mappers";
+import type { InventoryItemsQueryData, InventoryItemsQueryVariables } from "../graphql";
+import { mapInventoryVariantEdgesToRows, type InventoryVariantRow } from "../mappers";
 
-export interface UseInventoryItemsOptions
-  extends RelayCursorPaginationVariables {
+export interface UseInventoryItemsOptions extends RelayCursorPaginationVariables {
   where?: ApiInventoryItemWhereInput | null;
   orderBy?: ApiInventoryItemOrderByInput[] | null;
   meta?: ApiInventoryItemInventoryItemsMetaInput | null;
@@ -85,15 +78,7 @@ export function useInventoryItems({
       orderBy,
       ...(inventoryItemsMeta ? { meta: inventoryItemsMeta } : {}),
     }),
-    [
-      after,
-      before,
-      first,
-      inventoryItemsMeta,
-      last,
-      orderBy,
-      where,
-    ],
+    [after, before, first, inventoryItemsMeta, last, orderBy, where],
   );
 
   const inventoryResult = useRelayConnectionQuery<
@@ -111,10 +96,7 @@ export function useInventoryItems({
 
   const connection = inventoryResult.connection;
   const rows = useMemo(
-    () =>
-      connection
-        ? mapInventoryVariantEdgesToRows(connection.edges, activeWarehouseId)
-        : [],
+    () => (connection ? mapInventoryVariantEdgesToRows(connection.edges, activeWarehouseId) : []),
     [activeWarehouseId, connection],
   );
 
@@ -122,9 +104,7 @@ export function useInventoryItems({
     await inventoryResult.refetch();
   }, [inventoryResult]);
 
-  const readOnlyReason = activeWarehouseId
-    ? null
-    : "Select a warehouse to edit inventory.";
+  const readOnlyReason = activeWarehouseId ? null : "Select a warehouse to edit inventory.";
 
   return {
     rows,

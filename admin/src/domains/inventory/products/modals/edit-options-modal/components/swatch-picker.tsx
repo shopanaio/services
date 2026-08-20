@@ -1,15 +1,10 @@
 import { useState } from "react";
+import { Button, Typography, Flex, ColorPicker, Popover, Segmented, Upload, Tabs } from "antd";
 import {
-  Button,
-  Typography,
-  Flex,
-  ColorPicker,
-  Popover,
-  Segmented,
-  Upload,
-  Tabs,
-} from "antd";
-import { LuX as CloseOutlined, LuImage as PictureOutlined, LuUpload as UploadOutlined } from "react-icons/lu";
+  LuX as CloseOutlined,
+  LuImage as PictureOutlined,
+  LuUpload as UploadOutlined,
+} from "react-icons/lu";
 import { SwatchType } from "@/graphql/types";
 import { useStyles } from "../edit-options-modal.styles";
 import { SWATCH_MODE_OPTIONS, type SwatchModeType } from "../edit-options-modal.constants";
@@ -22,12 +17,7 @@ interface ISwatchPickerProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export const SwatchPicker = ({
-  swatch,
-  onChange,
-  open,
-  onOpenChange,
-}: ISwatchPickerProps) => {
+export const SwatchPicker = ({ swatch, onChange, open, onOpenChange }: ISwatchPickerProps) => {
   const { styles } = useStyles();
   const [internalOpen, setInternalOpen] = useState(false);
   const [activeColorTab, setActiveColorTab] = useState<"1" | "2">("1");
@@ -43,9 +33,7 @@ export const SwatchPicker = ({
   const mode: SwatchModeType = swatchType === SwatchType.Image ? "image" : "color";
   const isDuotone = swatchType === SwatchType.Gradient;
   const swatchModeOptions = SWATCH_MODE_OPTIONS.map((option) =>
-    option.value === "image" && !fileId
-      ? { ...option, disabled: true }
-      : option,
+    option.value === "image" && !fileId ? { ...option, disabled: true } : option,
   );
 
   const handleModeChange = (nextMode: SwatchModeType) => {
@@ -226,11 +214,7 @@ export const SwatchPicker = ({
         >
           <Flex align="center" justify="center" vertical>
             <UploadOutlined className={styles.swatchDraggerIcon} />
-            <Typography.Text
-              strong
-              type="secondary"
-              className={styles.swatchDraggerTitle}
-            >
+            <Typography.Text strong type="secondary" className={styles.swatchDraggerTitle}>
               Image upload unavailable
             </Typography.Text>
           </Flex>
@@ -261,9 +245,7 @@ export const SwatchPicker = ({
       placement="bottomLeft"
       arrow={false}
     >
-      <span data-testid="edit-options-swatch-trigger">
-        {renderTrigger()}
-      </span>
+      <span data-testid="edit-options-swatch-trigger">{renderTrigger()}</span>
     </Popover>
   );
 };

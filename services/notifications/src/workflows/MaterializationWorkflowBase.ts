@@ -28,16 +28,10 @@ export abstract class MaterializationWorkflowBase extends BrokerWorkflows {
     params: MaterializeNotificationParams;
     context: RunScriptContext;
   }): Promise<MaterializeNotificationResult> {
-    return this.kernel.runScript(
-      MaterializeNotificationScript,
-      input.params,
-      input.context
-    );
+    return this.kernel.runScript(MaterializeNotificationScript, input.params, input.context);
   }
 
-  protected async startDelivery(
-    input: DeliveryWorkflowInput
-  ): Promise<string> {
+  protected async startDelivery(input: DeliveryWorkflowInput): Promise<string> {
     const workflowId = DBOS.workflowID;
     const idempotency: IdempotencyContext = workflowId
       ? {
@@ -54,11 +48,7 @@ export abstract class MaterializationWorkflowBase extends BrokerWorkflows {
           operation: "notifications.deliver",
           content: input,
         };
-    const started = await this.broker.startWorkflow(
-      "notifications.deliver",
-      input,
-      idempotency
-    );
+    const started = await this.broker.startWorkflow("notifications.deliver", input, idempotency);
     return started.workflowId;
   }
 }

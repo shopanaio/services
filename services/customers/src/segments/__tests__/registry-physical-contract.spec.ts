@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import { CUSTOMER_SEGMENT_REGISTRY } from "../registry.js";
 
 describe("customer segment registry physical contract", () => {
-  const migrations = readSqlTree(fileURLToPath(
-    new URL("../../../migrations/domains", import.meta.url),
-  ));
+  const migrations = readSqlTree(
+    fileURLToPath(new URL("../../../migrations/domains", import.meta.url)),
+  );
 
   it("does not publish an AVAILABLE descriptor without every declared index", () => {
     for (const descriptor of CUSTOMER_SEGMENT_REGISTRY.values()) {
@@ -33,9 +33,7 @@ describe("customer segment registry physical contract", () => {
   });
 
   it("indexes completed-time order evaluation", () => {
-    expect(migrations).toContain(
-      '"customer_order_projection_customer_status_idx"',
-    );
+    expect(migrations).toContain('"customer_order_projection_customer_status_idx"');
     expect(migrations).toContain(
       '("store_id", "customer_id", "status", "created_at", "completed_at", "cancelled_at", "order_id")',
     );
@@ -47,9 +45,11 @@ function readSqlTree(directory: string): string {
     .sort((left, right) => left.name.localeCompare(right.name))
     .map((entry) => {
       const target = join(directory, entry.name);
-      return entry.isDirectory() ? readSqlTree(target) : entry.name.endsWith(".sql")
-        ? readFileSync(target, "utf8")
-        : "";
+      return entry.isDirectory()
+        ? readSqlTree(target)
+        : entry.name.endsWith(".sql")
+          ? readFileSync(target, "utf8")
+          : "";
     })
     .join("\n");
 }

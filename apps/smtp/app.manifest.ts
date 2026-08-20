@@ -5,8 +5,7 @@ export const smtpManifest = defineAppManifest({
   code: "shopana-smtp",
   version: "1.0.0",
   displayName: "Mailer",
-  description:
-    "Deliver store email through configurable SMTP provider connections.",
+  description: "Deliver store email through configurable SMTP provider connections.",
   icon: {
     url: "/app-icons/mailer.svg",
     alt: "Mailer",

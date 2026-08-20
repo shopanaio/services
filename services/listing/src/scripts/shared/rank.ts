@@ -1,6 +1,6 @@
 const RANK_WIDTH = 20;
 const RANK_MIN = 0n;
-const RANK_MAX = (10n ** BigInt(RANK_WIDTH)) - 1n;
+const RANK_MAX = 10n ** BigInt(RANK_WIDTH) - 1n;
 const DEFAULT_STEP = 1_000_000_000_000n;
 const DEFAULT_MIDDLE = RANK_MAX / 2n;
 

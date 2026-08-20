@@ -1,9 +1,6 @@
 import type { UserError } from "../../kernel/BaseScript.js";
 import type { DiscountAggregate } from "../../repositories/DiscountRepository.js";
-import type {
-  DiscountUpdateChannelsParams,
-  DiscountUpdateChannelsResult,
-} from "./dto/index.js";
+import type { DiscountUpdateChannelsParams, DiscountUpdateChannelsResult } from "./dto/index.js";
 import { BaseDiscountUpdateScript } from "./BaseDiscountUpdateScript.js";
 import { sectionErrors, sectionSuccess } from "./types.js";
 
@@ -34,10 +31,7 @@ export class DiscountUpdateChannelsScript extends BaseDiscountUpdateScript<Disco
       return { code, featured: input.featured ?? false };
     });
     if (errors.length > 0) return sectionErrors(errors);
-    await this.repository.discount.replaceChannels(
-      aggregate.discount.id,
-      channels,
-    );
+    await this.repository.discount.replaceChannels(aggregate.discount.id, channels);
     return sectionSuccess();
   }
 }

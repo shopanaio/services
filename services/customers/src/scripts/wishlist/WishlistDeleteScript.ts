@@ -18,23 +18,16 @@ export interface WishlistDeleteResult {
   userErrors: WishlistUserError[];
 }
 
-export class WishlistDeleteScript extends BaseScript<
-  WishlistDeleteParams,
-  WishlistDeleteResult
-> {
+export class WishlistDeleteScript extends BaseScript<WishlistDeleteParams, WishlistDeleteResult> {
   @Transactional()
-  protected async execute(
-    params: WishlistDeleteParams,
-  ): Promise<WishlistDeleteResult> {
+  protected async execute(params: WishlistDeleteParams): Promise<WishlistDeleteResult> {
     if (!isValidExpectedTimestamp(params.expectedUpdatedAt)) {
       return {
         deletedWishlistId: null,
         userErrors: [
-          wishlistError(
-            "INVALID_UPDATED_AT",
-            "Expected update timestamp is invalid",
-            ["expectedUpdatedAt"],
-          ),
+          wishlistError("INVALID_UPDATED_AT", "Expected update timestamp is invalid", [
+            "expectedUpdatedAt",
+          ]),
         ],
       };
     }
@@ -42,9 +35,7 @@ export class WishlistDeleteScript extends BaseScript<
     if (result.status === "not_found") {
       return {
         deletedWishlistId: null,
-        userErrors: [
-          wishlistError("NOT_FOUND", "Wishlist was not found", ["id"]),
-        ],
+        userErrors: [wishlistError("NOT_FOUND", "Wishlist was not found", ["id"])],
       };
     }
     if (result.status === "default_protected") {
@@ -63,11 +54,9 @@ export class WishlistDeleteScript extends BaseScript<
       return {
         deletedWishlistId: null,
         userErrors: [
-          wishlistError(
-            "UPDATED_AT_CONFLICT",
-            "Wishlist was modified by another request",
-            ["expectedUpdatedAt"],
-          ),
+          wishlistError("UPDATED_AT_CONFLICT", "Wishlist was modified by another request", [
+            "expectedUpdatedAt",
+          ]),
         ],
       };
     }

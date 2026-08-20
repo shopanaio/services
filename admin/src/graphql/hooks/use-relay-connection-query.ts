@@ -28,10 +28,7 @@ export interface UseRelayConnectionQueryOptions<
   getConnection: (data: TData | undefined) => TConnection | null | undefined;
 }
 
-export interface UseRelayConnectionQueryReturn<
-  TNode,
-  TConnection extends RelayConnection<TNode>,
-> {
+export interface UseRelayConnectionQueryReturn<TNode, TConnection extends RelayConnection<TNode>> {
   nodes: TNode[];
   connection: TConnection | null;
   totalCount: number;
@@ -58,10 +55,7 @@ export function useRelayConnectionQuery<
   TNode,
   TConnection
 >): UseRelayConnectionQueryReturn<TNode, TConnection> {
-  const { data, previousData, loading, error, refetch } = useQuery<
-    TData,
-    TVariables
-  >(query, {
+  const { data, previousData, loading, error, refetch } = useQuery<TData, TVariables>(query, {
     variables,
     skip,
     fetchPolicy,

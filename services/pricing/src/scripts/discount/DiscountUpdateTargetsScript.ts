@@ -3,10 +3,7 @@ import type {
   DiscountAggregate,
   DiscountTargetSelectionWriteInput,
 } from "../../repositories/DiscountRepository.js";
-import type {
-  DiscountUpdateTargetsParams,
-  DiscountUpdateTargetsResult,
-} from "./dto/index.js";
+import type { DiscountUpdateTargetsParams, DiscountUpdateTargetsResult } from "./dto/index.js";
 import { BaseDiscountUpdateScript } from "./BaseDiscountUpdateScript.js";
 import { sectionErrors, sectionSuccess } from "./types.js";
 
@@ -15,15 +12,9 @@ export class DiscountUpdateTargetsScript extends BaseDiscountUpdateScript<Discou
     aggregate: DiscountAggregate,
     params: DiscountUpdateTargetsParams,
   ): Promise<DiscountUpdateTargetsResult> {
-    const mapped = mapTargetSelections(
-      aggregate.discount.kind,
-      params.targetSelections,
-    );
+    const mapped = mapTargetSelections(aggregate.discount.kind, params.targetSelections);
     if (mapped.errors.length > 0) return sectionErrors(mapped.errors);
-    await this.repository.discount.replaceTargetSelections(
-      aggregate.discount.id,
-      mapped.value,
-    );
+    await this.repository.discount.replaceTargetSelections(aggregate.discount.id, mapped.value);
     return sectionSuccess();
   }
 }
@@ -68,19 +59,13 @@ function mapTargetSelections(
     return { role: input.role, targetType: input.targetType, targetIds };
   });
 
-  if (
-    (kind === "AMOUNT_OFF_ORDER" || kind === "FREE_SHIPPING") &&
-    value.length > 0
-  ) {
+  if ((kind === "AMOUNT_OFF_ORDER" || kind === "FREE_SHIPPING") && value.length > 0) {
     errors.push({
       message: "Order and shipping discounts cannot have catalog targets",
       code: "TARGETS_NOT_ALLOWED",
     });
   }
-  if (
-    kind === "AMOUNT_OFF_PRODUCTS" &&
-    value.some((item) => item.role !== "BENEFIT")
-  ) {
+  if (kind === "AMOUNT_OFF_PRODUCTS" && value.some((item) => item.role !== "BENEFIT")) {
     errors.push({
       message: "Amount-off product discounts only support BENEFIT targets",
       code: "INVALID_TARGET_ROLE",

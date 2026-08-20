@@ -2,12 +2,7 @@ import yaml from "js-yaml";
 import type { ConfigExtensionRequest, ConfigFile } from "../woodpecker/payload";
 import { WorkflowRegistry } from "./workflow-registry";
 import { HookRegistry } from "./hook-registry";
-import type {
-  WorkflowContext,
-  WorkflowLoader,
-  HookLoader,
-  GeneratedConfig,
-} from "./interface";
+import type { WorkflowContext, WorkflowLoader, HookLoader, GeneratedConfig } from "./interface";
 import { HookStage } from "./interface";
 import { WorkflowScriptLoader } from "./workflow-loader";
 import { HookScriptLoader } from "./hook-loader";

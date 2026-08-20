@@ -3,11 +3,7 @@ import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { CurrencyCode, LocaleCode } from "@shopana/shared-references";
 import type { MarketSnapshot } from "../../repositories/market/MarketRepository.js";
 import { ProjectType } from "./ProjectType.js";
-import {
-  countryValue,
-  currencyValue,
-  languageValue,
-} from "./referenceValues.js";
+import { countryValue, currencyValue, languageValue } from "./referenceValues.js";
 
 @SubgraphReference()
 export class MarketResolver extends ProjectType<string, MarketSnapshot> {

@@ -26,14 +26,9 @@ export const SortableValue = ({
 }: ISortableValueProps) => {
   const { styles, cx } = useStyles();
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: value.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: value.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),

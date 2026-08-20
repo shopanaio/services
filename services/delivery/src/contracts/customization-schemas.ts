@@ -10,12 +10,7 @@ const identifierSchema = z.string().trim().min(1).max(512);
 export const DeliveryCustomizationPolicySnapshotSchema = z
   .object({
     revision: identifierSchema,
-    maxExecutions: z
-      .number()
-      .int()
-      .safe()
-      .min(1)
-      .max(DELIVERY_CUSTOMIZATION_MAX_EXECUTIONS),
+    maxExecutions: z.number().int().safe().min(1).max(DELIVERY_CUSTOMIZATION_MAX_EXECUTIONS),
     maxOperationsPerExecution: z
       .number()
       .int()
@@ -27,35 +22,32 @@ export const DeliveryCustomizationPolicySnapshotSchema = z
   })
   .strict();
 
-export const DeliveryCustomizationOperationSchema = z.discriminatedUnion(
-  "type",
-  [
-    z
-      .object({
-        type: z.literal("HIDE"),
-        groupId: identifierSchema,
-        optionHandle: identifierSchema,
-        reasonCode: identifierSchema,
-      })
-      .strict(),
-    z
-      .object({
-        type: z.literal("MOVE"),
-        groupId: identifierSchema,
-        optionHandle: identifierSchema,
-        index: z.number().int().nonnegative().max(10_000),
-      })
-      .strict(),
-    z
-      .object({
-        type: z.literal("RENAME"),
-        groupId: identifierSchema,
-        optionHandle: identifierSchema,
-        title: z.string().trim().min(1).max(255),
-      })
-      .strict(),
-  ],
-);
+export const DeliveryCustomizationOperationSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("HIDE"),
+      groupId: identifierSchema,
+      optionHandle: identifierSchema,
+      reasonCode: identifierSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("MOVE"),
+      groupId: identifierSchema,
+      optionHandle: identifierSchema,
+      index: z.number().int().nonnegative().max(10_000),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("RENAME"),
+      groupId: identifierSchema,
+      optionHandle: identifierSchema,
+      title: z.string().trim().min(1).max(255),
+    })
+    .strict(),
+]);
 
 export const DeliveryCustomizationFunctionResultSchema = z
   .object({
@@ -66,8 +58,7 @@ export const DeliveryCustomizationFunctionResultSchema = z
   .strict()
   .superRefine((value, context) => {
     const targets = value.operations.map(
-      (operation) =>
-        `${operation.groupId}:${operation.optionHandle}`,
+      (operation) => `${operation.groupId}:${operation.optionHandle}`,
     );
     if (new Set(targets).size !== targets.length) {
       context.addIssue({

@@ -67,9 +67,7 @@ export const subscribeToEmail = (listener: () => void) => {
 
 export const getEmailSnapshot = () => snapshot;
 
-export const updateMockEmailSettings = async (
-  input: UpdateEmailSettingsInput,
-) => {
+export const updateMockEmailSettings = async (input: UpdateEmailSettingsInput) => {
   const settings = {
     ...snapshot.settings,
     ...input,
@@ -94,9 +92,7 @@ export const updateMockSmtpProfile = async (input: UpdateSmtpProfileInput) => {
   return mockRequest(profile);
 };
 
-export const createMockEmailTemplate = async (
-  input: CreateEmailTemplateInput,
-) => {
+export const createMockEmailTemplate = async (input: CreateEmailTemplateInput) => {
   templateSequence += 1;
   const template = {
     ...input,
@@ -108,9 +104,7 @@ export const createMockEmailTemplate = async (
   return mockRequest(template);
 };
 
-export const updateMockEmailTemplate = async (
-  input: UpdateEmailTemplateInput,
-) => {
+export const updateMockEmailTemplate = async (input: UpdateEmailTemplateInput) => {
   const current = snapshot.templates.find((template) => template.id === input.id);
   if (!current) throw new Error("Email template not found");
 
@@ -122,16 +116,12 @@ export const updateMockEmailTemplate = async (
   };
   publish({
     ...snapshot,
-    templates: snapshot.templates.map((item) =>
-      item.id === template.id ? template : item,
-    ),
+    templates: snapshot.templates.map((item) => (item.id === template.id ? template : item)),
   });
   return mockRequest(template);
 };
 
-export const deleteMockEmailTemplate = async ({
-  id,
-}: DeleteEmailTemplateInput) => {
+export const deleteMockEmailTemplate = async ({ id }: DeleteEmailTemplateInput) => {
   publish({
     ...snapshot,
     templates: snapshot.templates.filter((template) => template.id !== id),

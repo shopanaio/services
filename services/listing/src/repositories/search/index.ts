@@ -5,4 +5,3 @@ export * from "./SearchSettingsRepository.js";
 export * from "./SearchSynonymRepository.js";
 export * from "./SearchProductBoostRepository.js";
 export * from "./searchRepositoryTypes.js";
-

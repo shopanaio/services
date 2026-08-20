@@ -1,6 +1,4 @@
-export const formatDetailDate = (
-  value: Date | string | null | undefined,
-): string => {
+export const formatDetailDate = (value: Date | string | null | undefined): string => {
   if (!value) {
     return "";
   }

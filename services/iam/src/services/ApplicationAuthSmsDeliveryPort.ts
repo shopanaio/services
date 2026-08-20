@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 export const APPLICATION_AUTH_SMS_DELIVERY_PORT = Symbol.for(
-  "shopana.iam.application-auth-sms-delivery-port"
+  "shopana.iam.application-auth-sms-delivery-port",
 );
 
 export interface ApplicationAuthSmsDeliveryRequest {
@@ -12,13 +12,10 @@ export interface ApplicationAuthSmsDeliveryRequest {
 }
 
 export type ApplicationAuthSmsDeliveryResult =
-  | { accepted: true; messageId: string }
-  | { accepted: false; retryable: boolean };
+  { accepted: true; messageId: string } | { accepted: false; retryable: boolean };
 
 export interface ApplicationAuthSmsDeliveryPort {
-  enqueue(
-    request: ApplicationAuthSmsDeliveryRequest
-  ): Promise<ApplicationAuthSmsDeliveryResult>;
+  enqueue(request: ApplicationAuthSmsDeliveryRequest): Promise<ApplicationAuthSmsDeliveryResult>;
 }
 
 export function createApplicationAuthSmsIdempotencyKey(input: {

@@ -12,9 +12,13 @@ extend type Product @key(fields: "id") {
   result and does not trigger a synchronous recommendation calculation.
   """
   relatedProducts(
-    """Number of recommendations to return; must be between 1 and 100."""
+    """
+    Number of recommendations to return; must be between 1 and 100.
+    """
     first: Int = 12
-    """Continue after an opaque cursor returned by this connection."""
+    """
+    Continue after an opaque cursor returned by this connection.
+    """
     after: Cursor
   ): ProductRecommendationConnection!
 
@@ -27,9 +31,13 @@ extend type Product @key(fields: "id") {
   Clients choose concrete variants and use Checkout APIs for add-to-cart.
   """
   frequentlyBoughtTogether(
-    """Number of recommendations to return; must be between 1 and 100."""
+    """
+    Number of recommendations to return; must be between 1 and 100.
+    """
     first: Int = 3
-    """Continue after an opaque cursor returned by this connection."""
+    """
+    Continue after an opaque cursor returned by this connection.
+    """
     after: Cursor
   ): ProductRecommendationConnection!
 }
@@ -45,7 +53,9 @@ extend type Category @key(fields: "id") {
   it is RELEVANCE.
   """
   products(
-    """Number of products to return; must be between 1 and 100."""
+    """
+    Number of products to return; must be between 1 and 100.
+    """
     first: Int = 20
     after: Cursor
     query: String
@@ -79,7 +89,9 @@ type Query {
   NEWEST; MANUAL and RELEVANCE are not valid for this entry point.
   """
   products(
-    """Number of products to return; must be between 1 and 100."""
+    """
+    Number of products to return; must be between 1 and 100.
+    """
     first: Int = 20
     after: Cursor
     filters: [ListingFilterInput!]
@@ -95,7 +107,9 @@ type Query {
   """
   searchProducts(
     query: String!
-    """Number of products to return; must be between 1 and 100."""
+    """
+    Number of products to return; must be between 1 and 100.
+    """
     first: Int = 20
     after: Cursor
     filters: [ListingFilterInput!]
@@ -109,16 +123,24 @@ type Query {
 A Relay connection containing products from one canonical listing request.
 """
 type ProductConnection implements Connection {
-  """A list of product edges."""
+  """
+  A list of product edges.
+  """
   edges: [ProductEdge!]!
 
-  """The products contained in the returned edges."""
+  """
+  The products contained in the returned edges.
+  """
   nodes: [Product!]!
 
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
 
-  """The exact number of products matching every active filter."""
+  """
+  The exact number of products matching every active filter.
+  """
   totalCount: Int!
 
   """
@@ -129,7 +151,9 @@ type ProductConnection implements Connection {
   """
   filters: [Filter!]!
 
-  """The effective sort selected for this request."""
+  """
+  The effective sort selected for this request.
+  """
   sort: ListingSort!
 
   """
@@ -140,10 +164,14 @@ type ProductConnection implements Connection {
 }
 
 type ProductEdge {
-  """An opaque cursor for this product in the current listing."""
+  """
+  An opaque cursor for this product in the current listing.
+  """
   cursor: Cursor!
 
-  """The product at the end of the edge."""
+  """
+  The product at the end of the edge.
+  """
   node: Product!
 }
 
@@ -164,10 +192,14 @@ input ListingFilterInput {
 }
 
 input FacetFilterInput {
-  """Public facet handle, for example `color` or `material`."""
+  """
+  Public facet handle, for example `color` or `material`.
+  """
   facet: String!
 
-  """Public facet value handle, for example `blue` or `cotton`."""
+  """
+  Public facet value handle, for example `blue` or `cotton`.
+  """
   value: String!
 }
 
@@ -200,28 +232,44 @@ Availability placement is controlled by listing/search policy and is not
 reversed by the selected product sort.
 """
 enum ListingSort {
-  """Merchant-defined order. Available only in category scope."""
+  """
+  Merchant-defined order. Available only in category scope.
+  """
   MANUAL
 
-  """Search relevance. Available when a query is active in any scope."""
+  """
+  Search relevance. Available when a query is active in any scope.
+  """
   RELEVANCE
 
-  """Published date descending. Available in global, category, and query contexts."""
+  """
+  Published date descending. Available in global, category, and query contexts.
+  """
   NEWEST
 
-  """Creation date descending. Available in global, category, and query contexts."""
+  """
+  Creation date descending. Available in global, category, and query contexts.
+  """
   CREATED_AT
 
-  """Localized title ascending. Available in global, category, and query contexts."""
+  """
+  Localized title ascending. Available in global, category, and query contexts.
+  """
   TITLE_ASC
 
-  """Localized title descending. Available in global, category, and query contexts."""
+  """
+  Localized title descending. Available in global, category, and query contexts.
+  """
   TITLE_DESC
 
-  """Storefront price ascending. Available in global, category, and query contexts."""
+  """
+  Storefront price ascending. Available in global, category, and query contexts.
+  """
   PRICE_ASC
 
-  """Storefront price descending. Available in global, category, and query contexts."""
+  """
+  Storefront price descending. Available in global, category, and query contexts.
+  """
   PRICE_DESC
 }
 
@@ -234,7 +282,9 @@ The input of each FilterValue is a JSON object matching ListingFilterInput and
 can be passed unchanged into the filters argument of the next request.
 """
 type Filter {
-  """Stable public identifier within the storefront listing contract."""
+  """
+  Stable public identifier within the storefront listing contract.
+  """
   id: String!
 
   label: String!
@@ -246,7 +296,9 @@ type Filter {
   """
   facet: Facet
 
-  """Preferred visual representation of filter values."""
+  """
+  Preferred visual representation of filter values.
+  """
   presentation: FilterPresentation
 
   """
@@ -255,10 +307,14 @@ type Filter {
   """
   selectionMode: FacetSelectionMode
 
-  """Typed bounds and active selection for a PRICE_RANGE filter."""
+  """
+  Typed bounds and active selection for a PRICE_RANGE filter.
+  """
   priceRange: FilterPriceRange
 
-  """Selectable values and reusable inputs for this filter."""
+  """
+  Selectable values and reusable inputs for this filter.
+  """
   values: [FilterValue!]!
 }
 
@@ -273,7 +329,9 @@ enum FilterPresentation {
   SWATCH
 }
 
-"""Store-currency price metadata expressed in decimal major units."""
+"""
+Store-currency price metadata expressed in decimal major units.
+"""
 type FilterPriceRange {
   min: Money!
   max: Money!
@@ -282,7 +340,9 @@ type FilterPriceRange {
 }
 
 type FilterValue {
-  """Stable identifier within the parent filter."""
+  """
+  Stable identifier within the parent filter.
+  """
   id: String!
 
   label: String!
@@ -306,7 +366,9 @@ type FilterValue {
   """
   facetValue: FacetValue
 
-  """Canonical swatch associated with facetValue, when configured."""
+  """
+  Canonical swatch associated with facetValue, when configured.
+  """
   swatch: FacetSwatch
 }
 
@@ -343,7 +405,9 @@ enum SwatchType {
   GRADIENT
 }
 
-"""A configured listing facet owned by the Listing service."""
+"""
+A configured listing facet owned by the Listing service.
+"""
 type Facet implements Node @key(fields: "id") {
   id: ID!
   facetType: FacetType!
@@ -353,7 +417,9 @@ type Facet implements Node @key(fields: "id") {
   selectionMode: FacetSelectionMode!
 }
 
-"""A configured value belonging to a canonical listing facet."""
+"""
+A configured value belonging to a canonical listing facet.
+"""
 type FacetValue implements Node @key(fields: "id") {
   id: ID!
   facet: Facet!

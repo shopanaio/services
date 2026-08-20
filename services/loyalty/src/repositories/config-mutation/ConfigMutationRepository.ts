@@ -13,11 +13,17 @@ export class ConfigMutationRepository extends BaseRepository {
   }
 
   async find(operation: string, idempotencyKey: string): Promise<ConfigMutation | null> {
-    const rows = await this.connection.select().from(configMutation).where(and(
-      eq(configMutation.storeId, this.storeId),
-      eq(configMutation.operation, operation),
-      eq(configMutation.idempotencyKey, idempotencyKey),
-    )).limit(1);
+    const rows = await this.connection
+      .select()
+      .from(configMutation)
+      .where(
+        and(
+          eq(configMutation.storeId, this.storeId),
+          eq(configMutation.operation, operation),
+          eq(configMutation.idempotencyKey, idempotencyKey),
+        ),
+      )
+      .limit(1);
     return rows[0] ?? null;
   }
 
@@ -33,7 +39,10 @@ export class ConfigMutationRepository extends BaseRepository {
 
   requireSameRequest(record: ConfigMutation, requestHash: string): void {
     if (record.requestHash !== requestHash) {
-      throw new LoyaltyDomainError("IDEMPOTENCY_CONFLICT", "Idempotency key was already used with another loyalty configuration request");
+      throw new LoyaltyDomainError(
+        "IDEMPOTENCY_CONFLICT",
+        "Idempotency key was already used with another loyalty configuration request",
+      );
     }
   }
 }

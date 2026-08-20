@@ -1,10 +1,7 @@
 import { ReadOnly } from "@shopana/shared-kernel";
 import { and, eq } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  customerSegmentStoreContext,
-  type CustomerSegmentStoreContext,
-} from "../models/index.js";
+import { customerSegmentStoreContext, type CustomerSegmentStoreContext } from "../models/index.js";
 
 export interface CustomerSegmentStoreContextInput {
   readonly storeId: string;
@@ -23,9 +20,7 @@ export interface CustomerSegmentStoreContextApplyResult {
 
 export class CustomerSegmentStoreContextRepository extends BaseRepository {
   @ReadOnly()
-  async findByStoreId(
-    storeId: string,
-  ): Promise<CustomerSegmentStoreContext | null> {
+  async findByStoreId(storeId: string): Promise<CustomerSegmentStoreContext | null> {
     const rows = await this.connection
       .select()
       .from(customerSegmentStoreContext)
@@ -82,10 +77,7 @@ export class CustomerSegmentStoreContextRepository extends BaseRepository {
       };
     }
     if (input.configurationRevision === existing.configurationRevision) {
-      if (
-        existing.timeZone !== input.timeZone ||
-        existing.updatedAt !== input.occurredAt
-      ) {
+      if (existing.timeZone !== input.timeZone || existing.updatedAt !== input.occurredAt) {
         throw new Error(
           `Store segment context revision ${input.configurationRevision} has conflicting payloads`,
         );
@@ -108,10 +100,7 @@ export class CustomerSegmentStoreContextRepository extends BaseRepository {
       .where(
         and(
           eq(customerSegmentStoreContext.id, existing.id),
-          eq(
-            customerSegmentStoreContext.configurationRevision,
-            existing.configurationRevision,
-          ),
+          eq(customerSegmentStoreContext.configurationRevision, existing.configurationRevision),
         ),
       )
       .returning();

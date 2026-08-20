@@ -83,7 +83,7 @@ export interface MapErrorsResult {
  */
 export function mapGraphQLErrorsToForm<T extends Record<string, unknown>>(
   errors: ApiGenericUserError[],
-  setError: (name: keyof T, error: { message: string }) => void
+  setError: (name: keyof T, error: { message: string }) => void,
 ): MapErrorsResult {
   const generalErrors: string[] = [];
   let hasFieldErrors = false;
@@ -122,7 +122,7 @@ export function mapGraphQLErrorsToForm<T extends Record<string, unknown>>(
  */
 export function getErrorMessage(
   code: string | null | undefined,
-  defaultMessage: string = "An unexpected error occurred"
+  defaultMessage: string = "An unexpected error occurred",
 ): string {
   if (!code) return defaultMessage;
   return AUTH_ERROR_MAP[code]?.message ?? defaultMessage;

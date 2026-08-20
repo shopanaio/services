@@ -1,8 +1,4 @@
-import {
-  DiscountKind,
-  DiscountMethod,
-  type CurrencyCode,
-} from "@/graphql/types";
+import { DiscountKind, DiscountMethod, type CurrencyCode } from "@/graphql/types";
 import { formatPrice } from "@/domains/inventory/products/utils/price-formatting";
 
 export function formatDiscountEnum(value: string): string {
@@ -75,14 +71,10 @@ export function formatDiscountMoney(
   if (amountMinor == null || !currency) return "—";
   const formatted = formatPrice(amountMinor, currency, "en-US");
 
-  return currency === "UAH"
-    ? formatted.replace("₴", "₴\u00A0")
-    : formatted;
+  return currency === "UAH" ? formatted.replace("₴", "₴\u00A0") : formatted;
 }
 
-export function formatDiscountPercentage(
-  percentageBps: number | null | undefined,
-): string {
+export function formatDiscountPercentage(percentageBps: number | null | undefined): string {
   if (percentageBps == null) return "—";
   const percentage = percentageBps / 100;
   return `${new Intl.NumberFormat("en-US", {

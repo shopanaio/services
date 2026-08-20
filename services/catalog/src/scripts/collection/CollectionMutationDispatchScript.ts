@@ -41,9 +41,7 @@ export interface CollectionMutationDispatchInput {
   operation: CollectionMutationOperation;
 }
 
-export type CollectionMutationDispatchResult =
-  | CollectionResult
-  | CollectionDeleteResult;
+export type CollectionMutationDispatchResult = CollectionResult | CollectionDeleteResult;
 
 export class CollectionMutationDispatchScript extends BaseScript<
   CollectionMutationDispatchInput,
@@ -53,9 +51,7 @@ export class CollectionMutationDispatchScript extends BaseScript<
   protected async execute(
     input: CollectionMutationDispatchInput,
   ): Promise<CollectionMutationDispatchResult> {
-    const receipt = await this.repository.collectionSync.findMutationReceipt(
-      input.workflowId,
-    );
+    const receipt = await this.repository.collectionSync.findMutationReceipt(input.workflowId);
     if (receipt) {
       if (receipt.requestHash !== input.requestHash) {
         return conflictResult(input.operation.kind);
@@ -64,9 +60,7 @@ export class CollectionMutationDispatchScript extends BaseScript<
     }
 
     const result = await this.runOperation(input.operation);
-    if (
-      result.userErrors.some((error) => error.code === "INTERNAL_ERROR")
-    ) {
+    if (result.userErrors.some((error) => error.code === "INTERNAL_ERROR")) {
       throw new RetryableError("Collection mutation failed transiently");
     }
     await this.repository.collectionSync.saveMutationReceipt({
@@ -95,27 +89,15 @@ export class CollectionMutationDispatchScript extends BaseScript<
       case "addProducts":
         return this.executeScript(CollectionAddProductsScript, operation.params);
       case "removeProducts":
-        return this.executeScript(
-          CollectionRemoveProductsScript,
-          operation.params,
-        );
+        return this.executeScript(CollectionRemoveProductsScript, operation.params);
       case "moveProduct":
-        return this.executeScript(
-          CollectionMoveProductScript,
-          operation.params,
-        );
+        return this.executeScript(CollectionMoveProductScript, operation.params);
       case "rebalance":
         return this.executeScript(CollectionRebalanceScript, operation.params);
       case "clearProducts":
-        return this.executeScript(
-          CollectionClearProductsScript,
-          operation.params,
-        );
+        return this.executeScript(CollectionClearProductsScript, operation.params);
       case "updateRules":
-        return this.executeScript(
-          CollectionUpdateRulesScript,
-          operation.params,
-        );
+        return this.executeScript(CollectionUpdateRulesScript, operation.params);
     }
   }
 }
@@ -123,10 +105,12 @@ export class CollectionMutationDispatchScript extends BaseScript<
 function conflictResult(
   kind: CollectionMutationOperation["kind"],
 ): CollectionMutationDispatchResult {
-  const userErrors = [{
-    message: "Client mutation id was reused with different input",
-    code: "IDEMPOTENCY_KEY_REUSED",
-  }];
+  const userErrors = [
+    {
+      message: "Client mutation id was reused with different input",
+      code: "IDEMPOTENCY_KEY_REUSED",
+    },
+  ];
   return kind === "delete"
     ? { deletedCollectionId: undefined, userErrors }
     : { collection: undefined, userErrors };

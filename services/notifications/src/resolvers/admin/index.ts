@@ -1,19 +1,10 @@
-export {
-  MutationResolver,
-  NotificationsMutationResolver,
-} from "./MutationResolver.js";
+export { MutationResolver, NotificationsMutationResolver } from "./MutationResolver.js";
 export { NotificationChannelSettingResolver } from "./NotificationChannelSettingResolver.js";
 export { NotificationDefinitionResolver } from "./NotificationDefinitionResolver.js";
 export { NotificationDefinitionSettingResolver } from "./NotificationDefinitionSettingResolver.js";
 export { NotificationEffectiveTemplateResolver } from "./NotificationEffectiveTemplateResolver.js";
 export { NotificationWebhookResolver } from "./NotificationWebhookResolver.js";
 export { NotificationsType } from "./NotificationsType.js";
-export {
-  getResolverRegistry,
-  ResolverRegistry,
-} from "./ResolverRegistry.js";
-export {
-  NotificationsQueryResolver,
-  QueryResolver,
-} from "./QueryResolver.js";
+export { getResolverRegistry, ResolverRegistry } from "./ResolverRegistry.js";
+export { NotificationsQueryResolver, QueryResolver } from "./QueryResolver.js";
 export { StaffRecipientResolver } from "./StaffRecipientResolver.js";

@@ -221,7 +221,9 @@ export function createGraphQLSchema(config: GraphQLSchemaConfig): void {
       const builderType = getQueryBuilderType(query);
 
       if (!output) {
-        console.warn(`⚠ Skipping ${name}: no output path specified (use 'output' at top level for single file mode)`);
+        console.warn(
+          `⚠ Skipping ${name}: no output path specified (use 'output' at top level for single file mode)`,
+        );
         continue;
       }
 
@@ -277,10 +279,12 @@ export function createGraphQLSchema(config: GraphQLSchemaConfig): void {
  * @param options - Generation options
  * @returns Generated GraphQL base types string
  */
-export function generateBaseTypesSchema(options: {
-  header?: string;
-  includeDateTimeScalar?: boolean;
-} = {}): string {
+export function generateBaseTypesSchema(
+  options: {
+    header?: string;
+    includeDateTimeScalar?: boolean;
+  } = {},
+): string {
   const {
     header = "Auto-generated GraphQL base filter types. Do not edit manually.",
     includeDateTimeScalar = true,
@@ -318,7 +322,7 @@ export function generateQuerySchema(
     includeRelayInputs?: boolean;
     includeQueryInputs?: boolean;
     generatorOptions?: Omit<GraphQLGeneratorOptions, "includeBaseTypes">;
-  } = {}
+  } = {},
 ): string {
   const {
     header = "Auto-generated GraphQL types. Do not edit manually.",
@@ -362,7 +366,11 @@ export function generateQuerySchema(
  * @deprecated Use createGraphQLSchema with separate outputs instead
  */
 export function generateGraphQLSchema(config: {
-  queries: Record<string, AnyQueryBuilder | { query: AnyQueryBuilder; options?: Omit<GraphQLGeneratorOptions, "includeBaseTypes"> }>;
+  queries: Record<
+    string,
+    | AnyQueryBuilder
+    | { query: AnyQueryBuilder; options?: Omit<GraphQLGeneratorOptions, "includeBaseTypes"> }
+  >;
   options?: Omit<GraphQLGeneratorOptions, "includeBaseTypes">;
   header?: string;
   includeDateTimeScalar?: boolean;

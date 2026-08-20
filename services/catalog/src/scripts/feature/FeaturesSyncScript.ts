@@ -59,7 +59,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
         productId,
         featureCount: syncedFeatures.length,
       },
-      "Product features synced"
+      "Product features synced",
     );
 
     return {
@@ -74,7 +74,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
    */
   private async resolveFeatures(
     productId: string,
-    features: ValidatedFeatureInput[]
+    features: ValidatedFeatureInput[],
   ): Promise<ResolvedFeature[]> {
     const indexKeyToDbId = new Map<string, string>();
 

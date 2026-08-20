@@ -1,4 +1,6 @@
-"""Shared contract implemented by every moderated Reviews content aggregate."""
+"""
+Shared contract implemented by every moderated Reviews content aggregate.
+"""
 interface ReviewContent implements Node {
   id: ID!
   kind: ReviewContentKind!
@@ -25,11 +27,31 @@ interface ReviewContent implements Node {
   publications: [ReviewContentPublication!]!
   votes(first: Int, after: String, last: Int, before: String): ReviewContentVoteConnection!
   reports(first: Int, after: String, last: Int, before: String): ReviewContentReportConnection!
-  moderationCases(first: Int, after: String, last: Int, before: String): ReviewModerationCaseConnection!
-  moderationEvents(first: Int, after: String, last: Int, before: String): ReviewModerationEventConnection!
+  moderationCases(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationCaseConnection!
+  moderationEvents(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationEventConnection!
   revisions(first: Int, after: String, last: Int, before: String): ReviewContentRevisionConnection!
-  moderationSignals(first: Int, after: String, last: Int, before: String): ReviewModerationSignalConnection!
-  externalReferences(first: Int, after: String, last: Int, before: String): ReviewContentExternalReferenceConnection!
+  moderationSignals(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationSignalConnection!
+  externalReferences(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewContentExternalReferenceConnection!
 }
 
 type ReviewContentAuthor {
@@ -37,11 +59,15 @@ type ReviewContentAuthor {
   customer: Customer
   principalId: String
   displayName: String!
-  """Snapshot email; null after privacy redaction or when not collected."""
+  """
+  Snapshot email; null after privacy redaction or when not collected.
+  """
   email: Email
 }
 
-"""Transactionally maintained counters used by admin filtering and sorting."""
+"""
+Transactionally maintained counters used by admin filtering and sorting.
+"""
 type ReviewContentMetrics {
   likeCount: Int!
   dislikeCount: Int!
@@ -95,7 +121,9 @@ type ReviewContentPublication implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""Result for one section of a unified update."""
+"""
+Result for one section of a unified update.
+"""
 type ReviewsOperationResult {
   type: ReviewsOperationType!
   applied: Boolean!
@@ -114,7 +142,9 @@ input ReviewContentAuthorCreateInput {
 
 input ReviewContentAuthorUpdateInput {
   type: ReviewContentAuthorType
-  """Pass null to remove the customer link when the resulting author type allows it."""
+  """
+  Pass null to remove the customer link when the resulting author type allows it.
+  """
   customerId: ID
   principalId: String
   displayName: String
@@ -139,7 +169,9 @@ input ReviewContentCreateInput {
   locale: LocaleCode!
   author: ReviewContentAuthorCreateInput!
   source: ReviewContentSourceCreateInput
-  """Admin imports may set an initial status; PENDING is the default."""
+  """
+  Admin imports may set an initial status; PENDING is the default.
+  """
   status: ReviewContentStatus
   moderationNote: String
 }
@@ -155,22 +187,30 @@ input ReviewContentModerationInput {
   moderationNote: String
 }
 
-"""Common section operations reused by all content aggregate updates."""
+"""
+Common section operations reused by all content aggregate updates.
+"""
 input ReviewContentUpdateInput {
   text: ReviewContentTextUpdateInput
   author: ReviewContentAuthorUpdateInput
   source: ReviewContentSourceUpdateInput
   moderation: ReviewContentModerationInput
-  """Complete translation replacement when supplied. Empty removes all translations."""
+  """
+  Complete translation replacement when supplied. Empty removes all translations.
+  """
   translations: [ReviewContentTranslationSyncInput!]
-  """Complete publication destination replacement when supplied."""
+  """
+  Complete publication destination replacement when supplied.
+  """
   publications: [ReviewContentPublicationSyncInput!]
 }
 
 input ReviewContentDeleteInput {
   id: ID!
   expectedRevision: Int!
-  """Hard deletion is reserved for explicit privacy or retention workflows."""
+  """
+  Hard deletion is reserved for explicit privacy or retention workflows.
+  """
   permanent: Boolean = false
 }
 

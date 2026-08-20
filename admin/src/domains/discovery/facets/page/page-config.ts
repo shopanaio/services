@@ -30,9 +30,7 @@ function rowMatchesSearch(row: FacetGridRow, searchValue: string): boolean {
     normalized(row.name).includes(search) ||
     normalized(row.slug).includes(search) ||
     row.values.some(
-      (value) =>
-        normalized(value.name).includes(search) ||
-        normalized(value.slug).includes(search),
+      (value) => normalized(value.name).includes(search) || normalized(value.slug).includes(search),
     )
   );
 }
@@ -69,9 +67,7 @@ function rowMatchesFilters(row: FacetGridRow, filters: IFilterValue[]): boolean 
     if (filter.payloadKey === "hasValues") {
       const [rawValue] = values;
       const expected =
-        typeof rawValue === "boolean"
-          ? rawValue
-          : String(rawValue).toLocaleLowerCase() === "true";
+        typeof rawValue === "boolean" ? rawValue : String(rawValue).toLocaleLowerCase() === "true";
       const hasValues = (row.valuesCount ?? 0) > 0;
       if (hasValues !== expected) {
         return false;
@@ -82,14 +78,8 @@ function rowMatchesFilters(row: FacetGridRow, filters: IFilterValue[]): boolean 
   return true;
 }
 
-function rowMatches(
-  row: FacetGridRow,
-  state: FacetPageFilterState,
-): boolean {
-  return (
-    rowMatchesSearch(row, state.searchValue) &&
-    rowMatchesFilters(row, state.filters)
-  );
+function rowMatches(row: FacetGridRow, state: FacetPageFilterState): boolean {
+  return rowMatchesSearch(row, state.searchValue) && rowMatchesFilters(row, state.filters);
 }
 
 export function filterFacetGridRows(

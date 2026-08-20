@@ -30,9 +30,7 @@ export const storeCreateInputSchema = z.object({
   name: storeNameSchema,
   /** Human-readable display name (e.g., "My Store") */
   displayName: z.string().min(1, "Display name is required").max(255),
-  locales: z
-    .array(z.nativeEnum(LocaleCodeEnum))
-    .min(1, "At least one locale is required"),
+  locales: z.array(z.nativeEnum(LocaleCodeEnum)).min(1, "At least one locale is required"),
   currencyCode: z.nativeEnum(CurrencyCodeEnum),
   status: z.enum(["active", "inactive"]).optional(),
   timezone: timezoneSchema.optional(),

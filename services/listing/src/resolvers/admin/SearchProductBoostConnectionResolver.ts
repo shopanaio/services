@@ -12,9 +12,7 @@ export class SearchProductBoostConnectionResolver extends ListingType<
   SearchProductBoostConnectionResult
 > {
   async $preload(): Promise<SearchProductBoostConnectionResult> {
-    return this.$ctx.kernel.repository.searchProductBoost.getConnection(
-      this.$props,
-    );
+    return this.$ctx.kernel.repository.searchProductBoost.getConnection(this.$props);
   }
 
   async edges() {

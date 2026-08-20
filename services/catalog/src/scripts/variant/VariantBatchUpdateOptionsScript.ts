@@ -2,11 +2,7 @@ import { randomUUID } from "crypto";
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
 import type { Variant, ProductOptionVariantLink } from "../../repositories/models/index.js";
-import {
-  type ScriptResult,
-  successResult,
-  unchangedResult,
-} from "../types/ScriptResult.js";
+import { type ScriptResult, successResult, unchangedResult } from "../types/ScriptResult.js";
 import type { OptionLinkChanges } from "../types/ProductChanges.js";
 import { buildVariantHandle } from "./helpers/buildVariantHandle.js";
 
@@ -32,10 +28,7 @@ export interface VariantBatchUpdateResult {
   readonly changes: OptionLinkChanges[] | null;
 }
 
-export type VariantBatchUpdateOptionsResult = ScriptResult<
-  VariantBatchUpdateResult[],
-  null
->;
+export type VariantBatchUpdateOptionsResult = ScriptResult<VariantBatchUpdateResult[], null>;
 
 /**
  * Script for batch updating variant option value links.
@@ -54,7 +47,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
   VariantBatchUpdateOptionsResult
 > {
   protected async execute(
-    params: VariantBatchUpdateOptionsParams
+    params: VariantBatchUpdateOptionsParams,
   ): Promise<VariantBatchUpdateOptionsResult> {
     const { productId, updates } = params;
     const storeId = this.getProjectId();
@@ -67,9 +60,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
     const variantIds = new Set(updates.map((u) => u.variantId));
     const allProductVariants = await this.repository.variant.findByProductId(productId);
     const variantMap = new Map(
-      allProductVariants
-        .filter((v) => variantIds.has(v.id))
-        .map((v) => [v.id, v])
+      allProductVariants.filter((v) => variantIds.has(v.id)).map((v) => [v.id, v]),
     );
 
     const results: VariantBatchUpdateResult[] = [];
@@ -92,7 +83,11 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
         continue;
       }
       // Variant already filtered to productId, no need to check again
-      validUpdates.push({ variant, links: update.links, currentLinks: [] as ProductOptionVariantLink[] });
+      validUpdates.push({
+        variant,
+        links: update.links,
+        currentLinks: [] as ProductOptionVariantLink[],
+      });
     }
 
     if (validUpdates.length === 0) {
@@ -104,9 +99,10 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
     const productOptionIds = new Set(productOptions.map((o) => o.id));
 
     const allOptionIds = [...new Set(validUpdates.flatMap((u) => u.links.map((l) => l.optionId)))];
-    const valuesByOption = allOptionIds.length > 0
-      ? await this.repository.option.findValuesByOptionIds(allOptionIds)
-      : new Map();
+    const valuesByOption =
+      allOptionIds.length > 0
+        ? await this.repository.option.findValuesByOptionIds(allOptionIds)
+        : new Map();
 
     // Build valueId -> optionId map
     const valueToOption = new Map<string, string>();
@@ -118,7 +114,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
 
     // 3. Load current links for all variants
     const currentLinksMap = await this.repository.option.findVariantLinks(
-      validUpdates.map((u) => u.variant.id)
+      validUpdates.map((u) => u.variant.id),
     );
     for (const update of validUpdates) {
       update.currentLinks = currentLinksMap.get(update.variant.id) ?? [];
@@ -202,11 +198,9 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
     // 5. Check which updates actually have changes
     const updatesWithChanges = updatesToApply.filter((update) => {
       const currentLinkSet = new Set(
-        update.currentLinks.map((l) => `${l.optionId}:${l.optionValueId}`)
+        update.currentLinks.map((l) => `${l.optionId}:${l.optionValueId}`),
       );
-      const newLinkSet = new Set(
-        update.links.map((l) => `${l.optionId}:${l.optionValueId}`)
-      );
+      const newLinkSet = new Set(update.links.map((l) => `${l.optionId}:${l.optionValueId}`));
       return (
         currentLinkSet.size !== newLinkSet.size ||
         [...currentLinkSet].some((key) => !newLinkSet.has(key))
@@ -244,7 +238,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
         await this.repository.option.linkVariant(
           update.variant.id,
           link.optionId,
-          link.optionValueId
+          link.optionValueId,
         );
       }
     }
@@ -252,11 +246,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
     // 8. Build new handles for all variants
     const newHandles = new Map<string, string>();
     for (const update of updatesWithChanges) {
-      const newHandle = await buildVariantHandle(
-        this.repository.db,
-        update.variant.id,
-        storeId
-      );
+      const newHandle = await buildVariantHandle(this.repository.db, update.variant.id, storeId);
       newHandles.set(update.variant.id, newHandle);
     }
 
@@ -269,7 +259,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
     }
 
     const duplicateHandles = [...handleCounts.entries()].filter(
-      ([_, variantIds]) => variantIds.length > 1
+      ([_, variantIds]) => variantIds.length > 1,
     );
 
     if (duplicateHandles.length > 0) {
@@ -281,7 +271,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
             await this.repository.option.linkVariant(
               update.variant.id,
               link.optionId,
-              link.optionValueId
+              link.optionValueId,
             );
           }
         }
@@ -295,11 +285,13 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
         results.push({
           variantId: update.variant.id,
           applied: false,
-          errors: [{
-            message: "Another variant with the same option combination already exists",
-            code: "DUPLICATE_OPTIONS",
-            field: ["links"],
-          }],
+          errors: [
+            {
+              message: "Another variant with the same option combination already exists",
+              code: "DUPLICATE_OPTIONS",
+              field: ["links"],
+            },
+          ],
           changes: null,
         });
       }
@@ -320,7 +312,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
             await this.repository.option.linkVariant(
               update.variant.id,
               link.optionId,
-              link.optionValueId
+              link.optionValueId,
             );
           }
         }
@@ -331,11 +323,13 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
         results.push({
           variantId: update.variant.id,
           applied: false,
-          errors: [{
-            message: "Non-default variant must have at least one option value",
-            code: "INVALID_OPTIONS",
-            field: ["links"],
-          }],
+          errors: [
+            {
+              message: "Non-default variant must have at least one option value",
+              code: "INVALID_OPTIONS",
+              field: ["links"],
+            },
+          ],
           changes: null,
         });
         continue;
@@ -356,7 +350,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
 
         this.logger.info(
           { variantId: update.variant.id, linkCount: update.links.length, newHandle },
-          "Variant options updated successfully"
+          "Variant options updated successfully",
         );
       } catch (error) {
         // Unique constraint violation - conflict with existing variant not in batch
@@ -368,7 +362,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
               await this.repository.option.linkVariant(
                 update.variant.id,
                 link.optionId,
-                link.optionValueId
+                link.optionValueId,
               );
             }
           }
@@ -379,11 +373,13 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
           results.push({
             variantId: update.variant.id,
             applied: false,
-            errors: [{
-              message: "Another variant with the same option combination already exists",
-              code: "DUPLICATE_OPTIONS",
-              field: ["links"],
-            }],
+            errors: [
+              {
+                message: "Another variant with the same option combination already exists",
+                code: "DUPLICATE_OPTIONS",
+                field: ["links"],
+              },
+            ],
             changes: null,
           });
         } else {

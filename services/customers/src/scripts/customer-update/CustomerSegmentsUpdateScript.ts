@@ -16,12 +16,8 @@ export class CustomerSegmentsUpdateScript extends BaseScript<
   CustomerSegmentsUpdateParams,
   CustomerSectionResult
 > {
-  protected async execute(
-    params: CustomerSegmentsUpdateParams
-  ): Promise<CustomerSectionResult> {
-    const segments = await this.repository.segment.getByIds(
-      params.operations.segmentIds
-    );
+  protected async execute(params: CustomerSegmentsUpdateParams): Promise<CustomerSectionResult> {
+    const segments = await this.repository.segment.getByIds(params.operations.segmentIds);
     const byId = new Map(segments.map((segment) => [segment.id, segment]));
     const seen = new Set<string>();
     const errors: Array<{ message: string; code: string; field: string[] }> = [];
@@ -54,7 +50,7 @@ export class CustomerSegmentsUpdateScript extends BaseScript<
 
     await this.repository.segment.replaceManualMembershipsForCustomer(
       params.customerId,
-      params.operations.segmentIds
+      params.operations.segmentIds,
     );
     return sectionSuccess();
   }

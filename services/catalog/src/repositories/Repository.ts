@@ -1,8 +1,5 @@
 import { TransactionManager } from "@shopana/shared-kernel";
-import type {
-  DbosTransactionBridge,
-  PostgresTransactionOptions,
-} from "@shopana/shared-kernel";
+import type { DbosTransactionBridge, PostgresTransactionOptions } from "@shopana/shared-kernel";
 import type { Database } from "../infrastructure/db/database";
 import { ProductRepository } from "./product/ProductRepository.js";
 import { VendorRepository } from "./vendor/VendorRepository.js";
@@ -36,10 +33,7 @@ import { ComparisonReadRepository } from "./comparison/ComparisonReadRepository.
 
 export interface RepositoryConfig {
   db: Database;
-  dbosTransactionBridge: DbosTransactionBridge<
-    Database,
-    PostgresTransactionOptions
-  >;
+  dbosTransactionBridge: DbosTransactionBridge<Database, PostgresTransactionOptions>;
 }
 
 // Re-export Database type for scripts that need to access it
@@ -120,10 +114,7 @@ export class Repository {
     comparison: ComparisonRepository,
     comparisonRead: ComparisonReadRepository,
     txManager: TransactionManager<Database>,
-    dbosTransactionBridge: DbosTransactionBridge<
-      Database,
-      PostgresTransactionOptions
-    >
+    dbosTransactionBridge: DbosTransactionBridge<Database, PostgresTransactionOptions>,
   ) {
     this.product = product;
     this.vendor = vendor;
@@ -183,10 +174,7 @@ export class Repository {
     const bulkEditItem = new BulkEditItemRepository(db, txManager);
     const bulkFence = new BulkFenceRepository(db, txManager);
     const facetCandidate = new FacetCandidateRepository(db, txManager);
-    const listingFacetAffectedProduct = new ListingFacetAffectedProductRepository(
-      db,
-      txManager
-    );
+    const listingFacetAffectedProduct = new ListingFacetAffectedProductRepository(db, txManager);
     const collection = new CollectionRepository(db, txManager);
     const collectionItem = new CollectionItemRepository(db, txManager);
     const collectionRule = new CollectionRuleRepository(db, txManager);
@@ -232,7 +220,7 @@ export class Repository {
       comparison,
       comparisonRead,
       txManager,
-      dbosTransactionBridge
+      dbosTransactionBridge,
     );
   }
 }

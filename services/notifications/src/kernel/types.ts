@@ -18,8 +18,11 @@ export interface NotificationKernelServices extends BaseKernelServices {
 }
 
 export type ScriptContext = BaseScriptContext;
-export type TransactionScript<TParams = unknown, TResult = unknown> =
-  BaseTransactionScript<TParams, TResult, NotificationKernelServices>;
+export type TransactionScript<TParams = unknown, TResult = unknown> = BaseTransactionScript<
+  TParams,
+  TResult,
+  NotificationKernelServices
+>;
 
 export interface RunScriptContext {
   storeId: string;

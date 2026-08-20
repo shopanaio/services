@@ -122,21 +122,16 @@ export class RelayQueryBuilder<
   T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
-  Types = T["$inferSelect"]
+  Types = T["$inferSelect"],
 > {
-  private readonly queryBuilder: FluentQueryBuilder<
-    T,
-    Fields,
-    InferredFields,
-    Types
-  >;
+  private readonly queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>;
   private readonly cursorType: string;
   private readonly tieBreaker: string;
   private readonly seekTransforms?: SeekTransforms;
 
   constructor(
     queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
-    config?: RelayQueryConfig
+    config?: RelayQueryConfig,
   ) {
     const snapshot = queryBuilder.getSnapshot();
     const tieBreaker = config?.tieBreaker ?? "id";
@@ -144,7 +139,7 @@ export class RelayQueryBuilder<
     if (!snapshot.fields.includes(tieBreaker)) {
       throw new Error(
         `Tie-breaker field '${tieBreaker}' not found in schema. ` +
-          `Available fields: ${snapshot.fields.join(", ")}`
+          `Available fields: ${snapshot.fields.join(", ")}`,
       );
     }
 
@@ -168,7 +163,7 @@ export class RelayQueryBuilder<
    */
   async execute(
     db: DrizzleExecutor,
-    input: RelayQueryInput<InferredFields>
+    input: RelayQueryInput<InferredFields>,
   ): Promise<RelayQueryResult<Types>> {
     const schema = this.queryBuilder.getSchema();
     const snapshot = this.queryBuilder.getSnapshot();
@@ -187,10 +182,9 @@ export class RelayQueryBuilder<
       {
         cursorType: this.cursorType,
         tieBreaker: this.tieBreaker as never,
-        queryConfig:
-          Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+        queryConfig: Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
         seekTransforms: this.seekTransforms,
-      }
+      },
     );
 
     // Merge where with default where from fluent builder
@@ -210,8 +204,8 @@ export class RelayQueryBuilder<
     let select: string[] | undefined = input.select
       ? (input.select as string[])
       : snapshot.config.defaultSelect
-      ? (snapshot.config.defaultSelect as string[])
-      : undefined;
+        ? (snapshot.config.defaultSelect as string[])
+        : undefined;
 
     if (select) {
       if (snapshot.config.include) {
@@ -262,10 +256,9 @@ export class RelayQueryBuilder<
       {
         cursorType: this.cursorType,
         tieBreaker: this.tieBreaker as never,
-        queryConfig:
-          Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+        queryConfig: Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
         seekTransforms: this.seekTransforms,
-      }
+      },
     );
 
     let where = input.where;
@@ -282,8 +275,8 @@ export class RelayQueryBuilder<
     let select: string[] | undefined = input.select
       ? (input.select as string[])
       : snapshot.config.defaultSelect
-      ? (snapshot.config.defaultSelect as string[])
-      : undefined;
+        ? (snapshot.config.defaultSelect as string[])
+        : undefined;
 
     if (select) {
       if (snapshot.config.include) {
@@ -350,10 +343,7 @@ export class RelayQueryBuilder<
    * });
    * ```
    */
-  async count(
-    db: DrizzleExecutor,
-    input?: CountInput<InferredFields>
-  ): Promise<number> {
+  async count(db: DrizzleExecutor, input?: CountInput<InferredFields>): Promise<number> {
     const snapshot = this.queryBuilder.getSnapshot();
 
     // Merge where with default where from fluent builder
@@ -408,10 +398,10 @@ export function createRelayQuery<
   T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
-  Types = T["$inferSelect"]
+  Types = T["$inferSelect"],
 >(
   queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
-  config?: RelayQueryConfig
+  config?: RelayQueryConfig,
 ): RelayQueryBuilder<T, Fields, InferredFields, Types> {
   return new RelayQueryBuilder(queryBuilder, config);
 }
@@ -498,21 +488,16 @@ export class CursorQueryBuilder<
   T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
-  Types = T["$inferSelect"]
+  Types = T["$inferSelect"],
 > {
-  private readonly queryBuilder: FluentQueryBuilder<
-    T,
-    Fields,
-    InferredFields,
-    Types
-  >;
+  private readonly queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>;
   private readonly cursorType: string;
   private readonly tieBreaker: string;
   private readonly seekTransforms?: SeekTransforms;
 
   constructor(
     queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
-    config?: CursorQueryConfig
+    config?: CursorQueryConfig,
   ) {
     const snapshot = queryBuilder.getSnapshot();
     const tieBreaker = config?.tieBreaker ?? "id";
@@ -520,7 +505,7 @@ export class CursorQueryBuilder<
     if (!snapshot.fields.includes(tieBreaker)) {
       throw new Error(
         `Tie-breaker field '${tieBreaker}' not found in schema. ` +
-          `Available fields: ${snapshot.fields.join(", ")}`
+          `Available fields: ${snapshot.fields.join(", ")}`,
       );
     }
 
@@ -545,7 +530,7 @@ export class CursorQueryBuilder<
    */
   async execute(
     db: DrizzleExecutor,
-    input: CursorQueryInput<InferredFields>
+    input: CursorQueryInput<InferredFields>,
   ): Promise<CursorQueryResult<Types>> {
     const schema = this.queryBuilder.getSchema();
     const snapshot = this.queryBuilder.getSnapshot();
@@ -564,10 +549,9 @@ export class CursorQueryBuilder<
       {
         cursorType: this.cursorType,
         tieBreaker: this.tieBreaker as never,
-        queryConfig:
-          Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+        queryConfig: Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
         seekTransforms: this.seekTransforms,
-      }
+      },
     );
 
     let where = input.where;
@@ -584,8 +568,8 @@ export class CursorQueryBuilder<
     let select: string[] | undefined = input.select
       ? (input.select as string[])
       : snapshot.config.defaultSelect
-      ? (snapshot.config.defaultSelect as string[])
-      : undefined;
+        ? (snapshot.config.defaultSelect as string[])
+        : undefined;
 
     if (select) {
       if (snapshot.config.include) {
@@ -635,10 +619,9 @@ export class CursorQueryBuilder<
       {
         cursorType: this.cursorType,
         tieBreaker: this.tieBreaker as never,
-        queryConfig:
-          Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+        queryConfig: Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
         seekTransforms: this.seekTransforms,
-      }
+      },
     );
 
     let where = input.where;
@@ -655,8 +638,8 @@ export class CursorQueryBuilder<
     let select: string[] | undefined = input.select
       ? (input.select as string[])
       : snapshot.config.defaultSelect
-      ? (snapshot.config.defaultSelect as string[])
-      : undefined;
+        ? (snapshot.config.defaultSelect as string[])
+        : undefined;
 
     if (select) {
       if (snapshot.config.include) {
@@ -722,10 +705,7 @@ export class CursorQueryBuilder<
    * });
    * ```
    */
-  async count(
-    db: DrizzleExecutor,
-    input?: CountInput<InferredFields>
-  ): Promise<number> {
+  async count(db: DrizzleExecutor, input?: CountInput<InferredFields>): Promise<number> {
     const snapshot = this.queryBuilder.getSnapshot();
 
     // Merge where with default where from fluent builder
@@ -785,10 +765,10 @@ export function createCursorQuery<
   T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
-  Types = T["$inferSelect"]
+  Types = T["$inferSelect"],
 >(
   queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
-  config?: CursorQueryConfig
+  config?: CursorQueryConfig,
 ): CursorQueryBuilder<T, Fields, InferredFields, Types> {
   return new CursorQueryBuilder(queryBuilder, config);
 }

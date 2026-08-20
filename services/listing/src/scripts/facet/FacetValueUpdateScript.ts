@@ -7,14 +7,9 @@ import {
   normalizeFacetValueHandle,
 } from "./facetValueValidation.js";
 
-export class FacetValueUpdateScript extends BaseScript<
-  FacetValueUpdateParams,
-  FacetValueResult
-> {
+export class FacetValueUpdateScript extends BaseScript<FacetValueUpdateParams, FacetValueResult> {
   @Transactional()
-  protected async execute(
-    params: FacetValueUpdateParams
-  ): Promise<FacetValueResult> {
+  protected async execute(params: FacetValueUpdateParams): Promise<FacetValueResult> {
     const existing = await this.repository.facetValue.findById(params.id);
     if (!existing) {
       return {
@@ -50,9 +45,8 @@ export class FacetValueUpdateScript extends BaseScript<
       };
     }
 
-    const handle = params.handle === undefined
-      ? undefined
-      : normalizeFacetValueHandle(params.handle);
+    const handle =
+      params.handle === undefined ? undefined : normalizeFacetValueHandle(params.handle);
 
     if (handle !== undefined) {
       if (existing.kind === "source") {
@@ -79,22 +73,24 @@ export class FacetValueUpdateScript extends BaseScript<
 
       const duplicate = await this.repository.facetValue.findRootByFacetIdAndHandle(
         existing.facetId,
-        handle
+        handle,
       );
       if (duplicate && duplicate.id !== existing.id) {
         return {
           facetValue: undefined,
           userErrors: [
-            { message: "Facet value handle already exists", field: ["handle"], code: "HANDLE_ALREADY_EXISTS" },
+            {
+              message: "Facet value handle already exists",
+              field: ["handle"],
+              code: "HANDLE_ALREADY_EXISTS",
+            },
           ],
         };
       }
     }
 
     if (existing.kind === "group" && params.enabled === true) {
-      const children = await this.repository.facetValue.getSourceChildrenByParentIds([
-        existing.id,
-      ]);
+      const children = await this.repository.facetValue.getSourceChildrenByParentIds([existing.id]);
       if (!children.some((child) => child.enabled)) {
         return {
           facetValue: undefined,
@@ -124,7 +120,11 @@ export class FacetValueUpdateScript extends BaseScript<
         return {
           facetValue: undefined,
           userErrors: [
-            { message: "Facet value handle already exists", field: ["handle"], code: "HANDLE_ALREADY_EXISTS" },
+            {
+              message: "Facet value handle already exists",
+              field: ["handle"],
+              code: "HANDLE_ALREADY_EXISTS",
+            },
           ],
         };
       }

@@ -1,16 +1,12 @@
 import type { Notifications } from "@shopana/broker-types";
 import { BaseScript } from "../../kernel/BaseScript.js";
-import {
-  adminUserErrors,
-  type AdminUserError,
-} from "../shared/adminScriptSupport.js";
+import { adminUserErrors, type AdminUserError } from "../shared/adminScriptSupport.js";
 
 type NotificationSendTestParams = Omit<
   Notifications.SendTestNotificationParams,
   "storeId" | "organizationId"
 >;
-type NotificationSendTestResult =
-  Notifications.EnqueueNotificationResult;
+type NotificationSendTestResult = Notifications.EnqueueNotificationResult;
 
 export interface NotificationSendTestScriptResult {
   workflow?: NotificationSendTestResult;
@@ -21,9 +17,7 @@ export class NotificationSendTestScript extends BaseScript<
   NotificationSendTestParams,
   NotificationSendTestScriptResult
 > {
-  protected async execute(
-    params: NotificationSendTestParams
-  ) {
+  protected async execute(params: NotificationSendTestParams) {
     this.definitions.get(params.key);
     const result = await this.services.broker.call<
       Notifications.EnqueueNotificationResult,

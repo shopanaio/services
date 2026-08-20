@@ -2,7 +2,12 @@
 
 import { useState, useMemo, useRef, useCallback } from "react";
 import { Alert, App, Typography, Flex, Button } from "antd";
-import { LuPlus as PlusOutlined, LuPencil as EditOutlined, LuTrash2 as DeleteOutlined, LuImage as PictureOutlined } from "react-icons/lu";
+import {
+  LuPlus as PlusOutlined,
+  LuPencil as EditOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuImage as PictureOutlined,
+} from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import { useModalStack } from "@/layouts/modals";
 import {
@@ -20,10 +25,7 @@ import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
 import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
-import {
-  useAgGridTheme,
-  useAgGridRowSelection,
-} from "@/hooks";
+import { useAgGridTheme, useAgGridRowSelection } from "@/hooks";
 import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
 import { filterSchema } from "./filter-schema";
 import {
@@ -50,25 +52,15 @@ import { formatPrice } from "../utils/price-formatting";
 import { Dash } from "@/shared/components/editor-grid";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 
-ModuleRegistry.registerModules([
-  AllCommunityModule,
-  RowSelectionModule,
-  GridStateModule,
-]);
+ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule, GridStateModule]);
 
 // Cell Renderers
-const ProductCellRenderer = (
-  props: CustomCellRendererProps<ApiProduct>,
-) => {
+const ProductCellRenderer = (props: CustomCellRendererProps<ApiProduct>) => {
   const { data } = props;
   if (!data) return null;
   const thumbnail = getProductThumbnailFile(data);
   return (
-    <Flex
-      align="center"
-      gap="small"
-      data-testid={`products-table-title-cell-${data.handle}`}
-    >
+    <Flex align="center" gap="small" data-testid={`products-table-title-cell-${data.handle}`}>
       <TableCoverImage
         src={thumbnail?.url ?? null}
         alt={thumbnail?.altText ?? thumbnail?.originalName ?? data.title}
@@ -89,9 +81,7 @@ const TextCellRenderer = (
   return (
     <Typography.Text
       data-testid={
-        data && testIdSuffix
-          ? `products-table-${testIdSuffix}-cell-${data.handle}`
-          : undefined
+        data && testIdSuffix ? `products-table-${testIdSuffix}-cell-${data.handle}` : undefined
       }
     >
       {value ?? <Dash />}
@@ -111,28 +101,24 @@ const PriceCellRenderer = (
   return (
     <Typography.Text
       data-testid={
-        data && testIdSuffix
-          ? `products-table-${testIdSuffix}-cell-${data.handle}`
-          : undefined
+        data && testIdSuffix ? `products-table-${testIdSuffix}-cell-${data.handle}` : undefined
       }
     >
-      {value !== null && value !== undefined && displayCurrency
-        ? formatPrice(value, displayCurrency)
-        : <Dash />}
+      {value !== null && value !== undefined && displayCurrency ? (
+        formatPrice(value, displayCurrency)
+      ) : (
+        <Dash />
+      )}
     </Typography.Text>
   );
 };
 
-const StockCellRenderer = (
-  props: CustomCellRendererProps<ApiProduct, number>,
-) => {
+const StockCellRenderer = (props: CustomCellRendererProps<ApiProduct, number>) => {
   const { data, value } = props;
 
   return (
     <Typography.Text
-      data-testid={
-        data ? `products-table-inventory-cell-${data.handle}` : undefined
-      }
+      data-testid={data ? `products-table-inventory-cell-${data.handle}` : undefined}
     >
       {value} in stock
     </Typography.Text>
@@ -183,20 +169,15 @@ export default function ProductsPage() {
   const { push: pushCreateModal } = useProductCreateModal();
 
   // Row selection with checkbox isolation
-  const { rowSelection, selectionColumnDef, onCellClicked } =
-    useAgGridRowSelection<ApiProduct>({
-      onRowAction: (product) =>
-        push("product", { entityId: product.id, mode: "view" }),
-    });
+  const { rowSelection, selectionColumnDef, onCellClicked } = useAgGridRowSelection<ApiProduct>({
+    onRowAction: (product) => push("product", { entityId: product.id, mode: "view" }),
+  });
 
   // Handle selection changes
-  const handleSelectionChanged = useCallback(
-    (event: SelectionChangedEvent<ApiProduct>) => {
-      const selectedRows = event.api.getSelectedRows();
-      setSelectedCount(selectedRows.length);
-    },
-    [],
-  );
+  const handleSelectionChanged = useCallback((event: SelectionChangedEvent<ApiProduct>) => {
+    const selectedRows = event.api.getSelectedRows();
+    setSelectedCount(selectedRows.length);
+  }, []);
 
   // Deselect all
   const deselectAll = useCallback(() => {
@@ -230,9 +211,7 @@ export default function ProductsPage() {
       return;
     }
 
-    message.success(
-      selectedRows.length === 1 ? "Product deleted" : "Products deleted",
-    );
+    message.success(selectedRows.length === 1 ? "Product deleted" : "Products deleted");
     deselectAll();
     await refetch();
   }, [deleteProduct, deselectAll, message, refetch]);
@@ -289,8 +268,7 @@ export default function ProductsPage() {
       {
         headerName: "Min price",
         colId: "minPriceMinor",
-        valueGetter: ({ data }) =>
-          data ? getProductMinPriceAmount(data) : null,
+        valueGetter: ({ data }) => (data ? getProductMinPriceAmount(data) : null),
         cellRenderer: PriceCellRenderer,
         cellRendererParams: {
           currency: defaultCurrency,
@@ -301,8 +279,7 @@ export default function ProductsPage() {
       {
         headerName: "Max price",
         colId: "maxPriceMinor",
-        valueGetter: ({ data }) =>
-          data ? getProductMaxPriceAmount(data) : null,
+        valueGetter: ({ data }) => (data ? getProductMaxPriceAmount(data) : null),
         cellRenderer: PriceCellRenderer,
         cellRendererParams: {
           currency: defaultCurrency,
@@ -321,8 +298,7 @@ export default function ProductsPage() {
       {
         headerName: "Category",
         colId: "primaryCategoryName",
-        valueGetter: ({ data }) =>
-          data ? getProductPrimaryCategoryName(data) : null,
+        valueGetter: ({ data }) => (data ? getProductPrimaryCategoryName(data) : null),
         cellRenderer: TextCellRenderer,
         cellRendererParams: { testIdSuffix: "category" },
         minWidth: 180,
@@ -361,21 +337,14 @@ export default function ProductsPage() {
       title="Products"
       count={totalCount}
       actions={
-        <Button
-          data-testid="products-create-button"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
+        <Button data-testid="products-create-button" icon={<PlusOutlined />} onClick={handleCreate}>
           Create
         </Button>
       }
     >
       <DataLayout.Toolbar
         left={
-          <FilterWidget
-            {...pageConfig.filterWidgetProps}
-            searchPlaceholder="Search products..."
-          />
+          <FilterWidget {...pageConfig.filterWidgetProps} searchPlaceholder="Search products..." />
         }
       />
 
@@ -388,12 +357,7 @@ export default function ProductsPage() {
         }}
       >
         {error && (
-          <Alert
-            type="error"
-            message={error.message}
-            showIcon
-            style={{ marginBottom: 12 }}
-          />
+          <Alert type="error" message={error.message} showIcon style={{ marginBottom: 12 }} />
         )}
 
         <div style={{ flex: 1 }} data-testid="products-table">
@@ -423,10 +387,7 @@ export default function ProductsPage() {
           name="products"
           total={totalCount}
           rangeStart={pageConfig.getRangeStart(products.length)}
-          rangeEnd={Math.min(
-            pageConfig.getRangeEnd(products.length),
-            totalCount,
-          )}
+          rangeEnd={Math.min(pageConfig.getRangeEnd(products.length), totalCount)}
           pageSize={pageConfig.pageSize}
           pageSizeOptions={pageConfig.pageSizeOptions}
           hasNext={pageInfo?.hasNextPage ?? false}

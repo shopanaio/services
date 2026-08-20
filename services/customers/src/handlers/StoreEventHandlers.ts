@@ -19,9 +19,7 @@ import type {
   StorefrontAuthProvisionInput,
   StorefrontAuthProvisionOutput,
 } from "../workflows/StorefrontAuthProvisionWorkflow.js";
-import type {
-  StorefrontAuthDeprovisionInput,
-} from "../workflows/StorefrontAuthDeprovisionWorkflow.js";
+import type { StorefrontAuthDeprovisionInput } from "../workflows/StorefrontAuthDeprovisionWorkflow.js";
 
 @Injectable()
 export class StoreEventHandlers extends EventHandlers {

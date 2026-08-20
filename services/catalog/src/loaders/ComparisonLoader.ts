@@ -63,9 +63,18 @@ export class ComparisonLoader {
         notApplicable: rows.notApplicable.filter((row) => row.productId === id),
       }));
     });
-    this.group = new DataLoader(async (ids: readonly string[]) => map(ids, await repository.comparisonRead.getGroupsByIds(ids)));
-    this.field = new DataLoader(async (ids: readonly string[]) => map(ids, await repository.comparisonRead.getFieldsByIds(ids)));
-    this.fieldOption = new DataLoader(async (ids: readonly string[]) => map(ids, await repository.comparisonRead.getFieldOptionsByIds(ids)));
+    this.group = new DataLoader(async (ids: readonly string[]) =>
+      map(ids, await repository.comparisonRead.getGroupsByIds(ids)),
+    );
+    this.field = new DataLoader(async (ids: readonly string[]) =>
+      map(ids, await repository.comparisonRead.getFieldsByIds(ids)),
+    );
+    this.fieldOption = new DataLoader(async (ids: readonly string[]) =>
+      map(ids, await repository.comparisonRead.getFieldOptionsByIds(ids)),
+    );
   }
 }
-function map<T extends { id: string }>(ids: readonly string[], rows: T[]) { const values = new Map(rows.map((row) => [row.id, row])); return ids.map((id) => values.get(id) ?? null); }
+function map<T extends { id: string }>(ids: readonly string[], rows: T[]) {
+  const values = new Map(rows.map((row) => [row.id, row]));
+  return ids.map((id) => values.get(id) ?? null);
+}

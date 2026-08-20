@@ -1,7 +1,5 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type {
-  CategoryUpdateSectionResult,
-} from "../../workflows/dto/CategoryUpdateWorkflowDto.js";
+import type { CategoryUpdateSectionResult } from "../../workflows/dto/CategoryUpdateWorkflowDto.js";
 
 export interface CategoryUpdateIdentityParams {
   categoryId: string;
@@ -62,10 +60,9 @@ export class CategoryUpdateIdentityScript extends BaseScript<
     }
 
     if (params.name !== undefined) {
-      const [existingTranslation] =
-        await this.repository.category.getTranslationsByCategoryIds([
-          params.categoryId,
-        ]);
+      const [existingTranslation] = await this.repository.category.getTranslationsByCategoryIds([
+        params.categoryId,
+      ]);
 
       if (params.name !== existingTranslation?.name) {
         await this.repository.category.upsertTranslation({
@@ -88,9 +85,7 @@ export class CategoryUpdateIdentityScript extends BaseScript<
 
     return {
       category: category ?? undefined,
-      changes: changed
-        ? { categoryFields: { affectsProductIndex } }
-        : undefined,
+      changes: changed ? { categoryFields: { affectsProductIndex } } : undefined,
       userErrors: [],
     };
   }

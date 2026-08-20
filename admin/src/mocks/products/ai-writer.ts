@@ -1,18 +1,18 @@
 import type { OutputData } from "@editorjs/editorjs";
 import type { AITone } from "@/domains/inventory/products/modals";
-import type { IGeneratedContent, IGenerateParams } from "@/domains/inventory/products/modals/ai-writer-modal/types";
+import type {
+  IGeneratedContent,
+  IGenerateParams,
+} from "@/domains/inventory/products/modals/ai-writer-modal/types";
 
-export const mockGenerateContent = async (
-  params: IGenerateParams
-): Promise<IGeneratedContent> => {
+export const mockGenerateContent = async (params: IGenerateParams): Promise<IGeneratedContent> => {
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
   const { productContext, target, tone } = params;
 
   const toneStyles: Record<AITone, string> = {
-    professional:
-      "Experience premium quality and exceptional craftsmanship with",
+    professional: "Experience premium quality and exceptional craftsmanship with",
     casual: "Check out the awesome",
     luxury: "Indulge in the exquisite elegance of",
     friendly: "You're going to love",
@@ -64,8 +64,7 @@ Whether you're looking for reliability, style, or both, the ${productContext.tit
   });
 
   return {
-    description:
-      target === "excerpt" ? null : createEditorData(descriptionText),
+    description: target === "excerpt" ? null : createEditorData(descriptionText),
     excerpt: target === "description" ? null : createEditorData(excerptText),
   };
 };

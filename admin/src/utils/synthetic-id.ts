@@ -6,17 +6,16 @@ export const syntheticId = () => {
 };
 
 export const isSyntheticId = (id: any) =>
-  typeof id === 'string' && id.length === SYNTHETIC_ID_LENGTH;
+  typeof id === "string" && id.length === SYNTHETIC_ID_LENGTH;
 
 export const isSyntheticRecord = (r: { id: any }) =>
-  typeof r.id === 'string' && r.id.length === SYNTHETIC_ID_LENGTH;
+  typeof r.id === "string" && r.id.length === SYNTHETIC_ID_LENGTH;
 
-const isRealId = (id: any) =>
-  typeof id === 'string' && id.length === REAL_ID_LENGTH;
+const isRealId = (id: any) => typeof id === "string" && id.length === REAL_ID_LENGTH;
 
 export const hasRealId = (it: { id: any } | null) => isRealId(it?.id);
 
 /**
  * Should be used in payload to set null value for id
  */
-export const NIL_UUID = '00000000-0000-0000-0000-000000000000';
+export const NIL_UUID = "00000000-0000-0000-0000-000000000000";

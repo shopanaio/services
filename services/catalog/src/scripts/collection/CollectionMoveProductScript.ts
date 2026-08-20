@@ -8,24 +8,33 @@ export class CollectionMoveProductScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(params: CollectionMoveProductParams): Promise<CollectionResult> {
-    const collection =
-      await this.repository.collection.findByIdForUpdate(params.collectionId);
+    const collection = await this.repository.collection.findByIdForUpdate(params.collectionId);
     if (!collection) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Collection not found", field: ["collectionId"], code: "NOT_FOUND" }],
+        userErrors: [
+          { message: "Collection not found", field: ["collectionId"], code: "NOT_FOUND" },
+        ],
       };
     }
     if (collection.revision !== params.expectedRevision) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Collection revision does not match", field: ["expectedRevision"], code: "REVISION_CONFLICT" }],
+        userErrors: [
+          {
+            message: "Collection revision does not match",
+            field: ["expectedRevision"],
+            code: "REVISION_CONFLICT",
+          },
+        ],
       };
     }
     if (collection.revision >= 2_147_483_646) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" }],
+        userErrors: [
+          { message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" },
+        ],
       };
     }
 
@@ -36,21 +45,17 @@ export class CollectionMoveProductScript extends BaseScript<
       };
     }
 
-    const before = await this.repository.collectionItem.findByCollectionId(
-      params.collectionId
-    );
+    const before = await this.repository.collectionItem.findByCollectionId(params.collectionId);
     const moveResult = await this.repository.collectionItem.moveProductRank(
       params.collectionId,
       params.productId,
       params.afterProductId,
-      params.beforeProductId
+      params.beforeProductId,
     );
     if (!moveResult.ok) {
       return this.moveError(moveResult.code);
     }
-    const after = await this.repository.collectionItem.findByCollectionId(
-      params.collectionId
-    );
+    const after = await this.repository.collectionItem.findByCollectionId(params.collectionId);
     const beforeRanks = new Map(before.map((item) => [item.productId, item.lexoRank]));
     const changedProductIds = after
       .filter((item) => beforeRanks.get(item.productId) !== item.lexoRank)
@@ -59,7 +64,7 @@ export class CollectionMoveProductScript extends BaseScript<
     const refreshed = await this.repository.collection.bumpRevision(
       params.collectionId,
       params.expectedRevision,
-      { listingChanged: false }
+      { listingChanged: false },
     );
     if (!refreshed) {
       throw new Error("Collection rank compare-and-swap failed after row lock");
@@ -124,22 +129,28 @@ export class CollectionMoveProductScript extends BaseScript<
         return {
           collection: undefined,
           userErrors: [
-            { message: "Reference product not in collection", field: ["afterProductId"], code: "NOT_FOUND" },
+            {
+              message: "Reference product not in collection",
+              field: ["afterProductId"],
+              code: "NOT_FOUND",
+            },
           ],
         };
       case "BEFORE_ITEM_NOT_FOUND":
         return {
           collection: undefined,
           userErrors: [
-            { message: "Reference product not in collection", field: ["beforeProductId"], code: "NOT_FOUND" },
+            {
+              message: "Reference product not in collection",
+              field: ["beforeProductId"],
+              code: "NOT_FOUND",
+            },
           ],
         };
       case "RANK_SPACE_EXHAUSTED":
         return {
           collection: undefined,
-          userErrors: [
-            { message: "Unable to move product", code: "RANK_SPACE_EXHAUSTED" },
-          ],
+          userErrors: [{ message: "Unable to move product", code: "RANK_SPACE_EXHAUSTED" }],
         };
     }
   }

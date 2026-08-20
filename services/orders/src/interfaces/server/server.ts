@@ -1,9 +1,7 @@
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import fastify, { type FastifyInstance } from "fastify";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
@@ -11,10 +9,7 @@ import { fileURLToPath } from "url";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "@shopana/shared-kernel";
-import {
-  getServiceConfig,
-  isDevelopment,
-} from "@shopana/shared-service-config";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import { resolvers as adminResolvers } from "@src/interfaces/gql-admin-api/resolvers";
 import { resolvers as storefrontResolvers } from "@src/interfaces/gql-storefront-api/resolvers";
 import type { GraphQLContext } from "@src/interfaces/gql-admin-api/context";
@@ -77,11 +72,7 @@ export async function startServer(broker: ServiceBroker) {
     "parent.graphql",
     "purchasable.graphql",
   ];
-  const storefrontSchemaFiles = [
-    "foundation.graphql",
-    "order.graphql",
-    "parent.graphql",
-  ];
+  const storefrontSchemaFiles = ["foundation.graphql", "order.graphql", "parent.graphql"];
 
   const grpcConfig: GrpcConfigPort = {
     getGrpcHost: () => global.platform_grpc_host as string,
@@ -94,21 +85,15 @@ export async function startServer(broker: ServiceBroker) {
 
   const adminModules = [
     {
-      typeDefs: gql(
-        readFileSync(join(schemaPath, "shared-currency.graphql"), "utf-8"),
-      ),
+      typeDefs: gql(readFileSync(join(schemaPath, "shared-currency.graphql"), "utf-8")),
       resolvers: adminResolvers,
     },
     {
-      typeDefs: gql(
-        readFileSync(join(schemaPath, "shared-locale.graphql"), "utf-8"),
-      ),
+      typeDefs: gql(readFileSync(join(schemaPath, "shared-locale.graphql"), "utf-8")),
       resolvers: adminResolvers,
     },
     {
-      typeDefs: gql(
-        readFileSync(join(schemaPath, "shared-units.graphql"), "utf-8"),
-      ),
+      typeDefs: gql(readFileSync(join(schemaPath, "shared-units.graphql"), "utf-8")),
       resolvers: adminResolvers,
     },
     ...adminSchemaFiles.map((file) => ({
@@ -120,20 +105,14 @@ export async function startServer(broker: ServiceBroker) {
   const adminApollo = new ApolloServer<GraphQLContext>({
     introspection: true,
     schema: buildSubgraphSchema(adminModules),
-    plugins: [
-      fastifyApolloDrainPlugin(adminApp),
-      ApolloServerPluginInlineTraceDisabled(),
-    ],
+    plugins: [fastifyApolloDrainPlugin(adminApp), ApolloServerPluginInlineTraceDisabled()],
   });
 
   await adminApollo.start();
   addHealthChecks(adminApp, "orders-admin");
 
   await adminApp.register(async function (graphqlInstance) {
-    await graphqlInstance.addHook(
-      "preHandler",
-      buildCoreContextMiddleware(grpcConfig),
-    );
+    await graphqlInstance.addHook("preHandler", buildCoreContextMiddleware(grpcConfig));
 
     await graphqlInstance.register(fastifyApollo(adminApollo), {
       path: "/graphql",
@@ -160,27 +139,19 @@ export async function startServer(broker: ServiceBroker) {
 
   const storefrontModules = [
     {
-      typeDefs: gql(
-        readFileSync(join(schemaPath, "shared-currency.graphql"), "utf-8"),
-      ),
+      typeDefs: gql(readFileSync(join(schemaPath, "shared-currency.graphql"), "utf-8")),
       resolvers: storefrontResolvers,
     },
     {
-      typeDefs: gql(
-        readFileSync(join(schemaPath, "shared-locale.graphql"), "utf-8"),
-      ),
+      typeDefs: gql(readFileSync(join(schemaPath, "shared-locale.graphql"), "utf-8")),
       resolvers: storefrontResolvers,
     },
     {
-      typeDefs: gql(
-        readFileSync(join(schemaPath, "shared-units.graphql"), "utf-8"),
-      ),
+      typeDefs: gql(readFileSync(join(schemaPath, "shared-units.graphql"), "utf-8")),
       resolvers: storefrontResolvers,
     },
     ...storefrontSchemaFiles.map((file) => ({
-      typeDefs: gql(
-        readFileSync(join(schemaPath, "storefront", file), "utf-8"),
-      ),
+      typeDefs: gql(readFileSync(join(schemaPath, "storefront", file), "utf-8")),
       resolvers: storefrontResolvers,
     })),
   ];
@@ -188,20 +159,14 @@ export async function startServer(broker: ServiceBroker) {
   const storefrontApollo = new ApolloServer<StorefrontGraphQLContext>({
     introspection: true,
     schema: buildSubgraphSchema(storefrontModules),
-    plugins: [
-      fastifyApolloDrainPlugin(storefrontApp),
-      ApolloServerPluginInlineTraceDisabled(),
-    ],
+    plugins: [fastifyApolloDrainPlugin(storefrontApp), ApolloServerPluginInlineTraceDisabled()],
   });
 
   await storefrontApollo.start();
   addHealthChecks(storefrontApp, "orders-storefront");
 
   await storefrontApp.register(async function (graphqlInstance) {
-    await graphqlInstance.addHook(
-      "preHandler",
-      buildCoreContextMiddleware(grpcConfig, true),
-    );
+    await graphqlInstance.addHook("preHandler", buildCoreContextMiddleware(grpcConfig, true));
 
     await graphqlInstance.register(fastifyApollo(storefrontApollo), {
       path: "/graphql",

@@ -16,10 +16,7 @@ import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useAgGridTheme, usePageConfig } from "@/hooks";
 import type { ApiDiscount, ApiDiscountWhereInput } from "@/graphql/types";
-import {
-  DiscountEffectiveStatus,
-  DiscountOrderField,
-} from "@/graphql/types";
+import { DiscountEffectiveStatus, DiscountOrderField } from "@/graphql/types";
 import { useDiscounts } from "../hooks";
 import { useCreateDiscountModal, useDiscountModal } from "../modals";
 import { filterSchema } from "./filter-schema";
@@ -82,9 +79,7 @@ function DiscountCell({ data }: CustomCellRendererProps<ApiDiscount>) {
   );
 }
 
-function StatusCell({
-  value,
-}: CustomCellRendererProps<ApiDiscount, DiscountEffectiveStatus>) {
+function StatusCell({ value }: CustomCellRendererProps<ApiDiscount, DiscountEffectiveStatus>) {
   if (!value) return null;
   return <Tag color={statusColors[value]}>{formatEnum(value)}</Tag>;
 }
@@ -103,25 +98,21 @@ function ScheduleCell({ data }: CustomCellRendererProps<ApiDiscount>) {
   if (!data) return null;
   const start = dateFormatter.format(new Date(data.startsAt));
   const end = data.endsAt ? dateFormatter.format(new Date(data.endsAt)) : "No end";
-  return <Typography.Text>{start} — {end}</Typography.Text>;
+  return (
+    <Typography.Text>
+      {start} — {end}
+    </Typography.Text>
+  );
 }
 
 function DateCell({ value }: CustomCellRendererProps<ApiDiscount, string>) {
-  return (
-    <Typography.Text>
-      {value ? dateFormatter.format(new Date(value)) : ""}
-    </Typography.Text>
-  );
+  return <Typography.Text>{value ? dateFormatter.format(new Date(value)) : ""}</Typography.Text>;
 }
 
 export default function DiscountsPage() {
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiDiscount>>(null);
-  const pageConfig = usePageConfig<
-    ApiDiscount,
-    ApiDiscountWhereInput,
-    DiscountOrderField
-  >({
+  const pageConfig = usePageConfig<ApiDiscount, ApiDiscountWhereInput, DiscountOrderField>({
     gridRef,
     storageKey: "discounts-grid-state",
     filterSchema,
@@ -143,8 +134,7 @@ export default function DiscountsPage() {
       pageConfig.orderBy,
     ],
   );
-  const { discounts, totalCount, pageInfo, loading, error, refetch } =
-    useDiscounts(variables);
+  const { discounts, totalCount, pageInfo, loading, error, refetch } = useDiscounts(variables);
   const { push: openCreateDiscountModal } = useCreateDiscountModal();
   const { push: openDiscountModal } = useDiscountModal();
 
@@ -178,13 +168,13 @@ export default function DiscountsPage() {
       {
         headerName: "Method",
         field: "method",
-        valueFormatter: ({ value }) => value ? formatEnum(value) : "",
+        valueFormatter: ({ value }) => (value ? formatEnum(value) : ""),
         width: 125,
       },
       {
         headerName: "Type",
         field: "kind",
-        valueFormatter: ({ value }) => value ? formatEnum(value) : "",
+        valueFormatter: ({ value }) => (value ? formatEnum(value) : ""),
         minWidth: 190,
         flex: 1,
       },
@@ -260,12 +250,7 @@ export default function DiscountsPage() {
         }}
       >
         {error && (
-          <Alert
-            type="error"
-            message={error.message}
-            showIcon
-            style={{ marginBottom: 12 }}
-          />
+          <Alert type="error" message={error.message} showIcon style={{ marginBottom: 12 }} />
         )}
 
         <div style={{ flex: 1 }} data-testid="discounts-table">
@@ -296,10 +281,7 @@ export default function DiscountsPage() {
           name="discounts"
           total={totalCount}
           rangeStart={pageConfig.getRangeStart(discounts.length)}
-          rangeEnd={Math.min(
-            pageConfig.getRangeEnd(discounts.length),
-            totalCount,
-          )}
+          rangeEnd={Math.min(pageConfig.getRangeEnd(discounts.length), totalCount)}
           pageSize={pageConfig.pageSize}
           pageSizeOptions={pageConfig.pageSizeOptions}
           hasNext={pageInfo?.hasNextPage ?? false}

@@ -1,8 +1,5 @@
 import type { SortFieldMapping, UsePageConfigReturn } from "@/hooks";
-import type {
-  ApiProductQuestionOrderByInput,
-  ApiProductQuestionWhereInput,
-} from "@/graphql/types";
+import type { ApiProductQuestionOrderByInput, ApiProductQuestionWhereInput } from "@/graphql/types";
 import { ProductQuestionOrderField } from "@/graphql/types";
 import type { QuestionsQueryVariables } from "../graphql/operation-types";
 

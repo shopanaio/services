@@ -45,7 +45,7 @@ abstract class EntityUpdateWorkflow extends ReviewsMutationWorkflow {
 
   protected operationResult(
     type: ReviewsUpdateOperationType,
-    errors: ReviewsUpdateOperationResult["errors"]
+    errors: ReviewsUpdateOperationResult["errors"],
   ): ReviewsUpdateOperationResult[] {
     return [{ type, applied: errors.length === 0, errors }];
   }
@@ -53,7 +53,9 @@ abstract class EntityUpdateWorkflow extends ReviewsMutationWorkflow {
 
 @Injectable()
 export class StoreConfigurationUpdateWorkflow extends EntityUpdateWorkflow {
-  constructor(@InjectBroker("reviews") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("reviews") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("storeConfigurationUpdate")
   @Policy<StoreConfigurationUpdateWorkflowInput>({
@@ -62,20 +64,31 @@ export class StoreConfigurationUpdateWorkflow extends EntityUpdateWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(input: StoreConfigurationUpdateWorkflowInput): Promise<StoreConfigurationUpdateWorkflowResult> {
+  async run(
+    input: StoreConfigurationUpdateWorkflowInput,
+  ): Promise<StoreConfigurationUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
-    return { ...result, operationResults: this.operationResult("storeConfigurationUpdate", result.userErrors) };
+    return {
+      ...result,
+      operationResults: this.operationResult("storeConfigurationUpdate", result.userErrors),
+    };
   }
 
   @WorkflowStep()
   private stepUpdate(input: StoreConfigurationUpdateWorkflowInput) {
-    return this.kernel.runScript(StoreConfigurationUpdateScript, input.params, this.toScriptContext(input.context));
+    return this.kernel.runScript(
+      StoreConfigurationUpdateScript,
+      input.params,
+      this.toScriptContext(input.context),
+    );
   }
 }
 
 @Injectable()
 export class QuestionSubscriptionUpdateWorkflow extends EntityUpdateWorkflow {
-  constructor(@InjectBroker("reviews") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("reviews") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("productQuestionSubscriptionUpdate")
   @Policy<QuestionSubscriptionUpdateWorkflowInput>({
@@ -84,20 +97,34 @@ export class QuestionSubscriptionUpdateWorkflow extends EntityUpdateWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(input: QuestionSubscriptionUpdateWorkflowInput): Promise<QuestionSubscriptionUpdateWorkflowResult> {
+  async run(
+    input: QuestionSubscriptionUpdateWorkflowInput,
+  ): Promise<QuestionSubscriptionUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
-    return { ...result, operationResults: this.operationResult("productQuestionSubscriptionUpdate", result.userErrors) };
+    return {
+      ...result,
+      operationResults: this.operationResult(
+        "productQuestionSubscriptionUpdate",
+        result.userErrors,
+      ),
+    };
   }
 
   @WorkflowStep()
   private stepUpdate(input: QuestionSubscriptionUpdateWorkflowInput) {
-    return this.kernel.runScript(QuestionSubscriptionUpdateScript, input.params, this.toScriptContext(input.context));
+    return this.kernel.runScript(
+      QuestionSubscriptionUpdateScript,
+      input.params,
+      this.toScriptContext(input.context),
+    );
   }
 }
 
 @Injectable()
 export class ContentRedactWorkflow extends EntityUpdateWorkflow {
-  constructor(@InjectBroker("reviews") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("reviews") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("contentRedact")
   @Policy<ContentRedactWorkflowInput>({
@@ -108,18 +135,27 @@ export class ContentRedactWorkflow extends EntityUpdateWorkflow {
   })
   async run(input: ContentRedactWorkflowInput): Promise<ContentRedactWorkflowResult> {
     const result = await this.stepUpdate(input);
-    return { ...result, operationResults: this.operationResult("contentRedact", result.userErrors) };
+    return {
+      ...result,
+      operationResults: this.operationResult("contentRedact", result.userErrors),
+    };
   }
 
   @WorkflowStep()
   private stepUpdate(input: ContentRedactWorkflowInput) {
-    return this.kernel.runScript(ContentRedactScript, input.params, this.toScriptContext(input.context));
+    return this.kernel.runScript(
+      ContentRedactScript,
+      input.params,
+      this.toScriptContext(input.context),
+    );
   }
 }
 
 @Injectable()
 export class ContentRevisionRestoreWorkflow extends EntityUpdateWorkflow {
-  constructor(@InjectBroker("reviews") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("reviews") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("contentRevisionRestore")
   @Policy<ContentRevisionRestoreWorkflowInput>({
@@ -128,20 +164,31 @@ export class ContentRevisionRestoreWorkflow extends EntityUpdateWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(input: ContentRevisionRestoreWorkflowInput): Promise<ContentRevisionRestoreWorkflowResult> {
+  async run(
+    input: ContentRevisionRestoreWorkflowInput,
+  ): Promise<ContentRevisionRestoreWorkflowResult> {
     const result = await this.stepUpdate(input);
-    return { ...result, operationResults: this.operationResult("contentRevisionRestore", result.userErrors) };
+    return {
+      ...result,
+      operationResults: this.operationResult("contentRevisionRestore", result.userErrors),
+    };
   }
 
   @WorkflowStep()
   private stepUpdate(input: ContentRevisionRestoreWorkflowInput) {
-    return this.kernel.runScript(ContentRevisionRestoreScript, input.params, this.toScriptContext(input.context));
+    return this.kernel.runScript(
+      ContentRevisionRestoreScript,
+      input.params,
+      this.toScriptContext(input.context),
+    );
   }
 }
 
 @Injectable()
 export class ReviewRequestUpdateWorkflow extends EntityUpdateWorkflow {
-  constructor(@InjectBroker("reviews") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("reviews") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("reviewRequestUpdate")
   @Policy<ReviewRequestUpdateWorkflowInput>({
@@ -152,18 +199,27 @@ export class ReviewRequestUpdateWorkflow extends EntityUpdateWorkflow {
   })
   async run(input: ReviewRequestUpdateWorkflowInput): Promise<ReviewRequestUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
-    return { ...result, operationResults: this.operationResult("reviewRequestUpdate", result.userErrors) };
+    return {
+      ...result,
+      operationResults: this.operationResult("reviewRequestUpdate", result.userErrors),
+    };
   }
 
   @WorkflowStep()
   private stepUpdate(input: ReviewRequestUpdateWorkflowInput) {
-    return this.kernel.runScript(ReviewRequestUpdateScript, input.params, this.toScriptContext(input.context));
+    return this.kernel.runScript(
+      ReviewRequestUpdateScript,
+      input.params,
+      this.toScriptContext(input.context),
+    );
   }
 }
 
 @Injectable()
 export class ContentReportUpdateWorkflow extends EntityUpdateWorkflow {
-  constructor(@InjectBroker("reviews") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("reviews") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("contentReportUpdate")
   @Policy<ContentReportUpdateWorkflowInput>({
@@ -174,18 +230,27 @@ export class ContentReportUpdateWorkflow extends EntityUpdateWorkflow {
   })
   async run(input: ContentReportUpdateWorkflowInput): Promise<ContentReportUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
-    return { ...result, operationResults: this.operationResult("contentReportUpdate", result.userErrors) };
+    return {
+      ...result,
+      operationResults: this.operationResult("contentReportUpdate", result.userErrors),
+    };
   }
 
   @WorkflowStep()
   private stepUpdate(input: ContentReportUpdateWorkflowInput) {
-    return this.kernel.runScript(ContentReportUpdateScript, input.params, this.toScriptContext(input.context));
+    return this.kernel.runScript(
+      ContentReportUpdateScript,
+      input.params,
+      this.toScriptContext(input.context),
+    );
   }
 }
 
 @Injectable()
 export class ModerationCaseUpdateWorkflow extends EntityUpdateWorkflow {
-  constructor(@InjectBroker("reviews") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("reviews") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("moderationCaseUpdate")
   @Policy<ModerationCaseUpdateWorkflowInput>({
@@ -196,18 +261,27 @@ export class ModerationCaseUpdateWorkflow extends EntityUpdateWorkflow {
   })
   async run(input: ModerationCaseUpdateWorkflowInput): Promise<ModerationCaseUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
-    return { ...result, operationResults: this.operationResult("moderationCaseUpdate", result.userErrors) };
+    return {
+      ...result,
+      operationResults: this.operationResult("moderationCaseUpdate", result.userErrors),
+    };
   }
 
   @WorkflowStep()
   private stepUpdate(input: ModerationCaseUpdateWorkflowInput) {
-    return this.kernel.runScript(ModerationCaseUpdateScript, input.params, this.toScriptContext(input.context));
+    return this.kernel.runScript(
+      ModerationCaseUpdateScript,
+      input.params,
+      this.toScriptContext(input.context),
+    );
   }
 }
 
 @Injectable()
 export class ContentExternalReferenceUpdateWorkflow extends EntityUpdateWorkflow {
-  constructor(@InjectBroker("reviews") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("reviews") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("contentExternalReferenceUpdate")
   @Policy<ContentExternalReferenceUpdateWorkflowInput>({
@@ -216,14 +290,23 @@ export class ContentExternalReferenceUpdateWorkflow extends EntityUpdateWorkflow
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(input: ContentExternalReferenceUpdateWorkflowInput): Promise<ContentExternalReferenceUpdateWorkflowResult> {
+  async run(
+    input: ContentExternalReferenceUpdateWorkflowInput,
+  ): Promise<ContentExternalReferenceUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
-    return { ...result, operationResults: this.operationResult("contentExternalReferenceUpdate", result.userErrors) };
+    return {
+      ...result,
+      operationResults: this.operationResult("contentExternalReferenceUpdate", result.userErrors),
+    };
   }
 
   @WorkflowStep()
   private stepUpdate(input: ContentExternalReferenceUpdateWorkflowInput) {
-    return this.kernel.runScript(ContentExternalReferenceUpdateScript, input.params, this.toScriptContext(input.context));
+    return this.kernel.runScript(
+      ContentExternalReferenceUpdateScript,
+      input.params,
+      this.toScriptContext(input.context),
+    );
   }
 }
 

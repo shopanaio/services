@@ -15,9 +15,7 @@ export class CustomerGroupDeleteScript extends BaseScript<
   CustomerGroupDeleteResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerGroupDeleteParams
-  ): Promise<CustomerGroupDeleteResult> {
+  protected async execute(params: CustomerGroupDeleteParams): Promise<CustomerGroupDeleteResult> {
     const group = await this.repository.group.findById(params.id);
     if (!group) {
       return notFound();
@@ -26,13 +24,15 @@ export class CustomerGroupDeleteScript extends BaseScript<
     if (group.isDefault || customerIds.length > 0) {
       return {
         deletedGroupId: undefined,
-        userErrors: [{
-          message: group.isDefault
-            ? "The default customer group cannot be deleted"
-            : "A customer group with active memberships cannot be deleted",
-          code: "DEPENDENCY_EXISTS",
-          field: ["id"],
-        }],
+        userErrors: [
+          {
+            message: group.isDefault
+              ? "The default customer group cannot be deleted"
+              : "A customer group with active memberships cannot be deleted",
+            code: "DEPENDENCY_EXISTS",
+            field: ["id"],
+          },
+        ],
       };
     }
 
@@ -41,11 +41,7 @@ export class CustomerGroupDeleteScript extends BaseScript<
       return notFound();
     }
     for (const customerId of customerIds) {
-      await this.invalidateDynamicSegments(
-        customerId,
-        ["group"],
-        `groupDeleted:${params.id}`,
-      );
+      await this.invalidateDynamicSegments(customerId, ["group"], `groupDeleted:${params.id}`);
     }
 
     this.logger.info({ groupId: params.id }, "Customer group deleted");
@@ -63,8 +59,6 @@ export class CustomerGroupDeleteScript extends BaseScript<
 function notFound(): CustomerGroupDeleteResult {
   return {
     deletedGroupId: undefined,
-    userErrors: [
-      { message: "Customer group not found", field: ["id"], code: "NOT_FOUND" },
-    ],
+    userErrors: [{ message: "Customer group not found", field: ["id"], code: "NOT_FOUND" }],
   };
 }

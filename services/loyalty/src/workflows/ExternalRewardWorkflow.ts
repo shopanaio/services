@@ -22,11 +22,13 @@ type GetStoreByIdResult = {
 };
 
 export type ExternalRewardWorkflowResult =
-  | { success: true }
-  | { success: false; message: string; retryable: false };
+  { success: true } | { success: false; message: string; retryable: false };
 
 @Injectable()
-export class ExternalRewardWorkflow extends BrokerWorkflows<ExternalRewardInput, ExternalRewardWorkflowResult> {
+export class ExternalRewardWorkflow extends BrokerWorkflows<
+  ExternalRewardInput,
+  ExternalRewardWorkflowResult
+> {
   constructor(@InjectBroker("loyalty") broker: ServiceBroker) {
     super(broker);
   }
@@ -48,14 +50,17 @@ export class ExternalRewardWorkflow extends BrokerWorkflows<ExternalRewardInput,
     const kernel = Kernel.getInstance();
     const store = result.store;
     try {
-      await runWithContext(new ServiceContext({
-        requestId: input.externalEventId,
-        kernel,
-        loaders: new Loader(kernel.repository),
-        store,
-        locale: store.defaultLocale,
-        currency: store.currencyCode,
-      }), () => new OrderRewardService(kernel.repository).ingestExternal(input));
+      await runWithContext(
+        new ServiceContext({
+          requestId: input.externalEventId,
+          kernel,
+          loaders: new Loader(kernel.repository),
+          store,
+          locale: store.defaultLocale,
+          currency: store.currencyCode,
+        }),
+        () => new OrderRewardService(kernel.repository).ingestExternal(input),
+      );
       return { success: true };
     } catch (error) {
       if (error instanceof LoyaltyDomainError && !error.retryable) {

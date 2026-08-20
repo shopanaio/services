@@ -32,7 +32,4 @@ export interface EntityContentExtraRenderContext {
   setValue: UseFormSetValue<EntityContentFormValues>;
 }
 
-export type EntityEditSubmitResult =
-  | boolean
-  | void
-  | Promise<boolean | void>;
+export type EntityEditSubmitResult = boolean | void | Promise<boolean | void>;

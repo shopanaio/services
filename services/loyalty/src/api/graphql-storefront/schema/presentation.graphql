@@ -52,7 +52,9 @@ type ProductLoyaltyPresentation {
   """
   reviewOpportunity: LoyaltyOpportunity
 
-  """Server-ranked purchase rewards applicable to this product or variant."""
+  """
+  Server-ranked purchase rewards applicable to this product or variant.
+  """
   purchaseOpportunities: [LoyaltyOpportunity!]!
 
   """
@@ -60,7 +62,9 @@ type ProductLoyaltyPresentation {
   """
   engagementOpportunities: [LoyaltyOpportunity!]!
 
-  """When this complete presentation snapshot was calculated."""
+  """
+  When this complete presentation snapshot was calculated.
+  """
   evaluatedAt: DateTime!
 
   """
@@ -70,16 +74,24 @@ type ProductLoyaltyPresentation {
   """
   validUntil: DateTime
 
-  """Opaque revision suitable for response caching and diagnostics."""
+  """
+  Opaque revision suitable for response caching and diagnostics.
+  """
   revision: String!
 }
 
-"""A customer-visible action through which a loyalty reward can be obtained."""
+"""
+A customer-visible action through which a loyalty reward can be obtained.
+"""
 type LoyaltyOpportunity {
-  """Stable opaque key within the returned presentation revision."""
+  """
+  Stable opaque key within the returned presentation revision.
+  """
   key: String!
 
-  """The customer action represented by this opportunity."""
+  """
+  The customer action represented by this opportunity.
+  """
   type: LoyaltyOpportunityType!
 
   """
@@ -88,7 +100,9 @@ type LoyaltyOpportunity {
   """
   state: LoyaltyOpportunityState!
 
-  """The fully calculated reward value."""
+  """
+  The fully calculated reward value.
+  """
   reward: LoyaltyRewardPresentation!
 
   """
@@ -102,7 +116,9 @@ type LoyaltyOpportunity {
   """
   remainingUses: UnsignedInt64
 
-  """End of the currently evaluated rule or entitlement window."""
+  """
+  End of the currently evaluated rule or entitlement window.
+  """
   validUntil: DateTime
 }
 
@@ -132,21 +148,33 @@ enum LoyaltyOpportunityState {
   BUDGET_EXHAUSTED
 }
 
-"""Localized server-authored copy for one opportunity or issued reward."""
+"""
+Localized server-authored copy for one opportunity or issued reward.
+"""
 type LoyaltyOpportunityCopy {
-  """Primary text, for example `Earn 300 points for a review`."""
+  """
+  Primary text, for example `Earn 300 points for a review`.
+  """
   headline: String!
 
-  """Optional explanatory text for a detail surface."""
+  """
+  Optional explanatory text for a detail surface.
+  """
   description: String
 
-  """Short text suitable for a product-card badge."""
+  """
+  Short text suitable for a product-card badge.
+  """
   badge: String
 
-  """Complete localized text for assistive technology."""
+  """
+  Complete localized text for assistive technology.
+  """
   accessibilityLabel: String!
 
-  """Already localized customer-facing terms selected by the server."""
+  """
+  Already localized customer-facing terms selected by the server.
+  """
   terms: [String!]!
 }
 
@@ -174,23 +202,31 @@ enum LoyaltyRewardKind {
   MEMBER_BENEFIT
 }
 
-"""Minimum and maximum unsigned values calculated by the server."""
+"""
+Minimum and maximum unsigned values calculated by the server.
+"""
 type LoyaltyUnsignedRange {
   minimum: UnsignedInt64!
   maximum: UnsignedInt64!
 }
 
-"""Minimum and maximum monetary values in one storefront currency."""
+"""
+Minimum and maximum monetary values in one storefront currency.
+"""
 type LoyaltyMoneyRange {
   minimum: Money!
   maximum: Money!
 }
 
 enum LoyaltyValueAccuracy {
-  """The value cannot change for the evaluated subject and context."""
+  """
+  The value cannot change for the evaluated subject and context.
+  """
   EXACT
 
-  """The value can change after cart, Pricing, or final eligibility evaluation."""
+  """
+  The value can change after cart, Pricing, or final eligibility evaluation.
+  """
   ESTIMATED
 }
 
@@ -201,7 +237,9 @@ type LoyaltyPointsRewardPresentation implements LoyaltyRewardPresentation {
   accuracy: LoyaltyValueAccuracy!
 }
 
-"""Cashback, store credit, or a fixed monetary discount."""
+"""
+Cashback, store credit, or a fixed monetary discount.
+"""
 type LoyaltyMoneyRewardPresentation implements LoyaltyRewardPresentation {
   kind: LoyaltyRewardKind!
   copy: LoyaltyOpportunityCopy!
@@ -213,7 +251,9 @@ type LoyaltyPercentageRewardPresentation implements LoyaltyRewardPresentation {
   kind: LoyaltyRewardKind!
   copy: LoyaltyOpportunityCopy!
 
-  """Percentage expressed as a decimal value, for example `5` for five percent."""
+  """
+  Percentage expressed as a decimal value, for example `5` for five percent.
+  """
   percentage: Decimal!
 }
 
@@ -259,12 +299,16 @@ type LoyaltyAccountOpportunityPresentation {
   revision: String!
 }
 
-"""An issued reward that the current customer can use now."""
+"""
+An issued reward that the current customer can use now.
+"""
 type LoyaltyAvailableReward implements Node @key(fields: "id") {
   id: ID!
   reward: LoyaltyRewardPresentation!
 
-  """Localized server-authored copy ready for an account or checkout surface."""
+  """
+  Localized server-authored copy ready for an account or checkout surface.
+  """
   presentation: LoyaltyOpportunityCopy!
 
   issuedAt: DateTime!

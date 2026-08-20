@@ -1,8 +1,4 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional, type TransactionManager } from "@shopana/shared-kernel";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { Database } from "../../infrastructure/db/database.js";
@@ -35,14 +31,15 @@ export const productQuestionAnswerRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "productQuestionAnswer", tieBreaker: "id" }
+  { name: "productQuestionAnswer", tieBreaker: "id" },
 );
 
 export type ProductQuestionAnswerRelayInput = InferRelayInput<
   typeof productQuestionAnswerRelayQuery
 >;
-export type ProductQuestionAnswerConnectionInput =
-  ProductQuestionAnswerRelayInput & { meta?: ContentConnectionMetaInput };
+export type ProductQuestionAnswerConnectionInput = ProductQuestionAnswerRelayInput & {
+  meta?: ContentConnectionMetaInput;
+};
 
 export interface ProductQuestionAnswerAggregate {
   content: ContentItem;
@@ -57,7 +54,7 @@ export class ProductQuestionAnswerRepository extends BaseRepository {
   constructor(
     db: Database,
     txManager: TransactionManager<Database>,
-    private readonly content: ContentRepository
+    private readonly content: ContentRepository,
   ) {
     super(db, txManager);
   }
@@ -72,15 +69,10 @@ export class ProductQuestionAnswerRepository extends BaseRepository {
         and(
           eq(contentItem.storeId, questionAnswer.storeId),
           eq(contentItem.id, questionAnswer.id),
-          isNull(contentItem.deletedAt)
-        )
+          isNull(contentItem.deletedAt),
+        ),
       )
-      .where(
-        and(
-          eq(questionAnswer.storeId, this.storeId),
-          eq(questionAnswer.id, id)
-        )
-      )
+      .where(and(eq(questionAnswer.storeId, this.storeId), eq(questionAnswer.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -93,23 +85,20 @@ export class ProductQuestionAnswerRepository extends BaseRepository {
       .from(questionAnswer)
       .innerJoin(
         contentItem,
-        and(
-          eq(contentItem.storeId, questionAnswer.storeId),
-          eq(contentItem.id, questionAnswer.id)
-        )
+        and(eq(contentItem.storeId, questionAnswer.storeId), eq(contentItem.id, questionAnswer.id)),
       )
       .where(
         and(
           eq(questionAnswer.storeId, this.storeId),
-          inArray(questionAnswer.id, [...new Set(ids)])
-        )
+          inArray(questionAnswer.id, [...new Set(ids)]),
+        ),
       )
       .then((rows) => rows.map((row) => row.answer));
   }
 
   @ReadOnly()
   async getConnection(
-    args: ProductQuestionAnswerConnectionInput
+    args: ProductQuestionAnswerConnectionInput,
   ): Promise<RepositoryConnectionResult> {
     const { where, orderBy, meta, ...pagination } = args;
     const mergedWhere: ProductQuestionAnswerRelayInput["where"] = {
@@ -147,15 +136,19 @@ export class ProductQuestionAnswerRepository extends BaseRepository {
   async create(input: {
     content: Omit<
       NewContentItem,
-      "id" | "storeId" | "kind" | "revision" | "createdAt" | "updatedAt" | "deletedAt" | "redactedAt"
+      | "id"
+      | "storeId"
+      | "kind"
+      | "revision"
+      | "createdAt"
+      | "updatedAt"
+      | "deletedAt"
+      | "redactedAt"
     >;
     answer: Omit<NewQuestionAnswer, "id" | "contentKind" | "storeId">;
   }): Promise<ProductQuestionAnswerAggregate> {
     const id = await this.generateUuidV7();
-    const content = await this.content.create(
-      { ...input.content, kind: "QUESTION_ANSWER" },
-      id
-    );
+    const content = await this.content.create({ ...input.content, kind: "QUESTION_ANSWER" }, id);
     const rows = await this.connection
       .insert(questionAnswer)
       .values({
@@ -173,17 +166,12 @@ export class ProductQuestionAnswerRepository extends BaseRepository {
   @Transactional()
   async updateProperties(
     id: string,
-    patch: ProductQuestionAnswerPatch
+    patch: ProductQuestionAnswerPatch,
   ): Promise<QuestionAnswer | null> {
     const rows = await this.connection
       .update(questionAnswer)
       .set(patch)
-      .where(
-        and(
-          eq(questionAnswer.storeId, this.storeId),
-          eq(questionAnswer.id, id)
-        )
-      )
+      .where(and(eq(questionAnswer.storeId, this.storeId), eq(questionAnswer.id, id)))
       .returning();
     return rows[0] ?? null;
   }

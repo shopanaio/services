@@ -56,13 +56,19 @@ type Organization implements Node @key(fields: "id") {
 A connection to a list of Organization items.
 """
 type OrganizationConnection {
-  """A list of edges."""
+  """
+  A list of edges.
+  """
   edges: [OrganizationEdge!]!
 
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
 
-  """The total number of organizations."""
+  """
+  The total number of organizations.
+  """
   totalCount: Int!
 }
 
@@ -70,10 +76,14 @@ type OrganizationConnection {
 An edge in an Organization connection.
 """
 type OrganizationEdge {
-  """The item at the end of the edge."""
+  """
+  The item at the end of the edge.
+  """
   node: Organization!
 
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: String!
 }
 
@@ -81,43 +91,77 @@ type OrganizationEdge {
 # FILTER TYPES
 # ============================================================================
 
-"""Filter conditions for Organization"""
+"""
+Filter conditions for Organization
+"""
 input OrganizationWhereInput {
-  """Logical AND of multiple conditions"""
+  """
+  Logical AND of multiple conditions
+  """
   _and: [OrganizationWhereInput!]
-  """Logical OR of multiple conditions"""
+  """
+  Logical OR of multiple conditions
+  """
   _or: [OrganizationWhereInput!]
-  """Negate the condition"""
+  """
+  Negate the condition
+  """
   _not: OrganizationWhereInput
-  """Filter by id"""
+  """
+  Filter by id
+  """
   id: IDFilter
-  """Filter by name"""
+  """
+  Filter by name
+  """
   name: StringFilter
-  """Filter by displayName"""
+  """
+  Filter by displayName
+  """
   displayName: StringFilter
-  """Filter by createdAt"""
+  """
+  Filter by createdAt
+  """
   createdAt: DateTimeFilter
-  """Filter by updatedAt"""
+  """
+  Filter by updatedAt
+  """
   updatedAt: DateTimeFilter
 }
 
-"""Fields available for sorting Organization"""
+"""
+Fields available for sorting Organization
+"""
 enum OrganizationOrderField {
-  """Sort by name"""
+  """
+  Sort by name
+  """
   name
-  """Sort by displayName"""
+  """
+  Sort by displayName
+  """
   displayName
-  """Sort by createdAt"""
+  """
+  Sort by createdAt
+  """
   createdAt
-  """Sort by updatedAt"""
+  """
+  Sort by updatedAt
+  """
   updatedAt
 }
 
-"""Ordering configuration for Organization"""
+"""
+Ordering configuration for Organization
+"""
 input OrganizationOrderByInput {
-  """Field to order by"""
+  """
+  Field to order by
+  """
   field: OrganizationOrderField!
-  """Sort direction"""
+  """
+  Sort direction
+  """
   direction: SortDirection!
 }
 
@@ -322,17 +366,29 @@ type OrganizationQuery {
   Returns empty connection if not authenticated.
   """
   organizations(
-    """Returns the first n items"""
+    """
+    Returns the first n items
+    """
     first: Int
-    """Returns items after this cursor"""
+    """
+    Returns items after this cursor
+    """
     after: String
-    """Returns the last n items"""
+    """
+    Returns the last n items
+    """
     last: Int
-    """Returns items before this cursor"""
+    """
+    Returns items before this cursor
+    """
     before: String
-    """Filter conditions"""
+    """
+    Filter conditions
+    """
     where: OrganizationWhereInput
-    """Sort order"""
+    """
+    Sort order
+    """
     orderBy: [OrganizationOrderByInput!]
   ): OrganizationConnection!
 }
@@ -345,16 +401,12 @@ type OrganizationMutation {
   Create a new organization.
   Current user becomes the owner.
   """
-  organizationCreate(
-    input: OrganizationCreateInput!
-  ): OrganizationCreatePayload!
+  organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload!
   """
   Update organization.
   Requires: org admin or owner.
   """
-  organizationUpdate(
-    input: OrganizationUpdateInput!
-  ): OrganizationUpdatePayload!
+  organizationUpdate(input: OrganizationUpdateInput!): OrganizationUpdatePayload!
   """
   Delete organization. Requires: org owner only.
   """
@@ -384,7 +436,5 @@ type OrganizationMutation {
   """
   Remove member's access from domain.
   """
-  memberAccessRemove(
-    input: MemberAccessRemoveInput!
-  ): MemberAccessRemovePayload!
+  memberAccessRemove(input: MemberAccessRemoveInput!): MemberAccessRemovePayload!
 }

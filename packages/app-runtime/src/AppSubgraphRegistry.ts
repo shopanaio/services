@@ -1,8 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type {
-  AppGraphQLSurface,
-  AppSubgraphRuntime,
-} from "./types.js";
+import type { AppGraphQLSurface, AppSubgraphRuntime } from "./types.js";
 
 @Injectable()
 export class AppSubgraphRegistry {
@@ -16,10 +13,7 @@ export class AppSubgraphRegistry {
     this.runtimes.set(key, runtime);
   }
 
-  get(
-    appCode: string,
-    surface: AppGraphQLSurface,
-  ): AppSubgraphRuntime | undefined {
+  get(appCode: string, surface: AppGraphQLSurface): AppSubgraphRuntime | undefined {
     return this.runtimes.get(this.key(appCode, surface));
   }
 

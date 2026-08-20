@@ -30,15 +30,9 @@ export const discountUsageCounter = pricingSchema.table(
       .primaryKey()
       .references(() => discount.id, { onDelete: "cascade" }),
     storeId: uuid("store_id").notNull(),
-    reservedCount: bigint("reserved_count", { mode: "bigint" })
-      .notNull()
-      .default(0n),
-    committedCount: bigint("committed_count", { mode: "bigint" })
-      .notNull()
-      .default(0n),
-    reversedCount: bigint("reversed_count", { mode: "bigint" })
-      .notNull()
-      .default(0n),
+    reservedCount: bigint("reserved_count", { mode: "bigint" }).notNull().default(0n),
+    committedCount: bigint("committed_count", { mode: "bigint" }).notNull().default(0n),
+    reversedCount: bigint("reversed_count", { mode: "bigint" }).notNull().default(0n),
     version: bigint("version", { mode: "bigint" }).notNull().default(0n),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
@@ -52,14 +46,8 @@ export const discountUsageCounter = pricingSchema.table(
         AND ${table.reversedCount} >= 0
         AND ${table.reversedCount} <= ${table.committedCount}`,
     ),
-    check(
-      "discount_usage_counter_version_check",
-      sql`${table.version} >= 0`,
-    ),
-    index("discount_usage_counter_store_idx").on(
-      table.storeId,
-      table.discountId,
-    ),
+    check("discount_usage_counter_version_check", sql`${table.version} >= 0`),
+    index("discount_usage_counter_store_idx").on(table.storeId, table.discountId),
   ],
 );
 
@@ -69,15 +57,9 @@ export const discountCodeUsageCounter = pricingSchema.table(
     codeId: uuid("code_id").primaryKey(),
     storeId: uuid("store_id").notNull(),
     discountId: uuid("discount_id").notNull(),
-    reservedCount: bigint("reserved_count", { mode: "bigint" })
-      .notNull()
-      .default(0n),
-    committedCount: bigint("committed_count", { mode: "bigint" })
-      .notNull()
-      .default(0n),
-    reversedCount: bigint("reversed_count", { mode: "bigint" })
-      .notNull()
-      .default(0n),
+    reservedCount: bigint("reserved_count", { mode: "bigint" }).notNull().default(0n),
+    committedCount: bigint("committed_count", { mode: "bigint" }).notNull().default(0n),
+    reversedCount: bigint("reversed_count", { mode: "bigint" }).notNull().default(0n),
     version: bigint("version", { mode: "bigint" }).notNull().default(0n),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
@@ -96,10 +78,7 @@ export const discountCodeUsageCounter = pricingSchema.table(
         AND ${table.reversedCount} >= 0
         AND ${table.reversedCount} <= ${table.committedCount}`,
     ),
-    check(
-      "discount_code_usage_counter_version_check",
-      sql`${table.version} >= 0`,
-    ),
+    check("discount_code_usage_counter_version_check", sql`${table.version} >= 0`),
     index("discount_code_usage_counter_store_discount_idx").on(
       table.storeId,
       table.discountId,
@@ -111,7 +90,9 @@ export const discountCodeUsageCounter = pricingSchema.table(
 export const discountUsageReservation = pricingSchema.table(
   "discount_usage_reservation",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     discountId: uuid("discount_id")
       .notNull()
@@ -120,9 +101,7 @@ export const discountUsageReservation = pricingSchema.table(
     customerId: uuid("customer_id"),
     checkoutId: uuid("checkout_id").notNull(),
     idempotencyKey: text("idempotency_key").notNull(),
-    status: discountReservationStatusEnum("status")
-      .notNull()
-      .default("ACTIVE"),
+    status: discountReservationStatusEnum("status").notNull().default("ACTIVE"),
     expiresAt: timestamp("expires_at", {
       withTimezone: true,
       mode: "string",
@@ -132,7 +111,9 @@ export const discountUsageReservation = pricingSchema.table(
       mode: "string",
     }),
     closedAt: timestamp("closed_at", { withTimezone: true, mode: "string" }),
-    metadata: jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
+    metadata: jsonb("metadata")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -146,31 +127,19 @@ export const discountUsageReservation = pricingSchema.table(
       columns: [table.discountId, table.codeId],
       foreignColumns: [discountCode.discountId, discountCode.id],
     }).onDelete("restrict"),
-    unique("discount_usage_reservation_store_id_unique").on(
-      table.storeId,
-      table.id,
-    ),
+    unique("discount_usage_reservation_store_id_unique").on(table.storeId, table.id),
     unique("discount_usage_reservation_store_discount_id_unique").on(
       table.storeId,
       table.discountId,
       table.id,
     ),
-    unique("discount_usage_reservation_discount_id_id_unique").on(
-      table.discountId,
-      table.id,
-    ),
-    unique("discount_usage_reservation_idempotency_unique").on(
-      table.storeId,
-      table.idempotencyKey,
-    ),
+    unique("discount_usage_reservation_discount_id_id_unique").on(table.discountId, table.id),
+    unique("discount_usage_reservation_idempotency_unique").on(table.storeId, table.idempotencyKey),
     check(
       "discount_usage_reservation_idempotency_check",
       sql`length(btrim(${table.idempotencyKey})) > 0`,
     ),
-    check(
-      "discount_usage_reservation_expiry_check",
-      sql`${table.expiresAt} > ${table.createdAt}`,
-    ),
+    check("discount_usage_reservation_expiry_check", sql`${table.expiresAt} > ${table.createdAt}`),
     check(
       "discount_usage_reservation_status_check",
       sql`(${table.status} = 'ACTIVE'
@@ -208,7 +177,9 @@ export const discountUsageReservation = pricingSchema.table(
 export const discountRedemption = pricingSchema.table(
   "discount_redemption",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     discountId: uuid("discount_id")
       .notNull()
@@ -219,9 +190,7 @@ export const discountRedemption = pricingSchema.table(
     checkoutId: uuid("checkout_id").notNull(),
     orderId: uuid("order_id").notNull(),
     idempotencyKey: text("idempotency_key").notNull(),
-    status: discountRedemptionStatusEnum("status")
-      .notNull()
-      .default("COMMITTED"),
+    status: discountRedemptionStatusEnum("status").notNull().default("COMMITTED"),
     discountClass: discountClassEnum("discount_class").notNull(),
     configurationRevision: integer("configuration_revision").notNull(),
     currency: currencyCodeEnum("currency").notNull(),
@@ -237,7 +206,9 @@ export const discountRedemption = pricingSchema.table(
       mode: "string",
     }),
     reversalReason: text("reversal_reason"),
-    metadata: jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
+    metadata: jsonb("metadata")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -251,10 +222,7 @@ export const discountRedemption = pricingSchema.table(
     foreignKey({
       name: "discount_redemption_reservation_fk",
       columns: [table.discountId, table.reservationId],
-      foreignColumns: [
-        discountUsageReservation.discountId,
-        discountUsageReservation.id,
-      ],
+      foreignColumns: [discountUsageReservation.discountId, discountUsageReservation.id],
     }).onDelete("restrict"),
     unique("discount_redemption_store_id_unique").on(table.storeId, table.id),
     unique("discount_redemption_store_discount_id_unique").on(
@@ -262,32 +230,13 @@ export const discountRedemption = pricingSchema.table(
       table.discountId,
       table.id,
     ),
-    unique("discount_redemption_discount_id_id_unique").on(
-      table.discountId,
-      table.id,
-    ),
-    unique("discount_redemption_idempotency_unique").on(
-      table.storeId,
-      table.idempotencyKey,
-    ),
-    unique("discount_redemption_order_unique").on(
-      table.storeId,
-      table.discountId,
-      table.orderId,
-    ),
+    unique("discount_redemption_discount_id_id_unique").on(table.discountId, table.id),
+    unique("discount_redemption_idempotency_unique").on(table.storeId, table.idempotencyKey),
+    unique("discount_redemption_order_unique").on(table.storeId, table.discountId, table.orderId),
     unique("discount_redemption_reservation_unique").on(table.reservationId),
-    check(
-      "discount_redemption_idempotency_check",
-      sql`length(btrim(${table.idempotencyKey})) > 0`,
-    ),
-    check(
-      "discount_redemption_revision_check",
-      sql`${table.configurationRevision} >= 0`,
-    ),
-    check(
-      "discount_redemption_amount_check",
-      sql`${table.amountMinor} >= 0`,
-    ),
+    check("discount_redemption_idempotency_check", sql`length(btrim(${table.idempotencyKey})) > 0`),
+    check("discount_redemption_revision_check", sql`${table.configurationRevision} >= 0`),
+    check("discount_redemption_amount_check", sql`${table.amountMinor} >= 0`),
     check(
       "discount_redemption_status_check",
       sql`(${table.status} = 'COMMITTED'
@@ -319,22 +268,10 @@ export const discountRedemption = pricingSchema.table(
       table.id,
     ),
     index("discount_redemption_customer_usage_idx")
-      .on(
-        table.storeId,
-        table.discountId,
-        table.customerId,
-        table.committedAt.desc(),
-        table.id,
-      )
+      .on(table.storeId, table.discountId, table.customerId, table.committedAt.desc(), table.id)
       .where(sql`${table.customerId} IS NOT NULL`),
     index("discount_redemption_code_usage_idx")
-      .on(
-        table.storeId,
-        table.codeId,
-        table.status,
-        table.committedAt.desc(),
-        table.id,
-      )
+      .on(table.storeId, table.codeId, table.status, table.committedAt.desc(), table.id)
       .where(sql`${table.codeId} IS NOT NULL`),
   ],
 );
@@ -342,7 +279,9 @@ export const discountRedemption = pricingSchema.table(
 export const discountRedemptionAllocation = pricingSchema.table(
   "discount_redemption_allocation",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     discountId: uuid("discount_id").notNull(),
     redemptionId: uuid("redemption_id").notNull(),
@@ -350,7 +289,9 @@ export const discountRedemptionAllocation = pricingSchema.table(
     targetId: uuid("target_id"),
     quantity: integer("quantity"),
     amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
-    metadata: jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
+    metadata: jsonb("metadata")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -370,10 +311,7 @@ export const discountRedemptionAllocation = pricingSchema.table(
       "discount_redemption_allocation_quantity_check",
       sql`${table.quantity} IS NULL OR ${table.quantity} > 0`,
     ),
-    check(
-      "discount_redemption_allocation_amount_check",
-      sql`${table.amountMinor} >= 0`,
-    ),
+    check("discount_redemption_allocation_amount_check", sql`${table.amountMinor} >= 0`),
     check(
       "discount_redemption_allocation_metadata_object_check",
       sql`jsonb_typeof(${table.metadata}) = 'object'`,
@@ -385,30 +323,18 @@ export const discountRedemptionAllocation = pricingSchema.table(
       table.id,
     ),
     index("discount_redemption_allocation_target_idx")
-      .on(
-        table.storeId,
-        table.targetType,
-        table.targetId,
-        table.createdAt.desc(),
-        table.id,
-      )
+      .on(table.storeId, table.targetType, table.targetId, table.createdAt.desc(), table.id)
       .where(sql`${table.targetId} IS NOT NULL`),
   ],
 );
 
 export type DiscountUsageCounter = typeof discountUsageCounter.$inferSelect;
 export type NewDiscountUsageCounter = typeof discountUsageCounter.$inferInsert;
-export type DiscountCodeUsageCounter =
-  typeof discountCodeUsageCounter.$inferSelect;
-export type NewDiscountCodeUsageCounter =
-  typeof discountCodeUsageCounter.$inferInsert;
-export type DiscountUsageReservation =
-  typeof discountUsageReservation.$inferSelect;
-export type NewDiscountUsageReservation =
-  typeof discountUsageReservation.$inferInsert;
+export type DiscountCodeUsageCounter = typeof discountCodeUsageCounter.$inferSelect;
+export type NewDiscountCodeUsageCounter = typeof discountCodeUsageCounter.$inferInsert;
+export type DiscountUsageReservation = typeof discountUsageReservation.$inferSelect;
+export type NewDiscountUsageReservation = typeof discountUsageReservation.$inferInsert;
 export type DiscountRedemption = typeof discountRedemption.$inferSelect;
 export type NewDiscountRedemption = typeof discountRedemption.$inferInsert;
-export type DiscountRedemptionAllocation =
-  typeof discountRedemptionAllocation.$inferSelect;
-export type NewDiscountRedemptionAllocation =
-  typeof discountRedemptionAllocation.$inferInsert;
+export type DiscountRedemptionAllocation = typeof discountRedemptionAllocation.$inferSelect;
+export type NewDiscountRedemptionAllocation = typeof discountRedemptionAllocation.$inferInsert;

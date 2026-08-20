@@ -5,9 +5,7 @@ import {
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
 
-function createGlobalIdWhereFieldMapper(
-  entity: GlobalIdType
-): WhereFieldMapper {
+function createGlobalIdWhereFieldMapper(entity: GlobalIdType): WhereFieldMapper {
   return (value) => {
     if (typeof value !== "string") return value;
 
@@ -22,40 +20,44 @@ function createGlobalIdWhereFieldMapper(
 export const mapGraphQlBigInt: WhereFieldMapper = (value) =>
   typeof value === "string" ? BigInt(value) : value;
 
-export const decodeCustomerGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.Customer
-);
+export const decodeCustomerGlobalId = createGlobalIdWhereFieldMapper(GlobalIdEntity.Customer);
 export const decodeCustomerAddressGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.CustomerAddress
+  GlobalIdEntity.CustomerAddress,
 );
-export const decodeCustomerTaxIdentifierGlobalId =
-  createGlobalIdWhereFieldMapper(GlobalIdEntity.CustomerTaxIdentifier);
-export const decodeCustomerTaxExemptionGlobalId =
-  createGlobalIdWhereFieldMapper(GlobalIdEntity.CustomerTaxExemption);
+export const decodeCustomerTaxIdentifierGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.CustomerTaxIdentifier,
+);
+export const decodeCustomerTaxExemptionGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.CustomerTaxExemption,
+);
 export const decodeCustomerConsentGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.CustomerConsent
+  GlobalIdEntity.CustomerConsent,
 );
-export const decodeCustomerConsentEventGlobalId =
-  createGlobalIdWhereFieldMapper(GlobalIdEntity.CustomerConsentEvent);
+export const decodeCustomerConsentEventGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.CustomerConsentEvent,
+);
 export const decodeCustomerGroupGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.CustomerGroup
+  GlobalIdEntity.CustomerGroup,
 );
-export const decodeCustomerGroupMembershipGlobalId =
-  createGlobalIdWhereFieldMapper(GlobalIdEntity.CustomerGroupMembership);
-export const decodeCustomerTagGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.CustomerTag
+export const decodeCustomerGroupMembershipGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.CustomerGroupMembership,
 );
-export const decodeCustomerTagAssignmentGlobalId =
-  createGlobalIdWhereFieldMapper(GlobalIdEntity.CustomerTagAssignment);
+export const decodeCustomerTagGlobalId = createGlobalIdWhereFieldMapper(GlobalIdEntity.CustomerTag);
+export const decodeCustomerTagAssignmentGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.CustomerTagAssignment,
+);
 export const decodeCustomerSegmentGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.CustomerSegment
+  GlobalIdEntity.CustomerSegment,
 );
-export const decodeCustomerSegmentMembershipGlobalId =
-  createGlobalIdWhereFieldMapper(GlobalIdEntity.CustomerSegmentMembership);
-export const decodeCustomerMonetaryStatisticsGlobalId =
-  createGlobalIdWhereFieldMapper(GlobalIdEntity.CustomerMonetaryStatistics);
+export const decodeCustomerSegmentMembershipGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.CustomerSegmentMembership,
+);
+export const decodeCustomerMonetaryStatisticsGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.CustomerMonetaryStatistics,
+);
 export const decodeCustomerMergeGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.CustomerMerge
+  GlobalIdEntity.CustomerMerge,
 );
-export const decodeCustomerDataRequestGlobalId =
-  createGlobalIdWhereFieldMapper(GlobalIdEntity.CustomerDataRequest);
+export const decodeCustomerDataRequestGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.CustomerDataRequest,
+);

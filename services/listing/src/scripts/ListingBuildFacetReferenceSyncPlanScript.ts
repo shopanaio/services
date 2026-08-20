@@ -9,10 +9,7 @@ import type {
   FacetReferenceStateSyncReason,
   FacetSourceRef,
 } from "../workflows/FacetReferenceStateSyncWorkflow.js";
-import {
-  decodeListingVariantTerm,
-  isOptionFieldKey,
-} from "../listing/variantTerms/index.js";
+import { decodeListingVariantTerm, isOptionFieldKey } from "../listing/variantTerms/index.js";
 
 export interface ListingFacetReferenceSyncPlan {
   organizationId: string;
@@ -40,7 +37,7 @@ export class ListingBuildFacetReferenceSyncPlanScript extends BaseScript<
   ListingFacetReferenceSyncPlan
 > {
   protected async execute(
-    input: ListingBuildFacetReferenceSyncPlanInput
+    input: ListingBuildFacetReferenceSyncPlanInput,
   ): Promise<ListingFacetReferenceSyncPlan> {
     return "syncWriteModel" in input
       ? this.buildSyncPlan(input.action, input.syncWriteModel)
@@ -53,13 +50,11 @@ export class ListingBuildFacetReferenceSyncPlanScript extends BaseScript<
 
   private async buildSyncPlan(
     action: ListingPreparedSyncAction,
-    syncWriteModel: ListingSyncWriteModel
+    syncWriteModel: ListingSyncWriteModel,
   ): Promise<ListingFacetReferenceSyncPlan> {
     const productId = action.itemKey.itemId;
-    const existingProduct =
-      await this.repository.productListingIndex.findByProductId(productId);
-    const existingVariants =
-      await this.repository.variantListingIndex.getByProductIds([productId]);
+    const existingProduct = await this.repository.productListingIndex.findByProductId(productId);
+    const existingVariants = await this.repository.variantListingIndex.getByProductIds([productId]);
     const oldValueKeys = await this.collectOldValueKeys({
       productDocId: existingProduct?.productDocId,
       variantDocIds: existingVariants.map((variant) => variant.variantDocId),
@@ -82,7 +77,7 @@ export class ListingBuildFacetReferenceSyncPlanScript extends BaseScript<
   }
 
   private async buildDeletePlan(
-    action: ListingPreparedDeleteAction
+    action: ListingPreparedDeleteAction,
   ): Promise<ListingFacetReferenceSyncPlan> {
     const productId = action.itemKey.itemId;
     const [existingProduct, existingVariants] = await Promise.all([
@@ -126,7 +121,7 @@ export class ListingBuildFacetReferenceSyncPlanScript extends BaseScript<
         ...keys
           .map((key) => decodeListingVariantTerm(key.valueKey))
           .filter((term) => isOptionFieldKey(term.fieldKey))
-          .map(optionTermFacetValueKey)
+          .map(optionTermFacetValueKey),
       );
     }
 
@@ -139,9 +134,7 @@ export class ListingBuildFacetReferenceSyncPlanScript extends BaseScript<
     reason: FacetReferenceStateSyncReason;
     valueKeys: readonly string[];
   }): Promise<ListingFacetReferenceSyncPlan> {
-    const refs = await this.repository.facet.getSourceRefsByPostingValueKeys(
-      input.valueKeys
-    );
+    const refs = await this.repository.facet.getSourceRefsByPostingValueKeys(input.valueKeys);
 
     return {
       organizationId: input.action.organizationId,
@@ -157,9 +150,6 @@ export class ListingBuildFacetReferenceSyncPlanScript extends BaseScript<
   }
 }
 
-function optionTermFacetValueKey(term: {
-  fieldKey: string;
-  valueKey: string;
-}): string {
+function optionTermFacetValueKey(term: { fieldKey: string; valueKey: string }): string {
   return `${term.fieldKey.slice("option:".length)}:${term.valueKey}`;
 }

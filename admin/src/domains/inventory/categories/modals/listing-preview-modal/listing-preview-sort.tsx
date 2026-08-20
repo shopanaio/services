@@ -33,15 +33,13 @@ export const LISTING_PREVIEW_SORT_OPTIONS: ListingPreviewSortOption[] = [
   },
 ];
 
-const serializeOrderBy = (value: ApiListingOrderByInput) =>
-  `${value.by}:${value.direction ?? ""}`;
+const serializeOrderBy = (value: ApiListingOrderByInput) => `${value.by}:${value.direction ?? ""}`;
 
 export const getListingPreviewSortKey = (value: ApiListingOrderByInput) => {
   const serialized = serializeOrderBy(value);
   return (
-    LISTING_PREVIEW_SORT_OPTIONS.find(
-      (option) => serializeOrderBy(option.orderBy) === serialized,
-    )?.key ?? "newest-desc"
+    LISTING_PREVIEW_SORT_OPTIONS.find((option) => serializeOrderBy(option.orderBy) === serialized)
+      ?.key ?? "newest-desc"
   );
 };
 
@@ -50,10 +48,7 @@ interface ListingPreviewSortProps {
   onChange: (orderBy: ApiListingOrderByInput) => void;
 }
 
-export const ListingPreviewSort = ({
-  value,
-  onChange,
-}: ListingPreviewSortProps) => (
+export const ListingPreviewSort = ({ value, onChange }: ListingPreviewSortProps) => (
   <Select
     aria-label="Sort products"
     value={getListingPreviewSortKey(value)}

@@ -1,9 +1,5 @@
 import DataLoader from "dataloader";
-import type {
-  Tag,
-  TagTranslation,
-  ProductTag,
-} from "../repositories/models/index.js";
+import type { Tag, TagTranslation, ProductTag } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 
 export class TagLoader {
@@ -18,27 +14,21 @@ export class TagLoader {
       return tagIds.map((id) => results.find((t) => t.id === id) ?? null);
     });
 
-    this.tagTranslation = new DataLoader<string, TagTranslation | null>(
-      async (tagIds) => {
-        const results = await repository.tag.getTranslationsByTagIds(tagIds);
-        return tagIds.map(
-          (id) => results.find((t) => t.tagId === id) ?? null
-        );
-      }
-    );
+    this.tagTranslation = new DataLoader<string, TagTranslation | null>(async (tagIds) => {
+      const results = await repository.tag.getTranslationsByTagIds(tagIds);
+      return tagIds.map((id) => results.find((t) => t.tagId === id) ?? null);
+    });
 
     this.tagProductsCount = new DataLoader<string, number>(async (tagIds) => {
       const results = await repository.tag.countProductsByTagIds(tagIds);
       return tagIds.map((id) => results.get(id) ?? 0);
     });
 
-    this.productTagIds = new DataLoader<string, string[]>(
-      async (productIds) => {
-        const results = await repository.tag.getProductTagLinks(productIds);
-        return productIds.map((id) =>
-          results.filter((pt) => pt.productId === id).map((pt) => pt.tagId)
-        );
-      }
-    );
+    this.productTagIds = new DataLoader<string, string[]>(async (productIds) => {
+      const results = await repository.tag.getProductTagLinks(productIds);
+      return productIds.map((id) =>
+        results.filter((pt) => pt.productId === id).map((pt) => pt.tagId),
+      );
+    });
   }
 }

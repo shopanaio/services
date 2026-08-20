@@ -1,9 +1,16 @@
 "use client";
 
 import { useQuery } from "@apollo/client/react";
-import type { ApiCustomerSegment, ApiCustomerSegmentConnection, ApiPageInfo } from "@/graphql/types";
+import type {
+  ApiCustomerSegment,
+  ApiCustomerSegmentConnection,
+  ApiPageInfo,
+} from "@/graphql/types";
 import { CUSTOMER_SEGMENTS_QUERY } from "../graphql";
-import type { CustomerSegmentsQueryData, CustomerSegmentsQueryVariables } from "../graphql/operation-types";
+import type {
+  CustomerSegmentsQueryData,
+  CustomerSegmentsQueryVariables,
+} from "../graphql/operation-types";
 
 export interface UseCustomerSegmentsReturn {
   segments: ApiCustomerSegment[];
@@ -15,7 +22,9 @@ export interface UseCustomerSegmentsReturn {
   refetch: () => Promise<unknown>;
 }
 
-export function useCustomerSegments(variables: CustomerSegmentsQueryVariables): UseCustomerSegmentsReturn {
+export function useCustomerSegments(
+  variables: CustomerSegmentsQueryVariables,
+): UseCustomerSegmentsReturn {
   const { data, previousData, loading, error, refetch } = useQuery<
     CustomerSegmentsQueryData,
     CustomerSegmentsQueryVariables

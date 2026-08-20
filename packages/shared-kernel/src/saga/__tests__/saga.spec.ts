@@ -50,9 +50,7 @@ describe("SagaExecutionContext", () => {
 
 describe("sagaContextStorage", () => {
   it("throws when called outside context", () => {
-    expect(() => getSagaContext()).toThrow(
-      "SagaStep called outside of saga execution context",
-    );
+    expect(() => getSagaContext()).toThrow("SagaStep called outside of saga execution context");
   });
 
   it("returns context when inside run()", async () => {
@@ -144,9 +142,7 @@ describe("isRetryableError", () => {
 
   it("returns false for unknown errors", () => {
     expect(isRetryableError(new Error("Something went wrong"))).toBe(false);
-    expect(isRetryableError(new TypeError("undefined is not a function"))).toBe(
-      false,
-    );
+    expect(isRetryableError(new TypeError("undefined is not a function"))).toBe(false);
   });
 });
 
@@ -159,9 +155,7 @@ describe("withTimeout", () => {
   it("rejects with StepTimeoutError if timeout exceeded", async () => {
     const slowPromiseFactory = () => new Promise((resolve) => setTimeout(resolve, 100));
 
-    await expect(withTimeout(slowPromiseFactory, 10, "slowStep")).rejects.toThrow(
-      StepTimeoutError,
-    );
+    await expect(withTimeout(slowPromiseFactory, 10, "slowStep")).rejects.toThrow(StepTimeoutError);
   });
 
   it("propagates original error", async () => {

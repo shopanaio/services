@@ -33,12 +33,7 @@ export function LocalizationStep() {
     const isFirst = selectedItems[0] === props.value;
 
     return (
-      <Tag
-        {...props}
-        bordered
-        color={isFirst ? "blue" : undefined}
-        className={styles.localeTag}
-      >
+      <Tag {...props} bordered color={isFirst ? "blue" : undefined} className={styles.localeTag}>
         <Typography.Text strong={isFirst}>{props.label}</Typography.Text>
       </Tag>
     );
@@ -86,9 +81,7 @@ export function LocalizationStep() {
             />
           )}
         />
-        {errors.country && (
-          <div className={styles.error}>{errors.country.message}</div>
-        )}
+        {errors.country && <div className={styles.error}>{errors.country.message}</div>}
       </div>
 
       <div className={styles.formItem}>
@@ -119,12 +112,8 @@ export function LocalizationStep() {
             />
           )}
         />
-        {errors.locales && (
-          <div className={styles.error}>{errors.locales.message}</div>
-        )}
-        <div className={styles.helper}>
-          First language will be the default. Drag to reorder.
-        </div>
+        {errors.locales && <div className={styles.error}>{errors.locales.message}</div>}
+        <div className={styles.helper}>First language will be the default. Drag to reorder.</div>
       </div>
 
       <div className={styles.formItem}>
@@ -148,9 +137,7 @@ export function LocalizationStep() {
             />
           )}
         />
-        {errors.currency && (
-          <div className={styles.error}>{errors.currency.message}</div>
-        )}
+        {errors.currency && <div className={styles.error}>{errors.currency.message}</div>}
       </div>
     </div>
   );

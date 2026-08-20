@@ -1,1 +1,1 @@
-export { FullLogo } from './full-logo';
+export { FullLogo } from "./full-logo";

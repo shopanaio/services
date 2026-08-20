@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback } from "react";
+import { Alert, Button, Flex, Tag, Typography } from "antd";
 import {
-  Alert,
-  Button,
-  Flex,
-  Tag,
-  Typography,
-} from "antd";
-import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuFolder as FolderOutlined } from "react-icons/lu";
+  LuPlus as PlusOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuFolder as FolderOutlined,
+} from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -25,16 +23,9 @@ import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
 import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
-import {
-  useAgGridTheme,
-  useAgGridRowSelection,
-} from "@/hooks";
+import { useAgGridTheme, useAgGridRowSelection } from "@/hooks";
 import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
-import type {
-  ApiCategory,
-  ApiCategoryWhereInput,
-  ApiFile,
-} from "@/graphql/types";
+import type { ApiCategory, ApiCategoryWhereInput, ApiFile } from "@/graphql/types";
 import { CategoryOrderField } from "@/graphql/types";
 import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
 import { filterSchema } from "./filter-schema";
@@ -48,44 +39,29 @@ import { useCategories } from "../hooks";
 import { useCategoryModal, useCreateCategoryModal } from "../modals";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 
-ModuleRegistry.registerModules([
-  AllCommunityModule,
-  RowSelectionModule,
-  GridStateModule,
-]);
+ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule, GridStateModule]);
 
 function getCategoryThumbnailFile(category: ApiCategory): ApiFile | null {
-  const [thumbnail] = [...category.media].sort(
-    (a, b) => a.sortIndex - b.sortIndex,
-  );
+  const [thumbnail] = [...category.media].sort((a, b) => a.sortIndex - b.sortIndex);
 
   return thumbnail?.file ?? null;
 }
 
-const CategoryCellRenderer = (
-  props: CustomCellRendererProps<ApiCategory>,
-) => {
+const CategoryCellRenderer = (props: CustomCellRendererProps<ApiCategory>) => {
   const { data } = props;
   if (!data) return null;
 
   const thumbnail = getCategoryThumbnailFile(data);
 
   return (
-    <Flex
-      align="center"
-      gap="small"
-      data-testid={`categories-table-category-cell-${data.handle}`}
-    >
+    <Flex align="center" gap="small" data-testid={`categories-table-category-cell-${data.handle}`}>
       <TableCoverImage
         src={thumbnail?.url ?? null}
         alt={thumbnail?.altText ?? thumbnail?.originalName ?? data.name}
         fallbackIcon={<FolderOutlined />}
       />
       <Flex vertical gap={0}>
-        <Typography.Text
-          strong
-          data-testid={`categories-table-name-cell-${data.handle}`}
-        >
+        <Typography.Text strong data-testid={`categories-table-name-cell-${data.handle}`}>
           {data.name}
         </Typography.Text>
         <Typography.Text
@@ -99,9 +75,7 @@ const CategoryCellRenderer = (
   );
 };
 
-const StatusCellRenderer = (
-  props: CustomCellRendererProps<ApiCategory, boolean>,
-) => {
+const StatusCellRenderer = (props: CustomCellRendererProps<ApiCategory, boolean>) => {
   const isPublished = props.value ?? props.data?.isPublished ?? false;
   const color = isPublished ? "success" : "default";
   const label = isPublished ? "Published" : "Draft";
@@ -109,31 +83,21 @@ const StatusCellRenderer = (
   return (
     <Tag
       color={color}
-      data-testid={
-        props.data
-          ? `categories-table-status-cell-${props.data.handle}`
-          : undefined
-      }
+      data-testid={props.data ? `categories-table-status-cell-${props.data.handle}` : undefined}
     >
       {label}
     </Tag>
   );
 };
 
-const ProductsCountCellRenderer = (
-  props: CustomCellRendererProps<ApiCategory, number>,
-) => {
+const ProductsCountCellRenderer = (props: CustomCellRendererProps<ApiCategory, number>) => {
   const value = props.value ?? 0;
 
   if (value === 0) {
     return (
       <Typography.Text
         type="secondary"
-        data-testid={
-          props.data
-            ? `categories-table-products-cell-${props.data.handle}`
-            : undefined
-        }
+        data-testid={props.data ? `categories-table-products-cell-${props.data.handle}` : undefined}
       >
         0 products
       </Typography.Text>
@@ -141,24 +105,20 @@ const ProductsCountCellRenderer = (
   }
   return (
     <Typography.Text
-      data-testid={
-        props.data
-          ? `categories-table-products-cell-${props.data.handle}`
-          : undefined
-      }
+      data-testid={props.data ? `categories-table-products-cell-${props.data.handle}` : undefined}
     >
       {value} products
     </Typography.Text>
   );
 };
 
-const TextCellRenderer = (
-  props: CustomCellRendererProps<ApiCategory, string>,
-) => <Typography.Text>{props.value ?? ""}</Typography.Text>;
+const TextCellRenderer = (props: CustomCellRendererProps<ApiCategory, string>) => (
+  <Typography.Text>{props.value ?? ""}</Typography.Text>
+);
 
-const DateCellRenderer = (
-  props: CustomCellRendererProps<ApiCategory, string>,
-) => <Typography.Text>{formatDetailDate(props.value)}</Typography.Text>;
+const DateCellRenderer = (props: CustomCellRendererProps<ApiCategory, string>) => (
+  <Typography.Text>{formatDetailDate(props.value)}</Typography.Text>
+);
 
 export default function CategoriesPage() {
   const agGridTheme = useAgGridTheme();
@@ -203,19 +163,14 @@ export default function CategoriesPage() {
     });
   }, [openCreateCategoryModal, refetch]);
 
-  const { rowSelection, selectionColumnDef, onCellClicked } =
-    useAgGridRowSelection<ApiCategory>({
-      onRowAction: (category) =>
-        openCategoryModal({ entityId: category.id }),
-    });
+  const { rowSelection, selectionColumnDef, onCellClicked } = useAgGridRowSelection<ApiCategory>({
+    onRowAction: (category) => openCategoryModal({ entityId: category.id }),
+  });
 
-  const handleSelectionChanged = useCallback(
-    (event: SelectionChangedEvent<ApiCategory>) => {
-      const selectedRows = event.api.getSelectedRows();
-      setSelectedCount(selectedRows.length);
-    },
-    [],
-  );
+  const handleSelectionChanged = useCallback((event: SelectionChangedEvent<ApiCategory>) => {
+    const selectedRows = event.api.getSelectedRows();
+    setSelectedCount(selectedRows.length);
+  }, []);
 
   const deselectAll = useCallback(() => {
     gridRef.current?.api.deselectAll();
@@ -374,10 +329,7 @@ export default function CategoriesPage() {
           name="categories"
           total={totalCount}
           rangeStart={pageConfig.getRangeStart(categories.length)}
-          rangeEnd={Math.min(
-            pageConfig.getRangeEnd(categories.length),
-            totalCount,
-          )}
+          rangeEnd={Math.min(pageConfig.getRangeEnd(categories.length), totalCount)}
           pageSize={pageConfig.pageSize}
           pageSizeOptions={pageConfig.pageSizeOptions}
           hasNext={pageInfo?.hasNextPage ?? false}

@@ -12,9 +12,7 @@ export interface ConnectionData {
   totalCount: number;
 }
 
-export abstract class BaseConnectionEdgeResolver<
-  TNode,
-> extends ServiceType<EdgeData, EdgeData> {
+export abstract class BaseConnectionEdgeResolver<TNode> extends ServiceType<EdgeData, EdgeData> {
   protected $preload(): EdgeData {
     return this.$props;
   }

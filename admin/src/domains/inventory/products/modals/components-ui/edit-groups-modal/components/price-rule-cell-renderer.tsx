@@ -9,13 +9,14 @@ import {
   toEditorPriceRule,
   type EditorPriceRule,
 } from "@/domains/inventory/products/mappers/product-component-editor.mapper";
-import { ComponentPriceType, PRICE_RULE_OPTIONS } from "@/domains/inventory/products/components/product-details-card/components-ui/types";
+import {
+  ComponentPriceType,
+  PRICE_RULE_OPTIONS,
+} from "@/domains/inventory/products/components/product-details-card/components-ui/types";
 import { Dash } from "@/shared/components/editor-grid";
 
 // Helper to determine if pricingRule is a template
-const isTemplate = (
-  rule: ITableRow["pricingRule"],
-): rule is ApiProductComponentPricingTemplate => {
+const isTemplate = (rule: ITableRow["pricingRule"]): rule is ApiProductComponentPricingTemplate => {
   return !!rule && "priceRule" in rule && "name" in rule;
 };
 
@@ -73,8 +74,8 @@ export const PriceRuleCellRenderer = ({
   // Determine display label
   const displayLabel = isTemplate(pricingRule)
     ? pricingRule.name
-    : (PRICE_RULE_OPTIONS.find((opt) => opt.value === pricingRule.priceType)
-        ?.label ?? pricingRule.priceType);
+    : (PRICE_RULE_OPTIONS.find((opt) => opt.value === pricingRule.priceType)?.label ??
+      pricingRule.priceType);
 
   const handleMenuClick: MenuProps["onClick"] = ({ key }) => {
     if (key.startsWith(TEMPLATE_PREFIX)) {
@@ -107,9 +108,7 @@ export const PriceRuleCellRenderer = ({
       onOpenChange={(visible) => {
         if (!visible) setOpen(false);
       }}
-      popupRender={(menu) => (
-        <div style={{ width: triggerRef.current?.offsetWidth }}>{menu}</div>
-      )}
+      popupRender={(menu) => <div style={{ width: triggerRef.current?.offsetWidth }}>{menu}</div>}
     >
       <div
         ref={triggerRef}
@@ -131,9 +130,7 @@ export const PriceRuleCellRenderer = ({
 };
 
 // Price Value Cell Renderer
-export const PriceValueCellRenderer = ({
-  data,
-}: ICellRendererParams<ITableRow>) => {
+export const PriceValueCellRenderer = ({ data }: ICellRendererParams<ITableRow>) => {
   if (!data || data.type === "group") return null;
 
   const rule = data.pricingRule;

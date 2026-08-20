@@ -51,7 +51,7 @@ export class CustomerSegmentUpdateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: CustomerSegmentUpdateParams
+    params: CustomerSegmentUpdateParams,
   ): Promise<CustomerSegmentUpdateResult> {
     const current = await this.repository.segment.findById(params.id);
     if (!current) return notFound();
@@ -88,25 +88,21 @@ export class CustomerSegmentUpdateScript extends BaseScript<
       const createCustomerIds = memberships.create.map((item) => item.customerId);
       const setCustomerIds = memberships.setCustomerIds ?? [];
       const referencedCustomerIds = [...createCustomerIds, ...setCustomerIds];
-      const existingCustomers = await this.repository.customer.getByIds(
-        referencedCustomerIds
-      );
-      const existingCustomerIds = new Set(
-        existingCustomers.map((customer) => customer.id)
-      );
+      const existingCustomers = await this.repository.customer.getByIds(referencedCustomerIds);
+      const existingCustomerIds = new Set(existingCustomers.map((customer) => customer.id));
       validateCustomerIds(
         createCustomerIds,
         existingCustomerIds,
         ["memberships", "create"],
         "customerId",
-        errors
+        errors,
       );
       validateCustomerIds(
         setCustomerIds,
         existingCustomerIds,
         ["memberships", "setCustomerIds"],
         undefined,
-        errors
+        errors,
       );
       for (const customerId of referencedCustomerIds) {
         affectedCustomerIds.add(customerId);
@@ -115,10 +111,10 @@ export class CustomerSegmentUpdateScript extends BaseScript<
       const existingCreateMemberships =
         await this.repository.segment.getMembershipsBySegmentAndCustomerIds(
           params.id,
-          createCustomerIds
+          createCustomerIds,
         );
       const existingCreateIds = new Set(
-        existingCreateMemberships.map((membership) => membership.customerId)
+        existingCreateMemberships.map((membership) => membership.customerId),
       );
       for (const [index, input] of memberships.create.entries()) {
         if (existingCreateIds.has(input.customerId)) {
@@ -131,7 +127,7 @@ export class CustomerSegmentUpdateScript extends BaseScript<
         validateExpiry(
           input.expiresAt,
           ["memberships", "create", String(index), "expiresAt"],
-          errors
+          errors,
         );
       }
 
@@ -149,7 +145,7 @@ export class CustomerSegmentUpdateScript extends BaseScript<
           membership,
           params.id,
           ["memberships", "update", String(index), "membershipId"],
-          errors
+          errors,
         );
         if (membership) affectedCustomerIds.add(membership.customerId);
         if (updateIds.has(input.membershipId)) {
@@ -163,7 +159,7 @@ export class CustomerSegmentUpdateScript extends BaseScript<
         validateExpiry(
           input.expiresAt,
           ["memberships", "update", String(index), "expiresAt"],
-          errors
+          errors,
         );
       }
       const deleteIds = new Set<string>();
@@ -173,7 +169,7 @@ export class CustomerSegmentUpdateScript extends BaseScript<
           membership,
           params.id,
           ["memberships", "deleteIds", String(index)],
-          errors
+          errors,
         );
         if (membership) affectedCustomerIds.add(membership.customerId);
         if (deleteIds.has(id)) {
@@ -194,9 +190,7 @@ export class CustomerSegmentUpdateScript extends BaseScript<
       }
 
       if (memberships.setCustomerIds !== undefined) {
-        const previous = await this.repository.segment.getManualMembershipsBySegmentId(
-          params.id
-        );
+        const previous = await this.repository.segment.getManualMembershipsBySegmentId(params.id);
         for (const membership of previous) {
           affectedCustomerIds.add(membership.customerId);
         }
@@ -217,19 +211,18 @@ export class CustomerSegmentUpdateScript extends BaseScript<
         return {
           segment: undefined,
           affectedCustomerIds: [...affectedCustomerIds],
-          userErrors: [{
-            message: "Only a dynamic segment can update its query",
-            code: "SEGMENT_QUERY_NOT_ALLOWED",
-            field: ["definition", "query"],
-            diagnostic: null,
-          }],
+          userErrors: [
+            {
+              message: "Only a dynamic segment can update its query",
+              code: "SEGMENT_QUERY_NOT_ALLOWED",
+              field: ["definition", "query"],
+              diagnostic: null,
+            },
+          ],
         };
       }
       try {
-        const storeContext = await resolveSegmentStoreContext(
-          this.repository,
-          this.context.store,
-        );
+        const storeContext = await resolveSegmentStoreContext(this.repository, this.context.store);
         const validation = await validateCustomerSegmentQuery(
           this.repository,
           params.operations.definition.query,
@@ -257,12 +250,14 @@ export class CustomerSegmentUpdateScript extends BaseScript<
           return {
             segment: undefined,
             affectedCustomerIds: [...affectedCustomerIds],
-            userErrors: [{
-              message: error.message,
-              code: error.code,
-              field: ["definition", "query"],
-              diagnostic: null,
-            }],
+            userErrors: [
+              {
+                message: error.message,
+                code: error.code,
+                field: ["definition", "query"],
+                diagnostic: null,
+              },
+            ],
           };
         }
         throw error;
@@ -271,8 +266,7 @@ export class CustomerSegmentUpdateScript extends BaseScript<
     const definitionChanged = hasDefinitionChanged(current, patch);
     const materializationChanged =
       current.type === "DYNAMIC" &&
-      (definitionChanged ||
-        (patch.status === "ACTIVE" && current.status !== "ACTIVE"));
+      (definitionChanged || (patch.status === "ACTIVE" && current.status !== "ACTIVE"));
 
     try {
       const result = await this.repository.segment.updateWithMemberships(
@@ -292,7 +286,7 @@ export class CustomerSegmentUpdateScript extends BaseScript<
       }
       this.logger.info(
         { segmentId: result.segment.id, revision: result.segment.revision },
-        "Customer segment updated"
+        "Customer segment updated",
       );
       return {
         segment: {
@@ -325,7 +319,7 @@ export class CustomerSegmentUpdateScript extends BaseScript<
 
 function validateSegment(
   current: CustomerSegment,
-  operations: CustomerSegmentUpdateParams["operations"]
+  operations: CustomerSegmentUpdateParams["operations"],
 ): UserError[] {
   const errors: UserError[] = [];
   const details = operations.details;
@@ -333,9 +327,7 @@ function validateSegment(
   const state = operations.state;
   const name = details && hasOwn(details, "name") ? details.name : current.name;
   const color = details && hasOwn(details, "color") ? details.color : current.color;
-  const status = state && hasOwn(state, "status")
-    ? state.status
-    : current.status;
+  const status = state && hasOwn(state, "status") ? state.status : current.status;
 
   if (!name || name.trim().length === 0) {
     errors.push({
@@ -368,9 +360,7 @@ function validateSegment(
   return errors;
 }
 
-function segmentPatch(
-  operations: CustomerSegmentUpdateParams["operations"]
-): CustomerSegmentPatch {
+function segmentPatch(operations: CustomerSegmentUpdateParams["operations"]): CustomerSegmentPatch {
   const patch: CustomerSegmentPatch = {};
   const details = operations.details;
   if (details) {
@@ -389,13 +379,10 @@ function segmentPatch(
   return patch;
 }
 
-function hasDefinitionChanged(
-  current: CustomerSegment,
-  patch: CustomerSegmentPatch
-): boolean {
-  const nextQuery = hasOwn(patch, "query") ? patch.query ?? null : current.query;
+function hasDefinitionChanged(current: CustomerSegment, patch: CustomerSegmentPatch): boolean {
+  const nextQuery = hasOwn(patch, "query") ? (patch.query ?? null) : current.query;
   const nextDefinition = hasOwn(patch, "definition")
-    ? patch.definition ?? {}
+    ? (patch.definition ?? {})
     : current.definition;
 
   return (
@@ -419,7 +406,7 @@ function canonicalJson(value: unknown): string {
 }
 
 function membershipPatch(
-  memberships: NonNullable<CustomerSegmentUpdateParams["operations"]["memberships"]>
+  memberships: NonNullable<CustomerSegmentUpdateParams["operations"]["memberships"]>,
 ): CustomerSegmentMembershipRelationsPatch {
   return {
     create: memberships.create,
@@ -436,7 +423,7 @@ function validateCustomerIds(
   existingIds: ReadonlySet<string>,
   field: string[],
   childField: string | undefined,
-  errors: UserError[]
+  errors: UserError[],
 ) {
   const seen = new Set<string>();
   for (const [index, id] of ids.entries()) {
@@ -459,13 +446,9 @@ function validateMembership(
   membership: CustomerSegmentMembership | undefined,
   segmentId: string,
   field: string[],
-  errors: UserError[]
+  errors: UserError[],
 ) {
-  if (
-    !membership ||
-    membership.segmentId !== segmentId ||
-    membership.source !== "MANUAL"
-  ) {
+  if (!membership || membership.segmentId !== segmentId || membership.source !== "MANUAL") {
     errors.push({
       message: "Manual customer segment membership not found",
       code: "NOT_FOUND",
@@ -477,7 +460,7 @@ function validateMembership(
 function validateExpiry(
   expiresAt: string | null | undefined,
   field: string[],
-  errors: UserError[]
+  errors: UserError[],
 ) {
   if (expiresAt == null) return;
   const value = Date.parse(expiresAt);

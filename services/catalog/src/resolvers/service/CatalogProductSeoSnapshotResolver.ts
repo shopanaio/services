@@ -11,9 +11,7 @@ export class CatalogProductSeoSnapshotResolver extends ServiceType<
   CatalogProductSeoSnapshot
 > {
   protected async $preload(): Promise<CatalogProductSeoSnapshot> {
-    const seoRows = await this.$ctx.loaders.productSeos.load(
-      this.$props.productId
-    );
+    const seoRows = await this.$ctx.loaders.productSeos.load(this.$props.productId);
     const seo = seoRows.find((item) => item.locale === this.$props.locale);
 
     return {

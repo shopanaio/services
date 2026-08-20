@@ -9,9 +9,7 @@ export interface UninstallAppModalPayload extends IModalStackPayload {
   onSaved?: () => Promise<unknown> | unknown;
 }
 
-export const useUninstallAppModal = createModalStackHook(
-  UNINSTALL_APP_MODAL_TYPE,
-);
+export const useUninstallAppModal = createModalStackHook(UNINSTALL_APP_MODAL_TYPE);
 
 declare module "@/layouts/modals" {
   interface ModalStackPayloads {

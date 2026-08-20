@@ -46,12 +46,12 @@ describe("createBaseCursorBuilder", () => {
   describe("validation", () => {
     it("throws when limit is not positive", () => {
       const builder = createProductsBuilder();
-      expect(() =>
-        builder.getSql({ limit: 0, direction: "forward", select: ["id"] })
-      ).toThrow("limit must be greater than 0");
-      expect(() =>
-        builder.getSql({ limit: -1, direction: "forward", select: ["id"] })
-      ).toThrow("limit must be greater than 0");
+      expect(() => builder.getSql({ limit: 0, direction: "forward", select: ["id"] })).toThrow(
+        "limit must be greater than 0",
+      );
+      expect(() => builder.getSql({ limit: -1, direction: "forward", select: ["id"] })).toThrow(
+        "limit must be greater than 0",
+      );
     });
 
     it("throws on invalid cursor type", () => {
@@ -68,7 +68,7 @@ describe("createBaseCursorBuilder", () => {
           direction: "forward",
           cursor: wrongTypeCursor,
           select: ["id"],
-        })
+        }),
       ).toThrow("Expected cursor type 'product', got 'category'");
     });
   });
@@ -328,9 +328,7 @@ describe("createBaseCursorBuilder", () => {
       const fakeDb: DrizzleExecutor = {
         async execute() {
           return {
-            rows: [
-              { id: "prod_1", handle: "alpha", price: 100 },
-            ],
+            rows: [{ id: "prod_1", handle: "alpha", price: 100 }],
           };
         },
       };
@@ -482,9 +480,7 @@ describe("createBaseCursorBuilder", () => {
       const fakeDb: DrizzleExecutor = {
         async execute() {
           return {
-            rows: [
-              { id: "uuid-123", handle: "alpha", price: 100 },
-            ],
+            rows: [{ id: "uuid-123", handle: "alpha", price: 100 }],
           };
         },
       };
@@ -522,9 +518,7 @@ describe("createBaseCursorBuilder", () => {
       const fakeDb: DrizzleExecutor = {
         async execute() {
           return {
-            rows: [
-              { id: "uuid-1", price: 50 },
-            ],
+            rows: [{ id: "uuid-1", price: 50 }],
           };
         },
       };
@@ -559,9 +553,7 @@ describe("createBaseCursorBuilder", () => {
       const fakeDb: DrizzleExecutor = {
         async execute() {
           return {
-            rows: [
-              { id: "uuid-1", price: 99 },
-            ],
+            rows: [{ id: "uuid-1", price: 99 }],
           };
         },
       };

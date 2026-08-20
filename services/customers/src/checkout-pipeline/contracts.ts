@@ -1,9 +1,7 @@
 import type { Customers } from "@shopana/broker-types";
 
-export type ResolveBuyerEligibilityParams =
-  Customers.ResolveCheckoutBuyerEligibilityParams;
-export type ResolveBuyerEligibilityResult =
-  Customers.ResolveCheckoutBuyerEligibilityResult;
+export type ResolveBuyerEligibilityParams = Customers.ResolveCheckoutBuyerEligibilityParams;
+export type ResolveBuyerEligibilityResult = Customers.ResolveCheckoutBuyerEligibilityResult;
 
 export interface CustomersCheckoutEligibilityPort {
   resolveBuyerEligibility(

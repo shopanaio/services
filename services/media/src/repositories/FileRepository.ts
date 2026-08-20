@@ -8,11 +8,7 @@ import {
 } from "@shopana/drizzle-query";
 import type { Database } from "../infrastructure/db/database";
 import { files, assetGroups, fileDeletionStates, type File, type NewFile } from "./models";
-import {
-  encodeGlobalIdByType,
-  decodeGlobalId,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, decodeGlobalId, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 const MAX_PAGE_SIZE = 100;
 
@@ -29,7 +25,7 @@ export const fileRelayQuery = createRelayQuery(
         decode: (globalId) => decodeGlobalId(globalId as string)?.id,
       },
     },
-  }
+  },
 );
 
 export type AssetOwnerType = "organization" | "store" | "user_profile";
@@ -60,17 +56,8 @@ export interface FileConnectionResult {
 // ---- Types ----
 
 export type FileProvider = "S3" | "YOUTUBE" | "VIMEO" | "URL" | "LOCAL";
-export type MediaType =
-  | "IMAGE"
-  | "VIDEO"
-  | "EXTERNAL_VIDEO"
-  | "MODEL_3D"
-  | "GENERIC_FILE";
-export type MediaProcessingStatus =
-  | "PENDING"
-  | "PROCESSING"
-  | "READY"
-  | "FAILED";
+export type MediaType = "IMAGE" | "VIDEO" | "EXTERNAL_VIDEO" | "MODEL_3D" | "GENERIC_FILE";
+export type MediaProcessingStatus = "PENDING" | "PROCESSING" | "READY" | "FAILED";
 
 function inferMediaType(data: {
   provider: FileProvider;
@@ -145,12 +132,7 @@ export class FileRepository {
     const result = await this.db
       .select()
       .from(files)
-      .where(
-        and(
-          eq(files.id, fileId),
-          isNull(files.deletedAt)
-        )
-      )
+      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
       .limit(1);
 
     return result[0] ?? null;
@@ -167,12 +149,7 @@ export class FileRepository {
     return this.db
       .select()
       .from(files)
-      .where(
-        and(
-          inArray(files.id, ids),
-          isNull(files.deletedAt)
-        )
-      );
+      .where(and(inArray(files.id, ids), isNull(files.deletedAt)));
   }
 
   /**
@@ -183,7 +160,7 @@ export class FileRepository {
     fileId: string,
     ownerType: AssetOwnerType,
     ownerId: string,
-    includeDeleted = false
+    includeDeleted = false,
   ): Promise<File | null> {
     const predicates = [
       eq(files.id, fileId),
@@ -209,25 +186,19 @@ export class FileRepository {
   async findAccessibleById(
     fileId: string,
     scope: FileAccessScope,
-    includeDeleted = false
+    includeDeleted = false,
   ): Promise<File | null> {
     const ownership = or(
-      and(
-        eq(assetGroups.ownerType, "store"),
-        eq(assetGroups.ownerId, scope.storeId)
-      ),
+      and(eq(assetGroups.ownerType, "store"), eq(assetGroups.ownerId, scope.storeId)),
       scope.organizationId
         ? and(
             eq(assetGroups.ownerType, "organization"),
-            eq(assetGroups.ownerId, scope.organizationId)
+            eq(assetGroups.ownerId, scope.organizationId),
           )
         : undefined,
       scope.userId
-        ? and(
-            eq(assetGroups.ownerType, "user_profile"),
-            eq(assetGroups.ownerId, scope.userId)
-          )
-        : undefined
+        ? and(eq(assetGroups.ownerType, "user_profile"), eq(assetGroups.ownerId, scope.userId))
+        : undefined,
     );
 
     const result = await this.db
@@ -235,53 +206,34 @@ export class FileRepository {
       .from(files)
       .innerJoin(assetGroups, eq(files.assetGroupId, assetGroups.id))
       .where(
-        and(
-          eq(files.id, fileId),
-          ownership,
-          includeDeleted ? undefined : isNull(files.deletedAt)
-        )
+        and(eq(files.id, fileId), ownership, includeDeleted ? undefined : isNull(files.deletedAt)),
       )
       .limit(1);
 
     return result[0]?.file ?? null;
   }
 
-  async findAccessibleByIds(
-    ids: readonly string[],
-    scope: FileAccessScope
-  ): Promise<File[]> {
+  async findAccessibleByIds(ids: readonly string[], scope: FileAccessScope): Promise<File[]> {
     if (ids.length === 0) return [];
 
     const ownership = or(
-      and(
-        eq(assetGroups.ownerType, "store"),
-        eq(assetGroups.ownerId, scope.storeId)
-      ),
+      and(eq(assetGroups.ownerType, "store"), eq(assetGroups.ownerId, scope.storeId)),
       scope.organizationId
         ? and(
             eq(assetGroups.ownerType, "organization"),
-            eq(assetGroups.ownerId, scope.organizationId)
+            eq(assetGroups.ownerId, scope.organizationId),
           )
         : undefined,
       scope.userId
-        ? and(
-            eq(assetGroups.ownerType, "user_profile"),
-            eq(assetGroups.ownerId, scope.userId)
-          )
-        : undefined
+        ? and(eq(assetGroups.ownerType, "user_profile"), eq(assetGroups.ownerId, scope.userId))
+        : undefined,
     );
 
     const result = await this.db
       .select({ file: files })
       .from(files)
       .innerJoin(assetGroups, eq(files.assetGroupId, assetGroups.id))
-      .where(
-        and(
-          inArray(files.id, [...ids]),
-          ownership,
-          isNull(files.deletedAt)
-        )
-      );
+      .where(and(inArray(files.id, [...ids]), ownership, isNull(files.deletedAt)));
 
     return result.map((row) => row.file);
   }
@@ -294,10 +246,7 @@ export class FileRepository {
   async create(assetGroupId: string, data: CreateFileInput): Promise<File> {
     // Check for existing file by idempotency key
     if (data.idempotencyKey) {
-      const existing = await this.findByIdempotencyKey(
-        assetGroupId,
-        data.idempotencyKey
-      );
+      const existing = await this.findByIdempotencyKey(assetGroupId, data.idempotencyKey);
       if (existing) {
         return existing;
       }
@@ -312,8 +261,7 @@ export class FileRepository {
     }
 
     const id = data.id ?? crypto.randomUUID();
-    const processingStatus =
-      data.processingStatus ?? (data.isProcessed ? "READY" : "PENDING");
+    const processingStatus = data.processingStatus ?? (data.isProcessed ? "READY" : "PENDING");
 
     const newFile: NewFile = {
       id,
@@ -334,8 +282,7 @@ export class FileRepository {
       processingStatus,
       processingError: data.processingError ?? null,
       processedAt:
-        data.processedAt ??
-        (processingStatus === "READY" ? new Date().toISOString() : null),
+        data.processedAt ?? (processingStatus === "READY" ? new Date().toISOString() : null),
       sourceUrl: data.sourceUrl ?? null,
       idempotencyKey: data.idempotencyKey ?? null,
       isProcessed: processingStatus === "READY",
@@ -368,9 +315,7 @@ export class FileRepository {
       updateData.isProcessed = data.isProcessed;
       updateData.processingStatus = data.isProcessed ? "READY" : "PENDING";
       updateData.processingError = null;
-      updateData.processedAt = data.isProcessed
-        ? new Date().toISOString()
-        : null;
+      updateData.processedAt = data.isProcessed ? new Date().toISOString() : null;
     }
     if (data.mediaType !== undefined) updateData.mediaType = data.mediaType;
     if (data.previewFileId !== undefined) {
@@ -395,12 +340,7 @@ export class FileRepository {
     const result = await this.db
       .update(files)
       .set(updateData)
-      .where(
-        and(
-          eq(files.id, fileId),
-          isNull(files.deletedAt)
-        )
-      )
+      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
       .returning();
 
     return result[0] ?? null;
@@ -416,9 +356,7 @@ export class FileRepository {
       .set({
         deletedAt: sql`COALESCE(${files.deletedAt}, ${deletedAt.toISOString()})`,
       })
-      .where(
-        and(eq(files.id, fileId), isNull(files.deletedAt))
-      );
+      .where(and(eq(files.id, fileId), isNull(files.deletedAt)));
   }
 
   /**
@@ -435,9 +373,7 @@ export class FileRepository {
       .set({
         deletedAt: sql`COALESCE(${files.deletedAt}, ${deletedAt.toISOString()})`,
       })
-      .where(
-        and(inArray(files.id, fileIds), isNull(files.deletedAt))
-      );
+      .where(and(inArray(files.id, fileIds), isNull(files.deletedAt)));
   }
 
   /**
@@ -457,10 +393,7 @@ export class FileRepository {
    * Note: State change to ACTIVE is handled by FileDeletionStateRepository
    */
   async restore(fileId: string): Promise<void> {
-    await this.db
-      .update(files)
-      .set({ deletedAt: null })
-      .where(eq(files.id, fileId));
+    await this.db.update(files).set({ deletedAt: null }).where(eq(files.id, fileId));
   }
 
   // ---- Utility methods ----
@@ -468,10 +401,7 @@ export class FileRepository {
   /**
    * Find a file by idempotency key within an asset group (ACTIVE only)
    */
-  async findByIdempotencyKey(
-    assetGroupId: string,
-    key: string
-  ): Promise<File | null> {
+  async findByIdempotencyKey(assetGroupId: string, key: string): Promise<File | null> {
     const result = await this.db
       .select()
       .from(files)
@@ -479,8 +409,8 @@ export class FileRepository {
         and(
           eq(files.assetGroupId, assetGroupId),
           eq(files.idempotencyKey, key),
-          isNull(files.deletedAt)
-        )
+          isNull(files.deletedAt),
+        ),
       )
       .limit(1);
 
@@ -494,12 +424,7 @@ export class FileRepository {
     const result = await this.db
       .select({ id: files.id })
       .from(files)
-      .where(
-        and(
-          eq(files.id, fileId),
-          isNull(files.deletedAt)
-        )
-      )
+      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
       .limit(1);
 
     return result.length > 0;
@@ -508,10 +433,7 @@ export class FileRepository {
   /**
    * Find a file by source URL within an asset group (for deduplication, ACTIVE only)
    */
-  async findBySourceUrl(
-    assetGroupId: string,
-    sourceUrl: string
-  ): Promise<File | null> {
+  async findBySourceUrl(assetGroupId: string, sourceUrl: string): Promise<File | null> {
     if (!sourceUrl) {
       return null;
     }
@@ -523,8 +445,8 @@ export class FileRepository {
         and(
           eq(files.assetGroupId, assetGroupId),
           eq(files.sourceUrl, sourceUrl),
-          isNull(files.deletedAt)
-        )
+          isNull(files.deletedAt),
+        ),
       )
       .limit(1);
 
@@ -535,11 +457,7 @@ export class FileRepository {
    * Find a file by ID in any state (including deleted)
    */
   async findAnyById(fileId: string): Promise<File | null> {
-    const result = await this.db
-      .select()
-      .from(files)
-      .where(eq(files.id, fileId))
-      .limit(1);
+    const result = await this.db.select().from(files).where(eq(files.id, fileId)).limit(1);
 
     return result[0] ?? null;
   }
@@ -551,17 +469,12 @@ export class FileRepository {
    */
   private async resolveAssetGroupId(
     ownerType: AssetOwnerType,
-    ownerId: string
+    ownerId: string,
   ): Promise<string | null> {
     const result = await this.db
       .select({ id: assetGroups.id })
       .from(assetGroups)
-      .where(
-        and(
-          eq(assetGroups.ownerType, ownerType),
-          eq(assetGroups.ownerId, ownerId)
-        )
-      )
+      .where(and(eq(assetGroups.ownerType, ownerType), eq(assetGroups.ownerId, ownerId)))
       .limit(1);
 
     return result[0]?.id ?? null;
@@ -584,7 +497,7 @@ export class FileRepository {
     if (requestedLimit !== undefined && requestedLimit !== null && requestedLimit > MAX_PAGE_SIZE) {
       throw new GraphQLError(
         `Requested page size ${requestedLimit} exceeds the maximum allowed size of ${MAX_PAGE_SIZE}`,
-        { extensions: { code: "PAGE_SIZE_TOO_LARGE" } }
+        { extensions: { code: "PAGE_SIZE_TOO_LARGE" } },
       );
     }
 

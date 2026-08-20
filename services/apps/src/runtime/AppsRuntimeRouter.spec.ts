@@ -1,8 +1,5 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import type {
-  AppInstallationContextProvider,
-  AppManifest,
-} from "@shopana/app-sdk";
+import type { AppInstallationContextProvider, AppManifest } from "@shopana/app-sdk";
 import type { ServiceBroker } from "@shopana/shared-kernel";
 import { AppRuntimeInvocationError } from "./AppRuntimeInvocationError.js";
 import { AppRuntimeRegistry } from "./AppRuntimeRegistry.js";
@@ -11,13 +8,9 @@ import { AppsRuntimeRouter } from "./AppsRuntimeRouter.js";
 describe("AppsRuntimeRouter Commerce Function policy", () => {
   it("rejects an App action that is not explicitly read-only", async () => {
     const resolve = jest.fn(async () => executionContext());
-    const callAsApp = jest.fn(
-      async (
-        _action: string,
-        _input: unknown,
-        _context: unknown,
-      ) => ({ ok: true }),
-    );
+    const callAsApp = jest.fn(async (_action: string, _input: unknown, _context: unknown) => ({
+      ok: true,
+    }));
     const router = createRouter({
       metadata: undefined,
       resolve,
@@ -44,13 +37,9 @@ describe("AppsRuntimeRouter Commerce Function policy", () => {
 
   it("allows an explicitly read-only App action", async () => {
     const resolve = jest.fn(async () => executionContext());
-    const callAsApp = jest.fn(
-      async (
-        _action: string,
-        _input: unknown,
-        _context: unknown,
-      ) => ({ ok: true }),
-    );
+    const callAsApp = jest.fn(async (_action: string, _input: unknown, _context: unknown) => ({
+      ok: true,
+    }));
     const router = createRouter({
       metadata: { readOnly: true },
       resolve,

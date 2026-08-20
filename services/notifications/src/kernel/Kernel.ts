@@ -7,11 +7,7 @@ import {
   type ServiceBroker,
   type WorkflowRegistry,
 } from "@shopana/shared-kernel";
-import {
-  getContextSafe,
-  runWithContext,
-  ServiceContext,
-} from "../context/index.js";
+import { getContextSafe, runWithContext, ServiceContext } from "../context/index.js";
 import { createDatabase, type Database } from "../infrastructure/db/database.js";
 import { DataProtectionService } from "../infrastructure/secrets/DataProtectionService.js";
 import { NotificationTemplateRenderer } from "../infrastructure/templates/NotificationTemplateRenderer.js";
@@ -19,10 +15,7 @@ import { TemplateDefinitionRegistry } from "../infrastructure/templates/Template
 import { Loader } from "../loaders/Loader.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
-import type {
-  NotificationKernelServices,
-  RunScriptContext,
-} from "./types.js";
+import type { NotificationKernelServices, RunScriptContext } from "./types.js";
 
 export class Kernel extends BaseKernel<NotificationKernelServices> {
   private static instance: Kernel | null = null;
@@ -42,7 +35,7 @@ export class Kernel extends BaseKernel<NotificationKernelServices> {
     cache: Cache,
     definitions: TemplateDefinitionRegistry,
     renderer: NotificationTemplateRenderer,
-    db: Database
+    db: Database,
   ) {
     super(broker, logger, {
       repository,
@@ -63,7 +56,7 @@ export class Kernel extends BaseKernel<NotificationKernelServices> {
     broker: ServiceBroker,
     workflow: WorkflowRegistry,
     dbClient: DatabaseClient,
-    masterKey: string
+    masterKey: string,
   ): Kernel {
     if (this.instance) return this.instance;
     const db = createDatabase(dbClient);
@@ -71,10 +64,7 @@ export class Kernel extends BaseKernel<NotificationKernelServices> {
     const repository = Repository.create({ db, protection });
     const cache = createCache({ ttl: 5 * 60 * 1_000 });
     const definitions = new TemplateDefinitionRegistry();
-    const renderer = new NotificationTemplateRenderer(
-      definitions,
-      repository.templates
-    );
+    const renderer = new NotificationTemplateRenderer(definitions, repository.templates);
     this.instance = new Kernel(
       broker,
       consoleLogger,
@@ -83,7 +73,7 @@ export class Kernel extends BaseKernel<NotificationKernelServices> {
       cache,
       definitions,
       renderer,
-      db
+      db,
     );
     return this.instance;
   }
@@ -103,11 +93,9 @@ export class Kernel extends BaseKernel<NotificationKernelServices> {
   }
 
   async runScript<TParams, TResult>(
-    ScriptClass: new (
-      services: NotificationKernelServices
-    ) => BaseScript<TParams, TResult>,
+    ScriptClass: new (services: NotificationKernelServices) => BaseScript<TParams, TResult>,
     params: TParams,
-    context?: RunScriptContext
+    context?: RunScriptContext,
   ): Promise<TResult> {
     const script = new ScriptClass(this.services);
     if (context && !getContextSafe()) {
@@ -137,7 +125,4 @@ export class Kernel extends BaseKernel<NotificationKernelServices> {
   }
 }
 
-export type {
-  NotificationKernelServices,
-  RunScriptContext,
-} from "./types.js";
+export type { NotificationKernelServices, RunScriptContext } from "./types.js";

@@ -5,9 +5,10 @@ import { REVIEW_EDITOR_CONTEXT_QUERY } from "../graphql";
 import type { ReviewEditorContextQueryData } from "../graphql/operation-types";
 
 export function useReviewEditorContext() {
-  const { data, previousData, loading, error, refetch } = useQuery<
-    ReviewEditorContextQueryData
-  >(REVIEW_EDITOR_CONTEXT_QUERY, { fetchPolicy: "cache-and-network" });
+  const { data, previousData, loading, error, refetch } = useQuery<ReviewEditorContextQueryData>(
+    REVIEW_EDITOR_CONTEXT_QUERY,
+    { fetchPolicy: "cache-and-network" },
+  );
   const result = data ?? previousData;
 
   return {

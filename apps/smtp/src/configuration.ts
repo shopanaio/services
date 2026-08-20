@@ -12,11 +12,10 @@ export interface SmtpDeploymentPolicy {
   readonly allowInsecureSmtp: boolean;
 }
 
-export const DEFAULT_SMTP_DEPLOYMENT_POLICY: SmtpDeploymentPolicy =
-  Object.freeze({
-    allowPrivateNetwork: false,
-    allowInsecureSmtp: false,
-  });
+export const DEFAULT_SMTP_DEPLOYMENT_POLICY: SmtpDeploymentPolicy = Object.freeze({
+  allowPrivateNetwork: false,
+  allowInsecureSmtp: false,
+});
 
 const smtpConfigurationSchema = z
   .object({
@@ -34,10 +33,7 @@ export function parseSmtpConfiguration(
   policy: SmtpDeploymentPolicy = DEFAULT_SMTP_DEPLOYMENT_POLICY,
 ): SmtpConfiguration {
   const result = smtpConfigurationSchema.safeParse(input);
-  if (
-    result.success &&
-    (result.data.security !== "NONE" || policy.allowInsecureSmtp)
-  ) {
+  if (result.success && (result.data.security !== "NONE" || policy.allowInsecureSmtp)) {
     return Object.freeze(result.data);
   }
 
@@ -69,10 +65,7 @@ export function parseSmtpDeploymentPolicy(
   });
 }
 
-export function smtpConfigurationError(
-  code: string,
-  message: string,
-): Error {
+export function smtpConfigurationError(code: string, message: string): Error {
   return Object.assign(new Error(message), {
     code,
     details: Object.freeze({

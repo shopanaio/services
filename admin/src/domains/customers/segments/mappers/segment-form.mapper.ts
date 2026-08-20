@@ -1,8 +1,5 @@
 import type { FieldPath } from "react-hook-form";
-import type {
-  ApiCustomerSegmentCreateInput,
-  ApiCustomerSegmentUpdateInput,
-} from "@/graphql/types";
+import type { ApiCustomerSegmentCreateInput, ApiCustomerSegmentUpdateInput } from "@/graphql/types";
 import { CustomerSegmentStatus, CustomerSegmentType } from "@/graphql/types";
 import type { SegmentFormValues } from "../modals/segment-modal/schema";
 
@@ -22,7 +19,9 @@ export function buildCustomerSegmentCreateInput(
   };
 }
 
-export function buildCustomerSegmentUpdateInput(values: SegmentFormValues): ApiCustomerSegmentUpdateInput {
+export function buildCustomerSegmentUpdateInput(
+  values: SegmentFormValues,
+): ApiCustomerSegmentUpdateInput {
   return {
     details: {
       name: values.name.trim(),
@@ -38,14 +37,16 @@ const fieldMap: Record<string, FieldPath<SegmentFormValues>> = {
   "details.color": "color",
 };
 
-export function mapCustomerSegmentUserErrors(errors: readonly {
-  readonly field?: readonly string[] | null;
-  readonly message: string;
-}[]) {
+export function mapCustomerSegmentUserErrors(
+  errors: readonly {
+    readonly field?: readonly string[] | null;
+    readonly message: string;
+  }[],
+) {
   return errors.map((error) => {
     const path = error.field?.join(".") ?? null;
     return {
-      field: path ? fieldMap[path] ?? null : null,
+      field: path ? (fieldMap[path] ?? null) : null,
       message: error.message,
     };
   });

@@ -3,10 +3,7 @@
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
 import type { ApiAppInstallInput, ApiGenericUserError } from "@/graphql/types";
-import {
-  APP_INSTALL_MUTATION,
-  APPS_MANAGEMENT_QUERY,
-} from "../graphql";
+import { APP_INSTALL_MUTATION, APPS_MANAGEMENT_QUERY } from "../graphql";
 import type {
   AppInstallMutationData,
   AppInstallMutationVariables,
@@ -35,16 +32,13 @@ export const useInstallApp = () => {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (cause) {
-        const message =
-          cause instanceof Error ? cause.message : "Unable to install app";
+        const message = cause instanceof Error ? cause.message : "Unable to install app";
 
         return {
           installation: null,
           operation: null,
           duplicate: false,
-          userErrors: [
-            { code: "UNEXPECTED_ERROR", message },
-          ] as ApiGenericUserError[],
+          userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[],
         };
       }
     },

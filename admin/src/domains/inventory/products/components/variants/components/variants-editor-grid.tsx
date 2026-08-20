@@ -4,9 +4,7 @@ import React, { useCallback, useMemo, useEffect } from "react";
 import { EditorGrid } from "@/shared/components/editor-grid";
 import type { ICellSelection } from "@/shared/components/ag-grid-cell-selection";
 import { useVariantsEditorStore, useVariantsColumns } from "../hooks";
-import {
-  SELECTABLE_COLUMNS,
-} from "../config";
+import { SELECTABLE_COLUMNS } from "../config";
 import { mapVariantEditorInputsToRows } from "../../../mappers/product-variant-editor.mapper";
 import type {
   IVariantEditorInput,
@@ -15,10 +13,7 @@ import type {
   VariantColumnField,
 } from "../config/types";
 import type { ApiFile, ApiProductOption, CurrencyCode } from "@/graphql/types";
-import {
-  useEditMediaModal,
-  type IEditMediaModalPayload,
-} from "../../../modals";
+import { useEditMediaModal, type IEditMediaModalPayload } from "../../../modals";
 
 // ============================================================================
 // Types
@@ -110,16 +105,13 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   // Extract option groups for column generation
   const optionGroups = useMemo(
     () => extractOptionGroups(variants, productOptions),
-    [variants, productOptions]
+    [variants, productOptions],
   );
 
   const { push: openEditMediaModal } = useEditMediaModal();
 
   // Transform variants to row data
-  const initialRows = useMemo(
-    () => mapVariantEditorInputsToRows(variants),
-    [variants]
-  );
+  const initialRows = useMemo(() => mapVariantEditorInputsToRows(variants), [variants]);
 
   const currency = defaultCurrency ?? null;
 
@@ -127,12 +119,8 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   const edits = useVariantsEditorStore((s) => s.edits);
   const draftRows = useVariantsEditorStore((s) => s.draftRows);
   const materializedRows = useVariantsEditorStore((s) => s.materializedRows);
-  const deletedExistingRows = useVariantsEditorStore(
-    (s) => s.deletedExistingRows,
-  );
-  const committedDeletedRowIds = useVariantsEditorStore(
-    (s) => s.committedDeletedRowIds,
-  );
+  const deletedExistingRows = useVariantsEditorStore((s) => s.deletedExistingRows);
+  const committedDeletedRowIds = useVariantsEditorStore((s) => s.committedDeletedRowIds);
   const blankRow = useVariantsEditorStore((s) => s.blankRow);
   const rowErrors = useVariantsEditorStore((s) => s.rowErrors);
   const setFieldValue = useVariantsEditorStore((s) => s.setFieldValue);
@@ -140,22 +128,16 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   const getCurrentRows = useVariantsEditorStore((s) => s.getCurrentRows);
 
   const rows = useMemo(() => {
-    const sessionRows = allowDraftRows && blankRow
-      ? [...materializedRows, ...draftRows, blankRow]
-      : [...materializedRows, ...draftRows];
+    const sessionRows =
+      allowDraftRows && blankRow
+        ? [...materializedRows, ...draftRows, blankRow]
+        : [...materializedRows, ...draftRows];
 
     return [...initialRows, ...sessionRows].map((row) => ({
       ...row,
       rowError: rowErrors[row.id] ?? null,
     }));
-  }, [
-    allowDraftRows,
-    blankRow,
-    draftRows,
-    initialRows,
-    materializedRows,
-    rowErrors,
-  ]);
+  }, [allowDraftRows, blankRow, draftRows, initialRows, materializedRows, rowErrors]);
   const selectableColumns = useMemo(() => {
     if (!editableColumns) {
       return SELECTABLE_COLUMNS;
@@ -180,9 +162,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   const displayRows = useMemo(() => {
     const currentRows = getCurrentRows(initialRows);
 
-    return allowDraftRows
-      ? currentRows
-      : currentRows.filter((row) => row.kind !== "blank");
+    return allowDraftRows ? currentRows : currentRows.filter((row) => row.kind !== "blank");
   }, [
     allowDraftRows,
     blankRow,
@@ -225,9 +205,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
         allowDelete: false,
         allowSetFeatured: true,
         hasFeatured: true,
-        onSave: (
-          media: Parameters<NonNullable<IEditMediaModalPayload["onSave"]>>[0],
-        ) => {
+        onSave: (media: Parameters<NonNullable<IEditMediaModalPayload["onSave"]>>[0]) => {
           const selectedMedia = media.gallery;
 
           for (const rowId of uniqueRowIds) {
@@ -244,14 +222,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
         },
       });
     },
-    [
-      displayRows,
-      isFieldEditable,
-      openEditMediaModal,
-      productMediaFiles,
-      rows,
-      setFieldValue,
-    ],
+    [displayRows, isFieldEditable, openEditMediaModal, productMediaFiles, rows, setFieldValue],
   );
 
   const handleOpenMediaEditor = useCallback(
@@ -356,7 +327,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
 
       setFieldValue(rowId, field, originalValue, newValue);
     },
-    [isFieldEditable, setFieldValue]
+    [isFieldEditable, setFieldValue],
   );
 
   return (

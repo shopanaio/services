@@ -1,10 +1,5 @@
 import { metrics, trace } from "@opentelemetry/api";
-import {
-  Counter,
-  Histogram,
-  Registry,
-  collectDefaultMetrics,
-} from "prom-client";
+import { Counter, Histogram, Registry, collectDefaultMetrics } from "prom-client";
 
 export const checkoutTracer = trace.getTracer("shopana-checkout");
 export const checkoutMeter = metrics.getMeter("shopana-checkout");
@@ -40,4 +35,3 @@ export const compensationFailures = new Counter({
   labelNames: ["operation"] as const,
   registers: [checkoutMetricsRegistry],
 });
-

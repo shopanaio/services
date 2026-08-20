@@ -13,9 +13,7 @@ export interface SignatureMiddlewareConfig {
  * @param cfg - Configuration with ed25519 public key in PEM format
  * @returns Express middleware that verifies HTTP signatures according to RFC 9421
  */
-export function createSignatureMiddleware(
-  cfg: SignatureMiddlewareConfig
-): RequestHandler {
+export function createSignatureMiddleware(cfg: SignatureMiddlewareConfig): RequestHandler {
   if (!cfg.publicKey) {
     throw new Error("publicKey is required in SignatureMiddlewareConfig");
   }
@@ -23,11 +21,7 @@ export function createSignatureMiddleware(
   // Pre-create verifier once to avoid recreating it on every request
   const verifier = createVerifier(cfg.publicKey, "ed25519");
 
-  return async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (await verifyHttpMessageSignature(req, verifier)) {
         return void next();
@@ -51,7 +45,7 @@ export function createSignatureMiddleware(
  */
 const verifyHttpMessageSignature = async (
   req: Request,
-  verifier: ReturnType<typeof createVerifier>
+  verifier: ReturnType<typeof createVerifier>,
 ): Promise<boolean> => {
   try {
     // Build full URL from request
@@ -80,7 +74,7 @@ const verifyHttpMessageSignature = async (
           };
         },
       },
-      httpSigRequest
+      httpSigRequest,
     );
 
     return verified === true;

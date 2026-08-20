@@ -1,18 +1,10 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type {
-  AppExecutionContext,
-  AppExecutionContextAccessor,
-} from "@shopana/app-sdk";
+import type { AppExecutionContext, AppExecutionContextAccessor } from "@shopana/app-sdk";
 
 export class AppContextRunner implements AppExecutionContextAccessor {
-  private readonly storage = new AsyncLocalStorage<
-    Readonly<AppExecutionContext>
-  >();
+  private readonly storage = new AsyncLocalStorage<Readonly<AppExecutionContext>>();
 
-  run<TResult>(
-    context: Readonly<AppExecutionContext>,
-    callback: () => TResult,
-  ): TResult {
+  run<TResult>(context: Readonly<AppExecutionContext>, callback: () => TResult): TResult {
     return this.storage.run(Object.freeze(context), callback);
   }
 

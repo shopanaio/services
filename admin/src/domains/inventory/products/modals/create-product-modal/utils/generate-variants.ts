@@ -35,10 +35,7 @@ export interface IGeneratedVariant {
 export function cartesianProduct<T>(arrays: T[][]): T[][] {
   if (arrays.length === 0) return [[]];
 
-  return arrays.reduce<T[][]>(
-    (acc, arr) => acc.flatMap((x) => arr.map((y) => [...x, y])),
-    [[]]
-  );
+  return arrays.reduce<T[][]>((acc, arr) => acc.flatMap((x) => arr.map((y) => [...x, y])), [[]]);
 }
 
 /**
@@ -66,9 +63,7 @@ export function cartesianProduct<T>(arrays: T[][]): T[][] {
  */
 export function generateVariants(options: IOptionInput[]): IGeneratedVariant[] {
   // Filter out options with no values
-  const validOptions = options.filter(
-    (opt) => opt.name.trim() && opt.values.length > 0
-  );
+  const validOptions = options.filter((opt) => opt.name.trim() && opt.values.length > 0);
 
   if (validOptions.length === 0) {
     return [];
@@ -80,7 +75,7 @@ export function generateVariants(options: IOptionInput[]): IGeneratedVariant[] {
       name: opt.name,
       value: v.value,
       slug: v.slug,
-    }))
+    })),
   );
 
   // Generate all combinations using cartesian product
@@ -88,8 +83,8 @@ export function generateVariants(options: IOptionInput[]): IGeneratedVariant[] {
 
   // Transform combinations into variant objects
   return combinations.map((combo) => {
-    const id = combo.map((c) => c.slug).join('-');
-    const title = combo.map((c) => c.value).join(' / ');
+    const id = combo.map((c) => c.slug).join("-");
+    const title = combo.map((c) => c.value).join(" / ");
     return {
       id,
       title,
@@ -104,9 +99,7 @@ export function generateVariants(options: IOptionInput[]): IGeneratedVariant[] {
  * Useful for showing warnings before generating large numbers
  */
 export function countPotentialVariants(options: IOptionInput[]): number {
-  const validOptions = options.filter(
-    (opt) => opt.name.trim() && opt.values.length > 0
-  );
+  const validOptions = options.filter((opt) => opt.name.trim() && opt.values.length > 0);
 
   if (validOptions.length === 0) return 0;
 

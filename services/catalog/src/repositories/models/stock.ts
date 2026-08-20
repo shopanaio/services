@@ -42,8 +42,11 @@ export const warehouses = catalogSchema.table(
     uniqueIndex("idx_warehouses_default_unique")
       .on(table.storeId)
       .where(sql`is_default = true`),
-    check("warehouses_country_code_check", sql`${table.countryCode} IS NULL OR ${table.countryCode} ~ '^[A-Z]{2}$'`),
-  ]
+    check(
+      "warehouses_country_code_check",
+      sql`${table.countryCode} IS NULL OR ${table.countryCode} ~ '^[A-Z]{2}$'`,
+    ),
+  ],
 );
 
 export const warehouseStock = catalogSchema.table(
@@ -67,19 +70,16 @@ export const warehouseStock = catalogSchema.table(
     // CHECK constraint
     check("warehouse_stock_quantity_check", sql`${table.quantityOnHand} >= 0`),
     check("warehouse_stock_reserved_check", sql`${table.reservedQty} >= 0`),
-    check(
-      "warehouse_stock_unavailable_check",
-      sql`${table.unavailableQty} >= 0`
-    ),
+    check("warehouse_stock_unavailable_check", sql`${table.unavailableQty} >= 0`),
     check(
       "warehouse_stock_unavailable_le_onhand_check",
-      sql`${table.unavailableQty} <= ${table.quantityOnHand}`
+      sql`${table.unavailableQty} <= ${table.quantityOnHand}`,
     ),
     // Unique constraint
     unique("warehouse_stock_store_id_warehouse_id_variant_id_key").on(
       table.storeId,
       table.warehouseId,
-      table.variantId
+      table.variantId,
     ),
     // Index
     index("idx_warehouse_stock_variant").on(table.storeId, table.variantId),
@@ -88,7 +88,7 @@ export const warehouseStock = catalogSchema.table(
       columns: [table.warehouseId],
       foreignColumns: [warehouses.id],
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export type Warehouse = typeof warehouses.$inferSelect;

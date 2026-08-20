@@ -5,19 +5,10 @@ import type {
   DeliveryProviderOrigin,
   DeliveryProviderPackage,
 } from "./delivery.js";
-import type {
-  PricingCheckoutJsonObject,
-  PricingCheckoutMoney,
-} from "./pricing.js";
+import type { PricingCheckoutJsonObject, PricingCheckoutMoney } from "./pricing.js";
 
 export type DeliveryFulfillmentOrderStatus =
-  | "CANCELLED"
-  | "CLOSED"
-  | "IN_PROGRESS"
-  | "INCOMPLETE"
-  | "ON_HOLD"
-  | "OPEN"
-  | "SCHEDULED";
+  "CANCELLED" | "CLOSED" | "IN_PROGRESS" | "INCOMPLETE" | "ON_HOLD" | "OPEN" | "SCHEDULED";
 
 export type DeliveryFulfillmentOrderRequestStatus =
   | "ACCEPTED"
@@ -290,11 +281,6 @@ export interface DeliveryFulfillmentShipmentUpdate {
     DeliveryFulfillmentOrderLineItemInput,
     ...DeliveryFulfillmentOrderLineItemInput[],
   ];
-  state:
-    | "SHIPMENT_CREATED"
-    | "IN_TRANSIT"
-    | "DELIVERED"
-    | "DELIVERY_FAILED"
-    | "CANCELLED";
+  state: "SHIPMENT_CREATED" | "IN_TRANSIT" | "DELIVERED" | "DELIVERY_FAILED" | "CANCELLED";
   occurredAt: string;
 }

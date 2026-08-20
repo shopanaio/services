@@ -20,10 +20,15 @@ export function ReviewTechnicalMetadataModal() {
   const query = useReview(value.entityId);
   const review = query.review;
   return (
-    <ModalLayout name="review-technical-metadata" headerProps={{ title: "Technical metadata", onClose: pop, submitButtonProps: null }}>
+    <ModalLayout
+      name="review-technical-metadata"
+      headerProps={{ title: "Technical metadata", onClose: pop, submitButtonProps: null }}
+    >
       {query.loading && !review ? <Skeleton active paragraph={{ rows: 5 }} /> : null}
       {query.error ? <Alert type="error" showIcon message={query.error.message} /> : null}
-      {!query.loading && !review ? <Alert type="error" showIcon message="Review not found" /> : null}
+      {!query.loading && !review ? (
+        <Alert type="error" showIcon message="Review not found" />
+      ) : null}
       {review ? (
         <Paper>
           <PaperHeader title="Source audit data" />
@@ -33,12 +38,20 @@ export function ReviewTechnicalMetadataModal() {
               {
                 key: "principal",
                 label: "Principal ID",
-                children: review.author.principalId ? <CopyableChip value={review.author.principalId} mono /> : <Typography.Text>—</Typography.Text>,
+                children: review.author.principalId ? (
+                  <CopyableChip value={review.author.principalId} mono />
+                ) : (
+                  <Typography.Text>—</Typography.Text>
+                ),
               },
               {
                 key: "idempotency",
                 label: "Idempotency key",
-                children: review.idempotencyKey ? <CopyableChip value={review.idempotencyKey} mono /> : <Typography.Text>—</Typography.Text>,
+                children: review.idempotencyKey ? (
+                  <CopyableChip value={review.idempotencyKey} mono />
+                ) : (
+                  <Typography.Text>—</Typography.Text>
+                ),
               },
               { key: "source", label: "Source", children: humanizeEnum(review.sourceChannel) },
             ]}

@@ -14,16 +14,19 @@ export interface RecommendationSnapshotCreateParams {
 }
 
 export type RecommendationSnapshotCreateResult =
-  | { status: "stale" | "disabled" }
-  | { status: "created"; snapshotId: string; buildKey: string };
+  { status: "stale" | "disabled" } | { status: "created"; snapshotId: string; buildKey: string };
 
 export class RecommendationSnapshotCreateScript extends BaseScript<
   RecommendationSnapshotCreateParams,
   RecommendationSnapshotCreateResult
 > {
   @Transactional()
-  protected async execute(input: RecommendationSnapshotCreateParams): Promise<RecommendationSnapshotCreateResult> {
-    const policy = await this.repository.recommendationPlacementPolicy.lockByPlacement(input.placement);
+  protected async execute(
+    input: RecommendationSnapshotCreateParams,
+  ): Promise<RecommendationSnapshotCreateResult> {
+    const policy = await this.repository.recommendationPlacementPolicy.lockByPlacement(
+      input.placement,
+    );
     if (!policy?.enabled) return { status: "disabled" };
     const request = await this.repository.recommendationBuildRequest.lockOrCreateMutex(
       input.anchorProductId,

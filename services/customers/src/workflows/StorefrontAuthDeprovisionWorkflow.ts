@@ -34,13 +34,10 @@ export class StorefrontAuthDeprovisionWorkflow extends BrokerWorkflows<
   }
 
   @WorkflowStep()
-  private async findApplicationId(
-    input: StorefrontAuthDeprovisionInput,
-  ): Promise<string | null> {
-    const configuration =
-      await Kernel.getInstance().repository.storefrontAuth.findByStoreId(
-        input.storeId,
-      );
+  private async findApplicationId(input: StorefrontAuthDeprovisionInput): Promise<string | null> {
+    const configuration = await Kernel.getInstance().repository.storefrontAuth.findByStoreId(
+      input.storeId,
+    );
     if (!configuration) return null;
     if (configuration.organizationId !== input.organizationId) {
       throw new FatalError(
@@ -79,9 +76,7 @@ export class StorefrontAuthDeprovisionWorkflow extends BrokerWorkflows<
   }
 
   @WorkflowStep()
-  private async deleteConfiguration(
-    input: StorefrontAuthDeprovisionInput,
-  ): Promise<void> {
+  private async deleteConfiguration(input: StorefrontAuthDeprovisionInput): Promise<void> {
     await Kernel.getInstance().repository.storefrontAuth.delete(input);
   }
 }

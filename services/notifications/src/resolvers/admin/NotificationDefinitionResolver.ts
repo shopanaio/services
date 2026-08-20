@@ -1,17 +1,11 @@
 import type { TemplateDefinitionRegistry } from "../../infrastructure/templates/TemplateDefinitionRegistry.js";
 import type { SettingsRepository } from "../../repositories/settings/SettingsRepository.js";
 import { NotificationsType } from "./NotificationsType.js";
-import {
-  toGraphQLAudience,
-  toGraphQLChannel,
-  toGraphQLTemplateVariable,
-} from "./mappers.js";
+import { toGraphQLAudience, toGraphQLChannel, toGraphQLTemplateVariable } from "./mappers.js";
 
 export interface NotificationDefinitionResolverData {
   definition: ReturnType<TemplateDefinitionRegistry["get"]>;
-  setting:
-    | Awaited<ReturnType<SettingsRepository["getDefinitionSetting"]>>
-    | null;
+  setting: Awaited<ReturnType<SettingsRepository["getDefinitionSetting"]>> | null;
   channels: Awaited<ReturnType<SettingsRepository["listChannelSettings"]>>;
 }
 
@@ -64,15 +58,13 @@ export class NotificationDefinitionResolver extends NotificationsType<
       .filter(
         (channel) =>
           channels.find((entry) => entry.channel === channel)?.enabled ??
-          definition.defaultChannels.includes(channel)
+          definition.defaultChannels.includes(channel),
       )
       .map(toGraphQLChannel);
   }
 
   async variables() {
-    return (await this.$get("definition")).variables.map(
-      toGraphQLTemplateVariable
-    );
+    return (await this.$get("definition")).variables.map(toGraphQLTemplateVariable);
   }
 
   async version() {

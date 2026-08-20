@@ -7,9 +7,7 @@ export class CustomerMergeResolver extends CustomersType<string, CustomerMerge> 
   async $preload() {
     const merge = await this.$ctx.loaders.customerMerge.load(this.$props);
     if (!merge) {
-      throw new PreloadNotFoundError(
-        `Customer merge with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer merge with ID ${this.$props} not found`);
     }
     return merge;
   }

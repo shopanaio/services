@@ -59,9 +59,15 @@ export abstract class ReviewsType<TValue, TData = unknown>
   protected get resolvers(): ResolverRegistry {
     return getResolverRegistry(this.$ctx);
   }
-  protected getCache(): CacheStore { return this.$ctx.kernel.cache as CacheStore; }
-  protected encodeId(id: string, type: GlobalIdType) { return encodeGlobalIdByType(id, type); }
-  protected decodeId(id: string, type: GlobalIdType) { return decodeGlobalIdByType(id, type); }
+  protected getCache(): CacheStore {
+    return this.$ctx.kernel.cache as CacheStore;
+  }
+  protected encodeId(id: string, type: GlobalIdType) {
+    return encodeGlobalIdByType(id, type);
+  }
+  protected decodeId(id: string, type: GlobalIdType) {
+    return decodeGlobalIdByType(id, type);
+  }
   protected requireReadPermission() {
     requireStorefrontPermission(this.$ctx.storefrontAccess, STOREFRONT_PERMISSIONS.REVIEWS_READ);
   }

@@ -1,10 +1,7 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 import type { Repository } from "../../../repositories/Repository.js";
 import type { FeatureSyncParams } from "../dto/index.js";
-import {
-  FeatureSyncInputSchema,
-  type ValidatedSyncInput,
-} from "./schema.js";
+import { FeatureSyncInputSchema, type ValidatedSyncInput } from "./schema.js";
 import { validateSemantic } from "./semantic.js";
 import { loadDbContext, validateDatabase } from "./database.js";
 
@@ -31,9 +28,7 @@ export async function validateFeatureSyncParams(
   const { productId, features } = parseResult.data;
   if (!(await repository.product.exists(productId))) {
     return {
-      userErrors: [
-        { message: "Product not found", field: ["productId"], code: "NOT_FOUND" },
-      ],
+      userErrors: [{ message: "Product not found", field: ["productId"], code: "NOT_FOUND" }],
     };
   }
 

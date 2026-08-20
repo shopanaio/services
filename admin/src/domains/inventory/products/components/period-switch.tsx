@@ -77,9 +77,7 @@ export function PeriodSwitch<T extends string>({
             className={cx(
               styles.periodTag,
               styles.periodTagDefault,
-              value === period.value
-                ? styles.periodTagActive
-                : styles.periodTagInactive
+              value === period.value ? styles.periodTagActive : styles.periodTagInactive,
             )}
           >
             {period.label}
@@ -98,11 +96,7 @@ export function PeriodSwitch<T extends string>({
               Compare
             </Typography.Text>
           </Tooltip>
-          <Switch
-            size="small"
-            checked={compareEnabled}
-            onChange={onCompareChange}
-          />
+          <Switch size="small" checked={compareEnabled} onChange={onCompareChange} />
         </Flex>
       )}
     </Flex>

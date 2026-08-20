@@ -1,8 +1,4 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
@@ -25,10 +21,7 @@ import {
   type NewContentReport,
   type NewContentVote,
 } from "../models/index.js";
-import type {
-  OptimisticMutationResult,
-  RepositoryConnectionResult,
-} from "../types.js";
+import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const contentReportRelayQuery = createRelayQuery(
   createQuery(contentReport)
@@ -40,7 +33,7 @@ export const contentReportRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "reviewContentReport", tieBreaker: "id" }
+  { name: "reviewContentReport", tieBreaker: "id" },
 );
 
 export const contentVoteRelayQuery = createRelayQuery(
@@ -53,45 +46,52 @@ export const contentVoteRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "reviewContentVote", tieBreaker: "id" }
+  { name: "reviewContentVote", tieBreaker: "id" },
 );
 
-export type ContentReportRelayInput = InferRelayInput<
-  typeof contentReportRelayQuery
->;
-export type ContentVoteRelayInput = InferRelayInput<
-  typeof contentVoteRelayQuery
->;
+export type ContentReportRelayInput = InferRelayInput<typeof contentReportRelayQuery>;
+export type ContentVoteRelayInput = InferRelayInput<typeof contentVoteRelayQuery>;
 export type ContentReportPatch = Partial<
   Pick<
     NewContentReport,
-    | "status"
-    | "assignedToPrincipalId"
-    | "resolutionNote"
-    | "resolvedByPrincipalId"
-    | "resolvedAt"
+    "status" | "assignedToPrincipalId" | "resolutionNote" | "resolvedByPrincipalId" | "resolvedAt"
   >
 >;
 
 export class EngagementRepository extends BaseRepository {
   @ReadOnly()
   async findVoteByViewer(contentId: string, voterKey: string): Promise<ContentVote | null> {
-    const rows = await this.connection.select().from(contentVote).where(and(
-      eq(contentVote.storeId, this.storeId),
-      eq(contentVote.contentId, contentId),
-      eq(contentVote.voterKey, voterKey)
-    )).limit(1);
+    const rows = await this.connection
+      .select()
+      .from(contentVote)
+      .where(
+        and(
+          eq(contentVote.storeId, this.storeId),
+          eq(contentVote.contentId, contentId),
+          eq(contentVote.voterKey, voterKey),
+        ),
+      )
+      .limit(1);
     return rows[0] ?? null;
   }
 
   @ReadOnly()
-  async findActiveReportByViewer(contentId: string, reporterKey: string): Promise<ContentReport | null> {
-    const rows = await this.connection.select().from(contentReport).where(and(
-      eq(contentReport.storeId, this.storeId),
-      eq(contentReport.contentId, contentId),
-      eq(contentReport.reporterKey, reporterKey),
-      or(eq(contentReport.status, "OPEN"), eq(contentReport.status, "UNDER_REVIEW"))
-    )).limit(1);
+  async findActiveReportByViewer(
+    contentId: string,
+    reporterKey: string,
+  ): Promise<ContentReport | null> {
+    const rows = await this.connection
+      .select()
+      .from(contentReport)
+      .where(
+        and(
+          eq(contentReport.storeId, this.storeId),
+          eq(contentReport.contentId, contentId),
+          eq(contentReport.reporterKey, reporterKey),
+          or(eq(contentReport.status, "OPEN"), eq(contentReport.status, "UNDER_REVIEW")),
+        ),
+      )
+      .limit(1);
     return rows[0] ?? null;
   }
   @ReadOnly()
@@ -99,12 +99,7 @@ export class EngagementRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(contentVote)
-      .where(
-        and(
-          eq(contentVote.storeId, this.storeId),
-          eq(contentVote.id, id)
-        )
-      )
+      .where(and(eq(contentVote.storeId, this.storeId), eq(contentVote.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -116,10 +111,7 @@ export class EngagementRepository extends BaseRepository {
       .select()
       .from(contentVote)
       .where(
-        and(
-          eq(contentVote.storeId, this.storeId),
-          inArray(contentVote.id, [...new Set(ids)])
-        )
+        and(eq(contentVote.storeId, this.storeId), inArray(contentVote.id, [...new Set(ids)])),
       );
   }
 
@@ -128,12 +120,7 @@ export class EngagementRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(contentReport)
-      .where(
-        and(
-          eq(contentReport.storeId, this.storeId),
-          eq(contentReport.id, id)
-        )
-      )
+      .where(and(eq(contentReport.storeId, this.storeId), eq(contentReport.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -145,17 +132,14 @@ export class EngagementRepository extends BaseRepository {
       .select()
       .from(contentReport)
       .where(
-        and(
-          eq(contentReport.storeId, this.storeId),
-          inArray(contentReport.id, [...new Set(ids)])
-        )
+        and(eq(contentReport.storeId, this.storeId), inArray(contentReport.id, [...new Set(ids)])),
       );
   }
 
   @ReadOnly()
   async getReportConnection(
     args: ContentReportRelayInput,
-    contentId?: string
+    contentId?: string,
   ): Promise<RepositoryConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: ContentReportRelayInput["where"] = {
@@ -190,7 +174,7 @@ export class EngagementRepository extends BaseRepository {
   @ReadOnly()
   async getVoteConnection(
     contentId: string,
-    args: ContentVoteRelayInput
+    args: ContentVoteRelayInput,
   ): Promise<RepositoryConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: ContentVoteRelayInput["where"] = {
@@ -224,7 +208,7 @@ export class EngagementRepository extends BaseRepository {
 
   @Transactional()
   async createReport(
-    input: Omit<NewContentReport, "id" | "storeId" | "createdAt" | "updatedAt">
+    input: Omit<NewContentReport, "id" | "storeId" | "createdAt" | "updatedAt">,
   ): Promise<ContentReport> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -246,7 +230,7 @@ export class EngagementRepository extends BaseRepository {
   async updateReport(
     id: string,
     expectedUpdatedAt: string,
-    patch: ContentReportPatch
+    patch: ContentReportPatch,
   ): Promise<OptimisticMutationResult<ContentReport>> {
     const rows = await this.connection
       .update(contentReport)
@@ -255,20 +239,18 @@ export class EngagementRepository extends BaseRepository {
         and(
           eq(contentReport.storeId, this.storeId),
           eq(contentReport.id, id),
-          eq(contentReport.updatedAt, expectedUpdatedAt)
-        )
+          eq(contentReport.updatedAt, expectedUpdatedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findReportById(id);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
   @Transactional()
   async upsertVote(
-    input: Omit<NewContentVote, "id" | "storeId" | "createdAt" | "updatedAt">
+    input: Omit<NewContentVote, "id" | "storeId" | "createdAt" | "updatedAt">,
   ): Promise<ContentVote> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -292,11 +274,16 @@ export class EngagementRepository extends BaseRepository {
 
   @Transactional()
   async deleteVote(contentId: string, voterKey: string): Promise<ContentVote | null> {
-    const rows = await this.connection.delete(contentVote).where(and(
-      eq(contentVote.storeId, this.storeId),
-      eq(contentVote.contentId, contentId),
-      eq(contentVote.voterKey, voterKey)
-    )).returning();
+    const rows = await this.connection
+      .delete(contentVote)
+      .where(
+        and(
+          eq(contentVote.storeId, this.storeId),
+          eq(contentVote.contentId, contentId),
+          eq(contentVote.voterKey, voterKey),
+        ),
+      )
+      .returning();
     return rows[0] ?? null;
   }
 

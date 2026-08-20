@@ -124,9 +124,7 @@ export const HEADLESS_STOREFRONT_DISCONNECT_MUTATION = gql`
 >;
 
 export const STOREFRONT_ACCESS_POLICY_UPDATE_MUTATION = gql`
-  mutation StorefrontAccessPolicyUpdate(
-    $input: StorefrontAccessPolicyUpdateInput!
-  ) {
+  mutation StorefrontAccessPolicyUpdate($input: StorefrontAccessPolicyUpdateInput!) {
     headlessAppMutation {
       storefrontAccessPolicyUpdate(input: $input) {
         policy {
@@ -148,9 +146,7 @@ export const STOREFRONT_ACCESS_POLICY_UPDATE_MUTATION = gql`
 >;
 
 export const STOREFRONT_PRIVATE_CREDENTIAL_CREATE_MUTATION = gql`
-  mutation StorefrontPrivateCredentialCreate(
-    $input: StorefrontPrivateCredentialCreateInput!
-  ) {
+  mutation StorefrontPrivateCredentialCreate($input: StorefrontPrivateCredentialCreateInput!) {
     headlessAppMutation {
       storefrontPrivateCredentialCreate(input: $input) {
         credential {

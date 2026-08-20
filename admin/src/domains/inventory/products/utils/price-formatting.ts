@@ -17,10 +17,7 @@ export const formatPrice = (
   return formatted.replace(/\s+/g, NBSP);
 };
 
-export const formatCurrencySymbol = (
-  currency: string,
-  locale: string = "en-US",
-): string => {
+export const formatCurrencySymbol = (currency: string, locale: string = "en-US"): string => {
   const currencyPart = new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
@@ -32,19 +29,13 @@ export const formatCurrencySymbol = (
   return currencyPart?.value ?? currency;
 };
 
-export const formatShortDate = (
-  date: Date,
-  locale: string = "ru-RU",
-): string =>
+export const formatShortDate = (date: Date, locale: string = "ru-RU"): string =>
   new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "short",
   }).format(date);
 
-export const formatDateTime = (
-  date: Date,
-  locale: string = "ru-RU",
-): string =>
+export const formatDateTime = (date: Date, locale: string = "ru-RU"): string =>
   new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "short",
@@ -53,10 +44,7 @@ export const formatDateTime = (
     minute: "2-digit",
   }).format(date);
 
-export const formatDateFull = (
-  date: Date,
-  locale: string = "ru-RU",
-): string =>
+export const formatDateFull = (date: Date, locale: string = "ru-RU"): string =>
   new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "long",

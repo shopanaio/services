@@ -14,9 +14,7 @@ registerModule({
     {
       key: "organization",
       path: "/workspace/:orgName",
-      component: dynamic(
-        () => import("@/domains/workspace/organization/page/organization-page")
-      ),
+      component: dynamic(() => import("@/domains/workspace/organization/page/organization-page")),
     },
   ],
 });

@@ -32,7 +32,7 @@ export function createAsyncContextToken<TValue>(name: string): AsyncContextToken
  */
 export async function runAsyncContext<TValue>(
   fn: () => Promise<TValue> | TValue,
-  seed?: Iterable<readonly [AsyncContextToken<unknown>, unknown]>
+  seed?: Iterable<readonly [AsyncContextToken<unknown>, unknown]>,
 ): Promise<TValue> {
   const initial = new Map<symbol, unknown>();
   if (seed) {
@@ -53,12 +53,12 @@ export async function runAsyncContext<TValue>(
  */
 export function setAsyncContextValue<TValue>(
   token: AsyncContextToken<TValue>,
-  value: TValue
+  value: TValue,
 ): void {
   const store = storage.getStore();
   if (!store) {
     throw new Error(
-      `Async context is not initialized. Call runAsyncContext before setAsyncContextValue for token "${token.name}".`
+      `Async context is not initialized. Call runAsyncContext before setAsyncContextValue for token "${token.name}".`,
     );
   }
   store.set(token.symbol, value);
@@ -70,9 +70,7 @@ export function setAsyncContextValue<TValue>(
  *
  * @param token - Token created with {@link createAsyncContextToken}
  */
-export function getAsyncContextValue<TValue>(
-  token: AsyncContextToken<TValue>
-): TValue | undefined {
+export function getAsyncContextValue<TValue>(token: AsyncContextToken<TValue>): TValue | undefined {
   const store = storage.getStore();
   if (!store) {
     return undefined;
@@ -88,13 +86,11 @@ export function getAsyncContextValue<TValue>(
  */
 export function requireAsyncContextValue<TValue>(
   token: AsyncContextToken<TValue>,
-  message?: string
+  message?: string,
 ): TValue {
   const value = getAsyncContextValue(token);
   if (value === undefined) {
-    throw new Error(
-      message ?? `Value for async context token "${token.name}" is not available.`
-    );
+    throw new Error(message ?? `Value for async context token "${token.name}" is not available.`);
   }
   return value;
 }

@@ -97,7 +97,7 @@ const bundleDescriptionJson = {
 const bundleDescriptionApi = createApiRichText(
   bundleDescriptionJson as Record<string, unknown>,
   "Everything you need to start your photography journey. This bundle includes a professional-grade camera body, two versatile lenses, and essential accessories. What's Included: Camera Body with 24.2MP sensor, 18-55mm Kit Lens, 55-200mm Telephoto Lens, Camera bag, 32GB SD card, Cleaning kit. Save 25% compared to buying items individually.",
-  '<p>Everything you need to start your photography journey. This bundle includes a professional-grade camera body, two versatile lenses, and essential accessories — all at a special bundle price.</p><h3>What\'s Included</h3><ul><li>Camera Body with 24.2MP sensor</li><li>18-55mm Kit Lens</li><li>55-200mm Telephoto Lens</li><li>Camera bag with padded dividers</li><li>32GB SD card</li><li>Cleaning kit</li></ul><p>Save 25% compared to buying items individually. Perfect gift for aspiring photographers.</p>',
+  "<p>Everything you need to start your photography journey. This bundle includes a professional-grade camera body, two versatile lenses, and essential accessories — all at a special bundle price.</p><h3>What's Included</h3><ul><li>Camera Body with 24.2MP sensor</li><li>18-55mm Kit Lens</li><li>55-200mm Telephoto Lens</li><li>Camera bag with padded dividers</li><li>32GB SD card</li><li>Cleaning kit</li></ul><p>Save 25% compared to buying items individually. Perfect gift for aspiring photographers.</p>",
 );
 
 export const mockBundleProduct: IProduct = {

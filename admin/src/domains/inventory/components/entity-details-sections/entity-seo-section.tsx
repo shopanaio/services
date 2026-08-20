@@ -11,13 +11,8 @@ interface EntitySeoSectionProps {
   sectionTestId?: string;
 }
 
-export const EntitySeoSection = ({
-  data,
-  actions,
-  sectionTestId,
-}: EntitySeoSectionProps) => {
-  const seoIssuesCount =
-    (!data.seoTitle ? 1 : 0) + (!data.seoDescription ? 1 : 0);
+export const EntitySeoSection = ({ data, actions, sectionTestId }: EntitySeoSectionProps) => {
+  const seoIssuesCount = (!data.seoTitle ? 1 : 0) + (!data.seoDescription ? 1 : 0);
 
   const issuesExtra =
     seoIssuesCount > 0 ? (

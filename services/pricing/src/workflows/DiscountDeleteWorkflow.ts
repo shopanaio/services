@@ -33,9 +33,7 @@ export class DiscountDeleteWorkflow extends BrokerWorkflows {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: DiscountDeleteWorkflowInput,
-  ): Promise<DiscountDeleteWorkflowResult> {
+  async run(input: DiscountDeleteWorkflowInput): Promise<DiscountDeleteWorkflowResult> {
     return this.stepDelete(input);
   }
 
@@ -52,9 +50,7 @@ export class DiscountDeleteWorkflow extends BrokerWorkflows {
   }
 }
 
-function toScriptContext(
-  context: PricingMutationWorkflowContext,
-): RunScriptContext {
+function toScriptContext(context: PricingMutationWorkflowContext): RunScriptContext {
   return {
     storeId: context.storeId,
     organizationId: context.organizationId,

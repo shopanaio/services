@@ -8,22 +8,17 @@ export type CatalogProductLocalizedContentSnapshotInput = {
   locale: string;
 };
 
-export type CatalogProductLocalizedContentSnapshotData =
-  CatalogProductLocalizedContentSnapshot & {
-    locale: string;
-  };
+export type CatalogProductLocalizedContentSnapshotData = CatalogProductLocalizedContentSnapshot & {
+  locale: string;
+};
 
 export class CatalogProductLocalizedContentSnapshotResolver extends ServiceType<
   CatalogProductLocalizedContentSnapshotInput,
   CatalogProductLocalizedContentSnapshotData
 > {
   protected async $preload(): Promise<CatalogProductLocalizedContentSnapshotData> {
-    const translations = await this.$ctx.loaders.productTranslations.load(
-      this.$props.productId
-    );
-    const translation = translations.find(
-      (item) => item.locale === this.$props.locale
-    );
+    const translations = await this.$ctx.loaders.productTranslations.load(this.$props.productId);
+    const translation = translations.find((item) => item.locale === this.$props.locale);
 
     return {
       locale: this.$props.locale,
@@ -66,14 +61,10 @@ export class CatalogProductLocalizedContentSnapshotResolver extends ServiceType<
   }
 
   private async createRichTextSnapshot(
-    field: "excerpt" | "description"
+    field: "excerpt" | "description",
   ): Promise<Awaited<ReturnType<CatalogRichTextSnapshotResolver["$snapshot"]>> | null> {
-    const translations = await this.$ctx.loaders.productTranslations.load(
-      this.$props.productId
-    );
-    const translation = translations.find(
-      (item) => item.locale === this.$props.locale
-    );
+    const translations = await this.$ctx.loaders.productTranslations.load(this.$props.productId);
+    const translation = translations.find((item) => item.locale === this.$props.locale);
     const prefix = field === "excerpt" ? "excerpt" : "description";
 
     return toRichTextValue({

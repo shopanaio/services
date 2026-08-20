@@ -69,11 +69,7 @@ export const PaperHeader = ({
     <Flex
       align="center"
       justify="space-between"
-      className={cx(
-        bordered && styles.header,
-        contained && styles.contained,
-        className,
-      )}
+      className={cx(bordered && styles.header, contained && styles.contained, className)}
     >
       <Flex align="center" gap={12} style={{ flex: 1 }}>
         {renderTitle()}

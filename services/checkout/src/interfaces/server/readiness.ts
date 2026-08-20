@@ -36,13 +36,15 @@ export async function checkoutReadiness(broker: ServiceBroker) {
     checks.dbos = { ok: false, detail: message(error) };
   }
   const missingActions = criticalActions.filter((name) => !broker.hasAction(name));
-  checks.brokerActions = missingActions.length === 0
-    ? { ok: true }
-    : { ok: false, detail: `Missing: ${missingActions.join(", ")}` };
+  checks.brokerActions =
+    missingActions.length === 0
+      ? { ok: true }
+      : { ok: false, detail: `Missing: ${missingActions.join(", ")}` };
   const missingWorkflows = criticalWorkflows.filter((name) => !broker.hasWorkflow(name));
-  checks.brokerWorkflows = missingWorkflows.length === 0
-    ? { ok: true }
-    : { ok: false, detail: `Missing: ${missingWorkflows.join(", ")}` };
+  checks.brokerWorkflows =
+    missingWorkflows.length === 0
+      ? { ok: true }
+      : { ok: false, detail: `Missing: ${missingWorkflows.join(", ")}` };
   return {
     status: Object.values(checks).every(({ ok }) => ok) ? "ok" : "not_ready",
     service: "checkout",

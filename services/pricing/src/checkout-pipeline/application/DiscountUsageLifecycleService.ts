@@ -33,10 +33,7 @@ export class DiscountUsageLifecycleService {
   async commit(
     params: Pricing.CommitCheckoutDiscountUsageParams,
   ): Promise<Pricing.CommitCheckoutDiscountUsageResult> {
-    const quote = await this.quotes.getFinalById(
-      params.storeId,
-      params.quoteId,
-    );
+    const quote = await this.quotes.getFinalById(params.storeId, params.quoteId);
     if (
       !quote ||
       quote.checkoutId !== params.checkoutId ||
@@ -53,10 +50,7 @@ export class DiscountUsageLifecycleService {
       // same order to avoid a discount <-> reservation lock cycle.
       await lockDiscountOwners(tx, params.storeId, groups);
 
-      const reservations = new Map<
-        string,
-        typeof discountUsageReservation.$inferSelect
-      >();
+      const reservations = new Map<string, typeof discountUsageReservation.$inferSelect>();
 
       for (const reservationId of reservationIds) {
         const reservation = (
@@ -145,25 +139,13 @@ export class DiscountUsageLifecycleService {
         }
 
         if (reservation) {
-          if (
-            reservation.status !== "ACTIVE" ||
-            Date.parse(reservation.expiresAt) <= Date.now()
-          ) {
+          if (reservation.status !== "ACTIVE" || Date.parse(reservation.expiresAt) <= Date.now()) {
             throw conflict("Usage reservation is not active");
           }
         }
 
-        await validateAndLockUsageConfiguration(
-          tx,
-          params.storeId,
-          group,
-        );
-        await lockCounters(
-          tx,
-          params.storeId,
-          group.discountId,
-          group.codeId,
-        );
+        await validateAndLockUsageConfiguration(tx, params.storeId, group);
+        await lockCounters(tx, params.storeId, group.discountId, group.codeId);
 
         const now = new Date().toISOString();
         if (reservation) {
@@ -247,14 +229,10 @@ export class DiscountUsageLifecycleService {
             redemptionId: redemption.id,
             targetType:
               allocation.targetType === "LINE"
-                ? "ORDER_LINE" as const
-                : "SHIPPING_LINE" as const,
-            targetId:
-              allocation.targetType === "LINE"
-                ? allocation.lineId
-                : allocation.groupId,
-            quantity:
-              allocation.targetType === "LINE" ? allocation.quantity : null,
+                ? ("ORDER_LINE" as const)
+                : ("SHIPPING_LINE" as const),
+            targetId: allocation.targetType === "LINE" ? allocation.lineId : allocation.groupId,
+            quantity: allocation.targetType === "LINE" ? allocation.quantity : null,
             amountMinor: BigInt(allocation.amount.amountMinor),
             metadata: { applicationId: application.applicationId },
           })),
@@ -327,22 +305,14 @@ export class DiscountUsageLifecycleService {
             .select()
             .from(discountRedemption)
             .where(
-              and(
-                eq(discountRedemption.storeId, params.storeId),
-                eq(discountRedemption.id, id),
-              ),
+              and(eq(discountRedemption.storeId, params.storeId), eq(discountRedemption.id, id)),
             )
             .limit(1)
             .for("update")
         )[0];
         if (!redemption || redemption.status === "REVERSED") continue;
 
-        await lockCounters(
-          tx,
-          params.storeId,
-          redemption.discountId,
-          redemption.codeId,
-        );
+        await lockCounters(tx, params.storeId, redemption.discountId, redemption.codeId);
         const now = new Date().toISOString();
         await tx
           .update(discountRedemption)
@@ -462,11 +432,7 @@ export function groupUsageRequirements(
     }
     applicationIds.add(requirement.applicationId);
 
-    const key = canonicalJson([
-      requirement.discountId,
-      requirement.codeId,
-      requirement.customerId,
-    ]);
+    const key = canonicalJson([requirement.discountId, requirement.codeId, requirement.customerId]);
     const group = groups.get(key) ?? {
       key,
       discountId: requirement.discountId,
@@ -508,15 +474,9 @@ function applicationsForGroup(
   group: UsageGroup,
 ): Pricing.PricingCheckoutDiscountApplication[] {
   const applications = group.applicationIds.map((applicationId) =>
-    quote.appliedDiscounts.find(
-      (application) => application.applicationId === applicationId,
-    ),
+    quote.appliedDiscounts.find((application) => application.applicationId === applicationId),
   );
-  if (
-    applications.some(
-      (application): application is undefined => application === undefined,
-    )
-  ) {
+  if (applications.some((application): application is undefined => application === undefined)) {
     throw conflict("Usage application is missing from the final quote");
   }
 
@@ -542,8 +502,8 @@ function validateReservationProvenance(
   params: Pricing.CommitCheckoutDiscountUsageParams,
 ): void {
   const metadata = objectValue(reservation.metadata);
-  const applicationIds = stringArray(metadata.applicationIds).sort(
-    (left, right) => left.localeCompare(right),
+  const applicationIds = stringArray(metadata.applicationIds).sort((left, right) =>
+    left.localeCompare(right),
   );
   if (
     metadata.quoteId !== params.quoteId ||
@@ -564,8 +524,8 @@ function validateExistingRedemption(
   amountMinor: bigint,
 ): void {
   const metadata = objectValue(redemption.metadata);
-  const applicationIds = stringArray(metadata.applicationIds).sort(
-    (left, right) => left.localeCompare(right),
+  const applicationIds = stringArray(metadata.applicationIds).sort((left, right) =>
+    left.localeCompare(right),
   );
   if (
     redemption.checkoutId !== params.checkoutId ||
@@ -640,12 +600,7 @@ async function validateAndLockUsageConfiguration(
     await tx
       .select()
       .from(discountCode)
-      .where(
-        and(
-          eq(discountCode.storeId, storeId),
-          eq(discountCode.id, group.codeId),
-        ),
-      )
+      .where(and(eq(discountCode.storeId, storeId), eq(discountCode.id, group.codeId)))
       .limit(1)
       .for("update")
   )[0];
@@ -710,11 +665,7 @@ async function lockCounters(
 }
 
 function conflict(message: string): PricingCheckoutError {
-  return new PricingCheckoutError(
-    "PRICING_QUOTE_SNAPSHOT_CONFLICT",
-    message,
-    false,
-  );
+  return new PricingCheckoutError("PRICING_QUOTE_SNAPSHOT_CONFLICT", message, false);
 }
 
 function uniqueSorted(values: readonly string[]): string[] {
@@ -723,12 +674,10 @@ function uniqueSorted(values: readonly string[]): string[] {
 
 function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
 function stringArray(value: unknown): string[] {
-  return Array.isArray(value) && value.every((row) => typeof row === "string")
-    ? value
-    : [];
+  return Array.isArray(value) && value.every((row) => typeof row === "string") ? value : [];
 }

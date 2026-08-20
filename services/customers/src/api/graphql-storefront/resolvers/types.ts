@@ -3,10 +3,7 @@ import {
   GlobalIdEntity,
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
-import {
-  requireStorefrontPermission,
-  STOREFRONT_PERMISSIONS,
-} from "@shopana/shared-context";
+import { requireStorefrontPermission, STOREFRONT_PERMISSIONS } from "@shopana/shared-context";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { GraphQLResolveInfo } from "graphql";
 import { createIsoDateTimeScalar } from "../../graphql/scalars.js";
@@ -32,10 +29,7 @@ import {
   CustomerWishlistItemResolver,
   CustomerWishlistResolver,
 } from "../../../resolvers/storefront/WishlistResolvers.js";
-import type {
-  Resolvers,
-  ResolversTypes,
-} from "../../../resolvers/storefront/generated/types.js";
+import type { Resolvers, ResolversTypes } from "../../../resolvers/storefront/generated/types.js";
 
 export const typeResolvers: Partial<Resolvers> = {
   DateTime: createIsoDateTimeScalar("DateTime"),
@@ -90,15 +84,9 @@ export const typeResolvers: Partial<Resolvers> = {
   },
   Customer: {
     __resolveReference: async (reference, ctx, info) => {
-      requireStorefrontPermission(
-        ctx.storefrontAccess,
-        STOREFRONT_PERMISSIONS.CUSTOMER_READ,
-      );
+      requireStorefrontPermission(ctx.storefrontAccess, STOREFRONT_PERMISSIONS.CUSTOMER_READ);
       const customerId = ctx.customer?.id;
-      if (
-        !customerId ||
-        customerId !== decodeReference(reference.id, GlobalIdEntity.Customer)
-      ) {
+      if (!customerId || customerId !== decodeReference(reference.id, GlobalIdEntity.Customer)) {
         return null;
       }
       const row = await ctx.loaders.customer.load(customerId);
@@ -167,15 +155,8 @@ function referenceResolver<TResult>(
   },
   requireOwner = false,
 ) {
-  return async (
-    reference: { id: string },
-    ctx: ServiceContext,
-    info: GraphQLResolveInfo,
-  ) => {
-    requireStorefrontPermission(
-      ctx.storefrontAccess,
-      STOREFRONT_PERMISSIONS.CUSTOMER_READ,
-    );
+  return async (reference: { id: string }, ctx: ServiceContext, info: GraphQLResolveInfo) => {
+    requireStorefrontPermission(ctx.storefrontAccess, STOREFRONT_PERMISSIONS.CUSTOMER_READ);
     const id = decodeReference(reference.id, type);
     if (!id) return null;
     const value = await exists(id, ctx);

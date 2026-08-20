@@ -3,14 +3,8 @@ import type {
   DiscountAggregate,
   DiscountRuleWriteInput,
 } from "../../repositories/DiscountRepository.js";
-import type {
-  DiscountUpdateRuleParams,
-  DiscountUpdateRuleResult,
-} from "./dto/index.js";
-import {
-  parseNonNegativeBigInt,
-  parsePositiveBigInt,
-} from "./shared.js";
+import type { DiscountUpdateRuleParams, DiscountUpdateRuleResult } from "./dto/index.js";
+import { parseNonNegativeBigInt, parsePositiveBigInt } from "./shared.js";
 import { BaseDiscountUpdateScript } from "./BaseDiscountUpdateScript.js";
 import { sectionErrors, sectionSuccess } from "./types.js";
 
@@ -23,10 +17,7 @@ export class DiscountUpdateRuleScript extends BaseDiscountUpdateScript<DiscountU
     if (mapped.errors.length > 0 || !mapped.value) {
       return sectionErrors(mapped.errors);
     }
-    await this.repository.discount.replaceRule(
-      aggregate.discount.id,
-      mapped.value,
-    );
+    await this.repository.discount.replaceRule(aggregate.discount.id, mapped.value);
     return sectionSuccess();
   }
 }
@@ -36,11 +27,9 @@ function mapRuleInput(
   input: DiscountUpdateRuleParams["rule"],
 ): { value?: DiscountRuleWriteInput; errors: UserError[] } {
   const errors: UserError[] = [];
-  const supplied = [
-    input.amountOff,
-    input.buyXGetY,
-    input.freeShipping,
-  ].filter((value) => value != null);
+  const supplied = [input.amountOff, input.buyXGetY, input.freeShipping].filter(
+    (value) => value != null,
+  );
   if (supplied.length !== 1) {
     return {
       errors: [
@@ -80,14 +69,10 @@ function mapRuleInput(
     }
     if (
       input.amountOff.valueType === "PERCENTAGE" &&
-      (!percentageBps ||
-        percentageBps < 1 ||
-        percentageBps > 10_000 ||
-        amountMinor !== null)
+      (!percentageBps || percentageBps < 1 || percentageBps > 10_000 || amountMinor !== null)
     ) {
       errors.push({
-        message:
-          "Percentage rules require percentageBps from 1 to 10000 and no amountMinor",
+        message: "Percentage rules require percentageBps from 1 to 10000 and no amountMinor",
         code: "INVALID_RULE_VALUE",
         field: ["amountOff"],
       });
@@ -97,8 +82,7 @@ function mapRuleInput(
       (amountMinor === null || percentageBps !== null)
     ) {
       errors.push({
-        message:
-          "Fixed-amount rules require amountMinor and no percentageBps",
+        message: "Fixed-amount rules require amountMinor and no percentageBps",
         code: "INVALID_RULE_VALUE",
         field: ["amountOff"],
       });
@@ -136,19 +120,15 @@ function mapRuleInput(
       errors,
     );
     const requiredQuantity = input.buyXGetY.requiredQuantity ?? null;
-    const benefitPercentageBps =
-      input.buyXGetY.benefitPercentageBps ?? null;
+    const benefitPercentageBps = input.buyXGetY.benefitPercentageBps ?? null;
     const benefitOperation = input.buyXGetY.benefitOperation ?? null;
     const benefitValueType = input.buyXGetY.benefitValueType ?? null;
     if (
       input.buyXGetY.requirementType === "QUANTITY" &&
-      (!requiredQuantity ||
-        requiredQuantity < 1 ||
-        requiredSubtotalMinor !== null)
+      (!requiredQuantity || requiredQuantity < 1 || requiredSubtotalMinor !== null)
     ) {
       errors.push({
-        message:
-          "Quantity requirements require a positive quantity and no subtotal",
+        message: "Quantity requirements require a positive quantity and no subtotal",
         code: "INVALID_RULE_REQUIREMENT",
         field: ["buyXGetY"],
       });
@@ -158,8 +138,7 @@ function mapRuleInput(
       (requiredSubtotalMinor === null || requiredQuantity !== null)
     ) {
       errors.push({
-        message:
-          "Subtotal requirements require a positive subtotal and no quantity",
+        message: "Subtotal requirements require a positive subtotal and no quantity",
         code: "INVALID_RULE_REQUIREMENT",
         field: ["buyXGetY"],
       });
@@ -184,8 +163,7 @@ function mapRuleInput(
         benefitOperation !== "DECREASE")
     ) {
       errors.push({
-        message:
-          "Percentage benefits require benefitPercentageBps from 1 to 10000 and no amount",
+        message: "Percentage benefits require benefitPercentageBps from 1 to 10000 and no amount",
         code: "INVALID_RULE_VALUE",
         field: ["buyXGetY"],
       });
@@ -198,16 +176,12 @@ function mapRuleInput(
         benefitOperation !== "DECREASE")
     ) {
       errors.push({
-        message:
-          "Fixed benefits require benefitAmountMinor and no percentage",
+        message: "Fixed benefits require benefitAmountMinor and no percentage",
         code: "INVALID_RULE_VALUE",
         field: ["buyXGetY"],
       });
     }
-    if (
-      input.buyXGetY.benefitStrategy === "ADJUSTMENT" &&
-      benefitValueType === null
-    ) {
+    if (input.buyXGetY.benefitStrategy === "ADJUSTMENT" && benefitValueType === null) {
       errors.push({
         message: "Adjustment benefits require a value type",
         code: "INVALID_RULE_VALUE",
@@ -246,14 +220,8 @@ function mapRuleInput(
         requiredSubtotalMinor,
         benefitQuantity: input.buyXGetY.benefitQuantity,
         benefitStrategy: input.buyXGetY.benefitStrategy,
-        benefitOperation:
-          input.buyXGetY.benefitStrategy === "ADJUSTMENT"
-            ? "DECREASE"
-            : null,
-        benefitValueType:
-          input.buyXGetY.benefitStrategy === "ADJUSTMENT"
-            ? benefitValueType
-            : null,
+        benefitOperation: input.buyXGetY.benefitStrategy === "ADJUSTMENT" ? "DECREASE" : null,
+        benefitValueType: input.buyXGetY.benefitStrategy === "ADJUSTMENT" ? benefitValueType : null,
         benefitPercentageBps,
         benefitAmountMinor,
         usesPerOrderLimit,

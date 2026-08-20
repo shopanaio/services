@@ -12,16 +12,11 @@ export interface BrokerAuthorizeResult {
   serviceLinkedDetails?: ServiceLinkedAuthorizationDetails;
 }
 
-export function throwIfBrokerAuthorizeDenied(
-  result: BrokerAuthorizeResult
-): void {
-  if (
-    result.deniedCode === "RESOURCE_SERVICE_LINKED" &&
-    result.serviceLinkedDetails
-  ) {
+export function throwIfBrokerAuthorizeDenied(result: BrokerAuthorizeResult): void {
+  if (result.deniedCode === "RESOURCE_SERVICE_LINKED" && result.serviceLinkedDetails) {
     throw new ServiceLinkedResourceAuthorizationError(
       result.serviceLinkedDetails,
-      result.deniedReason
+      result.deniedReason,
     );
   }
 }

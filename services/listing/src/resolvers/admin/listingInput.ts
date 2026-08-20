@@ -30,7 +30,7 @@ interface ListingInputDefaults {
 export class ListingResolverInputError extends Error {
   constructor(
     message: string,
-    public readonly field?: readonly string[]
+    public readonly field?: readonly string[],
   ) {
     super(message);
     this.name = "ListingResolverInputError";
@@ -39,16 +39,14 @@ export class ListingResolverInputError extends Error {
 
 export function toStorefrontListingInput(
   args: ListingQueryArgs,
-  defaults: ListingInputDefaults
+  defaults: ListingInputDefaults,
 ): StorefrontListingInput {
   const first = normalizePageSize(args);
   const filters = normalizeListingFilters(args.facets ?? []);
   const query = args.query?.trim() || undefined;
 
   return {
-    scope:
-      args.resolvedScope ??
-      normalizeListingScope(args.scope ?? null, args.query),
+    scope: args.resolvedScope ?? normalizeListingScope(args.scope ?? null, args.query),
     query,
     locale: args.locale?.trim() || defaults.locale,
     currency: args.currency?.trim() || defaults.currency,
@@ -60,14 +58,12 @@ export function toStorefrontListingInput(
 }
 
 export function normalizeListingFilters(
-  filters: readonly ListingProductFilter[]
+  filters: readonly ListingProductFilter[],
 ): StorefrontListingFilterInput[] {
   return filters.map((filter) => {
     const keys = [
       filter.statuses?.length ? "statuses" : null,
-      filter.available !== undefined && filter.available !== null
-        ? "available"
-        : null,
+      filter.available !== undefined && filter.available !== null ? "available" : null,
       filter.price ? "price" : null,
       nonEmpty(filter.productVendor) ? "productVendor" : null,
       nonEmpty(filter.tag) ? "tag" : null,
@@ -77,10 +73,9 @@ export function normalizeListingFilters(
     ].filter(Boolean);
 
     if (keys.length !== 1) {
-      throw new ListingResolverInputError(
-        "ListingProductFilter requires exactly one field",
-        ["facets"]
-      );
+      throw new ListingResolverInputError("ListingProductFilter requires exactly one field", [
+        "facets",
+      ]);
     }
 
     if (filter.available !== undefined && filter.available !== null) {
@@ -89,9 +84,11 @@ export function normalizeListingFilters(
     if (filter.statuses?.length) {
       return {
         kind: "status",
-        statuses: [...new Set(filter.statuses.map((status) =>
-          status.toLowerCase() as "draft" | "published"
-        ))],
+        statuses: [
+          ...new Set(
+            filter.statuses.map((status) => status.toLowerCase() as "draft" | "published"),
+          ),
+        ],
       };
     }
     if (filter.price) {
@@ -117,9 +114,7 @@ export function normalizeListingFilters(
       return {
         kind: "facet",
         facetSlug: requiredText(filter.variantOption.name, "variantOption.name"),
-        valueHandles: [
-          requiredText(filter.variantOption.value, "variantOption.value"),
-        ],
+        valueHandles: [requiredText(filter.variantOption.value, "variantOption.value")],
       };
     }
     if (filter.productFacet) {
@@ -129,14 +124,12 @@ export function normalizeListingFilters(
       return facetFilter(filter.variantFacet);
     }
 
-    throw new ListingResolverInputError("Unsupported ListingProductFilter", [
-      "facets",
-    ]);
+    throw new ListingResolverInputError("Unsupported ListingProductFilter", ["facets"]);
   });
 }
 
 export function filterSelectionKey(
-  filter: StorefrontListingFilterInput | ListingProductFilter
+  filter: StorefrontListingFilterInput | ListingProductFilter,
 ): string {
   if ("kind" in filter) {
     switch (filter.kind) {
@@ -174,9 +167,7 @@ export function filterSelectionKey(
   return "";
 }
 
-export function hasSelectedPrice(
-  filters: readonly StorefrontListingFilterInput[]
-): boolean {
+export function hasSelectedPrice(filters: readonly StorefrontListingFilterInput[]): boolean {
   return filters.some((filter) => filter.kind === "price");
 }
 
@@ -217,7 +208,7 @@ export function throwGraphqlListingError(error: unknown): never {
 
 function normalizeListingScope(
   scope: ListingScopeInput | null,
-  query: string | null | undefined
+  query: string | null | undefined,
 ): StorefrontListingScope {
   const kind = scope?.kind ?? (query?.trim() ? "GLOBAL" : null);
   const categoryId = scope?.categoryId ?? null;
@@ -226,7 +217,7 @@ function normalizeListingScope(
   if (!kind) {
     throw new ListingResolverInputError(
       "Listing scope requires GLOBAL, CATEGORY, or a non-empty search query",
-      ["scope"]
+      ["scope"],
     );
   }
 
@@ -236,18 +227,17 @@ function normalizeListingScope(
       return { kind: "global" };
     case "CATEGORY":
       if (!categoryId) {
-        throw new ListingResolverInputError(
-          "CATEGORY listing scope requires categoryId",
-          ["scope", "categoryId"]
-        );
+        throw new ListingResolverInputError("CATEGORY listing scope requires categoryId", [
+          "scope",
+          "categoryId",
+        ]);
       }
       return {
         kind: "category",
-        categoryId: decodeListingGlobalId(
-          categoryId,
-          GlobalIdEntity.Category,
-          ["scope", "categoryId"]
-        ),
+        categoryId: decodeListingGlobalId(categoryId, GlobalIdEntity.Category, [
+          "scope",
+          "categoryId",
+        ]),
       };
     case "COLLECTION":
       throw new ListingResolverInputError(
@@ -258,7 +248,7 @@ function normalizeListingScope(
 }
 
 function normalizeListingSort(
-  orderBy: ListingOrderByInput | null
+  orderBy: ListingOrderByInput | null,
 ): StorefrontSortInput | undefined {
   if (!orderBy) return undefined;
 
@@ -284,10 +274,7 @@ function normalizeListingSort(
 
 function normalizePageSize(args: ListingQueryArgs): number {
   if (args.first != null && args.last != null) {
-    throw new ListingResolverInputError("Use either first or last, not both", [
-      "first",
-      "last",
-    ]);
+    throw new ListingResolverInputError("Use either first or last, not both", ["first", "last"]);
   }
   if (args.after != null && args.before != null) {
     throw new ListingResolverInputError("Use either after or before, not both", [
@@ -298,35 +285,28 @@ function normalizePageSize(args: ListingQueryArgs): number {
   if (args.last != null || args.before != null) {
     throw new ListingResolverInputError(
       "Backward listing pagination is not supported yet",
-      args.last != null ? ["last"] : ["before"]
+      args.last != null ? ["last"] : ["before"],
     );
   }
 
   const value = args.first ?? DEFAULT_LISTING_PAGE_SIZE;
   if (!Number.isSafeInteger(value) || value <= 0) {
-    throw new ListingResolverInputError(
-      "Listing page size must be a positive safe integer",
-      ["first"]
-    );
+    throw new ListingResolverInputError("Listing page size must be a positive safe integer", [
+      "first",
+    ]);
   }
   return Math.min(value, MAX_LISTING_PAGE_SIZE);
 }
 
-function assertNoScopeIds(
-  categoryId: string | null,
-  collectionId: string | null,
-): void {
+function assertNoScopeIds(categoryId: string | null, collectionId: string | null): void {
   if (categoryId || collectionId) {
-    throw new ListingResolverInputError(
-      "GLOBAL listing scope does not accept scope IDs",
-      ["scope"]
-    );
+    throw new ListingResolverInputError("GLOBAL listing scope does not accept scope IDs", [
+      "scope",
+    ]);
   }
 }
 
-function facetFilter(
-  input: ListingFacetValueFilter
-): StorefrontListingFilterInput {
+function facetFilter(input: ListingFacetValueFilter): StorefrontListingFilterInput {
   return {
     kind: "facet",
     facetSlug: requiredText(input.facet, "facet"),
@@ -334,40 +314,37 @@ function facetFilter(
   };
 }
 
-function assertPriceBounds(input: {
-  minPriceMinor?: number;
-  maxPriceMinor?: number;
-}): void {
+function assertPriceBounds(input: { minPriceMinor?: number; maxPriceMinor?: number }): void {
   if (input.minPriceMinor === undefined && input.maxPriceMinor === undefined) {
-    throw new ListingResolverInputError(
-      "Price filter requires at least one bound",
-      ["facets", "price"]
-    );
+    throw new ListingResolverInputError("Price filter requires at least one bound", [
+      "facets",
+      "price",
+    ]);
   }
   if (
     input.minPriceMinor !== undefined &&
     input.maxPriceMinor !== undefined &&
     input.minPriceMinor > input.maxPriceMinor
   ) {
-    throw new ListingResolverInputError(
-      "Price filter min bound must not exceed max bound",
-      ["facets", "price"]
-    );
+    throw new ListingResolverInputError("Price filter min bound must not exceed max bound", [
+      "facets",
+      "price",
+    ]);
   }
 }
 
 function optionalMinorUnit(
   value: string | number | null | undefined,
-  label: string
+  label: string,
 ): number | undefined {
   if (value === null || value === undefined) return undefined;
 
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 0) {
-    throw new ListingResolverInputError(
-      "Price filter bounds must be non-negative safe integers",
-      ["facets", label]
-    );
+    throw new ListingResolverInputError("Price filter bounds must be non-negative safe integers", [
+      "facets",
+      label,
+    ]);
   }
   return parsed;
 }
@@ -375,10 +352,10 @@ function optionalMinorUnit(
 function requiredText(value: string, label: string): string {
   const trimmed = value.trim();
   if (!trimmed) {
-    throw new ListingResolverInputError(
-      `Listing filter ${label} must be a non-empty string`,
-      ["facets", label]
-    );
+    throw new ListingResolverInputError(`Listing filter ${label} must be a non-empty string`, [
+      "facets",
+      label,
+    ]);
   }
   return trimmed;
 }
@@ -390,7 +367,7 @@ function nonEmpty(value: string | null | undefined): value is string {
 function decodeListingGlobalId(
   value: string,
   expectedType: GlobalIdType,
-  field: readonly string[]
+  field: readonly string[],
 ): string {
   try {
     return decodeGlobalIdByType(value, expectedType);

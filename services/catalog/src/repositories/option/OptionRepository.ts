@@ -30,9 +30,7 @@ export class OptionRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(productOption)
-      .where(
-        and(eq(productOption.storeId, this.storeId), eq(productOption.id, id))
-      )
+      .where(and(eq(productOption.storeId, this.storeId), eq(productOption.id, id)))
       .limit(1);
 
     return result[0] ?? null;
@@ -46,8 +44,8 @@ export class OptionRepository extends BaseRepository {
         and(
           eq(productOption.storeId, this.storeId),
           eq(productOption.productId, productId),
-          eq(productOption.slug, slug)
-        )
+          eq(productOption.slug, slug),
+        ),
       )
       .limit(1);
 
@@ -58,18 +56,13 @@ export class OptionRepository extends BaseRepository {
     return this.connection
       .select()
       .from(productOption)
-      .where(
-        and(
-          eq(productOption.storeId, this.storeId),
-          eq(productOption.productId, productId)
-        )
-      )
+      .where(and(eq(productOption.storeId, this.storeId), eq(productOption.productId, productId)))
       .orderBy(asc(productOption.sortIndex), asc(productOption.id));
   }
 
   async create(
     productId: string,
-    data: { slug: string; categoryId: string; sortIndex?: number }
+    data: { slug: string; categoryId: string; sortIndex?: number },
   ): Promise<ProductOption> {
     const id = await this.generateUuidV7();
 
@@ -82,17 +75,14 @@ export class OptionRepository extends BaseRepository {
       sortIndex: data.sortIndex ?? 0,
     };
 
-    const result = await this.connection
-      .insert(productOption)
-      .values(newOption)
-      .returning();
+    const result = await this.connection.insert(productOption).values(newOption).returning();
 
     return result[0];
   }
 
   async update(
     id: string,
-    data: { slug?: string; categoryId?: string; sortIndex?: number }
+    data: { slug?: string; categoryId?: string; sortIndex?: number },
   ): Promise<ProductOption | null> {
     const updateData: Partial<NewProductOption> = {};
 
@@ -107,9 +97,7 @@ export class OptionRepository extends BaseRepository {
     const result = await this.connection
       .update(productOption)
       .set(updateData)
-      .where(
-        and(eq(productOption.storeId, this.storeId), eq(productOption.id, id))
-      )
+      .where(and(eq(productOption.storeId, this.storeId), eq(productOption.id, id)))
       .returning();
 
     return result[0] ?? null;
@@ -118,9 +106,7 @@ export class OptionRepository extends BaseRepository {
   async delete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(productOption)
-      .where(
-        and(eq(productOption.storeId, this.storeId), eq(productOption.id, id))
-      )
+      .where(and(eq(productOption.storeId, this.storeId), eq(productOption.id, id)))
       .returning({ id: productOption.id });
 
     return result.length > 0;
@@ -132,12 +118,7 @@ export class OptionRepository extends BaseRepository {
         maxIndex: sql<number>`COALESCE(MAX(${productOption.sortIndex}), -1)`,
       })
       .from(productOption)
-      .where(
-        and(
-          eq(productOption.storeId, this.storeId),
-          eq(productOption.productId, productId)
-        )
-      );
+      .where(and(eq(productOption.storeId, this.storeId), eq(productOption.productId, productId)));
 
     return result[0]?.maxIndex ?? -1;
   }
@@ -153,8 +134,8 @@ export class OptionRepository extends BaseRepository {
         and(
           eq(productOption.storeId, this.storeId),
           eq(productOption.productId, productId),
-          inArray(productOption.id, ids)
-        )
+          inArray(productOption.id, ids),
+        ),
       );
   }
 
@@ -163,10 +144,7 @@ export class OptionRepository extends BaseRepository {
       await this.connection
         .delete(productOption)
         .where(
-          and(
-            eq(productOption.storeId, this.storeId),
-            eq(productOption.productId, productId)
-          )
+          and(eq(productOption.storeId, this.storeId), eq(productOption.productId, productId)),
         );
     } else {
       await this.connection
@@ -175,8 +153,8 @@ export class OptionRepository extends BaseRepository {
           and(
             eq(productOption.storeId, this.storeId),
             eq(productOption.productId, productId),
-            notInArray(productOption.id, keepIds)
-          )
+            notInArray(productOption.id, keepIds),
+          ),
         );
     }
   }
@@ -193,8 +171,8 @@ export class OptionRepository extends BaseRepository {
       .where(
         and(
           eq(productOptionValue.storeId, this.storeId),
-          inArray(productOptionValue.optionId, optionIds)
-        )
+          inArray(productOptionValue.optionId, optionIds),
+        ),
       );
 
     const map = new Map<string, string[]>();
@@ -213,8 +191,8 @@ export class OptionRepository extends BaseRepository {
         .where(
           and(
             eq(productOptionValue.storeId, this.storeId),
-            eq(productOptionValue.optionId, optionId)
-          )
+            eq(productOptionValue.optionId, optionId),
+          ),
         );
     } else {
       await this.connection
@@ -223,8 +201,8 @@ export class OptionRepository extends BaseRepository {
           and(
             eq(productOptionValue.storeId, this.storeId),
             eq(productOptionValue.optionId, optionId),
-            notInArray(productOptionValue.id, keepIds)
-          )
+            notInArray(productOptionValue.id, keepIds),
+          ),
         );
     }
   }
@@ -235,12 +213,7 @@ export class OptionRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(productOptionValue)
-      .where(
-        and(
-          eq(productOptionValue.storeId, this.storeId),
-          eq(productOptionValue.id, id)
-        )
-      )
+      .where(and(eq(productOptionValue.storeId, this.storeId), eq(productOptionValue.id, id)))
       .limit(1);
 
     return result[0] ?? null;
@@ -253,15 +226,13 @@ export class OptionRepository extends BaseRepository {
       .where(
         and(
           eq(productOptionValue.storeId, this.storeId),
-          eq(productOptionValue.optionId, optionId)
-        )
+          eq(productOptionValue.optionId, optionId),
+        ),
       )
       .orderBy(asc(productOptionValue.sortIndex), asc(productOptionValue.id));
   }
 
-  async findValuesByOptionIds(
-    optionIds: string[]
-  ): Promise<Map<string, ProductOptionValue[]>> {
+  async findValuesByOptionIds(optionIds: string[]): Promise<Map<string, ProductOptionValue[]>> {
     if (optionIds.length === 0) return new Map();
 
     const results = await this.connection
@@ -270,13 +241,13 @@ export class OptionRepository extends BaseRepository {
       .where(
         and(
           eq(productOptionValue.storeId, this.storeId),
-          inArray(productOptionValue.optionId, optionIds)
-        )
+          inArray(productOptionValue.optionId, optionIds),
+        ),
       )
       .orderBy(
         asc(productOptionValue.optionId),
         asc(productOptionValue.sortIndex),
-        asc(productOptionValue.id)
+        asc(productOptionValue.id),
       );
 
     const map = new Map<string, ProductOptionValue[]>();
@@ -290,7 +261,7 @@ export class OptionRepository extends BaseRepository {
 
   async createValue(
     optionId: string,
-    data: { slug: string; sortIndex: number; swatchId?: string | null }
+    data: { slug: string; sortIndex: number; swatchId?: string | null },
   ): Promise<ProductOptionValue> {
     const id = await this.generateUuidV7();
 
@@ -303,17 +274,14 @@ export class OptionRepository extends BaseRepository {
       swatchId: data.swatchId ?? null,
     };
 
-    const result = await this.connection
-      .insert(productOptionValue)
-      .values(newValue)
-      .returning();
+    const result = await this.connection.insert(productOptionValue).values(newValue).returning();
 
     return result[0];
   }
 
   async updateValue(
     id: string,
-    data: { slug?: string; sortIndex?: number; swatchId?: string | null }
+    data: { slug?: string; sortIndex?: number; swatchId?: string | null },
   ): Promise<ProductOptionValue | null> {
     const updateData: Partial<NewProductOptionValue> = {};
 
@@ -328,12 +296,7 @@ export class OptionRepository extends BaseRepository {
     const result = await this.connection
       .update(productOptionValue)
       .set(updateData)
-      .where(
-        and(
-          eq(productOptionValue.storeId, this.storeId),
-          eq(productOptionValue.id, id)
-        )
-      )
+      .where(and(eq(productOptionValue.storeId, this.storeId), eq(productOptionValue.id, id)))
       .returning();
 
     return result[0] ?? null;
@@ -342,12 +305,7 @@ export class OptionRepository extends BaseRepository {
   async deleteValue(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(productOptionValue)
-      .where(
-        and(
-          eq(productOptionValue.storeId, this.storeId),
-          eq(productOptionValue.id, id)
-        )
-      )
+      .where(and(eq(productOptionValue.storeId, this.storeId), eq(productOptionValue.id, id)))
       .returning({ id: productOptionValue.id });
 
     return result.length > 0;
@@ -374,21 +332,14 @@ export class OptionRepository extends BaseRepository {
       metadata: data.metadata ?? null,
     };
 
-    const result = await this.connection
-      .insert(productOptionSwatch)
-      .values(newSwatch)
-      .returning();
+    const result = await this.connection.insert(productOptionSwatch).values(newSwatch).returning();
 
     return result[0];
   }
 
   // ============ Variant Links ============
 
-  async linkVariant(
-    variantId: string,
-    optionId: string,
-    optionValueId: string
-  ): Promise<void> {
+  async linkVariant(variantId: string, optionId: string, optionValueId: string): Promise<void> {
     const newLink: NewProductOptionVariantLink = {
       storeId: this.storeId,
       variantId,
@@ -411,14 +362,12 @@ export class OptionRepository extends BaseRepository {
       .where(
         and(
           eq(productOptionVariantLink.storeId, this.storeId),
-          eq(productOptionVariantLink.variantId, variantId)
-        )
+          eq(productOptionVariantLink.variantId, variantId),
+        ),
       );
   }
 
-  async findVariantLinks(
-    variantIds: string[]
-  ): Promise<Map<string, ProductOptionVariantLink[]>> {
+  async findVariantLinks(variantIds: string[]): Promise<Map<string, ProductOptionVariantLink[]>> {
     if (variantIds.length === 0) return new Map();
 
     const results = await this.connection
@@ -427,8 +376,8 @@ export class OptionRepository extends BaseRepository {
       .where(
         and(
           eq(productOptionVariantLink.storeId, this.storeId),
-          inArray(productOptionVariantLink.variantId, variantIds)
-        )
+          inArray(productOptionVariantLink.variantId, variantIds),
+        ),
       );
 
     const map = new Map<string, ProductOptionVariantLink[]>();
@@ -443,7 +392,7 @@ export class OptionRepository extends BaseRepository {
   // ============ Loader ============
 
   async getTranslationsByOptionIds(
-    optionIds: readonly string[]
+    optionIds: readonly string[],
   ): Promise<ProductOptionTranslation[]> {
     return this.connection
       .select()
@@ -452,13 +401,13 @@ export class OptionRepository extends BaseRepository {
         and(
           eq(productOptionTranslation.storeId, this.storeId),
           inArray(productOptionTranslation.optionId, [...optionIds]),
-          eq(productOptionTranslation.locale, this.locale)
-        )
+          eq(productOptionTranslation.locale, this.locale),
+        ),
       );
   }
 
   async getValueIdsByOptionIds(
-    optionIds: readonly string[]
+    optionIds: readonly string[],
   ): Promise<Array<{ id: string; optionId: string; sortIndex: number }>> {
     return this.connection
       .select({
@@ -470,13 +419,13 @@ export class OptionRepository extends BaseRepository {
       .where(
         and(
           eq(productOptionValue.storeId, this.storeId),
-          inArray(productOptionValue.optionId, [...optionIds])
-        )
+          inArray(productOptionValue.optionId, [...optionIds]),
+        ),
       )
       .orderBy(
         asc(productOptionValue.optionId),
         asc(productOptionValue.sortIndex),
-        asc(productOptionValue.id)
+        asc(productOptionValue.id),
       );
   }
 
@@ -487,8 +436,8 @@ export class OptionRepository extends BaseRepository {
       .where(
         and(
           eq(productOptionValue.storeId, this.storeId),
-          inArray(productOptionValue.id, [...valueIds])
-        )
+          inArray(productOptionValue.id, [...valueIds]),
+        ),
       );
   }
 
@@ -500,13 +449,13 @@ export class OptionRepository extends BaseRepository {
       .where(
         and(
           eq(productOptionSwatch.storeId, this.storeId),
-          inArray(productOptionSwatch.id, [...swatchIds])
-        )
+          inArray(productOptionSwatch.id, [...swatchIds]),
+        ),
       );
   }
 
   async getValueTranslationsByValueIds(
-    optionValueIds: readonly string[]
+    optionValueIds: readonly string[],
   ): Promise<ProductOptionValueTranslation[]> {
     return this.connection
       .select()
@@ -515,8 +464,8 @@ export class OptionRepository extends BaseRepository {
         and(
           eq(productOptionValueTranslation.storeId, this.storeId),
           inArray(productOptionValueTranslation.optionValueId, [...optionValueIds]),
-          eq(productOptionValueTranslation.locale, this.locale)
-        )
+          eq(productOptionValueTranslation.locale, this.locale),
+        ),
       );
   }
 }

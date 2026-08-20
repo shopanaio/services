@@ -4,14 +4,8 @@ import type { Repository } from "../repositories/Repository.js";
 import type { ProductReviewSummaryAggregate } from "../repositories/summary/SummaryRepository.js";
 
 export class SummaryLoader {
-  public readonly productReviewSummary: DataLoader<
-    string,
-    ProductReviewSummaryAggregate | null
-  >;
-  public readonly productQuestionSummary: DataLoader<
-    string,
-    ProductQuestionSummary | null
-  >;
+  public readonly productReviewSummary: DataLoader<string, ProductReviewSummaryAggregate | null>;
+  public readonly productQuestionSummary: DataLoader<string, ProductQuestionSummary | null>;
 
   constructor(repository: Repository) {
     this.productReviewSummary = new DataLoader(async (productIds) => {
@@ -31,13 +25,8 @@ export class SummaryLoader {
     });
 
     this.productQuestionSummary = new DataLoader(async (productIds) => {
-      const rows = await repository.summary.getProductQuestionSummaries(
-        productIds
-      );
-      return productIds.map(
-        (productId) =>
-          rows.find((row) => row.productId === productId) ?? null
-      );
+      const rows = await repository.summary.getProductQuestionSummaries(productIds);
+      return productIds.map((productId) => rows.find((row) => row.productId === productId) ?? null);
     });
   }
 }

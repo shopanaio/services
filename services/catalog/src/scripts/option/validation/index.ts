@@ -7,13 +7,6 @@ export {
 
 export { validateSemantic } from "./semantic.js";
 
-export {
-  loadDbContext,
-  validateDatabase,
-  type DbValidationContext,
-} from "./database.js";
+export { loadDbContext, validateDatabase, type DbValidationContext } from "./database.js";
 
-export {
-  validateOptionSyncParams,
-  type OptionSyncValidationResult,
-} from "./validate.js";
+export { validateOptionSyncParams, type OptionSyncValidationResult } from "./validate.js";

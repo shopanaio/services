@@ -1,8 +1,4 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
@@ -21,10 +17,7 @@ import {
   type RatingCriterionTranslation,
   type StoreConfiguration,
 } from "../models/index.js";
-import type {
-  OptimisticMutationResult,
-  RepositoryConnectionResult,
-} from "../types.js";
+import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const ratingCriterionRelayQuery = createRelayQuery(
   createQuery(ratingCriterion)
@@ -32,12 +25,10 @@ export const ratingCriterionRelayQuery = createRelayQuery(
     .mapWhereFields({ id: decodeRatingCriterionGlobalId })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "reviewRatingCriterion", tieBreaker: "id" }
+  { name: "reviewRatingCriterion", tieBreaker: "id" },
 );
 
-export type RatingCriterionRelayInput = InferRelayInput<
-  typeof ratingCriterionRelayQuery
->;
+export type RatingCriterionRelayInput = InferRelayInput<typeof ratingCriterionRelayQuery>;
 
 export interface RatingCriterionAggregate {
   criterion: RatingCriterion;
@@ -96,7 +87,7 @@ export class ConfigurationRepository extends BaseRepository {
 
   @Transactional()
   async createStoreConfiguration(
-    values: StoreConfigurationPatch = {}
+    values: StoreConfigurationPatch = {},
   ): Promise<StoreConfiguration> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -118,7 +109,7 @@ export class ConfigurationRepository extends BaseRepository {
   async updateStoreConfiguration(
     id: string,
     expectedRevision: number,
-    patch: StoreConfigurationPatch
+    patch: StoreConfigurationPatch,
   ): Promise<OptimisticMutationResult<StoreConfiguration>> {
     const rows = await this.connection
       .update(storeConfiguration)
@@ -131,16 +122,14 @@ export class ConfigurationRepository extends BaseRepository {
         and(
           eq(storeConfiguration.storeId, this.storeId),
           eq(storeConfiguration.id, id),
-          eq(storeConfiguration.revision, expectedRevision)
-        )
+          eq(storeConfiguration.revision, expectedRevision),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
 
     const current = await this.findStoreConfigurationById(id);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
   @ReadOnly()
@@ -152,8 +141,8 @@ export class ConfigurationRepository extends BaseRepository {
         and(
           eq(ratingCriterion.storeId, this.storeId),
           eq(ratingCriterion.id, id),
-          isNull(ratingCriterion.deletedAt)
-        )
+          isNull(ratingCriterion.deletedAt),
+        ),
       )
       .limit(1);
     const criterion = rows[0];
@@ -175,14 +164,14 @@ export class ConfigurationRepository extends BaseRepository {
       .where(
         and(
           eq(ratingCriterion.storeId, this.storeId),
-          inArray(ratingCriterion.id, [...new Set(ids)])
-        )
+          inArray(ratingCriterion.id, [...new Set(ids)]),
+        ),
       );
   }
 
   @ReadOnly()
   async getCriterionTranslationsByCriterionIds(
-    criterionIds: readonly string[]
+    criterionIds: readonly string[],
   ): Promise<RatingCriterionTranslation[]> {
     if (criterionIds.length === 0) return [];
     return this.connection
@@ -191,21 +180,15 @@ export class ConfigurationRepository extends BaseRepository {
       .where(
         and(
           eq(ratingCriterionTranslation.storeId, this.storeId),
-          inArray(
-            ratingCriterionTranslation.criterionId,
-            [...new Set(criterionIds)]
-          )
-        )
+          inArray(ratingCriterionTranslation.criterionId, [...new Set(criterionIds)]),
+        ),
       )
-      .orderBy(
-        asc(ratingCriterionTranslation.criterionId),
-        asc(ratingCriterionTranslation.locale)
-      );
+      .orderBy(asc(ratingCriterionTranslation.criterionId), asc(ratingCriterionTranslation.locale));
   }
 
   @ReadOnly()
   async getCriterionAssignmentsByCriterionIds(
-    criterionIds: readonly string[]
+    criterionIds: readonly string[],
   ): Promise<RatingCriterionAssignment[]> {
     if (criterionIds.length === 0) return [];
     return this.connection
@@ -214,22 +197,17 @@ export class ConfigurationRepository extends BaseRepository {
       .where(
         and(
           eq(ratingCriterionAssignment.storeId, this.storeId),
-          inArray(
-            ratingCriterionAssignment.criterionId,
-            [...new Set(criterionIds)]
-          )
-        )
+          inArray(ratingCriterionAssignment.criterionId, [...new Set(criterionIds)]),
+        ),
       )
       .orderBy(
         asc(ratingCriterionAssignment.criterionId),
-        asc(ratingCriterionAssignment.createdAt)
+        asc(ratingCriterionAssignment.createdAt),
       );
   }
 
   @ReadOnly()
-  async getCriterionAssignmentsByIds(
-    ids: readonly string[]
-  ): Promise<RatingCriterionAssignment[]> {
+  async getCriterionAssignmentsByIds(ids: readonly string[]): Promise<RatingCriterionAssignment[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -237,23 +215,21 @@ export class ConfigurationRepository extends BaseRepository {
       .where(
         and(
           eq(ratingCriterionAssignment.storeId, this.storeId),
-          inArray(ratingCriterionAssignment.id, [...new Set(ids)])
-        )
+          inArray(ratingCriterionAssignment.id, [...new Set(ids)]),
+        ),
       );
   }
 
   @ReadOnly()
-  async findCriterionAssignmentById(
-    id: string
-  ): Promise<RatingCriterionAssignment | null> {
+  async findCriterionAssignmentById(id: string): Promise<RatingCriterionAssignment | null> {
     const rows = await this.connection
       .select()
       .from(ratingCriterionAssignment)
       .where(
         and(
           eq(ratingCriterionAssignment.storeId, this.storeId),
-          eq(ratingCriterionAssignment.id, id)
-        )
+          eq(ratingCriterionAssignment.id, id),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -261,7 +237,7 @@ export class ConfigurationRepository extends BaseRepository {
 
   @ReadOnly()
   async getCriterionConnection(
-    args: RatingCriterionRelayInput
+    args: RatingCriterionRelayInput,
   ): Promise<RepositoryConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: RatingCriterionRelayInput["where"] = {
@@ -296,8 +272,14 @@ export class ConfigurationRepository extends BaseRepository {
   @Transactional()
   async createCriterion(input: {
     criterion: Omit<NewRatingCriterion, "id" | "storeId" | "createdAt" | "updatedAt" | "deletedAt">;
-    translations?: readonly Omit<NewRatingCriterionTranslation, "storeId" | "criterionId" | "createdAt" | "updatedAt">[];
-    assignments?: readonly Omit<NewRatingCriterionAssignment, "id" | "storeId" | "criterionId" | "createdAt">[];
+    translations?: readonly Omit<
+      NewRatingCriterionTranslation,
+      "storeId" | "criterionId" | "createdAt" | "updatedAt"
+    >[];
+    assignments?: readonly Omit<
+      NewRatingCriterionAssignment,
+      "id" | "storeId" | "criterionId" | "createdAt"
+    >[];
   }): Promise<RatingCriterionAggregate> {
     const id = await this.generateUuidV7();
     const now = new Date().toISOString();
@@ -315,14 +297,8 @@ export class ConfigurationRepository extends BaseRepository {
     const criterion = rows[0];
     if (!criterion) throw new Error("Failed to create rating criterion");
 
-    const translations = await this.replaceCriterionTranslations(
-      id,
-      input.translations ?? []
-    );
-    const assignments = await this.replaceCriterionAssignments(
-      id,
-      input.assignments ?? []
-    );
+    const translations = await this.replaceCriterionTranslations(id, input.translations ?? []);
+    const assignments = await this.replaceCriterionAssignments(id, input.assignments ?? []);
     return { criterion, translations, assignments };
   }
 
@@ -330,7 +306,7 @@ export class ConfigurationRepository extends BaseRepository {
   async updateCriterion(
     id: string,
     expectedUpdatedAt: string,
-    patch: RatingCriterionPatch
+    patch: RatingCriterionPatch,
   ): Promise<OptimisticMutationResult<RatingCriterion>> {
     const rows = await this.connection
       .update(ratingCriterion)
@@ -340,21 +316,19 @@ export class ConfigurationRepository extends BaseRepository {
           eq(ratingCriterion.storeId, this.storeId),
           eq(ratingCriterion.id, id),
           eq(ratingCriterion.updatedAt, expectedUpdatedAt),
-          isNull(ratingCriterion.deletedAt)
-        )
+          isNull(ratingCriterion.deletedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findCriterionRowById(id);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
   @Transactional()
   async updateCriterionWithinVersion(
     id: string,
-    patch: RatingCriterionPatch
+    patch: RatingCriterionPatch,
   ): Promise<RatingCriterion | null> {
     const rows = await this.connection
       .update(ratingCriterion)
@@ -363,8 +337,8 @@ export class ConfigurationRepository extends BaseRepository {
         and(
           eq(ratingCriterion.storeId, this.storeId),
           eq(ratingCriterion.id, id),
-          isNull(ratingCriterion.deletedAt)
-        )
+          isNull(ratingCriterion.deletedAt),
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -376,15 +350,15 @@ export class ConfigurationRepository extends BaseRepository {
     items: readonly Omit<
       NewRatingCriterionTranslation,
       "storeId" | "criterionId" | "createdAt" | "updatedAt"
-    >[]
+    >[],
   ): Promise<RatingCriterionTranslation[]> {
     await this.connection
       .delete(ratingCriterionTranslation)
       .where(
         and(
           eq(ratingCriterionTranslation.storeId, this.storeId),
-          eq(ratingCriterionTranslation.criterionId, criterionId)
-        )
+          eq(ratingCriterionTranslation.criterionId, criterionId),
+        ),
       );
     if (items.length === 0) return [];
     const now = new Date().toISOString();
@@ -397,7 +371,7 @@ export class ConfigurationRepository extends BaseRepository {
           criterionId,
           createdAt: now,
           updatedAt: now,
-        }))
+        })),
       )
       .returning();
   }
@@ -408,15 +382,15 @@ export class ConfigurationRepository extends BaseRepository {
     items: readonly Omit<
       NewRatingCriterionAssignment,
       "id" | "storeId" | "criterionId" | "createdAt"
-    >[]
+    >[],
   ): Promise<RatingCriterionAssignment[]> {
     await this.connection
       .delete(ratingCriterionAssignment)
       .where(
         and(
           eq(ratingCriterionAssignment.storeId, this.storeId),
-          eq(ratingCriterionAssignment.criterionId, criterionId)
-        )
+          eq(ratingCriterionAssignment.criterionId, criterionId),
+        ),
       );
     if (items.length === 0) return [];
     const ids = await this.generateUuidV7s(items.length);
@@ -430,7 +404,7 @@ export class ConfigurationRepository extends BaseRepository {
           storeId: this.storeId,
           criterionId,
           createdAt: now,
-        }))
+        })),
       )
       .returning();
   }
@@ -445,13 +419,10 @@ export class ConfigurationRepository extends BaseRepository {
       eq(ratingCriterion.storeId, this.storeId),
       eq(ratingCriterion.id, input.id),
       eq(ratingCriterion.updatedAt, input.expectedUpdatedAt),
-      isNull(ratingCriterion.deletedAt)
+      isNull(ratingCriterion.deletedAt),
     );
     const rows = input.permanent
-      ? await this.connection
-          .delete(ratingCriterion)
-          .where(conditions)
-          .returning()
+      ? await this.connection.delete(ratingCriterion).where(conditions).returning()
       : await this.connection
           .update(ratingCriterion)
           .set({
@@ -462,30 +433,21 @@ export class ConfigurationRepository extends BaseRepository {
           .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findCriterionRowById(input.id, true);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
-  private async findStoreConfigurationById(
-    id: string
-  ): Promise<StoreConfiguration | null> {
+  private async findStoreConfigurationById(id: string): Promise<StoreConfiguration | null> {
     const rows = await this.connection
       .select()
       .from(storeConfiguration)
-      .where(
-        and(
-          eq(storeConfiguration.storeId, this.storeId),
-          eq(storeConfiguration.id, id)
-        )
-      )
+      .where(and(eq(storeConfiguration.storeId, this.storeId), eq(storeConfiguration.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
 
   private async findCriterionRowById(
     id: string,
-    includeDeleted = false
+    includeDeleted = false,
   ): Promise<RatingCriterion | null> {
     const rows = await this.connection
       .select()
@@ -494,39 +456,35 @@ export class ConfigurationRepository extends BaseRepository {
         and(
           eq(ratingCriterion.storeId, this.storeId),
           eq(ratingCriterion.id, id),
-          ...(includeDeleted ? [] : [isNull(ratingCriterion.deletedAt)])
-        )
+          ...(includeDeleted ? [] : [isNull(ratingCriterion.deletedAt)]),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
   }
 
-  private getCriterionTranslations(
-    criterionId: string
-  ): Promise<RatingCriterionTranslation[]> {
+  private getCriterionTranslations(criterionId: string): Promise<RatingCriterionTranslation[]> {
     return this.connection
       .select()
       .from(ratingCriterionTranslation)
       .where(
         and(
           eq(ratingCriterionTranslation.storeId, this.storeId),
-          eq(ratingCriterionTranslation.criterionId, criterionId)
-        )
+          eq(ratingCriterionTranslation.criterionId, criterionId),
+        ),
       )
       .orderBy(asc(ratingCriterionTranslation.locale));
   }
 
-  private getCriterionAssignments(
-    criterionId: string
-  ): Promise<RatingCriterionAssignment[]> {
+  private getCriterionAssignments(criterionId: string): Promise<RatingCriterionAssignment[]> {
     return this.connection
       .select()
       .from(ratingCriterionAssignment)
       .where(
         and(
           eq(ratingCriterionAssignment.storeId, this.storeId),
-          eq(ratingCriterionAssignment.criterionId, criterionId)
-        )
+          eq(ratingCriterionAssignment.criterionId, criterionId),
+        ),
       )
       .orderBy(asc(ratingCriterionAssignment.createdAt));
   }

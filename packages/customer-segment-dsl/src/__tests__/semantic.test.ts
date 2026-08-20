@@ -10,7 +10,10 @@ import {
 } from "../index.js";
 
 const descriptor = (
-  input: Pick<SegmentAttributeDescriptor, "name" | "type" | "operators" | "dependencies" | "temporalContract"> &
+  input: Pick<
+    SegmentAttributeDescriptor,
+    "name" | "type" | "operators" | "dependencies" | "temporalContract"
+  > &
     Partial<SegmentAttributeDescriptor>,
 ): SegmentAttributeDescriptor => ({
   presentationKey: input.name,
@@ -92,23 +95,22 @@ describe("Customer Segment DSL semantic analyzer", () => {
         temporal: false,
       },
     });
-    expect(() => validatePersistedSegmentDefinition(result.definition, registry, storeContext)).not.toThrow();
+    expect(() =>
+      validatePersistedSegmentDefinition(result.definition, registry, storeContext),
+    ).not.toThrow();
   });
 
   it("validates calendar ranges and marks relative dates temporal", async () => {
-    const invalid = await validateSegmentQuery(
-      "last_order_date = 2026-02-30",
-      registry,
-      { storeContext },
-    );
+    const invalid = await validateSegmentQuery("last_order_date = 2026-02-30", registry, {
+      storeContext,
+    });
     expect(invalid.valid).toBe(false);
     expect(invalid.diagnostics[0]?.code).toBe("SEGMENT_INVALID_DATE");
 
-    const temporal = await validateSegmentQuery(
-      "last_order_date < -90d",
-      registry,
-      { storeContext, effectiveAt: "2026-08-16T10:00:00.000Z" },
-    );
+    const temporal = await validateSegmentQuery("last_order_date < -90d", registry, {
+      storeContext,
+      effectiveAt: "2026-08-16T10:00:00.000Z",
+    });
     expect(temporal.definition).toMatchObject({
       temporal: true,
       contextDependencies: ["timezone"],
@@ -116,18 +118,18 @@ describe("Customer Segment DSL semantic analyzer", () => {
   });
 
   it("fails closed for unavailable descriptors and inexact money", async () => {
-    const unavailable = await validateSegmentQuery("future_attribute = 'x'", registry, { storeContext });
+    const unavailable = await validateSegmentQuery("future_attribute = 'x'", registry, {
+      storeContext,
+    });
     expect(unavailable.diagnostics[0]?.code).toBe("SEGMENT_ATTRIBUTE_UNAVAILABLE");
     const money = await validateSegmentQuery("amount_spent = 1.001", registry, { storeContext });
     expect(money.diagnostics[0]?.code).toBe("SEGMENT_INVALID_MONEY");
   });
 
   it("resolves offset-less datetimes in the Store timezone at the semantic boundary", async () => {
-    const result = await validateSegmentQuery(
-      "future_datetime = 2026-08-16T14:30:00",
-      registry,
-      { storeContext },
-    );
+    const result = await validateSegmentQuery("future_datetime = 2026-08-16T14:30:00", registry, {
+      storeContext,
+    });
     expect(result).toMatchObject({
       valid: true,
       canonicalQuery: "future_datetime = 2026-08-16T11:30:00.000Z",
@@ -136,7 +138,9 @@ describe("Customer Segment DSL semantic analyzer", () => {
   });
 
   it("rejects persisted AST that bypasses registry or canonical normalization", async () => {
-    const result = await validateSegmentQuery("company_name = 'Straße'", registry, { storeContext });
+    const result = await validateSegmentQuery("company_name = 'Straße'", registry, {
+      storeContext,
+    });
     const definition = structuredClone(result.definition!);
     if (definition.root.kind !== "predicate" || !("value" in definition.root)) return;
     (definition.root as { value: { kind: "string"; value: string } }).value = {
@@ -150,8 +154,8 @@ describe("Customer Segment DSL semantic analyzer", () => {
     const unsupportedOperator = structuredClone(result.definition!);
     if (unsupportedOperator.root.kind !== "predicate") return;
     Object.assign(unsupportedOperator.root, { operator: "contains" });
-    expect(() => validatePersistedSegmentDefinition(unsupportedOperator, registry, storeContext)).toThrow(
-      /Persisted segment definition is corrupt/u,
-    );
+    expect(() =>
+      validatePersistedSegmentDefinition(unsupportedOperator, registry, storeContext),
+    ).toThrow(/Persisted segment definition is corrupt/u);
   });
 });

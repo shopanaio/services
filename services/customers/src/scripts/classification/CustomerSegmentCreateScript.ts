@@ -29,7 +29,7 @@ export class CustomerSegmentCreateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: CustomerSegmentCreateParams
+    params: CustomerSegmentCreateParams,
   ): Promise<CustomerSegmentCreateResult> {
     const errors = validateSegment(params);
     if (errors.length > 0) {
@@ -40,10 +40,7 @@ export class CustomerSegmentCreateScript extends BaseScript<
       let query: string | null = null;
       let definition: Record<string, unknown> = {};
       if (params.type === "DYNAMIC") {
-        const storeContext = await resolveSegmentStoreContext(
-          this.repository,
-          this.context.store,
-        );
+        const storeContext = await resolveSegmentStoreContext(this.repository, this.context.store);
         const validation = await validateCustomerSegmentQuery(
           this.repository,
           params.query!.trim(),
@@ -73,10 +70,7 @@ export class CustomerSegmentCreateScript extends BaseScript<
         query,
         definition,
       });
-      await this.repository.segmentMaterialization.schedule(
-        segment,
-        new Date().toISOString(),
-      );
+      await this.repository.segmentMaterialization.schedule(segment, new Date().toISOString());
       this.logger.info({ segmentId: segment.id }, "Customer segment created");
       return {
         segment: { id: segment.id, revision: segment.revision },
@@ -86,12 +80,14 @@ export class CustomerSegmentCreateScript extends BaseScript<
       if (error instanceof SegmentStoreContextNotReadyError) {
         return {
           segment: undefined,
-          userErrors: [{
-            message: error.message,
-            code: error.code,
-            field: ["query"],
-            diagnostic: null,
-          }],
+          userErrors: [
+            {
+              message: error.message,
+              code: error.code,
+              field: ["query"],
+              diagnostic: null,
+            },
+          ],
         };
       }
       if (isUniqueViolation(error, "customer_segment_store_name_unique")) {

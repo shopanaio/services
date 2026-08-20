@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Input } from 'antd';
-import { IRelationControlProps } from '../../core/types';
-import { relationControlRegistry } from './registry';
+import { Input } from "antd";
+import { IRelationControlProps } from "../../core/types";
+import { relationControlRegistry } from "./registry";
 
 /**
  * Dynamic relation control component
@@ -14,7 +14,7 @@ export const RelationControl = ({
   onChange,
   isMultiple,
   status,
-  variant = 'borderless',
+  variant = "borderless",
 }: IRelationControlProps) => {
   const Control = relationControlRegistry.get(entity);
 

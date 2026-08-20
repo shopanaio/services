@@ -36,7 +36,7 @@ export function EntityPickerRelationControl({
 
   const labels = useMemo(
     () => selectedIds.map((id) => labelsById[id] ?? id),
-    [labelsById, selectedIds]
+    [labelsById, selectedIds],
   );
   const label = formatLabel(labels);
 

@@ -1,10 +1,10 @@
 import { Injectable } from "@nestjs/common";
-import { OrderLoyaltyActions, type PaymentEvents, type PublishOrderLoyaltyRewardReversedResult } from "@shopana/broker-types";
-import type {
-  DomainEvent,
-  EventHandlerDelivery,
-  EventHandlerResponse,
-} from "@shopana/events";
+import {
+  OrderLoyaltyActions,
+  type PaymentEvents,
+  type PublishOrderLoyaltyRewardReversedResult,
+} from "@shopana/broker-types";
+import type { DomainEvent, EventHandlerDelivery, EventHandlerResponse } from "@shopana/events";
 import {
   EventHandler,
   EventHandlers,
@@ -50,19 +50,32 @@ export class OrderPaymentEventHandlers extends EventHandlers {
   }
 
   @EventHandler("payment.session.created", { retry: { maxAttempts: 20 } })
-  handleSessionCreated(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  handleSessionCreated(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
+    return this.project(input.event);
+  }
 
   @EventHandler("payment.requires_action", { retry: { maxAttempts: 20 } })
-  handleRequiresAction(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  handleRequiresAction(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
+    return this.project(input.event);
+  }
 
   @EventHandler("payment.requires_confirmation", { retry: { maxAttempts: 20 } })
-  handleRequiresConfirmation(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  handleRequiresConfirmation(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
+    return this.project(input.event);
+  }
 
   @EventHandler("payment.confirmation.completed", { retry: { maxAttempts: 20 } })
-  handleConfirmationCompleted(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  handleConfirmationCompleted(input: {
+    event: PaymentDomainEvent;
+    delivery: EventHandlerDelivery;
+  }) {
+    return this.project(input.event);
+  }
 
   @EventHandler("payment.pending", { retry: { maxAttempts: 20 } })
-  handlePending(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  handlePending(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
+    return this.project(input.event);
+  }
 
   @EventHandler("payment.cancelled", { retry: { maxAttempts: 20 } })
   async handleCancelled(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
@@ -70,13 +83,19 @@ export class OrderPaymentEventHandlers extends EventHandlers {
   }
 
   @EventHandler("payment.authorized", { retry: { maxAttempts: 20 } })
-  handleAuthorized(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  handleAuthorized(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
+    return this.project(input.event);
+  }
 
   @EventHandler("payment.captured", { retry: { maxAttempts: 20 } })
-  handleCaptured(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  handleCaptured(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
+    return this.project(input.event);
+  }
 
   @EventHandler("payment.failed", { retry: { maxAttempts: 20 } })
-  handleFailed(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  handleFailed(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
+    return this.project(input.event);
+  }
 
   @EventHandler("payment.voided", { retry: { maxAttempts: 20 } })
   async handleVoided(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
@@ -91,7 +110,9 @@ export class OrderPaymentEventHandlers extends EventHandlers {
     const projected = await this.project(input.event);
     if (!projected.success) return projected;
     try {
-      await this.publishLoyaltyRefund(input.event as DomainEvent<"payment.refunded", PaymentEvents.Refunded>);
+      await this.publishLoyaltyRefund(
+        input.event as DomainEvent<"payment.refunded", PaymentEvents.Refunded>,
+      );
       return projected;
     } catch (error) {
       return {
@@ -106,10 +127,14 @@ export class OrderPaymentEventHandlers extends EventHandlers {
   }
 
   @EventHandler("payment.expired", { retry: { maxAttempts: 20 } })
-  handleExpired(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  handleExpired(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
+    return this.project(input.event);
+  }
 
   @EventHandler("payment.dispute.changed", { retry: { maxAttempts: 20 } })
-  handleDisputeChanged(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  handleDisputeChanged(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
+    return this.project(input.event);
+  }
 
   private async project(event: PaymentDomainEvent): Promise<EventHandlerResponse> {
     try {
@@ -130,9 +155,10 @@ export class OrderPaymentEventHandlers extends EventHandlers {
         `);
         if (inserted.length === 0) return;
         await projectPaymentDetails(this.repository, event.eventType, payload);
-        const paymentStatus = event.eventType === "payment.collection.state_changed"
-          ? orderPaymentStatus((payload as PaymentEvents.CollectionStateChanged).state)
-          : terminalPaymentStatus(event.eventType, payload);
+        const paymentStatus =
+          event.eventType === "payment.collection.state_changed"
+            ? orderPaymentStatus((payload as PaymentEvents.CollectionStateChanged).state)
+            : terminalPaymentStatus(event.eventType, payload);
         if (paymentStatus) {
           await projectPaymentStatus(
             this.repository,
@@ -168,8 +194,16 @@ export class OrderPaymentEventHandlers extends EventHandlers {
     const denominator = BigInt(event.payload.sessionAmount.amountMinor);
     const refunded = BigInt(event.payload.amount.amountMinor);
     if (denominator <= 0n || refunded <= 0n) return;
-    const afterProduct = proportional(BigInt(reward.eligibleAmountAfterProductDiscountsMinor), refunded, denominator);
-    const afterAll = proportional(BigInt(reward.eligibleAmountAfterAllDiscountsMinor), refunded, denominator);
+    const afterProduct = proportional(
+      BigInt(reward.eligibleAmountAfterProductDiscountsMinor),
+      refunded,
+      denominator,
+    );
+    const afterAll = proportional(
+      BigInt(reward.eligibleAmountAfterAllDiscountsMinor),
+      refunded,
+      denominator,
+    );
     if (afterProduct === 0n && afterAll === 0n) return;
     const allAllocations = allocateProportionally(
       reward.lines.map((line) => BigInt(line.eligibleAmountAfterAllDiscountsMinor)),
@@ -180,12 +214,18 @@ export class OrderPaymentEventHandlers extends EventHandlers {
       afterProduct,
       allAllocations,
     );
-    const lines = reward.lines.map((line, index) => ({
-      orderLineId: line.orderLineId,
-      quantity: line.quantity,
-      eligibleAmountAfterProductDiscountsMinor: productAllocations[index]!.toString(),
-      eligibleAmountAfterAllDiscountsMinor: allAllocations[index]!.toString(),
-    })).filter((line) => line.eligibleAmountAfterProductDiscountsMinor !== "0" || line.eligibleAmountAfterAllDiscountsMinor !== "0");
+    const lines = reward.lines
+      .map((line, index) => ({
+        orderLineId: line.orderLineId,
+        quantity: line.quantity,
+        eligibleAmountAfterProductDiscountsMinor: productAllocations[index]!.toString(),
+        eligibleAmountAfterAllDiscountsMinor: allAllocations[index]!.toString(),
+      }))
+      .filter(
+        (line) =>
+          line.eligibleAmountAfterProductDiscountsMinor !== "0" ||
+          line.eligibleAmountAfterAllDiscountsMinor !== "0",
+      );
     if (lines.length === 0) return;
     await this.broker.call<PublishOrderLoyaltyRewardReversedResult>(
       OrderLoyaltyActions.publishReversed,
@@ -360,7 +400,13 @@ async function projectPaymentDetails(
       providerReference: authorized.providerReference,
       processedAt: authorized.occurredAt,
     });
-    await insertTransaction(repository, authorized, "AUTHORIZATION", authorized.amount, authorized.networkTransactionId);
+    await insertTransaction(
+      repository,
+      authorized,
+      "AUTHORIZATION",
+      authorized.amount,
+      authorized.networkTransactionId,
+    );
     return;
   }
   if (eventType === "payment.captured") {
@@ -458,7 +504,10 @@ async function projectPaymentDetails(
 
 async function updateAttempt(
   repository: Repository,
-  event: Exclude<PaymentEventPayload, PaymentEvents.CollectionStateChanged | PaymentEvents.DisputeChanged>,
+  event: Exclude<
+    PaymentEventPayload,
+    PaymentEvents.CollectionStateChanged | PaymentEvents.DisputeChanged
+  >,
   status: "PENDING" | "AUTHORIZED" | "PAID" | "CANCELLED" | "EXPIRED",
   values: Readonly<{
     providerReference?: string;
@@ -487,12 +536,10 @@ async function insertTransaction(
   providerTransactionId: string | null,
 ): Promise<void> {
   if (BigInt(amount.amountMinor) <= 0n) return;
-  const parentTransactionId = kind === "CAPTURE"
-    ? await requireAuthorizationTransaction(
-        repository,
-        event as PaymentEvents.Captured,
-      )
-    : null;
+  const parentTransactionId =
+    kind === "CAPTURE"
+      ? await requireAuthorizationTransaction(repository, event as PaymentEvents.Captured)
+      : null;
   await insertTransactionRow(repository, {
     id: event.operationId,
     event,
@@ -518,8 +565,8 @@ async function insertVoidTransaction(
        AND "kind" = 'VOID'
        AND "status" = 'SUCCESS'
   `);
-  const amountMinor = BigInt(event.voidedTotal.amountMinor)
-    - BigInt(existingRows[0]?.amountMinor ?? "0");
+  const amountMinor =
+    BigInt(event.voidedTotal.amountMinor) - BigInt(existingRows[0]?.amountMinor ?? "0");
   if (amountMinor <= 0n) return;
   await insertTransactionRow(repository, {
     id: event.operationId,
@@ -606,7 +653,11 @@ async function insertTransactionRow(
   repository: Repository,
   input: Readonly<{
     id: string | null;
-    event: PaymentEvents.Authorized | PaymentEvents.Captured | PaymentEvents.Voided | PaymentEvents.Refunded;
+    event:
+      | PaymentEvents.Authorized
+      | PaymentEvents.Captured
+      | PaymentEvents.Voided
+      | PaymentEvents.Refunded;
     kind: "AUTHORIZATION" | "CAPTURE" | "SALE" | "REFUND" | "VOID";
     amountMinor: string;
     currencyCode: string;
@@ -747,15 +798,23 @@ async function projectPaymentStatus(
 
 function orderPaymentStatus(state: PaymentEvents.CollectionStateChanged["state"]): string | null {
   switch (state) {
-    case "OPEN": return null;
-    case "PENDING": return "PENDING";
+    case "OPEN":
+      return null;
+    case "PENDING":
+      return "PENDING";
     case "PARTIALLY_AUTHORIZED":
-    case "AUTHORIZED": return "AUTHORIZED";
-    case "PARTIALLY_PAID": return "PARTIALLY_PAID";
-    case "PAID": return "PAID";
-    case "PARTIALLY_REFUNDED": return "PARTIALLY_REFUNDED";
-    case "REFUNDED": return "REFUNDED";
-    case "CANCELLED": return "FAILED";
+    case "AUTHORIZED":
+      return "AUTHORIZED";
+    case "PARTIALLY_PAID":
+      return "PARTIALLY_PAID";
+    case "PAID":
+      return "PAID";
+    case "PARTIALLY_REFUNDED":
+      return "PARTIALLY_REFUNDED";
+    case "REFUNDED":
+      return "REFUNDED";
+    case "CANCELLED":
+      return "FAILED";
   }
 }
 

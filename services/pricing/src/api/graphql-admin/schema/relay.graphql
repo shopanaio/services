@@ -1,9 +1,13 @@
-"""The Node interface is implemented by globally identifiable entities."""
+"""
+The Node interface is implemented by globally identifiable entities.
+"""
 interface Node {
   id: ID!
 }
 
-"""Relay pagination metadata."""
+"""
+Relay pagination metadata.
+"""
 type PageInfo @shareable {
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
@@ -11,7 +15,9 @@ type PageInfo @shareable {
   endCursor: String
 }
 
-"""A user-facing mutation error."""
+"""
+A user-facing mutation error.
+"""
 interface UserError {
   message: String!
   field: [String!]

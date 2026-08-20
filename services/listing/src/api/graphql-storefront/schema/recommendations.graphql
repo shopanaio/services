@@ -8,24 +8,36 @@ from two different recommendation builds. Products that are no longer
 storefront-eligible are omitted at read time without changing the snapshot.
 """
 type ProductRecommendationConnection implements Connection {
-  """Recommendation edges in their published display order."""
+  """
+  Recommendation edges in their published display order.
+  """
   edges: [ProductRecommendationEdge!]!
 
-  """Recommendations contained in the returned edges."""
+  """
+  Recommendations contained in the returned edges.
+  """
   nodes: [ProductRecommendation!]!
 
-  """Information to aid in forward pagination."""
+  """
+  Information to aid in forward pagination.
+  """
   pageInfo: PageInfo!
 
-  """Number of currently storefront-eligible items in the resolved snapshot."""
+  """
+  Number of currently storefront-eligible items in the resolved snapshot.
+  """
   totalCount: Int!
 }
 
 type ProductRecommendationEdge {
-  """Opaque cursor tied to the snapshot generation and published rank."""
+  """
+  Opaque cursor tied to the snapshot generation and published rank.
+  """
   cursor: Cursor!
 
-  """The recommendation at the end of the edge."""
+  """
+  The recommendation at the end of the edge.
+  """
   node: ProductRecommendation!
 }
 
@@ -35,26 +47,40 @@ presentation and analytics. Internal scores and ranking features are not part
 of the storefront contract.
 """
 type ProductRecommendation {
-  """Current federated Product presentation resolved by Catalog."""
+  """
+  Current federated Product presentation resolved by Catalog.
+  """
   product: Product!
 
-  """Primary source that contributed this recommendation."""
+  """
+  Primary source that contributed this recommendation.
+  """
   source: ProductRecommendationSource!
 }
 
 enum ProductRecommendationSource {
-  """Explicit merchant recommendation."""
+  """
+  Explicit merchant recommendation.
+  """
   MANUAL
 
-  """Association calculated from confirmed sales."""
+  """
+  Association calculated from confirmed sales.
+  """
   FREQUENTLY_BOUGHT_TOGETHER
 
-  """Similarity calculated from product content or taxonomy."""
+  """
+  Similarity calculated from product content or taxonomy.
+  """
   CONTENT_SIMILARITY
 
-  """Store or category popularity signal."""
+  """
+  Store or category popularity signal.
+  """
   POPULARITY
 
-  """Configured cold-start fallback source."""
+  """
+  Configured cold-start fallback source.
+  """
   FALLBACK
 }

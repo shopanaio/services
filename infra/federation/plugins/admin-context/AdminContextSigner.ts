@@ -1,8 +1,4 @@
-import {
-  createPrivateKey,
-  sign,
-  type KeyObject,
-} from "node:crypto";
+import { createPrivateKey, sign, type KeyObject } from "node:crypto";
 import {
   ADMIN_CONTEXT_AUDIENCE,
   ADMIN_CONTEXT_ISSUER,
@@ -21,21 +17,14 @@ export class AdminContextSigner {
       throw new Error("Admin context signing configuration is required");
     }
     this.key = createPrivateKey(
-      privateKey.includes("BEGIN PRIVATE KEY")
-        ? privateKey
-        : Buffer.from(privateKey, "base64"),
+      privateKey.includes("BEGIN PRIVATE KEY") ? privateKey : Buffer.from(privateKey, "base64"),
     );
     if (this.key.asymmetricKeyType !== "ed25519") {
-      throw new Error(
-        "ADMIN_CONTEXT_PRIVATE_KEY must be an Ed25519 private key",
-      );
+      throw new Error("ADMIN_CONTEXT_PRIVATE_KEY must be an Ed25519 private key");
     }
   }
 
-  sign(
-    context: ResolvedAdminAccessContext,
-    requestId: string,
-  ): string {
+  sign(context: ResolvedAdminAccessContext, requestId: string): string {
     const now = Math.floor(Date.now() / 1_000);
     const header = encode({
       alg: "EdDSA",

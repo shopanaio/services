@@ -35,7 +35,7 @@ import {
 export class TranslationRepository {
   constructor(
     private readonly db: Database,
-    private readonly txManager: TransactionManager<Database>
+    private readonly txManager: TransactionManager<Database>,
   ) {}
 
   /**
@@ -56,25 +56,20 @@ export class TranslationRepository {
 
   async getProductTranslation(
     productId: string,
-    locale: string
+    locale: string,
   ): Promise<ProductTranslation | undefined> {
     const result = await this.connection
       .select()
       .from(productTranslation)
       .where(
-        and(
-          eq(productTranslation.productId, productId),
-          eq(productTranslation.locale, locale)
-        )
+        and(eq(productTranslation.productId, productId), eq(productTranslation.locale, locale)),
       )
       .limit(1);
 
     return result[0];
   }
 
-  async upsertProductTranslation(
-    data: NewProductTranslation
-  ): Promise<ProductTranslation> {
+  async upsertProductTranslation(data: NewProductTranslation): Promise<ProductTranslation> {
     const result = await this.connection
       .insert(productTranslation)
       .values(data)
@@ -96,7 +91,7 @@ export class TranslationRepository {
   }
 
   async upsertProductTranslationsBatch(
-    translations: NewProductTranslation[]
+    translations: NewProductTranslation[],
   ): Promise<ProductTranslation[]> {
     if (translations.length === 0) return [];
 
@@ -122,9 +117,7 @@ export class TranslationRepository {
   // Variant Translations
   // ─────────────────────────────────────────────────────────────────────────
 
-  async upsertVariantTranslation(
-    data: NewVariantTranslation
-  ): Promise<VariantTranslation> {
+  async upsertVariantTranslation(data: NewVariantTranslation): Promise<VariantTranslation> {
     const result = await this.connection
       .insert(variantTranslation)
       .values(data)
@@ -142,7 +135,7 @@ export class TranslationRepository {
   // ─────────────────────────────────────────────────────────────────────────
 
   async upsertOptionTranslation(
-    data: NewProductOptionTranslation
+    data: NewProductOptionTranslation,
   ): Promise<ProductOptionTranslation> {
     const result = await this.connection
       .insert(productOptionTranslation)
@@ -161,16 +154,13 @@ export class TranslationRepository {
   // ─────────────────────────────────────────────────────────────────────────
 
   async upsertOptionValueTranslation(
-    data: NewProductOptionValueTranslation
+    data: NewProductOptionValueTranslation,
   ): Promise<ProductOptionValueTranslation> {
     const result = await this.connection
       .insert(productOptionValueTranslation)
       .values(data)
       .onConflictDoUpdate({
-        target: [
-          productOptionValueTranslation.optionValueId,
-          productOptionValueTranslation.locale,
-        ],
+        target: [productOptionValueTranslation.optionValueId, productOptionValueTranslation.locale],
         set: { name: data.name },
       })
       .returning();
@@ -183,7 +173,7 @@ export class TranslationRepository {
   // ─────────────────────────────────────────────────────────────────────────
 
   async upsertFeatureTranslation(
-    data: NewProductFeatureTranslation
+    data: NewProductFeatureTranslation,
   ): Promise<ProductFeatureTranslation> {
     const result = await this.connection
       .insert(productFeatureTranslation)
@@ -202,7 +192,7 @@ export class TranslationRepository {
   // ─────────────────────────────────────────────────────────────────────────
 
   async upsertFeatureValueTranslation(
-    data: NewProductFeatureValueTranslation
+    data: NewProductFeatureValueTranslation,
   ): Promise<ProductFeatureValueTranslation> {
     const result = await this.connection
       .insert(productFeatureValueTranslation)
@@ -225,7 +215,7 @@ export class TranslationRepository {
 
   async getWarehouseTranslation(
     warehouseId: string,
-    locale: string
+    locale: string,
   ): Promise<WarehouseTranslation | undefined> {
     const result = await this.connection
       .select()
@@ -233,17 +223,15 @@ export class TranslationRepository {
       .where(
         and(
           eq(warehouseTranslation.warehouseId, warehouseId),
-          eq(warehouseTranslation.locale, locale)
-        )
+          eq(warehouseTranslation.locale, locale),
+        ),
       )
       .limit(1);
 
     return result[0];
   }
 
-  async upsertWarehouseTranslation(
-    data: NewWarehouseTranslation
-  ): Promise<WarehouseTranslation> {
+  async upsertWarehouseTranslation(data: NewWarehouseTranslation): Promise<WarehouseTranslation> {
     const result = await this.connection
       .insert(warehouseTranslation)
       .values(data)
@@ -260,27 +248,17 @@ export class TranslationRepository {
   // Product SEO
   // ─────────────────────────────────────────────────────────────────────────
 
-  async getProductSeo(
-    productId: string,
-    locale: string
-  ): Promise<ProductSeo | undefined> {
+  async getProductSeo(productId: string, locale: string): Promise<ProductSeo | undefined> {
     const result = await this.connection
       .select()
       .from(productSeo)
-      .where(
-        and(
-          eq(productSeo.productId, productId),
-          eq(productSeo.locale, locale)
-        )
-      )
+      .where(and(eq(productSeo.productId, productId), eq(productSeo.locale, locale)))
       .limit(1);
 
     return result[0];
   }
 
-  async getProductSeoBatch(
-    productIds: readonly string[]
-  ): Promise<Map<string, ProductSeo>> {
+  async getProductSeoBatch(productIds: readonly string[]): Promise<Map<string, ProductSeo>> {
     if (productIds.length === 0) return new Map();
 
     const results = await this.connection
@@ -289,16 +267,14 @@ export class TranslationRepository {
       .where(
         and(
           inArray(productSeo.productId, productIds as string[]),
-          eq(productSeo.locale, this.locale)
-        )
+          eq(productSeo.locale, this.locale),
+        ),
       );
 
     return new Map(results.map((s) => [s.productId, s]));
   }
 
-  async getProductSeoByProductIds(
-    productIds: readonly string[]
-  ): Promise<ProductSeo[]> {
+  async getProductSeoByProductIds(productIds: readonly string[]): Promise<ProductSeo[]> {
     if (productIds.length === 0) return [];
 
     return this.connection
@@ -307,13 +283,10 @@ export class TranslationRepository {
       .where(
         and(
           eq(productSeo.storeId, getContext().store.id),
-          inArray(productSeo.productId, productIds as string[])
-        )
+          inArray(productSeo.productId, productIds as string[]),
+        ),
       )
-      .orderBy(
-        asc(productSeo.productId),
-        asc(productSeo.locale)
-      );
+      .orderBy(asc(productSeo.productId), asc(productSeo.locale));
   }
 
   async upsertProductSeo(data: NewProductSeo): Promise<ProductSeo> {
@@ -335,9 +308,7 @@ export class TranslationRepository {
     return result[0];
   }
 
-  async getCategorySeoBatch(
-    categoryIds: readonly string[]
-  ): Promise<Map<string, CategorySeo>> {
+  async getCategorySeoBatch(categoryIds: readonly string[]): Promise<Map<string, CategorySeo>> {
     if (categoryIds.length === 0) return new Map();
 
     const results = await this.connection
@@ -346,8 +317,8 @@ export class TranslationRepository {
       .where(
         and(
           inArray(categorySeo.categoryId, categoryIds as string[]),
-          eq(categorySeo.locale, this.locale)
-        )
+          eq(categorySeo.locale, this.locale),
+        ),
       );
 
     return new Map(results.map((s) => [s.categoryId, s]));
@@ -375,11 +346,6 @@ export class TranslationRepository {
   async deleteCategorySeo(categoryId: string, locale: string): Promise<void> {
     await this.connection
       .delete(categorySeo)
-      .where(
-        and(
-          eq(categorySeo.categoryId, categoryId),
-          eq(categorySeo.locale, locale)
-        )
-      );
+      .where(and(eq(categorySeo.categoryId, categoryId), eq(categorySeo.locale, locale)));
   }
 }

@@ -18,7 +18,7 @@ const mockField = (
   opts: {
     args?: Record<string, unknown>;
     fieldsByTypeName?: Record<string, Record<string, unknown>>;
-  } = {}
+  } = {},
 ) => ({
   name,
   alias: name,
@@ -33,7 +33,7 @@ const mockAliasedField = (
   opts: {
     args?: Record<string, unknown>;
     fieldsByTypeName?: Record<string, Record<string, unknown>>;
-  } = {}
+  } = {},
 ) => ({
   name,
   alias,

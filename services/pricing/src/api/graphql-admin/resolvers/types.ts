@@ -30,11 +30,7 @@ type LoadableResolver = {
 };
 
 function referenceResolver(entity: GlobalIdType, Resolver: LoadableResolver) {
-  return (
-    reference: { id: string },
-    ctx: ServiceContext,
-    info: GraphQLResolveInfo,
-  ) => {
+  return (reference: { id: string }, ctx: ServiceContext, info: GraphQLResolveInfo) => {
     const id = decodeGlobalIdByType(reference.id, entity);
     return Resolver.load(id, parseGraphqlInfo(info), ctx);
   };
@@ -82,18 +78,10 @@ function resolveDiscountRuleType(value: unknown): string | null {
   if (rule.__typename === "DiscountFreeShippingRule") {
     return "DiscountFreeShippingRule";
   }
-  if (
-    "allocationMethod" in rule ||
-    "percentageBps" in rule ||
-    "amountMinor" in rule
-  ) {
+  if ("allocationMethod" in rule || "percentageBps" in rule || "amountMinor" in rule) {
     return "DiscountAmountOffRule";
   }
-  if (
-    "benefitQuantity" in rule ||
-    "benefitValueType" in rule ||
-    "usesPerOrderLimit" in rule
-  ) {
+  if ("benefitQuantity" in rule || "benefitValueType" in rule || "usesPerOrderLimit" in rule) {
     return "DiscountBuyXGetYRule";
   }
   if ("maximumShippingPriceMinor" in rule) {
@@ -112,24 +100,16 @@ export const typeResolvers = {
   DiscountCatalogTarget: {
     __resolveType: (value: unknown) => {
       const typename = (value as { __typename?: unknown })?.__typename;
-      return typename === "Product" ||
-        typename === "Variant" ||
-        typename === "Category"
+      return typename === "Product" || typename === "Variant" || typename === "Category"
         ? typename
         : null;
     },
   },
   Discount: {
-    __resolveReference: referenceResolver(
-      GlobalIdEntity.Discount,
-      DiscountResolver,
-    ),
+    __resolveReference: referenceResolver(GlobalIdEntity.Discount, DiscountResolver),
   },
   DiscountCode: {
-    __resolveReference: referenceResolver(
-      GlobalIdEntity.DiscountCode,
-      DiscountCodeResolver,
-    ),
+    __resolveReference: referenceResolver(GlobalIdEntity.DiscountCode, DiscountCodeResolver),
   },
   DiscountUsageReservation: {
     __resolveReference: referenceResolver(

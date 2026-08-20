@@ -2,10 +2,7 @@ import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { SubgraphReference } from "@shopana/type-resolver";
 import type { ImageTransformOptions } from "../../infrastructure/cdn/index.js";
 import type { File } from "../../repositories/models/index.js";
-import {
-  loadStorefrontFile,
-  resolveDeliveryUrl,
-} from "./helpers/storefrontFile.js";
+import { loadStorefrontFile, resolveDeliveryUrl } from "./helpers/storefrontFile.js";
 import { MediaType } from "./MediaType.js";
 
 @SubgraphReference()

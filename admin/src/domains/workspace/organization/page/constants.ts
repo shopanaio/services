@@ -72,8 +72,28 @@ export const mockOrganization: ApiOrganization = {
 
 export const mockStores: Partial<ApiStore>[] = [
   { id: "store-1", name: "main-store", displayName: "Main Store", status: "ACTIVE" as StoreStatus },
-  { id: "store-2", name: "fashion-outlet", displayName: "Fashion Outlet", status: "ACTIVE" as StoreStatus },
-  { id: "store-3", name: "electronics-hub", displayName: "Electronics Hub", status: "ACTIVE" as StoreStatus },
-  { id: "store-4", name: "home-decor", displayName: "Home Decor", status: "INACTIVE" as StoreStatus },
-  { id: "store-5", name: "sports-gear", displayName: "Sports Gear", status: "ACTIVE" as StoreStatus },
+  {
+    id: "store-2",
+    name: "fashion-outlet",
+    displayName: "Fashion Outlet",
+    status: "ACTIVE" as StoreStatus,
+  },
+  {
+    id: "store-3",
+    name: "electronics-hub",
+    displayName: "Electronics Hub",
+    status: "ACTIVE" as StoreStatus,
+  },
+  {
+    id: "store-4",
+    name: "home-decor",
+    displayName: "Home Decor",
+    status: "INACTIVE" as StoreStatus,
+  },
+  {
+    id: "store-5",
+    name: "sports-gear",
+    displayName: "Sports Gear",
+    status: "ACTIVE" as StoreStatus,
+  },
 ];

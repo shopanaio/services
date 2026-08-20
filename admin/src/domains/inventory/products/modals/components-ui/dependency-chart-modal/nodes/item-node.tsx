@@ -93,7 +93,7 @@ const useStyles = createStyles(({ token }) => ({
 
 const getProductTitle = (item: ItemNodeData["item"]): string =>
   "refProduct" in item
-    ? item.title ?? item.refProduct?.title ?? item.refVariant?.product?.title ?? "Unnamed"
+    ? (item.title ?? item.refProduct?.title ?? item.refVariant?.product?.title ?? "Unnamed")
     : item.title;
 
 const getVariantTitle = (item: ItemNodeData["item"]): string | undefined =>
@@ -101,10 +101,10 @@ const getVariantTitle = (item: ItemNodeData["item"]): string | undefined =>
 
 const getImageUrl = (item: ItemNodeData["item"]): string | undefined =>
   "featuredImage" in item
-    ? item.featuredImage?.url ??
+    ? (item.featuredImage?.url ??
       item.refVariant?.media?.[0]?.file?.url ??
       item.refProduct?.media?.[0]?.file?.url ??
-      undefined
+      undefined)
     : undefined;
 
 // ============================================================================
@@ -127,7 +127,14 @@ const ItemNodeComponent = ({ data, selected }: ItemNodeProps) => {
   const showRightHandle = nodePosition === "source";
 
   return (
-    <div className={cx(styles.node, selected && styles.nodeSelected, isHighlighted && styles.nodeHighlighted, isDimmed && styles.nodeDimmed)}>
+    <div
+      className={cx(
+        styles.node,
+        selected && styles.nodeSelected,
+        isHighlighted && styles.nodeHighlighted,
+        isDimmed && styles.nodeDimmed,
+      )}
+    >
       {showLeftHandle && (
         <Handle type="target" position={Position.Left} className={styles.handle} />
       )}

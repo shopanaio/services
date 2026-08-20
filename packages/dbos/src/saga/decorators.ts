@@ -37,9 +37,7 @@ export const SAGA_STEP_KEY = Symbol("dbos:saga:step");
 // ============================================================================
 
 const logger = new Logger("SagaEngine");
-const WORKFLOW_ADMISSION_ERROR = Symbol.for(
-  "shopana.dbos.workflow-admission-error",
-);
+const WORKFLOW_ADMISSION_ERROR = Symbol.for("shopana.dbos.workflow-admission-error");
 
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -59,42 +57,41 @@ function capitalize(str: string): string {
 export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
   return function (target, propertyKey, descriptor) {
     const originalMethod = descriptor.value as Function;
-    const methodName =
-      typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
+    const methodName = typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
     const stepName = config.name ?? methodName;
 
     const compensateMethodName = `compensate${capitalize(methodName)}`;
     const hasCompensation =
       typeof (target as Record<string, unknown>)[compensateMethodName] === "function";
 
-    const existingSteps: SagaStepMetadata[] =
-      Reflect.getMetadata(SAGA_STEP_KEY, target) || [];
+    const existingSteps: SagaStepMetadata[] = Reflect.getMetadata(SAGA_STEP_KEY, target) || [];
     const metadata: SagaStepMetadata = {
       stepConfig: { ...config, name: stepName },
       methodName,
     };
     Reflect.defineMetadata(SAGA_STEP_KEY, [...existingSteps, metadata], target);
 
-    (descriptor as { value: (...args: unknown[]) => Promise<unknown> }).value =
-      async function (...args: unknown[]) {
-        const ctx = getSagaContext();
+    (descriptor as { value: (...args: unknown[]) => Promise<unknown> }).value = async function (
+      ...args: unknown[]
+    ) {
+      const ctx = getSagaContext();
 
-        try {
-          const result = await runStep(
-            (_signal) => originalMethod.apply(this, args),
-            { ...config, name: stepName, methodName, critical: hasCompensation },
-            { workflowId: ctx.sagaId },
-          );
+      try {
+        const result = await runStep(
+          (_signal) => originalMethod.apply(this, args),
+          { ...config, name: stepName, methodName, critical: hasCompensation },
+          { workflowId: ctx.sagaId },
+        );
 
-          if (hasCompensation) {
-            ctx.recordStep(methodName, stepName, args, { ...config, name: stepName });
-          }
-
-          return result;
-        } catch (error) {
-          throw new StepExecutionError(stepName, methodName, error as Error);
+        if (hasCompensation) {
+          ctx.recordStep(methodName, stepName, args, { ...config, name: stepName });
         }
-      };
+
+        return result;
+      } catch (error) {
+        throw new StepExecutionError(stepName, methodName, error as Error);
+      }
+    };
 
     return descriptor;
   };
@@ -107,10 +104,7 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
 /**
  * @Saga("name", config?) marks run() as the saga entry point.
  */
-export function Saga(
-  name: string,
-  config?: SagaExecutorConfig,
-): MethodDecorator {
+export function Saga(name: string, config?: SagaExecutorConfig): MethodDecorator {
   return function (
     target: object,
     propertyKey: string | symbol,
@@ -120,124 +114,110 @@ export function Saga(
 
     Reflect.defineMetadata(SAGA_DEFINITION_KEY, { name }, target.constructor);
 
-    (descriptor as {
-      value: (
-        input: unknown,
-        workflowContext?: WorkflowExecutionContext,
-      ) => Promise<SagaResult>;
-    }).value =
-      async function (
-        input: unknown,
-        workflowContext?: WorkflowExecutionContext,
-      ): Promise<SagaResult> {
-        const sagaId = DBOS.workflowID;
-        if (!sagaId) {
-          throw new Error("Saga must be executed within a DBOS workflow context");
-        }
-        const ctx = new SagaExecutionContext(sagaId);
-        let compensationFailed = false;
+    (
+      descriptor as {
+        value: (input: unknown, workflowContext?: WorkflowExecutionContext) => Promise<SagaResult>;
+      }
+    ).value = async function (
+      input: unknown,
+      workflowContext?: WorkflowExecutionContext,
+    ): Promise<SagaResult> {
+      const sagaId = DBOS.workflowID;
+      if (!sagaId) {
+        throw new Error("Saga must be executed within a DBOS workflow context");
+      }
+      const ctx = new SagaExecutionContext(sagaId);
+      let compensationFailed = false;
 
-        const compensationRetryPolicy =
-          config?.compensationRetryPolicy ?? DEFAULT_COMPENSATION_RETRY;
-        const onCompensationExhausted =
-          config?.onCompensationExhausted ??
-          ((step, method, err, context) => {
-            logger.error(
-              {
-                sagaId: context.sagaId,
-                step,
-                method,
-                error: err.message,
-              },
-              "Compensation exhausted - manual intervention required",
-            );
-          });
-
-        try {
-          const result = await sagaContextStorage.run(ctx, async () => {
-            return originalMethod.call(this, input, workflowContext);
-          });
-
-          return {
-            success: true,
-            status: "completed" as SagaStatus,
-            data: result,
-            compensated: false,
-          };
-        } catch (error) {
-          // A recovery policy denial is an admission failure, not a business
-          // failure whose already-recorded saga steps should be compensated.
-          if (
-            typeof error === "object" &&
-            error !== null &&
-            (error as Record<PropertyKey, unknown>)[
-              WORKFLOW_ADMISSION_ERROR
-            ] === true
-          ) {
-            throw error;
-          }
-          const stepError = error instanceof StepExecutionError ? error : null;
-          const failedMethod = stepError?.methodName ?? "unknown";
-          const failedStepName = stepError?.stepName ?? "unknown";
-          ctx.recordFailure(failedMethod);
-
+      const compensationRetryPolicy = config?.compensationRetryPolicy ?? DEFAULT_COMPENSATION_RETRY;
+      const onCompensationExhausted =
+        config?.onCompensationExhausted ??
+        ((step, method, err, context) => {
           logger.error(
-            `Saga ${name} failed at step ${failedStepName}, starting compensation`,
-            error as Error,
+            {
+              sagaId: context.sagaId,
+              step,
+              method,
+              error: err.message,
+            },
+            "Compensation exhausted - manual intervention required",
           );
+        });
 
-          const stepsToCompensate = ctx.getStepsToCompensate();
+      try {
+        const result = await sagaContextStorage.run(ctx, async () => {
+          return originalMethod.call(this, input, workflowContext);
+        });
 
-          for (const step of stepsToCompensate) {
-            const compensateMethodName = `compensate${capitalize(step.method)}`;
+        return {
+          success: true,
+          status: "completed" as SagaStatus,
+          data: result,
+          compensated: false,
+        };
+      } catch (error) {
+        // A recovery policy denial is an admission failure, not a business
+        // failure whose already-recorded saga steps should be compensated.
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          (error as Record<PropertyKey, unknown>)[WORKFLOW_ADMISSION_ERROR] === true
+        ) {
+          throw error;
+        }
+        const stepError = error instanceof StepExecutionError ? error : null;
+        const failedMethod = stepError?.methodName ?? "unknown";
+        const failedStepName = stepError?.stepName ?? "unknown";
+        ctx.recordFailure(failedMethod);
 
-            if (typeof (this as Record<string, unknown>)[compensateMethodName] !== "function") {
-              logger.debug(
-                `No compensation method "${compensateMethodName}" for step: ${step.method}, skipping`,
-              );
-              continue;
-            }
+        logger.error(
+          `Saga ${name} failed at step ${failedStepName}, starting compensation`,
+          error as Error,
+        );
 
-            try {
-              await executeCompensationWithRetry(
-                this as unknown as Record<
-                  string,
-                  (...args: unknown[]) => Promise<unknown>
-                >,
-                step,
-                compensateMethodName,
-                compensationRetryPolicy,
-              );
-              logger.debug(`Compensated: ${step.method}`);
-            } catch (compError) {
-              await onCompensationExhausted(
-                step.method,
-                compensateMethodName,
-                compError as Error,
-                {
-                  sagaId: ctx.sagaId,
-                  args: step.args,
-                },
-              );
-              compensationFailed = true;
-            }
+        const stepsToCompensate = ctx.getStepsToCompensate();
+
+        for (const step of stepsToCompensate) {
+          const compensateMethodName = `compensate${capitalize(step.method)}`;
+
+          if (typeof (this as Record<string, unknown>)[compensateMethodName] !== "function") {
+            logger.debug(
+              `No compensation method "${compensateMethodName}" for step: ${step.method}, skipping`,
+            );
+            continue;
           }
 
-          const status: SagaStatus = compensationFailed ? "failed" : "compensated";
-          const originalError = stepError?.cause ?? (error as Error);
-
-          return {
-            success: false,
-            status,
-            error: toOperationError(originalError),
-            failedStep: ctx.getFailedStep(),
-            compensated: !compensationFailed,
-          };
+          try {
+            await executeCompensationWithRetry(
+              this as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>,
+              step,
+              compensateMethodName,
+              compensationRetryPolicy,
+            );
+            logger.debug(`Compensated: ${step.method}`);
+          } catch (compError) {
+            await onCompensationExhausted(step.method, compensateMethodName, compError as Error, {
+              sagaId: ctx.sagaId,
+              args: step.args,
+            });
+            compensationFailed = true;
+          }
         }
-      };
 
-    const key =
-      typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
+        const status: SagaStatus = compensationFailed ? "failed" : "compensated";
+        const originalError = stepError?.cause ?? (error as Error);
+
+        return {
+          success: false,
+          status,
+          error: toOperationError(originalError),
+          failedStep: ctx.getFailedStep(),
+          compensated: !compensationFailed,
+        };
+      }
+    };
+
+    const key = typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
     return DBOS.workflow()(target, key, descriptor);
   };
 }

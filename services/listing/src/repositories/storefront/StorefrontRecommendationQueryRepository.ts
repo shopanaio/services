@@ -5,10 +5,7 @@ import type {
   ProductRecommendationSource,
   RecommendationPlacement,
 } from "../models/recommendationRuntime.js";
-import type {
-  RecommendationPageKey,
-  RecommendationPageResult,
-} from "../recommendation/types.js";
+import type { RecommendationPageKey, RecommendationPageResult } from "../recommendation/types.js";
 import {
   decodeRecommendationCursor,
   encodeRecommendationCursor,
@@ -150,7 +147,9 @@ export class StorefrontRecommendationQueryRepository extends BaseRepository {
         snapshotId: row.snapshotId,
       });
       if (row.cursorHash !== expected) {
-        throw new StorefrontRecommendationValidationError("Recommendation cursor does not match this connection");
+        throw new StorefrontRecommendationValidationError(
+          "Recommendation cursor does not match this connection",
+        );
       }
     }
     if (row.snapshotId === null) {

@@ -29,8 +29,7 @@ export const CatalogComparisonActionNames = {
 } as const;
 
 export const CatalogComparisonActions = {
-  resolveVariants:
-    `catalog.${CatalogComparisonActionNames.resolveVariants}`,
+  resolveVariants: `catalog.${CatalogComparisonActionNames.resolveVariants}`,
 } as const;
 
 export const CatalogLoyaltyActionNames = {
@@ -38,17 +37,11 @@ export const CatalogLoyaltyActionNames = {
 } as const;
 
 export const CatalogLoyaltyActions = {
-  validateReferences:
-    `catalog.${CatalogLoyaltyActionNames.validateReferences}`,
+  validateReferences: `catalog.${CatalogLoyaltyActionNames.validateReferences}`,
 } as const;
 
 export type LoyaltyCatalogReferenceType =
-  | "PRODUCT"
-  | "VARIANT"
-  | "CATEGORY"
-  | "TAG"
-  | "FEATURE"
-  | "OPTION_VALUE";
+  "PRODUCT" | "VARIANT" | "CATEGORY" | "TAG" | "FEATURE" | "OPTION_VALUE";
 
 export interface ValidateLoyaltyCatalogReferencesParams {
   storeId: string;
@@ -192,8 +185,7 @@ export interface ResolveCheckoutMerchandiseLineInput {
   componentSelection: { componentItemId: string } | null;
   /** Purchase intent is preserved for Pricing eligibility and future plans. */
   purchase:
-    | { type: "ONE_TIME"; sellingPlanId: null }
-    | { type: "SUBSCRIPTION"; sellingPlanId: string };
+    { type: "ONE_TIME"; sellingPlanId: null } | { type: "SUBSCRIPTION"; sellingPlanId: string };
   /**
    * Root quantity is the absolute cart quantity. Nested quantity is the number
    * of component units required per one unit of its parent.
@@ -289,8 +281,7 @@ export interface ResolvedCheckoutMerchandiseLine {
   productId: string;
   quantity: number;
   purchase:
-    | { type: "ONE_TIME"; sellingPlanId: null }
-    | { type: "SUBSCRIPTION"; sellingPlanId: string };
+    { type: "ONE_TIME"; sellingPlanId: null } | { type: "SUBSCRIPTION"; sellingPlanId: string };
   /** Revision of all non-price merchandise fields in this snapshot. */
   revision: string;
   title: string;
@@ -330,8 +321,7 @@ export type ResolveCheckoutMerchandiseLineResolution =
     };
 
 export type ResolveCheckoutMerchandiseErrorCode =
-  | "CATALOG_STORE_NOT_FOUND"
-  | "CHECKOUT_MERCHANDISE_RESOLUTION_FAILED";
+  "CATALOG_STORE_NOT_FOUND" | "CHECKOUT_MERCHANDISE_RESOLUTION_FAILED";
 
 export type ResolveCheckoutMerchandiseResult =
   | {
@@ -568,9 +558,7 @@ export interface CatalogProductLocalizedContentSnapshotSelection {
   fieldName?: "content";
 }
 
-export type CatalogProductLocalizedContentSnapshotField =
-  | "locale"
-  | "title";
+export type CatalogProductLocalizedContentSnapshotField = "locale" | "title";
 
 export interface CatalogProductLocalizedContentSnapshotPopulate {
   excerpt?: CatalogRichTextSnapshotSelection;
@@ -584,10 +572,7 @@ export interface CatalogProductSeoSnapshotSelection {
   fieldName?: "seo";
 }
 
-export type CatalogProductSeoSnapshotField =
-  | "locale"
-  | "seoTitle"
-  | "seoDescription";
+export type CatalogProductSeoSnapshotField = "locale" | "seoTitle" | "seoDescription";
 
 export interface CatalogRichTextSnapshotSelection {
   fields?: CatalogRichTextSnapshotField[];
@@ -605,9 +590,7 @@ export interface CatalogProductAvailabilitySnapshotSelection {
   fieldName?: "availability";
 }
 
-export type CatalogProductAvailabilitySnapshotField =
-  | "availableForSale"
-  | "totalQuantity";
+export type CatalogProductAvailabilitySnapshotField = "availableForSale" | "totalQuantity";
 
 export interface CatalogProductCategorySnapshotSelection {
   fields?: CatalogProductCategorySnapshotField[];
@@ -616,10 +599,7 @@ export interface CatalogProductCategorySnapshotSelection {
   fieldName?: "primaryCategory" | "categories";
 }
 
-export type CatalogProductCategorySnapshotField =
-  | "id"
-  | "primary"
-  | "manualRank";
+export type CatalogProductCategorySnapshotField = "id" | "primary" | "manualRank";
 
 export interface CatalogProductCategorySnapshotPopulate {
   content?: CatalogCategoryLocalizedContentSnapshotSelection;
@@ -673,11 +653,7 @@ export interface CatalogProductVariantSnapshotSelection {
 }
 
 export type CatalogProductVariantSnapshotField =
-  | "id"
-  | "handle"
-  | "isDefault"
-  | "createdAt"
-  | "updatedAt";
+  "id" | "handle" | "isDefault" | "createdAt" | "updatedAt";
 
 export interface CatalogProductVariantSnapshotPopulate {
   availability?: CatalogProductAvailabilitySnapshotSelection;
@@ -712,9 +688,7 @@ export interface CatalogProductVariantPriceSnapshotSelection {
   fieldName?: "prices";
 }
 
-export type CatalogProductVariantPriceSnapshotField =
-  | "currencyCode"
-  | "amountMinor";
+export type CatalogProductVariantPriceSnapshotField = "currencyCode" | "amountMinor";
 
 export interface CatalogProductVariantOptionSelectionSnapshotSelection {
   fields?: CatalogProductVariantOptionSelectionSnapshotField[];
@@ -963,11 +937,7 @@ export interface PageInfoSelection {
   fieldName?: "pageInfo";
 }
 
-export type PageInfoField =
-  | "hasNextPage"
-  | "hasPreviousPage"
-  | "startCursor"
-  | "endCursor";
+export type PageInfoField = "hasNextPage" | "hasPreviousPage" | "startCursor" | "endCursor";
 
 export interface ProductConnection {
   edges?: ProductEdge[];

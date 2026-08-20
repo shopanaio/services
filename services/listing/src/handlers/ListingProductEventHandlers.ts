@@ -1,10 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import {
-  EventHandler,
-  EventHandlers,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { EventHandler, EventHandlers, InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import { Listing } from "@shopana/broker-types";
 import type {
   EventHandlerResponse,
@@ -47,7 +42,7 @@ export class ListingProductEventHandlers extends EventHandlers {
         productId: params.event.payload.productId,
         storeId: params.event.payload.storeId,
       },
-      "Received productCreated event"
+      "Received productCreated event",
     );
 
     try {
@@ -69,7 +64,7 @@ export class ListingProductEventHandlers extends EventHandlers {
         storeId: params.event.payload.storeId,
         reasons: params.event.payload.reasons,
       },
-      "Received productUpdated event"
+      "Received productUpdated event",
     );
 
     try {
@@ -91,7 +86,7 @@ export class ListingProductEventHandlers extends EventHandlers {
         storeId: params.event.payload.storeId,
         entityType: params.event.payload.entityType,
       },
-      "Received productDeleted event"
+      "Received productDeleted event",
     );
 
     try {
@@ -114,22 +109,19 @@ export class ListingProductEventHandlers extends EventHandlers {
         reason: params.event.payload.reason,
         operationId: params.event.payload.operationId,
       },
-      "Received listingFacetMembershipChanged event"
+      "Received listingFacetMembershipChanged event",
     );
 
     try {
       await this.enqueueFacetMembershipSyncWorkflow(params.event);
       return { success: true };
     } catch (error) {
-      return this.handleError(
-        error,
-        "Failed to enqueue listing facet membership sync"
-      );
+      return this.handleError(error, "Failed to enqueue listing facet membership sync");
     }
   }
 
   private async enqueueSyncWorkflow(
-    event: ProductCreatedEvent | ProductUpdatedEvent
+    event: ProductCreatedEvent | ProductUpdatedEvent,
   ): Promise<void> {
     const eventSequence = this.getEventSequence(event);
     const itemRef: Listing.ListingSellableItemRef = {
@@ -157,7 +149,7 @@ export class ListingProductEventHandlers extends EventHandlers {
   }
 
   private async enqueueFacetMembershipSyncWorkflow(
-    event: ListingFacetMembershipChangedEvent
+    event: ListingFacetMembershipChangedEvent,
   ): Promise<void> {
     const eventSequence = this.getEventSequence(event);
     const itemRef: Listing.ListingSellableItemRef = {
@@ -224,12 +216,10 @@ export class ListingProductEventHandlers extends EventHandlers {
   private async startIndexWorkflow(
     action: ListingIndexQueuedSyncAction | ListingIndexQueuedDeleteAction,
     actionType: ListingIndexActionType,
-    eventSequence: number
+    eventSequence: number,
   ): Promise<void> {
     const itemRef =
-      action.type === "syncSellableItem"
-        ? action.params.itemRef
-        : action.params.itemRef;
+      action.type === "syncSellableItem" ? action.params.itemRef : action.params.itemRef;
     const idempotencyCtx = buildListingIndexWorkflowIdempotencyContext({
       organizationId: action.organizationId,
       storeId: action.params.storeId,
@@ -245,23 +235,18 @@ export class ListingProductEventHandlers extends EventHandlers {
     });
 
     try {
-      await this.broker.startWorkflow(
-        workflowName,
-        action,
-        idempotencyCtx,
-        {
-          queueName: LISTING_INDEX_ACTIONS_QUEUE,
-          enqueueOptions: {
-            queuePartitionKey: buildListingIndexQueuePartitionKey({
-              storeId: action.params.storeId,
-              entityType: itemRef.entityType,
-              itemId: itemRef.id,
-            }),
-          },
-          timeoutMS: LISTING_INDEX_WORKFLOW_TIMEOUT_MS,
-          workflowId,
-        }
-      );
+      await this.broker.startWorkflow(workflowName, action, idempotencyCtx, {
+        queueName: LISTING_INDEX_ACTIONS_QUEUE,
+        enqueueOptions: {
+          queuePartitionKey: buildListingIndexQueuePartitionKey({
+            storeId: action.params.storeId,
+            entityType: itemRef.entityType,
+            itemId: itemRef.id,
+          }),
+        },
+        timeoutMS: LISTING_INDEX_WORKFLOW_TIMEOUT_MS,
+        workflowId,
+      });
     } catch (error) {
       if (isDuplicateWorkflowStartError(error, workflowId)) {
         return;
@@ -276,7 +261,7 @@ export class ListingProductEventHandlers extends EventHandlers {
           itemRef,
           eventSequence,
         },
-        "Failed to start listing index workflow"
+        "Failed to start listing index workflow",
       );
       throw error;
     }
@@ -317,7 +302,7 @@ export class ListingProductEventHandlers extends EventHandlers {
       | ProductCreatedEvent
       | ProductUpdatedEvent
       | ProductDeletedEvent
-      | ListingFacetMembershipChangedEvent
+      | ListingFacetMembershipChangedEvent,
   ): number {
     if (
       Number.isInteger(event.eventSequence) &&
@@ -327,16 +312,13 @@ export class ListingProductEventHandlers extends EventHandlers {
       return event.eventSequence;
     }
 
-    throw new Error(
-      `Domain event ${event.eventId} is missing a positive eventSequence`
-    );
+    throw new Error(`Domain event ${event.eventId} is missing a positive eventSequence`);
   }
 
   private buildFacetMembershipMeta(
-    event: ListingFacetMembershipChangedEvent
+    event: ListingFacetMembershipChangedEvent,
   ): Listing.ListingUpdateMeta {
-    const eventSequence =
-      event.eventSequence === undefined ? "unknown" : event.eventSequence;
+    const eventSequence = event.eventSequence === undefined ? "unknown" : event.eventSequence;
 
     return {
       contractVersion: Listing.LISTING_UPDATE_CONTRACT_VERSION,

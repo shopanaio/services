@@ -1,13 +1,18 @@
 import { Button, Dropdown } from "antd";
-import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuEllipsis as MoreOutlined, LuCopy as CopyOutlined, LuSettings as SettingOutlined } from "react-icons/lu";
+import {
+  LuPlus as PlusOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuEllipsis as MoreOutlined,
+  LuCopy as CopyOutlined,
+  LuSettings as SettingOutlined,
+} from "react-icons/lu";
 import type { ICellRendererParams } from "ag-grid-community";
 import type { MenuProps } from "antd";
 import { useStyles } from "../edit-groups-modal.styles";
 import type { ITableRow } from "../types";
 import { ProductComponentItemType } from "@/graphql/types";
 
-export interface IActionsCellRendererParams
-  extends ICellRendererParams<ITableRow> {
+export interface IActionsCellRendererParams extends ICellRendererParams<ITableRow> {
   onDelete: (id: string) => void;
   onAddItem: (groupId: string) => void;
   onDuplicateGroup: (groupId: string) => void;

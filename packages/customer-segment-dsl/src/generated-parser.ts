@@ -42,9 +42,7 @@ export class SegmentParseError extends Error {
     super(message);
     this.name = "SegmentParseError";
     this.diagnostic = {
-      code: complexity
-        ? SEGMENT_DIAGNOSTIC_CODES.complexity
-        : SEGMENT_DIAGNOSTIC_CODES.syntax,
+      code: complexity ? SEGMENT_DIAGNOSTIC_CODES.complexity : SEGMENT_DIAGNOSTIC_CODES.syntax,
       message,
       severity: "ERROR",
       ...range,
@@ -194,7 +192,11 @@ class Scanner {
       throw this.syntax("Invalid token boundary", start, start + value.length + 1);
     }
     if (/^[+-]?0\d/u.test(rest) || /^[+-]?\d+\.\d*\./u.test(rest)) {
-      throw this.syntax("Numbers must not contain leading zeros or multiple decimal points", start, start + value.length + 1);
+      throw this.syntax(
+        "Numbers must not contain leading zeros or multiple decimal points",
+        start,
+        start + value.length + 1,
+      );
     }
     return this.simple("number", start, start + value.length);
   }
@@ -208,7 +210,10 @@ class Scanner {
   }
 
   private syntax(message: string, start: number, end: number): SegmentParseError {
-    return new SegmentParseError(message, rangeAt(this.source, start, Math.min(end, this.source.length)));
+    return new SegmentParseError(
+      message,
+      rangeAt(this.source, start, Math.min(end, this.source.length)),
+    );
   }
 }
 
@@ -246,7 +251,11 @@ class Parser {
       const start = this.previous().range.startOffset;
       return this.withNesting(() => {
         const child = this.parseUnary();
-        return this.node({ kind: "not", child, range: rangeAt(this.source, start, child.range.endOffset) });
+        return this.node({
+          kind: "not",
+          child,
+          range: rangeAt(this.source, start, child.range.endOffset),
+        });
       });
     }
     if (this.match("lparen")) {
@@ -376,7 +385,10 @@ class Parser {
         range: rangeAt(this.source, start, end),
       };
     }
-    if (allowContains && (this.keyword("CONTAINS") || (this.checkKeyword("NOT") && this.checkKeyword("CONTAINS", 1)))) {
+    if (
+      allowContains &&
+      (this.keyword("CONTAINS") || (this.checkKeyword("NOT") && this.checkKeyword("CONTAINS", 1)))
+    ) {
       let operator: "contains" | "not_contains" = "contains";
       if (this.previous().text.toUpperCase() !== "CONTAINS") {
         this.advance();
@@ -396,7 +408,11 @@ class Parser {
     const token = this.advance();
     switch (token.kind) {
       case "string":
-        return this.node<ParsedValue>({ kind: "string", value: token.value ?? "", range: token.range });
+        return this.node<ParsedValue>({
+          kind: "string",
+          value: token.value ?? "",
+          range: token.range,
+        });
       case "number":
         return this.node<ParsedValue>({ kind: "number", value: token.text, range: token.range });
       case "date":
@@ -404,11 +420,19 @@ class Parser {
       case "dateTime":
         return this.node<ParsedValue>({ kind: "dateTime", value: token.text, range: token.range });
       case "relativeDate":
-        return this.node<ParsedValue>({ kind: "relativeDate", value: token.text, range: token.range });
+        return this.node<ParsedValue>({
+          kind: "relativeDate",
+          value: token.text,
+          range: token.range,
+        });
       case "identifier": {
         const value = token.text.toLowerCase();
         if (value === "true" || value === "false") {
-          return this.node<ParsedValue>({ kind: "boolean", value: value === "true", range: token.range });
+          return this.node<ParsedValue>({
+            kind: "boolean",
+            value: value === "true",
+            range: token.range,
+          });
         }
         if (value === "today" || value === "yesterday") {
           return this.node<ParsedValue>({ kind: "namedDate", value, range: token.range });
@@ -550,7 +574,11 @@ function isDigit(value: string): boolean {
   return value >= "0" && value <= "9";
 }
 
-export function rangeAt(source: string, startOffset: number, endOffset: number): SegmentSourceRange {
+export function rangeAt(
+  source: string,
+  startOffset: number,
+  endOffset: number,
+): SegmentSourceRange {
   let line = 1;
   let column = 1;
   for (let index = 0; index < startOffset; index += 1) {

@@ -7,13 +7,11 @@ export class BulkFenceRepository extends BaseRepository {
    * Upsert fence for product (sorted by productId to prevent deadlocks)
    */
   async upsertFences(
-    fences: Array<{ productId: string; fenceToken: string; jobId: string }>
+    fences: Array<{ productId: string; fenceToken: string; jobId: string }>,
   ): Promise<void> {
     if (fences.length === 0) return;
 
-    const sorted = [...fences].sort((a, b) =>
-      a.productId.localeCompare(b.productId)
-    );
+    const sorted = [...fences].sort((a, b) => a.productId.localeCompare(b.productId));
 
     for (const fence of sorted) {
       await this.connection

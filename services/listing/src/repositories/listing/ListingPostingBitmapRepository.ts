@@ -1,10 +1,7 @@
 import { and, count, eq, inArray, like, or, sql, type SQL } from "drizzle-orm";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  listingPostingBitmap,
-  type ListingPostingBitmap,
-} from "../models/index.js";
+import { listingPostingBitmap, type ListingPostingBitmap } from "../models/index.js";
 import {
   assertNonNegativeInteger,
   assertPositiveDocId,
@@ -109,8 +106,8 @@ export class ListingPostingBitmapRepository extends BaseRepository {
         and(
           eq(listingPostingBitmap.entityType, key.entityType),
           eq(listingPostingBitmap.field, key.field),
-          eq(listingPostingBitmap.valueKey, key.valueKey)
-        )
+          eq(listingPostingBitmap.valueKey, key.valueKey),
+        ),
       );
       rows.push(
         ...(await this.connection
@@ -119,30 +116,24 @@ export class ListingPostingBitmapRepository extends BaseRepository {
           .where(
             and(
               eq(listingPostingBitmap.storeId, this.storeId),
-              keyFilters.length === 1 ? keyFilters[0] : or(...keyFilters)
-            )
-          ))
+              keyFilters.length === 1 ? keyFilters[0] : or(...keyFilters),
+            ),
+          )),
       );
     }
 
-    const requestedOrder = new Map(
-      keys.map((key, index) => [this.serializedKey(key), index])
-    );
+    const requestedOrder = new Map(keys.map((key, index) => [this.serializedKey(key), index]));
     return rows.sort(
       (left, right) =>
         (requestedOrder.get(this.serializedKey(left as PostingKeyInput)) ?? 0) -
-        (requestedOrder.get(this.serializedKey(right as PostingKeyInput)) ?? 0)
+        (requestedOrder.get(this.serializedKey(right as PostingKeyInput)) ?? 0),
     );
   }
 
   @ReadOnly()
-  async getExactByKeys(
-    keys: readonly PostingKeyInput[]
-  ): Promise<ExactPostingLookupResult[]> {
+  async getExactByKeys(keys: readonly PostingKeyInput[]): Promise<ExactPostingLookupResult[]> {
     const rows = await this.getByKeys(keys);
-    const byKey = new Map(
-      rows.map((row) => [this.serializedKey(row as PostingKeyInput), row])
-    );
+    const byKey = new Map(rows.map((row) => [this.serializedKey(row as PostingKeyInput), row]));
     return keys.map((key) => {
       const row = byKey.get(this.serializedKey(key));
       return {
@@ -165,7 +156,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
       buildAvailabilityVariantTerm(false),
     ];
     for (const term of declaredTerms.sort((left, right) =>
-      encodeListingVariantTerm(left).localeCompare(encodeListingVariantTerm(right))
+      encodeListingVariantTerm(left).localeCompare(encodeListingVariantTerm(right)),
     )) {
       const key = buildListingVariantTermPostingKey(term);
       await this.connection.execute(sql`
@@ -192,17 +183,11 @@ export class ListingPostingBitmapRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async auditVariantTermIndex(input?: {
-    limit?: number;
-  }): Promise<ListingVariantTermAuditIssue[]> {
+  async auditVariantTermIndex(input?: { limit?: number }): Promise<ListingVariantTermAuditIssue[]> {
     const limit = Math.min(Math.max(input?.limit ?? 500, 1), 5_000);
     const universeKey = encodeListingVariantTerm(buildIndexableVariantTerm());
-    const availableKey = encodeListingVariantTerm(
-      buildAvailabilityVariantTerm(true)
-    );
-    const unavailableKey = encodeListingVariantTerm(
-      buildAvailabilityVariantTerm(false)
-    );
+    const availableKey = encodeListingVariantTerm(buildAvailabilityVariantTerm(true));
+    const unavailableKey = encodeListingVariantTerm(buildAvailabilityVariantTerm(false));
     const rows = await this.connection.execute<
       Record<string, unknown> & {
         code: ListingVariantTermAuditIssue["code"];
@@ -471,7 +456,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
 
   @Transactional()
   async applyVariantTermDeltas(
-    inputs: readonly ListingVariantTermDeltaInput[]
+    inputs: readonly ListingVariantTermDeltaInput[],
   ): Promise<ListingVariantTermDeltaResult> {
     const merged = new Map<
       string,
@@ -499,7 +484,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
     let createdRows = 0;
     let emptiedRows = 0;
     for (const [encoded, delta] of [...merged.entries()].sort(([left], [right]) =>
-      left.localeCompare(right)
+      left.localeCompare(right),
     )) {
       // A doc present in next state wins when merged product deltas overlap.
       for (const id of delta.added) delta.removed.delete(id);
@@ -525,7 +510,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
     replacements: readonly {
       variantDocId: number;
       nextValueKeys: readonly string[];
-    }[]
+    }[],
   ): Promise<ListingVariantTermDeltaResult> {
     if (replacements.length === 0) {
       return { touchedRows: 0, createdRows: 0, emptiedRows: 0 };
@@ -539,17 +524,17 @@ export class ListingPostingBitmapRepository extends BaseRepository {
     assertUniqueBy(
       normalized,
       (replacement) => String(replacement.variantDocId),
-      "variant term replacement"
+      "variant term replacement",
     );
     normalized.forEach((replacement) => {
       assertPositiveDocId(replacement.variantDocId, "variantDocId");
       replacement.nextValueKeys.forEach((valueKey) =>
-        assertPostingKey({ entityType: "variant", field: "term", valueKey })
+        assertPostingKey({ entityType: "variant", field: "term", valueKey }),
       );
     });
 
     const current = await this.getVariantTermMembershipsByDocIds(
-      normalized.map((replacement) => replacement.variantDocId)
+      normalized.map((replacement) => replacement.variantDocId),
     );
     const deltas: ListingVariantTermDeltaInput[] = [];
     for (const replacement of normalized) {
@@ -596,9 +581,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
         input.field !== "term" &&
         input.field !== "variant_product")
     ) {
-      throw new Error(
-        `Unsupported posting kind: ${input.entityType}+${input.field}`
-      );
+      throw new Error(`Unsupported posting kind: ${input.entityType}+${input.field}`);
     }
 
     if (input.valueKeys && input.valueKeys.length === 0) {
@@ -608,7 +591,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
     const uniqueValueKeys = input.valueKeys ? uniqueValues(input.valueKeys) : [];
     if (input.entityType === "variant" && input.field === "term") {
       uniqueValueKeys.forEach((valueKey) =>
-        assertPostingKey({ entityType: "variant", field: "term", valueKey })
+        assertPostingKey({ entityType: "variant", field: "term", valueKey }),
       );
     }
     const where =
@@ -617,12 +600,12 @@ export class ListingPostingBitmapRepository extends BaseRepository {
             eq(listingPostingBitmap.storeId, this.storeId),
             eq(listingPostingBitmap.entityType, input.entityType),
             eq(listingPostingBitmap.field, input.field),
-            inArray(listingPostingBitmap.valueKey, uniqueValueKeys)
+            inArray(listingPostingBitmap.valueKey, uniqueValueKeys),
           )
         : and(
             eq(listingPostingBitmap.storeId, this.storeId),
             eq(listingPostingBitmap.entityType, input.entityType),
-            eq(listingPostingBitmap.field, input.field)
+            eq(listingPostingBitmap.field, input.field),
           );
 
     return this.connection.select().from(listingPostingBitmap).where(where);
@@ -638,9 +621,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
     return rows[0]?.value ?? 0;
   }
 
-  async upsertPostingBitmap(
-    input: PostingBitmapUpsertInput
-  ): Promise<ListingPostingBitmap> {
+  async upsertPostingBitmap(input: PostingBitmapUpsertInput): Promise<ListingPostingBitmap> {
     assertPostingKey(input);
     assertNonNegativeInteger(input.cardinality, "cardinality");
 
@@ -677,9 +658,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
     return rows[0];
   }
 
-  async replacePostingBitmap(
-    input: PostingBitmapReplaceInput
-  ): Promise<ListingPostingBitmap> {
+  async replacePostingBitmap(input: PostingBitmapReplaceInput): Promise<ListingPostingBitmap> {
     return this.upsertPostingBitmap(input);
   }
 
@@ -708,8 +687,8 @@ export class ListingPostingBitmapRepository extends BaseRepository {
         and(
           eq(listingPostingBitmap.entityType, key.entityType),
           eq(listingPostingBitmap.field, key.field),
-          eq(listingPostingBitmap.valueKey, key.valueKey)
-        )
+          eq(listingPostingBitmap.valueKey, key.valueKey),
+        ),
       );
 
       const rows = await this.connection
@@ -717,8 +696,8 @@ export class ListingPostingBitmapRepository extends BaseRepository {
         .where(
           and(
             eq(listingPostingBitmap.storeId, this.storeId),
-            keyFilters.length === 1 ? keyFilters[0] : or(...keyFilters)
-          )
+            keyFilters.length === 1 ? keyFilters[0] : or(...keyFilters),
+          ),
         )
         .returning({ valueKey: listingPostingBitmap.valueKey });
 
@@ -809,19 +788,17 @@ export class ListingPostingBitmapRepository extends BaseRepository {
       input.valueKeyPrefixes && input.valueKeyPrefixes.length > 0
         ? or(
             ...input.valueKeyPrefixes.map((prefix) =>
-              like(listingPostingBitmap.valueKey, `${prefix}%`)
-            )
+              like(listingPostingBitmap.valueKey, `${prefix}%`),
+            ),
           )
         : undefined;
 
     const where = and(
       eq(listingPostingBitmap.storeId, this.storeId),
       eq(listingPostingBitmap.entityType, input.entityType),
-      input.field !== undefined
-        ? eq(listingPostingBitmap.field, input.field)
-        : undefined,
+      input.field !== undefined ? eq(listingPostingBitmap.field, input.field) : undefined,
       prefixFilters,
-      sql`${listingPostingBitmap.bitmap} @> ${input.docId}::int`
+      sql`${listingPostingBitmap.bitmap} @> ${input.docId}::int`,
     );
 
     const rows = await this.connection
@@ -834,17 +811,18 @@ export class ListingPostingBitmapRepository extends BaseRepository {
       .where(where);
 
     return rows.map((row) => {
-      const key = row.entityType === "product"
-        ? {
-            entityType: "product" as const,
-            field: row.field as ProductPostingField,
-            valueKey: row.valueKey,
-          }
-        : {
-            entityType: "variant" as const,
-            field: row.field as VariantPostingField,
-            valueKey: row.valueKey,
-          };
+      const key =
+        row.entityType === "product"
+          ? {
+              entityType: "product" as const,
+              field: row.field as ProductPostingField,
+              valueKey: row.valueKey,
+            }
+          : {
+              entityType: "variant" as const,
+              field: row.field as VariantPostingField,
+              valueKey: row.valueKey,
+            };
       assertPostingKey(key);
       return key;
     });
@@ -883,27 +861,25 @@ export class ListingPostingBitmapRepository extends BaseRepository {
   }
 
   @Transactional()
-  async deleteProductMemberships(
-    productDocId: number
-  ): Promise<PostingMembershipReplaceResult> {
+  async deleteProductMemberships(productDocId: number): Promise<PostingMembershipReplaceResult> {
     return this.deleteMemberships("product", productDocId);
   }
 
   @Transactional()
-  async deleteVariantMemberships(
-    variantDocId: number
-  ): Promise<PostingMembershipReplaceResult> {
+  async deleteVariantMemberships(variantDocId: number): Promise<PostingMembershipReplaceResult> {
     return this.deleteMemberships("variant", variantDocId);
   }
 
-  private async replaceMemberships(input: (
-    | { entityType: "product"; field: ProductPostingField }
-    | { entityType: "variant"; field: VariantPostingField }
-  ) & {
-    docId: number;
-    nextValueKeys: readonly string[];
-    valueKeyPrefixes?: readonly string[];
-  }): Promise<PostingMembershipReplaceResult> {
+  private async replaceMemberships(
+    input: (
+      | { entityType: "product"; field: ProductPostingField }
+      | { entityType: "variant"; field: VariantPostingField }
+    ) & {
+      docId: number;
+      nextValueKeys: readonly string[];
+      valueKeyPrefixes?: readonly string[];
+    },
+  ): Promise<PostingMembershipReplaceResult> {
     assertPositiveDocId(input.docId, "docId");
     assertWritablePostingField(input.field);
     assertValueKeysMatchPrefixes(input.nextValueKeys, input.valueKeyPrefixes);
@@ -922,34 +898,21 @@ export class ListingPostingBitmapRepository extends BaseRepository {
     const currentSet = new Set(currentValueKeys);
     const nextSet = new Set(input.nextValueKeys);
 
-    const valueKeysToRemove = currentValueKeys.filter(
-      (valueKey) => !nextSet.has(valueKey)
-    );
-    const valueKeysToAdd = input.nextValueKeys.filter(
-      (valueKey) => !currentSet.has(valueKey)
-    );
+    const valueKeysToRemove = currentValueKeys.filter((valueKey) => !nextSet.has(valueKey));
+    const valueKeysToAdd = input.nextValueKeys.filter((valueKey) => !currentSet.has(valueKey));
 
     let deletedEmptyRows = 0;
     let touchedRows = 0;
 
     for (const valueKey of valueKeysToRemove) {
-      const mutation = this.membershipMutationInput(
-        input,
-        valueKey,
-        input.docId
-      );
-      const removeResult = await this.removeDocIdsReturning(
-        mutation,
-        [input.docId]
-      );
+      const mutation = this.membershipMutationInput(input, valueKey, input.docId);
+      const removeResult = await this.removeDocIdsReturning(mutation, [input.docId]);
       deletedEmptyRows += removeResult.deletedEmptyRows;
       touchedRows += removeResult.touchedRows;
     }
 
     for (const valueKey of valueKeysToAdd) {
-      await this.addDocIds(
-        this.membershipMutationInput(input, valueKey, input.docId)
-      );
+      await this.addDocIds(this.membershipMutationInput(input, valueKey, input.docId));
       touchedRows += 1;
     }
 
@@ -963,7 +926,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
 
   private async deleteMemberships(
     entityType: PostingEntityType,
-    docId: number
+    docId: number,
   ): Promise<PostingMembershipReplaceResult> {
     assertPositiveDocId(docId, "docId");
     const currentKeys = await this.getMembershipKeys({ entityType, docId });
@@ -971,10 +934,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
     let deletedEmptyRows = 0;
     let touchedRows = 0;
     for (const key of currentKeys) {
-      const removeResult = await this.removeDocIdsReturning(
-        { ...key, docIds: [docId] },
-        [docId]
-      );
+      const removeResult = await this.removeDocIdsReturning({ ...key, docIds: [docId] }, [docId]);
       deletedEmptyRows += removeResult.deletedEmptyRows;
       touchedRows += removeResult.touchedRows;
     }
@@ -989,7 +949,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
 
   private async removeDocIdsReturning(
     input: PostingDocIdsMutationInput,
-    docIds: readonly number[]
+    docIds: readonly number[],
   ): Promise<RemoveDocIdsResult> {
     const valuesSql = this.docIdValuesSql(docIds);
     const rows = await this.connection.execute<RemoveDocIdsResult>(sql`
@@ -1138,7 +1098,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
   }
 
   private async getVariantTermMembershipsByDocIds(
-    variantDocIds: readonly number[]
+    variantDocIds: readonly number[],
   ): Promise<Map<number, string[]>> {
     const result = new Map<number, string[]>();
     const rows = await this.connection.execute<
@@ -1169,7 +1129,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
   private membershipMutationInput(
     input: { entityType: PostingEntityType; field: PostingField },
     valueKey: string,
-    docId: number
+    docId: number,
   ): PostingDocIdsMutationInput {
     if (input.entityType === "product") {
       return {
@@ -1206,7 +1166,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
   private docIdValuesSql(docIds: readonly number[]) {
     return sql.join(
       docIds.map((docId) => sql`(${docId}::int)`),
-      sql`, `
+      sql`, `,
     );
   }
 
@@ -1215,15 +1175,11 @@ export class ListingPostingBitmapRepository extends BaseRepository {
       eq(listingPostingBitmap.storeId, this.storeId),
       eq(listingPostingBitmap.entityType, key.entityType),
       eq(listingPostingBitmap.field, key.field),
-      eq(listingPostingBitmap.valueKey, key.valueKey)
+      eq(listingPostingBitmap.valueKey, key.valueKey),
     );
   }
 
-  private serializedKey(key: {
-    entityType: string;
-    field: string;
-    valueKey: string;
-  }): string {
+  private serializedKey(key: { entityType: string; field: string; valueKey: string }): string {
     return `${key.entityType}\u0000${key.field}\u0000${key.valueKey}`;
   }
 }

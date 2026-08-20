@@ -1,7 +1,4 @@
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { GraphQLError } from "graphql";
 import type {
@@ -69,10 +66,9 @@ export class ProductComponentConfigurationResolver extends CatalogType<
   ResolvedConfiguration
 > {
   async $preload(): Promise<ResolvedConfiguration> {
-    const configurationId =
-      await this.$ctx.loaders.componentConfigurationIdByVariantId.load(
-        this.$props.variantId,
-      );
+    const configurationId = await this.$ctx.loaders.componentConfigurationIdByVariantId.load(
+      this.$props.variantId,
+    );
     if (!configurationId) {
       throw new PreloadNotFoundError(
         `Product component configuration for variant ${this.$props.variantId} not found`,
@@ -99,9 +95,7 @@ export class ProductComponentConfigurationResolver extends CatalogType<
     }
 
     const groupIds =
-      await this.$ctx.loaders.componentGroupIdsByConfigurationId.load(
-        configurationId,
-      );
+      await this.$ctx.loaders.componentGroupIdsByConfigurationId.load(configurationId);
     const groups = await Promise.all(
       groupIds.map((id) => this.$ctx.loaders.componentGroup.load(id)),
     );
@@ -126,14 +120,11 @@ export class ProductComponentConfigurationResolver extends CatalogType<
         await Promise.all(groupItems.map((item) => this.resolveItem(item)))
       ).filter((item): item is ResolvedItem => Boolean(item));
       if (resolvedItems.length === 0) continue;
-      const translation =
-        await this.$ctx.loaders.componentGroupTranslation.load(group.id);
+      const translation = await this.$ctx.loaders.componentGroupTranslation.load(group.id);
       resolvedGroups.push({
         source: group,
         title: translation?.name ?? "",
-        required:
-          (group.minSelection ?? 0) > 0 ||
-          groupItems.some((item) => item.groupRequired),
+        required: (group.minSelection ?? 0) > 0 || groupItems.some((item) => item.groupRequired),
         items: resolvedItems,
       });
     }
@@ -149,19 +140,13 @@ export class ProductComponentConfigurationResolver extends CatalogType<
       displayStyle: component.displayStyle,
       groups: resolvedGroups,
       componentsSubtotal: minorUnitsToMoney(componentsSubtotalMinor, currency),
-      totalPrice: minorUnitsToMoney(
-        (parentPrice ?? 0) + componentsSubtotalMinor,
-        currency,
-      ),
+      totalPrice: minorUnitsToMoney((parentPrice ?? 0) + componentsSubtotalMinor, currency),
     };
   }
 
   async id() {
     const value = await this.$get("id");
-    return this.encodeId(
-      value,
-      GlobalIdEntity.ProductComponentConfiguration,
-    );
+    return this.encodeId(value, GlobalIdEntity.ProductComponentConfiguration);
   }
 
   displayStyle() {
@@ -170,9 +155,7 @@ export class ProductComponentConfigurationResolver extends CatalogType<
 
   async groups() {
     const values = await this.$get("groups");
-    return values.map(
-      (value) => new ProductComponentGroupResolver(value, this.$ctx),
-    );
+    return values.map((value) => new ProductComponentGroupResolver(value, this.$ctx));
   }
 
   componentsSubtotal() {
@@ -189,10 +172,7 @@ export class ProductComponentConfigurationResolver extends CatalogType<
     for (const selection of this.$props.selections ?? []) {
       let itemId: string;
       try {
-        itemId = decodeGlobalIdByType(
-          selection.itemId,
-          GlobalIdEntity.ProductComponentItem,
-        );
+        itemId = decodeGlobalIdByType(selection.itemId, GlobalIdEntity.ProductComponentItem);
       } catch {
         throw badSelection("Invalid product component item ID");
       }
@@ -222,9 +202,7 @@ export class ProductComponentConfigurationResolver extends CatalogType<
         selected,
         required: false,
         groupRequired: false,
-        quantity: selected
-          ? (selection?.quantity ?? source.defaultQty ?? source.minQty ?? 1)
-          : 0,
+        quantity: selected ? (selection?.quantity ?? source.defaultQty ?? source.minQty ?? 1) : 0,
         priceRuleId: source.priceRuleId,
       };
     });
@@ -235,16 +213,11 @@ export class ProductComponentConfigurationResolver extends CatalogType<
     items: EffectiveItem[],
   ): Promise<void> {
     const ruleIds =
-      await this.$ctx.loaders.componentDependencyRuleIdsByConfigurationId.load(
-        configurationId,
-      );
+      await this.$ctx.loaders.componentDependencyRuleIdsByConfigurationId.load(configurationId);
     for (const ruleId of ruleIds) {
       const rule = await this.$ctx.loaders.componentDependencyRule.load(ruleId);
       if (!rule?.enabled || !(await this.ruleMatches(rule, items))) continue;
-      const actionIds =
-        await this.$ctx.loaders.componentDependencyActionIdsByRuleId.load(
-          rule.id,
-        );
+      const actionIds = await this.$ctx.loaders.componentDependencyActionIdsByRuleId.load(rule.id);
       const actions = await Promise.all(
         actionIds.map((id) => this.$ctx.loaders.componentDependencyAction.load(id)),
       );
@@ -254,34 +227,23 @@ export class ProductComponentConfigurationResolver extends CatalogType<
     }
   }
 
-  private async ruleMatches(
-    rule: DependencyRule,
-    items: EffectiveItem[],
-  ): Promise<boolean> {
-    const groupIds =
-      await this.$ctx.loaders.componentConditionGroupIdsByRuleId.load(rule.id);
+  private async ruleMatches(rule: DependencyRule, items: EffectiveItem[]): Promise<boolean> {
+    const groupIds = await this.$ctx.loaders.componentConditionGroupIdsByRuleId.load(rule.id);
     const results = await Promise.all(
       groupIds.map(async (groupId) => {
-        const group = await this.$ctx.loaders.componentConditionGroup.load(
-          groupId,
-        );
+        const group = await this.$ctx.loaders.componentConditionGroup.load(groupId);
         if (!group) return false;
-        const conditionIds =
-          await this.$ctx.loaders.componentConditionIdsByGroupId.load(groupId);
+        const conditionIds = await this.$ctx.loaders.componentConditionIdsByGroupId.load(groupId);
         const conditions = await Promise.all(
           conditionIds.map((id) => this.$ctx.loaders.componentCondition.load(id)),
         );
         const matches = conditions.map((condition) =>
           condition ? conditionMatches(condition, items) : false,
         );
-        return group.logicOperator === "OR"
-          ? matches.some(Boolean)
-          : matches.every(Boolean);
+        return group.logicOperator === "OR" ? matches.some(Boolean) : matches.every(Boolean);
       }),
     );
-    return rule.logicOperator === "OR"
-      ? results.some(Boolean)
-      : results.every(Boolean);
+    return rule.logicOperator === "OR" ? results.some(Boolean) : results.every(Boolean);
   }
 
   private async resolveItem(item: EffectiveItem): Promise<ResolvedItem | null> {
@@ -300,13 +262,12 @@ export class ProductComponentConfigurationResolver extends CatalogType<
     const selectedQuantity = item.selected ? item.quantity : 0;
     const totalPriceMinor = unitPriceMinor * selectedQuantity;
     const currency = this.$ctx.currency ?? this.$ctx.store.currencyCode;
-    const [itemTranslation, variantTranslation, productTranslation, inventory] =
-      await Promise.all([
-        this.$ctx.loaders.componentItemTranslation.load(item.source.id),
-        this.$ctx.loaders.variantTranslation.load(variantId),
-        this.$ctx.loaders.productTranslation.load(product.id),
-        inventoryState(this.$ctx, variantId),
-      ]);
+    const [itemTranslation, variantTranslation, productTranslation, inventory] = await Promise.all([
+      this.$ctx.loaders.componentItemTranslation.load(item.source.id),
+      this.$ctx.loaders.variantTranslation.load(variantId),
+      this.$ctx.loaders.productTranslation.load(product.id),
+      inventoryState(this.$ctx, variantId),
+    ]);
     const variantMedia = await this.$ctx.loaders.variantMedia.load(variantId);
     const productMedia = variantMedia.length
       ? []
@@ -322,10 +283,7 @@ export class ProductComponentConfigurationResolver extends CatalogType<
       productId: product.id,
       variantId,
       featuredMediaId:
-        item.source.featuredImageId ??
-        variantMedia[0]?.fileId ??
-        productMedia[0]?.fileId ??
-        null,
+        item.source.featuredImageId ?? variantMedia[0]?.fileId ?? productMedia[0]?.fileId ?? null,
       selected: item.selected,
       required: item.required,
       availableForSale: Boolean(basePrice != null && inventory.availableForSale),
@@ -345,10 +303,8 @@ export class ProductComponentConfigurationResolver extends CatalogType<
     const explicitSelection = (this.$props.selections ?? []).find((selection) => {
       try {
         return (
-          decodeGlobalIdByType(
-            selection.itemId,
-            GlobalIdEntity.ProductComponentItem,
-          ) === item.source.id
+          decodeGlobalIdByType(selection.itemId, GlobalIdEntity.ProductComponentItem) ===
+          item.source.id
         );
       } catch {
         return false;
@@ -356,13 +312,12 @@ export class ProductComponentConfigurationResolver extends CatalogType<
     });
     if (explicitSelection?.variantId) {
       try {
-        const id = decodeGlobalIdByType(
-          explicitSelection.variantId,
-          GlobalIdEntity.ProductVariant,
-        );
+        const id = decodeGlobalIdByType(explicitSelection.variantId, GlobalIdEntity.ProductVariant);
         const variant = await this.$ctx.loaders.variant.load(id);
         if (!variant || variant.productId !== item.source.refProductId) {
-          throw badSelection("Selected component variant does not belong to the referenced product");
+          throw badSelection(
+            "Selected component variant does not belong to the referenced product",
+          );
         }
         if (!(await this.variantAllowedForItem(item.source, id))) {
           throw badSelection("Selected component variant is not allowed for this item");
@@ -377,9 +332,7 @@ export class ProductComponentConfigurationResolver extends CatalogType<
     const ids = await this.$ctx.loaders.variantIds.load(item.source.refProductId);
     const variants = await this.$ctx.loaders.variant.loadMany(ids);
     const candidates = variants.flatMap((variant, index) =>
-      variant instanceof Error || !variant
-        ? []
-        : [{ id: ids[index]!, variant }],
+      variant instanceof Error || !variant ? [] : [{ id: ids[index]!, variant }],
     );
     candidates.sort((left, right) =>
       left.variant.isDefault === right.variant.isDefault
@@ -396,38 +349,25 @@ export class ProductComponentConfigurationResolver extends CatalogType<
     return null;
   }
 
-  private async variantAllowedForItem(
-    item: ComponentItem,
-    variantId: string,
-  ): Promise<boolean> {
-    const selectionIds =
-      await this.$ctx.loaders.componentOptionSelectionIdsByItemId.load(item.id);
+  private async variantAllowedForItem(item: ComponentItem, variantId: string): Promise<boolean> {
+    const selectionIds = await this.$ctx.loaders.componentOptionSelectionIdsByItemId.load(item.id);
     if (selectionIds.length === 0) return true;
     const links = await this.$ctx.loaders.variantSelectedOptions.load(variantId);
 
     for (const selectionId of selectionIds) {
-      const selection =
-        await this.$ctx.loaders.componentOptionSelection.load(selectionId);
+      const selection = await this.$ctx.loaders.componentOptionSelection.load(selectionId);
       if (!selection) return false;
       const valueIds =
-        await this.$ctx.loaders.componentOptionValueSelectionIdsBySelectionId.load(
-          selectionId,
-        );
+        await this.$ctx.loaders.componentOptionValueSelectionIdsBySelectionId.load(selectionId);
       const values = await Promise.all(
-        valueIds.map((id) =>
-          this.$ctx.loaders.componentOptionValueSelection.load(id),
-        ),
+        valueIds.map((id) => this.$ctx.loaders.componentOptionValueSelection.load(id)),
       );
       const allowedIds = new Set(
         values.flatMap((value) =>
-          value?.status === "SELECTED" && value.refOptionValueId
-            ? [value.refOptionValueId]
-            : [],
+          value?.status === "SELECTED" && value.refOptionValueId ? [value.refOptionValueId] : [],
         ),
       );
-      const link = links.find(
-        (candidate) => candidate.optionId === selection.refOptionId,
-      );
+      const link = links.find((candidate) => candidate.optionId === selection.refOptionId);
       if (!link?.optionValueId) return false;
       if (allowedIds.size > 0 && !allowedIds.has(link.optionValueId)) {
         return false;
@@ -452,16 +392,11 @@ export class ProductComponentConfigurationResolver extends CatalogType<
 
   private async templatePriceRuleId(item: ComponentItem): Promise<string | null> {
     if (!item.pricingTemplateId) return null;
-    const template = await this.$ctx.loaders.componentPricingTemplate.load(
-      item.pricingTemplateId,
-    );
+    const template = await this.$ctx.loaders.componentPricingTemplate.load(item.pricingTemplateId);
     return template?.priceRuleId ?? null;
   }
 
-  private async applyPriceRule(
-    ruleId: string | null,
-    baseMinor: number,
-  ): Promise<number> {
+  private async applyPriceRule(ruleId: string | null, baseMinor: number): Promise<number> {
     if (!ruleId) return baseMinor;
     const rule = await this.$ctx.loaders.componentPriceRule.load(ruleId);
     if (!rule || rule.strategy === "BASE") return baseMinor;
@@ -471,36 +406,24 @@ export class ProductComponentConfigurationResolver extends CatalogType<
     if (rule.strategy === "OVERRIDE") return adjustment;
     return Math.max(
       0,
-      rule.operation === "DECREASE"
-        ? baseMinor - adjustment
-        : baseMinor + adjustment,
+      rule.operation === "DECREASE" ? baseMinor - adjustment : baseMinor + adjustment,
     );
   }
 
-  private async ruleAdjustment(
-    rule: ComponentPriceRule,
-    baseMinor: number,
-  ): Promise<number> {
+  private async ruleAdjustment(rule: ComponentPriceRule, baseMinor: number): Promise<number> {
     if (rule.valueType === "PERCENTAGE") {
-      const percentage =
-        await this.$ctx.loaders.componentPriceRulePercent.load(rule.id);
-      return Math.round(
-        (baseMinor * (percentage?.percentageBps ?? 0)) / 10_000,
-      );
+      const percentage = await this.$ctx.loaders.componentPriceRulePercent.load(rule.id);
+      return Math.round((baseMinor * (percentage?.percentageBps ?? 0)) / 10_000);
     }
     const currency = this.$ctx.currency ?? this.$ctx.store.currencyCode;
     const amounts = await this.$ctx.loaders.componentPriceRuleAmounts.load(rule.id);
     return amounts.find((amount) => amount.currency === currency)?.amountMinor ?? 0;
   }
-
 }
 
 class ProductComponentGroupResolver extends CatalogType<ResolvedGroup> {
   id() {
-    return this.encodeId(
-      this.$props.source.id,
-      GlobalIdEntity.ProductComponentGroup,
-    );
+    return this.encodeId(this.$props.source.id, GlobalIdEntity.ProductComponentGroup);
   }
 
   title() {
@@ -520,18 +443,13 @@ class ProductComponentGroupResolver extends CatalogType<ResolvedGroup> {
   }
 
   items() {
-    return this.$props.items.map(
-      (item) => new ProductComponentItemResolver(item, this.$ctx),
-    );
+    return this.$props.items.map((item) => new ProductComponentItemResolver(item, this.$ctx));
   }
 }
 
 class ProductComponentItemResolver extends CatalogType<ResolvedItem> {
   id() {
-    return this.encodeId(
-      this.$props.id,
-      GlobalIdEntity.ProductComponentItem,
-    );
+    return this.encodeId(this.$props.id, GlobalIdEntity.ProductComponentItem);
   }
 
   title() {
@@ -547,9 +465,7 @@ class ProductComponentItemResolver extends CatalogType<ResolvedItem> {
   }
 
   featuredMedia() {
-    return this.$props.featuredMediaId
-      ? mediaReference(this.$props.featuredMediaId)
-      : null;
+    return this.$props.featuredMediaId ? mediaReference(this.$props.featuredMediaId) : null;
   }
 
   selected() {

@@ -167,9 +167,7 @@ export class MemberRoleChangeWorkflow extends OrganizationAccessWorkflow {
   }
 
   @WorkflowStep()
-  private execute(
-    input: MemberRoleChangeParams,
-  ): Promise<MemberRoleChangeResult> {
+  private execute(input: MemberRoleChangeParams): Promise<MemberRoleChangeResult> {
     return this.kernel.runScript(MemberRoleChangeScript, input);
   }
 }
@@ -186,16 +184,12 @@ export class MemberAccessRemoveWorkflow extends OrganizationAccessWorkflow {
     action: "admin",
     organizationId: (_self, input) => input.organizationId,
   })
-  async run(
-    input: MemberAccessRemoveParams,
-  ): Promise<MemberAccessRemoveResult> {
+  async run(input: MemberAccessRemoveParams): Promise<MemberAccessRemoveResult> {
     return this.execute(input);
   }
 
   @WorkflowStep()
-  private execute(
-    input: MemberAccessRemoveParams,
-  ): Promise<MemberAccessRemoveResult> {
+  private execute(input: MemberAccessRemoveParams): Promise<MemberAccessRemoveResult> {
     return this.kernel.runScript(MemberAccessRemoveScript, input);
   }
 }

@@ -6,15 +6,15 @@
 
 ### Ключевые изменения API
 
-| Аспект                    | Было                      | Станет                                                     |
-| ------------------------- | ------------------------- | ---------------------------------------------------------- |
-| Script return             | `{ entity, userErrors }`  | `{ result, changes, userErrors }`                          |
-| Variant pricing           | `VariantSetPricingScript` | Только price (amount/compareAt), без cost                  |
-| Variant dimensions        | `VariantSetDimensionsScript` | Только dimensions (width/height/length)                 |
-| Variant stock/sku/weight/cost | Разные скрипты        | 1 unified `VariantSetInventoryScript` (stock+sku+weight+cost) |
-| Variant options           | Нет (только при создании) | Новый `VariantSetOptionsScript`                            |
-| Event emission            | Нет                       | Workflow эмитит `productUpdated` с partial snapshot        |
-| Concurrency               | Нет                       | Optimistic locking через revision                          |
+| Аспект                        | Было                         | Станет                                                        |
+| ----------------------------- | ---------------------------- | ------------------------------------------------------------- |
+| Script return                 | `{ entity, userErrors }`     | `{ result, changes, userErrors }`                             |
+| Variant pricing               | `VariantSetPricingScript`    | Только price (amount/compareAt), без cost                     |
+| Variant dimensions            | `VariantSetDimensionsScript` | Только dimensions (width/height/length)                       |
+| Variant stock/sku/weight/cost | Разные скрипты               | 1 unified `VariantSetInventoryScript` (stock+sku+weight+cost) |
+| Variant options               | Нет (только при создании)    | Новый `VariantSetOptionsScript`                               |
+| Event emission                | Нет                          | Workflow эмитит `productUpdated` с partial snapshot           |
+| Concurrency                   | Нет                          | Optimistic locking через revision                             |
 
 ---
 
@@ -178,10 +178,10 @@ export interface OptionLinkChanges {
 
 **Файл:** `services/inventory/src/scripts/product/ProductUpdateScript.ts`
 
-| Аспект      | Было                  | Станет                                            |
-| ----------- | --------------------- | ------------------------------------------------- |
-| Return type | `ProductUpdateResult` | `ScriptResult<Product, ProductIdentityChanges>`   |
-| Changes     | Нет                   | `{ handle?, title? }`                             |
+| Аспект      | Было                  | Станет                                          |
+| ----------- | --------------------- | ----------------------------------------------- |
+| Return type | `ProductUpdateResult` | `ScriptResult<Product, ProductIdentityChanges>` |
+| Changes     | Нет                   | `{ handle?, title? }`                           |
 
 **Изменения:**
 
@@ -214,10 +214,10 @@ type ProductUpdateResult = ScriptResult<Product, ProductIdentityChanges>;
 
 **Создать:** `services/inventory/src/scripts/product/ProductSetContentScript.ts`
 
-| Аспект      | Было | Станет                                     |
-| ----------- | ---- | ------------------------------------------ |
-| Return type | N/A  | `ScriptResult<Product, ContentChanges>`    |
-| Changes     | N/A  | `{ description?, excerpt? }`               |
+| Аспект      | Было | Станет                                  |
+| ----------- | ---- | --------------------------------------- |
+| Return type | N/A  | `ScriptResult<Product, ContentChanges>` |
+| Changes     | N/A  | `{ description?, excerpt? }`            |
 
 **Новый интерфейс:**
 
@@ -249,9 +249,9 @@ type ProductSetContentResult = ScriptResult<Product, ContentChanges>;
 
 **Создать:** `services/inventory/src/scripts/product/ProductSetSeoScript.ts`
 
-| Аспект      | Было | Станет                                |
-| ----------- | ---- | ------------------------------------- |
-| Return type | N/A  | `ScriptResult<Product, SeoChanges>`   |
+| Аспект      | Было | Станет                                     |
+| ----------- | ---- | ------------------------------------------ |
+| Return type | N/A  | `ScriptResult<Product, SeoChanges>`        |
 | Changes     | N/A  | `{ title?: string, description?: string }` |
 
 **Новый интерфейс:**
@@ -314,10 +314,10 @@ type ProductSetStatusResult = ScriptResult<Product, StatusChanges>;
 
 **Файл:** `services/inventory/src/scripts/product/ProductSetMediaScript.ts`
 
-| Аспект      | Было                    | Станет                                    |
-| ----------- | ----------------------- | ----------------------------------------- |
-| Input       | `fileIds`               | `fileIds` (без изменений)                 |
-| Return type | `ProductSetMediaResult` | `ScriptResult<Product, MediaChanges>`     |
+| Аспект      | Было                    | Станет                                |
+| ----------- | ----------------------- | ------------------------------------- |
+| Input       | `fileIds`               | `fileIds` (без изменений)             |
+| Return type | `ProductSetMediaResult` | `ScriptResult<Product, MediaChanges>` |
 
 **Изменения:**
 
@@ -335,12 +335,13 @@ type ProductSetMediaResult = ScriptResult<Product, MediaChanges>;
 
 **Файл:** `services/inventory/src/scripts/variant/VariantSetPricingScript.ts`
 
-**Изменения:** Только price (amountMinor, compareAtMinor). Cost перенесён в VariantSetInventoryScript.
+**Изменения:** Только price (amountMinor, compareAtMinor). Cost перенесён в
+VariantSetInventoryScript.
 
-| Аспект      | Было                      | Станет                                       |
-| ----------- | ------------------------- | -------------------------------------------- |
-| Input       | price только              | price только (без cost)                      |
-| Return type | `VariantSetPricingResult` | `ScriptResult<ItemPricing, PricingChanges>`  |
+| Аспект      | Было                      | Станет                                      |
+| ----------- | ------------------------- | ------------------------------------------- |
+| Input       | price только              | price только (без cost)                     |
+| Return type | `VariantSetPricingResult` | `ScriptResult<ItemPricing, PricingChanges>` |
 
 **Интерфейс:**
 
@@ -371,11 +372,11 @@ type VariantSetPricingResult = ScriptResult<ItemPricing, PricingChanges>;
 
 **Объединяет:** stock, sku, weight, и cost в один скрипт.
 
-| Аспект      | Было                        | Станет                                           |
-| ----------- | --------------------------- | ------------------------------------------------ |
-| Name        | Разные скрипты              | `VariantSetInventoryScript`                      |
-| Input       | Разные параметры            | `onHand`, `unavailable?`, `sku?`, `weight?`, `unitCostMinor?`, `costCurrency?` |
-| Return type | Разные типы                 | `ScriptResult<WarehouseStock, InventoryChanges>` |
+| Аспект      | Было             | Станет                                                                         |
+| ----------- | ---------------- | ------------------------------------------------------------------------------ |
+| Name        | Разные скрипты   | `VariantSetInventoryScript`                                                    |
+| Input       | Разные параметры | `onHand`, `unavailable?`, `sku?`, `weight?`, `unitCostMinor?`, `costCurrency?` |
+| Return type | Разные типы      | `ScriptResult<WarehouseStock, InventoryChanges>`                               |
 
 **Интерфейс:**
 
@@ -386,9 +387,9 @@ interface VariantSetInventoryParams {
   onHand: number;
   unavailable?: number;
   sku?: string | null;
-  weight?: number | null;        // в граммах
+  weight?: number | null; // в граммах
   unitCostMinor?: number | null; // себестоимость в minor units
-  costCurrency?: string | null;  // валюта себестоимости
+  costCurrency?: string | null; // валюта себестоимости
 }
 
 interface InventoryChanges {
@@ -412,14 +413,15 @@ type VariantSetInventoryResult = ScriptResult<WarehouseStock, InventoryChanges>;
 
 **Файл:** `services/inventory/src/scripts/variant/VariantSetDimensionsScript.ts`
 
-**Изменения:** Только dimensions (width, height, length). Weight перенесён в VariantSetInventoryScript.
+**Изменения:** Только dimensions (width, height, length). Weight перенесён в
+VariantSetInventoryScript.
 
 **Интерфейс:**
 
 ```typescript
 interface VariantSetDimensionsParams {
   variantId: string;
-  width: number;  // mm
+  width: number; // mm
   height: number; // mm
   length: number; // mm
 }
@@ -443,9 +445,9 @@ type VariantSetDimensionsResult = ScriptResult<VariantDimensions, DimensionsChan
 
 **Файл:** `services/inventory/src/scripts/variant/VariantSetMediaScript.ts`
 
-| Аспект      | Было                    | Станет                                  |
-| ----------- | ----------------------- | --------------------------------------- |
-| Return type | `VariantSetMediaResult` | `ScriptResult<Variant, MediaChanges>`   |
+| Аспект      | Было                    | Станет                                |
+| ----------- | ----------------------- | ------------------------------------- |
+| Return type | `VariantSetMediaResult` | `ScriptResult<Variant, MediaChanges>` |
 
 **Изменения:**
 
@@ -573,10 +575,7 @@ interface ProductUpdateWorkflowResult {
 **Файл:** `packages/events/src/types.ts`
 
 ```typescript
-interface ProductUpdatedEvent extends DomainEvent<
-  "productUpdated",
-  ProductUpdatedPayload
-> {}
+interface ProductUpdatedEvent extends DomainEvent<"productUpdated", ProductUpdatedPayload> {}
 
 interface ProductUpdatedPayload {
   productId: string;
@@ -652,13 +651,13 @@ input VariantInventoryInput {
   onHand: Int!
   unavailable: Int
   sku: String
-  weight: Int              # grams
-  unitCostMinor: BigInt    # cost in minor units
+  weight: Int # grams
+  unitCostMinor: BigInt # cost in minor units
   costCurrency: CurrencyCode # cost currency
 }
 
 input VariantDimensionsInput {
-  width: Int!  # mm
+  width: Int! # mm
   height: Int! # mm
   length: Int! # mm
 }
@@ -708,6 +707,7 @@ enum OperationType {
 Старые мутации (`variantSetSku`, `variantSetCost`, `variantSetStock`, `variantSetWeight`) удалены.
 
 Новое API:
+
 ```graphql
 type Mutation {
   # Product mutations
@@ -760,14 +760,14 @@ async productUpdate(
 
 Обновить для использования новых unified скриптов:
 
-| Старый opType          | Новый скрипт                                         |
-| ---------------------- | ---------------------------------------------------- |
-| `variantSetSku`        | `VariantSetInventoryScript` (с sku)                  |
-| `variantSetPricing`    | `VariantSetPricingScript` (price only)               |
-| `variantSetCost`       | `VariantSetInventoryScript` (с unitCostMinor)        |
-| `variantSetStock`      | `VariantSetInventoryScript` (с onHand/unavailable)   |
-| `variantSetWeight`     | `VariantSetInventoryScript` (с weight)               |
-| `variantSetDimensions` | `VariantSetDimensionsScript`                         |
+| Старый opType          | Новый скрипт                                       |
+| ---------------------- | -------------------------------------------------- |
+| `variantSetSku`        | `VariantSetInventoryScript` (с sku)                |
+| `variantSetPricing`    | `VariantSetPricingScript` (price only)             |
+| `variantSetCost`       | `VariantSetInventoryScript` (с unitCostMinor)      |
+| `variantSetStock`      | `VariantSetInventoryScript` (с onHand/unavailable) |
+| `variantSetWeight`     | `VariantSetInventoryScript` (с weight)             |
+| `variantSetDimensions` | `VariantSetDimensionsScript`                       |
 
 ### 8.2 Update BulkUpdateOpType Enum
 
@@ -808,10 +808,7 @@ if (params.slug && params.slug !== current.slug) {
   // Пересчитать handle для каждого
   for (const { variantId } of affectedVariantIds) {
     const newHandle = await buildVariantHandle(tx, variantId);
-    await tx
-      .update(variant)
-      .set({ handle: newHandle })
-      .where(eq(variant.id, variantId));
+    await tx.update(variant).set({ handle: newHandle }).where(eq(variant.id, variantId));
   }
 }
 ```
@@ -870,42 +867,42 @@ if (params.slug && params.slug !== current.slug) {
 
 ### To Create
 
-| File                                                | Description               |
-| --------------------------------------------------- | ------------------------- |
-| `src/scripts/types/ScriptResult.ts`                 | Base result type          |
-| `src/scripts/types/ProductChanges.ts`               | Changes types             |
-| `src/scripts/product/ProductSetContentScript.ts`    | Content update (new)      |
-| `src/scripts/product/ProductSetSeoScript.ts`        | SEO update (new)          |
-| `src/scripts/variant/VariantSetDimensionsScript.ts` | Dimensions only           |
+| File                                                | Description                   |
+| --------------------------------------------------- | ----------------------------- |
+| `src/scripts/types/ScriptResult.ts`                 | Base result type              |
+| `src/scripts/types/ProductChanges.ts`               | Changes types                 |
+| `src/scripts/product/ProductSetContentScript.ts`    | Content update (new)          |
+| `src/scripts/product/ProductSetSeoScript.ts`        | SEO update (new)              |
+| `src/scripts/variant/VariantSetDimensionsScript.ts` | Dimensions only               |
 | `src/scripts/variant/VariantSetInventoryScript.ts`  | Unified stock+sku+weight+cost |
-| `src/scripts/variant/VariantSetOptionsScript.ts`    | Options update            |
-| `src/scripts/variant/helpers/buildVariantHandle.ts` | Handle builder            |
-| `src/workflows/ProductUpdateWorkflow.ts`            | Main workflow             |
-| `src/workflows/dto/ProductUpdateWorkflowDto.ts`     | Workflow types            |
-| `drizzle/XXXX_add_revision_and_handle_unique.sql`   | DB migration              |
+| `src/scripts/variant/VariantSetOptionsScript.ts`    | Options update                |
+| `src/scripts/variant/helpers/buildVariantHandle.ts` | Handle builder                |
+| `src/workflows/ProductUpdateWorkflow.ts`            | Main workflow                 |
+| `src/workflows/dto/ProductUpdateWorkflowDto.ts`     | Workflow types                |
+| `drizzle/XXXX_add_revision_and_handle_unique.sql`   | DB migration                  |
 
 ### To Modify
 
-| File                                             | Changes                              |
-| ------------------------------------------------ | ------------------------------------ |
+| File                                             | Changes                               |
+| ------------------------------------------------ | ------------------------------------- |
 | `src/scripts/product/ProductUpdateScript.ts`     | Handle/title only, add changes return |
-| `src/scripts/product/ProductSetStatusScript.ts`  | Add changes, change action enum      |
-| `src/scripts/product/ProductSetMediaScript.ts`   | Add changes return                   |
-| `src/scripts/variant/VariantSetPricingScript.ts` | Add changes return (price only) |
-| `src/scripts/variant/VariantSetMediaScript.ts`   | Add changes return              |
-| `src/scripts/option/OptionValueUpdateScript.ts`  | Rebuild variant handles         |
-| `src/repositories/models/products.ts`            | Add revision column             |
-| `src/repositories/models/variants.ts`            | Add handle unique constraint    |
-| `src/resolvers/admin/MutationResolver.ts`        | Add productUpdate mutation      |
-| `src/workflows/BulkEditOperationWorkflow.ts`     | Use new scripts                 |
-| `src/api/graphql-admin/schema/product.graphql`   | New types, deprecations         |
-| `src/api/graphql-admin/schema/variant.graphql`   | Deprecations                    |
-| `packages/events/src/types.ts`                   | ProductUpdatedEvent             |
+| `src/scripts/product/ProductSetStatusScript.ts`  | Add changes, change action enum       |
+| `src/scripts/product/ProductSetMediaScript.ts`   | Add changes return                    |
+| `src/scripts/variant/VariantSetPricingScript.ts` | Add changes return (price only)       |
+| `src/scripts/variant/VariantSetMediaScript.ts`   | Add changes return                    |
+| `src/scripts/option/OptionValueUpdateScript.ts`  | Rebuild variant handles               |
+| `src/repositories/models/products.ts`            | Add revision column                   |
+| `src/repositories/models/variants.ts`            | Add handle unique constraint          |
+| `src/resolvers/admin/MutationResolver.ts`        | Add productUpdate mutation            |
+| `src/workflows/BulkEditOperationWorkflow.ts`     | Use new scripts                       |
+| `src/api/graphql-admin/schema/product.graphql`   | New types, deprecations               |
+| `src/api/graphql-admin/schema/variant.graphql`   | Deprecations                          |
+| `packages/events/src/types.ts`                   | ProductUpdatedEvent                   |
 
 ### Removed (Cleanup Complete ✅)
 
-| File                                            | Status                                |
-| ----------------------------------------------- | ------------------------------------- |
+| File                                            | Status                                            |
+| ----------------------------------------------- | ------------------------------------------------- |
 | `src/scripts/variant/VariantSetCostScript.ts`   | ✅ Removed, merged into VariantSetInventoryScript |
 | `src/scripts/variant/VariantSetSkuScript.ts`    | ✅ Removed, merged into VariantSetInventoryScript |
 | `src/scripts/variant/VariantSetStockScript.ts`  | ✅ Removed, merged into VariantSetInventoryScript |
@@ -986,14 +983,14 @@ if (params.slug && params.slug !== current.slug) {
 
 ## Progress
 
-| Stage      | Status      | Progress |
-| ---------- | ----------- | -------- |
-| Foundation | Completed   | 7/7      |
-| Product    | Completed   | 5/5      |
-| Variant    | Completed   | 5/5      |
-| Workflow   | Completed   | 3/3      |
-| GraphQL    | Completed   | 10/10    |
-| Integration| Completed   | 3/3      |
-| Testing    | In Progress | 2/4      |
-| Cleanup    | In Progress | 5/6      |
-| **Total**  | **93%**     | **38/41** |
+| Stage       | Status      | Progress  |
+| ----------- | ----------- | --------- |
+| Foundation  | Completed   | 7/7       |
+| Product     | Completed   | 5/5       |
+| Variant     | Completed   | 5/5       |
+| Workflow    | Completed   | 3/3       |
+| GraphQL     | Completed   | 10/10     |
+| Integration | Completed   | 3/3       |
+| Testing     | In Progress | 2/4       |
+| Cleanup     | In Progress | 5/6       |
+| **Total**   | **93%**     | **38/41** |

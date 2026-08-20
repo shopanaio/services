@@ -1,15 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import type {
-  DomainEvent,
-  EventHandlerDelivery,
-  EventHandlerResponse,
-} from "@shopana/events";
-import {
-  DBOS,
-  InjectBroker,
-  ServiceBroker,
-  type BrokerCallContext,
-} from "@shopana/shared-kernel";
+import type { DomainEvent, EventHandlerDelivery, EventHandlerResponse } from "@shopana/events";
+import { DBOS, InjectBroker, ServiceBroker, type BrokerCallContext } from "@shopana/shared-kernel";
 import { TemplateDefinitionRegistry } from "../infrastructure/templates/TemplateDefinitionRegistry.js";
 import type { NotificationSourceEvent } from "../workflows/types.js";
 
@@ -20,13 +11,11 @@ export interface NotificationHandlerParams {
 
 @Injectable()
 export class NotificationIngressService {
-  constructor(
-    @InjectBroker("notifications") private readonly broker: ServiceBroker
-  ) {}
+  constructor(@InjectBroker("notifications") private readonly broker: ServiceBroker) {}
 
   async enqueue(
     params: NotificationHandlerParams,
-    callContext: BrokerCallContext
+    callContext: BrokerCallContext,
   ): Promise<EventHandlerResponse<{ workflowId: string }>> {
     try {
       const event = this.validate(params, callContext);
@@ -47,7 +36,7 @@ export class NotificationIngressService {
             eventType: event.eventType,
             source: event.source,
           },
-        }
+        },
       );
       return { success: true, data: { workflowId: started.workflowId } };
     } catch (error) {
@@ -56,12 +45,8 @@ export class NotificationIngressService {
         success: false,
         error: {
           message:
-            error instanceof Error
-              ? error.message
-              : "Failed to durably ingest notification event",
-          code: validation
-            ? "NOTIFICATION_EVENT_REJECTED"
-            : "NOTIFICATION_INGEST_START_FAILED",
+            error instanceof Error ? error.message : "Failed to durably ingest notification event",
+          code: validation ? "NOTIFICATION_EVENT_REJECTED" : "NOTIFICATION_INGEST_START_FAILED",
           retryable: !validation,
         },
       };
@@ -70,12 +55,12 @@ export class NotificationIngressService {
 
   private validate(
     params: NotificationHandlerParams,
-    callContext: BrokerCallContext
+    callContext: BrokerCallContext,
   ): NotificationSourceEvent {
     const { event } = params;
     if (callContext.caller.kind !== "event") {
       throw new NotificationIngressValidationError(
-        "Notification ingress requires a trusted event delivery"
+        "Notification ingress requires a trusted event delivery",
       );
     }
     const notification = event.payload.notification;
@@ -86,14 +71,10 @@ export class NotificationIngressService {
       notification.storeId.length === 0 ||
       !isRecord(notification.data)
     ) {
-      throw new NotificationIngressValidationError(
-        "Notification event snapshot is incomplete"
-      );
+      throw new NotificationIngressValidationError("Notification event snapshot is incomplete");
     }
     if (!params.delivery?.idempotencyKey) {
-      throw new NotificationIngressValidationError(
-        "Event handler delivery metadata is required"
-      );
+      throw new NotificationIngressValidationError("Event handler delivery metadata is required");
     }
     return event as NotificationSourceEvent;
   }

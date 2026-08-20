@@ -1,9 +1,4 @@
-import {
-  dateOperators,
-  enumOperators,
-  FilterType,
-  stringOperators,
-} from "@/layouts/filters";
+import { dateOperators, enumOperators, FilterType, stringOperators } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
 
 export const navigationFilterSchema: IFilterSchema[] = [

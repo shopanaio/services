@@ -110,9 +110,7 @@ export const BulkEditorModal: React.FC = () => {
           children: (
             <>
               Save
-              {hasChanges && (
-                <Tag className={styles.countTag}>{changesCount}</Tag>
-              )}
+              {hasChanges && <Tag className={styles.countTag}>{changesCount}</Tag>}
             </>
           ),
         },

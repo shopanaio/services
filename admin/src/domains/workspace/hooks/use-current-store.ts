@@ -43,9 +43,7 @@ interface UseCurrentStoreReturn {
  * }
  * ```
  */
-export function useCurrentStore(
-  options: UseCurrentStoreOptions = {}
-): UseCurrentStoreReturn {
+export function useCurrentStore(options: UseCurrentStoreOptions = {}): UseCurrentStoreReturn {
   const { skip = false } = options;
 
   const { data, loading, error, refetch } = useQuery<{

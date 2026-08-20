@@ -1,4 +1,6 @@
-"""A published category in the storefront catalog hierarchy."""
+"""
+A published category in the storefront catalog hierarchy.
+"""
 type Category implements Node @key(fields: "id") {
   id: ID!
   handle: String!
@@ -8,25 +10,17 @@ type Category implements Node @key(fields: "id") {
   seo: SEO!
   parent: Category
   ancestors: [Category!]!
-  children(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): CategoryConnection!
-  media(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): CategoryMediaConnection!
+  children(first: Int, after: Cursor, last: Int, before: Cursor): CategoryConnection!
+  media(first: Int, after: Cursor, last: Int, before: Cursor): CategoryMediaConnection!
   featuredMedia: Media
   publishedAt: DateTime!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
 
-"""A Relay connection to categories."""
+"""
+A Relay connection to categories.
+"""
 type CategoryConnection implements Connection {
   edges: [CategoryEdge!]!
   nodes: [Category!]!
@@ -34,7 +28,9 @@ type CategoryConnection implements Connection {
   totalCount: Int!
 }
 
-"""A category and its opaque position in a category connection."""
+"""
+A category and its opaque position in a category connection.
+"""
 type CategoryEdge {
   cursor: Cursor!
   node: Category!

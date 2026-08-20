@@ -1,8 +1,4 @@
-import {
-  BaseScript,
-  Transactional,
-  type UserError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
 import type { DiscountExternalReferencePatch } from "../../repositories/DiscountRepository.js";
 import type {
@@ -56,9 +52,7 @@ export class DiscountExternalReferenceCreateScript extends BaseScript<
         field: ["input", "metadata"],
       });
     }
-    if (
-      !(await this.repository.discount.getByIds([input.discountId])).length
-    ) {
+    if (!(await this.repository.discount.getByIds([input.discountId])).length) {
       errors.push({
         message: "Discount not found",
         code: "NOT_FOUND",
@@ -123,10 +117,9 @@ export class DiscountExternalReferenceUpdateScript extends BaseScript<
       });
     }
 
-    const current =
-      await this.repository.discount.findExternalReferenceById(
-        params.externalReferenceId,
-      );
+    const current = await this.repository.discount.findExternalReferenceById(
+      params.externalReferenceId,
+    );
     if (!current) {
       return errorResult({
         message: "External reference not found",
@@ -202,9 +195,7 @@ export class DiscountExternalReferenceUpdateScript extends BaseScript<
     const finalLastSyncedAt = hasOwn(patch, "lastSyncedAt")
       ? patch.lastSyncedAt
       : current.lastSyncedAt;
-    const finalLastError = hasOwn(patch, "lastError")
-      ? patch.lastError
-      : current.lastError;
+    const finalLastError = hasOwn(patch, "lastError") ? patch.lastError : current.lastError;
     if (finalStatus === "SYNCED" && !finalLastSyncedAt) {
       errors.push({
         message: "A synced external reference requires lastSyncedAt",
@@ -275,9 +266,7 @@ export class DiscountExternalReferenceDeleteScript extends BaseScript<
         field: ["input", "expectedUpdatedAt"],
       });
     }
-    const deleted = await this.repository.discount.deleteExternalReference(
-      params,
-    );
+    const deleted = await this.repository.discount.deleteExternalReference(params);
     if (deleted.status === "not_found") {
       return errorResult({
         message: "External reference not found",
@@ -380,10 +369,7 @@ function errorResult(error: UserError): { userErrors: UserError[] } {
 }
 
 function isDuplicate(error: unknown): boolean {
-  return (
-    isUniqueViolation(error, LOOKUP_UNIQUE) ||
-    isUniqueViolation(error, DISCOUNT_UNIQUE)
-  );
+  return isUniqueViolation(error, LOOKUP_UNIQUE) || isUniqueViolation(error, DISCOUNT_UNIQUE);
 }
 
 function hasOwn(input: object, field: PropertyKey): boolean {

@@ -17,7 +17,7 @@ export const vendorRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "vendor", tieBreaker: "id" }
+  { name: "vendor", tieBreaker: "id" },
 );
 
 export type VendorRelayInput = InferRelayInput<typeof vendorRelayQuery>;
@@ -56,24 +56,16 @@ export class VendorRepository extends BaseRepository {
       name: data.name,
     };
 
-    const result = await this.connection
-      .insert(vendor)
-      .values(newVendor)
-      .returning();
+    const result = await this.connection.insert(vendor).values(newVendor).returning();
 
     return result[0];
   }
 
-  async getConnection(
-    args: VendorRelayInput
-  ): Promise<VendorConnectionResult> {
+  async getConnection(args: VendorRelayInput): Promise<VendorConnectionResult> {
     const { where, orderBy, ...paginationArgs } = args;
 
     const mergedWhere: VendorRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, ...(where ? [where] : [])],
     };
 
     const executeInput: VendorRelayInput = {
@@ -108,11 +100,6 @@ export class VendorRepository extends BaseRepository {
     return this.connection
       .select()
       .from(vendor)
-      .where(
-        and(
-          eq(vendor.storeId, this.storeId),
-          inArray(vendor.id, [...vendorIds])
-        )
-      );
+      .where(and(eq(vendor.storeId, this.storeId), inArray(vendor.id, [...vendorIds])));
   }
 }

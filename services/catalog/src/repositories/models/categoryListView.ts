@@ -25,6 +25,6 @@ export const categoryListView = catalogSchema.view("category_list_view").as((qb)
     .from(category)
     .innerJoin(
       categoryTranslation,
-      sql`${categoryTranslation.storeId} = ${category.storeId} AND ${categoryTranslation.categoryId} = ${category.id}`
-    )
+      sql`${categoryTranslation.storeId} = ${category.storeId} AND ${categoryTranslation.categoryId} = ${category.id}`,
+    ),
 );

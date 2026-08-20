@@ -3,7 +3,11 @@
 import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Flex, Skeleton, Divider, App } from "antd";
-import { LuUsers as TeamOutlined, LuShield as SafetyOutlined, LuStore as ShopOutlined } from "react-icons/lu";
+import {
+  LuUsers as TeamOutlined,
+  LuShield as SafetyOutlined,
+  LuStore as ShopOutlined,
+} from "react-icons/lu";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { SettingsLayout } from "../../layout";
 import { DangerZone } from "../../shared";
@@ -27,19 +31,9 @@ import {
   useUpdateRole,
   useDeleteRole,
 } from "../../hooks";
-import type {
-  ApiRole,
-  ApiStore,
-  ApiRolePermissionInput,
-  CurrencyCode,
-} from "@/graphql/types";
+import type { ApiRole, ApiStore, ApiRolePermissionInput, CurrencyCode } from "@/graphql/types";
 import type { ModulePageProps } from "@/registry";
-import {
-  StoresSection,
-  MembersSection,
-  RolesSection,
-  OrganizationInfoHeader,
-} from "./components";
+import { StoresSection, MembersSection, RolesSection, OrganizationInfoHeader } from "./components";
 
 export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const router = useRouter();
@@ -51,16 +45,9 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const { push: pushRoleModal } = useRoleModal();
   const { push: pushCreateStoreModal } = useCreateStoreModal();
 
-  const {
-    organization,
-    loading: orgLoading,
-    refetch: refetchOrg,
-  } = useOrganization(orgName);
+  const { organization, loading: orgLoading, refetch: refetchOrg } = useOrganization(orgName);
 
-  const {
-    stores,
-    loading: storesLoading,
-  } = useStores({
+  const { stores, loading: storesLoading } = useStores({
     organizationId: organization?.id ?? "",
     skip: !organization?.id,
   });
@@ -76,15 +63,15 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
 
   const members = useMemo(
     () => organization?.membership?.members ?? [],
-    [organization?.membership?.members]
+    [organization?.membership?.members],
   );
   const roles = useMemo(
     () => organization?.membership?.roles ?? [],
-    [organization?.membership?.roles]
+    [organization?.membership?.roles],
   );
   const availableResources = useMemo(
     () => organization?.membership?.availableResources ?? [],
-    [organization?.membership?.availableResources]
+    [organization?.membership?.availableResources],
   );
 
   const memberCount = members.length;
@@ -101,11 +88,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
       slug: organization.name,
       currentLogo: organization.logo?.url ?? null,
       currentLogoId: organization.logo?.id ?? null,
-      onSave: async (values: {
-        displayName: string;
-        slug: string;
-        logoId: string | null;
-      }) => {
+      onSave: async (values: { displayName: string; slug: string; logoId: string | null }) => {
         // Update organization info
         const { userErrors } = await updateOrganization({
           id: organization.id,
@@ -153,7 +136,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
     (store: ApiStore) => {
       router.push(`/${organization?.name}/${store.name}/products`);
     },
-    [router, organization?.name]
+    [router, organization?.name],
   );
 
   const handleCreateStore = useCallback(() => {
@@ -203,7 +186,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
         organization.id,
         member.user.id,
         "org",
-        roleName
+        roleName,
       );
 
       if (userErrors.length > 0) {
@@ -214,7 +197,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
       message.success("Member role updated");
       refetchOrg();
     },
-    [organization, members, changeMemberRole, refetchOrg]
+    [organization, members, changeMemberRole, refetchOrg],
   );
 
   const handleRemoveMember = useCallback(
@@ -223,10 +206,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
       const member = members.find((m) => m.id === memberId);
       if (!member?.user?.id) return;
 
-      const { userErrors } = await removeMember(
-        organization.id,
-        member.user.id
-      );
+      const { userErrors } = await removeMember(organization.id, member.user.id);
 
       if (userErrors.length > 0) {
         userErrors.forEach((err) => message.error(err.message));
@@ -236,7 +216,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
       message.success("Member removed");
       refetchOrg();
     },
-    [organization, members, removeMember, refetchOrg]
+    [organization, members, removeMember, refetchOrg],
   );
 
   const handleCreateRole = useCallback(() => {
@@ -306,7 +286,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
         },
       });
     },
-    [organization, pushRoleModal, updateRole, refetchOrg, availableResources]
+    [organization, pushRoleModal, updateRole, refetchOrg, availableResources],
   );
 
   const handleDeleteRole = useCallback(
@@ -332,7 +312,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
         },
       });
     },
-    [organization, roles, deleteRole, refetchOrg]
+    [organization, roles, deleteRole, refetchOrg],
   );
 
   if (loading && !organization) {
@@ -353,10 +333,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
 
   return (
     <SettingsLayout name="organization">
-      <OrganizationInfoHeader
-        organization={organization}
-        onEdit={handleEditOrganization}
-      >
+      <OrganizationInfoHeader organization={organization} onEdit={handleEditOrganization}>
         <Divider style={{ marginTop: 16, marginBottom: 12 }} />
         <Flex gap={16}>
           <KPITile

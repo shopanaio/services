@@ -32,9 +32,7 @@ export function useUpdateDiscount() {
         const payload = result.data?.pricingMutation.discountUpdate;
         const operationResults = payload?.operationResults ?? [];
         const userErrors = payload?.userErrors ?? [];
-        const operationErrors = operationResults.flatMap(
-          (operation) => operation.errors,
-        );
+        const operationErrors = operationResults.flatMap((operation) => operation.errors);
 
         return {
           discount: payload?.discount ?? null,
@@ -44,9 +42,7 @@ export function useUpdateDiscount() {
         };
       } catch (caughtError) {
         const message =
-          caughtError instanceof Error
-            ? caughtError.message
-            : "An unexpected error occurred";
+          caughtError instanceof Error ? caughtError.message : "An unexpected error occurred";
         const userErrors = [{ message, code: "UNEXPECTED_ERROR" }];
 
         return {

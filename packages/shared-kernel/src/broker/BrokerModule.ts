@@ -1,8 +1,8 @@
-import { DynamicModule, Module } from '@nestjs/common';
-import { ActionRegistry } from './ActionRegistry';
-import { ServiceBroker, type ServiceBrokerOptions } from './ServiceBroker';
-import { SERVICE_BROKER, SERVICE_NAME, getBrokerToken } from './tokens';
-import { WORKFLOW_REGISTRY, type WorkflowRegistry } from '@shopana/dbos';
+import { DynamicModule, Module } from "@nestjs/common";
+import { ActionRegistry } from "./ActionRegistry";
+import { ServiceBroker, type ServiceBrokerOptions } from "./ServiceBroker";
+import { SERVICE_BROKER, SERVICE_NAME, getBrokerToken } from "./tokens";
+import { WORKFLOW_REGISTRY, type WorkflowRegistry } from "@shopana/dbos";
 
 export interface BrokerFeatureOptions extends ServiceBrokerOptions {}
 
@@ -31,25 +31,15 @@ export class BrokerModule {
         {
           // Unique token - prevents conflicts between services
           provide: brokerToken,
-          useFactory: (
-            registry: ActionRegistry,
-            workflowRegistry: WorkflowRegistry | null
-          ) => {
+          useFactory: (registry: ActionRegistry, workflowRegistry: WorkflowRegistry | null) => {
             let broker = brokerInstances.get(serviceName);
             if (!broker) {
-              broker = new ServiceBroker(
-                registry,
-                { serviceName },
-                workflowRegistry ?? null
-              );
+              broker = new ServiceBroker(registry, { serviceName }, workflowRegistry ?? null);
               brokerInstances.set(serviceName, broker);
             }
             return broker;
           },
-          inject: [
-            ActionRegistry,
-            { token: WORKFLOW_REGISTRY, optional: true },
-          ],
+          inject: [ActionRegistry, { token: WORKFLOW_REGISTRY, optional: true }],
         },
         {
           // Alias for backward compatibility (deprecated)

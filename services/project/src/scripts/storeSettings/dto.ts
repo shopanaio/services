@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  DimensionUnitEnum,
-  WeightUnitEnum,
-} from "../../repositories/models/index.js";
+import { DimensionUnitEnum, WeightUnitEnum } from "../../repositories/models/index.js";
 import { timezoneSchema } from "../shared/timezoneSchema.js";
 import { storeNameSchema } from "../store/dto/StoreCreateDto.js";
 import type { StorePayload } from "../store/dto/shared.js";
@@ -12,8 +9,7 @@ const contextSchema = z.object({
   organizationId: z.string().uuid("Invalid organization ID"),
 });
 
-const nullableTrimmedString = (max: number) =>
-  z.string().trim().min(1).max(max).nullable();
+const nullableTrimmedString = (max: number) => z.string().trim().min(1).max(max).nullable();
 
 export const storeContactDetailsUpdateSchema = contextSchema.extend({
   name: z.string().trim().min(1).max(255),
@@ -61,36 +57,30 @@ export const storeBrandUpdateSchema = contextSchema
     defaultLogoMediaId: z.string().uuid().nullable(),
     squareLogoMediaId: z.string().uuid().nullable(),
     coverImageMediaId: z.string().uuid().nullable(),
-    primaryColor: z
-      .string()
-      .regex(/^#[0-9A-Fa-f]{6}$/, "Invalid primary color"),
-    secondaryColor: z
-      .string()
-      .regex(/^#[0-9A-Fa-f]{6}$/, "Invalid secondary color"),
+    primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid primary color"),
+    secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid secondary color"),
     slogan: nullableTrimmedString(255),
     shortDescription: nullableTrimmedString(500),
     socialLinks: z.array(storeSocialLinkSchema).max(20),
   })
   .refine(
     ({ socialLinks }) =>
-      new Set(socialLinks.map(({ platform }) => platform)).size ===
-      socialLinks.length,
+      new Set(socialLinks.map(({ platform }) => platform)).size === socialLinks.length,
     { message: "Social platforms must be unique", path: ["socialLinks"] },
   );
 
 export const storeOrderProcessingUpdateSchema = contextSchema.extend({
-  orderNumberPrefix: z.string().max(16).regex(/^[^\u0000-\u001F\u007F]*$/),
+  orderNumberPrefix: z
+    .string()
+    .max(16)
+    .regex(/^[^\u0000-\u001F\u007F]*$/),
   orderNumberSuffix: z
     .string()
     .max(16)
     .regex(/^[^\u0000-\u001F\u007F]*$/)
     .nullable(),
   requireCheckoutConfirmation: z.boolean(),
-  automaticFulfillmentMode: z.enum([
-    "all_line_items",
-    "gift_cards_only",
-    "disabled",
-  ]),
+  automaticFulfillmentMode: z.enum(["all_line_items", "gift_cards_only", "disabled"]),
   automaticallyArchiveOrders: z.boolean(),
 });
 
@@ -131,18 +121,10 @@ export const storeCurrencySettingsUpdateSchema = contextSchema
     },
   );
 
-export type StoreContactDetailsUpdateParams = z.infer<
-  typeof storeContactDetailsUpdateSchema
->;
+export type StoreContactDetailsUpdateParams = z.infer<typeof storeContactDetailsUpdateSchema>;
 export type StoreAddressUpdateParams = z.infer<typeof storeAddressUpdateSchema>;
 export type StoreBrandUpdateParams = z.infer<typeof storeBrandUpdateSchema>;
-export type StoreOrderProcessingUpdateParams = z.infer<
-  typeof storeOrderProcessingUpdateSchema
->;
-export type StoreDefaultsUpdateParams = z.infer<
-  typeof storeDefaultsUpdateSchema
->;
-export type StoreCurrencySettingsUpdateParams = z.infer<
-  typeof storeCurrencySettingsUpdateSchema
->;
+export type StoreOrderProcessingUpdateParams = z.infer<typeof storeOrderProcessingUpdateSchema>;
+export type StoreDefaultsUpdateParams = z.infer<typeof storeDefaultsUpdateSchema>;
+export type StoreCurrencySettingsUpdateParams = z.infer<typeof storeCurrencySettingsUpdateSchema>;
 export type StoreSettingsUpdateResult = StorePayload;

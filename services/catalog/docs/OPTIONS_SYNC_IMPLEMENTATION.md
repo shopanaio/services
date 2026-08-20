@@ -1,10 +1,13 @@
 # Options Sync Implementation Guide
 
-This document describes how to implement `OptionsSyncScript` following the same pattern as `FeaturesSyncScript`.
+This document describes how to implement `OptionsSyncScript` following the same pattern as
+`FeaturesSyncScript`.
 
 ## Overview
 
-The Options Sync mutation allows complete synchronization of product options in a single transactional operation. Unlike the current CRUD approach (create/update/delete), the sync pattern provides:
+The Options Sync mutation allows complete synchronization of product options in a single
+transactional operation. Unlike the current CRUD approach (create/update/delete), the sync pattern
+provides:
 
 - **Atomic updates**: All changes succeed or fail together
 - **Simplified client logic**: Send the complete desired state
@@ -52,9 +55,9 @@ scripts/option/
 ```typescript
 // Features have hierarchy (tree structure)
 interface FeatureSyncItemInput {
-  id?: string;           // null = create, provided = update
-  index: number[];       // Tree position: [0], [1], [0,0], etc.
-  isGroup: boolean;      // Groups contain children, not values
+  id?: string; // null = create, provided = update
+  index: number[]; // Tree position: [0], [1], [0,0], etc.
+  isGroup: boolean; // Groups contain children, not values
   name: string;
   values?: FeatureValueSyncInput[];
 }
@@ -65,24 +68,24 @@ interface FeatureSyncItemInput {
 ```typescript
 // Options are flat - no hierarchy
 interface OptionSyncItemInput {
-  id?: string;              // null = create, provided = update
-  index: number;            // Position: 0, 1, 2... (simple integer)
-  slug: string;             // URL-friendly identifier
-  name: string;             // Display name (translated)
-  displayType: string;      // 'DROPDOWN' | 'SWATCH' | 'BUTTONS'
+  id?: string; // null = create, provided = update
+  index: number; // Position: 0, 1, 2... (simple integer)
+  slug: string; // URL-friendly identifier
+  name: string; // Display name (translated)
+  displayType: string; // 'DROPDOWN' | 'SWATCH' | 'BUTTONS'
   values: OptionValueSyncInput[];
 }
 
 interface OptionValueSyncInput {
-  id?: string;              // null = create, provided = update
-  index: number;            // Position within option
-  slug: string;             // URL-friendly identifier
-  name: string;             // Display name (translated)
+  id?: string; // null = create, provided = update
+  index: number; // Position within option
+  slug: string; // URL-friendly identifier
+  name: string; // Display name (translated)
   swatch?: OptionSwatchInput | null;
 }
 
 interface OptionSwatchInput {
-  swatchType: string;       // 'COLOR' | 'GRADIENT' | 'IMAGE'
+  swatchType: string; // 'COLOR' | 'GRADIENT' | 'IMAGE'
   colorOne?: string;
   colorTwo?: string;
   fileId?: string;
@@ -101,19 +104,29 @@ Add to `options.graphql`:
 Input for syncing a single option value.
 """
 input ProductOptionValueSyncInput {
-  """Existing value ID (null = create new)."""
+  """
+  Existing value ID (null = create new).
+  """
   id: ID
 
-  """Position within the option (0, 1, 2...)."""
+  """
+  Position within the option (0, 1, 2...).
+  """
   index: Int!
 
-  """The URL-friendly slug for the value."""
+  """
+  The URL-friendly slug for the value.
+  """
   slug: String!
 
-  """Display name."""
+  """
+  Display name.
+  """
   name: String!
 
-  """The swatch for this value (null to remove)."""
+  """
+  The swatch for this value (null to remove).
+  """
   swatch: ProductOptionSwatchInput
 }
 
@@ -121,22 +134,34 @@ input ProductOptionValueSyncInput {
 Input for syncing a single option.
 """
 input ProductOptionSyncItemInput {
-  """Existing option ID (null = create new)."""
+  """
+  Existing option ID (null = create new).
+  """
   id: ID
 
-  """Position in the options list (0, 1, 2...)."""
+  """
+  Position in the options list (0, 1, 2...).
+  """
   index: Int!
 
-  """The URL-friendly slug for the option."""
+  """
+  The URL-friendly slug for the option.
+  """
   slug: String!
 
-  """Display name."""
+  """
+  Display name.
+  """
   name: String!
 
-  """The display type for UI rendering."""
+  """
+  The display type for UI rendering.
+  """
   displayType: OptionDisplayType!
 
-  """The values for this option."""
+  """
+  The values for this option.
+  """
   values: [ProductOptionValueSyncInput!]!
 }
 
@@ -144,10 +169,14 @@ input ProductOptionSyncItemInput {
 Input for syncing all product options.
 """
 input ProductOptionsSyncInput {
-  """The product to sync options for."""
+  """
+  The product to sync options for.
+  """
   productId: ID!
 
-  """Complete list of options (replaces existing)."""
+  """
+  Complete list of options (replaces existing).
+  """
   options: [ProductOptionSyncItemInput!]!
 }
 
@@ -155,13 +184,19 @@ input ProductOptionsSyncInput {
 Payload for options sync mutation.
 """
 type ProductOptionsSyncPayload {
-  """The product with updated options."""
+  """
+  The product with updated options.
+  """
   product: Product
 
-  """All synced options with final IDs."""
+  """
+  All synced options with final IDs.
+  """
   options: [ProductOption!]!
 
-  """List of errors that occurred."""
+  """
+  List of errors that occurred.
+  """
   userErrors: [GenericUserError!]!
 }
 ```
@@ -219,18 +254,25 @@ export interface OptionSyncResult extends OptionResultBase {
 ```typescript
 import { z } from "zod";
 
-const OptionSwatchInputSchema = z.object({
-  swatchType: z.enum(["COLOR", "GRADIENT", "IMAGE"]),
-  colorOne: z.string().optional(),
-  colorTwo: z.string().optional(),
-  fileId: z.string().uuid().optional(),
-  metadata: z.unknown().optional(),
-}).optional().nullable();
+const OptionSwatchInputSchema = z
+  .object({
+    swatchType: z.enum(["COLOR", "GRADIENT", "IMAGE"]),
+    colorOne: z.string().optional(),
+    colorTwo: z.string().optional(),
+    fileId: z.string().uuid().optional(),
+    metadata: z.unknown().optional(),
+  })
+  .optional()
+  .nullable();
 
 const OptionValueSyncInputSchema = z.object({
   id: z.string().uuid().optional(),
   index: z.number().int().min(0),
-  slug: z.string().min(1).max(255).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(1)
+    .max(255)
+    .regex(/^[a-z0-9-]+$/),
   name: z.string().min(1).max(255),
   swatch: OptionSwatchInputSchema,
 });
@@ -238,7 +280,11 @@ const OptionValueSyncInputSchema = z.object({
 const OptionSyncItemSchema = z.object({
   id: z.string().uuid().optional(),
   index: z.number().int().min(0),
-  slug: z.string().min(1).max(255).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(1)
+    .max(255)
+    .regex(/^[a-z0-9-]+$/),
   name: z.string().min(1).max(255),
   displayType: z.enum(["DROPDOWN", "SWATCH", "BUTTONS"]),
   values: z.array(OptionValueSyncInputSchema).min(1, "Option must have at least one value"),
@@ -381,7 +427,7 @@ export interface DbValidationContext {
 export async function loadDbContext(
   repository: OptionRepository,
   productId: string,
-  options: ValidatedOptionInput[]
+  options: ValidatedOptionInput[],
 ): Promise<DbValidationContext> {
   const optionIds = options.flatMap((o) => (o.id ? [o.id] : []));
   const existing = await repository.findByIds(productId, optionIds);
@@ -393,9 +439,7 @@ export async function loadDbContext(
 
   return {
     existingById: new Map(existing.map((o) => [o.id, { id: o.id, productId: o.productId }])),
-    valueIdsByOptionId: new Map(
-      Array.from(valueIdMap.entries()).map(([k, v]) => [k, new Set(v)])
-    ),
+    valueIdsByOptionId: new Map(Array.from(valueIdMap.entries()).map(([k, v]) => [k, new Set(v)])),
   };
 }
 
@@ -404,7 +448,7 @@ export async function loadDbContext(
  */
 export function validateDatabase(
   options: ValidatedOptionInput[],
-  ctx: DbValidationContext
+  ctx: DbValidationContext,
 ): UserError[] {
   const errors: UserError[] = [];
 
@@ -460,7 +504,12 @@ export function validateDatabase(
 
 ```typescript
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type { OptionSyncParams, OptionSyncResult, OptionValueSyncInput, OptionSwatchInput } from "./dto/index.js";
+import type {
+  OptionSyncParams,
+  OptionSyncResult,
+  OptionValueSyncInput,
+  OptionSwatchInput,
+} from "./dto/index.js";
 import {
   OptionSyncInputSchema,
   type ValidatedOptionInput,
@@ -539,17 +588,14 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
       this.repository.option.findByProductId(productId),
     ]);
 
-    this.logger.info(
-      { productId, optionCount: syncedOptions.length },
-      "Product options synced"
-    );
+    this.logger.info({ productId, optionCount: syncedOptions.length }, "Product options synced");
 
     return { product: product ?? undefined, options: syncedOptions, userErrors: [] };
   }
 
   private async resolveOptions(
     productId: string,
-    options: ValidatedOptionInput[]
+    options: ValidatedOptionInput[],
   ): Promise<ResolvedOption[]> {
     const resolved: ResolvedOption[] = [];
 
@@ -686,7 +732,9 @@ async productOptionsSync(args: { input: ProductOptionsSyncInput }) {
 
 ## UI Integration
 
-The `edit-options-modal` UI component (`admin-next/src/domains/inventory/products/modals/edit-options-modal`) should be updated to call the sync mutation instead of individual CRUD operations.
+The `edit-options-modal` UI component
+(`admin-next/src/domains/inventory/products/modals/edit-options-modal`) should be updated to call
+the sync mutation instead of individual CRUD operations.
 
 ### Form Data Transformation
 
@@ -694,7 +742,7 @@ The `edit-options-modal` UI component (`admin-next/src/domains/inventory/product
 // Transform form data to sync input
 function transformFormToSyncInput(
   productId: string,
-  groups: ApiProductOption[]
+  groups: ApiProductOption[],
 ): ProductOptionsSyncInput {
   return {
     productId,
@@ -710,13 +758,15 @@ function transformFormToSyncInput(
         index: valueIndex,
         slug: value.slug,
         name: value.name,
-        swatch: value.swatch ? {
-          swatchType: value.swatch.swatchType,
-          colorOne: value.swatch.colorOne,
-          colorTwo: value.swatch.colorTwo,
-          fileId: value.swatch.file?.id,
-          metadata: value.swatch.metadata,
-        } : null,
+        swatch: value.swatch
+          ? {
+              swatchType: value.swatch.swatchType,
+              colorOne: value.swatch.colorOne,
+              colorTwo: value.swatch.colorTwo,
+              fileId: value.swatch.file?.id,
+              metadata: value.swatch.metadata,
+            }
+          : null,
       })),
     })),
   };
@@ -725,7 +775,7 @@ function transformFormToSyncInput(
 // Helper to check if ID is from the database
 function isRealId(id: string): boolean {
   // Temporary IDs start with 'opt-' or 'val-' (from Date.now())
-  return !id.startsWith('opt-') && !id.startsWith('val-') && !id.startsWith('swatch-');
+  return !id.startsWith("opt-") && !id.startsWith("val-") && !id.startsWith("swatch-");
 }
 ```
 
@@ -797,16 +847,16 @@ async deleteValuesExcept(optionId: string, keepIds: string[]): Promise<void>;
 
 ## Error Codes
 
-| Code | Description |
-|------|-------------|
-| `VALIDATION_ERROR` | Zod structural validation failed |
-| `NOT_FOUND` | Product or referenced option not found |
-| `DUPLICATE_ID` | Same ID appears multiple times |
-| `DUPLICATE_SLUG` | Same slug appears multiple times |
-| `DUPLICATE_INDEX` | Same index appears multiple times |
-| `VALUE_NOT_FOUND` | Value doesn't belong to the option |
+| Code                      | Description                             |
+| ------------------------- | --------------------------------------- |
+| `VALIDATION_ERROR`        | Zod structural validation failed        |
+| `NOT_FOUND`               | Product or referenced option not found  |
+| `DUPLICATE_ID`            | Same ID appears multiple times          |
+| `DUPLICATE_SLUG`          | Same slug appears multiple times        |
+| `DUPLICATE_INDEX`         | Same index appears multiple times       |
+| `VALUE_NOT_FOUND`         | Value doesn't belong to the option      |
 | `INVALID_VALUE_REFERENCE` | New option references existing value ID |
-| `INTERNAL_ERROR` | Unexpected server error |
+| `INTERNAL_ERROR`          | Unexpected server error                 |
 
 ## Example Usage
 
@@ -853,14 +903,14 @@ await syncOptions(api, productId, [
 ```typescript
 await syncOptions(api, productId, [
   {
-    id: existingOptionId,  // Keep the same ID
+    id: existingOptionId, // Keep the same ID
     index: 0,
     slug: "size",
     name: "Updated Size",
-    displayType: "DROPDOWN",  // Changed display type
+    displayType: "DROPDOWN", // Changed display type
     values: [
       { id: existingValueId, index: 0, slug: "xs", name: "Extra Small" },
-      { index: 1, slug: "s", name: "Small" },  // New value
+      { index: 1, slug: "s", name: "Small" }, // New value
     ],
   },
 ]);
@@ -874,51 +924,61 @@ await syncOptions(api, productId, []);
 
 ## Variant References Preservation
 
-**IMPORTANT**: Variants reference options through `selectedOptions` (optionId + optionValueId). The sync MUST preserve these references for existing options/values.
+**IMPORTANT**: Variants reference options through `selectedOptions` (optionId + optionValueId). The
+sync MUST preserve these references for existing options/values.
 
 ### ID Stability Rules
 
-1. **Existing option IDs are NEVER changed** — when `id` is provided in input, the option keeps its exact ID
-2. **Existing value IDs are NEVER changed** — when `id` is provided for a value, it keeps its exact ID
+1. **Existing option IDs are NEVER changed** — when `id` is provided in input, the option keeps its
+   exact ID
+2. **Existing value IDs are NEVER changed** — when `id` is provided for a value, it keeps its exact
+   ID
 3. **Only new items get new IDs** — items without `id` in input are created with new UUIDs
-4. **Deleted options/values** — variants referencing deleted options/values will have orphaned references
+4. **Deleted options/values** — variants referencing deleted options/values will have orphaned
+   references
 
 This ensures that variants continue to correctly reference their options after sync:
 
 ```typescript
 // Variant before sync:
-{ selectedOptions: [{ optionId: "abc-123", optionValueId: "def-456" }] }
+{
+  selectedOptions: [{ optionId: "abc-123", optionValueId: "def-456" }];
+}
 
 // After sync (option "abc-123" updated but ID preserved):
-{ selectedOptions: [{ optionId: "abc-123", optionValueId: "def-456" }] }  // Still valid!
+{
+  selectedOptions: [{ optionId: "abc-123", optionValueId: "def-456" }];
+} // Still valid!
 ```
 
 ### What happens to variants:
 
-| Action | Variant Impact |
-|--------|----------------|
-| Update option name/slug/displayType | No impact — ID unchanged |
-| Update value name/slug/swatch | No impact — ID unchanged |
-| Reorder options/values | No impact — IDs unchanged |
-| Add new option | No impact — existing variants unchanged |
-| Add new value | No impact — existing variants unchanged |
-| Delete option with `id` | Variants with this optionId become orphaned |
-| Delete value with `id` | Variants with this optionValueId become orphaned |
+| Action                              | Variant Impact                                   |
+| ----------------------------------- | ------------------------------------------------ |
+| Update option name/slug/displayType | No impact — ID unchanged                         |
+| Update value name/slug/swatch       | No impact — ID unchanged                         |
+| Reorder options/values              | No impact — IDs unchanged                        |
+| Add new option                      | No impact — existing variants unchanged          |
+| Add new value                       | No impact — existing variants unchanged          |
+| Delete option with `id`             | Variants with this optionId become orphaned      |
+| Delete value with `id`              | Variants with this optionValueId become orphaned |
 
 ### Deletion behavior
 
-Options and values CAN be deleted even if variants reference them. The variant's `selectedOptions` will contain orphaned references (optionId/optionValueId that no longer exist). This is acceptable — the UI should handle missing option references gracefully.
+Options and values CAN be deleted even if variants reference them. The variant's `selectedOptions`
+will contain orphaned references (optionId/optionValueId that no longer exist). This is acceptable —
+the UI should handle missing option references gracefully.
 
 ## Key Differences from Features
 
-| Aspect | Features | Options |
-|--------|----------|---------|
-| Hierarchy | Tree structure (`index: [0, 1]`) | Flat (`index: number`) |
-| Grouping | Groups contain children | No grouping |
-| Values | Optional for non-groups | Required (min 1) |
-| Slug | No slug | Required for options and values |
-| Display Type | No | `DROPDOWN`, `SWATCH`, `BUTTONS` |
-| Swatch | No | Optional per value |
+| Aspect       | Features                         | Options                         |
+| ------------ | -------------------------------- | ------------------------------- |
+| Hierarchy    | Tree structure (`index: [0, 1]`) | Flat (`index: number`)          |
+| Grouping     | Groups contain children          | No grouping                     |
+| Values       | Optional for non-groups          | Required (min 1)                |
+| Slug         | No slug                          | Required for options and values |
+| Display Type | No                               | `DROPDOWN`, `SWATCH`, `BUTTONS` |
+| Swatch       | No                               | Optional per value              |
 
 ## Implementation Checklist
 

@@ -56,15 +56,10 @@ export const productTitleBm25SearchIndex = catalogSchema.table(
     index("idx_product_title_bm25_store_locale_product").on(
       table.storeId,
       table.locale,
-      table.productId
+      table.productId,
     ),
     index("idx_product_title_bm25_visible")
-      .on(
-        table.storeId,
-        table.locale,
-        table.publishedAt.desc(),
-        table.productId
-      )
+      .on(table.storeId, table.locale, table.publishedAt.desc(), table.productId)
       .where(sql`${table.status} = 'published'`),
     index("idx_product_title_bm25_search")
       .using(
@@ -76,13 +71,11 @@ export const productTitleBm25SearchIndex = catalogSchema.table(
         table.productId,
         table.title,
         table.publishedAt,
-        table.productCreatedAt
+        table.productCreatedAt,
       )
       .with({ key_field: "search_id" }),
-  ]
+  ],
 );
 
-export type ProductTitleBm25SearchIndex =
-  typeof productTitleBm25SearchIndex.$inferSelect;
-export type NewProductTitleBm25SearchIndex =
-  typeof productTitleBm25SearchIndex.$inferInsert;
+export type ProductTitleBm25SearchIndex = typeof productTitleBm25SearchIndex.$inferSelect;
+export type NewProductTitleBm25SearchIndex = typeof productTitleBm25SearchIndex.$inferInsert;

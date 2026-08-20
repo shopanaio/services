@@ -1,18 +1,13 @@
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import fastify from "fastify";
 import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import {
-  getServiceConfig,
-  isDevelopment,
-} from "@shopana/shared-service-config";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import { setContext, ServiceContext } from "../../context/index.js";
 
 const { global } = getServiceConfig("catalog");
@@ -25,9 +20,7 @@ export interface ServerConfig {
   port: number;
 }
 
-function getHeaderValue(
-  value: string | string[] | undefined
-): string | undefined {
+function getHeaderValue(value: string | string[] | undefined): string | undefined {
   const headerValue = Array.isArray(value) ? value[0] : value;
   const trimmedValue = headerValue?.trim();
 
@@ -112,10 +105,7 @@ export async function startServer(serverConfig: ServerConfig) {
     introspection: true,
     // @ts-expect-error
     schema: buildSubgraphSchema(modules),
-    plugins: [
-      fastifyApolloDrainPlugin(app),
-      ApolloServerPluginInlineTraceDisabled(),
-    ],
+    plugins: [fastifyApolloDrainPlugin(app), ApolloServerPluginInlineTraceDisabled()],
   });
 
   await apollo.start();
@@ -143,8 +133,7 @@ export async function startServer(serverConfig: ServerConfig) {
         const loaders = new Loader(kernel!.repository);
 
         const requestId =
-          getHeaderValue(request.headers["x-idempotency-key"]) ??
-          (request.id as string);
+          getHeaderValue(request.headers["x-idempotency-key"]) ?? (request.id as string);
 
         const ctx = new ServiceContext({
           requestId,

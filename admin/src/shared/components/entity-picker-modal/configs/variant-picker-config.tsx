@@ -5,18 +5,11 @@ import { Flex, Typography } from "antd";
 import { LuCircleCheck as CheckCircleOutlined, LuImage as PictureOutlined } from "react-icons/lu";
 import type { ColDef } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
-import {
-  useVariants,
-  useWarehouseAssignableVariants,
-} from "@/domains/inventory/products/hooks";
+import { useVariants, useWarehouseAssignableVariants } from "@/domains/inventory/products/hooks";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 import { createStyles } from "antd-style";
 import { registerEntityPickerConfig } from ".";
-import type {
-  IEntityPickerConfig,
-  IEntityPickerDataResult,
-  IPickableEntity,
-} from "../types";
+import type { IEntityPickerConfig, IEntityPickerDataResult, IPickableEntity } from "../types";
 import type {
   ApiVariant,
   ApiVariantOrderByInput,
@@ -47,9 +40,7 @@ interface VariantPickerEntity extends IPickableEntity {
   hasStockInWarehouse: boolean;
 }
 
-type VariantPickerOrderField =
-  | VariantOrderField
-  | WarehouseAssignableVariantOrderField;
+type VariantPickerOrderField = VariantOrderField | WarehouseAssignableVariantOrderField;
 
 const variantSortFieldMapping = {
   productTitle: WarehouseAssignableVariantOrderFieldEnum.ProductName,
@@ -62,64 +53,52 @@ const useVariantCellStyles = createStyles(({ token }) => ({
     objectFit: "cover" as const,
     flexShrink: 0,
   },
-	  title: {
-	    lineHeight: 1.25,
-	  },
+  title: {
+    lineHeight: 1.25,
+  },
   variantTitle: {
     fontSize: token.fontSizeSM,
   },
-	  tracked: {
-	    color: token.colorSuccess,
-	    fontSize: token.fontSizeSM,
+  tracked: {
+    color: token.colorSuccess,
+    fontSize: token.fontSizeSM,
     lineHeight: 1.2,
   },
 }));
 
 function getPrimaryMediaUrl(variant: ApiVariant): string | null {
-  const variantMedia = [...variant.media].sort(
-    (a, b) => a.sortIndex - b.sortIndex,
-  )[0];
-  const productMedia = [...variant.product.media].sort(
-    (a, b) => a.sortIndex - b.sortIndex,
-  )[0];
+  const variantMedia = [...variant.media].sort((a, b) => a.sortIndex - b.sortIndex)[0];
+  const productMedia = [...variant.product.media].sort((a, b) => a.sortIndex - b.sortIndex)[0];
 
   return variantMedia?.file.url ?? productMedia?.file.url ?? null;
 }
 
 function getVariantLabel(variant: ApiVariant) {
-  return (
-    variant.title || (variant.isDefault ? "Default variant" : variant.handle)
-  );
+  return variant.title || (variant.isDefault ? "Default variant" : variant.handle);
 }
 
-function transformVariant(
-  variant: ApiVariant,
-  warehouseId: string | null,
-): VariantPickerEntity {
+function transformVariant(variant: ApiVariant, warehouseId: string | null): VariantPickerEntity {
   const inventoryItem = variant.inventoryItem ?? null;
   const hasStockInWarehouse = Boolean(
-    warehouseId &&
-      inventoryItem?.stock.some((stock) => stock.warehouseId === warehouseId),
+    warehouseId && inventoryItem?.stock.some((stock) => stock.warehouseId === warehouseId),
   );
   const variantLabel = getVariantLabel(variant);
 
-	  return {
-	    id: variant.id,
-	    variantId: variant.id,
-	    productId: variant.product.id,
+  return {
+    id: variant.id,
+    variantId: variant.id,
+    productId: variant.product.id,
     productRevision: variant.product.revision,
-	    title: `${variant.product.title} / ${variantLabel}`,
+    title: `${variant.product.title} / ${variantLabel}`,
     productTitle: variant.product.title,
     variantTitle: variantLabel,
-	    image: getPrimaryMediaUrl(variant),
-	    sku: inventoryItem?.sku ?? null,
-	    hasStockInWarehouse,
+    image: getPrimaryMediaUrl(variant),
+    sku: inventoryItem?.sku ?? null,
+    hasStockInWarehouse,
   };
 }
 
-function buildVariantSearchCondition(
-  search: string,
-): Partial<ApiVariantWhereInput> {
+function buildVariantSearchCondition(search: string): Partial<ApiVariantWhereInput> {
   return {
     handle: { _containsi: search },
   };
@@ -128,17 +107,12 @@ function buildVariantSearchCondition(
 function buildWarehouseAssignableVariantSearchCondition(
   search: string,
 ): Partial<ApiWarehouseAssignableVariantWhereInput> {
-	  return {
-	    _or: [
-	      { productName: { _containsi: search } },
-	      { sku: { _containsi: search } },
-	    ],
-	  };
-	}
+  return {
+    _or: [{ productName: { _containsi: search } }, { sku: { _containsi: search } }],
+  };
+}
 
-function toVariantOrderBy(
-  orderBy?: object[] | null,
-): ApiVariantOrderByInput[] | null {
+function toVariantOrderBy(orderBy?: object[] | null): ApiVariantOrderByInput[] | null {
   const mapped = (orderBy ?? [])
     .map((order) => {
       const input = order as { field?: string; direction?: SortDirection };
@@ -176,10 +150,7 @@ function toWarehouseAssignableVariantOrderBy(
           }
         : null;
     })
-    .filter(
-      (order): order is ApiWarehouseAssignableVariantOrderByInput =>
-        Boolean(order),
-    );
+    .filter((order): order is ApiWarehouseAssignableVariantOrderByInput => Boolean(order));
 
   return mapped.length > 0 ? mapped : null;
 }
@@ -191,23 +162,13 @@ function useVariantsPickerData(options: {
   last?: number;
   before?: string | null;
   where?: object | null;
-	  orderBy?: object[] | null;
-	  excludeIds: string[];
+  orderBy?: object[] | null;
+  excludeIds: string[];
   search: string;
-	  queryMeta?: unknown;
-	}): IEntityPickerDataResult<VariantPickerEntity> {
-  const {
-    pageSize,
-    first,
-    after,
-    last,
-    before,
-    where,
-    orderBy,
-    excludeIds,
-    queryMeta,
-    search,
-  } = options;
+  queryMeta?: unknown;
+}): IEntityPickerDataResult<VariantPickerEntity> {
+  const { pageSize, first, after, last, before, where, orderBy, excludeIds, queryMeta, search } =
+    options;
   const { warehouseId = null, productId = null } = (queryMeta ?? {}) as VariantPickerQueryMeta;
   const variantsWhere = useMemo<ApiVariantWhereInput | null>(() => {
     const conditions: ApiVariantWhereInput[] = [];
@@ -242,9 +203,7 @@ function useVariantsPickerData(options: {
       }
 
       if (warehouseId && search.trim()) {
-        conditions.push(
-          buildWarehouseAssignableVariantSearchCondition(search.trim()),
-        );
+        conditions.push(buildWarehouseAssignableVariantSearchCondition(search.trim()));
       }
 
       if (excludeIds.length > 0) {
@@ -299,34 +258,32 @@ function useVariantsPickerData(options: {
   };
 }
 
-function ProductCellRenderer(
-  props: CustomCellRendererProps<VariantPickerEntity>,
-) {
+function ProductCellRenderer(props: CustomCellRendererProps<VariantPickerEntity>) {
   const { styles } = useVariantCellStyles();
   const { data } = props;
 
   if (!data) return null;
 
   return (
-	    <Flex align="center" gap="small">
-	      <TableCoverImage
-	        src={data.image ?? null}
-	        alt={data.productTitle}
-	        fallbackIcon={createElement(PictureOutlined)}
-	        className={styles.image}
-	      />
-	      <Flex vertical gap={2}>
-	        <Typography.Text strong className={styles.title}>
-	          {data.productTitle}
-	        </Typography.Text>
+    <Flex align="center" gap="small">
+      <TableCoverImage
+        src={data.image ?? null}
+        alt={data.productTitle}
+        fallbackIcon={createElement(PictureOutlined)}
+        className={styles.image}
+      />
+      <Flex vertical gap={2}>
+        <Typography.Text strong className={styles.title}>
+          {data.productTitle}
+        </Typography.Text>
         {data.variantTitle ? (
           <Typography.Text type="secondary" className={styles.variantTitle}>
             {data.variantTitle}
           </Typography.Text>
         ) : null}
-	        {data.hasStockInWarehouse ? (
-	          <Typography.Text className={styles.tracked}>
-	            <CheckCircleOutlined /> tracked
+        {data.hasStockInWarehouse ? (
+          <Typography.Text className={styles.tracked}>
+            <CheckCircleOutlined /> tracked
           </Typography.Text>
         ) : null}
       </Flex>

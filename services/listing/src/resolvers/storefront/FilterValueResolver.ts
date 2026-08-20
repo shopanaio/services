@@ -15,16 +15,11 @@ export class FilterValueResolver extends ListingType<FilterValueResolverInput> {
     if (this.$props.kind === "availability") {
       return this.$props.available ? "Available" : "Unavailable";
     }
-    return (
-      this.$props.value.valueLabel ??
-      labelFromHandle(this.$props.value.valueHandle)
-    );
+    return this.$props.value.valueLabel ?? labelFromHandle(this.$props.value.valueHandle);
   }
 
   count() {
-    return this.$props.kind === "facet"
-      ? this.$props.value.count
-      : this.$props.count;
+    return this.$props.kind === "facet" ? this.$props.value.count : this.$props.count;
   }
 
   selected() {
@@ -41,9 +36,7 @@ export class FilterValueResolver extends ListingType<FilterValueResolverInput> {
       };
     }
     return {
-      availability: this.$props.available
-        ? Availability.Available
-        : Availability.Unavailable,
+      availability: this.$props.available ? Availability.Available : Availability.Unavailable,
     };
   }
 
@@ -54,9 +47,7 @@ export class FilterValueResolver extends ListingType<FilterValueResolverInput> {
 
   async swatch() {
     if (this.$props.kind !== "facet" || !this.$props.value.swatchId) return null;
-    const swatch = await this.$ctx.loaders.facetSwatch.load(
-      this.$props.value.swatchId
-    );
+    const swatch = await this.$ctx.loaders.facetSwatch.load(this.$props.value.swatchId);
     if (!swatch || !isStorefrontSwatchType(swatch.swatchType)) return null;
     return this.resolvers.facetSwatch(this.$props.value.swatchId);
   }

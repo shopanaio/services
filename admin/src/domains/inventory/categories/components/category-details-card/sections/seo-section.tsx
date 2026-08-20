@@ -32,11 +32,7 @@ export const SeoSection = ({ category, onEdit }: SeoSectionProps) => {
       actions={
         <>
           {onEdit ? (
-            <EditAction
-              label="Edit SEO"
-              onEdit={onEdit}
-              testId="category-seo-actions-button"
-            />
+            <EditAction label="Edit SEO" onEdit={onEdit} testId="category-seo-actions-button" />
           ) : null}
           {category.seo?.ogImage && (
             <Button

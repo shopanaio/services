@@ -1,8 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type {
-  CustomerCreatedEvent,
-  CustomerUpdatedEvent,
-} from "@shopana/events";
+import type { CustomerCreatedEvent, CustomerUpdatedEvent } from "@shopana/events";
 import {
   BrokerWorkflows,
   DBOS,
@@ -34,9 +31,7 @@ export class CustomerProvisionFromIamWorkflow extends BrokerWorkflows<
   }
 
   @Workflow("customerProvisionFromIam")
-  async run(
-    input: CustomerProvisionFromIamWorkflowInput,
-  ): Promise<CustomerProvisionFromIamResult> {
+  async run(input: CustomerProvisionFromIamWorkflowInput): Promise<CustomerProvisionFromIamResult> {
     const result = await this.provision(input);
     if (result.created) {
       await this.emitCreated(input, result.customerId);

@@ -16,7 +16,9 @@ import { addressValidationStatusEnum, customersSchema } from "./schema.js";
 export const customerAddress = customersSchema.table(
   "customer_address",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     customerId: uuid("customer_id")
       .notNull()
@@ -67,55 +69,43 @@ export const customerAddress = customersSchema.table(
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
-    check(
-      "customer_address_country_code_check",
-      sql`${table.countryCode} ~ '^[A-Z]{2}$'`
-    ),
+    check("customer_address_country_code_check", sql`${table.countryCode} ~ '^[A-Z]{2}$'`),
     check(
       "customer_address_phone_e164_check",
-      sql`${table.phoneE164} IS NULL OR ${table.phoneE164} ~ '^\\+[1-9][0-9]{6,14}$'`
+      sql`${table.phoneE164} IS NULL OR ${table.phoneE164} ~ '^\\+[1-9][0-9]{6,14}$'`,
     ),
     check(
       "customer_address_coordinates_pair_check",
-      sql`(${table.latitude} IS NULL) = (${table.longitude} IS NULL)`
+      sql`(${table.latitude} IS NULL) = (${table.longitude} IS NULL)`,
     ),
     check(
       "customer_address_latitude_check",
-      sql`${table.latitude} IS NULL OR ${table.latitude} BETWEEN -90 AND 90`
+      sql`${table.latitude} IS NULL OR ${table.latitude} BETWEEN -90 AND 90`,
     ),
     check(
       "customer_address_longitude_check",
-      sql`${table.longitude} IS NULL OR ${table.longitude} BETWEEN -180 AND 180`
+      sql`${table.longitude} IS NULL OR ${table.longitude} BETWEEN -180 AND 180`,
     ),
     check(
       "customer_address_validation_timestamp_check",
-      sql`${table.validationStatus} = 'UNVALIDATED' OR ${table.validatedAt} IS NOT NULL`
+      sql`${table.validationStatus} = 'UNVALIDATED' OR ${table.validatedAt} IS NOT NULL`,
     ),
     check(
       "customer_address_deleted_at_check",
-      sql`${table.deletedAt} IS NULL OR ${table.deletedAt} >= ${table.createdAt}`
+      sql`${table.deletedAt} IS NULL OR ${table.deletedAt} >= ${table.createdAt}`,
     ),
     uniqueIndex("customer_address_default_shipping_unique")
       .on(table.customerId)
-      .where(
-        sql`${table.isDefaultShipping} = true AND ${table.deletedAt} IS NULL`
-      ),
+      .where(sql`${table.isDefaultShipping} = true AND ${table.deletedAt} IS NULL`),
     uniqueIndex("customer_address_default_billing_unique")
       .on(table.customerId)
-      .where(
-        sql`${table.isDefaultBilling} = true AND ${table.deletedAt} IS NULL`
-      ),
+      .where(sql`${table.isDefaultBilling} = true AND ${table.deletedAt} IS NULL`),
     index("customer_address_store_customer_idx")
       .on(table.storeId, table.customerId, table.createdAt, table.id)
       .where(sql`${table.deletedAt} IS NULL`),
     index("customer_address_customer_idx").on(table.customerId),
     index("customer_address_store_geography_idx")
-      .on(
-        table.storeId,
-        table.countryCode,
-        table.regionKey,
-        table.cityKey
-      )
+      .on(table.storeId, table.countryCode, table.regionKey, table.cityKey)
       .where(sql`${table.deletedAt} IS NULL`),
     index("customer_address_store_country_customer_idx")
       .on(table.storeId, table.countryCode, table.customerId)
@@ -141,7 +131,7 @@ export const customerAddress = customersSchema.table(
     index("customer_address_store_customer_postal_idx")
       .on(table.storeId, table.customerId, table.postalCodeNormalized)
       .where(sql`${table.deletedAt} IS NULL AND ${table.postalCodeNormalized} IS NOT NULL`),
-  ]
+  ],
 );
 
 export type CustomerAddress = typeof customerAddress.$inferSelect;

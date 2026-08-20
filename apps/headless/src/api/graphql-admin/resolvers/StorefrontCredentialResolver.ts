@@ -1,25 +1,17 @@
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { HeadlessType } from "./HeadlessType.js";
-import type {
-  StorefrontCredentialRecord,
-} from "../../../storefront-access/repositories/index.js";
+import type { StorefrontCredentialRecord } from "../../../storefront-access/repositories/index.js";
 
 export class StorefrontCredentialResolver extends HeadlessType<
   string,
   StorefrontCredentialRecord | null
 > {
   protected $preload() {
-    return this.$ctx.repository.credential.findById(
-      this.scope,
-      this.$props,
-    );
+    return this.$ctx.repository.credential.findById(this.scope, this.$props);
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.StorefrontCredential,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.StorefrontCredential);
   }
 
   kind() {
@@ -50,9 +42,9 @@ export class StorefrontCredentialResolver extends HeadlessType<
     return this.requiredData("revokedAt");
   }
 
-  private async requiredData<
-    TKey extends keyof StorefrontCredentialRecord,
-  >(key: TKey): Promise<StorefrontCredentialRecord[TKey]> {
+  private async requiredData<TKey extends keyof StorefrontCredentialRecord>(
+    key: TKey,
+  ): Promise<StorefrontCredentialRecord[TKey]> {
     const data = await this.$data;
     if (!data) {
       throw new Error("Storefront credential was not found");

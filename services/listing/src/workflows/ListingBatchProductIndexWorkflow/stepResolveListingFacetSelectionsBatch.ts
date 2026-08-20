@@ -8,7 +8,7 @@ export type ListingBatchFacetResolutionStepResult = {
 };
 
 export async function resolveListingFacetSelectionsBatch(
-  input: ListingBatchHydrationStepResult
+  input: ListingBatchHydrationStepResult,
 ): Promise<ListingBatchFacetResolutionStepResult> {
   /*
    * Contract:
@@ -28,23 +28,17 @@ export async function resolveListingFacetSelectionsBatch(
   const kernel = Kernel.getInstance();
   const actions = await Promise.all(
     input.found.map(async (action) => {
-      const locale =
-        action.params.item.content.defaultLocale ?? input.store.defaultLocale;
-      const result = await kernel.runScript(
-        ListingResolveFacetSelectionsScript,
-        action,
-        {
-          storeId: action.params.storeId,
-          organizationId: action.organizationId,
-          requestId:
-            action.params.meta.source.requestId ?? action.params.meta.operationId,
-          locale,
-          defaultLocale: locale,
-        }
-      );
+      const locale = action.params.item.content.defaultLocale ?? input.store.defaultLocale;
+      const result = await kernel.runScript(ListingResolveFacetSelectionsScript, action, {
+        storeId: action.params.storeId,
+        organizationId: action.organizationId,
+        requestId: action.params.meta.source.requestId ?? action.params.meta.operationId,
+        locale,
+        defaultLocale: locale,
+      });
 
       return result.action;
-    })
+    }),
   );
 
   return { actions };

@@ -3,13 +3,13 @@
 import { useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Upload, Typography, Button, Input, Flex, Select, Spin } from "antd";
-import { LuUpload as UploadOutlined, LuUser as UserOutlined, LuLoaderCircle as LoadingOutlined } from "react-icons/lu";
-import { createStyles } from "antd-style";
 import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+  LuUpload as UploadOutlined,
+  LuUser as UserOutlined,
+  LuLoaderCircle as LoadingOutlined,
+} from "react-icons/lu";
+import { createStyles } from "antd-style";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { ImageCropModal } from "@/ui-kit/image-crop";
 import { localeOptions } from "@/domains/workspace/mocks/data";
@@ -158,7 +158,7 @@ export const EditProfileModal = () => {
         apolloClient.refetchQueries({ include: [CURRENT_USER_QUERY] });
       }
     },
-    [uploadAvatar, typedPayload.userId, apolloClient, setValue]
+    [uploadAvatar, typedPayload.userId, apolloClient, setValue],
   );
 
   const handleCancelCrop = useCallback(() => {
@@ -176,7 +176,7 @@ export const EditProfileModal = () => {
       });
       pop();
     },
-    [typedPayload, pop]
+    [typedPayload, pop],
   );
 
   return (
@@ -204,11 +204,7 @@ export const EditProfileModal = () => {
                 <Spin indicator={<LoadingOutlined />} />
               </div>
             ) : avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="Profile"
-                className={styles.avatarImage}
-              />
+              <img src={avatarUrl} alt="Profile" className={styles.avatarImage} />
             ) : (
               <div className={styles.avatarPlaceholder}>
                 <UserOutlined />
@@ -222,11 +218,7 @@ export const EditProfileModal = () => {
                   beforeUpload={handleFileSelect}
                   disabled={uploading}
                 >
-                  <Button
-                    icon={<UploadOutlined />}
-                    size="small"
-                    disabled={uploading}
-                  >
+                  <Button icon={<UploadOutlined />} size="small" disabled={uploading}>
                     {avatarUrl ? "Change Photo" : "Upload Photo"}
                   </Button>
                 </Upload>
@@ -253,27 +245,19 @@ export const EditProfileModal = () => {
         <form className={styles.formSection}>
           <div className={styles.formRow}>
             <div className={styles.formItem}>
-              <Typography.Text className={styles.label}>
-                First Name
-              </Typography.Text>
+              <Typography.Text className={styles.label}>First Name</Typography.Text>
               <Controller
                 name="firstName"
                 control={control}
-                render={({ field }) => (
-                  <Input {...field} placeholder="First name" />
-                )}
+                render={({ field }) => <Input {...field} placeholder="First name" />}
               />
             </div>
             <div className={styles.formItem}>
-              <Typography.Text className={styles.label}>
-                Last Name
-              </Typography.Text>
+              <Typography.Text className={styles.label}>Last Name</Typography.Text>
               <Controller
                 name="lastName"
                 control={control}
-                render={({ field }) => (
-                  <Input {...field} placeholder="Last name" />
-                )}
+                render={({ field }) => <Input {...field} placeholder="Last name" />}
               />
             </div>
           </div>
@@ -284,11 +268,7 @@ export const EditProfileModal = () => {
               name="locale"
               control={control}
               render={({ field }) => (
-                <Select
-                  {...field}
-                  options={localeOptions}
-                  className={styles.selectFullWidth}
-                />
+                <Select {...field} options={localeOptions} className={styles.selectFullWidth} />
               )}
             />
           </div>

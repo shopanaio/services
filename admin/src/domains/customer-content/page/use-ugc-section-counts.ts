@@ -43,15 +43,17 @@ export function useUgcSectionCounts() {
   const query = data ?? previousData;
 
   return {
-    counts: query ? {
-      reviews: query.reviewsQuery.reviews.totalCount,
-      questions: query.reviewsQuery.productQuestions.totalCount,
-      moderation: query.reviewsQuery.contents.totalCount,
-      reports: query.reviewsQuery.contentReports.totalCount,
-      moderationCases: query.reviewsQuery.moderationCases.totalCount,
-      reviewRequests: query.reviewsQuery.reviewRequests.totalCount,
-      externalReferences: query.reviewsQuery.contentExternalReferences.totalCount,
-    } : EMPTY_COUNTS,
+    counts: query
+      ? {
+          reviews: query.reviewsQuery.reviews.totalCount,
+          questions: query.reviewsQuery.productQuestions.totalCount,
+          moderation: query.reviewsQuery.contents.totalCount,
+          reports: query.reviewsQuery.contentReports.totalCount,
+          moderationCases: query.reviewsQuery.moderationCases.totalCount,
+          reviewRequests: query.reviewsQuery.reviewRequests.totalCount,
+          externalReferences: query.reviewsQuery.contentExternalReferences.totalCount,
+        }
+      : EMPTY_COUNTS,
     loading,
     error: (error as Error | undefined) ?? null,
   };

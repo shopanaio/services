@@ -21,7 +21,7 @@ import {
 export async function buildVariantHandle(
   db: Database,
   variantId: string,
-  storeId: string
+  storeId: string,
 ): Promise<string> {
   // Get all option-value links for this variant
   const links = await db
@@ -33,8 +33,8 @@ export async function buildVariantHandle(
     .where(
       and(
         eq(productOptionVariantLink.storeId, storeId),
-        eq(productOptionVariantLink.variantId, variantId)
-      )
+        eq(productOptionVariantLink.variantId, variantId),
+      ),
     );
 
   if (links.length === 0) {
@@ -42,9 +42,7 @@ export async function buildVariantHandle(
   }
 
   // Get value IDs that are not null
-  const valueIds = links
-    .map((l) => l.optionValueId)
-    .filter((id): id is string => id !== null);
+  const valueIds = links.map((l) => l.optionValueId).filter((id): id is string => id !== null);
 
   if (valueIds.length === 0) {
     return "";
@@ -57,12 +55,7 @@ export async function buildVariantHandle(
       slug: productOptionValue.slug,
     })
     .from(productOptionValue)
-    .where(
-      and(
-        eq(productOptionValue.storeId, storeId),
-        inArray(productOptionValue.id, valueIds)
-      )
-    );
+    .where(and(eq(productOptionValue.storeId, storeId), inArray(productOptionValue.id, valueIds)));
 
   // Sort slugs alphabetically and join
   const slugs = values.map((v) => v.slug).sort();
@@ -79,7 +72,7 @@ export async function buildVariantHandle(
  */
 export function buildVariantHandleFromValues(
   links: Array<{ optionId: string; optionValueId: string | null }>,
-  valueMap: Map<string, string>
+  valueMap: Map<string, string>,
 ): string {
   const slugs: string[] = [];
 
@@ -107,7 +100,7 @@ export function buildVariantHandleFromValues(
 export async function buildVariantHandlesBatch(
   db: Database,
   variantIds: string[],
-  storeId: string
+  storeId: string,
 ): Promise<Map<string, string>> {
   if (variantIds.length === 0) {
     return new Map();
@@ -124,14 +117,12 @@ export async function buildVariantHandlesBatch(
     .where(
       and(
         eq(productOptionVariantLink.storeId, storeId),
-        inArray(productOptionVariantLink.variantId, variantIds)
-      )
+        inArray(productOptionVariantLink.variantId, variantIds),
+      ),
     );
 
   // Collect all value IDs
-  const allValueIds = links
-    .map((l) => l.optionValueId)
-    .filter((id): id is string => id !== null);
+  const allValueIds = links.map((l) => l.optionValueId).filter((id): id is string => id !== null);
 
   // Get slugs for all values in one query
   const values =
@@ -145,8 +136,8 @@ export async function buildVariantHandlesBatch(
           .where(
             and(
               eq(productOptionValue.storeId, storeId),
-              inArray(productOptionValue.id, allValueIds)
-            )
+              inArray(productOptionValue.id, allValueIds),
+            ),
           )
       : [];
 

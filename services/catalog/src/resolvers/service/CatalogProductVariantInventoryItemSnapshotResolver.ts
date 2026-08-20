@@ -7,13 +7,9 @@ export class CatalogProductVariantInventoryItemSnapshotResolver extends ServiceT
   CatalogProductVariantInventoryItemSnapshot
 > {
   protected async $preload(): Promise<CatalogProductVariantInventoryItemSnapshot> {
-    const inventoryItem = await this.$ctx.loaders.inventoryItemByVariant.load(
-      this.$props
-    );
+    const inventoryItem = await this.$ctx.loaders.inventoryItemByVariant.load(this.$props);
     if (!inventoryItem) {
-      throw new PreloadNotFoundError(
-        `Inventory item for variant ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Inventory item for variant ${this.$props} not found`);
     }
 
     return {

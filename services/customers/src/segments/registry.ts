@@ -31,67 +31,278 @@ const CONSENT_STATES = [
 
 const attributes: readonly SegmentAttributeDescriptor[] = [
   scalar("customer_added_date", "Date", DATE, ["profile"], ["customer_store_created_idx"], "VALUE"),
-  scalar("customer_updated_date", "Date", DATE, ["customer.any"], ["customer_store_updated_idx"], "VALUE"),
-  scalar("last_activity_date", "Date", NULLABLE_DATE, ["profile"], ["customer_store_activity_idx"], "VALUE", { nullable: true }),
-  scalar("customer_account_status", "Enum", EQUALITY, ["status"], ["customer_store_account_status_idx"], "NONE", {
-    enumValues: ["GUEST", "INVITED", "REGISTERED"],
-  }),
-  scalar("customer_lifecycle_status", "Enum", EQUALITY, ["status"], ["customer_store_lifecycle_status_idx"], "NONE", {
-    enumValues: ["ACTIVE", "DISABLED", "BLOCKED", "MERGED", "REDACTED"],
-  }),
-  scalar("customer_language", "String", NULLABLE_EQUALITY, ["profile"], ["customer_store_locale_idx"], "NONE", {
-    nullable: true,
-    normalizeString: normalizePreferredLocaleValue,
-    normalizationContract: SEGMENT_NORMALIZATION_CONTRACTS.locale,
-  }),
-  scalar("customer_source", "String", EQUALITY, ["profile"], ["customer_store_source_idx"], "NONE", {
-    normalizeString: normalizeSource,
-    normalizationContract: SEGMENT_NORMALIZATION_CONTRACTS.source,
-  }),
-  scalar("customer_email_domain", "String", NULLABLE_EQUALITY, ["contact"], ["customer_store_email_domain_idx"], "NONE", {
-    nullable: true,
-    normalizeString: normalizeDomainValue,
-    normalizationContract: SEGMENT_NORMALIZATION_CONTRACTS.emailDomain,
-  }),
-  scalar("email_verified", "Boolean", BOOLEAN, ["contact"], ["customer_store_email_verified_idx"], "NONE"),
-  scalar("phone_verified", "Boolean", BOOLEAN, ["contact"], ["customer_store_phone_verified_idx"], "NONE"),
-  scalar("company_name", "String", ["eq", "neq", "is_null", "is_not_null"], ["company"], ["customer_store_company_idx"], "NONE", {
-    nullable: true,
-    normalizeString: normalizeUnicodeSearchValue,
-    normalizationContract: SEGMENT_NORMALIZATION_CONTRACTS.unicode,
-  }),
-  scalar("date_of_birth", "Date", NULLABLE_DATE, ["profile"], ["customer_store_birth_date_idx"], "VALUE", { nullable: true }),
+  scalar(
+    "customer_updated_date",
+    "Date",
+    DATE,
+    ["customer.any"],
+    ["customer_store_updated_idx"],
+    "VALUE",
+  ),
+  scalar(
+    "last_activity_date",
+    "Date",
+    NULLABLE_DATE,
+    ["profile"],
+    ["customer_store_activity_idx"],
+    "VALUE",
+    { nullable: true },
+  ),
+  scalar(
+    "customer_account_status",
+    "Enum",
+    EQUALITY,
+    ["status"],
+    ["customer_store_account_status_idx"],
+    "NONE",
+    {
+      enumValues: ["GUEST", "INVITED", "REGISTERED"],
+    },
+  ),
+  scalar(
+    "customer_lifecycle_status",
+    "Enum",
+    EQUALITY,
+    ["status"],
+    ["customer_store_lifecycle_status_idx"],
+    "NONE",
+    {
+      enumValues: ["ACTIVE", "DISABLED", "BLOCKED", "MERGED", "REDACTED"],
+    },
+  ),
+  scalar(
+    "customer_language",
+    "String",
+    NULLABLE_EQUALITY,
+    ["profile"],
+    ["customer_store_locale_idx"],
+    "NONE",
+    {
+      nullable: true,
+      normalizeString: normalizePreferredLocaleValue,
+      normalizationContract: SEGMENT_NORMALIZATION_CONTRACTS.locale,
+    },
+  ),
+  scalar(
+    "customer_source",
+    "String",
+    EQUALITY,
+    ["profile"],
+    ["customer_store_source_idx"],
+    "NONE",
+    {
+      normalizeString: normalizeSource,
+      normalizationContract: SEGMENT_NORMALIZATION_CONTRACTS.source,
+    },
+  ),
+  scalar(
+    "customer_email_domain",
+    "String",
+    NULLABLE_EQUALITY,
+    ["contact"],
+    ["customer_store_email_domain_idx"],
+    "NONE",
+    {
+      nullable: true,
+      normalizeString: normalizeDomainValue,
+      normalizationContract: SEGMENT_NORMALIZATION_CONTRACTS.emailDomain,
+    },
+  ),
+  scalar(
+    "email_verified",
+    "Boolean",
+    BOOLEAN,
+    ["contact"],
+    ["customer_store_email_verified_idx"],
+    "NONE",
+  ),
+  scalar(
+    "phone_verified",
+    "Boolean",
+    BOOLEAN,
+    ["contact"],
+    ["customer_store_phone_verified_idx"],
+    "NONE",
+  ),
+  scalar(
+    "company_name",
+    "String",
+    ["eq", "neq", "is_null", "is_not_null"],
+    ["company"],
+    ["customer_store_company_idx"],
+    "NONE",
+    {
+      nullable: true,
+      normalizeString: normalizeUnicodeSearchValue,
+      normalizationContract: SEGMENT_NORMALIZATION_CONTRACTS.unicode,
+    },
+  ),
+  scalar(
+    "date_of_birth",
+    "Date",
+    NULLABLE_DATE,
+    ["profile"],
+    ["customer_store_birth_date_idx"],
+    "VALUE",
+    { nullable: true },
+  ),
 
-  list("customer_countries", "String", ["address"], ["customer_address_store_country_customer_idx", "customer_address_store_customer_country_idx"], SEGMENT_NORMALIZATION_CONTRACTS.address, normalizeCountry),
-  list("customer_regions", "String", ["address"], ["customer_address_store_region_customer_idx", "customer_address_store_customer_region_idx"], SEGMENT_NORMALIZATION_CONTRACTS.address, normalizeRegion),
-  list("customer_cities", "String", ["address"], ["customer_address_store_city_customer_idx", "customer_address_store_customer_city_idx"], SEGMENT_NORMALIZATION_CONTRACTS.address, normalizeCity),
-  list("customer_postal_codes", "String", ["address"], ["customer_address_store_postal_customer_idx", "customer_address_store_customer_postal_idx"], SEGMENT_NORMALIZATION_CONTRACTS.address, normalizePostalCode),
+  list(
+    "customer_countries",
+    "String",
+    ["address"],
+    ["customer_address_store_country_customer_idx", "customer_address_store_customer_country_idx"],
+    SEGMENT_NORMALIZATION_CONTRACTS.address,
+    normalizeCountry,
+  ),
+  list(
+    "customer_regions",
+    "String",
+    ["address"],
+    ["customer_address_store_region_customer_idx", "customer_address_store_customer_region_idx"],
+    SEGMENT_NORMALIZATION_CONTRACTS.address,
+    normalizeRegion,
+  ),
+  list(
+    "customer_cities",
+    "String",
+    ["address"],
+    ["customer_address_store_city_customer_idx", "customer_address_store_customer_city_idx"],
+    SEGMENT_NORMALIZATION_CONTRACTS.address,
+    normalizeCity,
+  ),
+  list(
+    "customer_postal_codes",
+    "String",
+    ["address"],
+    ["customer_address_store_postal_customer_idx", "customer_address_store_customer_postal_idx"],
+    SEGMENT_NORMALIZATION_CONTRACTS.address,
+    normalizePostalCode,
+  ),
 
   consent("email_subscription_status"),
   consent("sms_subscription_status"),
   consent("whatsapp_subscription_status"),
   consent("push_subscription_status"),
 
-  listId("customer_tags", GlobalIdEntity.CustomerTag, ["tag"], ["customer_tag_assignment_store_tag_idx", "customer_tag_assignment_store_customer_tag_idx"]),
+  listId(
+    "customer_tags",
+    GlobalIdEntity.CustomerTag,
+    ["tag"],
+    ["customer_tag_assignment_store_tag_idx", "customer_tag_assignment_store_customer_tag_idx"],
+  ),
   {
-    ...listId("customer_groups", GlobalIdEntity.CustomerGroup, ["group"], ["customer_group_membership_store_group_expiry_idx", "customer_group_membership_store_customer_group_idx"]),
+    ...listId(
+      "customer_groups",
+      GlobalIdEntity.CustomerGroup,
+      ["group"],
+      [
+        "customer_group_membership_store_group_expiry_idx",
+        "customer_group_membership_store_customer_group_idx",
+      ],
+    ),
     temporalContract: "SOURCE",
   },
 
-  statistics("number_of_orders", "Integer", NUMERIC, "statistics.order", "customer_statistics_store_orders_count_idx", { nonNegative: true }),
-  statistics("cancelled_orders_count", "Integer", NUMERIC, "statistics.order", "customer_statistics_store_cancelled_count_idx", { nonNegative: true }),
-  statistics("returns_count", "Integer", NUMERIC, "statistics.refund", "customer_statistics_store_returns_count_idx", { nonNegative: true }),
-  statistics("first_order_date", "Date", NULLABLE_DATE, "statistics.order", "customer_statistics_store_first_order_idx", { nullable: true, temporalContract: "VALUE" }),
-  statistics("last_order_date", "Date", NULLABLE_DATE, "statistics.order", "customer_statistics_store_last_order_idx", { nullable: true, temporalContract: "VALUE" }),
-  statistics("last_checkout_date", "Date", NULLABLE_DATE, "statistics.checkout", "customer_statistics_store_checkout_idx", { nullable: true, temporalContract: "VALUE" }),
-  statisticsMoney("amount_spent", ["statistics.order", "statistics.refund"], "customer_monetary_statistics_store_spend_idx"),
-  statisticsMoney("gross_amount_spent", ["statistics.order"], "customer_monetary_statistics_store_gross_idx"),
-  statisticsMoney("amount_refunded", ["statistics.refund"], "customer_monetary_statistics_store_refunded_idx"),
-  statisticsMoney("average_order_value", ["statistics.order"], "customer_monetary_statistics_store_average_idx"),
+  statistics(
+    "number_of_orders",
+    "Integer",
+    NUMERIC,
+    "statistics.order",
+    "customer_statistics_store_orders_count_idx",
+    { nonNegative: true },
+  ),
+  statistics(
+    "cancelled_orders_count",
+    "Integer",
+    NUMERIC,
+    "statistics.order",
+    "customer_statistics_store_cancelled_count_idx",
+    { nonNegative: true },
+  ),
+  statistics(
+    "returns_count",
+    "Integer",
+    NUMERIC,
+    "statistics.refund",
+    "customer_statistics_store_returns_count_idx",
+    { nonNegative: true },
+  ),
+  statistics(
+    "first_order_date",
+    "Date",
+    NULLABLE_DATE,
+    "statistics.order",
+    "customer_statistics_store_first_order_idx",
+    { nullable: true, temporalContract: "VALUE" },
+  ),
+  statistics(
+    "last_order_date",
+    "Date",
+    NULLABLE_DATE,
+    "statistics.order",
+    "customer_statistics_store_last_order_idx",
+    { nullable: true, temporalContract: "VALUE" },
+  ),
+  statistics(
+    "last_checkout_date",
+    "Date",
+    NULLABLE_DATE,
+    "statistics.checkout",
+    "customer_statistics_store_checkout_idx",
+    { nullable: true, temporalContract: "VALUE" },
+  ),
+  statisticsMoney(
+    "amount_spent",
+    ["statistics.order", "statistics.refund"],
+    "customer_monetary_statistics_store_spend_idx",
+  ),
+  statisticsMoney(
+    "gross_amount_spent",
+    ["statistics.order"],
+    "customer_monetary_statistics_store_gross_idx",
+  ),
+  statisticsMoney(
+    "amount_refunded",
+    ["statistics.refund"],
+    "customer_monetary_statistics_store_refunded_idx",
+  ),
+  statisticsMoney(
+    "average_order_value",
+    ["statistics.order"],
+    "customer_monetary_statistics_store_average_idx",
+  ),
 
-  listEnum("tax_identifier_statuses", ["UNVERIFIED", "VERIFIED", "REJECTED", "EXPIRED"], ["taxIdentifier"], ["customer_tax_identifier_store_status_validity_idx", "customer_tax_identifier_store_customer_idx"]),
-  listEnum("tax_exemption_statuses", ["ACTIVE", "EXPIRED", "REVOKED"], ["taxExemption"], ["customer_tax_exemption_store_status_validity_idx", "customer_tax_exemption_store_customer_idx"]),
-  list("tax_exemption_countries", "String", ["taxExemption"], ["customer_tax_exemption_store_country_validity_idx", "customer_tax_exemption_store_customer_country_validity_idx"], "iso-3166-alpha2-v1", normalizeCountry, "SOURCE"),
+  listEnum(
+    "tax_identifier_statuses",
+    ["UNVERIFIED", "VERIFIED", "REJECTED", "EXPIRED"],
+    ["taxIdentifier"],
+    [
+      "customer_tax_identifier_store_status_validity_idx",
+      "customer_tax_identifier_store_customer_idx",
+    ],
+  ),
+  listEnum(
+    "tax_exemption_statuses",
+    ["ACTIVE", "EXPIRED", "REVOKED"],
+    ["taxExemption"],
+    [
+      "customer_tax_exemption_store_status_validity_idx",
+      "customer_tax_exemption_store_customer_idx",
+    ],
+  ),
+  list(
+    "tax_exemption_countries",
+    "String",
+    ["taxExemption"],
+    [
+      "customer_tax_exemption_store_country_validity_idx",
+      "customer_tax_exemption_store_customer_country_validity_idx",
+    ],
+    "iso-3166-alpha2-v1",
+    normalizeCountry,
+    "SOURCE",
+  ),
 
   {
     name: "birthday",
@@ -130,7 +341,9 @@ const functions: readonly SegmentFunctionDescriptor[] = [
     temporalContract: "VALUE",
     complexityCost: 5,
     parameters: [
-      parameter("status", "Enum", EQUALITY, false, { enumValues: ["OPEN", "COMPLETED", "CANCELLED"] }),
+      parameter("status", "Enum", EQUALITY, false, {
+        enumValues: ["OPEN", "COMPLETED", "CANCELLED"],
+      }),
       parameter("created_date", "Date", DATE, false),
       parameter("completed_date", "Date", NULLABLE_DATE, false, { nullable: true }),
       parameter("cancelled_date", "Date", NULLABLE_DATE, false, { nullable: true }),
@@ -163,10 +376,7 @@ const functions: readonly SegmentFunctionDescriptor[] = [
   },
 ];
 
-export const CUSTOMER_SEGMENT_REGISTRY = new SegmentRegistry([
-  ...attributes,
-  ...functions,
-]);
+export const CUSTOMER_SEGMENT_REGISTRY = new SegmentRegistry([...attributes, ...functions]);
 
 function scalar(
   name: string,
@@ -244,10 +454,18 @@ function listEnum(
 }
 
 function consent(name: string): SegmentAttributeDescriptor {
-  return scalar(name, "Enum", NULLABLE_EQUALITY, ["consent"], ["customer_consent_store_state_idx", "customer_consent_store_customer_channel_idx"], "NONE", {
-    nullable: true,
-    enumValues: CONSENT_STATES,
-  });
+  return scalar(
+    name,
+    "Enum",
+    NULLABLE_EQUALITY,
+    ["consent"],
+    ["customer_consent_store_state_idx", "customer_consent_store_customer_channel_idx"],
+    "NONE",
+    {
+      nullable: true,
+      enumValues: CONSENT_STATES,
+    },
+  );
 }
 
 function statistics(
@@ -258,10 +476,18 @@ function statistics(
   indexName: string,
   options: Partial<SegmentAttributeDescriptor> = {},
 ): SegmentAttributeDescriptor {
-  return scalar(name, type, operators, [dependency], [indexName], options.temporalContract ?? "NONE", {
-    sourceKind: "statistics",
-    ...options,
-  });
+  return scalar(
+    name,
+    type,
+    operators,
+    [dependency],
+    [indexName],
+    options.temporalContract ?? "NONE",
+    {
+      sourceKind: "statistics",
+      ...options,
+    },
+  );
 }
 
 function statisticsMoney(

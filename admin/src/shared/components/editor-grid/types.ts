@@ -30,7 +30,12 @@ export interface IEditorGridProps<T extends IEditorRowBase> {
 
   // Callbacks
   getRowClass?: (data: T) => string;
-  onSetFieldValue: (rowId: string, field: string, originalValue: unknown, newValue: unknown) => void;
+  onSetFieldValue: (
+    rowId: string,
+    field: string,
+    originalValue: unknown,
+    newValue: unknown,
+  ) => void;
   onSelectionEnter?: (cells: ICellSelection[]) => boolean | void;
 
   // Optional custom styles class

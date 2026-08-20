@@ -4,7 +4,7 @@
 export class TypeAuthorizationError extends Error {
   constructor(
     public readonly resource: string,
-    public readonly action: string
+    public readonly action: string,
   ) {
     super(`Access denied: ${resource}:${action}`);
     this.name = "TypeAuthorizationError";
@@ -18,7 +18,7 @@ export class TypeAuthorizationError extends Error {
 export class TypeAuthorizationConfigurationError extends Error {
   constructor(public readonly typeName: string) {
     super(
-      `@TypePolicy on ${typeName || "anonymous type"} requires an authProvider implementing Authorizer`
+      `@TypePolicy on ${typeName || "anonymous type"} requires an authProvider implementing Authorizer`,
     );
     this.name = "TypeAuthorizationConfigurationError";
   }

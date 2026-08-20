@@ -4,19 +4,29 @@
 A tag represents a simple label for organizing and filtering products.
 """
 type Tag implements Node @key(fields: "id") {
-  """The globally unique ID of the tag."""
+  """
+  The globally unique ID of the tag.
+  """
   id: ID!
 
-  """The URL-friendly handle for the tag."""
+  """
+  The URL-friendly handle for the tag.
+  """
   handle: String!
 
-  """The date and time when the tag was created."""
+  """
+  The date and time when the tag was created.
+  """
   createdAt: DateTime!
 
-  """The display name of the tag."""
+  """
+  The display name of the tag.
+  """
   name: String!
 
-  """The total number of products with this tag."""
+  """
+  The total number of products with this tag.
+  """
   productsCount: Int!
 }
 
@@ -24,13 +34,19 @@ type Tag implements Node @key(fields: "id") {
 A connection to a list of Tag items.
 """
 type TagConnection {
-  """A list of edges."""
+  """
+  A list of edges.
+  """
   edges: [TagEdge!]!
 
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
 
-  """The total number of tags."""
+  """
+  The total number of tags.
+  """
   totalCount: Int!
 }
 
@@ -38,10 +54,14 @@ type TagConnection {
 An edge in a Tag connection.
 """
 type TagEdge {
-  """The item at the end of the edge."""
+  """
+  The item at the end of the edge.
+  """
   node: Tag!
 
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: String!
 }
 
@@ -51,10 +71,14 @@ type TagEdge {
 Input for creating a tag.
 """
 input TagCreateInput {
-  """The URL-friendly handle for the tag."""
+  """
+  The URL-friendly handle for the tag.
+  """
   handle: String!
 
-  """The display name of the tag (optional, defaults to handle)."""
+  """
+  The display name of the tag (optional, defaults to handle).
+  """
   name: String
 }
 
@@ -62,13 +86,19 @@ input TagCreateInput {
 Input for updating a tag.
 """
 input TagUpdateInput {
-  """The ID of the tag to update."""
+  """
+  The ID of the tag to update.
+  """
   id: ID!
 
-  """The URL-friendly handle for the tag."""
+  """
+  The URL-friendly handle for the tag.
+  """
   handle: String
 
-  """The display name of the tag."""
+  """
+  The display name of the tag.
+  """
   name: String
 }
 
@@ -76,7 +106,9 @@ input TagUpdateInput {
 Input for deleting a tag.
 """
 input TagDeleteInput {
-  """The ID of the tag to delete."""
+  """
+  The ID of the tag to delete.
+  """
   id: ID!
 }
 
@@ -86,10 +118,14 @@ input TagDeleteInput {
 Payload for tag creation.
 """
 type TagCreatePayload {
-  """The created tag."""
+  """
+  The created tag.
+  """
   tag: Tag
 
-  """List of errors that occurred during the mutation."""
+  """
+  List of errors that occurred during the mutation.
+  """
   userErrors: [GenericUserError!]!
 }
 
@@ -97,10 +133,14 @@ type TagCreatePayload {
 Payload for tag update.
 """
 type TagUpdatePayload {
-  """The updated tag."""
+  """
+  The updated tag.
+  """
   tag: Tag
 
-  """List of errors that occurred during the mutation."""
+  """
+  List of errors that occurred during the mutation.
+  """
   userErrors: [GenericUserError!]!
 }
 
@@ -108,9 +148,13 @@ type TagUpdatePayload {
 Payload for tag deletion.
 """
 type TagDeletePayload {
-  """The ID of the deleted tag."""
+  """
+  The ID of the deleted tag.
+  """
   deletedTagId: ID
 
-  """List of errors that occurred during the mutation."""
+  """
+  List of errors that occurred during the mutation.
+  """
   userErrors: [GenericUserError!]!
 }

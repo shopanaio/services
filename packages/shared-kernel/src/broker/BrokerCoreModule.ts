@@ -1,5 +1,5 @@
-import { DynamicModule, Global, Module } from '@nestjs/common';
-import { ActionRegistry } from './ActionRegistry';
+import { DynamicModule, Global, Module } from "@nestjs/common";
+import { ActionRegistry } from "./ActionRegistry";
 
 export interface BrokerCoreModuleOptions {
   // Reserved for future options

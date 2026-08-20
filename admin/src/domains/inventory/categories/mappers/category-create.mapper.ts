@@ -1,10 +1,6 @@
 import type { OutputData } from "@editorjs/editorjs";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
-import type {
-  ApiCategoryCreateInput,
-  ApiFile,
-  ApiRichTextInput,
-} from "@/graphql/types";
+import type { ApiCategoryCreateInput, ApiFile, ApiRichTextInput } from "@/graphql/types";
 import { renderContent } from "@/ui-kit/editor";
 
 export interface CreateCategoryInput {
@@ -15,9 +11,7 @@ export interface CreateCategoryInput {
   parentId?: string | null;
 }
 
-export function prepareRichText(
-  value: OutputData | null,
-): ApiRichTextInput | undefined {
+export function prepareRichText(value: OutputData | null): ApiRichTextInput | undefined {
   if (!value || !value.blocks?.length) {
     return undefined;
   }
@@ -39,9 +33,7 @@ export function prepareMediaFileIds(media: ApiFile[]): string[] | undefined {
   return media.map((file) => file.id);
 }
 
-export function prepareCategoryPayload(
-  input: CreateCategoryInput,
-): ApiCategoryCreateInput {
+export function prepareCategoryPayload(input: CreateCategoryInput): ApiCategoryCreateInput {
   const parentId = input.parentId?.trim();
 
   return {

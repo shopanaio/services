@@ -24,7 +24,9 @@ export class CompleteProviderOperationWorkflow extends BrokerWorkflows<
   constructor(
     @InjectBroker("payments") broker: ServiceBroker,
     private readonly lifecycle: PaymentLifecycleService,
-  ) { super(broker); }
+  ) {
+    super(broker);
+  }
 
   @Workflow("completeProviderOperation", { idempotencyStrategy: "workflow" })
   async run(input: CompleteProviderOperationWorkflowInput) {
@@ -81,7 +83,9 @@ export class ReportProviderEventWorkflow extends BrokerWorkflows<
   constructor(
     @InjectBroker("payments") broker: ServiceBroker,
     private readonly lifecycle: PaymentLifecycleService,
-  ) { super(broker); }
+  ) {
+    super(broker);
+  }
 
   @Workflow("reportProviderEvent", { idempotencyStrategy: "workflow" })
   async run(input: ReportProviderEventWorkflowInput) {

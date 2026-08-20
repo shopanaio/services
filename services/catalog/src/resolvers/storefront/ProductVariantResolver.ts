@@ -2,10 +2,7 @@ import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
 import type { Variant } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
-import type {
-  ProductComponentSelectionInput,
-  ProductVariantMediaArgs,
-} from "./generated/types.js";
+import type { ProductComponentSelectionInput, ProductVariantMediaArgs } from "./generated/types.js";
 import { inventoryState, loadPublishedVariant } from "./helpers.js";
 import { mediaReference } from "./MediaConnectionResolver.js";
 import { minorUnitsToMoney } from "./money.js";
@@ -35,9 +32,7 @@ export class ProductVariantResolver extends CatalogType<string, Variant> {
   }
 
   async title() {
-    const translation = await this.$ctx.loaders.variantTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.variantTranslation.load(this.$props);
     if (translation?.title) return translation.title;
     const productTranslation = await this.$ctx.loaders.productTranslation.load(
       await this.$get("productId"),
@@ -57,9 +52,7 @@ export class ProductVariantResolver extends CatalogType<string, Variant> {
   }
 
   async selectedOptions() {
-    const links = await this.$ctx.loaders.variantSelectedOptions.load(
-      this.$props,
-    );
+    const links = await this.$ctx.loaders.variantSelectedOptions.load(this.$props);
     return Promise.all(
       links.flatMap((link) =>
         link.optionValueId
@@ -76,9 +69,7 @@ export class ProductVariantResolver extends CatalogType<string, Variant> {
 
   async price() {
     const value = await this.currentPrice();
-    return value
-      ? minorUnitsToMoney(value.amountMinor, value.currency)
-      : null;
+    return value ? minorUnitsToMoney(value.amountMinor, value.currency) : null;
   }
 
   async compareAtPrice() {
@@ -115,18 +106,15 @@ export class ProductVariantResolver extends CatalogType<string, Variant> {
   }
 
   async weight() {
-    const rows = await this.$ctx.kernel.repository.physical.getWeightsByVariantIds([
-      this.$props,
-    ]);
+    const rows = await this.$ctx.kernel.repository.physical.getWeightsByVariantIds([this.$props]);
     const value = rows[0];
     return value ? { value: value.weightGr, unit: "g" } : null;
   }
 
   async dimensions() {
-    const rows =
-      await this.$ctx.kernel.repository.physical.getDimensionsByVariantIds([
-        this.$props,
-      ]);
+    const rows = await this.$ctx.kernel.repository.physical.getDimensionsByVariantIds([
+      this.$props,
+    ]);
     const value = rows[0];
     return value
       ? {
@@ -149,19 +137,14 @@ export class ProductVariantResolver extends CatalogType<string, Variant> {
   async featuredMedia() {
     const variantRows = await this.$ctx.loaders.variantMedia.load(this.$props);
     if (variantRows[0]) return mediaReference(variantRows[0].fileId);
-    const productRows = await this.$ctx.loaders.productMedia.load(
-      await this.$get("productId"),
-    );
+    const productRows = await this.$ctx.loaders.productMedia.load(await this.$get("productId"));
     return productRows[0] ? mediaReference(productRows[0].fileId) : null;
   }
 
-  async componentConfiguration(args: {
-    selections?: ProductComponentSelectionInput[] | null;
-  }) {
-    const configurationId =
-      await this.$ctx.loaders.componentConfigurationIdByVariantId.load(
-        this.$props,
-      );
+  async componentConfiguration(args: { selections?: ProductComponentSelectionInput[] | null }) {
+    const configurationId = await this.$ctx.loaders.componentConfigurationIdByVariantId.load(
+      this.$props,
+    );
     if (!configurationId) return null;
     return this.resolvers.productComponentConfiguration({
       variantId: this.$props,

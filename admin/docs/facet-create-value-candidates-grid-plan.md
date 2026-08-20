@@ -27,9 +27,12 @@ Create flow сейчас неполный для этой задачи:
 - `FacetSourceSelector` пока выбирает только тип через dropdown;
 - backend `FacetCreateScript` требует ровно один source в `sources`;
 - `FacetCreateInput` пока не принимает выбранные value candidates;
-- `FacetValueCreateInput` создаёт values отдельно, но это не подходит, потому нужно создание в одной мутации.
+- `FacetValueCreateInput` создаёт values отдельно, но это не подходит, потому нужно создание в одной
+  мутации.
 
-Важно: этот план предполагает, что план `admin/docs/facet-source-picker-modal-plan.md` уже реализован или реализуется первым. Без выбранного `source.handle` нельзя корректно запросить `facetValueCandidates`.
+Важно: этот план предполагает, что план `admin/docs/facet-source-picker-modal-plan.md` уже
+реализован или реализуется первым. Без выбранного `source.handle` нельзя корректно запросить
+`facetValueCandidates`.
 
 ## UX flow
 
@@ -40,7 +43,8 @@ Create flow сейчас неполный для этой задачи:
    - `source.handle`;
    - `source.name`.
 4. Если `facetType` равен `TAG`, `OPTION` или `FEATURE`, ниже показывается секция `Values`.
-5. Секция грузит candidates через `facetValueCandidates(meta: { candidateType, sourceHandles: [source.handle] })`.
+5. Секция грузит candidates через
+   `facetValueCandidates(meta: { candidateType, sourceHandles: [source.handle] })`.
 6. Пользователь ищет values через search input.
 7. Пользователь сортирует колонку `Value` по имени.
 8. Пользователь отмечает чекбоксами candidates, которые нужно создать вместе с facet.
@@ -144,7 +148,8 @@ selectedValueCandidates: z.array(z.object({
 
 - при смене source очищать `selectedValueCandidates`;
 - при смене source перезапрашивать candidates;
-- сохранять выбранные candidates между страницами AG Grid в `Map<string, FacetValueCandidateFormValue>`;
+- сохранять выбранные candidates между страницами AG Grid в
+  `Map<string, FacetValueCandidateFormValue>`;
 - header checkbox выбирает только текущую загруженную страницу;
 - submit отправляет только накопленную selection, а не только видимые rows.
 
@@ -171,7 +176,8 @@ interface FacetValueCandidatesGridProps {
 
 - selection column: AG Grid checkbox selection;
 - `Value`: `label`, sortable;
-- `Source`: `sourceHandle`, вторичная колонка для диагностики, можно скрыть если выбран только один source;
+- `Source`: `sourceHandle`, вторичная колонка для диагностики, можно скрыть если выбран только один
+  source;
 - опционально `Handle`: `handle`, скрытая/debug колонка.
 
 AG Grid config:
@@ -280,7 +286,8 @@ Variables для create modal:
 }
 ```
 
-`candidateType` передавать только для `TAG`, `OPTION`, `FEATURE`. Для остальных типов query не выполнять.
+`candidateType` передавать только для `TAG`, `OPTION`, `FEATURE`. Для остальных типов query не
+выполнять.
 
 ## Hook слой
 
@@ -308,7 +315,8 @@ Hook должен возвращать:
 }
 ```
 
-Если в admin уже есть общий cursor/page helper для GraphQL connection, использовать его. Если нет, сделать локальный hook без выноса новой shared abstraction.
+Если в admin уже есть общий cursor/page helper для GraphQL connection, использовать его. Если нет,
+сделать локальный hook без выноса новой shared abstraction.
 
 ## API contract для одной мутации
 
@@ -336,7 +344,8 @@ input FacetCreateInput {
 
 - candidates не являются `FacetValue` до создания facet;
 - в create flow у них есть stable candidate `handle`, но нет `FacetValue.id`;
-- backend должен валидировать candidate handles через `facetValueCandidates` repository logic перед insert.
+- backend должен валидировать candidate handles через `facetValueCandidates` repository logic перед
+  insert.
 
 Mutation example:
 
@@ -375,9 +384,7 @@ Variables:
     "label": "Color",
     "uiType": "CHECKBOX",
     "selectionMode": "MULTI",
-    "sources": [
-      { "handle": "color", "name": "Color" }
-    ],
+    "sources": [{ "handle": "color", "name": "Color" }],
     "valueCandidates": [
       { "sourceHandle": "color", "handle": "color:blue", "label": "Blue" },
       { "sourceHandle": "color", "handle": "color:green", "label": "Green" }
@@ -428,7 +435,8 @@ valueCandidates?: FacetCreateValueCandidateInput[];
    - сохранить порядок selection.
 5. Проверить, что каждый `sourceHandle` входит в выбранные `sources`.
 6. Валидировать, что каждый candidate всё ещё доступен:
-   - вызвать repository helper, который получает candidates по `candidateType`, `sourceHandles` и списку `handle`;
+   - вызвать repository helper, который получает candidates по `candidateType`, `sourceHandles` и
+     списку `handle`;
    - сравнить requested handles с найденными;
    - если есть отсутствующие, вернуть user error `SOURCE_VALUE_NOT_AVAILABLE`.
 7. Создать facet.
@@ -502,9 +510,7 @@ return {
   facetType: values.facetType,
   uiType: values.uiType,
   selectionMode: getDefaultFacetSelectionMode(values.uiType),
-  sources: values.source
-    ? [{ handle: values.source.handle, name: values.source.name }]
-    : [],
+  sources: values.source ? [{ handle: values.source.handle, name: values.source.name }] : [],
   valueCandidates: values.selectedValueCandidates.map((candidate) => ({
     handle: candidate.handle,
     label: candidate.label,
@@ -519,8 +525,10 @@ Create modal:
 
 - `sources` errors показывать на source-control;
 - `valueCandidates` errors показывать над grid;
-- если candidate стал недоступен между загрузкой и submit, оставить modal открытой и показать backend error;
-- если source изменился, selection очищается без подтверждения, потому values относятся к старому source.
+- если candidate стал недоступен между загрузкой и submit, оставить modal открытой и показать
+  backend error;
+- если source изменился, selection очищается без подтверждения, потому values относятся к старому
+  source.
 
 AG Grid:
 
@@ -569,7 +577,8 @@ Admin:
 
 Минимальная проверка:
 
-1. Запустить project codegen/schema generation через `shopana-cli`/npm flow, если менялась GraphQL schema.
+1. Запустить project codegen/schema generation через `shopana-cli`/npm flow, если менялась GraphQL
+   schema.
 2. Запустить `build`, когда нужна новая версия кода.
 3. Вручную проверить:
    - `Create facet`;
@@ -583,7 +592,11 @@ Admin:
 
 ## Открытые решения
 
-1. Нужно ли автоматически preselect all candidates по умолчанию или selection должна стартовать пустой.
-2. Нужна ли отдельная колонка `Grouped values` как на screenshot, если grouping/merge будет реализован позже.
-3. Нужно ли разрешить batch select across all filtered results, или header checkbox должен выбирать только текущую страницу.
-4. Должны ли созданные source values сразу иметь paired group values, или grouping остаётся отдельным follow-up flow.
+1. Нужно ли автоматически preselect all candidates по умолчанию или selection должна стартовать
+   пустой.
+2. Нужна ли отдельная колонка `Grouped values` как на screenshot, если grouping/merge будет
+   реализован позже.
+3. Нужно ли разрешить batch select across all filtered results, или header checkbox должен выбирать
+   только текущую страницу.
+4. Должны ли созданные source values сразу иметь paired group values, или grouping остаётся
+   отдельным follow-up flow.

@@ -13,10 +13,7 @@ import {
 
 export interface ProductQuestionAnswerUpdateParams {
   productQuestionId: string;
-  operation: Extract<
-    ProductQuestionUpdateOperation,
-    { type: "productQuestionAnswerUpdate" }
-  >;
+  operation: Extract<ProductQuestionUpdateOperation, { type: "productQuestionAnswerUpdate" }>;
 }
 
 export class ProductQuestionAnswerUpdateScript extends BaseScript<
@@ -24,13 +21,9 @@ export class ProductQuestionAnswerUpdateScript extends BaseScript<
   ReviewSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: ProductQuestionAnswerUpdateParams
-  ): Promise<ReviewSectionResult> {
+  protected async execute(params: ProductQuestionAnswerUpdateParams): Promise<ReviewSectionResult> {
     const input = params.operation.params;
-    const current = await this.repository.productQuestionAnswer.findById(
-      input.answerId
-    );
+    const current = await this.repository.productQuestionAnswer.findById(input.answerId);
     if (!current || current.answer.questionId !== params.productQuestionId) {
       return sectionErrors([
         {
@@ -47,7 +40,7 @@ export class ProductQuestionAnswerUpdateScript extends BaseScript<
           input.operations.content,
           "QUESTION_ANSWER",
           this.context.hasUser ? this.context.user.id : undefined,
-          ["operations", "content"]
+          ["operations", "content"],
         )
       : { patch: {}, errors: [] };
     const propertyPatch: ProductQuestionAnswerPatch = {};
@@ -92,7 +85,7 @@ export class ProductQuestionAnswerUpdateScript extends BaseScript<
     const acquired = await this.repository.content.update(
       input.answerId,
       input.expectedRevision,
-      mapped.patch
+      mapped.patch,
     );
     if (acquired.status === "not_found") {
       return sectionErrors([
@@ -110,22 +103,13 @@ export class ProductQuestionAnswerUpdateScript extends BaseScript<
     }
 
     if (mapped.translations) {
-      await this.repository.content.replaceTranslations(
-        input.answerId,
-        mapped.translations
-      );
+      await this.repository.content.replaceTranslations(input.answerId, mapped.translations);
     }
     if (mapped.publications) {
-      await this.repository.content.replacePublications(
-        input.answerId,
-        mapped.publications
-      );
+      await this.repository.content.replacePublications(input.answerId, mapped.publications);
     }
     if (Object.keys(propertyPatch).length > 0) {
-      await this.repository.productQuestionAnswer.updateProperties(
-        input.answerId,
-        propertyPatch
-      );
+      await this.repository.productQuestionAnswer.updateProperties(input.answerId, propertyPatch);
     }
     return sectionSuccess(true, input.answerId);
   }
@@ -146,7 +130,7 @@ export class ProductQuestionAnswerUpdateScript extends BaseScript<
         result.userErrors.map((userError) => ({
           ...userError,
           field: ["operations", "properties", "isAccepted"],
-        }))
+        })),
       );
     }
     return internalSectionError();

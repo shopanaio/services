@@ -39,7 +39,8 @@ export class CustomerSegmentMaterializationWorkflow extends BrokerWorkflows {
           temporal.state === "MORE" ||
           queue.processed > 0 ||
           temporal.processed > 0
-        ) continue;
+        )
+          continue;
         return;
       }
       if (materialization.state === "IDLE" || materialization.state === "READY") {
@@ -95,11 +96,8 @@ export class CustomerSegmentMaintenanceWorkflow extends BrokerWorkflows {
       const queue = await this.reevaluate(input);
       const temporal = await this.temporal(input);
       const materialization = await this.materialize(input);
-      if (
-        queue.state === "IDLE" &&
-        temporal.state === "IDLE" &&
-        materialization.state === "IDLE"
-      ) return;
+      if (queue.state === "IDLE" && temporal.state === "IDLE" && materialization.state === "IDLE")
+        return;
     }
     throw new Error("Customer segment maintenance exceeded workflow batch budget");
   }

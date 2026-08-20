@@ -1,16 +1,11 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  FacetSwatchDeleteParams,
-  FacetSwatchDeleteResult,
-} from "./dto/index.js";
+import type { FacetSwatchDeleteParams, FacetSwatchDeleteResult } from "./dto/index.js";
 
 export class FacetSwatchDeleteScript extends BaseScript<
   FacetSwatchDeleteParams,
   FacetSwatchDeleteResult
 > {
-  protected async execute(
-    params: FacetSwatchDeleteParams
-  ): Promise<FacetSwatchDeleteResult> {
+  protected async execute(params: FacetSwatchDeleteParams): Promise<FacetSwatchDeleteResult> {
     const deleted = await this.repository.facetSwatch.delete(params.id);
     if (!deleted) {
       return {

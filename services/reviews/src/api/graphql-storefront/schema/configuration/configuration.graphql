@@ -23,7 +23,9 @@ type ReviewStoreConfiguration implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""A localized rating dimension such as quality, fit, or value."""
+"""
+A localized rating dimension such as quality, fit, or value.
+"""
 type ReviewRatingCriterion implements Node @key(fields: "id") {
   id: ID!
   code: String!
@@ -60,7 +62,9 @@ type ReviewRatingCriterionAssignment implements Node @key(fields: "id") {
   createdAt: DateTime!
 }
 
-"""A Relay connection to rating criteria applicable in the current context."""
+"""
+A Relay connection to rating criteria applicable in the current context.
+"""
 type ReviewRatingCriterionConnection implements Connection {
   edges: [ReviewRatingCriterionEdge!]!
   nodes: [ReviewRatingCriterion!]!

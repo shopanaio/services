@@ -55,9 +55,7 @@ export class FacetMoveScript extends BaseScript<FacetMoveParams, FacetResult> {
       case "ITEM_NOT_FOUND":
         return {
           facet: undefined,
-          userErrors: [
-            { message: "Facet not found", field: ["id"], code: "NOT_FOUND" },
-          ],
+          userErrors: [{ message: "Facet not found", field: ["id"], code: "NOT_FOUND" }],
         };
       case "AFTER_ITEM_NOT_FOUND":
         return {
@@ -84,9 +82,7 @@ export class FacetMoveScript extends BaseScript<FacetMoveParams, FacetResult> {
       case "RANK_SPACE_EXHAUSTED":
         return {
           facet: undefined,
-          userErrors: [
-            { message: "Unable to move facet", code: "RANK_SPACE_EXHAUSTED" },
-          ],
+          userErrors: [{ message: "Unable to move facet", code: "RANK_SPACE_EXHAUSTED" }],
         };
     }
   }

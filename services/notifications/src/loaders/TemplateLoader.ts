@@ -1,7 +1,4 @@
-import type {
-  NotificationChannel,
-  NotificationDefinitionKey,
-} from "@shopana/broker-types";
+import type { NotificationChannel, NotificationDefinitionKey } from "@shopana/broker-types";
 import DataLoader from "dataloader";
 import type { NotificationTemplateRenderer } from "../infrastructure/templates/NotificationTemplateRenderer.js";
 
@@ -21,13 +18,8 @@ export class TemplateLoader {
   constructor(renderer: NotificationTemplateRenderer) {
     this.effectiveTemplate = new DataLoader<
       EffectiveTemplateKey,
-      Awaited<
-        ReturnType<NotificationTemplateRenderer["getEffectiveTemplate"]>
-      >,
+      Awaited<ReturnType<NotificationTemplateRenderer["getEffectiveTemplate"]>>,
       string
-    >(
-      (keys) => renderer.getEffectiveTemplates(keys),
-      { cacheKeyFn: effectiveTemplateKey }
-    );
+    >((keys) => renderer.getEffectiveTemplates(keys), { cacheKeyFn: effectiveTemplateKey });
   }
 }

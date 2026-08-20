@@ -5,16 +5,9 @@ import type {
   AppLifecycleOperationType,
   AppManifest,
 } from "@shopana/app-sdk";
-import type {
-  BrokerAdminContext,
-  BrokerCallContext,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import type { BrokerAdminContext, BrokerCallContext, ServiceBroker } from "@shopana/shared-kernel";
 import { AppInstallationSecretStore } from "./AppInstallationSecretStore.js";
-import {
-  AppInstallationStore,
-  type BegunLifecycleOperation,
-} from "./AppInstallationStore.js";
+import { AppInstallationStore, type BegunLifecycleOperation } from "./AppInstallationStore.js";
 import { snapshotManifest } from "./manifest.js";
 import { AppRuntimeRegistry } from "../runtime/AppRuntimeRegistry.js";
 
@@ -55,10 +48,7 @@ export class AppLifecycleService {
       actor: actorFromContext(context, params.installedByUserId),
       correlationId: params.correlationId,
     });
-    await this.persistSecrets(
-      begun,
-      params.secrets,
-    );
+    await this.persistSecrets(begun, params.secrets);
     return this.startLifecycle(begun, broker, adminContext);
   }
 
@@ -69,10 +59,7 @@ export class AppLifecycleService {
   ): Promise<Apps.AppLifecycleAcceptedResult> {
     this.assertPlatformCaller(context);
     const adminContext = requiredAdminContext(context);
-    const installation = await this.requireInstallation(
-      params.installationId,
-      params.storeId,
-    );
+    const installation = await this.requireInstallation(params.installationId, params.storeId);
     const runtime = this.requireRuntime(installation.appCode);
     const manifest = runtime.definition.manifest;
     const grantedScopes =
@@ -83,11 +70,7 @@ export class AppLifecycleService {
       installationId: installation.id,
       storeId: params.storeId,
       type: "UPDATE",
-      expectedStatuses: [
-        "ACTIVE",
-        "SUSPENDED",
-        "UPDATE_FAILED",
-      ],
+      expectedStatuses: ["ACTIVE", "SUSPENDED", "UPDATE_FAILED"],
       transitionStatus: "UPDATING",
       targetVersion: manifest.version,
       idempotencyKey: required(params.idempotencyKey, "idempotencyKey"),
@@ -107,14 +90,7 @@ export class AppLifecycleService {
     context: BrokerCallContext,
     broker: ServiceBroker,
   ): Promise<Apps.AppLifecycleAcceptedResult> {
-    return this.beginSimpleOperation(
-      params,
-      context,
-      broker,
-      "SUSPEND",
-      ["ACTIVE"],
-      "SUSPENDING",
-    );
+    return this.beginSimpleOperation(params, context, broker, "SUSPEND", ["ACTIVE"], "SUSPENDING");
   }
 
   async resume(
@@ -122,14 +98,7 @@ export class AppLifecycleService {
     context: BrokerCallContext,
     broker: ServiceBroker,
   ): Promise<Apps.AppLifecycleAcceptedResult> {
-    return this.beginSimpleOperation(
-      params,
-      context,
-      broker,
-      "RESUME",
-      ["SUSPENDED"],
-      "RESUMING",
-    );
+    return this.beginSimpleOperation(params, context, broker, "RESUME", ["SUSPENDED"], "RESUMING");
   }
 
   async uninstall(
@@ -142,22 +111,13 @@ export class AppLifecycleService {
       context,
       broker,
       "UNINSTALL",
-      [
-        "ACTIVE",
-        "SUSPENDED",
-        "INSTALL_FAILED",
-        "UPDATE_FAILED",
-        "UNINSTALL_FAILED",
-      ],
+      ["ACTIVE", "SUSPENDED", "INSTALL_FAILED", "UPDATE_FAILED", "UNINSTALL_FAILED"],
       "UNINSTALLING",
     );
   }
 
   private async beginSimpleOperation(
-    params:
-      | Apps.SuspendAppParams
-      | Apps.ResumeAppParams
-      | Apps.UninstallAppParams,
+    params: Apps.SuspendAppParams | Apps.ResumeAppParams | Apps.UninstallAppParams,
     context: BrokerCallContext,
     broker: ServiceBroker,
     type: Exclude<AppLifecycleOperationType, "INSTALL" | "UPDATE">,
@@ -166,10 +126,7 @@ export class AppLifecycleService {
   ): Promise<Apps.AppLifecycleAcceptedResult> {
     this.assertPlatformCaller(context);
     const adminContext = requiredAdminContext(context);
-    const installation = await this.requireInstallation(
-      params.installationId,
-      params.storeId,
-    );
+    const installation = await this.requireInstallation(params.installationId, params.storeId);
     const runtime = this.requireRuntime(installation.appCode);
     const begun = await this.installations.beginExistingOperation({
       installationId: installation.id,
@@ -217,16 +174,12 @@ export class AppLifecycleService {
           },
         );
       } catch (error) {
-        await this.installations.failOperation(
-          begun.operation.id,
-          error,
-        );
+        await this.installations.failOperation(begun.operation.id, error);
         throw error;
       }
     }
     const current =
-      (await this.installations.findById(begun.installation.id)) ??
-      begun.installation;
+      (await this.installations.findById(begun.installation.id)) ?? begun.installation;
     return {
       installationId: begun.installation.id,
       operationId: begun.operation.id,
@@ -246,10 +199,7 @@ export class AppLifecycleService {
     try {
       await this.secrets.setMany(begun.installation.id, secrets);
     } catch (error) {
-      await this.installations.failOperation(
-        begun.operation.id,
-        error,
-      );
+      await this.installations.failOperation(begun.operation.id, error);
       throw error;
     }
   }
@@ -262,10 +212,7 @@ export class AppLifecycleService {
     return runtime;
   }
 
-  private async requireInstallation(
-    installationId: string,
-    storeId: string,
-  ) {
+  private async requireInstallation(installationId: string, storeId: string) {
     const installation = await this.installations.findByIdAndStore(
       required(installationId, "installationId"),
       required(storeId, "storeId"),
@@ -293,16 +240,12 @@ export class AppLifecycleService {
 
   private assertPlatformCaller(context: BrokerCallContext): void {
     if (context.caller.kind !== "action" || context.app) {
-      throw new Error(
-        "App lifecycle can only be initiated by a platform service",
-      );
+      throw new Error("App lifecycle can only be initiated by a platform service");
     }
   }
 }
 
-function requiredAdminContext(
-  context: BrokerCallContext,
-): BrokerAdminContext {
+function requiredAdminContext(context: BrokerCallContext): BrokerAdminContext {
   if (!context.adminContext) {
     throw new Error("Verified Admin Context is required");
   }
@@ -321,7 +264,5 @@ function actorFromContext(
   context: BrokerCallContext,
   userId?: string,
 ): { readonly type: "USER" | "SERVICE"; readonly id: string } {
-  return userId
-    ? { type: "USER", id: userId }
-    : { type: "SERVICE", id: context.caller.service };
+  return userId ? { type: "USER", id: userId } : { type: "SERVICE", id: context.caller.service };
 }

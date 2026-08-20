@@ -3,12 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Button } from "antd";
 import { createStyles } from "antd-style";
-import ReactCrop, {
-  centerCrop,
-  makeAspectCrop,
-  type Crop,
-  type PixelCrop,
-} from "react-image-crop";
+import ReactCrop, { centerCrop, makeAspectCrop, type Crop, type PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 
 // ============================================================================
@@ -80,29 +75,17 @@ const useStyles = createStyles(({ token }) => ({
 // Helpers
 // ============================================================================
 
-function centerAspectCrop(
-  mediaWidth: number,
-  mediaHeight: number,
-  aspect: number
-): Crop {
+function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number): Crop {
   const minSide = Math.min(mediaWidth, mediaHeight);
   const cropSize = (minSide / mediaWidth) * 90;
   return centerCrop(
-    makeAspectCrop(
-      { unit: "%", width: cropSize },
-      aspect,
-      mediaWidth,
-      mediaHeight
-    ),
+    makeAspectCrop({ unit: "%", width: cropSize }, aspect, mediaWidth, mediaHeight),
     mediaWidth,
-    mediaHeight
+    mediaHeight,
   );
 }
 
-async function getCroppedImage(
-  image: HTMLImageElement,
-  crop: PixelCrop
-): Promise<string> {
+async function getCroppedImage(image: HTMLImageElement, crop: PixelCrop): Promise<string> {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
@@ -126,7 +109,7 @@ async function getCroppedImage(
     0,
     0,
     canvas.width,
-    canvas.height
+    canvas.height,
   );
 
   return canvas.toDataURL("image/jpeg", 0.9);
@@ -146,8 +129,7 @@ export const ImageCrop = ({
   showPreview = true,
   onCropChange,
 }: ImageCropProps) => {
-  const resolvedBorderRadius =
-    previewBorderRadius ?? (circularCrop ? "50%" : 8);
+  const resolvedBorderRadius = previewBorderRadius ?? (circularCrop ? "50%" : 8);
   const { styles } = useStyles();
 
   const [crop, setCrop] = useState<Crop>();
@@ -159,7 +141,7 @@ export const ImageCrop = ({
       const { naturalWidth, naturalHeight } = e.currentTarget;
       setCrop(centerAspectCrop(naturalWidth, naturalHeight, aspect));
     },
-    [aspect]
+    [aspect],
   );
 
   const handleCropComplete = useCallback(
@@ -170,7 +152,7 @@ export const ImageCrop = ({
         onCropChange?.(croppedUrl);
       }
     },
-    [onCropChange]
+    [onCropChange],
   );
 
   return (

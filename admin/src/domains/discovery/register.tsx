@@ -23,23 +23,17 @@ registerModule({
           "/:orgName/:storeName/search/synonyms",
         ],
       },
-      component: dynamic(
-        () => import("@/domains/discovery/search/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/discovery/search/page/page")),
     },
     {
       key: "search-product-boosts",
       path: "/:orgName/:storeName/search/product-boosts",
-      component: dynamic(
-        () => import("@/domains/discovery/search/product-boosts/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/discovery/search/product-boosts/page/page")),
     },
     {
       key: "search-synonyms",
       path: "/:orgName/:storeName/search/synonyms",
-      component: dynamic(
-        () => import("@/domains/discovery/search/synonyms/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/discovery/search/synonyms/page/page")),
     },
     {
       key: "facets-list",
@@ -60,9 +54,7 @@ registerModule({
         icon: null,
         order: 3,
       },
-      component: dynamic(
-        () => import("@/domains/discovery/recommendations/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/discovery/recommendations/page/page")),
     },
     {
       key: "search-settings",
@@ -72,9 +64,7 @@ registerModule({
         icon: null,
         order: 4,
       },
-      component: dynamic(
-        () => import("@/domains/discovery/search/settings/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/discovery/search/settings/page/page")),
     },
   ],
 });
@@ -97,9 +87,7 @@ registerModule({
         icon: null,
         order: 1,
       },
-      component: dynamic(
-        () => import("@/domains/media/website-pages/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/media/website-pages/page/page")),
     },
     {
       key: "website-navigation-list",
@@ -109,9 +97,7 @@ registerModule({
         icon: null,
         order: 2,
       },
-      component: dynamic(
-        () => import("@/domains/media/navigation/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/media/navigation/page/page")),
     },
     {
       key: "files-list",

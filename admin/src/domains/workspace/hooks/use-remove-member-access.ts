@@ -18,7 +18,7 @@ interface UseRemoveMemberAccessReturn {
   removeMemberAccess: (
     organizationId: string,
     userId: string,
-    domain: string
+    domain: string,
   ) => Promise<RemoveMemberAccessResult>;
   loading: boolean;
   error: Error | null;
@@ -39,7 +39,7 @@ export function useRemoveMemberAccess(): UseRemoveMemberAccessReturn {
     async (
       organizationId: string,
       userId: string,
-      domain: string
+      domain: string,
     ): Promise<RemoveMemberAccessResult> => {
       const result = await mutate({
         variables: { input: { organizationId, userId, domain } },
@@ -52,7 +52,7 @@ export function useRemoveMemberAccess(): UseRemoveMemberAccessReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

@@ -20,8 +20,13 @@ export interface StoreCloseInput {
 }
 
 @Injectable()
-export class StoreCloseWorkflow extends BrokerWorkflows<StoreCloseInput, { closedAccounts: number }> {
-  constructor(@InjectBroker("loyalty") broker: ServiceBroker) { super(broker); }
+export class StoreCloseWorkflow extends BrokerWorkflows<
+  StoreCloseInput,
+  { closedAccounts: number }
+> {
+  constructor(@InjectBroker("loyalty") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("closeStore")
   async run(input: StoreCloseInput): Promise<{ closedAccounts: number }> {
@@ -42,12 +47,14 @@ export class StoreCloseWorkflow extends BrokerWorkflows<StoreCloseInput, { close
       currencyCode: "USD",
       locales: ["en"],
     } satisfies ContextStore;
-    return runWithContext(new ServiceContext({
-      requestId: input.eventId,
-      kernel,
-      loaders: new Loader(kernel.repository),
-      store: deletedStore,
-    }), () => new AccountLifecycleService(kernel.repository).closeStore(input.occurredAt));
+    return runWithContext(
+      new ServiceContext({
+        requestId: input.eventId,
+        kernel,
+        loaders: new Loader(kernel.repository),
+        store: deletedStore,
+      }),
+      () => new AccountLifecycleService(kernel.repository).closeStore(input.occurredAt),
+    );
   }
 }
-

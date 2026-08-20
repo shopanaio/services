@@ -21,7 +21,10 @@ export const uploadGeneratedFileSchema = z.object({
   role: z.string().min(1).max(128),
   filename: z.string().min(1).max(255),
   mimeType: z.string().min(1).max(127),
-  contentBase64: z.string().min(1).max(24 * 1024 * 1024),
+  contentBase64: z
+    .string()
+    .min(1)
+    .max(24 * 1024 * 1024),
   idempotencyKey: z.string().min(1).max(255),
 });
 

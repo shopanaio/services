@@ -2,14 +2,18 @@
 
 ## Goal
 
-Перевести `CategoryModal` и `CategoryDetailsCard` с mock data на admin GraphQL API и добавить секционные модалки редактирования категории.
+Перевести `CategoryModal` и `CategoryDetailsCard` с mock data на admin GraphQL API и добавить
+секционные модалки редактирования категории.
 
-Интеграция должна следовать `knowledge/vault/patterns/admin-graphql-layer.md`: компоненты получают API-shaped объекты из `@/graphql/types`, hooks владеют Apollo-запросами и мутациями, mappers конвертируют только form state в GraphQL inputs.
+Интеграция должна следовать `knowledge/vault/patterns/admin-graphql-layer.md`: компоненты получают
+API-shaped объекты из `@/graphql/types`, hooks владеют Apollo-запросами и мутациями, mappers
+конвертируют только form state в GraphQL inputs.
 
 ## Current State
 
 - `CategoryModal` показывает `mockCategory` и `mockCategoryDetailsData`.
-- `CategoryDetailsCard` принимает `ICategoryDetail`, где поля не совпадают с API (`title/slug/status/gallery` вместо `name/handle/isPublished/media`).
+- `CategoryDetailsCard` принимает `ICategoryDetail`, где поля не совпадают с API
+  (`title/slug/status/gallery` вместо `name/handle/isPublished/media`).
 - `categories/graphql` уже содержит list/create операции.
 - Backend API уже поддерживает detail fields и section-based update через `CategoryUpdateInput`.
 
@@ -152,7 +156,8 @@ fragment CategoryProductListItemFields on Product {
 }
 ```
 
-If the current product schema does not expose all displayed columns, the UI should hide those columns instead of creating mock-only fields.
+If the current product schema does not expose all displayed columns, the UI should hide those
+columns instead of creating mock-only fields.
 
 ### Queries
 
@@ -259,7 +264,8 @@ mutation CategoryAddProduct($input: CategoryAddProductInput!) {
 }
 ```
 
-Equivalent operations are needed for `categoryRemoveProduct`, `categoryMoveProduct`, and `categoryRebalance`.
+Equivalent operations are needed for `categoryRemoveProduct`, `categoryMoveProduct`, and
+`categoryRebalance`.
 
 ## Hook Contracts
 
@@ -292,7 +298,9 @@ Equivalent operations are needed for `categoryRemoveProduct`, `categoryMoveProdu
 }
 ```
 
-`useCategoryProducts(categoryId, pagination)` returns the product connection separately from category details, so the details modal can load fast and the products tab/table can paginate independently.
+`useCategoryProducts(categoryId, pagination)` returns the product connection separately from
+category details, so the details modal can load fast and the products tab/table can paginate
+independently.
 
 ## Component Data Contract
 
@@ -450,7 +458,7 @@ Mapper output:
 ```ts
 {
   media: {
-    fileIds: values.files.map((file) => file.id)
+    fileIds: values.files.map((file) => file.id);
   }
 }
 ```
@@ -471,14 +479,15 @@ Wireframe:
 
 ### 5. Hierarchy
 
-Moves category under a new parent or to root. The picker must exclude the current category and descendants to avoid cycles.
+Moves category under a new parent or to root. The picker must exclude the current category and
+descendants to avoid cycles.
 
 Mapper output:
 
 ```ts
 {
   hierarchy: {
-    parentId: values.parentId
+    parentId: values.parentId;
   }
 }
 ```
@@ -540,7 +549,7 @@ Mapper output:
 
 ```ts
 {
-  status: values.isPublished ? CategoryStatus.Published : CategoryStatus.Draft
+  status: values.isPublished ? CategoryStatus.Published : CategoryStatus.Draft;
 }
 ```
 
@@ -560,7 +569,8 @@ Wireframe:
 
 ### 8. Assign Products
 
-Uses product picker plus category product mutations. Product ordering remains in the products section, not in the category detail query.
+Uses product picker plus category product mutations. Product ordering remains in the products
+section, not in the category detail query.
 
 Wireframe:
 
@@ -625,12 +635,14 @@ Wireframe:
 
 ## Implementation Order
 
-1. Add `CategoryDetailsFields`, `CATEGORY_DETAILS_QUERY`, `CATEGORY_PRODUCTS_QUERY`, `CATEGORY_UPDATE_MUTATION`, and product assignment mutations.
+1. Add `CategoryDetailsFields`, `CATEGORY_DETAILS_QUERY`, `CATEGORY_PRODUCTS_QUERY`,
+   `CATEGORY_UPDATE_MUTATION`, and product assignment mutations.
 2. Add operation types derived from `@/graphql/types`; do not re-export generated types.
 3. Add `useCategory`, `useUpdateCategory`, and category product hooks.
 4. Replace `CategoryModal` mock loading with `useCategory(categoryId)`.
 5. Change `CategoryDetailsCard` and sections to accept `ApiCategory`.
-6. Add section mappers and edit modals one by one: identity, status, content, SEO, media, hierarchy, sort, products.
+6. Add section mappers and edit modals one by one: identity, status, content, SEO, media, hierarchy,
+   sort, products.
 7. Remove category detail mocks after all sections read API fields directly.
 
 ## Edge Cases
@@ -642,4 +654,5 @@ Wireframe:
 - Refetch details after successful hierarchy/media/status updates.
 - Exclude current category and descendants from hierarchy parent picker.
 - If a section fails to save, keep the modal open and render field-level errors.
-- If product assignment partially fails, show `userErrors` and refetch `CategoryProducts` before closing.
+- If product assignment partially fails, show `userErrors` and refetch `CategoryProducts` before
+  closing.

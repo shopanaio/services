@@ -1,12 +1,6 @@
-import type {
-  ApiProductBulkUpdateInput,
-  ApiVariantOperationInput,
-} from "@/graphql/types";
+import type { ApiProductBulkUpdateInput, ApiVariantOperationInput } from "@/graphql/types";
 import { VariantOperationAction } from "@/graphql/types";
-import type {
-  InventorySubmitError,
-  ItemEdits,
-} from "../hooks/use-inventory-edit-store";
+import type { InventorySubmitError, ItemEdits } from "../hooks/use-inventory-edit-store";
 import type { InventoryVariantRow } from "./inventory-variant-row.mapper";
 
 const MAX_PRODUCTS_PER_BULK_UPDATE = 100;
@@ -117,24 +111,14 @@ export function mapInventoryVariantEditsToProductBulkUpdateInput(
       addRowError(rowErrors, row.id, {
         message: "Select a warehouse to edit inventory.",
         code: "WAREHOUSE_SCOPE_REQUIRED",
-        field: [
-          "products",
-          "operations",
-          "variants",
-          "inventory",
-          "warehouseId",
-        ],
+        field: ["products", "operations", "variants", "inventory", "warehouseId"],
       });
       continue;
     }
 
     const nextOnHand = rowEdits.onHand?.currentValue ?? row.onHand;
-    const nextUnavailable =
-      rowEdits.unavailable?.currentValue ?? row.unavailable;
-    const nextSku =
-      rowEdits.sku?.currentValue === undefined
-        ? row.sku
-        : rowEdits.sku.currentValue;
+    const nextUnavailable = rowEdits.unavailable?.currentValue ?? row.unavailable;
+    const nextSku = rowEdits.sku?.currentValue === undefined ? row.sku : rowEdits.sku.currentValue;
 
     const variantInput: ApiVariantOperationInput = {
       action: VariantOperationAction.Update,
@@ -176,11 +160,7 @@ export function mapInventoryVariantEditsToProductBulkUpdateInput(
     });
   }
 
-  if (
-    operationsCount === 0 &&
-    submitErrors.length === 0 &&
-    Object.keys(rowErrors).length === 0
-  ) {
+  if (operationsCount === 0 && submitErrors.length === 0 && Object.keys(rowErrors).length === 0) {
     submitErrors.push({
       message: "There are no editable inventory changes to save.",
       code: "NO_INVENTORY_CHANGES",

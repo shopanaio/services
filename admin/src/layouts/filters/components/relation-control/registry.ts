@@ -1,4 +1,4 @@
-import { RelationControlComponent } from '../../core/types';
+import { RelationControlComponent } from "../../core/types";
 
 /**
  * Registry for relation control components

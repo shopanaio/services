@@ -6,8 +6,7 @@ import type {
 import { IAMType } from "./IAMType.js";
 import { ApplicationOAuthClientResolver } from "./ApplicationOAuthClientResolver.js";
 
-export type ApplicationOAuthClientConnectionResolverInput =
-  ListOAuthClientsConnectionInput;
+export type ApplicationOAuthClientConnectionResolverInput = ListOAuthClientsConnectionInput;
 
 interface ApplicationOAuthClientConnectionGraphqlArgs {
   first?: number | null;
@@ -21,10 +20,12 @@ interface ApplicationOAuthClientConnectionGraphqlArgs {
     disabled?: boolean | null;
     archived?: boolean | null;
   } | null;
-  orderBy?: readonly {
-    field: string;
-    direction: "asc" | "desc";
-  }[] | null;
+  orderBy?:
+    | readonly {
+        field: string;
+        direction: "asc" | "desc";
+      }[]
+    | null;
 }
 
 /** ApplicationOAuthClientConnection resolver using the shared IAM Relay contract. */
@@ -33,13 +34,10 @@ export class ApplicationOAuthClientConnectionResolver extends IAMType<
   OAuthClientConnection
 > {
   async $preload() {
-    return this.$ctx.kernel.applicationOAuthClientManagement.getConnection(
-      this.$props,
-      {
-        id: this.$ctx.currentUser?.id ?? "",
-        requestId: this.$ctx.requestId,
-      }
-    );
+    return this.$ctx.kernel.applicationOAuthClientManagement.getConnection(this.$props, {
+      id: this.$ctx.currentUser?.id ?? "",
+      requestId: this.$ctx.requestId,
+    });
   }
 
   async edges() {
@@ -61,16 +59,13 @@ export class ApplicationOAuthClientConnectionResolver extends IAMType<
 export function mapApplicationOAuthClientConnectionInput(
   organizationId: string,
   applicationId: string,
-  args: ApplicationOAuthClientConnectionGraphqlArgs = {}
+  args: ApplicationOAuthClientConnectionGraphqlArgs = {},
 ): ApplicationOAuthClientConnectionResolverInput {
   const filters: NonNullable<ApplicationOAuthClientRelayInput["where"]>[] = [];
   const search = args.where?.search?.trim();
   if (search) {
     filters.push({
-      _or: [
-        { name: { _containsi: search } },
-        { clientId: { _containsi: search } },
-      ],
+      _or: [{ name: { _containsi: search } }, { clientId: { _containsi: search } }],
     });
   }
   const clientTypes = [...new Set(args.where?.clientType ?? [])];
@@ -89,8 +84,7 @@ export function mapApplicationOAuthClientConnectionInput(
     filters.push({ disabled: { _eq: args.where.disabled } });
   }
   filters.push({
-    deletedAt:
-      args.where?.archived === true ? { _isNot: null } : { _is: null },
+    deletedAt: args.where?.archived === true ? { _isNot: null } : { _is: null },
   });
 
   return {
@@ -109,9 +103,7 @@ export function mapApplicationOAuthClientConnectionInput(
   };
 }
 
-function mapApplicationOAuthClientOrderField(
-  field: string
-): "name" | "createdAt" | "updatedAt" {
+function mapApplicationOAuthClientOrderField(field: string): "name" | "createdAt" | "updatedAt" {
   switch (field) {
     case "NAME":
       return "name";

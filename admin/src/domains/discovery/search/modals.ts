@@ -25,9 +25,5 @@ declare module "@/layouts/modals" {
   }
 }
 
-export const useProductBoostModal = createModalStackHook(
-  SEARCH_PRODUCT_BOOST_MODAL_TYPE,
-);
-export const useSynonymGroupModal = createModalStackHook(
-  SEARCH_SYNONYM_GROUP_MODAL_TYPE,
-);
+export const useProductBoostModal = createModalStackHook(SEARCH_PRODUCT_BOOST_MODAL_TYPE);
+export const useSynonymGroupModal = createModalStackHook(SEARCH_SYNONYM_GROUP_MODAL_TYPE);

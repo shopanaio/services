@@ -11,18 +11,28 @@ type Customer @key(fields: "id") {
   productComparisons: CustomerProductComparisons!
 }
 
-"""All persisted comparison matrices prepared for the current customer."""
+"""
+All persisted comparison matrices prepared for the current customer.
+"""
 type CustomerProductComparisons {
-  """Current optimistic-concurrency revision of the persisted selection."""
+  """
+  Current optimistic-concurrency revision of the persisted selection.
+  """
   revision: Int!
 
-  """Category matrices in deterministic server-defined order."""
+  """
+  Category matrices in deterministic server-defined order.
+  """
   nodes: [ProductComparison!]!
 
-  """Number of returned category matrices."""
+  """
+  Number of returned category matrices.
+  """
   totalCount: Int!
 
-  """Number of comparison columns across all returned category matrices."""
+  """
+  Number of comparison columns across all returned category matrices.
+  """
   itemCount: Int!
 }
 
@@ -35,13 +45,19 @@ media and localized values. The storefront renders the returned matrix without
 grouping products or aligning cells itself.
 """
 type ProductComparison {
-  """Stable opaque key derived from the comparison context and category."""
+  """
+  Stable opaque key derived from the comparison context and category.
+  """
   key: String!
 
-  """Current storefront category used to group the selected variants."""
+  """
+  Current storefront category used to group the selected variants.
+  """
   category: Category!
 
-  """Localized comparison title, when configured by the merchant."""
+  """
+  Localized comparison title, when configured by the merchant.
+  """
   title: String
 
   """
@@ -50,15 +66,12 @@ type ProductComparison {
   The connection contains row groups prepared for exactly the returned page.
   Every row contains one cell per connection node in the same order.
   """
-  columns(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): ProductComparisonColumnConnection!
+  columns(first: Int, after: Cursor, last: Int, before: Cursor): ProductComparisonColumnConnection!
 }
 
-"""Relay connection containing one page of comparison columns."""
+"""
+Relay connection containing one page of comparison columns.
+"""
 type ProductComparisonColumnConnection implements Connection {
   edges: [ProductComparisonColumnEdge!]!
   nodes: [ProductComparisonColumn!]!
@@ -73,23 +86,33 @@ type ProductComparisonColumnConnection implements Connection {
   groups: [ProductComparisonGroup!]!
 }
 
-"""A comparison column and its opaque position in the complete comparison."""
+"""
+A comparison column and its opaque position in the complete comparison.
+"""
 type ProductComparisonColumnEdge {
   cursor: Cursor!
   node: ProductComparisonColumn!
 }
 
-"""One concrete variant column in the comparison matrix."""
+"""
+One concrete variant column in the comparison matrix.
+"""
 type ProductComparisonColumn {
-  """Stable column key derived from variant.id."""
+  """
+  Stable column key derived from variant.id.
+  """
   key: String!
 
-  """Zero-based position in the complete comparison."""
+  """
+  Zero-based position in the complete comparison.
+  """
   position: Int!
 
   product: Product!
 
-  """Concrete storefront variant represented by this comparison column."""
+  """
+  Concrete storefront variant represented by this comparison column.
+  """
   variant: ProductVariant!
 
   """
@@ -99,13 +122,19 @@ type ProductComparisonColumn {
   """
   featuredMedia: Media
 
-  """Current price of the concrete variant in the storefront currency."""
+  """
+  Current price of the concrete variant in the storefront currency.
+  """
   price: Money
 
-  """Current compare-at price of the concrete variant, when applicable."""
+  """
+  Current compare-at price of the concrete variant, when applicable.
+  """
   compareAtPrice: Money
 
-  """Whether the concrete variant can currently be purchased."""
+  """
+  Whether the concrete variant can currently be purchased.
+  """
   availableForSale: Boolean!
 
   """
@@ -115,13 +144,19 @@ type ProductComparisonColumn {
   savedForComparison: Boolean!
 }
 
-"""A localized section of prepared comparison rows."""
+"""
+A localized section of prepared comparison rows.
+"""
 type ProductComparisonGroup {
-  """Opaque stable key suitable for storefront rendering."""
+  """
+  Opaque stable key suitable for storefront rendering.
+  """
   key: String!
   name: String!
 
-  """Prepared rows in merchant-defined display order."""
+  """
+  Prepared rows in merchant-defined display order.
+  """
   rows: [ProductComparisonRow!]!
 }
 
@@ -133,12 +168,16 @@ options such as size, color and package. Both source kinds are aligned through
 the same canonical comparison field identity.
 """
 type ProductComparisonRow {
-  """Opaque stable key suitable for storefront rendering."""
+  """
+  Opaque stable key suitable for storefront rendering.
+  """
   key: String!
   name: String!
   description: String
 
-  """Whether at least two cells on this page have different semantic values."""
+  """
+  Whether at least two cells on this page have different semantic values.
+  """
   hasDifferences: Boolean!
 
   """
@@ -148,18 +187,28 @@ type ProductComparisonRow {
   cells: [ProductComparisonCell!]!
 }
 
-"""Semantic state of a prepared comparison cell."""
+"""
+Semantic state of a prepared comparison cell.
+"""
 enum ProductComparisonCellStatus {
-  """One or more values were resolved and formatted."""
+  """
+  One or more values were resolved and formatted.
+  """
   VALUE
 
-  """The property applies, but this product or variant has no configured value."""
+  """
+  The property applies, but this product or variant has no configured value.
+  """
   MISSING
 
-  """The merchant explicitly marked the property as inapplicable."""
+  """
+  The merchant explicitly marked the property as inapplicable.
+  """
   NOT_APPLICABLE
 
-  """A contextual source could not currently resolve the property."""
+  """
+  A contextual source could not currently resolve the property.
+  """
   UNAVAILABLE
 }
 

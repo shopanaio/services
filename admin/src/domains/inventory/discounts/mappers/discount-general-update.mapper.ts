@@ -1,7 +1,4 @@
-import type {
-  ApiDiscount,
-  ApiDiscountUpdateInput,
-} from "@/graphql/types";
+import type { ApiDiscount, ApiDiscountUpdateInput } from "@/graphql/types";
 import { DiscountCodeStatus } from "@/graphql/types";
 
 export interface DiscountCodeEditorRow {
@@ -23,9 +20,7 @@ export interface DiscountGeneralFormValues {
 const normalizeUsageLimit = (value: number | null | undefined) =>
   value == null ? null : Number(value);
 
-export function createDiscountGeneralFormValues(
-  discount: ApiDiscount,
-): DiscountGeneralFormValues {
+export function createDiscountGeneralFormValues(discount: ApiDiscount): DiscountGeneralFormValues {
   return {
     title: discount.title ?? "",
     priority: discount.priority,
@@ -40,9 +35,7 @@ export function createDiscountGeneralFormValues(
   };
 }
 
-export function validateDiscountGeneralForm(
-  values: DiscountGeneralFormValues,
-): string[] {
+export function validateDiscountGeneralForm(values: DiscountGeneralFormValues): string[] {
   const errors: string[] = [];
   const normalizedCodes = new Set<string>();
 
@@ -62,10 +55,7 @@ export function validateDiscountGeneralForm(
       normalizedCodes.add(normalizedCode);
     }
 
-    if (
-      row.usageLimit != null &&
-      (!Number.isInteger(row.usageLimit) || row.usageLimit < 1)
-    ) {
+    if (row.usageLimit != null && (!Number.isInteger(row.usageLimit) || row.usageLimit < 1)) {
       errors.push(
         `Usage limit for "${code || `code ${index + 1}`}" must be a positive whole number.`,
       );
@@ -96,9 +86,7 @@ export function buildDiscountGeneralUpdateInput(
 
   const originalRows = discount.codes.edges.map(({ node }) => node);
   const originalById = new Map(originalRows.map((row) => [row.id, row]));
-  const currentIds = new Set(
-    values.codes.flatMap((row) => (row.id ? [row.id] : [])),
-  );
+  const currentIds = new Set(values.codes.flatMap((row) => (row.id ? [row.id] : [])));
 
   const create = values.codes
     .filter((row) => !row.id)

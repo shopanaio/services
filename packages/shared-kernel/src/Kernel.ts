@@ -29,7 +29,7 @@ export class Kernel<TServices extends BaseKernelServices = BaseKernelServices> {
   constructor(
     broker: any,
     logger: Logger,
-    additionalServices?: Omit<TServices, keyof BaseKernelServices>
+    additionalServices?: Omit<TServices, keyof BaseKernelServices>,
   ) {
     this.services = {
       broker,
@@ -65,7 +65,7 @@ export class Kernel<TServices extends BaseKernelServices = BaseKernelServices> {
   async executeScript<TParams, TResult>(
     script: TransactionScript<TParams, TResult, TServices>,
     params: TParams,
-    context: Partial<ScriptContext> = {}
+    context: Partial<ScriptContext> = {},
   ): Promise<TResult> {
     const fullContext: ScriptContext = {
       requestId: context.requestId || this.generateRequestId(),
@@ -80,7 +80,7 @@ export class Kernel<TServices extends BaseKernelServices = BaseKernelServices> {
         context: fullContext,
         params,
       },
-      "Executing transaction script"
+      "Executing transaction script",
     );
 
     // Get txManager from services (if repository exists)
@@ -96,7 +96,7 @@ export class Kernel<TServices extends BaseKernelServices = BaseKernelServices> {
             context: fullContext,
             duration: Date.now() - fullContext.startTime,
           },
-          "Transaction script completed"
+          "Transaction script completed",
         );
 
         return result;
@@ -108,7 +108,7 @@ export class Kernel<TServices extends BaseKernelServices = BaseKernelServices> {
             error: error instanceof Error ? error.message : String(error),
             duration: Date.now() - fullContext.startTime,
           },
-          "Transaction script failed"
+          "Transaction script failed",
         );
 
         throw error;
@@ -132,7 +132,7 @@ export class Kernel<TServices extends BaseKernelServices = BaseKernelServices> {
   async executeScriptReadOnly<TParams, TResult>(
     script: TransactionScript<TParams, TResult, TServices>,
     params: TParams,
-    context: Partial<ScriptContext> = {}
+    context: Partial<ScriptContext> = {},
   ): Promise<TResult> {
     const fullContext: ScriptContext = {
       requestId: context.requestId || this.generateRequestId(),

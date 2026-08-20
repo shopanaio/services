@@ -1,12 +1,6 @@
 import { eq, and, isNull, or } from "drizzle-orm";
 import type { Database } from "../infrastructure/db/database";
-import {
-  assetGroups,
-  buckets,
-  s3Objects,
-  type Bucket,
-  type NewBucket,
-} from "./models";
+import { assetGroups, buckets, s3Objects, type Bucket, type NewBucket } from "./models";
 import type { FileAccessScope } from "./FileRepository";
 
 export interface CreateBucketInput {
@@ -25,13 +19,7 @@ export class BucketRepository {
     const result = await this.db
       .select()
       .from(buckets)
-      .where(
-        and(
-          eq(buckets.storeId, storeId),
-          eq(buckets.id, bucketId),
-          isNull(buckets.deletedAt)
-        )
-      )
+      .where(and(eq(buckets.storeId, storeId), eq(buckets.id, bucketId), isNull(buckets.deletedAt)))
       .limit(1);
 
     return result[0] ?? null;
@@ -41,12 +29,7 @@ export class BucketRepository {
     const result = await this.db
       .select()
       .from(buckets)
-      .where(
-        and(
-          eq(buckets.id, bucketId),
-          isNull(buckets.deletedAt)
-        )
-      )
+      .where(and(eq(buckets.id, bucketId), isNull(buckets.deletedAt)))
       .limit(1);
 
     return result[0] ?? null;
@@ -57,27 +40,18 @@ export class BucketRepository {
    * S3 object in one of the caller's accessible media libraries. This keeps
    * shared/system storage usable without exposing another tenant's buckets.
    */
-  async findAccessibleById(
-    bucketId: string,
-    scope: FileAccessScope
-  ): Promise<Bucket | null> {
+  async findAccessibleById(bucketId: string, scope: FileAccessScope): Promise<Bucket | null> {
     const accessibleOwner = or(
-      and(
-        eq(assetGroups.ownerType, "store"),
-        eq(assetGroups.ownerId, scope.storeId)
-      ),
+      and(eq(assetGroups.ownerType, "store"), eq(assetGroups.ownerId, scope.storeId)),
       scope.organizationId
         ? and(
             eq(assetGroups.ownerType, "organization"),
-            eq(assetGroups.ownerId, scope.organizationId)
+            eq(assetGroups.ownerId, scope.organizationId),
           )
         : undefined,
       scope.userId
-        ? and(
-            eq(assetGroups.ownerType, "user_profile"),
-            eq(assetGroups.ownerId, scope.userId)
-          )
-        : undefined
+        ? and(eq(assetGroups.ownerType, "user_profile"), eq(assetGroups.ownerId, scope.userId))
+        : undefined,
     );
     const result = await this.db
       .select({ bucket: buckets })
@@ -88,8 +62,8 @@ export class BucketRepository {
         and(
           eq(buckets.id, bucketId),
           isNull(buckets.deletedAt),
-          or(eq(buckets.storeId, scope.storeId), accessibleOwner)
-        )
+          or(eq(buckets.storeId, scope.storeId), accessibleOwner),
+        ),
       )
       .limit(1);
 
@@ -101,11 +75,7 @@ export class BucketRepository {
       .select()
       .from(buckets)
       .where(
-        and(
-          eq(buckets.storeId, storeId),
-          eq(buckets.status, "active"),
-          isNull(buckets.deletedAt)
-        )
+        and(eq(buckets.storeId, storeId), eq(buckets.status, "active"), isNull(buckets.deletedAt)),
       )
       .limit(1);
 
@@ -141,8 +111,8 @@ export class BucketRepository {
         and(
           eq(buckets.bucketName, bucketName),
           eq(buckets.status, "active"),
-          isNull(buckets.deletedAt)
-        )
+          isNull(buckets.deletedAt),
+        ),
       )
       .limit(1);
 
@@ -156,7 +126,9 @@ export class BucketRepository {
   async getDefault(bucketName: string): Promise<Bucket> {
     const bucket = await this.findByBucketName(bucketName);
     if (!bucket) {
-      throw new Error(`Default bucket not found: ${bucketName}. Ensure it is created at service startup.`);
+      throw new Error(
+        `Default bucket not found: ${bucketName}. Ensure it is created at service startup.`,
+      );
     }
     return bucket;
   }

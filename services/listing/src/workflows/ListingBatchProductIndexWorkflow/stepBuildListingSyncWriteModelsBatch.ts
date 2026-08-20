@@ -19,7 +19,7 @@ export type ListingBatchBuildSyncWriteModelsResult = {
 };
 
 export async function buildListingSyncWriteModelsBatch(
-  input: ListingBatchBuildSyncWriteModelsInput
+  input: ListingBatchBuildSyncWriteModelsInput,
 ): Promise<ListingBatchBuildSyncWriteModelsResult> {
   /*
    * Contract:
@@ -41,7 +41,7 @@ export async function buildListingSyncWriteModelsBatch(
       syncWriteModel: await kernel.runScript(ListingBuildSyncWriteModelScript, {
         action,
       }),
-    }))
+    })),
   );
 
   return {

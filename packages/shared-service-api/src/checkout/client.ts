@@ -1,10 +1,7 @@
 import type { BrokerLike } from "../broker";
 import { deserializeCheckout } from "@shopana/checkout-sdk";
 import type { Checkout, CheckoutDto } from "@shopana/checkout-sdk";
-import {
-  CheckoutCompletionActions,
-  type Checkout as CheckoutBroker,
-} from "@shopana/broker-types";
+import { CheckoutCompletionActions, type Checkout as CheckoutBroker } from "@shopana/broker-types";
 
 export interface CheckoutApiClient {
   getById(checkoutId: string, storeId: string): Promise<Checkout>;

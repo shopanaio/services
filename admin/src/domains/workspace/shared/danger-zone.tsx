@@ -64,13 +64,9 @@ export const DangerZone = ({ items, className }: IDangerZoneProps) => {
       {items.map((item, index) => (
         <div key={index} className={styles.item}>
           <div>
-            <Typography.Text className={styles.itemTitle}>
-              {item.title}
-            </Typography.Text>
+            <Typography.Text className={styles.itemTitle}>{item.title}</Typography.Text>
             <br />
-            <Typography.Text className={styles.itemDescription}>
-              {item.description}
-            </Typography.Text>
+            <Typography.Text className={styles.itemDescription}>{item.description}</Typography.Text>
           </div>
           <Button size="small" danger onClick={item.onClick}>
             {item.buttonText}

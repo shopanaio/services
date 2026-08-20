@@ -1,18 +1,10 @@
 export const APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION = 1 as const;
 
-export const APPLICATION_OAUTH_GRANT_TYPES = [
-  "authorization_code",
-  "refresh_token",
-] as const;
+export const APPLICATION_OAUTH_GRANT_TYPES = ["authorization_code", "refresh_token"] as const;
 
 export const APPLICATION_OAUTH_RESPONSE_TYPES = ["code"] as const;
 
-export const APPLICATION_OAUTH_SCOPES = [
-  "openid",
-  "profile",
-  "email",
-  "offline_access",
-] as const;
+export const APPLICATION_OAUTH_SCOPES = ["openid", "profile", "email", "offline_access"] as const;
 
 export const APPLICATION_OAUTH_CLIENT_METADATA_KEYS = {
   applicationId: "shopana_application_id",
@@ -38,28 +30,27 @@ export function createApplicationOAuthClientPolicyMetadata(input: {
   assertReservedMetadataValue(
     metadata,
     APPLICATION_OAUTH_CLIENT_METADATA_KEYS.applicationId,
-    input.applicationId
+    input.applicationId,
   );
   assertReservedMetadataValue(
     metadata,
     APPLICATION_OAUTH_CLIENT_METADATA_KEYS.clientId,
-    input.clientId
+    input.clientId,
   );
   assertReservedMetadataValue(
     metadata,
     APPLICATION_OAUTH_CLIENT_METADATA_KEYS.resource,
-    input.resource
+    input.resource,
   );
   assertReservedMetadataValue(
     metadata,
     APPLICATION_OAUTH_CLIENT_METADATA_KEYS.protocolPolicyVersion,
-    APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION
+    APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION,
   );
 
   return {
     ...metadata,
-    [APPLICATION_OAUTH_CLIENT_METADATA_KEYS.applicationId]:
-      input.applicationId,
+    [APPLICATION_OAUTH_CLIENT_METADATA_KEYS.applicationId]: input.applicationId,
     [APPLICATION_OAUTH_CLIENT_METADATA_KEYS.clientId]: input.clientId,
     [APPLICATION_OAUTH_CLIENT_METADATA_KEYS.resource]: input.resource,
     [APPLICATION_OAUTH_CLIENT_METADATA_KEYS.protocolPolicyVersion]:
@@ -68,7 +59,7 @@ export function createApplicationOAuthClientPolicyMetadata(input: {
 }
 
 function parseApplicationOAuthClientMetadata(
-  value: Record<string, unknown> | string | null | undefined
+  value: Record<string, unknown> | string | null | undefined,
 ): Record<string, unknown> {
   if (value === null || value === undefined) return {};
   if (typeof value !== "string") return value;
@@ -87,16 +78,13 @@ function parseApplicationOAuthClientMetadata(
 
 export function readApplicationOAuthClientPolicyMetadata(
   metadata: Record<string, unknown> | undefined,
-  expected: { applicationId: string; resource: string }
+  expected: { applicationId: string; resource: string },
 ): ApplicationOAuthClientPolicyMetadata {
-  const applicationId =
-    metadata?.[APPLICATION_OAUTH_CLIENT_METADATA_KEYS.applicationId];
+  const applicationId = metadata?.[APPLICATION_OAUTH_CLIENT_METADATA_KEYS.applicationId];
   const clientId = metadata?.[APPLICATION_OAUTH_CLIENT_METADATA_KEYS.clientId];
   const resource = metadata?.[APPLICATION_OAUTH_CLIENT_METADATA_KEYS.resource];
   const protocolPolicyVersion =
-    metadata?.[
-      APPLICATION_OAUTH_CLIENT_METADATA_KEYS.protocolPolicyVersion
-    ];
+    metadata?.[APPLICATION_OAUTH_CLIENT_METADATA_KEYS.protocolPolicyVersion];
 
   if (
     applicationId !== expected.applicationId ||
@@ -116,10 +104,7 @@ export function readApplicationOAuthClientPolicyMetadata(
   };
 }
 
-export function hasExactStringValues(
-  value: unknown,
-  expected: readonly string[]
-): boolean {
+export function hasExactStringValues(value: unknown, expected: readonly string[]): boolean {
   return (
     Array.isArray(value) &&
     value.length === expected.length &&
@@ -130,12 +115,9 @@ export function hasExactStringValues(
 function assertReservedMetadataValue(
   metadata: Record<string, unknown>,
   key: string,
-  expected: unknown
+  expected: unknown,
 ): void {
-  if (
-    Object.prototype.hasOwnProperty.call(metadata, key) &&
-    metadata[key] !== expected
-  ) {
+  if (Object.prototype.hasOwnProperty.call(metadata, key) && metadata[key] !== expected) {
     throw new Error(`OAuth client metadata field "${key}" is server-owned`);
   }
 }

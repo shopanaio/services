@@ -24,9 +24,7 @@ function createResolverProxy<T extends BaseTypeClass>(Type: T): object {
       },
       ownKeys() {
         // Return method names from prototype (excluding constructor)
-        return Object.getOwnPropertyNames(Type.prototype).filter(
-          (name) => name !== "constructor"
-        );
+        return Object.getOwnPropertyNames(Type.prototype).filter((name) => name !== "constructor");
       },
       getOwnPropertyDescriptor(_, prop) {
         // Required for ownKeys to work - make properties enumerable
@@ -41,7 +39,7 @@ function createResolverProxy<T extends BaseTypeClass>(Type: T): object {
           _parent: unknown,
           args: unknown,
           ctx: unknown,
-          info: GraphQLResolveInfo
+          info: GraphQLResolveInfo,
         ) {
           console.log(`Resolving ${Type.name}.${String(prop)}`);
           // Create instance
@@ -72,7 +70,7 @@ function createResolverProxy<T extends BaseTypeClass>(Type: T): object {
           return Type.executor.resolve(result, query);
         };
       },
-    }
+    },
   );
 }
 

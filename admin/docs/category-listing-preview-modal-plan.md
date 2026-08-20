@@ -2,9 +2,14 @@
 
 ## Цель
 
-Добавить в `CategoryDetailsModal` storefront-like preview страницы категории. В секции `Products` кнопка `Preview` открывает отдельную модалку `ListingPreviewModal`, которая показывает, как категория будет выглядеть в storefront: заголовок категории, total count, сортировка, фасеты с counts, сетка продуктов, pagination.
+Добавить в `CategoryDetailsModal` storefront-like preview страницы категории. В секции `Products`
+кнопка `Preview` открывает отдельную модалку `ListingPreviewModal`, которая показывает, как
+категория будет выглядеть в storefront: заголовок категории, total count, сортировка, фасеты с
+counts, сетка продуктов, pagination.
 
-Preview должен грузить данные через `listingQuery.listing` из `listing` service, а не через текущий `catalogQuery.category.listing`. Текущий `Category.listing` остается для admin-таблицы assigned products и операций управления категорией.
+Preview должен грузить данные через `listingQuery.listing` из `listing` service, а не через текущий
+`catalogQuery.category.listing`. Текущий `Category.listing` остается для admin-таблицы assigned
+products и операций управления категорией.
 
 ## Контекст проекта
 
@@ -27,7 +32,9 @@ Preview должен грузить данные через `listingQuery.listin
 
 ## Важное ограничение по schema/codegen
 
-В текущем `admin/schema.graphql` найден `Category.listing`, но не найден `listingQuery.listing`. При реализации сначала нужно убедиться, что admin supergraph/schema уже включает listing service admin SDL:
+В текущем `admin/schema.graphql` найден `Category.listing`, но не найден `listingQuery.listing`. При
+реализации сначала нужно убедиться, что admin supergraph/schema уже включает listing service admin
+SDL:
 
 ```graphql
 type Query {
@@ -48,7 +55,10 @@ type ListingQuery {
 }
 ```
 
-Если generated types в `admin/src/graphql/types.ts` еще не содержат `ApiListingScopeInput`, `ApiListingProductFilter`, `ApiListingFacet`, `ApiListingSortBy`, `ApiListingSortDirection`, нужно сначала обновить composed schema/codegen через project workflow. Не писать временные ad hoc типы вместо generated API types.
+Если generated types в `admin/src/graphql/types.ts` еще не содержат `ApiListingScopeInput`,
+`ApiListingProductFilter`, `ApiListingFacet`, `ApiListingSortBy`, `ApiListingSortDirection`, нужно
+сначала обновить composed schema/codegen через project workflow. Не писать временные ad hoc типы
+вместо generated API types.
 
 ## User flow
 
@@ -102,7 +112,8 @@ type ListingQuery {
 
 ## Mobile/narrow modal wireframe
 
-Для narrow viewport внутри модалки preview должен перейти в один столбец. Фасеты не должны занимать отдельный левый rail; открывать их через drawer/collapse внутри модалки.
+Для narrow viewport внутри модалки preview должен перейти в один столбец. Фасеты не должны занимать
+отдельный левый rail; открывать их через drawer/collapse внутри модалки.
 
 ```text
 ┌────────────────────────────────────┐
@@ -256,8 +267,11 @@ query CategoryListingPreview(
 
 Карточка продукта должна показывать availability. Есть два допустимых варианта:
 
-1. Если composed admin schema уже дает product-level availability для listing nodes, использовать canonical поле продукта напрямую.
-2. Если поля нет, добавить его в backend contract до UI-реализации. Не выводить availability из `isPublished`: это разные состояния. Временный fallback допустим только как явное `Unknown availability`, а не как fake stock status.
+1. Если composed admin schema уже дает product-level availability для listing nodes, использовать
+   canonical поле продукта напрямую.
+2. Если поля нет, добавить его в backend contract до UI-реализации. Не выводить availability из
+   `isPublished`: это разные состояния. Временный fallback допустим только как явное
+   `Unknown availability`, а не как fake stock status.
 
 Ожидаемый UI copy:
 
@@ -320,7 +334,9 @@ interface UseCategoryListingPreviewReturn {
 }
 ```
 
-If generated `ApiListing` is still the old catalog shape, do not reuse it blindly. Use operation-derived types based on generated schema types in `operation-types.ts`, according to `knowledge/vault/patterns/admin-graphql-layer.md`.
+If generated `ApiListing` is still the old catalog shape, do not reuse it blindly. Use
+operation-derived types based on generated schema types in `operation-types.ts`, according to
+`knowledge/vault/patterns/admin-graphql-layer.md`.
 
 ## Modal payload
 
@@ -451,7 +467,9 @@ Mapping:
 - Price low to high: `{ by: PRICE, direction: asc }`
 - Price high to low: `{ by: PRICE, direction: desc }`
 
-Initial sort derives from `category.defaultSort` / `category.defaultSortDirection`, but maps to listing service sort enum. If mapping is impossible, fallback to `{ by: MANUAL }` and show no warning.
+Initial sort derives from `category.defaultSort` / `category.defaultSortDirection`, but maps to
+listing service sort enum. If mapping is impossible, fallback to `{ by: MANUAL }` and show no
+warning.
 
 ### Product card
 
@@ -488,7 +506,8 @@ State:
 
 - `first = 24` desktop, `first = 12` narrow if desired;
 - `after = pageInfo.endCursor` for next;
-- keep a local cursor stack for previous page because listing service currently reports `hasPreviousPage: false` in resolver;
+- keep a local cursor stack for previous page because listing service currently reports
+  `hasPreviousPage: false` in resolver;
 - reset cursor stack on sort/facet/query/category change.
 
 Display:
@@ -527,7 +546,8 @@ Selection helpers:
   - if not selected, add `value.input`;
   - for radio facets, replace other inputs from same facet group;
   - reset `after` and `cursorStack`.
-- Matching should use stable serialized `input`, preferably deterministic JSON stringification for plain GraphQL input objects.
+- Matching should use stable serialized `input`, preferably deterministic JSON stringification for
+  plain GraphQL input objects.
 
 ## Loading, empty, error states
 
@@ -571,7 +591,8 @@ Controls need labels:
 ### 1. Schema readiness
 
 1. Verify admin generated schema includes `listingQuery.listing`.
-2. If missing, update federation/admin schema composition for listing service and run project codegen workflow.
+2. If missing, update federation/admin schema composition for listing service and run project
+   codegen workflow.
 3. Confirm generated types include:
    - `ApiListingScopeInput`
    - `ApiListingScopeKind`
@@ -581,13 +602,15 @@ Controls need labels:
    - `ApiListingSortDirection`
    - `ApiListingFacet`
    - `ApiListingFacetValue`
-4. Confirm canonical `Product`/`Bundle` fields needed by cards are selectable through listing query fragments.
+4. Confirm canonical `Product`/`Bundle` fields needed by cards are selectable through listing query
+   fragments.
 5. Confirm availability field exists or add backend contract before frontend card finalization.
 
 ### 2. GraphQL operation
 
 1. Add `CATEGORY_LISTING_PREVIEW_QUERY` in categories `graphql/queries.ts`.
-2. Add operation data/variables types in `graphql/operation-types.ts`, derived from generated schema types.
+2. Add operation data/variables types in `graphql/operation-types.ts`, derived from generated schema
+   types.
 3. Export through existing `graphql/index.ts`.
 4. Keep old `CATEGORY_PRODUCTS_QUERY` unchanged.
 
@@ -641,7 +664,8 @@ Controls need labels:
 
 ### 8. Verification
 
-Project rule: do not run `test` or `tsc` for verification. Run build only when a new code version needs verification.
+Project rule: do not run `test` or `tsc` for verification. Run build only when a new code version
+needs verification.
 
 Manual checks:
 
@@ -682,15 +706,25 @@ Manual checks:
   - cursor pagination.
 - Facet clicks send `values[].input` back as `facets`.
 - Sort uses listing service `ListingOrderByInput`.
-- Existing admin products table remains on `Category.listing` or its current replacement and does not inherit preview state.
-- No API-output UI view models are introduced; components consume generated API-shaped data or operation-derived generated types.
+- Existing admin products table remains on `Category.listing` or its current replacement and does
+  not inherit preview state.
+- No API-output UI view models are introduced; components consume generated API-shaped data or
+  operation-derived generated types.
 - Empty, loading, refetching, and error states are handled.
 - Narrow modal layout is usable.
 
 ## Open questions
 
-1. Какое canonical поле должно использоваться для product availability в admin GraphQL: product-level aggregate availability, selected default variant availability или listing service sellable status?
-2. Должен ли preview показывать bundles вместе с products? Listing service возвращает mixed `Listing` interface (`Product | Bundle`), а user request говорит “продукты”. Если bundles возможны в категории, UI должен либо поддержать bundle cards, либо backend/query должен ограничить scope до products.
-3. Нужен ли search box внутри category preview, или preview должен показывать только category browsing без локального search?
-4. Нужно ли использовать текущую store locale/currency из admin context явно, или полагаться на defaults listing resolver?
-5. Нужна ли точная previous-page навигация от backend? Сейчас listing resolver в service возвращает `hasPreviousPage: false`, поэтому frontend может сделать только cursor stack для текущей сессии.
+1. Какое canonical поле должно использоваться для product availability в admin GraphQL:
+   product-level aggregate availability, selected default variant availability или listing service
+   sellable status?
+2. Должен ли preview показывать bundles вместе с products? Listing service возвращает mixed
+   `Listing` interface (`Product | Bundle`), а user request говорит “продукты”. Если bundles
+   возможны в категории, UI должен либо поддержать bundle cards, либо backend/query должен
+   ограничить scope до products.
+3. Нужен ли search box внутри category preview, или preview должен показывать только category
+   browsing без локального search?
+4. Нужно ли использовать текущую store locale/currency из admin context явно, или полагаться на
+   defaults listing resolver?
+5. Нужна ли точная previous-page навигация от backend? Сейчас listing resolver в service возвращает
+   `hasPreviousPage: false`, поэтому frontend может сделать только cursor stack для текущей сессии.

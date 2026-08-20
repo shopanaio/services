@@ -32,17 +32,12 @@ export const files = mediaSchema.table(
     height: integer("height"),
     durationMs: integer("duration_ms"),
     altText: varchar("alt_text", { length: 255 }),
-    mediaType: varchar("media_type", { length: 32 })
-      .notNull()
-      .default("GENERIC_FILE"),
-    previewFileId: uuid("preview_file_id").references(
-      (): AnyPgColumn => files.id,
-      { onDelete: "set null" }
-    ),
+    mediaType: varchar("media_type", { length: 32 }).notNull().default("GENERIC_FILE"),
+    previewFileId: uuid("preview_file_id").references((): AnyPgColumn => files.id, {
+      onDelete: "set null",
+    }),
     thumbhash: text("thumbhash"),
-    processingStatus: varchar("processing_status", { length: 32 })
-      .notNull()
-      .default("PENDING"),
+    processingStatus: varchar("processing_status", { length: 32 }).notNull().default("PENDING"),
     processingError: text("processing_error"),
     processedAt: timestamp("processed_at", {
       withTimezone: true,
@@ -83,7 +78,7 @@ export const files = mediaSchema.table(
     uniqueIndex("idx_files_idempotency_key")
       .on(table.assetGroupId, table.idempotencyKey)
       .where(sql`deleted_at IS NULL AND idempotency_key IS NOT NULL`),
-  ]
+  ],
 );
 
 export type File = typeof files.$inferSelect;

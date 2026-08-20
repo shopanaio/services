@@ -14,9 +14,7 @@ registerModule({
     {
       key: "sign-up",
       path: "/sign-up",
-      component: dynamic(
-        () => import("@/domains/auth/sign-up/sign-up-page")
-      ),
+      component: dynamic(() => import("@/domains/auth/sign-up/sign-up-page")),
     },
   ],
 });

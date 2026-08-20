@@ -7,4 +7,4 @@ export {
   type DatabaseModuleOptions,
   type DatabaseClient,
   type DatabaseConnectionOptions,
-} from './DatabaseModule';
+} from "./DatabaseModule";

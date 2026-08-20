@@ -1,16 +1,11 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  UserUpdateEmailParams,
-  UserUpdateEmailResult,
-} from "./dto/UserUpdateEmailDto.js";
+import type { UserUpdateEmailParams, UserUpdateEmailResult } from "./dto/UserUpdateEmailDto.js";
 
 export class UserUpdateEmailScript extends BaseScript<
   UserUpdateEmailParams,
   UserUpdateEmailResult
 > {
-  protected async execute(
-    _params: UserUpdateEmailParams
-  ): Promise<UserUpdateEmailResult> {
+  protected async execute(_params: UserUpdateEmailParams): Promise<UserUpdateEmailResult> {
     // TODO: implement
     return {
       userErrors: [

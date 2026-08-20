@@ -9,7 +9,12 @@ export {
 } from "./operators";
 
 // Actions
-export { ACTION_META, ACTIONS_BY_TARGET, ACTIONS_BY_CATEGORY, CATEGORIES_BY_TARGET } from "./actions";
+export {
+  ACTION_META,
+  ACTIONS_BY_TARGET,
+  ACTIONS_BY_CATEGORY,
+  CATEGORIES_BY_TARGET,
+} from "./actions";
 
 // Conditions
 export { CONDITION_SUBJECT_META } from "./conditions";

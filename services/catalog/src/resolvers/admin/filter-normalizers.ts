@@ -33,16 +33,13 @@ type ProductCategoriesScopeInput = {
 };
 
 export function normalizeCategoryHierarchyScopeInput(
-  input: CategoryHierarchyScopeInput | null | undefined
+  input: CategoryHierarchyScopeInput | null | undefined,
 ): NormalizedCategoryHierarchyScope | undefined {
   if (!input) {
     return undefined;
   }
 
-  if (
-    input.direction !== "ANCESTORS" &&
-    input.direction !== "DESCENDANTS"
-  ) {
+  if (input.direction !== "ANCESTORS" && input.direction !== "DESCENDANTS") {
     return { kind: "empty" };
   }
 
@@ -52,10 +49,7 @@ export function normalizeCategoryHierarchyScopeInput(
 
   let referenceId: string;
   try {
-    referenceId = decodeGlobalIdByType(
-      input.referenceId,
-      GlobalIdEntity.Category
-    );
+    referenceId = decodeGlobalIdByType(input.referenceId, GlobalIdEntity.Category);
   } catch {
     return { kind: "empty" };
   }
@@ -75,7 +69,7 @@ export function normalizeCategoryHierarchyScopeInput(
 }
 
 export function normalizeCategoryProductsScopeInput(
-  input: CategoryProductsScopeInput | null | undefined
+  input: CategoryProductsScopeInput | null | undefined,
 ): NormalizedCategoryProductsScope | undefined {
   if (!input) {
     return undefined;
@@ -107,7 +101,7 @@ export function normalizeCategoryProductsScopeInput(
 }
 
 export function normalizeProductCategoriesScopeInput(
-  input: ProductCategoriesScopeInput | null | undefined
+  input: ProductCategoriesScopeInput | null | undefined,
 ): NormalizedProductCategoriesScope | undefined {
   if (!input) {
     return undefined;
@@ -158,14 +152,8 @@ function normalizeIdFilter(filter: unknown, entity: GlobalIdType): unknown {
 
   return {
     ...idFilter,
-    _eq:
-      idFilter._eq == null
-        ? idFilter._eq
-        : decodeGlobalIdByType(idFilter._eq, entity),
-    _neq:
-      idFilter._neq == null
-        ? idFilter._neq
-        : decodeGlobalIdByType(idFilter._neq, entity),
+    _eq: idFilter._eq == null ? idFilter._eq : decodeGlobalIdByType(idFilter._eq, entity),
+    _neq: idFilter._neq == null ? idFilter._neq : decodeGlobalIdByType(idFilter._neq, entity),
     _in:
       idFilter._in == null
         ? idFilter._in
@@ -179,7 +167,7 @@ function normalizeIdFilter(filter: unknown, entity: GlobalIdType): unknown {
 
 function normalizeWhereList<TWhere>(
   values: unknown,
-  normalize: (where: TWhere | null | undefined) => TWhere | undefined
+  normalize: (where: TWhere | null | undefined) => TWhere | undefined,
 ): TWhere[] | undefined {
   if (!Array.isArray(values)) {
     return undefined;
@@ -191,7 +179,7 @@ function normalizeWhereList<TWhere>(
 }
 
 function normalizeWarehouseWhereNode(
-  where: WarehouseRelayInput["where"] | null | undefined
+  where: WarehouseRelayInput["where"] | null | undefined,
 ): WarehouseRelayInput["where"] {
   if (!where) {
     return undefined;
@@ -201,14 +189,14 @@ function normalizeWarehouseWhereNode(
 
   normalized._and = normalizeWhereList<WarehouseRelayInput["where"]>(
     normalized._and,
-    normalizeWarehouseWhereNode
+    normalizeWarehouseWhereNode,
   );
   normalized._or = normalizeWhereList<WarehouseRelayInput["where"]>(
     normalized._or,
-    normalizeWarehouseWhereNode
+    normalizeWarehouseWhereNode,
   );
   normalized._not = normalizeWarehouseWhereNode(
-    normalized._not as WarehouseRelayInput["where"] | null | undefined
+    normalized._not as WarehouseRelayInput["where"] | null | undefined,
   );
   normalized.id = normalizeIdFilter(normalized.id, GlobalIdEntity.Warehouse);
 
@@ -216,7 +204,7 @@ function normalizeWarehouseWhereNode(
 }
 
 function normalizeWarehouseStockWhereNode(
-  where: StockRelayInput["where"] | null | undefined
+  where: StockRelayInput["where"] | null | undefined,
 ): StockRelayInput["where"] {
   if (!where) {
     return undefined;
@@ -226,36 +214,30 @@ function normalizeWarehouseStockWhereNode(
 
   normalized._and = normalizeWhereList<StockRelayInput["where"]>(
     normalized._and,
-    normalizeWarehouseStockWhereNode
+    normalizeWarehouseStockWhereNode,
   );
   normalized._or = normalizeWhereList<StockRelayInput["where"]>(
     normalized._or,
-    normalizeWarehouseStockWhereNode
+    normalizeWarehouseStockWhereNode,
   );
   normalized._not = normalizeWarehouseStockWhereNode(
-    normalized._not as StockRelayInput["where"] | null | undefined
+    normalized._not as StockRelayInput["where"] | null | undefined,
   );
   normalized.id = normalizeIdFilter(normalized.id, GlobalIdEntity.WarehouseStock);
-  normalized.warehouseId = normalizeIdFilter(
-    normalized.warehouseId,
-    GlobalIdEntity.Warehouse
-  );
-  normalized.variantId = normalizeIdFilter(
-    normalized.variantId,
-    GlobalIdEntity.Variant
-  );
+  normalized.warehouseId = normalizeIdFilter(normalized.warehouseId, GlobalIdEntity.Warehouse);
+  normalized.variantId = normalizeIdFilter(normalized.variantId, GlobalIdEntity.Variant);
 
   return normalized as StockRelayInput["where"];
 }
 
 export function normalizeWarehouseWhereInput(
-  where: WarehouseRelayInput["where"] | null | undefined
+  where: WarehouseRelayInput["where"] | null | undefined,
 ): WarehouseRelayInput["where"] {
   return normalizeWarehouseWhereNode(where);
 }
 
 export function normalizeWarehouseStockWhereInput(
-  where: StockRelayInput["where"] | null | undefined
+  where: StockRelayInput["where"] | null | undefined,
 ): StockRelayInput["where"] {
   return normalizeWarehouseStockWhereNode(where);
 }

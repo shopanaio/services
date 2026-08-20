@@ -22,13 +22,10 @@ export class CustomerIamLifecycleScript extends BaseScript<
   CustomerIamLifecycleResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerIamLifecycleParams,
-  ): Promise<CustomerIamLifecycleResult> {
-    const customer =
-      await this.repository.customer.findByIamPrincipalIdIncludingDeleted(
-        params.iamPrincipalId,
-      );
+  protected async execute(params: CustomerIamLifecycleParams): Promise<CustomerIamLifecycleResult> {
+    const customer = await this.repository.customer.findByIamPrincipalIdIncludingDeleted(
+      params.iamPrincipalId,
+    );
     if (!customer || customer.deletedAt) {
       return { customerId: customer?.id ?? null, updated: false };
     }
@@ -38,12 +35,9 @@ export class CustomerIamLifecycleScript extends BaseScript<
         iamPrincipalId: null,
         iamPrincipalStatus: null,
         iamLifecycleDisabled: false,
-        ...(customer.accountStatus === "REGISTERED"
-          ? { accountStatus: "GUEST" as const }
-          : {}),
+        ...(customer.accountStatus === "REGISTERED" ? { accountStatus: "GUEST" as const } : {}),
         emailVerified: false,
-        ...(customer.iamLifecycleDisabled &&
-        customer.lifecycleStatus === "DISABLED"
+        ...(customer.iamLifecycleDisabled && customer.lifecycleStatus === "DISABLED"
           ? { lifecycleStatus: "ACTIVE" as const }
           : {}),
       });
@@ -81,11 +75,7 @@ export class CustomerIamLifecycleScript extends BaseScript<
     }
     const updated = await this.repository.customer.update(customer.id, patch);
     if (updated) {
-      await this.invalidateDynamicSegments(
-        customer.id,
-        ["status"],
-        "iamLifecycleStatus",
-      );
+      await this.invalidateDynamicSegments(customer.id, ["status"], "iamLifecycleStatus");
     }
     return { customerId: customer.id, updated: Boolean(updated) };
   }

@@ -1,20 +1,9 @@
 import { PGlite } from "@electric-sql/pglite";
 import type { SQL } from "drizzle-orm";
-import {
-  integer,
-  PgDialect,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { integer, PgDialect, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import {
-  createQuery,
-  field,
-  MaxLimitExceededError,
-} from "../../builder/index.js";
+import { createQuery, field, MaxLimitExceededError } from "../../builder/index.js";
 import { createRelayQuery } from "../../relay/index.js";
 
 // Dialect for SQL serialization
@@ -348,9 +337,7 @@ describe("FluentQueryBuilder maxLimit", () => {
       id: field(users.id),
     }).maxLimit(10);
 
-    await expect(query.execute(db, { limit: 20 })).rejects.toThrow(
-      MaxLimitExceededError
-    );
+    await expect(query.execute(db, { limit: 20 })).rejects.toThrow(MaxLimitExceededError);
   });
 
   it("should allow limit equal to maxLimit", async () => {
@@ -688,19 +675,15 @@ describe("Type inference for nested paths", () => {
     // Type assertion: These should compile without errors
     // Testing that NestedPaths includes "address.city", "address.country", etc.
     const _validSelect: Parameters<typeof usersWithAddress.execute>[1] = {
-      select: [
-        "id",
-        "name",
-        "address",
-        "address.id",
-        "address.city",
-        "address.country",
-      ],
+      select: ["id", "name", "address", "address.id", "address.city", "address.country"],
       limit: 10,
     };
 
     const _validOrder: Parameters<typeof usersWithAddress.execute>[1] = {
-      order: [{ field: "id", direction: "asc" }, { field: "address.city", direction: "desc" }],
+      order: [
+        { field: "id", direction: "asc" },
+        { field: "address.city", direction: "desc" },
+      ],
       limit: 10,
     };
 

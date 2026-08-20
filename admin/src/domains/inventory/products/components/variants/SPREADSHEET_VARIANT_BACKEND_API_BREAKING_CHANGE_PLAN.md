@@ -2,14 +2,13 @@
 
 ## Область
 
-Документ описывает только backend API часть утвержденного breaking change для
-spreadsheet-создания вариантов.
+Документ описывает только backend API часть утвержденного breaking change для spreadsheet-создания
+вариантов.
 
-Frontend, editor grid, draft rows, persisted store, modal save orchestration и
-UI validation не входят в область этого документа. Единственное frontend
-следствие: все клиенты, которые отправляли старый
-`ProductUpdateInput.variants: [VariantUpdateInput!]`, должны перейти на новый
-operation-style contract, потому что обратная совместимость не сохраняется.
+Frontend, editor grid, draft rows, persisted store, modal save orchestration и UI validation не
+входят в область этого документа. Единственное frontend следствие: все клиенты, которые отправляли
+старый `ProductUpdateInput.variants: [VariantUpdateInput!]`, должны перейти на новый operation-style
+contract, потому что обратная совместимость не сохраняется.
 
 ## Утвержденный breaking change
 
@@ -29,28 +28,25 @@ input ProductUpdateInput {
 }
 ```
 
-Старый shape `variants: [VariantUpdateInput!]` больше не поддерживается.
-Отдельное additive field для создания вариантов не добавляется.
+Старый shape `variants: [VariantUpdateInput!]` больше не поддерживается. Отдельное additive field
+для создания вариантов не добавляется.
 
-Целевой backend contract должен поддерживать `CREATE`, `UPDATE` и `DELETE`
-variant operations внутри одной существующей mutation `productUpdate`.
+Целевой backend contract должен поддерживать `CREATE`, `UPDATE` и `DELETE` variant operations внутри
+одной существующей mutation `productUpdate`.
 
 ## Цели backend
 
-- `productUpdate` принимает один batch variant operations в
-  `ProductUpdateInput.variants`.
+- `productUpdate` принимает один batch variant operations в `ProductUpdateInput.variants`.
 - Backend декодирует и валидирует весь batch до любых write-side effects.
-- `expectedRevision` обязателен для любых variant operations, проверяется до
-  записи и не должен инкрементироваться, если batch-level validation падает.
-- Variant create/update/delete выполняются внутри существующей модели
-  `ProductUpdateWorkflow`.
-- Результаты возвращаются через существующий `ProductUpdatePayload`:
-  `product`, `operationResults`, `userErrors`.
-- `operationResults` получает типы `variantCreate` и `variantDelete`, а create
-  result возвращает `clientMutationId` и `entityId`.
-- Отдельная mutation `variantCreate` не используется для spreadsheet-save
-  contract, но может остаться как самостоятельный API для других flows, если она
-  уже существует.
+- `expectedRevision` обязателен для любых variant operations, проверяется до записи и не должен
+  инкрементироваться, если batch-level validation падает.
+- Variant create/update/delete выполняются внутри существующей модели `ProductUpdateWorkflow`.
+- Результаты возвращаются через существующий `ProductUpdatePayload`: `product`, `operationResults`,
+  `userErrors`.
+- `operationResults` получает типы `variantCreate` и `variantDelete`, а create result возвращает
+  `clientMutationId` и `entityId`.
+- Отдельная mutation `variantCreate` не используется для spreadsheet-save contract, но может
+  остаться как самостоятельный API для других flows, если она уже существует.
 
 ## Результаты исследования и принятые решения
 
@@ -59,78 +55,67 @@ variant operations внутри одной существующей mutation `pr
 - `ProductUpdateInput.variants` сейчас указывает на `VariantUpdateInput`.
 - `OperationType` уже является GraphQL enum, а не string scalar.
 - `OperationResult` сейчас содержит только `type`, `applied`, `errors`.
-- `productUpdate` и `productBulkUpdate` имеют отдельные mapper paths, которые оба
-  считают каждый `variants[]` элемент `variantUpdate`.
-- `ProductUpdateWorkflow` сейчас сначала инкрементирует optimistic revision и
-  только потом выполняет операции.
-- Bulk update является async job API: root mutation возвращает `job`, а
-  per-operation результаты сохраняются в `BulkUpdateItem.status/errors`.
-- Standalone `variantCreate` создает только variant row и option links;
-  inventory item для созданного variant сейчас создается только в product create
-  saga.
-- Standalone `variantDelete` поддерживает `permanent`, но default behavior -
-  soft delete.
-- `productUpdated` consumers сейчас используют только ключи `payload.variants`
-  как affected variant ids для search sync.
+- `productUpdate` и `productBulkUpdate` имеют отдельные mapper paths, которые оба считают каждый
+  `variants[]` элемент `variantUpdate`.
+- `ProductUpdateWorkflow` сейчас сначала инкрементирует optimistic revision и только потом выполняет
+  операции.
+- Bulk update является async job API: root mutation возвращает `job`, а per-operation результаты
+  сохраняются в `BulkUpdateItem.status/errors`.
+- Standalone `variantCreate` создает только variant row и option links; inventory item для
+  созданного variant сейчас создается только в product create saga.
+- Standalone `variantDelete` поддерживает `permanent`, но default behavior - soft delete.
+- `productUpdated` consumers сейчас используют только ключи `payload.variants` как affected variant
+  ids для search sync.
 
 Принятые implementation decisions:
 
-- Resolver layer отвечает за GraphQL-specific work: safe global ID decoding,
-  cross-field shape validation for `action`, field-path construction и shared
-  mapping для single/bulk. Resolver не должен запускать `ProductUpdateWorkflow`,
-  если decode или action-shape validation падает.
-- Requests с непустым `ProductUpdateInput.variants` обязаны передавать
-  `expectedRevision`. Отсутствующий `expectedRevision` является resolver
-  preflight validation error и не должен запускать `ProductUpdateWorkflow`.
-- Workflow layer владеет product-state batch validation. Это держит single
-  `productUpdate` и async bulk jobs на одной реализации invariants.
-- `ProductUpdateWorkflow` должен выполнять `stepPreValidateVariantBatch` до
-  `stepAcquireRevision` всякий раз, когда есть variant operation.
-- Operation result order - это mapped workflow operation order, а не raw GraphQL
-  object field order: одна product-level operation, если присутствуют product
-  fields, затем categories в request order, затем tags в request order, затем
-  variants в request order. Bulk items создаются и resolve-ятся относительно
-  этого же порядка.
-- При pre-validation failure любые writes запрещены. Нужно вернуть один
-  `OperationResult` на каждую mapped operation в mapped order с
-  `applied: false`. Operations со специфическими validation errors получают эти
-  errors. Operations, заблокированные только потому, что batch failed, получают
-  общий `BATCH_VALIDATION_FAILED` error, чтобы bulk item status не мог быть
-  отмечен succeeded через index fallback.
+- Resolver layer отвечает за GraphQL-specific work: safe global ID decoding, cross-field shape
+  validation for `action`, field-path construction и shared mapping для single/bulk. Resolver не
+  должен запускать `ProductUpdateWorkflow`, если decode или action-shape validation падает.
+- Requests с непустым `ProductUpdateInput.variants` обязаны передавать `expectedRevision`.
+  Отсутствующий `expectedRevision` является resolver preflight validation error и не должен
+  запускать `ProductUpdateWorkflow`.
+- Workflow layer владеет product-state batch validation. Это держит single `productUpdate` и async
+  bulk jobs на одной реализации invariants.
+- `ProductUpdateWorkflow` должен выполнять `stepPreValidateVariantBatch` до `stepAcquireRevision`
+  всякий раз, когда есть variant operation.
+- Operation result order - это mapped workflow operation order, а не raw GraphQL object field order:
+  одна product-level operation, если присутствуют product fields, затем categories в request order,
+  затем tags в request order, затем variants в request order. Bulk items создаются и resolve-ятся
+  относительно этого же порядка.
+- При pre-validation failure любые writes запрещены. Нужно вернуть один `OperationResult` на каждую
+  mapped operation в mapped order с `applied: false`. Operations со специфическими validation errors
+  получают эти errors. Operations, заблокированные только потому, что batch failed, получают общий
+  `BATCH_VALIDATION_FAILED` error, чтобы bulk item status не мог быть отмечен succeeded через index
+  fallback.
 - Field paths для single-request используют текущую resolver shape:
   `["operations", "variants", variantIndex, ...]`. Bulk paths используют:
-  `["input", "products", productIndex, "operations", "variants", variantIndex,
-  ...]`.
-- `VariantOperationInput.action: DELETE` внутри `productUpdate` всегда использует
-  soft-delete semantics. Существующий standalone `variantDelete(permanent)` API
-  может сохранить hard-delete support, но `ProductUpdateInput.variants` не должен
-  expose-ить `permanent`.
-- Variant creates внутри `ProductUpdateWorkflow` должны гарантировать наличие
-  inventory item перед применением `inventory` или `weight`, потому что текущий
-  inventory-update script загружает item по `variantId` и падает, если inventory
-  item не существует.
-- `clientMutationId` - это per-request correlation key, а не durable
-  cross-request idempotency. Request-level idempotency обеспечивается существующим
-  `x-idempotency-key` / `requestId` workflow id. Клиенты, которым нужен
-  retry-safe save, должны отправлять стабильный `x-idempotency-key` для save
-  request.
-- Bulk update не expose-ит `ProductUpdatePayload.operationResults` в root
-  mutation. Он должен расширить job item op types и status/error mapping для
-  `variantCreate` и `variantDelete`. Bulk create `entityId` не expose-ится в этом
-  change; для этого требуется отдельное nullable result field на `bulk_edit_item`
-  и `BulkUpdateItem`.
-- Bulk resolver decode/action-shape errors происходят до job creation и fail-ят
-  весь `productBulkUpdate` request через `userErrors`, что соответствует текущему
-  pre-job validation behavior. Product-state batch validation failures происходят
-  внутри job и fail-ят только affected product group's items.
-- `productUpdated` должен оставаться event, который `ProductUpdateWorkflow`
-  emits для create/update/delete variant operations. Standalone `variantDelete`
-  продолжает emit-ить существующий `variantDeleted` event.
-- Event DTOs должны быть выровнены до реализации: использовать стабильный variant
-  change shape с `lifecycle: "created" | "updated" | "deleted"`, `options`,
-  `pricing`, `inventory`, `physical` и `media`. Обновить и local
-  `ProductChanges`, и `packages/events` types вместо добавления ad hoc payload
-  fields.
+  `["input", "products", productIndex, "operations", "variants", variantIndex, ...]`.
+- `VariantOperationInput.action: DELETE` внутри `productUpdate` всегда использует soft-delete
+  semantics. Существующий standalone `variantDelete(permanent)` API может сохранить hard-delete
+  support, но `ProductUpdateInput.variants` не должен expose-ить `permanent`.
+- Variant creates внутри `ProductUpdateWorkflow` должны гарантировать наличие inventory item перед
+  применением `inventory` или `weight`, потому что текущий inventory-update script загружает item по
+  `variantId` и падает, если inventory item не существует.
+- `clientMutationId` - это per-request correlation key, а не durable cross-request idempotency.
+  Request-level idempotency обеспечивается существующим `x-idempotency-key` / `requestId` workflow
+  id. Клиенты, которым нужен retry-safe save, должны отправлять стабильный `x-idempotency-key` для
+  save request.
+- Bulk update не expose-ит `ProductUpdatePayload.operationResults` в root mutation. Он должен
+  расширить job item op types и status/error mapping для `variantCreate` и `variantDelete`. Bulk
+  create `entityId` не expose-ится в этом change; для этого требуется отдельное nullable result
+  field на `bulk_edit_item` и `BulkUpdateItem`.
+- Bulk resolver decode/action-shape errors происходят до job creation и fail-ят весь
+  `productBulkUpdate` request через `userErrors`, что соответствует текущему pre-job validation
+  behavior. Product-state batch validation failures происходят внутри job и fail-ят только affected
+  product group's items.
+- `productUpdated` должен оставаться event, который `ProductUpdateWorkflow` emits для
+  create/update/delete variant operations. Standalone `variantDelete` продолжает emit-ить
+  существующий `variantDeleted` event.
+- Event DTOs должны быть выровнены до реализации: использовать стабильный variant change shape с
+  `lifecycle: "created" | "updated" | "deleted"`, `options`, `pricing`, `inventory`, `physical` и
+  `media`. Обновить и local `ProductChanges`, и `packages/events` types вместо добавления ad hoc
+  payload fields.
 
 ## Изменения GraphQL schema
 
@@ -180,9 +165,9 @@ input VariantOperationInput {
 }
 ```
 
-Переиспользовать существующие nested inputs там, где они уже представляют целевой
-write shape. Не вводить duplicate input types, если текущие inputs не привязаны
-семантически к старому `VariantUpdateInput`.
+Переиспользовать существующие nested inputs там, где они уже представляют целевой write shape. Не
+вводить duplicate input types, если текущие inputs не привязаны семантически к старому
+`VariantUpdateInput`.
 
 ### Правила GraphQL input validation
 
@@ -204,10 +189,9 @@ write shape. Не вводить duplicate input types, если текущие 
 - `variantId` обязателен.
 - Все поля, кроме `action` и `variantId`, запрещены.
 
-Enforce-ить эти правила до workflow writes. Zod codegen может покрывать shape
-constraints, но cross-field action validation должна быть реализована в shared
-resolver mapper до старта `ProductUpdateWorkflow`. Product-state checks все еще
-принадлежат workflow pre-validation.
+Enforce-ить эти правила до workflow writes. Zod codegen может покрывать shape constraints, но
+cross-field action validation должна быть реализована в shared resolver mapper до старта
+`ProductUpdateWorkflow`. Product-state checks все еще принадлежат workflow pre-validation.
 
 ## Resolver mapping
 
@@ -215,8 +199,8 @@ resolver mapper до старта `ProductUpdateWorkflow`. Product-state checks 
 
 - `services/catalog/src/resolvers/admin/MutationResolver.ts`
 
-`productUpdate` остается единственной mutation entry point. Resolver должен
-маппить каждый `ProductUpdateInput.variants[]` item в одну workflow operation:
+`productUpdate` остается единственной mutation entry point. Resolver должен маппить каждый
+`ProductUpdateInput.variants[]` item в одну workflow operation:
 
 ```ts
 type ProductUpdateOperation =
@@ -230,39 +214,35 @@ type ProductUpdateOperation =
 
 Ответственность resolver:
 
-- Decode `productId` до старта workflow. Использовать safe decoding и возвращать
-  `userErrors` вместо throwing GraphQL transport errors.
+- Decode `productId` до старта workflow. Использовать safe decoding и возвращать `userErrors` вместо
+  throwing GraphQL transport errors.
 - Decode incoming global IDs для operation params:
   - `variantId`
   - `optionId`
   - `optionValueId`
   - `fileId`
   - `warehouseId`
-- Валидировать `VariantOperationInput.action` field combinations до старта
-  workflow:
+- Валидировать `VariantOperationInput.action` field combinations до старта workflow:
   - `CREATE`: нет `variantId`, required `clientMutationId`, required `options`;
   - `UPDATE`: required `variantId`;
   - `DELETE`: required `variantId`, нет других payload fields.
-- Валидировать, что `expectedRevision` передан, если `variants[]` содержит хотя
-  бы одну operation. При отсутствии `expectedRevision` вернуть validation error
-  через `userErrors` и не запускать workflow.
+- Валидировать, что `expectedRevision` передан, если `variants[]` содержит хотя бы одну operation.
+  При отсутствии `expectedRevision` вернуть validation error через `userErrors` и не запускать
+  workflow.
 - Сохранять mapped operation order:
   - одна `productUpdate` operation первой, если есть product-level fields;
   - `categories[]` в request order;
   - `tags[]` в request order;
   - `variants[]` в request order.
 - Сохранять `clientMutationId` для create operations.
-- Прикреплять field-path metadata к каждой mapped operation, как минимум variant
-  operations, чтобы workflow validation могла возвращать GraphQL input paths, не
-  зная resolver argument structure.
-- Возвращать workflow result через `ProductUpdatePayload` без введения нового
-  payload type.
+- Прикреплять field-path metadata к каждой mapped operation, как минимум variant operations, чтобы
+  workflow validation могла возвращать GraphQL input paths, не зная resolver argument structure.
+- Возвращать workflow result через `ProductUpdatePayload` без введения нового payload type.
 
-Для single `productUpdate`, если global ID decoding падает, вернуть validation
-error через `userErrors` и соответствующий `operationResults` entry. Не запускать
-workflow и не acquire-ить product revision для requests, которые fail-ят
-decode/action-shape validation. Variant field paths должны использовать
-`["operations", "variants", variantIndex, ...]`.
+Для single `productUpdate`, если global ID decoding падает, вернуть validation error через
+`userErrors` и соответствующий `operationResults` entry. Не запускать workflow и не acquire-ить
+product revision для requests, которые fail-ят decode/action-shape validation. Variant field paths
+должны использовать `["operations", "variants", variantIndex, ...]`.
 
 ## Изменения Workflow DTO
 
@@ -332,8 +312,7 @@ export interface VariantDeleteParams {
 `meta.fieldPrefix` создается resolver mapper. Примеры:
 
 - single `productUpdate`: `["operations", "variants", "0"]`;
-- bulk product item: `["input", "products", "2", "operations", "variants",
-  "0"]`.
+- bulk product item: `["input", "products", "2", "operations", "variants", "0"]`.
 
 Расширить `OperationResult`:
 
@@ -353,8 +332,8 @@ export interface OperationResult {
 }
 ```
 
-`entityId` - это internal variant id в workflow DTOs. GraphQL response layer
-должен encode-ить его как public `ID`.
+`entityId` - это internal variant id в workflow DTOs. GraphQL response layer должен encode-ить его
+как public `ID`.
 
 ## Изменения Workflow
 
@@ -374,9 +353,8 @@ export interface OperationResult {
 - `variantUpdate`
 - `variantDelete`
 
-Workflow сохраняет существующую partial-failure model для operation execution,
-но добавляет pre-validation phase, которая выполняется до revision
-acquire/increment.
+Workflow сохраняет существующую partial-failure model для operation execution, но добавляет
+pre-validation phase, которая выполняется до revision acquire/increment.
 
 ### Требуемый workflow order
 
@@ -387,12 +365,11 @@ acquire/increment.
    - product options
    - option values
    - selected option links
-   - inventory items для referenced variants, где inventory/weight validation
-     нуждается в них
+   - inventory items для referenced variants, где inventory/weight validation нуждается в них
    - media/pricing data, required by validators
 3. Выполнить batch-level validation.
-4. Если batch validation падает, вернуть `userErrors` и per-operation
-   `operationResults` без acquiring revision.
+4. Если batch validation падает, вернуть `userErrors` и per-operation `operationResults` без
+   acquiring revision.
 5. Если validation проходит, acquire/increment optimistic revision.
 6. Выполнить operations в request order:
    - create variants
@@ -406,12 +383,11 @@ acquire/increment.
 
 ### Revision invariant
 
-Batch validation должна происходить до любых write-side effects, включая
-optimistic revision acquire/increment. Если validation возвращает errors,
-`product.revision` не должен изменяться.
+Batch validation должна происходить до любых write-side effects, включая optimistic revision
+acquire/increment. Если validation возвращает errors, `product.revision` не должен изменяться.
 
-Это намеренно меняет текущий документированный workflow order, где
-`stepAcquireRevision` идет первым. Новый порядок:
+Это намеренно меняет текущий документированный workflow order, где `stepAcquireRevision` идет
+первым. Новый порядок:
 
 ```text
 stepPreValidateVariantBatch
@@ -420,19 +396,18 @@ operation steps
 stepEmitEvent
 ```
 
-Если variant operations отсутствуют, существующий product/category/tag flow
-может сохранить текущее поведение. Если variant operations присутствуют,
-`expectedRevision` обязателен, validation должна выполняться до revision acquire,
-а `stepAcquireRevision` должен использовать CAS по этому `expectedRevision`.
+Если variant operations отсутствуют, существующий product/category/tag flow может сохранить текущее
+поведение. Если variant operations присутствуют, `expectedRevision` обязателен, validation должна
+выполняться до revision acquire, а `stepAcquireRevision` должен использовать CAS по этому
+`expectedRevision`.
 
-Для requests, которые включают variant operations, failed variant batch блокирует
-все operations в этом `productUpdate` request, потому что revision не acquired и
-writes не выполняются.
+Для requests, которые включают variant operations, failed variant batch блокирует все operations в
+этом `productUpdate` request, потому что revision не acquired и writes не выполняются.
 
 ## Batch-level validation
 
-Batch-level validation проверяет invariants, которые нельзя безопасно
-валидировать по одной operation за раз.
+Batch-level validation проверяет invariants, которые нельзя безопасно валидировать по одной
+operation за раз.
 
 Обязательные проверки:
 
@@ -451,24 +426,23 @@ Batch-level validation проверяет invariants, которые нельз�
 - Каждый referenced option value принадлежит referenced option.
 - Каждая `CREATE` operation содержит одно value для каждой product option.
 - Create operation не содержит duplicate option ids.
-- Existing variant count плюс create operation count не превышает total possible
-  option combinations.
+- Existing variant count плюс create operation count не превышает total possible option
+  combinations.
 - `CREATE` combinations не дублируют existing variants.
 - `CREATE` combinations не дублируют друг друга.
-- `UPDATE` operations, которые меняют options, не дублируют existing variants
-  после применения full request.
+- `UPDATE` operations, которые меняют options, не дублируют existing variants после применения full
+  request.
 - `UPDATE` operations, которые меняют options, не дублируют create combinations.
 - `clientMutationId` уникален внутри request.
 - Pricing, inventory, media, dimensions и weight inputs валидны.
-- Referenced inventory warehouse ids валидны для project/store constraints,
-  которые уже используются текущим variant inventory update flow.
-- Referenced media file ids валидны для project/store constraints, которые уже
-  используются existing media update scripts.
+- Referenced inventory warehouse ids валидны для project/store constraints, которые уже используются
+  текущим variant inventory update flow.
+- Referenced media file ids валидны для project/store constraints, которые уже используются existing
+  media update scripts.
 
-Batch-level validation errors должны быть привязаны к relevant operation result.
-Request-wide blocking errors должны быть привязаны к каждой blocked operation с
-`BATCH_VALIDATION_FAILED`, когда нет более specific operation error. Field paths
-используют GraphQL input paths, например:
+Batch-level validation errors должны быть привязаны к relevant operation result. Request-wide
+blocking errors должны быть привязаны к каждой blocked operation с `BATCH_VALIDATION_FAILED`, когда
+нет более specific operation error. Field paths используют GraphQL input paths, например:
 
 ```ts
 {
@@ -482,8 +456,8 @@ Request-wide blocking errors должны быть привязаны к каж�
 
 ## Operation-level behavior
 
-После успешной batch validation operation execution все еще может выдавать
-operation-level errors из существующей script logic или repository constraints.
+После успешной batch validation operation execution все еще может выдавать operation-level errors из
+существующей script logic или repository constraints.
 
 Workflow сохраняет текущую partial-failure semantics:
 
@@ -501,10 +475,9 @@ Workflow сохраняет текущую partial-failure semantics:
 - создать selected option links;
 - построить handle из selected option values.
 
-Основная create portion должна быть transactional. Текущий
-`VariantCreateScript` создает row и links, но сам по себе недостаточен для
-spreadsheet-save, потому что additional create portions требуют inventory item
-existence и partial-result metadata.
+Основная create portion должна быть transactional. Текущий `VariantCreateScript` создает row и
+links, но сам по себе недостаточен для spreadsheet-save, потому что additional create portions
+требуют inventory item existence и partial-result metadata.
 
 Additional portions:
 
@@ -514,11 +487,10 @@ Additional portions:
 - weight;
 - dimensions.
 
-Перед применением `inventory` или `weight` гарантировать, что inventory item
-существует для created variant, вызвав тот же inventory broker boundary, который
-использует product create: `inventory.createItem`. Если предоставлен только
-`dimensions`, inventory item не требуется текущим dimensions script, потому что
-он пишет physical dimensions по `variantId`.
+Перед применением `inventory` или `weight` гарантировать, что inventory item существует для created
+variant, вызвав тот же inventory broker boundary, который использует product create:
+`inventory.createItem`. Если предоставлен только `dimensions`, inventory item не требуется текущим
+dimensions script, потому что он пишет physical dimensions по `variantId`.
 
 Если variant row и option links созданы, но additional portion падает, вернуть:
 
@@ -528,8 +500,8 @@ Additional portions:
 - `entityId` с created variant id
 - `errors` для failed additional portions
 
-Это позволяет clients refetch-ить created variant и при этом сопоставлять backend
-errors с исходной draft operation.
+Это позволяет clients refetch-ить created variant и при этом сопоставлять backend errors с исходной
+draft operation.
 
 Если основная create portion падает, вернуть:
 
@@ -538,16 +510,14 @@ errors с исходной draft operation.
 - без `entityId`
 - errors для create failure
 
-`clientMutationId` не должен рассматриваться как durable idempotency storage. Это
-только correlation key внутри одного GraphQL request/result. Retry safety для
-всего save request обеспечивается существующим `x-idempotency-key` header,
-который используется как `ServiceContext.requestId` и включается в DBOS workflow
-id.
+`clientMutationId` не должен рассматриваться как durable idempotency storage. Это только correlation
+key внутри одного GraphQL request/result. Retry safety для всего save request обеспечивается
+существующим `x-idempotency-key` header, который используется как `ServiceContext.requestId` и
+включается в DBOS workflow id.
 
 ### `variantUpdate`
 
-`variantUpdate` сохраняет текущее поведение и может применять любой supported
-subset из:
+`variantUpdate` сохраняет текущее поведение и может применять любой supported subset из:
 
 - `options`
 - `pricing`
@@ -556,12 +526,12 @@ subset из:
 - `weight`
 - `dimensions`
 
-Если options изменены, rebuild variant handle и включить option changes в
-product update event payload.
+Если options изменены, rebuild variant handle и включить option changes в product update event
+payload.
 
-Текущий workflow делегирует inventory и dimensions через broker actions, которые
-возвращают success/errors, но не change deltas. Когда эти calls успешны, workflow
-должен построить event delta из accepted params:
+Текущий workflow делегирует inventory и dimensions через broker actions, которые возвращают
+success/errors, но не change deltas. Когда эти calls успешны, workflow должен построить event delta
+из accepted params:
 
 - `inventory` delta из `VariantInventoryParams`;
 - `physical.dimensions` delta из `VariantDimensionsParams`;
@@ -569,10 +539,9 @@ product update event payload.
 
 ### `variantDelete`
 
-`variantDelete` внутри `productUpdate` всегда использует существующий
-`VariantDeleteScript` soft-delete semantics (`permanent: false`). Hard delete
-остается доступным только через standalone `variantDelete` mutation, которая
-остается вне spreadsheet-save contract.
+`variantDelete` внутри `productUpdate` всегда использует существующий `VariantDeleteScript`
+soft-delete semantics (`permanent: false`). Hard delete остается доступным только через standalone
+`variantDelete` mutation, которая остается вне spreadsheet-save contract.
 
 Delete operation result:
 
@@ -582,15 +551,14 @@ Delete operation result:
 - `errors: []`
 
 Workflow должен emit-ить `productUpdated` с deleted variant id в `variants` и
-`lifecycle: "deleted"`, чтобы existing `productUpdated` consumers могли
-refresh/remove search index rows через affected variant id list.
+`lifecycle: "deleted"`, чтобы existing `productUpdated` consumers могли refresh/remove search index
+rows через affected variant id list.
 
 ## ProductUpdatePayload и operation results
 
 Существующий `ProductUpdatePayload` остается response shape.
 
-Убедиться, что GraphQL schema expose-ит достаточно fields для новой result
-metadata:
+Убедиться, что GraphQL schema expose-ит достаточно fields для новой result metadata:
 
 ```graphql
 type OperationResult {
@@ -611,20 +579,19 @@ enum OperationType {
 }
 ```
 
-Research result: текущая schema уже использует `enum OperationType`, поэтому
-расширить этот enum значениями `VARIANT_CREATE` и `VARIANT_DELETE`. Не вводить
-string operation types и не вводить второй result type.
+Research result: текущая schema уже использует `enum OperationType`, поэтому расширить этот enum
+значениями `VARIANT_CREATE` и `VARIANT_DELETE`. Не вводить string operation types и не вводить
+второй result type.
 
-GraphQL response layer должен encode-ить workflow `entityId` values как public
-global IDs:
+GraphQL response layer должен encode-ить workflow `entityId` values как public global IDs:
 
 - `variantCreate.entityId` -> `GlobalIdEntity.Variant`;
 - `variantDelete.entityId` -> `GlobalIdEntity.Variant`.
 
 ## Domain events
 
-`ProductUpdateWorkflow` сейчас emit-ит `productUpdated` с partial snapshot
-changes. Расширить variant changes payload так, чтобы consumers могли наблюдать:
+`ProductUpdateWorkflow` сейчас emit-ит `productUpdated` с partial snapshot changes. Расширить
+variant changes payload так, чтобы consumers могли наблюдать:
 
 - created variant id и selected options;
 - updated variant fields;
@@ -661,20 +628,18 @@ interface VariantFieldChanges {
 - `services/catalog/src/scripts/types/ProductChanges.ts`
 - `packages/events/src/types.ts`
 
-Текущий `packages/events` уже использует `physical`, а local `ProductChanges`
-сейчас имеет отдельные `dimensions` и `weight`; выровнять local workflow changes
-с event package shape.
+Текущий `packages/events` уже использует `physical`, а local `ProductChanges` сейчас имеет отдельные
+`dimensions` и `weight`; выровнять local workflow changes с event package shape.
 
 Не emit-ить `productUpdated`, когда batch validation падает до revision acquire.
 
-Для partial create failures event payload должен включать created variant и
-additional fields, которые фактически applied. Failed additional portions не
-должны быть представлены как applied changes.
+Для partial create failures event payload должен включать created variant и additional fields,
+которые фактически applied. Failed additional portions не должны быть представлены как applied
+changes.
 
-Для variant delete внутри `productUpdate` emit-ить `productUpdated`, а не
-отдельный `variantDeleted` event. Existing search sync читает affected variant
-ids из `Object.keys(payload.variants)`, а `SyncVariantIndexScript` удаляет
-requested variant index, когда variant больше не загружается.
+Для variant delete внутри `productUpdate` emit-ить `productUpdated`, а не отдельный `variantDeleted`
+event. Existing search sync читает affected variant ids из `Object.keys(payload.variants)`, а
+`SyncVariantIndexScript` удаляет requested variant index, когда variant больше не загружается.
 
 ## Repositories и scripts
 
@@ -685,33 +650,28 @@ requested variant index, когда variant больше не загружает
 - `VariantUpdateMediaScript`
 - `VariantUpdateOptionsScript`
 - `VariantUpdatePricingScript`
-- inventory, physical/dimensions scripts или broker calls, используемые текущим
-  `variantUpdate`
+- inventory, physical/dimensions scripts или broker calls, используемые текущим `variantUpdate`
 
 Research findings:
 
-- `VariantCreateScript` валидирует product/options и создает variant links, но
-  сейчас не является complete spreadsheet create step, потому что не создает
-  inventory item и не expose-ит `clientMutationId`/partial-create result
-  metadata.
-- `VariantDeleteScript` transactional и очищает variant media при soft delete;
-  вызывать его с default `permanent: false`.
-- `VariantUpdateMediaScript` требует, чтобы variant media file ids уже были
-  registered как product media через `product_media`.
-- `VariantUpdatePricingScript` валидирует currency against `UAH`, `USD`, `EUR` и
-  reject-ит negative amounts.
-- `InventoryItemUpdateScript` валидирует warehouse existence, stock quantities,
-  SKU uniqueness, positive weight, supported unit-cost currency и non-negative
-  unit cost.
-- `InventoryItemUpdateDimensionsScript` валидирует positive dimensions, но сам
-  сейчас не валидирует variant ownership by product; workflow batch validation
-  должна сделать это до вызова.
+- `VariantCreateScript` валидирует product/options и создает variant links, но сейчас не является
+  complete spreadsheet create step, потому что не создает inventory item и не expose-ит
+  `clientMutationId`/partial-create result metadata.
+- `VariantDeleteScript` transactional и очищает variant media при soft delete; вызывать его с
+  default `permanent: false`.
+- `VariantUpdateMediaScript` требует, чтобы variant media file ids уже были registered как product
+  media через `product_media`.
+- `VariantUpdatePricingScript` валидирует currency against `UAH`, `USD`, `EUR` и reject-ит negative
+  amounts.
+- `InventoryItemUpdateScript` валидирует warehouse existence, stock quantities, SKU uniqueness,
+  positive weight, supported unit-cost currency и non-negative unit cost.
+- `InventoryItemUpdateDimensionsScript` валидирует positive dimensions, но сам сейчас не валидирует
+  variant ownership by product; workflow batch validation должна сделать это до вызова.
 
-Добавлять repository methods только там, где batch validation иначе потребовала
-бы repeated per-operation reads.
+Добавлять repository methods только там, где batch validation иначе потребовала бы repeated
+per-operation reads.
 
-Существующие полезные repository capabilities, комбинировать methods при
-необходимости:
+Существующие полезные repository capabilities, комбинировать methods при необходимости:
 
 - load all variants for product with option links;
 - load product options and option values;
@@ -735,11 +695,10 @@ Concrete current-method coverage:
 Required additions/refactors:
 
 - сделать variant row + option links create path transactional;
-- централизовать "create variant with option links" в одном script/repository
-  helper, чтобы transaction boundaries не были размазаны по workflow code;
-- использовать `findByProductId` maps для ownership validation first; добавлять
-  explicit product ownership guard helpers только если они уменьшают duplicated
-  validation code.
+- централизовать "create variant with option links" в одном script/repository helper, чтобы
+  transaction boundaries не были размазаны по workflow code;
+- использовать `findByProductId` maps для ownership validation first; добавлять explicit product
+  ownership guard helpers только если они уменьшают duplicated validation code.
 
 ## Codegen и generated files
 
@@ -754,8 +713,8 @@ shopana codegen --service catalog
 - `services/catalog/src/resolvers/admin/generated/types.ts`
 - `services/catalog/src/resolvers/admin/generated/schemas.ts`
 
-Не редактировать generated files вручную, кроме как в крайнем случае; generated
-output должен приходить из codegen.
+Не редактировать generated files вручную, кроме как в крайнем случае; generated output должен
+приходить из codegen.
 
 ## Backward compatibility и migration
 
@@ -763,120 +722,105 @@ Backward compatibility намеренно не предоставляется.
 
 ## Влияние на bulk update
 
-`ProductBulkUpdateInput` сейчас переиспользует `ProductUpdateInput` для каждого
-product item. Так как `ProductUpdateInput.variants` становится
-`[VariantOperationInput!]`, bulk update requests затронуты тем же breaking
-change.
+`ProductBulkUpdateInput` сейчас переиспользует `ProductUpdateInput` для каждого product item. Так
+как `ProductUpdateInput.variants` становится `[VariantOperationInput!]`, bulk update requests
+затронуты тем же breaking change.
 
-Отдельного bulk variant API contract и отдельного bulk workflow design в scope
-нет. Bulk продолжает переиспользовать тот же `ProductUpdateInput` contract и те
-же `ProductUpdateWorkflow` operation types, что и single `productUpdate`.
+Отдельного bulk variant API contract и отдельного bulk workflow design в scope нет. Bulk продолжает
+переиспользовать тот же `ProductUpdateInput` contract и те же `ProductUpdateWorkflow` operation
+types, что и single `productUpdate`.
 
 Обязательная работа для bulk update:
 
 - Убедиться, что bulk product update schema/codegen подхватывает
   `ProductUpdateInput.variants: [VariantOperationInput!]`.
-- Extract-ить shared `ProductUpdateInput` mapper, используемый и single
-  `productUpdate`, и `productBulkUpdate`. Current code имеет отдельные mapping
-  paths, и оба сейчас предполагают только variant update.
-- Сохранять request order внутри каждого product item's `operations`, чтобы bulk
-  `operationResults` оставались aligned с input operations.
+- Extract-ить shared `ProductUpdateInput` mapper, используемый и single `productUpdate`, и
+  `productBulkUpdate`. Current code имеет отдельные mapping paths, и оба сейчас предполагают только
+  variant update.
+- Сохранять request order внутри каждого product item's `operations`, чтобы bulk `operationResults`
+  оставались aligned с input operations.
 - Использовать bulk-aware field paths для validation и decode errors, например:
-  `["input", "products", productIndex, "operations", "variants", variantIndex,
-  "options"]`.
+  `["input", "products", productIndex, "operations", "variants", variantIndex, "options"]`.
 - Сохранять `clientMutationId` для bulk variant create operations.
 - Сохранять existing inventory support для bulk variant updates и creates через
   `VariantOperationInput.inventory`.
 - Не вводить отдельный bulk-only variant operation contract.
 - Расширить `BulkUpdateOpType` значениями `VARIANT_CREATE` и `VARIANT_DELETE`.
 - Расширить `BulkEditCreateJobScript.getOperationMetadata`:
-  - `variantCreate`: `opType: "variantCreate"`, `variantId: null` при job
-    creation time;
+  - `variantCreate`: `opType: "variantCreate"`, `variantId: null` при job creation time;
   - `variantUpdate`: `opType: "variantUpdate"`, `variantId`;
   - `variantDelete`: `opType: "variantDelete"`, `variantId`.
-- Расширить `BulkUpdateItemResolver.OP_TYPE_MAP` для `variantCreate` и
-  `variantDelete`.
-- Decode/action-shape errors, найденные shared mapper, происходят до job
-  creation и fail-ят всю `productBulkUpdate` mutation через `userErrors`. В этом
-  path product revision не acquired.
-- Product-state batch validation failures происходят внутри
-  `ProductUpdateWorkflow` для product group. Они должны marked failed для items
-  этой product group, не должны acquire/increment product revision и не должны
-  останавливать unrelated product groups в том же job.
+- Расширить `BulkUpdateItemResolver.OP_TYPE_MAP` для `variantCreate` и `variantDelete`.
+- Decode/action-shape errors, найденные shared mapper, происходят до job creation и fail-ят всю
+  `productBulkUpdate` mutation через `userErrors`. В этом path product revision не acquired.
+- Product-state batch validation failures происходят внутри `ProductUpdateWorkflow` для product
+  group. Они должны marked failed для items этой product group, не должны acquire/increment product
+  revision и не должны останавливать unrelated product groups в том же job.
 
 Решение по bulk result surface:
 
 - `ProductBulkUpdatePayload` остается `{ job, userErrors }`.
-- Per-operation success/failure наблюдается через `BulkUpdateItem.status` и
-  `BulkUpdateItem.errors`.
-- Bulk create `entityId` не expose-ится в этом change. Чтобы expose-ить его,
-  нужно отдельное nullable result field в `bulk_edit_item`, repository update
-  methods и `BulkUpdateItem` GraphQL schema.
+- Per-operation success/failure наблюдается через `BulkUpdateItem.status` и `BulkUpdateItem.errors`.
+- Bulk create `entityId` не expose-ится в этом change. Чтобы expose-ить его, нужно отдельное
+  nullable result field в `bulk_edit_item`, repository update methods и `BulkUpdateItem` GraphQL
+  schema.
 
 Обязательная backend migration work:
 
 - Заменить все backend references на старый `VariantUpdateInput` как item type
   `ProductUpdateInput.variants`.
-- Убедиться, что resolver mapping больше не предполагает, что каждый
-  `variants[]` item является update.
-- Убедиться, что bulk resolver mapping больше не предполагает, что каждый
-  `variants[]` item является update.
+- Убедиться, что resolver mapping больше не предполагает, что каждый `variants[]` item является
+  update.
+- Убедиться, что bulk resolver mapping больше не предполагает, что каждый `variants[]` item является
+  update.
 - Убедиться, что generated validation schema требует `action`.
-- Обновить docs/comments, которые описывают `ProductUpdateInput.variants` как
-  update only.
-- Оставить или отдельно deprecate-ить standalone `variantCreate`; он не является
-  частью spreadsheet-save path.
+- Обновить docs/comments, которые описывают `ProductUpdateInput.variants` как update only.
+- Оставить или отдельно deprecate-ить standalone `variantCreate`; он не является частью
+  spreadsheet-save path.
 
 Обязательная client migration note:
 
-- Все клиенты, которые отправляют `ProductUpdateInput.variants`, теперь должны
-  отправлять `VariantOperationInput` с explicit `action`.
+- Все клиенты, которые отправляют `ProductUpdateInput.variants`, теперь должны отправлять
+  `VariantOperationInput` с explicit `action`.
 - Existing variant edits должны отправлять `action: "UPDATE"` и `variantId`.
-- New variant creation должна отправлять `action: "CREATE"` и
-  `clientMutationId`.
+- New variant creation должна отправлять `action: "CREATE"` и `clientMutationId`.
 - Variant deletion должен отправлять `action: "DELETE"` и `variantId`.
-- Existing inventory edits внутри `ProductUpdateInput.variants` остаются
-  supported, но должны отправляться внутри `VariantOperationInput` с explicit
-  `action`.
+- Existing inventory edits внутри `ProductUpdateInput.variants` остаются supported, но должны
+  отправляться внутри `VariantOperationInput` с explicit `action`.
 
 ## Backend acceptance criteria
 
 - `ProductUpdateInput.variants` является `[VariantOperationInput!]`.
-- Old `VariantUpdateInput` item shape больше не accepted для
-  `ProductUpdateInput.variants`.
+- Old `VariantUpdateInput` item shape больше не accepted для `ProductUpdateInput.variants`.
 - `VariantOperationAction` поддерживает `CREATE`, `UPDATE`, `DELETE`.
-- `productUpdate` maps variant operations в workflow operation types:
-  `variantCreate`, `variantUpdate`, `variantDelete`.
+- `productUpdate` maps variant operations в workflow operation types: `variantCreate`,
+  `variantUpdate`, `variantDelete`.
 - Single и bulk paths используют один shared `ProductUpdateInput` mapper.
 - Workflow DTO включает `VariantCreateParams` и `VariantDeleteParams`.
-- `OperationResult` включает `variantCreate`, `variantUpdate`,
-  `variantDelete`, `clientMutationId` и `entityId`.
+- `OperationResult` включает `variantCreate`, `variantUpdate`, `variantDelete`, `clientMutationId` и
+  `entityId`.
 - Batch validation выполняется до optimistic revision acquire/increment.
-- `expectedRevision` обязателен для любых `ProductUpdateInput.variants`
-  operations; отсутствие revision возвращает validation error без запуска
-  workflow.
+- `expectedRevision` обязателен для любых `ProductUpdateInput.variants` operations; отсутствие
+  revision возвращает validation error без запуска workflow.
 - Failed batch validation не меняет `product.revision`.
 - Duplicate option combinations reject-ятся до writes.
 - Create operations создают variant row и option links в product update workflow.
-- Create operations гарантируют наличие inventory item перед применением
-  inventory или weight fields.
-- Create operations могут apply pricing/inventory/media/weight/dimensions в том
-  же workflow.
-- Update operations сохраняют existing inventory update support через
-  `ProductUpdateInput.variants`.
+- Create operations гарантируют наличие inventory item перед применением inventory или weight
+  fields.
+- Create operations могут apply pricing/inventory/media/weight/dimensions в том же workflow.
+- Update operations сохраняют existing inventory update support через `ProductUpdateInput.variants`.
 - Delete operations выполняются через product update workflow.
 - Delete operations используют soft-delete semantics в `productUpdate`.
-- Operation errors возвращаются через `ProductUpdatePayload.operationResults` и
-  aggregated в `ProductUpdatePayload.userErrors`.
+- Operation errors возвращаются через `ProductUpdatePayload.operationResults` и aggregated в
+  `ProductUpdatePayload.userErrors`.
 - Create operation results сохраняют `clientMutationId`.
 - Create operation results возвращают `entityId`, когда variant был создан.
-- Bulk update принимает тот же `VariantOperationInput` contract и корректно maps
-  `CREATE`, `UPDATE` и `DELETE` variant actions.
-- `BulkUpdateOpType` и bulk item resolver mappings expose-ят `VARIANT_CREATE` и
-  `VARIANT_DELETE`.
+- Bulk update принимает тот же `VariantOperationInput` contract и корректно maps `CREATE`, `UPDATE`
+  и `DELETE` variant actions.
+- `BulkUpdateOpType` и bulk item resolver mappings expose-ят `VARIANT_CREATE` и `VARIANT_DELETE`.
 - Bulk validation errors используют product-indexed field paths.
-- `productUpdated` variant payload использует aligned lifecycle/physical event
-  shape в local и package event DTOs.
+- `productUpdated` variant payload использует aligned lifecycle/physical event shape в local и
+  package event DTOs.
 - Новая spreadsheet-specific GraphQL mutation не вводится.
 
 ## Non-goals

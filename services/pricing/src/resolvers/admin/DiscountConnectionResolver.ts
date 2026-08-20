@@ -8,14 +8,13 @@ import type {
 } from "../../repositories/DiscountRepository.js";
 import { PricingType } from "./PricingType.js";
 
-abstract class BaseConnectionResolver<
+abstract class BaseConnectionResolver<TInput> extends PricingType<
   TInput,
-> extends PricingType<TInput, DiscountConnectionResult> {
+  DiscountConnectionResult
+> {
   abstract $preload(): Promise<DiscountConnectionResult>;
 
-  protected abstract createNodeResolver(
-    nodeId: string,
-  ): unknown | Promise<unknown>;
+  protected abstract createNodeResolver(nodeId: string): unknown | Promise<unknown>;
 
   async edges() {
     const edges = await this.$get("edges");
@@ -57,10 +56,7 @@ export class DiscountCodeConnectionResolver extends BaseConnectionResolver<Disco
       ...args,
       where: discountId
         ? {
-            _and: [
-              { discountId: { _eq: discountId } },
-              ...(where ? [where] : []),
-            ],
+            _and: [{ discountId: { _eq: discountId } }, ...(where ? [where] : [])],
           }
         : where,
     });
@@ -71,8 +67,9 @@ export class DiscountCodeConnectionResolver extends BaseConnectionResolver<Disco
   }
 }
 
-export type DiscountUsageReservationConnectionInput =
-  DiscountUsageReservationRelayInput & { discountId?: string };
+export type DiscountUsageReservationConnectionInput = DiscountUsageReservationRelayInput & {
+  discountId?: string;
+};
 
 export class DiscountUsageReservationConnectionResolver extends BaseConnectionResolver<DiscountUsageReservationConnectionInput> {
   $preload(): Promise<DiscountConnectionResult> {
@@ -81,10 +78,7 @@ export class DiscountUsageReservationConnectionResolver extends BaseConnectionRe
       ...args,
       where: discountId
         ? {
-            _and: [
-              { discountId: { _eq: discountId } },
-              ...(where ? [where] : []),
-            ],
+            _and: [{ discountId: { _eq: discountId } }, ...(where ? [where] : [])],
           }
         : where,
     });
@@ -95,8 +89,9 @@ export class DiscountUsageReservationConnectionResolver extends BaseConnectionRe
   }
 }
 
-export type DiscountRedemptionConnectionInput =
-  DiscountRedemptionRelayInput & { discountId?: string };
+export type DiscountRedemptionConnectionInput = DiscountRedemptionRelayInput & {
+  discountId?: string;
+};
 
 export class DiscountRedemptionConnectionResolver extends BaseConnectionResolver<DiscountRedemptionConnectionInput> {
   $preload(): Promise<DiscountConnectionResult> {
@@ -105,10 +100,7 @@ export class DiscountRedemptionConnectionResolver extends BaseConnectionResolver
       ...args,
       where: discountId
         ? {
-            _and: [
-              { discountId: { _eq: discountId } },
-              ...(where ? [where] : []),
-            ],
+            _and: [{ discountId: { _eq: discountId } }, ...(where ? [where] : [])],
           }
         : where,
     });
@@ -119,8 +111,9 @@ export class DiscountRedemptionConnectionResolver extends BaseConnectionResolver
   }
 }
 
-export type DiscountExternalReferenceConnectionInput =
-  DiscountExternalReferenceRelayInput & { discountId?: string };
+export type DiscountExternalReferenceConnectionInput = DiscountExternalReferenceRelayInput & {
+  discountId?: string;
+};
 
 export class DiscountExternalReferenceConnectionResolver extends BaseConnectionResolver<DiscountExternalReferenceConnectionInput> {
   $preload(): Promise<DiscountConnectionResult> {
@@ -129,10 +122,7 @@ export class DiscountExternalReferenceConnectionResolver extends BaseConnectionR
       ...args,
       where: discountId
         ? {
-            _and: [
-              { discountId: { _eq: discountId } },
-              ...(where ? [where] : []),
-            ],
+            _and: [{ discountId: { _eq: discountId } }, ...(where ? [where] : [])],
           }
         : where,
     });

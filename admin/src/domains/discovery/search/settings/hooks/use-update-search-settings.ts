@@ -56,9 +56,9 @@ export function useUpdateSearchSettings() {
 
         const applied = Boolean(
           payload?.settings &&
-            payload.userErrors.length === 0 &&
-            operationResult?.applied === true &&
-            operationResult.errors.length === 0,
+          payload.userErrors.length === 0 &&
+          operationResult?.applied === true &&
+          operationResult.errors.length === 0,
         );
 
         if (!applied && userErrors.length === 0) {
@@ -75,8 +75,7 @@ export function useUpdateSearchSettings() {
           userErrors,
         };
       } catch (cause) {
-        const message =
-          cause instanceof Error ? cause.message : "An unexpected error occurred";
+        const message = cause instanceof Error ? cause.message : "An unexpected error occurred";
         return {
           applied: false,
           settings: null,

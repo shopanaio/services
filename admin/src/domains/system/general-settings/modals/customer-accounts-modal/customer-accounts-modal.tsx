@@ -10,10 +10,7 @@ import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals
 import { Paper } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import type { EditCustomerAccountsModalPayload } from "../../modals";
-import {
-  CustomerAuthenticationMethod,
-  CustomerAuthenticationProvider,
-} from "@/graphql/types";
+import { CustomerAuthenticationMethod, CustomerAuthenticationProvider } from "@/graphql/types";
 
 const useStyles = createStyles(({ token }) => ({
   paper: { padding: 0, overflow: "hidden" },
@@ -28,7 +25,12 @@ const useStyles = createStyles(({ token }) => ({
   },
   body: { display: "flex", flexDirection: "column", gap: 10, padding: "14px 16px 16px" },
   sectionLabel: { fontSize: 12, fontWeight: 600, lineHeight: "18px" },
-  connectionsHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 1 },
+  connectionsHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 1,
+  },
   connectionsHint: { color: token.colorTextTertiary, fontSize: 12, lineHeight: "18px" },
   facebook: { color: token.colorTextSecondary },
   connectButton: {
@@ -78,12 +80,12 @@ export const CustomerAccountsModal = () => {
   const { payload, pop, forcePop, setDirty } = useModalStackContext();
   const typedPayload = payload as EditCustomerAccountsModalPayload;
   const initialMethods = useMemo(
-    () => typedPayload.settings.methods.filter(({ enabled }) => enabled).map(({ method }) => method),
+    () =>
+      typedPayload.settings.methods.filter(({ enabled }) => enabled).map(({ method }) => method),
     [typedPayload.settings.methods],
   );
-  const [enabledMethods, setEnabledMethods] = useState<CustomerAuthenticationMethod[]>(
-    initialMethods,
-  );
+  const [enabledMethods, setEnabledMethods] =
+    useState<CustomerAuthenticationMethod[]>(initialMethods);
   const [saving, setSaving] = useState(false);
   const isDirty = useMemo(
     () => !sameMethods(enabledMethods, initialMethods),
@@ -113,7 +115,9 @@ export const CustomerAccountsModal = () => {
       message.success("Customer accounts updated");
       forcePop();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "Customer accounts could not be updated");
+      message.error(
+        error instanceof Error ? error.message : "Customer accounts could not be updated",
+      );
     } finally {
       setSaving(false);
     }
@@ -126,7 +130,12 @@ export const CustomerAccountsModal = () => {
         <ModalHeader
           name="customer-accounts"
           onClose={pop}
-          submitButtonProps={{ children: "Save changes", disabled: !isDirty, loading: saving, onClick: save }}
+          submitButtonProps={{
+            children: "Save changes",
+            disabled: !isDirty,
+            loading: saving,
+            onClick: save,
+          }}
           title="Edit customer accounts"
         />
       }
@@ -139,7 +148,9 @@ export const CustomerAccountsModal = () => {
           <span className={styles.sectionLabel}>Authentication</span>
           {methodRows.map(({ id, label, description, Icon }) => {
             const checked = enabledMethods.includes(id);
-            const configured = typedPayload.settings.methods.find(({ method }) => method === id)?.configured ?? false;
+            const configured =
+              typedPayload.settings.methods.find(({ method }) => method === id)?.configured ??
+              false;
             const unavailableDescription =
               id === CustomerAuthenticationMethod.PhoneOtp
                 ? `${description} Phone one-time code is not available yet.`
@@ -171,10 +182,20 @@ export const CustomerAccountsModal = () => {
           </div>
           {typedPayload.settings.providers.map(({ provider, configured, enabled }) => (
             <SettingsItemTile
-              icon={provider === CustomerAuthenticationProvider.Google ? <FcGoogle /> : <FaFacebookF className={styles.facebook} />}
+              icon={
+                provider === CustomerAuthenticationProvider.Google ? (
+                  <FcGoogle />
+                ) : (
+                  <FaFacebookF className={styles.facebook} />
+                )
+              }
               key={provider}
               label={provider === CustomerAuthenticationProvider.Google ? "Google" : "Facebook"}
-              trailing={<Button className={styles.connectButton} disabled size="small" type="text">{configured ? (enabled ? "Connected" : "Disabled") : "Connect"}</Button>}
+              trailing={
+                <Button className={styles.connectButton} disabled size="small" type="text">
+                  {configured ? (enabled ? "Connected" : "Disabled") : "Connect"}
+                </Button>
+              }
               value="Social sign-in"
             />
           ))}

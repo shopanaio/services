@@ -8,11 +8,7 @@ export { usePanelStack, DEFAULT_STACK_CONFIG } from "./core";
 // Components (Building Blocks)
 // ============================================================================
 
-export {
-  PanelStackContainer,
-  PanelWrapper,
-  PanelBase,
-} from "./components";
+export { PanelStackContainer, PanelWrapper, PanelBase } from "./components";
 
 // ============================================================================
 // Presets (Ready-to-use Panels)
@@ -24,7 +20,4 @@ export { SelectionPanel, EditingPanel } from "./presets";
 // Data Page Integration (Composed)
 // ============================================================================
 
-export {
-  FloatingPanelStack,
-  useDataPagePanels,
-} from "./data-page";
+export { FloatingPanelStack, useDataPagePanels } from "./data-page";

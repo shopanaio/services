@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { createContext } from 'react';
-import type { IModalStackContext } from '../types';
+import { createContext } from "react";
+import type { IModalStackContext } from "../types";
 
 /**
  * Context for modal stack item components

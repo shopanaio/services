@@ -1,26 +1,25 @@
-import { MCPTool } from 'mcp-framework';
-import { z } from 'zod';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { MCPTool } from "mcp-framework";
+import { z } from "zod";
+import { exec } from "child_process";
+import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
 const SchemaToolSchema = z.object({
   action: z
-    .enum(['export', 'compose', 'build'])
-    .describe('Schema action: export (extract subgraphs), compose (create supergraph), build (export + compose)'),
+    .enum(["export", "compose", "build"])
+    .describe(
+      "Schema action: export (extract subgraphs), compose (create supergraph), build (export + compose)",
+    ),
   output: z
     .string()
     .optional()
-    .describe('Output file path for compose/build (default: apollo/supergraph.graphql)'),
-  workingDir: z
-    .string()
-    .optional()
-    .describe('Working directory (defaults to current directory)')
+    .describe("Output file path for compose/build (default: apollo/supergraph.graphql)"),
+  workingDir: z.string().optional().describe("Working directory (defaults to current directory)"),
 });
 
 class SchemaTool extends MCPTool<typeof SchemaToolSchema> {
-  name = 'shopana_schema';
+  name = "shopana_schema";
   description = `Manage GraphQL federation schemas.
 
 Actions:
@@ -43,7 +42,7 @@ Default output: apollo/supergraph.graphql`;
 
     let command = `yarn shopana schema ${action}`;
 
-    if ((action === 'compose' || action === 'build') && output) {
+    if ((action === "compose" || action === "build") && output) {
       command += ` -o ${output}`;
     }
 
@@ -51,38 +50,46 @@ Default output: apollo/supergraph.graphql`;
       const { stdout, stderr } = await execAsync(command, {
         cwd: workingDir || process.cwd(),
         timeout: 180000, // 3 minutes
-        maxBuffer: 10 * 1024 * 1024
+        maxBuffer: 10 * 1024 * 1024,
       });
 
       return {
         content: [
           {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: true,
-              command,
-              action,
-              output: stdout,
-              warnings: stderr || undefined
-            }, null, 2)
-          }
-        ]
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                success: true,
+                command,
+                action,
+                output: stdout,
+                warnings: stderr || undefined,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
     } catch (error: any) {
       return {
         content: [
           {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: false,
-              command,
-              action,
-              error: error.message,
-              stdout: error.stdout,
-              stderr: error.stderr
-            }, null, 2)
-          }
-        ]
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                success: false,
+                command,
+                action,
+                error: error.message,
+                stdout: error.stdout,
+                stderr: error.stderr,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
     }
   }

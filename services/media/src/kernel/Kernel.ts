@@ -24,7 +24,7 @@ export class Kernel extends BaseKernel<MediaKernelServices> {
     repository: Repository,
     workflow: WorkflowRegistry,
     cache: Cache,
-    db: Database
+    db: Database,
   ) {
     super(broker, logger, { repository, workflow, cache });
     this.repository = repository;
@@ -36,7 +36,7 @@ export class Kernel extends BaseKernel<MediaKernelServices> {
   static async create(
     broker: ServiceBroker,
     workflow: WorkflowRegistry,
-    dbClient: DatabaseClient
+    dbClient: DatabaseClient,
   ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
@@ -49,21 +49,14 @@ export class Kernel extends BaseKernel<MediaKernelServices> {
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
     });
 
-    this.instance = new Kernel(
-      broker,
-      consoleLogger,
-      repository,
-      workflow,
-      cache,
-      db
-    );
+    this.instance = new Kernel(broker, consoleLogger, repository, workflow, cache, db);
     return this.instance;
   }
 
   static getInstance(): Kernel {
     if (!this.instance) {
       throw new Error(
-        "Kernel not initialized. Call Kernel.create(broker, workflow, dbClient) first."
+        "Kernel not initialized. Call Kernel.create(broker, workflow, dbClient) first.",
       );
     }
     return this.instance;
@@ -83,7 +76,7 @@ export class Kernel extends BaseKernel<MediaKernelServices> {
    */
   async runScript<TParams, TResult>(
     ScriptClass: new (services: MediaKernelServices) => BaseScript<TParams, TResult>,
-    params: TParams
+    params: TParams,
   ): Promise<TResult> {
     const script = new ScriptClass(this.services);
     return script.run(params);

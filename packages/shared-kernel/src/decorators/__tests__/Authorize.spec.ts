@@ -1,18 +1,12 @@
 import type { AuthProvider, AuthorizeParams } from "@shopana/rbac";
 import { WORKFLOW_METADATA_KEY } from "@shopana/dbos";
-import {
-  authorizePolicies,
-  authorizePoliciesWithIam,
-  Policy,
-} from "../Authorize.js";
+import { authorizePolicies, authorizePoliciesWithIam, Policy } from "../Authorize.js";
 
 describe("Policy RBAC contract", () => {
   it("passes only RBAC context to the authorization provider", async () => {
     const script = new PolicyScript();
 
-    await expect(script.run({ organizationId: "org-id" })).resolves.toBe(
-      "executed"
-    );
+    await expect(script.run({ organizationId: "org-id" })).resolves.toBe("executed");
     expect(script.authProvider.authorize).toHaveBeenCalledWith({
       resource: "org.applications",
       action: "write",
@@ -26,20 +20,16 @@ describe("Policy RBAC contract", () => {
   it("uses an explicit subject when the provider has no ambient subject", async () => {
     const script = new ExplicitSubjectPolicyScript();
 
-    await expect(script.run({ organizationId: "org-id" })).resolves.toBe(
-      "executed"
-    );
+    await expect(script.run({ organizationId: "org-id" })).resolves.toBe("executed");
     expect(script.authProvider.authorize).toHaveBeenCalledWith(
-      expect.objectContaining({ subject: "explicit-user" })
+      expect.objectContaining({ subject: "explicit-user" }),
     );
   });
 
   it("reports a missing subject without referring to workflow context", async () => {
     const script = new MissingSubjectPolicyScript();
 
-    await expect(
-      script.run({ organizationId: "org-id" })
-    ).rejects.toMatchObject({
+    await expect(script.run({ organizationId: "org-id" })).rejects.toMatchObject({
       errors: [
         {
           code: "UNAUTHENTICATED",
@@ -64,35 +54,31 @@ describe("Policy RBAC contract", () => {
       expect.objectContaining({
         resource: "org.roles",
         action: "write",
-      })
+      }),
     );
     expect(workflow.authProvider.authorize).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
         resource: "org.stores",
         action: "read",
-      })
+      }),
     );
   });
 
   it("does not repeat a preflight policy inside DBOS execution", async () => {
     const workflow = new WorkflowEntrypoint();
 
-    await expect(
-      workflow.run({ organizationId: "org-id" })
-    ).resolves.toBe("executed");
+    await expect(workflow.run({ organizationId: "org-id" })).resolves.toBe("executed");
     expect(workflow.authProvider.authorize).not.toHaveBeenCalled();
   });
 
   it("revalidates every workflow policy through iam.authorize on recovery", async () => {
     const workflow = new MultiPolicyWorkflow();
-    const call = jest.fn(
-      async (_action: string, _params?: unknown) => ({ allowed: true })
-    );
+    const call = jest.fn(async (_action: string, _params?: unknown) => ({ allowed: true }));
     const broker = {
       call<TResult = unknown, TParams = unknown>(
         action: string,
-        params?: TParams
+        params?: TParams,
       ): Promise<TResult> {
         return call(action, params) as unknown as Promise<TResult>;
       },
@@ -109,7 +95,7 @@ describe("Policy RBAC contract", () => {
           organizationId: "org-id",
         },
       },
-      broker
+      broker,
     );
 
     expect(call).toHaveBeenCalledTimes(2);
@@ -118,7 +104,7 @@ describe("Policy RBAC contract", () => {
       expect.objectContaining({
         subject: "platform-user",
         organizationId: "org-id",
-      })
+      }),
     );
   });
 });
@@ -196,12 +182,10 @@ Reflect.defineMetadata(
   WORKFLOW_METADATA_KEY,
   { name: "workflowEntrypoint" },
   WorkflowEntrypoint.prototype,
-  "run"
+  "run",
 );
 
-function createAuthProvider(
-  subject: string | null = "platform-user"
-): AuthProvider & {
+function createAuthProvider(subject: string | null = "platform-user"): AuthProvider & {
   authorize: jest.MockedFunction<(params: AuthorizeParams) => Promise<boolean>>;
 } {
   return {

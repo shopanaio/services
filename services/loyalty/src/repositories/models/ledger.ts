@@ -25,14 +25,14 @@ import {
 } from "./schema.js";
 
 const createdAt = () =>
-  timestamp("created_at", { withTimezone: true, mode: "string" })
-    .notNull()
-    .defaultNow();
+  timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow();
 
 export const transactions = loyaltySchema.table(
   "transaction",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     accountId: uuid("account_id").notNull(),
     programId: uuid("program_id").notNull(),
@@ -79,11 +79,7 @@ export const transactions = loyaltySchema.table(
     foreignKey({
       name: "loyalty_transaction_program_version_fk",
       columns: [table.programVersionId, table.programId, table.storeId],
-      foreignColumns: [
-        programVersions.id,
-        programVersions.programId,
-        programVersions.storeId,
-      ],
+      foreignColumns: [programVersions.id, programVersions.programId, programVersions.storeId],
     }),
     unique("loyalty_transaction_id_store_unique").on(table.id, table.storeId),
     unique("loyalty_transaction_id_account_store_unique").on(
@@ -91,10 +87,7 @@ export const transactions = loyaltySchema.table(
       table.accountId,
       table.storeId,
     ),
-    unique("loyalty_transaction_store_idempotency_unique").on(
-      table.storeId,
-      table.idempotencyKey,
-    ),
+    unique("loyalty_transaction_store_idempotency_unique").on(table.storeId, table.idempotencyKey),
     uniqueIndex("loyalty_transaction_source_operation_unique_idx")
       .on(
         table.storeId,
@@ -117,14 +110,8 @@ export const transactions = loyaltySchema.table(
       table.sourceId,
       table.sourceRevision,
     ),
-    check(
-      "loyalty_transaction_idempotency_check",
-      sql`btrim(${table.idempotencyKey}) <> ''`,
-    ),
-    check(
-      "loyalty_transaction_request_hash_check",
-      sql`${table.requestHash} ~ '^[0-9a-f]{64}$'`,
-    ),
+    check("loyalty_transaction_idempotency_check", sql`btrim(${table.idempotencyKey}) <> ''`),
+    check("loyalty_transaction_request_hash_check", sql`${table.requestHash} ~ '^[0-9a-f]{64}$'`),
     check(
       "loyalty_transaction_source_pair_check",
       sql`(${table.sourceId} IS NULL) = (${table.sourceRevision} IS NULL)`,
@@ -134,25 +121,18 @@ export const transactions = loyaltySchema.table(
       sql`(${table.actorType} IN ('ADMIN_USER', 'CUSTOMER') AND ${table.actorId} IS NOT NULL)
         OR (${table.actorType} IN ('SERVICE', 'SYSTEM'))`,
     ),
-    check(
-      "loyalty_transaction_reason_check",
-      sql`btrim(${table.reasonCode}) <> ''`,
-    ),
-    check(
-      "loyalty_transaction_time_check",
-      sql`${table.effectiveAt} >= ${table.occurredAt}`,
-    ),
-    check(
-      "loyalty_transaction_metadata_check",
-      sql`jsonb_typeof(${table.metadata}) = 'object'`,
-    ),
+    check("loyalty_transaction_reason_check", sql`btrim(${table.reasonCode}) <> ''`),
+    check("loyalty_transaction_time_check", sql`${table.effectiveAt} >= ${table.occurredAt}`),
+    check("loyalty_transaction_metadata_check", sql`jsonb_typeof(${table.metadata}) = 'object'`),
   ],
 );
 
 export const ledgerEntries = loyaltySchema.table(
   "ledger_entry",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     transactionId: uuid("transaction_id").notNull(),
     accountId: uuid("account_id").notNull(),
@@ -189,10 +169,7 @@ export const ledgerEntries = loyaltySchema.table(
       table.createdAt.desc(),
       table.id.desc(),
     ),
-    check(
-      "loyalty_ledger_entry_points_check",
-      sql`${table.pointsDelta} <> 0`,
-    ),
+    check("loyalty_ledger_entry_points_check", sql`${table.pointsDelta} <> 0`),
     check("loyalty_ledger_entry_sequence_check", sql`${table.sequence} > 0`),
   ],
 );
@@ -200,7 +177,9 @@ export const ledgerEntries = loyaltySchema.table(
 export const pointLots = loyaltySchema.table(
   "point_lot",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     programId: uuid("program_id").notNull(),
     accountId: uuid("account_id").notNull(),
@@ -252,7 +231,9 @@ export const pointLots = loyaltySchema.table(
 export const lotAllocations = loyaltySchema.table(
   "lot_allocation",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     lotId: uuid("lot_id").notNull(),
     debitEntryId: uuid("debit_entry_id").notNull(),
@@ -277,15 +258,8 @@ export const lotAllocations = loyaltySchema.table(
       columns: [table.transactionId, table.storeId],
       foreignColumns: [transactions.id, transactions.storeId],
     }),
-    unique("loyalty_lot_allocation_entry_lot_unique").on(
-      table.debitEntryId,
-      table.lotId,
-    ),
-    index("loyalty_lot_allocation_lot_idx").on(
-      table.lotId,
-      table.createdAt,
-      table.id,
-    ),
+    unique("loyalty_lot_allocation_entry_lot_unique").on(table.debitEntryId, table.lotId),
+    index("loyalty_lot_allocation_lot_idx").on(table.lotId, table.createdAt, table.id),
     check("loyalty_lot_allocation_points_check", sql`${table.points} > 0`),
   ],
 );

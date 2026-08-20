@@ -175,11 +175,7 @@ export {
 // REGISTRY
 // ============================================================================
 
-export {
-  WorkflowRegistry,
-  WORKFLOW_REGISTRY,
-  WORKFLOW_CONFIG,
-} from "./registry/index.js";
+export { WorkflowRegistry, WORKFLOW_REGISTRY, WORKFLOW_CONFIG } from "./registry/index.js";
 
 // ============================================================================
 // NESTJS MODULE

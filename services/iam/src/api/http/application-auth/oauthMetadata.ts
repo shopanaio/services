@@ -5,11 +5,7 @@ import {
   hasExactStringValues,
 } from "../../../auth/applicationOAuthPolicy.js";
 
-const TOKEN_ENDPOINT_AUTH_METHODS = [
-  "none",
-  "client_secret_basic",
-  "client_secret_post",
-] as const;
+const TOKEN_ENDPOINT_AUTH_METHODS = ["none", "client_secret_basic", "client_secret_post"] as const;
 
 /**
  * Validate plugin metadata against IAM protocol policy, then publish the
@@ -22,7 +18,7 @@ export async function enforceApplicationOAuthMetadata(
     applicationId: string;
     publicBaseUrl: string;
     oidc: boolean;
-  }
+  },
 ): Promise<Response> {
   if (response.status !== 200) return response;
 
@@ -61,18 +57,9 @@ export async function enforceApplicationOAuthMetadata(
     throw new Error("Application OAuth metadata unexpectedly advertises DCR");
   }
   if (
-    !hasExactStringValues(
-      metadata.scopes_supported,
-      APPLICATION_OAUTH_SCOPES
-    ) ||
-    !hasExactStringValues(
-      metadata.grant_types_supported,
-      APPLICATION_OAUTH_GRANT_TYPES
-    ) ||
-    !hasExactStringValues(
-      metadata.response_types_supported,
-      APPLICATION_OAUTH_RESPONSE_TYPES
-    ) ||
+    !hasExactStringValues(metadata.scopes_supported, APPLICATION_OAUTH_SCOPES) ||
+    !hasExactStringValues(metadata.grant_types_supported, APPLICATION_OAUTH_GRANT_TYPES) ||
+    !hasExactStringValues(metadata.response_types_supported, APPLICATION_OAUTH_RESPONSE_TYPES) ||
     !hasExactStringValues(metadata.code_challenge_methods_supported, ["S256"])
   ) {
     throw new Error("Application OAuth metadata protocol policy is invalid");
@@ -86,8 +73,8 @@ export async function enforceApplicationOAuthMetadata(
       (method) =>
         typeof method !== "string" ||
         !TOKEN_ENDPOINT_AUTH_METHODS.includes(
-          method as (typeof TOKEN_ENDPOINT_AUTH_METHODS)[number]
-        )
+          method as (typeof TOKEN_ENDPOINT_AUTH_METHODS)[number],
+        ),
     )
   ) {
     throw new Error("Application OAuth metadata client authentication policy is invalid");

@@ -43,11 +43,7 @@ export const NOTIFICATION_SETTINGS_QUERY = gql`
 `;
 
 export const NOTIFICATION_TEMPLATE_QUERY = gql`
-  query NotificationTemplate(
-    $key: String!
-    $channel: NotificationChannel!
-    $locale: String!
-  ) {
+  query NotificationTemplate($key: String!, $channel: NotificationChannel!, $locale: String!) {
     notificationsQuery {
       template(key: $key, channel: $channel, locale: $locale) {
         key

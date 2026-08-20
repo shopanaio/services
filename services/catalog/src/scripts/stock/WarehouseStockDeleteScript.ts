@@ -1,8 +1,4 @@
-import {
-  BaseScript,
-  Transactional,
-  type UserError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 
 export interface WarehouseStockDeleteItemParams {
   readonly variantId: string;
@@ -29,12 +25,9 @@ export class WarehouseStockDeleteScript extends BaseScript<
   WarehouseStockDeleteResult
 > {
   @Transactional()
-  protected async execute(
-    params: WarehouseStockDeleteParams,
-  ): Promise<WarehouseStockDeleteResult> {
+  protected async execute(params: WarehouseStockDeleteParams): Promise<WarehouseStockDeleteResult> {
     const userErrors: UserError[] = [];
-    const validItems: Array<WarehouseStockDeleteItemParams & { stockId: string }> =
-      [];
+    const validItems: Array<WarehouseStockDeleteItemParams & { stockId: string }> = [];
     const seenKeys = new Set<string>();
 
     for (const [index, item] of params.items.entries()) {
@@ -65,11 +58,7 @@ export class WarehouseStockDeleteScript extends BaseScript<
         continue;
       }
 
-      if (
-        stock.quantityOnHand !== 0 ||
-        stock.reservedQty !== 0 ||
-        stock.unavailableQty !== 0
-      ) {
+      if (stock.quantityOnHand !== 0 || stock.reservedQty !== 0 || stock.unavailableQty !== 0) {
         userErrors.push({
           message: "Warehouse stock must be empty before deletion",
           code: "STOCK_NOT_EMPTY",
@@ -88,10 +77,7 @@ export class WarehouseStockDeleteScript extends BaseScript<
     const deletedWarehouseStockIds: string[] = [];
 
     for (const [index, item] of validItems.entries()) {
-      const deleted = await this.repository.stock.delete(
-        item.variantId,
-        item.warehouseId,
-      );
+      const deleted = await this.repository.stock.delete(item.variantId, item.warehouseId);
 
       if (!deleted) {
         throw new WarehouseStockDeleteRollbackError([

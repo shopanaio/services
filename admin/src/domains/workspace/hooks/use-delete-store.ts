@@ -85,7 +85,7 @@ export function useDeleteStore(): UseDeleteStoreReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

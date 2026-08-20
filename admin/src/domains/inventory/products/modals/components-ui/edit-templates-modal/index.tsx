@@ -1,11 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { TemplatesTab } from "./components";
 import type { ApiProductComponentPricingTemplate } from "@/graphql/types";
 
@@ -15,10 +11,9 @@ import type { ApiProductComponentPricingTemplate } from "@/graphql/types";
 
 export interface IEditTemplatesModalPayload {
   pricingTemplates: ApiProductComponentPricingTemplate[];
-  onSave?: (data: { pricingTemplates: ApiProductComponentPricingTemplate[] }) =>
-    | boolean
-    | void
-    | Promise<boolean | void>;
+  onSave?: (data: {
+    pricingTemplates: ApiProductComponentPricingTemplate[];
+  }) => boolean | void | Promise<boolean | void>;
 }
 
 // ============================================================================
@@ -31,7 +26,7 @@ export const EditTemplatesModal = () => {
   const modalPayload = payload as unknown as IEditTemplatesModalPayload | undefined;
 
   const [pricingTemplates, setPricingTemplates] = useState<ApiProductComponentPricingTemplate[]>(
-    modalPayload?.pricingTemplates ?? []
+    modalPayload?.pricingTemplates ?? [],
   );
   const [saving, setSaving] = useState(false);
 
@@ -40,7 +35,7 @@ export const EditTemplatesModal = () => {
       setPricingTemplates(templates);
       setDirty(true);
     },
-    [setDirty]
+    [setDirty],
   );
 
   const handleSave = useCallback(async () => {

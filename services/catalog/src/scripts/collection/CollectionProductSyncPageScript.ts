@@ -17,23 +17,17 @@ export class CollectionProductSyncPageScript extends BaseScript<
     input: CollectionProductSyncPageInput,
   ): Promise<CollectionProductSyncPageResult> {
     if (input.action === "mark") {
-      await this.repository.collectionSync.markEmitted(
-        input.operationId,
-        input.productIds,
-      );
+      await this.repository.collectionSync.markEmitted(input.operationId, input.productIds);
       return { action: "mark", productIds: input.productIds };
     }
-    const productIds =
-      await this.repository.collectionSync.getPendingProductIds(
-        input.operationId,
-        null,
-        100,
-      );
+    const productIds = await this.repository.collectionSync.getPendingProductIds(
+      input.operationId,
+      null,
+      100,
+    );
     const completed =
       productIds.length === 0
-        ? await this.repository.collectionSync.completeIfDrained(
-            input.operationId,
-          )
+        ? await this.repository.collectionSync.completeIfDrained(input.operationId)
         : false;
     return { action: "next", productIds, completed };
   }

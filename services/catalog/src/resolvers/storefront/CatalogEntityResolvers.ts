@@ -94,10 +94,7 @@ export class ProductOptionResolver extends CatalogType<string, ProductOption> {
 }
 
 @SubgraphReference()
-export class ProductOptionCategoryResolver extends CatalogType<
-  string,
-  ProductOptionCategory
-> {
+export class ProductOptionCategoryResolver extends CatalogType<string, ProductOptionCategory> {
   async $preload() {
     const value = await this.$ctx.loaders.optionCategory.load(this.$props);
     if (!value) throw new PreloadNotFoundError("Product option category not found");
@@ -118,17 +115,12 @@ export class ProductOptionCategoryResolver extends CatalogType<
 }
 
 @SubgraphReference()
-export class ProductOptionValueResolver extends CatalogType<
-  string,
-  ProductOptionValue
-> {
+export class ProductOptionValueResolver extends CatalogType<string, ProductOptionValue> {
   async $preload() {
     const value = await this.$ctx.loaders.optionValue.load(this.$props);
     if (!value) throw new PreloadNotFoundError("Product option value not found");
     const option = await this.$ctx.loaders.productOption.load(value.optionId);
-    const product = option
-      ? await this.$ctx.loaders.product.load(option.productId)
-      : null;
+    const product = option ? await this.$ctx.loaders.product.load(option.productId) : null;
     if (!option || !isPublishedProduct(product)) {
       throw new PreloadNotFoundError("Product option value not found");
     }
@@ -144,9 +136,7 @@ export class ProductOptionValueResolver extends CatalogType<
   }
 
   async name() {
-    const translation = await this.$ctx.loaders.optionValueTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.optionValueTranslation.load(this.$props);
     return translation?.name ?? (await this.$get("slug"));
   }
 
@@ -211,9 +201,7 @@ abstract class BaseFeatureResolver extends CatalogType<string, ProductFeature> {
   }
 
   async name() {
-    const translation = await this.$ctx.loaders.featureTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.featureTranslation.load(this.$props);
     return translation?.name ?? (await this.$get("slug"));
   }
 
@@ -253,17 +241,12 @@ export class ProductFeatureGroupResolver extends BaseFeatureResolver {
 }
 
 @SubgraphReference()
-export class ProductFeatureValueResolver extends CatalogType<
-  string,
-  ProductFeatureValue
-> {
+export class ProductFeatureValueResolver extends CatalogType<string, ProductFeatureValue> {
   async $preload() {
     const value = await this.$ctx.loaders.featureValue.load(this.$props);
     if (!value) throw new PreloadNotFoundError("Product feature value not found");
     const feature = await this.$ctx.loaders.productFeature.load(value.featureId);
-    const product = feature
-      ? await this.$ctx.loaders.product.load(feature.productId)
-      : null;
+    const product = feature ? await this.$ctx.loaders.product.load(feature.productId) : null;
     if (!feature || !isPublishedProduct(product)) {
       throw new PreloadNotFoundError("Product feature value not found");
     }
@@ -279,9 +262,7 @@ export class ProductFeatureValueResolver extends CatalogType<
   }
 
   async name() {
-    const translation = await this.$ctx.loaders.featureValueTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.featureValueTranslation.load(this.$props);
     return translation?.name ?? (await this.$get("slug"));
   }
 
@@ -325,23 +306,18 @@ export class InventoryItemResolver extends CatalogType<string, InventoryItem> {
   }
 
   async inventoryPolicy() {
-    return (await this.$get("continueSellingWhenOutOfStock"))
-      ? "CONTINUE"
-      : "DENY";
+    return (await this.$get("continueSellingWhenOutOfStock")) ? "CONTINUE" : "DENY";
   }
 
   async quantityAvailable() {
-    return (await inventoryState(this.$ctx, await this.$get("variantId")))
-      .quantityAvailable;
+    return (await inventoryState(this.$ctx, await this.$get("variantId"))).quantityAvailable;
   }
 
   async availableForSale() {
-    return (await inventoryState(this.$ctx, await this.$get("variantId")))
-      .availableForSale;
+    return (await inventoryState(this.$ctx, await this.$get("variantId"))).availableForSale;
   }
 
   async currentlyNotInStock() {
-    return (await inventoryState(this.$ctx, await this.$get("variantId")))
-      .currentlyNotInStock;
+    return (await inventoryState(this.$ctx, await this.$get("variantId"))).currentlyNotInStock;
   }
 }

@@ -18,10 +18,7 @@ export function FacetUiTypeSelector({
   onChange,
   disabled = false,
 }: FacetUiTypeSelectorProps) {
-  const facetUiTypeOptions = useMemo(
-    () => getFacetUiTypeOptions(options),
-    [options],
-  );
+  const facetUiTypeOptions = useMemo(() => getFacetUiTypeOptions(options), [options]);
   const current = getFacetUiTypeOptions([value])[0];
   const menuItems = facetUiTypeOptions.map((option) => ({
     key: option.key,

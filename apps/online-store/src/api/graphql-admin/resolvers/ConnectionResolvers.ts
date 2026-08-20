@@ -16,11 +16,7 @@ export class PageConnectionResolver extends OnlineStoreType<
   PageConnectionResult
 > {
   protected $preload() {
-    return this.$ctx.repository.page.getConnection(
-      this.scope,
-      this.$props,
-      this.$ctx.locale,
-    );
+    return this.$ctx.repository.page.getConnection(this.scope, this.$props, this.$ctx.locale);
   }
 
   async edges() {
@@ -44,10 +40,7 @@ export class NavigationMenuConnectionResolver extends OnlineStoreType<
   NavigationMenuConnectionResult
 > {
   protected $preload() {
-    return this.$ctx.repository.navigationMenu.getConnection(
-      this.scope,
-      this.$props,
-    );
+    return this.$ctx.repository.navigationMenu.getConnection(this.scope, this.$props);
   }
 
   async edges() {

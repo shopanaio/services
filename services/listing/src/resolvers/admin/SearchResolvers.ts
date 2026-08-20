@@ -8,16 +8,11 @@ import { hashContent } from "@shopana/shared-kernel";
 import { GraphQLError } from "graphql";
 import type { UserError } from "../../kernel/BaseScript.js";
 import { SearchRuntimeError } from "../../search/errors.js";
-import type {
-  SearchSettings as SearchSettingsModel,
-} from "../../repositories/models/index.js";
+import type { SearchSettings as SearchSettingsModel } from "../../repositories/models/index.js";
 import type { SearchTextField } from "../../repositories/search/searchRepositoryTypes.js";
 import type { SearchProductBoostRelayInput } from "../../repositories/search/SearchProductBoostRepository.js";
 import type { SearchSynonymGroupRelayInput } from "../../repositories/search/SearchSynonymRepository.js";
-import type {
-  SearchExplain,
-  SearchExplainClause,
-} from "../../search/execution/SearchExplain.js";
+import type { SearchExplain, SearchExplainClause } from "../../search/execution/SearchExplain.js";
 import { SearchFieldRegistry } from "../../search/planner/SearchFieldRegistry.js";
 import type {
   SearchProductBoostCreateWorkflowInput,
@@ -63,9 +58,7 @@ export class ListingSearchQueryResolver extends ListingType<Record<string, never
   async synonymGroup(args: { id: string }) {
     const groupId = safeDecode(args.id, GlobalIdEntity.SearchSynonymGroup);
     if (!groupId) return null;
-    const aggregate = await this.$ctx.kernel.repository.searchSynonym.findById(
-      groupId,
-    );
+    const aggregate = await this.$ctx.kernel.repository.searchSynonym.findById(groupId);
     return aggregate ? mapSearchSynonymGroupAggregate(aggregate) : null;
   }
 
@@ -76,9 +69,7 @@ export class ListingSearchQueryResolver extends ListingType<Record<string, never
   async productBoost(args: { id: string }) {
     const boostId = safeDecode(args.id, GlobalIdEntity.SearchProductBoost);
     if (!boostId) return null;
-    const aggregate = await this.$ctx.kernel.repository.searchProductBoost.findById(
-      boostId,
-    );
+    const aggregate = await this.$ctx.kernel.repository.searchProductBoost.findById(boostId);
     return aggregate ? mapSearchProductBoostAggregate(aggregate) : null;
   }
 
@@ -120,17 +111,15 @@ export class ListingSearchQueryResolver extends ListingType<Record<string, never
       return mapSearchExplain(explain);
     } catch (error) {
       if (error instanceof SearchRuntimeError) {
-        const message = error.code === "SEARCH_INDEX_UNAVAILABLE"
-          ? "Search index is unavailable"
-          : error.message;
+        const message =
+          error.code === "SEARCH_INDEX_UNAVAILABLE" ? "Search index is unavailable" : error.message;
         throw new GraphQLError(message, {
           extensions: { code: error.code },
         });
       }
-      throw new GraphQLError(
-        "Search explain is unavailable",
-        { extensions: { code: "SEARCH_INDEX_UNAVAILABLE" } },
-      );
+      throw new GraphQLError("Search explain is unavailable", {
+        extensions: { code: "SEARCH_INDEX_UNAVAILABLE" },
+      });
     }
   }
 }
@@ -152,10 +141,10 @@ function mapSearchExplain(explain: SearchExplain) {
       })),
     },
     matchedSynonymGroupIds: explain.matchedSynonymGroupIds.map((id) =>
-      encodeGlobalIdByType(id, GlobalIdEntity.SearchSynonymGroup)
+      encodeGlobalIdByType(id, GlobalIdEntity.SearchSynonymGroup),
     ),
     applicableProductBoostIds: explain.applicableProductBoostIds.map((id) =>
-      encodeGlobalIdByType(id, GlobalIdEntity.SearchProductBoost)
+      encodeGlobalIdByType(id, GlobalIdEntity.SearchProductBoost),
     ),
   };
 }
@@ -165,10 +154,7 @@ function mapSearchExplainClause(clause: SearchExplainClause): object {
     ...clause,
     fields: clause.fields.map(mapSearchField),
     synonymGroupId: clause.synonymGroupId
-      ? encodeGlobalIdByType(
-          clause.synonymGroupId,
-          GlobalIdEntity.SearchSynonymGroup,
-        )
+      ? encodeGlobalIdByType(clause.synonymGroupId, GlobalIdEntity.SearchSynonymGroup)
       : null,
     alternatives: clause.alternatives.map(mapSearchExplainClause),
   };
@@ -190,11 +176,13 @@ function mapSearchField(field: SearchTextField): SearchField {
 export class ListingSearchMutationResolver extends ListingType<Record<string, never>> {
   async settingsUpdate(args: ListingSearchMutationSettingsUpdateArgs) {
     if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 0) {
-      const userErrors = [{
-        message: "Expected version must be a non-negative integer",
-        field: ["expectedVersion"],
-        code: "INVALID_EXPECTED_VERSION",
-      }];
+      const userErrors = [
+        {
+          message: "Expected version must be a non-negative integer",
+          field: ["expectedVersion"],
+          code: "INVALID_EXPECTED_VERSION",
+        },
+      ];
       return {
         settings: null,
         operationResults: [],
@@ -211,9 +199,7 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
           weight: configuration.weight,
         })),
         typoToleranceEnabled: settings.typoToleranceEnabled,
-        outOfStockPolicy: toInternalOutOfStockPolicy(
-          settings.outOfStockPolicy,
-        ),
+        outOfStockPolicy: toInternalOutOfStockPolicy(settings.outOfStockPolicy),
       },
       context: this.searchWorkflowContext(),
     };
@@ -222,33 +208,32 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
       expectedVersion: args.expectedVersion,
       settings: workflowInput.settings,
     });
-    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
-      SearchSettingsUpdateWorkflowResult,
-      SearchSettingsUpdateWorkflowInput
-    >(
-      "listing.searchSettingsUpdate",
-      workflowInput,
-      {
-        source: "workflow",
-        organizationId: this.$ctx.store.organizationId,
-        workflowId:
-          `searchSettingsUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-        stepId: "start",
-        callId: payloadHash,
-      },
-      { adminContext: this.$ctx.adminContext },
-    );
+    const result = await this.$ctx.kernel
+      .getServices()
+      .broker.runWorkflow<SearchSettingsUpdateWorkflowResult, SearchSettingsUpdateWorkflowInput>(
+        "listing.searchSettingsUpdate",
+        workflowInput,
+        {
+          source: "workflow",
+          organizationId: this.$ctx.store.organizationId,
+          workflowId: `searchSettingsUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+          stepId: "start",
+          callId: payloadHash,
+        },
+        { adminContext: this.$ctx.adminContext },
+      );
 
     const currentSettings = result.settings
       ? await this.$ctx.kernel.repository.searchSettings.find()
       : null;
     return {
-      settings: result.settings && currentSettings
-        ? {
-            ...mapSearchSettings(currentSettings),
-            version: result.settings.version,
-          }
-        : null,
+      settings:
+        result.settings && currentSettings
+          ? {
+              ...mapSearchSettings(currentSettings),
+              version: result.settings.version,
+            }
+          : null,
       operationResults: result.operationResults.map((operationResult) => ({
         ...operationResult,
         type: SearchSettingsOperationType.SettingsUpdate,
@@ -257,14 +242,14 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     };
   }
 
-  async synonymGroupCreate(
-    args: ListingSearchMutationSynonymGroupCreateArgs,
-  ) {
+  async synonymGroupCreate(args: ListingSearchMutationSynonymGroupCreateArgs) {
     if (!args.input.clientMutationId.trim()) {
-      return resourceMutationError("Client mutation ID is required", [
-        "input",
-        "clientMutationId",
-      ], "REQUIRED", "synonymGroup");
+      return resourceMutationError(
+        "Client mutation ID is required",
+        ["input", "clientMutationId"],
+        "REQUIRED",
+        "synonymGroup",
+      );
     }
 
     const workflowInput: SearchSynonymGroupCreateWorkflowInput = {
@@ -277,22 +262,23 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
       },
       context: this.searchWorkflowContext(),
     };
-    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
-      SearchSynonymGroupMutationWorkflowResult,
-      SearchSynonymGroupCreateWorkflowInput
-    >(
-      "listing.searchSynonymGroupCreate",
-      workflowInput,
-      {
-        source: "workflow",
-        organizationId: this.$ctx.store.organizationId,
-        workflowId:
-          `searchSynonymGroupCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-        stepId: "start",
-        callId: hashContent({ v: 1, params: workflowInput.params }),
-      },
-      { adminContext: this.$ctx.adminContext },
-    );
+    const result = await this.$ctx.kernel
+      .getServices()
+      .broker.runWorkflow<
+        SearchSynonymGroupMutationWorkflowResult,
+        SearchSynonymGroupCreateWorkflowInput
+      >(
+        "listing.searchSynonymGroupCreate",
+        workflowInput,
+        {
+          source: "workflow",
+          organizationId: this.$ctx.store.organizationId,
+          workflowId: `searchSynonymGroupCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+          stepId: "start",
+          callId: hashContent({ v: 1, params: workflowInput.params }),
+        },
+        { adminContext: this.$ctx.adminContext },
+      );
     return {
       synonymGroup: result.synonymGroup
         ? mapSearchSynonymGroupAggregate(result.synonymGroup)
@@ -301,13 +287,8 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     };
   }
 
-  async synonymGroupUpdate(
-    args: ListingSearchMutationSynonymGroupUpdateArgs,
-  ) {
-    const groupId = safeDecode(
-      args.input.id,
-      GlobalIdEntity.SearchSynonymGroup,
-    );
+  async synonymGroupUpdate(args: ListingSearchMutationSynonymGroupUpdateArgs) {
+    const groupId = safeDecode(args.input.id, GlobalIdEntity.SearchSynonymGroup);
     if (!groupId) {
       return resourceMutationError(
         "Invalid search synonym group global ID",
@@ -336,22 +317,23 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
       },
       context: this.searchWorkflowContext(),
     };
-    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
-      SearchSynonymGroupMutationWorkflowResult,
-      SearchSynonymGroupUpdateWorkflowInput
-    >(
-      "listing.searchSynonymGroupUpdate",
-      workflowInput,
-      {
-        source: "workflow",
-        organizationId: this.$ctx.store.organizationId,
-        workflowId:
-          `searchSynonymGroupUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-        stepId: "start",
-        callId: hashContent({ v: 1, params: workflowInput.params }),
-      },
-      { adminContext: this.$ctx.adminContext },
-    );
+    const result = await this.$ctx.kernel
+      .getServices()
+      .broker.runWorkflow<
+        SearchSynonymGroupMutationWorkflowResult,
+        SearchSynonymGroupUpdateWorkflowInput
+      >(
+        "listing.searchSynonymGroupUpdate",
+        workflowInput,
+        {
+          source: "workflow",
+          organizationId: this.$ctx.store.organizationId,
+          workflowId: `searchSynonymGroupUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+          stepId: "start",
+          callId: hashContent({ v: 1, params: workflowInput.params }),
+        },
+        { adminContext: this.$ctx.adminContext },
+      );
     return {
       synonymGroup: result.synonymGroup
         ? mapSearchSynonymGroupAggregate(result.synonymGroup)
@@ -360,14 +342,14 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     };
   }
 
-  async productBoostCreate(
-    args: ListingSearchMutationProductBoostCreateArgs,
-  ) {
+  async productBoostCreate(args: ListingSearchMutationProductBoostCreateArgs) {
     if (!args.input.clientMutationId.trim()) {
-      return resourceMutationError("Client mutation ID is required", [
-        "input",
-        "clientMutationId",
-      ], "REQUIRED", "productBoost");
+      return resourceMutationError(
+        "Client mutation ID is required",
+        ["input", "clientMutationId"],
+        "REQUIRED",
+        "productBoost",
+      );
     }
     const productIds = decodeProductIds(args.input.productIds);
     if ("error" in productIds) {
@@ -390,22 +372,23 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
       },
       context: this.searchWorkflowContext(),
     };
-    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
-      SearchProductBoostMutationWorkflowResult,
-      SearchProductBoostCreateWorkflowInput
-    >(
-      "listing.searchProductBoostCreate",
-      workflowInput,
-      {
-        source: "workflow",
-        organizationId: this.$ctx.store.organizationId,
-        workflowId:
-          `searchProductBoostCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-        stepId: "start",
-        callId: hashContent({ v: 1, params: workflowInput.params }),
-      },
-      { adminContext: this.$ctx.adminContext },
-    );
+    const result = await this.$ctx.kernel
+      .getServices()
+      .broker.runWorkflow<
+        SearchProductBoostMutationWorkflowResult,
+        SearchProductBoostCreateWorkflowInput
+      >(
+        "listing.searchProductBoostCreate",
+        workflowInput,
+        {
+          source: "workflow",
+          organizationId: this.$ctx.store.organizationId,
+          workflowId: `searchProductBoostCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+          stepId: "start",
+          callId: hashContent({ v: 1, params: workflowInput.params }),
+        },
+        { adminContext: this.$ctx.adminContext },
+      );
     return {
       productBoost: result.productBoost
         ? mapSearchProductBoostAggregate(result.productBoost)
@@ -414,9 +397,7 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     };
   }
 
-  async productBoostUpdate(
-    args: ListingSearchMutationProductBoostUpdateArgs,
-  ) {
+  async productBoostUpdate(args: ListingSearchMutationProductBoostUpdateArgs) {
     const boostId = safeDecode(args.input.id, GlobalIdEntity.SearchProductBoost);
     if (!boostId) {
       return resourceMutationError(
@@ -456,22 +437,23 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
       },
       context: this.searchWorkflowContext(),
     };
-    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
-      SearchProductBoostMutationWorkflowResult,
-      SearchProductBoostUpdateWorkflowInput
-    >(
-      "listing.searchProductBoostUpdate",
-      workflowInput,
-      {
-        source: "workflow",
-        organizationId: this.$ctx.store.organizationId,
-        workflowId:
-          `searchProductBoostUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-        stepId: "start",
-        callId: hashContent({ v: 1, params: workflowInput.params }),
-      },
-      { adminContext: this.$ctx.adminContext },
-    );
+    const result = await this.$ctx.kernel
+      .getServices()
+      .broker.runWorkflow<
+        SearchProductBoostMutationWorkflowResult,
+        SearchProductBoostUpdateWorkflowInput
+      >(
+        "listing.searchProductBoostUpdate",
+        workflowInput,
+        {
+          source: "workflow",
+          organizationId: this.$ctx.store.organizationId,
+          workflowId: `searchProductBoostUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+          stepId: "start",
+          callId: hashContent({ v: 1, params: workflowInput.params }),
+        },
+        { adminContext: this.$ctx.adminContext },
+      );
     return {
       productBoost: result.productBoost
         ? mapSearchProductBoostAggregate(result.productBoost)
@@ -480,13 +462,8 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     };
   }
 
-  async synonymGroupDelete(
-    args: ListingSearchMutationSynonymGroupDeleteArgs,
-  ) {
-    const groupId = safeDecode(
-      args.input.id,
-      GlobalIdEntity.SearchSynonymGroup,
-    );
+  async synonymGroupDelete(args: ListingSearchMutationSynonymGroupDeleteArgs) {
+    const groupId = safeDecode(args.input.id, GlobalIdEntity.SearchSynonymGroup);
     if (!groupId) {
       return resourceMutationError(
         "Invalid search synonym group global ID",
@@ -508,22 +485,23 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
       params: { groupId, expectedVersion: args.input.expectedVersion },
       context: this.searchWorkflowContext(),
     };
-    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
-      SearchSynonymGroupMutationWorkflowResult,
-      SearchSynonymGroupDeleteWorkflowInput
-    >(
-      "listing.searchSynonymGroupDelete",
-      workflowInput,
-      {
-        source: "workflow",
-        organizationId: this.$ctx.store.organizationId,
-        workflowId:
-          `searchSynonymGroupDelete:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-        stepId: "start",
-        callId: hashContent({ v: 1, params: workflowInput.params }),
-      },
-      { adminContext: this.$ctx.adminContext },
-    );
+    const result = await this.$ctx.kernel
+      .getServices()
+      .broker.runWorkflow<
+        SearchSynonymGroupMutationWorkflowResult,
+        SearchSynonymGroupDeleteWorkflowInput
+      >(
+        "listing.searchSynonymGroupDelete",
+        workflowInput,
+        {
+          source: "workflow",
+          organizationId: this.$ctx.store.organizationId,
+          workflowId: `searchSynonymGroupDelete:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+          stepId: "start",
+          callId: hashContent({ v: 1, params: workflowInput.params }),
+        },
+        { adminContext: this.$ctx.adminContext },
+      );
     return {
       synonymGroup: result.synonymGroup
         ? mapSearchSynonymGroupAggregate(result.synonymGroup)
@@ -532,9 +510,7 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     };
   }
 
-  async productBoostDelete(
-    args: ListingSearchMutationProductBoostDeleteArgs,
-  ) {
+  async productBoostDelete(args: ListingSearchMutationProductBoostDeleteArgs) {
     const boostId = safeDecode(args.input.id, GlobalIdEntity.SearchProductBoost);
     if (!boostId) {
       return resourceMutationError(
@@ -557,22 +533,23 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
       params: { boostId, expectedVersion: args.input.expectedVersion },
       context: this.searchWorkflowContext(),
     };
-    const result = await this.$ctx.kernel.getServices().broker.runWorkflow<
-      SearchProductBoostMutationWorkflowResult,
-      SearchProductBoostDeleteWorkflowInput
-    >(
-      "listing.searchProductBoostDelete",
-      workflowInput,
-      {
-        source: "workflow",
-        organizationId: this.$ctx.store.organizationId,
-        workflowId:
-          `searchProductBoostDelete:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-        stepId: "start",
-        callId: hashContent({ v: 1, params: workflowInput.params }),
-      },
-      { adminContext: this.$ctx.adminContext },
-    );
+    const result = await this.$ctx.kernel
+      .getServices()
+      .broker.runWorkflow<
+        SearchProductBoostMutationWorkflowResult,
+        SearchProductBoostDeleteWorkflowInput
+      >(
+        "listing.searchProductBoostDelete",
+        workflowInput,
+        {
+          source: "workflow",
+          organizationId: this.$ctx.store.organizationId,
+          workflowId: `searchProductBoostDelete:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+          stepId: "start",
+          callId: hashContent({ v: 1, params: workflowInput.params }),
+        },
+        { adminContext: this.$ctx.adminContext },
+      );
     return {
       productBoost: result.productBoost
         ? mapSearchProductBoostAggregate(result.productBoost)
@@ -592,9 +569,9 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
   }
 }
 
-function decodeProductIds(productIds: readonly string[]):
-  | { value: string[] }
-  | { error: Required<Pick<UserError, "message" | "field" | "code">> } {
+function decodeProductIds(
+  productIds: readonly string[],
+): { value: string[] } | { error: Required<Pick<UserError, "message" | "field" | "code">> } {
   const value: string[] = [];
   for (const [index, productId] of productIds.entries()) {
     const decoded = safeDecode(productId, GlobalIdEntity.Product);
@@ -635,17 +612,10 @@ function mapSearchSettings(settings: SearchSettingsModel): ApiSearchSettings {
   const enabledFields = searchFieldRegistry.normalizeEnabledFields(
     settings.enabledFields as SearchTextField[],
   );
-  const weights = settings.fieldWeights as Partial<
-    Record<SearchTextField, unknown>
-  >;
+  const weights = settings.fieldWeights as Partial<Record<SearchTextField, unknown>>;
   const fields = enabledFields.map((field) => {
     const weight = weights[field];
-    if (
-      typeof weight !== "number" ||
-      !Number.isFinite(weight) ||
-      weight <= 0 ||
-      weight > 100
-    ) {
+    if (typeof weight !== "number" || !Number.isFinite(weight) || weight <= 0 || weight > 100) {
       throw new Error(`Search settings weight is invalid for ${field}`);
     }
     return { field: mapSearchField(field), weight };

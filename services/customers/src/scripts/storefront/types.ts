@@ -22,7 +22,7 @@ export function storefrontError(
   code: string,
   message: string,
   field?: string[],
-  retryable = false
+  retryable = false,
 ): StorefrontCustomerUserError {
   return { code, message, field, retryable };
 }
@@ -32,24 +32,22 @@ export function internalStorefrontError(): StorefrontCustomerUserError {
     "INTERNAL_ERROR",
     "The customer operation could not be completed",
     undefined,
-    true
+    true,
   );
 }
 
 export function validateStorefrontExpectedRevision(
-  value: number
+  value: number,
 ): StorefrontCustomerUserError | null {
   return Number.isSafeInteger(value) && value >= 1
     ? null
-    : storefrontError(
-        "INVALID_REVISION",
-        "Expected revision must be a positive safe integer",
-        ["expectedRevision"]
-      );
+    : storefrontError("INVALID_REVISION", "Expected revision must be a positive safe integer", [
+        "expectedRevision",
+      ]);
 }
 
 export function revisionAcquireError(
-  result: Exclude<CustomerRevisionAcquireResult, { status: "acquired" }>
+  result: Exclude<CustomerRevisionAcquireResult, { status: "acquired" }>,
 ): StorefrontCustomerUserError {
   switch (result.status) {
     case "conflict":
@@ -57,13 +55,13 @@ export function revisionAcquireError(
         "REVISION_CONFLICT",
         "Customer was modified by another request",
         ["expectedRevision"],
-        true
+        true,
       );
     case "inactive":
     case "not_found":
       return storefrontError(
         "CUSTOMER_UNAVAILABLE",
-        "Customer is not available for storefront writes"
+        "Customer is not available for storefront writes",
       );
   }
 }

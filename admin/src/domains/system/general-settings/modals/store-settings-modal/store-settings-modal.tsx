@@ -1,35 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Controller,
-  useFieldArray,
-  useForm,
-  useWatch,
-} from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { Alert, App, Button, Input, Select, Typography, Upload } from "antd";
 import { createStyles } from "antd-style";
-import {
-  LuDiamond,
-  LuImage,
-  LuPanelTop,
-  LuPlus,
-  LuTrash2,
-} from "react-icons/lu";
+import { LuDiamond, LuImage, LuPanelTop, LuPlus, LuTrash2 } from "react-icons/lu";
 import type { IconType } from "react-icons";
 import { shopCountries } from "@/defs/localization";
 import { useUploadFiles } from "@/domains/media/hooks";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
 import { useUpdateGeneralSettings } from "../../hooks";
-import {
-  mapStoreSettingsInput,
-  normalizeStorePhoneNumber,
-} from "../../mappers";
+import { mapStoreSettingsInput, normalizeStorePhoneNumber } from "../../mappers";
 import type { EditStoreSettingsModalPayload } from "../../modals";
 import type { StoreSettingsFormValues } from "../../types";
 
@@ -354,16 +336,9 @@ export const StoreSettingsModal = () => {
   const socialLinks = useFieldArray({ control, name: "socialLinks" });
   const brandValues = useWatch({
     control,
-    name: [
-      "primaryColor",
-      "secondaryColor",
-      "defaultLogoUrl",
-      "squareLogoUrl",
-      "coverImageUrl",
-    ],
+    name: ["primaryColor", "secondaryColor", "defaultLogoUrl", "squareLogoUrl", "coverImageUrl"],
   });
-  const [primaryColor, secondaryColor, defaultLogoUrl, squareLogoUrl, coverImageUrl] =
-    brandValues;
+  const [primaryColor, secondaryColor, defaultLogoUrl, squareLogoUrl, coverImageUrl] = brandValues;
 
   useEffect(() => setDirty(isDirty), [isDirty, setDirty]);
 
@@ -395,15 +370,13 @@ export const StoreSettingsModal = () => {
     });
 
     const operationErrors = result.operationResults.flatMap(
-      ({ applied, errors: errorsForOperation }) =>
-        applied ? [] : errorsForOperation,
+      ({ applied, errors: errorsForOperation }) => (applied ? [] : errorsForOperation),
     );
     const mutationErrors = [...result.userErrors, ...operationErrors];
 
     if (!result.data || mutationErrors.length > 0) {
       setSubmitError(
-        [...new Set(mutationErrors.map(({ message: errorMessage }) => errorMessage))]
-          .join("\n") ||
+        [...new Set(mutationErrors.map(({ message: errorMessage }) => errorMessage))].join("\n") ||
           updateMutation.error?.message ||
           "The store settings could not be saved.",
       );
@@ -443,9 +416,7 @@ export const StoreSettingsModal = () => {
         )}
       />
       {options.hint ? <span className={styles.hint}>{options.hint}</span> : null}
-      {errors[name] ? (
-        <span className={styles.error}>{errors[name]?.message}</span>
-      ) : null}
+      {errors[name] ? <span className={styles.error}>{errors[name]?.message}</span> : null}
     </div>
   );
 
@@ -476,9 +447,7 @@ export const StoreSettingsModal = () => {
                     rules={{
                       validate: (value) =>
                         !value ||
-                        /^\+[1-9][0-9]{1,14}$/.test(
-                          normalizeStorePhoneNumber(value),
-                        ) ||
+                        /^\+[1-9][0-9]{1,14}$/.test(normalizeStorePhoneNumber(value)) ||
                         "Use an international number starting with +",
                     }}
                     render={({ field }) => (
@@ -486,11 +455,7 @@ export const StoreSettingsModal = () => {
                         {...field}
                         className={styles.grow}
                         placeholder="+380 00 000 0000"
-                        status={
-                          errors.phoneNumbers?.[index]?.value
-                            ? "error"
-                            : undefined
-                        }
+                        status={errors.phoneNumbers?.[index]?.value ? "error" : undefined}
                       />
                     )}
                   />
@@ -501,9 +466,7 @@ export const StoreSettingsModal = () => {
                   />
                 </div>
                 {errors.phoneNumbers?.[index]?.value ? (
-                  <span className={styles.error}>
-                    {errors.phoneNumbers[index]?.value?.message}
-                  </span>
+                  <span className={styles.error}>{errors.phoneNumbers[index]?.value?.message}</span>
                 ) : null}
               </div>
             ))}
@@ -534,8 +497,9 @@ export const StoreSettingsModal = () => {
           <Input
             disabled
             value={
-              shopCountries.find(({ value }) => value === store.address?.countryCode)
-                ?.name ?? store.address?.countryCode ?? "Ukraine"
+              shopCountries.find(({ value }) => value === store.address?.countryCode)?.name ??
+              store.address?.countryCode ??
+              "Ukraine"
             }
           />
           <span className={styles.hint}>Change country in business details.</span>
@@ -561,21 +525,14 @@ export const StoreSettingsModal = () => {
         <Controller
           control={control}
           name={name}
-          render={({ field }) => (
-            <input {...field} className={styles.colorPicker} type="color" />
-          )}
+          render={({ field }) => <input {...field} className={styles.colorPicker} type="color" />}
         />
         <Controller
           control={control}
           name={name}
           rules={{ required: `${label} color is required` }}
           render={({ field }) => (
-            <Input
-              {...field}
-              className={styles.colorText}
-              placeholder="#000000"
-              value={value}
-            />
+            <Input {...field} className={styles.colorText} placeholder="#000000" value={value} />
           )}
         />
       </div>
@@ -594,9 +551,7 @@ export const StoreSettingsModal = () => {
               icon={LuPanelTop}
               imageUrl={defaultLogoUrl}
               loading={uploadMutation.loading}
-              onUpload={(file) =>
-                void uploadBrandImage(file, "defaultLogoId", "defaultLogoUrl")
-              }
+              onUpload={(file) => void uploadBrandImage(file, "defaultLogoId", "defaultLogoUrl")}
             />
           </div>
           <div className={styles.brandField}>
@@ -609,9 +564,7 @@ export const StoreSettingsModal = () => {
               icon={LuDiamond}
               imageUrl={squareLogoUrl}
               loading={uploadMutation.loading}
-              onUpload={(file) =>
-                void uploadBrandImage(file, "squareLogoId", "squareLogoUrl")
-              }
+              onUpload={(file) => void uploadBrandImage(file, "squareLogoId", "squareLogoUrl")}
             />
           </div>
         </div>
@@ -646,9 +599,7 @@ export const StoreSettingsModal = () => {
               icon={LuImage}
               imageUrl={coverImageUrl}
               loading={uploadMutation.loading}
-              onUpload={(file) =>
-                void uploadBrandImage(file, "coverImageId", "coverImageUrl")
-              }
+              onUpload={(file) => void uploadBrandImage(file, "coverImageId", "coverImageUrl")}
             />
           </div>
           <div className={styles.brandField}>
@@ -659,15 +610,11 @@ export const StoreSettingsModal = () => {
             <Controller
               control={control}
               name="slogan"
-              render={({ field }) => (
-                <Input {...field} placeholder="Made for modern commerce" />
-              )}
+              render={({ field }) => <Input {...field} placeholder="Made for modern commerce" />}
             />
           </div>
           <div className={styles.brandField}>
-            <Typography.Text className={styles.strongLabel}>
-              Short description
-            </Typography.Text>
+            <Typography.Text className={styles.strongLabel}>Short description</Typography.Text>
             <span className={styles.hint}>
               Description of your business used in bios and listings.
             </span>
@@ -711,8 +658,7 @@ export const StoreSettingsModal = () => {
               control={control}
               name={`socialLinks.${index}.url`}
               rules={{
-                validate: (value) =>
-                  !value || URL.canParse(value) || "Enter a valid URL",
+                validate: (value) => !value || URL.canParse(value) || "Enter a valid URL",
               }}
               render={({ field }) => (
                 <Input

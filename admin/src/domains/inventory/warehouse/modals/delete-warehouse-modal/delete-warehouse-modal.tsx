@@ -3,11 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { App, Button, Input, Typography } from "antd";
 import { createStyles } from "antd-style";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useDeleteWarehouse } from "../../hooks";
 import type { IWarehouseDeleteModalPayload } from "../index";
@@ -44,10 +40,8 @@ export function DeleteWarehouseModal() {
   const [confirmation, setConfirmation] = useState("");
   const [apiError, setApiError] = useState<string | null>(null);
   const warehouse = typedPayload.warehouse;
-  const requiresConfirmation =
-    warehouse.isDefault || warehouse.variantsCount > 0;
-  const canSubmit =
-    !requiresConfirmation || confirmation.trim() === warehouse.code;
+  const requiresConfirmation = warehouse.isDefault || warehouse.variantsCount > 0;
+  const canSubmit = !requiresConfirmation || confirmation.trim() === warehouse.code;
 
   const handleDelete = useCallback(async () => {
     if (!canSubmit) {
@@ -122,21 +116,17 @@ export function DeleteWarehouseModal() {
           <Typography.Text strong>{warehouse.code}</Typography.Text>
         </div>
         <div className={styles.row}>
-          <Typography.Text className={styles.label}>
-            Stocked variants
-          </Typography.Text>
+          <Typography.Text className={styles.label}>Stocked variants</Typography.Text>
           <Typography.Text strong>{warehouse.variantsCount}</Typography.Text>
         </div>
         <Typography.Text className={styles.warning}>
-          This removes the warehouse and associated warehouse stock records if
-          the API allows deletion.
+          This removes the warehouse and associated warehouse stock records if the API allows
+          deletion.
         </Typography.Text>
 
         {requiresConfirmation && (
           <>
-            <Typography.Text strong>
-              Type {warehouse.code} to confirm
-            </Typography.Text>
+            <Typography.Text strong>Type {warehouse.code} to confirm</Typography.Text>
             <Input
               value={confirmation}
               onChange={(event) => setConfirmation(event.target.value)}
@@ -147,9 +137,7 @@ export function DeleteWarehouseModal() {
           </>
         )}
 
-        {apiError && (
-          <Typography.Text className={styles.error}>{apiError}</Typography.Text>
-        )}
+        {apiError && <Typography.Text className={styles.error}>{apiError}</Typography.Text>}
       </Paper>
     </ModalLayout>
   );

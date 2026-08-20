@@ -2,10 +2,7 @@ import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { ProductQuestionSummary } from "../../repositories/models/index.js";
 import type { ProductReviewSummaryAggregate } from "../../repositories/summary/SummaryRepository.js";
 import { ReviewsType } from "./ReviewsType.js";
-import {
-  ProductQuestionSummaryResolver,
-  ProductReviewSummaryResolver,
-} from "./SummaryResolver.js";
+import { ProductQuestionSummaryResolver, ProductReviewSummaryResolver } from "./SummaryResolver.js";
 
 interface ProductReviewsWidgetData {
   reviewSummary: ProductReviewSummaryAggregate | null;
@@ -19,10 +16,7 @@ export class WidgetQueryResolver extends ReviewsType<Record<string, never>> {
   }
 }
 
-export class ProductReviewsWidgetResolver extends ReviewsType<
-  string,
-  ProductReviewsWidgetData
-> {
+export class ProductReviewsWidgetResolver extends ReviewsType<string, ProductReviewsWidgetData> {
   async $preload(): Promise<ProductReviewsWidgetData> {
     const [reviewSummary, questionSummary] = await Promise.all([
       this.$ctx.loaders.productReviewSummary.load(this.$props),
@@ -39,8 +33,6 @@ export class ProductReviewsWidgetResolver extends ReviewsType<
 
   async questionSummary() {
     const summary = await this.$get("questionSummary");
-    return summary
-      ? new ProductQuestionSummaryResolver(summary, this.$ctx)
-      : null;
+    return summary ? new ProductQuestionSummaryResolver(summary, this.$ctx) : null;
   }
 }

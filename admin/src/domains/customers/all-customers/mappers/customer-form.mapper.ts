@@ -44,19 +44,20 @@ export function buildCustomerUpdateInput(
 ): ApiCustomerUpdateInput {
   const address = toAddress(values);
   const existingAddress = customer?.defaultShippingAddress;
-  const addressUpdate: ApiCustomerAddressUpdateOperationInput | null = address && existingAddress
-    ? {
-        addressId: existingAddress.id,
-        operations: {
-          address1: address.address1,
-          address2: address.address2,
-          city: address.city,
-          regionName: address.regionName,
-          postalCode: address.postalCode,
-          countryCode: address.countryCode,
-        },
-      }
-    : null;
+  const addressUpdate: ApiCustomerAddressUpdateOperationInput | null =
+    address && existingAddress
+      ? {
+          addressId: existingAddress.id,
+          operations: {
+            address1: address.address1,
+            address2: address.address2,
+            city: address.city,
+            regionName: address.regionName,
+            postalCode: address.postalCode,
+            countryCode: address.countryCode,
+          },
+        }
+      : null;
   const consents = [
     {
       channel: CustomerConsentChannel.Email,
@@ -65,12 +66,14 @@ export function buildCustomerUpdateInput(
       optInLevel: CustomerConsentOptInLevel.Unknown,
     },
     ...(values.phone.trim()
-      ? [{
-          channel: CustomerConsentChannel.Sms,
-          state: values.smsMarketingState,
-          contactPoint: values.phone.trim(),
-          optInLevel: CustomerConsentOptInLevel.Unknown,
-        }]
+      ? [
+          {
+            channel: CustomerConsentChannel.Sms,
+            state: values.smsMarketingState,
+            contactPoint: values.phone.trim(),
+            optInLevel: CustomerConsentOptInLevel.Unknown,
+          },
+        ]
       : []),
   ];
 
@@ -127,7 +130,7 @@ export function mapCustomerUserErrors(errors: ApiGenericUserError[]) {
   return errors.map((error) => {
     const path = error.field?.join(".") ?? null;
     return {
-      field: path ? fieldMap[path] ?? null : null,
+      field: path ? (fieldMap[path] ?? null) : null,
       message: error.message,
     };
   });

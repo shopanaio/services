@@ -105,9 +105,11 @@ export interface ProductDetailsQueryVariables {
 
 export interface ProductVariantsQueryData {
   catalogQuery: Pick<ApiCatalogQuery, "product"> & {
-    product: (Pick<ApiProduct, "id" | "variants"> & {
-      variants: ApiVariantConnection;
-    }) | null;
+    product:
+      | (Pick<ApiProduct, "id" | "variants"> & {
+          variants: ApiVariantConnection;
+        })
+      | null;
   };
 }
 

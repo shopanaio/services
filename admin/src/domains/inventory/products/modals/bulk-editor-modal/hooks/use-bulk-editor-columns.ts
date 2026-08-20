@@ -26,9 +26,7 @@ import {
 } from "../components/cell-renderers";
 
 // Check if cell should be editable
-function isCellEditable(
-  params: EditableCallbackParams<IBulkEditorRow>
-): boolean {
+function isCellEditable(params: EditableCallbackParams<IBulkEditorRow>): boolean {
   const { data, colDef } = params;
   if (!data || !colDef?.field) return false;
 
@@ -64,9 +62,7 @@ function createValueGetter(field: keyof IBulkEditorRow) {
     if (showDash) return null;
 
     // Get edited value from store, or fall back to original
-    const edit = useBulkEditorStore
-      .getState()
-      .getFieldEdit(data.id, field as string);
+    const edit = useBulkEditorStore.getState().getFieldEdit(data.id, field as string);
 
     return edit ? edit.currentValue : data[field];
   };
@@ -81,9 +77,7 @@ function createValueSetter(field: keyof IBulkEditorRow) {
 
     const originalValue = data[field];
 
-    useBulkEditorStore
-      .getState()
-      .setFieldValue(data.id, field as string, originalValue, newValue);
+    useBulkEditorStore.getState().setFieldValue(data.id, field as string, originalValue, newValue);
 
     return true;
   };

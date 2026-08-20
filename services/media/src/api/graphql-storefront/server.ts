@@ -1,14 +1,9 @@
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import { requireStorefrontPermission } from "@shopana/shared-context";
-import {
-  getServiceConfig,
-  isDevelopment,
-} from "@shopana/shared-service-config";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import fastify from "fastify";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -27,9 +22,7 @@ export interface StorefrontServerConfig {
   port: number;
 }
 
-export async function startStorefrontServer(
-  serverConfig: StorefrontServerConfig,
-) {
+export async function startStorefrontServer(serverConfig: StorefrontServerConfig) {
   let kernel: Kernel | null = null;
 
   if (Kernel.isInitialized()) {
@@ -60,9 +53,7 @@ export async function startStorefrontServer(
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   const packagedSchemaDir = join(__dirname, "schema", "storefront");
-  const schemaDir = existsSync(packagedSchemaDir)
-    ? packagedSchemaDir
-    : join(__dirname, "schema");
+  const schemaDir = existsSync(packagedSchemaDir) ? packagedSchemaDir : join(__dirname, "schema");
   const schemaFiles = [
     "foundation.graphql",
     "shared-currency.graphql",
@@ -78,13 +69,8 @@ export async function startStorefrontServer(
 
   const apollo = new ApolloServer<ServiceContext>({
     ...buildQueryProtectionOptions(global),
-    schema: buildSubgraphSchema(
-      modules as unknown as Parameters<typeof buildSubgraphSchema>[0],
-    ),
-    plugins: [
-      fastifyApolloDrainPlugin(app),
-      ApolloServerPluginInlineTraceDisabled(),
-    ],
+    schema: buildSubgraphSchema(modules as unknown as Parameters<typeof buildSubgraphSchema>[0]),
+    plugins: [fastifyApolloDrainPlugin(app), ApolloServerPluginInlineTraceDisabled()],
   });
   await apollo.start();
 
@@ -107,10 +93,7 @@ export async function startStorefrontServer(
           throw new Error("Verified storefront context is required");
         }
 
-        requireStorefrontPermission(
-          request.storefrontAccess,
-          "storefront.catalog.read",
-        );
+        requireStorefrontPermission(request.storefrontAccess, "storefront.catalog.read");
 
         const ctx = new ServiceContext({
           requestId: request.id as string,

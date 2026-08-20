@@ -2,10 +2,7 @@
 
 import { createStyles } from "antd-style";
 import type { ApiStaffNotificationRecipient } from "@/graphql/types";
-import {
-  GroupedLinkItem,
-  GroupedLinkItemDivider,
-} from "@/ui-kit/grouped-link-item";
+import { GroupedLinkItem, GroupedLinkItemDivider } from "@/ui-kit/grouped-link-item";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 
 const useStyles = createStyles(({ css, token }) => ({

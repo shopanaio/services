@@ -1,15 +1,8 @@
 import { sql, type SQL } from "drizzle-orm";
 import { StorefrontRepositoryValidationError } from "../types.js";
 import { decodeCursorFloat64 } from "../cursor.js";
-import type {
-  DecodedListingCursor,
-  ProductSortCollectKind,
-  StorefrontSortKind,
-} from "../types.js";
-import {
-  ZERO_UUID,
-  type ListingSqlRequest,
-} from "./compileListingInputSql.js";
+import type { DecodedListingCursor, ProductSortCollectKind, StorefrontSortKind } from "../types.js";
+import { ZERO_UUID, type ListingSqlRequest } from "./compileListingInputSql.js";
 import {
   compileInputCte,
   compilePricePredicateSql,
@@ -38,12 +31,12 @@ function compileProductSortPageQuerySql(request: ListingSqlRequest): SQL {
     request.request.cursor,
     shouldUseAvailabilityOrderBucket(request),
   );
-  const localePredicate = productConfig.locale === null
-    ? sql`s.locale IS NULL`
-    : sql`s.locale = ${productConfig.locale}`;
-  const currencyPredicate = productConfig.currency === null
-    ? sql`s.currency IS NULL`
-    : sql`s.currency = ${productConfig.currency}`;
+  const localePredicate =
+    productConfig.locale === null ? sql`s.locale IS NULL` : sql`s.locale = ${productConfig.locale}`;
+  const currencyPredicate =
+    productConfig.currency === null
+      ? sql`s.currency IS NULL`
+      : sql`s.currency = ${productConfig.currency}`;
   const limitSql = sql`(SELECT first + 1 FROM input)`;
 
   return sql`
@@ -96,9 +89,7 @@ function compileProductSortPageQuerySql(request: ListingSqlRequest): SQL {
   `;
 }
 
-function compileMatchedVariantPricePageQuerySql(
-  request: ListingSqlRequest
-): SQL {
+function compileMatchedVariantPricePageQuerySql(request: ListingSqlRequest): SQL {
   const variantDirection = request.sortKind === "price_desc" ? "desc" : "asc";
   const variantSeek = buildMatchedPriceSeek(
     variantDirection,
@@ -110,9 +101,10 @@ function compileMatchedVariantPricePageQuerySql(
   const availabilityOrder = shouldUseAvailabilityOrderBucket(request)
     ? sql`chosen.in_stock DESC,`
     : sql``;
-  const finalOrder = variantDirection === "asc"
-    ? sql`${availabilityOrder} chosen.price_minor ASC NULLS LAST, chosen.product_id ASC, chosen.variant_doc_id ASC NULLS LAST`
-    : sql`${availabilityOrder} chosen.price_minor DESC NULLS LAST, chosen.product_id ASC, chosen.variant_doc_id ASC NULLS LAST`;
+  const finalOrder =
+    variantDirection === "asc"
+      ? sql`${availabilityOrder} chosen.price_minor ASC NULLS LAST, chosen.product_id ASC, chosen.variant_doc_id ASC NULLS LAST`
+      : sql`${availabilityOrder} chosen.price_minor DESC NULLS LAST, chosen.product_id ASC, chosen.variant_doc_id ASC NULLS LAST`;
 
   return sql`
     /* listing:page */
@@ -198,9 +190,7 @@ function compileMatchedVariantPricePageQuerySql(
 
 function compileRelevancePageQuerySql(request: ListingSqlRequest): SQL {
   if (!request.normalizedQuery) {
-    throw new StorefrontRepositoryValidationError(
-      "Relevance sort requires a non-empty query"
-    );
+    throw new StorefrontRepositoryValidationError("Relevance sort requires a non-empty query");
   }
 
   const relevanceSeek = buildRelevanceSeek(
@@ -212,13 +202,14 @@ function compileRelevancePageQuerySql(request: ListingSqlRequest): SQL {
   const availabilityOrder = shouldUseAvailabilityOrderBucket(request)
     ? sql`c.in_stock DESC,`
     : sql``;
-  const searchOrder = request.searchCandidates?.attempt.mode === "FUZZY"
-    ? sql`c.boosted DESC,
+  const searchOrder =
+    request.searchCandidates?.attempt.mode === "FUZZY"
+      ? sql`c.boosted DESC,
         c.total_edit_distance ASC,
         c.minimum_trigram_similarity DESC,
         c.relevance_rank DESC,
         c.product_id ASC`
-    : sql`c.identifier_priority DESC,
+      : sql`c.identifier_priority DESC,
         c.boosted DESC,
         c.relevance_rank DESC,
         c.product_id ASC`;
@@ -268,7 +259,6 @@ function compileRelevancePageQuerySql(request: ListingSqlRequest): SQL {
     ${compilePageSelectSql(sql`relevance_page_scan`)}
   `;
 }
-
 
 function compilePageSelectSql(pageScanSql: SQL): SQL {
   return sql`
@@ -402,18 +392,10 @@ function buildProductSortSeekPredicate(
   switch (sort) {
     case "manual":
     case "name_asc":
-      downstream = ascNullsLastSeek(
-        sql`s.text_value`,
-        payload.textValue ?? null,
-        productSeek
-      );
+      downstream = ascNullsLastSeek(sql`s.text_value`, payload.textValue ?? null, productSeek);
       break;
     case "name_desc":
-      downstream = descNullsLastSeek(
-        sql`s.text_value`,
-        payload.textValue ?? null,
-        productSeek
-      );
+      downstream = descNullsLastSeek(sql`s.text_value`, payload.textValue ?? null, productSeek);
       break;
     case "newest":
       downstream = descNullsLastSeek(
@@ -422,14 +404,14 @@ function buildProductSortSeekPredicate(
         descNullsLastSeek(
           sql`s.timestamptz_value_2`,
           payload.productCreatedAt ?? null,
-          productSeek
-        )
+          productSeek,
+        ),
       );
       break;
     case "created":
       if (!payload.productCreatedAt) {
         throw new StorefrontRepositoryValidationError(
-          "Created sort cursor is missing productCreatedAt"
+          "Created sort cursor is missing productCreatedAt",
         );
       }
       downstream = sql`(
@@ -438,18 +420,10 @@ function buildProductSortSeekPredicate(
       )`;
       break;
     case "price_asc":
-      downstream = ascNullsLastSeek(
-        sql`s.bigint_value`,
-        payload.bigintValue ?? null,
-        productSeek
-      );
+      downstream = ascNullsLastSeek(sql`s.bigint_value`, payload.bigintValue ?? null, productSeek);
       break;
     case "price_desc":
-      downstream = descNullsLastSeek(
-        sql`s.bigint_value`,
-        payload.bigintValue ?? null,
-        productSeek
-      );
+      downstream = descNullsLastSeek(sql`s.bigint_value`, payload.bigintValue ?? null, productSeek);
       break;
   }
 
@@ -483,15 +457,12 @@ function buildMatchedPriceSeek(
       AND ${variantSeek}
     )
   )`;
-  const priceSeek = direction === "asc"
-    ? ascNullsLastSeek(sql`chosen.price_minor`, payload.priceMinor ?? null, productSeek)
-    : descNullsLastSeek(sql`chosen.price_minor`, payload.priceMinor ?? null, productSeek);
+  const priceSeek =
+    direction === "asc"
+      ? ascNullsLastSeek(sql`chosen.price_minor`, payload.priceMinor ?? null, productSeek)
+      : descNullsLastSeek(sql`chosen.price_minor`, payload.priceMinor ?? null, productSeek);
   const seek = placeOutOfStockLast
-    ? boolDescSeek(
-        sql`chosen.in_stock`,
-        payload.availabilityBucket,
-        priceSeek,
-      )
+    ? boolDescSeek(sql`chosen.in_stock`, payload.availabilityBucket, priceSeek)
     : priceSeek;
   return sql`AND ${seek}`;
 }
@@ -509,23 +480,20 @@ function buildRelevanceSeek(
     return sql``;
   }
   if (!payload.relevanceScoreBits) {
-    throw new StorefrontRepositoryValidationError(
-      "Relevance cursor is missing relevance score"
-    );
+    throw new StorefrontRepositoryValidationError("Relevance cursor is missing relevance score");
   }
   const relevanceScore = decodeCursorFloat64(payload.relevanceScoreBits);
   if (typeof payload.boosted !== "boolean") {
     throw new StorefrontRepositoryValidationError(
-      "Relevance cursor is missing boost ordering value"
+      "Relevance cursor is missing boost ordering value",
     );
   }
   if (
     request.searchCandidates?.attempt.mode !== "FUZZY" &&
-    (payload.identifierPriority === undefined ||
-      payload.identifierPriority === null)
+    (payload.identifierPriority === undefined || payload.identifierPriority === null)
   ) {
     throw new StorefrontRepositoryValidationError(
-      "Relevance cursor is missing identifier priority"
+      "Relevance cursor is missing identifier priority",
     );
   }
 
@@ -537,13 +505,10 @@ function buildRelevanceSeek(
       AND ${productSeek}
     )
   )`;
-  const downstream = request.searchCandidates?.attempt.mode === "FUZZY"
-    ? boolDescSeek(
-        sql`c.boosted`,
-        payload.boosted,
-        buildFuzzyRelevanceSeek(payload, scoreSeek),
-      )
-    : sql`(
+  const downstream =
+    request.searchCandidates?.attempt.mode === "FUZZY"
+      ? boolDescSeek(sql`c.boosted`, payload.boosted, buildFuzzyRelevanceSeek(payload, scoreSeek))
+      : sql`(
         c.identifier_priority < ${payload.identifierPriority}
         OR (
           c.identifier_priority = ${payload.identifierPriority}
@@ -551,19 +516,12 @@ function buildRelevanceSeek(
         )
       )`;
   const seek = placeOutOfStockLast
-    ? boolDescSeek(
-        sql`c.in_stock`,
-        payload.availabilityBucket,
-        downstream,
-      )
+    ? boolDescSeek(sql`c.in_stock`, payload.availabilityBucket, downstream)
     : downstream;
   return sql`AND ${seek}`;
 }
 
-function buildFuzzyRelevanceSeek(
-  payload: DecodedListingCursor["payload"],
-  scoreSeek: SQL,
-): SQL {
+function buildFuzzyRelevanceSeek(payload: DecodedListingCursor["payload"], scoreSeek: SQL): SQL {
   if (
     payload.totalEditDistance === undefined ||
     payload.totalEditDistance === null ||
@@ -573,9 +531,7 @@ function buildFuzzyRelevanceSeek(
       "FUZZY relevance cursor is missing typo ordering values",
     );
   }
-  const similarity = decodeCursorFloat64(
-    payload.minimumTrigramSimilarityBits,
-  );
+  const similarity = decodeCursorFloat64(payload.minimumTrigramSimilarityBits);
   return sql`(
     c.total_edit_distance > ${payload.totalEditDistance}
     OR (
@@ -601,11 +557,7 @@ function boolDescSeek(column: SQL, cursorValue: boolean, downstream: SQL): SQL {
   return sql`(COALESCE(${column}, false) = false AND ${downstream})`;
 }
 
-function ascNullsLastSeek(
-  column: SQL,
-  value: string | number | null,
-  next: SQL
-): SQL {
+function ascNullsLastSeek(column: SQL, value: string | number | null, next: SQL): SQL {
   if (value === null) {
     return sql`(${column} IS NULL AND ${next})`;
   }
@@ -616,11 +568,7 @@ function ascNullsLastSeek(
   )`;
 }
 
-function descNullsLastSeek(
-  column: SQL,
-  value: string | number | null,
-  next: SQL
-): SQL {
+function descNullsLastSeek(column: SQL, value: string | number | null, next: SQL): SQL {
   if (value === null) {
     return sql`(${column} IS NULL AND ${next})`;
   }

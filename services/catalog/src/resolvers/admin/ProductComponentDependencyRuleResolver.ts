@@ -21,13 +21,9 @@ function targetEntity(targetType: string) {
   }
 }
 
-export class ProductComponentDependencyRuleResolver extends CatalogType<
-  string,
-  DependencyRule
-> {
+export class ProductComponentDependencyRuleResolver extends CatalogType<string, DependencyRule> {
   async $preload() {
-    const rule =
-      await this.$ctx.loaders.componentDependencyRule.load(this.$props);
+    const rule = await this.$ctx.loaders.componentDependencyRule.load(this.$props);
     if (!rule) {
       throw new PreloadNotFoundError(
         `Product component dependency rule with ID ${this.$props} not found`,
@@ -37,10 +33,7 @@ export class ProductComponentDependencyRuleResolver extends CatalogType<
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.ProductComponentDependencyRule,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.ProductComponentDependencyRule);
   }
 
   async name() {
@@ -60,26 +53,14 @@ export class ProductComponentDependencyRuleResolver extends CatalogType<
   }
 
   async conditionGroups() {
-    const ids =
-      await this.$ctx.loaders.componentConditionGroupIdsByRuleId.load(
-        this.$props,
-      );
-    return Promise.all(
-      ids.map((id: string) =>
-        this.resolvers.productComponentConditionGroup(id)
-      ),
-    );
+    const ids = await this.$ctx.loaders.componentConditionGroupIdsByRuleId.load(this.$props);
+    return Promise.all(ids.map((id: string) => this.resolvers.productComponentConditionGroup(id)));
   }
 
   async actions() {
-    const ids =
-      await this.$ctx.loaders.componentDependencyActionIdsByRuleId.load(
-        this.$props,
-      );
+    const ids = await this.$ctx.loaders.componentDependencyActionIdsByRuleId.load(this.$props);
     return Promise.all(
-      ids.map((id: string) =>
-        this.resolvers.productComponentDependencyAction(id)
-      ),
+      ids.map((id: string) => this.resolvers.productComponentDependencyAction(id)),
     );
   }
 
@@ -92,13 +73,9 @@ export class ProductComponentDependencyRuleResolver extends CatalogType<
   }
 }
 
-export class ProductComponentConditionGroupResolver extends CatalogType<
-  string,
-  ConditionGroup
-> {
+export class ProductComponentConditionGroupResolver extends CatalogType<string, ConditionGroup> {
   async $preload() {
-    const group =
-      await this.$ctx.loaders.componentConditionGroup.load(this.$props);
+    const group = await this.$ctx.loaders.componentConditionGroup.load(this.$props);
     if (!group) {
       throw new PreloadNotFoundError(
         `Product component condition group with ID ${this.$props} not found`,
@@ -108,10 +85,7 @@ export class ProductComponentConditionGroupResolver extends CatalogType<
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.ProductComponentConditionGroup,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.ProductComponentConditionGroup);
   }
 
   async logicOperator() {
@@ -119,14 +93,8 @@ export class ProductComponentConditionGroupResolver extends CatalogType<
   }
 
   async conditions() {
-    const ids = await this.$ctx.loaders.componentConditionIdsByGroupId.load(
-      this.$props,
-    );
-    return Promise.all(
-      ids.map((id: string) =>
-        this.resolvers.productComponentCondition(id)
-      ),
-    );
+    const ids = await this.$ctx.loaders.componentConditionIdsByGroupId.load(this.$props);
+    return Promise.all(ids.map((id: string) => this.resolvers.productComponentCondition(id)));
   }
 
   async sortIndex() {
@@ -134,13 +102,9 @@ export class ProductComponentConditionGroupResolver extends CatalogType<
   }
 }
 
-export class ProductComponentConditionResolver extends CatalogType<
-  string,
-  Condition
-> {
+export class ProductComponentConditionResolver extends CatalogType<string, Condition> {
   async $preload() {
-    const condition =
-      await this.$ctx.loaders.componentCondition.load(this.$props);
+    const condition = await this.$ctx.loaders.componentCondition.load(this.$props);
     if (!condition) {
       throw new PreloadNotFoundError(
         `Product component condition with ID ${this.$props} not found`,
@@ -150,10 +114,7 @@ export class ProductComponentConditionResolver extends CatalogType<
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.ProductComponentCondition,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.ProductComponentCondition);
   }
 
   async category() {
@@ -194,8 +155,7 @@ export class ProductComponentDependencyActionResolver extends CatalogType<
   DependencyAction
 > {
   async $preload() {
-    const action =
-      await this.$ctx.loaders.componentDependencyAction.load(this.$props);
+    const action = await this.$ctx.loaders.componentDependencyAction.load(this.$props);
     if (!action) {
       throw new PreloadNotFoundError(
         `Product component dependency action with ID ${this.$props} not found`,
@@ -205,10 +165,7 @@ export class ProductComponentDependencyActionResolver extends CatalogType<
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.ProductComponentDependencyAction,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.ProductComponentDependencyAction);
   }
 
   async actionType() {
@@ -233,9 +190,7 @@ export class ProductComponentDependencyActionResolver extends CatalogType<
 
   async priceRule() {
     const id = await this.$get("priceRuleId");
-    return id
-      ? this.resolvers.productComponentPriceRule(id)
-      : null;
+    return id ? this.resolvers.productComponentPriceRule(id) : null;
   }
 
   async stackable() {

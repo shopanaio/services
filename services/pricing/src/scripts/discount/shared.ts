@@ -40,11 +40,7 @@ export function parseNonNegativeBigInt(
   }
 }
 
-export function parseDateTime(
-  value: string,
-  field: string[],
-  errors: UserError[],
-): string | null {
+export function parseDateTime(value: string, field: string[], errors: UserError[]): string | null {
   const timestamp = Date.parse(value);
   if (!Number.isFinite(timestamp)) {
     errors.push({
@@ -61,8 +57,6 @@ export function hasOwn(input: object, field: PropertyKey): boolean {
   return Object.prototype.hasOwnProperty.call(input, field);
 }
 
-export function isRecord(
-  value: unknown,
-): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

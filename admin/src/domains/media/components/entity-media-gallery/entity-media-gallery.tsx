@@ -1,17 +1,21 @@
 "use client";
 
 import { useCallback, useMemo, useState, CSSProperties, ReactNode } from "react";
+import { Button, Typography, Tooltip, Dropdown, Flex, Empty, Space, type MenuProps } from "antd";
 import {
-  Button,
-  Typography,
-  Tooltip,
-  Dropdown,
-  Flex,
-  Empty,
-  Space,
-  type MenuProps,
-} from "antd";
-import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuStar as StarOutlined, LuStar as StarFilled, LuEllipsis as MoreOutlined, LuEye as EyeOutlined, LuUpload as UploadOutlined, LuLayoutGrid as AppstoreOutlined, LuList as UnorderedListOutlined, LuGripVertical as HolderOutlined, LuFolderOpen as FolderOpenOutlined, LuPencil as EditOutlined } from "react-icons/lu";
+  LuPlus as PlusOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuStar as StarOutlined,
+  LuStar as StarFilled,
+  LuEllipsis as MoreOutlined,
+  LuEye as EyeOutlined,
+  LuUpload as UploadOutlined,
+  LuLayoutGrid as AppstoreOutlined,
+  LuList as UnorderedListOutlined,
+  LuGripVertical as HolderOutlined,
+  LuFolderOpen as FolderOpenOutlined,
+  LuPencil as EditOutlined,
+} from "react-icons/lu";
 import { FeaturedBadge } from "@/ui-kit/featured-badge";
 import {
   DndContext,
@@ -133,19 +137,13 @@ const SortableGridItem = ({
       return transform;
     }
 
-    const getPrimaryIndexTransform = (r: {
-      width: number;
-      height: number;
-    }) => ({
+    const getPrimaryIndexTransform = (r: { width: number; height: number }) => ({
       ...transform,
       x: (transform?.x || 0) + r.width / 2 + gap / 2,
       y: (transform?.y || 0) + r.height / 2 + gap / 2,
     });
 
-    const getSecondaryIndexTransform = (r: {
-      width: number;
-      height: number;
-    }) => ({
+    const getSecondaryIndexTransform = (r: { width: number; height: number }) => ({
       ...transform,
       x: (transform?.x || 0) - r.width / 4 - gap / 4,
       y: (transform?.y || 0) - r.height / 4 - gap / 4,
@@ -176,13 +174,15 @@ const SortableGridItem = ({
   const name = getFileName(item);
   const domainItems: MenuProps["items"] = [
     ...(onEditItem
-      ? [{
-          key: "editItem",
-          label: editItemLabel,
-          icon: <EditOutlined />,
-          "data-testid": `entity-media-edit-menu-item-${item.id}`,
-          onClick: () => onEditItem(item, index),
-        }]
+      ? [
+          {
+            key: "editItem",
+            label: editItemLabel,
+            icon: <EditOutlined />,
+            "data-testid": `entity-media-edit-menu-item-${item.id}`,
+            onClick: () => onEditItem(item, index),
+          },
+        ]
       : []),
     ...(customMenuItems ?? []),
   ];
@@ -211,9 +211,7 @@ const SortableGridItem = ({
       : []),
     ...(domainItems.length > 0
       ? [
-          ...(onPreview || (allowSetFeatured && !isFeatured)
-            ? [{ type: "divider" as const }]
-            : []),
+          ...(onPreview || (allowSetFeatured && !isFeatured) ? [{ type: "divider" as const }] : []),
           ...domainItems,
         ]
       : []),
@@ -252,22 +250,22 @@ const SortableGridItem = ({
 
       {actionItems.length > 0 && (
         <div className={cx(styles.mediaActions, "media-actions")}>
-        <Dropdown
-          menu={{
-            items: actionItems,
-          }}
-          trigger={["click"]}
-        >
-          <Button
-            size="small"
-            shape="circle"
-            icon={<MoreOutlined />}
-            aria-label={`Actions for ${name}`}
-            data-testid={`entity-media-actions-button-${item.id}`}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </Dropdown>
+          <Dropdown
+            menu={{
+              items: actionItems,
+            }}
+            trigger={["click"]}
+          >
+            <Button
+              size="small"
+              shape="circle"
+              icon={<MoreOutlined />}
+              aria-label={`Actions for ${name}`}
+              data-testid={`entity-media-actions-button-${item.id}`}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Dropdown>
         </div>
       )}
 
@@ -324,14 +322,10 @@ const SortableListItem = ({
   editItemLabel,
 }: ISortableListItemProps) => {
   const { styles, cx } = useStyles();
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item.id, disabled: sortableDisabled });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+    disabled: sortableDisabled,
+  });
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -340,19 +334,19 @@ const SortableListItem = ({
 
   const name = getFileName(item);
   const ext = getFileExt(item);
-  const showRemoveButton = selectionMode
-    ? selectionAction === "remove"
-    : allowDelete;
+  const showRemoveButton = selectionMode ? selectionAction === "remove" : allowDelete;
   const showAddButton = selectionMode && selectionAction === "add";
   const domainItems: MenuProps["items"] = [
     ...(onEditItem
-      ? [{
-          key: "editItem",
-          label: editItemLabel,
-          icon: <EditOutlined />,
-          "data-testid": `entity-media-edit-menu-item-${item.id}`,
-          onClick: () => onEditItem(item, index),
-        }]
+      ? [
+          {
+            key: "editItem",
+            label: editItemLabel,
+            icon: <EditOutlined />,
+            "data-testid": `entity-media-edit-menu-item-${item.id}`,
+            onClick: () => onEditItem(item, index),
+          },
+        ]
       : []),
     ...(customMenuItems ?? []),
   ];
@@ -380,9 +374,7 @@ const SortableListItem = ({
       </div>
 
       <div className={styles.listItemInfo}>
-        <Typography.Text className={styles.listItemName}>
-          {name}
-        </Typography.Text>
+        <Typography.Text className={styles.listItemName}>{name}</Typography.Text>
         <div className={styles.listItemMeta}>
           <span>{formatFileSize(getFileSize(item))}</span>
           {ext && <span>{ext}</span>}
@@ -494,11 +486,7 @@ interface IListItemPreviewProps {
   featuredLabel: string;
 }
 
-const ListItemPreview = ({
-  item,
-  isFeatured,
-  featuredLabel,
-}: IListItemPreviewProps) => {
+const ListItemPreview = ({ item, isFeatured, featuredLabel }: IListItemPreviewProps) => {
   const { styles } = useStyles();
   const name = getFileName(item);
   const ext = getFileExt(item);
@@ -518,9 +506,7 @@ const ListItemPreview = ({
         <MediaThumbnail item={item} className={styles.listItemImage} />
       </div>
       <div className={styles.listItemInfo}>
-        <Typography.Text className={styles.listItemName}>
-          {name}
-        </Typography.Text>
+        <Typography.Text className={styles.listItemName}>{name}</Typography.Text>
         <div className={styles.listItemMeta}>
           <span>{formatFileSize(getFileSize(item))}</span>
           {ext && <span>{ext}</span>}
@@ -589,10 +575,13 @@ export const EntityMediaGallery = ({
   );
 
   // Handle files selected from media picker
-  const handleMediaPickerConfirm = useCallback((files: ApiFile[]) => {
-    const next = [...value, ...files];
-    onChange(maxFiles ? next.slice(0, maxFiles) : next);
-  }, [maxFiles, value, onChange]);
+  const handleMediaPickerConfirm = useCallback(
+    (files: ApiFile[]) => {
+      const next = [...value, ...files];
+      onChange(maxFiles ? next.slice(0, maxFiles) : next);
+    },
+    [maxFiles, value, onChange],
+  );
 
   // Media picker hook
   const { openPicker: openMediaPicker } = useMediaPicker({
@@ -604,10 +593,13 @@ export const EntityMediaGallery = ({
   });
 
   // Handle files uploaded from upload modal
-  const handleUploadModalConfirm = useCallback((files: ApiFile[]) => {
-    const next = [...value, ...files];
-    onChange(maxFiles ? next.slice(0, maxFiles) : next);
-  }, [maxFiles, value, onChange]);
+  const handleUploadModalConfirm = useCallback(
+    (files: ApiFile[]) => {
+      const next = [...value, ...files];
+      onChange(maxFiles ? next.slice(0, maxFiles) : next);
+    },
+    [maxFiles, value, onChange],
+  );
 
   // Open upload modal handler
   const handleOpenUploadModal = useCallback(() => {
@@ -630,7 +622,7 @@ export const EntityMediaGallery = ({
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -656,14 +648,14 @@ export const EntityMediaGallery = ({
       const filtered = value.filter((i) => i.id !== item.id);
       onChange([item, ...filtered]);
     },
-    [value, onChange]
+    [value, onChange],
   );
 
   const handleDelete = useCallback(
     (id: string) => {
       onChange(value.filter((m) => m.id !== id));
     },
-    [value, onChange]
+    [value, onChange],
   );
 
   const handleSelectedChange = useCallback(
@@ -677,22 +669,15 @@ export const EntityMediaGallery = ({
         : selectedIds.filter((selectedId) => selectedId !== id);
       const nextSelectedIdSet = new Set(nextIds);
       const targetItem = value.find((item) => item.id === id);
-      const nextSelectedItems = value.filter((item) =>
-        nextSelectedIdSet.has(item.id),
-      );
-      const nextUnselectedItems = value.filter((item) =>
-        !nextSelectedIdSet.has(item.id),
-      );
+      const nextSelectedItems = value.filter((item) => nextSelectedIdSet.has(item.id));
+      const nextUnselectedItems = value.filter((item) => !nextSelectedIdSet.has(item.id));
 
       if (targetItem) {
         onChange([
           ...nextSelectedItems,
           ...(selected
             ? nextUnselectedItems
-            : [
-                targetItem,
-                ...nextUnselectedItems.filter((item) => item.id !== id),
-              ]),
+            : [targetItem, ...nextUnselectedItems.filter((item) => item.id !== id)]),
         ]);
       }
       onSelectedIdsChange(nextIds);
@@ -709,7 +694,7 @@ export const EntityMediaGallery = ({
         setPreviewVisible(true);
       }
     },
-    [externalOnPreview]
+    [externalOnPreview],
   );
 
   const hasMedia = value.length > 0;
@@ -787,16 +772,10 @@ export const EntityMediaGallery = ({
           >
             <Flex align="center" justify="center" vertical>
               <UploadOutlined className={styles.draggerIcon} />
-              <Typography.Text
-                strong
-                type="secondary"
-                className={styles.draggerTitle}
-              >
+              <Typography.Text strong type="secondary" className={styles.draggerTitle}>
                 Upload media
               </Typography.Text>
-              <Typography.Text type="secondary">
-                Click to upload images or videos
-              </Typography.Text>
+              <Typography.Text type="secondary">Click to upload images or videos</Typography.Text>
             </Flex>
           </div>
         )}
@@ -804,10 +783,7 @@ export const EntityMediaGallery = ({
         {/* Empty state without upload */}
         {!hasMedia && !canAddMedia && (
           <div className={styles.emptyContainer}>
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={emptyMessage}
-            />
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyMessage} />
           </div>
         )}
 
@@ -815,10 +791,7 @@ export const EntityMediaGallery = ({
         {hasMedia && viewMode === "grid" && (
           <>
             <div className={styles.mediaGrid}>
-              <SortableContext
-                items={value.map((it) => it.id)}
-                strategy={rectSortingStrategy}
-              >
+              <SortableContext items={value.map((it) => it.id)} strategy={rectSortingStrategy}>
                 {value.map((item, idx) => (
                   <SortableGridItem
                     key={item.id}
@@ -856,9 +829,7 @@ export const EntityMediaGallery = ({
                     }}
                   >
                     <PlusOutlined className={styles.uploadIcon} />
-                    <Typography.Text className={styles.uploadText}>
-                      Upload
-                    </Typography.Text>
+                    <Typography.Text className={styles.uploadText}>Upload</Typography.Text>
                   </div>
                 </div>
               )}
@@ -871,15 +842,9 @@ export const EntityMediaGallery = ({
                   <div key={`spacer-${idx}`} className={styles.spacerCell} />
                 ))}
                 {Array.from({
-                  length: Math.max(
-                    0,
-                    minCells - value.length - (canAddMedia ? 1 : 0)
-                  ),
+                  length: Math.max(0, minCells - value.length - (canAddMedia ? 1 : 0)),
                 }).map((_, idx) => (
-                  <div
-                    key={`placeholder-${idx}`}
-                    className={styles.placeholderCell}
-                  />
+                  <div key={`placeholder-${idx}`} className={styles.placeholderCell} />
                 ))}
               </div>
             </div>
@@ -890,10 +855,7 @@ export const EntityMediaGallery = ({
         {hasMedia && viewMode === "list" && selectionMode && (
           <div className={styles.listContainer}>
             <div className={styles.listSection}>
-              <Typography.Text
-                type="secondary"
-                className={styles.listSectionTitle}
-              >
+              <Typography.Text type="secondary" className={styles.listSectionTitle}>
                 Active
               </Typography.Text>
               {selectedItems.length > 0 ? (
@@ -926,18 +888,13 @@ export const EntityMediaGallery = ({
                 </SortableContext>
               ) : (
                 <div className={styles.emptySelectionState}>
-                  <Typography.Text type="secondary">
-                    No active media selected
-                  </Typography.Text>
+                  <Typography.Text type="secondary">No active media selected</Typography.Text>
                 </div>
               )}
             </div>
 
             <div className={styles.listSection}>
-              <Typography.Text
-                type="secondary"
-                className={styles.listSectionTitle}
-              >
+              <Typography.Text type="secondary" className={styles.listSectionTitle}>
                 Available
               </Typography.Text>
               {unselectedItems.length > 0 ? (
@@ -971,9 +928,7 @@ export const EntityMediaGallery = ({
                 </SortableContext>
               ) : (
                 <div className={styles.emptySelectionState}>
-                  <Typography.Text type="secondary">
-                    All media selected
-                  </Typography.Text>
+                  <Typography.Text type="secondary">All media selected</Typography.Text>
                 </div>
               )}
             </div>

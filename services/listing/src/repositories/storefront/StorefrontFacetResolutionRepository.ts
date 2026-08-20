@@ -58,18 +58,12 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
 
     const facetFilters = input.filters.filter(
       (filter): filter is Extract<StorefrontListingFilterInput, { kind: "facet" }> =>
-        filter.kind === "facet"
+        filter.kind === "facet",
     );
 
-    const resolvedFacetRows = await this.resolveFacetFilters(
-      facetFilters,
-      input.scope
-    );
+    const resolvedFacetRows = await this.resolveFacetFilters(facetFilters, input.scope);
     const resolvedByRequest = new Map(
-      resolvedFacetRows.map((row) => [
-        `${row.facetSlug}:${row.requestedValueHandle}`,
-        row,
-      ])
+      resolvedFacetRows.map((row) => [`${row.facetSlug}:${row.requestedValueHandle}`, row]),
     );
 
     for (const filter of input.filters) {
@@ -85,16 +79,10 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           break;
         case "in_stock":
           plan.inStock = this.mergeInStock(plan.inStock, filter.value);
-          this.upsertVariantTermGroup(
-            plan,
-            buildAvailabilityVariantTermGroup(filter.value)
-          );
+          this.upsertVariantTermGroup(plan, buildAvailabilityVariantTermGroup(filter.value));
           break;
         case "status":
-          plan.productStatuses = this.mergeUnique(
-            plan.productStatuses,
-            filter.statuses,
-          );
+          plan.productStatuses = this.mergeUnique(plan.productStatuses, filter.statuses);
           break;
       }
     }
@@ -124,14 +112,14 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
         AND p.field = 'term'
         AND p.value_key IN (${sql.join(
           required.map((value) => sql`${value}`),
-          sql`, `
+          sql`, `,
         )})
     `);
     if (rows[0]?.presentCount !== required.length) {
       throw new StorefrontRepositoryValidationError(
         "Listing variant term index is incomplete: declared universe/availability rows are missing",
         undefined,
-        "LISTING_TERM_INDEX_INCOMPLETE"
+        "LISTING_TERM_INDEX_INCOMPLETE",
       );
     }
   }
@@ -148,7 +136,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
       requestedFacetIds.length > 0
         ? sql`AND candidate_values.facet_id IN (${sql.join(
             requestedFacetIds.map((facetId) => sql`${facetId}::uuid`),
-            sql`, `
+            sql`, `,
           )})`
         : sql``;
     const scopeProductBitmapSql = this.buildScopeProductBitmapSql(input.scope);
@@ -275,7 +263,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
 
   private async resolveFacetFilters(
     filters: readonly Extract<StorefrontListingFilterInput, { kind: "facet" }>[],
-    scope: StorefrontListingScope
+    scope: StorefrontListingScope,
   ): Promise<FacetResolutionSqlRow[]> {
     const pairs = filters.flatMap((filter) => {
       const slug = filter.facetSlug.trim();
@@ -290,10 +278,8 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     }
 
     const valuesSql = sql.join(
-      pairs.map(
-        (pair) => sql`(${pair.facetSlug}, ${pair.valueHandle})`
-      ),
-      sql`, `
+      pairs.map((pair) => sql`(${pair.facetSlug}, ${pair.valueHandle})`),
+      sql`, `,
     );
 
     const rows = await this.connection.execute<FacetResolutionSqlRow>(sql`
@@ -362,15 +348,10 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     `);
 
     const missing = rows.find(
-      (row) =>
-        row.resolutionStatus === "FACET_MISSING" ||
-        row.resolutionStatus === "VALUE_MISSING"
+      (row) => row.resolutionStatus === "FACET_MISSING" || row.resolutionStatus === "VALUE_MISSING",
     );
     if (missing) {
-      throw new StorefrontRepositoryValidationError(
-        invalidFacetValueMessage(missing),
-        ["filters"]
-      );
+      throw new StorefrontRepositoryValidationError(invalidFacetValueMessage(missing), ["filters"]);
     }
 
     return rows;
@@ -379,7 +360,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
   private addFacetFilterGroup(
     plan: StorefrontFilterPlan,
     filter: Extract<StorefrontListingFilterInput, { kind: "facet" }>,
-    resolvedByRequest: ReadonlyMap<string, FacetResolutionSqlRow>
+    resolvedByRequest: ReadonlyMap<string, FacetResolutionSqlRow>,
   ): void {
     const valueHandles = this.mergeUnique([], filter.valueHandles);
     if (valueHandles.length === 0) {
@@ -391,7 +372,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
       if (!row) {
         throw new StorefrontRepositoryValidationError(
           `Unknown storefront facet value: ${filter.facetSlug}:${valueHandle}`,
-          ["filters"]
+          ["filters"],
         );
       }
       return row;
@@ -408,19 +389,14 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
 
     const first = rows[0];
     if (!first.facetId || !first.facetType) {
-      throw new StorefrontRepositoryValidationError(
-        invalidFacetValueMessage(first),
-        ["filters"]
-      );
+      throw new StorefrontRepositoryValidationError(invalidFacetValueMessage(first), ["filters"]);
     }
 
     const facetType = this.assertFacetRuntimeType(first.facetType);
-    const validRows = rows.filter(
-      (row) => row.resolutionStatus === "VALID" && row.valueKey
-    );
+    const validRows = rows.filter((row) => row.resolutionStatus === "VALID" && row.valueKey);
     const valueKeys = this.mergeUnique(
       [],
-      validRows.map((row) => row.valueKey ?? "")
+      validRows.map((row) => row.valueKey ?? ""),
     );
 
     if (facetType === "TAG" || facetType === "FEATURE") {
@@ -437,7 +413,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
         buildOptionVariantTerm({
           facetId: row.facetId!,
           facetValueId: row.facetValueId!,
-        })
+        }),
       );
       this.upsertVariantTermGroup(
         plan,
@@ -445,7 +421,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           groupKey: `option:${first.facetId}`,
           terms,
           source: "OPTION",
-        })
+        }),
       );
       this.upsertGroup(plan.optionFacetGroups, {
         facetId: first.facetId,
@@ -458,30 +434,23 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     if (facetType === "IN_STOCK") {
       const validValueHandle = validRows[0]?.valueHandle;
       if (!validValueHandle) {
-        throw new StorefrontRepositoryValidationError(
-          invalidFacetValueMessage(rows[0]),
-          ["filters"]
-        );
+        throw new StorefrontRepositoryValidationError(invalidFacetValueMessage(rows[0]), [
+          "filters",
+        ]);
       }
       const next = this.parseInStockHandle(validValueHandle);
       plan.inStock = this.mergeInStock(plan.inStock, next);
-      this.upsertVariantTermGroup(
-        plan,
-        buildAvailabilityVariantTermGroup(next)
-      );
+      this.upsertVariantTermGroup(plan, buildAvailabilityVariantTermGroup(next));
       return;
     }
 
     throw new StorefrontRepositoryValidationError(
       "PRICE facet filters must use price range input",
-      ["filters"]
+      ["filters"],
     );
   }
 
-  private upsertGroup(
-    groups: ResolvedFacetFilterGroup[],
-    group: ResolvedFacetFilterGroup
-  ): void {
+  private upsertGroup(groups: ResolvedFacetFilterGroup[], group: ResolvedFacetFilterGroup): void {
     const existing = groups.find((item) => item.facetId === group.facetId);
     if (!existing) {
       groups.push(group);
@@ -492,37 +461,31 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
 
   private upsertVariantTermGroup(
     plan: StorefrontFilterPlan,
-    group: StorefrontFilterPlan["variantTermGroups"][number]
+    group: StorefrontFilterPlan["variantTermGroups"][number],
   ): void {
     const existingIndex = plan.variantTermGroups.findIndex(
-      (item) => item.groupKey === group.groupKey
+      (item) => item.groupKey === group.groupKey,
     );
     if (existingIndex < 0) {
       plan.variantTermGroups.push(group);
-      plan.variantTermGroups.sort((left, right) =>
-        left.groupKey.localeCompare(right.groupKey)
-      );
+      plan.variantTermGroups.sort((left, right) => left.groupKey.localeCompare(right.groupKey));
       return;
     }
     plan.variantTermGroups[existingIndex] = buildListingVariantTermGroup({
       groupKey: group.groupKey,
       source: group.source,
-      terms: [
-        ...plan.variantTermGroups[existingIndex].terms,
-        ...group.terms,
-      ],
+      terms: [...plan.variantTermGroups[existingIndex].terms, ...group.terms],
     });
   }
 
   private mergePriceRange(
     current: StorefrontFilterPlan["priceRange"],
-    next: Extract<StorefrontListingFilterInput, { kind: "price" }>
+    next: Extract<StorefrontListingFilterInput, { kind: "price" }>,
   ): StorefrontFilterPlan["priceRange"] {
     if (next.minPriceMinor === undefined && next.maxPriceMinor === undefined) {
-      throw new StorefrontRepositoryValidationError(
-        "Price filter requires at least one bound",
-        ["filters"]
-      );
+      throw new StorefrontRepositoryValidationError("Price filter requires at least one bound", [
+        "filters",
+      ]);
     }
     if (next.minPriceMinor !== undefined) {
       assertNonNegativeSafeInteger(next.minPriceMinor, "minPriceMinor");
@@ -537,7 +500,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     ) {
       throw new StorefrontRepositoryValidationError(
         "Price filter min bound must not exceed max bound",
-        ["filters"]
+        ["filters"],
       );
     }
 
@@ -563,7 +526,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     ) {
       throw new StorefrontRepositoryValidationError(
         "Combined price filters produce an invalid range",
-        ["filters"]
+        ["filters"],
       );
     }
 
@@ -572,10 +535,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
 
   private mergeInStock(current: boolean | undefined, next: boolean): boolean {
     if (current !== undefined && current !== next) {
-      throw new StorefrontRepositoryValidationError(
-        "Conflicting in-stock filters",
-        ["filters"]
-      );
+      throw new StorefrontRepositoryValidationError("Conflicting in-stock filters", ["filters"]);
     }
     return next;
   }
@@ -597,10 +557,9 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     if (["false", "0", "no", "out_of_stock", "unavailable"].includes(normalized)) {
       return false;
     }
-    throw new StorefrontRepositoryValidationError(
-      "IN_STOCK facet value must be boolean-like",
-      ["filters"]
-    );
+    throw new StorefrontRepositoryValidationError("IN_STOCK facet value must be boolean-like", [
+      "filters",
+    ]);
   }
 
   private toResolvedFacetValue(row: FacetValueSqlRow): ResolvedFacetValue {
@@ -625,10 +584,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     ) {
       return value;
     }
-    throw new StorefrontRepositoryValidationError(
-      `Unsupported facet type: ${value}`,
-      ["filters"]
-    );
+    throw new StorefrontRepositoryValidationError(`Unsupported facet type: ${value}`, ["filters"]);
   }
 }
 

@@ -47,19 +47,11 @@ export class IntegrationRepository extends BaseRepository {
   /**
    * Find integration by store and type
    */
-  async findByType(
-    storeId: string,
-    type: IntegrationType
-  ): Promise<StoreIntegration | undefined> {
+  async findByType(storeId: string, type: IntegrationType): Promise<StoreIntegration | undefined> {
     const [result] = await this.connection
       .select()
       .from(storeIntegration)
-      .where(
-        and(
-          eq(storeIntegration.storeId, storeId),
-          eq(storeIntegration.type, type)
-        )
-      );
+      .where(and(eq(storeIntegration.storeId, storeId), eq(storeIntegration.type, type)));
 
     return result;
   }
@@ -80,7 +72,7 @@ export class IntegrationRepository extends BaseRepository {
   async update(
     storeId: string,
     type: IntegrationType,
-    data: UpdateIntegrationData
+    data: UpdateIntegrationData,
   ): Promise<StoreIntegration | undefined> {
     const [result] = await this.connection
       .update(storeIntegration)
@@ -88,12 +80,7 @@ export class IntegrationRepository extends BaseRepository {
         ...data,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(storeIntegration.storeId, storeId),
-          eq(storeIntegration.type, type)
-        )
-      )
+      .where(and(eq(storeIntegration.storeId, storeId), eq(storeIntegration.type, type)))
       .returning();
 
     return result;
@@ -123,12 +110,7 @@ export class IntegrationRepository extends BaseRepository {
   async delete(storeId: string, type: IntegrationType): Promise<boolean> {
     const result = await this.connection
       .delete(storeIntegration)
-      .where(
-        and(
-          eq(storeIntegration.storeId, storeId),
-          eq(storeIntegration.type, type)
-        )
-      )
+      .where(and(eq(storeIntegration.storeId, storeId), eq(storeIntegration.type, type)))
       .returning({ id: storeIntegration.id });
 
     return result.length > 0;

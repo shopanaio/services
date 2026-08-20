@@ -11,14 +11,9 @@ interface FileWithState {
   state: FileDeletionState | null;
 }
 
-export class FileDeleteManyScript extends BaseScript<
-  FileDeleteManyParams,
-  FileDeleteManyResult
-> {
+export class FileDeleteManyScript extends BaseScript<FileDeleteManyParams, FileDeleteManyResult> {
   @ZodSchema(fileDeleteManySchema)
-  protected async execute(
-    params: FileDeleteManyParams
-  ): Promise<FileDeleteManyResult> {
+  protected async execute(params: FileDeleteManyParams): Promise<FileDeleteManyResult> {
     const { ids, permanent = false } = params;
 
     const acceptedIds: string[] = [];
@@ -50,9 +45,7 @@ export class FileDeleteManyScript extends BaseScript<
     if (activeIds.length > 0) {
       await this.repository.file.softDeleteMany(activeIds);
       const softDeleted =
-        await this.repository.fileDeletionState.softDeleteManyIfEligible(
-          activeIds
-        );
+        await this.repository.fileDeletionState.softDeleteManyIfEligible(activeIds);
       acceptedIds.push(...softDeleted);
     }
 
@@ -92,15 +85,11 @@ export class FileDeleteManyScript extends BaseScript<
 
   private async startHardDeleteWorkflow(fileId: string): Promise<boolean> {
     try {
-      await this.services.broker.runWorkflow(
-        "media.fileHardDelete",
-        fileId,
-        {
-          source: "workflow",
-          workflowId: `fileDeleteMany:${fileId}`,
-          stepId: "startHardDelete",
-        }
-      );
+      await this.services.broker.runWorkflow("media.fileHardDelete", fileId, {
+        source: "workflow",
+        workflowId: `fileDeleteMany:${fileId}`,
+        stepId: "startHardDelete",
+      });
       return true;
     } catch (error) {
       this.logger.error({ fileId, error }, "Failed to start hard delete workflow");

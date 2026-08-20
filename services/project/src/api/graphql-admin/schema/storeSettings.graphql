@@ -176,7 +176,9 @@ input StoreCurrencySettingsUpdateInput {
   trailingZeroDisplay: CurrencyTrailingZeroDisplay!
 }
 
-"""Independent sections accepted by the unified store update mutation."""
+"""
+Independent sections accepted by the unified store update mutation.
+"""
 input StoreUpdateInput {
   contactDetails: StoreContactDetailsUpdateInput
   address: StoreAddressUpdateInput

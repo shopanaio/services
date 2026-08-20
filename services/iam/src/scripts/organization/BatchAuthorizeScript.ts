@@ -7,14 +7,9 @@ import {
   type BatchAuthorizeResult,
 } from "./dto/BatchAuthorizeDto.js";
 
-export class BatchAuthorizeScript extends BaseScript<
-  BatchAuthorizeParams,
-  BatchAuthorizeResult
-> {
+export class BatchAuthorizeScript extends BaseScript<BatchAuthorizeParams, BatchAuthorizeResult> {
   @ZodSchema(batchAuthorizeInputSchema)
-  protected async execute(
-    params: BatchAuthorizeParams
-  ): Promise<BatchAuthorizeResult> {
+  protected async execute(params: BatchAuthorizeParams): Promise<BatchAuthorizeResult> {
     const { organizationId, requests } = params;
 
     const validRequests = requests.flatMap((request, index) => {
@@ -32,9 +27,7 @@ export class BatchAuthorizeScript extends BaseScript<
     if (validRequests.length === 0) return { results };
 
     const [adminUserIds, owner, casbinResults] = await Promise.all([
-      this.repository.user.findAdminUserIds(
-        validRequests.map(({ request }) => request.userId)
-      ),
+      this.repository.user.findAdminUserIds(validRequests.map(({ request }) => request.userId)),
       this.repository.organization.findOwner(organizationId),
       this.repository.casbin.batchEnforce({
         organizationId,

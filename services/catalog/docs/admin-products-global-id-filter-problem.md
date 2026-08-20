@@ -2,9 +2,11 @@
 
 ## Суть
 
-Admin GraphQL API отдает entity IDs как GraphQL global IDs, а repository/query layer работает с внутренними database IDs.
+Admin GraphQL API отдает entity IDs как GraphQL global IDs, а repository/query layer работает с
+внутренними database IDs.
 
-Когда generated `ProductWhereInput` открывает фильтр по `id`, клиент может передать API-facing значение:
+Когда generated `ProductWhereInput` открывает фильтр по `id`, клиент может передать API-facing
+значение:
 
 ```graphql
 where: {
@@ -16,15 +18,19 @@ where: {
 
 ```ts
 where: {
-  id: { _eq: "018f..." }
+  id: {
+    _eq: "018f...";
+  }
 }
 ```
 
-Из-за этого фильтр по `id` проходит через GraphQL schema как валидный input, но не соответствует storage-формату.
+Из-за этого фильтр по `id` проходит через GraphQL schema как валидный input, но не соответствует
+storage-формату.
 
 ## Где проявляется
 
-Проблема касается любых generated where-фильтров, которые принимают ID поля с GraphQL global ID semantics:
+Проблема касается любых generated where-фильтров, которые принимают ID поля с GraphQL global ID
+semantics:
 
 - прямой фильтр `where.id`;
 - вложенные варианты внутри `_and`, `_or`, `_not`;
@@ -43,14 +49,16 @@ where: {
 
 ## Почему это отдельная проблема
 
-Generated drizzle-query schema описывает форму фильтра и SQL-capable поля, но не знает о GraphQL global ID contract. Для `drizzle-query` поле `id` является обычным database field.
+Generated drizzle-query schema описывает форму фильтра и SQL-capable поля, но не знает о GraphQL
+global ID contract. Для `drizzle-query` поле `id` является обычным database field.
 
 Поэтому между GraphQL boundary и repository execution появляется mismatch:
 
 - GraphQL layer принимает public API ID;
 - repository layer ожидает internal ID;
 - generated input сам по себе не делает decode;
-- tenant/soft-delete filters не решают эту проблему, потому что они добавляются отдельно внутри repository.
+- tenant/soft-delete filters не решают эту проблему, потому что они добавляются отдельно внутри
+  repository.
 
 ## Симптомы
 

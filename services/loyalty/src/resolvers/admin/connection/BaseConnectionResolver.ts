@@ -13,10 +13,12 @@ export abstract class BaseConnectionResolver<TInput> extends LoyaltyType<TInput,
 
   async edges() {
     const edges = await this.$get("edges");
-    return Promise.all((edges ?? []).map(async (edge) => ({
-      cursor: edge.cursor,
-      node: await this.createNodeResolver(edge.nodeId),
-    })));
+    return Promise.all(
+      (edges ?? []).map(async (edge) => ({
+        cursor: edge.cursor,
+        node: await this.createNodeResolver(edge.nodeId),
+      })),
+    );
   }
 
   pageInfo() {

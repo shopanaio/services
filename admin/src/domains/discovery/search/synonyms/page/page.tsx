@@ -16,10 +16,7 @@ import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useAgGridTheme, usePageConfig } from "@/hooks";
-import type {
-  ApiSearchSynonymGroup,
-  ApiSearchSynonymGroupWhereInput,
-} from "@/graphql/types";
+import type { ApiSearchSynonymGroup, ApiSearchSynonymGroupWhereInput } from "@/graphql/types";
 import { SearchSynonymGroupOrderField } from "@/graphql/types";
 import { useSynonymGroups } from "../hooks";
 import { filterSchema } from "./filter-schema";
@@ -51,21 +48,13 @@ function formatDate(value: string | null | undefined): string {
   }).format(date);
 }
 
-const NameCellRenderer = (
-  props: CustomCellRendererProps<ApiSearchSynonymGroup, string>,
-) => (
-  <Typography.Text
-    strong
-    ellipsis={{ tooltip: props.value }}
-    style={{ maxWidth: "100%" }}
-  >
+const NameCellRenderer = (props: CustomCellRendererProps<ApiSearchSynonymGroup, string>) => (
+  <Typography.Text strong ellipsis={{ tooltip: props.value }} style={{ maxWidth: "100%" }}>
     {props.value}
   </Typography.Text>
 );
 
-const ValuesCellRenderer = (
-  props: CustomCellRendererProps<ApiSearchSynonymGroup, number>,
-) => {
+const ValuesCellRenderer = (props: CustomCellRendererProps<ApiSearchSynonymGroup, number>) => {
   const values = [...(props.data?.values ?? [])]
     .sort((left, right) => left.position - right.position)
     .map(({ value }) => value)
@@ -85,21 +74,17 @@ const ValuesCellRenderer = (
   );
 };
 
-const LocaleCellRenderer = (
-  props: CustomCellRendererProps<ApiSearchSynonymGroup, string>,
-) => <Tag style={{ marginInlineEnd: 0 }}>{props.value?.toUpperCase()}</Tag>;
-
-const StatusCellRenderer = (
-  props: CustomCellRendererProps<ApiSearchSynonymGroup, boolean>,
-) => (
-  <Tag color={props.value ? "success" : "default"}>
-    {props.value ? "Enabled" : "Disabled"}
-  </Tag>
+const LocaleCellRenderer = (props: CustomCellRendererProps<ApiSearchSynonymGroup, string>) => (
+  <Tag style={{ marginInlineEnd: 0 }}>{props.value?.toUpperCase()}</Tag>
 );
 
-const DateCellRenderer = (
-  props: CustomCellRendererProps<ApiSearchSynonymGroup, string>,
-) => <Typography.Text>{formatDate(props.value)}</Typography.Text>;
+const StatusCellRenderer = (props: CustomCellRendererProps<ApiSearchSynonymGroup, boolean>) => (
+  <Tag color={props.value ? "success" : "default"}>{props.value ? "Enabled" : "Disabled"}</Tag>
+);
+
+const DateCellRenderer = (props: CustomCellRendererProps<ApiSearchSynonymGroup, string>) => (
+  <Typography.Text>{formatDate(props.value)}</Typography.Text>
+);
 
 export default function SynonymsPage() {
   const router = useRouter();
@@ -215,11 +200,7 @@ export default function SynonymsPage() {
       count={totalCount}
       onBack={() => router.back()}
       actions={
-        <Button
-          data-testid="synonyms-create-button"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
+        <Button data-testid="synonyms-create-button" icon={<PlusOutlined />} onClick={handleCreate}>
           Create
         </Button>
       }
@@ -244,10 +225,7 @@ export default function SynonymsPage() {
       >
         {error ? <Alert type="error" message={error.message} showIcon /> : null}
 
-        <div
-          style={{ flex: 1, minHeight: 0 }}
-          data-testid="synonyms-table"
-        >
+        <div style={{ flex: 1, minHeight: 0 }} data-testid="synonyms-table">
           <AgGridReact<ApiSearchSynonymGroup>
             ref={gridRef}
             theme={agGridTheme}
@@ -271,10 +249,7 @@ export default function SynonymsPage() {
           name="synonyms"
           total={totalCount}
           rangeStart={pageConfig.getRangeStart(synonymGroups.length)}
-          rangeEnd={Math.min(
-            pageConfig.getRangeEnd(synonymGroups.length),
-            totalCount,
-          )}
+          rangeEnd={Math.min(pageConfig.getRangeEnd(synonymGroups.length), totalCount)}
           pageSize={pageConfig.pageSize}
           pageSizeOptions={pageConfig.pageSizeOptions}
           hasNext={pageInfo?.hasNextPage ?? false}

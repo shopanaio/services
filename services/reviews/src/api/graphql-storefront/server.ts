@@ -19,7 +19,9 @@ import { resolvers } from "./resolvers/index.js";
 
 const { global } = getServiceConfig("reviews");
 
-export interface StorefrontServerConfig { port: number }
+export interface StorefrontServerConfig {
+  port: number;
+}
 
 const userErrorsPlugin: ApolloServerPlugin<ServiceContext> = {
   async requestDidStart() {
@@ -29,12 +31,14 @@ const userErrorsPlugin: ApolloServerPlugin<ServiceContext> = {
         if (errors.length === 0 || response.body.kind !== "single") return;
         response.body.singleResult.errors = [
           ...(response.body.singleResult.errors ?? []),
-          ...errors.map((error) => new GraphQLError(error.message, {
-            extensions: {
-              code: error.code ?? "BAD_USER_INPUT",
-              field: error.field,
-            },
-          }).toJSON()),
+          ...errors.map((error) =>
+            new GraphQLError(error.message, {
+              extensions: {
+                code: error.code ?? "BAD_USER_INPUT",
+                field: error.field,
+              },
+            }).toJSON(),
+          ),
         ];
       },
     };
@@ -64,9 +68,7 @@ export async function startStorefrontServer(config: StorefrontServerConfig) {
 
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const packagedSchemaDir = join(currentDir, "schema", "storefront");
-  const schemaDir = existsSync(packagedSchemaDir)
-    ? packagedSchemaDir
-    : join(currentDir, "schema");
+  const schemaDir = existsSync(packagedSchemaDir) ? packagedSchemaDir : join(currentDir, "schema");
   const schemaFiles = [
     "foundation.graphql",
     "shared-currency.graphql",
@@ -92,9 +94,7 @@ export async function startStorefrontServer(config: StorefrontServerConfig) {
 
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
-    schema: buildSubgraphSchema(
-      modules as unknown as Parameters<typeof buildSubgraphSchema>[0],
-    ),
+    schema: buildSubgraphSchema(modules as unknown as Parameters<typeof buildSubgraphSchema>[0]),
     plugins: [
       fastifyApolloDrainPlugin(app),
       userErrorsPlugin,
@@ -150,15 +150,19 @@ export async function startStorefrontServer(config: StorefrontServerConfig) {
     });
   });
 
-  app.get("/", async (_request, reply) => reply.send({
-    status: "ok",
-    service: "reviews-storefront",
-    environment: global.environment,
-  }));
-  app.get("/healthz", async (_request, reply) => reply.send({
-    status: "ok",
-    service: "reviews-storefront",
-  }));
+  app.get("/", async (_request, reply) =>
+    reply.send({
+      status: "ok",
+      service: "reviews-storefront",
+      environment: global.environment,
+    }),
+  );
+  app.get("/healthz", async (_request, reply) =>
+    reply.send({
+      status: "ok",
+      service: "reviews-storefront",
+    }),
+  );
 
   await app.listen({ port: config.port, host: "0.0.0.0" });
   return app;

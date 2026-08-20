@@ -1,6 +1,6 @@
-import type { OutputData } from '@editorjs/editorjs';
-import type { ApiFile } from '@/graphql/types';
-import type { IGeneratedVariant, IOptionInput } from './utils/generate-variants';
+import type { OutputData } from "@editorjs/editorjs";
+import type { ApiFile } from "@/graphql/types";
+import type { IGeneratedVariant, IOptionInput } from "./utils/generate-variants";
 
 /**
  * Form values for creating a product (react-hook-form)

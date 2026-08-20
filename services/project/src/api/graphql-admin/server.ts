@@ -1,27 +1,19 @@
 import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import fastify from "fastify";
 import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import {
-  getServiceConfig,
-  isDevelopment,
-} from "@shopana/shared-service-config";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import { setContext, ServiceContext } from "../../context/index.js";
 import { Loader } from "../../loaders/Loader.js";
 
 const { global } = getServiceConfig("project");
 import { Kernel } from "../../kernel/Kernel.js";
-import {
-  buildAdminContextMiddleware,
-  ForbiddenError,
-} from "./contextMiddleware.js";
+import { buildAdminContextMiddleware, ForbiddenError } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
 export interface ServerConfig {
@@ -95,15 +87,10 @@ export async function startServer(serverConfig: ServerConfig) {
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
-    plugins: [
-      fastifyApolloDrainPlugin(app),
-      timingPlugin,
-      ApolloServerPluginInlineTraceDisabled(),
-    ],
+    plugins: [fastifyApolloDrainPlugin(app), timingPlugin, ApolloServerPluginInlineTraceDisabled()],
     formatError: (formattedError, error) => {
       // Handle ForbiddenError from context middleware
-      const originalError =
-        error instanceof Error ? error : (error as any)?.originalError;
+      const originalError = error instanceof Error ? error : (error as any)?.originalError;
       if (originalError instanceof ForbiddenError) {
         return {
           ...formattedError,

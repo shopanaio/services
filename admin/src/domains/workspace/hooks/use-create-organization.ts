@@ -41,7 +41,7 @@ export function useCreateOrganization(): UseCreateOrganizationReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

@@ -28,14 +28,8 @@ type JsonObject = Record<string, unknown>;
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const serviceDirectory = resolve(scriptDirectory, "..");
-const overridesPath = resolve(
-  serviceDirectory,
-  "docs/application-auth.openapi.overrides.yaml",
-);
-const outputPath = resolve(
-  serviceDirectory,
-  "docs/application-auth.openapi.yaml",
-);
+const overridesPath = resolve(serviceDirectory, "docs/application-auth.openapi.overrides.yaml");
+const outputPath = resolve(serviceDirectory, "docs/application-auth.openapi.yaml");
 const applicationPathPrefix = "/auth/applications/{applicationId}";
 
 const manifest = createEffectiveApplicationAuthRouteManifest({
@@ -115,9 +109,7 @@ const upstreamEndpoints = {
 };
 
 const generated = (await generator(upstreamEndpoints)) as JsonObject;
-const overrides = YAML.parse(
-  await readFile(overridesPath, "utf8"),
-) as JsonObject;
+const overrides = YAML.parse(await readFile(overridesPath, "utf8")) as JsonObject;
 const generatedPaths = generated.paths as JsonObject;
 const filteredPaths: JsonObject = {};
 
@@ -130,9 +122,7 @@ for (const [rawPath, rawPathItem] of Object.entries(generatedPaths)) {
     const upperMethod = method.toUpperCase();
     if (upperMethod !== "GET" && upperMethod !== "POST") continue;
     if (!manifestAllows(upperMethod, relativePath)) continue;
-    filteredPathItem[method] = withApplicationIdParameter(
-      operation as JsonObject,
-    );
+    filteredPathItem[method] = withApplicationIdParameter(operation as JsonObject);
   }
 
   if (Object.keys(filteredPathItem).length > 0) {
@@ -185,15 +175,10 @@ function manifestAllows(method: string, path: string): boolean {
 }
 
 function withApplicationIdParameter(operation: JsonObject): JsonObject {
-  const parameters = Array.isArray(operation.parameters)
-    ? operation.parameters
-    : [];
+  const parameters = Array.isArray(operation.parameters) ? operation.parameters : [];
   return {
     ...operation,
-    parameters: [
-      { $ref: "#/components/parameters/ApplicationId" },
-      ...parameters,
-    ],
+    parameters: [{ $ref: "#/components/parameters/ApplicationId" }, ...parameters],
   };
 }
 
@@ -230,10 +215,7 @@ function deepMerge(base: unknown, overlay: unknown): unknown {
   if (!isObject(base) || !isObject(overlay)) return structuredClone(overlay);
   const result: JsonObject = { ...base };
   for (const [key, value] of Object.entries(overlay)) {
-    result[key] =
-      key in result
-        ? deepMerge(result[key], value)
-        : structuredClone(value);
+    result[key] = key in result ? deepMerge(result[key], value) : structuredClone(value);
   }
   return result;
 }

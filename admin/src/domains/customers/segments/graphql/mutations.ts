@@ -5,10 +5,22 @@ export const CUSTOMER_SEGMENT_CREATE_MUTATION = gql`
   mutation CustomerSegmentCreate($input: CustomerSegmentCreateInput!) {
     customersMutation {
       customerSegmentCreate(input: $input) {
-        segment { ...CustomerSegmentListFields }
+        segment {
+          ...CustomerSegmentListFields
+        }
         userErrors {
-          code field message
-          diagnostic { code message severity startOffset endOffset line column }
+          code
+          field
+          message
+          diagnostic {
+            code
+            message
+            severity
+            startOffset
+            endOffset
+            line
+            column
+          }
         }
       }
     }
@@ -28,15 +40,31 @@ export const CUSTOMER_SEGMENT_UPDATE_MUTATION = gql`
         expectedRevision: $expectedRevision
         operations: $operations
       ) {
-        segment { ...CustomerSegmentListFields }
+        segment {
+          ...CustomerSegmentListFields
+        }
         operationResults {
           type
           applied
-          errors { code field message }
+          errors {
+            code
+            field
+            message
+          }
         }
         userErrors {
-          code field message
-          diagnostic { code message severity startOffset endOffset line column }
+          code
+          field
+          message
+          diagnostic {
+            code
+            message
+            severity
+            startOffset
+            endOffset
+            line
+            column
+          }
         }
       }
     }
@@ -49,7 +77,11 @@ export const CUSTOMER_SEGMENT_DELETE_MUTATION = gql`
     customersMutation {
       customerSegmentDelete(input: $input) {
         deletedSegmentId
-        userErrors { code field message }
+        userErrors {
+          code
+          field
+          message
+        }
       }
     }
   }

@@ -1,4 +1,6 @@
-"""How the image is resized to fit the requested box."""
+"""
+How the image is resized to fit the requested box.
+"""
 enum ImageFitMode {
   COVER
   CONTAIN
@@ -7,7 +9,9 @@ enum ImageFitMode {
   OUTSIDE
 }
 
-"""Anchor used when FIT_MODE crops or pads the image."""
+"""
+Anchor used when FIT_MODE crops or pads the image.
+"""
 enum ImageGravity {
   CENTER
   TOP
@@ -21,7 +25,9 @@ enum ImageGravity {
   AUTO
 }
 
-"""List of supported image content types."""
+"""
+List of supported image content types.
+"""
 enum ImageContentType {
   JPG
   PNG
@@ -29,7 +35,9 @@ enum ImageContentType {
   AVIF
 }
 
-"""The available options for transforming an image."""
+"""
+The available options for transforming an image.
+"""
 input ImageTransformInput {
   fit: ImageFitMode
   gravity: ImageGravity
@@ -38,11 +46,15 @@ input ImageTransformInput {
   preferredContentType: ImageContentType
   scale: Int = 1
 
-  """Output quality, 1-100. Bounded by the selected CdnConfiguration's minQuality/maxQuality when configured."""
+  """
+  Output quality, 1-100. Bounded by the selected CdnConfiguration's minQuality/maxQuality when configured.
+  """
   quality: Int
 }
 
-"""An image resource with URL, dimensions, and transformation options."""
+"""
+An image resource with URL, dimensions, and transformation options.
+"""
 type Image @key(fields: "id") {
   altText: String
   height: Int
@@ -65,7 +77,9 @@ type GenericFile implements Node @key(fields: "id") {
   url: URL!
 }
 
-"""The possible content types for a media object."""
+"""
+The possible content types for a media object.
+"""
 enum MediaContentType {
   EXTERNAL_VIDEO
   IMAGE
@@ -73,13 +87,17 @@ enum MediaContentType {
   VIDEO
 }
 
-"""Host for a media resource."""
+"""
+Host for a media resource.
+"""
 enum MediaHost {
   VIMEO
   YOUTUBE
 }
 
-"""A common set of fields for media content associated with products."""
+"""
+A common set of fields for media content associated with products.
+"""
 interface Media {
   alt: String
   id: ID!
@@ -87,7 +105,9 @@ interface Media {
   previewImage: Image
 }
 
-"""An image hosted on the platform's content delivery network."""
+"""
+An image hosted on the platform's content delivery network.
+"""
 type MediaImage implements Media & Node @key(fields: "id") {
   alt: String
   id: ID!
@@ -96,7 +116,9 @@ type MediaImage implements Media & Node @key(fields: "id") {
   previewImage: Image
 }
 
-"""A source for a hosted video."""
+"""
+A source for a hosted video.
+"""
 type VideoSource {
   format: String!
   height: Int
@@ -105,7 +127,9 @@ type VideoSource {
   width: Int
 }
 
-"""A video hosted on the platform's servers."""
+"""
+A video hosted on the platform's servers.
+"""
 type Video implements Media & Node @key(fields: "id") {
   alt: String
   id: ID!
@@ -114,10 +138,14 @@ type Video implements Media & Node @key(fields: "id") {
   sources: [VideoSource!]!
 }
 
-"""A video hosted outside of the platform."""
+"""
+A video hosted outside of the platform.
+"""
 type ExternalVideo implements Media & Node @key(fields: "id") {
   alt: String
-  """Embed URL when one was supplied by the external media source."""
+  """
+  Embed URL when one was supplied by the external media source.
+  """
   embedUrl: URL
   host: MediaHost!
   id: ID!
@@ -126,7 +154,9 @@ type ExternalVideo implements Media & Node @key(fields: "id") {
   previewImage: Image
 }
 
-"""A source for a hosted 3D model."""
+"""
+A source for a hosted 3D model.
+"""
 type Model3dSource {
   filesize: UnsignedInt64!
   format: String!
@@ -134,7 +164,9 @@ type Model3dSource {
   url: URL!
 }
 
-"""A hosted 3D model."""
+"""
+A hosted 3D model.
+"""
 type Model3d implements Media & Node @key(fields: "id") {
   alt: String
   id: ID!

@@ -30,15 +30,10 @@ export class CustomerSegmentMaterializationPageScript extends BaseScript<
   protected async execute(
     params: CustomerSegmentWorkerParams,
   ): Promise<CustomerSegmentWorkerResult> {
-    const run = await this.repository.segmentMaterialization.claimRun(
-      params.workerId,
-      lease(5),
-    );
+    const run = await this.repository.segmentMaterialization.claimRun(params.workerId, lease(5));
     if (!run) return { state: "IDLE", processed: 0 };
     try {
-      const segment = await this.repository.segmentMaterialization.currentGeneration(
-        run.segmentId,
-      );
+      const segment = await this.repository.segmentMaterialization.currentGeneration(run.segmentId);
       if (!isCurrentRun(segment, run)) {
         await this.repository.segmentMaterialization.failRun(
           run,
@@ -46,20 +41,14 @@ export class CustomerSegmentMaterializationPageScript extends BaseScript<
         );
         return { state: "READY", processed: 0 };
       }
-      const storeContext = await segmentStoreContext(
-        this.repository,
-        this.context.store.id,
-      );
+      const storeContext = await segmentStoreContext(this.repository, this.context.store.id);
       const definition = validatePersistedSegmentDefinition(
         segment.definition,
         CUSTOMER_SEGMENT_REGISTRY,
         storeContext,
       );
       if (run.scanCompletedAt === null) {
-        const customerIds = await this.repository.customer.scanIds(
-          run.scanCursor,
-          500,
-        );
+        const customerIds = await this.repository.customer.scanIds(run.scanCursor, 500);
         let renewAt = Date.now() + 20_000;
         for (const customerId of customerIds) {
           await evaluatePair(
@@ -91,9 +80,7 @@ export class CustomerSegmentMaterializationPageScript extends BaseScript<
           );
           return { state: "MORE", processed: customerIds.length };
         }
-        const finalization = await this.repository.segmentMaterialization.finishScan(
-          run.id,
-        );
+        const finalization = await this.repository.segmentMaterialization.finishScan(run.id);
         const finished = {
           ...run,
           scanCompletedAt: finalization.publicationEffectiveAt,
@@ -128,10 +115,7 @@ export class CustomerSegmentMaterializationPageScript extends BaseScript<
       await this.repository.segmentMaterialization.publishRun(run);
       return { state: "READY", processed: 0 };
     } catch (error) {
-      const terminal = await this.repository.segmentMaterialization.recordRunFailure(
-        run,
-        error,
-      );
+      const terminal = await this.repository.segmentMaterialization.recordRunFailure(run, error);
       return { state: terminal ? "READY" : "IDLE", processed: 0 };
     }
   }
@@ -153,10 +137,7 @@ export class CustomerSegmentReevaluationBatchScript extends BaseScript<
       lease(5),
     );
     if (items.length === 0) return { state: "IDLE", processed: 0 };
-    const storeContext = await segmentStoreContext(
-      this.repository,
-      this.context.store.id,
-    );
+    const storeContext = await segmentStoreContext(this.repository, this.context.store.id);
     for (const item of items) {
       try {
         await evaluateQueueItem(this.repository, item, storeContext);
@@ -184,10 +165,7 @@ export class CustomerSegmentTemporalBatchScript extends BaseScript<
       lease(5),
     );
     if (items.length === 0) return { state: "IDLE", processed: 0 };
-    const storeContext = await segmentStoreContext(
-      this.repository,
-      this.context.store.id,
-    );
+    const storeContext = await segmentStoreContext(this.repository, this.context.store.id);
     for (const item of items) {
       try {
         await evaluateTemporalItem(this.repository, item, storeContext);
@@ -288,12 +266,7 @@ async function drainPublicationTemporal(
   );
   for (const item of items) {
     try {
-      await evaluateTemporalItem(
-        repository,
-        item,
-        storeContext,
-        run.publicationEffectiveAt,
-      );
+      await evaluateTemporalItem(repository, item, storeContext, run.publicationEffectiveAt);
     } catch (error) {
       await repository.segmentMaterialization.failTemporal(item, error);
     }
@@ -331,10 +304,7 @@ async function segmentStoreContext(
   storeId: string,
 ): Promise<SegmentStoreEvaluationContext> {
   const store = await repository.segmentStoreContext.findByStoreId(storeId);
-  if (
-    !store ||
-    !Number.isSafeInteger(store.configurationRevision)
-  ) {
+  if (!store || !Number.isSafeInteger(store.configurationRevision)) {
     throw new Error("Owned Store segment context is not ready");
   }
   return {

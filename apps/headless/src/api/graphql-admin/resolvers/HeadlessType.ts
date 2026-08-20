@@ -1,7 +1,4 @@
-import {
-  BaseType,
-  createExecutor,
-} from "@shopana/type-resolver";
+import { BaseType, createExecutor } from "@shopana/type-resolver";
 import {
   decodeGlobalIdByType,
   encodeGlobalIdByType,
@@ -10,9 +7,11 @@ import {
 import type { HeadlessResolverContext } from "./context.js";
 import type { HeadlessStorefrontScope } from "../../../storefront-access/repositories/index.js";
 
-export abstract class HeadlessType<TValue, TData = unknown>
-  extends BaseType<TValue, TData, HeadlessResolverContext>
-{
+export abstract class HeadlessType<TValue, TData = unknown> extends BaseType<
+  TValue,
+  TData,
+  HeadlessResolverContext
+> {
   static executor = createExecutor<HeadlessResolverContext>({});
 
   protected get scope(): HeadlessStorefrontScope {
@@ -30,5 +29,4 @@ export abstract class HeadlessType<TValue, TData = unknown>
   protected decodeId(globalId: string, type: GlobalIdType): string {
     return decodeGlobalIdByType(globalId, type);
   }
-
 }

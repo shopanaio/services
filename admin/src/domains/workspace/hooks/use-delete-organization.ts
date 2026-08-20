@@ -3,10 +3,7 @@
 import { useMutation, useApolloClient } from "@apollo/client/react";
 import { useCallback } from "react";
 import { DELETE_ORGANIZATION_MUTATION } from "../graphql";
-import type {
-  ApiOrganizationDeletePayload,
-  ApiGenericUserError,
-} from "@/graphql/types";
+import type { ApiOrganizationDeletePayload, ApiGenericUserError } from "@/graphql/types";
 
 interface DeleteOrganizationResult {
   deletedOrganizationId: string | null;
@@ -47,7 +44,7 @@ export function useDeleteOrganization(): UseDeleteOrganizationReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate, client]
+    [mutate, client],
   );
 
   return {

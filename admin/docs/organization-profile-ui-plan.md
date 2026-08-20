@@ -2,22 +2,25 @@
 
 ## Overview
 
-This document describes the UI design for organization management and user profile pages in the admin-next application, following enterprise SaaS patterns (Stripe, Linear, Notion, Figma).
+This document describes the UI design for organization management and user profile pages in the
+admin-next application, following enterprise SaaS patterns (Stripe, Linear, Notion, Figma).
 
 ## Data Models (from IAM Service)
 
 ### Organization
+
 ```typescript
 interface Organization {
   id: string;
-  name: string;           // URL-friendly slug (e.g., "acme-corp")
-  displayName: string;    // Human-readable (e.g., "Acme Corporation")
+  name: string; // URL-friendly slug (e.g., "acme-corp")
+  displayName: string; // Human-readable (e.g., "Acme Corporation")
   createdAt: Date;
   updatedAt: Date;
 }
 ```
 
 ### User
+
 ```typescript
 interface User {
   id: string;
@@ -25,8 +28,8 @@ interface User {
   name: string;
   firstName: string | null;
   lastName: string | null;
-  image: string | null;    // Avatar URL
-  admin: boolean;          // Site-level admin
+  image: string | null; // Avatar URL
+  admin: boolean; // Site-level admin
   emailVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -38,6 +41,7 @@ interface User {
 ```
 
 ### Membership & Roles
+
 - Users belong to organizations via `organization_member`
 - Roles are domain-scoped: `"org"` or `"store:{uuid}"`
 - Each user has one role per domain per organization
@@ -47,6 +51,7 @@ interface User {
 ## Architecture
 
 ### Domain Registration
+
 ```
 /src/domains/workspace/
 ├── domain.tsx                    # Register "workspace" domain
@@ -65,11 +70,12 @@ interface User {
 ```
 
 ### Routes
-| Path | Page | Description |
-|------|------|-------------|
+
+| Path                      | Page             | Description           |
+| ------------------------- | ---------------- | --------------------- |
 | `/workspace/organization` | OrganizationPage | Organization settings |
-| `/workspace/profile` | ProfilePage | User profile |
-| `/workspace/team` | TeamPage | Team members & roles |
+| `/workspace/profile`      | ProfilePage      | User profile          |
+| `/workspace/team`         | TeamPage         | Team members & roles  |
 
 ---
 
@@ -122,17 +128,20 @@ interface User {
 ### Sections
 
 #### 1. Organization Preview Card
+
 - Shows logo, display name, slug, creation date
 - Quick "Edit" button opens modal for basic info
 - Acts as visual summary at top of page
 
 #### 2. General Information
+
 - **Display Name**: Editable text input
 - **Organization Slug**: Editable with warning about URL changes
 - **Timezone** (future): Select for default timezone
 - **Default Language** (future): Locale selector
 
 #### 3. Branding (Sub-page)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  LOGO                                                       │
@@ -155,12 +164,14 @@ interface User {
 ```
 
 #### 4. Danger Zone
+
 - **Transfer Ownership**: Opens modal with admin selector
 - **Delete Organization**: Opens confirmation modal with text input
 
 ### Modals
 
 #### Edit Organization Modal
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Edit Organization                                      [×] │
@@ -187,6 +198,7 @@ interface User {
 ```
 
 #### Transfer Ownership Modal
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Transfer Ownership                                     [×] │
@@ -213,6 +225,7 @@ interface User {
 ```
 
 #### Delete Organization Modal
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Delete Organization                                    [×] │
@@ -297,21 +310,25 @@ interface User {
 ### Sections
 
 #### 1. Profile Preview Card
+
 - Avatar with initials fallback
 - Full name, email, role badge
 - Organization context
 - "Edit Photo" button for avatar upload
 
 #### 2. Personal Information
+
 - **First Name**: Text input
 - **Last Name**: Text input
 - **Display Name**: Text input (auto-generated from first + last)
 
 #### 3. Email Section
+
 - Shows current email with verification status
 - "Change Email" button opens verification flow
 
 #### 4. Preferences
+
 - **Language**: Locale selector (en-US, ru-RU, etc.)
 - **Timezone**: Timezone picker
 - **Date Format**: Date format selector
@@ -362,6 +379,7 @@ interface User {
 ### Modals
 
 #### Edit Avatar Modal
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Change Profile Photo                                   [×] │
@@ -382,6 +400,7 @@ interface User {
 ```
 
 #### Change Email Modal
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Change Email Address                                   [×] │
@@ -402,6 +421,7 @@ interface User {
 ```
 
 #### Change Password Modal
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Change Password                                        [×] │
@@ -478,6 +498,7 @@ interface User {
 ```
 
 ### Member Actions Menu
+
 ```
 ┌─────────────────────┐
 │ View Profile        │
@@ -488,6 +509,7 @@ interface User {
 ```
 
 ### Invite Member Modal
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Invite Team Member                                     [×] │
@@ -564,6 +586,7 @@ interface User {
 ```
 
 ### Edit Role Modal
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Edit Role: Editor                                      [×] │
@@ -673,6 +696,7 @@ interface User {
 ## Implementation Priority
 
 ### Phase 1: Core Profile & Organization
+
 1. Domain & module registration
 2. WorkspaceNav sidebar component
 3. ProfilePage with preview card
@@ -681,6 +705,7 @@ interface User {
 6. OrganizationForm (basic editing)
 
 ### Phase 2: Security & Settings
+
 1. AvatarUploader & EditAvatarModal
 2. ChangeEmailModal
 3. ChangePasswordModal
@@ -689,18 +714,21 @@ interface User {
 6. PreferencesForm (locale, timezone)
 
 ### Phase 3: Team Management
+
 1. MembersPage with table
 2. InviteMemberModal
 3. Member actions (change role, remove)
 4. PendingInvitations component
 
 ### Phase 4: Roles & Permissions
+
 1. RolesPage with role cards
 2. CreateRoleModal
 3. EditRoleModal with permissions matrix
 4. Role assignment in member actions
 
 ### Phase 5: Danger Zone
+
 1. TransferOwnershipModal
 2. DeleteOrganizationModal
 3. DeleteAccountModal
@@ -710,6 +738,7 @@ interface User {
 ## Design Tokens & Styling
 
 Follow existing patterns from admin-next:
+
 - Use `Paper` component for sections
 - Use `PaperHeader` for section titles
 - Use Ant Design form components
@@ -717,6 +746,7 @@ Follow existing patterns from admin-next:
 - Follow color scheme from theme provider
 
 ### Danger Zone Styling
+
 ```css
 .danger-zone {
   border: 1px solid var(--ant-color-error-border);
@@ -725,6 +755,7 @@ Follow existing patterns from admin-next:
 ```
 
 ### Preview Card Styling
+
 ```css
 .preview-card {
   background: var(--ant-color-bg-container);

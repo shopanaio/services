@@ -29,22 +29,21 @@ const shared = (
 
 export function getFederationRuntime(): Promise<ModuleFederation> {
   if (!runtimePromise) {
-    runtimePromise = import("@module-federation/enhanced/runtime").then(
-      ({ createInstance }) =>
-        createInstance({
-          name: "shopana_admin_host",
-          remotes: [],
-          shared: {
-            react: shared("19.2.0", React),
-            "react-dom": shared("19.2.0", ReactDom),
-            antd: shared("6.0.1", Antd),
-            "antd-style": shared("3.7.1", AntdStyle),
-            "@ant-design/cssinjs": shared("2.0.1", AntdCssInJs),
-            "@apollo/client": shared("4.0.12", ApolloClient),
-            "ag-grid-react": shared("34.3.1", AgGridReact),
-            "ag-grid-community": shared("34.3.1", AgGridCommunity),
-          },
-        }),
+    runtimePromise = import("@module-federation/enhanced/runtime").then(({ createInstance }) =>
+      createInstance({
+        name: "shopana_admin_host",
+        remotes: [],
+        shared: {
+          react: shared("19.2.0", React),
+          "react-dom": shared("19.2.0", ReactDom),
+          antd: shared("6.0.1", Antd),
+          "antd-style": shared("3.7.1", AntdStyle),
+          "@ant-design/cssinjs": shared("2.0.1", AntdCssInJs),
+          "@apollo/client": shared("4.0.12", ApolloClient),
+          "ag-grid-react": shared("34.3.1", AgGridReact),
+          "ag-grid-community": shared("34.3.1", AgGridCommunity),
+        },
+      }),
     );
   }
   return runtimePromise;

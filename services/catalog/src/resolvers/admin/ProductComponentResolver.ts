@@ -6,9 +6,7 @@ export class ProductComponentResolver extends CatalogType<string, Component> {
   async $preload() {
     const component = await this.$ctx.loaders.component.load(this.$props);
     if (!component) {
-      throw new PreloadNotFoundError(
-        `Product component with ID ${this.$props} not found`,
-      );
+      throw new PreloadNotFoundError(`Product component with ID ${this.$props} not found`);
     }
     return component;
   }
@@ -26,15 +24,8 @@ export class ProductComponentResolver extends CatalogType<string, Component> {
   }
 
   async configurations() {
-    const ids =
-      await this.$ctx.loaders.componentConfigurationIdsByComponentId.load(
-        this.$props,
-      );
-    return Promise.all(
-      ids.map((id: string) =>
-        this.resolvers.productComponentConfiguration(id)
-      ),
-    );
+    const ids = await this.$ctx.loaders.componentConfigurationIdsByComponentId.load(this.$props);
+    return Promise.all(ids.map((id: string) => this.resolvers.productComponentConfiguration(id)));
   }
 
   async createdAt() {

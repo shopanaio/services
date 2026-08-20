@@ -1,11 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { CanonicalCollectionRule } from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  collectionRule,
-  type CollectionRule,
-  type NewCollectionRule,
-} from "../models/index.js";
+import { collectionRule, type CollectionRule, type NewCollectionRule } from "../models/index.js";
 
 export class CollectionRuleRepository extends BaseRepository {
   async findByCollectionId(collectionId: string): Promise<CollectionRule[]> {
@@ -15,23 +11,23 @@ export class CollectionRuleRepository extends BaseRepository {
       .where(
         and(
           eq(collectionRule.storeId, this.storeId),
-          eq(collectionRule.collectionId, collectionId)
-        )
+          eq(collectionRule.collectionId, collectionId),
+        ),
       )
       .orderBy(asc(collectionRule.sortIndex), asc(collectionRule.id));
   }
 
   async replaceRules(
     collectionId: string,
-    rules: readonly CanonicalCollectionRule[]
+    rules: readonly CanonicalCollectionRule[],
   ): Promise<CollectionRule[]> {
     await this.connection
       .delete(collectionRule)
       .where(
         and(
           eq(collectionRule.storeId, this.storeId),
-          eq(collectionRule.collectionId, collectionId)
-        )
+          eq(collectionRule.collectionId, collectionId),
+        ),
       );
 
     if (rules.length === 0) {

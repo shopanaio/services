@@ -16,11 +16,7 @@ import {
   discoverServices,
   getServicesDir,
 } from "./build-services.js";
-import {
-  discoverProjectUnits,
-  findProjectUnit,
-  type ProjectUnit,
-} from "../project-units.js";
+import { discoverProjectUnits, findProjectUnit, type ProjectUnit } from "../project-units.js";
 
 const rootDir = findRootDir();
 const servicesDir = getServicesDir();
@@ -28,9 +24,7 @@ const appUnits = discoverProjectUnits().filter((unit) => unit.kind === "app");
 
 // Find services with build.config.json (exclude bootstrap)
 const services = discoverServices().filter(
-  (name) =>
-    existsSync(join(servicesDir, name, "build.config.json")) &&
-    name !== "bootstrap"
+  (name) => existsSync(join(servicesDir, name, "build.config.json")) && name !== "bootstrap",
 );
 
 // Track rebuild state. Repeated watcher events share the same in-flight build.
@@ -144,11 +138,10 @@ export async function runDev(singleService?: string) {
 
   // Full bootstrap mode - quiet build
   const startTime = Date.now();
-  await buildServices(
-    [...appUnits.map((unit) => unit.name), ...services],
-    true,
-    { quiet: true, detectCircularImports: false },
-  );
+  await buildServices([...appUnits.map((unit) => unit.name), ...services], true, {
+    quiet: true,
+    detectCircularImports: false,
+  });
   await buildService("bootstrap", {
     quiet: true,
     detectCircularImports: false,

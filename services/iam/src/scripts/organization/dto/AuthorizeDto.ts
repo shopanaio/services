@@ -1,9 +1,5 @@
 import { z } from "zod";
-import type {
-  BrokerAuthorizeParams,
-  Domain,
-  ResourceName,
-} from "@shopana/rbac";
+import type { BrokerAuthorizeParams, Domain, ResourceName } from "@shopana/rbac";
 
 export const authorizeInputSchema = z
   .object({

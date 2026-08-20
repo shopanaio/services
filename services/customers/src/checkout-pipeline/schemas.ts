@@ -38,11 +38,7 @@ export const resolveBuyerEligibilityResultSchema: z.ZodType<Customers.ResolveChe
               });
             }
             if (
-              segmentIds.some(
-                (segmentId, index) =>
-                  index > 0 &&
-                  segmentIds[index - 1] > segmentId,
-              )
+              segmentIds.some((segmentId, index) => index > 0 && segmentIds[index - 1] > segmentId)
             ) {
               context.addIssue({
                 code: z.ZodIssueCode.custom,

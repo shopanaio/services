@@ -1,10 +1,5 @@
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-} from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { Warehouse } from "../../repositories/models/index.js";
 import type { StockRelayInput } from "../../repositories/stock/StockRepository.js";
 import { CatalogType } from "./CatalogType.js";
@@ -20,9 +15,7 @@ export class WarehouseResolver extends CatalogType<string, Warehouse> {
     const warehouse = await this.$ctx.loaders.warehouse.load(this.$props);
 
     if (!warehouse) {
-      throw new PreloadNotFoundError(
-        `Warehouse with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Warehouse with ID ${this.$props} not found`);
     }
 
     return warehouse;

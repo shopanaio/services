@@ -20,26 +20,21 @@ const FIELD_ALIASES: Record<string, string> = {
   swatchId: "swatchId",
 };
 
-export function mapFacetUserErrorsToFormErrors(
-  errors: ApiGenericUserError[],
-): FacetFormError[] {
+export function mapFacetUserErrorsToFormErrors(errors: ApiGenericUserError[]): FacetFormError[] {
   return errors.map((error) => {
     const fieldPath = error.field ?? [];
     const field = fieldPath.includes("sources")
       ? "sources"
       : fieldPath.includes("valueCandidates")
         ? "valueCandidates"
-        : fieldPath.at(-1) ?? null;
+        : (fieldPath.at(-1) ?? null);
     return {
-      field: field ? FIELD_ALIASES[field] ?? field : null,
+      field: field ? (FIELD_ALIASES[field] ?? field) : null,
       message: error.message,
     };
   });
 }
 
-export function getFirstUserErrorMessage(
-  errors: ApiGenericUserError[],
-  fallback: string,
-): string {
+export function getFirstUserErrorMessage(errors: ApiGenericUserError[], fallback: string): string {
   return errors[0]?.message ?? fallback;
 }

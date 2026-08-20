@@ -1,6 +1,4 @@
-import {
-  createGraphqlDateTimeRangeFilterTransformer,
-} from "@/layouts/filters";
+import { createGraphqlDateTimeRangeFilterTransformer } from "@/layouts/filters";
 import {
   createMinorUnitPriceTransformer,
   type FilterTransformer,
@@ -26,9 +24,7 @@ export const customerSortFieldMapping: SortFieldMapping<CustomerOrderField> = {
   updatedAt: CustomerOrderField.UpdatedAt,
 };
 
-export const buildCustomerSearchCondition = (
-  search: string,
-): Partial<ApiCustomerWhereInput> => ({
+export const buildCustomerSearchCondition = (search: string): Partial<ApiCustomerWhereInput> => ({
   _or: [
     { displayName: { _containsi: search } },
     { email: { _containsi: search } },

@@ -40,10 +40,8 @@ export class CustomerCheckoutEligibilityRepository extends BaseRepository {
         source: customerSegmentMembership.source,
         evaluatedAt: customerSegmentMembership.evaluatedAt,
         expiresAt: customerSegmentMembership.expiresAt,
-        definitionRevision:
-          customerSegmentMembership.evaluatedDefinitionRevision,
-        evaluationGeneration:
-          customerSegmentMembership.evaluatedGeneration,
+        definitionRevision: customerSegmentMembership.evaluatedDefinitionRevision,
+        evaluationGeneration: customerSegmentMembership.evaluatedGeneration,
       })
       .from(customer)
       .leftJoin(
@@ -54,9 +52,9 @@ export class CustomerCheckoutEligibilityRepository extends BaseRepository {
           lte(customerSegmentMembership.evaluatedAt, input.effectiveAt),
           or(
             isNull(customerSegmentMembership.expiresAt),
-            gt(customerSegmentMembership.expiresAt, input.effectiveAt)
-          )
-        )
+            gt(customerSegmentMembership.expiresAt, input.effectiveAt),
+          ),
+        ),
       )
       .leftJoin(
         customerSegment,
@@ -66,37 +64,31 @@ export class CustomerCheckoutEligibilityRepository extends BaseRepository {
           eq(customerSegment.status, "ACTIVE"),
           isNull(customerSegment.deletedAt),
           or(
-            and(
-              eq(customerSegment.type, "MANUAL"),
-              ne(customerSegmentMembership.source, "RULE"),
-            ),
+            and(eq(customerSegment.type, "MANUAL"), ne(customerSegmentMembership.source, "RULE")),
             and(
               eq(customerSegment.type, "DYNAMIC"),
               eq(customerSegment.materializationStatus, "READY"),
               eq(customerSegmentMembership.source, "RULE"),
               eq(
                 customerSegmentMembership.evaluatedDefinitionRevision,
-                customerSegment.definitionRevision
+                customerSegment.definitionRevision,
               ),
               eq(
                 customerSegmentMembership.evaluatedGeneration,
                 customerSegment.evaluationGeneration,
               ),
-            )
-          )
-        )
+            ),
+          ),
+        ),
       )
       .where(
         and(
           eq(customer.storeId, this.storeId),
           eq(customer.id, input.customerId),
-          isNull(customer.deletedAt)
-        )
+          isNull(customer.deletedAt),
+        ),
       )
-      .orderBy(
-        asc(customerSegment.id),
-        asc(customerSegmentMembership.id)
-      );
+      .orderBy(asc(customerSegment.id), asc(customerSegmentMembership.id));
 
     const first = rows[0];
     if (!first) return null;
@@ -107,10 +99,7 @@ export class CustomerCheckoutEligibilityRepository extends BaseRepository {
         lifecycleStatus: first.lifecycleStatus,
       },
       memberships: rows.flatMap((row) =>
-        row.membershipId &&
-        row.segmentId &&
-        row.source &&
-        row.evaluatedAt
+        row.membershipId && row.segmentId && row.source && row.evaluatedAt
           ? [
               {
                 membershipId: row.membershipId,
@@ -122,7 +111,7 @@ export class CustomerCheckoutEligibilityRepository extends BaseRepository {
                 evaluationGeneration: row.evaluationGeneration,
               },
             ]
-          : []
+          : [],
       ),
     };
   }

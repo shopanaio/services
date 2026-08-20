@@ -1,8 +1,4 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
@@ -27,10 +23,7 @@ import {
   type NewModerationEvent,
   type NewModerationSignal,
 } from "../models/index.js";
-import type {
-  OptimisticMutationResult,
-  RepositoryConnectionResult,
-} from "../types.js";
+import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const moderationCaseRelayQuery = createRelayQuery(
   createQuery(moderationCase)
@@ -41,7 +34,7 @@ export const moderationCaseRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "reviewModerationCase", tieBreaker: "id" }
+  { name: "reviewModerationCase", tieBreaker: "id" },
 );
 
 export const moderationEventRelayQuery = createRelayQuery(
@@ -54,7 +47,7 @@ export const moderationEventRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "reviewModerationEvent", tieBreaker: "id" }
+  { name: "reviewModerationEvent", tieBreaker: "id" },
 );
 
 export const contentRevisionRelayQuery = createRelayQuery(
@@ -66,7 +59,7 @@ export const contentRevisionRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "reviewContentRevision", tieBreaker: "id" }
+  { name: "reviewContentRevision", tieBreaker: "id" },
 );
 
 export const moderationSignalRelayQuery = createRelayQuery(
@@ -78,21 +71,13 @@ export const moderationSignalRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "reviewModerationSignal", tieBreaker: "id" }
+  { name: "reviewModerationSignal", tieBreaker: "id" },
 );
 
-export type ModerationCaseRelayInput = InferRelayInput<
-  typeof moderationCaseRelayQuery
->;
-export type ModerationEventRelayInput = InferRelayInput<
-  typeof moderationEventRelayQuery
->;
-export type ContentRevisionRelayInput = InferRelayInput<
-  typeof contentRevisionRelayQuery
->;
-export type ModerationSignalRelayInput = InferRelayInput<
-  typeof moderationSignalRelayQuery
->;
+export type ModerationCaseRelayInput = InferRelayInput<typeof moderationCaseRelayQuery>;
+export type ModerationEventRelayInput = InferRelayInput<typeof moderationEventRelayQuery>;
+export type ContentRevisionRelayInput = InferRelayInput<typeof contentRevisionRelayQuery>;
+export type ModerationSignalRelayInput = InferRelayInput<typeof moderationSignalRelayQuery>;
 
 export type ModerationCasePatch = Partial<
   Pick<
@@ -115,12 +100,7 @@ export class ModerationRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(moderationCase)
-      .where(
-        and(
-          eq(moderationCase.storeId, this.storeId),
-          eq(moderationCase.id, id)
-        )
-      )
+      .where(and(eq(moderationCase.storeId, this.storeId), eq(moderationCase.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -134,8 +114,8 @@ export class ModerationRepository extends BaseRepository {
       .where(
         and(
           eq(moderationCase.storeId, this.storeId),
-          inArray(moderationCase.id, [...new Set(ids)])
-        )
+          inArray(moderationCase.id, [...new Set(ids)]),
+        ),
       );
   }
 
@@ -144,12 +124,7 @@ export class ModerationRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(moderationEvent)
-      .where(
-        and(
-          eq(moderationEvent.storeId, this.storeId),
-          eq(moderationEvent.id, id)
-        )
-      )
+      .where(and(eq(moderationEvent.storeId, this.storeId), eq(moderationEvent.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -163,8 +138,8 @@ export class ModerationRepository extends BaseRepository {
       .where(
         and(
           eq(moderationEvent.storeId, this.storeId),
-          inArray(moderationEvent.id, [...new Set(ids)])
-        )
+          inArray(moderationEvent.id, [...new Set(ids)]),
+        ),
       );
   }
 
@@ -173,21 +148,13 @@ export class ModerationRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(contentRevision)
-      .where(
-        and(
-          eq(contentRevision.storeId, this.storeId),
-          eq(contentRevision.id, id)
-        )
-      )
+      .where(and(eq(contentRevision.storeId, this.storeId), eq(contentRevision.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
 
   @ReadOnly()
-  async findRevision(
-    contentId: string,
-    revision: number
-  ): Promise<ContentRevision | null> {
+  async findRevision(contentId: string, revision: number): Promise<ContentRevision | null> {
     const rows = await this.connection
       .select()
       .from(contentRevision)
@@ -195,8 +162,8 @@ export class ModerationRepository extends BaseRepository {
         and(
           eq(contentRevision.storeId, this.storeId),
           eq(contentRevision.contentId, contentId),
-          eq(contentRevision.revision, revision)
-        )
+          eq(contentRevision.revision, revision),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -211,8 +178,8 @@ export class ModerationRepository extends BaseRepository {
       .where(
         and(
           eq(contentRevision.storeId, this.storeId),
-          inArray(contentRevision.id, [...new Set(ids)])
-        )
+          inArray(contentRevision.id, [...new Set(ids)]),
+        ),
       );
   }
 
@@ -221,12 +188,7 @@ export class ModerationRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(moderationSignal)
-      .where(
-        and(
-          eq(moderationSignal.storeId, this.storeId),
-          eq(moderationSignal.id, id)
-        )
-      )
+      .where(and(eq(moderationSignal.storeId, this.storeId), eq(moderationSignal.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -240,15 +202,15 @@ export class ModerationRepository extends BaseRepository {
       .where(
         and(
           eq(moderationSignal.storeId, this.storeId),
-          inArray(moderationSignal.id, [...new Set(ids)])
-        )
+          inArray(moderationSignal.id, [...new Set(ids)]),
+        ),
       );
   }
 
   @ReadOnly()
   async getCaseConnection(
     args: ModerationCaseRelayInput,
-    contentId?: string
+    contentId?: string,
   ): Promise<RepositoryConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: ModerationCaseRelayInput["where"] = {
@@ -277,7 +239,7 @@ export class ModerationRepository extends BaseRepository {
   @ReadOnly()
   async getEventConnection(
     contentId: string,
-    args: ModerationEventRelayInput
+    args: ModerationEventRelayInput,
   ): Promise<RepositoryConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: ModerationEventRelayInput["where"] = {
@@ -305,7 +267,7 @@ export class ModerationRepository extends BaseRepository {
   @ReadOnly()
   async getRevisionConnection(
     contentId: string,
-    args: ContentRevisionRelayInput
+    args: ContentRevisionRelayInput,
   ): Promise<RepositoryConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: ContentRevisionRelayInput["where"] = {
@@ -333,7 +295,7 @@ export class ModerationRepository extends BaseRepository {
   @ReadOnly()
   async getSignalConnection(
     contentId: string,
-    args: ModerationSignalRelayInput
+    args: ModerationSignalRelayInput,
   ): Promise<RepositoryConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: ModerationSignalRelayInput["where"] = {
@@ -360,7 +322,7 @@ export class ModerationRepository extends BaseRepository {
 
   @Transactional()
   async createCase(
-    input: Omit<NewModerationCase, "id" | "storeId" | "createdAt" | "updatedAt">
+    input: Omit<NewModerationCase, "id" | "storeId" | "createdAt" | "updatedAt">,
   ): Promise<ModerationCase> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -382,7 +344,7 @@ export class ModerationRepository extends BaseRepository {
   async updateCase(
     id: string,
     expectedUpdatedAt: string,
-    patch: ModerationCasePatch
+    patch: ModerationCasePatch,
   ): Promise<OptimisticMutationResult<ModerationCase>> {
     const rows = await this.connection
       .update(moderationCase)
@@ -391,20 +353,18 @@ export class ModerationRepository extends BaseRepository {
         and(
           eq(moderationCase.storeId, this.storeId),
           eq(moderationCase.id, id),
-          eq(moderationCase.updatedAt, expectedUpdatedAt)
-        )
+          eq(moderationCase.updatedAt, expectedUpdatedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findCaseById(id);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
   @Transactional()
   async appendEvent(
-    input: Omit<NewModerationEvent, "id" | "storeId" | "createdAt">
+    input: Omit<NewModerationEvent, "id" | "storeId" | "createdAt">,
   ): Promise<ModerationEvent> {
     const rows = await this.connection
       .insert(moderationEvent)
@@ -422,7 +382,7 @@ export class ModerationRepository extends BaseRepository {
 
   @Transactional()
   async appendRevision(
-    input: Omit<NewContentRevision, "id" | "storeId" | "createdAt">
+    input: Omit<NewContentRevision, "id" | "storeId" | "createdAt">,
   ): Promise<ContentRevision> {
     const rows = await this.connection
       .insert(contentRevision)
@@ -440,7 +400,7 @@ export class ModerationRepository extends BaseRepository {
 
   @Transactional()
   async appendSignal(
-    input: Omit<NewModerationSignal, "id" | "storeId" | "createdAt">
+    input: Omit<NewModerationSignal, "id" | "storeId" | "createdAt">,
   ): Promise<ModerationSignal> {
     const rows = await this.connection
       .insert(moderationSignal)
@@ -461,7 +421,7 @@ export class ModerationRepository extends BaseRepository {
       edges: Array<{ cursor: string; node: { id: string } }>;
       pageInfo: RepositoryConnectionResult["pageInfo"];
     },
-    totalCount: number
+    totalCount: number,
   ): RepositoryConnectionResult {
     return {
       edges: result.edges.map(({ cursor, node }) => ({

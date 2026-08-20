@@ -1,8 +1,5 @@
 import { Buffer } from "node:buffer";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { GraphQLError } from "graphql";
 import { CatalogType } from "./CatalogType.js";
 
@@ -36,11 +33,7 @@ export class MediaConnectionResolver extends CatalogType<
 > {
   async $preload(): Promise<MediaConnectionData> {
     const allRows = await this.loadRows();
-    const { start, end } = connectionBounds(
-      allRows.length,
-      this.$props,
-      this.cursorPrefix(),
-    );
+    const { start, end } = connectionBounds(allRows.length, this.$props, this.cursorPrefix());
     const rows = allRows.slice(start, end).map((row, offset) => ({
       cursor: encodeCursor(this.cursorPrefix(), start + offset),
       fileId: row.fileId,
@@ -139,17 +132,13 @@ function connectionBounds(
 }
 
 function encodeCursor(prefix: string, index: number): string {
-  return Buffer.from(`catalog-media:${prefix}:${index}`, "utf8").toString(
-    "base64url",
-  );
+  return Buffer.from(`catalog-media:${prefix}:${index}`, "utf8").toString("base64url");
 }
 
 function decodeCursor(cursor: string, prefix: string): number {
   const decoded = Buffer.from(cursor, "base64url").toString("utf8");
   const marker = `catalog-media:${prefix}:`;
-  const index = decoded.startsWith(marker)
-    ? Number(decoded.slice(marker.length))
-    : Number.NaN;
+  const index = decoded.startsWith(marker) ? Number(decoded.slice(marker.length)) : Number.NaN;
   if (!Number.isSafeInteger(index) || index < 0) {
     throw new GraphQLError("Invalid media connection cursor", {
       extensions: { code: "BAD_USER_INPUT" },

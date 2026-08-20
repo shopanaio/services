@@ -35,17 +35,35 @@ const PROFILE_COLUMNS: Readonly<Record<string, SQL>> = Object.freeze({
   date_of_birth: sql.raw("c.date_of_birth"),
 });
 
-const STATISTICS_COLUMNS: Readonly<Record<string, { table: string; column: string; zero: boolean }>> = Object.freeze({
+const STATISTICS_COLUMNS: Readonly<
+  Record<string, { table: string; column: string; zero: boolean }>
+> = Object.freeze({
   number_of_orders: { table: "customer_statistics", column: "completed_orders_count", zero: true },
-  cancelled_orders_count: { table: "customer_statistics", column: "cancelled_orders_count", zero: true },
+  cancelled_orders_count: {
+    table: "customer_statistics",
+    column: "cancelled_orders_count",
+    zero: true,
+  },
   returns_count: { table: "customer_statistics", column: "returns_count", zero: true },
   first_order_date: { table: "customer_statistics", column: "first_order_at", zero: false },
   last_order_date: { table: "customer_statistics", column: "last_order_at", zero: false },
   last_checkout_date: { table: "customer_statistics", column: "last_checkout_at", zero: false },
   amount_spent: { table: "customer_monetary_statistics", column: "net_spent_minor", zero: true },
-  gross_amount_spent: { table: "customer_monetary_statistics", column: "total_spent_minor", zero: true },
-  amount_refunded: { table: "customer_monetary_statistics", column: "total_refunded_minor", zero: true },
-  average_order_value: { table: "customer_monetary_statistics", column: "average_order_value_minor", zero: true },
+  gross_amount_spent: {
+    table: "customer_monetary_statistics",
+    column: "total_spent_minor",
+    zero: true,
+  },
+  amount_refunded: {
+    table: "customer_monetary_statistics",
+    column: "total_refunded_minor",
+    zero: true,
+  },
+  average_order_value: {
+    table: "customer_monetary_statistics",
+    column: "average_order_value_minor",
+    zero: true,
+  },
 });
 
 export function compileCustomerSegmentDefinition(
@@ -137,9 +155,10 @@ function compilePredicate(
   if (statistics) {
     const isMoney = statistics.table === "customer_monetary_statistics";
     const value = sql.raw(`s.${statistics.column}`);
-    const where = statistics.table === "customer_monetary_statistics"
-      ? sql` AND s.currency_code = ${context.store.currencyCode}`
-      : sql``;
+    const where =
+      statistics.table === "customer_monetary_statistics"
+        ? sql` AND s.currency_code = ${context.store.currencyCode}`
+        : sql``;
     const selected = statistics.zero
       ? sql`COALESCE((SELECT ${value} FROM ${sql.raw(`customers.${statistics.table}`)} AS s
           WHERE s.store_id = c.store_id AND s.customer_id = c.id${where}), 0)`
@@ -151,13 +170,33 @@ function compilePredicate(
   }
   switch (expression.attribute) {
     case "customer_countries":
-      return compileListPredicate(expression, sql`customers.customer_address`, sql.raw("a.country_code"), sql`a.deleted_at IS NULL`);
+      return compileListPredicate(
+        expression,
+        sql`customers.customer_address`,
+        sql.raw("a.country_code"),
+        sql`a.deleted_at IS NULL`,
+      );
     case "customer_regions":
-      return compileListPredicate(expression, sql`customers.customer_address`, sql.raw("a.region_key"), sql`a.deleted_at IS NULL`);
+      return compileListPredicate(
+        expression,
+        sql`customers.customer_address`,
+        sql.raw("a.region_key"),
+        sql`a.deleted_at IS NULL`,
+      );
     case "customer_cities":
-      return compileListPredicate(expression, sql`customers.customer_address`, sql.raw("a.city_key"), sql`a.deleted_at IS NULL`);
+      return compileListPredicate(
+        expression,
+        sql`customers.customer_address`,
+        sql.raw("a.city_key"),
+        sql`a.deleted_at IS NULL`,
+      );
     case "customer_postal_codes":
-      return compileListPredicate(expression, sql`customers.customer_address`, sql.raw("a.postal_code_normalized"), sql`a.deleted_at IS NULL`);
+      return compileListPredicate(
+        expression,
+        sql`customers.customer_address`,
+        sql.raw("a.postal_code_normalized"),
+        sql`a.deleted_at IS NULL`,
+      );
     case "customer_tags":
       return compileListPredicate(
         expression,
@@ -219,16 +258,24 @@ function compileScalarPredicate(
       AND ${column} >= ${scalarValue(expression.value, valueMode)}
       AND ${column} <= ${scalarValue(expression.upperValue, valueMode)}`;
   }
-  if (!("value" in expression)) throw new Error(`Unsupported scalar operator ${expression.operator}`);
+  if (!("value" in expression))
+    throw new Error(`Unsupported scalar operator ${expression.operator}`);
   const value = scalarValue(expression.value, valueMode);
   switch (expression.operator) {
-    case "eq": return sql`${column} IS NOT NULL AND ${column} = ${value}`;
-    case "neq": return sql`${column} IS NOT NULL AND ${column} <> ${value}`;
-    case "gt": return sql`${column} IS NOT NULL AND ${column} > ${value}`;
-    case "gte": return sql`${column} IS NOT NULL AND ${column} >= ${value}`;
-    case "lt": return sql`${column} IS NOT NULL AND ${column} < ${value}`;
-    case "lte": return sql`${column} IS NOT NULL AND ${column} <= ${value}`;
-    default: throw new Error(`Unsupported scalar operator ${expression.operator}`);
+    case "eq":
+      return sql`${column} IS NOT NULL AND ${column} = ${value}`;
+    case "neq":
+      return sql`${column} IS NOT NULL AND ${column} <> ${value}`;
+    case "gt":
+      return sql`${column} IS NOT NULL AND ${column} > ${value}`;
+    case "gte":
+      return sql`${column} IS NOT NULL AND ${column} >= ${value}`;
+    case "lt":
+      return sql`${column} IS NOT NULL AND ${column} < ${value}`;
+    case "lte":
+      return sql`${column} IS NOT NULL AND ${column} <= ${value}`;
+    default:
+      throw new Error(`Unsupported scalar operator ${expression.operator}`);
   }
 }
 
@@ -252,13 +299,20 @@ function compileInstantDatePredicate(
   const bounds = dateBounds(expression.value, context);
   const matches = sql`${column} >= ${bounds.start}::timestamptz AND ${column} < ${bounds.end}::timestamptz`;
   switch (expression.operator) {
-    case "eq": return sql`${column} IS NOT NULL AND ${matches}`;
-    case "neq": return sql`${column} IS NOT NULL AND NOT (${matches})`;
-    case "gt": return sql`${column} IS NOT NULL AND ${column} >= ${bounds.end}::timestamptz`;
-    case "gte": return sql`${column} IS NOT NULL AND ${column} >= ${bounds.start}::timestamptz`;
-    case "lt": return sql`${column} IS NOT NULL AND ${column} < ${bounds.start}::timestamptz`;
-    case "lte": return sql`${column} IS NOT NULL AND ${column} < ${bounds.end}::timestamptz`;
-    default: throw new Error(`Unsupported date operator ${expression.operator}`);
+    case "eq":
+      return sql`${column} IS NOT NULL AND ${matches}`;
+    case "neq":
+      return sql`${column} IS NOT NULL AND NOT (${matches})`;
+    case "gt":
+      return sql`${column} IS NOT NULL AND ${column} >= ${bounds.end}::timestamptz`;
+    case "gte":
+      return sql`${column} IS NOT NULL AND ${column} >= ${bounds.start}::timestamptz`;
+    case "lt":
+      return sql`${column} IS NOT NULL AND ${column} < ${bounds.start}::timestamptz`;
+    case "lte":
+      return sql`${column} IS NOT NULL AND ${column} < ${bounds.end}::timestamptz`;
+    default:
+      throw new Error(`Unsupported date operator ${expression.operator}`);
   }
 }
 
@@ -309,18 +363,23 @@ function compileTaxList(
   kind: "identifier" | "exemption" | "country",
 ): SQL {
   const today = formatCalendarDate(calendarDateAt(context.effectiveAt, context.store.timeZone));
-  const table = kind === "identifier"
-    ? sql`customers.customer_tax_identifier`
-    : sql`customers.customer_tax_exemption`;
-  const effectiveStatus = kind === "identifier"
-    ? sql`CASE WHEN a.status = 'REJECTED' THEN 'REJECTED'
+  const table =
+    kind === "identifier"
+      ? sql`customers.customer_tax_identifier`
+      : sql`customers.customer_tax_exemption`;
+  const effectiveStatus =
+    kind === "identifier"
+      ? sql`CASE WHEN a.status = 'REJECTED' THEN 'REJECTED'
         WHEN a.valid_to IS NOT NULL AND a.valid_to < ${today}::date THEN 'EXPIRED'
         ELSE a.status::text END`
-    : sql`CASE WHEN a.status = 'REVOKED' THEN 'REVOKED'
+      : sql`CASE WHEN a.status = 'REVOKED' THEN 'REVOKED'
         WHEN a.valid_to IS NOT NULL AND a.valid_to < ${today}::date THEN 'EXPIRED'
         ELSE a.status::text END`;
   const valueColumn = kind === "country" ? sql.raw("a.country_code") : effectiveStatus;
-  const active = kind === "country" ? sql`${effectiveStatus} = 'ACTIVE' AND a.country_code IS NOT NULL` : sql`TRUE`;
+  const active =
+    kind === "country"
+      ? sql`${effectiveStatus} = 'ACTIVE' AND a.country_code IS NOT NULL`
+      : sql`TRUE`;
   const exists = (extra: SQL) => sql`EXISTS (
     SELECT 1 FROM ${table} AS a
     WHERE a.store_id = c.store_id AND a.customer_id = c.id
@@ -345,16 +404,25 @@ function compileBirthday(
   if (expression.operator === "is_null" || expression.operator === "is_not_null") {
     return compileScalarPredicate(column, expression);
   }
-  if (expression.operator === "in" || expression.operator === "not_in" ||
-      expression.operator === "gt" || expression.operator === "gte" ||
-      expression.operator === "lt" || expression.operator === "lte") {
+  if (
+    expression.operator === "in" ||
+    expression.operator === "not_in" ||
+    expression.operator === "gt" ||
+    expression.operator === "gte" ||
+    expression.operator === "lt" ||
+    expression.operator === "lte"
+  ) {
     throw new Error(`Invalid birthday operator ${expression.operator}`);
   }
   if (!("value" in expression)) throw new Error(`Invalid birthday operator ${expression.operator}`);
-  const dates = expression.operator === "between"
-    ? birthdayRange(expression.value, expression.upperValue, context)
-    : birthdayKeys(expression.value, context);
-  const matches = sql`${column} IN (${sql.join(dates.map((value) => sql`${value}`), sql`, `)})`;
+  const dates =
+    expression.operator === "between"
+      ? birthdayRange(expression.value, expression.upperValue, context)
+      : birthdayKeys(expression.value, context);
+  const matches = sql`${column} IN (${sql.join(
+    dates.map((value) => sql`${value}`),
+    sql`, `,
+  )})`;
   return expression.operator === "neq"
     ? sql`${column} IS NOT NULL AND NOT (${matches})`
     : sql`${column} IS NOT NULL AND ${matches}`;
@@ -374,7 +442,8 @@ function compileFunction(
   if (expression.operator === "is_null") return sql`NOT (${anyOrder})`;
   if (expression.operator === "is_not_null") return anyOrder;
 
-  if (!("parameters" in expression)) throw new Error(`Invalid function operator ${expression.operator}`);
+  if (!("parameters" in expression))
+    throw new Error(`Invalid function operator ${expression.operator}`);
   const parameters = expression.parameters;
   const ordinary = parameters.filter((parameter) => !isAggregateParameter(parameter));
   const aggregates = parameters.filter(isAggregateParameter);
@@ -384,25 +453,27 @@ function compileFunction(
   const filters = ordinary.map((parameter) => compileOrderParameter(parameter, context));
   if (requiresCurrency) filters.unshift(sql`o.currency_code = ${context.store.currencyCode}`);
   const where = filters.length > 0 ? parenthesizeJoin(filters, sql` AND `) : sql`TRUE`;
-  const matches = aggregates.length === 0
-    ? sql`EXISTS (
+  const matches =
+    aggregates.length === 0
+      ? sql`EXISTS (
         SELECT 1 FROM customers.customer_order_projection AS o
         WHERE o.store_id = c.store_id AND o.customer_id = c.id AND ${where}
       )`
-    : parenthesizeJoin(
-        aggregates.map((parameter) => {
-          const aggregate = parameter.name === "count"
-            ? sql`COUNT(*)`
-            : sql`COALESCE(SUM(o.total_amount_minor), 0)`;
-          const scalar = compileAggregateComparison(aggregate, parameter);
-          return sql`(
+      : parenthesizeJoin(
+          aggregates.map((parameter) => {
+            const aggregate =
+              parameter.name === "count"
+                ? sql`COUNT(*)`
+                : sql`COALESCE(SUM(o.total_amount_minor), 0)`;
+            const scalar = compileAggregateComparison(aggregate, parameter);
+            return sql`(
             SELECT ${scalar}
             FROM customers.customer_order_projection AS o
             WHERE o.store_id = c.store_id AND o.customer_id = c.id AND ${where}
           )`;
-        }),
-        sql` AND `,
-      );
+          }),
+          sql` AND `,
+        );
   return expression.operator === "matches" ? matches : sql`NOT (${matches})`;
 }
 
@@ -438,7 +509,12 @@ function parameterToPredicate(parameter: SegmentFunctionParameter): SegmentPredi
     return { kind: "predicate", attribute: parameter.name, operator: parameter.operator };
   }
   if (parameter.operator === "in" || parameter.operator === "not_in") {
-    return { kind: "predicate", attribute: parameter.name, operator: parameter.operator, values: parameter.values };
+    return {
+      kind: "predicate",
+      attribute: parameter.name,
+      operator: parameter.operator,
+      values: parameter.values,
+    };
   }
   if (parameter.operator === "between") {
     return {
@@ -449,8 +525,14 @@ function parameterToPredicate(parameter: SegmentFunctionParameter): SegmentPredi
       upperValue: parameter.upperValue,
     };
   }
-  if (!("value" in parameter)) throw new Error(`Invalid function parameter operator ${parameter.operator}`);
-  return { kind: "predicate", attribute: parameter.name, operator: parameter.operator, value: parameter.value };
+  if (!("value" in parameter))
+    throw new Error(`Invalid function parameter operator ${parameter.operator}`);
+  return {
+    kind: "predicate",
+    attribute: parameter.name,
+    operator: parameter.operator,
+    value: parameter.value,
+  };
 }
 
 function isAggregateParameter(parameter: SegmentFunctionParameter): boolean {
@@ -459,15 +541,24 @@ function isAggregateParameter(parameter: SegmentFunctionParameter): boolean {
 
 function scalarValue(value: SegmentValue, mode: "default" | "money" = "default"): SQL {
   switch (value.kind) {
-    case "string": return sql`${value.value}`;
-    case "enum": return sql`${value.value}`;
-    case "boolean": return sql`${value.value}`;
-    case "integer": return sql`${value.value}::bigint`;
-    case "decimal": return sql`${value.value}::numeric`;
-    case "money": return mode === "money" ? sql`${value.minor}::bigint` : sql`${value.decimal}::numeric`;
-    case "date": return sql`${value.value}::date`;
-    case "dateTime": return sql`${value.value}::timestamptz`;
-    case "entityId": return sql`${value.id}::uuid`;
+    case "string":
+      return sql`${value.value}`;
+    case "enum":
+      return sql`${value.value}`;
+    case "boolean":
+      return sql`${value.value}`;
+    case "integer":
+      return sql`${value.value}::bigint`;
+    case "decimal":
+      return sql`${value.value}::numeric`;
+    case "money":
+      return mode === "money" ? sql`${value.minor}::bigint` : sql`${value.decimal}::numeric`;
+    case "date":
+      return sql`${value.value}::date`;
+    case "dateTime":
+      return sql`${value.value}::timestamptz`;
+    case "entityId":
+      return sql`${value.id}::uuid`;
     case "namedDate":
     case "relativeDate":
       throw new Error("Relative date must be resolved before scalar compilation");
@@ -504,7 +595,10 @@ function mapDateValues(
     return { ...expression, value: map(expression.value), upperValue: map(expression.upperValue) };
   }
   if (expression.operator === "in" || expression.operator === "not_in") {
-    return { ...expression, values: expression.values.map(map) as [SegmentValue, ...SegmentValue[]] };
+    return {
+      ...expression,
+      values: expression.values.map(map) as [SegmentValue, ...SegmentValue[]],
+    };
   }
   if (expression.operator === "is_null" || expression.operator === "is_not_null") return expression;
   if (!("value" in expression)) throw new Error(`Invalid date operator ${expression.operator}`);
@@ -533,7 +627,9 @@ function birthdayRange(
   const keys = new Set<string>();
   let current = lower;
   for (let elapsed = 0; elapsed <= 366; elapsed += 1) {
-    birthdayKeys({ kind: "date", value: formatCalendarDate(current) }, context).forEach((key) => keys.add(key));
+    birthdayKeys({ kind: "date", value: formatCalendarDate(current) }, context).forEach((key) =>
+      keys.add(key),
+    );
     if (sameDate(current, upper)) return [...keys].sort();
     current = addCalendarDate(current, 1, "day");
   }

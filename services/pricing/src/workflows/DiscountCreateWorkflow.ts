@@ -34,9 +34,7 @@ export class DiscountCreateWorkflow extends BrokerWorkflows {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: DiscountCreateWorkflowInput,
-  ): Promise<DiscountCreateWorkflowResult> {
+  async run(input: DiscountCreateWorkflowInput): Promise<DiscountCreateWorkflowResult> {
     const discountId = await this.stepGenerateDiscountId();
     const result = await this.stepCreate(discountId, input);
     return {
@@ -47,18 +45,13 @@ export class DiscountCreateWorkflow extends BrokerWorkflows {
 
   @WorkflowStep()
   private async stepGenerateDiscountId(): Promise<string> {
-    const [row] = await this.kernel.db.execute<{ id: string }>(
-      sql`SELECT uuidv7() AS id`,
-    );
+    const [row] = await this.kernel.db.execute<{ id: string }>(sql`SELECT uuidv7() AS id`);
     if (!row) throw new Error("Failed to generate discount ID");
     return row.id;
   }
 
   @WorkflowStep()
-  private stepCreate(
-    discountId: string,
-    input: DiscountCreateWorkflowInput,
-  ) {
+  private stepCreate(discountId: string, input: DiscountCreateWorkflowInput) {
     return this.kernel.runScript(
       DiscountCreateScript,
       {
@@ -71,9 +64,7 @@ export class DiscountCreateWorkflow extends BrokerWorkflows {
   }
 }
 
-function toScriptContext(
-  context: PricingMutationWorkflowContext,
-): RunScriptContext {
+function toScriptContext(context: PricingMutationWorkflowContext): RunScriptContext {
   return {
     storeId: context.storeId,
     organizationId: context.organizationId,

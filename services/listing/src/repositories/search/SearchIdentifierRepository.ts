@@ -39,29 +39,24 @@ export class SearchIdentifierRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getByProductId(
-    productId: string,
-    locale?: string,
-  ): Promise<ProductSearchIdentifier[]> {
+  async getByProductId(productId: string, locale?: string): Promise<ProductSearchIdentifier[]> {
     if (locale !== undefined) assertNonEmpty(locale, "locale");
-    const scope = locale !== undefined
-      ? and(
-          eq(productSearchIdentifier.storeId, this.storeId),
-          eq(productSearchIdentifier.productId, productId),
-          eq(productSearchIdentifier.locale, locale),
-        )
-      : and(
-          eq(productSearchIdentifier.storeId, this.storeId),
-          eq(productSearchIdentifier.productId, productId),
-        );
+    const scope =
+      locale !== undefined
+        ? and(
+            eq(productSearchIdentifier.storeId, this.storeId),
+            eq(productSearchIdentifier.productId, productId),
+            eq(productSearchIdentifier.locale, locale),
+          )
+        : and(
+            eq(productSearchIdentifier.storeId, this.storeId),
+            eq(productSearchIdentifier.productId, productId),
+          );
     return this.connection
       .select()
       .from(productSearchIdentifier)
       .where(scope)
-      .orderBy(
-        asc(productSearchIdentifier.locale),
-        asc(productSearchIdentifier.elementId),
-      );
+      .orderBy(asc(productSearchIdentifier.locale), asc(productSearchIdentifier.elementId));
   }
 
   @ReadOnly()
@@ -71,16 +66,17 @@ export class SearchIdentifierRepository extends BaseRepository {
   ): Promise<ProductSearchIdentifier[]> {
     if (locale !== undefined) assertNonEmpty(locale, "locale");
     if (productIds.length === 0) return [];
-    const scope = locale !== undefined
-      ? and(
-          eq(productSearchIdentifier.storeId, this.storeId),
-          inArray(productSearchIdentifier.productId, [...new Set(productIds)]),
-          eq(productSearchIdentifier.locale, locale),
-        )
-      : and(
-          eq(productSearchIdentifier.storeId, this.storeId),
-          inArray(productSearchIdentifier.productId, [...new Set(productIds)]),
-        );
+    const scope =
+      locale !== undefined
+        ? and(
+            eq(productSearchIdentifier.storeId, this.storeId),
+            inArray(productSearchIdentifier.productId, [...new Set(productIds)]),
+            eq(productSearchIdentifier.locale, locale),
+          )
+        : and(
+            eq(productSearchIdentifier.storeId, this.storeId),
+            inArray(productSearchIdentifier.productId, [...new Set(productIds)]),
+          );
     return this.connection.select().from(productSearchIdentifier).where(scope);
   }
 
@@ -93,9 +89,7 @@ export class SearchIdentifierRepository extends BaseRepository {
     assertNonEmpty(locale, "locale");
     assertNonEmpty(normalizedValue, "normalizedValue");
     const prefixAllowed = allowPrefix && [...normalizedValue].length >= 3;
-    const rows = await this.connection.execute<
-      ProductSearchIdentifier & { priority: number }
-    >(sql`
+    const rows = await this.connection.execute<ProductSearchIdentifier & { priority: number }>(sql`
       SELECT
         identifier.store_id AS "storeId",
         identifier.product_id AS "productId",
@@ -136,12 +130,13 @@ export class SearchIdentifierRepository extends BaseRepository {
   @ReadOnly()
   async count(locale?: string): Promise<number> {
     if (locale !== undefined) assertNonEmpty(locale, "locale");
-    const scope = locale !== undefined
-      ? and(
-          eq(productSearchIdentifier.storeId, this.storeId),
-          eq(productSearchIdentifier.locale, locale),
-        )
-      : eq(productSearchIdentifier.storeId, this.storeId);
+    const scope =
+      locale !== undefined
+        ? and(
+            eq(productSearchIdentifier.storeId, this.storeId),
+            eq(productSearchIdentifier.locale, locale),
+          )
+        : eq(productSearchIdentifier.storeId, this.storeId);
     const rows = await this.connection
       .select({ value: count() })
       .from(productSearchIdentifier)
@@ -150,9 +145,7 @@ export class SearchIdentifierRepository extends BaseRepository {
   }
 
   @Transactional()
-  async upsertMany(
-    inputs: readonly SearchIdentifierInput[],
-  ): Promise<ProductSearchIdentifier[]> {
+  async upsertMany(inputs: readonly SearchIdentifierInput[]): Promise<ProductSearchIdentifier[]> {
     if (inputs.length === 0) return [];
     assertUnique(
       inputs,
@@ -212,18 +205,14 @@ export class SearchIdentifierRepository extends BaseRepository {
   ): Promise<ProductSearchIdentifier[]> {
     if (inputsByProductId.size === 0) return [];
     const productIds = [...inputsByProductId.keys()];
-    const inputs = [...inputsByProductId.entries()].flatMap(
-      ([productId, productInputs]) => {
-        for (const input of productInputs) {
-          if (input.productId !== productId) {
-            throw new Error(
-              "Search identifier productId must match replace map key",
-            );
-          }
+    const inputs = [...inputsByProductId.entries()].flatMap(([productId, productInputs]) => {
+      for (const input of productInputs) {
+        if (input.productId !== productId) {
+          throw new Error("Search identifier productId must match replace map key");
         }
-        return [...productInputs];
-      },
-    );
+      }
+      return [...productInputs];
+    });
     await this.deleteByProductIds(productIds);
     return this.upsertMany(inputs);
   }
@@ -241,11 +230,7 @@ export class SearchIdentifierRepository extends BaseRepository {
     return rows.length;
   }
 
-  async delete(
-    productId: string,
-    locale: string,
-    elementId: string,
-  ): Promise<boolean> {
+  async delete(productId: string, locale: string, elementId: string): Promise<boolean> {
     const rows = await this.connection
       .delete(productSearchIdentifier)
       .where(
@@ -294,10 +279,7 @@ export class SearchIdentifierRepository extends BaseRepository {
     return rows.length;
   }
 
-  private toInsert(
-    input: SearchIdentifierInput,
-    indexedAt: string,
-  ): NewProductSearchIdentifier {
+  private toInsert(input: SearchIdentifierInput, indexedAt: string): NewProductSearchIdentifier {
     assertPositiveInteger(input.productDocId, "productDocId");
     assertNonEmpty(input.locale, "locale");
     assertNonEmpty(input.normalizedValue, "normalizedValue");

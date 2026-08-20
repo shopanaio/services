@@ -78,7 +78,7 @@ export abstract class BaseScript<TParams, TResult> {
       throw new AuthorizationError(
         [{ code: "UNAUTHORIZED", message: "User not authenticated", field: null }],
         "user",
-        "authenticate"
+        "authenticate",
       );
     }
     return user;
@@ -96,7 +96,7 @@ export abstract class BaseScript<TParams, TResult> {
    */
   protected executeScript<P, R>(
     ScriptClass: new (services: IamKernelServices) => BaseScript<P, R>,
-    params: P
+    params: P,
   ): Promise<R> {
     const script = new ScriptClass(this.services);
     return script.run(params);

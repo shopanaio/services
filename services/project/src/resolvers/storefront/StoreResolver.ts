@@ -102,9 +102,7 @@ export class StoreResolver extends ProjectType<string, Store> {
   private settings(): Promise<StoreSettingsSnapshot> {
     return this.$ctx.loaders.storeSettings.load(this.$props).then((settings) => {
       if (!settings) {
-        throw new PreloadNotFoundError(
-          `Store settings for ID ${this.$props} not found`,
-        );
+        throw new PreloadNotFoundError(`Store settings for ID ${this.$props} not found`);
       }
       return settings;
     });

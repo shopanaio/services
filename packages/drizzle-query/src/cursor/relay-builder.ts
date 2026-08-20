@@ -19,10 +19,10 @@ import type { Connection } from "./connection.js";
 
 // ============ Types ============
 
-export type RelayBuilderConfig<
-  Fields extends FieldsDef,
+export type RelayBuilderConfig<Fields extends FieldsDef, Types> = BaseCursorBuilderConfig<
+  Fields,
   Types
-> = BaseCursorBuilderConfig<Fields, Types>;
+>;
 
 export type RelayInput<F extends FieldsDef> = {
   /** Number of items to fetch (forward pagination) */
@@ -68,13 +68,11 @@ function convertRelayToBase<F extends FieldsDef>(
   const limit = isForward ? input.first! : input.last!;
 
   if (limit <= 0) {
-    throw new InvalidCursorError(
-      `${isForward ? "first" : "last"} must be greater than 0`
-    );
+    throw new InvalidCursorError(`${isForward ? "first" : "last"} must be greater than 0`);
   }
   if (maxLimit !== undefined && limit > maxLimit) {
     throw new InvalidCursorError(
-      `Requested limit ${limit} exceeds maximum allowed limit ${maxLimit}`
+      `Requested limit ${limit} exceeds maximum allowed limit ${maxLimit}`,
     );
   }
 
@@ -94,7 +92,7 @@ function convertRelayToBase<F extends FieldsDef>(
 
 function buildRelayConnection<T>(
   baseResult: BaseCursorResult<T>,
-  relayInput: RelayInput<FieldsDef>
+  relayInput: RelayInput<FieldsDef>,
 ): Connection<T> {
   const isForward = typeof relayInput.first === "number";
 
@@ -120,9 +118,7 @@ function buildRelayConnection<T>(
     edges,
     pageInfo: {
       hasNextPage: isForward ? baseResult.hasMore : Boolean(relayInput.before),
-      hasPreviousPage: isForward
-        ? Boolean(relayInput.after)
-        : baseResult.hasMore,
+      hasPreviousPage: isForward ? Boolean(relayInput.after) : baseResult.hasMore,
       startCursor: baseResult.startCursor,
       endCursor: baseResult.endCursor,
     },
@@ -136,25 +132,16 @@ export function createRelayBuilder<
   F extends string,
   Fields extends FieldsDef,
   Types = T["$inferSelect"],
-  Result = Types
->(
-  schema: ObjectSchema<T, F, Fields, Types>,
-  config: RelayBuilderConfig<Fields, Types>
-) {
-  const baseBuilder = createBaseCursorBuilder<T, F, Fields, Types, Result>(
-    schema,
-    config
-  );
+  Result = Types,
+>(schema: ObjectSchema<T, F, Fields, Types>, config: RelayBuilderConfig<Fields, Types>) {
+  const baseBuilder = createBaseCursorBuilder<T, F, Fields, Types, Result>(schema, config);
 
   return {
     /**
      * Get SQL without executing - useful for testing and debugging.
      */
     getSql(input: RelayInput<Fields>) {
-      const { baseInput, isForward } = convertRelayToBase(
-        input,
-        config.queryConfig?.maxLimit,
-      );
+      const { baseInput, isForward } = convertRelayToBase(input, config.queryConfig?.maxLimit);
       const { sql, meta } = baseBuilder.getSql(baseInput);
 
       return {
@@ -174,20 +161,11 @@ export function createRelayBuilder<
     /**
      * Execute cursor-paginated query and return Relay Connection.
      */
-    async query(
-      db: DrizzleExecutor,
-      input: RelayInput<Fields>
-    ): Promise<RelayResult<Result>> {
-      const { baseInput } = convertRelayToBase(
-        input,
-        config.queryConfig?.maxLimit,
-      );
+    async query(db: DrizzleExecutor, input: RelayInput<Fields>): Promise<RelayResult<Result>> {
+      const { baseInput } = convertRelayToBase(input, config.queryConfig?.maxLimit);
       const baseResult = await baseBuilder.query(db, baseInput);
 
-      const connection = buildRelayConnection(
-        baseResult,
-        input as RelayInput<FieldsDef>
-      );
+      const connection = buildRelayConnection(baseResult, input as RelayInput<FieldsDef>);
 
       return {
         ...connection,

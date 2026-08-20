@@ -14,7 +14,7 @@ export type ListingBatchBuildFacetReferenceSyncPlansResult = {
 };
 
 export async function buildListingFacetReferenceSyncPlansBatch(
-  input: ListingBatchBuildFacetReferenceSyncPlansInput
+  input: ListingBatchBuildFacetReferenceSyncPlansInput,
 ): Promise<ListingBatchBuildFacetReferenceSyncPlansResult> {
   /*
    * Contract:
@@ -32,14 +32,11 @@ export async function buildListingFacetReferenceSyncPlansBatch(
   const kernel = Kernel.getInstance();
   const plans = await Promise.all(
     input.items.map(async ({ action, syncWriteModel }) =>
-      kernel.runScript(
-        ListingBuildFacetReferenceSyncPlanScript,
-        {
-          action,
-          syncWriteModel,
-        }
-      )
-    )
+      kernel.runScript(ListingBuildFacetReferenceSyncPlanScript, {
+        action,
+        syncWriteModel,
+      }),
+    ),
   );
   const plansByProductId: Record<string, ListingFacetReferenceSyncPlan> = {};
 

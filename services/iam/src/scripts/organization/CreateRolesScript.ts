@@ -1,9 +1,5 @@
 import type { Domain, Resource } from "@src/casbin/CasbinService.js";
-import {
-  Transactional,
-  ZodSchema,
-  AuthorizationError,
-} from "@shopana/shared-kernel";
+import { Transactional, ZodSchema, AuthorizationError } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import {
   createRolesInputSchema,
@@ -12,15 +8,10 @@ import {
   type RoleConfig,
 } from "./dto/CreateRolesDto.js";
 
-export class CreateRolesScript extends BaseScript<
-  CreateRolesParams,
-  CreateRolesResult
-> {
+export class CreateRolesScript extends BaseScript<CreateRolesParams, CreateRolesResult> {
   @Transactional()
   @ZodSchema(createRolesInputSchema)
-  protected async execute(
-    params: CreateRolesParams
-  ): Promise<CreateRolesResult> {
+  protected async execute(params: CreateRolesParams): Promise<CreateRolesResult> {
     const { organizationId, domain, roles } = params;
 
     // Create all roles and policies for the domain
@@ -35,7 +26,7 @@ export class CreateRolesScript extends BaseScript<
         domain,
         rolesCreated: roles.map((r) => r.name),
       },
-      "CreateRolesScript: Roles created successfully"
+      "CreateRolesScript: Roles created successfully",
     );
 
     return { success: true };
@@ -44,7 +35,7 @@ export class CreateRolesScript extends BaseScript<
   private async createRole(
     organizationId: string,
     domain: Domain,
-    roleConfig: RoleConfig
+    roleConfig: RoleConfig,
   ): Promise<{ id: string }> {
     return this.repository.organization.createRole({
       organizationId,
@@ -59,7 +50,7 @@ export class CreateRolesScript extends BaseScript<
   private async addPoliciesForRole(
     organizationId: string,
     domain: Domain,
-    roleConfig: RoleConfig
+    roleConfig: RoleConfig,
   ): Promise<void> {
     for (const permission of roleConfig.permissions) {
       await this.repository.casbin.addPolicy({

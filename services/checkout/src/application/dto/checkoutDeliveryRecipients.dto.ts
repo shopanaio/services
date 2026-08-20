@@ -1,15 +1,6 @@
 import { Type } from "class-transformer";
-import {
-  IsArray,
-  IsEmail,
-  IsOptional,
-  IsString,
-  ValidateNested,
-} from "class-validator";
-import {
-  IsGlobalId,
-  IsGlobalIdArray,
-} from "@src/application/validation/globalIdValidators";
+import { IsArray, IsEmail, IsOptional, IsString, ValidateNested } from "class-validator";
+import { IsGlobalId, IsGlobalIdArray } from "@src/application/validation/globalIdValidators";
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 /**

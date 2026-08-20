@@ -10,7 +10,7 @@ export const ProductBulkUpdateInputSchema = () =>
             productId: z.string(),
             expectedRevision: z.number().int().optional(),
             operations: ProductUpdateInputSchema().optional(),
-          })
+          }),
         )
         .min(1, "At least one product required")
         .max(100, "Maximum 100 products per request"),
@@ -35,5 +35,5 @@ export const ProductBulkUpdateInputSchema = () =>
         }, 0);
         return totalOps <= 500;
       },
-      { message: "Total operations exceed limit of 500" }
+      { message: "Total operations exceed limit of 500" },
     );

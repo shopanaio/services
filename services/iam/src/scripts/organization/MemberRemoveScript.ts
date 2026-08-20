@@ -1,9 +1,4 @@
-import {
-  BaseScript,
-  ZodSchema,
-  Transactional,
-  ValidationError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, Transactional, ValidationError } from "../../kernel/BaseScript.js";
 import { AuthorizationError } from "@shopana/shared-kernel";
 import {
   memberRemoveInputSchema,
@@ -16,22 +11,14 @@ import {
  *
  * Owner cannot be removed.
  */
-export class MemberRemoveScript extends BaseScript<
-  MemberRemoveParams,
-  MemberRemoveResult
-> {
+export class MemberRemoveScript extends BaseScript<MemberRemoveParams, MemberRemoveResult> {
   @Transactional()
   @ZodSchema(memberRemoveInputSchema)
-  protected async execute(
-    params: MemberRemoveParams
-  ): Promise<MemberRemoveResult> {
+  protected async execute(params: MemberRemoveParams): Promise<MemberRemoveResult> {
     const { organizationId, userId } = params;
 
     // Check if member is owner
-    const isTargetOwner = await this.repository.organization.isOwner(
-      organizationId,
-      userId
-    );
+    const isTargetOwner = await this.repository.organization.isOwner(organizationId, userId);
 
     if (isTargetOwner) {
       return {
@@ -39,8 +26,7 @@ export class MemberRemoveScript extends BaseScript<
         userErrors: [
           {
             code: "CANNOT_REMOVE_OWNER",
-            message:
-              "Cannot remove organization owner. Transfer ownership first.",
+            message: "Cannot remove organization owner. Transfer ownership first.",
             field: [],
           },
         ],
@@ -48,10 +34,7 @@ export class MemberRemoveScript extends BaseScript<
     }
 
     // Remove member from organizationMember table
-    const removed = await this.repository.organization.removeMember(
-      organizationId,
-      userId
-    );
+    const removed = await this.repository.organization.removeMember(organizationId, userId);
 
     if (!removed) {
       return {
@@ -74,11 +57,7 @@ export class MemberRemoveScript extends BaseScript<
     });
 
     // Find and delete userRole record
-    const userRole = await this.repository.organization.findUserRole(
-      organizationId,
-      userId,
-      "org"
-    );
+    const userRole = await this.repository.organization.findUserRole(organizationId, userId, "org");
     if (userRole) {
       await this.repository.organization.deleteUserRole(userRole.id);
     }

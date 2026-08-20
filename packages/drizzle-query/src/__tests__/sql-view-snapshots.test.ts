@@ -106,7 +106,7 @@ const activeUsersView = pgView("active_users_view").as((qb) =>
       createdAt: users.createdAt,
     })
     .from(users)
-    .where(sql`${users.isActive} = true`)
+    .where(sql`${users.isActive} = true`),
 );
 
 /**
@@ -117,11 +117,13 @@ const productStatsView = pgView("product_stats_view").as((qb) =>
     .select({
       productId: orderItems.productId,
       totalQuantitySold: sql<number>`SUM(${orderItems.quantity})`.as("total_quantity_sold"),
-      totalRevenue: sql<number>`SUM(${orderItems.quantity} * ${orderItems.unitPrice})`.as("total_revenue"),
+      totalRevenue: sql<number>`SUM(${orderItems.quantity} * ${orderItems.unitPrice})`.as(
+        "total_revenue",
+      ),
       orderCount: sql<number>`COUNT(DISTINCT ${orderItems.orderId})`.as("order_count"),
     })
     .from(orderItems)
-    .groupBy(orderItems.productId)
+    .groupBy(orderItems.productId),
 );
 
 /**
@@ -137,7 +139,7 @@ const userOrderSummaryView = pgView("user_order_summary_view").as((qb) =>
       lastOrderDate: sql<Date>`MAX(${orders.createdAt})`.as("last_order_date"),
     })
     .from(orders)
-    .groupBy(orders.userId)
+    .groupBy(orders.userId),
 );
 
 /**
@@ -155,7 +157,7 @@ const categoryStatsView = pgView("category_stats_view").as((qb) =>
     })
     .from(products)
     .where(sql`${products.deletedAt} IS NULL AND ${products.isPublished} = true`)
-    .groupBy(products.categoryId)
+    .groupBy(products.categoryId),
 );
 
 /**
@@ -179,7 +181,7 @@ const publishedProductsView = pgView("published_products_view").as((qb) =>
       `.as("price_range"),
     })
     .from(products)
-    .where(sql`${products.isPublished} = true AND ${products.deletedAt} IS NULL`)
+    .where(sql`${products.isPublished} = true AND ${products.deletedAt} IS NULL`),
 );
 
 // =============================================================================
@@ -195,9 +197,11 @@ const userActivityView = analyticsSchema.view("user_activity_view").as((qb) =>
       email: users.email,
       role: users.role,
       isActive: users.isActive,
-      daysSinceCreation: sql<number>`EXTRACT(DAY FROM NOW() - ${users.createdAt})`.as("days_since_creation"),
+      daysSinceCreation: sql<number>`EXTRACT(DAY FROM NOW() - ${users.createdAt})`.as(
+        "days_since_creation",
+      ),
     })
-    .from(users)
+    .from(users),
 );
 
 // =============================================================================
@@ -291,7 +295,7 @@ const activeUsersWithOrdersQuery = createQuery(activeUsersView, {
       currency: field(orders.currency),
       createdAt: field(orders.createdAt),
     }),
-    orders.userId
+    orders.userId,
   ),
 });
 
@@ -328,7 +332,7 @@ const publishedWithCategoryStatsQuery = createQuery(publishedProductsView, {
   priceRange: field(publishedProductsView.priceRange),
   categoryStats: field(publishedProductsView.categoryId).leftJoin(
     categoryStatsViewQuery,
-    categoryStatsView.categoryId
+    categoryStatsView.categoryId,
   ),
 });
 
@@ -363,7 +367,7 @@ const publishedWithCategoryTranslationsQuery = createQuery(publishedProductsView
   priceRange: field(publishedProductsView.priceRange),
   category: field(publishedProductsView.categoryId).leftJoin(
     categoriesWithTranslationsQuery,
-    categories.id
+    categories.id,
   ),
 });
 
@@ -394,8 +398,8 @@ describe("View SQL Snapshot Tests", () => {
         toSqlString(
           activeUsersViewQuery.getSql({
             select: ["id", "email", "displayName", "role"],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_active_users_view"."id" AS "id",
@@ -419,8 +423,8 @@ describe("View SQL Snapshot Tests", () => {
             select: ["productId", "totalQuantitySold", "totalRevenue"],
             limit: 50,
             offset: 100,
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_product_stats_view"."product_id" AS "productId",
@@ -441,8 +445,8 @@ describe("View SQL Snapshot Tests", () => {
         toSqlString(
           activeUsersCustomQuery.getSql({
             select: ["id", "email", "displayName"],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_active_users_view"."id" AS "id",
@@ -463,8 +467,8 @@ describe("View SQL Snapshot Tests", () => {
         toSqlString(
           userActivityViewQuery.getSql({
             select: ["userId", "email", "role", "daysSinceCreation"],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_user_activity_view"."id" AS "userId",
@@ -489,8 +493,8 @@ describe("View SQL Snapshot Tests", () => {
           activeUsersViewQuery.getSql({
             select: ["id", "email", "role"],
             where: { role: { _eq: "admin" } },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_active_users_view"."id" AS "id",
@@ -517,8 +521,8 @@ describe("View SQL Snapshot Tests", () => {
               totalQuantitySold: { _gte: 100 },
               totalRevenue: { _gt: 5000 },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_product_stats_view"."product_id" AS "productId",
@@ -549,8 +553,8 @@ describe("View SQL Snapshot Tests", () => {
               email: { _endsWithi: "@gmail.com" },
               displayName: { _containsi: "john" },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_active_users_view"."id" AS "id",
@@ -579,8 +583,8 @@ describe("View SQL Snapshot Tests", () => {
             where: {
               priceRange: { _in: ["budget", "mid-range"] },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_published_products_view"."id" AS "id",
@@ -607,15 +611,12 @@ describe("View SQL Snapshot Tests", () => {
               _or: [
                 { totalOrders: { _gte: 10 } },
                 {
-                  _and: [
-                    { totalSpent: { _gte: 1000 } },
-                    { avgOrderValue: { _gte: 100 } },
-                  ],
+                  _and: [{ totalSpent: { _gte: 1000 } }, { avgOrderValue: { _gte: 100 } }],
                 },
               ],
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_user_order_summary_view"."user_id" AS "userId",
@@ -649,8 +650,8 @@ describe("View SQL Snapshot Tests", () => {
               categoryId: { _isNot: null },
               avgPrice: { _is: null },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_category_stats_view"."category_id" AS "categoryId",
@@ -679,8 +680,8 @@ describe("View SQL Snapshot Tests", () => {
           productStatsViewQuery.getSql({
             select: ["productId", "totalRevenue", "orderCount"],
             order: [{ field: "totalRevenue", direction: "desc" }],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_product_stats_view"."product_id" AS "productId",
@@ -707,8 +708,8 @@ describe("View SQL Snapshot Tests", () => {
               { field: "totalSpent", direction: "desc" },
               { field: "totalOrders", direction: "desc" },
             ],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_user_order_summary_view"."user_id" AS "userId",
@@ -736,8 +737,8 @@ describe("View SQL Snapshot Tests", () => {
               { field: "priceRange", direction: "asc" },
               { field: "price", direction: "desc" },
             ],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_published_products_view"."id" AS "id",
@@ -766,8 +767,8 @@ describe("View SQL Snapshot Tests", () => {
             where: {
               orders: { status: { _eq: "completed" } },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_active_users_view"."id" AS "id",
@@ -797,8 +798,8 @@ describe("View SQL Snapshot Tests", () => {
               stats: { totalQuantitySold: { _gte: 50 } },
               isPublished: { _eq: true },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -839,8 +840,8 @@ describe("View SQL Snapshot Tests", () => {
                 },
               ],
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
@@ -874,12 +875,18 @@ describe("View SQL Snapshot Tests", () => {
       expect(
         toSqlString(
           publishedWithCategoryStatsQuery.getSql({
-            select: ["id", "sku", "priceRange", "categoryStats.productCount", "categoryStats.avgPrice"],
+            select: [
+              "id",
+              "sku",
+              "priceRange",
+              "categoryStats.productCount",
+              "categoryStats.avgPrice",
+            ],
             where: {
               categoryStats: { productCount: { _gte: 5 } },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_published_products_view"."id" AS "id",
@@ -909,8 +916,8 @@ describe("View SQL Snapshot Tests", () => {
               { field: "categoryStats.avgPrice", direction: "desc" },
               { field: "price", direction: "asc" },
             ],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_published_products_view"."id" AS "id",
@@ -941,8 +948,8 @@ describe("View SQL Snapshot Tests", () => {
             where: {
               category: { isVisible: { _eq: true } },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_published_products_view"."id" AS "id",
@@ -981,8 +988,8 @@ describe("View SQL Snapshot Tests", () => {
                 translation: { locale: { _eq: "en" } },
               },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_published_products_view"."id" AS "id",
@@ -1021,8 +1028,8 @@ describe("View SQL Snapshot Tests", () => {
               { field: "category.slug", direction: "asc" },
               { field: "price", direction: "desc" },
             ],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_published_products_view"."id" AS "id",
@@ -1062,8 +1069,8 @@ describe("View SQL Snapshot Tests", () => {
           productsWithStatsInnerQuery.getSql({
             select: ["id", "sku", "stats.totalRevenue"],
             where: { stats: { totalRevenue: { _gt: 1000 } } },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -1093,8 +1100,8 @@ describe("View SQL Snapshot Tests", () => {
         toSqlString(
           productsWithStatsRightQuery.getSql({
             select: ["id", "sku", "stats.orderCount"],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -1122,8 +1129,8 @@ describe("View SQL Snapshot Tests", () => {
         toSqlString(
           productsWithStatsFullQuery.getSql({
             select: ["id", "sku", "stats.totalQuantitySold"],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -1146,7 +1153,14 @@ describe("View SQL Snapshot Tests", () => {
       expect(
         toSqlString(
           productsWithStatsQuery.getSql({
-            select: ["id", "sku", "price", "stock", "stats.totalQuantitySold", "stats.totalRevenue"],
+            select: [
+              "id",
+              "sku",
+              "price",
+              "stock",
+              "stats.totalQuantitySold",
+              "stats.totalRevenue",
+            ],
             where: {
               _and: [
                 { isPublished: { _eq: true } },
@@ -1166,8 +1180,8 @@ describe("View SQL Snapshot Tests", () => {
             ],
             limit: 50,
             offset: 0,
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -1209,10 +1223,7 @@ describe("View SQL Snapshot Tests", () => {
             where: {
               _or: [
                 {
-                  _and: [
-                    { role: { _eq: "vip" } },
-                    { summary: { totalSpent: { _gte: 10000 } } },
-                  ],
+                  _and: [{ role: { _eq: "vip" } }, { summary: { totalSpent: { _gte: 10000 } } }],
                 },
                 {
                   _and: [
@@ -1233,8 +1244,8 @@ describe("View SQL Snapshot Tests", () => {
               ],
             },
             limit: 100,
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
@@ -1277,8 +1288,8 @@ describe("View SQL Snapshot Tests", () => {
             where: {
               priceRange: { _eq: "premium" },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_published_products_view"."id" AS "id",
@@ -1307,8 +1318,8 @@ describe("View SQL Snapshot Tests", () => {
           limitedViewQuery.getSql({
             select: ["id", "email"],
             limit: 10,
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_active_users_view"."id" AS "id",
@@ -1330,7 +1341,7 @@ describe("View SQL Snapshot Tests", () => {
         limitedViewQuery.getSql({
           select: ["id", "email"],
           limit: 100,
-        })
+        }),
       ).toThrow("Requested limit 100 exceeds maximum allowed limit 10");
     });
 
@@ -1344,8 +1355,8 @@ describe("View SQL Snapshot Tests", () => {
         toSqlString(
           orderedViewQuery.getSql({
             select: ["productId", "totalRevenue"],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_product_stats_view"."product_id" AS "productId",
@@ -1371,8 +1382,8 @@ describe("View SQL Snapshot Tests", () => {
         toSqlString(
           filteredViewQuery.getSql({
             select: ["categoryId", "productCount"],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_category_stats_view"."category_id" AS "categoryId",
@@ -1397,8 +1408,8 @@ describe("View SQL Snapshot Tests", () => {
           activeUsersViewQuery.getSql({
             select: ["id", "email"],
             where: {},
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_active_users_view"."id" AS "id",
@@ -1419,8 +1430,8 @@ describe("View SQL Snapshot Tests", () => {
           activeUsersViewQuery.getSql({
             select: ["id", "email", "role"],
             where: { role: undefined, email: { _containsi: "test" } },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_active_users_view"."id" AS "id",
@@ -1446,8 +1457,8 @@ describe("View SQL Snapshot Tests", () => {
           activeUsersViewQuery.getSql({
             select: ["id", "email", "role"],
             where: { role: { _in: roles } },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_active_users_view"."id" AS "id",
@@ -1475,8 +1486,8 @@ describe("View SQL Snapshot Tests", () => {
               { field: "avgPrice", direction: "desc" },
               { field: "totalStock", direction: "asc" },
             ],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_category_stats_view"."category_id" AS "categoryId",

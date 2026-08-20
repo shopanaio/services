@@ -25,9 +25,7 @@ export class CustomerTagUpdateScript extends BaseScript<
   CustomerTagUpdateResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerTagUpdateParams
-  ): Promise<CustomerTagUpdateResult> {
+  protected async execute(params: CustomerTagUpdateParams): Promise<CustomerTagUpdateResult> {
     const current = await this.repository.tag.findById(params.id);
     if (!current) return notFound();
 
@@ -36,9 +34,10 @@ export class CustomerTagUpdateScript extends BaseScript<
       const name = normalizeTagDisplayName(params.operations.name ?? "");
       if (name.length === 0 || [...name].length > 255) {
         errors.push({
-          message: name.length === 0
-            ? "Tag name cannot be empty"
-            : "Tag name cannot exceed 255 characters",
+          message:
+            name.length === 0
+              ? "Tag name cannot be empty"
+              : "Tag name cannot exceed 255 characters",
           code: "INVALID_NAME",
           field: ["name"],
         });
@@ -86,9 +85,7 @@ export class CustomerTagUpdateScript extends BaseScript<
         }
       }
 
-      const referenced = await this.repository.tag.getAssignmentsByIds(
-        assignments.deleteIds
-      );
+      const referenced = await this.repository.tag.getAssignmentsByIds(assignments.deleteIds);
       for (const assignment of referenced) {
         byAssignmentId.set(assignment.id, assignment);
       }
@@ -126,17 +123,14 @@ export class CustomerTagUpdateScript extends BaseScript<
     try {
       let tag = current;
       if (hasOwn(params.operations, "name")) {
-        tag = (await this.repository.tag.update(
-          params.id,
-          params.operations.name!
-        ))!;
+        tag = (await this.repository.tag.update(params.id, params.operations.name!))!;
       }
       if (assignments) {
         for (const input of assignments.create) {
           await this.repository.tag.assign(
             input.customerId,
             params.id,
-            this.context.hasUser ? this.currentUser.id : null
+            this.context.hasUser ? this.currentUser.id : null,
           );
         }
         for (const id of assignments.deleteIds) {
@@ -146,11 +140,7 @@ export class CustomerTagUpdateScript extends BaseScript<
       }
       this.logger.info({ tagId: tag.id }, "Customer tag updated");
       for (const customerId of [...affectedCustomerIds].sort()) {
-        await this.invalidateDynamicSegments(
-          customerId,
-          ["tag"],
-          `tag:${params.id}`,
-        );
+        await this.invalidateDynamicSegments(customerId, ["tag"], `tag:${params.id}`);
       }
       return {
         tag: { id: tag.id },

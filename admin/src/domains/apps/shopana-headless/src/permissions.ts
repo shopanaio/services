@@ -7,15 +7,11 @@ const permissionGroups = [
   { label: "Orders", resources: ["order"] },
 ] as const;
 
-export function groupStorefrontPermissions(
-  catalog: ApiHeadlessStorefrontPermissionDefinition[],
-) {
+export function groupStorefrontPermissions(catalog: ApiHeadlessStorefrontPermissionDefinition[]) {
   return permissionGroups.map((group) => ({
     ...group,
     permissions: catalog.filter((permission) =>
-      group.resources.some(
-        (resource) => resource === permission.resource,
-      ),
+      group.resources.some((resource) => resource === permission.resource),
     ),
   }));
 }

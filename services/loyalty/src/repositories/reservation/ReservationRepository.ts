@@ -49,26 +49,34 @@ export interface ReservationConnectionResult {
 export class ReservationRepository extends BaseRepository {
   async getByIds(ids: readonly string[]): Promise<Reservation[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(reservations).where(and(
-      eq(reservations.storeId, this.storeId),
-      inArray(reservations.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(reservations)
+      .where(and(eq(reservations.storeId, this.storeId), inArray(reservations.id, [...ids])));
   }
 
   async getEventsByIds(ids: readonly string[]): Promise<ReservationEvent[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(reservationEvents).where(and(
-      eq(reservationEvents.storeId, this.storeId),
-      inArray(reservationEvents.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(reservationEvents)
+      .where(
+        and(eq(reservationEvents.storeId, this.storeId), inArray(reservationEvents.id, [...ids])),
+      );
   }
 
   async getEventsByReservationIds(reservationIds: readonly string[]): Promise<ReservationEvent[]> {
     if (reservationIds.length === 0) return [];
-    return this.connection.select().from(reservationEvents).where(and(
-      eq(reservationEvents.storeId, this.storeId),
-      inArray(reservationEvents.reservationId, [...reservationIds]),
-    )).orderBy(asc(reservationEvents.occurredAt), asc(reservationEvents.id));
+    return this.connection
+      .select()
+      .from(reservationEvents)
+      .where(
+        and(
+          eq(reservationEvents.storeId, this.storeId),
+          inArray(reservationEvents.reservationId, [...reservationIds]),
+        ),
+      )
+      .orderBy(asc(reservationEvents.occurredAt), asc(reservationEvents.id));
   }
 
   async getConnection(input: ReservationConnectionInput): Promise<ReservationConnectionResult> {
@@ -107,9 +115,7 @@ export class ReservationRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(reservations)
-      .where(
-        and(eq(reservations.storeId, this.storeId), eq(reservations.id, id)),
-      )
+      .where(and(eq(reservations.storeId, this.storeId), eq(reservations.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -118,17 +124,13 @@ export class ReservationRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(reservations)
-      .where(
-        and(eq(reservations.storeId, this.storeId), eq(reservations.id, id)),
-      )
+      .where(and(eq(reservations.storeId, this.storeId), eq(reservations.id, id)))
       .limit(1)
       .for("update");
     return rows[0] ?? null;
   }
 
-  async findByIdempotencyKey(
-    idempotencyKey: string,
-  ): Promise<Reservation | null> {
+  async findByIdempotencyKey(idempotencyKey: string): Promise<Reservation | null> {
     const rows = await this.connection
       .select()
       .from(reservations)
@@ -142,10 +144,7 @@ export class ReservationRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async findActiveForCheckout(
-    accountId: string,
-    checkoutId: string,
-  ): Promise<Reservation | null> {
+  async findActiveForCheckout(accountId: string, checkoutId: string): Promise<Reservation | null> {
     const rows = await this.connection
       .select()
       .from(reservations)
@@ -165,12 +164,7 @@ export class ReservationRepository extends BaseRepository {
     return this.connection
       .select()
       .from(reservations)
-      .where(
-        and(
-          eq(reservations.storeId, this.storeId),
-          eq(reservations.orderId, orderId),
-        ),
-      )
+      .where(and(eq(reservations.storeId, this.storeId), eq(reservations.orderId, orderId)))
       .orderBy(asc(reservations.createdAt), asc(reservations.id));
   }
 
@@ -232,9 +226,7 @@ export class ReservationRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async appendEvent(
-    input: Omit<NewReservationEvent, "storeId">,
-  ): Promise<ReservationEvent> {
+  async appendEvent(input: Omit<NewReservationEvent, "storeId">): Promise<ReservationEvent> {
     const rows = await this.connection
       .insert(reservationEvents)
       .values({ ...input, storeId: this.storeId })

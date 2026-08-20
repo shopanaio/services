@@ -24,7 +24,7 @@ export interface FileHardDeleteOutput {
 export class FileHardDeleteWorkflow extends BrokerWorkflows {
   constructor(
     @InjectBroker("media") broker: ServiceBroker,
-    @Inject(S3_CLIENT) private readonly s3Client: S3Client
+    @Inject(S3_CLIENT) private readonly s3Client: S3Client,
   ) {
     super(broker);
   }
@@ -68,20 +68,19 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
 
     if (deletionState.deletionState !== "SOFT_DELETED") {
       this.logger.debug(
-        `File ${fileId} not in SOFT_DELETED (state=${deletionState.deletionState}), skipping`
+        `File ${fileId} not in SOFT_DELETED (state=${deletionState.deletionState}), skipping`,
       );
       return { deleted: false, skipped: `wrong_state:${deletionState.deletionState}` };
     }
     if (deletionState.deletionErrorCode === "FATAL") {
       this.logger.debug(
-        `File ${fileId} has FATAL error, admin must clear first via fileClearError`
+        `File ${fileId} has FATAL error, admin must clear first via fileClearError`,
       );
       return { deleted: false, skipped: "fatal_error" };
     }
 
     // Lock: transition SOFT_DELETED -> DELETING
-    const lockResult =
-      await fileDeletionStateRepo.markDeletingReturningStartedAt(fileId);
+    const lockResult = await fileDeletionStateRepo.markDeletingReturningStartedAt(fileId);
     if (!lockResult) {
       this.logger.debug(`markDeleting skipped: file ${fileId} not in SOFT_DELETED`);
       return { deleted: false, skipped: "lock_failed" };
@@ -93,11 +92,10 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
       let bucketName: string | null = null;
       let objectKey: string | null = null;
 
-      const preparedSourceReferences =
-        await mediaSourceRepo.getReferencingMediaFileIds(fileId);
+      const preparedSourceReferences = await mediaSourceRepo.getReferencingMediaFileIds(fileId);
       if (preparedSourceReferences.length > 0) {
         throw new DeletionBlockedError(
-          `File ${fileId} is still used by ${preparedSourceReferences.length} prepared media source relation(s)`
+          `File ${fileId} is still used by ${preparedSourceReferences.length} prepared media source relation(s)`,
         );
       }
 
@@ -108,9 +106,7 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
         }
         const bucket = await bucketRepo.findAnyById(s3Object.bucketId);
         if (!bucket) {
-          throw new MissingMetadataError(
-            `Bucket ${s3Object.bucketId} not found`
-          );
+          throw new MissingMetadataError(`Bucket ${s3Object.bucketId} not found`);
         }
 
         bucketName = bucket.bucketName;
@@ -118,10 +114,7 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
       }
 
       // Verify lock is still valid before S3 delete
-      const isLockValid = await fileDeletionStateRepo.isDeletionLockValid(
-        fileId,
-        startedAt
-      );
+      const isLockValid = await fileDeletionStateRepo.isDeletionLockValid(fileId, startedAt);
       if (!isLockValid) {
         const currentState = await fileDeletionStateRepo.findByFileId(fileId);
         const reason = !currentState
@@ -130,7 +123,7 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
             ? `state_changed:${currentState.deletionState}`
             : "startedAt_mismatch";
         this.logger.log(
-          `Lock lost before S3 delete, aborting safely: fileId=${fileId}, reason=${reason}`
+          `Lock lost before S3 delete, aborting safely: fileId=${fileId}, reason=${reason}`,
         );
         return { deleted: false, skipped: `lock_lost:${reason}` };
       }
@@ -156,13 +149,8 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
     } catch (error: unknown) {
       // Rollback: DELETING -> SOFT_DELETED with error
       const errorCode = classifyError(error);
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      await fileDeletionStateRepo.markErrorAndRollback(
-        fileId,
-        errorCode,
-        errorMessage
-      );
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await fileDeletionStateRepo.markErrorAndRollback(fileId, errorCode, errorMessage);
       throw error;
     }
   }
@@ -173,16 +161,12 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
   }
 
   private async startCleanupWorkflow(input: FileDeleteCleanupInput): Promise<void> {
-    await this.broker.runWorkflow(
-      "media.fileDeleteCleanup",
-      input,
-      {
-        source: "workflow",
-        workflowId: DBOS.workflowID!,
-        stepId: "startCleanup",
-        callId: input.fileId,
-      }
-    );
+    await this.broker.runWorkflow("media.fileDeleteCleanup", input, {
+      source: "workflow",
+      workflowId: DBOS.workflowID!,
+      stepId: "startCleanup",
+      callId: input.fileId,
+    });
   }
 
   static workflowID(fileId: string): string {

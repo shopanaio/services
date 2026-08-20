@@ -1,7 +1,4 @@
-import type {
-  PricingCheckoutJsonObject,
-  PricingCheckoutMoney,
-} from "./pricing.js";
+import type { PricingCheckoutJsonObject, PricingCheckoutMoney } from "./pricing.js";
 import type { DeliveryCheckoutMethodType } from "./delivery.js";
 
 export const DeliveryConfigurationActionNames = {
@@ -19,10 +16,7 @@ export const DeliveryConfigurationActions = {
 /** Merchant-owned configuration deciding which delivery methods are eligible. */
 export type DeliveryProfileStatus = "ACTIVE" | "INACTIVE";
 
-export type DeliveryPurchaseType =
-  | "ONE_TIME"
-  | "SUBSCRIPTION"
-  | "PRE_ORDER";
+export type DeliveryPurchaseType = "ONE_TIME" | "SUBSCRIPTION" | "PRE_ORDER";
 
 export type DeliveryProfileAssignment =
   | Readonly<{
@@ -178,10 +172,7 @@ export interface DeliveryProfileSnapshotBase {
   storeId: string;
   name: string;
   status: DeliveryProfileStatus;
-  locationGroups: readonly [
-    DeliveryLocationGroupSnapshot,
-    ...DeliveryLocationGroupSnapshot[],
-  ];
+  locationGroups: readonly [DeliveryLocationGroupSnapshot, ...DeliveryLocationGroupSnapshot[]];
   failurePolicy: DeliveryRateFailurePolicy;
   revision: number;
   createdAt: string;
@@ -192,19 +183,13 @@ export type DeliveryProfileSnapshot =
   | Readonly<
       DeliveryProfileSnapshotBase & {
         isDefault: true;
-        assignment: Extract<
-          DeliveryProfileAssignment,
-          Readonly<{ scope: "ALL_UNASSIGNED" }>
-        >;
+        assignment: Extract<DeliveryProfileAssignment, Readonly<{ scope: "ALL_UNASSIGNED" }>>;
       }
     >
   | Readonly<
       DeliveryProfileSnapshotBase & {
         isDefault: false;
-        assignment: Extract<
-          DeliveryProfileAssignment,
-          Readonly<{ scope: "ASSIGNED" }>
-        >;
+        assignment: Extract<DeliveryProfileAssignment, Readonly<{ scope: "ASSIGNED" }>>;
       }
     >;
 
@@ -222,20 +207,14 @@ export interface DeliveryProfileSetSnapshot {
   ];
 }
 
-export type DeliveryRateFallbackCategory =
-  | "PROVIDER_UNAVAILABLE"
-  | "TIMEOUT"
-  | "RATE_LIMITED";
+export type DeliveryRateFallbackCategory = "PROVIDER_UNAVAILABLE" | "TIMEOUT" | "RATE_LIMITED";
 
 export type DeliveryRateFailurePolicy =
   | Readonly<{ mode: "OMIT_PROVIDER_RATES" }>
   | Readonly<{ mode: "FAIL_GROUP" }>
   | Readonly<{
       mode: "USE_BACKUP_RATE";
-      categories: readonly [
-        DeliveryRateFallbackCategory,
-        ...DeliveryRateFallbackCategory[],
-      ];
+      categories: readonly [DeliveryRateFallbackCategory, ...DeliveryRateFallbackCategory[]];
     }>;
 
 /** Immutable configuration selected before provider fan-out. */
@@ -281,7 +260,10 @@ export interface SaveInactiveDeliveryProfileParams {
 }
 
 export type SaveInactiveDeliveryProfileResult =
-  | Readonly<{ status: "SAVED"; profile: DeliveryProfileSnapshot & Readonly<{ status: "INACTIVE" }> }>
+  | Readonly<{
+      status: "SAVED";
+      profile: DeliveryProfileSnapshot & Readonly<{ status: "INACTIVE" }>;
+    }>
   | Readonly<{ status: "PROFILE_REVISION_CONFLICT"; current: DeliveryProfileSnapshot }>;
 
 export interface ActivateDeliveryProfileSetParams {

@@ -2,13 +2,7 @@
 
 import { Button, Dropdown } from "antd";
 import { createStyles } from "antd-style";
-import {
-  LuArchive,
-  LuBadgeCheck,
-  LuEllipsis,
-  LuHash,
-  LuZap,
-} from "react-icons/lu";
+import { LuArchive, LuBadgeCheck, LuEllipsis, LuHash, LuZap } from "react-icons/lu";
 import { AutomaticFulfillmentMode, type ApiStore } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
@@ -60,7 +54,11 @@ export const StoreOrderProcessingCard = ({ store, onEdit }: StoreOrderProcessing
             placement="bottomRight"
             trigger={["click"]}
           >
-            <Button aria-label="Order processing actions" className={styles.menuButton} icon={<LuEllipsis />} />
+            <Button
+              aria-label="Order processing actions"
+              className={styles.menuButton}
+              icon={<LuEllipsis />}
+            />
           </Dropdown>
         }
         contained
@@ -69,9 +67,21 @@ export const StoreOrderProcessingCard = ({ store, onEdit }: StoreOrderProcessing
       <div className={styles.body}>
         {tile(LuHash, "Order ID preview", orderIdPreview)}
         <div className={styles.automationGrid}>
-          {tile(LuBadgeCheck, "Checkout confirmation", settings.requireCheckoutConfirmation ? "Required" : "Not required")}
-          {tile(LuZap, "Automatic fulfillment", fulfillmentLabels[settings.automaticFulfillmentMode])}
-          {tile(LuArchive, "Automatic archive", settings.automaticallyArchiveOrders ? "After fulfillment or refund" : "Disabled")}
+          {tile(
+            LuBadgeCheck,
+            "Checkout confirmation",
+            settings.requireCheckoutConfirmation ? "Required" : "Not required",
+          )}
+          {tile(
+            LuZap,
+            "Automatic fulfillment",
+            fulfillmentLabels[settings.automaticFulfillmentMode],
+          )}
+          {tile(
+            LuArchive,
+            "Automatic archive",
+            settings.automaticallyArchiveOrders ? "After fulfillment or refund" : "Disabled",
+          )}
         </div>
       </div>
     </Paper>

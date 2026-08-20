@@ -1,8 +1,4 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
@@ -15,10 +11,7 @@ import {
   type ContentExternalReference,
   type NewContentExternalReference,
 } from "../models/index.js";
-import type {
-  OptimisticMutationResult,
-  RepositoryConnectionResult,
-} from "../types.js";
+import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const contentExternalReferenceRelayQuery = createRelayQuery(
   createQuery(contentExternalReference)
@@ -29,7 +22,7 @@ export const contentExternalReferenceRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "reviewContentExternalReference", tieBreaker: "id" }
+  { name: "reviewContentExternalReference", tieBreaker: "id" },
 );
 
 export type ContentExternalReferenceRelayInput = InferRelayInput<
@@ -54,10 +47,7 @@ export type ContentExternalReferencePatch = Partial<
 
 export class ExternalReferenceRepository extends BaseRepository {
   @ReadOnly()
-  async findById(
-    id: string,
-    includeDeleted = false
-  ): Promise<ContentExternalReference | null> {
+  async findById(id: string, includeDeleted = false): Promise<ContentExternalReference | null> {
     const rows = await this.connection
       .select()
       .from(contentExternalReference)
@@ -65,19 +55,15 @@ export class ExternalReferenceRepository extends BaseRepository {
         and(
           eq(contentExternalReference.storeId, this.storeId),
           eq(contentExternalReference.id, id),
-          ...(includeDeleted
-            ? []
-            : [isNull(contentExternalReference.deletedAt)])
-        )
+          ...(includeDeleted ? [] : [isNull(contentExternalReference.deletedAt)]),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
   }
 
   @ReadOnly()
-  async getByIds(
-    ids: readonly string[]
-  ): Promise<ContentExternalReference[]> {
+  async getByIds(ids: readonly string[]): Promise<ContentExternalReference[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -86,15 +72,15 @@ export class ExternalReferenceRepository extends BaseRepository {
         and(
           eq(contentExternalReference.storeId, this.storeId),
           inArray(contentExternalReference.id, [...new Set(ids)]),
-          isNull(contentExternalReference.deletedAt)
-        )
+          isNull(contentExternalReference.deletedAt),
+        ),
       );
   }
 
   @ReadOnly()
   async getConnection(
     args: ContentExternalReferenceRelayInput,
-    contentId?: string
+    contentId?: string,
   ): Promise<RepositoryConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: ContentExternalReferenceRelayInput["where"] = {
@@ -134,7 +120,7 @@ export class ExternalReferenceRepository extends BaseRepository {
     input: Omit<
       NewContentExternalReference,
       "id" | "storeId" | "createdAt" | "updatedAt" | "deletedAt"
-    >
+    >,
   ): Promise<ContentExternalReference> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -157,7 +143,7 @@ export class ExternalReferenceRepository extends BaseRepository {
   async update(
     id: string,
     expectedUpdatedAt: string,
-    patch: ContentExternalReferencePatch
+    patch: ContentExternalReferencePatch,
   ): Promise<OptimisticMutationResult<ContentExternalReference>> {
     const rows = await this.connection
       .update(contentExternalReference)
@@ -167,8 +153,8 @@ export class ExternalReferenceRepository extends BaseRepository {
           eq(contentExternalReference.storeId, this.storeId),
           eq(contentExternalReference.id, id),
           eq(contentExternalReference.updatedAt, expectedUpdatedAt),
-          isNull(contentExternalReference.deletedAt)
-        )
+          isNull(contentExternalReference.deletedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
@@ -185,13 +171,10 @@ export class ExternalReferenceRepository extends BaseRepository {
       eq(contentExternalReference.storeId, this.storeId),
       eq(contentExternalReference.id, input.id),
       eq(contentExternalReference.updatedAt, input.expectedUpdatedAt),
-      isNull(contentExternalReference.deletedAt)
+      isNull(contentExternalReference.deletedAt),
     );
     const rows = input.permanent
-      ? await this.connection
-          .delete(contentExternalReference)
-          .where(conditions)
-          .returning()
+      ? await this.connection.delete(contentExternalReference).where(conditions).returning()
       : await this.connection
           .update(contentExternalReference)
           .set({
@@ -205,11 +188,9 @@ export class ExternalReferenceRepository extends BaseRepository {
   }
 
   private async optimisticMiss(
-    id: string
+    id: string,
   ): Promise<OptimisticMutationResult<ContentExternalReference>> {
     const current = await this.findById(id, true);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 }

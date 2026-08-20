@@ -4,10 +4,7 @@ import { App } from "antd";
 import { useModalStackContext } from "@/layouts/modals";
 import { EntityIdentityModal } from "@/domains/inventory/components/entity-edit-forms";
 import { useUpdateCategory } from "../../hooks";
-import {
-  mapCategoryIdentityToUpdateInput,
-  mapCategoryUserErrorsToFormErrors,
-} from "../../mappers";
+import { mapCategoryIdentityToUpdateInput, mapCategoryUserErrorsToFormErrors } from "../../mappers";
 import type { ICategoryEditIdentityModalPayload } from "../../modals";
 
 export const EditCategoryIdentityModal = () => {

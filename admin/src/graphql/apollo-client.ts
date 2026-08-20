@@ -173,9 +173,7 @@ function createErrorLink(cache: InMemoryCache) {
       return;
     }
 
-    const isUnauthenticated = error.errors.some(
-      (e) => e.extensions?.code === "UNAUTHENTICATED"
-    );
+    const isUnauthenticated = error.errors.some((e) => e.extensions?.code === "UNAUTHENTICATED");
 
     if (!isUnauthenticated) {
       return;

@@ -16,7 +16,7 @@ export interface UserError {
 export class ValidationError extends Error {
   constructor(
     public readonly errors: UserError[],
-    public readonly zodError?: ZodError
+    public readonly zodError?: ZodError,
   ) {
     super("Validation failed");
     this.name = "ValidationError";
@@ -48,7 +48,7 @@ export function ZodSchema<TSchema extends ZodSchemaType>(schema: TSchema) {
   return function <T>(
     _target: object,
     _propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<T>
+    descriptor: TypedPropertyDescriptor<T>,
   ): TypedPropertyDescriptor<T> {
     const originalMethod = descriptor.value as unknown as (
       params: unknown,
@@ -63,10 +63,7 @@ export function ZodSchema<TSchema extends ZodSchemaType>(schema: TSchema) {
       const result = schema.safeParse(params);
 
       if (!result.success) {
-        throw new ValidationError(
-          zodErrorToUserErrors(result.error),
-          result.error
-        );
+        throw new ValidationError(zodErrorToUserErrors(result.error), result.error);
       }
 
       return originalMethod.call(this, result.data, ...args);

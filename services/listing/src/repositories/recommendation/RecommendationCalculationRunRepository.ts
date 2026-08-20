@@ -208,7 +208,10 @@ export class RecommendationCalculationRunRepository extends BaseRepository {
     if (!activated[0]) throw new Error("Recommendation calculation run activation conflict");
   }
 
-  async markFailed(runId: string, code: "CALCULATION_FAILED" | "INVALID_CALCULATION_RESULT"): Promise<void> {
+  async markFailed(
+    runId: string,
+    code: "CALCULATION_FAILED" | "INVALID_CALCULATION_RESULT",
+  ): Promise<void> {
     await this.connection.execute(sql`
       UPDATE listing.recommendation_calculation_run
       SET status = 'FAILED', failure_code = ${code}, completed_at = now()

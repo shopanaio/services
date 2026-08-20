@@ -1,8 +1,4 @@
-import {
-  createPublicKey,
-  verify as verifySignature,
-  type KeyObject,
-} from "node:crypto";
+import { createPublicKey, verify as verifySignature, type KeyObject } from "node:crypto";
 import {
   adminContextAllows as evaluateAdminContextPermission,
   authorizeAdminContext as evaluateAdminContextAuthorization,
@@ -47,37 +43,28 @@ export class AdminContextVerifier {
   private readonly keys: ReadonlyMap<string, KeyObject>;
   private readonly tolerance: number;
 
-  constructor(options: {
-    readonly publicKeys?: Readonly<Record<string, string>>;
-    readonly clockToleranceSeconds?: number;
-  } = {}) {
-    const configured =
-      options.publicKeys ?? readAdminPublicKeysFromEnvironment();
+  constructor(
+    options: {
+      readonly publicKeys?: Readonly<Record<string, string>>;
+      readonly clockToleranceSeconds?: number;
+    } = {},
+  ) {
+    const configured = options.publicKeys ?? readAdminPublicKeysFromEnvironment();
     this.keys = new Map(
       Object.entries(configured).map(([kid, value]) => {
         const key = createPublicKey(normalizeKey(value));
         if (key.asymmetricKeyType !== "ed25519") {
-          throw new Error(
-            `Admin context key "${kid}" must be an Ed25519 public key`,
-          );
+          throw new Error(`Admin context key "${kid}" must be an Ed25519 public key`);
         }
         return [kid, key];
       }),
     );
     if (this.keys.size === 0) {
-      throw new Error(
-        "ADMIN_CONTEXT_PUBLIC_KEYS must contain at least one Ed25519 public key",
-      );
+      throw new Error("ADMIN_CONTEXT_PUBLIC_KEYS must contain at least one Ed25519 public key");
     }
     this.tolerance = options.clockToleranceSeconds ?? 5;
-    if (
-      !Number.isInteger(this.tolerance) ||
-      this.tolerance < 0 ||
-      this.tolerance > 60
-    ) {
-      throw new Error(
-        "Admin context clock tolerance must be an integer between 0 and 60",
-      );
+    if (!Number.isInteger(this.tolerance) || this.tolerance < 0 || this.tolerance > 60) {
+      throw new Error("Admin context clock tolerance must be an integer between 0 and 60");
     }
   }
 
@@ -98,27 +85,15 @@ export class AdminContextVerifier {
     }
     const key = this.keys.get(header.kid);
     if (!key) throw new Error("Unknown admin context key");
-    const input = Buffer.from(
-      `${encodedHeader}.${encodedPayload}`,
-      "ascii",
-    );
-    if (
-      !verifySignature(
-        null,
-        input,
-        key,
-        Buffer.from(encodedSignature, "base64url"),
-      )
-    ) {
+    const input = Buffer.from(`${encodedHeader}.${encodedPayload}`, "ascii");
+    if (!verifySignature(null, input, key, Buffer.from(encodedSignature, "base64url"))) {
       throw new Error("Invalid admin context signature");
     }
     return validateClaims(parseObject(encodedPayload), this.tolerance);
   }
 }
 
-export function parseResolvedAdminAccessContext(
-  value: unknown,
-): ResolvedAdminAccessContext {
+export function parseResolvedAdminAccessContext(value: unknown): ResolvedAdminAccessContext {
   if (!isRecord(value)) {
     throw new Error("Invalid admin context resolver response");
   }
@@ -127,10 +102,7 @@ export function parseResolvedAdminAccessContext(
   const organizationId = nullableString(value.organizationId, 255);
   const store = value.store === null ? null : parseStore(value.store);
   const isSiteAdmin = requiredBoolean(value, "isSiteAdmin");
-  const isOrganizationOwner = requiredBoolean(
-    value,
-    "isOrganizationOwner",
-  );
+  const isOrganizationOwner = requiredBoolean(value, "isOrganizationOwner");
   if (!Array.isArray(value.permissions) || value.permissions.length > 256) {
     throw new Error("Invalid admin context resolver response");
   }
@@ -143,10 +115,7 @@ export function parseResolvedAdminAccessContext(
   if (store) {
     if (
       organizationId !== store.organizationId ||
-      permissions.some(
-        ({ domain }) =>
-          domain !== "org" && domain !== `store:${store.id}`,
-      )
+      permissions.some(({ domain }) => domain !== "org" && domain !== `store:${store.id}`)
     ) {
       throw new Error("Invalid admin context resolver response");
     }
@@ -172,10 +141,7 @@ export function parseResolvedAdminAccessContext(
 }
 
 export function adminContextAllows(
-  context: Pick<
-    AdminContextClaims,
-    "permissions" | "isSiteAdmin" | "isOrganizationOwner"
-  >,
+  context: Pick<AdminContextClaims, "permissions" | "isSiteAdmin" | "isOrganizationOwner">,
   input: {
     readonly domain: string;
     readonly resource: string;
@@ -199,9 +165,7 @@ export function authorizeAdminContext(
   return evaluateAdminContextAuthorization(context, input);
 }
 
-export function readAdminPublicKeysFromEnvironment(): Readonly<
-  Record<string, string>
-> {
+export function readAdminPublicKeysFromEnvironment(): Readonly<Record<string, string>> {
   const value = process.env.ADMIN_CONTEXT_PUBLIC_KEYS;
   if (!value) return Object.freeze({});
   const parsed = JSON.parse(value) as unknown;
@@ -211,9 +175,7 @@ export function readAdminPublicKeysFromEnvironment(): Readonly<
   if (
     Object.entries(parsed).some(
       ([kid, key]) =>
-        !/^[A-Za-z0-9._-]{1,128}$/.test(kid) ||
-        typeof key !== "string" ||
-        !key.trim(),
+        !/^[A-Za-z0-9._-]{1,128}$/.test(kid) || typeof key !== "string" || !key.trim(),
     )
   ) {
     throw new Error("Invalid ADMIN_CONTEXT_PUBLIC_KEYS entry");
@@ -221,10 +183,7 @@ export function readAdminPublicKeysFromEnvironment(): Readonly<
   return Object.freeze(parsed as Record<string, string>);
 }
 
-function validateClaims(
-  value: Record<string, unknown>,
-  tolerance: number,
-): AdminContextClaims {
+function validateClaims(value: Record<string, unknown>, tolerance: number): AdminContextClaims {
   const now = Math.floor(Date.now() / 1_000);
   if (
     value.iss !== ADMIN_CONTEXT_ISSUER ||
@@ -289,10 +248,7 @@ function parseUser(value: unknown): ContextUser {
     throw new Error("Invalid admin context user");
   }
   const email = value.email;
-  if (
-    email !== undefined &&
-    (typeof email !== "string" || !email || email.length > 320)
-  ) {
+  if (email !== undefined && (typeof email !== "string" || !email || email.length > 320)) {
     throw new Error("Invalid admin context user");
   }
   return Object.freeze({
@@ -309,16 +265,12 @@ function parseStore(value: unknown): ContextStore {
   const email = value.email;
   const locales = value.locales;
   if (
-    (email !== null &&
-      (typeof email !== "string" || !email || email.length > 320)) ||
+    (email !== null && (typeof email !== "string" || !email || email.length > 320)) ||
     !Array.isArray(locales) ||
     locales.length === 0 ||
     locales.length > 100 ||
     !locales.every(
-      (locale) =>
-        typeof locale === "string" &&
-        locale.length > 0 &&
-        locale.length <= 255,
+      (locale) => typeof locale === "string" && locale.length > 0 && locale.length <= 255,
     ) ||
     new Set(locales).size !== locales.length
   ) {
@@ -372,17 +324,9 @@ function permissionKey(permission: {
   return `${permission.domain}\0${permission.resource}\0${permission.action}`;
 }
 
-function requiredString(
-  value: Record<string, unknown>,
-  key: string,
-  maxLength: number,
-): string {
+function requiredString(value: Record<string, unknown>, key: string, maxLength: number): string {
   const current = value[key];
-  if (
-    typeof current !== "string" ||
-    current.length === 0 ||
-    current.length > maxLength
-  ) {
+  if (typeof current !== "string" || current.length === 0 || current.length > maxLength) {
     throw new Error("Invalid admin context resolver response");
   }
   return current;
@@ -390,20 +334,13 @@ function requiredString(
 
 function nullableString(value: unknown, maxLength: number): string | null {
   if (value === null) return null;
-  if (
-    typeof value !== "string" ||
-    value.length === 0 ||
-    value.length > maxLength
-  ) {
+  if (typeof value !== "string" || value.length === 0 || value.length > maxLength) {
     throw new Error("Invalid admin context resolver response");
   }
   return value;
 }
 
-function requiredBoolean(
-  value: Record<string, unknown>,
-  key: string,
-): boolean {
+function requiredBoolean(value: Record<string, unknown>, key: string): boolean {
   const current = value[key];
   if (typeof current !== "boolean") {
     throw new Error("Invalid admin context resolver response");
@@ -413,9 +350,7 @@ function requiredBoolean(
 
 function parseObject(value: string): Record<string, unknown> {
   try {
-    const parsed = JSON.parse(
-      Buffer.from(value, "base64url").toString("utf8"),
-    ) as unknown;
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as unknown;
     if (!isRecord(parsed)) throw new Error();
     return parsed;
   } catch {
@@ -424,9 +359,7 @@ function parseObject(value: string): Record<string, unknown> {
 }
 
 function normalizeKey(value: string): string | Buffer {
-  return value.includes("BEGIN PUBLIC KEY")
-    ? value
-    : Buffer.from(value, "base64");
+  return value.includes("BEGIN PUBLIC KEY") ? value : Buffer.from(value, "base64");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

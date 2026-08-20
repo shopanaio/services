@@ -49,21 +49,14 @@ const categoryData: Array<{
   { name: "Books", slug: "books", parentName: "Books & Media" },
 ];
 
-const statuses: ICategoryListItem["status"][] = [
-  "published",
-  "draft",
-  "archived",
-];
+const statuses: ICategoryListItem["status"][] = ["published", "draft", "archived"];
 
-export const mockCategoriesList: ICategoryListItem[] = categoryData.map(
-  (cat, i) => ({
-    id: `cat-${i + 1}`,
-    name: cat.name,
-    slug: cat.slug,
-    status: statuses[i % 7 === 0 ? 1 : i % 11 === 0 ? 2 : 0],
-    productsCount: Math.floor(Math.random() * 200),
-    image:
-      i % 3 === 0 ? null : `https://picsum.photos/seed/cat-${i + 1}/40/40`,
-    parentName: cat.parentName,
-  })
-);
+export const mockCategoriesList: ICategoryListItem[] = categoryData.map((cat, i) => ({
+  id: `cat-${i + 1}`,
+  name: cat.name,
+  slug: cat.slug,
+  status: statuses[i % 7 === 0 ? 1 : i % 11 === 0 ? 2 : 0],
+  productsCount: Math.floor(Math.random() * 200),
+  image: i % 3 === 0 ? null : `https://picsum.photos/seed/cat-${i + 1}/40/40`,
+  parentName: cat.parentName,
+}));

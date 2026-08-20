@@ -1,10 +1,16 @@
 type Query {
-  """The store selected by the trusted storefront request context."""
+  """
+  The store selected by the trusted storefront request context.
+  """
   store: Store!
 
-  """Localization resolved for the current storefront request."""
+  """
+  Localization resolved for the current storefront request.
+  """
   localization: Localization!
 
-  """An active storefront market by its stable handle."""
+  """
+  An active storefront market by its stable handle.
+  """
   market(handle: String!): Market
 }

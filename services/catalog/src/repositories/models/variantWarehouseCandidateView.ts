@@ -1,15 +1,10 @@
 import { sql } from "drizzle-orm";
-import {
-  boolean,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { boolean, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { catalogSchema, localeCodeEnum } from "./schema";
 
-export const variantWarehouseCandidateView = catalogSchema
-  .view("variant_warehouse_candidate_view", {
+export const variantWarehouseCandidateView = catalogSchema.view(
+  "variant_warehouse_candidate_view",
+  {
     storeId: uuid("store_id").notNull(),
     warehouseScopeId: uuid("warehouse_scope_id").notNull(),
     productId: uuid("product_id").notNull(),
@@ -35,8 +30,8 @@ export const variantWarehouseCandidateView = catalogSchema
       mode: "string",
     }),
     inventoryItemId: uuid("inventory_item_id"),
-  })
-  .as(sql`
+  },
+).as(sql`
     SELECT
       variant.store_id,
       warehouse.id AS warehouse_scope_id,
@@ -73,5 +68,4 @@ export const variantWarehouseCandidateView = catalogSchema
     WHERE stock.id IS NULL
   `);
 
-export type VariantWarehouseCandidateView =
-  typeof variantWarehouseCandidateView.$inferSelect;
+export type VariantWarehouseCandidateView = typeof variantWarehouseCandidateView.$inferSelect;

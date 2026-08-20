@@ -6,10 +6,7 @@ describe("final delivery validation", () => {
     expect(
       validateFinalDelivery(
         preliminary(["line-a", "line-b"]),
-        delivery([
-          group("group-a", ["line-a"], 40n),
-          group("group-b", ["line-b"], 60n),
-        ]),
+        delivery([group("group-a", ["line-a"], 40n), group("group-b", ["line-b"], 60n)]),
         "USD",
       ),
     ).toBe(100n);
@@ -19,10 +16,7 @@ describe("final delivery validation", () => {
     expect(() =>
       validateFinalDelivery(
         preliminary(["line-a", "line-b"]),
-        delivery([
-          group("duplicate", ["line-a"], 40n),
-          group("duplicate", ["line-b"], 60n),
-        ]),
+        delivery([group("duplicate", ["line-a"], 40n), group("duplicate", ["line-b"], 60n)]),
         "USD",
       ),
     ).toThrow("Duplicate delivery group ID");
@@ -40,10 +34,7 @@ describe("final delivery validation", () => {
     expect(() =>
       validateFinalDelivery(
         preliminary(["line-a", "line-b"]),
-        delivery([
-          group("group-a", ["line-a"], 40n),
-          group("group-b", ["line-a", "line-b"], 60n),
-        ]),
+        delivery([group("group-a", ["line-a"], 40n), group("group-b", ["line-a", "line-b"], 60n)]),
         "USD",
       ),
     ).toThrow("Duplicate delivery group line assignment");
@@ -74,13 +65,15 @@ function group(
   return {
     groupId,
     lineIds,
-    options: [{
-      handle: "selected",
-      code: "standard",
-      carrierCode: null,
-      deliveryMethodType: "SHIPPING",
-      cost: { amountMinor: cost.toString(), currencyCode: "USD" },
-    }],
+    options: [
+      {
+        handle: "selected",
+        code: "standard",
+        carrierCode: null,
+        deliveryMethodType: "SHIPPING",
+        cost: { amountMinor: cost.toString(), currencyCode: "USD" },
+      },
+    ],
     selectedOptionHandle: "selected",
   };
 }

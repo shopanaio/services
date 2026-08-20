@@ -76,9 +76,7 @@ export class OrganizationRepository extends BaseRepository {
    * Create a new organization
    */
   @Transactional()
-  async create(
-    input: OrganizationCreateInput
-  ): Promise<OrganizationCreateResult> {
+  async create(input: OrganizationCreateInput): Promise<OrganizationCreateResult> {
     const { name, displayName } = input;
 
     try {
@@ -108,10 +106,7 @@ export class OrganizationRepository extends BaseRepository {
       return {
         success: false,
         organization: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to create organization",
+        error: error instanceof Error ? error.message : "Failed to create organization",
       };
     }
   }
@@ -148,7 +143,7 @@ export class OrganizationRepository extends BaseRepository {
   @Transactional()
   async update(
     id: string,
-    updates: { name?: string; displayName?: string }
+    updates: { name?: string; displayName?: string },
   ): Promise<Organization | null> {
     const [result] = await this.connection
       .update(organization)
@@ -163,10 +158,7 @@ export class OrganizationRepository extends BaseRepository {
    * Update organization logo
    */
   @Transactional()
-  async updateLogo(
-    id: string,
-    logoId: string | null
-  ): Promise<Organization | null> {
+  async updateLogo(id: string, logoId: string | null): Promise<Organization | null> {
     const [result] = await this.connection
       .update(organization)
       .set({ logoId, updatedAt: new Date() })
@@ -196,12 +188,7 @@ export class OrganizationRepository extends BaseRepository {
     await this.connection
       .update(application)
       .set({ deletedAt: applicationNow, updatedAt: applicationNow })
-      .where(
-        and(
-          eq(application.organizationId, id),
-          isNull(application.deletedAt)
-        )
-      );
+      .where(and(eq(application.organizationId, id), isNull(application.deletedAt)));
 
     return true;
   }
@@ -233,18 +220,15 @@ export class OrganizationRepository extends BaseRepository {
    * Find organization member
    */
   @ReadOnly()
-  async findMember(
-    organizationId: string,
-    userId: string
-  ): Promise<OrganizationMember | null> {
+  async findMember(organizationId: string, userId: string): Promise<OrganizationMember | null> {
     const [result] = await this.connection
       .select()
       .from(organizationMember)
       .where(
         and(
           eq(organizationMember.organizationId, organizationId),
-          eq(organizationMember.userId, userId)
-        )
+          eq(organizationMember.userId, userId),
+        ),
       );
 
     return result ?? null;
@@ -270,8 +254,8 @@ export class OrganizationRepository extends BaseRepository {
       .where(
         and(
           eq(organizationMember.organizationId, organizationId),
-          eq(organizationMember.userId, userId)
-        )
+          eq(organizationMember.userId, userId),
+        ),
       )
       .returning({ id: organizationMember.id });
 
@@ -289,8 +273,8 @@ export class OrganizationRepository extends BaseRepository {
       .where(
         and(
           eq(organizationMember.organizationId, organizationId),
-          eq(organizationMember.isOwner, true)
-        )
+          eq(organizationMember.isOwner, true),
+        ),
       );
 
     return result ?? null;
@@ -313,7 +297,7 @@ export class OrganizationRepository extends BaseRepository {
   @Transactional()
   async transferOwnership(
     organizationId: string,
-    newOwnerId: string
+    newOwnerId: string,
   ): Promise<{ success: boolean; error?: string }> {
     // Find current owner
     const currentOwner = await this.findOwner(organizationId);
@@ -355,16 +339,8 @@ export class OrganizationRepository extends BaseRepository {
         organization: organization,
       })
       .from(organizationMember)
-      .innerJoin(
-        organization,
-        eq(organizationMember.organizationId, organization.id)
-      )
-      .where(
-        and(
-          eq(organizationMember.userId, userId),
-          isNull(organization.deletedAt)
-        )
-      );
+      .innerJoin(organization, eq(organizationMember.organizationId, organization.id))
+      .where(and(eq(organizationMember.userId, userId), isNull(organization.deletedAt)));
 
     return members.map((m) => m.organization);
   }
@@ -377,16 +353,8 @@ export class OrganizationRepository extends BaseRepository {
     const [result] = await this.connection
       .select({ count: count() })
       .from(organizationMember)
-      .innerJoin(
-        organization,
-        eq(organizationMember.organizationId, organization.id)
-      )
-      .where(
-        and(
-          eq(organizationMember.userId, userId),
-          isNull(organization.deletedAt)
-        )
-      );
+      .innerJoin(organization, eq(organizationMember.organizationId, organization.id))
+      .where(and(eq(organizationMember.userId, userId), isNull(organization.deletedAt)));
 
     return result?.count ?? 0;
   }
@@ -398,9 +366,7 @@ export class OrganizationRepository extends BaseRepository {
    * Simple offset-based pagination for now (cursor encoding can be added later).
    */
   @ReadOnly()
-  async getConnection(
-    args: OrganizationRelayInput
-  ): Promise<OrganizationConnectionResult> {
+  async getConnection(args: OrganizationRelayInput): Promise<OrganizationConnectionResult> {
     const { userId, first, after, last, before } = args;
 
     // Return empty for unauthenticated users (empty userId)
@@ -441,13 +407,13 @@ export class OrganizationRepository extends BaseRepository {
 
     if (after) {
       // Find index after the cursor
-      const afterIndex = userOrgs.findIndex(org => org.id === after);
+      const afterIndex = userOrgs.findIndex((org) => org.id === after);
       if (afterIndex !== -1) {
         startIndex = afterIndex + 1;
       }
     } else if (before) {
       // Find index before the cursor
-      const beforeIndex = userOrgs.findIndex(org => org.id === before);
+      const beforeIndex = userOrgs.findIndex((org) => org.id === before);
       if (beforeIndex !== -1) {
         startIndex = Math.max(0, beforeIndex - limit);
       }
@@ -486,7 +452,7 @@ export class OrganizationRepository extends BaseRepository {
   async findUserRole(
     organizationId: string,
     userId: string,
-    domain: string
+    domain: string,
   ): Promise<UserRole | null> {
     const [result] = await this.connection
       .select()
@@ -495,8 +461,8 @@ export class OrganizationRepository extends BaseRepository {
         and(
           eq(userRole.organizationId, organizationId),
           eq(userRole.userId, userId),
-          eq(userRole.domain, domain)
-        )
+          eq(userRole.domain, domain),
+        ),
       );
 
     return result ?? null;
@@ -506,19 +472,11 @@ export class OrganizationRepository extends BaseRepository {
    * Get all user roles for a domain
    */
   @ReadOnly()
-  async getUserRolesByDomain(
-    organizationId: string,
-    domain: string
-  ): Promise<UserRole[]> {
+  async getUserRolesByDomain(organizationId: string, domain: string): Promise<UserRole[]> {
     return this.connection
       .select()
       .from(userRole)
-      .where(
-        and(
-          eq(userRole.organizationId, organizationId),
-          eq(userRole.domain, domain)
-        )
-      );
+      .where(and(eq(userRole.organizationId, organizationId), eq(userRole.domain, domain)));
   }
 
   /**
@@ -550,10 +508,7 @@ export class OrganizationRepository extends BaseRepository {
    * Update user role assignment
    */
   @Transactional()
-  async updateUserRole(
-    userRoleId: string,
-    newRoleId: string
-  ): Promise<UserRole | null> {
+  async updateUserRole(userRoleId: string, newRoleId: string): Promise<UserRole | null> {
     const [result] = await this.connection
       .update(userRole)
       .set({ roleId: newRoleId })
@@ -619,7 +574,7 @@ export class OrganizationRepository extends BaseRepository {
       displayName?: string;
       description?: string;
       isSystem?: boolean;
-    }>
+    }>,
   ): Promise<Role[]> {
     if (inputs.length === 0) {
       return [];
@@ -635,7 +590,7 @@ export class OrganizationRepository extends BaseRepository {
           displayName: input.displayName,
           description: input.description,
           isSystem: input.isSystem ?? false,
-        }))
+        })),
       )
       .returning();
   }
@@ -644,20 +599,12 @@ export class OrganizationRepository extends BaseRepository {
    * Find role by organization, domain and name
    */
   @ReadOnly()
-  async findRole(
-    organizationId: string,
-    domain: string,
-    name: string
-  ): Promise<Role | null> {
+  async findRole(organizationId: string, domain: string, name: string): Promise<Role | null> {
     const [result] = await this.connection
       .select()
       .from(role)
       .where(
-        and(
-          eq(role.organizationId, organizationId),
-          eq(role.domain, domain),
-          eq(role.name, name)
-        )
+        and(eq(role.organizationId, organizationId), eq(role.domain, domain), eq(role.name, name)),
       );
 
     return result ?? null;
@@ -667,26 +614,18 @@ export class OrganizationRepository extends BaseRepository {
    * Get all roles for a domain
    */
   @ReadOnly()
-  async getRolesByDomain(
-    organizationId: string,
-    domain: string
-  ): Promise<Role[]> {
+  async getRolesByDomain(organizationId: string, domain: string): Promise<Role[]> {
     return this.connection
       .select()
       .from(role)
-      .where(
-        and(eq(role.organizationId, organizationId), eq(role.domain, domain))
-      );
+      .where(and(eq(role.organizationId, organizationId), eq(role.domain, domain)));
   }
 
   /**
    * Find role by ID
    */
   @ReadOnly()
-  async findRoleById(
-    organizationId: string,
-    roleId: string
-  ): Promise<Role | null> {
+  async findRoleById(organizationId: string, roleId: string): Promise<Role | null> {
     const [result] = await this.connection
       .select()
       .from(role)
@@ -705,7 +644,7 @@ export class OrganizationRepository extends BaseRepository {
     updates: {
       displayName?: string;
       description?: string;
-    }
+    },
   ): Promise<Role | null> {
     const [result] = await this.connection
       .update(role)
@@ -720,10 +659,7 @@ export class OrganizationRepository extends BaseRepository {
    * Delete role
    */
   @Transactional()
-  async deleteRole(
-    organizationId: string,
-    roleId: string
-  ): Promise<{ name: string } | null> {
+  async deleteRole(organizationId: string, roleId: string): Promise<{ name: string } | null> {
     const [result] = await this.connection
       .delete(role)
       .where(and(eq(role.organizationId, organizationId), eq(role.id, roleId)))

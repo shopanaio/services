@@ -1,12 +1,4 @@
-import {
-  uuid,
-  varchar,
-  integer,
-  timestamp,
-  index,
-  unique,
-  check,
-} from "drizzle-orm/pg-core";
+import { uuid, varchar, integer, timestamp, index, unique, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 import { warehouses } from "./stock";
@@ -14,7 +6,9 @@ import { warehouses } from "./stock";
 export const inboundSupply = catalogSchema.table(
   "inbound_supply",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     variantId: uuid("variant_id").notNull(),
     warehouseId: uuid("warehouse_id")
@@ -31,23 +25,20 @@ export const inboundSupply = catalogSchema.table(
   },
   (table) => [
     check("inbound_supply_qty_expected_check", sql`${table.qtyExpected} > 0`),
-    check(
-      "inbound_supply_qty_received_check",
-      sql`${table.qtyReceived} >= 0`
-    ),
+    check("inbound_supply_qty_received_check", sql`${table.qtyReceived} >= 0`),
     unique("inbound_supply_store_source_variant_warehouse_key").on(
       table.storeId,
       table.sourceType,
       table.sourceId,
       table.variantId,
-      table.warehouseId
+      table.warehouseId,
     ),
     index("idx_inbound_supply_variant_date").on(
       table.variantId,
       table.warehouseId,
-      table.expectedAt
+      table.expectedAt,
     ),
-  ]
+  ],
 );
 
 export type InboundSupply = typeof inboundSupply.$inferSelect;

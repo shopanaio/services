@@ -5,19 +5,14 @@ import {
   type HeadlessStorefrontConnectionModel,
   type HeadlessStorefrontConnectionStatus,
 } from "./models/index.js";
-import type {
-  HeadlessStorefrontConnectionRecord,
-  HeadlessStorefrontScope,
-} from "./types.js";
+import type { HeadlessStorefrontConnectionRecord, HeadlessStorefrontScope } from "./types.js";
 
 export interface CreateHeadlessStorefrontConnectionInput {
   readonly displayName: string;
   readonly createdById?: string;
 }
 
-export class HeadlessStorefrontConnectionRepository
-  extends BaseRepository
-{
+export class HeadlessStorefrontConnectionRepository extends BaseRepository {
   async create(
     scope: HeadlessStorefrontScope,
     input: CreateHeadlessStorefrontConnectionInput,
@@ -66,32 +61,20 @@ export class HeadlessStorefrontConnectionRepository
   ): Promise<readonly HeadlessStorefrontConnectionRecord[]> {
     const statusCondition =
       statuses && statuses.length > 0
-        ? inArray(
-            headlessStorefrontConnections.status,
-            [...new Set(statuses)],
-          )
+        ? inArray(headlessStorefrontConnections.status, [...new Set(statuses)])
         : undefined;
     const rows = await this.connection
       .select()
       .from(headlessStorefrontConnections)
       .where(
         and(
-          eq(
-            headlessStorefrontConnections.installationId,
-            scope.installationId,
-          ),
-          eq(
-            headlessStorefrontConnections.organizationId,
-            scope.organizationId,
-          ),
+          eq(headlessStorefrontConnections.installationId, scope.installationId),
+          eq(headlessStorefrontConnections.organizationId, scope.organizationId),
           eq(headlessStorefrontConnections.storeId, scope.storeId),
           statusCondition,
         ),
       )
-      .orderBy(
-        asc(headlessStorefrontConnections.createdAt),
-        asc(headlessStorefrontConnections.id),
-      );
+      .orderBy(asc(headlessStorefrontConnections.createdAt), asc(headlessStorefrontConnections.id));
     return Object.freeze(rows.map(mapConnection));
   }
 
@@ -182,9 +165,7 @@ export class HeadlessStorefrontConnectionRepository
   }
 }
 
-function mapConnection(
-  row: HeadlessStorefrontConnectionModel,
-): HeadlessStorefrontConnectionRecord {
+function mapConnection(row: HeadlessStorefrontConnectionModel): HeadlessStorefrontConnectionRecord {
   return Object.freeze({ ...row });
 }
 
@@ -192,9 +173,7 @@ function requiredRow(
   row: HeadlessStorefrontConnectionModel | undefined,
 ): HeadlessStorefrontConnectionModel {
   if (!row) {
-    throw new Error(
-      "Headless storefront connection was not returned by PostgreSQL",
-    );
+    throw new Error("Headless storefront connection was not returned by PostgreSQL");
   }
   return row;
 }

@@ -1,10 +1,5 @@
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-} from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { Vendor } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 
@@ -13,9 +8,7 @@ export class VendorResolver extends CatalogType<string, Vendor> {
   async $preload() {
     const vendor = await this.$ctx.loaders.vendor.load(this.$props);
     if (!vendor) {
-      throw new PreloadNotFoundError(
-        `Vendor with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Vendor with ID ${this.$props} not found`);
     }
     return vendor;
   }

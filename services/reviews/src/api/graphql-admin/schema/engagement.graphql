@@ -1,4 +1,6 @@
-"""Read-only admin view of a storefront reaction."""
+"""
+Read-only admin view of a storefront reaction.
+"""
 type ReviewContentVote implements Node @key(fields: "id") {
   id: ID!
   content: ReviewContent!

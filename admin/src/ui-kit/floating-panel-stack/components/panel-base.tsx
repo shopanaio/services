@@ -36,19 +36,11 @@ export interface PanelBaseProps {
   style?: React.CSSProperties;
 }
 
-export function PanelBase({
-  children,
-  className,
-  width = 600,
-  style,
-}: PanelBaseProps) {
+export function PanelBase({ children, className, width = 600, style }: PanelBaseProps) {
   const { styles, cx } = useStyles();
 
   return (
-    <div
-      className={cx(styles.panel, className)}
-      style={{ width, ...style }}
-    >
+    <div className={cx(styles.panel, className)} style={{ width, ...style }}>
       {children}
     </div>
   );

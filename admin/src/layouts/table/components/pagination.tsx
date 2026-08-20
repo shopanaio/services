@@ -1,5 +1,5 @@
-import { createStyles } from 'antd-style';
-import { Flex, Pagination, Select, Typography } from 'antd';
+import { createStyles } from "antd-style";
+import { Flex, Pagination, Select, Typography } from "antd";
 
 const useStyles = createStyles(({ token }) => ({
   pagination: {
@@ -25,7 +25,7 @@ export const TablePagination = ({
   total,
   onChangePage,
   onChangePageSize,
-  rowsPerPageLabel = 'Rows per page',
+  rowsPerPageLabel = "Rows per page",
 }: ITablePaginationProps) => {
   const { styles } = useStyles();
 

@@ -2,16 +2,14 @@
 
 ## Цель
 
-Спроектировать секцию `Search` для страницы Discovery Settings и описать её
-интеграцию с существующим GraphQL API.
+Спроектировать секцию `Search` для страницы Discovery Settings и описать её интеграцию с
+существующим GraphQL API.
 
-На странице также будет секция настроек фильтров, но её UI, поведение и API
-integration не входят в этот документ. В wireframe для неё зарезервировано
-только место.
+На странице также будет секция настроек фильтров, но её UI, поведение и API integration не входят в
+этот документ. В wireframe для неё зарезервировано только место.
 
-Search-блок должен визуально соответствовать секциям существующих Admin UI
-модалок: `Paper`, `PaperHeader`, стандартные Ant Design controls, `Alert` и
-`Skeleton`.
+Search-блок должен визуально соответствовать секциям существующих Admin UI модалок: `Paper`,
+`PaperHeader`, стандартные Ant Design controls, `Alert` и `Skeleton`.
 
 Документ опирается на:
 
@@ -60,9 +58,8 @@ flowchart TD
   B --> B3["Out-of-stock policy"]
 ```
 
-`DataLayout` владеет page header и основным scroll-контейнером. Search
-рендерится отдельным `Paper`. Секция Filters располагается ниже, но её состав
-здесь не определяется.
+`DataLayout` владеет page header и основным scroll-контейнером. Search рендерится отдельным `Paper`.
+Секция Filters располагается ниже, но её состав здесь не определяется.
 
 ## Desktop wireframe
 
@@ -107,39 +104,34 @@ flowchart TD
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Filters placeholder показывает только положение второй секции. Текст
-`Separate design` не является предложенным production empty state.
+Filters placeholder показывает только положение второй секции. Текст `Separate design` не является
+предложенным production empty state.
 
-Контент страницы ограничен `max-width: 1000px`, как в существующем
-`SettingsLayout`. Для Search используется стандартный `Paper` без повторного
-создания border, radius и shadow в page styles.
+Контент страницы ограничен `max-width: 1000px`, как в существующем `SettingsLayout`. Для Search
+используется стандартный `Paper` без повторного создания border, radius и shadow в page styles.
 
 ## Header и save action
 
 - Title: `Discovery settings`.
 - Subtitle: `Configure storefront discovery.`
 - Primary action: `Save changes`.
-- Это page-level action: она сохраняет все editable секции страницы. Пока
-  editable является только Search, submit содержит только Search. Editable
-  Filters нельзя добавлять без включения её dirty state, validation и submit в
-  тот же page-level orchestration.
-- При неинициализированных settings label единственной primary action меняется
-  на `Initialize search`. Внутри Search Paper в этом состоянии второй submit
-  button не показывается.
-- `Save changes` disabled, пока Search form не dirty, выполняется query/mutation
-  либо есть client-side ошибки.
+- Это page-level action: она сохраняет все editable секции страницы. Пока editable является только
+  Search, submit содержит только Search. Editable Filters нельзя добавлять без включения её dirty
+  state, validation и submit в тот же page-level orchestration.
+- При неинициализированных settings label единственной primary action меняется на
+  `Initialize search`. Внутри Search Paper в этом состоянии второй submit button не показывается.
+- `Save changes` disabled, пока Search form не dirty, выполняется query/mutation либо есть
+  client-side ошибки.
 - `Initialize search` доступна после загрузки валидного initial draft.
 - Во время mutation кнопка показывает loading и запрещает повторный submit.
 - Успех показывает toast `Search settings saved.` и сбрасывает dirty state.
 
-При появлении editable Filters label остаётся `Save changes`, а disabled/loading
-state вычисляется из всех editable секций. Частичное сохранение одной секции
-глобальной кнопкой запрещено.
+При появлении editable Filters label остаётся `Save changes`, а disabled/loading state вычисляется
+из всех editable секций. Частичное сохранение одной секции глобальной кнопкой запрещено.
 
-Если form dirty, переход на другой route, browser back/forward или закрытие
-страницы требует подтверждения потери изменений. Guard снимается после
-успешного submit или явного discard. Во время mutation повторная навигация и
-submit блокируются.
+Если form dirty, переход на другой route, browser back/forward или закрытие страницы требует
+подтверждения потери изменений. Guard снимается после успешного submit или явного discard. Во время
+mutation повторная навигация и submit блокируются.
 
 ## Search Paper
 
@@ -147,12 +139,12 @@ submit блокируются.
 
 Каждая строка соответствует одному значению `SearchField`:
 
-| API value | Label | Help text | Default weight |
-|---|---|---|---:|
-| `PRODUCT_TITLE` | Product title | Main product name shown in the storefront. | 8 |
-| `VARIANT_TITLE` | Variant title | Variant-specific title and identifying text. | 5 |
-| `VENDOR_NAME` | Vendor name | Brand or supplier name. | 2 |
-| `CATEGORY_NAME` | Category name | Category assigned to the product. | 1 |
+| API value       | Label         | Help text                                    | Default weight |
+| --------------- | ------------- | -------------------------------------------- | -------------: |
+| `PRODUCT_TITLE` | Product title | Main product name shown in the storefront.   |              8 |
+| `VARIANT_TITLE` | Variant title | Variant-specific title and identifying text. |              5 |
+| `VENDOR_NAME`   | Vendor name   | Brand or supplier name.                      |              2 |
+| `CATEGORY_NAME` | Category name | Category assigned to the product.            |              1 |
 
 Строка содержит:
 
@@ -168,19 +160,17 @@ submit блокируются.
 - draft сохраняет последнее значение weight при выключении поля;
 - минимум одно поле должно оставаться включённым;
 - последнее поле разрешено выключить, после чего группа показывает
-  `At least one search field must be enabled.`, Save становится disabled, а
-  пользователь может включить любое поле обратно;
-- group error получает `role="alert"`, а все field switches связаны с ним через
-  `aria-describedby`;
+  `At least one search field must be enabled.`, Save становится disabled, а пользователь может
+  включить любое поле обратно;
+- group error получает `role="alert"`, а все field switches связаны с ним через `aria-describedby`;
 - порядок строк фиксирован registry-порядком API;
 - drag-and-drop не используется;
-- weight является относительным коэффициентом, поэтому UI не нормализует сумму
-  и не показывает проценты.
+- weight является относительным коэффициентом, поэтому UI не нормализует сумму и не показывает
+  проценты.
 
-`InputNumber` использует `min={0.01}`, `max={100}`, `step={0.1}` и precision до
-двух знаков после десятичного разделителя. Decimal separator следует текущей
-Ant Design locale. Значение из paste или ручного ввода дополнительно проверяется
-schema как конечное число в диапазоне `(0, 100]`.
+`InputNumber` использует `min={0.01}`, `max={100}`, `step={0.1}` и precision до двух знаков после
+десятичного разделителя. Decimal separator следует текущей Ant Design locale. Значение из paste или
+ручного ввода дополнительно проверяется schema как конечное число в диапазоне `(0, 100]`.
 
 Form draft хранит все известные поля, включая выключенные:
 
@@ -210,28 +200,25 @@ Help text:
 Retry eligible searches with typo expansion when exact search is weak.
 ```
 
-UI не обещает исправление каждого запроса и не воспроизводит server-side typo
-algorithm.
+UI не обещает исправление каждого запроса и не воспроизводит server-side typo algorithm.
 
 ### Out-of-stock policy
 
-Используется вертикальный `Radio.Group`, поскольку варианты
-взаимоисключающие:
+Используется вертикальный `Radio.Group`, поскольку варианты взаимоисключающие:
 
-| UI label | API value | Поведение |
-|---|---|---|
-| Show in relevance order | `SHOW` | Availability не меняет search ordering. |
+| UI label                      | API value    | Поведение                                             |
+| ----------------------------- | ------------ | ----------------------------------------------------- |
+| Show in relevance order       | `SHOW`       | Availability не меняет search ordering.               |
 | Show after available products | `PLACE_LAST` | Недоступные товары остаются в выдаче после доступных. |
-| Hide from search results | `HIDE` | Недоступные товары исключаются из search membership. |
+| Hide from search results      | `HIDE`       | Недоступные товары исключаются из search membership.  |
 
-UI не вычисляет availability самостоятельно и не связывает policy напрямую с
-quantity. Источник истины — canonical listing availability.
+UI не вычисляет availability самостоятельно и не связывает policy напрямую с quantity. Источник
+истины — canonical listing availability.
 
 ### Metadata
 
-Внизу Search Paper вторичным текстом показывается
-`Updated <formatted updatedAt>`. Version является внутренним optimistic
-concurrency token и в пользовательском UI не отображается.
+Внизу Search Paper вторичным текстом показывается `Updated <formatted updatedAt>`. Version является
+внутренним optimistic concurrency token и в пользовательском UI не отображается.
 
 ## Loading и initialization states
 
@@ -240,13 +227,11 @@ concurrency token и в пользовательском UI не отображ�
 - Header отображается сразу.
 - Search Paper показывает `Skeleton` с геометрией будущих field rows.
 - Save disabled.
-- При background refetch сохраняется `previousData`; fullscreen spinner не
-  нужен.
+- При background refetch сохраняется `previousData`; fullscreen spinner не нужен.
 
 ### Settings не инициализированы
 
-`listingQuery.search.settings === null` является отдельным состоянием, а не
-transport error.
+`listingQuery.search.settings === null` является отдельным состоянием, а не transport error.
 
 Search Paper показывает явный initialize flow:
 
@@ -274,17 +259,16 @@ Initial draft:
 }
 ```
 
-Значения повторяют текущие `SearchFieldRegistry` и store initialization
-handler. Они показаны пользователю до submit и могут быть изменены.
+Значения повторяют текущие `SearchFieldRegistry` и store initialization handler. Они показаны
+пользователю до submit и могут быть изменены.
 
-Initialize вызывает существующую `settingsUpdate` mutation с
-`expectedVersion: 0`. После успеха API возвращает settings с `version: 1`.
+Initialize вызывает существующую `settingsUpdate` mutation с `expectedVersion: 0`. После успеха API
+возвращает settings с `version: 1`.
 
 ### Query error
 
-При query error Search Paper показывает retryable `Alert` и `Retry`. Client не
-подставляет initial defaults, потому что error нельзя трактовать как
-`settings === null`.
+При query error Search Paper показывает retryable `Alert` и `Retry`. Client не подставляет initial
+defaults, потому что error нельзя трактовать как `settings === null`.
 
 ## Validation и error states
 
@@ -299,22 +283,22 @@ Initialize вызывает существующую `settingsUpdate` mutation �
 
 ### API error mapping
 
-| API field suffix | UI target |
-|---|---|
-| `input.fields` | Searchable fields group |
-| `input.fields.<index>.field` | соответствующая field row |
+| API field suffix              | UI target                           |
+| ----------------------------- | ----------------------------------- |
+| `input.fields`                | Searchable fields group             |
+| `input.fields.<index>.field`  | соответствующая field row           |
 | `input.fields.<index>.weight` | weight input отправленной field row |
-| `input.typoToleranceEnabled` | Typo tolerance row |
-| `input.outOfStockPolicy` | Out-of-stock group |
-| `expectedVersion` | version conflict alert |
-| unknown / empty | Search Paper alert |
+| `input.typoToleranceEnabled`  | Typo tolerance row                  |
+| `input.outOfStockPolicy`      | Out-of-stock group                  |
+| `expectedVersion`             | version conflict alert              |
+| unknown / empty               | Search Paper alert                  |
 
-Поскольку mapper удаляет disabled fields, API index относится к отправленному
-массиву. Mapper submit должен сохранить lookup `submittedIndex → SearchField`,
-чтобы `fields.1.weight` отображалась на правильной строке полного draft.
+Поскольку mapper удаляет disabled fields, API index относится к отправленному массиву. Mapper submit
+должен сохранить lookup `submittedIndex → SearchField`, чтобы `fields.1.weight` отображалась на
+правильной строке полного draft.
 
-Network и unexpected errors показываются в Search Paper `Alert` с
-`role="alert"`. Draft не сбрасывается.
+Network и unexpected errors показываются в Search Paper `Alert` с `role="alert"`. Draft не
+сбрасывается.
 
 ### Version conflict
 
@@ -325,14 +309,14 @@ These search settings changed after the page was opened.
 [Reload latest settings]
 ```
 
-Автоматический retry с новой version запрещён. Если form dirty, reload требует
-подтверждение перед заменой draft. Save disabled до успешной загрузки актуальных
-settings. После reload кнопка снова включается только после нового изменения.
+Автоматический retry с новой version запрещён. Если form dirty, reload требует подтверждение перед
+заменой draft. Save disabled до успешной загрузки актуальных settings. После reload кнопка снова
+включается только после нового изменения.
 
 ## GraphQL read integration
 
-Текущий `SearchSettingsEditorFields` содержит только `version` и `updatedAt`.
-Для Search form fragment расширяется editable fields:
+Текущий `SearchSettingsEditorFields` содержит только `version` и `updatedAt`. Для Search form
+fragment расширяется editable fields:
 
 ```graphql
 fragment SearchSettingsEditorFields on SearchSettings {
@@ -361,25 +345,18 @@ query SearchSettingsEditor {
 }
 ```
 
-Компоненты получают `ApiSearchSettings` и другие generated API types напрямую
-из `@/graphql/types`. Отдельная API-output view model не создаётся. Form draft
-остаётся UI-local моделью.
+Компоненты получают `ApiSearchSettings` и другие generated API types напрямую из `@/graphql/types`.
+Отдельная API-output view model не создаётся. Form draft остаётся UI-local моделью.
 
 ## GraphQL write integration
 
 Используется существующая mutation:
 
 ```graphql
-mutation SearchSettingsUpdate(
-  $expectedVersion: Int!
-  $operations: SearchSettingsOperationsInput!
-) {
+mutation SearchSettingsUpdate($expectedVersion: Int!, $operations: SearchSettingsOperationsInput!) {
   listingMutation {
     search {
-      settingsUpdate(
-        expectedVersion: $expectedVersion
-        operations: $operations
-      ) {
+      settingsUpdate(expectedVersion: $expectedVersion, operations: $operations) {
         settings {
           ...SearchSettingsEditorFields
         }
@@ -419,20 +396,18 @@ Update variables:
 Submit flow:
 
 1. Выполнить client validation.
-2. Построить полный replacement `operations.settings`; mutation не является
-   patch.
-3. Для update взять `expectedVersion` из последнего загруженного
-   `SearchSettings.version`; для initialization использовать `0`.
-4. Найти в `operationResults` результат с `type === SETTINGS_UPDATE`. Считать
-   submit успешным только если payload и этот result существуют, `userErrors`
-   пуст, `result.applied === true`, а `result.errors` пусты. Пустой массив или
-   отсутствие matching result не являются успехом.
+2. Построить полный replacement `operations.settings`; mutation не является patch.
+3. Для update взять `expectedVersion` из последнего загруженного `SearchSettings.version`; для
+   initialization использовать `0`.
+4. Найти в `operationResults` результат с `type === SETTINGS_UPDATE`. Считать submit успешным только
+   если payload и этот result существуют, `userErrors` пуст, `result.applied === true`, а
+   `result.errors` пусты. Пустой массив или отсутствие matching result не являются успехом.
 5. Заменить form baseline данными `payload.settings`.
 6. Сбросить dirty state и показать success toast.
 7. Не закрывать страницу и не выполнять navigation.
 
-Mutation возвращает расширенный `SearchSettingsEditorFields`, чтобы получить
-canonical fields, новую version и `updatedAt` без обязательного refetch.
+Mutation возвращает расширенный `SearchSettingsEditorFields`, чтобы получить canonical fields, новую
+version и `updatedAt` без обязательного refetch.
 
 ## Frontend ownership
 
@@ -462,40 +437,37 @@ admin/src/domains/discovery/search/
       types.ts
 ```
 
-- `page.tsx` владеет page composition, Search dirty state, notification и
-  submit orchestration.
-- `use-search-editor-context.ts` владеет Apollo read state и возвращает
-  `ApiSearchSettings | null`.
-- `use-update-search-settings.ts` владеет mutation и объединяет top-level
-  `userErrors` с errors matching `SETTINGS_UPDATE` operation result.
-- `search-settings-form.mapper.ts` преобразует API settings в form draft и
-  form draft в `ApiSearchSettingsOperationsInput`.
-- `search-errors.mapper.ts` расширяется Search Settings targets, сохраняя
-  существующие mappings Product Boost и Synonym Group.
+- `page.tsx` владеет page composition, Search dirty state, notification и submit orchestration.
+- `use-search-editor-context.ts` владеет Apollo read state и возвращает `ApiSearchSettings | null`.
+- `use-update-search-settings.ts` владеет mutation и объединяет top-level `userErrors` с errors
+  matching `SETTINGS_UPDATE` operation result.
+- `search-settings-form.mapper.ts` преобразует API settings в form draft и form draft в
+  `ApiSearchSettingsOperationsInput`.
+- `search-errors.mapper.ts` расширяется Search Settings targets, сохраняя существующие mappings
+  Product Boost и Synonym Group.
 - Структура и ownership секции Filters здесь не определяются.
 
 ## Accessibility
 
 - Каждый `Switch`, `InputNumber` и radio имеет видимый label.
-- Field switch получает accessible name `Search product title` и связан с help
-  text/error через `aria-describedby`.
+- Field switch получает accessible name `Search product title` и связан с help text/error через
+  `aria-describedby`.
 - Weight label включает field name: `Product title weight`.
-- Ошибки submit получают `role="alert"`; focus переходит к первому ошибочному
-  Search control.
+- Ошибки submit получают `role="alert"`; focus переходит к первому ошибочному Search control.
 - Enabled/disabled state не передаётся только цветом.
 - После успешного сохранения focus остаётся на Save button.
 
 ## Test IDs
 
-| Element | `data-testid` |
-|---|---|
-| Page | `discovery-settings-page` |
-| Save | `discovery-settings-save-button` |
-| Search Paper | `search-settings-section` |
-| Field switch | `search-field-<normalized-api-value>-switch` |
-| Weight input | `search-field-<normalized-api-value>-weight-input` |
-| Typo tolerance | `search-typo-tolerance-switch` |
-| Out-of-stock group | `search-out-of-stock-policy` |
+| Element            | `data-testid`                                      |
+| ------------------ | -------------------------------------------------- |
+| Page               | `discovery-settings-page`                          |
+| Save               | `discovery-settings-save-button`                   |
+| Search Paper       | `search-settings-section`                          |
+| Field switch       | `search-field-<normalized-api-value>-switch`       |
+| Weight input       | `search-field-<normalized-api-value>-weight-input` |
+| Typo tolerance     | `search-typo-tolerance-switch`                     |
+| Out-of-stock group | `search-out-of-stock-policy`                       |
 
 API value нормализуется один раз: `PRODUCT_TITLE → product-title`.
 
@@ -503,20 +475,18 @@ Test IDs секции Filters будут определены вместе с е
 
 ## Acceptance criteria
 
-- Search оформлен стандартными `Paper`/`PaperHeader` и визуально совпадает с
-  modal sections.
-- Filters обозначен только как соседняя секция без спроектированных controls,
-  поведения или API integration.
+- Search оформлен стандартными `Paper`/`PaperHeader` и визуально совпадает с modal sections.
+- Filters обозначен только как соседняя секция без спроектированных controls, поведения или API
+  integration.
 - Search form показывает четыре `SearchField`, enabled state и weight из API.
-- Минимум одно поле включено; при выключении всех полей показывается group
-  error и Save блокируется; enabled weights валидны в диапазоне `(0, 100]`.
+- Минимум одно поле включено; при выключении всех полей показывается group error и Save блокируется;
+  enabled weights валидны в диапазоне `(0, 100]`.
 - Typo tolerance и out-of-stock policy мапятся напрямую в GraphQL input.
 - `settings === null` запускает initialization flow с `expectedVersion: 0`.
 - Query error не маскируется под неинициализированные settings.
-- Update отправляет full replacement и использует актуальный
-  `SearchSettings.version`.
+- Update отправляет full replacement и использует актуальный `SearchSettings.version`.
 - Version conflict не перезаписывает чужие изменения автоматически.
 - API errors с путями `input.fields...` отображаются у соответствующих controls.
-- После успешной mutation form baseline строится из возвращённых canonical
-  settings, dirty state сбрасывается, страница остаётся открытой.
+- После успешной mutation form baseline строится из возвращённых canonical settings, dirty state
+  сбрасывается, страница остаётся открытой.
 - Dirty form защищена от случайной потери при navigation или закрытии страницы.

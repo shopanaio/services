@@ -1,7 +1,11 @@
 "use client";
 
 import { Flex, Progress, Rate, Skeleton, Typography } from "antd";
-import { LuChartBar as BarChartOutlined, LuPencil as EditOutlined, LuStar as StarFilled } from "react-icons/lu";
+import {
+  LuChartBar as BarChartOutlined,
+  LuPencil as EditOutlined,
+  LuStar as StarFilled,
+} from "react-icons/lu";
 import type { ApiProductReviewSummary } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
@@ -37,10 +41,35 @@ export const ReviewsSection = ({
     <Paper>
       <PaperHeader
         title="Reviews"
-        actions={onEdit || onViewInsights ? <EditAction onEdit={onEdit ?? (() => undefined)} items={[
-          ...(onViewInsights ? [{ key: "insights", label: "Product insights", icon: <BarChartOutlined />, onClick: onViewInsights }] : []),
-          ...(onEdit ? [{ key: "edit", label: "Edit reviews", icon: <EditOutlined />, onClick: onEdit }] : []),
-        ]} /> : undefined}
+        actions={
+          onEdit || onViewInsights ? (
+            <EditAction
+              onEdit={onEdit ?? (() => undefined)}
+              items={[
+                ...(onViewInsights
+                  ? [
+                      {
+                        key: "insights",
+                        label: "Product insights",
+                        icon: <BarChartOutlined />,
+                        onClick: onViewInsights,
+                      },
+                    ]
+                  : []),
+                ...(onEdit
+                  ? [
+                      {
+                        key: "edit",
+                        label: "Edit reviews",
+                        icon: <EditOutlined />,
+                        onClick: onEdit,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          ) : undefined
+        }
       />
       {loading && !summary ? (
         <Skeleton active paragraph={{ rows: 3 }} />
@@ -48,21 +77,9 @@ export const ReviewsSection = ({
         <Typography.Text type="danger">{error.message}</Typography.Text>
       ) : (
         <div className={styles.reviewsGrid}>
-          <Flex
-            vertical
-            align="center"
-            justify="center"
-            className={styles.reviewsLeft}
-          >
-            <Typography.Text className={styles.reviewsAverage}>
-              {rating.toFixed(1)}
-            </Typography.Text>
-            <Rate
-              disabled
-              allowHalf
-              value={rating}
-              className={styles.reviewsRate}
-            />
+          <Flex vertical align="center" justify="center" className={styles.reviewsLeft}>
+            <Typography.Text className={styles.reviewsAverage}>{rating.toFixed(1)}</Typography.Text>
+            <Rate disabled allowHalf value={rating} className={styles.reviewsRate} />
             <Typography.Text type="secondary" className={styles.reviewsCount}>
               {reviewCount} reviews
             </Typography.Text>
@@ -70,12 +87,7 @@ export const ReviewsSection = ({
 
           <Flex vertical gap={4}>
             {breakdown.map((item) => (
-              <Flex
-                key={item.stars}
-                align="center"
-                gap={8}
-                className={styles.reviewBarRow}
-              >
+              <Flex key={item.stars} align="center" gap={8} className={styles.reviewBarRow}>
                 <Flex align="center" gap={4} style={{ minWidth: 28 }}>
                   <span>{item.stars}</span>
                   <StarFilled className={styles.reviewStarIcon} />
@@ -88,10 +100,7 @@ export const ReviewsSection = ({
                   size="small"
                   className={styles.reviewProgress}
                 />
-                <Typography.Text
-                  type="secondary"
-                  className={styles.reviewCountText}
-                >
+                <Typography.Text type="secondary" className={styles.reviewCountText}>
                   {item.count}
                 </Typography.Text>
               </Flex>

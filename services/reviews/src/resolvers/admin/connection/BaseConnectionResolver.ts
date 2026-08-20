@@ -12,14 +12,13 @@ export interface ConnectionData {
   totalCount: number;
 }
 
-export abstract class BaseConnectionResolver<
-  TArgs = unknown
-> extends ReviewsType<TArgs, ConnectionData> {
+export abstract class BaseConnectionResolver<TArgs = unknown> extends ReviewsType<
+  TArgs,
+  ConnectionData
+> {
   abstract $preload(): Promise<ConnectionData>;
 
-  protected abstract createNodeResolver(
-    nodeId: string
-  ): unknown | Promise<unknown>;
+  protected abstract createNodeResolver(nodeId: string): unknown | Promise<unknown>;
 
   async edges() {
     const edges = await this.$get("edges");
@@ -27,7 +26,7 @@ export abstract class BaseConnectionResolver<
       (edges ?? []).map(async (edge) => ({
         cursor: edge.cursor,
         node: await this.createNodeResolver(edge.nodeId),
-      }))
+      })),
     );
   }
 

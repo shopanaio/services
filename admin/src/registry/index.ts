@@ -1,17 +1,9 @@
 // Shared types and registry
-export {
-  ModuleRegistry,
-  moduleRegistry,
-  registerDomain,
-  registerModule,
-} from "./registry";
+export { ModuleRegistry, moduleRegistry, registerDomain, registerModule } from "./registry";
 export type { ModulePageProps, SidebarItem } from "./registry";
 
 // Server-side factories
-export {
-  createPage,
-  createLayout,
-} from "./server";
+export { createPage, createLayout } from "./server";
 
 // Client-side context and hooks
 export {
@@ -22,7 +14,4 @@ export {
 } from "./client";
 
 // Path params context and hooks
-export {
-  PathParamsProvider,
-  usePathParams,
-} from "./path-params-context";
+export { PathParamsProvider, usePathParams } from "./path-params-context";

@@ -24,13 +24,7 @@ import type {
   CursorQueryInput,
 } from "./builder/pagination-query-builder.js";
 import type { FluentFieldsDef, ToFieldsDef, ExecuteOptions } from "./builder/fluent-types.js";
-import type {
-  NestedWhereInput,
-  NestedPaths,
-  OrderByItem,
-  FieldsDef,
-  Selectable,
-} from "./types.js";
+import type { NestedWhereInput, NestedPaths, OrderByItem, FieldsDef, Selectable } from "./types.js";
 
 // =============================================================================
 // FluentQueryBuilder type inference
@@ -39,18 +33,14 @@ import type {
 /**
  * Extract the FieldsDef from a FluentQueryBuilder
  */
-export type InferFields<Q> = Q extends FluentQueryBuilder<
-  infer _T,
-  infer Fields,
-  infer _InferredFields,
-  infer _Types
->
-  ? ToFieldsDef<Fields>
-  : Q extends RelayQueryBuilder<infer _T, infer Fields, infer _InferredFields, infer _Types>
+export type InferFields<Q> =
+  Q extends FluentQueryBuilder<infer _T, infer Fields, infer _InferredFields, infer _Types>
     ? ToFieldsDef<Fields>
-    : Q extends CursorQueryBuilder<infer _T, infer Fields, infer _InferredFields, infer _Types>
+    : Q extends RelayQueryBuilder<infer _T, infer Fields, infer _InferredFields, infer _Types>
       ? ToFieldsDef<Fields>
-      : never;
+      : Q extends CursorQueryBuilder<infer _T, infer Fields, infer _InferredFields, infer _Types>
+        ? ToFieldsDef<Fields>
+        : never;
 
 /**
  * Extract the Where input type from a query builder
@@ -62,18 +52,14 @@ export type InferFields<Q> = Q extends FluentQueryBuilder<
  * // { id?: FilterValue; name?: FilterValue; ... }
  * ```
  */
-export type InferWhere<Q> = Q extends FluentQueryBuilder<
-  infer _T,
-  infer _Fields,
-  infer InferredFields,
-  infer _Types
->
-  ? NestedWhereInput<InferredFields>
-  : Q extends RelayQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
+export type InferWhere<Q> =
+  Q extends FluentQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
     ? NestedWhereInput<InferredFields>
-    : Q extends CursorQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
+    : Q extends RelayQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
       ? NestedWhereInput<InferredFields>
-      : never;
+      : Q extends CursorQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
+        ? NestedWhereInput<InferredFields>
+        : never;
 
 /**
  * Extract all valid Order fields from a query builder (union of strings)
@@ -85,18 +71,14 @@ export type InferWhere<Q> = Q extends FluentQueryBuilder<
  * // "id" | "name" | "createdAt" | ...
  * ```
  */
-export type InferOrderPath<Q> = Q extends FluentQueryBuilder<
-  infer _T,
-  infer _Fields,
-  infer InferredFields,
-  infer _Types
->
-  ? NestedPaths<InferredFields>
-  : Q extends RelayQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
+export type InferOrderPath<Q> =
+  Q extends FluentQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
     ? NestedPaths<InferredFields>
-    : Q extends CursorQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
+    : Q extends RelayQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
       ? NestedPaths<InferredFields>
-      : never;
+      : Q extends CursorQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
+        ? NestedPaths<InferredFields>
+        : never;
 
 /**
  * Extract the Order input type (array of OrderByItem) from a query builder
@@ -120,18 +102,14 @@ export type InferOrder<Q> = OrderByItem<InferOrderPath<Q>>[];
  * // "id" | "name" | "code" | ...
  * ```
  */
-export type InferSelectPath<Q> = Q extends FluentQueryBuilder<
-  infer _T,
-  infer _Fields,
-  infer InferredFields,
-  infer _Types
->
-  ? NestedPaths<InferredFields>
-  : Q extends RelayQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
+export type InferSelectPath<Q> =
+  Q extends FluentQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
     ? NestedPaths<InferredFields>
-    : Q extends CursorQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
+    : Q extends RelayQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
       ? NestedPaths<InferredFields>
-      : never;
+      : Q extends CursorQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
+        ? NestedPaths<InferredFields>
+        : never;
 
 /**
  * Extract the Select input type (array of select paths) from a query builder
@@ -155,18 +133,14 @@ export type InferSelect<Q> = InferSelectPath<Q>[];
  * // { id: string; name: string; code: string; ... }
  * ```
  */
-export type InferResult<Q> = Q extends FluentQueryBuilder<
-  infer _T,
-  infer _Fields,
-  infer _InferredFields,
-  infer Types
->
-  ? Types
-  : Q extends RelayQueryBuilder<infer _T, infer _Fields, infer _InferredFields, infer Types>
+export type InferResult<Q> =
+  Q extends FluentQueryBuilder<infer _T, infer _Fields, infer _InferredFields, infer Types>
     ? Types
-    : Q extends CursorQueryBuilder<infer _T, infer _Fields, infer _InferredFields, infer Types>
+    : Q extends RelayQueryBuilder<infer _T, infer _Fields, infer _InferredFields, infer Types>
       ? Types
-      : never;
+      : Q extends CursorQueryBuilder<infer _T, infer _Fields, infer _InferredFields, infer Types>
+        ? Types
+        : never;
 
 /**
  * Extract the full execute options type from a FluentQueryBuilder
@@ -178,14 +152,10 @@ export type InferResult<Q> = Q extends FluentQueryBuilder<
  * // { where?: ...; order?: ...; select?: ...; limit?: number; offset?: number }
  * ```
  */
-export type InferExecuteOptions<Q> = Q extends FluentQueryBuilder<
-  infer _T,
-  infer _Fields,
-  infer InferredFields,
-  infer _Types
->
-  ? ExecuteOptions<InferredFields>
-  : never;
+export type InferExecuteOptions<Q> =
+  Q extends FluentQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
+    ? ExecuteOptions<InferredFields>
+    : never;
 
 /**
  * Extract the RelayQueryInput type from a RelayQueryBuilder
@@ -197,14 +167,10 @@ export type InferExecuteOptions<Q> = Q extends FluentQueryBuilder<
  * // { first?: number; after?: string; last?: number; before?: string; where?: ...; order?: ... }
  * ```
  */
-export type InferRelayInput<Q> = Q extends RelayQueryBuilder<
-  infer _T,
-  infer _Fields,
-  infer InferredFields,
-  infer _Types
->
-  ? RelayQueryInput<InferredFields>
-  : never;
+export type InferRelayInput<Q> =
+  Q extends RelayQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
+    ? RelayQueryInput<InferredFields>
+    : never;
 
 /**
  * Extract the CursorQueryInput type from a CursorQueryBuilder
@@ -216,14 +182,10 @@ export type InferRelayInput<Q> = Q extends RelayQueryBuilder<
  * // { limit: number; direction: "forward" | "backward"; cursor?: string; where?: ...; order?: ... }
  * ```
  */
-export type InferCursorInput<Q> = Q extends CursorQueryBuilder<
-  infer _T,
-  infer _Fields,
-  infer InferredFields,
-  infer _Types
->
-  ? CursorQueryInput<InferredFields>
-  : never;
+export type InferCursorInput<Q> =
+  Q extends CursorQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
+    ? CursorQueryInput<InferredFields>
+    : never;
 
 // =============================================================================
 // Query Input builder helpers
@@ -245,10 +207,9 @@ export type InferCursorInput<Q> = Q extends CursorQueryBuilder<
  * });
  * ```
  */
-export function queryInput<Q extends FluentQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>>(
-  _query: Q,
-  input: InferExecuteOptions<Q>
-): InferExecuteOptions<Q> {
+export function queryInput<
+  Q extends FluentQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>,
+>(_query: Q, input: InferExecuteOptions<Q>): InferExecuteOptions<Q> {
   return input;
 }
 
@@ -265,10 +226,9 @@ export function queryInput<Q extends FluentQueryBuilder<Selectable, FluentFields
  * });
  * ```
  */
-export function queryWhere<Q extends FluentQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>>(
-  _query: Q,
-  where: InferWhere<Q>
-): InferWhere<Q> {
+export function queryWhere<
+  Q extends FluentQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>,
+>(_query: Q, where: InferWhere<Q>): InferWhere<Q> {
   return where;
 }
 
@@ -282,10 +242,9 @@ export function queryWhere<Q extends FluentQueryBuilder<Selectable, FluentFields
  * const order = queryOrder(warehouseQuery, ["createdAt:desc", "name:asc"]);
  * ```
  */
-export function queryOrder<Q extends FluentQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>>(
-  _query: Q,
-  order: InferOrder<Q>
-): InferOrder<Q> {
+export function queryOrder<
+  Q extends FluentQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>,
+>(_query: Q, order: InferOrder<Q>): InferOrder<Q> {
   return order;
 }
 
@@ -305,10 +264,7 @@ export function queryOrder<Q extends FluentQueryBuilder<Selectable, FluentFields
  */
 export function relayInput<
   Q extends RelayQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>,
->(
-  _query: Q,
-  input: InferRelayInput<Q>
-): InferRelayInput<Q> {
+>(_query: Q, input: InferRelayInput<Q>): InferRelayInput<Q> {
   return input;
 }
 
@@ -328,9 +284,6 @@ export function relayInput<
  */
 export function cursorInput<
   Q extends CursorQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>,
->(
-  _query: Q,
-  input: InferCursorInput<Q>
-): InferCursorInput<Q> {
+>(_query: Q, input: InferCursorInput<Q>): InferCursorInput<Q> {
   return input;
 }

@@ -1,16 +1,10 @@
 "use client";
 
 import { type ReactNode } from "react";
-import {
-  Alert,
-  Empty,
-} from "antd";
+import { Alert, Empty } from "antd";
 import { createStyles } from "antd-style";
 import type { ManagementAppListItem } from "@/domains/apps/management/graphql/operation-types";
-import {
-  AppRow,
-  AppRowSkeleton,
-} from "@/domains/apps/management/components";
+import { AppRow, AppRowSkeleton } from "@/domains/apps/management/components";
 import { useAppsManagement } from "@/domains/apps/management/hooks";
 import { useAppManagementModal } from "@/domains/apps/management/modals";
 import { DataLayout } from "@/layouts/data";
@@ -65,15 +59,10 @@ function AppPaper({
           <AppRowSkeleton />
         </ul>
       ) : apps.length > 0 ? (
-        <ul className={styles.appList}>
-          {apps.map((app) => renderApp(app))}
-        </ul>
+        <ul className={styles.appList}>{apps.map((app) => renderApp(app))}</ul>
       ) : (
         <div className={styles.state}>
-          <Empty
-            description={emptyDescription}
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
+          <Empty description={emptyDescription} image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       )}
     </Paper>
@@ -89,23 +78,14 @@ export default function SystemAppsPage() {
     <DataLayout fullWidth name="apps" title="Apps">
       <main className={styles.content}>
         {error ? (
-          <Alert
-            description={error.message}
-            message="Unable to load apps"
-            showIcon
-            type="error"
-          />
+          <Alert description={error.message} message="Unable to load apps" showIcon type="error" />
         ) : (
           <AppPaper
             apps={apps}
             emptyDescription="No apps are available for this store"
             loading={loading}
             renderApp={(app) => (
-              <AppRow
-                app={app}
-                key={app.code}
-                onOpen={() => openAppModal({ appCode: app.code })}
-              />
+              <AppRow app={app} key={app.code} onOpen={() => openAppModal({ appCode: app.code })} />
             )}
           />
         )}

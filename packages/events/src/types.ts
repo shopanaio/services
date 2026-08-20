@@ -151,8 +151,7 @@ export type EventBatchHandlerResponse<T = void> =
  * @deprecated Use EventHandlerResponse with success/error pattern
  */
 export type LegacyEventHandlerResponse =
-  | { ok: true }
-  | { ok: false; error: { message: string; code?: string; retryable: boolean } };
+  { ok: true } | { ok: false; error: { message: string; code?: string; retryable: boolean } };
 
 export interface HandlerInfo {
   serviceName: string;
@@ -216,28 +215,26 @@ export interface BatchHandlerInvocationResult {
   durationMs: number;
 }
 
-export interface ProductCreatedEvent
-  extends DomainEvent<
-    "productCreated",
-    {
-      productId: string;
-      storeId: string;
-      name: string;
-      sku?: string;
-    }
-  > {}
+export interface ProductCreatedEvent extends DomainEvent<
+  "productCreated",
+  {
+    productId: string;
+    storeId: string;
+    name: string;
+    sku?: string;
+  }
+> {}
 
-export interface ProductDeletedEvent
-  extends DomainEvent<
-    "productDeleted",
-    {
-      productId: string;
-      storeId: string;
-      categoryIds?: string[];
-      deletedAt?: string;
-      entityType?: "product" | "bundle";
-    }
-  > {}
+export interface ProductDeletedEvent extends DomainEvent<
+  "productDeleted",
+  {
+    productId: string;
+    storeId: string;
+    categoryIds?: string[];
+    deletedAt?: string;
+    entityType?: "product" | "bundle";
+  }
+> {}
 
 export type ProductUpdatedReason =
   | "identity"
@@ -266,17 +263,10 @@ export interface ProductUpdatedPayload {
   reasons: ProductUpdatedReason[];
 }
 
-export interface ProductUpdatedEvent
-  extends DomainEvent<"productUpdated", ProductUpdatedPayload> {}
+export interface ProductUpdatedEvent extends DomainEvent<"productUpdated", ProductUpdatedPayload> {}
 
 export type CollectionUpdatedReason =
-  | "metadata"
-  | "rules"
-  | "publication"
-  | "schedule"
-  | "sort"
-  | "items"
-  | "rank";
+  "metadata" | "rules" | "publication" | "schedule" | "sort" | "items" | "rank";
 
 export interface CollectionChangedPayload {
   storeId: string;
@@ -286,142 +276,131 @@ export interface CollectionChangedPayload {
   reasons: CollectionUpdatedReason[];
 }
 
-export interface CollectionCreatedEvent
-  extends DomainEvent<"collectionCreated", CollectionChangedPayload> {}
+export interface CollectionCreatedEvent extends DomainEvent<
+  "collectionCreated",
+  CollectionChangedPayload
+> {}
 
-export interface CollectionUpdatedEvent
-  extends DomainEvent<"collectionUpdated", CollectionChangedPayload> {}
+export interface CollectionUpdatedEvent extends DomainEvent<
+  "collectionUpdated",
+  CollectionChangedPayload
+> {}
 
-export interface CollectionDeletedEvent
-  extends DomainEvent<
-    "collectionDeleted",
-    CollectionChangedPayload & { deletedAt: string }
-  > {}
+export interface CollectionDeletedEvent extends DomainEvent<
+  "collectionDeleted",
+  CollectionChangedPayload & { deletedAt: string }
+> {}
 
-export interface CustomerCreatedEvent
-  extends DomainEvent<
-    "customerCreated",
-    {
-      customerId: string;
-      storeId: string;
-    }
-  > {}
+export interface CustomerCreatedEvent extends DomainEvent<
+  "customerCreated",
+  {
+    customerId: string;
+    storeId: string;
+  }
+> {}
 
-export interface ApplicationUserCreatedEvent
-  extends DomainEvent<
-    "applicationUserCreated",
-    {
-      applicationId: string;
-      applicationUserId: string;
-    }
-  > {}
+export interface ApplicationUserCreatedEvent extends DomainEvent<
+  "applicationUserCreated",
+  {
+    applicationId: string;
+    applicationUserId: string;
+  }
+> {}
 
 export type ApplicationUserProjectionField =
-  | "email"
-  | "emailVerified"
-  | "firstName"
-  | "lastName"
-  | "phoneNumber"
-  | "phoneNumberVerified";
+  "email" | "emailVerified" | "firstName" | "lastName" | "phoneNumber" | "phoneNumberVerified";
 
 /**
  * Signals that an application-local IAM identity projection changed.
  * Consumers hydrate the current IAM snapshot through the protected IAM action;
  * the event intentionally carries no customer PII.
  */
-export interface ApplicationUserUpdatedEvent
-  extends DomainEvent<
-    "applicationUserUpdated",
-    {
-      applicationId: string;
-      applicationUserId: string;
-      changedFields: readonly ApplicationUserProjectionField[];
-      updatedAt: string;
-    }
-  > {}
+export interface ApplicationUserUpdatedEvent extends DomainEvent<
+  "applicationUserUpdated",
+  {
+    applicationId: string;
+    applicationUserId: string;
+    changedFields: readonly ApplicationUserProjectionField[];
+    updatedAt: string;
+  }
+> {}
 
-export interface ApplicationUserStatusChangedEvent
-  extends DomainEvent<
-    "applicationUserStatusChanged",
-    {
-      applicationId: string;
-      applicationUserId: string;
-      previousStatus: "active" | "blocked";
-      status: "active" | "blocked";
-      changedAt: string;
-    }
-  > {}
+export interface ApplicationUserStatusChangedEvent extends DomainEvent<
+  "applicationUserStatusChanged",
+  {
+    applicationId: string;
+    applicationUserId: string;
+    previousStatus: "active" | "blocked";
+    status: "active" | "blocked";
+    changedAt: string;
+  }
+> {}
 
-export interface ApplicationUserDeletedEvent
-  extends DomainEvent<
-    "applicationUserDeleted",
-    {
-      applicationId: string;
-      applicationUserId: string;
-      deletedAt: string;
-    }
-  > {}
+export interface ApplicationUserDeletedEvent extends DomainEvent<
+  "applicationUserDeleted",
+  {
+    applicationId: string;
+    applicationUserId: string;
+    deletedAt: string;
+  }
+> {}
 
-export interface CustomerDeletedEvent
-  extends DomainEvent<
-    "customerDeleted",
-    {
-      customerId: string;
-      storeId: string;
-      revision: number;
-      deletedAt: string;
-    }
-  > {}
+export interface CustomerDeletedEvent extends DomainEvent<
+  "customerDeleted",
+  {
+    customerId: string;
+    storeId: string;
+    revision: number;
+    deletedAt: string;
+  }
+> {}
 
-export interface CustomerRedactedEvent
-  extends DomainEvent<
-    "customerRedacted",
-    {
-      customerId: string;
-      storeId: string;
-      dataRequestId: string;
-      revision: number;
-      redactedAt: string;
-    }
-  > {}
+export interface CustomerRedactedEvent extends DomainEvent<
+  "customerRedacted",
+  {
+    customerId: string;
+    storeId: string;
+    dataRequestId: string;
+    revision: number;
+    redactedAt: string;
+  }
+> {}
 
-export interface CustomerDataRequestStatusChangedEvent
-  extends DomainEvent<
-    "customerDataRequestStatusChanged",
-    {
-      dataRequestId: string;
-      customerId: string;
-      storeId: string;
-      requestType: "ACCESS" | "EXPORT" | "CORRECTION" | "ERASURE";
-      status: "PROCESSING" | "COMPLETED" | "REJECTED";
-      resultFileId?: string | null;
-      rejectionReason?: string;
-      occurredAt: string;
-      notification: NotificationSnapshot<{
-        request: {
-          id: string;
-          type: "ACCESS" | "EXPORT" | "CORRECTION" | "ERASURE";
-          status: "PROCESSING" | "COMPLETED" | "REJECTED";
-          resultFileId?: string | null;
-          rejectionReason?: string;
-        };
-      }>;
-    }
-  > {}
+export interface CustomerDataRequestStatusChangedEvent extends DomainEvent<
+  "customerDataRequestStatusChanged",
+  {
+    dataRequestId: string;
+    customerId: string;
+    storeId: string;
+    requestType: "ACCESS" | "EXPORT" | "CORRECTION" | "ERASURE";
+    status: "PROCESSING" | "COMPLETED" | "REJECTED";
+    resultFileId?: string | null;
+    rejectionReason?: string;
+    occurredAt: string;
+    notification: NotificationSnapshot<{
+      request: {
+        id: string;
+        type: "ACCESS" | "EXPORT" | "CORRECTION" | "ERASURE";
+        status: "PROCESSING" | "COMPLETED" | "REJECTED";
+        resultFileId?: string | null;
+        rejectionReason?: string;
+      };
+    }>;
+  }
+> {}
 
-export interface CustomerMergedEvent
-  extends DomainEvent<
-    "customerMerged",
-    {
-      schemaVersion: 1;
-      storeId: string;
-      mergeId: string;
-      mergeRevision: number;
-      sourceCustomerId: string;
-      targetCustomerId: string;
-      completedAt: string;
-    }
-  > {}
+export interface CustomerMergedEvent extends DomainEvent<
+  "customerMerged",
+  {
+    schemaVersion: 1;
+    storeId: string;
+    mergeId: string;
+    mergeRevision: number;
+    sourceCustomerId: string;
+    targetCustomerId: string;
+    completedAt: string;
+  }
+> {}
 
 export type CustomerUpdatedReason =
   | "profile"
@@ -448,123 +427,111 @@ export interface CustomerUpdatedPayload {
   reasons: CustomerUpdatedReason[];
 }
 
-export interface CustomerUpdatedEvent
-  extends DomainEvent<"customerUpdated", CustomerUpdatedPayload> {}
+export interface CustomerUpdatedEvent extends DomainEvent<
+  "customerUpdated",
+  CustomerUpdatedPayload
+> {}
 
-export interface CustomerExternalReferenceCreatedEvent
-  extends DomainEvent<
-    "customerExternalReferenceCreated",
-    {
-      externalReferenceId: string;
-      storeId: string;
-      customerId: string;
-      externalSystem: string;
-      externalType: string;
-      externalId: string;
-    }
-  > {}
+export interface CustomerExternalReferenceCreatedEvent extends DomainEvent<
+  "customerExternalReferenceCreated",
+  {
+    externalReferenceId: string;
+    storeId: string;
+    customerId: string;
+    externalSystem: string;
+    externalType: string;
+    externalId: string;
+  }
+> {}
 
-export interface CustomerExternalReferenceReassignedEvent
-  extends DomainEvent<
-    "customerExternalReferenceReassigned",
-    {
-      externalReferenceId: string;
-      storeId: string;
-      previousCustomerId: string;
-      customerId: string;
-      externalSystem: string;
-      externalType: string;
-      externalId: string;
-    }
-  > {}
+export interface CustomerExternalReferenceReassignedEvent extends DomainEvent<
+  "customerExternalReferenceReassigned",
+  {
+    externalReferenceId: string;
+    storeId: string;
+    previousCustomerId: string;
+    customerId: string;
+    externalSystem: string;
+    externalType: string;
+    externalId: string;
+  }
+> {}
 
-export interface CustomerExternalReferenceDeletedEvent
-  extends DomainEvent<
-    "customerExternalReferenceDeleted",
-    {
-      externalReferenceId: string;
-      storeId: string;
-      customerId: string;
-      externalSystem: string;
-      externalType: string;
-      externalId: string;
-    }
-  > {}
+export interface CustomerExternalReferenceDeletedEvent extends DomainEvent<
+  "customerExternalReferenceDeleted",
+  {
+    externalReferenceId: string;
+    storeId: string;
+    customerId: string;
+    externalSystem: string;
+    externalType: string;
+    externalId: string;
+  }
+> {}
 
-export interface ReviewRatingCriterionCreatedEvent
-  extends DomainEvent<
-    "reviewRatingCriterionCreated",
-    { criterionId: string; storeId: string }
-  > {}
+export interface ReviewRatingCriterionCreatedEvent extends DomainEvent<
+  "reviewRatingCriterionCreated",
+  { criterionId: string; storeId: string }
+> {}
 
-export interface ReviewCreatedEvent
-  extends DomainEvent<
-    "reviewCreated",
-    { reviewId: string; storeId: string; productId: string }
-  > {}
+export interface ReviewCreatedEvent extends DomainEvent<
+  "reviewCreated",
+  { reviewId: string; storeId: string; productId: string }
+> {}
 
-export interface ProductQuestionCreatedEvent
-  extends DomainEvent<
-    "productQuestionCreated",
-    { productQuestionId: string; storeId: string; productId: string }
-  > {}
+export interface ProductQuestionCreatedEvent extends DomainEvent<
+  "productQuestionCreated",
+  { productQuestionId: string; storeId: string; productId: string }
+> {}
 
-export interface ReviewRequestCreatedEvent
-  extends DomainEvent<
-    "reviewRequestCreated",
-    { reviewRequestId: string; storeId: string; customerId: string; productId: string }
-  > {}
+export interface ReviewRequestCreatedEvent extends DomainEvent<
+  "reviewRequestCreated",
+  { reviewRequestId: string; storeId: string; customerId: string; productId: string }
+> {}
 
-export interface ReviewModerationCaseCreatedEvent
-  extends DomainEvent<
-    "reviewModerationCaseCreated",
-    { moderationCaseId: string; storeId: string; contentId: string }
-  > {}
+export interface ReviewModerationCaseCreatedEvent extends DomainEvent<
+  "reviewModerationCaseCreated",
+  { moderationCaseId: string; storeId: string; contentId: string }
+> {}
 
-export interface ReviewContentExternalReferenceCreatedEvent
-  extends DomainEvent<
-    "reviewContentExternalReferenceCreated",
-    { externalReferenceId: string; storeId: string; contentId: string }
-  > {}
+export interface ReviewContentExternalReferenceCreatedEvent extends DomainEvent<
+  "reviewContentExternalReferenceCreated",
+  { externalReferenceId: string; storeId: string; contentId: string }
+> {}
 
-export interface ReviewRatingCriterionDeletedEvent
-  extends DomainEvent<
-    "reviewRatingCriterionDeleted",
-    { criterionId: string; storeId: string; permanent: boolean }
-  > {}
+export interface ReviewRatingCriterionDeletedEvent extends DomainEvent<
+  "reviewRatingCriterionDeleted",
+  { criterionId: string; storeId: string; permanent: boolean }
+> {}
 
-export interface ReviewDeletedEvent
-  extends DomainEvent<
-    "reviewDeleted",
-    { reviewId: string; storeId: string; productId: string; permanent: boolean }
-  > {}
+export interface ReviewDeletedEvent extends DomainEvent<
+  "reviewDeleted",
+  { reviewId: string; storeId: string; productId: string; permanent: boolean }
+> {}
 
-export interface ProductQuestionDeletedEvent
-  extends DomainEvent<
-    "productQuestionDeleted",
-    { productQuestionId: string; storeId: string; productId: string; permanent: boolean }
-  > {}
+export interface ProductQuestionDeletedEvent extends DomainEvent<
+  "productQuestionDeleted",
+  { productQuestionId: string; storeId: string; productId: string; permanent: boolean }
+> {}
 
-export interface ReviewContentExternalReferenceDeletedEvent
-  extends DomainEvent<
-    "reviewContentExternalReferenceDeleted",
-    { externalReferenceId: string; storeId: string; contentId: string; permanent: boolean }
-  > {}
+export interface ReviewContentExternalReferenceDeletedEvent extends DomainEvent<
+  "reviewContentExternalReferenceDeleted",
+  { externalReferenceId: string; storeId: string; contentId: string; permanent: boolean }
+> {}
 
-export interface FacetCreatedEvent
-  extends DomainEvent<
-    "facetCreated",
-    {
-      facetId: string;
-      storeId: string;
-      facetType: string;
-      slug: string;
-      label: string;
-      uiType: string;
-      selectionMode: string;
-      lexoRank: string;
-    }
-  > {}
+export interface FacetCreatedEvent extends DomainEvent<
+  "facetCreated",
+  {
+    facetId: string;
+    storeId: string;
+    facetType: string;
+    slug: string;
+    label: string;
+    uiType: string;
+    selectionMode: string;
+    lexoRank: string;
+  }
+> {}
 
 export interface FacetUpdatedPayload {
   facetId: string;
@@ -579,49 +546,45 @@ export interface FacetUpdatedPayload {
   };
 }
 
-export interface FacetUpdatedEvent
-  extends DomainEvent<"facetUpdated", FacetUpdatedPayload> {}
+export interface FacetUpdatedEvent extends DomainEvent<"facetUpdated", FacetUpdatedPayload> {}
 
-export interface FacetDeletedEvent
-  extends DomainEvent<
-    "facetDeleted",
-    {
-      facetId: string;
-      storeId: string;
-      facetType: string;
-      slug?: string;
-    }
-  > {}
+export interface FacetDeletedEvent extends DomainEvent<
+  "facetDeleted",
+  {
+    facetId: string;
+    storeId: string;
+    facetType: string;
+    slug?: string;
+  }
+> {}
 
-export interface ListingFacetMembershipChangedEvent
-  extends DomainEvent<
-    "listingFacetMembershipChanged",
-    {
-      storeId: string;
-      productId: string;
-      reason:
-        | "facet_created"
-        | "facet_deleted"
-        | "facet_value_created"
-        | "facet_value_updated"
-        | "facet_value_deleted"
-        | "facet_value_merged"
-        | "facet_value_unmerged";
-      operationId: string;
-      facetIds: string[];
-      refsHash: string;
-    }
-  > {}
+export interface ListingFacetMembershipChangedEvent extends DomainEvent<
+  "listingFacetMembershipChanged",
+  {
+    storeId: string;
+    productId: string;
+    reason:
+      | "facet_created"
+      | "facet_deleted"
+      | "facet_value_created"
+      | "facet_value_updated"
+      | "facet_value_deleted"
+      | "facet_value_merged"
+      | "facet_value_unmerged";
+    operationId: string;
+    facetIds: string[];
+    refsHash: string;
+  }
+> {}
 
-export interface VariantDeletedEvent
-  extends DomainEvent<
-    "variantDeleted",
-    {
-      variantId: string;
-      productId: string;
-      storeId: string;
-    }
-  > {}
+export interface VariantDeletedEvent extends DomainEvent<
+  "variantDeleted",
+  {
+    variantId: string;
+    productId: string;
+    storeId: string;
+  }
+> {}
 
 /**
  * Orders-owned immutable earning facts. Loyalty selects the applicable program
@@ -632,68 +595,66 @@ export const OrderRewardEventTypes = {
   reversed: "orderRewardReversed",
 } as const;
 
-export interface OrderRewardEligibleEvent
-  extends DomainEvent<
-    "orderRewardEligible",
-    {
-      schemaVersion: 1;
-      orderId: string;
-      orderRevision: number;
-      storeId: string;
-      customerId: string;
-      currencyCode: string;
-      channelCode: string;
-      customerEligibilityRevision: string;
-      segmentIds: readonly string[];
-      segmentMembershipRevision: string;
+export interface OrderRewardEligibleEvent extends DomainEvent<
+  "orderRewardEligible",
+  {
+    schemaVersion: 1;
+    orderId: string;
+    orderRevision: number;
+    storeId: string;
+    customerId: string;
+    currencyCode: string;
+    channelCode: string;
+    customerEligibilityRevision: string;
+    segmentIds: readonly string[];
+    segmentMembershipRevision: string;
+    eligibleAmountAfterProductDiscountsMinor: string;
+    eligibleAmountAfterAllDiscountsMinor: string;
+    eligibleAt: string;
+    pricingQuoteId: string;
+    pricingQuoteRevision: string;
+    lines: readonly {
+      orderLineId: string;
+      productId: string;
+      variantId: string;
+      categoryIds: readonly string[];
+      tagIds: readonly string[];
+      featureIds: readonly string[];
+      optionValueIds: readonly string[];
+      quantity: number;
       eligibleAmountAfterProductDiscountsMinor: string;
       eligibleAmountAfterAllDiscountsMinor: string;
-      eligibleAt: string;
-      pricingQuoteId: string;
-      pricingQuoteRevision: string;
-      lines: readonly {
-        orderLineId: string;
-        productId: string;
-        variantId: string;
-        categoryIds: readonly string[];
-        tagIds: readonly string[];
-        featureIds: readonly string[];
-        optionValueIds: readonly string[];
-        quantity: number;
-        eligibleAmountAfterProductDiscountsMinor: string;
-        eligibleAmountAfterAllDiscountsMinor: string;
-      }[];
-    }
-  > {}
+    }[];
+  }
+> {}
 
 /**
  * Orders-owned correction facts for refunds, cancellation, or an amended order.
  * Each source revision describes only the newly reversed eligible amount.
  */
-export interface OrderRewardReversedEvent
-  extends DomainEvent<
-    "orderRewardReversed",
-    {
-      schemaVersion: 1;
-      orderId: string;
-      orderRevision: number;
-      storeId: string;
-      customerId: string;
-      currencyCode: string;
-      sourceType: "REFUND" | "CANCELLATION" | "ORDER_CORRECTION";
-      sourceId: string;
-      sourceRevision: number;
+export interface OrderRewardReversedEvent extends DomainEvent<
+  "orderRewardReversed",
+  {
+    schemaVersion: 1;
+    orderId: string;
+    orderRevision: number;
+    storeId: string;
+    customerId: string;
+    currencyCode: string;
+    sourceType: "REFUND" | "CANCELLATION" | "ORDER_CORRECTION";
+    sourceId: string;
+    sourceRevision: number;
+    eligibleAmountAfterProductDiscountsMinor: string;
+    eligibleAmountAfterAllDiscountsMinor: string;
+    reversedAt: string;
+    lines: readonly {
+      orderLineId: string;
+      quantity: number;
       eligibleAmountAfterProductDiscountsMinor: string;
       eligibleAmountAfterAllDiscountsMinor: string;
-      reversedAt: string;
-      lines: readonly {
-        orderLineId: string;
-        quantity: number;
-        eligibleAmountAfterProductDiscountsMinor: string;
-        eligibleAmountAfterAllDiscountsMinor: string;
-      }[];
-    }
-  > {}
+    }[];
+  }
+> {}
 
 export interface CustomerOrderProjectionPayload {
   schemaVersion: 1;
@@ -707,46 +668,42 @@ export interface CustomerOrderProjectionPayload {
   occurredAt: string;
 }
 
-export interface OrderCreatedEvent
-  extends DomainEvent<
-    "orderCreated",
-    CustomerOrderProjectionPayload & {
-      notification: NotificationSnapshot<OrderCreatedNotificationData>;
-    }
-  > {}
+export interface OrderCreatedEvent extends DomainEvent<
+  "orderCreated",
+  CustomerOrderProjectionPayload & {
+    notification: NotificationSnapshot<OrderCreatedNotificationData>;
+  }
+> {}
 
-export interface OrderCompletedEvent
-  extends DomainEvent<
-    "orderCompleted",
-    CustomerOrderProjectionPayload & { completedAt: string }
-  > {}
+export interface OrderCompletedEvent extends DomainEvent<
+  "orderCompleted",
+  CustomerOrderProjectionPayload & { completedAt: string }
+> {}
 
-export interface OrderCancelledEvent
-  extends DomainEvent<
-    "orderCancelled",
-    CustomerOrderProjectionPayload & {
-      cancelledAt: string;
-      notification: NotificationSnapshot<Record<string, unknown>>;
-    }
-  > {}
+export interface OrderCancelledEvent extends DomainEvent<
+  "orderCancelled",
+  CustomerOrderProjectionPayload & {
+    cancelledAt: string;
+    notification: NotificationSnapshot<Record<string, unknown>>;
+  }
+> {}
 
-export interface OrderRefundedEvent
-  extends DomainEvent<
-    "orderRefunded",
-    {
-      schemaVersion: 1;
-      refundId: string;
-      refundRevision: number;
-      orderId: string;
-      orderRevision: number;
-      storeId: string;
-      customerId: string;
-      currencyCode: string;
-      refundedAmountMinor: string;
-      refundedAt: string;
-      notification: NotificationSnapshot<Record<string, unknown>>;
-    }
-  > {}
+export interface OrderRefundedEvent extends DomainEvent<
+  "orderRefunded",
+  {
+    schemaVersion: 1;
+    refundId: string;
+    refundRevision: number;
+    orderId: string;
+    orderRevision: number;
+    storeId: string;
+    customerId: string;
+    currencyCode: string;
+    refundedAmountMinor: string;
+    refundedAt: string;
+    notification: NotificationSnapshot<Record<string, unknown>>;
+  }
+> {}
 
 /**
  * Orders-owned, self-contained confirmed-sale fact used by Listing
@@ -754,91 +711,85 @@ export interface OrderRefundedEvent
  * boundary, but producers must keep both line and aggregate quantities inside
  * signed PostgreSQL integer bounds.
  */
-export interface OrderSaleCommittedEvent
-  extends DomainEvent<
-    "orderSaleCommitted",
-    {
-      schemaVersion: 1;
-      orderId: string;
-      storeId: string;
-      orderRevision: number;
-      committedAt: string;
-      lines: readonly {
-        productId: string;
-        quantity: number;
-      }[];
-    }
-  > {}
+export interface OrderSaleCommittedEvent extends DomainEvent<
+  "orderSaleCommitted",
+  {
+    schemaVersion: 1;
+    orderId: string;
+    storeId: string;
+    orderRevision: number;
+    committedAt: string;
+    lines: readonly {
+      productId: string;
+      quantity: number;
+    }[];
+  }
+> {}
 
 /** A complete reversal of the effective confirmed sale generation. */
-export interface OrderSaleReversedEvent
-  extends DomainEvent<
-    "orderSaleReversed",
-    {
-      schemaVersion: 1;
-      orderId: string;
-      storeId: string;
-      orderRevision: number;
-      committedAt: string;
-      reversedAt: string;
-    }
-  > {}
+export interface OrderSaleReversedEvent extends DomainEvent<
+  "orderSaleReversed",
+  {
+    schemaVersion: 1;
+    orderId: string;
+    storeId: string;
+    orderRevision: number;
+    committedAt: string;
+    reversedAt: string;
+  }
+> {}
 
-export interface CheckoutCustomerActivityRecordedEvent
-  extends DomainEvent<
-    "checkoutCustomerActivityRecorded",
-    {
-      schemaVersion: 1;
-      checkoutId: string;
-      checkoutVersion: number;
-      storeId: string;
-      customerId: string;
-      occurredAt: string;
-    }
-  > {}
+export interface CheckoutCustomerActivityRecordedEvent extends DomainEvent<
+  "checkoutCustomerActivityRecorded",
+  {
+    schemaVersion: 1;
+    checkoutId: string;
+    checkoutVersion: number;
+    storeId: string;
+    customerId: string;
+    occurredAt: string;
+  }
+> {}
 
-export interface CustomerStatisticsUpdatedEvent
-  extends DomainEvent<
-    "customerStatisticsUpdated",
-    {
-      schemaVersion: 1;
-      storeId: string;
-      customerId: string;
-      reasons: readonly ("order" | "checkout" | "refund" | "rebuild")[];
-      updatedAt: string;
-    }
-  > {}
+export interface CustomerStatisticsUpdatedEvent extends DomainEvent<
+  "customerStatisticsUpdated",
+  {
+    schemaVersion: 1;
+    storeId: string;
+    customerId: string;
+    reasons: readonly ("order" | "checkout" | "refund" | "rebuild")[];
+    updatedAt: string;
+  }
+> {}
 
-export interface CustomerLifecycleJobDispatchedEvent
-  extends DomainEvent<
-    "customerLifecycleJobDispatched",
-    {
-      schemaVersion: 1;
-      storeId: string;
-      jobType: "MERGE" | "DATA_REQUEST";
-      aggregateId: string;
-      jobId: string;
-      dispatchedAt: string;
-    }
-  > {}
+export interface CustomerLifecycleJobDispatchedEvent extends DomainEvent<
+  "customerLifecycleJobDispatched",
+  {
+    schemaVersion: 1;
+    storeId: string;
+    jobType: "MERGE" | "DATA_REQUEST";
+    aggregateId: string;
+    jobId: string;
+    dispatchedAt: string;
+  }
+> {}
 
-export interface CustomerLifecycleJobCompletedEvent
-  extends DomainEvent<
-    "customerLifecycleJobCompleted",
-    {
-      schemaVersion: 1;
-      storeId: string;
-      jobType: "MERGE" | "DATA_REQUEST";
-      aggregateId: string;
-      jobId: string;
-      outcome: "COMPLETED" | "FAILED" | "REJECTED";
-      resolution?: Record<string, unknown>;
-      resultFileId?: string | null;
-      errorCode?: string | null;
-      errorMessage?: string | null;
-      completedAt: string;
-    }
-  > {}
+export interface CustomerLifecycleJobCompletedEvent extends DomainEvent<
+  "customerLifecycleJobCompleted",
+  {
+    schemaVersion: 1;
+    storeId: string;
+    jobType: "MERGE" | "DATA_REQUEST";
+    aggregateId: string;
+    jobId: string;
+    outcome: "COMPLETED" | "FAILED" | "REJECTED";
+    resolution?: Record<string, unknown>;
+    resultFileId?: string | null;
+    errorCode?: string | null;
+    errorMessage?: string | null;
+    completedAt: string;
+  }
+> {}
 
 export const LoyaltyEventTypes = {
   pointsEarned: "loyaltyPointsEarned",
@@ -852,9 +803,7 @@ export const LoyaltyEventTypes = {
   pointsAdjusted: "loyaltyPointsAdjusted",
 } as const;
 
-interface LoyaltyPointsEventPayload<
-  TProgramVersionId extends string | null = string,
-> {
+interface LoyaltyPointsEventPayload<TProgramVersionId extends string | null = string> {
   schemaVersion: 1;
   storeId: string;
   programId: string;
@@ -866,139 +815,126 @@ interface LoyaltyPointsEventPayload<
   occurredAt: string;
 }
 
-export interface LoyaltyPointsEarnedEvent
-  extends DomainEvent<
-    "loyaltyPointsEarned",
-    LoyaltyPointsEventPayload & {
-      orderId: string;
-      orderRevision: number;
-      activationAt: string;
-      expiresAt: string | null;
-    }
-  > {}
+export interface LoyaltyPointsEarnedEvent extends DomainEvent<
+  "loyaltyPointsEarned",
+  LoyaltyPointsEventPayload & {
+    orderId: string;
+    orderRevision: number;
+    activationAt: string;
+    expiresAt: string | null;
+  }
+> {}
 
-export interface LoyaltyPointsActivatedEvent
-  extends DomainEvent<
-    "loyaltyPointsActivated",
-    LoyaltyPointsEventPayload & { lotIds: readonly string[] }
-  > {}
+export interface LoyaltyPointsActivatedEvent extends DomainEvent<
+  "loyaltyPointsActivated",
+  LoyaltyPointsEventPayload & { lotIds: readonly string[] }
+> {}
 
-export interface LoyaltyPointsReservedEvent
-  extends DomainEvent<
-    "loyaltyPointsReserved",
-    LoyaltyPointsEventPayload & {
-      reservationId: string;
-      checkoutId: string;
-      checkoutVersion: number;
-      discountAmountMinor: string;
-      currencyCode: string;
-      expiresAt: string;
-    }
-  > {}
+export interface LoyaltyPointsReservedEvent extends DomainEvent<
+  "loyaltyPointsReserved",
+  LoyaltyPointsEventPayload & {
+    reservationId: string;
+    checkoutId: string;
+    checkoutVersion: number;
+    discountAmountMinor: string;
+    currencyCode: string;
+    expiresAt: string;
+  }
+> {}
 
-export interface LoyaltyPointsRedeemedEvent
-  extends DomainEvent<
-    "loyaltyPointsRedeemed",
-    LoyaltyPointsEventPayload & {
-      reservationId: string;
-      checkoutId: string;
-      orderId: string;
-      orderRevision: number;
-      discountAmountMinor: string;
-      currencyCode: string;
-    }
-  > {}
+export interface LoyaltyPointsRedeemedEvent extends DomainEvent<
+  "loyaltyPointsRedeemed",
+  LoyaltyPointsEventPayload & {
+    reservationId: string;
+    checkoutId: string;
+    orderId: string;
+    orderRevision: number;
+    discountAmountMinor: string;
+    currencyCode: string;
+  }
+> {}
 
-export interface LoyaltyPointsReleasedEvent
-  extends DomainEvent<
-    "loyaltyPointsReleased",
-    LoyaltyPointsEventPayload & {
-      reservationId: string;
-      checkoutId: string;
-      reasonCode: string;
-    }
-  > {}
+export interface LoyaltyPointsReleasedEvent extends DomainEvent<
+  "loyaltyPointsReleased",
+  LoyaltyPointsEventPayload & {
+    reservationId: string;
+    checkoutId: string;
+    reasonCode: string;
+  }
+> {}
 
-export interface LoyaltyPointsExpiredEvent
-  extends DomainEvent<
-    "loyaltyPointsExpired",
-    LoyaltyPointsEventPayload & { lotIds: readonly string[] }
-  > {}
+export interface LoyaltyPointsExpiredEvent extends DomainEvent<
+  "loyaltyPointsExpired",
+  LoyaltyPointsEventPayload & { lotIds: readonly string[] }
+> {}
 
-export interface LoyaltyPointsReversedEvent
-  extends DomainEvent<
-    "loyaltyPointsReversed",
-    LoyaltyPointsEventPayload & {
-      orderId: string;
-      sourceType: "REFUND" | "CANCELLATION" | "ORDER_CORRECTION";
-      sourceId: string;
-      debtPoints: string;
-    }
-  > {}
+export interface LoyaltyPointsReversedEvent extends DomainEvent<
+  "loyaltyPointsReversed",
+  LoyaltyPointsEventPayload & {
+    orderId: string;
+    sourceType: "REFUND" | "CANCELLATION" | "ORDER_CORRECTION";
+    sourceId: string;
+    debtPoints: string;
+  }
+> {}
 
-export interface LoyaltyPointsRestoredEvent
-  extends DomainEvent<
-    "loyaltyPointsRestored",
-    LoyaltyPointsEventPayload & {
-      reservationId: string;
-      orderId: string;
-      sourceType: "REFUND" | "CANCELLATION" | "ORDER_CORRECTION";
-      sourceId: string;
-      expiresAt: string | null;
-    }
-  > {}
+export interface LoyaltyPointsRestoredEvent extends DomainEvent<
+  "loyaltyPointsRestored",
+  LoyaltyPointsEventPayload & {
+    reservationId: string;
+    orderId: string;
+    sourceType: "REFUND" | "CANCELLATION" | "ORDER_CORRECTION";
+    sourceId: string;
+    expiresAt: string | null;
+  }
+> {}
 
-export interface LoyaltyPointsAdjustedEvent
-  extends DomainEvent<
-    "loyaltyPointsAdjusted",
-    LoyaltyPointsEventPayload<string | null> & {
-      direction: "CREDIT" | "DEBIT";
-      reasonCode: string;
-      actorId: string;
-    }
-  > {}
+export interface LoyaltyPointsAdjustedEvent extends DomainEvent<
+  "loyaltyPointsAdjusted",
+  LoyaltyPointsEventPayload<string | null> & {
+    direction: "CREDIT" | "DEBIT";
+    reasonCode: string;
+    actorId: string;
+  }
+> {}
 
-export interface StoreCreatedEvent
-  extends DomainEvent<
-    "storeCreated",
-    {
-      storeId: string;
-      organizationId: string;
-      name: string;
-      displayName: string;
-      defaultLocale: string;
-    }
-  > {}
+export interface StoreCreatedEvent extends DomainEvent<
+  "storeCreated",
+  {
+    storeId: string;
+    organizationId: string;
+    name: string;
+    displayName: string;
+    defaultLocale: string;
+  }
+> {}
 
-export interface StoreConfigurationUpdatedEvent
-  extends DomainEvent<
-    "storeConfigurationUpdated",
-    {
-      schemaVersion: 1;
-      storeId: string;
-      configurationRevision: number;
-      currencyCode: string;
-      timeZone: string;
-      occurredAt: string;
-    }
-  > {}
+export interface StoreConfigurationUpdatedEvent extends DomainEvent<
+  "storeConfigurationUpdated",
+  {
+    schemaVersion: 1;
+    storeId: string;
+    configurationRevision: number;
+    currencyCode: string;
+    timeZone: string;
+    occurredAt: string;
+  }
+> {}
 
-export interface StoreDeletedEvent
-  extends DomainEvent<
-    "storeDeleted",
-    {
-      storeId: string;
-      organizationId: string;
-    }
-  > {}
+export interface StoreDeletedEvent extends DomainEvent<
+  "storeDeleted",
+  {
+    storeId: string;
+    organizationId: string;
+  }
+> {}
 
-export interface FileHardDeletedEvent
-  extends DomainEvent<
-    "fileHardDeleted",
-    {
-      fileId: string;
-    }
-  > {}
+export interface FileHardDeletedEvent extends DomainEvent<
+  "fileHardDeleted",
+  {
+    fileId: string;
+  }
+> {}
 
 export type ShopanaEvent =
   | ProductCreatedEvent

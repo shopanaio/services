@@ -1,16 +1,12 @@
 "use client";
 
 import type { CustomCellRendererProps } from "ag-grid-react";
-import {
-  useInventoryEditStore,
-  type EditableField,
-} from "../hooks/use-inventory-edit-store";
+import { useInventoryEditStore, type EditableField } from "../hooks/use-inventory-edit-store";
 import { EditableInventoryCell } from "@/shared/components/inventory-cells";
 import type { InventoryVariantRow } from "../mappers";
 import { getInventoryVariantCellTestId } from "./test-ids";
 
-interface EditableNumberCellProps
-  extends CustomCellRendererProps<InventoryVariantRow> {
+interface EditableNumberCellProps extends CustomCellRendererProps<InventoryVariantRow> {
   field: EditableField;
 }
 
@@ -32,10 +28,14 @@ export function EditableNumberCell(props: EditableNumberCellProps) {
     <EditableInventoryCell
       value={currentValue}
       testId={getInventoryVariantCellTestId(data, testField)}
-      edit={fieldEdit ? {
-        originalValue: fieldEdit.originalValue as number,
-        currentValue: fieldEdit.currentValue as number,
-      } : undefined}
+      edit={
+        fieldEdit
+          ? {
+              originalValue: fieldEdit.originalValue as number,
+              currentValue: fieldEdit.currentValue as number,
+            }
+          : undefined
+      }
     />
   );
 }

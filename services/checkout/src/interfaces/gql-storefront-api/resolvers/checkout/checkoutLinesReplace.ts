@@ -23,7 +23,7 @@ type CheckoutLinesReplaceArgs = {
 export const checkoutLinesReplace = async (
   _parent: ApiMutation,
   args: CheckoutLinesReplaceArgs,
-  ctx: GraphQLContext
+  ctx: GraphQLContext,
 ) => {
   const app = App.getInstance();
   const { checkoutUsecase, logger } = app;

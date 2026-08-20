@@ -15,9 +15,7 @@ export class SmtpRepository {
     return new SmtpRepository(createSmtpDatabase(databaseClient));
   }
 
-  runInTransaction<TResult>(
-    callback: () => Promise<TResult>,
-  ): Promise<TResult> {
+  runInTransaction<TResult>(callback: () => Promise<TResult>): Promise<TResult> {
     return this.txManager.run(callback);
   }
 }

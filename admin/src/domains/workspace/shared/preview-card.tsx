@@ -3,7 +3,11 @@
 import { ReactNode } from "react";
 import { createStyles } from "antd-style";
 import { Typography, Avatar, Flex, Button, Tag } from "antd";
-import { LuPencil as EditOutlined, LuUser as UserOutlined, LuUsers as TeamOutlined } from "react-icons/lu";
+import {
+  LuPencil as EditOutlined,
+  LuUser as UserOutlined,
+  LuUsers as TeamOutlined,
+} from "react-icons/lu";
 
 const useStyles = createStyles(({ token }) => ({
   card: {
@@ -74,8 +78,7 @@ export const PreviewCard = ({
       .slice(0, 2);
   };
 
-  const avatarIcon =
-    type === "organization" ? <TeamOutlined /> : <UserOutlined />;
+  const avatarIcon = type === "organization" ? <TeamOutlined /> : <UserOutlined />;
 
   return (
     <div className={cx(styles.card, className)}>
@@ -85,10 +88,7 @@ export const PreviewCard = ({
             size={64}
             src={image}
             icon={!image && avatarIcon}
-            className={cx(
-              styles.avatar,
-              onAvatarClick && styles.avatarClickable
-            )}
+            className={cx(styles.avatar, onAvatarClick && styles.avatarClickable)}
             onClick={onAvatarClick}
           >
             {!image && getInitials(name)}
@@ -100,11 +100,7 @@ export const PreviewCard = ({
               </Typography.Title>
               {badge && <Tag color="blue">{badge}</Tag>}
             </Flex>
-            {subtitle && (
-              <Typography.Text className={styles.subtitle}>
-                {subtitle}
-              </Typography.Text>
-            )}
+            {subtitle && <Typography.Text className={styles.subtitle}>{subtitle}</Typography.Text>}
             {meta && <div className={styles.meta}>{meta}</div>}
           </div>
         </Flex>

@@ -1,8 +1,5 @@
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
-import {
-  isStorefrontPermission,
-  type StorefrontPermission,
-} from "@shopana/shared-context";
+import { isStorefrontPermission, type StorefrontPermission } from "@shopana/shared-context";
 import { HeadlessType } from "./HeadlessType.js";
 import { HeadlessStorefrontConnectionResolver } from "./HeadlessStorefrontConnectionResolver.js";
 import { StorefrontAccessPolicyResolver } from "./StorefrontAccessPolicyResolver.js";
@@ -18,43 +15,34 @@ export class MutationResolver extends HeadlessType<Record<string, never>> {
   }
 }
 
-export class HeadlessAppMutationResolver extends HeadlessType<
-  Record<string, never>
-> {
+export class HeadlessAppMutationResolver extends HeadlessType<Record<string, never>> {
   async headlessStorefrontCreate(args: {
     input: ClientMutationInput & {
       displayName: string;
       permissions?: string[];
     };
   }) {
-    return this.payload(async () => {
-      const created = await this.$ctx.connections.createConnection(
-        this.scope,
-        {
+    return this.payload(
+      async () => {
+        const created = await this.$ctx.connections.createConnection(this.scope, {
           displayName: args.input.displayName,
-          permissions: parseStorefrontPermissions(
-            args.input.permissions,
-          ),
+          permissions: parseStorefrontPermissions(args.input.permissions),
           clientMutationId: args.input.clientMutationId,
           createdById: this.$ctx.app.actor?.id,
-        },
-      );
-      return {
-        connection: new HeadlessStorefrontConnectionResolver(
-          created.connection.id,
-          this.$ctx,
-        ),
-        duplicate: created.duplicate,
-        initialStorefrontCredentials: created.initialCredentials
-          ? {
-              publicAccessToken:
-                created.initialCredentials.publicAccessToken,
-              privateAccessToken:
-                created.initialCredentials.privateAccessToken,
-            }
-          : null,
-      };
-    }, { connection: null, duplicate: false, initialStorefrontCredentials: null });
+        });
+        return {
+          connection: new HeadlessStorefrontConnectionResolver(created.connection.id, this.$ctx),
+          duplicate: created.duplicate,
+          initialStorefrontCredentials: created.initialCredentials
+            ? {
+                publicAccessToken: created.initialCredentials.publicAccessToken,
+                privateAccessToken: created.initialCredentials.privateAccessToken,
+              }
+            : null,
+        };
+      },
+      { connection: null, duplicate: false, initialStorefrontCredentials: null },
+    );
   }
 
   async headlessStorefrontUpdate(args: {
@@ -72,9 +60,7 @@ export class HeadlessAppMutationResolver extends HeadlessType<
     );
   }
 
-  async headlessStorefrontSuspend(args: {
-    input: ClientMutationInput & { connectionId: string };
-  }) {
+  async headlessStorefrontSuspend(args: { input: ClientMutationInput & { connectionId: string } }) {
     return this.connectionPayload(async () =>
       this.$ctx.connections.suspendConnection(
         this.scope,
@@ -83,9 +69,7 @@ export class HeadlessAppMutationResolver extends HeadlessType<
     );
   }
 
-  async headlessStorefrontResume(args: {
-    input: ClientMutationInput & { connectionId: string };
-  }) {
+  async headlessStorefrontResume(args: { input: ClientMutationInput & { connectionId: string } }) {
     return this.connectionPayload(async () =>
       this.$ctx.connections.resumeConnection(
         this.scope,
@@ -113,50 +97,41 @@ export class HeadlessAppMutationResolver extends HeadlessType<
       label: string;
     };
   }) {
-    return this.payload(async () => {
-      const result = await this.$ctx.credentials.createPrivateCredential(
-        this.scope,
-        {
+    return this.payload(
+      async () => {
+        const result = await this.$ctx.credentials.createPrivateCredential(this.scope, {
           connectionId: this.connectionId(args.input.connectionId),
           label: args.input.label.trim(),
           clientMutationId: args.input.clientMutationId,
           actor: this.actor,
-        },
-      );
-      return {
-        credential: new StorefrontCredentialResolver(
-          result.credential.id,
-          this.$ctx,
-        ),
-        privateAccessToken: result.privateAccessToken,
-      };
-    }, { credential: null, privateAccessToken: null });
+        });
+        return {
+          credential: new StorefrontCredentialResolver(result.credential.id, this.$ctx),
+          privateAccessToken: result.privateAccessToken,
+        };
+      },
+      { credential: null, privateAccessToken: null },
+    );
   }
 
   async storefrontCredentialRevoke(args: {
     input: ClientMutationInput & { credentialId: string };
   }) {
-    return this.payload(async () => {
-      const id = this.decodeId(
-        args.input.credentialId,
-        GlobalIdEntity.StorefrontCredential,
-      );
-      const before = await this.$ctx.repository.credential.findById(
-        this.scope,
-        id,
-      );
-      const credential = await this.$ctx.credentials.revokePrivate(
-        this.scope,
-        { credentialId: id, actor: this.actor },
-      );
-      return {
-        credential: new StorefrontCredentialResolver(
-          credential.id,
-          this.$ctx,
-        ),
-        duplicate: before?.status === "REVOKED",
-      };
-    }, { credential: null, duplicate: false });
+    return this.payload(
+      async () => {
+        const id = this.decodeId(args.input.credentialId, GlobalIdEntity.StorefrontCredential);
+        const before = await this.$ctx.repository.credential.findById(this.scope, id);
+        const credential = await this.$ctx.credentials.revokePrivate(this.scope, {
+          credentialId: id,
+          actor: this.actor,
+        });
+        return {
+          credential: new StorefrontCredentialResolver(credential.id, this.$ctx),
+          duplicate: before?.status === "REVOKED",
+        };
+      },
+      { credential: null, duplicate: false },
+    );
   }
 
   async storefrontAccessPolicyUpdate(args: {
@@ -166,35 +141,33 @@ export class HeadlessAppMutationResolver extends HeadlessType<
       expectedRevision: number;
     };
   }) {
-    return this.payload(async () => {
-      const connectionId = this.connectionId(args.input.connectionId);
-      await this.$ctx.policies.replace(this.scope, {
-        connectionId,
-        permissions: args.input.permissions,
-        expectedRevision: args.input.expectedRevision,
-      });
-      return {
-        policy: new StorefrontAccessPolicyResolver(
+    return this.payload(
+      async () => {
+        const connectionId = this.connectionId(args.input.connectionId);
+        await this.$ctx.policies.replace(this.scope, {
           connectionId,
-          this.$ctx,
-        ),
-      };
-    }, { policy: null });
+          permissions: args.input.permissions,
+          expectedRevision: args.input.expectedRevision,
+        });
+        return {
+          policy: new StorefrontAccessPolicyResolver(connectionId, this.$ctx),
+        };
+      },
+      { policy: null },
+    );
   }
 
-  private connectionPayload(
-    operation: () => Promise<{ readonly id: string }>,
-  ) {
-    return this.payload(async () => {
-      const connection = await operation();
-      return {
-        connection: new HeadlessStorefrontConnectionResolver(
-          connection.id,
-          this.$ctx,
-        ),
-        duplicate: false,
-      };
-    }, { connection: null, duplicate: false });
+  private connectionPayload(operation: () => Promise<{ readonly id: string }>) {
+    return this.payload(
+      async () => {
+        const connection = await operation();
+        return {
+          connection: new HeadlessStorefrontConnectionResolver(connection.id, this.$ctx),
+          duplicate: false,
+        };
+      },
+      { connection: null, duplicate: false },
+    );
   }
 
   private async payload(
@@ -204,24 +177,22 @@ export class HeadlessAppMutationResolver extends HeadlessType<
     try {
       return { ...(await operation()), userErrors: [] };
     } catch (error) {
-      const code =
-        error instanceof Error ? error.message : "STOREFRONT_OPERATION_FAILED";
+      const code = error instanceof Error ? error.message : "STOREFRONT_OPERATION_FAILED";
       return {
         ...empty,
-        userErrors: [{
-          code,
-          message: userMessage(code),
-          field: null,
-        }],
+        userErrors: [
+          {
+            code,
+            message: userMessage(code),
+            field: null,
+          },
+        ],
       };
     }
   }
 
   private connectionId(value: string): string {
-    return this.decodeId(
-      value,
-      GlobalIdEntity.HeadlessStorefrontConnection,
-    );
+    return this.decodeId(value, GlobalIdEntity.HeadlessStorefrontConnection);
   }
 
   private get actor() {

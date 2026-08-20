@@ -24,12 +24,11 @@ export interface StorefrontApiConfiguration {
   readonly defaultPermissions: readonly StorefrontPermission[];
 }
 
-export const headlessStorefrontApi =
-  validateStorefrontApiConfiguration({
-    permissions: STOREFRONT_PERMISSION_CATALOG,
-    availablePermissions: STOREFRONT_PERMISSION_VALUES,
-    defaultPermissions: HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS,
-  });
+export const headlessStorefrontApi = validateStorefrontApiConfiguration({
+  permissions: STOREFRONT_PERMISSION_CATALOG,
+  availablePermissions: STOREFRONT_PERMISSION_VALUES,
+  defaultPermissions: HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS,
+});
 
 export const headlessManifest = defineAppManifest({
   schemaVersion: 2,
@@ -60,44 +59,27 @@ export const headlessManifest = defineAppManifest({
 function validateStorefrontApiConfiguration(
   input: StorefrontApiConfiguration,
 ): StorefrontApiConfiguration {
-  const permissionPattern =
-    /^[a-z][a-z0-9]*(?:[.:_-][a-z0-9]+)*$/;
+  const permissionPattern = /^[a-z][a-z0-9]*(?:[.:_-][a-z0-9]+)*$/;
   const definitions = [...input.permissions];
   const available = [...input.availablePermissions];
   const defaults = [...input.defaultPermissions];
 
   validateStorefrontPermissionCatalog(definitions);
-  assertValidPermissionList(
-    available,
-    "availablePermissions",
-    permissionPattern,
-  );
-  assertValidPermissionList(
-    defaults,
-    "defaultPermissions",
-    permissionPattern,
-  );
+  assertValidPermissionList(available, "availablePermissions", permissionPattern);
+  assertValidPermissionList(defaults, "defaultPermissions", permissionPattern);
 
-  const definitionHandles = new Set(
-    definitions.map(({ handle }) => handle),
-  );
+  const definitionHandles = new Set(definitions.map(({ handle }) => handle));
   const availableSet = new Set<string>(available);
   if (
     definitionHandles.size !== availableSet.size ||
-    [...definitionHandles].some(
-      (permission) => !availableSet.has(permission),
-    )
+    [...definitionHandles].some((permission) => !availableSet.has(permission))
   ) {
-    throw new Error(
-      "Storefront permission definitions and available permissions must match",
-    );
+    throw new Error("Storefront permission definitions and available permissions must match");
   }
 
   for (const permission of defaults) {
     if (!availableSet.has(permission)) {
-      throw new Error(
-        `Default storefront permission "${permission}" is unavailable`,
-      );
+      throw new Error(`Default storefront permission "${permission}" is unavailable`);
     }
   }
 
@@ -116,14 +98,10 @@ function assertValidPermissionList(
   const seen = new Set<string>();
   for (const permission of permissions) {
     if (!pattern.test(permission)) {
-      throw new Error(
-        `Invalid storefront permission "${permission}" in ${field}`,
-      );
+      throw new Error(`Invalid storefront permission "${permission}" in ${field}`);
     }
     if (seen.has(permission)) {
-      throw new Error(
-        `Duplicate storefront permission "${permission}" in ${field}`,
-      );
+      throw new Error(`Duplicate storefront permission "${permission}" in ${field}`);
     }
     seen.add(permission);
   }

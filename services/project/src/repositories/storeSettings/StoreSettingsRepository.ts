@@ -104,34 +104,25 @@ export interface StoreCurrencySettingsSnapshotData {
 export class StoreSettingsRepository extends BaseRepository {
   @ReadOnly()
   async findByStoreId(storeId: string): Promise<StoreSettingsSnapshot> {
-    const [addresses, phones, brands, orderSettings, currencySettings] =
-      await Promise.all([
-        this.connection
-          .select()
-          .from(storeAddress)
-          .where(eq(storeAddress.storeId, storeId))
-          .limit(1),
-        this.connection
-          .select()
-          .from(storePhone)
-          .where(eq(storePhone.storeId, storeId))
-          .orderBy(asc(storePhone.position), asc(storePhone.id)),
-        this.connection
-          .select()
-          .from(storeBrand)
-          .where(eq(storeBrand.storeId, storeId))
-          .limit(1),
-        this.connection
-          .select()
-          .from(storeOrderSettings)
-          .where(eq(storeOrderSettings.storeId, storeId))
-          .limit(1),
-        this.connection
-          .select()
-          .from(storeCurrencyFormatting)
-          .where(eq(storeCurrencyFormatting.storeId, storeId))
-          .limit(1),
-      ]);
+    const [addresses, phones, brands, orderSettings, currencySettings] = await Promise.all([
+      this.connection.select().from(storeAddress).where(eq(storeAddress.storeId, storeId)).limit(1),
+      this.connection
+        .select()
+        .from(storePhone)
+        .where(eq(storePhone.storeId, storeId))
+        .orderBy(asc(storePhone.position), asc(storePhone.id)),
+      this.connection.select().from(storeBrand).where(eq(storeBrand.storeId, storeId)).limit(1),
+      this.connection
+        .select()
+        .from(storeOrderSettings)
+        .where(eq(storeOrderSettings.storeId, storeId))
+        .limit(1),
+      this.connection
+        .select()
+        .from(storeCurrencyFormatting)
+        .where(eq(storeCurrencyFormatting.storeId, storeId))
+        .limit(1),
+    ]);
 
     const brand = brands[0] ?? null;
     const socialLinks = brand
@@ -144,10 +135,7 @@ export class StoreSettingsRepository extends BaseRepository {
               eq(storeBrandSocialLink.brandId, brand.id),
             ),
           )
-          .orderBy(
-            asc(storeBrandSocialLink.position),
-            asc(storeBrandSocialLink.id),
-          )
+          .orderBy(asc(storeBrandSocialLink.position), asc(storeBrandSocialLink.id))
       : [];
 
     return {
@@ -161,9 +149,7 @@ export class StoreSettingsRepository extends BaseRepository {
   }
 
   async replacePhones(storeId: string, phoneNumbers: string[]): Promise<void> {
-    await this.connection
-      .delete(storePhone)
-      .where(eq(storePhone.storeId, storeId));
+    await this.connection.delete(storePhone).where(eq(storePhone.storeId, storeId));
 
     if (phoneNumbers.length === 0) return;
 
@@ -179,10 +165,7 @@ export class StoreSettingsRepository extends BaseRepository {
     );
   }
 
-  async upsertAddress(
-    storeId: string,
-    data: StoreAddressData,
-  ): Promise<StoreAddress> {
+  async upsertAddress(storeId: string, data: StoreAddressData): Promise<StoreAddress> {
     const now = new Date().toISOString();
     const [result] = await this.connection
       .insert(storeAddress)
@@ -221,10 +204,7 @@ export class StoreSettingsRepository extends BaseRepository {
     await this.connection
       .delete(storeBrandSocialLink)
       .where(
-        and(
-          eq(storeBrandSocialLink.storeId, storeId),
-          eq(storeBrandSocialLink.brandId, brand.id),
-        ),
+        and(eq(storeBrandSocialLink.storeId, storeId), eq(storeBrandSocialLink.brandId, brand.id)),
       );
 
     if (socialLinks.length > 0) {
@@ -289,10 +269,7 @@ export class StoreSettingsRepository extends BaseRepository {
   }
 
   @Transactional()
-  async restoreContactDetails(
-    storeId: string,
-    data: StoreContactDetailsData,
-  ): Promise<void> {
+  async restoreContactDetails(storeId: string, data: StoreContactDetailsData): Promise<void> {
     await this.connection
       .update(store)
       .set({
@@ -306,24 +283,16 @@ export class StoreSettingsRepository extends BaseRepository {
   }
 
   @Transactional()
-  async restoreAddress(
-    storeId: string,
-    data: StoreAddressData | null,
-  ): Promise<void> {
+  async restoreAddress(storeId: string, data: StoreAddressData | null): Promise<void> {
     if (data) {
       await this.upsertAddress(storeId, data);
       return;
     }
-    await this.connection
-      .delete(storeAddress)
-      .where(eq(storeAddress.storeId, storeId));
+    await this.connection.delete(storeAddress).where(eq(storeAddress.storeId, storeId));
   }
 
   @Transactional()
-  async restoreBrand(
-    storeId: string,
-    data: StoreBrandData | null,
-  ): Promise<void> {
+  async restoreBrand(storeId: string, data: StoreBrandData | null): Promise<void> {
     if (data) {
       await this.upsertBrand(storeId, data);
       return;
@@ -331,9 +300,7 @@ export class StoreSettingsRepository extends BaseRepository {
     await this.connection
       .delete(storeBrandSocialLink)
       .where(eq(storeBrandSocialLink.storeId, storeId));
-    await this.connection
-      .delete(storeBrand)
-      .where(eq(storeBrand.storeId, storeId));
+    await this.connection.delete(storeBrand).where(eq(storeBrand.storeId, storeId));
   }
 
   @Transactional()
@@ -345,16 +312,11 @@ export class StoreSettingsRepository extends BaseRepository {
       await this.upsertOrderProcessing(storeId, data);
       return;
     }
-    await this.connection
-      .delete(storeOrderSettings)
-      .where(eq(storeOrderSettings.storeId, storeId));
+    await this.connection.delete(storeOrderSettings).where(eq(storeOrderSettings.storeId, storeId));
   }
 
   @Transactional()
-  async restoreDefaults(
-    storeId: string,
-    data: StoreDefaultsData,
-  ): Promise<void> {
+  async restoreDefaults(storeId: string, data: StoreDefaultsData): Promise<void> {
     await this.connection
       .update(store)
       .set({ ...data, updatedAt: new Date() })

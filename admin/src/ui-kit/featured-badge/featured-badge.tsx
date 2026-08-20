@@ -18,10 +18,7 @@ interface IFeaturedBadgeProps {
   className?: string;
 }
 
-export const FeaturedBadge = ({
-  showIcon = true,
-  className,
-}: IFeaturedBadgeProps) => {
+export const FeaturedBadge = ({ showIcon = true, className }: IFeaturedBadgeProps) => {
   const { styles, cx } = useStyles();
 
   return (

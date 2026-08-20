@@ -30,7 +30,9 @@ type CustomerGroup implements Node {
   description: String
   isDefault: Boolean!
   isActive: Boolean!
-  """Aggregate revision incremented by definition, state and membership changes."""
+  """
+  Aggregate revision incremented by definition, state and membership changes.
+  """
   revision: Int!
   customersCount: Int!
   createdAt: DateTime!
@@ -132,7 +134,9 @@ type CustomerSegment implements Node {
   id: ID!
   name: String!
   description: String
-  """Optional merchant-selected #RRGGBB presentation color."""
+  """
+  Optional merchant-selected #RRGGBB presentation color.
+  """
   color: String
   type: CustomerSegmentType!
   status: CustomerSegmentStatus!
@@ -142,7 +146,9 @@ type CustomerSegment implements Node {
   evaluationGeneration: Int!
   materializationStatus: CustomerSegmentMaterializationStatus
   createdById: String
-  """Aggregate revision incremented by definition, state and membership changes."""
+  """
+  Aggregate revision incremented by definition, state and membership changes.
+  """
   revision: Int!
   customersCount: Int!
   createdAt: DateTime!
@@ -212,7 +218,9 @@ input CustomerGroupStateUpdateInput {
 input CustomerGroupUpdateInput {
   definition: CustomerGroupDefinitionUpdateInput
   state: CustomerGroupStateUpdateInput
-  """Create, update, or delete customer memberships in this group."""
+  """
+  Create, update, or delete customer memberships in this group.
+  """
   memberships: CustomerGroupMembershipRelationsUpdateInput
 }
 
@@ -220,7 +228,9 @@ input CustomerGroupDeleteInput {
   id: ID!
 }
 
-"""Create a customer's membership in this group."""
+"""
+Create a customer's membership in this group.
+"""
 input CustomerGroupMembershipRelationCreateInput {
   customerId: ID!
   isPrimary: Boolean = false
@@ -245,7 +255,9 @@ input CustomerTagCreateInput {
 
 input CustomerTagUpdateInput {
   name: String
-  """Create or delete customer assignments for this tag."""
+  """
+  Create or delete customer assignments for this tag.
+  """
   assignments: CustomerTagAssignmentRelationsUpdateInput
 }
 
@@ -267,7 +279,9 @@ input CustomerSegmentCreateInput {
   description: String
   color: String
   type: CustomerSegmentType!
-  """Defaults to DRAFT when omitted."""
+  """
+  Defaults to DRAFT when omitted.
+  """
   status: CustomerSegmentStatus
   query: String
 }
@@ -354,7 +368,9 @@ input CustomerSegmentUpdateInput {
   details: CustomerSegmentDetailsUpdateInput
   definition: CustomerSegmentDefinitionUpdateInput
   state: CustomerSegmentStateUpdateInput
-  """Create, update, delete, or replace manual customer memberships."""
+  """
+  Create, update, delete, or replace manual customer memberships.
+  """
   memberships: CustomerSegmentMembershipRelationsUpdateInput
 }
 
@@ -372,7 +388,9 @@ input CustomerSegmentMembershipRelationsUpdateInput {
   create: [CustomerSegmentMembershipRelationCreateInput!]
   update: [CustomerSegmentMembershipRelationUpdateInput!]
   deleteIds: [ID!]
-  """Atomically replace all manual memberships with these customers."""
+  """
+  Atomically replace all manual memberships with these customers.
+  """
   setCustomerIds: [ID!]
 }
 
@@ -381,24 +399,32 @@ input CustomerSegmentDeleteInput {
   expectedRevision: Int
 }
 
-"""One group membership used by the unified customer update."""
+"""
+One group membership used by the unified customer update.
+"""
 input CustomerGroupMembershipUpdateOperationInput {
   groupId: ID!
   isPrimary: Boolean = false
   expiresAt: DateTime
 }
 
-"""Replace all manual group memberships for the customer."""
+"""
+Replace all manual group memberships for the customer.
+"""
 input CustomerGroupMembershipsUpdateInput {
   memberships: [CustomerGroupMembershipUpdateOperationInput!]!
 }
 
-"""Replace all tag assignments for the customer."""
+"""
+Replace all tag assignments for the customer.
+"""
 input CustomerTagAssignmentsUpdateInput {
   tagIds: [ID!]!
 }
 
-"""Replace all manual segment memberships for the customer."""
+"""
+Replace all manual segment memberships for the customer.
+"""
 input CustomerSegmentMembershipsUpdateInput {
   segmentIds: [ID!]!
 }

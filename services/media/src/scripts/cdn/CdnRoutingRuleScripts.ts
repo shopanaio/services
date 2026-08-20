@@ -20,8 +20,7 @@ export interface CdnRoutingRuleCreateParams {
   transformOverrides?: CdnTransformOverrides;
 }
 
-export interface CdnRoutingRuleUpdateParams
-  extends Partial<CdnRoutingRuleCreateParams> {
+export interface CdnRoutingRuleUpdateParams extends Partial<CdnRoutingRuleCreateParams> {
   id: string;
 }
 
@@ -44,13 +43,11 @@ export class CdnRoutingRuleCreateScript extends BaseScript<
   CdnRoutingRuleResult
 > {
   @ZodSchema(cdnRoutingRuleCreateSchema)
-  protected async execute(
-    params: CdnRoutingRuleCreateParams
-  ): Promise<CdnRoutingRuleResult> {
+  protected async execute(params: CdnRoutingRuleCreateParams): Promise<CdnRoutingRuleResult> {
     const assetGroup = await this.getOrCreateStoreAssetGroup();
     const configuration = await this.repository.cdnConfiguration.findById(
       assetGroup.id,
-      params.cdnConfigurationId
+      params.cdnConfigurationId,
     );
     if (!configuration) {
       return {
@@ -89,15 +86,10 @@ export class CdnRoutingRuleUpdateScript extends BaseScript<
   CdnRoutingRuleResult
 > {
   @ZodSchema(cdnRoutingRuleUpdateSchema)
-  protected async execute(
-    params: CdnRoutingRuleUpdateParams
-  ): Promise<CdnRoutingRuleResult> {
+  protected async execute(params: CdnRoutingRuleUpdateParams): Promise<CdnRoutingRuleResult> {
     const { id, ...changes } = params;
     // DB columns are non-null jsonb; an explicit null means "clear it".
-    if (
-      "transformOverrides" in changes &&
-      changes.transformOverrides === null
-    ) {
+    if ("transformOverrides" in changes && changes.transformOverrides === null) {
       changes.transformOverrides = {};
     }
     if ("conditions" in changes && changes.conditions === null) {
@@ -105,23 +97,18 @@ export class CdnRoutingRuleUpdateScript extends BaseScript<
     }
 
     const assetGroup = await this.getOrCreateStoreAssetGroup();
-    const existing = await this.repository.cdnRoutingRule.findById(
-      assetGroup.id,
-      id
-    );
+    const existing = await this.repository.cdnRoutingRule.findById(assetGroup.id, id);
     if (!existing) {
       return {
         routingRule: null,
-        userErrors: [
-          { field: ["id"], code: "NOT_FOUND", message: "CDN routing rule not found" },
-        ],
+        userErrors: [{ field: ["id"], code: "NOT_FOUND", message: "CDN routing rule not found" }],
       };
     }
 
     if (changes.cdnConfigurationId) {
       const configuration = await this.repository.cdnConfiguration.findById(
         assetGroup.id,
-        changes.cdnConfigurationId
+        changes.cdnConfigurationId,
       );
       if (!configuration) {
         return {
@@ -138,11 +125,7 @@ export class CdnRoutingRuleUpdateScript extends BaseScript<
     }
 
     return {
-      routingRule: await this.repository.cdnRoutingRule.update(
-        assetGroup.id,
-        id,
-        changes
-      ),
+      routingRule: await this.repository.cdnRoutingRule.update(assetGroup.id, id, changes),
       userErrors: [],
     };
   }
@@ -165,21 +148,14 @@ export class CdnRoutingRuleDeleteScript extends BaseScript<
   CdnRoutingRuleDeleteResult
 > {
   @ZodSchema(cdnRoutingRuleIdSchema)
-  protected async execute(
-    params: CdnRoutingRuleIdParams
-  ): Promise<CdnRoutingRuleDeleteResult> {
+  protected async execute(params: CdnRoutingRuleIdParams): Promise<CdnRoutingRuleDeleteResult> {
     const assetGroup = await this.getOrCreateStoreAssetGroup();
-    const deleted = await this.repository.cdnRoutingRule.delete(
-      assetGroup.id,
-      params.id
-    );
+    const deleted = await this.repository.cdnRoutingRule.delete(assetGroup.id, params.id);
     return deleted
       ? { deletedRoutingRuleId: params.id, userErrors: [] }
       : {
           deletedRoutingRuleId: null,
-          userErrors: [
-            { field: ["id"], code: "NOT_FOUND", message: "CDN routing rule not found" },
-          ],
+          userErrors: [{ field: ["id"], code: "NOT_FOUND", message: "CDN routing rule not found" }],
         };
   }
 

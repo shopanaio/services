@@ -1,15 +1,6 @@
-import {
-  PreloadNotFoundError,
-  TypeAuthorizationError,
-  TypePolicy,
-} from "@shopana/type-resolver";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
-import {
-  APPLICATION_AUTH_UI_LOCALES,
-} from "../../auth/applicationAuthConfiguration.js";
+import { PreloadNotFoundError, TypeAuthorizationError, TypePolicy } from "@shopana/type-resolver";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import { APPLICATION_AUTH_UI_LOCALES } from "../../auth/applicationAuthConfiguration.js";
 import {
   APPLICATION_AUTH_PROVIDER_NAMES,
   parseApplicationAuthProviderName,
@@ -33,10 +24,7 @@ export interface ApplicationAuthConfigurationResolverInput {
 }
 
 type ApplicationAuthMethodId = "password" | "email_otp" | "phone_otp";
-type ApplicationAuthMethodCapability =
-  | "SIGN_IN"
-  | "SIGN_UP"
-  | "PASSWORD_RESET";
+type ApplicationAuthMethodCapability = "SIGN_IN" | "SIGN_UP" | "PASSWORD_RESET";
 
 export interface ApplicationAuthMethodView {
   id: ApplicationAuthMethodId;
@@ -101,10 +89,7 @@ export class ApplicationAuthConfigurationResolver extends IAMType<
   }
 
   applicationId() {
-    return encodeGlobalIdByType(
-      this.$props.applicationId,
-      GlobalIdEntity.Application
-    );
+    return encodeGlobalIdByType(this.$props.applicationId, GlobalIdEntity.Application);
   }
 
   async realmEnabled() {
@@ -142,7 +127,7 @@ export class ApplicationAuthConfigurationResolver extends IAMType<
   async branding() {
     return new ApplicationAuthBrandingResolver(
       (await this.$get("configuration")).brandingJson,
-      this.$ctx
+      this.$ctx,
     );
   }
 
@@ -156,31 +141,26 @@ export class ApplicationAuthConfigurationResolver extends IAMType<
 
   async trustedOrigins() {
     return (await this.$get("origins")).map(
-      (origin) => new ApplicationAuthTrustedOriginResolver(origin, this.$ctx)
+      (origin) => new ApplicationAuthTrustedOriginResolver(origin, this.$ctx),
     );
   }
 
   protocolUrls() {
     return new ApplicationAuthProtocolUrlsResolver(
-      createProtocolUrls(
-        this.$ctx.kernel.applicationAuthPublicBaseUrl,
-        this.$props.applicationId
-      ),
-      this.$ctx
+      createProtocolUrls(this.$ctx.kernel.applicationAuthPublicBaseUrl, this.$props.applicationId),
+      this.$ctx,
     );
   }
 
   async emailDelivery() {
     return new ApplicationAuthEmailDeliveryConfigurationResolver(
       createEmailDeliveryView(await this.$get("deliveryProfile")),
-      this.$ctx
+      this.$ctx,
     );
   }
 
   async authMethod(args: { id: string }) {
-    const method = (await this.authMethodViews()).find(
-      ({ id }) => id === args.id
-    );
+    const method = (await this.authMethodViews()).find(({ id }) => id === args.id);
     if (!method) {
       throw new Error("Application auth method is unsupported");
     }
@@ -189,28 +169,23 @@ export class ApplicationAuthConfigurationResolver extends IAMType<
 
   async authMethods() {
     return (await this.authMethodViews()).map(
-      (method) => new ApplicationAuthMethodResolver(method, this.$ctx)
+      (method) => new ApplicationAuthMethodResolver(method, this.$ctx),
     );
   }
 
   async provider(args: { name: string }) {
     await this.assertProviderReadAuthorized();
     const provider = parseApplicationAuthProviderName(args.name.toLowerCase());
-    return new ApplicationAuthProviderResolver(
-      await this.providerView(provider),
-      this.$ctx
-    );
+    return new ApplicationAuthProviderResolver(await this.providerView(provider), this.$ctx);
   }
 
   async providers() {
     await this.assertProviderReadAuthorized();
     return Promise.all(
-      APPLICATION_AUTH_PROVIDER_NAMES.map(async (provider) =>
-        new ApplicationAuthProviderResolver(
-          await this.providerView(provider),
-          this.$ctx
-        )
-      )
+      APPLICATION_AUTH_PROVIDER_NAMES.map(
+        async (provider) =>
+          new ApplicationAuthProviderResolver(await this.providerView(provider), this.$ctx),
+      ),
     );
   }
 
@@ -227,14 +202,13 @@ export class ApplicationAuthConfigurationResolver extends IAMType<
   }
 
   private async authMethodViews(): Promise<ApplicationAuthMethodView[]> {
-    const [configuration, deliveryProfile, phoneOtpConfigured] =
-      await Promise.all([
-        this.$get("configuration"),
-        this.$get("deliveryProfile"),
-        this.$ctx.kernel.applicationAuthAdminManagement.isPhoneOtpConfigured(
-          this.$props.applicationId
-        ),
-      ]);
+    const [configuration, deliveryProfile, phoneOtpConfigured] = await Promise.all([
+      this.$get("configuration"),
+      this.$get("deliveryProfile"),
+      this.$ctx.kernel.applicationAuthAdminManagement.isPhoneOtpConfigured(
+        this.$props.applicationId,
+      ),
+    ]);
     const passwordCapabilities: ApplicationAuthMethodCapability[] = [];
     if (configuration.passwordSignInEnabled) {
       passwordCapabilities.push("SIGN_IN");
@@ -261,8 +235,7 @@ export class ApplicationAuthConfigurationResolver extends IAMType<
     }
     const passwordNeedsDelivery =
       configuration.passwordResetEnabled ||
-      (configuration.passwordSignUpEnabled &&
-        configuration.emailVerificationRequired);
+      (configuration.passwordSignUpEnabled && configuration.emailVerificationRequired);
 
     return [
       {
@@ -296,7 +269,7 @@ export class ApplicationAuthConfigurationResolver extends IAMType<
   }
 
   private async providerView(
-    provider: ApplicationAuthProviderName
+    provider: ApplicationAuthProviderName,
   ): Promise<ApplicationAuthProviderResolverInput> {
     const [providers, configuration] = await Promise.all([
       this.$get("providers"),
@@ -306,7 +279,7 @@ export class ApplicationAuthConfigurationResolver extends IAMType<
     const callbackUrl = createProviderCallbackUrl(
       this.$ctx.kernel.applicationAuthPublicBaseUrl,
       this.$props.applicationId,
-      provider
+      provider,
     );
     return configured
       ? {
@@ -339,10 +312,7 @@ export class ApplicationAuthConfigurationResolver extends IAMType<
       })
       .then((authorized) => {
         if (!authorized) {
-          throw new TypeAuthorizationError(
-            "org.application-auth-providers",
-            "read"
-          );
+          throw new TypeAuthorizationError("org.application-auth-providers", "read");
         }
       });
     return this.providerReadAuthorization;
@@ -463,8 +433,7 @@ export class ApplicationAuthProtocolUrlsResolver extends IAMType<ApplicationAuth
 
   providerCallbackUrls() {
     return this.$props.providerCallbackUrls.map(
-      (callback) =>
-        new ApplicationAuthProviderCallbackUrlResolver(callback, this.$ctx)
+      (callback) => new ApplicationAuthProviderCallbackUrlResolver(callback, this.$ctx),
     );
   }
 }
@@ -508,7 +477,7 @@ export class ApplicationAuthEmailDeliveryConfigurationResolver extends IAMType<A
 
 function createProtocolUrls(
   publicBaseUrl: string,
-  applicationId: string
+  applicationId: string,
 ): ApplicationAuthProtocolUrls {
   const baseUrl = publicBaseUrl.replace(/\/$/u, "");
   const issuer = `${baseUrl}/auth/applications/${applicationId}`;
@@ -516,8 +485,7 @@ function createProtocolUrls(
     issuer,
     oidcDiscoveryUrl: `${issuer}/.well-known/openid-configuration`,
     oauthAuthorizationServerMetadataUrl:
-      `${baseUrl}/.well-known/oauth-authorization-server` +
-      `/auth/applications/${applicationId}`,
+      `${baseUrl}/.well-known/oauth-authorization-server` + `/auth/applications/${applicationId}`,
     authorizationUrl: `${issuer}/oauth2/authorize`,
     tokenUrl: `${issuer}/oauth2/token`,
     jwksUrl: `${issuer}/jwks`,
@@ -533,14 +501,14 @@ function createProtocolUrls(
 function createProviderCallbackUrl(
   publicBaseUrl: string,
   applicationId: string,
-  provider: ApplicationAuthProviderName
+  provider: ApplicationAuthProviderName,
 ): string {
   const baseUrl = publicBaseUrl.replace(/\/$/u, "");
   return `${baseUrl}/auth/applications/${applicationId}/callback/${provider}`;
 }
 
 function createEmailDeliveryView(
-  profile: ApplicationAuthDeliveryProfile | null
+  profile: ApplicationAuthDeliveryProfile | null,
 ): ApplicationAuthEmailDeliveryView {
   if (!profile) {
     return {

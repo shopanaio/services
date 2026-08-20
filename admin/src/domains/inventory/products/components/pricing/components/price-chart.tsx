@@ -3,10 +3,7 @@ import ReactECharts from "echarts-for-react";
 import { graphic } from "echarts";
 import { useTheme } from "antd-style";
 import type { ApiVariantPriceConnection, CurrencyCode } from "@/graphql/types";
-import {
-  formatPrice,
-  formatShortDate,
-} from "../../../utils/price-formatting";
+import { formatPrice, formatShortDate } from "../../../utils/price-formatting";
 
 export interface PriceChartPoint {
   date: Date;
@@ -91,8 +88,7 @@ export const PriceChart = ({
         axisLabel: {
           color: theme.colorTextSecondary,
           fontSize: 10,
-          formatter: (value: number) =>
-            formatPrice(Math.round(value), axisCurrency),
+          formatter: (value: number) => formatPrice(Math.round(value), axisCurrency),
         },
         splitLine: {
           show: true,
@@ -118,9 +114,7 @@ export const PriceChart = ({
             ? valueFormatter(point.value, item)
             : formatPrice(point.value, item.currency ?? axisCurrency);
           return `<div style="font-weight:600">${formattedValue}</div>
-                  <div style="opacity:0.7;font-size:10px">${formatShortDate(
-                    item.date
-                  )}</div>`;
+                  <div style="opacity:0.7;font-size:10px">${formatShortDate(item.date)}</div>`;
         },
         axisPointer: {
           type: "line",

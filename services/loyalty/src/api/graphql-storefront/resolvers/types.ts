@@ -21,7 +21,11 @@ import { StorefrontTransactionConnectionResolver } from "../../../resolvers/stor
 import type { Resolvers } from "../../../resolvers/storefront/generated/types.js";
 
 type Loadable = {
-  load(value: string, query: ReturnType<typeof parseGraphqlInfo>, ctx: ServiceContext): Promise<unknown>;
+  load(
+    value: string,
+    query: ReturnType<typeof parseGraphqlInfo>,
+    ctx: ServiceContext,
+  ): Promise<unknown>;
 };
 
 function referenceResolver(entity: GlobalIdType, Resolver: Loadable) {
@@ -34,27 +38,27 @@ function referenceResolver(entity: GlobalIdType, Resolver: Loadable) {
 export const typeResolvers = {
   DateTime: dateTimeScalar,
   Node: {
-    __resolveType: (value: unknown) => value instanceof LoyaltyAvailableRewardResolver
-      ? "LoyaltyAvailableReward"
-      : null,
+    __resolveType: (value: unknown) =>
+      value instanceof LoyaltyAvailableRewardResolver ? "LoyaltyAvailableReward" : null,
   },
   Connection: {
-    __resolveType: (value: unknown) => value instanceof LoyaltyAvailableRewardConnectionResolver
-      ? "LoyaltyAvailableRewardConnection"
-      : value instanceof StorefrontTransactionConnectionResolver
-        ? "LoyaltyTransactionConnection"
-        : null,
+    __resolveType: (value: unknown) =>
+      value instanceof LoyaltyAvailableRewardConnectionResolver
+        ? "LoyaltyAvailableRewardConnection"
+        : value instanceof StorefrontTransactionConnectionResolver
+          ? "LoyaltyTransactionConnection"
+          : null,
   },
   LoyaltyRewardPresentation: {
     __resolveType: (value: unknown) => {
       const name = (value as { __typename?: string })?.__typename;
-      return name === "LoyaltyPointsRewardPresentation"
-        || name === "LoyaltyMoneyRewardPresentation"
-        || name === "LoyaltyPercentageRewardPresentation"
-        || name === "LoyaltyVoucherRewardPresentation"
-        || name === "LoyaltyFreeShippingRewardPresentation"
-        || name === "LoyaltyFreeProductRewardPresentation"
-        || name === "LoyaltyMemberBenefitRewardPresentation"
+      return name === "LoyaltyPointsRewardPresentation" ||
+        name === "LoyaltyMoneyRewardPresentation" ||
+        name === "LoyaltyPercentageRewardPresentation" ||
+        name === "LoyaltyVoucherRewardPresentation" ||
+        name === "LoyaltyFreeShippingRewardPresentation" ||
+        name === "LoyaltyFreeProductRewardPresentation" ||
+        name === "LoyaltyMemberBenefitRewardPresentation"
         ? name
         : null;
     },
@@ -63,12 +67,18 @@ export const typeResolvers = {
     __resolveReference: referenceResolver(GlobalIdEntity.Product, ProductFederationResolver),
   },
   ProductVariant: {
-    __resolveReference: referenceResolver(GlobalIdEntity.ProductVariant, ProductVariantFederationResolver),
+    __resolveReference: referenceResolver(
+      GlobalIdEntity.ProductVariant,
+      ProductVariantFederationResolver,
+    ),
   },
   Customer: {
     __resolveReference: referenceResolver(GlobalIdEntity.Customer, CustomerFederationResolver),
   },
   LoyaltyAvailableReward: {
-    __resolveReference: referenceResolver(GlobalIdEntity.LoyaltyAvailableReward, LoyaltyAvailableRewardResolver),
+    __resolveReference: referenceResolver(
+      GlobalIdEntity.LoyaltyAvailableReward,
+      LoyaltyAvailableRewardResolver,
+    ),
   },
 } as unknown as Partial<Resolvers>;

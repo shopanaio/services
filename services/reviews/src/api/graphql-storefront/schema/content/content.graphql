@@ -1,4 +1,6 @@
-"""Shared storefront contract for reviews, replies, questions, and answers."""
+"""
+Shared storefront contract for reviews, replies, questions, and answers.
+"""
 interface ReviewContent implements Node {
   id: ID!
   kind: ReviewContentKind!
@@ -17,14 +19,18 @@ interface ReviewContent implements Node {
   viewerCapabilities: ReviewContentViewerCapabilities!
 }
 
-"""Privacy-safe author snapshot rendered with storefront content."""
+"""
+Privacy-safe author snapshot rendered with storefront content.
+"""
 type ReviewContentAuthor {
   type: ReviewContentAuthorType!
   customer: Customer
   displayName: String!
 }
 
-"""Counters maintained for fast storefront rendering."""
+"""
+Counters maintained for fast storefront rendering.
+"""
 type ReviewContentMetrics {
   likeCount: Int!
   dislikeCount: Int!
@@ -36,7 +42,9 @@ type ReviewContentMetrics {
   updatedAt: DateTime!
 }
 
-"""Request-scoped engagement state for the current storefront visitor."""
+"""
+Request-scoped engagement state for the current storefront visitor.
+"""
 type ReviewContentViewerEngagement {
   vote: ReviewContentVoteType
   hasReported: Boolean!
@@ -92,13 +100,21 @@ type ReviewContentEdge {
   node: ReviewContent!
 }
 
-"""A customer-facing mutation error safe to display in a storefront."""
+"""
+A customer-facing mutation error safe to display in a storefront.
+"""
 type ReviewUserError implements DisplayableError {
-  """Path to the invalid input field, when available."""
+  """
+  Path to the invalid input field, when available.
+  """
   field: [String!]
-  """Human-readable error message."""
+  """
+  Human-readable error message.
+  """
   message: String!
-  """Stable machine-readable error code."""
+  """
+  Stable machine-readable error code.
+  """
   code: String
 }
 
@@ -109,13 +125,19 @@ Authenticated customer identity is always taken from trusted request context;
 when a customer is authenticated this input is ignored.
 """
 input ReviewSubmissionAuthorInput {
-  """Public display name shown alongside the submitted content."""
+  """
+  Public display name shown alongside the submitted content.
+  """
   displayName: String!
-  """Contact email required for guest submissions and never exposed publicly."""
+  """
+  Contact email required for guest submissions and never exposed publicly.
+  """
   email: Email
 }
 
-"""Shared text and request metadata for customer-authored content."""
+"""
+Shared text and request metadata for customer-authored content.
+"""
 input ReviewContentSubmissionInput {
   """
   Client-generated opaque key used to safely replay the submission.
@@ -132,18 +154,24 @@ input ReviewContentSubmissionInput {
   authenticated customer request.
   """
   author: ReviewSubmissionAuthorInput
-  """Customer-authored body text, limited to 5,000 characters."""
+  """
+  Customer-authored body text, limited to 5,000 characters.
+  """
   body: String!
 }
 
-"""Customer-editable text fields shared by reviews, questions, and answers."""
+"""
+Customer-editable text fields shared by reviews, questions, and answers.
+"""
 input ReviewContentEditInput {
   title: String
   body: String
   locale: LocaleCode
 }
 
-"""Optimistic input used to delete content owned by the current customer."""
+"""
+Optimistic input used to delete content owned by the current customer.
+"""
 input ReviewContentDeleteInput {
   id: ID!
   expectedRevision: Int!

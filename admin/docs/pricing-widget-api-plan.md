@@ -2,7 +2,9 @@
 
 ## Overview
 
-This document outlines the implementation plan for adding a Pricing Widget API to the Inventory Service. The widget provides aggregated pricing statistics, current price/cost, and price history for product variants.
+This document outlines the implementation plan for adding a Pricing Widget API to the Inventory
+Service. The widget provides aggregated pricing statistics, current price/cost, and price history
+for product variants.
 
 ## Data Structure (Frontend Types)
 
@@ -41,13 +43,21 @@ Add the following types:
 Statistics for variant price history over a period.
 """
 type VariantPriceHistoryStatistics {
-  """Minimum price over the period (minor units)."""
+  """
+  Minimum price over the period (minor units).
+  """
   minPriceMinor: BigInt!
-  """Maximum price over the period (minor units)."""
+  """
+  Maximum price over the period (minor units).
+  """
   maxPriceMinor: BigInt!
-  """Average price over the period (minor units)."""
+  """
+  Average price over the period (minor units).
+  """
   avgPriceMinor: BigInt!
-  """Currency code."""
+  """
+  Currency code.
+  """
   currency: CurrencyCode!
 }
 
@@ -55,13 +65,21 @@ type VariantPriceHistoryStatistics {
 Pricing widget payload with current price, cost, history and statistics.
 """
 type PricingWidgetPayload {
-  """Current active price."""
+  """
+  Current active price.
+  """
   currentPrice: VariantPrice
-  """Current active cost."""
+  """
+  Current active cost.
+  """
   currentCostPrice: VariantCost
-  """Price history for the period."""
+  """
+  Price history for the period.
+  """
   history: VariantPriceConnection!
-  """Computed statistics for the period."""
+  """
+  Computed statistics for the period.
+  """
   statistics: VariantPriceHistoryStatistics!
 }
 
@@ -69,17 +87,29 @@ type PricingWidgetPayload {
 Input for pricing widget query.
 """
 input PricingWidgetInput {
-  """The variant ID to get pricing data for."""
+  """
+  The variant ID to get pricing data for.
+  """
   variantId: ID!
-  """Currency code to filter by."""
+  """
+  Currency code to filter by.
+  """
   currency: CurrencyCode!
-  """Start of the period (optional, defaults to 30 days ago)."""
+  """
+  Start of the period (optional, defaults to 30 days ago).
+  """
   from: DateTime
-  """End of the period (optional, defaults to now)."""
+  """
+  End of the period (optional, defaults to now).
+  """
   to: DateTime
-  """Pagination: first N items."""
+  """
+  Pagination: first N items.
+  """
   first: Int
-  """Pagination: cursor after."""
+  """
+  Pagination: cursor after.
+  """
   after: String
 }
 ```
@@ -92,7 +122,9 @@ Add to `InventoryQuery` type:
 type InventoryQuery {
   # ... existing queries ...
 
-  """Get pricing widget data for a variant."""
+  """
+  Get pricing widget data for a variant.
+  """
   pricingWidget(input: PricingWidgetInput!): PricingWidgetPayload!
 }
 ```
@@ -252,12 +284,14 @@ export class PricingWidgetResolver extends InventoryType<PricingWidgetInput> {
     });
 
     // Return zero statistics if no data
-    return stats ?? {
-      minPriceMinor: 0,
-      maxPriceMinor: 0,
-      avgPriceMinor: 0,
-      currency: this.$props.currency,
-    };
+    return (
+      stats ?? {
+        minPriceMinor: 0,
+        maxPriceMinor: 0,
+        avgPriceMinor: 0,
+        currency: this.$props.currency,
+      }
+    );
   }
 }
 ```
@@ -295,19 +329,15 @@ Add batch loaders for optimized data fetching:
 
 ```typescript
 export const createPricingLoaders = (ctx: Context) => ({
-  priceStatisticsByKey: new DataLoader<string, PriceHistoryStatistics | null>(
-    async (keys) => {
-      // Batch load statistics for multiple variants
-      // Key format: `${variantId}:${currency}:${from}:${to}`
-    }
-  ),
+  priceStatisticsByKey: new DataLoader<string, PriceHistoryStatistics | null>(async (keys) => {
+    // Batch load statistics for multiple variants
+    // Key format: `${variantId}:${currency}:${from}:${to}`
+  }),
 
-  currentPriceByVariantAndCurrency: new DataLoader<string, ItemPricing | null>(
-    async (keys) => {
-      // Batch load current prices
-      // Key format: `${variantId}:${currency}`
-    }
-  ),
+  currentPriceByVariantAndCurrency: new DataLoader<string, ItemPricing | null>(async (keys) => {
+    // Batch load current prices
+    // Key format: `${variantId}:${currency}`
+  }),
 });
 ```
 
@@ -328,6 +358,7 @@ pnpm shopana codegen --service inventory
 **File:** `e2e/tests/inventory-api/pricing-widget.spec.ts`
 
 Test cases:
+
 - Get statistics for a period with existing price history
 - Get statistics for a period with no price history (returns zeros)
 - Pagination of price history
@@ -400,6 +431,7 @@ query GetPricingWidget($input: PricingWidgetInput!) {
 ```
 
 Variables:
+
 ```json
 {
   "input": {
@@ -416,6 +448,7 @@ Variables:
 ## Dependencies
 
 No new dependencies required. Uses existing:
+
 - Drizzle ORM for database queries
 - GraphQL Yoga for API
 - Apollo Federation for subgraph composition

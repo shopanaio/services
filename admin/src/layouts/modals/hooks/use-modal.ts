@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useCallback } from 'react';
-import { useModalStackStore } from '../store/modals';
-import type { IModalStackPayload } from '../types';
+import { useCallback } from "react";
+import { useModalStackStore } from "../store/modals";
+import type { IModalStackPayload } from "../types";
 
 /**
  * Hook to get modal stack actions (push, pop, clear)
@@ -57,7 +57,7 @@ export function createModalStackHook(type: string) {
       (payload?: IModalStackPayload) => {
         return pushToStack(type, payload);
       },
-      [pushToStack]
+      [pushToStack],
     );
 
     return { push };
@@ -87,7 +87,7 @@ export function useModalStackItem(type: string) {
     (payload?: IModalStackPayload) => {
       return pushToStack(type, payload);
     },
-    [pushToStack, type]
+    [pushToStack, type],
   );
 
   return { push };

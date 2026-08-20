@@ -48,14 +48,12 @@ export class ListingWriteIndexActionScript extends BaseScript<
   ListingWriteIndexActionResult
 > {
   protected async execute(
-    input: ListingPreparedSyncWriteAction | ListingPreparedDeleteWriteAction
+    input: ListingPreparedSyncWriteAction | ListingPreparedDeleteWriteAction,
   ): Promise<ListingWriteIndexActionResult> {
     return this.repository.runListingIndexItemTransaction(async () => {
       const action = input.action;
       const statePayloadHash = this.getStatePayloadHash(input);
-      const current = await this.repository.listingIndexItemState.lockByItem(
-        action.itemKey
-      );
+      const current = await this.repository.listingIndexItemState.lockByItem(action.itemKey);
 
       if (current && action.eventSequence < current.eventSequence) {
         return { result: this.buildResult(action, "ignored_stale"), recommendationPlan: null };
@@ -82,47 +80,26 @@ export class ListingWriteIndexActionScript extends BaseScript<
             {
               code: "REVISION_CONFLICT",
               field: ["eventSequence"],
-              message:
-                "Listing delete action reused an eventSequence with a different payload",
+              message: "Listing delete action reused an eventSequence with a different payload",
             },
           ]);
         }
       }
 
       if ("syncWriteModel" in input) {
-        const oldState = await this.readRecommendationLifecycleState(
-          input.action.itemKey.itemId,
-        );
+        const oldState = await this.readRecommendationLifecycleState(input.action.itemKey.itemId);
         await this.applySync(input.action, input.syncWriteModel.writeModelJson);
-        await this.upsertLatestState(
-          input.action,
-          "indexed",
-          statePayloadHash
-        );
-        const newState = await this.readRecommendationLifecycleState(
-          input.action.itemKey.itemId,
-        );
-        const recommendationPlan = this.buildRecommendationLifecyclePlan(
-          input,
-          oldState,
-          newState,
-        );
+        await this.upsertLatestState(input.action, "indexed", statePayloadHash);
+        const newState = await this.readRecommendationLifecycleState(input.action.itemKey.itemId);
+        const recommendationPlan = this.buildRecommendationLifecyclePlan(input, oldState, newState);
         return { result: this.buildResult(input.action, "applied"), recommendationPlan };
       }
 
-      const oldState = await this.readRecommendationLifecycleState(
-        input.action.itemKey.itemId,
-      );
+      const oldState = await this.readRecommendationLifecycleState(input.action.itemKey.itemId);
       await this.applyDelete(input.action);
       await this.upsertLatestState(input.action, "deleted", statePayloadHash);
-      const newState = await this.readRecommendationLifecycleState(
-        input.action.itemKey.itemId,
-      );
-      const recommendationPlan = this.buildRecommendationLifecyclePlan(
-        input,
-        oldState,
-        newState,
-      );
+      const newState = await this.readRecommendationLifecycleState(input.action.itemKey.itemId);
+      const recommendationPlan = this.buildRecommendationLifecyclePlan(input, oldState, newState);
       return { result: this.buildResult(input.action, "applied"), recommendationPlan };
     });
   }
@@ -136,18 +113,22 @@ export class ListingWriteIndexActionScript extends BaseScript<
   ): Promise<RecommendationLifecycleState> {
     const current = await this.repository.productListingIndex.findByProductId(productId);
     const currentCategories = current
-      ? (await this.repository.listingPostingBitmap.getMembershipKeys({
-          entityType: "product",
-          docId: current.productDocId,
-          field: "category",
-        })).map((row) => row.valueKey)
+      ? (
+          await this.repository.listingPostingBitmap.getMembershipKeys({
+            entityType: "product",
+            docId: current.productDocId,
+            field: "category",
+          })
+        ).map((row) => row.valueKey)
       : [];
     const currentSorts = current
       ? await this.repository.listingPostingProductSort.getByProductDocId(current.productDocId)
       : [];
     return {
       published: current?.status === "published",
-      available: currentSorts.some((row) => row.sortKind === "availability" && row.boolValue === true),
+      available: currentSorts.some(
+        (row) => row.sortKind === "availability" && row.boolValue === true,
+      ),
       categoryIds: normalizeCategoryIds(currentCategories),
     };
   }
@@ -183,16 +164,14 @@ export class ListingWriteIndexActionScript extends BaseScript<
 
   private async applySync(
     action: ListingPreparedSyncAction,
-    writeModel: ListingSyncWriteModelJson
+    writeModel: ListingSyncWriteModelJson,
   ): Promise<void> {
     const productId = action.itemKey.itemId;
-    const existingVariants =
-      await this.repository.variantListingIndex.getByProductIds([productId]);
+    const existingVariants = await this.repository.variantListingIndex.getByProductIds([productId]);
 
-    const productDocIds =
-      await this.repository.listingDocIdAllocator.allocateProductDocIds([
-        productId,
-      ]);
+    const productDocIds = await this.repository.listingDocIdAllocator.allocateProductDocIds([
+      productId,
+    ]);
     const productDocId = productDocIds.get(productId);
     if (!productDocId) {
       throw new Error(`Failed to allocate product doc id: ${productId}`);
@@ -200,9 +179,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
 
     const variantIds = writeModel.variants.map((variant) => variant.variantId);
     const variantDocIds =
-      await this.repository.listingDocIdAllocator.allocateVariantDocIds(
-        variantIds
-      );
+      await this.repository.listingDocIdAllocator.allocateVariantDocIds(variantIds);
 
     await this.repository.productListingIndex.ensureBootstrapRows([
       {
@@ -220,13 +197,13 @@ export class ListingWriteIndexActionScript extends BaseScript<
     });
     await this.repository.productListingPriceIndex.replaceForProduct(
       productId,
-      writeModel.productPrices
+      writeModel.productPrices,
     );
     if (writeModel.searchIndex) {
       await this.repository.listingSearchIndex.replaceForProduct(
         productId,
         productDocId,
-        writeModel.searchIndex
+        writeModel.searchIndex,
       );
     }
     await this.repository.listingPostingProductSort.replaceForProduct(
@@ -234,37 +211,34 @@ export class ListingWriteIndexActionScript extends BaseScript<
       writeModel.productSortRows.map((row) => ({
         ...row,
         productDocId,
-      })) as ProductSortRowInput[]
+      })) as ProductSortRowInput[],
     );
     await this.replaceProductMemberships(productDocId, writeModel);
 
-    const variantRows: VariantListingIndexUpsertInput[] = writeModel.variants.map(
-      (variant) => {
-        const variantDocId = variantDocIds.get(variant.variantId);
-        if (!variantDocId) {
-          throw new Error(`Failed to allocate variant doc id: ${variant.variantId}`);
-        }
-        return {
-          ...variant,
-          productDocId,
-          variantDocId,
-        };
+    const variantRows: VariantListingIndexUpsertInput[] = writeModel.variants.map((variant) => {
+      const variantDocId = variantDocIds.get(variant.variantId);
+      if (!variantDocId) {
+        throw new Error(`Failed to allocate variant doc id: ${variant.variantId}`);
       }
-    );
+      return {
+        ...variant,
+        productDocId,
+        variantDocId,
+      };
+    });
 
     await this.repository.variantListingIndex.upsertMany(variantRows);
     await this.repository.listingPostingBitmap.ensureDeclaredVariantTermRows();
     const keepVariantIds = new Set(variantIds);
     const staleVariants = existingVariants.filter(
-      (variant) => !keepVariantIds.has(variant.variantId)
+      (variant) => !keepVariantIds.has(variant.variantId),
     );
     await this.repository.listingPostingBitmap.replaceVariantTermMemberships([
       ...variantRows.map((variant) => ({
         variantDocId: variant.variantDocId,
         nextValueKeys:
-          writeModel.variantTermsByVariantId[variant.variantId]?.map(
-            encodeListingVariantTerm
-          ) ?? [],
+          writeModel.variantTermsByVariantId[variant.variantId]?.map(encodeListingVariantTerm) ??
+          [],
       })),
       ...staleVariants.map((variant) => ({
         variantDocId: variant.variantDocId,
@@ -276,50 +250,42 @@ export class ListingWriteIndexActionScript extends BaseScript<
     for (const variant of variantRows) {
       sourcePriceRows.set(
         variant.variantId,
-        (writeModel.variantPricesByVariantId[variant.variantId] ?? []).map(
-          (row) => ({
-            ...row,
-            productDocId,
-            variantDocId: variant.variantDocId,
-          })
-        )
+        (writeModel.variantPricesByVariantId[variant.variantId] ?? []).map((row) => ({
+          ...row,
+          productDocId,
+          variantDocId: variant.variantDocId,
+        })),
       );
       await this.repository.listingPostingBitmap.replaceVariantMemberships({
         variantDocId: variant.variantDocId,
         field: "variant_product",
-        nextValueKeys:
-          writeModel.variantProductValueKeysByVariantId[variant.variantId] ?? [],
+        nextValueKeys: writeModel.variantProductValueKeysByVariantId[variant.variantId] ?? [],
       });
       await this.repository.listingPostingBitmap.replaceVariantMemberships({
         variantDocId: variant.variantDocId,
         field: "rule_term",
-        nextValueKeys:
-          writeModel.variantRuleTermValueKeysByVariantId[variant.variantId] ?? [],
+        nextValueKeys: writeModel.variantRuleTermValueKeysByVariantId[variant.variantId] ?? [],
       });
     }
 
-    await this.repository.variantListingPriceIndex.replaceForVariants(
-      sourcePriceRows
-    );
+    await this.repository.variantListingPriceIndex.replaceForVariants(sourcePriceRows);
 
     await this.deleteVariantDependencies(staleVariants);
     if (staleVariants.length > 0) {
       await this.repository.variantListingIndex.deleteByVariantIds(
-        staleVariants.map((variant) => variant.variantId)
+        staleVariants.map((variant) => variant.variantId),
       );
     }
 
-    await this.repository.listingPostingVariantProjectionBlock.refreshBlocksForVariantDocIds(
-      [
-        ...variantRows.map((variant) => variant.variantDocId),
-        ...staleVariants.map((variant) => variant.variantDocId),
-      ]
-    );
+    await this.repository.listingPostingVariantProjectionBlock.refreshBlocksForVariantDocIds([
+      ...variantRows.map((variant) => variant.variantDocId),
+      ...staleVariants.map((variant) => variant.variantDocId),
+    ]);
   }
 
   private async applyDelete(action: ListingPreparedDeleteAction): Promise<void> {
     const product = await this.repository.productListingIndex.findByProductId(
-      action.itemKey.itemId
+      action.itemKey.itemId,
     );
     const variants = await this.repository.variantListingIndex.getByProductIds([
       action.itemKey.itemId,
@@ -328,33 +294,25 @@ export class ListingWriteIndexActionScript extends BaseScript<
     await this.deleteVariantDependencies(variants);
     if (variants.length > 0) {
       await this.repository.variantListingIndex.deleteByVariantIds(
-        variants.map((variant) => variant.variantId)
+        variants.map((variant) => variant.variantId),
       );
     }
 
     if (product) {
       await this.repository.listingPostingVariantProjectionBlock.refreshBlocksForVariantDocIds(
-        variants.map((variant) => variant.variantDocId)
+        variants.map((variant) => variant.variantDocId),
       );
-      await this.repository.listingPostingProductSort.deleteByProductDocId(
-        product.productDocId
-      );
-      await this.repository.listingSearchIndex.deleteByProductId(
-        product.productId
-      );
-      await this.repository.productListingPriceIndex.deleteByProductId(
-        product.productId
-      );
-      await this.repository.listingPostingBitmap.deleteProductMemberships(
-        product.productDocId
-      );
+      await this.repository.listingPostingProductSort.deleteByProductDocId(product.productDocId);
+      await this.repository.listingSearchIndex.deleteByProductId(product.productId);
+      await this.repository.productListingPriceIndex.deleteByProductId(product.productId);
+      await this.repository.listingPostingBitmap.deleteProductMemberships(product.productDocId);
       await this.repository.productListingIndex.delete(product.productId);
     }
   }
 
   private async replaceProductMemberships(
     productDocId: number,
-    writeModel: ListingSyncWriteModelJson
+    writeModel: ListingSyncWriteModelJson,
   ): Promise<void> {
     await this.repository.listingPostingBitmap.replaceProductMemberships({
       productDocId,
@@ -392,19 +350,17 @@ export class ListingWriteIndexActionScript extends BaseScript<
     variants: readonly {
       variantId: string;
       variantDocId: number;
-    }[]
+    }[],
   ): Promise<void> {
     for (const variant of variants) {
-      await this.repository.listingPostingBitmap.deleteVariantMemberships(
-        variant.variantDocId
-      );
+      await this.repository.listingPostingBitmap.deleteVariantMemberships(variant.variantDocId);
     }
   }
 
   private async upsertLatestState(
     action: ListingPreparedSyncAction | ListingPreparedDeleteAction,
     lifecycleStatus: "indexed" | "deleted",
-    payloadHash: string
+    payloadHash: string,
   ): Promise<void> {
     await this.repository.listingIndexItemState.upsertLatestState({
       storeId: action.itemKey.storeId,
@@ -420,7 +376,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
 
   private buildResult(
     action: ListingPreparedSyncAction | ListingPreparedDeleteAction,
-    status: Exclude<Listing.ListingUpdateResult["status"], "accepted">
+    status: Exclude<Listing.ListingUpdateResult["status"], "accepted">,
   ): Listing.ListingUpdateResult {
     const result: Listing.ListingUpdateResult = {
       operationId: action.params.meta.operationId,
@@ -442,7 +398,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
   }
 
   private getStatePayloadHash(
-    input: ListingPreparedSyncWriteAction | ListingPreparedDeleteWriteAction
+    input: ListingPreparedSyncWriteAction | ListingPreparedDeleteWriteAction,
   ): string {
     return "syncWriteModel" in input
       ? input.syncWriteModel.writeModelHash

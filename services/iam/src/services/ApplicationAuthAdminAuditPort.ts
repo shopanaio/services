@@ -1,5 +1,5 @@
 export const APPLICATION_AUTH_ADMIN_AUDIT_PORT = Symbol.for(
-  "shopana.iam.application-auth-admin-audit-port"
+  "shopana.iam.application-auth-admin-audit-port",
 );
 
 export type ApplicationAuthAdminAuditAction =
@@ -97,11 +97,7 @@ export interface ApplicationRealmAdminAuditSafeDiff {
   status?: "active" | "blocked" | "archived";
   provider?: "google" | "facebook";
   methodId?: "password" | "email_otp" | "phone_otp";
-  enabledCapabilities?: readonly (
-    | "sign_in"
-    | "sign_up"
-    | "password_reset"
-  )[];
+  enabledCapabilities?: readonly ("sign_in" | "sign_up" | "password_reset")[];
   enabledMethods?: readonly ("password" | "email_otp" | "phone_otp")[];
   trustedOriginCount?: number;
   scopeCount?: number;
@@ -114,8 +110,7 @@ export interface ApplicationRealmAdminAuditSafeDiff {
 }
 
 export type ApplicationAuthAdminAuditSafeDiff =
-  | ApplicationOAuthClientAdminAuditSafeDiff
-  | ApplicationRealmAdminAuditSafeDiff;
+  ApplicationOAuthClientAdminAuditSafeDiff | ApplicationRealmAdminAuditSafeDiff;
 
 export interface ApplicationAuthAdminAuditRecord {
   recordId: string;

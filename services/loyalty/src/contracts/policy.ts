@@ -9,9 +9,7 @@ import type {
 } from "./types.js";
 
 export type LoyaltyProgramIneligibilityCode =
-  | "CHANNEL_NOT_ELIGIBLE"
-  | "REQUIRED_SEGMENT_MISSING"
-  | "EXCLUDED_SEGMENT_MATCHED";
+  "CHANNEL_NOT_ELIGIBLE" | "REQUIRED_SEGMENT_MISSING" | "EXCLUDED_SEGMENT_MATCHED";
 
 export type LoyaltyProgramEligibilityDecision =
   | Readonly<{ eligible: true }>
@@ -38,11 +36,7 @@ export function evaluateLoyaltyProgramEligibility(
   }
 
   const customerSegments = new Set(context.segmentIds);
-  if (
-    eligibility.excludedSegmentIds.some((segmentId) =>
-      customerSegments.has(segmentId),
-    )
-  ) {
+  if (eligibility.excludedSegmentIds.some((segmentId) => customerSegments.has(segmentId))) {
     return { eligible: false, code: "EXCLUDED_SEGMENT_MATCHED" };
   }
 
@@ -52,16 +46,10 @@ export function evaluateLoyaltyProgramEligibility(
 
   const matches =
     eligibility.segmentMatchMode === "ALL"
-      ? eligibility.segmentIds.every((segmentId) =>
-          customerSegments.has(segmentId),
-        )
-      : eligibility.segmentIds.some((segmentId) =>
-          customerSegments.has(segmentId),
-        );
+      ? eligibility.segmentIds.every((segmentId) => customerSegments.has(segmentId))
+      : eligibility.segmentIds.some((segmentId) => customerSegments.has(segmentId));
 
-  return matches
-    ? { eligible: true }
-    : { eligible: false, code: "REQUIRED_SEGMENT_MISSING" };
+  return matches ? { eligible: true } : { eligible: false, code: "REQUIRED_SEGMENT_MISSING" };
 }
 
 export type LoyaltyProgramRulesValidationCode =
@@ -194,12 +182,10 @@ export function validateLoyaltyProgramRulesV1(
   }
 
   if (eligibility.channelCodes.length === 0) {
-    issue(
-      issues,
-      "CHANNEL_REQUIRED",
-      "At least one eligible channel is required",
-      ["eligibility", "channelCodes"],
-    );
+    issue(issues, "CHANNEL_REQUIRED", "At least one eligible channel is required", [
+      "eligibility",
+      "channelCodes",
+    ]);
   }
   validateUniqueNonBlank(
     eligibility.channelCodes,
@@ -226,8 +212,7 @@ export function validateLoyaltyProgramRulesV1(
   if (
     eligibility.type === "ALL" &&
     (eligibility.segmentIds.length > 0 ||
-      (eligibility.segmentMatchMode !== undefined &&
-        eligibility.segmentMatchMode !== null))
+      (eligibility.segmentMatchMode !== undefined && eligibility.segmentMatchMode !== null))
   ) {
     issue(
       issues,
@@ -256,11 +241,7 @@ export function validateLoyaltyProgramRulesV1(
   }
 
   const excludedSegments = new Set(eligibility.excludedSegmentIds);
-  if (
-    eligibility.segmentIds.some((segmentId) =>
-      excludedSegments.has(segmentId),
-    )
-  ) {
+  if (eligibility.segmentIds.some((segmentId) => excludedSegments.has(segmentId))) {
     issue(
       issues,
       "SEGMENT_INCLUDE_EXCLUDE_CONFLICT",
@@ -270,23 +251,14 @@ export function validateLoyaltyProgramRulesV1(
   }
 
   rules.earning.excludedSelectors.forEach((selector, index) => {
-    validateSelector(
-      selector,
-      ["earning", "excludedSelectors", index],
-      issues,
-    );
+    validateSelector(selector, ["earning", "excludedSelectors", index], issues);
   });
 
   const modifierIds = new Set<string>();
   rules.earning.modifiers.forEach((modifier, index) => {
     const path = ["earning", "modifiers", index] as const;
     if (modifierIds.has(modifier.id)) {
-      issue(
-        issues,
-        "DUPLICATE_MODIFIER",
-        "Modifier IDs must be unique",
-        [...path, "id"],
-      );
+      issue(issues, "DUPLICATE_MODIFIER", "Modifier IDs must be unique", [...path, "id"]);
     }
     modifierIds.add(modifier.id);
 
@@ -337,9 +309,7 @@ function validateSelector(
     selector.ids.some((id) => id.trim().length === 0);
   if (
     hasDuplicatesOrBlanks ||
-    (selector.type === "ALL"
-      ? selector.ids.length !== 0
-      : selector.ids.length === 0)
+    (selector.type === "ALL" ? selector.ids.length !== 0 : selector.ids.length === 0)
   ) {
     issue(
       issues,
@@ -350,9 +320,7 @@ function validateSelector(
   }
 }
 
-function toSelector(
-  selector: LoyaltyCatalogSelectorValidationInput,
-): LoyaltyCatalogSelector {
+function toSelector(selector: LoyaltyCatalogSelectorValidationInput): LoyaltyCatalogSelector {
   return selector.type === "ALL"
     ? { type: "ALL", ids: [] }
     : { type: selector.type, ids: [...selector.ids] };
@@ -365,10 +333,7 @@ function validateUniqueNonBlank(
   field: readonly (string | number)[],
   issues: LoyaltyProgramRulesValidationIssue[],
 ): void {
-  if (
-    new Set(values).size !== values.length ||
-    values.some((value) => value.trim().length === 0)
-  ) {
+  if (new Set(values).size !== values.length || values.some((value) => value.trim().length === 0)) {
     issue(issues, code, message, field);
   }
 }
@@ -376,10 +341,7 @@ function validateUniqueNonBlank(
 function validSchedule(startsAt: string | null, endsAt: string | null): boolean {
   const start = startsAt === null ? null : Date.parse(startsAt);
   const end = endsAt === null ? null : Date.parse(endsAt);
-  if (
-    (start !== null && !Number.isFinite(start)) ||
-    (end !== null && !Number.isFinite(end))
-  ) {
+  if ((start !== null && !Number.isFinite(start)) || (end !== null && !Number.isFinite(end))) {
     return false;
   }
   return start === null || end === null || end > start;

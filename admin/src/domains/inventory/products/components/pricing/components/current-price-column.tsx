@@ -1,10 +1,7 @@
 import { Typography, Tag, Tooltip, Flex } from "antd";
 import { useStyles } from "../pricing-block.styles";
 import type { ApiVariantPrice } from "@/graphql/types";
-import {
-  formatPrice,
-  useVariantPrice,
-} from "../../../utils/price-formatting";
+import { formatPrice, useVariantPrice } from "../../../utils/price-formatting";
 
 const NBSP = "\u00A0";
 
@@ -23,15 +20,11 @@ export const CurrentPriceColumn = ({ price }: ICurrentPriceColumnProps) => {
       ? compareAtPrice - amountMinor
       : null;
   const discountPercent =
-    saving && compareAtPrice
-      ? Math.round((saving / compareAtPrice) * 100)
-      : null;
+    saving && compareAtPrice ? Math.round((saving / compareAtPrice) * 100) : null;
 
   return (
     <div className={styles.column}>
-      <Typography.Text className={styles.sectionLabel}>
-        Current price
-      </Typography.Text>
+      <Typography.Text className={styles.sectionLabel}>Current price</Typography.Text>
       <Typography.Title
         level={2}
         className={styles.mainPrice}

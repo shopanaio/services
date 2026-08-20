@@ -1,30 +1,34 @@
 # Product SEO Fields Implementation Plan
 
-This document outlines the implementation plan for adding Open Graph metadata fields to the Product entity in the Inventory Service.
+This document outlines the implementation plan for adding Open Graph metadata fields to the Product
+entity in the Inventory Service.
 
 ## Overview
 
 ### Current State
 
 **Database (`product_translation` table):**
+
 ```
 productId, locale, title, descriptionText, descriptionHtml, descriptionJson, excerpt, seoTitle, seoDescription
 ```
 
-SEO fields (`seoTitle`, `seoDescription`) exist in `productTranslation` but should be moved to a dedicated SEO table.
+SEO fields (`seoTitle`, `seoDescription`) exist in `productTranslation` but should be moved to a
+dedicated SEO table.
 
 **Missing:** Open Graph fields for social media sharing.
 
 ### Target State
 
 **UI Requirements** (from `seo-block.tsx`):
+
 ```typescript
 interface ISeoPreviewData {
-  seoTitle?: string | null;       // Move to product_seo
+  seoTitle?: string | null; // Move to product_seo
   seoDescription?: string | null; // Move to product_seo
-  ogTitle?: string | null;        // Add to product_seo
-  ogDescription?: string | null;  // Add to product_seo
-  ogImage?: IMediaFile | null;    // Add to product_seo
+  ogTitle?: string | null; // Add to product_seo
+  ogDescription?: string | null; // Add to product_seo
+  ogImage?: IMediaFile | null; // Add to product_seo
 }
 ```
 
@@ -41,13 +45,7 @@ A dedicated SEO table with all SEO and Open Graph fields, with locale support.
 ```typescript
 // services/inventory/src/repositories/models/seo.ts
 
-import {
-  uuid,
-  varchar,
-  text,
-  primaryKey,
-  index,
-} from "drizzle-orm/pg-core";
+import { uuid, varchar, text, primaryKey, index } from "drizzle-orm/pg-core";
 import { inventorySchema } from "./schema";
 import { product } from "./products";
 
@@ -73,7 +71,7 @@ export const productSeo = inventorySchema.table(
     primaryKey({ columns: [table.productId, table.locale] }),
     index("idx_product_seo_store").on(table.storeId),
     index("idx_product_seo_store_locale").on(table.storeId, table.locale),
-  ]
+  ],
 );
 
 export type ProductSeo = typeof productSeo.$inferSelect;
@@ -82,13 +80,13 @@ export type NewProductSeo = typeof productSeo.$inferInsert;
 
 ### Column Specifications
 
-| Column | Type | Max Length | Notes |
-|--------|------|------------|-------|
-| `seo_title` | VARCHAR(70) | 70 chars | Google truncates at ~60 chars |
-| `seo_description` | VARCHAR(160) | 160 chars | Google truncates at ~155 chars |
-| `og_title` | VARCHAR(95) | 95 chars | Facebook recommends 40-60, max 95 |
-| `og_description` | TEXT | - | Facebook recommends up to 200 chars |
-| `og_image_id` | UUID | - | References Media service File entity, per-locale |
+| Column            | Type         | Max Length | Notes                                            |
+| ----------------- | ------------ | ---------- | ------------------------------------------------ |
+| `seo_title`       | VARCHAR(70)  | 70 chars   | Google truncates at ~60 chars                    |
+| `seo_description` | VARCHAR(160) | 160 chars  | Google truncates at ~155 chars                   |
+| `og_title`        | VARCHAR(95)  | 95 chars   | Facebook recommends 40-60, max 95                |
+| `og_description`  | TEXT         | -          | Facebook recommends up to 200 chars              |
+| `og_image_id`     | UUID         | -          | References Media service File entity, per-locale |
 
 ### Migration SQL
 
@@ -145,19 +143,29 @@ export * from "./seo";
 SEO and Open Graph metadata for a product.
 """
 type ProductSeo {
-  """SEO title for search engines (max 70 chars)."""
+  """
+  SEO title for search engines (max 70 chars).
+  """
   seoTitle: String
 
-  """SEO description for search engines (max 160 chars)."""
+  """
+  SEO description for search engines (max 160 chars).
+  """
   seoDescription: String
 
-  """Open Graph title for social media sharing (max 95 chars)."""
+  """
+  Open Graph title for social media sharing (max 95 chars).
+  """
   ogTitle: String
 
-  """Open Graph description for social media sharing."""
+  """
+  Open Graph description for social media sharing.
+  """
   ogDescription: String
 
-  """Open Graph image for social media sharing."""
+  """
+  Open Graph image for social media sharing.
+  """
   ogImage: File
 }
 
@@ -165,19 +173,29 @@ type ProductSeo {
 Input for updating product SEO data.
 """
 input ProductSeoInput {
-  """SEO title (max 70 chars)."""
+  """
+  SEO title (max 70 chars).
+  """
   seoTitle: String
 
-  """SEO description (max 160 chars)."""
+  """
+  SEO description (max 160 chars).
+  """
   seoDescription: String
 
-  """Open Graph title (max 95 chars)."""
+  """
+  Open Graph title (max 95 chars).
+  """
   ogTitle: String
 
-  """Open Graph description."""
+  """
+  Open Graph description.
+  """
   ogDescription: String
 
-  """Open Graph image file ID."""
+  """
+  Open Graph image file ID.
+  """
   ogImageId: ID
 }
 ```
@@ -196,7 +214,9 @@ type Product implements Node @key(fields: "id") {
 
   # NEW:
 
-  """SEO and Open Graph metadata."""
+  """
+  SEO and Open Graph metadata.
+  """
   seo: ProductSeo
 }
 ```
@@ -205,7 +225,9 @@ type Product implements Node @key(fields: "id") {
 
 ```graphql
 input ProductUpdateInput {
-  """The product ID."""
+  """
+  The product ID.
+  """
   id: ID!
 
   # ... existing fields ...
@@ -216,7 +238,9 @@ input ProductUpdateInput {
 
   # NEW:
 
-  """SEO and Open Graph metadata."""
+  """
+  SEO and Open Graph metadata.
+  """
   seo: ProductSeoInput
 }
 ```
@@ -272,7 +296,7 @@ export class ProductSeoResolver {
   @ResolveField(() => File, { nullable: true })
   async ogImage(@Parent() seo: ProductSeo): Promise<{ __typename: string; id: string } | null> {
     if (!seo.ogImageId) return null;
-    return { __typename: 'File', id: seo.ogImageId };
+    return { __typename: "File", id: seo.ogImageId };
   }
 }
 ```
@@ -301,40 +325,40 @@ productSeo:
 
 ### Why Separate Table?
 
-| Reason | Explanation |
-|--------|-------------|
-| **Separation of concerns** | Translation = content, SEO = metadata |
-| **Optional data** | SEO/OG fields are often empty, separate table avoids NULLs |
-| **Different update patterns** | SEO often updated independently from content |
-| **Per-locale OG images** | Different images for different markets/languages |
-| **All SEO in one place** | Easier to manage all SEO fields together |
+| Reason                        | Explanation                                                |
+| ----------------------------- | ---------------------------------------------------------- |
+| **Separation of concerns**    | Translation = content, SEO = metadata                      |
+| **Optional data**             | SEO/OG fields are often empty, separate table avoids NULLs |
+| **Different update patterns** | SEO often updated independently from content               |
+| **Per-locale OG images**      | Different images for different markets/languages           |
+| **All SEO in one place**      | Easier to manage all SEO fields together                   |
 
 ---
 
 ## 6. Validation Rules
 
-| Field | Validation |
-|-------|------------|
-| `seoTitle` | Max 70 characters |
-| `seoDescription` | Max 160 characters |
-| `ogTitle` | Max 95 characters |
-| `ogDescription` | Recommended max 200 characters |
-| `ogImageId` | Must be valid UUID (if provided) |
+| Field            | Validation                       |
+| ---------------- | -------------------------------- |
+| `seoTitle`       | Max 70 characters                |
+| `seoDescription` | Max 160 characters               |
+| `ogTitle`        | Max 95 characters                |
+| `ogDescription`  | Recommended max 200 characters   |
+| `ogImageId`      | Must be valid UUID (if provided) |
 
 ---
 
 ## 7. Implementation Summary
 
-| Component | Change |
-|-----------|--------|
-| **New Table** | `product_seo` (productId, locale, seoTitle, seoDescription, ogTitle, ogDescription, ogImageId) |
-| **Remove Columns** | `seo_title`, `seo_description` from `product_translation` |
-| **GraphQL Types** | +1 new type `ProductSeo` |
-| **GraphQL Fields** | +1 new field `seo` on Product, -2 fields (`seoTitle`, `seoDescription`) |
-| **GraphQL Inputs** | +1 new input `ProductSeoInput` |
-| **Resolvers** | +1 new `ProductSeoResolver`, +1 field resolver on Product |
-| **Loaders** | +1 new `ProductSeoLoader` |
-| **Scripts** | Modified `ProductUpdateScript` |
+| Component          | Change                                                                                         |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
+| **New Table**      | `product_seo` (productId, locale, seoTitle, seoDescription, ogTitle, ogDescription, ogImageId) |
+| **Remove Columns** | `seo_title`, `seo_description` from `product_translation`                                      |
+| **GraphQL Types**  | +1 new type `ProductSeo`                                                                       |
+| **GraphQL Fields** | +1 new field `seo` on Product, -2 fields (`seoTitle`, `seoDescription`)                        |
+| **GraphQL Inputs** | +1 new input `ProductSeoInput`                                                                 |
+| **Resolvers**      | +1 new `ProductSeoResolver`, +1 field resolver on Product                                      |
+| **Loaders**        | +1 new `ProductSeoLoader`                                                                      |
+| **Scripts**        | Modified `ProductUpdateScript`                                                                 |
 
 ---
 
@@ -345,16 +369,18 @@ productSeo:
 ```graphql
 mutation {
   inventoryMutation {
-    productUpdate(input: {
-      id: "prod-123"
-      seo: {
-        seoTitle: "Premium Cotton T-Shirt | ShopName"
-        seoDescription: "High-quality 100% cotton t-shirt."
-        ogTitle: "Premium Cotton T-Shirt"
-        ogDescription: "Discover our best-selling cotton t-shirt."
-        ogImageId: "file-456"
+    productUpdate(
+      input: {
+        id: "prod-123"
+        seo: {
+          seoTitle: "Premium Cotton T-Shirt | ShopName"
+          seoDescription: "High-quality 100% cotton t-shirt."
+          ogTitle: "Premium Cotton T-Shirt"
+          ogDescription: "Discover our best-selling cotton t-shirt."
+          ogImageId: "file-456"
+        }
       }
-    }) {
+    ) {
       product {
         id
         seo {
@@ -362,10 +388,16 @@ mutation {
           seoDescription
           ogTitle
           ogDescription
-          ogImage { id url }
+          ogImage {
+            id
+            url
+          }
         }
       }
-      userErrors { field message }
+      userErrors {
+        field
+        message
+      }
     }
   }
 }
@@ -402,12 +434,12 @@ query {
 
 The UI implements the following fallback chain (in `seo-block.tsx`):
 
-| Field | Fallback |
-|-------|----------|
-| `seoTitle` | → `title` |
-| `seoDescription` | → `excerpt` |
-| `ogTitle` | → `seoTitle` → `title` |
-| `ogDescription` | → `seoDescription` → `excerpt` |
-| `ogImage` | → Primary product image (variant media) |
+| Field            | Fallback                                |
+| ---------------- | --------------------------------------- |
+| `seoTitle`       | → `title`                               |
+| `seoDescription` | → `excerpt`                             |
+| `ogTitle`        | → `seoTitle` → `title`                  |
+| `ogDescription`  | → `seoDescription` → `excerpt`          |
+| `ogImage`        | → Primary product image (variant media) |
 
 All SEO fields are optional - the UI will use product data as fallbacks.

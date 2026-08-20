@@ -8,8 +8,7 @@ import {
 import type { StorefrontCredentialKind } from "../repositories/index.js";
 
 const TOKEN_VERSION = 1;
-const TOKEN_PATTERN =
-  /^shpna_(sfpub|sfprv)_v1_([A-Za-z0-9_-]{22})_([A-Za-z0-9_-]{43})$/;
+const TOKEN_PATTERN = /^shpna_(sfpub|sfprv)_v1_([A-Za-z0-9_-]{22})_([A-Za-z0-9_-]{43})$/;
 const MAX_TOKEN_LENGTH = 128;
 
 export interface GeneratedStorefrontCredential {
@@ -43,18 +42,12 @@ export class StorefrontCredentialCrypto {
       throw new Error("Storefront token peppers must be at least 32 bytes");
     }
     if (publicTokenMasterKey.length !== 32) {
-      throw new Error(
-        "STOREFRONT_PUBLIC_TOKEN_MASTER_KEY must decode to exactly 32 bytes",
-      );
+      throw new Error("STOREFRONT_PUBLIC_TOKEN_MASTER_KEY must decode to exactly 32 bytes");
     }
   }
 
-  static fromEnvironment(
-    environment: NodeJS.ProcessEnv = process.env,
-  ): StorefrontCredentialCrypto {
-    const version = Number(
-      environment.STOREFRONT_TOKEN_ACTIVE_PEPPER_VERSION,
-    );
+  static fromEnvironment(environment: NodeJS.ProcessEnv = process.env): StorefrontCredentialCrypto {
+    const version = Number(environment.STOREFRONT_TOKEN_ACTIVE_PEPPER_VERSION);
     const peppers = new Map<number, Buffer>();
     for (const [name, value] of Object.entries(environment)) {
       const match = /^STOREFRONT_TOKEN_PEPPER_V(\d+)$/.exec(name);
@@ -66,11 +59,7 @@ export class StorefrontCredentialCrypto {
     if (!master) {
       throw new Error("STOREFRONT_PUBLIC_TOKEN_MASTER_KEY is required");
     }
-    return new StorefrontCredentialCrypto(
-      version,
-      peppers,
-      decodeSecret(master),
-    );
+    return new StorefrontCredentialCrypto(version, peppers, decodeSecret(master));
   }
 
   generate(kind: StorefrontCredentialKind): GeneratedStorefrontCredential {
@@ -101,16 +90,11 @@ export class StorefrontCredentialCrypto {
     });
   }
 
-  verify(
-    token: string,
-    pepperVersion: number,
-    expectedDigest: Uint8Array,
-  ): boolean {
+  verify(token: string, pepperVersion: number, expectedDigest: Uint8Array): boolean {
     const actual = this.digest(token, pepperVersion);
     const expected = Buffer.from(expectedDigest);
     return (
-      actual.byteLength === expected.byteLength &&
-      timingSafeEqual(Buffer.from(actual), expected)
+      actual.byteLength === expected.byteLength && timingSafeEqual(Buffer.from(actual), expected)
     );
   }
 
@@ -123,16 +107,9 @@ export class StorefrontCredentialCrypto {
     },
   ): string {
     const iv = randomBytes(12);
-    const cipher = createCipheriv(
-      "aes-256-gcm",
-      this.publicTokenMasterKey,
-      iv,
-    );
+    const cipher = createCipheriv("aes-256-gcm", this.publicTokenMasterKey, iv);
     cipher.setAAD(Buffer.from(aad(owner), "utf8"));
-    const ciphertext = Buffer.concat([
-      cipher.update(token, "utf8"),
-      cipher.final(),
-    ]);
+    const ciphertext = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
     const tag = cipher.getAuthTag();
     return `v1.${iv.toString("base64url")}.${ciphertext.toString("base64url")}.${tag.toString("base64url")}`;
   }
@@ -165,9 +142,7 @@ export class StorefrontCredentialCrypto {
   private digest(token: string, pepperVersion: number): Uint8Array {
     const pepper = this.peppers.get(pepperVersion);
     if (!pepper) throw new Error("Unsupported storefront pepper version");
-    return Uint8Array.from(
-      createHmac("sha256", pepper).update(token, "utf8").digest(),
-    );
+    return Uint8Array.from(createHmac("sha256", pepper).update(token, "utf8").digest());
   }
 }
 

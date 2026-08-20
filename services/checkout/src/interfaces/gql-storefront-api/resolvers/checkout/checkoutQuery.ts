@@ -1,8 +1,5 @@
 import { App } from "@src/ioc/container";
-import type {
-  ApiQueryCheckoutArgs,
-  ApiQuery,
-} from "@src/interfaces/gql-storefront-api/types";
+import type { ApiQueryCheckoutArgs, ApiQuery } from "@src/interfaces/gql-storefront-api/types";
 import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/mapper/committedCheckout";
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { decodeGlobalIdByType } from "@src/interfaces/gql-storefront-api/idCodec";

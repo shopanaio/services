@@ -15,13 +15,9 @@ export class SelectedOptionResolver extends CatalogType<SelectedOptionResolverIn
   }
 
   async name() {
-    const translation = await this.$ctx.loaders.optionTranslation.load(
-      this.$props.optionId,
-    );
+    const translation = await this.$ctx.loaders.optionTranslation.load(this.$props.optionId);
     if (translation?.name) return translation.name;
-    const option = await this.$ctx.loaders.productOption.load(
-      this.$props.optionId,
-    );
+    const option = await this.$ctx.loaders.productOption.load(this.$props.optionId);
     return option?.slug ?? "";
   }
 
@@ -30,9 +26,7 @@ export class SelectedOptionResolver extends CatalogType<SelectedOptionResolverIn
       this.$props.optionValueId,
     );
     if (translation?.name) return translation.name;
-    const value = await this.$ctx.loaders.optionValue.load(
-      this.$props.optionValueId,
-    );
+    const value = await this.$ctx.loaders.optionValue.load(this.$props.optionValueId);
     return value?.slug ?? "";
   }
 }

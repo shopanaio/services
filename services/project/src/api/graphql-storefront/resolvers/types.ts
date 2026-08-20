@@ -1,8 +1,5 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { GraphQLResolveInfo } from "graphql";
 import type { ServiceContext } from "../../../context/types.js";
 import { StoreResolver } from "../../../resolvers/storefront/StoreResolver.js";

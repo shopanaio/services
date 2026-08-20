@@ -33,7 +33,7 @@ export class ProductConnectionResolver extends ListingType<
           : null;
         if (repositoryInput.after && continuationMode === null) {
           throw new StorefrontRepositoryValidationError(
-            "Search continuation cursor has no execution mode"
+            "Search continuation cursor has no execution mode",
           );
         }
         const searchCandidates = await services.searchExecution.execute({
@@ -50,8 +50,8 @@ export class ProductConnectionResolver extends ListingType<
         this.request = { ...normalized, repositoryInput };
       }
 
-      const result = await services.repository.storefrontListingQuery
-        .getStorefrontListing(repositoryInput);
+      const result =
+        await services.repository.storefrontListingQuery.getStorefrontListing(repositoryInput);
       for (const userError of result.userErrors) {
         this.$ctx.addGraphqlError(userError);
       }
@@ -90,25 +90,20 @@ export class ProductConnectionResolver extends ListingType<
   }
 
   async filters() {
-    const [facets, priceRange, availableCount, unavailableCount] =
-      await Promise.all([
-        this.$get("facets"),
-        this.$get("priceRange"),
-        this.$get("inStockCount"),
-        this.$get("unavailableCount"),
-      ]);
+    const [facets, priceRange, availableCount, unavailableCount] = await Promise.all([
+      this.$get("facets"),
+      this.$get("priceRange"),
+      this.$get("inStockCount"),
+      this.$get("unavailableCount"),
+    ]);
     const request = this.normalizedRequest();
     const selections = resolveSelections(request.repositoryInput.filters);
     const inputs: FilterResolverInput[] = [
-      ...(facets ?? []).map(
-        (facet): FilterResolverInput => ({
-          kind: "facet",
-          facet,
-          selectedHandles: [
-            ...(selections.facetHandles.get(facet.facetSlug) ?? []),
-          ],
-        })
-      ),
+      ...(facets ?? []).map((facet): FilterResolverInput => ({
+        kind: "facet",
+        facet,
+        selectedHandles: [...(selections.facetHandles.get(facet.facetSlug) ?? [])],
+      })),
       {
         kind: "availability",
         availableCount: availableCount ?? 0,
@@ -155,15 +150,15 @@ export class ProductConnectionResolver extends ListingType<
   private logError(error: unknown): void {
     this.$ctx.kernel.getServices().logger.error(
       {
-        error: error instanceof Error
-          ? { name: error.name, message: error.message, stack: error.stack }
-          : error,
+        error:
+          error instanceof Error
+            ? { name: error.name, message: error.message, stack: error.stack }
+            : error,
         listing: {
           entryPoint: this.$props.entryPoint,
           categoryId: this.$props.categoryId ?? null,
           collectionId: this.$props.collectionId ?? null,
-          collectionListingRevision:
-            this.$props.collectionListingRevision ?? null,
+          collectionListingRevision: this.$props.collectionListingRevision ?? null,
           queryProvided: !!this.$props.query?.trim(),
           first: this.$props.first ?? null,
           afterProvided: !!this.$props.after,
@@ -172,7 +167,7 @@ export class ProductConnectionResolver extends ListingType<
         },
         storeId: this.$ctx.store.id,
       },
-      "Storefront listing connection preload failed"
+      "Storefront listing connection preload failed",
     );
   }
 }

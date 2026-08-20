@@ -1,7 +1,4 @@
-import type {
-  BaseKernelServices,
-  WorkflowRegistry,
-} from "@shopana/shared-kernel";
+import type { BaseKernelServices, WorkflowRegistry } from "@shopana/shared-kernel";
 import type { Cache } from "cache-manager";
 import type { Repository } from "../repositories/Repository.js";
 

@@ -1,8 +1,5 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import type {
-  DbosTransactionBridge,
-  PostgresTransactionOptions,
-} from "@shopana/shared-kernel";
+import type { DbosTransactionBridge, PostgresTransactionOptions } from "@shopana/shared-kernel";
 import type { Database } from "../infrastructure/db/database.js";
 import { Repository } from "./Repository.js";
 
@@ -11,10 +8,7 @@ describe("Catalog Repository transactional-step wiring", () => {
     const db = {
       transaction: jest.fn(),
     } as unknown as Database;
-    const bridge: DbosTransactionBridge<
-      Database,
-      PostgresTransactionOptions
-    > = {
+    const bridge: DbosTransactionBridge<Database, PostgresTransactionOptions> = {
       async runTransaction<TResult>(): Promise<TResult> {
         throw new Error("Bridge execution is not part of repository wiring");
       },
@@ -54,9 +48,7 @@ describe("Catalog Repository transactional-step wiring", () => {
     ];
 
     for (const child of childRepositories) {
-      expect(
-        (child as unknown as { txManager: unknown }).txManager,
-      ).toBe(repository.txManager);
+      expect((child as unknown as { txManager: unknown }).txManager).toBe(repository.txManager);
     }
     expect(repository.dbosTransactionBridge).toBe(bridge);
   });

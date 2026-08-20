@@ -5,11 +5,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { App } from "antd";
 import { createStyles } from "antd-style";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { useCreateWarehouse } from "../../hooks";
 import { mapWarehouseUserErrorsToFormErrors } from "../../mappers";
 import type { IWarehouseCreateModalPayload } from "../index";
@@ -70,13 +66,7 @@ export function CreateWarehouseModal() {
         pop();
       }
     },
-    [
-      createWarehouse,
-      message,
-      pop,
-      setError,
-      typedPayload.listQueryVariables,
-    ],
+    [createWarehouse, message, pop, setError, typedPayload.listQueryVariables],
   );
 
   return (

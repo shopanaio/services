@@ -2,10 +2,7 @@ import type {
   CheckoutBillingAddressFields,
   CheckoutBillingAddressUpdateInput,
 } from "../checkout/types.js";
-import type {
-  CheckoutBillingAddressDraft,
-  CheckoutCommittedSnapshot,
-} from "../mutations/index.js";
+import type { CheckoutBillingAddressDraft, CheckoutCommittedSnapshot } from "../mutations/index.js";
 import { UseCase } from "./useCase.js";
 
 export class UpdateBillingAddressUseCase extends UseCase<
@@ -13,32 +10,27 @@ export class UpdateBillingAddressUseCase extends UseCase<
   CheckoutCommittedSnapshot
 > {
   async execute(input: CheckoutBillingAddressUpdateInput) {
-    const {
-      storefrontAccess,
-      store,
-      customer,
-      user,
-      checkoutId,
-      billingAddress,
-    } = input;
+    const { storefrontAccess, store, customer, user, checkoutId, billingAddress } = input;
     return (
       await this.checkoutMutationCoordinator.executeWithoutRecalculation({
         checkoutId,
         storeId: store.id,
-      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
+        context: this.mutationContext({
+          visitorId: input.visitorId,
+          storefrontAccess,
+          store,
+          customer,
+          user,
+        }),
         apply: (draft) => {
-          draft.billingAddress = billingAddress
-            ? normalizeBillingAddress(billingAddress)
-            : null;
+          draft.billingAddress = billingAddress ? normalizeBillingAddress(billingAddress) : null;
         },
       })
     ).checkout;
   }
 }
 
-function normalizeBillingAddress(
-  input: CheckoutBillingAddressFields,
-): CheckoutBillingAddressDraft {
+function normalizeBillingAddress(input: CheckoutBillingAddressFields): CheckoutBillingAddressDraft {
   return {
     firstName: optionalText(input.firstName),
     lastName: optionalText(input.lastName),

@@ -87,9 +87,7 @@ export class MediaBrokerActions extends BrokerActions {
    */
   @Action("createAssetGroup")
   @ZodSchema(assetGroupCreateSchema)
-  async createAssetGroup(
-    params: AssetGroupCreateParams,
-  ): Promise<AssetGroupCreateResult> {
+  async createAssetGroup(params: AssetGroupCreateParams): Promise<AssetGroupCreateResult> {
     return this.kernel.runScript(AssetGroupCreateScript, params);
   }
 
@@ -98,9 +96,7 @@ export class MediaBrokerActions extends BrokerActions {
    */
   @Action("deleteAssetGroup")
   @ZodSchema(assetGroupDeleteSchema)
-  async deleteAssetGroup(
-    params: AssetGroupDeleteParams,
-  ): Promise<AssetGroupDeleteResult> {
+  async deleteAssetGroup(params: AssetGroupDeleteParams): Promise<AssetGroupDeleteResult> {
     return this.kernel.runScript(AssetGroupDeleteScript, params);
   }
 
@@ -109,9 +105,7 @@ export class MediaBrokerActions extends BrokerActions {
    */
   @Action("getAssetGroup")
   @ZodSchema(assetGroupGetSchema)
-  async getAssetGroup(
-    params: AssetGroupGetParams,
-  ): Promise<AssetGroupGetResult> {
+  async getAssetGroup(params: AssetGroupGetParams): Promise<AssetGroupGetResult> {
     return this.kernel.runScript(AssetGroupGetScript, params);
   }
 
@@ -127,9 +121,7 @@ export class MediaBrokerActions extends BrokerActions {
   /** Read-only tenant ownership validation for cross-service references. */
   @Action("validateOwnedFile")
   @ZodSchema(validateOwnedFileSchema)
-  async validateOwnedFile(
-    params: ValidateOwnedFileParams,
-  ): Promise<ValidateOwnedFileResult> {
+  async validateOwnedFile(params: ValidateOwnedFileParams): Promise<ValidateOwnedFileResult> {
     const file = await this.kernel.repository.file.findByOwner(
       params.fileId,
       params.owner.type,
@@ -161,9 +153,7 @@ export class MediaBrokerActions extends BrokerActions {
    */
   @Action("fileUnlinkMany")
   @ZodSchema(fileUnlinkManySchema)
-  async fileUnlinkMany(
-    params: FileUnlinkManyParams,
-  ): Promise<FileUnlinkManyResult> {
+  async fileUnlinkMany(params: FileUnlinkManyParams): Promise<FileUnlinkManyResult> {
     return this.kernel.runScript(FileUnlinkManyScript, params);
   }
 
@@ -172,9 +162,7 @@ export class MediaBrokerActions extends BrokerActions {
    */
   @Action("entityDeleted")
   @ZodSchema(entityDeletedSchema)
-  async entityDeleted(
-    params: EntityDeletedParams,
-  ): Promise<EntityDeletedResult> {
+  async entityDeleted(params: EntityDeletedParams): Promise<EntityDeletedResult> {
     return this.kernel.runScript(EntityDeletedScript, params);
   }
 
@@ -184,25 +172,19 @@ export class MediaBrokerActions extends BrokerActions {
    */
   @Action("syncEntityFiles")
   @ZodSchema(syncEntityFilesSchema)
-  async syncEntityFiles(
-    params: SyncEntityFilesParams,
-  ): Promise<SyncEntityFilesResult> {
+  async syncEntityFiles(params: SyncEntityFilesParams): Promise<SyncEntityFilesResult> {
     return this.kernel.runScript(SyncEntityFilesScript, params);
   }
 
   @Action("uploadGeneratedFile")
   @ZodSchema(uploadGeneratedFileSchema)
-  async uploadGeneratedFile(
-    params: UploadGeneratedFileParams,
-  ): Promise<UploadGeneratedFileResult> {
+  async uploadGeneratedFile(params: UploadGeneratedFileParams): Promise<UploadGeneratedFileResult> {
     return this.kernel.runScript(UploadGeneratedFileScript, params);
   }
 
   @Action("deleteOwnedFiles")
   @ZodSchema(deleteOwnedFilesSchema)
-  async deleteOwnedFiles(
-    params: DeleteOwnedFilesParams,
-  ): Promise<DeleteOwnedFilesResult> {
+  async deleteOwnedFiles(params: DeleteOwnedFilesParams): Promise<DeleteOwnedFilesResult> {
     return this.kernel.runScript(DeleteOwnedFilesScript, params);
   }
 }

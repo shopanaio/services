@@ -31,9 +31,7 @@ export class CustomerIamLifecycleWorkflow extends BrokerWorkflows<
   }
 
   @Workflow("customerIamLifecycle")
-  async run(
-    input: CustomerIamLifecycleWorkflowInput,
-  ): Promise<CustomerIamLifecycleResult> {
+  async run(input: CustomerIamLifecycleWorkflowInput): Promise<CustomerIamLifecycleResult> {
     const result = await this.apply(input);
     if (result.updated && result.customerId) {
       await this.emitUpdated(input, result.customerId);
@@ -42,14 +40,8 @@ export class CustomerIamLifecycleWorkflow extends BrokerWorkflows<
   }
 
   @WorkflowStep()
-  private apply(
-    input: CustomerIamLifecycleWorkflowInput,
-  ): Promise<CustomerIamLifecycleResult> {
-    return Kernel.getInstance().runScript(
-      CustomerIamLifecycleScript,
-      input.params,
-      input.context,
-    );
+  private apply(input: CustomerIamLifecycleWorkflowInput): Promise<CustomerIamLifecycleResult> {
+    return Kernel.getInstance().runScript(CustomerIamLifecycleScript, input.params, input.context);
   }
 
   private async emitUpdated(
@@ -59,10 +51,7 @@ export class CustomerIamLifecycleWorkflow extends BrokerWorkflows<
     const payload: CustomerUpdatedEvent["payload"] = {
       customerId,
       storeId: input.context.storeId,
-      reasons:
-        input.params.operation === "DELETED"
-          ? ["status", "contact"]
-          : ["status"],
+      reasons: input.params.operation === "DELETED" ? ["status", "contact"] : ["status"],
     };
     await this.broker.runWorkflow(
       "events.emit",

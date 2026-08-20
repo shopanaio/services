@@ -1,13 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  boolean,
-  integer,
-  jsonb,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { listingSchema, localeCodeEnum } from "./schema.js";
 
 export interface SearchSynonymValueItem {
@@ -20,25 +12,19 @@ export interface SearchProductBoostPhraseItem {
   position: number;
 }
 
-export const searchSynonymGroupListView = listingSchema
-  .view("search_synonym_group_list_view", {
-    storeId: uuid("store_id").notNull(),
-    id: uuid("id").notNull(),
-    locale: localeCodeEnum("locale").notNull(),
-    name: varchar("name", { length: 128 }).notNull(),
-    enabled: boolean("enabled").notNull(),
-    version: integer("version").notNull(),
-    terms: text("terms").notNull(),
-    valuesCount: integer("values_count").notNull(),
-    valueItems: jsonb("value_items")
-      .$type<SearchSynonymValueItem[]>()
-      .notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
-      .notNull(),
-  })
-  .as(sql`
+export const searchSynonymGroupListView = listingSchema.view("search_synonym_group_list_view", {
+  storeId: uuid("store_id").notNull(),
+  id: uuid("id").notNull(),
+  locale: localeCodeEnum("locale").notNull(),
+  name: varchar("name", { length: 128 }).notNull(),
+  enabled: boolean("enabled").notNull(),
+  version: integer("version").notNull(),
+  terms: text("terms").notNull(),
+  valuesCount: integer("values_count").notNull(),
+  valueItems: jsonb("value_items").$type<SearchSynonymValueItem[]>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
+}).as(sql`
     SELECT
       synonym_group.store_id,
       synonym_group.group_id AS id,
@@ -71,27 +57,21 @@ export const searchSynonymGroupListView = listingSchema
     ) synonym_values ON true
   `);
 
-export const searchProductBoostListView = listingSchema
-  .view("search_product_boost_list_view", {
-    storeId: uuid("store_id").notNull(),
-    id: uuid("id").notNull(),
-    locale: localeCodeEnum("locale").notNull(),
-    name: varchar("name", { length: 128 }).notNull(),
-    enabled: boolean("enabled").notNull(),
-    version: integer("version").notNull(),
-    phrases: text("phrases").notNull(),
-    phrasesCount: integer("phrases_count").notNull(),
-    phraseItems: jsonb("phrase_items")
-      .$type<SearchProductBoostPhraseItem[]>()
-      .notNull(),
-    productIds: uuid("product_ids").array().notNull(),
-    productsCount: integer("products_count").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
-      .notNull(),
-  })
-  .as(sql`
+export const searchProductBoostListView = listingSchema.view("search_product_boost_list_view", {
+  storeId: uuid("store_id").notNull(),
+  id: uuid("id").notNull(),
+  locale: localeCodeEnum("locale").notNull(),
+  name: varchar("name", { length: 128 }).notNull(),
+  enabled: boolean("enabled").notNull(),
+  version: integer("version").notNull(),
+  phrases: text("phrases").notNull(),
+  phrasesCount: integer("phrases_count").notNull(),
+  phraseItems: jsonb("phrase_items").$type<SearchProductBoostPhraseItem[]>().notNull(),
+  productIds: uuid("product_ids").array().notNull(),
+  productsCount: integer("products_count").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
+}).as(sql`
     SELECT
       product_boost.store_id,
       product_boost.boost_id AS id,
@@ -134,7 +114,5 @@ export const searchProductBoostListView = listingSchema
     ) boost_products ON true
   `);
 
-export type SearchSynonymGroupListView =
-  typeof searchSynonymGroupListView.$inferSelect;
-export type SearchProductBoostListView =
-  typeof searchProductBoostListView.$inferSelect;
+export type SearchSynonymGroupListView = typeof searchSynonymGroupListView.$inferSelect;
+export type SearchProductBoostListView = typeof searchProductBoostListView.$inferSelect;

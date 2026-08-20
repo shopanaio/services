@@ -36,11 +36,11 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: ProductQuestionUpdateWorkflowInput
+    input: ProductQuestionUpdateWorkflowInput,
   ): Promise<ProductQuestionUpdateWorkflowResult> {
     const acquired = await this.stepAcquireRevision(
       input.productQuestionId,
-      input.expectedRevision
+      input.expectedRevision,
     );
     if ("error" in acquired) {
       return {
@@ -53,18 +53,14 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
     const context = this.toScriptContext(input.context);
     const operationResults: ProductQuestionUpdateOperationResult[] = [];
     for (const operation of input.operations) {
-      const result = await this.runOperation(
-        input.productQuestionId,
-        operation,
-        context
-      );
+      const result = await this.runOperation(input.productQuestionId, operation, context);
       const errors = prefixErrors(result.userErrors, operation);
       operationResults.push({
         type: operation.type,
         applied: errors.length === 0,
         clientMutationId:
           operation.type === "productQuestionAnswerCreate"
-            ? operation.params.clientMutationId ?? undefined
+            ? (operation.params.clientMutationId ?? undefined)
             : undefined,
         entityId:
           result.entityId ??
@@ -96,14 +92,12 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
   @WorkflowStep()
   private async stepAcquireRevision(
     productQuestionId: string,
-    expectedRevision: number
+    expectedRevision: number,
   ): Promise<
     | { revision: number; productId: string }
     | { error: { message: string; code: string; field: string[] } }
   > {
-    const question = await this.kernel.repository.productQuestion.findById(
-      productQuestionId
-    );
+    const question = await this.kernel.repository.productQuestion.findById(productQuestionId);
     if (!question) {
       return {
         error: {
@@ -117,7 +111,7 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
     const acquired = await this.kernel.repository.content.update(
       productQuestionId,
       expectedRevision,
-      {}
+      {},
     );
     if (acquired.status === "applied") {
       return {
@@ -146,7 +140,7 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
   private runOperation(
     productQuestionId: string,
     operation: ProductQuestionUpdateOperation,
-    context: RunScriptContext
+    context: RunScriptContext,
   ): Promise<ReviewSectionResult> {
     switch (operation.type) {
       case "productQuestionAnswerCreate":
@@ -169,67 +163,58 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
       | { type: "productQuestionAnswerUpdate" }
       | { type: "productQuestionAnswerDelete" }
     >,
-    context: RunScriptContext
+    context: RunScriptContext,
   ) {
     return this.kernel.runScript(
       ProductQuestionSectionUpdateScript,
       { productQuestionId, operation },
-      context
+      context,
     );
   }
 
   @WorkflowStep()
   private stepAnswerCreate(
     productQuestionId: string,
-    operation: Extract<
-      ProductQuestionUpdateOperation,
-      { type: "productQuestionAnswerCreate" }
-    >,
-    context: RunScriptContext
+    operation: Extract<ProductQuestionUpdateOperation, { type: "productQuestionAnswerCreate" }>,
+    context: RunScriptContext,
   ) {
     return this.kernel.runScript(
       ProductQuestionAnswerCreateScript,
       { productQuestionId, operation },
-      context
+      context,
     );
   }
 
   @WorkflowStep()
   private stepAnswerUpdate(
     productQuestionId: string,
-    operation: Extract<
-      ProductQuestionUpdateOperation,
-      { type: "productQuestionAnswerUpdate" }
-    >,
-    context: RunScriptContext
+    operation: Extract<ProductQuestionUpdateOperation, { type: "productQuestionAnswerUpdate" }>,
+    context: RunScriptContext,
   ) {
     return this.kernel.runScript(
       ProductQuestionAnswerUpdateScript,
       { productQuestionId, operation },
-      context
+      context,
     );
   }
 
   @WorkflowStep()
   private stepAnswerDelete(
     productQuestionId: string,
-    operation: Extract<
-      ProductQuestionUpdateOperation,
-      { type: "productQuestionAnswerDelete" }
-    >,
-    context: RunScriptContext
+    operation: Extract<ProductQuestionUpdateOperation, { type: "productQuestionAnswerDelete" }>,
+    context: RunScriptContext,
   ) {
     return this.kernel.runScript(
       ProductQuestionAnswerDeleteScript,
       { productQuestionId, operation },
-      context
+      context,
     );
   }
 }
 
 function prefixErrors(
   errors: ReviewSectionResult["userErrors"],
-  operation: ProductQuestionUpdateOperation
+  operation: ProductQuestionUpdateOperation,
 ) {
   return errors.map((error) => ({
     ...error,

@@ -23,19 +23,21 @@ export async function manualConfigurationHash(input: {
     });
     for (const row of page.rows) {
       if (!effective(row, asOf)) continue;
-      hash.update(canonicalJson({
-        recommendationId: row.recommendationId,
-        version: row.version,
-        targetProductId: row.targetProductId,
-        action: row.action,
-        position: row.position,
-        boost: row.boost,
-        enabled: row.enabled,
-        startsAt: row.startsAt,
-        endsAt: row.endsAt,
-        anchorReferenceStatus: row.anchorReferenceStatus,
-        targetReferenceStatus: row.targetReferenceStatus,
-      }));
+      hash.update(
+        canonicalJson({
+          recommendationId: row.recommendationId,
+          version: row.version,
+          targetProductId: row.targetProductId,
+          action: row.action,
+          position: row.position,
+          boost: row.boost,
+          enabled: row.enabled,
+          startsAt: row.startsAt,
+          endsAt: row.endsAt,
+          anchorReferenceStatus: row.anchorReferenceStatus,
+          targetReferenceStatus: row.targetReferenceStatus,
+        }),
+      );
       hash.update("\n");
     }
     afterId = page.nextCursor ?? undefined;
@@ -53,9 +55,11 @@ function effective(
   },
   asOf: number,
 ): boolean {
-  return row.enabled &&
+  return (
+    row.enabled &&
     row.anchorReferenceStatus === "VALID" &&
     row.targetReferenceStatus === "VALID" &&
     (row.startsAt === null || Date.parse(row.startsAt) <= asOf) &&
-    (row.endsAt === null || asOf < Date.parse(row.endsAt));
+    (row.endsAt === null || asOf < Date.parse(row.endsAt))
+  );
 }

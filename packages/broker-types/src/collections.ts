@@ -132,8 +132,7 @@ export interface CatalogCollectionListingTombstone {
 }
 
 export type CatalogCollectionSnapshot =
-  | CatalogCollectionListingSnapshot
-  | CatalogCollectionListingTombstone;
+  CatalogCollectionListingSnapshot | CatalogCollectionListingTombstone;
 
 export type CatalogCollectionPayload =
   | Omit<CatalogCollectionListingSnapshot, "payloadHash">
@@ -144,8 +143,7 @@ export const CatalogCollectionActionNames = {
 } as const;
 
 export const CatalogCollectionActions = {
-  getListingSnapshot:
-    `catalog.${CatalogCollectionActionNames.getListingSnapshot}`,
+  getListingSnapshot: `catalog.${CatalogCollectionActionNames.getListingSnapshot}`,
 } as const;
 
 export const ListingCollectionActionNames = {
@@ -249,50 +247,31 @@ export function decodeCollectionRuleTerm(
       tagId: canonicalUuid(tuple[2], [2]),
     };
   }
-  if (
-    tuple[1] === "feature" &&
-    tuple.length === 4 &&
-    entityType === "product"
-  ) {
+  if (tuple[1] === "feature" && tuple.length === 4 && entityType === "product") {
     return {
       entityType,
       kind: "feature",
-      sourceHandle: normalizeCollectionRuleHandleV1(
-        requiredString(tuple[2], [2]),
-      ),
-      valueHandle: normalizeCollectionRuleHandleV1(
-        requiredString(tuple[3], [3]),
-      ),
+      sourceHandle: normalizeCollectionRuleHandleV1(requiredString(tuple[2], [2])),
+      valueHandle: normalizeCollectionRuleHandleV1(requiredString(tuple[3], [3])),
     };
   }
-  if (
-    tuple[1] === "option" &&
-    tuple.length === 4 &&
-    entityType === "variant"
-  ) {
+  if (tuple[1] === "option" && tuple.length === 4 && entityType === "variant") {
     return {
       entityType,
       kind: "option",
-      sourceHandle: normalizeCollectionRuleHandleV1(
-        requiredString(tuple[2], [2]),
-      ),
-      valueHandle: normalizeCollectionRuleHandleV1(
-        requiredString(tuple[3], [3]),
-      ),
+      sourceHandle: normalizeCollectionRuleHandleV1(requiredString(tuple[2], [2])),
+      valueHandle: normalizeCollectionRuleHandleV1(requiredString(tuple[3], [3])),
     };
   }
   invalid("Rule-term key kind is invalid for the entity type");
 }
 
-export function canonicalCollectionRuleTermKeys(
-  terms: readonly CollectionRuleTerm[],
-): string[] {
+export function canonicalCollectionRuleTermKeys(terms: readonly CollectionRuleTerm[]): string[] {
   return [...new Set(terms.map(encodeCollectionRuleTerm))].sort();
 }
 
 const HANDLE_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const HASH_PATTERN = /^sha256:v1:[0-9a-f]{64}$/;
 const MAX_SAFE_MINOR_AMOUNT = BigInt(Number.MAX_SAFE_INTEGER);
 const CURRENCIES = new Set<string>(CURRENCY_CODES);
@@ -315,31 +294,19 @@ export function normalizeCollectionInstantV1(raw: string): string {
   return canonicalInstant(raw, ["instant"]);
 }
 
-export function normalizeCanonicalCollectionRuleV1(
-  input: unknown,
-): CanonicalCollectionRule {
+export function normalizeCanonicalCollectionRuleV1(input: unknown): CanonicalCollectionRule {
   const rule = strictRecord(input, [], ["field", "operator", "value"]);
   const field = enumValue(rule.field, COLLECTION_RULE_FIELDS, ["field"]);
-  const operator = enumValue(
-    rule.operator,
-    COLLECTION_RULE_OPERATORS,
-    ["operator"],
-  );
+  const operator = enumValue(rule.operator, COLLECTION_RULE_OPERATORS, ["operator"]);
   const value = rule.value;
 
   if (field === "category" || field === "tag" || field === "vendor") {
-    if (
-      !(
-        operator === "in" ||
-        (operator === "all" && field !== "vendor")
-      )
-    ) {
+    if (!(operator === "in" || (operator === "all" && field !== "vendor"))) {
       invalid(`Operator ${operator} is not valid for ${field}`, ["operator"]);
     }
     const object = strictRecord(value, ["value"], ["ids"]);
     const ids = canonicalUuidArray(object.ids, ["value", "ids"]);
-    return { field, operator: operator as "in" | "all", value: { ids } } as
-      CanonicalCollectionRule;
+    return { field, operator: operator as "in" | "all", value: { ids } } as CanonicalCollectionRule;
   }
 
   if (field === "feature" || field === "option") {
@@ -354,11 +321,7 @@ export function normalizeCanonicalCollectionRuleV1(
       invalid("Rule values exceed the limit of 100", ["value", "values"]);
     }
     const values = object.values.map((item, index) => {
-      const pair = strictRecord(
-        item,
-        ["value", "values", index],
-        ["sourceHandle", "valueHandle"],
-      );
+      const pair = strictRecord(item, ["value", "values", index], ["sourceHandle", "valueHandle"]);
       return {
         sourceHandle: normalizeCollectionRuleHandleV1(
           requiredString(pair.sourceHandle, ["value", "values", index, "sourceHandle"]),
@@ -370,10 +333,7 @@ export function normalizeCanonicalCollectionRuleV1(
     });
     const canonical = [
       ...new Map(
-        values.map((item) => [
-          JSON.stringify([item.sourceHandle, item.valueHandle]),
-          item,
-        ]),
+        values.map((item) => [JSON.stringify([item.sourceHandle, item.valueHandle]), item]),
       ).values(),
     ].sort((left, right) =>
       JSON.stringify([left.sourceHandle, left.valueHandle]).localeCompare(
@@ -383,10 +343,10 @@ export function normalizeCanonicalCollectionRuleV1(
     if (field === "option" && operator === "all") {
       const sourceHandles = canonical.map((item) => item.sourceHandle);
       if (new Set(sourceHandles).size !== sourceHandles.length) {
-        invalid(
-          "OPTION ALL cannot require multiple values of one sourceHandle",
-          ["value", "values"],
-        );
+        invalid("OPTION ALL cannot require multiple values of one sourceHandle", [
+          "value",
+          "values",
+        ]);
       }
     }
     return { field, operator, value: { values: canonical } };
@@ -394,20 +354,20 @@ export function normalizeCanonicalCollectionRuleV1(
 
   if (field === "price") {
     if (operator === "between") {
-      const object = strictRecord(value, ["value"], [
-        "currencyCode",
+      const object = strictRecord(
+        value,
+        ["value"],
+        ["currencyCode", "minAmountMinor", "maxAmountMinor"],
+      );
+      const currencyCode = canonicalCurrency(object.currencyCode);
+      const minAmountMinor = canonicalMinorAmount(object.minAmountMinor, [
+        "value",
         "minAmountMinor",
+      ]);
+      const maxAmountMinor = canonicalMinorAmount(object.maxAmountMinor, [
+        "value",
         "maxAmountMinor",
       ]);
-      const currencyCode = canonicalCurrency(object.currencyCode);
-      const minAmountMinor = canonicalMinorAmount(
-        object.minAmountMinor,
-        ["value", "minAmountMinor"],
-      );
-      const maxAmountMinor = canonicalMinorAmount(
-        object.maxAmountMinor,
-        ["value", "maxAmountMinor"],
-      );
       if (BigInt(minAmountMinor) > BigInt(maxAmountMinor)) {
         invalid("Price range minimum exceeds maximum", ["value"]);
       }
@@ -420,19 +380,13 @@ export function normalizeCanonicalCollectionRuleV1(
     if (!["eq", "gt", "gte", "lt", "lte"].includes(operator)) {
       invalid(`Operator ${operator} is not valid for price`, ["operator"]);
     }
-    const object = strictRecord(value, ["value"], [
-      "currencyCode",
-      "amountMinor",
-    ]);
+    const object = strictRecord(value, ["value"], ["currencyCode", "amountMinor"]);
     return {
       field,
       operator: operator as "eq" | "gt" | "gte" | "lt" | "lte",
       value: {
         currencyCode: canonicalCurrency(object.currencyCode),
-        amountMinor: canonicalMinorAmount(object.amountMinor, [
-          "value",
-          "amountMinor",
-        ]),
+        amountMinor: canonicalMinorAmount(object.amountMinor, ["value", "amountMinor"]),
       },
     };
   }
@@ -484,19 +438,14 @@ export function normalizeCanonicalCollectionRulesV1(
   if (totalSetValues > 256) {
     invalid("Collection rules exceed the total set-value limit of 256");
   }
-  const canonicalSize = Buffer.byteLength(
-    serializeCanonicalCollectionRulesV1(rules),
-    "utf8",
-  );
+  const canonicalSize = Buffer.byteLength(serializeCanonicalCollectionRulesV1(rules), "utf8");
   if (canonicalSize > 65_536) {
     invalid("Canonical collection rules exceed 64 KiB");
   }
   return rules;
 }
 
-export function serializeCanonicalCollectionRuleV1(
-  input: CanonicalCollectionRule,
-): string {
+export function serializeCanonicalCollectionRuleV1(input: CanonicalCollectionRule): string {
   const rule = normalizeCanonicalCollectionRuleV1(input);
   return JSON.stringify([rule.field, rule.operator, canonicalRuleValue(rule)]);
 }
@@ -507,15 +456,11 @@ export function serializeCanonicalCollectionRulesV1(
   const rules = input.map(normalizeCanonicalCollectionRuleV1);
   const tuples = rules
     .map((rule) => JSON.parse(serializeCanonicalCollectionRuleV1(rule)))
-    .sort((left, right) =>
-      JSON.stringify(left).localeCompare(JSON.stringify(right)),
-    );
+    .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
   return JSON.stringify(tuples);
 }
 
-export function hashCanonicalCollectionRulesV1(
-  rules: readonly CanonicalCollectionRule[],
-): string {
+export function hashCanonicalCollectionRulesV1(rules: readonly CanonicalCollectionRule[]): string {
   return versionedHash(serializeCanonicalCollectionRulesV1(rules));
 }
 
@@ -527,13 +472,9 @@ export function hashCanonicalJsonV1(value: unknown): string {
   return versionedHash(serializeCanonicalJsonV1(value));
 }
 
-export function serializeCollectionListingPayloadV1(
-  input: CatalogCollectionPayload,
-): string {
+export function serializeCollectionListingPayloadV1(input: CatalogCollectionPayload): string {
   if (input.snapshotVersion !== COLLECTION_LISTING_CONTRACT_VERSION) {
-    invalid("Unsupported collection listing contract version", [
-      "snapshotVersion",
-    ]);
+    invalid("Unsupported collection listing contract version", ["snapshotVersion"]);
   }
   if (input.state === "deleted") {
     return JSON.stringify([
@@ -564,63 +505,38 @@ export function serializeCollectionListingPayloadV1(
   ]);
 }
 
-export function hashCollectionListingPayloadV1(
-  input: CatalogCollectionPayload,
-): string {
+export function hashCollectionListingPayloadV1(input: CatalogCollectionPayload): string {
   return versionedHash(serializeCollectionListingPayloadV1(input));
 }
 
-export function verifyCollectionListingSnapshotV1(
-  input: CatalogCollectionSnapshot,
-): void {
+export function verifyCollectionListingSnapshotV1(input: CatalogCollectionSnapshot): void {
   assertHash(input.payloadHash, ["payloadHash"]);
   if (input.state === "live") {
     assertHash(input.rulesHash, ["rulesHash"]);
-    constantTimeHashEqual(
-      input.rulesHash,
-      hashCanonicalCollectionRulesV1(input.rules),
-      ["rulesHash"],
-    );
+    constantTimeHashEqual(input.rulesHash, hashCanonicalCollectionRulesV1(input.rules), [
+      "rulesHash",
+    ]);
   }
   const { payloadHash, ...payload } = input;
-  constantTimeHashEqual(
-    payloadHash,
-    hashCollectionListingPayloadV1(payload),
-    ["payloadHash"],
-  );
+  constantTimeHashEqual(payloadHash, hashCollectionListingPayloadV1(payload), ["payloadHash"]);
 }
 
 function canonicalRuleValue(rule: CanonicalCollectionRule): unknown {
   if ("ids" in rule.value) return [rule.value.ids];
   if ("values" in rule.value) {
-    return [
-      rule.value.values.map((item) => [
-        item.sourceHandle,
-        item.valueHandle,
-      ]),
-    ];
+    return [rule.value.values.map((item) => [item.sourceHandle, item.valueHandle])];
   }
   if (rule.field === "price") {
     return rule.operator === "between"
-      ? [
-          rule.value.currencyCode,
-          rule.value.minAmountMinor,
-          rule.value.maxAmountMinor,
-        ]
+      ? [rule.value.currencyCode, rule.value.minAmountMinor, rule.value.maxAmountMinor]
       : [rule.value.currencyCode, rule.value.amountMinor];
   }
   if (rule.field === "in_stock") return [rule.value.value];
-  return rule.operator === "between"
-    ? [rule.value.from, rule.value.to]
-    : [rule.value.instant];
+  return rule.operator === "between" ? [rule.value.from, rule.value.to] : [rule.value.instant];
 }
 
 function sortCanonicalJson(value: unknown): unknown {
-  if (
-    value === null ||
-    typeof value === "string" ||
-    typeof value === "boolean"
-  ) {
+  if (value === null || typeof value === "string" || typeof value === "boolean") {
     return value;
   }
   if (typeof value === "number") {
@@ -644,33 +560,24 @@ function canonicalUuidArray(value: unknown, path: readonly (string | number)[]) 
     invalid("Rule IDs must be a non-empty array", path);
   }
   if (value.length > 100) invalid("Rule IDs exceed the limit of 100", path);
-  return [...new Set(value.map((item, index) => canonicalUuid(item, [...path, index])))]
-    .sort();
+  return [...new Set(value.map((item, index) => canonicalUuid(item, [...path, index])))].sort();
 }
 
-function canonicalUuid(
-  value: unknown,
-  path: readonly (string | number)[],
-): string {
+function canonicalUuid(value: unknown, path: readonly (string | number)[]): string {
   const text = requiredString(value, path).toLowerCase();
   if (!UUID_PATTERN.test(text)) invalid("Value must be a canonical UUID", path);
   return text;
 }
 
 function canonicalCurrency(value: unknown): string {
-  const currency = requiredString(value, ["value", "currencyCode"])
-    .trim()
-    .toUpperCase();
+  const currency = requiredString(value, ["value", "currencyCode"]).trim().toUpperCase();
   if (!CURRENCIES.has(currency)) {
     invalid("Currency code is not supported", ["value", "currencyCode"]);
   }
   return currency;
 }
 
-function canonicalMinorAmount(
-  value: unknown,
-  path: readonly (string | number)[],
-): string {
+function canonicalMinorAmount(value: unknown, path: readonly (string | number)[]): string {
   const text = requiredString(value, path);
   if (!/^(0|[1-9]\d*)$/.test(text)) {
     invalid("Minor amount must be a canonical non-negative integer string", path);
@@ -681,10 +588,7 @@ function canonicalMinorAmount(
   return text;
 }
 
-function canonicalInstant(
-  value: unknown,
-  path: readonly (string | number)[],
-): string {
+function canonicalInstant(value: unknown, path: readonly (string | number)[]): string {
   const text = requiredString(value, path);
   if (!/(?:Z|[+-]\d{2}:\d{2})$/i.test(text)) {
     invalid("Timestamp must contain a timezone offset", path);
@@ -694,10 +598,7 @@ function canonicalInstant(
   return timestamp.toISOString();
 }
 
-function nullableInstant(
-  value: string | null,
-  path: readonly (string | number)[],
-): string | null {
+function nullableInstant(value: string | null, path: readonly (string | number)[]): string | null {
   return value === null ? null : canonicalInstant(value, path);
 }
 
@@ -719,19 +620,13 @@ function strictRecord(
   const record = value as Record<string, unknown>;
   const actual = Object.keys(record).sort();
   const expected = [...keys].sort();
-  if (
-    actual.length !== expected.length ||
-    actual.some((key, index) => key !== expected[index])
-  ) {
+  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
     invalid(`Object must contain exactly: ${keys.join(", ")}`, path);
   }
   return record;
 }
 
-function requiredString(
-  value: unknown,
-  path: readonly (string | number)[],
-): string {
+function requiredString(value: unknown, path: readonly (string | number)[]): string {
   if (typeof value !== "string") invalid("Value must be a string", path);
   return value;
 }
@@ -764,17 +659,11 @@ function constantTimeHashEqual(
 ): void {
   const actualBytes = Buffer.from(actual, "utf8");
   const expectedBytes = Buffer.from(expected, "utf8");
-  if (
-    actualBytes.length !== expectedBytes.length ||
-    !timingSafeEqual(actualBytes, expectedBytes)
-  ) {
+  if (actualBytes.length !== expectedBytes.length || !timingSafeEqual(actualBytes, expectedBytes)) {
     invalid("Hash verification failed", path);
   }
 }
 
-function invalid(
-  message: string,
-  path: readonly (string | number)[] = [],
-): never {
+function invalid(message: string, path: readonly (string | number)[] = []): never {
   throw new CollectionContractValidationError(message, path);
 }

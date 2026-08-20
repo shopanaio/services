@@ -1,8 +1,5 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { GraphQLResolveInfo } from "graphql";
 import type { Resolvers } from "../../../resolvers/admin/generated/types.js";
 import type { ServiceContext } from "../../../context/types.js";
@@ -43,7 +40,12 @@ import {
   ProductComponentDependencyActionResolver,
   ProductComponentDependencyRuleResolver,
 } from "../../../resolvers/admin/ProductComponentDependencyRuleResolver.js";
-import { ComparisonProfileResolver, ComparisonGroupResolver, ComparisonFieldResolver, ComparisonFieldOptionResolver } from "../../../resolvers/admin/ComparisonProfileResolver.js";
+import {
+  ComparisonProfileResolver,
+  ComparisonGroupResolver,
+  ComparisonFieldResolver,
+  ComparisonFieldOptionResolver,
+} from "../../../resolvers/admin/ComparisonProfileResolver.js";
 
 /**
  * Type resolvers for interfaces and scalars.
@@ -61,10 +63,8 @@ export const typeResolvers: Partial<Resolvers> = {
       if (obj instanceof OptionCategoryResolver) return "ProductOptionCategory";
       if (obj instanceof ProductComponentConfigurationResolver)
         return "ProductComponentConfiguration";
-      if (obj instanceof ProductComponentGroupResolver)
-        return "ProductComponentGroup";
-      if (obj instanceof ProductComponentItemResolver)
-        return "ProductComponentItem";
+      if (obj instanceof ProductComponentGroupResolver) return "ProductComponentGroup";
+      if (obj instanceof ProductComponentItemResolver) return "ProductComponentItem";
       if (obj instanceof ProductComponentItemOptionSelectionResolver)
         return "ProductComponentItemOptionSelection";
       if (obj instanceof ProductComponentItemOptionValueSelectionResolver)
@@ -83,8 +83,7 @@ export const typeResolvers: Partial<Resolvers> = {
         return "ProductComponentDependencyRule";
       if (obj instanceof ProductComponentConditionGroupResolver)
         return "ProductComponentConditionGroup";
-      if (obj instanceof ProductComponentConditionResolver)
-        return "ProductComponentCondition";
+      if (obj instanceof ProductComponentConditionResolver) return "ProductComponentCondition";
       if (obj instanceof ProductComponentDependencyActionResolver)
         return "ProductComponentDependencyAction";
       if (obj instanceof StockResolver) return "WarehouseStock";
@@ -92,8 +91,7 @@ export const typeResolvers: Partial<Resolvers> = {
       if (obj instanceof InventoryItemResolver) return "InventoryItem";
       if ("quantityOnHand" in record) return "WarehouseStock";
       if ("code" in record && "isDefault" in record) return "Warehouse";
-      if ("variantId" in record && "trackInventory" in record)
-        return "InventoryItem";
+      if ("variantId" in record && "trackInventory" in record) return "InventoryItem";
       if ("variants" in record) return "Product";
       if ("productId" in record && "optionValueIds" in record) return "Variant";
       if ("productId" in record && "categoryId" in record) return "ProductOption";
@@ -102,10 +100,8 @@ export const typeResolvers: Partial<Resolvers> = {
       if ("unitCostMinor" in record) return "VariantCost";
       if ("isGroup" in record) return "ProductFeature";
       if ("featureId" in record) return "ProductFeatureValue";
-      if ("effectiveFrom" in record && "defaultSort" in record)
-        return "Collection";
-      if ("name" in record && !("handle" in record) && !("path" in record))
-        return "Vendor";
+      if ("effectiveFrom" in record && "defaultSort" in record) return "Collection";
+      if ("name" in record && !("handle" in record) && !("path" in record)) return "Vendor";
       if ("handle" in record && "path" in record) return "Category";
       if ("handle" in record && !("path" in record)) return "Tag";
       if ("optionId" in record) return "ProductOptionValue";
@@ -161,19 +157,35 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const productId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.Product,
-      );
+      const productId = decodeGlobalIdByType(reference.id, GlobalIdEntity.Product);
       if (!(await ctx.loaders.productReference.load(productId))) return null;
       return ProductReferenceResolver.load(productId, fieldInfo, ctx);
     },
   },
 
-  ComparisonProfile: comparisonReference(GlobalIdEntity.ComparisonProfile, async (id, ctx) => new ComparisonProfileResolver(id, ctx)) as any,
-  ComparisonGroup: comparisonReference(GlobalIdEntity.ComparisonGroup, async (id, ctx) => { const row = await ctx.loaders.comparisonGroup.load(id); return row ? new ComparisonGroupResolver(row, ctx) : null; }) as any,
-  ComparisonField: comparisonReference(GlobalIdEntity.ComparisonField, async (id, ctx) => { const row = await ctx.loaders.comparisonField.load(id); return row ? new ComparisonFieldResolver(row, ctx) : null; }) as any,
-  ComparisonFieldOption: comparisonReference(GlobalIdEntity.ComparisonFieldOption, async (id, ctx) => { const row = await ctx.loaders.comparisonFieldOption.load(id); if (!row) return null; const field = await ctx.loaders.comparisonField.load(row.fieldId); return field ? new ComparisonFieldOptionResolver({ row, profileId: field.profileId }, ctx) : null; }) as any,
+  ComparisonProfile: comparisonReference(
+    GlobalIdEntity.ComparisonProfile,
+    async (id, ctx) => new ComparisonProfileResolver(id, ctx),
+  ) as any,
+  ComparisonGroup: comparisonReference(GlobalIdEntity.ComparisonGroup, async (id, ctx) => {
+    const row = await ctx.loaders.comparisonGroup.load(id);
+    return row ? new ComparisonGroupResolver(row, ctx) : null;
+  }) as any,
+  ComparisonField: comparisonReference(GlobalIdEntity.ComparisonField, async (id, ctx) => {
+    const row = await ctx.loaders.comparisonField.load(id);
+    return row ? new ComparisonFieldResolver(row, ctx) : null;
+  }) as any,
+  ComparisonFieldOption: comparisonReference(
+    GlobalIdEntity.ComparisonFieldOption,
+    async (id, ctx) => {
+      const row = await ctx.loaders.comparisonFieldOption.load(id);
+      if (!row) return null;
+      const field = await ctx.loaders.comparisonField.load(row.fieldId);
+      return field
+        ? new ComparisonFieldOptionResolver({ row, profileId: field.profileId }, ctx)
+        : null;
+    },
+  ) as any,
 
   Variant: {
     __resolveReference: async (
@@ -182,10 +194,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const variantId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.Variant,
-      );
+      const variantId = decodeGlobalIdByType(reference.id, GlobalIdEntity.Variant);
       if (!(await ctx.loaders.variant.load(variantId))) return null;
       return VariantResolver.load(variantId, fieldInfo, ctx);
     },
@@ -198,10 +207,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const categoryId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.Category,
-      );
+      const categoryId = decodeGlobalIdByType(reference.id, GlobalIdEntity.Category);
       return CategoryResolver.load(categoryId, fieldInfo, ctx);
     },
   },
@@ -213,10 +219,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const collectionId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.Collection,
-      );
+      const collectionId = decodeGlobalIdByType(reference.id, GlobalIdEntity.Collection);
       return CollectionResolver.load(collectionId, fieldInfo, ctx);
     },
   },
@@ -228,10 +231,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const featureId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.Feature,
-      );
+      const featureId = decodeGlobalIdByType(reference.id, GlobalIdEntity.Feature);
       return FeatureResolver.load(featureId, fieldInfo, ctx);
     },
   },
@@ -243,10 +243,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const valueId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.FeatureValue,
-      );
+      const valueId = decodeGlobalIdByType(reference.id, GlobalIdEntity.FeatureValue);
       return FeatureValueResolver.load(valueId, fieldInfo, ctx);
     },
   },
@@ -258,10 +255,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const optionId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.Option,
-      );
+      const optionId = decodeGlobalIdByType(reference.id, GlobalIdEntity.Option);
       return OptionResolver.load(optionId, fieldInfo, ctx);
     },
   },
@@ -273,10 +267,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const categoryId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.OptionCategory,
-      );
+      const categoryId = decodeGlobalIdByType(reference.id, GlobalIdEntity.OptionCategory);
       return OptionCategoryResolver.load(categoryId, fieldInfo, ctx);
     },
   },
@@ -288,10 +279,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const valueId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.OptionValue,
-      );
+      const valueId = decodeGlobalIdByType(reference.id, GlobalIdEntity.OptionValue);
       return OptionValueResolver.load(valueId, fieldInfo, ctx);
     },
   },
@@ -315,10 +303,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const vendorId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.Vendor,
-      );
+      const vendorId = decodeGlobalIdByType(reference.id, GlobalIdEntity.Vendor);
       return VendorResolver.load(vendorId, fieldInfo, ctx);
     },
   },
@@ -330,10 +315,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const itemId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.InventoryItem,
-      );
+      const itemId = decodeGlobalIdByType(reference.id, GlobalIdEntity.InventoryItem);
       const item = await ctx.loaders.inventoryItem.load(itemId);
       if (!item) return null;
       return InventoryItemResolver.load(itemId, fieldInfo, ctx);
@@ -347,10 +329,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const warehouseId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.Warehouse,
-      );
+      const warehouseId = decodeGlobalIdByType(reference.id, GlobalIdEntity.Warehouse);
       return WarehouseResolver.load(warehouseId, fieldInfo, ctx);
     },
   },
@@ -362,10 +341,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const id = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.ProductComponentConfiguration,
-      );
+      const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.ProductComponentConfiguration);
       return ProductComponentConfigurationResolver.load(id, fieldInfo, ctx);
     },
   },
@@ -377,10 +353,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const id = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.ProductComponentGroup,
-      );
+      const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.ProductComponentGroup);
       return ProductComponentGroupResolver.load(id, fieldInfo, ctx);
     },
   },
@@ -392,10 +365,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      const id = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.ProductComponentItem,
-      );
+      const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.ProductComponentItem);
       return ProductComponentItemResolver.load(id, fieldInfo, ctx);
     },
   },
@@ -414,11 +384,7 @@ export const typeResolvers: Partial<Resolvers> = {
         reference.id,
         GlobalIdEntity.ProductComponentItemOptionSelection,
       );
-      return ProductComponentItemOptionSelectionResolver.load(
-        id,
-        fieldInfo,
-        ctx,
-      );
+      return ProductComponentItemOptionSelectionResolver.load(id, fieldInfo, ctx);
     },
   },
 
@@ -436,11 +402,7 @@ export const typeResolvers: Partial<Resolvers> = {
         reference.id,
         GlobalIdEntity.ProductComponentItemOptionValueSelection,
       );
-      return ProductComponentItemOptionValueSelectionResolver.load(
-        id,
-        fieldInfo,
-        ctx,
-      );
+      return ProductComponentItemOptionValueSelectionResolver.load(id, fieldInfo, ctx);
     },
   },
 
@@ -451,10 +413,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) =>
       ProductComponentBasePriceRuleResolver.load(
-        decodeGlobalIdByType(
-          reference.id,
-          GlobalIdEntity.ProductComponentPriceRule,
-        ),
+        decodeGlobalIdByType(reference.id, GlobalIdEntity.ProductComponentPriceRule),
         parseGraphqlInfo(info),
         ctx,
       ),
@@ -470,10 +429,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) =>
       ProductComponentAdjustmentPriceRuleResolver.load(
-        decodeGlobalIdByType(
-          reference.id,
-          GlobalIdEntity.ProductComponentPriceRule,
-        ),
+        decodeGlobalIdByType(reference.id, GlobalIdEntity.ProductComponentPriceRule),
         parseGraphqlInfo(info),
         ctx,
       ),
@@ -489,10 +445,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) =>
       ProductComponentOverridePriceRuleResolver.load(
-        decodeGlobalIdByType(
-          reference.id,
-          GlobalIdEntity.ProductComponentPriceRule,
-        ),
+        decodeGlobalIdByType(reference.id, GlobalIdEntity.ProductComponentPriceRule),
         parseGraphqlInfo(info),
         ctx,
       ),
@@ -505,10 +458,7 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) =>
       ProductComponentFreePriceRuleResolver.load(
-        decodeGlobalIdByType(
-          reference.id,
-          GlobalIdEntity.ProductComponentPriceRule,
-        ),
+        decodeGlobalIdByType(reference.id, GlobalIdEntity.ProductComponentPriceRule),
         parseGraphqlInfo(info),
         ctx,
       ),
@@ -520,15 +470,8 @@ export const typeResolvers: Partial<Resolvers> = {
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
     ) => {
-      const id = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.ProductComponentPricingTemplate,
-      );
-      return ProductComponentPricingTemplateResolver.load(
-        id,
-        parseGraphqlInfo(info),
-        ctx,
-      );
+      const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.ProductComponentPricingTemplate);
+      return ProductComponentPricingTemplateResolver.load(id, parseGraphqlInfo(info), ctx);
     },
   },
 
@@ -538,15 +481,8 @@ export const typeResolvers: Partial<Resolvers> = {
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
     ) => {
-      const id = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.ProductComponentDependencyRule,
-      );
-      return ProductComponentDependencyRuleResolver.load(
-        id,
-        parseGraphqlInfo(info),
-        ctx,
-      );
+      const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.ProductComponentDependencyRule);
+      return ProductComponentDependencyRuleResolver.load(id, parseGraphqlInfo(info), ctx);
     },
   },
 
@@ -556,15 +492,8 @@ export const typeResolvers: Partial<Resolvers> = {
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
     ) => {
-      const id = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.ProductComponentConditionGroup,
-      );
-      return ProductComponentConditionGroupResolver.load(
-        id,
-        parseGraphqlInfo(info),
-        ctx,
-      );
+      const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.ProductComponentConditionGroup);
+      return ProductComponentConditionGroupResolver.load(id, parseGraphqlInfo(info), ctx);
     },
   },
 
@@ -574,15 +503,8 @@ export const typeResolvers: Partial<Resolvers> = {
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
     ) => {
-      const id = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.ProductComponentCondition,
-      );
-      return ProductComponentConditionResolver.load(
-        id,
-        parseGraphqlInfo(info),
-        ctx,
-      );
+      const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.ProductComponentCondition);
+      return ProductComponentConditionResolver.load(id, parseGraphqlInfo(info), ctx);
     },
   },
 
@@ -596,11 +518,7 @@ export const typeResolvers: Partial<Resolvers> = {
         reference.id,
         GlobalIdEntity.ProductComponentDependencyAction,
       );
-      return ProductComponentDependencyActionResolver.load(
-        id,
-        parseGraphqlInfo(info),
-        ctx,
-      );
+      return ProductComponentDependencyActionResolver.load(id, parseGraphqlInfo(info), ctx);
     },
   },
 };

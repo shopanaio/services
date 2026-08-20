@@ -89,9 +89,7 @@ export const SET_DEFAULT_STORE_LANGUAGE_MUTATION = gql`
 `;
 
 export const UPDATE_CUSTOMER_ACCOUNTS_SETTINGS_MUTATION = gql`
-  mutation UpdateCustomerAccountsSettings(
-    $input: CustomerAccountsSettingsUpdateInput!
-  ) {
+  mutation UpdateCustomerAccountsSettings($input: CustomerAccountsSettingsUpdateInput!) {
     customersMutation {
       customerAccountsSettingsUpdate(input: $input) {
         settings {

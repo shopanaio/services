@@ -45,12 +45,20 @@ export class PricingDiscountFunctionRunner {
     );
   }
 
-  async runLines(request: FunctionRunRequest<PricingLineDiscountFunctionInput>): Promise<ValidatedFunctionRun<PricingLineDiscountFunctionOutput>> {
-    return this.runAndValidate(request, PricingDiscountFunctionTargets.lines, (value) => pricingLineDiscountFunctionOutputSchema.safeParse(value));
+  async runLines(
+    request: FunctionRunRequest<PricingLineDiscountFunctionInput>,
+  ): Promise<ValidatedFunctionRun<PricingLineDiscountFunctionOutput>> {
+    return this.runAndValidate(request, PricingDiscountFunctionTargets.lines, (value) =>
+      pricingLineDiscountFunctionOutputSchema.safeParse(value),
+    );
   }
 
-  async runDelivery(request: FunctionRunRequest<PricingDeliveryDiscountFunctionInput>): Promise<ValidatedFunctionRun<PricingDeliveryDiscountFunctionOutput>> {
-    return this.runAndValidate(request, PricingDiscountFunctionTargets.deliveryOptions, (value) => pricingDeliveryDiscountFunctionOutputSchema.safeParse(value));
+  async runDelivery(
+    request: FunctionRunRequest<PricingDeliveryDiscountFunctionInput>,
+  ): Promise<ValidatedFunctionRun<PricingDeliveryDiscountFunctionOutput>> {
+    return this.runAndValidate(request, PricingDiscountFunctionTargets.deliveryOptions, (value) =>
+      pricingDeliveryDiscountFunctionOutputSchema.safeParse(value),
+    );
   }
 
   private async runAndValidate<TInput, TOutput>(
@@ -62,7 +70,8 @@ export class PricingDiscountFunctionRunner {
     try {
       result = await this.runner.run<TInput, unknown>({ ...request, target });
     } catch (error) {
-      if (error instanceof CommerceFunctionExecutionError) throw new PricingCheckoutError("PRICING_FUNCTION_REQUIRED_FAILURE", error.message, false);
+      if (error instanceof CommerceFunctionExecutionError)
+        throw new PricingCheckoutError("PRICING_FUNCTION_REQUIRED_FAILURE", error.message, false);
       throw error;
     }
     const outputs: Array<CommerceFunctionRunResult<TOutput>["outputs"][number]> = [];
@@ -73,8 +82,15 @@ export class PricingDiscountFunctionRunner {
         outputs.push({ ...output, data: parsed.data });
         continue;
       }
-      const implementation = result.trace.implementations.find((row) => row.planIndex === output.planIndex);
-      if (implementation?.failureMode === "REQUIRED") throw new PricingCheckoutError("PRICING_FUNCTION_OUTPUT_INVALID", `Required function ${output.implementationId} returned invalid output`, false);
+      const implementation = result.trace.implementations.find(
+        (row) => row.planIndex === output.planIndex,
+      );
+      if (implementation?.failureMode === "REQUIRED")
+        throw new PricingCheckoutError(
+          "PRICING_FUNCTION_OUTPUT_INVALID",
+          `Required function ${output.implementationId} returned invalid output`,
+          false,
+        );
       if (output.functionBindingId) invalidFunctionBindingIds.push(output.functionBindingId);
     }
     return { ...result, outputs, invalidFunctionBindingIds };

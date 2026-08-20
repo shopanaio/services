@@ -10,12 +10,19 @@ export function useFulfillmentStage(id?: string) {
   const [error, setError] = useState<Error | null>(null);
   const requestId = useRef(0);
   const refetch = useCallback(async () => {
-    if (!id) { setStage(null); setLoading(false); return null; }
+    if (!id) {
+      setStage(null);
+      setLoading(false);
+      return null;
+    }
     const current = ++requestId.current;
     setLoading(true);
     try {
       const value = await requestFulfillmentStage(id);
-      if (current === requestId.current) { setStage(value); setError(null); }
+      if (current === requestId.current) {
+        setStage(value);
+        setError(null);
+      }
       return value;
     } catch (reason) {
       const next = reason instanceof Error ? reason : new Error("Unable to load the stage.");
@@ -25,6 +32,8 @@ export function useFulfillmentStage(id?: string) {
       if (current === requestId.current) setLoading(false);
     }
   }, [id]);
-  useEffect(() => { void refetch(); }, [refetch]);
+  useEffect(() => {
+    void refetch();
+  }, [refetch]);
   return { stage, loading, error, refetch };
 }

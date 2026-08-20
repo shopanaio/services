@@ -4,7 +4,10 @@ import type {
   ApiMutation,
 } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
-import { CreateCheckoutDto, type CheckoutLinePurchaseInputDto } from "@src/application/dto/createCheckout.dto";
+import {
+  CreateCheckoutDto,
+  type CheckoutLinePurchaseInputDto,
+} from "@src/application/dto/createCheckout.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/mapper/committedCheckout";
 import { createValidated } from "@src/utils/validation";
@@ -34,13 +37,14 @@ export const checkoutCreate = async (
         purchase: purchaseOf(item.purchase),
         attributes: item.attributes ?? {},
         tagSlug: item.tagSlug ?? null,
-        children: item.children?.map((child) => ({
-          componentItemId: child.componentItemId,
-          variantId: child.purchasableId,
-          quantity: child.quantity,
-          purchase: purchaseOf(child.purchase),
-          attributes: child.attributes ?? {},
-        })) ?? null,
+        children:
+          item.children?.map((child) => ({
+            componentItemId: child.componentItemId,
+            variantId: child.purchasableId,
+            quantity: child.quantity,
+            purchase: purchaseOf(child.purchase),
+            attributes: child.attributes ?? {},
+          })) ?? null,
       })),
       storefrontAccess: ctx.storefrontAccess,
       visitorId: ctx.visitorId,
@@ -59,12 +63,18 @@ export const checkoutCreate = async (
 function purchaseOf(input?: CheckoutLinePurchaseInputDto) {
   if (!input || input.type === "ONE_TIME") {
     if (input?.sellingPlanId !== undefined) {
-      throw invalidCheckoutMutation("CHECKOUT_PURCHASE_INVALID", "ONE_TIME purchase cannot specify sellingPlanId.");
+      throw invalidCheckoutMutation(
+        "CHECKOUT_PURCHASE_INVALID",
+        "ONE_TIME purchase cannot specify sellingPlanId.",
+      );
     }
     return { type: "ONE_TIME" as const, sellingPlanId: null };
   }
   if (!input.sellingPlanId) {
-    throw invalidCheckoutMutation("CHECKOUT_PURCHASE_INVALID", "SUBSCRIPTION purchase requires sellingPlanId.");
+    throw invalidCheckoutMutation(
+      "CHECKOUT_PURCHASE_INVALID",
+      "SUBSCRIPTION purchase requires sellingPlanId.",
+    );
   }
   return { type: "SUBSCRIPTION" as const, sellingPlanId: input.sellingPlanId };
 }

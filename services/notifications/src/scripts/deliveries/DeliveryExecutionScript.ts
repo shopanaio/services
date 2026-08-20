@@ -50,11 +50,7 @@ export type DeliveryExecutionParams =
   | {
       operation: "finalizeFailure";
       deliveryId: string;
-      status:
-        | "UNKNOWN"
-        | "FAILED_PERMANENT"
-        | "DEAD"
-        | "BLOCKED_NO_PROVIDER";
+      status: "UNKNOWN" | "FAILED_PERMANENT" | "DEAD" | "BLOCKED_NO_PROVIDER";
       errorKind: string;
       errorCode?: string;
       providerCode?: string;
@@ -83,9 +79,7 @@ export class DeliveryExecutionScript extends BaseScript<
   DeliveryExecutionResult
 > {
   @Transactional()
-  protected async execute(
-    params: DeliveryExecutionParams
-  ): Promise<DeliveryExecutionResult> {
+  protected async execute(params: DeliveryExecutionParams): Promise<DeliveryExecutionResult> {
     switch (params.operation) {
       case "claimAndRender":
         return this.claimAndRender(params.deliveryId);
@@ -96,8 +90,7 @@ export class DeliveryExecutionScript extends BaseScript<
       case "recordAttemptSuccess":
         await this.repository.deliveries.recordAttemptSuccess({
           attemptId: params.attemptId,
-          state:
-            params.receipt.state === "DELIVERED" ? "DELIVERED" : "ACCEPTED",
+          state: params.receipt.state === "DELIVERED" ? "DELIVERED" : "ACCEPTED",
           providerMessageId: params.receipt.providerMessageId,
           responseCode: params.receipt.responseCode,
         });
@@ -120,9 +113,7 @@ export class DeliveryExecutionScript extends BaseScript<
     }
   }
 
-  private async claimAndRender(
-    deliveryId: string
-  ): Promise<DeliveryExecutionResult> {
+  private async claimAndRender(deliveryId: string): Promise<DeliveryExecutionResult> {
     const bundle = await this.repository.deliveries.claim(deliveryId);
     if (!bundle) return { claimed: false };
     const channel = bundle.delivery.channel;
@@ -130,9 +121,8 @@ export class DeliveryExecutionScript extends BaseScript<
       deliveryId,
       idempotencyKey: bundle.delivery.idempotencyKey,
       storeId: bundle.delivery.storeId,
-      notificationKey:
-        bundle.occurrence
-          .definitionKey as NotificationDeliveryInput["notificationKey"],
+      notificationKey: bundle.occurrence
+        .definitionKey as NotificationDeliveryInput["notificationKey"],
       correlationId: bundle.occurrence.correlationId,
       metadata: {
         eventId: bundle.occurrence.sourceEventId ?? undefined,
@@ -157,15 +147,8 @@ export class DeliveryExecutionScript extends BaseScript<
         storeId: bundle.delivery.storeId,
         data: bundle.data,
       };
-      const body =
-        subscription.format === "JSON"
-          ? JSON.stringify(envelope)
-          : toXml(envelope);
-      const signature = await this.repository.webhooks.sign(
-        createdAt,
-        deliveryId,
-        body
-      );
+      const body = subscription.format === "JSON" ? JSON.stringify(envelope) : toXml(envelope);
+      const signature = await this.repository.webhooks.sign(createdAt, deliveryId, body);
       const input: WebhookDeliveryInput = {
         ...base,
         channel: "WEBHOOK",
@@ -178,10 +161,7 @@ export class DeliveryExecutionScript extends BaseScript<
           "x-shopana-delivery-id": deliveryId,
         },
         body,
-        contentType:
-          subscription.format === "JSON"
-            ? "application/json"
-            : "application/xml",
+        contentType: subscription.format === "JSON" ? "application/json" : "application/xml",
       };
       await this.recordRendered(bundle, {
         text: body,
@@ -204,11 +184,10 @@ export class DeliveryExecutionScript extends BaseScript<
 
     if (channel === "EMAIL") {
       if (!bundle.recipient.email) throw new Error("RECIPIENT_EMAIL_MISSING");
-      const channelSetting =
-        await this.repository.settings.getChannelSetting(
-          base.notificationKey,
-          "EMAIL"
-        );
+      const channelSetting = await this.repository.settings.getChannelSetting(
+        base.notificationKey,
+        "EMAIL",
+      );
       const input: EmailDeliveryInput = {
         ...base,
         channel,
@@ -221,15 +200,13 @@ export class DeliveryExecutionScript extends BaseScript<
         subject: rendered.subject ?? "",
         html: rendered.html,
         text: rendered.text,
-        from: (channelSetting?.senderEmail ?? this.context.store.email)
-          ? {
-              email: channelSetting?.senderEmail ?? this.context.store.email!,
-              name:
-                channelSetting?.senderName ??
-                this.context.store.displayName ??
-                undefined,
-            }
-          : undefined,
+        from:
+          (channelSetting?.senderEmail ?? this.context.store.email)
+            ? {
+                email: channelSetting?.senderEmail ?? this.context.store.email!,
+                name: channelSetting?.senderName ?? this.context.store.displayName ?? undefined,
+              }
+            : undefined,
         replyTo: channelSetting?.replyTo ?? undefined,
       };
       return { claimed: true, channel, input };
@@ -252,9 +229,7 @@ export class DeliveryExecutionScript extends BaseScript<
   }
 
   private async recordRendered(
-    bundle: NonNullable<
-      Awaited<ReturnType<typeof this.repository.deliveries.getBundle>>
-    >,
+    bundle: NonNullable<Awaited<ReturnType<typeof this.repository.deliveries.getBundle>>>,
     rendered: {
       subject?: string;
       html?: string;
@@ -264,7 +239,7 @@ export class DeliveryExecutionScript extends BaseScript<
       templateRevisionId?: string;
       templateRevision?: number;
       templateSourceVersion?: string;
-    }
+    },
   ): Promise<void> {
     await this.repository.deliveries.recordRendered({
       deliveryId: bundle.delivery.id,
@@ -291,7 +266,7 @@ function hash(value: string): string {
 
 function toXml(value: unknown): string {
   return `<?xml version="1.0" encoding="UTF-8"?><notification>${escapeXml(
-    JSON.stringify(value)
+    JSON.stringify(value),
   )}</notification>`;
 }
 

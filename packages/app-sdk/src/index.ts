@@ -133,12 +133,7 @@ export type AppInstallationStatus =
   | "UNINSTALLED"
   | "UNINSTALL_FAILED";
 
-export type AppLifecycleOperationType =
-  | "INSTALL"
-  | "UPDATE"
-  | "SUSPEND"
-  | "RESUME"
-  | "UNINSTALL";
+export type AppLifecycleOperationType = "INSTALL" | "UPDATE" | "SUSPEND" | "RESUME" | "UNINSTALL";
 
 export interface AppInstallInput {
   readonly version: string;
@@ -167,12 +162,8 @@ export interface AppExecutionContextAccessor {
   current(): Readonly<AppExecutionContext>;
 }
 
-export interface AppExecutionContextManager
-  extends AppExecutionContextAccessor {
-  run<TResult>(
-    context: Readonly<AppExecutionContext>,
-    callback: () => TResult,
-  ): TResult;
+export interface AppExecutionContextManager extends AppExecutionContextAccessor {
+  run<TResult>(context: Readonly<AppExecutionContext>, callback: () => TResult): TResult;
 }
 
 export interface AppLogger {
@@ -326,12 +317,7 @@ export interface AppHostContext {
   readonly secrets: AppSecretResolver;
 }
 
-export type AppRuntimeStatus =
-  | "REGISTERED"
-  | "STARTING"
-  | "READY"
-  | "FAILED"
-  | "STOPPED";
+export type AppRuntimeStatus = "REGISTERED" | "STARTING" | "READY" | "FAILED" | "STOPPED";
 
 export interface AppRuntimeHealth {
   readonly status: "healthy" | "degraded" | "unhealthy";
@@ -371,11 +357,7 @@ export type AppGraphQLFieldHandler<
   TParent = unknown,
   TArgs = Record<string, unknown>,
   TResult = unknown,
-> = (
-  parent: TParent,
-  args: TArgs,
-  context: AppGraphQLHandlerContext,
-) => Promise<TResult> | TResult;
+> = (parent: TParent, args: TArgs, context: AppGraphQLHandlerContext) => Promise<TResult> | TResult;
 
 export type AppGraphQLHandlerDefinition =
   | {
@@ -415,9 +397,7 @@ export const appGraphQL = Object.freeze({
     });
   },
 
-  handler(
-    handler: AppGraphQLFieldHandler,
-  ): AppGraphQLHandlerDefinition {
+  handler(handler: AppGraphQLFieldHandler): AppGraphQLHandlerDefinition {
     return Object.freeze({
       kind: "handler" as const,
       handler,
@@ -431,9 +411,7 @@ export interface ShopanaAppDefinition {
   readonly graphql?: AppGraphQLDefinition;
 }
 
-export function defineApp(
-  definition: ShopanaAppDefinition,
-): ShopanaAppDefinition {
+export function defineApp(definition: ShopanaAppDefinition): ShopanaAppDefinition {
   AppManifestSchema.parse(definition.manifest);
   return Object.freeze(definition);
 }

@@ -1,11 +1,5 @@
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-  TypePolicy,
-} from "@shopana/type-resolver";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import { PreloadNotFoundError, SubgraphReference, TypePolicy } from "@shopana/type-resolver";
 import type { AppCapabilityBindingRecord } from "../../repositories/capability/AppCapabilityRepository.js";
 import { AppsType } from "./AppsType.js";
 
@@ -17,26 +11,17 @@ import { AppsType } from "./AppsType.js";
   domain: (resolver) => `store:${resolver.$ctx.store.id}`,
   onDeny: "null",
 })
-export class AppCapabilityBindingResolver extends AppsType<
-  string,
-  AppCapabilityBindingRecord
-> {
+export class AppCapabilityBindingResolver extends AppsType<string, AppCapabilityBindingRecord> {
   async $preload(): Promise<AppCapabilityBindingRecord> {
-    const binding =
-      await this.$ctx.loaders.capabilityBinding.load(this.$props);
+    const binding = await this.$ctx.loaders.capabilityBinding.load(this.$props);
     if (!binding) {
-      throw new PreloadNotFoundError(
-        `App capability binding "${this.$props}" not found`,
-      );
+      throw new PreloadNotFoundError(`App capability binding "${this.$props}" not found`);
     }
     return binding;
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.AppCapabilityBinding,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.AppCapabilityBinding);
   }
 
   capability() {

@@ -1,9 +1,6 @@
 import { Money } from "@shopana/shared-money";
 import type { OrderLoyaltyRewardEligibilitySnapshot } from "@shopana/broker-types";
-import {
-  DeliveryMethodType,
-  type ShippingPaymentModel,
-} from "@shopana/shared-service-api";
+import { DeliveryMethodType, type ShippingPaymentModel } from "@shopana/shared-service-api";
 
 /**
  * Snapshot of a Checkout captured at Order creation time for audit/disputes.

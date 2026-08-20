@@ -10,15 +10,8 @@ export {
   type ProtectedResourceAuthorizeParams,
   type AuthorizeOptions,
 } from "./Authorize.js";
-export {
-  ProtectedResource,
-  type ProtectedResourceResolver,
-} from "./ProtectedResource.js";
-export {
-  Action,
-  ACTION_METADATA_KEY,
-  type ActionDecoratorMetadata,
-} from "./Action.js";
+export { ProtectedResource, type ProtectedResourceResolver } from "./ProtectedResource.js";
+export { Action, ACTION_METADATA_KEY, type ActionDecoratorMetadata } from "./Action.js";
 export {
   BatchEventHandler,
   BATCH_EVENT_HANDLER_METADATA_KEY,

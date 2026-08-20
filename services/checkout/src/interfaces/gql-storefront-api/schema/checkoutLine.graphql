@@ -3,42 +3,64 @@ Price adjustment type for child items in a bundle.
 Values are always positive - the type determines the operation.
 """
 enum ChildPriceType {
-  """Item is free (price = 0)"""
+  """
+  Item is free (price = 0)
+  """
   FREE
 
-  """Use original price without adjustments"""
+  """
+  Use original price without adjustments
+  """
   BASE
 
-  """Subtract fixed amount from original price"""
+  """
+  Subtract fixed amount from original price
+  """
   DISCOUNT_AMOUNT
 
-  """Subtract percentage from original price"""
+  """
+  Subtract percentage from original price
+  """
   DISCOUNT_PERCENT
 
-  """Add fixed amount to original price"""
+  """
+  Add fixed amount to original price
+  """
   MARKUP_AMOUNT
 
-  """Add percentage to original price"""
+  """
+  Add percentage to original price
+  """
   MARKUP_PERCENT
 
-  """Override with fixed price"""
+  """
+  Override with fixed price
+  """
   OVERRIDE
 }
 
-"""The catalog entity purchased by a checkout line."""
+"""
+The catalog entity purchased by a checkout line.
+"""
 union Purchasable = ProductVariant
 
 """
 Price adjustment configuration applied to a child line item.
 """
 type CheckoutLinePriceConfig {
-  """Type of price adjustment."""
+  """
+  Type of price adjustment.
+  """
   type: ChildPriceType!
 
-  """Amount in minor units (always positive). Used for DISCOUNT_AMOUNT, MARKUP_AMOUNT, OVERRIDE."""
+  """
+  Amount in minor units (always positive). Used for DISCOUNT_AMOUNT, MARKUP_AMOUNT, OVERRIDE.
+  """
   amount: Int
 
-  """Percentage (always positive). Used for DISCOUNT_PERCENT, MARKUP_PERCENT."""
+  """
+  Percentage (always positive). Used for DISCOUNT_PERCENT, MARKUP_PERCENT.
+  """
   percent: Float
 }
 
@@ -91,7 +113,9 @@ type CheckoutLine implements Node @key(fields: "id") {
   """
   children: [CheckoutLine!]!
 
-  """Parent bundle line. Null for a root checkout line."""
+  """
+  Parent bundle line. Null for a root checkout line.
+  """
   parent: CheckoutLine
 
   """
@@ -104,13 +128,19 @@ type CheckoutLine implements Node @key(fields: "id") {
   """
   purchasableId: ID!
 
-  """Federated catalog object represented by purchasableId."""
+  """
+  Federated catalog object represented by purchasableId.
+  """
   purchasable: Purchasable!
 
-  """Purchase mode and selected selling plan captured for this line."""
+  """
+  Purchase mode and selected selling plan captured for this line.
+  """
   purchase: CheckoutLinePurchase!
 
-  """Customer-visible checkout attributes captured for this line."""
+  """
+  Customer-visible checkout attributes captured for this line.
+  """
   attributes: JSON!
   """
   Optional tag assigned to this checkout line.
@@ -174,10 +204,14 @@ input CheckoutChildLineInput {
   """
   purchasableId: ID!
 
-  """Purchase intent for the child variant."""
+  """
+  Purchase intent for the child variant.
+  """
   purchase: CheckoutLinePurchaseInput
 
-  """Checkout-owned attributes passed to the pipeline."""
+  """
+  Checkout-owned attributes passed to the pipeline.
+  """
   attributes: JSON
 }
 
@@ -193,10 +227,14 @@ input CheckoutLineAddInput {
   ID of the product to add or update.
   """
   purchasableId: ID!
-  """Purchase intent for the variant."""
+  """
+  Purchase intent for the variant.
+  """
   purchase: CheckoutLinePurchaseInput
 
-  """Checkout-owned attributes passed to the pipeline."""
+  """
+  Checkout-owned attributes passed to the pipeline.
+  """
   attributes: JSON
   """
   Optional tag slug to associate with this line.
@@ -318,7 +356,9 @@ input CheckoutLinePurchaseInput {
   type: CheckoutLinePurchaseType!
 }
 
-"""Purchase mode captured in the committed checkout snapshot."""
+"""
+Purchase mode captured in the committed checkout snapshot.
+"""
 type CheckoutLinePurchase {
   type: CheckoutLinePurchaseType!
 }

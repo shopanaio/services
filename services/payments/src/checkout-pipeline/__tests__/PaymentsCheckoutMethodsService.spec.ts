@@ -44,7 +44,8 @@ describe("PaymentsCheckoutMethodsService revisions", () => {
       bindings,
       apps: {
         resolveRoute: jest.fn(async (input: { operation: string }) =>
-          providerRoute(input.operation as Payments.PaymentProviderOperation)),
+          providerRoute(input.operation as Payments.PaymentProviderOperation),
+        ),
         validateConfiguration: jest.fn(async () => ({
           status: "READY",
           providerCode: account.providerCode,
@@ -59,16 +60,18 @@ describe("PaymentsCheckoutMethodsService revisions", () => {
         })),
         getMethods: jest.fn(async () => ({
           revision: "provider-discovery-v1",
-          methods: [{
-            methodKey: "card",
-            code: "card",
-            title: "Card",
-            flow: "ONLINE",
-            supportedSessionKinds: ["SALE"],
-            supportedCaptureModes: ["AUTOMATIC"],
-            capabilities: capabilities(),
-            metadata: null,
-          }],
+          methods: [
+            {
+              methodKey: "card",
+              code: "card",
+              title: "Card",
+              flow: "ONLINE",
+              supportedSessionKinds: ["SALE"],
+              supportedCaptureModes: ["AUTOMATIC"],
+              capabilities: capabilities(),
+              metadata: null,
+            },
+          ],
         })),
       } as never,
       customizationBindings: {
@@ -99,9 +102,7 @@ describe("PaymentsCheckoutMethodsService revisions", () => {
   });
 });
 
-function request(
-  executionId: string,
-): Payments.GetCheckoutAvailablePaymentMethodsParams {
+function request(executionId: string): Payments.GetCheckoutAvailablePaymentMethodsParams {
   const zero = { amountMinor: "0", currencyCode: "USD" };
   return {
     context: {
@@ -161,9 +162,7 @@ function request(
   };
 }
 
-function positiveRequest(
-  executionId: string,
-): Payments.GetCheckoutAvailablePaymentMethodsParams {
+function positiveRequest(executionId: string): Payments.GetCheckoutAvailablePaymentMethodsParams {
   const value = request(executionId);
   const amount = { amountMinor: "100", currencyCode: "USD" };
   return {

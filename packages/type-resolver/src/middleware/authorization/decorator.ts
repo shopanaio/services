@@ -21,7 +21,7 @@ import type { TypePolicyOptions } from "./types.js";
  * ```
  */
 export function TypePolicy<TSelf = unknown, R extends ResourceName = ResourceName>(
-  options: TypePolicyOptions<TSelf, R>
+  options: TypePolicyOptions<TSelf, R>,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (target: any): void {

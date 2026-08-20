@@ -11,10 +11,7 @@ export const SEARCH_SETTINGS_UPDATE_MUTATION = gql`
   ) {
     listingMutation {
       search {
-        settingsUpdate(
-          expectedVersion: $expectedVersion
-          operations: $operations
-        ) {
+        settingsUpdate(expectedVersion: $expectedVersion, operations: $operations) {
           settings {
             ...SearchSettingsEditorFields
           }

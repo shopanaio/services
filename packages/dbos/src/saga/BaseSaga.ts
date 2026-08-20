@@ -66,10 +66,7 @@ export abstract class BaseSaga<TInput, TOutput>
   }
 
   /** Saga entry point - must be decorated with @Saga("name") */
-  abstract run(
-    input: TInput,
-    context?: WorkflowExecutionContext,
-  ): Promise<TOutput>;
+  abstract run(input: TInput, context?: WorkflowExecutionContext): Promise<TOutput>;
 
   onModuleInit(): void {
     this.registerSaga();
@@ -82,9 +79,7 @@ export abstract class BaseSaga<TInput, TOutput>
   private registerSaga(): void {
     const sagaMeta = Reflect.getMetadata(SAGA_DEFINITION_KEY, this.constructor);
     if (!sagaMeta) {
-      throw new Error(
-        `@Saga decorator missing on ${this.constructor.name}.run()`,
-      );
+      throw new Error(`@Saga decorator missing on ${this.constructor.name}.run()`);
     }
 
     const qualifiedName = this.qualifyName(sagaMeta.name);

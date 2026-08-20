@@ -8,8 +8,7 @@ export const CheckoutCompletionActionNames = {
 
 export const CheckoutCompletionActions = {
   get: `checkout.${CheckoutCompletionActionNames.get}`,
-  confirmPaymentSettlement:
-    `checkout.${CheckoutCompletionActionNames.confirmPaymentSettlement}`,
+  confirmPaymentSettlement: `checkout.${CheckoutCompletionActionNames.confirmPaymentSettlement}`,
 } as const;
 
 export interface GetCheckoutCompletionParams {

@@ -2,16 +2,8 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
-import type {
-  ApiGenericUserError,
-  ApiWarehouse,
-  ApiWarehouseUpdateInput,
-} from "@/graphql/types";
-import {
-  WAREHOUSES_QUERY,
-  WAREHOUSE_DETAILS_QUERY,
-  WAREHOUSE_UPDATE_MUTATION,
-} from "../graphql";
+import type { ApiGenericUserError, ApiWarehouse, ApiWarehouseUpdateInput } from "@/graphql/types";
+import { WAREHOUSES_QUERY, WAREHOUSE_DETAILS_QUERY, WAREHOUSE_UPDATE_MUTATION } from "../graphql";
 import type {
   WarehouseDetailsQueryVariables,
   WarehouseUpdateMutationData,
@@ -73,8 +65,7 @@ export function useUpdateWarehouse(): UseUpdateWarehouseReturn {
 
         const result = await updateWarehouseMutation({
           variables: { input },
-          refetchQueries:
-            refetchQueries.length > 0 ? refetchQueries : undefined,
+          refetchQueries: refetchQueries.length > 0 ? refetchQueries : undefined,
           awaitRefetchQueries: refetchQueries.length > 0,
         });
 
@@ -97,8 +88,7 @@ export function useUpdateWarehouse(): UseUpdateWarehouseReturn {
           userErrors: [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
 
         return {
           warehouse: null,

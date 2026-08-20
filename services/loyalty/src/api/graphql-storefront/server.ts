@@ -1,14 +1,9 @@
 import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import { requireStorefrontPermission, STOREFRONT_PERMISSIONS } from "@shopana/shared-context";
-import {
-  getServiceConfig,
-  isDevelopment,
-} from "@shopana/shared-service-config";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import fastify from "fastify";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -74,9 +69,7 @@ export async function startStorefrontServer(config: StorefrontServerConfig) {
 
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const packagedSchemaDir = join(currentDir, "schema", "storefront");
-  const schemaDir = existsSync(packagedSchemaDir)
-    ? packagedSchemaDir
-    : join(currentDir, "schema");
+  const schemaDir = existsSync(packagedSchemaDir) ? packagedSchemaDir : join(currentDir, "schema");
   const schemaFiles = [
     "foundation.graphql",
     "shared-currency.graphql",
@@ -119,10 +112,7 @@ export async function startStorefrontServer(config: StorefrontServerConfig) {
           });
         }
 
-        requireStorefrontPermission(
-          request.storefrontAccess,
-          STOREFRONT_PERMISSIONS.LOYALTY_READ,
-        );
+        requireStorefrontPermission(request.storefrontAccess, STOREFRONT_PERMISSIONS.LOYALTY_READ);
 
         const effectiveAt = new Date().toISOString();
         const context = new ServiceContext({

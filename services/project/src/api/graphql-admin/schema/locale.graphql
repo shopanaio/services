@@ -1,53 +1,93 @@
-"""Locale configuration for the project"""
+"""
+Locale configuration for the project
+"""
 type Locale {
-  """BCP 47 locale code"""
+  """
+  BCP 47 locale code
+  """
   code: LocaleCode!
-  """Display name of the locale"""
+  """
+  Display name of the locale
+  """
   name: String!
-  """Whether this locale is currently active for the project"""
+  """
+  Whether this locale is currently active for the project
+  """
   isActive: Boolean!
 }
 
-"""Input for creating a new locale"""
+"""
+Input for creating a new locale
+"""
 input LocaleCreateInput {
-  """BCP 47 locale code to add"""
+  """
+  BCP 47 locale code to add
+  """
   code: LocaleCode!
-  """Whether the locale should be active upon creation"""
+  """
+  Whether the locale should be active upon creation
+  """
   isActive: Boolean!
 }
 
-"""Input for deleting a locale"""
+"""
+Input for deleting a locale
+"""
 input LocaleDeleteInput {
-  """BCP 47 locale code to delete"""
+  """
+  BCP 47 locale code to delete
+  """
   code: LocaleCode!
 }
 
-"""Input for setting the default locale"""
+"""
+Input for setting the default locale
+"""
 input LocaleSetDefaultInput {
-  """BCP 47 locale code to set as default"""
+  """
+  BCP 47 locale code to set as default
+  """
   locale: LocaleCode!
 }
 
-"""Payload returned after creating a locale"""
+"""
+Payload returned after creating a locale
+"""
 type LocaleCreatePayload {
-  """The newly created locale, null if creation failed"""
+  """
+  The newly created locale, null if creation failed
+  """
   locale: Locale
-  """List of errors that occurred during creation"""
+  """
+  List of errors that occurred during creation
+  """
   userErrors: [UserError!]!
 }
 
-"""Payload returned after deleting a locale"""
+"""
+Payload returned after deleting a locale
+"""
 type LocaleDeletePayload {
-  """The code of the deleted locale, null if deletion failed"""
+  """
+  The code of the deleted locale, null if deletion failed
+  """
   deletedLocaleCode: LocaleCode
-  """List of errors that occurred during deletion"""
+  """
+  List of errors that occurred during deletion
+  """
   userErrors: [UserError!]!
 }
 
-"""Payload returned after updating locale settings"""
+"""
+Payload returned after updating locale settings
+"""
 type LocaleUpdatePayload {
-  """Whether the update was successful"""
+  """
+  Whether the update was successful
+  """
   success: Boolean!
-  """List of errors that occurred during update"""
+  """
+  List of errors that occurred during update
+  """
   userErrors: [UserError!]!
 }

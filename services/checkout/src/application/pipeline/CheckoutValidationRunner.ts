@@ -13,9 +13,7 @@ import type {
   ValidateCheckoutRequest,
   ValidateCheckoutResult,
 } from "./contracts/index.js";
-import {
-  CHECKOUT_VALIDATION_FUNCTION_TARGET,
-} from "./contracts/index.js";
+import { CHECKOUT_VALIDATION_FUNCTION_TARGET } from "./contracts/index.js";
 import { CheckoutPipelineBoundaryError, parseValidateCheckoutRequest } from "./boundaries.js";
 import { canonicalJsonSha256 } from "./canonicalJson.js";
 import { CheckoutPipelineStageError } from "./CheckoutPipelineStageError.js";
@@ -252,9 +250,7 @@ const functionQuotedLineSchema: z.ZodType = z.lazy(() =>
             .strict(),
         )
         .max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
-      children: z
-        .array(functionQuotedLineSchema)
-        .max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
+      children: z.array(functionQuotedLineSchema).max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
     })
     .strict(),
 );
@@ -313,9 +309,7 @@ const functionSourceLineResolutionSchema = z.discriminatedUnion("status", [
     .object({
       sourceLineId: identifier,
       status: z.literal("TRANSFORMED"),
-      transformedLineIds: z
-        .array(identifier)
-        .max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
+      transformedLineIds: z.array(identifier).max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
     })
     .strict(),
   z
@@ -334,9 +328,7 @@ const functionDeliveryIntentSchema = z
         z
           .object({
             lineId: identifier,
-            sourceLineIds: z
-              .array(identifier)
-              .max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
+            sourceLineIds: z.array(identifier).max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
           })
           .strict(),
       )
@@ -347,16 +339,12 @@ const functionDeliveryIntentSchema = z
           .object({
             destinationId: identifier,
             location: functionLocationSchema,
-            transformedLineIds: z
-              .array(identifier)
-              .max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
+            transformedLineIds: z.array(identifier).max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
           })
           .strict(),
       )
       .max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
-    unassignedPhysicalLineIds: z
-      .array(identifier)
-      .max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
+    unassignedPhysicalLineIds: z.array(identifier).max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
   })
   .strict();
 const functionDiscountCodeResolutionSchema = z.discriminatedUnion("status", [
@@ -367,9 +355,7 @@ const functionDiscountCodeResolutionSchema = z.discriminatedUnion("status", [
       status: z.literal("APPLIED"),
       discountId: identifier,
       codeId: identifier,
-      applicationIds: z
-        .array(identifier)
-        .max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
+      applicationIds: z.array(identifier).max(CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS),
     })
     .strict(),
   z
@@ -415,18 +401,18 @@ const functionPreliminaryTotalsSchema = z
     merchandiseTotal: functionMoneySchema,
   })
   .strict();
-const functionTotalsSchema = functionPreliminaryTotalsSchema.extend({
-  taxTotal: functionMoneySchema,
-  deliverySubtotal: functionMoneySchema,
-  deliveryDiscountTotal: functionMoneySchema,
-  deliveryTotal: functionMoneySchema,
-  payableTotal: functionMoneySchema,
-}).strict();
+const functionTotalsSchema = functionPreliminaryTotalsSchema
+  .extend({
+    taxTotal: functionMoneySchema,
+    deliverySubtotal: functionMoneySchema,
+    deliveryDiscountTotal: functionMoneySchema,
+    deliveryTotal: functionMoneySchema,
+    payableTotal: functionMoneySchema,
+  })
+  .strict();
 const functionDeliverySelectionSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("NONE") }).strict(),
-  z
-    .object({ status: z.literal("SELECTED"), optionHandle: identifier })
-    .strict(),
+  z.object({ status: z.literal("SELECTED"), optionHandle: identifier }).strict(),
   z
     .object({
       status: z.literal("RESET"),
@@ -437,9 +423,7 @@ const functionDeliverySelectionSchema = z.discriminatedUnion("status", [
 ]);
 const functionPaymentSelectionSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("NONE") }).strict(),
-  z
-    .object({ status: z.literal("SELECTED"), methodHandle: identifier })
-    .strict(),
+  z.object({ status: z.literal("SELECTED"), methodHandle: identifier }).strict(),
   z
     .object({
       status: z.literal("RESET"),
@@ -553,9 +537,7 @@ export const checkoutValidationFunctionInputSchema = z
                     phoneRequired: z.boolean(),
                     customerInputContract: z
                       .object({
-                        schemaDialect: z.literal(
-                          "https://json-schema.org/draft/2020-12/schema",
-                        ),
+                        schemaDialect: z.literal("https://json-schema.org/draft/2020-12/schema"),
                         schema: checkoutPipelineJsonObjectSchema,
                         schemaHash: identifier,
                         schemaPolicyRevision: identifier,
@@ -629,14 +611,46 @@ export const checkoutValidationFunctionInputSchema = z
   .strict();
 
 const functionFailureMap: Record<FunctionErrorClass, [string, string, boolean]> = {
-  ROUTE_UNAVAILABLE: ["CHECKOUT_VALIDATION_FUNCTION_ROUTE_UNAVAILABLE", "A required checkout validation function is unavailable.", true],
-  DEADLINE_EXCEEDED: ["CHECKOUT_VALIDATION_FUNCTION_DEADLINE_EXCEEDED", "A required checkout validation function exceeded its deadline.", true],
-  APP_RUNTIME_UNAVAILABLE: ["CHECKOUT_VALIDATION_FUNCTION_RUNTIME_UNAVAILABLE", "A required checkout validation function could not be executed.", true],
-  AUTHORIZATION_ERROR: ["CHECKOUT_VALIDATION_FUNCTION_AUTHORIZATION_FAILED", "A required checkout validation function is not authorized.", false],
-  IMPLEMENTATION_EXCEPTION: ["CHECKOUT_VALIDATION_FUNCTION_FAILED", "A required checkout validation function failed.", false],
-  INVALID_IMPLEMENTATION_OUTPUT: ["CHECKOUT_VALIDATION_FUNCTION_OUTPUT_INVALID", "A required checkout validation function returned an invalid result.", false],
-  OUTPUT_SIZE_LIMIT: ["CHECKOUT_VALIDATION_FUNCTION_OUTPUT_TOO_LARGE", "A required checkout validation function returned too much data.", false],
-  DOMAIN_REJECTION: ["CHECKOUT_VALIDATION_FUNCTION_REJECTED", "A required checkout validation function rejected the request.", false],
+  ROUTE_UNAVAILABLE: [
+    "CHECKOUT_VALIDATION_FUNCTION_ROUTE_UNAVAILABLE",
+    "A required checkout validation function is unavailable.",
+    true,
+  ],
+  DEADLINE_EXCEEDED: [
+    "CHECKOUT_VALIDATION_FUNCTION_DEADLINE_EXCEEDED",
+    "A required checkout validation function exceeded its deadline.",
+    true,
+  ],
+  APP_RUNTIME_UNAVAILABLE: [
+    "CHECKOUT_VALIDATION_FUNCTION_RUNTIME_UNAVAILABLE",
+    "A required checkout validation function could not be executed.",
+    true,
+  ],
+  AUTHORIZATION_ERROR: [
+    "CHECKOUT_VALIDATION_FUNCTION_AUTHORIZATION_FAILED",
+    "A required checkout validation function is not authorized.",
+    false,
+  ],
+  IMPLEMENTATION_EXCEPTION: [
+    "CHECKOUT_VALIDATION_FUNCTION_FAILED",
+    "A required checkout validation function failed.",
+    false,
+  ],
+  INVALID_IMPLEMENTATION_OUTPUT: [
+    "CHECKOUT_VALIDATION_FUNCTION_OUTPUT_INVALID",
+    "A required checkout validation function returned an invalid result.",
+    false,
+  ],
+  OUTPUT_SIZE_LIMIT: [
+    "CHECKOUT_VALIDATION_FUNCTION_OUTPUT_TOO_LARGE",
+    "A required checkout validation function returned too much data.",
+    false,
+  ],
+  DOMAIN_REJECTION: [
+    "CHECKOUT_VALIDATION_FUNCTION_REJECTED",
+    "A required checkout validation function rejected the request.",
+    false,
+  ],
 };
 
 function boundaryFailure(cause: unknown): CheckoutPipelineStageError {
@@ -663,7 +677,11 @@ function requiredFunctionFailure(
 ): CheckoutPipelineStageError {
   const mapped: [string, string, boolean] =
     errorClass === undefined
-      ? ["CHECKOUT_VALIDATION_FUNCTION_FAILED", "A required checkout validation function failed.", false]
+      ? [
+          "CHECKOUT_VALIDATION_FUNCTION_FAILED",
+          "A required checkout validation function failed.",
+          false,
+        ]
       : functionFailureMap[errorClass];
   const [code, message, retryable] = mapped;
   return new CheckoutPipelineStageError({ code, message, retryable, cause });
@@ -703,66 +721,141 @@ export function createNativeCheckoutValidationOperations(
   const lines = flattenLines(request.finalQuote.lines);
   const operations: CheckoutValidationOperation[] = [];
   if (lines.length === 0) {
-    operations.push(nativeOperation("CART_EMPTY", "Cart must contain at least one line.", ["cart", "lines"]));
+    operations.push(
+      nativeOperation("CART_EMPTY", "Cart must contain at least one line.", ["cart", "lines"]),
+    );
   }
   for (const line of lines) {
     if (!line.availability.available) {
-      operations.push(nativeOperation("LINE_UNAVAILABLE", "Cart line is unavailable.", ["cart", "lines"], line.lineId));
+      operations.push(
+        nativeOperation(
+          "LINE_UNAVAILABLE",
+          "Cart line is unavailable.",
+          ["cart", "lines"],
+          line.lineId,
+        ),
+      );
     }
   }
   for (const line of lines) {
     if (line.availability.maxQuantity !== null && line.quantity > line.availability.maxQuantity) {
-      operations.push(nativeOperation("LINE_QUANTITY_EXCEEDED", "Cart line quantity exceeds the available quantity.", ["cart", "lines"], line.lineId));
+      operations.push(
+        nativeOperation(
+          "LINE_QUANTITY_EXCEEDED",
+          "Cart line quantity exceeds the available quantity.",
+          ["cart", "lines"],
+          line.lineId,
+        ),
+      );
     }
   }
   for (const lineId of request.preliminary.deliveryIntent.unassignedPhysicalLineIds) {
-    operations.push(nativeOperation("DELIVERY_ADDRESS_REQUIRED", "A delivery address is required for this cart line.", ["delivery", "destinations"], lineId));
+    operations.push(
+      nativeOperation(
+        "DELIVERY_ADDRESS_REQUIRED",
+        "A delivery address is required for this cart line.",
+        ["delivery", "destinations"],
+        lineId,
+      ),
+    );
   }
   for (const group of request.delivery.groups) {
     if (group.options.length === 0) {
-      operations.push(nativeOperation("DELIVERY_OPTIONS_UNAVAILABLE", "No delivery options are available for this delivery group.", ["delivery", "groups", group.groupId, "options"]));
+      operations.push(
+        nativeOperation(
+          "DELIVERY_OPTIONS_UNAVAILABLE",
+          "No delivery options are available for this delivery group.",
+          ["delivery", "groups", group.groupId, "options"],
+        ),
+      );
     }
   }
   for (const group of request.delivery.groups) {
     if (group.options.length > 0 && group.selection.status === "NONE") {
-      operations.push(nativeOperation("DELIVERY_OPTION_REQUIRED", "A delivery option must be selected for this delivery group.", ["delivery", "groups", group.groupId, "selectedOption"]));
+      operations.push(
+        nativeOperation(
+          "DELIVERY_OPTION_REQUIRED",
+          "A delivery option must be selected for this delivery group.",
+          ["delivery", "groups", group.groupId, "selectedOption"],
+        ),
+      );
     }
   }
   for (const group of request.delivery.groups) {
     if (group.selection.status === "RESET") {
-      operations.push(nativeOperation("DELIVERY_OPTION_INVALID", "The selected delivery option is no longer valid.", ["delivery", "groups", group.groupId, "selectedOption"]));
+      operations.push(
+        nativeOperation(
+          "DELIVERY_OPTION_INVALID",
+          "The selected delivery option is no longer valid.",
+          ["delivery", "groups", group.groupId, "selectedOption"],
+        ),
+      );
     }
   }
   for (const reset of request.delivery.orphanedSelectionResets) {
-    operations.push(nativeOperation("DELIVERY_OPTION_ORPHANED", "The selected delivery option no longer belongs to a delivery group.", ["delivery", "selectedOptions", reset.groupId]));
+    operations.push(
+      nativeOperation(
+        "DELIVERY_OPTION_ORPHANED",
+        "The selected delivery option no longer belongs to a delivery group.",
+        ["delivery", "selectedOptions", reset.groupId],
+      ),
+    );
   }
   const paymentRequired = BigInt(request.payableAmount.amountMinor) > 0n;
   if (paymentRequired && request.payment.methods.length === 0) {
-    operations.push(nativeOperation("PAYMENT_METHODS_UNAVAILABLE", "No payment methods are available for this checkout.", ["payment", "methods"]));
+    operations.push(
+      nativeOperation(
+        "PAYMENT_METHODS_UNAVAILABLE",
+        "No payment methods are available for this checkout.",
+        ["payment", "methods"],
+      ),
+    );
   }
-  if (paymentRequired && request.payment.methods.length > 0 && request.payment.selection.status === "NONE") {
-    operations.push(nativeOperation("PAYMENT_METHOD_REQUIRED", "A payment method must be selected.", ["payment", "selectedMethod"]));
+  if (
+    paymentRequired &&
+    request.payment.methods.length > 0 &&
+    request.payment.selection.status === "NONE"
+  ) {
+    operations.push(
+      nativeOperation("PAYMENT_METHOD_REQUIRED", "A payment method must be selected.", [
+        "payment",
+        "selectedMethod",
+      ]),
+    );
   }
   if (paymentRequired && request.payment.selection.status === "RESET") {
-    operations.push(nativeOperation("PAYMENT_METHOD_INVALID", "The selected payment method is no longer valid.", ["payment", "selectedMethod"]));
+    operations.push(
+      nativeOperation("PAYMENT_METHOD_INVALID", "The selected payment method is no longer valid.", [
+        "payment",
+        "selectedMethod",
+      ]),
+    );
   }
   return operations;
 }
 
-function projectCartLine(line: ValidateCheckoutRequest["cartIntent"]["lines"][number]): Record<string, unknown> {
+function projectCartLine(
+  line: ValidateCheckoutRequest["cartIntent"]["lines"][number],
+): Record<string, unknown> {
   return {
     lineId: line.lineId,
     variantId: line.variantId,
-    componentSelection: line.componentSelection === null ? null : { componentItemId: line.componentSelection.componentItemId },
+    componentSelection:
+      line.componentSelection === null
+        ? null
+        : { componentItemId: line.componentSelection.componentItemId },
     quantity: line.quantity,
-    purchase: line.purchase.type === "ONE_TIME"
-      ? { type: "ONE_TIME", sellingPlanId: null }
-      : { type: "SUBSCRIPTION", sellingPlanId: line.purchase.sellingPlanId },
+    purchase:
+      line.purchase.type === "ONE_TIME"
+        ? { type: "ONE_TIME", sellingPlanId: null }
+        : { type: "SUBSCRIPTION", sellingPlanId: line.purchase.sellingPlanId },
     children: line.children.map(projectCartLine),
   };
 }
 
-function projectQuotedLine(line: ValidateCheckoutRequest["finalQuote"]["lines"][number]): Record<string, unknown> {
+function projectQuotedLine(
+  line: ValidateCheckoutRequest["finalQuote"]["lines"][number],
+): Record<string, unknown> {
   return {
     lineId: line.lineId,
     contributesToTotals: line.contributesToTotals,
@@ -788,7 +881,9 @@ function projectQuotedLine(line: ValidateCheckoutRequest["finalQuote"]["lines"][
   };
 }
 
-function projectDiscountApplication(application: ValidateCheckoutRequest["finalQuote"]["appliedDiscounts"][number]): Record<string, unknown> {
+function projectDiscountApplication(
+  application: ValidateCheckoutRequest["finalQuote"]["appliedDiscounts"][number],
+): Record<string, unknown> {
   return {
     applicationId: application.applicationId,
     discountId: application.discountId,
@@ -796,13 +891,14 @@ function projectDiscountApplication(application: ValidateCheckoutRequest["finalQ
     discountClass: application.discountClass,
     method: application.method,
     code: application.code,
-    source: application.source.kind === "NATIVE"
-      ? { kind: "NATIVE" }
-      : {
-          kind: "FUNCTION",
-          functionBindingId: application.source.functionBindingId,
-          functionTarget: application.source.functionTarget,
-        },
+    source:
+      application.source.kind === "NATIVE"
+        ? { kind: "NATIVE" }
+        : {
+            kind: "FUNCTION",
+            functionBindingId: application.source.functionBindingId,
+            functionTarget: application.source.functionTarget,
+          },
     title: application.title,
     priority: application.priority,
     amount: application.amount,
@@ -828,13 +924,16 @@ export function toCheckoutValidationFunctionInput(
       channelCode: request.context.channelCode,
       effectiveAt: request.context.effectiveAt,
       authenticated: buyer?.customerId !== null && buyer !== null,
-      buyerEligibility: buyer === null ? null : {
-        countryCode: buyer.countryCode,
-        marketId: buyer.marketId,
-        companyId: buyer.companyId,
-        segmentIds: buyer.segmentIds,
-        segmentMembershipRevision: buyer.segmentMembershipRevision,
-      },
+      buyerEligibility:
+        buyer === null
+          ? null
+          : {
+              countryCode: buyer.countryCode,
+              marketId: buyer.marketId,
+              companyId: buyer.companyId,
+              segmentIds: buyer.segmentIds,
+              segmentMembershipRevision: buyer.segmentMembershipRevision,
+            },
     },
     cart: {
       lines: request.cartIntent.lines.map(projectCartLine),
@@ -848,8 +947,14 @@ export function toCheckoutValidationFunctionInput(
         },
         lineIds: destination.lineIds,
       })),
-      selectedDeliveryOptions: request.cartIntent.selectedDeliveryOptions.map((selection) => ({ groupId: selection.groupId, optionHandle: selection.optionHandle })),
-      selectedPaymentMethod: request.cartIntent.selectedPaymentMethod === null ? null : { methodHandle: request.cartIntent.selectedPaymentMethod.methodHandle },
+      selectedDeliveryOptions: request.cartIntent.selectedDeliveryOptions.map((selection) => ({
+        groupId: selection.groupId,
+        optionHandle: selection.optionHandle,
+      })),
+      selectedPaymentMethod:
+        request.cartIntent.selectedPaymentMethod === null
+          ? null
+          : { methodHandle: request.cartIntent.selectedPaymentMethod.methodHandle },
     },
     preliminary: {
       checkoutId: request.preliminary.checkoutId,
@@ -895,13 +1000,22 @@ export function toCheckoutValidationFunctionInput(
           publicData: option.publicData,
           carrierCode: option.carrier?.code ?? null,
         })),
-        selection: group.selection.status === "SELECTED"
-          ? { status: "SELECTED", optionHandle: group.selection.optionHandle }
-          : group.selection.status === "RESET"
-            ? { status: "RESET", previousOptionHandle: group.selection.previousOptionHandle, reason: group.selection.reason }
-            : { status: "NONE" },
+        selection:
+          group.selection.status === "SELECTED"
+            ? { status: "SELECTED", optionHandle: group.selection.optionHandle }
+            : group.selection.status === "RESET"
+              ? {
+                  status: "RESET",
+                  previousOptionHandle: group.selection.previousOptionHandle,
+                  reason: group.selection.reason,
+                }
+              : { status: "NONE" },
       })),
-      orphanedSelectionResets: request.delivery.orphanedSelectionResets.map((reset) => ({ groupId: reset.groupId, previousOptionHandle: reset.previousOptionHandle, reason: reset.reason })),
+      orphanedSelectionResets: request.delivery.orphanedSelectionResets.map((reset) => ({
+        groupId: reset.groupId,
+        previousOptionHandle: reset.previousOptionHandle,
+        reason: reset.reason,
+      })),
     },
     finalQuote: {
       checkoutId: request.finalQuote.checkoutId,
@@ -910,7 +1024,8 @@ export function toCheckoutValidationFunctionInput(
       quoteId: request.finalQuote.quoteId,
       revision: request.finalQuote.revision,
       discountEvaluationRevision: request.finalQuote.discountEvaluationRevision,
-      basedOnPreliminaryDiscountEvaluationRevision: request.finalQuote.basedOnPreliminaryDiscountEvaluationRevision,
+      basedOnPreliminaryDiscountEvaluationRevision:
+        request.finalQuote.basedOnPreliminaryDiscountEvaluationRevision,
       basedOnPreliminaryRevision: request.finalQuote.basedOnPreliminaryRevision,
       basedOnDeliveryRevision: request.finalQuote.basedOnDeliveryRevision,
       lines: finalLines,
@@ -925,12 +1040,23 @@ export function toCheckoutValidationFunctionInput(
       revision: request.payment.revision,
       basedOnFinalQuoteRevision: request.payment.basedOnFinalQuoteRevision,
       basedOnDeliveryRevision: request.payment.basedOnDeliveryRevision,
-      methods: request.payment.methods.map(({ handle, code, title, provider, flow }) => ({ handle, code, title, provider, flow })),
-      selection: request.payment.selection.status === "SELECTED"
-        ? { status: "SELECTED", methodHandle: request.payment.selection.methodHandle }
-        : request.payment.selection.status === "RESET"
-          ? { status: "RESET", previousMethodHandle: request.payment.selection.previousMethodHandle, reason: request.payment.selection.reason }
-          : { status: "NONE" },
+      methods: request.payment.methods.map(({ handle, code, title, provider, flow }) => ({
+        handle,
+        code,
+        title,
+        provider,
+        flow,
+      })),
+      selection:
+        request.payment.selection.status === "SELECTED"
+          ? { status: "SELECTED", methodHandle: request.payment.selection.methodHandle }
+          : request.payment.selection.status === "RESET"
+            ? {
+                status: "RESET",
+                previousMethodHandle: request.payment.selection.previousMethodHandle,
+                reason: request.payment.selection.reason,
+              }
+            : { status: "NONE" },
     },
   };
   // The strict projection parser is the final PII boundary. Every field above
@@ -956,24 +1082,30 @@ function parseBindings(raw: readonly unknown[], storeId: string): CheckoutValida
   }
   return bindings
     .filter(({ status }) => status === "ACTIVE")
-    .sort((left, right) =>
-      left.precedence - right.precedence ||
-      left.activationSequence - right.activationSequence ||
-      (left.functionBindingId < right.functionBindingId
-        ? -1
-        : left.functionBindingId > right.functionBindingId
-          ? 1
-          : 0),
+    .sort(
+      (left, right) =>
+        left.precedence - right.precedence ||
+        left.activationSequence - right.activationSequence ||
+        (left.functionBindingId < right.functionBindingId
+          ? -1
+          : left.functionBindingId > right.functionBindingId
+            ? 1
+            : 0),
     );
 }
 
-function bindingSetRevision(bindings: readonly CheckoutValidationBinding[], storeId: string): string {
+function bindingSetRevision(
+  bindings: readonly CheckoutValidationBinding[],
+  storeId: string,
+): string {
   if (bindings.length === 0) return EMPTY_CHECKOUT_VALIDATION_BINDING_SET_REVISION;
   const payload = {
     schemaVersion: 1,
     storeId,
     target: CHECKOUT_VALIDATION_FUNCTION_TARGET,
-    bindings: bindings.map(({ status: _status, storeId: _storeId, target: _target, ...binding }) => binding),
+    bindings: bindings.map(
+      ({ status: _status, storeId: _storeId, target: _target, ...binding }) => binding,
+    ),
   };
   return `checkout-validation-bindings:v1:sha256:${canonicalJsonSha256(payload)}`;
 }
@@ -997,7 +1129,9 @@ function assertEnvelope(
     Date.parse(trace.deadlineAt) > Date.parse(request.deadlineAt) ||
     trace.implementations.length !== bindings.length
   ) {
-    throw new CheckoutPipelineBoundaryError("Commerce function envelope does not match its request");
+    throw new CheckoutPipelineBoundaryError(
+      "Commerce function envelope does not match its request",
+    );
   }
   const outputByIndex = new Map<number, CommerceFunctionRunEnvelope["outputs"][number]>();
   let previousOutputIndex = -1;
@@ -1024,7 +1158,9 @@ function assertEnvelope(
       item.activationSequence !== binding.activationSequence ||
       item.failureMode !== binding.failureMode
     ) {
-      throw new CheckoutPipelineBoundaryError("Commerce function trace does not match active bindings");
+      throw new CheckoutPipelineBoundaryError(
+        "Commerce function trace does not match active bindings",
+      );
     }
     if (
       !new Set(["SUCCEEDED", "FAILED", "TIMED_OUT", "SKIPPED"]).has(item.status) ||
@@ -1038,35 +1174,47 @@ function assertEnvelope(
     if (item.status === "SUCCEEDED") {
       if (
         output === undefined ||
-        (
-          (output.implementationId !== item.implementationId ||
-            output.implementationType !== item.implementationType ||
-            output.functionBindingId !== item.functionBindingId)
-        )
+        output.implementationId !== item.implementationId ||
+        output.implementationType !== item.implementationType ||
+        output.functionBindingId !== item.functionBindingId
       ) {
-        throw new CheckoutPipelineBoundaryError("Successful function trace requires exactly one output");
+        throw new CheckoutPipelineBoundaryError(
+          "Successful function trace requires exactly one output",
+        );
       }
       if (output !== undefined) checkoutValidationFunctionOutputSchema.parse(output.data);
     } else if (output !== undefined) {
       throw new CheckoutPipelineBoundaryError("Unsuccessful function trace cannot contain output");
     }
-    if ((item.status === "FAILED" || item.status === "TIMED_OUT") && item.failureMode === "REQUIRED" && firstRequiredFailure === undefined) {
+    if (
+      (item.status === "FAILED" || item.status === "TIMED_OUT") &&
+      item.failureMode === "REQUIRED" &&
+      firstRequiredFailure === undefined
+    ) {
       firstRequiredFailure = item;
     }
     if (item.status === "SKIPPED" && firstRequiredFailure === undefined) {
       throw new CheckoutPipelineBoundaryError("Function trace skipped before required failure");
     }
   }
-  if (outputByIndex.size !== envelope.outputs.length || [...outputByIndex.keys()].some((index) => index < 0 || index >= bindings.length)) {
+  if (
+    outputByIndex.size !== envelope.outputs.length ||
+    [...outputByIndex.keys()].some((index) => index < 0 || index >= bindings.length)
+  ) {
     throw new CheckoutPipelineBoundaryError("Commerce function envelope contains foreign outputs");
   }
-  const failures = trace.implementations.filter(({ status }) => status === "FAILED" || status === "TIMED_OUT");
+  const failures = trace.implementations.filter(
+    ({ status }) => status === "FAILED" || status === "TIMED_OUT",
+  );
   if (thrown) {
     if (firstRequiredFailure === undefined || trace.status !== "FAILED") {
       throw new CheckoutPipelineBoundaryError("Thrown function trace has no required failure");
     }
   } else {
-    if (firstRequiredFailure !== undefined || trace.status !== (failures.length === 0 ? "SUCCEEDED" : "PARTIAL")) {
+    if (
+      firstRequiredFailure !== undefined ||
+      trace.status !== (failures.length === 0 ? "SUCCEEDED" : "PARTIAL")
+    ) {
       throw new CheckoutPipelineBoundaryError("Returned function trace status is incoherent");
     }
   }
@@ -1085,9 +1233,14 @@ function toFunctionOperations(
     };
     if (item.status === "SUCCEEDED") {
       const output = envelope.outputs.find(({ planIndex }) => planIndex === item.planIndex)!;
-      const parsed: CheckoutValidationFunctionOutput = checkoutValidationFunctionOutputSchema.parse(output.data);
+      const parsed: CheckoutValidationFunctionOutput = checkoutValidationFunctionOutputSchema.parse(
+        output.data,
+      );
       operations.push(...parsed.operations.map((operation) => ({ ...operation, source })));
-    } else if ((item.status === "FAILED" || item.status === "TIMED_OUT") && item.failureMode === "OPTIONAL") {
+    } else if (
+      (item.status === "FAILED" || item.status === "TIMED_OUT") &&
+      item.failureMode === "OPTIONAL"
+    ) {
       operations.push({
         code: "OPTIONAL_VALIDATION_FUNCTION_FAILED",
         message: "An optional checkout validation function could not be evaluated.",
@@ -1138,7 +1291,31 @@ export class CheckoutValidationRunner {
       const runRequest: CommerceFunctionRunRequest = {
         storeId: request.context.storeId,
         target: CHECKOUT_VALIDATION_FUNCTION_TARGET,
-        bindings: bindings.map(({ functionBindingId, installationId, functionKey, owner, configurationRevision, configurationSnapshot, routeRevision, precedence, activationSequence, failureMode }) => ({ functionBindingId, installationId, functionKey, owner, configurationRevision, configurationSnapshot, routeRevision, precedence, activationSequence, failureMode })),
+        bindings: bindings.map(
+          ({
+            functionBindingId,
+            installationId,
+            functionKey,
+            owner,
+            configurationRevision,
+            configurationSnapshot,
+            routeRevision,
+            precedence,
+            activationSequence,
+            failureMode,
+          }) => ({
+            functionBindingId,
+            installationId,
+            functionKey,
+            owner,
+            configurationRevision,
+            configurationSnapshot,
+            routeRevision,
+            precedence,
+            activationSequence,
+            failureMode,
+          }),
+        ),
         bindingSetRevision: revision,
         input: toCheckoutValidationFunctionInput(request),
         executionId: request.context.executionId,
@@ -1162,7 +1339,9 @@ export class CheckoutValidationRunner {
           try {
             assertEnvelope(envelope, runRequest, bindings, true);
             const firstRequired = envelope.trace.implementations.find(
-              (item) => (item.status === "FAILED" || item.status === "TIMED_OUT") && item.failureMode === "REQUIRED",
+              (item) =>
+                (item.status === "FAILED" || item.status === "TIMED_OUT") &&
+                item.failureMode === "REQUIRED",
             );
             if (firstRequired?.errorClass !== cause.errorClass) {
               throw new CheckoutPipelineBoundaryError("Function error class does not match trace");

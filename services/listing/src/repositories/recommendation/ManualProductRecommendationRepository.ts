@@ -64,9 +64,7 @@ export class ManualProductRecommendationRepository extends BaseRepository {
     const page = rows.slice(0, input.first);
     return {
       rows: page,
-      nextCursor: rows.length > input.first
-        ? page.at(-1)?.recommendationId ?? null
-        : null,
+      nextCursor: rows.length > input.first ? (page.at(-1)?.recommendationId ?? null) : null,
     };
   }
 

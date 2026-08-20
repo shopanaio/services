@@ -1,7 +1,5 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { ProductFeature } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 
@@ -13,9 +11,7 @@ export class FeatureResolver extends CatalogType<string, ProductFeature> {
   async $preload() {
     const feature = await this.$ctx.loaders.productFeature.load(this.$props);
     if (!feature) {
-      throw new PreloadNotFoundError(
-        `Feature with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Feature with ID ${this.$props} not found`);
     }
     return feature;
   }
@@ -33,9 +29,7 @@ export class FeatureResolver extends CatalogType<string, ProductFeature> {
   }
 
   async name() {
-    const translation = await this.$ctx.loaders.featureTranslation.load(
-      this.$props
-    );
+    const translation = await this.$ctx.loaders.featureTranslation.load(this.$props);
     if (translation?.name) return translation.name;
     // Fallback to index representation if no translation
     const idx = await this.index();

@@ -28,7 +28,7 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
     repository: Repository,
     workflow: WorkflowRegistry,
     cache: Cache,
-    nameResolver: NameResolver
+    nameResolver: NameResolver,
   ) {
     super(broker, logger, { repository, workflow, cache, nameResolver });
     this.repository = repository;
@@ -40,7 +40,7 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
   static async create(
     broker: ServiceBroker,
     workflow: WorkflowRegistry,
-    dbClient: DatabaseClient
+    dbClient: DatabaseClient,
   ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
@@ -61,9 +61,7 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
 
   static getInstance(): Kernel {
     if (!this.instance) {
-      throw new Error(
-        "Kernel not initialized. Call Kernel.create(broker) first."
-      );
+      throw new Error("Kernel not initialized. Call Kernel.create(broker) first.");
     }
     return this.instance;
   }
@@ -83,11 +81,8 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
    * Execute a class-based script with automatic transaction management
    */
   async runScript<TParams, TResult>(
-    ScriptClass: new (services: ProjectKernelServices) => BaseScript<
-      TParams,
-      TResult
-    >,
-    params: TParams
+    ScriptClass: new (services: ProjectKernelServices) => BaseScript<TParams, TResult>,
+    params: TParams,
   ): Promise<TResult> {
     const txManager = this.services.repository?.txManager;
 
@@ -104,11 +99,7 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
   }
 }
 
-export type {
-  ProjectKernelServices,
-  ScriptContext,
-  TransactionScript,
-} from "./types.js";
+export type { ProjectKernelServices, ScriptContext, TransactionScript } from "./types.js";
 export { KernelError } from "./types.js";
 export { BaseScript } from "./BaseScript.js";
 export { type UserError } from "@shopana/shared-kernel";

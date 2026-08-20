@@ -15,10 +15,7 @@ import type {
   CommerceFunctionRunRequest,
   FunctionTargetDefinition,
 } from "../contracts.js";
-import {
-  CommerceFunctionExecutionError,
-  FunctionEnvelopeError,
-} from "../errors.js";
+import { CommerceFunctionExecutionError, FunctionEnvelopeError } from "../errors.js";
 import { FunctionRouteResolver } from "../FunctionRouteResolver.js";
 import { FunctionTargetRegistry } from "../FunctionTargetRegistry.js";
 import { canonicalizeEnvelope } from "../trace.js";
@@ -27,10 +24,7 @@ const TARGET = "cart.lines.discounts.generate.run";
 
 describe("FunctionRouteResolver", () => {
   it("discovers multiple App routes and orders bindings deterministically", async () => {
-    const routes = [
-      route("installation-b", "route-b"),
-      route("installation-a", "route-a"),
-    ];
+    const routes = [route("installation-b", "route-b"), route("installation-a", "route-a")];
     const resolver = new FunctionRouteResolver(
       broker(async (action) => {
         expect(action).toBe("apps.listCapabilityRoutes");
@@ -61,15 +55,7 @@ describe("FunctionRouteResolver", () => {
     );
 
     const plan = await resolver.resolve(
-      request([
-        binding(
-          "binding-a",
-          "installation-a",
-          "old-route-revision",
-          0,
-          1,
-        ),
-      ]),
+      request([binding("binding-a", "installation-a", "old-route-revision", 0, 1)]),
       definition(),
     );
 
@@ -92,9 +78,7 @@ describe("FunctionRouteResolver", () => {
     );
 
     const plan = await resolver.resolve(
-      request([
-        binding("binding-a", "installation-a", "route-a", 0, 1),
-      ]),
+      request([binding("binding-a", "installation-a", "route-a", 0, 1)]),
       definition(),
     );
 
@@ -110,13 +94,7 @@ describe("FunctionRouteResolver", () => {
         routes: [route("installation-a", "route-a")],
       })),
     );
-    const base = binding(
-      "binding-a",
-      "installation-a",
-      "route-a",
-      0,
-      1,
-    );
+    const base = binding("binding-a", "installation-a", "route-a", 0, 1);
     const now = Date.now();
 
     const first = await resolver.resolve(
@@ -137,14 +115,10 @@ describe("FunctionRouteResolver", () => {
   });
 
   it("stops route discovery at the target deadline", async () => {
-    const resolver = new FunctionRouteResolver(
-      broker(() => new Promise(() => undefined)),
-    );
+    const resolver = new FunctionRouteResolver(broker(() => new Promise(() => undefined)));
 
     const plan = await resolver.resolve(
-      request([
-        binding("binding-a", "installation-a", "route-a", 0, 1),
-      ]),
+      request([binding("binding-a", "installation-a", "route-a", 0, 1)]),
       definition({ defaultTimeoutMs: 10 }),
     );
 
@@ -171,33 +145,21 @@ describe("FunctionRouteResolver", () => {
     });
 
     const plan = await resolver.resolve(
-      request([
-        binding("binding-a", "installation-a", "route-a", 0, 1),
-      ]),
+      request([binding("binding-a", "installation-a", "route-a", 0, 1)]),
       target,
     );
 
-    expect(plan.items.map((item) => item.implementationId)).toEqual([
-      "app:binding-a",
-    ]);
+    expect(plan.items.map((item) => item.implementationId)).toEqual(["app:binding-a"]);
 
-    const fallbackPlan = await resolver.resolve(
-      request([]),
-      target,
-    );
+    const fallbackPlan = await resolver.resolve(request([]), target);
 
-    expect(
-      fallbackPlan.items.map((item) => item.implementationId),
-    ).toEqual(["native:allocator"]);
+    expect(fallbackPlan.items.map((item) => item.implementationId)).toEqual(["native:allocator"]);
   });
 
   it("rejects more than one active App binding for SINGLE", async () => {
     const resolver = new FunctionRouteResolver(
       broker(async () => ({
-        routes: [
-          route("installation-a", "route-a"),
-          route("installation-b", "route-b"),
-        ],
+        routes: [route("installation-a", "route-a"), route("installation-b", "route-b")],
       })),
     );
 
@@ -212,9 +174,7 @@ describe("FunctionRouteResolver", () => {
           allowMultipleAppImplementations: true,
         }),
       ),
-    ).rejects.toThrow(
-      `Target "${TARGET}" does not allow multiple App implementations`,
-    );
+    ).rejects.toThrow(`Target "${TARGET}" does not allow multiple App implementations`);
   });
 });
 
@@ -250,19 +210,14 @@ describe("CommerceFunctionRunner", () => {
   });
 
   it("returns multi-App outputs in plan order, not completion order", async () => {
-    const routes = [
-      route("installation-a", "route-a"),
-      route("installation-b", "route-b"),
-    ];
+    const routes = [route("installation-a", "route-a"), route("installation-b", "route-b")];
     const serviceBroker = broker(async (action, params) => {
       if (action === "apps.listCapabilityRoutes") return { routes };
       const invocation = params as Apps.ExecuteCapabilityParams;
       expect(invocation.functionKey).toBe("discounts");
       const isFirst = invocation.installationId === "installation-a";
       await delay(isFirst ? 20 : 1);
-      const actual = routes.find(
-        (entry) => entry.installationId === invocation.installationId,
-      )!;
+      const actual = routes.find((entry) => entry.installationId === invocation.installationId)!;
       return {
         ...actual,
         data: { installationId: invocation.installationId },
@@ -294,10 +249,7 @@ describe("CommerceFunctionRunner", () => {
   });
 
   it("skips OPTIONAL failures and rejects REQUIRED failures", async () => {
-    const routes = [
-      route("installation-a", "route-a"),
-      route("installation-b", "route-b"),
-    ];
+    const routes = [route("installation-a", "route-a"), route("installation-b", "route-b")];
     const serviceBroker = broker(async (action, params) => {
       if (action === "apps.listCapabilityRoutes") return { routes };
       const invocation = params as Apps.ExecuteCapabilityParams;
@@ -316,20 +268,8 @@ describe("CommerceFunctionRunner", () => {
       new FunctionRouteResolver(serviceBroker),
       new BrokerFunctionExecutor(serviceBroker),
     );
-    const failedBinding = binding(
-      "binding-a",
-      "installation-a",
-      "route-a",
-      0,
-      1,
-    );
-    const successfulBinding = binding(
-      "binding-b",
-      "installation-b",
-      "route-b",
-      0,
-      2,
-    );
+    const failedBinding = binding("binding-a", "installation-a", "route-a", 0, 1);
+    const successfulBinding = binding("binding-b", "installation-b", "route-b", 0, 2);
 
     const optionalResult = await runner.run(
       request([
@@ -374,17 +314,11 @@ describe("CommerceFunctionRunner", () => {
     );
 
     try {
-      await runner.run(
-        request([
-          binding("binding-a", "installation-a", "route-a", 0, 1),
-        ]),
-      );
+      await runner.run(request([binding("binding-a", "installation-a", "route-a", 0, 1)]));
       throw new Error("Expected Commerce Function execution to fail");
     } catch (error) {
       expect(error).toBeInstanceOf(CommerceFunctionExecutionError);
-      expect(
-        (error as CommerceFunctionExecutionError).errorClass,
-      ).toBe("DEADLINE_EXCEEDED");
+      expect((error as CommerceFunctionExecutionError).errorClass).toBe("DEADLINE_EXCEEDED");
     }
   });
 
@@ -403,13 +337,7 @@ describe("CommerceFunctionRunner", () => {
     const result = await runner.run(
       request([
         {
-          ...binding(
-            "binding-disabled",
-            "installation-disabled",
-            "route-disabled",
-            0,
-            1,
-          ),
+          ...binding("binding-disabled", "installation-disabled", "route-disabled", 0, 1),
           failureMode: "DISABLED",
           configurationSnapshot: circularConfiguration,
         },
@@ -484,9 +412,7 @@ describe("CommerceFunctionRunner", () => {
     );
 
     const result = await runner.run(
-      request([
-        binding("binding-a", "installation-a", "route-a", 0, 1),
-      ]),
+      request([binding("binding-a", "installation-a", "route-a", 0, 1)]),
     );
 
     expect(result.trace.implementations[0]).toMatchObject({
@@ -509,9 +435,7 @@ describe("CommerceFunctionRunner", () => {
     );
 
     const result = await runner.run(
-      request([
-        binding("binding-a", "installation-a", "route-a", 0, 1),
-      ]),
+      request([binding("binding-a", "installation-a", "route-a", 0, 1)]),
     );
 
     expect(result.trace.implementations[0]).toMatchObject({
@@ -530,17 +454,13 @@ describe("CommerceFunctionRunner", () => {
       });
     });
     const runner = new CommerceFunctionRunner(
-      new FunctionTargetRegistry([
-        definition({ appFailureMode: "OPTIONAL" }),
-      ]),
+      new FunctionTargetRegistry([definition({ appFailureMode: "OPTIONAL" })]),
       new FunctionRouteResolver(serviceBroker),
       new BrokerFunctionExecutor(serviceBroker),
     );
 
     const result = await runner.run(
-      request([
-        binding("binding-a", "installation-a", "route-a", 0, 1),
-      ]),
+      request([binding("binding-a", "installation-a", "route-a", 0, 1)]),
     );
 
     expect(result.trace.implementations[0]).toMatchObject({
@@ -559,17 +479,13 @@ describe("CommerceFunctionRunner", () => {
       });
     });
     const runner = new CommerceFunctionRunner(
-      new FunctionTargetRegistry([
-        definition({ appFailureMode: "OPTIONAL" }),
-      ]),
+      new FunctionTargetRegistry([definition({ appFailureMode: "OPTIONAL" })]),
       new FunctionRouteResolver(serviceBroker),
       new BrokerFunctionExecutor(serviceBroker),
     );
 
     const result = await runner.run(
-      request([
-        binding("binding-a", "installation-a", "route-a", 0, 1),
-      ]),
+      request([binding("binding-a", "installation-a", "route-a", 0, 1)]),
     );
 
     expect(result.trace.implementations[0]).toMatchObject({
@@ -588,17 +504,13 @@ describe("CommerceFunctionRunner", () => {
       } satisfies Apps.ExecuteCapabilityResult;
     });
     const runner = new CommerceFunctionRunner(
-      new FunctionTargetRegistry([
-        definition({ appFailureMode: "OPTIONAL" }),
-      ]),
+      new FunctionTargetRegistry([definition({ appFailureMode: "OPTIONAL" })]),
       new FunctionRouteResolver(serviceBroker),
       new BrokerFunctionExecutor(serviceBroker),
     );
 
     const result = await runner.run(
-      request([
-        binding("binding-a", "installation-a", "route-a", 0, 1),
-      ]),
+      request([binding("binding-a", "installation-a", "route-a", 0, 1)]),
     );
 
     expect(result.trace.implementations[0]).toMatchObject({
@@ -627,32 +539,21 @@ describe("CommerceFunctionRunner", () => {
     );
 
     const result = await runner.run(
-      request([
-        binding("binding-a", "installation-a", "route-a", 0, 1),
-      ]),
+      request([binding("binding-a", "installation-a", "route-a", 0, 1)]),
     );
 
     expect(result.trace.implementations[0]).toMatchObject({
       plannedRouteRevision: "route-a",
       errorClass: "DEADLINE_EXCEEDED",
     });
-    expect(result.trace.implementations[0]).not.toHaveProperty(
-      "routeRevision",
-    );
-    expect(result.trace.implementations[0]).not.toHaveProperty(
-      "appVersion",
-    );
+    expect(result.trace.implementations[0]).not.toHaveProperty("routeRevision");
+    expect(result.trace.implementations[0]).not.toHaveProperty("appVersion");
   });
 });
 
 describe("BrokerFunctionExecutor", () => {
   it("rejects native actions that are not explicitly read-only", async () => {
-    const executor = new BrokerFunctionExecutor(
-      broker(
-        async () => ({ ok: true }),
-        undefined,
-      ),
-    );
+    const executor = new BrokerFunctionExecutor(broker(async () => ({ ok: true }), undefined));
 
     const outcome = await executor.execute({
       planIndex: 0,
@@ -697,9 +598,7 @@ describe("BrokerFunctionExecutor", () => {
       .mockReturnValueOnce(1_000)
       .mockReturnValue(1_000);
     try {
-      const executor = new BrokerFunctionExecutor(
-        broker(async () => ({ ok: true })),
-      );
+      const executor = new BrokerFunctionExecutor(broker(async () => ({ ok: true })));
 
       const outcome = await executor.execute({
         planIndex: 0,
@@ -744,12 +643,10 @@ describe("BrokerFunctionExecutor", () => {
 
 describe("Commerce Function envelopes", () => {
   it("rejects Map and Set instead of measuring them as empty objects", () => {
-    expect(() =>
-      canonicalizeEnvelope(new Map([["key", "value"]]), 64, "input"),
-    ).toThrow(FunctionEnvelopeError);
-    expect(() =>
-      canonicalizeCommerceFunctionJson(new Set(["value"])),
-    ).toThrow();
+    expect(() => canonicalizeEnvelope(new Map([["key", "value"]]), 64, "input")).toThrow(
+      FunctionEnvelopeError,
+    );
+    expect(() => canonicalizeCommerceFunctionJson(new Set(["value"]))).toThrow();
   });
 
   it("returns deeply immutable canonical JSON", () => {
@@ -773,8 +670,7 @@ describe("FunctionTargetRegistry", () => {
       () =>
         new FunctionTargetRegistry([
           definition({
-            maxInputBytes:
-              COMMERCE_FUNCTION_MAX_INVOCATION_BYTES + 1,
+            maxInputBytes: COMMERCE_FUNCTION_MAX_INVOCATION_BYTES + 1,
           }),
         ]),
     ).toThrow();
@@ -782,8 +678,7 @@ describe("FunctionTargetRegistry", () => {
       () =>
         new FunctionTargetRegistry([
           definition({
-            maxEnvelopeDepth:
-              COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH + 1,
+            maxEnvelopeDepth: COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH + 1,
           }),
         ]),
     ).toThrow();
@@ -791,17 +686,14 @@ describe("FunctionTargetRegistry", () => {
       () =>
         new FunctionTargetRegistry([
           definition({
-            maxOutputBytes:
-              COMMERCE_FUNCTION_MAX_OUTPUT_BYTES + 1,
+            maxOutputBytes: COMMERCE_FUNCTION_MAX_OUTPUT_BYTES + 1,
           }),
         ]),
     ).toThrow();
   });
 });
 
-function definition(
-  overrides: Partial<FunctionTargetDefinition> = {},
-): FunctionTargetDefinition {
+function definition(overrides: Partial<FunctionTargetDefinition> = {}): FunctionTargetDefinition {
   return {
     target: TARGET,
     owningService: "pricing",
@@ -853,10 +745,7 @@ function binding(
   };
 }
 
-function route(
-  installationId: string,
-  routeRevision: string,
-): Apps.CapabilityRoute {
+function route(installationId: string, routeRevision: string): Apps.CapabilityRoute {
   return {
     capabilityRouteId: `route:${installationId}`,
     installationId,

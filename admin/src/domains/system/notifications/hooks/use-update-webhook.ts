@@ -2,10 +2,7 @@
 
 import { useMutation } from "@apollo/client/react";
 import type { ApiNotificationWebhookUpdateInput } from "@/graphql/types";
-import {
-  NOTIFICATION_WEBHOOKS_QUERY,
-  NOTIFICATION_WEBHOOK_UPDATE_MUTATION,
-} from "../graphql";
+import { NOTIFICATION_WEBHOOKS_QUERY, NOTIFICATION_WEBHOOK_UPDATE_MUTATION } from "../graphql";
 import type {
   NotificationWebhooksQueryData,
   NotificationWebhookUpdateMutationData,
@@ -36,13 +33,9 @@ export function useUpdateWebhook() {
             data: {
               notificationsQuery: {
                 ...current.notificationsQuery,
-                webhookSubscriptions:
-                  current.notificationsQuery.webhookSubscriptions.map(
-                    (webhook) =>
-                      webhook.id === updatedWebhook.id
-                        ? updatedWebhook
-                        : webhook,
-                  ),
+                webhookSubscriptions: current.notificationsQuery.webhookSubscriptions.map(
+                  (webhook) => (webhook.id === updatedWebhook.id ? updatedWebhook : webhook),
+                ),
               },
             },
           });

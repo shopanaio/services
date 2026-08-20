@@ -1,7 +1,4 @@
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-} from "@shopana/type-resolver";
+import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
 import {
   decodeGlobalIdByType,
   encodeGlobalIdByType,
@@ -20,17 +17,13 @@ import {
  * Organization resolver - resolves organization domain interface
  */
 @SubgraphReference((ref: { __typename?: "Organization"; id: string }) =>
-  decodeGlobalIdByType(ref.id, GlobalIdEntity.Organization)
+  decodeGlobalIdByType(ref.id, GlobalIdEntity.Organization),
 )
 export class OrganizationResolver extends IAMType<string, Organization> {
   async $preload() {
-    const org = await this.$ctx.kernel.repository.organization.findById(
-      this.$props
-    );
+    const org = await this.$ctx.kernel.repository.organization.findById(this.$props);
     if (!org) {
-      throw new PreloadNotFoundError(
-        `Organization not found: ${this.$props}`
-      );
+      throw new PreloadNotFoundError(`Organization not found: ${this.$props}`);
     }
     return org;
   }
@@ -45,14 +38,14 @@ export class OrganizationResolver extends IAMType<string, Organization> {
         domain: ORG_DOMAIN,
         organizationId: this.$props,
       },
-      this.$ctx
+      this.$ctx,
     );
   }
 
   applications(args: Parameters<typeof mapApplicationConnectionInput>[1]) {
     return new ApplicationConnectionResolver(
       mapApplicationConnectionInput(this.$props, args),
-      this.$ctx
+      this.$ctx,
     );
   }
 

@@ -1,12 +1,4 @@
-import {
-  and,
-  desc,
-  eq,
-  inArray,
-  notExists,
-  or,
-  sql,
-} from "drizzle-orm";
+import { and, desc, eq, inArray, notExists, or, sql } from "drizzle-orm";
 import type {
   NotificationChannel,
   NotificationDefinitionKey,
@@ -64,9 +56,7 @@ export interface DeliveryBundle {
 }
 
 export class DeliveryRepository extends BaseRepository {
-  async materialize(
-    input: MaterializeDefinitionInput
-  ): Promise<MaterializeDefinitionResult> {
+  async materialize(input: MaterializeDefinitionInput): Promise<MaterializeDefinitionResult> {
     const occurrenceId = await this.generateUuidV7();
     const inserted = await this.connection
       .insert(notificationOccurrences)
@@ -102,15 +92,9 @@ export class DeliveryRepository extends BaseRepository {
           .where(
             and(
               eq(notificationOccurrences.storeId, this.storeId),
-              eq(
-                notificationOccurrences.sourceIdempotencyKey,
-                input.sourceIdempotencyKey
-              ),
-              eq(
-                notificationOccurrences.definitionKey,
-                input.definitionKey
-              )
-            )
+              eq(notificationOccurrences.sourceIdempotencyKey, input.sourceIdempotencyKey),
+              eq(notificationOccurrences.definitionKey, input.definitionKey),
+            ),
           )
           .limit(1)
       )[0];
@@ -121,8 +105,8 @@ export class DeliveryRepository extends BaseRepository {
         .where(
           and(
             eq(notificationDeliveries.storeId, this.storeId),
-            eq(notificationDeliveries.occurrenceId, existing.id)
-          )
+            eq(notificationDeliveries.occurrenceId, existing.id),
+          ),
         );
       return {
         occurrenceId: existing.id,
@@ -189,12 +173,8 @@ export class DeliveryRepository extends BaseRepository {
         recipientRef: target.recipientRef,
         customerId: recipient.customerId,
         userId: recipient.userId,
-        emailCiphertext: email
-          ? this.protection.encrypt(email)
-          : undefined,
-        phoneCiphertext: phone
-          ? this.protection.encrypt(phone)
-          : undefined,
+        emailCiphertext: email ? this.protection.encrypt(email) : undefined,
+        phoneCiphertext: phone ? this.protection.encrypt(phone) : undefined,
         addressHash: target.addressHash,
         locale: recipient.locale ?? input.locale,
         displayName: recipient.name,
@@ -208,7 +188,7 @@ export class DeliveryRepository extends BaseRepository {
           (channel === "WEBHOOK" && !recipient.recipientId);
         const invalidAddress = Boolean(
           (channel === "EMAIL" && email && !isValidEmail(email)) ||
-            (channel === "SMS" && phone && !isValidPhone(phone))
+          (channel === "SMS" && phone && !isValidPhone(phone)),
         );
         await this.connection.insert(notificationDeliveries).values({
           id: deliveryId,
@@ -217,11 +197,7 @@ export class DeliveryRepository extends BaseRepository {
           recipientId,
           channel,
           purpose: input.purpose,
-          status: missingAddress
-            ? "SKIPPED"
-            : invalidAddress
-              ? "FAILED_PERMANENT"
-              : "PENDING",
+          status: missingAddress ? "SKIPPED" : invalidAddress ? "FAILED_PERMANENT" : "PENDING",
           locale: recipient.locale ?? input.locale,
           idempotencyKey: deliveryId,
           lastErrorKind: missingAddress
@@ -229,9 +205,7 @@ export class DeliveryRepository extends BaseRepository {
             : invalidAddress
               ? "VALIDATION"
               : undefined,
-          lastErrorCode: invalidAddress
-            ? "INVALID_RECIPIENT_ADDRESS"
-            : undefined,
+          lastErrorCode: invalidAddress ? "INVALID_RECIPIENT_ADDRESS" : undefined,
         });
         if (!missingAddress && !invalidAddress) deliveryIds.push(deliveryId);
       }
@@ -251,19 +225,19 @@ export class DeliveryRepository extends BaseRepository {
       .from(notificationDeliveries)
       .innerJoin(
         notificationOccurrences,
-        eq(notificationOccurrences.id, notificationDeliveries.occurrenceId)
+        eq(notificationOccurrences.id, notificationDeliveries.occurrenceId),
       )
       .innerJoin(
         notificationRecipients,
-        eq(notificationRecipients.id, notificationDeliveries.recipientId)
+        eq(notificationRecipients.id, notificationDeliveries.recipientId),
       )
       .where(
         and(
           eq(notificationDeliveries.storeId, this.storeId),
           eq(notificationDeliveries.id, deliveryId),
           eq(notificationOccurrences.storeId, this.storeId),
-          eq(notificationRecipients.storeId, this.storeId)
-        )
+          eq(notificationRecipients.storeId, this.storeId),
+        ),
       )
       .limit(1);
     const row = rows[0];
@@ -285,9 +259,10 @@ export class DeliveryRepository extends BaseRepository {
         locale: row.recipient.locale,
         displayName: row.recipient.displayName,
       },
-      data: JSON.parse(
-        this.protection.decrypt(row.occurrence.dataSnapshot)
-      ) as Record<string, unknown>,
+      data: JSON.parse(this.protection.decrypt(row.occurrence.dataSnapshot)) as Record<
+        string,
+        unknown
+      >,
     };
   }
 
@@ -297,12 +272,9 @@ export class DeliveryRepository extends BaseRepository {
       .from(notificationDeliveryAttempts)
       .where(
         and(
-          eq(
-            notificationDeliveryAttempts.deliveryId,
-            notificationDeliveries.id
-          ),
-          eq(notificationDeliveryAttempts.status, "STARTED")
-        )
+          eq(notificationDeliveryAttempts.deliveryId, notificationDeliveries.id),
+          eq(notificationDeliveryAttempts.status, "STARTED"),
+        ),
       );
     const rows = await this.connection
       .update(notificationDeliveries)
@@ -312,19 +284,13 @@ export class DeliveryRepository extends BaseRepository {
           eq(notificationDeliveries.storeId, this.storeId),
           eq(notificationDeliveries.id, deliveryId),
           or(
-            inArray(notificationDeliveries.status, [
-              "PENDING",
-              "RETRY_SCHEDULED",
-            ]),
+            inArray(notificationDeliveries.status, ["PENDING", "RETRY_SCHEDULED"]),
             and(
-              inArray(notificationDeliveries.status, [
-                "RENDERING",
-                "SENDING",
-              ]),
-              notExists(activeAttempt)
-            )
-          )
-        )
+              inArray(notificationDeliveries.status, ["RENDERING", "SENDING"]),
+              notExists(activeAttempt),
+            ),
+          ),
+        ),
       )
       .returning({ id: notificationDeliveries.id });
     if (!rows[0]) return null;
@@ -343,9 +309,7 @@ export class DeliveryRepository extends BaseRepository {
       .update(notificationDeliveries)
       .set({
         contentHash: input.contentHash,
-        renderedContent: this.protection.encrypt(
-          JSON.stringify(input.renderedContent)
-        ),
+        renderedContent: this.protection.encrypt(JSON.stringify(input.renderedContent)),
         templateRevisionId: input.templateRevisionId,
         templateSourceVersion: input.templateSourceVersion,
         locale: input.locale,
@@ -355,8 +319,8 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveries.storeId, this.storeId),
-          eq(notificationDeliveries.id, input.deliveryId)
-        )
+          eq(notificationDeliveries.id, input.deliveryId),
+        ),
       );
   }
 
@@ -375,8 +339,8 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveries.storeId, this.storeId),
-          eq(notificationDeliveries.id, input.deliveryId)
-        )
+          eq(notificationDeliveries.id, input.deliveryId),
+        ),
       )
       .returning({ attemptNumber: notificationDeliveries.attemptCount });
     const attemptNumber = deliveryRows[0]?.attemptNumber;
@@ -412,8 +376,8 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveryAttempts.storeId, this.storeId),
-          eq(notificationDeliveryAttempts.id, input.attemptId)
-        )
+          eq(notificationDeliveryAttempts.id, input.attemptId),
+        ),
       );
   }
 
@@ -433,8 +397,7 @@ export class DeliveryRepository extends BaseRepository {
         providerCode: input.providerCode ?? null,
         providerSlotId: input.providerSlotId ?? null,
         providerMessageId: input.providerMessageId ?? null,
-        renderedContent:
-          input.state === "DELIVERED" ? null : bundle?.delivery.renderedContent,
+        renderedContent: input.state === "DELIVERED" ? null : bundle?.delivery.renderedContent,
         nextAttemptAt: null,
         lastErrorKind: null,
         lastErrorCode: null,
@@ -443,8 +406,8 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveries.storeId, this.storeId),
-          eq(notificationDeliveries.id, input.deliveryId)
-        )
+          eq(notificationDeliveries.id, input.deliveryId),
+        ),
       );
     if (bundle) await this.refreshOccurrenceStatus(bundle.occurrence.id);
   }
@@ -467,8 +430,8 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveries.storeId, this.storeId),
-          eq(notificationDeliveries.id, input.deliveryId)
-        )
+          eq(notificationDeliveries.id, input.deliveryId),
+        ),
       );
     await this.refreshOccurrenceStatus(bundle.occurrence.id);
   }
@@ -491,8 +454,8 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveryAttempts.storeId, this.storeId),
-          eq(notificationDeliveryAttempts.id, input.attemptId)
-        )
+          eq(notificationDeliveryAttempts.id, input.attemptId),
+        ),
       )
       .limit(1);
     const deliveryId = attempt[0]?.deliveryId;
@@ -521,8 +484,8 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveryAttempts.storeId, this.storeId),
-          eq(notificationDeliveryAttempts.id, input.attemptId)
-        )
+          eq(notificationDeliveryAttempts.id, input.attemptId),
+        ),
       );
     if (input.retry) {
       await this.refreshDeliveryRetryState(deliveryId);
@@ -539,8 +502,8 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveryAttempts.storeId, this.storeId),
-          eq(notificationDeliveryAttempts.id, attemptId)
-        )
+          eq(notificationDeliveryAttempts.id, attemptId),
+        ),
       )
       .limit(1);
     const attempt = attempts[0];
@@ -557,19 +520,15 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveryAttempts.storeId, this.storeId),
-          eq(notificationDeliveryAttempts.id, attemptId)
-        )
+          eq(notificationDeliveryAttempts.id, attemptId),
+        ),
       );
     await this.refreshDeliveryRetryState(attempt.deliveryId);
   }
 
   async finalizeFailure(input: {
     deliveryId: string;
-    status:
-      | "UNKNOWN"
-      | "FAILED_PERMANENT"
-      | "DEAD"
-      | "BLOCKED_NO_PROVIDER";
+    status: "UNKNOWN" | "FAILED_PERMANENT" | "DEAD" | "BLOCKED_NO_PROVIDER";
     errorKind: string;
     errorCode?: string;
     providerCode?: string;
@@ -593,8 +552,8 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveries.storeId, this.storeId),
-          eq(notificationDeliveries.id, input.deliveryId)
-        )
+          eq(notificationDeliveries.id, input.deliveryId),
+        ),
       );
     if (bundle) await this.refreshOccurrenceStatus(bundle.occurrence.id);
   }
@@ -606,8 +565,8 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveryAttempts.storeId, this.storeId),
-          eq(notificationDeliveryAttempts.deliveryId, deliveryId)
-        )
+          eq(notificationDeliveryAttempts.deliveryId, deliveryId),
+        ),
       )
       .orderBy(desc(notificationDeliveryAttempts.attemptNumber));
   }
@@ -619,8 +578,8 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveries.storeId, this.storeId),
-          eq(notificationDeliveries.id, deliveryId)
-        )
+          eq(notificationDeliveries.id, deliveryId),
+        ),
       )
       .for("update");
   }
@@ -636,20 +595,17 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveryAttempts.storeId, this.storeId),
-          eq(notificationDeliveryAttempts.deliveryId, deliveryId)
-        )
+          eq(notificationDeliveryAttempts.deliveryId, deliveryId),
+        ),
       );
     const scheduled = attempts
       .flatMap((attempt) => {
         const nextAttemptAt = attempt.diagnostics.nextAttemptAt;
-        return attempt.diagnostics.retryScheduled === true &&
-          typeof nextAttemptAt === "string"
+        return attempt.diagnostics.retryScheduled === true && typeof nextAttemptAt === "string"
           ? [{ ...attempt, nextAttemptAt }]
           : [];
       })
-      .sort((left, right) =>
-        left.nextAttemptAt.localeCompare(right.nextAttemptAt)
-      );
+      .sort((left, right) => left.nextAttemptAt.localeCompare(right.nextAttemptAt));
     const next = scheduled[0];
     await this.connection
       .update(notificationDeliveries)
@@ -668,11 +624,8 @@ export class DeliveryRepository extends BaseRepository {
         and(
           eq(notificationDeliveries.storeId, this.storeId),
           eq(notificationDeliveries.id, deliveryId),
-          inArray(notificationDeliveries.status, [
-            "SENDING",
-            "RETRY_SCHEDULED",
-          ])
-        )
+          inArray(notificationDeliveries.status, ["SENDING", "RETRY_SCHEDULED"]),
+        ),
       );
   }
 
@@ -688,8 +641,8 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveries.storeId, this.storeId),
-          eq(notificationDeliveries.occurrenceId, occurrenceId)
-        )
+          eq(notificationDeliveries.occurrenceId, occurrenceId),
+        ),
       );
     const counts = rows[0] ?? { total: 0, succeeded: 0, active: 0, failed: 0 };
     const status =
@@ -710,17 +663,14 @@ export class DeliveryRepository extends BaseRepository {
       .where(
         and(
           eq(notificationOccurrences.storeId, this.storeId),
-          eq(notificationOccurrences.id, occurrenceId)
-        )
+          eq(notificationOccurrences.id, occurrenceId),
+        ),
       );
   }
 }
 
 function isValidEmail(value: string): boolean {
-  return (
-    value.length <= 320 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-  );
+  return value.length <= 320 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function isValidPhone(value: string): boolean {

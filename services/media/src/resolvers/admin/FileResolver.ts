@@ -1,19 +1,9 @@
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-  TypePolicy,
-} from "@shopana/type-resolver";
+import { PreloadNotFoundError, SubgraphReference, TypePolicy } from "@shopana/type-resolver";
 import { MediaType } from "./MediaType.js";
 import { S3DataResolver } from "./S3DataResolver.js";
 import { ExternalDataResolver } from "./ExternalDataResolver.js";
-import type {
-  File,
-  MediaSource,
-} from "../../repositories/models/index.js";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import type { File, MediaSource } from "../../repositories/models/index.js";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { CdnDeliveryService, type ImageTransformOptions } from "../../infrastructure/cdn/index.js";
 
 abstract class FileResolverBase extends MediaType<string, File> {
@@ -33,15 +23,10 @@ abstract class FileResolverBase extends MediaType<string, File> {
     return encodeGlobalIdByType(this.$props, GlobalIdEntity.File);
   }
 
-  async url(args?: {
-    transform?: ImageTransformOptions | null;
-    country?: string | null;
-  }) {
+  async url(args?: { transform?: ImageTransformOptions | null; country?: string | null }) {
     const file = await this.loadFile(this.$props);
     if (!file) throw new PreloadNotFoundError(`File not found: ${this.$props}`);
-    const delivery = await new CdnDeliveryService(
-      this.$ctx.kernel.repository
-    ).resolve(file, args);
+    const delivery = await new CdnDeliveryService(this.$ctx.kernel.repository).resolve(file, args);
     return delivery.url;
   }
 
@@ -98,14 +83,11 @@ abstract class FileResolverBase extends MediaType<string, File> {
   async previewFile() {
     const previewFileId = await this.$get("previewFileId");
     if (!previewFileId) return null;
-    const preview = await this.$ctx.kernel.repository.file.findAccessibleById(
-      previewFileId,
-      {
-        storeId: this.$ctx.store.id,
-        organizationId: this.$ctx.store.organizationId,
-        userId: this.$ctx.user.id,
-      }
-    );
+    const preview = await this.$ctx.kernel.repository.file.findAccessibleById(previewFileId, {
+      storeId: this.$ctx.store.id,
+      organizationId: this.$ctx.store.organizationId,
+      userId: this.$ctx.user.id,
+    });
     return preview ? new FileResolver(preview.id, this.$ctx) : null;
   }
 
@@ -126,9 +108,7 @@ abstract class FileResolverBase extends MediaType<string, File> {
   }
 
   async sources() {
-    const sources = await this.$ctx.kernel.repository.mediaSource.getByMediaFileId(
-      this.$props
-    );
+    const sources = await this.$ctx.kernel.repository.mediaSource.getByMediaFileId(this.$props);
     return sources.map((source) => new MediaSourceResolver(source, this.$ctx));
   }
 
@@ -161,30 +141,22 @@ abstract class FileResolverBase extends MediaType<string, File> {
   }
 
   async deletionState() {
-    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(
-      this.$props
-    );
+    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(this.$props);
     return state?.deletionState ?? "ACTIVE";
   }
 
   async deletionErrorCode() {
-    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(
-      this.$props
-    );
+    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(this.$props);
     return state?.deletionErrorCode ?? null;
   }
 
   async lastDeletionError() {
-    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(
-      this.$props
-    );
+    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(this.$props);
     return state?.lastDeletionError ?? null;
   }
 
   async failedAt() {
-    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(
-      this.$props
-    );
+    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(this.$props);
     return state?.failedAt ? new Date(state.failedAt) : null;
   }
 
@@ -254,10 +226,18 @@ export class MediaSourceResolver extends MediaType<MediaSource, MediaSource> {
     return new FileResolver(this.$props.sourceFileId, this.$ctx);
   }
 
-  async kind() { return this.$get("kind"); }
-  async format() { return this.$get("format"); }
-  async sortOrder() { return this.$get("sortOrder"); }
-  async createdAt() { return this.$get("createdAt"); }
+  async kind() {
+    return this.$get("kind");
+  }
+  async format() {
+    return this.$get("format");
+  }
+  async sortOrder() {
+    return this.$get("sortOrder");
+  }
+  async createdAt() {
+    return this.$get("createdAt");
+  }
 }
 
 export class FileAnyResolver extends FileResolverBase {
@@ -269,7 +249,7 @@ export class FileAnyResolver extends FileResolverBase {
         organizationId: this.$ctx.store.organizationId,
         userId: this.$ctx.user.id,
       },
-      true
+      true,
     );
   }
 }

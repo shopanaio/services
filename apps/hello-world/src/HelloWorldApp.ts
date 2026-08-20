@@ -19,13 +19,11 @@ export class HelloWorldApp implements ShopanaApp {
     this.host.broker.register("health", () => this.health());
     this.host.broker.register("suspend", () => ({
       status: "suspended",
-      installationId:
-        this.host.executionContext.current().installationId,
+      installationId: this.host.executionContext.current().installationId,
     }));
     this.host.broker.register("resume", () => ({
       status: "active",
-      installationId:
-        this.host.executionContext.current().installationId,
+      installationId: this.host.executionContext.current().installationId,
     }));
     this.host.broker.registerWorkflow("install", {
       run: (input: unknown) => {
@@ -33,8 +31,7 @@ export class HelloWorldApp implements ShopanaApp {
         return {
           status: "installed",
           version: install.version,
-          installationId:
-            this.host.executionContext.current().installationId,
+          installationId: this.host.executionContext.current().installationId,
         };
       },
     });
@@ -44,8 +41,7 @@ export class HelloWorldApp implements ShopanaApp {
         return {
           status: "updated",
           version: update.targetVersion,
-          installationId:
-            this.host.executionContext.current().installationId,
+          installationId: this.host.executionContext.current().installationId,
         };
       },
     });
@@ -55,8 +51,7 @@ export class HelloWorldApp implements ShopanaApp {
         return {
           status: "uninstalled",
           version: uninstall.version,
-          installationId:
-            this.host.executionContext.current().installationId,
+          installationId: this.host.executionContext.current().installationId,
         };
       },
     });

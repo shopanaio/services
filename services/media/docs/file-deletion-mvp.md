@@ -1,6 +1,7 @@
 # File Deletion MVP Plan
 
-> Version 0.7.1 - Moved lock validation to DB-side (`isDeletionLockValid`), added explicit abort reasons, added CHECK for DELETING→startedAt, improved race test mocking
+> Version 0.7.1 - Moved lock validation to DB-side (`isDeletionLockValid`), added explicit abort
+> reasons, added CHECK for DELETING→startedAt, improved race test mocking
 
 ## Goals
 
@@ -11,23 +12,23 @@
 
 ## Key Decisions
 
-| Decision                           | Rationale                                                                    |
-| ---------------------------------- | ---------------------------------------------------------------------------- |
-| Only 3 states                      | `ACTIVE \| SOFT_DELETED \| DELETING` — no FAILED state.                      |
-| Error = attributes, not state      | On error: rollback to SOFT_DELETED + set `failed_at`, `deletion_error_code`. |
-| 2 error codes only                 | `RETRYABLE \| FATAL` — details in `last_deletion_error`.                     |
-| `deletion_state` = source of truth | Single field determines file status; `deleted_at` only for retention calc.   |
-| GC skips recent errors             | Files with fresh `failed_at` or FATAL error skipped until admin clears.      |
-| Add deleting_started_at            | Track when DELETING started for stuck detection (auto-reset after 6hr).      |
-| Conditional hardDelete             | `DELETE WHERE state='DELETING'` prevents accidental deletion; returns bool.  |
-| Per-object S3 delete               | Simpler error handling than batch deleteObjects.                             |
-| No async API for clients           | deleteMany is fire-and-forget; no jobId.                                     |
-| Restore only from SOFT_DELETED     | Simpler contract; clear rules for each state.                                |
-| CTE for batch updates              | PostgreSQL requires CTE for UPDATE with LIMIT.                               |
-| Parallel workflow start            | Start up to N workflows concurrently for better throughput.                  |
-| 2 GC phases only                   | Reset stuck + pick for deletion. No separate "failed reset" phase.           |
-| Admin clear error endpoint         | Manual endpoint to clear error attributes for retry.                         |
-| Two-layer FATAL guard              | GC filters FATAL + workflow rejects FATAL (safety net for manual starts).    |
+| Decision                           | Rationale                                                                                                                    |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Only 3 states                      | `ACTIVE \| SOFT_DELETED \| DELETING` — no FAILED state.                                                                      |
+| Error = attributes, not state      | On error: rollback to SOFT_DELETED + set `failed_at`, `deletion_error_code`.                                                 |
+| 2 error codes only                 | `RETRYABLE \| FATAL` — details in `last_deletion_error`.                                                                     |
+| `deletion_state` = source of truth | Single field determines file status; `deleted_at` only for retention calc.                                                   |
+| GC skips recent errors             | Files with fresh `failed_at` or FATAL error skipped until admin clears.                                                      |
+| Add deleting_started_at            | Track when DELETING started for stuck detection (auto-reset after 6hr).                                                      |
+| Conditional hardDelete             | `DELETE WHERE state='DELETING'` prevents accidental deletion; returns bool.                                                  |
+| Per-object S3 delete               | Simpler error handling than batch deleteObjects.                                                                             |
+| No async API for clients           | deleteMany is fire-and-forget; no jobId.                                                                                     |
+| Restore only from SOFT_DELETED     | Simpler contract; clear rules for each state.                                                                                |
+| CTE for batch updates              | PostgreSQL requires CTE for UPDATE with LIMIT.                                                                               |
+| Parallel workflow start            | Start up to N workflows concurrently for better throughput.                                                                  |
+| 2 GC phases only                   | Reset stuck + pick for deletion. No separate "failed reset" phase.                                                           |
+| Admin clear error endpoint         | Manual endpoint to clear error attributes for retry.                                                                         |
+| Two-layer FATAL guard              | GC filters FATAL + workflow rejects FATAL (safety net for manual starts).                                                    |
 | Pre-S3 lock validation (DB-side)   | Before S3 delete, call `isDeletionLockValid(fileId, startedAt)` — comparison in SQL avoids JS/PG timestamp precision issues. |
 
 ---
@@ -36,17 +37,21 @@
 
 ### Timestamp Semantics
 
-| Field                 | Meaning                                         | Set When                           |
-| --------------------- | ----------------------------------------------- | ---------------------------------- |
-| `deleted_at`          | When file was soft-deleted (for retention calc) | ACTIVE → SOFT_DELETED              |
-| `deleting_started_at` | When hard delete started (for stuck detection)  | SOFT_DELETED → DELETING            |
-| `failed_at`           | When last hard delete attempt failed            | DELETING → SOFT_DELETED on error   |
+| Field                 | Meaning                                         | Set When                         |
+| --------------------- | ----------------------------------------------- | -------------------------------- |
+| `deleted_at`          | When file was soft-deleted (for retention calc) | ACTIVE → SOFT_DELETED            |
+| `deleting_started_at` | When hard delete started (for stuck detection)  | SOFT_DELETED → DELETING          |
+| `failed_at`           | When last hard delete attempt failed            | DELETING → SOFT_DELETED on error |
 
 **Critical rules:**
 
-- `deleted_at` is set **once per soft-delete cycle**: set on ACTIVE → SOFT_DELETED, not updated while file remains SOFT_DELETED/DELETING. Cleared on restore (SOFT_DELETED → ACTIVE), then set again on next soft delete.
+- `deleted_at` is set **once per soft-delete cycle**: set on ACTIVE → SOFT_DELETED, not updated
+  while file remains SOFT_DELETED/DELETING. Cleared on restore (SOFT_DELETED → ACTIVE), then set
+  again on next soft delete.
 - `failed_at` = "time of last failed hard delete attempt" (not a state indicator).
-- `deleting_started_at` is used for **race condition protection**: workflow stores it locally and validates via `isDeletionLockValid(fileId, startedAt)` before S3 delete. **Comparison happens in SQL** to avoid JS/PG timestamp precision mismatches.
+- `deleting_started_at` is used for **race condition protection**: workflow stores it locally and
+  validates via `isDeletionLockValid(fileId, startedAt)` before S3 delete. **Comparison happens in
+  SQL** to avoid JS/PG timestamp precision mismatches.
 
 ### Error Attribute Invariants
 
@@ -77,7 +82,8 @@ DELETING -> SOFT_DELETED (on error, with error attributes)
 DELETING -> SOFT_DELETED (stuck timeout via GC only; mutations forbidden)
 ```
 
-**Note**: `resetStuckDeleting` is the ONLY legal way to exit DELETING without hardDelete. Direct mutations (restore, delete, update) are forbidden while in DELETING state.
+**Note**: `resetStuckDeleting` is the ONLY legal way to exit DELETING without hardDelete. Direct
+mutations (restore, delete, update) are forbidden while in DELETING state.
 
 ### Status Checks (single source of truth: `deletion_state`)
 
@@ -193,7 +199,8 @@ COMMENT ON COLUMN media.files.failed_at IS
 
 ### FileHardDeleteWorkflow
 
-Single file hard delete with a linear sequence. On error → rollback to SOFT_DELETED + set error attributes.
+Single file hard delete with a linear sequence. On error → rollback to SOFT_DELETED + set error
+attributes.
 
 ```typescript
 @DBOS.workflow()
@@ -271,11 +278,17 @@ async run(fileId: string) {
 Notes:
 
 - **No FAILED state**: on error, file goes back to `SOFT_DELETED` with error attributes.
-- **DELETING is a hard lock**: all operations (restore, delete, update metadata) must reject if state is DELETING.
-- **Two-layer FATAL guard**: GC filters FATAL + workflow rejects FATAL (safety net for manual starts).
+- **DELETING is a hard lock**: all operations (restore, delete, update metadata) must reject if
+  state is DELETING.
+- **Two-layer FATAL guard**: GC filters FATAL + workflow rejects FATAL (safety net for manual
+  starts).
 - **S3 delete uses bucket/key**: always fetch metadata first; `MissingMetadataError` → FATAL.
-- **Race condition protection (DB-side)**: workflow stores `startedAt` locally and calls `isDeletionLockValid(fileId, startedAt)` — comparison happens in SQL to avoid JS/PG timestamp precision issues. If lock is lost, workflow aborts safely with explicit reason (`row_missing`, `state_changed:X`, `startedAt_mismatch`).
-- `hardDelete` returns bool; false means GC reset the state (rare but possible); **logs at `info` level** (not `warn`).
+- **Race condition protection (DB-side)**: workflow stores `startedAt` locally and calls
+  `isDeletionLockValid(fileId, startedAt)` — comparison happens in SQL to avoid JS/PG timestamp
+  precision issues. If lock is lost, workflow aborts safely with explicit reason (`row_missing`,
+  `state_changed:X`, `startedAt_mismatch`).
+- `hardDelete` returns bool; false means GC reset the state (rare but possible); **logs at `info`
+  level** (not `warn`).
 
 ### Repeated Retry Behavior
 
@@ -285,8 +298,8 @@ Each failed attempt **overwrites** error attributes:
 - `deletion_error_code` → may change (e.g., RETRYABLE → FATAL if error type changes)
 - `last_deletion_error` → updated with new error details
 
-This means: if a transient error becomes permanent (e.g., credentials revoked), the error_code
-will update to FATAL on the next attempt, and the file will be blocked from auto-retry.
+This means: if a transient error becomes permanent (e.g., credentials revoked), the error_code will
+update to FATAL on the next attempt, and the file will be blocked from auto-retry.
 
 ### FileGarbageCollectorWorkflow (GC)
 
@@ -364,13 +377,15 @@ Notes:
 
 ### FileDeleteScript
 
-- Soft delete: ACTIVE → SOFT_DELETED, set `deleted_at` (idempotent: SOFT_DELETED → no-op, `deleted_at` unchanged).
+- Soft delete: ACTIVE → SOFT_DELETED, set `deleted_at` (idempotent: SOFT_DELETED → no-op,
+  `deleted_at` unchanged).
 - Permanent delete: start FileHardDeleteWorkflow in background (fire-and-forget).
 - DELETING → FILE_BEING_DELETED error.
 
 ### FileDeleteManyScript
 
-- Soft delete: mark all ACTIVE files → SOFT_DELETED (set `deleted_at`), SOFT_DELETED → no-op (in acceptedIds).
+- Soft delete: mark all ACTIVE files → SOFT_DELETED (set `deleted_at`), SOFT_DELETED → no-op (in
+  acceptedIds).
 - Permanent delete: start a workflow per eligible file and return 200 OK.
 - DELETING files → FILE_BEING_DELETED userError (not in acceptedIds).
 
@@ -384,8 +399,8 @@ Simple matrix (no "wait for GC" messages):
 | DELETING      | → error `FILE_BEING_DELETED`                           |
 | ACTIVE        | → error `INVALID_STATE` (already active)               |
 
-Note: Since there's no FAILED state, files with errors are in SOFT_DELETED and can be restored normally.
-Restore **clears** error attributes — user doesn't need to call `fileClearError` first.
+Note: Since there's no FAILED state, files with errors are in SOFT_DELETED and can be restored
+normally. Restore **clears** error attributes — user doesn't need to call `fileClearError` first.
 
 ---
 
@@ -569,7 +584,8 @@ All methods avoid token logic and next_attempt scheduling.
 ## S3 Error Handling
 
 - Delete one object per call using `bucket` and `object_key` from file metadata.
-- **S3 DeleteObject is idempotent**: usually returns success (200) even if object doesn't exist. Handle any 404/NotFound as success (object already gone).
+- **S3 DeleteObject is idempotent**: usually returns success (200) even if object doesn't exist.
+  Handle any 404/NotFound as success (object already gone).
 - **NoSuchBucket = FATAL** (bucket misconfiguration requires admin intervention).
 - Most S3 errors are from permissions/throttling, not "object not found".
 
@@ -585,7 +601,7 @@ function classifyError(error: Error): DeletionErrorCode {
       case "AccessDenied":
       case "InvalidAccessKeyId":
       case "SignatureDoesNotMatch":
-      case "NoSuchBucket":               // ← Bucket doesn't exist = FATAL
+      case "NoSuchBucket": // ← Bucket doesn't exist = FATAL
         return "FATAL"; // Permissions/creds issue, needs admin
       default:
         return "RETRYABLE"; // ServiceUnavailable, SlowDown, InternalError, timeouts
@@ -617,8 +633,8 @@ input FileDeleteManyInput {
 }
 
 type FileDeleteManyPayload {
-  acceptedIds: [ID!]!           # Files that were eligible and transitioned to SOFT_DELETED
-  startedHardDeleteIds: [ID!]!  # Files for which hard delete workflow was actually started
+  acceptedIds: [ID!]! # Files that were eligible and transitioned to SOFT_DELETED
+  startedHardDeleteIds: [ID!]! # Files for which hard delete workflow was actually started
   userErrors: [UserError!]!
 }
 
@@ -657,11 +673,13 @@ type FileClearErrorPayload {
 | FILE_BEING_DELETED | File is in DELETING state        |
 | INVALID_STATE      | Generic invalid state transition |
 
-Note: No `FILE_DELETION_FAILED` code needed — files with errors are in `SOFT_DELETED` state, so restore works normally.
+Note: No `FILE_DELETION_FAILED` code needed — files with errors are in `SOFT_DELETED` state, so
+restore works normally.
 
 ### Forbidden Operations During DELETING
 
-When `deletion_state = 'DELETING'`, the following operations are **always rejected** with `FILE_BEING_DELETED`:
+When `deletion_state = 'DELETING'`, the following operations are **always rejected** with
+`FILE_BEING_DELETED`:
 
 | Operation               | Allowed?              |
 | ----------------------- | --------------------- |
@@ -671,24 +689,26 @@ When `deletion_state = 'DELETING'`, the following operations are **always reject
 | fileUpdate (metadata)   | ❌ FILE_BEING_DELETED |
 | Any other file mutation | ❌ FILE_BEING_DELETED |
 
-**Rationale**: DELETING is a hard lock. The workflow is running and may complete at any moment.
-No other operation should interfere.
+**Rationale**: DELETING is a hard lock. The workflow is running and may complete at any moment. No
+other operation should interfere.
 
 ### API Behavior Matrix
 
 **fileRestore(id)**
-| State | Result |
-|--------------|--------------------------------------------------|
+
+| State        | Result                                          |
+| ------------ | ----------------------------------------------- |
 | SOFT_DELETED | → ACTIVE, clear ALL fields (deleted_at, errors) |
-| DELETING | → `FILE_BEING_DELETED` error |
-| ACTIVE | → `INVALID_STATE` error |
+| DELETING     | → `FILE_BEING_DELETED` error                    |
+| ACTIVE       | → `INVALID_STATE` error                         |
 
 **fileDeleteMany(ids, permanent=false)**
-| State | Result |
-|--------------|--------------------------------------------------|
-| ACTIVE | → SOFT_DELETED, set deleted_at (in acceptedIds) |
-| SOFT_DELETED | → no-op, do NOT update deleted_at (idempotent) |
-| DELETING | → `FILE_BEING_DELETED` userError |
+
+| State        | Result                                          |
+| ------------ | ----------------------------------------------- |
+| ACTIVE       | → SOFT_DELETED, set deleted_at (in acceptedIds) |
+| SOFT_DELETED | → no-op, do NOT update deleted_at (idempotent)  |
+| DELETING     | → `FILE_BEING_DELETED` userError                |
 
 Note: `deleted_at` is set **only on first soft delete** (retention anchor).
 
@@ -700,12 +720,13 @@ Note: `deleted_at` is set **only on first soft delete** (retention anchor).
 - Returns `startedHardDeleteIds` with IDs for which workflow was actually started.
 
 **fileClearError(id)** (admin only)
-| State | Result |
-|---------------------|--------------------------------------------------|
-| SOFT_DELETED + error| → Clear error attributes, return file |
-| SOFT_DELETED (clean)| → `INVALID_STATE` (no error to clear) |
-| DELETING | → `FILE_BEING_DELETED` error |
-| ACTIVE | → `INVALID_STATE` error |
+
+| State                | Result                                |
+| -------------------- | ------------------------------------- |
+| SOFT_DELETED + error | → Clear error attributes, return file |
+| SOFT_DELETED (clean) | → `INVALID_STATE` (no error to clear) |
+| DELETING             | → `FILE_BEING_DELETED` error          |
+| ACTIVE               | → `INVALID_STATE` error               |
 
 ---
 
@@ -724,18 +745,18 @@ Note: `deleted_at` is set **only on first soft delete** (retention anchor).
 
 ## Automated Tests (Minimum 10)
 
-| #   | Test Case                                  | Description                                                                        |
-| --- | ------------------------------------------ | ---------------------------------------------------------------------------------- |
-| 1   | CHECK constraint: error fields paired      | Verify DB rejects `error_code` without `failed_at` and vice versa                  |
-| 2   | `markDeleting` clears error fields         | Verify `error_code`, `failed_at`, `last_deletion_error` are NULL after markDeleting |
-| 3   | `NoSuchBucket` classified as FATAL         | Verify `classifyError` returns `FATAL` for `NoSuchBucket` S3 error                 |
-| 4   | S3 delete uses bucket/key                  | Verify `deleteObject` is called with `{ bucket, key }` not `fileId`                |
-| 5   | `hardDelete=false` logs at info level      | Verify log level is `info` (not `warn`) when hardDelete returns false              |
-| 6   | GC selects correct files                   | Verify GC picks: clean + retryable after cooldown; never picks FATAL               |
-| 7   | Workflow rejects FATAL files               | Verify workflow skips files with `deletion_error_code = 'FATAL'`                   |
-| 8   | **Race: isDeletionLockValid=false**        | Workflow aborts when `isDeletionLockValid` returns false, logs reason              |
-| 9   | **Race: restore detection (ACTIVE)**       | Workflow aborts when file state changed to ACTIVE, logs `state_changed:ACTIVE`     |
-| 10  | **Race: row_missing detection**            | Workflow aborts when file already hard-deleted, logs `row_missing`                 |
+| #   | Test Case                             | Description                                                                         |
+| --- | ------------------------------------- | ----------------------------------------------------------------------------------- |
+| 1   | CHECK constraint: error fields paired | Verify DB rejects `error_code` without `failed_at` and vice versa                   |
+| 2   | `markDeleting` clears error fields    | Verify `error_code`, `failed_at`, `last_deletion_error` are NULL after markDeleting |
+| 3   | `NoSuchBucket` classified as FATAL    | Verify `classifyError` returns `FATAL` for `NoSuchBucket` S3 error                  |
+| 4   | S3 delete uses bucket/key             | Verify `deleteObject` is called with `{ bucket, key }` not `fileId`                 |
+| 5   | `hardDelete=false` logs at info level | Verify log level is `info` (not `warn`) when hardDelete returns false               |
+| 6   | GC selects correct files              | Verify GC picks: clean + retryable after cooldown; never picks FATAL                |
+| 7   | Workflow rejects FATAL files          | Verify workflow skips files with `deletion_error_code = 'FATAL'`                    |
+| 8   | **Race: isDeletionLockValid=false**   | Workflow aborts when `isDeletionLockValid` returns false, logs reason               |
+| 9   | **Race: restore detection (ACTIVE)**  | Workflow aborts when file state changed to ACTIVE, logs `state_changed:ACTIVE`      |
+| 10  | **Race: row_missing detection**       | Workflow aborts when file already hard-deleted, logs `row_missing`                  |
 
 ```typescript
 // Example test structure
@@ -743,13 +764,13 @@ describe("FileDeletion", () => {
   describe("CHECK constraints", () => {
     it("rejects error_code without failed_at", async () => {
       await expect(
-        db.update(files).set({ deletionErrorCode: "RETRYABLE", failedAt: null })
+        db.update(files).set({ deletionErrorCode: "RETRYABLE", failedAt: null }),
       ).rejects.toThrow(/chk_error_fields_paired/);
     });
 
     it("rejects failed_at without error_code", async () => {
       await expect(
-        db.update(files).set({ deletionErrorCode: null, failedAt: new Date() })
+        db.update(files).set({ deletionErrorCode: null, failedAt: new Date() }),
       ).rejects.toThrow(/chk_error_fields_paired/);
     });
   });
@@ -785,7 +806,7 @@ describe("FileDeletion", () => {
 
       expect(spy).toHaveBeenCalledWith({
         bucket: "test-bucket",
-        key: "path/to/object.jpg"
+        key: "path/to/object.jpg",
       });
     });
   });
@@ -803,7 +824,7 @@ describe("FileDeletion", () => {
       expect(result).toBe(false);
       expect(infoSpy).toHaveBeenCalledWith(
         expect.objectContaining({ fileId }),
-        expect.stringContaining("no longer in DELETING")
+        expect.stringContaining("no longer in DELETING"),
       );
     });
   });
@@ -822,12 +843,12 @@ describe("FileDeletion", () => {
         deletionState: "SOFT_DELETED",
         deletedAt: daysAgo(31),
         deletionErrorCode: "RETRYABLE",
-        failedAt: hoursAgo(7)
+        failedAt: hoursAgo(7),
       });
 
       const files = await repo.findSoftDeletedForGC({
         cutoffDate: daysAgo(30),
-        errorCooldown: hoursAgo(6)
+        errorCooldown: hoursAgo(6),
       });
 
       expect(files).toHaveLength(1);
@@ -838,12 +859,12 @@ describe("FileDeletion", () => {
         deletionState: "SOFT_DELETED",
         deletedAt: daysAgo(31),
         deletionErrorCode: "FATAL",
-        failedAt: daysAgo(30)
+        failedAt: daysAgo(30),
       });
 
       const files = await repo.findSoftDeletedForGC({
         cutoffDate: daysAgo(30),
-        errorCooldown: hoursAgo(6)
+        errorCooldown: hoursAgo(6),
       });
 
       expect(files).toHaveLength(0);
@@ -858,16 +879,14 @@ describe("FileDeletion", () => {
         id: fileId,
         deletionState: "SOFT_DELETED",
         deletionErrorCode: "FATAL",
-        failedAt: hoursAgo(1)
+        failedAt: hoursAgo(1),
       });
 
       await workflow.run(fileId);
 
       // Should not call markDeleting
       expect(repo.markDeleting).not.toHaveBeenCalled();
-      expect(debugSpy).toHaveBeenCalledWith(
-        expect.stringContaining("FATAL error")
-      );
+      expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining("FATAL error"));
     });
   });
 
@@ -888,14 +907,17 @@ describe("FileDeletion", () => {
 
       // Mock: markDeletingReturningStartedAt succeeds
       const fakeStartedAt = new Date("2024-01-01T12:00:00Z");
-      vi.spyOn(repo, "markDeletingReturningStartedAt").mockResolvedValue({ startedAt: fakeStartedAt });
+      vi.spyOn(repo, "markDeletingReturningStartedAt").mockResolvedValue({
+        startedAt: fakeStartedAt,
+      });
 
       // Mock: isDeletionLockValid returns FALSE (simulates GC reset during workflow)
       vi.spyOn(repo, "isDeletionLockValid").mockResolvedValue(false);
 
       // Mock: findAnyById returns SOFT_DELETED (for abort reason logging)
       vi.spyOn(repo.file, "findAnyById").mockResolvedValue({
-        id: fileId, deletionState: "SOFT_DELETED"
+        id: fileId,
+        deletionState: "SOFT_DELETED",
       });
 
       // Act: run the actual workflow
@@ -910,7 +932,7 @@ describe("FileDeletion", () => {
       // Assert: logged with correct reason
       expect(infoSpy).toHaveBeenCalledWith(
         expect.objectContaining({ fileId, reason: "state_changed:SOFT_DELETED" }),
-        expect.stringContaining("Lock lost")
+        expect.stringContaining("Lock lost"),
       );
     });
   });
@@ -926,14 +948,18 @@ describe("FileDeletion", () => {
 
       // Mock: markDeletingReturningStartedAt succeeds
       const fakeStartedAt = new Date("2024-01-01T12:00:00Z");
-      vi.spyOn(repo, "markDeletingReturningStartedAt").mockResolvedValue({ startedAt: fakeStartedAt });
+      vi.spyOn(repo, "markDeletingReturningStartedAt").mockResolvedValue({
+        startedAt: fakeStartedAt,
+      });
 
       // Mock: isDeletionLockValid returns FALSE
       vi.spyOn(repo, "isDeletionLockValid").mockResolvedValue(false);
 
       // Mock: file was restored while workflow was running
       vi.spyOn(repo.file, "findAnyById").mockResolvedValue({
-        id: fileId, deletionState: "ACTIVE", deletedAt: null
+        id: fileId,
+        deletionState: "ACTIVE",
+        deletedAt: null,
       });
 
       // Act: run the actual workflow
@@ -945,7 +971,7 @@ describe("FileDeletion", () => {
       // Assert: logged with state_changed:ACTIVE reason
       expect(infoSpy).toHaveBeenCalledWith(
         expect.objectContaining({ fileId, reason: "state_changed:ACTIVE" }),
-        expect.stringContaining("Lock lost")
+        expect.stringContaining("Lock lost"),
       );
     });
 
@@ -971,7 +997,7 @@ describe("FileDeletion", () => {
       // Assert: logged with row_missing reason
       expect(infoSpy).toHaveBeenCalledWith(
         expect.objectContaining({ fileId, reason: "row_missing" }),
-        expect.stringContaining("Lock lost")
+        expect.stringContaining("Lock lost"),
       );
     });
   });
@@ -992,7 +1018,8 @@ describe("FileDeletion", () => {
 - markErrorAndRollback: DELETING → SOFT_DELETED + sets error attributes atomically.
 - markErrorAndRollback: invariant: `error_code IS NOT NULL ⇔ failed_at IS NOT NULL`.
 - markErrorAndRollback: logs debug if rowCount=0 (GC already reset).
-- hardDelete: returns true if deleted, false if not in DELETING; **logs `info` (not `warn`)** if false.
+- hardDelete: returns true if deleted, false if not in DELETING; **logs `info` (not `warn`)** if
+  false.
 - restore: SOFT_DELETED → ACTIVE, clears ALL fields (deleted_at, errors, timestamps).
 - restore: DELETING → FILE_BEING_DELETED error.
 - restore: ACTIVE → INVALID_STATE error.
@@ -1011,7 +1038,8 @@ describe("FileDeletion", () => {
 ### Stuck recovery (with error marking!)
 
 - resetStuckDeleting: DELETING where `deleting_started_at < 6hr ago` → SOFT_DELETED.
-- Sets `deletion_error_code = 'RETRYABLE'`, `failed_at = now()`, `last_deletion_error = 'stuck deleting timeout'`.
+- Sets `deletion_error_code = 'RETRYABLE'`, `failed_at = now()`,
+  `last_deletion_error = 'stuck deleting timeout'`.
 - This prevents immediate ping-pong: file goes through cooldown before retry.
 - Uses CTE for LIMIT in PostgreSQL.
 

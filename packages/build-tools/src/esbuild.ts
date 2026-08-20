@@ -54,7 +54,7 @@ export const addJsExtensionPlugin: Plugin = {
           // If file doesn't exist, it might be handled by other resolvers
           // In this case, assume it's a file and add .js
           return `from ${quote}${path}.js${quote}`;
-        }
+        },
       );
 
       return {

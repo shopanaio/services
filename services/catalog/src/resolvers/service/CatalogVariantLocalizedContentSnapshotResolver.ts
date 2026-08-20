@@ -12,15 +12,11 @@ export class CatalogVariantLocalizedContentSnapshotResolver extends ServiceType<
   CatalogVariantLocalizedContentSnapshot
 > {
   protected async $preload(): Promise<CatalogVariantLocalizedContentSnapshot> {
-    const translations = await this.$ctx.loaders.variantTranslations.load(
-      this.$props.variantId
-    );
-    const translation = translations.find(
-      (candidate) => candidate.locale === this.$props.locale
-    );
+    const translations = await this.$ctx.loaders.variantTranslations.load(this.$props.variantId);
+    const translation = translations.find((candidate) => candidate.locale === this.$props.locale);
     if (!translation?.title) {
       throw new PreloadNotFoundError(
-        `Variant translation ${this.$props.variantId}:${this.$props.locale} not found`
+        `Variant translation ${this.$props.variantId}:${this.$props.locale} not found`,
       );
     }
 

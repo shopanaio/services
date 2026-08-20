@@ -1,12 +1,6 @@
-import {
-  CatalogComparisonActions,
-  type Catalog,
-} from "@shopana/broker-types";
+import { CatalogComparisonActions, type Catalog } from "@shopana/broker-types";
 import type { CustomersKernelServices } from "../../kernel/types.js";
-import {
-  comparisonError,
-  type CustomerComparisonUserError,
-} from "./types.js";
+import { comparisonError, type CustomerComparisonUserError } from "./types.js";
 
 export type CatalogComparisonVariantsResolution =
   | {
@@ -28,11 +22,7 @@ export async function resolveCatalogComparisonVariants(
     if (result.code === "CATEGORY_NOT_FOUND") {
       return {
         ok: false,
-        userError: comparisonError(
-          "CATEGORY_NOT_FOUND",
-          "Category was not found",
-          ["categoryId"],
-        ),
+        userError: comparisonError("CATEGORY_NOT_FOUND", "Category was not found", ["categoryId"]),
       };
     }
     return {

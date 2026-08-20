@@ -17,17 +17,11 @@ export interface IPricingHeaderProps {
   onViewHistory?: () => void;
 }
 
-const VariantPriceLabel = ({
-  price,
-}: {
-  price: ApiVariantPrice | null | undefined;
-}) => {
+const VariantPriceLabel = ({ price }: { price: ApiVariantPrice | null | undefined }) => {
   const formattedPrice = useVariantPrice(price);
 
   return (
-    <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
-      {formattedPrice}
-    </Typography.Text>
+    <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>{formattedPrice}</Typography.Text>
   );
 };
 
@@ -43,9 +37,7 @@ export const PricingHeader = ({
 }: IPricingHeaderProps) => {
   const { styles } = useStyles();
 
-  const selectedVariant = variants.edges.find(
-    (e) => e.node.id === selectedVariantId
-  )?.node;
+  const selectedVariant = variants.edges.find((e) => e.node.id === selectedVariantId)?.node;
 
   const variantMenuItems = variants.edges.map((edge) => ({
     key: edge.node.id,
@@ -96,11 +88,7 @@ export const PricingHeader = ({
         items: [
           {
             key: "edit",
-            label: (
-              <span data-testid="pricing-widget-edit-prices-menu-item">
-                Edit Prices
-              </span>
-            ),
+            label: <span data-testid="pricing-widget-edit-prices-menu-item">Edit Prices</span>,
             disabled: !onEditPrices || isEditPricesLoading,
             onClick: onEditPrices,
           },
@@ -114,11 +102,7 @@ export const PricingHeader = ({
       }}
       trigger={["click"]}
     >
-      <Button
-        size="small"
-        icon={<MoreOutlined />}
-        data-testid="pricing-widget-actions-button"
-      />
+      <Button size="small" icon={<MoreOutlined />} data-testid="pricing-widget-actions-button" />
     </Dropdown>
   );
 

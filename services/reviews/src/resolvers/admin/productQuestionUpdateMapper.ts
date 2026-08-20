@@ -29,7 +29,7 @@ export interface ProductQuestionUpdateMappingResult {
 }
 
 export function mapProductQuestionUpdateInput(
-  input?: ProductQuestionUpdateInput | null
+  input?: ProductQuestionUpdateInput | null,
 ): ProductQuestionUpdateMappingResult {
   const entries: ProductQuestionUpdateMappedEntry[] = [];
 
@@ -39,23 +39,16 @@ export function mapProductQuestionUpdateInput(
         type: "contentUpdate",
         params: input.content.text,
         meta: { fieldPrefix: ["operations", "content", "text"] },
-      })
+      }),
     );
   }
 
   if (input?.content?.author) {
     const errors: UserError[] = [];
     const fieldPrefix = ["operations", "content", "author"];
-    const params = mapContentAuthorUpdateInput(
-      input.content.author,
-      fieldPrefix,
-      errors
-    );
+    const params = mapContentAuthorUpdateInput(input.content.author, fieldPrefix, errors);
     entries.push(
-      mappedEntry(
-        { type: "contentAuthorUpdate", params, meta: { fieldPrefix } },
-        errors
-      )
+      mappedEntry({ type: "contentAuthorUpdate", params, meta: { fieldPrefix } }, errors),
     );
   }
 
@@ -65,7 +58,7 @@ export function mapProductQuestionUpdateInput(
         type: "contentSourceUpdate",
         params: input.content.source,
         meta: { fieldPrefix: ["operations", "content", "source"] },
-      })
+      }),
     );
   }
 
@@ -75,7 +68,7 @@ export function mapProductQuestionUpdateInput(
         type: "contentModerationUpdate",
         params: input.content.moderation,
         meta: { fieldPrefix: ["operations", "content", "moderation"] },
-      })
+      }),
     );
   }
 
@@ -85,7 +78,7 @@ export function mapProductQuestionUpdateInput(
         type: "contentTranslationsSync",
         params: { items: input.content.translations },
         meta: { fieldPrefix: ["operations", "content", "translations"] },
-      })
+      }),
     );
   }
 
@@ -95,7 +88,7 @@ export function mapProductQuestionUpdateInput(
         type: "contentPublicationsSync",
         params: { items: input.content.publications },
         meta: { fieldPrefix: ["operations", "content", "publications"] },
-      })
+      }),
     );
   }
 
@@ -114,7 +107,7 @@ export function mapProductQuestionUpdateInput(
       item.answerId,
       GlobalIdEntity.ProductQuestionAnswer,
       [...fieldPrefix, "answerId"],
-      errors
+      errors,
     );
     const operation: ProductQuestionUpdateOperation = {
       type: "productQuestionAnswerDelete",
@@ -128,17 +121,13 @@ export function mapProductQuestionUpdateInput(
   }
 
   return {
-    operations: entries.flatMap((entry) =>
-      entry.operation ? [entry.operation] : []
-    ),
+    operations: entries.flatMap((entry) => (entry.operation ? [entry.operation] : [])),
     entries,
     errors: entries.flatMap((entry) => entry.errors),
   };
 }
 
-function mapSubject(
-  input: ProductQuestionSubjectUpdateInput
-): ProductQuestionUpdateMappedEntry {
+function mapSubject(input: ProductQuestionSubjectUpdateInput): ProductQuestionUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "subject"];
   const params: ProductQuestionSubjectUpdateInput = { ...input };
@@ -147,30 +136,18 @@ function mapSubject(
     ["variantId", GlobalIdEntity.Variant],
   ] as const) {
     if (!hasOwn(input, field)) continue;
-    params[field] = decodeOptionalId(
-      input[field],
-      type,
-      [...fieldPrefix, field],
-      errors
-    );
+    params[field] = decodeOptionalId(input[field], type, [...fieldPrefix, field], errors);
   }
-  return mappedEntry(
-    { type: "productQuestionUpdate", params, meta: { fieldPrefix } },
-    errors
-  );
+  return mappedEntry({ type: "productQuestionUpdate", params, meta: { fieldPrefix } }, errors);
 }
 
 function mapAnswerCreate(
   input: ProductQuestionAnswerCreateOperationInput,
-  index: number
+  index: number,
 ): ProductQuestionUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "answers", "create", String(index)];
-  const content = mapContentCreateInput(
-    input.content,
-    [...fieldPrefix, "content"],
-    errors
-  );
+  const content = mapContentCreateInput(input.content, [...fieldPrefix, "content"], errors);
   const operation: ProductQuestionUpdateOperation = {
     type: "productQuestionAnswerCreate",
     params: { ...input, content },
@@ -184,7 +161,7 @@ function mapAnswerCreate(
 
 function mapAnswerUpdate(
   input: ProductQuestionAnswerUpdateOperationInput,
-  index: number
+  index: number,
 ): ProductQuestionUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "answers", "update", String(index)];
@@ -192,12 +169,12 @@ function mapAnswerUpdate(
     input.answerId,
     GlobalIdEntity.ProductQuestionAnswer,
     [...fieldPrefix, "answerId"],
-    errors
+    errors,
   );
   const operations = mapContentUpdateInput(
     input.operations,
     [...fieldPrefix, "operations"],
-    errors
+    errors,
   );
   const operation: ProductQuestionUpdateOperation = {
     type: "productQuestionAnswerUpdate",
@@ -217,7 +194,7 @@ function mapAnswerUpdate(
 function mapContentCreateInput(
   input: ReviewContentCreateInput,
   fieldPrefix: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): ReviewContentCreateInput {
   return {
     ...input,
@@ -227,7 +204,7 @@ function mapContentCreateInput(
         input.author.customerId,
         GlobalIdEntity.Customer,
         [...fieldPrefix, "author", "customerId"],
-        errors
+        errors,
       ),
     },
   };
@@ -236,7 +213,7 @@ function mapContentCreateInput(
 function mapContentUpdateInput(
   input: ProductQuestionAnswerUpdateOperationInput["operations"],
   fieldPrefix: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): ProductQuestionAnswerUpdateOperationInput["operations"] {
   const content: ReviewContentUpdateInput | null | undefined =
     input.content == null
@@ -247,7 +224,7 @@ function mapContentUpdateInput(
             ? mapContentAuthorUpdateInput(
                 input.content.author,
                 [...fieldPrefix, "content", "author"],
-                errors
+                errors,
               )
             : input.content.author,
         };
@@ -257,7 +234,7 @@ function mapContentUpdateInput(
 function mapContentAuthorUpdateInput(
   input: NonNullable<ReviewContentUpdateInput["author"]>,
   fieldPrefix: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): NonNullable<ReviewContentUpdateInput["author"]> {
   const result = { ...input };
   if (hasOwn(input, "customerId")) {
@@ -265,21 +242,19 @@ function mapContentAuthorUpdateInput(
       input.customerId,
       GlobalIdEntity.Customer,
       [...fieldPrefix, "customerId"],
-      errors
+      errors,
     );
   }
   return result;
 }
 
-function validEntry(
-  operation: ProductQuestionUpdateOperation
-): ProductQuestionUpdateMappedEntry {
+function validEntry(operation: ProductQuestionUpdateOperation): ProductQuestionUpdateMappedEntry {
   return { type: operation.type, operation, errors: [] };
 }
 
 function mappedEntry(
   operation: ProductQuestionUpdateOperation,
-  errors: UserError[]
+  errors: UserError[],
 ): ProductQuestionUpdateMappedEntry {
   return {
     type: operation.type,
@@ -292,18 +267,16 @@ function decodeOptionalId(
   value: string | null | undefined,
   expectedType: GlobalIdType,
   field: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): string | null | undefined {
-  return value == null
-    ? value
-    : decodeId(value, expectedType, field, errors);
+  return value == null ? value : decodeId(value, expectedType, field, errors);
 }
 
 function decodeId(
   globalId: string,
   expectedType: GlobalIdType,
   field: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): string | undefined {
   try {
     return decodeGlobalIdByType(globalId, expectedType);

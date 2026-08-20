@@ -2,25 +2,17 @@
 
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
+import { Input, Typography, message, Alert, Spin, Tag, Flex, Tooltip, Divider } from "antd";
 import {
-  Input,
-  Typography,
-  message,
-  Alert,
-  Spin,
-  Tag,
-  Flex,
-  Tooltip,
-  Divider,
-} from "antd";
-import { LuLockKeyhole as LockOutlined, LuPencil as EditOutlined, LuEye as EyeOutlined, LuPlus as PlusOutlined, LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
+  LuLockKeyhole as LockOutlined,
+  LuPencil as EditOutlined,
+  LuEye as EyeOutlined,
+  LuPlus as PlusOutlined,
+  LuCircleHelp as InfoCircleOutlined,
+} from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { PermissionMatrix, PermissionPresets } from "./components";
 import {
@@ -29,11 +21,7 @@ import {
   getDefaultPermissions,
   PERMISSION_PRESETS,
 } from "./constants";
-import {
-  toApiPermissions,
-  fromApiPermissions,
-  type FormPermission,
-} from "./types";
+import { toApiPermissions, fromApiPermissions, type FormPermission } from "./types";
 import type { IRoleModalPayload } from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
@@ -90,13 +78,7 @@ export const RoleModal = () => {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IRoleModalPayload;
 
-  const {
-    mode,
-    role,
-    organizationId,
-    domain = "org",
-    availableResources,
-  } = typedPayload;
+  const { mode, role, organizationId, domain = "org", availableResources } = typedPayload;
   const isViewMode = mode === "view";
   const isEditMode = mode === "edit";
   const isCreateMode = mode === "create";
@@ -108,11 +90,11 @@ export const RoleModal = () => {
   // Build categories and resource names from API data
   const permissionCategories = useMemo(
     () => buildPermissionCategories(availableResources),
-    [availableResources]
+    [availableResources],
   );
   const allResourceNames = useMemo(
     () => getAllResourceNames(availableResources),
-    [availableResources]
+    [availableResources],
   );
 
   // Initialize permissions state
@@ -122,14 +104,12 @@ export const RoleModal = () => {
     }
     // For create mode, start with viewer preset
     return (
-      PERMISSION_PRESETS.find((p) => p.id === "viewer")?.getPermissions(
-        allResourceNames
-      ) ?? getDefaultPermissions(allResourceNames)
+      PERMISSION_PRESETS.find((p) => p.id === "viewer")?.getPermissions(allResourceNames) ??
+      getDefaultPermissions(allResourceNames)
     );
   }, [role, allResourceNames]);
 
-  const [permissions, setPermissions] =
-    useState<FormPermission[]>(initialPermissions);
+  const [permissions, setPermissions] = useState<FormPermission[]>(initialPermissions);
   const [isNameManual, setIsNameManual] = useState(false);
 
   const {
@@ -155,12 +135,9 @@ export const RoleModal = () => {
     }
   }, [displayName, isCreateMode, isNameManual, setValue]);
 
-  const handlePermissionsChange = useCallback(
-    (newPermissions: FormPermission[]) => {
-      setPermissions(newPermissions);
-    },
-    []
-  );
+  const handlePermissionsChange = useCallback((newPermissions: FormPermission[]) => {
+    setPermissions(newPermissions);
+  }, []);
 
   const onSubmit = async (values: IRoleForm) => {
     if (isViewMode) return;
@@ -262,21 +239,14 @@ export const RoleModal = () => {
           <Paper>
             <PaperHeader title="Role Details" />
             <form>
-              <div
-                className={isCreateMode ? styles.nameSlugContainer : undefined}
-              >
+              <div className={isCreateMode ? styles.nameSlugContainer : undefined}>
                 <div className={styles.formItem}>
                   <div className={styles.labelWithTooltip}>
-                    <Typography.Text
-                      className={styles.label}
-                      style={{ marginBottom: 0 }}
-                    >
+                    <Typography.Text className={styles.label} style={{ marginBottom: 0 }}>
                       Display Name
                     </Typography.Text>
                     <Tooltip title="The name shown to users in the interface">
-                      <InfoCircleOutlined
-                        style={{ color: "rgba(0,0,0,0.45)" }}
-                      />
+                      <InfoCircleOutlined style={{ color: "rgba(0,0,0,0.45)" }} />
                     </Tooltip>
                   </div>
                   <Controller
@@ -312,16 +282,11 @@ export const RoleModal = () => {
                 {isCreateMode && (
                   <div className={styles.formItem}>
                     <div className={styles.labelWithTooltip}>
-                      <Typography.Text
-                        className={styles.label}
-                        style={{ marginBottom: 0 }}
-                      >
+                      <Typography.Text className={styles.label} style={{ marginBottom: 0 }}>
                         Role Identifier
                       </Typography.Text>
                       <Tooltip title="Unique identifier used in the system (auto-generated)">
-                        <InfoCircleOutlined
-                          style={{ color: "rgba(0,0,0,0.45)" }}
-                        />
+                        <InfoCircleOutlined style={{ color: "rgba(0,0,0,0.45)" }} />
                       </Tooltip>
                     </div>
                     <Controller
@@ -331,8 +296,7 @@ export const RoleModal = () => {
                         required: "Role identifier is required",
                         pattern: {
                           value: /^[a-z0-9-]+$/,
-                          message:
-                            "Only lowercase letters, numbers, and hyphens allowed",
+                          message: "Only lowercase letters, numbers, and hyphens allowed",
                         },
                         minLength: {
                           value: 2,
@@ -364,10 +328,7 @@ export const RoleModal = () => {
 
               <div className={styles.formItem}>
                 <div className={styles.labelWithTooltip}>
-                  <Typography.Text
-                    className={styles.label}
-                    style={{ marginBottom: 0 }}
-                  >
+                  <Typography.Text className={styles.label} style={{ marginBottom: 0 }}>
                     Description
                   </Typography.Text>
                   <Tooltip title="Explain the purpose of this role and who should have it">

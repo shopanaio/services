@@ -19,23 +19,16 @@ export class QueryResolver extends NotificationsType<Record<string, never>> {
   }
 }
 
-export class NotificationsQueryResolver extends NotificationsType<
-  Record<string, never>
-> {
+export class NotificationsQueryResolver extends NotificationsType<Record<string, never>> {
   async definitions() {
     const definitions = this.$ctx.kernel.definitions.list();
     const [settings, channels] = await Promise.all([
       this.$ctx.kernel.repository.settings.listDefinitionSettings(),
       this.$ctx.kernel.repository.settings.listChannelSettings(),
     ]);
-    const settingByKey = new Map(
-      settings.map((setting) => [setting.definitionKey, setting])
-    );
+    const settingByKey = new Map(settings.map((setting) => [setting.definitionKey, setting]));
     for (const setting of settings) {
-      this.$ctx.loaders.definitionSetting.prime(
-        toDefinitionKey(setting.definitionKey),
-        setting
-      );
+      this.$ctx.loaders.definitionSetting.prime(toDefinitionKey(setting.definitionKey), setting);
     }
     for (const channel of channels) {
       this.$ctx.loaders.channelSetting.prime(
@@ -43,16 +36,14 @@ export class NotificationsQueryResolver extends NotificationsType<
           key: toDefinitionKey(channel.definitionKey),
           channel: channel.channel,
         },
-        channel
+        channel,
       );
     }
     const channelsByKey = new Map(
       definitions.map((definition) => [
         definition.key,
-        channels.filter(
-          (channel) => channel.definitionKey === definition.key
-        ),
-      ])
+        channels.filter((channel) => channel.definitionKey === definition.key),
+      ]),
     );
 
     return Promise.all(
@@ -61,8 +52,8 @@ export class NotificationsQueryResolver extends NotificationsType<
           definition,
           setting: settingByKey.get(definition.key) ?? null,
           channels: channelsByKey.get(definition.key) ?? [],
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -71,8 +62,8 @@ export class NotificationsQueryResolver extends NotificationsType<
     const definition = this.$ctx.kernel.definitions.get(key);
     return Promise.all(
       definition.allowedChannels.map((channel) =>
-        this.resolvers.notificationChannelSetting({ key, channel })
-      )
+        this.resolvers.notificationChannelSetting({ key, channel }),
+      ),
     );
   }
 
@@ -86,9 +77,7 @@ export class NotificationsQueryResolver extends NotificationsType<
 
   async staffRecipients() {
     const recipients = await this.$ctx.kernel.repository.staff.list();
-    return Promise.all(
-      recipients.map((recipient) => this.resolvers.staffRecipient(recipient))
-    );
+    return Promise.all(recipients.map((recipient) => this.resolvers.staffRecipient(recipient)));
   }
 
   webhookCapabilities() {
@@ -109,9 +98,7 @@ export class NotificationsQueryResolver extends NotificationsType<
     for (const webhook of webhooks) {
       this.$ctx.loaders.webhook.prime(webhook.id, webhook);
     }
-    return Promise.all(
-      webhooks.map((webhook) => this.resolvers.webhook(webhook.id))
-    );
+    return Promise.all(webhooks.map((webhook) => this.resolvers.webhook(webhook.id)));
   }
 }
 
@@ -120,7 +107,5 @@ function humanizeEventType(value: string): string {
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[_-]+/g, " ")
     .trim();
-  return words.length === 0
-    ? value
-    : words[0]!.toUpperCase() + words.slice(1);
+  return words.length === 0 ? value : words[0]!.toUpperCase() + words.slice(1);
 }

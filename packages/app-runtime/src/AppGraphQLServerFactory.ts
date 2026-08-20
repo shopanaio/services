@@ -2,9 +2,7 @@ import { readFileSync } from "node:fs";
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import { Injectable } from "@nestjs/common";
 import type {
   AppExecutionContext,
@@ -12,10 +10,7 @@ import type {
   AppGraphQLModuleDefinition,
   AppHostContext,
 } from "@shopana/app-sdk";
-import fastify, {
-  type FastifyInstance,
-  type FastifyRequest,
-} from "fastify";
+import fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import { GraphQLError } from "graphql";
 import { gql } from "graphql-tag";
 import {
@@ -24,10 +19,7 @@ import {
   STOREFRONT_CONTEXT_HEADER,
   StorefrontContextVerifier,
 } from "@shopana/shared-context";
-import type {
-  AppGraphQLSurface,
-  HostedAppDefinition,
-} from "./types.js";
+import type { AppGraphQLSurface, HostedAppDefinition } from "./types.js";
 
 interface RuntimeGraphQLContext {
   readonly app?: Readonly<AppExecutionContext>;
@@ -52,8 +44,7 @@ export class AppGraphQLServerFactory {
     const app = fastify({
       disableRequestLogging: true,
     });
-    const schemaPaths =
-      typeof module.schema === "string" ? [module.schema] : module.schema;
+    const schemaPaths = typeof module.schema === "string" ? [module.schema] : module.schema;
     const typeDefs = schemaPaths.map((schemaPath) => {
       const schemaUrl = new URL(schemaPath, hosted.moduleUrl);
       return gql(readFileSync(schemaUrl, "utf8"));
@@ -67,10 +58,7 @@ export class AppGraphQLServerFactory {
           ...(index === 0 ? { resolvers } : {}),
         })),
       ),
-      plugins: [
-        fastifyApolloDrainPlugin(app),
-        ApolloServerPluginInlineTraceDisabled(),
-      ],
+      plugins: [fastifyApolloDrainPlugin(app), ApolloServerPluginInlineTraceDisabled()],
     });
 
     await apollo.start();
@@ -78,8 +66,7 @@ export class AppGraphQLServerFactory {
     const registerGraphQL = async (instance: FastifyInstance) => {
       await instance.register(fastifyApollo(apollo), {
         path: "/graphql",
-        context: async (request) =>
-          this.createContext(hosted, host, request, surface),
+        context: async (request) => this.createContext(hosted, host, request, surface),
       });
     };
     if (surface === "admin") {
@@ -120,17 +107,8 @@ export class AppGraphQLServerFactory {
       }
       resolvers[typeName] ??= {};
       if (fieldName === "__resolveReference") {
-        resolvers[typeName][fieldName] = (
-          reference: unknown,
-          context: RuntimeGraphQLContext,
-        ) =>
-          this.executeHandler(
-            hosted,
-            handler,
-            reference,
-            {},
-            context,
-          );
+        resolvers[typeName][fieldName] = (reference: unknown, context: RuntimeGraphQLContext) =>
+          this.executeHandler(hosted, handler, reference, {}, context);
         continue;
       }
       resolvers[typeName][fieldName] = (
@@ -187,10 +165,7 @@ export class AppGraphQLServerFactory {
         installationId: claims.storefront.installationId,
         appVersion: hosted.definition.manifest.version,
       });
-      if (
-        app.storeId !== claims.store.id ||
-        app.organizationId !== claims.organizationId
-      ) {
+      if (app.storeId !== claims.store.id || app.organizationId !== claims.organizationId) {
         throw new GraphQLError("App installation storefront mismatch", {
           extensions: { code: "APP_INSTALLATION_CONTEXT_MISMATCH" },
         });
@@ -220,8 +195,7 @@ export class AppGraphQLServerFactory {
       adminContext.store.id !== app.storeId ||
       adminContext.store.organizationId !== app.organizationId ||
       adminContext.organizationId !== app.organizationId ||
-      (typeof organizationId === "string" &&
-        organizationId !== app.organizationId)
+      (typeof organizationId === "string" && organizationId !== app.organizationId)
     ) {
       throw new GraphQLError("App installation organization mismatch", {
         extensions: { code: "APP_INSTALLATION_CONTEXT_MISMATCH" },

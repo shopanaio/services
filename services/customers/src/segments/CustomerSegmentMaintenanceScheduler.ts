@@ -45,10 +45,9 @@ export class CustomerSegmentMaintenanceScheduler {
     const tick = Math.floor(Date.now() / 60_000);
     for (const row of rows) {
       try {
-        const result = await this.broker.call<StoreResult, { id: string }>(
-          "project.getStoreById",
-          { id: row.storeId },
-        );
+        const result = await this.broker.call<StoreResult, { id: string }>("project.getStoreById", {
+          id: row.storeId,
+        });
         if (!result.store) continue;
         await this.broker.startWorkflow(
           "customers.customerSegmentMaintenance",

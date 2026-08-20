@@ -14,18 +14,16 @@ export async function checkoutPlacement(
   args: ApiQueryCheckoutPlacementArgs,
   ctx: GraphQLContext,
 ) {
-  const placementId = decodeGlobalIdByType(
-    args.id,
-    GlobalIdEntity.CheckoutPlacement,
-  );
-  const placement = await App.getInstance()
-    .checkoutPlacementRepository
-    .findByIdForStorefrontCredential<PlaceOrderWorkflowResult>({
-      placementId,
-      storeId: ctx.store.id,
-      credentialId: ctx.storefrontAccess.credentialId,
-      visitorId: ctx.visitorId,
-    });
+  const placementId = decodeGlobalIdByType(args.id, GlobalIdEntity.CheckoutPlacement);
+  const placement =
+    await App.getInstance().checkoutPlacementRepository.findByIdForStorefrontCredential<PlaceOrderWorkflowResult>(
+      {
+        placementId,
+        storeId: ctx.store.id,
+        credentialId: ctx.storefrontAccess.credentialId,
+        visitorId: ctx.visitorId,
+      },
+    );
   if (!placement) return null;
   return mapPlaceOrderPayload(placement.result, {
     placementId: placement.placementId,

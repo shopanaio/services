@@ -1,7 +1,4 @@
-import {
-  decodeGlobalId,
-  GLOBAL_ID_NAMESPACE,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalId, GLOBAL_ID_NAMESPACE } from "@shopana/shared-graphql-guid";
 import { SEGMENT_DIAGNOSTIC_CODES, SEGMENT_DSL_LIMITS, SEGMENT_DSL_VERSION } from "./constants.js";
 import { currencyMinorUnitDigits } from "./currency.js";
 import {
@@ -71,7 +68,13 @@ export async function validateSegmentQuery(
     parsed = parseSegmentQuery(query);
   } catch (error) {
     if (error instanceof SegmentParseError) {
-      return { valid: false, canonicalQuery: null, definition: null, complexity: null, diagnostics: [error.diagnostic] };
+      return {
+        valid: false,
+        canonicalQuery: null,
+        definition: null,
+        complexity: null,
+        diagnostics: [error.diagnostic],
+      };
     }
     throw error;
   }
@@ -97,16 +100,30 @@ export async function validateSegmentQuery(
   if (state.entityReferences.length > 0) {
     if (!options.entityExists) {
       for (const reference of state.entityReferences) {
-        diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.entityId, "Entity reference could not be verified", reference.range);
+        diagnostic(
+          state,
+          SEGMENT_DIAGNOSTIC_CODES.entityId,
+          "Entity reference could not be verified",
+          reference.range,
+        );
       }
     } else {
-      const existing = await options.entityExists(options.storeContext.storeId, state.entityReferences);
+      const existing = await options.entityExists(
+        options.storeContext.storeId,
+        state.entityReferences,
+      );
       for (const reference of state.entityReferences) {
         const key = entityReferenceKey(reference.entity, reference.id);
         if (!existing.has(key) && !existing.has(reference.id)) {
-          diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.entityId, "Entity reference is invalid for this Store", reference.range, {
-            entity: reference.entity,
-          });
+          diagnostic(
+            state,
+            SEGMENT_DIAGNOSTIC_CODES.entityId,
+            "Entity reference is invalid for this Store",
+            reference.range,
+            {
+              entity: reference.entity,
+            },
+          );
         }
       }
     }
@@ -117,7 +134,13 @@ export async function validateSegmentQuery(
   const diagnostics = finalizeDiagnostics(state.diagnostics, query);
   const valid = !hasErrors && root !== null;
   if (!valid || !root) {
-    return { valid: false, canonicalQuery: null, definition: null, complexity: state.complexity, diagnostics };
+    return {
+      valid: false,
+      canonicalQuery: null,
+      definition: null,
+      complexity: state.complexity,
+      diagnostics,
+    };
   }
 
   const definition: SegmentDefinitionV1 = {
@@ -198,7 +221,12 @@ function analyzeExpression(
     const nextDepth = logicalDepth + 1;
     state.logicalDepth = Math.max(state.logicalDepth, nextDepth);
     if (nextDepth > SEGMENT_DSL_LIMITS.logicalNestingDepth) {
-      diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.complexity, `Logical nesting exceeds ${SEGMENT_DSL_LIMITS.logicalNestingDepth}`, expression.range);
+      diagnostic(
+        state,
+        SEGMENT_DIAGNOSTIC_CODES.complexity,
+        `Logical nesting exceeds ${SEGMENT_DSL_LIMITS.logicalNestingDepth}`,
+        expression.range,
+      );
     }
     const analyzed = expression.children
       .map((child) => analyzeExpression(child, state, nextDepth))
@@ -206,10 +234,16 @@ function analyzeExpression(
     if (expression.operator === "or") state.complexity += Math.max(0, analyzed.length - 1);
     if (analyzed.length === 0) return null;
     const flattened = analyzed.flatMap((child) =>
-      child.kind === "logical" && child.operator === expression.operator ? [...child.children] : [child],
+      child.kind === "logical" && child.operator === expression.operator
+        ? [...child.children]
+        : [child],
     );
     if (flattened.length === 1) return flattened[0]!;
-    return { kind: "logical", operator: expression.operator, children: flattened as [SegmentExpression, SegmentExpression, ...SegmentExpression[]] };
+    return {
+      kind: "logical",
+      operator: expression.operator,
+      children: flattened as [SegmentExpression, SegmentExpression, ...SegmentExpression[]],
+    };
   }
   if (expression.kind === "not") {
     const child = analyzeExpression(expression.child, state, logicalDepth);
@@ -229,12 +263,22 @@ function analyzePredicate(
   const name = asciiLower(expression.attribute);
   const descriptor = state.registry.get(name);
   if (!descriptor) {
-    diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.unknownAttribute, `Unknown segment attribute ${expression.attribute}`, expression.attributeRange);
+    diagnostic(
+      state,
+      SEGMENT_DIAGNOSTIC_CODES.unknownAttribute,
+      `Unknown segment attribute ${expression.attribute}`,
+      expression.attributeRange,
+    );
     return null;
   }
   if (descriptor.kind === "FUNCTION") {
     if (expression.operator !== "is_null" && expression.operator !== "is_not_null") {
-      diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.operator, `${name} is a function and requires MATCHES`, expression.range);
+      diagnostic(
+        state,
+        SEGMENT_DIAGNOSTIC_CODES.operator,
+        `${name} is a function and requires MATCHES`,
+        expression.range,
+      );
       return null;
     }
     return analyzeFunction(
@@ -250,11 +294,24 @@ function analyzePredicate(
   }
   if (!available(descriptor, expression.range, state)) return null;
   if (!descriptor.operators.includes(expression.operator)) {
-    diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.operator, `${expression.operator} is not supported for ${name}`, expression.range);
+    diagnostic(
+      state,
+      SEGMENT_DIAGNOSTIC_CODES.operator,
+      `${expression.operator} is not supported for ${name}`,
+      expression.range,
+    );
     return null;
   }
-  if ((expression.operator === "is_null" || expression.operator === "is_not_null") && !descriptor.nullable) {
-    diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.operator, `${name} is not nullable`, expression.range);
+  if (
+    (expression.operator === "is_null" || expression.operator === "is_not_null") &&
+    !descriptor.nullable
+  ) {
+    diagnostic(
+      state,
+      SEGMENT_DIAGNOSTIC_CODES.operator,
+      `${name} is not nullable`,
+      expression.range,
+    );
     return null;
   }
 
@@ -269,18 +326,30 @@ function analyzePredicate(
       .filter((value): value is SegmentValue => value !== null);
     const values = deduplicateValues(normalized);
     if (values.length === 0) return null;
-    return { kind: "predicate", attribute: name, operator: expression.operator, values: values as [SegmentValue, ...SegmentValue[]] };
+    return {
+      kind: "predicate",
+      attribute: name,
+      operator: expression.operator,
+      values: values as [SegmentValue, ...SegmentValue[]],
+    };
   }
   if (expression.operator === "between") {
     const value = expression.value ? normalizeValue(expression.value, descriptor, state) : null;
-    const upperValue = expression.upperValue ? normalizeValue(expression.upperValue, descriptor, state) : null;
+    const upperValue = expression.upperValue
+      ? normalizeValue(expression.upperValue, descriptor, state)
+      : null;
     if (!value || !upperValue) return null;
     validateRange(name, value, upperValue, expression.range, descriptor, state);
     return { kind: "predicate", attribute: name, operator: "between", value, upperValue };
   }
   const value = expression.value ? normalizeValue(expression.value, descriptor, state) : null;
   if (!value) return null;
-  return { kind: "predicate", attribute: name, operator: expression.operator, value } as SegmentPredicateExpression;
+  return {
+    kind: "predicate",
+    attribute: name,
+    operator: expression.operator,
+    value,
+  } as SegmentPredicateExpression;
 }
 
 function analyzeFunction(
@@ -290,27 +359,49 @@ function analyzeFunction(
   const name = asciiLower(expression.name);
   const descriptor = state.registry.function(name);
   if (!descriptor) {
-    diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.unknownAttribute, `Unknown segment function ${expression.name}`, expression.nameRange);
+    diagnostic(
+      state,
+      SEGMENT_DIAGNOSTIC_CODES.unknownAttribute,
+      `Unknown segment function ${expression.name}`,
+      expression.nameRange,
+    );
     return null;
   }
   if (!available(descriptor, expression.range, state)) return null;
   if (!descriptor.operators.includes(expression.operator)) {
-    diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.operator, `${expression.operator} is not supported for ${name}`, expression.range);
+    diagnostic(
+      state,
+      SEGMENT_DIAGNOSTIC_CODES.operator,
+      `${expression.operator} is not supported for ${name}`,
+      expression.range,
+    );
     return null;
   }
   applyDescriptorMetadata(descriptor, expression, state);
-  const byName = new Map(descriptor.parameters.map((parameter, index) => [parameter.name, { parameter, index }]));
+  const byName = new Map(
+    descriptor.parameters.map((parameter, index) => [parameter.name, { parameter, index }]),
+  );
   const seen = new Set<string>();
   const parameters: { value: SegmentFunctionParameter; order: number }[] = [];
   for (const parsed of expression.parameters ?? []) {
     const parameterName = asciiLower(parsed.name);
     const registered = byName.get(parameterName);
     if (!registered) {
-      diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.unknownAttribute, `Unknown parameter ${name}.${parsed.name}`, parsed.nameRange);
+      diagnostic(
+        state,
+        SEGMENT_DIAGNOSTIC_CODES.unknownAttribute,
+        `Unknown parameter ${name}.${parsed.name}`,
+        parsed.nameRange,
+      );
       continue;
     }
     if (seen.has(parameterName)) {
-      diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.duplicateParameter, `Parameter ${parameterName} is repeated`, parsed.nameRange);
+      diagnostic(
+        state,
+        SEGMENT_DIAGNOSTIC_CODES.duplicateParameter,
+        `Parameter ${parameterName} is repeated`,
+        parsed.nameRange,
+      );
       continue;
     }
     seen.add(parameterName);
@@ -324,7 +415,12 @@ function analyzeFunction(
     return { kind: "function", name, operator: expression.operator };
   }
   parameters.sort((left, right) => left.order - right.order);
-  return { kind: "function", name, operator: expression.operator, parameters: parameters.map(({ value }) => value) };
+  return {
+    kind: "function",
+    name,
+    operator: expression.operator,
+    parameters: parameters.map(({ value }) => value),
+  };
 }
 
 function analyzeFunctionParameter(
@@ -333,12 +429,22 @@ function analyzeFunctionParameter(
   state: AnalysisState,
 ): SegmentFunctionParameter | null {
   if (!descriptor.operators.includes(parsed.operator)) {
-    diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.operator, `${parsed.operator} is not supported for parameter ${descriptor.name}`, parsed.range);
+    diagnostic(
+      state,
+      SEGMENT_DIAGNOSTIC_CODES.operator,
+      `${parsed.operator} is not supported for parameter ${descriptor.name}`,
+      parsed.range,
+    );
     return null;
   }
   if (parsed.operator === "is_null" || parsed.operator === "is_not_null") {
     if (!descriptor.nullable || descriptor.aggregate) {
-      diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.operator, `${descriptor.name} does not support NULL checks`, parsed.range);
+      diagnostic(
+        state,
+        SEGMENT_DIAGNOSTIC_CODES.operator,
+        `${descriptor.name} does not support NULL checks`,
+        parsed.range,
+      );
       return null;
     }
     return { name: descriptor.name, operator: parsed.operator };
@@ -350,12 +456,18 @@ function analyzeFunctionParameter(
         .filter((value): value is SegmentValue => value !== null),
     );
     return values.length > 0
-      ? { name: descriptor.name, operator: parsed.operator, values: values as [SegmentValue, ...SegmentValue[]] }
+      ? {
+          name: descriptor.name,
+          operator: parsed.operator,
+          values: values as [SegmentValue, ...SegmentValue[]],
+        }
       : null;
   }
   if (parsed.operator === "between") {
     const value = parsed.value ? normalizeValue(parsed.value, descriptor, state) : null;
-    const upperValue = parsed.upperValue ? normalizeValue(parsed.upperValue, descriptor, state) : null;
+    const upperValue = parsed.upperValue
+      ? normalizeValue(parsed.upperValue, descriptor, state)
+      : null;
     if (!value || !upperValue) return null;
     validateRange(descriptor.name, value, upperValue, parsed.range, descriptor, state);
     return { name: descriptor.name, operator: "between", value, upperValue };
@@ -389,9 +501,15 @@ function normalizeValue(
         if (parsed.kind !== "string") return typeMismatch(parsed, descriptor, state);
         const value = parsed.value.toUpperCase();
         if (!descriptor.enumValues?.includes(value)) {
-          diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.enum, `Invalid enum value ${parsed.value}`, parsed.range, {
-            allowed: descriptor.enumValues ?? [],
-          });
+          diagnostic(
+            state,
+            SEGMENT_DIAGNOSTIC_CODES.enum,
+            `Invalid enum value ${parsed.value}`,
+            parsed.range,
+            {
+              allowed: descriptor.enumValues ?? [],
+            },
+          );
           return null;
         }
         return { kind: "enum", value };
@@ -401,10 +519,20 @@ function normalizeValue(
           ? { kind: "boolean", value: parsed.value }
           : typeMismatch(parsed, descriptor, state);
       case "Integer": {
-        if (parsed.kind !== "number" || parsed.value.includes(".")) return typeMismatch(parsed, descriptor, state);
+        if (parsed.kind !== "number" || parsed.value.includes("."))
+          return typeMismatch(parsed, descriptor, state);
         const integer = BigInt(parsed.value);
-        if (integer < INT64_MIN || integer > INT64_MAX || (descriptor.nonNegative && integer < 0n)) {
-          diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.type, "Integer is outside the allowed domain", parsed.range);
+        if (
+          integer < INT64_MIN ||
+          integer > INT64_MAX ||
+          (descriptor.nonNegative && integer < 0n)
+        ) {
+          diagnostic(
+            state,
+            SEGMENT_DIAGNOSTIC_CODES.type,
+            "Integer is outside the allowed domain",
+            parsed.range,
+          );
           return null;
         }
         return { kind: "integer", value: integer.toString() };
@@ -414,7 +542,12 @@ function normalizeValue(
         const decimal = normalizeDecimal(parsed.value, parsed.range, state);
         if (decimal === null) return null;
         if (descriptor.nonNegative && decimal.startsWith("-")) {
-          diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.type, "Decimal must be non-negative", parsed.range);
+          diagnostic(
+            state,
+            SEGMENT_DIAGNOSTIC_CODES.type,
+            "Decimal must be non-negative",
+            parsed.range,
+          );
           return null;
         }
         return { kind: "decimal", value: decimal };
@@ -428,13 +561,24 @@ function normalizeValue(
           SEGMENT_DIAGNOSTIC_CODES.money,
         );
         if (decimal === null || (descriptor.nonNegative && decimal.startsWith("-"))) {
-          if (decimal?.startsWith("-")) diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.money, "Money must be non-negative", parsed.range);
+          if (decimal?.startsWith("-"))
+            diagnostic(
+              state,
+              SEGMENT_DIAGNOSTIC_CODES.money,
+              "Money must be non-negative",
+              parsed.range,
+            );
           return null;
         }
         const exponent = currencyMinorUnitDigits(state.options.storeContext.currencyCode);
         const minor = decimalToMinor(decimal, exponent);
         if (minor === null || minor < INT64_MIN || minor > INT64_MAX) {
-          diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.money, "Money cannot be represented exactly in Store currency", parsed.range);
+          diagnostic(
+            state,
+            SEGMENT_DIAGNOSTIC_CODES.money,
+            "Money cannot be represented exactly in Store currency",
+            parsed.range,
+          );
           return null;
         }
         state.contextDependencies.add("currency");
@@ -450,15 +594,17 @@ function normalizeValue(
       case "DateTime": {
         if (parsed.kind !== "dateTime") return typeMismatch(parsed, descriptor, state);
         if (!validateDateTime(parsed.value)) {
-          diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.date, "Invalid date-time literal", parsed.range);
+          diagnostic(
+            state,
+            SEGMENT_DIAGNOSTIC_CODES.date,
+            "Invalid date-time literal",
+            parsed.range,
+          );
           return null;
         }
         if (!/(?:Z|[+-]\d{2}:\d{2})$/u.test(parsed.value)) {
           state.contextDependencies.add("timezone");
-          const resolved = localDateTimeToUtc(
-            parsed.value,
-            state.options.storeContext.timeZone,
-          );
+          const resolved = localDateTimeToUtc(parsed.value, state.options.storeContext.timeZone);
           if (!resolved) {
             diagnostic(
               state,
@@ -473,20 +619,31 @@ function normalizeValue(
         return { kind: "dateTime", value: new Date(parsed.value).toISOString() };
       }
       case "ID": {
-        if (parsed.kind !== "string" || parsed.value.startsWith("gid://")) return typeMismatch(parsed, descriptor, state);
+        if (parsed.kind !== "string" || parsed.value.startsWith("gid://"))
+          return typeMismatch(parsed, descriptor, state);
         try {
           const decoded = decodeGlobalId(parsed.value);
           if (
             decoded.namespace !== GLOBAL_ID_NAMESPACE ||
             decoded.typeName !== descriptor.entityType ||
             !isUuidV7(decoded.id)
-          ) throw new Error("invalid");
-          const reference = { entity: decoded.typeName, id: decoded.id.toLowerCase(), range: parsed.range };
+          )
+            throw new Error("invalid");
+          const reference = {
+            entity: decoded.typeName,
+            id: decoded.id.toLowerCase(),
+            range: parsed.range,
+          };
           state.entityReferences.push(reference);
           state.entityReferenceKeys.add(entityReferenceKey(reference.entity, reference.id));
           return { kind: "entityId", entity: reference.entity, id: reference.id };
         } catch {
-          diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.entityId, `Invalid ${descriptor.entityType ?? "entity"} Global ID`, parsed.range);
+          diagnostic(
+            state,
+            SEGMENT_DIAGNOSTIC_CODES.entityId,
+            `Invalid ${descriptor.entityType ?? "entity"} Global ID`,
+            parsed.range,
+          );
           return null;
         }
       }
@@ -527,19 +684,31 @@ function normalizeDate(
     const magnitude = BigInt(match[2]!);
     const signed = match[1] === "-" ? -magnitude : magnitude;
     if (signed > BigInt(Number.MAX_SAFE_INTEGER) || signed < BigInt(Number.MIN_SAFE_INTEGER)) {
-      diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.date, "Relative date is outside the supported range", parsed.range);
+      diagnostic(
+        state,
+        SEGMENT_DIAGNOSTIC_CODES.date,
+        "Relative date is outside the supported range",
+        parsed.range,
+      );
       return null;
     }
     const amount = Number(signed);
     if (amount > 0 && !descriptor.allowFutureDate) {
-      diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.date, "Future relative dates are not supported for this attribute", parsed.range);
+      diagnostic(
+        state,
+        SEGMENT_DIAGNOSTIC_CODES.date,
+        "Future relative dates are not supported for this attribute",
+        parsed.range,
+      );
       return null;
     }
     state.contextDependencies.add("timezone");
     return {
       kind: "relativeDate",
       amount,
-      unit: ({ d: "day", w: "week", m: "month", y: "year" } as const)[match[3]!.toLowerCase() as "d" | "w" | "m" | "y"],
+      unit: ({ d: "day", w: "week", m: "month", y: "year" } as const)[
+        match[3]!.toLowerCase() as "d" | "w" | "m" | "y"
+      ],
     };
   }
   return typeMismatch(parsed, descriptor, state);
@@ -555,24 +724,49 @@ function validateRange(
 ): void {
   const comparison = compareValues(lower, upper, state);
   if (comparison !== null && comparison > 0) {
-    diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.dateRange, "BETWEEN lower boundary must not be after upper boundary", range);
+    diagnostic(
+      state,
+      SEGMENT_DIAGNOSTIC_CODES.dateRange,
+      "BETWEEN lower boundary must not be after upper boundary",
+      range,
+    );
     return;
   }
   if (name === "birthday" && isDateLike(lower) && isDateLike(upper)) {
-    const lowerDate = resolveDateValue(lower, state.effectiveAt, state.options.storeContext.timeZone);
-    const upperDate = resolveDateValue(upper, state.effectiveAt, state.options.storeContext.timeZone);
+    const lowerDate = resolveDateValue(
+      lower,
+      state.effectiveAt,
+      state.options.storeContext.timeZone,
+    );
+    const upperDate = resolveDateValue(
+      upper,
+      state.effectiveAt,
+      state.options.storeContext.timeZone,
+    );
     const distance = calendarDayDistance(lowerDate, upperDate);
     if (distance < 0 || distance > 366) {
-      diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.dateRange, "Birthday interval must span at most 366 calendar days", range);
+      diagnostic(
+        state,
+        SEGMENT_DIAGNOSTIC_CODES.dateRange,
+        "Birthday interval must span at most 366 calendar days",
+        range,
+      );
     }
   }
   void descriptor;
 }
 
-function compareValues(left: SegmentValue, right: SegmentValue, state: AnalysisState): number | null {
-  if (left.kind === "integer" && right.kind === "integer") return compareBigInt(BigInt(left.value), BigInt(right.value));
-  if (left.kind === "money" && right.kind === "money") return compareBigInt(BigInt(left.minor), BigInt(right.minor));
-  if (left.kind === "decimal" && right.kind === "decimal") return compareScaledDecimal(left.value, right.value);
+function compareValues(
+  left: SegmentValue,
+  right: SegmentValue,
+  state: AnalysisState,
+): number | null {
+  if (left.kind === "integer" && right.kind === "integer")
+    return compareBigInt(BigInt(left.value), BigInt(right.value));
+  if (left.kind === "money" && right.kind === "money")
+    return compareBigInt(BigInt(left.minor), BigInt(right.minor));
+  if (left.kind === "decimal" && right.kind === "decimal")
+    return compareScaledDecimal(left.value, right.value);
   if (isDateLike(left) && isDateLike(right)) {
     const distance = calendarDayDistance(
       resolveDateValue(left, state.effectiveAt, state.options.storeContext.timeZone),
@@ -596,12 +790,14 @@ function applyDescriptorMetadata(
     descriptor.temporalContract === "SOURCE" ||
     descriptor.temporalContract === "VALUE_AND_SOURCE" ||
     (descriptor.temporalContract === "VALUE" && hasRelativeValue)
-  ) state.temporal = true;
+  )
+    state.temporal = true;
   if (
     descriptor.dependencies.includes("taxIdentifier") ||
     descriptor.dependencies.includes("taxExemption") ||
     descriptor.name === "birthday"
-  ) state.contextDependencies.add("timezone");
+  )
+    state.contextDependencies.add("timezone");
 }
 
 function available(
@@ -610,19 +806,39 @@ function available(
   state: AnalysisState,
 ): boolean {
   if (descriptor.availability === "AVAILABLE") return true;
-  diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.unavailable, descriptor.unavailabilityReason ?? `${descriptor.name} is unavailable`, range);
+  diagnostic(
+    state,
+    SEGMENT_DIAGNOSTIC_CODES.unavailable,
+    descriptor.unavailabilityReason ?? `${descriptor.name} is unavailable`,
+    range,
+  );
   return false;
 }
 
 function enforceComplexity(state: AnalysisState, range: SegmentSourceRange): void {
   if (state.leafCount > SEGMENT_DSL_LIMITS.leafClauses) {
-    diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.complexity, `Query exceeds ${SEGMENT_DSL_LIMITS.leafClauses} leaf clauses`, range);
+    diagnostic(
+      state,
+      SEGMENT_DIAGNOSTIC_CODES.complexity,
+      `Query exceeds ${SEGMENT_DSL_LIMITS.leafClauses} leaf clauses`,
+      range,
+    );
   }
   if (state.complexity > SEGMENT_DSL_LIMITS.complexity) {
-    diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.complexity, `Query complexity ${state.complexity} exceeds ${SEGMENT_DSL_LIMITS.complexity}`, range);
+    diagnostic(
+      state,
+      SEGMENT_DIAGNOSTIC_CODES.complexity,
+      `Query complexity ${state.complexity} exceeds ${SEGMENT_DSL_LIMITS.complexity}`,
+      range,
+    );
   }
   if (state.entityReferenceKeys.size > SEGMENT_DSL_LIMITS.referencedEntityIds) {
-    diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.complexity, `Query exceeds ${SEGMENT_DSL_LIMITS.referencedEntityIds} referenced entity IDs`, range);
+    diagnostic(
+      state,
+      SEGMENT_DIAGNOSTIC_CODES.complexity,
+      `Query exceeds ${SEGMENT_DSL_LIMITS.referencedEntityIds} referenced entity IDs`,
+      range,
+    );
   }
 }
 
@@ -631,7 +847,12 @@ function typeMismatch(
   descriptor: SegmentValueDescriptor,
   state: AnalysisState,
 ): null {
-  diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.type, `Expected ${descriptor.type} value`, parsed.range);
+  diagnostic(
+    state,
+    SEGMENT_DIAGNOSTIC_CODES.type,
+    `Expected ${descriptor.type} value`,
+    parsed.range,
+  );
   return null;
 }
 
@@ -642,12 +863,24 @@ function diagnostic(
   range: SegmentSourceRange,
   details?: Readonly<Record<string, unknown>>,
 ): void {
-  state.diagnostics.push({ code, message, severity: "ERROR", ...range, ...(details ? { details } : {}) });
+  state.diagnostics.push({
+    code,
+    message,
+    severity: "ERROR",
+    ...range,
+    ...(details ? { details } : {}),
+  });
 }
 
-function finalizeDiagnostics(diagnostics: SegmentDiagnostic[], source: string): readonly SegmentDiagnostic[] {
-  diagnostics.sort((left, right) =>
-    left.startOffset - right.startOffset || left.endOffset - right.endOffset || asciiCompare(left.code, right.code),
+function finalizeDiagnostics(
+  diagnostics: SegmentDiagnostic[],
+  source: string,
+): readonly SegmentDiagnostic[] {
+  diagnostics.sort(
+    (left, right) =>
+      left.startOffset - right.startOffset ||
+      left.endOffset - right.endOffset ||
+      asciiCompare(left.code, right.code),
   );
   if (diagnostics.length <= SEGMENT_DSL_LIMITS.diagnostics) return diagnostics;
   const finalOffset = source.length;
@@ -676,7 +909,12 @@ function normalizeDecimal(
   const [rawInteger, rawFraction = ""] = unsigned.split(".");
   const significant = `${rawInteger}${rawFraction}`.replace(/^0+/u, "").length || 1;
   if (significant > 38 || rawFraction.length > 18) {
-    diagnostic(state, diagnosticCode, "Decimal exceeds 38 significant or 18 fractional digits", range);
+    diagnostic(
+      state,
+      diagnosticCode,
+      "Decimal exceeds 38 significant or 18 fractional digits",
+      range,
+    );
     return null;
   }
   const integer = rawInteger!.replace(/^0+(?=\d)/u, "");
@@ -704,7 +942,8 @@ function formatMinor(minor: bigint, exponent: number): string {
 }
 
 function validateStoreContext(context: SegmentStoreEvaluationContext): void {
-  if (!/^[A-Z]{3}$/u.test(context.currencyCode.toUpperCase())) throw new Error("Invalid Store currencyCode");
+  if (!/^[A-Z]{3}$/u.test(context.currencyCode.toUpperCase()))
+    throw new Error("Invalid Store currencyCode");
   currencyMinorUnitDigits(context.currencyCode);
   if (!Number.isSafeInteger(context.configurationRevision) || context.configurationRevision < 0) {
     throw new Error("Invalid Store configurationRevision");
@@ -729,7 +968,9 @@ function assertPersistedRegistryContract(
   if (!Number.isSafeInteger(definition.evaluationContext.storeConfigurationRevision)) {
     throw persistedCorruption("Store configuration revision is unsafe");
   }
-  new Intl.DateTimeFormat("en", { timeZone: definition.evaluationContext.timeZone }).format(new Date(0));
+  new Intl.DateTimeFormat("en", { timeZone: definition.evaluationContext.timeZone }).format(
+    new Date(0),
+  );
   const state: PersistedValidationState = {
     definition,
     registry,
@@ -782,7 +1023,8 @@ function assertPersistedExpression(
     return;
   }
   if (expression.kind === "not") {
-    if (expression.child.kind === "not") throw persistedCorruption("Double negation is not canonical");
+    if (expression.child.kind === "not")
+      throw persistedCorruption("Double negation is not canonical");
     assertPersistedExpression(expression.child, state, logicalDepth);
     return;
   }
@@ -797,14 +1039,16 @@ function assertPersistedExpression(
       !descriptor ||
       descriptor.name !== expression.attribute ||
       descriptor.availability !== "AVAILABLE"
-    ) throw persistedCorruption(`Invalid attribute ${expression.attribute}`);
+    )
+      throw persistedCorruption(`Invalid attribute ${expression.attribute}`);
     if (!operatorAllowed(descriptor.operators, expression.operator)) {
       throw persistedCorruption(`Invalid operator for ${expression.attribute}`);
     }
     if (
       (expression.operator === "is_null" || expression.operator === "is_not_null") &&
       !descriptor.nullable
-    ) throw persistedCorruption(`Invalid NULL operator for ${expression.attribute}`);
+    )
+      throw persistedCorruption(`Invalid NULL operator for ${expression.attribute}`);
     const values: SegmentValue[] = [];
     collectPredicateValues(expression, values);
     assertPersistedValueCollection(expression, values, descriptor, state);
@@ -813,11 +1057,8 @@ function assertPersistedExpression(
   }
 
   const descriptor = state.registry.function(expression.name);
-  if (
-    !descriptor ||
-    descriptor.name !== expression.name ||
-    descriptor.availability !== "AVAILABLE"
-  ) throw persistedCorruption(`Invalid function ${expression.name}`);
+  if (!descriptor || descriptor.name !== expression.name || descriptor.availability !== "AVAILABLE")
+    throw persistedCorruption(`Invalid function ${expression.name}`);
   if (!operatorAllowed(descriptor.operators, expression.operator)) {
     throw persistedCorruption(`Invalid operator for ${expression.name}`);
   }
@@ -828,7 +1069,9 @@ function assertPersistedExpression(
   if (expression.parameters.length > SEGMENT_DSL_LIMITS.functionParameters) {
     throw persistedCorruption(`Function parameter limit is exceeded for ${expression.name}`);
   }
-  const descriptors = new Map(descriptor.parameters.map((parameter, index) => [parameter.name, { parameter, index }]));
+  const descriptors = new Map(
+    descriptor.parameters.map((parameter, index) => [parameter.name, { parameter, index }]),
+  );
   const seen = new Set<string>();
   let lastOrder = -1;
   let aggregate = false;
@@ -839,7 +1082,9 @@ function assertPersistedExpression(
     }
     const registered = descriptors.get(parameter.name);
     if (!registered || seen.has(parameter.name) || registered.index <= lastOrder) {
-      throw persistedCorruption(`Invalid parameter ordering for ${expression.name}.${parameter.name}`);
+      throw persistedCorruption(
+        `Invalid parameter ordering for ${expression.name}.${parameter.name}`,
+      );
     }
     seen.add(parameter.name);
     lastOrder = registered.index;
@@ -850,7 +1095,8 @@ function assertPersistedExpression(
     if (
       (parameter.operator === "is_null" || parameter.operator === "is_not_null") &&
       (!registered.parameter.nullable || registered.parameter.aggregate)
-    ) throw persistedCorruption(`Invalid NULL operator for ${expression.name}.${parameter.name}`);
+    )
+      throw persistedCorruption(`Invalid NULL operator for ${expression.name}.${parameter.name}`);
     const values: SegmentValue[] = [];
     collectParameterValues(parameter, values);
     assertPersistedValueCollection(parameter, values, registered.parameter, state);
@@ -867,11 +1113,13 @@ function assertPersistedValueCollection(
   if (
     (owner.operator === "in" || owner.operator === "not_in") &&
     values.length > SEGMENT_DSL_LIMITS.inValues
-  ) throw persistedCorruption("IN value limit is exceeded");
+  )
+    throw persistedCorruption("IN value limit is exceeded");
   if (
     (owner.operator === "in" || owner.operator === "not_in") &&
     new Set(values.map((value) => JSON.stringify(value))).size !== values.length
-  ) throw persistedCorruption("IN values are not canonical");
+  )
+    throw persistedCorruption("IN values are not canonical");
   state.nodeCount += values.length;
   if (state.nodeCount > SEGMENT_DSL_LIMITS.rawAstNodes) {
     throw persistedCorruption("Normalized AST node limit is exceeded");
@@ -890,7 +1138,8 @@ function assertPersistedValue(
         value.kind !== "string" ||
         [...value.value].length > SEGMENT_DSL_LIMITS.stringCodePoints ||
         (descriptor.normalizeString?.(value.value) ?? value.value) !== value.value
-      ) throw persistedCorruption("Invalid canonical String value");
+      )
+        throw persistedCorruption("Invalid canonical String value");
       return;
     case "Enum":
       if (
@@ -898,13 +1147,15 @@ function assertPersistedValue(
         [...value.value].length > SEGMENT_DSL_LIMITS.stringCodePoints ||
         value.value !== value.value.toUpperCase() ||
         !descriptor.enumValues?.includes(value.value)
-      ) throw persistedCorruption("Invalid canonical Enum value");
+      )
+        throw persistedCorruption("Invalid canonical Enum value");
       return;
     case "Boolean":
       if (value.kind !== "boolean") throw persistedCorruption("Invalid Boolean value");
       return;
     case "Integer": {
-      if (value.kind !== "integer" || value.value.length > 20) throw persistedCorruption("Invalid Integer value");
+      if (value.kind !== "integer" || value.value.length > 20)
+        throw persistedCorruption("Invalid Integer value");
       const integer = BigInt(value.value);
       if (integer < INT64_MIN || integer > INT64_MAX || (descriptor.nonNegative && integer < 0n)) {
         throw persistedCorruption("Integer value is outside its domain");
@@ -916,7 +1167,8 @@ function assertPersistedValue(
         value.kind !== "decimal" ||
         !isCanonicalDecimal(value.value) ||
         (descriptor.nonNegative && value.value.startsWith("-"))
-      ) throw persistedCorruption("Invalid canonical Decimal value");
+      )
+        throw persistedCorruption("Invalid canonical Decimal value");
       return;
     case "Money": {
       if (
@@ -924,7 +1176,8 @@ function assertPersistedValue(
         !isBoundedDecimal(value.decimal) ||
         value.minor.length > 20 ||
         value.currencyCode !== state.definition.evaluationContext.currencyCode
-      ) throw persistedCorruption("Invalid canonical Money value");
+      )
+        throw persistedCorruption("Invalid canonical Money value");
       const exponent = currencyMinorUnitDigits(value.currencyCode);
       const minor = BigInt(value.minor);
       if (
@@ -933,26 +1186,26 @@ function assertPersistedValue(
         (descriptor.nonNegative && minor < 0n) ||
         decimalToMinor(value.decimal, exponent) !== minor ||
         formatMinor(minor, exponent) !== value.decimal
-      ) throw persistedCorruption("Money value is inconsistent with minor units");
+      )
+        throw persistedCorruption("Money value is inconsistent with minor units");
       return;
     }
     case "Date":
-      if (
-        value.kind !== "date" &&
-        value.kind !== "namedDate" &&
-        value.kind !== "relativeDate"
-      ) throw persistedCorruption("Invalid Date value");
+      if (value.kind !== "date" && value.kind !== "namedDate" && value.kind !== "relativeDate")
+        throw persistedCorruption("Invalid Date value");
       if (
         value.kind === "relativeDate" &&
         (!Number.isSafeInteger(value.amount) || (value.amount > 0 && !descriptor.allowFutureDate))
-      ) throw persistedCorruption("Relative Date value is outside its domain");
+      )
+        throw persistedCorruption("Relative Date value is outside its domain");
       return;
     case "DateTime":
       if (
         value.kind !== "dateTime" ||
         !value.value.endsWith("Z") ||
         new Date(value.value).toISOString() !== value.value
-      ) throw persistedCorruption("Invalid canonical DateTime value");
+      )
+        throw persistedCorruption("Invalid canonical DateTime value");
       return;
     case "ID":
       if (value.kind !== "entityId" || value.entity !== descriptor.entityType) {
@@ -993,23 +1246,34 @@ function deriveMetadata(root: SegmentExpression, registry: SegmentRegistry) {
   const visit = (expression: SegmentExpression): void => {
     if (expression.kind === "logical") return expression.children.forEach(visit);
     if (expression.kind === "not") return visit(expression.child);
-    const descriptor = expression.kind === "function"
-      ? registry.function(expression.name)
-      : registry.attribute(expression.attribute);
-    if (!descriptor || descriptor.availability !== "AVAILABLE") throw new Error("Persisted segment references an invalid registry descriptor");
+    const descriptor =
+      expression.kind === "function"
+        ? registry.function(expression.name)
+        : registry.attribute(expression.attribute);
+    if (!descriptor || descriptor.availability !== "AVAILABLE")
+      throw new Error("Persisted segment references an invalid registry descriptor");
     descriptor.dependencies.forEach((dependency) => dependencies.add(dependency));
     const values: SegmentValue[] = [];
     if (expression.kind === "function" && "parameters" in expression) {
       expression.parameters.forEach((parameter) => collectParameterValues(parameter, values));
     } else if (expression.kind === "predicate") collectPredicateValues(expression, values);
-    const relative = values.some((value) => value.kind === "namedDate" || value.kind === "relativeDate");
+    const relative = values.some(
+      (value) => value.kind === "namedDate" || value.kind === "relativeDate",
+    );
     if (values.some((value) => value.kind === "money")) {
       contextDependencies.add("currency");
     }
-    if (values.some(isDateLike) || descriptor.name === "birthday" || descriptor.dependencies.some((d) => d === "taxIdentifier" || d === "taxExemption")) {
+    if (
+      values.some(isDateLike) ||
+      descriptor.name === "birthday" ||
+      descriptor.dependencies.some((d) => d === "taxIdentifier" || d === "taxExemption")
+    ) {
       contextDependencies.add("timezone");
     }
-    temporal ||= descriptor.temporalContract === "SOURCE" || descriptor.temporalContract === "VALUE_AND_SOURCE" || descriptor.temporalContract === "VALUE" && relative;
+    temporal ||=
+      descriptor.temporalContract === "SOURCE" ||
+      descriptor.temporalContract === "VALUE_AND_SOURCE" ||
+      (descriptor.temporalContract === "VALUE" && relative);
   };
   visit(root);
   return {
@@ -1019,25 +1283,36 @@ function deriveMetadata(root: SegmentExpression, registry: SegmentRegistry) {
   };
 }
 
-function parsedExpressionValues(expression: ParsedPredicateExpression | ParsedFunctionExpression): ParsedValue[] {
+function parsedExpressionValues(
+  expression: ParsedPredicateExpression | ParsedFunctionExpression,
+): ParsedValue[] {
   if (expression.kind === "predicate") {
-    return [expression.value, expression.upperValue, ...(expression.values ?? [])].filter((value): value is ParsedValue => !!value);
+    return [expression.value, expression.upperValue, ...(expression.values ?? [])].filter(
+      (value): value is ParsedValue => !!value,
+    );
   }
   return (expression.parameters ?? []).flatMap((parameter) =>
-    [parameter.value, parameter.upperValue, ...(parameter.values ?? [])].filter((value): value is ParsedValue => !!value),
+    [parameter.value, parameter.upperValue, ...(parameter.values ?? [])].filter(
+      (value): value is ParsedValue => !!value,
+    ),
   );
 }
 
 function forEachValue(root: SegmentExpression, callback: (value: SegmentValue) => void): void {
-  if (root.kind === "logical") return root.children.forEach((child) => forEachValue(child, callback));
+  if (root.kind === "logical")
+    return root.children.forEach((child) => forEachValue(child, callback));
   if (root.kind === "not") return forEachValue(root.child, callback);
   const values: SegmentValue[] = [];
-  if (root.kind === "function" && "parameters" in root) root.parameters.forEach((parameter) => collectParameterValues(parameter, values));
+  if (root.kind === "function" && "parameters" in root)
+    root.parameters.forEach((parameter) => collectParameterValues(parameter, values));
   if (root.kind === "predicate") collectPredicateValues(root, values);
   values.forEach(callback);
 }
 
-function collectPredicateValues(predicate: SegmentPredicateExpression, values: SegmentValue[]): void {
+function collectPredicateValues(
+  predicate: SegmentPredicateExpression,
+  values: SegmentValue[],
+): void {
   if ("value" in predicate) values.push(predicate.value);
   if ("upperValue" in predicate) values.push(predicate.upperValue);
   if ("values" in predicate) values.push(...predicate.values);
@@ -1059,7 +1334,9 @@ function deduplicateValues(values: readonly SegmentValue[]): SegmentValue[] {
   });
 }
 
-function isDateLike(value: SegmentValue): value is Extract<SegmentValue, { kind: "date" | "namedDate" | "relativeDate" }> {
+function isDateLike(
+  value: SegmentValue,
+): value is Extract<SegmentValue, { kind: "date" | "namedDate" | "relativeDate" }> {
   return value.kind === "date" || value.kind === "namedDate" || value.kind === "relativeDate";
 }
 

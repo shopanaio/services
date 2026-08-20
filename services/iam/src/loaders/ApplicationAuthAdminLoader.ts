@@ -14,24 +14,20 @@ export class ApplicationAuthAdminLoader {
   constructor(repository: Repository) {
     this.applicationAuthAdmin = new DataLoader(
       async (keys) => {
-        const records =
-          await repository.applicationAuthAdminQuery.getByApplicationKeys(keys);
+        const records = await repository.applicationAuthAdminQuery.getByApplicationKeys(keys);
         const recordsByApplicationId = new Map(
-          records.map((record) => [record.applicationId, record])
+          records.map((record) => [record.applicationId, record]),
         );
         return keys.map((key) => {
           const record = recordsByApplicationId.get(key.id);
           if (!record) return null;
-          if (
-            key.organizationId &&
-            record.organizationId !== key.organizationId
-          ) {
+          if (key.organizationId && record.organizationId !== key.organizationId) {
             return null;
           }
           return record;
         });
       },
-      { cacheKeyFn: applicationKeyToString }
+      { cacheKeyFn: applicationKeyToString },
     );
   }
 }

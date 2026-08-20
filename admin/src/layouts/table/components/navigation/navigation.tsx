@@ -1,13 +1,9 @@
-import { Flex } from 'antd';
-import { ReactNode } from 'react';
-import { Actions, IActionsProps } from './actions';
-import {
-  FilterWidget,
-  IFilterWidgetProps,
-  IFilterWidgetSearchProps,
-} from "@/layouts/filters";
-import { IColumnsProps } from './columns';
-import { ISortByProps } from './sort-by';
+import { Flex } from "antd";
+import { ReactNode } from "react";
+import { Actions, IActionsProps } from "./actions";
+import { FilterWidget, IFilterWidgetProps, IFilterWidgetSearchProps } from "@/layouts/filters";
+import { IColumnsProps } from "./columns";
+import { ISortByProps } from "./sort-by";
 
 export interface ISelectedRowsProps<T = unknown> {
   selectedRows: T[];
@@ -17,9 +13,9 @@ export interface ISelectedRowsProps<T = unknown> {
 
 /** Filter props for table navigation */
 export interface IFiltersProps {
-  options: IFilterWidgetProps['options'];
-  value: IFilterWidgetProps['value'];
-  onChange: IFilterWidgetProps['onChange'];
+  options: IFilterWidgetProps["options"];
+  value: IFilterWidgetProps["value"];
+  onChange: IFilterWidgetProps["onChange"];
 }
 
 /** Search props for table navigation */
@@ -29,7 +25,7 @@ export interface ITableNavigationProps<T = unknown> {
   sortProps?: ISortByProps;
   columnsProps?: IColumnsProps;
   searchProps: ISearchProps;
-  actionsProps?: Omit<IActionsProps<T>, 'selectedRows' | 'clearSelectedRows'>;
+  actionsProps?: Omit<IActionsProps<T>, "selectedRows" | "clearSelectedRows">;
   filtersProps: IFiltersProps;
   selectedRowsProps: ISelectedRowsProps<T>;
   extra?: ReactNode;
@@ -44,7 +40,7 @@ export const TableNavigation = <T extends { id?: string | number }>({
   const { selectedRows, clearSelectedRows } = selectedRowsProps;
 
   return (
-    <Flex gap="small" align="center" style={{ width: '100%' }}>
+    <Flex gap="small" align="center" style={{ width: "100%" }}>
       {!!selectedRows?.length && actionsProps && (
         <Actions
           {...actionsProps}

@@ -2,10 +2,7 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
-import type {
-  ApiGenericUserError,
-  ApiWarehouseDeleteInput,
-} from "@/graphql/types";
+import type { ApiGenericUserError, ApiWarehouseDeleteInput } from "@/graphql/types";
 import { WAREHOUSES_QUERY, WAREHOUSE_DELETE_MUTATION } from "../graphql";
 import type {
   WarehouseDeleteMutationData,
@@ -77,8 +74,7 @@ export function useDeleteWarehouse(): UseDeleteWarehouseReturn {
           userErrors: [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
 
         return {
           deletedWarehouseId: null,

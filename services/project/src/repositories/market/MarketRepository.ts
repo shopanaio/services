@@ -57,10 +57,7 @@ export class MarketRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findActiveByHandle(
-    storeId: string,
-    handle: string,
-  ): Promise<Market | null> {
+  async findActiveByHandle(storeId: string, handle: string): Promise<Market | null> {
     const [result] = await this.connection
       .select()
       .from(market)
@@ -99,20 +96,13 @@ export class MarketRepository extends BaseRepository {
       .select()
       .from(market)
       .where(
-        and(
-          eq(market.storeId, storeId),
-          eq(market.status, "active"),
-          isNull(market.deletedAt),
-        ),
+        and(eq(market.storeId, storeId), eq(market.status, "active"), isNull(market.deletedAt)),
       )
       .orderBy(asc(market.code), asc(market.id));
   }
 
   @ReadOnly()
-  async getConnection(
-    storeId: string,
-    args: MarketRelayInput,
-  ): Promise<MarketConnectionResult> {
+  async getConnection(storeId: string, args: MarketRelayInput): Promise<MarketConnectionResult> {
     const where: MarketRelayInput["where"] = {
       _and: [
         { storeId: { _eq: storeId } },
@@ -149,32 +139,17 @@ export class MarketRepository extends BaseRepository {
       this.connection
         .select()
         .from(marketCountry)
-        .where(
-          and(
-            eq(marketCountry.storeId, storeId),
-            eq(marketCountry.marketId, id),
-          ),
-        )
+        .where(and(eq(marketCountry.storeId, storeId), eq(marketCountry.marketId, id)))
         .orderBy(asc(marketCountry.countryCode)),
       this.connection
         .select()
         .from(marketLocale)
-        .where(
-          and(
-            eq(marketLocale.storeId, storeId),
-            eq(marketLocale.marketId, id),
-          ),
-        )
+        .where(and(eq(marketLocale.storeId, storeId), eq(marketLocale.marketId, id)))
         .orderBy(asc(marketLocale.localeCode)),
       this.connection
         .select()
         .from(marketCurrency)
-        .where(
-          and(
-            eq(marketCurrency.storeId, storeId),
-            eq(marketCurrency.marketId, id),
-          ),
-        )
+        .where(and(eq(marketCurrency.storeId, storeId), eq(marketCurrency.marketId, id)))
         .orderBy(asc(marketCurrency.currencyCode)),
     ]);
 
@@ -182,10 +157,7 @@ export class MarketRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getSnapshotsByIds(
-    storeId: string,
-    ids: readonly string[],
-  ): Promise<MarketSnapshot[]> {
+  async getSnapshotsByIds(storeId: string, ids: readonly string[]): Promise<MarketSnapshot[]> {
     if (ids.length === 0) return [];
 
     const items = await this.connection
@@ -206,32 +178,17 @@ export class MarketRepository extends BaseRepository {
       this.connection
         .select()
         .from(marketCountry)
-        .where(
-          and(
-            eq(marketCountry.storeId, storeId),
-            inArray(marketCountry.marketId, itemIds),
-          ),
-        )
+        .where(and(eq(marketCountry.storeId, storeId), inArray(marketCountry.marketId, itemIds)))
         .orderBy(asc(marketCountry.countryCode)),
       this.connection
         .select()
         .from(marketLocale)
-        .where(
-          and(
-            eq(marketLocale.storeId, storeId),
-            inArray(marketLocale.marketId, itemIds),
-          ),
-        )
+        .where(and(eq(marketLocale.storeId, storeId), inArray(marketLocale.marketId, itemIds)))
         .orderBy(asc(marketLocale.localeCode)),
       this.connection
         .select()
         .from(marketCurrency)
-        .where(
-          and(
-            eq(marketCurrency.storeId, storeId),
-            inArray(marketCurrency.marketId, itemIds),
-          ),
-        )
+        .where(and(eq(marketCurrency.storeId, storeId), inArray(marketCurrency.marketId, itemIds)))
         .orderBy(asc(marketCurrency.currencyCode)),
     ]);
 

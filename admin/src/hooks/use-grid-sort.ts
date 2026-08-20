@@ -1,12 +1,7 @@
 "use client";
 
 import { useState, useCallback, RefObject } from "react";
-import type {
-  GridApi,
-  SortChangedEvent,
-  ColumnState,
-  SortDirection,
-} from "ag-grid-community";
+import type { GridApi, SortChangedEvent, ColumnState, SortDirection } from "ag-grid-community";
 import type { AgGridReact } from "ag-grid-react";
 
 export interface SortModel {
@@ -74,15 +69,8 @@ export interface UseGridSortReturn {
  * // Clear all
  * clearSort();
  */
-export function useGridSort<T = unknown>(
-  options: UseGridSortOptions<T> = {}
-): UseGridSortReturn {
-  const {
-    gridRef,
-    initialSort = [],
-    onSortChange,
-    sortModel: controlledSort,
-  } = options;
+export function useGridSort<T = unknown>(options: UseGridSortOptions<T> = {}): UseGridSortReturn {
+  const { gridRef, initialSort = [], onSortChange, sortModel: controlledSort } = options;
 
   const [internalSort, setInternalSort] = useState<SortModel[]>(initialSort);
 
@@ -96,36 +84,36 @@ export function useGridSort<T = unknown>(
   }, [gridRef]);
 
   // Extract sort model from column state
-  const extractSortModel = useCallback(
-    (columnState: ColumnState[]): SortModel[] => {
-      return columnState
-        .filter((col) => col.sort != null)
-        .sort((a, b) => (a.sortIndex ?? 0) - (b.sortIndex ?? 0))
-        .map((col) => ({
-          colId: col.colId!,
-          sort: col.sort!,
-          sortIndex: col.sortIndex ?? undefined,
-        }));
-    },
-    []
-  );
+  const extractSortModel = useCallback((columnState: ColumnState[]): SortModel[] => {
+    return columnState
+      .filter((col) => col.sort != null)
+      .sort((a, b) => (a.sortIndex ?? 0) - (b.sortIndex ?? 0))
+      .map((col) => ({
+        colId: col.colId!,
+        sort: col.sort!,
+        sortIndex: col.sortIndex ?? undefined,
+      }));
+  }, []);
 
   // Apply sort model to grid
-  const applyToGrid = useCallback((model: SortModel[]) => {
-    const api = getApi();
-    if (!api) return;
+  const applyToGrid = useCallback(
+    (model: SortModel[]) => {
+      const api = getApi();
+      if (!api) return;
 
-    const state = model.map((item, index) => ({
-      colId: item.colId,
-      sort: item.sort,
-      sortIndex: index,
-    }));
+      const state = model.map((item, index) => ({
+        colId: item.colId,
+        sort: item.sort,
+        sortIndex: index,
+      }));
 
-    api.applyColumnState({
-      state,
-      defaultState: { sort: null },
-    });
-  }, [getApi]);
+      api.applyColumnState({
+        state,
+        defaultState: { sort: null },
+      });
+    },
+    [getApi],
+  );
 
   // Update sort state and notify
   const updateSort = useCallback(
@@ -140,7 +128,7 @@ export function useGridSort<T = unknown>(
 
       onSortChange?.(newModel);
     },
-    [isControlled, applyToGrid, onSortChange]
+    [isControlled, applyToGrid, onSortChange],
   );
 
   // Handle sort changed event from grid
@@ -152,7 +140,7 @@ export function useGridSort<T = unknown>(
       // Skip grid update since it came from the grid
       updateSort(newModel, true);
     },
-    [extractSortModel, updateSort]
+    [extractSortModel, updateSort],
   );
 
   // Set sort for single column (replaces existing)
@@ -161,7 +149,7 @@ export function useGridSort<T = unknown>(
       const newModel: SortModel[] = sort ? [{ colId, sort }] : [];
       updateSort(newModel);
     },
-    [updateSort]
+    [updateSort],
   );
 
   // Add or update sort column (multi-sort)
@@ -174,13 +162,10 @@ export function useGridSort<T = unknown>(
         return;
       }
 
-      const newModel = [
-        ...existing,
-        { colId, sort, sortIndex: existing.length },
-      ];
+      const newModel = [...existing, { colId, sort, sortIndex: existing.length }];
       updateSort(newModel);
     },
-    [sortModel, updateSort]
+    [sortModel, updateSort],
   );
 
   // Remove sort from column
@@ -191,7 +176,7 @@ export function useGridSort<T = unknown>(
         .map((s, index) => ({ ...s, sortIndex: index }));
       updateSort(newModel);
     },
-    [sortModel, updateSort]
+    [sortModel, updateSort],
   );
 
   // Clear all sorting
@@ -204,7 +189,7 @@ export function useGridSort<T = unknown>(
     (model: SortModel[]) => {
       updateSort(model);
     },
-    [updateSort]
+    [updateSort],
   );
 
   // Check if column is sorted
@@ -212,7 +197,7 @@ export function useGridSort<T = unknown>(
     (colId: string): boolean => {
       return sortModel.some((s) => s.colId === colId);
     },
-    [sortModel]
+    [sortModel],
   );
 
   // Get column sort direction
@@ -220,7 +205,7 @@ export function useGridSort<T = unknown>(
     (colId: string): SortDirection | undefined => {
       return sortModel.find((s) => s.colId === colId)?.sort;
     },
-    [sortModel]
+    [sortModel],
   );
 
   return {

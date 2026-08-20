@@ -19,16 +19,13 @@ export class ResolverRegistry {
   constructor(private readonly ctx: ServiceContext) {}
 
   async notificationDefinition(data: NotificationDefinitionResolverData) {
-    const { NotificationDefinitionResolver } = await import(
-      "./NotificationDefinitionResolver.js"
-    );
+    const { NotificationDefinitionResolver } = await import("./NotificationDefinitionResolver.js");
     return new NotificationDefinitionResolver(data, this.ctx);
   }
 
   async notificationDefinitionSetting(key: NotificationDefinitionKey) {
-    const { NotificationDefinitionSettingResolver } = await import(
-      "./NotificationDefinitionSettingResolver.js"
-    );
+    const { NotificationDefinitionSettingResolver } =
+      await import("./NotificationDefinitionSettingResolver.js");
     return new NotificationDefinitionSettingResolver(key, this.ctx);
   }
 
@@ -36,30 +33,24 @@ export class ResolverRegistry {
     key: NotificationDefinitionKey;
     channel: NotificationChannel;
   }) {
-    const { NotificationChannelSettingResolver } = await import(
-      "./NotificationChannelSettingResolver.js"
-    );
+    const { NotificationChannelSettingResolver } =
+      await import("./NotificationChannelSettingResolver.js");
     return new NotificationChannelSettingResolver(input, this.ctx);
   }
 
   async notificationEffectiveTemplate(input: NotificationTemplateQueryParams) {
-    const { NotificationEffectiveTemplateResolver } = await import(
-      "./NotificationEffectiveTemplateResolver.js"
-    );
+    const { NotificationEffectiveTemplateResolver } =
+      await import("./NotificationEffectiveTemplateResolver.js");
     return new NotificationEffectiveTemplateResolver(input, this.ctx);
   }
 
   async staffRecipient(recipient: StaffRecipientView) {
-    const { StaffRecipientResolver } = await import(
-      "./StaffRecipientResolver.js"
-    );
+    const { StaffRecipientResolver } = await import("./StaffRecipientResolver.js");
     return new StaffRecipientResolver(recipient, this.ctx);
   }
 
   async webhook(id: string) {
-    const { NotificationWebhookResolver } = await import(
-      "./NotificationWebhookResolver.js"
-    );
+    const { NotificationWebhookResolver } = await import("./NotificationWebhookResolver.js");
     return new NotificationWebhookResolver(id, this.ctx);
   }
 }

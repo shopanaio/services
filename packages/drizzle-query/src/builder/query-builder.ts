@@ -61,24 +61,20 @@ export class QueryBuilder<
   T extends Selectable,
   F extends string = string,
   Fields extends FieldsDef = FieldsDef,
-  Types = T["$inferSelect"]
+  Types = T["$inferSelect"],
 > {
   private readonly config: ResolvedConfig;
 
   constructor(
     private readonly schema: ObjectSchema<T, F, Fields, Types>,
-    config?: QueryBuilderConfig
+    config?: QueryBuilderConfig,
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
   where(input: NestedWhereInput<Fields> | undefined | null): WhereResult {
     const joinCollector = this.createJoinCollector();
-    const builder = new WhereBuilder(
-      this.schema,
-      joinCollector,
-      this.config.maxJoinDepth
-    );
+    const builder = new WhereBuilder(this.schema, joinCollector, this.config.maxJoinDepth);
     return builder.build(input);
   }
 
@@ -106,11 +102,7 @@ export class QueryBuilder<
 
   buildCountSql(input: CountInput<Fields> | undefined | null): SQL {
     const joinCollector = this.createJoinCollector();
-    const whereBuilder = new WhereBuilder(
-      this.schema,
-      joinCollector,
-      this.config.maxJoinDepth
-    );
+    const whereBuilder = new WhereBuilder(this.schema, joinCollector, this.config.maxJoinDepth);
     const whereResult = whereBuilder.build(input?.where);
 
     const renderer = new SqlRenderer(this.schema, joinCollector);
@@ -127,10 +119,7 @@ export class QueryBuilder<
    * });
    * ```
    */
-  async count(
-    db: DrizzleExecutor,
-    input?: CountInput<Fields> | null
-  ): Promise<number> {
+  async count(db: DrizzleExecutor, input?: CountInput<Fields> | null): Promise<number> {
     const sql = this.buildCountSql(input);
     this.log("executingCount", { input });
     const result = await db.execute(sql);
@@ -150,10 +139,7 @@ export class QueryBuilder<
    * Execute query and return results with full table type.
    * Use querySelect() for typed results based on select fields.
    */
-  async query(
-    db: DrizzleExecutor,
-    input?: TypedInput<Fields> | null
-  ): Promise<Types[]> {
+  async query(db: DrizzleExecutor, input?: TypedInput<Fields> | null): Promise<Types[]> {
     const { sql } = this.buildRawQuery(input);
     this.log("executingQuery", { input });
     const result = await db.execute(sql);
@@ -181,7 +167,7 @@ export class QueryBuilder<
    */
   async querySelect<const Select extends readonly NestedPaths<Fields>[]>(
     db: DrizzleExecutor,
-    input: Omit<TypedInput<Fields>, "select"> & { select: Select }
+    input: Omit<TypedInput<Fields>, "select"> & { select: Select },
   ): Promise<InferSelectResultFlat<Types, Select>[]> {
     const { sql } = this.buildRawQuery(input as unknown as TypedInput<Fields>);
     this.log("executingQuery", { input });
@@ -223,22 +209,12 @@ export class QueryBuilder<
     };
   }
 
-  private buildQueryComponents(
-    input: TypedInput<Fields> | undefined | null
-  ): QueryComponents {
+  private buildQueryComponents(input: TypedInput<Fields> | undefined | null): QueryComponents {
     const joinCollector = this.createJoinCollector();
-    const whereBuilder = new WhereBuilder(
-      this.schema,
-      joinCollector,
-      this.config.maxJoinDepth
-    );
+    const whereBuilder = new WhereBuilder(this.schema, joinCollector, this.config.maxJoinDepth);
     const whereResult = whereBuilder.build(input?.where);
 
-    const orderBuilder = new OrderBuilder(
-      this.schema,
-      joinCollector,
-      this.config.maxJoinDepth
-    );
+    const orderBuilder = new OrderBuilder(this.schema, joinCollector, this.config.maxJoinDepth);
     const orderSql = orderBuilder.build(input?.order);
 
     if (input?.select) {
@@ -248,7 +224,7 @@ export class QueryBuilder<
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.schema as any,
           0,
-          this.config.maxJoinDepth
+          this.config.maxJoinDepth,
         );
       }
     }
@@ -274,9 +250,7 @@ export class QueryBuilder<
     };
   }
 
-  pagination(
-    input: { limit?: number; offset?: number } | undefined | null
-  ): PaginationResult {
+  pagination(input: { limit?: number; offset?: number } | undefined | null): PaginationResult {
     return this.resolvePagination(input ?? {});
   }
 
@@ -284,10 +258,7 @@ export class QueryBuilder<
     limit?: number | null;
     offset?: number | null;
   }): PaginationResult {
-    const limit = Math.min(
-      input.limit ?? this.config.defaultLimit,
-      this.config.maxLimit
-    );
+    const limit = Math.min(input.limit ?? this.config.defaultLimit, this.config.maxLimit);
     return {
       limit,
       offset: Math.max(0, input.offset ?? 0),

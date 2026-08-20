@@ -7,10 +7,7 @@ import {
   ServiceBroker,
   type IdempotencyContext,
 } from "@shopana/shared-kernel";
-import type {
-  EventDispatchInput,
-  EventDispatchResult,
-} from "@shopana/events";
+import type { EventDispatchInput, EventDispatchResult } from "@shopana/events";
 import { Kernel } from "../kernel/Kernel.js";
 
 type EventDispatchActionParams = EventDispatchInput & {
@@ -43,9 +40,7 @@ export class EventsBrokerActions extends BrokerActions {
   }
 
   @Action("dispatch")
-  async dispatch(
-    params: EventDispatchActionParams,
-  ): Promise<EventDispatchActionResult> {
+  async dispatch(params: EventDispatchActionParams): Promise<EventDispatchActionResult> {
     const input = toDispatchInput(params);
     const started = await this.broker.startWorkflow<EventDispatchInput>(
       "events.dispatch",
@@ -70,9 +65,7 @@ export class EventsBrokerActions extends BrokerActions {
   }
 
   @Action("cleanupDLQ")
-  async cleanupDLQ(params: {
-    batchSize?: number;
-  }): Promise<{ deleted: number }> {
+  async cleanupDLQ(params: { batchSize?: number }): Promise<{ deleted: number }> {
     const batchSize = params.batchSize ?? 1000;
     const deleted = await this.repository.cleanupExpiredDLQ(batchSize);
     return { deleted };
@@ -85,13 +78,8 @@ export class EventsBrokerActions extends BrokerActions {
   }): Promise<{ deleted: number }> {
     const retentionDays = params.retentionDays ?? 90;
     const batchSize = params.batchSize ?? 5000;
-    const cutoffDate = new Date(
-      Date.now() - retentionDays * 24 * 60 * 60 * 1000,
-    );
-    const deleted = await this.repository.cleanupOldDomainEvents(
-      cutoffDate,
-      batchSize,
-    );
+    const cutoffDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+    const deleted = await this.repository.cleanupOldDomainEvents(cutoffDate, batchSize);
     return { deleted };
   }
 }
@@ -114,9 +102,7 @@ function toDispatchInput(params: EventDispatchActionParams): EventDispatchInput 
   };
 }
 
-function buildDispatchIdempotency(
-  input: EventDispatchInput,
-): IdempotencyContext {
+function buildDispatchIdempotency(input: EventDispatchInput): IdempotencyContext {
   const parentWorkflowId = DBOS.workflowID;
   const callId = buildDispatchCallId(input);
 

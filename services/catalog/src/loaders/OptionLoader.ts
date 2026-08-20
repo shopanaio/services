@@ -15,16 +15,16 @@ export class OptionLoader {
   public readonly swatch: DataLoader<string, ProductOptionSwatch | null>;
 
   constructor(repository: Repository) {
-    this.optionTranslation = new DataLoader<string, ProductOptionTranslation | null>(async (optionIds) => {
-      const results = await repository.option.getTranslationsByOptionIds(optionIds);
-      return optionIds.map((id) => results.find((t) => t.optionId === id) ?? null);
-    });
+    this.optionTranslation = new DataLoader<string, ProductOptionTranslation | null>(
+      async (optionIds) => {
+        const results = await repository.option.getTranslationsByOptionIds(optionIds);
+        return optionIds.map((id) => results.find((t) => t.optionId === id) ?? null);
+      },
+    );
 
     this.optionValueIds = new DataLoader<string, string[]>(async (optionIds) => {
       const results = await repository.option.getValueIdsByOptionIds(optionIds);
-      return optionIds.map((id) =>
-        results.filter((v) => v.optionId === id).map((v) => v.id)
-      );
+      return optionIds.map((id) => results.filter((v) => v.optionId === id).map((v) => v.id));
     });
 
     this.optionValue = new DataLoader<string, ProductOptionValue | null>(async (valueIds) => {
@@ -32,10 +32,12 @@ export class OptionLoader {
       return valueIds.map((id) => results.find((v) => v.id === id) ?? null);
     });
 
-    this.optionValueTranslation = new DataLoader<string, ProductOptionValueTranslation | null>(async (optionValueIds) => {
-      const results = await repository.option.getValueTranslationsByValueIds(optionValueIds);
-      return optionValueIds.map((id) => results.find((t) => t.optionValueId === id) ?? null);
-    });
+    this.optionValueTranslation = new DataLoader<string, ProductOptionValueTranslation | null>(
+      async (optionValueIds) => {
+        const results = await repository.option.getValueTranslationsByValueIds(optionValueIds);
+        return optionValueIds.map((id) => results.find((t) => t.optionValueId === id) ?? null);
+      },
+    );
 
     this.swatch = new DataLoader<string, ProductOptionSwatch | null>(async (swatchIds) => {
       const results = await repository.option.getSwatchesByIds(swatchIds);

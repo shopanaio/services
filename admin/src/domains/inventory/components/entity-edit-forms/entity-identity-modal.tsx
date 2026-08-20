@@ -131,9 +131,7 @@ export const EntityIdentityModal = ({
               )}
             />
             {errors.title && (
-              <Typography.Text className={styles.error}>
-                {errors.title.message}
-              </Typography.Text>
+              <Typography.Text className={styles.error}>{errors.title.message}</Typography.Text>
             )}
           </div>
 
@@ -156,13 +154,9 @@ export const EntityIdentityModal = ({
               )}
             />
             {errors.handle ? (
-              <Typography.Text className={styles.error}>
-                {errors.handle.message}
-              </Typography.Text>
+              <Typography.Text className={styles.error}>{errors.handle.message}</Typography.Text>
             ) : (
-              <Typography.Text className={styles.extra}>
-                {handleHelpText}
-              </Typography.Text>
+              <Typography.Text className={styles.extra}>{handleHelpText}</Typography.Text>
             )}
           </div>
         </form>

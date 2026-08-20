@@ -3,16 +3,11 @@ import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { ComponentItem } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 
-export class ProductComponentItemResolver extends CatalogType<
-  string,
-  ComponentItem
-> {
+export class ProductComponentItemResolver extends CatalogType<string, ComponentItem> {
   async $preload() {
     const item = await this.$ctx.loaders.componentItem.load(this.$props);
     if (!item) {
-      throw new PreloadNotFoundError(
-        `Product component item with ID ${this.$props} not found`,
-      );
+      throw new PreloadNotFoundError(`Product component item with ID ${this.$props} not found`);
     }
     return item;
   }
@@ -71,33 +66,23 @@ export class ProductComponentItemResolver extends CatalogType<
 
   async priceRule() {
     const id = await this.$get("priceRuleId");
-    return id
-      ? this.resolvers.productComponentPriceRule(id)
-      : null;
+    return id ? this.resolvers.productComponentPriceRule(id) : null;
   }
 
   async pricingTemplate() {
     const id = await this.$get("pricingTemplateId");
-    return id
-      ? this.resolvers.productComponentPricingTemplate(id)
-      : null;
+    return id ? this.resolvers.productComponentPricingTemplate(id) : null;
   }
 
   async optionSelections() {
-    const ids =
-      await this.$ctx.loaders.componentOptionSelectionIdsByItemId.load(
-        this.$props,
-      );
+    const ids = await this.$ctx.loaders.componentOptionSelectionIdsByItemId.load(this.$props);
     return Promise.all(
-      ids.map((id: string) =>
-        this.resolvers.productComponentItemOptionSelection(id)
-      ),
+      ids.map((id: string) => this.resolvers.productComponentItemOptionSelection(id)),
     );
   }
 
   async title() {
-    const translation =
-      await this.$ctx.loaders.componentItemTranslation.load(this.$props);
+    const translation = await this.$ctx.loaders.componentItemTranslation.load(this.$props);
     return translation?.name ?? null;
   }
 

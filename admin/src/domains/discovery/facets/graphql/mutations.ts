@@ -1,10 +1,6 @@
 import { gql } from "@apollo/client";
 import { USER_ERROR_FRAGMENT } from "@/domains/inventory/graphql/shared-fragments";
-import {
-  FACET_GRID_FRAGMENT,
-  FACET_SWATCH_FRAGMENT,
-  FACET_VALUE_GRID_FRAGMENT,
-} from "./fragments";
+import { FACET_GRID_FRAGMENT, FACET_SWATCH_FRAGMENT, FACET_VALUE_GRID_FRAGMENT } from "./fragments";
 
 export const FACET_CREATE_MUTATION = gql`
   mutation FacetCreate($input: FacetCreateInput!) {

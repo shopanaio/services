@@ -39,7 +39,7 @@ export default function SignUpPage() {
       if (!result.success) {
         const { generalErrors } = mapGraphQLErrorsToForm<SignUpFormValues>(
           result.userErrors,
-          form.setError
+          form.setError,
         );
 
         if (generalErrors.length > 0) {
@@ -51,7 +51,7 @@ export default function SignUpPage() {
       message.success("Account created successfully!");
       router.push("/onboarding/complete-profile");
     },
-    [signUp, form.setError, router, message]
+    [signUp, form.setError, router, message],
   );
 
   return <SignUpForm form={form} onSubmit={onSubmit} loading={loading} />;

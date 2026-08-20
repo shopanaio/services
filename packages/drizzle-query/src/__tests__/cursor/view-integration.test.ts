@@ -1,12 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import "../test/setup.js";
-import {
-  getDb,
-  products,
-  translations,
-  productsView,
-  clearTables,
-} from "../test/setup.js";
+import { getDb, products, translations, productsView, clearTables } from "../test/setup.js";
 import { createRelayBuilder } from "../../cursor/relay-builder.js";
 import { createSchema } from "../../schema.js";
 import { decode } from "../../cursor/cursor.js";
@@ -89,10 +83,10 @@ describe("View Pagination Integration Tests", () => {
 
       // Insert products (view filters out deleted)
       await db.insert(products).values([
-        { handle: "product-a", price: 50 },   // budget
-        { handle: "product-b", price: 150 },  // mid-range
-        { handle: "product-c", price: 600 },  // premium
-        { handle: "product-d", price: 80 },   // budget
+        { handle: "product-a", price: 50 }, // budget
+        { handle: "product-b", price: 150 }, // mid-range
+        { handle: "product-c", price: 600 }, // premium
+        { handle: "product-d", price: 80 }, // budget
         { handle: "deleted", price: 200, deletedAt: new Date() }, // should be filtered by view
       ]);
 
@@ -146,11 +140,7 @@ describe("View Pagination Integration Tests", () => {
         select: ["id", "handle", "displayHandle"],
       });
 
-      expect(result.edges.map((e) => e.node.displayHandle)).toEqual([
-        "APPLE",
-        "BANANA",
-        "CHERRY",
-      ]);
+      expect(result.edges.map((e) => e.node.displayHandle)).toEqual(["APPLE", "BANANA", "CHERRY"]);
     });
 
     it("should filter by computed view field", async () => {
@@ -181,18 +171,9 @@ describe("View Pagination Integration Tests", () => {
       const db = getDb();
 
       // Insert products
-      const [p1] = await db
-        .insert(products)
-        .values({ handle: "phone", price: 999 })
-        .returning();
-      const [p2] = await db
-        .insert(products)
-        .values({ handle: "laptop", price: 1999 })
-        .returning();
-      const [p3] = await db
-        .insert(products)
-        .values({ handle: "tablet", price: 599 })
-        .returning();
+      const [p1] = await db.insert(products).values({ handle: "phone", price: 999 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "laptop", price: 1999 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "tablet", price: 599 }).returning();
 
       // Insert translations
       await db.insert(translations).values([
@@ -233,18 +214,9 @@ describe("View Pagination Integration Tests", () => {
       const db = getDb();
 
       // Insert products
-      const [p1] = await db
-        .insert(products)
-        .values({ handle: "zphone", price: 100 })
-        .returning();
-      const [p2] = await db
-        .insert(products)
-        .values({ handle: "alaptop", price: 200 })
-        .returning();
-      const [p3] = await db
-        .insert(products)
-        .values({ handle: "mtablet", price: 150 })
-        .returning();
+      const [p1] = await db.insert(products).values({ handle: "zphone", price: 100 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "alaptop", price: 200 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "mtablet", price: 150 }).returning();
 
       // Insert translations with different sort values
       await db.insert(translations).values([
@@ -273,23 +245,24 @@ describe("View Pagination Integration Tests", () => {
       const db = getDb();
 
       // Insert products
-      const [p1] = await db
-        .insert(products)
-        .values({ handle: "phone-1", price: 100 })
-        .returning();
-      const [p2] = await db
-        .insert(products)
-        .values({ handle: "phone-2", price: 200 })
-        .returning();
-      const [p3] = await db
-        .insert(products)
-        .values({ handle: "laptop", price: 1000 })
-        .returning();
+      const [p1] = await db.insert(products).values({ handle: "phone-1", price: 100 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "phone-2", price: 200 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "laptop", price: 1000 }).returning();
 
       // Insert translations
       await db.insert(translations).values([
-        { entityId: p1.id, field: "title", value: "iPhone Mini", searchValue: "apple phone mobile" },
-        { entityId: p2.id, field: "title", value: "Android Phone", searchValue: "android phone mobile" },
+        {
+          entityId: p1.id,
+          field: "title",
+          value: "iPhone Mini",
+          searchValue: "apple phone mobile",
+        },
+        {
+          entityId: p2.id,
+          field: "title",
+          value: "Android Phone",
+          searchValue: "android phone mobile",
+        },
         { entityId: p3.id, field: "title", value: "MacBook", searchValue: "apple laptop computer" },
       ]);
 
@@ -349,18 +322,9 @@ describe("View Pagination Integration Tests", () => {
       const db = getDb();
 
       // Insert products
-      const [p1] = await db
-        .insert(products)
-        .values({ handle: "prod-1", price: 100 })
-        .returning();
-      const [p2] = await db
-        .insert(products)
-        .values({ handle: "prod-2", price: 200 })
-        .returning();
-      const [p3] = await db
-        .insert(products)
-        .values({ handle: "prod-3", price: 300 })
-        .returning();
+      const [p1] = await db.insert(products).values({ handle: "prod-1", price: 100 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "prod-2", price: 200 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "prod-3", price: 300 }).returning();
 
       // Insert translations with specific ordering
       await db.insert(translations).values([
@@ -397,18 +361,9 @@ describe("View Pagination Integration Tests", () => {
       const db = getDb();
 
       // Insert products with same price
-      const [p1] = await db
-        .insert(products)
-        .values({ handle: "prod-1", price: 100 })
-        .returning();
-      const [p2] = await db
-        .insert(products)
-        .values({ handle: "prod-2", price: 100 })
-        .returning();
-      const [p3] = await db
-        .insert(products)
-        .values({ handle: "prod-3", price: 100 })
-        .returning();
+      const [p1] = await db.insert(products).values({ handle: "prod-1", price: 100 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "prod-2", price: 100 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "prod-3", price: 100 }).returning();
 
       // Insert translations
       await db.insert(translations).values([
@@ -460,22 +415,10 @@ describe("View Pagination Integration Tests", () => {
       const db = getDb();
 
       // Insert products
-      const [p1] = await db
-        .insert(products)
-        .values({ handle: "prod-1", price: 100 })
-        .returning();
-      const [p2] = await db
-        .insert(products)
-        .values({ handle: "prod-2", price: 200 })
-        .returning();
-      const [p3] = await db
-        .insert(products)
-        .values({ handle: "prod-3", price: 300 })
-        .returning();
-      const [p4] = await db
-        .insert(products)
-        .values({ handle: "prod-4", price: 400 })
-        .returning();
+      const [p1] = await db.insert(products).values({ handle: "prod-1", price: 100 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "prod-2", price: 200 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "prod-3", price: 300 }).returning();
+      const [p4] = await db.insert(products).values({ handle: "prod-4", price: 400 }).returning();
 
       // Insert translations
       await db.insert(translations).values([
@@ -495,7 +438,10 @@ describe("View Pagination Integration Tests", () => {
       });
 
       expect(all.edges.map((e) => e.node["translation.value"])).toEqual([
-        "First", "Second", "Third", "Fourth"
+        "First",
+        "Second",
+        "Third",
+        "Fourth",
       ]);
 
       // Get last 2 items
@@ -531,9 +477,7 @@ describe("View Pagination Integration Tests", () => {
         .values({ handle: "with-translation", price: 100 })
         .returning();
 
-      await db
-        .insert(products)
-        .values({ handle: "without-translation", price: 200 });
+      await db.insert(products).values({ handle: "without-translation", price: 200 });
 
       await db.insert(translations).values({
         entityId: p1.id,

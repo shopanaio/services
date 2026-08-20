@@ -8,8 +8,7 @@ const config = {
   filename: "remoteEntry.js",
   exposes: {
     "./Page": "./src/page.tsx",
-    "./CreateSmtpConnectionModal":
-      "./src/modals/create-smtp-connection-modal.tsx",
+    "./CreateSmtpConnectionModal": "./src/modals/create-smtp-connection-modal.tsx",
     "./SmtpDisconnectModal": "./src/modals/smtp-disconnect-modal.tsx",
   },
   shared: {

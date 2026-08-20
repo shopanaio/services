@@ -1,4 +1,6 @@
-"""Server-side normalization and validation state for an address."""
+"""
+Server-side normalization and validation state for an address.
+"""
 enum CustomerAddressValidationStatus {
   UNVALIDATED
   VALID
@@ -10,7 +12,9 @@ enum CustomerAddressDefaultType {
   BILLING
 }
 
-"""A normalized international mailing address owned by the current customer."""
+"""
+A normalized international mailing address owned by the current customer.
+"""
 type CustomerAddress implements Node @key(fields: "id") {
   id: ID!
   label: String
@@ -52,7 +56,9 @@ type CustomerAddressEdge {
   node: CustomerAddress!
 }
 
-"""Portable international mailing-address values."""
+"""
+Portable international mailing-address values.
+"""
 input CustomerAddressInput {
   label: String
   prefix: String
@@ -93,11 +99,17 @@ input CustomerAddressDeleteInput {
   idempotencyKey: String!
 }
 
-"""Atomically sets or clears either customer address default."""
+"""
+Atomically sets or clears either customer address default.
+"""
 input CustomerAddressDefaultSetInput {
-  """Null clears the selected default."""
+  """
+  Null clears the selected default.
+  """
   addressId: ID
-  """One or both defaults to assign or clear."""
+  """
+  One or both defaults to assign or clear.
+  """
   defaults: [CustomerAddressDefaultType!]!
   expectedRevision: Int!
   idempotencyKey: String!

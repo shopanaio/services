@@ -34,14 +34,8 @@ export function measureEnvelope(
 }
 
 export function planRevision(value: unknown): string {
-  const canonical = canonicalizeEnvelope(
-    value,
-    COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH,
-    "input",
-  );
-  return createHash("sha256")
-    .update(JSON.stringify(canonical))
-    .digest("hex");
+  const canonical = canonicalizeEnvelope(value, COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH, "input");
+  return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
 }
 
 export function envelopeDigest(
@@ -50,11 +44,7 @@ export function envelopeDigest(
   maxDepth: number,
   kind: "input" | "output",
 ): EnvelopeMeasurement {
-  const canonical = canonicalizeEnvelope(
-    value,
-    maxDepth,
-    kind,
-  );
+  const canonical = canonicalizeEnvelope(value, maxDepth, kind);
   const serialized = JSON.stringify(canonical);
   const bytes = Buffer.byteLength(serialized, "utf8");
   if (bytes > maxBytes) {
@@ -65,9 +55,7 @@ export function envelopeDigest(
   }
   return {
     bytes,
-    digest: createHash("sha256")
-      .update(serialized)
-      .digest("hex"),
+    digest: createHash("sha256").update(serialized).digest("hex"),
   };
 }
 
@@ -96,9 +84,7 @@ export function cloneAndFreeze<T>(value: T): Readonly<T> {
 function deepFreeze<T>(value: T): Readonly<T> {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
     Object.freeze(value);
-    for (const entry of Object.values(
-      value as Record<string, unknown>,
-    )) {
+    for (const entry of Object.values(value as Record<string, unknown>)) {
       deepFreeze(entry);
     }
   }

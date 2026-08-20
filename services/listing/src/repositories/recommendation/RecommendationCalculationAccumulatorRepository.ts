@@ -35,7 +35,13 @@ export interface MaterializationPageResult {
 export class RecommendationCalculationAccumulatorRepository extends BaseRepository {
   async accumulateNext(run: RecommendationCalculationRun): Promise<AccumulationPageResult> {
     if (run.materializationPhase !== "ACCUMULATE") {
-      return { done: true, consideredOrders: 0, committedOrders: 0, pairExpansions: 0, progressAfter: run.orderProgressAfter };
+      return {
+        done: true,
+        consideredOrders: 0,
+        committedOrders: 0,
+        pairExpansions: 0,
+        progressAfter: run.orderProgressAfter,
+      };
     }
     const locked = await this.connection.execute<{ runId: string }>(sql`
       SELECT run_id AS "runId"
@@ -86,7 +92,14 @@ export class RecommendationCalculationAccumulatorRepository extends BaseReposito
         AND e.committed_at < ${run.windowEndedAt}::timestamptz
       ORDER BY n.order_id, p.product_id
     `);
-    if (rows.length === 0) return { done: true, consideredOrders: 0, committedOrders: 0, pairExpansions: 0, progressAfter: run.orderProgressAfter };
+    if (rows.length === 0)
+      return {
+        done: true,
+        consideredOrders: 0,
+        committedOrders: 0,
+        pairExpansions: 0,
+        progressAfter: run.orderProgressAfter,
+      };
 
     const byOrder = new Map<string, EffectiveOrderRow[]>();
     for (const row of rows) {
@@ -106,14 +119,35 @@ export class RecommendationCalculationAccumulatorRepository extends BaseReposito
     const progressAfter = selected.at(-1)?.[0];
     if (!progressAfter) throw new Error("Recommendation accumulation selected no order");
 
-    const products = new Map<string, { ordersCount: bigint; quantity: bigint; lastPurchasedAt: string }>();
-    const pairs = new Map<string, { anchorProductId: string; targetProductId: string; ordersTogether: bigint; lastPurchasedTogetherAt: string }>();
+    const products = new Map<
+      string,
+      { ordersCount: bigint; quantity: bigint; lastPurchasedAt: string }
+    >();
+    const pairs = new Map<
+      string,
+      {
+        anchorProductId: string;
+        targetProductId: string;
+        ordersTogether: bigint;
+        lastPurchasedTogetherAt: string;
+      }
+    >();
     let committedOrders = 0;
     for (const [, orderRows] of selected) {
       const eligible = orderRows.filter(
-        (row): row is EffectiveOrderRow & { productId: string; quantity: number; committedAt: string } =>
-          row.state === "COMMITTED" && row.productId !== null && row.quantity !== null && row.committedAt !== null &&
-          row.committedAt >= run.windowStartedAt && row.committedAt < run.windowEndedAt,
+        (
+          row,
+        ): row is EffectiveOrderRow & {
+          productId: string;
+          quantity: number;
+          committedAt: string;
+        } =>
+          row.state === "COMMITTED" &&
+          row.productId !== null &&
+          row.quantity !== null &&
+          row.committedAt !== null &&
+          row.committedAt >= run.windowStartedAt &&
+          row.committedAt < run.windowEndedAt,
       );
       if (eligible.length === 0) continue;
       committedOrders += 1;
@@ -122,9 +156,10 @@ export class RecommendationCalculationAccumulatorRepository extends BaseReposito
         products.set(row.productId, {
           ordersCount: (current?.ordersCount ?? 0n) + 1n,
           quantity: (current?.quantity ?? 0n) + BigInt(row.quantity),
-          lastPurchasedAt: current && current.lastPurchasedAt > row.committedAt
-            ? current.lastPurchasedAt
-            : row.committedAt,
+          lastPurchasedAt:
+            current && current.lastPurchasedAt > row.committedAt
+              ? current.lastPurchasedAt
+              : row.committedAt,
         });
       }
       for (const anchor of eligible) {
@@ -232,7 +267,10 @@ export class RecommendationCalculationAccumulatorRepository extends BaseReposito
 
   async materializeProducts(run: RecommendationCalculationRun): Promise<MaterializationPageResult> {
     const rows = await this.connection.execute<{
-      productId: string; ordersCount: bigint; quantity: bigint; lastPurchasedAt: string;
+      productId: string;
+      ordersCount: bigint;
+      quantity: bigint;
+      lastPurchasedAt: string;
     }>(sql`
       SELECT product_id AS "productId", orders_count AS "ordersCount",
         quantity, last_purchased_at AS "lastPurchasedAt"
@@ -242,9 +280,15 @@ export class RecommendationCalculationAccumulatorRepository extends BaseReposito
       ORDER BY product_id
       LIMIT ${MATERIALIZATION_PAGE_SIZE}
     `);
-    if (rows.length === 0) return { done: true, inserted: 0, progressAfter: run.productProgressAfter };
+    if (rows.length === 0)
+      return { done: true, inserted: 0, progressAfter: run.productProgressAfter };
     const ids = await this.generateUuidV7s(rows.length);
-    const values = rows.map((row, index) => ({ id: ids[index]!, ...row, ordersCount: row.ordersCount.toString(), quantity: row.quantity.toString() }));
+    const values = rows.map((row, index) => ({
+      id: ids[index]!,
+      ...row,
+      ordersCount: row.ordersCount.toString(),
+      quantity: row.quantity.toString(),
+    }));
     await this.connection.execute(sql`
       INSERT INTO listing.recommendation_product_stat (
         product_stat_id, run_id, product_id, orders_count, quantity, last_purchased_at
@@ -273,7 +317,8 @@ export class RecommendationCalculationAccumulatorRepository extends BaseReposito
 
   async materializePairs(run: RecommendationCalculationRun): Promise<MaterializationPageResult> {
     const rows = await this.connection.execute<{
-      anchorProductId: string; targetProductId: string;
+      anchorProductId: string;
+      targetProductId: string;
     }>(sql`
       SELECT anchor_product_id AS "anchorProductId", target_product_id AS "targetProductId"
       FROM listing.recommendation_pair_accumulator

@@ -1,42 +1,43 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  earningRules,
-  type EarningRule,
-  type NewEarningRule,
-} from "../models/index.js";
+import { earningRules, type EarningRule, type NewEarningRule } from "../models/index.js";
 
 export class EarningRuleRepository extends BaseRepository {
   async getByIds(ids: readonly string[]): Promise<EarningRule[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(earningRules).where(and(
-      eq(earningRules.storeId, this.storeId),
-      inArray(earningRules.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(earningRules)
+      .where(and(eq(earningRules.storeId, this.storeId), inArray(earningRules.id, [...ids])));
   }
 
   async listForVersions(programVersionIds: readonly string[]): Promise<EarningRule[]> {
     if (programVersionIds.length === 0) return [];
-    return this.connection.select().from(earningRules).where(and(
-      eq(earningRules.storeId, this.storeId),
-      inArray(earningRules.programVersionId, [...programVersionIds]),
-    )).orderBy(asc(earningRules.programVersionId), asc(earningRules.priority), asc(earningRules.id));
+    return this.connection
+      .select()
+      .from(earningRules)
+      .where(
+        and(
+          eq(earningRules.storeId, this.storeId),
+          inArray(earningRules.programVersionId, [...programVersionIds]),
+        ),
+      )
+      .orderBy(
+        asc(earningRules.programVersionId),
+        asc(earningRules.priority),
+        asc(earningRules.id),
+      );
   }
   async findById(id: string): Promise<EarningRule | null> {
     const rows = await this.connection
       .select()
       .from(earningRules)
-      .where(
-        and(eq(earningRules.storeId, this.storeId), eq(earningRules.id, id)),
-      )
+      .where(and(eq(earningRules.storeId, this.storeId), eq(earningRules.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
 
-  async findByCode(
-    programVersionId: string,
-    code: string,
-  ): Promise<EarningRule | null> {
+  async findByCode(programVersionId: string, code: string): Promise<EarningRule | null> {
     const rows = await this.connection
       .select()
       .from(earningRules)
@@ -79,9 +80,7 @@ export class EarningRuleRepository extends BaseRepository {
     const rows = await this.connection
       .update(earningRules)
       .set(input)
-      .where(
-        and(eq(earningRules.storeId, this.storeId), eq(earningRules.id, id)),
-      )
+      .where(and(eq(earningRules.storeId, this.storeId), eq(earningRules.id, id)))
       .returning();
     return rows[0] ?? null;
   }
@@ -89,9 +88,7 @@ export class EarningRuleRepository extends BaseRepository {
   async delete(id: string): Promise<boolean> {
     const rows = await this.connection
       .delete(earningRules)
-      .where(
-        and(eq(earningRules.storeId, this.storeId), eq(earningRules.id, id)),
-      )
+      .where(and(eq(earningRules.storeId, this.storeId), eq(earningRules.id, id)))
       .returning({ id: earningRules.id });
     return rows.length > 0;
   }

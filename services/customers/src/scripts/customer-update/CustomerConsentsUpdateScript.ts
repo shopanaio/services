@@ -18,9 +18,7 @@ export class CustomerConsentsUpdateScript extends BaseScript<
   CustomerSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerConsentsUpdateParams
-  ): Promise<CustomerSectionResult> {
+  protected async execute(params: CustomerConsentsUpdateParams): Promise<CustomerSectionResult> {
     const errors: Array<{ message: string; code: string; field: string[] }> = [];
     const channels = new Set<string>();
 

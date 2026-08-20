@@ -46,11 +46,7 @@ const EMPTY_HISTORY: ApiVariantPriceConnection = {
   totalCount: 0,
 };
 
-export const PricingBlock = ({
-  product,
-  productId,
-  onProductRefresh,
-}: IPricingBlockProps) => {
+export const PricingBlock = ({ product, productId, onProductRefresh }: IPricingBlockProps) => {
   const { styles } = useStyles();
   const { message } = App.useApp();
   const defaultCurrency = useDefaultCurrency();
@@ -109,18 +105,13 @@ export const PricingBlock = ({
           includeMedia: false,
         });
       } catch (err) {
-        message.error(
-          err instanceof Error ? err.message : "Variant prices are invalid.",
-        );
+        message.error(err instanceof Error ? err.message : "Variant prices are invalid.");
         return {
           ok: false,
           operationResults: [],
           userErrors: [
             {
-              message:
-                err instanceof Error
-                  ? err.message
-                  : "Variant prices are invalid.",
+              message: err instanceof Error ? err.message : "Variant prices are invalid.",
               code: "VARIANT_PRICES_INVALID",
             },
           ],
@@ -212,11 +203,7 @@ export const PricingBlock = ({
           handleSavePrices(input.existingRows, editorVariants),
       });
     } catch (err) {
-      message.error(
-        err instanceof Error
-          ? err.message
-          : "Product variants could not be loaded",
-      );
+      message.error(err instanceof Error ? err.message : "Product variants could not be loaded");
     } finally {
       setIsPreparingEditor(false);
     }
@@ -240,13 +227,9 @@ export const PricingBlock = ({
   const currentPrice = data?.currentPrice ?? null;
   const costPrice = data?.currentCostPrice?.unitCostMinor ?? null;
   const priceCurrency =
-    data?.currentPrice?.currency ??
-    data?.currentCostPrice?.currency ??
-    data?.statistics.currency;
+    data?.currentPrice?.currency ?? data?.currentCostPrice?.currency ?? data?.statistics.currency;
   const costCurrency =
-    data?.currentCostPrice?.currency ??
-    data?.currentPrice?.currency ??
-    data?.statistics.currency;
+    data?.currentCostPrice?.currency ?? data?.currentPrice?.currency ?? data?.statistics.currency;
   const history = data?.history ?? EMPTY_HISTORY;
   const stats = data?.statistics ?? null;
   const hasPriceRecords =
@@ -294,11 +277,7 @@ export const PricingBlock = ({
               </div>
             </div>
 
-            <KPIRow
-              stats={stats}
-              costPrice={costPrice}
-              costCurrency={costCurrency}
-            />
+            <KPIRow stats={stats} costPrice={costPrice} costCurrency={costCurrency} />
           </>
         )}
       </Paper>

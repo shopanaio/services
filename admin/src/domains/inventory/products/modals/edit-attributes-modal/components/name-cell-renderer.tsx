@@ -1,11 +1,16 @@
-import { LuFolder as FolderOutlined, LuFolderOpen as FolderOpenOutlined, LuTags as TagsOutlined, LuChevronRight as RightOutlined, LuChevronDown as DownOutlined } from "react-icons/lu";
+import {
+  LuFolder as FolderOutlined,
+  LuFolderOpen as FolderOpenOutlined,
+  LuTags as TagsOutlined,
+  LuChevronRight as RightOutlined,
+  LuChevronDown as DownOutlined,
+} from "react-icons/lu";
 import { Badge } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import { useStyles } from "../edit-attributes-modal.styles";
 import type { AttributeEditorRow } from "../types";
 
-export interface INameCellRendererParams
-  extends ICellRendererParams<AttributeEditorRow> {
+export interface INameCellRendererParams extends ICellRendererParams<AttributeEditorRow> {
   expandedIds: Set<string>;
   onToggleExpand: (id: string) => void;
   allRows: AttributeEditorRow[];
@@ -18,8 +23,7 @@ export const NameCellRenderer = (params: INameCellRendererParams) => {
 
   const { expandedIds, onToggleExpand, allRows } = params;
   // Only groups can have children (attributes)
-  const hasChildren =
-    data.type === "group" && allRows.some((r) => r.parentId === data.id);
+  const hasChildren = data.type === "group" && allRows.some((r) => r.parentId === data.id);
   const isExpanded = expandedIds.has(data.id);
 
   const getIcon = () => {
@@ -59,13 +63,7 @@ export const NameCellRenderer = (params: INameCellRendererParams) => {
 
       {getIcon()}
       <span>{data.name}</span>
-      {data.featured && (
-        <Badge
-          className={styles.featuredBadge}
-          color="gold"
-          text="* Featured"
-        />
-      )}
+      {data.featured && <Badge className={styles.featuredBadge} color="gold" text="* Featured" />}
     </div>
   );
 };

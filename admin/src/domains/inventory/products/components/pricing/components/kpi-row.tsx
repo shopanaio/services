@@ -1,8 +1,5 @@
 import { KPITile } from "@/ui-kit/kpi-tile";
-import type {
-  ApiVariantPriceHistoryStatistics,
-  CurrencyCode,
-} from "@/graphql/types";
+import type { ApiVariantPriceHistoryStatistics, CurrencyCode } from "@/graphql/types";
 import { formatPrice } from "../../../utils/price-formatting";
 import { useStyles } from "../pricing-block.styles";
 
@@ -12,11 +9,7 @@ export interface IKPIRowProps {
   costCurrency?: CurrencyCode | null;
 }
 
-export const KPIRow = ({
-  stats,
-  costPrice,
-  costCurrency,
-}: IKPIRowProps) => {
+export const KPIRow = ({ stats, costPrice, costCurrency }: IKPIRowProps) => {
   const { styles } = useStyles();
   const statsCurrency = stats?.currency;
   const resolvedCostCurrency = costCurrency ?? statsCurrency;
@@ -25,38 +18,28 @@ export const KPIRow = ({
     <div className={styles.kpiRow}>
       <KPITile
         label="Cost"
-        value={
-          costPrice !== null
-            ? formatPrice(costPrice, resolvedCostCurrency)
-            : "\u2014"
-        }
+        value={costPrice !== null ? formatPrice(costPrice, resolvedCostCurrency) : "\u2014"}
         tooltip={costPrice !== null ? "Product cost price" : "Cost data missing"}
         centered
         className={styles.kpiTile}
       />
       <KPITile
         label="Min"
-        value={
-          stats ? formatPrice(stats.minPriceMinor, statsCurrency) : "\u2014"
-        }
+        value={stats ? formatPrice(stats.minPriceMinor, statsCurrency) : "\u2014"}
         tooltip="Minimum price over the period"
         centered
         className={styles.kpiTile}
       />
       <KPITile
         label="Max"
-        value={
-          stats ? formatPrice(stats.maxPriceMinor, statsCurrency) : "\u2014"
-        }
+        value={stats ? formatPrice(stats.maxPriceMinor, statsCurrency) : "\u2014"}
         tooltip="Maximum price over the period"
         centered
         className={styles.kpiTile}
       />
       <KPITile
         label="Avg"
-        value={
-          stats ? formatPrice(stats.avgPriceMinor, statsCurrency) : "\u2014"
-        }
+        value={stats ? formatPrice(stats.avgPriceMinor, statsCurrency) : "\u2014"}
         tooltip="Average price over the period"
         centered
         className={styles.kpiTile}

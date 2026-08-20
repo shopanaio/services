@@ -44,8 +44,7 @@ const useStyles = createStyles(({ token }) => ({
 
 export const GeneralSection = () => {
   const { styles } = useStyles();
-  const { control, watch, setValue } =
-    useFormContext<ICreateCategoryFormValues>();
+  const { control, watch, setValue } = useFormContext<ICreateCategoryFormValues>();
   const [isHandleManual, setIsHandleManual] = useState(false);
 
   const name = watch("name");
@@ -84,9 +83,7 @@ export const GeneralSection = () => {
           <div className={styles.label}>
             Handle
             <Tooltip title="URL-friendly identifier. Auto-generated from name if left empty.">
-              <InfoCircleOutlined
-                style={{ color: "var(--ant-color-text-secondary)" }}
-              />
+              <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
             </Tooltip>
           </div>
           <Controller

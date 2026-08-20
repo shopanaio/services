@@ -1,1184 +1,1185 @@
-import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { GraphQLContext } from './context.js';
+import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from "graphql";
+import { GraphQLContext } from "./context.js";
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
-export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = {
+  [_ in K]?: never;
+};
+export type Incremental<T> =
+  T | { [P in keyof T]?: P extends " $fragmentName" | "__typename" ? T[P] : never };
 export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type RequireFields<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
-  ID: { input: string; output: string; }
-  String: { input: string; output: string; }
-  Boolean: { input: boolean; output: boolean; }
-  Int: { input: number; output: number; }
-  Float: { input: number; output: number; }
-  BigInt: { input: number; output: number; }
-  DateTime: { input: any; output: any; }
-  Email: { input: string; output: string; }
-  JSON: { input: unknown; output: unknown; }
+  ID: { input: string; output: string };
+  String: { input: string; output: string };
+  Boolean: { input: boolean; output: boolean };
+  Int: { input: number; output: number };
+  Float: { input: number; output: number };
+  BigInt: { input: number; output: number };
+  DateTime: { input: any; output: any };
+  Email: { input: string; output: string };
+  JSON: { input: unknown; output: unknown };
 };
 
 export type ApiApiKey = {
-  __typename?: 'ApiKey';
-  id: Scalars['ID']['output'];
+  __typename?: "ApiKey";
+  id: Scalars["ID"]["output"];
 };
 
 export type ApiCollectionMeta = {
-  __typename?: 'CollectionMeta';
-  count: Scalars['Int']['output'];
-  page: Scalars['Int']['output'];
-  pageCount: Scalars['Int']['output'];
-  pageSize: Scalars['Int']['output'];
-  total: Scalars['Int']['output'];
+  __typename?: "CollectionMeta";
+  count: Scalars["Int"]["output"];
+  page: Scalars["Int"]["output"];
+  pageCount: Scalars["Int"]["output"];
+  pageSize: Scalars["Int"]["output"];
+  total: Scalars["Int"]["output"];
 };
 
 export enum ApiCountryCode {
   /** Andorra */
-  Ad = 'AD',
+  Ad = "AD",
   /** United Arab Emirates */
-  Ae = 'AE',
+  Ae = "AE",
   /** Afghanistan */
-  Af = 'AF',
+  Af = "AF",
   /** Antigua and Barbuda */
-  Ag = 'AG',
+  Ag = "AG",
   /** Albania */
-  Al = 'AL',
+  Al = "AL",
   /** Armenia */
-  Am = 'AM',
+  Am = "AM",
   /** Angola */
-  Ao = 'AO',
+  Ao = "AO",
   /** Argentina */
-  Ar = 'AR',
+  Ar = "AR",
   /** Austria */
-  At = 'AT',
+  At = "AT",
   /** Australia */
-  Au = 'AU',
+  Au = "AU",
   /** Aruba */
-  Aw = 'AW',
+  Aw = "AW",
   /** Åland Islands */
-  Ax = 'AX',
+  Ax = "AX",
   /** Azerbaijan */
-  Az = 'AZ',
+  Az = "AZ",
   /** Bosnia and Herzegovina */
-  Ba = 'BA',
+  Ba = "BA",
   /** Barbados */
-  Bb = 'BB',
+  Bb = "BB",
   /** Bangladesh */
-  Bd = 'BD',
+  Bd = "BD",
   /** Belgium */
-  Be = 'BE',
+  Be = "BE",
   /** Burkina Faso */
-  Bf = 'BF',
+  Bf = "BF",
   /** Bulgaria */
-  Bg = 'BG',
+  Bg = "BG",
   /** Bahrain */
-  Bh = 'BH',
+  Bh = "BH",
   /** Burundi */
-  Bi = 'BI',
+  Bi = "BI",
   /** Benin */
-  Bj = 'BJ',
+  Bj = "BJ",
   /** Bermuda */
-  Bm = 'BM',
+  Bm = "BM",
   /** Brunei */
-  Bn = 'BN',
+  Bn = "BN",
   /** Bolivia */
-  Bo = 'BO',
+  Bo = "BO",
   /** Brazil */
-  Br = 'BR',
+  Br = "BR",
   /** Bahamas */
-  Bs = 'BS',
+  Bs = "BS",
   /** Bhutan */
-  Bt = 'BT',
+  Bt = "BT",
   /** Botswana */
-  Bw = 'BW',
+  Bw = "BW",
   /** Belarus */
-  By = 'BY',
+  By = "BY",
   /** Belize */
-  Bz = 'BZ',
+  Bz = "BZ",
   /** Canada */
-  Ca = 'CA',
+  Ca = "CA",
   /** Democratic Republic of the Congo */
-  Cd = 'CD',
+  Cd = "CD",
   /** Central African Republic */
-  Cf = 'CF',
+  Cf = "CF",
   /** Republic of the Congo */
-  Cg = 'CG',
+  Cg = "CG",
   /** Switzerland */
-  Ch = 'CH',
+  Ch = "CH",
   /** Ivory Coast */
-  Ci = 'CI',
+  Ci = "CI",
   /** Chile */
-  Cl = 'CL',
+  Cl = "CL",
   /** Cameroon */
-  Cm = 'CM',
+  Cm = "CM",
   /** China */
-  Cn = 'CN',
+  Cn = "CN",
   /** Colombia */
-  Co = 'CO',
+  Co = "CO",
   /** Costa Rica */
-  Cr = 'CR',
+  Cr = "CR",
   /** Cuba */
-  Cu = 'CU',
+  Cu = "CU",
   /** Cape Verde */
-  Cv = 'CV',
+  Cv = "CV",
   /** Curaçao */
-  Cw = 'CW',
+  Cw = "CW",
   /** Cyprus */
-  Cy = 'CY',
+  Cy = "CY",
   /** Czech Republic */
-  Cz = 'CZ',
+  Cz = "CZ",
   /** Germany */
-  De = 'DE',
+  De = "DE",
   /** Djibouti */
-  Dj = 'DJ',
+  Dj = "DJ",
   /** Denmark */
-  Dk = 'DK',
+  Dk = "DK",
   /** Dominica */
-  Dm = 'DM',
+  Dm = "DM",
   /** Dominican Republic */
-  Do = 'DO',
+  Do = "DO",
   /** Algeria */
-  Dz = 'DZ',
+  Dz = "DZ",
   /** Ecuador */
-  Ec = 'EC',
+  Ec = "EC",
   /** Estonia */
-  Ee = 'EE',
+  Ee = "EE",
   /** Egypt */
-  Eg = 'EG',
+  Eg = "EG",
   /** Western Sahara */
-  Eh = 'EH',
+  Eh = "EH",
   /** Eritrea */
-  Er = 'ER',
+  Er = "ER",
   /** Spain */
-  Es = 'ES',
+  Es = "ES",
   /** Ethiopia */
-  Et = 'ET',
+  Et = "ET",
   /** Finland */
-  Fi = 'FI',
+  Fi = "FI",
   /** Fiji */
-  Fj = 'FJ',
+  Fj = "FJ",
   /** Micronesia */
-  Fm = 'FM',
+  Fm = "FM",
   /** Faroe Islands */
-  Fo = 'FO',
+  Fo = "FO",
   /** France */
-  Fr = 'FR',
+  Fr = "FR",
   /** Gabon */
-  Ga = 'GA',
+  Ga = "GA",
   /** United Kingdom */
-  Gb = 'GB',
+  Gb = "GB",
   /** Grenada */
-  Gd = 'GD',
+  Gd = "GD",
   /** Georgia */
-  Ge = 'GE',
+  Ge = "GE",
   /** Guernsey */
-  Gg = 'GG',
+  Gg = "GG",
   /** Ghana */
-  Gh = 'GH',
+  Gh = "GH",
   /** Greenland */
-  Gl = 'GL',
+  Gl = "GL",
   /** Gambia */
-  Gm = 'GM',
+  Gm = "GM",
   /** Guinea */
-  Gn = 'GN',
+  Gn = "GN",
   /** Equatorial Guinea */
-  Gq = 'GQ',
+  Gq = "GQ",
   /** Greece */
-  Gr = 'GR',
+  Gr = "GR",
   /** Guatemala */
-  Gt = 'GT',
+  Gt = "GT",
   /** Guinea-Bissau */
-  Gw = 'GW',
+  Gw = "GW",
   /** Guyana */
-  Gy = 'GY',
+  Gy = "GY",
   /** Honduras */
-  Hn = 'HN',
+  Hn = "HN",
   /** Croatia */
-  Hr = 'HR',
+  Hr = "HR",
   /** Haiti */
-  Ht = 'HT',
+  Ht = "HT",
   /** Hungary */
-  Hu = 'HU',
+  Hu = "HU",
   /** Indonesia */
-  Id = 'ID',
+  Id = "ID",
   /** Ireland */
-  Ie = 'IE',
+  Ie = "IE",
   /** Israel */
-  Il = 'IL',
+  Il = "IL",
   /** Isle of Man */
-  Im = 'IM',
+  Im = "IM",
   /** India */
-  In = 'IN',
+  In = "IN",
   /** Iraq */
-  Iq = 'IQ',
+  Iq = "IQ",
   /** Iran */
-  Ir = 'IR',
+  Ir = "IR",
   /** Iceland */
-  Is = 'IS',
+  Is = "IS",
   /** Italy */
-  It = 'IT',
+  It = "IT",
   /** Jersey */
-  Je = 'JE',
+  Je = "JE",
   /** Jamaica */
-  Jm = 'JM',
+  Jm = "JM",
   /** Jordan */
-  Jo = 'JO',
+  Jo = "JO",
   /** Japan */
-  Jp = 'JP',
+  Jp = "JP",
   /** Kenya */
-  Ke = 'KE',
+  Ke = "KE",
   /** Kyrgyzstan */
-  Kg = 'KG',
+  Kg = "KG",
   /** Cambodia */
-  Kh = 'KH',
+  Kh = "KH",
   /** Comoros */
-  Km = 'KM',
+  Km = "KM",
   /** Saint Kitts and Nevis */
-  Kn = 'KN',
+  Kn = "KN",
   /** North Korea */
-  Kp = 'KP',
+  Kp = "KP",
   /** South Korea */
-  Kr = 'KR',
+  Kr = "KR",
   /** Kuwait */
-  Kw = 'KW',
+  Kw = "KW",
   /** Kazakhstan */
-  Kz = 'KZ',
+  Kz = "KZ",
   /** Laos */
-  La = 'LA',
+  La = "LA",
   /** Lebanon */
-  Lb = 'LB',
+  Lb = "LB",
   /** Saint Lucia */
-  Lc = 'LC',
+  Lc = "LC",
   /** Liechtenstein */
-  Li = 'LI',
+  Li = "LI",
   /** Sri Lanka */
-  Lk = 'LK',
+  Lk = "LK",
   /** Liberia */
-  Lr = 'LR',
+  Lr = "LR",
   /** Lesotho */
-  Ls = 'LS',
+  Ls = "LS",
   /** Lithuania */
-  Lt = 'LT',
+  Lt = "LT",
   /** Luxembourg */
-  Lu = 'LU',
+  Lu = "LU",
   /** Latvia */
-  Lv = 'LV',
+  Lv = "LV",
   /** Morocco */
-  Ma = 'MA',
+  Ma = "MA",
   /** Monaco */
-  Mc = 'MC',
+  Mc = "MC",
   /** Moldova */
-  Md = 'MD',
+  Md = "MD",
   /** Montenegro */
-  Me = 'ME',
+  Me = "ME",
   /** Madagascar */
-  Mg = 'MG',
+  Mg = "MG",
   /** Marshall Islands */
-  Mh = 'MH',
+  Mh = "MH",
   /** North Macedonia */
-  Mk = 'MK',
+  Mk = "MK",
   /** Mali */
-  Ml = 'ML',
+  Ml = "ML",
   /** Myanmar */
-  Mm = 'MM',
+  Mm = "MM",
   /** Mongolia */
-  Mn = 'MN',
+  Mn = "MN",
   /** Mauritania */
-  Mr = 'MR',
+  Mr = "MR",
   /** Malta */
-  Mt = 'MT',
+  Mt = "MT",
   /** Mauritius */
-  Mu = 'MU',
+  Mu = "MU",
   /** Maldives */
-  Mv = 'MV',
+  Mv = "MV",
   /** Malawi */
-  Mw = 'MW',
+  Mw = "MW",
   /** Mexico */
-  Mx = 'MX',
+  Mx = "MX",
   /** Malaysia */
-  My = 'MY',
+  My = "MY",
   /** Mozambique */
-  Mz = 'MZ',
+  Mz = "MZ",
   /** Namibia */
-  Na = 'NA',
+  Na = "NA",
   /** New Caledonia */
-  Nc = 'NC',
+  Nc = "NC",
   /** Niger */
-  Ne = 'NE',
+  Ne = "NE",
   /** Nigeria */
-  Ng = 'NG',
+  Ng = "NG",
   /** Nicaragua */
-  Ni = 'NI',
+  Ni = "NI",
   /** Netherlands */
-  Nl = 'NL',
+  Nl = "NL",
   /** Norway */
-  No = 'NO',
+  No = "NO",
   /** Nepal */
-  Np = 'NP',
+  Np = "NP",
   /** New Zealand */
-  Nz = 'NZ',
+  Nz = "NZ",
   /** Oman */
-  Om = 'OM',
+  Om = "OM",
   /** Panama */
-  Pa = 'PA',
+  Pa = "PA",
   /** Peru */
-  Pe = 'PE',
+  Pe = "PE",
   /** Papua New Guinea */
-  Pg = 'PG',
+  Pg = "PG",
   /** Philippines */
-  Ph = 'PH',
+  Ph = "PH",
   /** Pakistan */
-  Pk = 'PK',
+  Pk = "PK",
   /** Poland */
-  Pl = 'PL',
+  Pl = "PL",
   /** Palestine */
-  Ps = 'PS',
+  Ps = "PS",
   /** Portugal */
-  Pt = 'PT',
+  Pt = "PT",
   /** Palau */
-  Pw = 'PW',
+  Pw = "PW",
   /** Paraguay */
-  Py = 'PY',
+  Py = "PY",
   /** Qatar */
-  Qa = 'QA',
+  Qa = "QA",
   /** Romania */
-  Ro = 'RO',
+  Ro = "RO",
   /** Serbia */
-  Rs = 'RS',
+  Rs = "RS",
   /** Russia */
-  Ru = 'RU',
+  Ru = "RU",
   /** Rwanda */
-  Rw = 'RW',
+  Rw = "RW",
   /** Saudi Arabia */
-  Sa = 'SA',
+  Sa = "SA",
   /** Solomon Islands */
-  Sb = 'SB',
+  Sb = "SB",
   /** Seychelles */
-  Sc = 'SC',
+  Sc = "SC",
   /** Sudan */
-  Sd = 'SD',
+  Sd = "SD",
   /** Sweden */
-  Se = 'SE',
+  Se = "SE",
   /** Singapore */
-  Sg = 'SG',
+  Sg = "SG",
   /** Slovenia */
-  Si = 'SI',
+  Si = "SI",
   /** Slovakia */
-  Sk = 'SK',
+  Sk = "SK",
   /** Sierra Leone */
-  Sl = 'SL',
+  Sl = "SL",
   /** San Marino */
-  Sm = 'SM',
+  Sm = "SM",
   /** Senegal */
-  Sn = 'SN',
+  Sn = "SN",
   /** Suriname */
-  Sr = 'SR',
+  Sr = "SR",
   /** South Sudan */
-  Ss = 'SS',
+  Ss = "SS",
   /** El Salvador */
-  Sv = 'SV',
+  Sv = "SV",
   /** Syria */
-  Sy = 'SY',
+  Sy = "SY",
   /** Swaziland (Eswatini) */
-  Sz = 'SZ',
+  Sz = "SZ",
   /** Chad */
-  Td = 'TD',
+  Td = "TD",
   /** Togo */
-  Tg = 'TG',
+  Tg = "TG",
   /** Thailand */
-  Th = 'TH',
+  Th = "TH",
   /** Tajikistan */
-  Tj = 'TJ',
+  Tj = "TJ",
   /** Timor-Leste (East Timor) */
-  Tl = 'TL',
+  Tl = "TL",
   /** Turkmenistan */
-  Tm = 'TM',
+  Tm = "TM",
   /** Tunisia */
-  Tn = 'TN',
+  Tn = "TN",
   /** Tonga */
-  To = 'TO',
+  To = "TO",
   /** Turkey */
-  Tr = 'TR',
+  Tr = "TR",
   /** Trinidad and Tobago */
-  Tt = 'TT',
+  Tt = "TT",
   /** Tanzania */
-  Tz = 'TZ',
+  Tz = "TZ",
   /** Ukraine */
-  Ua = 'UA',
+  Ua = "UA",
   /** Uganda */
-  Ug = 'UG',
+  Ug = "UG",
   /** United States */
-  Us = 'US',
+  Us = "US",
   /** Uruguay */
-  Uy = 'UY',
+  Uy = "UY",
   /** Uzbekistan */
-  Uz = 'UZ',
+  Uz = "UZ",
   /** Vatican City */
-  Va = 'VA',
+  Va = "VA",
   /** Saint Vincent and the Grenadines */
-  Vc = 'VC',
+  Vc = "VC",
   /** Venezuela */
-  Ve = 'VE',
+  Ve = "VE",
   /** British Virgin Islands */
-  Vg = 'VG',
+  Vg = "VG",
   /** US Virgin Islands */
-  Vi = 'VI',
+  Vi = "VI",
   /** Vietnam */
-  Vn = 'VN',
+  Vn = "VN",
   /** Vanuatu */
-  Vu = 'VU',
+  Vu = "VU",
   /** Samoa */
-  Ws = 'WS',
+  Ws = "WS",
   /** Kosovo */
-  Xk = 'XK',
+  Xk = "XK",
   /** Yemen */
-  Ye = 'YE',
+  Ye = "YE",
   /** South Africa */
-  Za = 'ZA',
+  Za = "ZA",
   /** Zambia */
-  Zm = 'ZM',
+  Zm = "ZM",
   /** Zimbabwe */
-  Zw = 'ZW'
+  Zw = "ZW",
 }
 
 /** Currency codes according to ISO 4217 */
 export enum ApiCurrencyCode {
   /** UAE Dirham (United Arab Emirates) - 2 decimals */
-  Aed = 'AED',
+  Aed = "AED",
   /** Afghan Afghani (Afghanistan) - 0 decimals */
-  Afn = 'AFN',
+  Afn = "AFN",
   /** Albanian Lek (Albania) - 0 decimals */
-  All = 'ALL',
+  All = "ALL",
   /** Armenian Dram (Armenia) - 2 decimals */
-  Amd = 'AMD',
+  Amd = "AMD",
   /** Netherlands Antillean Guilder - 2 decimals */
-  Ang = 'ANG',
+  Ang = "ANG",
   /** Angolan Kwanza (Angola) - 2 decimals */
-  Aoa = 'AOA',
+  Aoa = "AOA",
   /** Argentine Peso (Argentina) - 2 decimals */
-  Ars = 'ARS',
+  Ars = "ARS",
   /** Australian Dollar (Australia) - 2 decimals */
-  Aud = 'AUD',
+  Aud = "AUD",
   /** Aruban Florin (Aruba) - 2 decimals */
-  Awg = 'AWG',
+  Awg = "AWG",
   /** Azerbaijani Manat (Azerbaijan) - 2 decimals */
-  Azn = 'AZN',
+  Azn = "AZN",
   /** Bosnia-Herzegovina Convertible Mark - 2 decimals */
-  Bam = 'BAM',
+  Bam = "BAM",
   /** Barbadian Dollar (Barbados) - 2 decimals */
-  Bbd = 'BBD',
+  Bbd = "BBD",
   /** Bangladeshi Taka (Bangladesh) - 2 decimals */
-  Bdt = 'BDT',
+  Bdt = "BDT",
   /** Bulgarian Lev (Bulgaria) - 2 decimals */
-  Bgn = 'BGN',
+  Bgn = "BGN",
   /** Bahraini Dinar (Bahrain) - 3 decimals */
-  Bhd = 'BHD',
+  Bhd = "BHD",
   /** Burundian Franc (Burundi) - 0 decimals */
-  Bif = 'BIF',
+  Bif = "BIF",
   /** Bermudian Dollar (Bermuda) - 2 decimals */
-  Bmd = 'BMD',
+  Bmd = "BMD",
   /** Brunei Dollar (Brunei) - 2 decimals */
-  Bnd = 'BND',
+  Bnd = "BND",
   /** Bolivian Boliviano (Bolivia) - 2 decimals */
-  Bob = 'BOB',
+  Bob = "BOB",
   /** Brazilian Real (Brazil) - 2 decimals */
-  Brl = 'BRL',
+  Brl = "BRL",
   /** Bahamian Dollar (Bahamas) - 2 decimals */
-  Bsd = 'BSD',
+  Bsd = "BSD",
   /** Bhutanese Ngultrum (Bhutan) - 2 decimals */
-  Btn = 'BTN',
+  Btn = "BTN",
   /** Botswana Pula (Botswana) - 2 decimals */
-  Bwp = 'BWP',
+  Bwp = "BWP",
   /** Belarusian Ruble (Belarus) - 2 decimals */
-  Byn = 'BYN',
+  Byn = "BYN",
   /** Belize Dollar (Belize) - 2 decimals */
-  Bzd = 'BZD',
+  Bzd = "BZD",
   /** Canadian Dollar (Canada) - 2 decimals */
-  Cad = 'CAD',
+  Cad = "CAD",
   /** Congolese Franc (DR Congo) - 2 decimals */
-  Cdf = 'CDF',
+  Cdf = "CDF",
   /** Swiss Franc (Switzerland) - 2 decimals */
-  Chf = 'CHF',
+  Chf = "CHF",
   /** Chilean Peso (Chile) - 0 decimals */
-  Clp = 'CLP',
+  Clp = "CLP",
   /** Chinese Yuan (China) - 2 decimals */
-  Cny = 'CNY',
+  Cny = "CNY",
   /** Colombian Peso (Colombia) - 2 decimals */
-  Cop = 'COP',
+  Cop = "COP",
   /** Costa Rican Colon (Costa Rica) - 2 decimals */
-  Crc = 'CRC',
+  Crc = "CRC",
   /** Cuban Peso (Cuba) - 2 decimals */
-  Cup = 'CUP',
+  Cup = "CUP",
   /** Cape Verdean Escudo (Cape Verde) - 2 decimals */
-  Cve = 'CVE',
+  Cve = "CVE",
   /** Czech Koruna (Czech Republic) - 2 decimals */
-  Czk = 'CZK',
+  Czk = "CZK",
   /** Djiboutian Franc (Djibouti) - 0 decimals */
-  Djf = 'DJF',
+  Djf = "DJF",
   /** Danish Krone (Denmark) - 2 decimals */
-  Dkk = 'DKK',
+  Dkk = "DKK",
   /** Dominican Peso (Dominican Republic) - 2 decimals */
-  Dop = 'DOP',
+  Dop = "DOP",
   /** Algerian Dinar (Algeria) - 2 decimals */
-  Dzd = 'DZD',
+  Dzd = "DZD",
   /** Egyptian Pound (Egypt) - 2 decimals */
-  Egp = 'EGP',
+  Egp = "EGP",
   /** Eritrean Nakfa (Eritrea) - 2 decimals */
-  Ern = 'ERN',
+  Ern = "ERN",
   /** Ethiopian Birr (Ethiopia) - 2 decimals */
-  Etb = 'ETB',
+  Etb = "ETB",
   /** Euro (European Union) - 2 decimals */
-  Eur = 'EUR',
+  Eur = "EUR",
   /** Fijian Dollar (Fiji) - 2 decimals */
-  Fjd = 'FJD',
+  Fjd = "FJD",
   /** Falkland Islands Pound - 2 decimals */
-  Fkp = 'FKP',
+  Fkp = "FKP",
   /** Faroese Króna (Faroe Islands) - 2 decimals */
-  Fok = 'FOK',
+  Fok = "FOK",
   /** Pound Sterling (United Kingdom) - 2 decimals */
-  Gbp = 'GBP',
+  Gbp = "GBP",
   /** Georgian Lari (Georgia) - 2 decimals */
-  Gel = 'GEL',
+  Gel = "GEL",
   /** Guernsey Pound (Guernsey) - 2 decimals */
-  Ggp = 'GGP',
+  Ggp = "GGP",
   /** Ghanaian Cedi (Ghana) - 2 decimals */
-  Ghs = 'GHS',
+  Ghs = "GHS",
   /** Gibraltar Pound (Gibraltar) - 2 decimals */
-  Gip = 'GIP',
+  Gip = "GIP",
   /** Gambian Dalasi (Gambia) - 2 decimals */
-  Gmd = 'GMD',
+  Gmd = "GMD",
   /** Guinean Franc (Guinea) - 0 decimals */
-  Gnf = 'GNF',
+  Gnf = "GNF",
   /** Guatemalan Quetzal (Guatemala) - 2 decimals */
-  Gtq = 'GTQ',
+  Gtq = "GTQ",
   /** Guyanese Dollar (Guyana) - 2 decimals */
-  Gyd = 'GYD',
+  Gyd = "GYD",
   /** Hong Kong Dollar (Hong Kong) - 2 decimals */
-  Hkd = 'HKD',
+  Hkd = "HKD",
   /** Honduran Lempira (Honduras) - 2 decimals */
-  Hnl = 'HNL',
+  Hnl = "HNL",
   /** Croatian Kuna (Croatia) - 2 decimals */
-  Hrk = 'HRK',
+  Hrk = "HRK",
   /** Haitian Gourde (Haiti) - 2 decimals */
-  Htg = 'HTG',
+  Htg = "HTG",
   /** Hungarian Forint (Hungary) - 2 decimals */
-  Huf = 'HUF',
+  Huf = "HUF",
   /** Indonesian Rupiah (Indonesia) - 0 decimals */
-  Idr = 'IDR',
+  Idr = "IDR",
   /** Israeli New Shekel (Israel) - 2 decimals */
-  Ils = 'ILS',
+  Ils = "ILS",
   /** Isle of Man Pound - 2 decimals */
-  Imp = 'IMP',
+  Imp = "IMP",
   /** Indian Rupee (India) - 2 decimals */
-  Inr = 'INR',
+  Inr = "INR",
   /** Iraqi Dinar (Iraq) - 3 decimals */
-  Iqd = 'IQD',
+  Iqd = "IQD",
   /** Iranian Rial (Iran) - 2 decimals */
-  Irr = 'IRR',
+  Irr = "IRR",
   /** Icelandic Króna (Iceland) - 0 decimals */
-  Isk = 'ISK',
+  Isk = "ISK",
   /** Jersey Pound (Jersey) - 2 decimals */
-  Jep = 'JEP',
+  Jep = "JEP",
   /** Jamaican Dollar (Jamaica) - 2 decimals */
-  Jmd = 'JMD',
+  Jmd = "JMD",
   /** Jordanian Dinar (Jordan) - 3 decimals */
-  Jod = 'JOD',
+  Jod = "JOD",
   /** Japanese Yen (Japan) - 0 decimals */
-  Jpy = 'JPY',
+  Jpy = "JPY",
   /** Kenyan Shilling (Kenya) - 2 decimals */
-  Kes = 'KES',
+  Kes = "KES",
   /** Kyrgyzstani Som (Kyrgyzstan) - 2 decimals */
-  Kgs = 'KGS',
+  Kgs = "KGS",
   /** Cambodian Riel (Cambodia) - 2 decimals */
-  Khr = 'KHR',
+  Khr = "KHR",
   /** Comorian Franc (Comoros) - 2 decimals */
-  Kmf = 'KMF',
+  Kmf = "KMF",
   /** North Korean Won (North Korea) - 2 decimals */
-  Kpw = 'KPW',
+  Kpw = "KPW",
   /** South Korean Won (South Korea) - 0 decimals */
-  Krw = 'KRW',
+  Krw = "KRW",
   /** Kuwaiti Dinar (Kuwait) - 3 decimals */
-  Kwd = 'KWD',
+  Kwd = "KWD",
   /** Cayman Islands Dollar - 2 decimals */
-  Kyd = 'KYD',
+  Kyd = "KYD",
   /** Kazakhstani Tenge (Kazakhstan) - 2 decimals */
-  Kzt = 'KZT',
+  Kzt = "KZT",
   /** Lao Kip (Laos) - 2 decimals */
-  Lak = 'LAK',
+  Lak = "LAK",
   /** Lebanese Pound (Lebanon) - 2 decimals */
-  Lbp = 'LBP',
+  Lbp = "LBP",
   /** Sri Lankan Rupee (Sri Lanka) - 2 decimals */
-  Lkr = 'LKR',
+  Lkr = "LKR",
   /** Liberian Dollar (Liberia) - 2 decimals */
-  Lrd = 'LRD',
+  Lrd = "LRD",
   /** Lesotho Loti (Lesotho) - 2 decimals */
-  Lsl = 'LSL',
+  Lsl = "LSL",
   /** Libyan Dinar (Libya) - 3 decimals */
-  Lyd = 'LYD',
+  Lyd = "LYD",
   /** Moroccan Dirham (Morocco) - 2 decimals */
-  Mad = 'MAD',
+  Mad = "MAD",
   /** Moldovan Leu (Moldova) - 2 decimals */
-  Mdl = 'MDL',
+  Mdl = "MDL",
   /** Malagasy Ariary (Madagascar) - 2 decimals */
-  Mga = 'MGA',
+  Mga = "MGA",
   /** Macedonian Denar (North Macedonia) - 2 decimals */
-  Mkd = 'MKD',
+  Mkd = "MKD",
   /** Burmese Kyat (Myanmar) - 2 decimals */
-  Mmk = 'MMK',
+  Mmk = "MMK",
   /** Mongolian Tögrög (Mongolia) - 2 decimals */
-  Mnt = 'MNT',
+  Mnt = "MNT",
   /** Macanese Pataca (Macau) - 2 decimals */
-  Mop = 'MOP',
+  Mop = "MOP",
   /** Mauritanian Ouguiya (Mauritania) - 2 decimals */
-  Mru = 'MRU',
+  Mru = "MRU",
   /** Mauritian Rupee (Mauritius) - 2 decimals */
-  Mur = 'MUR',
+  Mur = "MUR",
   /** Maldivian Rufiyaa (Maldives) - 2 decimals */
-  Mvr = 'MVR',
+  Mvr = "MVR",
   /** Malawian Kwacha (Malawi) - 2 decimals */
-  Mwk = 'MWK',
+  Mwk = "MWK",
   /** Mexican Peso (Mexico) - 2 decimals */
-  Mxn = 'MXN',
+  Mxn = "MXN",
   /** Malaysian Ringgit (Malaysia) - 2 decimals */
-  Myr = 'MYR',
+  Myr = "MYR",
   /** Mozambican Metical (Mozambique) - 2 decimals */
-  Mzn = 'MZN',
+  Mzn = "MZN",
   /** Namibian Dollar (Namibia) - 2 decimals */
-  Nad = 'NAD',
+  Nad = "NAD",
   /** Nigerian Naira (Nigeria) - 2 decimals */
-  Ngn = 'NGN',
+  Ngn = "NGN",
   /** Nicaraguan Córdoba (Nicaragua) - 2 decimals */
-  Nio = 'NIO',
+  Nio = "NIO",
   /** Norwegian Krone (Norway) - 2 decimals */
-  Nok = 'NOK',
+  Nok = "NOK",
   /** Nepalese Rupee (Nepal) - 2 decimals */
-  Npr = 'NPR',
+  Npr = "NPR",
   /** New Zealand Dollar (New Zealand) - 2 decimals */
-  Nzd = 'NZD',
+  Nzd = "NZD",
   /** Omani Rial (Oman) - 3 decimals */
-  Omr = 'OMR',
+  Omr = "OMR",
   /** Panamanian Balboa (Panama) - 2 decimals */
-  Pab = 'PAB',
+  Pab = "PAB",
   /** Peruvian Sol (Peru) - 2 decimals */
-  Pen = 'PEN',
+  Pen = "PEN",
   /** Papua New Guinean Kina - 2 decimals */
-  Pgk = 'PGK',
+  Pgk = "PGK",
   /** Philippine Peso (Philippines) - 2 decimals */
-  Php = 'PHP',
+  Php = "PHP",
   /** Pakistani Rupee (Pakistan) - 2 decimals */
-  Pkr = 'PKR',
+  Pkr = "PKR",
   /** Polish Zloty (Poland) - 2 decimals */
-  Pln = 'PLN',
+  Pln = "PLN",
   /** Paraguayan Guaraní (Paraguay) - 0 decimals */
-  Pyg = 'PYG',
+  Pyg = "PYG",
   /** Qatari Riyal (Qatar) - 2 decimals */
-  Qar = 'QAR',
+  Qar = "QAR",
   /** Romanian Leu (Romania) - 2 decimals */
-  Ron = 'RON',
+  Ron = "RON",
   /** Serbian Dinar (Serbia) - 2 decimals */
-  Rsd = 'RSD',
+  Rsd = "RSD",
   /** Russian Ruble (Russia) - 2 decimals */
-  Rub = 'RUB',
+  Rub = "RUB",
   /** Rwandan Franc (Rwanda) - 0 decimals */
-  Rwf = 'RWF',
+  Rwf = "RWF",
   /** Saudi Riyal (Saudi Arabia) - 2 decimals */
-  Sar = 'SAR',
+  Sar = "SAR",
   /** Solomon Islands Dollar - 2 decimals */
-  Sbd = 'SBD',
+  Sbd = "SBD",
   /** Seychelles Rupee (Seychelles) - 2 decimals */
-  Scr = 'SCR',
+  Scr = "SCR",
   /** Sudanese Pound (Sudan) - 2 decimals */
-  Sdg = 'SDG',
+  Sdg = "SDG",
   /** Swedish Krona (Sweden) - 2 decimals */
-  Sek = 'SEK',
+  Sek = "SEK",
   /** Singapore Dollar (Singapore) - 2 decimals */
-  Sgd = 'SGD',
+  Sgd = "SGD",
   /** Saint Helena Pound - 2 decimals */
-  Shp = 'SHP',
+  Shp = "SHP",
   /** Sierra Leonean Leone - 2 decimals */
-  Sle = 'SLE',
+  Sle = "SLE",
   /** Somali Shilling (Somalia) - 2 decimals */
-  Sos = 'SOS',
+  Sos = "SOS",
   /** Surinamese Dollar (Suriname) - 2 decimals */
-  Srd = 'SRD',
+  Srd = "SRD",
   /** South Sudanese Pound - 2 decimals */
-  Ssp = 'SSP',
+  Ssp = "SSP",
   /** São Tomé and Príncipe Dobra - 2 decimals */
-  Stn = 'STN',
+  Stn = "STN",
   /** Salvadoran Colón (El Salvador) - 2 decimals */
-  Svc = 'SVC',
+  Svc = "SVC",
   /** Syrian Pound (Syria) - 2 decimals */
-  Syp = 'SYP',
+  Syp = "SYP",
   /** Eswatini Lilangeni (Eswatini) - 2 decimals */
-  Szl = 'SZL',
+  Szl = "SZL",
   /** Thai Baht (Thailand) - 2 decimals */
-  Thb = 'THB',
+  Thb = "THB",
   /** Tajikistani Somoni (Tajikistan) - 2 decimals */
-  Tjs = 'TJS',
+  Tjs = "TJS",
   /** Turkmenistani Manat (Turkmenistan) - 2 decimals */
-  Tmt = 'TMT',
+  Tmt = "TMT",
   /** Tunisian Dinar (Tunisia) - 3 decimals */
-  Tnd = 'TND',
+  Tnd = "TND",
   /** Tongan Paʻanga (Tonga) - 2 decimals */
-  Top = 'TOP',
+  Top = "TOP",
   /** Turkish Lira (Turkey) - 2 decimals */
-  Try = 'TRY',
+  Try = "TRY",
   /** Trinidad and Tobago Dollar - 2 decimals */
-  Ttd = 'TTD',
+  Ttd = "TTD",
   /** New Taiwan Dollar (Taiwan) - 2 decimals */
-  Twd = 'TWD',
+  Twd = "TWD",
   /** Tanzanian Shilling (Tanzania) - 2 decimals */
-  Tzs = 'TZS',
+  Tzs = "TZS",
   /** Ukrainian Hryvnia (Ukraine) - 2 decimals */
-  Uah = 'UAH',
+  Uah = "UAH",
   /** Ugandan Shilling (Uganda) - 0 decimals */
-  Ugx = 'UGX',
+  Ugx = "UGX",
   /** United States Dollar (USA) - 2 decimals */
-  Usd = 'USD',
+  Usd = "USD",
   /** Uruguayan Peso (Uruguay) - 2 decimals */
-  Uyu = 'UYU',
+  Uyu = "UYU",
   /** Uzbekistani Som (Uzbekistan) - 2 decimals */
-  Uzs = 'UZS',
+  Uzs = "UZS",
   /** Venezuelan Bolívar (Venezuela) - 2 decimals */
-  Ves = 'VES',
+  Ves = "VES",
   /** Vietnamese Dong (Vietnam) - 0 decimals */
-  Vnd = 'VND',
+  Vnd = "VND",
   /** Vanuatu Vatu (Vanuatu) - 0 decimals */
-  Vuv = 'VUV',
+  Vuv = "VUV",
   /** Samoan Tala (Samoa) - 2 decimals */
-  Wst = 'WST',
+  Wst = "WST",
   /** Central African CFA Franc - 0 decimals */
-  Xaf = 'XAF',
+  Xaf = "XAF",
   /** East Caribbean Dollar - 2 decimals */
-  Xcd = 'XCD',
+  Xcd = "XCD",
   /** Special Drawing Rights (IMF) - 0 decimals */
-  Xdr = 'XDR',
+  Xdr = "XDR",
   /** West African CFA Franc - 0 decimals */
-  Xof = 'XOF',
+  Xof = "XOF",
   /** CFP Franc - 0 decimals */
-  Xpf = 'XPF',
+  Xpf = "XPF",
   /** Yemeni Rial (Yemen) - 2 decimals */
-  Yer = 'YER',
+  Yer = "YER",
   /** South African Rand (South Africa) - 2 decimals */
-  Zar = 'ZAR',
+  Zar = "ZAR",
   /** Zambian Kwacha (Zambia) - 2 decimals */
-  Zmw = 'ZMW',
+  Zmw = "ZMW",
   /** Zimbabwean Dollar (Zimbabwe) - 2 decimals */
-  Zwl = 'ZWL'
+  Zwl = "ZWL",
 }
 
 export type ApiCustomer = {
-  __typename?: 'Customer';
-  id: Scalars['ID']['output'];
+  __typename?: "Customer";
+  id: Scalars["ID"]["output"];
 };
 
 /** Dimension (length) measurement units */
 export enum ApiDimensionUnit {
   /** Centimeter */
-  Cm = 'cm',
+  Cm = "cm",
   /** Foot */
-  Ft = 'ft',
+  Ft = "ft",
   /** Inch */
-  In = 'in',
+  In = "in",
   /** Meter */
-  M = 'm',
+  M = "m",
   /** Millimeter */
-  Mm = 'mm'
+  Mm = "mm",
 }
 
 export type ApiLabel = {
-  __typename?: 'Label';
-  id: Scalars['ID']['output'];
+  __typename?: "Label";
+  id: Scalars["ID"]["output"];
 };
 
 /** Language/Locale codes based on ISO 639-1 and BCP 47 */
 export enum ApiLocaleCode {
   /** Akan */
-  Ak = 'ak',
+  Ak = "ak",
   /** Amharic */
-  Am = 'am',
+  Am = "am",
   /** Arabic */
-  Ar = 'ar',
+  Ar = "ar",
   /** Assamese */
-  As = 'as',
+  As = "as",
   /** Azerbaijani */
-  Az = 'az',
+  Az = "az",
   /** Belarusian */
-  Be = 'be',
+  Be = "be",
   /** Bulgarian */
-  Bg = 'bg',
+  Bg = "bg",
   /** Bambara */
-  Bm = 'bm',
+  Bm = "bm",
   /** Bangla */
-  Bn = 'bn',
+  Bn = "bn",
   /** Tibetan */
-  Bo = 'bo',
+  Bo = "bo",
   /** Breton */
-  Br = 'br',
+  Br = "br",
   /** Bosnian */
-  Bs = 'bs',
+  Bs = "bs",
   /** Catalan */
-  Ca = 'ca',
+  Ca = "ca",
   /** Chechen */
-  Ce = 'ce',
+  Ce = "ce",
   /** Central Kurdish */
-  Ckb = 'ckb',
+  Ckb = "ckb",
   /** Czech */
-  Cs = 'cs',
+  Cs = "cs",
   /** Welsh */
-  Cy = 'cy',
+  Cy = "cy",
   /** Danish */
-  Da = 'da',
+  Da = "da",
   /** German */
-  De = 'de',
+  De = "de",
   /** Dzongkha */
-  Dz = 'dz',
+  Dz = "dz",
   /** Ewe */
-  Ee = 'ee',
+  Ee = "ee",
   /** Greek */
-  El = 'el',
+  El = "el",
   /** English */
-  En = 'en',
+  En = "en",
   /** Esperanto */
-  Eo = 'eo',
+  Eo = "eo",
   /** Spanish */
-  Es = 'es',
+  Es = "es",
   /** Estonian */
-  Et = 'et',
+  Et = "et",
   /** Basque */
-  Eu = 'eu',
+  Eu = "eu",
   /** Persian */
-  Fa = 'fa',
+  Fa = "fa",
   /** Fulah */
-  Ff = 'ff',
+  Ff = "ff",
   /** Finnish */
-  Fi = 'fi',
+  Fi = "fi",
   /** Filipino */
-  Fil = 'fil',
+  Fil = "fil",
   /** Faroese */
-  Fo = 'fo',
+  Fo = "fo",
   /** French */
-  Fr = 'fr',
+  Fr = "fr",
   /** Western Frisian */
-  Fy = 'fy',
+  Fy = "fy",
   /** Irish */
-  Ga = 'ga',
+  Ga = "ga",
   /** Scottish Gaelic */
-  Gd = 'gd',
+  Gd = "gd",
   /** Galician */
-  Gl = 'gl',
+  Gl = "gl",
   /** Gujarati */
-  Gu = 'gu',
+  Gu = "gu",
   /** Manx */
-  Gv = 'gv',
+  Gv = "gv",
   /** Hausa */
-  Ha = 'ha',
+  Ha = "ha",
   /** Hebrew */
-  He = 'he',
+  He = "he",
   /** Hindi */
-  Hi = 'hi',
+  Hi = "hi",
   /** Croatian */
-  Hr = 'hr',
+  Hr = "hr",
   /** Hungarian */
-  Hu = 'hu',
+  Hu = "hu",
   /** Armenian */
-  Hy = 'hy',
+  Hy = "hy",
   /** Interlingua */
-  Ia = 'ia',
+  Ia = "ia",
   /** Indonesian */
-  Id = 'id',
+  Id = "id",
   /** Igbo */
-  Ig = 'ig',
+  Ig = "ig",
   /** Sichuan Yi */
-  Ii = 'ii',
+  Ii = "ii",
   /** Icelandic */
-  Is = 'is',
+  Is = "is",
   /** Italian */
-  It = 'it',
+  It = "it",
   /** Japanese */
-  Ja = 'ja',
+  Ja = "ja",
   /** Javanese */
-  Jv = 'jv',
+  Jv = "jv",
   /** Georgian */
-  Ka = 'ka',
+  Ka = "ka",
   /** Kikuyu */
-  Ki = 'ki',
+  Ki = "ki",
   /** Kazakh */
-  Kk = 'kk',
+  Kk = "kk",
   /** Kalaallisut */
-  Kl = 'kl',
+  Kl = "kl",
   /** Khmer */
-  Km = 'km',
+  Km = "km",
   /** Kannada */
-  Kn = 'kn',
+  Kn = "kn",
   /** Korean */
-  Ko = 'ko',
+  Ko = "ko",
   /** Kashmiri */
-  Ks = 'ks',
+  Ks = "ks",
   /** Kurdish */
-  Ku = 'ku',
+  Ku = "ku",
   /** Cornish */
-  Kw = 'kw',
+  Kw = "kw",
   /** Kyrgyz */
-  Ky = 'ky',
+  Ky = "ky",
   /** Luxembourgish */
-  Lb = 'lb',
+  Lb = "lb",
   /** Ganda */
-  Lg = 'lg',
+  Lg = "lg",
   /** Lingala */
-  Ln = 'ln',
+  Ln = "ln",
   /** Lao */
-  Lo = 'lo',
+  Lo = "lo",
   /** Lithuanian */
-  Lt = 'lt',
+  Lt = "lt",
   /** Luba-Katanga */
-  Lu = 'lu',
+  Lu = "lu",
   /** Latvian */
-  Lv = 'lv',
+  Lv = "lv",
   /** Malagasy */
-  Mg = 'mg',
+  Mg = "mg",
   /** Māori */
-  Mi = 'mi',
+  Mi = "mi",
   /** Macedonian */
-  Mk = 'mk',
+  Mk = "mk",
   /** Malayalam */
-  Ml = 'ml',
+  Ml = "ml",
   /** Mongolian */
-  Mn = 'mn',
+  Mn = "mn",
   /** Marathi */
-  Mr = 'mr',
+  Mr = "mr",
   /** Malay */
-  Ms = 'ms',
+  Ms = "ms",
   /** Maltese */
-  Mt = 'mt',
+  Mt = "mt",
   /** Burmese */
-  My = 'my',
+  My = "my",
   /** Norwegian Bokmål */
-  Nb = 'nb',
+  Nb = "nb",
   /** North Ndebele */
-  Nd = 'nd',
+  Nd = "nd",
   /** Nepali */
-  Ne = 'ne',
+  Ne = "ne",
   /** Dutch */
-  Nl = 'nl',
+  Nl = "nl",
   /** Norwegian Nynorsk */
-  Nn = 'nn',
+  Nn = "nn",
   /** Norwegian */
-  No = 'no',
+  No = "no",
   /** Oromo */
-  Om = 'om',
+  Om = "om",
   /** Odia */
-  Or = 'or',
+  Or = "or",
   /** Ossetic */
-  Os = 'os',
+  Os = "os",
   /** Punjabi */
-  Pa = 'pa',
+  Pa = "pa",
   /** Polish */
-  Pl = 'pl',
+  Pl = "pl",
   /** Pashto */
-  Ps = 'ps',
+  Ps = "ps",
   /** Portuguese (Brazil) */
-  PtBr = 'pt_BR',
+  PtBr = "pt_BR",
   /** Portuguese (Portugal) */
-  PtPt = 'pt_PT',
+  PtPt = "pt_PT",
   /** Quechua */
-  Qu = 'qu',
+  Qu = "qu",
   /** Romansh */
-  Rm = 'rm',
+  Rm = "rm",
   /** Rundi */
-  Rn = 'rn',
+  Rn = "rn",
   /** Romanian */
-  Ro = 'ro',
+  Ro = "ro",
   /** Russian */
-  Ru = 'ru',
+  Ru = "ru",
   /** Kinyarwanda */
-  Rw = 'rw',
+  Rw = "rw",
   /** Sanskrit */
-  Sa = 'sa',
+  Sa = "sa",
   /** Sardinian */
-  Sc = 'sc',
+  Sc = "sc",
   /** Sindhi */
-  Sd = 'sd',
+  Sd = "sd",
   /** Northern Sami */
-  Se = 'se',
+  Se = "se",
   /** Sango */
-  Sg = 'sg',
+  Sg = "sg",
   /** Sinhala */
-  Si = 'si',
+  Si = "si",
   /** Slovak */
-  Sk = 'sk',
+  Sk = "sk",
   /** Slovenian */
-  Sl = 'sl',
+  Sl = "sl",
   /** Shona */
-  Sn = 'sn',
+  Sn = "sn",
   /** Somali */
-  So = 'so',
+  So = "so",
   /** Albanian */
-  Sq = 'sq',
+  Sq = "sq",
   /** Serbian */
-  Sr = 'sr',
+  Sr = "sr",
   /** Sundanese */
-  Su = 'su',
+  Su = "su",
   /** Swedish */
-  Sv = 'sv',
+  Sv = "sv",
   /** Swahili */
-  Sw = 'sw',
+  Sw = "sw",
   /** Tamil */
-  Ta = 'ta',
+  Ta = "ta",
   /** Telugu */
-  Te = 'te',
+  Te = "te",
   /** Tajik */
-  Tg = 'tg',
+  Tg = "tg",
   /** Thai */
-  Th = 'th',
+  Th = "th",
   /** Tigrinya */
-  Ti = 'ti',
+  Ti = "ti",
   /** Turkmen */
-  Tk = 'tk',
+  Tk = "tk",
   /** Tongan */
-  To = 'to',
+  To = "to",
   /** Turkish */
-  Tr = 'tr',
+  Tr = "tr",
   /** Tatar */
-  Tt = 'tt',
+  Tt = "tt",
   /** Uyghur */
-  Ug = 'ug',
+  Ug = "ug",
   /** Ukrainian */
-  Uk = 'uk',
+  Uk = "uk",
   /** Urdu */
-  Ur = 'ur',
+  Ur = "ur",
   /** Uzbek */
-  Uz = 'uz',
+  Uz = "uz",
   /** Vietnamese */
-  Vi = 'vi',
+  Vi = "vi",
   /** Wolof */
-  Wo = 'wo',
+  Wo = "wo",
   /** Xhosa */
-  Xh = 'xh',
+  Xh = "xh",
   /** Yiddish */
-  Yi = 'yi',
+  Yi = "yi",
   /** Yoruba */
-  Yo = 'yo',
+  Yo = "yo",
   /** Chinese (Simplified) */
-  ZhCn = 'zh_CN',
+  ZhCn = "zh_CN",
   /** Chinese (Traditional) */
-  ZhTw = 'zh_TW',
+  ZhTw = "zh_TW",
   /** Zulu */
-  Zu = 'zu'
+  Zu = "zu",
 }
 
 export type ApiNode = {
-  id: Scalars['ID']['output'];
+  id: Scalars["ID"]["output"];
 };
 
 export type ApiOrder = {
-  __typename?: 'Order';
-  adminNote: Maybe<Scalars['String']['output']>;
-  createdAt: Scalars['DateTime']['output'];
+  __typename?: "Order";
+  adminNote: Maybe<Scalars["String"]["output"]>;
+  createdAt: Scalars["DateTime"]["output"];
   createdBy: ApiOrderActor;
-  currencyCode: Scalars['String']['output'];
+  currencyCode: Scalars["String"]["output"];
   customerIdentity: ApiOrderCustomerIdentity;
-  customerNote: Maybe<Scalars['String']['output']>;
+  customerNote: Maybe<Scalars["String"]["output"]>;
   customerStatistic: ApiOrderCustomerStatistic;
-  deletedAt: Maybe<Scalars['DateTime']['output']>;
-  discountTotal: Maybe<Scalars['BigInt']['output']>;
-  grandTotal: Scalars['BigInt']['output'];
-  id: Scalars['ID']['output'];
+  deletedAt: Maybe<Scalars["DateTime"]["output"]>;
+  discountTotal: Maybe<Scalars["BigInt"]["output"]>;
+  grandTotal: Scalars["BigInt"]["output"];
+  id: Scalars["ID"]["output"];
   labels: Array<ApiLabel>;
   lines: Array<ApiOrderLine>;
-  number: Scalars['BigInt']['output'];
-  shippingTotal: Maybe<Scalars['BigInt']['output']>;
+  number: Scalars["BigInt"]["output"];
+  shippingTotal: Maybe<Scalars["BigInt"]["output"]>;
   status: ApiOrderStatus;
-  subtotal: Scalars['BigInt']['output'];
+  subtotal: Scalars["BigInt"]["output"];
   tags: Array<ApiTag>;
-  taxTotal: Maybe<Scalars['BigInt']['output']>;
-  updatedAt: Scalars['DateTime']['output'];
+  taxTotal: Maybe<Scalars["BigInt"]["output"]>;
+  updatedAt: Scalars["DateTime"]["output"];
 };
 
 export type ApiOrderActor = ApiApiKey | ApiUser;
 
 export type ApiOrderCustomerIdentity = {
-  __typename?: 'OrderCustomerIdentity';
+  __typename?: "OrderCustomerIdentity";
   countryCode: Maybe<ApiCountryCode>;
   customer: Maybe<ApiCustomer>;
-  data: Maybe<Scalars['JSON']['output']>;
-  email: Maybe<Scalars['Email']['output']>;
-  phone: Maybe<Scalars['String']['output']>;
+  data: Maybe<Scalars["JSON"]["output"]>;
+  email: Maybe<Scalars["Email"]["output"]>;
+  phone: Maybe<Scalars["String"]["output"]>;
 };
 
 export type ApiOrderCustomerStatistic = {
-  __typename?: 'OrderCustomerStatistic';
-  totalAuthorizedOrders: Scalars['Int']['output'];
-  totalGuestOrders: Scalars['Int']['output'];
-  totalRevenue: Scalars['Int']['output'];
+  __typename?: "OrderCustomerStatistic";
+  totalAuthorizedOrders: Scalars["Int"]["output"];
+  totalGuestOrders: Scalars["Int"]["output"];
+  totalRevenue: Scalars["Int"]["output"];
 };
 
 export type ApiOrderDeliveryAddress = {
-  __typename?: 'OrderDeliveryAddress';
-  address1: Scalars['String']['output'];
-  address2: Maybe<Scalars['String']['output']>;
-  city: Scalars['String']['output'];
+  __typename?: "OrderDeliveryAddress";
+  address1: Scalars["String"]["output"];
+  address2: Maybe<Scalars["String"]["output"]>;
+  city: Scalars["String"]["output"];
   countryCode: ApiCountryCode;
-  data: Maybe<Scalars['JSON']['output']>;
-  email: Maybe<Scalars['Email']['output']>;
-  firstName: Maybe<Scalars['String']['output']>;
-  id: Scalars['ID']['output'];
-  lastName: Maybe<Scalars['String']['output']>;
-  postalCode: Maybe<Scalars['String']['output']>;
-  provinceCode: Maybe<Scalars['String']['output']>;
+  data: Maybe<Scalars["JSON"]["output"]>;
+  email: Maybe<Scalars["Email"]["output"]>;
+  firstName: Maybe<Scalars["String"]["output"]>;
+  id: Scalars["ID"]["output"];
+  lastName: Maybe<Scalars["String"]["output"]>;
+  postalCode: Maybe<Scalars["String"]["output"]>;
+  provinceCode: Maybe<Scalars["String"]["output"]>;
 };
 
 export type ApiOrderLine = {
-  __typename?: 'OrderLine';
-  createdAt: Scalars['DateTime']['output'];
-  discountAmount: Scalars['Int']['output'];
-  id: Scalars['ID']['output'];
-  purchasableId: Scalars['ID']['output'];
-  quantity: Scalars['Int']['output'];
-  subtotalAmount: Scalars['Int']['output'];
-  taxAmount: Maybe<Scalars['Int']['output']>;
-  totalAmount: Scalars['Int']['output'];
-  unitComparePrice: Scalars['Int']['output'];
-  unitPrice: Scalars['Int']['output'];
-  updatedAt: Scalars['DateTime']['output'];
+  __typename?: "OrderLine";
+  createdAt: Scalars["DateTime"]["output"];
+  discountAmount: Scalars["Int"]["output"];
+  id: Scalars["ID"]["output"];
+  purchasableId: Scalars["ID"]["output"];
+  quantity: Scalars["Int"]["output"];
+  subtotalAmount: Scalars["Int"]["output"];
+  taxAmount: Maybe<Scalars["Int"]["output"]>;
+  totalAmount: Scalars["Int"]["output"];
+  unitComparePrice: Scalars["Int"]["output"];
+  unitPrice: Scalars["Int"]["output"];
+  updatedAt: Scalars["DateTime"]["output"];
 };
 
 export type ApiOrderQuery = {
-  __typename?: 'OrderQuery';
+  __typename?: "OrderQuery";
   order: Maybe<ApiOrder>;
   orders: ApiOrdersOutput;
 };
 
-
 export type ApiOrderQueryOrderArgs = {
-  id: Scalars['ID']['input'];
+  id: Scalars["ID"]["input"];
 };
-
 
 export type ApiOrderQueryOrdersArgs = {
   input: InputMaybe<ApiOrdersInput>;
 };
 
 export enum ApiOrderStatus {
-  Active = 'ACTIVE',
-  Cancelled = 'CANCELLED',
-  Closed = 'CLOSED',
-  Draft = 'DRAFT'
+  Active = "ACTIVE",
+  Cancelled = "CANCELLED",
+  Closed = "CLOSED",
+  Draft = "DRAFT",
 }
 
 export type ApiOrdersInput = {
-  order: InputMaybe<Scalars['String']['input']>;
-  page: InputMaybe<Scalars['Int']['input']>;
-  pageSize: InputMaybe<Scalars['Int']['input']>;
-  where: InputMaybe<Scalars['JSON']['input']>;
+  order: InputMaybe<Scalars["String"]["input"]>;
+  page: InputMaybe<Scalars["Int"]["input"]>;
+  pageSize: InputMaybe<Scalars["Int"]["input"]>;
+  where: InputMaybe<Scalars["JSON"]["input"]>;
 };
 
 export type ApiOrdersOutput = {
-  __typename?: 'OrdersOutput';
+  __typename?: "OrdersOutput";
   data: Array<ApiOrder>;
   meta: ApiCollectionMeta;
 };
@@ -1186,95 +1187,100 @@ export type ApiOrdersOutput = {
 /** Direction in which a price adjustment changes the base price. */
 export enum ApiPriceAdjustmentOperation {
   /** Subtract the calculated value from the base price. */
-  Decrease = 'DECREASE',
+  Decrease = "DECREASE",
   /** Add the calculated value to the base price. */
-  Increase = 'INCREASE'
+  Increase = "INCREASE",
 }
 
 /** Representation used to calculate a price adjustment. */
 export enum ApiPriceAdjustmentValueType {
   /** Use a monetary value expressed in minor currency units. */
-  FixedAmount = 'FIXED_AMOUNT',
+  FixedAmount = "FIXED_AMOUNT",
   /** Calculate the value from basis points where 10000 equals 100%. */
-  Percentage = 'PERCENTAGE'
+  Percentage = "PERCENTAGE",
 }
 
 export type ApiPurchasable = {
   /** Unique identifier of the purchasable entity. */
-  id: Scalars['ID']['output'];
+  id: Scalars["ID"]["output"];
 };
 
 export type ApiPurchasableSnapshot = ApiPurchasable & {
-  __typename?: 'PurchasableSnapshot';
-  id: Scalars['ID']['output'];
-  purchasableSnapshot: Scalars['JSON']['output'];
+  __typename?: "PurchasableSnapshot";
+  id: Scalars["ID"]["output"];
+  purchasableSnapshot: Scalars["JSON"]["output"];
 };
 
 export type ApiQuery = {
-  __typename?: 'Query';
+  __typename?: "Query";
   orderQuery: ApiOrderQuery;
 };
 
 export type ApiTag = {
-  __typename?: 'Tag';
-  id: Scalars['ID']['output'];
+  __typename?: "Tag";
+  id: Scalars["ID"]["output"];
 };
 
 export type ApiUser = {
-  __typename?: 'User';
-  id: Scalars['ID']['output'];
+  __typename?: "User";
+  id: Scalars["ID"]["output"];
 };
 
 export type ApiWeight = {
-  __typename?: 'Weight';
+  __typename?: "Weight";
   unit: ApiWeightUnit;
-  weight: Scalars['Float']['output'];
+  weight: Scalars["Float"]["output"];
 };
 
 /** Weight measurement units */
 export enum ApiWeightUnit {
   /** Gram */
-  G = 'g',
+  G = "g",
   /** Kilogram */
-  Kg = 'kg',
+  Kg = "kg",
   /** Pound */
-  Lb = 'lb',
+  Lb = "lb",
   /** Ounce */
-  Oz = 'oz'
+  Oz = "oz",
 }
 
-
-
 export type ResolverTypeWrapper<T> = Promise<T> | T;
-
 
 export type ResolverWithResolve<TResult, TParent, TContext, TArgs> = {
   resolve: ResolverFn<TResult, TParent, TContext, TArgs>;
 };
-export type Resolver<TResult, TParent = {}, TContext = {}, TArgs = {}> = ResolverFn<TResult, TParent, TContext, TArgs> | ResolverWithResolve<TResult, TParent, TContext, TArgs>;
+export type Resolver<TResult, TParent = {}, TContext = {}, TArgs = {}> =
+  | ResolverFn<TResult, TParent, TContext, TArgs>
+  | ResolverWithResolve<TResult, TParent, TContext, TArgs>;
 
 export type ResolverFn<TResult, TParent, TContext, TArgs> = (
   parent: TParent,
   args: TArgs,
   context: TContext,
-  info: GraphQLResolveInfo
+  info: GraphQLResolveInfo,
 ) => Promise<TResult> | TResult;
 
 export type SubscriptionSubscribeFn<TResult, TParent, TContext, TArgs> = (
   parent: TParent,
   args: TArgs,
   context: TContext,
-  info: GraphQLResolveInfo
+  info: GraphQLResolveInfo,
 ) => AsyncIterable<TResult> | Promise<AsyncIterable<TResult>>;
 
 export type SubscriptionResolveFn<TResult, TParent, TContext, TArgs> = (
   parent: TParent,
   args: TArgs,
   context: TContext,
-  info: GraphQLResolveInfo
+  info: GraphQLResolveInfo,
 ) => TResult | Promise<TResult>;
 
-export interface SubscriptionSubscriberObject<TResult, TKey extends string, TParent, TContext, TArgs> {
+export interface SubscriptionSubscriberObject<
+  TResult,
+  TKey extends string,
+  TParent,
+  TContext,
+  TArgs,
+> {
   subscribe: SubscriptionSubscribeFn<{ [key in TKey]: TResult }, TParent, TContext, TArgs>;
   resolve?: SubscriptionResolveFn<TResult, { [key in TKey]: TResult }, TContext, TArgs>;
 }
@@ -1288,17 +1294,27 @@ export type SubscriptionObject<TResult, TKey extends string, TParent, TContext, 
   | SubscriptionSubscriberObject<TResult, TKey, TParent, TContext, TArgs>
   | SubscriptionResolverObject<TResult, TParent, TContext, TArgs>;
 
-export type SubscriptionResolver<TResult, TKey extends string, TParent = {}, TContext = {}, TArgs = {}> =
+export type SubscriptionResolver<
+  TResult,
+  TKey extends string,
+  TParent = {},
+  TContext = {},
+  TArgs = {},
+> =
   | ((...args: any[]) => SubscriptionObject<TResult, TKey, TParent, TContext, TArgs>)
   | SubscriptionObject<TResult, TKey, TParent, TContext, TArgs>;
 
 export type TypeResolveFn<TTypes, TParent = {}, TContext = {}> = (
   parent: TParent,
   context: TContext,
-  info: GraphQLResolveInfo
+  info: GraphQLResolveInfo,
 ) => Maybe<TTypes> | Promise<Maybe<TTypes>>;
 
-export type IsTypeOfResolverFn<T = {}, TContext = {}> = (obj: T, context: TContext, info: GraphQLResolveInfo) => boolean | Promise<boolean>;
+export type IsTypeOfResolverFn<T = {}, TContext = {}> = (
+  obj: T,
+  context: TContext,
+  info: GraphQLResolveInfo,
+) => boolean | Promise<boolean>;
 
 export type NextResolverFn<T> = () => Promise<T>;
 
@@ -1307,55 +1323,64 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
   parent: TParent,
   args: TArgs,
   context: TContext,
-  info: GraphQLResolveInfo
+  info: GraphQLResolveInfo,
 ) => TResult | Promise<TResult>;
 
 /** Mapping of union types */
 export type ApiResolversUnionTypes<_RefType extends Record<string, unknown>> = {
-  OrderActor: ( ApiApiKey ) | ( ApiUser );
+  OrderActor: ApiApiKey | ApiUser;
 };
 
 /** Mapping of interface types */
 export type ApiResolversInterfaceTypes<_RefType extends Record<string, unknown>> = {
   Node: never;
-  Purchasable: ( ApiPurchasableSnapshot );
+  Purchasable: ApiPurchasableSnapshot;
 };
 
 /** Mapping between all available schema types and the resolvers types */
 export type ApiResolversTypes = {
   ApiKey: ResolverTypeWrapper<ApiApiKey>;
-  BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
-  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  BigInt: ResolverTypeWrapper<Scalars["BigInt"]["output"]>;
+  Boolean: ResolverTypeWrapper<Scalars["Boolean"]["output"]>;
   CollectionMeta: ResolverTypeWrapper<ApiCollectionMeta>;
   CountryCode: ApiCountryCode;
   CurrencyCode: ApiCurrencyCode;
   Customer: ResolverTypeWrapper<ApiCustomer>;
-  DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  DateTime: ResolverTypeWrapper<Scalars["DateTime"]["output"]>;
   DimensionUnit: ApiDimensionUnit;
-  Email: ResolverTypeWrapper<Scalars['Email']['output']>;
-  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
-  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
-  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
-  JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
+  Email: ResolverTypeWrapper<Scalars["Email"]["output"]>;
+  Float: ResolverTypeWrapper<Scalars["Float"]["output"]>;
+  ID: ResolverTypeWrapper<Scalars["ID"]["output"]>;
+  Int: ResolverTypeWrapper<Scalars["Int"]["output"]>;
+  JSON: ResolverTypeWrapper<Scalars["JSON"]["output"]>;
   Label: ResolverTypeWrapper<ApiLabel>;
   LocaleCode: ApiLocaleCode;
-  Node: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Node']>;
-  Order: ResolverTypeWrapper<Omit<ApiOrder, 'createdBy'> & { createdBy: ApiResolversTypes['OrderActor'] }>;
-  OrderActor: ResolverTypeWrapper<ApiResolversUnionTypes<ApiResolversTypes>['OrderActor']>;
+  Node: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>["Node"]>;
+  Order: ResolverTypeWrapper<
+    Omit<ApiOrder, "createdBy"> & { createdBy: ApiResolversTypes["OrderActor"] }
+  >;
+  OrderActor: ResolverTypeWrapper<ApiResolversUnionTypes<ApiResolversTypes>["OrderActor"]>;
   OrderCustomerIdentity: ResolverTypeWrapper<ApiOrderCustomerIdentity>;
   OrderCustomerStatistic: ResolverTypeWrapper<ApiOrderCustomerStatistic>;
   OrderDeliveryAddress: ResolverTypeWrapper<ApiOrderDeliveryAddress>;
   OrderLine: ResolverTypeWrapper<ApiOrderLine>;
-  OrderQuery: ResolverTypeWrapper<Omit<ApiOrderQuery, 'order' | 'orders'> & { order: Maybe<ApiResolversTypes['Order']>, orders: ApiResolversTypes['OrdersOutput'] }>;
+  OrderQuery: ResolverTypeWrapper<
+    Omit<ApiOrderQuery, "order" | "orders"> & {
+      order: Maybe<ApiResolversTypes["Order"]>;
+      orders: ApiResolversTypes["OrdersOutput"];
+    }
+  >;
   OrderStatus: ApiOrderStatus;
   OrdersInput: ApiOrdersInput;
-  OrdersOutput: ResolverTypeWrapper<Omit<ApiOrdersOutput, 'data'> & { data: Array<ApiResolversTypes['Order']> }>;
+  OrdersOutput: ResolverTypeWrapper<
+    Omit<ApiOrdersOutput, "data"> & { data: Array<ApiResolversTypes["Order"]> }
+  >;
   PriceAdjustmentOperation: ApiPriceAdjustmentOperation;
   PriceAdjustmentValueType: ApiPriceAdjustmentValueType;
-  Purchasable: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Purchasable']>;
+  Purchasable: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>["Purchasable"]>;
   PurchasableSnapshot: ResolverTypeWrapper<ApiPurchasableSnapshot>;
   Query: ResolverTypeWrapper<{}>;
-  String: ResolverTypeWrapper<Scalars['String']['output']>;
+  String: ResolverTypeWrapper<Scalars["String"]["output"]>;
   Tag: ResolverTypeWrapper<ApiTag>;
   User: ResolverTypeWrapper<ApiUser>;
   Weight: ResolverTypeWrapper<ApiWeight>;
@@ -1365,195 +1390,284 @@ export type ApiResolversTypes = {
 /** Mapping between all available schema types and the resolvers parents */
 export type ApiResolversParentTypes = {
   ApiKey: ApiApiKey;
-  BigInt: Scalars['BigInt']['output'];
-  Boolean: Scalars['Boolean']['output'];
+  BigInt: Scalars["BigInt"]["output"];
+  Boolean: Scalars["Boolean"]["output"];
   CollectionMeta: ApiCollectionMeta;
   Customer: ApiCustomer;
-  DateTime: Scalars['DateTime']['output'];
-  Email: Scalars['Email']['output'];
-  Float: Scalars['Float']['output'];
-  ID: Scalars['ID']['output'];
-  Int: Scalars['Int']['output'];
-  JSON: Scalars['JSON']['output'];
+  DateTime: Scalars["DateTime"]["output"];
+  Email: Scalars["Email"]["output"];
+  Float: Scalars["Float"]["output"];
+  ID: Scalars["ID"]["output"];
+  Int: Scalars["Int"]["output"];
+  JSON: Scalars["JSON"]["output"];
   Label: ApiLabel;
-  Node: ApiResolversInterfaceTypes<ApiResolversParentTypes>['Node'];
-  Order: Omit<ApiOrder, 'createdBy'> & { createdBy: ApiResolversParentTypes['OrderActor'] };
-  OrderActor: ApiResolversUnionTypes<ApiResolversParentTypes>['OrderActor'];
+  Node: ApiResolversInterfaceTypes<ApiResolversParentTypes>["Node"];
+  Order: Omit<ApiOrder, "createdBy"> & { createdBy: ApiResolversParentTypes["OrderActor"] };
+  OrderActor: ApiResolversUnionTypes<ApiResolversParentTypes>["OrderActor"];
   OrderCustomerIdentity: ApiOrderCustomerIdentity;
   OrderCustomerStatistic: ApiOrderCustomerStatistic;
   OrderDeliveryAddress: ApiOrderDeliveryAddress;
   OrderLine: ApiOrderLine;
-  OrderQuery: Omit<ApiOrderQuery, 'order' | 'orders'> & { order: Maybe<ApiResolversParentTypes['Order']>, orders: ApiResolversParentTypes['OrdersOutput'] };
+  OrderQuery: Omit<ApiOrderQuery, "order" | "orders"> & {
+    order: Maybe<ApiResolversParentTypes["Order"]>;
+    orders: ApiResolversParentTypes["OrdersOutput"];
+  };
   OrdersInput: ApiOrdersInput;
-  OrdersOutput: Omit<ApiOrdersOutput, 'data'> & { data: Array<ApiResolversParentTypes['Order']> };
-  Purchasable: ApiResolversInterfaceTypes<ApiResolversParentTypes>['Purchasable'];
+  OrdersOutput: Omit<ApiOrdersOutput, "data"> & { data: Array<ApiResolversParentTypes["Order"]> };
+  Purchasable: ApiResolversInterfaceTypes<ApiResolversParentTypes>["Purchasable"];
   PurchasableSnapshot: ApiPurchasableSnapshot;
   Query: {};
-  String: Scalars['String']['output'];
+  String: Scalars["String"]["output"];
   Tag: ApiTag;
   User: ApiUser;
   Weight: ApiWeight;
 };
 
-export type ApiApiKeyResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['ApiKey'] = ApiResolversParentTypes['ApiKey']> = {
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+export type ApiApiKeyResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["ApiKey"] = ApiResolversParentTypes["ApiKey"],
+> = {
+  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export interface ApiBigIntScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['BigInt'], any> {
-  name: 'BigInt';
+export interface ApiBigIntScalarConfig extends GraphQLScalarTypeConfig<
+  ApiResolversTypes["BigInt"],
+  any
+> {
+  name: "BigInt";
 }
 
-export type ApiCollectionMetaResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CollectionMeta'] = ApiResolversParentTypes['CollectionMeta']> = {
-  count: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  page: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  pageCount: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  pageSize: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  total: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
+export type ApiCollectionMetaResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["CollectionMeta"] =
+    ApiResolversParentTypes["CollectionMeta"],
+> = {
+  count: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  page: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  pageCount: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  pageSize: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  total: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiCustomerResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Customer'] = ApiResolversParentTypes['Customer']> = {
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+export type ApiCustomerResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["Customer"] = ApiResolversParentTypes["Customer"],
+> = {
+  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export interface ApiDateTimeScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['DateTime'], any> {
-  name: 'DateTime';
+export interface ApiDateTimeScalarConfig extends GraphQLScalarTypeConfig<
+  ApiResolversTypes["DateTime"],
+  any
+> {
+  name: "DateTime";
 }
 
-export interface ApiEmailScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['Email'], any> {
-  name: 'Email';
+export interface ApiEmailScalarConfig extends GraphQLScalarTypeConfig<
+  ApiResolversTypes["Email"],
+  any
+> {
+  name: "Email";
 }
 
-export interface ApiJsonScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['JSON'], any> {
-  name: 'JSON';
+export interface ApiJsonScalarConfig extends GraphQLScalarTypeConfig<
+  ApiResolversTypes["JSON"],
+  any
+> {
+  name: "JSON";
 }
 
-export type ApiLabelResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Label'] = ApiResolversParentTypes['Label']> = {
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+export type ApiLabelResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["Label"] = ApiResolversParentTypes["Label"],
+> = {
+  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiNodeResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Node'] = ApiResolversParentTypes['Node']> = {
+export type ApiNodeResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["Node"] = ApiResolversParentTypes["Node"],
+> = {
   __resolveType: TypeResolveFn<null, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
 };
 
-export type ApiOrderResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Order'] = ApiResolversParentTypes['Order']> = {
-  adminNote: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
-  createdBy: Resolver<ApiResolversTypes['OrderActor'], ParentType, ContextType>;
-  currencyCode: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  customerIdentity: Resolver<ApiResolversTypes['OrderCustomerIdentity'], ParentType, ContextType>;
-  customerNote: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  customerStatistic: Resolver<ApiResolversTypes['OrderCustomerStatistic'], ParentType, ContextType>;
-  deletedAt: Resolver<Maybe<ApiResolversTypes['DateTime']>, ParentType, ContextType>;
-  discountTotal: Resolver<Maybe<ApiResolversTypes['BigInt']>, ParentType, ContextType>;
-  grandTotal: Resolver<ApiResolversTypes['BigInt'], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  labels: Resolver<Array<ApiResolversTypes['Label']>, ParentType, ContextType>;
-  lines: Resolver<Array<ApiResolversTypes['OrderLine']>, ParentType, ContextType>;
-  number: Resolver<ApiResolversTypes['BigInt'], ParentType, ContextType>;
-  shippingTotal: Resolver<Maybe<ApiResolversTypes['BigInt']>, ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes['OrderStatus'], ParentType, ContextType>;
-  subtotal: Resolver<ApiResolversTypes['BigInt'], ParentType, ContextType>;
-  tags: Resolver<Array<ApiResolversTypes['Tag']>, ParentType, ContextType>;
-  taxTotal: Resolver<Maybe<ApiResolversTypes['BigInt']>, ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
+export type ApiOrderResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["Order"] = ApiResolversParentTypes["Order"],
+> = {
+  adminNote: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  createdBy: Resolver<ApiResolversTypes["OrderActor"], ParentType, ContextType>;
+  currencyCode: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  customerIdentity: Resolver<ApiResolversTypes["OrderCustomerIdentity"], ParentType, ContextType>;
+  customerNote: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  customerStatistic: Resolver<ApiResolversTypes["OrderCustomerStatistic"], ParentType, ContextType>;
+  deletedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  discountTotal: Resolver<Maybe<ApiResolversTypes["BigInt"]>, ParentType, ContextType>;
+  grandTotal: Resolver<ApiResolversTypes["BigInt"], ParentType, ContextType>;
+  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  labels: Resolver<Array<ApiResolversTypes["Label"]>, ParentType, ContextType>;
+  lines: Resolver<Array<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
+  number: Resolver<ApiResolversTypes["BigInt"], ParentType, ContextType>;
+  shippingTotal: Resolver<Maybe<ApiResolversTypes["BigInt"]>, ParentType, ContextType>;
+  status: Resolver<ApiResolversTypes["OrderStatus"], ParentType, ContextType>;
+  subtotal: Resolver<ApiResolversTypes["BigInt"], ParentType, ContextType>;
+  tags: Resolver<Array<ApiResolversTypes["Tag"]>, ParentType, ContextType>;
+  taxTotal: Resolver<Maybe<ApiResolversTypes["BigInt"]>, ParentType, ContextType>;
+  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiOrderActorResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderActor'] = ApiResolversParentTypes['OrderActor']> = {
-  __resolveType: TypeResolveFn<'ApiKey' | 'User', ParentType, ContextType>;
+export type ApiOrderActorResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["OrderActor"] = ApiResolversParentTypes["OrderActor"],
+> = {
+  __resolveType: TypeResolveFn<"ApiKey" | "User", ParentType, ContextType>;
 };
 
-export type ApiOrderCustomerIdentityResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderCustomerIdentity'] = ApiResolversParentTypes['OrderCustomerIdentity']> = {
-  countryCode: Resolver<Maybe<ApiResolversTypes['CountryCode']>, ParentType, ContextType>;
-  customer: Resolver<Maybe<ApiResolversTypes['Customer']>, ParentType, ContextType>;
-  data: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
-  email: Resolver<Maybe<ApiResolversTypes['Email']>, ParentType, ContextType>;
-  phone: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+export type ApiOrderCustomerIdentityResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["OrderCustomerIdentity"] =
+    ApiResolversParentTypes["OrderCustomerIdentity"],
+> = {
+  countryCode: Resolver<Maybe<ApiResolversTypes["CountryCode"]>, ParentType, ContextType>;
+  customer: Resolver<Maybe<ApiResolversTypes["Customer"]>, ParentType, ContextType>;
+  data: Resolver<Maybe<ApiResolversTypes["JSON"]>, ParentType, ContextType>;
+  email: Resolver<Maybe<ApiResolversTypes["Email"]>, ParentType, ContextType>;
+  phone: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiOrderCustomerStatisticResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderCustomerStatistic'] = ApiResolversParentTypes['OrderCustomerStatistic']> = {
-  totalAuthorizedOrders: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  totalGuestOrders: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  totalRevenue: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
+export type ApiOrderCustomerStatisticResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["OrderCustomerStatistic"] =
+    ApiResolversParentTypes["OrderCustomerStatistic"],
+> = {
+  totalAuthorizedOrders: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  totalGuestOrders: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  totalRevenue: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiOrderDeliveryAddressResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderDeliveryAddress'] = ApiResolversParentTypes['OrderDeliveryAddress']> = {
-  address1: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  address2: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  city: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  countryCode: Resolver<ApiResolversTypes['CountryCode'], ParentType, ContextType>;
-  data: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
-  email: Resolver<Maybe<ApiResolversTypes['Email']>, ParentType, ContextType>;
-  firstName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  lastName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  postalCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  provinceCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+export type ApiOrderDeliveryAddressResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["OrderDeliveryAddress"] =
+    ApiResolversParentTypes["OrderDeliveryAddress"],
+> = {
+  address1: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  address2: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  city: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  countryCode: Resolver<ApiResolversTypes["CountryCode"], ParentType, ContextType>;
+  data: Resolver<Maybe<ApiResolversTypes["JSON"]>, ParentType, ContextType>;
+  email: Resolver<Maybe<ApiResolversTypes["Email"]>, ParentType, ContextType>;
+  firstName: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  lastName: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  postalCode: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  provinceCode: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiOrderLineResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderLine'] = ApiResolversParentTypes['OrderLine']> = {
-  createdAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
-  discountAmount: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  purchasableId: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  quantity: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  subtotalAmount: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  taxAmount: Resolver<Maybe<ApiResolversTypes['Int']>, ParentType, ContextType>;
-  totalAmount: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  unitComparePrice: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  unitPrice: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
+export type ApiOrderLineResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["OrderLine"] = ApiResolversParentTypes["OrderLine"],
+> = {
+  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  discountAmount: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  purchasableId: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  quantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  subtotalAmount: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  taxAmount: Resolver<Maybe<ApiResolversTypes["Int"]>, ParentType, ContextType>;
+  totalAmount: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  unitComparePrice: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  unitPrice: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiOrderQueryResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderQuery'] = ApiResolversParentTypes['OrderQuery']> = {
-  order: Resolver<Maybe<ApiResolversTypes['Order']>, ParentType, ContextType, RequireFields<ApiOrderQueryOrderArgs, 'id'>>;
-  orders: Resolver<ApiResolversTypes['OrdersOutput'], ParentType, ContextType, ApiOrderQueryOrdersArgs>;
+export type ApiOrderQueryResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["OrderQuery"] = ApiResolversParentTypes["OrderQuery"],
+> = {
+  order: Resolver<
+    Maybe<ApiResolversTypes["Order"]>,
+    ParentType,
+    ContextType,
+    RequireFields<ApiOrderQueryOrderArgs, "id">
+  >;
+  orders: Resolver<
+    ApiResolversTypes["OrdersOutput"],
+    ParentType,
+    ContextType,
+    ApiOrderQueryOrdersArgs
+  >;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiOrdersOutputResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrdersOutput'] = ApiResolversParentTypes['OrdersOutput']> = {
-  data: Resolver<Array<ApiResolversTypes['Order']>, ParentType, ContextType>;
-  meta: Resolver<ApiResolversTypes['CollectionMeta'], ParentType, ContextType>;
+export type ApiOrdersOutputResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["OrdersOutput"] =
+    ApiResolversParentTypes["OrdersOutput"],
+> = {
+  data: Resolver<Array<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  meta: Resolver<ApiResolversTypes["CollectionMeta"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiPurchasableResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Purchasable'] = ApiResolversParentTypes['Purchasable']> = {
-  __resolveType: TypeResolveFn<'PurchasableSnapshot', ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+export type ApiPurchasableResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["Purchasable"] =
+    ApiResolversParentTypes["Purchasable"],
+> = {
+  __resolveType: TypeResolveFn<"PurchasableSnapshot", ParentType, ContextType>;
+  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
 };
 
-export type ApiPurchasableSnapshotResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['PurchasableSnapshot'] = ApiResolversParentTypes['PurchasableSnapshot']> = {
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  purchasableSnapshot: Resolver<ApiResolversTypes['JSON'], ParentType, ContextType>;
+export type ApiPurchasableSnapshotResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["PurchasableSnapshot"] =
+    ApiResolversParentTypes["PurchasableSnapshot"],
+> = {
+  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  purchasableSnapshot: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiQueryResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Query'] = ApiResolversParentTypes['Query']> = {
-  orderQuery: Resolver<ApiResolversTypes['OrderQuery'], ParentType, ContextType>;
+export type ApiQueryResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["Query"] = ApiResolversParentTypes["Query"],
+> = {
+  orderQuery: Resolver<ApiResolversTypes["OrderQuery"], ParentType, ContextType>;
 };
 
-export type ApiTagResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Tag'] = ApiResolversParentTypes['Tag']> = {
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+export type ApiTagResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["Tag"] = ApiResolversParentTypes["Tag"],
+> = {
+  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiUserResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['User'] = ApiResolversParentTypes['User']> = {
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+export type ApiUserResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["User"] = ApiResolversParentTypes["User"],
+> = {
+  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiWeightResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Weight'] = ApiResolversParentTypes['Weight']> = {
-  unit: Resolver<ApiResolversTypes['WeightUnit'], ParentType, ContextType>;
-  weight: Resolver<ApiResolversTypes['Float'], ParentType, ContextType>;
+export type ApiWeightResolvers<
+  ContextType = GraphQLContext,
+  ParentType extends ApiResolversParentTypes["Weight"] = ApiResolversParentTypes["Weight"],
+> = {
+  unit: Resolver<ApiResolversTypes["WeightUnit"], ParentType, ContextType>;
+  weight: Resolver<ApiResolversTypes["Float"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -1582,4 +1696,3 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   User: ApiUserResolvers<ContextType>;
   Weight: ApiWeightResolvers<ContextType>;
 };
-

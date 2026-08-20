@@ -1,8 +1,8 @@
-import { Inject } from '@nestjs/common';
+import { Inject } from "@nestjs/common";
 
 /** @deprecated Use InjectBroker(serviceName) instead */
-export const SERVICE_BROKER = Symbol('SERVICE_BROKER');
-export const SERVICE_NAME = Symbol('SERVICE_NAME');
+export const SERVICE_BROKER = Symbol("SERVICE_BROKER");
+export const SERVICE_NAME = Symbol("SERVICE_NAME");
 
 /**
  * Creates a unique token for a service broker.

@@ -1,7 +1,4 @@
-import type {
-  NotificationChannel,
-  NotificationDefinitionKey,
-} from "@shopana/broker-types";
+import type { NotificationChannel, NotificationDefinitionKey } from "@shopana/broker-types";
 import type { TemplateDefinitionRegistry } from "../infrastructure/templates/TemplateDefinitionRegistry.js";
 
 export interface DefaultTemplate {
@@ -15,7 +12,7 @@ export interface DefaultTemplate {
 }
 
 export function createDefaultTemplateManifest(
-  definitions: TemplateDefinitionRegistry
+  definitions: TemplateDefinitionRegistry,
 ): ReadonlyMap<string, DefaultTemplate> {
   const templates = new Map<string, DefaultTemplate>();
   for (const definition of definitions.list()) {
@@ -26,15 +23,10 @@ export function createDefaultTemplateManifest(
       }
       continue;
     }
-    const applicationAuthTemplates = createApplicationAuthTemplates(
-      definition.key
-    );
+    const applicationAuthTemplates = createApplicationAuthTemplates(definition.key);
     if (applicationAuthTemplates) {
       for (const template of applicationAuthTemplates) {
-        templates.set(
-          templateId(template.key, template.channel, "en"),
-          template
-        );
+        templates.set(templateId(template.key, template.channel, "en"), template);
       }
       continue;
     }
@@ -63,8 +55,7 @@ function createPrivacyRequestTemplates(
   key: NotificationDefinitionKey,
 ): readonly DefaultTemplate[] | null {
   if (key !== "customer.privacy.request_update") return null;
-  const text =
-    "Your {{request.type}} privacy request {{request.id}} is now {{request.status}}.";
+  const text = "Your {{request.type}} privacy request {{request.id}} is now {{request.status}}.";
   return [
     {
       key,
@@ -86,7 +77,7 @@ function createPrivacyRequestTemplates(
 }
 
 function createApplicationAuthTemplates(
-  key: NotificationDefinitionKey
+  key: NotificationDefinitionKey,
 ): readonly DefaultTemplate[] | null {
   switch (key) {
     case "customer.auth.email_verification":
@@ -94,7 +85,7 @@ function createApplicationAuthTemplates(
         key,
         "Verify your email",
         "Verify your email for",
-        "authentication.url"
+        "authentication.url",
       );
     case "customer.auth.login_code":
       return [
@@ -114,8 +105,7 @@ function createApplicationAuthTemplates(
           channel: "SMS",
           locale: "en",
           sourceVersion: "architecture-defaults-v2",
-          bodyTemplate:
-            "{{authentication.otp}} is your sign-in code for {{store.displayName}}.",
+          bodyTemplate: "{{authentication.otp}} is your sign-in code for {{store.displayName}}.",
         },
       ];
     case "customer.auth.password_reset":
@@ -123,7 +113,7 @@ function createApplicationAuthTemplates(
         key,
         "Reset your password",
         "Reset your password for",
-        "authentication.url"
+        "authentication.url",
       );
     default:
       return null;
@@ -131,12 +121,10 @@ function createApplicationAuthTemplates(
 }
 
 function authLinkTemplates(
-  key:
-    | "customer.auth.email_verification"
-    | "customer.auth.password_reset",
+  key: "customer.auth.email_verification" | "customer.auth.password_reset",
   subject: string,
   action: string,
-  urlPath: "authentication.url"
+  urlPath: "authentication.url",
 ): readonly DefaultTemplate[] {
   return [
     {
@@ -161,7 +149,7 @@ function authLinkTemplates(
 export function templateId(
   key: NotificationDefinitionKey,
   channel: NotificationChannel,
-  locale: string
+  locale: string,
 ): string {
   return `${key}:${channel}:${locale}`;
 }

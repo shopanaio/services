@@ -118,9 +118,7 @@ export class WishlistProductAddWorkflow extends WishlistWorkflow {
   }
 
   @Workflow("wishlistProductAdd", { idempotencyStrategy: "client" })
-  run(
-    input: WishlistProductAddWorkflowInput,
-  ): Promise<WishlistProductAddWorkflowResult> {
+  run(input: WishlistProductAddWorkflowInput): Promise<WishlistProductAddWorkflowResult> {
     return this.stepAdd(input);
   }
 
@@ -141,9 +139,7 @@ export class WishlistProductRemoveWorkflow extends WishlistWorkflow {
   }
 
   @Workflow("wishlistProductRemove", { idempotencyStrategy: "client" })
-  run(
-    input: WishlistProductRemoveWorkflowInput,
-  ): Promise<WishlistProductRemoveWorkflowResult> {
+  run(input: WishlistProductRemoveWorkflowInput): Promise<WishlistProductRemoveWorkflowResult> {
     return this.stepRemove(input);
   }
 

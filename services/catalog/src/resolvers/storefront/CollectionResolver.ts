@@ -9,8 +9,7 @@ import { mediaReference } from "./MediaConnectionResolver.js";
 @SubgraphReference()
 export class CollectionResolver extends CatalogType<string, Collection> {
   async $preload() {
-    const collection =
-      await this.$ctx.kernel.repository.collection.findVisibleById(this.$props);
+    const collection = await this.$ctx.kernel.repository.collection.findVisibleById(this.$props);
     if (!collection) {
       throw new PreloadNotFoundError("Collection not found");
     }
@@ -34,14 +33,12 @@ export class CollectionResolver extends CatalogType<string, Collection> {
   }
 
   async name() {
-    const translation =
-      await this.$ctx.loaders.collectionTranslation.load(this.$props);
+    const translation = await this.$ctx.loaders.collectionTranslation.load(this.$props);
     return translation?.name ?? "";
   }
 
   async description() {
-    const translation =
-      await this.$ctx.loaders.collectionTranslation.load(this.$props);
+    const translation = await this.$ctx.loaders.collectionTranslation.load(this.$props);
     return toRichTextValue(
       translation && {
         text: translation.descriptionText,
@@ -52,8 +49,7 @@ export class CollectionResolver extends CatalogType<string, Collection> {
   }
 
   async excerpt() {
-    const translation =
-      await this.$ctx.loaders.collectionTranslation.load(this.$props);
+    const translation = await this.$ctx.loaders.collectionTranslation.load(this.$props);
     return toRichTextValue(
       translation && {
         text: translation.excerptText,

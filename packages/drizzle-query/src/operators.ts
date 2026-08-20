@@ -60,8 +60,7 @@ function escapeWildcards(value: string): string {
 
 const OPERATOR_HANDLERS: Record<string, OperatorHandler> = {
   eq: (column, value) => (value === null ? isNull(column) : eq(column, value)),
-  neq: (column, value) =>
-    value === null ? isNotNull(column) : ne(column, value),
+  neq: (column, value) => (value === null ? isNotNull(column) : ne(column, value)),
   gt: (column, value) => {
     if (value === null) throw new Error("Cannot use _gt with null value");
     return gt(column, value);
@@ -107,32 +106,27 @@ const OPERATOR_HANDLERS: Record<string, OperatorHandler> = {
     return like(column, `%${escapeWildcards(value)}%`);
   },
   notcontains: (column, value) => {
-    if (value === null)
-      throw new Error("Cannot use _notContains with null value");
+    if (value === null) throw new Error("Cannot use _notContains with null value");
     if (typeof value !== "string") return null;
     return notLike(column, `%${escapeWildcards(value)}%`);
   },
   containsi: (column, value) => {
-    if (value === null)
-      throw new Error("Cannot use _containsi with null value");
+    if (value === null) throw new Error("Cannot use _containsi with null value");
     if (typeof value !== "string") return null;
     return ilike(column, `%${escapeWildcards(value)}%`);
   },
   notcontainsi: (column, value) => {
-    if (value === null)
-      throw new Error("Cannot use _notContainsi with null value");
+    if (value === null) throw new Error("Cannot use _notContainsi with null value");
     if (typeof value !== "string") return null;
     return notIlike(column, `%${escapeWildcards(value)}%`);
   },
   startswith: (column, value) => {
-    if (value === null)
-      throw new Error("Cannot use _startsWith with null value");
+    if (value === null) throw new Error("Cannot use _startsWith with null value");
     if (typeof value !== "string") return null;
     return like(column, `${escapeWildcards(value)}%`);
   },
   startswithi: (column, value) => {
-    if (value === null)
-      throw new Error("Cannot use _startsWithi with null value");
+    if (value === null) throw new Error("Cannot use _startsWithi with null value");
     if (typeof value !== "string") return null;
     return ilike(column, `${escapeWildcards(value)}%`);
   },
@@ -142,8 +136,7 @@ const OPERATOR_HANDLERS: Record<string, OperatorHandler> = {
     return like(column, `%${escapeWildcards(value)}`);
   },
   endswithi: (column, value) => {
-    if (value === null)
-      throw new Error("Cannot use _endsWithi with null value");
+    if (value === null) throw new Error("Cannot use _endsWithi with null value");
     if (typeof value !== "string") return null;
     return ilike(column, `%${escapeWildcards(value)}`);
   },
@@ -175,12 +168,10 @@ export function isLogicalOperator(key: string): key is "_and" | "_or" | "_not" {
 export function buildOperatorCondition(
   column: Column,
   operator: string,
-  value: unknown
+  value: unknown,
 ): SQL | null {
   // Normalize operator (remove _ prefix and lowercase)
-  const op = operator.startsWith("_")
-    ? operator.slice(1).toLowerCase()
-    : operator.toLowerCase();
+  const op = operator.startsWith("_") ? operator.slice(1).toLowerCase() : operator.toLowerCase();
 
   const handler = OPERATOR_HANDLERS[op];
   return handler ? handler(column, value) : null;
@@ -200,11 +191,9 @@ export function isFilterObject(obj: unknown): obj is Record<string, unknown> {
 
 export function validateFilterValue(
   operator: string,
-  value: unknown
+  value: unknown,
 ): { valid: boolean; reason?: string } {
-  const op = operator.startsWith("_")
-    ? operator.slice(1).toLowerCase()
-    : operator.toLowerCase();
+  const op = operator.startsWith("_") ? operator.slice(1).toLowerCase() : operator.toLowerCase();
 
   switch (op) {
     case "contains":

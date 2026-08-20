@@ -3,11 +3,7 @@
 import { useForm, Controller } from "react-hook-form";
 import { Input, Typography, App } from "antd";
 import { createStyles } from "antd-style";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { RoleCard } from "../../organization/page/components/roles-section/role-card";
 import { useInviteMember } from "../../hooks";
@@ -59,16 +55,12 @@ export const InviteMemberModal = () => {
   });
 
   const onSubmit = async (values: IInviteForm) => {
-    const selectedRole = typedPayload.roles?.find(
-      (r) => r.id === values.roleId
-    );
+    const selectedRole = typedPayload.roles?.find((r) => r.id === values.roleId);
     if (!selectedRole) return;
 
-    const { userErrors } = await inviteMember(
-      typedPayload.organizationId,
-      values.email,
-      [{ domain: selectedRole.domain, role: selectedRole.name }]
-    );
+    const { userErrors } = await inviteMember(typedPayload.organizationId, values.email, [
+      { domain: selectedRole.domain, role: selectedRole.name },
+    ]);
 
     if (userErrors.length > 0) {
       userErrors.forEach((err) => message.error(err.message));
@@ -99,9 +91,7 @@ export const InviteMemberModal = () => {
         <PaperHeader title="Member Details" />
         <form>
           <div className={styles.formItem}>
-            <Typography.Text className={styles.label}>
-              Email Address
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Email Address</Typography.Text>
             <Controller
               name="email"
               control={control}
@@ -122,9 +112,7 @@ export const InviteMemberModal = () => {
               )}
             />
             {errors.email && (
-              <Typography.Text className={styles.error}>
-                {errors.email.message}
-              </Typography.Text>
+              <Typography.Text className={styles.error}>{errors.email.message}</Typography.Text>
             )}
           </div>
 

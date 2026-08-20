@@ -19,11 +19,7 @@ import type { IEntityPickerContentProps, IPickableEntity } from "./types";
 import { useAgGridTheme, usePageConfig } from "@/hooks";
 import type { FilterTransformer, SortFieldMapping } from "@/hooks";
 
-ModuleRegistry.registerModules([
-  AllCommunityModule,
-  RowSelectionModule,
-  GridStateModule,
-]);
+ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule, GridStateModule]);
 
 const EMPTY_SORT_FIELD_MAPPING: SortFieldMapping<string> = {};
 
@@ -62,9 +58,7 @@ function areStringArraysEqual(a: string[], b: string[]) {
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
-function withoutPersistedSelection(
-  state: GridState | undefined,
-): GridState | undefined {
+function withoutPersistedSelection(state: GridState | undefined): GridState | undefined {
   if (!state) return undefined;
   const { rowSelection: _rowSelection, ...gridState } = state;
   return gridState;
@@ -74,9 +68,7 @@ function getMapEntitiesInOrder<T extends IPickableEntity>(
   entityById: Map<string, T>,
   ids: string[],
 ) {
-  return ids
-    .map((id) => entityById.get(id))
-    .filter((entity): entity is T => Boolean(entity));
+  return ids.map((id) => entityById.get(id)).filter((entity): entity is T => Boolean(entity));
 }
 
 export function EntityPickerContent<T extends IPickableEntity>({
@@ -105,20 +97,16 @@ export function EntityPickerContent<T extends IPickableEntity>({
   const hasSharedPageConfig = Boolean(config.pageConfig);
   const pageConfig = usePageConfig<T, object, string>({
     gridRef,
-    storageKey:
-      config.pageConfig?.storageKey ?? `${config.entityType}-picker-grid-state`,
+    storageKey: config.pageConfig?.storageKey ?? `${config.entityType}-picker-grid-state`,
     filterSchema: config.filterSchema,
-    sortFieldMapping:
-      (config.pageConfig?.sortFieldMapping ??
-        EMPTY_SORT_FIELD_MAPPING) as SortFieldMapping<string>,
+    sortFieldMapping: (config.pageConfig?.sortFieldMapping ??
+      EMPTY_SORT_FIELD_MAPPING) as SortFieldMapping<string>,
     defaultPageSize: config.pageConfig?.defaultPageSize,
     pageSizeOptions: config.pageConfig?.pageSizeOptions,
     buildSearchCondition: config.pageConfig?.buildSearchCondition as
-      | ((search: string) => Partial<object>)
-      | undefined,
+      ((search: string) => Partial<object>) | undefined,
     filterTransformers: config.pageConfig?.filterTransformers as
-      | Record<string, FilterTransformer<object>>
-      | undefined,
+      Record<string, FilterTransformer<object>> | undefined,
   });
   const showSearch = config.searchEnabled !== false;
   const showToolbar = showSearch || config.filterSchema.length > 0;
@@ -128,26 +116,19 @@ export function EntityPickerContent<T extends IPickableEntity>({
   );
 
   // Data fetching via config hook
-  const {
-    data,
-    isLoading,
-    pagination,
-    onNext,
-    onPrev,
-    onPageSizeChange,
-  } = config.useData({
-      filters: pageConfig.filters,
-      search: pageConfig.searchValue,
-      pageSize: pageConfig.pageSize,
-      first: pageConfig.first,
-      after: pageConfig.after,
-      last: pageConfig.last,
-      before: pageConfig.before,
-      where: pageConfig.where ?? null,
-      orderBy: pageConfig.orderBy ?? null,
-      excludeIds,
-      queryMeta,
-    });
+  const { data, isLoading, pagination, onNext, onPrev, onPageSizeChange } = config.useData({
+    filters: pageConfig.filters,
+    search: pageConfig.searchValue,
+    pageSize: pageConfig.pageSize,
+    first: pageConfig.first,
+    after: pageConfig.after,
+    last: pageConfig.last,
+    before: pageConfig.before,
+    where: pageConfig.where ?? null,
+    orderBy: pageConfig.orderBy ?? null,
+    excludeIds,
+    queryMeta,
+  });
 
   // Filter out excluded IDs
   const filteredData = useMemo(() => {
@@ -158,13 +139,8 @@ export function EntityPickerContent<T extends IPickableEntity>({
 
   const emitSelectionChange = useCallback(
     (selectedIds: string[]) => {
-      const selectedEntities = getMapEntitiesInOrder(
-        selectedEntityByIdRef.current,
-        selectedIds,
-      );
-      const selectedEntityIds = selectedEntities.map((entity) =>
-        config.getRowId(entity),
-      );
+      const selectedEntities = getMapEntitiesInOrder(selectedEntityByIdRef.current, selectedIds);
+      const selectedEntityIds = selectedEntities.map((entity) => config.getRowId(entity));
       const lastSelection = lastEmittedSelectionRef.current;
 
       if (
@@ -200,14 +176,10 @@ export function EntityPickerContent<T extends IPickableEntity>({
       }
 
       const selectedRows = event.api.getSelectedRows();
-      const currentPageIds = new Set(
-        filteredData.map((item) => config.getRowId(item)),
-      );
+      const currentPageIds = new Set(filteredData.map((item) => config.getRowId(item)));
       const selectedPageIds = selectedRows.map((row) => config.getRowId(row));
       const nextEntityById =
-        selectionMode === "single"
-          ? new Map<string, T>()
-          : new Map(selectedEntityByIdRef.current);
+        selectionMode === "single" ? new Map<string, T>() : new Map(selectedEntityByIdRef.current);
 
       for (const id of currentPageIds) {
         nextEntityById.delete(id);
@@ -284,10 +256,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
       ...pagination,
       pageSize: pageConfig.pageSize,
       rangeStart: pageConfig.getRangeStart(filteredData.length),
-      rangeEnd: Math.min(
-        pageConfig.getRangeEnd(filteredData.length),
-        pagination.total,
-      ),
+      rangeEnd: Math.min(pageConfig.getRangeEnd(filteredData.length), pagination.total),
     };
   }, [filteredData.length, hasSharedPageConfig, pageConfig, pagination]);
 
@@ -310,8 +279,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
       const rowId = config.getRowId(node.data);
       const selectionLocked = config.isRowSelectionLocked?.(node.data) ?? false;
       const shouldBeSelected =
-        selectedIdSet.has(rowId) &&
-        (selectionLocked || !config.isRowDisabled?.(node.data));
+        selectedIdSet.has(rowId) && (selectionLocked || !config.isRowDisabled?.(node.data));
 
       if (node.isSelected() !== shouldBeSelected) {
         node.setSelected(shouldBeSelected);
@@ -334,36 +302,23 @@ export function EntityPickerContent<T extends IPickableEntity>({
   }, []);
 
   return (
-    <div
-      className={styles.container}
-      data-testid={`${config.entityType}-picker-content`}
-    >
+    <div className={styles.container} data-testid={`${config.entityType}-picker-content`}>
       {showToolbar && (
         <div className={styles.toolbar}>
           <FilterWidget
             {...pageConfig.filterWidgetProps}
-            searchProps={
-              showSearch
-                ? pageConfig.filterWidgetProps.searchProps
-                : undefined
-            }
+            searchProps={showSearch ? pageConfig.filterWidgetProps.searchProps : undefined}
             searchPlaceholder={`Search ${config.entityNamePlural.toLowerCase()}...`}
           />
         </div>
       )}
 
       {showInitialLoadingSkeleton ? (
-        <div
-          className={styles.gridSkeleton}
-          data-testid={`${config.entityType}-picker-loading`}
-        >
+        <div className={styles.gridSkeleton} data-testid={`${config.entityType}-picker-loading`}>
           <Skeleton active paragraph={{ rows: 6 }} />
         </div>
       ) : (
-        <div
-          className={styles.gridContainer}
-          data-testid={`${config.entityType}-picker-grid`}
-        >
+        <div className={styles.gridContainer} data-testid={`${config.entityType}-picker-grid`}>
           <AgGridReact<T>
             ref={gridRef}
             theme={agGridTheme}
@@ -375,8 +330,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
             rowSelection={{
               mode: selectionMode === "single" ? "singleRow" : "multiRow",
               checkboxes: true,
-              headerCheckbox:
-                selectionMode === "multi" && maxSelection === undefined,
+              headerCheckbox: selectionMode === "multi" && maxSelection === undefined,
               enableClickSelection: true,
               enableSelectionWithoutKeys: true,
               isRowSelectable: (node) => {
@@ -396,8 +350,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
               tooltipValueGetter: (params) => {
                 if (!params.data || maxSelection === undefined) return undefined;
                 const id = config.getRowId(params.data);
-                return selectedCount >= maxSelection &&
-                  !selectedIdsRef.current.includes(id)
+                return selectedCount >= maxSelection && !selectedIdsRef.current.includes(id)
                   ? `Maximum ${maxSelection} selections reached`
                   : undefined;
               },
@@ -421,8 +374,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
             getRowStyle={(params): RowStyle => {
               const disabled =
                 params.data &&
-                (config.isRowDisabled?.(params.data) ||
-                  config.isRowSelectionLocked?.(params.data));
+                (config.isRowDisabled?.(params.data) || config.isRowSelectionLocked?.(params.data));
               return disabled
                 ? {
                     cursor: "not-allowed",

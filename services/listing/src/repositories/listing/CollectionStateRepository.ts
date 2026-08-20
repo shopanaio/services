@@ -18,10 +18,7 @@ import {
   type CollectionTombstone,
 } from "../models/index.js";
 
-export type CollectionProjectionApplyStatus =
-  | "applied"
-  | "noop"
-  | "ignored_stale";
+export type CollectionProjectionApplyStatus = "applied" | "noop" | "ignored_stale";
 
 export class CollectionProjectionConflictError extends Error {
   constructor(message: string) {
@@ -47,15 +44,9 @@ export interface CollectionConsistencyIssue {
 }
 
 export class CollectionStateRepository extends BaseRepository {
-  async auditConsistency(
-    limit = 100,
-    offset = 0,
-  ): Promise<CollectionConsistencyIssue[]> {
-    const boundedLimit = Number.isSafeInteger(limit)
-      ? Math.max(1, Math.min(limit, 1_000))
-      : 100;
-    const boundedOffset =
-      Number.isSafeInteger(offset) && offset > 0 ? offset : 0;
+  async auditConsistency(limit = 100, offset = 0): Promise<CollectionConsistencyIssue[]> {
+    const boundedLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1_000)) : 100;
+    const boundedOffset = Number.isSafeInteger(offset) && offset > 0 ? offset : 0;
     const issues: CollectionConsistencyIssue[] = [];
     const [states, tombstones] = await Promise.all([
       this.connection
@@ -79,10 +70,7 @@ export class CollectionStateRepository extends BaseRepository {
         if (state.collectionType === "manual" && rules.length > 0) {
           throw new Error("Manual collection has rule JSON");
         }
-        if (
-          state.collectionType === "rule" &&
-          state.defaultSort === "manual"
-        ) {
+        if (state.collectionType === "rule" && state.defaultSort === "manual") {
           throw new Error("Rule collection uses manual sort");
         }
         if (hashCanonicalCollectionRulesV1(rules) !== state.rulesHash) {
@@ -132,17 +120,11 @@ export class CollectionStateRepository extends BaseRepository {
         issues.push({
           code: "INVALID_TOMBSTONE",
           collectionId: tombstone.collectionId,
-          message:
-            error instanceof Error ? error.message : "Invalid tombstone",
+          message: error instanceof Error ? error.message : "Invalid tombstone",
         });
       }
     }
-    issues.push(
-      ...(await this.auditDerivedRows(
-        boundedLimit - issues.length,
-        boundedOffset,
-      )),
-    );
+    issues.push(...(await this.auditDerivedRows(boundedLimit - issues.length, boundedOffset)));
     return issues.slice(0, boundedLimit);
   }
 
@@ -150,9 +132,7 @@ export class CollectionStateRepository extends BaseRepository {
     collectionPostingsDeleted: number;
     manualSortRowsDeleted: number;
   }> {
-    const boundedLimit = Number.isSafeInteger(limit)
-      ? Math.max(1, Math.min(limit, 1_000))
-      : 100;
+    const boundedLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1_000)) : 100;
     const postingRows = await this.connection.execute<{ valueKey: string }>(sql`
       WITH doomed AS (
         SELECT p.store_id, p.entity_type, p.field, p.value_key
@@ -178,9 +158,10 @@ export class CollectionStateRepository extends BaseRepository {
       RETURNING p.value_key AS "valueKey"
     `);
     const remaining = Math.max(0, boundedLimit - postingRows.length);
-    const sortRows = remaining === 0
-      ? []
-      : await this.connection.execute<{ productDocId: number }>(sql`
+    const sortRows =
+      remaining === 0
+        ? []
+        : await this.connection.execute<{ productDocId: number }>(sql`
           WITH doomed AS (
             SELECT s.store_id, s.product_doc_id, s.sort_kind, s.locale,
               s.currency, s.manual_scope_id
@@ -224,14 +205,10 @@ export class CollectionStateRepository extends BaseRepository {
       collectionPostingsDeleted: postingRows.length,
       manualSortRowsDeleted: sortRows.length,
     };
-    if (
-      result.collectionPostingsDeleted > 0 ||
-      result.manualSortRowsDeleted > 0
-    ) {
-      this.ctx.kernel.getServices().logger.warn(
-        result,
-        "Removed orphan collection-derived listing rows",
-      );
+    if (result.collectionPostingsDeleted > 0 || result.manualSortRowsDeleted > 0) {
+      this.ctx.kernel
+        .getServices()
+        .logger.warn(result, "Removed orphan collection-derived listing rows");
     }
     return result;
   }
@@ -279,9 +256,7 @@ export class CollectionStateRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async findTombstone(
-    collectionId: string,
-  ): Promise<CollectionTombstone | null> {
+  async findTombstone(collectionId: string): Promise<CollectionTombstone | null> {
     const rows = await this.connection
       .select()
       .from(collectionTombstone)
@@ -598,8 +573,7 @@ export class CollectionStateRepository extends BaseRepository {
           code: "INVALID_RULE_TERM",
           entityType: row.entityType,
           valueKey: row.valueKey,
-          message:
-            error instanceof Error ? error.message : "Rule term is invalid",
+          message: error instanceof Error ? error.message : "Rule term is invalid",
         });
       }
     }

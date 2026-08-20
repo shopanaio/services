@@ -11,18 +11,13 @@ import {
   ModuleRegistry,
   type RowDragEndEvent,
 } from "ag-grid-community";
+import { Alert, App, Button, Flex, Input, Select, Skeleton, Switch, Typography } from "antd";
 import {
-  Alert,
-  App,
-  Button,
-  Flex,
-  Input,
-  Select,
-  Skeleton,
-  Switch,
-  Typography,
-} from "antd";
-import { LuArrowDown as ArrowDownOutlined, LuArrowUp as ArrowUpOutlined, LuTrash2 as DeleteOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
+  LuArrowDown as ArrowDownOutlined,
+  LuArrowUp as ArrowUpOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuPlus as PlusOutlined,
+} from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
@@ -37,10 +32,7 @@ import {
   useSynonymGroup,
   useUpdateSynonymGroup,
 } from "../hooks";
-import {
-  buildSynonymGroupCreateInput,
-  buildSynonymGroupUpdateInput,
-} from "../mappers";
+import { buildSynonymGroupCreateInput, buildSynonymGroupUpdateInput } from "../mappers";
 import {
   synonymGroupFormSchema,
   type SynonymEditorRow,
@@ -75,15 +67,15 @@ const createRow = (value = ""): SynonymEditorRow => ({
   value,
 });
 
-function SynonymCell(
-  props: CustomCellRendererProps<SynonymEditorRow> & { error?: string },
-) {
+function SynonymCell(props: CustomCellRendererProps<SynonymEditorRow> & { error?: string }) {
   return (
     <Flex vertical justify="center" style={{ height: "100%", minWidth: 0 }}>
       <Typography.Text ellipsis={{ tooltip: props.value || undefined }}>
         {props.value || "Click to edit"}
       </Typography.Text>
-      {props.error ? <span style={{ color: "var(--ant-color-error)", fontSize: 10 }}>{props.error}</span> : null}
+      {props.error ? (
+        <span style={{ color: "var(--ant-color-error)", fontSize: 10 }}>{props.error}</span>
+      ) : null}
     </Flex>
   );
 }
@@ -225,9 +217,31 @@ export function SynonymGroupModal() {
           if (!data || index < 0) return null;
           return (
             <Flex>
-              <Button type="text" size="small" icon={<ArrowUpOutlined />} aria-label={`Move synonym ${index + 1} up`} disabled={index === 0} onClick={() => moveRow(index, index - 1)} />
-              <Button type="text" size="small" icon={<ArrowDownOutlined />} aria-label={`Move synonym ${index + 1} down`} disabled={index === rows.length - 1} onClick={() => moveRow(index, index + 1)} />
-              <Button type="text" danger size="small" icon={<DeleteOutlined />} aria-label={`Remove synonym ${index + 1}`} disabled={rows.length <= 2} onClick={() => removeRow(data.rowId)} />
+              <Button
+                type="text"
+                size="small"
+                icon={<ArrowUpOutlined />}
+                aria-label={`Move synonym ${index + 1} up`}
+                disabled={index === 0}
+                onClick={() => moveRow(index, index - 1)}
+              />
+              <Button
+                type="text"
+                size="small"
+                icon={<ArrowDownOutlined />}
+                aria-label={`Move synonym ${index + 1} down`}
+                disabled={index === rows.length - 1}
+                onClick={() => moveRow(index, index + 1)}
+              />
+              <Button
+                type="text"
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+                aria-label={`Remove synonym ${index + 1}`}
+                disabled={rows.length <= 2}
+                onClick={() => removeRow(data.rowId)}
+              />
             </Flex>
           );
         },
@@ -239,7 +253,9 @@ export function SynonymGroupModal() {
   const handleRowDragEnd = useCallback(
     (event: RowDragEndEvent<SynonymEditorRow>) => {
       const ordered: SynonymEditorRow[] = [];
-      event.api.forEachNode((node) => { if (node.data) ordered.push(node.data); });
+      event.api.forEachNode((node) => {
+        if (node.data) ordered.push(node.data);
+      });
       setValue("values", ordered, { shouldDirty: true, shouldValidate: true });
       clearErrors("values");
     },
@@ -275,11 +291,12 @@ export function SynonymGroupModal() {
       setGlobalErrors([]);
       setVersionConflict(false);
       const current = detailQuery.synonymGroup;
-      const result = isEdit && current
-        ? await updateSynonymGroup(
-          buildSynonymGroupUpdateInput(values, current.id, current.version),
-        )
-        : await createSynonymGroup(buildSynonymGroupCreateInput(values));
+      const result =
+        isEdit && current
+          ? await updateSynonymGroup(
+              buildSynonymGroupUpdateInput(values, current.id, current.version),
+            )
+          : await createSynonymGroup(buildSynonymGroupCreateInput(values));
       if (!result.synonymGroup || result.userErrors.length > 0) {
         if (hasVersionConflict(result.userErrors)) setVersionConflict(true);
         handleApiErrors(result.userErrors);
@@ -291,7 +308,18 @@ export function SynonymGroupModal() {
       message.success(isEdit ? "Synonym group updated" : "Synonym group created");
       forcePop();
     },
-    [createSynonymGroup, detailQuery.synonymGroup, forcePop, handleApiErrors, isEdit, message, setDirty, settings, typedPayload, updateSynonymGroup],
+    [
+      createSynonymGroup,
+      detailQuery.synonymGroup,
+      forcePop,
+      handleApiErrors,
+      isEdit,
+      message,
+      setDirty,
+      settings,
+      typedPayload,
+      updateSynonymGroup,
+    ],
   );
 
   const reloadLatest = useCallback(async () => {
@@ -332,16 +360,34 @@ export function SynonymGroupModal() {
     setDirty(false);
     message.success("Synonym group deleted");
     forcePop();
-  }, [deleteSynonymGroup, detailQuery.synonymGroup, forcePop, message, modal, setDirty, typedPayload]);
+  }, [
+    deleteSynonymGroup,
+    detailQuery.synonymGroup,
+    forcePop,
+    message,
+    modal,
+    setDirty,
+    typedPayload,
+  ]);
 
   const validPreviewValues = rows.map(({ value }) => value.trim()).filter(Boolean);
   const title = isEdit ? "Edit synonym group" : "New synonym group";
   const submitLabel = isEdit ? "Save" : "Create";
-  const submitDisabled = loading || saving || !settings || !isValid || (isEdit && !isDirty) || versionConflict;
+  const submitDisabled =
+    loading || saving || !settings || !isValid || (isEdit && !isDirty) || versionConflict;
 
   if (loading) {
     return (
-      <ModalLayout name="synonym-group" header={<ModalHeader title={title} onClose={pop} submitButtonProps={{ disabled: true, children: submitLabel }} />}>
+      <ModalLayout
+        name="synonym-group"
+        header={
+          <ModalHeader
+            title={title}
+            onClose={pop}
+            submitButtonProps={{ disabled: true, children: submitLabel }}
+          />
+        }
+      >
         <Skeleton active paragraph={{ rows: 10 }} />
       </ModalLayout>
     );
@@ -349,8 +395,16 @@ export function SynonymGroupModal() {
 
   if (isEdit && !detailQuery.synonymGroup) {
     return (
-      <ModalLayout name="synonym-group" headerProps={{ title, onClose: pop, submitButtonProps: null }}>
-        <Alert type="error" showIcon message="Synonym group not found" action={<Button onClick={pop}>Close</Button>} />
+      <ModalLayout
+        name="synonym-group"
+        headerProps={{ title, onClose: pop, submitButtonProps: null }}
+      >
+        <Alert
+          type="error"
+          showIcon
+          message="Synonym group not found"
+          action={<Button onClick={pop}>Close</Button>}
+        />
       </ModalLayout>
     );
   }
@@ -358,38 +412,153 @@ export function SynonymGroupModal() {
   return (
     <ModalLayout
       name="synonym-group"
-      header={<ModalHeader name="synonym-group" title={title} onClose={pop} submitButtonProps={{ children: submitLabel, loading: saving, disabled: submitDisabled, onClick: handleSubmit(onSubmit) }} extra={isEdit ? <Button danger size="small" loading={deleting} data-testid="synonym-group-delete-button" onClick={handleDelete}>Delete</Button> : null} />}
+      header={
+        <ModalHeader
+          name="synonym-group"
+          title={title}
+          onClose={pop}
+          submitButtonProps={{
+            children: submitLabel,
+            loading: saving,
+            disabled: submitDisabled,
+            onClick: handleSubmit(onSubmit),
+          }}
+          extra={
+            isEdit ? (
+              <Button
+                danger
+                size="small"
+                loading={deleting}
+                data-testid="synonym-group-delete-button"
+                onClick={handleDelete}
+              >
+                Delete
+              </Button>
+            ) : null
+          }
+        />
+      }
     >
       {loadError ? <Alert role="alert" type="error" showIcon message={loadError.message} /> : null}
-      {globalErrors.length ? <Alert role="alert" type="error" showIcon message="Could not save synonym group" description={globalErrors.join(" ")} /> : null}
-      {versionConflict ? <Alert role="alert" type="warning" showIcon message="This synonym group changed after this form was opened." action={<Button onClick={reloadLatest}>Reload latest data</Button>} /> : null}
-      {!settings ? <Alert role="alert" type="warning" showIcon message="Search settings must be configured before boosts or synonyms can be created." action={<Button onClick={() => window.location.assign(window.location.pathname.replace(/\/search\/synonyms$/, "/search/settings"))}>Open search settings</Button>} /> : null}
+      {globalErrors.length ? (
+        <Alert
+          role="alert"
+          type="error"
+          showIcon
+          message="Could not save synonym group"
+          description={globalErrors.join(" ")}
+        />
+      ) : null}
+      {versionConflict ? (
+        <Alert
+          role="alert"
+          type="warning"
+          showIcon
+          message="This synonym group changed after this form was opened."
+          action={<Button onClick={reloadLatest}>Reload latest data</Button>}
+        />
+      ) : null}
+      {!settings ? (
+        <Alert
+          role="alert"
+          type="warning"
+          showIcon
+          message="Search settings must be configured before boosts or synonyms can be created."
+          action={
+            <Button
+              onClick={() =>
+                window.location.assign(
+                  window.location.pathname.replace(/\/search\/synonyms$/, "/search/settings"),
+                )
+              }
+            >
+              Open search settings
+            </Button>
+          }
+        />
+      ) : null}
 
       <Paper>
         <PaperHeader title="General" />
         <div className={styles.fields}>
           <div>
-            <label className={styles.label} htmlFor="synonym-group-name">Name *</label>
-            <Controller name="name" control={control} render={({ field }) => <Input {...field} id="synonym-group-name" maxLength={128} showCount status={errors.name ? "error" : undefined} aria-describedby={errors.name ? "synonym-group-name-error" : undefined} />} />
-            {errors.name ? <div id="synonym-group-name-error" className={styles.error}>{errors.name.message}</div> : null}
+            <label className={styles.label} htmlFor="synonym-group-name">
+              Name *
+            </label>
+            <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="synonym-group-name"
+                  maxLength={128}
+                  showCount
+                  status={errors.name ? "error" : undefined}
+                  aria-describedby={errors.name ? "synonym-group-name-error" : undefined}
+                />
+              )}
+            />
+            {errors.name ? (
+              <div id="synonym-group-name-error" className={styles.error}>
+                {errors.name.message}
+              </div>
+            ) : null}
           </div>
           <div>
-            <label className={styles.label} htmlFor="synonym-group-locale">Locale *</label>
-            <Controller name="locale" control={control} render={({ field }) => <Select {...field} id="synonym-group-locale" showSearch optionFilterProp="label" options={localeOptions} style={{ width: "100%" }} status={errors.locale ? "error" : undefined} />} />
+            <label className={styles.label} htmlFor="synonym-group-locale">
+              Locale *
+            </label>
+            <Controller
+              name="locale"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  id="synonym-group-locale"
+                  showSearch
+                  optionFilterProp="label"
+                  options={localeOptions}
+                  style={{ width: "100%" }}
+                  status={errors.locale ? "error" : undefined}
+                />
+              )}
+            />
             {errors.locale ? <div className={styles.error}>{errors.locale.message}</div> : null}
           </div>
         </div>
         <Flex align="center" gap={10} style={{ marginTop: 16 }}>
-          <Controller name="enabled" control={control} render={({ field }) => <Switch checked={field.value} onChange={field.onChange} aria-label="Enabled" />} />
-          <div><Typography.Text strong>Enabled</Typography.Text><br /><Typography.Text type="secondary">Expand matching queries with this group</Typography.Text></div>
+          <Controller
+            name="enabled"
+            control={control}
+            render={({ field }) => (
+              <Switch checked={field.value} onChange={field.onChange} aria-label="Enabled" />
+            )}
+          />
+          <div>
+            <Typography.Text strong>Enabled</Typography.Text>
+            <br />
+            <Typography.Text type="secondary">
+              Expand matching queries with this group
+            </Typography.Text>
+          </div>
         </Flex>
         {errors.enabled ? <div className={styles.error}>{errors.enabled.message}</div> : null}
       </Paper>
 
       <Paper>
-        <PaperHeader title="Synonyms" actions={<Typography.Text type="secondary">{rows.length} / 20</Typography.Text>} />
-        <Typography.Paragraph className={styles.sectionHelp}>Add terms or phrases with the same meaning.</Typography.Paragraph>
-        <div className={styles.grid} style={{ height: Math.min(360, 40 + rows.length * 56) }} data-testid="synonym-group-values-grid">
+        <PaperHeader
+          title="Synonyms"
+          actions={<Typography.Text type="secondary">{rows.length} / 20</Typography.Text>}
+        />
+        <Typography.Paragraph className={styles.sectionHelp}>
+          Add terms or phrases with the same meaning.
+        </Typography.Paragraph>
+        <div
+          className={styles.grid}
+          style={{ height: Math.min(360, 40 + rows.length * 56) }}
+          data-testid="synonym-group-values-grid"
+        >
           <AgGridReact<SynonymEditorRow>
             ref={gridRef}
             theme={agGridTheme}
@@ -405,14 +574,19 @@ export function SynonymGroupModal() {
             onCellValueChanged={(event) => {
               if (!event.data) return;
               const index = rows.findIndex((row) => row.rowId === event.data?.rowId);
-              if (index >= 0) setValue(`values.${index}.value`, String(event.newValue ?? ""), { shouldDirty: true, shouldValidate: true });
+              if (index >= 0)
+                setValue(`values.${index}.value`, String(event.newValue ?? ""), {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
             }}
             onCellKeyDown={(event) => {
               if (
                 (event.event as KeyboardEvent | undefined)?.key !== "Enter" ||
                 !("column" in event) ||
                 event.column.getColId() !== "value"
-              ) return;
+              )
+                return;
               const index = event.node.rowIndex ?? -1;
               if (index === rows.length - 1 && rows[index]?.value.trim()) appendRow();
             }}
@@ -420,9 +594,23 @@ export function SynonymGroupModal() {
             defaultColDef={{ resizable: false }}
           />
         </div>
-        <Button type="link" icon={<PlusOutlined />} onClick={appendRow} disabled={rows.length >= 20}>Add synonym</Button>
-        {typeof errors.values?.message === "string" ? <div className={styles.error}>{errors.values.message}</div> : null}
-        {validPreviewValues.length >= 2 ? <div className={styles.preview}><Typography.Text strong>Preview: </Typography.Text>{validPreviewValues.join(" ↔ ")}</div> : null}
+        <Button
+          type="link"
+          icon={<PlusOutlined />}
+          onClick={appendRow}
+          disabled={rows.length >= 20}
+        >
+          Add synonym
+        </Button>
+        {typeof errors.values?.message === "string" ? (
+          <div className={styles.error}>{errors.values.message}</div>
+        ) : null}
+        {validPreviewValues.length >= 2 ? (
+          <div className={styles.preview}>
+            <Typography.Text strong>Preview: </Typography.Text>
+            {validPreviewValues.join(" ↔ ")}
+          </div>
+        ) : null}
       </Paper>
     </ModalLayout>
   );

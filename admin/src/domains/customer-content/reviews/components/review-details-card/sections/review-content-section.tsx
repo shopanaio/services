@@ -18,9 +18,21 @@ export function ReviewContentSection({ review, onEdit }: ReviewContentSectionPro
   const { styles } = useReviewDetailsStyles();
   const localeName = shopLocalesRecord[review.locale]?.name ?? review.locale;
   const menuItems = [
-    { key: "content", label: "Edit review content", "data-testid": "review-content-edit", onClick: () => onEdit("content") },
+    {
+      key: "content",
+      label: "Edit review content",
+      "data-testid": "review-content-edit",
+      onClick: () => onEdit("content"),
+    },
     ...(review.isIncentivized
-      ? [{ key: "incentive", label: "Edit incentive disclosure", "data-testid": "review-incentive-edit", onClick: () => onEdit("incentive") }]
+      ? [
+          {
+            key: "incentive",
+            label: "Edit incentive disclosure",
+            "data-testid": "review-incentive-edit",
+            onClick: () => onEdit("incentive"),
+          },
+        ]
       : []),
   ];
 
@@ -28,11 +40,16 @@ export function ReviewContentSection({ review, onEdit }: ReviewContentSectionPro
     <Paper data-testid="review-content-section">
       <PaperHeader
         title="Review content"
-        actions={<EditAction onEdit={() => onEdit("content")} label="Edit review content" items={menuItems} testId="review-content-actions" />}
+        actions={
+          <EditAction
+            onEdit={() => onEdit("content")}
+            label="Edit review content"
+            items={menuItems}
+            testId="review-content-actions"
+          />
+        }
       />
-      <Typography.Paragraph className={styles.reviewBody}>
-        {review.body}
-      </Typography.Paragraph>
+      <Typography.Paragraph className={styles.reviewBody}>{review.body}</Typography.Paragraph>
       {review.isIncentivized ? (
         <Flex gap={12} align="flex-start" className={styles.disclosure}>
           <GiftOutlined className={styles.disclosureIcon} />
@@ -45,10 +62,18 @@ export function ReviewContentSection({ review, onEdit }: ReviewContentSectionPro
           </Flex>
         </Flex>
       ) : null}
-      <Flex justify="space-between" align="center" gap={12} wrap="wrap" className={styles.sectionMeta}>
+      <Flex
+        justify="space-between"
+        align="center"
+        gap={12}
+        wrap="wrap"
+        className={styles.sectionMeta}
+      >
         <Flex gap={8} align="center">
           <GlobalOutlined />
-          <Typography.Text type="secondary">{localeName} ({review.locale})</Typography.Text>
+          <Typography.Text type="secondary">
+            {localeName} ({review.locale})
+          </Typography.Text>
         </Flex>
         <Typography.Text type="secondary">{review.body.length} characters</Typography.Text>
       </Flex>

@@ -1,25 +1,20 @@
-import {
-  uuid,
-  varchar,
-  integer,
-  timestamp,
-  index,
-  unique,
-  check,
-} from "drizzle-orm/pg-core";
+import { uuid, varchar, integer, timestamp, index, unique, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 import { warehouses } from "./stock";
 
-export const reservationStatusEnum = catalogSchema.enum(
-  "reservation_status",
-  ["ACTIVE", "RELEASED", "FULFILLED"]
-);
+export const reservationStatusEnum = catalogSchema.enum("reservation_status", [
+  "ACTIVE",
+  "RELEASED",
+  "FULFILLED",
+]);
 
 export const reservations = catalogSchema.table(
   "reservations",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     variantId: uuid("variant_id").notNull(),
     warehouseId: uuid("warehouse_id")
@@ -40,11 +35,11 @@ export const reservations = catalogSchema.table(
       table.orderSystem,
       table.orderId,
       table.variantId,
-      table.warehouseId
+      table.warehouseId,
     ),
     index("idx_reservations_variant").on(table.variantId),
     index("idx_reservations_order").on(table.orderSystem, table.orderId),
-  ]
+  ],
 );
 
 export type Reservation = typeof reservations.$inferSelect;

@@ -17,9 +17,7 @@ export class ReviewReplyDeleteScript extends BaseScript<
   ReviewSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: ReviewReplyDeleteParams
-  ): Promise<ReviewSectionResult> {
+  protected async execute(params: ReviewReplyDeleteParams): Promise<ReviewSectionResult> {
     const input = params.operation.params;
     const current = await this.repository.reviewReply.findById(input.replyId);
     if (!current || current.reply.reviewId !== params.reviewId) {
@@ -38,9 +36,7 @@ export class ReviewReplyDeleteScript extends BaseScript<
       permanent: input.permanent ?? false,
     });
     if (result.status === "not_found") {
-      return sectionErrors([
-        { message: "Reply not found", code: "NOT_FOUND", field: ["replyId"] },
-      ]);
+      return sectionErrors([{ message: "Reply not found", code: "NOT_FOUND", field: ["replyId"] }]);
     }
     if (result.status === "conflict") {
       return sectionErrors([

@@ -155,7 +155,9 @@ input DiscountCurrencyFilter {
   _notIn: [CurrencyCode!]
 }
 
-"""Filters backed by pricing.discount_list_view and store-scoped relations."""
+"""
+Filters backed by pricing.discount_list_view and store-scoped relations.
+"""
 input DiscountWhereInput {
   _and: [DiscountWhereInput!]
   _or: [DiscountWhereInput!]
@@ -167,7 +169,9 @@ input DiscountWhereInput {
   state: DiscountStateFilter
   effectiveStatus: DiscountEffectiveStatusFilter
   title: StringFilter
-  """Match any code assigned to the discount, including disabled codes."""
+  """
+  Match any code assigned to the discount, including disabled codes.
+  """
   code: StringFilter
   primaryCode: StringFilter
   currency: DiscountCurrencyFilter
@@ -181,11 +185,17 @@ input DiscountWhereInput {
   revision: IntFilter
   reservedUsageCount: BigIntFilter
   usageCount: BigIntFilter
-  """Match discounts assigned to at least one normalized tag."""
+  """
+  Match discounts assigned to at least one normalized tag.
+  """
   tag: StringFilter
-  """Match discounts available on a channel code."""
+  """
+  Match discounts available on a channel code.
+  """
   channelCode: StringFilter
-  """Match discounts featured on a channel code."""
+  """
+  Match discounts featured on a channel code.
+  """
   featuredChannelCode: StringFilter
   combinesWithProductDiscounts: BooleanFilter
   combinesWithOrderDiscounts: BooleanFilter

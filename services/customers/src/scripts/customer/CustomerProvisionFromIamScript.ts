@@ -37,10 +37,9 @@ export class CustomerProvisionFromIamScript extends BaseScript<
   protected async execute(
     params: CustomerProvisionFromIamParams,
   ): Promise<CustomerProvisionFromIamResult> {
-    const existingByPrincipal =
-      await this.repository.customer.findByIamPrincipalIdIncludingDeleted(
-        params.iamPrincipalId,
-      );
+    const existingByPrincipal = await this.repository.customer.findByIamPrincipalIdIncludingDeleted(
+      params.iamPrincipalId,
+    );
     if (existingByPrincipal) {
       return this.synchronizeExisting(existingByPrincipal, params);
     }
@@ -75,11 +74,7 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       source: "iam_application_signup",
     });
     if (created) {
-      await this.invalidateDynamicSegments(
-        created.id,
-        ["customer.any"],
-        "iamCustomerCreated",
-      );
+      await this.invalidateDynamicSegments(created.id, ["customer.any"], "iamCustomerCreated");
       return {
         customerId: created.id,
         created: true,
@@ -87,10 +82,9 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       };
     }
 
-    const racedByPrincipal =
-      await this.repository.customer.findByIamPrincipalIdIncludingDeleted(
-        params.iamPrincipalId,
-      );
+    const racedByPrincipal = await this.repository.customer.findByIamPrincipalIdIncludingDeleted(
+      params.iamPrincipalId,
+    );
     if (racedByPrincipal) {
       return this.synchronizeExisting(racedByPrincipal, params);
     }
@@ -155,18 +149,13 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       );
     }
 
-    const claimed = await this.repository.customer.claimIamPrincipal(
-      customer.id,
-      {
-        iamPrincipalId: params.iamPrincipalId,
-        iamStatus: params.iamStatus,
-        email: params.email,
-        emailVerified: params.emailVerified,
-        iamLifecycleDisabled:
-          params.iamStatus === "blocked" &&
-          customer.lifecycleStatus === "ACTIVE",
-      },
-    );
+    const claimed = await this.repository.customer.claimIamPrincipal(customer.id, {
+      iamPrincipalId: params.iamPrincipalId,
+      iamStatus: params.iamStatus,
+      email: params.email,
+      emailVerified: params.emailVerified,
+      iamLifecycleDisabled: params.iamStatus === "blocked" && customer.lifecycleStatus === "ACTIVE",
+    });
     if (claimed) {
       await this.invalidateDynamicSegments(
         claimed.id,
@@ -180,10 +169,9 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       };
     }
 
-    const raced =
-      await this.repository.customer.findByIamPrincipalIdIncludingDeleted(
-        params.iamPrincipalId,
-      );
+    const raced = await this.repository.customer.findByIamPrincipalIdIncludingDeleted(
+      params.iamPrincipalId,
+    );
     if (raced) return this.synchronizeExisting(raced, params);
 
     throw new CustomerProvisioningError(
@@ -229,18 +217,13 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       );
     }
 
-    const claimed = await this.repository.customer.claimIamPrincipal(
-      customer.id,
-      {
-        iamPrincipalId: params.iamPrincipalId,
-        iamStatus: params.iamStatus,
-        phoneE164: params.phoneE164,
-        phoneVerified: params.phoneVerified,
-        iamLifecycleDisabled:
-          params.iamStatus === "blocked" &&
-          customer.lifecycleStatus === "ACTIVE",
-      },
-    );
+    const claimed = await this.repository.customer.claimIamPrincipal(customer.id, {
+      iamPrincipalId: params.iamPrincipalId,
+      iamStatus: params.iamStatus,
+      phoneE164: params.phoneE164,
+      phoneVerified: params.phoneVerified,
+      iamLifecycleDisabled: params.iamStatus === "blocked" && customer.lifecycleStatus === "ACTIVE",
+    });
     if (claimed) {
       await this.invalidateDynamicSegments(
         claimed.id,
@@ -254,10 +237,9 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       };
     }
 
-    const raced =
-      await this.repository.customer.findByIamPrincipalIdIncludingDeleted(
-        params.iamPrincipalId,
-      );
+    const raced = await this.repository.customer.findByIamPrincipalIdIncludingDeleted(
+      params.iamPrincipalId,
+    );
     if (raced) return this.synchronizeExisting(raced, params);
 
     throw new CustomerProvisioningError(
@@ -297,8 +279,7 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       );
     }
     if (params.email !== null && customer.normalizedEmail !== normalizeEmail(params.email)) {
-      const conflictingCustomer =
-        await this.repository.customer.findByEmail(params.email);
+      const conflictingCustomer = await this.repository.customer.findByEmail(params.email);
       if (conflictingCustomer && conflictingCustomer.id !== customer.id) {
         throw new CustomerProvisioningError(
           "Customer email is already used by another customer",
@@ -319,8 +300,7 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       );
     }
     if (params.phoneE164 !== null && customer.phoneE164 !== params.phoneE164) {
-      const conflictingCustomer =
-        await this.repository.customer.findByPhoneE164(params.phoneE164);
+      const conflictingCustomer = await this.repository.customer.findByPhoneE164(params.phoneE164);
       if (conflictingCustomer && conflictingCustomer.id !== customer.id) {
         throw new CustomerProvisioningError(
           "Customer phone is already used by another customer",
@@ -348,9 +328,7 @@ export class CustomerProvisionFromIamScript extends BaseScript<
             iamLifecycleDisabled: false,
           }
         : {}),
-      ...(customer.accountStatus !== "REGISTERED"
-        ? { accountStatus: "REGISTERED" as const }
-        : {}),
+      ...(customer.accountStatus !== "REGISTERED" ? { accountStatus: "REGISTERED" as const } : {}),
       ...(params.email !== null && customer.normalizedEmail !== normalizeEmail(params.email)
         ? { email: params.email }
         : {}),

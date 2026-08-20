@@ -14,9 +14,8 @@ import type { ReviewFormValues } from "../modals/review-modal/schema";
 function buildAuthor(values: ReviewFormValues): ApiReviewContentAuthorCreateInput {
   return {
     type: values.authorType,
-    customerId: values.authorType === ReviewContentAuthorType.Customer
-      ? values.customerId || null
-      : null,
+    customerId:
+      values.authorType === ReviewContentAuthorType.Customer ? values.customerId || null : null,
     displayName: values.authorDisplayName.trim(),
     email: values.authorEmail.trim() || null,
   };
@@ -119,9 +118,10 @@ const fieldMap: Record<string, FieldPath<ReviewFormValues>> = {
 export function mapReviewUserErrors(errors: ApiGenericUserError[]) {
   return errors.map((error) => {
     const path = error.field?.join(".") ?? "";
-    const field = Object.entries(fieldMap).find(
-      ([apiPath]) => path === apiPath || path.endsWith(`.${apiPath}`),
-    )?.[1] ?? null;
+    const field =
+      Object.entries(fieldMap).find(
+        ([apiPath]) => path === apiPath || path.endsWith(`.${apiPath}`),
+      )?.[1] ?? null;
     return { field, message: error.message };
   });
 }

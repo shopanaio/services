@@ -1,9 +1,4 @@
-import {
-  BaseScript,
-  ZodSchema,
-  Transactional,
-  ValidationError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, Transactional, ValidationError } from "../../kernel/BaseScript.js";
 import { AuthorizationError } from "@shopana/shared-kernel";
 import type { Domain } from "../../casbin/CasbinService.js";
 import {
@@ -15,28 +10,14 @@ import {
 /**
  * RoleCreateScript - Create a new role with permissions for the organization
  */
-export class RoleCreateScript extends BaseScript<
-  RoleCreateParams,
-  RoleCreateResult
-> {
+export class RoleCreateScript extends BaseScript<RoleCreateParams, RoleCreateResult> {
   @Transactional()
   @ZodSchema(roleCreateInputSchema)
   protected async execute(params: RoleCreateParams): Promise<RoleCreateResult> {
-    const {
-      organizationId,
-      domain,
-      name,
-      displayName,
-      description,
-      permissions,
-    } = params;
+    const { organizationId, domain, name, displayName, description, permissions } = params;
 
     // Check if role with same name already exists in this domain
-    const existingRole = await this.repository.organization.findRole(
-      organizationId,
-      domain,
-      name
-    );
+    const existingRole = await this.repository.organization.findRole(organizationId, domain, name);
 
     if (existingRole) {
       return {

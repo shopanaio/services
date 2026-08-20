@@ -28,7 +28,7 @@ interface InventoryEditStore {
     itemId: string,
     field: EditableField,
     originalValue: EditableValue,
-    newValue: EditableValue
+    newValue: EditableValue,
   ) => void;
   discardAll: () => void;
   discardItem: (itemId: string) => void;
@@ -168,7 +168,7 @@ export const useInventoryEditStore = create<InventoryEditStore>((set, get) => ({
     const edits = get().edits;
     return Object.values(edits).reduce(
       (count, fields) => count + Object.keys(fields || {}).length,
-      0
+      0,
     );
   },
 

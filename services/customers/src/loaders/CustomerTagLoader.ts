@@ -1,8 +1,5 @@
 import DataLoader from "dataloader";
-import type {
-  CustomerTag,
-  CustomerTagAssignment,
-} from "../repositories/models/index.js";
+import type { CustomerTag, CustomerTagAssignment } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 import { mapById } from "./batch.js";
 
@@ -12,11 +9,9 @@ export class CustomerTagLoader {
   readonly tagCustomersCount: DataLoader<string, number>;
 
   constructor(repository: Repository) {
-    this.tag = new DataLoader(async (ids) =>
-      mapById(ids, await repository.tag.getByIds(ids))
-    );
+    this.tag = new DataLoader(async (ids) => mapById(ids, await repository.tag.getByIds(ids)));
     this.tagAssignment = new DataLoader(async (ids) =>
-      mapById(ids, await repository.tag.getAssignmentsByIds(ids))
+      mapById(ids, await repository.tag.getAssignmentsByIds(ids)),
     );
     this.tagCustomersCount = new DataLoader(async (tagIds) => {
       const counts = await repository.tag.countCustomersByTagIds(tagIds);

@@ -9,10 +9,7 @@ import {
   WorkflowStep,
 } from "@shopana/shared-kernel";
 import { ReviewCreateScript } from "../scripts/index.js";
-import type {
-  ReviewCreateWorkflowInput,
-  ReviewCreateWorkflowResult,
-} from "./dto/index.js";
+import type { ReviewCreateWorkflowInput, ReviewCreateWorkflowResult } from "./dto/index.js";
 import { ReviewsMutationWorkflow } from "./ReviewsMutationWorkflow.js";
 
 @Injectable()
@@ -45,13 +42,13 @@ export class ReviewCreateWorkflow extends ReviewsMutationWorkflow {
     return this.kernel.runScript(
       ReviewCreateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
   private async workflowEmitEvent(
     input: ReviewCreateWorkflowInput,
-    review: { id: string; productId: string }
+    review: { id: string; productId: string },
   ): Promise<void> {
     const payload: ReviewCreatedEvent["payload"] = {
       reviewId: review.id,
@@ -78,7 +75,7 @@ export class ReviewCreateWorkflow extends ReviewsMutationWorkflow {
         workflowId: DBOS.workflowID!,
         stepId: "emitReviewCreated",
         callId: review.id,
-      }
+      },
     );
   }
 }

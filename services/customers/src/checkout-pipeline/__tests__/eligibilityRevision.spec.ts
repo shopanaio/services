@@ -28,12 +28,12 @@ describe("customer checkout eligibility revision", () => {
       createEligibilityRevision({
         customerId: "customer-1",
         memberships: [first, second],
-      })
+      }),
     ).toBe(
       createEligibilityRevision({
         customerId: "customer-1",
         memberships: [second, first],
-      })
+      }),
     );
   });
 
@@ -46,13 +46,13 @@ describe("customer checkout eligibility revision", () => {
       createEligibilityRevision({
         customerId: "customer-1",
         memberships: [{ ...second, definitionRevision: 5 }],
-      })
+      }),
     ).not.toBe(baseline);
     expect(
       createEligibilityRevision({
         customerId: "customer-1",
         memberships: [{ ...second, expiresAt: null }],
-      })
+      }),
     ).not.toBe(baseline);
   });
 });

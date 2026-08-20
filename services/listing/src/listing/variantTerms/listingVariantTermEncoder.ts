@@ -5,11 +5,7 @@ export const LISTING_VARIANT_TERM_ENCODING_VERSION = "v1" as const;
 export function encodeListingVariantTerm(term: ListingVariantTerm): string {
   assertCanonicalTermPart(term.fieldKey, "fieldKey");
   assertCanonicalTermPart(term.valueKey, "valueKey");
-  return JSON.stringify([
-    LISTING_VARIANT_TERM_ENCODING_VERSION,
-    term.fieldKey,
-    term.valueKey,
-  ]);
+  return JSON.stringify([LISTING_VARIANT_TERM_ENCODING_VERSION, term.fieldKey, term.valueKey]);
 }
 
 export function decodeListingVariantTerm(value: string): ListingVariantTerm {
@@ -35,19 +31,11 @@ export function decodeListingVariantTerm(value: string): ListingVariantTerm {
   return Object.freeze({ fieldKey: decoded[1], valueKey: decoded[2] });
 }
 
-export function compareTerms(
-  left: ListingVariantTerm,
-  right: ListingVariantTerm
-): number {
-  return (
-    left.fieldKey.localeCompare(right.fieldKey) ||
-    left.valueKey.localeCompare(right.valueKey)
-  );
+export function compareTerms(left: ListingVariantTerm, right: ListingVariantTerm): number {
+  return left.fieldKey.localeCompare(right.fieldKey) || left.valueKey.localeCompare(right.valueKey);
 }
 
-export function deduplicateTerms(
-  terms: readonly ListingVariantTerm[]
-): ListingVariantTerm[] {
+export function deduplicateTerms(terms: readonly ListingVariantTerm[]): ListingVariantTerm[] {
   const byEncodedKey = new Map<string, ListingVariantTerm>();
   for (const term of terms) {
     const encoded = encodeListingVariantTerm(term);
@@ -56,9 +44,7 @@ export function deduplicateTerms(
   return [...byEncodedKey.values()].sort(compareTerms);
 }
 
-export function buildListingVariantTermPostingKey(
-  term: ListingVariantTerm
-): {
+export function buildListingVariantTermPostingKey(term: ListingVariantTerm): {
   entityType: "variant";
   field: "term";
   valueKey: string;
@@ -75,4 +61,3 @@ function assertCanonicalTermPart(value: string, label: string): void {
     throw new Error(`Listing variant term ${label} must be trimmed and non-empty`);
   }
 }
-

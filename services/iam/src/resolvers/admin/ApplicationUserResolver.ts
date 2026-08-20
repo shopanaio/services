@@ -1,8 +1,5 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { ApplicationUser } from "../../repositories/models/application-auth.js";
 import type {
   ApplicationUserLinkedAccountView,
@@ -42,17 +39,11 @@ export class ApplicationUserResolver extends IAMType<
   }
 
   id() {
-    return encodeGlobalIdByType(
-      this.$props.userId,
-      GlobalIdEntity.ApplicationUser
-    );
+    return encodeGlobalIdByType(this.$props.userId, GlobalIdEntity.ApplicationUser);
   }
 
   applicationId() {
-    return encodeGlobalIdByType(
-      this.$props.applicationId,
-      GlobalIdEntity.Application
-    );
+    return encodeGlobalIdByType(this.$props.applicationId, GlobalIdEntity.Application);
   }
 
   async name() {
@@ -93,19 +84,15 @@ export class ApplicationUserResolver extends IAMType<
 
   async security() {
     await this.$get("id");
-    const security = await this.$ctx.loaders.applicationUserSecurity.load(
-      this.$props
-    );
+    const security = await this.$ctx.loaders.applicationUserSecurity.load(this.$props);
     return new ApplicationUserSecurityMetadataResolver(security, this.$ctx);
   }
 
   async linkedAccounts() {
     await this.$get("id");
-    const security = await this.$ctx.loaders.applicationUserSecurity.load(
-      this.$props
-    );
+    const security = await this.$ctx.loaders.applicationUserSecurity.load(this.$props);
     return security.linkedAccounts.map(
-      (account) => new ApplicationUserLinkedAccountResolver(account, this.$ctx)
+      (account) => new ApplicationUserLinkedAccountResolver(account, this.$ctx),
     );
   }
 
@@ -136,10 +123,7 @@ export class ApplicationUserSecurityMetadataResolver extends IAMType<Application
 /** Application user linked account resolver. */
 export class ApplicationUserLinkedAccountResolver extends IAMType<ApplicationUserLinkedAccountView> {
   id() {
-    return encodeGlobalIdByType(
-      this.$props.id,
-      GlobalIdEntity.ApplicationUserLinkedAccount
-    );
+    return encodeGlobalIdByType(this.$props.id, GlobalIdEntity.ApplicationUserLinkedAccount);
   }
 
   provider() {

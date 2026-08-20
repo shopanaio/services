@@ -23,12 +23,51 @@ import {
   type CustomerEditSection,
 } from "../../../modals";
 
-export function useCustomerModals({ customer, onRefetch, onSaved }: { customer: ApiCustomer; onRefetch: () => Promise<unknown>; onSaved?: () => Promise<unknown> | unknown }) {
-  const { message, modal } = App.useApp(); const { forcePop } = useModalStackContext(); const deletion = useDeleteCustomer(); const [deleteError, setDeleteError] = useState<string | null>(null); const [deleteConflict, setDeleteConflict] = useState(false);
-  const profile = useCustomerEditProfileModal(); const contact = useCustomerEditContactModal(); const company = useCustomerEditCompanyModal(); const addresses = useCustomerManageAddressesModal(); const consents = useCustomerEditConsentsModal(); const groups = useCustomerEditGroupsModal(); const tags = useCustomerEditTagsModal(); const segments = useCustomerEditSegmentsModal(); const status = useCustomerEditStatusModal(); const note = useCustomerEditNoteModal(); const moderation = useCustomerEditModerationModal(); const taxIdentifiers = useCustomerManageTaxIdentifiersModal(); const taxExemptions = useCustomerManageTaxExemptionsModal(); const metadata = useCustomerTechnicalMetadataModal();
+export function useCustomerModals({
+  customer,
+  onRefetch,
+  onSaved,
+}: {
+  customer: ApiCustomer;
+  onRefetch: () => Promise<unknown>;
+  onSaved?: () => Promise<unknown> | unknown;
+}) {
+  const { message, modal } = App.useApp();
+  const { forcePop } = useModalStackContext();
+  const deletion = useDeleteCustomer();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteConflict, setDeleteConflict] = useState(false);
+  const profile = useCustomerEditProfileModal();
+  const contact = useCustomerEditContactModal();
+  const company = useCustomerEditCompanyModal();
+  const addresses = useCustomerManageAddressesModal();
+  const consents = useCustomerEditConsentsModal();
+  const groups = useCustomerEditGroupsModal();
+  const tags = useCustomerEditTagsModal();
+  const segments = useCustomerEditSegmentsModal();
+  const status = useCustomerEditStatusModal();
+  const note = useCustomerEditNoteModal();
+  const moderation = useCustomerEditModerationModal();
+  const taxIdentifiers = useCustomerManageTaxIdentifiersModal();
+  const taxExemptions = useCustomerManageTaxExemptionsModal();
+  const metadata = useCustomerTechnicalMetadataModal();
   const payload = { entityId: customer.id, onSaved: onRefetch };
   const edit = (section: CustomerEditSection) => {
-    const pushers = { profile, contact, company, addresses, consents, groups, tags, segments, status, note, moderation, taxIdentifiers, taxExemptions };
+    const pushers = {
+      profile,
+      contact,
+      company,
+      addresses,
+      consents,
+      groups,
+      tags,
+      segments,
+      status,
+      note,
+      moderation,
+      taxIdentifiers,
+      taxExemptions,
+    };
     pushers[section].push(payload);
   };
   const confirmDelete = () => {
@@ -38,11 +77,20 @@ export function useCustomerModals({ customer, onRefetch, onSaved }: { customer: 
       okText: "Delete",
       okButtonProps: { danger: true },
       onOk: async () => {
-        setDeleteError(null); setDeleteConflict(false);
-        const result = await deletion.deleteCustomer({ id: customer.id, expectedRevision: customer.revision });
+        setDeleteError(null);
+        setDeleteConflict(false);
+        const result = await deletion.deleteCustomer({
+          id: customer.id,
+          expectedRevision: customer.revision,
+        });
         if (!result.deletedCustomerId) {
-          if (result.userErrors.some((item) => item.code === "REVISION_CONFLICT")) setDeleteConflict(true);
-          else setDeleteError(result.userErrors.map((item) => item.message).join(" ") || "Unable to delete customer");
+          if (result.userErrors.some((item) => item.code === "REVISION_CONFLICT"))
+            setDeleteConflict(true);
+          else
+            setDeleteError(
+              result.userErrors.map((item) => item.message).join(" ") ||
+                "Unable to delete customer",
+            );
           return;
         }
         await onSaved?.();
@@ -51,7 +99,11 @@ export function useCustomerModals({ customer, onRefetch, onSaved }: { customer: 
       },
     });
   };
-  const reloadAfterConflict = async () => { await onRefetch(); setDeleteConflict(false); setDeleteError(null); };
+  const reloadAfterConflict = async () => {
+    await onRefetch();
+    setDeleteConflict(false);
+    setDeleteError(null);
+  };
   return {
     edit,
     openMetadata: () => metadata.push(payload),

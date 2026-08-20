@@ -29,7 +29,7 @@ export class ApplicationAuthRequestError extends Error {
   constructor(
     message: string,
     public readonly statusCode = 400,
-    public readonly oauthError = "invalid_request"
+    public readonly oauthError = "invalid_request",
   ) {
     super(message);
     this.name = "ApplicationAuthRequestError";
@@ -44,9 +44,7 @@ export interface RawApplicationAuthRequest {
   contentType: string | null;
 }
 
-export function readRawApplicationAuthRequest(
-  request: FastifyRequest
-): RawApplicationAuthRequest {
+export function readRawApplicationAuthRequest(request: FastifyRequest): RawApplicationAuthRequest {
   const rawUrl = request.raw.url;
   if (!rawUrl || !rawUrl.startsWith("/") || rawUrl.includes("#")) {
     throw new ApplicationAuthRequestError("Request target is invalid");
@@ -59,10 +57,7 @@ export function readRawApplicationAuthRequest(
     throw new ApplicationAuthRequestError("Raw request body is unavailable");
   }
   if (body && body.byteLength > MAX_AUTH_BODY_BYTES) {
-    throw new ApplicationAuthRequestError(
-      "Request body is too large",
-      413
-    );
+    throw new ApplicationAuthRequestError("Request body is too large", 413);
   }
   return {
     rawUrl,
@@ -82,9 +77,7 @@ export function validateApplicationAuthRequestBody(input: {
 }): void {
   const contentEncoding = readSingleHeader(input.contentEncoding);
   if (contentEncoding && contentEncoding.toLowerCase() !== "identity") {
-    throw new ApplicationAuthRequestError(
-      "Request content encoding is unsupported"
-    );
+    throw new ApplicationAuthRequestError("Request content encoding is unsupported");
   }
   validateUrlEncodedBytes(input.raw.rawQuery, "query");
 
@@ -95,10 +88,7 @@ export function validateApplicationAuthRequestBody(input: {
     return;
   }
 
-  const policy = contentPolicyFor(
-    input.normalizedPath,
-    input.socialCallback
-  );
+  const policy = contentPolicyFor(input.normalizedPath, input.socialCallback);
   const body = input.raw.body;
   if (policy === "none") {
     if (body && body.length > 0) {
@@ -116,22 +106,18 @@ export function validateApplicationAuthRequestBody(input: {
   const mediaType = parseAuthMediaType(input.raw.contentType);
   if (policy === "form" && mediaType !== "application/x-www-form-urlencoded") {
     throw new ApplicationAuthRequestError(
-      "OAuth protocol request must use application/x-www-form-urlencoded"
+      "OAuth protocol request must use application/x-www-form-urlencoded",
     );
   }
   if (policy === "json" && mediaType !== "application/json") {
-    throw new ApplicationAuthRequestError(
-      "Application auth request must use application/json"
-    );
+    throw new ApplicationAuthRequestError("Application auth request must use application/json");
   }
   if (
     policy === "form-or-json" &&
     mediaType !== "application/json" &&
     mediaType !== "application/x-www-form-urlencoded"
   ) {
-    throw new ApplicationAuthRequestError(
-      "Application auth callback content type is unsupported"
-    );
+    throw new ApplicationAuthRequestError("Application auth callback content type is unsupported");
   }
 
   if (mediaType === "application/json") {
@@ -201,7 +187,7 @@ export function createApplicationAuthFetchRequest(input: {
 
 export async function sendApplicationAuthFetchResponse(
   response: Response,
-  reply: FastifyReply
+  reply: FastifyReply,
 ): Promise<void> {
   reply.code(response.status);
   for (const [name, value] of response.headers.entries()) {
@@ -232,7 +218,7 @@ export async function sendApplicationAuthFetchResponse(
 
 function contentPolicyFor(
   normalizedPath: string,
-  socialCallback: boolean
+  socialCallback: boolean,
 ): "none" | "form" | "json" | "form-or-json" {
   if (
     normalizedPath === "/oauth2/token" ||
@@ -241,10 +227,7 @@ function contentPolicyFor(
   ) {
     return "form";
   }
-  if (
-    normalizedPath === "/oauth2/userinfo" ||
-    normalizedPath === "/sign-out"
-  ) {
+  if (normalizedPath === "/oauth2/userinfo" || normalizedPath === "/sign-out") {
     return "none";
   }
   if (socialCallback) return "form-or-json";
@@ -274,28 +257,23 @@ function parseAuthMediaType(contentType: string | null): string | null {
   for (const parameter of parts) {
     const match = /^charset=(?:"?)([^";]+)(?:"?)$/i.exec(parameter);
     if (!match || match[1]!.toLowerCase() !== "utf-8") {
-      throw new ApplicationAuthRequestError(
-        "Request content type parameters are unsupported"
-      );
+      throw new ApplicationAuthRequestError("Request content type parameters are unsupported");
     }
   }
   return mediaType;
 }
 
-function validateUrlEncodedBytes(
-  value: string,
-  source: "query" | "form"
-): void {
+function validateUrlEncodedBytes(value: string, source: "query" | "form"): void {
   for (const component of value.split(/[&=]/u)) {
     if (component.includes("\0")) {
       throw new ApplicationAuthRequestError(
-        `${source === "query" ? "Query" : "Form"} contains NUL`
+        `${source === "query" ? "Query" : "Form"} contains NUL`,
       );
     }
     const percent = /%(?![0-9A-Fa-f]{2})/u.exec(component);
     if (percent) {
       throw new ApplicationAuthRequestError(
-        `${source === "query" ? "Query" : "Form"} encoding is malformed`
+        `${source === "query" ? "Query" : "Form"} encoding is malformed`,
       );
     }
     try {
@@ -305,7 +283,7 @@ function validateUrlEncodedBytes(
       }
     } catch {
       throw new ApplicationAuthRequestError(
-        `${source === "query" ? "Query" : "Form"} encoding is malformed`
+        `${source === "query" ? "Query" : "Form"} encoding is malformed`,
       );
     }
   }
@@ -319,9 +297,7 @@ function decodeUtf8(buffer: Buffer): string {
   }
 }
 
-function readSingleHeader(
-  value: string | string[] | undefined
-): string | null {
+function readSingleHeader(value: string | string[] | undefined): string | null {
   if (value === undefined) return null;
   if (Array.isArray(value)) {
     if (value.length !== 1) {

@@ -2,20 +2,20 @@
 
 ## Context
 
-Inventory warehouse page needs a modal for adding variants to a warehouse.
-The modal should list variants that can still be added to the selected warehouse:
+Inventory warehouse page needs a modal for adding variants to a warehouse. The modal should list
+variants that can still be added to the selected warehouse:
 
 - variants without an `InventoryItem`;
 - variants with an `InventoryItem`, but without a `warehouse_stock` row for the selected warehouse.
 
-This list does not need stock quantities. It only needs stable Relay pagination,
-search/filter/order support compatible with the existing variant picker, and enough data for
-the existing `Variant` resolvers to render product, media, SKU, and inventory item fields.
+This list does not need stock quantities. It only needs stable Relay pagination, search/filter/order
+support compatible with the existing variant picker, and enough data for the existing `Variant`
+resolvers to render product, media, SKU, and inventory item fields.
 
 ## Current State
 
-`catalogQuery.variants(where:)` is backed by `variantRelayQuery` over the `variant` table.
-Its generated `VariantWhereInput` only exposes variant columns:
+`catalogQuery.variants(where:)` is backed by `variantRelayQuery` over the `variant` table. Its
+generated `VariantWhereInput` only exposes variant columns:
 
 - `productId`;
 - `id`;
@@ -28,11 +28,12 @@ Its generated `VariantWhereInput` only exposes variant columns:
 
 It cannot express "no stock row exists in warehouse X". The current Admin variant picker receives
 `queryMeta.warehouseId`, loads normal variants, and disables rows client-side when
-`variant.inventoryItem.stock` contains that warehouse. This works for small pages, but it can produce
-pages full of disabled rows and cannot guarantee that selectable rows are returned early.
+`variant.inventoryItem.stock` contains that warehouse. This works for small pages, but it can
+produce pages full of disabled rows and cannot guarantee that selectable rows are returned early.
 
-`inventoryItems(meta: { warehouseScope })` is not the right API shape for this modal because variants
-without an `InventoryItem` must be returned. An `InventoryItemConnection` cannot represent those rows.
+`inventoryItems(meta: { warehouseScope })` is not the right API shape for this modal because
+variants without an `InventoryItem` must be returned. An `InventoryItemConnection` cannot represent
+those rows.
 
 ## Decision
 
@@ -53,7 +54,8 @@ type InventoryQuery {
 ```
 
 The query returns `Variant` nodes. Existing `VariantResolver.inventoryItem`,
-`VariantResolver.product`, media, pricing, dimensions, and selected option resolvers remain unchanged.
+`VariantResolver.product`, media, pricing, dimensions, and selected option resolvers remain
+unchanged.
 
 ## Data Model
 
@@ -113,7 +115,8 @@ that warehouse. Repository filters will add:
 2. Add migration SQL.
    - Create the new view.
    - Do not edit existing changeset files manually.
-   - Prefer project migration generation if available; otherwise add a normal migration file consistent with existing catalog migrations.
+   - Prefer project migration generation if available; otherwise add a normal migration file
+     consistent with existing catalog migrations.
 
 3. Add relay query in `VariantRepository`.
    - Create `warehouseAssignableVariantRelayQuery` over `variantWarehouseCandidateView`.
@@ -143,9 +146,12 @@ The method should:
 
 6. Add resolver method in `InventoryQueryResolver`.
    - Decode `warehouseId` as `GlobalIdEntity.Warehouse`.
-   - Optionally verify warehouse existence through loader/repository. If not found, return an empty connection.
-   - Normalize variant `where` the same way root variants currently rely on `mapWhereFields`; avoid passing raw global IDs to repository if additional normalizer becomes necessary.
-   - Return `VariantConnectionResolver` with a meta/product-like routing flag, or add a dedicated connection resolver if cleaner.
+   - Optionally verify warehouse existence through loader/repository. If not found, return an empty
+     connection.
+   - Normalize variant `where` the same way root variants currently rely on `mapWhereFields`; avoid
+     passing raw global IDs to repository if additional normalizer becomes necessary.
+   - Return `VariantConnectionResolver` with a meta/product-like routing flag, or add a dedicated
+     connection resolver if cleaner.
 
 7. Regenerate GraphQL outputs through project tooling.
    - Backend catalog generated resolver types/schemas if the service codegen flow is required.
@@ -195,7 +201,8 @@ inventoryQuery {
 2. Update `variant-picker-config.tsx`.
    - If `queryMeta.warehouseId` exists, use `warehouseAssignableVariants`.
    - If it does not exist, keep using normal `catalogQuery.variants`.
-   - Remove or keep `hasStockInWarehouse` as a defensive UI guard. It should normally be false for this query.
+   - Remove or keep `hasStockInWarehouse` as a defensive UI guard. It should normally be false for
+     this query.
 
 3. Keep `excludeIds` behavior.
    - Continue adding `{ id: { _notIn: excludeIds } }` to `where`.
@@ -203,9 +210,9 @@ inventoryQuery {
 
 ## Why Not Use Existing Filters
 
-Existing `VariantWhereInput` cannot express an anti-join against `warehouse_stock`.
-Adding a naive join to `variantRelayQuery` is risky because `warehouse_stock` is one-to-many by
-variant and warehouse. It can produce duplicate variant rows and incorrect Relay pagination/counts.
+Existing `VariantWhereInput` cannot express an anti-join against `warehouse_stock`. Adding a naive
+join to `variantRelayQuery` is risky because `warehouse_stock` is one-to-many by variant and
+warehouse. It can produce duplicate variant rows and incorrect Relay pagination/counts.
 
 A view makes the query source cardinality explicit: one candidate row per `(warehouse, variant)`.
 That keeps Relay pagination, ordering, and total count stable.
@@ -218,7 +225,8 @@ That keeps Relay pagination, ordering, and total count stable.
 - Query excludes deleted variants and variants whose product is deleted.
 - Relay pagination and `totalCount` are scoped by the same filters.
 - Existing `VariantWhereInput` search/filter and `VariantOrderByInput` ordering continue to work.
-- Admin picker with `queryMeta.warehouseId` shows selectable candidates instead of disabled stocked rows.
+- Admin picker with `queryMeta.warehouseId` shows selectable candidates instead of disabled stocked
+  rows.
 
 ## Verification
 

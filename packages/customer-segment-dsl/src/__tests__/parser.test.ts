@@ -16,7 +16,12 @@ describe("Customer Segment DSL parser", () => {
     expect(parsed.root.operator).toBe("or");
     expect(parsed.root.children[0]?.kind).toBe("not");
     expect(parsed.root.children[1]).toMatchObject({ kind: "logical", operator: "and" });
-    expect(parsed.root.range).toMatchObject({ startOffset: 0, endOffset: source.length, line: 1, column: 1 });
+    expect(parsed.root.range).toMatchObject({
+      startOffset: 0,
+      endOffset: source.length,
+      line: 1,
+      column: 1,
+    });
   });
 
   it("accepts keyword aliases and decodes only normative escapes", () => {

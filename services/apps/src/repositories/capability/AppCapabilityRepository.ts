@@ -1,13 +1,5 @@
 import { createHash } from "node:crypto";
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  inArray,
-  isNotNull,
-  ne,
-} from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, ne } from "drizzle-orm";
 import type { AppManifest } from "@shopana/app-sdk";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type {
@@ -17,11 +9,7 @@ import type {
 } from "../../control-plane/types.js";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  appBindingAssignments,
-  appBindings,
-  appInstallations,
-} from "../models/index.js";
+import { appBindingAssignments, appBindings, appInstallations } from "../models/index.js";
 import { isBroadcastStoreRoute } from "./capability-route-policy.js";
 
 export interface AppCapabilityBindingRecord {
@@ -39,16 +27,11 @@ export interface AppCapabilityBindingRecord {
 }
 
 export class AppCapabilityRepository extends BaseRepository {
-  constructor(
-    db: Database,
-    txManager: TransactionManager<Database>,
-  ) {
+  constructor(db: Database, txManager: TransactionManager<Database>) {
     super(db, txManager);
   }
 
-  async listByInstallation(
-    installationId: string,
-  ): Promise<AppCapabilityBindingRecord[]> {
+  async listByInstallation(installationId: string): Promise<AppCapabilityBindingRecord[]> {
     return this.connection
       .select({
         id: appBindings.id,
@@ -64,20 +47,12 @@ export class AppCapabilityRepository extends BaseRepository {
         assignmentStatus: appBindingAssignments.status,
       })
       .from(appBindings)
-      .leftJoin(
-        appBindingAssignments,
-        eq(appBindingAssignments.slotId, appBindings.id),
-      )
+      .leftJoin(appBindingAssignments, eq(appBindingAssignments.slotId, appBindings.id))
       .where(eq(appBindings.installationId, installationId))
-      .orderBy(
-        asc(appBindings.capability),
-        asc(appBindings.operationContract),
-      );
+      .orderBy(asc(appBindings.capability), asc(appBindings.operationContract));
   }
 
-  async listByInstallationForStore(
-    installationId: string,
-  ): Promise<AppCapabilityBindingRecord[]> {
+  async listByInstallationForStore(installationId: string): Promise<AppCapabilityBindingRecord[]> {
     return this.connection
       .select({
         id: appBindings.id,
@@ -93,20 +68,11 @@ export class AppCapabilityRepository extends BaseRepository {
         assignmentStatus: appBindingAssignments.status,
       })
       .from(appBindings)
-      .leftJoin(
-        appBindingAssignments,
-        eq(appBindingAssignments.slotId, appBindings.id),
-      )
+      .leftJoin(appBindingAssignments, eq(appBindingAssignments.slotId, appBindings.id))
       .where(
-        and(
-          eq(appBindings.storeId, this.storeId),
-          eq(appBindings.installationId, installationId),
-        ),
+        and(eq(appBindings.storeId, this.storeId), eq(appBindings.installationId, installationId)),
       )
-      .orderBy(
-        asc(appBindings.capability),
-        asc(appBindings.operationContract),
-      );
+      .orderBy(asc(appBindings.capability), asc(appBindings.operationContract));
   }
 
   async listByInstallationIdsForStore(
@@ -128,17 +94,11 @@ export class AppCapabilityRepository extends BaseRepository {
         assignmentStatus: appBindingAssignments.status,
       })
       .from(appBindings)
-      .leftJoin(
-        appBindingAssignments,
-        eq(appBindingAssignments.slotId, appBindings.id),
-      )
+      .leftJoin(appBindingAssignments, eq(appBindingAssignments.slotId, appBindings.id))
       .where(
         and(
           eq(appBindings.storeId, this.storeId),
-          inArray(
-            appBindings.installationId,
-            [...new Set(installationIds)],
-          ),
+          inArray(appBindings.installationId, [...new Set(installationIds)]),
         ),
       )
       .orderBy(
@@ -148,9 +108,7 @@ export class AppCapabilityRepository extends BaseRepository {
       );
   }
 
-  async findByIdForStore(
-    id: string,
-  ): Promise<AppCapabilityBindingRecord | null> {
+  async findByIdForStore(id: string): Promise<AppCapabilityBindingRecord | null> {
     const rows = await this.connection
       .select({
         id: appBindings.id,
@@ -166,23 +124,13 @@ export class AppCapabilityRepository extends BaseRepository {
         assignmentStatus: appBindingAssignments.status,
       })
       .from(appBindings)
-      .leftJoin(
-        appBindingAssignments,
-        eq(appBindingAssignments.slotId, appBindings.id),
-      )
-      .where(
-        and(
-          eq(appBindings.storeId, this.storeId),
-          eq(appBindings.id, id),
-        ),
-      )
+      .leftJoin(appBindingAssignments, eq(appBindingAssignments.slotId, appBindings.id))
+      .where(and(eq(appBindings.storeId, this.storeId), eq(appBindings.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
 
-  async getByIdsForStore(
-    ids: readonly string[],
-  ): Promise<AppCapabilityBindingRecord[]> {
+  async getByIdsForStore(ids: readonly string[]): Promise<AppCapabilityBindingRecord[]> {
     if (ids.length === 0) {
       return [];
     }
@@ -201,15 +149,9 @@ export class AppCapabilityRepository extends BaseRepository {
         assignmentStatus: appBindingAssignments.status,
       })
       .from(appBindings)
-      .leftJoin(
-        appBindingAssignments,
-        eq(appBindingAssignments.slotId, appBindings.id),
-      )
+      .leftJoin(appBindingAssignments, eq(appBindingAssignments.slotId, appBindings.id))
       .where(
-        and(
-          eq(appBindings.storeId, this.storeId),
-          inArray(appBindings.id, [...new Set(ids)]),
-        ),
+        and(eq(appBindings.storeId, this.storeId), inArray(appBindings.id, [...new Set(ids)])),
       );
   }
 
@@ -238,25 +180,13 @@ export class AppCapabilityRepository extends BaseRepository {
         targetAction: appBindings.targetAction,
       })
       .from(appBindingAssignments)
-      .innerJoin(
-        appBindings,
-        eq(appBindings.id, appBindingAssignments.slotId),
-      )
-      .innerJoin(
-        appInstallations,
-        eq(appInstallations.id, appBindings.installationId),
-      )
+      .innerJoin(appBindings, eq(appBindings.id, appBindingAssignments.slotId))
+      .innerJoin(appInstallations, eq(appInstallations.id, appBindings.installationId))
       .where(
         and(
           eq(appBindingAssignments.storeId, storeId),
-          eq(
-            appBindingAssignments.aggregate,
-            assignmentTarget.aggregate,
-          ),
-          eq(
-            appBindingAssignments.aggregateId,
-            assignmentTarget.aggregateId,
-          ),
+          eq(appBindingAssignments.aggregate, assignmentTarget.aggregate),
+          eq(appBindingAssignments.aggregateId, assignmentTarget.aggregateId),
           eq(appBindingAssignments.domain, assignmentTarget.domain),
           eq(appBindingAssignments.status, "active"),
           eq(appBindings.status, "active"),
@@ -268,10 +198,7 @@ export class AppCapabilityRepository extends BaseRepository {
           isNotNull(appBindings.targetAction),
         ),
       )
-      .orderBy(
-        asc(appBindingAssignments.precedence),
-        desc(appBindingAssignments.updatedAt),
-      )
+      .orderBy(asc(appBindingAssignments.precedence), desc(appBindingAssignments.updatedAt))
       .limit(1);
     const row = rows[0];
     if (!row || !row.appVersion) {
@@ -309,22 +236,13 @@ export class AppCapabilityRepository extends BaseRepository {
         targetAction: appBindings.targetAction,
       })
       .from(appBindingAssignments)
-      .innerJoin(
-        appBindings,
-        eq(appBindings.id, appBindingAssignments.slotId),
-      )
-      .innerJoin(
-        appInstallations,
-        eq(appInstallations.id, appBindings.installationId),
-      )
+      .innerJoin(appBindings, eq(appBindings.id, appBindingAssignments.slotId))
+      .innerJoin(appInstallations, eq(appInstallations.id, appBindings.installationId))
       .where(
         and(
           eq(appBindingAssignments.storeId, storeId),
           eq(appBindingAssignments.aggregate, "apps"),
-          eq(
-            appBindingAssignments.aggregateId,
-            capabilityRouteKey(capability, operation),
-          ),
+          eq(appBindingAssignments.aggregateId, capabilityRouteKey(capability, operation)),
           eq(appBindingAssignments.domain, capability),
           eq(appBindingAssignments.status, "active"),
           eq(appBindings.storeId, storeId),
@@ -369,15 +287,8 @@ export class AppCapabilityRepository extends BaseRepository {
     operation: string,
     installationId: string,
   ): Promise<ResolvedCapabilityRoute | null> {
-    const routes = await this.listActiveStoreRoutes(
-      storeId,
-      capability,
-      operation,
-    );
-    return (
-      routes.find((route) => route.installationId === installationId) ??
-      null
-    );
+    const routes = await this.listActiveStoreRoutes(storeId, capability, operation);
+    return routes.find((route) => route.installationId === installationId) ?? null;
   }
 
   async assignResource(input: {
@@ -390,10 +301,7 @@ export class AppCapabilityRepository extends BaseRepository {
     const slots = await this.connection
       .select({ id: appBindings.id })
       .from(appBindings)
-      .innerJoin(
-        appInstallations,
-        eq(appInstallations.id, appBindings.installationId),
-      )
+      .innerJoin(appInstallations, eq(appInstallations.id, appBindings.installationId))
       .where(
         and(
           eq(appBindings.storeId, input.storeId),
@@ -405,9 +313,7 @@ export class AppCapabilityRepository extends BaseRepository {
         ),
       );
     if (slots.length === 0) {
-      throw new Error(
-        `No active resource-scoped slots for capability "${input.capability}"`,
-      );
+      throw new Error(`No active resource-scoped slots for capability "${input.capability}"`);
     }
 
     const assignmentIds: string[] = [];
@@ -470,14 +376,8 @@ export class AppCapabilityRepository extends BaseRepository {
       .where(
         and(
           eq(appBindingAssignments.storeId, input.storeId),
-          eq(
-            appBindingAssignments.aggregate,
-            input.target.aggregate,
-          ),
-          eq(
-            appBindingAssignments.aggregateId,
-            input.target.aggregateId,
-          ),
+          eq(appBindingAssignments.aggregate, input.target.aggregate),
+          eq(appBindingAssignments.aggregateId, input.target.aggregateId),
           eq(appBindingAssignments.domain, input.target.domain),
           inArray(
             appBindingAssignments.slotId,
@@ -489,17 +389,11 @@ export class AppCapabilityRepository extends BaseRepository {
     return removed.length;
   }
 
-  async sync(
-    installation: AppInstallationRecord,
-    manifest: AppManifest,
-  ): Promise<void> {
+  async sync(installation: AppInstallationRecord, manifest: AppManifest): Promise<void> {
     const declaredRoutes = new Set<string>();
     for (const capability of manifest.capabilities) {
-      for (const [operation, targetAction] of Object.entries(
-        capability.operations,
-      )) {
-        const assignmentMode =
-          capability.assignmentMode ?? "store";
+      for (const [operation, targetAction] of Object.entries(capability.operations)) {
+        const assignmentMode = capability.assignmentMode ?? "store";
         const routeKey = capabilityRouteKey(capability.key, operation);
         declaredRoutes.add(routeKey);
         const currentRows = await this.connection
@@ -570,23 +464,13 @@ export class AppCapabilityRepository extends BaseRepository {
               status: "disabled",
               updatedAt: new Date().toISOString(),
             })
-            .where(
-              and(
-                assignmentScope,
-                ne(appBindingAssignments.slotId, slotId),
-              ),
-            );
+            .where(and(assignmentScope, ne(appBindingAssignments.slotId, slotId)));
         }
 
         const assignmentRows = await this.connection
           .select({ id: appBindingAssignments.id })
           .from(appBindingAssignments)
-          .where(
-            and(
-              assignmentScope,
-              eq(appBindingAssignments.slotId, slotId),
-            ),
-          )
+          .where(and(assignmentScope, eq(appBindingAssignments.slotId, slotId)))
           .limit(1);
         if (assignmentRows[0]) {
           await this.connection
@@ -596,12 +480,7 @@ export class AppCapabilityRepository extends BaseRepository {
               precedence: 0,
               updatedAt: new Date().toISOString(),
             })
-            .where(
-              eq(
-                appBindingAssignments.id,
-                assignmentRows[0].id,
-              ),
-            );
+            .where(eq(appBindingAssignments.id, assignmentRows[0].id));
         } else {
           await this.connection.insert(appBindingAssignments).values({
             storeId: installation.storeId,
@@ -625,24 +504,14 @@ export class AppCapabilityRepository extends BaseRepository {
       .from(appBindings)
       .where(eq(appBindings.installationId, installation.id));
     const obsoleteIds = existing
-      .filter(
-        (row) =>
-          !declaredRoutes.has(
-            capabilityRouteKey(row.capability, row.operation),
-          ),
-      )
+      .filter((row) => !declaredRoutes.has(capabilityRouteKey(row.capability, row.operation)))
       .map((row) => row.id);
     if (obsoleteIds.length > 0) {
-      await this.connection
-        .delete(appBindings)
-        .where(inArray(appBindings.id, obsoleteIds));
+      await this.connection.delete(appBindings).where(inArray(appBindings.id, obsoleteIds));
     }
   }
 
-  async setEnabled(
-    installationId: string,
-    enabled: boolean,
-  ): Promise<void> {
+  async setEnabled(installationId: string, enabled: boolean): Promise<void> {
     const slots = await this.connection
       .select({
         id: appBindings.id,
@@ -694,10 +563,7 @@ export class AppCapabilityRepository extends BaseRepository {
               eq(appBindingAssignments.aggregate, "apps"),
               eq(
                 appBindingAssignments.aggregateId,
-                capabilityRouteKey(
-                  slot.capability,
-                  slot.operation,
-                ),
+                capabilityRouteKey(slot.capability, slot.operation),
               ),
               eq(appBindingAssignments.domain, slot.capability),
               ne(appBindingAssignments.slotId, slot.id),
@@ -708,16 +574,11 @@ export class AppCapabilityRepository extends BaseRepository {
   }
 
   async deleteByInstallation(installationId: string): Promise<void> {
-    await this.connection
-      .delete(appBindings)
-      .where(eq(appBindings.installationId, installationId));
+    await this.connection.delete(appBindings).where(eq(appBindings.installationId, installationId));
   }
 }
 
-export function capabilityRouteKey(
-  capability: string,
-  operation: string,
-): string {
+export function capabilityRouteKey(capability: string, operation: string): string {
   return `${capability}:${operation}`;
 }
 
@@ -730,13 +591,15 @@ export function capabilityRouteRevision(input: {
   readonly targetAction: string;
 }): string {
   return createHash("sha256")
-    .update(JSON.stringify([
-      input.capabilityRouteId,
-      input.appCode,
-      input.appVersion,
-      input.capability,
-      input.operation,
-      input.targetAction,
-    ]))
+    .update(
+      JSON.stringify([
+        input.capabilityRouteId,
+        input.appCode,
+        input.appVersion,
+        input.capability,
+        input.operation,
+        input.targetAction,
+      ]),
+    )
     .digest("hex");
 }

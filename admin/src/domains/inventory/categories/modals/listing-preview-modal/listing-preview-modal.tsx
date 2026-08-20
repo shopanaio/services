@@ -78,10 +78,7 @@ const getSelectedFacetLabels = (facets: ApiListingFacet[]) =>
       })),
   );
 
-const inputMatchesFacetValue = (
-  input: ApiListingProductFilter,
-  value: ApiListingFacetValue,
-) => {
+const inputMatchesFacetValue = (input: ApiListingProductFilter, value: ApiListingFacetValue) => {
   const valueInput = toFacetInput(value);
   return valueInput ? stableSerialize(input) === stableSerialize(valueInput) : false;
 };
@@ -111,25 +108,25 @@ export const ListingPreviewModal = () => {
   const hasInitialData = items.length > 0 || facets.length > 0;
   const pageIndex = state.cursorStack.length + 1;
 
-  const resetCursor = useCallback(
-    (nextState: Partial<ListingPreviewState>) => {
-      setState((current) => ({
-        ...current,
-        ...nextState,
-        after: null,
-        cursorStack: [],
-      }));
-    },
-    [],
-  );
+  const resetCursor = useCallback((nextState: Partial<ListingPreviewState>) => {
+    setState((current) => ({
+      ...current,
+      ...nextState,
+      after: null,
+      cursorStack: [],
+    }));
+  }, []);
 
-  const removeFacetInput = useCallback((inputToRemove: ApiListingProductFilter) => {
-    resetCursor({
-      selectedFacetInputs: state.selectedFacetInputs.filter(
-        (input) => stableSerialize(input) !== stableSerialize(inputToRemove),
-      ),
-    });
-  }, [resetCursor, state.selectedFacetInputs]);
+  const removeFacetInput = useCallback(
+    (inputToRemove: ApiListingProductFilter) => {
+      resetCursor({
+        selectedFacetInputs: state.selectedFacetInputs.filter(
+          (input) => stableSerialize(input) !== stableSerialize(inputToRemove),
+        ),
+      });
+    },
+    [resetCursor, state.selectedFacetInputs],
+  );
 
   const toggleFacetValue = useCallback(
     (facet: ApiListingFacet, value: ApiListingFacetValue) => {
@@ -209,10 +206,7 @@ export const ListingPreviewModal = () => {
     [resetCursor],
   );
 
-  const handleSearchChange = useCallback(
-    (query: string) => resetCursor({ query }),
-    [resetCursor],
-  );
+  const handleSearchChange = useCallback((query: string) => resetCursor({ query }), [resetCursor]);
 
   const handleNext = useCallback(() => {
     if (!pageInfo?.hasNextPage || !pageInfo.endCursor) {
@@ -292,10 +286,7 @@ export const ListingPreviewModal = () => {
             <Typography.Title level={2} className={styles.categoryTitle}>
               {category.name}
             </Typography.Title>
-            <Typography.Text
-              type="secondary"
-              data-testid="category-listing-preview-total-count"
-            >
+            <Typography.Text type="secondary" data-testid="category-listing-preview-total-count">
               {totalCount} products
             </Typography.Text>
           </div>
@@ -360,11 +351,7 @@ export const ListingPreviewModal = () => {
                 Page {pageIndex} · {items.length} of {totalCount} loaded
               </Typography.Text>
             </div>
-            <ListingPreviewGrid
-              items={items}
-              loading={loading}
-              hasInitialData={hasInitialData}
-            />
+            <ListingPreviewGrid items={items} loading={loading} hasInitialData={hasInitialData} />
             <ListingPreviewPagination
               pageInfo={pageInfo}
               pageIndex={pageIndex}

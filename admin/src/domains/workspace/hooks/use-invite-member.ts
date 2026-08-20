@@ -20,7 +20,7 @@ interface UseInviteMemberReturn {
   inviteMember: (
     organizationId: string,
     email: string,
-    roles: ApiRoleAssignment[]
+    roles: ApiRoleAssignment[],
   ) => Promise<InviteMemberResult>;
   loading: boolean;
   error: Error | null;
@@ -41,7 +41,7 @@ export function useInviteMember(): UseInviteMemberReturn {
     async (
       organizationId: string,
       email: string,
-      roles: ApiRoleAssignment[]
+      roles: ApiRoleAssignment[],
     ): Promise<InviteMemberResult> => {
       const result = await mutate({
         variables: {
@@ -60,7 +60,7 @@ export function useInviteMember(): UseInviteMemberReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

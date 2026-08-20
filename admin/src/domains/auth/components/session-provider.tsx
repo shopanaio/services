@@ -32,7 +32,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
       isAuthenticated,
       isLoading: loading,
     }),
-    [user, isAuthenticated, loading]
+    [user, isAuthenticated, loading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

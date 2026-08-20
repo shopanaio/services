@@ -9,7 +9,14 @@ export {
   AllResources,
 } from "./validators.js";
 
-export type { Domain, OrgDomain, StoreDomain, OrgRoleName, StoreRoleName, RuntimePermission } from "./types.js";
+export type {
+  Domain,
+  OrgDomain,
+  StoreDomain,
+  OrgRoleName,
+  StoreRoleName,
+  RuntimePermission,
+} from "./types.js";
 export type {
   DomainPermissions,
   ValidationResult,

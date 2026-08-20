@@ -20,11 +20,7 @@ export const REVIEW_CREATE_MUTATION = gql`
 `;
 
 export const REVIEW_UPDATE_MUTATION = gql`
-  mutation ReviewUpdate(
-    $reviewId: ID!
-    $expectedRevision: Int!
-    $operations: ReviewUpdateInput
-  ) {
+  mutation ReviewUpdate($reviewId: ID!, $expectedRevision: Int!, $operations: ReviewUpdateInput) {
     reviewsMutation {
       reviewUpdate(
         reviewId: $reviewId

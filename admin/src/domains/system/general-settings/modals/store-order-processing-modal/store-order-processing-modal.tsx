@@ -28,12 +28,32 @@ const useStyles = createStyles(({ token }) => ({
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
   },
   paperBody: { display: "flex", flexDirection: "column", gap: 14, padding: "14px 20px 18px" },
-  inputGrid: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16, "@media (max-width: 680px)": { gridTemplateColumns: "1fr" } },
+  inputGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 16,
+    "@media (max-width: 680px)": { gridTemplateColumns: "1fr" },
+  },
   field: { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 },
   fieldLabel: { fontSize: 12, lineHeight: "18px" },
-  preview: { display: "flex", alignItems: "center", gap: 14, minHeight: 42, padding: "8px 12px", background: token.colorFillQuaternary, borderRadius: token.borderRadiusSM },
+  preview: {
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+    minHeight: 42,
+    padding: "8px 12px",
+    background: token.colorFillQuaternary,
+    borderRadius: token.borderRadiusSM,
+  },
   previewLabel: { color: token.colorTextSecondary, fontSize: 12 },
-  previewValue: { padding: "2px 6px", color: token.colorPrimary, fontSize: 12, fontWeight: 600, background: token.colorPrimaryBg, borderRadius: token.borderRadiusSM },
+  previewValue: {
+    padding: "2px 6px",
+    color: token.colorPrimary,
+    fontSize: 12,
+    fontWeight: 600,
+    background: token.colorPrimaryBg,
+    borderRadius: token.borderRadiusSM,
+  },
   rule: { display: "flex", flexDirection: "column", gap: 4 },
   ruleTitle: { fontSize: 12, fontWeight: 500, lineHeight: "18px" },
   hint: { color: token.colorTextTertiary, fontSize: 12, lineHeight: "18px" },
@@ -49,16 +69,19 @@ export const StoreOrderProcessingModal = () => {
   const { store } = typedPayload;
   const updateMutation = useUpdateGeneralSettings();
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const { control, handleSubmit, formState: { isDirty } } =
-    useForm<StoreOrderProcessingFormValues>({
-      defaultValues: {
-        orderNumberPrefix: store.orderProcessing.orderNumberPrefix,
-        orderNumberSuffix: store.orderProcessing.orderNumberSuffix ?? "",
-        requireCheckoutConfirmation: store.orderProcessing.requireCheckoutConfirmation,
-        automaticFulfillmentMode: store.orderProcessing.automaticFulfillmentMode,
-        automaticallyArchiveOrders: store.orderProcessing.automaticallyArchiveOrders,
-      },
-    });
+  const {
+    control,
+    handleSubmit,
+    formState: { isDirty },
+  } = useForm<StoreOrderProcessingFormValues>({
+    defaultValues: {
+      orderNumberPrefix: store.orderProcessing.orderNumberPrefix,
+      orderNumberSuffix: store.orderProcessing.orderNumberSuffix ?? "",
+      requireCheckoutConfirmation: store.orderProcessing.requireCheckoutConfirmation,
+      automaticFulfillmentMode: store.orderProcessing.automaticFulfillmentMode,
+      automaticallyArchiveOrders: store.orderProcessing.automaticallyArchiveOrders,
+    },
+  });
   const [prefix, suffix] = useWatch({
     control,
     name: ["orderNumberPrefix", "orderNumberSuffix"],
@@ -73,10 +96,16 @@ export const StoreOrderProcessingModal = () => {
       expectedRevision: store.revision,
       operations: mapStoreOrderProcessingInput(values),
     });
-    const operationErrors = result.operationResults.flatMap(({ applied, errors }) => applied ? [] : errors);
+    const operationErrors = result.operationResults.flatMap(({ applied, errors }) =>
+      applied ? [] : errors,
+    );
     const errors = [...result.userErrors, ...operationErrors];
     if (!result.data || errors.length > 0) {
-      setSubmitError([...new Set(errors.map(({ message: errorMessage }) => errorMessage))].join("\n") || updateMutation.error?.message || "Order processing settings could not be saved.");
+      setSubmitError(
+        [...new Set(errors.map(({ message: errorMessage }) => errorMessage))].join("\n") ||
+          updateMutation.error?.message ||
+          "Order processing settings could not be saved.",
+      );
       return;
     }
     await typedPayload.onSaved?.();
@@ -87,11 +116,25 @@ export const StoreOrderProcessingModal = () => {
   return (
     <ModalLayout
       name="store-order-processing"
-      header={<ModalHeader name="store-order-processing" onClose={pop} submitButtonProps={{ children: "Save", disabled: !isDirty, loading: updateMutation.loading, onClick: submit }} title="Edit Order Processing" />}
+      header={
+        <ModalHeader
+          name="store-order-processing"
+          onClose={pop}
+          submitButtonProps={{
+            children: "Save",
+            disabled: !isDirty,
+            loading: updateMutation.loading,
+            onClick: submit,
+          }}
+          title="Edit Order Processing"
+        />
+      }
     >
       <div className={styles.intro}>
         <Typography.Text className={styles.introTitle}>Order processing</Typography.Text>
-        <Typography.Text className={styles.introCopy}>Configure order numbering, checkout confirmation, fulfillment and archiving.</Typography.Text>
+        <Typography.Text className={styles.introCopy}>
+          Configure order numbering, checkout confirmation, fulfillment and archiving.
+        </Typography.Text>
       </div>
       {submitError ? <Alert message={submitError} showIcon type="error" /> : null}
       <form className={styles.form} onSubmit={submit}>
@@ -103,14 +146,27 @@ export const StoreOrderProcessingModal = () => {
             <div className={styles.inputGrid}>
               <label className={styles.field}>
                 <span className={styles.fieldLabel}>Prefix</span>
-                <Controller control={control} name="orderNumberPrefix" render={({ field }) => <Input {...field} maxLength={16} placeholder="e.g. #" />} />
+                <Controller
+                  control={control}
+                  name="orderNumberPrefix"
+                  render={({ field }) => <Input {...field} maxLength={16} placeholder="e.g. #" />}
+                />
               </label>
               <label className={styles.field}>
                 <span className={styles.fieldLabel}>Suffix</span>
-                <Controller control={control} name="orderNumberSuffix" render={({ field }) => <Input {...field} maxLength={16} placeholder="Optional" />} />
+                <Controller
+                  control={control}
+                  name="orderNumberSuffix"
+                  render={({ field }) => <Input {...field} maxLength={16} placeholder="Optional" />}
+                />
               </label>
             </div>
-            <div className={styles.preview}><span className={styles.previewLabel}>Preview</span><span className={styles.previewValue}>{prefix}1001{suffix}</span></div>
+            <div className={styles.preview}>
+              <span className={styles.previewLabel}>Preview</span>
+              <span className={styles.previewValue}>
+                {prefix}1001{suffix}
+              </span>
+            </div>
           </div>
         </Paper>
         <Paper className={styles.paper}>
@@ -120,26 +176,64 @@ export const StoreOrderProcessingModal = () => {
           <div className={styles.paperBody}>
             <div className={styles.rule}>
               <span className={styles.ruleTitle}>Checkout confirmation</span>
-              <Controller control={control} name="requireCheckoutConfirmation" render={({ field }) => <Checkbox checked={field.value} onChange={(event) => field.onChange(event.target.checked)}>Require a confirmation step</Checkbox>} />
-              <span className={styles.hint}>Customers review their order details before purchasing.</span>
+              <Controller
+                control={control}
+                name="requireCheckoutConfirmation"
+                render={({ field }) => (
+                  <Checkbox
+                    checked={field.value}
+                    onChange={(event) => field.onChange(event.target.checked)}
+                  >
+                    Require a confirmation step
+                  </Checkbox>
+                )}
+              />
+              <span className={styles.hint}>
+                Customers review their order details before purchasing.
+              </span>
             </div>
             <div className={styles.divider} />
             <div className={styles.rule}>
               <span className={styles.ruleTitle}>Automatic fulfillment</span>
-              <span className={styles.hint}>After payment, select one automatic fulfillment behavior.</span>
-              <Controller control={control} name="automaticFulfillmentMode" render={({ field }) => (
-                <Radio.Group {...field} className={styles.radioGroup}>
-                  <Radio value={AutomaticFulfillmentMode.AllLineItems}>Automatically fulfill all line items</Radio>
-                  <Radio value={AutomaticFulfillmentMode.GiftCardsOnly}>Automatically fulfill gift cards only</Radio>
-                  <Radio value={AutomaticFulfillmentMode.Disabled}>Do not fulfill line items automatically</Radio>
-                </Radio.Group>
-              )} />
+              <span className={styles.hint}>
+                After payment, select one automatic fulfillment behavior.
+              </span>
+              <Controller
+                control={control}
+                name="automaticFulfillmentMode"
+                render={({ field }) => (
+                  <Radio.Group {...field} className={styles.radioGroup}>
+                    <Radio value={AutomaticFulfillmentMode.AllLineItems}>
+                      Automatically fulfill all line items
+                    </Radio>
+                    <Radio value={AutomaticFulfillmentMode.GiftCardsOnly}>
+                      Automatically fulfill gift cards only
+                    </Radio>
+                    <Radio value={AutomaticFulfillmentMode.Disabled}>
+                      Do not fulfill line items automatically
+                    </Radio>
+                  </Radio.Group>
+                )}
+              />
             </div>
             <div className={styles.divider} />
             <div className={styles.rule}>
               <span className={styles.ruleTitle}>Automatic archiving</span>
-              <Controller control={control} name="automaticallyArchiveOrders" render={({ field }) => <Checkbox checked={field.value} onChange={(event) => field.onChange(event.target.checked)}>Automatically archive the order</Checkbox>} />
-              <span className={styles.hint}>Archive after the order is fulfilled and paid, or when all items are refunded.</span>
+              <Controller
+                control={control}
+                name="automaticallyArchiveOrders"
+                render={({ field }) => (
+                  <Checkbox
+                    checked={field.value}
+                    onChange={(event) => field.onChange(event.target.checked)}
+                  >
+                    Automatically archive the order
+                  </Checkbox>
+                )}
+              />
+              <span className={styles.hint}>
+                Archive after the order is fulfilled and paid, or when all items are refunded.
+              </span>
             </div>
           </div>
         </Paper>

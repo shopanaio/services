@@ -18,13 +18,9 @@ export interface NotificationWebhookUpdateParams {
   expectedVersion: number;
 }
 
-export type NotificationWebhookView = Awaited<
-  ReturnType<WebhookRepository["create"]>
->;
+export type NotificationWebhookView = Awaited<ReturnType<WebhookRepository["create"]>>;
 
-export type NotificationWebhookListView = Awaited<
-  ReturnType<WebhookRepository["list"]>
->;
+export type NotificationWebhookListView = Awaited<ReturnType<WebhookRepository["list"]>>;
 
 export interface NotificationWebhookCapabilitiesView {
   events: Array<{ eventType: string; title: string }>;

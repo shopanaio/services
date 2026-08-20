@@ -1,12 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  boolean,
-  integer,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { boolean, integer, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { catalogSchema, localeCodeEnum } from "./schema";
 
 const inventoryItemListViewColumns = {
@@ -19,9 +12,7 @@ const inventoryItemListViewColumns = {
   productName: text("product_name").notNull(),
   sku: varchar("sku", { length: 255 }),
   trackInventory: boolean("track_inventory").notNull(),
-  continueSellingWhenOutOfStock: boolean(
-    "continue_selling_when_out_of_stock"
-  ).notNull(),
+  continueSellingWhenOutOfStock: boolean("continue_selling_when_out_of_stock").notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   updatedAt: timestamp("updated_at", {
     withTimezone: true,
@@ -33,9 +24,10 @@ const inventoryItemListViewColumns = {
   availableForSale: integer("available_for_sale").notNull(),
 };
 
-export const inventoryItemListAllStockView = catalogSchema
-  .view("inventory_item_list_all_stock_view", inventoryItemListViewColumns)
-  .as(sql`
+export const inventoryItemListAllStockView = catalogSchema.view(
+  "inventory_item_list_all_stock_view",
+  inventoryItemListViewColumns,
+).as(sql`
     SELECT
       item.store_id,
       item.id,
@@ -85,12 +77,13 @@ export const inventoryItemListAllStockView = catalogSchema
      AND stock.variant_id = item.variant_id
   `);
 
-export const inventoryItemListWarehouseStockView = catalogSchema
-  .view("inventory_item_list_warehouse_stock_view", {
+export const inventoryItemListWarehouseStockView = catalogSchema.view(
+  "inventory_item_list_warehouse_stock_view",
+  {
     ...inventoryItemListViewColumns,
     warehouseScopeId: uuid("warehouse_scope_id").notNull(),
-  })
-  .as(sql`
+  },
+).as(sql`
     SELECT
       item.store_id,
       item.id,
@@ -132,7 +125,6 @@ export const inventoryItemListWarehouseStockView = catalogSchema
      AND stock.variant_id = item.variant_id
   `);
 
-export type InventoryItemListAllStockView =
-  typeof inventoryItemListAllStockView.$inferSelect;
+export type InventoryItemListAllStockView = typeof inventoryItemListAllStockView.$inferSelect;
 export type InventoryItemListWarehouseStockView =
   typeof inventoryItemListWarehouseStockView.$inferSelect;

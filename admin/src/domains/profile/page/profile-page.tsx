@@ -2,23 +2,24 @@
 
 import { Typography, Button, Tag, App, Dropdown, Spin } from "antd";
 import { createStyles } from "antd-style";
-import { LuLockKeyhole as LockOutlined, LuMonitor as DesktopOutlined, LuSmartphone as MobileOutlined, LuX as CloseOutlined, LuEllipsis as MoreOutlined, LuCircleCheck as CheckCircleOutlined, LuSun as SunOutlined, LuMoon as MoonOutlined } from "react-icons/lu";
+import {
+  LuLockKeyhole as LockOutlined,
+  LuMonitor as DesktopOutlined,
+  LuSmartphone as MobileOutlined,
+  LuX as CloseOutlined,
+  LuEllipsis as MoreOutlined,
+  LuCircleCheck as CheckCircleOutlined,
+  LuSun as SunOutlined,
+  LuMoon as MoonOutlined,
+} from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsLayout } from "@/domains/workspace/layout";
 import { DangerZone } from "@/domains/workspace/shared";
 import { useThemeContext } from "@/ui-kit/theme/theme-context";
 import { ProfileInfoHeader } from "../components";
 import { useSession } from "@/domains/auth";
-import {
-  useEditProfileModal,
-  useChangeEmailModal,
-  useChangePasswordModal,
-} from "../modals";
-import {
-  useUpdateProfile,
-  useSessions,
-  useRevokeSession,
-} from "../hooks";
+import { useEditProfileModal, useChangeEmailModal, useChangePasswordModal } from "../modals";
+import { useUpdateProfile, useSessions, useRevokeSession } from "../hooks";
 import { LocaleCode, type ApiSession } from "@/graphql/types";
 import { MdBrightness4 } from "react-icons/md";
 
@@ -348,9 +349,7 @@ export default function ProfilePage() {
         />
         <div className={styles.passwordRow}>
           <div className={styles.passwordInfo}>
-            <Typography.Text className={styles.passwordDots}>
-              •••••
-            </Typography.Text>
+            <Typography.Text className={styles.passwordDots}>•••••</Typography.Text>
             <Typography.Text className={styles.passwordMeta}>
               Last changed: 3 months ago
             </Typography.Text>
@@ -395,59 +394,45 @@ export default function ProfilePage() {
           <div
             className={cx(
               styles.themeCard,
-              themePreference === "light" && styles.themeCardSelected
+              themePreference === "light" && styles.themeCardSelected,
             )}
             onClick={() => setThemePreference("light")}
           >
             <SunOutlined
               className={cx(
                 styles.themeIcon,
-                themePreference === "light" && styles.themeIconSelected
+                themePreference === "light" && styles.themeIconSelected,
               )}
             />
-            <Typography.Text className={styles.themeLabel}>
-              Light
-            </Typography.Text>
+            <Typography.Text className={styles.themeLabel}>Light</Typography.Text>
             <Typography.Text className={styles.themeDescription}>
               Classic light theme
             </Typography.Text>
           </div>
           <div
-            className={cx(
-              styles.themeCard,
-              themePreference === "dark" && styles.themeCardSelected
-            )}
+            className={cx(styles.themeCard, themePreference === "dark" && styles.themeCardSelected)}
             onClick={() => setThemePreference("dark")}
           >
             <MoonOutlined
               className={cx(
                 styles.themeIcon,
-                themePreference === "dark" && styles.themeIconSelected
+                themePreference === "dark" && styles.themeIconSelected,
               )}
             />
-            <Typography.Text className={styles.themeLabel}>
-              Dark
-            </Typography.Text>
-            <Typography.Text className={styles.themeDescription}>
-              Easy on the eyes
-            </Typography.Text>
+            <Typography.Text className={styles.themeLabel}>Dark</Typography.Text>
+            <Typography.Text className={styles.themeDescription}>Easy on the eyes</Typography.Text>
           </div>
           <div
-            className={cx(
-              styles.themeCard,
-              themePreference === "auto" && styles.themeCardSelected
-            )}
+            className={cx(styles.themeCard, themePreference === "auto" && styles.themeCardSelected)}
             onClick={() => setThemePreference("auto")}
           >
             <MdBrightness4
               className={cx(
                 styles.themeIcon,
-                themePreference === "auto" && styles.themeIconSelected
+                themePreference === "auto" && styles.themeIconSelected,
               )}
             />
-            <Typography.Text className={styles.themeLabel}>
-              Auto
-            </Typography.Text>
+            <Typography.Text className={styles.themeLabel}>Auto</Typography.Text>
             <Typography.Text className={styles.themeDescription}>
               Match system settings
             </Typography.Text>

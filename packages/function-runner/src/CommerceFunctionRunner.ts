@@ -6,23 +6,15 @@ import type {
   FunctionExecutionPlanItem,
   FunctionTargetDefinition,
 } from "./contracts.js";
-import {
-  CommerceFunctionExecutionError,
-} from "./errors.js";
+import { CommerceFunctionExecutionError } from "./errors.js";
 import type {
   FunctionExecutionOutcome,
   FunctionImplementationExecutor,
 } from "./FunctionImplementation.js";
 import { FunctionRouteResolver } from "./FunctionRouteResolver.js";
 import { FunctionTargetRegistry } from "./FunctionTargetRegistry.js";
-import {
-  DEFAULT_MAX_ENVELOPE_DEPTH,
-} from "./execution-policy.js";
-import {
-  canonicalizeEnvelope,
-  cloneAndFreeze,
-  measureEnvelope,
-} from "./trace.js";
+import { DEFAULT_MAX_ENVELOPE_DEPTH } from "./execution-policy.js";
+import { canonicalizeEnvelope, cloneAndFreeze, measureEnvelope } from "./trace.js";
 
 export class CommerceFunctionRunner {
   constructor(
@@ -38,12 +30,9 @@ export class CommerceFunctionRunner {
     assertRequest(request);
 
     // Capture all caller-owned values before the first asynchronous boundary.
-    const maxDepth =
-      definition.maxEnvelopeDepth ?? DEFAULT_MAX_ENVELOPE_DEPTH;
+    const maxDepth = definition.maxEnvelopeDepth ?? DEFAULT_MAX_ENVELOPE_DEPTH;
     const enabledBindings = request.bindings.filter(
-      (binding) =>
-        (binding.failureMode ?? definition.appFailureMode) !==
-        "DISABLED",
+      (binding) => (binding.failureMode ?? definition.appFailureMode) !== "DISABLED",
     );
     const snapshot = cloneAndFreeze({
       ...request,
@@ -57,12 +46,7 @@ export class CommerceFunctionRunner {
         ),
       })),
     });
-    measureEnvelope(
-      snapshot.input,
-      definition.maxInputBytes,
-      maxDepth,
-      "input",
-    );
+    measureEnvelope(snapshot.input, definition.maxInputBytes, maxDepth, "input");
 
     const startedMs = Date.now();
     const startedAt = new Date(startedMs).toISOString();
@@ -82,26 +66,18 @@ export class CommerceFunctionRunner {
           item: plan.items[planIndex]!,
           definition,
         }),
-      (outcome) =>
-        outcome.ok === false &&
-        outcome.trace.failureMode === "REQUIRED",
+      (outcome) => outcome.ok === false && outcome.trace.failureMode === "REQUIRED",
     );
     const outcomes = scheduledOutcomes.map(
-      (outcome, planIndex) =>
-        outcome ??
-        skippedOutcome(planIndex, plan.items[planIndex]!),
+      (outcome, planIndex) => outcome ?? skippedOutcome(planIndex, plan.items[planIndex]!),
     );
 
     const endedMs = Date.now();
     const failures = outcomes.filter(
-      (outcome): outcome is Extract<
-        FunctionExecutionOutcome,
-        { ok: false }
-      > => outcome.ok === false,
+      (outcome): outcome is Extract<FunctionExecutionOutcome, { ok: false }> =>
+        outcome.ok === false,
     );
-    const requiredFailure = failures.find(
-      (failure) => failure.trace.failureMode === "REQUIRED",
-    );
+    const requiredFailure = failures.find((failure) => failure.trace.failureMode === "REQUIRED");
     const trace: CommerceFunctionExecutionTrace = Object.freeze({
       executionId: plan.executionId,
       correlationId: plan.correlationId,
@@ -114,19 +90,11 @@ export class CommerceFunctionRunner {
       endedAt: new Date(endedMs).toISOString(),
       durationMs: Math.max(0, endedMs - startedMs),
       deadlineAt: plan.deadlineAt,
-      status: requiredFailure
-        ? "FAILED"
-        : failures.length > 0
-          ? "PARTIAL"
-          : "SUCCEEDED",
-      implementations: Object.freeze(
-        outcomes.map((outcome) => outcome.trace),
-      ),
+      status: requiredFailure ? "FAILED" : failures.length > 0 ? "PARTIAL" : "SUCCEEDED",
+      implementations: Object.freeze(outcomes.map((outcome) => outcome.trace)),
     });
 
-    const outputs = outcomes.flatMap<
-      FunctionImplementationOutput<TOutput>
-    >((outcome) =>
+    const outputs = outcomes.flatMap<FunctionImplementationOutput<TOutput>>((outcome) =>
       outcome.ok === true
         ? [
             Object.freeze({
@@ -157,18 +125,14 @@ export class CommerceFunctionRunner {
   }
 }
 
-function assertRequest<TInput>(
-  request: CommerceFunctionRunRequest<TInput>,
-): void {
+function assertRequest<TInput>(request: CommerceFunctionRunRequest<TInput>): void {
   if (
     !request.storeId.trim() ||
     !request.target.trim() ||
     !request.bindingSetRevision.trim() ||
     !request.executionId.trim()
   ) {
-    throw new Error(
-      "storeId, target, bindingSetRevision and executionId are required",
-    );
+    throw new Error("storeId, target, bindingSetRevision and executionId are required");
   }
 }
 
@@ -192,12 +156,7 @@ async function executeWithConcurrency<T>(
       }
     }
   };
-  await Promise.all(
-    Array.from(
-      { length: Math.min(count, concurrencyLimit) },
-      () => worker(),
-    ),
-  );
+  await Promise.all(Array.from({ length: Math.min(count, concurrencyLimit) }, () => worker()));
   return results;
 }
 
@@ -220,16 +179,11 @@ function skippedOutcome(
             installationId: item.installationId,
             ...(item.capabilityRouteId
               ? {
-                  plannedCapabilityRouteId:
-                    item.capabilityRouteId,
+                  plannedCapabilityRouteId: item.capabilityRouteId,
                 }
               : {}),
-            ...(item.appCode
-              ? { plannedAppCode: item.appCode }
-              : {}),
-            ...(item.appVersion
-              ? { plannedAppVersion: item.appVersion }
-              : {}),
+            ...(item.appCode ? { plannedAppCode: item.appCode } : {}),
+            ...(item.appVersion ? { plannedAppVersion: item.appVersion } : {}),
             ...(item.routeRevision
               ? {
                   plannedRouteRevision: item.routeRevision,
@@ -255,11 +209,7 @@ export function createCommerceFunctionRunner(input: {
   readonly routes: FunctionRouteResolver;
   readonly executor: FunctionImplementationExecutor;
 }): CommerceFunctionRunner {
-  return new CommerceFunctionRunner(
-    input.registry,
-    input.routes,
-    input.executor,
-  );
+  return new CommerceFunctionRunner(input.registry, input.routes, input.executor);
 }
 
 export type CommerceFunctionRunnerDependencies = {

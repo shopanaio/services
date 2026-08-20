@@ -20,10 +20,7 @@ interface ChannelsSectionProps {
   onEdit?: () => void;
 }
 
-export function ChannelsSection({
-  discount,
-  onEdit,
-}: ChannelsSectionProps) {
+export function ChannelsSection({ discount, onEdit }: ChannelsSectionProps) {
   const { styles } = useDiscountSectionStyles();
   const channelPresentation = {
     ONLINE_STORE: { label: "Online store", icon: <LuStore /> },
@@ -65,41 +62,31 @@ export function ChannelsSection({
       {discount.channels.length > 0 ? (
         <>
           <div className={styles.entityList}>
-            {(["ONLINE_STORE", "MOBILE_APP", "POINT_OF_SALE"] as const).map(
-              (code) => {
-                const channel = discount.channels.find(
-                  (candidate) => candidate.code === code,
-                );
-                const presentation = channelPresentation[code];
-                return (
-                  <div className={styles.listRow} key={code}>
-                    <Flex align="center" justify="space-between" gap={8}>
-                      <Flex align="center" gap={8}>
-                        <span
-                          className={
-                            channel
-                              ? styles.channelIconActive
-                              : styles.channelIconInactive
-                          }
-                        >
-                          {presentation.icon}
-                        </span>
-                        <Typography.Text
-                          type={channel ? undefined : "secondary"}
-                        >
-                          {presentation.label}
-                        </Typography.Text>
-                      </Flex>
-                      {channel ? (
-                        <LuCircleCheck className={styles.primaryIcon} />
-                      ) : (
-                        <LuCircle className={styles.neutralIcon} />
-                      )}
+            {(["ONLINE_STORE", "MOBILE_APP", "POINT_OF_SALE"] as const).map((code) => {
+              const channel = discount.channels.find((candidate) => candidate.code === code);
+              const presentation = channelPresentation[code];
+              return (
+                <div className={styles.listRow} key={code}>
+                  <Flex align="center" justify="space-between" gap={8}>
+                    <Flex align="center" gap={8}>
+                      <span
+                        className={channel ? styles.channelIconActive : styles.channelIconInactive}
+                      >
+                        {presentation.icon}
+                      </span>
+                      <Typography.Text type={channel ? undefined : "secondary"}>
+                        {presentation.label}
+                      </Typography.Text>
                     </Flex>
-                  </div>
-                );
-              },
-            )}
+                    {channel ? (
+                      <LuCircleCheck className={styles.primaryIcon} />
+                    ) : (
+                      <LuCircle className={styles.neutralIcon} />
+                    )}
+                  </Flex>
+                </div>
+              );
+            })}
           </div>
           <Typography.Text className={styles.caption}>
             {discount.channels.length} of 3 active
@@ -110,8 +97,7 @@ export function ChannelsSection({
           icon={<LuRadioTower />}
           state={{
             title: "No sales channels selected",
-            description:
-              "Choose where customers can use this discount.",
+            description: "Choose where customers can use this discount.",
           }}
         />
       )}

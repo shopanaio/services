@@ -19,9 +19,7 @@ import { Kernel } from "../kernel/Kernel.js";
 import type { CustomerIamLifecycleWorkflowInput } from "../workflows/CustomerIamLifecycleWorkflow.js";
 import type { CustomerProvisionFromIamWorkflowInput } from "../workflows/CustomerProvisionFromIamWorkflow.js";
 
-type ApplicationUserProjectionEvent =
-  | ApplicationUserCreatedEvent
-  | ApplicationUserUpdatedEvent;
+type ApplicationUserProjectionEvent = ApplicationUserCreatedEvent | ApplicationUserUpdatedEvent;
 
 @Injectable()
 export class ApplicationUserEventHandlers extends EventHandlers {
@@ -155,13 +153,10 @@ export class ApplicationUserEventHandlers extends EventHandlers {
     context: { organizationId: string };
     payload: { applicationId: string };
   }) {
-    const configuration =
-      await Kernel.getInstance().repository.storefrontAuth.findByApplicationId(
-        event.payload.applicationId,
-      );
-    return configuration?.organizationId === event.context.organizationId
-      ? configuration
-      : null;
+    const configuration = await Kernel.getInstance().repository.storefrontAuth.findByApplicationId(
+      event.payload.applicationId,
+    );
+    return configuration?.organizationId === event.context.organizationId ? configuration : null;
   }
 
   private failure(
@@ -190,8 +185,7 @@ function configurationNotFound(): EventHandlerResponse<never> {
   return {
     success: false,
     error: {
-      message:
-        "Application user event has no matching storefront auth configuration",
+      message: "Application user event has no matching storefront auth configuration",
       code: "STOREFRONT_AUTH_CONFIGURATION_NOT_FOUND",
       retryable: false,
     },
@@ -211,12 +205,9 @@ function provisioningErrorDetails(error: unknown): {
     };
     return {
       message:
-        typeof value.message === "string"
-          ? value.message
-          : "Customer IAM synchronization failed",
+        typeof value.message === "string" ? value.message : "Customer IAM synchronization failed",
       ...(typeof value.code === "string" ? { code: value.code } : {}),
-      retryable:
-        typeof value.retryable === "boolean" ? value.retryable : true,
+      retryable: typeof value.retryable === "boolean" ? value.retryable : true,
     };
   }
   return { message: String(error), retryable: true };

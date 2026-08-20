@@ -1,8 +1,4 @@
-import {
-  decodeGlobalId,
-  GlobalIdEntity,
-  type GlobalIdType,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalId, GlobalIdEntity, type GlobalIdType } from "@shopana/shared-graphql-guid";
 import { ApolloQuery, TypePolicy } from "@shopana/type-resolver";
 import { GraphQLError } from "graphql";
 import {
@@ -65,9 +61,7 @@ export class QueryResolver extends CustomersType<Record<string, never>> {
   organizationId: (resolver) => resolver.$ctx.store.organizationId,
   domain: (resolver) => `store:${resolver.$ctx.store.id}`,
 })
-export class CustomersQueryResolver extends CustomersType<
-  Record<string, never>
-> {
+export class CustomersQueryResolver extends CustomersType<Record<string, never>> {
   async customerSegmentAttributeCatalog() {
     await this.assertSegmentReadAccess();
     return CUSTOMER_SEGMENT_REGISTRY.catalog();
@@ -184,33 +178,31 @@ export class CustomersQueryResolver extends CustomersType<
     });
     if (!allowed) return null;
 
-    const configuration =
-      await this.$ctx.kernel.repository.storefrontAuth.findByStoreId(store.id);
+    const configuration = await this.$ctx.kernel.repository.storefrontAuth.findByStoreId(store.id);
     if (!configuration) return null;
     if (configuration.organizationId !== store.organizationId) {
       throw new Error("Storefront auth organization does not match current store");
     }
 
-    const result = await this.$ctx.kernel.getServices().broker.call<
-      IAM.ServiceLinkedApplicationAuthSettingsResult,
-      IAM.GetServiceLinkedApplicationAuthSettingsParams
-    >("iam.getServiceLinkedApplicationAuthSettings", {
-      applicationId: configuration.applicationId,
-      organizationId: store.organizationId,
-      linkedOwner: {
-        linkedOwnerType: "store",
-        linkedOwnerId: store.id,
-      },
-    });
-    if (!result.success) {
-      throw new GraphQLError(
-        result.error ?? "Failed to read customer account settings",
-        {
-          extensions: {
-            code: result.errorCode ?? "CUSTOMER_ACCOUNTS_SETTINGS_UNAVAILABLE",
-          },
+    const result = await this.$ctx.kernel
+      .getServices()
+      .broker.call<
+        IAM.ServiceLinkedApplicationAuthSettingsResult,
+        IAM.GetServiceLinkedApplicationAuthSettingsParams
+      >("iam.getServiceLinkedApplicationAuthSettings", {
+        applicationId: configuration.applicationId,
+        organizationId: store.organizationId,
+        linkedOwner: {
+          linkedOwnerType: "store",
+          linkedOwnerId: store.id,
         },
-      );
+      });
+    if (!result.success) {
+      throw new GraphQLError(result.error ?? "Failed to read customer account settings", {
+        extensions: {
+          code: result.errorCode ?? "CUSTOMER_ACCOUNTS_SETTINGS_UNAVAILABLE",
+        },
+      });
     }
     return result.settings ? toGraphqlCustomerAccountsSettings(result.settings) : null;
   }
@@ -230,10 +222,7 @@ export class CustomersQueryResolver extends CustomersType<
     }
   }
 
-  private safeDecodeId(
-    globalId: string,
-    expectedType: GlobalIdType
-  ): string | null {
+  private safeDecodeId(globalId: string, expectedType: GlobalIdType): string | null {
     try {
       return this.decodeId(globalId, expectedType);
     } catch {
@@ -261,24 +250,24 @@ export class CustomersQueryResolver extends CustomersType<
         return nodeResolver(new CustomerAddressResolver(id, this.$ctx), "CustomerAddress");
       }
       case GlobalIdEntity.CustomerTaxIdentifier: {
-        const id = this.safeDecodeId(
-          args.id,
-          GlobalIdEntity.CustomerTaxIdentifier
-        );
+        const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerTaxIdentifier);
         if (!id || !(await this.$ctx.loaders.taxIdentifier.load(id))) {
           return null;
         }
-        return nodeResolver(new CustomerTaxIdentifierResolver(id, this.$ctx), "CustomerTaxIdentifier");
+        return nodeResolver(
+          new CustomerTaxIdentifierResolver(id, this.$ctx),
+          "CustomerTaxIdentifier",
+        );
       }
       case GlobalIdEntity.CustomerTaxExemption: {
-        const id = this.safeDecodeId(
-          args.id,
-          GlobalIdEntity.CustomerTaxExemption
-        );
+        const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerTaxExemption);
         if (!id || !(await this.$ctx.loaders.taxExemption.load(id))) {
           return null;
         }
-        return nodeResolver(new CustomerTaxExemptionResolver(id, this.$ctx), "CustomerTaxExemption");
+        return nodeResolver(
+          new CustomerTaxExemptionResolver(id, this.$ctx),
+          "CustomerTaxExemption",
+        );
       }
       case GlobalIdEntity.CustomerConsent: {
         const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerConsent);
@@ -286,42 +275,39 @@ export class CustomersQueryResolver extends CustomersType<
         return nodeResolver(new CustomerConsentResolver(id, this.$ctx), "CustomerConsent");
       }
       case GlobalIdEntity.CustomerComparison: {
-        const id = this.safeDecodeId(
-          args.id,
-          GlobalIdEntity.CustomerComparison,
-        );
+        const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerComparison);
         if (!id || !(await this.$ctx.loaders.comparison.load(id))) return null;
         return nodeResolver(new CustomerComparisonResolver(id, this.$ctx), "CustomerComparison");
       }
       case GlobalIdEntity.CustomerComparisonItem: {
-        const id = this.safeDecodeId(
-          args.id,
-          GlobalIdEntity.CustomerComparisonItem,
-        );
+        const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerComparisonItem);
         if (!id || !(await this.$ctx.loaders.comparisonItem.load(id))) {
           return null;
         }
-        return nodeResolver(new CustomerComparisonItemResolver(id, this.$ctx), "CustomerComparisonItem");
+        return nodeResolver(
+          new CustomerComparisonItemResolver(id, this.$ctx),
+          "CustomerComparisonItem",
+        );
       }
       case GlobalIdEntity.CustomerConsentEvent: {
-        const id = this.safeDecodeId(
-          args.id,
-          GlobalIdEntity.CustomerConsentEvent
-        );
+        const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerConsentEvent);
         if (!id || !(await this.$ctx.loaders.consentEvent.load(id))) {
           return null;
         }
-        return nodeResolver(new CustomerConsentEventResolver(id, this.$ctx), "CustomerConsentEvent");
+        return nodeResolver(
+          new CustomerConsentEventResolver(id, this.$ctx),
+          "CustomerConsentEvent",
+        );
       }
       case GlobalIdEntity.CustomerExternalReference: {
-        const id = this.safeDecodeId(
-          args.id,
-          GlobalIdEntity.CustomerExternalReference
-        );
+        const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerExternalReference);
         if (!id || !(await this.$ctx.loaders.externalReference.load(id))) {
           return null;
         }
-        return nodeResolver(new CustomerExternalReferenceResolver(id, this.$ctx), "CustomerExternalReference");
+        return nodeResolver(
+          new CustomerExternalReferenceResolver(id, this.$ctx),
+          "CustomerExternalReference",
+        );
       }
       case GlobalIdEntity.CustomerGroup: {
         const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerGroup);
@@ -329,14 +315,14 @@ export class CustomersQueryResolver extends CustomersType<
         return nodeResolver(new CustomerGroupResolver(id, this.$ctx), "CustomerGroup");
       }
       case GlobalIdEntity.CustomerGroupMembership: {
-        const id = this.safeDecodeId(
-          args.id,
-          GlobalIdEntity.CustomerGroupMembership
-        );
+        const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerGroupMembership);
         if (!id || !(await this.$ctx.loaders.groupMembership.load(id))) {
           return null;
         }
-        return nodeResolver(new CustomerGroupMembershipResolver(id, this.$ctx), "CustomerGroupMembership");
+        return nodeResolver(
+          new CustomerGroupMembershipResolver(id, this.$ctx),
+          "CustomerGroupMembership",
+        );
       }
       case GlobalIdEntity.CustomerTag: {
         const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerTag);
@@ -344,14 +330,14 @@ export class CustomersQueryResolver extends CustomersType<
         return nodeResolver(new CustomerTagResolver(id, this.$ctx), "CustomerTag");
       }
       case GlobalIdEntity.CustomerTagAssignment: {
-        const id = this.safeDecodeId(
-          args.id,
-          GlobalIdEntity.CustomerTagAssignment
-        );
+        const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerTagAssignment);
         if (!id || !(await this.$ctx.loaders.tagAssignment.load(id))) {
           return null;
         }
-        return nodeResolver(new CustomerTagAssignmentResolver(id, this.$ctx), "CustomerTagAssignment");
+        return nodeResolver(
+          new CustomerTagAssignmentResolver(id, this.$ctx),
+          "CustomerTagAssignment",
+        );
       }
       case GlobalIdEntity.CustomerSegment: {
         const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerSegment);
@@ -359,24 +345,24 @@ export class CustomersQueryResolver extends CustomersType<
         return nodeResolver(new CustomerSegmentResolver(id, this.$ctx), "CustomerSegment");
       }
       case GlobalIdEntity.CustomerSegmentMembership: {
-        const id = this.safeDecodeId(
-          args.id,
-          GlobalIdEntity.CustomerSegmentMembership
-        );
+        const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerSegmentMembership);
         if (!id || !(await this.$ctx.loaders.segmentMembership.load(id))) {
           return null;
         }
-        return nodeResolver(new CustomerSegmentMembershipResolver(id, this.$ctx), "CustomerSegmentMembership");
+        return nodeResolver(
+          new CustomerSegmentMembershipResolver(id, this.$ctx),
+          "CustomerSegmentMembership",
+        );
       }
       case GlobalIdEntity.CustomerMonetaryStatistics: {
-        const id = this.safeDecodeId(
-          args.id,
-          GlobalIdEntity.CustomerMonetaryStatistics
-        );
+        const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerMonetaryStatistics);
         if (!id || !(await this.$ctx.loaders.monetaryStatistics.load(id))) {
           return null;
         }
-        return nodeResolver(new CustomerMonetaryStatisticsResolver(id, this.$ctx), "CustomerMonetaryStatistics");
+        return nodeResolver(
+          new CustomerMonetaryStatisticsResolver(id, this.$ctx),
+          "CustomerMonetaryStatistics",
+        );
       }
       case GlobalIdEntity.CustomerMerge: {
         const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerMerge);
@@ -386,10 +372,7 @@ export class CustomersQueryResolver extends CustomersType<
         return nodeResolver(new CustomerMergeResolver(id, this.$ctx), "CustomerMerge");
       }
       case GlobalIdEntity.CustomerDataRequest: {
-        const id = this.safeDecodeId(
-          args.id,
-          GlobalIdEntity.CustomerDataRequest
-        );
+        const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerDataRequest);
         if (!id || !(await this.$ctx.loaders.customerDataRequest.load(id))) {
           return null;
         }
@@ -411,9 +394,7 @@ export class CustomersQueryResolver extends CustomersType<
   }
 
   async customerByEmail(args: { email: string }) {
-    const customer = await this.$ctx.kernel.repository.customer.findByEmail(
-      args.email
-    );
+    const customer = await this.$ctx.kernel.repository.customer.findByEmail(args.email);
     if (!customer) return null;
     this.$ctx.loaders.customer.prime(customer.id, customer);
     return new CustomerResolver(customer.id, this.$ctx);
@@ -430,19 +411,13 @@ export class CustomersQueryResolver extends CustomersType<
   }
 
   async customerTaxIdentifier(args: { id: string }) {
-    const id = this.safeDecodeId(
-      args.id,
-      GlobalIdEntity.CustomerTaxIdentifier
-    );
+    const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerTaxIdentifier);
     if (!id || !(await this.$ctx.loaders.taxIdentifier.load(id))) return null;
     return new CustomerTaxIdentifierResolver(id, this.$ctx);
   }
 
   async customerTaxExemption(args: { id: string }) {
-    const id = this.safeDecodeId(
-      args.id,
-      GlobalIdEntity.CustomerTaxExemption
-    );
+    const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerTaxExemption);
     if (!id || !(await this.$ctx.loaders.taxExemption.load(id))) return null;
     return new CustomerTaxExemptionResolver(id, this.$ctx);
   }
@@ -515,19 +490,19 @@ function nodeResolver<T extends object>(resolver: T, typeName: string): T {
   return resolver;
 }
 
-function toGraphqlCustomerAccountsSettings(
-  settings: IAM.ServiceLinkedApplicationAuthSettings,
-) {
+function toGraphqlCustomerAccountsSettings(settings: IAM.ServiceLinkedApplicationAuthSettings) {
   return {
     ...settings,
-    methods: settings.methods.map((method) => ({
-      ...method,
-      method: method.method.toUpperCase(),
-    })).concat({
-      method: "PHONE_OTP",
-      enabled: false,
-      configured: false,
-    }),
+    methods: settings.methods
+      .map((method) => ({
+        ...method,
+        method: method.method.toUpperCase(),
+      }))
+      .concat({
+        method: "PHONE_OTP",
+        enabled: false,
+        configured: false,
+      }),
     providers: settings.providers.map((provider) => ({
       ...provider,
       provider: provider.provider.toUpperCase(),

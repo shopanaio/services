@@ -1,6 +1,7 @@
 # File Deletion Architecture Plan
 
-> **Version 2.1** - Added COALESCE deletedAt, best-effort logging, categorized rejections, operational endpoints
+> **Version 2.1** - Added COALESCE deletedAt, best-effort logging, categorized rejections,
+> operational endpoints
 
 ## Overview
 
@@ -16,17 +17,17 @@ Enterprise-grade file deletion system for Media Service using DBOS durable workf
 
 ### Key Design Decisions
 
-| Decision | Rationale |
-|----------|-----------|
-| **Double guard check** | Prevents race between restore and hard delete |
-| **Deletion token** | Unique ID per deletion request, cleared on restore |
-| **Keyset pagination** | Stable cursor on (sortField, id) for GC batches |
-| **Batch markFailed** | Single UPDATE with SQL CASE, no N+1 queries |
-| **Deterministic backoff** | No Math.random() in DBOS steps |
-| **Separate error log** | Keeps files table clean, allows detailed tracking |
-| **COALESCE deletedAt** | Preserve original deletion time on re-delete |
-| **Best-effort error log** | Error logging failures don't break deletion |
-| **Categorized rejections** | Separate restored/notFound/conflict in response |
+| Decision                   | Rationale                                          |
+| -------------------------- | -------------------------------------------------- |
+| **Double guard check**     | Prevents race between restore and hard delete      |
+| **Deletion token**         | Unique ID per deletion request, cleared on restore |
+| **Keyset pagination**      | Stable cursor on (sortField, id) for GC batches    |
+| **Batch markFailed**       | Single UPDATE with SQL CASE, no N+1 queries        |
+| **Deterministic backoff**  | No Math.random() in DBOS steps                     |
+| **Separate error log**     | Keeps files table clean, allows detailed tracking  |
+| **COALESCE deletedAt**     | Preserve original deletion time on re-delete       |
+| **Best-effort error log**  | Error logging failures don't break deletion        |
+| **Categorized rejections** | Separate restored/notFound/conflict in response    |
 
 ---
 
@@ -251,7 +252,7 @@ export class FileHardDeleteWorkflow extends BaseWorkflow {
   async guardCheck(
     fileId: string,
     deletionToken: string,
-    allowedStates: string[]
+    allowedStates: string[],
   ): Promise<{ canProceed: boolean; reason?: "RESTORED" | "TOKEN_MISMATCH" | "NOT_FOUND" }> {
     const file = await this.repository.file.findForDeletion(fileId);
 
@@ -289,7 +290,7 @@ export class FileHardDeleteWorkflow extends BaseWorkflow {
   @DBOS.step({ retries_allowed: true, interval_seconds: 5, max_attempts: 3 })
   async deleteFromS3(
     objectKey: string,
-    bucketName: string
+    bucketName: string,
   ): Promise<{ success: boolean; notFound?: boolean; error?: string }> {
     try {
       const s3Client = getS3Client();
@@ -362,9 +363,9 @@ export interface FileBatchDeleteOutput {
 
   // Categorized rejections (for debugging/metrics)
   rejections: {
-    restored: string[];    // File was restored (state changed to ACTIVE)
-    notFound: string[];    // File ID doesn't exist
-    conflict: string[];    // Token mismatch (another deletion in progress)
+    restored: string[]; // File was restored (state changed to ACTIVE)
+    notFound: string[]; // File ID doesn't exist
+    conflict: string[]; // Token mismatch (another deletion in progress)
   };
 }
 
@@ -431,7 +432,7 @@ export class FileBatchDeleteWorkflow extends BaseWorkflow {
     const finalGuardResult = await this.finalGuardAndDelete(
       candidateIds,
       deletionToken,
-      filesWithMeta
+      filesWithMeta,
     );
 
     // Step 8: Mark S3-failed files as FAILED (batch update)
@@ -465,9 +466,7 @@ export class FileBatchDeleteWorkflow extends BaseWorkflow {
   @DBOS.step()
   async fetchFilesWithMeta(fileIds: string[]): Promise<FileWithMeta[]> {
     const files = await this.repository.file.findByIdsIncludeDeleted(fileIds);
-    const s3ObjectsMap = await this.repository.s3Object.findByFileIds(
-      files.map((f) => f.id)
-    );
+    const s3ObjectsMap = await this.repository.s3Object.findByFileIds(files.map((f) => f.id));
 
     return files.map((file) => ({
       ...file,
@@ -491,7 +490,7 @@ export class FileBatchDeleteWorkflow extends BaseWorkflow {
   @DBOS.step()
   async markDeletingBatchAtomic(
     fileIds: string[],
-    deletionToken: string
+    deletionToken: string,
   ): Promise<{ marked: string[]; restored: string[]; conflict: string[] }> {
     return await this.repository.file.transitionStateManyWithReasons(fileIds, {
       fromState: "SOFT_DELETED",
@@ -501,9 +500,7 @@ export class FileBatchDeleteWorkflow extends BaseWorkflow {
   }
 
   @DBOS.step({ retries_allowed: true, interval_seconds: 15, max_attempts: 3 })
-  async deleteFromS3Batched(
-    byBucket: Map<string, S3DeleteItem[]>
-  ): Promise<{
+  async deleteFromS3Batched(byBucket: Map<string, S3DeleteItem[]>): Promise<{
     succeeded: string[];
     failed: Array<{ id: string; error: string }>;
   }> {
@@ -517,11 +514,7 @@ export class FileBatchDeleteWorkflow extends BaseWorkflow {
           const objectKeys = chunk.map((item) => item.objectKey);
 
           // MinIO removeObjects returns a stream of errors (partial failures)
-          const errors = await this.collectS3DeleteErrors(
-            s3Client,
-            bucketName,
-            objectKeys
-          );
+          const errors = await this.collectS3DeleteErrors(s3Client, bucketName, objectKeys);
 
           const errorMap = new Map(errors.map((e) => [e.name, e.message]));
 
@@ -551,7 +544,7 @@ export class FileBatchDeleteWorkflow extends BaseWorkflow {
   private async collectS3DeleteErrors(
     s3Client: MinioClient,
     bucketName: string,
-    objectKeys: string[]
+    objectKeys: string[],
   ): Promise<Array<{ name: string; message: string }>> {
     const errors: Array<{ name: string; message: string }> = [];
     const errorStream = await s3Client.removeObjects(bucketName, objectKeys);
@@ -573,7 +566,7 @@ export class FileBatchDeleteWorkflow extends BaseWorkflow {
   async finalGuardAndDelete(
     candidateIds: string[],
     deletionToken: string,
-    filesWithMeta: FileWithMeta[]
+    filesWithMeta: FileWithMeta[],
   ): Promise<{ deleted: string[]; aborted: string[] }> {
     if (candidateIds.length === 0) {
       return { deleted: [], aborted: [] };
@@ -583,7 +576,7 @@ export class FileBatchDeleteWorkflow extends BaseWorkflow {
     const stillDeletingIds = await this.repository.file.findIdsInState(
       candidateIds,
       "DELETING",
-      deletionToken
+      deletionToken,
     );
 
     const aborted = candidateIds.filter((id) => !stillDeletingIds.includes(id));
@@ -596,8 +589,7 @@ export class FileBatchDeleteWorkflow extends BaseWorkflow {
       const externalIds = filesWithMeta
         .filter(
           (f) =>
-            stillDeletingIds.includes(f.id) &&
-            ["YOUTUBE", "VIMEO", "URL"].includes(f.provider)
+            stillDeletingIds.includes(f.id) && ["YOUTUBE", "VIMEO", "URL"].includes(f.provider),
         )
         .map((f) => f.id);
 
@@ -632,22 +624,20 @@ export class FileBatchDeleteWorkflow extends BaseWorkflow {
    * Wrapped in try/catch to ensure deletion succeeds even if logging fails.
    */
   @DBOS.step()
-  async logDeletionErrorsBestEffort(
-    failures: Array<{ id: string; error: string }>
-  ): Promise<void> {
+  async logDeletionErrorsBestEffort(failures: Array<{ id: string; error: string }>): Promise<void> {
     try {
       await this.repository.deletionErrorLog.insertMany(
         failures.map((f) => ({
           fileId: f.id,
           error: f.error,
           occurredAt: new Date(),
-        }))
+        })),
       );
     } catch (logError) {
       // Log to structured logger but don't throw
       this.logger.warn(
         { failedToLog: failures.length, error: logError },
-        "Failed to write deletion errors to log table"
+        "Failed to write deletion errors to log table",
       );
     }
   }
@@ -745,7 +735,7 @@ export class FileGarbageCollectorWorkflow extends BaseWorkflow {
       const batch = await this.findExpiredSoftDeleted(
         gracePeriodDays,
         batchSize,
-        softDeletedCursor
+        softDeletedCursor,
       );
 
       if (batch.length === 0) break;
@@ -769,11 +759,7 @@ export class FileGarbageCollectorWorkflow extends BaseWorkflow {
     // Phase 2: Retry FAILED files (with retry limit)
     let failedCursor: FailedCursor | null = null;
     while (true) {
-      const batch = await this.findRetryableFailed(
-        batchSize,
-        maxRetries,
-        failedCursor
-      );
+      const batch = await this.findRetryableFailed(batchSize, maxRetries, failedCursor);
 
       if (batch.length === 0) break;
 
@@ -809,7 +795,7 @@ export class FileGarbageCollectorWorkflow extends BaseWorkflow {
   async findExpiredSoftDeleted(
     gracePeriodDays: number,
     limit: number,
-    cursor: SoftDeletedCursor | null
+    cursor: SoftDeletedCursor | null,
   ): Promise<Array<{ id: string; deletedAt: Date }>> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - gracePeriodDays);
@@ -826,7 +812,7 @@ export class FileGarbageCollectorWorkflow extends BaseWorkflow {
   async findRetryableFailed(
     limit: number,
     maxRetries: number,
-    cursor: FailedCursor | null
+    cursor: FailedCursor | null,
   ): Promise<Array<{ id: string; nextDeletionAttemptAt: Date }>> {
     return await this.repository.file.findFailedForGC({
       now: new Date(),
@@ -837,9 +823,7 @@ export class FileGarbageCollectorWorkflow extends BaseWorkflow {
   }
 
   @DBOS.step()
-  async processBatch(
-    fileIds: string[]
-  ): Promise<{ deleted: number; failed: number }> {
+  async processBatch(fileIds: string[]): Promise<{ deleted: number; failed: number }> {
     const workflow = new FileBatchDeleteWorkflow("gc-inner", {
       kernel: this.kernel,
     });
@@ -865,10 +849,7 @@ export class FileGarbageCollectorWorkflow extends BaseWorkflow {
    */
   private generateBatchRequestId(fileIds: string[]): string {
     const sorted = [...fileIds].sort();
-    const hash = createHash("sha256")
-      .update(sorted.join(","))
-      .digest("hex")
-      .substring(0, 16);
+    const hash = createHash("sha256").update(sorted.join(",")).digest("hex").substring(0, 16);
     return `gc-${hash}`;
   }
 
@@ -985,8 +966,7 @@ export class FileDeleteScript extends BaseScript<FileDeleteParams, FileDeleteRes
   }
 
   private async runHardDeleteWorkflow(file: File): Promise<FileDeleteResult> {
-    const workflow =
-      this.services.workflow.get<FileHardDeleteWorkflow>("fileHardDelete");
+    const workflow = this.services.workflow.get<FileHardDeleteWorkflow>("fileHardDelete");
 
     // Get S3 metadata
     let objectKey: string | undefined;
@@ -1050,10 +1030,7 @@ export interface FileDeleteManyResult {
   userErrors: UserError[];
 }
 
-export class FileDeleteManyScript extends BaseScript<
-  FileDeleteManyParams,
-  FileDeleteManyResult
-> {
+export class FileDeleteManyScript extends BaseScript<FileDeleteManyParams, FileDeleteManyResult> {
   private readonly MAX_BATCH_SIZE = 100;
 
   protected async execute(params: FileDeleteManyParams): Promise<FileDeleteManyResult> {
@@ -1082,8 +1059,7 @@ export class FileDeleteManyScript extends BaseScript<
       };
     }
 
-    const workflow =
-      this.services.workflow.get<FileBatchDeleteWorkflow>("fileBatchDelete");
+    const workflow = this.services.workflow.get<FileBatchDeleteWorkflow>("fileBatchDelete");
 
     const result = await workflow.run({
       fileIds: ids,
@@ -1645,23 +1621,23 @@ extend type MediaMutation {
 
 ## Implementation Plan
 
-| #   | Task                           | Files                                                                      | Priority | Notes                                    |
-| --- | ------------------------------ | -------------------------------------------------------------------------- | -------- | ---------------------------------------- |
-| 1   | DB migration                   | `migrations/XXXX_deletion_state.sql`                                       | Critical | deletion_state, token, indexes           |
-| 2   | DB migration (error log)       | `migrations/XXXX_deletion_error_log.sql`                                   | Medium   | Separate table for error details         |
-| 3   | Repository methods             | `FileRepository.ts`                                                        | Critical | transitionState, keyset pagination, etc. |
-| 4   | Repository (error log)         | `DeletionErrorLogRepository.ts`                                            | Medium   | New repository                           |
-| 5   | `FileHardDeleteWorkflow`       | `workflows/FileHardDeleteWorkflow.ts`                                      | Critical | Double guard check                       |
-| 6   | `FileBatchDeleteWorkflow`      | `workflows/FileBatchDeleteWorkflow.ts`                                     | Critical | Final guard, batch markFailed            |
-| 7   | `FileGarbageCollectorWorkflow` | `workflows/FileGarbageCollectorWorkflow.ts`                                | High     | Keyset cursor, deterministic requestId   |
-| 8   | `FileRestoreScript`            | `scripts/file/FileRestoreScript.ts`                                        | High     | Token clearing                           |
-| 9   | Update `FileDeleteScript`      | `scripts/file/FileDeleteScript.ts`                                         | High     | Token generation                         |
-| 10  | `FileDeleteManyScript`         | `scripts/file/FileDeleteManyScript.ts`                                     | Medium   | With requestId                           |
-| 11  | GraphQL schema + resolver      | `file.graphql`, `MediaMutationResolver.ts`                                 | Medium   | New types, mutations                     |
-| 12  | Register workflows             | `media.nest-service.ts`                                                    | High     | All 3 workflows                          |
-| 13  | GC cron job                    | `bootstrap/src/jobs/mediaGarbageCollector.ts`                              | Medium   | Daily schedule                           |
-| 14  | Unit tests                     | `__tests__/workflows/`                                                     | Critical | Guard checks, pagination, idempotency    |
-| 15  | Integration tests              | `__tests__/integration/`                                                   | High     | Race conditions, E2E flows               |
+| #   | Task                           | Files                                         | Priority | Notes                                    |
+| --- | ------------------------------ | --------------------------------------------- | -------- | ---------------------------------------- |
+| 1   | DB migration                   | `migrations/XXXX_deletion_state.sql`          | Critical | deletion_state, token, indexes           |
+| 2   | DB migration (error log)       | `migrations/XXXX_deletion_error_log.sql`      | Medium   | Separate table for error details         |
+| 3   | Repository methods             | `FileRepository.ts`                           | Critical | transitionState, keyset pagination, etc. |
+| 4   | Repository (error log)         | `DeletionErrorLogRepository.ts`               | Medium   | New repository                           |
+| 5   | `FileHardDeleteWorkflow`       | `workflows/FileHardDeleteWorkflow.ts`         | Critical | Double guard check                       |
+| 6   | `FileBatchDeleteWorkflow`      | `workflows/FileBatchDeleteWorkflow.ts`        | Critical | Final guard, batch markFailed            |
+| 7   | `FileGarbageCollectorWorkflow` | `workflows/FileGarbageCollectorWorkflow.ts`   | High     | Keyset cursor, deterministic requestId   |
+| 8   | `FileRestoreScript`            | `scripts/file/FileRestoreScript.ts`           | High     | Token clearing                           |
+| 9   | Update `FileDeleteScript`      | `scripts/file/FileDeleteScript.ts`            | High     | Token generation                         |
+| 10  | `FileDeleteManyScript`         | `scripts/file/FileDeleteManyScript.ts`        | Medium   | With requestId                           |
+| 11  | GraphQL schema + resolver      | `file.graphql`, `MediaMutationResolver.ts`    | Medium   | New types, mutations                     |
+| 12  | Register workflows             | `media.nest-service.ts`                       | High     | All 3 workflows                          |
+| 13  | GC cron job                    | `bootstrap/src/jobs/mediaGarbageCollector.ts` | Medium   | Daily schedule                           |
+| 14  | Unit tests                     | `__tests__/workflows/`                        | Critical | Guard checks, pagination, idempotency    |
+| 15  | Integration tests              | `__tests__/integration/`                      | High     | Race conditions, E2E flows               |
 
 ### Migration SQL
 
@@ -1912,27 +1888,27 @@ GROUP BY deletion_state;
 
 ### Alerts
 
-| Alert                            | Condition                                  | Severity |
-| -------------------------------- | ------------------------------------------ | -------- |
-| FileDeletionBacklogHigh          | FAILED files > 1000                        | Warning  |
-| FileDeletionPermanentlyFailed    | PERMANENTLY_FAILED files > 0              | Critical |
-| GCNotRunning                     | No GC workflow in 48 hours                 | Warning  |
-| S3DeleteErrorRateHigh            | Error rate > 5% over 1 hour                | Warning  |
+| Alert                         | Condition                    | Severity |
+| ----------------------------- | ---------------------------- | -------- |
+| FileDeletionBacklogHigh       | FAILED files > 1000          | Warning  |
+| FileDeletionPermanentlyFailed | PERMANENTLY_FAILED files > 0 | Critical |
+| GCNotRunning                  | No GC workflow in 48 hours   | Warning  |
+| S3DeleteErrorRateHigh         | Error rate > 5% over 1 hour  | Warning  |
 
 ---
 
 ## Error Handling Summary
 
-| Scenario                      | Handling                                                |
-| ----------------------------- | ------------------------------------------------------- |
-| S3 NoSuchKey                  | Treat as success, proceed with DB delete                |
-| S3 AccessDenied               | Mark FAILED, no retry (config issue)                    |
-| S3 ServiceUnavailable         | Retry with exponential backoff                          |
-| S3 partial batch failure      | Hard delete succeeded only, mark failed as FAILED       |
-| File restored during delete   | Guard check fails, abort workflow, file preserved       |
-| DB connection lost            | DBOS auto-recovery                                      |
-| DB deadlock                   | DBOS retry                                              |
-| Max retries exceeded          | Mark PERMANENTLY_FAILED, alert, manual intervention     |
+| Scenario                    | Handling                                            |
+| --------------------------- | --------------------------------------------------- |
+| S3 NoSuchKey                | Treat as success, proceed with DB delete            |
+| S3 AccessDenied             | Mark FAILED, no retry (config issue)                |
+| S3 ServiceUnavailable       | Retry with exponential backoff                      |
+| S3 partial batch failure    | Hard delete succeeded only, mark failed as FAILED   |
+| File restored during delete | Guard check fails, abort workflow, file preserved   |
+| DB connection lost          | DBOS auto-recovery                                  |
+| DB deadlock                 | DBOS retry                                          |
+| Max retries exceeded        | Mark PERMANENTLY_FAILED, alert, manual intervention |
 
 ---
 
@@ -1946,7 +1922,9 @@ Force retry of FAILED files without waiting for next_attempt_at:
 mutation AdminRequeueFailedFiles($fileIds: [ID!]!) {
   adminRequeueFailedFiles(input: { fileIds: $fileIds }) {
     requeuedCount
-    userErrors { message }
+    userErrors {
+      message
+    }
   }
 }
 ```

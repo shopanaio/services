@@ -1,28 +1,11 @@
 "use client";
 
-import {
-  Controller,
-  useWatch,
-  type Control,
-  type FieldErrors,
-} from "react-hook-form";
-import {
-  Alert,
-  Button,
-  Divider,
-  InputNumber,
-  Radio,
-  Skeleton,
-  Switch,
-  Typography,
-} from "antd";
+import { Controller, useWatch, type Control, type FieldErrors } from "react-hook-form";
+import { Alert, Button, Divider, InputNumber, Radio, Skeleton, Switch, Typography } from "antd";
 import { createStyles } from "antd-style";
 import { SearchField, SearchOutOfStockPolicy } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import {
-  normalizeSearchField,
-  SEARCH_FIELD_DEFINITIONS,
-} from "../mappers";
+import { normalizeSearchField, SEARCH_FIELD_DEFINITIONS } from "../mappers";
 import type { MappedSearchSettingsError } from "../mappers";
 import type { SearchSettingsFormValues } from "./types";
 
@@ -129,8 +112,7 @@ export function SearchSettingsPaper({
   const fieldValues = useWatch({ control, name: "fields" });
   const globalErrors = apiErrors.filter((error) => error.target === "global");
   const fieldsValidationError = errors.fields as
-    | { message?: string; root?: { message?: string } }
-    | undefined;
+    { message?: string; root?: { message?: string } } | undefined;
   const fieldsError =
     fieldsValidationError?.message ??
     fieldsValidationError?.root?.message ??
@@ -186,14 +168,8 @@ export function SearchSettingsPaper({
             const switchId = `search-field-${normalized}-switch`;
             const helpId = `search-field-${normalized}-help`;
             const groupErrorId = fieldsError ? "search-fields-error" : undefined;
-            const enabledApiError = firstApiError(
-              apiErrors,
-              `field.${definition.field}.enabled`,
-            );
-            const weightApiError = firstApiError(
-              apiErrors,
-              `field.${definition.field}.weight`,
-            );
+            const enabledApiError = firstApiError(apiErrors, `field.${definition.field}.enabled`);
+            const weightApiError = firstApiError(apiErrors, `field.${definition.field}.weight`);
             const weightError = errors.fields?.[index]?.weight?.message ?? weightApiError;
 
             return (
@@ -230,11 +206,7 @@ export function SearchSettingsPaper({
                   <div>
                     <label
                       htmlFor={switchId}
-                      className={
-                        isRequired
-                          ? styles.switchLabelDisabled
-                          : styles.switchLabel
-                      }
+                      className={isRequired ? styles.switchLabelDisabled : styles.switchLabel}
                     >
                       <Typography.Text strong>{definition.label}</Typography.Text>
                     </label>
@@ -301,10 +273,7 @@ export function SearchSettingsPaper({
 
           <div className={styles.settingRow}>
             <div>
-              <label
-                htmlFor="search-typo-tolerance-switch"
-                className={styles.switchLabel}
-              >
+              <label htmlFor="search-typo-tolerance-switch" className={styles.switchLabel}>
                 <Typography.Text strong>Typo tolerance</Typography.Text>
               </label>
               <span id="search-typo-tolerance-help" className={styles.help}>
@@ -354,15 +323,11 @@ export function SearchSettingsPaper({
                   }
                   data-testid="search-out-of-stock-policy"
                 >
-                  <Radio value={SearchOutOfStockPolicy.Show}>
-                    Show in relevance order
-                  </Radio>
+                  <Radio value={SearchOutOfStockPolicy.Show}>Show in relevance order</Radio>
                   <Radio value={SearchOutOfStockPolicy.PlaceLast}>
                     Show after available products
                   </Radio>
-                  <Radio value={SearchOutOfStockPolicy.Hide}>
-                    Hide from search results
-                  </Radio>
+                  <Radio value={SearchOutOfStockPolicy.Hide}>Hide from search results</Radio>
                 </Radio.Group>
               )}
             />
@@ -375,7 +340,8 @@ export function SearchSettingsPaper({
 
           {updatedAt ? (
             <Typography.Text type="secondary" className={styles.metadata}>
-              Updated {new Intl.DateTimeFormat(undefined, {
+              Updated{" "}
+              {new Intl.DateTimeFormat(undefined, {
                 dateStyle: "medium",
                 timeStyle: "short",
               }).format(new Date(updatedAt))}

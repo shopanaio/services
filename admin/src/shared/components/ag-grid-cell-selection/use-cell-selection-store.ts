@@ -30,7 +30,7 @@ const getCellsInRange = (
   startRowId: string,
   endRowId: string,
   field: string,
-  rowIds: string[]
+  rowIds: string[],
 ): ICellSelection[] => {
   const startIdx = rowIds.indexOf(startRowId);
   const endIdx = rowIds.indexOf(endRowId);
@@ -50,9 +50,7 @@ const getCellsInRange = (
  * Factory to create an isolated cell selection store
  * Each grid instance should have its own store
  */
-export const createCellSelectionStore = (): UseBoundStore<
-  StoreApi<CellSelectionState>
-> =>
+export const createCellSelectionStore = (): UseBoundStore<StoreApi<CellSelectionState>> =>
   create<CellSelectionState>((set, get) => ({
     // Initial state
     selectedCells: [],
@@ -75,15 +73,9 @@ export const createCellSelectionStore = (): UseBoundStore<
     // Extend selection during drag
     extendSelection: (rowId, rowIds) => {
       const state = get();
-      if (!state.isSelecting || !state.activeColumn || !state.dragStartRowId)
-        return;
+      if (!state.isSelecting || !state.activeColumn || !state.dragStartRowId) return;
 
-      const cells = getCellsInRange(
-        state.dragStartRowId,
-        rowId,
-        state.activeColumn,
-        rowIds
-      );
+      const cells = getCellsInRange(state.dragStartRowId, rowId, state.activeColumn, rowIds);
 
       set({ selectedCells: cells });
     },
@@ -93,9 +85,7 @@ export const createCellSelectionStore = (): UseBoundStore<
       const state = get();
       // Keep anchor as the last selected cell for Shift+Click
       const lastCell =
-        state.selectedCells.length > 0
-          ? state.selectedCells[state.selectedCells.length - 1]
-          : null;
+        state.selectedCells.length > 0 ? state.selectedCells[state.selectedCells.length - 1] : null;
 
       set({
         isSelecting: false,
@@ -107,15 +97,13 @@ export const createCellSelectionStore = (): UseBoundStore<
     // Toggle single cell (Ctrl/Cmd + Click)
     toggleCell: (rowId, field) => {
       const state = get();
-      const isSelected = state.selectedCells.some(
-        (c) => c.rowId === rowId && c.field === field
-      );
+      const isSelected = state.selectedCells.some((c) => c.rowId === rowId && c.field === field);
 
       if (isSelected) {
         // Remove cell from selection
         set({
           selectedCells: state.selectedCells.filter(
-            (c) => !(c.rowId === rowId && c.field === field)
+            (c) => !(c.rowId === rowId && c.field === field),
           ),
           selectionAnchor: { rowId, field },
         });
@@ -176,9 +164,7 @@ export const createCellSelectionStore = (): UseBoundStore<
 
     // Check if cell is selected
     isCellSelected: (rowId, field) => {
-      return get().selectedCells.some(
-        (c) => c.rowId === rowId && c.field === field
-      );
+      return get().selectedCells.some((c) => c.rowId === rowId && c.field === field);
     },
 
     // Check if there's any selection

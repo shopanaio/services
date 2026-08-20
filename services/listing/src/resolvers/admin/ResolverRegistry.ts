@@ -53,28 +53,20 @@ export class ResolverRegistry {
     return new RecommendationMutationResolver({}, this.ctx);
   }
 
-  async searchSynonymGroupConnection(
-    input: SearchSynonymGroupConnectionInput,
-  ) {
-    const { SearchSynonymGroupConnectionResolver } = await import(
-      "./SearchSynonymGroupConnectionResolver.js"
-    );
+  async searchSynonymGroupConnection(input: SearchSynonymGroupConnectionInput) {
+    const { SearchSynonymGroupConnectionResolver } =
+      await import("./SearchSynonymGroupConnectionResolver.js");
     return new SearchSynonymGroupConnectionResolver(input, this.ctx);
   }
 
-  async searchProductBoostConnection(
-    input: SearchProductBoostConnectionInput,
-  ) {
-    const { SearchProductBoostConnectionResolver } = await import(
-      "./SearchProductBoostConnectionResolver.js"
-    );
+  async searchProductBoostConnection(input: SearchProductBoostConnectionInput) {
+    const { SearchProductBoostConnectionResolver } =
+      await import("./SearchProductBoostConnectionResolver.js");
     return new SearchProductBoostConnectionResolver(input, this.ctx);
   }
 
   async listingConnection(input: ListingQueryArgs) {
-    const { ListingConnectionResolver } = await import(
-      "./ListingConnectionResolver.js"
-    );
+    const { ListingConnectionResolver } = await import("./ListingConnectionResolver.js");
     return new ListingConnectionResolver(input, this.ctx);
   }
 
@@ -99,34 +91,24 @@ export class ResolverRegistry {
   }
 
   async facetSourceCandidate(candidate: FacetSourceCandidateView) {
-    const { FacetSourceCandidateResolver } = await import(
-      "./FacetSourceCandidateResolver.js"
-    );
+    const { FacetSourceCandidateResolver } = await import("./FacetSourceCandidateResolver.js");
     return new FacetSourceCandidateResolver(candidate, this.ctx);
   }
 
   async facetValueCandidate(candidate: FacetValueCandidateView) {
-    const { FacetValueCandidateResolver } = await import(
-      "./FacetValueCandidateResolver.js"
-    );
+    const { FacetValueCandidateResolver } = await import("./FacetValueCandidateResolver.js");
     return new FacetValueCandidateResolver(candidate, this.ctx);
   }
 
-  async facetSourceCandidateConnection(
-    input: FacetSourceCandidateConnectionInput
-  ) {
-    const { FacetSourceCandidateConnectionResolver } = await import(
-      "./FacetSourceCandidateConnectionResolver.js"
-    );
+  async facetSourceCandidateConnection(input: FacetSourceCandidateConnectionInput) {
+    const { FacetSourceCandidateConnectionResolver } =
+      await import("./FacetSourceCandidateConnectionResolver.js");
     return new FacetSourceCandidateConnectionResolver(input, this.ctx);
   }
 
-  async facetValueCandidateConnection(
-    input: FacetValueCandidateConnectionInput
-  ) {
-    const { FacetValueCandidateConnectionResolver } = await import(
-      "./FacetValueCandidateConnectionResolver.js"
-    );
+  async facetValueCandidateConnection(input: FacetValueCandidateConnectionInput) {
+    const { FacetValueCandidateConnectionResolver } =
+      await import("./FacetValueCandidateConnectionResolver.js");
     return new FacetValueCandidateConnectionResolver(input, this.ctx);
   }
 }

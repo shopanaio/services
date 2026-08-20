@@ -46,4 +46,3 @@ export class AppRuntimeBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-

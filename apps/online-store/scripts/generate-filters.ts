@@ -30,13 +30,7 @@ const navigationMenuFieldTypes: Record<string, GraphQLFieldType> = {
 const pageOptions = {
   includeDescriptions: true,
   fieldTypes: pageFieldTypes,
-  excludeFields: [
-    "installationId",
-    "storeId",
-    "deletedAt",
-    "revision",
-    "locale",
-  ],
+  excludeFields: ["installationId", "storeId", "deletedAt", "revision", "locale"],
 };
 const navigationMenuOptions = {
   includeDescriptions: true,
@@ -70,7 +64,4 @@ ${generateOrderByInputType(
 )}
 `;
 
-writeFileSync(
-  "src/api/graphql-admin/schema/__generated__/filters.graphql",
-  content,
-);
+writeFileSync("src/api/graphql-admin/schema/__generated__/filters.graphql", content);

@@ -2,18 +2,11 @@ import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { CustomerStatistics } from "../../repositories/models/index.js";
 import { CustomersType } from "./CustomersType.js";
 
-export class CustomerStatisticsResolver extends CustomersType<
-  string,
-  CustomerStatistics
-> {
+export class CustomerStatisticsResolver extends CustomersType<string, CustomerStatistics> {
   async $preload() {
-    const statistics = await this.$ctx.loaders.statisticsByCustomer.load(
-      this.$props
-    );
+    const statistics = await this.$ctx.loaders.statisticsByCustomer.load(this.$props);
     if (!statistics) {
-      throw new PreloadNotFoundError(
-        `Statistics for customer ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Statistics for customer ${this.$props} not found`);
     }
     return statistics;
   }

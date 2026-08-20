@@ -51,51 +51,36 @@ export const applicationUser = iamSchema.table(
     email: text("email").notNull(),
     emailVerified: boolean("email_verified").notNull().default(false),
     phoneNumber: varchar("phone_number", { length: 32 }),
-    phoneNumberVerified: boolean("phone_number_verified")
-      .notNull()
-      .default(false),
+    phoneNumberVerified: boolean("phone_number_verified").notNull().default(false),
     syntheticEmail: boolean("synthetic_email").notNull().default(false),
     image: text("image"),
     status: varchar("status", { length: 16 })
       .$type<ApplicationUserStatus>()
       .notNull()
       .default("active"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("idx_application_user_application_id").on(
-      table.applicationId,
-      table.id
-    ),
-    uniqueIndex("idx_application_user_application_email").on(
-      table.applicationId,
-      table.email
-    ),
+    uniqueIndex("idx_application_user_application_id").on(table.applicationId, table.id),
+    uniqueIndex("idx_application_user_application_email").on(table.applicationId, table.email),
     uniqueIndex("idx_application_user_application_phone")
       .on(table.applicationId, table.phoneNumber)
       .where(sql`${table.phoneNumber} IS NOT NULL`),
     check(
       "application_user_phone_e164_check",
-      sql`${table.phoneNumber} IS NULL OR ${table.phoneNumber} ~ '^\\+[1-9][0-9]{6,14}$'`
+      sql`${table.phoneNumber} IS NULL OR ${table.phoneNumber} ~ '^\\+[1-9][0-9]{6,14}$'`,
     ),
     check(
       "application_user_phone_verified_check",
-      sql`NOT ${table.phoneNumberVerified} OR ${table.phoneNumber} IS NOT NULL`
+      sql`NOT ${table.phoneNumberVerified} OR ${table.phoneNumber} IS NOT NULL`,
     ),
     uniqueIndex("idx_application_user_application_global_user").on(
       table.applicationId,
-      table.globalUserId
+      table.globalUserId,
     ),
-    index("idx_application_user_application_status").on(
-      table.applicationId,
-      table.status
-    ),
-  ]
+    index("idx_application_user_application_status").on(table.applicationId, table.status),
+  ],
 );
 
 export type ApplicationUser = typeof applicationUser.$inferSelect;
@@ -113,33 +98,20 @@ export const applicationSession = iamSchema.table(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("idx_application_session_application_id").on(
-      table.applicationId,
-      table.id
-    ),
-    uniqueIndex("idx_application_session_application_token").on(
-      table.applicationId,
-      table.token
-    ),
-    index("idx_application_session_application_user").on(
-      table.applicationId,
-      table.userId
-    ),
+    uniqueIndex("idx_application_session_application_id").on(table.applicationId, table.id),
+    uniqueIndex("idx_application_session_application_token").on(table.applicationId, table.token),
+    index("idx_application_session_application_user").on(table.applicationId, table.userId),
     index("idx_application_session_expires_at").on(table.expiresAt),
     foreignKey({
       name: "application_session_application_user_fk",
       columns: [table.applicationId, table.userId],
       foreignColumns: [applicationUser.applicationId, applicationUser.id],
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export type ApplicationSession = typeof applicationSession.$inferSelect;
@@ -166,33 +138,23 @@ export const applicationAccount = iamSchema.table(
     scope: text("scope"),
     idToken: text("id_token"),
     password: text("password"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("idx_application_account_application_id").on(
-      table.applicationId,
-      table.id
-    ),
+    uniqueIndex("idx_application_account_application_id").on(table.applicationId, table.id),
     uniqueIndex("idx_application_account_provider").on(
       table.applicationId,
       table.providerId,
-      table.accountId
+      table.accountId,
     ),
-    index("idx_application_account_application_user").on(
-      table.applicationId,
-      table.userId
-    ),
+    index("idx_application_account_application_user").on(table.applicationId, table.userId),
     foreignKey({
       name: "application_account_application_user_fk",
       columns: [table.applicationId, table.userId],
       foreignColumns: [applicationUser.applicationId, applicationUser.id],
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export type ApplicationAccount = typeof applicationAccount.$inferSelect;
@@ -208,33 +170,21 @@ export const applicationVerification = iamSchema.table(
     identifier: text("identifier").notNull(),
     value: text("value").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("idx_application_verification_application_id").on(
-      table.applicationId,
-      table.id
-    ),
-    index("idx_application_verification_identifier").on(
-      table.applicationId,
-      table.identifier
-    ),
+    uniqueIndex("idx_application_verification_application_id").on(table.applicationId, table.id),
+    index("idx_application_verification_identifier").on(table.applicationId, table.identifier),
     uniqueIndex("idx_application_verification_password_reset_user")
       .on(table.applicationId, table.value)
       .where(sql`${table.identifier} LIKE 'reset-password:%'`),
     index("idx_application_verification_expires_at").on(table.expiresAt),
-  ]
+  ],
 );
 
-export type ApplicationVerification =
-  typeof applicationVerification.$inferSelect;
-export type NewApplicationVerification =
-  typeof applicationVerification.$inferInsert;
+export type ApplicationVerification = typeof applicationVerification.$inferSelect;
+export type NewApplicationVerification = typeof applicationVerification.$inferInsert;
 
 export const applicationJwks = iamSchema.table(
   "application_jwks",
@@ -246,29 +196,18 @@ export const applicationJwks = iamSchema.table(
     publicKey: text("public_key").notNull(),
     privateKey: text("private_key").notNull(),
     privateKeyKeyVersion: integer("private_key_key_version").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
   },
   (table) => [
-    uniqueIndex("idx_application_jwks_application_id").on(
-      table.applicationId,
-      table.id
-    ),
-    index("idx_application_jwks_application_created").on(
-      table.applicationId,
-      table.createdAt
-    ),
+    uniqueIndex("idx_application_jwks_application_id").on(table.applicationId, table.id),
+    index("idx_application_jwks_application_created").on(table.applicationId, table.createdAt),
     check(
       "application_jwks_private_key_ciphertext_check",
-      sql`${table.privateKey} LIKE 'iam-auth-keyring.v1.%' AND split_part(${table.privateKey}, '.', 3) = ${table.privateKeyKeyVersion}::text`
+      sql`${table.privateKey} LIKE 'iam-auth-keyring.v1.%' AND split_part(${table.privateKey}, '.', 3) = ${table.privateKeyKeyVersion}::text`,
     ),
-    check(
-      "application_jwks_private_key_version_check",
-      sql`${table.privateKeyKeyVersion} > 0`
-    ),
-  ]
+    check("application_jwks_private_key_version_check", sql`${table.privateKeyKeyVersion} > 0`),
+  ],
 );
 
 export type ApplicationJwks = typeof applicationJwks.$inferSelect;
@@ -291,30 +230,14 @@ export const applicationAuthConfiguration = iamSchema.table(
       .$type<ApplicationRegistrationMode>()
       .notNull()
       .default("disabled"),
-    passwordSignUpEnabled: boolean("password_sign_up_enabled")
-      .notNull()
-      .default(false),
-    passwordSignInEnabled: boolean("password_sign_in_enabled")
-      .notNull()
-      .default(false),
-    passwordResetEnabled: boolean("password_reset_enabled")
-      .notNull()
-      .default(false),
-    emailVerificationRequired: boolean("email_verification_required")
-      .notNull()
-      .default(true),
-    emailOtpSignInEnabled: boolean("email_otp_sign_in_enabled")
-      .notNull()
-      .default(false),
-    emailOtpSignUpEnabled: boolean("email_otp_sign_up_enabled")
-      .notNull()
-      .default(false),
-    phoneOtpSignInEnabled: boolean("phone_otp_sign_in_enabled")
-      .notNull()
-      .default(false),
-    phoneOtpSignUpEnabled: boolean("phone_otp_sign_up_enabled")
-      .notNull()
-      .default(false),
+    passwordSignUpEnabled: boolean("password_sign_up_enabled").notNull().default(false),
+    passwordSignInEnabled: boolean("password_sign_in_enabled").notNull().default(false),
+    passwordResetEnabled: boolean("password_reset_enabled").notNull().default(false),
+    emailVerificationRequired: boolean("email_verification_required").notNull().default(true),
+    emailOtpSignInEnabled: boolean("email_otp_sign_in_enabled").notNull().default(false),
+    emailOtpSignUpEnabled: boolean("email_otp_sign_up_enabled").notNull().default(false),
+    phoneOtpSignInEnabled: boolean("phone_otp_sign_in_enabled").notNull().default(false),
+    phoneOtpSignUpEnabled: boolean("phone_otp_sign_up_enabled").notNull().default(false),
     consentMode: varchar("consent_mode", { length: 16 })
       .$type<ApplicationConsentMode>()
       .notNull()
@@ -336,117 +259,103 @@ export const applicationAuthConfiguration = iamSchema.table(
       .$type<ApplicationAuthBranding>()
       .notNull()
       .default(sql`'{}'::jsonb`),
-    defaultLocale: varchar("default_locale", { length: 35 })
-      .notNull()
-      .default("en"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    defaultLocale: varchar("default_locale", { length: 35 }).notNull().default("en"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("idx_application_auth_configuration_resource").on(
-      table.resource
-    ),
+    uniqueIndex("idx_application_auth_configuration_resource").on(table.resource),
     uniqueIndex("idx_application_auth_configuration_application_resource").on(
       table.applicationId,
-      table.resource
+      table.resource,
     ),
-    index("idx_application_auth_configuration_active").on(
-      table.realmEnabled,
-      table.applicationId
-    ),
+    index("idx_application_auth_configuration_active").on(table.realmEnabled, table.applicationId),
     check(
       "application_auth_configuration_resource_check",
-      sql`${table.resource} = 'urn:shopana:application:' || ${table.applicationId}::text`
+      sql`${table.resource} = 'urn:shopana:application:' || ${table.applicationId}::text`,
     ),
-    check(
-      "application_auth_configuration_revision_check",
-      sql`${table.revision} > 0`
-    ),
+    check("application_auth_configuration_revision_check", sql`${table.revision} > 0`),
     check(
       "application_auth_configuration_registration_mode_check",
-      sql`${table.registrationMode} IN ('open', 'disabled')`
+      sql`${table.registrationMode} IN ('open', 'disabled')`,
     ),
     check(
       "application_auth_configuration_consent_mode_check",
-      sql`${table.consentMode} = 'explicit'`
+      sql`${table.consentMode} = 'explicit'`,
     ),
     check(
       "application_auth_configuration_otp_flags_check",
-      sql`NOT ${table.emailOtpSignUpEnabled} OR ${table.emailOtpSignInEnabled}`
+      sql`NOT ${table.emailOtpSignUpEnabled} OR ${table.emailOtpSignInEnabled}`,
     ),
     check(
       "application_auth_configuration_phone_otp_flags_check",
-      sql`NOT ${table.phoneOtpSignUpEnabled} OR ${table.phoneOtpSignInEnabled}`
+      sql`NOT ${table.phoneOtpSignUpEnabled} OR ${table.phoneOtpSignInEnabled}`,
     ),
     check(
       "application_auth_configuration_access_ttl_check",
-      sql`${table.accessTokenTtlSeconds} BETWEEN 300 AND 1800`
+      sql`${table.accessTokenTtlSeconds} BETWEEN 300 AND 1800`,
     ),
     check(
       "application_auth_configuration_id_ttl_check",
-      sql`${table.idTokenTtlSeconds} BETWEEN 300 AND 3600`
+      sql`${table.idTokenTtlSeconds} BETWEEN 300 AND 3600`,
     ),
     check(
       "application_auth_configuration_refresh_ttl_check",
-      sql`${table.refreshTokenTtlSeconds} BETWEEN 86400 AND 2592000`
+      sql`${table.refreshTokenTtlSeconds} BETWEEN 86400 AND 2592000`,
     ),
     check(
       "application_auth_configuration_session_ttl_check",
-      sql`${table.sessionTtlSeconds} BETWEEN 86400 AND 2592000`
+      sql`${table.sessionTtlSeconds} BETWEEN 86400 AND 2592000`,
     ),
     check(
       "application_auth_configuration_secret_version_check",
-      sql`${table.secretKeyVersion} > 0`
+      sql`${table.secretKeyVersion} > 0`,
     ),
     check(
       "application_auth_configuration_branding_check",
-      sql`jsonb_typeof(${table.brandingJson}) = 'object'`
+      sql`jsonb_typeof(${table.brandingJson}) = 'object'`,
     ),
-  ]
+  ],
 );
 
-export type ApplicationAuthConfigurationRecord =
-  typeof applicationAuthConfiguration.$inferSelect;
+export type ApplicationAuthConfigurationRecord = typeof applicationAuthConfiguration.$inferSelect;
 export type NewApplicationAuthConfigurationRecord =
   typeof applicationAuthConfiguration.$inferInsert;
 
 export const applicationAuthOrigin = iamSchema.table(
   "application_auth_origin",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     applicationId: uuid("application_id")
       .notNull()
       .references(() => application.id, { onDelete: "cascade" }),
     origin: text("origin").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("idx_application_auth_origin_application_origin").on(
       table.applicationId,
-      table.origin
+      table.origin,
     ),
     index("idx_application_auth_origin_application").on(table.applicationId),
     check(
       "application_auth_origin_normalized_check",
-      sql`${table.origin} ~ '^https://[^/?#@]+$' OR ${table.origin} ~ '^http://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9]{1,5})?$'`
+      sql`${table.origin} ~ '^https://[^/?#@]+$' OR ${table.origin} ~ '^http://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9]{1,5})?$'`,
     ),
-  ]
+  ],
 );
 
 export type ApplicationAuthOrigin = typeof applicationAuthOrigin.$inferSelect;
-export type NewApplicationAuthOrigin =
-  typeof applicationAuthOrigin.$inferInsert;
+export type NewApplicationAuthOrigin = typeof applicationAuthOrigin.$inferInsert;
 
 export const applicationAuthProvider = iamSchema.table(
   "application_auth_provider",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     applicationId: uuid("application_id")
       .notNull()
       .references(() => application.id, { onDelete: "cascade" }),
@@ -459,46 +368,40 @@ export const applicationAuthProvider = iamSchema.table(
       .$type<string[]>()
       .notNull()
       .default(sql`'[]'::jsonb`),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     updatedBy: text("updated_by").notNull(),
   },
   (table) => [
     uniqueIndex("idx_application_auth_provider_application_provider").on(
       table.applicationId,
-      table.provider
+      table.provider,
     ),
     index("idx_application_auth_provider_application_enabled").on(
       table.applicationId,
-      table.enabled
+      table.enabled,
     ),
     check(
       "application_auth_provider_name_check",
-      sql`${table.provider} ~ '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'`
+      sql`${table.provider} ~ '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'`,
     ),
     check(
       "application_auth_provider_ciphertext_check",
-      sql`${table.encryptedClientId} LIKE 'iam-auth-keyring.v1.%' AND ${table.encryptedClientSecret} LIKE 'iam-auth-keyring.v1.%'`
+      sql`${table.encryptedClientId} LIKE 'iam-auth-keyring.v1.%' AND ${table.encryptedClientSecret} LIKE 'iam-auth-keyring.v1.%'`,
     ),
     check(
       "application_auth_provider_secret_version_check",
-      sql`${table.secretKeyVersion} > 0 AND split_part(${table.encryptedClientId}, '.', 3) = ${table.secretKeyVersion}::text AND split_part(${table.encryptedClientSecret}, '.', 3) = ${table.secretKeyVersion}::text`
+      sql`${table.secretKeyVersion} > 0 AND split_part(${table.encryptedClientId}, '.', 3) = ${table.secretKeyVersion}::text AND split_part(${table.encryptedClientSecret}, '.', 3) = ${table.secretKeyVersion}::text`,
     ),
     check(
       "application_auth_provider_scopes_check",
-      sql`jsonb_typeof(${table.scopesJson}) = 'array'`
+      sql`jsonb_typeof(${table.scopesJson}) = 'array'`,
     ),
-  ]
+  ],
 );
 
-export type ApplicationAuthProvider =
-  typeof applicationAuthProvider.$inferSelect;
-export type NewApplicationAuthProvider =
-  typeof applicationAuthProvider.$inferInsert;
+export type ApplicationAuthProvider = typeof applicationAuthProvider.$inferSelect;
+export type NewApplicationAuthProvider = typeof applicationAuthProvider.$inferInsert;
 
 export const applicationAuthDeliveryProfile = iamSchema.table(
   "application_auth_delivery_profile",
@@ -517,26 +420,20 @@ export const applicationAuthDeliveryProfile = iamSchema.table(
     emailOtpSignInTemplateId: varchar("email_otp_sign_in_template_id", {
       length: 128,
     }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     updatedBy: text("updated_by").notNull(),
   },
   (table) => [
     check(
       "application_auth_delivery_templates_distinct_check",
-      sql`${table.emailVerificationTemplateId} <> ${table.passwordResetTemplateId} AND ${table.emailVerificationTemplateId} <> ${table.emailOtpSignInTemplateId} AND ${table.passwordResetTemplateId} <> ${table.emailOtpSignInTemplateId}`
+      sql`${table.emailVerificationTemplateId} <> ${table.passwordResetTemplateId} AND ${table.emailVerificationTemplateId} <> ${table.emailOtpSignInTemplateId} AND ${table.passwordResetTemplateId} <> ${table.emailOtpSignInTemplateId}`,
     ),
-  ]
+  ],
 );
 
-export type ApplicationAuthDeliveryProfile =
-  typeof applicationAuthDeliveryProfile.$inferSelect;
-export type NewApplicationAuthDeliveryProfile =
-  typeof applicationAuthDeliveryProfile.$inferInsert;
+export type ApplicationAuthDeliveryProfile = typeof applicationAuthDeliveryProfile.$inferSelect;
+export type NewApplicationAuthDeliveryProfile = typeof applicationAuthDeliveryProfile.$inferInsert;
 
 /**
  * Durable append-only administrative audit log.
@@ -571,36 +468,34 @@ export const applicationAuthAdminAudit = iamSchema.table(
   (table) => [
     index("idx_application_auth_admin_audit_org_occurred").on(
       table.organizationId,
-      table.occurredAt
+      table.occurredAt,
     ),
     index("idx_application_auth_admin_audit_application_occurred").on(
       table.applicationId,
-      table.occurredAt
+      table.occurredAt,
     ),
     index("idx_application_auth_admin_audit_request").on(table.requestId),
     check(
       "application_auth_admin_audit_schema_check",
-      sql`${table.schemaVersion} = 1 AND ${table.category} IN ('application_auth_admin', 'iam_resource_admin')`
+      sql`${table.schemaVersion} = 1 AND ${table.category} IN ('application_auth_admin', 'iam_resource_admin')`,
     ),
     check(
       "application_auth_admin_audit_outcome_check",
-      sql`${table.outcome} IN ('success', 'failure')`
+      sql`${table.outcome} IN ('success', 'failure')`,
     ),
     check(
       "application_auth_admin_audit_actor_check",
-      sql`(${table.actorType} IN ('platform_admin', 'external_service') AND ${table.actorId} IS NOT NULL) OR (${table.actorType} = 'anonymous' AND ${table.actorId} IS NULL)`
+      sql`(${table.actorType} IN ('platform_admin', 'external_service') AND ${table.actorId} IS NOT NULL) OR (${table.actorType} = 'anonymous' AND ${table.actorId} IS NULL)`,
     ),
     check(
       "application_auth_admin_audit_safe_diff_check",
-      sql`jsonb_typeof(${table.safeDiffJson}) = 'object'`
+      sql`jsonb_typeof(${table.safeDiffJson}) = 'object'`,
     ),
-  ]
+  ],
 );
 
-export type ApplicationAuthAdminAuditRecord =
-  typeof applicationAuthAdminAudit.$inferSelect;
-export type NewApplicationAuthAdminAuditRecord =
-  typeof applicationAuthAdminAudit.$inferInsert;
+export type ApplicationAuthAdminAuditRecord = typeof applicationAuthAdminAudit.$inferSelect;
+export type NewApplicationAuthAdminAuditRecord = typeof applicationAuthAdminAudit.$inferInsert;
 
 /** OAuth Provider 1.6.23 compatible client model plus IAM-owned policy fields. */
 export const applicationOauthClient = iamSchema.table(
@@ -658,9 +553,7 @@ export const applicationOauthClient = iamSchema.table(
     referenceId: text("reference_id"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     resourceAudience: text("resource_audience").notNull(),
-    protocolPolicyVersion: integer("protocol_policy_version")
-      .notNull()
-      .default(1),
+    protocolPolicyVersion: integer("protocol_policy_version").notNull().default(1),
     environment: varchar("environment", { length: 16 })
       .$type<ApplicationOAuthClientEnvironment>()
       .notNull(),
@@ -676,21 +569,15 @@ export const applicationOauthClient = iamSchema.table(
     uniqueIndex("idx_application_oauth_client_client_id").on(table.clientId),
     uniqueIndex("idx_application_oauth_client_application_client_id").on(
       table.applicationId,
-      table.clientId
+      table.clientId,
     ),
-    uniqueIndex("idx_application_oauth_client_application_id").on(
-      table.applicationId,
-      table.id
-    ),
+    uniqueIndex("idx_application_oauth_client_application_id").on(table.applicationId, table.id),
     index("idx_application_oauth_client_application_state").on(
       table.applicationId,
       table.disabled,
-      table.deletedAt
+      table.deletedAt,
     ),
-    index("idx_application_oauth_client_application_user").on(
-      table.applicationId,
-      table.userId
-    ),
+    index("idx_application_oauth_client_application_user").on(table.applicationId, table.userId),
     foreignKey({
       name: "application_oauth_client_application_user_fk",
       columns: [table.applicationId, table.userId],
@@ -706,31 +593,26 @@ export const applicationOauthClient = iamSchema.table(
     }).onDelete("cascade"),
     check(
       "application_oauth_client_environment_check",
-      sql`${table.environment} IN ('development', 'production')`
+      sql`${table.environment} IN ('development', 'production')`,
     ),
     check(
       "application_oauth_client_protocol_policy_check",
-      sql`${table.protocolPolicyVersion} = 1 AND ${table.grantTypes} = ARRAY['authorization_code', 'refresh_token']::text[] AND ${table.responseTypes} = ARRAY['code']::text[] AND ${table.requirePKCE}`
+      sql`${table.protocolPolicyVersion} = 1 AND ${table.grantTypes} = ARRAY['authorization_code', 'refresh_token']::text[] AND ${table.responseTypes} = ARRAY['code']::text[] AND ${table.requirePKCE}`,
     ),
     check(
       "application_oauth_client_auth_method_check",
-      sql`${table.tokenEndpointAuthMethod} IN ('none', 'client_secret_basic', 'client_secret_post')`
+      sql`${table.tokenEndpointAuthMethod} IN ('none', 'client_secret_basic', 'client_secret_post')`,
     ),
     check(
       "application_oauth_client_secret_policy_check",
-      sql`(${table.public} AND ${table.clientSecret} IS NULL AND ${table.tokenEndpointAuthMethod} = 'none') OR (NOT ${table.public} AND ${table.clientSecret} IS NOT NULL AND ${table.tokenEndpointAuthMethod} IN ('client_secret_basic', 'client_secret_post'))`
+      sql`(${table.public} AND ${table.clientSecret} IS NULL AND ${table.tokenEndpointAuthMethod} = 'none') OR (NOT ${table.public} AND ${table.clientSecret} IS NOT NULL AND ${table.tokenEndpointAuthMethod} IN ('client_secret_basic', 'client_secret_post'))`,
     ),
-    check(
-      "application_oauth_client_revision_check",
-      sql`${table.revision} > 0`
-    ),
-  ]
+    check("application_oauth_client_revision_check", sql`${table.revision} > 0`),
+  ],
 );
 
-export type ApplicationOauthClient =
-  typeof applicationOauthClient.$inferSelect;
-export type NewApplicationOauthClient =
-  typeof applicationOauthClient.$inferInsert;
+export type ApplicationOauthClient = typeof applicationOauthClient.$inferSelect;
+export type NewApplicationOauthClient = typeof applicationOauthClient.$inferInsert;
 
 export const applicationOauthRefreshToken = iamSchema.table(
   "application_oauth_refresh_token",
@@ -747,9 +629,7 @@ export const applicationOauthRefreshToken = iamSchema.table(
     userId: text("user_id").notNull(),
     referenceId: text("reference_id"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     revoked: timestamp("revoked", { withTimezone: true }),
     authTime: timestamp("auth_time", { withTimezone: true }),
     scopes: text("scopes").array().notNull(),
@@ -758,48 +638,37 @@ export const applicationOauthRefreshToken = iamSchema.table(
     uniqueIndex("idx_application_oauth_refresh_token_token").on(table.token),
     uniqueIndex("idx_application_oauth_refresh_token_application_id").on(
       table.applicationId,
-      table.id
+      table.id,
     ),
     index("idx_application_oauth_refresh_token_application_client").on(
       table.applicationId,
-      table.clientId
+      table.clientId,
     ),
     index("idx_application_oauth_refresh_token_application_user").on(
       table.applicationId,
-      table.userId
+      table.userId,
     ),
-    index("idx_application_oauth_refresh_token_expires").on(
-      table.applicationId,
-      table.expiresAt
-    ),
+    index("idx_application_oauth_refresh_token_expires").on(table.applicationId, table.expiresAt),
     foreignKey({
       name: "application_oauth_refresh_token_client_fk",
       columns: [table.applicationId, table.clientId],
-      foreignColumns: [
-        applicationOauthClient.applicationId,
-        applicationOauthClient.clientId,
-      ],
+      foreignColumns: [applicationOauthClient.applicationId, applicationOauthClient.clientId],
     }).onDelete("cascade"),
     foreignKey({
       name: "application_oauth_refresh_token_session_scope_fk",
       columns: [table.applicationId, table.sessionId],
-      foreignColumns: [
-        applicationSession.applicationId,
-        applicationSession.id,
-      ],
+      foreignColumns: [applicationSession.applicationId, applicationSession.id],
     }),
     foreignKey({
       name: "application_oauth_refresh_token_user_fk",
       columns: [table.applicationId, table.userId],
       foreignColumns: [applicationUser.applicationId, applicationUser.id],
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
-export type ApplicationOauthRefreshToken =
-  typeof applicationOauthRefreshToken.$inferSelect;
-export type NewApplicationOauthRefreshToken =
-  typeof applicationOauthRefreshToken.$inferInsert;
+export type ApplicationOauthRefreshToken = typeof applicationOauthRefreshToken.$inferSelect;
+export type NewApplicationOauthRefreshToken = typeof applicationOauthRefreshToken.$inferInsert;
 
 export const applicationOauthAccessToken = iamSchema.table(
   "application_oauth_access_token",
@@ -817,44 +686,33 @@ export const applicationOauthAccessToken = iamSchema.table(
     referenceId: text("reference_id"),
     refreshId: text("refresh_id"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     scopes: text("scopes").array().notNull(),
   },
   (table) => [
     uniqueIndex("idx_application_oauth_access_token_token").on(table.token),
     index("idx_application_oauth_access_token_application_client").on(
       table.applicationId,
-      table.clientId
+      table.clientId,
     ),
     index("idx_application_oauth_access_token_application_user").on(
       table.applicationId,
-      table.userId
+      table.userId,
     ),
     index("idx_application_oauth_access_token_application_refresh").on(
       table.applicationId,
-      table.refreshId
+      table.refreshId,
     ),
-    index("idx_application_oauth_access_token_expires").on(
-      table.applicationId,
-      table.expiresAt
-    ),
+    index("idx_application_oauth_access_token_expires").on(table.applicationId, table.expiresAt),
     foreignKey({
       name: "application_oauth_access_token_client_fk",
       columns: [table.applicationId, table.clientId],
-      foreignColumns: [
-        applicationOauthClient.applicationId,
-        applicationOauthClient.clientId,
-      ],
+      foreignColumns: [applicationOauthClient.applicationId, applicationOauthClient.clientId],
     }).onDelete("cascade"),
     foreignKey({
       name: "application_oauth_access_token_session_scope_fk",
       columns: [table.applicationId, table.sessionId],
-      foreignColumns: [
-        applicationSession.applicationId,
-        applicationSession.id,
-      ],
+      foreignColumns: [applicationSession.applicationId, applicationSession.id],
     }),
     foreignKey({
       name: "application_oauth_access_token_user_fk",
@@ -864,18 +722,13 @@ export const applicationOauthAccessToken = iamSchema.table(
     foreignKey({
       name: "application_oauth_access_token_refresh_fk",
       columns: [table.applicationId, table.refreshId],
-      foreignColumns: [
-        applicationOauthRefreshToken.applicationId,
-        applicationOauthRefreshToken.id,
-      ],
+      foreignColumns: [applicationOauthRefreshToken.applicationId, applicationOauthRefreshToken.id],
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
-export type ApplicationOauthAccessToken =
-  typeof applicationOauthAccessToken.$inferSelect;
-export type NewApplicationOauthAccessToken =
-  typeof applicationOauthAccessToken.$inferInsert;
+export type ApplicationOauthAccessToken = typeof applicationOauthAccessToken.$inferSelect;
+export type NewApplicationOauthAccessToken = typeof applicationOauthAccessToken.$inferInsert;
 
 export const applicationOauthConsent = iamSchema.table(
   "application_oauth_consent",
@@ -888,46 +741,31 @@ export const applicationOauthConsent = iamSchema.table(
     userId: text("user_id"),
     referenceId: text("reference_id"),
     scopes: text("scopes").array().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("idx_application_oauth_consent_application_id").on(
-      table.applicationId,
-      table.id
-    ),
+    uniqueIndex("idx_application_oauth_consent_application_id").on(table.applicationId, table.id),
     index("idx_application_oauth_consent_application_client").on(
       table.applicationId,
-      table.clientId
+      table.clientId,
     ),
-    index("idx_application_oauth_consent_application_user").on(
-      table.applicationId,
-      table.userId
-    ),
+    index("idx_application_oauth_consent_application_user").on(table.applicationId, table.userId),
     foreignKey({
       name: "application_oauth_consent_client_fk",
       columns: [table.applicationId, table.clientId],
-      foreignColumns: [
-        applicationOauthClient.applicationId,
-        applicationOauthClient.clientId,
-      ],
+      foreignColumns: [applicationOauthClient.applicationId, applicationOauthClient.clientId],
     }).onDelete("cascade"),
     foreignKey({
       name: "application_oauth_consent_user_fk",
       columns: [table.applicationId, table.userId],
       foreignColumns: [applicationUser.applicationId, applicationUser.id],
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
-export type ApplicationOauthConsent =
-  typeof applicationOauthConsent.$inferSelect;
-export type NewApplicationOauthConsent =
-  typeof applicationOauthConsent.$inferInsert;
+export type ApplicationOauthConsent = typeof applicationOauthConsent.$inferSelect;
+export type NewApplicationOauthConsent = typeof applicationOauthConsent.$inferInsert;
 
 export const applicationAuthorizationContext = iamSchema.table(
   "application_authorization_context",
@@ -943,9 +781,7 @@ export const applicationAuthorizationContext = iamSchema.table(
     state: text("state").notNull(),
     nonce: text("nonce").notNull(),
     codeChallenge: text("code_challenge").notNull(),
-    codeChallengeMethod: varchar("code_challenge_method", { length: 8 })
-      .notNull()
-      .default("S256"),
+    codeChallengeMethod: varchar("code_challenge_method", { length: 8 }).notNull().default("S256"),
     scopes: text("scopes").array().notNull(),
     resource: text("resource").notNull(),
     currentStep: varchar("current_step", { length: 16 })
@@ -959,37 +795,24 @@ export const applicationAuthorizationContext = iamSchema.table(
       .notNull()
       .default(sql`now() + interval '10 minutes'`),
     consumedAt: timestamp("consumed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_application_authorization_context_application_client").on(
       table.applicationId,
-      table.clientId
+      table.clientId,
     ),
-    index("idx_application_authorization_context_cleanup").on(
-      table.expiresAt,
-      table.consumedAt
-    ),
+    index("idx_application_authorization_context_cleanup").on(table.expiresAt, table.consumedAt),
     foreignKey({
       name: "application_authorization_context_client_fk",
       columns: [table.applicationId, table.clientId],
-      foreignColumns: [
-        applicationOauthClient.applicationId,
-        applicationOauthClient.clientId,
-      ],
+      foreignColumns: [applicationOauthClient.applicationId, applicationOauthClient.clientId],
     }).onDelete("cascade"),
     foreignKey({
       name: "application_authorization_context_session_scope_fk",
       columns: [table.applicationId, table.sessionId],
-      foreignColumns: [
-        applicationSession.applicationId,
-        applicationSession.id,
-      ],
+      foreignColumns: [applicationSession.applicationId, applicationSession.id],
     }),
     foreignKey({
       name: "application_authorization_context_resource_fk",
@@ -1001,24 +824,20 @@ export const applicationAuthorizationContext = iamSchema.table(
     }).onDelete("cascade"),
     check(
       "application_authorization_context_pkce_check",
-      sql`${table.codeChallengeMethod} = 'S256'`
+      sql`${table.codeChallengeMethod} = 'S256'`,
     ),
     check(
       "application_authorization_context_step_check",
-      sql`${table.currentStep} IN ('login', 'consent')`
+      sql`${table.currentStep} IN ('login', 'consent')`,
     ),
     check(
       "application_authorization_context_ttl_check",
-      sql`${table.expiresAt} = ${table.createdAt} + interval '10 minutes'`
+      sql`${table.expiresAt} = ${table.createdAt} + interval '10 minutes'`,
     ),
-    check(
-      "application_authorization_context_scopes_check",
-      sql`cardinality(${table.scopes}) > 0`
-    ),
-  ]
+    check("application_authorization_context_scopes_check", sql`cardinality(${table.scopes}) > 0`),
+  ],
 );
 
-export type ApplicationAuthorizationContext =
-  typeof applicationAuthorizationContext.$inferSelect;
+export type ApplicationAuthorizationContext = typeof applicationAuthorizationContext.$inferSelect;
 export type NewApplicationAuthorizationContext =
   typeof applicationAuthorizationContext.$inferInsert;

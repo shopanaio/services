@@ -1,15 +1,10 @@
-import {
-  GraphQLScalarType,
-  Kind,
-  type ValueNode,
-} from "graphql";
+import { GraphQLScalarType, Kind, type ValueNode } from "graphql";
 import type { Resolvers } from "../../../resolvers/admin/generated/types.js";
 
 export const typeResolvers: Partial<Resolvers> = {
   DateTime: new GraphQLScalarType({
     name: "DateTime",
-    serialize: (value) =>
-      value instanceof Date ? value.toISOString() : String(value),
+    serialize: (value) => (value instanceof Date ? value.toISOString() : String(value)),
     parseValue: (value) => String(value),
   }),
   JSON: new GraphQLScalarType({
@@ -40,10 +35,7 @@ function parseLiteral(node: ValueNode): unknown {
       return node.values.map((value) => parseLiteral(value));
     case Kind.OBJECT:
       return Object.fromEntries(
-        node.fields.map((field) => [
-          field.name.value,
-          parseLiteral(field.value),
-        ])
+        node.fields.map((field) => [field.name.value, parseLiteral(field.value)]),
       );
     default:
       return undefined;

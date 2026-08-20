@@ -1,7 +1,4 @@
-import {
-  createAuthorizationLoader,
-  type AuthorizationLoader,
-} from "./AuthorizationLoader.js";
+import { createAuthorizationLoader, type AuthorizationLoader } from "./AuthorizationLoader.js";
 import type { AdminContextClaims } from "@shopana/shared-context";
 import type { Repository } from "../repositories/Repository.js";
 import { StoreLoader } from "./StoreLoader.js";

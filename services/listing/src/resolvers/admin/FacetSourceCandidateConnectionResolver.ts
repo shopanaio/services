@@ -4,17 +4,14 @@ import type {
   FacetSourceCandidateRelayInput,
 } from "../../repositories/facet/FacetRepository.js";
 
-export type FacetSourceCandidateConnectionInput =
-  FacetSourceCandidateRelayInput;
+export type FacetSourceCandidateConnectionInput = FacetSourceCandidateRelayInput;
 
 export class FacetSourceCandidateConnectionResolver extends ListingType<
   FacetSourceCandidateConnectionInput,
   FacetSourceCandidateConnectionResult
 > {
   async $preload(): Promise<FacetSourceCandidateConnectionResult> {
-    return this.$ctx.kernel.repository.facet.getAvailableFacetSourceCandidates(
-      this.$props
-    );
+    return this.$ctx.kernel.repository.facet.getAvailableFacetSourceCandidates(this.$props);
   }
 
   async edges() {
@@ -23,7 +20,7 @@ export class FacetSourceCandidateConnectionResolver extends ListingType<
       edgesData.map(async (edge) => ({
         cursor: edge.cursor,
         node: await this.resolvers.facetSourceCandidate(edge.node),
-      }))
+      })),
     );
   }
 

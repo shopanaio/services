@@ -138,7 +138,7 @@ export function buildPublicUrl(objectKey: string): string {
  */
 export async function getPresignedPutUrl(
   objectKey: string,
-  expirySeconds: number = 3600
+  expirySeconds: number = 3600,
 ): Promise<string> {
   const client = getS3Client();
   const bucketName = getBucketName();

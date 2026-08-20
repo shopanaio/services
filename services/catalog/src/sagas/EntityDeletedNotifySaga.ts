@@ -1,11 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import {
-  BrokerSaga,
-  Saga,
-  SagaStep,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { BrokerSaga, Saga, SagaStep, InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import type { Media, EntityRef } from "@shopana/broker-types";
 
 export interface EntityDeletedNotifyInput {
@@ -36,10 +30,7 @@ export class EntityDeletedNotifySaga extends BrokerSaga<
       "media.entityDeleted",
       { entityRef },
     );
-    this.logger.log(
-      { unlinkedCount: result.unlinkedCount },
-      "Entity deleted notification sent"
-    );
+    this.logger.log({ unlinkedCount: result.unlinkedCount }, "Entity deleted notification sent");
     return { unlinkedCount: result.unlinkedCount };
   }
 }

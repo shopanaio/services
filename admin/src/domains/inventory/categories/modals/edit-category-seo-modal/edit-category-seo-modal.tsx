@@ -4,10 +4,7 @@ import { App } from "antd";
 import { useModalStackContext } from "@/layouts/modals";
 import { EntitySeoModal } from "@/domains/inventory/components/entity-edit-forms";
 import { useUpdateCategory } from "../../hooks";
-import {
-  mapCategorySeoToUpdateInput,
-  mapCategoryUserErrorsToFormErrors,
-} from "../../mappers";
+import { mapCategorySeoToUpdateInput, mapCategoryUserErrorsToFormErrors } from "../../mappers";
 import type { ICategoryEditSeoModalPayload } from "../../modals";
 
 export const EditCategorySeoModal = () => {

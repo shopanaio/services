@@ -1,11 +1,6 @@
 import { describe, it, expect, jest } from "@jest/globals";
 import { ConfigService } from "../config-service";
-import type {
-  WorkflowLoader,
-  WorkflowScript,
-  ScriptContext,
-  GeneratedConfig,
-} from "../interface";
+import type { WorkflowLoader, WorkflowScript, ScriptContext, GeneratedConfig } from "../interface";
 import type { ConfigExtensionRequest } from "../../woodpecker/payload";
 import {
   RepoVisibility,
@@ -81,7 +76,7 @@ describe("ConfigService", () => {
   function createMockScript(
     name: string,
     supports: boolean,
-    config: GeneratedConfig | null
+    config: GeneratedConfig | null,
   ): WorkflowScript {
     return {
       getName: () => name,
@@ -138,9 +133,7 @@ describe("ConfigService", () => {
     const loader = createMockLoader([script]);
     const service = new ConfigService({ loader });
 
-    await expect(service.generate(mockRequest)).rejects.toThrow(
-      "No workflows produced by scripts"
-    );
+    await expect(service.generate(mockRequest)).rejects.toThrow("No workflows produced by scripts");
   });
 
   it("should throw error when all scripts return null", async () => {
@@ -149,9 +142,7 @@ describe("ConfigService", () => {
     const loader = createMockLoader([script1, script2]);
     const service = new ConfigService({ loader });
 
-    await expect(service.generate(mockRequest)).rejects.toThrow(
-      "No workflows produced by scripts"
-    );
+    await expect(service.generate(mockRequest)).rejects.toThrow("No workflows produced by scripts");
   });
 
   it("should generate multiple configs from multiple workflows", async () => {

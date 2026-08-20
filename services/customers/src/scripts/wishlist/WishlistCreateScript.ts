@@ -18,14 +18,9 @@ export interface WishlistCreateResult {
   userErrors: WishlistUserError[];
 }
 
-export class WishlistCreateScript extends BaseScript<
-  WishlistCreateParams,
-  WishlistCreateResult
-> {
+export class WishlistCreateScript extends BaseScript<WishlistCreateParams, WishlistCreateResult> {
   @Transactional()
-  protected async execute(
-    params: WishlistCreateParams,
-  ): Promise<WishlistCreateResult> {
+  protected async execute(params: WishlistCreateParams): Promise<WishlistCreateResult> {
     const normalized = normalizeWishlistName(params.name);
     if (normalized.name === null) {
       return { wishlist: null, userErrors: normalized.userErrors };
@@ -45,11 +40,9 @@ export class WishlistCreateScript extends BaseScript<
       return {
         wishlist: null,
         userErrors: [
-          wishlistError(
-            "WISHLIST_NAME_TAKEN",
-            "A wishlist with this name already exists",
-            ["name"],
-          ),
+          wishlistError("WISHLIST_NAME_TAKEN", "A wishlist with this name already exists", [
+            "name",
+          ]),
         ],
       };
     }

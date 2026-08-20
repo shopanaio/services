@@ -2,8 +2,7 @@
 
 Дата: 2026-07-11
 
-Статус: implementation plan, proposed replacement for availability-specific
-physical index expansion
+Статус: implementation plan, proposed replacement for availability-specific physical index expansion
 
 ## Связь с планом explicit availability
 
@@ -16,8 +15,8 @@ physical index expansion
 - variant predicates применяются до projection в products;
 - mixed product может входить и в `AVAILABLE`, и в `UNAVAILABLE`;
 - product aggregate `in_stock` не участвует в membership и facet counts;
-- page, total, counts, virtual facets и sort используют один canonical
-  `productMatches` contract и один request snapshot.
+- page, total, counts, virtual facets и sort используют один canonical `productMatches` contract и
+  один request snapshot.
 
 Этот документ заменяет availability-specific physical index решение:
 
@@ -28,28 +27,25 @@ available_variant_count / unavailable_variant_count
 variant_listing_price_index.in_stock
 ```
 
-Такие поля не добавляются как correctness source. Availability и будущие
-дискретные variant predicates индексируются одинаково как универсальные terms,
-bitmap которых содержит `variant_doc_id`.
+Такие поля не добавляются как correctness source. Availability и будущие дискретные variant
+predicates индексируются одинаково как универсальные terms, bitmap которых содержит
+`variant_doc_id`.
 
-Если оба плана реализуются вместе, нормативным источником availability semantics
-остается explicit availability plan, а нормативным источником physical
-variant predicate index становится этот документ.
+Если оба плана реализуются вместе, нормативным источником availability semantics остается explicit
+availability plan, а нормативным источником physical variant predicate index становится этот
+документ.
 
-Реализация выполняет полный incompatible cutover на term-based variant
-index. Legacy variant facet postings, readers и writers не сохраняются.
-Документ исходит из clean DB и не описывает migration, dual-read,
-dual-write или compatibility с данными старого listing index.
+Реализация выполняет полный incompatible cutover на term-based variant index. Legacy variant facet
+postings, readers и writers не сохраняются. Документ исходит из clean DB и не описывает migration,
+dual-read, dual-write или compatibility с данными старого listing index.
 
-Общий rebuild/reindex listing не требуется для реализации этого плана
-и не входит в его acceptance criteria. Migration, conversion, rebuild или
-reindex ранее созданного index являются отдельной operational задачей
-за scope этого документа.
+Общий rebuild/reindex listing не требуется для реализации этого плана и не входит в его acceptance
+criteria. Migration, conversion, rebuild или reindex ранее созданного index являются отдельной
+operational задачей за scope этого документа.
 
 ## Контекст
 
-Availability — не единственный возможный variant-level predicate. В дальнейшем
-могут появиться:
+Availability — не единственный возможный variant-level predicate. В дальнейшем могут появиться:
 
 ```text
 readyForDelivery
@@ -83,9 +79,8 @@ pickup_product_bitmap
 - отдельной логики удаления и state transitions;
 - отдельного parity/performance audit.
 
-Кроме того, product-level bitmap слишком рано теряет variant identity. После
-projection нельзя гарантировать, что OPTION, PRICE, availability и delivery
-criteria выполнились на одном варианте.
+Кроме того, product-level bitmap слишком рано теряет variant identity. После projection нельзя
+гарантировать, что OPTION, PRICE, availability и delivery criteria выполнились на одном варианте.
 
 В существующей Listing schema уже есть необходимые primitives:
 
@@ -96,15 +91,14 @@ criteria выполнились на одном варианте.
 - variant-to-product projection blocks;
 - `variant_product` postings для narrow lookup.
 
-Поэтому новый индекс должен развивать существующий variant posting layer, а не
-создавать отдельную availability-подсистему.
+Поэтому новый индекс должен развивать существующий variant posting layer, а не создавать отдельную
+availability-подсистему.
 
 ## Архитектурное решение
 
 ### Дискретный variant predicate является term
 
-Любое materialized дискретное свойство indexable variant представляется
-канонической парой:
+Любое materialized дискретное свойство indexable variant представляется канонической парой:
 
 ```text
 fieldKey + valueKey
@@ -131,8 +125,8 @@ delivery.ready=true    -> [variant 1, variant 2, variant 8]
 option:color=red       -> [variant 1, variant 5, variant 9]
 ```
 
-Query сначала пересекает predicates в variant space и только после этого
-проецирует matching variants в distinct products.
+Query сначала пересекает predicates в variant space и только после этого проецирует matching
+variants в distinct products.
 
 ### Канонический query contract
 
@@ -190,8 +184,7 @@ variant B: blue, available, delivery.ready=false, price=200
 color=red AND available AND delivery.ready=true AND price=100
 ```
 
-должен совпасть только если один `variant_doc_id` присутствует во всех четырех
-candidate sets.
+должен совпасть только если один `variant_doc_id` присутствует во всех четырех candidate sets.
 
 Запрещено:
 
@@ -201,8 +194,7 @@ project(color=red)
 & project(delivery.ready=true)
 ```
 
-Такая ранняя projection может склеить predicates разных variants одного
-product.
+Такая ранняя projection может склеить predicates разных variants одного product.
 
 ## Термины и identity
 
@@ -238,23 +230,22 @@ option:<id>    -> configured OPTION facet
 
 Начальный registry:
 
-| fieldKey | valueKey | Источник |
-|---|---|---|
-| `system.state` | `indexable` | active variant classifier |
-| `criterion.availability` | `available` | `availableForSale = true` |
-| `criterion.availability` | `unavailable` | `availableForSale = false` |
-| `option:<facetId>` | `<facetValueId>` | resolved OPTION selection |
+| fieldKey                 | valueKey         | Источник                   |
+| ------------------------ | ---------------- | -------------------------- |
+| `system.state`           | `indexable`      | active variant classifier  |
+| `criterion.availability` | `available`      | `availableForSale = true`  |
+| `criterion.availability` | `unavailable`    | `availableForSale = false` |
+| `option:<facetId>`       | `<facetValueId>` | resolved OPTION selection  |
 
 Будущий delivery criterion:
 
-| fieldKey | valueKey | Источник |
-|---|---|---|
-| `criterion.delivery.ready` | `true` / `false` / `unknown` | delivery eligibility snapshot |
-| `criterion.fulfillment.method` | stable method key | delivery snapshot |
-| `criterion.warehouse` | warehouse ID | stock/delivery snapshot |
+| fieldKey                       | valueKey                     | Источник                      |
+| ------------------------------ | ---------------------------- | ----------------------------- |
+| `criterion.delivery.ready`     | `true` / `false` / `unknown` | delivery eligibility snapshot |
+| `criterion.fulfillment.method` | stable method key            | delivery snapshot             |
+| `criterion.warehouse`          | warehouse ID                 | stock/delivery snapshot       |
 
-Точные строки создаются constants/builders. Business code не конкатенирует
-ключи вручную.
+Точные строки создаются constants/builders. Business code не конкатенирует ключи вручную.
 
 ### Physical key encoding
 
@@ -281,12 +272,11 @@ JSON.stringify(["v1", fieldKey, valueKey])
 ["v1","option:7f0...","9a1..."]
 ```
 
-JSON array используется только как deterministic opaque key. Runtime SQL не
-парсит его и всегда делает exact lookup по подготовленному `value_key`.
-Encoding/decoding находится в shared helper и покрывается contract tests.
+JSON array используется только как deterministic opaque key. Runtime SQL не парсит его и всегда
+делает exact lookup по подготовленному `value_key`. Encoding/decoding находится в shared helper и
+покрывается contract tests.
 
-`metadata` может дублировать decoded descriptor для diagnostics, но не является
-query source.
+`metadata` может дублировать decoded descriptor для diagnostics, но не является query source.
 
 ### Полный cutover OPTION postings
 
@@ -309,19 +299,16 @@ value_key   = canonicalEncode(["v1", "option:<facetId>", "<facetValueId>"])
 После cutover:
 
 - OPTION writer не создает `entity_type=variant, field=facet` rows;
-- storefront membership, counts, metadata scope и diagnostics не читают
-  legacy variant facet postings;
+- storefront membership, counts, metadata scope и diagnostics не читают legacy variant facet
+  postings;
 - fallback на legacy key encoding отсутствует;
 - dual-write и dual-read отсутствуют;
 - старые posting rows не мигрируются и не участвуют в runtime;
-- весь OPTION query/write code переводится на `ListingVariantTerm` в
-  рамках одной реализации.
+- весь OPTION query/write code переводится на `ListingVariantTerm` в рамках одной реализации.
 
-Product-level TAG/FEATURE postings не затрагиваются этим cutover и
-продолжают использовать `entity_type=product, field=facet`. Если
-option signature optimization остается после audit, ее rows создаются
-новым code path из canonical OPTION terms; legacy signature data не
-переиспользуются.
+Product-level TAG/FEATURE postings не затрагиваются этим cutover и продолжают использовать
+`entity_type=product, field=facet`. Если option signature optimization остается после audit, ее rows
+создаются новым code path из canonical OPTION terms; legacy signature data не переиспользуются.
 
 ### Explicit negative states
 
@@ -352,8 +339,7 @@ availableForSale=false -> только unavailable term
 
 ## Граница применимости universal terms
 
-Universal term подходит для дискретного, materializable и query-independent
-состояния:
+Universal term подходит для дискретного, materializable и query-independent состояния:
 
 ```text
 boolean
@@ -373,8 +359,8 @@ distance
 delivery days
 ```
 
-Такие значения остаются в typed tables с B-tree/appropriate PostgreSQL index и
-на query превращаются в candidate `variant_doc_id` bitmap.
+Такие значения остаются в typed tables с B-tree/appropriate PostgreSQL index и на query превращаются
+в candidate `variant_doc_id` bitmap.
 
 Также нельзя без измерений материализовать комбинаторный context:
 
@@ -384,17 +370,16 @@ delivery ETA for every postcode and carrier
 price for arbitrary customer segment combinations
 ```
 
-Context-dependent criteria вроде delivery region, pickup point или
-address eligibility не добавляются как generic terms этим планом. Для
-каждого такого criterion отдельно выбирается term или typed/context
-index после фиксации domain semantics и performance profile.
+Context-dependent criteria вроде delivery region, pickup point или address eligibility не
+добавляются как generic terms этим планом. Для каждого такого criterion отдельно выбирается term или
+typed/context index после фиксации domain semantics и performance profile.
 
 ## Целевая physical index model
 
 ### `listing.listing_posting_bitmap`
 
-Новая таблица не создается. Существующая таблица становится canonical inverted
-index и для universal variant terms:
+Новая таблица не создается. Существующая таблица становится canonical inverted index и для universal
+variant terms:
 
 ```sql
 listing.listing_posting_bitmap (
@@ -424,10 +409,9 @@ bitmap содержит только indexable variants
 empty retained term bitmap = non-null empty roaring bitmap
 ```
 
-Empty rows можно удалить только если term больше не входит в active registry и
-не нужен для configured/selected metadata. Для активного boolean criterion оба
-states сохраняются как non-null empty bitmaps, чтобы read path не различал
-"пусто" и "индекс поврежден/не построен".
+Empty rows можно удалить только если term больше не входит в active registry и не нужен для
+configured/selected metadata. Для активного boolean criterion оба states сохраняются как non-null
+empty bitmaps, чтобы read path не различал "пусто" и "индекс поврежден/не построен".
 
 ### Indexable variant universe
 
@@ -457,9 +441,8 @@ system.state=indexable
 variant_listing_index.variant_doc_id -> product_doc_id
 ```
 
-Broad projection использует существующие projection blocks. Partial block
-разворачивает только matching variant docs через `variant_listing_index` и
-deduplicate `product_doc_id`.
+Broad projection использует существующие projection blocks. Partial block разворачивает только
+matching variant docs через `variant_listing_index` и deduplicate `product_doc_id`.
 
 Canonical helper:
 
@@ -467,22 +450,21 @@ Canonical helper:
 projectVariantBitmapToProducts(variantBitmap)
 ```
 
-обязан быть единственным correctness path для перехода variant → product.
-`variant_product` posting остается narrow lookup optimization.
+обязан быть единственным correctness path для перехода variant → product. `variant_product` posting
+остается narrow lookup optimization.
 
 ### `listing.variant_listing_price_index`
 
-`variant_listing_price_index` остается единственным source/runtime
-typed numeric index для price range и matched price sort:
+`variant_listing_price_index` остается единственным source/runtime typed numeric index для price
+range и matched price sort:
 
 ```text
 одна row на indexable variant + currency из normalized price snapshot;
 runtime price candidate имеет has_price = true
 ```
 
-Unavailable или delivery-not-ready variant не удаляется из
-`variant_listing_price_index` только из-за criterion state. Runtime price
-candidates читают rows с `has_price = true`.
+Unavailable или delivery-not-ready variant не удаляется из `variant_listing_price_index` только
+из-за criterion state. Runtime price candidates читают rows с `has_price = true`.
 
 В row `variant_listing_price_index` не добавляются:
 
@@ -500,8 +482,8 @@ matchingTermsBitmap
 & priceRangeVariantBitmap
 ```
 
-Для matched price sort collector проверяет принадлежность price row тому же
-matching variant bitmap до выбора minimum price per product.
+Для matched price sort collector проверяет принадлежность price row тому же matching variant bitmap
+до выбора minimum price per product.
 
 Индексы `variant_listing_price_index` остаются criterion-neutral:
 
@@ -515,8 +497,7 @@ matching variant bitmap до выбора minimum price per product.
 
 ### Option signatures
 
-`listing_option_signature*` больше не является source of truth для
-availability или других criteria.
+`listing_option_signature*` больше не является source of truth для availability или других criteria.
 
 Базовый correctness path для OPTION:
 
@@ -527,19 +508,19 @@ universal option term bitmaps
 -> variant-to-product projection
 ```
 
-Структуру signature index можно перестроить как measured cache для
-горячих OPTION count strategies при соблюдении условий:
+Структуру signature index можно перестроить как measured cache для горячих OPTION count strategies
+при соблюдении условий:
 
 1. signature result имеет parity с canonical term path;
-2. signature optimization получает уже ограниченный matching variant set либо
-   доказывает same-variant equivalence;
+2. signature optimization получает уже ограниченный matching variant set либо доказывает
+   same-variant equivalence;
 3. criterion-specific columns/bitmaps в signature не добавляются;
 4. новый criterion не требует изменения signature schema;
 5. forced canonical path доступен для tests и diagnostics.
 
-Если эти условия не выполняются или measured benefit недостаточен,
-`listing_option_signature`, `listing_option_signature_value` и
-`listing_option_signature_product_membership` удаляются вместе с wiring.
+Если эти условия не выполняются или measured benefit недостаточен, `listing_option_signature`,
+`listing_option_signature_value` и `listing_option_signature_product_membership` удаляются вместе с
+wiring.
 
 ### Product aggregates
 
@@ -561,9 +542,8 @@ listing_posting_product_sort.bool_value
 - price eligibility;
 - virtual criterion counts.
 
-Новый criterion не получает product aggregate автоматически. Product-level
-aggregate добавляется только как отдельный sort/diagnostic contract после
-измеренной необходимости.
+Новый criterion не получает product aggregate автоматически. Product-level aggregate добавляется
+только как отдельный sort/diagnostic contract после измеренной необходимости.
 
 ## Изменения DB schema
 
@@ -575,20 +555,18 @@ aggregate добавляется только как отдельный sort/dia
    entity_type=variant, field=term
    ```
 
-   Physical columns `listing_posting_bitmap` не меняются. Обновляются Drizzle
-   literal types, repository validation и schema documentation.
+   Physical columns `listing_posting_bitmap` не меняются. Обновляются Drizzle literal types,
+   repository validation и schema documentation.
 
-2. Зафиксировать contract `variant_listing_price_index`: хранить price
-   rows всех priced indexable variants независимо от criterion state.
-   Предложение explicit availability plan добавить
-   `variant_listing_price_index.in_stock` заменяется этим документом:
-   criterion-specific column не добавляется.
+2. Зафиксировать contract `variant_listing_price_index`: хранить price rows всех priced indexable
+   variants независимо от criterion state. Предложение explicit availability plan добавить
+   `variant_listing_price_index.in_stock` заменяется этим документом: criterion-specific column не
+   добавляется.
 
-3. Проверить criterion-neutral price indexes для scans по store/currency/price
-   и per-product matched minimum lookup.
+3. Проверить criterion-neutral price indexes для scans по store/currency/price и per-product matched
+   minimum lookup.
 
-4. Не добавлять availability/delivery columns в option signature или
-   `variant_listing_price_index`.
+4. Не добавлять availability/delivery columns в option signature или `variant_listing_price_index`.
 
 ### Не требуются
 
@@ -607,18 +585,16 @@ aggregate добавляется только как отдельный sort/dia
 (store, variant, term, encoded(fieldKey, valueKey), bitmap)
 ```
 
-Stage/prod data отсутствуют. План реализуется только для clean DB.
-Старые index rows не мигрируются, не конвертируются и не читаются.
-Compatibility period, dual-read и dual-write отсутствуют. Общий
-rebuild/reindex любого существующего index не является шагом этого
-плана и вынесен за его scope.
+Stage/prod data отсутствуют. План реализуется только для clean DB. Старые index rows не мигрируются,
+не конвертируются и не читаются. Compatibility period, dual-read и dual-write отсутствуют. Общий
+rebuild/reindex любого существующего index не является шагом этого плана и вынесен за его scope.
 
 ## Term registry
 
 ### Назначение
 
-Schema-less physical storage не означает неконтролируемые строки. В коде
-вводится registry definitions:
+Schema-less physical storage не означает неконтролируемые строки. В коде вводится registry
+definitions:
 
 ```ts
 type ListingVariantTermValueDomain =
@@ -636,11 +612,10 @@ interface ListingVariantTermDefinition {
 
 Граница value domain задается так:
 
-- boolean/enum — exact `DECLARED.values`, например availability имеет ровно
-  `available`, `unavailable`;
+- boolean/enum — exact `DECLARED.values`, например availability имеет ровно `available`,
+  `unavailable`;
 - OPTION — только configured resolved values конкретного facet;
-- ID criterion — только stable IDs, прошедшие criterion-specific
-  domain validation.
+- ID criterion — только stable IDs, прошедшие criterion-specific domain validation.
 
 Writer не может silently пропускать невалидные values.
 
@@ -664,8 +639,8 @@ Registry отвечает за:
 - authorization/domain validation;
 - UX metadata.
 
-Но оно не требует изменения physical DB schema, bitmap algebra, projection,
-price table или общего facet count engine.
+Но оно не требует изменения physical DB schema, bitmap algebra, projection, price table или общего
+facet count engine.
 
 ### Broker/write contract
 
@@ -690,8 +665,8 @@ resolved OPTION terms
 registered future criterion terms
 ```
 
-Raw broker payload не может передать arbitrary unvalidated physical term key.
-Adapter/registry переводит domain fields в canonical terms.
+Raw broker payload не может передать arbitrary unvalidated physical term key. Adapter/registry
+переводит domain fields в canonical terms.
 
 ## Write path
 
@@ -735,9 +710,9 @@ cardinality = rb_cardinality(bitmap)
 - product sort rows;
 - item state/idempotency update.
 
-Не нужны product counters для term: если два variants одного product имеют один
-term, bitmap хранит оба `variant_doc_id`. Удаление одного variant не удаляет
-второй; distinct product semantics появляется только при projection.
+Не нужны product counters для term: если два variants одного product имеют один term, bitmap хранит
+оба `variant_doc_id`. Удаление одного variant не удаляет второй; distinct product semantics
+появляется только при projection.
 
 ### Required transitions
 
@@ -756,8 +731,8 @@ product publish/unpublish/delete
 
 ### Concurrency
 
-Posting updates используют deterministic term-key order и существующую lock
-strategy, чтобы parallel products с общими terms не создавали lock inversion.
+Posting updates используют deterministic term-key order и существующую lock strategy, чтобы parallel
+products с общими terms не создавали lock inversion.
 
 Профиль должен измерять:
 
@@ -798,8 +773,8 @@ AND availability=available
 AND fulfillment=(delivery OR pickup)
 ```
 
-Availability aliases и direct input сначала нормализуются в один canonical
-term group. Downstream не знает источник alias.
+Availability aliases и direct input сначала нормализуются в один canonical term group. Downstream не
+знает источник alias.
 
 ### Общие SQL helpers
 
@@ -822,13 +797,13 @@ compileOptionSignatureBitmapColumn(mode)
 compilePriceAvailabilityPredicate
 ```
 
-Availability mode нужен на normalization/API уровне и в filter hash, но
-physical compiler получает обычный term group.
+Availability mode нужен на normalization/API уровне и в filter hash, но physical compiler получает
+обычный term group.
 
 ### PRICE
 
-Price range строит bitmap `variant_doc_id` из
-`variant_listing_price_index` rows с `has_price = true`:
+Price range строит bitmap `variant_doc_id` из `variant_listing_price_index` rows с
+`has_price = true`:
 
 ```text
 priceCandidates = variants with price in requested range/currency
@@ -840,8 +815,7 @@ Virtual PRICE facet исключает active price range, но сохраняе
 Price sort:
 
 1. Стартует от `productMatches`, поэтому product без eligible price не теряется.
-2. Для product выбирает minimum price среди variants, входящих в matching
-   candidate bitmap.
+2. Для product выбирает minimum price среди variants, входящих в matching candidate bitmap.
 3. Использует `NULLS LAST`.
 4. Не читает criterion-specific columns из price row.
 5. Cursor повторяет полный availability-first nullable tuple.
@@ -870,9 +844,8 @@ count = cardinality(projectDistinctProducts(candidateVariants) & productBase)
 - fulfillment method;
 - будущего configured discrete criterion.
 
-Product-level TAG/FEATURE сохраняют собственную product bitmap ветку, но при
-наличии variant witness пересекаются с projection того же canonical
-`variantCandidates`.
+Product-level TAG/FEATURE сохраняют собственную product bitmap ветку, но при наличии variant witness
+пересекаются с projection того же canonical `variantCandidates`.
 
 ### Metadata
 
@@ -891,14 +864,13 @@ configured discrete value -> count > 0 OR selected
 registered boolean facet   -> все declared states, включая zero
 ```
 
-Raw term rows не публикуются автоматически в GraphQL. Это предотвращает утечку
-internal terms и uncontrolled UI facets.
+Raw term rows не публикуются автоматически в GraphQL. Это предотвращает утечку internal terms и
+uncontrolled UI facets.
 
 ### Request snapshot
 
-Facet resolution, term posting reads, price candidates, projection, page,
-total, counts и virtual facets выполняются в одном `REPEATABLE READ READ ONLY`
-snapshot согласно explicit availability plan.
+Facet resolution, term posting reads, price candidates, projection, page, total, counts и virtual
+facets выполняются в одном `REPEATABLE READ READ ONLY` snapshot согласно explicit availability plan.
 
 ## Добавление нового criterion
 
@@ -915,8 +887,7 @@ snapshot согласно explicit availability plan.
 
 4. Materializer эмитит один canonical term на indexable variant.
 5. Input resolver переводит public input в `ListingVariantTermGroup`.
-6. Если нужен facet output, registry/mapper задает label, reusable input и
-   declared values.
+6. Если нужен facet output, registry/mapper задает label, reusable input и declared values.
 7. Добавить contract fixtures и performance profile.
 
 Не выполняются:
@@ -974,8 +945,7 @@ P11: selected criterion value с count=0
 3. `variant_listing_price_index` для всех priced indexable variants.
 4. Atomic replace/delete/status/criterion transitions.
 5. Single/batch row-level parity.
-6. Удалить legacy OPTION `entity_type=variant, field=facet` write path и
-   не добавлять dual-write.
+6. Удалить legacy OPTION `entity_type=variant, field=facet` write path и не добавлять dual-write.
 
 ### Этап 4. Канонический read compiler
 
@@ -984,8 +954,8 @@ P11: selected criterion value с count=0
 3. Пересекать numeric price candidates до projection.
 4. Удалить product aggregate stock membership.
 5. Использовать один projection helper для page/total/counts.
-6. Удалить legacy OPTION `field=facet` readers/compilers и не добавлять
-   fallback на старый key encoding.
+6. Удалить legacy OPTION `field=facet` readers/compilers и не добавлять fallback на старый key
+   encoding.
 
 ### Этап 5. Facet counts и virtual facets
 
@@ -1063,8 +1033,7 @@ P11: selected criterion value с count=0
 
 1. OR внутри group и AND между groups.
 2. Empty group не создается.
-3. Missing term row для declared state считается invariant violation, не
-   silently empty.
+3. Missing term row для declared state считается invariant violation, не silently empty.
 4. Duplicate term variant не меняет cardinality.
 5. Все term bitmaps являются subset indexable universe.
 6. Unknown policy соблюдается для каждого definition.
@@ -1082,8 +1051,8 @@ P11: selected criterion value с count=0
 1. Два matching variants одного product дают один product.
 2. Full и partial projection blocks дают одинаковый bitmap.
 3. Narrow `variant_product` и broad projection имеют parity.
-4. Product без active variants входит в ALL без variant filters и исключается
-   при любом variant witness.
+4. Product без active variants входит в ALL без variant filters и исключается при любом variant
+   witness.
 
 ### Facets
 
@@ -1096,8 +1065,7 @@ P11: selected criterion value с count=0
 
 ### Price/sort
 
-1. `variant_listing_price_index` содержит prices всех indexable
-   criterion states.
+1. `variant_listing_price_index` содержит prices всех indexable criterion states.
 2. Price range пересекается с term candidates до projection.
 3. Price sort берет minimum matching variant price.
 4. Product без eligible price остается NULL-last.
@@ -1158,16 +1126,14 @@ price ASC/DESC с NULL prices
 
 ### Performance acceptance thresholds
 
-Performance verification выполняется на одинаковом 10k dataset,
-PostgreSQL configuration, hardware и warmup. Baseline снимается с текущего
-canonical listing path до cutover.
+Performance verification выполняется на одинаковом 10k dataset, PostgreSQL configuration, hardware и
+warmup. Baseline снимается с текущего canonical listing path до cutover.
 
 Числовые thresholds:
 
-1. Availability-only median после warmup не хуже baseline более
-   чем на 25%.
-2. `ALL` и `UNAVAILABLE` не медленнее `AVAILABLE` более чем в
-   1.5 раза на одном representative scenario.
+1. Availability-only median после warmup не хуже baseline более чем на 25%.
+2. `ALL` и `UNAVAILABLE` не медленнее `AVAILABLE` более чем в 1.5 раза на одном representative
+   scenario.
 
 Hard pass/fail conditions для всей 10k matrix:
 
@@ -1177,9 +1143,8 @@ Hard pass/fail conditions для всей 10k matrix:
 - нет lost bitmap updates и deadlocks в concurrency profile;
 - canonical/signature/projection results имеют parity.
 
-Query p95, write p50/p95, products/sec, WAL, lock wait и index bytes
-измеряются и сохраняются в профиле, но в этом плане для них
-не заданы числовые acceptance thresholds. Изменение thresholds
+Query p95, write p50/p95, products/sec, WAL, lock wait и index bytes измеряются и сохраняются в
+профиле, но в этом плане для них не заданы числовые acceptance thresholds. Изменение thresholds
 требует сохраненного `EXPLAIN ANALYZE`, профиля и явного решения.
 
 ## Observability и audit
@@ -1212,8 +1177,7 @@ product.in_stock = bool_or(indexable variant availability)
 sort.bool_value = product.in_stock
 ```
 
-Для multi-state criteria registry задает аналогичный exactly-one или
-zero-or-one invariant.
+Для multi-state criteria registry задает аналогичный exactly-one или zero-or-one invariant.
 
 ## Риски и меры
 
@@ -1227,9 +1191,9 @@ Availability и delivery booleans обновляют большие общие b
 - batch delta aggregation;
 - измерение WAL/lock wait;
 
-Начальная physical model не использует sharding. Sharded posting по stable
-doc-id block — отдельная optimization за scope этого плана; она требует
-отдельного physical key/compiler contract и не является скрытым fallback.
+Начальная physical model не использует sharding. Sharded posting по stable doc-id block — отдельная
+optimization за scope этого плана; она требует отдельного physical key/compiler contract и не
+является скрытым fallback.
 
 ### Projection cost
 
@@ -1260,8 +1224,7 @@ Variant-level correctness переносит projection на read path.
 - declared empty state rows;
 - invariant audit до включения criterion в public API.
 
-Recovery уже существующего index через rebuild/reindex не входит в scope
-этого плана.
+Recovery уже существующего index через rebuild/reindex не входит в scope этого плана.
 
 ### Signature optimization нарушает same-variant
 
@@ -1298,20 +1261,17 @@ Recovery уже существующего index через rebuild/reindex не
 Работа завершена, когда:
 
 1. Все discrete variant predicates имеют общий `ListingVariantTerm` contract.
-2. Physical term postings содержат `variant_doc_id`, а не early-projected
-   product IDs.
+2. Physical term postings содержат `variant_doc_id`, а не early-projected product IDs.
 3. Добавление нового boolean/enum criterion не требует DB schema change.
 4. Availability хранится как обычные explicit available/unavailable terms.
-5. OPTION values пишутся и компилируются только через variant term
-   engine; legacy `entity_type=variant, field=facet` read/write paths, dual-read
-   и dual-write отсутствуют.
+5. OPTION values пишутся и компилируются только через variant term engine; legacy
+   `entity_type=variant, field=facet` read/write paths, dual-read и dual-write отсутствуют.
 6. OR внутри group и AND между groups реализованы одним compiler.
 7. OPTION, availability, delivery criteria и PRICE совпадают на одном variant.
-8. Variant-to-product projection выполняется только после всех variant
-   predicates.
+8. Variant-to-product projection выполняется только после всех variant predicates.
 9. Product aggregate stock не участвует в membership/counts.
-10. `variant_listing_price_index` содержит все priced indexable variants и не
-    получает criterion-specific columns.
+10. `variant_listing_price_index` содержит все priced indexable variants и не получает
+    criterion-specific columns.
 11. Price range/sort ограничиваются matching variant bitmap.
 12. Product без eligible price сохраняется в page как NULL-last.
 13. Page и total используют один `productMatches` bitmap.
@@ -1325,8 +1285,8 @@ Recovery уже существующего index через rebuild/reindex не
 21. Option signatures не содержат availability/delivery-specific schema.
 22. Любой оставшийся signature fast path имеет parity с canonical term path.
 23. Все logical read branches видят один repeatable snapshot.
-24. Declared/configured domains, criterion-specific ID validation и запрет
-    arbitrary raw keys защищают от uncontrolled term explosion.
-25. 10k profile проходит явные query latency thresholds и hard
-    pass/fail conditions из раздела `Performance acceptance thresholds`.
+24. Declared/configured domains, criterion-specific ID validation и запрет arbitrary raw keys
+    защищают от uncontrolled term explosion.
+25. 10k profile проходит явные query latency thresholds и hard pass/fail conditions из раздела
+    `Performance acceptance thresholds`.
 26. Knowledge base и index schema docs обновлены после implementation audit.

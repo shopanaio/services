@@ -18,12 +18,14 @@ describe("CheckoutPlacementRepository", () => {
     const execute = executor();
     const repository = new CheckoutPlacementRepository(execute);
 
-    await expect(repository.findByIdForStorefrontCredential({
-      placementId: "0198c4d4-9c00-7000-8000-000000000001",
-      storeId: "0198c4d4-9c00-7000-8000-000000000002",
-      credentialId: "credential-1",
-      visitorId: "visitor-1234567890",
-    })).resolves.toBeNull();
+    await expect(
+      repository.findByIdForStorefrontCredential({
+        placementId: "0198c4d4-9c00-7000-8000-000000000001",
+        storeId: "0198c4d4-9c00-7000-8000-000000000002",
+        credentialId: "credential-1",
+        visitorId: "visitor-1234567890",
+      }),
+    ).resolves.toBeNull();
 
     const sql = (execute.query as jest.Mock).mock.calls[0][0] as string;
     expect(sql).toContain("checkout.checkouts");
@@ -37,20 +39,18 @@ describe("CheckoutPlacementRepository", () => {
     const execute = executor([{ requested_order_id: orderId }]);
     const repository = new CheckoutPlacementRepository(execute);
 
-    await expect(repository.prepareOrderId(
-      "0198c4d4-9c00-7000-8000-000000000001",
-      orderId,
-    )).resolves.toBe(orderId);
+    await expect(
+      repository.prepareOrderId("0198c4d4-9c00-7000-8000-000000000001", orderId),
+    ).resolves.toBe(orderId);
   });
 
   it("persists discount reservation IDs before the aggregate stage transition", async () => {
     const execute = executor([{ id: "placement-1" }]);
     const repository = new CheckoutPlacementRepository(execute);
 
-    await expect(repository.recordDiscountReservations(
-      "placement-1",
-      ["reservation-1"],
-    )).resolves.toBeUndefined();
+    await expect(
+      repository.recordDiscountReservations("placement-1", ["reservation-1"]),
+    ).resolves.toBeUndefined();
 
     const sql = (execute.query as jest.Mock).mock.calls[0][0] as string;
     expect(sql).toContain("discount_reservation_ids");

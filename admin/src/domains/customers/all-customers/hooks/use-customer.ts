@@ -3,10 +3,7 @@
 import { useQuery } from "@apollo/client/react";
 import { useDefaultCurrency } from "@/domains/workspace";
 import { CUSTOMER_QUERY } from "../graphql";
-import type {
-  CustomerQueryData,
-  CustomerQueryVariables,
-} from "../graphql/operation-types";
+import type { CustomerQueryData, CustomerQueryVariables } from "../graphql/operation-types";
 
 export function useCustomer(id?: string) {
   const currencyCode = useDefaultCurrency();

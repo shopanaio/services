@@ -1,8 +1,4 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional, type TransactionManager } from "@shopana/shared-kernel";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { Database } from "../../infrastructure/db/database.js";
@@ -37,12 +33,10 @@ export const productQuestionRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "productQuestion", tieBreaker: "id" }
+  { name: "productQuestion", tieBreaker: "id" },
 );
 
-export type ProductQuestionRelayInput = InferRelayInput<
-  typeof productQuestionRelayQuery
->;
+export type ProductQuestionRelayInput = InferRelayInput<typeof productQuestionRelayQuery>;
 export type ProductQuestionConnectionInput = ProductQuestionRelayInput & {
   meta?: ContentConnectionMetaInput;
 };
@@ -52,15 +46,13 @@ export interface ProductQuestionAggregate {
   question: ProductQuestion;
 }
 
-export type ProductQuestionPatch = Partial<
-  Pick<NewProductQuestion, "productId" | "variantId">
->;
+export type ProductQuestionPatch = Partial<Pick<NewProductQuestion, "productId" | "variantId">>;
 
 export class ProductQuestionRepository extends BaseRepository {
   constructor(
     db: Database,
     txManager: TransactionManager<Database>,
-    private readonly content: ContentRepository
+    private readonly content: ContentRepository,
   ) {
     super(db, txManager);
   }
@@ -75,15 +67,10 @@ export class ProductQuestionRepository extends BaseRepository {
         and(
           eq(contentItem.storeId, productQuestion.storeId),
           eq(contentItem.id, productQuestion.id),
-          isNull(contentItem.deletedAt)
-        )
+          isNull(contentItem.deletedAt),
+        ),
       )
-      .where(
-        and(
-          eq(productQuestion.storeId, this.storeId),
-          eq(productQuestion.id, id)
-        )
-      )
+      .where(and(eq(productQuestion.storeId, this.storeId), eq(productQuestion.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -98,22 +85,20 @@ export class ProductQuestionRepository extends BaseRepository {
         contentItem,
         and(
           eq(contentItem.storeId, productQuestion.storeId),
-          eq(contentItem.id, productQuestion.id)
-        )
+          eq(contentItem.id, productQuestion.id),
+        ),
       )
       .where(
         and(
           eq(productQuestion.storeId, this.storeId),
-          inArray(productQuestion.id, [...new Set(ids)])
-        )
+          inArray(productQuestion.id, [...new Set(ids)]),
+        ),
       )
       .then((rows) => rows.map((row) => row.question));
   }
 
   @ReadOnly()
-  async getConnection(
-    args: ProductQuestionConnectionInput
-  ): Promise<RepositoryConnectionResult> {
+  async getConnection(args: ProductQuestionConnectionInput): Promise<RepositoryConnectionResult> {
     const { where, orderBy, meta, ...pagination } = args;
     const mergedWhere: ProductQuestionRelayInput["where"] = {
       _and: [
@@ -148,15 +133,19 @@ export class ProductQuestionRepository extends BaseRepository {
   async create(input: {
     content: Omit<
       NewContentItem,
-      "id" | "storeId" | "kind" | "revision" | "createdAt" | "updatedAt" | "deletedAt" | "redactedAt"
+      | "id"
+      | "storeId"
+      | "kind"
+      | "revision"
+      | "createdAt"
+      | "updatedAt"
+      | "deletedAt"
+      | "redactedAt"
     >;
     question: Omit<NewProductQuestion, "id" | "contentKind" | "storeId">;
   }): Promise<ProductQuestionAggregate> {
     const id = await this.generateUuidV7();
-    const content = await this.content.create(
-      { ...input.content, kind: "PRODUCT_QUESTION" },
-      id
-    );
+    const content = await this.content.create({ ...input.content, kind: "PRODUCT_QUESTION" }, id);
     const rows = await this.connection
       .insert(productQuestion)
       .values({
@@ -172,19 +161,11 @@ export class ProductQuestionRepository extends BaseRepository {
   }
 
   @Transactional()
-  async updateSubject(
-    id: string,
-    patch: ProductQuestionPatch
-  ): Promise<ProductQuestion | null> {
+  async updateSubject(id: string, patch: ProductQuestionPatch): Promise<ProductQuestion | null> {
     const rows = await this.connection
       .update(productQuestion)
       .set(patch)
-      .where(
-        and(
-          eq(productQuestion.storeId, this.storeId),
-          eq(productQuestion.id, id)
-        )
-      )
+      .where(and(eq(productQuestion.storeId, this.storeId), eq(productQuestion.id, id)))
       .returning();
     return rows[0] ?? null;
   }

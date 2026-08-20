@@ -4,15 +4,9 @@ import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { PostgresTransactionOptions } from "@dbos-inc/postgres-datasource";
 import { getSignal } from "../step/StepExecutionContext.js";
 import type { DbosTransactionBridge } from "./DbosTransactionBridge.js";
-import {
-  TRANSACTIONAL_STEP_METADATA_KEY,
-  TransactionalStep,
-} from "./decorators.js";
+import { TRANSACTIONAL_STEP_METADATA_KEY, TransactionalStep } from "./decorators.js";
 import { TransactionalStepConfigurationError } from "./errors.js";
-import {
-  runTransactionalStep,
-  type TransactionManagerLike,
-} from "./runTransactionalStep.js";
+import { runTransactionalStep, type TransactionManagerLike } from "./runTransactionalStep.js";
 
 interface ScopedDatabase {
   readonly kind: "transaction";
@@ -21,9 +15,7 @@ interface ScopedDatabase {
 function createRuntime() {
   const database: ScopedDatabase = { kind: "transaction" };
   const callbackOrder: string[] = [];
-  let receivedOptions:
-    | (PostgresTransactionOptions & { name: string })
-    | undefined;
+  let receivedOptions: (PostgresTransactionOptions & { name: string }) | undefined;
 
   const txManager: TransactionManagerLike<ScopedDatabase> = {
     async runWithExistingTransaction<TResult>(tx, callback) {
@@ -32,10 +24,7 @@ function createRuntime() {
       return callback();
     },
   };
-  const bridge: DbosTransactionBridge<
-    ScopedDatabase,
-    PostgresTransactionOptions
-  > = {
+  const bridge: DbosTransactionBridge<ScopedDatabase, PostgresTransactionOptions> = {
     async runTransaction<TResult>(options, callback) {
       receivedOptions = options;
       callbackOrder.push("bridge");

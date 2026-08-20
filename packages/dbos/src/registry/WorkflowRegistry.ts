@@ -130,11 +130,8 @@ export class WorkflowRegistry implements WorkflowRegistrar {
   ): Promise<WorkflowHandle<TResult>> {
     const descriptor = this.getDescriptor(qualifiedName);
 
-    const workflowID =
-      options?.workflowId ?? buildIdempotencyKey(qualifiedName, idempotencyCtx);
-    const requestHash = idempotencyCtx.source === "client"
-      ? idempotencyCtx.requestHash
-      : undefined;
+    const workflowID = options?.workflowId ?? buildIdempotencyKey(qualifiedName, idempotencyCtx);
+    const requestHash = idempotencyCtx.source === "client" ? idempotencyCtx.requestHash : undefined;
     if (requestHash) {
       const existing = await DBOS.getWorkflowStatus(workflowID);
       if (existing) {
@@ -156,10 +153,7 @@ export class WorkflowRegistry implements WorkflowRegistrar {
     // Cast to ConfiguredInstance with run method for DBOS.startWorkflow().
     // All BaseWorkflow/BaseSaga extend ConfiguredInstance and have a `run` method.
     const workflowInstance = descriptor.instance as ConfiguredInstance & {
-      run: (
-        params: TParams,
-        context?: WorkflowExecutionContext,
-      ) => Promise<TResult>;
+      run: (params: TParams, context?: WorkflowExecutionContext) => Promise<TResult>;
     };
 
     const configuredWorkflow = DBOS.startWorkflow(workflowInstance, startParams);
@@ -231,9 +225,7 @@ function mapWorkflowStartOptions(
 
   if (options?.duplicationPolicy === "return-existing") {
     if (!options.queueName) {
-      throw new Error(
-        'Workflow duplicationPolicy "return-existing" requires queueName',
-      );
+      throw new Error('Workflow duplicationPolicy "return-existing" requires queueName');
     }
 
     if (!enqueueOptions?.deduplicationID) {
@@ -253,8 +245,7 @@ function mapWorkflowStartOptions(
     workflowID,
     ...(options?.queueName !== undefined && { queueName: options.queueName }),
     ...(options?.timeoutMS !== undefined && { timeoutMS: options.timeoutMS }),
-    ...(options?.queueName !== undefined &&
-      enqueueOptions !== undefined && { enqueueOptions }),
+    ...(options?.queueName !== undefined && enqueueOptions !== undefined && { enqueueOptions }),
     ...(options?.duplicationPolicy !== undefined && {
       duplicationPolicy: options.duplicationPolicy,
     }),

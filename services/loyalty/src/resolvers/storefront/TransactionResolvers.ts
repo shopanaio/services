@@ -20,9 +20,7 @@ export interface StorefrontTransactionConnectionInput {
   after?: string;
 }
 
-export class StorefrontTransactionConnectionResolver
-  extends BaseStorefrontConnectionResolver<StorefrontTransactionConnectionInput>
-{
+export class StorefrontTransactionConnectionResolver extends BaseStorefrontConnectionResolver<StorefrontTransactionConnectionInput> {
   $preload() {
     return this.$ctx.kernel.repository.ledger.getConnection({
       first: this.$props.first,
@@ -30,12 +28,15 @@ export class StorefrontTransactionConnectionResolver
       where: { accountIds: [this.$props.accountId], kinds: VISIBLE_KINDS },
     });
   }
-  protected createNodeResolver(id: string) { return this.resolvers.transaction(id); }
+  protected createNodeResolver(id: string) {
+    return this.resolvers.transaction(id);
+  }
 }
 
-export class StorefrontLoyaltyTransactionResolver
-  extends LoyaltyStorefrontType<string, LoyaltyTransaction>
-{
+export class StorefrontLoyaltyTransactionResolver extends LoyaltyStorefrontType<
+  string,
+  LoyaltyTransaction
+> {
   async $preload() {
     const row = await this.$ctx.loaders.transaction.load(this.$props);
     if (!row || !VISIBLE_KINDS.includes(row.kind)) {
@@ -48,9 +49,15 @@ export class StorefrontLoyaltyTransactionResolver
     return row;
   }
 
-  id() { return this.encodeId(this.$props, GlobalIdEntity.LoyaltyTransaction); }
-  async type() { return storefrontTransactionType((await this.$get("kind"))!); }
-  async direction() { return storefrontTransactionDirection((await this.$get("kind"))!); }
+  id() {
+    return this.encodeId(this.$props, GlobalIdEntity.LoyaltyTransaction);
+  }
+  async type() {
+    return storefrontTransactionType((await this.$get("kind"))!);
+  }
+  async direction() {
+    return storefrontTransactionDirection((await this.$get("kind"))!);
+  }
 
   async points() {
     const metadata = (await this.$get("metadata"))!;
@@ -60,14 +67,20 @@ export class StorefrontLoyaltyTransactionResolver
     const kind = (await this.$get("kind"))!;
     const positive = storefrontTransactionDirection(kind) === "CREDIT";
     return entries
-      .filter(({ pointsDelta }) => positive ? pointsDelta > 0n : pointsDelta < 0n)
+      .filter(({ pointsDelta }) => (positive ? pointsDelta > 0n : pointsDelta < 0n))
       .reduce((sum, { pointsDelta }) => sum + (pointsDelta < 0n ? -pointsDelta : pointsDelta), 0n)
       .toString();
   }
 
-  description() { return this.$get("description"); }
-  occurredAt() { return this.$get("occurredAt"); }
-  effectiveAt() { return this.$get("effectiveAt"); }
+  description() {
+    return this.$get("description");
+  }
+  occurredAt() {
+    return this.$get("occurredAt");
+  }
+  effectiveAt() {
+    return this.$get("effectiveAt");
+  }
   async expiresAt() {
     const value = (await this.$get("metadata"))!.expiresAt;
     if (typeof value === "string") return value;

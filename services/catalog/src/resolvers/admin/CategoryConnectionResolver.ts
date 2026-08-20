@@ -36,9 +36,7 @@ type CategoryProductsScopeArgs = {
  */
 export class CategoryConnectionResolver extends BaseConnectionResolver<CategoryConnectionInput> {
   async $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel
-      .getServices()
-      .repository.category.getConnection(this.$props);
+    return this.$ctx.kernel.getServices().repository.category.getConnection(this.$props);
   }
 
   protected async createNodeResolver(nodeId: string) {

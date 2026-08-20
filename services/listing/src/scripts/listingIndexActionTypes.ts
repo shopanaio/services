@@ -36,13 +36,9 @@ export type ListingIndexQueuedDeleteAction = {
 };
 
 export type ListingIndexQueuedAction =
-  | ListingIndexHydratedSyncAction
-  | ListingIndexQueuedDeleteAction;
+  ListingIndexHydratedSyncAction | ListingIndexQueuedDeleteAction;
 
-export type ListingIndexFinalStatus =
-  | "applied"
-  | "noop"
-  | "ignored_stale";
+export type ListingIndexFinalStatus = "applied" | "noop" | "ignored_stale";
 
 export type ListingPreparedSyncAction = ListingIndexHydratedSyncAction & {
   actionType: "syncSellableItem";
@@ -103,16 +99,10 @@ export type ListingSyncWriteModelJson = {
     collection: readonly string[];
     ruleTerm: readonly string[];
   };
-  variants: readonly Omit<
-    VariantListingIndexUpsertInput,
-    "productDocId" | "variantDocId"
-  >[];
+  variants: readonly Omit<VariantListingIndexUpsertInput, "productDocId" | "variantDocId">[];
   variantPricesByVariantId: Record<
     string,
-    readonly Omit<
-      VariantListingPriceRowInput,
-      "variantDocId" | "productDocId"
-    >[]
+    readonly Omit<VariantListingPriceRowInput, "variantDocId" | "productDocId">[]
   >;
   variantTermsByVariantId: Record<string, readonly ListingVariantTerm[]>;
   variantRuleTermValueKeysByVariantId: Record<string, readonly string[]>;
@@ -142,7 +132,7 @@ export type ListingIndexValidationIssue = {
 export class ListingIndexActionScriptError extends Error {
   constructor(
     public readonly issues: readonly ListingIndexValidationIssue[],
-    message = "Listing index action failed"
+    message = "Listing index action failed",
   ) {
     super(formatListingIndexActionErrorMessage(message, issues));
     this.name = "ListingIndexActionScriptError";
@@ -151,7 +141,7 @@ export class ListingIndexActionScriptError extends Error {
 
 function formatListingIndexActionErrorMessage(
   message: string,
-  issues: readonly ListingIndexValidationIssue[]
+  issues: readonly ListingIndexValidationIssue[],
 ): string {
   if (issues.length === 0) {
     return message;

@@ -1,31 +1,19 @@
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { ApplicationOAuthClient } from "../../services/ApplicationOAuthClientManagementService.js";
 import { IAMType } from "./IAMType.js";
 
 /** Application OAuth client resolver. */
 export class ApplicationOAuthClientResolver extends IAMType<ApplicationOAuthClient> {
   id() {
-    return encodeGlobalIdByType(
-      this.$props.id,
-      GlobalIdEntity.ApplicationOAuthClient
-    );
+    return encodeGlobalIdByType(this.$props.id, GlobalIdEntity.ApplicationOAuthClient);
   }
 
   organizationId() {
-    return encodeGlobalIdByType(
-      this.$props.organizationId,
-      GlobalIdEntity.Organization
-    );
+    return encodeGlobalIdByType(this.$props.organizationId, GlobalIdEntity.Organization);
   }
 
   applicationId() {
-    return encodeGlobalIdByType(
-      this.$props.applicationId,
-      GlobalIdEntity.Application
-    );
+    return encodeGlobalIdByType(this.$props.applicationId, GlobalIdEntity.Application);
   }
 
   clientId() {
@@ -123,8 +111,7 @@ interface ApplicationOAuthClientPayloadValue {
   userErrors: readonly unknown[];
 }
 
-interface ApplicationOAuthClientSecretPayloadValue
-  extends ApplicationOAuthClientPayloadValue {
+interface ApplicationOAuthClientSecretPayloadValue extends ApplicationOAuthClientPayloadValue {
   clientSecret: string | null;
 }
 

@@ -1,17 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { Button, Divider, Dropdown, Flex, Popover, Tag, Tooltip, Typography } from "antd";
 import {
-  Button,
-  Divider,
-  Dropdown,
-  Flex,
-  Popover,
-  Tag,
-  Tooltip,
-  Typography,
-} from "antd";
-import { LuCheck as CheckOutlined, LuEye as EyeOutlined, LuLink as LinkOutlined, LuEllipsis as MoreOutlined, LuShare2 as ShareAltOutlined } from "react-icons/lu";
+  LuCheck as CheckOutlined,
+  LuEye as EyeOutlined,
+  LuLink as LinkOutlined,
+  LuEllipsis as MoreOutlined,
+  LuShare2 as ShareAltOutlined,
+} from "react-icons/lu";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
@@ -56,9 +53,7 @@ export const CategoryInfoHeader = ({
   const categoryPath = getCategoryRoutePath(category);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const storefrontUrl = `${origin}/categories/${categoryPath}`;
-  const statusConfig = getStatusConfig(
-    category.isPublished ? "published" : "draft",
-  );
+  const statusConfig = getStatusConfig(category.isPublished ? "published" : "draft");
   const statusActionLabel = category.isPublished ? "Unpublish" : "Publish";
   const kpi = {
     views: 2847,
@@ -104,11 +99,7 @@ export const CategoryInfoHeader = ({
         <span style={{ marginLeft: 4 }}>by</span>
         <Popover
           content={
-            <UserPopoverContent
-              firstName="Admin"
-              lastName="User"
-              email="admin@shopana.io"
-            />
+            <UserPopoverContent firstName="Admin" lastName="User" email="admin@shopana.io" />
           }
           placement="bottom"
           arrow={false}
@@ -175,17 +166,23 @@ export const CategoryInfoHeader = ({
           items: [
             {
               key: "identity",
-              label: <span data-testid="category-header-edit-identity-menu-item">Edit identity</span>,
+              label: (
+                <span data-testid="category-header-edit-identity-menu-item">Edit identity</span>
+              ),
               onClick: onEditIdentity,
             },
             {
               key: "status",
-              label: <span data-testid="category-header-status-menu-item">{statusActionLabel}</span>,
+              label: (
+                <span data-testid="category-header-status-menu-item">{statusActionLabel}</span>
+              ),
               onClick: onChangeStatus,
             },
             {
               key: "sort",
-              label: <span data-testid="category-header-edit-sort-menu-item">Edit product sort</span>,
+              label: (
+                <span data-testid="category-header-edit-sort-menu-item">Edit product sort</span>
+              ),
               onClick: onEditSort,
             },
             { type: "divider" as const },
@@ -199,11 +196,7 @@ export const CategoryInfoHeader = ({
         }}
         trigger={["click"]}
       >
-        <Button
-          size="small"
-          icon={<MoreOutlined />}
-          data-testid="category-header-actions-button"
-        />
+        <Button size="small" icon={<MoreOutlined />} data-testid="category-header-actions-button" />
       </Dropdown>
     </Flex>
   );
@@ -224,11 +217,7 @@ export const CategoryInfoHeader = ({
         </Typography.Title>
 
         <Flex align="center" gap={12} wrap="wrap">
-          <CopyableChip
-            label="/"
-            value={categoryPath}
-            data-testid="category-detail-path"
-          />
+          <CopyableChip label="/" value={categoryPath} data-testid="category-detail-path" />
           <CopyableChip
             label="ID"
             value={category.id}

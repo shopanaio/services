@@ -50,8 +50,7 @@ describe("HookScriptLoader", () => {
     const loader = new HookScriptLoader();
 
     // Test pattern matching
-    const isHookFile = (name: string) =>
-      name.endsWith(".hook.js") || name.endsWith(".hook.ts");
+    const isHookFile = (name: string) => name.endsWith(".hook.js") || name.endsWith(".hook.ts");
 
     expect(isHookFile("test.hook.ts")).toBe(true);
     expect(isHookFile("test.hook.js")).toBe(true);

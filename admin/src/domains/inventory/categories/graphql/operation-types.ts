@@ -109,10 +109,7 @@ export type CategoryListingPreviewItem = Pick<
       file: Pick<ApiProductMediaItem["file"], "id" | "url" | "altText">;
     }
   >;
-  priceRange?: Pick<
-    ApiProductPriceRange,
-    "minPriceAmount" | "maxPriceAmount" | "currency"
-  > | null;
+  priceRange?: Pick<ApiProductPriceRange, "minPriceAmount" | "maxPriceAmount" | "currency"> | null;
 };
 
 export interface CategoryListingPreviewQueryData {
@@ -170,12 +167,10 @@ export interface CategoryDeleteMutationVariables {
 export interface ProductCategoryUpdateMutationData {
   catalogMutation: Pick<ApiCatalogMutation, "productUpdate"> & {
     productUpdate: {
-      product: (
-        Pick<
-          ApiProduct,
-          "id" | "updatedAt" | "revision" | "primaryCategory" | "categoryAssignments"
-        >
-      ) | null;
+      product: Pick<
+        ApiProduct,
+        "id" | "updatedAt" | "revision" | "primaryCategory" | "categoryAssignments"
+      > | null;
       operationResults: ApiOperationResult[];
       userErrors: ApiGenericUserError[];
     };

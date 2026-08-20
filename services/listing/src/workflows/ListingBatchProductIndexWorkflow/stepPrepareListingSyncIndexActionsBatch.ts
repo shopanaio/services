@@ -17,7 +17,7 @@ export type ListingBatchPrepareSyncIndexActionsResult = {
 };
 
 export async function prepareListingSyncIndexActionsBatch(
-  input: ListingBatchPrepareSyncIndexActionsInput
+  input: ListingBatchPrepareSyncIndexActionsInput,
 ): Promise<ListingBatchPrepareSyncIndexActionsResult> {
   /*
    * Contract:
@@ -40,9 +40,9 @@ export async function prepareListingSyncIndexActionsBatch(
       (action) =>
         kernel.runScript(
           ListingPrepareIndexActionScript,
-          action
-        ) as Promise<ListingIndexPreparedSyncAction>
-    )
+          action,
+        ) as Promise<ListingIndexPreparedSyncAction>,
+    ),
   );
 
   const actions: ListingPreparedSyncAction[] = [];

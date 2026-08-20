@@ -132,10 +132,7 @@ function requireDate(value: string, field: string): string {
   return value;
 }
 
-function optionalDate(
-  value: string | null | undefined,
-  field: string,
-): string | null {
+function optionalDate(value: string | null | undefined, field: string): string | null {
   return value == null ? null : requireDate(value, field);
 }
 

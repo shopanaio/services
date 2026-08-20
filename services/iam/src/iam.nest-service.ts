@@ -74,7 +74,7 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     private readonly applicationAuthProviderValidation?: ApplicationAuthProviderValidationPort,
     @Optional()
     @Inject(APPLICATION_AUTH_LIVE_STATE_INVALIDATION_PORT)
-    private readonly applicationAuthLiveStateInvalidation?: ApplicationAuthLiveStateInvalidationPort
+    private readonly applicationAuthLiveStateInvalidation?: ApplicationAuthLiveStateInvalidationPort,
   ) {}
 
   async onModuleInit() {
@@ -87,13 +87,11 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
         ? new InMemoryApplicationAuthRateLimitAdapter()
         : undefined);
     if (!this.applicationAuthRateLimit && applicationAuthRateLimit) {
-      this.logger.warn(
-        "Using single-process application auth rate limiting in development"
-      );
+      this.logger.warn("Using single-process application auth rate limiting in development");
     }
     if (http.deprecatedAdminGraphqlPortAliasUsed) {
       this.logger.warn(
-        "IAM ports.admin_graphql is deprecated; use ports.iam_http for the shared listener"
+        "IAM ports.admin_graphql is deprecated; use ports.iam_http for the shared listener",
       );
     }
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient, {
@@ -107,8 +105,7 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
         (process.env.IAM_E2E_PROVIDER_VALIDATION === "true"
           ? e2eApplicationAuthProviderValidationPort
           : undefined),
-      applicationAuthLiveStateInvalidation:
-        this.applicationAuthLiveStateInvalidation,
+      applicationAuthLiveStateInvalidation: this.applicationAuthLiveStateInvalidation,
     });
     this.logger.debug("Kernel created");
 

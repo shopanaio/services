@@ -6,10 +6,7 @@ import {
   relationOperators,
 } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
-import {
-  ReviewContentStatus,
-  ReviewVerificationStatus,
-} from "@/graphql/types";
+import { ReviewContentStatus, ReviewVerificationStatus } from "@/graphql/types";
 
 /** Required operational filters for review moderation and customer support. */
 export const filterSchema: IFilterSchema[] = [

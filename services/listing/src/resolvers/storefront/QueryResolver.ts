@@ -1,13 +1,7 @@
 import { ApolloQuery } from "@shopana/type-resolver";
-import type {
-  QueryProductsArgs,
-  QuerySearchProductsArgs,
-} from "./generated/types.js";
+import type { QueryProductsArgs, QuerySearchProductsArgs } from "./generated/types.js";
 import { ListingType } from "./ListingType.js";
-import {
-  globalProductsInput,
-  searchProductsInput,
-} from "./ListingQueryTypes.js";
+import { globalProductsInput, searchProductsInput } from "./ListingQueryTypes.js";
 
 @ApolloQuery
 export class QueryResolver extends ListingType<Record<string, never>> {

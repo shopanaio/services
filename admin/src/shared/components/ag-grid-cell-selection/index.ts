@@ -23,6 +23,4 @@ export { SelectableCell } from "./selectable-cell";
 export { useSelectionStyles, SELECTING_BODY_CLASS } from "./styles";
 
 // Store (for advanced usage)
-export {
-  createCellSelectionStore,
-} from "./use-cell-selection-store";
+export { createCellSelectionStore } from "./use-cell-selection-store";

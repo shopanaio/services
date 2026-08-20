@@ -2,10 +2,7 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
-import type {
-  ApiFacetValueDeleteInput,
-  ApiGenericUserError,
-} from "@/graphql/types";
+import type { ApiFacetValueDeleteInput, ApiGenericUserError } from "@/graphql/types";
 import { FACET_GRID_QUERY, FACET_VALUE_DELETE_MUTATION } from "../graphql";
 import type {
   FacetValueDeleteMutationData,
@@ -18,9 +15,7 @@ interface DeleteFacetValueResult {
 }
 
 interface UseDeleteFacetValueReturn {
-  deleteFacetValue: (
-    input: ApiFacetValueDeleteInput,
-  ) => Promise<DeleteFacetValueResult>;
+  deleteFacetValue: (input: ApiFacetValueDeleteInput) => Promise<DeleteFacetValueResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
@@ -33,9 +28,7 @@ export function useDeleteFacetValue(): UseDeleteFacetValueReturn {
   >(FACET_VALUE_DELETE_MUTATION);
 
   const deleteFacetValue = useCallback(
-    async (
-      input: ApiFacetValueDeleteInput,
-    ): Promise<DeleteFacetValueResult> => {
+    async (input: ApiFacetValueDeleteInput): Promise<DeleteFacetValueResult> => {
       try {
         const result = await deleteFacetValueMutation({
           variables: { input },
@@ -49,8 +42,7 @@ export function useDeleteFacetValue(): UseDeleteFacetValueReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
         return {
           deletedFacetValueId: null,
           userErrors: [{ message, code: "UNEXPECTED_ERROR" }],

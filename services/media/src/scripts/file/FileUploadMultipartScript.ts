@@ -1,10 +1,6 @@
 import crypto from "node:crypto";
 import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kernel/BaseScript.js";
-import {
-  getS3Client,
-  getBucketName,
-  buildPublicUrl,
-} from "../../infrastructure/s3/index.js";
+import { getS3Client, getBucketName, buildPublicUrl } from "../../infrastructure/s3/index.js";
 import { analyzeMedia } from "../../infrastructure/media/index.js";
 import { ALLOWED_UPLOAD_MIME_TYPES } from "../../infrastructure/media/allowedMimeTypes.js";
 import {
@@ -18,26 +14,27 @@ export class FileUploadMultipartScript extends BaseScript<
   FileUploadMultipartResult
 > {
   @ZodSchema(fileUploadMultipartSchema)
-  protected async execute(
-    params: FileUploadMultipartParams
-  ): Promise<FileUploadMultipartResult> {
+  protected async execute(params: FileUploadMultipartParams): Promise<FileUploadMultipartResult> {
     // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
     const assetGroup = await this.getOrCreateStoreAssetGroup();
     const assetGroupId = assetGroup.id;
 
-    this.logger.info({ storeId: this.storeId, assetGroupId }, "FileUploadMultipartScript: starting");
+    this.logger.info(
+      { storeId: this.storeId, assetGroupId },
+      "FileUploadMultipartScript: starting",
+    );
 
     // 1. Check idempotency key
     if (params.idempotencyKey) {
       const existingFile = await this.repository.file.findByIdempotencyKey(
         assetGroupId,
-        params.idempotencyKey
+        params.idempotencyKey,
       );
 
       if (existingFile) {
         this.logger.info(
           { fileId: existingFile.id, idempotencyKey: params.idempotencyKey },
-          "FileUploadMultipartScript: returning existing file by idempotency key"
+          "FileUploadMultipartScript: returning existing file by idempotency key",
         );
         return {
           file: { id: existingFile.id },
@@ -50,10 +47,7 @@ export class FileUploadMultipartScript extends BaseScript<
     const upload = await params.file;
     const { filename, mimetype, createReadStream } = upload;
 
-    this.logger.info(
-      { filename, mimetype },
-      "FileUploadMultipartScript: processing file"
-    );
+    this.logger.info({ filename, mimetype }, "FileUploadMultipartScript: processing file");
 
     // Read file stream into buffer
     const stream = createReadStream();
@@ -89,7 +83,7 @@ export class FileUploadMultipartScript extends BaseScript<
         width: metadata.width,
         height: metadata.height,
       },
-      "FileUploadMultipartScript: analyzed file"
+      "FileUploadMultipartScript: analyzed file",
     );
 
     if (!ALLOWED_UPLOAD_MIME_TYPES.has(metadata.mimeType)) {
@@ -116,20 +110,14 @@ export class FileUploadMultipartScript extends BaseScript<
     const bucket = await this.repository.bucket.getDefault(bucketName);
 
     // Upload to S3
-    const uploadResult = await s3Client.putObject(
-      bucketName,
-      objectKey,
-      buffer,
-      buffer.length,
-      {
-        "Content-Type": metadata.mimeType,
-        "x-amz-meta-original-name": encodeURIComponent(filename),
-      }
-    );
+    const uploadResult = await s3Client.putObject(bucketName, objectKey, buffer, buffer.length, {
+      "Content-Type": metadata.mimeType,
+      "x-amz-meta-original-name": encodeURIComponent(filename),
+    });
 
     this.logger.info(
       { objectKey, etag: uploadResult.etag, size: buffer.length },
-      "FileUploadMultipartScript: uploaded to S3"
+      "FileUploadMultipartScript: uploaded to S3",
     );
 
     // 5. Build public URL
@@ -164,10 +152,7 @@ export class FileUploadMultipartScript extends BaseScript<
     // 8. Create deletion state record
     await this.repository.fileDeletionState.create(file.id);
 
-    this.logger.info(
-      { fileId: file.id },
-      "FileUploadMultipartScript: completed successfully"
-    );
+    this.logger.info({ fileId: file.id }, "FileUploadMultipartScript: completed successfully");
 
     return {
       file: { id: file.id },
@@ -187,9 +172,7 @@ export class FileUploadMultipartScript extends BaseScript<
     }
     return {
       file: null,
-      userErrors: [
-        { message: "Failed to upload file", code: "INTERNAL_ERROR" },
-      ],
+      userErrors: [{ message: "Failed to upload file", code: "INTERNAL_ERROR" }],
     };
   }
 }

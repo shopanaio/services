@@ -74,28 +74,44 @@ type Checkout implements Node @key(fields: "id") {
   """
   id: ID!
 
-  """Canonical sales channel used by pricing and eligibility rules."""
+  """
+  Canonical sales channel used by pricing and eligibility rules.
+  """
   channelCode: String!
 
-  """Locale used by checkout calculation and customer-facing messages."""
+  """
+  Locale used by checkout calculation and customer-facing messages.
+  """
   localeCode: LocaleCode!
 
-  """Display and settlement currency of this checkout snapshot."""
+  """
+  Display and settlement currency of this checkout snapshot.
+  """
   currencyCode: CurrencyCode!
 
-  """Revision of the last complete checkout pipeline result."""
+  """
+  Revision of the last complete checkout pipeline result.
+  """
   resultRevision: String!
 
-  """Whether the committed checkout is ready according to validation."""
+  """
+  Whether the committed checkout is ready according to validation.
+  """
   valid: Boolean!
 
-  """Lifecycle state persisted by checkout, not inferred by the client."""
+  """
+  Lifecycle state persisted by checkout, not inferred by the client.
+  """
   status: CheckoutLifecycleStatus!
 
-  """Deadline after which an OPEN or READY checkout becomes EXPIRED."""
+  """
+  Deadline after which an OPEN or READY checkout becomes EXPIRED.
+  """
   expiresAt: DateTime!
 
-  """Ordered issues emitted by the checkout pipeline."""
+  """
+  Ordered issues emitted by the checkout pipeline.
+  """
   issues: [CheckoutIssue!]!
 
   """
@@ -123,7 +139,9 @@ type Checkout implements Node @key(fields: "id") {
   """
   customerNote: String
 
-  """Billing address used by payment providers and the resulting order."""
+  """
+  Billing address used by payment providers and the resulting order.
+  """
   billingAddress: CheckoutBillingAddress
 
   """
@@ -161,10 +179,14 @@ type Checkout implements Node @key(fields: "id") {
   """
   payment: CheckoutPayment!
 
-  """Loyalty points selected as tender after the final Pricing quote."""
+  """
+  Loyalty points selected as tender after the final Pricing quote.
+  """
   loyaltyRedemption: CheckoutLoyaltyRedemption
 
-  """Reward entitlement selected and validated for this checkout."""
+  """
+  Reward entitlement selected and validated for this checkout.
+  """
   loyaltyRewardEntitlementId: ID
 }
 
@@ -221,7 +243,9 @@ type CheckoutTag implements Node @key(fields: "id") {
 Input data for creating a new checkout.
 """
 input CheckoutCreateInput {
-  """Canonical sales channel used by pricing and eligibility rules."""
+  """
+  Canonical sales channel used by pricing and eligibility rules.
+  """
   channelCode: String!
   """
   Source of sales for the checkout.
@@ -269,23 +293,39 @@ type CheckoutIssue {
   retryable: Boolean!
 }
 
-"""A customer-facing checkout mutation error safe to display in storefronts."""
+"""
+A customer-facing checkout mutation error safe to display in storefronts.
+"""
 type CheckoutUserError implements DisplayableError {
-  """Path to the input field associated with the error, when available."""
+  """
+  Path to the input field associated with the error, when available.
+  """
   field: [String!]
-  """Human-readable error message."""
+  """
+  Human-readable error message.
+  """
   message: String!
-  """Stable machine-readable error code."""
+  """
+  Stable machine-readable error code.
+  """
   code: String!
-  """Whether retrying the same request may succeed without changing input."""
+  """
+  Whether retrying the same request may succeed without changing input.
+  """
   retryable: Boolean!
 }
 
-"""Uniform result returned by every mutation that changes a checkout."""
+"""
+Uniform result returned by every mutation that changes a checkout.
+"""
 type CheckoutMutationPayload {
-  """The committed checkout snapshot, or null when the mutation failed."""
+  """
+  The committed checkout snapshot, or null when the mutation failed.
+  """
   checkout: Checkout
-  """Validation, concurrency, and business errors produced by the operation."""
+  """
+  Validation, concurrency, and business errors produced by the operation.
+  """
   userErrors: [CheckoutUserError!]!
 }
 
@@ -318,30 +358,22 @@ type Mutation {
   """
   Updates the quantity of a specific checkout item.
   """
-  checkoutLinesUpdate(
-    input: CheckoutLinesUpdateInput!
-  ): CheckoutMutationPayload!
+  checkoutLinesUpdate(input: CheckoutLinesUpdateInput!): CheckoutMutationPayload!
 
   """
   Replaces one checkout line with another by merging quantities and removing the source line.
   """
-  checkoutLinesReplace(
-    input: CheckoutLinesReplaceInput!
-  ): CheckoutMutationPayload!
+  checkoutLinesReplace(input: CheckoutLinesReplaceInput!): CheckoutMutationPayload!
 
   """
   Removes a single item from the checkout.
   """
-  checkoutLinesDelete(
-    input: CheckoutLinesDeleteInput!
-  ): CheckoutMutationPayload!
+  checkoutLinesDelete(input: CheckoutLinesDeleteInput!): CheckoutMutationPayload!
 
   """
   Clears all items from a checkout.
   """
-  checkoutLinesClear(
-    input: CheckoutLinesClearInput!
-  ): CheckoutMutationPayload!
+  checkoutLinesClear(input: CheckoutLinesClearInput!): CheckoutMutationPayload!
 
   """
   Updates customer identification data associated with the checkout
@@ -354,35 +386,27 @@ type Mutation {
   """
   Updates the customer note attached to the checkout (delivery instructions, etc.).
   """
-  checkoutCustomerNoteUpdate(
-    input: CheckoutCustomerNoteUpdateInput!
-  ): CheckoutMutationPayload!
+  checkoutCustomerNoteUpdate(input: CheckoutCustomerNoteUpdateInput!): CheckoutMutationPayload!
 
   """
   Updates the language/locale of the checkout (affects localization and formatting).
   """
-  checkoutLanguageCodeUpdate(
-    input: CheckoutLanguageCodeUpdateInput!
-  ): CheckoutMutationPayload!
+  checkoutLanguageCodeUpdate(input: CheckoutLanguageCodeUpdateInput!): CheckoutMutationPayload!
 
   """
   Updates the display currency of the checkout (ISO 4217, e.g. "USD", "EUR").
   """
-  checkoutCurrencyCodeUpdate(
-    input: CheckoutCurrencyCodeUpdateInput!
-  ): CheckoutMutationPayload!
+  checkoutCurrencyCodeUpdate(input: CheckoutCurrencyCodeUpdateInput!): CheckoutMutationPayload!
 
-  """Sets, replaces, or clears the billing address for the checkout."""
-  checkoutBillingAddressUpdate(
-    input: CheckoutBillingAddressUpdateInput!
-  ): CheckoutMutationPayload!
+  """
+  Sets, replaces, or clears the billing address for the checkout.
+  """
+  checkoutBillingAddressUpdate(input: CheckoutBillingAddressUpdateInput!): CheckoutMutationPayload!
 
   """
   Adds one or more delivery addresses to the checkout (supports multi-shipping).
   """
-  checkoutDeliveryAddressesAdd(
-    input: CheckoutDeliveryAddressesAddInput!
-  ): CheckoutMutationPayload!
+  checkoutDeliveryAddressesAdd(input: CheckoutDeliveryAddressesAddInput!): CheckoutMutationPayload!
 
   """
   Updates previously added delivery addresses (e.g., correcting postal code or city).
@@ -401,9 +425,7 @@ type Mutation {
   """
   Selects or changes the delivery method for the entire checkout or specific address.
   """
-  checkoutDeliveryMethodUpdate(
-    input: CheckoutDeliveryMethodUpdateInput!
-  ): CheckoutMutationPayload!
+  checkoutDeliveryMethodUpdate(input: CheckoutDeliveryMethodUpdateInput!): CheckoutMutationPayload!
 
   """
   Adds recipients to delivery groups.
@@ -429,16 +451,12 @@ type Mutation {
   """
   Applies a promo code/coupon to the checkout.
   """
-  checkoutPromoCodeAdd(
-    input: CheckoutPromoCodeAddInput!
-  ): CheckoutMutationPayload!
+  checkoutPromoCodeAdd(input: CheckoutPromoCodeAddInput!): CheckoutMutationPayload!
 
   """
   Removes a previously applied promo code/coupon from the checkout.
   """
-  checkoutPromoCodeRemove(
-    input: CheckoutPromoCodeRemoveInput!
-  ): CheckoutMutationPayload!
+  checkoutPromoCodeRemove(input: CheckoutPromoCodeRemoveInput!): CheckoutMutationPayload!
 
   """
   Creates a new checkout tag.
@@ -458,16 +476,18 @@ type Mutation {
   """
   Selects or changes the payment method for the checkout.
   """
-  checkoutPaymentMethodUpdate(
-    input: CheckoutPaymentMethodUpdateInput!
-  ): CheckoutMutationPayload!
+  checkoutPaymentMethodUpdate(input: CheckoutPaymentMethodUpdateInput!): CheckoutMutationPayload!
 
-  """Selects loyalty points, an issued reward entitlement, or both."""
+  """
+  Selects loyalty points, an issued reward entitlement, or both.
+  """
   checkoutLoyaltyRedemptionUpdate(
     input: CheckoutLoyaltyRedemptionUpdateInput!
   ): CheckoutMutationPayload!
 
-  """Removes the loyalty redemption selection from this checkout."""
+  """
+  Removes the loyalty redemption selection from this checkout.
+  """
   checkoutLoyaltyRedemptionRemove(
     input: CheckoutLoyaltyRedemptionRemoveInput!
   ): CheckoutMutationPayload!
@@ -481,11 +501,15 @@ type Mutation {
 
 input CheckoutLoyaltyRedemptionUpdateInput {
   checkoutId: ID!
-  """Whether points should be redeemed in addition to a selected reward."""
+  """
+  Whether points should be redeemed in addition to a selected reward.
+  """
   redeemPoints: Boolean! = true
   requestedPoints: BigInt
   programId: ID
-  """Issued loyalty reward entitlement to reserve for this checkout."""
+  """
+  Issued loyalty reward entitlement to reserve for this checkout.
+  """
   rewardEntitlementId: ID
 }
 
@@ -501,8 +525,6 @@ input CheckoutCustomerIdentityUpdateInput {
   Identifier of the checkout on which the operation is performed.
   """
   checkoutId: ID!
-
-
 
   """
   Customer's email address. If specified, will be linked to the checkout.
@@ -545,8 +567,6 @@ input CheckoutCustomerNoteUpdateInput {
   """
   checkoutId: ID!
 
-
-
   """
   Text of the customer note (delivery instructions, etc.).
   Empty value clears the note.
@@ -563,8 +583,6 @@ input CheckoutLanguageCodeUpdateInput {
   """
   checkoutId: ID!
 
-
-
   """
   Language/locale code (ISO 639-1, BCP 47 if necessary), e.g. "en", "ru", "uk".
   Affects localization and formatting.
@@ -580,8 +598,6 @@ input CheckoutCurrencyCodeUpdateInput {
   Identifier of the checkout on which the operation is performed.
   """
   checkoutId: ID!
-
-
 
   """
   Currency code according to ISO 4217 (e.g., "USD", "EUR").
@@ -607,7 +623,9 @@ type CheckoutBillingAddress {
   countryCode: CountryCode
   zip: String
   phone: String
-  """Payment-provider-specific billing-address extension data."""
+  """
+  Payment-provider-specific billing-address extension data.
+  """
   data: JSON
   formatted: [String!]!
   formattedArea: String
@@ -628,14 +646,20 @@ input CheckoutBillingAddressInput {
   provinceCode: String
   zip: String
   phone: String
-  """Payment-provider-specific billing-address extension data."""
+  """
+  Payment-provider-specific billing-address extension data.
+  """
   data: JSON
 }
 
-"""Input for replacing or clearing the checkout billing address."""
+"""
+Input for replacing or clearing the checkout billing address.
+"""
 input CheckoutBillingAddressUpdateInput {
   checkoutId: ID!
-  """New address. Passing null clears the current billing address."""
+  """
+  New address. Passing null clears the current billing address.
+  """
   billingAddress: CheckoutBillingAddressInput
 }
 
@@ -647,8 +671,6 @@ input CheckoutPromoCodeAddInput {
   Identifier of the checkout on which the operation is performed.
   """
   checkoutId: ID!
-
-
 
   """
   Text code of the coupon/promo code.
@@ -664,8 +686,6 @@ input CheckoutPromoCodeRemoveInput {
   Identifier of the checkout on which the operation is performed.
   """
   checkoutId: ID!
-
-
 
   """
   Text code of the coupon/promo code to be cancelled.

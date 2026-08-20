@@ -26,10 +26,7 @@ import {
   CheckoutPlacementRepository,
   type CheckoutPlacementRecord,
 } from "../infrastructure/mutations/CheckoutPlacementRepository.js";
-import type {
-  PlaceOrderWorkflowInput,
-  PlaceOrderWorkflowResult,
-} from "./PlaceOrderWorkflow.js";
+import type { PlaceOrderWorkflowInput, PlaceOrderWorkflowResult } from "./PlaceOrderWorkflow.js";
 import type { MonitorPlacedPaymentInput } from "./MonitorPlacedPaymentWorkflow.js";
 import type { LoyaltyReservation } from "./PlaceOrderWorkflow.js";
 import { canonicalJsonSha256 } from "../application/pipeline/canonicalJson.js";
@@ -41,7 +38,14 @@ export interface CheckoutMaintenanceInput {
 @Injectable()
 export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
   CheckoutMaintenanceInput,
-  { reconciled: number; recovered: number; compensationsResolved: number; expired: number; anonymized: number; purged: number }
+  {
+    reconciled: number;
+    recovered: number;
+    compensationsResolved: number;
+    expired: number;
+    anonymized: number;
+    purged: number;
+  }
 > {
   constructor(
     @InjectBroker("checkout") broker: ServiceBroker,
@@ -159,17 +163,13 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     failedWorkflowId: string,
     placementId: string,
   ) {
-    return this.broker.startWorkflow(
-      "checkout.monitorPlacedPayment",
-      input,
-      {
-        source: "workflow",
-        organizationId: input.organizationId,
-        workflowId: failedWorkflowId,
-        stepId: "recoverPaymentMonitor",
-        callId: placementId,
-      },
-    );
+    return this.broker.startWorkflow("checkout.monitorPlacedPayment", input, {
+      source: "workflow",
+      organizationId: input.organizationId,
+      workflowId: failedWorkflowId,
+      stepId: "recoverPaymentMonitor",
+      callId: placementId,
+    });
   }
 
   @WorkflowStep()
@@ -243,7 +243,9 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
         ? "releaseLoyalty:PAYMENT_FAILED"
         : null;
     if (loyaltyOperation) {
-      const failure = placement.compensationFailures.find(({ operation }) => operation === loyaltyOperation);
+      const failure = placement.compensationFailures.find(
+        ({ operation }) => operation === loyaltyOperation,
+      );
       await this.releaseLoyalty(
         placement,
         request,
@@ -253,7 +255,9 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
       );
     }
     if (operations.has("releaseDelivery")) {
-      const failure = placement.compensationFailures.find(({ operation }) => operation === "releaseDelivery");
+      const failure = placement.compensationFailures.find(
+        ({ operation }) => operation === "releaseDelivery",
+      );
       await this.releaseDelivery(placement, failure?.recordedAt ?? placement.updatedAt);
     }
     if (operations.has("markOrderCreated")) {
@@ -266,7 +270,9 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     }
     if (operations.has("commitLoyaltyAt")) {
       if (!orderId) throw new Error("CHECKOUT_COMPENSATION_ORDER_ID_MISSING");
-      const failure = placement.compensationFailures.find(({ operation }) => operation === "commitLoyaltyAt");
+      const failure = placement.compensationFailures.find(
+        ({ operation }) => operation === "commitLoyaltyAt",
+      );
       await this.commitLoyalty(
         placement,
         assertLoyaltyReservation(placement.loyaltyReservation),
@@ -276,8 +282,15 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     }
     if (operations.has("publishOrderRewardEligible")) {
       if (!orderId) throw new Error("CHECKOUT_COMPENSATION_ORDER_ID_MISSING");
-      const failure = placement.compensationFailures.find(({ operation }) => operation === "publishOrderRewardEligible");
-      await this.publishRewardEligible(placement, request, orderId, failure?.recordedAt ?? placement.updatedAt);
+      const failure = placement.compensationFailures.find(
+        ({ operation }) => operation === "publishOrderRewardEligible",
+      );
+      await this.publishRewardEligible(
+        placement,
+        request,
+        orderId,
+        failure?.recordedAt ?? placement.updatedAt,
+      );
     }
   }
 
@@ -430,17 +443,21 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
 
 function isPlacementResult(value: unknown): value is PlaceOrderWorkflowResult {
   return Boolean(
-    value && typeof value === "object" &&
-    "placementId" in value && typeof value.placementId === "string" &&
-    "orderId" in value && typeof value.orderId === "string" &&
-    "status" in value && typeof value.status === "string",
+    value &&
+    typeof value === "object" &&
+    "placementId" in value &&
+    typeof value.placementId === "string" &&
+    "orderId" in value &&
+    typeof value.orderId === "string" &&
+    "status" in value &&
+    typeof value.status === "string",
   );
 }
 
 export function isTerminalWorkflowFailure(status: string | undefined): boolean {
-  return status === "ERROR" ||
-    status === "CANCELLED" ||
-    status === "MAX_RECOVERY_ATTEMPTS_EXCEEDED";
+  return (
+    status === "ERROR" || status === "CANCELLED" || status === "MAX_RECOVERY_ATTEMPTS_EXCEEDED"
+  );
 }
 
 export function placementRecoveryAction(
@@ -470,22 +487,13 @@ export function assertCompensationRecoveryData(
   ) {
     throw new Error("CHECKOUT_COMPENSATION_ORDER_ID_MISSING");
   }
-  if (
-    operations.has("commitLoyaltyAt") &&
-    placement.loyaltyReservation === null
-  ) {
+  if (operations.has("commitLoyaltyAt") && placement.loyaltyReservation === null) {
     throw new Error("CHECKOUT_LOYALTY_COMPENSATION_INPUT_INVALID");
   }
-  if (
-    operations.has("reverseDiscountUsage") &&
-    !placement.discountRedemptionIds.length
-  ) {
+  if (operations.has("reverseDiscountUsage") && !placement.discountRedemptionIds.length) {
     throw new Error("CHECKOUT_COMPENSATION_DISCOUNT_REDEMPTIONS_MISSING");
   }
-  if (
-    operations.has("releaseDiscountUsage") &&
-    !placement.discountReservationIds.length
-  ) {
+  if (operations.has("releaseDiscountUsage") && !placement.discountReservationIds.length) {
     throw new Error("CHECKOUT_COMPENSATION_DISCOUNT_RESERVATIONS_MISSING");
   }
   if (
@@ -498,14 +506,24 @@ export function assertCompensationRecoveryData(
 }
 
 function assertPlaceOrderInput(value: unknown): PlaceOrderWorkflowInput {
-  if (!value || typeof value !== "object" || !("checkoutId" in value) || !("idempotencyKey" in value)) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !("checkoutId" in value) ||
+    !("idempotencyKey" in value)
+  ) {
     throw new Error("CHECKOUT_PLACEMENT_RECOVERY_INPUT_INVALID");
   }
   return value as PlaceOrderWorkflowInput;
 }
 
 function assertPaymentMonitorInput(value: unknown): MonitorPlacedPaymentInput {
-  if (!value || typeof value !== "object" || !("placementId" in value) || !("sessionParams" in value)) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !("placementId" in value) ||
+    !("sessionParams" in value)
+  ) {
     throw new Error("CHECKOUT_PAYMENT_MONITOR_RECOVERY_INPUT_INVALID");
   }
   return value as MonitorPlacedPaymentInput;

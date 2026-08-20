@@ -3,10 +3,7 @@ export interface ListingVariantTerm {
   readonly valueKey: string;
 }
 
-export type ListingVariantTermGroupSource =
-  | "OPTION"
-  | "AVAILABILITY"
-  | "CRITERION";
+export type ListingVariantTermGroupSource = "OPTION" | "AVAILABILITY" | "CRITERION";
 
 export interface ListingVariantTermGroup {
   readonly groupKey: string;
@@ -28,4 +25,3 @@ export interface ListingVariantTermDefinition {
   readonly retainEmpty: boolean;
   readonly publicFilterKind?: string;
 }
-

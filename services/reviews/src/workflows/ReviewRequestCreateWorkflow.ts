@@ -28,9 +28,7 @@ export class ReviewRequestCreateWorkflow extends ReviewsMutationWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: ReviewRequestCreateWorkflowInput
-  ): Promise<ReviewRequestCreateWorkflowResult> {
+  async run(input: ReviewRequestCreateWorkflowInput): Promise<ReviewRequestCreateWorkflowResult> {
     const result = await this.stepCreate(input);
     if (result.reviewRequest && result.userErrors.length === 0) {
       await this.workflowEmitEvent(input, result.reviewRequest);
@@ -43,13 +41,13 @@ export class ReviewRequestCreateWorkflow extends ReviewsMutationWorkflow {
     return this.kernel.runScript(
       ReviewRequestCreateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
   private async workflowEmitEvent(
     input: ReviewRequestCreateWorkflowInput,
-    request: { id: string; customerId: string; productId: string }
+    request: { id: string; customerId: string; productId: string },
   ): Promise<void> {
     const payload: ReviewRequestCreatedEvent["payload"] = {
       reviewRequestId: request.id,
@@ -77,7 +75,7 @@ export class ReviewRequestCreateWorkflow extends ReviewsMutationWorkflow {
         workflowId: DBOS.workflowID!,
         stepId: "emitReviewRequestCreated",
         callId: request.id,
-      }
+      },
     );
   }
 }

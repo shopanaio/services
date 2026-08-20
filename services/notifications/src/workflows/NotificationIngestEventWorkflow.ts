@@ -1,15 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import {
-  InjectBroker,
-  ServiceBroker,
-  Workflow,
-} from "@shopana/shared-kernel";
+import { InjectBroker, ServiceBroker, Workflow } from "@shopana/shared-kernel";
 import { TemplateDefinitionRegistry } from "../infrastructure/templates/TemplateDefinitionRegistry.js";
 import { MaterializationWorkflowBase } from "./MaterializationWorkflowBase.js";
-import type {
-  IngestEventWorkflowInput,
-  MaterializationWorkflowResult,
-} from "./types.js";
+import type { IngestEventWorkflowInput, MaterializationWorkflowResult } from "./types.js";
 
 @Injectable()
 export class NotificationIngestEventWorkflow extends MaterializationWorkflowBase {
@@ -18,13 +11,8 @@ export class NotificationIngestEventWorkflow extends MaterializationWorkflowBase
   }
 
   @Workflow("ingestEvent", { idempotencyStrategy: "content" })
-  async run(
-    input: IngestEventWorkflowInput
-  ): Promise<MaterializationWorkflowResult> {
-    if (
-      input.registryVersion !==
-      TemplateDefinitionRegistry.VERSION
-    ) {
+  async run(input: IngestEventWorkflowInput): Promise<MaterializationWorkflowResult> {
+    if (input.registryVersion !== TemplateDefinitionRegistry.VERSION) {
       throw new Error("NOTIFICATION_REGISTRY_VERSION_MISMATCH");
     }
     const { event } = input;

@@ -1,9 +1,5 @@
 import { randomUUID } from "crypto";
-import {
-  BaseScript,
-  Transactional,
-  type UserError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
 import type { FacetValue } from "../../repositories/models/index.js";
 import type { FacetValueCreateParams, FacetValueResult } from "./dto/index.js";
@@ -14,14 +10,9 @@ import {
   normalizeFacetValueHandle,
 } from "./facetValueValidation.js";
 
-export class FacetValueCreateScript extends BaseScript<
-  FacetValueCreateParams,
-  FacetValueResult
-> {
+export class FacetValueCreateScript extends BaseScript<FacetValueCreateParams, FacetValueResult> {
   @Transactional()
-  protected async execute(
-    params: FacetValueCreateParams
-  ): Promise<FacetValueResult> {
+  protected async execute(params: FacetValueCreateParams): Promise<FacetValueResult> {
     const facet = await this.repository.facet.findById(params.facetId);
     if (!facet) {
       return {
@@ -76,13 +67,18 @@ export class FacetValueCreateScript extends BaseScript<
         };
       }
 
-      const existing = (await this.repository.facetValue.findAllByFacetId(facet.id))
-        .find((value) => value.kind === "source" && value.handle === handle);
+      const existing = (await this.repository.facetValue.findAllByFacetId(facet.id)).find(
+        (value) => value.kind === "source" && value.handle === handle,
+      );
       if (existing) {
         return {
           facetValue: undefined,
           userErrors: [
-            { message: "Source value handle already exists", field: ["handle"], code: "HANDLE_ALREADY_EXISTS" },
+            {
+              message: "Source value handle already exists",
+              field: ["handle"],
+              code: "HANDLE_ALREADY_EXISTS",
+            },
           ],
         };
       }
@@ -104,7 +100,11 @@ export class FacetValueCreateScript extends BaseScript<
           return {
             facetValue: undefined,
             userErrors: [
-              { message: "Facet value handle already exists", field: ["handle"], code: "HANDLE_ALREADY_EXISTS" },
+              {
+                message: "Facet value handle already exists",
+                field: ["handle"],
+                code: "HANDLE_ALREADY_EXISTS",
+              },
             ],
           };
         }
@@ -115,9 +115,7 @@ export class FacetValueCreateScript extends BaseScript<
     if (params.kind !== "group") {
       return {
         facetValue: undefined,
-        userErrors: [
-          { message: "Invalid facet value kind", field: ["kind"], code: "INVALID" },
-        ],
+        userErrors: [{ message: "Invalid facet value kind", field: ["kind"], code: "INVALID" }],
       };
     }
 
@@ -151,7 +149,7 @@ export class FacetValueCreateScript extends BaseScript<
 
     const rootConflict = await this.repository.facetValue.findRootByFacetIdAndHandle(
       facet.id,
-      handle
+      handle,
     );
     const conflictsWithAttachedRootSource =
       rootConflict?.kind === "source" && sourceValueIds.includes(rootConflict.id);
@@ -160,14 +158,16 @@ export class FacetValueCreateScript extends BaseScript<
       return {
         facetValue: undefined,
         userErrors: [
-          { message: "Facet value handle already exists", field: ["handle"], code: "HANDLE_ALREADY_EXISTS" },
+          {
+            message: "Facet value handle already exists",
+            field: ["handle"],
+            code: "HANDLE_ALREADY_EXISTS",
+          },
         ],
       };
     }
 
-    const initialHandle = conflictsWithAttachedRootSource
-      ? `tmp-${randomUUID()}`
-      : handle;
+    const initialHandle = conflictsWithAttachedRootSource ? `tmp-${randomUUID()}` : handle;
 
     try {
       const created = await this.repository.facetValue.createValue({
@@ -181,10 +181,7 @@ export class FacetValueCreateScript extends BaseScript<
       });
 
       if (sourceValueIds.length > 0) {
-        await this.repository.facetValue.attachSourcesToGroup(
-          created.id,
-          sourceValueIds
-        );
+        await this.repository.facetValue.attachSourcesToGroup(created.id, sourceValueIds);
       }
 
       const facetValue =
@@ -201,7 +198,11 @@ export class FacetValueCreateScript extends BaseScript<
         return {
           facetValue: undefined,
           userErrors: [
-            { message: "Facet value handle already exists", field: ["handle"], code: "HANDLE_ALREADY_EXISTS" },
+            {
+              message: "Facet value handle already exists",
+              field: ["handle"],
+              code: "HANDLE_ALREADY_EXISTS",
+            },
           ],
         };
       }
@@ -219,7 +220,7 @@ export class FacetValueCreateScript extends BaseScript<
   private validateSourceValues(
     facetId: string,
     requestedIds: readonly string[],
-    sourceValues: readonly FacetValue[]
+    sourceValues: readonly FacetValue[],
   ): UserError[] {
     const valuesById = new Map(sourceValues.map((value) => [value.id, value]));
     const errors: UserError[] = [];

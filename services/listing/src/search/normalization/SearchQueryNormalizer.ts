@@ -38,9 +38,7 @@ interface LexicalizationResult {
 }
 
 export class SearchQueryNormalizer {
-  constructor(
-    private readonly profiles = new SearchNormalizationProfileRegistry(),
-  ) {}
+  constructor(private readonly profiles = new SearchNormalizationProfileRegistry()) {}
 
   normalizeQuery(input: {
     storeId: string;
@@ -71,9 +69,7 @@ export class SearchQueryNormalizer {
         maximumLexemes: SEARCH_NORMALIZATION_LIMITS.queryLexemes,
       });
       if (lexical.units.length === 0) {
-        throw normalizationFailure(
-          "Search query has no searchable units after stopword filtering",
-        );
+        throw normalizationFailure("Search query has no searchable units after stopword filtering");
       }
 
       const hash = sha256(
@@ -91,10 +87,7 @@ export class SearchQueryNormalizer {
         hash,
         codePointLength,
       });
-      const identifierForm = normalizeIdentifierValue(
-        cleaned,
-        profile.metadata.locale,
-      );
+      const identifierForm = normalizeIdentifierValue(cleaned, profile.metadata.locale);
       const outputHash = sha256(
         lengthPrefixedTuple([
           hash,
@@ -145,46 +138,32 @@ export class SearchQueryNormalizer {
         assertNonEmpty(input.elementId, "elementId");
         assertTextField(input.field);
         const profile = this.profiles.resolve(input.locale);
-        const key = JSON.stringify([
-          profile.metadata.locale,
-          input.field,
-          input.elementId,
-        ]);
+        const key = JSON.stringify([profile.metadata.locale, input.field, input.elementId]);
         if (unique.has(key)) {
           throw normalizationFailure(`Duplicate search document element: ${key}`);
         }
         unique.add(key);
 
         const cleaned = cleanControls(input.sourceText);
-        if (
-          codePoints(cleaned) >
-          SEARCH_NORMALIZATION_LIMITS.documentSourceCodePoints
-        ) {
+        if (codePoints(cleaned) > SEARCH_NORMALIZATION_LIMITS.documentSourceCodePoints) {
           throw normalizationFailure(
             `Search document source exceeds ${SEARCH_NORMALIZATION_LIMITS.documentSourceCodePoints} Unicode code points`,
           );
         }
-        const normalizedText = localeCaseFold(
-          normalizeDisplay(cleaned),
-          profile.metadata.locale,
-        );
+        const normalizedText = localeCaseFold(normalizeDisplay(cleaned), profile.metadata.locale);
         const lexical = lexicalize({
           cleanedSource: cleaned,
           normalizedText,
           profile,
           maximumUnits: SEARCH_NORMALIZATION_LIMITS.documentLexemesPerElement,
-          maximumLexemes:
-            SEARCH_NORMALIZATION_LIMITS.documentLexemesPerElement,
+          maximumLexemes: SEARCH_NORMALIZATION_LIMITS.documentLexemesPerElement,
         });
         if (lexical.units.length === 0) {
           throw normalizationFailure(
             `Search document element ${input.elementId} has no searchable lexemes`,
           );
         }
-        if (
-          codePoints(lexical.preparedText) >
-          SEARCH_NORMALIZATION_LIMITS.preparedTextCodePoints
-        ) {
+        if (codePoints(lexical.preparedText) > SEARCH_NORMALIZATION_LIMITS.preparedTextCodePoints) {
           throw normalizationFailure(
             `Prepared search text exceeds ${SEARCH_NORMALIZATION_LIMITS.preparedTextCodePoints} Unicode code points`,
           );
@@ -242,10 +221,7 @@ export class SearchQueryNormalizer {
     if (!normalizedValue) {
       throw normalizationFailure("Search identifier is empty");
     }
-    if (
-      codePoints(normalizedValue) >
-      SEARCH_NORMALIZATION_LIMITS.identifierCodePoints
-    ) {
+    if (codePoints(normalizedValue) > SEARCH_NORMALIZATION_LIMITS.identifierCodePoints) {
       throw normalizationFailure(
         `Search identifier exceeds ${SEARCH_NORMALIZATION_LIMITS.identifierCodePoints} Unicode code points`,
       );
@@ -272,12 +248,9 @@ export class SearchQueryNormalizer {
       normalizedValue: result.normalizedQuery.lookupKey,
       preparedText: result.lexicalizedQuery.wholeQueryPrimaryText,
       lexemes: freezeArray(
-        result.lexicalizedQuery.originalUnits.flatMap(
-          (unit) => unit.ftsLexemes,
-        ),
+        result.lexicalizedQuery.originalUnits.flatMap((unit) => unit.ftsLexemes),
       ),
-      normalizationContractVersion:
-        result.lexicalizedQuery.normalizationContractVersion,
+      normalizationContractVersion: result.lexicalizedQuery.normalizationContractVersion,
       normalizationProfileRevision: result.lexicalizedQuery.profileRevision,
       outputHash: result.lexicalizedQuery.outputHash,
     });
@@ -295,13 +268,8 @@ function lexicalize(input: {
   maximumUnits: number;
   maximumLexemes: number;
 }): LexicalizationResult {
-  const surfaceWordSegments = segmentWords(
-    input.cleanedSource,
-    input.profile.metadata.locale,
-  );
-  const normalizedSegments = [
-    ...input.profile.segmenter.segment(input.normalizedText),
-  ];
+  const surfaceWordSegments = segmentWords(input.cleanedSource, input.profile.metadata.locale);
+  const normalizedSegments = [...input.profile.segmenter.segment(input.normalizedText)];
   const tokens: SearchTokenMetadata[] = [];
   const units: SearchLexicalUnit[] = [];
   const surfaceTerms: string[] = [];
@@ -340,17 +308,13 @@ function lexicalize(input: {
       continue;
     }
 
-    const lexeme = kind === "language"
-      ? input.profile.stem(normalizedToken)
-      : normalizedToken;
+    const lexeme = kind === "language" ? input.profile.stem(normalizedToken) : normalizedToken;
     if (!lexeme) {
       throw normalizationFailure(
         `Normalization silently removed non-stopword token: ${surfaceText}`,
       );
     }
-    if (
-      codePoints(lexeme) > SEARCH_NORMALIZATION_LIMITS.queryLexemeCodePoints
-    ) {
+    if (codePoints(lexeme) > SEARCH_NORMALIZATION_LIMITS.queryLexemeCodePoints) {
       throw normalizationFailure("Search lexeme exceeds the output limit");
     }
 
@@ -381,10 +345,7 @@ function lexicalize(input: {
     );
   }
 
-  const lexemeCount = units.reduce(
-    (count, unit) => count + unit.ftsLexemes.length,
-    0,
-  );
+  const lexemeCount = units.reduce((count, unit) => count + unit.ftsLexemes.length, 0);
   if (units.length > input.maximumUnits || lexemeCount > input.maximumLexemes) {
     throw normalizationFailure("Search normalization output exceeds limits");
   }
@@ -397,27 +358,22 @@ function lexicalize(input: {
   });
 }
 
-function classifyToken(
-  token: string,
-  locale: SearchLocale,
-): Exclude<SearchTokenKind, "stopword"> {
+function classifyToken(token: string, locale: SearchLocale): Exclude<SearchTokenKind, "stopword"> {
   const hasLatin = LATIN.test(token);
   const hasCyrillic = CYRILLIC.test(token);
   if (hasLatin && hasCyrillic) return "mixed_script";
   if (NUMBER.test(token) || !LETTER.test(token)) return "code";
 
   const language = new Intl.Locale(locale).language;
-  const expectedScript = language === "en"
-    ? hasLatin
-    : language === "ru" || language === "uk"
-      ? hasCyrillic
-      : false;
+  const expectedScript =
+    language === "en" ? hasLatin : language === "ru" || language === "uk" ? hasCyrillic : false;
   return expectedScript ? "language" : "foreign";
 }
 
 function segmentWords(text: string, locale: SearchLocale) {
-  return [...new Intl.Segmenter(locale, { granularity: "word" }).segment(text)]
-    .filter((segment) => segment.isWordLike);
+  return [...new Intl.Segmenter(locale, { granularity: "word" }).segment(text)].filter(
+    (segment) => segment.isWordLike,
+  );
 }
 
 function boundedTypoTerms(surfaceText: string): readonly string[] {
@@ -432,22 +388,14 @@ function cleanControls(value: string): string {
 }
 
 function normalizeDisplay(value: string): string {
-  return normalizePunctuation(value.normalize("NFKC"))
-    .trim()
-    .replace(UNICODE_WHITESPACE, " ");
+  return normalizePunctuation(value.normalize("NFKC")).trim().replace(UNICODE_WHITESPACE, " ");
 }
 
-function normalizeIdentifierValue(
-  value: string,
-  locale: SearchLocale,
-): string {
+function normalizeIdentifierValue(value: string, locale: SearchLocale): string {
   return localeCaseFold(normalizeDisplay(value), locale);
 }
 
-function localeCaseFold(
-  value: string,
-  locale: SearchLocale,
-): string {
+function localeCaseFold(value: string, locale: SearchLocale): string {
   return normalizePunctuation(value.toLocaleLowerCase(locale).normalize("NFKC"));
 }
 

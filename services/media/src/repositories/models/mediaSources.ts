@@ -1,11 +1,4 @@
-import {
-  integer,
-  primaryKey,
-  timestamp,
-  uniqueIndex,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { integer, primaryKey, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 import { mediaSchema } from "./schema";
 import { files } from "./files";
 
@@ -32,12 +25,8 @@ export const mediaSources = mediaSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.mediaFileId, table.sourceFileId] }),
-    uniqueIndex("idx_media_sources_order").on(
-      table.mediaFileId,
-      table.kind,
-      table.sortOrder
-    ),
-  ]
+    uniqueIndex("idx_media_sources_order").on(table.mediaFileId, table.kind, table.sortOrder),
+  ],
 );
 
 export type MediaSource = typeof mediaSources.$inferSelect;

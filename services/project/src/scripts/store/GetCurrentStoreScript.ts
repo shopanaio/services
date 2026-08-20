@@ -1,16 +1,11 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  GetCurrentStoreParams,
-  GetCurrentStoreResult,
-} from "./dto/GetCurrentStoreDto.js";
+import type { GetCurrentStoreParams, GetCurrentStoreResult } from "./dto/GetCurrentStoreDto.js";
 
 export class GetCurrentStoreScript extends BaseScript<
   GetCurrentStoreParams,
   GetCurrentStoreResult
 > {
-  protected async execute(
-    params: GetCurrentStoreParams
-  ): Promise<GetCurrentStoreResult> {
+  protected async execute(params: GetCurrentStoreParams): Promise<GetCurrentStoreResult> {
     const { name } = params;
 
     // 1. Find store by name (includes integrations)

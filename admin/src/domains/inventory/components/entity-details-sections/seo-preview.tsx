@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { Flex, Image, Tabs, Typography } from "antd";
-import { LuFacebook as FacebookOutlined, LuChrome as GoogleOutlined, LuImage as PictureOutlined } from "react-icons/lu";
+import {
+  LuFacebook as FacebookOutlined,
+  LuChrome as GoogleOutlined,
+  LuImage as PictureOutlined,
+} from "react-icons/lu";
 import { useSeoPreviewStyles } from "./seo-preview.styles";
 import type { EntitySeoPreviewData } from "./types";
 
@@ -15,23 +19,16 @@ interface SeoPreviewProps {
 const GooglePreview = ({ data }: SeoPreviewProps) => {
   const { styles } = useSeoPreviewStyles();
   const title = data.seoTitle || data.title || "Untitled Product";
-  const description =
-    data.seoDescription || "No description available for this product.";
+  const description = data.seoDescription || "No description available for this product.";
   const baseUrl = data.baseUrl || DEFAULT_BASE_URL;
   const resourcePath = data.resourcePath || `products › ${data.slug || "product"}`;
 
   return (
     <div className={styles.googlePreview} data-testid="seo-preview-google">
-      <Typography.Text
-        className={styles.googleTitle}
-        data-testid="seo-preview-google-title"
-      >
+      <Typography.Text className={styles.googleTitle} data-testid="seo-preview-google-title">
         {title}
       </Typography.Text>
-      <Typography.Text
-        className={styles.googleUrl}
-        data-testid="seo-preview-google-url"
-      >
+      <Typography.Text className={styles.googleUrl} data-testid="seo-preview-google-url">
         {baseUrl} › {resourcePath}
       </Typography.Text>
       <Typography.Text
@@ -47,17 +44,13 @@ const GooglePreview = ({ data }: SeoPreviewProps) => {
 const FacebookPreview = ({ data }: SeoPreviewProps) => {
   const { styles } = useSeoPreviewStyles();
   const title = data.ogTitle || data.seoTitle || data.title || "Untitled";
-  const description =
-    data.ogDescription || data.seoDescription || "No description available.";
+  const description = data.ogDescription || data.seoDescription || "No description available.";
   const baseUrl = data.baseUrl || DEFAULT_BASE_URL;
 
   return (
     <div className={styles.socialPreview} data-testid="seo-preview-facebook">
       {data.ogImage ? (
-        <div
-          className={styles.socialImageWrapper}
-          data-testid="seo-preview-facebook-image"
-        >
+        <div className={styles.socialImageWrapper} data-testid="seo-preview-facebook-image">
           <Image src={data.ogImage.url} alt="" preview={false} />
         </div>
       ) : (
@@ -69,16 +62,10 @@ const FacebookPreview = ({ data }: SeoPreviewProps) => {
         </div>
       )}
       <div className={styles.socialContent}>
-        <Typography.Text
-          className={styles.socialDomain}
-          data-testid="seo-preview-facebook-domain"
-        >
+        <Typography.Text className={styles.socialDomain} data-testid="seo-preview-facebook-domain">
           {baseUrl.replace(/^https?:\/\//, "")}
         </Typography.Text>
-        <Typography.Text
-          className={styles.socialTitle}
-          data-testid="seo-preview-facebook-title"
-        >
+        <Typography.Text className={styles.socialTitle} data-testid="seo-preview-facebook-title">
           {title}
         </Typography.Text>
         <Typography.Text

@@ -10,8 +10,7 @@
 services/listing/docs/draft/listing-price-facet-10k-performance-report.ru.md
 ```
 
-показывает, что `listing:page` занимает 2.5-4.5s на dataset из 10 000
-products:
+показывает, что `listing:page` занимает 2.5-4.5s на dataset из 10 000 products:
 
 ```text
 Run 1: 3951.989 ms
@@ -22,8 +21,8 @@ Run 5: 2527.365 ms
 ```
 
 Это не ожидаемое поведение. Для full listing response тяжелой веткой может быть
-`listing:facetCounts`, но page branch должен быть bounded by requested page
-size and overfetch, а не выполнять full aggregate-style computation.
+`listing:facetCounts`, но page branch должен быть bounded by requested page size and overfetch, а не
+выполнять full aggregate-style computation.
 
 ## Проблема
 
@@ -37,9 +36,8 @@ filters
 matches
 ```
 
-Для `price_asc` / `price_desc` при active option filters или active price filter
-page branch выбирает `matched_variant_price`, но физически делает тяжелый SQL
-path:
+Для `price_asc` / `price_desc` при active option filters или active price filter page branch
+выбирает `matched_variant_price`, но физически делает тяжелый SQL path:
 
 ```text
 variant_filters
@@ -53,14 +51,14 @@ variant_filters
 
 Главные проблемы:
 
-1. Page query строит `projected_variant_products`, хотя page collector может
-   проверять product membership напрямую по lightweight product base bitmap.
+1. Page query строит `projected_variant_products`, хотя page collector может проверять product
+   membership напрямую по lightweight product base bitmap.
 2. Page query создает full `variant_price_candidates` relation.
-3. `DISTINCT ON (product_id)` меняет leading order на `product_id`, вынуждая
-   PostgreSQL дедуплицировать весь candidate set до финального `LIMIT`.
+3. `DISTINCT ON (product_id)` меняет leading order на `product_id`, вынуждая PostgreSQL
+   дедуплицировать весь candidate set до финального `LIMIT`.
 4. `LIMIT first + 1` применяется слишком поздно.
-5. Page query использует `variant_listing_price_index`, хотя для hot path уже
-   существует typed ordered table:
+5. Page query использует `variant_listing_price_index`, хотя для hot path уже существует typed
+   ordered table:
 
 ```text
 listing.listing_posting_variant_price
@@ -152,8 +150,7 @@ active in-stock variant predicate
 
 ## Required filter model
 
-Page branch still needs normalized filters, but it must split them into cheap
-page-specific bitmaps.
+Page branch still needs normalized filters, but it must split them into cheap page-specific bitmaps.
 
 ### Product base bitmap
 
@@ -174,9 +171,8 @@ vendor filters
 product-level stock filter only when it is valid to apply at product level
 ```
 
-For matched variant price collector, product base must not include
-`projected_variant_products`. Variant predicates are checked against
-`variant_doc_id` directly.
+For matched variant price collector, product base must not include `projected_variant_products`.
+Variant predicates are checked against `variant_doc_id` directly.
 
 ### Variant match bitmap
 
@@ -195,12 +191,11 @@ Rules:
 - OR inside one option `facet_id`;
 - AND between different option `facet_id`;
 - price filter intersects on the same `variant_doc_id`;
-- out-of-stock variants do not participate in option filters, price filters or
-  matched variant price sort;
+- out-of-stock variants do not participate in option filters, price filters or matched variant price
+  sort;
 - missing posting row is empty bitmap, not no-op.
 
-If there are no variant-level predicates, matched variant price collector is not
-needed.
+If there are no variant-level predicates, matched variant price collector is not needed.
 
 ## Fast matched variant price algorithm
 
@@ -218,8 +213,8 @@ For `price_desc`:
 ORDER BY price_minor DESC, product_id ASC, variant_doc_id ASC
 ```
 
-The collector reads ordered chunks, checks membership, deduplicates products in
-application code, and stops once `first + 1` unique products are collected.
+The collector reads ordered chunks, checks membership, deduplicates products in application code,
+and stops once `first + 1` unique products are collected.
 
 Pseudo-flow:
 
@@ -257,8 +252,7 @@ while rows.length < first + 1 and chunkCount < maxChunks:
   progress = last row from chunk by physical ordered source
 ```
 
-This keeps `LIMIT` close to ordered index access and avoids full SQL
-deduplication.
+This keeps `LIMIT` close to ordered index access and avoids full SQL deduplication.
 
 ## SQL shape for chunk fetch
 
@@ -327,11 +321,11 @@ OR (
 )
 ```
 
-For `price_desc`, use `price_minor < cursor.priceMinor` for the first
-comparison and keep the same stable tie-breakers.
+For `price_desc`, use `price_minor < cursor.priceMinor` for the first comparison and keep the same
+stable tie-breakers.
 
-Internal chunk progress uses the last physical scanned row, not the last
-accepted product row. This avoids re-reading rejected rows between chunks.
+Internal chunk progress uses the last physical scanned row, not the last accepted product row. This
+avoids re-reading rejected rows between chunks.
 
 Client-visible cursor uses the accepted page row.
 
@@ -346,8 +340,8 @@ For a product with many matching variants:
 - tie-breaker is `variant_doc_id ASC`;
 - once a product is accepted, later variants of the same product are ignored.
 
-Because the physical scan is ordered by price first, the first accepted variant
-for each product is the correct matched variant for that page order.
+Because the physical scan is ordered by price first, the first accepted variant for each product is
+the correct matched variant for that page order.
 
 ## Safety guard and fallback
 
@@ -363,8 +357,8 @@ Default target after validation:
 chunked
 ```
 
-Fallback may use current SQL shape or anti-join reference shape, but fallback is
-not the performance target.
+Fallback may use current SQL shape or anti-join reference shape, but fallback is not the performance
+target.
 
 Guardrails:
 
@@ -383,8 +377,8 @@ maxChunks = 16
 maxScannedRows = 4096
 ```
 
-If max scan budget is exhausted before `first + 1`, return collected rows with a
-diagnostic metric. Do not silently switch to wrong semantics.
+If max scan budget is exhausted before `first + 1`, return collected rows with a diagnostic metric.
+Do not silently switch to wrong semantics.
 
 ## Metrics
 
@@ -417,13 +411,12 @@ listing:virtualFacets
 
 ## Refactoring strategy
 
-Нельзя чинить это как локальный SQL hack внутри `compilePageQuerySql`.
-Грамотный рефакторинг должен убрать саму причину: branch compilers сейчас
-получают не plan, а raw request, и поэтому переиспользуют слишком широкий
-`compileCoreListingSql(...)`.
+Нельзя чинить это как локальный SQL hack внутри `compilePageQuerySql`. Грамотный рефакторинг должен
+убрать саму причину: branch compilers сейчас получают не plan, а raw request, и поэтому
+переиспользуют слишком широкий `compileCoreListingSql(...)`.
 
-Нужен промежуточный `ListingQueryPlan`, который один раз классифицирует request
-и явно описывает, какие logical bitmaps нужны каждой ветке.
+Нужен промежуточный `ListingQueryPlan`, который один раз классифицирует request и явно описывает,
+какие logical bitmaps нужны каждой ветке.
 
 ```ts
 interface ListingQueryPlan {
@@ -441,8 +434,8 @@ interface ListingQueryPlan {
 }
 ```
 
-Branch compiler must not decide dependencies by importing a shared CTE graph.
-It must receive a branch plan with a minimal dependency set.
+Branch compiler must not decide dependencies by importing a shared CTE graph. It must receive a
+branch plan with a minimal dependency set.
 
 ## Branch dependency contracts
 
@@ -510,9 +503,8 @@ price range
 in-stock aggregation
 ```
 
-Metadata should describe available storefront facets for the current scope.
-Counts decide what is non-zero under active filters. Metadata query should not
-scan active-filter matches.
+Metadata should describe available storefront facets for the current scope. Counts decide what is
+non-zero under active filters. Metadata query should not scan active-filter matches.
 
 ### Virtual facets branch
 
@@ -562,8 +554,7 @@ Acceptance:
 
 ### Step 2. Replace compileCoreListingSql with explicit fragments
 
-Keep low-level fragment builders, but remove `compileCoreListingSql(...)` from
-branch compilers.
+Keep low-level fragment builders, but remove `compileCoreListingSql(...)` from branch compilers.
 
 New fragments should be composable by need:
 
@@ -597,8 +588,8 @@ MatchedVariantPricePageCollector
 RelevancePageCollector
 ```
 
-`compilePageQuerySql(...)` should stop being one SQL with all collectors unioned
-together. Only the selected collector should compile and execute.
+`compilePageQuerySql(...)` should stop being one SQL with all collectors unioned together. Only the
+selected collector should compile and execute.
 
 Acceptance:
 
@@ -614,8 +605,7 @@ Add compiler for one matched price chunk:
 compileMatchedVariantPricePageChunkSql(plan, progress, chunkSize)
 ```
 
-It must read `listing.listing_posting_variant_price`, not
-`variant_listing_price_index`.
+It must read `listing.listing_posting_variant_price`, not `variant_listing_price_index`.
 
 Acceptance:
 
@@ -635,8 +625,8 @@ fullProductMatches
 rb_cardinality(fullProductMatches)
 ```
 
-It may still be heavy for broad variant filters, but it must not inherit page,
-metadata, virtual facet or count CTEs.
+It may still be heavy for broad variant filters, but it must not inherit page, metadata, virtual
+facet or count CTEs.
 
 Acceptance:
 
@@ -656,8 +646,7 @@ scope variants -> option facet candidate values
 catalog metadata join
 ```
 
-Do not include active option/price filters, full matches or projected active
-variant products.
+Do not include active option/price filters, full matches or projected active variant products.
 
 Acceptance:
 
@@ -686,8 +675,8 @@ Acceptance:
 - no full `compileCoreListingSql`;
 - no page collector CTEs;
 - no facet metadata CTEs;
-- no scan of `variant_listing_index` for projection when projection blocks can
-  answer variant->product.
+- no scan of `variant_listing_index` for projection when projection blocks can answer
+  variant->product.
 
 ### Step 8. Cursor parity
 
@@ -763,7 +752,6 @@ After refactor:
 
 - `listing:page` no longer behaves like an aggregate query;
 - `listing:facetCounts` remains the expected heavy branch;
-- page latency becomes proportional to page size, selectivity and bounded
-  overfetch;
+- page latency becomes proportional to page size, selectivity and bounded overfetch;
 - matched price sort uses the ordered physical index designed for this use case;
 - aggregate correctness remains based on full listing scope.

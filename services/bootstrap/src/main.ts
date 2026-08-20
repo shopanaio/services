@@ -1,13 +1,13 @@
-import 'dotenv/config';
-import 'reflect-metadata';
+import "dotenv/config";
+import "reflect-metadata";
 
-import { NestFactory } from '@nestjs/core';
-import { Logger } from '@nestjs/common';
-import { BootstrapLogger } from '@shopana/shared-kernel';
-import { BootstrapModule, BootstrapModuleOptions } from './bootstrap.module';
-import { getConfig } from '@shopana/shared-service-config';
+import { NestFactory } from "@nestjs/core";
+import { Logger } from "@nestjs/common";
+import { BootstrapLogger } from "@shopana/shared-kernel";
+import { BootstrapModule, BootstrapModuleOptions } from "./bootstrap.module";
+import { getConfig } from "@shopana/shared-service-config";
 
-const logger = new Logger('Bootstrap');
+const logger = new Logger("Bootstrap");
 const PROCESS_LISTENER_HEADROOM = 20;
 
 async function bootstrap() {
@@ -18,16 +18,13 @@ async function bootstrap() {
   // The modular monolith hosts multiple HTTP and GraphQL runtimes in one
   // process. Each runtime may install bounded SIGINT/SIGTERM cleanup hooks.
   process.setMaxListeners(
-    Math.max(
-      process.getMaxListeners(),
-      services.length + PROCESS_LISTENER_HEADROOM,
-    ),
+    Math.max(process.getMaxListeners(), services.length + PROCESS_LISTENER_HEADROOM),
   );
 
   // Get database config from first service that has it
   const dbConfig = Object.values(config.services).find((s) => s.db)?.db;
   if (!dbConfig) {
-    throw new Error('No database configuration found in any service');
+    throw new Error("No database configuration found in any service");
   }
 
   // Build bootstrap options
@@ -55,37 +52,37 @@ async function bootstrap() {
     );
     bootstrapOptions.workflows = {
       databaseUrl: workflowsDbUrl,
-      name: config.workflows?.app_name ?? 'shopana',
+      name: config.workflows?.app_name ?? "shopana",
       schema: config.workflows?.schema,
       queues: [
         {
-          name: 'listing_index_actions',
+          name: "listing_index_actions",
           partitionQueue: true,
           concurrency: listingIndexWorkerConcurrency,
           workerConcurrency: listingIndexWorkerConcurrency,
-          onConflict: 'update_if_latest_version',
+          onConflict: "update_if_latest_version",
         },
         {
-          name: 'recommendation_snapshot_build',
+          name: "recommendation_snapshot_build",
           partitionQueue: true,
           concurrency: recommendationSnapshotWorkerConcurrency,
           workerConcurrency: recommendationSnapshotWorkerConcurrency,
-          onConflict: 'update_if_latest_version',
+          onConflict: "update_if_latest_version",
         },
         {
-          name: 'recommendation_order_fact_ingestion',
+          name: "recommendation_order_fact_ingestion",
           partitionQueue: true,
           concurrency: recommendationIngestionWorkerConcurrency,
           workerConcurrency: recommendationIngestionWorkerConcurrency,
         },
         {
-          name: 'customer_statistics_projection',
+          name: "customer_statistics_projection",
           partitionQueue: true,
           concurrency: 4,
           workerConcurrency: 4,
         },
         {
-          name: 'customer_data_request_processing',
+          name: "customer_data_request_processing",
           concurrency: 2,
           workerConcurrency: 2,
         },
@@ -113,10 +110,7 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
-  logger.error(
-    'Failed to start bootstrap:',
-    error instanceof Error ? error.stack : String(error),
-  );
+  logger.error("Failed to start bootstrap:", error instanceof Error ? error.stack : String(error));
   process.exit(1);
 });
 

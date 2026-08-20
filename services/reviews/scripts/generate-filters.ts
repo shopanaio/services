@@ -208,7 +208,7 @@ function generateTypes(
   name: string,
   fieldTypes: Record<string, GraphQLFieldType>,
   whereExcludeFields: string[],
-  orderExcludeFields = whereExcludeFields
+  orderExcludeFields = whereExcludeFields,
 ): string {
   const common = { includeDescriptions: true, fieldTypes };
   return [
@@ -233,26 +233,13 @@ ${[
     "ReviewContent",
     contentFields,
     ["storeId", "officialChildCount", "acceptedChildCount"],
-    [
-      "storeId",
-      "body",
-      "authorCustomerId",
-      "officialChildCount",
-      "acceptedChildCount",
-    ]
+    ["storeId", "body", "authorCustomerId", "officialChildCount", "acceptedChildCount"],
   ),
   generateTypes(
     reviewRelayQuery,
     "Review",
     reviewFields,
-    [
-      "storeId",
-      "kind",
-      "redactedAt",
-      "childCount",
-      "officialChildCount",
-      "acceptedChildCount",
-    ],
+    ["storeId", "kind", "redactedAt", "childCount", "officialChildCount", "acceptedChildCount"],
     [
       "storeId",
       "kind",
@@ -264,65 +251,54 @@ ${[
       "childCount",
       "officialChildCount",
       "acceptedChildCount",
-    ]
+    ],
   ),
   generateTypes(
     reviewReplyRelayQuery,
     "ReviewReply",
     reviewReplyFields,
     ["storeId"],
-    ["storeId", "body", "authorCustomerId"]
+    ["storeId", "body", "authorCustomerId"],
   ),
   generateTypes(
     productQuestionRelayQuery,
     "ProductQuestion",
     productQuestionFields,
     ["storeId"],
-    ["storeId", "body", "authorCustomerId"]
+    ["storeId", "body", "authorCustomerId"],
   ),
   generateTypes(
     productQuestionAnswerRelayQuery,
     "ProductQuestionAnswer",
     productQuestionAnswerFields,
     ["storeId"],
-    ["storeId", "body", "authorCustomerId"]
+    ["storeId", "body", "authorCustomerId"],
   ),
-  generateTypes(
-    reviewRequestRelayQuery,
-    "ReviewRequest",
-    reviewRequestFields,
-    ["storeId", "idempotencyKey", "accessTokenHash", "lastError"]
-  ),
-  generateTypes(
-    ratingCriterionRelayQuery,
-    "ReviewRatingCriterion",
-    ratingCriterionFields,
-    ["storeId", "defaultDescription"]
-  ),
-  generateTypes(
-    contentReportRelayQuery,
-    "ReviewContentReport",
-    contentReportFields,
-    ["storeId", "reporterKey", "details", "resolutionNote"]
-  ),
-  generateTypes(
-    moderationCaseRelayQuery,
-    "ReviewModerationCase",
-    moderationCaseFields,
-    ["storeId", "resolutionNote"]
-  ),
+  generateTypes(reviewRequestRelayQuery, "ReviewRequest", reviewRequestFields, [
+    "storeId",
+    "idempotencyKey",
+    "accessTokenHash",
+    "lastError",
+  ]),
+  generateTypes(ratingCriterionRelayQuery, "ReviewRatingCriterion", ratingCriterionFields, [
+    "storeId",
+    "defaultDescription",
+  ]),
+  generateTypes(contentReportRelayQuery, "ReviewContentReport", contentReportFields, [
+    "storeId",
+    "reporterKey",
+    "details",
+    "resolutionNote",
+  ]),
+  generateTypes(moderationCaseRelayQuery, "ReviewModerationCase", moderationCaseFields, [
+    "storeId",
+    "resolutionNote",
+  ]),
   generateTypes(
     contentExternalReferenceRelayQuery,
     "ReviewContentExternalReference",
     externalReferenceFields,
-    [
-      "storeId",
-      "externalUrl",
-      "etag",
-      "contentChecksum",
-      "lastError",
-      "metadata",
-    ]
+    ["storeId", "externalUrl", "etag", "contentChecksum", "lastError", "metadata"],
   ),
 ].join("\n\n")}
 `;

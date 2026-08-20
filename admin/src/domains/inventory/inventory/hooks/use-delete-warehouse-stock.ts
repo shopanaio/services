@@ -2,10 +2,7 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
-import type {
-  ApiGenericUserError,
-  ApiWarehouseStockDeleteInput,
-} from "@/graphql/types";
+import type { ApiGenericUserError, ApiWarehouseStockDeleteInput } from "@/graphql/types";
 import { WAREHOUSE_STOCK_DELETE_MUTATION } from "../graphql";
 import type {
   WarehouseStockDeleteMutationData,
@@ -40,15 +37,12 @@ export function useDeleteWarehouseStock(): UseDeleteWarehouseStockReturn {
   >(WAREHOUSE_STOCK_DELETE_MUTATION);
 
   const deleteWarehouseStock = useCallback(
-    async (
-      input: ApiWarehouseStockDeleteInput,
-    ): Promise<DeleteWarehouseStockResult> => {
+    async (input: ApiWarehouseStockDeleteInput): Promise<DeleteWarehouseStockResult> => {
       try {
         const result = await deleteWarehouseStockMutation({
           variables: { input },
         });
-        const payload =
-          result.data?.inventoryMutation.warehouseStockDelete ?? null;
+        const payload = result.data?.inventoryMutation.warehouseStockDelete ?? null;
 
         return {
           deletedWarehouseStockIds: payload?.deletedWarehouseStockIds ?? [],

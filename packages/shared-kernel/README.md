@@ -33,7 +33,7 @@ const MyService: ServiceSchema = {
   async started() {
     const moleculerLogger = new MoleculerLogger(this.logger);
     this.kernel = new Kernel(this.broker, moleculerLogger);
-  }
+  },
 };
 ```
 
@@ -52,29 +52,31 @@ export interface GetDataResult {
   warnings?: Array<{ code: string; message: string }>;
 }
 
-export const getData: TransactionScript<GetDataParams, GetDataResult> =
-  async (params, services) => {
-    const { broker, logger } = services;
+export const getData: TransactionScript<GetDataParams, GetDataResult> = async (
+  params,
+  services,
+) => {
+  const { broker, logger } = services;
 
-    try {
-      const result = await broker.call("apps.executeCapability", {
-        storeId: params.storeId,
-        capability: "mydomain",
-        operation: "list",
-        input: {},
-      });
+  try {
+    const result = await broker.call("apps.executeCapability", {
+      storeId: params.storeId,
+      capability: "mydomain",
+      operation: "list",
+      input: {},
+    });
 
-      return {
-        items: result.data || [],
-      };
-    } catch (error) {
-      logger.error({ error }, "getData failed");
-      return {
-        items: [],
-        warnings: [{ code: "INTERNAL_ERROR", message: "Internal server error" }],
-      };
-    }
-  };
+    return {
+      items: result.data || [],
+    };
+  } catch (error) {
+    logger.error({ error }, "getData failed");
+    return {
+      items: [],
+      warnings: [{ code: "INTERNAL_ERROR", message: "Internal server error" }],
+    };
+  }
+};
 ```
 
 ### 3. Executing Scripts via Kernel
@@ -98,13 +100,15 @@ Kernel provides scripts with two main services:
 
 ### Transaction Script Pattern
 
-Transaction Script is a business logic organization pattern where each operation is represented by a separate function (script). A script:
+Transaction Script is a business logic organization pattern where each operation is represented by a
+separate function (script). A script:
 
 1. Receives parameters and services from Kernel
 2. Executes business logic
 3. Returns the result
 
 Benefits:
+
 - Simplicity and clarity
 - Easy testing
 - Minimal coupling
@@ -165,6 +169,7 @@ class KernelError extends Error {
 ## Usage Examples
 
 See services:
+
 - `services/payments` - payment methods handling
 - `services/delivery` - delivery methods handling
 - `services/pricing` - discounts and pricing handling

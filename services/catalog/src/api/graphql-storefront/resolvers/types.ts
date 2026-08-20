@@ -1,7 +1,4 @@
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import { GraphQLError, type GraphQLResolveInfo } from "graphql";
 import type { ServiceContext } from "../../../context/types.js";
@@ -27,28 +24,27 @@ import {
   CustomerProductComparisonsResolver,
   ProductComparisonColumnConnectionResolver,
 } from "../../../resolvers/storefront/ProductComparisonResolvers.js";
-import type {
-  Resolvers,
-  ResolversTypes,
-} from "../../../resolvers/storefront/generated/types.js";
+import type { Resolvers, ResolversTypes } from "../../../resolvers/storefront/generated/types.js";
 
 export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
   Node: {
     __resolveType: (value) => {
       const typeName = (value as { __typename?: unknown }).__typename;
-      if (typeName === "Product"
-        || typeName === "ProductVariant"
-        || typeName === "Category"
-        || typeName === "Collection"
-        || typeName === "ProductOption"
-        || typeName === "ProductOptionCategory"
-        || typeName === "ProductOptionValue"
-        || typeName === "ProductFeature"
-        || typeName === "ProductFeatureGroup"
-        || typeName === "ProductFeatureValue"
-        || typeName === "Vendor"
-        || typeName === "Tag"
-        || typeName === "InventoryItem") {
+      if (
+        typeName === "Product" ||
+        typeName === "ProductVariant" ||
+        typeName === "Category" ||
+        typeName === "Collection" ||
+        typeName === "ProductOption" ||
+        typeName === "ProductOptionCategory" ||
+        typeName === "ProductOptionValue" ||
+        typeName === "ProductFeature" ||
+        typeName === "ProductFeatureGroup" ||
+        typeName === "ProductFeatureValue" ||
+        typeName === "Vendor" ||
+        typeName === "Tag" ||
+        typeName === "InventoryItem"
+      ) {
         return typeName;
       }
       if (value instanceof ProductResolver) return "Product";
@@ -56,15 +52,11 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
       if (value instanceof CategoryResolver) return "Category";
       if (value instanceof CollectionResolver) return "Collection";
       if (value instanceof ProductOptionResolver) return "ProductOption";
-      if (value instanceof ProductOptionCategoryResolver)
-        return "ProductOptionCategory";
-      if (value instanceof ProductOptionValueResolver)
-        return "ProductOptionValue";
+      if (value instanceof ProductOptionCategoryResolver) return "ProductOptionCategory";
+      if (value instanceof ProductOptionValueResolver) return "ProductOptionValue";
       if (value instanceof ProductFeatureResolver) return "ProductFeature";
-      if (value instanceof ProductFeatureGroupResolver)
-        return "ProductFeatureGroup";
-      if (value instanceof ProductFeatureValueResolver)
-        return "ProductFeatureValue";
+      if (value instanceof ProductFeatureGroupResolver) return "ProductFeatureGroup";
+      if (value instanceof ProductFeatureValueResolver) return "ProductFeatureValue";
       if (value instanceof VendorResolver) return "Vendor";
       if (value instanceof TagResolver) return "Tag";
       if (value instanceof InventoryItemResolver) return "InventoryItem";
@@ -74,10 +66,8 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
 
   Connection: {
     __resolveType: (value) => {
-      if (value instanceof CategoryConnectionResolver)
-        return "CategoryConnection";
-      if (value instanceof ProductVariantConnectionResolver)
-        return "ProductVariantConnection";
+      if (value instanceof CategoryConnectionResolver) return "CategoryConnection";
+      if (value instanceof ProductVariantConnectionResolver) return "ProductVariantConnection";
       if (value instanceof MediaConnectionResolver) {
         switch (value.$props.ownerType) {
           case "product":
@@ -155,26 +145,11 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
     ProductOptionCategoryResolver,
     GlobalIdEntity.OptionCategory,
   ),
-  ProductOptionValue: referenceResolver(
-    ProductOptionValueResolver,
-    GlobalIdEntity.OptionValue,
-  ),
-  ProductFeature: referenceResolver(
-    ProductFeatureResolver,
-    GlobalIdEntity.Feature,
-  ),
-  ProductFeatureGroup: referenceResolver(
-    ProductFeatureGroupResolver,
-    GlobalIdEntity.Feature,
-  ),
-  ProductFeatureValue: referenceResolver(
-    ProductFeatureValueResolver,
-    GlobalIdEntity.FeatureValue,
-  ),
-  InventoryItem: referenceResolver(
-    InventoryItemResolver,
-    GlobalIdEntity.InventoryItem,
-  ),
+  ProductOptionValue: referenceResolver(ProductOptionValueResolver, GlobalIdEntity.OptionValue),
+  ProductFeature: referenceResolver(ProductFeatureResolver, GlobalIdEntity.Feature),
+  ProductFeatureGroup: referenceResolver(ProductFeatureGroupResolver, GlobalIdEntity.Feature),
+  ProductFeatureValue: referenceResolver(ProductFeatureValueResolver, GlobalIdEntity.FeatureValue),
+  InventoryItem: referenceResolver(InventoryItemResolver, GlobalIdEntity.InventoryItem),
 };
 
 function decodeCustomerReference(id: string): string | null {
@@ -187,11 +162,7 @@ function decodeCustomerReference(id: string): string | null {
 
 function referenceResolver(
   ResolverClass: {
-    load(
-      value: string,
-      info: ReturnType<typeof parseGraphqlInfo>,
-      ctx: ServiceContext,
-    ): any;
+    load(value: string, info: ReturnType<typeof parseGraphqlInfo>, ctx: ServiceContext): any;
   },
   entity: GlobalIdEntity,
 ) {
@@ -201,10 +172,6 @@ function referenceResolver(
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
     ) =>
-      ResolverClass.load(
-        decodeGlobalIdByType(reference.id, entity),
-        parseGraphqlInfo(info),
-        ctx,
-      ),
+      ResolverClass.load(decodeGlobalIdByType(reference.id, entity), parseGraphqlInfo(info), ctx),
   };
 }

@@ -20,8 +20,7 @@ export class DiscountUpdateMinimumRequirementScript extends BaseDiscountUpdateSc
     if (aggregate.discount.kind === "BUY_X_GET_Y" && input != null) {
       return sectionErrors([
         {
-          message:
-            "Buy X Get Y discounts use the requirement defined by their rule",
+          message: "Buy X Get Y discounts use the requirement defined by their rule",
           code: "MINIMUM_REQUIREMENT_NOT_ALLOWED",
           field: ["requirement"],
         },
@@ -30,10 +29,7 @@ export class DiscountUpdateMinimumRequirementScript extends BaseDiscountUpdateSc
 
     const mapped = mapMinimumRequirement(input);
     if (mapped.errors.length > 0) return sectionErrors(mapped.errors);
-    await this.repository.discount.replaceMinimumRequirement(
-      aggregate.discount.id,
-      mapped.value,
-    );
+    await this.repository.discount.replaceMinimumRequirement(aggregate.discount.id, mapped.value);
     return sectionSuccess();
   }
 }
@@ -49,10 +45,7 @@ function mapMinimumRequirement(
     errors,
   );
   const quantity = input.quantity ?? null;
-  if (
-    input.requirementType === "SUBTOTAL" &&
-    (subtotalMinor === null || quantity !== null)
-  ) {
+  if (input.requirementType === "SUBTOTAL" && (subtotalMinor === null || quantity !== null)) {
     errors.push({
       message: "Subtotal requirements require subtotalMinor and no quantity",
       code: "INVALID_MINIMUM_REQUIREMENT",
@@ -61,14 +54,10 @@ function mapMinimumRequirement(
   }
   if (
     input.requirementType === "QUANTITY" &&
-    (!quantity ||
-      !Number.isSafeInteger(quantity) ||
-      quantity < 1 ||
-      subtotalMinor !== null)
+    (!quantity || !Number.isSafeInteger(quantity) || quantity < 1 || subtotalMinor !== null)
   ) {
     errors.push({
-      message:
-        "Quantity requirements require a positive quantity and no subtotal",
+      message: "Quantity requirements require a positive quantity and no subtotal",
       code: "INVALID_MINIMUM_REQUIREMENT",
       field: ["requirement"],
     });

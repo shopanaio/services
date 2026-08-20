@@ -1,7 +1,4 @@
-import type {
-  CanonicalCollectionRule,
-  PreviewCollectionRulesResult,
-} from "@shopana/broker-types";
+import type { CanonicalCollectionRule, PreviewCollectionRulesResult } from "@shopana/broker-types";
 import { sql } from "drizzle-orm";
 import { BaseScript, Transactional } from "../kernel/BaseScript.js";
 
@@ -47,8 +44,7 @@ export class ListingPreviewCollectionScript extends BaseScript<
     return {
       ok: false,
       code:
-        error instanceof Error &&
-        /statement timeout|canceling statement/i.test(error.message)
+        error instanceof Error && /statement timeout|canceling statement/i.test(error.message)
           ? "COLLECTION_PREVIEW_TIMEOUT"
           : "COLLECTION_PREVIEW_UNAVAILABLE",
       message: "Collection rule preview is temporarily unavailable",

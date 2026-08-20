@@ -42,7 +42,10 @@ export class PublishPaymentEventsWorkflow extends BrokerWorkflows<
             correlationId: event.correlationId,
           },
           subject: {
-            type: event.eventType === "payment.dispute.changed" ? "paymentDispute" : "paymentCollection",
+            type:
+              event.eventType === "payment.dispute.changed"
+                ? "paymentDispute"
+                : "paymentCollection",
             id: String(
               event.eventType === "payment.dispute.changed"
                 ? event.payload.paymentDisputeId

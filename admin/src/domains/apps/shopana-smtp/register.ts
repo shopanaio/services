@@ -1,8 +1,5 @@
 import { registerLocalAdminApp } from "../runtime/local-app-registry";
-import {
-  CREATE_SMTP_CONNECTION_MODAL_ID,
-  SMTP_DISCONNECT_MODAL_ID,
-} from "./src/modals";
+import { CREATE_SMTP_CONNECTION_MODAL_ID, SMTP_DISCONNECT_MODAL_ID } from "./src/modals";
 
 registerLocalAdminApp(
   {

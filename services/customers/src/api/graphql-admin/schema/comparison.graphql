@@ -13,7 +13,9 @@ type CustomerComparison implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""One concrete Catalog variant stored as a comparison column."""
+"""
+One concrete Catalog variant stored as a comparison column.
+"""
 type CustomerComparisonItem implements Node @key(fields: "id") {
   id: ID!
   comparison: CustomerComparison!
@@ -26,12 +28,16 @@ type CustomerComparisonItem implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""Catalog Product reference. Customers never joins the Catalog database."""
+"""
+Catalog Product reference. Customers never joins the Catalog database.
+"""
 type Product implements Node @key(fields: "id", resolvable: false) {
   id: ID!
 }
 
-"""Catalog Variant reference. Customers never joins the Catalog database."""
+"""
+Catalog Variant reference. Customers never joins the Catalog database.
+"""
 type Variant implements Node @key(fields: "id", resolvable: false) {
   id: ID!
 }

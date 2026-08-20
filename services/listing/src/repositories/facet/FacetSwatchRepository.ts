@@ -1,10 +1,6 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  facetSwatch,
-  type FacetSwatch,
-  type NewFacetSwatch,
-} from "../models/index.js";
+import { facetSwatch, type FacetSwatch, type NewFacetSwatch } from "../models/index.js";
 
 export class FacetSwatchRepository extends BaseRepository {
   async findById(id: string): Promise<FacetSwatch | null> {
@@ -29,9 +25,7 @@ export class FacetSwatchRepository extends BaseRepository {
     return this.connection
       .select()
       .from(facetSwatch)
-      .where(
-        and(eq(facetSwatch.storeId, this.storeId), inArray(facetSwatch.id, [...ids]))
-      );
+      .where(and(eq(facetSwatch.storeId, this.storeId), inArray(facetSwatch.id, [...ids])));
   }
 
   async create(data: {
@@ -63,7 +57,7 @@ export class FacetSwatchRepository extends BaseRepository {
       colorTwo?: string | null;
       imageId?: string | null;
       metadata?: unknown;
-    }
+    },
   ): Promise<FacetSwatch | null> {
     const updates: Partial<NewFacetSwatch> = {};
     if (data.swatchType !== undefined) updates.swatchType = data.swatchType;

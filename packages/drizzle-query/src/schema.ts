@@ -74,7 +74,8 @@ export class ObjectSchema<
   F extends string = string,
   Fields extends FieldsDef = FieldsDef,
   Types = T["$inferSelect"],
-> implements SchemaWithFields<Fields>, SchemaWithTypes<T, Types>
+>
+  implements SchemaWithFields<Fields>, SchemaWithTypes<T, Types>
 {
   readonly table: T;
   readonly tableName: string;
@@ -174,10 +175,7 @@ export class ObjectSchema<
 
 const schemaCache = new WeakMap<Selectable, Map<string, ObjectSchema>>();
 
-function getSchemaCacheKey(
-  fields: Record<string, FieldConfig>,
-  tableName: string
-): string {
+function getSchemaCacheKey(fields: Record<string, FieldConfig>, tableName: string): string {
   const normalized = Object.entries(fields)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([name, field]) => {
@@ -245,7 +243,7 @@ export function createSchema<
   T extends Selectable,
   const Config extends Record<string, FieldConfig>,
 >(
-  config: Omit<SchemaConfig<T, string>, "fields"> & { fields: Config }
+  config: Omit<SchemaConfig<T, string>, "fields"> & { fields: Config },
 ): ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>, InferFieldTypes<T, Config>> {
   let cacheForTable = schemaCache.get(config.table);
   if (!cacheForTable) {
@@ -256,15 +254,22 @@ export function createSchema<
   const cacheKey = getSchemaCacheKey(config.fields, config.tableName);
   const cached = cacheForTable.get(cacheKey);
   if (cached) {
-    return cached as ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>, InferFieldTypes<T, Config>>;
+    return cached as ObjectSchema<
+      T,
+      keyof Config & string,
+      InferFieldsDef<Config>,
+      InferFieldTypes<T, Config>
+    >;
   }
 
-  const schema = new ObjectSchema(
-    config as SchemaConfig<T, keyof Config & string>,
-    cacheKey
-  );
+  const schema = new ObjectSchema(config as SchemaConfig<T, keyof Config & string>, cacheKey);
   cacheForTable.set(cacheKey, schema);
-  return schema as ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>, InferFieldTypes<T, Config>>;
+  return schema as ObjectSchema<
+    T,
+    keyof Config & string,
+    InferFieldsDef<Config>,
+    InferFieldTypes<T, Config>
+  >;
 }
 
 /**

@@ -1,6 +1,7 @@
 # @shopana/drizzle-query
 
-Type-safe query builder for Drizzle ORM with GraphQL-style filtering, automatic joins, and cursor pagination.
+Type-safe query builder for Drizzle ORM with GraphQL-style filtering, automatic joins, and cursor
+pagination.
 
 ## Features
 
@@ -37,10 +38,7 @@ const usersQuery = createQuery(users, {
 });
 
 // Configure defaults (immutable - returns new instance)
-const configuredQuery = usersQuery
-  .defaultOrder("createdAt:desc")
-  .defaultLimit(20)
-  .maxLimit(100);
+const configuredQuery = usersQuery.defaultOrder("createdAt:desc").defaultLimit(20).maxLimit(100);
 
 // Execute query
 const results = await configuredQuery.execute(db, {
@@ -74,23 +72,23 @@ const results = await usersQuery.execute(db, {
 
 All filter operators are available on any field:
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `$eq` | Equal | `{ status: { $eq: "active" } }` |
-| `$neq` | Not equal | `{ status: { $neq: "deleted" } }` |
-| `$gt` | Greater than | `{ age: { $gt: 18 } }` |
-| `$gte` | Greater than or equal | `{ age: { $gte: 18 } }` |
-| `$lt` | Less than | `{ price: { $lt: 100 } }` |
-| `$lte` | Less than or equal | `{ price: { $lte: 100 } }` |
-| `$in` | In array | `{ status: { $in: ["a", "b"] } }` |
-| `$notIn` | Not in array | `{ status: { $notIn: ["x"] } }` |
-| `$is` | Is null | `{ deletedAt: { $is: null } }` |
-| `$isNot` | Is not null | `{ email: { $isNot: null } }` |
-| `$contains` | Contains (case-sensitive) | `{ name: { $contains: "john" } }` |
-| `$containsi` | Contains (case-insensitive) | `{ name: { $containsi: "john" } }` |
-| `$startsWith` | Starts with | `{ email: { $startsWith: "admin" } }` |
-| `$endsWith` | Ends with | `{ email: { $endsWith: ".com" } }` |
-| `$between` | Between range | `{ price: { $between: [10, 50] } }` |
+| Operator      | Description                 | Example                               |
+| ------------- | --------------------------- | ------------------------------------- |
+| `$eq`         | Equal                       | `{ status: { $eq: "active" } }`       |
+| `$neq`        | Not equal                   | `{ status: { $neq: "deleted" } }`     |
+| `$gt`         | Greater than                | `{ age: { $gt: 18 } }`                |
+| `$gte`        | Greater than or equal       | `{ age: { $gte: 18 } }`               |
+| `$lt`         | Less than                   | `{ price: { $lt: 100 } }`             |
+| `$lte`        | Less than or equal          | `{ price: { $lte: 100 } }`            |
+| `$in`         | In array                    | `{ status: { $in: ["a", "b"] } }`     |
+| `$notIn`      | Not in array                | `{ status: { $notIn: ["x"] } }`       |
+| `$is`         | Is null                     | `{ deletedAt: { $is: null } }`        |
+| `$isNot`      | Is not null                 | `{ email: { $isNot: null } }`         |
+| `$contains`   | Contains (case-sensitive)   | `{ name: { $contains: "john" } }`     |
+| `$containsi`  | Contains (case-insensitive) | `{ name: { $containsi: "john" } }`    |
+| `$startsWith` | Starts with                 | `{ email: { $startsWith: "admin" } }` |
+| `$endsWith`   | Ends with                   | `{ email: { $endsWith: ".com" } }`    |
+| `$between`    | Between range               | `{ price: { $between: [10, 50] } }`   |
 
 ### Logical Operators
 
@@ -220,9 +218,7 @@ type RelayQueryResult<T> = {
 import { createQuery } from "@shopana/drizzle-query";
 import { createCursorQuery } from "@shopana/drizzle-query/cursor";
 
-const productsQuery = createQuery(products)
-  .defaultOrder("createdAt:desc")
-  .maxLimit(100);
+const productsQuery = createQuery(products).defaultOrder("createdAt:desc").maxLimit(100);
 
 const productsCursor = createCursorQuery(productsQuery, {
   name: "product",
@@ -270,12 +266,12 @@ type CursorQueryResult<T> = {
 
 ```typescript
 const query = createQuery(users)
-  .defaultOrder("createdAt:desc")  // Default sort order
-  .defaultLimit(20)                 // Default page size
-  .maxLimit(100)                    // Maximum allowed limit
-  .defaultSelect(["id", "name"])    // Default fields to return
-  .include(["id"])                  // Always include these fields
-  .exclude(["password"])            // Never return these fields
+  .defaultOrder("createdAt:desc") // Default sort order
+  .defaultLimit(20) // Default page size
+  .maxLimit(100) // Maximum allowed limit
+  .defaultSelect(["id", "name"]) // Default fields to return
+  .include(["id"]) // Always include these fields
+  .exclude(["password"]) // Never return these fields
   .defaultWhere({ deletedAt: null }); // Default filter
 ```
 
@@ -331,10 +327,10 @@ import type {
 
 ```typescript
 // Available join types
-field(users.addressId).leftJoin(addressQuery, addresses.id)
-field(users.addressId).innerJoin(addressQuery, addresses.id)
-field(users.addressId).rightJoin(addressQuery, addresses.id)
-field(users.addressId).fullJoin(addressQuery, addresses.id)
+field(users.addressId).leftJoin(addressQuery, addresses.id);
+field(users.addressId).innerJoin(addressQuery, addresses.id);
+field(users.addressId).rightJoin(addressQuery, addresses.id);
+field(users.addressId).fullJoin(addressQuery, addresses.id);
 ```
 
 ## View Support
@@ -355,7 +351,7 @@ const productStatsView = pgView("product_stats_view").as((qb) =>
       revenue: sql<number>`SUM(${orderItems.quantity} * ${orderItems.price})`.as("revenue"),
     })
     .from(orderItems)
-    .groupBy(orderItems.productId)
+    .groupBy(orderItems.productId),
 );
 
 // Create query from view (auto-discovers all fields)
@@ -375,8 +371,8 @@ const results = await statsQuery.execute(db, {
 // Define fields explicitly (supports SQL.Aliased fields)
 const statsQuery = createQuery(productStatsView, {
   productId: field(productStatsView.productId),
-  totalSold: field(productStatsView.totalSold),    // SQL.Aliased field
-  revenue: field(productStatsView.revenue),         // SQL.Aliased field
+  totalSold: field(productStatsView.totalSold), // SQL.Aliased field
+  revenue: field(productStatsView.revenue), // SQL.Aliased field
 });
 ```
 
@@ -407,9 +403,10 @@ const results = await productsWithStats.execute(db, {
 
 ```typescript
 const activeUsersView = pgView("active_users_view").as((qb) =>
-  qb.select({ id: users.id, email: users.email })
+  qb
+    .select({ id: users.id, email: users.email })
     .from(users)
-    .where(sql`${users.isActive} = true`)
+    .where(sql`${users.isActive} = true`),
 );
 
 // Join view to table
@@ -429,7 +426,7 @@ const productsWithCategoryStats = createQuery(publishedProductsView, {
   categoryId: field(publishedProductsView.categoryId),
   categoryStats: field(publishedProductsView.categoryId).leftJoin(
     categoryStatsViewQuery,
-    categoryStatsView.categoryId
+    categoryStatsView.categoryId,
   ),
 });
 ```
@@ -442,8 +439,8 @@ const publishedWithTranslations = createQuery(publishedProductsView, {
   id: field(publishedProductsView.id),
   sku: field(publishedProductsView.sku),
   category: field(publishedProductsView.categoryId).leftJoin(
-    categoriesWithTranslationsQuery,  // Table with nested translation join
-    categories.id
+    categoriesWithTranslationsQuery, // Table with nested translation join
+    categories.id,
   ),
 });
 
@@ -471,10 +468,14 @@ import { pgSchema } from "drizzle-orm/pg-core";
 const analyticsSchema = pgSchema("analytics");
 
 const userActivityView = analyticsSchema.view("user_activity_view").as((qb) =>
-  qb.select({
-    userId: users.id,
-    daysSinceCreation: sql<number>`EXTRACT(DAY FROM NOW() - ${users.createdAt})`.as("days_since_creation"),
-  }).from(users)
+  qb
+    .select({
+      userId: users.id,
+      daysSinceCreation: sql<number>`EXTRACT(DAY FROM NOW() - ${users.createdAt})`.as(
+        "days_since_creation",
+      ),
+    })
+    .from(users),
 );
 
 // Works the same way
@@ -580,24 +581,24 @@ const prevPage = await productsRelay.query(db, {
 
 ### View Features Summary
 
-| Feature | Support |
-|---------|---------|
-| Auto-discover view fields | ✅ |
-| SQL.Aliased fields (computed columns) | ✅ |
-| WHERE on view fields | ✅ |
-| ORDER BY on view fields | ✅ |
-| ORDER BY on nested joined fields | ✅ |
-| Table → View JOINs | ✅ |
-| View → Table JOINs | ✅ |
-| View → View JOINs | ✅ |
-| Deep nested JOINs (3+ levels) | ✅ |
-| All JOIN types (LEFT, INNER, RIGHT, FULL) | ✅ |
-| Schema-qualified views | ✅ |
-| Complex _and/_or conditions | ✅ |
-| Relay cursor pagination | ✅ |
-| Cursor with nested sort fields | ✅ |
-| Multi-field cursor (lexicographic) | ✅ |
-| Backward pagination (last/before) | ✅ |
+| Feature                                   | Support |
+| ----------------------------------------- | ------- |
+| Auto-discover view fields                 | ✅      |
+| SQL.Aliased fields (computed columns)     | ✅      |
+| WHERE on view fields                      | ✅      |
+| ORDER BY on view fields                   | ✅      |
+| ORDER BY on nested joined fields          | ✅      |
+| Table → View JOINs                        | ✅      |
+| View → Table JOINs                        | ✅      |
+| View → View JOINs                         | ✅      |
+| Deep nested JOINs (3+ levels)             | ✅      |
+| All JOIN types (LEFT, INNER, RIGHT, FULL) | ✅      |
+| Schema-qualified views                    | ✅      |
+| Complex _and/_or conditions               | ✅      |
+| Relay cursor pagination                   | ✅      |
+| Cursor with nested sort fields            | ✅      |
+| Multi-field cursor (lexicographic)        | ✅      |
+| Backward pagination (last/before)         | ✅      |
 
 ## Requirements
 

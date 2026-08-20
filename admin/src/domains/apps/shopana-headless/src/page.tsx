@@ -17,12 +17,7 @@ import {
 } from "antd";
 import { createStyles } from "antd-style";
 import { useMemo, useState } from "react";
-import {
-  LuCopy,
-  LuEllipsis,
-  LuEye,
-  LuEyeOff,
-} from "react-icons/lu";
+import { LuCopy, LuEllipsis, LuEye, LuEyeOff } from "react-icons/lu";
 import type { AdminAppPageProps } from "@shopana/admin-app-sdk";
 import { AdminAppLoadingContent } from "@/domains/apps/sdk/ui";
 import {
@@ -168,11 +163,7 @@ function ErrorAlert({ error }: { error: Error | null }) {
   return error ? <Alert message={error.message} showIcon type="error" /> : null;
 }
 
-function StorefrontStatus({
-  status,
-}: {
-  status: HeadlessStorefrontConnectionStatus;
-}) {
+function StorefrontStatus({ status }: { status: HeadlessStorefrontConnectionStatus }) {
   const presentation = statusPresentation[status];
   return <Tag color={presentation.color}>{presentation.label}</Tag>;
 }
@@ -191,12 +182,8 @@ function StorefrontsPage({
     () =>
       [...query.storefronts].sort(
         (left, right) =>
-          Number(
-            left.status === HeadlessStorefrontConnectionStatus.Disconnected,
-          ) -
-          Number(
-            right.status === HeadlessStorefrontConnectionStatus.Disconnected,
-          ),
+          Number(left.status === HeadlessStorefrontConnectionStatus.Disconnected) -
+          Number(right.status === HeadlessStorefrontConnectionStatus.Disconnected),
       ),
     [query.storefronts],
   );
@@ -216,10 +203,7 @@ function StorefrontsPage({
       });
       if (result.status === "submitted") {
         if (result.data.privateAccessToken) {
-          onPrivateToken(
-            result.data.storefrontId,
-            result.data.privateAccessToken,
-          );
+          onPrivateToken(result.data.storefrontId, result.data.privateAccessToken);
         }
         sdk.notifications.success("Storefront added");
         openStorefront(result.data.storefrontId);
@@ -275,8 +259,7 @@ function StorefrontsPage({
                 dataSource={storefronts}
                 renderItem={(storefront) => {
                   const isDisconnected =
-                    storefront.status ===
-                    HeadlessStorefrontConnectionStatus.Disconnected;
+                    storefront.status === HeadlessStorefrontConnectionStatus.Disconnected;
 
                   return (
                     <List.Item>
@@ -287,19 +270,12 @@ function StorefrontsPage({
                         }`}
                         role="link"
                         tabIndex={isDisconnected ? -1 : 0}
-                        onClick={
-                          isDisconnected
-                            ? undefined
-                            : () => openStorefront(storefront.id)
-                        }
+                        onClick={isDisconnected ? undefined : () => openStorefront(storefront.id)}
                         onKeyDown={
                           isDisconnected
                             ? undefined
                             : (event) => {
-                                if (
-                                  event.key === "Enter" ||
-                                  event.key === " "
-                                ) {
+                                if (event.key === "Enter" || event.key === " ") {
                                   openStorefront(storefront.id);
                                 }
                               }
@@ -321,8 +297,7 @@ function StorefrontsPage({
                                 {
                                   key: "toggle-status",
                                   label:
-                                    storefront.status ===
-                                    HeadlessStorefrontConnectionStatus.Active
+                                    storefront.status === HeadlessStorefrontConnectionStatus.Active
                                       ? "Suspend"
                                       : "Resume",
                                   onClick: () => {
@@ -347,10 +322,7 @@ function StorefrontsPage({
                 }}
               />
             ) : query.loading ? null : (
-              <Empty
-                description="No storefronts connected"
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-              />
+              <Empty description="No storefronts connected" image={Empty.PRESENTED_IMAGE_SIMPLE} />
             )}
           </Spin>
         </Paper>
@@ -374,19 +346,15 @@ function StorefrontDetailPage({
   const query = useHeadlessStorefront(sdk, storefrontId);
   const actions = useHeadlessStorefrontActions(sdk);
   const [showPrivateToken, setShowPrivateToken] = useState(false);
-  const [permissionDraftOverride, setPermissionDraftOverride] = useState<
-    string[] | null
-  >(null);
+  const [permissionDraftOverride, setPermissionDraftOverride] = useState<string[] | null>(null);
 
   const storefront = query.storefront;
   const accessPolicy = storefront?.storefrontAccessPolicy;
-  const permissionDraft =
-    permissionDraftOverride ?? accessPolicy?.permissions ?? [];
+  const permissionDraft = permissionDraftOverride ?? accessPolicy?.permissions ?? [];
 
   const activePrivateCredential = storefront?.storefrontCredentials.find(
     ({ kind, status }) =>
-      kind === StorefrontCredentialKind.Private &&
-      status === StorefrontCredentialStatus.Active,
+      kind === StorefrontCredentialKind.Private && status === StorefrontCredentialStatus.Active,
   );
   const privateTokenDisplay = privateToken
     ? showPrivateToken
@@ -450,14 +418,11 @@ function StorefrontDetailPage({
 
   const toggleConnectionStatus = async () => {
     if (!storefront) return;
-    const suspend =
-      storefront.status === HeadlessStorefrontConnectionStatus.Active;
+    const suspend = storefront.status === HeadlessStorefrontConnectionStatus.Active;
 
     try {
       await actions.setSuspended(storefront.id, suspend);
-      sdk.notifications.success(
-        suspend ? "Storefront suspended" : "Storefront resumed",
-      );
+      sdk.notifications.success(suspend ? "Storefront suspended" : "Storefront resumed");
       await query.refetch();
     } catch (error) {
       sdk.notifications.error(
@@ -479,18 +444,12 @@ function StorefrontDetailPage({
   const savedPermissions = accessPolicy?.permissions ?? [];
   const hasPermissionChanges =
     permissionDraft.length !== savedPermissions.length ||
-    permissionDraft.some(
-      (permission) => !savedPermissions.includes(permission),
-    );
+    permissionDraft.some((permission) => !savedPermissions.includes(permission));
 
   const savePermissions = async () => {
     if (!storefront || !accessPolicy || !hasPermissionChanges) return;
     try {
-      await actions.updatePolicy(
-        storefront.id,
-        permissionDraft,
-        accessPolicy.revision,
-      );
+      await actions.updatePolicy(storefront.id, permissionDraft, accessPolicy.revision);
       sdk.notifications.success("Storefront permissions saved");
       await query.refetch();
       setPermissionDraftOverride(null);
@@ -534,9 +493,7 @@ function StorefrontDetailPage({
     <sdk.ui.AppPage
       onBack={() => sdk.navigation.openAppPath("storefronts")}
       title={
-        storefront?.displayName ?? (
-          <Skeleton.Input active size="small" style={{ width: 180 }} />
-        )
+        storefront?.displayName ?? <Skeleton.Input active size="small" style={{ width: 180 }} />
       }
     >
       {query.loading && !storefront ? (
@@ -547,234 +504,199 @@ function StorefrontDetailPage({
             <ErrorAlert error={query.error} />
             {storefront ? (
               <>
-              <Paper>
-                <PaperHeader
-                  actions={
-                    storefront.status !==
-                    HeadlessStorefrontConnectionStatus.Disconnected ? (
-                      <Dropdown
-                        menu={{
-                          items: [
-                            {
-                              key: "toggle-status",
-                              label:
-                                storefront.status ===
-                                HeadlessStorefrontConnectionStatus.Active
-                                  ? "Suspend"
-                                  : "Resume",
-                              onClick: () => {
-                                void toggleConnectionStatus();
+                <Paper>
+                  <PaperHeader
+                    actions={
+                      storefront.status !== HeadlessStorefrontConnectionStatus.Disconnected ? (
+                        <Dropdown
+                          menu={{
+                            items: [
+                              {
+                                key: "toggle-status",
+                                label:
+                                  storefront.status === HeadlessStorefrontConnectionStatus.Active
+                                    ? "Suspend"
+                                    : "Resume",
+                                onClick: () => {
+                                  void toggleConnectionStatus();
+                                },
                               },
-                            },
-                          ],
-                        }}
-                        trigger={["click"]}
-                      >
+                            ],
+                          }}
+                          trigger={["click"]}
+                        >
+                          <Button
+                            aria-label={`Actions for ${storefront.displayName}`}
+                            icon={<LuEllipsis size={16} />}
+                            loading={actions.loading}
+                            size="small"
+                            type="text"
+                          />
+                        </Dropdown>
+                      ) : null
+                    }
+                    title="Storefront connection"
+                  />
+                  <div className={styles.connectionStatus}>
+                    <Flex vertical>
+                      <Typography.Text strong>Connection status</Typography.Text>
+                      <Typography.Text type="secondary">
+                        {statusPresentation[storefront.status].description}
+                      </Typography.Text>
+                    </Flex>
+                    <StorefrontStatus status={storefront.status} />
+                  </div>
+                </Paper>
+
+                <Paper>
+                  <PaperHeader title="Credentials" />
+                  <div className={styles.credentialStack}>
+                    <div className={styles.credentialField}>
+                      <Typography.Text strong>Public access token</Typography.Text>
+                      <Typography.Text type="secondary">
+                        Use in browser and other client-side storefront contexts.
+                      </Typography.Text>
+                      <div className={styles.credentialInput}>
+                        <Input readOnly value={storefront.publicAccessToken ?? ""} />
                         <Button
-                          aria-label={`Actions for ${storefront.displayName}`}
-                          icon={<LuEllipsis size={16} />}
+                          aria-label="Copy public access token"
+                          disabled={!storefront.publicAccessToken}
+                          icon={<LuCopy size={16} />}
+                          onClick={() =>
+                            void copy(storefront.publicAccessToken, "Public access token")
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className={styles.credentialField}>
+                      <Typography.Text strong>Private access token</Typography.Text>
+                      <Typography.Text type="secondary">
+                        Use only in trusted server-side storefront contexts.
+                      </Typography.Text>
+                      <div className={styles.credentialInput}>
+                        <Input readOnly value={privateTokenDisplay} />
+                        <Button
+                          aria-label={
+                            showPrivateToken
+                              ? "Hide private access token"
+                              : "Reveal private access token"
+                          }
+                          disabled={!privateToken}
+                          icon={showPrivateToken ? <LuEyeOff size={16} /> : <LuEye size={16} />}
+                          onClick={() => setShowPrivateToken((current) => !current)}
+                        />
+                        <Button
+                          aria-label="Copy private access token"
+                          disabled={!privateToken}
+                          icon={<LuCopy size={16} />}
+                          onClick={() => void copy(privateToken, "Private access token")}
+                        />
+                      </div>
+                    </div>
+                    {privateToken ? (
+                      <Alert
+                        className={styles.privateTokenWarning}
+                        description="Copy and save this token now. You won’t be able to view it again."
+                        type="warning"
+                      />
+                    ) : (
+                      <div className={styles.rotation}>
+                        <Flex vertical>
+                          <Typography.Text strong>Rotate private access token</Typography.Text>
+                          <Typography.Text type="secondary">
+                            The existing token remains valid until you revoke it.
+                          </Typography.Text>
+                        </Flex>
+                        <Button loading={actions.loading} onClick={() => void rotatePrivateToken()}>
+                          Generate new token
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </Paper>
+
+                <Paper>
+                  <PaperHeader
+                    actions={
+                      hasPermissionChanges ? (
+                        <Button
+                          color="primary"
                           loading={actions.loading}
                           size="small"
-                          type="text"
-                        />
-                      </Dropdown>
-                    ) : null
-                  }
-                  title="Storefront connection"
-                />
-                <div className={styles.connectionStatus}>
-                  <Flex vertical>
-                    <Typography.Text strong>Connection status</Typography.Text>
-                    <Typography.Text type="secondary">
-                      {statusPresentation[storefront.status].description}
-                    </Typography.Text>
-                  </Flex>
-                  <StorefrontStatus status={storefront.status} />
-                </div>
-              </Paper>
-
-              <Paper>
-                <PaperHeader title="Credentials" />
-                <div className={styles.credentialStack}>
-                  <div className={styles.credentialField}>
-                    <Typography.Text strong>Public access token</Typography.Text>
-                    <Typography.Text type="secondary">
-                      Use in browser and other client-side storefront contexts.
-                    </Typography.Text>
-                    <div className={styles.credentialInput}>
-                      <Input readOnly value={storefront.publicAccessToken ?? ""} />
-                      <Button
-                        aria-label="Copy public access token"
-                        disabled={!storefront.publicAccessToken}
-                        icon={<LuCopy size={16} />}
-                        onClick={() =>
-                          void copy(
-                            storefront.publicAccessToken,
-                            "Public access token",
-                          )
-                        }
-                      />
-                    </div>
+                          variant="outlined"
+                          onClick={() => void savePermissions()}
+                        >
+                          Save
+                        </Button>
+                      ) : null
+                    }
+                    title="Permissions"
+                  />
+                  <div className={styles.permissions}>
+                    {groupedPermissions.map((group) => (
+                      <div className={styles.permissionGroup} key={group.label}>
+                        <Typography.Text strong>{group.label}</Typography.Text>
+                        {group.permissions.map((permission) => (
+                          <div className={styles.permission} key={permission.handle}>
+                            <Checkbox
+                              checked={permissionDraft.includes(permission.handle)}
+                              disabled={actions.loading || !storefront.storefrontAccessPolicy}
+                              onChange={({ target }) =>
+                                togglePermission(permission.handle, target.checked)
+                              }
+                            >
+                              {permission.label}
+                            </Checkbox>
+                            <Typography.Text
+                              className={styles.permissionDescription}
+                              type="secondary"
+                            >
+                              {permission.description}
+                            </Typography.Text>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
                   </div>
-                  <div className={styles.credentialField}>
-                    <Typography.Text strong>Private access token</Typography.Text>
+                  <Flex justify="space-between">
                     <Typography.Text type="secondary">
-                      Use only in trusted server-side storefront contexts.
+                      {permissionDraft.length} of {query.permissionCatalog.length} permissions
+                      enabled
                     </Typography.Text>
-                    <div className={styles.credentialInput}>
-                      <Input readOnly value={privateTokenDisplay} />
-                      <Button
-                        aria-label={
-                          showPrivateToken
-                            ? "Hide private access token"
-                            : "Reveal private access token"
-                        }
-                        disabled={!privateToken}
-                        icon={
-                          showPrivateToken ? (
-                            <LuEyeOff size={16} />
-                          ) : (
-                            <LuEye size={16} />
-                          )
-                        }
-                        onClick={() => setShowPrivateToken((current) => !current)}
-                      />
-                      <Button
-                        aria-label="Copy private access token"
-                        disabled={!privateToken}
-                        icon={<LuCopy size={16} />}
-                        onClick={() =>
-                          void copy(privateToken, "Private access token")
-                        }
-                      />
-                    </div>
+                    {accessPolicy ? (
+                      <Typography.Text type="secondary">
+                        Policy revision {accessPolicy.revision}
+                      </Typography.Text>
+                    ) : null}
+                  </Flex>
+                </Paper>
+
+                <Paper>
+                  <PaperHeader title="Danger zone" />
+                  <div className={styles.dangerRow}>
+                    <Flex vertical>
+                      <Typography.Text strong>Rename storefront</Typography.Text>
+                      <Typography.Text type="secondary">
+                        Change the name used to identify this storefront.
+                      </Typography.Text>
+                    </Flex>
+                    <Button loading={actions.loading} onClick={() => void rename()}>
+                      Rename
+                    </Button>
                   </div>
-                  {privateToken ? (
-                    <Alert
-                      className={styles.privateTokenWarning}
-                      description="Copy and save this token now. You won’t be able to view it again."
-                      type="warning"
-                    />
-                  ) : (
-                    <div className={styles.rotation}>
-                      <Flex vertical>
-                        <Typography.Text strong>
-                          Rotate private access token
-                        </Typography.Text>
-                        <Typography.Text type="secondary">
-                          The existing token remains valid until you revoke it.
-                        </Typography.Text>
-                      </Flex>
-                      <Button
-                        loading={actions.loading}
-                        onClick={() => void rotatePrivateToken()}
-                      >
-                        Generate new token
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </Paper>
-
-              <Paper>
-                <PaperHeader
-                  actions={
-                    hasPermissionChanges ? (
-                      <Button
-                        color="primary"
-                        loading={actions.loading}
-                        size="small"
-                        variant="outlined"
-                        onClick={() => void savePermissions()}
-                      >
-                        Save
-                      </Button>
-                    ) : null
-                  }
-                  title="Permissions"
-                />
-                <div className={styles.permissions}>
-                  {groupedPermissions.map((group) => (
-                    <div className={styles.permissionGroup} key={group.label}>
-                      <Typography.Text strong>{group.label}</Typography.Text>
-                      {group.permissions.map((permission) => (
-                        <div className={styles.permission} key={permission.handle}>
-                          <Checkbox
-                            checked={permissionDraft.includes(
-                              permission.handle,
-                            )}
-                            disabled={
-                              actions.loading ||
-                              !storefront.storefrontAccessPolicy
-                            }
-                            onChange={({ target }) =>
-                              togglePermission(
-                                permission.handle,
-                                target.checked,
-                              )
-                            }
-                          >
-                            {permission.label}
-                          </Checkbox>
-                          <Typography.Text
-                            className={styles.permissionDescription}
-                            type="secondary"
-                          >
-                            {permission.description}
-                          </Typography.Text>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-                <Flex justify="space-between">
-                  <Typography.Text type="secondary">
-                    {permissionDraft.length} of {query.permissionCatalog.length}{" "}
-                    permissions enabled
-                  </Typography.Text>
-                  {accessPolicy ? (
-                    <Typography.Text type="secondary">
-                      Policy revision {accessPolicy.revision}
-                    </Typography.Text>
-                  ) : null}
-                </Flex>
-              </Paper>
-
-              <Paper>
-                <PaperHeader title="Danger zone" />
-                <div className={styles.dangerRow}>
-                  <Flex vertical>
-                    <Typography.Text strong>Rename storefront</Typography.Text>
-                    <Typography.Text type="secondary">
-                      Change the name used to identify this storefront.
-                    </Typography.Text>
-                  </Flex>
-                  <Button
-                    loading={actions.loading}
-                    onClick={() => void rename()}
-                  >
-                    Rename
-                  </Button>
-                </div>
-                <Divider className={styles.dangerDivider} />
-                <div className={styles.dangerRow}>
-                  <Flex vertical>
-                    <Typography.Text strong>
-                      Disconnect storefront
-                    </Typography.Text>
-                    <Typography.Text type="secondary">
-                      Permanently invalidates every credential issued for this
-                      storefront.
-                    </Typography.Text>
-                  </Flex>
-                  <Button
-                    danger
-                    onClick={() => void disconnect()}
-                  >
-                    Disconnect
-                  </Button>
-                </div>
-              </Paper>
+                  <Divider className={styles.dangerDivider} />
+                  <div className={styles.dangerRow}>
+                    <Flex vertical>
+                      <Typography.Text strong>Disconnect storefront</Typography.Text>
+                      <Typography.Text type="secondary">
+                        Permanently invalidates every credential issued for this storefront.
+                      </Typography.Text>
+                    </Flex>
+                    <Button danger onClick={() => void disconnect()}>
+                      Disconnect
+                    </Button>
+                  </div>
+                </Paper>
               </>
             ) : query.loading ? null : (
               <Empty description="Storefront not found" />
@@ -786,10 +708,7 @@ function StorefrontDetailPage({
   );
 }
 
-export default function HeadlessAdminPage({
-  sdk,
-  route,
-}: AdminAppPageProps) {
+export default function HeadlessAdminPage({ sdk, route }: AdminAppPageProps) {
   const [privateTokens, setPrivateTokens] = useState<Record<string, string>>({});
   const routeSegments = route.appPath.split("/").filter(Boolean);
   const storefrontId =
@@ -812,10 +731,5 @@ export default function HeadlessAdminPage({
     );
   }
 
-  return (
-    <StorefrontsPage
-      sdk={sdk}
-      onPrivateToken={rememberPrivateToken}
-    />
-  );
+  return <StorefrontsPage sdk={sdk} onPrivateToken={rememberPrivateToken} />;
 }

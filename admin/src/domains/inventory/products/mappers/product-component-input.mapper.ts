@@ -76,32 +76,22 @@ export const toProductComponentGroupsInput = (
           itemType: item.itemType,
           sortIndex: itemIndex,
           refProductId:
-            item.itemType === ProductComponentItemType.Product
-              ? item.refProduct?.id
-              : undefined,
+            item.itemType === ProductComponentItemType.Product ? item.refProduct?.id : undefined,
           refVariantId:
-            item.itemType === ProductComponentItemType.Variant
-              ? item.refVariant?.id
-              : undefined,
+            item.itemType === ProductComponentItemType.Variant ? item.refVariant?.id : undefined,
           featuredImageId: item.featuredImage?.id ?? null,
           minQty: item.minQty ?? null,
           maxQty: item.maxQty ?? null,
           defaultQty: item.defaultQty ?? null,
           priceRule:
             !item.pricingTemplate && item.priceRule
-              ? toProductComponentPriceRuleInput(
-                  item.priceRule,
-                  currency,
-                  !!itemId,
-                )
+              ? toProductComponentPriceRuleInput(item.priceRule, currency, !!itemId)
               : undefined,
           pricingTemplateId: persistedId(item.pricingTemplate?.id),
           optionSelections:
             item.itemType === ProductComponentItemType.Product
               ? item.optionSelections.map((selection, selectionIndex) => {
-                  const selectionId = itemId
-                    ? persistedId(selection.id)
-                    : undefined;
+                  const selectionId = itemId ? persistedId(selection.id) : undefined;
 
                   return {
                     id: selectionId,
@@ -136,11 +126,7 @@ export const toProductComponentPricingTemplatesInput = (
       id: templateId,
       name: template.name,
       sortIndex: index,
-      priceRule: toProductComponentPriceRuleInput(
-        template.priceRule,
-        currency,
-        !!templateId,
-      ),
+      priceRule: toProductComponentPriceRuleInput(template.priceRule, currency, !!templateId),
     };
   });
 
@@ -172,8 +158,7 @@ export const toProductComponentDependencyRulesInput = (
             operator: condition.operator,
             targetType: condition.targetType,
             targetId:
-              condition.targetType ===
-              ProductComponentDependencyTargetType.Configuration
+              condition.targetType === ProductComponentDependencyTargetType.Configuration
                 ? configurationId
                 : condition.targetId,
             value: condition.value ?? null,
@@ -189,17 +174,12 @@ export const toProductComponentDependencyRulesInput = (
           actionType: action.actionType,
           targetType: action.targetType,
           targetId:
-            action.targetType ===
-            ProductComponentDependencyTargetType.Configuration
+            action.targetType === ProductComponentDependencyTargetType.Configuration
               ? configurationId
               : action.targetId,
           requiredValue: action.requiredValue ?? null,
           priceRule: action.priceRule
-            ? toProductComponentPriceRuleInput(
-                action.priceRule,
-                currency,
-                !!actionId,
-              )
+            ? toProductComponentPriceRuleInput(action.priceRule, currency, !!actionId)
             : undefined,
           stackable: action.stackable,
           sortIndex: actionIndex,

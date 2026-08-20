@@ -6,15 +6,9 @@ import {
   internalError,
   notFoundError,
 } from "./StoreConfigurationUpdateScript.js";
-import type {
-  ReviewRequestUpdateParams,
-  ReviewRequestUpdateResult,
-} from "./types.js";
+import type { ReviewRequestUpdateParams, ReviewRequestUpdateResult } from "./types.js";
 
-type RequestEventType =
-  | "SCHEDULED"
-  | "CANCELLED"
-  | "EXPIRED";
+type RequestEventType = "SCHEDULED" | "CANCELLED" | "EXPIRED";
 
 const terminalStatuses = new Set(["CANCELLED", "EXPIRED", "SUBMITTED"]);
 
@@ -23,12 +17,8 @@ export class ReviewRequestUpdateScript extends BaseScript<
   ReviewRequestUpdateResult
 > {
   @Transactional()
-  protected async execute(
-    params: ReviewRequestUpdateParams
-  ): Promise<ReviewRequestUpdateResult> {
-    const current = await this.repository.reviewRequest.findById(
-      params.reviewRequestId
-    );
+  protected async execute(params: ReviewRequestUpdateParams): Promise<ReviewRequestUpdateResult> {
+    const current = await this.repository.reviewRequest.findById(params.reviewRequestId);
     if (!current) {
       return { userErrors: [notFoundError("Review request", "reviewRequestId")] };
     }
@@ -131,9 +121,7 @@ export class ReviewRequestUpdateScript extends BaseScript<
           });
         } else {
           patch.status = "SCHEDULED";
-          patch.scheduledAt = input.schedule
-            ? patch.scheduledAt
-            : new Date().toISOString();
+          patch.scheduledAt = input.schedule ? patch.scheduledAt : new Date().toISOString();
           patch.attemptCount = current.attemptCount + 1;
           patch.lastError = null;
           patch.providerMessageId = null;
@@ -146,7 +134,7 @@ export class ReviewRequestUpdateScript extends BaseScript<
     const updated = await this.repository.reviewRequest.update(
       params.reviewRequestId,
       params.expectedUpdatedAt,
-      patch
+      patch,
     );
     if (updated.status !== "applied") {
       return updated.status === "conflict"

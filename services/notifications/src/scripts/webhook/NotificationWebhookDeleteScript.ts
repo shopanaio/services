@@ -19,17 +19,14 @@ export class NotificationWebhookDeleteScript extends BaseScript<
   protected async execute(params: { id: string }) {
     const deleted = await this.repository.webhooks.delete(params.id);
     if (!deleted) {
-      throw new KernelError(
-        "Webhook subscription was not found",
-        "WEBHOOK_NOT_FOUND"
-      );
+      throw new KernelError("Webhook subscription was not found", "WEBHOOK_NOT_FOUND");
     }
     await recordAdminAudit(
       this.repository,
       this.context.user.id,
       "webhook.deleted",
       "webhook",
-      params.id
+      params.id,
     );
     return { deletedWebhookId: params.id, userErrors: [] };
   }

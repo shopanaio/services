@@ -131,7 +131,9 @@ type LoyaltyProgramRules {
 type LoyaltyProgramEligibility {
   type: LoyaltyProgramEligibilityType!
   channelCodes: [String!]!
-  """Present only for SEGMENTS eligibility."""
+  """
+  Present only for SEGMENTS eligibility.
+  """
   segmentMatchMode: LoyaltySegmentMatchMode
   segmentIds: [ID!]!
   excludedSegmentIds: [ID!]!
@@ -287,9 +289,13 @@ input LoyaltyProgramRulesInput {
 input LoyaltyProgramEligibilityInput {
   type: LoyaltyProgramEligibilityType!
   channelCodes: [String!]!
-  """Required for SEGMENTS and forbidden for ALL."""
+  """
+  Required for SEGMENTS and forbidden for ALL.
+  """
   segmentMatchMode: LoyaltySegmentMatchMode
-  """Must be empty for ALL and non-empty for SEGMENTS."""
+  """
+  Must be empty for ALL and non-empty for SEGMENTS.
+  """
   segmentIds: [ID!]! = []
   excludedSegmentIds: [ID!]! = []
 }
@@ -303,7 +309,9 @@ input LoyaltyProgramEarningRulesInput {
 
 input LoyaltyCatalogSelectorInput {
   type: LoyaltyCatalogSelectorType!
-  """Must be empty for ALL and non-empty for every specific selector type."""
+  """
+  Must be empty for ALL and non-empty for every specific selector type.
+  """
   ids: [ID!]!
 }
 
@@ -311,7 +319,9 @@ input LoyaltyEarningModifierInput {
   id: ID!
   title: String!
   priority: Int!
-  """10000 equals a 1x multiplier."""
+  """
+  10000 equals a 1x multiplier.
+  """
   multiplierBps: Int!
   selector: LoyaltyCatalogSelectorInput!
   segmentIds: [ID!]!

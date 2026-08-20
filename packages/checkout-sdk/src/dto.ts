@@ -1,8 +1,5 @@
 import type { MoneySnapshot } from "@shopana/shared-money";
-import type {
-  DeliveryMethodType,
-  ShippingPaymentModel,
-} from "./types.js";
+import type { DeliveryMethodType, ShippingPaymentModel } from "./types.js";
 import type { ChildPriceType } from "./types";
 
 export type CheckoutCostDto = Readonly<{

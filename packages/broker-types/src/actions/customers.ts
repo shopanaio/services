@@ -3,8 +3,7 @@ export const CustomersCheckoutActionNames = {
 } as const;
 
 export const CustomersCheckoutActions = {
-  resolveBuyerEligibility:
-    `customers.${CustomersCheckoutActionNames.resolveBuyerEligibility}`,
+  resolveBuyerEligibility: `customers.${CustomersCheckoutActionNames.resolveBuyerEligibility}`,
 } as const;
 
 export const CustomersComparisonActionNames = {
@@ -12,8 +11,7 @@ export const CustomersComparisonActionNames = {
 } as const;
 
 export const CustomersComparisonActions = {
-  getSelection:
-    `customers.${CustomersComparisonActionNames.getSelection}`,
+  getSelection: `customers.${CustomersComparisonActionNames.getSelection}`,
 } as const;
 
 export const CustomersAdministrationActionNames = {
@@ -22,10 +20,8 @@ export const CustomersAdministrationActionNames = {
 } as const;
 
 export const CustomersAdministrationActions = {
-  rebuildStatistics:
-    `customers.${CustomersAdministrationActionNames.rebuildStatistics}`,
-  rebuildDynamicSegments:
-    `customers.${CustomersAdministrationActionNames.rebuildDynamicSegments}`,
+  rebuildStatistics: `customers.${CustomersAdministrationActionNames.rebuildStatistics}`,
+  rebuildDynamicSegments: `customers.${CustomersAdministrationActionNames.rebuildDynamicSegments}`,
 } as const;
 
 export const CustomersLoyaltyActionNames = {
@@ -33,8 +29,7 @@ export const CustomersLoyaltyActionNames = {
 } as const;
 
 export const CustomersLoyaltyActions = {
-  validateSegments:
-    `customers.${CustomersLoyaltyActionNames.validateSegments}`,
+  validateSegments: `customers.${CustomersLoyaltyActionNames.validateSegments}`,
 } as const;
 
 export interface ValidateLoyaltySegmentReferencesParams {
@@ -57,8 +52,7 @@ export interface RebuildCustomerStatisticsParams {
 }
 
 export type RebuildCustomerStatisticsResult =
-  | Readonly<{ ok: true; rebuiltCustomers: number }>
-  | CustomersAdministrationActionFailure;
+  Readonly<{ ok: true; rebuiltCustomers: number }> | CustomersAdministrationActionFailure;
 
 export interface RebuildCustomerDynamicSegmentsParams {
   storeId: string;
@@ -66,15 +60,11 @@ export interface RebuildCustomerDynamicSegmentsParams {
 }
 
 export type RebuildCustomerDynamicSegmentsResult =
-  | Readonly<{ ok: true; invalidatedMemberships: number }>
-  | CustomersAdministrationActionFailure;
+  Readonly<{ ok: true; invalidatedMemberships: number }> | CustomersAdministrationActionFailure;
 
 export type CustomersAdministrationActionFailure = Readonly<{
   ok: false;
-  code:
-    | "CUSTOMERS_ADMIN_CALLER_FORBIDDEN"
-    | "CUSTOMER_NOT_FOUND"
-    | "CUSTOMERS_REBUILD_FAILED";
+  code: "CUSTOMERS_ADMIN_CALLER_FORBIDDEN" | "CUSTOMER_NOT_FOUND" | "CUSTOMERS_REBUILD_FAILED";
   message: string;
   retryable: boolean;
 }>;
@@ -87,14 +77,10 @@ export const CustomerExternalReferenceActionNames = {
 } as const;
 
 export const CustomerExternalReferenceActions = {
-  lookup:
-    `customers.${CustomerExternalReferenceActionNames.lookup}`,
-  upsert:
-    `customers.${CustomerExternalReferenceActionNames.upsert}`,
-  delete:
-    `customers.${CustomerExternalReferenceActionNames.delete}`,
-  sync:
-    `customers.${CustomerExternalReferenceActionNames.sync}`,
+  lookup: `customers.${CustomerExternalReferenceActionNames.lookup}`,
+  upsert: `customers.${CustomerExternalReferenceActionNames.upsert}`,
+  delete: `customers.${CustomerExternalReferenceActionNames.delete}`,
+  sync: `customers.${CustomerExternalReferenceActionNames.sync}`,
 } as const;
 
 export const CustomerExternalReferenceAppScopes = {
@@ -103,10 +89,7 @@ export const CustomerExternalReferenceAppScopes = {
 } as const;
 
 export type CustomerExternalReferenceConflictPolicy = "REJECT" | "REASSIGN";
-export type CustomerExternalReferenceUpsertOutcome =
-  | "CREATED"
-  | "UPDATED"
-  | "REASSIGNED";
+export type CustomerExternalReferenceUpsertOutcome = "CREATED" | "UPDATED" | "REASSIGNED";
 
 export interface CustomerExternalReferenceSnapshot {
   id: string;
@@ -261,11 +244,7 @@ export interface ResolveCheckoutBuyerEligibilityParams {
   effectiveAt: string;
 }
 
-export type CustomerCheckoutIneligibilityReason =
-  | "DISABLED"
-  | "BLOCKED"
-  | "MERGED"
-  | "REDACTED";
+export type CustomerCheckoutIneligibilityReason = "DISABLED" | "BLOCKED" | "MERGED" | "REDACTED";
 
 export type ResolveCheckoutBuyerEligibilityResult =
   | Readonly<{

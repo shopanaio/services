@@ -36,7 +36,7 @@ interface UseAuthorizeReturn {
  */
 export function useAuthorize(
   input: ApiAuthorizeInput,
-  options: UseAuthorizeOptions = {}
+  options: UseAuthorizeOptions = {},
 ): UseAuthorizeReturn {
   const { skip = false } = options;
 
@@ -92,7 +92,7 @@ export function useAuthorizeCheck(): UseAuthorizeCheckReturn {
         deniedReason: payload?.deniedReason ?? null,
       };
     },
-    [executeQuery]
+    [executeQuery],
   );
 
   return {

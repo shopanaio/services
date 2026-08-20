@@ -14,7 +14,5 @@ export function sectionErrors(userErrors: UserError[]): CustomerSectionResult {
 }
 
 export function internalSectionError(): CustomerSectionResult {
-  return sectionErrors([
-    { message: "Internal error", code: "INTERNAL_ERROR" },
-  ]);
+  return sectionErrors([{ message: "Internal error", code: "INTERNAL_ERROR" }]);
 }

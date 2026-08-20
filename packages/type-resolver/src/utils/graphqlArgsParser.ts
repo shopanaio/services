@@ -1,9 +1,5 @@
 import type { GraphQLResolveInfo } from "graphql";
-import {
-  parseResolveInfo,
-  ResolveTree,
-  FieldsByTypeName,
-} from "graphql-parse-resolve-info";
+import { parseResolveInfo, ResolveTree, FieldsByTypeName } from "graphql-parse-resolve-info";
 import type { QueryArgs } from "../types.js";
 
 /**
@@ -66,10 +62,7 @@ function convertToQueryArgs(fieldsByTypeName: FieldsByTypeName): QueryArgs {
  * await ProductView.load(productId, fields, ctx);
  * ```
  */
-export function parseGraphqlInfo(
-  info: GraphQLResolveInfo,
-  fieldName?: string
-): QueryArgs {
+export function parseGraphqlInfo(info: GraphQLResolveInfo, fieldName?: string): QueryArgs {
   const parsed = parseResolveInfo(info);
   if (!parsed) {
     return {};

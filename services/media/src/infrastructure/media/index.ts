@@ -1,7 +1,1 @@
-export {
-  analyzeMedia,
-  isImage,
-  isVideo,
-  isAudio,
-  type MediaMetadata,
-} from "./analyze.js";
+export { analyzeMedia, isImage, isVideo, isAudio, type MediaMetadata } from "./analyze.js";

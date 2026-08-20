@@ -20,7 +20,7 @@ interface UseChangeMemberRoleReturn {
     organizationId: string,
     userId: string,
     domain: string,
-    role: string
+    role: string,
   ) => Promise<ChangeMemberRoleResult>;
   loading: boolean;
   error: Error | null;
@@ -42,7 +42,7 @@ export function useChangeMemberRole(): UseChangeMemberRoleReturn {
       organizationId: string,
       userId: string,
       domain: string,
-      role: string
+      role: string,
     ): Promise<ChangeMemberRoleResult> => {
       const result = await mutate({
         variables: { input: { organizationId, userId, domain, role } },
@@ -55,7 +55,7 @@ export function useChangeMemberRole(): UseChangeMemberRoleReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

@@ -25,8 +25,9 @@ export class CheckoutLinePurchaseInputDto {
   type!: "ONE_TIME" | "SUBSCRIPTION";
 
   @Expose()
-  @ValidateIf((value: CheckoutLinePurchaseInputDto) =>
-    value.type === "SUBSCRIPTION" || value.sellingPlanId !== undefined,
+  @ValidateIf(
+    (value: CheckoutLinePurchaseInputDto) =>
+      value.type === "SUBSCRIPTION" || value.sellingPlanId !== undefined,
   )
   @IsGlobalId({
     entityType: GlobalIdEntity.SellingPlan,

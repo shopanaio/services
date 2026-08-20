@@ -59,8 +59,7 @@ export interface StorefrontCustomerAddressDeleteParams {
   expectedRevision: number;
 }
 
-export interface StorefrontCustomerAddressDeleteResult
-  extends StorefrontCustomerMutationResult {
+export interface StorefrontCustomerAddressDeleteResult extends StorefrontCustomerMutationResult {
   deletedAddressId: string | null;
 }
 
@@ -73,8 +72,7 @@ export interface StorefrontCustomerAddressDefaultSetParams {
   expectedRevision: number;
 }
 
-export type StorefrontCustomerAddressDefaultSetResult =
-  StorefrontCustomerMutationResult;
+export type StorefrontCustomerAddressDefaultSetResult = StorefrontCustomerMutationResult;
 
 export class StorefrontCustomerAddressCreateScript extends BaseScript<
   StorefrontCustomerAddressCreateParams,
@@ -82,17 +80,14 @@ export class StorefrontCustomerAddressCreateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: StorefrontCustomerAddressCreateParams
+    params: StorefrontCustomerAddressCreateParams,
   ): Promise<StorefrontCustomerAddressCreateResult> {
-    const errors = validateAddressCommand(
-      params.expectedRevision,
-      params.address
-    );
+    const errors = validateAddressCommand(params.expectedRevision, params.address);
     if (errors.length > 0) return failedAddressMutation(...errors);
 
     const acquired = await this.repository.customer.acquireActiveRevision(
       params.customerId,
-      params.expectedRevision
+      params.expectedRevision,
     );
     if (acquired.status !== "acquired") {
       return failedAddressMutation(revisionAcquireError(acquired));
@@ -104,16 +99,8 @@ export class StorefrontCustomerAddressCreateScript extends BaseScript<
       isDefaultShipping: params.defaultShipping === true,
       isDefaultBilling: params.defaultBilling === true,
     });
-    await this.invalidateDynamicSegments(
-      params.customerId,
-      ["address"],
-      "storefrontAddressCreate",
-    );
-    return successfulAddressMutation(
-      address.id,
-      acquired.customer.id,
-      acquired.customer.revision
-    );
+    await this.invalidateDynamicSegments(params.customerId, ["address"], "storefrontAddressCreate");
+    return successfulAddressMutation(address.id, acquired.customer.id, acquired.customer.revision);
   }
 
   protected handleError(_error: unknown): StorefrontCustomerAddressCreateResult {
@@ -127,20 +114,15 @@ export class StorefrontCustomerAddressUpdateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: StorefrontCustomerAddressUpdateParams
+    params: StorefrontCustomerAddressUpdateParams,
   ): Promise<StorefrontCustomerAddressUpdateResult> {
-    const errors = validateAddressCommand(
-      params.expectedRevision,
-      params.address
-    );
+    const errors = validateAddressCommand(params.expectedRevision, params.address);
     const current = await this.repository.address.findOwnedById(
       params.customerId,
-      params.addressId
+      params.addressId,
     );
     if (!current) {
-      errors.push(
-        storefrontError("NOT_FOUND", "Address was not found", ["addressId"])
-      );
+      errors.push(storefrontError("NOT_FOUND", "Address was not found", ["addressId"]));
     }
     if (errors.length > 0 || !current) {
       return failedAddressMutation(...errors);
@@ -152,7 +134,7 @@ export class StorefrontCustomerAddressUpdateScript extends BaseScript<
     ]);
     const acquired = await this.repository.customer.acquireActiveRevision(
       params.customerId,
-      params.expectedRevision
+      params.expectedRevision,
     );
     if (acquired.status !== "acquired") {
       return failedAddressMutation(revisionAcquireError(acquired));
@@ -161,43 +143,29 @@ export class StorefrontCustomerAddressUpdateScript extends BaseScript<
     const updated = await this.repository.address.updateOwned(
       params.customerId,
       params.addressId,
-      addressPatch(params.address)
+      addressPatch(params.address),
     );
     if (!updated) throw new Error("Owned address disappeared during update");
 
-    if (
-      typeof params.defaultShipping === "boolean" ||
-      typeof params.defaultBilling === "boolean"
-    ) {
-      const defaultsUpdated = await this.repository.address.setDefaults(
-        params.customerId,
-        {
-          shippingAddressId: selectDefault(
-            shipping?.id ?? null,
-            params.addressId,
-            params.defaultShipping
-          ),
-          billingAddressId: selectDefault(
-            billing?.id ?? null,
-            params.addressId,
-            params.defaultBilling
-          ),
-        }
-      );
+    if (typeof params.defaultShipping === "boolean" || typeof params.defaultBilling === "boolean") {
+      const defaultsUpdated = await this.repository.address.setDefaults(params.customerId, {
+        shippingAddressId: selectDefault(
+          shipping?.id ?? null,
+          params.addressId,
+          params.defaultShipping,
+        ),
+        billingAddressId: selectDefault(
+          billing?.id ?? null,
+          params.addressId,
+          params.defaultBilling,
+        ),
+      });
       if (!defaultsUpdated) throw new Error("Address defaults could not be set");
     }
 
-    await this.invalidateDynamicSegments(
-      params.customerId,
-      ["address"],
-      "storefrontAddressUpdate",
-    );
+    await this.invalidateDynamicSegments(params.customerId, ["address"], "storefrontAddressUpdate");
 
-    return successfulAddressMutation(
-      updated.id,
-      acquired.customer.id,
-      acquired.customer.revision
-    );
+    return successfulAddressMutation(updated.id, acquired.customer.id, acquired.customer.revision);
   }
 
   protected handleError(_error: unknown): StorefrontCustomerAddressUpdateResult {
@@ -211,40 +179,31 @@ export class StorefrontCustomerAddressDeleteScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: StorefrontCustomerAddressDeleteParams
+    params: StorefrontCustomerAddressDeleteParams,
   ): Promise<StorefrontCustomerAddressDeleteResult> {
     const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
     if (revisionError) return failedAddressDelete(revisionError);
     const current = await this.repository.address.findOwnedById(
       params.customerId,
-      params.addressId
+      params.addressId,
     );
     if (!current) {
       return failedAddressDelete(
-        storefrontError("NOT_FOUND", "Address was not found", ["addressId"])
+        storefrontError("NOT_FOUND", "Address was not found", ["addressId"]),
       );
     }
 
     const acquired = await this.repository.customer.acquireActiveRevision(
       params.customerId,
-      params.expectedRevision
+      params.expectedRevision,
     );
     if (acquired.status !== "acquired") {
       return failedAddressDelete(revisionAcquireError(acquired));
     }
-    if (
-      !(await this.repository.address.softDeleteOwned(
-        params.customerId,
-        params.addressId
-      ))
-    ) {
+    if (!(await this.repository.address.softDeleteOwned(params.customerId, params.addressId))) {
       throw new Error("Owned address disappeared during delete");
     }
-    await this.invalidateDynamicSegments(
-      params.customerId,
-      ["address"],
-      "storefrontAddressDelete",
-    );
+    await this.invalidateDynamicSegments(params.customerId, ["address"], "storefrontAddressDelete");
     return {
       deletedAddressId: params.addressId,
       customer: customerReference(acquired.customer.id, acquired.customer.revision),
@@ -264,7 +223,7 @@ export class StorefrontCustomerAddressDefaultSetScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: StorefrontCustomerAddressDefaultSetParams
+    params: StorefrontCustomerAddressDefaultSetParams,
   ): Promise<StorefrontCustomerAddressDefaultSetResult> {
     const errors: StorefrontCustomerUserError[] = [];
     const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
@@ -272,37 +231,26 @@ export class StorefrontCustomerAddressDefaultSetScript extends BaseScript<
     const defaults = new Set(params.defaults);
     if (defaults.size === 0) {
       errors.push(
-        storefrontError(
-          "INVALID_DEFAULTS",
-          "At least one address default must be selected",
-          ["defaults"]
-        )
+        storefrontError("INVALID_DEFAULTS", "At least one address default must be selected", [
+          "defaults",
+        ]),
       );
     }
     if (defaults.size !== params.defaults.length) {
       errors.push(
-        storefrontError(
-          "DUPLICATE_DEFAULT",
-          "An address default can be selected only once",
-          ["defaults"]
-        )
+        storefrontError("DUPLICATE_DEFAULT", "An address default can be selected only once", [
+          "defaults",
+        ]),
       );
     }
     if ([...defaults].some((value) => !["SHIPPING", "BILLING"].includes(value))) {
-      errors.push(
-        storefrontError("INVALID_DEFAULTS", "Unknown address default", ["defaults"])
-      );
+      errors.push(storefrontError("INVALID_DEFAULTS", "Unknown address default", ["defaults"]));
     }
     if (
       params.addressId &&
-      !(await this.repository.address.findOwnedById(
-        params.customerId,
-        params.addressId
-      ))
+      !(await this.repository.address.findOwnedById(params.customerId, params.addressId))
     ) {
-      errors.push(
-        storefrontError("NOT_FOUND", "Address was not found", ["addressId"])
-      );
+      errors.push(storefrontError("NOT_FOUND", "Address was not found", ["addressId"]));
     }
     if (errors.length > 0) return failedCustomerMutation(...errors);
 
@@ -312,7 +260,7 @@ export class StorefrontCustomerAddressDefaultSetScript extends BaseScript<
     ]);
     const acquired = await this.repository.customer.acquireActiveRevision(
       params.customerId,
-      params.expectedRevision
+      params.expectedRevision,
     );
     if (acquired.status !== "acquired") {
       return failedCustomerMutation(revisionAcquireError(acquired));
@@ -320,11 +268,11 @@ export class StorefrontCustomerAddressDefaultSetScript extends BaseScript<
 
     const updated = await this.repository.address.setDefaults(params.customerId, {
       shippingAddressId: defaults.has("SHIPPING")
-        ? params.addressId ?? null
-        : shipping?.id ?? null,
+        ? (params.addressId ?? null)
+        : (shipping?.id ?? null),
       billingAddressId: defaults.has("BILLING")
-        ? params.addressId ?? null
-        : billing?.id ?? null,
+        ? (params.addressId ?? null)
+        : (billing?.id ?? null),
     });
     if (!updated) throw new Error("Address defaults could not be set");
     await this.invalidateDynamicSegments(
@@ -346,34 +294,27 @@ export class StorefrontCustomerAddressDefaultSetScript extends BaseScript<
 
 function validateAddressCommand(
   expectedRevision: number,
-  address: StorefrontCustomerAddressInput
+  address: StorefrontCustomerAddressInput,
 ): StorefrontCustomerUserError[] {
   const errors: StorefrontCustomerUserError[] = [];
   const revisionError = validateStorefrontExpectedRevision(expectedRevision);
   if (revisionError) errors.push(revisionError);
   for (const field of ["address1", "city", "countryCode"] as const) {
     if (!address[field]?.trim()) {
-      errors.push(
-        storefrontError("INVALID_VALUE", "Value cannot be empty", ["address", field])
-      );
+      errors.push(storefrontError("INVALID_VALUE", "Value cannot be empty", ["address", field]));
     }
   }
   if (!/^[A-Z]{2}$/i.test(address.countryCode.trim())) {
     errors.push(
-      storefrontError(
-        "INVALID_COUNTRY_CODE",
-        "Country code must contain two letters",
-        ["address", "countryCode"]
-      )
+      storefrontError("INVALID_COUNTRY_CODE", "Country code must contain two letters", [
+        "address",
+        "countryCode",
+      ]),
     );
   }
   if (address.phone && !/^\+[1-9][0-9]{6,14}$/.test(address.phone.trim())) {
     errors.push(
-      storefrontError(
-        "INVALID_PHONE",
-        "Phone number must use E.164 format",
-        ["address", "phone"]
-      )
+      storefrontError("INVALID_PHONE", "Phone number must use E.164 format", ["address", "phone"]),
     );
   }
   for (const [field, limit] of Object.entries({
@@ -394,20 +335,17 @@ function validateAddressCommand(
     const value = address[field];
     if (typeof value === "string" && [...value.trim()].length > limit) {
       errors.push(
-        storefrontError(
-          "INVALID_VALUE",
-          `Value must not exceed ${limit} characters`,
-          ["address", field]
-        )
+        storefrontError("INVALID_VALUE", `Value must not exceed ${limit} characters`, [
+          "address",
+          field,
+        ]),
       );
     }
   }
   return errors;
 }
 
-function addressPatch(
-  input: StorefrontCustomerAddressInput
-): CustomerAddressPatch & {
+function addressPatch(input: StorefrontCustomerAddressInput): CustomerAddressPatch & {
   address1: string;
   city: string;
   countryCode: string;
@@ -442,7 +380,7 @@ function nullable(value: string | null | undefined): string | null {
 function selectDefault(
   currentId: string | null,
   addressId: string,
-  desired: boolean | null | undefined
+  desired: boolean | null | undefined,
 ): string | null {
   if (typeof desired !== "boolean") return currentId;
   if (desired) return addressId;
@@ -456,7 +394,7 @@ function customerReference(id: string, revision: number): StorefrontCustomerRefe
 function successfulAddressMutation(
   addressId: string,
   customerId: string,
-  revision: number
+  revision: number,
 ): AddressMutationResult {
   return {
     customerAddress: { id: addressId },

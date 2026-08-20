@@ -27,10 +27,14 @@ export class Repository {
     this.shipments = new ShipmentRepository(db, this.txManager);
   }
 
-  static create(db: Database): Repository { return new Repository(db); }
+  static create(db: Database): Repository {
+    return new Repository(db);
+  }
 
   async generateUuidV7(): Promise<string> {
-    const rows = await this.txManager.getConnection().execute<{ id: string }>(sql`SELECT uuidv7() AS id`);
+    const rows = await this.txManager
+      .getConnection()
+      .execute<{ id: string }>(sql`SELECT uuidv7() AS id`);
     const id = rows[0]?.id;
     if (!id) throw new Error("PostgreSQL uuidv7() did not return an id");
     return id;

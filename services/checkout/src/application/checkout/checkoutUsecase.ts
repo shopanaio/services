@@ -23,7 +23,10 @@ import { RemoveDeliveryGroupRecipientUseCase } from "@src/application/usecases/r
 import { CreateCheckoutTagUseCase } from "@src/application/usecases/createCheckoutTagUseCase";
 import { UpdateCheckoutTagUseCase } from "@src/application/usecases/updateCheckoutTagUseCase";
 import { DeleteCheckoutTagUseCase } from "@src/application/usecases/deleteCheckoutTagUseCase";
-import { RemoveLoyaltyRedemptionUseCase, UpdateLoyaltyRedemptionUseCase } from "@src/application/usecases/updateLoyaltyRedemptionUseCase";
+import {
+  RemoveLoyaltyRedemptionUseCase,
+  UpdateLoyaltyRedemptionUseCase,
+} from "@src/application/usecases/updateLoyaltyRedemptionUseCase";
 import { GetCheckoutDtoByIdUseCase } from "@src/application/usecases/getCheckoutDtoByIdUseCase";
 import { GetCheckoutCompletionUseCase } from "@src/application/usecases/getCheckoutCompletionUseCase";
 import type {
@@ -79,12 +82,8 @@ export class CheckoutUsecase {
       ...baseDeps,
     });
 
-    this.getCheckoutDtoById = new GetCheckoutDtoByIdUseCase(
-      deps.checkoutMutationSnapshots,
-    );
-    this.getCheckoutCompletion = new GetCheckoutCompletionUseCase(
-      deps.checkoutMutationSnapshots,
-    );
+    this.getCheckoutDtoById = new GetCheckoutDtoByIdUseCase(deps.checkoutMutationSnapshots);
+    this.getCheckoutCompletion = new GetCheckoutCompletionUseCase(deps.checkoutMutationSnapshots);
 
     // Initialize lines use cases
     this.addCheckoutLines = new AddCheckoutLinesUseCase(baseDeps);
@@ -106,18 +105,12 @@ export class CheckoutUsecase {
     this.removePromoCode = new RemovePromoCodeUseCase(baseDeps);
 
     // Initialize delivery use cases
-    this.updateDeliveryGroupMethod = new UpdateDeliveryGroupMethodUseCase(
-      baseDeps
-    );
+    this.updateDeliveryGroupMethod = new UpdateDeliveryGroupMethodUseCase(baseDeps);
     this.addDeliveryAddress = new AddDeliveryAddressUseCase(baseDeps);
     this.updateDeliveryAddress = new UpdateDeliveryAddressUseCase(baseDeps);
     this.removeDeliveryAddress = new RemoveDeliveryAddressUseCase(baseDeps);
-    this.updateDeliveryGroupRecipient = new UpdateDeliveryGroupRecipientUseCase(
-      baseDeps
-    );
-    this.removeDeliveryGroupRecipient = new RemoveDeliveryGroupRecipientUseCase(
-      baseDeps
-    );
+    this.updateDeliveryGroupRecipient = new UpdateDeliveryGroupRecipientUseCase(baseDeps);
+    this.removeDeliveryGroupRecipient = new RemoveDeliveryGroupRecipientUseCase(baseDeps);
     this.createCheckoutTag = new CreateCheckoutTagUseCase(baseDeps);
     this.updateCheckoutTag = new UpdateCheckoutTagUseCase(baseDeps);
     this.deleteCheckoutTag = new DeleteCheckoutTagUseCase(baseDeps);

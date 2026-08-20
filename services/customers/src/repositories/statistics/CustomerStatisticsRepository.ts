@@ -1,15 +1,8 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  normalizeRelayPagination,
-  type RepositoryConnectionResult,
-} from "../connection.js";
+import { normalizeRelayPagination, type RepositoryConnectionResult } from "../connection.js";
 import {
   decodeCustomerGlobalId,
   decodeCustomerMonetaryStatisticsGlobalId,
@@ -41,19 +34,17 @@ export const customerMonetaryStatisticsRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerMonetaryStatistics", tieBreaker: "id" }
+  { name: "customerMonetaryStatistics", tieBreaker: "id" },
 );
 
 export type CustomerMonetaryStatisticsRelayInput = InferRelayInput<
   typeof customerMonetaryStatisticsRelayQuery
 >;
-export type CustomerMonetaryStatisticsConnectionInput =
-  CustomerMonetaryStatisticsRelayInput & { customerId: string };
+export type CustomerMonetaryStatisticsConnectionInput = CustomerMonetaryStatisticsRelayInput & {
+  customerId: string;
+};
 
-export type CustomerStatisticsUpsertData = Omit<
-  NewCustomerStatistics,
-  "storeId" | "updatedAt"
->;
+export type CustomerStatisticsUpsertData = Omit<NewCustomerStatistics, "storeId" | "updatedAt">;
 export type CustomerMonetaryStatisticsUpsertData = Omit<
   NewCustomerMonetaryStatistics,
   "id" | "storeId" | "updatedAt"
@@ -198,9 +189,10 @@ export class CustomerStatisticsRepository extends BaseRepository {
         (row): row is typeof row & { completedAt: string } =>
           row.status === "COMPLETED" && row.completedAt !== null,
       )
-      .sort((left, right) =>
-        left.completedAt.localeCompare(right.completedAt) ||
-        left.orderId.localeCompare(right.orderId),
+      .sort(
+        (left, right) =>
+          left.completedAt.localeCompare(right.completedAt) ||
+          left.orderId.localeCompare(right.orderId),
       );
     const first = completedOrders[0] ?? null;
     const last = completedOrders[completedOrders.length - 1] ?? null;
@@ -221,10 +213,7 @@ export class CustomerStatisticsRepository extends BaseRepository {
       lastCheckoutAt,
     });
 
-    const monetary = new Map<
-      string,
-      { ordersCount: number; spent: bigint; refunded: bigint }
-    >();
+    const monetary = new Map<string, { ordersCount: number; spent: bigint; refunded: bigint }>();
     for (const order of orders) {
       if (order.status !== "COMPLETED") continue;
       const entry = monetary.get(order.currencyCode) ?? {
@@ -273,12 +262,7 @@ export class CustomerStatisticsRepository extends BaseRepository {
     const rows = await this.connection
       .select({ id: customer.id })
       .from(customer)
-      .where(
-        and(
-          eq(customer.storeId, this.storeId),
-          eq(customer.id, customerId),
-        ),
-      )
+      .where(and(eq(customer.storeId, this.storeId), eq(customer.id, customerId)))
       .limit(1);
     return rows.length > 0;
   }
@@ -290,8 +274,8 @@ export class CustomerStatisticsRepository extends BaseRepository {
       .where(
         and(
           eq(customerStatistics.storeId, this.storeId),
-          eq(customerStatistics.customerId, customerId)
-        )
+          eq(customerStatistics.customerId, customerId),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -306,8 +290,8 @@ export class CustomerStatisticsRepository extends BaseRepository {
       .where(
         and(
           eq(customerStatistics.storeId, this.storeId),
-          inArray(customerStatistics.customerId, [...new Set(customerIds)])
-        )
+          inArray(customerStatistics.customerId, [...new Set(customerIds)]),
+        ),
       );
   }
 
@@ -319,8 +303,8 @@ export class CustomerStatisticsRepository extends BaseRepository {
       .where(
         and(
           eq(customerMonetaryStatistics.storeId, this.storeId),
-          eq(customerMonetaryStatistics.id, id)
-        )
+          eq(customerMonetaryStatistics.id, id),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -335,36 +319,34 @@ export class CustomerStatisticsRepository extends BaseRepository {
       .where(
         and(
           eq(customerMonetaryStatistics.storeId, this.storeId),
-          inArray(customerMonetaryStatistics.id, [...new Set(ids)])
-        )
+          inArray(customerMonetaryStatistics.id, [...new Set(ids)]),
+        ),
       );
   }
 
-  async upsertStatistics(
-    data: CustomerStatisticsUpsertData
-  ): Promise<CustomerStatistics> {
+  async upsertStatistics(data: CustomerStatisticsUpsertData): Promise<CustomerStatistics> {
     const updatedAt = new Date().toISOString();
     const current = await this.findByCustomerId(data.customerId);
     const rows = current
       ? await this.connection
-        .update(customerStatistics)
-        .set({ ...data, updatedAt })
-        .where(
-          and(
-            eq(customerStatistics.storeId, this.storeId),
-            eq(customerStatistics.customerId, data.customerId)
+          .update(customerStatistics)
+          .set({ ...data, updatedAt })
+          .where(
+            and(
+              eq(customerStatistics.storeId, this.storeId),
+              eq(customerStatistics.customerId, data.customerId),
+            ),
           )
-        )
-        .returning()
+          .returning()
       : await this.connection
-        .insert(customerStatistics)
-        .values({ ...data, storeId: this.storeId, updatedAt })
-        .returning();
+          .insert(customerStatistics)
+          .values({ ...data, storeId: this.storeId, updatedAt })
+          .returning();
     return rows[0];
   }
 
   async upsertMonetary(
-    data: CustomerMonetaryStatisticsUpsertData
+    data: CustomerMonetaryStatisticsUpsertData,
   ): Promise<CustomerMonetaryStatistics> {
     const updatedAt = new Date().toISOString();
     const row: NewCustomerMonetaryStatistics = {
@@ -374,47 +356,41 @@ export class CustomerStatisticsRepository extends BaseRepository {
       currencyCode: data.currencyCode.toUpperCase(),
       updatedAt,
     };
-    const current = await this.findMonetaryByCustomerAndCurrency(
-      data.customerId,
-      row.currencyCode
-    );
+    const current = await this.findMonetaryByCustomerAndCurrency(data.customerId, row.currencyCode);
     const rows = current
       ? await this.connection
-        .update(customerMonetaryStatistics)
-        .set({
-          ordersCount: row.ordersCount,
-          totalSpentMinor: row.totalSpentMinor,
-          totalRefundedMinor: row.totalRefundedMinor,
-          netSpentMinor: row.netSpentMinor,
-          averageOrderValueMinor: row.averageOrderValueMinor,
-          updatedAt,
-        })
-        .where(
-          and(
-            eq(customerMonetaryStatistics.storeId, this.storeId),
-            eq(customerMonetaryStatistics.id, current.id)
+          .update(customerMonetaryStatistics)
+          .set({
+            ordersCount: row.ordersCount,
+            totalSpentMinor: row.totalSpentMinor,
+            totalRefundedMinor: row.totalRefundedMinor,
+            netSpentMinor: row.netSpentMinor,
+            averageOrderValueMinor: row.averageOrderValueMinor,
+            updatedAt,
+          })
+          .where(
+            and(
+              eq(customerMonetaryStatistics.storeId, this.storeId),
+              eq(customerMonetaryStatistics.id, current.id),
+            ),
           )
-        )
-        .returning()
-      : await this.connection
-        .insert(customerMonetaryStatistics)
-        .values(row)
-        .returning();
+          .returning()
+      : await this.connection.insert(customerMonetaryStatistics).values(row).returning();
     return rows[0];
   }
 
   @Transactional()
   async replaceMonetaryForCustomer(
     customerId: string,
-    rows: readonly Omit<CustomerMonetaryStatisticsUpsertData, "customerId">[]
+    rows: readonly Omit<CustomerMonetaryStatisticsUpsertData, "customerId">[],
   ): Promise<CustomerMonetaryStatistics[]> {
     await this.connection
       .delete(customerMonetaryStatistics)
       .where(
         and(
           eq(customerMonetaryStatistics.storeId, this.storeId),
-          eq(customerMonetaryStatistics.customerId, customerId)
-        )
+          eq(customerMonetaryStatistics.customerId, customerId),
+        ),
       );
     const result: CustomerMonetaryStatistics[] = [];
     for (const row of rows) {
@@ -486,7 +462,7 @@ export class CustomerStatisticsRepository extends BaseRepository {
 
   @ReadOnly()
   async getMonetaryConnection(
-    input: CustomerMonetaryStatisticsConnectionInput
+    input: CustomerMonetaryStatisticsConnectionInput,
   ): Promise<RepositoryConnectionResult> {
     const normalized = normalizeRelayPagination(input);
     const { customerId, where, orderBy, ...pagination } = normalized;
@@ -524,7 +500,7 @@ export class CustomerStatisticsRepository extends BaseRepository {
 
   private async findMonetaryByCustomerAndCurrency(
     customerId: string,
-    currencyCode: string
+    currencyCode: string,
   ): Promise<CustomerMonetaryStatistics | null> {
     const rows = await this.connection
       .select()
@@ -533,8 +509,8 @@ export class CustomerStatisticsRepository extends BaseRepository {
         and(
           eq(customerMonetaryStatistics.storeId, this.storeId),
           eq(customerMonetaryStatistics.customerId, customerId),
-          eq(customerMonetaryStatistics.currencyCode, currencyCode)
-        )
+          eq(customerMonetaryStatistics.currencyCode, currencyCode),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;

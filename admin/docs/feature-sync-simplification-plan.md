@@ -3,6 +3,7 @@
 ## Проблема
 
 Текущий `FeaturesSyncScript` (~500 строк) слишком сложный из-за обхода unique constraints:
+
 - Two-phase updates (offset + final)
 - Temp slugs для избежания конфликтов
 - Сложный порядок операций (UPDATE → DELETE vs DELETE → UPDATE)
@@ -81,6 +82,7 @@ ALTER TABLE inventory.product_feature_value
 ```
 
 **Преимущества `int[]` над `text`:**
+
 - Нативная сортировка PostgreSQL: `ORDER BY index` работает корректно
 - Нет парсинга строк — `index[1:array_length(index,1)-1]` для parent
 - GIN index для поиска по prefix (если нужно)
@@ -114,35 +116,22 @@ export const productFeature = inventorySchema.table(
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
-    index: integer("index").array().notNull(),  // int[] — tree position
+    index: integer("index").array().notNull(), // int[] — tree position
     isGroup: boolean("is_group").notNull().default(false),
-    parentId: uuid("parent_id").references(
-      (): AnyPgColumn => productFeature.id,
-      { onDelete: "cascade" }
-    ),
+    parentId: uuid("parent_id").references((): AnyPgColumn => productFeature.id, {
+      onDelete: "cascade",
+    }),
   },
   (table) => [
-    check(
-      "feature_group_no_parent",
-      sql`${table.isGroup} = false OR ${table.parentId} IS NULL`
-    ),
-    check(
-      "feature_index_not_empty",
-      sql`array_length(${table.index}, 1) > 0`
-    ),
+    check("feature_group_no_parent", sql`${table.isGroup} = false OR ${table.parentId} IS NULL`),
+    check("feature_index_not_empty", sql`array_length(${table.index}, 1) > 0`),
     check(
       "feature_group_root_only",
-      sql`${table.isGroup} = false OR array_length(${table.index}, 1) = 1`
+      sql`${table.isGroup} = false OR array_length(${table.index}, 1) = 1`,
     ),
-    index("product_feature_sort_idx").on(
-      table.productId,
-      table.index
-    ),
-    unique("product_feature_product_id_index_uniq").on(
-      table.productId,
-      table.index
-    ),
-  ]
+    index("product_feature_sort_idx").on(table.productId, table.index),
+    unique("product_feature_product_id_index_uniq").on(table.productId, table.index),
+  ],
 );
 
 export const productFeatureValue = inventorySchema.table(
@@ -153,19 +142,17 @@ export const productFeatureValue = inventorySchema.table(
     featureId: uuid("feature_id")
       .notNull()
       .references(() => productFeature.id, { onDelete: "cascade" }),
-    index: integer("index").notNull(),  // position within feature: 0, 1, 2, ...
+    index: integer("index").notNull(), // position within feature: 0, 1, 2, ...
   },
   (table) => [
     index("idx_product_feature_value_feature_id").on(table.featureId),
-    unique("product_feature_value_feature_id_index_uniq").on(
-      table.featureId,
-      table.index
-    ),
-  ]
+    unique("product_feature_value_feature_id_index_uniq").on(table.featureId, table.index),
+  ],
 );
 ```
 
 **Что убрали:**
+
 - `slug` из ProductFeature и ProductFeatureValue
 - `sort_index` из ProductFeature → заменён на `index: int[]`
 - `sort_index` из ProductFeatureValue → переименован в `index: int`
@@ -173,12 +160,14 @@ export const productFeatureValue = inventorySchema.table(
 - Partial unique indexes
 
 **Что добавили:**
+
 - `index: integer[].notNull()` — tree position как массив
 - `check("feature_index_not_empty")` — index не может быть пустым
 - `check("feature_group_root_only")` — группы только на root (length = 1)
 - `unique` на `(product_id, index)` — в миграции DEFERRABLE
 
 **Что оставили:**
+
 - `check("feature_group_no_parent")` — группы не могут иметь parent
 - `index("idx_product_feature_value_feature_id")` — для JOIN
 
@@ -189,20 +178,26 @@ export const productFeatureValue = inventorySchema.table(
 **Файл:** `services/inventory/src/api/graphql-admin/schema/features.graphql`
 
 ```graphql
-"""A product feature represents either a group or an attribute."""
+"""
+A product feature represents either a group or an attribute.
+"""
 type ProductFeature implements Node @key(fields: "id") {
   id: ID!
-  """Tree position as array: [0] for root, [0, 1] for child of first group."""
+  """
+  Tree position as array: [0] for root, [0, 1] for child of first group.
+  """
   index: [Int!]!
   isGroup: Boolean!
-  name: String!           # из translations
+  name: String! # из translations
   parent: ProductFeature
   children: [ProductFeature!]!
   values: [ProductFeatureValue!]!
 }
 
 input ProductFeatureSyncItemInput {
-  """Database ID. Null for new records."""
+  """
+  Database ID. Null for new records.
+  """
   id: ID
   """
   Tree position as integer array.
@@ -219,23 +214,29 @@ input ProductFeatureSyncItemInput {
 
 type ProductFeatureValue implements Node @key(fields: "id") {
   id: ID!
-  index: Int!             # position: 0, 1, 2, ...
-  name: String!           # из translations
+  index: Int! # position: 0, 1, 2, ...
+  name: String! # из translations
 }
 
 input ProductFeatureValueSyncInput {
-  """Database ID. Null for new records."""
+  """
+  Database ID. Null for new records.
+  """
   id: ID
-  """Position within the feature's values (0, 1, 2, ...)"""
+  """
+  Position within the feature's values (0, 1, 2, ...)
+  """
   index: Int!
   name: String!
 }
 ```
 
 **Убрано:**
+
 - `slug` из ProductFeature и ProductFeatureValue
 
 **Новый контракт `index`:**
+
 - `[0]`, `[1]`, `[2]` — root items (группы или standalone атрибуты)
 - `[0, 0]`, `[0, 1]`, `[1, 0]` — children (атрибуты внутри групп)
 - Parent вычисляется: `[0, 1].slice(0, -1)` = `[0]`
@@ -264,7 +265,6 @@ interface ResolvedFeature {
 }
 
 export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyncResult> {
-
   @Transactional()
   protected async execute(params: FeatureSyncParams): Promise<FeatureSyncResult> {
     // ═══════════════════════════════════════════════════════════════════
@@ -342,7 +342,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
    */
   private async resolveFeatures(
     productId: string,
-    features: ValidatedFeatureInput[]
+    features: ValidatedFeatureInput[],
   ): Promise<ResolvedFeature[]> {
     const indexKeyToDbId = new Map<string, string>();
 
@@ -419,7 +419,9 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
         await this.repository.feature.updateValue(featureId, value.id, { index: value.index });
         valueId = value.id;
       } else {
-        const created = await this.repository.feature.createValue(featureId, { index: value.index });
+        const created = await this.repository.feature.createValue(featureId, {
+          index: value.index,
+        });
         valueId = created.id;
       }
 
@@ -443,6 +445,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
 ```
 
 **Что изменилось:**
+
 - `index` теперь `number[]` вместо `string`
 - Позиция внутри parent: `index[index.length - 1]`
 - `indexToKey()` для использования массива как ключа Map
@@ -574,6 +577,7 @@ ALTER TABLE inventory.product_feature_value_translation
 ## 8. Что удалить
 
 После рефакторинга удалить:
+
 - `offsetSortIndexes()` из FeatureRepository
 - Все проверки на `slug` в валидации
 - `seenSlugs` логику из FeaturesSyncScript
@@ -582,26 +586,26 @@ ALTER TABLE inventory.product_feature_value_translation
 
 ## Сравнение
 
-| Метрика | До | После |
-|---------|-----|-------|
-| Строк кода (script) | ~500 | ~100 |
-| Строк кода (валидация) | inline ~200 | 3 модуля ~180 |
-| Unique constraints | 3 | 2 (DEFERRABLE) |
-| Two-phase updates | Да | Нет |
-| Temp slugs | Да | Нет |
-| Edge cases | Много | Нет |
-| Колонки в БД (feature) | 7 | 5 (`id`, `storeId`, `productId`, `index`, `isGroup`, `parentId`) |
-| Колонки в БД (value) | 5 | 4 (`id`, `storeId`, `featureId`, `index`) |
-| Feature.index | — | `int[]` |
-| Value.index | — | `int` |
-| Сортировка | Ручная | PostgreSQL `ORDER BY index` |
-| Forward references | Не поддерживает | Автоматически |
-| Мутация input | Да | Нет (immutable) |
-| Валидация | Inline в script | 3-layer модульная |
-| Zod schema | Нет | Да |
-| DB queries в валидации | N+1 | 2 batch queries |
-| Error paths | Иногда tree index | Всегда array index |
-| Тестируемость валидации | Сложно (async) | Легко (2 sync + 1 async) |
+| Метрика                 | До                | После                                                            |
+| ----------------------- | ----------------- | ---------------------------------------------------------------- |
+| Строк кода (script)     | ~500              | ~100                                                             |
+| Строк кода (валидация)  | inline ~200       | 3 модуля ~180                                                    |
+| Unique constraints      | 3                 | 2 (DEFERRABLE)                                                   |
+| Two-phase updates       | Да                | Нет                                                              |
+| Temp slugs              | Да                | Нет                                                              |
+| Edge cases              | Много             | Нет                                                              |
+| Колонки в БД (feature)  | 7                 | 5 (`id`, `storeId`, `productId`, `index`, `isGroup`, `parentId`) |
+| Колонки в БД (value)    | 5                 | 4 (`id`, `storeId`, `featureId`, `index`)                        |
+| Feature.index           | —                 | `int[]`                                                          |
+| Value.index             | —                 | `int`                                                            |
+| Сортировка              | Ручная            | PostgreSQL `ORDER BY index`                                      |
+| Forward references      | Не поддерживает   | Автоматически                                                    |
+| Мутация input           | Да                | Нет (immutable)                                                  |
+| Валидация               | Inline в script   | 3-layer модульная                                                |
+| Zod schema              | Нет               | Да                                                               |
+| DB queries в валидации  | N+1               | 2 batch queries                                                  |
+| Error paths             | Иногда tree index | Всегда array index                                               |
+| Тестируемость валидации | Сложно (async)    | Легко (2 sync + 1 async)                                         |
 
 ---
 
@@ -626,12 +630,14 @@ ProductFeatureValue:
 ```
 
 **Constraints (ProductFeature):**
+
 - `UNIQUE (product_id, index) DEFERRABLE INITIALLY DEFERRED`
 - `CHECK (array_length(index, 1) > 0)` — index не пустой
 - `CHECK (is_group = false OR array_length(index, 1) = 1)` — группы только root
 - `CHECK (is_group = false OR parent_id IS NULL)` — группы без родителя
 
 **Constraints (ProductFeatureValue):**
+
 - `UNIQUE (feature_id, index) DEFERRABLE INITIALLY DEFERRED`
 
 **Никаких slug — только ID, index и name из translations.**
@@ -641,6 +647,7 @@ ProductFeatureValue:
 ## План выполнения
 
 ### Phase 1: Database & Models
+
 1. [ ] Проверить использование `slug` в фронтенде/API (breaking change?)
 2. [ ] Создать миграцию `0005_simplify_features.sql`:
    - Удалить `slug` из features и values
@@ -650,6 +657,7 @@ ProductFeatureValue:
 4. [ ] Обновить модель `features.ts`
 
 ### Phase 2: GraphQL Schema
+
 5. [ ] Обновить GraphQL schema:
    - Удалить `slug` везде
    - Добавить `index: [Int!]!` для features
@@ -658,12 +666,14 @@ ProductFeatureValue:
 7. [ ] Обновить FeatureValueResolver (удалить slug)
 
 ### Phase 3: Validation (новые файлы)
+
 8. [ ] Создать `validation/schema.ts` — Zod schemas для структурной валидации
 9. [ ] Создать `validation/semantic.ts` — бизнес-правила без БД
 10. [ ] Создать `validation/database.ts` — проверки принадлежности ID
 11. [ ] Создать `validation/index.ts` — re-export
 
 ### Phase 4: Repository & Script
+
 12. [ ] Добавить методы в repository:
     - `findByIds(productId, ids)`
     - `findValueIdsByFeatureIds(featureIds)`
@@ -675,6 +685,7 @@ ProductFeatureValue:
 15. [ ] Удалить `offsetSortIndexes` из repository
 
 ### Phase 5: Frontend & Testing
+
 16. [ ] Обновить фронтенд — генерировать tree index
 17. [ ] Запустить тесты
 18. [ ] Применить миграцию
@@ -684,6 +695,7 @@ ProductFeatureValue:
 ## Ключевые улучшения валидации
 
 ### Index формат (`int[]`)
+
 ```
 Root items:   [0], [1], [2], [3]
 Children:     [0, 0], [0, 1], [1, 0], [2, 0], [2, 1]
@@ -918,13 +930,19 @@ function validateValues(
   values: ValidatedValueInput[],
   featureArrayIdx: number,
   globalValueIds: Set<string>,
-  errors: UserError[]
+  errors: UserError[],
 ): void {
   const localIndexes = new Set<number>();
 
   for (let i = 0; i < values.length; i++) {
     const v = values[i];
-    const path = (field: string) => ["features", String(featureArrayIdx), "values", String(i), field];
+    const path = (field: string) => [
+      "features",
+      String(featureArrayIdx),
+      "values",
+      String(i),
+      field,
+    ];
 
     // Уникальность value id глобально
     if (v.id) {
@@ -980,7 +998,7 @@ interface DbValidationContext {
 export async function loadDbContext(
   repository: FeatureRepository,
   productId: string,
-  features: ValidatedFeatureInput[]
+  features: ValidatedFeatureInput[],
 ): Promise<DbValidationContext> {
   const featureIds = features.flatMap((f) => (f.id ? [f.id] : []));
   const existing = await repository.findByIds(productId, featureIds);
@@ -992,9 +1010,7 @@ export async function loadDbContext(
 
   return {
     existingById: new Map(existing.map((f) => [f.id, f])),
-    valueIdsByFeatureId: new Map(
-      Array.from(valueIdMap.entries()).map(([k, v]) => [k, new Set(v)])
-    ),
+    valueIdsByFeatureId: new Map(Array.from(valueIdMap.entries()).map(([k, v]) => [k, new Set(v)])),
   };
 }
 
@@ -1003,7 +1019,7 @@ export async function loadDbContext(
  */
 export function validateDatabase(
   features: ValidatedFeatureInput[],
-  ctx: DbValidationContext
+  ctx: DbValidationContext,
 ): UserError[] {
   const errors: UserError[] = [];
 
@@ -1076,7 +1092,6 @@ import { validateSemantic, parseTreeIndex } from "./validation/semantic.js";
 import { loadDbContext, validateDatabase } from "./validation/database.js";
 
 export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyncResult> {
-
   @Transactional()
   protected async execute(params: FeatureSyncParams): Promise<FeatureSyncResult> {
     // ═══════════════════════════════════════════════════════════════════
@@ -1155,6 +1170,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
 ---
 
 ### Immutable подход
+
 ```
 Input → Zod parse → ValidatedFeatureInput[]
                               ↓
@@ -1174,14 +1190,20 @@ Input → Zod parse → ValidatedFeatureInput[]
 ---
 
 ### Пример input
+
 ```json
 {
   "features": [
     { "index": [0], "isGroup": true, "name": "Размеры" },
-    { "index": [0, 0], "isGroup": false, "name": "Длина", "values": [
-      { "index": 0, "name": "100 см" },
-      { "index": 1, "name": "150 см" }
-    ]},
+    {
+      "index": [0, 0],
+      "isGroup": false,
+      "name": "Длина",
+      "values": [
+        { "index": 0, "name": "100 см" },
+        { "index": 1, "name": "150 см" }
+      ]
+    },
     { "index": [0, 1], "isGroup": false, "name": "Ширина" },
     { "index": [1], "isGroup": true, "name": "Материалы" },
     { "index": [1, 0], "isGroup": false, "name": "Основа" },
@@ -1194,4 +1216,5 @@ Input → Zod parse → ValidatedFeatureInput[]
 - `[0, 0]`, `[0, 1]` — дети группы `[0]` (Размеры)
 - `[1, 0]` — ребёнок группы `[1]` (Материалы)
 - `id` можно не указывать для новых записей
-- Сортировка: PostgreSQL `ORDER BY index` автоматически сортирует как `[0] < [0, 0] < [0, 1] < [1] < [1, 0] < [2]`
+- Сортировка: PostgreSQL `ORDER BY index` автоматически сортирует как
+  `[0] < [0, 0] < [0, 1] < [1] < [1, 0] < [2]`

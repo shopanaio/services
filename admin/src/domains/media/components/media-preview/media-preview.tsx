@@ -49,49 +49,38 @@ export function MediaPreview<T extends IPreviewItem>({
         }
         return { src: item.url };
       }),
-    [items]
+    [items],
   );
 
   // Custom render for preview - show ReactPlayer for videos
   const imageRender = useCallback(
-    (
-      originalNode: React.ReactElement,
-      info: { current: number }
-    ): React.ReactNode => {
+    (originalNode: React.ReactElement, info: { current: number }): React.ReactNode => {
       const item = items[info.current];
       if (!item) return originalNode;
 
       if (isVideoProvider(item.provider)) {
         return (
           <div className={styles.videoContainer}>
-            <ReactPlayer
-              src={item.url}
-              width="100%"
-              height="100%"
-              controls
-            />
+            <ReactPlayer src={item.url} width="100%" height="100%" controls />
           </div>
         );
       }
 
       return originalNode;
     },
-    [items]
+    [items],
   );
 
   // Custom toolbar - hide zoom/rotate for videos
   const actionsRender = useCallback(
-    (
-      originalNode: React.ReactElement,
-      info: { current: number }
-    ): React.ReactNode => {
+    (originalNode: React.ReactElement, info: { current: number }): React.ReactNode => {
       const item = items[info.current];
       if (isVideoProvider(item?.provider)) {
         return null;
       }
       return originalNode;
     },
-    [items]
+    [items],
   );
 
   if (!visible || items.length === 0) {
@@ -139,7 +128,7 @@ export function useMediaPreview<T extends IPreviewItem>(items: T[]) {
         open(index);
       }
     },
-    [items, open]
+    [items, open],
   );
 
   return {

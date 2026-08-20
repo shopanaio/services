@@ -1,9 +1,7 @@
 import { ListingType } from "./ListingType.js";
 import type { FacetValueCandidateView } from "../../repositories/facet/FacetRepository.js";
 
-export class FacetValueCandidateResolver extends ListingType<
-  FacetValueCandidateView
-> {
+export class FacetValueCandidateResolver extends ListingType<FacetValueCandidateView> {
   id() {
     return this.$props.id;
   }

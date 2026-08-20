@@ -28,7 +28,9 @@ import {
 export const discount = pricingSchema.table(
   "discount",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     method: discountMethodEnum("method").notNull(),
     calculationStrategy: discountCalculationStrategyEnum("calculation_strategy").notNull(),
@@ -39,22 +41,16 @@ export const discount = pricingSchema.table(
     currency: currencyCodeEnum("currency").notNull(),
     priority: integer("priority").notNull().default(0),
     usageLimit: bigint("usage_limit", { mode: "bigint" }),
-    appliesOncePerCustomer: boolean("applies_once_per_customer")
-      .notNull()
-      .default(false),
-    appliesOnOneTimePurchase: boolean("applies_on_one_time_purchase")
-      .notNull()
-      .default(true),
-    appliesOnSubscription: boolean("applies_on_subscription")
-      .notNull()
-      .default(false),
-    startsAt: timestamp("starts_at", { withTimezone: true, mode: "string" })
-      .notNull()
-      .defaultNow(),
+    appliesOncePerCustomer: boolean("applies_once_per_customer").notNull().default(false),
+    appliesOnOneTimePurchase: boolean("applies_on_one_time_purchase").notNull().default(true),
+    appliesOnSubscription: boolean("applies_on_subscription").notNull().default(false),
+    startsAt: timestamp("starts_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
     endsAt: timestamp("ends_at", { withTimezone: true, mode: "string" }),
     revision: integer("revision").notNull().default(0),
     createdById: text("created_by_id"),
-    metadata: jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
+    metadata: jsonb("metadata")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -110,10 +106,7 @@ export const discount = pricingSchema.table(
       "discount_archive_time_check",
       sql`${table.archivedAt} IS NULL OR ${table.archivedAt} >= ${table.createdAt}`,
     ),
-    check(
-      "discount_metadata_object_check",
-      sql`jsonb_typeof(${table.metadata}) = 'object'`,
-    ),
+    check("discount_metadata_object_check", sql`jsonb_typeof(${table.metadata}) = 'object'`),
     index("discount_store_state_schedule_idx").on(
       table.storeId,
       table.state,
@@ -139,17 +132,22 @@ export const discount = pricingSchema.table(
 export const discountCode = pricingSchema.table(
   "discount_code",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     discountId: uuid("discount_id")
       .notNull()
       .references(() => discount.id, { onDelete: "cascade" }),
     code: varchar("code", { length: 255 }).notNull(),
-    normalizedCode: varchar("normalized_code", { length: 255 })
-      .generatedAlwaysAs(sql`upper(btrim(code))`),
+    normalizedCode: varchar("normalized_code", { length: 255 }).generatedAlwaysAs(
+      sql`upper(btrim(code))`,
+    ),
     status: discountCodeStatusEnum("status").notNull().default("ACTIVE"),
     usageLimit: bigint("usage_limit", { mode: "bigint" }),
-    metadata: jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
+    metadata: jsonb("metadata")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -162,23 +160,10 @@ export const discountCode = pricingSchema.table(
     }),
   },
   (table) => [
-    unique("discount_code_discount_id_id_unique").on(
-      table.discountId,
-      table.id,
-    ),
-    unique("discount_code_store_discount_id_unique").on(
-      table.storeId,
-      table.discountId,
-      table.id,
-    ),
-    unique("discount_code_store_normalized_unique").on(
-      table.storeId,
-      table.normalizedCode,
-    ),
-    check(
-      "discount_code_value_check",
-      sql`length(btrim(${table.code})) BETWEEN 1 AND 255`,
-    ),
+    unique("discount_code_discount_id_id_unique").on(table.discountId, table.id),
+    unique("discount_code_store_discount_id_unique").on(table.storeId, table.discountId, table.id),
+    unique("discount_code_store_normalized_unique").on(table.storeId, table.normalizedCode),
+    check("discount_code_value_check", sql`length(btrim(${table.code})) BETWEEN 1 AND 255`),
     check(
       "discount_code_usage_limit_check",
       sql`${table.usageLimit} IS NULL OR ${table.usageLimit} > 0`,
@@ -192,10 +177,7 @@ export const discountCode = pricingSchema.table(
       "discount_code_disabled_time_check",
       sql`${table.disabledAt} IS NULL OR ${table.disabledAt} >= ${table.createdAt}`,
     ),
-    check(
-      "discount_code_metadata_object_check",
-      sql`jsonb_typeof(${table.metadata}) = 'object'`,
-    ),
+    check("discount_code_metadata_object_check", sql`jsonb_typeof(${table.metadata}) = 'object'`),
     index("discount_code_discount_status_idx").on(
       table.storeId,
       table.discountId,
@@ -217,8 +199,9 @@ export const discountTag = pricingSchema.table(
       .notNull()
       .references(() => discount.id, { onDelete: "cascade" }),
     tag: varchar("tag", { length: 64 }).notNull(),
-    normalizedTag: varchar("normalized_tag", { length: 64 })
-      .generatedAlwaysAs(sql`lower(btrim(tag))`),
+    normalizedTag: varchar("normalized_tag", { length: 64 }).generatedAlwaysAs(
+      sql`lower(btrim(tag))`,
+    ),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -228,15 +211,8 @@ export const discountTag = pricingSchema.table(
       name: "discount_tag_pkey",
       columns: [table.discountId, table.normalizedTag],
     }),
-    check(
-      "discount_tag_value_check",
-      sql`length(btrim(${table.tag})) BETWEEN 1 AND 64`,
-    ),
-    index("discount_tag_store_lookup_idx").on(
-      table.storeId,
-      table.normalizedTag,
-      table.discountId,
-    ),
+    check("discount_tag_value_check", sql`length(btrim(${table.tag})) BETWEEN 1 AND 64`),
+    index("discount_tag_store_lookup_idx").on(table.storeId, table.normalizedTag, table.discountId),
   ],
 );
 

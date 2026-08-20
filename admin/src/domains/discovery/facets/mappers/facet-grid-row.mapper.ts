@@ -1,9 +1,6 @@
 import type { ApiFacetSwatch } from "@/graphql/types";
 import { FacetType } from "@/graphql/types";
-import type {
-  FacetGridFields,
-  FacetValueGridFields,
-} from "../graphql/operation-types";
+import type { FacetGridFields, FacetValueGridFields } from "../graphql/operation-types";
 
 export type FacetGridRowId = `facet:${string}`;
 
@@ -42,11 +39,7 @@ export function toFacetRowId(apiId: string): FacetGridRowId {
 }
 
 export function isDiscreteFacetType(type: FacetType | undefined): boolean {
-  return (
-    type === FacetType.Tag ||
-    type === FacetType.Feature ||
-    type === FacetType.Option
-  );
+  return type === FacetType.Tag || type === FacetType.Feature || type === FacetType.Option;
 }
 
 function getFacetRow(facet: FacetGridFields, sortIndex: number): FacetGridRow {
@@ -83,9 +76,7 @@ function getFacetValueSourceHandles(value: FacetValueGridFields): string[] {
   return value.sourceValues.map((sourceValue) => sourceValue.handle);
 }
 
-function mapFacetValueToGridValue(
-  value: FacetValueGridFields,
-): FacetGridValue {
+function mapFacetValueToGridValue(value: FacetValueGridFields): FacetGridValue {
   const sourceHandles = getFacetValueSourceHandles(value);
 
   return {
@@ -102,9 +93,7 @@ function mapFacetValueToGridValue(
   };
 }
 
-export function apiFacetsToFacetGridRows(
-  facets: FacetGridFields[],
-): FacetGridRow[] {
+export function apiFacetsToFacetGridRows(facets: FacetGridFields[]): FacetGridRow[] {
   return [...facets]
     .sort((left, right) => {
       const rank = left.lexoRank.localeCompare(right.lexoRank);

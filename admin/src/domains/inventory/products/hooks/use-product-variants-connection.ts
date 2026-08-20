@@ -32,10 +32,7 @@ export async function fetchProductVariantsPage(
   client: ProductApolloClient,
   input: FetchProductVariantsPageInput,
 ): Promise<ApiVariantConnection> {
-  const result = await client.query<
-    ProductVariantsQueryData,
-    ProductVariantsQueryVariables
-  >({
+  const result = await client.query<ProductVariantsQueryData, ProductVariantsQueryVariables>({
     query: PRODUCT_VARIANTS_QUERY,
     variables: {
       id: input.productId,
@@ -48,9 +45,7 @@ export async function fetchProductVariantsPage(
   return result.data?.catalogQuery.product?.variants ?? EMPTY_VARIANT_CONNECTION;
 }
 
-export function getVariantsFromConnection(
-  connection: ApiVariantConnection,
-): ApiVariant[] {
+export function getVariantsFromConnection(connection: ApiVariantConnection): ApiVariant[] {
   return connection.edges.map((edge) => edge.node);
 }
 
@@ -89,9 +84,7 @@ export function useProductVariantsConnection({
   skip = false,
 }: UseProductVariantsConnectionOptions): UseProductVariantsConnectionReturn {
   const client = useApolloClient();
-  const [variants, setVariants] = useState<ApiVariantConnection>(
-    EMPTY_VARIANT_CONNECTION,
-  );
+  const [variants, setVariants] = useState<ApiVariantConnection>(EMPTY_VARIANT_CONNECTION);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -154,9 +147,7 @@ export function useProductVariantsConnection({
         }
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err instanceof Error ? err : new Error("Failed to load variants"),
-          );
+          setError(err instanceof Error ? err : new Error("Failed to load variants"));
         }
       } finally {
         if (!cancelled) {
@@ -181,17 +172,12 @@ export function useProductVariantsConnection({
     setError(null);
 
     try {
-      const connection = await fetchPage(
-        pageSize,
-        variants.pageInfo.endCursor ?? null,
-      );
+      const connection = await fetchPage(pageSize, variants.pageInfo.endCursor ?? null);
 
       setVariants((current) => appendVariantConnection(current, connection));
       return connection;
     } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error("Failed to load more variants"),
-      );
+      setError(err instanceof Error ? err : new Error("Failed to load more variants"));
       return null;
     } finally {
       setLoading(false);

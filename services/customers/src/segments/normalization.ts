@@ -26,7 +26,8 @@ export const SEGMENT_NORMALIZATION_DATA = Object.freeze({
   localeImplementation: "shopana-bcp47-canonical-v1",
 });
 
-const UNICODE_WHITESPACE = /[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+/gu;
+const UNICODE_WHITESPACE =
+  /[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+/gu;
 
 export function normalizeUnicodeSearchValue(value: string): string {
   return fullUnicodeCaseFold(fullUnicodeNfkc(value))
@@ -189,7 +190,10 @@ function collapseUnicodeWhitespace(value: string): string {
 }
 
 function trimUnicodeWhitespace(value: string): string {
-  return value.replace(/^[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+|[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+$/gu, "");
+  return value.replace(
+    /^[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+|[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+$/gu,
+    "",
+  );
 }
 
 const GRANDFATHERED_TAGS = new Map<string, string>([

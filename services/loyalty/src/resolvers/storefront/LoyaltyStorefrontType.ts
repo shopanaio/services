@@ -13,7 +13,10 @@ import {
 import { requireStorefrontPermission, STOREFRONT_PERMISSIONS } from "@shopana/shared-context";
 import type { ServiceContext } from "../../context/types.js";
 import { AuthProvider } from "../../kernel/Authorizable.js";
-import { getStorefrontResolverRegistry, type StorefrontResolverRegistry } from "./ResolverRegistry.js";
+import {
+  getStorefrontResolverRegistry,
+  type StorefrontResolverRegistry,
+} from "./ResolverRegistry.js";
 
 export abstract class LoyaltyStorefrontType<TValue, TData = unknown>
   extends BaseType<TValue, TData, ServiceContext>

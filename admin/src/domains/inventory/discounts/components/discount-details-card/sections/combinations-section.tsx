@@ -1,13 +1,7 @@
 "use client";
 
 import { Button, Dropdown, Flex, Tag, Typography } from "antd";
-import {
-  LuBoxes,
-  LuEllipsis,
-  LuPackage,
-  LuReceiptText,
-  LuTruck,
-} from "react-icons/lu";
+import { LuBoxes, LuEllipsis, LuPackage, LuReceiptText, LuTruck } from "react-icons/lu";
 import type { ApiDiscount } from "@/graphql/types";
 import { DiscountClass } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
@@ -41,20 +35,14 @@ const COMBINATION_OPTIONS = [
   },
 ] as const;
 
-export function CombinationsSection({
-  discount,
-  onEdit,
-}: CombinationsSectionProps) {
+export function CombinationsSection({ discount, onEdit }: CombinationsSectionProps) {
   const { styles, cx } = useDiscountSectionStyles();
   const enabledClasses = new Set(
     discount.combinations.map((combination) => combination.discountClass),
   );
 
   return (
-    <Paper
-      className={styles.section}
-      data-testid="discount-combinations-section"
-    >
+    <Paper className={styles.section} data-testid="discount-combinations-section">
       <PaperHeader
         title="Combinations"
         className={styles.compactHeader}
@@ -100,18 +88,14 @@ export function CombinationsSection({
       ) : (
         <>
           <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
-            This discount can be combined with the following discounts in the
-            customer&apos;s cart.
+            This discount can be combined with the following discounts in the customer&apos;s cart.
           </Typography.Paragraph>
           <div className={styles.optionList}>
             {COMBINATION_OPTIONS.map((option) => {
               const enabled = enabledClasses.has(option.value);
               return (
                 <div
-                  className={cx(
-                    styles.option,
-                    enabled && styles.optionEnabled,
-                  )}
+                  className={cx(styles.option, enabled && styles.optionEnabled)}
                   key={option.value}
                 >
                   <Flex align="center" justify="space-between" gap={12}>
@@ -123,12 +107,8 @@ export function CombinationsSection({
                         tone={enabled ? "primaryOutline" : "neutral"}
                       />
                       <Flex vertical>
-                        <Typography.Text strong>
-                          {option.title}
-                        </Typography.Text>
-                        <Typography.Text type="secondary">
-                          {option.description}
-                        </Typography.Text>
+                        <Typography.Text strong>{option.title}</Typography.Text>
+                        <Typography.Text type="secondary">{option.description}</Typography.Text>
                       </Flex>
                     </Flex>
                     <Tag>0</Tag>

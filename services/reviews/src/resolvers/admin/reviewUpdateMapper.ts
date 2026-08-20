@@ -28,9 +28,7 @@ export interface ReviewUpdateMappingResult {
   errors: UserError[];
 }
 
-export function mapReviewUpdateInput(
-  input?: ReviewUpdateInput | null
-): ReviewUpdateMappingResult {
+export function mapReviewUpdateInput(input?: ReviewUpdateInput | null): ReviewUpdateMappingResult {
   const entries: ReviewUpdateMappedEntry[] = [];
 
   if (input?.content?.text) {
@@ -39,7 +37,7 @@ export function mapReviewUpdateInput(
         type: "contentUpdate",
         params: input.content.text,
         meta: { fieldPrefix: ["operations", "content", "text"] },
-      })
+      }),
     );
   }
 
@@ -52,14 +50,11 @@ export function mapReviewUpdateInput(
         input.content.author.customerId,
         GlobalIdEntity.Customer,
         [...fieldPrefix, "customerId"],
-        errors
+        errors,
       );
     }
     entries.push(
-      mappedEntry(
-        { type: "contentAuthorUpdate", params, meta: { fieldPrefix } },
-        errors
-      )
+      mappedEntry({ type: "contentAuthorUpdate", params, meta: { fieldPrefix } }, errors),
     );
   }
 
@@ -69,7 +64,7 @@ export function mapReviewUpdateInput(
         type: "contentSourceUpdate",
         params: input.content.source,
         meta: { fieldPrefix: ["operations", "content", "source"] },
-      })
+      }),
     );
   }
 
@@ -79,7 +74,7 @@ export function mapReviewUpdateInput(
         type: "contentModerationUpdate",
         params: input.content.moderation,
         meta: { fieldPrefix: ["operations", "content", "moderation"] },
-      })
+      }),
     );
   }
 
@@ -89,7 +84,7 @@ export function mapReviewUpdateInput(
         type: "contentTranslationsSync",
         params: { items: input.content.translations },
         meta: { fieldPrefix: ["operations", "content", "translations"] },
-      })
+      }),
     );
   }
 
@@ -99,7 +94,7 @@ export function mapReviewUpdateInput(
         type: "contentPublicationsSync",
         params: { items: input.content.publications },
         meta: { fieldPrefix: ["operations", "content", "publications"] },
-      })
+      }),
     );
   }
 
@@ -112,7 +107,7 @@ export function mapReviewUpdateInput(
         type: "reviewVerificationUpdate",
         params: input.verification,
         meta: { fieldPrefix: ["operations", "verification"] },
-      })
+      }),
     );
   }
 
@@ -122,7 +117,7 @@ export function mapReviewUpdateInput(
         type: "reviewIncentiveUpdate",
         params: input.incentive,
         meta: { fieldPrefix: ["operations", "incentive"] },
-      })
+      }),
     );
   }
 
@@ -141,7 +136,7 @@ export function mapReviewUpdateInput(
       item.replyId,
       GlobalIdEntity.ReviewReply,
       [...fieldPrefix, "replyId"],
-      errors
+      errors,
     );
     const operation: ReviewUpdateOperation = {
       type: "reviewReplyDelete",
@@ -155,9 +150,7 @@ export function mapReviewUpdateInput(
   }
 
   return {
-    operations: entries.flatMap((entry) =>
-      entry.operation ? [entry.operation] : []
-    ),
+    operations: entries.flatMap((entry) => (entry.operation ? [entry.operation] : [])),
     entries,
     errors: entries.flatMap((entry) => entry.errors),
   };
@@ -174,22 +167,12 @@ function mapSubject(input: ReviewSubjectUpdateInput): ReviewUpdateMappedEntry {
     ["orderLineId", GlobalIdEntity.OrderLine],
   ] as const) {
     if (!hasOwn(input, field)) continue;
-    params[field] = decodeOptionalId(
-      input[field],
-      type,
-      [...fieldPrefix, field],
-      errors
-    );
+    params[field] = decodeOptionalId(input[field], type, [...fieldPrefix, field], errors);
   }
-  return mappedEntry(
-    { type: "reviewSubjectUpdate", params, meta: { fieldPrefix } },
-    errors
-  );
+  return mappedEntry({ type: "reviewSubjectUpdate", params, meta: { fieldPrefix } }, errors);
 }
 
-function mapRating(
-  input: NonNullable<ReviewUpdateInput["rating"]>
-): ReviewUpdateMappedEntry {
+function mapRating(input: NonNullable<ReviewUpdateInput["rating"]>): ReviewUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "rating"];
   const params = {
@@ -201,19 +184,14 @@ function mapRating(
           item.criterionId,
           GlobalIdEntity.ReviewRatingCriterion,
           [...fieldPrefix, "criteria", String(index), "criterionId"],
-          errors
+          errors,
         ) ?? item.criterionId,
     })),
   };
-  return mappedEntry(
-    { type: "reviewRatingUpdate", params, meta: { fieldPrefix } },
-    errors
-  );
+  return mappedEntry({ type: "reviewRatingUpdate", params, meta: { fieldPrefix } }, errors);
 }
 
-function mapMedia(
-  input: NonNullable<ReviewUpdateInput["media"]>
-): ReviewUpdateMappedEntry {
+function mapMedia(input: NonNullable<ReviewUpdateInput["media"]>): ReviewUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "media"];
   const items = input.map((item, index) => ({
@@ -223,26 +201,19 @@ function mapMedia(
         item.fileId,
         GlobalIdEntity.File,
         [...fieldPrefix, String(index), "fileId"],
-        errors
+        errors,
       ) ?? item.fileId,
   }));
-  return mappedEntry(
-    { type: "reviewMediaSync", params: { items }, meta: { fieldPrefix } },
-    errors
-  );
+  return mappedEntry({ type: "reviewMediaSync", params: { items }, meta: { fieldPrefix } }, errors);
 }
 
 function mapReplyCreate(
   input: ReviewReplyCreateOperationInput,
-  index: number
+  index: number,
 ): ReviewUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "replies", "create", String(index)];
-  const content = mapContentCreateInput(
-    input.content,
-    [...fieldPrefix, "content"],
-    errors
-  );
+  const content = mapContentCreateInput(input.content, [...fieldPrefix, "content"], errors);
   const operation: ReviewUpdateOperation = {
     type: "reviewReplyCreate",
     params: { ...input, content },
@@ -256,7 +227,7 @@ function mapReplyCreate(
 
 function mapReplyUpdate(
   input: ReviewReplyUpdateOperationInput,
-  index: number
+  index: number,
 ): ReviewUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "replies", "update", String(index)];
@@ -264,12 +235,12 @@ function mapReplyUpdate(
     input.replyId,
     GlobalIdEntity.ReviewReply,
     [...fieldPrefix, "replyId"],
-    errors
+    errors,
   );
   const operations = mapContentUpdateInput(
     input.operations,
     [...fieldPrefix, "operations"],
-    errors
+    errors,
   );
   const operation: ReviewUpdateOperation = {
     type: "reviewReplyUpdate",
@@ -289,7 +260,7 @@ function mapReplyUpdate(
 function mapContentCreateInput(
   input: ReviewContentCreateInput,
   fieldPrefix: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): ReviewContentCreateInput {
   return {
     ...input,
@@ -299,7 +270,7 @@ function mapContentCreateInput(
         input.author.customerId,
         GlobalIdEntity.Customer,
         [...fieldPrefix, "author", "customerId"],
-        errors
+        errors,
       ),
     },
   };
@@ -308,7 +279,7 @@ function mapContentCreateInput(
 function mapContentUpdateInput(
   input: ReviewReplyUpdateOperationInput["operations"],
   fieldPrefix: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): ReviewReplyUpdateOperationInput["operations"] {
   const content: ReviewContentUpdateInput | null | undefined =
     input.content == null
@@ -319,7 +290,7 @@ function mapContentUpdateInput(
             ? mapContentAuthorUpdateInput(
                 input.content.author,
                 [...fieldPrefix, "content", "author"],
-                errors
+                errors,
               )
             : input.content.author,
         };
@@ -329,7 +300,7 @@ function mapContentUpdateInput(
 function mapContentAuthorUpdateInput(
   input: NonNullable<ReviewContentUpdateInput["author"]>,
   fieldPrefix: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): NonNullable<ReviewContentUpdateInput["author"]> {
   const result = { ...input };
   if (hasOwn(input, "customerId")) {
@@ -337,21 +308,19 @@ function mapContentAuthorUpdateInput(
       input.customerId,
       GlobalIdEntity.Customer,
       [...fieldPrefix, "customerId"],
-      errors
+      errors,
     );
   }
   return result;
 }
 
-function validEntry(
-  operation: ReviewUpdateOperation
-): ReviewUpdateMappedEntry {
+function validEntry(operation: ReviewUpdateOperation): ReviewUpdateMappedEntry {
   return { type: operation.type, operation, errors: [] };
 }
 
 function mappedEntry(
   operation: ReviewUpdateOperation,
-  errors: UserError[]
+  errors: UserError[],
 ): ReviewUpdateMappedEntry {
   return {
     type: operation.type,
@@ -364,18 +333,16 @@ function decodeOptionalId(
   value: string | null | undefined,
   expectedType: GlobalIdType,
   field: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): string | null | undefined {
-  return value == null
-    ? value
-    : decodeId(value, expectedType, field, errors);
+  return value == null ? value : decodeId(value, expectedType, field, errors);
 }
 
 function decodeId(
   globalId: string,
   expectedType: GlobalIdType,
   field: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): string | undefined {
   try {
     return decodeGlobalIdByType(globalId, expectedType);

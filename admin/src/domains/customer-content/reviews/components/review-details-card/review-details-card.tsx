@@ -42,7 +42,8 @@ export function ReviewDetailsCard({
   const confirmRedact = () => {
     modal.confirm({
       title: "Redact personal content?",
-      content: "Personal author data and redactable review content will be irreversibly replaced. This action cannot be undone.",
+      content:
+        "Personal author data and redactable review content will be irreversibly replaced. This action cannot be undone.",
       okText: "Redact",
       okButtonProps: { danger: true },
       onOk: onRedact,
@@ -52,7 +53,8 @@ export function ReviewDetailsCard({
   const confirmDelete = () => {
     modal.confirm({
       title: "Delete review?",
-      content: "The review will be archived with a soft delete and removed from active review surfaces.",
+      content:
+        "The review will be archived with a soft delete and removed from active review surfaces.",
       okText: "Delete",
       okButtonProps: { danger: true },
       onOk: onDelete,
@@ -74,7 +76,11 @@ export function ReviewDetailsCard({
       <ReviewRatingsSection review={review} onEdit={onEdit} />
       <ReviewMediaSection review={review} onEdit={onEdit} onOpenItem={onOpenMediaItem} />
       <ReviewRepliesSection review={review} />
-      <ReviewExternalReferencesSection review={review} onAdd={onAddExternalReference} onEdit={onEditExternalReference} />
+      <ReviewExternalReferencesSection
+        review={review}
+        onAdd={onAddExternalReference}
+        onEdit={onEditExternalReference}
+      />
     </Flex>
   );
 }

@@ -24,12 +24,7 @@ export class FeatureRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(productFeature)
-      .where(
-        and(
-          eq(productFeature.storeId, this.storeId),
-          eq(productFeature.id, id)
-        )
-      )
+      .where(and(eq(productFeature.storeId, this.storeId), eq(productFeature.id, id)))
       .limit(1);
 
     return result[0] ?? null;
@@ -44,8 +39,8 @@ export class FeatureRepository extends BaseRepository {
         and(
           eq(productFeature.storeId, this.storeId),
           eq(productFeature.productId, productId),
-          inArray(productFeature.id, ids)
-        )
+          inArray(productFeature.id, ids),
+        ),
       );
   }
 
@@ -53,12 +48,7 @@ export class FeatureRepository extends BaseRepository {
     return this.connection
       .select()
       .from(productFeature)
-      .where(
-        and(
-          eq(productFeature.storeId, this.storeId),
-          eq(productFeature.productId, productId)
-        )
-      )
+      .where(and(eq(productFeature.storeId, this.storeId), eq(productFeature.productId, productId)))
       .orderBy(productFeature.index);
   }
 
@@ -70,8 +60,8 @@ export class FeatureRepository extends BaseRepository {
         and(
           eq(productFeature.storeId, this.storeId),
           eq(productFeature.productId, productId),
-          eq(productFeature.slug, slug)
-        )
+          eq(productFeature.slug, slug),
+        ),
       )
       .limit(1);
 
@@ -87,8 +77,8 @@ export class FeatureRepository extends BaseRepository {
       .where(
         and(
           eq(productFeature.storeId, this.storeId),
-          inArray(productFeature.productId, productIds)
-        )
+          inArray(productFeature.productId, productIds),
+        ),
       )
       .orderBy(productFeature.index);
 
@@ -109,7 +99,7 @@ export class FeatureRepository extends BaseRepository {
       featured?: boolean;
       parentId?: string | null;
       index: number[];
-    }
+    },
   ): Promise<ProductFeature> {
     const id = await this.generateUuidV7();
 
@@ -124,10 +114,7 @@ export class FeatureRepository extends BaseRepository {
       parentId: data.parentId ?? null,
     };
 
-    const result = await this.connection
-      .insert(productFeature)
-      .values(newFeature)
-      .returning();
+    const result = await this.connection.insert(productFeature).values(newFeature).returning();
 
     return result[0];
   }
@@ -140,7 +127,7 @@ export class FeatureRepository extends BaseRepository {
       featured?: boolean;
       parentId?: string | null;
       index?: number[];
-    }
+    },
   ): Promise<ProductFeature | null> {
     const updateData: Partial<NewProductFeature> = {};
 
@@ -157,12 +144,7 @@ export class FeatureRepository extends BaseRepository {
     const result = await this.connection
       .update(productFeature)
       .set(updateData)
-      .where(
-        and(
-          eq(productFeature.storeId, this.storeId),
-          eq(productFeature.id, id)
-        )
-      )
+      .where(and(eq(productFeature.storeId, this.storeId), eq(productFeature.id, id)))
       .returning();
 
     return result[0] ?? null;
@@ -173,10 +155,7 @@ export class FeatureRepository extends BaseRepository {
       await this.connection
         .delete(productFeature)
         .where(
-          and(
-            eq(productFeature.storeId, this.storeId),
-            eq(productFeature.productId, productId)
-          )
+          and(eq(productFeature.storeId, this.storeId), eq(productFeature.productId, productId)),
         );
     } else {
       await this.connection
@@ -185,8 +164,8 @@ export class FeatureRepository extends BaseRepository {
           and(
             eq(productFeature.storeId, this.storeId),
             eq(productFeature.productId, productId),
-            notInArray(productFeature.id, keepIds)
-          )
+            notInArray(productFeature.id, keepIds),
+          ),
         );
     }
   }
@@ -194,12 +173,7 @@ export class FeatureRepository extends BaseRepository {
   async delete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(productFeature)
-      .where(
-        and(
-          eq(productFeature.storeId, this.storeId),
-          eq(productFeature.id, id)
-        )
-      )
+      .where(and(eq(productFeature.storeId, this.storeId), eq(productFeature.id, id)))
       .returning({ id: productFeature.id });
 
     return result.length > 0;
@@ -211,12 +185,7 @@ export class FeatureRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(productFeatureValue)
-      .where(
-        and(
-          eq(productFeatureValue.storeId, this.storeId),
-          eq(productFeatureValue.id, id)
-        )
-      )
+      .where(and(eq(productFeatureValue.storeId, this.storeId), eq(productFeatureValue.id, id)))
       .limit(1);
 
     return result[0] ?? null;
@@ -234,8 +203,8 @@ export class FeatureRepository extends BaseRepository {
       .where(
         and(
           eq(productFeatureValue.storeId, this.storeId),
-          inArray(productFeatureValue.featureId, featureIds)
-        )
+          inArray(productFeatureValue.featureId, featureIds),
+        ),
       );
 
     const map = new Map<string, string[]>();
@@ -254,16 +223,13 @@ export class FeatureRepository extends BaseRepository {
       .where(
         and(
           eq(productFeatureValue.storeId, this.storeId),
-          eq(productFeatureValue.featureId, featureId)
-        )
+          eq(productFeatureValue.featureId, featureId),
+        ),
       )
       .orderBy(productFeatureValue.index);
   }
 
-  async findValueBySlug(
-    featureId: string,
-    slug: string
-  ): Promise<ProductFeatureValue | null> {
+  async findValueBySlug(featureId: string, slug: string): Promise<ProductFeatureValue | null> {
     const result = await this.connection
       .select()
       .from(productFeatureValue)
@@ -271,17 +237,15 @@ export class FeatureRepository extends BaseRepository {
         and(
           eq(productFeatureValue.storeId, this.storeId),
           eq(productFeatureValue.featureId, featureId),
-          eq(productFeatureValue.slug, slug)
-        )
+          eq(productFeatureValue.slug, slug),
+        ),
       )
       .limit(1);
 
     return result[0] ?? null;
   }
 
-  async findValuesByFeatureIds(
-    featureIds: string[]
-  ): Promise<Map<string, ProductFeatureValue[]>> {
+  async findValuesByFeatureIds(featureIds: string[]): Promise<Map<string, ProductFeatureValue[]>> {
     if (featureIds.length === 0) return new Map();
 
     const results = await this.connection
@@ -290,8 +254,8 @@ export class FeatureRepository extends BaseRepository {
       .where(
         and(
           eq(productFeatureValue.storeId, this.storeId),
-          inArray(productFeatureValue.featureId, featureIds)
-        )
+          inArray(productFeatureValue.featureId, featureIds),
+        ),
       )
       .orderBy(productFeatureValue.index);
 
@@ -306,7 +270,7 @@ export class FeatureRepository extends BaseRepository {
 
   async createValue(
     featureId: string,
-    data: { slug: string; index: number }
+    data: { slug: string; index: number },
   ): Promise<ProductFeatureValue> {
     const id = await this.generateUuidV7();
 
@@ -318,10 +282,7 @@ export class FeatureRepository extends BaseRepository {
       index: data.index,
     };
 
-    const result = await this.connection
-      .insert(productFeatureValue)
-      .values(newValue)
-      .returning();
+    const result = await this.connection.insert(productFeatureValue).values(newValue).returning();
 
     return result[0];
   }
@@ -329,7 +290,7 @@ export class FeatureRepository extends BaseRepository {
   async updateValue(
     featureId: string,
     valueId: string,
-    data: { slug?: string; index?: number }
+    data: { slug?: string; index?: number },
   ): Promise<void> {
     const updateData: Partial<NewProductFeatureValue> = {};
     if (data.slug !== undefined) updateData.slug = data.slug;
@@ -346,8 +307,8 @@ export class FeatureRepository extends BaseRepository {
         and(
           eq(productFeatureValue.storeId, this.storeId),
           eq(productFeatureValue.id, valueId),
-          eq(productFeatureValue.featureId, featureId)
-        )
+          eq(productFeatureValue.featureId, featureId),
+        ),
       );
   }
 
@@ -358,8 +319,8 @@ export class FeatureRepository extends BaseRepository {
         .where(
           and(
             eq(productFeatureValue.storeId, this.storeId),
-            eq(productFeatureValue.featureId, featureId)
-          )
+            eq(productFeatureValue.featureId, featureId),
+          ),
         );
     } else {
       await this.connection
@@ -368,8 +329,8 @@ export class FeatureRepository extends BaseRepository {
           and(
             eq(productFeatureValue.storeId, this.storeId),
             eq(productFeatureValue.featureId, featureId),
-            notInArray(productFeatureValue.id, keepIds)
-          )
+            notInArray(productFeatureValue.id, keepIds),
+          ),
         );
     }
   }
@@ -377,12 +338,7 @@ export class FeatureRepository extends BaseRepository {
   async deleteValue(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(productFeatureValue)
-      .where(
-        and(
-          eq(productFeatureValue.storeId, this.storeId),
-          eq(productFeatureValue.id, id)
-        )
-      )
+      .where(and(eq(productFeatureValue.storeId, this.storeId), eq(productFeatureValue.id, id)))
       .returning({ id: productFeatureValue.id });
 
     return result.length > 0;
@@ -391,7 +347,7 @@ export class FeatureRepository extends BaseRepository {
   // ============ Loaders ============
 
   async getTranslationsByFeatureIds(
-    featureIds: readonly string[]
+    featureIds: readonly string[],
   ): Promise<ProductFeatureTranslation[]> {
     return this.connection
       .select()
@@ -400,13 +356,13 @@ export class FeatureRepository extends BaseRepository {
         and(
           eq(productFeatureTranslation.storeId, this.storeId),
           inArray(productFeatureTranslation.featureId, [...featureIds]),
-          eq(productFeatureTranslation.locale, this.locale)
-        )
+          eq(productFeatureTranslation.locale, this.locale),
+        ),
       );
   }
 
   async getValueIdsByFeatureIds(
-    featureIds: readonly string[]
+    featureIds: readonly string[],
   ): Promise<Array<{ id: string; featureId: string; index: number }>> {
     return this.connection
       .select({
@@ -418,8 +374,8 @@ export class FeatureRepository extends BaseRepository {
       .where(
         and(
           eq(productFeatureValue.storeId, this.storeId),
-          inArray(productFeatureValue.featureId, [...featureIds])
-        )
+          inArray(productFeatureValue.featureId, [...featureIds]),
+        ),
       )
       .orderBy(productFeatureValue.index);
   }
@@ -431,13 +387,13 @@ export class FeatureRepository extends BaseRepository {
       .where(
         and(
           eq(productFeatureValue.storeId, this.storeId),
-          inArray(productFeatureValue.id, [...valueIds])
-        )
+          inArray(productFeatureValue.id, [...valueIds]),
+        ),
       );
   }
 
   async getValueTranslationsByValueIds(
-    featureValueIds: readonly string[]
+    featureValueIds: readonly string[],
   ): Promise<ProductFeatureValueTranslation[]> {
     return this.connection
       .select()
@@ -446,17 +402,15 @@ export class FeatureRepository extends BaseRepository {
         and(
           eq(productFeatureValueTranslation.storeId, this.storeId),
           inArray(productFeatureValueTranslation.featureValueId, [...featureValueIds]),
-          eq(productFeatureValueTranslation.locale, this.locale)
-        )
+          eq(productFeatureValueTranslation.locale, this.locale),
+        ),
       );
   }
 
   async getChildIdsByParentIds(
     productIds: readonly string[],
-    parentIds: readonly string[]
-  ): Promise<
-    Array<{ id: string; productId: string; parentId: string | null; index: number[] }>
-  > {
+    parentIds: readonly string[],
+  ): Promise<Array<{ id: string; productId: string; parentId: string | null; index: number[] }>> {
     if (productIds.length === 0 || parentIds.length === 0) return [];
 
     return this.connection
@@ -471,8 +425,8 @@ export class FeatureRepository extends BaseRepository {
         and(
           eq(productFeature.storeId, this.storeId),
           inArray(productFeature.productId, [...productIds]),
-          inArray(productFeature.parentId, [...parentIds])
-        )
+          inArray(productFeature.parentId, [...parentIds]),
+        ),
       )
       .orderBy(productFeature.index);
   }

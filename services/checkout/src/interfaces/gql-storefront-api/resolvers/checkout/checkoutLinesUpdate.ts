@@ -16,7 +16,7 @@ import { createValidated } from "@src/utils/validation";
 export const checkoutLinesUpdate = async (
   _parent: ApiMutation,
   args: ApiMutationCheckoutLinesUpdateArgs,
-  ctx: GraphQLContext
+  ctx: GraphQLContext,
 ) => {
   const app = App.getInstance();
   const { checkoutUsecase, logger } = app;
@@ -43,10 +43,7 @@ export const checkoutLinesUpdate = async (
     };
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
-    logger.error(
-      { reason, checkoutId: dto.checkoutId },
-      "checkoutLinesUpdate domain error"
-    );
+    logger.error({ reason, checkoutId: dto.checkoutId }, "checkoutLinesUpdate domain error");
     throw await fromDomainError(err);
   }
 };

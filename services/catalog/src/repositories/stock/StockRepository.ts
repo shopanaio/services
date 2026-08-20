@@ -40,14 +40,7 @@ export interface ApplyStockChangeInput {
   deltaReserved?: number;
   deltaUnavailable?: number;
   movementType:
-    | "SEED"
-    | "RECEIVE"
-    | "SELL"
-    | "RETURN"
-    | "ADJUST"
-    | "RESERVE"
-    | "RELEASE"
-    | "TRANSFER";
+    "SEED" | "RECEIVE" | "SELL" | "RETURN" | "ADJUST" | "RESERVE" | "RELEASE" | "TRANSFER";
   reason?: "DAMAGE" | "INVENTORY_COUNT" | "MANUAL" | "CUSTOMER_RETURN" | null;
   transferDirection?: "IN" | "OUT" | null;
   sourceSystem: string;
@@ -67,11 +60,7 @@ export class StockRepository extends BaseRepository {
    * Upsert stock for a variant in a warehouse
    * Creates or updates the quantity on hand
    */
-  async upsert(
-    variantId: string,
-    warehouseId: string,
-    quantity: number,
-  ): Promise<WarehouseStock> {
+  async upsert(variantId: string, warehouseId: string, quantity: number): Promise<WarehouseStock> {
     const now = new Date().toISOString();
     const id = await this.generateUuidV7();
 
@@ -87,11 +76,7 @@ export class StockRepository extends BaseRepository {
         updatedAt: now,
       } satisfies NewWarehouseStock)
       .onConflictDoUpdate({
-        target: [
-          warehouseStock.storeId,
-          warehouseStock.warehouseId,
-          warehouseStock.variantId,
-        ],
+        target: [warehouseStock.storeId, warehouseStock.warehouseId, warehouseStock.variantId],
         set: {
           quantityOnHand: quantity,
           updatedAt: now,
@@ -128,9 +113,7 @@ export class StockRepository extends BaseRepository {
    * Apply a stock change with idempotency and constraints.
    */
   @Transactional()
-  async applyStockChange(
-    input: ApplyStockChangeInput,
-  ): Promise<ApplyStockChangeResult> {
+  async applyStockChange(input: ApplyStockChangeInput): Promise<ApplyStockChangeResult> {
     const deltaReserved = input.deltaReserved ?? 0;
     const deltaUnavailable = input.deltaUnavailable ?? 0;
 
@@ -184,10 +167,7 @@ export class StockRepository extends BaseRepository {
 
     // 4. Check constraints
     const constraintsValid =
-      newOnHand >= 0 &&
-      newReserved >= 0 &&
-      newUnavailable >= 0 &&
-      newUnavailable <= newOnHand;
+      newOnHand >= 0 && newReserved >= 0 && newUnavailable >= 0 && newUnavailable <= newOnHand;
 
     // 5. Insert stock change record
     const changeId = await this.generateUuidV7();
@@ -209,9 +189,7 @@ export class StockRepository extends BaseRepository {
       createdBy: input.createdBy,
       onHandAfter: constraintsValid ? newOnHand : current.quantityOnHand,
       reservedAfter: constraintsValid ? newReserved : current.reservedQty,
-      unavailableAfter: constraintsValid
-        ? newUnavailable
-        : current.unavailableQty,
+      unavailableAfter: constraintsValid ? newUnavailable : current.unavailableQty,
       applyStatus: constraintsValid ? "APPLIED" : "REJECTED",
     } satisfies NewStockChange);
 
@@ -263,10 +241,7 @@ export class StockRepository extends BaseRepository {
       .select()
       .from(warehouseStock)
       .where(
-        and(
-          eq(warehouseStock.storeId, this.storeId),
-          eq(warehouseStock.variantId, variantId),
-        ),
+        and(eq(warehouseStock.storeId, this.storeId), eq(warehouseStock.variantId, variantId)),
       );
   }
 
@@ -274,9 +249,7 @@ export class StockRepository extends BaseRepository {
    * Batch get stock for multiple variants
    * Returns a Map where key is variantId and value is array of WarehouseStock
    */
-  async getByVariantsBatch(
-    variantIds: string[],
-  ): Promise<Map<string, WarehouseStock[]>> {
+  async getByVariantsBatch(variantIds: string[]): Promise<Map<string, WarehouseStock[]>> {
     if (variantIds.length === 0) {
       return new Map();
     }
@@ -314,12 +287,7 @@ export class StockRepository extends BaseRepository {
   async deleteByVariantId(variantId: string): Promise<number> {
     const result = await this.connection
       .delete(warehouseStock)
-      .where(
-        and(
-          eq(warehouseStock.storeId, this.storeId),
-          eq(warehouseStock.variantId, variantId),
-        ),
-      )
+      .where(and(eq(warehouseStock.storeId, this.storeId), eq(warehouseStock.variantId, variantId)))
       .returning({ id: warehouseStock.id });
 
     return result.length;
@@ -350,12 +318,7 @@ export class StockRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(warehouseStock)
-      .where(
-        and(
-          eq(warehouseStock.storeId, this.storeId),
-          eq(warehouseStock.id, id),
-        ),
-      )
+      .where(and(eq(warehouseStock.storeId, this.storeId), eq(warehouseStock.id, id)))
       .limit(1);
 
     return result[0] ?? null;
@@ -399,9 +362,7 @@ export class StockRepository extends BaseRepository {
     // Extract warehouseId from where filter for count query
     const warehouseIdFilter = where?._and?.find(
       (condition): condition is { warehouseId: { _eq: string } } =>
-        typeof condition === "object" &&
-        condition !== null &&
-        "warehouseId" in condition,
+        typeof condition === "object" && condition !== null && "warehouseId" in condition,
     );
     const warehouseId = warehouseIdFilter?.warehouseId?._eq;
 
@@ -432,10 +393,7 @@ export class StockRepository extends BaseRepository {
       .select()
       .from(warehouseStock)
       .where(
-        and(
-          eq(warehouseStock.storeId, this.storeId),
-          inArray(warehouseStock.id, [...stockIds]),
-        ),
+        and(eq(warehouseStock.storeId, this.storeId), inArray(warehouseStock.id, [...stockIds])),
       );
   }
 }

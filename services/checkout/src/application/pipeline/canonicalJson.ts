@@ -7,19 +7,14 @@ import { CHECKOUT_PIPELINE_MAX_JSON_DEPTH } from "./schemas.js";
 
 export function canonicalJson(value: unknown): string {
   try {
-    const validated = canonicalizeCommerceFunctionJson(
-      value,
-      CHECKOUT_PIPELINE_MAX_JSON_DEPTH,
-    );
+    const validated = canonicalizeCommerceFunctionJson(value, CHECKOUT_PIPELINE_MAX_JSON_DEPTH);
     const result = canonicalize(validated);
     if (result === undefined) {
       throw new TypeError("Canonical JSON serialization returned no value");
     }
     return result;
   } catch {
-    throw new CheckoutPipelineBoundaryError(
-      "Canonical JSON requires a supported JSON value.",
-    );
+    throw new CheckoutPipelineBoundaryError("Canonical JSON requires a supported JSON value.");
   }
 }
 

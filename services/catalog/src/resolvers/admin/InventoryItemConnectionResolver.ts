@@ -4,17 +4,14 @@ import {
   type ConnectionData,
 } from "./connection/BaseConnectionResolver.js";
 
-export type InventoryItemConnectionResolverInput =
-  InventoryItemConnectionInput;
+export type InventoryItemConnectionResolverInput = InventoryItemConnectionInput;
 
 /**
  * InventoryItemConnection - resolves paginated inventory item list.
  */
 export class InventoryItemConnectionResolver extends BaseConnectionResolver<InventoryItemConnectionResolverInput> {
   async $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel
-      .getServices()
-      .repository.inventoryItem.getConnection(this.$props);
+    return this.$ctx.kernel.getServices().repository.inventoryItem.getConnection(this.$props);
   }
 
   protected async createNodeResolver(nodeId: string) {

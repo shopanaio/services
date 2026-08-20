@@ -29,8 +29,7 @@ import {
 } from "./customerExternalReferenceSchemas.js";
 
 type AppAccessResult =
-  | { ok: true; app: Readonly<BrokerAppContext> }
-  | Customers.CustomerExternalReferenceActionFailure;
+  { ok: true; app: Readonly<BrokerAppContext> } | Customers.CustomerExternalReferenceActionFailure;
 
 @Injectable()
 export class CustomerExternalReferenceBrokerActions extends BrokerActions {
@@ -42,12 +41,12 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
   @ZodSchema(lookupCustomerExternalReferenceParamsSchema)
   async lookup(
     params: Customers.LookupCustomerExternalReferenceParams,
-    callContext: BrokerCallContext
+    callContext: BrokerCallContext,
   ): Promise<Customers.LookupCustomerExternalReferenceResult> {
     const access = this.assertAppAccess(
       callContext,
       params.storeId,
-      CustomerExternalReferenceAppScopes.read
+      CustomerExternalReferenceAppScopes.read,
     );
     if (!access.ok) return access;
 
@@ -59,7 +58,7 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
           externalSystem: access.app.appCode,
           externalType: params.externalType,
           externalId: params.externalId,
-        })
+        }),
       );
       return {
         ok: true,
@@ -68,7 +67,7 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
     } catch (error) {
       this.logger.error(
         { error, appCode: access.app.appCode },
-        "Customer external reference lookup failed"
+        "Customer external reference lookup failed",
       );
       return syncFailure();
     }
@@ -78,30 +77,26 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
   @ZodSchema(upsertCustomerExternalReferenceParamsSchema)
   async upsert(
     params: Customers.UpsertCustomerExternalReferenceParams,
-    callContext: BrokerCallContext
+    callContext: BrokerCallContext,
   ): Promise<Customers.UpsertCustomerExternalReferenceResult> {
     const access = this.assertAppAccess(
       callContext,
       params.storeId,
-      CustomerExternalReferenceAppScopes.write
+      CustomerExternalReferenceAppScopes.write,
     );
     if (!access.ok) return access;
 
     try {
-      const workflow = await this.runSyncWorkflow(
-        access.app,
-        `upsert:${params.idempotencyKey}`,
-        [
-          {
-            type: "UPSERT",
-            customerId: params.customerId,
-            externalType: params.externalType,
-            externalId: params.externalId,
-            metadata: params.metadata,
-            conflictPolicy: params.conflictPolicy,
-          },
-        ]
-      );
+      const workflow = await this.runSyncWorkflow(access.app, `upsert:${params.idempotencyKey}`, [
+        {
+          type: "UPSERT",
+          customerId: params.customerId,
+          externalType: params.externalType,
+          externalId: params.externalId,
+          metadata: params.metadata,
+          conflictPolicy: params.conflictPolicy,
+        },
+      ]);
       const result = workflow.results[0];
       if (!result?.applied || !result.reference || !result.outcome) {
         return operationFailure(result?.userErrors);
@@ -115,7 +110,7 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
     } catch (error) {
       this.logger.error(
         { error, appCode: access.app.appCode },
-        "Customer external reference upsert failed"
+        "Customer external reference upsert failed",
       );
       return syncFailure();
     }
@@ -125,27 +120,23 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
   @ZodSchema(deleteCustomerExternalReferenceParamsSchema)
   async delete(
     params: Customers.DeleteCustomerExternalReferenceParams,
-    callContext: BrokerCallContext
+    callContext: BrokerCallContext,
   ): Promise<Customers.DeleteCustomerExternalReferenceResult> {
     const access = this.assertAppAccess(
       callContext,
       params.storeId,
-      CustomerExternalReferenceAppScopes.write
+      CustomerExternalReferenceAppScopes.write,
     );
     if (!access.ok) return access;
 
     try {
-      const workflow = await this.runSyncWorkflow(
-        access.app,
-        `delete:${params.idempotencyKey}`,
-        [
-          {
-            type: "DELETE",
-            externalType: params.externalType,
-            externalId: params.externalId,
-          },
-        ]
-      );
+      const workflow = await this.runSyncWorkflow(access.app, `delete:${params.idempotencyKey}`, [
+        {
+          type: "DELETE",
+          externalType: params.externalType,
+          externalId: params.externalId,
+        },
+      ]);
       const result = workflow.results[0];
       if (!result?.applied) return operationFailure(result?.userErrors);
       return {
@@ -156,7 +147,7 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
     } catch (error) {
       this.logger.error(
         { error, appCode: access.app.appCode },
-        "Customer external reference delete failed"
+        "Customer external reference delete failed",
       );
       return syncFailure();
     }
@@ -166,12 +157,12 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
   @ZodSchema(syncCustomerExternalReferencesParamsSchema)
   async sync(
     params: Customers.SyncCustomerExternalReferencesParams,
-    callContext: BrokerCallContext
+    callContext: BrokerCallContext,
   ): Promise<Customers.SyncCustomerExternalReferencesResult> {
     const access = this.assertAppAccess(
       callContext,
       params.storeId,
-      CustomerExternalReferenceAppScopes.write
+      CustomerExternalReferenceAppScopes.write,
     );
     if (!access.ok) return access;
 
@@ -179,13 +170,13 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
       const result = await this.runSyncWorkflow(
         access.app,
         `sync:${params.syncId}`,
-        params.operations
+        params.operations,
       );
       return { ok: true, ...result };
     } catch (error) {
       this.logger.error(
         { error, appCode: access.app.appCode },
-        "Customer external reference sync failed"
+        "Customer external reference sync failed",
       );
       return syncFailure();
     }
@@ -194,7 +185,7 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
   private runSyncWorkflow(
     app: Readonly<BrokerAppContext>,
     clientKey: string,
-    operations: readonly Customers.CustomerExternalReferenceSyncOperation[]
+    operations: readonly Customers.CustomerExternalReferenceSyncOperation[],
   ): Promise<CustomerExternalReferenceSyncWorkflowResult> {
     return this.broker.runWorkflow<
       CustomerExternalReferenceSyncWorkflowResult,
@@ -208,8 +199,7 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
           appCode: app.appCode,
           installationId: app.installationId,
           requestId:
-            app.correlationId ??
-            `customers-external-reference-${app.installationId}-${clientKey}`,
+            app.correlationId ?? `customers-external-reference-${app.installationId}-${clientKey}`,
         },
         operations,
       },
@@ -218,14 +208,14 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
         clientKey,
         organizationId: app.organizationId,
         apiKeyId: app.installationId,
-      }
+      },
     );
   }
 
   private assertAppAccess(
     callContext: BrokerCallContext,
     storeId: string,
-    scope: string
+    scope: string,
   ): AppAccessResult {
     if (
       callContext.caller.kind !== "action" ||
@@ -261,20 +251,14 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
 
 async function createServiceContext(
   kernel: Kernel,
-  app: Readonly<BrokerAppContext>
+  app: Readonly<BrokerAppContext>,
 ): Promise<ServiceContext> {
-  const projected = await kernel.repository.segmentStoreContext.findByStoreId(
-    app.storeId,
-  );
+  const projected = await kernel.repository.segmentStoreContext.findByStoreId(app.storeId);
   if (!projected) {
-    throw new Error(
-      `Customer segment Store context is not projected for ${app.storeId}`,
-    );
+    throw new Error(`Customer segment Store context is not projected for ${app.storeId}`);
   }
   return new ServiceContext({
-    requestId:
-      app.correlationId ??
-      `customers-external-reference-lookup-${app.installationId}`,
+    requestId: app.correlationId ?? `customers-external-reference-lookup-${app.installationId}`,
     kernel,
     loaders: new Loader(kernel.repository),
     store: {
@@ -293,7 +277,7 @@ async function createServiceContext(
 }
 
 function toSnapshot(
-  reference: CustomerExternalReference
+  reference: CustomerExternalReference,
 ): Customers.CustomerExternalReferenceSnapshot {
   return {
     id: reference.id,
@@ -309,9 +293,7 @@ function toSnapshot(
 }
 
 function operationFailure(
-  errors:
-    | readonly { message: string; code?: string }[]
-    | undefined
+  errors: readonly { message: string; code?: string }[] | undefined,
 ): Customers.CustomerExternalReferenceActionFailure {
   const error = errors?.[0];
   const code = error?.code;
@@ -333,7 +315,7 @@ function operationFailure(
 }
 
 function syncFailure(
-  message = "Customer external references could not be synchronized"
+  message = "Customer external references could not be synchronized",
 ): Customers.CustomerExternalReferenceActionFailure {
   return {
     ok: false,

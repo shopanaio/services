@@ -31,23 +31,20 @@ export class FacetReferenceStateWriteReconciliationScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: FacetReferenceStateWriteReconciliationParams
+    params: FacetReferenceStateWriteReconciliationParams,
   ): Promise<FacetReferenceStateWriteReconciliationResult> {
     const sourceDeltas: ReferenceStatusDelta[] = [];
     const valueDeltas: ReferenceStatusDelta[] = [];
 
     for (const update of params.sourceUpdates) {
-      const delta = await this.repository.facet.refreshSourceStatus(
-        update.id,
-        update.nextStatus
-      );
+      const delta = await this.repository.facet.refreshSourceStatus(update.id, update.nextStatus);
       if (delta) sourceDeltas.push(delta);
     }
 
     for (const update of params.valueUpdates) {
       const delta = await this.repository.facetValue.refreshValueStatus(
         update.id,
-        update.nextStatus
+        update.nextStatus,
       );
       if (delta) valueDeltas.push(delta);
     }

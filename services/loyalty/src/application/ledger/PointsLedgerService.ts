@@ -58,7 +58,10 @@ export class PointsLedgerService {
 
   async ensureAccount(customerId: string, programId: string): Promise<Account> {
     return this.repository.runInTransaction(async () => {
-      const existing = await this.repository.account.findByCustomerAndProgram(customerId, programId);
+      const existing = await this.repository.account.findByCustomerAndProgram(
+        customerId,
+        programId,
+      );
       if (existing) return existing;
       const account = await this.repository.account.createIfMissing({ customerId, programId });
       await this.repository.balance.createIfMissing({ accountId: account.id });
@@ -70,22 +73,25 @@ export class PointsLedgerService {
     return this.repository.runInTransaction(() => this.appendInsideTransaction(input));
   }
 
-  async award(input: Omit<AppendPointsOperation, "kind" | "entries" | "lifetime"> & {
-    points: bigint;
-    activationAt: string;
-    expiresAt: string | null;
-    operationKind?: "EARN_PENDING" | "ADJUST_CREDIT";
-  }): Promise<AppendedPointsOperation & { lot: PointLot | null }> {
-    if (input.points <= 0n) throw new LoyaltyDomainError("INVALID_AWARD", "Awarded points must be positive");
+  async award(
+    input: Omit<AppendPointsOperation, "kind" | "entries" | "lifetime"> & {
+      points: bigint;
+      activationAt: string;
+      expiresAt: string | null;
+      operationKind?: "EARN_PENDING" | "ADJUST_CREDIT";
+    },
+  ): Promise<AppendedPointsOperation & { lot: PointLot | null }> {
+    if (input.points <= 0n)
+      throw new LoyaltyDomainError("INVALID_AWARD", "Awarded points must be positive");
     return this.repository.runInTransaction(async () => {
       const account = await this.repository.account.lockById(input.account.id);
-      if (!account) throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
+      if (!account)
+        throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
       const balance = await this.requireBalance(input.account.id, true);
       const recoveredDebt = balance.debtPoints < input.points ? balance.debtPoints : input.points;
       const credited = input.points - recoveredDebt;
-      const bucket: LoyaltyBalanceBucket = Date.parse(input.activationAt) > Date.parse(input.occurredAt)
-        ? "PENDING"
-        : "AVAILABLE";
+      const bucket: LoyaltyBalanceBucket =
+        Date.parse(input.activationAt) > Date.parse(input.occurredAt) ? "PENDING" : "AVAILABLE";
       const operation = await this.appendInsideTransaction({
         ...input,
         kind: input.operationKind ?? "EARN_PENDING",
@@ -93,9 +99,10 @@ export class PointsLedgerService {
           ...(recoveredDebt > 0n ? [{ bucket: "DEBT" as const, pointsDelta: -recoveredDebt }] : []),
           ...(credited > 0n ? [{ bucket, pointsDelta: credited }] : []),
         ],
-        lifetime: input.operationKind === "ADJUST_CREDIT"
-          ? { adjusted: input.points }
-          : { earned: input.points },
+        lifetime:
+          input.operationKind === "ADJUST_CREDIT"
+            ? { adjusted: input.points }
+            : { earned: input.points },
         metadata: {
           ...input.metadata,
           points: input.points.toString(),
@@ -109,16 +116,25 @@ export class PointsLedgerService {
         },
       });
       if (!operation.created || credited === 0n) return { ...operation, lot: null };
-      const origin = operation.entries.find((entry) => entry.pointsDelta > 0n && entry.bucket === bucket);
-      if (!origin) throw new LoyaltyDomainError("LEDGER_INTEGRITY_ERROR", "Award credit entry was not created", true);
-      const [lot] = await this.repository.ledger.createPointLots([{
-        programId: input.account.programId,
-        accountId: input.account.id,
-        originEntryId: origin.id,
-        pointsIssued: credited,
-        activatedAt: input.activationAt,
-        expiresAt: input.expiresAt,
-      }]);
+      const origin = operation.entries.find(
+        (entry) => entry.pointsDelta > 0n && entry.bucket === bucket,
+      );
+      if (!origin)
+        throw new LoyaltyDomainError(
+          "LEDGER_INTEGRITY_ERROR",
+          "Award credit entry was not created",
+          true,
+        );
+      const [lot] = await this.repository.ledger.createPointLots([
+        {
+          programId: input.account.programId,
+          accountId: input.account.id,
+          originEntryId: origin.id,
+          pointsIssued: credited,
+          activatedAt: input.activationAt,
+          expiresAt: input.expiresAt,
+        },
+      ]);
       return { ...operation, lot: lot ?? null };
     });
   }
@@ -130,15 +146,19 @@ export class PointsLedgerService {
       allocationType: LoyaltyLotAllocationType;
       lotIds?: readonly string[];
     },
-  ): Promise<AppendedPointsOperation & { allocations: readonly { lot: PointLot; points: bigint }[] }> {
+  ): Promise<
+    AppendedPointsOperation & { allocations: readonly { lot: PointLot; points: bigint }[] }
+  > {
     const operation = await this.moveWithLotAllocations({
       ...input,
-      lotDebits: [{
-        bucket: input.debitBucket,
-        points: input.points,
-        allocationType: input.allocationType,
-        lotIds: input.lotIds,
-      }],
+      lotDebits: [
+        {
+          bucket: input.debitBucket,
+          points: input.points,
+          allocationType: input.allocationType,
+          lotIds: input.lotIds,
+        },
+      ],
     });
     return { ...operation, allocations: operation.allocations };
   }
@@ -152,7 +172,9 @@ export class PointsLedgerService {
         lotIds?: readonly string[];
       }[];
     },
-  ): Promise<AppendedPointsOperation & { allocations: readonly { lot: PointLot; points: bigint }[] }> {
+  ): Promise<
+    AppendedPointsOperation & { allocations: readonly { lot: PointLot; points: bigint }[] }
+  > {
     return this.repository.runInTransaction(async () => {
       const operation = await this.appendInsideTransaction(input);
       if (!operation.created) return { ...operation, allocations: [] };
@@ -162,7 +184,12 @@ export class PointsLedgerService {
         const debit = operation.entries.find(
           (entry) => entry.bucket === lotDebit.bucket && entry.pointsDelta < 0n,
         );
-        if (!debit) throw new LoyaltyDomainError("LEDGER_INTEGRITY_ERROR", "Lot debit entry was not created", true);
+        if (!debit)
+          throw new LoyaltyDomainError(
+            "LEDGER_INTEGRITY_ERROR",
+            "Lot debit entry was not created",
+            true,
+          );
         const allocations = await this.allocateLots(
           input.account.id,
           input.effectiveAt,
@@ -198,15 +225,23 @@ export class PointsLedgerService {
         ...input,
         entries: [
           ...(input.debitEntries ?? []),
-          ...input.lots.map(({ points }) => ({ bucket: input.creditBucket ?? "AVAILABLE", pointsDelta: points })),
+          ...input.lots.map(({ points }) => ({
+            bucket: input.creditBucket ?? "AVAILABLE",
+            pointsDelta: points,
+          })),
         ],
       });
       if (!operation.created) return { ...operation, lots: [] };
       const creditEntries = operation.entries.filter(
-        ({ bucket, pointsDelta }) => bucket === (input.creditBucket ?? "AVAILABLE") && pointsDelta > 0n,
+        ({ bucket, pointsDelta }) =>
+          bucket === (input.creditBucket ?? "AVAILABLE") && pointsDelta > 0n,
       );
       if (creditEntries.length !== input.lots.length) {
-        throw new LoyaltyDomainError("LEDGER_INTEGRITY_ERROR", "Restored point lots do not match ledger credits", true);
+        throw new LoyaltyDomainError(
+          "LEDGER_INTEGRITY_ERROR",
+          "Restored point lots do not match ledger credits",
+          true,
+        );
       }
       const lots = await this.repository.ledger.createPointLots(
         input.lots.map((lot, index) => ({
@@ -230,11 +265,15 @@ export class PointsLedgerService {
       const remaining = await this.remainingByLot(lots);
       const results: AppendedPointsOperation[] = [];
       for (const lot of lots) {
-        const previous = await this.repository.ledger.findTransactionByIdempotencyKey(`activate:${lot.id}`);
+        const previous = await this.repository.ledger.findTransactionByIdempotencyKey(
+          `activate:${lot.id}`,
+        );
         if (previous) continue;
         const origin = await this.repository.ledger.findEntryById(lot.originEntryId);
         if (origin?.bucket !== "PENDING") continue;
-        const sourceTransaction = await this.repository.ledger.findTransactionById(origin.transactionId);
+        const sourceTransaction = await this.repository.ledger.findTransactionById(
+          origin.transactionId,
+        );
         const points = remaining.get(lot.id) ?? 0n;
         if (points === 0n || Date.parse(lot.activatedAt) > Date.parse(effectiveAt)) continue;
         const operation = await this.appendInsideTransaction({
@@ -274,12 +313,14 @@ export class PointsLedgerService {
         const sourceTransaction = origin
           ? await this.repository.ledger.findTransactionById(origin.transactionId)
           : null;
-        const activation = origin?.bucket === "PENDING"
-          ? await this.repository.ledger.findTransactionByIdempotencyKey(`activate:${lot.id}`)
-          : null;
-        const debitBucket = origin?.bucket === "PENDING" && !activation
-          ? "PENDING" as const
-          : "AVAILABLE" as const;
+        const activation =
+          origin?.bucket === "PENDING"
+            ? await this.repository.ledger.findTransactionByIdempotencyKey(`activate:${lot.id}`)
+            : null;
+        const debitBucket =
+          origin?.bucket === "PENDING" && !activation
+            ? ("PENDING" as const)
+            : ("AVAILABLE" as const);
         const points = remaining.get(lot.id) ?? 0n;
         if (points === 0n) continue;
         const operation = await this.moveWithLotAllocation({
@@ -328,9 +369,17 @@ export class PointsLedgerService {
       let expired = 0n;
       let adjusted = 0n;
       for (const transaction of transactions) {
-        const transactionEntries = entries.filter(({ transactionId }) => transactionId === transaction.id);
-        const positive = transactionEntries.reduce((sum, entry) => sum + (entry.pointsDelta > 0n ? entry.pointsDelta : 0n), 0n);
-        const negative = transactionEntries.reduce((sum, entry) => sum + (entry.pointsDelta < 0n ? -entry.pointsDelta : 0n), 0n);
+        const transactionEntries = entries.filter(
+          ({ transactionId }) => transactionId === transaction.id,
+        );
+        const positive = transactionEntries.reduce(
+          (sum, entry) => sum + (entry.pointsDelta > 0n ? entry.pointsDelta : 0n),
+          0n,
+        );
+        const negative = transactionEntries.reduce(
+          (sum, entry) => sum + (entry.pointsDelta < 0n ? -entry.pointsDelta : 0n),
+          0n,
+        );
         if (transaction.kind === "EARN_PENDING") {
           earned += BigInt(String(transaction.metadata.awardedPoints ?? positive));
         }
@@ -352,16 +401,27 @@ export class PointsLedgerService {
         lifetimeAdjustedPoints: adjusted,
         lastTransactionId: transactions.at(-1)?.id ?? null,
       });
-      if (!updated) throw new LoyaltyDomainError("BALANCE_NOT_FOUND", "Account balance projection was not found");
+      if (!updated)
+        throw new LoyaltyDomainError(
+          "BALANCE_NOT_FOUND",
+          "Account balance projection was not found",
+        );
       return updated;
     });
   }
 
-  private async appendInsideTransaction(input: AppendPointsOperation): Promise<AppendedPointsOperation> {
-    const existing = await this.repository.ledger.findTransactionByIdempotencyKey(input.idempotencyKey);
+  private async appendInsideTransaction(
+    input: AppendPointsOperation,
+  ): Promise<AppendedPointsOperation> {
+    const existing = await this.repository.ledger.findTransactionByIdempotencyKey(
+      input.idempotencyKey,
+    );
     if (existing) {
       if (existing.requestHash !== input.requestHash) {
-        throw new LoyaltyDomainError("IDEMPOTENCY_CONFLICT", "Idempotency key was already used with another request");
+        throw new LoyaltyDomainError(
+          "IDEMPOTENCY_CONFLICT",
+          "Idempotency key was already used with another request",
+        );
       }
       const [entries, balance] = await Promise.all([
         this.repository.ledger.listEntries(existing.id),
@@ -370,13 +430,18 @@ export class PointsLedgerService {
       return { transaction: existing, entries, balance, created: false };
     }
     const account = await this.repository.account.lockById(input.account.id);
-    if (!account) throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
+    if (!account)
+      throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
     if (requiresActiveAccount(input.kind) && account.status !== "ACTIVE") {
       throw new LoyaltyDomainError("ACCOUNT_NOT_ACTIVE", "Loyalty account is not active");
     }
     const balance = await this.requireBalance(account.id, true);
     const entries = input.entries.filter(({ pointsDelta }) => pointsDelta !== 0n);
-    if (entries.length === 0) throw new LoyaltyDomainError("EMPTY_TRANSACTION", "A points transaction requires ledger entries");
+    if (entries.length === 0)
+      throw new LoyaltyDomainError(
+        "EMPTY_TRANSACTION",
+        "A points transaction requires ledger entries",
+      );
     const next = this.applyEntries(balance, entries, input.lifetime);
     const appended = await this.repository.ledger.appendTransaction(
       {
@@ -401,17 +466,24 @@ export class PointsLedgerService {
         effectiveAt: input.effectiveAt,
         metadata: input.metadata ?? {},
       },
-      entries.map((entry, index): Omit<NewLedgerEntry, "storeId" | "transactionId" | "accountId"> => ({
-        bucket: entry.bucket,
-        pointsDelta: entry.pointsDelta,
-        sequence: index + 1,
-      })),
+      entries.map(
+        (entry, index): Omit<NewLedgerEntry, "storeId" | "transactionId" | "accountId"> => ({
+          bucket: entry.bucket,
+          pointsDelta: entry.pointsDelta,
+          sequence: index + 1,
+        }),
+      ),
     );
     const updated = await this.repository.balance.update(account.id, balance.revision, {
       ...next,
       lastTransactionId: appended.transaction.id,
     });
-    if (!updated) throw new LoyaltyDomainError("CONCURRENT_BALANCE_CHANGE", "Loyalty balance changed concurrently", true);
+    if (!updated)
+      throw new LoyaltyDomainError(
+        "CONCURRENT_BALANCE_CHANGE",
+        "Loyalty balance changed concurrently",
+        true,
+      );
     return { ...appended, balance: updated, created: true };
   }
 
@@ -446,8 +518,16 @@ export class PointsLedgerService {
       if (entry.bucket === "RESERVED") next.reservedPoints += entry.pointsDelta;
       if (entry.bucket === "DEBT") next.debtPoints += entry.pointsDelta;
     }
-    if (next.pendingPoints < 0n || next.availablePoints < 0n || next.reservedPoints < 0n || next.debtPoints < 0n) {
-      throw new LoyaltyDomainError("INSUFFICIENT_BALANCE", "Points operation would make a balance bucket negative");
+    if (
+      next.pendingPoints < 0n ||
+      next.availablePoints < 0n ||
+      next.reservedPoints < 0n ||
+      next.debtPoints < 0n
+    ) {
+      throw new LoyaltyDomainError(
+        "INSUFFICIENT_BALANCE",
+        "Points operation would make a balance bucket negative",
+      );
     }
     return next;
   }
@@ -456,7 +536,8 @@ export class PointsLedgerService {
     const balance = lock
       ? await this.repository.balance.lockByAccountId(accountId)
       : await this.repository.balance.findByAccountId(accountId);
-    if (!balance) throw new LoyaltyDomainError("BALANCE_NOT_FOUND", "Loyalty balance projection was not found");
+    if (!balance)
+      throw new LoyaltyDomainError("BALANCE_NOT_FOUND", "Loyalty balance projection was not found");
     return balance;
   }
 
@@ -481,15 +562,17 @@ export class PointsLedgerService {
       ? await this.repository.ledger.lockPointLotsByIds(accountId, lotIds)
       : expired
         ? await this.repository.ledger.lockExpiredPointLots(accountId, effectiveAt)
-      : bucket === "AVAILABLE"
-        ? await this.repository.ledger.lockUsablePointLots(accountId, effectiveAt)
-        : await this.repository.ledger.lockAllPointLots(accountId);
+        : bucket === "AVAILABLE"
+          ? await this.repository.ledger.lockUsablePointLots(accountId, effectiveAt)
+          : await this.repository.ledger.lockAllPointLots(accountId);
     if (!lotIds && bucket === "PENDING") {
       const pending: PointLot[] = [];
       for (const lot of lots) {
         const origin = await this.repository.ledger.findEntryById(lot.originEntryId);
         if (origin?.bucket !== "PENDING") continue;
-        const activation = await this.repository.ledger.findTransactionByIdempotencyKey(`activate:${lot.id}`);
+        const activation = await this.repository.ledger.findTransactionByIdempotencyKey(
+          `activate:${lot.id}`,
+        );
         if (!activation) pending.push(lot);
       }
       lots = pending;
@@ -505,15 +588,22 @@ export class PointsLedgerService {
       required -= allocated;
       if (required === 0n) break;
     }
-    if (required > 0n) throw new LoyaltyDomainError("INSUFFICIENT_POINT_LOTS", "Spendable point lots do not cover the requested amount", true);
+    if (required > 0n)
+      throw new LoyaltyDomainError(
+        "INSUFFICIENT_POINT_LOTS",
+        "Spendable point lots do not cover the requested amount",
+        true,
+      );
     return selected;
   }
 }
 
 function requiresActiveAccount(kind: NewLoyaltyTransaction["kind"]): boolean {
-  return kind === "EARN_PENDING"
-    || kind === "RESERVE"
-    || kind === "ADJUST_CREDIT"
-    || kind === "ADJUST_DEBIT"
-    || kind === "ACTIVATE";
+  return (
+    kind === "EARN_PENDING" ||
+    kind === "RESERVE" ||
+    kind === "ADJUST_CREDIT" ||
+    kind === "ADJUST_DEBIT" ||
+    kind === "ACTIVATE"
+  );
 }

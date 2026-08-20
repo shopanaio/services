@@ -1,28 +1,18 @@
 import React from "react";
 import { Tag, Avatar } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
-import {
-  IBulkEditorRow,
-  IFieldEdit,
-  shouldShowDash,
-  formatPrice,
-} from "../../types";
+import { IBulkEditorRow, IFieldEdit, shouldShowDash, formatPrice } from "../../types";
 import { useBulkEditorStore } from "../../hooks/use-bulk-editor-store";
 import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
 import { Dash, Diff } from "@/shared/components/editor-grid";
-import {
-  ReservedCell,
-  CalculatedAvailableCell,
-} from "@/shared/components/inventory-cells";
+import { ReservedCell, CalculatedAvailableCell } from "@/shared/components/inventory-cells";
 
 function isEmptyCellValue(value: unknown): boolean {
   return value === null || value === undefined || value === "";
 }
 
 // Title cell with hierarchy
-export const TitleCellRenderer: React.FC<
-  CustomCellRendererProps<IBulkEditorRow>
-> = (props) => {
+export const TitleCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>> = (props) => {
   const { data, value } = props;
 
   if (!data) return null;
@@ -31,9 +21,7 @@ export const TitleCellRenderer: React.FC<
 
   return (
     <div className="ec-title">
-      <span
-        className={`ec-title__text ${isVariant ? "ec-title--variant" : "ec-title--product"}`}
-      >
+      <span className={`ec-title__text ${isVariant ? "ec-title--variant" : "ec-title--product"}`}>
         {value || data.title}
       </span>
     </div>
@@ -42,9 +30,7 @@ export const TitleCellRenderer: React.FC<
 
 // Reserved cell (read-only, managed by order system)
 // Uses shared ReservedCell component
-export const ReservedCellRenderer: React.FC<
-  CustomCellRendererProps<IBulkEditorRow>
-> = (props) => {
+export const ReservedCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>> = (props) => {
   const { data, value } = props;
 
   if (!data || data.rowType === "product") return <Dash />;
@@ -54,9 +40,7 @@ export const ReservedCellRenderer: React.FC<
 
 // Available cell (calculated: onHand - unavailable - reserved)
 // Uses shared CalculatedAvailableCell component
-export const AvailableCellRenderer: React.FC<
-  CustomCellRendererProps<IBulkEditorRow>
-> = (props) => {
+export const AvailableCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>> = (props) => {
   const { data } = props;
   const getFieldEdit = useBulkEditorStore((s) => s.getFieldEdit);
 
@@ -91,9 +75,7 @@ export const AvailableCellRenderer: React.FC<
 };
 
 // Product status badge
-export const ProductStatusRenderer: React.FC<
-  CustomCellRendererProps<IBulkEditorRow>
-> = (props) => {
+export const ProductStatusRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>> = (props) => {
   const { data } = props;
 
   if (!data || data.rowType === "variant") return <Dash />;
@@ -116,9 +98,7 @@ export const ProductStatusRenderer: React.FC<
 };
 
 // Generic text cell
-export const TextCellRenderer: React.FC<
-  CustomCellRendererProps<IBulkEditorRow>
-> = (props) => {
+export const TextCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>> = (props) => {
   const { data, colDef, value } = props;
 
   if (!data || !colDef?.field) return null;
@@ -135,9 +115,7 @@ export const TextCellRenderer: React.FC<
 };
 
 // Price cell
-export const PriceCellRenderer: React.FC<
-  CustomCellRendererProps<IBulkEditorRow>
-> = (props) => {
+export const PriceCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>> = (props) => {
   const { data, colDef, value } = props;
 
   if (!data || !colDef?.field) return null;
@@ -160,9 +138,7 @@ export const PriceCellRenderer: React.FC<
 };
 
 // Number cell with edit diff
-export const NumberCellRenderer: React.FC<
-  CustomCellRendererProps<IBulkEditorRow>
-> = (props) => {
+export const NumberCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>> = (props) => {
   const { data, colDef, value } = props;
   const getFieldEdit = useBulkEditorStore((s) => s.getFieldEdit);
 
@@ -194,9 +170,7 @@ export const NumberCellRenderer: React.FC<
 };
 
 // Media gallery cell
-export const MediaCellRenderer: React.FC<
-  CustomCellRendererProps<IBulkEditorRow>
-> = (props) => {
+export const MediaCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>> = (props) => {
   const { data } = props;
 
   if (!data || data.rowType === "variant") return <Dash />;

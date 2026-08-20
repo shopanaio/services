@@ -1,11 +1,4 @@
-import {
-  index,
-  integer,
-  primaryKey,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { index, integer, primaryKey, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { headlessStorefrontConnections } from "./connections.js";
 import { headlessSchema } from "./schema.js";
 
@@ -33,10 +26,7 @@ export const storefrontAccessPolicies = headlessSchema.table(
       .defaultNow(),
   },
   (table) => [
-    index("storefront_access_policies_store_connection_idx").on(
-      table.storeId,
-      table.connectionId,
-    ),
+    index("storefront_access_policies_store_connection_idx").on(table.storeId, table.connectionId),
     index("storefront_access_policies_organization_connection_idx").on(
       table.organizationId,
       table.connectionId,
@@ -66,11 +56,7 @@ export const storefrontAccessPolicyGrants = headlessSchema.table(
   ],
 );
 
-export type StorefrontAccessPolicyModel =
-  typeof storefrontAccessPolicies.$inferSelect;
-export type NewStorefrontAccessPolicyModel =
-  typeof storefrontAccessPolicies.$inferInsert;
-export type StorefrontAccessPolicyGrantModel =
-  typeof storefrontAccessPolicyGrants.$inferSelect;
-export type NewStorefrontAccessPolicyGrantModel =
-  typeof storefrontAccessPolicyGrants.$inferInsert;
+export type StorefrontAccessPolicyModel = typeof storefrontAccessPolicies.$inferSelect;
+export type NewStorefrontAccessPolicyModel = typeof storefrontAccessPolicies.$inferInsert;
+export type StorefrontAccessPolicyGrantModel = typeof storefrontAccessPolicyGrants.$inferSelect;
+export type NewStorefrontAccessPolicyGrantModel = typeof storefrontAccessPolicyGrants.$inferInsert;

@@ -1,11 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import {
-  BrokerSaga,
-  Saga,
-  SagaStep,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { BrokerSaga, Saga, SagaStep, InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import type { Media, EntityRef } from "@shopana/broker-types";
 
 export interface BackRefNotifyInput {
@@ -52,7 +46,7 @@ export class BackRefNotifySaga extends BrokerSaga<BackRefNotifyInput, BackRefNot
         linkedCount: result.linkedCount,
         skippedCount: result.skippedCount,
       },
-      "BackRef sync completed"
+      "BackRef sync completed",
     );
 
     return {

@@ -1,7 +1,4 @@
-import {
-  GLOBAL_RECOMMENDATION_CANDIDATE_LIMIT,
-  recommendationSourceLimit,
-} from "./constants.js";
+import { GLOBAL_RECOMMENDATION_CANDIDATE_LIMIT, recommendationSourceLimit } from "./constants.js";
 import { RecommendationIntegrityError } from "./errors.js";
 import { rankRecommendationCandidates } from "./rankRulesV1.js";
 import type {
@@ -14,12 +11,7 @@ import type {
 } from "../repositories/recommendation/types.js";
 
 export type RecommendationExcludedReason =
-  | "STALE"
-  | "UNPUBLISHED"
-  | "UNAVAILABLE"
-  | "EXCLUDED"
-  | "INSUFFICIENT_SUPPORT"
-  | "LIMIT_EXCEEDED";
+  "STALE" | "UNPUBLISHED" | "UNAVAILABLE" | "EXCLUDED" | "INSUFFICIENT_SUPPORT" | "LIMIT_EXCEEDED";
 
 export interface RecommendationBuildResult {
   candidates: RankedRecommendationCandidate[];
@@ -33,15 +25,15 @@ export async function buildRecommendation(input: {
   loadFbt: (limit: number) => Promise<RecommendationCandidate[]>;
   loadCategoryPopularity: (limit: number) => Promise<RecommendationCandidate[]>;
   loadStorePopularity: (limit: number) => Promise<RecommendationCandidate[]>;
-  eligibility: (ids: readonly string[]) => Promise<Map<string, "ELIGIBLE" | "UNPUBLISHED" | "UNAVAILABLE" | "STALE">>;
+  eligibility: (
+    ids: readonly string[],
+  ) => Promise<Map<string, "ELIGIBLE" | "UNPUBLISHED" | "UNAVAILABLE" | "STALE">>;
 }): Promise<RecommendationBuildResult> {
   if (!input.policy.enabled) return { candidates: [], excluded: [] };
   const limit = recommendationSourceLimit(input.policy.maximumResults);
   const excluded = new Map<string, RecommendationExcludedReason>();
   const excludedIds = new Set(
-    input.manualRows
-      .filter((row) => row.action === "EXCLUDE")
-      .map((row) => row.targetProductId),
+    input.manualRows.filter((row) => row.action === "EXCLUDE").map((row) => row.targetProductId),
   );
   const union = new Map<string, RecommendationCandidate>();
 
@@ -49,7 +41,11 @@ export async function buildRecommendation(input: {
     const pins = input.manualRows.filter((row) => row.action === "PIN");
     const boosts = input.manualRows
       .filter((row) => row.action === "BOOST")
-      .sort((left, right) => compareBoost(right.boost, left.boost) || left.targetProductId.localeCompare(right.targetProductId))
+      .sort(
+        (left, right) =>
+          compareBoost(right.boost, left.boost) ||
+          left.targetProductId.localeCompare(right.targetProductId),
+      )
       .slice(0, limit);
     for (const row of [...pins, ...boosts]) mergeCandidate(union, manualCandidate(row));
   }
@@ -62,11 +58,12 @@ export async function buildRecommendation(input: {
   if (input.policy.strategy !== "CURATED_ONLY" && input.policy.minimumResults > 0) {
     for (const fallback of input.policy.fallbackChain) {
       if (union.size >= input.policy.minimumResults) break;
-      const candidates = fallback === "category_popularity"
-        ? await input.loadCategoryPopularity(limit)
-        : fallback === "store_popularity"
-          ? await input.loadStorePopularity(limit)
-          : [];
+      const candidates =
+        fallback === "category_popularity"
+          ? await input.loadCategoryPopularity(limit)
+          : fallback === "store_popularity"
+            ? await input.loadStorePopularity(limit)
+            : [];
       for (const candidate of candidates) mergeCandidate(union, candidate);
       assertLimit(union.size);
       await filterUnion(union, excludedIds, input.eligibility, excluded);
@@ -148,7 +145,9 @@ function primarySource(
 async function filterUnion(
   union: Map<string, RecommendationCandidate>,
   excludedIds: Set<string>,
-  eligibility: (ids: readonly string[]) => Promise<Map<string, "ELIGIBLE" | "UNPUBLISHED" | "UNAVAILABLE" | "STALE">>,
+  eligibility: (
+    ids: readonly string[],
+  ) => Promise<Map<string, "ELIGIBLE" | "UNPUBLISHED" | "UNAVAILABLE" | "STALE">>,
   excluded: Map<string, RecommendationExcludedReason>,
 ): Promise<void> {
   const states = await eligibility([...union.keys()]);

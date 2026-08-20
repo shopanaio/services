@@ -8,10 +8,7 @@ import { FcGoogle } from "react-icons/fc";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
 import type { ApiCustomerAccountsSettings } from "@/graphql/types";
-import {
-  CustomerAuthenticationMethod,
-  CustomerAuthenticationProvider,
-} from "@/graphql/types";
+import { CustomerAuthenticationMethod, CustomerAuthenticationProvider } from "@/graphql/types";
 
 const useStyles = createStyles(({ token }) => ({
   paper: { padding: 0, overflow: "hidden" },
@@ -49,10 +46,25 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 const methods = {
-  [CustomerAuthenticationMethod.Password]: { label: "Password", description: "Email and password", Icon: LuLockKeyhole },
-  [CustomerAuthenticationMethod.EmailOtp]: { label: "Email code", description: "One-time code", Icon: LuMail },
-  [CustomerAuthenticationMethod.PhoneOtp]: { label: "Phone code", description: "One-time code", Icon: LuMessageSquare },
-} satisfies Record<CustomerAuthenticationMethod, { label: string; description: string; Icon: typeof LuMail }>;
+  [CustomerAuthenticationMethod.Password]: {
+    label: "Password",
+    description: "Email and password",
+    Icon: LuLockKeyhole,
+  },
+  [CustomerAuthenticationMethod.EmailOtp]: {
+    label: "Email code",
+    description: "One-time code",
+    Icon: LuMail,
+  },
+  [CustomerAuthenticationMethod.PhoneOtp]: {
+    label: "Phone code",
+    description: "One-time code",
+    Icon: LuMessageSquare,
+  },
+} satisfies Record<
+  CustomerAuthenticationMethod,
+  { label: string; description: string; Icon: typeof LuMail }
+>;
 
 interface CustomerAccountsCardProps {
   settings: ApiCustomerAccountsSettings;
@@ -73,7 +85,11 @@ export const CustomerAccountsCard = ({ settings, onEdit }: CustomerAccountsCardP
             placement="bottomRight"
             trigger={["click"]}
           >
-            <Button aria-label="Customer accounts actions" className={styles.menuButton} icon={<LuEllipsis />} />
+            <Button
+              aria-label="Customer accounts actions"
+              className={styles.menuButton}
+              icon={<LuEllipsis />}
+            />
           </Dropdown>
         }
         contained

@@ -1,8 +1,4 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
@@ -16,10 +12,7 @@ import {
   type NewQuestionSubscription,
   type QuestionSubscription,
 } from "../models/index.js";
-import type {
-  OptimisticMutationResult,
-  RepositoryConnectionResult,
-} from "../types.js";
+import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const questionSubscriptionRelayQuery = createRelayQuery(
   createQuery(questionSubscription)
@@ -31,12 +24,10 @@ export const questionSubscriptionRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "productQuestionSubscription", tieBreaker: "id" }
+  { name: "productQuestionSubscription", tieBreaker: "id" },
 );
 
-export type QuestionSubscriptionRelayInput = InferRelayInput<
-  typeof questionSubscriptionRelayQuery
->;
+export type QuestionSubscriptionRelayInput = InferRelayInput<typeof questionSubscriptionRelayQuery>;
 export type QuestionSubscriptionPatch = Partial<
   Pick<NewQuestionSubscription, "status" | "channel" | "locale">
 >;
@@ -46,14 +37,20 @@ export class QuestionSubscriptionRepository extends BaseRepository {
   async findByCustomer(
     questionId: string,
     customerId: string,
-    channel?: QuestionSubscription["channel"]
+    channel?: QuestionSubscription["channel"],
   ): Promise<QuestionSubscription | null> {
-    const rows = await this.connection.select().from(questionSubscription).where(and(
-      eq(questionSubscription.storeId, this.storeId),
-      eq(questionSubscription.questionId, questionId),
-      eq(questionSubscription.subscriberCustomerId, customerId),
-      ...(channel ? [eq(questionSubscription.channel, channel)] : [])
-    )).limit(1);
+    const rows = await this.connection
+      .select()
+      .from(questionSubscription)
+      .where(
+        and(
+          eq(questionSubscription.storeId, this.storeId),
+          eq(questionSubscription.questionId, questionId),
+          eq(questionSubscription.subscriberCustomerId, customerId),
+          ...(channel ? [eq(questionSubscription.channel, channel)] : []),
+        ),
+      )
+      .limit(1);
     return rows[0] ?? null;
   }
   @ReadOnly()
@@ -61,12 +58,7 @@ export class QuestionSubscriptionRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(questionSubscription)
-      .where(
-        and(
-          eq(questionSubscription.storeId, this.storeId),
-          eq(questionSubscription.id, id)
-        )
-      )
+      .where(and(eq(questionSubscription.storeId, this.storeId), eq(questionSubscription.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -80,15 +72,15 @@ export class QuestionSubscriptionRepository extends BaseRepository {
       .where(
         and(
           eq(questionSubscription.storeId, this.storeId),
-          inArray(questionSubscription.id, [...new Set(ids)])
-        )
+          inArray(questionSubscription.id, [...new Set(ids)]),
+        ),
       );
   }
 
   @ReadOnly()
   async getConnection(
     questionId: string,
-    args: QuestionSubscriptionRelayInput
+    args: QuestionSubscriptionRelayInput,
   ): Promise<RepositoryConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: QuestionSubscriptionRelayInput["where"] = {
@@ -124,7 +116,7 @@ export class QuestionSubscriptionRepository extends BaseRepository {
 
   @Transactional()
   async create(
-    input: Omit<NewQuestionSubscription, "id" | "storeId" | "createdAt" | "updatedAt">
+    input: Omit<NewQuestionSubscription, "id" | "storeId" | "createdAt" | "updatedAt">,
   ): Promise<QuestionSubscription> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -146,7 +138,7 @@ export class QuestionSubscriptionRepository extends BaseRepository {
   async update(
     id: string,
     expectedUpdatedAt: string,
-    patch: QuestionSubscriptionPatch
+    patch: QuestionSubscriptionPatch,
   ): Promise<OptimisticMutationResult<QuestionSubscription>> {
     const rows = await this.connection
       .update(questionSubscription)
@@ -155,14 +147,12 @@ export class QuestionSubscriptionRepository extends BaseRepository {
         and(
           eq(questionSubscription.storeId, this.storeId),
           eq(questionSubscription.id, id),
-          eq(questionSubscription.updatedAt, expectedUpdatedAt)
-        )
+          eq(questionSubscription.updatedAt, expectedUpdatedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findById(id);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 }

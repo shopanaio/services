@@ -10,7 +10,7 @@ import { warehouses, type Warehouse, type NewWarehouse } from "../models/index.j
 
 export const warehouseRelayQuery = createRelayQuery(
   createQuery(warehouses).include(["id"]).maxLimit(100).defaultLimit(20),
-  { name: "warehouse", tieBreaker: "id" }
+  { name: "warehouse", tieBreaker: "id" },
 );
 
 export type WarehouseRelayInput = InferRelayInput<typeof warehouseRelayQuery>;
@@ -81,9 +81,7 @@ export class WarehouseRepository extends BaseRepository {
     await this.connection
       .update(warehouses)
       .set({ isDefault: false, updatedAt: new Date().toISOString() })
-      .where(
-        and(eq(warehouses.storeId, this.storeId), eq(warehouses.isDefault, true))
-      );
+      .where(and(eq(warehouses.storeId, this.storeId), eq(warehouses.isDefault, true)));
   }
 
   async create(data: { code: string; name: string; isDefault?: boolean }): Promise<Warehouse> {
@@ -100,17 +98,14 @@ export class WarehouseRepository extends BaseRepository {
       updatedAt: now,
     };
 
-    const result = await this.connection
-      .insert(warehouses)
-      .values(newWarehouse)
-      .returning();
+    const result = await this.connection.insert(warehouses).values(newWarehouse).returning();
 
     return result[0];
   }
 
   async update(
     id: string,
-    data: { code?: string; name?: string; isDefault?: boolean }
+    data: { code?: string; name?: string; isDefault?: boolean },
   ): Promise<Warehouse | null> {
     const updateData: Partial<NewWarehouse> = {
       updatedAt: new Date().toISOString(),
@@ -145,10 +140,7 @@ export class WarehouseRepository extends BaseRepository {
 
     // Merge user-provided where with storeId filter
     const mergedWhere: WarehouseRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, ...(where ? [where] : [])],
     };
 
     const executeInput: WarehouseRelayInput = {
@@ -178,12 +170,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(warehouses)
-      .where(
-        and(
-          eq(warehouses.storeId, this.storeId),
-          inArray(warehouses.id, [...warehouseIds])
-        )
-      );
+      .where(and(eq(warehouses.storeId, this.storeId), inArray(warehouses.id, [...warehouseIds])));
 
     return result;
   }

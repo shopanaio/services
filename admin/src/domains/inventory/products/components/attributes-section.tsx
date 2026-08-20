@@ -68,9 +68,7 @@ function compareIndex(left: number[], right: number[]): number {
   return left.length - right.length;
 }
 
-function sortValues(
-  values: ApiProductFeatureValue[],
-): ApiProductFeatureValue[] {
+function sortValues(values: ApiProductFeatureValue[]): ApiProductFeatureValue[] {
   return [...values].sort((left, right) => left.index - right.index);
 }
 
@@ -78,13 +76,7 @@ const AttributeList = ({ attributes, className }: IAttributeListProps) => {
   if (attributes.length === 0) return null;
 
   return (
-    <Descriptions
-      size="small"
-      column={1}
-      bordered
-      colon={false}
-      className={className}
-    >
+    <Descriptions size="small" column={1} bordered colon={false} className={className}>
       {attributes.map((attr) => (
         <Descriptions.Item key={attr.id} label={attr.name}>
           {sortValues(attr.values)
@@ -123,10 +115,7 @@ const AttributeGroupBlock = ({
 // Main Component
 // ============================================================================
 
-export const AttributesSection = ({
-  features,
-  actions,
-}: IAttributesSectionProps) => {
+export const AttributesSection = ({ features, actions }: IAttributesSectionProps) => {
   const { styles } = useStyles();
 
   const { rootAttributes, groups, attributesByGroupId } = useMemo(() => {
@@ -146,9 +135,7 @@ export const AttributesSection = ({
         group.id,
         sortedFeatures.filter(
           (feature) =>
-            !feature.isGroup &&
-            feature.index.length === 2 &&
-            feature.index[0] === group.index[0],
+            !feature.isGroup && feature.index.length === 2 && feature.index[0] === group.index[0],
         ),
       );
     });
@@ -162,9 +149,7 @@ export const AttributesSection = ({
 
   const hasContent =
     rootAttributes.length > 0 ||
-    groups.some(
-      (group) => (attributesByGroupId.get(group.id)?.length ?? 0) > 0,
-    );
+    groups.some((group) => (attributesByGroupId.get(group.id)?.length ?? 0) > 0);
 
   if (!hasContent && !actions) {
     return null;
@@ -176,10 +161,7 @@ export const AttributesSection = ({
       <Flex vertical gap={16}>
         {hasContent ? (
           <>
-            <AttributeList
-              attributes={rootAttributes}
-              className={styles.descriptions}
-            />
+            <AttributeList attributes={rootAttributes} className={styles.descriptions} />
 
             {groups.map((group) => (
               <AttributeGroupBlock

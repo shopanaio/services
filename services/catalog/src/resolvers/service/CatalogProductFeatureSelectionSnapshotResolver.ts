@@ -16,18 +16,15 @@ export class CatalogProductFeatureSelectionSnapshotResolver extends ServiceType<
   protected async $preload(): Promise<CatalogProductFeatureSelectionSnapshotData> {
     const feature = await this.$ctx.loaders.productFeature.load(this.$props);
     if (!feature) {
-      throw new PreloadNotFoundError(
-        `Product feature with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Product feature with ID ${this.$props} not found`);
     }
 
     const valueIds = await this.$ctx.loaders.featureValueIds.load(feature.id);
     const values = await Promise.all(
       valueIds.map(async (valueId) => {
-        const resolver =
-          await this.resolvers.catalogProductFeatureValueRef(valueId);
+        const resolver = await this.resolvers.catalogProductFeatureValueRef(valueId);
         return resolver.$snapshot();
-      })
+      }),
     );
 
     return {
@@ -48,9 +45,7 @@ export class CatalogProductFeatureSelectionSnapshotResolver extends ServiceType<
   async values(): Promise<CatalogProductFeatureValueRefResolver[]> {
     const valueIds = await this.$ctx.loaders.featureValueIds.load(this.$props);
     return Promise.all(
-      valueIds.map((valueId) =>
-        this.resolvers.catalogProductFeatureValueRef(valueId)
-      )
+      valueIds.map((valueId) => this.resolvers.catalogProductFeatureValueRef(valueId)),
     );
   }
 

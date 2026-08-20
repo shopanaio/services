@@ -1,18 +1,9 @@
 "use client";
 
-import {
-  useState,
-  useMemo,
-  useCallback,
-  useEffect,
-  RefObject,
-} from "react";
+import { useState, useMemo, useCallback, useEffect, RefObject } from "react";
 import type { AgGridReact } from "ag-grid-react";
 import type { SortDirection as AgSortDirection } from "ag-grid-community";
-import {
-  useFilters,
-  FilterOperator,
-} from "@/layouts/filters";
+import { useFilters, FilterOperator } from "@/layouts/filters";
 import type { IFilterSchema, IFilterValue } from "@/layouts/filters/core/types";
 import { SortDirection } from "@/graphql/types";
 import { useGridState } from "./use-grid-state";
@@ -44,7 +35,7 @@ export type SortFieldMapping<TField extends string = string> = Record<string, TF
  */
 export type FilterTransformer<TWhereInput extends object> = (
   filter: IFilterValue,
-  gqlOperator: string
+  gqlOperator: string,
 ) => Partial<TWhereInput> | null | undefined;
 
 const EMPTY_FILTER_TRANSFORMERS = {};
@@ -101,10 +92,7 @@ export interface PaginationState {
 /**
  * Return type for usePageConfig hook
  */
-export interface UsePageConfigReturn<
-  TWhereInput extends object,
-  TOrderField extends string,
-> {
+export interface UsePageConfigReturn<TWhereInput extends object, TOrderField extends string> {
   // ---- State Values ----
   /** Current search value */
   searchValue: string;
@@ -258,12 +246,8 @@ function toGqlSortDirection(sort: AgSortDirection): SortDirection {
  * <AgGridReact {...gridStateProps} onSortChanged={onSortChanged} />
  * ```
  */
-export function usePageConfig<
-  TData,
-  TWhereInput extends object,
-  TOrderField extends string,
->(
-  options: UsePageConfigOptions<TData, TWhereInput, TOrderField>
+export function usePageConfig<TData, TWhereInput extends object, TOrderField extends string>(
+  options: UsePageConfigOptions<TData, TWhereInput, TOrderField>,
 ): UsePageConfigReturn<TWhereInput, TOrderField> {
   const {
     gridRef,
@@ -292,7 +276,12 @@ export function usePageConfig<
   });
 
   // ---- Filters ----
-  const { widgetProps, filters, setFilters, reset: resetFilters } = useFilters({
+  const {
+    widgetProps,
+    filters,
+    setFilters,
+    reset: resetFilters,
+  } = useFilters({
     schema: filterSchema,
   });
 
@@ -380,7 +369,7 @@ export function usePageConfig<
       // Handle In operator with array values
       if (filter.operator === FilterOperator.In && Array.isArray(filter.value)) {
         const nonEmptyValues = filter.value.filter(
-          (v) => v !== null && v !== undefined && v !== ""
+          (v) => v !== null && v !== undefined && v !== "",
         );
         if (nonEmptyValues.length === 0) continue;
 
@@ -435,12 +424,12 @@ export function usePageConfig<
 
   const getRangeStart = useCallback(
     (itemCount: number) => (itemCount > 0 ? currentPage * pageSize + 1 : 0),
-    [currentPage, pageSize]
+    [currentPage, pageSize],
   );
 
   const getRangeEnd = useCallback(
     (itemCount: number) => currentPage * pageSize + itemCount,
-    [currentPage, pageSize]
+    [currentPage, pageSize],
   );
 
   // ---- Reset All ----
@@ -462,7 +451,7 @@ export function usePageConfig<
         onChangeSearchValue: setSearchValue,
       },
     }),
-    [widgetProps, searchValue]
+    [widgetProps, searchValue],
   );
 
   const gridStateProps = useMemo(
@@ -470,7 +459,7 @@ export function usePageConfig<
       initialState,
       onStateUpdated,
     }),
-    [initialState, onStateUpdated]
+    [initialState, onStateUpdated],
   );
 
   return {
@@ -519,13 +508,11 @@ export function usePageConfig<
  * (e.g., mimeType where "image" should match "image/png", "image/jpeg", etc.)
  */
 export function createStartsWithTransformer<TWhereInput extends object>(
-  fieldName: string
+  fieldName: string,
 ): FilterTransformer<TWhereInput> {
   return (filter) => {
     const values = Array.isArray(filter.value) ? filter.value : [filter.value];
-    const nonEmptyValues = values.filter(
-      (v) => v !== null && v !== undefined && v !== ""
-    );
+    const nonEmptyValues = values.filter((v) => v !== null && v !== undefined && v !== "");
 
     if (nonEmptyValues.length === 0) return null;
 
@@ -546,14 +533,14 @@ export function createStartsWithTransformer<TWhereInput extends object>(
  * GraphQL _in conditions.
  */
 export function createRelationInTransformer<TWhereInput extends object>(
-  fieldName: string
+  fieldName: string,
 ): FilterTransformer<TWhereInput> {
   return (filter, gqlOperator) => {
     if (gqlOperator !== "_in") return null;
 
     const values = Array.isArray(filter.value) ? filter.value : [filter.value];
     const ids = values.filter(
-      (value): value is string => typeof value === "string" && value !== ""
+      (value): value is string => typeof value === "string" && value !== "",
     );
 
     if (ids.length === 0) return null;
@@ -592,7 +579,7 @@ const priceOperators = new Set(["_eq", "_gt", "_gte", "_lt", "_lte"]);
  * an array, while API filters expect a scalar minor-unit integer.
  */
 export function createMinorUnitPriceTransformer<TWhereInput extends object>(
-  fieldName: string
+  fieldName: string,
 ): FilterTransformer<TWhereInput> {
   return (filter, gqlOperator) => {
     if (!priceOperators.has(gqlOperator)) return null;

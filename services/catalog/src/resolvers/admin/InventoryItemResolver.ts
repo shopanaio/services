@@ -1,10 +1,5 @@
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-} from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { InventoryItem } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 
@@ -23,9 +18,7 @@ export class InventoryItemResolver extends CatalogType<string, InventoryItem> {
   async $preload(): Promise<InventoryItem> {
     const data = await this.$ctx.loaders.inventoryItem.load(this.$props);
     if (!data) {
-      throw new PreloadNotFoundError(
-        `InventoryItem not found: ${this.$props}`
-      );
+      throw new PreloadNotFoundError(`InventoryItem not found: ${this.$props}`);
     }
     return data;
   }

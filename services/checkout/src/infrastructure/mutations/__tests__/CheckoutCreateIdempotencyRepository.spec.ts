@@ -33,19 +33,21 @@ function executor(queryRows: unknown[][] = []) {
 describe("CheckoutCreateIdempotencyRepository", () => {
   it("returns the fencing token created for a fresh reservation", async () => {
     const input = request();
-    const execute = executor([[
-      {
-        request_hash: input.requestHash,
-        checkout_id: input.checkoutId,
-        initiating_credential_id: input.initiatingCredentialId,
-        reserved_ids: input.reservedIds,
-        status: "IN_PROGRESS",
-        lease_token: LEASE_TOKEN,
-        lease_expires_at: "2026-08-02T10:00:30.000Z",
-        public_failure: null,
-        snapshot: null,
-      },
-    ]]);
+    const execute = executor([
+      [
+        {
+          request_hash: input.requestHash,
+          checkout_id: input.checkoutId,
+          initiating_credential_id: input.initiatingCredentialId,
+          reserved_ids: input.reservedIds,
+          status: "IN_PROGRESS",
+          lease_token: LEASE_TOKEN,
+          lease_expires_at: "2026-08-02T10:00:30.000Z",
+          public_failure: null,
+          snapshot: null,
+        },
+      ],
+    ]);
     const repository = new CheckoutCreateIdempotencyRepository(
       execute,
       () => NOW,
@@ -63,23 +65,27 @@ describe("CheckoutCreateIdempotencyRepository", () => {
     const input = request();
     const execute = executor([
       [],
-      [{
-        request_hash: input.requestHash,
-        checkout_id: input.checkoutId,
-        initiating_credential_id: input.initiatingCredentialId,
-        reserved_ids: input.reservedIds,
-        status: "IN_PROGRESS",
-        lease_token: "0198c4d4-9c00-7000-8000-000000000099",
-        lease_expires_at: "2026-08-02T09:59:59.000Z",
-        public_failure: null,
-        snapshot: null,
-      }],
-      [{
-        checkout_id: input.checkoutId,
-        initiating_credential_id: input.initiatingCredentialId,
-        reserved_ids: input.reservedIds,
-        lease_token: LEASE_TOKEN,
-      }],
+      [
+        {
+          request_hash: input.requestHash,
+          checkout_id: input.checkoutId,
+          initiating_credential_id: input.initiatingCredentialId,
+          reserved_ids: input.reservedIds,
+          status: "IN_PROGRESS",
+          lease_token: "0198c4d4-9c00-7000-8000-000000000099",
+          lease_expires_at: "2026-08-02T09:59:59.000Z",
+          public_failure: null,
+          snapshot: null,
+        },
+      ],
+      [
+        {
+          checkout_id: input.checkoutId,
+          initiating_credential_id: input.initiatingCredentialId,
+          reserved_ids: input.reservedIds,
+          lease_token: LEASE_TOKEN,
+        },
+      ],
     ]);
     const repository = new CheckoutCreateIdempotencyRepository(
       execute,

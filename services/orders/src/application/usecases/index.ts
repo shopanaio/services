@@ -20,17 +20,8 @@ export { GetUserOrdersUseCase } from "./orderGetByCustomerId";
 // Types from order module
 
 // Use case input/output types
-export type {
-  GetOrderByIdInput
-} from "./orderGetById";
-export type {
-  GetOrdersInput,
-  GetOrdersUseCaseInput,
-  GetOrdersOutput
-} from "./orderGetMany";
-export type {
-  GetUserOrdersInput,
-  GetUserOrdersUseCaseInput
-} from "./orderGetByCustomerId";
+export type { GetOrderByIdInput } from "./orderGetById";
+export type { GetOrdersInput, GetOrdersUseCaseInput, GetOrdersOutput } from "./orderGetMany";
+export type { GetUserOrdersInput, GetUserOrdersUseCaseInput } from "./orderGetByCustomerId";
 
 // DTOs

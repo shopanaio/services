@@ -19,22 +19,17 @@ export class CollectionLoader {
       return ids.map((id) => rows.find((row) => row.id === id) ?? null);
     });
 
-    this.collectionTranslation = new DataLoader<
-      string,
-      CollectionTranslation | null
-    >(async (ids) => {
-      const rows = await repository.collection.getTranslationsByCollectionIds(ids);
-      return ids.map(
-        (id) => rows.find((row) => row.collectionId === id) ?? null
-      );
-    });
-
-    this.collectionSeo = new DataLoader<string, CollectionSeo | null>(
+    this.collectionTranslation = new DataLoader<string, CollectionTranslation | null>(
       async (ids) => {
-        const rows = await repository.collection.getSeoByCollectionIds(ids);
+        const rows = await repository.collection.getTranslationsByCollectionIds(ids);
         return ids.map((id) => rows.find((row) => row.collectionId === id) ?? null);
-      }
+      },
     );
+
+    this.collectionSeo = new DataLoader<string, CollectionSeo | null>(async (ids) => {
+      const rows = await repository.collection.getSeoByCollectionIds(ids);
+      return ids.map((id) => rows.find((row) => row.collectionId === id) ?? null);
+    });
 
     this.collectionMedia = new DataLoader<string, CollectionMedia[]>(async (ids) => {
       const rows = await repository.collection.getMediaByCollectionIds(ids);

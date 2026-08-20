@@ -5,11 +5,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { App } from "antd";
 import { createStyles } from "antd-style";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { useCreateProduct } from "../../hooks";
 import type { ICreateProductFormValues } from "./types";
 import { createProductSchema } from "./schema";
@@ -75,7 +71,7 @@ export const CreateProductModal = () => {
         pop();
       }
     },
-    [createProduct, setError, message, pop]
+    [createProduct, setError, message, pop],
   );
 
   const handleClose = useCallback(() => {

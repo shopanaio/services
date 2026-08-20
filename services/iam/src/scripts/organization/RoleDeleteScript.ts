@@ -1,9 +1,4 @@
-import {
-  BaseScript,
-  ZodSchema,
-  Transactional,
-  ValidationError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, Transactional, ValidationError } from "../../kernel/BaseScript.js";
 import { AuthorizationError } from "@shopana/shared-kernel";
 import type { Domain } from "../../casbin/CasbinService.js";
 import {
@@ -17,20 +12,14 @@ import {
  *
  * System roles cannot be deleted.
  */
-export class RoleDeleteScript extends BaseScript<
-  RoleDeleteParams,
-  RoleDeleteResult
-> {
+export class RoleDeleteScript extends BaseScript<RoleDeleteParams, RoleDeleteResult> {
   @Transactional()
   @ZodSchema(roleDeleteInputSchema)
   protected async execute(params: RoleDeleteParams): Promise<RoleDeleteResult> {
     const { organizationId, id } = params;
 
     // Find the role
-    const existingRole = await this.repository.organization.findRoleById(
-      organizationId,
-      id
-    );
+    const existingRole = await this.repository.organization.findRoleById(organizationId, id);
 
     if (!existingRole) {
       return {
@@ -67,10 +56,7 @@ export class RoleDeleteScript extends BaseScript<
     });
 
     // Delete the role from database
-    const deleted = await this.repository.organization.deleteRole(
-      organizationId,
-      id
-    );
+    const deleted = await this.repository.organization.deleteRole(organizationId, id);
 
     return {
       deletedRoleName: deleted?.name ?? null,

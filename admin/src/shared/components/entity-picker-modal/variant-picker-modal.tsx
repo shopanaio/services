@@ -1,11 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import {
-  ModalLayout,
-  ModalHeader,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalLayout, ModalHeader, useModalStackContext } from "@/layouts/modals";
 import { EntityPickerContent } from "./entity-picker-content";
 import { variantPickerConfig } from "./configs/variant-picker-config";
 import type { IPickableEntity } from "./types";
@@ -35,17 +31,12 @@ export function VariantPickerModal() {
   } = typedPayload;
 
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelection);
-  const [selectedEntities, setSelectedEntities] = useState<IPickableEntity[]>(
-    [],
-  );
+  const [selectedEntities, setSelectedEntities] = useState<IPickableEntity[]>([]);
 
-  const handleSelectionChange = useCallback(
-    (ids: string[], entities: IPickableEntity[]) => {
-      setSelectedIds(ids);
-      setSelectedEntities(entities);
-    },
-    [],
-  );
+  const handleSelectionChange = useCallback((ids: string[], entities: IPickableEntity[]) => {
+    setSelectedIds(ids);
+    setSelectedEntities(entities);
+  }, []);
 
   const handleConfirm = useCallback(() => {
     onConfirm(selectedEntities, selectedIds);
@@ -56,8 +47,7 @@ export function VariantPickerModal() {
     forcePop();
   }, [forcePop]);
 
-  const confirmText =
-    selectedIds.length > 0 ? `Confirm (${selectedIds.length})` : "Confirm";
+  const confirmText = selectedIds.length > 0 ? `Confirm (${selectedIds.length})` : "Confirm";
 
   return (
     <ModalLayout

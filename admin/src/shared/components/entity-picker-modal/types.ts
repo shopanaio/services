@@ -1,11 +1,7 @@
 import type { ColDef } from "ag-grid-community";
 import type { ComponentType } from "react";
 import type { IFilterSchema, IFilterValue } from "@/layouts/filters/core/types";
-import type {
-  FilterTransformer,
-  OrderByInput,
-  SortFieldMapping,
-} from "@/hooks";
+import type { FilterTransformer, OrderByInput, SortFieldMapping } from "@/hooks";
 
 /**
  * Base interface for pickable entities

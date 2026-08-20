@@ -108,7 +108,7 @@ export function useUpdateStore(): UseUpdateStoreReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

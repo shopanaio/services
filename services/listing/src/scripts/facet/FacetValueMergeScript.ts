@@ -1,15 +1,8 @@
 import { randomUUID } from "crypto";
-import {
-  BaseScript,
-  Transactional,
-  type UserError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
 import type { FacetValue } from "../../repositories/models/index.js";
-import type {
-  FacetValueMergeParams,
-  FacetValueMergeResult,
-} from "./dto/index.js";
+import type { FacetValueMergeParams, FacetValueMergeResult } from "./dto/index.js";
 import {
   isFacetWithValues,
   isValidGroupHandle,
@@ -21,9 +14,7 @@ export class FacetValueMergeScript extends BaseScript<
   FacetValueMergeResult
 > {
   @Transactional()
-  protected async execute(
-    params: FacetValueMergeParams
-  ): Promise<FacetValueMergeResult> {
+  protected async execute(params: FacetValueMergeParams): Promise<FacetValueMergeResult> {
     const sourceValueIds = [...new Set(params.sourceValueIds)];
     if (sourceValueIds.length === 0) {
       return {
@@ -40,8 +31,7 @@ export class FacetValueMergeScript extends BaseScript<
     }
 
     const hasExistingTarget = params.targetGroupValueId !== undefined;
-    const hasNewTarget =
-      params.targetHandle !== undefined || params.targetLabel !== undefined;
+    const hasNewTarget = params.targetHandle !== undefined || params.targetLabel !== undefined;
     if (hasExistingTarget && hasNewTarget) {
       return {
         facetValue: undefined,
@@ -75,9 +65,7 @@ export class FacetValueMergeScript extends BaseScript<
       return {
         facetValue: undefined,
         sourceValues: [],
-        userErrors: [
-          { message: "Invalid facet ID", field: ["facetId"], code: "INVALID_FACET_ID" },
-        ],
+        userErrors: [{ message: "Invalid facet ID", field: ["facetId"], code: "INVALID_FACET_ID" }],
       };
     }
 
@@ -102,7 +90,7 @@ export class FacetValueMergeScript extends BaseScript<
 
       const usabilityError = await this.validateEnabledTargetHasSourceValues(
         target.facetValue,
-        sourceValues
+        sourceValues,
       );
       if (usabilityError) {
         return {
@@ -112,19 +100,14 @@ export class FacetValueMergeScript extends BaseScript<
         };
       }
 
-      await this.repository.facetValue.attachSourcesToGroup(
-        target.facetValue.id,
-        sourceValueIds
-      );
+      await this.repository.facetValue.attachSourcesToGroup(target.facetValue.id, sourceValueIds);
 
       const facetValue = target.finalHandle
         ? await this.repository.facetValue.updateValue(target.facetValue.id, {
             handle: target.finalHandle,
           })
         : await this.repository.facetValue.findById(target.facetValue.id);
-      const updatedSourceValues = await this.repository.facetValue.getByIds(
-        sourceValueIds
-      );
+      const updatedSourceValues = await this.repository.facetValue.getByIds(sourceValueIds);
 
       return {
         facetValue: facetValue ?? target.facetValue,
@@ -160,7 +143,7 @@ export class FacetValueMergeScript extends BaseScript<
   private validateSourceValues(
     facetId: string,
     requestedIds: readonly string[],
-    sourceValues: readonly FacetValue[]
+    sourceValues: readonly FacetValue[],
   ): UserError[] {
     const valuesById = new Map(sourceValues.map((value) => [value.id, value]));
     const errors: UserError[] = [];
@@ -198,7 +181,7 @@ export class FacetValueMergeScript extends BaseScript<
 
   private async resolveExistingTarget(
     targetGroupValueId: string,
-    facetId: string
+    facetId: string,
   ): Promise<{
     facetValue?: FacetValue;
     finalHandle?: string;
@@ -237,7 +220,7 @@ export class FacetValueMergeScript extends BaseScript<
   private async createTargetGroupValue(
     params: FacetValueMergeParams,
     facetId: string,
-    sourceValues: readonly FacetValue[]
+    sourceValues: readonly FacetValue[],
   ): Promise<{
     facetValue?: FacetValue;
     finalHandle?: string;
@@ -287,7 +270,7 @@ export class FacetValueMergeScript extends BaseScript<
 
     const rootConflict = await this.repository.facetValue.findRootByFacetIdAndHandle(
       facetId,
-      targetHandle
+      targetHandle,
     );
     const sourceValueIds = new Set(sourceValues.map((value) => value.id));
     const conflictsWithMergeSource =
@@ -306,9 +289,7 @@ export class FacetValueMergeScript extends BaseScript<
       };
     }
 
-    const initialHandle = conflictsWithMergeSource
-      ? `tmp-${randomUUID()}`
-      : targetHandle;
+    const initialHandle = conflictsWithMergeSource ? `tmp-${randomUUID()}` : targetHandle;
     const created = await this.repository.facetValue.createValue({
       facetId,
       kind: "group",
@@ -326,7 +307,7 @@ export class FacetValueMergeScript extends BaseScript<
 
   private async validateEnabledTargetHasSourceValues(
     target: FacetValue,
-    sourceValues: readonly FacetValue[]
+    sourceValues: readonly FacetValue[],
   ): Promise<UserError | null> {
     if (!target.enabled) {
       return null;

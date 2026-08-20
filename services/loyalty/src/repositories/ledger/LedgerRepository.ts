@@ -58,78 +58,103 @@ export interface TransactionConnectionResult {
 export class LedgerRepository extends BaseRepository {
   async getTransactionsByIds(ids: readonly string[]): Promise<LoyaltyTransaction[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(transactions).where(and(
-      eq(transactions.storeId, this.storeId),
-      inArray(transactions.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(transactions)
+      .where(and(eq(transactions.storeId, this.storeId), inArray(transactions.id, [...ids])));
   }
 
   async getEntriesByIds(ids: readonly string[]): Promise<LedgerEntry[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(ledgerEntries).where(and(
-      eq(ledgerEntries.storeId, this.storeId),
-      inArray(ledgerEntries.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(ledgerEntries)
+      .where(and(eq(ledgerEntries.storeId, this.storeId), inArray(ledgerEntries.id, [...ids])));
   }
 
   async getPointLotsByIds(ids: readonly string[]): Promise<PointLot[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(pointLots).where(and(
-      eq(pointLots.storeId, this.storeId),
-      inArray(pointLots.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(pointLots)
+      .where(and(eq(pointLots.storeId, this.storeId), inArray(pointLots.id, [...ids])));
   }
 
   async getLotAllocationsByIds(ids: readonly string[]): Promise<LotAllocation[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(lotAllocations).where(and(
-      eq(lotAllocations.storeId, this.storeId),
-      inArray(lotAllocations.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(lotAllocations)
+      .where(and(eq(lotAllocations.storeId, this.storeId), inArray(lotAllocations.id, [...ids])));
   }
 
-  async listLotAllocationsForTransactions(transactionIds: readonly string[]): Promise<LotAllocation[]> {
+  async listLotAllocationsForTransactions(
+    transactionIds: readonly string[],
+  ): Promise<LotAllocation[]> {
     if (transactionIds.length === 0) return [];
-    return this.connection.select().from(lotAllocations).where(and(
-      eq(lotAllocations.storeId, this.storeId),
-      inArray(lotAllocations.transactionId, [...transactionIds]),
-    )).orderBy(asc(lotAllocations.createdAt), asc(lotAllocations.id));
+    return this.connection
+      .select()
+      .from(lotAllocations)
+      .where(
+        and(
+          eq(lotAllocations.storeId, this.storeId),
+          inArray(lotAllocations.transactionId, [...transactionIds]),
+        ),
+      )
+      .orderBy(asc(lotAllocations.createdAt), asc(lotAllocations.id));
   }
 
   async getConnection(input: TransactionConnectionInput): Promise<TransactionConnectionResult> {
     const { where, ...pagination } = input;
     const predicates = [eq(transactions.storeId, this.storeId)];
     if (where?.ids?.length) predicates.push(inArray(transactions.id, [...where.ids]));
-    if (where?.accountIds?.length) predicates.push(inArray(transactions.accountId, [...where.accountIds]));
-    if (where?.programIds?.length) predicates.push(inArray(transactions.programId, [...where.programIds]));
+    if (where?.accountIds?.length)
+      predicates.push(inArray(transactions.accountId, [...where.accountIds]));
+    if (where?.programIds?.length)
+      predicates.push(inArray(transactions.programId, [...where.programIds]));
     if (where?.kinds?.length) predicates.push(inArray(transactions.kind, [...where.kinds]));
     if (where?.sources?.length) predicates.push(inArray(transactions.source, [...where.sources]));
     if (where?.sourceId !== undefined) predicates.push(eq(transactions.sourceId, where.sourceId));
     if (where?.occurredFrom) predicates.push(gte(transactions.occurredAt, where.occurredFrom));
     if (where?.occurredTo) predicates.push(lte(transactions.occurredAt, where.occurredTo));
     if (where?.orderId) {
-      predicates.push(or(eq(transactions.sourceId, where.orderId), eq(reservations.orderId, where.orderId))!);
+      predicates.push(
+        or(eq(transactions.sourceId, where.orderId), eq(reservations.orderId, where.orderId))!,
+      );
     }
     if (where?.checkoutId) predicates.push(eq(reservations.checkoutId, where.checkoutId));
 
     const needsReservation = Boolean(where?.orderId || where?.checkoutId);
-    let query = this.connection.selectDistinct({ id: transactions.id }).from(transactions).$dynamic();
+    let query = this.connection
+      .selectDistinct({ id: transactions.id })
+      .from(transactions)
+      .$dynamic();
     if (needsReservation) {
       query = query
-        .leftJoin(reservationEvents, and(
-          eq(reservationEvents.storeId, transactions.storeId),
-          eq(reservationEvents.transactionId, transactions.id),
-        ))
-        .leftJoin(reservations, and(
-          eq(reservations.storeId, transactions.storeId),
-          eq(reservations.id, reservationEvents.reservationId),
-        ));
+        .leftJoin(
+          reservationEvents,
+          and(
+            eq(reservationEvents.storeId, transactions.storeId),
+            eq(reservationEvents.transactionId, transactions.id),
+          ),
+        )
+        .leftJoin(
+          reservations,
+          and(
+            eq(reservations.storeId, transactions.storeId),
+            eq(reservations.id, reservationEvents.reservationId),
+          ),
+        );
     }
     const matchingIds = (await query.where(and(...predicates))).map(({ id }) => id);
     const relayWhere: TransactionRelayInput["where"] = {
       _and: [
         { storeId: { _eq: this.storeId } },
-        { id: { _in: matchingIds.length > 0 ? matchingIds : ["00000000-0000-0000-0000-000000000000"] } },
+        {
+          id: {
+            _in: matchingIds.length > 0 ? matchingIds : ["00000000-0000-0000-0000-000000000000"],
+          },
+        },
       ],
     };
     const relayInput: TransactionRelayInput = {
@@ -154,9 +179,7 @@ export class LedgerRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(transactions)
-      .where(
-        and(eq(transactions.storeId, this.storeId), eq(transactions.id, id)),
-      )
+      .where(and(eq(transactions.storeId, this.storeId), eq(transactions.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -177,19 +200,11 @@ export class LedgerRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async listTransactions(
-    accountId: string,
-    limit = 100,
-  ): Promise<LoyaltyTransaction[]> {
+  async listTransactions(accountId: string, limit = 100): Promise<LoyaltyTransaction[]> {
     return this.connection
       .select()
       .from(transactions)
-      .where(
-        and(
-          eq(transactions.storeId, this.storeId),
-          eq(transactions.accountId, accountId),
-        ),
-      )
+      .where(and(eq(transactions.storeId, this.storeId), eq(transactions.accountId, accountId)))
       .orderBy(desc(transactions.occurredAt), desc(transactions.id))
       .limit(limit);
   }
@@ -198,12 +213,7 @@ export class LedgerRepository extends BaseRepository {
     return this.connection
       .select()
       .from(transactions)
-      .where(
-        and(
-          eq(transactions.storeId, this.storeId),
-          eq(transactions.accountId, accountId),
-        ),
-      )
+      .where(and(eq(transactions.storeId, this.storeId), eq(transactions.accountId, accountId)))
       .orderBy(asc(transactions.createdAt), asc(transactions.id));
   }
 
@@ -224,19 +234,12 @@ export class LedgerRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(ledgerEntries)
-      .where(
-        and(
-          eq(ledgerEntries.storeId, this.storeId),
-          eq(ledgerEntries.id, id),
-        ),
-      )
+      .where(and(eq(ledgerEntries.storeId, this.storeId), eq(ledgerEntries.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
 
-  async listEntriesForTransactions(
-    transactionIds: readonly string[],
-  ): Promise<LedgerEntry[]> {
+  async listEntriesForTransactions(transactionIds: readonly string[]): Promise<LedgerEntry[]> {
     if (transactionIds.length === 0) return [];
     return this.connection
       .select()
@@ -254,12 +257,7 @@ export class LedgerRepository extends BaseRepository {
     return this.connection
       .select()
       .from(ledgerEntries)
-      .where(
-        and(
-          eq(ledgerEntries.storeId, this.storeId),
-          eq(ledgerEntries.accountId, accountId),
-        ),
-      )
+      .where(and(eq(ledgerEntries.storeId, this.storeId), eq(ledgerEntries.accountId, accountId)))
       .orderBy(asc(ledgerEntries.createdAt), asc(ledgerEntries.id));
   }
 
@@ -273,9 +271,7 @@ export class LedgerRepository extends BaseRepository {
     return rows[0]!;
   }
 
-  async appendEntries(
-    inputs: readonly Omit<NewLedgerEntry, "storeId">[],
-  ): Promise<LedgerEntry[]> {
+  async appendEntries(inputs: readonly Omit<NewLedgerEntry, "storeId">[]): Promise<LedgerEntry[]> {
     if (inputs.length === 0) return [];
     return this.connection
       .insert(ledgerEntries)
@@ -300,9 +296,7 @@ export class LedgerRepository extends BaseRepository {
     });
   }
 
-  async createPointLots(
-    inputs: readonly Omit<NewPointLot, "storeId">[],
-  ): Promise<PointLot[]> {
+  async createPointLots(inputs: readonly Omit<NewPointLot, "storeId">[]): Promise<PointLot[]> {
     if (inputs.length === 0) return [];
     return this.connection
       .insert(pointLots)
@@ -314,12 +308,7 @@ export class LedgerRepository extends BaseRepository {
     return this.connection
       .select()
       .from(pointLots)
-      .where(
-        and(
-          eq(pointLots.storeId, this.storeId),
-          eq(pointLots.accountId, accountId),
-        ),
-      )
+      .where(and(eq(pointLots.storeId, this.storeId), eq(pointLots.accountId, accountId)))
       .orderBy(asc(pointLots.expiresAt), asc(pointLots.activatedAt), asc(pointLots.id));
   }
 
@@ -373,27 +362,23 @@ export class LedgerRepository extends BaseRepository {
     return this.connection
       .select()
       .from(pointLots)
-      .where(and(
-        eq(pointLots.storeId, this.storeId),
-        eq(pointLots.accountId, accountId),
-      ))
+      .where(and(eq(pointLots.storeId, this.storeId), eq(pointLots.accountId, accountId)))
       .orderBy(asc(pointLots.expiresAt), asc(pointLots.activatedAt), asc(pointLots.id))
       .for("update");
   }
 
-  async lockPointLotsByIds(
-    accountId: string,
-    ids: readonly string[],
-  ): Promise<PointLot[]> {
+  async lockPointLotsByIds(accountId: string, ids: readonly string[]): Promise<PointLot[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
       .from(pointLots)
-      .where(and(
-        eq(pointLots.storeId, this.storeId),
-        eq(pointLots.accountId, accountId),
-        inArray(pointLots.id, [...ids]),
-      ))
+      .where(
+        and(
+          eq(pointLots.storeId, this.storeId),
+          eq(pointLots.accountId, accountId),
+          inArray(pointLots.id, [...ids]),
+        ),
+      )
       .orderBy(asc(pointLots.expiresAt), asc(pointLots.activatedAt), asc(pointLots.id))
       .for("update");
   }
@@ -414,10 +399,7 @@ export class LedgerRepository extends BaseRepository {
       .select()
       .from(lotAllocations)
       .where(
-        and(
-          eq(lotAllocations.storeId, this.storeId),
-          inArray(lotAllocations.lotId, [...lotIds]),
-        ),
+        and(eq(lotAllocations.storeId, this.storeId), inArray(lotAllocations.lotId, [...lotIds])),
       )
       .orderBy(asc(lotAllocations.createdAt), asc(lotAllocations.id));
   }

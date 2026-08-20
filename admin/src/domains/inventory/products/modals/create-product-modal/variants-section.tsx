@@ -15,10 +15,7 @@ import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import { syntheticId } from "@/utils/synthetic-id";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import {
-  generateVariants,
-  countPotentialVariants,
-} from "./utils/generate-variants";
+import { generateVariants, countPotentialVariants } from "./utils/generate-variants";
 import type { ICreateProductFormValues } from "./types";
 import type { IOptionInput, IOptionValueInput, IGeneratedVariant } from "./utils/generate-variants";
 import { useAgGridTheme } from "@/hooks";
@@ -120,10 +117,7 @@ interface IOptionCardProps {
   index: number;
   onUpdateValues: (id: string, values: IOptionValueInput[]) => void;
   onUpdateName: (id: string, name: string) => void;
-  onUpdateCategory: (
-    id: string,
-    category: { id: string; name: string; slug: string },
-  ) => void;
+  onUpdateCategory: (id: string, category: { id: string; name: string; slug: string }) => void;
   onDelete: (id: string) => void;
   canDelete: boolean;
 }
@@ -138,7 +132,9 @@ const OptionCard = ({
   canDelete,
 }: IOptionCardProps) => {
   const { styles } = useStyles();
-  const { formState: { errors } } = useFormContext<ICreateProductFormValues>();
+  const {
+    formState: { errors },
+  } = useFormContext<ICreateProductFormValues>();
 
   const optionErrors = errors.options?.[index];
   const hasNameError = !!optionErrors?.name;
@@ -175,10 +171,7 @@ const OptionCard = ({
   };
 
   return (
-    <div
-      className={styles.optionCard}
-      data-testid={`create-product-option-card-${index}`}
-    >
+    <div className={styles.optionCard} data-testid={`create-product-option-card-${index}`}>
       <div className={styles.optionRow}>
         <div className={styles.optionFields}>
           <div className={styles.optionFieldRow}>
@@ -233,8 +226,12 @@ const OptionCard = ({
 export const VariantsSection = () => {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
-  const { watch, setValue, getValues, formState: { errors } } =
-    useFormContext<ICreateProductFormValues>();
+  const {
+    watch,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useFormContext<ICreateProductFormValues>();
   const gridRef = useRef<AgGridReact>(null);
 
   const hasVariants = watch("hasVariants");
@@ -275,7 +272,7 @@ export const VariantsSection = () => {
         setValue("variants", []);
       }
     },
-    [setValue]
+    [setValue],
   );
 
   const handleAddOption = useCallback(() => {
@@ -291,20 +288,20 @@ export const VariantsSection = () => {
     (id: string, name: string) => {
       setValue(
         "options",
-        options.map((opt) => (opt.id === id ? { ...opt, name } : opt))
+        options.map((opt) => (opt.id === id ? { ...opt, name } : opt)),
       );
     },
-    [options, setValue]
+    [options, setValue],
   );
 
   const handleUpdateOptionValues = useCallback(
     (id: string, values: IOptionValueInput[]) => {
       setValue(
         "options",
-        options.map((opt) => (opt.id === id ? { ...opt, values } : opt))
+        options.map((opt) => (opt.id === id ? { ...opt, values } : opt)),
       );
     },
-    [options, setValue]
+    [options, setValue],
   );
 
   const handleUpdateOptionCategory = useCallback(
@@ -321,26 +318,26 @@ export const VariantsSection = () => {
     (id: string) => {
       setValue(
         "options",
-        options.filter((opt) => opt.id !== id)
+        options.filter((opt) => opt.id !== id),
       );
     },
-    [options, setValue]
+    [options, setValue],
   );
 
   const handleVariantSelectionChange = useCallback(
     (event: SelectionChangedEvent) => {
       const selectedIds = new Set(
-        event.api.getSelectedRows().map((row: IGeneratedVariant) => row.id)
+        event.api.getSelectedRows().map((row: IGeneratedVariant) => row.id),
       );
       setValue(
         "variants",
         variants.map((v) => ({
           ...v,
           enabled: selectedIds.has(v.id),
-        }))
+        })),
       );
     },
-    [variants, setValue]
+    [variants, setValue],
   );
 
   // Build dynamic columns based on options
@@ -404,9 +401,7 @@ export const VariantsSection = () => {
         />
 
         <Flex vertical>
-          <Typography.Text strong>
-            This is a product with variants
-          </Typography.Text>
+          <Typography.Text strong>This is a product with variants</Typography.Text>
           <Typography.Text type="secondary">
             When unchecked, we will create a default variant for you
           </Typography.Text>
@@ -448,8 +443,7 @@ export const VariantsSection = () => {
                 </Typography.Text>
               </div>
               <div className={styles.variantsDescription}>
-                This ranking will affect the variants&apos; order in your
-                storefront.
+                This ranking will affect the variants&apos; order in your storefront.
               </div>
 
               {showWarning && (
@@ -471,10 +465,7 @@ export const VariantsSection = () => {
                 />
               )}
 
-              <div
-                className={styles.gridContainer}
-                data-testid="create-product-variants-grid"
-              >
+              <div className={styles.gridContainer} data-testid="create-product-variants-grid">
                 <AgGridReact
                   ref={gridRef}
                   theme={agGridTheme}
@@ -494,9 +485,8 @@ export const VariantsSection = () => {
               </div>
 
               <div className={styles.tip}>
-                Tip: Variants left unchecked won&apos;t be created. You can
-                always create and edit variants afterwards but this list fits
-                the variations in your product options.
+                Tip: Variants left unchecked won&apos;t be created. You can always create and edit
+                variants afterwards but this list fits the variations in your product options.
               </div>
             </>
           )}

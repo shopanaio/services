@@ -21,12 +21,12 @@ export interface EventHandlerOptions {
 
 export function EventHandler(
   eventType: string,
-  options: EventHandlerOptions = {}
+  options: EventHandlerOptions = {},
 ): MethodDecorator {
   return function (
     target: object,
     propertyKey: string | symbol,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ): PropertyDescriptor {
     const metadata: EventHandlerMetadata = {
       eventType,
@@ -42,20 +42,18 @@ export function EventHandler(
   };
 }
 
-export function CatchAllEventHandler(
-  options: EventHandlerOptions = {}
-): MethodDecorator {
+export function CatchAllEventHandler(options: EventHandlerOptions = {}): MethodDecorator {
   return EventHandler(CATCH_ALL_EVENT_TYPE, options);
 }
 
 export function BatchEventHandler(
   eventType: string,
-  options: EventHandlerOptions = {}
+  options: EventHandlerOptions = {},
 ): MethodDecorator {
   return function (
     target: object,
     propertyKey: string | symbol,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ): PropertyDescriptor {
     const metadata: BatchEventHandlerMetadata = {
       eventType,
@@ -66,12 +64,7 @@ export function BatchEventHandler(
       },
     };
 
-    Reflect.defineMetadata(
-      BATCH_EVENT_HANDLER_METADATA_KEY,
-      metadata,
-      target,
-      propertyKey
-    );
+    Reflect.defineMetadata(BATCH_EVENT_HANDLER_METADATA_KEY, metadata, target, propertyKey);
     return descriptor;
   };
 }

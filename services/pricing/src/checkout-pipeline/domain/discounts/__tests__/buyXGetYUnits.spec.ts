@@ -1,8 +1,5 @@
 import type { Pricing } from "@shopana/broker-types";
-import {
-  canonicalRanges,
-  planBuyXGetYUnits,
-} from "../buyXGetYUnits.js";
+import { canonicalRanges, planBuyXGetYUnits } from "../buyXGetYUnits.js";
 
 describe("Buy X Get Y canonical unit planning", () => {
   it("breaks equal-price benefit ties by line preorder, not lexical lineId", () => {
@@ -74,9 +71,7 @@ describe("Buy X Get Y canonical unit planning", () => {
     const quantity = Number.MAX_SAFE_INTEGER;
     const largeLine = line("large-line", quantity, 1n);
 
-    expect(
-      canonicalRanges([largeLine], new Map([[largeLine.lineId, 0]])),
-    ).toEqual([
+    expect(canonicalRanges([largeLine], new Map([[largeLine.lineId, 0]]))).toEqual([
       {
         lineId: "large-line",
         linePreorderIndex: 0,

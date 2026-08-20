@@ -20,9 +20,7 @@ export interface MappedSearchEditorError {
 
 const INDEXED_FIELD = /(phrases|productIds|values)\.(\d+)$/;
 
-export function mapSearchEditorErrors(
-  errors: ApiGenericUserError[],
-): MappedSearchEditorError[] {
+export function mapSearchEditorErrors(errors: ApiGenericUserError[]): MappedSearchEditorError[] {
   return errors.map((error) => {
     const field = error.field?.join(".") ?? "";
     const indexed = field.match(INDEXED_FIELD);
@@ -63,17 +61,14 @@ export function mapSearchSettingsErrors(
 ): MappedSearchSettingsError[] {
   return errors.map((error) => {
     const fieldPath = error.field?.join(".") ?? "";
-    const fieldMatch = fieldPath.match(
-      /(?:^|\.)input\.fields(?:\.(\d+))?(?:\.(field|weight))?$/,
-    );
+    const fieldMatch = fieldPath.match(/(?:^|\.)input\.fields(?:\.(\d+))?(?:\.(field|weight))?$/);
     let target: SearchSettingsErrorTarget = "global";
 
     if (error.code === "VERSION_CONFLICT" || /(?:^|\.)expectedVersion$/.test(fieldPath)) {
       target = "versionConflict";
     } else if (fieldMatch) {
       const submittedIndex = fieldMatch[1] ? Number(fieldMatch[1]) : null;
-      const submittedField =
-        submittedIndex === null ? null : submittedIndexToField[submittedIndex];
+      const submittedField = submittedIndex === null ? null : submittedIndexToField[submittedIndex];
       if (!submittedField) target = "fields";
       else if (fieldMatch[2] === "weight") {
         target = `field.${submittedField}.weight`;

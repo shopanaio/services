@@ -133,7 +133,7 @@ describe("TransactionManager", () => {
       await expect(
         txManager.run(async () => {
           throw testError;
-        })
+        }),
       ).rejects.toThrow("Test error");
 
       // Transaction was started (Drizzle handles rollback internally)
@@ -157,7 +157,7 @@ describe("TransactionManager", () => {
 
           operations.push("outer-end"); // Should not reach here
           return "result";
-        })
+        }),
       ).rejects.toThrow("Inner error");
 
       expect(operations).toEqual(["outer-start", "inner-start"]);
@@ -194,14 +194,11 @@ describe("TransactionManager", () => {
       const externalTx: MockTx = { query: jest.fn() };
       const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
 
-      const result = await txManager.runWithExistingTransaction(
-        externalTx,
-        async () => {
-          expect(txManager.getConnection()).toBe(externalTx);
-          expect(txManager.getDepth()).toBe(1);
-          return "external-result";
-        }
-      );
+      const result = await txManager.runWithExistingTransaction(externalTx, async () => {
+        expect(txManager.getConnection()).toBe(externalTx);
+        expect(txManager.getDepth()).toBe(1);
+        return "external-result";
+      });
 
       expect(result).toBe("external-result");
       expect(mockDb.transaction).not.toHaveBeenCalled();
@@ -241,9 +238,7 @@ describe("TransactionManager", () => {
       const connections: unknown[] = [];
 
       class TransactionalRepository {
-        constructor(
-          public readonly txManager: TransactionManager<MockDb, MockTx>
-        ) {}
+        constructor(public readonly txManager: TransactionManager<MockDb, MockTx>) {}
 
         @Transactional()
         async write(): Promise<void> {
@@ -258,9 +253,7 @@ describe("TransactionManager", () => {
       }
 
       const repository = new TransactionalRepository(txManager);
-      await txManager.runWithExistingTransaction(externalTx, () =>
-        repository.write()
-      );
+      await txManager.runWithExistingTransaction(externalTx, () => repository.write());
 
       expect(connections).toEqual([externalTx, externalTx]);
       expect(mockDb.transaction).not.toHaveBeenCalled();
@@ -290,10 +283,8 @@ describe("TransactionManager", () => {
 
       await txManager.runWithExistingTransaction(firstTx, async () => {
         await expect(
-          txManager.runWithExistingTransaction(secondTx, async () => null)
-        ).rejects.toThrow(
-          "Cannot replace the active transaction with a different transaction"
-        );
+          txManager.runWithExistingTransaction(secondTx, async () => null),
+        ).rejects.toThrow("Cannot replace the active transaction with a different transaction");
 
         expect(txManager.getConnection()).toBe(firstTx);
         expect(txManager.getDepth()).toBe(1);
@@ -310,7 +301,7 @@ describe("TransactionManager", () => {
       await expect(
         txManager.runWithExistingTransaction(externalTx, async () => {
           throw new Error("external failure");
-        })
+        }),
       ).rejects.toThrow("external failure");
 
       expect(txManager.isInTransaction()).toBe(false);

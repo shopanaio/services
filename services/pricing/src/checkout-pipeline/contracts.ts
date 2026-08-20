@@ -1,9 +1,7 @@
 import type { Catalog, Pricing } from "@shopana/broker-types";
 
-export type CalculatePreliminaryQuoteParams =
-  Pricing.CalculateCheckoutPreliminaryQuoteParams;
-export type CalculatePreliminaryQuoteResult =
-  Pricing.CalculateCheckoutPreliminaryQuoteResult;
+export type CalculatePreliminaryQuoteParams = Pricing.CalculateCheckoutPreliminaryQuoteParams;
+export type CalculatePreliminaryQuoteResult = Pricing.CalculateCheckoutPreliminaryQuoteResult;
 export type FinalizeQuoteParams = Pricing.FinalizeCheckoutPricingQuoteParams;
 export type FinalizeQuoteResult = Pricing.FinalizeCheckoutPricingQuoteResult;
 
@@ -24,15 +22,11 @@ export interface PricingCheckoutQuotePort {
 
 /** Catalog merchandise boundary used by preliminary Pricing. */
 export interface PricingCatalogMerchandisePort {
-  resolve(
-    params: PricingCatalogMerchandiseParams,
-  ): Promise<PricingCatalogMerchandiseResult>;
+  resolve(params: PricingCatalogMerchandiseParams): Promise<PricingCatalogMerchandiseResult>;
 }
 
-export type PricingCatalogMerchandiseParams =
-  Catalog.ResolveCheckoutMerchandiseParams;
-export type PricingCatalogMerchandiseResult =
-  Catalog.ResolveCheckoutMerchandiseResult;
+export type PricingCatalogMerchandiseParams = Catalog.ResolveCheckoutMerchandiseParams;
+export type PricingCatalogMerchandiseResult = Catalog.ResolveCheckoutMerchandiseResult;
 
 /** Registered broker handler surface. */
 export interface PricingCheckoutActionsContract {
@@ -40,9 +34,7 @@ export interface PricingCheckoutActionsContract {
     params: CalculatePreliminaryQuoteParams,
   ): Promise<CalculatePreliminaryQuoteResult>;
 
-  finalizeCheckoutPricingQuote(
-    params: FinalizeQuoteParams,
-  ): Promise<FinalizeQuoteResult>;
+  finalizeCheckoutPricingQuote(params: FinalizeQuoteParams): Promise<FinalizeQuoteResult>;
 }
 
 /** Persistence boundary for immutable quote snapshots and optimistic revisions. */
@@ -56,14 +48,16 @@ export interface PricingQuoteSnapshotPort {
 
 /** Usage is reserved during checkout completion, never during ordinary repricing. */
 export interface PricingDiscountUsageReservationPort {
-  reserveForQuote(input: Readonly<{
-    storeId: string;
-    checkoutId: string;
-    quoteId: string;
-    quoteRevision: string;
-    idempotencyKey: string;
-    requirements: readonly Pricing.PricingCheckoutDiscountUsageRequirement[];
-  }>): Promise<
+  reserveForQuote(
+    input: Readonly<{
+      storeId: string;
+      checkoutId: string;
+      quoteId: string;
+      quoteRevision: string;
+      idempotencyKey: string;
+      requirements: readonly Pricing.PricingCheckoutDiscountUsageRequirement[];
+    }>,
+  ): Promise<
     Readonly<{
       reservations: readonly Readonly<{
         applicationId: string;

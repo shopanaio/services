@@ -12,10 +12,7 @@ import { BaseRepository } from "../BaseRepository.js";
 import { appCatalog, appListView } from "../models/index.js";
 
 export const appRelayQuery = createRelayQuery(
-  createQuery(appListView)
-    .include(["code"])
-    .maxLimit(100)
-    .defaultLimit(20),
+  createQuery(appListView).include(["code"]).maxLimit(100).defaultLimit(20),
   { name: "app", tieBreaker: "code" },
 );
 
@@ -29,10 +26,7 @@ export interface AppConnectionResult {
 }
 
 export class AppRepository extends BaseRepository {
-  constructor(
-    db: Database,
-    txManager: TransactionManager<Database>,
-  ) {
+  constructor(db: Database, txManager: TransactionManager<Database>) {
     super(db, txManager);
   }
 
@@ -44,19 +38,13 @@ export class AppRepository extends BaseRepository {
 
     const { where: inputWhere, orderBy, ...pagination } = input;
     const where: AppRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(inputWhere ? [inputWhere] : []),
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, ...(inputWhere ? [inputWhere] : [])],
     };
     const relayInput: AppRelayInput = {
       ...pagination,
-      first:
-        input.first == null && input.last == null ? 20 : input.first,
+      first: input.first == null && input.last == null ? 20 : input.first,
       where,
-      orderBy: orderBy ?? [
-        { field: "code", direction: "asc" },
-      ],
+      orderBy: orderBy ?? [{ field: "code", direction: "asc" }],
     };
 
     const [result, totalCount] = await Promise.all([
@@ -74,15 +62,11 @@ export class AppRepository extends BaseRepository {
     };
   }
 
-  private async synchronizeCatalog(
-    definitions: readonly ShopanaAppDefinition[],
-  ): Promise<void> {
+  private async synchronizeCatalog(definitions: readonly ShopanaAppDefinition[]): Promise<void> {
     const codes = definitions.map(({ manifest }) => manifest.code);
 
     if (codes.length === 0) {
-      await this.connection
-        .delete(appCatalog)
-        .where(eq(appCatalog.storeId, this.storeId));
+      await this.connection.delete(appCatalog).where(eq(appCatalog.storeId, this.storeId));
       return;
     }
 
@@ -95,9 +79,7 @@ export class AppRepository extends BaseRepository {
           version: manifest.version,
           displayName: manifest.displayName,
           description: manifest.description,
-          capabilities: [...new Set(
-            manifest.capabilities.map(({ key }) => key),
-          )]
+          capabilities: [...new Set(manifest.capabilities.map(({ key }) => key))]
             .sort((left, right) => left.localeCompare(right))
             .join("\n"),
           manifest,
@@ -124,11 +106,6 @@ export class AppRepository extends BaseRepository {
 
     await this.connection
       .delete(appCatalog)
-      .where(
-        and(
-          eq(appCatalog.storeId, this.storeId),
-          notInArray(appCatalog.appCode, codes),
-        ),
-      );
+      .where(and(eq(appCatalog.storeId, this.storeId), notInArray(appCatalog.appCode, codes)));
   }
 }

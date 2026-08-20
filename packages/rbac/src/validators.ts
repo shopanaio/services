@@ -8,12 +8,14 @@ import { Resources } from "./definitions.js";
 const ActionSchema = z.enum(["read", "write", "admin"]);
 
 // Build permission schemas dynamically from Resources
-const buildPermissionSchemas = <T extends Record<string, { actions: readonly string[] }>>(resources: T) => {
+const buildPermissionSchemas = <T extends Record<string, { actions: readonly string[] }>>(
+  resources: T,
+) => {
   return Object.entries(resources).map(([resource]) =>
     z.object({
       resource: z.literal(resource),
       action: ActionSchema,
-    })
+    }),
   );
 };
 
@@ -24,9 +26,11 @@ const OrgPermissionSchema = z.discriminatedUnion("resource", orgSchemas as any);
 const StorePermissionSchema = z.discriminatedUnion("resource", storeSchemas as any);
 
 // Store domain format: store:<uuid>
-const StoreDomainSchema = z.string().regex(/^store:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, {
-  message: "Store domain must be in format 'store:<uuid>'",
-});
+const StoreDomainSchema = z
+  .string()
+  .regex(/^store:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, {
+    message: "Store domain must be in format 'store:<uuid>'",
+  });
 
 // Org permissions schema
 const OrgDomainPermissionsSchema = z.object({
@@ -41,16 +45,11 @@ const StoreDomainPermissionsSchema = z.object({
 });
 
 // Domain permissions validation
-const DomainPermissionsSchema = z.union([
-  OrgDomainPermissionsSchema,
-  StoreDomainPermissionsSchema,
-]);
+const DomainPermissionsSchema = z.union([OrgDomainPermissionsSchema, StoreDomainPermissionsSchema]);
 
 export type DomainPermissions = z.infer<typeof DomainPermissionsSchema>;
 
-export type ValidationResult<T> =
-  | { success: true; data: T }
-  | { success: false; errors: string[] };
+export type ValidationResult<T> = { success: true; data: T } | { success: false; errors: string[] };
 
 /**
  * Validates domain permissions input
@@ -116,13 +115,16 @@ export interface ValidatedAuthorizeInput {
  * - resource is valid for the domain (org.* for org, store.* for store)
  * - action is valid for the resource
  */
-export function validateAuthorizeInput(input: AuthorizeInput): ValidationResult<ValidatedAuthorizeInput> {
+export function validateAuthorizeInput(
+  input: AuthorizeInput,
+): ValidationResult<ValidatedAuthorizeInput> {
   const errors: string[] = [];
   const { domain, resource, action } = input;
 
   // Validate domain
   const isOrgDomain = domain === "org";
-  const isStoreDomain = /^store:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(domain);
+  const isStoreDomain =
+    /^store:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(domain);
 
   if (!isOrgDomain && !isStoreDomain) {
     errors.push(`Invalid domain "${domain}". Must be "org" or "store:<uuid>"`);
@@ -147,7 +149,9 @@ export function validateAuthorizeInput(input: AuthorizeInput): ValidationResult<
   if (isOrgResource || isStoreResource) {
     const validActions = getActionsForResource(resource as ResourceName);
     if (!validActions.includes(action)) {
-      errors.push(`Invalid action "${action}" for resource "${resource}". Valid actions: ${validActions.join(", ")}`);
+      errors.push(
+        `Invalid action "${action}" for resource "${resource}". Valid actions: ${validActions.join(", ")}`,
+      );
     }
   }
 

@@ -1,17 +1,14 @@
-import { MCPTool } from 'mcp-framework';
-import { z } from 'zod';
-import { readdir, readFile, stat } from 'fs/promises';
-import { join } from 'path';
+import { MCPTool } from "mcp-framework";
+import { z } from "zod";
+import { readdir, readFile, stat } from "fs/promises";
+import { join } from "path";
 
 const ListServicesToolSchema = z.object({
-  workingDir: z
-    .string()
-    .optional()
-    .describe('Working directory (defaults to current directory)')
+  workingDir: z.string().optional().describe("Working directory (defaults to current directory)"),
 });
 
 interface ServiceInfo {
-  kind: 'service' | 'app';
+  kind: "service" | "app";
   name: string;
   path: string;
   hasDbGenerate: boolean;
@@ -32,7 +29,7 @@ interface AdminFrontendInfo {
 }
 
 class ListServicesTool extends MCPTool<typeof ListServicesToolSchema> {
-  name = 'shopana_list_services';
+  name = "shopana_list_services";
   description = `List all available Shopana services with their capabilities.
 
 Returns information about each service including:
@@ -52,8 +49,8 @@ This is useful to understand the project structure and what operations are avail
       let adminFrontend: AdminFrontendInfo | undefined;
 
       for (const root of [
-        { path: join(workingDir, 'services'), kind: 'service' as const },
-        { path: join(workingDir, 'apps'), kind: 'app' as const },
+        { path: join(workingDir, "services"), kind: "service" as const },
+        { path: join(workingDir, "apps"), kind: "app" as const },
       ]) {
         let entries: string[];
         try {
@@ -68,12 +65,10 @@ This is useful to understand the project structure and what operations are avail
 
           if (!stats.isDirectory()) continue;
 
-          const packageJsonPath = join(servicePath, 'package.json');
+          const packageJsonPath = join(servicePath, "package.json");
 
           try {
-            const packageJson = JSON.parse(
-              await readFile(packageJsonPath, 'utf-8')
-            );
+            const packageJson = JSON.parse(await readFile(packageJsonPath, "utf-8"));
 
             const scripts = packageJson.scripts || {};
 
@@ -81,11 +76,11 @@ This is useful to understand the project structure and what operations are avail
               kind: root.kind,
               name: entry,
               path: servicePath,
-              hasDbGenerate: !!scripts['db:generate'],
-              hasDbMigrate: !!scripts['db:migrate'],
-              hasBuild: !!scripts['build'],
-              hasCodegen: !!scripts['codegen'],
-              description: packageJson.description
+              hasDbGenerate: !!scripts["db:generate"],
+              hasDbMigrate: !!scripts["db:migrate"],
+              hasBuild: !!scripts["build"],
+              hasCodegen: !!scripts["codegen"],
+              description: packageJson.description,
             });
           } catch {
             services.push({
@@ -95,27 +90,27 @@ This is useful to understand the project structure and what operations are avail
               hasDbGenerate: false,
               hasDbMigrate: false,
               hasBuild: false,
-              hasCodegen: false
+              hasCodegen: false,
             });
           }
         }
       }
 
       try {
-        const adminPath = join(workingDir, 'admin');
+        const adminPath = join(workingDir, "admin");
         const adminPackageJson = JSON.parse(
-          await readFile(join(adminPath, 'package.json'), 'utf-8')
+          await readFile(join(adminPath, "package.json"), "utf-8"),
         );
         const adminScripts = adminPackageJson.scripts || {};
 
         adminFrontend = {
-          name: adminPackageJson.name || 'admin',
+          name: adminPackageJson.name || "admin",
           path: adminPath,
-          framework: 'Next.js',
-          hasBuild: !!adminScripts['build'],
-          hasCodegen: !!adminScripts['codegen'],
-          hasLint: !!adminScripts['lint'],
-          description: 'Admin frontend. Use shopana_admin for codegen, build, and lint.'
+          framework: "Next.js",
+          hasBuild: !!adminScripts["build"],
+          hasCodegen: !!adminScripts["codegen"],
+          hasLint: !!adminScripts["lint"],
+          description: "Admin frontend. Use shopana_admin for codegen, build, and lint.",
         };
       } catch {
         adminFrontend = undefined;
@@ -124,27 +119,35 @@ This is useful to understand the project structure and what operations are avail
       return {
         content: [
           {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: true,
-              total: services.length,
-              services,
-              adminFrontend
-            }, null, 2)
-          }
-        ]
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                success: true,
+                total: services.length,
+                services,
+                adminFrontend,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
     } catch (error: any) {
       return {
         content: [
           {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: false,
-              error: error.message
-            }, null, 2)
-          }
-        ]
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                success: false,
+                error: error.message,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
     }
   }

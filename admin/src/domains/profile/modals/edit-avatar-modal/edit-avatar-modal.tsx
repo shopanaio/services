@@ -4,11 +4,7 @@ import { useState, useCallback } from "react";
 import { Upload, Typography, Button, App } from "antd";
 import { LuUpload as UploadOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { ImageCropModal } from "@/ui-kit/image-crop";
 import type { IEditAvatarModalPayload } from "../../modals";
@@ -49,9 +45,7 @@ export const EditAvatarModal = () => {
   const typedPayload = payload as IEditAvatarModalPayload;
 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(
-    typedPayload.currentImage || null
-  );
+  const [previewUrl, setPreviewUrl] = useState<string | null>(typedPayload.currentImage || null);
 
   const handleFileSelect = useCallback((file: File) => {
     const reader = new FileReader();

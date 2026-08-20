@@ -10,11 +10,7 @@ import {
   RowDoubleClickedEvent,
 } from "ag-grid-community";
 import { Typography, Flex } from "antd";
-import {
-  ModalLayout,
-  ModalHeader,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalLayout, ModalHeader, useModalStackContext } from "@/layouts/modals";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useAgGridTheme } from "@/hooks";
@@ -22,10 +18,7 @@ import { useFiles } from "@/domains/media/hooks";
 import { useUploadMediaModal } from "@/domains/media/modals";
 import { MediaPreview, useMediaPreview } from "@/domains/media/components/media-preview";
 import { useMediaPickerStyles } from "./media-picker-modal.styles";
-import {
-  mediaPickerConfig,
-  type IMediaPickerEntity,
-} from "./configs/media-picker-config";
+import { mediaPickerConfig, type IMediaPickerEntity } from "./configs/media-picker-config";
 import type { ApiFile } from "@/graphql/types";
 
 ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule]);
@@ -70,9 +63,7 @@ export function MediaPickerModal() {
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelection);
-  const [selectedEntities, setSelectedEntities] = useState<
-    IMediaPickerEntity[]
-  >([]);
+  const [selectedEntities, setSelectedEntities] = useState<IMediaPickerEntity[]>([]);
   const [isGridReady, setIsGridReady] = useState(false);
 
   // Filter state
@@ -97,20 +88,18 @@ export function MediaPickerModal() {
 
   // Transform files to picker entities
   const transformedData = useMemo(() => {
-    const transformed = files.map(
-      (file): IMediaPickerEntity => ({
-        id: file.id,
-        title: file.originalName || file.id,
-        image: file.url,
-        url: file.url,
-        originalName: file.originalName ?? null,
-        mimeType: file.mimeType ?? null,
-        sizeBytes: Number(file.sizeBytes) || 0,
-        ext: file.ext ?? null,
-        createdAt: file.createdAt,
-        provider: file.provider,
-      })
-    );
+    const transformed = files.map((file): IMediaPickerEntity => ({
+      id: file.id,
+      title: file.originalName || file.id,
+      image: file.url,
+      url: file.url,
+      originalName: file.originalName ?? null,
+      mimeType: file.mimeType ?? null,
+      sizeBytes: Number(file.sizeBytes) || 0,
+      ext: file.ext ?? null,
+      createdAt: file.createdAt,
+      provider: file.provider,
+    }));
 
     // Filter out excluded IDs
     if (excludeIds.length > 0) {
@@ -147,15 +136,12 @@ export function MediaPickerModal() {
   }, []);
 
   // Selection handling
-  const handleSelectionChanged = useCallback(
-    (event: SelectionChangedEvent<IMediaPickerEntity>) => {
-      const selectedRows = event.api.getSelectedRows();
-      const ids = selectedRows.map((row) => mediaPickerConfig.getRowId(row));
-      setSelectedIds(ids);
-      setSelectedEntities(selectedRows);
-    },
-    []
-  );
+  const handleSelectionChanged = useCallback((event: SelectionChangedEvent<IMediaPickerEntity>) => {
+    const selectedRows = event.api.getSelectedRows();
+    const ids = selectedRows.map((row) => mediaPickerConfig.getRowId(row));
+    setSelectedIds(ids);
+    setSelectedEntities(selectedRows);
+  }, []);
 
   // Set initial selection when grid is ready
   useEffect(() => {
@@ -165,10 +151,7 @@ export function MediaPickerModal() {
     if (!api) return;
 
     api.forEachNode((node) => {
-      if (
-        node.data &&
-        initialSelection.includes(mediaPickerConfig.getRowId(node.data))
-      ) {
+      if (node.data && initialSelection.includes(mediaPickerConfig.getRowId(node.data))) {
         node.setSelected(true);
       }
     });
@@ -185,7 +168,7 @@ export function MediaPickerModal() {
         mediaPreview.openById(event.data.id);
       }
     },
-    [mediaPreview]
+    [mediaPreview],
   );
 
   // Open upload modal
@@ -214,9 +197,10 @@ export function MediaPickerModal() {
     forcePop();
   }, [forcePop]);
 
-  const confirmText = selectedIds.length > 0
-    ? `Select (${selectedIds.length}${maxSelection !== undefined ? `/${maxSelection}` : ""})`
-    : "Select";
+  const confirmText =
+    selectedIds.length > 0
+      ? `Select (${selectedIds.length}${maxSelection !== undefined ? `/${maxSelection}` : ""})`
+      : "Select";
 
   return (
     <ModalLayout
@@ -259,16 +243,10 @@ export function MediaPickerModal() {
           onKeyDown={(e) => e.key === "Enter" && handleOpenUpload()}
         >
           <Flex align="center" justify="center" vertical>
-            <Typography.Text
-              strong
-              type="secondary"
-              className={styles.draggerTitle}
-            >
+            <Typography.Text strong type="secondary" className={styles.draggerTitle}>
               Upload images
             </Typography.Text>
-            <Typography.Text type="secondary">
-              Click to upload images or videos.
-            </Typography.Text>
+            <Typography.Text type="secondary">Click to upload images or videos.</Typography.Text>
           </Flex>
         </div>
 

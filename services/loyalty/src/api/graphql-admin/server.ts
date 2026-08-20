@@ -1,13 +1,8 @@
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
-import {
-  getServiceConfig,
-  isDevelopment,
-} from "@shopana/shared-service-config";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import fastify from "fastify";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -74,13 +69,8 @@ export async function startServer(config: ServerConfig) {
 
   const apollo = new ApolloServer<ServiceContext>({
     ...buildQueryProtectionOptions(global),
-    schema: buildSubgraphSchema(
-      modules as unknown as Parameters<typeof buildSubgraphSchema>[0],
-    ),
-    plugins: [
-      fastifyApolloDrainPlugin(app),
-      ApolloServerPluginInlineTraceDisabled(),
-    ],
+    schema: buildSubgraphSchema(modules as unknown as Parameters<typeof buildSubgraphSchema>[0]),
+    plugins: [fastifyApolloDrainPlugin(app), ApolloServerPluginInlineTraceDisabled()],
   });
   await apollo.start();
 
@@ -98,8 +88,7 @@ export async function startServer(config: ServerConfig) {
         }
 
         const requestId =
-          headerValue(request.headers["x-idempotency-key"]) ??
-          (request.id as string);
+          headerValue(request.headers["x-idempotency-key"]) ?? (request.id as string);
         const context = new ServiceContext({
           requestId,
           kernel,
@@ -123,9 +112,7 @@ export async function startServer(config: ServerConfig) {
       environment: global.environment,
     }),
   );
-  app.get("/healthz", async (_request, reply) =>
-    reply.send({ status: "ok", service: "loyalty" }),
-  );
+  app.get("/healthz", async (_request, reply) => reply.send({ status: "ok", service: "loyalty" }));
 
   await app.listen({ port: config.port, host: "0.0.0.0" });
   return app;

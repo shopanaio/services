@@ -22,10 +22,7 @@ import {
   type ApiFacetValueCandidateWhereInput,
 } from "@/graphql/types";
 import { useAgGridTheme } from "@/hooks";
-import {
-  CursorPagination,
-  useRelayCursorPagination,
-} from "@/ui-kit/cursor-pagination";
+import { CursorPagination, useRelayCursorPagination } from "@/ui-kit/cursor-pagination";
 import { useFacetValueCandidates } from "../hooks";
 import type { FacetValueCandidateFields } from "../graphql/operation-types";
 
@@ -89,9 +86,7 @@ function toCandidateType(facetType: FacetType): FacetValueCandidateType | null {
   return null;
 }
 
-function toFormValue(
-  candidate: FacetValueCandidateFields,
-): FacetValueCandidateFormValue {
+function toFormValue(candidate: FacetValueCandidateFields): FacetValueCandidateFormValue {
   return {
     id: candidate.id,
     handle: candidate.handle,
@@ -100,27 +95,19 @@ function toFormValue(
   };
 }
 
-function buildSearchWhere(
-  search: string,
-): ApiFacetValueCandidateWhereInput | null {
+function buildSearchWhere(search: string): ApiFacetValueCandidateWhereInput | null {
   const value = search.trim();
   if (!value) return null;
 
   return {
-    _or: [
-      { label: { _containsi: value } },
-      { handle: { _containsi: value } },
-    ],
+    _or: [{ label: { _containsi: value } }, { handle: { _containsi: value } }],
   };
 }
 
 function buildOrderBy(
   sortModel: ApiFacetValueCandidateOrderByInput[],
 ): ApiFacetValueCandidateOrderByInput[] {
-  return [
-    ...sortModel,
-    { field: FacetValueCandidateOrderField.Id, direction: SortDirection.Asc },
-  ];
+  return [...sortModel, { field: FacetValueCandidateOrderField.Id, direction: SortDirection.Asc }];
 }
 
 export function FacetValueCandidatesGrid({
@@ -143,10 +130,7 @@ export function FacetValueCandidatesGrid({
   ]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(
-      () => setDebouncedSearch(search),
-      SEARCH_DEBOUNCE_MS,
-    );
+    const timeout = window.setTimeout(() => setDebouncedSearch(search), SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(timeout);
   }, [search]);
 
@@ -163,10 +147,7 @@ export function FacetValueCandidatesGrid({
     Boolean(candidateType) &&
     SUPPORTED_FACET_TYPES.has(facetType) &&
     (effectiveSourceHandles.length > 0 || Boolean(facetId));
-  const searchWhere = useMemo(
-    () => buildSearchWhere(debouncedSearch),
-    [debouncedSearch],
-  );
+  const searchWhere = useMemo(() => buildSearchWhere(debouncedSearch), [debouncedSearch]);
   const orderBy = useMemo(() => buildOrderBy(sortModel), [sortModel]);
   const resetKey = `${facetType}:${facetId ?? ""}:${effectiveSourceHandles.join(",")}:${debouncedSearch}:${JSON.stringify(sortModel)}`;
   const pagination = useRelayCursorPagination({
@@ -174,23 +155,20 @@ export function FacetValueCandidatesGrid({
     resetKey,
   });
 
-  const { candidates, totalCount, pageInfo, loading, error, refetch } =
-    useFacetValueCandidates({
-      ...pagination.variables,
-      where: searchWhere,
-      orderBy,
-      meta:
-        canLoadCandidates && candidateType
-          ? {
-              candidateType,
-              ...(effectiveSourceHandles.length > 0
-                ? { sourceHandles: effectiveSourceHandles }
-                : {}),
-              ...(facetId ? { facetId } : {}),
-            }
-          : null,
-      skip: !canLoadCandidates,
-    });
+  const { candidates, totalCount, pageInfo, loading, error, refetch } = useFacetValueCandidates({
+    ...pagination.variables,
+    where: searchWhere,
+    orderBy,
+    meta:
+      canLoadCandidates && candidateType
+        ? {
+            candidateType,
+            ...(effectiveSourceHandles.length > 0 ? { sourceHandles: effectiveSourceHandles } : {}),
+            ...(facetId ? { facetId } : {}),
+          }
+        : null,
+    skip: !canLoadCandidates,
+  });
 
   const columnDefs = useMemo<ColDef<FacetValueCandidateFields>[]>(
     () => [
@@ -200,13 +178,9 @@ export function FacetValueCandidatesGrid({
         flex: 1,
         minWidth: 180,
         sort: "asc",
-        cellRenderer: ({
-          data,
-        }: ICellRendererParams<FacetValueCandidateFields>) =>
+        cellRenderer: ({ data }: ICellRendererParams<FacetValueCandidateFields>) =>
           data ? (
-            <span data-testid={`facet-value-candidate-cell-${data.handle}`}>
-              {data.label}
-            </span>
+            <span data-testid={`facet-value-candidate-cell-${data.handle}`}>{data.label}</span>
           ) : null,
       },
       {
@@ -266,31 +240,23 @@ export function FacetValueCandidatesGrid({
     [candidates, onChange, selectionById],
   );
 
-  const handleSortChanged = useCallback(
-    (event: SortChangedEvent<FacetValueCandidateFields>) => {
-      const sortedColumns = event.api
-        .getColumnState()
-        .filter((column) => column.sort != null)
-        .sort((left, right) => (left.sortIndex ?? 0) - (right.sortIndex ?? 0));
-      const labelSort = sortedColumns.find((column) => column.colId === "label");
+  const handleSortChanged = useCallback((event: SortChangedEvent<FacetValueCandidateFields>) => {
+    const sortedColumns = event.api
+      .getColumnState()
+      .filter((column) => column.sort != null)
+      .sort((left, right) => (left.sortIndex ?? 0) - (right.sortIndex ?? 0));
+    const labelSort = sortedColumns.find((column) => column.colId === "label");
 
-      setSortModel([
-        {
-          field: FacetValueCandidateOrderField.Label,
-          direction:
-            labelSort?.sort === "desc" ? SortDirection.Desc : SortDirection.Asc,
-        },
-      ]);
-    },
-    [],
-  );
+    setSortModel([
+      {
+        field: FacetValueCandidateOrderField.Label,
+        direction: labelSort?.sort === "desc" ? SortDirection.Desc : SortDirection.Asc,
+      },
+    ]);
+  }, []);
 
   if (!sourceHandle && effectiveSourceHandles.length === 0 && !facetId) {
-    return (
-      <div className={styles.state}>
-        Select a source to load available values.
-      </div>
-    );
+    return <div className={styles.state}>Select a source to load available values.</div>;
   }
 
   if (!SUPPORTED_FACET_TYPES.has(facetType)) {
@@ -333,9 +299,7 @@ export function FacetValueCandidatesGrid({
           theme={agGridTheme}
           rowData={candidates}
           columnDefs={columnDefs}
-          getRowId={(params: GetRowIdParams<FacetValueCandidateFields>) =>
-            params.data.id
-          }
+          getRowId={(params: GetRowIdParams<FacetValueCandidateFields>) => params.data.id}
           rowHeight={44}
           headerHeight={38}
           rowSelection={rowSelection}

@@ -6,15 +6,8 @@ import type {
   FilterValue,
 } from "../types.js";
 import type { ObjectSchema } from "../schema.js";
-import type {
-  WhereFieldMappers,
-  WhereFieldMapperScope,
-} from "../where-transform.js";
-import type {
-  SimpleFieldDefinition,
-  JoinFieldDefinition,
-  FieldBuilder,
-} from "./helpers.js";
+import type { WhereFieldMappers, WhereFieldMapperScope } from "../where-transform.js";
+import type { SimpleFieldDefinition, JoinFieldDefinition, FieldBuilder } from "./helpers.js";
 
 /**
  * Join type
@@ -24,9 +17,7 @@ export type JoinType = "left" | "right" | "inner" | "full";
 /**
  * Fluent Query Builder interface for type inference
  */
-export interface FluentQueryBuilderLike<
-  Fields extends FluentFieldsDef = FluentFieldsDef
-> {
+export interface FluentQueryBuilderLike<Fields extends FluentFieldsDef = FluentFieldsDef> {
   getFieldsDef(): Fields;
   getSchema(): ObjectSchema;
   /** @internal */
@@ -37,10 +28,7 @@ export interface FluentQueryBuilderLike<
  * Any field definition type (simple, with join, or field builder)
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyFieldDefinition =
-  | SimpleFieldDefinition
-  | JoinFieldDefinition<any>
-  | FieldBuilder;
+export type AnyFieldDefinition = SimpleFieldDefinition | JoinFieldDefinition<any> | FieldBuilder;
 
 /**
  * Fields definition for FluentQueryBuilder
@@ -53,9 +41,7 @@ export type FluentFieldsDef = {
  * Extract join fields from a JoinFieldDefinition.
  * Returns the nested FluentFieldsDef if the field has a join, otherwise never.
  */
-type ExtractJoinFields<T> = T extends JoinFieldDefinition<infer Fields>
-  ? Fields
-  : never;
+type ExtractJoinFields<T> = T extends JoinFieldDefinition<infer Fields> ? Fields : never;
 
 /**
  * Check if a field definition has a join (is a JoinFieldDefinition)
@@ -148,10 +134,4 @@ export type QuerySnapshot<Fields extends FieldsDef = FieldsDef> = {
 };
 
 // Re-export types from main types.ts for convenience
-export type {
-  FieldsDef,
-  NestedPaths,
-  NestedWhereInput,
-  OrderByItem,
-  FilterValue,
-};
+export type { FieldsDef, NestedPaths, NestedWhereInput, OrderByItem, FilterValue };

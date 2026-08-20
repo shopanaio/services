@@ -11,9 +11,7 @@ export class TagDeleteScript extends BaseScript<TagDeleteParams, TagDeleteResult
     if (!existing) {
       return {
         deletedTagId: undefined,
-        userErrors: [
-          { message: "Tag not found", field: ["id"], code: "NOT_FOUND" },
-        ],
+        userErrors: [{ message: "Tag not found", field: ["id"], code: "NOT_FOUND" }],
       };
     }
 

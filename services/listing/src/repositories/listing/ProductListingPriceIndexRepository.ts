@@ -26,8 +26,8 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
         and(
           eq(productListingPriceIndex.storeId, this.storeId),
           eq(productListingPriceIndex.productId, productId),
-          eq(productListingPriceIndex.currency, currency)
-        )
+          eq(productListingPriceIndex.currency, currency),
+        ),
       )
       .limit(1);
 
@@ -35,10 +35,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async find(
-    productId: string,
-    currency: string
-  ): Promise<ProductListingPriceIndex | null> {
+  async find(productId: string, currency: string): Promise<ProductListingPriceIndex | null> {
     assertCurrency(currency);
     const rows = await this.connection
       .select()
@@ -47,8 +44,8 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
         and(
           eq(productListingPriceIndex.storeId, this.storeId),
           eq(productListingPriceIndex.productId, productId),
-          eq(productListingPriceIndex.currency, currency)
-        )
+          eq(productListingPriceIndex.currency, currency),
+        ),
       )
       .limit(1);
 
@@ -63,15 +60,15 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
       .where(
         and(
           eq(productListingPriceIndex.storeId, this.storeId),
-          eq(productListingPriceIndex.productId, productId)
-        )
+          eq(productListingPriceIndex.productId, productId),
+        ),
       );
   }
 
   @ReadOnly()
   async getByProductIds(
     productIds: readonly string[],
-    currencies?: readonly string[]
+    currencies?: readonly string[],
   ): Promise<ProductListingPriceIndex[]> {
     if (productIds.length === 0) {
       return [];
@@ -88,17 +85,14 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
         ? and(
             eq(productListingPriceIndex.storeId, this.storeId),
             inArray(productListingPriceIndex.productId, uniqueProductIds),
-            inArray(productListingPriceIndex.currency, uniqueCurrencies)
+            inArray(productListingPriceIndex.currency, uniqueCurrencies),
           )
         : and(
             eq(productListingPriceIndex.storeId, this.storeId),
-            inArray(productListingPriceIndex.productId, uniqueProductIds)
+            inArray(productListingPriceIndex.productId, uniqueProductIds),
           );
 
-    return this.connection
-      .select()
-      .from(productListingPriceIndex)
-      .where(where);
+    return this.connection.select().from(productListingPriceIndex).where(where);
   }
 
   @ReadOnly()
@@ -111,25 +105,19 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
     return rows[0]?.value ?? 0;
   }
 
-  async upsert(
-    row: ProductListingPriceRowInput
-  ): Promise<ProductListingPriceIndex> {
+  async upsert(row: ProductListingPriceRowInput): Promise<ProductListingPriceIndex> {
     const rows = await this.upsertMany([row]);
     return rows[0];
   }
 
   async upsertMany(
-    rows: readonly ProductListingPriceRowInput[]
+    rows: readonly ProductListingPriceRowInput[],
   ): Promise<ProductListingPriceIndex[]> {
     if (rows.length === 0) {
       return [];
     }
 
-    assertUniqueBy(
-      rows,
-      (row) => `${row.productId}:${row.currency}`,
-      "product listing price row"
-    );
+    assertUniqueBy(rows, (row) => `${row.productId}:${row.currency}`, "product listing price row");
 
     const now = nowIso();
     const result: ProductListingPriceIndex[] = [];
@@ -140,10 +128,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
         .insert(productListingPriceIndex)
         .values(values)
         .onConflictDoUpdate({
-          target: [
-            productListingPriceIndex.productId,
-            productListingPriceIndex.currency,
-          ],
+          target: [productListingPriceIndex.productId, productListingPriceIndex.currency],
           setWhere: eq(productListingPriceIndex.storeId, this.storeId),
           set: {
             minPriceMinor: sql`excluded.min_price_minor`,
@@ -164,7 +149,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
   @Transactional()
   async replaceForProduct(
     productId: string,
-    rows: readonly ProductListingPriceRowInput[]
+    rows: readonly ProductListingPriceRowInput[],
   ): Promise<ProductListingPriceIndex[]> {
     for (const row of rows) {
       if (row.productId !== productId) {
@@ -178,7 +163,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
 
   @Transactional()
   async replaceForProducts(
-    rowsByProductId: ReadonlyMap<string, readonly ProductListingPriceRowInput[]>
+    rowsByProductId: ReadonlyMap<string, readonly ProductListingPriceRowInput[]>,
   ): Promise<ProductListingPriceIndex[]> {
     if (rowsByProductId.size === 0) {
       return [];
@@ -206,8 +191,8 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
         and(
           eq(productListingPriceIndex.storeId, this.storeId),
           eq(productListingPriceIndex.productId, productId),
-          eq(productListingPriceIndex.currency, currency)
-        )
+          eq(productListingPriceIndex.currency, currency),
+        ),
       )
       .returning({ productId: productListingPriceIndex.productId });
 
@@ -220,8 +205,8 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
       .where(
         and(
           eq(productListingPriceIndex.storeId, this.storeId),
-          eq(productListingPriceIndex.productId, productId)
-        )
+          eq(productListingPriceIndex.productId, productId),
+        ),
       )
       .returning({ productId: productListingPriceIndex.productId });
 
@@ -240,8 +225,8 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
         .where(
           and(
             eq(productListingPriceIndex.storeId, this.storeId),
-            inArray(productListingPriceIndex.productId, chunk)
-          )
+            inArray(productListingPriceIndex.productId, chunk),
+          ),
         )
         .returning({ productId: productListingPriceIndex.productId });
 
@@ -251,10 +236,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
     return deleted;
   }
 
-  private toInsertRow(
-    row: ProductListingPriceRowInput,
-    now: string
-  ): NewProductListingPriceIndex {
+  private toInsertRow(row: ProductListingPriceRowInput, now: string): NewProductListingPriceIndex {
     assertCurrency(row.currency);
 
     if (!row.hasPrice) {

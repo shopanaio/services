@@ -61,17 +61,13 @@ export class StorefrontCredentialRepository extends BaseRepository {
         tokenVersion: input.tokenVersion,
         pepperVersion: input.pepperVersion,
         tokenDigest: Uint8Array.from(input.tokenDigest),
-        publicTokenCiphertext:
-          input.publicTokenCiphertext ?? null,
+        publicTokenCiphertext: input.publicTokenCiphertext ?? null,
         label: input.label ?? null,
         tokenHint: input.tokenHint,
         createdByType: input.createdByType,
         createdById: input.createdById ?? null,
       };
-      const rows = await this.connection
-        .insert(storefrontCredentials)
-        .values(values)
-        .returning();
+      const rows = await this.connection.insert(storefrontCredentials).values(values).returning();
       return rows[0] ? mapCredential(rows[0]) : null;
     });
   }
@@ -85,18 +81,12 @@ export class StorefrontCredentialRepository extends BaseRepository {
       .from(storefrontCredentials)
       .innerJoin(
         headlessStorefrontConnections,
-        eq(
-          headlessStorefrontConnections.id,
-          storefrontCredentials.connectionId,
-        ),
+        eq(headlessStorefrontConnections.id, storefrontCredentials.connectionId),
       )
       .where(
         and(
           eq(storefrontCredentials.id, credentialId),
-          eq(
-            storefrontCredentials.organizationId,
-            scope.organizationId,
-          ),
+          eq(storefrontCredentials.organizationId, scope.organizationId),
           eq(storefrontCredentials.storeId, scope.storeId),
           this.connectionScope(scope),
         ),
@@ -105,36 +95,23 @@ export class StorefrontCredentialRepository extends BaseRepository {
     return rows[0] ? mapCredential(rows[0].credential) : null;
   }
 
-  async findByKid(
-    kid: string,
-  ): Promise<StorefrontCredentialResolutionRecord | null> {
+  async findByKid(kid: string): Promise<StorefrontCredentialResolutionRecord | null> {
     const rows = await this.connection
       .select({
         credential: storefrontCredentials,
-        installationId:
-          headlessStorefrontConnections.installationId,
-        connectionStatus:
-          headlessStorefrontConnections.status,
+        installationId: headlessStorefrontConnections.installationId,
+        connectionStatus: headlessStorefrontConnections.status,
       })
       .from(storefrontCredentials)
       .innerJoin(
         headlessStorefrontConnections,
-        eq(
-          headlessStorefrontConnections.id,
-          storefrontCredentials.connectionId,
-        ),
+        eq(headlessStorefrontConnections.id, storefrontCredentials.connectionId),
       )
       .where(
         and(
           eq(storefrontCredentials.kid, kid),
-          eq(
-            storefrontCredentials.organizationId,
-            headlessStorefrontConnections.organizationId,
-          ),
-          eq(
-            storefrontCredentials.storeId,
-            headlessStorefrontConnections.storeId,
-          ),
+          eq(storefrontCredentials.organizationId, headlessStorefrontConnections.organizationId),
+          eq(storefrontCredentials.storeId, headlessStorefrontConnections.storeId),
         ),
       )
       .limit(1);
@@ -158,29 +135,18 @@ export class StorefrontCredentialRepository extends BaseRepository {
       .from(storefrontCredentials)
       .innerJoin(
         headlessStorefrontConnections,
-        eq(
-          headlessStorefrontConnections.id,
-          storefrontCredentials.connectionId,
-        ),
+        eq(headlessStorefrontConnections.id, storefrontCredentials.connectionId),
       )
       .where(
         and(
           eq(storefrontCredentials.connectionId, connectionId),
-          eq(
-            storefrontCredentials.organizationId,
-            scope.organizationId,
-          ),
+          eq(storefrontCredentials.organizationId, scope.organizationId),
           eq(storefrontCredentials.storeId, scope.storeId),
           this.connectionOwnership(scope, connectionId),
         ),
       )
-      .orderBy(
-        asc(storefrontCredentials.createdAt),
-        asc(storefrontCredentials.id),
-      );
-    return Object.freeze(
-      rows.map(({ credential }) => mapCredential(credential)),
-    );
+      .orderBy(asc(storefrontCredentials.createdAt), asc(storefrontCredentials.id));
+    return Object.freeze(rows.map(({ credential }) => mapCredential(credential)));
   }
 
   async findActivePublicByConnection(
@@ -192,20 +158,14 @@ export class StorefrontCredentialRepository extends BaseRepository {
       .from(storefrontCredentials)
       .innerJoin(
         headlessStorefrontConnections,
-        eq(
-          headlessStorefrontConnections.id,
-          storefrontCredentials.connectionId,
-        ),
+        eq(headlessStorefrontConnections.id, storefrontCredentials.connectionId),
       )
       .where(
         and(
           eq(storefrontCredentials.connectionId, connectionId),
           eq(storefrontCredentials.kind, "PUBLIC"),
           eq(storefrontCredentials.status, "ACTIVE"),
-          eq(
-            storefrontCredentials.organizationId,
-            scope.organizationId,
-          ),
+          eq(storefrontCredentials.organizationId, scope.organizationId),
           eq(storefrontCredentials.storeId, scope.storeId),
           this.connectionOwnership(scope, connectionId),
         ),
@@ -253,10 +213,7 @@ export class StorefrontCredentialRepository extends BaseRepository {
           eq(storefrontCredentials.id, input.credentialId),
           eq(storefrontCredentials.kind, "PRIVATE"),
           eq(storefrontCredentials.status, "ACTIVE"),
-          eq(
-            storefrontCredentials.organizationId,
-            scope.organizationId,
-          ),
+          eq(storefrontCredentials.organizationId, scope.organizationId),
           eq(storefrontCredentials.storeId, scope.storeId),
           this.credentialConnectionIsOwned(scope),
         ),
@@ -288,10 +245,7 @@ export class StorefrontCredentialRepository extends BaseRepository {
       .where(
         and(
           eq(storefrontCredentials.connectionId, connectionId),
-          eq(
-            storefrontCredentials.organizationId,
-            scope.organizationId,
-          ),
+          eq(storefrontCredentials.organizationId, scope.organizationId),
           eq(storefrontCredentials.storeId, scope.storeId),
           eq(storefrontCredentials.status, "ACTIVE"),
         ),
@@ -323,19 +277,14 @@ export class StorefrontCredentialRepository extends BaseRepository {
     return rows.length > 0;
   }
 
-  private credentialConnectionIsOwned(
-    scope: HeadlessStorefrontScope,
-  ) {
+  private credentialConnectionIsOwned(scope: HeadlessStorefrontScope) {
     return exists(
       this.connection
         .select({ id: headlessStorefrontConnections.id })
         .from(headlessStorefrontConnections)
         .where(
           and(
-            eq(
-              headlessStorefrontConnections.id,
-              storefrontCredentials.connectionId,
-            ),
+            eq(headlessStorefrontConnections.id, storefrontCredentials.connectionId),
             this.connectionScope(scope),
           ),
         ),
@@ -343,9 +292,7 @@ export class StorefrontCredentialRepository extends BaseRepository {
   }
 }
 
-function mapCredential(
-  row: StorefrontCredentialModel,
-): StorefrontCredentialRecord {
+function mapCredential(row: StorefrontCredentialModel): StorefrontCredentialRecord {
   return Object.freeze({
     ...row,
     tokenDigest: Uint8Array.from(row.tokenDigest),

@@ -1,14 +1,6 @@
 import { slugify } from "transliteration/dist/node/src/node/index.js";
-import type {
-  ApiFacetCreateInput,
-  ApiFacetUpdateInput,
-  FacetScopeType,
-} from "@/graphql/types";
-import {
-  FacetSelectionMode,
-  FacetType,
-  FacetUiType,
-} from "@/graphql/types";
+import type { ApiFacetCreateInput, ApiFacetUpdateInput, FacetScopeType } from "@/graphql/types";
+import { FacetSelectionMode, FacetType, FacetUiType } from "@/graphql/types";
 
 export interface FacetFormInput {
   label: string;
@@ -45,12 +37,8 @@ export function getDefaultFacetUiType(facetType: FacetType): FacetUiType {
   return getAllowedFacetUiTypes(facetType)[0];
 }
 
-export function getDefaultFacetSelectionMode(
-  uiType: FacetUiType,
-): FacetSelectionMode {
-  return uiType === FacetUiType.Checkbox
-    ? FacetSelectionMode.Multi
-    : FacetSelectionMode.Single;
+export function getDefaultFacetSelectionMode(uiType: FacetUiType): FacetSelectionMode {
+  return uiType === FacetUiType.Checkbox ? FacetSelectionMode.Multi : FacetSelectionMode.Single;
 }
 
 export function normalizeFacetSlug(value: string): string {

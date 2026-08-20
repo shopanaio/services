@@ -72,7 +72,14 @@ const ComponentNodeComponent = ({ data, selected }: ComponentNodeProps) => {
   const { label, isDimmed, isHighlighted } = data;
 
   return (
-    <div className={cx(styles.node, selected && styles.nodeSelected, isHighlighted && styles.nodeHighlighted, isDimmed && styles.nodeDimmed)}>
+    <div
+      className={cx(
+        styles.node,
+        selected && styles.nodeSelected,
+        isHighlighted && styles.nodeHighlighted,
+        isDimmed && styles.nodeDimmed,
+      )}
+    >
       <Handle type="target" position={Position.Left} className={styles.handle} />
 
       <GiftOutlined className={styles.icon} />

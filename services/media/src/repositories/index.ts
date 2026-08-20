@@ -36,13 +36,7 @@ export type {
 } from "./FileBackRefRepository";
 
 // S3ObjectRepository types
-export type {
-  CreateS3ObjectInput,
-  UpdateS3ObjectInput,
-} from "./S3ObjectRepository";
+export type { CreateS3ObjectInput, UpdateS3ObjectInput } from "./S3ObjectRepository";
 
 // ExternalMediaRepository types
-export type {
-  CreateExternalMediaInput,
-  UpdateExternalMediaInput,
-} from "./ExternalMediaRepository";
+export type { CreateExternalMediaInput, UpdateExternalMediaInput } from "./ExternalMediaRepository";

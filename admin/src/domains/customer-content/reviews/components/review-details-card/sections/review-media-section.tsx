@@ -36,18 +36,25 @@ export function ReviewMediaSection({ review, onEdit, onOpenItem }: ReviewMediaSe
       editLabel="Edit customer media"
       hasFeatured={false}
       testIdPrefix="review-media"
-      emptyState={(
+      emptyState={
         <EntityDetailsEmptyState
           icon={<PictureOutlined />}
-          state={{ title: "No customer media", description: "This review has no attached photos or videos." }}
+          state={{
+            title: "No customer media",
+            description: "This review has no attached photos or videos.",
+          }}
         />
-      )}
-      footer={review.media.length ? (
-        <Flex gap={8} align="center" className={styles.mediaFooter}>
-          <InfoCircleOutlined />
-          <Typography.Text type="secondary">Select an item to preview or moderate it.</Typography.Text>
-        </Flex>
-      ) : null}
+      }
+      footer={
+        review.media.length ? (
+          <Flex gap={8} align="center" className={styles.mediaFooter}>
+            <InfoCircleOutlined />
+            <Typography.Text type="secondary">
+              Select an item to preview or moderate it.
+            </Typography.Text>
+          </Flex>
+        ) : null
+      }
     />
   );
 }

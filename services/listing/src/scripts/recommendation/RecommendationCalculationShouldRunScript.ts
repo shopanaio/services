@@ -9,8 +9,12 @@ export class RecommendationCalculationShouldRunScript extends BaseScript<
   @Transactional()
   protected async execute(): Promise<{ shouldRun: boolean }> {
     const cursor = await this.repository.recommendationIngestionCursor.lockOrCreate();
-    const window = await this.repository.recommendationCalculationRun.currentWindow(FBT_RULES_V1.windowDays);
-    const latest = await this.repository.recommendationCalculationRun.findLatestCurrentDay(window.windowEndedAt);
+    const window = await this.repository.recommendationCalculationRun.currentWindow(
+      FBT_RULES_V1.windowDays,
+    );
+    const latest = await this.repository.recommendationCalculationRun.findLatestCurrentDay(
+      window.windowEndedAt,
+    );
     if (!latest || !["BUILDING", "READY", "ACTIVE"].includes(latest.status)) {
       return { shouldRun: true };
     }

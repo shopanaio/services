@@ -110,7 +110,7 @@ describe("tieBreakerOrder", () => {
       tieBreakerOrder([
         { field: "a", direction: "asc" },
         { field: "b", direction: "desc" },
-      ])
+      ]),
     ).toBe("desc");
   });
 
@@ -176,7 +176,7 @@ describe("buildTieBreakerSeekValue", () => {
         value: 42,
         tieBreaker: "id",
         sortParams: [],
-      }).value
+      }).value,
     ).toBe(42);
 
     expect(
@@ -184,7 +184,7 @@ describe("buildTieBreakerSeekValue", () => {
         value: null,
         tieBreaker: "id",
         sortParams: [],
-      }).value
+      }).value,
     ).toBeNull();
   });
 });

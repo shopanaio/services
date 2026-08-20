@@ -27,10 +27,7 @@ export {
   type BrokerAdminContext,
   type BrokerWorkflowStartOptions,
 } from "./broker/WorkflowAuthorization";
-export {
-  ServiceBroker,
-  type ServiceBrokerOptions,
-} from "./broker/ServiceBroker";
+export { ServiceBroker, type ServiceBrokerOptions } from "./broker/ServiceBroker";
 export { BrokerActions } from "./broker/BrokerActions";
 export {
   throwIfBrokerAuthorizeDenied,
@@ -39,17 +36,9 @@ export {
 } from "./broker/BrokerAuthorizeResult";
 export { EventHandlers } from "./broker/EventHandlers";
 export { BrokerWorkflows } from "./broker/BrokerWorkflows";
-export {
-  BrokerCoreModule,
-  type BrokerCoreModuleOptions,
-} from "./broker/BrokerCoreModule";
+export { BrokerCoreModule, type BrokerCoreModuleOptions } from "./broker/BrokerCoreModule";
 export { BrokerModule, type BrokerFeatureOptions } from "./broker/BrokerModule";
-export {
-  SERVICE_BROKER,
-  SERVICE_NAME,
-  InjectBroker,
-  getBrokerToken,
-} from "./broker/tokens";
+export { SERVICE_BROKER, SERVICE_NAME, InjectBroker, getBrokerToken } from "./broker/tokens";
 
 // Workflow module - re-export from @shopana/dbos
 export {

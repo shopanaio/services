@@ -20,10 +20,7 @@ export interface ScriptResult<T, C = never> {
 /**
  * Helper to create a successful result with changes.
  */
-export function successResult<T, C>(
-  result: T,
-  changes: C | null
-): ScriptResult<T, C> {
+export function successResult<T, C>(result: T, changes: C | null): ScriptResult<T, C> {
   return { result, changes, userErrors: [] };
 }
 
@@ -37,9 +34,7 @@ export function unchangedResult<T, C>(result: T): ScriptResult<T, C> {
 /**
  * Helper to create an error result.
  */
-export function errorResult<T, C>(
-  userErrors: UserError[]
-): ScriptResult<T, C> {
+export function errorResult<T, C>(userErrors: UserError[]): ScriptResult<T, C> {
   return { result: null, changes: null, userErrors };
 }
 
@@ -49,7 +44,7 @@ export function errorResult<T, C>(
 export function singleError<T, C>(
   message: string,
   code?: string,
-  field?: string[]
+  field?: string[],
 ): ScriptResult<T, C> {
   return { result: null, changes: null, userErrors: [{ message, code, field }] };
 }

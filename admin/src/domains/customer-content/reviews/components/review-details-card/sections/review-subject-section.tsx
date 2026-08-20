@@ -1,7 +1,10 @@
 "use client";
 
 import { Button, Flex, Typography } from "antd";
-import { LuExternalLink as ExportOutlined, LuShoppingBag as ShoppingOutlined } from "react-icons/lu";
+import {
+  LuExternalLink as ExportOutlined,
+  LuShoppingBag as ShoppingOutlined,
+} from "react-icons/lu";
 import type { ApiReview } from "@/graphql/types";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 import { EditAction } from "@/domains/inventory/products/components/edit-action";
@@ -21,11 +24,25 @@ export function ReviewSubjectSection({ review, onEdit, onOpenProduct }: ReviewSu
     <Paper data-testid="review-subject-section">
       <PaperHeader
         title="Product & purchase"
-        actions={<EditAction onEdit={() => onEdit("subject")} label="Edit product & purchase" testId="review-subject-actions" />}
+        actions={
+          <EditAction
+            onEdit={() => onEdit("subject")}
+            label="Edit product & purchase"
+            testId="review-subject-actions"
+          />
+        }
       />
-      <Flex justify="space-between" align="center" gap={12} wrap="wrap" className={styles.subjectSummary}>
+      <Flex
+        justify="space-between"
+        align="center"
+        gap={12}
+        wrap="wrap"
+        className={styles.subjectSummary}
+      >
         <Flex gap={12} align="center">
-          <div className={styles.subjectIcon}><ShoppingOutlined /></div>
+          <div className={styles.subjectIcon}>
+            <ShoppingOutlined />
+          </div>
           <Flex vertical gap={2}>
             <Typography.Text strong>{review.product.title}</Typography.Text>
             <Typography.Text type="secondary">
@@ -33,16 +50,26 @@ export function ReviewSubjectSection({ review, onEdit, onOpenProduct }: ReviewSu
             </Typography.Text>
           </Flex>
         </Flex>
-        <Button icon={<ExportOutlined />} onClick={onOpenProduct}>Open product</Button>
+        <Button icon={<ExportOutlined />} onClick={onOpenProduct}>
+          Open product
+        </Button>
       </Flex>
       <div className={styles.orderGrid}>
         <Flex vertical gap={6}>
           <Typography.Text type="secondary">Order ID</Typography.Text>
-          {review.orderId ? <CopyableChip value={review.orderId} displayValue={review.orderId} mono /> : <Typography.Text>—</Typography.Text>}
+          {review.orderId ? (
+            <CopyableChip value={review.orderId} displayValue={review.orderId} mono />
+          ) : (
+            <Typography.Text>—</Typography.Text>
+          )}
         </Flex>
         <Flex vertical gap={6}>
           <Typography.Text type="secondary">Order line ID</Typography.Text>
-          {review.orderLineId ? <CopyableChip value={review.orderLineId} displayValue={review.orderLineId} mono /> : <Typography.Text>—</Typography.Text>}
+          {review.orderLineId ? (
+            <CopyableChip value={review.orderLineId} displayValue={review.orderLineId} mono />
+          ) : (
+            <Typography.Text>—</Typography.Text>
+          )}
         </Flex>
       </div>
       <Typography.Paragraph type="secondary" style={{ margin: "12px 0 0" }}>

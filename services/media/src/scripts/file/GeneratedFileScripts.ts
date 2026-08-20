@@ -1,10 +1,6 @@
 import crypto from "node:crypto";
 import { BaseScript } from "../../kernel/BaseScript.js";
-import {
-  buildPublicUrl,
-  getBucketName,
-  getS3Client,
-} from "../../infrastructure/s3/index.js";
+import { buildPublicUrl, getBucketName, getS3Client } from "../../infrastructure/s3/index.js";
 import type {
   DeleteOwnedFilesParams,
   DeleteOwnedFilesResult,
@@ -18,9 +14,7 @@ export class UploadGeneratedFileScript extends BaseScript<
   UploadGeneratedFileParams,
   UploadGeneratedFileResult
 > {
-  protected async execute(
-    params: UploadGeneratedFileParams,
-  ): Promise<UploadGeneratedFileResult> {
+  protected async execute(params: UploadGeneratedFileParams): Promise<UploadGeneratedFileResult> {
     if (params.owner.type !== "store") {
       return failure("Generated artifacts must belong to a store", "INVALID_OWNER");
     }
@@ -61,16 +55,10 @@ export class UploadGeneratedFileScript extends BaseScript<
     const objectKey = `${params.owner.id}/generated/${artifactKey}.${extension}`;
     const bucketName = getBucketName();
     const bucket = await this.repository.bucket.getDefault(bucketName);
-    const upload = await getS3Client().putObject(
-      bucketName,
-      objectKey,
-      content,
-      content.length,
-      {
-        "Content-Type": params.mimeType,
-        "Content-Disposition": `attachment; filename="${safeFilename(params.filename)}"`,
-      },
-    );
+    const upload = await getS3Client().putObject(bucketName, objectKey, content, content.length, {
+      "Content-Type": params.mimeType,
+      "Content-Disposition": `attachment; filename="${safeFilename(params.filename)}"`,
+    });
     const file = await this.repository.file.create(assetGroup.id, {
       provider: "S3",
       url: buildPublicUrl(objectKey),
@@ -104,10 +92,7 @@ export class UploadGeneratedFileScript extends BaseScript<
     return failure("Failed to upload generated file", "INTERNAL_ERROR");
   }
 
-  private async link(
-    fileId: string,
-    params: UploadGeneratedFileParams,
-  ): Promise<void> {
+  private async link(fileId: string, params: UploadGeneratedFileParams): Promise<void> {
     const linked = await this.repository.fileBackRef.link({
       fileId,
       service: params.entityRef.service,
@@ -127,9 +112,7 @@ export class DeleteOwnedFilesScript extends BaseScript<
   DeleteOwnedFilesParams,
   DeleteOwnedFilesResult
 > {
-  protected async execute(
-    params: DeleteOwnedFilesParams,
-  ): Promise<DeleteOwnedFilesResult> {
+  protected async execute(params: DeleteOwnedFilesParams): Promise<DeleteOwnedFilesResult> {
     const acceptedIds: string[] = [];
     const errors: DeleteOwnedFilesResult["errors"] = [];
     for (const fileId of [...new Set(params.fileIds)]) {
@@ -147,15 +130,11 @@ export class DeleteOwnedFilesScript extends BaseScript<
       await this.repository.fileDeletionState.softDeleteIfEligible(fileId);
       acceptedIds.push(fileId);
       if (params.permanent) {
-        await this.services.broker.runWorkflow(
-          "media.fileHardDelete",
-          fileId,
-          {
-            source: "workflow",
-            workflowId: `privacyFileDelete:${fileId}`,
-            stepId: "startHardDelete",
-          },
-        );
+        await this.services.broker.runWorkflow("media.fileHardDelete", fileId, {
+          source: "workflow",
+          workflowId: `privacyFileDelete:${fileId}`,
+          stepId: "startHardDelete",
+        });
       }
     }
     return { acceptedIds, errors };
@@ -184,7 +163,12 @@ function extensionFor(filename: string, mimeType: string): string {
 }
 
 function safeFilename(value: string): string {
-  return value.replace(/[\r\n"\\/]/g, "_").trim().slice(0, 255) || "artifact.bin";
+  return (
+    value
+      .replace(/[\r\n"\\/]/g, "_")
+      .trim()
+      .slice(0, 255) || "artifact.bin"
+  );
 }
 
 function failure(message: string, code: string): UploadGeneratedFileResult {

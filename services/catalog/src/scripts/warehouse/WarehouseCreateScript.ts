@@ -12,7 +12,10 @@ export interface WarehouseCreateResult {
   userErrors: UserError[];
 }
 
-export class WarehouseCreateScript extends BaseScript<WarehouseCreateParams, WarehouseCreateResult> {
+export class WarehouseCreateScript extends BaseScript<
+  WarehouseCreateParams,
+  WarehouseCreateResult
+> {
   protected async execute(params: WarehouseCreateParams): Promise<WarehouseCreateResult> {
     const { code, name, isDefault } = params;
 
@@ -21,7 +24,13 @@ export class WarehouseCreateScript extends BaseScript<WarehouseCreateParams, War
     if (existing) {
       return {
         warehouse: undefined,
-        userErrors: [{ message: `Warehouse with code "${code}" already exists`, field: ["code"], code: "CODE_ALREADY_EXISTS" }],
+        userErrors: [
+          {
+            message: `Warehouse with code "${code}" already exists`,
+            field: ["code"],
+            code: "CODE_ALREADY_EXISTS",
+          },
+        ],
       };
     }
 

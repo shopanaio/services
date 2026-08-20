@@ -1,15 +1,25 @@
-"""A published, locale-aware content page owned by the Online Store app."""
+"""
+A published, locale-aware content page owned by the Online Store app.
+"""
 type OnlineStorePage implements Node @key(fields: "id") {
-  """The globally unique Relay ID of the page."""
+  """
+  The globally unique Relay ID of the page.
+  """
   id: ID!
 
-  """Stable, locale-independent handle used to build the page URL."""
+  """
+  Stable, locale-independent handle used to build the page URL.
+  """
   handle: String!
 
-  """Optional storefront template variant selected by the merchant."""
+  """
+  Optional storefront template variant selected by the merchant.
+  """
   templateSuffix: String
 
-  """The instant at which this page became publicly visible."""
+  """
+  The instant at which this page became publicly visible.
+  """
   publishedAt: DateTime!
 
   """
@@ -21,9 +31,13 @@ type OnlineStorePage implements Node @key(fields: "id") {
   content(locale: LocaleCode): OnlineStorePageContent
 }
 
-"""One localized representation of an Online Store page."""
+"""
+One localized representation of an Online Store page.
+"""
 type OnlineStorePageContent {
-  """Locale resolved for this representation."""
+  """
+  Locale resolved for this representation.
+  """
   locale: LocaleCode!
 
   title: String!
@@ -31,18 +45,24 @@ type OnlineStorePageContent {
   seo: OnlineStoreSEO
 }
 
-"""Search engine and social sharing metadata for a localized page."""
+"""
+Search engine and social sharing metadata for a localized page.
+"""
 type OnlineStoreSEO {
   title: String
   description: String
   openGraph: OnlineStoreOpenGraphMetadata
 }
 
-"""Open Graph metadata for a localized page."""
+"""
+Open Graph metadata for a localized page.
+"""
 type OnlineStoreOpenGraphMetadata {
   title: String
   description: String
-  """Social preview image resolved by the Media subgraph."""
+  """
+  Social preview image resolved by the Media subgraph.
+  """
   image: MediaImage
 }
 
@@ -50,7 +70,9 @@ type MediaImage @key(fields: "id", resolvable: false) {
   id: ID!
 }
 
-"""A Relay connection containing published Online Store pages."""
+"""
+A Relay connection containing published Online Store pages.
+"""
 type OnlineStorePageConnection implements Connection {
   edges: [OnlineStorePageEdge!]!
   nodes: [OnlineStorePage!]!

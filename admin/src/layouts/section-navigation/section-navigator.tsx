@@ -101,20 +101,58 @@ interface SectionNavigatorProps {
 export function SectionNavigator({ items, className, testId }: SectionNavigatorProps) {
   const { styles, cx } = useStyles();
 
-  return <Card className={cx(styles.card, className)} data-testid={testId}>
-    {items.map((item) => {
-      const rowContent = <>
-        {item.icon ? <span className={styles.icon} aria-hidden="true">{item.icon}</span> : null}
-        <span className={styles.copy}>
-          <Typography.Text strong className={styles.title}>{item.title}</Typography.Text>
-          {item.description ? <Typography.Text type="secondary" className={styles.description}>{item.description}</Typography.Text> : null}
-          {item.content ? <div className={styles.content}>{item.content}</div> : null}
-        </span>
-        {item.trailing ? <span className={cx(styles.trailing, !item.icon && styles.trailingNoIcon)}>{item.trailing}</span> : null}
-      </>;
-      const rowClassName = cx(styles.row, !item.icon && styles.noIcon, item.onClick && styles.clickable, item.disabled && styles.disabled);
+  return (
+    <Card className={cx(styles.card, className)} data-testid={testId}>
+      {items.map((item) => {
+        const rowContent = (
+          <>
+            {item.icon ? (
+              <span className={styles.icon} aria-hidden="true">
+                {item.icon}
+              </span>
+            ) : null}
+            <span className={styles.copy}>
+              <Typography.Text strong className={styles.title}>
+                {item.title}
+              </Typography.Text>
+              {item.description ? (
+                <Typography.Text type="secondary" className={styles.description}>
+                  {item.description}
+                </Typography.Text>
+              ) : null}
+              {item.content ? <div className={styles.content}>{item.content}</div> : null}
+            </span>
+            {item.trailing ? (
+              <span className={cx(styles.trailing, !item.icon && styles.trailingNoIcon)}>
+                {item.trailing}
+              </span>
+            ) : null}
+          </>
+        );
+        const rowClassName = cx(
+          styles.row,
+          !item.icon && styles.noIcon,
+          item.onClick && styles.clickable,
+          item.disabled && styles.disabled,
+        );
 
-      return item.onClick ? <button key={item.key} type="button" className={rowClassName} onClick={item.onClick} disabled={item.disabled} data-testid={item.testId}>{rowContent}</button> : <div key={item.key} className={rowClassName} data-testid={item.testId}>{rowContent}</div>;
-    })}
-  </Card>;
+        return item.onClick ? (
+          <button
+            key={item.key}
+            type="button"
+            className={rowClassName}
+            onClick={item.onClick}
+            disabled={item.disabled}
+            data-testid={item.testId}
+          >
+            {rowContent}
+          </button>
+        ) : (
+          <div key={item.key} className={rowClassName} data-testid={item.testId}>
+            {rowContent}
+          </div>
+        );
+      })}
+    </Card>
+  );
 }

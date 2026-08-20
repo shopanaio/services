@@ -51,18 +51,12 @@ export const typeResolvers = {
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
     ) => {
-      if (
-        !Number.isSafeInteger(reference.listingRevision) ||
-        reference.listingRevision < 0
-      ) {
+      if (!Number.isSafeInteger(reference.listingRevision) || reference.listingRevision < 0) {
         return null;
       }
       return CollectionResolver.load(
         {
-          id: decodeGlobalIdByType(
-            reference.id,
-            GlobalIdEntity.Collection,
-          ),
+          id: decodeGlobalIdByType(reference.id, GlobalIdEntity.Collection),
           listingRevision: reference.listingRevision,
         },
         parseGraphqlInfo(info),

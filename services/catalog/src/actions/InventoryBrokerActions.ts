@@ -1,15 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import {
-  BrokerActions,
-  InjectBroker,
-  ServiceBroker,
-  Action,
-} from "@shopana/shared-kernel";
+import { BrokerActions, InjectBroker, ServiceBroker, Action } from "@shopana/shared-kernel";
 import type { ContextStore } from "@shopana/shared-context";
-import {
-  InventoryCheckoutActionNames,
-  type Inventory,
-} from "@shopana/broker-types";
+import { InventoryCheckoutActionNames, type Inventory } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { Loader } from "../loaders/Loader.js";
@@ -85,14 +77,13 @@ export class InventoryBrokerActions extends BrokerActions {
   }
 
   private async getStoreContext(storeId: string): Promise<ContextStore> {
-    const result = await this.broker.call<
-      GetStoreByIdResult,
-      { id: string }
-    >("project.getStoreById", { id: storeId });
+    const result = await this.broker.call<GetStoreByIdResult, { id: string }>(
+      "project.getStoreById",
+      { id: storeId },
+    );
 
     if (!result.store) {
-      const message =
-        result.userErrors[0]?.message ?? `Store with id "${storeId}" not found`;
+      const message = result.userErrors[0]?.message ?? `Store with id "${storeId}" not found`;
       throw new Error(message);
     }
 
@@ -133,7 +124,9 @@ export class InventoryBrokerActions extends BrokerActions {
    * Action: deleteItemByVariantId - deletes an inventory item by variant ID (saga compensation)
    */
   @Action("deleteItemByVariantId")
-  async deleteItemByVariantId(params: Inventory.DeleteItemByVariantIdParams): Promise<Inventory.DeleteItemByVariantIdResult> {
+  async deleteItemByVariantId(
+    params: Inventory.DeleteItemByVariantIdParams,
+  ): Promise<Inventory.DeleteItemByVariantIdResult> {
     return this.runWithStoreContext(params.storeId, async () => {
       const item = await this.kernel.repository.inventoryItem.findByVariantId(params.variantId);
       if (item) {
@@ -156,15 +149,15 @@ export class InventoryBrokerActions extends BrokerActions {
 
       if (!cost) return null;
 
-	      return {
-	        id: cost.id,
-	        currency: cost.currency as CurrencyCode,
-	        unitCostMinor: cost.unitCostMinor,
-	        effectiveFrom: new Date(cost.effectiveFrom).toISOString(),
-	        effectiveTo: cost.effectiveTo ? new Date(cost.effectiveTo).toISOString() : null,
-	        recordedAt: new Date(cost.recordedAt).toISOString(),
-	        isCurrent: cost.effectiveTo === null,
-	      };
+      return {
+        id: cost.id,
+        currency: cost.currency as CurrencyCode,
+        unitCostMinor: cost.unitCostMinor,
+        effectiveFrom: new Date(cost.effectiveFrom).toISOString(),
+        effectiveTo: cost.effectiveTo ? new Date(cost.effectiveTo).toISOString() : null,
+        recordedAt: new Date(cost.recordedAt).toISOString(),
+        isCurrent: cost.effectiveTo === null,
+      };
     });
   }
 
@@ -203,7 +196,9 @@ export class InventoryBrokerActions extends BrokerActions {
    * Action: updateItemDimensions - updates inventory item dimensions
    */
   @Action("updateItemDimensions")
-  async updateItemDimensions(params: Inventory.UpdateItemDimensionsParams): Promise<Inventory.UpdateItemDimensionsResult> {
+  async updateItemDimensions(
+    params: Inventory.UpdateItemDimensionsParams,
+  ): Promise<Inventory.UpdateItemDimensionsResult> {
     return this.runWithStoreContext(params.storeId, async () => {
       const result = await this.kernel.runScript(InventoryItemUpdateDimensionsScript, {
         variantId: params.variantId,

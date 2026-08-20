@@ -12,4 +12,3 @@ export class InvitationModule {
     return this.http.get(ctx, `/api/get-invitation-info?${params.toString()}`);
   }
 }
-

@@ -17,11 +17,7 @@ import {
 } from "@/graphql/types";
 import { EntityCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
-import type {
-  IEntityPickerConfig,
-  IEntityPickerDataResult,
-  IPickableEntity,
-} from "../types";
+import type { IEntityPickerConfig, IEntityPickerDataResult, IPickableEntity } from "../types";
 
 export interface OptionCategoryPickerEntity extends IPickableEntity {
   name: string;
@@ -104,9 +100,7 @@ function OptionCategoryPickerHeaderExtra() {
   );
 }
 
-function transformCategory(
-  category: ApiProductOptionCategory,
-): OptionCategoryPickerEntity {
+function transformCategory(category: ApiProductOptionCategory): OptionCategoryPickerEntity {
   return {
     id: category.id,
     title: category.name,
@@ -139,16 +133,15 @@ function useOptionCategoryPickerData(options: {
     return conditions.length === 1 ? conditions[0] : { _and: conditions };
   }, [options.excludeIds, options.where]);
 
-  const { categories, totalCount, pageInfo, loading, error } =
-    useProductOptionCategories({
-      first: options.first,
-      after: options.after,
-      last: options.last,
-      before: options.before,
-      where,
-      orderBy: options.orderBy as ApiProductOptionCategoryOrderByInput[] | null,
-      fetchPolicy: "network-only",
-    });
+  const { categories, totalCount, pageInfo, loading, error } = useProductOptionCategories({
+    first: options.first,
+    after: options.after,
+    last: options.last,
+    before: options.before,
+    where,
+    orderBy: options.orderBy as ApiProductOptionCategoryOrderByInput[] | null,
+    fetchPolicy: "network-only",
+  });
 
   return {
     data: categories.map(transformCategory),

@@ -22,15 +22,11 @@ const synonymFieldTypes: Record<string, GraphQLFieldType> = {
   updatedAt: "DateTime",
 };
 
-const synonymWhere = generateWhereInputType(
-  searchSynonymGroupRelayQuery,
-  "SearchSynonymGroup",
-  {
-    includeDescriptions: true,
-    fieldTypes: synonymFieldTypes,
-    excludeFields: ["storeId", "valueItems"],
-  },
-);
+const synonymWhere = generateWhereInputType(searchSynonymGroupRelayQuery, "SearchSynonymGroup", {
+  includeDescriptions: true,
+  fieldTypes: synonymFieldTypes,
+  excludeFields: ["storeId", "valueItems"],
+});
 
 const synonymOrderBy = generateOrderByInputType(
   searchSynonymGroupRelayQuery,

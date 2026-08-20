@@ -2,21 +2,26 @@
 
 ## Цель
 
-Перевести `admin/src/domains/inventory/categories/page/page.tsx` с mock-only списка на Admin GraphQL API через `catalogQuery.categories`, сохранив паттерны проекта:
+Перевести `admin/src/domains/inventory/categories/page/page.tsx` с mock-only списка на Admin GraphQL
+API через `catalogQuery.categories`, сохранив паттерны проекта:
 
-- module-local GraphQL layer: `graphql/fragments.ts`, `queries.ts`, `operation-types.ts`, `index.ts`;
+- module-local GraphQL layer: `graphql/fragments.ts`, `queries.ts`, `operation-types.ts`,
+  `index.ts`;
 - API-backed hook в `hooks/use-categories.ts`;
 - компоненты страницы consume generated API shapes из `@/graphql/types` напрямую;
 - таблица использует Relay cursor pagination, `totalCount` и `pageInfo`;
 - mocks не импортируются в API-backed hook/page.
 
-План выровнен с `knowledge/vault/patterns/admin-graphql-layer.md`, текущими warehouse/inventory page паттернами и generated Admin API types.
+План выровнен с `knowledge/vault/patterns/admin-graphql-layer.md`, текущими warehouse/inventory page
+паттернами и generated Admin API types.
 
 ## Текущий baseline
 
 - `admin/src/domains/inventory/categories/page/page.tsx` рендерит `AgGridReact<ICategoryListItem>`.
-- `useCategories` симулирует задержку и возвращает `mockCategoriesList` из `@/mocks/products/categories-list`.
-- `CursorPagination` на странице статический: `total={categories.length}`, `pageSize={30}`, `hasNext={false}`.
+- `useCategories` симулирует задержку и возвращает `mockCategoriesList` из
+  `@/mocks/products/categories-list`.
+- `CursorPagination` на странице статический: `total={categories.length}`, `pageSize={30}`,
+  `hasNext={false}`.
 - create/delete сейчас только логируются.
 - row click открывает `push("category", { level: 1 })`, без `entityId`.
 - `filter-schema.ts` содержит mock/API-mismatched поля `status`, `name`, `productsCount`.
@@ -46,11 +51,16 @@ categories(
 ): CategoryConnection!
 ```
 
-Текущий `CategoryWhereInput` поддерживает `id`, `parentId`, `path`, `depth`, `handle`, `defaultSort`, `defaultSortDirection`, `publishedAt`, `createdAt`, `updatedAt`.
+Текущий `CategoryWhereInput` поддерживает `id`, `parentId`, `path`, `depth`, `handle`,
+`defaultSort`, `defaultSortDirection`, `publishedAt`, `createdAt`, `updatedAt`.
 
-Текущий `CategoryOrderField` поддерживает `id`, `parentId`, `path`, `depth`, `handle`, `defaultSort`, `defaultSortDirection`, `publishedAt`, `createdAt`, `updatedAt`.
+Текущий `CategoryOrderField` поддерживает `id`, `parentId`, `path`, `depth`, `handle`,
+`defaultSort`, `defaultSortDirection`, `publishedAt`, `createdAt`, `updatedAt`.
 
-Важное ограничение: `CategoryWhereInput` и `CategoryOrderField` сейчас не содержат `name`, `isPublished`, `productsCount`. Поэтому первый API-backed вариант не должен притворяться, что search/filter/sort по этим полям серверные. Для них нужен отдельный backend/schema follow-up или временное отключение соответствующих UI controls.
+Важное ограничение: `CategoryWhereInput` и `CategoryOrderField` сейчас не содержат `name`,
+`isPublished`, `productsCount`. Поэтому первый API-backed вариант не должен притворяться, что
+search/filter/sort по этим полям серверные. Для них нужен отдельный backend/schema follow-up или
+временное отключение соответствующих UI controls.
 
 ## Target file structure
 
@@ -71,7 +81,8 @@ admin/src/domains/inventory/categories/
     page.tsx
 ```
 
-Не реэкспортить generated API types из module barrels. В местах использования импортировать типы напрямую из `@/graphql/types`.
+Не реэкспортить generated API types из module barrels. В местах использования импортировать типы
+напрямую из `@/graphql/types`.
 
 ## GraphQL operations
 
@@ -113,7 +124,8 @@ export const CATEGORY_LIST_FRAGMENT = gql`
 
 Notes:
 
-- Keep the list fragment compact. Do not include `children`, `ancestors`, `description`, `seo`, or `products`.
+- Keep the list fragment compact. Do not include `children`, `ancestors`, `description`, `seo`, or
+  `products`.
 - Use `media[0].file` only as a best-effort thumbnail on the page.
 - API date/time scalars stay strings; format only at the display boundary.
 
@@ -254,7 +266,8 @@ Do not keep the old static `CursorPagination` values.
 
 Initial API-backed columns:
 
-- `Category`: thumbnail from sorted `category.media[0]?.file.url`, fallback `FolderOutlined`, and `category.name`.
+- `Category`: thumbnail from sorted `category.media[0]?.file.url`, fallback `FolderOutlined`, and
+  `category.name`.
 - `Status`: derive from `category.isPublished` as `Published` / `Draft`.
 - `Products`: `category.productsCount`.
 - `Parent`: `category.parent?.name ?? "Root"`.
@@ -285,15 +298,18 @@ First API-backed version should avoid unsupported server-backed controls.
 
 Recommended initial behavior:
 
-- Search by `handle` only, or label placeholder accordingly, because `name` is not in `CategoryWhereInput`.
-- Replace/limit `filter-schema.ts` to fields backed by `CategoryWhereInput`, for example `handle`, `depth`, `publishedAt`, `createdAt`, `updatedAt`.
+- Search by `handle` only, or label placeholder accordingly, because `name` is not in
+  `CategoryWhereInput`.
+- Replace/limit `filter-schema.ts` to fields backed by `CategoryWhereInput`, for example `handle`,
+  `depth`, `publishedAt`, `createdAt`, `updatedAt`.
 - For status, either defer the filter or map:
   - published: `publishedAt: { _isNot: true }`
-  - draft: `publishedAt: { _is: true }`
-  This only works if API semantics are "publishedAt null means draft"; verify before implementing.
+  - draft: `publishedAt: { _is: true }` This only works if API semantics are "publishedAt null means
+    draft"; verify before implementing.
 - Do not expose products count filter until API adds `productsCount` to `CategoryWhereInput`.
 
-If product owner requires `name/status/productsCount` filtering in this iteration, add a backend follow-up before frontend wiring:
+If product owner requires `name/status/productsCount` filtering in this iteration, add a backend
+follow-up before frontend wiring:
 
 - add generated filter support for `name`;
 - decide whether `isPublished` should be filterable directly or derived from `publishedAt`;
@@ -304,11 +320,13 @@ If product owner requires `name/status/productsCount` filtering in this iteratio
 - On row click open the existing category modal with the real entity id:
 
 ```ts
-onRowAction: (category) => push("category", { entityId: category.id })
+onRowAction: (category) => push("category", { entityId: category.id });
 ```
 
-- Keep create/delete out of scope unless the same task adds `categoryCreate` / `categoryDelete` hooks.
-- If delete selection remains visible before mutation integration, disable it with tooltip or remove it from `selectionActions`.
+- Keep create/delete out of scope unless the same task adds `categoryCreate` / `categoryDelete`
+  hooks.
+- If delete selection remains visible before mutation integration, disable it with tooltip or remove
+  it from `selectionActions`.
 
 ## Implementation phases
 
@@ -317,7 +335,8 @@ onRowAction: (category) => push("category", { entityId: category.id })
 - Create `categories/graphql/fragments.ts`.
 - Create `categories/graphql/queries.ts`.
 - Create `categories/graphql/operation-types.ts`.
-- Create `categories/graphql/index.ts` barrel for operation documents and operation-local TS types only.
+- Create `categories/graphql/index.ts` barrel for operation documents and operation-local TS types
+  only.
 
 ### 2. Replace `useCategories`
 
@@ -371,4 +390,5 @@ Recommended verification for the implementation PR:
 - `CATEGORIES_QUERY` uses Relay variables and requests `pageInfo` + `totalCount`.
 - Pagination is driven by `RelayCursorPagination`.
 - The page does not send unsupported `where` or `orderBy` fields.
-- `name`, `isPublished`, and `productsCount` API gaps are either deferred in UI or covered by a backend/schema change before frontend use.
+- `name`, `isPublished`, and `productsCount` API gaps are either deferred in UI or covered by a
+  backend/schema change before frontend use.

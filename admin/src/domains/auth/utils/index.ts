@@ -1,8 +1,4 @@
-export {
-  mapGraphQLErrorsToForm,
-  getErrorMessage,
-  createNetworkError,
-} from "./error-mapper";
+export { mapGraphQLErrorsToForm, getErrorMessage, createNetworkError } from "./error-mapper";
 
 export {
   getStoredTokens,

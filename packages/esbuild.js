@@ -1,12 +1,5 @@
 import { build } from "esbuild";
-import {
-  readFileSync,
-  existsSync,
-  readdirSync,
-  statSync,
-  rmSync,
-  mkdirSync,
-} from "fs";
+import { readFileSync, existsSync, readdirSync, statSync, rmSync, mkdirSync } from "fs";
 import { join, dirname, basename, relative } from "path";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
@@ -29,20 +22,15 @@ function getPackages() {
   const packageDirs = readdirSync(packagesDir)
     .filter((name) => {
       const packagePath = join(packagesDir, name);
-      return (
-        statSync(packagePath).isDirectory() &&
-        existsSync(join(packagePath, "package.json"))
-      );
+      return statSync(packagePath).isDirectory() && existsSync(join(packagePath, "package.json"));
     })
     .map((name) => join(packagesDir, name));
 
   const packagesByName = new Map(
     packageDirs.map((packageDir) => {
-      const packageJson = JSON.parse(
-        readFileSync(join(packageDir, "package.json"), "utf-8")
-      );
+      const packageJson = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf-8"));
       return [packageJson.name, { packageDir, packageJson }];
-    })
+    }),
   );
   const ordered = [];
   const visiting = new Set();
@@ -98,13 +86,10 @@ function getEntryPoints(packageDir) {
       const exportName = key === "." ? "index" : key.replace("./", "");
 
       // Get the source file path
-      const distPath =
-        typeof value === "string" ? value : value.default || value.require;
+      const distPath = typeof value === "string" ? value : value.default || value.require;
       if (distPath) {
         // Convert dist path to src path: dist/foo.js -> src/foo.ts
-        const srcPath = distPath
-          .replace(/^\.\/dist\//, "src/")
-          .replace(/\.js$/, ".ts");
+        const srcPath = distPath.replace(/^\.\/dist\//, "src/").replace(/\.js$/, ".ts");
         const fullSrcPath = join(packageDir, srcPath);
 
         if (existsSync(fullSrcPath)) {
@@ -173,17 +158,12 @@ async function generateDeclarations(packageDir, entryPoints) {
       const relativePathFromSrc = relative(srcDir, srcPath);
 
       // Build path to generated .d.ts file
-      const dtsInputPath = join(
-        finalDistDir,
-        relativePathFromSrc.replace(/\.ts$/, ".d.ts")
-      );
+      const dtsInputPath = join(finalDistDir, relativePathFromSrc.replace(/\.ts$/, ".d.ts"));
 
       const dtsOutputPath = join(finalDistDir, `${entryName}.d.ts`);
 
       if (!existsSync(dtsInputPath)) {
-        console.warn(
-          `  ⚠️  Declaration file not found: ${dtsInputPath}, skipping bundle`
-        );
+        console.warn(`  ⚠️  Declaration file not found: ${dtsInputPath}, skipping bundle`);
         continue;
       }
 
@@ -242,27 +222,23 @@ async function generateDeclarations(packageDir, entryPoints) {
           console.log(`  ✅ Bundled ${entryName}.d.ts`);
         } else {
           console.error(
-            `  ⚠️  API Extractor completed with ${extractorResult.errorCount} errors and ${extractorResult.warningCount} warnings for ${entryName}.d.ts`
+            `  ⚠️  API Extractor completed with ${extractorResult.errorCount} errors and ${extractorResult.warningCount} warnings for ${entryName}.d.ts`,
           );
         }
       } catch (error) {
-        console.error(
-          `  ⚠️  Failed to bundle ${entryName}.d.ts: ${error.message}`
-        );
+        console.error(`  ⚠️  Failed to bundle ${entryName}.d.ts: ${error.message}`);
         // Keep the original file if bundling fails
       }
     }
 
     // Step 3: Clean up intermediate .d.ts files (keep only the bundled ones)
     const allDtsFiles = getDtsFiles(finalDistDir);
-    const bundledFiles = entryPointNames.map((name) =>
-      join(finalDistDir, `${name}.d.ts`)
-    );
+    const bundledFiles = entryPointNames.map((name) => join(finalDistDir, `${name}.d.ts`));
 
     for (const dtsFile of allDtsFiles) {
       const normalizedPath = dtsFile.replace(/\\/g, "/");
       const isBundled = bundledFiles.some(
-        (bundled) => bundled.replace(/\\/g, "/") === normalizedPath
+        (bundled) => bundled.replace(/\\/g, "/") === normalizedPath,
       );
 
       if (!isBundled) {
@@ -302,9 +278,7 @@ async function generateDeclarations(packageDir, entryPoints) {
  * Build a single package
  */
 async function buildPackage(packageDir) {
-  const packageJson = JSON.parse(
-    readFileSync(join(packageDir, "package.json"), "utf-8")
-  );
+  const packageJson = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf-8"));
   const packageName = packageJson.name;
 
   console.log(`\n📦 Building ${packageName}...`);

@@ -42,7 +42,7 @@ export function useUpdatePassword(): UseUpdatePasswordReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

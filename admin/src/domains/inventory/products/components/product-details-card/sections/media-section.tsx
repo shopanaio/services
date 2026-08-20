@@ -50,11 +50,7 @@ export const MediaSection = ({
       <PaperHeader
         title={title}
         actions={
-          <EditAction
-            onEdit={onEdit}
-            label={editLabel}
-            testId={`${testIdPrefix}-actions-button`}
-          />
+          <EditAction onEdit={onEdit} label={editLabel} testId={`${testIdPrefix}-actions-button`} />
         }
       />
       {hasMedia ? (
@@ -100,9 +96,7 @@ export const MediaSection = ({
                 )}
                 {index === 0 && hasFeatured ? <FeaturedBadge /> : null}
                 {renderItemBadge ? (
-                  <div className={styles.mediaItemBadge}>
-                    {renderItemBadge(media, index)}
-                  </div>
+                  <div className={styles.mediaItemBadge}>{renderItemBadge(media, index)}</div>
                 ) : null}
               </div>
             );
@@ -143,9 +137,7 @@ export const MediaSection = ({
           </div>
         </div>
       ) : (
-        <div data-testid={`${testIdPrefix}-section`}>
-          {emptyState ?? <EntityMediaEmptyState />}
-        </div>
+        <div data-testid={`${testIdPrefix}-section`}>{emptyState ?? <EntityMediaEmptyState />}</div>
       )}
 
       {footer}

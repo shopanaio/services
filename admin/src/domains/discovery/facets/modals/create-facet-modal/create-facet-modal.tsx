@@ -8,11 +8,7 @@ import { createStyles } from "antd-style";
 import { LuPlus as PlusOutlined } from "react-icons/lu";
 import { LuSwatchBook } from "react-icons/lu";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   getAllowedFacetUiTypes,
@@ -24,17 +20,10 @@ import {
   mapFacetUserErrorsToFormErrors,
 } from "../../mappers";
 import { useCreateFacet } from "../../hooks";
-import {
-  useFacetSourcePickerModal,
-  type ICreateFacetModalPayload,
-} from "../../modals";
+import { useFacetSourcePickerModal, type ICreateFacetModalPayload } from "../../modals";
 import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
 import { FacetScopeSelector } from "../components/facet-scope-selector";
-import {
-  createFacetSchema,
-  type CreateFacetFormInput,
-  type CreateFacetFormValues,
-} from "./schema";
+import { createFacetSchema, type CreateFacetFormInput, type CreateFacetFormValues } from "./schema";
 import { FacetScopeType, FacetType } from "@/graphql/types";
 import type { FacetSourcePickerEntity } from "../../pickers/facet-source-picker-config";
 import { FacetValueCandidatesGrid } from "./facet-value-candidates-grid";
@@ -97,10 +86,7 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-const MULTI_SOURCE_FACET_TYPES = new Set<FacetType>([
-  FacetType.Option,
-  FacetType.Feature,
-]);
+const MULTI_SOURCE_FACET_TYPES = new Set<FacetType>([FacetType.Option, FacetType.Feature]);
 
 interface FacetSourceSelectorProps {
   value: CreateFacetFormInput["sources"];
@@ -163,9 +149,7 @@ export function CreateFacetModal() {
   const { createFacet, loading } = useCreateFacet();
   const initialSources =
     typedPayload.initialValues?.sources ??
-    (typedPayload.initialValues?.source
-      ? [typedPayload.initialValues.source]
-      : undefined);
+    (typedPayload.initialValues?.source ? [typedPayload.initialValues.source] : undefined);
 
   const methods = useForm<CreateFacetFormInput, unknown, CreateFacetFormValues>({
     resolver: zodResolver(createFacetSchema),
@@ -175,21 +159,14 @@ export function CreateFacetModal() {
       ...(initialSources ? { sources: initialSources } : {}),
     },
   });
-  const { clearErrors, control, handleSubmit, setError, setValue, watch } =
-    methods;
+  const { clearErrors, control, handleSubmit, setError, setValue, watch } = methods;
   const label = watch("label");
   const facetType = watch("facetType");
   const uiType = watch("uiType");
   const sources = watch("sources");
   const discrete = isDiscreteFacetType(facetType);
-  const uiTypeOptions = useMemo(
-    () => getAllowedFacetUiTypes(facetType),
-    [facetType],
-  );
-  const sourceHandles = useMemo(
-    () => (sources ?? []).map((source) => source.handle),
-    [sources],
-  );
+  const uiTypeOptions = useMemo(() => getAllowedFacetUiTypes(facetType), [facetType]);
+  const sourceHandles = useMemo(() => (sources ?? []).map((source) => source.handle), [sources]);
   const initialSourceSelection = useMemo(
     () => sourceHandles.map((handle) => `${facetType}:${handle}`),
     [facetType, sourceHandles],
@@ -210,10 +187,7 @@ export function CreateFacetModal() {
           FacetType.InStock,
         ],
       },
-      onConfirm: (
-        selectedSourceEntities: FacetSourcePickerEntity[],
-        selectedIds: string[],
-      ) => {
+      onConfirm: (selectedSourceEntities: FacetSourcePickerEntity[], selectedIds: string[]) => {
         const selectedSourceById = new Map(
           selectedSourceEntities.map((source) => [source.id, source]),
         );
@@ -231,9 +205,7 @@ export function CreateFacetModal() {
         }
         const selectedSources = selectedIds
           .map((id) => selectedSourceById.get(id))
-          .filter((source): source is FacetSourcePickerEntity =>
-            Boolean(source),
-          );
+          .filter((source): source is FacetSourcePickerEntity => Boolean(source));
 
         const firstSelectedSource = selectedSources[0];
         if (!firstSelectedSource) return;
@@ -250,16 +222,11 @@ export function CreateFacetModal() {
           return;
         }
 
-        if (
-          selectedSources.length > 1 &&
-          !MULTI_SOURCE_FACET_TYPES.has(selectedFacetType)
-        ) {
+        if (selectedSources.length > 1 && !MULTI_SOURCE_FACET_TYPES.has(selectedFacetType)) {
           setError("sources", {
             message: "Only option and feature filters can use multiple sources",
           });
-          message.error(
-            "Only option and feature filters can use multiple sources.",
-          );
+          message.error("Only option and feature filters can use multiple sources.");
           return;
         }
 
@@ -382,10 +349,7 @@ export function CreateFacetModal() {
             <Controller
               name="sources"
               control={control}
-              render={({
-                field: sourcesField,
-                fieldState: { error: sourcesError },
-              }) => (
+              render={({ field: sourcesField, fieldState: { error: sourcesError } }) => (
                 <>
                   <FacetSourceSelector
                     value={sourcesField.value}
@@ -393,9 +357,7 @@ export function CreateFacetModal() {
                     hasError={Boolean(sourcesError)}
                     onClick={openPicker}
                   />
-                  {sourcesError ? (
-                    <div className={styles.error}>{sourcesError.message}</div>
-                  ) : null}
+                  {sourcesError ? <div className={styles.error}>{sourcesError.message}</div> : null}
                 </>
               )}
             />
@@ -428,13 +390,8 @@ export function CreateFacetModal() {
               control={control}
               render={({ field, fieldState: { error } }) => (
                 <>
-                  <FacetScopeSelector
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                  {error ? (
-                    <div className={styles.error}>{error.message}</div>
-                  ) : null}
+                  <FacetScopeSelector value={field.value} onChange={field.onChange} />
+                  {error ? <div className={styles.error}>{error.message}</div> : null}
                 </>
               )}
             />
@@ -480,9 +437,7 @@ export function CreateFacetModal() {
               control={control}
               render={({ field, fieldState: { error } }) => (
                 <>
-                  {error ? (
-                    <div className={styles.error}>{error.message}</div>
-                  ) : null}
+                  {error ? <div className={styles.error}>{error.message}</div> : null}
                   <FacetValueCandidatesGrid
                     facetType={facetType}
                     sourceHandles={sourceHandles}

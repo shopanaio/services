@@ -85,8 +85,7 @@ export interface ContentExternalReferenceCreateWorkflowInput {
   params: ContentExternalReferenceCreateParams;
   context: ReviewsMutationWorkflowContext;
 }
-export type ContentExternalReferenceCreateWorkflowResult =
-  ContentExternalReferenceCreateResult;
+export type ContentExternalReferenceCreateWorkflowResult = ContentExternalReferenceCreateResult;
 
 export interface RatingCriterionDeleteWorkflowInput {
   params: RatingCriterionDeleteParams;
@@ -110,8 +109,7 @@ export interface ContentExternalReferenceDeleteWorkflowInput {
   params: ContentExternalReferenceDeleteParams;
   context: ReviewsMutationWorkflowContext;
 }
-export type ContentExternalReferenceDeleteWorkflowResult =
-  ContentExternalReferenceDeleteResult;
+export type ContentExternalReferenceDeleteWorkflowResult = ContentExternalReferenceDeleteResult;
 
 export type SingleOperationWorkflowResult<TResult> = TResult & {
   operationResults: ReviewsUpdateOperationResult[];
@@ -135,8 +133,7 @@ export interface ContentRedactWorkflowInput {
   params: ContentRedactParams;
   context: ReviewsMutationWorkflowContext;
 }
-export type ContentRedactWorkflowResult =
-  SingleOperationWorkflowResult<ContentRedactResult>;
+export type ContentRedactWorkflowResult = SingleOperationWorkflowResult<ContentRedactResult>;
 
 export interface ContentRevisionRestoreWorkflowInput {
   params: ContentRevisionRestoreParams;

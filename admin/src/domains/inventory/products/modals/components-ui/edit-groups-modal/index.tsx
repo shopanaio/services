@@ -8,10 +8,7 @@ import { useModalStackContext, ModalLayout } from "@/layouts/modals";
 import { useStyles } from "./edit-groups-modal.styles";
 import { ComponentGroupsGrid, rowsToGroups } from "./components";
 import type { ComponentGroupsGridHandle } from "./components/component-groups-grid";
-import type {
-  ApiProductComponentGroup,
-  ApiProductComponentPricingTemplate,
-} from "@/graphql/types";
+import type { ApiProductComponentGroup, ApiProductComponentPricingTemplate } from "@/graphql/types";
 
 // ============================================================================
 // Payload
@@ -20,10 +17,7 @@ import type {
 export interface IEditGroupsModalPayload {
   groups: ApiProductComponentGroup[];
   pricingTemplates: ApiProductComponentPricingTemplate[];
-  onSave?: (groups: ApiProductComponentGroup[]) =>
-    | boolean
-    | void
-    | Promise<boolean | void>;
+  onSave?: (groups: ApiProductComponentGroup[]) => boolean | void | Promise<boolean | void>;
 }
 
 // ============================================================================
@@ -80,11 +74,7 @@ export const EditGroupsModal = () => {
         }}
         trigger={["click"]}
       >
-        <Button
-          size="small"
-          icon={<PlusOutlined />}
-          data-testid="component-groups-add-button"
-        >
+        <Button size="small" icon={<PlusOutlined />} data-testid="component-groups-add-button">
           Add
         </Button>
       </Dropdown>

@@ -1,18 +1,18 @@
-import { createStyles } from 'antd-style';
-import { ButtonProps, Flex, Modal } from 'antd';
-import { ReactNode } from 'react';
-import { DataTable, IDataTableProps } from '@/layouts/table/components/table';
-import { ITablePaginationProps, TablePagination } from '@/layouts/table/components/pagination';
-import { TableBottomBorder, TableTopBorder } from '@/layouts/table/components/table-borders';
+import { createStyles } from "antd-style";
+import { ButtonProps, Flex, Modal } from "antd";
+import { ReactNode } from "react";
+import { DataTable, IDataTableProps } from "@/layouts/table/components/table";
+import { ITablePaginationProps, TablePagination } from "@/layouts/table/components/pagination";
+import { TableBottomBorder, TableTopBorder } from "@/layouts/table/components/table-borders";
 
 const useStyles = createStyles(({ token }) => ({
   container: {
-    height: 'calc(100vh - 200px)',
-    boxSizing: 'border-box',
-    overflow: 'auto',
+    height: "calc(100vh - 200px)",
+    boxSizing: "border-box",
+    overflow: "auto",
   },
   navigation: {
-    position: 'sticky',
+    position: "sticky",
     padding: `${token.paddingSM}px 1px`,
     top: 0,
     background: token.colorBgLayout,
@@ -21,7 +21,7 @@ const useStyles = createStyles(({ token }) => ({
   paper: {
     borderLeft: `1px solid ${token.colorBorder}`,
     borderRight: `1px solid ${token.colorBorder}`,
-    boxShadow: 'none',
+    boxShadow: "none",
     background: token.colorBgContainer,
     borderRadius: token.borderRadius,
   },
@@ -68,27 +68,25 @@ export const TableModal = ({
       width={width || 1200}
       centered
       cancelButtonProps={{
-        'data-testid': modalType
+        "data-testid": modalType
           ? `${modalType}-modal-cancel-button`
-          : 'browse-modal-cancel-button',
+          : "browse-modal-cancel-button",
       }}
       okButtonProps={{
         ...okButtonProps,
-        'data-testid': modalType
-          ? `${modalType}-modal-submit-button`
-          : 'browse-modal-ok-button',
+        "data-testid": modalType ? `${modalType}-modal-submit-button` : "browse-modal-ok-button",
       }}
       okText={okButtonText}
       onCancel={onCancel}
       styles={{
         body: {
-          background: 'var(--ant-color-bg-layout)',
+          background: "var(--ant-color-bg-layout)",
         },
         footer: {
-          background: 'var(--ant-color-bg-layout)',
+          background: "var(--ant-color-bg-layout)",
         },
         header: {
-          background: 'var(--ant-color-bg-layout)',
+          background: "var(--ant-color-bg-layout)",
         },
       }}
       afterOpenChange={(isOpen) => {
@@ -99,7 +97,7 @@ export const TableModal = ({
       closable={!!closable}
       onOk={onOk}
       footer={(_, { CancelBtn, OkBtn }) => (
-        <Flex style={{ width: '100%' }} justify="space-between">
+        <Flex style={{ width: "100%" }} justify="space-between">
           {paginationProps ? <TablePagination {...paginationProps} /> : <div />}
           <Flex gap="small">
             {onCancel && <CancelBtn />}
@@ -109,19 +107,11 @@ export const TableModal = ({
       )}
     >
       <div className={styles.container}>
-        {navigation && (
-          <div className={styles.navigation}>
-            {navigation}
-          </div>
-        )}
+        {navigation && <div className={styles.navigation}>{navigation}</div>}
         {extra}
         <TableTopBorder />
         <div className={styles.paper}>
-          <DataTable
-            layout="fixed"
-            sticky={{ offsetHeader: 64 }}
-            {...tableProps}
-          />
+          <DataTable layout="fixed" sticky={{ offsetHeader: 64 }} {...tableProps} />
         </div>
         <TableBottomBorder bottom={0} />
       </div>

@@ -15,17 +15,10 @@ export class RecommendationLoader {
   readonly manualById: DataLoader<string, ManualProductRecommendation | null>;
 
   constructor(repository: Repository) {
-    this.page = new DataLoader(
-      (keys) => repository.storefrontRecommendationQuery.getPages(keys),
-      {
-        cacheKeyFn: (key) => [
-          key.anchorProductId,
-          key.placement,
-          key.first,
-          key.after ?? "",
-        ].join(":"),
-      },
-    );
+    this.page = new DataLoader((keys) => repository.storefrontRecommendationQuery.getPages(keys), {
+      cacheKeyFn: (key) =>
+        [key.anchorProductId, key.placement, key.first, key.after ?? ""].join(":"),
+    });
     this.policyById = new DataLoader(async (ids) => {
       const rows = await repository.recommendationPlacementPolicy.getByIds(ids);
       const byId = new Map(rows.map((row) => [row.policyId, row]));

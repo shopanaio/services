@@ -80,12 +80,7 @@ export interface FileLinkParams {
 
 export interface FileLinkResult {
   success: boolean;
-  code:
-    | "LINKED"
-    | "FILE_NOT_FOUND"
-    | "FILE_INACTIVE"
-    | "OWNER_MISMATCH"
-    | "LINK_FAILED";
+  code: "LINKED" | "FILE_NOT_FOUND" | "FILE_INACTIVE" | "OWNER_MISMATCH" | "LINK_FAILED";
   activeRefCount: number;
   fileExists: boolean;
   fileActive: boolean;

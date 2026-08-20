@@ -20,18 +20,24 @@ export class ReviewDeleteScript extends BaseScript<ReviewDeleteParams, ReviewDel
     } catch (error) {
       if (getPgErrorInfo(error)?.code === PG_ERROR_CODES.FOREIGN_KEY_VIOLATION) {
         return {
-          userErrors: [{
-            message: "The review is referenced by a review request and cannot be permanently deleted",
-            field: ["id"],
-            code: "REVIEW_IN_USE",
-          }],
+          userErrors: [
+            {
+              message:
+                "The review is referenced by a review request and cannot be permanently deleted",
+              field: ["id"],
+              code: "REVIEW_IN_USE",
+            },
+          ],
         };
       }
       throw error;
     }
     if (result.status === "not_found") return { userErrors: notFound("Review") };
     if (result.status === "conflict") return { userErrors: conflict("expectedRevision") };
-    this.logger.info({ reviewId: params.id, permanent: params.permanent ?? false }, "Review deleted");
+    this.logger.info(
+      { reviewId: params.id, permanent: params.permanent ?? false },
+      "Review deleted",
+    );
     return {
       deletedReviewId: params.id,
       productId: aggregate.review.productId,

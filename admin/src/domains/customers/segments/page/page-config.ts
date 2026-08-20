@@ -1,9 +1,5 @@
 import { createGraphqlDateTimeRangeFilterTransformer } from "@/layouts/filters";
-import type {
-  FilterTransformer,
-  SortFieldMapping,
-  UsePageConfigReturn,
-} from "@/hooks";
+import type { FilterTransformer, SortFieldMapping, UsePageConfigReturn } from "@/hooks";
 import {
   CustomerSegmentOrderField,
   SortDirection,
@@ -22,10 +18,7 @@ export const customerSegmentSortFieldMapping: SortFieldMapping<CustomerSegmentOr
 export const buildCustomerSegmentSearchCondition = (
   search: string,
 ): Partial<ApiCustomerSegmentWhereInput> => ({
-  _or: [
-    { name: { _containsi: search } },
-    { description: { _containsi: search } },
-  ],
+  _or: [{ name: { _containsi: search } }, { description: { _containsi: search } }],
 });
 
 export const customerSegmentFilterTransformers: Record<

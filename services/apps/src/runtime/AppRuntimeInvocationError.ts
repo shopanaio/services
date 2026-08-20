@@ -1,7 +1,5 @@
 export type AppRuntimeInvocationErrorCode =
-  | "APP_ACTION_NOT_READ_ONLY"
-  | "APP_RUNTIME_UNAVAILABLE"
-  | "APP_ROUTE_UNAVAILABLE";
+  "APP_ACTION_NOT_READ_ONLY" | "APP_RUNTIME_UNAVAILABLE" | "APP_ROUTE_UNAVAILABLE";
 
 export class AppRuntimeInvocationError extends Error {
   constructor(

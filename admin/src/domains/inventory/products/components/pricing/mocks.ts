@@ -22,10 +22,7 @@ import {
 
 const CURRENCY = CurrencyCode.Usd;
 
-function generatePriceHistory(
-  days: number,
-  basePrice: number
-): ApiVariantPriceConnection {
+function generatePriceHistory(days: number, basePrice: number): ApiVariantPriceConnection {
   const edges: ApiVariantPriceConnection["edges"] = [];
   const now = new Date();
 
@@ -43,7 +40,8 @@ function generatePriceHistory(
         compareAtMinor: price > basePrice ? basePrice + 1000 : null,
         currency: CURRENCY,
         effectiveFrom: date.toISOString(),
-        effectiveTo: i === 0 ? null : new Date(now.getTime() - (i - 1) * 24 * 60 * 60 * 1000).toISOString(),
+        effectiveTo:
+          i === 0 ? null : new Date(now.getTime() - (i - 1) * 24 * 60 * 60 * 1000).toISOString(),
         isCurrent: i === 0,
         recordedAt: date.toISOString(),
       },
@@ -141,7 +139,7 @@ const variantsCache = new Map<string, ApiVariant[]>();
 function getOrCreateVariants(productId: string): ApiVariant[] {
   if (!variantsCache.has(productId)) {
     const variants = Array.from({ length: TOTAL_VARIANTS }, (_, i) =>
-      generateVariant(i, productId)
+      generateVariant(i, productId),
     );
     variantsCache.set(productId, variants);
   }
@@ -197,7 +195,6 @@ export interface FetchPricingWidgetParams {
   period: string;
 }
 
-
 export async function fetchPricingWidget({
   variantId,
   period,
@@ -223,7 +220,7 @@ export async function fetchPricingWidget({
 
   // Filter price history by period
   const filteredEdges = variant.priceHistory.edges.filter(
-    (edge) => new Date(edge.node.effectiveFrom) >= cutoff
+    (edge) => new Date(edge.node.effectiveFrom) >= cutoff,
   );
 
   const history: ApiVariantPriceConnection = {
@@ -239,9 +236,7 @@ export async function fetchPricingWidget({
     minPriceMinor: prices.length > 0 ? Math.min(...prices) : 0,
     maxPriceMinor: prices.length > 0 ? Math.max(...prices) : 0,
     avgPriceMinor:
-      prices.length > 0
-        ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)
-        : 0,
+      prices.length > 0 ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0,
     currency: CURRENCY,
   };
 

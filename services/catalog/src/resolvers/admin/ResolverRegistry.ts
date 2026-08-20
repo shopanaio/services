@@ -37,9 +37,7 @@ export class ResolverRegistry {
   }
 
   async productConnection(input: ProductConnectionInput) {
-    const { ProductConnectionResolver } = await import(
-      "./ProductConnectionResolver.js"
-    );
+    const { ProductConnectionResolver } = await import("./ProductConnectionResolver.js");
     return new ProductConnectionResolver(input, this.ctx);
   }
 
@@ -49,86 +47,71 @@ export class ResolverRegistry {
   }
 
   async productComponent(id: string) {
-    const { ProductComponentResolver } = await import(
-      "./ProductComponentResolver.js"
-    );
+    const { ProductComponentResolver } = await import("./ProductComponentResolver.js");
     return new ProductComponentResolver(id, this.ctx);
   }
 
   async productComponentConfiguration(id: string) {
-    const { ProductComponentConfigurationResolver } = await import(
-      "./ProductComponentConfigurationResolver.js"
-    );
+    const { ProductComponentConfigurationResolver } =
+      await import("./ProductComponentConfigurationResolver.js");
     return new ProductComponentConfigurationResolver(id, this.ctx);
   }
 
   async productComponentGroup(id: string) {
-    const { ProductComponentGroupResolver } = await import(
-      "./ProductComponentGroupResolver.js"
-    );
+    const { ProductComponentGroupResolver } = await import("./ProductComponentGroupResolver.js");
     return new ProductComponentGroupResolver(id, this.ctx);
   }
 
   async productComponentItem(id: string) {
-    const { ProductComponentItemResolver } = await import(
-      "./ProductComponentItemResolver.js"
-    );
+    const { ProductComponentItemResolver } = await import("./ProductComponentItemResolver.js");
     return new ProductComponentItemResolver(id, this.ctx);
   }
 
   async productComponentItemOptionSelection(id: string) {
-    const { ProductComponentItemOptionSelectionResolver } = await import(
-      "./ProductComponentOptionResolver.js"
-    );
+    const { ProductComponentItemOptionSelectionResolver } =
+      await import("./ProductComponentOptionResolver.js");
     return new ProductComponentItemOptionSelectionResolver(id, this.ctx);
   }
 
   async productComponentItemOptionValueSelection(id: string) {
-    const { ProductComponentItemOptionValueSelectionResolver } = await import(
-      "./ProductComponentOptionResolver.js"
-    );
+    const { ProductComponentItemOptionValueSelectionResolver } =
+      await import("./ProductComponentOptionResolver.js");
     return new ProductComponentItemOptionValueSelectionResolver(id, this.ctx);
   }
 
   async productComponentPricingTemplate(id: string) {
-    const { ProductComponentPricingTemplateResolver } = await import(
-      "./ProductComponentPriceRuleResolver.js"
-    );
+    const { ProductComponentPricingTemplateResolver } =
+      await import("./ProductComponentPriceRuleResolver.js");
     return new ProductComponentPricingTemplateResolver(id, this.ctx);
   }
 
   async productComponentPriceRule(id: string) {
-    const { createProductComponentPriceRuleResolver } = await import(
-      "./ProductComponentPriceRuleResolver.js"
-    );
+    const { createProductComponentPriceRuleResolver } =
+      await import("./ProductComponentPriceRuleResolver.js");
     return createProductComponentPriceRuleResolver(id, this.ctx);
   }
 
   async productComponentDependencyRule(id: string) {
-    const { ProductComponentDependencyRuleResolver } = await import(
-      "./ProductComponentDependencyRuleResolver.js"
-    );
+    const { ProductComponentDependencyRuleResolver } =
+      await import("./ProductComponentDependencyRuleResolver.js");
     return new ProductComponentDependencyRuleResolver(id, this.ctx);
   }
 
   async productComponentConditionGroup(id: string) {
-    const { ProductComponentConditionGroupResolver } = await import(
-      "./ProductComponentDependencyRuleResolver.js"
-    );
+    const { ProductComponentConditionGroupResolver } =
+      await import("./ProductComponentDependencyRuleResolver.js");
     return new ProductComponentConditionGroupResolver(id, this.ctx);
   }
 
   async productComponentCondition(id: string) {
-    const { ProductComponentConditionResolver } = await import(
-      "./ProductComponentDependencyRuleResolver.js"
-    );
+    const { ProductComponentConditionResolver } =
+      await import("./ProductComponentDependencyRuleResolver.js");
     return new ProductComponentConditionResolver(id, this.ctx);
   }
 
   async productComponentDependencyAction(id: string) {
-    const { ProductComponentDependencyActionResolver } = await import(
-      "./ProductComponentDependencyRuleResolver.js"
-    );
+    const { ProductComponentDependencyActionResolver } =
+      await import("./ProductComponentDependencyRuleResolver.js");
     return new ProductComponentDependencyActionResolver(id, this.ctx);
   }
 
@@ -138,16 +121,13 @@ export class ResolverRegistry {
   }
 
   async categoryConnection(input: CategoryConnectionInput) {
-    const { CategoryConnectionResolver } = await import(
-      "./CategoryConnectionResolver.js"
-    );
+    const { CategoryConnectionResolver } = await import("./CategoryConnectionResolver.js");
     return new CategoryConnectionResolver(input, this.ctx);
   }
 
   async categoryProductConnection(input: CategoryProductConnectionInput) {
-    const { CategoryProductConnectionResolver } = await import(
-      "./CategoryProductConnectionResolver.js"
-    );
+    const { CategoryProductConnectionResolver } =
+      await import("./CategoryProductConnectionResolver.js");
     return new CategoryProductConnectionResolver(input, this.ctx);
   }
 
@@ -162,18 +142,13 @@ export class ResolverRegistry {
   }
 
   async variantConnection(input: VariantConnectionInput) {
-    const { VariantConnectionResolver } = await import(
-      "./VariantConnectionResolver.js"
-    );
+    const { VariantConnectionResolver } = await import("./VariantConnectionResolver.js");
     return new VariantConnectionResolver(input, this.ctx);
   }
 
-  async warehouseAssignableVariantConnection(
-    input: WarehouseAssignableVariantConnectionInput
-  ) {
-    const { WarehouseAssignableVariantConnectionResolver } = await import(
-      "./VariantConnectionResolver.js"
-    );
+  async warehouseAssignableVariantConnection(input: WarehouseAssignableVariantConnectionInput) {
+    const { WarehouseAssignableVariantConnectionResolver } =
+      await import("./VariantConnectionResolver.js");
     return new WarehouseAssignableVariantConnectionResolver(input, this.ctx);
   }
 
@@ -183,9 +158,8 @@ export class ResolverRegistry {
   }
 
   async inventoryItemConnection(input: InventoryItemConnectionInput) {
-    const { InventoryItemConnectionResolver } = await import(
-      "./InventoryItemConnectionResolver.js"
-    );
+    const { InventoryItemConnectionResolver } =
+      await import("./InventoryItemConnectionResolver.js");
     return new InventoryItemConnectionResolver(input, this.ctx);
   }
 
@@ -195,9 +169,7 @@ export class ResolverRegistry {
   }
 
   async warehouseConnection(input: WarehouseRelayInput) {
-    const { WarehouseConnectionResolver } = await import(
-      "./WarehouseConnectionResolver.js"
-    );
+    const { WarehouseConnectionResolver } = await import("./WarehouseConnectionResolver.js");
     return new WarehouseConnectionResolver(input, this.ctx);
   }
 
@@ -207,9 +179,7 @@ export class ResolverRegistry {
   }
 
   async stockConnection(input: StockRelayInput) {
-    const { StockConnectionResolver } = await import(
-      "./StockConnectionResolver.js"
-    );
+    const { StockConnectionResolver } = await import("./StockConnectionResolver.js");
     return new StockConnectionResolver(input, this.ctx);
   }
 
@@ -219,9 +189,7 @@ export class ResolverRegistry {
   }
 
   async vendorConnection(input: VendorRelayInput) {
-    const { VendorConnectionResolver } = await import(
-      "./VendorConnectionResolver.js"
-    );
+    const { VendorConnectionResolver } = await import("./VendorConnectionResolver.js");
     return new VendorConnectionResolver(input, this.ctx);
   }
 
@@ -236,9 +204,7 @@ export class ResolverRegistry {
   }
 
   async tagConnection(input: TagRelayInput) {
-    const { TagConnectionResolver } = await import(
-      "./TagConnectionResolver.js"
-    );
+    const { TagConnectionResolver } = await import("./TagConnectionResolver.js");
     return new TagConnectionResolver(input, this.ctx);
   }
 
@@ -248,16 +214,13 @@ export class ResolverRegistry {
   }
 
   async optionCategory(id: string) {
-    const { OptionCategoryResolver } = await import(
-      "./OptionCategoryResolver.js"
-    );
+    const { OptionCategoryResolver } = await import("./OptionCategoryResolver.js");
     return new OptionCategoryResolver(id, this.ctx);
   }
 
   async optionCategoryConnection(input: OptionCategoryRelayInput) {
-    const { OptionCategoryConnectionResolver } = await import(
-      "./OptionCategoryConnectionResolver.js"
-    );
+    const { OptionCategoryConnectionResolver } =
+      await import("./OptionCategoryConnectionResolver.js");
     return new OptionCategoryConnectionResolver(input, this.ctx);
   }
 
@@ -282,37 +245,28 @@ export class ResolverRegistry {
   }
 
   async bulkUpdateItem(id: string) {
-    const { BulkUpdateItemResolver } = await import(
-      "./BulkUpdateItemResolver.js"
-    );
+    const { BulkUpdateItemResolver } = await import("./BulkUpdateItemResolver.js");
     return new BulkUpdateItemResolver(id, this.ctx);
   }
 
   async productBulkUpdateJob(id: string) {
-    const { ProductBulkUpdateJobResolver } = await import(
-      "./ProductBulkUpdateJobResolver.js"
-    );
+    const { ProductBulkUpdateJobResolver } = await import("./ProductBulkUpdateJobResolver.js");
     return new ProductBulkUpdateJobResolver(id, this.ctx);
   }
 
   async productBulkUpdateJobConnection(input: BulkEditJobConnectionInput) {
-    const { ProductBulkUpdateJobConnectionResolver } = await import(
-      "./ProductBulkUpdateJobConnectionResolver.js"
-    );
+    const { ProductBulkUpdateJobConnectionResolver } =
+      await import("./ProductBulkUpdateJobConnectionResolver.js");
     return new ProductBulkUpdateJobConnectionResolver(input, this.ctx);
   }
 
   async inventoryWidget(productId: string) {
-    const { InventoryWidgetResolver } = await import(
-      "./InventoryWidgetResolver.js"
-    );
+    const { InventoryWidgetResolver } = await import("./InventoryWidgetResolver.js");
     return new InventoryWidgetResolver(productId, this.ctx);
   }
 
   async pricingWidget(input: PricingWidgetInput) {
-    const { PricingWidgetResolver } = await import(
-      "./PricingWidgetResolver.js"
-    );
+    const { PricingWidgetResolver } = await import("./PricingWidgetResolver.js");
     return new PricingWidgetResolver(input, this.ctx);
   }
 
@@ -327,7 +281,8 @@ export class ResolverRegistry {
   }
 
   async productComparisonConfiguration(productId: string) {
-    const { ProductComparisonConfigurationResolver } = await import("./ProductComparisonConfigurationResolver.js");
+    const { ProductComparisonConfigurationResolver } =
+      await import("./ProductComparisonConfigurationResolver.js");
     return new ProductComparisonConfigurationResolver(productId, this.ctx);
   }
 

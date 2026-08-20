@@ -40,4 +40,3 @@ export class StorefrontResolverRegistry {
     return new LoyaltyAvailableRewardConnectionResolver(input, this.ctx);
   }
 }
-

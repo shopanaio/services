@@ -92,11 +92,7 @@ const overridePriceRule = (
   ],
 });
 
-const createReferencedProduct = (
-  product: ApiProduct,
-  id: string,
-  title: string,
-): ApiProduct => ({
+const createReferencedProduct = (product: ApiProduct, id: string, title: string): ApiProduct => ({
   ...product,
   id,
   title,
@@ -308,9 +304,7 @@ const createRule = (input: {
   updatedAt: MOCK_DATE,
 });
 
-const createDependencyRules = (
-  configurationId: string,
-): ApiProductComponentDependencyRule[] => [
+const createDependencyRules = (configurationId: string): ApiProductComponentDependencyRule[] => [
   createRule({
     id: "rule-1",
     name: "Premium case hides screen protector",
@@ -671,9 +665,7 @@ const createConfiguration = (
 });
 
 /** API-shaped ProductComponent mock rendered by the product details card. */
-export const createProductComponentMockData = (
-  product: ApiProduct,
-): ApiProductComponent => ({
+export const createProductComponentMockData = (product: ApiProduct): ApiProductComponent => ({
   __typename: "ProductComponent",
   id: "product-component-mock",
   product,

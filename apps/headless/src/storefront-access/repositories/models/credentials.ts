@@ -12,29 +12,29 @@ import {
 import { headlessStorefrontConnections } from "./connections.js";
 import { bytea, headlessSchema } from "./schema.js";
 
-export const storefrontCredentialKind = headlessSchema.enum(
-  "app_storefront_credential_kind",
-  ["PUBLIC", "PRIVATE"],
-);
+export const storefrontCredentialKind = headlessSchema.enum("app_storefront_credential_kind", [
+  "PUBLIC",
+  "PRIVATE",
+]);
 
-export const storefrontCredentialStatus = headlessSchema.enum(
-  "app_storefront_credential_status",
-  ["ACTIVE", "REVOKED"],
-);
+export const storefrontCredentialStatus = headlessSchema.enum("app_storefront_credential_status", [
+  "ACTIVE",
+  "REVOKED",
+]);
 
 export const storefrontCredentials = headlessSchema.table(
   "storefront_credentials",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     organizationId: uuid("organization_id").notNull(),
     storeId: uuid("store_id").notNull(),
     connectionId: uuid("connection_id")
       .references(() => headlessStorefrontConnections.id)
       .notNull(),
     kind: storefrontCredentialKind("kind").notNull(),
-    status: storefrontCredentialStatus("status")
-      .notNull()
-      .default("ACTIVE"),
+    status: storefrontCredentialStatus("status").notNull().default("ACTIVE"),
     kid: varchar("kid", { length: 64 }).notNull(),
     tokenVersion: smallint("token_version").notNull(),
     pepperVersion: smallint("pepper_version").notNull(),
@@ -63,28 +63,18 @@ export const storefrontCredentials = headlessSchema.table(
   },
   (table) => [
     uniqueIndex("storefront_credentials_kid_key").on(table.kid),
-    uniqueIndex("storefront_credentials_token_digest_key").on(
-      table.tokenDigest,
-    ),
+    uniqueIndex("storefront_credentials_token_digest_key").on(table.tokenDigest),
     uniqueIndex("storefront_credentials_active_public_connection_key")
       .on(table.connectionId)
-      .where(
-        sql`${table.kind} = 'PUBLIC' AND ${table.status} = 'ACTIVE'`,
-      ),
+      .where(sql`${table.kind} = 'PUBLIC' AND ${table.status} = 'ACTIVE'`),
     index("storefront_credentials_connection_kind_status_created_idx").on(
       table.connectionId,
       table.kind,
       table.status,
       table.createdAt,
     ),
-    index("storefront_credentials_store_status_idx").on(
-      table.storeId,
-      table.status,
-    ),
-    index("storefront_credentials_organization_status_idx").on(
-      table.organizationId,
-      table.status,
-    ),
+    index("storefront_credentials_store_status_idx").on(table.storeId, table.status),
+    index("storefront_credentials_organization_status_idx").on(table.organizationId, table.status),
     check(
       "storefront_credentials_public_token_ciphertext_check",
       sql`(
@@ -104,11 +94,7 @@ export const storefrontCredentials = headlessSchema.table(
   ],
 );
 
-export type StorefrontCredentialKind =
-  (typeof storefrontCredentialKind.enumValues)[number];
-export type StorefrontCredentialStatus =
-  (typeof storefrontCredentialStatus.enumValues)[number];
-export type StorefrontCredentialModel =
-  typeof storefrontCredentials.$inferSelect;
-export type NewStorefrontCredentialModel =
-  typeof storefrontCredentials.$inferInsert;
+export type StorefrontCredentialKind = (typeof storefrontCredentialKind.enumValues)[number];
+export type StorefrontCredentialStatus = (typeof storefrontCredentialStatus.enumValues)[number];
+export type StorefrontCredentialModel = typeof storefrontCredentials.$inferSelect;
+export type NewStorefrontCredentialModel = typeof storefrontCredentials.$inferInsert;

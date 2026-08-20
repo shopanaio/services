@@ -29,7 +29,10 @@ export interface CustomerLifecycleJobEventResult {
 export class CustomerLifecycleJobEventError extends Error {
   readonly retryable = false;
 
-  constructor(message: string, readonly code: string) {
+  constructor(
+    message: string,
+    readonly code: string,
+  ) {
     super(message);
     this.name = "CustomerLifecycleJobEventError";
   }
@@ -44,9 +47,7 @@ export class CustomerLifecycleJobEventScript extends BaseScript<
     params: CustomerLifecycleJobEventParams,
   ): Promise<CustomerLifecycleJobEventResult> {
     requireOccurredAt(params.occurredAt);
-    return params.jobType === "MERGE"
-      ? this.applyMerge(params)
-      : this.applyDataRequest(params);
+    return params.jobType === "MERGE" ? this.applyMerge(params) : this.applyDataRequest(params);
   }
 
   protected handleError(error: unknown): CustomerLifecycleJobEventResult {
@@ -65,19 +66,16 @@ export class CustomerLifecycleJobEventScript extends BaseScript<
         throw jobMismatch(params);
       }
       if (current.status !== "REQUESTED") throw invalidState(params, current.status);
-      const updated = await this.repository.lifecycle.updateMergeStatus(
-        params.aggregateId,
-        {
-          status: "IN_PROGRESS",
-          resolution: {
-            ...resolution,
-            jobId: params.jobId,
-          },
-          transitionedAt: params.occurredAt,
-          expectedStatuses: ["REQUESTED"],
-          expectedUpdatedAt: current.updatedAt,
+      const updated = await this.repository.lifecycle.updateMergeStatus(params.aggregateId, {
+        status: "IN_PROGRESS",
+        resolution: {
+          ...resolution,
+          jobId: params.jobId,
         },
-      );
+        transitionedAt: params.occurredAt,
+        expectedStatuses: ["REQUESTED"],
+        expectedUpdatedAt: current.updatedAt,
+      });
       return changed(params, updated !== null);
     }
 
@@ -88,27 +86,22 @@ export class CustomerLifecycleJobEventScript extends BaseScript<
     }
     if (current.status !== "IN_PROGRESS") throw invalidState(params, current.status);
     if (resolution.jobId !== params.jobId) throw jobMismatch(params);
-    const updated = await this.repository.lifecycle.updateMergeStatus(
-      params.aggregateId,
-      {
-        status,
-        resolution: { ...(params.resolution ?? {}), jobId: params.jobId },
-        errorCode: params.errorCode ?? null,
-        errorMessage: params.errorMessage ?? null,
-        transitionedAt: params.occurredAt,
-        expectedStatuses: ["IN_PROGRESS"],
-        expectedUpdatedAt: current.updatedAt,
-      },
-    );
+    const updated = await this.repository.lifecycle.updateMergeStatus(params.aggregateId, {
+      status,
+      resolution: { ...(params.resolution ?? {}), jobId: params.jobId },
+      errorCode: params.errorCode ?? null,
+      errorMessage: params.errorMessage ?? null,
+      transitionedAt: params.occurredAt,
+      expectedStatuses: ["IN_PROGRESS"],
+      expectedUpdatedAt: current.updatedAt,
+    });
     return changed(params, updated !== null);
   }
 
   private async applyDataRequest(
     params: CustomerLifecycleJobEventParams,
   ): Promise<CustomerLifecycleJobEventResult> {
-    const current = await this.repository.lifecycle.findDataRequestById(
-      params.aggregateId,
-    );
+    const current = await this.repository.lifecycle.findDataRequestById(params.aggregateId);
     if (!current) throw notFound(params);
     const requestMetadata = current.requestMetadata as Record<string, unknown>;
     if (params.operation === "DISPATCHED") {
@@ -120,17 +113,14 @@ export class CustomerLifecycleJobEventScript extends BaseScript<
         return unchanged(params);
       }
       if (current.status !== "PENDING") throw invalidState(params, current.status);
-      const updated = await this.repository.lifecycle.updateDataRequestStatus(
-        params.aggregateId,
-        {
-          status: "PROCESSING",
-          requestMetadata: {
-            ...requestMetadata,
-            lifecycleJobId: params.jobId,
-          },
-          transitionedAt: params.occurredAt,
+      const updated = await this.repository.lifecycle.updateDataRequestStatus(params.aggregateId, {
+        status: "PROCESSING",
+        requestMetadata: {
+          ...requestMetadata,
+          lifecycleJobId: params.jobId,
         },
-      );
+        transitionedAt: params.occurredAt,
+      });
       return changed(params, updated !== null);
     }
 
@@ -148,32 +138,29 @@ export class CustomerLifecycleJobEventScript extends BaseScript<
     }
     if (current.status !== "PROCESSING") throw invalidState(params, current.status);
     if (requestMetadata.lifecycleJobId !== params.jobId) throw jobMismatch(params);
-    const updated = await this.repository.lifecycle.updateDataRequestStatus(
-      params.aggregateId,
-      {
-        status,
-        resultFileId: params.resultFileId ?? null,
-        rejectionReason:
-          status === "REJECTED"
-            ? params.errorMessage ?? "Customer data request was rejected"
-            : null,
-        requestMetadata: {
-          ...requestMetadata,
-          lifecycleJobId: null,
-          lastLifecycleJobId: params.jobId,
-          ...(status === "PENDING"
-            ? {
-                lifecycleJobErrorCode: params.errorCode ?? null,
-                lifecycleJobErrorMessage: params.errorMessage ?? null,
-              }
-            : {
-                lifecycleJobErrorCode: null,
-                lifecycleJobErrorMessage: null,
-              }),
-        },
-        transitionedAt: params.occurredAt,
+    const updated = await this.repository.lifecycle.updateDataRequestStatus(params.aggregateId, {
+      status,
+      resultFileId: params.resultFileId ?? null,
+      rejectionReason:
+        status === "REJECTED"
+          ? (params.errorMessage ?? "Customer data request was rejected")
+          : null,
+      requestMetadata: {
+        ...requestMetadata,
+        lifecycleJobId: null,
+        lastLifecycleJobId: params.jobId,
+        ...(status === "PENDING"
+          ? {
+              lifecycleJobErrorCode: params.errorCode ?? null,
+              lifecycleJobErrorMessage: params.errorMessage ?? null,
+            }
+          : {
+              lifecycleJobErrorCode: null,
+              lifecycleJobErrorMessage: null,
+            }),
       },
-    );
+      transitionedAt: params.occurredAt,
+    });
     return changed(params, updated !== null);
   }
 }
@@ -206,9 +193,7 @@ function changed(
   return { aggregateId: params.aggregateId, changed: value };
 }
 
-function unchanged(
-  params: CustomerLifecycleJobEventParams,
-): CustomerLifecycleJobEventResult {
+function unchanged(params: CustomerLifecycleJobEventParams): CustomerLifecycleJobEventResult {
   return changed(params, false);
 }
 

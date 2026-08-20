@@ -13,8 +13,7 @@ export interface DiscountExternalReferenceCreateWorkflowInput {
   context: PricingMutationWorkflowContext;
 }
 
-export type DiscountExternalReferenceCreateWorkflowResult =
-  DiscountExternalReferenceCreateResult;
+export type DiscountExternalReferenceCreateWorkflowResult = DiscountExternalReferenceCreateResult;
 
 export interface DiscountExternalReferenceUpdateWorkflowInput {
   params: DiscountExternalReferenceUpdateParams;
@@ -35,5 +34,4 @@ export interface DiscountExternalReferenceDeleteWorkflowInput {
   context: PricingMutationWorkflowContext;
 }
 
-export type DiscountExternalReferenceDeleteWorkflowResult =
-  DiscountExternalReferenceDeleteResult;
+export type DiscountExternalReferenceDeleteWorkflowResult = DiscountExternalReferenceDeleteResult;

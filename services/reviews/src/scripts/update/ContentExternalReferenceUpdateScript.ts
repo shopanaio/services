@@ -18,7 +18,7 @@ export class ContentExternalReferenceUpdateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: ContentExternalReferenceUpdateParams
+    params: ContentExternalReferenceUpdateParams,
   ): Promise<ContentExternalReferenceUpdateResult> {
     const input = params.operations ?? {};
     const patch: ContentExternalReferencePatch = {};
@@ -84,7 +84,7 @@ export class ContentExternalReferenceUpdateScript extends BaseScript<
       const updated = await this.repository.externalReference.update(
         params.externalReferenceId,
         params.expectedUpdatedAt,
-        patch
+        patch,
       );
       if (updated.status === "applied") {
         return {
@@ -104,11 +104,13 @@ export class ContentExternalReferenceUpdateScript extends BaseScript<
         isUniqueViolation(error, "content_external_reference_content_unique")
       ) {
         return {
-          userErrors: [{
-            message: "This external reference already exists",
-            code: "DUPLICATE_EXTERNAL_REFERENCE",
-            field: ["operations", "identity", "externalId"],
-          }],
+          userErrors: [
+            {
+              message: "This external reference already exists",
+              code: "DUPLICATE_EXTERNAL_REFERENCE",
+              field: ["operations", "identity", "externalId"],
+            },
+          ],
         };
       }
       throw error;
@@ -125,7 +127,7 @@ function validateRequiredText(
   field: "externalSystem" | "externalType" | "externalId",
   maxLength: number,
   patch: ContentExternalReferencePatch,
-  errors: UserError[]
+  errors: UserError[],
 ) {
   if (!input || !hasOwn(input, field)) return;
   const value = input[field]?.trim();

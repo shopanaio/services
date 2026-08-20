@@ -8,10 +8,7 @@ import { LuCopy } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useHeadlessStorefrontActions } from "../hooks";
 import { groupStorefrontPermissions } from "../permissions";
-import type {
-  CreateStorefrontModalPayload,
-  CreateStorefrontModalResult,
-} from ".";
+import type { CreateStorefrontModalPayload, CreateStorefrontModalResult } from ".";
 
 const useStyles = createStyles(({ token }) => ({
   permissions: {
@@ -58,10 +55,7 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 function samePermissions(left: string[], right: string[]) {
-  return (
-    left.length === right.length &&
-    left.every((permission) => right.includes(permission))
-  );
+  return left.length === right.length && left.every((permission) => right.includes(permission));
 }
 
 export default function CreateStorefrontModal({
@@ -79,8 +73,7 @@ export default function CreateStorefrontModal({
   } | null>(null);
   const normalizedName = displayName.trim();
   const isDirty =
-    Boolean(normalizedName) ||
-    !samePermissions(permissions, payload.defaultPermissions);
+    Boolean(normalizedName) || !samePermissions(permissions, payload.defaultPermissions);
   const canSubmit = Boolean(normalizedName) && !actions.loading;
   const groupedPermissions = useMemo(
     () => groupStorefrontPermissions(payload.permissionCatalog),
@@ -103,15 +96,11 @@ export default function CreateStorefrontModal({
     if (!canSubmit) return;
 
     try {
-      const result = await actions.createStorefront(
-        normalizedName,
-        permissions,
-      );
+      const result = await actions.createStorefront(normalizedName, permissions);
       if (!result.connection) {
         throw new Error("The storefront was not returned by the API.");
       }
-      let privateAccessToken =
-        result.initialStorefrontCredentials?.privateAccessToken ?? null;
+      let privateAccessToken = result.initialStorefrontCredentials?.privateAccessToken ?? null;
       if (!privateAccessToken) {
         const credential = await actions.createPrivateCredential(
           result.connection.id,
@@ -209,10 +198,7 @@ export default function CreateStorefrontModal({
                   disabled={!created.publicAccessToken}
                   icon={<LuCopy size={16} />}
                   onClick={() =>
-                    void copyCredential(
-                      created.publicAccessToken,
-                      "Public access token",
-                    )
+                    void copyCredential(created.publicAccessToken, "Public access token")
                   }
                 />
               </div>
@@ -225,10 +211,7 @@ export default function CreateStorefrontModal({
                   aria-label="Copy private access token"
                   icon={<LuCopy size={16} />}
                   onClick={() =>
-                    void copyCredential(
-                      created.privateAccessToken,
-                      "Private access token",
-                    )
+                    void copyCredential(created.privateAccessToken, "Private access token")
                   }
                 />
               </div>
@@ -256,19 +239,11 @@ export default function CreateStorefrontModal({
                   <Checkbox
                     checked={permissions.includes(permission.handle)}
                     disabled={Boolean(created) || actions.loading}
-                    onChange={({ target }) =>
-                      togglePermission(
-                        permission.handle,
-                        target.checked,
-                      )
-                    }
+                    onChange={({ target }) => togglePermission(permission.handle, target.checked)}
                   >
                     {permission.label}
                   </Checkbox>
-                  <Typography.Text
-                    className={styles.permissionDescription}
-                    type="secondary"
-                  >
+                  <Typography.Text className={styles.permissionDescription} type="secondary">
                     {permission.description}
                   </Typography.Text>
                 </div>
@@ -278,8 +253,7 @@ export default function CreateStorefrontModal({
         </div>
         <Flex justify="space-between">
           <Typography.Text type="secondary">
-            {permissions.length} of {payload.permissionCatalog.length}{" "}
-            permissions enabled
+            {permissions.length} of {payload.permissionCatalog.length} permissions enabled
           </Typography.Text>
         </Flex>
       </Paper>

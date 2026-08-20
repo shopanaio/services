@@ -65,14 +65,14 @@ export function ReviewModalFrame({
   return (
     <ModalLayout
       name={name}
-      header={(
+      header={
         <ModalHeader
           name={name}
           title={title}
           onClose={onClose}
           submitButtonProps={{ loading, disabled, onClick: onSubmit }}
         />
-      )}
+      }
     >
       {conflict ? (
         <Alert
@@ -85,7 +85,12 @@ export function ReviewModalFrame({
       {error ? <Alert type="error" showIcon message={error} /> : null}
       {queryLoading && !hasReview ? <Skeleton active paragraph={{ rows: 6 }} /> : children}
       {!queryLoading && !hasReview ? (
-        <Alert type="error" showIcon message="Review not found" description="It may have been deleted or is no longer available." />
+        <Alert
+          type="error"
+          showIcon
+          message="Review not found"
+          description="It may have been deleted or is no longer available."
+        />
       ) : null}
     </ModalLayout>
   );
@@ -101,37 +106,46 @@ export function useReviewSectionModal(successMessage: string) {
   const [conflict, setConflict] = useState(false);
   const [reloadVersion, setReloadVersion] = useState(0);
 
-  const save = useCallback(async <T extends FieldValues,>(
-    operations: ApiReviewUpdateInput,
-    fieldMap: Record<string, Path<T>>,
-    setFieldError: UseFormSetError<T>,
-    onUserErrors?: (errors: ApiGenericUserError[]) => void,
-  ) => {
-    if (!query.review) return false;
-    setError(null);
-    setConflict(false);
-    const result = await mutation.updateReview(query.review.id, query.review.revision, operations);
-    if (!result.review || result.userErrors.length) {
-      onUserErrors?.(result.userErrors);
-      const isConflict = result.userErrors.some((item) => item.code === "REVISION_CONFLICT");
-      setConflict(isConflict);
-      const unmapped: string[] = [];
-      for (const item of result.userErrors) {
-        if (item.code === "REVISION_CONFLICT") continue;
-        const path = item.field?.join(".") ?? "";
-        const match = Object.entries(fieldMap).find(([apiPath]) => path === apiPath || path.endsWith(`.${apiPath}`));
-        if (match) setFieldError(match[1], { message: item.message });
-        else unmapped.push(item.message);
+  const save = useCallback(
+    async <T extends FieldValues>(
+      operations: ApiReviewUpdateInput,
+      fieldMap: Record<string, Path<T>>,
+      setFieldError: UseFormSetError<T>,
+      onUserErrors?: (errors: ApiGenericUserError[]) => void,
+    ) => {
+      if (!query.review) return false;
+      setError(null);
+      setConflict(false);
+      const result = await mutation.updateReview(
+        query.review.id,
+        query.review.revision,
+        operations,
+      );
+      if (!result.review || result.userErrors.length) {
+        onUserErrors?.(result.userErrors);
+        const isConflict = result.userErrors.some((item) => item.code === "REVISION_CONFLICT");
+        setConflict(isConflict);
+        const unmapped: string[] = [];
+        for (const item of result.userErrors) {
+          if (item.code === "REVISION_CONFLICT") continue;
+          const path = item.field?.join(".") ?? "";
+          const match = Object.entries(fieldMap).find(
+            ([apiPath]) => path === apiPath || path.endsWith(`.${apiPath}`),
+          );
+          if (match) setFieldError(match[1], { message: item.message });
+          else unmapped.push(item.message);
+        }
+        if (unmapped.length) setError(unmapped.join(" "));
+        return false;
       }
-      if (unmapped.length) setError(unmapped.join(" "));
-      return false;
-    }
-    await value.onSaved?.();
-    setDirty(false);
-    message.success(successMessage);
-    forcePop();
-    return true;
-  }, [forcePop, message, mutation, query.review, setDirty, successMessage, value]);
+      await value.onSaved?.();
+      setDirty(false);
+      message.success(successMessage);
+      forcePop();
+      return true;
+    },
+    [forcePop, message, mutation, query.review, setDirty, successMessage, value],
+  );
 
   const reloadLatest = useCallback(async () => {
     setError(null);

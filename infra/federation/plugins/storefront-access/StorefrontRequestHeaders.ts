@@ -28,21 +28,13 @@ export function parseStorefrontRequest(request: Request): {
   }
   const token = publicToken ?? privateToken!;
   if (token.length > 128) {
-    throw requestError(
-      401,
-      "STOREFRONT_CREDENTIAL_INVALID",
-      "Invalid storefront credential",
-    );
+    throw requestError(401, "STOREFRONT_CREDENTIAL_INVALID", "Invalid storefront credential");
   }
   const buyerIp = privateToken
     ? singleHeader(request, BUYER_IP_HEADER)
     : trustedForwardedIp(request);
   if (buyerIp && isIP(buyerIp) === 0) {
-    throw requestError(
-      400,
-      "STOREFRONT_BUYER_IP_INVALID",
-      "Buyer IP is invalid",
-    );
+    throw requestError(400, "STOREFRONT_BUYER_IP_INVALID", "Buyer IP is invalid");
   }
   return {
     token,
@@ -54,11 +46,7 @@ export function parseStorefrontRequest(request: Request): {
 export function parseRequestId(request: Request): string | undefined {
   const requestId = singleHeader(request, STOREFRONT_REQUEST_ID_HEADER);
   if (requestId && requestId.length > 255) {
-    throw requestError(
-      400,
-      "STOREFRONT_REQUEST_ID_INVALID",
-      "Request ID is invalid",
-    );
+    throw requestError(400, "STOREFRONT_REQUEST_ID_INVALID", "Request ID is invalid");
   }
   return requestId;
 }
@@ -82,10 +70,6 @@ function singleHeader(request: Request, name: string): string | undefined {
   return value;
 }
 
-export function requestError(
-  status: number,
-  code: string,
-  message: string,
-) {
+export function requestError(status: number, code: string, message: string) {
   return Object.assign(new Error(message), { status, code });
 }

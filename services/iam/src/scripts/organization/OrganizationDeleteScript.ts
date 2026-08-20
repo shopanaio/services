@@ -1,9 +1,4 @@
-import {
-  BaseScript,
-  ZodSchema,
-  Transactional,
-  ValidationError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, Transactional, ValidationError } from "../../kernel/BaseScript.js";
 import { AuthorizationError } from "@shopana/shared-kernel";
 import {
   organizationDeleteInputSchema,
@@ -22,17 +17,12 @@ export class OrganizationDeleteScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(organizationDeleteInputSchema)
-  protected async execute(
-    params: OrganizationDeleteParams
-  ): Promise<OrganizationDeleteResult> {
+  protected async execute(params: OrganizationDeleteParams): Promise<OrganizationDeleteResult> {
     const { organizationId } = params;
     const currentUserId = this.currentUser.id;
 
     // Check if user is owner
-    const isOwner = await this.repository.organization.isOwner(
-      organizationId,
-      currentUserId
-    );
+    const isOwner = await this.repository.organization.isOwner(organizationId, currentUserId);
 
     if (!isOwner) {
       return {

@@ -1,14 +1,8 @@
 import type { Catalog } from "@shopana/broker-types";
 import type { ContextStore } from "@shopana/shared-context";
 import { CheckoutMerchandiseService } from "../CheckoutMerchandiseService.js";
-import type {
-  CheckoutCatalogRow,
-  CheckoutMerchandiseSourceReader,
-} from "../contracts.js";
-import {
-  CheckoutMerchandiseInfrastructureError,
-  toCheckoutMerchandiseFailure,
-} from "../errors.js";
+import type { CheckoutCatalogRow, CheckoutMerchandiseSourceReader } from "../contracts.js";
+import { CheckoutMerchandiseInfrastructureError, toCheckoutMerchandiseFailure } from "../errors.js";
 
 const effectiveAt = "2026-08-02T12:00:00.000Z";
 const store = {
@@ -23,23 +17,14 @@ describe("CheckoutMerchandiseService", () => {
     const result = await service(reader).resolve(params([]), store);
 
     expect(result).toMatchObject({ ok: true, lines: [] });
-    expect(result.ok && result.merchandiseRevision).toMatch(
-      /^catalog-merchandise:v1:/,
-    );
-    expect(result.ok && result.availabilityRevision).toMatch(
-      /^catalog-availability:v1:/,
-    );
+    expect(result.ok && result.merchandiseRevision).toMatch(/^catalog-merchandise:v1:/);
+    expect(result.ok && result.availabilityRevision).toMatch(/^catalog-availability:v1:/);
     expect(reader.read).not.toHaveBeenCalled();
   });
 
   it("resolves a simple tracked product", async () => {
-    const reader = sourceReader(
-      new Map([["variant-a", catalogRow("variant-a", { sellable: 3 })]]),
-    );
-    const result = await service(reader).resolve(
-      params([line("line-a", "variant-a", 2)]),
-      store,
-    );
+    const reader = sourceReader(new Map([["variant-a", catalogRow("variant-a", { sellable: 3 })]]));
+    const result = await service(reader).resolve(params([line("line-a", "variant-a", 2)]), store);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -56,12 +41,7 @@ describe("CheckoutMerchandiseService", () => {
   it("returns an explicit disposition for unpublished merchandise", async () => {
     const result = await service(
       sourceReader(
-        new Map([
-          [
-            "unpublished",
-            catalogRow("unpublished", { sellable: 1, publishedAt: null }),
-          ],
-        ]),
+        new Map([["unpublished", catalogRow("unpublished", { sellable: 1, publishedAt: null })]]),
       ),
     ).resolve(params([line("line-a", "unpublished", 1)]), store);
 
@@ -87,7 +67,12 @@ describe("CheckoutMerchandiseService", () => {
       line("child-line", "child", 3, [], "component-item"),
     ]);
     const result = await service(
-      sourceReader(new Map([["parent", parent], ["child", child]])),
+      sourceReader(
+        new Map([
+          ["parent", parent],
+          ["child", child],
+        ]),
+      ),
     ).resolve(params([nested]), store);
 
     expect(result.ok).toBe(true);
@@ -116,7 +101,12 @@ describe("CheckoutMerchandiseService", () => {
     ]);
     const independent = line("independent-line", "shared", 1);
     const result = await service(
-      sourceReader(new Map([["parent", parent], ["shared", shared]])),
+      sourceReader(
+        new Map([
+          ["parent", parent],
+          ["shared", shared],
+        ]),
+      ),
     ).resolve(params([invalidTree, independent]), store);
 
     expect(result.ok).toBe(true);
@@ -144,24 +134,14 @@ describe("CheckoutMerchandiseService", () => {
 
   it("marks every occurrence unavailable when aggregate stock is insufficient", async () => {
     const result = await service(
-      sourceReader(
-        new Map([["shared", catalogRow("shared", { sellable: 1 })]]),
-      ),
-    ).resolve(
-      params([
-        line("first", "shared", 1),
-        line("second", "shared", 1),
-      ]),
-      store,
-    );
+      sourceReader(new Map([["shared", catalogRow("shared", { sellable: 1 })]])),
+    ).resolve(params([line("first", "shared", 1), line("second", "shared", 1)]), store);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(
       result.lines.map((resolution) =>
-        resolution.status === "RESOLVED"
-          ? resolution.line.availability
-          : null,
+        resolution.status === "RESOLVED" ? resolution.line.availability : null,
       ),
     ).toEqual([
       expect.objectContaining({
@@ -182,9 +162,7 @@ describe("CheckoutMerchandiseService", () => {
       store,
     );
 
-    expect(reader.read).toHaveBeenCalledWith(
-      expect.objectContaining({ storeId: "store-a" }),
-    );
+    expect(reader.read).toHaveBeenCalledWith(expect.objectContaining({ storeId: "store-a" }));
     expect(result).toMatchObject({
       ok: true,
       lines: [
@@ -211,9 +189,7 @@ describe("CheckoutMerchandiseService", () => {
       retryable: true,
     });
     expect(
-      toCheckoutMerchandiseFailure(
-        new CheckoutMerchandiseInfrastructureError("unavailable"),
-      ),
+      toCheckoutMerchandiseFailure(new CheckoutMerchandiseInfrastructureError("unavailable")),
     ).toMatchObject({ retryable: true });
     expect(toCheckoutMerchandiseFailure(new Error("unknown"))).toMatchObject({
       retryable: false,
@@ -269,8 +245,7 @@ function line(
   return {
     lineId,
     variantId,
-    componentSelection:
-      componentItemId === null ? null : { componentItemId },
+    componentSelection: componentItemId === null ? null : { componentItemId },
     purchase: { type: "ONE_TIME", sellingPlanId: null },
     quantity,
     children,
@@ -290,8 +265,7 @@ function catalogRow(
     variant: { id: variantId, productId, sku: `sku-${variantId}` },
     product: {
       id: productId,
-      publishedAt:
-        options.publishedAt === undefined ? effectiveAt : options.publishedAt,
+      publishedAt: options.publishedAt === undefined ? effectiveAt : options.publishedAt,
     },
     prices: [
       {
@@ -346,9 +320,7 @@ function configuration(
   return {
     id: "configuration-a",
     updatedAt: effectiveAt,
-    groups: [
-      { id: "group-a", minSelection: 1, maxSelection: 1, sortIndex: 0 },
-    ],
+    groups: [{ id: "group-a", minSelection: 1, maxSelection: 1, sortIndex: 0 }],
     items: [
       {
         id: componentItemId,

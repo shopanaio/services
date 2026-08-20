@@ -1,7 +1,4 @@
-import {
-  PostgresDataSource,
-  type PostgresTransactionOptions,
-} from "@dbos-inc/postgres-datasource";
+import { PostgresDataSource, type PostgresTransactionOptions } from "@dbos-inc/postgres-datasource";
 import type { TransactionSql } from "postgres";
 import type { DbosTransactionBridge } from "./DbosTransactionBridge.js";
 
@@ -12,8 +9,7 @@ import type { DbosTransactionBridge } from "./DbosTransactionBridge.js";
 export class PostgresDbosTransactionBridge<
   TDatabase,
   TConfig extends PostgresTransactionOptions = PostgresTransactionOptions,
-> implements DbosTransactionBridge<TDatabase, TConfig>
-{
+> implements DbosTransactionBridge<TDatabase, TConfig> {
   constructor(
     private readonly dataSource: PostgresDataSource,
     private readonly createDatabase: (client: TransactionSql) => TDatabase,

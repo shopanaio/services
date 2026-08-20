@@ -20,11 +20,11 @@ export function StoresSection({
 
   const activeStores = useMemo(
     () => stores.filter((s) => s.status === StoreStatus.Active),
-    [stores]
+    [stores],
   );
   const inactiveStores = useMemo(
     () => stores.filter((s) => s.status === StoreStatus.Inactive),
-    [stores]
+    [stores],
   );
 
   const renderStoreList = (storeList: ApiStore[]) => {
@@ -43,11 +43,7 @@ export function StoresSection({
         <div className={styles.emptyState}>
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <Typography.Text type="secondary">
-                No stores found
-              </Typography.Text>
-            }
+            description={<Typography.Text type="secondary">No stores found</Typography.Text>}
           />
         </div>
       );
@@ -56,11 +52,7 @@ export function StoresSection({
     return (
       <div className={styles.storeList}>
         {storeList.map((store) => (
-          <StoreItem
-            key={store.id}
-            store={store}
-            onClick={() => onStoreClick(store)}
-          />
+          <StoreItem key={store.id} store={store} onClick={() => onStoreClick(store)} />
         ))}
       </div>
     );

@@ -1,5 +1,9 @@
-"""An ISO 8601 date-time string."""
+"""
+An ISO 8601 date-time string.
+"""
 scalar DateTime
 
-"""An arbitrary JSON value."""
+"""
+An arbitrary JSON value.
+"""
 scalar JSON

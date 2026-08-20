@@ -55,8 +55,7 @@ function pipeline(input?: { preliminaryFailure?: boolean }) {
     finalizeQuote: jest.fn(async (request: any) => ({
       ...provenance(validation.finalQuote, request.context),
       basedOnPreliminaryRevision: request.preliminary.revision,
-      basedOnPreliminaryDiscountEvaluationRevision:
-        request.preliminary.discountEvaluationRevision,
+      basedOnPreliminaryDiscountEvaluationRevision: request.preliminary.discountEvaluationRevision,
       basedOnDeliveryRevision: request.delivery.revision,
     })),
   };
@@ -170,12 +169,12 @@ describe("CheckoutMutationCoordinator", () => {
     const checkoutPipeline = pipeline();
     const current = await committedCurrent(checkoutPipeline);
     const order: string[] = [];
-    const recalculate = jest.spyOn(checkoutPipeline, "recalculate").mockImplementation(
-      async (request) => {
+    const recalculate = jest
+      .spyOn(checkoutPipeline, "recalculate")
+      .mockImplementation(async (request) => {
         order.push("pipeline");
         return CheckoutPipeline.prototype.recalculate.call(checkoutPipeline, request);
-      },
-    );
+      });
     const commits = {
       create: jest.fn(),
       commit: jest.fn(async (input: any) => {
@@ -259,15 +258,17 @@ describe("CheckoutMutationCoordinator", () => {
       idempotency: { reserve: jest.fn(), markFailed: jest.fn() },
     });
 
-    await expect(coordinator.execute({
-      checkoutId: current.checkoutId,
-      storeId: current.storeId,
-      change: "CURRENCY_UPDATE",
-      context: executionContext,
-      apply: (prospective) => {
-        prospective.currencyCode = "EUR";
-      },
-    })).rejects.toMatchObject({
+    await expect(
+      coordinator.execute({
+        checkoutId: current.checkoutId,
+        storeId: current.storeId,
+        change: "CURRENCY_UPDATE",
+        context: executionContext,
+        apply: (prospective) => {
+          prospective.currencyCode = "EUR";
+        },
+      }),
+    ).rejects.toMatchObject({
       code: "PRICING_TEMPORARILY_UNAVAILABLE",
       retryable: true,
     });
@@ -290,29 +291,33 @@ describe("CheckoutMutationCoordinator", () => {
       idempotency: { reserve: jest.fn(), markFailed: jest.fn() },
     });
 
-    await expect(coordinator.execute({
-      checkoutId: current.checkoutId,
-      storeId: current.storeId,
-      change: "BUYER_UPDATE",
-      context: executionContext,
-      apply: (prospective) => {
-        prospective.buyerIdentity = {
-          customerId: null,
-          email: "buyer@example.com",
-          phone: null,
-          countryCode: null,
-          firstName: null,
-          middleName: null,
-          lastName: null,
-          marketId: null,
-          companyId: null,
-          data: null,
-        };
-      },
-    })).rejects.toEqual(expect.objectContaining<Partial<CheckoutMutationError>>({
-      code: "CHECKOUT_VERSION_CONFLICT",
-      retryable: true,
-    }));
+    await expect(
+      coordinator.execute({
+        checkoutId: current.checkoutId,
+        storeId: current.storeId,
+        change: "BUYER_UPDATE",
+        context: executionContext,
+        apply: (prospective) => {
+          prospective.buyerIdentity = {
+            customerId: null,
+            email: "buyer@example.com",
+            phone: null,
+            countryCode: null,
+            firstName: null,
+            middleName: null,
+            lastName: null,
+            marketId: null,
+            companyId: null,
+            data: null,
+          };
+        },
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<CheckoutMutationError>>({
+        code: "CHECKOUT_VERSION_CONFLICT",
+        retryable: true,
+      }),
+    );
     expect(recalculate).toHaveBeenCalledTimes(1);
   });
 
@@ -388,12 +393,14 @@ describe("CheckoutMutationCoordinator", () => {
       },
     });
 
-    await expect(coordinator.create({
-      reservation: reservation(),
-      context: executionContext,
-      value: undefined,
-      createDraft,
-    })).rejects.toMatchObject({
+    await expect(
+      coordinator.create({
+        reservation: reservation(),
+        context: executionContext,
+        value: undefined,
+        createDraft,
+      }),
+    ).rejects.toMatchObject({
       code: "CHECKOUT_IDEMPOTENCY_KEY_REUSED",
       retryable: false,
     });

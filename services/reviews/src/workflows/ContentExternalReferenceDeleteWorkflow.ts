@@ -29,10 +29,15 @@ export class ContentExternalReferenceDeleteWorkflow extends ReviewsMutationWorkf
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: ContentExternalReferenceDeleteWorkflowInput
+    input: ContentExternalReferenceDeleteWorkflowInput,
   ): Promise<ContentExternalReferenceDeleteWorkflowResult> {
     const result = await this.stepDelete(input);
-    if (result.deletedExternalReferenceId && result.contentId && result.permanent !== undefined && result.userErrors.length === 0) {
+    if (
+      result.deletedExternalReferenceId &&
+      result.contentId &&
+      result.permanent !== undefined &&
+      result.userErrors.length === 0
+    ) {
       await this.workflowEmitEvent(input, {
         externalReferenceId: result.deletedExternalReferenceId,
         contentId: result.contentId,
@@ -47,7 +52,7 @@ export class ContentExternalReferenceDeleteWorkflow extends ReviewsMutationWorkf
     return this.kernel.runScript(
       ContentExternalReferenceDeleteScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
@@ -57,7 +62,7 @@ export class ContentExternalReferenceDeleteWorkflow extends ReviewsMutationWorkf
       externalReferenceId: string;
       contentId: string;
       permanent: boolean;
-    }
+    },
   ): Promise<void> {
     const payload: ReviewContentExternalReferenceDeletedEvent["payload"] = {
       ...deleted,
@@ -86,7 +91,7 @@ export class ContentExternalReferenceDeleteWorkflow extends ReviewsMutationWorkf
         workflowId: DBOS.workflowID!,
         stepId: "emitReviewContentExternalReferenceDeleted",
         callId: deleted.externalReferenceId,
-      }
+      },
     );
   }
 }

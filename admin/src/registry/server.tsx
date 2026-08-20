@@ -14,7 +14,7 @@ interface PageProps {
 
 function renderComponent(
   Component: ComponentType<ModulePageProps>,
-  props: ModulePageProps
+  props: ModulePageProps,
 ): React.ReactElement {
   // PathParamsProvider is handled by layout.tsx, not here
   return <Component {...props} />;

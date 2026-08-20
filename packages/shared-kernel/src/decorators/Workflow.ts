@@ -57,12 +57,7 @@ export function Workflow(
       idempotencyStrategy: options?.idempotencyStrategy,
     };
 
-    Reflect.defineMetadata(
-      WORKFLOW_METADATA_KEY,
-      metadata,
-      target,
-      propertyKey,
-    );
+    Reflect.defineMetadata(WORKFLOW_METADATA_KEY, metadata, target, propertyKey);
 
     // DBOS.workflow expects string, but MethodDecorator provides string | symbol
     const key = typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;

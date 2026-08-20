@@ -124,11 +124,7 @@ export const PRODUCT_OPTION_CATEGORIES_QUERY = gql`
 `;
 
 export const PRODUCT_DETAILS_QUERY = gql`
-  query ProductDetails(
-    $id: ID!
-    $variantsFirst: Int
-    $variantsAfter: String
-  ) {
+  query ProductDetails($id: ID!, $variantsFirst: Int, $variantsAfter: String) {
     catalogQuery {
       product(id: $id) {
         ...ProductDetailsFields

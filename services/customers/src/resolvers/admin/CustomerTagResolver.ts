@@ -8,9 +8,7 @@ export class CustomerTagResolver extends CustomersType<string, CustomerTag> {
   async $preload() {
     const tag = await this.$ctx.loaders.tag.load(this.$props);
     if (!tag) {
-      throw new PreloadNotFoundError(
-        `Customer tag with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer tag with ID ${this.$props} not found`);
     }
     return tag;
   }

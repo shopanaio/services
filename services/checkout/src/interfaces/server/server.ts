@@ -1,27 +1,16 @@
 import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import fastify from "fastify";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import {
-  getOperationAST,
-  Kind,
-  parse,
-  type DocumentNode,
-  type SelectionSetNode,
-} from "graphql";
+import { getOperationAST, Kind, parse, type DocumentNode, type SelectionSetNode } from "graphql";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "@shopana/shared-kernel";
-import {
-  getServiceConfig,
-  isDevelopment,
-} from "@shopana/shared-service-config";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import { resolvers } from "@src/interfaces/gql-storefront-api/resolvers";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddleware";
@@ -117,10 +106,7 @@ export async function startServer(broker: ServiceBroker) {
     const grpcConfig = {
       getGrpcHost: () => global.platform_grpc_host as string,
     };
-    await graphqlInstance.addHook(
-      "preHandler",
-      buildCoreContextMiddleware(grpcConfig),
-    );
+    await graphqlInstance.addHook("preHandler", buildCoreContextMiddleware(grpcConfig));
     // GraphQL endpoint with simplified context
     await graphqlInstance.register(fastifyApollo(apollo), {
       path: "/graphql",
@@ -137,12 +123,8 @@ export async function startServer(broker: ServiceBroker) {
           ip: request.ip,
           headers: {
             // expose only a safe subset for hashing
-            authorization: request.headers["authorization"] as
-              | string
-              | undefined,
-            "accept-language": request.headers["accept-language"] as
-              | string
-              | undefined,
+            authorization: request.headers["authorization"] as string | undefined,
+            "accept-language": request.headers["accept-language"] as string | undefined,
             "user-agent": request.headers["user-agent"] as string | undefined,
           },
         } satisfies GraphQLContext;
@@ -160,9 +142,7 @@ export async function startServer(broker: ServiceBroker) {
     host: "0.0.0.0",
   });
 
-  app.log.info(
-    `checkout GraphQL API ready at http://localhost:${port}/graphql`,
-  );
+  app.log.info(`checkout GraphQL API ready at http://localhost:${port}/graphql`);
 
   return app;
 }
@@ -212,11 +192,12 @@ function hasGraphqlApplicationErrors(response: {
   if (response.body.singleResult.errors?.length) return true;
   return Object.values(response.body.singleResult.data ?? {}).some((payload) =>
     Boolean(
-      payload && typeof payload === "object" &&
+      payload &&
+      typeof payload === "object" &&
       "userErrors" in payload &&
       Array.isArray(payload.userErrors) &&
       payload.userErrors.length > 0,
-    )
+    ),
   );
 }
 
@@ -259,7 +240,8 @@ function collectRootFields(
     } else if (!visitedFragments.has(selection.name.value)) {
       visitedFragments.add(selection.name.value);
       const fragment = document.definitions.find(
-        (definition) => definition.kind === Kind.FRAGMENT_DEFINITION &&
+        (definition) =>
+          definition.kind === Kind.FRAGMENT_DEFINITION &&
           definition.name.value === selection.name.value,
       );
       if (fragment?.kind === Kind.FRAGMENT_DEFINITION) {

@@ -4,18 +4,14 @@ import { IMockProduct, IMockVariant } from "@/mocks/products/bulk-editor";
 /**
  * Calculate available inventory: onHand - unavailable - reserved
  */
-function calculateAvailable(
-  onHand: number,
-  unavailable: number,
-  reserved: number
-): number {
+function calculateAvailable(onHand: number, unavailable: number, reserved: number): number {
   return onHand - unavailable - reserved;
 }
 
 function createProductRow(
   product: IMockProduct,
   rowType: BulkEditorRowType,
-  variant?: IMockVariant
+  variant?: IMockVariant,
 ): IBulkEditorRow {
   const isSingleVariant = rowType === "single-variant-product";
   const v = isSingleVariant ? variant : null;
@@ -67,10 +63,7 @@ function createProductRow(
   };
 }
 
-function createVariantRow(
-  product: IMockProduct,
-  variant: IMockVariant
-): IBulkEditorRow {
+function createVariantRow(product: IMockProduct, variant: IMockVariant): IBulkEditorRow {
   const onHand = variant.onHand;
   const unavailable = variant.unavailable;
   const reserved = variant.reserved;
@@ -114,9 +107,7 @@ function createVariantRow(
   };
 }
 
-export function transformProductsToRows(
-  products: IMockProduct[]
-): IBulkEditorRow[] {
+export function transformProductsToRows(products: IMockProduct[]): IBulkEditorRow[] {
   const rows: IBulkEditorRow[] = [];
 
   for (const product of products) {
@@ -124,9 +115,7 @@ export function transformProductsToRows(
 
     if (isSingleVariant) {
       // Single variant: create one row with all columns active
-      rows.push(
-        createProductRow(product, "single-variant-product", product.variants[0])
-      );
+      rows.push(createProductRow(product, "single-variant-product", product.variants[0]));
     } else {
       // Multi-variant: create product row + variant rows
       rows.push(createProductRow(product, "product"));
@@ -143,7 +132,7 @@ export function transformProductsToRows(
 // Apply edits to rows for display
 export function applyEditsToRows(
   rows: IBulkEditorRow[],
-  edits: Record<string, IRowEdits>
+  edits: Record<string, IRowEdits>,
 ): IBulkEditorRow[] {
   return rows.map((row) => {
     const rowEdits = edits[row.id];
@@ -165,4 +154,3 @@ export function applyEditsToRows(
     return updatedRow;
   });
 }
-

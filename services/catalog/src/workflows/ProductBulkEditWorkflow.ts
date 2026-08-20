@@ -18,10 +18,7 @@ import type {
 } from "./dto/BulkEditWorkflowDto.js";
 import type { BulkEditItem } from "../repositories/models/index.js";
 import type { ProductUpdateWorkflowResult } from "./dto/ProductUpdateWorkflowDto.js";
-import {
-  BulkEditCreateJobScript,
-  BulkEditFinalizeJobScript,
-} from "../scripts/bulk-edit/index.js";
+import { BulkEditCreateJobScript, BulkEditFinalizeJobScript } from "../scripts/bulk-edit/index.js";
 
 interface ProductGroup {
   productId: string;
@@ -85,9 +82,7 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
     const { productId, expectedRevision, items } = group;
 
     // 1. Mark all items as RUNNING
-    await Promise.all(
-      items.map((item) => this.stepTryMarkItemRunning(item.id))
-    );
+    await Promise.all(items.map((item) => this.stepTryMarkItemRunning(item.id)));
 
     // 2. Build operations from items
     const operations = items.map((item) => item.params as any);
@@ -119,15 +114,13 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
         message: error instanceof Error ? error.message : "Unknown error",
         code: "WORKFLOW_ERROR",
       };
-      await Promise.all(
-        items.map((item) => this.stepTryMarkItemFailed(item.id, [errorObj]))
-      );
+      await Promise.all(items.map((item) => this.stepTryMarkItemFailed(item.id, [errorObj])));
     }
   }
 
   private async mapResultsToItems(
     items: BulkEditItem[],
-    result: ProductUpdateWorkflowResult
+    result: ProductUpdateWorkflowResult,
   ): Promise<void> {
     if (result.operationResults.length > 0) {
       for (let i = 0; i < items.length; i++) {
@@ -147,10 +140,7 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
         if (opResult.applied) {
           await this.stepTryMarkItemSucceeded(item.id);
         } else {
-          await this.stepTryMarkItemFailed(
-            item.id,
-            opResult.errors.map(toBulkEditError)
-          );
+          await this.stepTryMarkItemFailed(item.id, opResult.errors.map(toBulkEditError));
         }
       }
       return;
@@ -159,16 +149,14 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
     // If workflow-level error without per-operation results (e.g., revision conflict)
     if (result.product === null && result.userErrors.length > 0) {
       const errors: BulkEditError[] = result.userErrors.map(toBulkEditError);
-      await Promise.all(
-        items.map((item) => this.stepTryMarkItemFailed(item.id, errors))
-      );
+      await Promise.all(items.map((item) => this.stepTryMarkItemFailed(item.id, errors)));
       return;
     }
   }
 
   @WorkflowStep()
   private async stepCreateJob(
-    products: ProductBulkUpdateItem[]
+    products: ProductBulkUpdateItem[],
   ): Promise<{ jobId: string; productGroups: ProductGroup[] }> {
     const result = await this.kernel.runScript(BulkEditCreateJobScript, {
       products,
@@ -211,10 +199,7 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep()
-  private async stepTryMarkItemFailed(
-    itemId: string,
-    errors: BulkEditError[]
-  ): Promise<void> {
+  private async stepTryMarkItemFailed(itemId: string, errors: BulkEditError[]): Promise<void> {
     await this.kernel.repository.bulkEditItem.tryMarkFailed(itemId, errors);
   }
 
@@ -226,12 +211,10 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
 
 function groupItemsByProduct(
   items: BulkEditItem[],
-  originalProducts: ProductBulkUpdateItem[]
+  originalProducts: ProductBulkUpdateItem[],
 ): ProductGroup[] {
   // Create lookup for expectedRevision by productId
-  const revisionLookup = new Map(
-    originalProducts.map((p) => [p.productId, p.expectedRevision])
-  );
+  const revisionLookup = new Map(originalProducts.map((p) => [p.productId, p.expectedRevision]));
 
   // Group items by productId
   const groupMap = new Map<string, BulkEditItem[]>();
@@ -254,9 +237,7 @@ function groupItemsByProduct(
   }
 
   // Sort groups by first item's chunkIndex
-  groups.sort(
-    (a, b) => (a.items[0]?.chunkIndex ?? 0) - (b.items[0]?.chunkIndex ?? 0)
-  );
+  groups.sort((a, b) => (a.items[0]?.chunkIndex ?? 0) - (b.items[0]?.chunkIndex ?? 0));
 
   return groups;
 }

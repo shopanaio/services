@@ -3,26 +3,22 @@
 import { useCallback, useMemo, useEffect, useState } from "react";
 import { Button, Dropdown, Badge } from "antd";
 import type { MenuProps } from "antd";
-import { LuCrosshair as AimOutlined, LuSave as SaveOutlined, LuRefreshCw as ReloadOutlined, LuChevronDown as DownOutlined, LuPlus as PlusOutlined, LuArrowDownAZ as SortAscendingOutlined, LuArrowUpAZ as SortDescendingOutlined } from "react-icons/lu";
 import {
-  ReactFlow,
-  Background,
-  Controls,
-  ReactFlowProvider,
-} from "@xyflow/react";
+  LuCrosshair as AimOutlined,
+  LuSave as SaveOutlined,
+  LuRefreshCw as ReloadOutlined,
+  LuChevronDown as DownOutlined,
+  LuPlus as PlusOutlined,
+  LuArrowDownAZ as SortAscendingOutlined,
+  LuArrowUpAZ as SortDescendingOutlined,
+} from "react-icons/lu";
+import { ReactFlow, Background, Controls, ReactFlowProvider } from "@xyflow/react";
 import type { Node } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import type { IDependencyChartModalPayload } from "@/domains/inventory/products/modals";
-import type {
-  ApiProductComponentDependencyRule,
-  ApiProductComponentGroup,
-} from "@/graphql/types";
+import type { ApiProductComponentDependencyRule, ApiProductComponentGroup } from "@/graphql/types";
 
 import { ItemNode, RuleNode, ComponentNode, HubNode } from "./nodes";
 import { LabeledEdge } from "./edges";
@@ -30,10 +26,7 @@ import { NodeInspector } from "./sidebar/node-inspector";
 import { useDependencyChart } from "./hooks";
 import { useStyles } from "./dependency-chart-modal.styles";
 import type { RuleSortMode } from "./types";
-import {
-  PathHighlightProvider,
-  usePathHighlightContext,
-} from "./contexts/path-highlight-context";
+import { PathHighlightProvider, usePathHighlightContext } from "./contexts/path-highlight-context";
 
 // ============================================================================
 // Node & Edge Types
@@ -71,8 +64,13 @@ const DependencyChartInner = ({
 }: IDependencyChartInnerProps) => {
   const { styles } = useStyles();
   const [saving, setSaving] = useState(false);
-  const { setSelectedNodeId, setEdges: setContextEdges, selectedNodeId, highlightedNodeIds, highlightedEdgeIds } =
-    usePathHighlightContext();
+  const {
+    setSelectedNodeId,
+    setEdges: setContextEdges,
+    selectedNodeId,
+    highlightedNodeIds,
+    highlightedEdgeIds,
+  } = usePathHighlightContext();
 
   const {
     nodes,
@@ -108,7 +106,7 @@ const DependencyChartInner = ({
       setSelectedNodeId(node.id);
       baseHandleNodeClick(event, node);
     },
-    [setSelectedNodeId, baseHandleNodeClick]
+    [setSelectedNodeId, baseHandleNodeClick],
   );
 
   // Wrap pane click to clear path highlight
@@ -197,14 +195,14 @@ const DependencyChartInner = ({
       { key: "asc", label: "Priority ↑", icon: <SortAscendingOutlined /> },
       { key: "auto", label: "Auto" },
     ],
-    []
+    [],
   );
 
   const handleSortMenuClick = useCallback(
     (info: { key: string }) => {
       setRuleSortMode(info.key as RuleSortMode);
     },
-    [setRuleSortMode]
+    [setRuleSortMode],
   );
 
   const handleSave = useCallback(async () => {
@@ -259,11 +257,7 @@ const DependencyChartInner = ({
             <Button size="small" icon={<AimOutlined />} onClick={handleFitView}>
               Fit View
             </Button>
-            <Button
-              size="small"
-              icon={<ReloadOutlined />}
-              onClick={handleResetLayout}
-            >
+            <Button size="small" icon={<ReloadOutlined />} onClick={handleResetLayout}>
               Reset
             </Button>
             <Dropdown
@@ -280,12 +274,7 @@ const DependencyChartInner = ({
             >
               <Button size="small" data-testid="dependency-chart-rules-button">
                 <span style={{ marginLeft: 4 }}>Rules</span>
-                <Badge
-                  count={visibleCount}
-                  size="small"
-                  showZero
-                  color="blue"
-                />
+                <Badge count={visibleCount} size="small" showZero color="blue" />
                 <DownOutlined style={{ fontSize: 10 }} />
               </Button>
             </Dropdown>
@@ -334,9 +323,7 @@ const DependencyChartInner = ({
 export const DependencyChartModal = () => {
   const { pop, payload } = useModalStackContext();
 
-  const modalPayload = payload as unknown as
-    | IDependencyChartModalPayload
-    | undefined;
+  const modalPayload = payload as unknown as IDependencyChartModalPayload | undefined;
 
   const handleSave = useCallback(
     async (rules: ApiProductComponentDependencyRule[]) => {

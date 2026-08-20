@@ -5,21 +5,11 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { App, Select } from "antd";
 import { createStyles } from "antd-style";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import {
-  getDuplicateSourceHandles,
-  normalizeSourceHandles,
-} from "../../mappers";
+import { getDuplicateSourceHandles, normalizeSourceHandles } from "../../mappers";
 import type { ILinkSourceValuesModalPayload } from "../../modals";
-import {
-  linkSourceValuesSchema,
-  type LinkSourceValuesFormValues,
-} from "./schema";
+import { linkSourceValuesSchema, type LinkSourceValuesFormValues } from "./schema";
 
 const useStyles = createStyles(({ token }) => ({
   error: {

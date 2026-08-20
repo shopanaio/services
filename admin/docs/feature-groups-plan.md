@@ -1,6 +1,7 @@
 # Feature Groups Implementation Plan
 
-This document outlines the implementation plan for adding feature (attribute) groups support to the Inventory Service using a **unified entity approach**.
+This document outlines the implementation plan for adding feature (attribute) groups support to the
+Inventory Service using a **unified entity approach**.
 
 ## Overview
 
@@ -26,6 +27,7 @@ Product
 ```
 
 **Key Concept:** A `ProductFeature` can be either:
+
 - **Group** (`isGroup: true`) - A container for other features (no values)
 - **Attribute** (`isGroup: false`) - A leaf node with values
 
@@ -49,23 +51,21 @@ export const productFeature = pgTable(
 
     // NEW COLUMNS:
     isGroup: boolean("is_group").notNull().default(false),
-    parentId: uuid("parent_id")
-      .references((): AnyPgColumn => productFeature.id, { onDelete: "cascade" }),
+    parentId: uuid("parent_id").references((): AnyPgColumn => productFeature.id, {
+      onDelete: "cascade",
+    }),
     sortIndex: integer("sort_index").notNull().default(0),
 
     // Existing:
     slug: varchar("slug", { length: 255 }).notNull(),
   },
   (table) => [
-    uniqueIndex("product_feature_product_slug_idx")
-      .on(table.productId, table.slug),
-    index("product_feature_product_id_idx")
-      .on(table.productId),
+    uniqueIndex("product_feature_product_slug_idx").on(table.productId, table.slug),
+    index("product_feature_product_id_idx").on(table.productId),
     // Composite index for efficient children queries:
     // WHERE product_id = ? AND parent_id = ? ORDER BY sort_index
-    index("product_feature_children_idx")
-      .on(table.productId, table.parentId, table.sortIndex),
-  ]
+    index("product_feature_children_idx").on(table.productId, table.parentId, table.sortIndex),
+  ],
 );
 ```
 
@@ -120,17 +120,16 @@ CREATE UNIQUE INDEX product_feature_child_sort_idx
   WHERE parent_id IS NOT NULL;
 ```
 
-> **Why partial unique indexes for sortIndex?**
-> Without these constraints, duplicate sortIndex values within the same container
-> lead to unstable ordering (non-deterministic query results). These indexes
-> catch frontend bugs early and ensure consistent UI behavior.
+> **Why partial unique indexes for sortIndex?** Without these constraints, duplicate sortIndex
+> values within the same container lead to unstable ordering (non-deterministic query results).
+> These indexes catch frontend bugs early and ensure consistent UI behavior.
 
 ### sortIndex Collision Handling
 
 The sync script **auto-normalizes** sortIndex values to avoid unique constraint violations.
 
-**Important:** Normalization happens **after** resolving `parentClientId → parentId` to ensure
-items with `parentClientId` and `parentId` pointing to the same group are in the same container.
+**Important:** Normalization happens **after** resolving `parentClientId → parentId` to ensure items
+with `parentClientId` and `parentId` pointing to the same group are in the same container.
 
 ```typescript
 // If sortIndex not provided → use array position
@@ -139,7 +138,7 @@ items with `parentClientId` and `parentId` pointing to the same group are in the
 function normalizeSortIndexes(features: ResolvedItem[]): void {
   // Group by container (null for root, parentId for children)
   // Note: parentClientId already resolved to parentId at this point
-  const byContainer = groupBy(features, f => f.parentId ?? "root");
+  const byContainer = groupBy(features, (f) => f.parentId ?? "root");
 
   for (const [container, items] of byContainer) {
     // Stable sort: by sortIndex, then by input array position (tie-breaker)
@@ -151,20 +150,23 @@ function normalizeSortIndexes(features: ResolvedItem[]): void {
       return a.inputIndex - b.inputIndex; // stable tie-breaker
     });
     // Re-assign sequential sortIndex
-    withIndex.forEach(({ item }, idx) => { item.sortIndex = idx; });
+    withIndex.forEach(({ item }, idx) => {
+      item.sortIndex = idx;
+    });
   }
 }
 ```
 
 This approach:
+
 - Preserves relative order when sortIndex is provided
 - Uses input array position as stable tie-breaker for equal/missing sortIndex
 - Fills gaps and resolves collisions automatically
 - Ensures partial unique constraints always succeed
 
-> **API Contract:** The backend **may change** sortIndex values during normalization.
-> The response always contains final sortIndex values. Frontend should use these
-> for subsequent updates rather than assuming the sent values were preserved.
+> **API Contract:** The backend **may change** sortIndex values during normalization. The response
+> always contains final sortIndex values. Frontend should use these for subsequent updates rather
+> than assuming the sent values were preserved.
 
 ---
 
@@ -173,23 +175,41 @@ This approach:
 ### Modified Types
 
 ```graphql
-"""A product feature represents either a group or an attribute."""
+"""
+A product feature represents either a group or an attribute.
+"""
 type ProductFeature implements Node {
-  """The globally unique ID of the feature."""
+  """
+  The globally unique ID of the feature.
+  """
   id: ID!
-  """Whether this feature is a group (container) or an attribute (leaf)."""
+  """
+  Whether this feature is a group (container) or an attribute (leaf).
+  """
   isGroup: Boolean!
-  """The URL-friendly identifier."""
+  """
+  The URL-friendly identifier.
+  """
   slug: String!
-  """Display name."""
+  """
+  Display name.
+  """
   name: String!
-  """Sort order within parent (or at root level)."""
+  """
+  Sort order within parent (or at root level).
+  """
   sortIndex: Int!
-  """Parent group, if this feature belongs to a group."""
+  """
+  Parent group, if this feature belongs to a group.
+  """
   parent: ProductFeature
-  """Child features. Returns empty array for attributes (isGroup = false)."""
+  """
+  Child features. Returns empty array for attributes (isGroup = false).
+  """
   children: [ProductFeature!]!
-  """Values. Returns empty array for groups (isGroup = true)."""
+  """
+  Values. Returns empty array for groups (isGroup = true).
+  """
   values: [ProductFeatureValue!]!
 }
 
@@ -202,7 +222,9 @@ type Product implements Node {
   """
   features: [ProductFeature!]!
 
-  """Root-level features only (groups and ungrouped attributes)."""
+  """
+  Root-level features only (groups and ungrouped attributes).
+  """
   rootFeatures: [ProductFeature!]!
 }
 ```
@@ -210,15 +232,20 @@ type Product implements Node {
 ### Sync Mutation (Single Transaction)
 
 Instead of separate CRUD mutations, use a single **sync** approach:
+
 - Frontend sends the **complete list** of product features
 - Backend **in a single transaction** compares with DB and performs create/update/delete
 
 ```graphql
 # === SYNC ALL FEATURES ===
 input ProductFeaturesSyncInput {
-  """The ID of the product."""
+  """
+  The ID of the product.
+  """
   productId: ID!
-  """Complete list of features (replaces all existing features)."""
+  """
+  Complete list of features (replaces all existing features).
+  """
   features: [ProductFeatureSyncItemInput!]!
 }
 
@@ -238,7 +265,9 @@ input ProductFeatureSyncItemInput {
   """
   clientId: String
 
-  """Whether this is a group (true) or attribute (false). Default: false."""
+  """
+  Whether this is a group (true) or attribute (false). Default: false.
+  """
   isGroup: Boolean
 
   """
@@ -250,36 +279,58 @@ input ProductFeatureSyncItemInput {
   parentId: ID
   parentClientId: String
 
-  """The URL-friendly slug."""
+  """
+  The URL-friendly slug.
+  """
   slug: String!
 
-  """Display name."""
+  """
+  Display name.
+  """
   name: String!
 
-  """Sort order (position in the list determines sortIndex if omitted)."""
+  """
+  Sort order (position in the list determines sortIndex if omitted).
+  """
   sortIndex: Int
 
-  """Values for this feature (only when isGroup = false)."""
+  """
+  Values for this feature (only when isGroup = false).
+  """
   values: [ProductFeatureValueSyncInput!]
 }
 
 input ProductFeatureValueSyncInput {
-  """Value ID for existing values. Null = create new."""
+  """
+  Value ID for existing values. Null = create new.
+  """
   id: ID
-  """The URL-friendly slug."""
+  """
+  The URL-friendly slug.
+  """
   slug: String!
-  """Display name."""
+  """
+  Display name.
+  """
   name: String!
-  """Sort order."""
+  """
+  Sort order.
+  """
   sortIndex: Int
 }
 
 type ProductFeaturesSyncPayload {
-  """The updated product."""
+  """
+  The updated product.
+  """
   product: Product
-  """List of all synced features with their final IDs."""
+  """
+  List of all synced features with their final IDs.
+  """
   features: [ProductFeature!]!
-  """Any validation errors."""
+  """
+  Any validation errors.
+  """
   userErrors: [GenericUserError!]!
 }
 
@@ -342,13 +393,20 @@ To avoid unique constraint violations when reordering items within a container:
 
 ```typescript
 // Phase 1: Set temporary sortIndex (offset by large number)
-await db.update(productFeature)
+await db
+  .update(productFeature)
   .set({ sortIndex: sql`sort_index + 1000000` })
-  .where(inArray(productFeature.id, itemsToReorder.map(i => i.id)));
+  .where(
+    inArray(
+      productFeature.id,
+      itemsToReorder.map((i) => i.id),
+    ),
+  );
 
 // Phase 2: Set final sortIndex values
 for (const item of itemsToReorder) {
-  await db.update(productFeature)
+  await db
+    .update(productFeature)
     .set({ sortIndex: item.sortIndex })
     .where(eq(productFeature.id, item.id));
 }
@@ -356,14 +414,14 @@ for (const item of itemsToReorder) {
 
 This prevents transient unique constraint violations when swapping positions.
 
-> **Why UPDATE/CREATE before DELETE?**
-> If an attribute is moved from Group A to Group B, and Group A is being deleted,
-> executing DELETE first would CASCADE-delete the attribute before we can update its parentId.
-> By processing moves first, we ensure the attribute is safely re-parented before the old group is removed.
+> **Why UPDATE/CREATE before DELETE?** If an attribute is moved from Group A to Group B, and Group A
+> is being deleted, executing DELETE first would CASCADE-delete the attribute before we can update
+> its parentId. By processing moves first, we ensure the attribute is safely re-parented before the
+> old group is removed.
 
-> **Why CREATE groups before attributes?**
-> We need group IDs in clientIdMap before we can resolve `parentClientId` for attributes.
-> This ensures all parentId references are resolved before normalization and attribute creation.
+> **Why CREATE groups before attributes?** We need group IDs in clientIdMap before we can resolve
+> `parentClientId` for attributes. This ensures all parentId references are resolved before
+> normalization and attribute creation.
 
 ### Alternative: Separate Mutations (for granular operations)
 
@@ -375,6 +433,7 @@ productFeatureCreate(input: ProductFeatureCreateInput!): ProductFeatureCreatePay
 productFeatureUpdate(input: ProductFeatureUpdateInput!): ProductFeatureUpdatePayload!
 productFeatureDelete(input: ProductFeatureDeleteInput!): ProductFeatureDeletePayload!
 ```
+
 ```
 
 ---
@@ -382,25 +441,15 @@ productFeatureDelete(input: ProductFeatureDeleteInput!): ProductFeatureDeletePay
 ## 3. File Structure
 
 ```
-services/inventory/src/
-├── repositories/
-│   └── models/
-│       └── features.ts                # MODIFY: add isGroup, parentId, sortIndex
-│
-├── api/graphql-admin/schema/
-│   └── features.graphql               # MODIFY: add new fields, sync mutation
-│
-├── resolvers/admin/
-│   ├── FeatureResolver.ts             # MODIFY: add isGroup, parent, children
-│   ├── ProductResolver.ts             # MODIFY: add rootFeatures
-│   └── MutationResolver.ts            # MODIFY: add productFeaturesSync
-│
-├── scripts/feature/
-│   └── FeaturesSyncScript.ts          # NEW: single script for sync operation
-│
-└── loaders/
-    └── FeatureLoader.ts               # MODIFY: add children loader
-```
+
+services/inventory/src/ ├── repositories/ │ └── models/ │ └── features.ts # MODIFY: add isGroup,
+parentId, sortIndex │ ├── api/graphql-admin/schema/ │ └── features.graphql # MODIFY: add new fields,
+sync mutation │ ├── resolvers/admin/ │ ├── FeatureResolver.ts # MODIFY: add isGroup, parent,
+children │ ├── ProductResolver.ts # MODIFY: add rootFeatures │ └── MutationResolver.ts # MODIFY: add
+productFeaturesSync │ ├── scripts/feature/ │ └── FeaturesSyncScript.ts # NEW: single script for sync
+operation │ └── loaders/ └── FeatureLoader.ts # MODIFY: add children loader
+
+````
 
 ---
 
@@ -469,9 +518,10 @@ function validateParent(parent: ProductFeature | null, child: InputItem): Valida
 
   return errors;
 }
-```
+````
 
 This validation ensures:
+
 - Attributes cannot be parents (only groups can have children)
 - Groups cannot be nested (single-level hierarchy enforced)
 - Cross-product references are rejected
@@ -482,63 +532,66 @@ This validation ensures:
 
 ### Sync Features (Full Example)
 
-Frontend sends the **complete list** of features. Backend creates/updates/deletes in a single transaction.
+Frontend sends the **complete list** of features. Backend creates/updates/deletes in a single
+transaction.
 
 ```graphql
 mutation {
   inventoryMutation {
-    productFeaturesSync(input: {
-      productId: "prod-123"
-      features: [
-        # Group (new - no id, has clientId for referencing)
-        {
-          clientId: "temp-group-1"  # frontend-generated temp ID
-          isGroup: true
-          slug: "physical-properties"
-          name: "Physical Properties"
-          sortIndex: 0
-        }
-        # Attribute in group (new - references group by clientId)
-        {
-          slug: "material"
-          name: "Material"
-          parentClientId: "temp-group-1"  # references the new group above
-          sortIndex: 0
-          values: [
-            { slug: "cotton", name: "Cotton" }
-            { slug: "wool", name: "Wool" }
-          ]
-        }
-        # Existing attribute moved to new group (has id, uses parentClientId)
-        {
-          id: "existing-feat-456"
-          slug: "color"
-          name: "Color"
-          parentClientId: "temp-group-1"  # moved into new group
-          sortIndex: 1
-          values: [
-            { id: "existing-val-1", slug: "red", name: "Red" }
-            { slug: "blue", name: "Blue" }  # new value
-            # "green" value was removed - will be deleted
-          ]
-        }
-        # Root-level attribute (no parent)
-        {
-          slug: "sku"
-          name: "SKU"
-          sortIndex: 1
-          values: []
-        }
-      ]
-    }) {
+    productFeaturesSync(
+      input: {
+        productId: "prod-123"
+        features: [
+          # Group (new - no id, has clientId for referencing)
+          {
+            clientId: "temp-group-1" # frontend-generated temp ID
+            isGroup: true
+            slug: "physical-properties"
+            name: "Physical Properties"
+            sortIndex: 0
+          }
+          # Attribute in group (new - references group by clientId)
+          {
+            slug: "material"
+            name: "Material"
+            parentClientId: "temp-group-1" # references the new group above
+            sortIndex: 0
+            values: [{ slug: "cotton", name: "Cotton" }, { slug: "wool", name: "Wool" }]
+          }
+          # Existing attribute moved to new group (has id, uses parentClientId)
+          {
+            id: "existing-feat-456"
+            slug: "color"
+            name: "Color"
+            parentClientId: "temp-group-1" # moved into new group
+            sortIndex: 1
+            values: [
+              { id: "existing-val-1", slug: "red", name: "Red" }
+              { slug: "blue", name: "Blue" } # new value
+              # "green" value was removed - will be deleted
+            ]
+          }
+          # Root-level attribute (no parent)
+          { slug: "sku", name: "SKU", sortIndex: 1, values: [] }
+        ]
+      }
+    ) {
       features {
-        id        # includes newly generated IDs
+        id # includes newly generated IDs
         isGroup
         name
-        parent { id }
-        values { id name }
+        parent {
+          id
+        }
+        values {
+          id
+          name
+        }
       }
-      userErrors { field message }
+      userErrors {
+        field
+        message
+      }
     }
   }
 }
@@ -551,28 +604,36 @@ If features already exist, pass their `id` to update them:
 ```graphql
 mutation {
   inventoryMutation {
-    productFeaturesSync(input: {
-      productId: "prod-123"
-      features: [
-        {
-          id: "group-123"        # existing group
-          isGroup: true
-          slug: "dimensions"     # rename slug
-          name: "Dimensions"
-          sortIndex: 0
-        }
-        {
-          id: "feat-456"         # existing attribute
-          slug: "width"
-          name: "Width (cm)"     # update name
-          parentId: "group-123"  # use parentId for existing items
-          sortIndex: 0
-        }
-        # feat-789 was in DB but not in list → will be DELETED
-      ]
-    }) {
-      features { id name }
-      userErrors { field message }
+    productFeaturesSync(
+      input: {
+        productId: "prod-123"
+        features: [
+          {
+            id: "group-123" # existing group
+            isGroup: true
+            slug: "dimensions" # rename slug
+            name: "Dimensions"
+            sortIndex: 0
+          }
+          {
+            id: "feat-456" # existing attribute
+            slug: "width"
+            name: "Width (cm)" # update name
+            parentId: "group-123" # use parentId for existing items
+            sortIndex: 0
+          }
+          # feat-789 was in DB but not in list → will be DELETED
+        ]
+      }
+    ) {
+      features {
+        id
+        name
+      }
+      userErrors {
+        field
+        message
+      }
     }
   }
 }
@@ -583,22 +644,30 @@ mutation {
 ```graphql
 mutation {
   inventoryMutation {
-    productFeaturesSync(input: {
-      productId: "prod-123"
-      features: [
-        { id: "group-A", isGroup: true, slug: "group-a", name: "Group A", sortIndex: 0 }
-        { id: "group-B", isGroup: true, slug: "group-b", name: "Group B", sortIndex: 1 }
-        {
-          id: "feat-123"
-          slug: "material"
-          name: "Material"
-          parentId: "group-B"    # moved from group-A to group-B
-          sortIndex: 0
-          values: [{ id: "v1", slug: "cotton", name: "Cotton" }]
+    productFeaturesSync(
+      input: {
+        productId: "prod-123"
+        features: [
+          { id: "group-A", isGroup: true, slug: "group-a", name: "Group A", sortIndex: 0 }
+          { id: "group-B", isGroup: true, slug: "group-b", name: "Group B", sortIndex: 1 }
+          {
+            id: "feat-123"
+            slug: "material"
+            name: "Material"
+            parentId: "group-B" # moved from group-A to group-B
+            sortIndex: 0
+            values: [{ id: "v1", slug: "cotton", name: "Cotton" }]
+          }
+        ]
+      }
+    ) {
+      features {
+        id
+        parent {
+          id
+          name
         }
-      ]
-    }) {
-      features { id parent { id name } }
+      }
     }
   }
 }
@@ -611,16 +680,21 @@ Array order determines `sortIndex` (if not explicitly provided):
 ```graphql
 mutation {
   inventoryMutation {
-    productFeaturesSync(input: {
-      productId: "prod-123"
-      features: [
-        # New order: feat-3, feat-1, feat-2
-        { id: "feat-3", slug: "third", name: "Now First" }
-        { id: "feat-1", slug: "first", name: "Now Second" }
-        { id: "feat-2", slug: "second", name: "Now Third" }
-      ]
-    }) {
-      features { id sortIndex }
+    productFeaturesSync(
+      input: {
+        productId: "prod-123"
+        features: [
+          # New order: feat-3, feat-1, feat-2
+          { id: "feat-3", slug: "third", name: "Now First" }
+          { id: "feat-1", slug: "first", name: "Now Second" }
+          { id: "feat-2", slug: "second", name: "Now Third" }
+        ]
+      }
+    ) {
+      features {
+        id
+        sortIndex
+      }
     }
   }
 }
@@ -637,7 +711,9 @@ query {
       isGroup
       name
       sortIndex
-      parent { id }
+      parent {
+        id
+      }
     }
 
     # Tree structure (root level only)
@@ -646,14 +722,19 @@ query {
       isGroup
       name
       sortIndex
-      children {          # Only when isGroup = true
+      children {
+        # Only when isGroup = true
         id
         isGroup
         name
         sortIndex
-        values { name }   # Only when isGroup = false
+        values {
+          name
+        } # Only when isGroup = false
       }
-      values { name }     # For root-level attributes
+      values {
+        name
+      } # For root-level attributes
     }
   }
 }
@@ -663,20 +744,21 @@ query {
 
 ## 6. Implementation Summary
 
-| Component | Change |
-|-----------|--------|
-| **DB Columns** | +3 columns in `product_feature` (`is_group`, `parent_id`, `sort_index`) |
-| **DB Constraint** | +1 CHECK constraint (groups cannot have parent) |
-| **GraphQL Fields** | +5 fields (`isGroup`, `sortIndex`, `parent`, `children`, `rootFeatures`) |
-| **GraphQL Mutations** | +1 new mutation (`productFeaturesSync`) - replaces separate CRUD |
-| **Scripts** | +1 new (`FeaturesSyncScript.ts`) |
-| **Loaders** | Modified to support children loading |
+| Component             | Change                                                                   |
+| --------------------- | ------------------------------------------------------------------------ |
+| **DB Columns**        | +3 columns in `product_feature` (`is_group`, `parent_id`, `sort_index`)  |
+| **DB Constraint**     | +1 CHECK constraint (groups cannot have parent)                          |
+| **GraphQL Fields**    | +5 fields (`isGroup`, `sortIndex`, `parent`, `children`, `rootFeatures`) |
+| **GraphQL Mutations** | +1 new mutation (`productFeaturesSync`) - replaces separate CRUD         |
+| **Scripts**           | +1 new (`FeaturesSyncScript.ts`)                                         |
+| **Loaders**           | Modified to support children loading                                     |
 
 ---
 
 ## 7. Data Model Comparison
 
 ### Before (Flat)
+
 ```
 ProductFeature {
   id, productId, slug, name
@@ -685,6 +767,7 @@ ProductFeature {
 ```
 
 ### After (Tree)
+
 ```
 ProductFeature {
   id, productId, slug, name
@@ -702,18 +785,23 @@ ProductFeature {
 ## 8. Behavior Notes
 
 ### Group Deletion
-When a group is deleted, all child features (attributes) are also deleted via CASCADE. This matches the UI behavior where deleting a group removes all its contents.
+
+When a group is deleted, all child features (attributes) are also deleted via CASCADE. This matches
+the UI behavior where deleting a group removes all its contents.
 
 ### Feature Movement
+
 - Attributes can be moved between groups or to/from root level
 - Groups are always at root level and cannot be moved into other groups
 - When moved, `sortIndex` is recalculated based on target location
 
 ### Sort Index Management
+
 - Root-level items (groups and root attributes) share the same `sortIndex` sequence
 - Child attributes within a group have their own `sortIndex` sequence starting from 0
 
 ### Resolver Behavior
+
 - `children` always returns `[]` for attributes (`isGroup = false`) - schema is predictable
 - `values` always returns `[]` for groups (`isGroup = true`)
 - `features` (flat list) is deprecated in favor of `rootFeatures` for tree structure
@@ -729,8 +817,8 @@ type ChildrenLoaderKey = { productId: string; parentId: string };
 const childrenLoader = new DataLoader<ChildrenLoaderKey, ProductFeature[]>(
   async (keys) => {
     // Extract unique productIds and parentIds
-    const productIds = [...new Set(keys.map(k => k.productId))];
-    const parentIds = [...new Set(keys.map(k => k.parentId))];
+    const productIds = [...new Set(keys.map((k) => k.productId))];
+    const parentIds = [...new Set(keys.map((k) => k.parentId))];
 
     // Single query with productId filter (uses composite index)
     const children = await db.query.productFeature.findMany({
@@ -751,12 +839,12 @@ const childrenLoader = new DataLoader<ChildrenLoaderKey, ProductFeature[]>(
     }
 
     // Return in request order
-    return keys.map(k => byKey.get(`${k.productId}:${k.parentId}`) ?? []);
+    return keys.map((k) => byKey.get(`${k.productId}:${k.parentId}`) ?? []);
   },
   {
     // Custom cache key for composite keys
     cacheKeyFn: (key) => `${key.productId}:${key.parentId}`,
-  }
+  },
 );
 
 // Usage in resolver:
@@ -764,6 +852,7 @@ const childrenLoader = new DataLoader<ChildrenLoaderKey, ProductFeature[]>(
 ```
 
 This approach:
+
 - Uses composite key `${productId}:${parentId}` for proper batching
 - Filters by `productId` to leverage the composite index
 - Groups results in O(N) using Map instead of O(P×C) with filter

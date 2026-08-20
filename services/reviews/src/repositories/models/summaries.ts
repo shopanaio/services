@@ -1,13 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  bigint,
-  index,
-  integer,
-  numeric,
-  primaryKey,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { bigint, index, integer, numeric, primaryKey, timestamp, uuid } from "drizzle-orm/pg-core";
 import { ratingCriterion } from "./configuration.js";
 import { reviewsSchema } from "./schema.js";
 
@@ -30,7 +22,7 @@ export const productReviewSummary = reviewsSchema.table(
       scale: 3,
       mode: "number",
     }).generatedAlwaysAs(
-      sql`CASE WHEN review_count = 0 THEN 0::numeric ELSE round(rating_sum::numeric / review_count::numeric, 3) END`
+      sql`CASE WHEN review_count = 0 THEN 0::numeric ELSE round(rating_sum::numeric / review_count::numeric, 3) END`,
     ),
     lastReviewedAt: timestamp("last_reviewed_at", {
       withTimezone: true,
@@ -45,14 +37,14 @@ export const productReviewSummary = reviewsSchema.table(
       table.storeId,
       table.averageRating,
       table.reviewCount,
-      table.productId
+      table.productId,
     ),
     index("product_review_summary_store_recent_idx").on(
       table.storeId,
       table.lastReviewedAt,
-      table.productId
+      table.productId,
     ),
-  ]
+  ],
 );
 
 export const productRatingCriterionSummary = reviewsSchema.table(
@@ -75,7 +67,7 @@ export const productRatingCriterionSummary = reviewsSchema.table(
       scale: 3,
       mode: "number",
     }).generatedAlwaysAs(
-      sql`CASE WHEN review_count = 0 THEN 0::numeric ELSE round(rating_sum::numeric / review_count::numeric, 3) END`
+      sql`CASE WHEN review_count = 0 THEN 0::numeric ELSE round(rating_sum::numeric / review_count::numeric, 3) END`,
     ),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
@@ -87,9 +79,9 @@ export const productRatingCriterionSummary = reviewsSchema.table(
       table.storeId,
       table.criterionId,
       table.averageRating,
-      table.productId
+      table.productId,
     ),
-  ]
+  ],
 );
 
 export const productQuestionSummary = reviewsSchema.table(
@@ -100,7 +92,7 @@ export const productQuestionSummary = reviewsSchema.table(
     questionCount: integer("question_count").notNull().default(0),
     answeredQuestionCount: integer("answered_question_count").notNull().default(0),
     unansweredQuestionCount: integer("unanswered_question_count").generatedAlwaysAs(
-      sql`question_count - answered_question_count`
+      sql`question_count - answered_question_count`,
     ),
     answerCount: integer("answer_count").notNull().default(0),
     officialAnswerCount: integer("official_answer_count").notNull().default(0),
@@ -121,17 +113,16 @@ export const productQuestionSummary = reviewsSchema.table(
       table.storeId,
       table.unansweredQuestionCount,
       table.lastQuestionAt,
-      table.productId
+      table.productId,
     ),
     index("product_question_summary_store_recent_idx").on(
       table.storeId,
       table.lastQuestionAt,
-      table.productId
+      table.productId,
     ),
-  ]
+  ],
 );
 
 export type ProductReviewSummary = typeof productReviewSummary.$inferSelect;
-export type ProductRatingCriterionSummary =
-  typeof productRatingCriterionSummary.$inferSelect;
+export type ProductRatingCriterionSummary = typeof productRatingCriterionSummary.$inferSelect;
 export type ProductQuestionSummary = typeof productQuestionSummary.$inferSelect;

@@ -1,10 +1,10 @@
-import { createStyles } from 'antd-style';
-import { Badge, Flex, Typography } from 'antd';
-import { ReactNode } from 'react';
+import { createStyles } from "antd-style";
+import { Badge, Flex, Typography } from "antd";
+import { ReactNode } from "react";
 
 const useStyles = createStyles(({ token }) => ({
   header: {
-    '&:not(:last-child)': {
+    "&:not(:last-child)": {
       marginBottom: token.padding,
     },
   },
@@ -32,14 +32,14 @@ export const DrawerPaperHeader = ({
   const { styles } = useStyles();
 
   const renderTitle = () => {
-    if (typeof title === 'string') {
+    if (typeof title === "string") {
       let t = (
         <Typography.Text strong className={styles.title}>
           {title}
         </Typography.Text>
       );
 
-      if (typeof badgeCount === 'number') {
+      if (typeof badgeCount === "number") {
         t = (
           <Badge
             count={badgeCount}
@@ -55,7 +55,7 @@ export const DrawerPaperHeader = ({
         );
       }
 
-      return <div style={{ width: '100%' }}>{t}</div>;
+      return <div style={{ width: "100%" }}>{t}</div>;
     }
 
     return title;
@@ -66,7 +66,7 @@ export const DrawerPaperHeader = ({
       style={{ height: 32 }}
       align="center"
       justify="space-between"
-      data-testid={`${name || 'needs-fix'}-header`}
+      data-testid={`${name || "needs-fix"}-header`}
       className={styles.header}
     >
       {renderTitle()}

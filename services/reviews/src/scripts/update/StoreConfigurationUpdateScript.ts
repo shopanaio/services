@@ -1,9 +1,6 @@
 import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import type { StoreConfigurationPatch } from "../../repositories/configuration/ConfigurationRepository.js";
-import type {
-  StoreConfigurationUpdateParams,
-  StoreConfigurationUpdateResult,
-} from "./types.js";
+import type { StoreConfigurationUpdateParams, StoreConfigurationUpdateResult } from "./types.js";
 
 const booleanFields = [
   "reviewsEnabled",
@@ -38,7 +35,7 @@ export class StoreConfigurationUpdateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: StoreConfigurationUpdateParams
+    params: StoreConfigurationUpdateParams,
   ): Promise<StoreConfigurationUpdateResult> {
     const input = params.operations ?? {};
     const patch: StoreConfigurationPatch = {};
@@ -76,7 +73,7 @@ export class StoreConfigurationUpdateScript extends BaseScript<
     const updated = await this.repository.configuration.updateStoreConfiguration(
       params.configurationId,
       params.expectedRevision,
-      patch
+      patch,
     );
     if (updated.status === "applied") {
       return { configuration: updated.value, userErrors: [] };

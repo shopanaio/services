@@ -1,11 +1,11 @@
-import { FullLogo } from '@/ui-kit/logo/full-logo';
-import { Flex } from 'antd';
-import { createStyles } from 'antd-style';
+import { FullLogo } from "@/ui-kit/logo/full-logo";
+import { Flex } from "antd";
+import { createStyles } from "antd-style";
 
 const useStyles = createStyles(({ css, token }, { isCollapsed }: { isCollapsed: boolean }) => ({
   logo: css`
     margin-top: 22px;
-    transform: translateX(${isCollapsed ? `${token.paddingMD}px` : '10px'});
+    transform: translateX(${isCollapsed ? `${token.paddingMD}px` : "10px"});
     transition: transform 0.2s ease;
 
     & > * {
@@ -23,7 +23,7 @@ export const SidebarLogo = ({ isCollapsed }: ISidebarLogoProps) => {
 
   return (
     <Flex
-      data-testid={`sidebar-logo-${isCollapsed ? 'collapsed' : 'expanded'}`}
+      data-testid={`sidebar-logo-${isCollapsed ? "collapsed" : "expanded"}`}
       className={styles.logo}
       gap={12}
       align="center"

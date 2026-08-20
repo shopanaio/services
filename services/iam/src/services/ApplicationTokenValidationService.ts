@@ -1,10 +1,5 @@
 import { createHash } from "node:crypto";
-import {
-  compactVerify,
-  importJWK,
-  type JSONWebKeySet,
-  type JWTPayload,
-} from "jose";
+import { compactVerify, importJWK, type JSONWebKeySet, type JWTPayload } from "jose";
 import type { Logger } from "@shopana/shared-kernel";
 import { z } from "zod";
 import { createApplicationResource } from "../auth/applicationAuthConfiguration.js";
@@ -60,8 +55,7 @@ export interface InactiveApplicationTokenValidationResult {
 }
 
 export type ApplicationTokenValidationResult =
-  | ActiveApplicationTokenValidationResult
-  | InactiveApplicationTokenValidationResult;
+  ActiveApplicationTokenValidationResult | InactiveApplicationTokenValidationResult;
 
 export interface ApplicationRefreshGrantValidationInput {
   token: string;
@@ -70,8 +64,7 @@ export interface ApplicationRefreshGrantValidationInput {
   expectedClientId: string;
 }
 
-export interface RevokeApplicationTokenInput
-  extends ApplicationRefreshGrantValidationInput {
+export interface RevokeApplicationTokenInput extends ApplicationRefreshGrantValidationInput {
   tokenTypeHint?: "access_token" | "refresh_token";
 }
 
@@ -123,17 +116,13 @@ export class ApplicationTokenValidationService {
     private readonly invalidation: ApplicationAuthLiveStateInvalidationBus,
     private readonly publicBaseUrl: string,
     private readonly logger: Logger,
-    private readonly now: () => Date = () => new Date()
+    private readonly now: () => Date = () => new Date(),
   ) {
     this.publicBaseUrl = normalizePublicBaseUrl(publicBaseUrl);
-    this.unsubscribeInvalidation = invalidation.subscribe((event) =>
-      this.invalidate(event)
-    );
+    this.unsubscribeInvalidation = invalidation.subscribe((event) => this.invalidate(event));
   }
 
-  async validate(
-    input: ValidateApplicationTokenInput
-  ): Promise<ApplicationTokenValidationResult> {
+  async validate(input: ValidateApplicationTokenInput): Promise<ApplicationTokenValidationResult> {
     const now = this.now();
     const boundary = validateBoundary(input);
     if (!boundary.success) {
@@ -153,10 +142,7 @@ export class ApplicationTokenValidationService {
     };
     try {
       if (looksLikeJwt(boundary.data.token)) {
-        const verified = await this.verifyJwt(
-          boundary.data,
-          now
-        );
+        const verified = await this.verifyJwt(boundary.data, now);
         if (!verified.success) {
           result = this.inactive(verified.reasonCategory, now);
         } else {
@@ -166,7 +152,7 @@ export class ApplicationTokenValidationService {
       } else {
         const refresh = await this.findRefreshToken(
           boundary.data.expectedApplicationId,
-          boundary.data.token
+          boundary.data.token,
         );
         if (!refresh) {
           result = this.inactive("malformed", now);
@@ -175,14 +161,14 @@ export class ApplicationTokenValidationService {
           result = await this.validateRefreshLiveState(
             refresh,
             boundary.data.expectedAudience,
-            now
+            now,
           );
         }
       }
     } catch {
       this.logger.error(
         { applicationId: boundary.data.expectedApplicationId },
-        "Application token validation dependency failed"
+        "Application token validation dependency failed",
       );
       result = this.inactive("application_inactive", now);
     }
@@ -196,7 +182,7 @@ export class ApplicationTokenValidationService {
    * opaque in v1 and must never authenticate a protected resource request.
    */
   async validateAccessToken(
-    input: ValidateApplicationTokenInput
+    input: ValidateApplicationTokenInput,
   ): Promise<ApplicationTokenValidationResult> {
     const now = this.now();
     const boundary = validateBoundary(input);
@@ -207,7 +193,7 @@ export class ApplicationTokenValidationService {
   }
 
   async validateRefreshGrant(
-    input: ApplicationRefreshGrantValidationInput
+    input: ApplicationRefreshGrantValidationInput,
   ): Promise<ApplicationTokenValidationResult> {
     const validationInput = toValidationInput(input);
     const boundary = validateBoundary(validationInput);
@@ -215,14 +201,8 @@ export class ApplicationTokenValidationService {
       this.cache.delete(createValidationCacheKey(boundary.data));
     }
     const result = await this.validate(validationInput);
-    if (
-      !result.active &&
-      result.reasonCategory === "token_family_revoked"
-    ) {
-      const refresh = await this.findRefreshToken(
-        input.expectedApplicationId,
-        input.token
-      );
+    if (!result.active && result.reasonCategory === "token_family_revoked") {
+      const refresh = await this.findRefreshToken(input.expectedApplicationId, input.token);
       if (refresh?.clientId === input.expectedClientId) {
         await this.publishInvalidation({
           kind: "user",
@@ -233,9 +213,7 @@ export class ApplicationTokenValidationService {
       }
     }
     if (!result.active || result.clientId !== input.expectedClientId) {
-      return result.active
-        ? this.inactive("client_inactive", this.now())
-        : result;
+      return result.active ? this.inactive("client_inactive", this.now()) : result;
     }
     return result;
   }
@@ -245,19 +223,11 @@ export class ApplicationTokenValidationService {
    * JWT revocation tears down its refresh family, or its session when no
    * refresh family exists. Refresh-token persistence remains Better Auth-owned.
    */
-  async recordProtocolRevocation(
-    input: RevokeApplicationTokenInput
-  ): Promise<void> {
+  async recordProtocolRevocation(input: RevokeApplicationTokenInput): Promise<void> {
     const now = this.now();
-    if (
-      input.tokenTypeHint !== "refresh_token" &&
-      looksLikeJwt(input.token)
-    ) {
+    if (input.tokenTypeHint !== "refresh_token" && looksLikeJwt(input.token)) {
       const verified = await this.verifyJwt(input, now);
-      if (
-        !verified.success ||
-        verified.claims.client_id !== input.expectedClientId
-      ) {
+      if (!verified.success || verified.claims.client_id !== input.expectedClientId) {
         return;
       }
       const claims = verified.claims;
@@ -296,10 +266,7 @@ export class ApplicationTokenValidationService {
       return;
     }
 
-    const refresh = await this.findRefreshToken(
-      input.expectedApplicationId,
-      input.token
-    );
+    const refresh = await this.findRefreshToken(input.expectedApplicationId, input.token);
     if (!refresh || refresh.clientId !== input.expectedClientId) return;
     await this.publishInvalidation({
       kind: "user",
@@ -327,7 +294,7 @@ export class ApplicationTokenValidationService {
 
   private async verifyJwt(
     input: ValidateApplicationTokenInput,
-    now: Date
+    now: Date,
   ): Promise<
     | { success: true; claims: JwtClaimsContract }
     | {
@@ -341,10 +308,7 @@ export class ApplicationTokenValidationService {
     }
     let header: Record<string, unknown>;
     try {
-      header = JSON.parse(decodeBase64Url(segments[0]!)) as Record<
-        string,
-        unknown
-      >;
+      header = JSON.parse(decodeBase64Url(segments[0]!)) as Record<string, unknown>;
     } catch {
       return { success: false, reasonCategory: "malformed" };
     }
@@ -353,7 +317,7 @@ export class ApplicationTokenValidationService {
     }
     const signingKey = await this.repository.findSigningKey(
       input.expectedApplicationId,
-      header.kid
+      header.kid,
     );
     if (!signingKey) {
       return { success: false, reasonCategory: "signature_invalid" };
@@ -395,7 +359,7 @@ export class ApplicationTokenValidationService {
 
   private async validateJwtLiveState(
     claims: JwtClaimsContract,
-    now: Date
+    now: Date,
   ): Promise<ApplicationTokenValidationResult> {
     const scopes = parseScopes(claims.scope);
     if (!scopes.length || scopes.some((scope) => !oauthScopeSet.has(scope))) {
@@ -407,9 +371,7 @@ export class ApplicationTokenValidationService {
       clientId: claims.client_id,
       userId: claims.sub,
       sessionId: claims.sid,
-      ...(scopes.includes("offline_access")
-        ? { tokenFamilyId: claims.token_family_id }
-        : {}),
+      ...(scopes.includes("offline_access") ? { tokenFamilyId: claims.token_family_id } : {}),
       now,
     });
     const stateReason = liveStateReason(state, claims.aud, now, {
@@ -434,7 +396,7 @@ export class ApplicationTokenValidationService {
   private async validateRefreshLiveState(
     refresh: ApplicationRefreshTokenRecord,
     expectedAudience: string,
-    now: Date
+    now: Date,
   ): Promise<ApplicationTokenValidationResult> {
     if (refresh.revoked) {
       return this.inactive("token_family_revoked", now);
@@ -483,25 +445,18 @@ export class ApplicationTokenValidationService {
 
   private async findRefreshToken(
     applicationId: string,
-    token: string
+    token: string,
   ): Promise<ApplicationRefreshTokenRecord | null> {
-    return this.repository.findRefreshTokenByHash(
-      applicationId,
-      hashSensitiveValue(token)
-    );
+    return this.repository.findRefreshTokenByHash(applicationId, hashSensitiveValue(token));
   }
 
   private active(
-    input: Omit<
-      ActiveApplicationTokenValidationResult,
-      "active" | "actorType" | "cacheUntil"
-    > & { now: Date }
+    input: Omit<ActiveApplicationTokenValidationResult, "active" | "actorType" | "cacheUntil"> & {
+      now: Date;
+    },
   ): ActiveApplicationTokenValidationResult {
     const cacheUntil = new Date(
-      Math.min(
-        input.expiresAt.getTime(),
-        input.now.getTime() + POSITIVE_CACHE_TTL_MS
-      )
+      Math.min(input.expiresAt.getTime(), input.now.getTime() + POSITIVE_CACHE_TTL_MS),
     );
     return Object.freeze({
       active: true,
@@ -522,7 +477,7 @@ export class ApplicationTokenValidationService {
 
   private inactive(
     reasonCategory: ApplicationTokenValidationReasonCategory,
-    now: Date
+    now: Date,
   ): InactiveApplicationTokenValidationResult {
     return Object.freeze({
       active: false,
@@ -534,7 +489,7 @@ export class ApplicationTokenValidationService {
   private cacheResult(
     key: string,
     result: ApplicationTokenValidationResult,
-    tags: Omit<CacheEntry, "result" | "expiresAtMs">
+    tags: Omit<CacheEntry, "result" | "expiresAtMs">,
   ): void {
     if (result.cacheUntil.getTime() <= this.now().getTime()) return;
     this.cache.set(key, {
@@ -559,10 +514,7 @@ export class ApplicationTokenValidationService {
   }
 
   private async publishInvalidation(
-    input: Omit<
-      ApplicationAuthLiveStateInvalidationEvent,
-      "schemaVersion" | "occurredAt"
-    >
+    input: Omit<ApplicationAuthLiveStateInvalidationEvent, "schemaVersion" | "occurredAt">,
   ): Promise<void> {
     await this.invalidation.publish({
       schemaVersion: 1,
@@ -581,15 +533,13 @@ function validateBoundary(input: ValidateApplicationTokenInput) {
     })
     .strict()
     .refine(
-      (value) =>
-        value.expectedAudience ===
-        createApplicationResource(value.expectedApplicationId)
+      (value) => value.expectedAudience === createApplicationResource(value.expectedApplicationId),
     )
     .safeParse(input);
 }
 
 function toValidationInput(
-  input: ApplicationRefreshGrantValidationInput
+  input: ApplicationRefreshGrantValidationInput,
 ): ValidateApplicationTokenInput {
   return {
     token: input.token,
@@ -623,7 +573,7 @@ function liveStateReason(
   state: ApplicationTokenLiveStateRecord,
   expectedAudience: string,
   now: Date,
-  options: { requireTokenFamily: boolean }
+  options: { requireTokenFamily: boolean },
 ): ApplicationTokenValidationReasonCategory | null {
   if (
     !state.applicationExists ||
@@ -634,11 +584,7 @@ function liveStateReason(
   ) {
     return "application_inactive";
   }
-  if (
-    !state.clientExists ||
-    !state.clientActive ||
-    state.clientResource !== expectedAudience
-  ) {
+  if (!state.clientExists || !state.clientActive || state.clientResource !== expectedAudience) {
     return "client_inactive";
   }
   if (!state.userExists || !state.userActive) return "user_inactive";
@@ -674,15 +620,11 @@ function hashSensitiveValue(value: string): string {
 
 function createValidationCacheKey(input: ValidateApplicationTokenInput): string {
   return hashSensitiveValue(
-    `${input.expectedApplicationId}\0${input.expectedAudience}\0${hashSensitiveValue(
-      input.token
-    )}`
+    `${input.expectedApplicationId}\0${input.expectedAudience}\0${hashSensitiveValue(input.token)}`,
   );
 }
 
-function tagsForClaims(
-  claims: JwtClaimsContract
-): Omit<CacheEntry, "result" | "expiresAtMs"> {
+function tagsForClaims(claims: JwtClaimsContract): Omit<CacheEntry, "result" | "expiresAtMs"> {
   return {
     applicationId: claims.application_id,
     clientId: claims.client_id,
@@ -693,7 +635,7 @@ function tagsForClaims(
 }
 
 function tagsForRefresh(
-  refresh: ApplicationRefreshTokenRecord
+  refresh: ApplicationRefreshTokenRecord,
 ): Omit<CacheEntry, "result" | "expiresAtMs"> {
   return {
     applicationId: refresh.applicationId,
@@ -706,17 +648,14 @@ function tagsForRefresh(
 
 function matchesInvalidation(
   entry: CacheEntry,
-  event: ApplicationAuthLiveStateInvalidationEvent
+  event: ApplicationAuthLiveStateInvalidationEvent,
 ): boolean {
   if (entry.applicationId !== event.applicationId) return false;
   if (event.kind === "application") return true;
   if (event.clientId && entry.clientId !== event.clientId) return false;
   if (event.userId && entry.userId !== event.userId) return false;
   if (event.sessionId && entry.sessionId !== event.sessionId) return false;
-  if (
-    event.tokenFamilyId &&
-    entry.tokenFamilyId !== event.tokenFamilyId
-  ) {
+  if (event.tokenFamilyId && entry.tokenFamilyId !== event.tokenFamilyId) {
     return false;
   }
   return true;

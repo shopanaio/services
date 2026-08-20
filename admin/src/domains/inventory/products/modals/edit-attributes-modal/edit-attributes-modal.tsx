@@ -2,7 +2,11 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Alert, App, Button, Checkbox, Dropdown, Flex, Typography } from "antd";
-import { LuPlus as PlusOutlined, LuFolder as FolderOutlined, LuTags as TagsOutlined } from "react-icons/lu";
+import {
+  LuPlus as PlusOutlined,
+  LuFolder as FolderOutlined,
+  LuTags as TagsOutlined,
+} from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -13,11 +17,7 @@ import {
   CellValueChangedEvent,
   type ICellRendererParams,
 } from "ag-grid-community";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useAgGridTheme, useTreeTableDragDrop } from "@/hooks";
 import { useSyncProductFeatures } from "../../hooks";
@@ -39,10 +39,7 @@ import { NameCellRenderer, ActionsCellRenderer } from "./components";
 ModuleRegistry.registerModules([AllCommunityModule, RowDragModule]);
 
 function getMaxRootSortIndex(rows: AttributeEditorRow[]): number {
-  return Math.max(
-    -1,
-    ...rows.filter((row) => row.parentId === null).map((row) => row.sortIndex),
-  );
+  return Math.max(-1, ...rows.filter((row) => row.parentId === null).map((row) => row.sortIndex));
 }
 
 export const EditAttributesModal = () => {
@@ -63,11 +60,7 @@ export const EditAttributesModal = () => {
     [payloadFeatures],
   );
   const [userErrors, setUserErrors] = useState(loadErrors);
-  const {
-    syncProductFeatures,
-    loading: saving,
-    error: syncError,
-  } = useSyncProductFeatures();
+  const { syncProductFeatures, loading: saving, error: syncError } = useSyncProductFeatures();
 
   const markDirty = useCallback(() => {
     setDirty(true);
@@ -100,10 +93,7 @@ export const EditAttributesModal = () => {
   // Handlers
   // ========================================
 
-  const getRowId = useCallback(
-    (params: GetRowIdParams<AttributeEditorRow>) => params.data.id,
-    [],
-  );
+  const getRowId = useCallback((params: GetRowIdParams<AttributeEditorRow>) => params.data.id, []);
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -124,9 +114,8 @@ export const EditAttributesModal = () => {
         name: "New Attribute",
         slug: "",
         parentId,
-        sortIndex: allRows.filter(
-          (row) => row.parentId === parentId && row.type === "attribute",
-        ).length,
+        sortIndex: allRows.filter((row) => row.parentId === parentId && row.type === "attribute")
+          .length,
         level: 1,
         values: [],
       };
@@ -226,16 +215,7 @@ export const EditAttributesModal = () => {
     setDirty(false);
     message.success("Product attributes updated");
     forcePop();
-  }, [
-    allRows,
-    forcePop,
-    loadErrors,
-    message,
-    onSaved,
-    productId,
-    setDirty,
-    syncProductFeatures,
-  ]);
+  }, [allRows, forcePop, loadErrors, message, onSaved, productId, setDirty, syncProductFeatures]);
 
   // ========================================
   // Column Definitions
@@ -271,9 +251,7 @@ export const EditAttributesModal = () => {
               checked={row.featured}
               aria-label={`Mark ${row.name} as featured`}
               data-testid={`edit-attributes-featured-${row.id}`}
-              onChange={(event) =>
-                updateRow(row.id, { featured: event.target.checked })
-              }
+              onChange={(event) => updateRow(row.id, { featured: event.target.checked })}
             />
           );
         },
@@ -321,14 +299,7 @@ export const EditAttributesModal = () => {
         filter: false,
       },
     ],
-    [
-      allRows,
-      expandedIds,
-      handleAddAttribute,
-      handleDelete,
-      handleToggleExpand,
-      updateRow,
-    ],
+    [allRows, expandedIds, handleAddAttribute, handleDelete, handleToggleExpand, updateRow],
   );
 
   const defaultColDef = useMemo<ColDef>(
@@ -374,9 +345,7 @@ export const EditAttributesModal = () => {
             description={
               <Flex vertical gap={4}>
                 {errorMessages.map((error, index) => (
-                  <Typography.Text key={`${error}-${index}`}>
-                    {error}
-                  </Typography.Text>
+                  <Typography.Text key={`${error}-${index}`}>{error}</Typography.Text>
                 ))}
               </Flex>
             }
@@ -395,20 +364,14 @@ export const EditAttributesModal = () => {
                     {
                       key: "attribute",
                       label: (
-                        <span data-testid="edit-attributes-add-attribute-item">
-                          Add Attribute
-                        </span>
+                        <span data-testid="edit-attributes-add-attribute-item">Add Attribute</span>
                       ),
                       icon: <TagsOutlined />,
                       onClick: handleAddRootAttribute,
                     },
                     {
                       key: "group",
-                      label: (
-                        <span data-testid="edit-attributes-add-group-item">
-                          Add Group
-                        </span>
-                      ),
+                      label: <span data-testid="edit-attributes-add-group-item">Add Group</span>,
                       icon: <FolderOutlined />,
                       onClick: handleAddGroup,
                     },
@@ -428,10 +391,7 @@ export const EditAttributesModal = () => {
           />
         </Paper>
 
-        <div
-          className={`${styles.gridWrapper} ag-theme-quartz`}
-          data-testid="edit-attributes-grid"
-        >
+        <div className={`${styles.gridWrapper} ag-theme-quartz`} data-testid="edit-attributes-grid">
           <AgGridReact<AttributeEditorRow>
             theme={agGridTheme}
             rowData={visibleRows}
@@ -451,8 +411,8 @@ export const EditAttributesModal = () => {
         </div>
         <Paper>
           <Typography.Text type="secondary">
-            Define product characteristics. Organize attributes into logical
-            groups for structured display.
+            Define product characteristics. Organize attributes into logical groups for structured
+            display.
           </Typography.Text>
         </Paper>
       </div>

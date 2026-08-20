@@ -1,28 +1,11 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CategoryCreateParams, CategoryCreateResult } from "./dto/index.js";
-import {
-  serializeRichTextJsonText,
-  toRichTextStorage,
-} from "../shared/richText.js";
+import { serializeRichTextJsonText, toRichTextStorage } from "../shared/richText.js";
 
-export class CategoryCreateScript extends BaseScript<
-  CategoryCreateParams,
-  CategoryCreateResult
-> {
+export class CategoryCreateScript extends BaseScript<CategoryCreateParams, CategoryCreateResult> {
   @Transactional()
-  protected async execute(
-    params: CategoryCreateParams
-  ): Promise<CategoryCreateResult> {
-    const {
-      handle,
-      name,
-      parentId,
-      description,
-      excerpt,
-      seo,
-      mediaFileIds,
-      publish,
-    } = params;
+  protected async execute(params: CategoryCreateParams): Promise<CategoryCreateResult> {
+    const { handle, name, parentId, description, excerpt, seo, mediaFileIds, publish } = params;
 
     // 1. Check if handle is unique
     const existing = await this.repository.category.findByHandle(handle);
@@ -44,15 +27,15 @@ export class CategoryCreateScript extends BaseScript<
       const parent = await this.repository.category.findById(parentId);
       if (!parent) {
         return {
-        category: undefined,
-        userErrors: [
+          category: undefined,
+          userErrors: [
             {
               message: "Parent category not found",
               field: ["parentId"],
               code: "MISSING_CATEGORY",
             },
-        ],
-      };
+          ],
+        };
       }
     }
 
@@ -96,10 +79,7 @@ export class CategoryCreateScript extends BaseScript<
       });
     }
 
-    this.logger.info(
-      { categoryId: category.id, handle, parentId },
-      "Category created"
-    );
+    this.logger.info({ categoryId: category.id, handle, parentId }, "Category created");
 
     return { category, userErrors: [] };
   }

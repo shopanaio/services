@@ -47,30 +47,24 @@ export const appCatalog = appsSchema.table(
       name: "app_catalog_pkey",
       columns: [table.storeId, table.appCode],
     }),
-    index("app_catalog_store_display_name_idx").on(
-      table.storeId,
-      table.displayName,
-      table.appCode,
-    ),
+    index("app_catalog_store_display_name_idx").on(table.storeId, table.displayName, table.appCode),
   ],
 );
 
-export const appListView = appsSchema
-  .view("app_list_view", {
-    storeId: uuid("store_id").notNull(),
-    code: varchar("code", { length: 128 }).notNull(),
-    version: varchar("version", { length: 64 }).notNull(),
-    displayName: varchar("display_name", { length: 255 }).notNull(),
-    capabilities: text("capabilities").notNull(),
-    status: text("status").notNull(),
-    installed: boolean("installed").notNull(),
-    installationId: uuid("installation_id"),
-    updatedAt: timestamp("updated_at", {
-      withTimezone: true,
-      mode: "string",
-    }).notNull(),
-  })
-  .as(sql`
+export const appListView = appsSchema.view("app_list_view", {
+  storeId: uuid("store_id").notNull(),
+  code: varchar("code", { length: 128 }).notNull(),
+  version: varchar("version", { length: 64 }).notNull(),
+  displayName: varchar("display_name", { length: 255 }).notNull(),
+  capabilities: text("capabilities").notNull(),
+  status: text("status").notNull(),
+  installed: boolean("installed").notNull(),
+  installationId: uuid("installation_id"),
+  updatedAt: timestamp("updated_at", {
+    withTimezone: true,
+    mode: "string",
+  }).notNull(),
+}).as(sql`
     SELECT
       catalog.store_id,
       catalog.app_code AS code,

@@ -1,7 +1,7 @@
-import { createStyles } from 'antd-style';
+import { createStyles } from "antd-style";
 import { LuPlus as PlusOutlined } from "react-icons/lu";
-import { Badge, Button, ButtonProps, Flex, Typography } from 'antd';
-import { ReactNode } from 'react';
+import { Badge, Button, ButtonProps, Flex, Typography } from "antd";
+import { ReactNode } from "react";
 
 const useStyles = createStyles(({ token }) => ({
   title: {
@@ -28,7 +28,7 @@ export const TableLayoutHeader = ({
   createDisabled,
   extra = null,
   createButtonProps,
-  createLabel = 'Create',
+  createLabel = "Create",
 }: ITableLayoutHeaderProps) => {
   const { styles } = useStyles();
 
@@ -42,11 +42,7 @@ export const TableLayoutHeader = ({
         overflowCount={9999}
         offset={[count > 9 ? 6 : 0, 5]}
       >
-        <Typography.Title
-          data-testid="page-title"
-          level={4}
-          className={styles.title}
-        >
+        <Typography.Title data-testid="page-title" level={4} className={styles.title}>
           {title}
         </Typography.Title>
       </Badge>

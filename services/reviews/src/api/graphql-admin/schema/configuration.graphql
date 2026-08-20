@@ -136,9 +136,13 @@ input ReviewRatingCriterionApplicabilityInput {
 input ReviewRatingCriterionUpdateInput {
   definition: ReviewRatingCriterionDefinitionInput
   applicability: ReviewRatingCriterionApplicabilityInput
-  """Complete translation replacement when supplied."""
+  """
+  Complete translation replacement when supplied.
+  """
   translations: [ReviewRatingCriterionTranslationInput!]
-  """Complete product/category assignment replacement when supplied."""
+  """
+  Complete product/category assignment replacement when supplied.
+  """
   assignments: [ReviewRatingCriterionAssignmentInput!]
 }
 

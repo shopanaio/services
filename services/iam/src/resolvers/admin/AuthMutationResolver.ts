@@ -94,10 +94,7 @@ export class AuthMutationResolver extends IAMType<Record<string, never>> {
       if (input.allSessions) {
         await authSession.revokeAllSessions(currentUser.id);
       } else if (currentUser.sessionId) {
-        await authSession.revokeSession(
-          currentUser.id,
-          currentUser.sessionId
-        );
+        await authSession.revokeSession(currentUser.id, currentUser.sessionId);
       }
 
       return {

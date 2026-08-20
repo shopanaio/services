@@ -13,9 +13,7 @@ export class CategoryUpdateMediaScript extends BaseScript<
   CategoryUpdateSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: CategoryUpdateMediaParams,
-  ): Promise<CategoryUpdateSectionResult> {
+  protected async execute(params: CategoryUpdateMediaParams): Promise<CategoryUpdateSectionResult> {
     const existing = await this.repository.category.findById(params.categoryId);
     if (!existing) {
       return {

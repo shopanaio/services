@@ -8,22 +8,15 @@ export class CustomerGroupMembershipResolver extends CustomersType<
   CustomerGroupMembership
 > {
   async $preload() {
-    const membership = await this.$ctx.loaders.groupMembership.load(
-      this.$props
-    );
+    const membership = await this.$ctx.loaders.groupMembership.load(this.$props);
     if (!membership) {
-      throw new PreloadNotFoundError(
-        `Customer group membership with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer group membership with ID ${this.$props} not found`);
     }
     return membership;
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.CustomerGroupMembership
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.CustomerGroupMembership);
   }
 
   async customer() {

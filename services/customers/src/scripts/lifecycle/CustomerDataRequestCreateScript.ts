@@ -21,7 +21,7 @@ export class CustomerDataRequestCreateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: CustomerDataRequestCreateParams
+    params: CustomerDataRequestCreateParams,
   ): Promise<CustomerDataRequestCreateResult> {
     const errors = validateDataRequest(params);
     if (!(await this.repository.customer.exists(params.customerId))) {
@@ -47,7 +47,7 @@ export class CustomerDataRequestCreateScript extends BaseScript<
     });
     this.logger.info(
       { dataRequestId: dataRequest.id, customerId: params.customerId },
-      "Customer data request created"
+      "Customer data request created",
     );
     return { dataRequest: { id: dataRequest.id }, userErrors: [] };
   }
@@ -60,9 +60,7 @@ export class CustomerDataRequestCreateScript extends BaseScript<
   }
 }
 
-function validateDataRequest(
-  params: CustomerDataRequestCreateParams
-): UserError[] {
+function validateDataRequest(params: CustomerDataRequestCreateParams): UserError[] {
   if (!params.dueAt) return [];
   const dueAt = Date.parse(params.dueAt);
   if (!Number.isFinite(dueAt)) {

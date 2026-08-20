@@ -1,8 +1,4 @@
-import type {
-  ApiResourceDefinition,
-  ApiRole,
-  ApiRolePermissionInput,
-} from "@/graphql/types";
+import type { ApiResourceDefinition, ApiRole, ApiRolePermissionInput } from "@/graphql/types";
 import { Action } from "@/graphql/types";
 
 /**
@@ -55,9 +51,7 @@ export interface IPermissionPreset {
  * Transform form permissions to API format.
  * Filters out null actions since API only accepts defined permissions.
  */
-export function toApiPermissions(
-  permissions: FormPermission[]
-): ApiRolePermissionInput[] {
+export function toApiPermissions(permissions: FormPermission[]): ApiRolePermissionInput[] {
   return permissions
     .filter((p): p is FormPermission & { action: Action } => p.action !== null)
     .map((p) => ({
@@ -70,10 +64,7 @@ export function toApiPermissions(
  * Transform API role permissions to form format.
  * Creates dense array with all resources (null for no permission).
  */
-export function fromApiPermissions(
-  role: ApiRole,
-  allResources: string[]
-): FormPermission[] {
+export function fromApiPermissions(role: ApiRole, allResources: string[]): FormPermission[] {
   return allResources.map((resource) => {
     const apiPerm = role.permissions.find((p) => p.resource === resource);
     if (!apiPerm) {

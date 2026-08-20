@@ -24,7 +24,7 @@ function assertSuccess(userErrors: ApiGenericUserError[]) {
 export function useHeadlessStorefrontActions(sdk: AdminAppSdk) {
   const [loading, setLoading] = useState(false);
 
-  const run = useCallback(async <T,>(operation: () => Promise<T>) => {
+  const run = useCallback(async <T>(operation: () => Promise<T>) => {
     setLoading(true);
     try {
       return await operation();
@@ -36,16 +36,13 @@ export function useHeadlessStorefrontActions(sdk: AdminAppSdk) {
   const createStorefront = useCallback(
     (displayName: string, permissions: string[]) =>
       run(async () => {
-        const data = await sdk.graphql.mutate(
-          HEADLESS_STOREFRONT_CREATE_MUTATION,
-          {
-            input: {
-              displayName,
-              permissions,
-              clientMutationId: mutationId(),
-            },
+        const data = await sdk.graphql.mutate(HEADLESS_STOREFRONT_CREATE_MUTATION, {
+          input: {
+            displayName,
+            permissions,
+            clientMutationId: mutationId(),
           },
-        );
+        });
         const payload = data.headlessAppMutation.headlessStorefrontCreate;
         assertSuccess(payload.userErrors);
         return payload;
@@ -56,16 +53,13 @@ export function useHeadlessStorefrontActions(sdk: AdminAppSdk) {
   const renameStorefront = useCallback(
     (connectionId: string, displayName: string) =>
       run(async () => {
-        const data = await sdk.graphql.mutate(
-          HEADLESS_STOREFRONT_UPDATE_MUTATION,
-          {
-            input: {
-              connectionId,
-              displayName,
-              clientMutationId: mutationId(),
-            },
+        const data = await sdk.graphql.mutate(HEADLESS_STOREFRONT_UPDATE_MUTATION, {
+          input: {
+            connectionId,
+            displayName,
+            clientMutationId: mutationId(),
           },
-        );
+        });
         const payload = data.headlessAppMutation.headlessStorefrontUpdate;
         assertSuccess(payload.userErrors);
         return payload.connection;
@@ -95,12 +89,9 @@ export function useHeadlessStorefrontActions(sdk: AdminAppSdk) {
   const disconnectStorefront = useCallback(
     (connectionId: string) =>
       run(async () => {
-        const data = await sdk.graphql.mutate(
-          HEADLESS_STOREFRONT_DISCONNECT_MUTATION,
-          {
-            input: { connectionId, clientMutationId: mutationId() },
-          },
-        );
+        const data = await sdk.graphql.mutate(HEADLESS_STOREFRONT_DISCONNECT_MUTATION, {
+          input: { connectionId, clientMutationId: mutationId() },
+        });
         const payload = data.headlessAppMutation.headlessStorefrontDisconnect;
         if (!payload) throw new Error("The storefront was not disconnected.");
         assertSuccess(payload.userErrors);
@@ -110,25 +101,17 @@ export function useHeadlessStorefrontActions(sdk: AdminAppSdk) {
   );
 
   const updatePolicy = useCallback(
-    (
-      connectionId: string,
-      permissions: string[],
-      expectedRevision: number,
-    ) =>
+    (connectionId: string, permissions: string[], expectedRevision: number) =>
       run(async () => {
-        const data = await sdk.graphql.mutate(
-          STOREFRONT_ACCESS_POLICY_UPDATE_MUTATION,
-          {
-            input: {
-              connectionId,
-              permissions,
-              expectedRevision,
-              clientMutationId: mutationId(),
-            },
+        const data = await sdk.graphql.mutate(STOREFRONT_ACCESS_POLICY_UPDATE_MUTATION, {
+          input: {
+            connectionId,
+            permissions,
+            expectedRevision,
+            clientMutationId: mutationId(),
           },
-        );
-        const payload =
-          data.headlessAppMutation.storefrontAccessPolicyUpdate;
+        });
+        const payload = data.headlessAppMutation.storefrontAccessPolicyUpdate;
         assertSuccess(payload.userErrors);
         return payload.policy;
       }),
@@ -138,18 +121,14 @@ export function useHeadlessStorefrontActions(sdk: AdminAppSdk) {
   const createPrivateCredential = useCallback(
     (connectionId: string, label: string) =>
       run(async () => {
-        const data = await sdk.graphql.mutate(
-          STOREFRONT_PRIVATE_CREDENTIAL_CREATE_MUTATION,
-          {
-            input: {
-              connectionId,
-              label,
-              clientMutationId: mutationId(),
-            },
+        const data = await sdk.graphql.mutate(STOREFRONT_PRIVATE_CREDENTIAL_CREATE_MUTATION, {
+          input: {
+            connectionId,
+            label,
+            clientMutationId: mutationId(),
           },
-        );
-        const payload =
-          data.headlessAppMutation.storefrontPrivateCredentialCreate;
+        });
+        const payload = data.headlessAppMutation.storefrontPrivateCredentialCreate;
         assertSuccess(payload.userErrors);
         return payload;
       }),

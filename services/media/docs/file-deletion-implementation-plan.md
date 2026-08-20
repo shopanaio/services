@@ -4,8 +4,8 @@
 
 ## Overview
 
-This document outlines the implementation steps for the file deletion system.
-Each task includes specific files to create/modify and acceptance criteria.
+This document outlines the implementation steps for the file deletion system. Each task includes
+specific files to create/modify and acceptance criteria.
 
 ---
 
@@ -64,9 +64,7 @@ export const files = mediaSchema.table(
 
     // ========== NEW COLUMNS FOR FILE DELETION ==========
     // State machine: ACTIVE | SOFT_DELETED | DELETING
-    deletionState: varchar("deletion_state", { length: 20 })
-      .notNull()
-      .default("ACTIVE"),
+    deletionState: varchar("deletion_state", { length: 20 }).notNull().default("ACTIVE"),
     // Error classification: RETRYABLE | FATAL (null = no error)
     deletionErrorCode: varchar("deletion_error_code", { length: 20 }),
     // Error details (message or JSON)
@@ -116,36 +114,33 @@ export const files = mediaSchema.table(
 
     // ========== CHECK CONSTRAINTS ==========
     // error_code and failed_at must be paired
-    check(
-      "chk_error_fields_paired",
-      sql`(deletion_error_code IS NULL) = (failed_at IS NULL)`
-    ),
+    check("chk_error_fields_paired", sql`(deletion_error_code IS NULL) = (failed_at IS NULL)`),
     // DELETING state must have no error fields
     check(
       "chk_deleting_has_no_errors",
-      sql`deletion_state <> 'DELETING' OR (deletion_error_code IS NULL AND failed_at IS NULL AND last_deletion_error IS NULL)`
+      sql`deletion_state <> 'DELETING' OR (deletion_error_code IS NULL AND failed_at IS NULL AND last_deletion_error IS NULL)`,
     ),
     // DELETING state must have started_at
     check(
       "chk_deleting_has_started_at",
-      sql`deletion_state <> 'DELETING' OR deleting_started_at IS NOT NULL`
+      sql`deletion_state <> 'DELETING' OR deleting_started_at IS NOT NULL`,
     ),
     // ACTIVE state must have no deletion fields
     check(
       "chk_active_has_no_deletion_fields",
-      sql`deletion_state <> 'ACTIVE' OR (deleted_at IS NULL AND deleting_started_at IS NULL AND deletion_error_code IS NULL AND failed_at IS NULL AND last_deletion_error IS NULL)`
+      sql`deletion_state <> 'ACTIVE' OR (deleted_at IS NULL AND deleting_started_at IS NULL AND deletion_error_code IS NULL AND failed_at IS NULL AND last_deletion_error IS NULL)`,
     ),
     // Valid deletion_state values
     check(
       "chk_deletion_state_valid",
-      sql`deletion_state IN ('ACTIVE', 'SOFT_DELETED', 'DELETING')`
+      sql`deletion_state IN ('ACTIVE', 'SOFT_DELETED', 'DELETING')`,
     ),
     // Valid deletion_error_code values
     check(
       "chk_deletion_error_code_valid",
-      sql`deletion_error_code IS NULL OR deletion_error_code IN ('RETRYABLE', 'FATAL')`
+      sql`deletion_error_code IS NULL OR deletion_error_code IN ('RETRYABLE', 'FATAL')`,
     ),
-  ]
+  ],
 );
 
 export type File = typeof files.$inferSelect;
@@ -157,7 +152,9 @@ export type DeletionErrorCode = "RETRYABLE" | "FATAL";
 ```
 
 **Acceptance criteria:**
-- [ ] New columns added: `deletion_state`, `deletion_error_code`, `last_deletion_error`, `deleting_started_at`, `failed_at`
+
+- [ ] New columns added: `deletion_state`, `deletion_error_code`, `last_deletion_error`,
+      `deleting_started_at`, `failed_at`
 - [ ] New indexes added for GC queries
 - [ ] CHECK constraints added
 - [ ] TypeScript types exported
@@ -183,6 +180,7 @@ WHERE deleted_at IS NOT NULL AND deletion_state = 'ACTIVE';
 ```
 
 **Acceptance criteria:**
+
 - [ ] Migration file generated
 - [ ] Data migration added
 - [ ] `pnpm db:migrate` succeeds
@@ -270,6 +268,7 @@ async softDeleteManyIfEligible(
 ```
 
 **Acceptance criteria:**
+
 - [ ] Only transitions ACTIVE → SOFT_DELETED
 - [ ] Does NOT overwrite existing `deletedAt`
 - [ ] Returns affected IDs
@@ -303,6 +302,7 @@ async markDeletingReturningStartedAt(
 ```
 
 **Acceptance criteria:**
+
 - [ ] Only transitions SOFT_DELETED → DELETING
 - [ ] Sets `deleting_started_at = now()`
 - [ ] Clears ALL error attributes
@@ -332,6 +332,7 @@ async isDeletionLockValid(
 ```
 
 **Acceptance criteria:**
+
 - [ ] Comparison happens in SQL (no JS roundtrip)
 - [ ] Returns `true` only if state=DELETING AND startedAt matches exactly
 - [ ] Returns `false` if row missing or state changed
@@ -365,6 +366,7 @@ async markErrorAndRollback(
 ```
 
 **Acceptance criteria:**
+
 - [ ] Transitions DELETING → SOFT_DELETED
 - [ ] Sets `error_code`, `failed_at`, `last_deletion_error` atomically
 - [ ] Clears `deleting_started_at`
@@ -388,6 +390,7 @@ async hardDeleteIfDeleting(fileId: string): Promise<boolean> {
 ```
 
 **Acceptance criteria:**
+
 - [ ] Only deletes if state=DELETING
 - [ ] Returns `true` if deleted, `false` otherwise
 
@@ -425,6 +428,7 @@ async findSoftDeletedForGC(
 ```
 
 **Acceptance criteria:**
+
 - [ ] Never picks FATAL files
 - [ ] Picks clean files past retention
 - [ ] Picks RETRYABLE files after cooldown
@@ -462,6 +466,7 @@ async resetStuckDeleting(params: ResetStuckDeletingParams): Promise<number> {
 ```
 
 **Acceptance criteria:**
+
 - [ ] Resets DELETING → SOFT_DELETED
 - [ ] Marks as RETRYABLE (goes through cooldown)
 - [ ] Uses CTE for LIMIT
@@ -494,6 +499,7 @@ async clearError(fileId: string): Promise<boolean> {
 ```
 
 **Acceptance criteria:**
+
 - [ ] Only clears if SOFT_DELETED + has error
 - [ ] Clears all three error fields
 - [ ] Returns `false` if precondition fails
@@ -546,6 +552,7 @@ async findAnyById(fileId: string): Promise<File | null> {
 ```
 
 **Acceptance criteria:**
+
 - [ ] SOFT_DELETED → ACTIVE, clears ALL fields
 - [ ] DELETING → FILE_BEING_DELETED error
 - [ ] ACTIVE → INVALID_STATE error
@@ -576,9 +583,7 @@ const FATAL_S3_CODES = [
   "NoSuchBucket",
 ];
 
-function isS3Error(
-  error: unknown
-): error is { Code?: string; $metadata?: unknown } {
+function isS3Error(error: unknown): error is { Code?: string; $metadata?: unknown } {
   return typeof error === "object" && error !== null && "$metadata" in error;
 }
 
@@ -602,6 +607,7 @@ export function classifyError(error: unknown): DeletionErrorCode {
 ```
 
 **Acceptance criteria:**
+
 - [ ] S3 AccessDenied/InvalidAccessKeyId/SignatureDoesNotMatch/NoSuchBucket → FATAL
 - [ ] MissingMetadataError → FATAL
 - [ ] All other errors → RETRYABLE
@@ -644,15 +650,11 @@ export class FileHardDeleteWorkflow {
       return;
     }
     if (file.deletionState !== "SOFT_DELETED") {
-      logger.debug(
-        `File ${fileId} not in SOFT_DELETED (state=${file.deletionState}), skipping`
-      );
+      logger.debug(`File ${fileId} not in SOFT_DELETED (state=${file.deletionState}), skipping`);
       return;
     }
     if (file.deletionErrorCode === "FATAL") {
-      logger.debug(
-        `File ${fileId} has FATAL error, admin must clear first via fileClearError`
-      );
+      logger.debug(`File ${fileId} has FATAL error, admin must clear first via fileClearError`);
       return;
     }
 
@@ -672,9 +674,7 @@ export class FileHardDeleteWorkflow {
       }
       const bucket = await bucketRepo.findById(s3Object.bucketId);
       if (!bucket) {
-        throw new MissingMetadataError(
-          `Bucket ${s3Object.bucketId} not found`
-        );
+        throw new MissingMetadataError(`Bucket ${s3Object.bucketId} not found`);
       }
 
       // 3. RACE CONDITION GUARD: verify lock still valid before S3 delete
@@ -687,10 +687,7 @@ export class FileHardDeleteWorkflow {
           : current.deletionState !== "DELETING"
             ? `state_changed:${current.deletionState}`
             : "startedAt_mismatch";
-        logger.info(
-          { fileId, reason },
-          "Lock lost before S3 delete, aborting safely"
-        );
+        logger.info({ fileId, reason }, "Lock lost before S3 delete, aborting safely");
         return;
       }
 
@@ -703,9 +700,7 @@ export class FileHardDeleteWorkflow {
       // 5. Hard delete DB row (conditional on state=DELETING)
       const deleted = await fileRepo.hardDeleteIfDeleting(fileId);
       if (!deleted) {
-        logger.info(
-          `hardDelete skipped: file ${fileId} no longer in DELETING`
-        );
+        logger.info(`hardDelete skipped: file ${fileId} no longer in DELETING`);
       }
     } catch (e: unknown) {
       // 6. Rollback to SOFT_DELETED + set error attributes
@@ -719,6 +714,7 @@ export class FileHardDeleteWorkflow {
 ```
 
 **Acceptance criteria:**
+
 - [ ] Guards against FATAL files at start
 - [ ] Acquires lock and stores `startedAt`
 - [ ] Validates lock before S3 delete (DB-side comparison)
@@ -776,9 +772,7 @@ export class FileGarbageCollectorWorkflow {
       if (count === 0) break;
     }
     if (totalStuck > 0) {
-      logger.warn(
-        `Reset ${totalStuck} stuck DELETING files (marked as RETRYABLE)`
-      );
+      logger.warn(`Reset ${totalStuck} stuck DELETING files (marked as RETRYABLE)`);
     }
 
     // Phase 2: Pick SOFT_DELETED files for hard delete
@@ -794,25 +788,23 @@ export class FileGarbageCollectorWorkflow {
       if (batch.length === 0) break;
 
       // Start workflows in parallel with concurrency limit
-      await pMap(
-        batch,
-        (file) => startHardDeleteWorkflow(file.id),
-        { concurrency: PARALLEL_WORKFLOWS, stopOnError: false }
-      );
+      await pMap(batch, (file) => startHardDeleteWorkflow(file.id), {
+        concurrency: PARALLEL_WORKFLOWS,
+        stopOnError: false,
+      });
 
       batchesProcessed++;
     }
 
     if (batchesProcessed === MAX_GC_BATCHES) {
-      logger.info(
-        `GC hit max batches limit (${MAX_GC_BATCHES}), will continue next run`
-      );
+      logger.info(`GC hit max batches limit (${MAX_GC_BATCHES}), will continue next run`);
     }
   }
 }
 ```
 
 **Acceptance criteria:**
+
 - [ ] Phase 1: Reset stuck DELETING (with RETRYABLE marker)
 - [ ] Phase 2: Pick SOFT_DELETED for hard delete
 - [ ] Never picks FATAL files (two-layer guard)
@@ -842,10 +834,7 @@ export interface FileDeleteResult {
   error?: "FILE_NOT_FOUND" | "FILE_BEING_DELETED";
 }
 
-export class FileDeleteScript extends BaseScript<
-  FileDeleteParams,
-  FileDeleteResult
-> {
+export class FileDeleteScript extends BaseScript<FileDeleteParams, FileDeleteResult> {
   async execute(params: FileDeleteParams): Promise<FileDeleteResult> {
     const { id, permanent = false } = params;
 
@@ -879,6 +868,7 @@ export class FileDeleteScript extends BaseScript<
 ```
 
 **Acceptance criteria:**
+
 - [ ] DELETING → FILE_BEING_DELETED error
 - [ ] Soft delete if ACTIVE
 - [ ] Fire-and-forget workflow start if permanent
@@ -902,10 +892,7 @@ export interface FileDeleteManyResult {
   errors: Array<{ id: string; code: "FILE_NOT_FOUND" | "FILE_BEING_DELETED" }>;
 }
 
-export class FileDeleteManyScript extends BaseScript<
-  FileDeleteManyParams,
-  FileDeleteManyResult
-> {
+export class FileDeleteManyScript extends BaseScript<FileDeleteManyParams, FileDeleteManyResult> {
   async execute(params: FileDeleteManyParams): Promise<FileDeleteManyResult> {
     const { ids, permanent = false } = params;
     const now = new Date();
@@ -935,10 +922,7 @@ export class FileDeleteManyScript extends BaseScript<
       .map(([id]) => id);
 
     if (activeIds.length > 0) {
-      const softDeleted = await this.repo.file.softDeleteManyIfEligible(
-        activeIds,
-        now
-      );
+      const softDeleted = await this.repo.file.softDeleteManyIfEligible(activeIds, now);
       acceptedIds.push(...softDeleted);
     }
 
@@ -967,6 +951,7 @@ export class FileDeleteManyScript extends BaseScript<
 ```
 
 **Acceptance criteria:**
+
 - [ ] Batch soft delete ACTIVE files
 - [ ] SOFT_DELETED in acceptedIds (idempotent)
 - [ ] DELETING → FILE_BEING_DELETED error
@@ -989,10 +974,7 @@ export interface FileRestoreResult {
   error?: "FILE_NOT_FOUND" | "FILE_BEING_DELETED" | "INVALID_STATE";
 }
 
-export class FileRestoreScript extends BaseScript<
-  FileRestoreParams,
-  FileRestoreResult
-> {
+export class FileRestoreScript extends BaseScript<FileRestoreParams, FileRestoreResult> {
   async execute(params: FileRestoreParams): Promise<FileRestoreResult> {
     const file = await this.repo.file.findAnyById(params.id);
     if (!file) {
@@ -1027,10 +1009,7 @@ export interface FileClearErrorResult {
   error?: "FILE_NOT_FOUND" | "FILE_BEING_DELETED" | "INVALID_STATE";
 }
 
-export class FileClearErrorScript extends BaseScript<
-  FileClearErrorParams,
-  FileClearErrorResult
-> {
+export class FileClearErrorScript extends BaseScript<FileClearErrorParams, FileClearErrorResult> {
   async execute(params: FileClearErrorParams): Promise<FileClearErrorResult> {
     const file = await this.repo.file.findAnyById(params.id);
     if (!file) {
@@ -1242,7 +1221,7 @@ describe("CHECK constraints", () => {
       db
         .update(files)
         .set({ deletionErrorCode: "RETRYABLE", failedAt: null })
-        .where(eq(files.id, testFileId))
+        .where(eq(files.id, testFileId)),
     ).rejects.toThrow(/chk_error_fields_paired/);
   });
 
@@ -1251,7 +1230,7 @@ describe("CHECK constraints", () => {
       db
         .update(files)
         .set({ deletionErrorCode: null, failedAt: new Date().toISOString() })
-        .where(eq(files.id, testFileId))
+        .where(eq(files.id, testFileId)),
     ).rejects.toThrow(/chk_error_fields_paired/);
   });
 
@@ -1271,7 +1250,7 @@ describe("CHECK constraints", () => {
             deletion_error_code = 'RETRYABLE',
             failed_at = now()
         WHERE id = ${testFileId}
-      `)
+      `),
     ).rejects.toThrow(/chk_deleting_has_no_errors/);
   });
 
@@ -1282,7 +1261,7 @@ describe("CHECK constraints", () => {
         SET deletion_state = 'DELETING',
             deleting_started_at = NULL
         WHERE id = ${testFileId}
-      `)
+      `),
     ).rejects.toThrow(/chk_deleting_has_started_at/);
   });
 });
@@ -1372,7 +1351,7 @@ describe("race conditions", () => {
 
     expect(infoSpy).toHaveBeenCalledWith(
       expect.objectContaining({ reason: "row_missing" }),
-      expect.any(String)
+      expect.any(String),
     );
   });
 
@@ -1391,7 +1370,7 @@ describe("race conditions", () => {
 
     expect(infoSpy).toHaveBeenCalledWith(
       expect.objectContaining({ reason: "state_changed:ACTIVE" }),
-      expect.any(String)
+      expect.any(String),
     );
   });
 });
@@ -1416,6 +1395,7 @@ Update all existing file queries to use `deletion_state`:
 ### Task 9.2: Schedule GC Workflow
 
 Add cron job for FileGarbageCollectorWorkflow:
+
 - Suggested: Every 15 minutes
 - Or: DBOS scheduled workflow
 
@@ -1428,6 +1408,7 @@ Remove synchronous permanent delete from old FileDeleteScript.
 ## Checklist Summary
 
 ### Critical Path
+
 - [ ] Phase 1: Database schema (1.1 → 1.3)
 - [ ] Phase 2: Type definitions (2.1)
 - [ ] Phase 3: Repository methods (3.1 → 3.9)
@@ -1436,8 +1417,10 @@ Remove synchronous permanent delete from old FileDeleteScript.
 - [ ] Phase 6: Scripts (6.1 → 6.4)
 
 ### Parallel Work
+
 - [ ] Phase 7: GraphQL API (7.1 → 7.3)
 - [ ] Phase 8: Tests (8.1 → 8.5)
 
 ### Final Steps
+
 - [ ] Phase 9: Integration (9.1 → 9.3)

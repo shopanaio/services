@@ -23,29 +23,25 @@ export interface CustomerGroupUpdateWorkflowInput {
   params: CustomerGroupUpdateParams;
   context: CustomerMutationWorkflowContext;
 }
-export type CustomerGroupUpdateWorkflowResult =
-  UpdateWorkflowResult<CustomerGroupUpdateResult>;
+export type CustomerGroupUpdateWorkflowResult = UpdateWorkflowResult<CustomerGroupUpdateResult>;
 
 export interface CustomerTagUpdateWorkflowInput {
   params: CustomerTagUpdateParams;
   context: CustomerMutationWorkflowContext;
 }
-export type CustomerTagUpdateWorkflowResult =
-  UpdateWorkflowResult<CustomerTagUpdateResult>;
+export type CustomerTagUpdateWorkflowResult = UpdateWorkflowResult<CustomerTagUpdateResult>;
 
 export interface CustomerSegmentUpdateWorkflowInput {
   params: CustomerSegmentUpdateParams;
   context: CustomerMutationWorkflowContext;
 }
-export type CustomerSegmentUpdateWorkflowResult =
-  UpdateWorkflowResult<CustomerSegmentUpdateResult>;
+export type CustomerSegmentUpdateWorkflowResult = UpdateWorkflowResult<CustomerSegmentUpdateResult>;
 
 export interface CustomerMergeUpdateWorkflowInput {
   params: CustomerMergeUpdateParams;
   context: CustomerMutationWorkflowContext;
 }
-export type CustomerMergeUpdateWorkflowResult =
-  UpdateWorkflowResult<CustomerMergeUpdateResult>;
+export type CustomerMergeUpdateWorkflowResult = UpdateWorkflowResult<CustomerMergeUpdateResult>;
 
 export interface CustomerDataRequestUpdateWorkflowInput {
   params: CustomerDataRequestUpdateParams;

@@ -1,12 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  check,
-  index,
-  integer,
-  timestamp,
-  unique,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { check, index, integer, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { customer } from "./profiles.js";
 import { customersSchema } from "./schema.js";
 
@@ -17,7 +10,9 @@ import { customersSchema } from "./schema.js";
 export const customerComparison = customersSchema.table(
   "customer_comparison",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     customerId: uuid("customer_id")
       .notNull()
@@ -38,14 +33,8 @@ export const customerComparison = customersSchema.table(
   },
   (table) => [
     unique("customer_comparison_customer_id_uniq").on(table.customerId),
-    check(
-      "customer_comparison_revision_nonnegative_check",
-      sql`${table.revision} >= 0`,
-    ),
-    index("customer_comparison_store_customer_idx").on(
-      table.storeId,
-      table.customerId,
-    ),
+    check("customer_comparison_revision_nonnegative_check", sql`${table.revision} >= 0`),
+    index("customer_comparison_store_customer_idx").on(table.storeId, table.customerId),
   ],
 );
 
@@ -57,7 +46,9 @@ export const customerComparison = customersSchema.table(
 export const customerComparisonItem = customersSchema.table(
   "customer_comparison_item",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     comparisonId: uuid("comparison_id")
       .notNull()
@@ -87,18 +78,9 @@ export const customerComparisonItem = customersSchema.table(
       table.comparisonId,
       table.position,
     ),
-    check(
-      "customer_comparison_item_position_nonnegative_check",
-      sql`${table.position} >= 0`,
-    ),
-    index("customer_comparison_item_store_product_idx").on(
-      table.storeId,
-      table.productId,
-    ),
-    index("customer_comparison_item_store_variant_idx").on(
-      table.storeId,
-      table.variantId,
-    ),
+    check("customer_comparison_item_position_nonnegative_check", sql`${table.position} >= 0`),
+    index("customer_comparison_item_store_product_idx").on(table.storeId, table.productId),
+    index("customer_comparison_item_store_variant_idx").on(table.storeId, table.variantId),
     index("customer_comparison_item_comparison_position_idx").on(
       table.comparisonId,
       table.position,
@@ -109,5 +91,4 @@ export const customerComparisonItem = customersSchema.table(
 export type CustomerComparison = typeof customerComparison.$inferSelect;
 export type NewCustomerComparison = typeof customerComparison.$inferInsert;
 export type CustomerComparisonItem = typeof customerComparisonItem.$inferSelect;
-export type NewCustomerComparisonItem =
-  typeof customerComparisonItem.$inferInsert;
+export type NewCustomerComparisonItem = typeof customerComparisonItem.$inferInsert;

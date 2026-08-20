@@ -7,14 +7,7 @@
  */
 
 import { buildSubgraphSchema, printSubgraphSchema } from "@apollo/subgraph";
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  unlinkSync,
-  writeFileSync,
-} from "fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "fs";
 import { glob } from "glob";
 import { gql } from "graphql-tag";
 import { join } from "path";
@@ -41,7 +34,6 @@ interface SubgraphConfig {
   patterns: string[];
   servicePath: string;
 }
-
 
 /**
  * Discover subgraphs from build.config.json files

@@ -3,10 +3,7 @@
 import { Avatar, Skeleton, Tag } from "antd";
 import { createStyles } from "antd-style";
 import { LuChevronRight as RightOutlined } from "react-icons/lu";
-import {
-  AppInstallationStatus,
-  AppRuntimeStatus,
-} from "@/graphql/types";
+import { AppInstallationStatus, AppRuntimeStatus } from "@/graphql/types";
 import type { ManagementAppListItem } from "../graphql/operation-types";
 
 const useStyles = createStyles(({ token }) => ({
@@ -117,8 +114,7 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-const formatStatus = (status: AppInstallationStatus) =>
-  status.toLowerCase().replaceAll("_", " ");
+const formatStatus = (status: AppInstallationStatus) => status.toLowerCase().replaceAll("_", " ");
 
 const getStatusColor = (status: AppInstallationStatus) => {
   if (status === AppInstallationStatus.Active) return "success";
@@ -150,8 +146,7 @@ export interface AppRowProps {
 export function AppRow({ app, onOpen }: AppRowProps) {
   const { styles } = useStyles();
   const installationStatus = app.installation?.status;
-  const isAvailable =
-    !app.installed && app.runtimeStatus === AppRuntimeStatus.Ready;
+  const isAvailable = !app.installed && app.runtimeStatus === AppRuntimeStatus.Ready;
   const status = installationStatus
     ? {
         color: getStatusColor(installationStatus),
@@ -197,26 +192,13 @@ export function AppRowSkeleton() {
   return (
     <li aria-hidden className={styles.item}>
       <div className={`${styles.row} ${styles.skeletonRow}`}>
-        <Skeleton.Avatar
-          active
-          className={styles.avatar}
-          shape="square"
-          size={40}
-        />
+        <Skeleton.Avatar active className={styles.avatar} shape="square" size={40} />
         <span className={styles.copy}>
           <Skeleton.Input active className={styles.skeletonName} />
           <Skeleton.Input active className={styles.skeletonDescription} />
         </span>
-        <Skeleton.Button
-          active
-          className={styles.skeletonStatus}
-          size="small"
-        />
-        <Skeleton.Avatar
-          active
-          className={styles.skeletonChevron}
-          size={14}
-        />
+        <Skeleton.Button active className={styles.skeletonStatus} size="small" />
+        <Skeleton.Avatar active className={styles.skeletonChevron} size={14} />
       </div>
     </li>
   );

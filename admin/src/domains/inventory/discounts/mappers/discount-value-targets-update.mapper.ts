@@ -1,7 +1,4 @@
-import type {
-  ApiDiscount,
-  ApiDiscountUpdateInput,
-} from "@/graphql/types";
+import type { ApiDiscount, ApiDiscountUpdateInput } from "@/graphql/types";
 import {
   DiscountAllocationMethod,
   DiscountBenefitStrategy,
@@ -50,9 +47,7 @@ function minorToMajor(value: number | null | undefined): string {
   const whole = amount / 100n;
   const fraction = (amount % 100n).toString().padStart(2, "0");
 
-  return fraction === "00"
-    ? whole.toString()
-    : `${whole}.${fraction.replace(/0$/, "")}`;
+  return fraction === "00" ? whole.toString() : `${whole}.${fraction.replace(/0$/, "")}`;
 }
 
 function majorToMinor(value: string): number | null {
@@ -60,10 +55,7 @@ function majorToMinor(value: string): number | null {
   if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null;
 
   const [whole, fraction = ""] = normalized.split(".");
-  const amount = Number(
-    BigInt(whole) * 100n +
-      BigInt(fraction.padEnd(2, "0")),
-  );
+  const amount = Number(BigInt(whole) * 100n + BigInt(fraction.padEnd(2, "0")));
 
   return Number.isSafeInteger(amount) ? amount : null;
 }
@@ -86,14 +78,8 @@ function getTargetTitle(
   return target.targetId;
 }
 
-function getSelection(
-  discount: ApiDiscount,
-  role: DiscountTargetRole,
-) {
-  return (
-    discount.targetSelections.find((selection) => selection.role === role) ??
-    null
-  );
+function getSelection(discount: ApiDiscount, role: DiscountTargetRole) {
+  return discount.targetSelections.find((selection) => selection.role === role) ?? null;
 }
 
 function mapTargets(
@@ -110,26 +96,12 @@ function mapTargets(
 export function createDiscountValueTargetsFormValues(
   discount: ApiDiscount,
 ): DiscountValueTargetsFormValues {
-  const amountOff =
-    discount.rule?.__typename === "DiscountAmountOffRule"
-      ? discount.rule
-      : null;
-  const buyXGetY =
-    discount.rule?.__typename === "DiscountBuyXGetYRule"
-      ? discount.rule
-      : null;
+  const amountOff = discount.rule?.__typename === "DiscountAmountOffRule" ? discount.rule : null;
+  const buyXGetY = discount.rule?.__typename === "DiscountBuyXGetYRule" ? discount.rule : null;
   const freeShipping =
-    discount.rule?.__typename === "DiscountFreeShippingRule"
-      ? discount.rule
-      : null;
-  const benefitSelection = getSelection(
-    discount,
-    DiscountTargetRole.Benefit,
-  );
-  const qualifierSelection = getSelection(
-    discount,
-    DiscountTargetRole.Qualifier,
-  );
+    discount.rule?.__typename === "DiscountFreeShippingRule" ? discount.rule : null;
+  const benefitSelection = getSelection(discount, DiscountTargetRole.Benefit);
+  const qualifierSelection = getSelection(discount, DiscountTargetRole.Qualifier);
   const minimum = discount.minimumRequirement;
 
   return {
@@ -137,39 +109,26 @@ export function createDiscountValueTargetsFormValues(
       amountOff?.valueType === PriceAdjustmentValueType.FixedAmount
         ? PriceAdjustmentValueType.FixedAmount
         : PriceAdjustmentValueType.Percentage,
-    percentage:
-      amountOff?.percentageBps == null
-        ? null
-        : amountOff.percentageBps / 100,
+    percentage: amountOff?.percentageBps == null ? null : amountOff.percentageBps / 100,
     amount: minorToMajor(amountOff?.amountMinor),
-    allocationMethod:
-      amountOff?.allocationMethod ?? DiscountAllocationMethod.Each,
+    allocationMethod: amountOff?.allocationMethod ?? DiscountAllocationMethod.Each,
     maximumDiscount: minorToMajor(amountOff?.maximumDiscountMinor),
-    maximumShippingPrice: minorToMajor(
-      freeShipping?.maximumShippingPriceMinor,
-    ),
-    targetType:
-      benefitSelection?.targetType ?? DiscountTargetType.AllProducts,
+    maximumShippingPrice: minorToMajor(freeShipping?.maximumShippingPriceMinor),
+    targetType: benefitSelection?.targetType ?? DiscountTargetType.AllProducts,
     targets: mapTargets(benefitSelection),
-    qualifierTargetType:
-      qualifierSelection?.targetType ?? DiscountTargetType.AllProducts,
+    qualifierTargetType: qualifierSelection?.targetType ?? DiscountTargetType.AllProducts,
     qualifierTargets: mapTargets(qualifierSelection),
     requirementType: minimum?.requirementType ?? null,
     minimumSubtotal: minorToMajor(minimum?.subtotalMinor),
     minimumQuantity: minimum?.quantity ?? null,
-    buyRequirementType:
-      buyXGetY?.requirementType ?? DiscountRequirementType.Quantity,
+    buyRequirementType: buyXGetY?.requirementType ?? DiscountRequirementType.Quantity,
     requiredSubtotal: minorToMajor(buyXGetY?.requiredSubtotalMinor),
     requiredQuantity: buyXGetY?.requiredQuantity ?? 1,
     benefitQuantity: buyXGetY?.benefitQuantity ?? 1,
-    benefitStrategy:
-      buyXGetY?.benefitStrategy ?? DiscountBenefitStrategy.Free,
-    benefitValueType:
-      buyXGetY?.benefitValueType ?? PriceAdjustmentValueType.Percentage,
+    benefitStrategy: buyXGetY?.benefitStrategy ?? DiscountBenefitStrategy.Free,
+    benefitValueType: buyXGetY?.benefitValueType ?? PriceAdjustmentValueType.Percentage,
     benefitPercentage:
-      buyXGetY?.benefitPercentageBps == null
-        ? null
-        : buyXGetY.benefitPercentageBps / 100,
+      buyXGetY?.benefitPercentageBps == null ? null : buyXGetY.benefitPercentageBps / 100,
     benefitAmount: minorToMajor(buyXGetY?.benefitAmountMinor),
     usesPerOrderLimit: buyXGetY?.usesPerOrderLimit ?? null,
   };
@@ -181,10 +140,7 @@ function validateTargetSelection(
   label: string,
   errors: string[],
 ) {
-  if (
-    targetType !== DiscountTargetType.AllProducts &&
-    targets.length === 0
-  ) {
+  if (targetType !== DiscountTargetType.AllProducts && targets.length === 0) {
     errors.push(`Select at least one ${label} target.`);
   }
 }
@@ -201,9 +157,7 @@ export function validateDiscountValueTargetsForm(
   ) {
     if (
       values.valueType === PriceAdjustmentValueType.Percentage &&
-      (values.percentage == null ||
-        values.percentage <= 0 ||
-        values.percentage > 100)
+      (values.percentage == null || values.percentage <= 0 || values.percentage > 100)
     ) {
       errors.push("Percentage must be greater than 0 and no more than 100.");
     }
@@ -213,28 +167,17 @@ export function validateDiscountValueTargetsForm(
     ) {
       errors.push("Fixed amount must be a positive amount.");
     }
-    if (
-      values.maximumDiscount &&
-      !isPositiveMoney(values.maximumDiscount)
-    ) {
+    if (values.maximumDiscount && !isPositiveMoney(values.maximumDiscount)) {
       errors.push("Maximum discount must be a positive amount.");
     }
   }
 
   if (discount.kind === DiscountKind.AmountOffProducts) {
-    validateTargetSelection(
-      values.targetType,
-      values.targets,
-      "benefit",
-      errors,
-    );
+    validateTargetSelection(values.targetType, values.targets, "benefit", errors);
   }
 
   if (discount.kind === DiscountKind.FreeShipping) {
-    if (
-      values.maximumShippingPrice &&
-      !isPositiveMoney(values.maximumShippingPrice)
-    ) {
+    if (values.maximumShippingPrice && !isPositiveMoney(values.maximumShippingPrice)) {
       errors.push("Maximum shipping price must be a positive amount.");
     }
   }
@@ -268,9 +211,7 @@ export function validateDiscountValueTargetsForm(
         values.benefitPercentage <= 0 ||
         values.benefitPercentage > 100)
     ) {
-      errors.push(
-        "Benefit percentage must be greater than 0 and no more than 100.",
-      );
+      errors.push("Benefit percentage must be greater than 0 and no more than 100.");
     }
     if (
       values.benefitStrategy === DiscountBenefitStrategy.Adjustment &&
@@ -281,8 +222,7 @@ export function validateDiscountValueTargetsForm(
     }
     if (
       values.usesPerOrderLimit != null &&
-      (!Number.isSafeInteger(values.usesPerOrderLimit) ||
-        values.usesPerOrderLimit < 1)
+      (!Number.isSafeInteger(values.usesPerOrderLimit) || values.usesPerOrderLimit < 1)
     ) {
       errors.push("Uses per order limit must be a positive whole number.");
     }
@@ -292,12 +232,7 @@ export function validateDiscountValueTargetsForm(
       "qualifier",
       errors,
     );
-    validateTargetSelection(
-      values.targetType,
-      values.targets,
-      "benefit",
-      errors,
-    );
+    validateTargetSelection(values.targetType, values.targets, "benefit", errors);
   }
 
   if (
@@ -329,9 +264,7 @@ function buildTargetSelection(
     role,
     targetType,
     targetIds:
-      targetType === DiscountTargetType.AllProducts
-        ? []
-        : targets.map((target) => target.id),
+      targetType === DiscountTargetType.AllProducts ? [] : targets.map((target) => target.id),
   };
 }
 
@@ -358,20 +291,12 @@ export function buildDiscountValueTargetsUpdateInput(
           values.valueType === PriceAdjustmentValueType.FixedAmount
             ? majorToMinor(values.amount)
             : null,
-        maximumDiscountMinor: values.maximumDiscount
-          ? majorToMinor(values.maximumDiscount)
-          : null,
+        maximumDiscountMinor: values.maximumDiscount ? majorToMinor(values.maximumDiscount) : null,
       },
     };
     operations.targetSelections =
       discount.kind === DiscountKind.AmountOffProducts
-        ? [
-            buildTargetSelection(
-              DiscountTargetRole.Benefit,
-              values.targetType,
-              values.targets,
-            ),
-          ]
+        ? [buildTargetSelection(DiscountTargetRole.Benefit, values.targetType, values.targets)]
         : [];
   } else if (discount.kind === DiscountKind.FreeShipping) {
     operations.rule = {
@@ -423,11 +348,7 @@ export function buildDiscountValueTargetsUpdateInput(
         values.qualifierTargetType,
         values.qualifierTargets,
       ),
-      buildTargetSelection(
-        DiscountTargetRole.Benefit,
-        values.targetType,
-        values.targets,
-      ),
+      buildTargetSelection(DiscountTargetRole.Benefit, values.targetType, values.targets),
     ];
   }
 

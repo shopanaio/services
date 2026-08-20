@@ -22,9 +22,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
   protected async $preload(): Promise<Product> {
     const product = await this.$ctx.loaders.product.load(this.$props);
     if (!product) {
-      throw new PreloadNotFoundError(
-        `Product with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Product with ID ${this.$props} not found`);
     }
     return product;
   }
@@ -83,9 +81,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
 
   async vendor(): Promise<CatalogProductVendorSnapshotResolver | null> {
     const vendorId = await this.$get("vendorId");
-    return vendorId
-      ? this.resolvers.catalogProductVendorSnapshot(vendorId)
-      : null;
+    return vendorId ? this.resolvers.catalogProductVendorSnapshot(vendorId) : null;
   }
 
   availability(): Promise<CatalogProductAvailabilitySnapshotResolver> {
@@ -95,9 +91,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
   }
 
   async primaryCategory(): Promise<CatalogProductCategorySnapshotResolver | null> {
-    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
-      this.$props
-    );
+    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(this.$props);
     const primary = links.find((link) => link.isPrimary);
     return primary
       ? this.resolvers.catalogProductCategorySnapshot({
@@ -109,9 +103,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
   }
 
   async categories(): Promise<CatalogProductCategorySnapshotResolver[]> {
-    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
-      this.$props
-    );
+    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(this.$props);
     return Promise.all(
       [...links]
         .sort((a, b) => {
@@ -125,46 +117,39 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
             categoryId: link.categoryId,
             primary: link.isPrimary,
             manualRank: link.lexoRank,
-          })
-        )
+          }),
+        ),
     );
   }
 
   async tags(): Promise<CatalogProductTagSnapshotResolver[]> {
     const tagIds = await this.$ctx.loaders.productTagIds.load(this.$props);
-    return Promise.all(
-      tagIds.map((tagId) =>
-        this.resolvers.catalogProductTagSnapshot(tagId)
-      )
-    );
+    return Promise.all(tagIds.map((tagId) => this.resolvers.catalogProductTagSnapshot(tagId)));
   }
 
   async features(): Promise<CatalogProductFeatureSelectionSnapshotResolver[]> {
     const featureIds = await this.$ctx.loaders.productFeatureIds.load(this.$props);
     return Promise.all(
       featureIds.map((featureId) =>
-        this.resolvers.catalogProductFeatureSelectionSnapshot(featureId)
-      )
+        this.resolvers.catalogProductFeatureSelectionSnapshot(featureId),
+      ),
     );
   }
 
   async variants(): Promise<CatalogProductVariantSnapshotResolver[]> {
     const variantIds = await this.$ctx.loaders.variantIds.load(this.$props);
     return Promise.all(
-      variantIds.map((variantId) =>
-        this.resolvers.catalogProductVariantSnapshot(variantId)
-      )
+      variantIds.map((variantId) => this.resolvers.catalogProductVariantSnapshot(variantId)),
     );
   }
 
   async collections(): Promise<CatalogProductCollectionSnapshotResolver[]> {
     const memberships =
-      await this.$ctx.kernel.repository.collectionItem
-        .findManualCollectionsByProductId(this.$props);
+      await this.$ctx.kernel.repository.collectionItem.findManualCollectionsByProductId(
+        this.$props,
+      );
     return Promise.all(
-      memberships.map((membership) =>
-        this.resolvers.catalogProductCollectionSnapshot(membership)
-      )
+      memberships.map((membership) => this.resolvers.catalogProductCollectionSnapshot(membership)),
     );
   }
 
@@ -219,20 +204,14 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
     };
   }
 
-  private async contentSnapshot(): Promise<
-    CatalogProductLocalizedContentSnapshot[]
-  > {
+  private async contentSnapshot(): Promise<CatalogProductLocalizedContentSnapshot[]> {
     const resolvers = this.localizedContentResolvers();
-    return Promise.all(
-      (await resolvers).map(async (resolver) => resolver.$snapshot())
-    );
+    return Promise.all((await resolvers).map(async (resolver) => resolver.$snapshot()));
   }
 
   private async seoSnapshot(): Promise<CatalogProductSeoSnapshot[]> {
     const resolvers = this.seoResolvers();
-    return Promise.all(
-      (await resolvers).map(async (resolver) => resolver.$snapshot())
-    );
+    return Promise.all((await resolvers).map(async (resolver) => resolver.$snapshot()));
   }
 
   private async vendorSnapshot() {
@@ -243,16 +222,14 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
   private async localizedContentResolvers(): Promise<
     CatalogProductLocalizedContentSnapshotResolver[]
   > {
-    const translations = await this.$ctx.loaders.productTranslations.load(
-      this.$props
-    );
+    const translations = await this.$ctx.loaders.productTranslations.load(this.$props);
     return Promise.all(
       translations.map((translation) =>
         this.resolvers.catalogProductLocalizedContentSnapshot({
           productId: this.$props,
           locale: translation.locale,
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -263,8 +240,8 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
         this.resolvers.catalogProductSeoSnapshot({
           productId: this.$props,
           locale: seo.locale,
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -298,9 +275,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
     return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
   }
 
-  private async collectionSnapshots(): Promise<
-    CatalogProductCollectionSnapshot[]
-  > {
+  private async collectionSnapshots(): Promise<CatalogProductCollectionSnapshot[]> {
     const resolvers = await this.collections();
     return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
   }

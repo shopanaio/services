@@ -43,7 +43,7 @@ export function getRefreshToken(): string | null {
 export function setStoredTokens(
   accessToken: string,
   refreshToken: string,
-  expiresIn: number
+  expiresIn: number,
 ): void {
   if (!isClient()) return;
 

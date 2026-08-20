@@ -20,9 +20,7 @@ export class CustomerGroupCreateScript extends BaseScript<
   CustomerGroupCreateResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerGroupCreateParams
-  ): Promise<CustomerGroupCreateResult> {
+  protected async execute(params: CustomerGroupCreateParams): Promise<CustomerGroupCreateResult> {
     const code = params.code.trim().toLowerCase();
     const errors: UserError[] = [];
     if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(code)) {

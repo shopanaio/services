@@ -9,10 +9,7 @@ export type WhereFieldMapperContext = {
   operator: WhereFieldOperator;
 };
 
-export type WhereFieldMapper = (
-  value: unknown,
-  context: WhereFieldMapperContext
-) => unknown;
+export type WhereFieldMapper = (value: unknown, context: WhereFieldMapperContext) => unknown;
 
 export type WhereFieldMapperConfig = {
   map: WhereFieldMapper;
@@ -42,27 +39,16 @@ const DEFAULT_MAPPED_OPERATORS = new Set<WhereFieldOperator>([
   "_between",
 ]);
 
-const ARRAY_OPERATORS = new Set<WhereFieldOperator>([
-  "_in",
-  "_notIn",
-  "_between",
-]);
+const ARRAY_OPERATORS = new Set<WhereFieldOperator>(["_in", "_notIn", "_between"]);
 
 export function transformWhereInput<Fields extends FieldsDef>(
   where: NestedWhereInput<Fields> | null | undefined,
-  scope: WhereFieldMapperScope
+  scope: WhereFieldMapperScope,
 ): NestedWhereInput<Fields> | null | undefined {
-  return transformWhereNode(where, scope) as
-    | NestedWhereInput<Fields>
-    | null
-    | undefined;
+  return transformWhereNode(where, scope) as NestedWhereInput<Fields> | null | undefined;
 }
 
-function transformWhereNode(
-  node: unknown,
-  scope: WhereFieldMapperScope,
-  pathPrefix = ""
-): unknown {
+function transformWhereNode(node: unknown, scope: WhereFieldMapperScope, pathPrefix = ""): unknown {
   if (!isPlainRecord(node)) {
     return node;
   }
@@ -74,7 +60,7 @@ function transformWhereNode(
     if (key === "_and" || key === "_or") {
       const mappedList = Array.isArray(value)
         ? mapArrayWithStructuralSharing(value, (item) =>
-            transformWhereNode(item, scope, pathPrefix)
+            transformWhereNode(item, scope, pathPrefix),
           )
         : value;
       changed ||= mappedList !== value;
@@ -116,7 +102,7 @@ function transformFieldFilter(
   mapperOrConfig: WhereFieldMapper | WhereFieldMapperConfig | undefined,
   path: string,
   field: string,
-  value: unknown
+  value: unknown,
 ): unknown {
   if (!mapperOrConfig || value === null || value === undefined) {
     return value;
@@ -136,7 +122,7 @@ function transformFieldFilter(
         path,
         field,
         operator,
-        operatorValue
+        operatorValue,
       );
       changed ||= mapped !== operatorValue;
       next[operator] = mapped;
@@ -145,10 +131,7 @@ function transformFieldFilter(
     return changed ? next : value;
   }
 
-  if (
-    isPlainRecord(value) ||
-    !shouldMapOperator(configuredOperators, "shorthand", value)
-  ) {
+  if (isPlainRecord(value) || !shouldMapOperator(configuredOperators, "shorthand", value)) {
     return value;
   }
 
@@ -161,7 +144,7 @@ function transformOperatorValue(
   path: string,
   field: string,
   operator: string,
-  value: unknown
+  value: unknown,
 ): unknown {
   if (!isWhereFieldOperator(operator)) {
     return value;
@@ -176,9 +159,7 @@ function transformOperatorValue(
       return value;
     }
 
-    return mapArrayWithStructuralSharing(value, (item) =>
-      mapper(item, { path, field, operator })
-    );
+    return mapArrayWithStructuralSharing(value, (item) => mapper(item, { path, field, operator }));
   }
 
   return mapper(value, { path, field, operator });
@@ -187,29 +168,21 @@ function transformOperatorValue(
 function shouldMapOperator(
   configuredOperators: ReadonlySet<WhereFieldOperator> | undefined,
   operator: WhereFieldOperator,
-  value: unknown
+  value: unknown,
 ): boolean {
   if (configuredOperators) {
     return configuredOperators.has(operator);
   }
 
-  return (
-    DEFAULT_MAPPED_OPERATORS.has(operator) &&
-    value !== null &&
-    value !== undefined
-  );
+  return DEFAULT_MAPPED_OPERATORS.has(operator) && value !== null && value !== undefined;
 }
 
-function getMapper(
-  mapperOrConfig: WhereFieldMapper | WhereFieldMapperConfig
-): WhereFieldMapper {
-  return typeof mapperOrConfig === "function"
-    ? mapperOrConfig
-    : mapperOrConfig.map;
+function getMapper(mapperOrConfig: WhereFieldMapper | WhereFieldMapperConfig): WhereFieldMapper {
+  return typeof mapperOrConfig === "function" ? mapperOrConfig : mapperOrConfig.map;
 }
 
 function getConfiguredOperators(
-  mapperOrConfig: WhereFieldMapper | WhereFieldMapperConfig
+  mapperOrConfig: WhereFieldMapper | WhereFieldMapperConfig,
 ): ReadonlySet<WhereFieldOperator> | undefined {
   if (typeof mapperOrConfig === "function" || !mapperOrConfig.operators) {
     return undefined;
@@ -223,7 +196,7 @@ function isWhereFieldOperator(operator: string): operator is WhereFieldOperator 
 
 function mapArrayWithStructuralSharing(
   values: readonly unknown[],
-  map: (value: unknown) => unknown
+  map: (value: unknown) => unknown,
 ): unknown[] {
   let changed = false;
   const next = values.map((value) => {

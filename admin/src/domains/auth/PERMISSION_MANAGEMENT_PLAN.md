@@ -2,9 +2,11 @@
 
 ## Senior Staff Engineer Architecture Design
 
-This document outlines the plan for implementing **permission checks** and **role-based access control (RBAC)** in the admin application, building on top of the authentication foundation.
+This document outlines the plan for implementing **permission checks** and **role-based access
+control (RBAC)** in the admin application, building on top of the authentication foundation.
 
-> **Prerequisites**: Auth domain implementation (sign-in, sign-up, session management) must be completed first.
+> **Prerequisites**: Auth domain implementation (sign-in, sign-up, session management) must be
+> completed first.
 
 ---
 
@@ -25,17 +27,20 @@ This document outlines the plan for implementing **permission checks** and **rol
 ### Existing Infrastructure
 
 **GraphQL API** (IAM Service):
+
 - `userQuery.authorize(input: AuthorizeInput!)` - Server-side permission check
 - `Role` type with permissions array
 - `Member` type with role assignment
 - RBAC package at `packages/rbac`
 
 **Authorization Model**:
+
 - Domain-scoped: `"org"` (organization) or `"store:{uuid}"` (store-specific)
 - Resource-based: `"org.profile"`, `"store.members"`, etc.
 - Action levels: `read`, `write`, `admin` (hierarchical)
 
 ### Current Limitations
+
 - No client-side permission hooks
 - No declarative permission-based rendering
 - No permission caching strategy
@@ -144,24 +149,24 @@ auth/
  * - "org" = organization-level
  * - "store:{uuid}" = store-specific
  */
-export type PermissionDomain = 'org' | `store:${string}`;
+export type PermissionDomain = "org" | `store:${string}`;
 
 /**
  * Action levels (hierarchical: admin > write > read)
  */
-export type PermissionAction = 'read' | 'write' | 'admin';
+export type PermissionAction = "read" | "write" | "admin";
 
 /**
  * Resource identifiers
  */
 export type PermissionResource =
-  | 'org.profile'
-  | 'org.members'
-  | 'org.billing'
-  | 'store.settings'
-  | 'store.products'
-  | 'store.data'
-  | 'store.customers'
+  | "org.profile"
+  | "org.members"
+  | "org.billing"
+  | "store.settings"
+  | "store.products"
+  | "store.data"
+  | "store.customers"
   | string; // Allow custom resources
 
 /**
@@ -194,12 +199,12 @@ export type PermissionCacheKey = string;
 
 ```typescript
 // permissions/hooks/use-authorize.ts
-'use client';
+"use client";
 
-import { useQuery } from '@apollo/client';
-import { useMemo } from 'react';
-import { AUTHORIZE_QUERY } from '../graphql';
-import type { PermissionCheck, PermissionResult } from '../types';
+import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+import { AUTHORIZE_QUERY } from "../graphql";
+import type { PermissionCheck, PermissionResult } from "../types";
 
 interface UseAuthorizeOptions {
   /** Skip the query (useful for conditional checks) */
@@ -214,7 +219,7 @@ interface UseAuthorizeOptions {
  */
 export function useAuthorize(
   check: PermissionCheck,
-  options: UseAuthorizeOptions = {}
+  options: UseAuthorizeOptions = {},
 ): PermissionResult {
   const { skip = false, pollInterval = 0 } = options;
 
@@ -229,15 +234,18 @@ export function useAuthorize(
     },
     skip,
     pollInterval,
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: "cache-and-network",
   });
 
-  return useMemo(() => ({
-    allowed: data?.userQuery?.authorize?.allowed ?? false,
-    deniedReason: data?.userQuery?.authorize?.deniedReason ?? undefined,
-    loading,
-    error: error ?? undefined,
-  }), [data, loading, error]);
+  return useMemo(
+    () => ({
+      allowed: data?.userQuery?.authorize?.allowed ?? false,
+      deniedReason: data?.userQuery?.authorize?.deniedReason ?? undefined,
+      loading,
+      error: error ?? undefined,
+    }),
+    [data, loading, error],
+  );
 }
 ```
 
@@ -245,12 +253,12 @@ export function useAuthorize(
 
 ```typescript
 // permissions/hooks/use-permission.ts
-'use client';
+"use client";
 
-import { useCallback, useEffect } from 'react';
-import { usePermissionCache } from './use-permission-cache';
-import { useAuthorize } from './use-authorize';
-import type { PermissionCheck } from '../types';
+import { useCallback, useEffect } from "react";
+import { usePermissionCache } from "./use-permission-cache";
+import { useAuthorize } from "./use-authorize";
+import type { PermissionCheck } from "../types";
 
 interface UsePermissionOptions {
   /** Fallback value while loading */
@@ -263,10 +271,7 @@ interface UsePermissionOptions {
  * Sync hook for permission checks with caching.
  * Returns cached result immediately, refreshes in background.
  */
-export function usePermission(
-  check: PermissionCheck,
-  options: UsePermissionOptions = {}
-): boolean {
+export function usePermission(check: PermissionCheck, options: UsePermissionOptions = {}): boolean {
   const { fallback = false, refresh = false } = options;
   const { getPermission, setPermission, invalidate } = usePermissionCache();
 
@@ -299,9 +304,7 @@ export function usePermission(
 /**
  * Hook for checking multiple permissions at once.
  */
-export function usePermissions(
-  checks: PermissionCheck[]
-): Record<string, boolean> {
+export function usePermissions(checks: PermissionCheck[]): Record<string, boolean> {
   const results: Record<string, boolean> = {};
 
   for (const check of checks) {
@@ -551,9 +554,9 @@ query Authorize($input: AuthorizeInput!) {
 ```graphql
 input AuthorizeInput {
   organizationId: ID!
-  domain: String!      # "org" or "store:{uuid}"
-  resource: String!    # e.g., "org.profile", "store.members"
-  action: String!      # "read", "write", "admin"
+  domain: String! # "org" or "store:{uuid}"
+  resource: String! # e.g., "org.profile", "store.members"
+  action: String! # "read", "write", "admin"
 }
 ```
 
@@ -585,6 +588,7 @@ admin > write > read
 **Objective**: Set up permission hooks and context
 
 **Tasks**:
+
 1. Create permission types
 2. Implement `useAuthorize` hook (async)
 3. Implement permission cache context
@@ -592,6 +596,7 @@ admin > write > read
 5. Add GraphQL query for authorization
 
 **Deliverables**:
+
 - `permissions/types/`
 - `permissions/hooks/use-authorize.ts`
 - `permissions/hooks/use-permission.ts`
@@ -603,12 +608,14 @@ admin > write > read
 **Objective**: Create reusable permission components
 
 **Tasks**:
+
 1. Implement `PermissionGate` component
 2. Implement `ProtectedRoute` component
 3. Implement `AccessDenied` component
 4. Create shorthand components (`CanWrite`, `CanAdmin`)
 
 **Deliverables**:
+
 - `permissions/components/permission-gate.tsx`
 - `permissions/components/protected-route.tsx`
 - `permissions/components/access-denied.tsx`
@@ -618,12 +625,14 @@ admin > write > read
 **Objective**: Integrate with existing pages
 
 **Tasks**:
+
 1. Add permission checks to member management
 2. Add permission checks to organization settings
 3. Add permission checks to store settings
 4. Update navigation to hide unauthorized items
 
 **Deliverables**:
+
 - Updated domain pages with permission gates
 - Conditional sidebar items
 
@@ -642,9 +651,9 @@ function MemberList({ organizationId }: { organizationId: string }) {
       <PermissionGate
         check={{
           organizationId,
-          domain: 'org',
-          resource: 'org.members',
-          action: 'write',
+          domain: "org",
+          resource: "org.members",
+          action: "write",
         }}
       >
         <Button type="primary">Invite Member</Button>
@@ -667,9 +676,9 @@ export default function MemberManagementPage() {
     <ProtectedRoute
       check={{
         organizationId,
-        domain: 'org',
-        resource: 'org.members',
-        action: 'admin',
+        domain: "org",
+        resource: "org.members",
+        action: "admin",
       }}
       accessDeniedComponent={
         <AccessDenied
@@ -691,13 +700,13 @@ function ProductActions({ organizationId, storeId }: Props) {
   const canDelete = usePermission({
     organizationId,
     domain: `store:${storeId}`,
-    resource: 'store.products',
-    action: 'admin',
+    resource: "store.products",
+    action: "admin",
   });
 
   const handleDelete = async () => {
     if (!canDelete) {
-      message.error('You do not have permission to delete products');
+      message.error("You do not have permission to delete products");
       return;
     }
     // Proceed with delete...
@@ -717,16 +726,16 @@ function ProductActions({ organizationId, storeId }: Props) {
 function Sidebar({ organizationId }: { organizationId: string }) {
   const canManageMembers = usePermission({
     organizationId,
-    domain: 'org',
-    resource: 'org.members',
-    action: 'read',
+    domain: "org",
+    resource: "org.members",
+    action: "read",
   });
 
   const canManageBilling = usePermission({
     organizationId,
-    domain: 'org',
-    resource: 'org.billing',
-    action: 'read',
+    domain: "org",
+    resource: "org.billing",
+    action: "read",
   });
 
   return (
@@ -859,7 +868,5 @@ describe('PermissionGate', () => {
 
 ---
 
-*Document Version: 1.0*
-*Last Updated: January 2026*
-*Scope: Permission Management & RBAC*
-*Author: Senior Staff Engineer*
+_Document Version: 1.0_ _Last Updated: January 2026_ _Scope: Permission Management & RBAC_ _Author:
+Senior Staff Engineer_

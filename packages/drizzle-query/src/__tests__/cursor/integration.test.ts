@@ -1,11 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import "../test/setup.js";
-import {
-  getDb,
-  products,
-  translations,
-  clearTables,
-} from "../test/setup.js";
+import { getDb, products, translations, clearTables } from "../test/setup.js";
 import { createRelayBuilder } from "../../cursor/relay-builder.js";
 import { createSchema } from "../../schema.js";
 import { decode } from "../../cursor/cursor.js";
@@ -510,7 +505,10 @@ describe("Cursor Pagination Integration Tests", () => {
       // Sort by price ASC, then handle ASC
       const page1 = await qb.query(db as never, {
         first: 3,
-        orderBy: [{ field: "price", direction: "asc" }, { field: "handle", direction: "asc" }],
+        orderBy: [
+          { field: "price", direction: "asc" },
+          { field: "handle", direction: "asc" },
+        ],
         select: ["id", "handle", "price"],
       });
 
@@ -524,14 +522,14 @@ describe("Cursor Pagination Integration Tests", () => {
       const page2 = await qb.query(db as never, {
         first: 3,
         after: page1.pageInfo.endCursor!,
-        orderBy: [{ field: "price", direction: "asc" }, { field: "handle", direction: "asc" }],
+        orderBy: [
+          { field: "price", direction: "asc" },
+          { field: "handle", direction: "asc" },
+        ],
         select: ["id", "handle", "price"],
       });
 
-      expect(page2.edges.map((e) => e.node.handle)).toEqual([
-        "b-product",
-        "x-product",
-      ]);
+      expect(page2.edges.map((e) => e.node.handle)).toEqual(["b-product", "x-product"]);
     });
 
     it("should handle mixed ASC/DESC sort", async () => {
@@ -549,7 +547,10 @@ describe("Cursor Pagination Integration Tests", () => {
       // Sort by handle ASC, price DESC
       const result = await qb.query(db as never, {
         first: 10,
-        orderBy: [{ field: "handle", direction: "asc" }, { field: "price", direction: "desc" }],
+        orderBy: [
+          { field: "handle", direction: "asc" },
+          { field: "price", direction: "desc" },
+        ],
         select: ["id", "handle", "price"],
       });
 
@@ -644,9 +645,7 @@ describe("Cursor Pagination Integration Tests", () => {
     it("should generate valid decodable cursors", async () => {
       const db = getDb();
 
-      await db.insert(products).values([
-        { handle: "test-product", price: 999 },
-      ]);
+      await db.insert(products).values([{ handle: "test-product", price: 999 }]);
 
       const qb = createProductsQb();
 
@@ -693,18 +692,9 @@ describe("Cursor Pagination Integration Tests", () => {
       const db = getDb();
 
       // Insert products
-      const [p1] = await db
-        .insert(products)
-        .values({ handle: "phone", price: 999 })
-        .returning();
-      const [p2] = await db
-        .insert(products)
-        .values({ handle: "laptop", price: 1999 })
-        .returning();
-      const [p3] = await db
-        .insert(products)
-        .values({ handle: "tablet", price: 599 })
-        .returning();
+      const [p1] = await db.insert(products).values({ handle: "phone", price: 999 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "laptop", price: 1999 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "tablet", price: 599 }).returning();
 
       // Insert translations
       await db.insert(translations).values([
@@ -742,27 +732,20 @@ describe("Cursor Pagination Integration Tests", () => {
       const db = getDb();
 
       // Insert products
-      const [p1] = await db
-        .insert(products)
-        .values({ handle: "iphone", price: 999 })
-        .returning();
-      const [p2] = await db
-        .insert(products)
-        .values({ handle: "samsung", price: 899 })
-        .returning();
-      const [p3] = await db
-        .insert(products)
-        .values({ handle: "pixel", price: 799 })
-        .returning();
-      const [p4] = await db
-        .insert(products)
-        .values({ handle: "macbook", price: 1999 })
-        .returning();
+      const [p1] = await db.insert(products).values({ handle: "iphone", price: 999 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "samsung", price: 899 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "pixel", price: 799 }).returning();
+      const [p4] = await db.insert(products).values({ handle: "macbook", price: 1999 }).returning();
 
       // Insert translations with searchable values
       await db.insert(translations).values([
         { entityId: p1.id, field: "title", value: "iPhone 15", searchValue: "phone mobile apple" },
-        { entityId: p2.id, field: "title", value: "Galaxy S24", searchValue: "phone mobile samsung" },
+        {
+          entityId: p2.id,
+          field: "title",
+          value: "Galaxy S24",
+          searchValue: "phone mobile samsung",
+        },
         { entityId: p3.id, field: "title", value: "Pixel 8", searchValue: "phone mobile google" },
         { entityId: p4.id, field: "title", value: "MacBook Pro", searchValue: "laptop apple" },
       ]);

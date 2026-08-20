@@ -1,7 +1,4 @@
-import type {
-  GatewayConfig,
-  GatewayPlugin,
-} from "@graphql-hive/gateway";
+import type { GatewayConfig, GatewayPlugin } from "@graphql-hive/gateway";
 import { randomUUID } from "node:crypto";
 import { GraphQLError } from "graphql";
 import { createWebSocketRequest } from "../WebSocketRequest.js";
@@ -14,10 +11,7 @@ import {
   requestError,
 } from "./AdminRequestHeaders.js";
 
-type RequestIdConfig = Exclude<
-  GatewayConfig["requestId"],
-  boolean | undefined
->;
+type RequestIdConfig = Exclude<GatewayConfig["requestId"], boolean | undefined>;
 
 const ADMIN_WEBSOCKET_HEADERS = new Set([
   "authorization",
@@ -66,23 +60,25 @@ export function createAdminContextPlugin() {
         };
         const status = known.status ?? 503;
         const code = known.code ?? "ADMIN_CONTEXT_UNAVAILABLE";
-        endResponse(new fetchAPI.Response(JSON.stringify({
-          data: null,
-          errors: [{ message: code, extensions: { code } }],
-        }), {
-          status,
-          headers: { "content-type": "application/json" },
-        }));
+        endResponse(
+          new fetchAPI.Response(
+            JSON.stringify({
+              data: null,
+              errors: [{ message: code, extensions: { code } }],
+            }),
+            {
+              status,
+              headers: { "content-type": "application/json" },
+            },
+          ),
+        );
       }
     },
     async onContextBuilding({ context, extendContext }) {
       if (context.request) return;
 
       try {
-        const request = createWebSocketRequest(
-          context.connectionParams,
-          ADMIN_WEBSOCKET_HEADERS,
-        );
+        const request = createWebSocketRequest(context.connectionParams, ADMIN_WEBSOCKET_HEADERS);
         const requestId = parseAdminRequestId(request) ?? randomUUID();
         request.headers.set(ADMIN_REQUEST_ID_HEADER, requestId);
         const signedContext = await resolveRequest(request, requestId, true);
@@ -105,11 +101,7 @@ export function createAdminContextPlugin() {
     const parsed = parseAdminRequest(request);
     if (!parsed.accessToken) {
       if (!requireAccessToken) return undefined;
-      throw requestError(
-        401,
-        "ADMIN_ACCESS_TOKEN_REQUIRED",
-        "An admin access token is required",
-      );
+      throw requestError(401, "ADMIN_ACCESS_TOKEN_REQUIRED", "An admin access token is required");
     }
     const requestId = parseAdminRequestId(request) ?? fallbackRequestId;
     if (!requestId) {
@@ -117,18 +109,12 @@ export function createAdminContextPlugin() {
     }
     const context = await client.resolve({
       accessToken: parsed.accessToken,
-      ...(parsed.organizationId
-        ? { organizationId: parsed.organizationId }
-        : {}),
+      ...(parsed.organizationId ? { organizationId: parsed.organizationId } : {}),
       ...(parsed.storeName ? { storeName: parsed.storeName } : {}),
       requestId,
     });
     if (!context) {
-      throw requestError(
-        401,
-        "ADMIN_CONTEXT_INVALID",
-        "Invalid admin access context",
-      );
+      throw requestError(401, "ADMIN_CONTEXT_INVALID", "Invalid admin access context");
     }
     return signer.sign(context, requestId);
   }

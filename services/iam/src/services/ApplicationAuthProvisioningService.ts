@@ -6,9 +6,7 @@ import {
 
 /** Trusted domain boundary for atomic application realm provisioning/backfill. */
 export class ApplicationAuthProvisioningService {
-  constructor(
-    private readonly configurations: ApplicationAuthConfigurationRepository
-  ) {}
+  constructor(private readonly configurations: ApplicationAuthConfigurationRepository) {}
 
   provision(input: ProvisionApplicationInput): Promise<ProvisionedApplication> {
     return this.configurations.provisionApplication(input);
@@ -18,4 +16,3 @@ export class ApplicationAuthProvisioningService {
     return this.configurations.backfillMissingConfigurations();
   }
 }
-

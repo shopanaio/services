@@ -30,9 +30,7 @@ export type CustomerUpdateOperation =
   | CustomerSegmentsUpdateOperation;
 
 export type CustomerUpdateOperationType =
-  | CustomerUpdateOperation["type"]
-  | "mergeUpdate"
-  | "dataRequestUpdate";
+  CustomerUpdateOperation["type"] | "mergeUpdate" | "dataRequestUpdate";
 
 export interface CustomerProfileUpdateOperation {
   type: "profileUpdate";
@@ -147,14 +145,8 @@ export interface CustomerAddressesUpdateOperation {
 
 export type CustomerConsentChannel = "EMAIL" | "SMS" | "WHATSAPP" | "PUSH";
 export type CustomerConsentAdminState =
-  | "NOT_SUBSCRIBED"
-  | "PENDING"
-  | "SUBSCRIBED"
-  | "UNSUBSCRIBED";
-export type CustomerConsentOptInLevel =
-  | "UNKNOWN"
-  | "SINGLE_OPT_IN"
-  | "CONFIRMED_OPT_IN";
+  "NOT_SUBSCRIBED" | "PENDING" | "SUBSCRIBED" | "UNSUBSCRIBED";
+export type CustomerConsentOptInLevel = "UNKNOWN" | "SINGLE_OPT_IN" | "CONFIRMED_OPT_IN";
 
 export interface CustomerConsentsUpdateOperation {
   type: "consentUpdate";
@@ -171,11 +163,7 @@ export interface CustomerConsentsUpdateOperation {
   meta: CustomerUpdateOperationMeta;
 }
 
-export type CustomerTaxIdentifierStatus =
-  | "UNVERIFIED"
-  | "VERIFIED"
-  | "REJECTED"
-  | "EXPIRED";
+export type CustomerTaxIdentifierStatus = "UNVERIFIED" | "VERIFIED" | "REJECTED" | "EXPIRED";
 
 export interface CustomerTaxIdentifierCreateParams {
   identifierType: string;

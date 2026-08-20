@@ -3,11 +3,7 @@ export { CatalogType, Cache } from "./CatalogType.js";
 export { ResolverRegistry, getResolverRegistry } from "./ResolverRegistry.js";
 
 // Root resolvers
-export {
-  QueryResolver,
-  CatalogQueryResolver,
-  InventoryQueryResolver,
-} from "./QueryResolver.js";
+export { QueryResolver, CatalogQueryResolver, InventoryQueryResolver } from "./QueryResolver.js";
 export {
   MutationResolver,
   CatalogMutationResolver,
@@ -80,10 +76,7 @@ export {
   CategoryConnectionResolver,
   type CategoryConnectionInput,
 } from "./CategoryConnectionResolver.js";
-export {
-  TagConnectionResolver,
-  type TagConnectionInput,
-} from "./TagConnectionResolver.js";
+export { TagConnectionResolver, type TagConnectionInput } from "./TagConnectionResolver.js";
 export {
   ProductBulkUpdateJobConnectionResolver,
   type ProductBulkUpdateJobConnectionInput,

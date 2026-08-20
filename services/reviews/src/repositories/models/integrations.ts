@@ -1,19 +1,7 @@
 import { sql } from "drizzle-orm";
-import {
-  index,
-  jsonb,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { index, jsonb, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 import { contentItem } from "./content.js";
-import {
-  externalSyncDirectionEnum,
-  externalSyncStatusEnum,
-  reviewsSchema,
-} from "./schema.js";
+import { externalSyncDirectionEnum, externalSyncStatusEnum, reviewsSchema } from "./schema.js";
 
 export const contentExternalReference = reviewsSchema.table(
   "content_external_reference",
@@ -36,10 +24,7 @@ export const contentExternalReference = reviewsSchema.table(
       mode: "string",
     }),
     lastError: text("last_error"),
-    metadata: jsonb("metadata")
-      .$type<Record<string, unknown>>()
-      .notNull()
-      .default({}),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -50,12 +35,7 @@ export const contentExternalReference = reviewsSchema.table(
   },
   (table) => [
     uniqueIndex("content_external_reference_lookup_unique")
-      .on(
-        table.storeId,
-        table.externalSystem,
-        table.externalType,
-        table.externalId
-      )
+      .on(table.storeId, table.externalSystem, table.externalType, table.externalId)
       .where(sql`${table.deletedAt} IS NULL`),
     uniqueIndex("content_external_reference_content_unique")
       .on(table.contentId, table.externalSystem, table.externalType)
@@ -63,10 +43,8 @@ export const contentExternalReference = reviewsSchema.table(
     index("content_external_reference_sync_queue_idx")
       .on(table.storeId, table.syncStatus, table.updatedAt, table.id)
       .where(sql`${table.deletedAt} IS NULL`),
-  ]
+  ],
 );
 
-export type ContentExternalReference =
-  typeof contentExternalReference.$inferSelect;
-export type NewContentExternalReference =
-  typeof contentExternalReference.$inferInsert;
+export type ContentExternalReference = typeof contentExternalReference.$inferSelect;
+export type NewContentExternalReference = typeof contentExternalReference.$inferInsert;

@@ -18,9 +18,7 @@ export class CustomerMergeCreateScript extends BaseScript<
   CustomerMergeCreateResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerMergeCreateParams
-  ): Promise<CustomerMergeCreateResult> {
+  protected async execute(params: CustomerMergeCreateParams): Promise<CustomerMergeCreateResult> {
     const errors = await this.validate(params);
     if (errors.length > 0) {
       return { merge: undefined, userErrors: errors };
@@ -53,7 +51,7 @@ export class CustomerMergeCreateScript extends BaseScript<
           sourceCustomerId: params.sourceCustomerId,
           targetCustomerId: params.targetCustomerId,
         },
-        "Customer merge requested"
+        "Customer merge requested",
       );
       return { merge: { id: merge.id }, userErrors: [] };
     } catch (error) {

@@ -1,18 +1,7 @@
 import { sql } from "drizzle-orm";
-import {
-  check,
-  index,
-  primaryKey,
-  timestamp,
-  unique,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { check, index, primaryKey, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { discount } from "./discounts.js";
-import {
-  discountBuyerContextTypeEnum,
-  pricingSchema,
-  referenceStatusEnum,
-} from "./schema.js";
+import { discountBuyerContextTypeEnum, pricingSchema, referenceStatusEnum } from "./schema.js";
 
 export const discountBuyerContext = pricingSchema.table(
   "discount_buyer_context",
@@ -21,9 +10,7 @@ export const discountBuyerContext = pricingSchema.table(
       .primaryKey()
       .references(() => discount.id, { onDelete: "cascade" }),
     storeId: uuid("store_id").notNull(),
-    contextType: discountBuyerContextTypeEnum("context_type")
-      .notNull()
-      .default("ALL"),
+    contextType: discountBuyerContextTypeEnum("context_type").notNull().default("ALL"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -32,10 +19,7 @@ export const discountBuyerContext = pricingSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("discount_buyer_context_store_discount_unique").on(
-      table.storeId,
-      table.discountId,
-    ),
+    unique("discount_buyer_context_store_discount_unique").on(table.storeId, table.discountId),
     index("discount_buyer_context_store_type_idx").on(
       table.storeId,
       table.contextType,
@@ -54,9 +38,7 @@ export const discountEligibleCustomer = pricingSchema.table(
         onDelete: "cascade",
       }),
     customerId: uuid("customer_id").notNull(),
-    referenceStatus: referenceStatusEnum("reference_status")
-      .notNull()
-      .default("VALID"),
+    referenceStatus: referenceStatusEnum("reference_status").notNull().default("VALID"),
     referenceStatusChangedAt: timestamp("reference_status_changed_at", {
       withTimezone: true,
       mode: "string",
@@ -99,9 +81,7 @@ export const discountEligibleSegment = pricingSchema.table(
         onDelete: "cascade",
       }),
     segmentId: uuid("segment_id").notNull(),
-    referenceStatus: referenceStatusEnum("reference_status")
-      .notNull()
-      .default("VALID"),
+    referenceStatus: referenceStatusEnum("reference_status").notNull().default("VALID"),
     referenceStatusChangedAt: timestamp("reference_status_changed_at", {
       withTimezone: true,
       mode: "string",
@@ -136,11 +116,7 @@ export const discountEligibleSegment = pricingSchema.table(
 
 export type DiscountBuyerContext = typeof discountBuyerContext.$inferSelect;
 export type NewDiscountBuyerContext = typeof discountBuyerContext.$inferInsert;
-export type DiscountEligibleCustomer =
-  typeof discountEligibleCustomer.$inferSelect;
-export type NewDiscountEligibleCustomer =
-  typeof discountEligibleCustomer.$inferInsert;
-export type DiscountEligibleSegment =
-  typeof discountEligibleSegment.$inferSelect;
-export type NewDiscountEligibleSegment =
-  typeof discountEligibleSegment.$inferInsert;
+export type DiscountEligibleCustomer = typeof discountEligibleCustomer.$inferSelect;
+export type NewDiscountEligibleCustomer = typeof discountEligibleCustomer.$inferInsert;
+export type DiscountEligibleSegment = typeof discountEligibleSegment.$inferSelect;
+export type NewDiscountEligibleSegment = typeof discountEligibleSegment.$inferInsert;

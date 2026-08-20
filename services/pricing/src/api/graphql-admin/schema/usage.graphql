@@ -1,4 +1,6 @@
-"""A redeemable code and its usage projection."""
+"""
+A redeemable code and its usage projection.
+"""
 type DiscountCode implements Node @key(fields: "id") {
   id: ID!
   discount: Discount!
@@ -28,7 +30,9 @@ type DiscountCodeEdge {
   cursor: String!
 }
 
-"""Aggregate usage accounting including active checkout reservations."""
+"""
+Aggregate usage accounting including active checkout reservations.
+"""
 type DiscountUsageSummary {
   usageLimit: BigInt
   reservedCount: BigInt!
@@ -41,7 +45,9 @@ type DiscountUsageSummary {
   updatedAt: DateTime
 }
 
-"""Operational capacity reservation retained as an audit record after closing."""
+"""
+Operational capacity reservation retained as an audit record after closing.
+"""
 type DiscountUsageReservation implements Node @key(fields: "id") {
   id: ID!
   discount: Discount!
@@ -70,7 +76,9 @@ type DiscountUsageReservationEdge {
   cursor: String!
 }
 
-"""Order-level discount accounting header."""
+"""
+Order-level discount accounting header.
+"""
 type DiscountRedemption implements Node @key(fields: "id") {
   id: ID!
   discount: Discount!

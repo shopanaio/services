@@ -33,9 +33,7 @@ export class DiscountResolver extends PricingType<string, DiscountReadModel> {
   async $preload() {
     const discount = await this.$ctx.loaders.discount.load(this.$props);
     if (!discount) {
-      throw new PreloadNotFoundError(
-        `Discount with ID ${this.$props} not found`,
-      );
+      throw new PreloadNotFoundError(`Discount with ID ${this.$props} not found`);
     }
     return discount;
   }
@@ -44,37 +42,75 @@ export class DiscountResolver extends PricingType<string, DiscountReadModel> {
     return this.encodeId(this.$props, GlobalIdEntity.Discount);
   }
 
-  method() { return this.$get("method"); }
-  calculationStrategy() { return this.$get("calculationStrategy"); }
-  kind() { return this.$get("kind"); }
-  discountClass() { return this.$get("discountClass"); }
-  state() { return this.$get("state"); }
-  effectiveStatus() { return this.$get("effectiveStatus"); }
-  title() { return this.$get("title"); }
-  primaryCode() { return this.$get("primaryCode"); }
-  codesCount() { return this.$get("codesCount"); }
-  currency() { return this.$get("currency"); }
-  priority() { return this.$get("priority"); }
+  method() {
+    return this.$get("method");
+  }
+  calculationStrategy() {
+    return this.$get("calculationStrategy");
+  }
+  kind() {
+    return this.$get("kind");
+  }
+  discountClass() {
+    return this.$get("discountClass");
+  }
+  state() {
+    return this.$get("state");
+  }
+  effectiveStatus() {
+    return this.$get("effectiveStatus");
+  }
+  title() {
+    return this.$get("title");
+  }
+  primaryCode() {
+    return this.$get("primaryCode");
+  }
+  codesCount() {
+    return this.$get("codesCount");
+  }
+  currency() {
+    return this.$get("currency");
+  }
+  priority() {
+    return this.$get("priority");
+  }
   async usageLimit() {
     return toGraphqlBigInt(await this.$get("usageLimit"));
   }
-  appliesOncePerCustomer() { return this.$get("appliesOncePerCustomer"); }
+  appliesOncePerCustomer() {
+    return this.$get("appliesOncePerCustomer");
+  }
   appliesOnOneTimePurchase() {
     return this.$get("appliesOnOneTimePurchase");
   }
-  appliesOnSubscription() { return this.$get("appliesOnSubscription"); }
-  startsAt() { return this.$get("startsAt"); }
-  endsAt() { return this.$get("endsAt"); }
-  revision() { return this.$get("revision"); }
+  appliesOnSubscription() {
+    return this.$get("appliesOnSubscription");
+  }
+  startsAt() {
+    return this.$get("startsAt");
+  }
+  endsAt() {
+    return this.$get("endsAt");
+  }
+  revision() {
+    return this.$get("revision");
+  }
   async reservedUsageCount() {
     return toGraphqlBigInt(await this.$get("reservedUsageCount"));
   }
   async usageCount() {
     return toGraphqlBigInt(await this.$get("usageCount"));
   }
-  tags() { return this.$get("tags"); }
-  channelCodes() { return this.$get("channelCodes"); }
-  featuredChannelCodes() { return this.$get("featuredChannelCodes"); }
+  tags() {
+    return this.$get("tags");
+  }
+  channelCodes() {
+    return this.$get("channelCodes");
+  }
+  featuredChannelCodes() {
+    return this.$get("featuredChannelCodes");
+  }
   combinesWithProductDiscounts() {
     return this.$get("combinesWithProductDiscounts");
   }
@@ -84,15 +120,27 @@ export class DiscountResolver extends PricingType<string, DiscountReadModel> {
   combinesWithShippingDiscounts() {
     return this.$get("combinesWithShippingDiscounts");
   }
-  createdById() { return this.$get("createdById"); }
-  metadata() { return this.$get("metadata"); }
-  createdAt() { return this.$get("createdAt"); }
-  updatedAt() { return this.$get("updatedAt"); }
-  archivedAt() { return this.$get("archivedAt"); }
+  createdById() {
+    return this.$get("createdById");
+  }
+  metadata() {
+    return this.$get("metadata");
+  }
+  createdAt() {
+    return this.$get("createdAt");
+  }
+  updatedAt() {
+    return this.$get("updatedAt");
+  }
+  archivedAt() {
+    return this.$get("archivedAt");
+  }
 
   async functionBinding() {
     const aggregate = await this.$ctx.kernel.repository.discount.findAggregateById(this.$props);
-    return aggregate?.functionBinding ? new DiscountFunctionBindingResolver(aggregate.functionBinding, this.$ctx) : null;
+    return aggregate?.functionBinding
+      ? new DiscountFunctionBindingResolver(aggregate.functionBinding, this.$ctx)
+      : null;
   }
 
   async rule() {
@@ -110,11 +158,8 @@ export class DiscountResolver extends PricingType<string, DiscountReadModel> {
   }
 
   async minimumRequirement() {
-    const requirement =
-      await this.$ctx.loaders.discountMinimumRequirement.load(this.$props);
-    return requirement
-      ? new DiscountMinimumRequirementResolver(requirement, this.$ctx)
-      : null;
+    const requirement = await this.$ctx.loaders.discountMinimumRequirement.load(this.$props);
+    return requirement ? new DiscountMinimumRequirementResolver(requirement, this.$ctx) : null;
   }
 
   async targetSelections() {
@@ -129,8 +174,7 @@ export class DiscountResolver extends PricingType<string, DiscountReadModel> {
             selection,
             targets: targets.filter(
               (target) =>
-                target.role === selection.role &&
-                target.targetType === selection.targetType,
+                target.role === selection.role && target.targetType === selection.targetType,
             ),
           },
           this.$ctx,
@@ -146,44 +190,31 @@ export class DiscountResolver extends PricingType<string, DiscountReadModel> {
     ]);
     if (!context) return null;
 
-    return new DiscountBuyerContextResolver(
-      { context, customers, segments },
-      this.$ctx,
-    );
+    return new DiscountBuyerContextResolver({ context, customers, segments }, this.$ctx);
   }
 
   async channels() {
     const channels = await this.$ctx.loaders.discountChannels.load(this.$props);
-    return channels.map(
-      (channel) => new DiscountChannelResolver(channel, this.$ctx),
-    );
+    return channels.map((channel) => new DiscountChannelResolver(channel, this.$ctx));
   }
 
   async combinations() {
-    const combinations =
-      await this.$ctx.loaders.discountCombinations.load(this.$props);
+    const combinations = await this.$ctx.loaders.discountCombinations.load(this.$props);
     return combinations.map(
-      (combination) =>
-        new DiscountCombinationResolver(combination, this.$ctx),
+      (combination) => new DiscountCombinationResolver(combination, this.$ctx),
     );
   }
 
   async usage() {
-    const usage =
-      await this.$ctx.loaders.discountUsageSummary.load(this.$props);
+    const usage = await this.$ctx.loaders.discountUsageSummary.load(this.$props);
     if (!usage) {
-      throw new PreloadNotFoundError(
-        `Usage summary for discount ${this.$props} not found`,
-      );
+      throw new PreloadNotFoundError(`Usage summary for discount ${this.$props} not found`);
     }
     return new DiscountUsageSummaryResolver(usage, this.$ctx);
   }
 
   codes(args: DiscountCodeRelayInput) {
-    return new DiscountCodeConnectionResolver(
-      { ...args, discountId: this.$props },
-      this.$ctx,
-    );
+    return new DiscountCodeConnectionResolver({ ...args, discountId: this.$props }, this.$ctx);
   }
 
   usageReservations(args: DiscountUsageReservationRelayInput) {

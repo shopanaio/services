@@ -70,7 +70,7 @@ export class FacetAffectedProductsResyncWorkflow extends BrokerWorkflows<
 
   @Workflow("resyncFacetAffectedProducts")
   async run(
-    input: FacetAffectedProductsResyncWorkflowInput
+    input: FacetAffectedProductsResyncWorkflowInput,
   ): Promise<FacetAffectedProductsResyncWorkflowResult> {
     const refs = normalizeRefs([...(input.oldRefs ?? []), ...(input.newRefs ?? [])]);
     const refsHash = hashContent({ v: 1, refs });
@@ -121,7 +121,7 @@ export class FacetAffectedProductsResyncWorkflow extends BrokerWorkflows<
     retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
   })
   private async stepFindAffectedProducts(
-    params: Catalog.FindListingFacetAffectedProductsParams
+    params: Catalog.FindListingFacetAffectedProductsParams,
   ): Promise<Catalog.FindListingFacetAffectedProductsResult> {
     return this.broker.call<
       Catalog.FindListingFacetAffectedProductsResult,
@@ -169,7 +169,7 @@ export class FacetAffectedProductsResyncWorkflow extends BrokerWorkflows<
           stepId: "emitListingFacetMembershipChanged",
           callId: productId,
           organizationId: params.input.organizationId,
-        }
+        },
       );
       eventIds.push(result.eventId);
     }
@@ -178,20 +178,18 @@ export class FacetAffectedProductsResyncWorkflow extends BrokerWorkflows<
   }
 }
 
-function normalizeRefs(
-  refs: readonly FacetIndexImpactSourceRef[]
-): FacetIndexImpactSourceRef[] {
+function normalizeRefs(refs: readonly FacetIndexImpactSourceRef[]): FacetIndexImpactSourceRef[] {
   return [
     ...new Map(
       refs.map((ref) => [
         `${ref.facetType}\0${ref.sourceHandle}\0${ref.sourceValueHandle ?? ""}`,
         ref,
-      ])
+      ]),
     ).values(),
   ].sort(
     (left, right) =>
       left.facetType.localeCompare(right.facetType) ||
       left.sourceHandle.localeCompare(right.sourceHandle) ||
-      (left.sourceValueHandle ?? "").localeCompare(right.sourceValueHandle ?? "")
+      (left.sourceValueHandle ?? "").localeCompare(right.sourceValueHandle ?? ""),
   );
 }

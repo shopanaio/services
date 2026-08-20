@@ -18,9 +18,7 @@ export class CustomerAddressesUpdateScript extends BaseScript<
   CustomerSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerAddressesUpdateParams
-  ): Promise<CustomerSectionResult> {
+  protected async execute(params: CustomerAddressesUpdateParams): Promise<CustomerSectionResult> {
     const { customerId, operations } = params;
     const errors = await this.validate(customerId, operations);
     if (errors.length > 0) return sectionErrors(errors);
@@ -36,7 +34,7 @@ export class CustomerAddressesUpdateScript extends BaseScript<
     for (const input of operations.update) {
       await this.repository.address.update(
         input.addressId,
-        input.operations as unknown as CustomerAddressPatch
+        input.operations as unknown as CustomerAddressPatch,
       );
     }
     for (const addressId of operations.deleteIds) {
@@ -45,11 +43,11 @@ export class CustomerAddressesUpdateScript extends BaseScript<
 
     const hasShippingDefault = Object.prototype.hasOwnProperty.call(
       operations,
-      "defaultShippingAddressId"
+      "defaultShippingAddressId",
     );
     const hasBillingDefault = Object.prototype.hasOwnProperty.call(
       operations,
-      "defaultBillingAddressId"
+      "defaultBillingAddressId",
     );
     if (hasShippingDefault || hasBillingDefault) {
       const [currentShipping, currentBilling] = await Promise.all([
@@ -58,11 +56,11 @@ export class CustomerAddressesUpdateScript extends BaseScript<
       ]);
       const updated = await this.repository.address.setDefaults(customerId, {
         shippingAddressId: hasShippingDefault
-          ? operations.defaultShippingAddressId ?? null
-          : currentShipping?.id ?? null,
+          ? (operations.defaultShippingAddressId ?? null)
+          : (currentShipping?.id ?? null),
         billingAddressId: hasBillingDefault
-          ? operations.defaultBillingAddressId ?? null
-          : currentBilling?.id ?? null,
+          ? (operations.defaultBillingAddressId ?? null)
+          : (currentBilling?.id ?? null),
       });
       if (!updated) {
         throw new Error("Validated customer address defaults could not be persisted");
@@ -82,19 +80,15 @@ export class CustomerAddressesUpdateScript extends BaseScript<
 
   private async validate(
     customerId: string,
-    operations: CustomerAddressesUpdateOperation["params"]
+    operations: CustomerAddressesUpdateOperation["params"],
   ) {
     const errors: Array<{ message: string; code: string; field?: string[] }> = [];
     const updateIds = operations.update.map((item) => item.addressId);
     const referencedIds = [
       ...updateIds,
       ...operations.deleteIds,
-      ...(operations.defaultShippingAddressId
-        ? [operations.defaultShippingAddressId]
-        : []),
-      ...(operations.defaultBillingAddressId
-        ? [operations.defaultBillingAddressId]
-        : []),
+      ...(operations.defaultShippingAddressId ? [operations.defaultShippingAddressId] : []),
+      ...(operations.defaultBillingAddressId ? [operations.defaultBillingAddressId] : []),
     ];
     const rows = await this.repository.address.getByIds(referencedIds);
     const byId = new Map(rows.map((row) => [row.id, row]));
@@ -102,15 +96,17 @@ export class CustomerAddressesUpdateScript extends BaseScript<
     for (const [index, input] of operations.create.entries()) {
       validateRequiredString(input.address1, ["create", String(index), "address1"], errors);
       validateRequiredString(input.city, ["create", String(index), "city"], errors);
-      validateRequiredString(
-        input.countryCode,
-        ["create", String(index), "countryCode"],
-        errors
-      );
+      validateRequiredString(input.countryCode, ["create", String(index), "countryCode"], errors);
       validatePhone(input.phoneE164, ["create", String(index), "phoneE164"], errors);
       validateCountryCode(input.countryCode, ["create", String(index), "countryCode"], errors);
       validateCoordinate(input.latitude, -90, 90, ["create", String(index), "latitude"], errors);
-      validateCoordinate(input.longitude, -180, 180, ["create", String(index), "longitude"], errors);
+      validateCoordinate(
+        input.longitude,
+        -180,
+        180,
+        ["create", String(index), "longitude"],
+        errors,
+      );
     }
 
     for (const [index, input] of operations.update.entries()) {
@@ -119,45 +115,51 @@ export class CustomerAddressesUpdateScript extends BaseScript<
         input.addressId,
         customerId,
         ["update", String(index), "addressId"],
-        errors
+        errors,
       );
       validateOptionalRequiredString(
         input.operations.address1,
         ["update", String(index), "operations", "address1"],
-        errors
+        errors,
       );
       validateOptionalRequiredString(
         input.operations.city,
         ["update", String(index), "operations", "city"],
-        errors
+        errors,
       );
       validateOptionalRequiredString(
         input.operations.countryCode,
         ["update", String(index), "operations", "countryCode"],
-        errors
+        errors,
       );
       validatePhone(
         input.operations.phoneE164,
         ["update", String(index), "operations", "phoneE164"],
-        errors
+        errors,
       );
       validateCountryCode(
         input.operations.countryCode,
         ["update", String(index), "operations", "countryCode"],
         errors,
       );
-      validateCoordinate(input.operations.latitude, -90, 90, ["update", String(index), "operations", "latitude"], errors);
-      validateCoordinate(input.operations.longitude, -180, 180, ["update", String(index), "operations", "longitude"], errors);
+      validateCoordinate(
+        input.operations.latitude,
+        -90,
+        90,
+        ["update", String(index), "operations", "latitude"],
+        errors,
+      );
+      validateCoordinate(
+        input.operations.longitude,
+        -180,
+        180,
+        ["update", String(index), "operations", "longitude"],
+        errors,
+      );
     }
 
     for (const [index, addressId] of operations.deleteIds.entries()) {
-      validateOwnedAddress(
-        byId,
-        addressId,
-        customerId,
-        ["deleteIds", String(index)],
-        errors
-      );
+      validateOwnedAddress(byId, addressId, customerId, ["deleteIds", String(index)], errors);
       if (updateIds.includes(addressId)) {
         errors.push({
           message: "Address cannot be updated and deleted in the same command",
@@ -188,9 +190,7 @@ export class CustomerAddressesUpdateScript extends BaseScript<
   }
 }
 
-function hasAddressChanges(
-  operations: CustomerAddressesUpdateOperation["params"]
-) {
+function hasAddressChanges(operations: CustomerAddressesUpdateOperation["params"]) {
   return (
     operations.create.length > 0 ||
     operations.update.length > 0 ||
@@ -205,7 +205,7 @@ function validateOwnedAddress(
   addressId: string,
   customerId: string,
   field: string[],
-  errors: Array<{ message: string; code: string; field?: string[] }>
+  errors: Array<{ message: string; code: string; field?: string[] }>,
 ) {
   const address = byId.get(addressId);
   if (!address || address.customerId !== customerId) {
@@ -220,7 +220,7 @@ function validateOwnedAddress(
 function validateRequiredString(
   value: string,
   field: string[],
-  errors: Array<{ message: string; code: string; field?: string[] }>
+  errors: Array<{ message: string; code: string; field?: string[] }>,
 ) {
   if (value.trim().length === 0) {
     errors.push({ message: "Value cannot be empty", code: "INVALID_VALUE", field });
@@ -230,7 +230,7 @@ function validateRequiredString(
 function validateOptionalRequiredString(
   value: string | null | undefined,
   field: string[],
-  errors: Array<{ message: string; code: string; field?: string[] }>
+  errors: Array<{ message: string; code: string; field?: string[] }>,
 ) {
   if (value !== undefined && (value === null || value.trim().length === 0)) {
     errors.push({ message: "Value cannot be empty", code: "INVALID_VALUE", field });
@@ -240,7 +240,7 @@ function validateOptionalRequiredString(
 function validatePhone(
   value: string | null | undefined,
   field: string[],
-  errors: Array<{ message: string; code: string; field?: string[] }>
+  errors: Array<{ message: string; code: string; field?: string[] }>,
 ) {
   if (value && !/^\+[1-9][0-9]{6,14}$/.test(value)) {
     errors.push({
@@ -257,7 +257,11 @@ function validateCountryCode(
   errors: Array<{ message: string; code: string; field?: string[] }>,
 ) {
   if (value !== undefined && (value === null || !/^[A-Za-z]{2}$/u.test(value.trim()))) {
-    errors.push({ message: "Country code must use ISO alpha-2 format", code: "INVALID_COUNTRY_CODE", field });
+    errors.push({
+      message: "Country code must use ISO alpha-2 format",
+      code: "INVALID_COUNTRY_CODE",
+      field,
+    });
   }
 }
 
@@ -271,7 +275,11 @@ function validateCoordinate(
   if (value == null) return;
   const coordinate = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(coordinate) || coordinate < minimum || coordinate > maximum) {
-    errors.push({ message: "Coordinate is outside the allowed range", code: "INVALID_COORDINATE", field });
+    errors.push({
+      message: "Coordinate is outside the allowed range",
+      code: "INVALID_COORDINATE",
+      field,
+    });
   }
 }
 
@@ -279,7 +287,7 @@ function addDuplicateErrors(
   values: readonly string[],
   field: string[],
   childField: string | undefined,
-  errors: Array<{ message: string; code: string; field?: string[] }>
+  errors: Array<{ message: string; code: string; field?: string[] }>,
 ) {
   const seen = new Set<string>();
   for (const [index, value] of values.entries()) {

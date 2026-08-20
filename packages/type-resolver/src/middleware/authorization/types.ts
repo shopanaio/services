@@ -7,11 +7,7 @@ export type {
   Authorizable,
 } from "@shopana/rbac";
 
-import type {
-  ResourceName,
-  Domain,
-  ActionsForResource,
-} from "@shopana/rbac";
+import type { ResourceName, Domain, ActionsForResource } from "@shopana/rbac";
 
 /**
  * Policy options for @TypePolicy decorator on type resolvers.

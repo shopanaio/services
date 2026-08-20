@@ -1,16 +1,8 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  FileUnlinkManyParams,
-  FileUnlinkManyResult,
-} from "./dto/index.js";
+import type { FileUnlinkManyParams, FileUnlinkManyResult } from "./dto/index.js";
 
-export class FileUnlinkManyScript extends BaseScript<
-  FileUnlinkManyParams,
-  FileUnlinkManyResult
-> {
-  protected async execute(
-    params: FileUnlinkManyParams
-  ): Promise<FileUnlinkManyResult> {
+export class FileUnlinkManyScript extends BaseScript<FileUnlinkManyParams, FileUnlinkManyResult> {
+  protected async execute(params: FileUnlinkManyParams): Promise<FileUnlinkManyResult> {
     const { items, entityRef } = params;
 
     if (items.length === 0) {
@@ -19,7 +11,7 @@ export class FileUnlinkManyScript extends BaseScript<
 
     // Deduplicate items by fileId+role first
     const uniqueItems = Array.from(
-      new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values()
+      new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values(),
     );
 
     const unlinkedCount = await this.repository.fileBackRef.unlinkMany({
@@ -35,7 +27,7 @@ export class FileUnlinkManyScript extends BaseScript<
     if (skippedCount > 0) {
       this.logger.info(
         { skippedCount, totalCount: uniqueItems.length, unlinkedCount },
-        "fileUnlinkMany: some refs were already unlinked or never existed"
+        "fileUnlinkMany: some refs were already unlinked or never existed",
       );
     }
 

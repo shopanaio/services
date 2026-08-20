@@ -22,9 +22,7 @@ export class CategoryProductsCountRefreshScript extends BaseScript<
       return { success: true, refreshedCategoryIds: [] };
     }
 
-    await this.repository.category.refreshProductsCountByCategoryIds(
-      categoryIds,
-    );
+    await this.repository.category.refreshProductsCountByCategoryIds(categoryIds);
 
     return { success: true, refreshedCategoryIds: categoryIds };
   }

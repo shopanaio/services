@@ -1,9 +1,6 @@
 import { Buffer } from "node:buffer";
 import type { ApplicationOAuthClientRepository } from "../../../repositories/ApplicationOAuthClientRepository.js";
-import {
-  ApplicationAuthRequestError,
-  parseRawSearchParams,
-} from "./rawRequestBridge.js";
+import { ApplicationAuthRequestError, parseRawSearchParams } from "./rawRequestBridge.js";
 
 const DUPLICATE_SENSITIVE_PARAMETERS = [
   "grant_type",
@@ -42,27 +39,17 @@ export interface ApplicationOAuthResourcePolicyRequest {
  * does not persist with authorization codes or refresh-token families.
  */
 export class ApplicationOAuthResourcePolicyGuard {
-  constructor(
-    private readonly clients: ApplicationOAuthClientRepository
-  ) {}
+  constructor(private readonly clients: ApplicationOAuthClientRepository) {}
 
-  async assertRequest(
-    request: ApplicationOAuthResourcePolicyRequest
-  ): Promise<void> {
-    if (
-      request.method === "GET" &&
-      request.normalizedPath === "/oauth2/authorize"
-    ) {
+  async assertRequest(request: ApplicationOAuthResourcePolicyRequest): Promise<void> {
+    if (request.method === "GET" && request.normalizedPath === "/oauth2/authorize") {
       const params = parseRawSearchParams(request.rawQuery);
       assertNoDuplicateSensitiveParameters(params);
       await this.assertResourceAndClient(request, params, undefined);
       return;
     }
 
-    if (
-      request.method !== "POST" ||
-      request.normalizedPath !== "/oauth2/token"
-    ) {
+    if (request.method !== "POST" || request.normalizedPath !== "/oauth2/token") {
       return;
     }
     if (!request.rawBody) {
@@ -71,10 +58,7 @@ export class ApplicationOAuthResourcePolicyGuard {
     const params = parseRawSearchParams(request.rawBody.toString("utf8"));
     assertNoDuplicateSensitiveParameters(params);
     const grantType = getExactlyOne(params, "grant_type", false);
-    if (
-      grantType !== "authorization_code" &&
-      grantType !== "refresh_token"
-    ) {
+    if (grantType !== "authorization_code" && grantType !== "refresh_token") {
       return;
     }
     const basicClientId = readBasicClientId(request.authorizationHeader);
@@ -84,7 +68,7 @@ export class ApplicationOAuthResourcePolicyGuard {
   private async assertResourceAndClient(
     request: ApplicationOAuthResourcePolicyRequest,
     params: URLSearchParams,
-    basicClientId: string | undefined
+    basicClientId: string | undefined,
   ): Promise<void> {
     const requestedResource = getExactlyOne(params, "resource", true);
     if (requestedResource !== request.resource) {
@@ -100,10 +84,7 @@ export class ApplicationOAuthResourcePolicyGuard {
       throw new ApplicationOAuthResourcePolicyError();
     }
 
-    const client = await this.clients.findActivePolicy(
-      request.applicationId,
-      clientId
-    );
+    const client = await this.clients.findActivePolicy(request.applicationId, clientId);
     if (
       !client ||
       client.applicationId !== request.applicationId ||
@@ -121,32 +102,21 @@ function assertNoDuplicateSensitiveParameters(params: URLSearchParams): void {
       if (parameter === "resource") {
         throw new ApplicationOAuthResourcePolicyError();
       }
-      throw new ApplicationAuthRequestError(
-        `Duplicate OAuth parameter "${parameter}" is invalid`
-      );
+      throw new ApplicationAuthRequestError(`Duplicate OAuth parameter "${parameter}" is invalid`);
     }
   }
 }
 
-function getExactlyOne(
-  params: URLSearchParams,
-  name: string,
-  resourceError: boolean
-): string {
+function getExactlyOne(params: URLSearchParams, name: string, resourceError: boolean): string {
   const values = params.getAll(name);
   if (values.length !== 1 || values[0] === undefined || values[0] === "") {
     if (resourceError) throw new ApplicationOAuthResourcePolicyError();
-    throw new ApplicationAuthRequestError(
-      `OAuth parameter "${name}" is required`
-    );
+    throw new ApplicationAuthRequestError(`OAuth parameter "${name}" is required`);
   }
   return values[0];
 }
 
-function getZeroOrOne(
-  params: URLSearchParams,
-  name: string
-): string | undefined {
+function getZeroOrOne(params: URLSearchParams, name: string): string | undefined {
   const values = params.getAll(name);
   if (values.length === 0) return undefined;
   if (values.length !== 1 || !values[0]) {
@@ -155,9 +125,7 @@ function getZeroOrOne(
   return values[0];
 }
 
-function readBasicClientId(
-  authorizationHeader: string | undefined
-): string | undefined {
+function readBasicClientId(authorizationHeader: string | undefined): string | undefined {
   if (!authorizationHeader) return undefined;
   const match = /^Basic ([A-Za-z0-9+/]+={0,2})$/i.exec(authorizationHeader);
   if (!match) return undefined;
@@ -170,23 +138,17 @@ function readBasicClientId(
     }
     decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
-    throw new ApplicationAuthRequestError(
-      "OAuth client authentication header is malformed"
-    );
+    throw new ApplicationAuthRequestError("OAuth client authentication header is malformed");
   }
   const separator = decoded.indexOf(":");
   if (separator < 1) {
-    throw new ApplicationAuthRequestError(
-      "OAuth client authentication header is malformed"
-    );
+    throw new ApplicationAuthRequestError("OAuth client authentication header is malformed");
   }
   try {
     const clientId = decodeURIComponent(decoded.slice(0, separator));
     if (!clientId || clientId.includes("\0")) throw new Error("Invalid client id");
     return clientId;
   } catch {
-    throw new ApplicationAuthRequestError(
-      "OAuth client authentication header is malformed"
-    );
+    throw new ApplicationAuthRequestError("OAuth client authentication header is malformed");
   }
 }

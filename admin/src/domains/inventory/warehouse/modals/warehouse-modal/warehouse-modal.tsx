@@ -100,12 +100,7 @@ export function WarehouseModal() {
         forcePop();
       },
     });
-  }, [
-    forcePop,
-    openDeleteModal,
-    typedPayload.listQueryVariables,
-    warehouse,
-  ]);
+  }, [forcePop, openDeleteModal, typedPayload.listQueryVariables, warehouse]);
 
   const renderContent = () => {
     if (loading) {

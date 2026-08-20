@@ -7,12 +7,7 @@ type Collection implements Node @key(fields: "id") {
   description: RichText
   excerpt: RichText
   seo: SEO!
-  media(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): CollectionMediaConnection!
+  media(first: Int, after: Cursor, last: Int, before: Cursor): CollectionMediaConnection!
   featuredMedia: Media
   defaultSort: CollectionDefaultSort!
   defaultSortDirection: CollectionSortDirection!

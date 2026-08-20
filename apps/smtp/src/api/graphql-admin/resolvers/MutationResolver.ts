@@ -1,8 +1,5 @@
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
-import type {
-  SmtpConnectionInput,
-  SmtpConnectionProvider,
-} from "../../../connections/index.js";
+import type { SmtpConnectionInput, SmtpConnectionProvider } from "../../../connections/index.js";
 import { SmtpConnectionResolver } from "./SmtpConnectionResolver.js";
 import { SmtpType } from "./SmtpType.js";
 
@@ -22,16 +19,10 @@ export class MutationResolver extends SmtpType<Record<string, never>> {
   }
 }
 
-export class SmtpAppMutationResolver extends SmtpType<
-  Record<string, never>
-> {
+export class SmtpAppMutationResolver extends SmtpType<Record<string, never>> {
   smtpConnectionCreate(args: { input: GraphqlConnectionInput }) {
     return this.connectionPayload(() =>
-      this.$ctx.connections.create(
-        this.scope,
-        mapInput(args.input),
-        this.$ctx.app.actor?.id,
-      ),
+      this.$ctx.connections.create(this.scope, mapInput(args.input), this.$ctx.app.actor?.id),
     );
   }
 
@@ -49,27 +40,17 @@ export class SmtpAppMutationResolver extends SmtpType<
 
   smtpConnectionActivate(args: { input: { readonly connectionId: string } }) {
     return this.connectionPayload(() =>
-      this.$ctx.connections.activate(
-        this.scope,
-        this.connectionId(args.input.connectionId),
-      ),
+      this.$ctx.connections.activate(this.scope, this.connectionId(args.input.connectionId)),
     );
   }
 
-  smtpConnectionDisconnect(args: {
-    input: { readonly connectionId: string };
-  }) {
+  smtpConnectionDisconnect(args: { input: { readonly connectionId: string } }) {
     return this.connectionPayload(() =>
-      this.$ctx.connections.disconnect(
-        this.scope,
-        this.connectionId(args.input.connectionId),
-      ),
+      this.$ctx.connections.disconnect(this.scope, this.connectionId(args.input.connectionId)),
     );
   }
 
-  private async connectionPayload(
-    operation: () => Promise<{ readonly id: string }>,
-  ) {
+  private async connectionPayload(operation: () => Promise<{ readonly id: string }>) {
     try {
       const connection = await operation();
       return {
@@ -78,10 +59,7 @@ export class SmtpAppMutationResolver extends SmtpType<
       };
     } catch (error) {
       const code =
-        error &&
-        typeof error === "object" &&
-        "code" in error &&
-        typeof error.code === "string"
+        error && typeof error === "object" && "code" in error && typeof error.code === "string"
           ? error.code
           : error instanceof Error
             ? error.message

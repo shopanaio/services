@@ -6,4 +6,3 @@ export const CORE_MODAL_TYPES: Record<keyof CoreModalContractMap, string> = {
   "catalog.variant.picker": "variant-picker",
   "media.file.picker": "media-picker",
 };
-

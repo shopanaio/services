@@ -10,7 +10,7 @@ export class EnvSecretProvider implements SecretProvider {
       throw new FatalError(
         `CDN secret "${secretRef}" is not configured`,
         undefined,
-        "CDN_SECRET_NOT_FOUND"
+        "CDN_SECRET_NOT_FOUND",
       );
     }
     return value;

@@ -35,9 +35,7 @@ export const component = catalogSchema.table(
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
-    displayStyle: varchar("display_style", { length: 32 })
-      .notNull()
-      .default("ACCORDION"),
+    displayStyle: varchar("display_style", { length: 32 }).notNull().default("ACCORDION"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -71,9 +69,7 @@ export const componentConfiguration = catalogSchema.table(
       .notNull()
       .defaultNow(),
   },
-  (table) => [
-    index("idx_component_configuration_component_id").on(table.componentId),
-  ],
+  (table) => [index("idx_component_configuration_component_id").on(table.componentId)],
 );
 
 export const componentTarget = catalogSchema.table(
@@ -90,11 +86,7 @@ export const componentTarget = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.configurationId, table.id] }),
-    unique("component_target_identity_kind_unique").on(
-      table.configurationId,
-      table.id,
-      table.kind,
-    ),
+    unique("component_target_identity_kind_unique").on(table.configurationId, table.id, table.kind),
     unique("component_target_item_parent_unique").on(
       table.configurationId,
       table.id,
@@ -127,10 +119,7 @@ export const componentTarget = catalogSchema.table(
     uniqueIndex("component_target_configuration_root_unique")
       .on(table.configurationId)
       .where(sql`${table.kind} = 'CONFIGURATION'`),
-    index("idx_component_target_parent").on(
-      table.configurationId,
-      table.parentId,
-    ),
+    index("idx_component_target_parent").on(table.configurationId, table.parentId),
   ],
 );
 
@@ -140,15 +129,11 @@ export const componentConfigurationTarget = catalogSchema.table(
     storeId: uuid("store_id").notNull(),
     configurationId: uuid("configuration_id").notNull(),
     id: uuid("id").notNull(),
-    kind: componentTargetKindEnum("kind")
-      .notNull()
-      .default("CONFIGURATION"),
+    kind: componentTargetKindEnum("kind").notNull().default("CONFIGURATION"),
   },
   (table) => [
     primaryKey({ columns: [table.configurationId, table.id] }),
-    unique("component_configuration_target_configuration_unique").on(
-      table.configurationId,
-    ),
+    unique("component_configuration_target_configuration_unique").on(table.configurationId),
     check(
       "component_configuration_target_identity_check",
       sql`${table.kind} = 'CONFIGURATION'
@@ -157,11 +142,7 @@ export const componentConfigurationTarget = catalogSchema.table(
     foreignKey({
       name: "component_configuration_target_registry_fk",
       columns: [table.configurationId, table.id, table.kind],
-      foreignColumns: [
-        componentTarget.configurationId,
-        componentTarget.id,
-        componentTarget.kind,
-      ],
+      foreignColumns: [componentTarget.configurationId, componentTarget.id, componentTarget.kind],
     }).onDelete("cascade"),
   ],
 );
@@ -209,9 +190,7 @@ export const componentPriceRule = catalogSchema.table(
           AND ${table.valueType} IS NULL
         )`,
     ),
-    index("idx_component_price_rule_configuration_id").on(
-      table.configurationId,
-    ),
+    index("idx_component_price_rule_configuration_id").on(table.configurationId),
   ],
 );
 
@@ -227,14 +206,8 @@ export const componentPriceRuleAmount = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.priceRuleId, table.currency] }),
-    check(
-      "component_price_rule_amount_minor_check",
-      sql`${table.amountMinor} > 0`,
-    ),
-    index("idx_component_price_rule_amount_store_currency").on(
-      table.storeId,
-      table.currency,
-    ),
+    check("component_price_rule_amount_minor_check", sql`${table.amountMinor} > 0`),
+    index("idx_component_price_rule_amount_store_currency").on(table.storeId, table.currency),
   ],
 );
 
@@ -271,12 +244,8 @@ export const componentPricingTemplate = catalogSchema.table(
     sortIndex: integer("sort_index").notNull().default(0),
   },
   (table) => [
-    index("idx_component_pricing_template_configuration_id").on(
-      table.configurationId,
-    ),
-    index("idx_component_pricing_template_price_rule_id").on(
-      table.priceRuleId,
-    ),
+    index("idx_component_pricing_template_configuration_id").on(table.configurationId),
+    index("idx_component_pricing_template_price_rule_id").on(table.priceRuleId),
   ],
 );
 
@@ -288,9 +257,7 @@ export const componentGroup = catalogSchema.table(
     configurationId: uuid("configuration_id")
       .notNull()
       .references(() => componentConfiguration.id, { onDelete: "cascade" }),
-    targetKind: componentTargetKindEnum("target_kind")
-      .notNull()
-      .default("GROUP"),
+    targetKind: componentTargetKindEnum("target_kind").notNull().default("GROUP"),
     sortIndex: integer("sort_index").notNull().default(0),
     minSelection: integer("min_selection"),
     maxSelection: integer("max_selection"),
@@ -302,22 +269,12 @@ export const componentGroup = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("component_group_configuration_id_id_unique").on(
-      table.configurationId,
-      table.id,
-    ),
-    check(
-      "component_group_target_kind_check",
-      sql`${table.targetKind} = 'GROUP'`,
-    ),
+    unique("component_group_configuration_id_id_unique").on(table.configurationId, table.id),
+    check("component_group_target_kind_check", sql`${table.targetKind} = 'GROUP'`),
     foreignKey({
       name: "component_group_target_fk",
       columns: [table.configurationId, table.id, table.targetKind],
-      foreignColumns: [
-        componentTarget.configurationId,
-        componentTarget.id,
-        componentTarget.kind,
-      ],
+      foreignColumns: [componentTarget.configurationId, componentTarget.id, componentTarget.kind],
     }).onDelete("cascade"),
     check(
       "component_group_selection_check",
@@ -330,10 +287,7 @@ export const componentGroup = catalogSchema.table(
         )`,
     ),
     index("idx_component_group_configuration_id").on(table.configurationId),
-    index("idx_component_group_sort").on(
-      table.configurationId,
-      table.sortIndex,
-    ),
+    index("idx_component_group_sort").on(table.configurationId, table.sortIndex),
   ],
 );
 
@@ -349,10 +303,7 @@ export const componentGroupTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.groupId, table.locale] }),
-    index("idx_component_group_translation_store_locale").on(
-      table.storeId,
-      table.locale,
-    ),
+    index("idx_component_group_translation_store_locale").on(table.storeId, table.locale),
   ],
 );
 
@@ -362,11 +313,8 @@ export const componentItem = catalogSchema.table(
     id: uuid("id").primaryKey(),
     storeId: uuid("store_id").notNull(),
     configurationId: uuid("configuration_id").notNull(),
-    groupId: uuid("group_id")
-      .notNull(),
-    targetKind: componentTargetKindEnum("target_kind")
-      .notNull()
-      .default("ITEM"),
+    groupId: uuid("group_id").notNull(),
+    targetKind: componentTargetKindEnum("target_kind").notNull().default("ITEM"),
     itemType: varchar("item_type", { length: 32 }).notNull(),
     sortIndex: integer("sort_index").notNull().default(0),
     refProductId: uuid("ref_product_id"),
@@ -378,10 +326,9 @@ export const componentItem = catalogSchema.table(
     priceRuleId: uuid("price_rule_id").references(() => componentPriceRule.id, {
       onDelete: "set null",
     }),
-    pricingTemplateId: uuid("pricing_template_id").references(
-      () => componentPricingTemplate.id,
-      { onDelete: "set null" },
-    ),
+    pricingTemplateId: uuid("pricing_template_id").references(() => componentPricingTemplate.id, {
+      onDelete: "set null",
+    }),
     visible: boolean("visible").notNull().default(true),
     selected: boolean("selected").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
@@ -392,10 +339,7 @@ export const componentItem = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    check(
-      "component_item_target_kind_check",
-      sql`${table.targetKind} = 'ITEM'`,
-    ),
+    check("component_item_target_kind_check", sql`${table.targetKind} = 'ITEM'`),
     foreignKey({
       name: "component_item_group_fk",
       columns: [table.configurationId, table.groupId],
@@ -403,12 +347,7 @@ export const componentItem = catalogSchema.table(
     }).onDelete("cascade"),
     foreignKey({
       name: "component_item_target_fk",
-      columns: [
-        table.configurationId,
-        table.id,
-        table.targetKind,
-        table.groupId,
-      ],
+      columns: [table.configurationId, table.id, table.targetKind, table.groupId],
       foreignColumns: [
         componentTarget.configurationId,
         componentTarget.id,
@@ -474,10 +413,9 @@ export const componentItemOptionSelection = catalogSchema.table(
     refOptionId: uuid("ref_option_id")
       .notNull()
       .references(() => productOption.id, { onDelete: "cascade" }),
-    parentOptionId: uuid("parent_option_id").references(
-      () => productOption.id,
-      { onDelete: "set null" },
-    ),
+    parentOptionId: uuid("parent_option_id").references(() => productOption.id, {
+      onDelete: "set null",
+    }),
     sortIndex: integer("sort_index").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
@@ -492,12 +430,8 @@ export const componentItemOptionSelection = catalogSchema.table(
       table.refOptionId,
     ),
     index("idx_component_item_option_selection_item_id").on(table.itemId),
-    index("idx_component_item_option_selection_ref_option_id").on(
-      table.refOptionId,
-    ),
-    index("idx_component_item_option_selection_parent_option_id").on(
-      table.parentOptionId,
-    ),
+    index("idx_component_item_option_selection_ref_option_id").on(table.refOptionId),
+    index("idx_component_item_option_selection_parent_option_id").on(table.parentOptionId),
   ],
 );
 
@@ -511,10 +445,9 @@ export const componentItemOptionValueSelection = catalogSchema.table(
       .references(() => componentItemOptionSelection.id, {
         onDelete: "cascade",
       }),
-    refOptionValueId: uuid("ref_option_value_id").references(
-      () => productOptionValue.id,
-      { onDelete: "set null" },
-    ),
+    refOptionValueId: uuid("ref_option_value_id").references(() => productOptionValue.id, {
+      onDelete: "set null",
+    }),
     value: text("value").notNull(),
     status: varchar("status", { length: 32 }).notNull().default("SELECTED"),
     sortIndex: integer("sort_index").notNull().default(0),
@@ -530,12 +463,8 @@ export const componentItemOptionValueSelection = catalogSchema.table(
       table.optionSelectionId,
       table.value,
     ),
-    index("idx_component_item_option_value_selection_option_id").on(
-      table.optionSelectionId,
-    ),
-    index("idx_component_item_option_value_selection_ref_value_id").on(
-      table.refOptionValueId,
-    ),
+    index("idx_component_item_option_value_selection_option_id").on(table.optionSelectionId),
+    index("idx_component_item_option_value_selection_ref_value_id").on(table.refOptionValueId),
     index("idx_component_item_option_value_selection_status").on(
       table.optionSelectionId,
       table.status,
@@ -555,10 +484,7 @@ export const componentItemTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.itemId, table.locale] }),
-    index("idx_component_item_translation_store_locale").on(
-      table.storeId,
-      table.locale,
-    ),
+    index("idx_component_item_translation_store_locale").on(table.storeId, table.locale),
   ],
 );
 
@@ -573,9 +499,7 @@ export const dependencyRule = catalogSchema.table(
     name: varchar("name", { length: 255 }).notNull(),
     enabled: boolean("enabled").notNull().default(true),
     priority: integer("priority").notNull().default(0),
-    logicOperator: varchar("logic_operator", { length: 8 })
-      .notNull()
-      .default("AND"),
+    logicOperator: varchar("logic_operator", { length: 8 }).notNull().default("AND"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -584,15 +508,9 @@ export const dependencyRule = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("dependency_rule_configuration_id_id_unique").on(
-      table.configurationId,
-      table.id,
-    ),
+    unique("dependency_rule_configuration_id_id_unique").on(table.configurationId, table.id),
     index("idx_dependency_rule_configuration_id").on(table.configurationId),
-    index("idx_dependency_rule_priority").on(
-      table.configurationId,
-      table.priority,
-    ),
+    index("idx_dependency_rule_priority").on(table.configurationId, table.priority),
   ],
 );
 
@@ -602,25 +520,16 @@ export const conditionGroup = catalogSchema.table(
     id: uuid("id").primaryKey(),
     storeId: uuid("store_id").notNull(),
     configurationId: uuid("configuration_id").notNull(),
-    ruleId: uuid("rule_id")
-      .notNull(),
-    logicOperator: varchar("logic_operator", { length: 8 })
-      .notNull()
-      .default("AND"),
+    ruleId: uuid("rule_id").notNull(),
+    logicOperator: varchar("logic_operator", { length: 8 }).notNull().default("AND"),
     sortIndex: integer("sort_index").notNull().default(0),
   },
   (table) => [
-    unique("condition_group_configuration_id_id_unique").on(
-      table.configurationId,
-      table.id,
-    ),
+    unique("condition_group_configuration_id_id_unique").on(table.configurationId, table.id),
     foreignKey({
       name: "condition_group_rule_fk",
       columns: [table.configurationId, table.ruleId],
-      foreignColumns: [
-        dependencyRule.configurationId,
-        dependencyRule.id,
-      ],
+      foreignColumns: [dependencyRule.configurationId, dependencyRule.id],
     }).onDelete("cascade"),
     index("idx_condition_group_rule_id").on(table.ruleId),
   ],
@@ -632,8 +541,7 @@ export const condition = catalogSchema.table(
     id: uuid("id").primaryKey(),
     storeId: uuid("store_id").notNull(),
     configurationId: uuid("configuration_id").notNull(),
-    groupId: uuid("group_id")
-      .notNull(),
+    groupId: uuid("group_id").notNull(),
     category: varchar("category", { length: 32 }).notNull(),
     subject: varchar("subject", { length: 32 }).notNull(),
     operator: varchar("operator", { length: 32 }).notNull(),
@@ -646,26 +554,15 @@ export const condition = catalogSchema.table(
     foreignKey({
       name: "condition_group_fk",
       columns: [table.configurationId, table.groupId],
-      foreignColumns: [
-        conditionGroup.configurationId,
-        conditionGroup.id,
-      ],
+      foreignColumns: [conditionGroup.configurationId, conditionGroup.id],
     }).onDelete("cascade"),
     foreignKey({
       name: "condition_target_fk",
       columns: [table.configurationId, table.targetId, table.targetType],
-      foreignColumns: [
-        componentTarget.configurationId,
-        componentTarget.id,
-        componentTarget.kind,
-      ],
+      foreignColumns: [componentTarget.configurationId, componentTarget.id, componentTarget.kind],
     }).onDelete("cascade"),
     index("idx_condition_group_id").on(table.groupId),
-    index("idx_condition_target").on(
-      table.configurationId,
-      table.targetId,
-      table.targetType,
-    ),
+    index("idx_condition_target").on(table.configurationId, table.targetId, table.targetType),
   ],
 );
 
@@ -675,8 +572,7 @@ export const dependencyAction = catalogSchema.table(
     id: uuid("id").primaryKey(),
     storeId: uuid("store_id").notNull(),
     configurationId: uuid("configuration_id").notNull(),
-    ruleId: uuid("rule_id")
-      .notNull(),
+    ruleId: uuid("rule_id").notNull(),
     actionType: varchar("action_type", { length: 32 }).notNull(),
     targetType: componentTargetKindEnum("target_type").notNull(),
     targetId: uuid("target_id").notNull(),
@@ -691,19 +587,12 @@ export const dependencyAction = catalogSchema.table(
     foreignKey({
       name: "dependency_action_rule_fk",
       columns: [table.configurationId, table.ruleId],
-      foreignColumns: [
-        dependencyRule.configurationId,
-        dependencyRule.id,
-      ],
+      foreignColumns: [dependencyRule.configurationId, dependencyRule.id],
     }).onDelete("cascade"),
     foreignKey({
       name: "dependency_action_target_fk",
       columns: [table.configurationId, table.targetId, table.targetType],
-      foreignColumns: [
-        componentTarget.configurationId,
-        componentTarget.id,
-        componentTarget.kind,
-      ],
+      foreignColumns: [componentTarget.configurationId, componentTarget.id, componentTarget.kind],
     }).onDelete("cascade"),
     check(
       "dependency_action_price_rule_check",
@@ -728,54 +617,36 @@ export const dependencyAction = catalogSchema.table(
 
 export type Component = typeof component.$inferSelect;
 export type NewComponent = typeof component.$inferInsert;
-export type ComponentConfiguration =
-  typeof componentConfiguration.$inferSelect;
-export type NewComponentConfiguration =
-  typeof componentConfiguration.$inferInsert;
+export type ComponentConfiguration = typeof componentConfiguration.$inferSelect;
+export type NewComponentConfiguration = typeof componentConfiguration.$inferInsert;
 export type ComponentTarget = typeof componentTarget.$inferSelect;
 export type NewComponentTarget = typeof componentTarget.$inferInsert;
-export type ComponentConfigurationTarget =
-  typeof componentConfigurationTarget.$inferSelect;
-export type NewComponentConfigurationTarget =
-  typeof componentConfigurationTarget.$inferInsert;
-export type ComponentConfigurationVariant =
-  typeof componentConfigurationVariant.$inferSelect;
-export type NewComponentConfigurationVariant =
-  typeof componentConfigurationVariant.$inferInsert;
+export type ComponentConfigurationTarget = typeof componentConfigurationTarget.$inferSelect;
+export type NewComponentConfigurationTarget = typeof componentConfigurationTarget.$inferInsert;
+export type ComponentConfigurationVariant = typeof componentConfigurationVariant.$inferSelect;
+export type NewComponentConfigurationVariant = typeof componentConfigurationVariant.$inferInsert;
 export type ComponentPriceRule = typeof componentPriceRule.$inferSelect;
 export type NewComponentPriceRule = typeof componentPriceRule.$inferInsert;
-export type ComponentPriceRuleAmount =
-  typeof componentPriceRuleAmount.$inferSelect;
-export type NewComponentPriceRuleAmount =
-  typeof componentPriceRuleAmount.$inferInsert;
-export type ComponentPriceRulePercent =
-  typeof componentPriceRulePercent.$inferSelect;
-export type NewComponentPriceRulePercent =
-  typeof componentPriceRulePercent.$inferInsert;
-export type ComponentPricingTemplate =
-  typeof componentPricingTemplate.$inferSelect;
-export type NewComponentPricingTemplate =
-  typeof componentPricingTemplate.$inferInsert;
+export type ComponentPriceRuleAmount = typeof componentPriceRuleAmount.$inferSelect;
+export type NewComponentPriceRuleAmount = typeof componentPriceRuleAmount.$inferInsert;
+export type ComponentPriceRulePercent = typeof componentPriceRulePercent.$inferSelect;
+export type NewComponentPriceRulePercent = typeof componentPriceRulePercent.$inferInsert;
+export type ComponentPricingTemplate = typeof componentPricingTemplate.$inferSelect;
+export type NewComponentPricingTemplate = typeof componentPricingTemplate.$inferInsert;
 export type ComponentGroup = typeof componentGroup.$inferSelect;
 export type NewComponentGroup = typeof componentGroup.$inferInsert;
-export type ComponentGroupTranslation =
-  typeof componentGroupTranslation.$inferSelect;
-export type NewComponentGroupTranslation =
-  typeof componentGroupTranslation.$inferInsert;
+export type ComponentGroupTranslation = typeof componentGroupTranslation.$inferSelect;
+export type NewComponentGroupTranslation = typeof componentGroupTranslation.$inferInsert;
 export type ComponentItem = typeof componentItem.$inferSelect;
 export type NewComponentItem = typeof componentItem.$inferInsert;
-export type ComponentItemOptionSelection =
-  typeof componentItemOptionSelection.$inferSelect;
-export type NewComponentItemOptionSelection =
-  typeof componentItemOptionSelection.$inferInsert;
+export type ComponentItemOptionSelection = typeof componentItemOptionSelection.$inferSelect;
+export type NewComponentItemOptionSelection = typeof componentItemOptionSelection.$inferInsert;
 export type ComponentItemOptionValueSelection =
   typeof componentItemOptionValueSelection.$inferSelect;
 export type NewComponentItemOptionValueSelection =
   typeof componentItemOptionValueSelection.$inferInsert;
-export type ComponentItemTranslation =
-  typeof componentItemTranslation.$inferSelect;
-export type NewComponentItemTranslation =
-  typeof componentItemTranslation.$inferInsert;
+export type ComponentItemTranslation = typeof componentItemTranslation.$inferSelect;
+export type NewComponentItemTranslation = typeof componentItemTranslation.$inferInsert;
 export type DependencyRule = typeof dependencyRule.$inferSelect;
 export type NewDependencyRule = typeof dependencyRule.$inferInsert;
 export type ConditionGroup = typeof conditionGroup.$inferSelect;

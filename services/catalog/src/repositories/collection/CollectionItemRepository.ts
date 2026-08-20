@@ -1,9 +1,6 @@
 import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  LexoRankRepository,
-  type LexoRankMoveResult,
-} from "../LexoRankRepository.js";
+import { LexoRankRepository, type LexoRankMoveResult } from "../LexoRankRepository.js";
 import {
   collectionItem,
   collection,
@@ -22,9 +19,7 @@ export class CollectionItemRepository extends BaseRepository {
           ? this.findByCollectionAndProduct(collectionId, productId)
           : Promise.resolve(null),
       updateRank: ({ scopeId: collectionId, itemId: productId, lexoRank }) =>
-        collectionId
-          ? this.updateRank(collectionId, productId, lexoRank)
-          : Promise.resolve(null),
+        collectionId ? this.updateRank(collectionId, productId, lexoRank) : Promise.resolve(null),
       getItemId: (item) => item.productId,
       getLexoRank: (item) => item.lexoRank,
     });
@@ -37,8 +32,8 @@ export class CollectionItemRepository extends BaseRepository {
       .where(
         and(
           eq(collectionItem.storeId, this.storeId),
-          eq(collectionItem.collectionId, collectionId)
-        )
+          eq(collectionItem.collectionId, collectionId),
+        ),
       )
       .orderBy(asc(collectionItem.lexoRank), asc(collectionItem.productId));
   }
@@ -50,15 +45,15 @@ export class CollectionItemRepository extends BaseRepository {
       .where(
         and(
           eq(collectionItem.storeId, this.storeId),
-          eq(collectionItem.collectionId, collectionId)
-        )
+          eq(collectionItem.collectionId, collectionId),
+        ),
       );
     return result[0]?.count ?? 0;
   }
 
   async findByCollectionAndProduct(
     collectionId: string,
-    productId: string
+    productId: string,
   ): Promise<CollectionItem | null> {
     const rows = await this.connection
       .select()
@@ -67,15 +62,15 @@ export class CollectionItemRepository extends BaseRepository {
         and(
           eq(collectionItem.storeId, this.storeId),
           eq(collectionItem.collectionId, collectionId),
-          eq(collectionItem.productId, productId)
-        )
+          eq(collectionItem.productId, productId),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
   }
 
   async findManualCollectionsByProductId(
-    productId: string
+    productId: string,
   ): Promise<Array<{ id: string; manualRank: string }>> {
     return this.connection
       .select({
@@ -87,16 +82,16 @@ export class CollectionItemRepository extends BaseRepository {
         collection,
         and(
           eq(collection.id, collectionItem.collectionId),
-          eq(collection.storeId, collectionItem.storeId)
-        )
+          eq(collection.storeId, collectionItem.storeId),
+        ),
       )
       .where(
         and(
           eq(collectionItem.storeId, this.storeId),
           eq(collectionItem.productId, productId),
           eq(collection.type, "manual"),
-          isNull(collection.deletedAt)
-        )
+          isNull(collection.deletedAt),
+        ),
       )
       .orderBy(asc(collectionItem.collectionId));
   }
@@ -134,8 +129,8 @@ export class CollectionItemRepository extends BaseRepository {
         and(
           eq(collectionItem.storeId, this.storeId),
           eq(collectionItem.collectionId, collectionId),
-          inArray(collectionItem.productId, productIds)
-        )
+          inArray(collectionItem.productId, productIds),
+        ),
       )
       .returning({ productId: collectionItem.productId });
     return removed.map((row) => row.productId);
@@ -144,7 +139,7 @@ export class CollectionItemRepository extends BaseRepository {
   async updateRank(
     collectionId: string,
     productId: string,
-    lexoRank: string
+    lexoRank: string,
   ): Promise<CollectionItem | null> {
     const rows = await this.connection
       .update(collectionItem)
@@ -153,8 +148,8 @@ export class CollectionItemRepository extends BaseRepository {
         and(
           eq(collectionItem.storeId, this.storeId),
           eq(collectionItem.collectionId, collectionId),
-          eq(collectionItem.productId, productId)
-        )
+          eq(collectionItem.productId, productId),
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -168,7 +163,7 @@ export class CollectionItemRepository extends BaseRepository {
     collectionId: string,
     productId: string,
     afterProductId?: string | null,
-    beforeProductId?: string | null
+    beforeProductId?: string | null,
   ): Promise<LexoRankMoveResult<CollectionItem>> {
     return this.collectionItemRankRepository.move({
       scopeId: collectionId,

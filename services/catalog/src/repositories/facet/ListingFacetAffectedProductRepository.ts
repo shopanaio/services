@@ -22,7 +22,7 @@ interface AffectedProductRefQuery {
 
 export class ListingFacetAffectedProductRepository extends BaseRepository {
   async findListingFacetAffectedProducts(
-    params: Catalog.FindListingFacetAffectedProductsParams
+    params: Catalog.FindListingFacetAffectedProductsParams,
   ): Promise<Catalog.FindListingFacetAffectedProductsResult> {
     const refs = normalizeAffectedProductRefs(params.refs);
     const limit = normalizeLimit(params.limit);
@@ -50,15 +50,11 @@ export class ListingFacetAffectedProductRepository extends BaseRepository {
     return {
       productIds: pageProductIds,
       nextCursor:
-        pageWithLookahead.length > limit
-          ? pageProductIds[pageProductIds.length - 1]
-          : undefined,
+        pageWithLookahead.length > limit ? pageProductIds[pageProductIds.length - 1] : undefined,
     };
   }
 
-  private async findAffectedProductIdsForRef(
-    params: AffectedProductRefQuery
-  ): Promise<string[]> {
+  private async findAffectedProductIdsForRef(params: AffectedProductRefQuery): Promise<string[]> {
     if (params.ref.facetType === "TAG") {
       return this.findTagAffectedProductIds(params);
     }
@@ -70,9 +66,7 @@ export class ListingFacetAffectedProductRepository extends BaseRepository {
     return this.findOptionAffectedProductIds(params);
   }
 
-  private async findTagAffectedProductIds(
-    params: AffectedProductRefQuery
-  ): Promise<string[]> {
+  private async findTagAffectedProductIds(params: AffectedProductRefQuery): Promise<string[]> {
     const predicates = baseProductPredicates(params.storeId, params.afterProductId);
     if (params.ref.sourceValueHandle) {
       predicates.push(eq(tag.handle, params.ref.sourceValueHandle));
@@ -83,15 +77,9 @@ export class ListingFacetAffectedProductRepository extends BaseRepository {
       .from(product)
       .innerJoin(
         productTag,
-        and(
-          eq(productTag.productId, product.id),
-          eq(productTag.storeId, product.storeId)
-        )
+        and(eq(productTag.productId, product.id), eq(productTag.storeId, product.storeId)),
       )
-      .innerJoin(
-        tag,
-        and(eq(tag.id, productTag.tagId), eq(tag.storeId, product.storeId))
-      )
+      .innerJoin(tag, and(eq(tag.id, productTag.tagId), eq(tag.storeId, product.storeId)))
       .where(and(...predicates))
       .orderBy(asc(product.id))
       .limit(params.limit);
@@ -99,9 +87,7 @@ export class ListingFacetAffectedProductRepository extends BaseRepository {
     return rows.map((row) => row.productId);
   }
 
-  private async findFeatureAffectedProductIds(
-    params: AffectedProductRefQuery
-  ): Promise<string[]> {
+  private async findFeatureAffectedProductIds(params: AffectedProductRefQuery): Promise<string[]> {
     const predicates = [
       ...baseProductPredicates(params.storeId, params.afterProductId),
       eq(productFeature.slug, params.ref.sourceHandle),
@@ -109,7 +95,7 @@ export class ListingFacetAffectedProductRepository extends BaseRepository {
     ];
     const valueHandle = sourceValueHandleTail(
       params.ref.sourceHandle,
-      params.ref.sourceValueHandle
+      params.ref.sourceValueHandle,
     );
     if (valueHandle) {
       predicates.push(eq(productFeatureValue.slug, valueHandle));
@@ -120,17 +106,14 @@ export class ListingFacetAffectedProductRepository extends BaseRepository {
       .from(product)
       .innerJoin(
         productFeature,
-        and(
-          eq(productFeature.productId, product.id),
-          eq(productFeature.storeId, product.storeId)
-        )
+        and(eq(productFeature.productId, product.id), eq(productFeature.storeId, product.storeId)),
       )
       .innerJoin(
         productFeatureValue,
         and(
           eq(productFeatureValue.featureId, productFeature.id),
-          eq(productFeatureValue.storeId, product.storeId)
-        )
+          eq(productFeatureValue.storeId, product.storeId),
+        ),
       )
       .where(and(...predicates))
       .orderBy(asc(product.id))
@@ -139,9 +122,7 @@ export class ListingFacetAffectedProductRepository extends BaseRepository {
     return rows.map((row) => row.productId);
   }
 
-  private async findOptionAffectedProductIds(
-    params: AffectedProductRefQuery
-  ): Promise<string[]> {
+  private async findOptionAffectedProductIds(params: AffectedProductRefQuery): Promise<string[]> {
     const predicates = [
       ...baseProductPredicates(params.storeId, params.afterProductId),
       eq(productOption.slug, params.ref.sourceHandle),
@@ -149,7 +130,7 @@ export class ListingFacetAffectedProductRepository extends BaseRepository {
     ];
     const valueHandle = sourceValueHandleTail(
       params.ref.sourceHandle,
-      params.ref.sourceValueHandle
+      params.ref.sourceValueHandle,
     );
     if (valueHandle) {
       predicates.push(eq(productOptionValue.slug, valueHandle));
@@ -160,31 +141,28 @@ export class ListingFacetAffectedProductRepository extends BaseRepository {
       .from(product)
       .innerJoin(
         productOption,
-        and(
-          eq(productOption.productId, product.id),
-          eq(productOption.storeId, product.storeId)
-        )
+        and(eq(productOption.productId, product.id), eq(productOption.storeId, product.storeId)),
       )
       .innerJoin(
         productOptionVariantLink,
         and(
           eq(productOptionVariantLink.optionId, productOption.id),
-          eq(productOptionVariantLink.storeId, product.storeId)
-        )
+          eq(productOptionVariantLink.storeId, product.storeId),
+        ),
       )
       .innerJoin(
         variant,
         and(
           eq(variant.id, productOptionVariantLink.variantId),
-          eq(variant.storeId, product.storeId)
-        )
+          eq(variant.storeId, product.storeId),
+        ),
       )
       .innerJoin(
         productOptionValue,
         and(
           eq(productOptionValue.id, productOptionVariantLink.optionValueId),
-          eq(productOptionValue.storeId, product.storeId)
-        )
+          eq(productOptionValue.storeId, product.storeId),
+        ),
       )
       .where(and(...predicates))
       .orderBy(asc(product.id))
@@ -200,7 +178,7 @@ function normalizeLimit(limit?: number): number {
 }
 
 function normalizeAffectedProductRefs(
-  refs: readonly Catalog.ListingFacetAffectedProductRef[]
+  refs: readonly Catalog.ListingFacetAffectedProductRef[],
 ): Catalog.ListingFacetAffectedProductRef[] {
   const normalized = new Map<string, Catalog.ListingFacetAffectedProductRef>();
   for (const ref of refs) {
@@ -218,7 +196,7 @@ function normalizeAffectedProductRefs(
     };
     normalized.set(
       `${value.facetType}\0${value.sourceHandle}\0${value.sourceValueHandle ?? ""}`,
-      value
+      value,
     );
   }
   return [...normalized.values()];
@@ -232,10 +210,7 @@ function baseProductPredicates(storeId: string, afterProductId?: string) {
   ];
 }
 
-function sourceValueHandleTail(
-  sourceHandle: string,
-  sourceValueHandle?: string
-): string | null {
+function sourceValueHandleTail(sourceHandle: string, sourceValueHandle?: string): string | null {
   const handle = sourceValueHandle?.trim();
   if (!handle) return null;
   const prefix = `${sourceHandle}:`;

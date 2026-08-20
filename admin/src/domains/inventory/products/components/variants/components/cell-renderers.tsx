@@ -63,9 +63,7 @@ export const ImageCellRenderer: React.FC<
     const selectedMediaRows = selectionApi.selectedCells
       .filter((cell) => cell.field === "media")
       .map((cell) => cell.rowId);
-    const targetRowIds = selectedMediaRows.includes(data.id)
-      ? selectedMediaRows
-      : [data.id];
+    const targetRowIds = selectedMediaRows.includes(data.id) ? selectedMediaRows : [data.id];
 
     props.onEditMedia(data.id, targetRowIds);
   };
@@ -73,15 +71,8 @@ export const ImageCellRenderer: React.FC<
   const media = data.media;
 
   return (
-    <SelectableCell
-      rowId={data.id}
-      field="media"
-      testId={`variants-editor-cell-media-${data.id}`}
-    >
-      <div
-        className="ec-media-cell"
-        onDoubleClick={openEditor}
-      >
+    <SelectableCell rowId={data.id} field="media" testId={`variants-editor-cell-media-${data.id}`}>
+      <div className="ec-media-cell" onDoubleClick={openEditor}>
         {!media || media.length === 0 ? (
           <TableCoverImage
             src={null}
@@ -105,9 +96,7 @@ export const ImageCellRenderer: React.FC<
 // Title Cell
 // ============================================================================
 
-export const TitleCellRenderer: React.FC<
-  CustomCellRendererProps<IVariantEditorRow>
-> = (props) => {
+export const TitleCellRenderer: React.FC<CustomCellRendererProps<IVariantEditorRow>> = (props) => {
   const { data } = props;
 
   if (!data) return null;
@@ -116,10 +105,7 @@ export const TitleCellRenderer: React.FC<
     <div className="ec-title">
       <span className="ec-title__text">{data.title}</span>
       {data.rowError ? (
-        <span
-          className="ec-title__error"
-          title={data.rowError}
-        >
+        <span className="ec-title__error" title={data.rowError}>
           {data.rowError}
         </span>
       ) : null}
@@ -131,9 +117,7 @@ export const TitleCellRenderer: React.FC<
 // Text Cell
 // ============================================================================
 
-export const TextCellRenderer: React.FC<
-  CustomCellRendererProps<IVariantEditorRow>
-> = (props) => {
+export const TextCellRenderer: React.FC<CustomCellRendererProps<IVariantEditorRow>> = (props) => {
   const { data, colDef, value } = props;
 
   if (!data || !colDef?.field) return null;
@@ -181,18 +165,14 @@ export const PriceCellRenderer: React.FC<
 // Number Cell (with edit diff)
 // ============================================================================
 
-export const NumberCellRenderer: React.FC<
-  CustomCellRendererProps<IVariantEditorRow>
-> = (props) => {
+export const NumberCellRenderer: React.FC<CustomCellRendererProps<IVariantEditorRow>> = (props) => {
   const { data, colDef, value } = props;
   const getFieldEdit = useVariantsEditorStore((s) => s.getFieldEdit);
 
   if (!data || !colDef?.field) return null;
 
   const field = colDef.field;
-  const edit = getFieldEdit(data.id, field) as
-    | IFieldEdit<number | null>
-    | undefined;
+  const edit = getFieldEdit(data.id, field) as IFieldEdit<number | null> | undefined;
 
   return (
     <SelectableCell
@@ -202,10 +182,7 @@ export const NumberCellRenderer: React.FC<
       testId={`variants-editor-cell-${field}-${data.id}`}
     >
       {edit ? (
-        <Diff
-          originalValue={edit.originalValue}
-          currentValue={edit.currentValue}
-        />
+        <Diff originalValue={edit.originalValue} currentValue={edit.currentValue} />
       ) : isEmptyCellValue(value) ? (
         <Dash />
       ) : (
@@ -262,9 +239,5 @@ export const OptionCellRenderer: React.FC<
   const option = data.options.find((o) => o.name === optionName);
   const value = option?.value;
 
-  return (
-    <span className="ec-option">
-      {isEmptyCellValue(value) ? <Dash /> : value}
-    </span>
-  );
+  return <span className="ec-option">{isEmptyCellValue(value) ? <Dash /> : value}</span>;
 };

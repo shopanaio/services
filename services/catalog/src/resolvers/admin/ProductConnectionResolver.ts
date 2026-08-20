@@ -28,9 +28,7 @@ export type ProductQueryProductsArgs = ProductRelayInput & {
  */
 export class ProductConnectionResolver extends BaseConnectionResolver<ProductConnectionInput> {
   async $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel
-      .getServices()
-      .repository.product.getConnection(this.$props);
+    return this.$ctx.kernel.getServices().repository.product.getConnection(this.$props);
   }
 
   protected async createNodeResolver(nodeId: string) {

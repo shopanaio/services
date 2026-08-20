@@ -37,7 +37,7 @@ export function getContextSafe(): CheckoutContext | null {
  */
 export async function runWithContext<T>(
   context: CheckoutContext,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     storage.run(context, async () => {

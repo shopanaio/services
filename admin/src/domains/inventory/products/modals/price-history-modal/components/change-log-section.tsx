@@ -13,10 +13,7 @@ export const ChangeLogSection = ({ history }: IChangeLogSectionProps) => {
   return (
     <Paper className={styles.changeLogPaper}>
       <PaperHeader title="Price Changes" />
-      <div
-        className={styles.timelineContainer}
-        data-testid="price-history-change-log"
-      >
+      <div className={styles.timelineContainer} data-testid="price-history-change-log">
         <PriceTimeline history={history} dataTestId="price-history-timeline" />
       </div>
     </Paper>

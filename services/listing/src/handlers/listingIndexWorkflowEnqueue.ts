@@ -89,7 +89,7 @@ export async function enqueueListingSyncItemIndexWorkflow(input: {
         itemRef: input.itemRef,
         eventSequence: input.eventSequence,
       },
-      "Failed to start listing index workflow"
+      "Failed to start listing index workflow",
     );
     throw error;
   }

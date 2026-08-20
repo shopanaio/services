@@ -3,18 +3,12 @@
 import type { ChangeEvent } from "react";
 import { useCallback, useMemo, useState } from "react";
 import { Flex, Input, Typography } from "antd";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import type { IComponentEditConfigurationModalPayload } from "@/domains/inventory/products/modals";
 
 export const EditConfigurationModal = () => {
   const { payload, pop, forcePop, setDirty } = useModalStackContext();
-  const modalPayload = payload as
-    | IComponentEditConfigurationModalPayload
-    | undefined;
+  const modalPayload = payload as IComponentEditConfigurationModalPayload | undefined;
 
   const [title, setTitle] = useState(modalPayload?.title ?? "");
   const [saving, setSaving] = useState(false);

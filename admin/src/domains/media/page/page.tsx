@@ -41,20 +41,12 @@ import {
 } from "../hooks";
 import { useUploadMediaModal } from "../modals";
 import { MediaPreview, useMediaPreview } from "../components/media-preview";
-import type {
-  ApiFile,
-  ApiFileWhereInput,
-  ApiFileOrderByInput,
-} from "@/graphql/types";
+import type { ApiFile, ApiFileWhereInput, ApiFileOrderByInput } from "@/graphql/types";
 import { FileProvider, FileStateScope } from "@/graphql/types";
 import { Dash } from "@/shared/components/editor-grid";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 
-ModuleRegistry.registerModules([
-  AllCommunityModule,
-  RowSelectionModule,
-  GridStateModule,
-]);
+ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule, GridStateModule]);
 
 // ============================================
 // Sort Field Mapping
@@ -187,9 +179,7 @@ const ReferencesCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
 
   return (
     <Popover content={popoverContent} trigger="click" placement="bottom">
-      <Typography.Link style={{ cursor: "pointer" }}>
-        {totalCount} references
-      </Typography.Link>
+      <Typography.Link style={{ cursor: "pointer" }}>{totalCount} references</Typography.Link>
     </Popover>
   );
 };
@@ -244,9 +234,7 @@ export default function MediaPage() {
     filterTransformers: mediaFilterTransformers,
   });
 
-  const [fileState, setFileState] = useState<FileStateScope>(
-    FileStateScope.Active,
-  );
+  const [fileState, setFileState] = useState<FileStateScope>(FileStateScope.Active);
 
   const { files, totalCount, pageInfo, loading, refetch } = useFiles({
     first,
@@ -289,24 +277,18 @@ export default function MediaPage() {
   const [errorSelectionCount, setErrorSelectionCount] = useState(0);
 
   // Row selection with checkbox isolation
-  const { rowSelection, selectionColumnDef, onCellClicked } =
-    useAgGridRowSelection<ApiFile>({
-      onRowAction: (data) => mediaPreview.openById(data.id),
-    });
+  const { rowSelection, selectionColumnDef, onCellClicked } = useAgGridRowSelection<ApiFile>({
+    onRowAction: (data) => mediaPreview.openById(data.id),
+  });
 
   // Handle selection changes
-  const handleSelectionChanged = useCallback(
-    (event: SelectionChangedEvent<ApiFile>) => {
-      const selectedRows = event.api.getSelectedRows();
-      const ids = selectedRows.map((row) => row.id);
-      setSelectedIds(ids);
-      setActiveSelectionCount(selectedRows.filter((r) => !r.deletedAt).length);
-      setErrorSelectionCount(
-        selectedRows.filter((row) => Boolean(row.deletionErrorCode)).length,
-      );
-    },
-    [],
-  );
+  const handleSelectionChanged = useCallback((event: SelectionChangedEvent<ApiFile>) => {
+    const selectedRows = event.api.getSelectedRows();
+    const ids = selectedRows.map((row) => row.id);
+    setSelectedIds(ids);
+    setActiveSelectionCount(selectedRows.filter((r) => !r.deletedAt).length);
+    setErrorSelectionCount(selectedRows.filter((row) => Boolean(row.deletionErrorCode)).length);
+  }, []);
 
   // Deselect all rows
   const deselectAll = useCallback(() => {
@@ -436,36 +418,37 @@ export default function MediaPage() {
 
   // Build selection actions with counts
   const selectionActions = useMemo<ActionConfig[]>(
-    () => fileState === FileStateScope.Active
-      ? [
-          {
-            key: "delete",
-            label: "Delete",
-            icon: <DeleteOutlined />,
-            count: activeSelectionCount,
-            danger: true,
-            loading: deleteLoading,
-            onClick: handleDeleteSelected,
-          },
-        ]
-      : [
-          {
-            key: "restore",
-            label: "Restore",
-            icon: <RestoreOutlined />,
-            count: selectedIds.length,
-            loading: restoreLoading,
-            onClick: handleRestoreSelected,
-          },
-          {
-            key: "clear-error",
-            label: "Clear error",
-            icon: <RepairOutlined />,
-            count: errorSelectionCount,
-            loading: clearErrorLoading,
-            onClick: handleClearSelectedErrors,
-          },
-        ],
+    () =>
+      fileState === FileStateScope.Active
+        ? [
+            {
+              key: "delete",
+              label: "Delete",
+              icon: <DeleteOutlined />,
+              count: activeSelectionCount,
+              danger: true,
+              loading: deleteLoading,
+              onClick: handleDeleteSelected,
+            },
+          ]
+        : [
+            {
+              key: "restore",
+              label: "Restore",
+              icon: <RestoreOutlined />,
+              count: selectedIds.length,
+              loading: restoreLoading,
+              onClick: handleRestoreSelected,
+            },
+            {
+              key: "clear-error",
+              label: "Clear error",
+              icon: <RepairOutlined />,
+              count: errorSelectionCount,
+              loading: clearErrorLoading,
+              onClick: handleClearSelectedErrors,
+            },
+          ],
     [
       fileState,
       activeSelectionCount,
@@ -503,11 +486,13 @@ export default function MediaPage() {
       name="media"
       title="Media"
       count={totalCount}
-      actions={fileState === FileStateScope.Active ? (
-        <Button icon={<CloudUploadOutlined />} onClick={handleUpload}>
-          Upload
-        </Button>
-      ) : undefined}
+      actions={
+        fileState === FileStateScope.Active ? (
+          <Button icon={<CloudUploadOutlined />} onClick={handleUpload}>
+            Upload
+          </Button>
+        ) : undefined
+      }
     >
       <DataLayout.Toolbar
         left={

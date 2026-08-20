@@ -1,14 +1,7 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef } from "react";
 import { AgGridReact } from "ag-grid-react";
-import {
-  ICellSelectionApi,
-  ICellSelectionConfig,
-  ICellSelectionHandlers,
-} from "./types";
-import {
-  createCellSelectionStore,
-  CellSelectionStore,
-} from "./use-cell-selection-store";
+import { ICellSelectionApi, ICellSelectionConfig, ICellSelectionHandlers } from "./types";
+import { createCellSelectionStore, CellSelectionStore } from "./use-cell-selection-store";
 import { SELECTING_BODY_CLASS } from "./styles";
 
 interface UseCellSelectionResult {
@@ -23,7 +16,7 @@ interface UseCellSelectionResult {
  */
 export const useCellSelection = <TData = unknown>(
   gridRef: RefObject<AgGridReact<TData> | null>,
-  config: ICellSelectionConfig = {}
+  config: ICellSelectionConfig = {},
 ): UseCellSelectionResult => {
   const {
     singleColumnOnly = true,
@@ -64,7 +57,7 @@ export const useCellSelection = <TData = unknown>(
       if (!selectableColumns) return true;
       return selectableColumns.includes(field);
     },
-    [selectableColumns]
+    [selectableColumns],
   );
 
   // Subscribe to selection changes
@@ -140,7 +133,7 @@ export const useCellSelection = <TData = unknown>(
         state.startSelection(rowId, field);
       }
     },
-    [store, getVisibleRowIds, isColumnSelectable, singleColumnOnly]
+    [store, getVisibleRowIds, isColumnSelectable, singleColumnOnly],
   );
 
   // Mouse enter handler (for drag selection)
@@ -155,7 +148,7 @@ export const useCellSelection = <TData = unknown>(
 
       state.extendSelection(rowId, getVisibleRowIds());
     },
-    [store, getVisibleRowIds, isColumnSelectable, singleColumnOnly]
+    [store, getVisibleRowIds, isColumnSelectable, singleColumnOnly],
   );
 
   // API methods
@@ -222,11 +215,7 @@ export const useCellSelection = <TData = unknown>(
             if (value !== undefined) {
               // Try to parse as number if it looks like a number
               const numValue = parseFloat(value);
-              setCellValue(
-                cell.rowId,
-                cell.field,
-                isNaN(numValue) ? value : numValue
-              );
+              setCellValue(cell.rowId, cell.field, isNaN(numValue) ? value : numValue);
             }
           });
         } catch {
@@ -269,7 +258,7 @@ export const useCellSelection = <TData = unknown>(
       handleMouseDown,
       handleMouseEnter,
     }),
-    [handleMouseDown, handleMouseEnter]
+    [handleMouseDown, handleMouseEnter],
   );
 
   // Keyboard shortcuts handler
@@ -282,11 +271,7 @@ export const useCellSelection = <TData = unknown>(
 
       // Check if user is typing in an input/textarea
       const target = event.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
         return;
       }
 

@@ -6,22 +6,15 @@ import {
   internalError,
   notFoundError,
 } from "./StoreConfigurationUpdateScript.js";
-import type {
-  ContentReportUpdateParams,
-  ContentReportUpdateResult,
-} from "./types.js";
+import type { ContentReportUpdateParams, ContentReportUpdateResult } from "./types.js";
 
 export class ContentReportUpdateScript extends BaseScript<
   ContentReportUpdateParams,
   ContentReportUpdateResult
 > {
   @Transactional()
-  protected async execute(
-    params: ContentReportUpdateParams
-  ): Promise<ContentReportUpdateResult> {
-    const current = await this.repository.engagement.findReportById(
-      params.contentReportId
-    );
+  protected async execute(params: ContentReportUpdateParams): Promise<ContentReportUpdateResult> {
+    const current = await this.repository.engagement.findReportById(params.contentReportId);
     if (!current) {
       return { userErrors: [notFoundError("Content report", "contentReportId")] };
     }
@@ -54,9 +47,7 @@ export class ContentReportUpdateScript extends BaseScript<
       }
       patch.status = input.resolution.status;
       patch.resolutionNote = note;
-      patch.resolvedByPrincipalId = this.context.hasUser
-        ? this.currentUser.id
-        : null;
+      patch.resolvedByPrincipalId = this.context.hasUser ? this.currentUser.id : null;
       patch.resolvedAt = new Date().toISOString();
     }
     if (errors.length > 0) return { userErrors: errors };
@@ -64,7 +55,7 @@ export class ContentReportUpdateScript extends BaseScript<
     const updated = await this.repository.engagement.updateReport(
       params.contentReportId,
       params.expectedUpdatedAt,
-      patch
+      patch,
     );
     if (updated.status === "applied") {
       return {

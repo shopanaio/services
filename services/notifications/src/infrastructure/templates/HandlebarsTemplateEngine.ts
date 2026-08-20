@@ -10,27 +10,21 @@ export class HandlebarsTemplateEngine {
   private readonly cache = new Map<string, Handlebars.TemplateDelegate>();
 
   constructor() {
-    this.handlebars.registerHelper(
-      "money",
-      (amount: number, currencyCode: string, locale = "en") =>
-        new Intl.NumberFormat(locale, {
-          style: "currency",
-          currency: currencyCode,
-        }).format(amount / 100)
+    this.handlebars.registerHelper("money", (amount: number, currencyCode: string, locale = "en") =>
+      new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: currencyCode,
+      }).format(amount / 100),
     );
-    this.handlebars.registerHelper(
-      "date",
-      (value: string, timezone = "UTC", locale = "en") =>
-        new Intl.DateTimeFormat(locale, {
-          dateStyle: "medium",
-          timeStyle: "short",
-          timeZone: timezone,
-        }).format(new Date(value))
+    this.handlebars.registerHelper("date", (value: string, timezone = "UTC", locale = "en") =>
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: timezone,
+      }).format(new Date(value)),
     );
-    this.handlebars.registerHelper(
-      "number",
-      (value: number, locale = "en") =>
-        new Intl.NumberFormat(locale).format(value)
+    this.handlebars.registerHelper("number", (value: number, locale = "en") =>
+      new Intl.NumberFormat(locale).format(value),
     );
     this.handlebars.registerHelper("url", (value: string) => {
       const url = new URL(value);
@@ -39,27 +33,15 @@ export class HandlebarsTemplateEngine {
       }
       return url.toString();
     });
-    this.handlebars.registerHelper(
-      "default",
-      (value: unknown, fallback: unknown) =>
-        value === undefined || value === null || value === ""
-          ? fallback
-          : value
+    this.handlebars.registerHelper("default", (value: unknown, fallback: unknown) =>
+      value === undefined || value === null || value === "" ? fallback : value,
     );
     this.handlebars.registerHelper("eq", (left, right) => left === right);
-    this.handlebars.registerHelper("and", (...args) =>
-      args.slice(0, -1).every(Boolean)
-    );
-    this.handlebars.registerHelper("or", (...args) =>
-      args.slice(0, -1).some(Boolean)
-    );
+    this.handlebars.registerHelper("and", (...args) => args.slice(0, -1).every(Boolean));
+    this.handlebars.registerHelper("or", (...args) => args.slice(0, -1).some(Boolean));
     this.handlebars.registerHelper("not", (value) => !value);
-    this.handlebars.registerHelper("uppercase", (value) =>
-      String(value).toUpperCase()
-    );
-    this.handlebars.registerHelper("lowercase", (value) =>
-      String(value).toLowerCase()
-    );
+    this.handlebars.registerHelper("uppercase", (value) => String(value).toUpperCase());
+    this.handlebars.registerHelper("lowercase", (value) => String(value).toLowerCase());
   }
 
   render(source: string, data: Record<string, unknown>, cacheKey: string): string {

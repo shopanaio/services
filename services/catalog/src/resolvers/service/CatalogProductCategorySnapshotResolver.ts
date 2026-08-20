@@ -26,15 +26,12 @@ export class CatalogProductCategorySnapshotResolver extends ServiceType<
     const categoryId = this.categoryId();
     const category = await this.$ctx.loaders.category.load(categoryId);
     if (!category) {
-      throw new PreloadNotFoundError(
-        `Category with ID ${categoryId} not found`
-      );
+      throw new PreloadNotFoundError(`Category with ID ${categoryId} not found`);
     }
     return {
       id: category.id,
       primary: typeof this.$props === "string" ? false : this.$props.primary,
-      manualRank:
-        typeof this.$props === "string" ? null : this.$props.manualRank,
+      manualRank: typeof this.$props === "string" ? null : this.$props.manualRank,
     };
   }
 
@@ -51,9 +48,7 @@ export class CatalogProductCategorySnapshotResolver extends ServiceType<
   }
 
   async content(): Promise<CatalogCategoryLocalizedContentSnapshotResolver[]> {
-    const translations = await this.$ctx.loaders.categoryTranslations.load(
-      this.categoryId()
-    );
+    const translations = await this.$ctx.loaders.categoryTranslations.load(this.categoryId());
     return Promise.all(
       [...translations]
         .sort((left, right) => left.locale.localeCompare(right.locale))
@@ -61,8 +56,8 @@ export class CatalogProductCategorySnapshotResolver extends ServiceType<
           this.resolvers.catalogCategoryLocalizedContentSnapshot({
             categoryId: this.categoryId(),
             locale: translation.locale,
-          })
-        )
+          }),
+        ),
     );
   }
 
@@ -76,14 +71,10 @@ export class CatalogProductCategorySnapshotResolver extends ServiceType<
   }
 
   private categoryId(): string {
-    return typeof this.$props === "string"
-      ? this.$props
-      : this.$props.categoryId;
+    return typeof this.$props === "string" ? this.$props : this.$props.categoryId;
   }
 
-  private async contentSnapshots(): Promise<
-    CatalogCategoryLocalizedContentSnapshot[]
-  > {
+  private async contentSnapshots(): Promise<CatalogCategoryLocalizedContentSnapshot[]> {
     const resolvers = await this.content();
     return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
   }

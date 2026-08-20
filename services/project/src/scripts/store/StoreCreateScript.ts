@@ -13,14 +13,9 @@ import {
 import type { StoreCreateOutput } from "../../sagas/index.js";
 import { validateStoreSettings } from "./storeSettingsRules.js";
 
-export class StoreCreateScript extends BaseScript<
-  StoreCreateParams,
-  StoreCreateResult
-> {
+export class StoreCreateScript extends BaseScript<StoreCreateParams, StoreCreateResult> {
   @ZodSchema(storeCreateInputSchema)
-  protected async execute(
-    params: StoreCreateParams,
-  ): Promise<StoreCreateResult> {
+  protected async execute(params: StoreCreateParams): Promise<StoreCreateResult> {
     const settingsErrors = validateStoreSettings({
       locales: params.locales,
       defaultLocale: params.locales[0],

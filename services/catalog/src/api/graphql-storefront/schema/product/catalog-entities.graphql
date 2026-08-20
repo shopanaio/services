@@ -1,22 +1,32 @@
-"""The brand, manufacturer, or supplier associated with a product."""
+"""
+The brand, manufacturer, or supplier associated with a product.
+"""
 type Vendor implements Node @key(fields: "id") {
   id: ID!
   name: String!
 }
 
-"""A localized, stable label used to organize and filter products."""
+"""
+A localized, stable label used to organize and filter products.
+"""
 type Tag implements Node @key(fields: "id") {
   id: ID!
   handle: String!
   name: String!
 }
 
-"""The policy applied when a tracked variant has no sellable inventory."""
+"""
+The policy applied when a tracked variant has no sellable inventory.
+"""
 enum ProductVariantInventoryPolicy {
-  """The variant cannot be purchased when inventory is unavailable."""
+  """
+  The variant cannot be purchased when inventory is unavailable.
+  """
   DENY
 
-  """The variant can be purchased when inventory is unavailable."""
+  """
+  The variant can be purchased when inventory is unavailable.
+  """
   CONTINUE
 }
 
@@ -38,14 +48,18 @@ type InventoryItem implements Node @key(fields: "id") {
   currentlyNotInStock: Boolean!
 }
 
-"""Search-engine and social-sharing metadata."""
+"""
+Search-engine and social-sharing metadata.
+"""
 type SEO {
   title: String
   description: String
   openGraph: OpenGraphMetadata!
 }
 
-"""Metadata used when a catalog page is shared on social platforms."""
+"""
+Metadata used when a catalog page is shared on social platforms.
+"""
 type OpenGraphMetadata {
   title: String
   description: String

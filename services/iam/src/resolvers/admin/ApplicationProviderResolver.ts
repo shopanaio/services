@@ -1,7 +1,4 @@
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { ApplicationAuthProviderName } from "../../auth/applicationSocialProviders.js";
 import type { ApplicationAuthProviderValidationResult } from "../../services/ApplicationAuthAdminManagementService.js";
 import { IAMType } from "./IAMType.js";
@@ -23,10 +20,7 @@ export interface ApplicationAuthProviderResolverInput {
 /** Catalog-owned application social provider resolver. */
 export class ApplicationAuthProviderResolver extends IAMType<ApplicationAuthProviderResolverInput> {
   applicationId() {
-    return encodeGlobalIdByType(
-      this.$props.applicationId,
-      GlobalIdEntity.Application
-    );
+    return encodeGlobalIdByType(this.$props.applicationId, GlobalIdEntity.Application);
   }
 
   provider() {

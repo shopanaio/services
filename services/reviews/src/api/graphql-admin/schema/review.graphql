@@ -24,15 +24,37 @@ type Review implements Node & ReviewContent @key(fields: "id") {
   publications: [ReviewContentPublication!]!
   votes(first: Int, after: String, last: Int, before: String): ReviewContentVoteConnection!
   reports(first: Int, after: String, last: Int, before: String): ReviewContentReportConnection!
-  moderationCases(first: Int, after: String, last: Int, before: String): ReviewModerationCaseConnection!
-  moderationEvents(first: Int, after: String, last: Int, before: String): ReviewModerationEventConnection!
+  moderationCases(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationCaseConnection!
+  moderationEvents(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationEventConnection!
   revisions(first: Int, after: String, last: Int, before: String): ReviewContentRevisionConnection!
-  moderationSignals(first: Int, after: String, last: Int, before: String): ReviewModerationSignalConnection!
-  externalReferences(first: Int, after: String, last: Int, before: String): ReviewContentExternalReferenceConnection!
+  moderationSignals(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationSignalConnection!
+  externalReferences(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewContentExternalReferenceConnection!
 
   product: Product!
   variant: Variant
-  """Orders is not yet an admin federation entity, so evidence remains a global ID contract."""
+  """
+  Orders is not yet an admin federation entity, so evidence remains a global ID contract.
+  """
   orderId: ID
   orderLineId: ID
   rating: Int!
@@ -102,11 +124,31 @@ type ReviewReply implements Node & ReviewContent @key(fields: "id") {
   publications: [ReviewContentPublication!]!
   votes(first: Int, after: String, last: Int, before: String): ReviewContentVoteConnection!
   reports(first: Int, after: String, last: Int, before: String): ReviewContentReportConnection!
-  moderationCases(first: Int, after: String, last: Int, before: String): ReviewModerationCaseConnection!
-  moderationEvents(first: Int, after: String, last: Int, before: String): ReviewModerationEventConnection!
+  moderationCases(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationCaseConnection!
+  moderationEvents(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationEventConnection!
   revisions(first: Int, after: String, last: Int, before: String): ReviewContentRevisionConnection!
-  moderationSignals(first: Int, after: String, last: Int, before: String): ReviewModerationSignalConnection!
-  externalReferences(first: Int, after: String, last: Int, before: String): ReviewContentExternalReferenceConnection!
+  moderationSignals(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationSignalConnection!
+  externalReferences(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewContentExternalReferenceConnection!
 
   review: Review!
   isOfficial: Boolean!
@@ -142,7 +184,9 @@ input ReviewRatingValueInput {
 
 input ReviewRatingUpdateInput {
   overall: Int
-  """Complete detailed criterion rating replacement when supplied."""
+  """
+  Complete detailed criterion rating replacement when supplied.
+  """
   criteria: [ReviewRatingValueInput!]
 }
 
@@ -184,22 +228,32 @@ input ReviewCreateInput {
   media: [ReviewMediaSyncItemInput!]
 }
 
-"""Section-based aggregate update following Catalog productUpdate semantics."""
+"""
+Section-based aggregate update following Catalog productUpdate semantics.
+"""
 input ReviewUpdateInput {
-  """Text, author, source, moderation, translations, and publications."""
+  """
+  Text, author, source, moderation, translations, and publications.
+  """
   content: ReviewContentUpdateInput
   subject: ReviewSubjectUpdateInput
   rating: ReviewRatingUpdateInput
   verification: ReviewVerificationUpdateInput
   incentive: ReviewIncentiveUpdateInput
-  """Complete media replacement when supplied. Empty removes every attachment."""
+  """
+  Complete media replacement when supplied. Empty removes every attachment.
+  """
   media: [ReviewMediaSyncItemInput!]
-  """Create, update, or delete replies owned by this review."""
+  """
+  Create, update, or delete replies owned by this review.
+  """
   replies: ReviewRepliesUpdateInput
 }
 
 input ReviewReplyCreateOperationInput {
-  """Client-provided correlation key returned in the operation result."""
+  """
+  Client-provided correlation key returned in the operation result.
+  """
   clientMutationId: String
   content: ReviewContentCreateInput!
   isOfficial: Boolean = true
@@ -212,7 +266,9 @@ input ReviewReplyPropertiesUpdateInput {
 }
 
 input ReviewReplyUpdateInput {
-  """Text, author, source, moderation, translations, and publications."""
+  """
+  Text, author, source, moderation, translations, and publications.
+  """
   content: ReviewContentUpdateInput
   properties: ReviewReplyPropertiesUpdateInput
 }
@@ -226,7 +282,9 @@ input ReviewReplyUpdateOperationInput {
 input ReviewReplyDeleteOperationInput {
   replyId: ID!
   expectedRevision: Int!
-  """Hard deletion is reserved for explicit privacy or retention workflows."""
+  """
+  Hard deletion is reserved for explicit privacy or retention workflows.
+  """
   permanent: Boolean = false
 }
 

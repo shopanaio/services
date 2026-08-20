@@ -52,18 +52,13 @@ export const DiscountBadge = ({
 
   return (
     <Flex align="center" gap="small">
-      <Tag
-        color="red"
-        className={size === "small" ? styles.tagSmall : styles.tagDefault}
-      >
+      <Tag color="red" className={size === "small" ? styles.tagSmall : styles.tagDefault}>
         -{discountPercent}%
       </Tag>
       {showSaving && (
         <Typography.Text
           type="success"
-          className={
-            size === "small" ? styles.savingSmall : styles.savingDefault
-          }
+          className={size === "small" ? styles.savingSmall : styles.savingDefault}
         >
           Save {formatPrice(saving, currency)}
         </Typography.Text>

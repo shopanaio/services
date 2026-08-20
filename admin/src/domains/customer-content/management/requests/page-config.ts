@@ -12,7 +12,9 @@ export const reviewRequestSortFieldMapping: SortFieldMapping<ReviewRequestOrderF
   createdAt: ReviewRequestOrderField.CreatedAt,
 };
 
-export const buildReviewRequestSearchCondition = (search: string): Partial<ApiReviewRequestWhereInput> => ({
+export const buildReviewRequestSearchCondition = (
+  search: string,
+): Partial<ApiReviewRequestWhereInput> => ({
   _or: [
     { providerMessageId: { _containsi: search } },
     { sourceChannel: { _containsi: search } },
@@ -21,7 +23,14 @@ export const buildReviewRequestSearchCondition = (search: string): Partial<ApiRe
 });
 
 export function buildReviewRequestsQueryVariables(
-  pageConfig: Pick<UsePageConfigReturn<ApiReviewRequestWhereInput, ReviewRequestOrderField>, "first" | "after" | "last" | "before" | "where" | "orderBy">,
+  pageConfig: Pick<
+    UsePageConfigReturn<ApiReviewRequestWhereInput, ReviewRequestOrderField>,
+    "first" | "after" | "last" | "before" | "where" | "orderBy"
+  >,
 ): ReviewRequestsQueryVariables {
-  return { ...pageConfig, where: pageConfig.where ?? null, orderBy: pageConfig.orderBy as ApiReviewRequestOrderByInput[] | undefined };
+  return {
+    ...pageConfig,
+    where: pageConfig.where ?? null,
+    orderBy: pageConfig.orderBy as ApiReviewRequestOrderByInput[] | undefined,
+  };
 }

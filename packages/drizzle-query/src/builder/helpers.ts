@@ -1,9 +1,5 @@
 import type { Column, SQL } from "drizzle-orm";
-import type {
-  JoinType,
-  FluentFieldsDef,
-  FluentQueryBuilderLike,
-} from "./fluent-types.js";
+import type { JoinType, FluentFieldsDef, FluentQueryBuilderLike } from "./fluent-types.js";
 
 /**
  * SQL.Aliased type from drizzle-orm
@@ -50,9 +46,7 @@ export type JoinFieldDefinition<TFields extends FluentFieldsDef> = {
  * Field definition - either simple or with join
  */
 export type FieldDefinition<TJoinFields extends FluentFieldsDef | undefined = undefined> =
-  TJoinFields extends FluentFieldsDef
-    ? JoinFieldDefinition<TJoinFields>
-    : SimpleFieldDefinition;
+  TJoinFields extends FluentFieldsDef ? JoinFieldDefinition<TJoinFields> : SimpleFieldDefinition;
 
 /**
  * Join definition
@@ -77,7 +71,7 @@ export interface FieldBuilder extends SimpleFieldDefinition {
    */
   leftJoin<TFields extends FluentFieldsDef>(
     target: FluentQueryBuilderLike<TFields>,
-    column: ColumnOrAliased
+    column: ColumnOrAliased,
   ): JoinFieldDefinition<TFields>;
 
   /**
@@ -90,7 +84,7 @@ export interface FieldBuilder extends SimpleFieldDefinition {
    */
   innerJoin<TFields extends FluentFieldsDef>(
     target: FluentQueryBuilderLike<TFields>,
-    column: ColumnOrAliased
+    column: ColumnOrAliased,
   ): JoinFieldDefinition<TFields>;
 
   /**
@@ -103,7 +97,7 @@ export interface FieldBuilder extends SimpleFieldDefinition {
    */
   rightJoin<TFields extends FluentFieldsDef>(
     target: FluentQueryBuilderLike<TFields>,
-    column: ColumnOrAliased
+    column: ColumnOrAliased,
   ): JoinFieldDefinition<TFields>;
 
   /**
@@ -116,7 +110,7 @@ export interface FieldBuilder extends SimpleFieldDefinition {
    */
   fullJoin<TFields extends FluentFieldsDef>(
     target: FluentQueryBuilderLike<TFields>,
-    column: ColumnOrAliased
+    column: ColumnOrAliased,
   ): JoinFieldDefinition<TFields>;
 }
 
@@ -161,7 +155,7 @@ export function field(column: ColumnOrAliased): FieldBuilder {
     join: undefined,
     leftJoin<TFields extends FluentFieldsDef>(
       target: FluentQueryBuilderLike<TFields>,
-      joinColumn: ColumnOrAliased
+      joinColumn: ColumnOrAliased,
     ): JoinFieldDefinition<TFields> {
       return {
         column: columnName,
@@ -170,7 +164,7 @@ export function field(column: ColumnOrAliased): FieldBuilder {
     },
     innerJoin<TFields extends FluentFieldsDef>(
       target: FluentQueryBuilderLike<TFields>,
-      joinColumn: ColumnOrAliased
+      joinColumn: ColumnOrAliased,
     ): JoinFieldDefinition<TFields> {
       return {
         column: columnName,
@@ -179,7 +173,7 @@ export function field(column: ColumnOrAliased): FieldBuilder {
     },
     rightJoin<TFields extends FluentFieldsDef>(
       target: FluentQueryBuilderLike<TFields>,
-      joinColumn: ColumnOrAliased
+      joinColumn: ColumnOrAliased,
     ): JoinFieldDefinition<TFields> {
       return {
         column: columnName,
@@ -188,7 +182,7 @@ export function field(column: ColumnOrAliased): FieldBuilder {
     },
     fullJoin<TFields extends FluentFieldsDef>(
       target: FluentQueryBuilderLike<TFields>,
-      joinColumn: ColumnOrAliased
+      joinColumn: ColumnOrAliased,
     ): JoinFieldDefinition<TFields> {
       return {
         column: columnName,

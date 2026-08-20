@@ -12,28 +12,20 @@ import {
   optionTermFieldKey,
 } from "./listingVariantTermRegistry.js";
 
-export function createListingVariantTerm(
-  fieldKey: string,
-  valueKey: string
-): ListingVariantTerm {
+export function createListingVariantTerm(fieldKey: string, valueKey: string): ListingVariantTerm {
   const term = Object.freeze({ fieldKey, valueKey });
   assertRegisteredListingVariantTerm(term);
   return term;
 }
 
 export function buildIndexableVariantTerm(): ListingVariantTerm {
-  return createListingVariantTerm(
-    INDEXABLE_TERM_FIELD_KEY,
-    INDEXABLE_TERM_VALUE_KEY
-  );
+  return createListingVariantTerm(INDEXABLE_TERM_FIELD_KEY, INDEXABLE_TERM_VALUE_KEY);
 }
 
-export function buildAvailabilityVariantTerm(
-  availableForSale: boolean
-): ListingVariantTerm {
+export function buildAvailabilityVariantTerm(availableForSale: boolean): ListingVariantTerm {
   return createListingVariantTerm(
     AVAILABILITY_TERM_FIELD_KEY,
-    availableForSale ? "available" : "unavailable"
+    availableForSale ? "available" : "unavailable",
   );
 }
 
@@ -41,10 +33,7 @@ export function buildOptionVariantTerm(input: {
   facetId: string;
   facetValueId: string;
 }): ListingVariantTerm {
-  return createListingVariantTerm(
-    optionTermFieldKey(input.facetId),
-    input.facetValueId
-  );
+  return createListingVariantTerm(optionTermFieldKey(input.facetId), input.facetValueId);
 }
 
 export function materializeListingVariantTerms(input: {
@@ -75,13 +64,10 @@ export function buildListingVariantTermGroup(input: {
   });
 }
 
-export function buildAvailabilityVariantTermGroup(
-  available: boolean
-): ListingVariantTermGroup {
+export function buildAvailabilityVariantTermGroup(available: boolean): ListingVariantTermGroup {
   return buildListingVariantTermGroup({
     groupKey: AVAILABILITY_TERM_FIELD_KEY,
     terms: [buildAvailabilityVariantTerm(available)],
     source: "AVAILABILITY",
   });
 }
-

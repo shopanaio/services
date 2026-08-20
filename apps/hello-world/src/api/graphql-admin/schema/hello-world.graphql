@@ -8,11 +8,15 @@ type HelloWorldSecretDigest {
 }
 
 extend type Query {
-  """Hello World App query namespace."""
+  """
+  Hello World App query namespace.
+  """
   helloWorldAppQuery: HelloWorldAppQuery!
 }
 
-"""Hello World App queries."""
+"""
+Hello World App queries.
+"""
 type HelloWorldAppQuery {
   helloWorldGreeting: HelloWorldGreeting!
   helloWorldSecretDigest(name: String!): HelloWorldSecretDigest!

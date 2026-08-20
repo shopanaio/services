@@ -23,19 +23,11 @@ export type CdnRoutingRuleUpdateInput = Partial<CdnRoutingRuleInput>;
 export class CdnRoutingRuleRepository {
   constructor(private readonly db: Database) {}
 
-  async findById(
-    assetGroupId: string,
-    id: string
-  ): Promise<CdnRoutingRule | null> {
+  async findById(assetGroupId: string, id: string): Promise<CdnRoutingRule | null> {
     const rows = await this.db
       .select()
       .from(cdnRoutingRules)
-      .where(
-        and(
-          eq(cdnRoutingRules.assetGroupId, assetGroupId),
-          eq(cdnRoutingRules.id, id)
-        )
-      )
+      .where(and(eq(cdnRoutingRules.assetGroupId, assetGroupId), eq(cdnRoutingRules.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -52,19 +44,11 @@ export class CdnRoutingRuleRepository {
     return this.db
       .select()
       .from(cdnRoutingRules)
-      .where(
-        and(
-          eq(cdnRoutingRules.assetGroupId, assetGroupId),
-          eq(cdnRoutingRules.enabled, true)
-        )
-      )
+      .where(and(eq(cdnRoutingRules.assetGroupId, assetGroupId), eq(cdnRoutingRules.enabled, true)))
       .orderBy(asc(cdnRoutingRules.priority), asc(cdnRoutingRules.id));
   }
 
-  async create(
-    assetGroupId: string,
-    input: CdnRoutingRuleInput
-  ): Promise<CdnRoutingRule> {
+  async create(assetGroupId: string, input: CdnRoutingRuleInput): Promise<CdnRoutingRule> {
     const id = await generateUuidV7(this.db);
     const rows = await this.db
       .insert(cdnRoutingRules)
@@ -85,7 +69,7 @@ export class CdnRoutingRuleRepository {
   async update(
     assetGroupId: string,
     id: string,
-    input: CdnRoutingRuleUpdateInput
+    input: CdnRoutingRuleUpdateInput,
   ): Promise<CdnRoutingRule | null> {
     const values: Partial<NewCdnRoutingRule> = {
       ...input,
@@ -94,12 +78,7 @@ export class CdnRoutingRuleRepository {
     const rows = await this.db
       .update(cdnRoutingRules)
       .set(values)
-      .where(
-        and(
-          eq(cdnRoutingRules.assetGroupId, assetGroupId),
-          eq(cdnRoutingRules.id, id)
-        )
-      )
+      .where(and(eq(cdnRoutingRules.assetGroupId, assetGroupId), eq(cdnRoutingRules.id, id)))
       .returning();
     return rows[0] ?? null;
   }
@@ -107,12 +86,7 @@ export class CdnRoutingRuleRepository {
   async delete(assetGroupId: string, id: string): Promise<boolean> {
     const rows = await this.db
       .delete(cdnRoutingRules)
-      .where(
-        and(
-          eq(cdnRoutingRules.assetGroupId, assetGroupId),
-          eq(cdnRoutingRules.id, id)
-        )
-      )
+      .where(and(eq(cdnRoutingRules.assetGroupId, assetGroupId), eq(cdnRoutingRules.id, id)))
       .returning({ id: cdnRoutingRules.id });
     return rows.length > 0;
   }

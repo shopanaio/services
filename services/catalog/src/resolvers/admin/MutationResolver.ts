@@ -21,10 +21,7 @@ import type { UserError } from "../../kernel/BaseScript.js";
 /**
  * Safely decode a global ID, returning null if invalid
  */
-function safeDecodeGlobalId(
-  globalId: string,
-  expectedType: GlobalIdType
-): string | null {
+function safeDecodeGlobalId(globalId: string, expectedType: GlobalIdType): string | null {
   try {
     return decodeGlobalIdByType(globalId, expectedType);
   } catch {
@@ -35,7 +32,7 @@ function safeDecodeGlobalId(
 function safeDecodeGlobalIds(
   globalIds: readonly string[],
   expectedType: GlobalIdType,
-  field: string[]
+  field: string[],
 ): { ids: string[]; userErrors: UserError[] } {
   const ids: string[] = [];
   const userErrors: UserError[] = [];
@@ -88,11 +85,7 @@ import type {
   CategoryUpdateWorkflowInput,
   CategoryUpdateWorkflowResult,
 } from "../../workflows/dto/CategoryUpdateWorkflowDto.js";
-import {
-  TagCreateScript,
-  TagUpdateScript,
-  TagDeleteScript,
-} from "../../scripts/tag/index.js";
+import { TagCreateScript, TagUpdateScript, TagDeleteScript } from "../../scripts/tag/index.js";
 import type {
   ProductUpdateWorkflowInput,
   ProductUpdateWorkflowResult,
@@ -218,42 +211,100 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   async comparisonProfileCreate(args: { input: ComparisonProfileCreateInput }) {
     const decoded = decodeComparisonProfileInput(args.input);
     if (decoded.userErrors.length) return { profile: null, userErrors: decoded.userErrors };
-    const result = await this.$ctx.kernel.runScript(ComparisonProfileCreateScript, { input: decoded.input! });
-    return { profile: result.profile ? await this.resolvers.comparisonProfile(result.profile.id) : null, userErrors: result.userErrors };
+    const result = await this.$ctx.kernel.runScript(ComparisonProfileCreateScript, {
+      input: decoded.input!,
+    });
+    return {
+      profile: result.profile ? await this.resolvers.comparisonProfile(result.profile.id) : null,
+      userErrors: result.userErrors,
+    };
   }
 
   @ZodResolver(ComparisonProfileUpdateInputSchema())
   async comparisonProfileUpdate(args: { input: ComparisonProfileUpdateInput }) {
     const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.ComparisonProfile);
     const decoded = decodeComparisonProfileInput(args.input);
-    if (!id || decoded.userErrors.length) return { profile: null, userErrors: [...(!id ? [{ message: "Invalid comparison profile ID", field: ["id"], code: "INVALID_ID" }] : []), ...decoded.userErrors] };
-    const result = await this.$ctx.kernel.runScript(ComparisonProfileUpdateScript, { id, expectedRevision: args.input.expectedRevision, input: decoded.input! });
-    return { profile: result.profile ? await this.resolvers.comparisonProfile(result.profile.id) : null, userErrors: result.userErrors };
+    if (!id || decoded.userErrors.length)
+      return {
+        profile: null,
+        userErrors: [
+          ...(!id
+            ? [{ message: "Invalid comparison profile ID", field: ["id"], code: "INVALID_ID" }]
+            : []),
+          ...decoded.userErrors,
+        ],
+      };
+    const result = await this.$ctx.kernel.runScript(ComparisonProfileUpdateScript, {
+      id,
+      expectedRevision: args.input.expectedRevision,
+      input: decoded.input!,
+    });
+    return {
+      profile: result.profile ? await this.resolvers.comparisonProfile(result.profile.id) : null,
+      userErrors: result.userErrors,
+    };
   }
 
   @ZodResolver(ComparisonProfileDeleteInputSchema())
   async comparisonProfileDelete(args: { input: ComparisonProfileDeleteInput }) {
     const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.ComparisonProfile);
-    if (!id) return { deletedComparisonProfileId: null, userErrors: [{ message: "Invalid comparison profile ID", field: ["id"], code: "INVALID_ID" }] };
+    if (!id)
+      return {
+        deletedComparisonProfileId: null,
+        userErrors: [
+          { message: "Invalid comparison profile ID", field: ["id"], code: "INVALID_ID" },
+        ],
+      };
     const result = await this.$ctx.kernel.runScript(ComparisonProfileDeleteScript, { id });
-    return { deletedComparisonProfileId: result.deletedProfileId ? encodeGlobalIdByType(result.deletedProfileId, GlobalIdEntity.ComparisonProfile) : null, userErrors: result.userErrors };
+    return {
+      deletedComparisonProfileId: result.deletedProfileId
+        ? encodeGlobalIdByType(result.deletedProfileId, GlobalIdEntity.ComparisonProfile)
+        : null,
+      userErrors: result.userErrors,
+    };
   }
 
   @ZodResolver(CategoryComparisonProfileSetInputSchema())
   async categoryComparisonProfileSet(args: { input: CategoryComparisonProfileSetInput }) {
     const categoryId = safeDecodeGlobalId(args.input.categoryId, GlobalIdEntity.Category);
-    const profileId = args.input.profileId ? safeDecodeGlobalId(args.input.profileId, GlobalIdEntity.ComparisonProfile) : null;
-    if (!categoryId || (args.input.profileId && !profileId)) return { category: null, effectiveComparisonProfile: null, userErrors: [{ message: "Invalid ID", code: "INVALID_ID" }] };
-    const result = await this.$ctx.kernel.runScript(CategoryComparisonProfileSetScript, { categoryId, profileId });
-    return { category: result.categoryId ? await this.resolvers.category(result.categoryId) : null, effectiveComparisonProfile: result.effectiveProfile ? await this.resolvers.comparisonProfile(result.effectiveProfile.id) : null, userErrors: result.userErrors };
+    const profileId = args.input.profileId
+      ? safeDecodeGlobalId(args.input.profileId, GlobalIdEntity.ComparisonProfile)
+      : null;
+    if (!categoryId || (args.input.profileId && !profileId))
+      return {
+        category: null,
+        effectiveComparisonProfile: null,
+        userErrors: [{ message: "Invalid ID", code: "INVALID_ID" }],
+      };
+    const result = await this.$ctx.kernel.runScript(CategoryComparisonProfileSetScript, {
+      categoryId,
+      profileId,
+    });
+    return {
+      category: result.categoryId ? await this.resolvers.category(result.categoryId) : null,
+      effectiveComparisonProfile: result.effectiveProfile
+        ? await this.resolvers.comparisonProfile(result.effectiveProfile.id)
+        : null,
+      userErrors: result.userErrors,
+    };
   }
 
   @ZodResolver(ProductComparisonConfigurationSyncInputSchema())
-  async productComparisonConfigurationSync(args: { input: ProductComparisonConfigurationSyncInput }) {
+  async productComparisonConfigurationSync(args: {
+    input: ProductComparisonConfigurationSyncInput;
+  }) {
     const decoded = decodeConfigurationInput(args.input);
     if (decoded.userErrors.length) return { configuration: null, userErrors: decoded.userErrors };
-    const result = await this.$ctx.kernel.runScript(ProductComparisonConfigurationSyncScript, decoded.params!);
-    return { configuration: result.product ? await this.resolvers.productComparisonConfiguration(result.product.id) : null, userErrors: result.userErrors };
+    const result = await this.$ctx.kernel.runScript(
+      ProductComparisonConfigurationSyncScript,
+      decoded.params!,
+    );
+    return {
+      configuration: result.product
+        ? await this.resolvers.productComparisonConfiguration(result.product.id)
+        : null,
+      userErrors: result.userErrors,
+    };
   }
   @ZodResolver(WarehouseCreateInputSchema())
   async warehouseCreate(args: { input: WarehouseCreateInput }) {
@@ -266,9 +317,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     });
 
     return {
-      warehouse: result.warehouse
-        ? await this.resolvers.warehouse(result.warehouse.id)
-        : null,
+      warehouse: result.warehouse ? await this.resolvers.warehouse(result.warehouse.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -276,10 +325,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   @ZodResolver(WarehouseUpdateInputSchema())
   async warehouseUpdate(args: { input: WarehouseUpdateInput }) {
     const { input } = args;
-    const warehouseId = decodeGlobalIdByType(
-      input.id,
-      GlobalIdEntity.Warehouse
-    );
+    const warehouseId = decodeGlobalIdByType(input.id, GlobalIdEntity.Warehouse);
 
     const result = await this.$ctx.kernel.runScript(WarehouseUpdateScript, {
       id: warehouseId,
@@ -289,9 +335,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     });
 
     return {
-      warehouse: result.warehouse
-        ? await this.resolvers.warehouse(result.warehouse.id)
-        : null,
+      warehouse: result.warehouse ? await this.resolvers.warehouse(result.warehouse.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -299,10 +343,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   @ZodResolver(WarehouseDeleteInputSchema())
   async warehouseDelete(args: { input: WarehouseDeleteInput }) {
     const { input } = args;
-    const warehouseId = decodeGlobalIdByType(
-      input.id,
-      GlobalIdEntity.Warehouse
-    );
+    const warehouseId = decodeGlobalIdByType(input.id, GlobalIdEntity.Warehouse);
 
     const result = await this.$ctx.kernel.runScript(WarehouseDeleteScript, {
       id: warehouseId,
@@ -310,10 +351,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       deletedWarehouseId: result.deletedWarehouseId
-        ? encodeGlobalIdByType(
-            result.deletedWarehouseId,
-            GlobalIdEntity.Warehouse
-          )
+        ? encodeGlobalIdByType(result.deletedWarehouseId, GlobalIdEntity.Warehouse)
         : null,
       userErrors: result.userErrors,
     };
@@ -327,14 +365,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     for (const [index, item] of input.items.entries()) {
       const fieldPrefix = ["items", String(index)];
-      const variantId = safeDecodeGlobalId(
-        item.variantId,
-        GlobalIdEntity.Variant
-      );
-      const warehouseId = safeDecodeGlobalId(
-        item.warehouseId,
-        GlobalIdEntity.Warehouse
-      );
+      const variantId = safeDecodeGlobalId(item.variantId, GlobalIdEntity.Variant);
+      const warehouseId = safeDecodeGlobalId(item.warehouseId, GlobalIdEntity.Warehouse);
 
       if (!variantId) {
         userErrors.push({
@@ -367,7 +399,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       warehouseStocks: await Promise.all(
-        result.warehouseStocks.map((stock) => this.resolvers.stock(stock.id))
+        result.warehouseStocks.map((stock) => this.resolvers.stock(stock.id)),
       ),
       userErrors: result.userErrors,
     };
@@ -381,14 +413,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     for (const [index, item] of input.items.entries()) {
       const fieldPrefix = ["items", String(index)];
-      const variantId = safeDecodeGlobalId(
-        item.variantId,
-        GlobalIdEntity.Variant
-      );
-      const warehouseId = safeDecodeGlobalId(
-        item.warehouseId,
-        GlobalIdEntity.Warehouse
-      );
+      const variantId = safeDecodeGlobalId(item.variantId, GlobalIdEntity.Variant);
+      const warehouseId = safeDecodeGlobalId(item.warehouseId, GlobalIdEntity.Warehouse);
 
       if (!variantId) {
         userErrors.push({
@@ -421,17 +447,15 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       deletedWarehouseStockIds: result.deletedWarehouseStockIds.map((stockId) =>
-        encodeGlobalIdByType(stockId, GlobalIdEntity.WarehouseStock)
+        encodeGlobalIdByType(stockId, GlobalIdEntity.WarehouseStock),
       ),
       userErrors: result.userErrors,
     };
   }
 
   private mapCategoryUpdateOperations(
-    operations: CatalogMutationCategoryUpdateArgs["operations"]
-  ):
-    | { operations: CategoryUpdateParams | null | undefined }
-    | { userErrors: UserError[] } {
+    operations: CatalogMutationCategoryUpdateArgs["operations"],
+  ): { operations: CategoryUpdateParams | null | undefined } | { userErrors: UserError[] } {
     if (operations === undefined || operations === null) {
       return { operations };
     }
@@ -448,10 +472,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
               ogTitle: operations.seo.ogTitle ?? undefined,
               ogDescription: operations.seo.ogDescription ?? undefined,
               ogImageId: operations.seo.ogImageId
-                ? safeDecodeGlobalId(
-                    operations.seo.ogImageId,
-                    GlobalIdEntity.File
-                  )
+                ? safeDecodeGlobalId(operations.seo.ogImageId, GlobalIdEntity.File)
                 : undefined,
             }
           : undefined;
@@ -467,10 +488,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const fileIds: string[] = [];
     if (operations.media) {
       for (let index = 0; index < operations.media.fileIds.length; index++) {
-        const decoded = safeDecodeGlobalId(
-          operations.media.fileIds[index],
-          GlobalIdEntity.File
-        );
+        const decoded = safeDecodeGlobalId(operations.media.fileIds[index], GlobalIdEntity.File);
         if (!decoded) {
           userErrors.push({
             message: "Invalid media file ID",
@@ -488,9 +506,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       hierarchy = null;
     } else if (operations.hierarchy) {
       hierarchy = {};
-      if (
-        Object.prototype.hasOwnProperty.call(operations.hierarchy, "parentId")
-      ) {
+      if (Object.prototype.hasOwnProperty.call(operations.hierarchy, "parentId")) {
         const parentId = operations.hierarchy.parentId;
         if (parentId) {
           const decoded = safeDecodeGlobalId(parentId, GlobalIdEntity.Category);
@@ -521,9 +537,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             ? null
             : operations.content
               ? {
-                  description: mapRichTextInput(
-                    operations.content.description
-                  ),
+                  description: mapRichTextInput(operations.content.description),
                   excerpt: mapRichTextInput(operations.content.excerpt),
                 }
               : undefined,
@@ -539,13 +553,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         sort: operations.sort
           ? {
               defaultSort: String(operations.sort.defaultSort).toLowerCase() as
-                | "manual"
-                | "price"
-                | "newest"
-                | "name",
-              defaultSortDirection: operations.sort.defaultSortDirection as
-                | "asc"
-                | "desc",
+                "manual" | "price" | "newest" | "name",
+              defaultSortDirection: operations.sort.defaultSortDirection as "asc" | "desc",
             }
           : undefined,
       },
@@ -561,10 +570,9 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     if (productIds.length === 0) return;
 
     if (args.reason === "assignment" && args.categoryIds.length > 0) {
-      const result = await this.$ctx.kernel.runScript(
-        CategoryProductsCountRefreshScript,
-        { categoryIds: args.categoryIds },
-      );
+      const result = await this.$ctx.kernel.runScript(CategoryProductsCountRefreshScript, {
+        categoryIds: args.categoryIds,
+      });
 
       if (!result.success) {
         throw new Error("Failed to refresh category product counts");
@@ -586,18 +594,15 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
           },
           subject: { type: "product", id: productId },
-          actor: this.$ctx.hasUser
-            ? { type: "user", id: this.$ctx.user.id }
-            : undefined,
+          actor: this.$ctx.hasUser ? { type: "user", id: this.$ctx.user.id } : undefined,
           emitKey: `product:${productId}`,
         },
         {
           source: "workflow",
           workflowId: `categoryProduct:${this.$ctx.store.id}:${this.$ctx.requestId}:${productId}`,
           stepId: "emitProductUpdated",
-        }
+        },
       );
-
     }
   }
 
@@ -621,9 +626,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
           },
           subject: { type: "product", id: productId },
-          actor: this.$ctx.hasUser
-            ? { type: "user", id: this.$ctx.user.id }
-            : undefined,
+          actor: this.$ctx.hasUser ? { type: "user", id: this.$ctx.user.id } : undefined,
           emitKey: `product:${productId}`,
         },
         {
@@ -656,16 +659,14 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
         },
         subject: { type: "product", id: args.productId },
-        actor: this.$ctx.hasUser
-          ? { type: "user", id: this.$ctx.user.id }
-          : undefined,
+        actor: this.$ctx.hasUser ? { type: "user", id: this.$ctx.user.id } : undefined,
         emitKey: `product:${args.productId}:deleted`,
       },
       {
         source: "workflow",
         workflowId: `productDelete:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.productId}`,
         stepId: "emitProductDeleted",
-      }
+      },
     );
   }
 
@@ -681,71 +682,41 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     });
 
     return {
-      vendor: result.vendor
-        ? await this.resolvers.vendor(result.vendor.id)
-        : null,
+      vendor: result.vendor ? await this.resolvers.vendor(result.vendor.id) : null,
       userErrors: result.userErrors,
     };
   }
 
   @ZodResolver(ProductOptionCategoryCreateInputSchema())
-  async productOptionCategoryCreate(
-    args: CatalogMutationProductOptionCategoryCreateArgs
-  ) {
-    const result = await this.$ctx.kernel.runScript(
-      OptionCategoryCreateScript,
-      args.input
-    );
+  async productOptionCategoryCreate(args: CatalogMutationProductOptionCategoryCreateArgs) {
+    const result = await this.$ctx.kernel.runScript(OptionCategoryCreateScript, args.input);
     return {
-      category: result.category
-        ? await this.resolvers.optionCategory(result.category.id)
-        : null,
+      category: result.category ? await this.resolvers.optionCategory(result.category.id) : null,
       userErrors: result.userErrors,
     };
   }
 
   @ZodResolver(ProductOptionCategoryUpdateInputSchema())
-  async productOptionCategoryUpdate(
-    args: CatalogMutationProductOptionCategoryUpdateArgs
-  ) {
-    const id = decodeGlobalIdByType(
-      args.input.id,
-      GlobalIdEntity.OptionCategory
-    );
-    const result = await this.$ctx.kernel.runScript(
-      OptionCategoryUpdateScript,
-      {
-        id,
-        name: args.input.name ?? undefined,
-        slug: args.input.slug ?? undefined,
-      }
-    );
+  async productOptionCategoryUpdate(args: CatalogMutationProductOptionCategoryUpdateArgs) {
+    const id = decodeGlobalIdByType(args.input.id, GlobalIdEntity.OptionCategory);
+    const result = await this.$ctx.kernel.runScript(OptionCategoryUpdateScript, {
+      id,
+      name: args.input.name ?? undefined,
+      slug: args.input.slug ?? undefined,
+    });
     return {
-      category: result.category
-        ? await this.resolvers.optionCategory(result.category.id)
-        : null,
+      category: result.category ? await this.resolvers.optionCategory(result.category.id) : null,
       userErrors: result.userErrors,
     };
   }
 
   @ZodResolver(ProductOptionCategoryDeleteInputSchema())
-  async productOptionCategoryDelete(
-    args: CatalogMutationProductOptionCategoryDeleteArgs
-  ) {
-    const id = decodeGlobalIdByType(
-      args.input.id,
-      GlobalIdEntity.OptionCategory
-    );
-    const result = await this.$ctx.kernel.runScript(
-      OptionCategoryDeleteScript,
-      { id }
-    );
+  async productOptionCategoryDelete(args: CatalogMutationProductOptionCategoryDeleteArgs) {
+    const id = decodeGlobalIdByType(args.input.id, GlobalIdEntity.OptionCategory);
+    const result = await this.$ctx.kernel.runScript(OptionCategoryDeleteScript, { id });
     return {
       deletedCategoryId: result.deletedCategoryId
-        ? encodeGlobalIdByType(
-            result.deletedCategoryId,
-            GlobalIdEntity.OptionCategory
-          )
+        ? encodeGlobalIdByType(result.deletedCategoryId, GlobalIdEntity.OptionCategory)
         : null,
       userErrors: result.userErrors,
     };
@@ -763,7 +734,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     // Decode Global IDs to UUIDs for media files
     const mediaFileIds = input.mediaFileIds?.map((fileId) =>
-      decodeGlobalIdByType(fileId, GlobalIdEntity.File)
+      decodeGlobalIdByType(fileId, GlobalIdEntity.File),
     );
     const vendorId = input.vendorId
       ? decodeGlobalIdByType(input.vendorId, GlobalIdEntity.Vendor)
@@ -779,10 +750,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       options: input.options?.map((opt) => ({
         name: opt.name,
         slug: opt.slug,
-        categoryId: decodeGlobalIdByType(
-          opt.categoryId,
-          GlobalIdEntity.OptionCategory
-        ),
+        categoryId: decodeGlobalIdByType(opt.categoryId, GlobalIdEntity.OptionCategory),
         sortIndex: opt.sortIndex ?? undefined,
         values: opt.values.map((v) => ({
           name: v.name,
@@ -797,7 +765,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         ? {
             tracked: input.inventoryItem.tracked,
             sku: input.inventoryItem.sku ?? undefined,
-            continueSellingWhenOutOfStock: input.inventoryItem.continueSellingWhenOutOfStock ?? undefined,
+            continueSellingWhenOutOfStock:
+              input.inventoryItem.continueSellingWhenOutOfStock ?? undefined,
             requiresShipping: input.inventoryItem.requiresShipping,
           }
         : undefined,
@@ -806,28 +775,25 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
     };
 
-    const sagaResult = await this.$ctx.kernel.getServices().broker.runSaga<
-      ProductCreateResult,
-      ProductCreateParams
-    >(
-      "catalog.productCreate",
-      sagaInput,
-      {
-        source: "content",
-        organizationId: sagaInput.organizationId,
-        resourceId: sagaInput.handle,
-        operation: "productCreate",
-        content: input,
-      },
-      { adminContext: this.$ctx.adminContext },
-    );
+    const sagaResult = await this.$ctx.kernel
+      .getServices()
+      .broker.runSaga<ProductCreateResult, ProductCreateParams>(
+        "catalog.productCreate",
+        sagaInput,
+        {
+          source: "content",
+          organizationId: sagaInput.organizationId,
+          resourceId: sagaInput.handle,
+          operation: "productCreate",
+          content: input,
+        },
+        { adminContext: this.$ctx.adminContext },
+      );
 
     const result = sagaResult.data!;
 
     return {
-      product: result.product
-        ? await this.resolvers.product(result.product.id)
-        : null,
+      product: result.product ? await this.resolvers.product(result.product.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -867,10 +833,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
    */
   async productUpdate(args: CatalogMutationProductUpdateArgs) {
     const { productId, expectedRevision, operations } = args;
-    const decodedProductId = safeDecodeGlobalId(
-      productId,
-      GlobalIdEntity.Product,
-    );
+    const decodedProductId = safeDecodeGlobalId(productId, GlobalIdEntity.Product);
     if (!decodedProductId) {
       const error = {
         message: "Invalid ID format",
@@ -922,23 +885,19 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     const idempotencyKey = this.$ctx.requestId;
 
-    const result = (await this.$ctx.kernel
-      .getServices()
-      .broker.runWorkflow(
-        "catalog.productUpdate",
-        workflowInput,
-        {
-          source: "workflow",
-          workflowId: `productUpdate:${decodedProductId}:${idempotencyKey}`,
-          stepId: "start",
-        },
-        { adminContext: this.$ctx.adminContext },
-      )) as ProductUpdateWorkflowResult;
+    const result = (await this.$ctx.kernel.getServices().broker.runWorkflow(
+      "catalog.productUpdate",
+      workflowInput,
+      {
+        source: "workflow",
+        workflowId: `productUpdate:${decodedProductId}:${idempotencyKey}`,
+        stepId: "start",
+      },
+      { adminContext: this.$ctx.adminContext },
+    )) as ProductUpdateWorkflowResult;
 
     return {
-      product: result.product
-        ? await this.resolvers.product(result.product.id)
-        : null,
+      product: result.product ? await this.resolvers.product(result.product.id) : null,
       operationResults: result.operationResults.map((r) => ({
         type: toGraphqlOperationType(r.type),
         applied: r.applied,
@@ -976,10 +935,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const mediaFileIds: string[] = [];
     if (input.mediaFileIds) {
       for (let index = 0; index < input.mediaFileIds.length; index++) {
-        const decoded = safeDecodeGlobalId(
-          input.mediaFileIds[index],
-          GlobalIdEntity.File
-        );
+        const decoded = safeDecodeGlobalId(input.mediaFileIds[index], GlobalIdEntity.File);
         if (!decoded) {
           userErrors.push({
             message: "Invalid media file ID",
@@ -1039,9 +995,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     });
 
     return {
-      category: result.category
-        ? await this.resolvers.category(result.category.id)
-        : null,
+      category: result.category ? await this.resolvers.category(result.category.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -1049,10 +1003,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   async categoryUpdate(args: CatalogMutationCategoryUpdateArgs) {
     let categoryId: string;
     try {
-      categoryId = decodeGlobalIdByType(
-        args.categoryId,
-        GlobalIdEntity.Category
-      );
+      categoryId = decodeGlobalIdByType(args.categoryId, GlobalIdEntity.Category);
     } catch {
       return {
         category: null,
@@ -1088,23 +1039,19 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       },
     };
 
-    const result = (await this.$ctx.kernel
-      .getServices()
-      .broker.runWorkflow(
-        "catalog.categoryUpdate",
-        workflowInput,
-        {
-          source: "workflow",
-          workflowId: `categoryUpdate:${categoryId}:${this.$ctx.requestId}`,
-          stepId: "start",
-        },
-        { adminContext: this.$ctx.adminContext },
-      )) as CategoryUpdateWorkflowResult;
+    const result = (await this.$ctx.kernel.getServices().broker.runWorkflow(
+      "catalog.categoryUpdate",
+      workflowInput,
+      {
+        source: "workflow",
+        workflowId: `categoryUpdate:${categoryId}:${this.$ctx.requestId}`,
+        stepId: "start",
+      },
+      { adminContext: this.$ctx.adminContext },
+    )) as CategoryUpdateWorkflowResult;
 
     return {
-      category: result.category
-        ? await this.resolvers.category(result.category.id)
-        : null,
+      category: result.category ? await this.resolvers.category(result.category.id) : null,
       operationResults: result.operationResults.map((item) => ({
         type: "CATEGORY_UPDATE",
         applied: item.applied,
@@ -1141,9 +1088,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     });
 
     return {
-      category: result.category
-        ? await this.resolvers.category(result.category.id)
-        : null,
+      category: result.category ? await this.resolvers.category(result.category.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -1152,10 +1097,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   async categoryRebalance(args: CatalogMutationCategoryRebalanceArgs) {
     let categoryId: string;
     try {
-      categoryId = decodeGlobalIdByType(
-        args.input.categoryId,
-        GlobalIdEntity.Category
-      );
+      categoryId = decodeGlobalIdByType(args.input.categoryId, GlobalIdEntity.Category);
     } catch {
       return {
         category: null,
@@ -1175,9 +1117,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     }
 
     return {
-      category: result.category
-        ? await this.resolvers.category(result.category.id)
-        : null,
+      category: result.category ? await this.resolvers.category(result.category.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -1233,61 +1173,58 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       publish?: boolean | null;
     };
   }) {
-    const mediaFileIds = (args.input.media ?? [])
-      .map((item) => decodeGlobalIdByType(item.fileId, GlobalIdEntity.File));
+    const mediaFileIds = (args.input.media ?? []).map((item) =>
+      decodeGlobalIdByType(item.fileId, GlobalIdEntity.File),
+    );
 
-    const result = await this.runCollectionMutation(args.input.clientMutationId, {
-      kind: "create",
-      params: {
-      handle: args.input.handle ?? undefined,
-      type: args.input.type.toLowerCase() as "manual" | "rule",
-      name: args.input.name,
-      description: args.input.description
-        ? {
-            text: args.input.description.text ?? "",
-            html: args.input.description.html ?? "",
-            json: (args.input.description.json ?? {}) as Record<string, unknown>,
-          }
-        : undefined,
-      excerpt: args.input.excerpt
-        ? {
-            text: args.input.excerpt.text ?? "",
-            html: args.input.excerpt.html ?? "",
-            json: (args.input.excerpt.json ?? {}) as Record<string, unknown>,
-          }
-        : undefined,
-      mediaFileIds,
-      seo: args.input.seo
-        ? {
-            seoTitle: args.input.seo.seoTitle ?? undefined,
-            seoDescription: args.input.seo.seoDescription ?? undefined,
-            ogTitle: args.input.seo.ogTitle ?? undefined,
-            ogDescription: args.input.seo.ogDescription ?? undefined,
-            ogImageId: args.input.seo.ogImageId
-              ? decodeGlobalIdByType(args.input.seo.ogImageId, GlobalIdEntity.File)
-              : undefined,
-          }
-        : undefined,
-      defaultSort: args.input.defaultSort?.toLowerCase() as
-        | "manual"
-        | "price"
-        | "newest"
-        | "name"
-        | undefined,
-      defaultSortDirection: (args.input.defaultSortDirection ?? undefined) as
-        | "asc"
-        | "desc"
-        | undefined,
-      activeFrom: args.input.activeFrom,
-      activeTo: args.input.activeTo,
-        publish: args.input.publish ?? undefined,
+    const result = await this.runCollectionMutation(
+      args.input.clientMutationId,
+      {
+        kind: "create",
+        params: {
+          handle: args.input.handle ?? undefined,
+          type: args.input.type.toLowerCase() as "manual" | "rule",
+          name: args.input.name,
+          description: args.input.description
+            ? {
+                text: args.input.description.text ?? "",
+                html: args.input.description.html ?? "",
+                json: (args.input.description.json ?? {}) as Record<string, unknown>,
+              }
+            : undefined,
+          excerpt: args.input.excerpt
+            ? {
+                text: args.input.excerpt.text ?? "",
+                html: args.input.excerpt.html ?? "",
+                json: (args.input.excerpt.json ?? {}) as Record<string, unknown>,
+              }
+            : undefined,
+          mediaFileIds,
+          seo: args.input.seo
+            ? {
+                seoTitle: args.input.seo.seoTitle ?? undefined,
+                seoDescription: args.input.seo.seoDescription ?? undefined,
+                ogTitle: args.input.seo.ogTitle ?? undefined,
+                ogDescription: args.input.seo.ogDescription ?? undefined,
+                ogImageId: args.input.seo.ogImageId
+                  ? decodeGlobalIdByType(args.input.seo.ogImageId, GlobalIdEntity.File)
+                  : undefined,
+              }
+            : undefined,
+          defaultSort: args.input.defaultSort?.toLowerCase() as
+            "manual" | "price" | "newest" | "name" | undefined,
+          defaultSortDirection: (args.input.defaultSortDirection ?? undefined) as
+            "asc" | "desc" | undefined,
+          activeFrom: args.input.activeFrom,
+          activeTo: args.input.activeTo,
+          publish: args.input.publish ?? undefined,
+        },
       },
-    }, ["metadata", "publication", "schedule", "sort"]);
+      ["metadata", "publication", "schedule", "sort"],
+    );
 
     return {
-      collection: result.collection
-        ? await this.resolvers.collection(result.collection.id)
-        : null,
+      collection: result.collection ? await this.resolvers.collection(result.collection.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -1320,77 +1257,75 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     if (!id) {
       return {
         collection: null,
-        userErrors: [{ message: "Invalid collection ID", field: ["input", "id"], code: "INVALID_ID" }],
+        userErrors: [
+          { message: "Invalid collection ID", field: ["input", "id"], code: "INVALID_ID" },
+        ],
       };
     }
     const mediaFileIds = args.input.media
-      ? args.input.media.map((item) =>
-          safeDecodeGlobalId(item.fileId, GlobalIdEntity.File)
-        ).filter((id): id is string => id !== null)
+      ? args.input.media
+          .map((item) => safeDecodeGlobalId(item.fileId, GlobalIdEntity.File))
+          .filter((id): id is string => id !== null)
       : undefined;
 
-    const result = await this.runCollectionMutation(args.input.clientMutationId, {
-      kind: "update",
-      params: {
-      id,
-      expectedRevision: args.input.expectedRevision,
-      handle: args.input.handle ?? undefined,
-      name: args.input.name ?? undefined,
-      description:
-        args.input.description === null
-          ? null
-          : args.input.description
-          ? {
-              text: args.input.description.text ?? "",
-              html: args.input.description.html ?? "",
-              json: (args.input.description.json ?? {}) as Record<string, unknown>,
-            }
-          : undefined,
-      excerpt:
-        args.input.excerpt === null
-          ? null
-          : args.input.excerpt
-          ? {
-              text: args.input.excerpt.text ?? "",
-              html: args.input.excerpt.html ?? "",
-              json: (args.input.excerpt.json ?? {}) as Record<string, unknown>,
-            }
-          : undefined,
-      mediaFileIds,
-      seo:
-        args.input.seo === null
-          ? null
-          : args.input.seo
-          ? {
-              seoTitle: args.input.seo.seoTitle ?? undefined,
-              seoDescription: args.input.seo.seoDescription ?? undefined,
-              ogTitle: args.input.seo.ogTitle ?? undefined,
-              ogDescription: args.input.seo.ogDescription ?? undefined,
-              ogImageId: args.input.seo.ogImageId
-                ? decodeGlobalIdByType(args.input.seo.ogImageId, GlobalIdEntity.File)
+    const result = await this.runCollectionMutation(
+      args.input.clientMutationId,
+      {
+        kind: "update",
+        params: {
+          id,
+          expectedRevision: args.input.expectedRevision,
+          handle: args.input.handle ?? undefined,
+          name: args.input.name ?? undefined,
+          description:
+            args.input.description === null
+              ? null
+              : args.input.description
+                ? {
+                    text: args.input.description.text ?? "",
+                    html: args.input.description.html ?? "",
+                    json: (args.input.description.json ?? {}) as Record<string, unknown>,
+                  }
                 : undefined,
-            }
-          : undefined,
-      defaultSort: args.input.defaultSort?.toLowerCase() as
-        | "manual"
-        | "price"
-        | "newest"
-        | "name"
-        | undefined,
-      defaultSortDirection: (args.input.defaultSortDirection ?? undefined) as
-        | "asc"
-        | "desc"
-        | undefined,
-      activeFrom: args.input.activeFrom,
-      activeTo: args.input.activeTo,
-        publish: args.input.publish ?? undefined,
+          excerpt:
+            args.input.excerpt === null
+              ? null
+              : args.input.excerpt
+                ? {
+                    text: args.input.excerpt.text ?? "",
+                    html: args.input.excerpt.html ?? "",
+                    json: (args.input.excerpt.json ?? {}) as Record<string, unknown>,
+                  }
+                : undefined,
+          mediaFileIds,
+          seo:
+            args.input.seo === null
+              ? null
+              : args.input.seo
+                ? {
+                    seoTitle: args.input.seo.seoTitle ?? undefined,
+                    seoDescription: args.input.seo.seoDescription ?? undefined,
+                    ogTitle: args.input.seo.ogTitle ?? undefined,
+                    ogDescription: args.input.seo.ogDescription ?? undefined,
+                    ogImageId: args.input.seo.ogImageId
+                      ? decodeGlobalIdByType(args.input.seo.ogImageId, GlobalIdEntity.File)
+                      : undefined,
+                  }
+                : undefined,
+          defaultSort: args.input.defaultSort?.toLowerCase() as
+            "manual" | "price" | "newest" | "name" | undefined,
+          defaultSortDirection: (args.input.defaultSortDirection ?? undefined) as
+            "asc" | "desc" | undefined,
+          activeFrom: args.input.activeFrom,
+          activeTo: args.input.activeTo,
+          publish: args.input.publish ?? undefined,
+        },
       },
-    }, collectionUpdateReasons(args.input));
+      collectionUpdateReasons(args.input),
+    );
 
     return {
-      collection: result.collection
-        ? await this.resolvers.collection(result.collection.id)
-        : null,
+      collection: result.collection ? await this.resolvers.collection(result.collection.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -1406,7 +1341,9 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     if (!id) {
       return {
         deletedCollectionId: null,
-        userErrors: [{ message: "Invalid collection ID", field: ["input", "id"], code: "INVALID_ID" }],
+        userErrors: [
+          { message: "Invalid collection ID", field: ["input", "id"], code: "INVALID_ID" },
+        ],
       };
     }
     const result = await this.runCollectionMutation(
@@ -1415,7 +1352,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         kind: "delete",
         params: { id, expectedRevision: args.input.expectedRevision },
       },
-      ["publication"]
+      ["publication"],
     );
     return {
       deletedCollectionId: result.deletedCollectionId ? args.input.id : null,
@@ -1436,7 +1373,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     try {
       collectionId = decodeGlobalIdByType(args.input.collectionId, GlobalIdEntity.Collection);
       productIds = args.input.productIds.map((id) =>
-        decodeGlobalIdByType(id, GlobalIdEntity.Product)
+        decodeGlobalIdByType(id, GlobalIdEntity.Product),
       );
     } catch {
       return {
@@ -1454,12 +1391,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           productIds,
         },
       },
-      ["items"]
+      ["items"],
     );
     return {
-      collection: result.collection
-        ? await this.resolvers.collection(result.collection.id)
-        : null,
+      collection: result.collection ? await this.resolvers.collection(result.collection.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -1477,7 +1412,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     try {
       collectionId = decodeGlobalIdByType(args.input.collectionId, GlobalIdEntity.Collection);
       productIds = args.input.productIds.map((id) =>
-        decodeGlobalIdByType(id, GlobalIdEntity.Product)
+        decodeGlobalIdByType(id, GlobalIdEntity.Product),
       );
     } catch {
       return {
@@ -1495,12 +1430,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           productIds,
         },
       },
-      ["items"]
+      ["items"],
     );
     return {
-      collection: result.collection
-        ? await this.resolvers.collection(result.collection.id)
-        : null,
+      collection: result.collection ? await this.resolvers.collection(result.collection.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -1546,12 +1479,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           beforeProductId,
         },
       },
-      ["rank"]
+      ["rank"],
     );
     return {
-      collection: result.collection
-        ? await this.resolvers.collection(result.collection.id)
-        : null,
+      collection: result.collection ? await this.resolvers.collection(result.collection.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -1564,18 +1495,17 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       rules: CollectionRuleInput[];
     };
   }) {
-    const collectionId = safeDecodeGlobalId(
-      args.input.collectionId,
-      GlobalIdEntity.Collection
-    );
+    const collectionId = safeDecodeGlobalId(args.input.collectionId, GlobalIdEntity.Collection);
     if (!collectionId) {
       return {
         collection: null,
-        userErrors: [{
-          message: "Invalid collection ID",
-          field: ["input", "collectionId"],
-          code: "INVALID_ID",
-        }],
+        userErrors: [
+          {
+            message: "Invalid collection ID",
+            field: ["input", "collectionId"],
+            code: "INVALID_ID",
+          },
+        ],
       };
     }
     const normalized = await this.normalizeCollectionRules(args.input.rules);
@@ -1592,12 +1522,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           rules: normalized.rules,
         },
       },
-      ["rules"]
+      ["rules"],
     );
     return {
-      collection: result.collection
-        ? await this.resolvers.collection(result.collection.id)
-        : null,
+      collection: result.collection ? await this.resolvers.collection(result.collection.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -1609,18 +1537,17 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       expectedRevision: number;
     };
   }) {
-    const collectionId = safeDecodeGlobalId(
-      args.input.collectionId,
-      GlobalIdEntity.Collection
-    );
+    const collectionId = safeDecodeGlobalId(args.input.collectionId, GlobalIdEntity.Collection);
     if (!collectionId) {
       return {
         collection: null,
-        userErrors: [{
-          message: "Invalid collection ID",
-          field: ["input", "collectionId"],
-          code: "INVALID_ID",
-        }],
+        userErrors: [
+          {
+            message: "Invalid collection ID",
+            field: ["input", "collectionId"],
+            code: "INVALID_ID",
+          },
+        ],
       };
     }
     const result = await this.runCollectionMutation(
@@ -1632,12 +1559,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           expectedRevision: args.input.expectedRevision,
         },
       },
-      ["rank"]
+      ["rank"],
     );
     return {
-      collection: result.collection
-        ? await this.resolvers.collection(result.collection.id)
-        : null,
+      collection: result.collection ? await this.resolvers.collection(result.collection.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -1669,30 +1594,36 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
     let result: PreviewCollectionRulesResult;
     try {
-      result = await this.$ctx.kernel.getServices().broker.runWorkflow<
-        PreviewCollectionRulesResult,
-        CollectionRulesPreviewWorkflowInput
-      >("catalog.collectionRulesPreview", workflowInput, {
-        source: "content",
-        organizationId: this.$ctx.store.organizationId,
-        resourceId: `collection-preview:${this.$ctx.requestId}`,
-        operation: "catalog.collectionRulesPreview",
-        contentHash: hashCanonicalJsonV1({
-          requestId: this.$ctx.requestId,
-          rulesHash,
-        }),
-      }, {
-        adminContext: this.$ctx.adminContext,
-      });
+      result = await this.$ctx.kernel
+        .getServices()
+        .broker.runWorkflow<PreviewCollectionRulesResult, CollectionRulesPreviewWorkflowInput>(
+          "catalog.collectionRulesPreview",
+          workflowInput,
+          {
+            source: "content",
+            organizationId: this.$ctx.store.organizationId,
+            resourceId: `collection-preview:${this.$ctx.requestId}`,
+            operation: "catalog.collectionRulesPreview",
+            contentHash: hashCanonicalJsonV1({
+              requestId: this.$ctx.requestId,
+              rulesHash,
+            }),
+          },
+          {
+            adminContext: this.$ctx.adminContext,
+          },
+        );
     } catch {
       return {
         count: null,
         rulesHash,
         indexObservedAt: null,
-        userErrors: [{
-          message: "Collection rule preview is temporarily unavailable",
-          code: "COLLECTION_PREVIEW_UNAVAILABLE",
-        }],
+        userErrors: [
+          {
+            message: "Collection rule preview is temporarily unavailable",
+            code: "COLLECTION_PREVIEW_UNAVAILABLE",
+          },
+        ],
       };
     }
     if (!result.ok) {
@@ -1700,11 +1631,13 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         count: null,
         rulesHash,
         indexObservedAt: null,
-        userErrors: [{
-          message: result.message,
-          field: result.field,
-          code: result.code,
-        }],
+        userErrors: [
+          {
+            message: result.message,
+            field: result.field,
+            code: result.code,
+          },
+        ],
       };
     }
     return {
@@ -1722,18 +1655,17 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       expectedRevision: number;
     };
   }) {
-    const collectionId = safeDecodeGlobalId(
-      args.input.collectionId,
-      GlobalIdEntity.Collection
-    );
+    const collectionId = safeDecodeGlobalId(args.input.collectionId, GlobalIdEntity.Collection);
     if (!collectionId) {
       return {
         collection: null,
-        userErrors: [{
-          message: "Invalid collection ID",
-          field: ["input", "collectionId"],
-          code: "INVALID_ID",
-        }],
+        userErrors: [
+          {
+            message: "Invalid collection ID",
+            field: ["input", "collectionId"],
+            code: "INVALID_ID",
+          },
+        ],
       };
     }
     const result = await this.runCollectionMutation(
@@ -1745,12 +1677,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           expectedRevision: args.input.expectedRevision,
         },
       },
-      ["items"]
+      ["items"],
     );
     return {
-      collection: result.collection
-        ? await this.resolvers.collection(result.collection.id)
-        : null,
+      collection: result.collection ? await this.resolvers.collection(result.collection.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -1758,39 +1688,40 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   private runCollectionMutation(
     clientMutationId: string,
     operation: Exclude<CollectionMutationOperation, { kind: "delete" }>,
-    reasons: CollectionUpdatedReason[]
+    reasons: CollectionUpdatedReason[],
   ): Promise<CollectionResult>;
   private runCollectionMutation(
     clientMutationId: string,
     operation: Extract<CollectionMutationOperation, { kind: "delete" }>,
-    reasons: CollectionUpdatedReason[]
+    reasons: CollectionUpdatedReason[],
   ): Promise<CollectionDeleteResult>;
   private async runCollectionMutation(
     clientMutationId: string,
     operation: CollectionMutationOperation,
-    reasons: CollectionUpdatedReason[]
+    reasons: CollectionUpdatedReason[],
   ): Promise<CollectionMutationDispatchResult> {
     const clientKey = clientMutationId.trim();
-    if (
-      clientKey.length === 0 ||
-      Buffer.byteLength(clientKey, "utf8") > 128
-    ) {
+    if (clientKey.length === 0 || Buffer.byteLength(clientKey, "utf8") > 128) {
       return operation.kind === "delete"
         ? {
             deletedCollectionId: undefined,
-            userErrors: [{
-              message: "clientMutationId must contain 1..128 UTF-8 bytes",
-              field: ["clientMutationId"],
-              code: "INVALID_IDEMPOTENCY_KEY",
-            }],
+            userErrors: [
+              {
+                message: "clientMutationId must contain 1..128 UTF-8 bytes",
+                field: ["clientMutationId"],
+                code: "INVALID_IDEMPOTENCY_KEY",
+              },
+            ],
           }
         : {
             collection: undefined,
-            userErrors: [{
-              message: "clientMutationId must contain 1..128 UTF-8 bytes",
-              field: ["clientMutationId"],
-              code: "INVALID_IDEMPOTENCY_KEY",
-            }],
+            userErrors: [
+              {
+                message: "clientMutationId must contain 1..128 UTF-8 bytes",
+                field: ["clientMutationId"],
+                code: "INVALID_IDEMPOTENCY_KEY",
+              },
+            ],
           };
     }
     const requestHash = hashCanonicalJsonV1({
@@ -1815,30 +1746,36 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       },
     };
     try {
-      return await this.$ctx.kernel.getServices().broker.runWorkflow<
-        CollectionMutationDispatchResult,
-        CollectionMutationWorkflowInput
-      >("catalog.collectionMutate", input, {
-        source: "client",
-        clientKey: `${this.$ctx.store.id}:${clientKey}`,
-        organizationId: this.$ctx.store.organizationId,
-        apiKeyId: this.$ctx.hasUser ? this.$ctx.user.id : this.$ctx.store.id,
-        requestHash,
-      }, {
-        adminContext: this.$ctx.adminContext,
-      });
+      return await this.$ctx.kernel
+        .getServices()
+        .broker.runWorkflow<CollectionMutationDispatchResult, CollectionMutationWorkflowInput>(
+          "catalog.collectionMutate",
+          input,
+          {
+            source: "client",
+            clientKey: `${this.$ctx.store.id}:${clientKey}`,
+            organizationId: this.$ctx.store.organizationId,
+            apiKeyId: this.$ctx.hasUser ? this.$ctx.user.id : this.$ctx.store.id,
+            requestHash,
+          },
+          {
+            adminContext: this.$ctx.adminContext,
+          },
+        );
     } catch (error) {
       const conflict =
         error instanceof Error &&
         (error.name === "IdempotencyConflictError" ||
           /idempotency.*conflict|different request/i.test(error.message));
-      const userErrors = [{
-        message: conflict
-          ? "clientMutationId was reused with different input"
-          : "Collection mutation is temporarily unavailable",
-        field: ["clientMutationId"],
-        code: conflict ? "IDEMPOTENCY_KEY_REUSED" : "MUTATION_UNAVAILABLE",
-      }];
+      const userErrors = [
+        {
+          message: conflict
+            ? "clientMutationId was reused with different input"
+            : "Collection mutation is temporarily unavailable",
+          field: ["clientMutationId"],
+          code: conflict ? "IDEMPOTENCY_KEY_REUSED" : "MUTATION_UNAVAILABLE",
+        },
+      ];
       return operation.kind === "delete"
         ? { deletedCollectionId: undefined, userErrors }
         : { collection: undefined, userErrors };
@@ -1846,7 +1783,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   private async normalizeCollectionRules(
-    inputs: readonly CollectionRuleInput[]
+    inputs: readonly CollectionRuleInput[],
   ): Promise<{ rules: CanonicalCollectionRule[]; userErrors: UserError[] }> {
     const prepared: unknown[] = [];
     try {
@@ -1867,11 +1804,13 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         if (selected.length !== 1) {
           return {
             rules: [],
-            userErrors: [{
-              message: "Exactly one typed rule field must be provided",
-              field: ["input", "rules", String(index)],
-              code: "INVALID_RULE",
-            }],
+            userErrors: [
+              {
+                message: "Exactly one typed rule field must be provided",
+                field: ["input", "rules", String(index)],
+                code: "INVALID_RULE",
+              },
+            ],
           };
         }
 
@@ -1881,7 +1820,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             operator: input.category.operator.toLowerCase(),
             value: {
               ids: input.category.categoryIds.map((id) =>
-                decodeGlobalIdByType(id, GlobalIdEntity.Category)
+                decodeGlobalIdByType(id, GlobalIdEntity.Category),
               ),
             },
           });
@@ -1892,9 +1831,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             field: "tag",
             operator: input.tag.operator.toLowerCase(),
             value: {
-              ids: input.tag.tagIds.map((id) =>
-                decodeGlobalIdByType(id, GlobalIdEntity.Tag)
-              ),
+              ids: input.tag.tagIds.map((id) => decodeGlobalIdByType(id, GlobalIdEntity.Tag)),
             },
           });
           continue;
@@ -1905,7 +1842,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             operator: "in",
             value: {
               ids: input.vendor.vendorIds.map((id) =>
-                decodeGlobalIdByType(id, GlobalIdEntity.Vendor)
+                decodeGlobalIdByType(id, GlobalIdEntity.Vendor),
               ),
             },
           });
@@ -1990,15 +1927,9 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       }
       const rules = normalizeCanonicalCollectionRulesV1(prepared);
       const idsByType = {
-        category: rules.flatMap((rule) =>
-          rule.field === "category" ? [...rule.value.ids] : []
-        ),
-        tag: rules.flatMap((rule) =>
-          rule.field === "tag" ? [...rule.value.ids] : []
-        ),
-        vendor: rules.flatMap((rule) =>
-          rule.field === "vendor" ? [...rule.value.ids] : []
-        ),
+        category: rules.flatMap((rule) => (rule.field === "category" ? [...rule.value.ids] : [])),
+        tag: rules.flatMap((rule) => (rule.field === "tag" ? [...rule.value.ids] : [])),
+        vendor: rules.flatMap((rule) => (rule.field === "vendor" ? [...rule.value.ids] : [])),
       };
       const [categories, tags, vendors] = await Promise.all([
         this.$ctx.kernel.repository.category.getByIds(idsByType.category),
@@ -2006,36 +1937,36 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         this.$ctx.kernel.repository.vendor.getByIds(idsByType.vendor),
       ]);
       const missingType =
-        new Set(categories.map((row) => row.id)).size !==
-        new Set(idsByType.category).size
+        new Set(categories.map((row) => row.id)).size !== new Set(idsByType.category).size
           ? "category"
-          : new Set(tags.map((row) => row.id)).size !==
-              new Set(idsByType.tag).size
+          : new Set(tags.map((row) => row.id)).size !== new Set(idsByType.tag).size
             ? "tag"
-            : new Set(vendors.map((row) => row.id)).size !==
-                new Set(idsByType.vendor).size
+            : new Set(vendors.map((row) => row.id)).size !== new Set(idsByType.vendor).size
               ? "vendor"
               : null;
       if (missingType) {
         return {
           rules: [],
-          userErrors: [{
-            message: `One or more ${missingType} references were not found`,
-            field: ["rules"],
-            code: "REFERENCE_NOT_FOUND",
-          }],
+          userErrors: [
+            {
+              message: `One or more ${missingType} references were not found`,
+              field: ["rules"],
+              code: "REFERENCE_NOT_FOUND",
+            },
+          ],
         };
       }
       return { rules, userErrors: [] };
     } catch (error) {
       return {
         rules: [],
-        userErrors: [{
-          message:
-            error instanceof Error ? error.message : "Invalid collection rule",
-          field: ["rules"],
-          code: "INVALID_RULE",
-        }],
+        userErrors: [
+          {
+            message: error instanceof Error ? error.message : "Invalid collection rule",
+            field: ["rules"],
+            code: "INVALID_RULE",
+          },
+        ],
       };
     }
   }
@@ -2059,9 +1990,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     });
 
     return {
-      tag: result.tag
-        ? await this.resolvers.tag(result.tag.id)
-        : null,
+      tag: result.tag ? await this.resolvers.tag(result.tag.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -2079,9 +2008,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const { input } = args;
 
     const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Tag);
-    const productLinks = await this.$ctx.kernel.repository.tag.getTagProductLinks([
-      id,
-    ]);
+    const productLinks = await this.$ctx.kernel.repository.tag.getTagProductLinks([id]);
 
     const result = await this.$ctx.kernel.runScript(TagUpdateScript, {
       id,
@@ -2098,9 +2025,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     }
 
     return {
-      tag: result.tag
-        ? await this.resolvers.tag(result.tag.id)
-        : null,
+      tag: result.tag ? await this.resolvers.tag(result.tag.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -2116,9 +2041,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const { input } = args;
 
     const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Tag);
-    const productLinks = await this.$ctx.kernel.repository.tag.getTagProductLinks([
-      id,
-    ]);
+    const productLinks = await this.$ctx.kernel.repository.tag.getTagProductLinks([id]);
 
     const result = await this.$ctx.kernel.runScript(TagDeleteScript, {
       id,
@@ -2164,10 +2087,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const products: ProductBulkUpdateItem[] = [];
 
     for (const [index, item] of input.products.entries()) {
-      const decodedProductId = safeDecodeGlobalId(
-        item.productId,
-        GlobalIdEntity.Product,
-      );
+      const decodedProductId = safeDecodeGlobalId(item.productId, GlobalIdEntity.Product);
       if (!decodedProductId) {
         inputErrors.push({
           message: "Invalid ID format",
@@ -2201,23 +2121,19 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     const idempotencyKey = this.$ctx.requestId;
 
-    const result = (await this.$ctx.kernel
-      .getServices()
-      .broker.runWorkflow(
-        "catalog.productBulkEdit",
-        { products, context },
-        {
-          source: "workflow",
-          workflowId: `productBulkEdit:${context.storeId}:${idempotencyKey}`,
-          stepId: "start",
-        },
-        { adminContext: this.$ctx.adminContext },
-      )) as { jobId: string };
+    const result = (await this.$ctx.kernel.getServices().broker.runWorkflow(
+      "catalog.productBulkEdit",
+      { products, context },
+      {
+        source: "workflow",
+        workflowId: `productBulkEdit:${context.storeId}:${idempotencyKey}`,
+        stepId: "start",
+      },
+      { adminContext: this.$ctx.adminContext },
+    )) as { jobId: string };
 
     return {
-      job: result.jobId
-        ? await this.resolvers.productBulkUpdateJob(result.jobId)
-        : null,
+      job: result.jobId ? await this.resolvers.productBulkUpdateJob(result.jobId) : null,
       userErrors: [],
     };
   }
@@ -2227,9 +2143,7 @@ export class InventoryMutationResolver extends CatalogMutationResolver {}
 
 // ─── Helpers ──────────────────────────────────────────────────
 
-function mapRichTextInput(
-  input?: RichTextInput | null
-): RichTextInput | null | undefined {
+function mapRichTextInput(input?: RichTextInput | null): RichTextInput | null | undefined {
   if (input === undefined) {
     return undefined;
   }
@@ -2279,9 +2193,10 @@ function mapProductUpdateInput(
   const options = operations?.options;
   const features = operations?.features;
   const components = operations?.components;
-  const operationsFieldPrefix = productIndex === undefined
-    ? ["operations"]
-    : ["input", "products", String(productIndex), "operations"];
+  const operationsFieldPrefix =
+    productIndex === undefined
+      ? ["operations"]
+      : ["input", "products", String(productIndex), "operations"];
 
   if (hasProductUpdateFields(operations)) {
     const productErrors: UserError[] = [];
@@ -2305,11 +2220,7 @@ function mapProductUpdateInput(
   }
 
   if (categories) {
-    const mapped = mapProductCategoryOperations(
-      productId,
-      categories,
-      productIndex,
-    );
+    const mapped = mapProductCategoryOperations(productId, categories, productIndex);
     result.push(...mapped.operations);
     entries.push(
       ...mapped.operations.map((operation) => ({
@@ -2335,22 +2246,14 @@ function mapProductUpdateInput(
   }
 
   if (options) {
-    const mapped = mapProductOptionsSyncOperation(
-      productId,
-      options,
-      operationsFieldPrefix,
-    );
+    const mapped = mapProductOptionsSyncOperation(productId, options, operationsFieldPrefix);
     entries.push(mapped.entry);
     errors.push(...mapped.entry.errors);
     if (mapped.entry.operation) result.push(mapped.entry.operation);
   }
 
   if (features) {
-    const mapped = mapProductFeaturesSyncOperation(
-      productId,
-      features,
-      operationsFieldPrefix,
-    );
+    const mapped = mapProductFeaturesSyncOperation(productId, features, operationsFieldPrefix);
     entries.push(mapped.entry);
     errors.push(...mapped.entry.errors);
     if (mapped.entry.operation) result.push(mapped.entry.operation);
@@ -2370,16 +2273,8 @@ function mapProductUpdateInput(
     }
 
     for (const [componentIndex, input] of components.entries()) {
-      const fieldPrefix = [
-        ...operationsFieldPrefix,
-        "components",
-        String(componentIndex),
-      ];
-      const entry = mapProductComponentOperationInput(
-        productId,
-        input,
-        fieldPrefix,
-      );
+      const fieldPrefix = [...operationsFieldPrefix, "components", String(componentIndex)];
+      const entry = mapProductComponentOperationInput(productId, input, fieldPrefix);
       entries.push(entry);
       errors.push(...entry.errors);
       if (entry.operation) result.push(entry.operation);
@@ -2400,11 +2295,7 @@ function mapProductUpdateInput(
     }
 
     for (const [variantIndex, input] of variants.entries()) {
-      const fieldPrefix = [
-        ...operationsFieldPrefix,
-        "variants",
-        String(variantIndex),
-      ];
+      const fieldPrefix = [...operationsFieldPrefix, "variants", String(variantIndex)];
       const entry = mapVariantOperationInput(productId, input, fieldPrefix);
       entries.push(entry);
       errors.push(...entry.errors);
@@ -2491,8 +2382,7 @@ function mapProductLevelOperation(
   };
 }
 
-type ProductComponentOperationInput =
-  NonNullable<ProductUpdateInput["components"]>[number];
+type ProductComponentOperationInput = NonNullable<ProductUpdateInput["components"]>[number];
 
 function mapProductComponentOperationInput(
   productId: string,
@@ -2510,9 +2400,7 @@ function mapProductComponentOperationInput(
       )
     : undefined;
   const clientMutationId =
-    typeof input.clientMutationId === "string"
-      ? input.clientMutationId.trim()
-      : undefined;
+    typeof input.clientMutationId === "string" ? input.clientMutationId.trim() : undefined;
   const name = typeof input.name === "string" ? input.name.trim() : undefined;
 
   const requireConfigurationId = () => {
@@ -2524,13 +2412,8 @@ function mapProductComponentOperationInput(
       });
     }
   };
-  const forbid = (
-    allowed: Array<keyof ProductComponentOperationInput>,
-  ): void => {
-    const allowedSet = new Set<keyof ProductComponentOperationInput>([
-      "action",
-      ...allowed,
-    ]);
+  const forbid = (allowed: Array<keyof ProductComponentOperationInput>): void => {
+    const allowedSet = new Set<keyof ProductComponentOperationInput>(["action", ...allowed]);
     for (const key of [
       "configurationId",
       "clientMutationId",
@@ -2540,11 +2423,7 @@ function mapProductComponentOperationInput(
       "pricingTemplates",
       "dependencyRules",
     ] as Array<keyof ProductComponentOperationInput>) {
-      if (
-        !allowedSet.has(key) &&
-        input[key] !== undefined &&
-        input[key] !== null
-      ) {
+      if (!allowedSet.has(key) && input[key] !== undefined && input[key] !== null) {
         errors.push({
           message: `${String(key)} is not allowed for this operation`,
           field: [...fieldPrefix, String(key)],
@@ -2741,11 +2620,7 @@ function mapProductComponentOperationInput(
         });
       }
       const dependencyRules = input.dependencyRules
-        ? mapProductComponentDependencyRules(
-            input.dependencyRules,
-            fieldPrefix,
-            errors,
-          )
+        ? mapProductComponentDependencyRules(input.dependencyRules, fieldPrefix, errors)
         : undefined;
       const operation =
         errors.length === 0 && configurationId && dependencyRules
@@ -2781,12 +2656,7 @@ function mapProductComponentGroups(
     const prefix = [...operationPrefix, "groups", String(groupIndex)];
     return {
       id: group.id
-        ? decodeInputId(
-            group.id,
-            GlobalIdEntity.ProductComponentGroup,
-            [...prefix, "id"],
-            errors,
-          )
+        ? decodeInputId(group.id, GlobalIdEntity.ProductComponentGroup, [...prefix, "id"], errors)
         : undefined,
       title: group.title,
       minSelection: group.minSelection,
@@ -2795,11 +2665,7 @@ function mapProductComponentGroups(
       items: group.items.map((item, itemIndex) => {
         const itemPrefix = [...prefix, "items", String(itemIndex)];
         const priceRule = item.priceRule
-          ? mapProductComponentPriceRule(
-              item.priceRule,
-              [...itemPrefix, "priceRule"],
-              errors,
-            )
+          ? mapProductComponentPriceRule(item.priceRule, [...itemPrefix, "priceRule"], errors)
           : item.priceRule;
         if (item.priceRule && item.pricingTemplateId) {
           errors.push({
@@ -2836,10 +2702,7 @@ function mapProductComponentGroups(
             code: "FIELD_NOT_ALLOWED",
           });
         }
-        if (
-          String(item.itemType) === "VARIANT" &&
-          item.optionSelections != null
-        ) {
+        if (String(item.itemType) === "VARIANT" && item.optionSelections != null) {
           errors.push({
             message: "Option selections are only allowed for product items",
             field: [...itemPrefix, "optionSelections"],
@@ -2893,11 +2756,7 @@ function mapProductComponentGroups(
               )
             : item.pricingTemplateId,
           optionSelections: item.optionSelections?.map((selection, selectionIndex) => {
-            const selectionPrefix = [
-              ...itemPrefix,
-              "optionSelections",
-              String(selectionIndex),
-            ];
+            const selectionPrefix = [...itemPrefix, "optionSelections", String(selectionIndex)];
             return {
               id: selection.id
                 ? decodeInputId(
@@ -2928,12 +2787,7 @@ function mapProductComponentGroups(
                   ? decodeInputId(
                       value.id,
                       GlobalIdEntity.ProductComponentItemOptionValueSelection,
-                      [
-                        ...selectionPrefix,
-                        "values",
-                        String(valueIndex),
-                        "id",
-                      ],
+                      [...selectionPrefix, "values", String(valueIndex), "id"],
                       errors,
                     )
                   : undefined,
@@ -2941,12 +2795,7 @@ function mapProductComponentGroups(
                   ? decodeInputId(
                       value.optionValueId,
                       GlobalIdEntity.OptionValue,
-                      [
-                        ...selectionPrefix,
-                        "values",
-                        String(valueIndex),
-                        "optionValueId",
-                      ],
+                      [...selectionPrefix, "values", String(valueIndex), "optionValueId"],
                       errors,
                     )
                   : value.optionValueId,
@@ -3001,11 +2850,7 @@ function mapProductComponentDependencyRules(
   errors: UserError[],
 ) {
   return rules.map((rule, ruleIndex) => {
-    const rulePrefix = [
-      ...operationPrefix,
-      "dependencyRules",
-      String(ruleIndex),
-    ];
+    const rulePrefix = [...operationPrefix, "dependencyRules", String(ruleIndex)];
     return {
       id: rule.id
         ? decodeInputId(
@@ -3020,11 +2865,7 @@ function mapProductComponentDependencyRules(
       priority: rule.priority,
       logicOperator: rule.logicOperator,
       conditionGroups: rule.conditionGroups.map((group, groupIndex) => {
-        const groupPrefix = [
-          ...rulePrefix,
-          "conditionGroups",
-          String(groupIndex),
-        ];
+        const groupPrefix = [...rulePrefix, "conditionGroups", String(groupIndex)];
         return {
           id: group.id
             ? decodeInputId(
@@ -3037,11 +2878,7 @@ function mapProductComponentDependencyRules(
           logicOperator: group.logicOperator,
           sortIndex: group.sortIndex,
           conditions: group.conditions.map((condition, conditionIndex) => {
-            const conditionPrefix = [
-              ...groupPrefix,
-              "conditions",
-              String(conditionIndex),
-            ];
+            const conditionPrefix = [...groupPrefix, "conditions", String(conditionIndex)];
             return {
               id: condition.id
                 ? decodeInputId(
@@ -3097,11 +2934,7 @@ function mapProductComponentDependencyRules(
             ) ?? "",
           requiredValue: action.requiredValue,
           priceRule: action.priceRule
-            ? mapProductComponentPriceRule(
-                action.priceRule,
-                [...actionPrefix, "priceRule"],
-                errors,
-              )
+            ? mapProductComponentPriceRule(action.priceRule, [...actionPrefix, "priceRule"], errors)
             : action.priceRule,
           stackable: action.stackable,
           sortIndex: action.sortIndex,
@@ -3135,16 +2968,9 @@ function mapVariantOperationInput(
 ): ProductUpdateMappedEntry {
   const errors: UserError[] = [];
   const clientMutationId =
-    typeof input.clientMutationId === "string"
-      ? input.clientMutationId.trim()
-      : undefined;
+    typeof input.clientMutationId === "string" ? input.clientMutationId.trim() : undefined;
   const variantId = input.variantId
-    ? decodeInputId(
-        input.variantId,
-        GlobalIdEntity.Variant,
-        [...fieldPrefix, "variantId"],
-        errors,
-      )
+    ? decodeInputId(input.variantId, GlobalIdEntity.Variant, [...fieldPrefix, "variantId"], errors)
     : undefined;
 
   switch (String(input.action)) {
@@ -3306,13 +3132,7 @@ function mapVariantPayloadParams(
             decodeInputId(
               link.optionValueId,
               GlobalIdEntity.OptionValue,
-              [
-                ...fieldPrefix,
-                "options",
-                "set",
-                String(index),
-                "optionValueId",
-              ],
+              [...fieldPrefix, "options", "set", String(index), "optionValueId"],
               errors,
             ) ?? "",
         })),
@@ -3357,8 +3177,7 @@ function mapVariantPayloadParams(
         sku: input.inventory.sku,
         trackInventory: input.inventory.trackInventory ?? undefined,
         requiresShipping: input.inventory.requiresShipping ?? undefined,
-        continueSellingWhenOutOfStock:
-          input.inventory.continueSellingWhenOutOfStock ?? undefined,
+        continueSellingWhenOutOfStock: input.inventory.continueSellingWhenOutOfStock ?? undefined,
         unitCostMinor:
           input.inventory.unitCostMinor === undefined
             ? undefined
@@ -3388,9 +3207,7 @@ function mapVariantPayloadParams(
       }
     : undefined;
 
-  const weight = Object.prototype.hasOwnProperty.call(input, "weight")
-    ? input.weight
-    : undefined;
+  const weight = Object.prototype.hasOwnProperty.call(input, "weight") ? input.weight : undefined;
 
   return { options, pricing, inventory, dimensions, weight, media };
 }
@@ -3414,12 +3231,13 @@ function mapProductOptionsSyncOperation(
     sortIndex: option.sortIndex,
     slug: option.slug,
     name: option.name,
-    categoryId: decodeInputId(
-      option.categoryId,
-      GlobalIdEntity.OptionCategory,
-      [...fieldPrefix, String(optionIndex), "categoryId"],
-      errors,
-    ) ?? "",
+    categoryId:
+      decodeInputId(
+        option.categoryId,
+        GlobalIdEntity.OptionCategory,
+        [...fieldPrefix, String(optionIndex), "categoryId"],
+        errors,
+      ) ?? "",
     values: option.values.map((value, valueIndex) => ({
       id: value.id
         ? decodeInputId(
@@ -3457,13 +3275,14 @@ function mapProductOptionsSyncOperation(
         : value.swatch,
     })),
   }));
-  const operation = errors.length === 0
-    ? ({
-        type: "productOptionsSync",
-        params: { productId, options: mappedOptions },
-        meta: { fieldPrefix },
-      } satisfies ProductUpdateOperation)
-    : undefined;
+  const operation =
+    errors.length === 0
+      ? ({
+          type: "productOptionsSync",
+          params: { productId, options: mappedOptions },
+          meta: { fieldPrefix },
+        } satisfies ProductUpdateOperation)
+      : undefined;
 
   return {
     entry: { type: "productOptionsSync", operation, errors },
@@ -3505,13 +3324,14 @@ function mapProductFeaturesSyncOperation(
       name: value.name,
     })),
   }));
-  const operation = errors.length === 0
-    ? ({
-        type: "productFeaturesSync",
-        params: { productId, features: mappedFeatures },
-        meta: { fieldPrefix },
-      } satisfies ProductUpdateOperation)
-    : undefined;
+  const operation =
+    errors.length === 0
+      ? ({
+          type: "productFeaturesSync",
+          params: { productId, features: mappedFeatures },
+          meta: { fieldPrefix },
+        } satisfies ProductUpdateOperation)
+      : undefined;
 
   return {
     entry: { type: "productFeaturesSync", operation, errors },
@@ -3541,9 +3361,9 @@ function decodeInputIds(
   fieldPrefix: string[],
   errors: UserError[],
 ): string[] {
-  return values.map((value, index) =>
-    decodeInputId(value, expectedType, [...fieldPrefix, String(index)], errors) ??
-    "",
+  return values.map(
+    (value, index) =>
+      decodeInputId(value, expectedType, [...fieldPrefix, String(index)], errors) ?? "",
   );
 }
 
@@ -3566,10 +3386,7 @@ function mapPreflightEntryToGraphqlResult(
     applied: false,
     clientMutationId: entry.clientMutationId,
     entityId: entry.entityId
-      ? encodeGlobalIdByType(
-          entry.entityId,
-          operationResultEntityType(entry.type),
-        )
+      ? encodeGlobalIdByType(entry.entityId, operationResultEntityType(entry.type))
       : undefined,
     errors,
   };
@@ -3595,19 +3412,9 @@ function mapProductCategoryOperations(
     const fieldPrefix =
       productIndex === undefined
         ? ["operations", "categories", String(index)]
-        : [
-            "input",
-            "products",
-            String(productIndex),
-            "operations",
-            "categories",
-            String(index),
-          ];
+        : ["input", "products", String(productIndex), "operations", "categories", String(index)];
 
-    const categoryId = safeDecodeGlobalId(
-      input.categoryId,
-      GlobalIdEntity.Category,
-    );
+    const categoryId = safeDecodeGlobalId(input.categoryId, GlobalIdEntity.Category);
     if (!categoryId) {
       errors.push({
         message: "Invalid ID format",
@@ -3686,14 +3493,7 @@ function mapProductTagOperations(
     const fieldPrefix =
       productIndex === undefined
         ? ["operations", "tags", String(index)]
-        : [
-            "input",
-            "products",
-            String(productIndex),
-            "operations",
-            "tags",
-            String(index),
-          ];
+        : ["input", "products", String(productIndex), "operations", "tags", String(index)];
 
     const tagId = safeDecodeGlobalId(input.tagId, GlobalIdEntity.Tag);
     if (!tagId) {
@@ -3756,10 +3556,7 @@ function collectionUpdateReasons(input: {
   ) {
     reasons.push("metadata");
   }
-  if (
-    input.defaultSort !== undefined ||
-    input.defaultSortDirection !== undefined
-  ) {
+  if (input.defaultSort !== undefined || input.defaultSortDirection !== undefined) {
     reasons.push("sort");
   }
   if (input.activeFrom !== undefined || input.activeTo !== undefined) {
@@ -3818,9 +3615,7 @@ function toGraphqlOperationType(type: ProductUpdateOperation["type"]) {
   return "VARIANT_UPDATE";
 }
 
-function operationResultEntityType(
-  type: ProductUpdateOperation["type"],
-): GlobalIdType {
+function operationResultEntityType(type: ProductUpdateOperation["type"]): GlobalIdType {
   if (
     type === "productComponentConfigurationCreate" ||
     type === "productComponentConfigurationUpdate" ||
@@ -3849,44 +3644,176 @@ function hasProductUpdateFields(
   );
 }
 
-function decodeComparisonProfileInput(input: ComparisonProfileCreateInput | ComparisonProfileUpdateInput): { input?: any; userErrors: UserError[] } {
+function decodeComparisonProfileInput(
+  input: ComparisonProfileCreateInput | ComparisonProfileUpdateInput,
+): { input?: any; userErrors: UserError[] } {
   const userErrors: UserError[] = [];
   const groups = input.groups.map((group, gi) => {
-    const groupId = group.id ? safeDecodeGlobalId(group.id, GlobalIdEntity.ComparisonGroup) : undefined;
-    if (group.id && !groupId) userErrors.push({ message: "Invalid comparison group ID", field: ["groups", String(gi), "id"], code: "INVALID_ID" });
-    return { ...group, id: groupId, fields: group.fields.map((field, fi) => {
-      const fieldId = field.id ? safeDecodeGlobalId(field.id, GlobalIdEntity.ComparisonField) : undefined;
-      if (field.id && !fieldId) userErrors.push({ message: "Invalid comparison field ID", field: ["groups", String(gi), "fields", String(fi), "id"], code: "INVALID_ID" });
-      return { ...field, id: fieldId, description: field.description ?? null, canonicalUnit: field.canonicalUnit ?? null, options: field.options.map((option, oi) => {
-        const optionId = option.id ? safeDecodeGlobalId(option.id, GlobalIdEntity.ComparisonFieldOption) : undefined;
-        if (option.id && !optionId) userErrors.push({ message: "Invalid comparison field option ID", field: ["groups", String(gi), "fields", String(fi), "options", String(oi), "id"], code: "INVALID_ID" });
-        return { ...option, id: optionId };
-      }) };
-    }) };
+    const groupId = group.id
+      ? safeDecodeGlobalId(group.id, GlobalIdEntity.ComparisonGroup)
+      : undefined;
+    if (group.id && !groupId)
+      userErrors.push({
+        message: "Invalid comparison group ID",
+        field: ["groups", String(gi), "id"],
+        code: "INVALID_ID",
+      });
+    return {
+      ...group,
+      id: groupId,
+      fields: group.fields.map((field, fi) => {
+        const fieldId = field.id
+          ? safeDecodeGlobalId(field.id, GlobalIdEntity.ComparisonField)
+          : undefined;
+        if (field.id && !fieldId)
+          userErrors.push({
+            message: "Invalid comparison field ID",
+            field: ["groups", String(gi), "fields", String(fi), "id"],
+            code: "INVALID_ID",
+          });
+        return {
+          ...field,
+          id: fieldId,
+          description: field.description ?? null,
+          canonicalUnit: field.canonicalUnit ?? null,
+          options: field.options.map((option, oi) => {
+            const optionId = option.id
+              ? safeDecodeGlobalId(option.id, GlobalIdEntity.ComparisonFieldOption)
+              : undefined;
+            if (option.id && !optionId)
+              userErrors.push({
+                message: "Invalid comparison field option ID",
+                field: ["groups", String(gi), "fields", String(fi), "options", String(oi), "id"],
+                code: "INVALID_ID",
+              });
+            return { ...option, id: optionId };
+          }),
+        };
+      }),
+    };
   });
-  return { input: { handle: input.handle, enabled: input.enabled ?? true, name: input.name, missingLabel: input.missingLabel, notApplicableLabel: input.notApplicableLabel, unavailableLabel: input.unavailableLabel, groups }, userErrors };
+  return {
+    input: {
+      handle: input.handle,
+      enabled: input.enabled ?? true,
+      name: input.name,
+      missingLabel: input.missingLabel,
+      notApplicableLabel: input.notApplicableLabel,
+      unavailableLabel: input.unavailableLabel,
+      groups,
+    },
+    userErrors,
+  };
 }
 
-function decodeConfigurationInput(input: ProductComparisonConfigurationSyncInput): { params?: any; userErrors: UserError[] } {
+function decodeConfigurationInput(input: ProductComparisonConfigurationSyncInput): {
+  params?: any;
+  userErrors: UserError[];
+} {
   const userErrors: UserError[] = [];
   const productId = safeDecodeGlobalId(input.productId, GlobalIdEntity.Product);
   const profileId = safeDecodeGlobalId(input.profileId, GlobalIdEntity.ComparisonProfile);
-  if (!productId) userErrors.push({ message: "Invalid product ID", field: ["productId"], code: "INVALID_ID" });
-  if (!profileId) userErrors.push({ message: "Invalid comparison profile ID", field: ["profileId"], code: "INVALID_ID" });
+  if (!productId)
+    userErrors.push({ message: "Invalid product ID", field: ["productId"], code: "INVALID_ID" });
+  if (!profileId)
+    userErrors.push({
+      message: "Invalid comparison profile ID",
+      field: ["profileId"],
+      code: "INVALID_ID",
+    });
   const mappings = input.mappings.map((mapping, index) => {
     const fieldId = safeDecodeGlobalId(mapping.fieldId, GlobalIdEntity.ComparisonField);
-    if (!fieldId) userErrors.push({ message: "Invalid comparison field ID", field: ["mappings", String(index), "fieldId"], code: "INVALID_ID" });
-    const feature = mapping.feature ? { featureId: safeDecodeGlobalId(mapping.feature.featureId, GlobalIdEntity.Feature), values: mapping.feature.values.map((value, vi) => ({ valueId: safeDecodeGlobalId(value.valueId, GlobalIdEntity.FeatureValue), normalized: decodeNormalized(value.value, ["mappings", String(index), "feature", "values", String(vi)], userErrors) })) } : undefined;
-    const option = mapping.option ? { optionId: safeDecodeGlobalId(mapping.option.optionId, GlobalIdEntity.Option), values: mapping.option.values.map((value, vi) => ({ valueId: safeDecodeGlobalId(value.valueId, GlobalIdEntity.OptionValue), normalized: decodeNormalized(value.value, ["mappings", String(index), "option", "values", String(vi)], userErrors) })) } : undefined;
-    if (feature && (!feature.featureId || feature.values.some((value) => !value.valueId))) userErrors.push({ message: "Invalid feature ID", field: ["mappings", String(index), "feature"], code: "INVALID_ID" });
-    if (option && (!option.optionId || option.values.some((value) => !value.valueId))) userErrors.push({ message: "Invalid option ID", field: ["mappings", String(index), "option"], code: "INVALID_ID" });
-    return { fieldId: fieldId!, feature: feature ? { ...feature, featureId: feature.featureId!, values: feature.values.map((value) => ({ ...value, valueId: value.valueId! })) } : undefined, option: option ? { ...option, optionId: option.optionId!, values: option.values.map((value) => ({ ...value, valueId: value.valueId! })) } : undefined, notApplicable: mapping.notApplicable ? { reason: mapping.notApplicable.reason ?? null } : undefined };
+    if (!fieldId)
+      userErrors.push({
+        message: "Invalid comparison field ID",
+        field: ["mappings", String(index), "fieldId"],
+        code: "INVALID_ID",
+      });
+    const feature = mapping.feature
+      ? {
+          featureId: safeDecodeGlobalId(mapping.feature.featureId, GlobalIdEntity.Feature),
+          values: mapping.feature.values.map((value, vi) => ({
+            valueId: safeDecodeGlobalId(value.valueId, GlobalIdEntity.FeatureValue),
+            normalized: decodeNormalized(
+              value.value,
+              ["mappings", String(index), "feature", "values", String(vi)],
+              userErrors,
+            ),
+          })),
+        }
+      : undefined;
+    const option = mapping.option
+      ? {
+          optionId: safeDecodeGlobalId(mapping.option.optionId, GlobalIdEntity.Option),
+          values: mapping.option.values.map((value, vi) => ({
+            valueId: safeDecodeGlobalId(value.valueId, GlobalIdEntity.OptionValue),
+            normalized: decodeNormalized(
+              value.value,
+              ["mappings", String(index), "option", "values", String(vi)],
+              userErrors,
+            ),
+          })),
+        }
+      : undefined;
+    if (feature && (!feature.featureId || feature.values.some((value) => !value.valueId)))
+      userErrors.push({
+        message: "Invalid feature ID",
+        field: ["mappings", String(index), "feature"],
+        code: "INVALID_ID",
+      });
+    if (option && (!option.optionId || option.values.some((value) => !value.valueId)))
+      userErrors.push({
+        message: "Invalid option ID",
+        field: ["mappings", String(index), "option"],
+        code: "INVALID_ID",
+      });
+    return {
+      fieldId: fieldId!,
+      feature: feature
+        ? {
+            ...feature,
+            featureId: feature.featureId!,
+            values: feature.values.map((value) => ({ ...value, valueId: value.valueId! })),
+          }
+        : undefined,
+      option: option
+        ? {
+            ...option,
+            optionId: option.optionId!,
+            values: option.values.map((value) => ({ ...value, valueId: value.valueId! })),
+          }
+        : undefined,
+      notApplicable: mapping.notApplicable
+        ? { reason: mapping.notApplicable.reason ?? null }
+        : undefined,
+    };
   });
-  return { params: { productId: productId!, profileId: profileId!, expectedProductRevision: input.expectedProductRevision, mappings }, userErrors };
+  return {
+    params: {
+      productId: productId!,
+      profileId: profileId!,
+      expectedProductRevision: input.expectedProductRevision,
+      mappings,
+    },
+    userErrors,
+  };
 }
 
 function decodeNormalized(value: any, path: string[], userErrors: UserError[]) {
-  const fieldOptionId = value.fieldOptionId ? safeDecodeGlobalId(value.fieldOptionId, GlobalIdEntity.ComparisonFieldOption) : null;
-  if (value.fieldOptionId && !fieldOptionId) userErrors.push({ message: "Invalid comparison field option ID", field: [...path, "value", "fieldOptionId"], code: "INVALID_ID" });
-  return { booleanValue: value.booleanValue ?? null, decimalValue: value.decimalValue ?? null, integerValue: value.integerValue ?? null, textValue: value.textValue ?? null, fieldOptionId };
+  const fieldOptionId = value.fieldOptionId
+    ? safeDecodeGlobalId(value.fieldOptionId, GlobalIdEntity.ComparisonFieldOption)
+    : null;
+  if (value.fieldOptionId && !fieldOptionId)
+    userErrors.push({
+      message: "Invalid comparison field option ID",
+      field: [...path, "value", "fieldOptionId"],
+      code: "INVALID_ID",
+    });
+  return {
+    booleanValue: value.booleanValue ?? null,
+    decimalValue: value.decimalValue ?? null,
+    integerValue: value.integerValue ?? null,
+    textValue: value.textValue ?? null,
+    fieldOptionId,
+  };
 }

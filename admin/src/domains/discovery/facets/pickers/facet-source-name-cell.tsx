@@ -23,9 +23,7 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-export function FacetSourceNameCell(
-  props: CustomCellRendererProps<FacetSourcePickerEntity>,
-) {
+export function FacetSourceNameCell(props: CustomCellRendererProps<FacetSourcePickerEntity>) {
   const { styles } = useStyles();
   const { data } = props;
 

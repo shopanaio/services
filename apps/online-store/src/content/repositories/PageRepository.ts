@@ -7,22 +7,14 @@ import {
 } from "@shopana/drizzle-query";
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { BaseRepository } from "./BaseRepository.js";
-import {
-  pageListView,
-  pages,
-  type NewPageModel,
-  type PageModel,
-} from "./models/index.js";
+import { pageListView, pages, type NewPageModel, type PageModel } from "./models/index.js";
 import type { OnlineStoreScope, PageRecord } from "./types.js";
 import { createGlobalIdWhereFieldMapper } from "./global-id-where-mappers.js";
 
 export const pageRelayQuery = createRelayQuery(
   createQuery(pageListView)
     .include(["id"])
-    .mapWhereField(
-      "id",
-      createGlobalIdWhereFieldMapper(GlobalIdEntity.OnlineStorePage),
-    )
+    .mapWhereField("id", createGlobalIdWhereFieldMapper(GlobalIdEntity.OnlineStorePage))
     .maxLimit(100)
     .defaultLimit(20),
   { name: "onlineStorePage", tieBreaker: "id" },
@@ -62,10 +54,7 @@ export class PageRepository extends BaseRepository {
     return rows.length > 0;
   }
 
-  async findById(
-    scope: OnlineStoreScope,
-    pageId: string,
-  ): Promise<PageRecord | null> {
+  async findById(scope: OnlineStoreScope, pageId: string): Promise<PageRecord | null> {
     const rows = await this.connection
       .select()
       .from(pages)
@@ -74,10 +63,7 @@ export class PageRepository extends BaseRepository {
     return rows[0] ? mapPage(rows[0]) : null;
   }
 
-  async findByHandle(
-    scope: OnlineStoreScope,
-    handle: string,
-  ): Promise<PageRecord | null> {
+  async findByHandle(scope: OnlineStoreScope, handle: string): Promise<PageRecord | null> {
     const rows = await this.connection
       .select()
       .from(pages)
@@ -152,19 +138,11 @@ export class PageRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(pages)
-      .where(
-        and(
-          this.pageScope(scope),
-          inArray(pages.id, [...new Set(pageIds)]),
-        ),
-      );
+      .where(and(this.pageScope(scope), inArray(pages.id, [...new Set(pageIds)])));
     return Object.freeze(rows.map(mapPage));
   }
 
-  async create(
-    scope: OnlineStoreScope,
-    input: CreatePageInput,
-  ): Promise<PageRecord> {
+  async create(scope: OnlineStoreScope, input: CreatePageInput): Promise<PageRecord> {
     await this.assertInstallationScope(scope);
     const timestamp = now();
     const insert: NewPageModel = {
@@ -224,9 +202,7 @@ export class PageRepository extends BaseRepository {
       .where(
         and(
           this.pageOwnership(scope, pageId),
-          expectedRevision === undefined
-            ? undefined
-            : eq(pages.revision, expectedRevision),
+          expectedRevision === undefined ? undefined : eq(pages.revision, expectedRevision),
         ),
       )
       .returning({ id: pages.id });

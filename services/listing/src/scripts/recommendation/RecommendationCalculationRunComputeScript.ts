@@ -13,7 +13,11 @@ export class RecommendationCalculationRunComputeScript extends BaseScript<
   RecommendationCalculationComputeResult
 > {
   @Transactional()
-  protected async execute({ runId }: { runId: string }): Promise<RecommendationCalculationComputeResult> {
+  protected async execute({
+    runId,
+  }: {
+    runId: string;
+  }): Promise<RecommendationCalculationComputeResult> {
     const run = await this.repository.recommendationCalculationRun.findById(runId);
     if (!run || run.status !== "BUILDING") {
       throw new RecommendationIntegrityError("STALE_INPUT", "Calculation run is not BUILDING");
@@ -28,13 +32,18 @@ export class RecommendationCalculationRunComputeScript extends BaseScript<
     if (run.materializationPhase === "ACCUMULATE") {
       const page = await this.repository.recommendationCalculationAccumulator.accumulateNext(run);
       if (page.done) {
-        await this.repository.recommendationCalculationRun.setPhase(runId, "ACCUMULATE", "PRODUCTS");
+        await this.repository.recommendationCalculationRun.setPhase(
+          runId,
+          "ACCUMULATE",
+          "PRODUCTS",
+        );
         return { phase: "PRODUCTS", processed: 0 };
       }
       return { phase: "ACCUMULATE", processed: page.consideredOrders };
     }
     if (run.materializationPhase === "PRODUCTS") {
-      const page = await this.repository.recommendationCalculationAccumulator.materializeProducts(run);
+      const page =
+        await this.repository.recommendationCalculationAccumulator.materializeProducts(run);
       if (page.done) {
         await this.repository.recommendationCalculationRun.setPhase(runId, "PRODUCTS", "PAIRS");
         return { phase: "PAIRS", processed: 0 };

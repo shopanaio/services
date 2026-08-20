@@ -25,11 +25,7 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
     if (vendorId !== undefined && vendorId !== null) {
       const vendor = await this.repository.vendor.findById(vendorId);
       if (!vendor) {
-        return singleError(
-          "Vendor not found",
-          "MISSING_VENDOR",
-          ["vendorId"]
-        );
+        return singleError("Vendor not found", "MISSING_VENDOR", ["vendorId"]);
       }
     }
 
@@ -41,7 +37,10 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
 
     // 2. Update title if provided and different
     if (title !== undefined) {
-      const existingTranslation = await this.repository.translation.getProductTranslation(id, locale);
+      const existingTranslation = await this.repository.translation.getProductTranslation(
+        id,
+        locale,
+      );
       const currentTitle = existingTranslation?.name ?? "";
 
       if (title !== currentTitle) {
@@ -68,11 +67,9 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
         changes.handle = handle;
       } catch (error) {
         if (isUniqueViolation(error, "product_store_id_handle_key")) {
-          return singleError(
-            "Product with this handle already exists",
-            "DUPLICATE_HANDLE",
-            ["handle"]
-          );
+          return singleError("Product with this handle already exists", "DUPLICATE_HANDLE", [
+            "handle",
+          ]);
         }
         throw error;
       }

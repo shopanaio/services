@@ -1,9 +1,7 @@
 import type { Payments } from "@shopana/broker-types";
 
-export type GetAvailablePaymentMethodsParams =
-  Payments.GetCheckoutAvailablePaymentMethodsParams;
-export type GetAvailablePaymentMethodsResult =
-  Payments.GetCheckoutAvailablePaymentMethodsResult;
+export type GetAvailablePaymentMethodsParams = Payments.GetCheckoutAvailablePaymentMethodsParams;
+export type GetAvailablePaymentMethodsResult = Payments.GetCheckoutAvailablePaymentMethodsResult;
 
 /** Payments-owned application boundary consumed by its broker adapter. */
 export interface PaymentsCheckoutMethodsPort {

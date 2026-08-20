@@ -1,10 +1,4 @@
-import {
-  uuid,
-  varchar,
-  text,
-  primaryKey,
-  index,
-} from "drizzle-orm/pg-core";
+import { uuid, varchar, text, primaryKey, index } from "drizzle-orm/pg-core";
 import { catalogSchema, localeCodeEnum } from "./schema";
 import { product } from "./products";
 import { category } from "./categories";
@@ -37,7 +31,7 @@ export const productSeo = catalogSchema.table(
     primaryKey({ columns: [table.productId, table.locale] }),
     index("idx_product_seo_store").on(table.storeId),
     index("idx_product_seo_store_locale").on(table.storeId, table.locale),
-  ]
+  ],
 );
 
 export const categorySeo = catalogSchema.table(
@@ -60,7 +54,7 @@ export const categorySeo = catalogSchema.table(
     primaryKey({ columns: [table.categoryId, table.locale] }),
     index("idx_category_seo_store").on(table.storeId),
     index("idx_category_seo_store_locale").on(table.storeId, table.locale),
-  ]
+  ],
 );
 
 export type ProductSeo = typeof productSeo.$inferSelect;

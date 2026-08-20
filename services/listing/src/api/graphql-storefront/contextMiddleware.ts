@@ -19,7 +19,7 @@ export function buildStorefrontContextMiddleware() {
 
   return async function storefrontContextMiddleware(
     request: Parameters<typeof middleware>[0],
-    reply: Parameters<typeof middleware>[1]
+    reply: Parameters<typeof middleware>[1],
   ) {
     if (request.headers["x-interpolation"] === "true") return;
     await middleware(request, reply);

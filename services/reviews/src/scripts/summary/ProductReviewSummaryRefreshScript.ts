@@ -9,9 +9,7 @@ export class ProductReviewSummaryRefreshScript extends BaseScript<
   void
 > {
   @Transactional()
-  protected async execute(
-    params: ProductReviewSummaryRefreshParams
-  ): Promise<void> {
+  protected async execute(params: ProductReviewSummaryRefreshParams): Promise<void> {
     await this.repository.summary.refreshProductReviewSummary(params.productId);
   }
 

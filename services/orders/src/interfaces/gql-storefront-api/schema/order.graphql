@@ -1,4 +1,6 @@
-"""The lifecycle state of an order visible to its customer."""
+"""
+The lifecycle state of an order visible to its customer.
+"""
 enum OrderStatus {
   DRAFT
   ACTIVE
@@ -6,7 +8,9 @@ enum OrderStatus {
   CANCELLED
 }
 
-"""The delivery method selected for an order delivery group."""
+"""
+The delivery method selected for an order delivery group.
+"""
 enum OrderDeliveryMethodType {
   LOCAL
   NONE
@@ -16,14 +20,18 @@ enum OrderDeliveryMethodType {
   SHIPPING
 }
 
-"""The customer interaction model of the selected payment method."""
+"""
+The customer interaction model of the selected payment method.
+"""
 enum OrderPaymentFlow {
   ONLINE
   OFFLINE
   ON_DELIVERY
 }
 
-"""Aggregate fulfillment state across every line in an order."""
+"""
+Aggregate fulfillment state across every line in an order.
+"""
 enum OrderFulfillmentStatus {
   UNFULFILLED
   SCHEDULED
@@ -33,7 +41,9 @@ enum OrderFulfillmentStatus {
   CANCELLED
 }
 
-"""Lifecycle state of one fulfillment operation."""
+"""
+Lifecycle state of one fulfillment operation.
+"""
 enum OrderFulfillmentOperationStatus {
   PENDING
   OPEN
@@ -42,7 +52,9 @@ enum OrderFulfillmentOperationStatus {
   CANCELLED
 }
 
-"""Aggregate customer-facing delivery state across all shipments."""
+"""
+Aggregate customer-facing delivery state across all shipments.
+"""
 enum OrderDeliveryStatus {
   NOT_SHIPPED
   PARTIALLY_SHIPPED
@@ -57,7 +69,9 @@ enum OrderDeliveryStatus {
   CANCELLED
 }
 
-"""Customer-facing lifecycle state of one physical shipment."""
+"""
+Customer-facing lifecycle state of one physical shipment.
+"""
 enum OrderShipmentStatus {
   LABEL_CREATED
   READY_FOR_PICKUP
@@ -72,7 +86,9 @@ enum OrderShipmentStatus {
   CANCELLED
 }
 
-"""Aggregate payment state for an order."""
+"""
+Aggregate payment state for an order.
+"""
 enum OrderPaymentStatus {
   PENDING
   AUTHORIZED
@@ -85,7 +101,9 @@ enum OrderPaymentStatus {
   FAILED
 }
 
-"""The accounting operation represented by a payment transaction."""
+"""
+The accounting operation represented by a payment transaction.
+"""
 enum OrderPaymentTransactionKind {
   AUTHORIZATION
   CAPTURE
@@ -94,7 +112,9 @@ enum OrderPaymentTransactionKind {
   VOID
 }
 
-"""Lifecycle state of a payment transaction."""
+"""
+Lifecycle state of a payment transaction.
+"""
 enum OrderPaymentTransactionStatus {
   PENDING
   SUCCESS
@@ -102,7 +122,9 @@ enum OrderPaymentTransactionStatus {
   CANCELLED
 }
 
-"""Lifecycle state of a customer-visible refund."""
+"""
+Lifecycle state of a customer-visible refund.
+"""
 enum OrderRefundStatus {
   PENDING
   SUCCEEDED
@@ -110,7 +132,9 @@ enum OrderRefundStatus {
   CANCELLED
 }
 
-"""Lifecycle state of a payment authorization void."""
+"""
+Lifecycle state of a payment authorization void.
+"""
 enum OrderVoidStatus {
   PENDING
   SUCCEEDED
@@ -118,7 +142,9 @@ enum OrderVoidStatus {
   CANCELLED
 }
 
-"""State returned after requesting another payment attempt."""
+"""
+State returned after requesting another payment attempt.
+"""
 enum OrderPaymentRetryStatus {
   REQUIRES_ACTION
   PENDING
@@ -127,13 +153,17 @@ enum OrderPaymentRetryStatus {
   FAILED
 }
 
-"""Customer interaction required to continue a retried payment."""
+"""
+Customer interaction required to continue a retried payment.
+"""
 enum OrderPaymentCustomerActionType {
   REDIRECT
   INSTRUCTIONS
 }
 
-"""Customer-selected reason for cancelling an order."""
+"""
+Customer-selected reason for cancelling an order.
+"""
 enum OrderCancellationReason {
   CHANGED_MIND
   DUPLICATE_ORDER
@@ -143,7 +173,9 @@ enum OrderCancellationReason {
   OTHER
 }
 
-"""Customer-selected reason for returning an order line."""
+"""
+Customer-selected reason for returning an order line.
+"""
 enum OrderReturnReason {
   CHANGED_MIND
   DAMAGED
@@ -154,7 +186,9 @@ enum OrderReturnReason {
   OTHER
 }
 
-"""Customer-visible lifecycle of a return request."""
+"""
+Customer-visible lifecycle of a return request.
+"""
 enum OrderReturnRequestStatus {
   REQUESTED
   APPROVED
@@ -165,7 +199,9 @@ enum OrderReturnRequestStatus {
   COMPLETED
 }
 
-"""All monetary calculations captured when the order was placed."""
+"""
+All monetary calculations captured when the order was placed.
+"""
 type OrderCost {
   subtotalAmount: Money!
   totalDiscountAmount: Money!
@@ -174,7 +210,9 @@ type OrderCost {
   totalAmount: Money!
 }
 
-"""Customer identity snapshot captured by the order."""
+"""
+Customer identity snapshot captured by the order.
+"""
 type OrderCustomerIdentity {
   customer: Customer
   email: Email
@@ -185,7 +223,9 @@ type OrderCustomerIdentity {
   lastName: String
 }
 
-"""A promotional code captured when the order was placed."""
+"""
+A promotional code captured when the order was placed.
+"""
 type OrderPromoCode {
   code: String!
   discountType: String!
@@ -195,7 +235,9 @@ type OrderPromoCode {
   appliedAt: DateTime!
 }
 
-"""Immutable delivery destination captured for an order."""
+"""
+Immutable delivery destination captured for an order.
+"""
 type OrderDeliveryAddress implements Node @key(fields: "id") {
   id: ID!
   address1: String
@@ -206,7 +248,9 @@ type OrderDeliveryAddress implements Node @key(fields: "id") {
   postalCode: String
 }
 
-"""Immutable recipient details captured for an order delivery group."""
+"""
+Immutable recipient details captured for an order delivery group.
+"""
 type OrderRecipient {
   firstName: String
   middleName: String
@@ -215,7 +259,9 @@ type OrderRecipient {
   phone: String
 }
 
-"""Delivery method selected for an order delivery group."""
+"""
+Delivery method selected for an order delivery group.
+"""
 type OrderDeliveryMethod {
   code: String!
   providerCode: String!
@@ -223,7 +269,9 @@ type OrderDeliveryMethod {
   paymentModel: String
 }
 
-"""A delivery group and its immutable order snapshot."""
+"""
+A delivery group and its immutable order snapshot.
+"""
 type OrderDeliveryGroup implements Node @key(fields: "id") {
   id: ID!
   lines: [OrderLine!]!
@@ -234,27 +282,35 @@ type OrderDeliveryGroup implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""Payment method selected when the order was placed."""
+"""
+Payment method selected when the order was placed.
+"""
 type OrderPaymentMethod {
   code: String!
   providerCode: String!
   flow: OrderPaymentFlow!
 }
 
-"""Quantity from an order line assigned to a fulfillment."""
+"""
+Quantity from an order line assigned to a fulfillment.
+"""
 type OrderFulfillmentLine {
   orderLine: OrderLine!
   quantity: Int!
 }
 
-"""Carrier tracking identity. A shipment may expose multiple tracking numbers."""
+"""
+Carrier tracking identity. A shipment may expose multiple tracking numbers.
+"""
 type OrderTrackingInfo {
   number: String!
   url: URL
   company: String
 }
 
-"""Carrier scan or merchant-provided progress event for a shipment."""
+"""
+Carrier scan or merchant-provided progress event for a shipment.
+"""
 type OrderTrackingEvent implements Node @key(fields: "id") {
   id: ID!
   status: OrderShipmentStatus!
@@ -263,7 +319,9 @@ type OrderTrackingEvent implements Node @key(fields: "id") {
   happenedAt: DateTime!
 }
 
-"""One physical shipment created for an order fulfillment."""
+"""
+One physical shipment created for an order fulfillment.
+"""
 type OrderShipment implements Node @key(fields: "id") {
   id: ID!
   status: OrderShipmentStatus!
@@ -279,7 +337,9 @@ type OrderShipment implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""Merchant fulfillment of one or more purchased line quantities."""
+"""
+Merchant fulfillment of one or more purchased line quantities.
+"""
 type OrderFulfillment implements Node @key(fields: "id") {
   id: ID!
   status: OrderFulfillmentOperationStatus!
@@ -289,7 +349,9 @@ type OrderFulfillment implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""One immutable payment operation recorded against an order."""
+"""
+One immutable payment operation recorded against an order.
+"""
 type OrderPaymentTransaction implements Node @key(fields: "id") {
   id: ID!
   kind: OrderPaymentTransactionKind!
@@ -303,14 +365,18 @@ type OrderPaymentTransaction implements Node @key(fields: "id") {
   processedAt: DateTime
 }
 
-"""Quantity and amount returned for one purchased order line."""
+"""
+Quantity and amount returned for one purchased order line.
+"""
 type OrderRefundLine {
   orderLine: OrderLine!
   quantity: Int!
   amount: Money!
 }
 
-"""Customer-visible refund recorded against the order."""
+"""
+Customer-visible refund recorded against the order.
+"""
 type OrderRefund implements Node @key(fields: "id") {
   id: ID!
   status: OrderRefundStatus!
@@ -322,7 +388,9 @@ type OrderRefund implements Node @key(fields: "id") {
   processedAt: DateTime
 }
 
-"""Customer-visible void of a previously authorized payment amount."""
+"""
+Customer-visible void of a previously authorized payment amount.
+"""
 type OrderVoid implements Node @key(fields: "id") {
   id: ID!
   status: OrderVoidStatus!
@@ -332,7 +400,9 @@ type OrderVoid implements Node @key(fields: "id") {
   processedAt: DateTime
 }
 
-"""Availability of another customer-initiated payment attempt."""
+"""
+Availability of another customer-initiated payment attempt.
+"""
 type OrderPaymentRetry {
   available: Boolean!
   unavailableReasonCode: String
@@ -340,7 +410,9 @@ type OrderPaymentRetry {
   expiresAt: DateTime
 }
 
-"""Current payment aggregate and immutable payment history for an order."""
+"""
+Current payment aggregate and immutable payment history for an order.
+"""
 type OrderPayment {
   status: OrderPaymentStatus!
   method: OrderPaymentMethod
@@ -354,13 +426,17 @@ type OrderPayment {
   retry: OrderPaymentRetry!
 }
 
-"""A customer-visible order in the active storefront context."""
+"""
+A customer-visible order in the active storefront context.
+"""
 type Order implements Node @key(fields: "id") {
   id: ID!
   status: OrderStatus!
   fulfillmentStatus: OrderFulfillmentStatus!
   deliveryStatus: OrderDeliveryStatus!
-  """Human-readable order number unique within the store."""
+  """
+  Human-readable order number unique within the store.
+  """
   number: BigInt!
   channelCode: String
   localeCode: LocaleCode
@@ -375,9 +451,13 @@ type Order implements Node @key(fields: "id") {
   fulfillments: [OrderFulfillment!]!
   payment: OrderPayment!
   paymentMethod: OrderPaymentMethod @deprecated(reason: "Use payment.method.")
-  """Server-evaluated post-order actions available to the current customer."""
+  """
+  Server-evaluated post-order actions available to the current customer.
+  """
   selfService: OrderSelfService!
-  """Return requests created for this order, newest first."""
+  """
+  Return requests created for this order, newest first.
+  """
   returnRequests(first: Int = 20, after: Cursor): OrderReturnRequestConnection!
   placedAt: DateTime
   closedAt: DateTime
@@ -395,7 +475,9 @@ type OrderLineCost {
   totalAmount: Money!
 }
 
-"""Immutable customer-visible snapshot of one purchased line."""
+"""
+Immutable customer-visible snapshot of one purchased line.
+"""
 type OrderLine implements Node @key(fields: "id") {
   id: ID!
   title: String!
@@ -405,7 +487,9 @@ type OrderLine implements Node @key(fields: "id") {
   cost: OrderLineCost!
   purchasableId: ID!
   purchasableSnapshot: JSON!
-  """Current return eligibility after previous returns and policy limits."""
+  """
+  Current return eligibility after previous returns and policy limits.
+  """
   returnEligibility: OrderLineReturnEligibility!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -423,16 +507,22 @@ type OrderEdge {
   node: Order!
 }
 
-"""Availability of one post-order action in the current order state."""
+"""
+Availability of one post-order action in the current order state.
+"""
 type OrderSelfServiceAction {
   available: Boolean!
-  """Stable machine-readable explanation when the action is unavailable."""
+  """
+  Stable machine-readable explanation when the action is unavailable.
+  """
   unavailableReasonCode: String
   unavailableReason: String
   expiresAt: DateTime
 }
 
-"""Post-order capabilities evaluated for the authenticated customer."""
+"""
+Post-order capabilities evaluated for the authenticated customer.
+"""
 type OrderSelfService {
   cancel: OrderSelfServiceAction!
   reorder: OrderSelfServiceAction!
@@ -440,7 +530,9 @@ type OrderSelfService {
   retryPayment: OrderSelfServiceAction!
 }
 
-"""Return eligibility for one purchased order line."""
+"""
+Return eligibility for one purchased order line.
+"""
 type OrderLineReturnEligibility {
   eligible: Boolean!
   maxQuantity: Int!
@@ -449,7 +541,9 @@ type OrderLineReturnEligibility {
   expiresAt: DateTime
 }
 
-"""One line requested for return."""
+"""
+One line requested for return.
+"""
 type OrderReturnRequestLine {
   orderLine: OrderLine!
   quantity: Int!
@@ -457,7 +551,9 @@ type OrderReturnRequestLine {
   note: String
 }
 
-"""A customer-created request to return one or more order lines."""
+"""
+A customer-created request to return one or more order lines.
+"""
 type OrderReturnRequest implements Node @key(fields: "id") {
   id: ID!
   order: Order!
@@ -484,7 +580,9 @@ type OrderReturnRequestEdge {
   node: OrderReturnRequest!
 }
 
-"""Customer-facing post-order mutation error."""
+"""
+Customer-facing post-order mutation error.
+"""
 type OrderUserError implements DisplayableError {
   field: [String!]
   message: String!
@@ -505,7 +603,9 @@ type OrderCancelPayload {
   userErrors: [OrderUserError!]!
 }
 
-"""Optional quantity override for one line copied into a reorder checkout."""
+"""
+Optional quantity override for one line copied into a reorder checkout.
+"""
 input OrderReorderLineInput {
   orderLineId: ID!
   quantity: Int!
@@ -520,7 +620,9 @@ input OrderReorderInput {
   lines: [OrderReorderLineInput!]
 }
 
-"""An order line that could not be copied into the new checkout."""
+"""
+An order line that could not be copied into the new checkout.
+"""
 type OrderReorderSkippedLine {
   orderLine: OrderLine!
   code: String!
@@ -569,11 +671,15 @@ input OrderPaymentRetryInput {
   orderId: ID!
   expectedOrderUpdatedAt: DateTime!
   idempotencyKey: String!
-  """HTTPS URL to which an online payment provider may return the customer."""
+  """
+  HTTPS URL to which an online payment provider may return the customer.
+  """
   returnUrl: URL
 }
 
-"""Customer interaction required to continue the new payment attempt."""
+"""
+Customer interaction required to continue the new payment attempt.
+"""
 type OrderPaymentCustomerAction {
   type: OrderPaymentCustomerActionType!
   url: URL
@@ -600,44 +706,46 @@ type Query {
   """
   order(id: ID!): Order
 
-  """Returns a return request owned by the authenticated customer."""
+  """
+  Returns a return request owned by the authenticated customer.
+  """
   orderReturnRequest(id: ID!): OrderReturnRequest
 }
 
 type Mutation {
-  """Cancels an eligible order owned by the authenticated customer."""
+  """
+  Cancels an eligible order owned by the authenticated customer.
+  """
   orderCancel(input: OrderCancelInput!): OrderCancelPayload!
 
-  """Creates a new checkout from currently purchasable lines of an order."""
+  """
+  Creates a new checkout from currently purchasable lines of an order.
+  """
   orderReorder(input: OrderReorderInput!): OrderReorderPayload!
 
-  """Creates a return request for eligible quantities of purchased lines."""
-  orderReturnRequestCreate(
-    input: OrderReturnRequestCreateInput!
-  ): OrderReturnRequestCreatePayload!
+  """
+  Creates a return request for eligible quantities of purchased lines.
+  """
+  orderReturnRequestCreate(input: OrderReturnRequestCreateInput!): OrderReturnRequestCreatePayload!
 
-  """Cancels a return request while its current state permits cancellation."""
-  orderReturnRequestCancel(
-    input: OrderReturnRequestCancelInput!
-  ): OrderReturnRequestCancelPayload!
+  """
+  Cancels a return request while its current state permits cancellation.
+  """
+  orderReturnRequestCancel(input: OrderReturnRequestCancelInput!): OrderReturnRequestCancelPayload!
 
   """
   Starts another payment attempt for an eligible failed, expired, or pending
   order payment. Replaying the same idempotency key returns the same attempt.
   """
-  orderPaymentRetry(
-    input: OrderPaymentRetryInput!
-  ): OrderPaymentRetryPayload!
+  orderPaymentRetry(input: OrderPaymentRetryInput!): OrderPaymentRetryPayload!
 }
 
 extend type Customer @key(fields: "id") {
   id: ID! @external
-  """Orders owned by this authenticated customer, newest first by default."""
-  orders(
-    first: Int = 20
-    after: Cursor
-    statuses: [OrderStatus!]
-  ): OrderConnection!
+  """
+  Orders owned by this authenticated customer, newest first by default.
+  """
+  orders(first: Int = 20, after: Cursor, statuses: [OrderStatus!]): OrderConnection!
 }
 
 extend type Checkout @key(fields: "id") {

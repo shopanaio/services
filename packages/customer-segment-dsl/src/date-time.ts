@@ -15,7 +15,8 @@ export function parseCalendarDate(value: string): CalendarDate | null {
     date.getUTCFullYear() !== year ||
     date.getUTCMonth() !== month - 1 ||
     date.getUTCDate() !== day
-  ) return null;
+  )
+    return null;
   return { year, month, day };
 }
 
@@ -38,14 +39,15 @@ export function addCalendarDate(
   }
   const monthIndex = value.month - 1 + (unit === "month" ? amount : amount * 12);
   const year = value.year + Math.floor(monthIndex / 12);
-  const month = ((monthIndex % 12) + 12) % 12 + 1;
+  const month = (((monthIndex % 12) + 12) % 12) + 1;
   const lastDay = utcDate(year, month, 0).getUTCDate();
   return { year, month, day: Math.min(value.day, lastDay) };
 }
 
 export function calendarDayDistance(lower: CalendarDate, upper: CalendarDate): number {
   return Math.round(
-    (utcTimestamp(upper.year, upper.month - 1, upper.day) - utcTimestamp(lower.year, lower.month - 1, lower.day)) /
+    (utcTimestamp(upper.year, upper.month - 1, upper.day) -
+      utcTimestamp(lower.year, lower.month - 1, lower.day)) /
       86_400_000,
   );
 }
@@ -61,7 +63,8 @@ export function validateDateTime(value: string): boolean {
   if (offset && offset !== "Z") {
     const offsetHour = Number(offset.slice(1, 3));
     const offsetMinute = Number(offset.slice(4, 6));
-    if (offsetHour > 14 || offsetMinute > 59 || (offsetHour === 14 && offsetMinute !== 0)) return false;
+    if (offsetHour > 14 || offsetMinute > 59 || (offsetHour === 14 && offsetMinute !== 0))
+      return false;
   }
   return true;
 }
@@ -101,7 +104,10 @@ export function startOfCalendarDayUtc(value: CalendarDate, timeZone: string): st
 }
 
 export function nextCalendarDayStartUtc(effectiveAt: string, timeZone: string): string {
-  return startOfCalendarDayUtc(addCalendarDate(calendarDateAt(effectiveAt, timeZone), 1, "day"), timeZone);
+  return startOfCalendarDayUtc(
+    addCalendarDate(calendarDateAt(effectiveAt, timeZone), 1, "day"),
+    timeZone,
+  );
 }
 
 export function localDateTimeToUtc(value: string, timeZone: string): string | null {
@@ -153,7 +159,8 @@ export function localDateTimeToUtc(value: string, timeZone: string): string | nu
     resolved.hour !== target.hour ||
     resolved.minute !== target.minute ||
     resolved.second !== target.second
-  ) return null;
+  )
+    return null;
   return new Date(epoch).toISOString();
 }
 
@@ -161,13 +168,18 @@ export function resolveDateValue(
   value:
     | { readonly kind: "date"; readonly value: string }
     | { readonly kind: "namedDate"; readonly value: "today" | "yesterday" }
-    | { readonly kind: "relativeDate"; readonly amount: number; readonly unit: "day" | "week" | "month" | "year" },
+    | {
+        readonly kind: "relativeDate";
+        readonly amount: number;
+        readonly unit: "day" | "week" | "month" | "year";
+      },
   effectiveAt: string,
   timeZone: string,
 ): CalendarDate {
   if (value.kind === "date") return parseCalendarDate(value.value)!;
   const today = calendarDateAt(effectiveAt, timeZone);
-  if (value.kind === "namedDate") return addCalendarDate(today, value.value === "today" ? 0 : -1, "day");
+  if (value.kind === "namedDate")
+    return addCalendarDate(today, value.value === "today" ? 0 : -1, "day");
   return addCalendarDate(today, value.amount, value.unit);
 }
 

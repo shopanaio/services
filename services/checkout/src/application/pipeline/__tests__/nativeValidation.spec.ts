@@ -21,8 +21,8 @@ function quotedLine(input: {
 }
 
 function rules(request: ValidateCheckoutRequest): string[] {
-  return createNativeCheckoutValidationOperations(request).map(
-    ({ source }) => source.type === "NATIVE" ? source.rule : "FUNCTION",
+  return createNativeCheckoutValidationOperations(request).map(({ source }) =>
+    source.type === "NATIVE" ? source.rule : "FUNCTION",
   );
 }
 

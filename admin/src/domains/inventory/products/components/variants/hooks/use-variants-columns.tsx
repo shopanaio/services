@@ -4,16 +4,8 @@ import { LuChevronDown as DownOutlined } from "react-icons/lu";
 import type { MenuProps } from "antd";
 import type { ColDef, ValueGetterParams, ValueSetterParams } from "ag-grid-community";
 import { useVariantsEditorStore } from "./use-variants-editor-store";
-import {
-  VARIANT_COLUMNS,
-  MEDIA_COLUMNS,
-  createOptionColumns,
-} from "../config";
-import type {
-  IVariantEditorRow,
-  IOptionGroup,
-  VariantColumnField,
-} from "../config/types";
+import { VARIANT_COLUMNS, MEDIA_COLUMNS, createOptionColumns } from "../config";
+import type { IVariantEditorRow, IOptionGroup, VariantColumnField } from "../config/types";
 import type { ApiProductOption, CurrencyCode } from "@/graphql/types";
 import { Dash } from "@/shared/components/editor-grid";
 import {
@@ -50,11 +42,7 @@ export interface UseVariantsColumnsOptions {
    */
   ignoreUserSettings?: boolean;
   onEditMedia?: (rowId: string, selectedRowIds?: string[]) => void;
-  onOptionValueChange?: (
-    rowId: string,
-    optionId: string,
-    optionValueId: string,
-  ) => void;
+  onOptionValueChange?: (rowId: string, optionId: string, optionValueId: string) => void;
   onDeleteRow?: (rowId: string) => void;
 }
 
@@ -64,11 +52,7 @@ interface OptionDropdownCellProps {
   onChange?: (rowId: string, optionId: string, optionValueId: string) => void;
 }
 
-function OptionDropdownCell({
-  row,
-  option,
-  onChange,
-}: OptionDropdownCellProps) {
+function OptionDropdownCell({ row, option, onChange }: OptionDropdownCellProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const selectedValueId = row.selectedOptionValueIds[option.id];
@@ -94,9 +78,7 @@ function OptionDropdownCell({
       onOpenChange={(visible) => {
         if (!visible) setOpen(false);
       }}
-      popupRender={(menu) => (
-        <div style={{ width: triggerRef.current?.offsetWidth }}>{menu}</div>
-      )}
+      popupRender={(menu) => <div style={{ width: triggerRef.current?.offsetWidth }}>{menu}</div>}
     >
       <div
         ref={triggerRef}
@@ -211,9 +193,7 @@ function createValueGetter(field: string) {
     if (!data) return null;
 
     // Get edited value from store, or fall back to original
-    const edit = useVariantsEditorStore
-      .getState()
-      .getFieldEdit(data.id, field);
+    const edit = useVariantsEditorStore.getState().getFieldEdit(data.id, field);
 
     return edit ? edit.currentValue : (data as unknown as Record<string, unknown>)[field];
   };
@@ -231,9 +211,7 @@ function createValueSetter(field: string, editable: boolean) {
 
     const originalValue = (data as unknown as Record<string, unknown>)[field];
 
-    useVariantsEditorStore
-      .getState()
-      .setFieldValue(data.id, field, originalValue, newValue);
+    useVariantsEditorStore.getState().setFieldValue(data.id, field, originalValue, newValue);
 
     return true;
   };
@@ -243,14 +221,10 @@ function createValueSetter(field: string, editable: boolean) {
 // Hook
 // ============================================================================
 
+export function useVariantsColumns(options: UseVariantsColumnsOptions): ColDef<IVariantEditorRow>[];
+export function useVariantsColumns(optionGroups: IOptionGroup[]): ColDef<IVariantEditorRow>[];
 export function useVariantsColumns(
-  options: UseVariantsColumnsOptions
-): ColDef<IVariantEditorRow>[];
-export function useVariantsColumns(
-  optionGroups: IOptionGroup[]
-): ColDef<IVariantEditorRow>[];
-export function useVariantsColumns(
-  optionsOrOptionGroups: UseVariantsColumnsOptions | IOptionGroup[]
+  optionsOrOptionGroups: UseVariantsColumnsOptions | IOptionGroup[],
 ): ColDef<IVariantEditorRow>[] {
   // Normalize arguments
   const normalizedOptions: UseVariantsColumnsOptions = Array.isArray(optionsOrOptionGroups)
@@ -270,9 +244,7 @@ export function useVariantsColumns(
   } = normalizedOptions;
 
   const columnVisibility = useVariantsEditorStore((s) => s.columnVisibility);
-  const isOptionColumnVisible = useVariantsEditorStore(
-    (s) => s.isOptionColumnVisible
-  );
+  const isOptionColumnVisible = useVariantsEditorStore((s) => s.isOptionColumnVisible);
 
   return useMemo(() => {
     const columns: ColDef<IVariantEditorRow>[] = [];
@@ -301,11 +273,7 @@ export function useVariantsColumns(
 
       columns.push({
         field: col.field as keyof IVariantEditorRow,
-        headerName: getColumnHeaderName(
-          col.headerName,
-          col.field,
-          currency,
-        ),
+        headerName: getColumnHeaderName(col.headerName, col.field, currency),
         width: col.width,
         minWidth: 80,
         cellRenderer: ImageCellRenderer,
@@ -317,9 +285,7 @@ export function useVariantsColumns(
 
     // Option columns (dynamic) - only show when not restricted or when user settings allow
     if (!ignoreUserSettings) {
-      const productOptionsByName = new Map(
-        productOptions.map((option) => [option.name, option]),
-      );
+      const productOptionsByName = new Map(productOptions.map((option) => [option.name, option]));
       const optionCols = createOptionColumns(optionGroups);
       for (const col of optionCols) {
         if (!isOptionColumnVisible(col.headerName)) continue;
@@ -357,9 +323,11 @@ export function useVariantsColumns(
 
             return (
               <span data-testid={`variants-editor-cell-option-${optionName}-${params.data.id}`}>
-                {params.value === null || params.value === undefined || params.value === ""
-                  ? <Dash />
-                  : String(params.value)}
+                {params.value === null || params.value === undefined || params.value === "" ? (
+                  <Dash />
+                ) : (
+                  String(params.value)
+                )}
               </span>
             );
           },
@@ -385,19 +353,12 @@ export function useVariantsColumns(
         : getCellRenderer(col.type);
       const isEditable =
         col.editable &&
-        (!editableColumns ||
-          editableColumns.includes(col.field as VariantColumnField));
+        (!editableColumns || editableColumns.includes(col.field as VariantColumnField));
 
       columns.push({
         field: col.field as keyof IVariantEditorRow,
-        headerName: getColumnHeaderName(
-          col.headerName,
-          col.field,
-          currency,
-        ),
-        colId: PRICE_FIELDS.has(col.field)
-          ? `${col.field}-${currency ?? "none"}`
-          : col.field,
+        headerName: getColumnHeaderName(col.headerName, col.field, currency),
+        colId: PRICE_FIELDS.has(col.field) ? `${col.field}-${currency ?? "none"}` : col.field,
         width: col.width,
         minWidth: col.minWidth,
         flex: col.flex,

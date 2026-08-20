@@ -39,10 +39,7 @@ export function buildAdminContextMiddleware() {
     requireAuth: false,
   });
 
-  return async function adminContextMiddleware(
-    request: FastifyRequest,
-    reply: FastifyReply
-  ) {
+  return async function adminContextMiddleware(request: FastifyRequest, reply: FastifyReply) {
     const kernel = Kernel.getInstance();
     request.currentUser = { id: "", data: null, sessionId: null };
 

@@ -10,7 +10,7 @@ import type { Database } from "../infrastructure/db/database";
 export abstract class BaseRepository {
   constructor(
     protected readonly db: Database,
-    protected readonly txManager: TransactionManager<Database>
+    protected readonly txManager: TransactionManager<Database>,
   ) {}
 
   /**
@@ -37,9 +37,7 @@ export abstract class BaseRepository {
   }
 
   protected async generateUuidV7(): Promise<string> {
-    const rows = await this.connection.execute<{ id: string }>(
-      sql`SELECT uuidv7() AS id`
-    );
+    const rows = await this.connection.execute<{ id: string }>(sql`SELECT uuidv7() AS id`);
     const id = rows[0]?.id;
 
     if (!id) {

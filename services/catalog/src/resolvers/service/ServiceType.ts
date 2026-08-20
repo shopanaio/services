@@ -1,9 +1,4 @@
-import {
-  BaseType,
-  Cache,
-  createExecutor,
-  type CacheStore,
-} from "@shopana/type-resolver";
+import { BaseType, Cache, createExecutor, type CacheStore } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
 import {
   getServiceResolverRegistry,
@@ -12,9 +7,11 @@ import {
 
 export { Cache };
 
-export abstract class ServiceType<TValue, TData = TValue>
-  extends BaseType<TValue, TData, ServiceContext>
-{
+export abstract class ServiceType<TValue, TData = TValue> extends BaseType<
+  TValue,
+  TData,
+  ServiceContext
+> {
   static executor = createExecutor<ServiceContext>({});
 
   protected get resolvers(): ServiceResolverRegistry {
@@ -26,8 +23,6 @@ export abstract class ServiceType<TValue, TData = TValue>
   }
 
   protected notImplemented(fieldName: string): never {
-    throw new Error(
-      `Catalog service resolver field is not implemented: ${fieldName}`
-    );
+    throw new Error(`Catalog service resolver field is not implemented: ${fieldName}`);
   }
 }

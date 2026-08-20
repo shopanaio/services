@@ -10,7 +10,7 @@ export class CustomerExternalReferenceDeleteScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: CustomerExternalReferenceDeleteParams
+    params: CustomerExternalReferenceDeleteParams,
   ): Promise<CustomerExternalReferenceDeleteResult> {
     const byId = params.referenceId?.trim();
     const externalSystem = params.externalSystem?.trim();
@@ -69,7 +69,7 @@ export class CustomerExternalReferenceDeleteScript extends BaseScript<
         externalReferenceId: reference.id,
         customerId: reference.customerId,
       },
-      "Customer external reference deleted"
+      "Customer external reference deleted",
     );
     return { deletedExternalReference: reference, userErrors: [] };
   }

@@ -93,13 +93,18 @@ declare module "@/layouts/modals" {
 export const useReviewModal = createModalStackHook(REVIEW_MODAL_TYPE);
 export const useReviewCreateModal = createModalStackHook(REVIEW_CREATE_MODAL_TYPE);
 export const useReviewMediaItemModal = createModalStackHook(REVIEW_EDIT_MEDIA_ITEM_MODAL_TYPE);
-export const useReviewTechnicalMetadataModal = createModalStackHook(REVIEW_TECHNICAL_METADATA_MODAL_TYPE);
+export const useReviewTechnicalMetadataModal = createModalStackHook(
+  REVIEW_TECHNICAL_METADATA_MODAL_TYPE,
+);
 
 export function useReviewEditModal() {
   const { push: pushToStack } = useModalStack();
-  const push = useCallback((payload: ReviewEditModalPayload) => {
-    const { section, ...modalPayload } = payload;
-    return pushToStack(editModalTypeBySection[section], modalPayload);
-  }, [pushToStack]);
+  const push = useCallback(
+    (payload: ReviewEditModalPayload) => {
+      const { section, ...modalPayload } = payload;
+      return pushToStack(editModalTypeBySection[section], modalPayload);
+    },
+    [pushToStack],
+  );
   return { push };
 }

@@ -14,14 +14,14 @@ export function useNotificationTemplate(
   locale: string,
   skip = false,
 ) {
-  const query = useQuery<
-    NotificationTemplateQueryData,
-    NotificationTemplateQueryVariables
-  >(NOTIFICATION_TEMPLATE_QUERY, {
-    variables: { key, channel, locale },
-    fetchPolicy: "cache-and-network",
-    skip,
-  });
+  const query = useQuery<NotificationTemplateQueryData, NotificationTemplateQueryVariables>(
+    NOTIFICATION_TEMPLATE_QUERY,
+    {
+      variables: { key, channel, locale },
+      fetchPolicy: "cache-and-network",
+      skip,
+    },
+  );
 
   return {
     template: query.data?.notificationsQuery.template ?? null,

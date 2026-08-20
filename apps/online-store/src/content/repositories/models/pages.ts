@@ -11,16 +11,14 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import {
-  appInstallationsReference,
-  localeCodeEnum,
-  onlineStoreSchema,
-} from "./schema.js";
+import { appInstallationsReference, localeCodeEnum, onlineStoreSchema } from "./schema.js";
 
 export const pages = onlineStoreSchema.table(
   "pages",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     installationId: uuid("installation_id")
       .notNull()
       .references(() => appInstallationsReference.id),
@@ -82,14 +80,8 @@ export const pageTranslations = onlineStoreSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.pageId, table.locale] }),
-    check(
-      "page_translations_title_not_empty_check",
-      sql`btrim(${table.title}) <> ''`,
-    ),
-    index("page_translations_store_locale_idx").on(
-      table.storeId,
-      table.locale,
-    ),
+    check("page_translations_title_not_empty_check", sql`btrim(${table.title}) <> ''`),
+    index("page_translations_store_locale_idx").on(table.storeId, table.locale),
   ],
 );
 

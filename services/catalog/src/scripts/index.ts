@@ -1,40 +1,39 @@
-
 // Product scripts
-export * from './product/index.js';
+export * from "./product/index.js";
 
 // Variant scripts
-export * from './variant/index.js';
+export * from "./variant/index.js";
 
 // Option scripts
-export * from './option/index.js';
-export * from './option-category/index.js';
+export * from "./option/index.js";
+export * from "./option-category/index.js";
 
 // Feature scripts
-export * from './feature/index.js';
+export * from "./feature/index.js";
 
 // Media scripts
-export * from './media/index.js';
+export * from "./media/index.js";
 
 // Bulk edit scripts
-export * from './bulk-edit/index.js';
+export * from "./bulk-edit/index.js";
 
 // Category scripts
-export * from './category/index.js';
+export * from "./category/index.js";
 
 // Tag scripts
-export * from './tag/index.js';
+export * from "./tag/index.js";
 
 // Collection scripts
-export * from './collection/index.js';
+export * from "./collection/index.js";
 
 // Inventory item scripts
-export * from './inventory-item/index.js';
+export * from "./inventory-item/index.js";
 
 // Warehouse scripts
-export * from './warehouse/index.js';
+export * from "./warehouse/index.js";
 
 // Stock scripts
-export * from './stock/index.js';
+export * from "./stock/index.js";
 
 // Product comparison scripts
-export * from './comparison/index.js';
+export * from "./comparison/index.js";

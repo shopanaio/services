@@ -1,8 +1,5 @@
 import { ZodResolver } from "@shopana/type-resolver";
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { RoleResolver } from "./RoleResolver.js";
 import type {
@@ -17,11 +14,7 @@ import type {
   RoleDeleteParams,
   RoleDeleteResult,
 } from "../../scripts/organization/dto/RoleDeleteDto.js";
-import type {
-  RoleCreateInput,
-  RoleUpdateInput,
-  RoleDeleteInput,
-} from "./generated/types.js";
+import type { RoleCreateInput, RoleUpdateInput, RoleDeleteInput } from "./generated/types.js";
 import {
   RoleCreateInputSchema,
   RoleUpdateInputSchema,
@@ -39,10 +32,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(RoleCreateInputSchema())
   async roleCreate(args: { input: RoleCreateInput }) {
     const { input } = args;
-    const organizationId = decodeGlobalIdByType(
-      input.organizationId,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(input.organizationId, GlobalIdEntity.Organization);
 
     const workflowInput: RoleCreateParams = {
       organizationId,
@@ -52,10 +42,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
       description: input.description ?? undefined,
       permissions: input.permissions,
     };
-    const result = await this.runAdminWorkflow<
-      RoleCreateResult,
-      RoleCreateParams
-    >(
+    const result = await this.runAdminWorkflow<RoleCreateResult, RoleCreateParams>(
       "iam.roleCreate",
       "roleCreate",
       `${organizationId}:${input.domain}:${input.name}`,
@@ -70,7 +57,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
               domain: result.role.domain,
               name: result.role.name,
             },
-            this.$ctx
+            this.$ctx,
           )
         : null,
       userErrors: result.userErrors.map((e) => ({
@@ -87,10 +74,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(RoleUpdateInputSchema())
   async roleUpdate(args: { input: RoleUpdateInput }) {
     const { input } = args;
-    const organizationId = decodeGlobalIdByType(
-      input.organizationId,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(input.organizationId, GlobalIdEntity.Organization);
     const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Role);
     const workflowInput: RoleUpdateParams = {
       organizationId,
@@ -99,10 +83,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
       description: input.description ?? undefined,
       permissions: input.permissions ?? undefined,
     };
-    const result = await this.runAdminWorkflow<
-      RoleUpdateResult,
-      RoleUpdateParams
-    >(
+    const result = await this.runAdminWorkflow<RoleUpdateResult, RoleUpdateParams>(
       "iam.roleUpdate",
       "roleUpdate",
       id,
@@ -123,7 +104,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
               domain: result.role.domain,
               name: result.role.name,
             },
-            this.$ctx
+            this.$ctx,
           )
         : null,
       userErrors: result.userErrors.map((e) => ({
@@ -140,16 +121,10 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(RoleDeleteInputSchema())
   async roleDelete(args: { input: RoleDeleteInput }) {
     const { input } = args;
-    const organizationId = decodeGlobalIdByType(
-      input.organizationId,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(input.organizationId, GlobalIdEntity.Organization);
     const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Role);
     const workflowInput: RoleDeleteParams = { organizationId, id };
-    const result = await this.runAdminWorkflow<
-      RoleDeleteResult,
-      RoleDeleteParams
-    >(
+    const result = await this.runAdminWorkflow<RoleDeleteResult, RoleDeleteParams>(
       "iam.roleDelete",
       "roleDelete",
       id,

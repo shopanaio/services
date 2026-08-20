@@ -24,12 +24,7 @@ type Review implements Node & ReviewContent @key(fields: "id") {
   isIncentivized: Boolean!
   incentiveDisclosure: String
   media: [ReviewMedia!]!
-  replies(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): ReviewReplyConnection!
+  replies(first: Int, after: Cursor, last: Int, before: Cursor): ReviewReplyConnection!
 }
 
 type ReviewMedia implements Node @key(fields: "id") {
@@ -72,7 +67,9 @@ type ReviewRating {
   updatedAt: DateTime!
 }
 
-"""A Relay connection to product reviews."""
+"""
+A Relay connection to product reviews.
+"""
 type ReviewConnection implements Connection {
   edges: [ReviewEdge!]!
   nodes: [Review!]!
@@ -97,24 +94,36 @@ type ReviewReplyEdge {
   node: ReviewReply!
 }
 
-"""One detailed rating value supplied for an active product criterion."""
+"""
+One detailed rating value supplied for an active product criterion.
+"""
 input ReviewRatingValueInput {
   criterionId: ID!
-  """Rating from 1 through 5."""
+  """
+  Rating from 1 through 5.
+  """
   value: Int!
 }
 
-"""One media attachment submitted with a review."""
+"""
+One media attachment submitted with a review.
+"""
 input ReviewMediaCreateInput {
   mediaId: ID!
-  """Zero-based display position. Defaults to the input list position."""
+  """
+  Zero-based display position. Defaults to the input list position.
+  """
   sortIndex: Int
   caption: String
 }
 
-"""Input for a customer or guest product-review submission."""
+"""
+Input for a customer or guest product-review submission.
+"""
 input ReviewCreateInput {
-  """Shared text, locale, guest identity, and idempotency metadata."""
+  """
+  Shared text, locale, guest identity, and idempotency metadata.
+  """
   content: ReviewContentSubmissionInput!
   productId: ID!
   variantId: ID
@@ -123,34 +132,54 @@ input ReviewCreateInput {
   the service and cannot be used to self-assign verified-purchase status.
   """
   orderId: ID
-  """Order line associated with the reviewed product or variant."""
+  """
+  Order line associated with the reviewed product or variant.
+  """
   orderLineId: ID
-  """Optional review title, limited to 150 characters."""
+  """
+  Optional review title, limited to 150 characters.
+  """
   title: String
-  """Overall rating from 1 through 5."""
+  """
+  Overall rating from 1 through 5.
+  """
   rating: Int!
-  """Detailed values for the product's active rating criteria."""
+  """
+  Detailed values for the product's active rating criteria.
+  """
   ratings: [ReviewRatingValueInput!]
-  """Review media in storefront display order."""
+  """
+  Review media in storefront display order.
+  """
   media: [ReviewMediaCreateInput!]
 }
 
-"""Result of submitting a product review."""
+"""
+Result of submitting a product review.
+"""
 type ReviewCreatePayload {
   review: Review
   userErrors: [ReviewUserError!]!
 }
 
-"""Customer-editable fields of an existing review."""
+"""
+Customer-editable fields of an existing review.
+"""
 input ReviewUpdateInput {
   reviewId: ID!
   expectedRevision: Int!
   content: ReviewContentEditInput
-  """New overall rating from 1 through 5."""
+  """
+  New overall rating from 1 through 5.
+  """
   rating: Int
-  """Complete detailed criterion rating replacement when supplied."""
+  """
+  Complete detailed criterion rating replacement when supplied.
+  """
   ratings: [ReviewRatingValueInput!]
-  """Complete media replacement when supplied. An empty list removes media."""
+  """
+  Complete media replacement when supplied. An empty list removes media.
+  """
   media: [ReviewMediaCreateInput!]
 }
 

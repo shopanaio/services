@@ -8,7 +8,7 @@ export class CustomerLoader {
 
   constructor(repository: Repository) {
     this.customer = new DataLoader(async (ids) =>
-      mapById(ids, await repository.customer.getByIds(ids))
+      mapById(ids, await repository.customer.getByIds(ids)),
     );
   }
 }

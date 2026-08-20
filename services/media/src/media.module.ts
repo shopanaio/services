@@ -12,21 +12,12 @@ import { composedOptionsTransformAdapter } from "./infrastructure/cdn/adapters/c
 import { bunnyTransformAdapter } from "./infrastructure/cdn/adapters/bunnyTransformAdapter.js";
 import { EnvSecretProvider } from "./infrastructure/secrets/EnvSecretProvider.js";
 
-cdnAdapterRegistry.registerSigning(
-  "hmac-v1",
-  createHmacSigningAdapter(new EnvSecretProvider())
-);
-cdnAdapterRegistry.registerTransform(
-  "composed-options-v1",
-  composedOptionsTransformAdapter
-);
+cdnAdapterRegistry.registerSigning("hmac-v1", createHmacSigningAdapter(new EnvSecretProvider()));
+cdnAdapterRegistry.registerTransform("composed-options-v1", composedOptionsTransformAdapter);
 cdnAdapterRegistry.registerTransform("bunny-v1", bunnyTransformAdapter);
 
 @Module({
-  imports: [
-    BrokerModule.forFeature({ serviceName: "media" }),
-    ScheduleModule.forRoot(),
-  ],
+  imports: [BrokerModule.forFeature({ serviceName: "media" }), ScheduleModule.forRoot()],
   providers: [
     MediaBrokerActions,
     MediaNestService,

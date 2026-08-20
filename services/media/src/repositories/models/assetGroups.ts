@@ -29,7 +29,7 @@ export const assetGroups = mediaSchema.table(
     uniqueIndex("idx_asset_groups_owner").on(table.ownerType, table.ownerId),
     // Index for lookups by owner type
     index("idx_asset_groups_owner_type").on(table.ownerType),
-  ]
+  ],
 );
 
 export type AssetGroup = typeof assetGroups.$inferSelect;

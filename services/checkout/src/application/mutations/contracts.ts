@@ -87,12 +87,7 @@ export interface CheckoutCommittedSnapshot {
   result: CheckoutRecalculationResult;
 }
 
-export type CheckoutLifecycleStatus =
-  | "OPEN"
-  | "READY"
-  | "PLACED"
-  | "EXPIRED"
-  | "ABANDONED";
+export type CheckoutLifecycleStatus = "OPEN" | "READY" | "PLACED" | "EXPIRED" | "ABANDONED";
 
 export interface CheckoutLifecycle {
   status: CheckoutLifecycleStatus;
@@ -110,10 +105,7 @@ export interface CheckoutMutationSnapshotPort {
 }
 
 export interface CheckoutInternalSnapshotPort {
-  load(input: {
-    checkoutId: string;
-    storeId: string;
-  }): Promise<CheckoutCommittedSnapshot | null>;
+  load(input: { checkoutId: string; storeId: string }): Promise<CheckoutCommittedSnapshot | null>;
 }
 
 export interface CheckoutRecalculationCommitPort {
@@ -122,8 +114,7 @@ export interface CheckoutRecalculationCommitPort {
     draft: CheckoutMutationDraft;
     result: CheckoutRecalculationResult;
   }): Promise<
-    | { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot }
-    | { status: "VERSION_CONFLICT" }
+    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "VERSION_CONFLICT" }
   >;
 
   commit(input: {
@@ -136,8 +127,7 @@ export interface CheckoutRecalculationCommitPort {
     draft: CheckoutMutationDraft;
     result: CheckoutRecalculationResult;
   }): Promise<
-    | { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot }
-    | { status: "VERSION_CONFLICT" }
+    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "VERSION_CONFLICT" }
   >;
 
   commitWithoutRecalculation(input: {
@@ -150,8 +140,7 @@ export interface CheckoutRecalculationCommitPort {
     draft: CheckoutMutationDraft;
     previousResult: CheckoutRecalculationResult;
   }): Promise<
-    | { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot }
-    | { status: "VERSION_CONFLICT" }
+    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "VERSION_CONFLICT" }
   >;
 }
 
@@ -171,8 +160,7 @@ export interface CheckoutCreateIdempotencyRequest {
   reservedIds: CheckoutPipelineJsonObject;
 }
 
-export interface CheckoutCreateIdempotencyReservation
-  extends CheckoutCreateIdempotencyRequest {
+export interface CheckoutCreateIdempotencyReservation extends CheckoutCreateIdempotencyRequest {
   leaseToken: string;
 }
 
@@ -229,9 +217,7 @@ export function invalidCheckoutMutation(code: string, message: string): Checkout
   return new CheckoutMutationError(code, message, false);
 }
 
-export function assertCompletePipelineResult(
-  result: CheckoutRecalculationResult,
-): void {
+export function assertCompletePipelineResult(result: CheckoutRecalculationResult): void {
   const outcomes = [
     result.preliminaryPricing,
     result.delivery,

@@ -1,6 +1,4 @@
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
 import type { ProductInventoryWidgetData } from "../../repositories/inventory-widget/InventoryWidgetRepository.js";
 
@@ -17,10 +15,7 @@ export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
    * Returns aggregated inventory metrics across all variants.
    */
   inventory(args: { productId: string }) {
-    const productId = this.decodeId(
-      args.productId,
-      GlobalIdEntity.Product,
-    );
+    const productId = this.decodeId(args.productId, GlobalIdEntity.Product);
     return this.resolvers.inventoryWidget(productId);
   }
 }
@@ -33,14 +28,9 @@ export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
  * - SKU status metrics (low stock, out of stock, backorder)
  * - Alert thresholds
  */
-export class InventoryWidgetResolver extends CatalogType<
-  string,
-  ProductInventoryWidgetData
-> {
+export class InventoryWidgetResolver extends CatalogType<string, ProductInventoryWidgetData> {
   async $preload(): Promise<ProductInventoryWidgetData> {
-    return this.$ctx.kernel
-      .getServices()
-      .repository.inventoryWidget.getWidget(this.$props);
+    return this.$ctx.kernel.getServices().repository.inventoryWidget.getWidget(this.$props);
   }
 
   async quantities() {

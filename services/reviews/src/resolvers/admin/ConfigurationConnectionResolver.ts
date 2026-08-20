@@ -6,9 +6,7 @@ import {
 
 export class RatingCriterionConnectionResolver extends BaseConnectionResolver<RatingCriterionRelayInput> {
   $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel.repository.configuration.getCriterionConnection(
-      this.$props
-    );
+    return this.$ctx.kernel.repository.configuration.getCriterionConnection(this.$props);
   }
 
   protected createNodeResolver(nodeId: string) {

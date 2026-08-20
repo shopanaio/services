@@ -1,13 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  boolean,
-  check,
-  index,
-  primaryKey,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { boolean, check, index, primaryKey, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { discount } from "./discounts.js";
 import { pricingSchema } from "./schema.js";
 
@@ -32,10 +24,7 @@ export const discountChannel = pricingSchema.table(
       name: "discount_channel_pkey",
       columns: [table.discountId, table.channelCode],
     }),
-    check(
-      "discount_channel_code_check",
-      sql`${table.channelCode} ~ '^[A-Z][A-Z0-9_:-]{1,63}$'`,
-    ),
+    check("discount_channel_code_check", sql`${table.channelCode} ~ '^[A-Z][A-Z0-9_:-]{1,63}$'`),
     index("discount_channel_store_lookup_idx").on(
       table.storeId,
       table.channelCode,

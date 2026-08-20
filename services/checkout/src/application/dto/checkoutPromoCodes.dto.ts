@@ -1,9 +1,5 @@
 import { Expose } from "class-transformer";
-import {
-  IsString,
-  IsNotEmpty,
-  MaxLength,
-} from "class-validator";
+import { IsString, IsNotEmpty, MaxLength } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 

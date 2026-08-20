@@ -81,12 +81,7 @@ export const CopyableChip = ({
 
   return (
     <Tooltip title={copied ? "Copied!" : undefined}>
-      <Tag
-        color="default"
-        onClick={handleCopy}
-        className={styles.chip}
-        data-testid={dataTestId}
-      >
+      <Tag color="default" onClick={handleCopy} className={styles.chip} data-testid={dataTestId}>
         {label && (
           <Typography.Text type="secondary" className={styles.label}>
             {label}

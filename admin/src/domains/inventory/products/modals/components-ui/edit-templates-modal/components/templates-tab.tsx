@@ -15,7 +15,14 @@ import {
   Empty,
   Tag,
 } from "antd";
-import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuSave as SaveOutlined, LuX as CloseOutlined, LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
+import {
+  LuPlus as PlusOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuPencil as EditOutlined,
+  LuSave as SaveOutlined,
+  LuX as CloseOutlined,
+  LuCircleHelp as InfoCircleOutlined,
+} from "react-icons/lu";
 import type { ColumnsType } from "antd/es/table";
 
 import { Paper, PaperHeader } from "@/ui-kit/paper";
@@ -135,7 +142,7 @@ export const TemplatesTab = ({
       onPricingTemplatesChange([...pricingTemplates, templateData]);
     } else {
       onPricingTemplatesChange(
-        pricingTemplates.map((t) => (t.id === templateData.id ? templateData : t))
+        pricingTemplates.map((t) => (t.id === templateData.id ? templateData : t)),
       );
     }
 
@@ -152,7 +159,7 @@ export const TemplatesTab = ({
     (id: string) => {
       onPricingTemplatesChange(pricingTemplates.filter((t) => t.id !== id));
     },
-    [pricingTemplates, onPricingTemplatesChange]
+    [pricingTemplates, onPricingTemplatesChange],
   );
 
   // ========================================
@@ -170,9 +177,7 @@ export const TemplatesTab = ({
             return (
               <Input
                 value={editingTemplate.name}
-                onChange={(e) =>
-                  setEditingTemplate({ ...editingTemplate, name: e.target.value })
-                }
+                onChange={(e) => setEditingTemplate({ ...editingTemplate, name: e.target.value })}
                 placeholder="Template name"
                 className={styles.editInput}
                 autoFocus
@@ -197,10 +202,9 @@ export const TemplatesTab = ({
                     ...editingTemplate,
                     priceType: value,
                     priceValue:
-                      value === ComponentPriceType.Free ||
-                      value === ComponentPriceType.Base
+                      value === ComponentPriceType.Free || value === ComponentPriceType.Base
                         ? null
-                        : editingTemplate.priceValue ?? 10,
+                        : (editingTemplate.priceValue ?? 10),
                   })
                 }
                 options={PRICE_TYPE_SELECT_OPTIONS}
@@ -230,9 +234,7 @@ export const TemplatesTab = ({
             return (
               <InputNumber
                 value={editingTemplate.priceValue ?? undefined}
-                onChange={(value) =>
-                  setEditingTemplate({ ...editingTemplate, priceValue: value })
-                }
+                onChange={(value) => setEditingTemplate({ ...editingTemplate, priceValue: value })}
                 min={0}
                 suffix={option?.valueSuffix}
                 style={{ width: "100%" }}
@@ -306,7 +308,7 @@ export const TemplatesTab = ({
       handleCancelTemplateEdit,
       handleEditTemplate,
       handleDeleteTemplate,
-    ]
+    ],
   );
 
   // ========================================
@@ -321,10 +323,7 @@ export const TemplatesTab = ({
           id: editingTemplate.id,
           name: editingTemplate.name,
           sortIndex: pricingTemplates.length,
-          priceRule: toApiPriceRule(
-            editingTemplate,
-            `${editingTemplate.id}-price-rule`,
-          ),
+          priceRule: toApiPriceRule(editingTemplate, `${editingTemplate.id}-price-rule`),
         },
       ];
     }

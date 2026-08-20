@@ -6,9 +6,7 @@ export class ListingApplyItemWriteModelScript extends BaseScript<
   ListingPreparedSyncWriteAction,
   void
 > {
-  protected async execute(
-    input: ListingPreparedSyncWriteAction
-  ): Promise<void> {
+  protected async execute(input: ListingPreparedSyncWriteAction): Promise<void> {
     await this.executeScript(ListingWriteIndexActionScript, input);
   }
 

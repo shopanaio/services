@@ -35,9 +35,7 @@ export class CustomerDeleteWorkflow extends BrokerWorkflows {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CustomerDeleteWorkflowInput
-  ): Promise<CustomerDeleteWorkflowResult> {
+  async run(input: CustomerDeleteWorkflowInput): Promise<CustomerDeleteWorkflowResult> {
     const result = await this.stepDelete(input);
 
     if (
@@ -61,13 +59,13 @@ export class CustomerDeleteWorkflow extends BrokerWorkflows {
     return this.kernel.runScript(
       CustomerDeleteScript,
       input.params,
-      toScriptContext(input.context)
+      toScriptContext(input.context),
     );
   }
 
   private async workflowEmitEvent(
     input: CustomerDeleteWorkflowInput,
-    deleted: { customerId: string; revision: number; deletedAt: string }
+    deleted: { customerId: string; revision: number; deletedAt: string },
   ): Promise<void> {
     const payload: CustomerDeletedEvent["payload"] = {
       ...deleted,
@@ -94,14 +92,12 @@ export class CustomerDeleteWorkflow extends BrokerWorkflows {
         workflowId: DBOS.workflowID!,
         stepId: "emitCustomerDeleted",
         callId: deleted.customerId,
-      }
+      },
     );
   }
 }
 
-function toScriptContext(
-  context: CustomerMutationWorkflowContext
-): RunScriptContext {
+function toScriptContext(context: CustomerMutationWorkflowContext): RunScriptContext {
   return {
     storeId: context.storeId,
     organizationId: context.organizationId,

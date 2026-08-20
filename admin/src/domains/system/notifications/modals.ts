@@ -7,8 +7,7 @@ import type {
 } from "@/graphql/types";
 
 export const NOTIFICATION_ITEM_MODAL_TYPE = "system-notification-item";
-export const NOTIFICATION_TEMPLATE_MODAL_TYPE =
-  "system-notification-template";
+export const NOTIFICATION_TEMPLATE_MODAL_TYPE = "system-notification-template";
 export const NOTIFICATION_WEBHOOK_MODAL_TYPE = "system-notification-webhook";
 
 export interface NotificationItemModalPayload extends IModalStackPayload {
@@ -28,15 +27,9 @@ export interface NotificationWebhookModalPayload extends IModalStackPayload {
   onSaved?: () => void | Promise<void>;
 }
 
-export const useNotificationItemModal = createModalStackHook(
-  NOTIFICATION_ITEM_MODAL_TYPE,
-);
-export const useNotificationTemplateModal = createModalStackHook(
-  NOTIFICATION_TEMPLATE_MODAL_TYPE,
-);
-export const useNotificationWebhookModal = createModalStackHook(
-  NOTIFICATION_WEBHOOK_MODAL_TYPE,
-);
+export const useNotificationItemModal = createModalStackHook(NOTIFICATION_ITEM_MODAL_TYPE);
+export const useNotificationTemplateModal = createModalStackHook(NOTIFICATION_TEMPLATE_MODAL_TYPE);
+export const useNotificationWebhookModal = createModalStackHook(NOTIFICATION_WEBHOOK_MODAL_TYPE);
 
 declare module "@/layouts/modals" {
   interface ModalStackPayloads {

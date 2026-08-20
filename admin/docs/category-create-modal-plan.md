@@ -4,7 +4,8 @@
 
 Сделать модалку создания категории по дизайну существующей модалки создания продукта.
 
-Ключевое правило: **не проектировать новую категорийную модалку**. Нужно взять текущий паттерн `CreateProductModal` и заменить продуктовые поля на категорийные там, где это прямо необходимо.
+Ключевое правило: **не проектировать новую категорийную модалку**. Нужно взять текущий паттерн
+`CreateProductModal` и заменить продуктовые поля на категорийные там, где это прямо необходимо.
 
 Источник дизайна:
 
@@ -27,7 +28,8 @@ CreateCategoryModal
 └── Media
 ```
 
-`Variants` не переносится, потому что у категории нет вариаций. Вместо него нельзя добавлять выдуманную секцию `Category settings`.
+`Variants` не переносится, потому что у категории нет вариаций. Вместо него нельзя добавлять
+выдуманную секцию `Category settings`.
 
 Запрещено добавлять в create category modal:
 
@@ -44,13 +46,13 @@ CreateCategoryModal
 ## Product To Category Mapping
 
 | Product create | Category create |
-|---|---|
-| `New Product` | `New Category` |
-| `Title` | `Name` |
-| `Handle` | `Handle` |
-| `Description` | `Description` |
-| `Media` | `Media` |
-| `Variants` | Omitted |
+| -------------- | --------------- |
+| `New Product`  | `New Category`  |
+| `Title`        | `Name`          |
+| `Handle`       | `Handle`        |
+| `Description`  | `Description`   |
+| `Media`        | `Media`         |
+| `Variants`     | Omitted         |
 
 ## Main Wireframe
 
@@ -113,11 +115,11 @@ Near-copy of product `GeneralSection`, with field names changed.
 
 Fields:
 
-| Field | Control | Required | Product equivalent |
-|---|---|---|---|
-| `name` | `Input` | Yes | `title` |
-| `handle` | `Input` with `/` addon | Yes | `handle` |
-| `description` | `Editor` | No | `description` |
+| Field         | Control                | Required | Product equivalent |
+| ------------- | ---------------------- | -------- | ------------------ |
+| `name`        | `Input`                | Yes      | `title`            |
+| `handle`      | `Input` with `/` addon | Yes      | `handle`           |
+| `description` | `Editor`               | No       | `description`      |
 
 Handle behavior mirrors product create:
 
@@ -158,32 +160,37 @@ Mapping:
 - Form stores uploaded `ApiFile[]`.
 - Submit sends `mediaFileIds: media.map((file) => file.id)`.
 - Empty media omits `mediaFileIds`.
-- First media item is featured by ordering only. The create category API has no separate featured image field.
+- First media item is featured by ordering only. The create category API has no separate featured
+  image field.
 
 ## Out Of UI But Supported By Submit Context
 
-`CategoryCreateInput.parentId` is useful for "create subcategory", but showing a parent selector would add UI that does not exist in product create.
+`CategoryCreateInput.parentId` is useful for "create subcategory", but showing a parent selector
+would add UI that does not exist in product create.
 
 First implementation rule:
 
-- Categories page create button opens modal without `parentId`; category is created at root/API default.
+- Categories page create button opens modal without `parentId`; category is created at root/API
+  default.
 - Future "add subcategory" action may open the same modal with `payload.parentId`.
 - The modal can submit `parentId` from payload, but does not render a parent selector.
 
-This keeps the UI identical to product create while preserving API compatibility for subcategory entry points.
+This keeps the UI identical to product create while preserving API compatibility for subcategory
+entry points.
 
 ## Fields Intentionally Omitted
 
 `CategoryCreateInput` supports optional fields that are not part of the first modal UI:
 
-| API field | Reason omitted |
-|---|---|
+| API field  | Reason omitted                                                                   |
+| ---------- | -------------------------------------------------------------------------------- |
 | `parentId` | Not visible in root create UI; may come from modal payload for subcategory flow. |
-| `excerpt` | Product create modal has no excerpt field. |
-| `seo` | Product create modal has no SEO section. |
-| `publish` | Product create modal has no publish/status switch. |
+| `excerpt`  | Product create modal has no excerpt field.                                       |
+| `seo`      | Product create modal has no SEO section.                                         |
+| `publish`  | Product create modal has no publish/status switch.                               |
 
-Do not add these fields to the UI unless the product create modal gains equivalent create-time controls or the task explicitly changes the design requirement.
+Do not add these fields to the UI unless the product create modal gains equivalent create-time
+controls or the task explicitly changes the design requirement.
 
 ## Form State
 
@@ -261,13 +268,13 @@ mutation CategoryCreate($input: CategoryCreateInput!) {
 
 Mapping table:
 
-| Source | API field | Rule |
-|---|---|---|
-| `values.name` | `name` | Trim and send. |
-| `values.handle` | `handle` | Slugify on input, send slug. |
-| `values.description` | `description` | Convert EditorJS through `renderContent`; omit when empty. |
-| `values.media` | `mediaFileIds` | Send uploaded file IDs in gallery order; omit when empty. |
-| `payload.parentId` | `parentId` | Send only when modal was opened with parent context. |
+| Source               | API field      | Rule                                                       |
+| -------------------- | -------------- | ---------------------------------------------------------- |
+| `values.name`        | `name`         | Trim and send.                                             |
+| `values.handle`      | `handle`       | Slugify on input, send slug.                               |
+| `values.description` | `description`  | Convert EditorJS through `renderContent`; omit when empty. |
+| `values.media`       | `mediaFileIds` | Send uploaded file IDs in gallery order; omit when empty.  |
+| `payload.parentId`   | `parentId`     | Send only when modal was opened with parent context.       |
 
 Example root category:
 
@@ -388,7 +395,8 @@ export const CATEGORY_CREATE_MUTATION = gql`
 `;
 ```
 
-Do not import product module GraphQL internals from categories. If `UserErrorFields` is not shared, duplicate the small fragment locally or move it to a shared GraphQL location in a separate cleanup.
+Do not import product module GraphQL internals from categories. If `UserErrorFields` is not shared,
+duplicate the small fragment locally or move it to a shared GraphQL location in a separate cleanup.
 
 ### Operation Types
 
@@ -442,11 +450,7 @@ Create `admin/src/domains/inventory/categories/mappers/category-errors.mapper.ts
 Fields:
 
 ```ts
-type CategoryFormErrorField =
-  | "name"
-  | "handle"
-  | "description"
-  | "media";
+type CategoryFormErrorField = "name" | "handle" | "description" | "media";
 ```
 
 Aliases:
@@ -474,9 +478,7 @@ interface CreateCategoryResult {
 }
 
 interface UseCreateCategoryReturn {
-  createCategory: (
-    input: CreateCategoryInput,
-  ) => Promise<CreateCategoryResult>;
+  createCategory: (input: CreateCategoryInput) => Promise<CreateCategoryResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
@@ -490,7 +492,8 @@ Rules:
 - It unwraps `data.catalogMutation.categoryCreate`.
 - It returns `{ category, userErrors }`.
 - Runtime errors become `[{ code: "UNEXPECTED_ERROR", message }]`, matching product create.
-- For list freshness, prefer caller-driven refresh: pass `onCreated` from `CategoriesPage` and call `refetch()` after success.
+- For list freshness, prefer caller-driven refresh: pass `onCreated` from `CategoriesPage` and call
+  `refetch()` after success.
 
 ## Modal Submit Flow
 
@@ -557,8 +560,7 @@ export interface ICreateCategoryModalPayload extends IModalStackPayload {
 Add hook:
 
 ```ts
-export const useCreateCategoryModal =
-  createModalStackHook(CATEGORY_CREATE_MODAL_TYPE);
+export const useCreateCategoryModal = createModalStackHook(CATEGORY_CREATE_MODAL_TYPE);
 ```
 
 Register in `admin/src/domains/modals.tsx`:

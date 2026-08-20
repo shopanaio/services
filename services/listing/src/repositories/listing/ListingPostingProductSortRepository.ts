@@ -30,9 +30,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async find(
-    key: ProductSortKeyInput
-  ): Promise<ListingPostingProductSort | null> {
+  async find(key: ProductSortKeyInput): Promise<ListingPostingProductSort | null> {
     const normalized = this.normalizeKey(key);
     const rows = await this.connection
       .select()
@@ -44,9 +42,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getByProductDocId(
-    productDocId: number
-  ): Promise<ListingPostingProductSort[]> {
+  async getByProductDocId(productDocId: number): Promise<ListingPostingProductSort[]> {
     assertPositiveDocId(productDocId, "productDocId");
     return this.connection
       .select()
@@ -54,15 +50,13 @@ export class ListingPostingProductSortRepository extends BaseRepository {
       .where(
         and(
           eq(listingPostingProductSort.storeId, this.storeId),
-          eq(listingPostingProductSort.productDocId, productDocId)
-        )
+          eq(listingPostingProductSort.productDocId, productDocId),
+        ),
       );
   }
 
   @ReadOnly()
-  async getByProductDocIds(
-    productDocIds: readonly number[]
-  ): Promise<ListingPostingProductSort[]> {
+  async getByProductDocIds(productDocIds: readonly number[]): Promise<ListingPostingProductSort[]> {
     if (productDocIds.length === 0) {
       return [];
     }
@@ -77,17 +71,13 @@ export class ListingPostingProductSortRepository extends BaseRepository {
       .where(
         and(
           eq(listingPostingProductSort.storeId, this.storeId),
-          inArray(listingPostingProductSort.productDocId, [
-            ...new Set(productDocIds),
-          ])
-        )
+          inArray(listingPostingProductSort.productDocId, [...new Set(productDocIds)]),
+        ),
       );
   }
 
   @ReadOnly()
-  async getByProductIds(
-    productIds: readonly string[]
-  ): Promise<ListingPostingProductSort[]> {
+  async getByProductIds(productIds: readonly string[]): Promise<ListingPostingProductSort[]> {
     if (productIds.length === 0) {
       return [];
     }
@@ -98,8 +88,8 @@ export class ListingPostingProductSortRepository extends BaseRepository {
       .where(
         and(
           eq(listingPostingProductSort.storeId, this.storeId),
-          inArray(listingPostingProductSort.productId, [...new Set(productIds)])
-        )
+          inArray(listingPostingProductSort.productId, [...new Set(productIds)]),
+        ),
       );
   }
 
@@ -113,16 +103,12 @@ export class ListingPostingProductSortRepository extends BaseRepository {
     return rows[0]?.value ?? 0;
   }
 
-  async upsert(
-    row: ProductSortRowInput
-  ): Promise<ListingPostingProductSort> {
+  async upsert(row: ProductSortRowInput): Promise<ListingPostingProductSort> {
     const rows = await this.upsertMany([row]);
     return rows[0];
   }
 
-  async upsertMany(
-    rows: readonly ProductSortRowInput[]
-  ): Promise<ListingPostingProductSort[]> {
+  async upsertMany(rows: readonly ProductSortRowInput[]): Promise<ListingPostingProductSort[]> {
     if (rows.length === 0) {
       return [];
     }
@@ -166,7 +152,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
   @Transactional()
   async replaceForProduct(
     productDocId: number,
-    rows: readonly ProductSortRowInput[]
+    rows: readonly ProductSortRowInput[],
   ): Promise<ListingPostingProductSort[]> {
     assertPositiveDocId(productDocId, "productDocId");
     for (const row of rows) {
@@ -181,7 +167,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
 
   @Transactional()
   async replaceForProducts(
-    rowsByProductDocId: ReadonlyMap<number, readonly ProductSortRowInput[]>
+    rowsByProductDocId: ReadonlyMap<number, readonly ProductSortRowInput[]>,
   ): Promise<ListingPostingProductSort[]> {
     if (rowsByProductDocId.size === 0) {
       return [];
@@ -192,16 +178,14 @@ export class ListingPostingProductSortRepository extends BaseRepository {
       assertPositiveDocId(productDocId, "productDocId");
     }
 
-    const rows = [...rowsByProductDocId.entries()].flatMap(
-      ([productDocId, productRows]) => {
-        for (const row of productRows) {
-          if (row.productDocId !== productDocId) {
-            throw new Error("Product sort row productDocId must match map key");
-          }
+    const rows = [...rowsByProductDocId.entries()].flatMap(([productDocId, productRows]) => {
+      for (const row of productRows) {
+        if (row.productDocId !== productDocId) {
+          throw new Error("Product sort row productDocId must match map key");
         }
-        return [...productRows];
       }
-    );
+      return [...productRows];
+    });
 
     await this.deleteByProductDocIds(productDocIds);
     return this.upsertMany(rows);
@@ -224,8 +208,8 @@ export class ListingPostingProductSortRepository extends BaseRepository {
       .where(
         and(
           eq(listingPostingProductSort.storeId, this.storeId),
-          eq(listingPostingProductSort.productDocId, productDocId)
-        )
+          eq(listingPostingProductSort.productDocId, productDocId),
+        ),
       )
       .returning({ productDocId: listingPostingProductSort.productDocId });
 
@@ -248,8 +232,8 @@ export class ListingPostingProductSortRepository extends BaseRepository {
         .where(
           and(
             eq(listingPostingProductSort.storeId, this.storeId),
-            inArray(listingPostingProductSort.productDocId, chunk)
-          )
+            inArray(listingPostingProductSort.productDocId, chunk),
+          ),
         )
         .returning({ productDocId: listingPostingProductSort.productDocId });
 
@@ -265,8 +249,8 @@ export class ListingPostingProductSortRepository extends BaseRepository {
       .where(
         and(
           eq(listingPostingProductSort.storeId, this.storeId),
-          eq(listingPostingProductSort.productId, productId)
-        )
+          eq(listingPostingProductSort.productId, productId),
+        ),
       )
       .returning({ productId: listingPostingProductSort.productId });
 
@@ -285,8 +269,8 @@ export class ListingPostingProductSortRepository extends BaseRepository {
         .where(
           and(
             eq(listingPostingProductSort.storeId, this.storeId),
-            inArray(listingPostingProductSort.productId, chunk)
-          )
+            inArray(listingPostingProductSort.productId, chunk),
+          ),
         )
         .returning({ productId: listingPostingProductSort.productId });
 
@@ -303,8 +287,8 @@ export class ListingPostingProductSortRepository extends BaseRepository {
         and(
           eq(listingPostingProductSort.storeId, this.storeId),
           eq(listingPostingProductSort.sortKind, "manual"),
-          eq(listingPostingProductSort.manualScopeId, manualScopeId)
-        )
+          eq(listingPostingProductSort.manualScopeId, manualScopeId),
+        ),
       )
       .returning({ productDocId: listingPostingProductSort.productDocId });
     return rows.length;
@@ -359,11 +343,13 @@ export class ListingPostingProductSortRepository extends BaseRepository {
     ].join(":");
   }
 
-  private keyWhere(key: ProductSortKeyInput & {
-    locale: string | null;
-    currency: string | null;
-    manualScopeId: string;
-  }) {
+  private keyWhere(
+    key: ProductSortKeyInput & {
+      locale: string | null;
+      currency: string | null;
+      manualScopeId: string;
+    },
+  ) {
     return and(
       eq(listingPostingProductSort.storeId, this.storeId),
       eq(listingPostingProductSort.productDocId, key.productDocId),
@@ -374,7 +360,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
       key.currency === null
         ? isNull(listingPostingProductSort.currency)
         : eq(listingPostingProductSort.currency, key.currency),
-      eq(listingPostingProductSort.manualScopeId, key.manualScopeId)
+      eq(listingPostingProductSort.manualScopeId, key.manualScopeId),
     );
   }
 }

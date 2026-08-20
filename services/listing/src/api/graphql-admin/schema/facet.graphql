@@ -155,7 +155,9 @@ input FacetCreateInput {
   label: String!
   sources: [FacetCreateSourceInput!]
   valueCandidates: [FacetCreateValueCandidateInput!]
-  """Defaults to SEARCH, CATEGORY, and COLLECTION when omitted."""
+  """
+  Defaults to SEARCH, CATEGORY, and COLLECTION when omitted.
+  """
   scopes: [FacetScopeType!]
 }
 
@@ -165,18 +167,24 @@ input FacetUpdateInput {
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
   label: String
-  """Replaces the current scopes when provided. The list cannot be empty."""
+  """
+  Replaces the current scopes when provided. The list cannot be empty.
+  """
   scopes: [FacetScopeType!]
 }
 
 input FacetScopesUpdateItemInput {
   id: ID!
-  """Replaces the current scopes. The list cannot be empty."""
+  """
+  Replaces the current scopes. The list cannot be empty.
+  """
   scopes: [FacetScopeType!]!
 }
 
 input FacetScopesUpdateInput {
-  """Only changed facets need to be included. All updates are applied atomically."""
+  """
+  Only changed facets need to be included. All updates are applied atomically.
+  """
   updates: [FacetScopesUpdateItemInput!]!
 }
 

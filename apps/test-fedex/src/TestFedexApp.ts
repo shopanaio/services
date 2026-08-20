@@ -9,27 +9,8 @@ import type {
 } from "@shopana/app-sdk";
 import type { Delivery } from "@shopana/broker-types";
 
-const SUPPORTED_COUNTRIES = [
-  "AU",
-  "CA",
-  "DE",
-  "FR",
-  "GB",
-  "JP",
-  "PL",
-  "UA",
-  "US",
-] as const;
-const SUPPORTED_CURRENCIES = [
-  "AUD",
-  "CAD",
-  "EUR",
-  "GBP",
-  "JPY",
-  "PLN",
-  "UAH",
-  "USD",
-] as const;
+const SUPPORTED_COUNTRIES = ["AU", "CA", "DE", "FR", "GB", "JP", "PL", "UA", "US"] as const;
+const SUPPORTED_CURRENCIES = ["AUD", "CAD", "EUR", "GBP", "JPY", "PLN", "UAH", "USD"] as const;
 const CUSTOMER_INPUT_CONTRACT = {
   schemaDialect: "https://json-schema.org/draft/2020-12/schema",
   schema: {
@@ -92,24 +73,14 @@ export class TestFedexApp implements ShopanaApp {
       this.validateCarrierConfiguration(input),
     );
     this.host.broker.register("quoteRates", (input) => this.quoteRates(input));
-    this.host.broker.register("resolveCustomerInput", (input) =>
-      this.resolveCustomerInput(input),
-    );
+    this.host.broker.register("resolveCustomerInput", (input) => this.resolveCustomerInput(input));
     this.host.broker.register("validateShipmentConfiguration", (input) =>
       this.validateShipmentConfiguration(input),
     );
-    this.host.broker.register("createShipment", (input) =>
-      this.createShipment(input),
-    );
-    this.host.broker.register("cancelShipment", (input) =>
-      this.cancelShipment(input),
-    );
-    this.host.broker.register("getShipment", (input) =>
-      this.getShipment(input),
-    );
-    this.host.broker.register("reconcileShipment", (input) =>
-      this.reconcileShipment(input),
-    );
+    this.host.broker.register("createShipment", (input) => this.createShipment(input));
+    this.host.broker.register("cancelShipment", (input) => this.cancelShipment(input));
+    this.host.broker.register("getShipment", (input) => this.getShipment(input));
+    this.host.broker.register("reconcileShipment", (input) => this.reconcileShipment(input));
   }
 
   start(): void {}
@@ -131,10 +102,7 @@ export class TestFedexApp implements ShopanaApp {
       requireInput<
         Delivery.DeliveryProviderConfigurationValidationRequest<"delivery.carrier-service">
       >(input);
-    if (
-      request.protocolVersion !== 2 ||
-      request.capability !== "delivery.carrier-service"
-    )
+    if (request.protocolVersion !== 2 || request.capability !== "delivery.carrier-service")
       throw new Error("Unsupported delivery provider protocol");
     return {
       status: "READY",
@@ -154,11 +122,8 @@ export class TestFedexApp implements ShopanaApp {
     };
   }
 
-  private quoteRates(
-    input: unknown,
-  ): Delivery.DeliveryCarrierServiceRateResult {
-    const request =
-      requireInput<Delivery.DeliveryCarrierServiceRateRequest>(input);
+  private quoteRates(input: unknown): Delivery.DeliveryCarrierServiceRateResult {
+    const request = requireInput<Delivery.DeliveryCarrierServiceRateRequest>(input);
     const unsupportedCurrency = !SUPPORTED_CURRENCIES.includes(
       request.currencyCode as (typeof SUPPORTED_CURRENCIES)[number],
     );
@@ -167,9 +132,7 @@ export class TestFedexApp implements ShopanaApp {
       request.destination.address.countryCode,
     ].some(
       (countryCode) =>
-        !SUPPORTED_COUNTRIES.includes(
-          countryCode as (typeof SUPPORTED_COUNTRIES)[number],
-        ),
+        !SUPPORTED_COUNTRIES.includes(countryCode as (typeof SUPPORTED_COUNTRIES)[number]),
     );
     if (unsupportedCurrency || unsupportedRoute) {
       const reason = unsupportedCurrency
@@ -177,18 +140,14 @@ export class TestFedexApp implements ShopanaApp {
         : "The requested route is not supported.";
       return {
         quoteRequestId: request.quoteRequestId,
-        revision: digest("test-fedex-no-service-v2", [
-          request.ratedFactsHash,
-          reason,
-        ]),
+        revision: digest("test-fedex-no-service-v2", [request.ratedFactsHash, reason]),
         rates: [],
         warnings: [{ code: "TEST_FEDEX_NO_SERVICE", message: reason }],
       };
     }
 
     const international =
-      request.origin.address.countryCode !==
-      request.destination.address.countryCode;
+      request.origin.address.countryCode !== request.destination.address.countryCode;
     const weightUnits = request.packages.reduce(
       (total, item) => total + Math.max(1, Math.ceil(item.weightGrams / 500)),
       0,
@@ -201,8 +160,7 @@ export class TestFedexApp implements ShopanaApp {
         rate(request, effectiveAt, {
           serviceCode: "ground",
           serviceName: "FedEx Test Ground",
-          description:
-            "Economical domestic delivery for deterministic E2E scenarios.",
+          description: "Economical domestic delivery for deterministic E2E scenarios.",
           amountMinor: 700 + weightUnits * 125,
           minDays: 3,
           maxDays: 5,
@@ -213,8 +171,7 @@ export class TestFedexApp implements ShopanaApp {
       rate(request, effectiveAt, {
         serviceCode: "international-priority",
         serviceName: "FedEx Test International Priority",
-        description:
-          "Priority air delivery inspired by international express services.",
+        description: "Priority air delivery inspired by international express services.",
         amountMinor: (international ? 2_500 : 1_500) + weightUnits * 275,
         minDays: international ? 2 : 1,
         maxDays: international ? 3 : 2,
@@ -222,8 +179,7 @@ export class TestFedexApp implements ShopanaApp {
       rate(request, effectiveAt, {
         serviceCode: "international-economy",
         serviceName: "FedEx Test International Economy",
-        description:
-          "Lower-cost tracked delivery for less urgent international orders.",
+        description: "Lower-cost tracked delivery for less urgent international orders.",
         amountMinor: (international ? 1_300 : 900) + weightUnits * 175,
         minDays: international ? 5 : 3,
         maxDays: international ? 8 : 5,
@@ -244,13 +200,10 @@ export class TestFedexApp implements ShopanaApp {
   private resolveCustomerInput(
     input: unknown,
   ): Delivery.DeliveryProviderResolveCustomerInputResult {
-    const request =
-      requireInput<Delivery.DeliveryProviderResolveCustomerInputRequest>(input);
+    const request = requireInput<Delivery.DeliveryProviderResolveCustomerInputRequest>(input);
     if (request.value === null) return validCustomerInput(null);
     const pickupPointId = optionalTrimmedString(request.value.pickupPointId);
-    const deliveryInstructions = optionalTrimmedString(
-      request.value.deliveryInstructions,
-    );
+    const deliveryInstructions = optionalTrimmedString(request.value.deliveryInstructions);
     const issues: { path: string; code: string; message: string }[] = [];
     if (
       request.value.pickupPointId !== undefined &&
@@ -295,10 +248,7 @@ export class TestFedexApp implements ShopanaApp {
       requireInput<
         Delivery.DeliveryProviderConfigurationValidationRequest<"delivery.shipment-provider">
       >(input);
-    if (
-      request.protocolVersion !== 2 ||
-      request.capability !== "delivery.shipment-provider"
-    )
+    if (request.protocolVersion !== 2 || request.capability !== "delivery.shipment-provider")
       throw new Error("Unsupported delivery shipment protocol");
     return {
       status: "READY",
@@ -332,8 +282,7 @@ export class TestFedexApp implements ShopanaApp {
   private createShipment(
     input: unknown,
   ): Delivery.DeliveryProviderShipmentOperationResult<"CREATE"> {
-    const request =
-      requireInput<Delivery.DeliveryProviderCreateShipmentRequest>(input);
+    const request = requireInput<Delivery.DeliveryProviderCreateShipmentRequest>(input);
     return this.idempotent(request, () => {
       const providerShipmentReference = digest("test-fedex-shipment-v2", [
         request.storeId,
@@ -348,30 +297,27 @@ export class TestFedexApp implements ShopanaApp {
         processedAt,
         serviceDays(request.selectedRate.serviceCode),
       );
-      const parcels =
-        request.packages.map<Delivery.DeliveryProviderParcelObservation>(
-          (item) => {
-            const providerParcelReference = digest("test-fedex-parcel-v2", [
-              providerShipmentReference,
-              item.packageId,
-            ]);
-            return {
-              providerParcelReference,
-              packageIds: [item.packageId],
-              state: "ACCEPTED",
-              tracking: [
-                {
-                  company: "FedEx Test",
-                  number: providerParcelReference.slice(0, 20).toUpperCase(),
-                  url: `https://tracking.test/fedex/${providerParcelReference}`,
-                },
-              ],
-              labels: [],
-              estimatedDeliveryAt,
-              deliveredAt: null,
-            };
-          },
-        );
+      const parcels = request.packages.map<Delivery.DeliveryProviderParcelObservation>((item) => {
+        const providerParcelReference = digest("test-fedex-parcel-v2", [
+          providerShipmentReference,
+          item.packageId,
+        ]);
+        return {
+          providerParcelReference,
+          packageIds: [item.packageId],
+          state: "ACCEPTED",
+          tracking: [
+            {
+              company: "FedEx Test",
+              number: providerParcelReference.slice(0, 20).toUpperCase(),
+              url: `https://tracking.test/fedex/${providerParcelReference}`,
+            },
+          ],
+          labels: [],
+          estimatedDeliveryAt,
+          deliveredAt: null,
+        };
+      });
       const record: ShipmentRecord = {
         storeId: request.storeId,
         shipmentId: request.shipmentId,
@@ -385,12 +331,7 @@ export class TestFedexApp implements ShopanaApp {
         destination: request.destination.address,
       };
       record.events.push(
-        trackingEvent(
-          record,
-          request.operationId,
-          "ACCEPTED",
-          request.origin.address,
-        ),
+        trackingEvent(record, request.operationId, "ACCEPTED", request.origin.address),
       );
       this.shipments.set(providerShipmentReference, record);
       return createResult(record);
@@ -400,8 +341,7 @@ export class TestFedexApp implements ShopanaApp {
   private cancelShipment(
     input: unknown,
   ): Delivery.DeliveryProviderShipmentOperationResult<"CANCEL"> {
-    const request =
-      requireInput<Delivery.DeliveryProviderCancelShipmentRequest>(input);
+    const request = requireInput<Delivery.DeliveryProviderCancelShipmentRequest>(input);
     return this.idempotent(request, () => {
       const record = this.requireShipment(request);
       if (record.state === "DELIVERED" || record.state === "RETURNED") {
@@ -430,32 +370,20 @@ export class TestFedexApp implements ShopanaApp {
           state: "CANCELLED",
         }));
         record.events.push(
-          trackingEvent(
-            record,
-            request.operationId,
-            "CANCELLED",
-            null,
-            request.reason,
-          ),
+          trackingEvent(record, request.operationId, "CANCELLED", null, request.reason),
         );
       }
       return cancelResult(record);
     });
   }
 
-  private getShipment(
-    input: unknown,
-  ): Delivery.DeliveryProviderReconcileShipmentResult {
-    const request =
-      requireInput<Delivery.DeliveryProviderGetShipmentRequest>(input);
+  private getShipment(input: unknown): Delivery.DeliveryProviderReconcileShipmentResult {
+    const request = requireInput<Delivery.DeliveryProviderGetShipmentRequest>(input);
     return reconcileResult(this.requireShipment(request));
   }
 
-  private reconcileShipment(
-    input: unknown,
-  ): Delivery.DeliveryProviderReconcileShipmentResult {
-    const request =
-      requireInput<Delivery.DeliveryProviderReconcileShipmentRequest>(input);
+  private reconcileShipment(input: unknown): Delivery.DeliveryProviderReconcileShipmentResult {
+    const request = requireInput<Delivery.DeliveryProviderReconcileShipmentRequest>(input);
     return this.idempotent(request, () => {
       const record = this.requireShipment(request);
       const nextState = record.progression.shift();
@@ -465,16 +393,10 @@ export class TestFedexApp implements ShopanaApp {
         record.parcels = record.parcels.map((parcel) => ({
           ...parcel,
           state: nextState,
-          deliveredAt:
-            nextState === "DELIVERED" ? record.updatedAt : parcel.deliveredAt,
+          deliveredAt: nextState === "DELIVERED" ? record.updatedAt : parcel.deliveredAt,
         }));
         record.events.push(
-          trackingEvent(
-            record,
-            request.operationId,
-            nextState,
-            record.destination,
-          ),
+          trackingEvent(record, request.operationId, nextState, record.destination),
         );
       }
       return reconcileResult(record);
@@ -492,9 +414,7 @@ export class TestFedexApp implements ShopanaApp {
     const existing = this.idempotentResults.get(key);
     if (existing) {
       if (existing.requestHash !== request.idempotencyRequestHash)
-        throw new Error(
-          `Test FedEx idempotency conflict for ${request.operation}`,
-        );
+        throw new Error(`Test FedEx idempotency conflict for ${request.operation}`);
       return existing.result as TResult;
     }
     const result = execute();
@@ -518,9 +438,7 @@ export class TestFedexApp implements ShopanaApp {
       record.shipmentId !== request.shipmentId ||
       record.providerAccountId !== request.providerAccountId
     ) {
-      throw new Error(
-        `Unknown test shipment ${request.providerShipmentReference}`,
-      );
+      throw new Error(`Unknown test shipment ${request.providerShipmentReference}`);
     }
     return record;
   }
@@ -566,9 +484,7 @@ function validCustomerInput(
     normalized: value,
     valueHash: digest("test-fedex-customer-input-v2", value),
     semanticRevision: "test-fedex-customer-input-v2",
-    publicData: value?.pickupPointId
-      ? { pickupPointId: value.pickupPointId }
-      : {},
+    publicData: value?.pickupPointId ? { pickupPointId: value.pickupPointId } : {},
   };
 }
 
@@ -605,9 +521,7 @@ function cancelResult(
   };
 }
 
-function reconcileResult(
-  record: ShipmentRecord,
-): Delivery.DeliveryProviderReconcileShipmentResult {
+function reconcileResult(record: ShipmentRecord): Delivery.DeliveryProviderReconcileShipmentResult {
   return {
     status: "RECONCILED",
     providerShipmentReference: record.providerShipmentReference,
@@ -619,9 +533,7 @@ function reconcileResult(
   };
 }
 
-function snapshotParcels(
-  record: ShipmentRecord,
-): Delivery.DeliveryProviderParcelObservation[] {
+function snapshotParcels(record: ShipmentRecord): Delivery.DeliveryProviderParcelObservation[] {
   return record.parcels.map((parcel) => ({
     ...parcel,
     packageIds: [...parcel.packageIds] as [string, ...string[]],
@@ -630,9 +542,7 @@ function snapshotParcels(
   }));
 }
 
-function snapshotEvents(
-  record: ShipmentRecord,
-): Delivery.DeliveryProviderTrackingEvent[] {
+function snapshotEvents(record: ShipmentRecord): Delivery.DeliveryProviderTrackingEvent[] {
   return record.events.map((event) => ({
     ...event,
     location: event.location ? { ...event.location } : null,
@@ -664,9 +574,7 @@ function trackingEvent(
   };
 }
 
-function shipmentMessage(
-  state: Delivery.DeliveryProviderObservedShipmentState,
-): string {
+function shipmentMessage(state: Delivery.DeliveryProviderObservedShipmentState): string {
   return (
     {
       ACCEPTED: "Shipment accepted by FedEx Test",
@@ -694,8 +602,7 @@ function optionalTrimmedString(value: unknown): string | null {
 
 function requireTimestamp(value: string): Date {
   const parsed = new Date(value);
-  if (!Number.isFinite(parsed.getTime()))
-    throw new Error("Invalid provider effectiveAt timestamp");
+  if (!Number.isFinite(parsed.getTime())) throw new Error("Invalid provider effectiveAt timestamp");
   return parsed;
 }
 
@@ -708,14 +615,10 @@ function addDays(value: string, days: number): string {
 }
 
 function digest(namespace: string, value: unknown): string {
-  return createHash("sha256")
-    .update(namespace)
-    .update(JSON.stringify(value))
-    .digest("hex");
+  return createHash("sha256").update(namespace).update(JSON.stringify(value)).digest("hex");
 }
 
 function requireInput<T>(input: unknown): T {
-  if (!input || typeof input !== "object")
-    throw new Error("Provider input is required");
+  if (!input || typeof input !== "object") throw new Error("Provider input is required");
   return input as T;
 }

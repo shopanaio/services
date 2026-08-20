@@ -27,20 +27,12 @@ import {
   AppLifecycleOperationStatus,
   AppRuntimeStatus,
 } from "@/graphql/types";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { usePathParams } from "@/registry";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { createAdminAppPath } from "../../runtime/app-route";
 import type { ManagementAppListItem } from "../graphql/operation-types";
-import {
-  useAppLifecycleActions,
-  useAppsManagement,
-  useInstallApp,
-} from "../hooks";
+import { useAppLifecycleActions, useAppsManagement, useInstallApp } from "../hooks";
 import type { AppManagementModalPayload } from "../modals";
 
 const PENDING_STATUSES = new Set<AppInstallationStatus>([
@@ -231,13 +223,7 @@ const getOperationColor = (status: AppLifecycleOperationStatus) => {
   return "blue";
 };
 
-function AppSummary({
-  app,
-  openHref,
-}: {
-  app: ManagementAppListItem;
-  openHref: string | null;
-}) {
+function AppSummary({ app, openHref }: { app: ManagementAppListItem; openHref: string | null }) {
   const { styles } = useStyles();
   const version = app.installation?.installedVersion ?? app.version;
 
@@ -260,18 +246,12 @@ function AppSummary({
           </Typography.Text>
         </div>
         {openHref ? (
-          <Button
-            href={openHref}
-            icon={<LuExternalLink aria-hidden />}
-            size="small"
-          >
+          <Button href={openHref} icon={<LuExternalLink aria-hidden />} size="small">
             Open
           </Button>
         ) : null}
       </div>
-      <Typography.Paragraph className={styles.description}>
-        {app.description}
-      </Typography.Paragraph>
+      <Typography.Paragraph className={styles.description}>{app.description}</Typography.Paragraph>
     </Paper>
   );
 }
@@ -324,9 +304,7 @@ function AccessAndCapabilities({ app }: { app: ManagementAppListItem }) {
                 <LuCodeXml aria-hidden />
                 <Typography.Text strong>{label}</Typography.Text>
               </span>
-              <Tag color={enabled ? "green" : "default"}>
-                {enabled ? "Enabled" : "Disabled"}
-              </Tag>
+              <Tag color={enabled ? "green" : "default"}>{enabled ? "Enabled" : "Disabled"}</Tag>
             </div>
           ))}
         </div>
@@ -339,9 +317,8 @@ function AccessAndCapabilities({ app }: { app: ManagementAppListItem }) {
                 {formatLabel(capability.key)}
               </Typography.Text>
               <Typography.Text className={styles.accessDescription}>
-                {capability.operations
-                  .map(({ name }) => formatLabel(name))
-                  .join(", ") || "No operations declared"}
+                {capability.operations.map(({ name }) => formatLabel(name)).join(", ") ||
+                  "No operations declared"}
               </Typography.Text>
             </div>
             <Tag>{formatLabel(capability.assignmentMode)}</Tag>
@@ -357,9 +334,7 @@ function AppHistory({ app }: { app: ManagementAppListItem }) {
   const installation = app.installation;
   if (!installation) return null;
 
-  const operations = installation.lifecycleOperations.edges.map(
-    ({ node }) => node,
-  );
+  const operations = installation.lifecycleOperations.edges.map(({ node }) => node);
 
   return (
     <Paper>
@@ -380,16 +355,12 @@ function AppHistory({ app }: { app: ManagementAppListItem }) {
             content: (
               <div className={styles.timelineEntry}>
                 <div className={styles.timelineCopy}>
-                  <Typography.Text strong>
-                    {formatLabel(operation.type)}
-                  </Typography.Text>
+                  <Typography.Text strong>{formatLabel(operation.type)}</Typography.Text>
                   <Typography.Text type="secondary">
                     Version {operation.targetVersion}
                   </Typography.Text>
                   {operation.error ? (
-                    <Typography.Text type="danger">
-                      {operation.error.message}
-                    </Typography.Text>
+                    <Typography.Text type="danger">{operation.error.message}</Typography.Text>
                   ) : null}
                 </div>
                 <div className={`${styles.timelineCopy} ${styles.timelineMeta}`}>
@@ -399,14 +370,9 @@ function AppHistory({ app }: { app: ManagementAppListItem }) {
                   >
                     {formatLabel(operation.status)}
                   </Tag>
-                  <Typography.Text
-                    className={styles.timelineDate}
-                    type="secondary"
-                  >
+                  <Typography.Text className={styles.timelineDate} type="secondary">
                     {formatDate(
-                      operation.completedAt ??
-                        operation.startedAt ??
-                        operation.createdAt,
+                      operation.completedAt ?? operation.startedAt ?? operation.createdAt,
                     )}
                   </Typography.Text>
                 </div>
@@ -415,10 +381,7 @@ function AppHistory({ app }: { app: ManagementAppListItem }) {
           }))}
         />
       ) : (
-        <Empty
-          description="No lifecycle activity yet"
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
+        <Empty description="No lifecycle activity yet" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       )}
 
       <Collapse
@@ -430,8 +393,7 @@ function AppHistory({ app }: { app: ManagementAppListItem }) {
             children: (
               <Flex vertical gap={8}>
                 <Typography.Text>
-                  Installation ID:{" "}
-                  <Typography.Text code>{installation.id}</Typography.Text>
+                  Installation ID: <Typography.Text code>{installation.id}</Typography.Text>
                 </Typography.Text>
                 <Typography.Text>
                   Status: <Typography.Text code>{installation.status}</Typography.Text>
@@ -439,9 +401,7 @@ function AppHistory({ app }: { app: ManagementAppListItem }) {
                 <Typography.Text>
                   Health: <Typography.Text code>{installation.healthStatus}</Typography.Text>
                 </Typography.Text>
-                <Typography.Text>
-                  Updated: {formatDate(installation.updatedAt)}
-                </Typography.Text>
+                <Typography.Text>Updated: {formatDate(installation.updatedAt)}</Typography.Text>
               </Flex>
             ),
           },
@@ -458,20 +418,9 @@ export const AppManagementModal = () => {
   const { getParam } = usePathParams();
   const { appCode } = payload as AppManagementModalPayload;
   const { apps, loading, error } = useAppsManagement();
-  const {
-    installApp,
-    loading: installing,
-    error: installError,
-  } = useInstallApp();
-  const {
-    runAction,
-    loading: lifecycleLoading,
-    error: lifecycleError,
-  } = useAppLifecycleActions();
-  const app = useMemo(
-    () => apps.find(({ code }) => code === appCode) ?? null,
-    [appCode, apps],
-  );
+  const { installApp, loading: installing, error: installError } = useInstallApp();
+  const { runAction, loading: lifecycleLoading, error: lifecycleError } = useAppLifecycleActions();
+  const app = useMemo(() => apps.find(({ code }) => code === appCode) ?? null, [appCode, apps]);
 
   const showErrors = (errors: Array<{ message: string }>) => {
     message.error(errors.map(({ message: text }) => text).join("\n"));
@@ -508,18 +457,14 @@ export const AppManagementModal = () => {
     }
   };
 
-  const runLifecycleAction = async (
-    action: "resume" | "suspend" | "uninstall",
-  ) => {
+  const runLifecycleAction = async (action: "resume" | "suspend" | "uninstall") => {
     if (!app?.installation) return;
     const result = await runAction(action, app.installation.id);
     if (result.userErrors.length > 0) {
       showErrors(result.userErrors);
       return;
     }
-    message.success(
-      `${app.displayName} ${action === "uninstall" ? "uninstall" : action} started`,
-    );
+    message.success(`${app.displayName} ${action === "uninstall" ? "uninstall" : action} started`);
   };
 
   const uninstall = async () => {
@@ -527,8 +472,7 @@ export const AppManagementModal = () => {
     const confirmed = await modal.confirm({
       icon: null,
       title: `Uninstall ${app.displayName}?`,
-      content:
-        "The app will lose access to this store and its installation will be removed.",
+      content: "The app will lose access to this store and its installation will be removed.",
       okText: "Uninstall app",
       okButtonProps: { danger: true },
     });
@@ -542,8 +486,7 @@ export const AppManagementModal = () => {
     const confirmed = await modal.confirm({
       icon: null,
       title: `Suspend ${app.displayName}?`,
-      content:
-        "The app and its integrations will stop working until the app is resumed.",
+      content: "The app and its integrations will stop working until the app is resumed.",
       okText: "Suspend app",
       okButtonProps: { danger: true },
     });
@@ -553,16 +496,12 @@ export const AppManagementModal = () => {
   };
 
   const installed = Boolean(app?.installed && app.installation);
-  const pending = app?.installation
-    ? PENDING_STATUSES.has(app.installation.status)
-    : false;
-  const suspended =
-    app?.installation?.status === AppInstallationStatus.Suspended;
+  const pending = app?.installation ? PENDING_STATUSES.has(app.installation.status) : false;
+  const suspended = app?.installation?.status === AppInstallationStatus.Suspended;
   const orgName = getParam("orgName") ?? "";
   const storeName = getParam("storeName") ?? "";
   const openHref =
-    app &&
-    app.installation?.status === AppInstallationStatus.Active
+    app && app.installation?.status === AppInstallationStatus.Active
       ? createAdminAppPath({
           orgName,
           storeName,
@@ -583,12 +522,7 @@ export const AppManagementModal = () => {
       name="app-management"
     >
       {error ? (
-        <Alert
-          description={error.message}
-          message="Unable to load app"
-          showIcon
-          type="error"
-        />
+        <Alert description={error.message} message="Unable to load app" showIcon type="error" />
       ) : null}
       {installError || lifecycleError ? (
         <Alert
@@ -638,9 +572,7 @@ export const AppManagementModal = () => {
                   {!suspended ? (
                     <div className={styles.dangerRow}>
                       <div className={styles.controlCopy}>
-                        <Typography.Text strong>
-                          Suspend app
-                        </Typography.Text>
+                        <Typography.Text strong>Suspend app</Typography.Text>
                         <Typography.Text type="secondary">
                           Temporarily disable this app without uninstalling it.
                         </Typography.Text>
@@ -658,9 +590,7 @@ export const AppManagementModal = () => {
                   ) : null}
                   <div className={styles.dangerRow}>
                     <div className={styles.controlCopy}>
-                      <Typography.Text strong>
-                        Uninstall app
-                      </Typography.Text>
+                      <Typography.Text strong>Uninstall app</Typography.Text>
                       <Typography.Text type="secondary">
                         Remove this app and revoke its access to the store.
                       </Typography.Text>

@@ -1,7 +1,7 @@
-import { createStyles } from 'antd-style';
-import { MdSave } from 'react-icons/md';
-import { Button, ButtonProps, Flex, Select, Typography } from 'antd';
-import { ReactNode } from 'react';
+import { createStyles } from "antd-style";
+import { MdSave } from "react-icons/md";
+import { Button, ButtonProps, Flex, Select, Typography } from "antd";
+import { ReactNode } from "react";
 
 const useStyles = createStyles({
   select: {
@@ -37,15 +37,12 @@ export const PageHeader = ({
   statusOptions = [],
   statusValue,
   onStatusChange,
-  saveLabel = 'Save',
+  saveLabel = "Save",
 }: IPageHeaderProps) => {
   const { styles } = useStyles();
 
   return (
-    <Flex
-      justify="space-between"
-      style={{ padding: '16px 24px', minHeight: 64 }}
-    >
+    <Flex justify="space-between" style={{ padding: "16px 24px", minHeight: 64 }}>
       <Typography.Title level={4}>{title}</Typography.Title>
       <Flex gap="middle" align="center">
         {extra}

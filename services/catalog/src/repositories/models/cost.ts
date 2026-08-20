@@ -1,11 +1,4 @@
-import {
-  uuid,
-  bigint,
-  timestamp,
-  index,
-  uniqueIndex,
-  check,
-} from "drizzle-orm/pg-core";
+import { uuid, bigint, timestamp, index, uniqueIndex, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 import { currencyEnum } from "./pricing";
@@ -31,32 +24,26 @@ export const productVariantCostHistory = catalogSchema.table(
     check("product_variant_cost_history_unit_cost_minor_check", sql`${table.unitCostMinor} >= 0`),
     check(
       "product_variant_cost_history_effective_interval_check",
-      sql`${table.effectiveTo} IS NULL OR ${table.effectiveTo} > ${table.effectiveFrom}`
+      sql`${table.effectiveTo} IS NULL OR ${table.effectiveTo} > ${table.effectiveFrom}`,
     ),
     // Indexes
     index("idx_product_variant_cost_history_variant_currency_effective_from").on(
       table.storeId,
       table.variantId,
       table.currency,
-      table.effectiveFrom
+      table.effectiveFrom,
     ),
     index("idx_product_variant_cost_history_variant_effective_from").on(
       table.storeId,
       table.variantId,
-      table.effectiveFrom
+      table.effectiveFrom,
     ),
-    index("idx_product_variant_cost_history_recorded_at").on(
-      table.storeId,
-      table.recordedAt
-    ),
-    index("idx_product_variant_cost_history_effective_to").on(
-      table.storeId,
-      table.effectiveTo
-    ),
+    index("idx_product_variant_cost_history_recorded_at").on(table.storeId, table.recordedAt),
+    index("idx_product_variant_cost_history_effective_to").on(table.storeId, table.effectiveTo),
     uniqueIndex("idx_product_variant_cost_history_current_unique")
       .on(table.storeId, table.variantId, table.currency)
       .where(sql`effective_to IS NULL`),
-  ]
+  ],
 );
 
 // View: current costs (effective_to IS NULL)
@@ -73,7 +60,7 @@ export const variantCostsCurrent = catalogSchema.view("variant_costs_current").a
       recordedAt: productVariantCostHistory.recordedAt,
     })
     .from(productVariantCostHistory)
-    .where(sql`${productVariantCostHistory.effectiveTo} IS NULL`)
+    .where(sql`${productVariantCostHistory.effectiveTo} IS NULL`),
 );
 
 export type ProductVariantCostHistory = typeof productVariantCostHistory.$inferSelect;

@@ -19,14 +19,12 @@ type RefWithId = { id: string; __typename?: string };
  * export class MembershipResolver extends IAMType<MembershipInput, ...> { ... }
  * ```
  */
-export function SubgraphReference(): <T extends new (...args: any[]) => any>(
-  TargetClass: T
-) => T;
+export function SubgraphReference(): <T extends new (...args: any[]) => any>(TargetClass: T) => T;
 export function SubgraphReference<TRef, TValue>(
-  extractor: Extractor<TRef, TValue>
+  extractor: Extractor<TRef, TValue>,
 ): <T extends new (...args: any[]) => any>(TargetClass: T) => T;
 export function SubgraphReference<TRef = RefWithId, TValue = string>(
-  extractor?: Extractor<TRef, TValue>
+  extractor?: Extractor<TRef, TValue>,
 ) {
   const extract = extractor ?? ((ref: RefWithId) => ref.id);
 

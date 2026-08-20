@@ -105,13 +105,12 @@ export type OrderLoyaltyRewardRecord = Readonly<{
   snapshot: CheckoutSnapshot;
 }>;
 
-const minor = (value: Money | null): bigint | null =>
-  value == null ? null : value.amountMinor();
+const minor = (value: Money | null): bigint | null => (value == null ? null : value.amountMinor());
 
 const jsonSafe = (value: unknown): Record<string, unknown> =>
-  JSON.parse(JSON.stringify(value, (_key, item) =>
-    typeof item === "bigint" ? item.toString() : item,
-  )) as Record<string, unknown>;
+  JSON.parse(
+    JSON.stringify(value, (_key, item) => (typeof item === "bigint" ? item.toString() : item)),
+  ) as Record<string, unknown>;
 
 export class OrderRepository extends BaseRepository {
   constructor(
@@ -175,32 +174,34 @@ export class OrderRepository extends BaseRepository {
     });
 
     if (input.lines.length > 0) {
-      await this.connection.insert(orderItems).values(input.lines.map((line) => {
-        const unitPrice = coerceMoney(line.unit.price);
-        const compareAtPrice = coerceNullableMoney(line.unit.compareAtPrice);
-        const subtotal = unitPrice.multiply(line.quantity).normalizeScale();
-        const zero = Money.zero(unitPrice.currency().code);
-        return {
-          id: line.lineId,
-          storeId: input.storeId,
-          orderId: input.id,
-          quantity: line.quantity,
-          subtotalAmount: minor(subtotal) ?? 0n,
-          discountAmount: minor(zero) ?? 0n,
-          taxAmount: minor(zero) ?? 0n,
-          totalAmount: minor(subtotal) ?? 0n,
-          unitId: line.unit.id,
-          unitTitle: line.unit.title,
-          unitPrice: minor(unitPrice),
-          unitCompareAtPrice: minor(compareAtPrice),
-          unitSku: line.unit.sku,
-          unitImageUrl: line.unit.imageUrl,
-          unitSnapshot: line.unit.snapshot,
-          metadata: {},
-          createdAt: input.createdAt,
-          updatedAt: input.createdAt,
-        };
-      }));
+      await this.connection.insert(orderItems).values(
+        input.lines.map((line) => {
+          const unitPrice = coerceMoney(line.unit.price);
+          const compareAtPrice = coerceNullableMoney(line.unit.compareAtPrice);
+          const subtotal = unitPrice.multiply(line.quantity).normalizeScale();
+          const zero = Money.zero(unitPrice.currency().code);
+          return {
+            id: line.lineId,
+            storeId: input.storeId,
+            orderId: input.id,
+            quantity: line.quantity,
+            subtotalAmount: minor(subtotal) ?? 0n,
+            discountAmount: minor(zero) ?? 0n,
+            taxAmount: minor(zero) ?? 0n,
+            totalAmount: minor(subtotal) ?? 0n,
+            unitId: line.unit.id,
+            unitTitle: line.unit.title,
+            unitPrice: minor(unitPrice),
+            unitCompareAtPrice: minor(compareAtPrice),
+            unitSku: line.unit.sku,
+            unitImageUrl: line.unit.imageUrl,
+            unitSnapshot: line.unit.snapshot,
+            metadata: {},
+            createdAt: input.createdAt,
+            updatedAt: input.createdAt,
+          };
+        }),
+      );
     }
 
     if (input.deliveryAddresses.length > 0) {
@@ -211,7 +212,9 @@ export class OrderRepository extends BaseRepository {
     }
 
     if (input.deliveryGroups.length > 0) {
-      const mappings = new Map(input.deliveryGroupMappings.map((value) => [value.deliveryGroupId, value]));
+      const mappings = new Map(
+        input.deliveryGroupMappings.map((value) => [value.deliveryGroupId, value]),
+      );
       await this.connection.insert(orderDeliveryGroups).values(
         input.deliveryGroups.map((group) => ({
           id: group.id,
@@ -263,7 +266,8 @@ export class OrderRepository extends BaseRepository {
           provider: method.provider,
           title: method.title,
           flow: method.flow,
-          isSelected: input.selectedPaymentMethod?.code === method.code &&
+          isSelected:
+            input.selectedPaymentMethod?.code === method.code &&
             input.selectedPaymentMethod.provider === method.provider,
           providerData: method.providerData ?? {},
           customerInputSnapshot: method.customerInput ?? {},
@@ -278,9 +282,10 @@ export class OrderRepository extends BaseRepository {
           storeId: input.storeId,
           code: discount.code,
           discountType: discount.type,
-          value: typeof discount.value === "number"
-            ? BigInt(discount.value)
-            : discount.value.amountMinor(),
+          value:
+            typeof discount.value === "number"
+              ? BigInt(discount.value)
+              : discount.value.amountMinor(),
           provider: discount.provider,
           conditions: null,
           appliedAt: discount.appliedAt,
@@ -293,11 +298,13 @@ export class OrderRepository extends BaseRepository {
     }
 
     const requestHash = createHash("sha256")
-      .update(JSON.stringify({
-        storeId: input.storeId,
-        currencyCode: input.currencyCode,
-        salesChannel: input.salesChannel,
-      }))
+      .update(
+        JSON.stringify({
+          storeId: input.storeId,
+          currencyCode: input.currencyCode,
+          salesChannel: input.salesChannel,
+        }),
+      )
       .digest("hex");
     await this.idempotency.save({
       storeId: input.storeId,

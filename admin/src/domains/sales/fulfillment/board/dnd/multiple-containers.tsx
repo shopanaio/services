@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type CancelDrop,
   closestCenter,
@@ -57,11 +51,7 @@ interface IBoardsProps {
   renderItem: RenderItem;
   setItems: (next: Items) => void;
   itemSize: number;
-  commitItems: (
-    items: Items,
-    targetColumn: UniqueIdentifier,
-    targetItem: UniqueIdentifier,
-  ) => void;
+  commitItems: (items: Items, targetColumn: UniqueIdentifier, targetItem: UniqueIdentifier) => void;
   commitContainers: (containers: UniqueIdentifier[]) => void;
   containers: UniqueIdentifier[];
 }
@@ -125,9 +115,7 @@ export const Boards = ({
             overId = closestCenter({
               ...args,
               droppableContainers: args.droppableContainers.filter(
-                (container) =>
-                  container.id !== overId &&
-                  containerItems.includes(container.id),
+                (container) => container.id !== overId && containerItems.includes(container.id),
               ),
             })[0]?.id;
           }
@@ -235,13 +223,11 @@ export const Boards = ({
           const isBelowOverItem =
             over &&
             active.rect.current.translated &&
-            active.rect.current.translated.top >
-              over.rect.top + over.rect.height;
+            active.rect.current.translated.top > over.rect.top + over.rect.height;
 
           const modifier = isBelowOverItem ? 1 : 0;
 
-          newIndex =
-            overIndex >= 0 ? overIndex + modifier : overItems.length + 1;
+          newIndex = overIndex >= 0 ? overIndex + modifier : overItems.length + 1;
         }
 
         recentlyMovedToNewContainer.current = true;
@@ -254,10 +240,7 @@ export const Boards = ({
           [overContainer]: [
             ...items[overContainer].slice(0, newIndex),
             items[activeContainer][activeIndex],
-            ...items[overContainer].slice(
-              newIndex,
-              items[overContainer].length,
-            ),
+            ...items[overContainer].slice(newIndex, items[overContainer].length),
           ],
         });
       }
@@ -294,11 +277,7 @@ export const Boards = ({
         commitItems(
           {
             ...items,
-            [activeContainer]: arrayMove(
-              items[activeContainer],
-              activeIndex,
-              overIndex,
-            ),
+            [activeContainer]: arrayMove(items[activeContainer], activeIndex, overIndex),
           },
           activeContainer,
           active.id,
@@ -336,10 +315,7 @@ export const Boards = ({
           height: "100%",
         }}
       >
-        <SortableContext
-          items={[...containers]}
-          strategy={horizontalListSortingStrategy}
-        >
+        <SortableContext items={[...containers]} strategy={horizontalListSortingStrategy}>
           {containers.map((containerId, containerIdx) => {
             const itemCount = items[containerId].length;
 
@@ -353,10 +329,7 @@ export const Boards = ({
                 renderColumn={renderColumn}
                 count={itemCount}
               >
-                <SortableContext
-                  items={items[containerId]}
-                  strategy={verticalListSortingStrategy}
-                >
+                <SortableContext items={items[containerId]} strategy={verticalListSortingStrategy}>
                   <AutoSizer>
                     {({ height, width }) => {
                       return (

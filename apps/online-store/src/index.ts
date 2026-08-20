@@ -34,63 +34,40 @@ export default defineApp({
         "./graphql/admin/__generated__/filters.graphql",
       ],
       handlers: {
-        "Query.onlineStoreAppQuery": appGraphQL.handler(
-          (_parent, _args, context) => {
-            assertOnlineStoreAdminAccess(context, "read");
-            return new QueryResolver(
-              {},
-              createOnlineStoreResolverContext(context),
-            ).onlineStoreAppQuery();
-          },
-        ),
-        "Mutation.onlineStoreAppMutation": appGraphQL.handler(
-          (_parent, _args, context) => {
-            assertOnlineStoreAdminAccess(context, "write");
-            return new MutationResolver(
-              {},
-              createOnlineStoreResolverContext(context),
-            ).onlineStoreAppMutation();
-          },
-        ),
-        "OnlineStorePage.__resolveReference": appGraphQL.handler(
-          (parent, _args, context) => {
-            assertOnlineStoreAdminAccess(context, "read");
-            const id = referenceId(
-              parent,
-              GlobalIdEntity.OnlineStorePage,
-            );
-            return id
-              ? new PageResolver(id, createOnlineStoreResolverContext(context))
-              : null;
-          },
-        ),
+        "Query.onlineStoreAppQuery": appGraphQL.handler((_parent, _args, context) => {
+          assertOnlineStoreAdminAccess(context, "read");
+          return new QueryResolver(
+            {},
+            createOnlineStoreResolverContext(context),
+          ).onlineStoreAppQuery();
+        }),
+        "Mutation.onlineStoreAppMutation": appGraphQL.handler((_parent, _args, context) => {
+          assertOnlineStoreAdminAccess(context, "write");
+          return new MutationResolver(
+            {},
+            createOnlineStoreResolverContext(context),
+          ).onlineStoreAppMutation();
+        }),
+        "OnlineStorePage.__resolveReference": appGraphQL.handler((parent, _args, context) => {
+          assertOnlineStoreAdminAccess(context, "read");
+          const id = referenceId(parent, GlobalIdEntity.OnlineStorePage);
+          return id ? new PageResolver(id, createOnlineStoreResolverContext(context)) : null;
+        }),
         "OnlineStoreNavigationMenu.__resolveReference": appGraphQL.handler(
           (parent, _args, context) => {
             assertOnlineStoreAdminAccess(context, "read");
-            const id = referenceId(
-              parent,
-              GlobalIdEntity.OnlineStoreNavigationMenu,
-            );
+            const id = referenceId(parent, GlobalIdEntity.OnlineStoreNavigationMenu);
             return id
-              ? new NavigationMenuResolver(
-                  id,
-                  createOnlineStoreResolverContext(context),
-                )
+              ? new NavigationMenuResolver(id, createOnlineStoreResolverContext(context))
               : null;
           },
         ),
         "OnlineStoreNavigationMenuItem.__resolveReference": appGraphQL.handler(
           (parent, _args, context) => {
             assertOnlineStoreAdminAccess(context, "read");
-            const id = referenceId(
-              parent,
-              GlobalIdEntity.OnlineStoreNavigationMenuItem,
-            );
+            const id = referenceId(parent, GlobalIdEntity.OnlineStoreNavigationMenuItem);
             return id
-              ? new NavigationMenuItemResolver(
-                  id,
-                  createOnlineStoreResolverContext(context),
-                )
+              ? new NavigationMenuItemResolver(id, createOnlineStoreResolverContext(context))
               : null;
           },
         ),

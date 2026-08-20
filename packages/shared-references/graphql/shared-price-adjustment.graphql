@@ -1,17 +1,29 @@
-"""Direction in which a price adjustment changes the base price."""
+"""
+Direction in which a price adjustment changes the base price.
+"""
 enum PriceAdjustmentOperation {
-  """Subtract the calculated value from the base price."""
+  """
+  Subtract the calculated value from the base price.
+  """
   DECREASE
 
-  """Add the calculated value to the base price."""
+  """
+  Add the calculated value to the base price.
+  """
   INCREASE
 }
 
-"""Representation used to calculate a price adjustment."""
+"""
+Representation used to calculate a price adjustment.
+"""
 enum PriceAdjustmentValueType {
-  """Calculate the value from basis points where 10000 equals 100%."""
+  """
+  Calculate the value from basis points where 10000 equals 100%.
+  """
   PERCENTAGE
 
-  """Use a monetary value expressed in minor currency units."""
+  """
+  Use a monetary value expressed in minor currency units.
+  """
   FIXED_AMOUNT
 }

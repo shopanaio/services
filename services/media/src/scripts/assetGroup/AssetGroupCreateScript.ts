@@ -10,21 +10,16 @@ export class AssetGroupCreateScript extends BaseScript<
   AssetGroupCreateResult
 > {
   @ZodSchema(assetGroupCreateSchema)
-  protected async execute(
-    params: AssetGroupCreateParams
-  ): Promise<AssetGroupCreateResult> {
+  protected async execute(params: AssetGroupCreateParams): Promise<AssetGroupCreateResult> {
     this.logger.info({ params }, "AssetGroupCreateScript: starting");
 
     // Check if asset group already exists for this owner
-    const existing = await this.repository.assetGroup.findByOwner(
-      params.ownerType,
-      params.ownerId
-    );
+    const existing = await this.repository.assetGroup.findByOwner(params.ownerType, params.ownerId);
 
     if (existing) {
       this.logger.info(
         { assetGroupId: existing.id },
-        "AssetGroupCreateScript: asset group already exists, returning existing"
+        "AssetGroupCreateScript: asset group already exists, returning existing",
       );
       return {
         assetGroup: {
@@ -44,7 +39,7 @@ export class AssetGroupCreateScript extends BaseScript<
 
     this.logger.info(
       { assetGroupId: assetGroup.id },
-      "AssetGroupCreateScript: completed successfully"
+      "AssetGroupCreateScript: completed successfully",
     );
 
     return {
@@ -60,9 +55,7 @@ export class AssetGroupCreateScript extends BaseScript<
   protected handleError(_error: unknown): AssetGroupCreateResult {
     return {
       assetGroup: null,
-      userErrors: [
-        { message: "Failed to create asset group", code: "INTERNAL_ERROR" },
-      ],
+      userErrors: [{ message: "Failed to create asset group", code: "INTERNAL_ERROR" }],
     };
   }
 }

@@ -10,7 +10,11 @@ import { EditAction } from "@/domains/inventory/products/components/edit-action"
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ReviewEditSection } from "../../../modals";
 import { useReviewDetailsStyles } from "../review-details-card.styles";
-import { formatReviewDateTime, humanizeEnum, ReviewStatusStrip } from "../review-details-card.utils";
+import {
+  formatReviewDateTime,
+  humanizeEnum,
+  ReviewStatusStrip,
+} from "../review-details-card.utils";
 
 interface ReviewModerationSectionProps {
   review: ApiReview;
@@ -42,11 +46,15 @@ function ReportRow({ report }: { report: ApiReviewContentReport }) {
     <div className={styles.reportRow}>
       <Flex vertical gap={4}>
         <Flex gap={8} align="center" wrap="wrap">
-          <Tag color={reportStatusColor[report.status]}>{humanizeEnum(report.status).toUpperCase()}</Tag>
+          <Tag color={reportStatusColor[report.status]}>
+            {humanizeEnum(report.status).toUpperCase()}
+          </Tag>
           <Typography.Text strong>{humanizeEnum(report.reason)}</Typography.Text>
         </Flex>
         <Typography.Text type="secondary">
-          {reporter ? `${reporter.displayName}${reporter.email ? ` · ${reporter.email}` : ""}` : "Anonymous reporter"}
+          {reporter
+            ? `${reporter.displayName}${reporter.email ? ` · ${reporter.email}` : ""}`
+            : "Anonymous reporter"}
         </Typography.Text>
         {report.details ? <Typography.Text>“{report.details}”</Typography.Text> : null}
       </Flex>
@@ -63,35 +71,49 @@ export function ReviewModerationSection({ review, onEdit }: ReviewModerationSect
     [review.reports.edges],
   );
   const visibleReports = showAll ? reports : reports.slice(0, 3);
-  const verificationColor = review.verificationStatus === ReviewVerificationStatus.Verified
-    ? "green"
-    : review.verificationStatus === ReviewVerificationStatus.Revoked
-      ? "red"
-      : undefined;
+  const verificationColor =
+    review.verificationStatus === ReviewVerificationStatus.Verified
+      ? "green"
+      : review.verificationStatus === ReviewVerificationStatus.Revoked
+        ? "red"
+        : undefined;
 
   return (
     <Paper data-testid="review-moderation-section">
       <PaperHeader
         title="Moderation"
-        actions={(
+        actions={
           <EditAction
             onEdit={() => onEdit("moderation")}
             label="Review moderation"
             testId="review-moderation-actions"
             items={[
-              { key: "moderation", label: "Review moderation", "data-testid": "review-moderation-edit", onClick: () => onEdit("moderation") },
-              { key: "verification", label: "Edit purchase verification", "data-testid": "review-verification-edit", onClick: () => onEdit("verification") },
+              {
+                key: "moderation",
+                label: "Review moderation",
+                "data-testid": "review-moderation-edit",
+                onClick: () => onEdit("moderation"),
+              },
+              {
+                key: "verification",
+                label: "Edit purchase verification",
+                "data-testid": "review-verification-edit",
+                onClick: () => onEdit("verification"),
+              },
             ]}
           />
-        )}
+        }
       />
       <Flex vertical gap="middle">
         <div>
           <Typography.Text type="secondary">Moderation status</Typography.Text>
-          <div style={{ marginTop: 8 }}><ReviewStatusStrip status={review.status} /></div>
+          <div style={{ marginTop: 8 }}>
+            <ReviewStatusStrip status={review.status} />
+          </div>
           {review.moderatedAt ? (
             <Typography.Text type="secondary">
-              Moderated {formatReviewDateTime(review.moderatedAt)}{review.moderatedByPrincipalId ? ` by ${review.moderatedByPrincipalId}` : ""}
+              Moderated {formatReviewDateTime(review.moderatedAt)}
+              {review.moderatedByPrincipalId ? ` by ${review.moderatedByPrincipalId}` : ""}
             </Typography.Text>
           ) : null}
         </div>
@@ -106,17 +128,34 @@ export function ReviewModerationSection({ review, onEdit }: ReviewModerationSect
         <Flex gap={12} align="center" wrap="wrap" className={styles.verificationRow}>
           <SafetyCertificateOutlined />
           <Typography.Text strong>Purchase verification</Typography.Text>
-          <Tag color={verificationColor}>{humanizeEnum(review.verificationStatus).toUpperCase()}</Tag>
-          {review.verificationMethod ? <Typography.Text type="secondary">{review.verificationMethod}</Typography.Text> : null}
-          {review.verifiedAt ? <Typography.Text type="secondary">· {formatReviewDateTime(review.verifiedAt)}</Typography.Text> : null}
+          <Tag color={verificationColor}>
+            {humanizeEnum(review.verificationStatus).toUpperCase()}
+          </Tag>
+          {review.verificationMethod ? (
+            <Typography.Text type="secondary">{review.verificationMethod}</Typography.Text>
+          ) : null}
+          {review.verifiedAt ? (
+            <Typography.Text type="secondary">
+              · {formatReviewDateTime(review.verifiedAt)}
+            </Typography.Text>
+          ) : null}
         </Flex>
         <div>
           <Flex justify="space-between" align="center" gap={12} className={styles.reportsHeader}>
             <Typography.Text strong>Abuse reports</Typography.Text>
-            <Typography.Text type="secondary">{review.metrics.openReportCount} open / {review.metrics.reportCount} total</Typography.Text>
+            <Typography.Text type="secondary">
+              {review.metrics.openReportCount} open / {review.metrics.reportCount} total
+            </Typography.Text>
           </Flex>
-          {visibleReports.length ? visibleReports.map((report) => <ReportRow key={report.id} report={report} />) : (
-            <EntityDetailsEmptyState state={{ title: "No abuse reports", description: "No customers have reported this review." }} />
+          {visibleReports.length ? (
+            visibleReports.map((report) => <ReportRow key={report.id} report={report} />)
+          ) : (
+            <EntityDetailsEmptyState
+              state={{
+                title: "No abuse reports",
+                description: "No customers have reported this review.",
+              }}
+            />
           )}
           {reports.length > 3 ? (
             <Button type="link" onClick={() => setShowAll((current) => !current)}>

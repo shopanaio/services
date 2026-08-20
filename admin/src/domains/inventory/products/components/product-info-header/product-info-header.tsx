@@ -1,16 +1,12 @@
 import { useState } from "react";
+import { Button, Tag, Typography, Dropdown, Tooltip, Popover, Flex, Divider, App } from "antd";
 import {
-  Button,
-  Tag,
-  Typography,
-  Dropdown,
-  Tooltip,
-  Popover,
-  Flex,
-  Divider,
-  App,
-} from "antd";
-import { LuCheck as CheckOutlined, LuEllipsis as MoreOutlined, LuLink as LinkOutlined, LuEye as EyeOutlined, LuShare2 as ShareAltOutlined } from "react-icons/lu";
+  LuCheck as CheckOutlined,
+  LuEllipsis as MoreOutlined,
+  LuLink as LinkOutlined,
+  LuEye as EyeOutlined,
+  LuShare2 as ShareAltOutlined,
+} from "react-icons/lu";
 import { useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
@@ -21,23 +17,11 @@ import { PERIODS, type Period } from "../../utils/periods";
 import { useProductEditTitleModal } from "../../modals";
 import { useHeaderStyles } from "./product-info-header.styles";
 import { UserPopoverContent, SharePopoverContent } from "./components";
-import {
-  getStatusConfig,
-  formatNumber,
-  formatCurrency,
-  formatPercent,
-} from "./utils";
+import { getStatusConfig, formatNumber, formatCurrency, formatPercent } from "./utils";
 import type { IProductInfoHeaderProps, IKPIData } from "./types";
-import {
-  getProductPrimaryPriceAmount,
-  getProductSku,
-} from "../../utils/api-product-display";
+import { getProductPrimaryPriceAmount, getProductSku } from "../../utils/api-product-display";
 import { getProductStatus } from "../../utils/product-status";
-import {
-  useDeleteProduct,
-  useUpdateProduct,
-  useUpdateProductStatus,
-} from "../../hooks";
+import { useDeleteProduct, useUpdateProduct, useUpdateProductStatus } from "../../hooks";
 
 export const ProductInfoHeader = ({
   product,
@@ -119,9 +103,7 @@ export const ProductInfoHeader = ({
         return;
       }
 
-      message.success(
-        product.isPublished ? "Product unpublished" : "Product published",
-      );
+      message.success(product.isPublished ? "Product unpublished" : "Product published");
       await onProductRefresh?.();
     })();
   };
@@ -158,11 +140,7 @@ export const ProductInfoHeader = ({
   const statusTitle = (
     <Flex align="center" gap={8}>
       <Tooltip title={statusConfig.hint}>
-        <Tag
-          color={statusConfig.color}
-          icon={statusConfig.icon}
-          className={styles.statusTag}
-        >
+        <Tag color={statusConfig.color} icon={statusConfig.icon} className={styles.statusTag}>
           {statusConfig.label}
         </Tag>
       </Tooltip>
@@ -172,11 +150,7 @@ export const ProductInfoHeader = ({
           <span style={{ marginLeft: 4 }}>by</span>
           <Popover
             content={
-              <UserPopoverContent
-                firstName="Admin"
-                lastName="User"
-                email="admin@shopana.io"
-              />
+              <UserPopoverContent firstName="Admin" lastName="User" email="admin@shopana.io" />
             }
             placement="bottom"
             arrow={false}
@@ -257,7 +231,10 @@ export const ProductInfoHeader = ({
               key: "duplicate",
               label: <span data-testid="product-title-duplicate-menu-item">Duplicate product</span>,
             },
-            { key: "export", label: <span data-testid="product-title-export-menu-item">Export</span> },
+            {
+              key: "export",
+              label: <span data-testid="product-title-export-menu-item">Export</span>,
+            },
             { type: "divider" as const },
             {
               key: "archive",
@@ -269,11 +246,7 @@ export const ProductInfoHeader = ({
         }}
         trigger={["click"]}
       >
-        <Button
-          size="small"
-          icon={<MoreOutlined />}
-          data-testid="product-title-actions-button"
-        />
+        <Button size="small" icon={<MoreOutlined />} data-testid="product-title-actions-button" />
       </Dropdown>
     </Flex>
   );
@@ -299,12 +272,7 @@ export const ProductInfoHeader = ({
           <div data-testid="product-detail-handle">
             <CopyableChip label="/" value={handle} />
           </div>
-          <CopyableChip
-            label="ID"
-            value={product.id}
-            displayValue={product.id.slice(0, 8)}
-            mono
-          />
+          <CopyableChip label="ID" value={product.id} displayValue={product.id.slice(0, 8)} mono />
           {sku && <CopyableChip label="SKU" value={sku} mono />}
         </Flex>
       </Flex>

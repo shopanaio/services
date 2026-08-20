@@ -16,14 +16,9 @@ import {
   type ApiFacetSourceCandidateWhereInput,
 } from "@/graphql/types";
 import { useFacetSourceCandidatesPageQuery } from "../hooks";
-import {
-  getFacetSourceHandleLabel,
-  getFacetSourceTypeLabel,
-} from "../mappers";
+import { getFacetSourceHandleLabel, getFacetSourceTypeLabel } from "../mappers";
 import { facetTypeFilterSchema } from "../page/filter-schema";
-import type {
-  FacetSourceCandidateFields,
-} from "../graphql/operation-types";
+import type { FacetSourceCandidateFields } from "../graphql/operation-types";
 import { FacetSourceNameCell } from "./facet-source-name-cell";
 
 export interface FacetSourcePickerEntity extends IPickableEntity {
@@ -37,20 +32,13 @@ interface FacetSourcePickerQueryMeta {
   allowedFacetTypes?: FacetType[];
 }
 
-function buildFacetSourceSearchCondition(
-  search: string,
-): ApiFacetSourceCandidateWhereInput {
+function buildFacetSourceSearchCondition(search: string): ApiFacetSourceCandidateWhereInput {
   return {
-    _or: [
-      { name: { _containsi: search } },
-      { handle: { _containsi: search } },
-    ],
+    _or: [{ name: { _containsi: search } }, { handle: { _containsi: search } }],
   };
 }
 
-function getFacetSourceTypeFilter(
-  queryMeta: unknown,
-): ApiFacetSourceCandidateWhereInput | null {
+function getFacetSourceTypeFilter(queryMeta: unknown): ApiFacetSourceCandidateWhereInput | null {
   const allowedFacetTypes = (queryMeta as FacetSourcePickerQueryMeta | undefined)
     ?.allowedFacetTypes;
 
@@ -124,20 +112,16 @@ function useFacetSourcesPickerData(options: {
     return { _and: conditions };
   }, [excludeIds, inputWhere, queryMeta]);
 
-  const { candidates, totalCount, pageInfo, loading, error } =
-    useFacetSourceCandidatesPageQuery({
-      first,
-      after,
-      last,
-      before,
-      where,
-      orderBy: orderBy as ApiFacetSourceCandidateOrderByInput[] | null,
-    });
+  const { candidates, totalCount, pageInfo, loading, error } = useFacetSourceCandidatesPageQuery({
+    first,
+    after,
+    last,
+    before,
+    where,
+    orderBy: orderBy as ApiFacetSourceCandidateOrderByInput[] | null,
+  });
 
-  const data = useMemo(
-    () => candidates.map(transformFacetSourceCandidate),
-    [candidates],
-  );
+  const data = useMemo(() => candidates.map(transformFacetSourceCandidate), [candidates]);
 
   return {
     data,

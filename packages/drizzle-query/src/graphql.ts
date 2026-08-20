@@ -41,14 +41,7 @@ type DrizzleColumnInfo = {
 // Types
 // =============================================================================
 
-export type GraphQLFieldType =
-  | "ID"
-  | "String"
-  | "Int"
-  | "Float"
-  | "Boolean"
-  | "DateTime"
-  | "JSON";
+export type GraphQLFieldType = "ID" | "String" | "Int" | "Float" | "Boolean" | "DateTime" | "JSON";
 
 export type GraphQLGeneratorOptions = {
   /**
@@ -295,7 +288,10 @@ const COLUMN_TYPE_MAP: Record<string, GraphQLFieldType> = {
  * Extract columns info from Drizzle table
  */
 function extractColumnsFromTable(table: Table): Record<string, DrizzleColumnInfo> {
-  const tableAny = table as unknown as Record<symbol, Record<string, DrizzleColumnInfo> | undefined>;
+  const tableAny = table as unknown as Record<
+    symbol,
+    Record<string, DrizzleColumnInfo> | undefined
+  >;
   return tableAny[DrizzleColumns] ?? {};
 }
 
@@ -314,7 +310,6 @@ export type FieldInfo = {
   graphqlType: GraphQLFieldType;
   columnType: string;
 };
-
 
 function getFilterType(fieldType: GraphQLFieldType): string {
   switch (fieldType) {
@@ -417,7 +412,7 @@ function extractFieldsWithTypes<Q>(query: Q): FieldInfo[] {
 function generateWhereInput(
   name: string,
   fields: FieldInfo[],
-  options: GraphQLGeneratorOptions
+  options: GraphQLGeneratorOptions,
 ): string {
   const { fieldTypes = {}, excludeFields = [], includeDescriptions = true } = options;
 
@@ -431,9 +426,7 @@ function generateWhereInput(
     return `${desc}  ${field.name}: ${filterType}`;
   });
 
-  const desc = includeDescriptions
-    ? `"""Filter conditions for ${name}"""\n`
-    : "";
+  const desc = includeDescriptions ? `"""Filter conditions for ${name}"""\n` : "";
 
   const andDesc = includeDescriptions ? `  """Logical AND of multiple conditions"""\n` : "";
   const orDesc = includeDescriptions ? `  """Logical OR of multiple conditions"""\n` : "";
@@ -453,7 +446,7 @@ ${fieldDefs.join("\n")}
 function generateOrderByInput(
   name: string,
   fields: FieldInfo[],
-  options: GraphQLGeneratorOptions
+  options: GraphQLGeneratorOptions,
 ): string {
   const { excludeFields = [], includeDescriptions = true } = options;
 
@@ -464,17 +457,13 @@ function generateOrderByInput(
     return `${desc}  ${field.name}`;
   });
 
-  const desc = includeDescriptions
-    ? `"""Fields available for sorting ${name}"""\n`
-    : "";
+  const desc = includeDescriptions ? `"""Fields available for sorting ${name}"""\n` : "";
 
   const enumDef = `${desc}enum ${name}OrderField {
 ${enumValues.join("\n")}
 }`;
 
-  const inputDesc = includeDescriptions
-    ? `"""Ordering configuration for ${name}"""\n`
-    : "";
+  const inputDesc = includeDescriptions ? `"""Ordering configuration for ${name}"""\n` : "";
 
   const inputDef = `${inputDesc}input ${name}OrderByInput {
   """Field to order by"""
@@ -489,10 +478,7 @@ ${enumValues.join("\n")}
 /**
  * Generate pagination input with filtering and ordering
  */
-function generateQueryInput(
-  name: string,
-  options: GraphQLGeneratorOptions
-): string {
+function generateQueryInput(name: string, options: GraphQLGeneratorOptions): string {
   const { includeDescriptions = true } = options;
 
   const desc = includeDescriptions
@@ -514,15 +500,10 @@ function generateQueryInput(
 /**
  * Generate Relay-style pagination input
  */
-function generateRelayInput(
-  name: string,
-  options: GraphQLGeneratorOptions
-): string {
+function generateRelayInput(name: string, options: GraphQLGeneratorOptions): string {
   const { includeDescriptions = true } = options;
 
-  const desc = includeDescriptions
-    ? `"""Relay-style pagination input for ${name}"""\n`
-    : "";
+  const desc = includeDescriptions ? `"""Relay-style pagination input for ${name}"""\n` : "";
 
   return `${desc}input ${name}ConnectionInput {
   """Returns the first n items"""
@@ -592,7 +573,7 @@ export function generateGraphQLTypes<
     | RelayQueryBuilder<T, Fields, InferredFields, Types>
     | CursorQueryBuilder<T, Fields, InferredFields, Types>,
   name: string,
-  options: GraphQLGeneratorOptions = {}
+  options: GraphQLGeneratorOptions = {},
 ): GeneratedGraphQLTypes {
   const { includeBaseTypes = true } = options;
 
@@ -663,7 +644,7 @@ export function generateWhereInputType<
     | RelayQueryBuilder<T, Fields, InferredFields, Types>
     | CursorQueryBuilder<T, Fields, InferredFields, Types>,
   name: string,
-  options: GraphQLGeneratorOptions = {}
+  options: GraphQLGeneratorOptions = {},
 ): string {
   const fluentQuery = resolveFluentQuery(query);
   const fields = extractFieldsWithTypes(fluentQuery);
@@ -692,7 +673,7 @@ export function generateOrderByInputType<
     | RelayQueryBuilder<T, Fields, InferredFields, Types>
     | CursorQueryBuilder<T, Fields, InferredFields, Types>,
   name: string,
-  options: GraphQLGeneratorOptions = {}
+  options: GraphQLGeneratorOptions = {},
 ): string {
   const fluentQuery = resolveFluentQuery(query);
   const fields = extractFieldsWithTypes(fluentQuery);

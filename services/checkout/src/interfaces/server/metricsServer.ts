@@ -33,9 +33,7 @@ export async function startCheckoutMetricsServer(input: {
       "# TYPE shopana_checkout_unresolved_compensation_failures gauge",
       `shopana_checkout_unresolved_compensation_failures ${operational.unresolvedCompensationFailures}`,
     ].join("\n");
-    return reply
-      .type(checkoutMetricsRegistry.contentType)
-      .send(`${base}${gauges}\n`);
+    return reply.type(checkoutMetricsRegistry.contentType).send(`${base}${gauges}\n`);
   });
   await app.listen({ port: input.port, host: "0.0.0.0" });
   return app;

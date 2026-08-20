@@ -1,16 +1,8 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  EntityDeletedParams,
-  EntityDeletedResult,
-} from "./dto/index.js";
+import type { EntityDeletedParams, EntityDeletedResult } from "./dto/index.js";
 
-export class EntityDeletedScript extends BaseScript<
-  EntityDeletedParams,
-  EntityDeletedResult
-> {
-  protected async execute(
-    params: EntityDeletedParams
-  ): Promise<EntityDeletedResult> {
+export class EntityDeletedScript extends BaseScript<EntityDeletedParams, EntityDeletedResult> {
+  protected async execute(params: EntityDeletedParams): Promise<EntityDeletedResult> {
     const { entityRef } = params;
 
     const unlinkedCount = await this.repository.fileBackRef.unlinkAllByEntity({

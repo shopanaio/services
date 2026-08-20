@@ -45,18 +45,18 @@ export class SearchSettingsUpdateWorkflow extends BrokerWorkflows {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: SearchSettingsUpdateWorkflowInput,
-  ): Promise<SearchSettingsUpdateWorkflowResult> {
+  async run(input: SearchSettingsUpdateWorkflowInput): Promise<SearchSettingsUpdateWorkflowResult> {
     const validation = await this.stepValidateSettings(input);
     if ("errors" in validation) {
       return {
         settings: null,
-        operationResults: [{
-          type: "settingsUpdate",
-          applied: false,
-          errors: validation.errors,
-        }],
+        operationResults: [
+          {
+            type: "settingsUpdate",
+            applied: false,
+            errors: validation.errors,
+          },
+        ],
         userErrors: validation.errors,
       };
     }
@@ -75,11 +75,13 @@ export class SearchSettingsUpdateWorkflow extends BrokerWorkflows {
       if (result.userErrors.length > 0) {
         return {
           settings: { version: acquired.version },
-          operationResults: [{
-            type: "settingsUpdate",
-            applied: false,
-            errors: result.userErrors,
-          }],
+          operationResults: [
+            {
+              type: "settingsUpdate",
+              applied: false,
+              errors: result.userErrors,
+            },
+          ],
           userErrors: result.userErrors,
         };
       }
@@ -88,11 +90,13 @@ export class SearchSettingsUpdateWorkflow extends BrokerWorkflows {
     await this.stepInvalidateSettingsCache(input.context.storeId);
     return {
       settings: { version: acquired.version },
-      operationResults: [{
-        type: "settingsUpdate",
-        applied: true,
-        errors: [],
-      }],
+      operationResults: [
+        {
+          type: "settingsUpdate",
+          applied: true,
+          errors: [],
+        },
+      ],
       userErrors: [],
     };
   }
@@ -130,9 +134,10 @@ export class SearchSettingsUpdateWorkflow extends BrokerWorkflows {
     if (result.status === "conflict") {
       return {
         error: {
-          message: input.expectedVersion === 0
-            ? "Search settings are already initialized"
-            : `Search settings version conflict; current version is ${result.currentVersion}`,
+          message:
+            input.expectedVersion === 0
+              ? "Search settings are already initialized"
+              : `Search settings version conflict; current version is ${result.currentVersion}`,
           field: ["expectedVersion"],
           code: "VERSION_CONFLICT",
         },
@@ -156,9 +161,7 @@ export class SearchSettingsUpdateWorkflow extends BrokerWorkflows {
   }
 }
 
-function toRunScriptContext(
-  context: SearchSettingsWorkflowContext,
-): RunScriptContext {
+function toRunScriptContext(context: SearchSettingsWorkflowContext): RunScriptContext {
   return {
     storeId: context.storeId,
     organizationId: context.organizationId,

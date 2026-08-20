@@ -1,9 +1,4 @@
-import {
-  index,
-  primaryKey,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { index, primaryKey, timestamp, uuid } from "drizzle-orm/pg-core";
 import { discount } from "./discounts.js";
 import { discountClassEnum, pricingSchema } from "./schema.js";
 
@@ -32,7 +27,5 @@ export const discountCombinationClass = pricingSchema.table(
   ],
 );
 
-export type DiscountCombinationClass =
-  typeof discountCombinationClass.$inferSelect;
-export type NewDiscountCombinationClass =
-  typeof discountCombinationClass.$inferInsert;
+export type DiscountCombinationClass = typeof discountCombinationClass.$inferSelect;
+export type NewDiscountCombinationClass = typeof discountCombinationClass.$inferInsert;

@@ -1,15 +1,6 @@
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-} from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
-import type {
-  SelectedOption,
-  VariantMediaItem,
-  VariantPrice,
-} from "./interfaces/index.js";
+import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import type { SelectedOption, VariantMediaItem, VariantPrice } from "./interfaces/index.js";
 import type { Variant } from "../../repositories/models/index.js";
 import type { PricingCursorInput } from "../../repositories/pricing/PricingRepository.js";
 import { CatalogType } from "./CatalogType.js";
@@ -25,9 +16,7 @@ export class VariantResolver extends CatalogType<string, Variant> {
   async $preload() {
     const variant = await this.$ctx.loaders.variant.load(this.$props);
     if (!variant) {
-      throw new PreloadNotFoundError(
-        `Variant with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Variant with ID ${this.$props} not found`);
     }
     return variant;
   }
@@ -74,9 +63,7 @@ export class VariantResolver extends CatalogType<string, Variant> {
   }
 
   async title() {
-    const translation = await this.$ctx.loaders.variantTranslation.load(
-      this.$props
-    );
+    const translation = await this.$ctx.loaders.variantTranslation.load(this.$props);
     return translation?.title ?? null;
   }
 
@@ -115,25 +102,17 @@ export class VariantResolver extends CatalogType<string, Variant> {
    */
   async priceHistory(args: PricingCursorInput) {
     const services = this.$ctx.kernel.getServices();
-    const ids = await services.repository.pricing.getIdsByVariantId(
-      this.$props,
-      args
-    );
+    const ids = await services.repository.pricing.getIdsByVariantId(this.$props, args);
     return Promise.all(ids.map((id: string) => this.resolvers.variantPrice(id)));
   }
 
   async selectedOptions(): Promise<SelectedOption[]> {
-    const links = await this.$ctx.loaders.variantSelectedOptions.load(
-      this.$props
-    );
+    const links = await this.$ctx.loaders.variantSelectedOptions.load(this.$props);
     return links
       .filter((link) => link.optionValueId !== null)
       .map((link) => ({
         optionId: this.encodeId(link.optionId, GlobalIdEntity.Option),
-        optionValueId: this.encodeId(
-          link.optionValueId!,
-          GlobalIdEntity.OptionValue
-        ),
+        optionValueId: this.encodeId(link.optionValueId!, GlobalIdEntity.OptionValue),
       }));
   }
 
@@ -177,20 +156,15 @@ export class VariantResolver extends CatalogType<string, Variant> {
   }
 
   async inventoryItem() {
-    const item = await this.$ctx.loaders.inventoryItemByVariant.load(
-      this.$props
-    );
+    const item = await this.$ctx.loaders.inventoryItemByVariant.load(this.$props);
     if (!item) return null;
     return this.resolvers.inventoryItem(item.id);
   }
 
   async productComponentConfiguration() {
-    const configurationId =
-      await this.$ctx.loaders.componentConfigurationIdByVariantId.load(
-        this.$props,
-      );
-    return configurationId
-      ? this.resolvers.productComponentConfiguration(configurationId)
-      : null;
+    const configurationId = await this.$ctx.loaders.componentConfigurationIdByVariantId.load(
+      this.$props,
+    );
+    return configurationId ? this.resolvers.productComponentConfiguration(configurationId) : null;
   }
 }

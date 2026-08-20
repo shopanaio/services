@@ -1,10 +1,7 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { FacetDeleteParams, FacetDeleteResult } from "./dto/index.js";
 
-export class FacetDeleteScript extends BaseScript<
-  FacetDeleteParams,
-  FacetDeleteResult
-> {
+export class FacetDeleteScript extends BaseScript<FacetDeleteParams, FacetDeleteResult> {
   @Transactional()
   protected async execute(params: FacetDeleteParams): Promise<FacetDeleteResult> {
     const existing = await this.repository.facet.findById(params.id);

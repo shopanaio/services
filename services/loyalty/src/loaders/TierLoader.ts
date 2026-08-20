@@ -26,7 +26,8 @@ export class TierLoader {
     this.membershipEvents = new DataLoader(async (ids: readonly string[]) => {
       const rows = await repository.tier.getMembershipEventsByMembershipIds(ids);
       const grouped = new Map<string, typeof rows>();
-      for (const row of rows) grouped.set(row.membershipId, [...(grouped.get(row.membershipId) ?? []), row]);
+      for (const row of rows)
+        grouped.set(row.membershipId, [...(grouped.get(row.membershipId) ?? []), row]);
       return ids.map((id) => grouped.get(id) ?? []);
     });
   }

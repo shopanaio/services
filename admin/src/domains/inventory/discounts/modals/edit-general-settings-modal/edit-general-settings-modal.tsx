@@ -1,27 +1,8 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import {
-  Alert,
-  App,
-  Button,
-  Dropdown,
-  Flex,
-  Input,
-  InputNumber,
-  Select,
-  Typography,
-} from "antd";
-import {
-  AllCommunityModule,
-  ModuleRegistry,
-  type ColDef,
-} from "ag-grid-community";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, App, Button, Dropdown, Flex, Input, InputNumber, Select, Typography } from "antd";
+import { AllCommunityModule, ModuleRegistry, type ColDef } from "ag-grid-community";
 import { AgGridReact, type CustomCellRendererProps } from "ag-grid-react";
 import {
   LuEllipsis as MoreOutlined,
@@ -29,11 +10,7 @@ import {
   LuTrash2 as DeleteOutlined,
 } from "react-icons/lu";
 import { useAgGridTheme } from "@/hooks";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { DiscountCodeStatus, DiscountMethod } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useUpdateDiscount } from "../../hooks";
@@ -50,16 +27,11 @@ import { useEditGeneralSettingsModalStyles } from "./edit-general-settings-modal
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface GridContext {
-  updateRow: (
-    key: string,
-    changes: Partial<DiscountCodeEditorRow>,
-  ) => void;
+  updateRow: (key: string, changes: Partial<DiscountCodeEditorRow>) => void;
   removeRow: (key: string) => void;
 }
 
-function getGridContext(
-  params: CustomCellRendererProps<DiscountCodeEditorRow>,
-): GridContext {
+function getGridContext(params: CustomCellRendererProps<DiscountCodeEditorRow>): GridContext {
   return params.context as GridContext;
 }
 
@@ -97,29 +69,19 @@ function StatusCell(params: CustomCellRendererProps<DiscountCodeEditorRow>) {
       options={[
         {
           value: DiscountCodeStatus.Active,
-          label: (
-            <span data-testid="discount-code-status-option-active">Active</span>
-          ),
+          label: <span data-testid="discount-code-status-option-active">Active</span>,
         },
         {
           value: DiscountCodeStatus.Disabled,
-          label: (
-            <span data-testid="discount-code-status-option-disabled">
-              Disabled
-            </span>
-          ),
+          label: <span data-testid="discount-code-status-option-disabled">Disabled</span>,
         },
       ]}
-      onChange={(status) =>
-        getGridContext(params).updateRow(params.data!.key, { status })
-      }
+      onChange={(status) => getGridContext(params).updateRow(params.data!.key, { status })}
     />
   );
 }
 
-function UsageLimitCell(
-  params: CustomCellRendererProps<DiscountCodeEditorRow>,
-) {
+function UsageLimitCell(params: CustomCellRendererProps<DiscountCodeEditorRow>) {
   const { styles } = useEditGeneralSettingsModalStyles();
   if (!params.data) return null;
 
@@ -157,8 +119,7 @@ function ActionsCell(params: CustomCellRendererProps<DiscountCodeEditorRow>) {
               danger: true,
               icon: <DeleteOutlined />,
               "data-testid": "discount-code-delete-menu-item",
-              onClick: () =>
-                getGridContext(params).removeRow(params.data!.key),
+              onClick: () => getGridContext(params).removeRow(params.data!.key),
             },
           ],
         }}
@@ -209,18 +170,13 @@ export function EditGeneralSettingsModal() {
     setDirty(dirty);
   }, [dirty, setDirty]);
 
-  const updateRow = useCallback(
-    (key: string, changes: Partial<DiscountCodeEditorRow>) => {
-      setValues((current) => ({
-        ...current,
-        codes: current.codes.map((row) =>
-          row.key === key ? { ...row, ...changes } : row,
-        ),
-      }));
-      setFormError(null);
-    },
-    [],
-  );
+  const updateRow = useCallback((key: string, changes: Partial<DiscountCodeEditorRow>) => {
+    setValues((current) => ({
+      ...current,
+      codes: current.codes.map((row) => (row.key === key ? { ...row, ...changes } : row)),
+    }));
+    setFormError(null);
+  }, []);
 
   const removeRow = useCallback((key: string) => {
     setValues((current) => ({
@@ -300,8 +256,7 @@ export function EditGeneralSettingsModal() {
 
     if (!result.discount || result.errors.length > 0) {
       setFormError(
-        result.errors.map((error) => error.message).join(" ") ||
-          "Unable to update discount.",
+        result.errors.map((error) => error.message).join(" ") || "Unable to update discount.",
       );
       return;
     }
@@ -315,15 +270,7 @@ export function EditGeneralSettingsModal() {
         message.error("Discount saved, but the details could not be refreshed");
       });
     }
-  }, [
-    forcePop,
-    message,
-    mutation,
-    onSaved,
-    discount,
-    setDirty,
-    values,
-  ]);
+  }, [forcePop, message, mutation, onSaved, discount, setDirty, values]);
 
   const errorMessage = formError ?? mutation.error?.message ?? null;
   const isCodeDiscount = discount.method === DiscountMethod.Code;
@@ -347,9 +294,7 @@ export function EditGeneralSettingsModal() {
       bodyClassName={styles.body}
     >
       <div className={styles.container}>
-        {errorMessage ? (
-          <Alert type="error" showIcon message={errorMessage} />
-        ) : null}
+        {errorMessage ? <Alert type="error" showIcon message={errorMessage} /> : null}
 
         <Paper>
           <PaperHeader title="Definition" />
@@ -391,10 +336,7 @@ export function EditGeneralSettingsModal() {
                   setFormError(null);
                 }}
               />
-              <Typography.Text
-                type="secondary"
-                className={styles.fieldHelp}
-              >
+              <Typography.Text type="secondary" className={styles.fieldHelp}>
                 Higher values are evaluated first.
               </Typography.Text>
             </div>
@@ -417,10 +359,7 @@ export function EditGeneralSettingsModal() {
                 </Button>
               }
             />
-            <div
-              className={styles.gridFrame}
-              data-testid="discount-codes-grid"
-            >
+            <div className={styles.gridFrame} data-testid="discount-codes-grid">
               <AgGridReact<DiscountCodeEditorRow>
                 theme={agGridTheme}
                 rowData={values.codes}
@@ -440,25 +379,13 @@ export function EditGeneralSettingsModal() {
                 overlayNoRowsTemplate="No discount codes"
               />
             </div>
-            <Flex
-              align="center"
-              justify="space-between"
-              gap={16}
-              className={styles.footer}
-            >
-              <Typography.Text
-                type="secondary"
-                className={styles.footerText}
-              >
-                Shown only for code-based discounts. Create, update and delete
-                operations are submitted with this form.
+            <Flex align="center" justify="space-between" gap={16} className={styles.footer}>
+              <Typography.Text type="secondary" className={styles.footerText}>
+                Shown only for code-based discounts. Create, update and delete operations are
+                submitted with this form.
               </Typography.Text>
-              <Typography.Text
-                type="secondary"
-                className={styles.footerText}
-              >
-                {values.codes.length}{" "}
-                {values.codes.length === 1 ? "code" : "codes"}
+              <Typography.Text type="secondary" className={styles.footerText}>
+                {values.codes.length} {values.codes.length === 1 ? "code" : "codes"}
               </Typography.Text>
             </Flex>
           </Paper>

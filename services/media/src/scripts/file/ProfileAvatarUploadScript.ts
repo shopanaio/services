@@ -1,10 +1,6 @@
 import crypto from "node:crypto";
 import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kernel/BaseScript.js";
-import {
-  getS3Client,
-  getBucketName,
-  buildPublicUrl,
-} from "../../infrastructure/s3/index.js";
+import { getS3Client, getBucketName, buildPublicUrl } from "../../infrastructure/s3/index.js";
 import { analyzeMedia } from "../../infrastructure/media/index.js";
 import {
   profileAvatarUploadSchema,
@@ -26,26 +22,18 @@ export class ProfileAvatarUploadScript extends BaseScript<
   ProfileAvatarUploadResult
 > {
   @ZodSchema(profileAvatarUploadSchema)
-  protected async execute(
-    params: ProfileAvatarUploadParams
-  ): Promise<ProfileAvatarUploadResult> {
+  protected async execute(params: ProfileAvatarUploadParams): Promise<ProfileAvatarUploadResult> {
     const { ownerType, ownerId } = params;
 
-    this.logger.info(
-      { ownerType, ownerId },
-      "ProfileAvatarUploadScript: starting"
-    );
+    this.logger.info({ ownerType, ownerId }, "ProfileAvatarUploadScript: starting");
 
     // 1. Get or create asset group for the owner
-    let assetGroup = await this.repository.assetGroup.findByOwner(
-      ownerType,
-      ownerId
-    );
+    let assetGroup = await this.repository.assetGroup.findByOwner(ownerType, ownerId);
 
     if (!assetGroup) {
       this.logger.info(
         { ownerType, ownerId },
-        "ProfileAvatarUploadScript: creating new asset group"
+        "ProfileAvatarUploadScript: creating new asset group",
       );
       assetGroup = await this.repository.assetGroup.create({
         ownerType,
@@ -55,19 +43,13 @@ export class ProfileAvatarUploadScript extends BaseScript<
 
     const assetGroupId = assetGroup.id;
 
-    this.logger.info(
-      { assetGroupId },
-      "ProfileAvatarUploadScript: using asset group"
-    );
+    this.logger.info({ assetGroupId }, "ProfileAvatarUploadScript: using asset group");
 
     // 2. Await the file upload promise and read stream
     const upload = await params.file;
     const { filename, mimetype, createReadStream } = upload;
 
-    this.logger.info(
-      { filename, mimetype },
-      "ProfileAvatarUploadScript: processing file"
-    );
+    this.logger.info({ filename, mimetype }, "ProfileAvatarUploadScript: processing file");
 
     // Read file stream into buffer
     const stream = createReadStream();
@@ -117,7 +99,7 @@ export class ProfileAvatarUploadScript extends BaseScript<
         width: metadata.width,
         height: metadata.height,
       },
-      "ProfileAvatarUploadScript: analyzed file"
+      "ProfileAvatarUploadScript: analyzed file",
     );
 
     // 4. Generate object key and upload to S3
@@ -131,20 +113,14 @@ export class ProfileAvatarUploadScript extends BaseScript<
     const bucket = await this.repository.bucket.getDefault(bucketName);
 
     // Upload to S3
-    const uploadResult = await s3Client.putObject(
-      bucketName,
-      objectKey,
-      buffer,
-      buffer.length,
-      {
-        "Content-Type": metadata.mimeType,
-        "x-amz-meta-original-name": encodeURIComponent(filename),
-      }
-    );
+    const uploadResult = await s3Client.putObject(bucketName, objectKey, buffer, buffer.length, {
+      "Content-Type": metadata.mimeType,
+      "x-amz-meta-original-name": encodeURIComponent(filename),
+    });
 
     this.logger.info(
       { objectKey, etag: uploadResult.etag, size: buffer.length },
-      "ProfileAvatarUploadScript: uploaded to S3"
+      "ProfileAvatarUploadScript: uploaded to S3",
     );
 
     // 5. Build public URL
@@ -179,10 +155,7 @@ export class ProfileAvatarUploadScript extends BaseScript<
     // 8. Create deletion state record
     await this.repository.fileDeletionState.create(file.id);
 
-    this.logger.info(
-      { fileId: file.id },
-      "ProfileAvatarUploadScript: completed successfully"
-    );
+    this.logger.info({ fileId: file.id }, "ProfileAvatarUploadScript: completed successfully");
 
     return {
       file: { id: file.id },
@@ -190,11 +163,7 @@ export class ProfileAvatarUploadScript extends BaseScript<
     };
   }
 
-  private generateObjectKey(
-    ownerType: string,
-    ownerId: string,
-    ext: string
-  ): string {
+  private generateObjectKey(ownerType: string, ownerId: string, ext: string): string {
     const timestamp = Date.now();
     const random = crypto.randomBytes(8).toString("hex");
     return `${ownerType}/${ownerId}/${timestamp}-${random}.${ext}`;
@@ -206,9 +175,7 @@ export class ProfileAvatarUploadScript extends BaseScript<
     }
     return {
       file: null,
-      userErrors: [
-        { message: "Failed to upload file", code: "INTERNAL_ERROR" },
-      ],
+      userErrors: [{ message: "Failed to upload file", code: "INTERNAL_ERROR" }],
     };
   }
 }

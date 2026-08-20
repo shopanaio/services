@@ -5,10 +5,7 @@ import {
   type FileUpdateResult,
 } from "./dto/FileUpdateDto.js";
 
-export class FileUpdateScript extends BaseScript<
-  FileUpdateParams,
-  FileUpdateResult
-> {
+export class FileUpdateScript extends BaseScript<FileUpdateParams, FileUpdateResult> {
   @ZodSchema(fileUpdateSchema)
   protected async execute(params: FileUpdateParams): Promise<FileUpdateResult> {
     this.logger.info({ params }, "FileUpdateScript: starting");
@@ -32,9 +29,7 @@ export class FileUpdateScript extends BaseScript<
     }
 
     // 3. Check deletion state
-    const deletionState = await this.repository.fileDeletionState.findByFileId(
-      params.id
-    );
+    const deletionState = await this.repository.fileDeletionState.findByFileId(params.id);
     if (deletionState?.deletionState === "DELETING") {
       return {
         file: null,
@@ -91,8 +86,7 @@ export class FileUpdateScript extends BaseScript<
           file: null,
           userErrors: [
             {
-              message:
-                "External video media type requires a YouTube or Vimeo provider",
+              message: "External video media type requires a YouTube or Vimeo provider",
               field: ["mediaType"],
               code: "INVALID_MEDIA_TYPE",
             },
@@ -135,10 +129,7 @@ export class FileUpdateScript extends BaseScript<
       updateData.thumbhash = params.thumbhash;
     }
     if (params.processingStatus !== undefined) {
-      if (
-        params.processingError &&
-        params.processingStatus !== "FAILED"
-      ) {
+      if (params.processingError && params.processingStatus !== "FAILED") {
         return {
           file: null,
           userErrors: [

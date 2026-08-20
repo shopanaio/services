@@ -10,10 +10,7 @@ import type {
 } from "@/graphql/types";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { VENDORS_QUERY } from "../graphql";
-import type {
-  VendorsQueryData,
-  VendorsQueryVariables,
-} from "../graphql/operation-types";
+import type { VendorsQueryData, VendorsQueryVariables } from "../graphql/operation-types";
 
 export interface UseVendorsOptions extends RelayCursorPaginationVariables {
   where?: ApiVendorWhereInput | null;
@@ -32,9 +29,7 @@ interface UseVendorsReturn {
   refetch: () => Promise<unknown>;
 }
 
-export function useVendors(
-  options: UseVendorsOptions = {},
-): UseVendorsReturn {
+export function useVendors(options: UseVendorsOptions = {}): UseVendorsReturn {
   const {
     first,
     after = null,

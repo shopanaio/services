@@ -3,12 +3,7 @@ import type { SearchTextField } from "../../repositories/search/searchRepository
 /** Canonical locale code supplied by the Store bounded context. */
 export type SearchLocale = string;
 
-export type SearchTokenKind =
-  | "language"
-  | "code"
-  | "foreign"
-  | "mixed_script"
-  | "stopword";
+export type SearchTokenKind = "language" | "code" | "foreign" | "mixed_script" | "stopword";
 
 export interface SearchNormalizationProfileMetadata {
   readonly locale: SearchLocale;

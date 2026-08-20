@@ -9,10 +9,7 @@ import {
   createGraphqlIntFilterTransformer,
   createGraphqlStringFilterTransformer,
 } from "@/layouts/filters";
-import type {
-  ApiCategoryOrderByInput,
-  ApiCategoryWhereInput,
-} from "@/graphql/types";
+import type { ApiCategoryOrderByInput, ApiCategoryWhereInput } from "@/graphql/types";
 import { CategoryOrderField } from "@/graphql/types";
 import type { CategoriesQueryVariables } from "../graphql/operation-types";
 
@@ -27,13 +24,8 @@ export const categorySortFieldMapping: SortFieldMapping<CategoryOrderField> = {
   publishedAt: CategoryOrderField.PublishedAt,
 };
 
-export const buildCategorySearchCondition = (
-  search: string,
-): Partial<ApiCategoryWhereInput> => ({
-  _or: [
-    { name: { _containsi: search } },
-    { handle: { _containsi: search } },
-  ],
+export const buildCategorySearchCondition = (search: string): Partial<ApiCategoryWhereInput> => ({
+  _or: [{ name: { _containsi: search } }, { handle: { _containsi: search } }],
 });
 
 export const categoryFilterTransformers: Record<
@@ -43,18 +35,10 @@ export const categoryFilterTransformers: Record<
   name: createGraphqlStringFilterTransformer<ApiCategoryWhereInput>("name"),
   handle: createGraphqlStringFilterTransformer<ApiCategoryWhereInput>("handle"),
   depth: createGraphqlIntFilterTransformer<ApiCategoryWhereInput>("depth"),
-  productsCount:
-    createGraphqlIntFilterTransformer<ApiCategoryWhereInput>("productsCount"),
-  publishedAt:
-    createGraphqlDateTimeRangeFilterTransformer<ApiCategoryWhereInput>(
-      "publishedAt",
-    ),
-  createdAt: createGraphqlDateTimeRangeFilterTransformer<ApiCategoryWhereInput>(
-    "createdAt",
-  ),
-  updatedAt: createGraphqlDateTimeRangeFilterTransformer<ApiCategoryWhereInput>(
-    "updatedAt",
-  ),
+  productsCount: createGraphqlIntFilterTransformer<ApiCategoryWhereInput>("productsCount"),
+  publishedAt: createGraphqlDateTimeRangeFilterTransformer<ApiCategoryWhereInput>("publishedAt"),
+  createdAt: createGraphqlDateTimeRangeFilterTransformer<ApiCategoryWhereInput>("createdAt"),
+  updatedAt: createGraphqlDateTimeRangeFilterTransformer<ApiCategoryWhereInput>("updatedAt"),
 };
 
 export function buildCategoriesQueryVariables(
@@ -82,8 +66,6 @@ export function toCategoriesQueryVariables(
   return buildCategoriesQueryVariables({
     ...pageConfig,
     where: pageConfig.where as ApiCategoryWhereInput | undefined,
-    orderBy: pageConfig.orderBy as
-      | OrderByInput<CategoryOrderField>[]
-      | undefined,
+    orderBy: pageConfig.orderBy as OrderByInput<CategoryOrderField>[] | undefined,
   });
 }

@@ -6,17 +6,12 @@ export interface StoreSettingsInput {
   defaultLocale: LocaleCode;
 }
 
-export function validateStoreSettings(
-  input: StoreSettingsInput,
-): UserError[] {
+export function validateStoreSettings(input: StoreSettingsInput): UserError[] {
   const errors: UserError[] = [];
 
   validateActiveCodes(input.locales, "locales", "locale", errors);
 
-  if (
-    input.locales.length > 0 &&
-    !input.locales.includes(input.defaultLocale)
-  ) {
+  if (input.locales.length > 0 && !input.locales.includes(input.defaultLocale)) {
     errors.push({
       code: "DEFAULT_LOCALE_NOT_ACTIVE",
       message: "Default locale must be included in active store locales",

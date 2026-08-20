@@ -306,20 +306,20 @@ Formula: option1.value + " / " + option2.value + " / " + ...
 
 ### Fields
 
-| Field | Type | Required | Behavior |
-|-------|------|----------|----------|
-| `title` | Input | ✅ | Focus on mount |
-| `handle` | Input | ❌ | Auto-gen from title (kebab-case), manual edit disables auto |
+| Field    | Type  | Required | Behavior                                                    |
+| -------- | ----- | -------- | ----------------------------------------------------------- |
+| `title`  | Input | ✅       | Focus on mount                                              |
+| `handle` | Input | ❌       | Auto-gen from title (kebab-case), manual edit disables auto |
 
 ### Implementation
 
 ```tsx
 const [isHandleManual, setIsHandleManual] = useState(false);
-const title = watch('title');
+const title = watch("title");
 
 useEffect(() => {
   if (!isHandleManual && title) {
-    setValue('handle', toKebabCase(title));
+    setValue("handle", toKebabCase(title));
   }
 }, [title, isHandleManual]);
 ```
@@ -340,6 +340,7 @@ useEffect(() => {
 ### Components to Reuse
 
 From `EditMediaModal.tsx`:
+
 - `SortableMediaItem` - grid item component
 - `MediaItemOverlay` - hover actions
 - DnD setup with `rectSortingStrategy`
@@ -373,6 +374,7 @@ When unchecked → hide options UI, create single default variant.
 ### 3.2 Options Input
 
 **Option Name** - Simple text input:
+
 ```tsx
 <Input
   placeholder="Option name (e.g. Color, Size)"
@@ -382,11 +384,12 @@ When unchecked → hide options UI, create single default variant.
 ```
 
 **Option Values** - Tag-mode Select for easy multi-value input:
+
 ```tsx
 <Select
   mode="tags"
   placeholder="Type and press Enter"
-  tokenSeparators={[',']}
+  tokenSeparators={[","]}
   value={option.values}
   onChange={(values) => updateOptionValues(optionIndex, values)}
 />
@@ -395,32 +398,31 @@ When unchecked → hide options UI, create single default variant.
 ### 3.3 Variant Generation
 
 **Algorithm:**
+
 ```typescript
 function generateVariants(options: IOption[]): IGeneratedVariant[] {
   if (options.length === 0) return [];
 
   // Cartesian product of all option values
   const combinations = cartesianProduct(
-    options.map(o => o.values.map(v => ({ name: o.name, value: v })))
+    options.map((o) => o.values.map((v) => ({ name: o.name, value: v }))),
   );
 
   return combinations.map((combo, index) => ({
     id: `temp-${index}`,
-    title: combo.map(c => c.value).join(' / '),  // "Red / M"
+    title: combo.map((c) => c.value).join(" / "), // "Red / M"
     options: combo,
-    enabled: true,  // checkbox state
+    enabled: true, // checkbox state
   }));
 }
 
 function cartesianProduct<T>(arrays: T[][]): T[][] {
-  return arrays.reduce(
-    (acc, arr) => acc.flatMap(x => arr.map(y => [...x, y])),
-    [[]] as T[][]
-  );
+  return arrays.reduce((acc, arr) => acc.flatMap((x) => arr.map((y) => [...x, y])), [[]] as T[][]);
 }
 ```
 
 **Example:**
+
 ```
 Options:
   Color: [Red, Blue]
@@ -443,15 +445,10 @@ Generated Variants (6):
     Generated Variants ({enabledCount}/{variants.length}):
   </Typography.Text>
 
-  {variants.map(variant => (
+  {variants.map((variant) => (
     <div key={variant.id} className={styles.variantItem}>
-      <Checkbox
-        checked={variant.enabled}
-        onChange={() => toggleVariant(variant.id)}
-      />
-      <span className={cx({ [styles.disabled]: !variant.enabled })}>
-        {variant.title}
-      </span>
+      <Checkbox checked={variant.enabled} onChange={() => toggleVariant(variant.id)} />
+      <span className={cx({ [styles.disabled]: !variant.enabled })}>{variant.title}</span>
     </div>
   ))}
 </div>
@@ -461,8 +458,12 @@ Generated Variants (6):
 
 ```tsx
 <Flex gap={8}>
-  <Button size="small" onClick={enableAll}>Select All</Button>
-  <Button size="small" onClick={disableAll}>Deselect All</Button>
+  <Button size="small" onClick={enableAll}>
+    Select All
+  </Button>
+  <Button size="small" onClick={disableAll}>
+    Deselect All
+  </Button>
 </Flex>
 ```
 
@@ -491,9 +492,9 @@ interface IOption {
 // Generated variant
 interface IGeneratedVariant {
   id: string;
-  title: string;           // "Red / M"
+  title: string; // "Red / M"
   options: IOptionValue[]; // [{ name: 'Color', value: 'Red' }, { name: 'Size', value: 'M' }]
-  enabled: boolean;        // checkbox state
+  enabled: boolean; // checkbox state
 }
 
 interface IOptionValue {
@@ -524,7 +525,7 @@ interface IProductCreateModalPayload {
 interface ICreateProductInput {
   title: string;
   handle: string;
-  status: 'DRAFT';  // Always draft
+  status: "DRAFT"; // Always draft
   media: {
     url: string;
     sortIndex: number;
@@ -565,11 +566,13 @@ admin-next/src/domains/inventory/products/modals/
 ## Implementation Checklist
 
 ### Backend (services/inventory)
+
 - [ ] Check/create `ProductCreateInput` in GraphQL schema
 - [ ] Create `createProduct` mutation with media, options, variants support
 - [ ] Variant auto-creation from options
 
 ### Frontend (admin-next)
+
 - [ ] Create `CreateProductModal` component
 - [ ] Implement `BasicInfoSection` (title + handle)
 - [ ] Implement `MediaSection` (reuse from EditMediaModal)
@@ -581,6 +584,7 @@ admin-next/src/domains/inventory/products/modals/
 - [ ] Add "Create Product" button to products list page
 
 ### Testing
+
 - [ ] Empty title validation
 - [ ] Handle uniqueness check
 - [ ] Media upload/reorder

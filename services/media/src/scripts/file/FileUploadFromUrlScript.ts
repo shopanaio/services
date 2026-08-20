@@ -5,10 +5,7 @@ import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kern
 import { getS3Client, getBucketName, buildPublicUrl } from "../../infrastructure/s3/index.js";
 import { analyzeMedia } from "../../infrastructure/media/index.js";
 import { ALLOWED_UPLOAD_MIME_TYPES } from "../../infrastructure/media/allowedMimeTypes.js";
-import {
-  assertFetchAllowed,
-  type FetchTarget,
-} from "../../infrastructure/media/urlFetchPolicy.js";
+import { assertFetchAllowed, type FetchTarget } from "../../infrastructure/media/urlFetchPolicy.js";
 import {
   fileUploadFromUrlSchema,
   type FileUploadFromUrlParams,
@@ -27,10 +24,7 @@ function pinnedDispatcher(pinnedIp: string, pinnedFamily: 4 | 6): Agent {
   });
 }
 
-async function readWithCap(
-  body: ReadableStream<Uint8Array>,
-  maxBytes: number
-): Promise<Buffer> {
+async function readWithCap(body: ReadableStream<Uint8Array>, maxBytes: number): Promise<Buffer> {
   const reader = body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -48,7 +42,10 @@ async function readWithCap(
   } finally {
     reader.releaseLock();
   }
-  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)), total);
+  return Buffer.concat(
+    chunks.map((chunk) => Buffer.from(chunk)),
+    total,
+  );
 }
 
 interface FetchResult {
@@ -74,7 +71,10 @@ export class FileUploadFromUrlScript extends BaseScript<
     const assetGroup = await this.getOrCreateStoreAssetGroup();
     const assetGroupId = assetGroup.id;
 
-    this.logger.info({ params, storeId: this.storeId, assetGroupId }, "FileUploadFromUrlScript: starting");
+    this.logger.info(
+      { params, storeId: this.storeId, assetGroupId },
+      "FileUploadFromUrlScript: starting",
+    );
 
     // Validate URL format (skip for data URLs)
     if (!params.sourceUrl.startsWith("data:")) {
@@ -98,13 +98,13 @@ export class FileUploadFromUrlScript extends BaseScript<
     if (params.idempotencyKey) {
       const existingFile = await this.repository.file.findByIdempotencyKey(
         assetGroupId,
-        params.idempotencyKey
+        params.idempotencyKey,
       );
 
       if (existingFile) {
         this.logger.info(
           { fileId: existingFile.id, idempotencyKey: params.idempotencyKey },
-          "FileUploadFromUrlScript: returning existing file by idempotency key"
+          "FileUploadFromUrlScript: returning existing file by idempotency key",
         );
         return {
           file: { id: existingFile.id },
@@ -121,13 +121,13 @@ export class FileUploadFromUrlScript extends BaseScript<
     if (!isDataUrl) {
       const existingByUrl = await this.repository.file.findBySourceUrl(
         assetGroupId,
-        params.sourceUrl
+        params.sourceUrl,
       );
 
       if (existingByUrl) {
         this.logger.info(
           { fileId: existingByUrl.id, sourceUrl: params.sourceUrl },
-          "FileUploadFromUrlScript: returning existing file by source URL"
+          "FileUploadFromUrlScript: returning existing file by source URL",
         );
         return {
           file: { id: existingByUrl.id },
@@ -141,7 +141,7 @@ export class FileUploadFromUrlScript extends BaseScript<
     if (!fetchResult.success) {
       this.logger.warn(
         { error: fetchResult.error, sourceUrl: params.sourceUrl },
-        "FileUploadFromUrlScript: fetch failed"
+        "FileUploadFromUrlScript: fetch failed",
       );
       return {
         file: null,
@@ -167,7 +167,7 @@ export class FileUploadFromUrlScript extends BaseScript<
         width: metadata.width,
         height: metadata.height,
       },
-      "FileUploadFromUrlScript: analyzed file"
+      "FileUploadFromUrlScript: analyzed file",
     );
 
     if (!ALLOWED_UPLOAD_MIME_TYPES.has(metadata.mimeType)) {
@@ -194,20 +194,14 @@ export class FileUploadFromUrlScript extends BaseScript<
     const bucket = await this.repository.bucket.getDefault(bucketName);
 
     // Upload to S3
-    const uploadResult = await s3Client.putObject(
-      bucketName,
-      objectKey,
-      buffer,
-      buffer.length,
-      {
-        "Content-Type": metadata.mimeType,
-        "x-amz-meta-source-url": params.sourceUrl,
-      }
-    );
+    const uploadResult = await s3Client.putObject(bucketName, objectKey, buffer, buffer.length, {
+      "Content-Type": metadata.mimeType,
+      "x-amz-meta-source-url": params.sourceUrl,
+    });
 
     this.logger.info(
       { objectKey, etag: uploadResult.etag, size: buffer.length },
-      "FileUploadFromUrlScript: uploaded to S3"
+      "FileUploadFromUrlScript: uploaded to S3",
     );
 
     // 6. Build public URL

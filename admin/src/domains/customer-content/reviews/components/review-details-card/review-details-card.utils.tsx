@@ -9,12 +9,15 @@ import { ReviewContentStatus } from "@/graphql/types";
 import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
 import { useReviewDetailsStyles } from "./review-details-card.styles";
 
-export const reviewStatusConfig: Record<ReviewContentStatus, {
-  label: string;
-  color: string;
-  hint: string;
-  icon: ReactNode;
-}> = {
+export const reviewStatusConfig: Record<
+  ReviewContentStatus,
+  {
+    label: string;
+    color: string;
+    hint: string;
+    icon: ReactNode;
+  }
+> = {
   [ReviewContentStatus.Pending]: {
     label: "PENDING",
     color: "gold",
@@ -65,16 +68,14 @@ export function ReviewStatusStrip({ status }: { status: ReviewContentStatus }) {
     <div className={styles.statusStrip} aria-label={`Moderation status: ${humanizeEnum(status)}`}>
       {Object.values(ReviewContentStatus).map((value) => {
         const config = reviewStatusConfig[value];
-        const activeClass = value === ReviewContentStatus.Pending
-          ? styles.statusSegmentActivePending
-          : value === ReviewContentStatus.Published
-            ? styles.statusSegmentActivePublished
-            : styles.statusSegmentActiveRejected;
+        const activeClass =
+          value === ReviewContentStatus.Pending
+            ? styles.statusSegmentActivePending
+            : value === ReviewContentStatus.Published
+              ? styles.statusSegmentActivePublished
+              : styles.statusSegmentActiveRejected;
         return (
-          <div
-            key={value}
-            className={cx(styles.statusSegment, value === status && activeClass)}
-          >
+          <div key={value} className={cx(styles.statusSegment, value === status && activeClass)}>
             {config.icon}
             <span>{humanizeEnum(value)}</span>
           </div>
@@ -87,11 +88,12 @@ export function ReviewStatusStrip({ status }: { status: ReviewContentStatus }) {
 export function MediaStatusBadge({ status }: { status: ReviewContentStatus }) {
   const { styles, cx } = useReviewDetailsStyles();
   const config = reviewStatusConfig[status];
-  const className = status === ReviewContentStatus.Pending
-    ? styles.mediaBadgePending
-    : status === ReviewContentStatus.Published
-      ? styles.mediaBadgePublished
-      : styles.mediaBadgeRejected;
+  const className =
+    status === ReviewContentStatus.Pending
+      ? styles.mediaBadgePending
+      : status === ReviewContentStatus.Published
+        ? styles.mediaBadgePublished
+        : styles.mediaBadgeRejected;
   return (
     <Tooltip title={humanizeEnum(status)}>
       <span

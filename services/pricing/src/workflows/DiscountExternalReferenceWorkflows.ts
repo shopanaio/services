@@ -34,9 +34,7 @@ abstract class DiscountExternalReferenceWorkflow extends BrokerWorkflows {
     return Kernel.getInstance();
   }
 
-  protected toScriptContext(
-    context: PricingMutationWorkflowContext,
-  ): RunScriptContext {
+  protected toScriptContext(context: PricingMutationWorkflowContext): RunScriptContext {
     return {
       storeId: context.storeId,
       organizationId: context.organizationId,
@@ -73,9 +71,7 @@ export class DiscountExternalReferenceCreateWorkflow extends DiscountExternalRef
 
   @WorkflowStep()
   private async stepGenerateExternalReferenceId(): Promise<string> {
-    const [row] = await this.kernel.db.execute<{ id: string }>(
-      sql`SELECT uuidv7() AS id`,
-    );
+    const [row] = await this.kernel.db.execute<{ id: string }>(sql`SELECT uuidv7() AS id`);
     if (!row) throw new Error("Failed to generate external reference ID");
     return row.id;
   }

@@ -9,7 +9,11 @@ import {
   reviewIncentiveSectionSchema,
   type ReviewIncentiveSectionValues,
 } from "../review-modal/schema";
-import { ReviewFormField, ReviewModalFrame, useReviewSectionModal } from "../shared/review-section-modal";
+import {
+  ReviewFormField,
+  ReviewModalFrame,
+  useReviewSectionModal,
+} from "../shared/review-section-modal";
 
 export function EditReviewIncentiveModal() {
   const state = useReviewSectionModal("Incentive disclosure updated");
@@ -20,13 +24,23 @@ export function EditReviewIncentiveModal() {
     defaultValues: { isIncentivized: false, disclosure: "" },
     mode: "onChange",
   });
-  const { control, handleSubmit, reset, setError, watch, formState: { errors, isDirty, isValid } } = form;
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setError,
+    watch,
+    formState: { errors, isDirty, isValid },
+  } = form;
   const isIncentivized = watch("isIncentivized");
 
   useEffect(() => {
     if (!state.review) return;
     if (initialized.current && lastReload.current === state.reloadVersion) return;
-    reset({ isIncentivized: state.review.isIncentivized, disclosure: state.review.incentiveDisclosure ?? "" });
+    reset({
+      isIncentivized: state.review.isIncentivized,
+      disclosure: state.review.incentiveDisclosure ?? "",
+    });
     initialized.current = true;
     lastReload.current = state.reloadVersion;
   }, [reset, state.reloadVersion, state.review]);
@@ -34,7 +48,12 @@ export function EditReviewIncentiveModal() {
 
   const submit = handleSubmit(async (values) => {
     await state.save<ReviewIncentiveSectionValues>(
-      { incentive: { isIncentivized: values.isIncentivized, disclosure: values.isIncentivized ? values.disclosure.trim() : null } },
+      {
+        incentive: {
+          isIncentivized: values.isIncentivized,
+          disclosure: values.isIncentivized ? values.disclosure.trim() : null,
+        },
+      },
       { "incentive.isIncentivized": "isIncentivized", "incentive.disclosure": "disclosure" },
       setError,
     );
@@ -58,17 +77,43 @@ export function EditReviewIncentiveModal() {
         <Paper>
           <PaperHeader title="Disclosure" />
           <Flex vertical gap="middle">
-            <Controller name="isIncentivized" control={control} render={({ field }) => (
-              <Switch autoFocus checked={field.value} onChange={field.onChange} checkedChildren="Incentivized" unCheckedChildren="Not incentivized" />
-            )} />
+            <Controller
+              name="isIncentivized"
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  autoFocus
+                  checked={field.value}
+                  onChange={field.onChange}
+                  checkedChildren="Incentivized"
+                  unCheckedChildren="Not incentivized"
+                />
+              )}
+            />
             {isIncentivized ? (
-              <ReviewFormField label="Public disclosure *" error={errors.disclosure?.message} help="This is a disclosure marker; Shopana does not issue a reward.">
-                <Controller name="disclosure" control={control} render={({ field }) => (
-                  <Input.TextArea {...field} rows={4} maxLength={500} showCount status={errors.disclosure ? "error" : undefined} />
-                )} />
+              <ReviewFormField
+                label="Public disclosure *"
+                error={errors.disclosure?.message}
+                help="This is a disclosure marker; Shopana does not issue a reward."
+              >
+                <Controller
+                  name="disclosure"
+                  control={control}
+                  render={({ field }) => (
+                    <Input.TextArea
+                      {...field}
+                      rows={4}
+                      maxLength={500}
+                      showCount
+                      status={errors.disclosure ? "error" : undefined}
+                    />
+                  )}
+                />
               </ReviewFormField>
             ) : (
-              <Typography.Text type="secondary">No disclosure will be shown and any existing disclosure will be cleared.</Typography.Text>
+              <Typography.Text type="secondary">
+                No disclosure will be shown and any existing disclosure will be cleared.
+              </Typography.Text>
             )}
           </Flex>
         </Paper>

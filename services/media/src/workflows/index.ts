@@ -1,7 +1,4 @@
-import {
-  FileHardDeleteWorkflow,
-  type FileHardDeleteOutput,
-} from "./FileHardDeleteWorkflow.js";
+import { FileHardDeleteWorkflow, type FileHardDeleteOutput } from "./FileHardDeleteWorkflow.js";
 import {
   FileGarbageCollectorWorkflow,
   type FileGarbageCollectorOutput,
@@ -11,17 +8,9 @@ import {
   type FileDeleteCleanupOutput,
 } from "./FileDeleteCleanupWorkflow.js";
 
-export {
-  FileHardDeleteWorkflow,
-  FileGarbageCollectorWorkflow,
-  FileDeleteCleanupWorkflow,
-};
+export { FileHardDeleteWorkflow, FileGarbageCollectorWorkflow, FileDeleteCleanupWorkflow };
 
-export type {
-  FileHardDeleteOutput,
-  FileGarbageCollectorOutput,
-  FileDeleteCleanupOutput,
-};
+export type { FileHardDeleteOutput, FileGarbageCollectorOutput, FileDeleteCleanupOutput };
 
 export const workflows = [
   FileHardDeleteWorkflow,

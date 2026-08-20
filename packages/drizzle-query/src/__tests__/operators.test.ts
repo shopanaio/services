@@ -1,11 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  PgDialect,
-  pgTable,
-  text,
-  integer,
-  boolean,
-} from "drizzle-orm/pg-core";
+import { PgDialect, pgTable, text, integer, boolean } from "drizzle-orm/pg-core";
 import {
   OPERATORS,
   buildOperatorCondition,

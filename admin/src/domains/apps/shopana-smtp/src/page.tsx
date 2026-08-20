@@ -20,15 +20,8 @@ import type { AdminAppPageProps } from "@shopana/admin-app-sdk";
 import { AdminAppLoadingContent } from "@/domains/apps/sdk/ui";
 import { SmtpConnectionStatus } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import {
-  SmtpSettingsForm,
-  type SmtpSettings,
-} from "./components/smtp-settings-form";
-import {
-  useSmtpConnection,
-  useSmtpConnectionActions,
-  useSmtpConnections,
-} from "./hooks";
+import { SmtpSettingsForm, type SmtpSettings } from "./components/smtp-settings-form";
+import { useSmtpConnection, useSmtpConnectionActions, useSmtpConnections } from "./hooks";
 import type { SmtpConnection } from "./graphql/operation-types";
 import {
   CREATE_SMTP_CONNECTION_MODAL_ID,
@@ -92,14 +85,12 @@ const statusPresentation = {
   },
   [SmtpConnectionStatus.Inactive]: {
     color: "warning",
-    description:
-      "This connection is configured but is not currently used for delivery.",
+    description: "This connection is configured but is not currently used for delivery.",
     label: "Inactive",
   },
   [SmtpConnectionStatus.Disconnected]: {
     color: "default",
-    description:
-      "This connection is permanently disabled and its credential was erased.",
+    description: "This connection is permanently disabled and its credential was erased.",
     label: "Disconnected",
   },
 } as const;
@@ -113,9 +104,7 @@ function ConnectionStatus({ status }: { status: SmtpConnectionStatus }) {
   return <Tag color={presentation.color}>{presentation.label}</Tag>;
 }
 
-function createSettings(
-  connection: SmtpConnection,
-): SmtpSettings {
+function createSettings(connection: SmtpConnection): SmtpSettings {
   return {
     displayName: connection.displayName,
     provider: connection.provider,
@@ -198,10 +187,8 @@ function ConnectionsPage({ sdk }: { sdk: AdminAppPageProps["sdk"] }) {
               <List
                 dataSource={connections}
                 renderItem={(connection) => {
-                  const isDisconnected =
-                    connection.status === SmtpConnectionStatus.Disconnected;
-                  const isInactive =
-                    connection.status === SmtpConnectionStatus.Inactive;
+                  const isDisconnected = connection.status === SmtpConnectionStatus.Disconnected;
+                  const isInactive = connection.status === SmtpConnectionStatus.Inactive;
 
                   return (
                     <List.Item>
@@ -212,19 +199,12 @@ function ConnectionsPage({ sdk }: { sdk: AdminAppPageProps["sdk"] }) {
                         }`}
                         role="link"
                         tabIndex={isDisconnected ? -1 : 0}
-                        onClick={
-                          isDisconnected
-                            ? undefined
-                            : () => openConnection(connection.id)
-                        }
+                        onClick={isDisconnected ? undefined : () => openConnection(connection.id)}
                         onKeyDown={
                           isDisconnected
                             ? undefined
                             : (event) => {
-                                if (
-                                  event.key === "Enter" ||
-                                  event.key === " "
-                                ) {
+                                if (event.key === "Enter" || event.key === " ") {
                                   openConnection(connection.id);
                                 }
                               }
@@ -235,10 +215,7 @@ function ConnectionsPage({ sdk }: { sdk: AdminAppPageProps["sdk"] }) {
                             {connection.displayName}
                           </Typography.Text>
                           <Typography.Text type="secondary" ellipsis>
-                            Created{" "}
-                            {dateFormatter.format(
-                              new Date(connection.createdAt),
-                            )}
+                            Created {dateFormatter.format(new Date(connection.createdAt))}
                           </Typography.Text>
                         </div>
                         <ConnectionStatus status={connection.status} />
@@ -355,9 +332,7 @@ function ConnectionDetailPage({
     <sdk.ui.AppPage
       onBack={() => sdk.navigation.openAppPath("connections")}
       title={
-        connection?.displayName ?? (
-          <Skeleton.Input active size="small" style={{ width: 180 }} />
-        )
+        connection?.displayName ?? <Skeleton.Input active size="small" style={{ width: 180 }} />
       }
     >
       {query.loading && !connection ? (
@@ -368,88 +343,77 @@ function ConnectionDetailPage({
             <ErrorAlert error={query.error} />
             {connection ? (
               <>
-              <Paper>
-                <PaperHeader
-                  actions={
-                    connection.status ===
-                    SmtpConnectionStatus.Inactive ? (
-                      <Dropdown
-                        menu={{
-                          items: [
-                            {
-                              key: "activate",
-                              label: "Make active",
-                              onClick: () => {
-                                void activateConnection();
+                <Paper>
+                  <PaperHeader
+                    actions={
+                      connection.status === SmtpConnectionStatus.Inactive ? (
+                        <Dropdown
+                          menu={{
+                            items: [
+                              {
+                                key: "activate",
+                                label: "Make active",
+                                onClick: () => {
+                                  void activateConnection();
+                                },
                               },
-                            },
-                          ],
-                        }}
-                        trigger={["click"]}
-                      >
-                        <Button
-                          aria-label={`Actions for ${connection.displayName}`}
-                          icon={<LuEllipsis size={16} />}
-                          loading={actions.loading}
-                          size="small"
-                          type="text"
-                        />
-                      </Dropdown>
-                    ) : null
-                  }
-                  title="SMTP connection"
-                />
-                <div className={styles.connectionStatus}>
-                  <Flex vertical>
-                    <Typography.Text strong>
-                      Connection status
-                    </Typography.Text>
-                    <Typography.Text type="secondary">
-                      {statusPresentation[connection.status].description}
-                    </Typography.Text>
-                  </Flex>
-                  <ConnectionStatus status={connection.status} />
-                </div>
-              </Paper>
-
-              <SmtpSettingsForm
-                key={connection.updatedAt}
-                disabled={
-                  connection.status === SmtpConnectionStatus.Disconnected
-                }
-                hasStoredPassword={connection.hasPassword}
-                initialValue={createSettings(connection)}
-                loading={actions.loading}
-                presets={query.presets}
-                submitLabel="Save changes"
-                onSubmit={updateConnection}
-              />
-
-              <Paper>
-                <PaperHeader title="Danger zone" />
-                <Divider className={styles.dangerDivider} />
-                <div className={styles.dangerRow}>
-                  <Flex vertical>
-                    <Typography.Text strong>
-                      Disconnect SMTP connection
-                    </Typography.Text>
-                    <Typography.Text type="secondary">
-                      Permanently disables this connection and erases its
-                      stored credential.
-                    </Typography.Text>
-                  </Flex>
-                  <Button
-                    danger
-                    disabled={
-                      connection.status ===
-                      SmtpConnectionStatus.Disconnected
+                            ],
+                          }}
+                          trigger={["click"]}
+                        >
+                          <Button
+                            aria-label={`Actions for ${connection.displayName}`}
+                            icon={<LuEllipsis size={16} />}
+                            loading={actions.loading}
+                            size="small"
+                            type="text"
+                          />
+                        </Dropdown>
+                      ) : null
                     }
-                    onClick={() => void disconnectConnection()}
-                  >
-                    Disconnect
-                  </Button>
-                </div>
-              </Paper>
+                    title="SMTP connection"
+                  />
+                  <div className={styles.connectionStatus}>
+                    <Flex vertical>
+                      <Typography.Text strong>Connection status</Typography.Text>
+                      <Typography.Text type="secondary">
+                        {statusPresentation[connection.status].description}
+                      </Typography.Text>
+                    </Flex>
+                    <ConnectionStatus status={connection.status} />
+                  </div>
+                </Paper>
+
+                <SmtpSettingsForm
+                  key={connection.updatedAt}
+                  disabled={connection.status === SmtpConnectionStatus.Disconnected}
+                  hasStoredPassword={connection.hasPassword}
+                  initialValue={createSettings(connection)}
+                  loading={actions.loading}
+                  presets={query.presets}
+                  submitLabel="Save changes"
+                  onSubmit={updateConnection}
+                />
+
+                <Paper>
+                  <PaperHeader title="Danger zone" />
+                  <Divider className={styles.dangerDivider} />
+                  <div className={styles.dangerRow}>
+                    <Flex vertical>
+                      <Typography.Text strong>Disconnect SMTP connection</Typography.Text>
+                      <Typography.Text type="secondary">
+                        Permanently disables this connection and erases its stored credential.
+                      </Typography.Text>
+                    </Flex>
+                    <Button
+                      danger
+                      disabled={connection.status === SmtpConnectionStatus.Disconnected}
+                      onClick={() => void disconnectConnection()}
+                    >
+                      Disconnect
+                    </Button>
+                  </div>
+                </Paper>
               </>
             ) : query.loading ? null : (
               <Empty description="SMTP connection not found" />
@@ -461,10 +425,7 @@ function ConnectionDetailPage({
   );
 }
 
-export default function SmtpAdminPage({
-  sdk,
-  route,
-}: AdminAppPageProps) {
+export default function SmtpAdminPage({ sdk, route }: AdminAppPageProps) {
   const routeSegments = route.appPath.split("/").filter(Boolean);
   const connectionId =
     routeSegments[0] === "connections" && routeSegments.length > 1
@@ -472,13 +433,7 @@ export default function SmtpAdminPage({
       : null;
 
   if (connectionId) {
-    return (
-      <ConnectionDetailPage
-        key={connectionId}
-        connectionId={connectionId}
-        sdk={sdk}
-      />
-    );
+    return <ConnectionDetailPage key={connectionId} connectionId={connectionId} sdk={sdk} />;
   }
 
   return <ConnectionsPage sdk={sdk} />;

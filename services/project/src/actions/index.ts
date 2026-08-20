@@ -1,10 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import {
-  BrokerActions,
-  InjectBroker,
-  ServiceBroker,
-  Action,
-} from "@shopana/shared-kernel";
+import { BrokerActions, InjectBroker, ServiceBroker, Action } from "@shopana/shared-kernel";
 import { Kernel } from "../kernel/Kernel.js";
 import {
   GetCurrentStoreScript,
@@ -40,9 +35,7 @@ export class ProjectBrokerActions extends BrokerActions {
    * Action: getCurrentStore - get store by slug
    */
   @Action("getCurrentStore")
-  async getCurrentStore(
-    params: GetCurrentStoreParams
-  ): Promise<GetCurrentStoreResult> {
+  async getCurrentStore(params: GetCurrentStoreParams): Promise<GetCurrentStoreResult> {
     return this.kernel.runScript(GetCurrentStoreScript, params);
   }
 

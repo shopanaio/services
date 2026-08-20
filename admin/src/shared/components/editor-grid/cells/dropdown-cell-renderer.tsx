@@ -16,8 +16,7 @@ export interface DropdownOption {
   label: string;
 }
 
-export interface IDropdownCellRendererParams<TData = unknown>
-  extends ICellRendererParams<TData> {
+export interface IDropdownCellRendererParams<TData = unknown> extends ICellRendererParams<TData> {
   /** Available options for the dropdown */
   options: DropdownOption[];
   /** Callback when value changes */
@@ -50,8 +49,7 @@ export function DropdownCellRenderer<TData extends { id: string }>({
   if (!data) return null;
 
   const currentValue = data[valueField] as string | undefined;
-  const displayLabel =
-    options.find((opt) => opt.value === currentValue)?.label ?? currentValue;
+  const displayLabel = options.find((opt) => opt.value === currentValue)?.label ?? currentValue;
 
   const menuItems: MenuProps["items"] = options.map((opt) => ({
     key: opt.value,
@@ -71,9 +69,7 @@ export function DropdownCellRenderer<TData extends { id: string }>({
       onOpenChange={(visible) => {
         if (!visible) setOpen(false);
       }}
-      popupRender={(menu) => (
-        <div style={{ width: triggerRef.current?.offsetWidth }}>{menu}</div>
-      )}
+      popupRender={(menu) => <div style={{ width: triggerRef.current?.offsetWidth }}>{menu}</div>}
     >
       <div
         ref={triggerRef}

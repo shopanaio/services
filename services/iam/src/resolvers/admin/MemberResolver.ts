@@ -1,9 +1,6 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { UserResolver } from "./UserResolver.js";
 import type { UserRole } from "../../repositories/models/authorization.js";
 import { ORG_DOMAIN } from "@src/casbin/CasbinService.js";
@@ -32,7 +29,7 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
 
     if (!userRoleData) {
       throw new PreloadNotFoundError(
-        `UserRole not found: org=${organizationId}, user=${userId}, domain=${domain}`
+        `UserRole not found: org=${organizationId}, user=${userId}, domain=${domain}`,
       );
     }
 
@@ -74,9 +71,6 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
       return false;
     }
 
-    return this.$ctx.kernel.repository.organization.isOwner(
-      organizationId,
-      userId
-    );
+    return this.$ctx.kernel.repository.organization.isOwner(organizationId, userId);
   }
 }

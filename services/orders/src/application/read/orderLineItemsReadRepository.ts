@@ -57,9 +57,7 @@ export class OrderLineItemsReadRepository {
     this.port = port;
   }
 
-  async findByOrderId(
-    orderId: string,
-  ): Promise<OrderLineItemReadView[]> {
+  async findByOrderId(orderId: string): Promise<OrderLineItemReadView[]> {
     const rows = await this.port.findByOrderId(orderId);
 
     return rows.map((row) => ({

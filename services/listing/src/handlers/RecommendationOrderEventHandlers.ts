@@ -21,7 +21,9 @@ import { isDuplicateWorkflowStartError } from "../workflows/listingIndexWorkflow
 
 @Injectable()
 export class RecommendationOrderEventHandlers extends EventHandlers {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @EventHandler("orderSaleCommitted", { retry: { maxAttempts: 5 } })
   handleCommitted(input: { event: OrderSaleCommittedEvent }): Promise<EventHandlerResponse> {
@@ -68,7 +70,10 @@ export class RecommendationOrderEventHandlers extends EventHandlers {
       return { success: true };
     } catch (error) {
       if (isDuplicateWorkflowStartError(error, workflowId)) return { success: true };
-      this.logger.error({ error, eventId: event.eventId, storeId: event.payload.storeId }, "Failed to enqueue recommendation sale ingestion");
+      this.logger.error(
+        { error, eventId: event.eventId, storeId: event.payload.storeId },
+        "Failed to enqueue recommendation sale ingestion",
+      );
       return {
         success: false,
         error: { message: "Recommendation ingestion enqueue failed", retryable: true },

@@ -1,10 +1,5 @@
 import { Expose, Type } from "class-transformer";
-import {
-  IsBoolean,
-  IsOptional,
-  Matches,
-  ValidateNested,
-} from "class-validator";
+import { IsBoolean, IsOptional, Matches, ValidateNested } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 

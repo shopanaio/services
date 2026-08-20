@@ -17,17 +17,17 @@ import {
 
 export interface CreateCheckoutUseCaseDependencies extends UseCaseDependencies {}
 
-export class CreateCheckoutUseCase extends UseCase<
-  CreateCheckoutInput,
-  CheckoutCommittedSnapshot
-> {
+export class CreateCheckoutUseCase extends UseCase<CreateCheckoutInput, CheckoutCommittedSnapshot> {
   async execute(input: CreateCheckoutInput): Promise<CheckoutCommittedSnapshot> {
     const { visitorId, storefrontAccess, store, customer, user, ...business } = input;
     const context = { visitorId, storefrontAccess, store, customer, user };
     const idempotencyKey = uuidv7();
     const channelCode = business.channelCode.trim();
     if (!channelCode || channelCode.length > 128) {
-      throw invalidCheckoutMutation("CHECKOUT_CHANNEL_INVALID", "Checkout channel code is invalid.");
+      throw invalidCheckoutMutation(
+        "CHECKOUT_CHANNEL_INVALID",
+        "Checkout channel code is invalid.",
+      );
     }
     const normalizedBusiness = { ...business, channelCode };
     const lineIds = flattenCommands(normalizedBusiness.items).map(() => uuidv7());
@@ -80,14 +80,23 @@ function createDraft(
   const lineIds = reservation.reservedIds.lineIds;
   const tagIds = reservation.reservedIds.tagIds;
   if (!Array.isArray(lineIds) || !lineIds.every((id) => typeof id === "string")) {
-    throw invalidCheckoutMutation("CHECKOUT_CREATE_RESERVATION_INVALID", "Reserved checkout line IDs are invalid.");
+    throw invalidCheckoutMutation(
+      "CHECKOUT_CREATE_RESERVATION_INVALID",
+      "Reserved checkout line IDs are invalid.",
+    );
   }
   if (!Array.isArray(tagIds) || !tagIds.every((id) => typeof id === "string")) {
-    throw invalidCheckoutMutation("CHECKOUT_CREATE_RESERVATION_INVALID", "Reserved checkout tag IDs are invalid.");
+    throw invalidCheckoutMutation(
+      "CHECKOUT_CREATE_RESERVATION_INVALID",
+      "Reserved checkout tag IDs are invalid.",
+    );
   }
   const tagSlugs = (business.tags ?? []).map(({ slug }) => slug);
   if (new Set(tagSlugs).size !== tagSlugs.length) {
-    throw invalidCheckoutMutation("CHECKOUT_TAG_ALREADY_EXISTS", "Checkout tag slugs must be unique.");
+    throw invalidCheckoutMutation(
+      "CHECKOUT_TAG_ALREADY_EXISTS",
+      "Checkout tag slugs must be unique.",
+    );
   }
   let lineIndex = 0;
   const assignIds = (line: CheckoutLineCreateCommand): CheckoutLineCommand => ({
@@ -141,7 +150,10 @@ function createDraft(
   };
   addLines(draft, business.items.map(assignIds));
   if (lineIndex !== lineIds.length) {
-    throw invalidCheckoutMutation("CHECKOUT_CREATE_RESERVATION_INVALID", "Reserved checkout line IDs do not match the request.");
+    throw invalidCheckoutMutation(
+      "CHECKOUT_CREATE_RESERVATION_INVALID",
+      "Reserved checkout line IDs do not match the request.",
+    );
   }
   return draft;
 }

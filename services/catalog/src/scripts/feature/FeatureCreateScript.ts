@@ -16,7 +16,13 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
     } catch {
       return {
         feature: undefined,
-        userErrors: [{ message: "Feature or value slug format is invalid", field: ["slug"], code: "INVALID_SLUG" }],
+        userErrors: [
+          {
+            message: "Feature or value slug format is invalid",
+            field: ["slug"],
+            code: "INVALID_SLUG",
+          },
+        ],
       };
     }
 
@@ -33,7 +39,13 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
     if (existingWithSlug) {
       return {
         feature: undefined,
-        userErrors: [{ message: `Feature with slug "${slug}" already exists`, field: ["slug"], code: "DUPLICATE" }],
+        userErrors: [
+          {
+            message: `Feature with slug "${slug}" already exists`,
+            field: ["slug"],
+            code: "DUPLICATE",
+          },
+        ],
       };
     }
 
@@ -97,7 +109,7 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
 
     this.logger.info(
       { featureId: feature.id, productId, valuesCount: values.length },
-      "Feature created"
+      "Feature created",
     );
 
     return {

@@ -30,11 +30,9 @@ const messages = {
     connectionsUpdated: "Connected sign-in methods were updated.",
     noSocialProviders: "No social sign-in providers are available.",
     emailOtpTitle: "Sign in with an email code",
-    emailOtpRequestHint:
-      "We will send a six-digit code if this email can sign in.",
+    emailOtpRequestHint: "We will send a six-digit code if this email can sign in.",
     sendEmailOtp: "Send code",
-    emailOtpAccepted:
-      "If this email can sign in, check your inbox for a code.",
+    emailOtpAccepted: "If this email can sign in, check your inbox for a code.",
     emailOtpVerifyTitle: "Enter email code",
     emailOtpVerifyHint:
       "Enter the email address and six-digit code. The code expires in five minutes.",
@@ -53,19 +51,15 @@ const messages = {
     resendPhoneOtp: "Send another code",
     forgotPassword: "Forgot password?",
     resetPasswordTitle: "Reset password",
-    resetPasswordRequestHint:
-      "If an account exists, a reset link will be sent.",
+    resetPasswordRequestHint: "If an account exists, a reset link will be sent.",
     sendResetLink: "Send reset link",
-    resetRequestAccepted:
-      "If the account exists, check your email for a reset link.",
+    resetRequestAccepted: "If the account exists, check your email for a reset link.",
     resetPassword: "Reset password",
     resetComplete: "Your password has been reset.",
     verificationPendingTitle: "Verify your email",
-    verificationPendingHint:
-      "Check your inbox and follow the verification link before signing in.",
+    verificationPendingHint: "Check your inbox and follow the verification link before signing in.",
     resendVerification: "Resend verification",
-    verificationResent:
-      "If verification is required, check your email for a new link.",
+    verificationResent: "If verification is required, check your email for a new link.",
     verifiedTitle: "Email verified",
     verifiedHint: "Your email is verified. You can now sign in.",
     accountCreatedTitle: "Account created",
@@ -80,18 +74,13 @@ const messages = {
     logout: "Sign out",
     cancel: "Cancel",
     backToSignIn: "Back to sign in",
-    genericAuthError:
-      "The request could not be completed. Check your details and try again.",
+    genericAuthError: "The request could not be completed. Check your details and try again.",
     unavailableTitle: "Authentication unavailable",
-    unavailableHint:
-      "This authentication request is unavailable or has expired.",
+    unavailableHint: "This authentication request is unavailable or has expired.",
     securityFooter: "Secure authentication provided by Shopana IAM.",
   },
 } as const;
 
-export function createApplicationAuthTranslator(
-  locale: ApplicationAuthUiLocale
-) {
-  return (key: ApplicationAuthUiMessageKey): string =>
-    messages[locale]?.[key] ?? messages.en[key];
+export function createApplicationAuthTranslator(locale: ApplicationAuthUiLocale) {
+  return (key: ApplicationAuthUiMessageKey): string => messages[locale]?.[key] ?? messages.en[key];
 }

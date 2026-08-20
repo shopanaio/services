@@ -19,9 +19,7 @@ export class App {
     app.logger = createLogger();
     app.repository = repository;
 
-    const lineItemsReadRepository = new OrderLineItemsReadRepository(
-      app.repository.orderLineItem,
-    );
+    const lineItemsReadRepository = new OrderLineItemsReadRepository(app.repository.orderLineItem);
     app.orderReadRepository = new AppOrderReadRepository(
       app.repository.orderRead,
       lineItemsReadRepository,

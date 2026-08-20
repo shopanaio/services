@@ -9,14 +9,14 @@ export class CustomerAddressLoader {
 
   constructor(repository: Repository) {
     this.address = new DataLoader(async (ids) =>
-      mapById(ids, await repository.address.getByIds(ids))
+      mapById(ids, await repository.address.getByIds(ids)),
     );
     this.addressesByCustomer = new DataLoader(async (customerIds) =>
       groupByKey(
         customerIds,
         await repository.address.getByCustomerIds(customerIds),
-        (row) => row.customerId
-      )
+        (row) => row.customerId,
+      ),
     );
   }
 }

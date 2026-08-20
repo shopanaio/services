@@ -6,14 +6,7 @@ import {
 } from "@shopana/drizzle-query";
 import { ReadOnly } from "@shopana/shared-kernel";
 import type { TransactionManager } from "@shopana/shared-kernel";
-import {
-  and,
-  asc,
-  eq,
-  getViewSelectedFields,
-  inArray,
-  isNull,
-} from "drizzle-orm";
+import { and, asc, eq, getViewSelectedFields, inArray, isNull } from "drizzle-orm";
 import type { Database } from "../infrastructure/db/database.js";
 import { BaseRepository } from "./BaseRepository.js";
 import {
@@ -156,15 +149,11 @@ export const discountExternalReferenceRelayQuery = createRelayQuery(
 );
 
 export type DiscountRelayInput = InferRelayInput<typeof discountRelayQuery>;
-export type DiscountCodeRelayInput = InferRelayInput<
-  typeof discountCodeRelayQuery
->;
+export type DiscountCodeRelayInput = InferRelayInput<typeof discountCodeRelayQuery>;
 export type DiscountUsageReservationRelayInput = InferRelayInput<
   typeof discountUsageReservationRelayQuery
 >;
-export type DiscountRedemptionRelayInput = InferRelayInput<
-  typeof discountRedemptionRelayQuery
->;
+export type DiscountRedemptionRelayInput = InferRelayInput<typeof discountRedemptionRelayQuery>;
 export type DiscountExternalReferenceRelayInput = InferRelayInput<
   typeof discountExternalReferenceRelayQuery
 >;
@@ -180,8 +169,7 @@ export interface DiscountConnectionResult {
   totalCount: number;
 }
 
-export type DiscountReadModel = DiscountListView &
-  Pick<Discount, "metadata">;
+export type DiscountReadModel = DiscountListView & Pick<Discount, "metadata">;
 
 export type DiscountRuleReadModel =
   | { kind: "AMOUNT_OFF"; value: DiscountAmountOff }
@@ -299,12 +287,7 @@ export interface DiscountCodeCreateWriteInput {
 export interface DiscountCodeUpdateWriteInput {
   codeId: string;
   expectedUpdatedAt: string;
-  patch: Partial<
-    Pick<
-      DiscountCode,
-      "code" | "status" | "usageLimit" | "metadata" | "disabledAt"
-    >
-  >;
+  patch: Partial<Pick<DiscountCode, "code" | "status" | "usageLimit" | "metadata" | "disabledAt">>;
 }
 
 export interface DiscountCodeDeleteWriteInput {
@@ -405,19 +388,13 @@ export class DiscountRepository extends BaseRepository {
         .select()
         .from(discountAmountOff)
         .where(
-          and(
-            eq(discountAmountOff.storeId, this.storeId),
-            eq(discountAmountOff.discountId, id),
-          ),
+          and(eq(discountAmountOff.storeId, this.storeId), eq(discountAmountOff.discountId, id)),
         ),
       this.connection
         .select()
         .from(discountBuyXGetY)
         .where(
-          and(
-            eq(discountBuyXGetY.storeId, this.storeId),
-            eq(discountBuyXGetY.discountId, id),
-          ),
+          and(eq(discountBuyXGetY.storeId, this.storeId), eq(discountBuyXGetY.discountId, id)),
         ),
       this.connection
         .select()
@@ -449,12 +426,7 @@ export class DiscountRepository extends BaseRepository {
       this.connection
         .select()
         .from(discountTarget)
-        .where(
-          and(
-            eq(discountTarget.storeId, this.storeId),
-            eq(discountTarget.discountId, id),
-          ),
-        ),
+        .where(and(eq(discountTarget.storeId, this.storeId), eq(discountTarget.discountId, id))),
       this.connection
         .select()
         .from(discountBuyerContext)
@@ -485,12 +457,7 @@ export class DiscountRepository extends BaseRepository {
       this.connection
         .select()
         .from(discountCode)
-        .where(
-          and(
-            eq(discountCode.storeId, this.storeId),
-            eq(discountCode.discountId, id),
-          ),
-        ),
+        .where(and(eq(discountCode.storeId, this.storeId), eq(discountCode.discountId, id))),
       this.connection
         .select()
         .from(discountUsageCounter)
@@ -512,21 +479,11 @@ export class DiscountRepository extends BaseRepository {
       this.connection
         .select()
         .from(discountTag)
-        .where(
-          and(
-            eq(discountTag.storeId, this.storeId),
-            eq(discountTag.discountId, id),
-          ),
-        ),
+        .where(and(eq(discountTag.storeId, this.storeId), eq(discountTag.discountId, id))),
       this.connection
         .select()
         .from(discountChannel)
-        .where(
-          and(
-            eq(discountChannel.storeId, this.storeId),
-            eq(discountChannel.discountId, id),
-          ),
-        ),
+        .where(and(eq(discountChannel.storeId, this.storeId), eq(discountChannel.discountId, id))),
       this.connection
         .select()
         .from(discountCombinationClass)
@@ -568,9 +525,7 @@ export class DiscountRepository extends BaseRepository {
     };
   }
 
-  async create(
-    input: DiscountCreateWriteInput,
-  ): Promise<{ discount: Discount; created: boolean }> {
+  async create(input: DiscountCreateWriteInput): Promise<{ discount: Discount; created: boolean }> {
     const rows = await this.connection
       .insert(discount)
       .values({
@@ -592,12 +547,7 @@ export class DiscountRepository extends BaseRepository {
     const [existing] = await this.connection
       .select()
       .from(discount)
-      .where(
-        and(
-          eq(discount.storeId, this.storeId),
-          eq(discount.id, input.id),
-        ),
-      )
+      .where(and(eq(discount.storeId, this.storeId), eq(discount.id, input.id)))
       .limit(1);
     if (!existing) {
       throw new Error("Discount ID conflict belongs to another store");
@@ -662,10 +612,7 @@ export class DiscountRepository extends BaseRepository {
         .select({ id: discountRedemption.id })
         .from(discountRedemption)
         .where(
-          and(
-            eq(discountRedemption.storeId, this.storeId),
-            eq(discountRedemption.discountId, id),
-          ),
+          and(eq(discountRedemption.storeId, this.storeId), eq(discountRedemption.discountId, id)),
         )
         .limit(1),
     ]);
@@ -701,19 +648,11 @@ export class DiscountRepository extends BaseRepository {
     await this.connection
       .delete(discountAmountOff)
       .where(
-        and(
-          eq(discountAmountOff.storeId, this.storeId),
-          eq(discountAmountOff.discountId, id),
-        ),
+        and(eq(discountAmountOff.storeId, this.storeId), eq(discountAmountOff.discountId, id)),
       );
     await this.connection
       .delete(discountBuyXGetY)
-      .where(
-        and(
-          eq(discountBuyXGetY.storeId, this.storeId),
-          eq(discountBuyXGetY.discountId, id),
-        ),
-      );
+      .where(and(eq(discountBuyXGetY.storeId, this.storeId), eq(discountBuyXGetY.discountId, id)));
     await this.connection
       .delete(discountFreeShipping)
       .where(
@@ -813,10 +752,7 @@ export class DiscountRepository extends BaseRepository {
     }
   }
 
-  async replaceBuyerContext(
-    id: string,
-    input: DiscountBuyerContextWriteInput,
-  ): Promise<void> {
+  async replaceBuyerContext(id: string, input: DiscountBuyerContextWriteInput): Promise<void> {
     await this.connection
       .delete(discountBuyerContext)
       .where(
@@ -937,16 +873,11 @@ export class DiscountRepository extends BaseRepository {
   async replaceTags(id: string, items: string[]): Promise<void> {
     await this.connection
       .delete(discountTag)
-      .where(
-        and(
-          eq(discountTag.storeId, this.storeId),
-          eq(discountTag.discountId, id),
-        ),
-      );
+      .where(and(eq(discountTag.storeId, this.storeId), eq(discountTag.discountId, id)));
     if (items.length === 0) return;
-    await this.connection.insert(discountTag).values(
-      items.map((tag) => ({ discountId: id, storeId: this.storeId, tag })),
-    );
+    await this.connection
+      .insert(discountTag)
+      .values(items.map((tag) => ({ discountId: id, storeId: this.storeId, tag })));
   }
 
   async replaceChannels(
@@ -955,12 +886,7 @@ export class DiscountRepository extends BaseRepository {
   ): Promise<void> {
     await this.connection
       .delete(discountChannel)
-      .where(
-        and(
-          eq(discountChannel.storeId, this.storeId),
-          eq(discountChannel.discountId, id),
-        ),
-      );
+      .where(and(eq(discountChannel.storeId, this.storeId), eq(discountChannel.discountId, id)));
     if (items.length === 0) return;
     await this.connection.insert(discountChannel).values(
       items.map((item) => ({
@@ -1006,10 +932,7 @@ export class DiscountRepository extends BaseRepository {
       .from(discountListView)
       .innerJoin(
         discount,
-        and(
-          eq(discount.storeId, discountListView.storeId),
-          eq(discount.id, discountListView.id),
-        ),
+        and(eq(discount.storeId, discountListView.storeId), eq(discount.id, discountListView.id)),
       )
       .where(
         and(
@@ -1022,9 +945,7 @@ export class DiscountRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getRulesByDiscountIds(
-    ids: readonly string[],
-  ): Promise<DiscountRuleReadModel[]> {
+  async getRulesByDiscountIds(ids: readonly string[]): Promise<DiscountRuleReadModel[]> {
     if (ids.length === 0) return [];
     const uniqueIds = [...new Set(ids)];
     const [amountOffRows, buyXGetYRows, freeShippingRows] = await Promise.all([
@@ -1058,15 +979,9 @@ export class DiscountRepository extends BaseRepository {
     ]);
 
     return [
-      ...amountOffRows.map(
-        (value): DiscountRuleReadModel => ({ kind: "AMOUNT_OFF", value }),
-      ),
-      ...buyXGetYRows.map(
-        (value): DiscountRuleReadModel => ({ kind: "BUY_X_GET_Y", value }),
-      ),
-      ...freeShippingRows.map(
-        (value): DiscountRuleReadModel => ({ kind: "FREE_SHIPPING", value }),
-      ),
+      ...amountOffRows.map((value): DiscountRuleReadModel => ({ kind: "AMOUNT_OFF", value })),
+      ...buyXGetYRows.map((value): DiscountRuleReadModel => ({ kind: "BUY_X_GET_Y", value })),
+      ...freeShippingRows.map((value): DiscountRuleReadModel => ({ kind: "FREE_SHIPPING", value })),
     ];
   }
 
@@ -1100,16 +1015,11 @@ export class DiscountRepository extends BaseRepository {
           inArray(discountTargetSelection.discountId, [...new Set(ids)]),
         ),
       )
-      .orderBy(
-        asc(discountTargetSelection.discountId),
-        asc(discountTargetSelection.role),
-      );
+      .orderBy(asc(discountTargetSelection.discountId), asc(discountTargetSelection.role));
   }
 
   @ReadOnly()
-  async getTargetsByDiscountIds(
-    ids: readonly string[],
-  ): Promise<DiscountTarget[]> {
+  async getTargetsByDiscountIds(ids: readonly string[]): Promise<DiscountTarget[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -1128,9 +1038,7 @@ export class DiscountRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getBuyerContextsByDiscountIds(
-    ids: readonly string[],
-  ): Promise<DiscountBuyerContext[]> {
+  async getBuyerContextsByDiscountIds(ids: readonly string[]): Promise<DiscountBuyerContext[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -1157,10 +1065,7 @@ export class DiscountRepository extends BaseRepository {
           inArray(discountEligibleCustomer.discountId, [...new Set(ids)]),
         ),
       )
-      .orderBy(
-        asc(discountEligibleCustomer.discountId),
-        asc(discountEligibleCustomer.customerId),
-      );
+      .orderBy(asc(discountEligibleCustomer.discountId), asc(discountEligibleCustomer.customerId));
   }
 
   @ReadOnly()
@@ -1177,16 +1082,11 @@ export class DiscountRepository extends BaseRepository {
           inArray(discountEligibleSegment.discountId, [...new Set(ids)]),
         ),
       )
-      .orderBy(
-        asc(discountEligibleSegment.discountId),
-        asc(discountEligibleSegment.segmentId),
-      );
+      .orderBy(asc(discountEligibleSegment.discountId), asc(discountEligibleSegment.segmentId));
   }
 
   @ReadOnly()
-  async getChannelsByDiscountIds(
-    ids: readonly string[],
-  ): Promise<DiscountChannel[]> {
+  async getChannelsByDiscountIds(ids: readonly string[]): Promise<DiscountChannel[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -1197,16 +1097,11 @@ export class DiscountRepository extends BaseRepository {
           inArray(discountChannel.discountId, [...new Set(ids)]),
         ),
       )
-      .orderBy(
-        asc(discountChannel.discountId),
-        asc(discountChannel.channelCode),
-      );
+      .orderBy(asc(discountChannel.discountId), asc(discountChannel.channelCode));
   }
 
   @ReadOnly()
-  async getCombinationsByDiscountIds(
-    ids: readonly string[],
-  ): Promise<DiscountCombinationClass[]> {
+  async getCombinationsByDiscountIds(ids: readonly string[]): Promise<DiscountCombinationClass[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -1254,9 +1149,7 @@ export class DiscountRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getUsageReservationsByIds(
-    ids: readonly string[],
-  ): Promise<DiscountUsageReservation[]> {
+  async getUsageReservationsByIds(ids: readonly string[]): Promise<DiscountUsageReservation[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -1270,9 +1163,7 @@ export class DiscountRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getRedemptionsByIds(
-    ids: readonly string[],
-  ): Promise<DiscountRedemption[]> {
+  async getRedemptionsByIds(ids: readonly string[]): Promise<DiscountRedemption[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -1312,10 +1203,7 @@ export class DiscountRepository extends BaseRepository {
       .where(
         and(
           eq(discountRedemptionAllocation.storeId, this.storeId),
-          inArray(
-            discountRedemptionAllocation.redemptionId,
-            [...new Set(ids)],
-          ),
+          inArray(discountRedemptionAllocation.redemptionId, [...new Set(ids)]),
         ),
       )
       .orderBy(
@@ -1326,9 +1214,7 @@ export class DiscountRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getExternalReferencesByIds(
-    ids: readonly string[],
-  ): Promise<DiscountExternalReference[]> {
+  async getExternalReferencesByIds(ids: readonly string[]): Promise<DiscountExternalReference[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -1353,9 +1239,7 @@ export class DiscountRepository extends BaseRepository {
         and(
           eq(discountExternalReference.storeId, this.storeId),
           eq(discountExternalReference.id, id),
-          ...(includeDeleted
-            ? []
-            : [isNull(discountExternalReference.deletedAt)]),
+          ...(includeDeleted ? [] : [isNull(discountExternalReference.deletedAt)]),
         ),
       )
       .limit(1);
@@ -1422,10 +1306,7 @@ export class DiscountRepository extends BaseRepository {
       isNull(discountExternalReference.deletedAt),
     );
     const rows = input.permanent
-      ? await this.connection
-          .delete(discountExternalReference)
-          .where(conditions)
-          .returning()
+      ? await this.connection.delete(discountExternalReference).where(conditions).returning()
       : await this.connection
           .update(discountExternalReference)
           .set({
@@ -1442,24 +1323,15 @@ export class DiscountRepository extends BaseRepository {
     id: string,
   ): Promise<DiscountExternalReferenceMutationResult> {
     const current = await this.findExternalReferenceById(id, true);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
   @ReadOnly()
-  async getConnection(
-    args: DiscountConnectionInput,
-  ): Promise<DiscountConnectionResult> {
+  async getConnection(args: DiscountConnectionInput): Promise<DiscountConnectionResult> {
     const { where, orderBy, ...pagination } = args;
-    const mappedWhere = mapVirtualWhereFields(where) as
-      | DiscountRelayInput["where"]
-      | undefined;
+    const mappedWhere = mapVirtualWhereFields(where) as DiscountRelayInput["where"] | undefined;
     const mergedWhere: DiscountRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(mappedWhere ? [mappedWhere] : []),
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, ...(mappedWhere ? [mappedWhere] : [])],
     };
     const executeInput: DiscountRelayInput = {
       ...pagination,
@@ -1478,15 +1350,10 @@ export class DiscountRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getCodeConnection(
-    args: DiscountCodeRelayInput,
-  ): Promise<DiscountConnectionResult> {
+  async getCodeConnection(args: DiscountCodeRelayInput): Promise<DiscountConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: DiscountCodeRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, ...(where ? [where] : [])],
     };
     const executeInput: DiscountCodeRelayInput = {
       ...pagination,
@@ -1510,10 +1377,7 @@ export class DiscountRepository extends BaseRepository {
   ): Promise<DiscountConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: DiscountUsageReservationRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, ...(where ? [where] : [])],
     };
     const executeInput: DiscountUsageReservationRelayInput = {
       ...pagination,
@@ -1524,10 +1388,7 @@ export class DiscountRepository extends BaseRepository {
       ],
     };
     const [result, totalCount] = await Promise.all([
-      discountUsageReservationRelayQuery.execute(
-        this.connection,
-        executeInput,
-      ),
+      discountUsageReservationRelayQuery.execute(this.connection, executeInput),
       discountUsageReservationRelayQuery.count(this.connection, {
         where: mergedWhere,
       }),
@@ -1542,10 +1403,7 @@ export class DiscountRepository extends BaseRepository {
   ): Promise<DiscountConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: DiscountRedemptionRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, ...(where ? [where] : [])],
     };
     const executeInput: DiscountRedemptionRelayInput = {
       ...pagination,
@@ -1571,10 +1429,7 @@ export class DiscountRepository extends BaseRepository {
   ): Promise<DiscountConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: DiscountExternalReferenceRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, ...(where ? [where] : [])],
     };
     const executeInput: DiscountExternalReferenceRelayInput = {
       ...pagination,
@@ -1585,10 +1440,7 @@ export class DiscountRepository extends BaseRepository {
       ],
     };
     const [result, totalCount] = await Promise.all([
-      discountExternalReferenceRelayQuery.execute(
-        this.connection,
-        executeInput,
-      ),
+      discountExternalReferenceRelayQuery.execute(this.connection, executeInput),
       discountExternalReferenceRelayQuery.count(this.connection, {
         where: mergedWhere,
       }),

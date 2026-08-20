@@ -241,16 +241,17 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
     const [row] = await this.connection
       .select()
       .from(orderPaymentMethods)
-      .where(and(
-        eq(orderPaymentMethods.orderId, orderId),
-        eq(orderPaymentMethods.isSelected, true),
-      ))
+      .where(
+        and(eq(orderPaymentMethods.orderId, orderId), eq(orderPaymentMethods.isSelected, true)),
+      )
       .limit(1);
-    return row ? {
-      order_id: row.orderId,
-      store_id: row.storeId,
-      code: row.code,
-      provider: row.provider,
-    } : null;
+    return row
+      ? {
+          order_id: row.orderId,
+          store_id: row.storeId,
+          code: row.code,
+          provider: row.provider,
+        }
+      : null;
   }
 }

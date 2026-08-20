@@ -11,8 +11,4 @@ export {
   type WorkflowStepMetadata,
 } from "./decorators.js";
 
-export {
-  BaseWorkflow,
-  type WorkflowDescriptor,
-  type WorkflowRegistrar,
-} from "./BaseWorkflow.js";
+export { BaseWorkflow, type WorkflowDescriptor, type WorkflowRegistrar } from "./BaseWorkflow.js";

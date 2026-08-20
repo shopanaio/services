@@ -1,54 +1,30 @@
 "use client";
 
-import {
-  Button,
-  Dropdown,
-  Flex,
-  Tag,
-  Timeline,
-  Typography,
-} from "antd";
-import {
-  LuCalendarClock,
-  LuEllipsis,
-  LuTicketCheck,
-} from "react-icons/lu";
+import { Button, Dropdown, Flex, Tag, Timeline, Typography } from "antd";
+import { LuCalendarClock, LuEllipsis, LuTicketCheck } from "react-icons/lu";
 import type { ApiDiscount } from "@/graphql/types";
-import {
-  DiscountEffectiveStatus,
-  DiscountMethod,
-} from "@/graphql/types";
+import { DiscountEffectiveStatus, DiscountMethod } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import { useDiscountSectionStyles } from "../discount-details-card.styles";
-import {
-  formatDiscountCount,
-  formatDiscountDateTime,
-} from "../formatters";
+import { formatDiscountCount, formatDiscountDateTime } from "../formatters";
 
 interface AvailabilityLimitsSectionProps {
   discount: ApiDiscount;
   onEdit?: () => void;
 }
 
-export function AvailabilityLimitsSection({
-  discount,
-  onEdit,
-}: AvailabilityLimitsSectionProps) {
+export function AvailabilityLimitsSection({ discount, onEdit }: AvailabilityLimitsSectionProps) {
   const { styles } = useDiscountSectionStyles();
   const purchaseModes = [
     discount.appliesOnOneTimePurchase ? "One-time purchases" : null,
     discount.appliesOnSubscription ? "Subscription" : null,
   ].filter(Boolean);
   const isUnconfiguredDraft =
-    discount.effectiveStatus === DiscountEffectiveStatus.Draft &&
-    !discount.rule;
+    discount.effectiveStatus === DiscountEffectiveStatus.Draft && !discount.rule;
 
   return (
-    <Paper
-      className={styles.section}
-      data-testid="discount-availability-limits-section"
-    >
+    <Paper className={styles.section} data-testid="discount-availability-limits-section">
       <PaperHeader
         title="Availability & limits"
         className={styles.compactHeader}
@@ -83,8 +59,7 @@ export function AvailabilityLimitsSection({
           icon={<LuCalendarClock />}
           state={{
             title: "Schedule and limits not configured",
-            description:
-              "Add availability dates, purchase modes, and usage limits.",
+            description: "Add availability dates, purchase modes, and usage limits.",
           }}
         />
       ) : (
@@ -111,9 +86,7 @@ export function AvailabilityLimitsSection({
                   <Flex vertical>
                     <Typography.Text type="secondary">Ends</Typography.Text>
                     <Typography.Text strong>
-                      {discount.endsAt
-                        ? formatDiscountDateTime(discount.endsAt)
-                        : "No end date"}
+                      {discount.endsAt ? formatDiscountDateTime(discount.endsAt) : "No end date"}
                     </Typography.Text>
                   </Flex>
                 ),
@@ -124,27 +97,16 @@ export function AvailabilityLimitsSection({
           <div className={styles.policyCard}>
             <Flex align="center" justify="space-between" gap={8}>
               <Flex vertical>
-                <Typography.Text type="secondary">
-                  Purchase modes
-                </Typography.Text>
+                <Typography.Text type="secondary">Purchase modes</Typography.Text>
                 <Typography.Text strong>
-                  {purchaseModes.length > 0
-                    ? purchaseModes.join(" and ")
-                    : "Not configured"}
+                  {purchaseModes.length > 0 ? purchaseModes.join(" and ") : "Not configured"}
                 </Typography.Text>
               </Flex>
               <Tag color="blue">
-                {discount.method === DiscountMethod.Automatic
-                  ? "Automatic"
-                  : "Code"}
+                {discount.method === DiscountMethod.Automatic ? "Automatic" : "Code"}
               </Tag>
             </Flex>
-            <Flex
-              align="center"
-              justify="space-between"
-              gap={8}
-              style={{ marginTop: 8 }}
-            >
+            <Flex align="center" justify="space-between" gap={8} style={{ marginTop: 8 }}>
               <Flex align="center" gap={6}>
                 <LuTicketCheck />
                 <Typography.Text>
@@ -155,9 +117,7 @@ export function AvailabilityLimitsSection({
               </Flex>
               {discount.method === DiscountMethod.Code && (
                 <Typography.Text type="secondary">
-                  {discount.appliesOncePerCustomer
-                    ? "Once per customer"
-                    : "Multiple uses allowed"}
+                  {discount.appliesOncePerCustomer ? "Once per customer" : "Multiple uses allowed"}
                 </Typography.Text>
               )}
             </Flex>

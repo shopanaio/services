@@ -1,7 +1,4 @@
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { DiscountTarget } from "../../repositories/models/index.js";
 
 export function customerReference(customerId: string) {
@@ -11,9 +8,7 @@ export function customerReference(customerId: string) {
   };
 }
 
-export function catalogTargetReference(
-  target: Pick<DiscountTarget, "targetId" | "targetType">,
-) {
+export function catalogTargetReference(target: Pick<DiscountTarget, "targetId" | "targetType">) {
   switch (target.targetType) {
     case "PRODUCTS":
       return {

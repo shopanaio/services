@@ -5,11 +5,7 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { App, Input, Typography } from "antd";
 import { createStyles } from "antd-style";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useUpdateWarehouse } from "../../hooks";
 import {
@@ -106,13 +102,7 @@ export function EditIdentityModal() {
         pop();
       }
     },
-    [
-      message,
-      pop,
-      setError,
-      typedPayload,
-      updateWarehouse,
-    ],
+    [message, pop, setError, typedPayload, updateWarehouse],
   );
 
   return (
@@ -148,9 +138,7 @@ export function EditIdentityModal() {
               )}
             />
             {errors.name && (
-              <Typography.Text className={styles.error}>
-                {errors.name.message}
-              </Typography.Text>
+              <Typography.Text className={styles.error}>{errors.name.message}</Typography.Text>
             )}
           </div>
 
@@ -164,16 +152,12 @@ export function EditIdentityModal() {
                   {...field}
                   status={errors.code ? "error" : undefined}
                   data-testid="edit-warehouse-code-input"
-                  onChange={(event) =>
-                    field.onChange(normalizeWarehouseCode(event.target.value))
-                  }
+                  onChange={(event) => field.onChange(normalizeWarehouseCode(event.target.value))}
                 />
               )}
             />
             {errors.code ? (
-              <Typography.Text className={styles.error}>
-                {errors.code.message}
-              </Typography.Text>
+              <Typography.Text className={styles.error}>{errors.code.message}</Typography.Text>
             ) : (
               <Typography.Text className={styles.help}>
                 Changing the code can affect imports, reports, and integrations.

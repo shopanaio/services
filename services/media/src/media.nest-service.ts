@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { getServiceConfig } from "@shopana/shared-service-config";
 import {
   DATABASE_CLIENT,
@@ -7,10 +7,10 @@ import {
   type DatabaseClient,
 } from "@shopana/shared-kernel";
 import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/shared-kernel";
-import type { FastifyInstance } from 'fastify';
-import { startServer } from './api/graphql-admin/server';
-import { startStorefrontServer } from './api/graphql-storefront/server.js';
-import { Kernel } from './kernel/Kernel';
+import type { FastifyInstance } from "fastify";
+import { startServer } from "./api/graphql-admin/server";
+import { startStorefrontServer } from "./api/graphql-storefront/server.js";
+import { Kernel } from "./kernel/Kernel";
 
 const { service } = getServiceConfig("media");
 
@@ -22,9 +22,9 @@ export class MediaNestService implements OnModuleInit, OnModuleDestroy {
   private storefrontGraphqlServer: FastifyInstance | null = null;
 
   constructor(
-    @InjectBroker('media') private readonly broker: ServiceBroker,
+    @InjectBroker("media") private readonly broker: ServiceBroker,
     @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
-    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
+    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient,
   ) {}
 
   async onModuleInit() {
@@ -59,6 +59,6 @@ export class MediaNestService implements OnModuleInit, OnModuleDestroy {
       await this.kernel.close();
     }
 
-    this.logger.log('Media service stopped');
+    this.logger.log("Media service stopped");
   }
 }

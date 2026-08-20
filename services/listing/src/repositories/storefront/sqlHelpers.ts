@@ -24,10 +24,7 @@ export function emptyBitmapExpr(source: string): BitmapExpr {
   };
 }
 
-export function literalBitmapExpr(
-  value: RoaringBitmapSqlValue,
-  source: string
-): BitmapExpr {
+export function literalBitmapExpr(value: RoaringBitmapSqlValue, source: string): BitmapExpr {
   return {
     sql: sql`${value}::roaringbitmap`,
     empty: false,
@@ -46,9 +43,7 @@ export function andBitmapExpr(parts: readonly BitmapExpr[]): BitmapExpr {
   }
 
   return {
-    sql: parts
-      .slice(1)
-      .reduce((acc, part) => sql`(${acc} & ${part.sql})`, parts[0].sql),
+    sql: parts.slice(1).reduce((acc, part) => sql`(${acc} & ${part.sql})`, parts[0].sql),
     empty: false,
     source: `and(${parts.map((part) => part.source).join(",")})`,
   };
@@ -72,19 +67,14 @@ export function orBitmapExpr(parts: readonly BitmapExpr[]): BitmapExpr {
 export function normalizePositivePageSize(first: number): number {
   if (!Number.isSafeInteger(first) || first <= 0) {
     throw new StorefrontRepositoryValidationError(
-      "Listing page size must be a positive safe integer"
+      "Listing page size must be a positive safe integer",
     );
   }
   return Math.min(first, 250);
 }
 
-export function assertNonNegativeSafeInteger(
-  value: number,
-  field: string
-): void {
+export function assertNonNegativeSafeInteger(value: number, field: string): void {
   if (!Number.isSafeInteger(value) || value < 0) {
-    throw new StorefrontRepositoryValidationError(
-      `${field} must be a non-negative safe integer`
-    );
+    throw new StorefrontRepositoryValidationError(`${field} must be a non-negative safe integer`);
   }
 }

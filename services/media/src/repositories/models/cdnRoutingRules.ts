@@ -60,17 +60,12 @@ export const cdnRoutingRules = mediaSchema.table(
       .defaultNow(),
   },
   (table) => [
-    uniqueIndex("idx_cdn_routing_rules_name").on(
-      table.assetGroupId,
-      table.name
-    ),
+    uniqueIndex("idx_cdn_routing_rules_name").on(table.assetGroupId, table.name),
     index("idx_cdn_routing_rules_priority")
       .on(table.assetGroupId, table.priority)
       .where(sql`enabled = true`),
-    index("idx_cdn_routing_rules_configuration").on(
-      table.cdnConfigurationId
-    ),
-  ]
+    index("idx_cdn_routing_rules_configuration").on(table.cdnConfigurationId),
+  ],
 );
 
 export type CdnRoutingRule = typeof cdnRoutingRules.$inferSelect;

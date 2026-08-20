@@ -22,8 +22,8 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
         and(
           eq(customerExternalReference.storeId, this.storeId),
           eq(customerExternalReference.id, id),
-          isNull(customerExternalReference.deletedAt)
-        )
+          isNull(customerExternalReference.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -49,8 +49,8 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
           eq(customerExternalReference.externalSystem, externalSystem),
           eq(customerExternalReference.externalType, externalType),
           eq(customerExternalReference.externalId, externalId),
-          isNull(customerExternalReference.deletedAt)
-        )
+          isNull(customerExternalReference.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -75,17 +75,15 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
           eq(customerExternalReference.customerId, input.customerId),
           eq(customerExternalReference.externalSystem, externalSystem),
           eq(customerExternalReference.externalType, externalType),
-          isNull(customerExternalReference.deletedAt)
-        )
+          isNull(customerExternalReference.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
   }
 
   @ReadOnly()
-  async getByIds(
-    ids: readonly string[]
-  ): Promise<CustomerExternalReference[]> {
+  async getByIds(ids: readonly string[]): Promise<CustomerExternalReference[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -94,15 +92,13 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
         and(
           eq(customerExternalReference.storeId, this.storeId),
           inArray(customerExternalReference.id, [...new Set(ids)]),
-          isNull(customerExternalReference.deletedAt)
-        )
+          isNull(customerExternalReference.deletedAt),
+        ),
       );
   }
 
   @ReadOnly()
-  async getByCustomerIds(
-    customerIds: readonly string[]
-  ): Promise<CustomerExternalReference[]> {
+  async getByCustomerIds(customerIds: readonly string[]): Promise<CustomerExternalReference[]> {
     if (customerIds.length === 0) return [];
     return this.connection
       .select()
@@ -111,13 +107,13 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
         and(
           eq(customerExternalReference.storeId, this.storeId),
           inArray(customerExternalReference.customerId, [...new Set(customerIds)]),
-          isNull(customerExternalReference.deletedAt)
-        )
+          isNull(customerExternalReference.deletedAt),
+        ),
       )
       .orderBy(
         customerExternalReference.externalSystem,
         customerExternalReference.externalType,
-        customerExternalReference.id
+        customerExternalReference.id,
       );
   }
 
@@ -126,7 +122,7 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
     options: {
       existingReferenceId?: string;
       expectedCustomerId?: string;
-    } = {}
+    } = {},
   ): Promise<CustomerExternalReference | null> {
     const now = new Date().toISOString();
     const row: NewCustomerExternalReference = {
@@ -155,19 +151,13 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
               eq(customerExternalReference.storeId, this.storeId),
               eq(customerExternalReference.id, options.existingReferenceId),
               options.expectedCustomerId
-                ? eq(
-                    customerExternalReference.customerId,
-                    options.expectedCustomerId
-                  )
+                ? eq(customerExternalReference.customerId, options.expectedCustomerId)
                 : undefined,
-              isNull(customerExternalReference.deletedAt)
-            )
+              isNull(customerExternalReference.deletedAt),
+            ),
           )
           .returning()
-      : await this.connection
-          .insert(customerExternalReference)
-          .values(row)
-          .returning();
+      : await this.connection.insert(customerExternalReference).values(row).returning();
     return rows[0] ?? null;
   }
 
@@ -180,8 +170,8 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
         and(
           eq(customerExternalReference.storeId, this.storeId),
           eq(customerExternalReference.id, id),
-          isNull(customerExternalReference.deletedAt)
-        )
+          isNull(customerExternalReference.deletedAt),
+        ),
       )
       .returning({ id: customerExternalReference.id });
     return rows.length > 0;

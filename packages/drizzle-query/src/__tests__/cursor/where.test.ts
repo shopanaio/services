@@ -39,10 +39,7 @@ describe("buildCursorWhereInput", () => {
       // forward + asc = _gt (next items are greater)
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        _or: [
-          { title: { _gt: "A" } },
-          { title: { _eq: "A" }, id: { _gt: "1" } },
-        ],
+        _or: [{ title: { _gt: "A" } }, { title: { _eq: "A" }, id: { _gt: "1" } }],
       });
     });
 
@@ -105,10 +102,7 @@ describe("buildCursorWhereInput", () => {
       // backward + asc = _lt (previous items are smaller)
       const where = buildCursorWhereInput(params, false);
       expect(where).toEqual({
-        _or: [
-          { title: { _lt: "Z" } },
-          { title: { _eq: "Z" }, id: { _lt: "999" } },
-        ],
+        _or: [{ title: { _lt: "Z" } }, { title: { _eq: "Z" }, id: { _lt: "999" } }],
       });
     });
   });
@@ -230,10 +224,7 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        _or: [
-          { deletedAt: { _lt: null } },
-          { deletedAt: { _eq: null }, id: { _lt: "123" } },
-        ],
+        _or: [{ deletedAt: { _lt: null } }, { deletedAt: { _eq: null }, id: { _lt: "123" } }],
       });
     });
 
@@ -249,10 +240,7 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        _or: [
-          { price: { _lt: 99.99 } },
-          { price: { _eq: 99.99 }, id: { _lt: "123" } },
-        ],
+        _or: [{ price: { _lt: 99.99 } }, { price: { _eq: 99.99 }, id: { _lt: "123" } }],
       });
     });
   });
@@ -262,23 +250,22 @@ describe("buildCursorWhereInput", () => {
       const params: CursorParams = {
         type: "file",
         filtersHash: "",
-        seek: [
-          { field: "id", value: "Z2lkOi8vc2hvcGFuYS9GaWxlLzEyMzQ1Njc4", direction: "desc" },
-        ],
+        seek: [{ field: "id", value: "Z2lkOi8vc2hvcGFuYS9GaWxlLzEyMzQ1Njc4", direction: "desc" }],
       };
 
       const seekTransforms: SeekTransforms = {
         id: {
           encode: (v) => `encoded-${v}`,
-          decode: (v) => (v as string).replace("Z2lkOi8vc2hvcGFuYS9GaWxlLw==", "").replace("Z2lkOi8vc2hvcGFuYS9GaWxlLzEyMzQ1Njc4", "12345678"),
+          decode: (v) =>
+            (v as string)
+              .replace("Z2lkOi8vc2hvcGFuYS9GaWxlLw==", "")
+              .replace("Z2lkOi8vc2hvcGFuYS9GaWxlLzEyMzQ1Njc4", "12345678"),
         },
       };
 
       const where = buildCursorWhereInput(params, true, seekTransforms);
       expect(where).toEqual({
-        _or: [
-          { id: { _lt: "12345678" } },
-        ],
+        _or: [{ id: { _lt: "12345678" } }],
       });
     });
 
@@ -331,10 +318,7 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, true, seekTransforms);
       expect(where).toEqual({
-        _or: [
-          { parentId: { _gt: "1" } },
-          { parentId: { _eq: "1" }, id: { _gt: "2" } },
-        ],
+        _or: [{ parentId: { _gt: "1" } }, { parentId: { _eq: "1" }, id: { _gt: "2" } }],
       });
     });
 
@@ -357,10 +341,7 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, true, seekTransforms);
       expect(where).toEqual({
-        _or: [
-          { status: { _lt: "ACTIVE" } },
-          { status: { _eq: "ACTIVE" }, id: { _lt: "123" } },
-        ],
+        _or: [{ status: { _lt: "ACTIVE" } }, { status: { _eq: "ACTIVE" }, id: { _lt: "123" } }],
       });
     });
 
@@ -368,16 +349,12 @@ describe("buildCursorWhereInput", () => {
       const params: CursorParams = {
         type: "item",
         filtersHash: "",
-        seek: [
-          { field: "id", value: "raw-uuid", direction: "desc" },
-        ],
+        seek: [{ field: "id", value: "raw-uuid", direction: "desc" }],
       };
 
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        _or: [
-          { id: { _lt: "raw-uuid" } },
-        ],
+        _or: [{ id: { _lt: "raw-uuid" } }],
       });
     });
 
@@ -385,16 +362,12 @@ describe("buildCursorWhereInput", () => {
       const params: CursorParams = {
         type: "item",
         filtersHash: "",
-        seek: [
-          { field: "id", value: "raw-uuid", direction: "desc" },
-        ],
+        seek: [{ field: "id", value: "raw-uuid", direction: "desc" }],
       };
 
       const where = buildCursorWhereInput(params, true, undefined);
       expect(where).toEqual({
-        _or: [
-          { id: { _lt: "raw-uuid" } },
-        ],
+        _or: [{ id: { _lt: "raw-uuid" } }],
       });
     });
   });

@@ -56,10 +56,7 @@ describe.skip("WorkflowScriptLoader", () => {
 
     const workflowDir = path.join(tempDir, "workflows");
     fs.mkdirSync(workflowDir);
-    fs.writeFileSync(
-      path.join(workflowDir, "test.workflow.js"),
-      workflowContent
-    );
+    fs.writeFileSync(path.join(workflowDir, "test.workflow.js"), workflowContent);
 
     const loader = new WorkflowScriptLoader(workflowDir);
     const result = await loader.load();
@@ -79,10 +76,7 @@ describe.skip("WorkflowScriptLoader", () => {
 
     const workflowDir = path.join(tempDir, "workflows");
     fs.mkdirSync(workflowDir);
-    fs.writeFileSync(
-      path.join(workflowDir, "test.workflow.ts"),
-      workflowContent
-    );
+    fs.writeFileSync(path.join(workflowDir, "test.workflow.ts"), workflowContent);
 
     const loader = new WorkflowScriptLoader(workflowDir);
     const result = await loader.load();
@@ -110,14 +104,8 @@ describe.skip("WorkflowScriptLoader", () => {
 
     const workflowDir = path.join(tempDir, "workflows");
     fs.mkdirSync(workflowDir);
-    fs.writeFileSync(
-      path.join(workflowDir, "workflow1.workflow.js"),
-      workflow1
-    );
-    fs.writeFileSync(
-      path.join(workflowDir, "workflow2.workflow.js"),
-      workflow2
-    );
+    fs.writeFileSync(path.join(workflowDir, "workflow1.workflow.js"), workflow1);
+    fs.writeFileSync(path.join(workflowDir, "workflow2.workflow.js"), workflow2);
 
     const loader = new WorkflowScriptLoader(workflowDir);
     const result = await loader.load();
@@ -165,10 +153,7 @@ describe.skip("WorkflowScriptLoader", () => {
 
     const workflowDir = path.join(tempDir, "workflows");
     fs.mkdirSync(workflowDir);
-    fs.writeFileSync(
-      path.join(workflowDir, "named.workflow.js"),
-      workflowContent
-    );
+    fs.writeFileSync(path.join(workflowDir, "named.workflow.js"), workflowContent);
 
     const loader = new WorkflowScriptLoader(workflowDir);
     const result = await loader.load();
@@ -195,10 +180,7 @@ describe.skip("WorkflowScriptLoader", () => {
 
     const workflowDir = path.join(tempDir, "workflows");
     fs.mkdirSync(workflowDir);
-    fs.writeFileSync(
-      path.join(workflowDir, "mixed.workflow.js"),
-      workflowContent
-    );
+    fs.writeFileSync(path.join(workflowDir, "mixed.workflow.js"), workflowContent);
 
     const loader = new WorkflowScriptLoader(workflowDir);
     const result = await loader.load();
@@ -251,14 +233,8 @@ describe.skip("WorkflowScriptLoader", () => {
 
     const workflowDir = path.join(tempDir, "workflows");
     fs.mkdirSync(workflowDir);
-    fs.writeFileSync(
-      path.join(workflowDir, "invalid.workflow.js"),
-      invalidWorkflow
-    );
-    fs.writeFileSync(
-      path.join(workflowDir, "valid.workflow.js"),
-      validWorkflow
-    );
+    fs.writeFileSync(path.join(workflowDir, "invalid.workflow.js"), invalidWorkflow);
+    fs.writeFileSync(path.join(workflowDir, "valid.workflow.js"), validWorkflow);
 
     const loader = new WorkflowScriptLoader(workflowDir);
     const result = await loader.load();
@@ -280,14 +256,8 @@ describe.skip("WorkflowScriptLoader", () => {
 
     const workflowDir = path.join(tempDir, "workflows");
     fs.mkdirSync(workflowDir);
-    fs.writeFileSync(
-      path.join(workflowDir, "syntax-error.workflow.js"),
-      invalidSyntax
-    );
-    fs.writeFileSync(
-      path.join(workflowDir, "valid.workflow.js"),
-      validWorkflow
-    );
+    fs.writeFileSync(path.join(workflowDir, "syntax-error.workflow.js"), invalidSyntax);
+    fs.writeFileSync(path.join(workflowDir, "valid.workflow.js"), validWorkflow);
 
     const loader = new WorkflowScriptLoader(workflowDir);
     const result = await loader.load();
@@ -327,10 +297,7 @@ describe.skip("WorkflowScriptLoader", () => {
 
     const workflowDir = path.join(tempDir, "workflows");
     fs.mkdirSync(workflowDir);
-    fs.writeFileSync(
-      path.join(workflowDir, "class.workflow.js"),
-      workflowContent
-    );
+    fs.writeFileSync(path.join(workflowDir, "class.workflow.js"), workflowContent);
 
     const loader = new WorkflowScriptLoader(workflowDir);
     const result = await loader.load();

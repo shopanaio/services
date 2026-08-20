@@ -2,20 +2,11 @@
 
 import { Button, Dropdown } from "antd";
 import { createStyles } from "antd-style";
-import {
-  LuClock3,
-  LuEllipsis,
-  LuSlidersHorizontal,
-  LuWeight,
-} from "react-icons/lu";
+import { LuClock3, LuEllipsis, LuSlidersHorizontal, LuWeight } from "react-icons/lu";
 import type { ApiStore } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsItemTile } from "@/ui-kit/settings-item-tile";
-import {
-  formatTimeZoneLabel,
-  UNIT_SYSTEM_LABELS,
-  WEIGHT_UNIT_LABELS,
-} from "../utils";
+import { formatTimeZoneLabel, UNIT_SYSTEM_LABELS, WEIGHT_UNIT_LABELS } from "../utils";
 
 const useStyles = createStyles(() => ({
   paper: {

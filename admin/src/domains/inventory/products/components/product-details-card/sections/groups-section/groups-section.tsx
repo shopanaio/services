@@ -10,18 +10,12 @@ interface IGroupsSectionProps {
   onEdit: () => void;
 }
 
-export const GroupsSection = ({
-  groups,
-  onEdit,
-}: IGroupsSectionProps) => {
+export const GroupsSection = ({ groups, onEdit }: IGroupsSectionProps) => {
   const { styles } = useStyles();
 
   if (!groups || groups.length === 0) {
     return (
-      <Empty
-        image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description="No component groups configured"
-      />
+      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No component groups configured" />
     );
   }
 

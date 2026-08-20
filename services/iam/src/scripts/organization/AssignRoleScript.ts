@@ -6,20 +6,13 @@ import {
   type AssignRoleResult,
 } from "./dto/AssignRoleDto.js";
 
-export class AssignRoleScript extends BaseScript<
-  AssignRoleParams,
-  AssignRoleResult
-> {
+export class AssignRoleScript extends BaseScript<AssignRoleParams, AssignRoleResult> {
   @ZodSchema(assignRoleInputSchema)
   protected async execute(params: AssignRoleParams): Promise<AssignRoleResult> {
     const { userId, organizationId, domain, roleName } = params;
 
     // Find role by name in the domain
-    const role = await this.repository.organization.findRole(
-      organizationId,
-      domain,
-      roleName
-    );
+    const role = await this.repository.organization.findRole(organizationId, domain, roleName);
 
     if (!role) {
       return {
@@ -47,7 +40,7 @@ export class AssignRoleScript extends BaseScript<
 
     this.logger.debug(
       { userId, organizationId, domain, roleName },
-      "AssignRoleScript: Role assigned successfully"
+      "AssignRoleScript: Role assigned successfully",
     );
 
     return { success: true };

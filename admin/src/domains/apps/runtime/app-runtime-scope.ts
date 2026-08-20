@@ -24,4 +24,3 @@ export class AppRuntimeScope {
     return this.active;
   }
 }
-

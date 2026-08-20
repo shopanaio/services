@@ -31,7 +31,8 @@ function isNotFoundError(error: unknown): boolean {
   if (typeof error !== "object" || error === null) {
     return false;
   }
-  const code = (error as { Code?: string; code?: string; name?: string }).Code ??
+  const code =
+    (error as { Code?: string; code?: string; name?: string }).Code ??
     (error as { Code?: string; code?: string; name?: string }).code ??
     (error as { Code?: string; code?: string; name?: string }).name;
 

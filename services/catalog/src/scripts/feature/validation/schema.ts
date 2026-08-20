@@ -11,9 +11,7 @@ const CanonicalHandleSchema = z.string().transform((value, context) => {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message:
-        error instanceof CollectionContractValidationError
-          ? error.message
-          : "Invalid handle",
+        error instanceof CollectionContractValidationError ? error.message : "Invalid handle",
     });
     return z.NEVER;
   }

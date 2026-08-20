@@ -196,10 +196,7 @@ export const DISCOUNT_DETAILS_FRAGMENT = gql`
       }
     }
 
-    redemptions(
-      first: 100
-      orderBy: [{ field: committedAt, direction: desc }]
-    ) {
+    redemptions(first: 100, orderBy: [{ field: committedAt, direction: desc }]) {
       totalCount
       edges {
         node {
@@ -213,10 +210,7 @@ export const DISCOUNT_DETAILS_FRAGMENT = gql`
       }
     }
 
-    externalReferences(
-      first: 20
-      orderBy: [{ field: updatedAt, direction: desc }]
-    ) {
+    externalReferences(first: 20, orderBy: [{ field: updatedAt, direction: desc }]) {
       totalCount
       edges {
         node {

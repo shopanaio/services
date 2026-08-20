@@ -1,12 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  bigint,
-  check,
-  index,
-  integer,
-  smallint,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { bigint, check, index, integer, smallint, uuid } from "drizzle-orm/pg-core";
 import { discount } from "./discounts.js";
 import {
   discountAllocationMethodEnum,
@@ -28,18 +21,13 @@ export const discountAmountOff = pricingSchema.table(
     valueType: priceAdjustmentValueTypeEnum("value_type").notNull(),
     percentageBps: smallint("percentage_bps"),
     amountMinor: bigint("amount_minor", { mode: "bigint" }),
-    allocationMethod: discountAllocationMethodEnum("allocation_method")
-      .notNull()
-      .default("ACROSS"),
+    allocationMethod: discountAllocationMethodEnum("allocation_method").notNull().default("ACROSS"),
     maximumDiscountMinor: bigint("maximum_discount_minor", {
       mode: "bigint",
     }),
   },
   (table) => [
-    check(
-      "discount_amount_off_operation_check",
-      sql`${table.operation} = 'DECREASE'`,
-    ),
+    check("discount_amount_off_operation_check", sql`${table.operation} = 'DECREASE'`),
     check(
       "discount_amount_off_value_check",
       sql`(${table.valueType} = 'PERCENTAGE'
@@ -53,10 +41,7 @@ export const discountAmountOff = pricingSchema.table(
       "discount_amount_off_maximum_check",
       sql`${table.maximumDiscountMinor} IS NULL OR ${table.maximumDiscountMinor} > 0`,
     ),
-    index("discount_amount_off_store_idx").on(
-      table.storeId,
-      table.discountId,
-    ),
+    index("discount_amount_off_store_idx").on(table.storeId, table.discountId),
   ],
 );
 
@@ -90,10 +75,7 @@ export const discountBuyXGetY = pricingSchema.table(
           AND ${table.requiredQuantity} IS NULL
           AND ${table.requiredSubtotalMinor} > 0)`,
     ),
-    check(
-      "discount_buy_x_get_y_benefit_quantity_check",
-      sql`${table.benefitQuantity} > 0`,
-    ),
+    check("discount_buy_x_get_y_benefit_quantity_check", sql`${table.benefitQuantity} > 0`),
     check(
       "discount_buy_x_get_y_benefit_check",
       sql`(${table.benefitStrategy} = 'ADJUSTMENT'
@@ -116,10 +98,7 @@ export const discountBuyXGetY = pricingSchema.table(
       "discount_buy_x_get_y_uses_per_order_check",
       sql`${table.usesPerOrderLimit} IS NULL OR ${table.usesPerOrderLimit} > 0`,
     ),
-    index("discount_buy_x_get_y_store_idx").on(
-      table.storeId,
-      table.discountId,
-    ),
+    index("discount_buy_x_get_y_store_idx").on(table.storeId, table.discountId),
   ],
 );
 
@@ -139,10 +118,7 @@ export const discountFreeShipping = pricingSchema.table(
       "discount_free_shipping_maximum_price_check",
       sql`${table.maximumShippingPriceMinor} IS NULL OR ${table.maximumShippingPriceMinor} >= 0`,
     ),
-    index("discount_free_shipping_store_idx").on(
-      table.storeId,
-      table.discountId,
-    ),
+    index("discount_free_shipping_store_idx").on(table.storeId, table.discountId),
   ],
 );
 
@@ -167,10 +143,7 @@ export const discountMinimumRequirement = pricingSchema.table(
           AND ${table.subtotalMinor} IS NULL
           AND ${table.quantity} > 0)`,
     ),
-    index("discount_minimum_requirement_store_idx").on(
-      table.storeId,
-      table.discountId,
-    ),
+    index("discount_minimum_requirement_store_idx").on(table.storeId, table.discountId),
   ],
 );
 
@@ -180,7 +153,5 @@ export type DiscountBuyXGetY = typeof discountBuyXGetY.$inferSelect;
 export type NewDiscountBuyXGetY = typeof discountBuyXGetY.$inferInsert;
 export type DiscountFreeShipping = typeof discountFreeShipping.$inferSelect;
 export type NewDiscountFreeShipping = typeof discountFreeShipping.$inferInsert;
-export type DiscountMinimumRequirement =
-  typeof discountMinimumRequirement.$inferSelect;
-export type NewDiscountMinimumRequirement =
-  typeof discountMinimumRequirement.$inferInsert;
+export type DiscountMinimumRequirement = typeof discountMinimumRequirement.$inferSelect;
+export type NewDiscountMinimumRequirement = typeof discountMinimumRequirement.$inferInsert;

@@ -8,11 +8,7 @@ import type {
   SearchTextField,
 } from "../../repositories/search/searchRepositoryTypes.js";
 import type { SearchConfigurationService } from "../configuration/index.js";
-import {
-  configurationUnavailable,
-  indexUnavailable,
-  SearchRuntimeError,
-} from "../errors.js";
+import { configurationUnavailable, indexUnavailable, SearchRuntimeError } from "../errors.js";
 import { SearchQueryNormalizer } from "../normalization/SearchQueryNormalizer.js";
 import type {
   LexicalizedSearchQuery,
@@ -175,11 +171,10 @@ export class SearchExecutionService {
 
   async explain(input: SearchExplainInput): Promise<SearchExplain> {
     const contract = await this.execute(input);
-    const fuzzyExecution = contract.attempt.mode === "FUZZY"
-      ? this.compiler.describeFuzzyExecution(
-          contract.plan as ExpandedFuzzySearchQueryPlan,
-        )
-      : null;
+    const fuzzyExecution =
+      contract.attempt.mode === "FUZZY"
+        ? this.compiler.describeFuzzyExecution(contract.plan as ExpandedFuzzySearchQueryPlan)
+        : null;
     return createSearchExplain(input.query, contract, fuzzyExecution);
   }
 
@@ -196,11 +191,7 @@ export class SearchExecutionService {
     }
     await this.assertRuntimeCompatible(true);
     const fuzzyPlan = await this.buildExpandedTypoPlan(request, primaryPlan);
-    const contract = await this.materializeContract(
-      request,
-      fuzzyPlan,
-      "FUZZY",
-    );
+    const contract = await this.materializeContract(request, fuzzyPlan, "FUZZY");
     this.logMaterializedContract(contract, startedAt);
     return contract;
   }
@@ -211,12 +202,10 @@ export class SearchExecutionService {
     mode: SearchExecutionMode,
   ): Promise<SearchCandidateContract> {
     const attempt: SearchAttemptContext = Object.freeze({ request, mode });
-    const compiled = mode === "FUZZY"
-      ? this.compiler.compileFuzzy(
-          plan as ExpandedFuzzySearchQueryPlan,
-          compilerContext(request),
-        )
-      : this.compiler.compilePrimary(plan, compilerContext(request));
+    const compiled =
+      mode === "FUZZY"
+        ? this.compiler.compileFuzzy(plan as ExpandedFuzzySearchQueryPlan, compilerContext(request))
+        : this.compiler.compilePrimary(plan, compilerContext(request));
     const membership = await this.materializePublishedMembership(
       request.storeId,
       compiled.membershipCandidateRelationSql,
@@ -234,18 +223,21 @@ export class SearchExecutionService {
     request: SearchRequestContext,
     primaryPlan: SearchQueryPlan,
   ): Promise<ExpandedFuzzySearchQueryPlan> {
-    const alternativesByInputTerm = new Map<
-      string,
-      readonly VerifiedTypoAlternative[]
-    >();
-    const inputTerms = [...new Set(primaryPlan.requiredUnits.flatMap((unit) => {
-      const clause = unit.originalTypoAlternative;
-      return clause?.kind === "typoTerms" ? clause.terms : [];
-    }))];
-    const resolved = await Promise.all(inputTerms.map(async (inputTerm) => ({
-      inputTerm,
-      result: await this.resolveVerifiedTypoAlternatives(request, inputTerm),
-    })));
+    const alternativesByInputTerm = new Map<string, readonly VerifiedTypoAlternative[]>();
+    const inputTerms = [
+      ...new Set(
+        primaryPlan.requiredUnits.flatMap((unit) => {
+          const clause = unit.originalTypoAlternative;
+          return clause?.kind === "typoTerms" ? clause.terms : [];
+        }),
+      ),
+    ];
+    const resolved = await Promise.all(
+      inputTerms.map(async (inputTerm) => ({
+        inputTerm,
+        result: await this.resolveVerifiedTypoAlternatives(request, inputTerm),
+      })),
+    );
     const totalCandidateWork = resolved.reduce(
       (total, item) => total + item.result.prefilterCount,
       0,
@@ -257,19 +249,16 @@ export class SearchExecutionService {
       alternativesByInputTerm.set(item.inputTerm, item.result.alternatives);
     }
 
-    const alternativesByUnit = new Map<
-      number,
-      readonly VerifiedTypoAlternative[]
-    >();
+    const alternativesByUnit = new Map<number, readonly VerifiedTypoAlternative[]>();
     for (const unit of primaryPlan.requiredUnits) {
       const clause = unit.originalTypoAlternative;
       alternativesByUnit.set(
         unit.index,
-        Object.freeze(clause?.kind === "typoTerms"
-          ? clause.terms.flatMap(
-              (term) => alternativesByInputTerm.get(term) ?? [],
-            )
-          : []),
+        Object.freeze(
+          clause?.kind === "typoTerms"
+            ? clause.terms.flatMap((term) => alternativesByInputTerm.get(term) ?? [])
+            : [],
+        ),
       );
     }
     return this.planBuilder.buildExpandedFuzzy({
@@ -289,9 +278,9 @@ export class SearchExecutionService {
       storeId: request.storeId,
       locale: request.locale,
     });
-    const rows = await this.dependencies.connection().execute<TypoCandidateSqlRow>(
-      compiled.candidateSql,
-    );
+    const rows = await this.dependencies
+      .connection()
+      .execute<TypoCandidateSqlRow>(compiled.candidateSql);
     const values = rows as unknown as TypoCandidateSqlRow[];
     const summary = values[0];
     const prefilterCount = Number(summary?.prefilterCount ?? 0);
@@ -328,10 +317,7 @@ export class SearchExecutionService {
           query: row.term,
         });
       } catch (error) {
-        if (
-          error instanceof SearchRuntimeError &&
-          error.code === "SEARCH_NORMALIZATION_FAILED"
-        ) {
+        if (error instanceof SearchRuntimeError && error.code === "SEARCH_NORMALIZATION_FAILED") {
           continue;
         }
         throw error;
@@ -339,22 +325,21 @@ export class SearchExecutionService {
       if (
         normalized.lexicalizedQuery.normalizationContractVersion !==
           request.lexicalizedQuery.normalizationContractVersion ||
-        normalized.lexicalizedQuery.profileRevision !==
-          request.lexicalizedQuery.profileRevision
+        normalized.lexicalizedQuery.profileRevision !== request.lexicalizedQuery.profileRevision
       ) {
         throw indexUnavailable("Typo alternative normalization profile mismatch");
       }
-      alternatives.push(Object.freeze({
-        inputTerm,
-        vocabularyTerm: row.term,
-        editDistance,
-        trigramSimilarity,
-        ftsLexemes: Object.freeze(
-          normalized.lexicalizedQuery.originalUnits.flatMap(
-            (unit) => unit.ftsLexemes,
+      alternatives.push(
+        Object.freeze({
+          inputTerm,
+          vocabularyTerm: row.term,
+          editDistance,
+          trigramSimilarity,
+          ftsLexemes: Object.freeze(
+            normalized.lexicalizedQuery.originalUnits.flatMap((unit) => unit.ftsLexemes),
           ),
-        ),
-      }));
+        }),
+      );
     }
     return Object.freeze({
       alternatives: Object.freeze(alternatives),
@@ -362,32 +347,29 @@ export class SearchExecutionService {
     });
   }
 
-  private logMaterializedContract(
-    contract: SearchCandidateContract,
-    startedAt: number,
-  ): void {
+  private logMaterializedContract(contract: SearchCandidateContract, startedAt: number): void {
     const request = contract.request;
-    getContext().kernel.getServices().logger.debug(
-      {
-        storeId: request.storeId,
-        locale: request.locale,
-        queryHash: request.normalizedQuery.hash,
-        planFingerprint: contract.plan.fingerprint,
-        mode: contract.attempt.mode,
-        membershipCardinality: contract.membershipCardinality,
-        membershipSerializedBytes: contract.membershipSerializedBytes,
-        boostOnlyCandidateCount: contract.boostOnlyCandidateCount,
-        matchedSynonymGroupCount: contract.plan.matchedSynonymGroupIds.length,
-        applicableBoostCount: request.configuration.boosts.length,
-        durationMs: Date.now() - startedAt,
-      },
-      "Canonical search candidates materialized",
-    );
+    getContext()
+      .kernel.getServices()
+      .logger.debug(
+        {
+          storeId: request.storeId,
+          locale: request.locale,
+          queryHash: request.normalizedQuery.hash,
+          planFingerprint: contract.plan.fingerprint,
+          mode: contract.attempt.mode,
+          membershipCardinality: contract.membershipCardinality,
+          membershipSerializedBytes: contract.membershipSerializedBytes,
+          boostOnlyCandidateCount: contract.boostOnlyCandidateCount,
+          matchedSynonymGroupCount: contract.plan.matchedSynonymGroupIds.length,
+          applicableBoostCount: request.configuration.boosts.length,
+          durationMs: Date.now() - startedAt,
+        },
+        "Canonical search candidates materialized",
+      );
   }
 
-  private async resolveRequestContext(
-    input: SearchExecutionInput,
-  ): Promise<SearchRequestContext> {
+  private async resolveRequestContext(input: SearchExecutionInput): Promise<SearchRequestContext> {
     const storeId = getContext().store.id;
     const normalized = this.normalizer.normalizeQuery({
       storeId,
@@ -415,11 +397,15 @@ export class SearchExecutionService {
     const configuration: SearchRequestConfiguration = Object.freeze({
       settings: normalizeSettings(settingsRow, this.fields),
       synonyms,
-      boosts: Object.freeze(boostRows.map((boost) => Object.freeze({
-        boostId: boost.boostId,
-        version: boost.version,
-        productIds: boost.productIds,
-      }))),
+      boosts: Object.freeze(
+        boostRows.map((boost) =>
+          Object.freeze({
+            boostId: boost.boostId,
+            version: boost.version,
+            productIds: boost.productIds,
+          }),
+        ),
+      ),
     });
     return Object.freeze({
       storeId,
@@ -431,9 +417,11 @@ export class SearchExecutionService {
   }
 
   private async assertRuntimeCompatible(requireTypo: boolean): Promise<void> {
-    const rows = await this.dependencies.connection().execute<
-      PostgresSearchRuntimeObservation & Record<string, unknown>
-    >(compilePostgresSearchRuntimeProbeSql());
+    const rows = await this.dependencies
+      .connection()
+      .execute<PostgresSearchRuntimeObservation & Record<string, unknown>>(
+        compilePostgresSearchRuntimeProbeSql(),
+      );
     const observed = (rows as unknown as PostgresSearchRuntimeObservation[])[0];
     if (!observed) {
       throw indexUnavailable("PostgreSQL search runtime probe returned no rows");
@@ -446,20 +434,19 @@ export class SearchExecutionService {
     if (!observed.pgTrgmAvailable || !observed.fuzzystrmatchAvailable) {
       throw indexUnavailable("PostgreSQL typo extensions are unavailable");
     }
-    const typoRows = await this.dependencies.connection().execute<
-      Pick<PostgresSearchRuntimeObservation, "trigramSimilarityThreshold"> &
-        Record<string, unknown>
-    >(compilePostgresTypoRuntimeProbeSql());
-    const typoObserved = (typoRows as unknown as Pick<
-      PostgresSearchRuntimeObservation,
-      "trigramSimilarityThreshold"
-    >[])[0];
+    const typoRows = await this.dependencies
+      .connection()
+      .execute<
+        Pick<PostgresSearchRuntimeObservation, "trigramSimilarityThreshold"> &
+          Record<string, unknown>
+      >(compilePostgresTypoRuntimeProbeSql());
+    const typoObserved = (
+      typoRows as unknown as Pick<PostgresSearchRuntimeObservation, "trigramSimilarityThreshold">[]
+    )[0];
     assertPostgresSearchRuntimeCompatible(
       {
         ...observed,
-        trigramSimilarityThreshold: Number(
-          typoObserved?.trigramSimilarityThreshold,
-        ),
+        trigramSimilarityThreshold: Number(typoObserved?.trigramSimilarityThreshold),
       },
       { requireTypo: true },
     );
@@ -468,11 +455,15 @@ export class SearchExecutionService {
   private async materializePublishedMembership(
     storeId: string,
     membershipCandidateRelationSql: SQL,
-  ): Promise<Pick<
-    SearchCandidateContract,
-    "membershipBitmap" | "membershipCardinality" | "membershipSerializedBytes"
+  ): Promise<
+    Pick<
+      SearchCandidateContract,
+      | "membershipBitmap"
+      | "membershipCardinality"
+      | "membershipSerializedBytes"
       | "boostOnlyCandidateCount"
-  >> {
+    >
+  > {
     const rows = await this.dependencies.connection().execute<SearchMembershipSqlRow>(sql`
       WITH
       membership_candidates AS MATERIALIZED (
@@ -530,10 +521,7 @@ export class SearchExecutionService {
     ) {
       throw indexUnavailable("Search membership bitmap metadata is invalid");
     }
-    if (
-      membershipSerializedBytes >
-      SEARCH_MEMBERSHIP_BITMAP_MAX_SERIALIZED_BYTES
-    ) {
+    if (membershipSerializedBytes > SEARCH_MEMBERSHIP_BITMAP_MAX_SERIALIZED_BYTES) {
       throw indexUnavailable("Search membership bitmap exceeds resource limits");
     }
     return Object.freeze({
@@ -549,8 +537,7 @@ function compilerContext(request: SearchRequestContext): PostgresFtsCompilerCont
   return Object.freeze({
     storeId: request.storeId,
     locale: request.locale,
-    normalizationContractVersion:
-      request.lexicalizedQuery.normalizationContractVersion,
+    normalizationContractVersion: request.lexicalizedQuery.normalizationContractVersion,
     normalizationProfileRevision: request.lexicalizedQuery.profileRevision,
     fieldWeights: request.configuration.settings.fieldWeights,
   });
@@ -561,23 +548,16 @@ function normalizeSettings(
   fields: SearchFieldRegistry,
 ): SearchRequestSettings {
   if (!row) {
-    throw configurationUnavailable(
-      "Search settings are not configured for the current store",
-    );
+    throw configurationUnavailable("Search settings are not configured for the current store");
   }
   if (!Array.isArray(row.enabledFields)) {
     throw configurationUnavailable("Search settings enabled fields are invalid");
   }
   let enabledFields: readonly SearchTextField[];
   try {
-    enabledFields = fields.normalizeEnabledFields(
-      row.enabledFields as SearchTextField[],
-    );
+    enabledFields = fields.normalizeEnabledFields(row.enabledFields as SearchTextField[]);
   } catch (error) {
-    throw configurationUnavailable(
-      "Search settings enabled fields are invalid",
-      error,
-    );
+    throw configurationUnavailable("Search settings enabled fields are invalid", error);
   }
   if (!row.fieldWeights || typeof row.fieldWeights !== "object") {
     throw configurationUnavailable("Search settings field weights are invalid");
@@ -587,9 +567,7 @@ function normalizeSettings(
   for (const field of enabledFields) {
     const weight = rawWeights[field];
     if (typeof weight !== "number" || !Number.isFinite(weight) || weight <= 0) {
-      throw configurationUnavailable(
-        `Invalid runtime weight for search field: ${field}`,
-      );
+      throw configurationUnavailable(`Invalid runtime weight for search field: ${field}`);
     }
     fieldWeights[field] = weight;
   }
@@ -598,9 +576,7 @@ function normalizeSettings(
     row.outOfStockPolicy !== "HIDE" &&
     row.outOfStockPolicy !== "PLACE_LAST"
   ) {
-    throw configurationUnavailable(
-      "Search settings out-of-stock policy is invalid",
-    );
+    throw configurationUnavailable("Search settings out-of-stock policy is invalid");
   }
   return Object.freeze({
     version: row.version,
@@ -613,13 +589,13 @@ function normalizeSettings(
 
 function canRunTypoAttempt(request: SearchRequestContext): boolean {
   if (request.normalizedQuery.codePointLength < 4) return false;
-  const typoTerms = request.lexicalizedQuery.originalUnits.flatMap(
-    (unit) => unit.typoTerms,
-  );
-  return typoTerms.length > 0 &&
+  const typoTerms = request.lexicalizedQuery.originalUnits.flatMap((unit) => unit.typoTerms);
+  return (
+    typoTerms.length > 0 &&
     typoTerms.length <= 8 &&
     typoTerms.every((term) => {
       const length = [...term].length;
       return length >= 4 && length <= 64;
-    });
+    })
+  );
 }

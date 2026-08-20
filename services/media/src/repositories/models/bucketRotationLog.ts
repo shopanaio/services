@@ -1,10 +1,4 @@
-import {
-  uuid,
-  varchar,
-  jsonb,
-  timestamp,
-  index,
-} from "drizzle-orm/pg-core";
+import { uuid, varchar, jsonb, timestamp, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { mediaSchema } from "./schema";
 import { buckets } from "./buckets";
@@ -28,7 +22,7 @@ export const bucketRotationLog = mediaSchema.table(
   },
   (table) => [
     index("idx_bucket_rotation_log_store").on(table.storeId, sql`${table.createdAt} DESC`),
-  ]
+  ],
 );
 
 export type BucketRotationLog = typeof bucketRotationLog.$inferSelect;

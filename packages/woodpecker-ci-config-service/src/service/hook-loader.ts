@@ -18,9 +18,7 @@ export class HookScriptLoader implements HookLoader {
    * @param hooksDir - Directory to search for hook scripts. Can be relative or absolute path.
    */
   constructor(hooksDir = HookScriptLoader.DEFAULT_HOOKS_DIR) {
-    this.hooksDir = path.isAbsolute(hooksDir)
-      ? hooksDir
-      : path.join(process.cwd(), hooksDir);
+    this.hooksDir = path.isAbsolute(hooksDir) ? hooksDir : path.join(process.cwd(), hooksDir);
   }
 
   /**

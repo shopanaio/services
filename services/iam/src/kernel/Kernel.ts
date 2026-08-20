@@ -1,8 +1,4 @@
-import {
-  Kernel as BaseKernel,
-  consoleLogger,
-  hashContent,
-} from "@shopana/shared-kernel";
+import { Kernel as BaseKernel, consoleLogger, hashContent } from "@shopana/shared-kernel";
 import type { ServiceBroker, Logger, DatabaseClient } from "@shopana/shared-kernel";
 import type { WorkflowRegistry } from "@shopana/shared-kernel";
 import { createCache, type Cache } from "cache-manager";
@@ -104,7 +100,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     applicationOAuthClientManagement: ApplicationOAuthClientManagementService,
     applicationTokenValidation: ApplicationTokenValidationService,
     applicationAuthLiveStateInvalidation: ApplicationAuthLiveStateInvalidationBus,
-    applicationAuthPublicBaseUrl: string
+    applicationAuthPublicBaseUrl: string,
   ) {
     super(broker, logger, { repository, cache, authCache, nameResolver, workflow });
     this.repository = repository;
@@ -124,8 +120,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     this.applicationAuthAdminManagement = applicationAuthAdminManagement;
     this.applicationOAuthClientManagement = applicationOAuthClientManagement;
     this.applicationTokenValidation = applicationTokenValidation;
-    this.applicationAuthLiveStateInvalidation =
-      applicationAuthLiveStateInvalidation;
+    this.applicationAuthLiveStateInvalidation = applicationAuthLiveStateInvalidation;
     this.applicationAuthPublicBaseUrl = applicationAuthPublicBaseUrl;
   }
 
@@ -146,7 +141,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       applicationOAuthClientAllowedMobileSchemes?: readonly string[];
       applicationAuthLiveStateInvalidation?: ApplicationAuthLiveStateInvalidationPort;
       applicationAuthPublicBaseUrl?: string;
-    } = {}
+    } = {},
   ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
@@ -163,25 +158,18 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     const auth = createAuth();
     const applicationAuthKeyring = new ApplicationAuthKeyring(
       options.applicationAuthRootKeys ??
-        EnvironmentApplicationAuthRootKeyProvider.fromEnvironment(process.env)
+        EnvironmentApplicationAuthRootKeyProvider.fromEnvironment(process.env),
     );
-    const applicationAuthSecrets = new ApplicationAuthSecretService(
-      applicationAuthKeyring
-    );
+    const applicationAuthSecrets = new ApplicationAuthSecretService(applicationAuthKeyring);
     const applicationAuthPublicBaseUrl =
       options.applicationAuthPublicBaseUrl ?? process.env.IAM_PUBLIC_BASE_URL;
     if (!applicationAuthPublicBaseUrl) {
       throw new Error("IAM public base URL is required for token validation");
     }
-    const applicationAuthLiveStateInvalidation =
-      new ApplicationAuthLiveStateInvalidationBus(
-        options.applicationAuthLiveStateInvalidation,
-        () =>
-          consoleLogger.error(
-            {},
-            "Application auth live-state invalidation transport failed"
-          )
-      );
+    const applicationAuthLiveStateInvalidation = new ApplicationAuthLiveStateInvalidationBus(
+      options.applicationAuthLiveStateInvalidation,
+      () => consoleLogger.error({}, "Application auth live-state invalidation transport failed"),
+    );
     await applicationAuthLiveStateInvalidation.start();
     const repository = await Repository.create({
       db,
@@ -195,7 +183,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       repository.applicationTokenValidation,
       applicationAuthLiveStateInvalidation,
       applicationAuthPublicBaseUrl,
-      consoleLogger
+      consoleLogger,
     );
     const applicationAuthEmailDelivery =
       options.applicationAuthEmailDelivery ??
@@ -205,10 +193,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       new NotificationsApplicationAuthSmsDelivery(broker, repository);
     const applicationAuthSmsProviderAvailability =
       options.applicationAuthSmsProviderAvailability ??
-      new NotificationsApplicationAuthSmsProviderAvailability(
-        broker,
-        repository
-      );
+      new NotificationsApplicationAuthSmsProviderAvailability(broker, repository);
     const startApplicationUserEvent = async <
       TInput extends {
         applicationId: string;
@@ -246,10 +231,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
         return startApplicationUserEvent("applicationUserUpdatedEvent", input);
       },
       statusChanged(input) {
-        return startApplicationUserEvent(
-          "applicationUserStatusChangedEvent",
-          input,
-        );
+        return startApplicationUserEvent("applicationUserStatusChangedEvent", input);
       },
       deleted(input) {
         return startApplicationUserEvent("applicationUserDeletedEvent", input);
@@ -265,97 +247,90 @@ export class Kernel extends BaseKernel<IamKernelServices> {
         liveStateInvalidation: applicationAuthLiveStateInvalidation,
         applicationUserLifecycle,
         publicBaseUrl: applicationAuthPublicBaseUrl,
-      }
+      },
     );
     const applicationAuthProvisioning = new ApplicationAuthProvisioningService(
-      repository.applicationAuthConfiguration
+      repository.applicationAuthConfiguration,
     );
-    const applicationAuthSecretRotation =
-      new ApplicationAuthSecretRotationService(
-        repository.applicationAuthConfiguration,
-        {
-          invalidate(applicationId) {
-            applicationAuth.invalidate(applicationId);
-            void applicationAuthLiveStateInvalidation.publish(
-              createApplicationAuthLiveStateInvalidationEvent({
-                kind: "application",
-                applicationId,
-              })
-            );
-          },
+    const applicationAuthSecretRotation = new ApplicationAuthSecretRotationService(
+      repository.applicationAuthConfiguration,
+      {
+        invalidate(applicationId) {
+          applicationAuth.invalidate(applicationId);
+          void applicationAuthLiveStateInvalidation.publish(
+            createApplicationAuthLiveStateInvalidationEvent({
+              kind: "application",
+              applicationId,
+            }),
+          );
         },
-      );
+      },
+    );
     const applicationAuthRateLimiter = new ApplicationAuthRateLimiter(
-      options.applicationAuthRateLimit
+      options.applicationAuthRateLimit,
     );
     const applicationAuthAudit = new ApplicationAuthAuditService(
       applicationAuthSecrets,
       consoleLogger,
-      options.applicationAuthAudit
+      options.applicationAuthAudit,
     );
     const applicationAuthAdminAudit =
       options.applicationAuthAdminAudit ??
-      new LocalApplicationAuthAdminAuditAdapter(
-        repository.applicationAuthAdminAudit
-      );
-    const applicationOAuthClientManagement =
-      new ApplicationOAuthClientManagementService(
-        repository.applicationOAuthClient,
-        repository.txManager,
-        new AuthProvider(),
-        applicationAuthAdminAudit,
-        {
-          invalidate(applicationId, clientId) {
-            applicationAuth.invalidate(applicationId);
-            return applicationAuthLiveStateInvalidation.publishRequired(
-              createApplicationAuthLiveStateInvalidationEvent({
-                kind: "client",
-                applicationId,
-                clientId,
-              })
-            );
-          },
+      new LocalApplicationAuthAdminAuditAdapter(repository.applicationAuthAdminAudit);
+    const applicationOAuthClientManagement = new ApplicationOAuthClientManagementService(
+      repository.applicationOAuthClient,
+      repository.txManager,
+      new AuthProvider(),
+      applicationAuthAdminAudit,
+      {
+        invalidate(applicationId, clientId) {
+          applicationAuth.invalidate(applicationId);
+          return applicationAuthLiveStateInvalidation.publishRequired(
+            createApplicationAuthLiveStateInvalidationEvent({
+              kind: "client",
+              applicationId,
+              clientId,
+            }),
+          );
         },
-        new OAuthClientSecretCodec(),
-        {
-          allowedMobileSchemes:
-            options.applicationOAuthClientAllowedMobileSchemes,
-          firstPartyPolicy: options.applicationOAuthClientFirstPartyPolicy,
-        }
-      );
-    const applicationAuthAdminManagement =
-      new ApplicationAuthAdminManagementService(
-        repository.applicationAuthAdminMutation,
-        repository.applicationUser,
-        repository.txManager,
-        new AuthProvider(),
-        applicationAuthAdminAudit,
-        options.applicationAuthProviderValidation ??
-          unavailableApplicationAuthProviderValidationPort,
-        applicationAuthSmsProviderAvailability,
-        {
-          invalidateApplication(applicationId) {
-            applicationAuth.invalidate(applicationId);
-            return applicationAuthLiveStateInvalidation.publishRequired(
-              createApplicationAuthLiveStateInvalidationEvent({
-                kind: "application",
-                applicationId,
-              })
-            );
-          },
-          invalidateUser(applicationId, userId) {
-            applicationAuth.invalidate(applicationId);
-            return applicationAuthLiveStateInvalidation.publishRequired(
-              createApplicationAuthLiveStateInvalidationEvent({
-                kind: "user",
-                applicationId,
-                userId,
-              })
-            );
-          },
+      },
+      new OAuthClientSecretCodec(),
+      {
+        allowedMobileSchemes: options.applicationOAuthClientAllowedMobileSchemes,
+        firstPartyPolicy: options.applicationOAuthClientFirstPartyPolicy,
+      },
+    );
+    const applicationAuthAdminManagement = new ApplicationAuthAdminManagementService(
+      repository.applicationAuthAdminMutation,
+      repository.applicationUser,
+      repository.txManager,
+      new AuthProvider(),
+      applicationAuthAdminAudit,
+      options.applicationAuthProviderValidation ?? unavailableApplicationAuthProviderValidationPort,
+      applicationAuthSmsProviderAvailability,
+      {
+        invalidateApplication(applicationId) {
+          applicationAuth.invalidate(applicationId);
+          return applicationAuthLiveStateInvalidation.publishRequired(
+            createApplicationAuthLiveStateInvalidationEvent({
+              kind: "application",
+              applicationId,
+            }),
+          );
         },
-        { applicationUserLifecycle },
-      );
+        invalidateUser(applicationId, userId) {
+          applicationAuth.invalidate(applicationId);
+          return applicationAuthLiveStateInvalidation.publishRequired(
+            createApplicationAuthLiveStateInvalidationEvent({
+              kind: "user",
+              applicationId,
+              userId,
+            }),
+          );
+        },
+      },
+      { applicationUserLifecycle },
+    );
 
     const cache = createCache({
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
@@ -385,16 +360,14 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       applicationOAuthClientManagement,
       applicationTokenValidation,
       applicationAuthLiveStateInvalidation,
-      applicationAuthPublicBaseUrl
+      applicationAuthPublicBaseUrl,
     );
     return this.instance;
   }
 
   static getInstance(): Kernel {
     if (!this.instance) {
-      throw new Error(
-        "Kernel not initialized. Call Kernel.create(broker) first."
-      );
+      throw new Error("Kernel not initialized. Call Kernel.create(broker) first.");
     }
     return this.instance;
   }
@@ -415,11 +388,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
    * Use @Transactional() decorator on execute() method for transaction support.
    */
   async runScript<TParams, TResult>(
-    ScriptClass: new (services: IamKernelServices) => BaseScript<
-      TParams,
-      TResult
-    >,
-    params: TParams
+    ScriptClass: new (services: IamKernelServices) => BaseScript<TParams, TResult>,
+    params: TParams,
   ): Promise<TResult> {
     const script = new ScriptClass(this.services);
     return script.run(params);

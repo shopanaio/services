@@ -10,10 +10,7 @@ import {
   Matches,
   ValidateNested,
 } from "class-validator";
-import {
-  IsGlobalId,
-  IsGlobalIdArray,
-} from "@src/application/validation/globalIdValidators";
+import { IsGlobalId, IsGlobalIdArray } from "@src/application/validation/globalIdValidators";
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { CheckoutPipelineJsonObject } from "../pipeline/contracts/index.js";
 

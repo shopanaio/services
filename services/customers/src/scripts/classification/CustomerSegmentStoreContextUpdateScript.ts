@@ -90,17 +90,11 @@ function validate(params: CustomerSegmentStoreContextUpdateParams): void {
   if (!/^[A-Z]{3}$/u.test(params.currencyCode)) {
     throw new Error("Store segment currencyCode is invalid");
   }
-  if (
-    !Number.isSafeInteger(params.configurationRevision) ||
-    params.configurationRevision < 0
-  ) {
+  if (!Number.isSafeInteger(params.configurationRevision) || params.configurationRevision < 0) {
     throw new Error("Store segment numeric context is invalid");
   }
   const occurredAt = new Date(params.occurredAt);
-  if (
-    Number.isNaN(occurredAt.valueOf()) ||
-    occurredAt.toISOString() !== params.occurredAt
-  ) {
+  if (Number.isNaN(occurredAt.valueOf()) || occurredAt.toISOString() !== params.occurredAt) {
     throw new Error("Store segment occurredAt must be a canonical instant");
   }
   try {

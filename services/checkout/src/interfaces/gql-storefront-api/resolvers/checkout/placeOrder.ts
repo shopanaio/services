@@ -20,8 +20,7 @@ import {
   mapPlaceOrderPayload,
 } from "@src/interfaces/gql-storefront-api/mapper/placeOrderPayload";
 
-const IDEMPOTENCY_PARAMETER_MISMATCH =
-  "IDEMPOTENCY_KEY_PARAMETER_MISMATCH";
+const IDEMPOTENCY_PARAMETER_MISMATCH = "IDEMPOTENCY_KEY_PARAMETER_MISMATCH";
 
 function errorCode(error: unknown): string | null {
   if (
@@ -48,9 +47,10 @@ export const placeOrder = async (
     if (!userError) throw error;
     return mapPlaceOrderErrorPayload(userError, {
       checkoutId: null,
-      resultRevision: typeof args.input.expectedResultRevision === "string"
-        ? args.input.expectedResultRevision
-        : null,
+      resultRevision:
+        typeof args.input.expectedResultRevision === "string"
+          ? args.input.expectedResultRevision
+          : null,
     });
   }
   const { broker, logger } = App.getInstance();
@@ -68,10 +68,7 @@ export const placeOrder = async (
   };
 
   try {
-    const result = await broker.runWorkflow<
-      PlaceOrderWorkflowResult,
-      PlaceOrderWorkflowInput
-    >(
+    const result = await broker.runWorkflow<PlaceOrderWorkflowResult, PlaceOrderWorkflowInput>(
       "checkout.placeOrder",
       input,
       {
@@ -90,17 +87,13 @@ export const placeOrder = async (
     });
   } catch (error) {
     const code = errorCode(error);
-    if (
-      code === "IDEMPOTENCY_CONFLICT" ||
-      code === IDEMPOTENCY_PARAMETER_MISMATCH
-    ) {
+    if (code === "IDEMPOTENCY_CONFLICT" || code === IDEMPOTENCY_PARAMETER_MISMATCH) {
       return mapPlaceOrderErrorPayload(
         {
           __typename: "CheckoutUserError",
           field: ["input", "idempotencyKey"],
           code: IDEMPOTENCY_PARAMETER_MISMATCH,
-          message:
-            "The idempotency key has already been used with different input.",
+          message: "The idempotency key has already been used with different input.",
           retryable: false,
         },
         {
@@ -109,13 +102,15 @@ export const placeOrder = async (
         },
       );
     }
-    const placement = await App.getInstance().checkoutPlacementRepository
-      .findByCheckoutForStorefrontOwner<PlaceOrderWorkflowResult>({
-        checkoutId: input.checkoutId,
-        storeId: input.storeId,
-        credentialId: input.credentialId,
-        visitorId: input.visitorId,
-      });
+    const placement =
+      await App.getInstance().checkoutPlacementRepository.findByCheckoutForStorefrontOwner<PlaceOrderWorkflowResult>(
+        {
+          checkoutId: input.checkoutId,
+          storeId: input.storeId,
+          credentialId: input.credentialId,
+          visitorId: input.visitorId,
+        },
+      );
     if (placement) {
       const failure = placement.failure ?? publicPlacementFailure(code);
       return mapPlaceOrderPayload(placement.result, {
@@ -154,7 +149,8 @@ export const placeOrder = async (
 
 function publicPlacementFailure(code: string | null) {
   if (!code || !/^(CHECKOUT|PLACE_ORDER|IDEMPOTENCY|LOYALTY)_/.test(code)) return null;
-  const retryable = !code.endsWith("_INVALID") &&
+  const retryable =
+    !code.endsWith("_INVALID") &&
     !code.includes("MISMATCH") &&
     !code.includes("ALREADY_PLACED") &&
     !code.includes("NOT_FOUND") &&

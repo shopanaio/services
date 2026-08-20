@@ -12,10 +12,7 @@ import {
 } from "../components";
 import { STAFF_NOTIFICATION_SECTIONS } from "../constants";
 import { useNotificationSettings } from "../hooks";
-import {
-  useNotificationItemModal,
-  useNotificationTemplateModal,
-} from "../modals";
+import { useNotificationItemModal, useNotificationTemplateModal } from "../modals";
 
 const useStyles = createStyles(() => ({
   content: {
@@ -45,9 +42,7 @@ export default function StaffNotificationsPage() {
       fullWidth
       loading={settings.loading && definitions.length === 0}
       name="staff-notifications"
-      onBack={() =>
-        router.push(resolvePath("/:orgName/:storeName/system/notifications"))
-      }
+      onBack={() => router.push(resolvePath("/:orgName/:storeName/system/notifications"))}
       title="Staff notifications"
     >
       <main className={styles.content}>

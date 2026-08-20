@@ -1,9 +1,6 @@
 import type { Action } from "./definitions.js";
 import type { AuthorizeParams, Authorizer } from "./auth.js";
-import {
-  validateAuthorizeInput,
-  type ResourceName,
-} from "./validators.js";
+import { validateAuthorizeInput, type ResourceName } from "./validators.js";
 
 /** Expanded permission embedded in a verified Admin Context snapshot. */
 export interface AdminAuthorizationPermission {
@@ -78,23 +75,16 @@ export function authorizeAdminContext(
   if (
     !context.organizationId ||
     input.organizationName !== undefined ||
-    (input.organizationId !== undefined &&
-      input.organizationId !== context.organizationId)
+    (input.organizationId !== undefined && input.organizationId !== context.organizationId)
   ) {
     return false;
   }
 
-  if (
-    context.store &&
-    context.store.organizationId !== context.organizationId
-  ) {
+  if (context.store && context.store.organizationId !== context.organizationId) {
     return false;
   }
 
-  if (
-    input.domain !== "org" &&
-    (!context.store || input.domain !== `store:${context.store.id}`)
-  ) {
+  if (input.domain !== "org" && (!context.store || input.domain !== `store:${context.store.id}`)) {
     return false;
   }
 

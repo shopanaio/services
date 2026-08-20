@@ -13,9 +13,7 @@ export function findRootDir(): string {
 
     if (existsSync(packageJsonPath)) {
       try {
-        const pkg = JSON.parse(
-          require("fs").readFileSync(packageJsonPath, "utf-8")
-        );
+        const pkg = JSON.parse(require("fs").readFileSync(packageJsonPath, "utf-8"));
 
         // Check if this is the root (has workspaces)
         if (pkg.workspaces) {

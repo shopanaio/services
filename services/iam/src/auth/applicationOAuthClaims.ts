@@ -11,11 +11,7 @@ export function createApplicationOAuthClaimsPolicy(input: {
   resource: string;
 }): OAuthClaimsOptions {
   const assertUserScope = (user: Record<string, unknown> | null | undefined) => {
-    if (
-      !user ||
-      typeof user.id !== "string" ||
-      user.applicationId !== input.applicationId
-    ) {
+    if (!user || typeof user.id !== "string" || user.applicationId !== input.applicationId) {
       throw new Error("OAuth token user is outside the application realm");
     }
   };
@@ -49,16 +45,12 @@ export function createApplicationOAuthClaimsPolicy(input: {
       return {
         application_id: input.applicationId,
         actor_type: "application_user",
-        ...(user.syntheticEmail === true
-          ? { email: undefined, email_verified: undefined }
-          : {}),
+        ...(user.syntheticEmail === true ? { email: undefined, email_verified: undefined } : {}),
       };
     },
     customUserInfoClaims: ({ user }) => {
       assertUserScope(user);
-      return user.syntheticEmail === true
-        ? { email: undefined, email_verified: undefined }
-        : {};
+      return user.syntheticEmail === true ? { email: undefined, email_verified: undefined } : {};
     },
   };
 }

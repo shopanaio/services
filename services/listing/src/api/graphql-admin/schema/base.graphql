@@ -13,23 +13,33 @@ extend schema
   )
 
 type Query {
-  """Listing query namespace."""
+  """
+  Listing query namespace.
+  """
   listingQuery: ListingQuery!
 }
 
 type Mutation {
-  """Listing mutation namespace."""
+  """
+  Listing mutation namespace.
+  """
   listingMutation: ListingMutation!
 }
 
 type ListingQuery {
-  """Search configuration and diagnostics namespace."""
+  """
+  Search configuration and diagnostics namespace.
+  """
   search: ListingSearchQuery!
 
-  """Get a node by its global ID."""
+  """
+  Get a node by its global ID.
+  """
   node(id: ID!): Node
 
-  """Get multiple nodes by their global IDs."""
+  """
+  Get multiple nodes by their global IDs.
+  """
   nodes(ids: [ID!]!): [Node]!
 
   """
@@ -124,7 +134,9 @@ type ListingQuery {
 }
 
 type ListingMutation {
-  """Search configuration mutation namespace."""
+  """
+  Search configuration mutation namespace.
+  """
   search: ListingSearchMutation!
 
   """

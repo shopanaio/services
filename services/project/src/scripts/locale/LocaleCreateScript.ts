@@ -17,11 +17,13 @@ export class LocaleCreateScript extends BaseScript<LocaleCreateParams, LocaleCre
     if (existing) {
       return {
         locale: null,
-        userErrors: [{
-          message: "Language is already configured",
-          code: "LOCALE_ALREADY_EXISTS",
-          field: ["code"],
-        }],
+        userErrors: [
+          {
+            message: "Language is already configured",
+            code: "LOCALE_ALREADY_EXISTS",
+            field: ["code"],
+          },
+        ],
       };
     }
 
@@ -32,11 +34,13 @@ export class LocaleCreateScript extends BaseScript<LocaleCreateParams, LocaleCre
     if (!created) {
       return {
         locale: null,
-        userErrors: [{
-          message: "Language is already configured",
-          code: "LOCALE_ALREADY_EXISTS",
-          field: ["code"],
-        }],
+        userErrors: [
+          {
+            message: "Language is already configured",
+            code: "LOCALE_ALREADY_EXISTS",
+            field: ["code"],
+          },
+        ],
       };
     }
 

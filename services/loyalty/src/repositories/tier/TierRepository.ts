@@ -18,74 +18,107 @@ import {
 export class TierRepository extends BaseRepository {
   async getPoliciesByIds(ids: readonly string[]): Promise<TierPolicy[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(tierPolicies).where(and(
-      eq(tierPolicies.storeId, this.storeId),
-      inArray(tierPolicies.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(tierPolicies)
+      .where(and(eq(tierPolicies.storeId, this.storeId), inArray(tierPolicies.id, [...ids])));
   }
 
   async getPoliciesByVersionIds(programVersionIds: readonly string[]): Promise<TierPolicy[]> {
     if (programVersionIds.length === 0) return [];
-    return this.connection.select().from(tierPolicies).where(and(
-      eq(tierPolicies.storeId, this.storeId),
-      inArray(tierPolicies.programVersionId, [...programVersionIds]),
-    ));
+    return this.connection
+      .select()
+      .from(tierPolicies)
+      .where(
+        and(
+          eq(tierPolicies.storeId, this.storeId),
+          inArray(tierPolicies.programVersionId, [...programVersionIds]),
+        ),
+      );
   }
 
   async getTiersByIds(ids: readonly string[]): Promise<Tier[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(tiers).where(and(
-      eq(tiers.storeId, this.storeId),
-      inArray(tiers.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(tiers)
+      .where(and(eq(tiers.storeId, this.storeId), inArray(tiers.id, [...ids])));
   }
 
   async listForVersions(programVersionIds: readonly string[]): Promise<Tier[]> {
     if (programVersionIds.length === 0) return [];
-    return this.connection.select().from(tiers).where(and(
-      eq(tiers.storeId, this.storeId),
-      inArray(tiers.programVersionId, [...programVersionIds]),
-    )).orderBy(asc(tiers.programVersionId), asc(tiers.rank), asc(tiers.id));
+    return this.connection
+      .select()
+      .from(tiers)
+      .where(
+        and(
+          eq(tiers.storeId, this.storeId),
+          inArray(tiers.programVersionId, [...programVersionIds]),
+        ),
+      )
+      .orderBy(asc(tiers.programVersionId), asc(tiers.rank), asc(tiers.id));
   }
 
   async getMembershipsByIds(ids: readonly string[]): Promise<TierMembership[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(tierMemberships).where(and(
-      eq(tierMemberships.storeId, this.storeId),
-      inArray(tierMemberships.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(tierMemberships)
+      .where(and(eq(tierMemberships.storeId, this.storeId), inArray(tierMemberships.id, [...ids])));
   }
 
   async getActiveMembershipsByAccountIds(accountIds: readonly string[]): Promise<TierMembership[]> {
     if (accountIds.length === 0) return [];
-    return this.connection.select().from(tierMemberships).where(and(
-      eq(tierMemberships.storeId, this.storeId),
-      inArray(tierMemberships.accountId, [...accountIds]),
-      eq(tierMemberships.status, "ACTIVE"),
-    ));
+    return this.connection
+      .select()
+      .from(tierMemberships)
+      .where(
+        and(
+          eq(tierMemberships.storeId, this.storeId),
+          inArray(tierMemberships.accountId, [...accountIds]),
+          eq(tierMemberships.status, "ACTIVE"),
+        ),
+      );
   }
 
   async listMembershipsForAccount(accountId: string, limit = 100): Promise<TierMembership[]> {
-    return this.connection.select().from(tierMemberships).where(and(
-      eq(tierMemberships.storeId, this.storeId),
-      eq(tierMemberships.accountId, accountId),
-    )).orderBy(desc(tierMemberships.effectiveFrom), desc(tierMemberships.id)).limit(limit);
+    return this.connection
+      .select()
+      .from(tierMemberships)
+      .where(
+        and(eq(tierMemberships.storeId, this.storeId), eq(tierMemberships.accountId, accountId)),
+      )
+      .orderBy(desc(tierMemberships.effectiveFrom), desc(tierMemberships.id))
+      .limit(limit);
   }
 
   async getMembershipEventsByIds(ids: readonly string[]): Promise<TierMembershipEvent[]> {
     if (ids.length === 0) return [];
-    return this.connection.select().from(tierMembershipEvents).where(and(
-      eq(tierMembershipEvents.storeId, this.storeId),
-      inArray(tierMembershipEvents.id, [...ids]),
-    ));
+    return this.connection
+      .select()
+      .from(tierMembershipEvents)
+      .where(
+        and(
+          eq(tierMembershipEvents.storeId, this.storeId),
+          inArray(tierMembershipEvents.id, [...ids]),
+        ),
+      );
   }
 
-  async getMembershipEventsByMembershipIds(membershipIds: readonly string[]): Promise<TierMembershipEvent[]> {
+  async getMembershipEventsByMembershipIds(
+    membershipIds: readonly string[],
+  ): Promise<TierMembershipEvent[]> {
     if (membershipIds.length === 0) return [];
-    return this.connection.select().from(tierMembershipEvents).where(and(
-      eq(tierMembershipEvents.storeId, this.storeId),
-      inArray(tierMembershipEvents.membershipId, [...membershipIds]),
-    )).orderBy(asc(tierMembershipEvents.occurredAt), asc(tierMembershipEvents.id));
+    return this.connection
+      .select()
+      .from(tierMembershipEvents)
+      .where(
+        and(
+          eq(tierMembershipEvents.storeId, this.storeId),
+          inArray(tierMembershipEvents.membershipId, [...membershipIds]),
+        ),
+      )
+      .orderBy(asc(tierMembershipEvents.occurredAt), asc(tierMembershipEvents.id));
   }
   async findPolicy(programVersionId: string): Promise<TierPolicy | null> {
     const rows = await this.connection
@@ -152,12 +185,7 @@ export class TierRepository extends BaseRepository {
     return this.connection
       .select()
       .from(tiers)
-      .where(
-        and(
-          eq(tiers.storeId, this.storeId),
-          eq(tiers.programVersionId, programVersionId),
-        ),
-      )
+      .where(and(eq(tiers.storeId, this.storeId), eq(tiers.programVersionId, programVersionId)))
       .orderBy(asc(tiers.rank), asc(tiers.id));
   }
 
@@ -220,9 +248,7 @@ export class TierRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async createMembership(
-    input: Omit<NewTierMembership, "storeId">,
-  ): Promise<TierMembership> {
+  async createMembership(input: Omit<NewTierMembership, "storeId">): Promise<TierMembership> {
     const rows = await this.connection
       .insert(tierMemberships)
       .values({ ...input, storeId: this.storeId })
@@ -233,9 +259,7 @@ export class TierRepository extends BaseRepository {
   async updateMembership(
     id: string,
     expectedRevision: number,
-    input: Partial<
-      Pick<NewTierMembership, "tierId" | "status" | "effectiveTo">
-    >,
+    input: Partial<Pick<NewTierMembership, "tierId" | "status" | "effectiveTo">>,
   ): Promise<TierMembership | null> {
     const rows = await this.connection
       .update(tierMemberships)
@@ -265,10 +289,7 @@ export class TierRepository extends BaseRepository {
     return rows[0]!;
   }
 
-  async listMembershipEvents(
-    accountId: string,
-    limit = 100,
-  ): Promise<TierMembershipEvent[]> {
+  async listMembershipEvents(accountId: string, limit = 100): Promise<TierMembershipEvent[]> {
     return this.connection
       .select()
       .from(tierMembershipEvents)
@@ -278,10 +299,7 @@ export class TierRepository extends BaseRepository {
           eq(tierMembershipEvents.accountId, accountId),
         ),
       )
-      .orderBy(
-        desc(tierMembershipEvents.occurredAt),
-        desc(tierMembershipEvents.id),
-      )
+      .orderBy(desc(tierMembershipEvents.occurredAt), desc(tierMembershipEvents.id))
       .limit(limit);
   }
 }

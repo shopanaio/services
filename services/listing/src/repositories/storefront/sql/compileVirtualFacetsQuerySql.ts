@@ -24,23 +24,22 @@ export function compileVirtualFacetsQuerySql(request: ListingSqlRequest): SQL {
   });
   const availablePosting = compileVariantTermPostingBitmapSql(
     request,
-    encodeListingVariantTerm(buildAvailabilityVariantTerm(true))
+    encodeListingVariantTerm(buildAvailabilityVariantTerm(true)),
   );
   const availableProducts = compileProjectedVariantProductsBitmapSql(
     request,
-    sql`((SELECT bitmap FROM availability_base) & ${availablePosting})`
+    sql`((SELECT bitmap FROM availability_base) & ${availablePosting})`,
   );
   const unavailablePosting = compileVariantTermPostingBitmapSql(
     request,
-    encodeListingVariantTerm(buildAvailabilityVariantTerm(false))
+    encodeListingVariantTerm(buildAvailabilityVariantTerm(false)),
   );
   const unavailableProducts = compileProjectedVariantProductsBitmapSql(
     request,
-    sql`((SELECT bitmap FROM availability_base) & ${unavailablePosting})`
+    sql`((SELECT bitmap FROM availability_base) & ${unavailablePosting})`,
   );
   const hasVariantTermPredicate =
-    request.request.filterPlan.variantTermGroups.length > 0 ||
-    shouldHideOutOfStock(request);
+    request.request.filterPlan.variantTermGroups.length > 0 || shouldHideOutOfStock(request);
   const priceBoundsSource = hasVariantTermPredicate
     ? sql`
       FROM matching_term_variants mtv

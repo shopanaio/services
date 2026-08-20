@@ -1,9 +1,4 @@
-import {
-  IsEmail,
-  IsString,
-  IsOptional,
-  Matches,
-} from "class-validator";
+import { IsEmail, IsString, IsOptional, Matches } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 

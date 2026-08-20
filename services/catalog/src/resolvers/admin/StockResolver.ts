@@ -1,7 +1,5 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { WarehouseStock } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 
@@ -11,9 +9,7 @@ import { CatalogType } from "./CatalogType.js";
  */
 export class StockResolver extends CatalogType<string, WarehouseStock> {
   async $preload(): Promise<WarehouseStock> {
-    const data = await this.$ctx.kernel
-      .getServices()
-      .repository.stock.findById(this.$props);
+    const data = await this.$ctx.kernel.getServices().repository.stock.findById(this.$props);
     if (!data) {
       throw new PreloadNotFoundError(`Stock not found: ${this.$props}`);
     }

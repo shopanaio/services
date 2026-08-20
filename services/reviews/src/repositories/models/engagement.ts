@@ -1,13 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  index,
-  integer,
-  timestamp,
-  unique,
-  uniqueIndex,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { index, integer, timestamp, unique, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 import { contentItem } from "./content.js";
 import {
   contentVoteTypeEnum,
@@ -36,15 +28,11 @@ export const contentVote = reviewsSchema.table(
   },
   (table) => [
     unique("content_vote_voter_unique").on(table.contentId, table.voterKey),
-    index("content_vote_content_type_idx").on(
-      table.contentId,
-      table.type,
-      table.id
-    ),
+    index("content_vote_content_type_idx").on(table.contentId, table.type, table.id),
     index("content_vote_store_customer_idx")
       .on(table.storeId, table.voterCustomerId, table.createdAt, table.id)
       .where(sql`${table.voterCustomerId} IS NOT NULL`),
-  ]
+  ],
 );
 
 export const contentReport = reviewsSchema.table(
@@ -79,17 +67,13 @@ export const contentReport = reviewsSchema.table(
       table.storeId,
       table.status,
       table.createdAt,
-      table.id
+      table.id,
     ),
-    index("content_report_content_created_idx").on(
-      table.contentId,
-      table.createdAt,
-      table.id
-    ),
+    index("content_report_content_created_idx").on(table.contentId, table.createdAt, table.id),
     index("content_report_reporter_customer_idx")
       .on(table.storeId, table.reporterCustomerId, table.createdAt, table.id)
       .where(sql`${table.reporterCustomerId} IS NOT NULL`),
-  ]
+  ],
 );
 
 export const contentMetrics = reviewsSchema.table(
@@ -113,32 +97,16 @@ export const contentMetrics = reviewsSchema.table(
       .defaultNow(),
   },
   (table) => [
-    index("content_metrics_store_like_idx").on(
-      table.storeId,
-      table.likeCount,
-      table.contentId
-    ),
+    index("content_metrics_store_like_idx").on(table.storeId, table.likeCount, table.contentId),
     index("content_metrics_store_dislike_idx").on(
       table.storeId,
       table.dislikeCount,
-      table.contentId
+      table.contentId,
     ),
-    index("content_metrics_store_report_idx").on(
-      table.storeId,
-      table.reportCount,
-      table.contentId
-    ),
-    index("content_metrics_store_child_idx").on(
-      table.storeId,
-      table.childCount,
-      table.contentId
-    ),
-    index("content_metrics_store_media_idx").on(
-      table.storeId,
-      table.mediaCount,
-      table.contentId
-    ),
-  ]
+    index("content_metrics_store_report_idx").on(table.storeId, table.reportCount, table.contentId),
+    index("content_metrics_store_child_idx").on(table.storeId, table.childCount, table.contentId),
+    index("content_metrics_store_media_idx").on(table.storeId, table.mediaCount, table.contentId),
+  ],
 );
 
 export type ContentVote = typeof contentVote.$inferSelect;

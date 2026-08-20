@@ -2,11 +2,7 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
-import type {
-  ApiCategory,
-  ApiCategoryRebalanceInput,
-  ApiGenericUserError,
-} from "@/graphql/types";
+import type { ApiCategory, ApiCategoryRebalanceInput, ApiGenericUserError } from "@/graphql/types";
 import {
   CATEGORIES_QUERY,
   CATEGORY_DETAILS_QUERY,
@@ -24,9 +20,7 @@ interface CategoryProductMutationResult {
 }
 
 interface UseRebalanceCategoryReturn {
-  rebalanceCategory: (
-    input: ApiCategoryRebalanceInput,
-  ) => Promise<CategoryProductMutationResult>;
+  rebalanceCategory: (input: ApiCategoryRebalanceInput) => Promise<CategoryProductMutationResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
@@ -39,17 +33,11 @@ export function useRebalanceCategory(): UseRebalanceCategoryReturn {
   >(CATEGORY_REBALANCE_MUTATION);
 
   const rebalanceCategory = useCallback(
-    async (
-      input: ApiCategoryRebalanceInput,
-    ): Promise<CategoryProductMutationResult> => {
+    async (input: ApiCategoryRebalanceInput): Promise<CategoryProductMutationResult> => {
       try {
         const result = await rebalanceMutation({
           variables: { input },
-          refetchQueries: [
-            CATEGORY_DETAILS_QUERY,
-            CATEGORY_PRODUCTS_QUERY,
-            CATEGORIES_QUERY,
-          ],
+          refetchQueries: [CATEGORY_DETAILS_QUERY, CATEGORY_PRODUCTS_QUERY, CATEGORIES_QUERY],
           awaitRefetchQueries: true,
         });
         const payload = result.data?.catalogMutation.categoryRebalance;
@@ -59,8 +47,7 @@ export function useRebalanceCategory(): UseRebalanceCategoryReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
         return {
           category: null,
           userErrors: [{ message, code: "UNEXPECTED_ERROR" }],

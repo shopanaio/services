@@ -6,10 +6,7 @@ import type { ApiHeadlessStorefrontPermissionDefinition } from "@/graphql/types"
 import { HEADLESS_STOREFRONT_QUERY } from "../graphql";
 import type { HeadlessStorefront } from "../graphql/operation-types";
 
-export function useHeadlessStorefront(
-  sdk: AdminAppSdk,
-  storefrontId: string,
-) {
+export function useHeadlessStorefront(sdk: AdminAppSdk, storefrontId: string) {
   const [storefront, setStorefront] = useState<HeadlessStorefront | null>(null);
   const [permissionCatalog, setPermissionCatalog] = useState<
     ApiHeadlessStorefrontPermissionDefinition[]
@@ -27,15 +24,9 @@ export function useHeadlessStorefront(
         id: storefrontId,
       });
       setStorefront(data.headlessAppQuery.headlessStorefrontConnection);
-      setPermissionCatalog(
-        data.headlessAppQuery.headlessStorefrontPermissionCatalog,
-      );
+      setPermissionCatalog(data.headlessAppQuery.headlessStorefrontPermissionCatalog);
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause
-          : new Error("Unable to load the storefront."),
-      );
+      setError(cause instanceof Error ? cause : new Error("Unable to load the storefront."));
     } finally {
       setLoading(false);
     }
@@ -49,18 +40,12 @@ export function useHeadlessStorefront(
       .then((data) => {
         if (!active) return;
         setStorefront(data.headlessAppQuery.headlessStorefrontConnection);
-        setPermissionCatalog(
-          data.headlessAppQuery.headlessStorefrontPermissionCatalog,
-        );
+        setPermissionCatalog(data.headlessAppQuery.headlessStorefrontPermissionCatalog);
         setLoading(false);
       })
       .catch((cause: unknown) => {
         if (!active) return;
-        setError(
-          cause instanceof Error
-            ? cause
-            : new Error("Unable to load the storefront."),
-        );
+        setError(cause instanceof Error ? cause : new Error("Unable to load the storefront."));
         setLoading(false);
       });
 

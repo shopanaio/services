@@ -1,8 +1,5 @@
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
-import {
-  CatalogComparisonActions,
-  type Catalog,
-} from "@shopana/broker-types";
+import { CatalogComparisonActions, type Catalog } from "@shopana/broker-types";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type {
   CustomerComparison,
@@ -10,10 +7,7 @@ import type {
 } from "../../repositories/models/index.js";
 import { CustomersType } from "./CustomersType.js";
 
-export class CustomerComparisonResolver extends CustomersType<
-  string,
-  CustomerComparison
-> {
+export class CustomerComparisonResolver extends CustomersType<string, CustomerComparison> {
   async $preload(): Promise<CustomerComparison> {
     const comparison = await this.$ctx.loaders.comparison.load(this.$props);
     if (!comparison) {
@@ -36,9 +30,7 @@ export class CustomerComparisonResolver extends CustomersType<
 
   async items() {
     const items = await this.$ctx.loaders.comparisonItems.load(this.$props);
-    return Promise.all(
-      items.map((item) => this.resolvers.comparisonItem(item.id)),
-    );
+    return Promise.all(items.map((item) => this.resolvers.comparisonItem(item.id)));
   }
 
   createdAt() {
@@ -50,13 +42,8 @@ export class CustomerComparisonResolver extends CustomersType<
   }
 }
 
-export class CustomerComparisonItemResolver extends CustomersType<
-  string,
-  CustomerComparisonItem
-> {
-  private catalogVariantPromise?: Promise<
-    Catalog.ResolvedCustomerComparisonVariant | null
-  >;
+export class CustomerComparisonItemResolver extends CustomersType<string, CustomerComparisonItem> {
+  private catalogVariantPromise?: Promise<Catalog.ResolvedCustomerComparisonVariant | null>;
 
   async $preload(): Promise<CustomerComparisonItem> {
     const item = await this.$ctx.loaders.comparisonItem.load(this.$props);
@@ -113,29 +100,25 @@ export class CustomerComparisonItemResolver extends CustomersType<
     return this.$get("updatedAt");
   }
 
-  private resolveCatalogVariant(): Promise<
-    Catalog.ResolvedCustomerComparisonVariant | null
-  > {
+  private resolveCatalogVariant(): Promise<Catalog.ResolvedCustomerComparisonVariant | null> {
     this.catalogVariantPromise ??= this.loadCatalogVariant();
     return this.catalogVariantPromise;
   }
 
-  private async loadCatalogVariant(): Promise<
-    Catalog.ResolvedCustomerComparisonVariant | null
-  > {
+  private async loadCatalogVariant(): Promise<Catalog.ResolvedCustomerComparisonVariant | null> {
     const variantId = await this.$get("variantId");
     try {
-      const result = await this.$ctx.kernel.getServices().broker.call<
-        Catalog.ResolveCustomerComparisonVariantsResult,
-        Catalog.ResolveCustomerComparisonVariantsParams
-      >(CatalogComparisonActions.resolveVariants, {
-        storeId: this.$ctx.store.id,
-        variantIds: [variantId],
-      });
+      const result = await this.$ctx.kernel
+        .getServices()
+        .broker.call<
+          Catalog.ResolveCustomerComparisonVariantsResult,
+          Catalog.ResolveCustomerComparisonVariantsParams
+        >(CatalogComparisonActions.resolveVariants, {
+          storeId: this.$ctx.store.id,
+          variantIds: [variantId],
+        });
       if (!result.ok) return null;
-      return (
-        result.variants.find((variant) => variant.variantId === variantId) ?? null
-      );
+      return result.variants.find((variant) => variant.variantId === variantId) ?? null;
     } catch {
       return null;
     }

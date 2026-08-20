@@ -1,7 +1,4 @@
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type {
   NavigationMenuItemRecord,
@@ -10,16 +7,9 @@ import type {
 import { OnlineStoreType } from "./OnlineStoreType.js";
 
 export type OnlineStoreNavigationTargetType =
-  | "URL"
-  | "PAGE"
-  | "PRODUCT"
-  | "CATEGORY"
-  | "COLLECTION";
+  "URL" | "PAGE" | "PRODUCT" | "CATEGORY" | "COLLECTION";
 
-export class NavigationMenuResolver extends OnlineStoreType<
-  string,
-  NavigationMenuRecord
-> {
+export class NavigationMenuResolver extends OnlineStoreType<string, NavigationMenuRecord> {
   readonly __typename = "OnlineStoreNavigationMenu";
 
   async $preload() {
@@ -33,10 +23,7 @@ export class NavigationMenuResolver extends OnlineStoreType<
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.OnlineStoreNavigationMenu,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.OnlineStoreNavigationMenu);
   }
 
   async handle() {
@@ -73,10 +60,7 @@ export class NavigationMenuResolver extends OnlineStoreType<
   }
 }
 
-export class NavigationMenuItemResolver extends OnlineStoreType<
-  string,
-  NavigationMenuItemRecord
-> {
+export class NavigationMenuItemResolver extends OnlineStoreType<string, NavigationMenuItemRecord> {
   readonly __typename = "OnlineStoreNavigationMenuItem";
 
   async $preload() {
@@ -90,10 +74,7 @@ export class NavigationMenuItemResolver extends OnlineStoreType<
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.OnlineStoreNavigationMenuItem,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.OnlineStoreNavigationMenuItem);
   }
 
   async handle() {
@@ -106,9 +87,7 @@ export class NavigationMenuItemResolver extends OnlineStoreType<
 
   async parent() {
     const parentId = await this.$get("parentId");
-    return parentId
-      ? new NavigationMenuItemResolver(parentId, this.$ctx)
-      : null;
+    return parentId ? new NavigationMenuItemResolver(parentId, this.$ctx) : null;
   }
 
   async children() {
@@ -118,14 +97,11 @@ export class NavigationMenuItemResolver extends OnlineStoreType<
       item.menuId,
       item.id,
     );
-    return children.map(
-      ({ id }) => new NavigationMenuItemResolver(id, this.$ctx),
-    );
+    return children.map(({ id }) => new NavigationMenuItemResolver(id, this.$ctx));
   }
 
   async label() {
-    const translation =
-      await this.$ctx.loaders.navigationMenuItemTranslation.load(this.$props);
+    const translation = await this.$ctx.loaders.navigationMenuItemTranslation.load(this.$props);
     return translation?.label ?? "";
   }
 
@@ -157,10 +133,7 @@ export class NavigationMenuItemResolver extends OnlineStoreType<
   }
 }
 
-function encodeTargetId(
-  id: string,
-  type: Exclude<OnlineStoreNavigationTargetType, "URL">,
-): string {
+function encodeTargetId(id: string, type: Exclude<OnlineStoreNavigationTargetType, "URL">): string {
   const entity = {
     PAGE: GlobalIdEntity.OnlineStorePage,
     PRODUCT: GlobalIdEntity.Product,

@@ -1,4 +1,6 @@
-"""A published item offered for sale in the storefront catalog."""
+"""
+A published item offered for sale in the storefront catalog.
+"""
 type Product implements Node @key(fields: "id") {
   id: ID!
   handle: String!
@@ -9,12 +11,7 @@ type Product implements Node @key(fields: "id") {
   vendor: Vendor
   tags: [Tag!]!
   primaryCategory: Category
-  categories(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): CategoryConnection!
+  categories(first: Int, after: Cursor, last: Int, before: Cursor): CategoryConnection!
   options: [ProductOption!]!
   features: [ProductFeature!]!
   featureGroups: [ProductFeatureGroup!]!
@@ -26,25 +23,11 @@ type Product implements Node @key(fields: "id") {
   The storefront provides no comparison inputs and only renders the result.
   """
   comparison: ProductComparison
-  media(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): ProductMediaConnection!
+  media(first: Int, after: Cursor, last: Int, before: Cursor): ProductMediaConnection!
   featuredMedia: Media
-  variants(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): ProductVariantConnection!
-  variantBySelectedOptions(
-    selectedOptions: [SelectedOptionInput!]!
-  ): ProductVariant
-  selectedOrFirstAvailableVariant(
-    selectedOptions: [SelectedOptionInput!]
-  ): ProductVariant
+  variants(first: Int, after: Cursor, last: Int, before: Cursor): ProductVariantConnection!
+  variantBySelectedOptions(selectedOptions: [SelectedOptionInput!]!): ProductVariant
+  selectedOrFirstAvailableVariant(selectedOptions: [SelectedOptionInput!]): ProductVariant
   priceRange: ProductPriceRange
   compareAtPriceRange: ProductPriceRange
   availableForSale: Boolean!
@@ -54,7 +37,9 @@ type Product implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""A purchasable combination of product option values."""
+"""
+A purchasable combination of product option values.
+"""
 type ProductVariant implements Node @key(fields: "id") {
   id: ID!
   product: Product!
@@ -72,12 +57,7 @@ type ProductVariant implements Node @key(fields: "id") {
   requiresShipping: Boolean!
   weight: Weight
   dimensions: Dimensions
-  media(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): ProductVariantMediaConnection!
+  media(first: Int, after: Cursor, last: Int, before: Cursor): ProductVariantMediaConnection!
   featuredMedia: Media
   componentConfiguration(
     """
@@ -93,7 +73,9 @@ type ProductVariant implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""A configurable product dimension such as size, color, or material."""
+"""
+A configurable product dimension such as size, color, or material.
+"""
 type ProductOption implements Node @key(fields: "id") {
   id: ID!
   handle: String!
@@ -103,14 +85,18 @@ type ProductOption implements Node @key(fields: "id") {
   optionValues: [ProductOptionValue!]!
 }
 
-"""A reusable product option category."""
+"""
+A reusable product option category.
+"""
 type ProductOptionCategory implements Node @key(fields: "id") {
   id: ID!
   name: String!
   handle: String!
 }
 
-"""One customer-selectable value of a product option."""
+"""
+One customer-selectable value of a product option.
+"""
 type ProductOptionValue implements Node @key(fields: "id") {
   id: ID!
   handle: String!
@@ -119,7 +105,9 @@ type ProductOptionValue implements Node @key(fields: "id") {
   swatch: ProductOptionValueSwatch
 }
 
-"""The visual representation used for an option value."""
+"""
+The visual representation used for an option value.
+"""
 enum ProductOptionSwatchType {
   COLOR
   GRADIENT
@@ -134,7 +122,9 @@ type ProductOptionValueSwatch {
   metadata: JSON
 }
 
-"""A resolved option/value pair selected by a product variant."""
+"""
+A resolved option/value pair selected by a product variant.
+"""
 type SelectedOption {
   option: ProductOption!
   optionValue: ProductOptionValue!
@@ -142,19 +132,25 @@ type SelectedOption {
   value: String!
 }
 
-"""Stable option and value handles used to resolve a product variant."""
+"""
+Stable option and value handles used to resolve a product variant.
+"""
 input SelectedOptionInput {
   option: String!
   value: String!
 }
 
-"""The lowest and highest current variant prices for a product."""
+"""
+The lowest and highest current variant prices for a product.
+"""
 type ProductPriceRange {
   minVariantPrice: Money!
   maxVariantPrice: Money!
 }
 
-"""A Relay connection to product variants."""
+"""
+A Relay connection to product variants.
+"""
 type ProductVariantConnection implements Connection {
   edges: [ProductVariantEdge!]!
   nodes: [ProductVariant!]!

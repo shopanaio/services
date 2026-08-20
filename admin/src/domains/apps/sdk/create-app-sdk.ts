@@ -17,14 +17,8 @@ export interface CreateAdminAppSdkOptions {
   modals: AdminAppModalApi;
   navigation: AdminAppNavigationApi;
   graphql: {
-    query<TVariables>(
-      document: DocumentNode,
-      variables: TVariables,
-    ): Promise<unknown>;
-    mutate<TVariables>(
-      document: DocumentNode,
-      variables: TVariables,
-    ): Promise<unknown>;
+    query<TVariables>(document: DocumentNode, variables: TVariables): Promise<unknown>;
+    mutate<TVariables>(document: DocumentNode, variables: TVariables): Promise<unknown>;
   };
   notifications: AdminAppNotificationsApi;
   ui: AdminAppUiApi;
@@ -40,18 +34,14 @@ export function createAdminAppSdk({
   notifications,
   ui,
 }: CreateAdminAppSdkOptions): AdminAppSdk {
-  const guard = <TArgs extends unknown[], TResult>(
-    operation: (...args: TArgs) => TResult,
-  ) => {
+  const guard = <TArgs extends unknown[], TResult>(operation: (...args: TArgs) => TResult) => {
     return (...args: TArgs): TResult => {
       scope.assertActive();
       return operation(...args);
     };
   };
 
-  const guardEffect = <TArgs extends unknown[]>(
-    operation: (...args: TArgs) => void,
-  ) => {
+  const guardEffect = <TArgs extends unknown[]>(operation: (...args: TArgs) => void) => {
     return (...args: TArgs): void => {
       if (!scope.isActive) return;
       operation(...args);
@@ -63,15 +53,13 @@ export function createAdminAppSdk({
       <TData, TVariables>(
         document: TypedDocumentNodeLike<TData, TVariables>,
         variables: TVariables,
-      ) =>
-        graphql.query(document as DocumentNode, variables) as Promise<TData>,
+      ) => graphql.query(document as DocumentNode, variables) as Promise<TData>,
     ),
     mutate: guard(
       <TData, TVariables>(
         document: TypedDocumentNodeLike<TData, TVariables>,
         variables: TVariables,
-      ) =>
-        graphql.mutate(document as DocumentNode, variables) as Promise<TData>,
+      ) => graphql.mutate(document as DocumentNode, variables) as Promise<TData>,
     ),
   };
 

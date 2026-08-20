@@ -15,7 +15,10 @@ import { useCurrentUser } from "@/domains/auth";
 import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ReviewMediaDraftItem, ReviewMediaItemModalPayload } from "../../modals";
-import { formatReviewDateTime, humanizeEnum } from "../../components/review-details-card/review-details-card.utils";
+import {
+  formatReviewDateTime,
+  humanizeEnum,
+} from "../../components/review-details-card/review-details-card.utils";
 import { reviewMediaItemSchema, type ReviewMediaItemValues } from "../review-modal/schema";
 import { useReviewFormStyles } from "../shared/review-form.styles";
 import { ReviewFormField } from "../shared/review-section-modal";
@@ -31,7 +34,7 @@ function formatFileSize(bytes: number | string) {
   if (!value) return "0 B";
   const units = ["B", "KB", "MB", "GB"];
   const index = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
-  return `${(value / (1024 ** index)).toFixed(index ? 1 : 0)} ${units[index]}`;
+  return `${(value / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`;
 }
 
 export function EditReviewMediaItemModal() {
@@ -48,18 +51,25 @@ export function EditReviewMediaItemModal() {
     },
     mode: "onChange",
   });
-  const { control, handleSubmit, watch, formState: { errors, isDirty, isValid } } = form;
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors, isDirty, isValid },
+  } = form;
   const status = watch("status");
   useEffect(() => setDirty(isDirty), [isDirty, setDirty]);
-  const contextClass = status === ReviewContentStatus.Pending
-    ? styles.contextPending
-    : status === ReviewContentStatus.Published
-      ? styles.contextPublished
-      : styles.contextRejected;
+  const contextClass =
+    status === ReviewContentStatus.Pending
+      ? styles.contextPending
+      : status === ReviewContentStatus.Published
+        ? styles.contextPublished
+        : styles.contextRejected;
 
   const apply = handleSubmit((values) => {
-    const moderationChanged = values.status !== value.item.status
-      || values.moderationNote.trim() !== (value.item.moderationNote ?? "");
+    const moderationChanged =
+      values.status !== value.item.status ||
+      values.moderationNote.trim() !== (value.item.moderationNote ?? "");
     const now = new Date().toISOString();
     const next: ReviewMediaDraftItem = {
       ...value.item,
@@ -68,10 +78,14 @@ export function EditReviewMediaItemModal() {
       moderationNote: values.moderationNote.trim() || null,
       moderationDirty: value.item.moderationDirty || moderationChanged,
       moderatedByPrincipalId: moderationChanged
-        ? values.status === ReviewContentStatus.Pending ? null : currentUser.user?.id ?? null
+        ? values.status === ReviewContentStatus.Pending
+          ? null
+          : (currentUser.user?.id ?? null)
         : value.item.moderatedByPrincipalId,
       moderatedAt: moderationChanged
-        ? values.status === ReviewContentStatus.Pending ? null : now
+        ? values.status === ReviewContentStatus.Pending
+          ? null
+          : now
         : value.item.moderatedAt,
     };
     value.onApply(next);
@@ -84,60 +98,122 @@ export function EditReviewMediaItemModal() {
   return (
     <ModalLayout
       name="review-edit-media-item"
-      header={(
+      header={
         <ModalHeader
           name="review-edit-media-item"
           title="Edit media details"
           onClose={pop}
-          submitButtonProps={{ children: "Apply", disabled: !isDirty || !isValid, onClick: () => void apply() }}
+          submitButtonProps={{
+            children: "Apply",
+            disabled: !isDirty || !isValid,
+            onClick: () => void apply(),
+          }}
         />
-      )}
+      }
     >
       <div className={styles.mediaItemLayout}>
         <Paper>
           <PaperHeader title="Preview" />
           {isVideo ? (
-            <video src={file.url} controls className={styles.mediaPreview} aria-label={file.originalName || "Review media video"} />
+            <video
+              src={file.url}
+              controls
+              className={styles.mediaPreview}
+              aria-label={file.originalName || "Review media video"}
+            />
           ) : (
-            <img src={file.url} alt={file.altText || file.originalName || "Review media"} className={styles.mediaPreview} />
+            <img
+              src={file.url}
+              alt={file.altText || file.originalName || "Review media"}
+              className={styles.mediaPreview}
+            />
           )}
           <Typography.Paragraph type="secondary" style={{ margin: "12px 0 0" }}>
-            {file.originalName || file.id} · {file.ext?.toUpperCase() || file.mimeType} · {formatFileSize(file.sizeBytes)}
+            {file.originalName || file.id} · {file.ext?.toUpperCase() || file.mimeType} ·{" "}
+            {formatFileSize(file.sizeBytes)}
           </Typography.Paragraph>
         </Paper>
         <Paper>
           <PaperHeader title="Details" />
           <Flex vertical gap="middle">
             <ReviewFormField label="Caption" error={errors.caption?.message}>
-              <Controller name="caption" control={control} render={({ field }) => <Input {...field} autoFocus maxLength={500} showCount status={errors.caption ? "error" : undefined} />} />
+              <Controller
+                name="caption"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    autoFocus
+                    maxLength={500}
+                    showCount
+                    status={errors.caption ? "error" : undefined}
+                  />
+                )}
+              />
             </ReviewFormField>
             <ReviewFormField label="Moderation status" error={errors.status?.message}>
-              <Controller name="status" control={control} render={({ field }) => (
-                <Segmented
-                  {...field}
-                  block
-                  options={[
-                    { value: ReviewContentStatus.Pending, label: "Pending", icon: <ClockCircleOutlined /> },
-                    { value: ReviewContentStatus.Published, label: "Published", icon: <CheckCircleOutlined /> },
-                    { value: ReviewContentStatus.Rejected, label: "Rejected", icon: <CloseCircleOutlined /> },
-                  ]}
-                />
-              )} />
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <Segmented
+                    {...field}
+                    block
+                    options={[
+                      {
+                        value: ReviewContentStatus.Pending,
+                        label: "Pending",
+                        icon: <ClockCircleOutlined />,
+                      },
+                      {
+                        value: ReviewContentStatus.Published,
+                        label: "Published",
+                        icon: <CheckCircleOutlined />,
+                      },
+                      {
+                        value: ReviewContentStatus.Rejected,
+                        label: "Rejected",
+                        icon: <CloseCircleOutlined />,
+                      },
+                    ]}
+                  />
+                )}
+              />
             </ReviewFormField>
             <div className={cx(styles.contextPanel, contextClass)}>
-              <Typography.Text strong>{humanizeEnum(status)}</Typography.Text><br />
+              <Typography.Text strong>{humanizeEnum(status)}</Typography.Text>
+              <br />
               <Typography.Text>{consequence[status]}</Typography.Text>
             </div>
             <ReviewFormField
               label={`Moderation note${status === ReviewContentStatus.Rejected ? " *" : ""}`}
               error={errors.moderationNote?.message}
-              help={status === ReviewContentStatus.Rejected ? "Required when media is rejected. Never shown to customers." : "Never shown to customers."}
+              help={
+                status === ReviewContentStatus.Rejected
+                  ? "Required when media is rejected. Never shown to customers."
+                  : "Never shown to customers."
+              }
             >
-              <Controller name="moderationNote" control={control} render={({ field }) => <Input.TextArea {...field} rows={5} maxLength={1000} showCount status={errors.moderationNote ? "error" : undefined} />} />
+              <Controller
+                name="moderationNote"
+                control={control}
+                render={({ field }) => (
+                  <Input.TextArea
+                    {...field}
+                    rows={5}
+                    maxLength={1000}
+                    showCount
+                    status={errors.moderationNote ? "error" : undefined}
+                  />
+                )}
+              />
             </ReviewFormField>
             {value.item.moderatedAt ? (
               <Typography.Text type="secondary">
-                Moderated {formatReviewDateTime(value.item.moderatedAt)}{value.item.moderatedByPrincipalId ? ` by ${value.item.moderatedByPrincipalId}` : ""}
+                Moderated {formatReviewDateTime(value.item.moderatedAt)}
+                {value.item.moderatedByPrincipalId
+                  ? ` by ${value.item.moderatedByPrincipalId}`
+                  : ""}
               </Typography.Text>
             ) : null}
           </Flex>
@@ -145,7 +221,9 @@ export function EditReviewMediaItemModal() {
       </div>
       <Flex gap={8} align="center">
         <InfoCircleOutlined />
-        <Typography.Text type="secondary">Apply updates the draft. Save the media gallery to persist changes.</Typography.Text>
+        <Typography.Text type="secondary">
+          Apply updates the draft. Save the media gallery to persist changes.
+        </Typography.Text>
       </Flex>
     </ModalLayout>
   );

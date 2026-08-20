@@ -16,7 +16,8 @@
 - event emission helpers;
 - payload shaping для GraphQL;
 - product bulk update mapping;
-- domain mutations для vendor, product, variant, options, features, category, facet, collection и tag.
+- domain mutations для vendor, product, variant, options, features, category, facet, collection и
+  tag.
 
 Это расходится с локальными архитектурными правилами:
 
@@ -30,10 +31,14 @@
 
 1. Уменьшить `MutationResolver.ts` до root resolver + сборки namespace resolver.
 2. Разнести domain mutation methods по отдельным файлам без изменения публичного GraphQL contract.
-3. Вынести повторяющийся mapping global IDs, rich text, operation inputs и userErrors в переиспользуемые boundary helpers.
-4. Сделать single product update и bulk product update использующими один mapper для `ProductUpdateOperation`.
-5. Привести tags/facets/collections к тем же resolver conventions, что products/categories: generated types, Zod schemas где доступны, единый payload shape.
-6. Сохранить существующие scripts/workflows как business/orchestration layer. Рефакторинг resolver не должен переносить business rules обратно в resolver.
+3. Вынести повторяющийся mapping global IDs, rich text, operation inputs и userErrors в
+   переиспользуемые boundary helpers.
+4. Сделать single product update и bulk product update использующими один mapper для
+   `ProductUpdateOperation`.
+5. Привести tags/facets/collections к тем же resolver conventions, что products/categories:
+   generated types, Zod schemas где доступны, единый payload shape.
+6. Сохранить существующие scripts/workflows как business/orchestration layer. Рефакторинг resolver
+   не должен переносить business rules обратно в resolver.
 
 ## Не цели
 
@@ -41,13 +46,16 @@
 - Не менять semantics scripts/workflows.
 - Не менять database schema или migrations.
 - Не редактировать changeset вручную.
-- Не запускать tests/tsc. Build запускать только если потребуется новая версия кода согласно project instructions.
+- Не запускать tests/tsc. Build запускать только если потребуется новая версия кода согласно project
+  instructions.
 
 ## Основные запахи текущего файла
 
 ### God object
 
-`CatalogMutationResolver` содержит почти весь mutation API catalog service в одном классе. Domain areas смешаны в одном файле, а private helpers в начале и конце файла работают сразу на несколько workflows.
+`CatalogMutationResolver` содержит почти весь mutation API catalog service в одном классе. Domain
+areas смешаны в одном файле, а private helpers в начале и конце файла работают сразу на несколько
+workflows.
 
 Ключевые точки:
 
@@ -59,19 +67,24 @@
 
 ### Дублирование mapping logic
 
-Single `productUpdate` и `productBulkUpdate` строят похожие `ProductUpdateOperation[]`, но делают это двумя путями. Это создает риск расхождения при добавлении новых product/variant/category/tag operations.
+Single `productUpdate` и `productBulkUpdate` строят похожие `ProductUpdateOperation[]`, но делают
+это двумя путями. Это создает риск расхождения при добавлении новых product/variant/category/tag
+operations.
 
 ### Смешение boundary и orchestration
 
-Resolver напрямую строит workflow input, workflow IDs, event payloads и запускает `events.emit`. Эти детали лучше держать в workflow-level/event helper слое.
+Resolver напрямую строит workflow input, workflow IDs, event payloads и запускает `events.emit`. Эти
+детали лучше держать в workflow-level/event helper слое.
 
 ### Неравномерная validation convention
 
-Часть mutations помечена `@ZodResolver(...)`, часть принимает inline object types и валидируется вручную или не валидируется через generated schemas. Особенно заметны tag/facet/collection sections.
+Часть mutations помечена `@ZodResolver(...)`, часть принимает inline object types и валидируется
+вручную или не валидируется через generated schemas. Особенно заметны tag/facet/collection sections.
 
 ### Повторение global ID decoding
 
-`safeDecodeGlobalId` и ручной `decodeGlobalIdByType` используются десятки раз. Ошибки возвращаются с разными `field` paths и разными codes.
+`safeDecodeGlobalId` и ручной `decodeGlobalIdByType` используются десятки раз. Ошибки возвращаются с
+разными `field` paths и разными codes.
 
 ## Целевая структура
 
@@ -122,7 +135,8 @@ mutation/
 
 ## Архитектурное решение по domain resolvers
 
-Предпочтительный вариант: один namespace resolver class остается публичной GraphQL точкой, но методы делегируют в domain-specific classes:
+Предпочтительный вариант: один namespace resolver class остается публичной GraphQL точкой, но методы
+делегируют в domain-specific classes:
 
 ```ts
 export class CatalogMutationResolver extends CatalogType<Record<string, never>> {
@@ -135,9 +149,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 }
 ```
 
-Причина: текущий `@shopana/type-resolver` ожидает методы на namespace object. Прямое наследование от множества classes или dynamic proxy хуже для type inference и читаемости.
+Причина: текущий `@shopana/type-resolver` ожидает методы на namespace object. Прямое наследование от
+множества classes или dynamic proxy хуже для type inference и читаемости.
 
-Если делегирование окажется слишком шумным, допустим второй шаг: хранить methods в одном class per domain и экспортировать их через простую ручную фасадную функцию. Не использовать magic reflection.
+Если делегирование окажется слишком шумным, допустим второй шаг: хранить methods в одном class per
+domain и экспортировать их через простую ручную фасадную функцию. Не использовать magic reflection.
 
 ## Helper layer
 
@@ -314,7 +330,8 @@ Event emission для affected products вынести в `events/product-events
 
 ### `FacetMutationResolver.ts`, `CollectionMutationResolver.ts`
 
-Переносить после product/category/tag, потому что там больше inline object types и target ID decoding.
+Переносить после product/category/tag, потому что там больше inline object types и target ID
+decoding.
 
 ## Пошаговый план
 
@@ -418,27 +435,33 @@ Acceptance:
 
 ### Риск: потерять decorator metadata
 
-`@ZodResolver` должен оставаться на методе, который фактически вызывается GraphQL executor. Если facade method просто вызывает domain resolver method, decorator на domain method может не сработать.
+`@ZodResolver` должен оставаться на методе, который фактически вызывается GraphQL executor. Если
+facade method просто вызывает domain resolver method, decorator на domain method может не сработать.
 
 Контроль:
 
 - либо decorator остается на facade forwarding method;
 - либо проверить, что executor вызывает decorated domain method напрямую.
 
-Предпочтение для первого pass: decorators оставить на facade methods, а domain resolver methods сделать undecorated private/service calls. После подтверждения поведения `@shopana/type-resolver` можно переносить decorators глубже.
+Предпочтение для первого pass: decorators оставить на facade methods, а domain resolver methods
+сделать undecorated private/service calls. После подтверждения поведения `@shopana/type-resolver`
+можно переносить decorators глубже.
 
 ### Риск: this/$ctx lifecycle
 
-Domain resolver classes должны получать `ServiceContext` явно и не полагаться на magic inheritance state, если это не нужно.
+Domain resolver classes должны получать `ServiceContext` явно и не полагаться на magic inheritance
+state, если это не нужно.
 
 Контроль:
 
 - использовать `new DomainMutationResolver(this.$ctx)`;
-- domain resolver может наследоваться от `CatalogType<Record<string, never>>`, но должен принимать `$ctx` так же, как текущие resolver classes.
+- domain resolver может наследоваться от `CatalogType<Record<string, never>>`, но должен принимать
+  `$ctx` так же, как текущие resolver classes.
 
 ### Риск: generated type drift
 
-Refactor не должен менять schema. Generated files должны изменяться только если отдельно меняется GraphQL contract.
+Refactor не должен менять schema. Generated files должны изменяться только если отдельно меняется
+GraphQL contract.
 
 Контроль:
 
@@ -480,4 +503,5 @@ Refactor не должен менять schema. Generated files должны и�
 - product update mapping не дублируется между single и bulk;
 - global ID decoding и userErrors единообразны;
 - tag/category/product mutation conventions выравнены;
-- дальнейшие изменения GraphQL mutation contract становятся локальными, а не требуют редактировать 3000+ строковый файл.
+- дальнейшие изменения GraphQL mutation contract становятся локальными, а не требуют редактировать
+  3000+ строковый файл.

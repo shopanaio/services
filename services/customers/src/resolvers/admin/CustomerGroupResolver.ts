@@ -8,9 +8,7 @@ export class CustomerGroupResolver extends CustomersType<string, CustomerGroup> 
   async $preload() {
     const group = await this.$ctx.loaders.group.load(this.$props);
     if (!group) {
-      throw new PreloadNotFoundError(
-        `Customer group with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer group with ID ${this.$props} not found`);
     }
     return group;
   }

@@ -7,24 +7,33 @@ export class CollectionAddProductsScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(params: CollectionAddProductsParams): Promise<CollectionResult> {
-    const collection =
-      await this.repository.collection.findByIdForUpdate(params.collectionId);
+    const collection = await this.repository.collection.findByIdForUpdate(params.collectionId);
     if (!collection) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Collection not found", field: ["collectionId"], code: "NOT_FOUND" }],
+        userErrors: [
+          { message: "Collection not found", field: ["collectionId"], code: "NOT_FOUND" },
+        ],
       };
     }
     if (collection.revision !== params.expectedRevision) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Collection revision does not match", field: ["expectedRevision"], code: "REVISION_CONFLICT" }],
+        userErrors: [
+          {
+            message: "Collection revision does not match",
+            field: ["expectedRevision"],
+            code: "REVISION_CONFLICT",
+          },
+        ],
       };
     }
     if (collection.revision >= 2_147_483_646) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" }],
+        userErrors: [
+          { message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" },
+        ],
       };
     }
 
@@ -37,7 +46,13 @@ export class CollectionAddProductsScript extends BaseScript<
     if (params.productIds.length > 100) {
       return {
         collection: undefined,
-        userErrors: [{ message: "At most 100 products can be added", field: ["productIds"], code: "LIMIT_EXCEEDED" }],
+        userErrors: [
+          {
+            message: "At most 100 products can be added",
+            field: ["productIds"],
+            code: "LIMIT_EXCEEDED",
+          },
+        ],
       };
     }
     const productIds = [...new Set(params.productIds)];
@@ -45,13 +60,19 @@ export class CollectionAddProductsScript extends BaseScript<
     if (products.length !== productIds.length) {
       return {
         collection: undefined,
-        userErrors: [{ message: "One or more products were not found", field: ["productIds"], code: "NOT_FOUND" }],
+        userErrors: [
+          {
+            message: "One or more products were not found",
+            field: ["productIds"],
+            code: "NOT_FOUND",
+          },
+        ],
       };
     }
 
     const changedProductIds = await this.repository.collectionItem.addProducts(
       params.collectionId,
-      productIds
+      productIds,
     );
     if (changedProductIds.length === 0) {
       return { collection, userErrors: [] };
@@ -59,7 +80,7 @@ export class CollectionAddProductsScript extends BaseScript<
     const refreshed = await this.repository.collection.bumpRevision(
       params.collectionId,
       params.expectedRevision,
-      { listingChanged: false }
+      { listingChanged: false },
     );
     if (!refreshed) {
       throw new Error("Collection item compare-and-swap failed after row lock");

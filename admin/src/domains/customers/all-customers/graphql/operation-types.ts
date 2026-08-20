@@ -41,7 +41,10 @@ export interface CustomerQueryVariables {
 }
 
 export interface CustomerEditorContextQueryData {
-  customersQuery: Pick<ApiCustomersQuery, "customerSegments" | "customerTags" | "customerGroups"> & {
+  customersQuery: Pick<
+    ApiCustomersQuery,
+    "customerSegments" | "customerTags" | "customerGroups"
+  > & {
     customerSegments: ApiCustomerSegmentConnection;
     customerTags: ApiCustomerTagConnection;
     customerGroups: ApiCustomerGroupConnection;

@@ -3,10 +3,7 @@
 import { useQuery } from "@apollo/client/react";
 import type { ApiTag } from "@/graphql/types";
 import { TAG_DETAILS_QUERY } from "../graphql";
-import type {
-  TagDetailsQueryData,
-  TagDetailsQueryVariables,
-} from "../graphql/operation-types";
+import type { TagDetailsQueryData, TagDetailsQueryVariables } from "../graphql/operation-types";
 
 interface UseTagReturn {
   tag: ApiTag | null;

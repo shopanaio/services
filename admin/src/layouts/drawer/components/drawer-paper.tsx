@@ -1,5 +1,5 @@
-import { createStyles } from 'antd-style';
-import { ReactNode } from 'react';
+import { createStyles } from "antd-style";
+import { ReactNode } from "react";
 
 const useStyles = createStyles(({ token }) => ({
   paper: {
@@ -18,9 +18,5 @@ interface IDrawerPaperProps {
 export const DrawerPaper = ({ children, className }: IDrawerPaperProps) => {
   const { styles, cx } = useStyles();
 
-  return (
-    <div className={cx(styles.paper, className)}>
-      {children}
-    </div>
-  );
+  return <div className={cx(styles.paper, className)}>{children}</div>;
 };

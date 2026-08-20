@@ -2,10 +2,7 @@ import { and, asc, eq, inArray, isNull, not, or } from "drizzle-orm";
 import { Transactional, type TransactionManager } from "@shopana/shared-kernel";
 import { GraphQLError } from "graphql";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  LexoRankRepository,
-  type LexoRankMoveResult,
-} from "../LexoRankRepository.js";
+import { LexoRankRepository, type LexoRankMoveResult } from "../LexoRankRepository.js";
 import type { Database } from "../../infrastructure/db/database.js";
 import {
   CatalogFacetCandidateClient,
@@ -34,10 +31,7 @@ import {
   type NewFacetValue,
   type FacetTranslation,
 } from "../models/index.js";
-import {
-  isFacetScopeType,
-  type FacetScopeType,
-} from "./facetScopes.js";
+import { isFacetScopeType, type FacetScopeType } from "./facetScopes.js";
 
 export type {
   FacetSourceCandidateConnectionResult,
@@ -100,17 +94,11 @@ function throwBadUserInput(message: string): never {
 function normalizeSourceHandles(sourceHandles?: readonly string[]): string[] {
   if (!sourceHandles) return [];
   return [
-    ...new Set(
-      sourceHandles
-        .map((handle) => handle.trim())
-        .filter((handle) => handle.length > 0)
-    ),
+    ...new Set(sourceHandles.map((handle) => handle.trim()).filter((handle) => handle.length > 0)),
   ];
 }
 
-function normalizeFacetScopes(
-  scopes: readonly FacetScopeType[]
-): FacetScopeType[] {
+function normalizeFacetScopes(scopes: readonly FacetScopeType[]): FacetScopeType[] {
   if (scopes.length === 0) {
     throwBadUserInput("At least one facet scope is required");
   }
@@ -128,24 +116,19 @@ function normalizeFacetScopes(
   return [...normalized].sort();
 }
 
-function isFacetValueCandidateType(
-  value: string
-): value is FacetValueCandidateType {
+function isFacetValueCandidateType(value: string): value is FacetValueCandidateType {
   return FACET_VALUE_CANDIDATE_TYPES.has(value);
 }
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function parseCanonicalPostingValueKey(
-  valueKey: string
+  valueKey: string,
 ): { facetId: string; valueId: string } | null {
   const parts = valueKey.split(":");
   if (parts.length !== 2) return null;
   const [facetId, valueId] = parts;
-  return UUID_RE.test(facetId) && UUID_RE.test(valueId)
-    ? { facetId, valueId }
-    : null;
+  return UUID_RE.test(facetId) && UUID_RE.test(valueId) ? { facetId, valueId } : null;
 }
 
 function parseFallbackPostingValueKey(valueKey: string): FacetSourceRef | null {
@@ -169,10 +152,7 @@ function parseFallbackPostingValueKey(valueKey: string): FacetSourceRef | null {
   };
 }
 
-function sourceRefFromFacetValue(
-  facetType: string,
-  valueHandle: string
-): FacetSourceRef | null {
+function sourceRefFromFacetValue(facetType: string, valueHandle: string): FacetSourceRef | null {
   if (facetType === "TAG") {
     return {
       facetType: "TAG",
@@ -196,7 +176,7 @@ function sourceRefFromFacetValue(
 }
 
 function splitCompositeHandle(
-  handle: string
+  handle: string,
 ): { sourceHandle: string; valueHandle: string } | null {
   const index = handle.indexOf(":");
   if (index <= 0 || index === handle.length - 1) return null;
@@ -212,13 +192,13 @@ function uniqueFacetSourceRefs(refs: readonly FacetSourceRef[]): FacetSourceRef[
       refs.map((ref) => [
         JSON.stringify([ref.facetType, ref.sourceHandle, ref.valueHandle ?? ""]),
         ref,
-      ])
+      ]),
     ).values(),
   ].sort(
     (left, right) =>
       left.facetType.localeCompare(right.facetType) ||
       left.sourceHandle.localeCompare(right.sourceHandle) ||
-      (left.valueHandle ?? "").localeCompare(right.valueHandle ?? "")
+      (left.valueHandle ?? "").localeCompare(right.valueHandle ?? ""),
   );
 }
 
@@ -226,7 +206,7 @@ export class FacetRepository extends BaseRepository {
   constructor(
     db: Database,
     txManager: TransactionManager<Database>,
-    private readonly candidateClient: CatalogFacetCandidateClient
+    private readonly candidateClient: CatalogFacetCandidateClient,
   ) {
     super(db, txManager);
   }
@@ -285,9 +265,7 @@ export class FacetRepository extends BaseRepository {
     const id = await this.generateUuidV7();
     const now = new Date().toISOString();
     const lexoRank = data.lexoRank ?? (await this.getNextFacetRank());
-    const scopes = normalizeFacetScopes(
-      data.scopes ?? ["SEARCH", "CATEGORY", "COLLECTION"]
-    );
+    const scopes = normalizeFacetScopes(data.scopes ?? ["SEARCH", "CATEGORY", "COLLECTION"]);
 
     const insert: NewFacet = {
       id,
@@ -307,7 +285,7 @@ export class FacetRepository extends BaseRepository {
         facetId: id,
         storeId: this.storeId,
         scopeType: scope,
-      }))
+      })),
     );
     await this.connection.insert(facetTranslation).values({
       facetId: id,
@@ -334,11 +312,9 @@ export class FacetRepository extends BaseRepository {
       lexoRank?: string;
       sources?: FacetSourceInput[];
       scopes?: readonly FacetScopeType[];
-    }
+    },
   ): Promise<Facet | null> {
-    const scopes = data.scopes === undefined
-      ? undefined
-      : normalizeFacetScopes(data.scopes);
+    const scopes = data.scopes === undefined ? undefined : normalizeFacetScopes(data.scopes);
     const updates: Partial<NewFacet> = {
       updatedAt: new Date().toISOString(),
     };
@@ -397,7 +373,7 @@ export class FacetRepository extends BaseRepository {
   async moveFacetRank(
     id: string,
     afterFacetId?: string | null,
-    beforeFacetId?: string | null
+    beforeFacetId?: string | null,
   ): Promise<LexoRankMoveResult<Facet>> {
     return this.facetRankRepository.move({
       itemId: id,
@@ -426,31 +402,21 @@ export class FacetRepository extends BaseRepository {
       .where(and(eq(facet.storeId, this.storeId), inArray(facet.id, [...facetIds])));
   }
 
-  async getScopesByFacetIds(
-    facetIds: readonly string[]
-  ): Promise<FacetScope[]> {
+  async getScopesByFacetIds(facetIds: readonly string[]): Promise<FacetScope[]> {
     const uniqueFacetIds = [...new Set(facetIds)];
     if (uniqueFacetIds.length === 0) return [];
 
     return this.connection
       .select()
       .from(facetScope)
-      .where(
-        and(
-          eq(facetScope.storeId, this.storeId),
-          inArray(facetScope.facetId, uniqueFacetIds)
-        )
-      )
-      .orderBy(
-        asc(facetScope.facetId),
-        asc(facetScope.scopeType)
-      );
+      .where(and(eq(facetScope.storeId, this.storeId), inArray(facetScope.facetId, uniqueFacetIds)))
+      .orderBy(asc(facetScope.facetId), asc(facetScope.scopeType));
   }
 
   @Transactional()
   async replaceScopes(
     facetId: string,
-    scopes: readonly FacetScopeType[]
+    scopes: readonly FacetScopeType[],
   ): Promise<FacetScope[] | null> {
     const existing = await this.findById(facetId);
     if (!existing) return null;
@@ -462,7 +428,7 @@ export class FacetRepository extends BaseRepository {
 
   private async replaceNormalizedScopes(
     facetId: string,
-    scopes: readonly FacetScopeType[]
+    scopes: readonly FacetScopeType[],
   ): Promise<void> {
     await this.connection
       .insert(facetScope)
@@ -471,13 +437,11 @@ export class FacetRepository extends BaseRepository {
           facetId,
           storeId: this.storeId,
           scopeType,
-        }))
+        })),
       )
       .onConflictDoNothing();
 
-    const retainedScopes = scopes.map((scopeType) =>
-      eq(facetScope.scopeType, scopeType)
-    );
+    const retainedScopes = scopes.map((scopeType) => eq(facetScope.scopeType, scopeType));
 
     await this.connection
       .delete(facetScope)
@@ -485,14 +449,12 @@ export class FacetRepository extends BaseRepository {
         and(
           eq(facetScope.storeId, this.storeId),
           eq(facetScope.facetId, facetId),
-          not(or(...retainedScopes)!)
-        )
+          not(or(...retainedScopes)!),
+        ),
       );
   }
 
-  async getTranslationsByFacetIds(
-    facetIds: readonly string[]
-  ): Promise<FacetTranslation[]> {
+  async getTranslationsByFacetIds(facetIds: readonly string[]): Promise<FacetTranslation[]> {
     if (facetIds.length === 0) return [];
     return this.connection
       .select()
@@ -501,14 +463,12 @@ export class FacetRepository extends BaseRepository {
         and(
           eq(facetTranslation.storeId, this.storeId),
           eq(facetTranslation.locale, this.locale),
-          inArray(facetTranslation.facetId, [...facetIds])
-        )
+          inArray(facetTranslation.facetId, [...facetIds]),
+        ),
       );
   }
 
-  async getSourcesByFacetIds(
-    facetIds: readonly string[]
-  ): Promise<FacetSourceWithName[]> {
+  async getSourcesByFacetIds(facetIds: readonly string[]): Promise<FacetSourceWithName[]> {
     if (facetIds.length === 0) return [];
     return this.connection
       .select({
@@ -522,20 +482,15 @@ export class FacetRepository extends BaseRepository {
         and(
           eq(facetSourceTranslation.facetSourceId, facetSource.id),
           eq(facetSourceTranslation.storeId, facetSource.storeId),
-          eq(facetSourceTranslation.locale, this.locale)
-        )
+          eq(facetSourceTranslation.locale, this.locale),
+        ),
       )
       .where(
-        and(
-          eq(facetSource.storeId, this.storeId),
-          inArray(facetSource.facetId, [...facetIds])
-        )
+        and(eq(facetSource.storeId, this.storeId), inArray(facetSource.facetId, [...facetIds])),
       );
   }
 
-  async getReferenceSourcesByFacetIds(
-    facetIds: readonly string[]
-  ): Promise<FacetSource[]> {
+  async getReferenceSourcesByFacetIds(facetIds: readonly string[]): Promise<FacetSource[]> {
     const uniqueFacetIds = [...new Set(facetIds)];
     if (uniqueFacetIds.length === 0) return [];
 
@@ -543,29 +498,19 @@ export class FacetRepository extends BaseRepository {
       .select()
       .from(facetSource)
       .where(
-        and(
-          eq(facetSource.storeId, this.storeId),
-          inArray(facetSource.facetId, uniqueFacetIds)
-        )
+        and(eq(facetSource.storeId, this.storeId), inArray(facetSource.facetId, uniqueFacetIds)),
       )
       .orderBy(asc(facetSource.facetType), asc(facetSource.handle), asc(facetSource.id));
   }
 
-  async getReferenceSourcesByRefs(
-    refs: readonly FacetSourceRef[]
-  ): Promise<FacetSource[]> {
+  async getReferenceSourcesByRefs(refs: readonly FacetSourceRef[]): Promise<FacetSource[]> {
     const uniqueRefs = [
-      ...new Map(
-        refs.map((ref) => [`${ref.facetType}:${ref.sourceHandle}`, ref])
-      ).values(),
+      ...new Map(refs.map((ref) => [`${ref.facetType}:${ref.sourceHandle}`, ref])).values(),
     ];
     if (uniqueRefs.length === 0) return [];
 
     const predicates = uniqueRefs.map((ref) =>
-      and(
-        eq(facetSource.facetType, ref.facetType),
-        eq(facetSource.handle, ref.sourceHandle)
-      )
+      and(eq(facetSource.facetType, ref.facetType), eq(facetSource.handle, ref.sourceHandle)),
     );
 
     return this.connection
@@ -575,18 +520,14 @@ export class FacetRepository extends BaseRepository {
       .orderBy(asc(facetSource.facetType), asc(facetSource.handle), asc(facetSource.id));
   }
 
-  async getSourceRefsByPostingValueKeys(
-    valueKeys: readonly string[]
-  ): Promise<FacetSourceRef[]> {
+  async getSourceRefsByPostingValueKeys(valueKeys: readonly string[]): Promise<FacetSourceRef[]> {
     const uniqueValueKeys = [...new Set(valueKeys)].filter(Boolean);
     if (uniqueValueKeys.length === 0) return [];
 
     const refs: FacetSourceRef[] = [];
     const canonicalPairs = uniqueValueKeys
       .map(parseCanonicalPostingValueKey)
-      .filter(
-        (pair): pair is { facetId: string; valueId: string } => pair !== null
-      );
+      .filter((pair): pair is { facetId: string; valueId: string } => pair !== null);
 
     for (const valueKey of uniqueValueKeys) {
       const fallback = parseFallbackPostingValueKey(valueKey);
@@ -607,19 +548,17 @@ export class FacetRepository extends BaseRepository {
         .from(facet)
         .innerJoin(
           facetValue,
-          and(eq(facetValue.facetId, facet.id), eq(facetValue.storeId, facet.storeId))
+          and(eq(facetValue.facetId, facet.id), eq(facetValue.storeId, facet.storeId)),
         )
         .where(
           and(
             eq(facet.storeId, this.storeId),
             inArray(facet.id, facetIds),
-            inArray(facetValue.id, valueIds)
-          )
+            inArray(facetValue.id, valueIds),
+          ),
         );
 
-      const rowByPair = new Map(
-        rows.map((row) => [`${row.facetId}:${row.valueId}`, row])
-      );
+      const rowByPair = new Map(rows.map((row) => [`${row.facetId}:${row.valueId}`, row]));
       const groupValueIds: string[] = [];
 
       for (const pair of canonicalPairs) {
@@ -643,14 +582,14 @@ export class FacetRepository extends BaseRepository {
           .from(facetValue)
           .innerJoin(
             facet,
-            and(eq(facet.id, facetValue.facetId), eq(facet.storeId, facetValue.storeId))
+            and(eq(facet.id, facetValue.facetId), eq(facet.storeId, facetValue.storeId)),
           )
           .where(
             and(
               eq(facetValue.storeId, this.storeId),
               inArray(facetValue.parentId, [...new Set(groupValueIds)]),
-              eq(facetValue.kind, "source")
-            )
+              eq(facetValue.kind, "source"),
+            ),
           );
 
         for (const row of childRows) {
@@ -673,7 +612,7 @@ export class FacetRepository extends BaseRepository {
 
   async refreshSourceStatus(
     id: string,
-    referenceStatus: FacetSource["referenceStatus"]
+    referenceStatus: FacetSource["referenceStatus"],
   ): Promise<{
     id: string;
     previousStatus: FacetSource["referenceStatus"];
@@ -714,7 +653,7 @@ export class FacetRepository extends BaseRepository {
   }
 
   async getAvailableFacetSourceCandidates(
-    args: FacetSourceCandidateRelayInput
+    args: FacetSourceCandidateRelayInput,
   ): Promise<FacetSourceCandidateConnectionResult> {
     const usedSources = await this.connection
       .select({ facetType: facetSource.facetType, handle: facetSource.handle })
@@ -726,12 +665,12 @@ export class FacetRepository extends BaseRepository {
       {
         relay: args,
         excludedSources: usedSources,
-      }
+      },
     );
   }
 
   async getFacetValueCandidates(
-    args: FacetValueCandidateArgs
+    args: FacetValueCandidateArgs,
   ): Promise<FacetValueCandidateConnectionResult> {
     const candidateType = args.meta.candidateType;
     if (!isFacetValueCandidateType(candidateType)) {
@@ -755,22 +694,13 @@ export class FacetRepository extends BaseRepository {
       const sourceRows = await this.connection
         .select({ handle: facetSource.handle })
         .from(facetSource)
-        .where(
-          and(
-            eq(facetSource.storeId, this.storeId),
-            eq(facetSource.facetId, meta.facetId)
-          )
-        );
+        .where(and(eq(facetSource.storeId, this.storeId), eq(facetSource.facetId, meta.facetId)));
 
-      sourceHandles = normalizeSourceHandles(
-        sourceRows.map((source) => source.handle)
-      );
+      sourceHandles = normalizeSourceHandles(sourceRows.map((source) => source.handle));
 
       if (meta.sourceHandles !== undefined) {
         const requestedHandles = new Set(normalizeSourceHandles(meta.sourceHandles));
-        sourceHandles = sourceHandles.filter((handle) =>
-          requestedHandles.has(handle)
-        );
+        sourceHandles = sourceHandles.filter((handle) => requestedHandles.has(handle));
       }
 
       if (sourceHandles.length === 0) {
@@ -784,12 +714,12 @@ export class FacetRepository extends BaseRepository {
           and(
             eq(facetValue.storeId, this.storeId),
             eq(facetValue.facetId, meta.facetId),
-            eq(facetValue.kind, "source")
-          )
+            eq(facetValue.kind, "source"),
+          ),
         );
 
       existingSourceValueHandles.push(
-        ...normalizeSourceHandles(existingValueRows.map((value) => value.handle))
+        ...normalizeSourceHandles(existingValueRows.map((value) => value.handle)),
       );
     } else {
       sourceHandles = normalizeSourceHandles(meta.sourceHandles);
@@ -805,7 +735,7 @@ export class FacetRepository extends BaseRepository {
         sourceHandles,
         existingSourceValueHandles,
         relay: paginationArgs,
-      }
+      },
     );
   }
 
@@ -815,7 +745,7 @@ export class FacetRepository extends BaseRepository {
   }): Promise<FacetSourceCandidateView | null> {
     return this.candidateClient.findSourceCandidateByRef(
       { storeId: this.storeId, locale: this.locale },
-      input
+      input,
     );
   }
 
@@ -845,7 +775,7 @@ export class FacetRepository extends BaseRepository {
 
     return this.candidateClient.findValueCandidatesByHandles(
       { storeId: this.storeId, locale: this.locale },
-      { candidateType, sourceHandles, handles }
+      { candidateType, sourceHandles, handles },
     );
   }
 
@@ -886,7 +816,7 @@ export class FacetRepository extends BaseRepository {
         locale: this.locale,
         storeId: this.storeId,
         label: args.values[index]?.label ?? row.handle,
-      }))
+      })),
     );
 
     return rows;
@@ -903,8 +833,8 @@ export class FacetRepository extends BaseRepository {
         and(
           eq(facetSource.storeId, this.storeId),
           eq(facetSource.facetType, args.facetType),
-          eq(facetSource.handle, args.handle)
-        )
+          eq(facetSource.handle, args.handle),
+        ),
       )
       .limit(1);
 
@@ -914,14 +844,11 @@ export class FacetRepository extends BaseRepository {
 
     return this.candidateClient.findSourceCandidateByRef(
       { storeId: this.storeId, locale: this.locale },
-      args
+      args,
     );
   }
 
-  async replaceSources(
-    facetId: string,
-    sources: FacetSourceInput[]
-  ): Promise<void> {
+  async replaceSources(facetId: string, sources: FacetSourceInput[]): Promise<void> {
     const facetRow = await this.findById(facetId);
     if (!facetRow) {
       return;
@@ -929,12 +856,7 @@ export class FacetRepository extends BaseRepository {
 
     await this.connection
       .delete(facetSource)
-      .where(
-        and(
-          eq(facetSource.storeId, this.storeId),
-          eq(facetSource.facetId, facetId)
-        )
-      );
+      .where(and(eq(facetSource.storeId, this.storeId), eq(facetSource.facetId, facetId)));
 
     if (!PERSISTED_FACET_SOURCE_TYPES.has(facetRow.facetType)) {
       return;
@@ -949,20 +871,23 @@ export class FacetRepository extends BaseRepository {
         sources.map((source) => [
           source.handle.trim(),
           { handle: source.handle.trim(), name: source.name.trim() },
-        ])
-      ).values()
+        ]),
+      ).values(),
     );
     const ids = await this.generateUuidV7s(uniqueSources.length);
 
-    const inserted = await this.connection.insert(facetSource).values(
-      uniqueSources.map((source, index) => ({
-        id: ids[index],
-        storeId: this.storeId,
-        facetId,
-        facetType: facetRow.facetType,
-        handle: source.handle,
-      }))
-    ).returning({ id: facetSource.id, handle: facetSource.handle });
+    const inserted = await this.connection
+      .insert(facetSource)
+      .values(
+        uniqueSources.map((source, index) => ({
+          id: ids[index],
+          storeId: this.storeId,
+          facetId,
+          facetType: facetRow.facetType,
+          handle: source.handle,
+        })),
+      )
+      .returning({ id: facetSource.id, handle: facetSource.handle });
 
     await this.connection.insert(facetSourceTranslation).values(
       inserted.map((source) => ({
@@ -970,12 +895,12 @@ export class FacetRepository extends BaseRepository {
         locale: this.locale,
         storeId: this.storeId,
         name: uniqueSources.find((item) => item.handle === source.handle)?.name ?? source.handle,
-      }))
+      })),
     );
   }
 
   async resolveFacetFilterValues(
-    rawFilters: readonly string[]
+    rawFilters: readonly string[],
   ): Promise<ResolvedFacetFilterValue[]> {
     const tokens: Array<{ facetSlug: string; valueHandle: string }> = [];
     for (const raw of rawFilters) {
@@ -1008,7 +933,7 @@ export class FacetRepository extends BaseRepository {
       .from(facet)
       .innerJoin(
         facetValue,
-        and(eq(facetValue.facetId, facet.id), eq(facetValue.storeId, facet.storeId))
+        and(eq(facetValue.facetId, facet.id), eq(facetValue.storeId, facet.storeId)),
       )
       .where(
         and(
@@ -1016,8 +941,8 @@ export class FacetRepository extends BaseRepository {
           inArray(facet.slug, facetSlugs),
           inArray(facetValue.handle, valueHandles),
           isNull(facetValue.parentId),
-          eq(facetValue.enabled, true)
-        )
+          eq(facetValue.enabled, true),
+        ),
       );
 
     const groupValueIds = visibleRows
@@ -1037,8 +962,8 @@ export class FacetRepository extends BaseRepository {
                 eq(facetValue.storeId, this.storeId),
                 inArray(facetValue.parentId, groupValueIds),
                 eq(facetValue.kind, "source"),
-                eq(facetValue.enabled, true)
-              )
+                eq(facetValue.enabled, true),
+              ),
             )
             .orderBy(asc(facetValue.handle))
         : [];
@@ -1046,8 +971,7 @@ export class FacetRepository extends BaseRepository {
     const resolvedSourceHandlesByGroupId = new Map<string, Set<string>>();
     for (const child of childRows) {
       if (!child.parentId) continue;
-      const handles =
-        resolvedSourceHandlesByGroupId.get(child.parentId) ?? new Set<string>();
+      const handles = resolvedSourceHandlesByGroupId.get(child.parentId) ?? new Set<string>();
       handles.add(child.handle);
       resolvedSourceHandlesByGroupId.set(child.parentId, handles);
     }

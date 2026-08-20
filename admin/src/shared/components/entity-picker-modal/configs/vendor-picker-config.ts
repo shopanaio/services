@@ -6,21 +6,10 @@ import { LuStore as ShopOutlined } from "react-icons/lu";
 import { useVendors } from "@/domains/inventory/products/hooks/use-vendors";
 import { EntityCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
-import type {
-  IEntityPickerConfig,
-  IEntityPickerDataResult,
-  IPickableEntity,
-} from "../types";
+import type { IEntityPickerConfig, IEntityPickerDataResult, IPickableEntity } from "../types";
 import type { IFilterValue } from "@/layouts/filters/core/types";
-import type {
-  ApiVendor,
-  ApiVendorOrderByInput,
-  ApiVendorWhereInput,
-} from "@/graphql/types";
-import {
-  SortDirection,
-  VendorOrderField,
-} from "@/graphql/types";
+import type { ApiVendor, ApiVendorOrderByInput, ApiVendorWhereInput } from "@/graphql/types";
+import { SortDirection, VendorOrderField } from "@/graphql/types";
 
 interface VendorPickerEntity extends IPickableEntity {
   name: string;
@@ -49,9 +38,7 @@ function useVendorsPickerData(options: {
 }): IEntityPickerDataResult<VendorPickerEntity> {
   const { search, pageSize, excludeIds } = options;
   const [pageIndex, setPageIndex] = useState(0);
-  const [cursorHistory, setCursorHistory] = useState<Array<string | null>>([
-    null,
-  ]);
+  const [cursorHistory, setCursorHistory] = useState<Array<string | null>>([null]);
   const after = cursorHistory[pageIndex] ?? null;
 
   useEffect(() => {
@@ -85,10 +72,7 @@ function useVendorsPickerData(options: {
     fetchPolicy: "network-only",
   });
 
-  const data = useMemo(
-    () => vendors.map(transformVendor),
-    [vendors],
-  );
+  const data = useMemo(() => vendors.map(transformVendor), [vendors]);
 
   return {
     data,

@@ -1,11 +1,7 @@
 import type { AppManifest } from "@shopana/app-sdk";
-import {
-  AppOutboundAuthorizationError,
-} from "./AppOutboundAuthorizationError.js";
+import { AppOutboundAuthorizationError } from "./AppOutboundAuthorizationError.js";
 
-export function getExternallyRoutableActions(
-  manifest: AppManifest,
-): ReadonlySet<string> {
+export function getExternallyRoutableActions(manifest: AppManifest): ReadonlySet<string> {
   const actions = new Set<string>();
   for (const action of [
     manifest.lifecycle.suspendAction,
@@ -24,9 +20,7 @@ export function getExternallyRoutableActions(
   return actions;
 }
 
-export function getExternallyRoutableWorkflows(
-  manifest: AppManifest,
-): ReadonlySet<string> {
+export function getExternallyRoutableWorkflows(manifest: AppManifest): ReadonlySet<string> {
   return new Set(
     [
       manifest.lifecycle.installWorkflow,
@@ -75,7 +69,5 @@ export function restrictGrantedScopes(
   grantedScopes: readonly string[],
 ): readonly string[] {
   const declared = new Set(manifest.permissions);
-  return Object.freeze(
-    [...new Set(grantedScopes)].filter((scope) => declared.has(scope)),
-  );
+  return Object.freeze([...new Set(grantedScopes)].filter((scope) => declared.has(scope)));
 }

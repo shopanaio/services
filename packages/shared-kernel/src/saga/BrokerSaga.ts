@@ -34,9 +34,6 @@ import type { ServiceBroker } from "../broker/ServiceBroker.js";
  */
 export abstract class BrokerSaga<TInput, TOutput> extends BaseSaga<TInput, TOutput> {
   constructor(public readonly broker: ServiceBroker) {
-    super(
-      broker.getWorkflowRegistry(),
-      broker["options"].serviceName,
-    );
+    super(broker.getWorkflowRegistry(), broker["options"].serviceName);
   }
 }

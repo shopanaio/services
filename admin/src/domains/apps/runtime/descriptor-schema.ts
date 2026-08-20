@@ -55,11 +55,8 @@ export const adminAppUiDescriptorSchema = z.object({
 
 export type AdminAppUiDescriptor = z.infer<typeof adminAppUiDescriptorSchema>;
 export type AdminAppModalDescriptor = AdminAppUiDescriptor["modals"][number];
-export type AdminAppExtensionDescriptor =
-  AdminAppUiDescriptor["extensions"][number];
+export type AdminAppExtensionDescriptor = AdminAppUiDescriptor["extensions"][number];
 
-export function parseAdminAppUiDescriptors(
-  input: unknown,
-): AdminAppUiDescriptor[] {
+export function parseAdminAppUiDescriptors(input: unknown): AdminAppUiDescriptor[] {
   return z.array(adminAppUiDescriptorSchema).parse(input);
 }

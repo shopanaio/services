@@ -41,9 +41,7 @@ class OpenGraphMetadataResolver extends BaseCatalogType<SeoShape, SeoShape> {
   }
 
   image() {
-    return this.$props.ogImageId
-      ? mediaReference(this.$props.ogImageId)
-      : null;
+    return this.$props.ogImageId ? mediaReference(this.$props.ogImageId) : null;
   }
 }
 

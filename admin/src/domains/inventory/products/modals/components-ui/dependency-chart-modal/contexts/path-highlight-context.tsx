@@ -61,7 +61,8 @@ export const PathHighlightProvider = ({ children }: PathHighlightProviderProps) 
     const isConditionHub = (id: string) => id.startsWith("hub:cond:");
     const isActionHub = (id: string) => id.startsWith("hub:action:");
     const isRule = (id: string) => id.startsWith("rule:");
-    const isItem = (id: string) => id.startsWith("item:") || id.startsWith("group:") || id.startsWith("component:");
+    const isItem = (id: string) =>
+      id.startsWith("item:") || id.startsWith("group:") || id.startsWith("component:");
 
     // Get ruleId from "rule:xxx" node id
     const extractRuleId = (nodeId: string) => nodeId.replace("rule:", "");
@@ -124,7 +125,6 @@ export const PathHighlightProvider = ({ children }: PathHighlightProviderProps) 
       // Selected Rule: show only its own when → then
       const ruleId = extractRuleId(selectedNodeId);
       highlightRulePathFiltered(ruleId);
-
     } else if (isItem(selectedNodeId)) {
       // Check if this item is a source (when) or target (then)
       const rulesAsSource = new Set<string>();
@@ -159,11 +159,13 @@ export const PathHighlightProvider = ({ children }: PathHighlightProviderProps) 
               nodeIds.add(hubId);
               edgeIds.add(edgeId);
               // Hub → rule edge
-              adjacencyMap.outgoing.get(hubId)?.forEach(({ nodeId: targetId, edgeId: hubEdgeId }) => {
-                if (targetId === ruleNodeId) {
-                  edgeIds.add(hubEdgeId);
-                }
-              });
+              adjacencyMap.outgoing
+                .get(hubId)
+                ?.forEach(({ nodeId: targetId, edgeId: hubEdgeId }) => {
+                  if (targetId === ruleNodeId) {
+                    edgeIds.add(hubEdgeId);
+                  }
+                });
             }
           }
         });
@@ -175,15 +177,17 @@ export const PathHighlightProvider = ({ children }: PathHighlightProviderProps) 
             if (edgeRuleIds.includes(ruleId)) {
               nodeIds.add(hubId);
               edgeIds.add(edgeId);
-              adjacencyMap.outgoing.get(hubId)?.forEach(({ nodeId: itemId, edgeId: itemEdgeId }) => {
-                if (isItem(itemId)) {
-                  const itemEdgeRuleIds = getEdgeRuleIds(itemEdgeId);
-                  if (itemEdgeRuleIds.includes(ruleId)) {
-                    nodeIds.add(itemId);
-                    edgeIds.add(itemEdgeId);
+              adjacencyMap.outgoing
+                .get(hubId)
+                ?.forEach(({ nodeId: itemId, edgeId: itemEdgeId }) => {
+                  if (isItem(itemId)) {
+                    const itemEdgeRuleIds = getEdgeRuleIds(itemEdgeId);
+                    if (itemEdgeRuleIds.includes(ruleId)) {
+                      nodeIds.add(itemId);
+                      edgeIds.add(itemEdgeId);
+                    }
                   }
-                }
-              });
+                });
             }
           }
         });
@@ -201,15 +205,17 @@ export const PathHighlightProvider = ({ children }: PathHighlightProviderProps) 
             if (edgeRuleIds.includes(ruleId)) {
               nodeIds.add(hubId);
               edgeIds.add(edgeId);
-              adjacencyMap.incoming.get(hubId)?.forEach(({ nodeId: itemId, edgeId: itemEdgeId }) => {
-                if (isItem(itemId)) {
-                  const itemEdgeRuleIds = getEdgeRuleIds(itemEdgeId);
-                  if (itemEdgeRuleIds.includes(ruleId)) {
-                    nodeIds.add(itemId);
-                    edgeIds.add(itemEdgeId);
+              adjacencyMap.incoming
+                .get(hubId)
+                ?.forEach(({ nodeId: itemId, edgeId: itemEdgeId }) => {
+                  if (isItem(itemId)) {
+                    const itemEdgeRuleIds = getEdgeRuleIds(itemEdgeId);
+                    if (itemEdgeRuleIds.includes(ruleId)) {
+                      nodeIds.add(itemId);
+                      edgeIds.add(itemEdgeId);
+                    }
                   }
-                }
-              });
+                });
             }
           }
         });
@@ -222,16 +228,17 @@ export const PathHighlightProvider = ({ children }: PathHighlightProviderProps) 
               nodeIds.add(hubId);
               edgeIds.add(edgeId);
               // Rule → hub edge
-              adjacencyMap.incoming.get(hubId)?.forEach(({ nodeId: sourceId, edgeId: hubEdgeId }) => {
-                if (sourceId === ruleNodeId) {
-                  edgeIds.add(hubEdgeId);
-                }
-              });
+              adjacencyMap.incoming
+                .get(hubId)
+                ?.forEach(({ nodeId: sourceId, edgeId: hubEdgeId }) => {
+                  if (sourceId === ruleNodeId) {
+                    edgeIds.add(hubEdgeId);
+                  }
+                });
             }
           }
         });
       });
-
     } else if (isConditionHub(selectedNodeId) || isActionHub(selectedNodeId)) {
       // Find rules connected to this hub via edge data
       const connectedRules = new Set<string>();
@@ -261,14 +268,10 @@ export const PathHighlightProvider = ({ children }: PathHighlightProviderProps) 
       setSelectedNodeId,
       setEdges,
     }),
-    [selectedNodeId, highlightedNodeIds, highlightedEdgeIds, setEdges]
+    [selectedNodeId, highlightedNodeIds, highlightedEdgeIds, setEdges],
   );
 
-  return (
-    <PathHighlightContext.Provider value={value}>
-      {children}
-    </PathHighlightContext.Provider>
-  );
+  return <PathHighlightContext.Provider value={value}>{children}</PathHighlightContext.Provider>;
 };
 
 export const usePathHighlightContext = () => {

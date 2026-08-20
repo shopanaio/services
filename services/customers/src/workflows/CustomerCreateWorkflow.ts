@@ -35,9 +35,7 @@ export class CustomerCreateWorkflow extends BrokerWorkflows {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CustomerCreateWorkflowInput
-  ): Promise<CustomerCreateWorkflowResult> {
+  async run(input: CustomerCreateWorkflowInput): Promise<CustomerCreateWorkflowResult> {
     const result = await this.stepCreate(input);
 
     if (result.customer && result.userErrors.length === 0) {
@@ -52,13 +50,13 @@ export class CustomerCreateWorkflow extends BrokerWorkflows {
     return this.kernel.runScript(
       CustomerCreateScript,
       input.params,
-      toScriptContext(input.context)
+      toScriptContext(input.context),
     );
   }
 
   private async workflowEmitEvent(
     input: CustomerCreateWorkflowInput,
-    customerId: string
+    customerId: string,
   ): Promise<void> {
     const payload: CustomerCreatedEvent["payload"] = {
       customerId,
@@ -85,14 +83,12 @@ export class CustomerCreateWorkflow extends BrokerWorkflows {
         workflowId: DBOS.workflowID!,
         stepId: "emitCustomerCreated",
         callId: customerId,
-      }
+      },
     );
   }
 }
 
-function toScriptContext(
-  context: CustomerMutationWorkflowContext
-): RunScriptContext {
+function toScriptContext(context: CustomerMutationWorkflowContext): RunScriptContext {
   return {
     storeId: context.storeId,
     organizationId: context.organizationId,

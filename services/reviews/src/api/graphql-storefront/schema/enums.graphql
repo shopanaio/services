@@ -1,4 +1,6 @@
-"""The concrete Reviews aggregate represented by a content node."""
+"""
+The concrete Reviews aggregate represented by a content node.
+"""
 enum ReviewContentKind {
   REVIEW
   REVIEW_REPLY
@@ -6,14 +8,18 @@ enum ReviewContentKind {
   QUESTION_ANSWER
 }
 
-"""The public lifecycle state of customer-authored content."""
+"""
+The public lifecycle state of customer-authored content.
+"""
 enum ReviewContentStatus {
   PENDING
   PUBLISHED
   REJECTED
 }
 
-"""The identity class used to present a content author."""
+"""
+The identity class used to present a content author.
+"""
 enum ReviewContentAuthorType {
   CUSTOMER
   GUEST
@@ -103,7 +109,9 @@ enum ReviewContentVoteType {
   DISLIKE
 }
 
-"""Customer-facing orderings supported by review connections."""
+"""
+Customer-facing orderings supported by review connections.
+"""
 enum ReviewSort {
   NEWEST
   OLDEST
@@ -112,7 +120,9 @@ enum ReviewSort {
   MOST_HELPFUL
 }
 
-"""Customer-facing orderings supported by product-question connections."""
+"""
+Customer-facing orderings supported by product-question connections.
+"""
 enum ProductQuestionSort {
   NEWEST
   OLDEST
@@ -120,7 +130,9 @@ enum ProductQuestionSort {
   MOST_ANSWERED
 }
 
-"""Customer-facing orderings supported by question-answer connections."""
+"""
+Customer-facing orderings supported by question-answer connections.
+"""
 enum ProductQuestionAnswerSort {
   NEWEST
   OLDEST

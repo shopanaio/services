@@ -19,14 +19,7 @@ import type { DeliveryWorkflowInput } from "./types.js";
 const RETRY_DELAYS_MS: Record<Notifications.NotificationChannel, number[]> = {
   EMAIL: [60_000, 300_000, 1_800_000, 7_200_000],
   SMS: [60_000, 600_000, 3_600_000],
-  WEBHOOK: [
-    60_000,
-    300_000,
-    1_800_000,
-    7_200_000,
-    28_800_000,
-    86_400_000,
-  ],
+  WEBHOOK: [60_000, 300_000, 1_800_000, 7_200_000, 28_800_000, 86_400_000],
 };
 
 export type ProviderOutcome =
@@ -42,11 +35,7 @@ export type ProviderOutcome =
       providerSlotId: string;
     }
   | {
-      status:
-        | "UNKNOWN"
-        | "FAILED_PERMANENT"
-        | "DEAD"
-        | "BLOCKED_NO_PROVIDER";
+      status: "UNKNOWN" | "FAILED_PERMANENT" | "DEAD" | "BLOCKED_NO_PROVIDER";
       errorKind: string;
       errorCode: string;
       providerCode: string;
@@ -103,8 +92,7 @@ export class NotificationProviderDeliveryWorkflow extends BrokerWorkflows {
             operation: "recordAttemptFailure",
             attemptId: attempt.attemptId,
             errorKind: "CONFIGURATION",
-            errorCode:
-              receipt.responseCode ?? "PROVIDER_CHANNEL_UNSUPPORTED",
+            errorCode: receipt.responseCode ?? "PROVIDER_CHANNEL_UNSUPPORTED",
           });
           return {
             status: "UNSUPPORTED",
@@ -179,10 +167,8 @@ export class NotificationProviderDeliveryWorkflow extends BrokerWorkflows {
         }
 
         const delay =
-          failure.retryAfterMs ??
-          delays[Math.min(providerAttemptNumber - 1, delays.length - 1)];
-        const retryScheduled =
-          failure.retryable && providerAttemptNumber <= delays.length;
+          failure.retryAfterMs ?? delays[Math.min(providerAttemptNumber - 1, delays.length - 1)];
+        const retryScheduled = failure.retryable && providerAttemptNumber <= delays.length;
         const nextAttemptAt = retryScheduled
           ? new Date((await DBOS.now()) + delay).toISOString()
           : undefined;
@@ -240,9 +226,7 @@ export class NotificationProviderDeliveryWorkflow extends BrokerWorkflows {
         providerAttemptNumber: input.providerAttemptNumber,
         retryScheduled: input.retryScheduled,
       },
-      ...(input.nextAttemptAt
-        ? { retry: { nextAttemptAt: input.nextAttemptAt } }
-        : {}),
+      ...(input.nextAttemptAt ? { retry: { nextAttemptAt: input.nextAttemptAt } } : {}),
     });
   }
 
@@ -292,10 +276,7 @@ interface ProviderFailure {
 }
 
 function classifyProviderError(error: unknown): ProviderFailure {
-  const value =
-    error && typeof error === "object"
-      ? (error as Record<string, unknown>)
-      : {};
+  const value = error && typeof error === "object" ? (error as Record<string, unknown>) : {};
   const details =
     value.details && typeof value.details === "object"
       ? (value.details as Record<string, unknown>)
@@ -310,26 +291,19 @@ function classifyProviderError(error: unknown): ProviderFailure {
           : value.code === "CIRCUIT_OPEN"
             ? "TEMPORARY"
             : "CONFIGURATION";
-  const code =
-    typeof value.code === "string" ? value.code : "PROVIDER_EXECUTION_FAILED";
+  const code = typeof value.code === "string" ? value.code : "PROVIDER_EXECUTION_FAILED";
   const accepted = details.acceptedByProvider === true;
   return {
     kind,
     code,
-    retryable:
-      details.safeToRetry === true ||
-      kind === "RATE_LIMIT" ||
-      kind === "TEMPORARY",
+    retryable: details.safeToRetry === true || kind === "RATE_LIMIT" || kind === "TEMPORARY",
     blocked:
       kind === "CONFIGURATION" &&
       typeof value.message === "string" &&
       (value.message.includes("No active provider") ||
         value.message.includes("No active App route")),
     unknown: accepted || kind === "UNKNOWN" || value.code === "TIMEOUT",
-    retryAfterMs:
-      typeof details.retryAfterMs === "number"
-        ? details.retryAfterMs
-        : undefined,
+    retryAfterMs: typeof details.retryAfterMs === "number" ? details.retryAfterMs : undefined,
     diagnostics: {
       code,
       kind,

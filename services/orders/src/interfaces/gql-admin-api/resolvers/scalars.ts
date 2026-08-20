@@ -59,12 +59,7 @@ const JSONScalar = new GraphQLScalarType({
       const parsed = JSON.parse(value);
 
       // Check if it has superjson metadata structure
-      if (
-        parsed &&
-        typeof parsed === "object" &&
-        "json" in parsed &&
-        "meta" in parsed
-      ) {
+      if (parsed && typeof parsed === "object" && "json" in parsed && "meta" in parsed) {
         return superjson.deserialize(parsed);
       }
 

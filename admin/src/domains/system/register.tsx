@@ -20,9 +20,7 @@ registerModule({
         icon: null,
         order: 1,
       },
-      component: dynamic(
-        () => import("@/domains/system/general-settings/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/system/general-settings/page/page")),
     },
     {
       key: "notifications",
@@ -32,46 +30,34 @@ registerModule({
         icon: null,
         order: 2,
       },
-      component: dynamic(
-        () => import("@/domains/system/notifications/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/system/notifications/page/page")),
     },
     {
       key: "sender-domains",
       path: "/:orgName/:storeName/system/notifications/sender-domains",
       disabled: true,
-      component: dynamic(
-        () => import("@/domains/system/sender-domains/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/system/sender-domains/page/page")),
     },
     {
       key: "customer-notifications",
       path: "/:orgName/:storeName/system/notifications/customer",
-      component: dynamic(
-        () => import("@/domains/system/notifications/customer/page"),
-      ),
+      component: dynamic(() => import("@/domains/system/notifications/customer/page")),
     },
     {
       key: "staff-notifications",
       path: "/:orgName/:storeName/system/notifications/staff",
-      component: dynamic(
-        () => import("@/domains/system/notifications/staff/page"),
-      ),
+      component: dynamic(() => import("@/domains/system/notifications/staff/page")),
     },
     {
       key: "notification-webhooks",
       path: "/:orgName/:storeName/system/notifications/webhooks",
-      component: dynamic(
-        () => import("@/domains/system/notifications/webhooks/page"),
-      ),
+      component: dynamic(() => import("@/domains/system/notifications/webhooks/page")),
     },
     {
       key: "delivery-logs",
       path: "/:orgName/:storeName/system/notifications/delivery-logs",
       disabled: true,
-      component: dynamic(
-        () => import("@/domains/system/delivery-logs/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/system/delivery-logs/page/page")),
     },
     {
       key: "system-apps",
@@ -81,9 +67,7 @@ registerModule({
         icon: null,
         order: 3,
       },
-      component: dynamic(
-        () => import("@/domains/system/apps/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/system/apps/page/page")),
     },
   ],
 });
@@ -101,9 +85,7 @@ registerModule({
         icon: null,
         order: 1,
       },
-      component: dynamic(
-        () => import("@/domains/system/users/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/system/users/page/page")),
     },
     {
       key: "system-roles",
@@ -114,9 +96,7 @@ registerModule({
         icon: null,
         order: 2,
       },
-      component: dynamic(
-        () => import("@/domains/system/roles/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/system/roles/page/page")),
     },
   ],
 });
@@ -139,9 +119,7 @@ registerModule({
         icon: null,
         order: 1,
       },
-      component: dynamic(
-        () => import("@/domains/system/audit-log/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/system/audit-log/page/page")),
     },
   ],
 });

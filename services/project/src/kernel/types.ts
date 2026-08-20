@@ -36,10 +36,11 @@ export type ScriptContext = BaseScriptContext;
 /**
  * Transaction script for project service
  */
-export type TransactionScript<
-  TParams = any,
-  TResult = any
-> = BaseTransactionScript<TParams, TResult, ProjectKernelServices>;
+export type TransactionScript<TParams = any, TResult = any> = BaseTransactionScript<
+  TParams,
+  TResult,
+  ProjectKernelServices
+>;
 
 /**
  * Kernel error
@@ -48,7 +49,7 @@ export class KernelError extends Error {
   constructor(
     message: string,
     public readonly code: string,
-    public readonly details?: any
+    public readonly details?: any,
   ) {
     super(message);
     this.name = "KernelError";

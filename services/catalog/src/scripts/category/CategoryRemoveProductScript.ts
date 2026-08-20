@@ -69,10 +69,7 @@ export class CategoryRemoveProductScript extends BaseScript<
       };
     }
 
-    await this.repository.category.removeProductFromCategory(
-      params.productId,
-      params.categoryId,
-    );
+    await this.repository.category.removeProductFromCategory(params.productId, params.categoryId);
 
     return {
       category,

@@ -2,7 +2,13 @@
 
 import { ReactNode, useState } from "react";
 import { Button, Tag, Typography, Dropdown, Tooltip, Flex, Avatar } from "antd";
-import { LuCheck as CheckOutlined, LuEllipsis as MoreOutlined, LuLink as LinkOutlined, LuLandmark as BankOutlined, LuCircleCheck as CheckCircleOutlined } from "react-icons/lu";
+import {
+  LuCheck as CheckOutlined,
+  LuEllipsis as MoreOutlined,
+  LuLink as LinkOutlined,
+  LuLandmark as BankOutlined,
+  LuCircleCheck as CheckCircleOutlined,
+} from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
@@ -96,11 +102,7 @@ export const OrganizationInfoHeader = ({
   const statusTitle = (
     <Flex align="center" gap={8}>
       <Tooltip title="Organization is active">
-        <Tag
-          color="success"
-          icon={<CheckCircleOutlined />}
-          className={styles.statusTag}
-        >
+        <Tag color="success" icon={<CheckCircleOutlined />} className={styles.statusTag}>
           Active
         </Tag>
       </Tooltip>

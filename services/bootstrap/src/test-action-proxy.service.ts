@@ -1,16 +1,5 @@
-import {
-  createServer,
-  type IncomingMessage,
-  type Server,
-  type ServerResponse,
-} from "node:http";
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from "@nestjs/common";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import {
   ActionRegistry,
   InjectBroker,
@@ -83,9 +72,7 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
       });
     });
 
-    this.logger.log(
-      `Test action proxy listening on http://${DEFAULT_HOST}:${port}`,
-    );
+    this.logger.log(`Test action proxy listening on http://${DEFAULT_HOST}:${port}`);
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -113,10 +100,7 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
     return config.services.test?.ports?.action_proxy ?? null;
   }
 
-  private async handleRequest(
-    request: IncomingMessage,
-    response: ServerResponse,
-  ): Promise<void> {
+  private async handleRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
     try {
       if (request.method === "GET" && request.url === "/__test/health") {
         this.sendJson(response, 200, { ok: true });
@@ -140,8 +124,7 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
             ok: false,
             error: {
               code: "INVALID_ACTION",
-              message:
-                'Request body must include non-empty string field "action"',
+              message: 'Request body must include non-empty string field "action"',
             },
           });
           return;
@@ -170,26 +153,15 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      if (
-        request.method === "POST" &&
-        request.url === "/__test/actions/fault"
-      ) {
+      if (request.method === "POST" && request.url === "/__test/actions/fault") {
         const body = await readJsonBody<ScopedActionOverrideRequest>(request);
         const override = requireScopedActionOverrideRequest(body);
-        this.enableScopedAction(
-          override.action,
-          override.storeId,
-          override.mode,
-          override.result,
-        );
+        this.enableScopedAction(override.action, override.storeId, override.mode, override.result);
         this.sendJson(response, 200, { ok: true });
         return;
       }
 
-      if (
-        request.method === "POST" &&
-        request.url === "/__test/actions/stats"
-      ) {
+      if (request.method === "POST" && request.url === "/__test/actions/stats") {
         const body = await readJsonBody<ScopedActionOverrideRequest>(request);
         const { action, storeId } = requireScopedActionIdentity(body);
         this.sendJson(response, 200, {
@@ -199,10 +171,7 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      if (
-        request.method === "POST" &&
-        request.url === "/__test/actions/restore"
-      ) {
+      if (request.method === "POST" && request.url === "/__test/actions/restore") {
         const body = await readJsonBody<ScopedActionOverrideRequest>(request);
         const { action, storeId } = requireScopedActionIdentity(body);
         this.restoreScopedAction(action, storeId);
@@ -270,11 +239,7 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
     this.scopedActions.delete(action);
   }
 
-  private sendJson(
-    response: ServerResponse,
-    statusCode: number,
-    payload: unknown,
-  ): void {
+  private sendJson(response: ServerResponse, statusCode: number, payload: unknown): void {
     response.statusCode = statusCode;
     response.setHeader("content-type", "application/json; charset=utf-8");
     response.end(JSON.stringify(payload));
@@ -305,14 +270,10 @@ function requireScopedActionIdentity(body: ScopedActionOverrideRequest): {
   storeId: string;
 } {
   if (typeof body.action !== "string" || body.action.trim() === "") {
-    throw new Error(
-      'Fault request must include non-empty string field "action"',
-    );
+    throw new Error('Fault request must include non-empty string field "action"');
   }
   if (typeof body.storeId !== "string" || body.storeId.trim() === "") {
-    throw new Error(
-      'Fault request must include non-empty string field "storeId"',
-    );
+    throw new Error('Fault request must include non-empty string field "storeId"');
   }
   return { action: body.action, storeId: body.storeId };
 }
@@ -326,9 +287,7 @@ function requireScopedActionOverrideRequest(body: ScopedActionOverrideRequest): 
   const identity = requireScopedActionIdentity(body);
   const mode = body.mode ?? "THROW";
   if (!isScopedActionOverrideMode(mode)) {
-    throw new Error(
-      'Fault request "mode" must be PASS, THROW, RETURN, or THROW_AFTER',
-    );
+    throw new Error('Fault request "mode" must be PASS, THROW, RETURN, or THROW_AFTER');
   }
   if (mode === "RETURN" && !("result" in body)) {
     throw new Error('Fault request with mode RETURN must include "result"');
@@ -345,9 +304,7 @@ function requireRunWorkflowRequest(body: RunWorkflowRequest): {
     throw new Error('Workflow request must include non-empty string field "workflow"');
   }
   if (typeof body.idempotencyKey !== "string" || body.idempotencyKey.trim() === "") {
-    throw new Error(
-      'Workflow request must include non-empty string field "idempotencyKey"',
-    );
+    throw new Error('Workflow request must include non-empty string field "idempotencyKey"');
   }
   if (
     body.workflowId !== undefined &&
@@ -363,12 +320,7 @@ function requireRunWorkflowRequest(body: RunWorkflowRequest): {
 }
 
 function isScopedActionOverrideMode(value: unknown): value is ScopedActionOverrideMode {
-  return (
-    value === "PASS" ||
-    value === "THROW" ||
-    value === "RETURN" ||
-    value === "THROW_AFTER"
-  );
+  return value === "PASS" || value === "THROW" || value === "RETURN" || value === "THROW_AFTER";
 }
 
 function findScopedOverride(

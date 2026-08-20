@@ -6,25 +6,12 @@
  */
 
 import { build } from "esbuild";
-import {
-  addJsExtensionPlugin,
-  detectCircularImportsPlugin,
-} from "@shopana/build-tools/esbuild";
-import {
-  existsSync,
-  mkdirSync,
-  copyFileSync,
-  readFileSync,
-  rmSync,
-} from "fs";
+import { addJsExtensionPlugin, detectCircularImportsPlugin } from "@shopana/build-tools/esbuild";
+import { existsSync, mkdirSync, copyFileSync, readFileSync, rmSync } from "fs";
 import { join, dirname, relative } from "path";
 import { glob } from "glob";
 import { findRootDir } from "../utils.js";
-import {
-  discoverProjectUnits,
-  findProjectUnit,
-  type ProjectUnit,
-} from "../project-units.js";
+import { discoverProjectUnits, findProjectUnit, type ProjectUnit } from "../project-units.js";
 
 interface AssetConfig {
   include: string;
@@ -175,9 +162,7 @@ export async function buildProjectUnit(
       conditions: ["source"],
       plugins: [
         addJsExtensionPlugin,
-        ...(options?.detectCircularImports === false
-          ? []
-          : [detectCircularImportsPlugin]),
+        ...(options?.detectCircularImports === false ? [] : [detectCircularImportsPlugin]),
       ],
       logLevel: "warning",
     });
@@ -221,15 +206,13 @@ export async function buildService(
 export async function buildServices(
   services: string[],
   parallel: boolean = false,
-  options?: BuildOptions
+  options?: BuildOptions,
 ): Promise<BuildResult[]> {
   const units = services
     .map((name) => findProjectUnit(name))
     .filter((unit): unit is ProjectUnit => Boolean(unit));
   const appUnits = units.filter((unit) => unit.kind === "app");
-  const serviceUnits = units.filter(
-    (unit) => unit.kind === "service" && unit.name !== "bootstrap",
-  );
+  const serviceUnits = units.filter((unit) => unit.kind === "service" && unit.name !== "bootstrap");
   const bootstrapUnits = units.filter(
     (unit) => unit.kind === "service" && unit.name === "bootstrap",
   );
@@ -237,11 +220,7 @@ export async function buildServices(
 
   for (const group of [appUnits, serviceUnits, bootstrapUnits]) {
     if (parallel) {
-      results.push(
-        ...(await Promise.all(
-          group.map((unit) => buildProjectUnit(unit, options)),
-        )),
-      );
+      results.push(...(await Promise.all(group.map((unit) => buildProjectUnit(unit, options)))));
     } else {
       for (const unit of group) {
         results.push(await buildProjectUnit(unit, options));

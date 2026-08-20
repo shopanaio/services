@@ -36,10 +36,7 @@ export function registerLocalAdminAppModule<TProps>(
   module: string,
   loader: () => Promise<{ default: ComponentType<TProps> }>,
 ): void {
-  localModules.set(
-    `${remoteName}:${module}`,
-    loader as unknown as LocalModuleLoader,
-  );
+  localModules.set(`${remoteName}:${module}`, loader as unknown as LocalModuleLoader);
 }
 
 export function loadAdminAppRemoteModule(
@@ -66,9 +63,7 @@ export function loadAdminAppRemoteModule(
           const runtime = await getFederationRuntime();
           const exposed = module.replace(/^\.\//, "");
           const loaded = await withTimeout(
-            runtime.loadRemote<RemoteModule>(
-              `${descriptor.remote.name}/${exposed}`,
-            ),
+            runtime.loadRemote<RemoteModule>(`${descriptor.remote.name}/${exposed}`),
             REMOTE_LOAD_TIMEOUT_MS,
           );
           if (!loaded?.default) {

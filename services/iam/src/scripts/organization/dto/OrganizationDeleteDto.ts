@@ -8,9 +8,7 @@ export const organizationDeleteInputSchema = z.object({
   organizationId: z.string().uuid("Invalid organization ID"),
 });
 
-export type OrganizationDeleteInput = z.infer<
-  typeof organizationDeleteInputSchema
->;
+export type OrganizationDeleteInput = z.infer<typeof organizationDeleteInputSchema>;
 
 /**
  * Script params

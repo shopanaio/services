@@ -29,16 +29,10 @@ export class CustomerComparisonVariantAddScript extends BaseScript<
       variantIds: [params.variantId],
     });
     if (!catalog.ok) return failed(catalog.userError);
-    const variant = catalog.variants.find(
-      (candidate) => candidate.variantId === params.variantId,
-    );
+    const variant = catalog.variants.find((candidate) => candidate.variantId === params.variantId);
     if (!variant) {
       return failed(
-        comparisonError(
-          "VARIANT_NOT_AVAILABLE",
-          "Published variant was not found",
-          ["variantId"],
-        ),
+        comparisonError("VARIANT_NOT_AVAILABLE", "Published variant was not found", ["variantId"]),
       );
     }
 
@@ -59,12 +53,7 @@ export class CustomerComparisonVariantAddScript extends BaseScript<
       case "conflict":
         return failed(revisionConflict(result.actualRevision));
       case "customer_not_found":
-        return failed(
-          comparisonError(
-            "CUSTOMER_NOT_FOUND",
-            "Customer was not found",
-          ),
-        );
+        return failed(comparisonError("CUSTOMER_NOT_FOUND", "Customer was not found"));
     }
   }
 
@@ -73,9 +62,6 @@ export class CustomerComparisonVariantAddScript extends BaseScript<
   }
 }
 
-function failed(
-  userError: ReturnType<typeof comparisonError>,
-): CustomerComparisonMutationResult {
+function failed(userError: ReturnType<typeof comparisonError>): CustomerComparisonMutationResult {
   return { customerId: null, revision: null, userErrors: [userError] };
 }
-

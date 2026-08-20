@@ -69,9 +69,7 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
       this.$ctx.store.id,
     );
     return {
-      discount: result.discount
-        ? new DiscountResolver(result.discount.id, this.$ctx)
-        : null,
+      discount: result.discount ? new DiscountResolver(result.discount.id, this.$ctx) : null,
       userErrors: result.userErrors,
     };
   }
@@ -80,10 +78,7 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
   async discountDelete(args: PricingMutationDiscountDeleteArgs) {
     let discountId: string;
     try {
-      discountId = decodeGlobalIdByType(
-        args.input.id,
-        GlobalIdEntity.Discount,
-      );
+      discountId = decodeGlobalIdByType(args.input.id, GlobalIdEntity.Discount);
     } catch {
       return {
         deletedDiscountId: null,
@@ -114,25 +109,17 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
     }
     return {
       deletedDiscountId: result.deletedDiscountId
-        ? encodeGlobalIdByType(
-            result.deletedDiscountId,
-            GlobalIdEntity.Discount,
-          )
+        ? encodeGlobalIdByType(result.deletedDiscountId, GlobalIdEntity.Discount)
         : null,
       userErrors: result.userErrors,
     };
   }
 
   @ZodResolver(DiscountExternalReferenceCreateInputSchema())
-  async discountExternalReferenceCreate(
-    args: PricingMutationDiscountExternalReferenceCreateArgs,
-  ) {
+  async discountExternalReferenceCreate(args: PricingMutationDiscountExternalReferenceCreateArgs) {
     let discountId: string;
     try {
-      discountId = decodeGlobalIdByType(
-        args.input.discountId,
-        GlobalIdEntity.Discount,
-      );
+      discountId = decodeGlobalIdByType(args.input.discountId, GlobalIdEntity.Discount);
     } catch {
       return {
         externalReference: null,
@@ -144,26 +131,20 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
       params: { input: { ...args.input, discountId } },
       context: this.mutationWorkflowContext(),
     };
-    const result =
-      await this.runMutationWorkflow<DiscountExternalReferenceCreateWorkflowResult>(
-        "discountExternalReferenceCreate",
-        workflowInput,
-        discountId,
-      );
+    const result = await this.runMutationWorkflow<DiscountExternalReferenceCreateWorkflowResult>(
+      "discountExternalReferenceCreate",
+      workflowInput,
+      discountId,
+    );
     return {
       externalReference: result.externalReference
-        ? new DiscountExternalReferenceResolver(
-            result.externalReference.id,
-            this.$ctx,
-          )
+        ? new DiscountExternalReferenceResolver(result.externalReference.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
   }
 
-  async discountExternalReferenceUpdate(
-    args: PricingMutationDiscountExternalReferenceUpdateArgs,
-  ) {
+  async discountExternalReferenceUpdate(args: PricingMutationDiscountExternalReferenceUpdateArgs) {
     let externalReferenceId: string;
     try {
       externalReferenceId = decodeGlobalIdByType(
@@ -187,19 +168,15 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
       },
       context: this.mutationWorkflowContext(),
     };
-    const result =
-      await this.runMutationWorkflow<DiscountExternalReferenceUpdateWorkflowResult>(
-        "discountExternalReferenceUpdate",
-        workflowInput,
-        externalReferenceId,
-      );
+    const result = await this.runMutationWorkflow<DiscountExternalReferenceUpdateWorkflowResult>(
+      "discountExternalReferenceUpdate",
+      workflowInput,
+      externalReferenceId,
+    );
     this.$ctx.loaders.discountExternalReference.clear(externalReferenceId);
     return {
       externalReference: result.externalReference
-        ? new DiscountExternalReferenceResolver(
-            result.externalReference.id,
-            this.$ctx,
-          )
+        ? new DiscountExternalReferenceResolver(result.externalReference.id, this.$ctx)
         : null,
       operationResults: result.operationResults.map((operation) => ({
         type: DiscountOperationType.ExternalReferenceUpdate,
@@ -211,9 +188,7 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
   }
 
   @ZodResolver(DiscountExternalReferenceDeleteInputSchema())
-  async discountExternalReferenceDelete(
-    args: PricingMutationDiscountExternalReferenceDeleteArgs,
-  ) {
+  async discountExternalReferenceDelete(args: PricingMutationDiscountExternalReferenceDeleteArgs) {
     let externalReferenceId: string;
     try {
       externalReferenceId = decodeGlobalIdByType(
@@ -235,12 +210,11 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
       },
       context: this.mutationWorkflowContext(),
     };
-    const result =
-      await this.runMutationWorkflow<DiscountExternalReferenceDeleteWorkflowResult>(
-        "discountExternalReferenceDelete",
-        workflowInput,
-        externalReferenceId,
-      );
+    const result = await this.runMutationWorkflow<DiscountExternalReferenceDeleteWorkflowResult>(
+      "discountExternalReferenceDelete",
+      workflowInput,
+      externalReferenceId,
+    );
     this.$ctx.loaders.discountExternalReference.clear(externalReferenceId);
     return {
       deletedExternalReferenceId: result.deletedExternalReferenceId
@@ -257,10 +231,7 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
     const mapped = mapDiscountUpdateInput(args.operations);
     let discountId: string | undefined;
     try {
-      discountId = decodeGlobalIdByType(
-        args.discountId,
-        GlobalIdEntity.Discount,
-      );
+      discountId = decodeGlobalIdByType(args.discountId, GlobalIdEntity.Discount);
     } catch {
       const error = {
         message: "Invalid ID format",
@@ -269,9 +240,7 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
       };
       return {
         discount: null,
-        operationResults: mapped.entries.map(
-          mapPreflightDiscountOperationResult,
-        ),
+        operationResults: mapped.entries.map(mapPreflightDiscountOperationResult),
         userErrors: [error, ...mapped.errors],
       };
     }
@@ -279,9 +248,7 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
     if (mapped.errors.length > 0) {
       return {
         discount: null,
-        operationResults: mapped.entries.map(
-          mapPreflightDiscountOperationResult,
-        ),
+        operationResults: mapped.entries.map(mapPreflightDiscountOperationResult),
         userErrors: mapped.errors,
       };
     }
@@ -300,9 +267,7 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
 
     this.clearDiscountUpdateLoaders(discountId, workflowInput);
     return {
-      discount: result.discount
-        ? new DiscountResolver(result.discount.id, this.$ctx)
-        : null,
+      discount: result.discount ? new DiscountResolver(result.discount.id, this.$ctx) : null,
       operationResults: result.operationResults.map((operation) => ({
         type: toGraphqlDiscountOperationType(operation.type),
         applied: operation.applied,
@@ -343,10 +308,7 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
     )) as TResult;
   }
 
-  private clearDiscountUpdateLoaders(
-    discountId: string,
-    input: DiscountUpdateWorkflowInput,
-  ) {
+  private clearDiscountUpdateLoaders(discountId: string, input: DiscountUpdateWorkflowInput) {
     this.clearDiscountLoaders(discountId);
 
     for (const operation of input.operations) {

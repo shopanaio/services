@@ -5,4 +5,98 @@ import { OrderPrice } from "../money/price";
 import { paymentStatusConfig } from "../status/status-config";
 import { OrderPaymentStatus, type ApiOrder } from "../../graphql/operation-types";
 import { PaymentActions } from "./payment-actions";
-export function PaymentSummary({ order, refetch }: { order: ApiOrder; refetch: () => Promise<unknown> }) { const payment = order.paymentItem; const status = payment ? paymentStatusConfig[payment.status] : null; const costTotal = order.orderItems.reduce((sum, item) => sum + (item.productCostPrice ?? 0) * item.quantity, 0); const paid = payment?.status === OrderPaymentStatus.Paid ? payment.amount : null; const profit = paid == null ? null : paid - costTotal; const margin = paid ? Math.round((profit! / paid) * 100) : 0; return <Paper><PaperHeader title={<Flex gap="small" align="center"><Typography.Text strong style={{ fontSize: 16 }}>Payment</Typography.Text>{status ? <Tag color={status.color}>{status.label}</Tag> : null}</Flex>} /><Descriptions bordered size="small" column={1} labelStyle={{ width: "50%" }} contentStyle={{ width: "50%" }} items={[{ key: "subtotal", label: "Subtotal", children: <OrderPrice amount={order.paymentSummary.subtotalAmount} /> }, { key: "discount", label: "Discount", children: order.paymentSummary.discountAmount ? <OrderPrice amount={order.paymentSummary.discountAmount} /> : <Typography.Text type="secondary">Not set</Typography.Text> }, { key: "shipping", label: "Shipping", children: order.paymentSummary.shippingAmount ? <OrderPrice amount={order.paymentSummary.shippingAmount} /> : <Typography.Text type="secondary">Not set</Typography.Text> }, { key: "total", label: <Typography.Text strong>Total</Typography.Text>, children: <Typography.Text strong><OrderPrice amount={order.paymentSummary.totalAmount} /></Typography.Text> }, ...(paid != null ? [{ key: "paid", label: <Typography.Text strong>Paid by customer</Typography.Text>, children: <Typography.Text strong><OrderPrice amount={paid} /></Typography.Text> }, { key: "profit", label: "Profit / Margin", children: <Typography.Text><OrderPrice amount={profit!} /> / {margin}%</Typography.Text> }] : [])]} /><PaymentActions order={order} refetch={refetch} /></Paper>; }
+export function PaymentSummary({
+  order,
+  refetch,
+}: {
+  order: ApiOrder;
+  refetch: () => Promise<unknown>;
+}) {
+  const payment = order.paymentItem;
+  const status = payment ? paymentStatusConfig[payment.status] : null;
+  const costTotal = order.orderItems.reduce(
+    (sum, item) => sum + (item.productCostPrice ?? 0) * item.quantity,
+    0,
+  );
+  const paid = payment?.status === OrderPaymentStatus.Paid ? payment.amount : null;
+  const profit = paid == null ? null : paid - costTotal;
+  const margin = paid ? Math.round((profit! / paid) * 100) : 0;
+  return (
+    <Paper>
+      <PaperHeader
+        title={
+          <Flex gap="small" align="center">
+            <Typography.Text strong style={{ fontSize: 16 }}>
+              Payment
+            </Typography.Text>
+            {status ? <Tag color={status.color}>{status.label}</Tag> : null}
+          </Flex>
+        }
+      />
+      <Descriptions
+        bordered
+        size="small"
+        column={1}
+        labelStyle={{ width: "50%" }}
+        contentStyle={{ width: "50%" }}
+        items={[
+          {
+            key: "subtotal",
+            label: "Subtotal",
+            children: <OrderPrice amount={order.paymentSummary.subtotalAmount} />,
+          },
+          {
+            key: "discount",
+            label: "Discount",
+            children: order.paymentSummary.discountAmount ? (
+              <OrderPrice amount={order.paymentSummary.discountAmount} />
+            ) : (
+              <Typography.Text type="secondary">Not set</Typography.Text>
+            ),
+          },
+          {
+            key: "shipping",
+            label: "Shipping",
+            children: order.paymentSummary.shippingAmount ? (
+              <OrderPrice amount={order.paymentSummary.shippingAmount} />
+            ) : (
+              <Typography.Text type="secondary">Not set</Typography.Text>
+            ),
+          },
+          {
+            key: "total",
+            label: <Typography.Text strong>Total</Typography.Text>,
+            children: (
+              <Typography.Text strong>
+                <OrderPrice amount={order.paymentSummary.totalAmount} />
+              </Typography.Text>
+            ),
+          },
+          ...(paid != null
+            ? [
+                {
+                  key: "paid",
+                  label: <Typography.Text strong>Paid by customer</Typography.Text>,
+                  children: (
+                    <Typography.Text strong>
+                      <OrderPrice amount={paid} />
+                    </Typography.Text>
+                  ),
+                },
+                {
+                  key: "profit",
+                  label: "Profit / Margin",
+                  children: (
+                    <Typography.Text>
+                      <OrderPrice amount={profit!} /> / {margin}%
+                    </Typography.Text>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
+      <PaymentActions order={order} refetch={refetch} />
+    </Paper>
+  );
+}

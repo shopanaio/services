@@ -2,28 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
+import { Radio, Select, Input, Button, Typography, Spin, Alert, Divider } from "antd";
 import {
-  Radio,
-  Select,
-  Input,
-  Button,
-  Typography,
-  Spin,
-  Alert,
-  Divider,
-} from "antd";
-import { LuZap as ThunderboltOutlined, LuRefreshCw as ReloadOutlined, LuTag as TagOutlined, LuFolder as FolderOutlined } from "react-icons/lu";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+  LuZap as ThunderboltOutlined,
+  LuRefreshCw as ReloadOutlined,
+  LuTag as TagOutlined,
+  LuFolder as FolderOutlined,
+} from "react-icons/lu";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Editor, renderContent } from "@/ui-kit/editor";
 import { Paper } from "@/ui-kit/paper";
-import type {
-  IProductAIWriterModalPayload,
-  AIGenerateTarget,
-} from "../../modals";
+import type { IProductAIWriterModalPayload, AIGenerateTarget } from "../../modals";
 import { useStyles } from "./ai-writer-modal.styles";
 import type { IAIWriterForm, IGeneratedContent } from "./types";
 import { mockGenerateContent } from "@/mocks/products/ai-writer";
@@ -38,8 +27,7 @@ export const AIWriterModal = () => {
   const typedPayload = payload as IProductAIWriterModalPayload;
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedContent, setGeneratedContent] =
-    useState<IGeneratedContent | null>(null);
+  const [generatedContent, setGeneratedContent] = useState<IGeneratedContent | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { control, handleSubmit, watch } = useForm<IAIWriterForm>({
@@ -103,9 +91,7 @@ export const AIWriterModal = () => {
       description: generatedContent.description
         ? renderContent(generatedContent.description)
         : undefined,
-      excerpt: generatedContent.excerpt
-        ? renderContent(generatedContent.excerpt)
-        : undefined,
+      excerpt: generatedContent.excerpt ? renderContent(generatedContent.excerpt) : undefined,
     });
     pop();
   };
@@ -145,14 +131,10 @@ export const AIWriterModal = () => {
       <Paper className={styles.formSection}>
         {/* Product Context Card */}
         <div className={styles.contextCard}>
-          <Typography.Text className={styles.contextHeader}>
-            Product Context
-          </Typography.Text>
+          <Typography.Text className={styles.contextHeader}>Product Context</Typography.Text>
           <div className={styles.contextRow}>
             <TagOutlined className={styles.contextIcon} />
-            <Typography.Text className={styles.contextLabel}>
-              Title
-            </Typography.Text>
+            <Typography.Text className={styles.contextLabel}>Title</Typography.Text>
             <Typography.Text className={styles.contextValue}>
               {productContext.title}
             </Typography.Text>
@@ -160,9 +142,7 @@ export const AIWriterModal = () => {
           {productContext.category && (
             <div className={styles.contextRow}>
               <FolderOutlined className={styles.contextIcon} />
-              <Typography.Text className={styles.contextLabel}>
-                Category
-              </Typography.Text>
+              <Typography.Text className={styles.contextLabel}>Category</Typography.Text>
               <Typography.Text className={styles.contextValue}>
                 {productContext.category}
               </Typography.Text>
@@ -171,9 +151,7 @@ export const AIWriterModal = () => {
           {productContext.attributes.length > 0 && (
             <div className={styles.contextRow}>
               <TagOutlined className={styles.contextIcon} />
-              <Typography.Text className={styles.contextLabel}>
-                Attributes
-              </Typography.Text>
+              <Typography.Text className={styles.contextLabel}>Attributes</Typography.Text>
               <Typography.Text className={styles.contextValue}>
                 {productContext.attributes.join(" | ")}
               </Typography.Text>
@@ -192,15 +170,8 @@ export const AIWriterModal = () => {
               name="target"
               control={control}
               render={({ field }) => (
-                <Radio.Group
-                  {...field}
-                  optionType="button"
-                  buttonStyle="solid"
-                  size="middle"
-                >
-                  <Radio.Button value="description">
-                    Full Description
-                  </Radio.Button>
+                <Radio.Group {...field} optionType="button" buttonStyle="solid" size="middle">
+                  <Radio.Button value="description">Full Description</Radio.Button>
                   <Radio.Button value="excerpt">Short Excerpt</Radio.Button>
                   <Radio.Button value="both">Both</Radio.Button>
                 </Radio.Group>
@@ -220,9 +191,7 @@ export const AIWriterModal = () => {
                   control={control}
                   render={({ field }) => (
                     <Select {...field} style={{ width: "100%" }} size="middle">
-                      <Select.Option value="professional">
-                        Professional
-                      </Select.Option>
+                      <Select.Option value="professional">Professional</Select.Option>
                       <Select.Option value="casual">Casual</Select.Option>
                       <Select.Option value="luxury">Luxury</Select.Option>
                       <Select.Option value="friendly">Friendly</Select.Option>
@@ -267,14 +236,7 @@ export const AIWriterModal = () => {
         </form>
 
         {/* Error State */}
-        {error && (
-          <Alert
-            type="error"
-            message={error}
-            showIcon
-            style={{ marginTop: 20 }}
-          />
-        )}
+        {error && <Alert type="error" message={error} showIcon style={{ marginTop: 20 }} />}
 
         {/* Loading State */}
         {isGenerating && (
@@ -291,63 +253,61 @@ export const AIWriterModal = () => {
           <>
             <Divider style={{ margin: "24px 0 0" }} />
 
-            {(target === "description" || target === "both") &&
-              generatedContent.description && (
-                <div className={styles.resultSection}>
-                  <div className={styles.resultHeader}>
-                    <Typography.Text className={styles.resultTitle}>
-                      Generated Description
-                    </Typography.Text>
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<ReloadOutlined />}
-                      onClick={() => handleRegenerate("description")}
-                    >
-                      Regenerate
-                    </Button>
-                  </div>
-                  <Editor
-                    value={generatedContent.description}
-                    onChange={(data) =>
-                      setGeneratedContent((prev) => ({
-                        ...prev!,
-                        description: data,
-                      }))
-                    }
-                    minHeight={150}
-                  />
+            {(target === "description" || target === "both") && generatedContent.description && (
+              <div className={styles.resultSection}>
+                <div className={styles.resultHeader}>
+                  <Typography.Text className={styles.resultTitle}>
+                    Generated Description
+                  </Typography.Text>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ReloadOutlined />}
+                    onClick={() => handleRegenerate("description")}
+                  >
+                    Regenerate
+                  </Button>
                 </div>
-              )}
+                <Editor
+                  value={generatedContent.description}
+                  onChange={(data) =>
+                    setGeneratedContent((prev) => ({
+                      ...prev!,
+                      description: data,
+                    }))
+                  }
+                  minHeight={150}
+                />
+              </div>
+            )}
 
-            {(target === "excerpt" || target === "both") &&
-              generatedContent.excerpt && (
-                <div className={styles.resultSection}>
-                  <div className={styles.resultHeader}>
-                    <Typography.Text className={styles.resultTitle}>
-                      Generated Excerpt
-                    </Typography.Text>
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<ReloadOutlined />}
-                      onClick={() => handleRegenerate("excerpt")}
-                    >
-                      Regenerate
-                    </Button>
-                  </div>
-                  <Editor
-                    value={generatedContent.excerpt}
-                    onChange={(data) =>
-                      setGeneratedContent((prev) => ({
-                        ...prev!,
-                        excerpt: data,
-                      }))
-                    }
-                    minHeight={100}
-                  />
+            {(target === "excerpt" || target === "both") && generatedContent.excerpt && (
+              <div className={styles.resultSection}>
+                <div className={styles.resultHeader}>
+                  <Typography.Text className={styles.resultTitle}>
+                    Generated Excerpt
+                  </Typography.Text>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ReloadOutlined />}
+                    onClick={() => handleRegenerate("excerpt")}
+                  >
+                    Regenerate
+                  </Button>
                 </div>
-              )}
+                <Editor
+                  value={generatedContent.excerpt}
+                  onChange={(data) =>
+                    setGeneratedContent((prev) => ({
+                      ...prev!,
+                      excerpt: data,
+                    }))
+                  }
+                  minHeight={100}
+                />
+              </div>
+            )}
           </>
         )}
       </Paper>

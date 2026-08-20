@@ -5,10 +5,7 @@ import {
   type DbosTransactionBridge,
   type PostgresTransactionOptions,
 } from "@shopana/shared-kernel";
-import {
-  createTransactionalDatabase,
-  type Database,
-} from "./database.js";
+import { createTransactionalDatabase, type Database } from "./database.js";
 
 export const CATALOG_DBOS_DATASOURCE_NAME = "catalog-db";
 export const CATALOG_DBOS_DATASOURCE_SCHEMA = "dbos";
@@ -24,27 +21,22 @@ export type CatalogDbosTransactionBridge = DbosTransactionBridge<
  * separate bounded pool and DBOS.shutdown() closes it.
  */
 export function createCatalogDbosTransactionBridge(
-  connection: DatabaseConnectionOptions
+  connection: DatabaseConnectionOptions,
 ): CatalogDbosTransactionBridge {
   const dataSource = new PostgresDataSource(
     CATALOG_DBOS_DATASOURCE_NAME,
     createCatalogDbosDataSourceOptions(connection),
-    CATALOG_DBOS_DATASOURCE_SCHEMA
+    CATALOG_DBOS_DATASOURCE_SCHEMA,
   );
 
-  return new PostgresDbosTransactionBridge(
-    dataSource,
-    createTransactionalDatabase
-  );
+  return new PostgresDbosTransactionBridge(dataSource, createTransactionalDatabase);
 }
 
 /**
  * Do not inherit the shared pool max: every DBOS datasource consumes a
  * separate connection budget.
  */
-export function createCatalogDbosDataSourceOptions(
-  connection: DatabaseConnectionOptions
-) {
+export function createCatalogDbosDataSourceOptions(connection: DatabaseConnectionOptions) {
   return Object.freeze({
     host: connection.host,
     port: connection.port,

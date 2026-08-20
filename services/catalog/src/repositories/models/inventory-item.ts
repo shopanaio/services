@@ -1,11 +1,4 @@
-import {
-  uuid,
-  varchar,
-  boolean,
-  timestamp,
-  index,
-  unique,
-} from "drizzle-orm/pg-core";
+import { uuid, varchar, boolean, timestamp, index, unique } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 
@@ -23,7 +16,9 @@ import { catalogSchema } from "./schema";
 export const inventoryItem = catalogSchema.table(
   "inventory_item",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
 
     // Reference to Catalog.Variant
@@ -54,7 +49,7 @@ export const inventoryItem = catalogSchema.table(
     index("idx_inventory_item_store").on(table.storeId),
     // SKU uniqueness per project
     unique("inventory_item_sku_unique").on(table.storeId, table.sku),
-  ]
+  ],
 );
 
 export type InventoryItem = typeof inventoryItem.$inferSelect;

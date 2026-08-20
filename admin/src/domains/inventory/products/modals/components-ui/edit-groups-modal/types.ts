@@ -7,9 +7,7 @@ import type {
   ApiVariant,
   ProductComponentItemType,
 } from "@/graphql/types";
-import type {
-  EditorPriceRule,
-} from "@/domains/inventory/products/mappers/product-component-editor.mapper";
+import type { EditorPriceRule } from "@/domains/inventory/products/mappers/product-component-editor.mapper";
 
 // ============================================================================
 // Row Types

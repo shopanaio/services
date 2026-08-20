@@ -20,9 +20,7 @@ export const ComponentItemRow = ({ item }: IComponentItemRowProps) => {
   const { styles } = useStyles();
   const imgUrl = getItemImageUrl(item);
   const priceRule = item.pricingTemplate?.priceRule ?? item.priceRule;
-  const priceLabel = priceRule
-    ? getPriceRuleLabel(priceRule, item.pricingTemplate?.name)
-    : null;
+  const priceLabel = priceRule ? getPriceRuleLabel(priceRule, item.pricingTemplate?.name) : null;
   const qtyLabel = getItemQtyLabel(item);
 
   return (
@@ -43,10 +41,7 @@ export const ComponentItemRow = ({ item }: IComponentItemRowProps) => {
         )}
       </div>
       {priceLabel && (
-        <Tag
-          color={getPriceRuleColor(priceRule!.strategy)}
-          className={styles.itemTag}
-        >
+        <Tag color={getPriceRuleColor(priceRule!.strategy)} className={styles.itemTag}>
           {priceLabel}
         </Tag>
       )}

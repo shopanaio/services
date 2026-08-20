@@ -12,22 +12,25 @@ export class CollectionUpdateRulesScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(params: CollectionUpdateRulesParams): Promise<CollectionResult> {
-    const collection =
-      await this.repository.collection.findByIdForUpdate(params.collectionId);
+    const collection = await this.repository.collection.findByIdForUpdate(params.collectionId);
     if (!collection) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Collection not found", field: ["collectionId"], code: "NOT_FOUND" }],
+        userErrors: [
+          { message: "Collection not found", field: ["collectionId"], code: "NOT_FOUND" },
+        ],
       };
     }
     if (collection.revision !== params.expectedRevision) {
       return {
         collection: undefined,
-        userErrors: [{
-          message: "Collection revision does not match",
-          field: ["expectedRevision"],
-          code: "REVISION_CONFLICT",
-        }],
+        userErrors: [
+          {
+            message: "Collection revision does not match",
+            field: ["expectedRevision"],
+            code: "REVISION_CONFLICT",
+          },
+        ],
       };
     }
 
@@ -41,11 +44,13 @@ export class CollectionUpdateRulesScript extends BaseScript<
     if (collection.publishedAt && params.rules.length === 0) {
       return {
         collection: undefined,
-        userErrors: [{
-          message: "A published rule collection must contain at least one rule",
-          field: ["rules"],
-          code: "RULES_REQUIRED",
-        }],
+        userErrors: [
+          {
+            message: "A published rule collection must contain at least one rule",
+            field: ["rules"],
+            code: "RULES_REQUIRED",
+          },
+        ],
       };
     }
     let rules;
@@ -54,79 +59,79 @@ export class CollectionUpdateRulesScript extends BaseScript<
     } catch (error) {
       return {
         collection: undefined,
-        userErrors: [{
-          message:
-            error instanceof CollectionContractValidationError
-              ? error.message
-              : "Invalid collection rules",
-          field:
-            error instanceof CollectionContractValidationError
-              ? ["rules", ...error.path.map(String)]
-              : ["rules"],
-          code: "INVALID_RULE",
-        }],
+        userErrors: [
+          {
+            message:
+              error instanceof CollectionContractValidationError
+                ? error.message
+                : "Invalid collection rules",
+            field:
+              error instanceof CollectionContractValidationError
+                ? ["rules", ...error.path.map(String)]
+                : ["rules"],
+            code: "INVALID_RULE",
+          },
+        ],
       };
     }
     const categoryIds = rules.flatMap((rule) =>
-      rule.field === "category" ? [...rule.value.ids] : []
+      rule.field === "category" ? [...rule.value.ids] : [],
     );
-    const tagIds = rules.flatMap((rule) =>
-      rule.field === "tag" ? [...rule.value.ids] : []
-    );
-    const vendorIds = rules.flatMap((rule) =>
-      rule.field === "vendor" ? [...rule.value.ids] : []
-    );
+    const tagIds = rules.flatMap((rule) => (rule.field === "tag" ? [...rule.value.ids] : []));
+    const vendorIds = rules.flatMap((rule) => (rule.field === "vendor" ? [...rule.value.ids] : []));
     const [categories, tags, vendors] = await Promise.all([
       this.repository.category.getByIds(categoryIds),
       this.repository.tag.getByIds(tagIds),
       this.repository.vendor.getByIds(vendorIds),
     ]);
     const missingType =
-      new Set(categories.map((row) => row.id)).size !==
-      new Set(categoryIds).size
+      new Set(categories.map((row) => row.id)).size !== new Set(categoryIds).size
         ? "category"
         : new Set(tags.map((row) => row.id)).size !== new Set(tagIds).size
           ? "tag"
-          : new Set(vendors.map((row) => row.id)).size !==
-              new Set(vendorIds).size
+          : new Set(vendors.map((row) => row.id)).size !== new Set(vendorIds).size
             ? "vendor"
             : null;
     if (missingType) {
       return {
         collection: undefined,
-        userErrors: [{
-          message: `One or more ${missingType} references were not found`,
-          field: ["rules"],
-          code: "REFERENCE_NOT_FOUND",
-        }],
+        userErrors: [
+          {
+            message: `One or more ${missingType} references were not found`,
+            field: ["rules"],
+            code: "REFERENCE_NOT_FOUND",
+          },
+        ],
       };
     }
-    const currentRows =
-      await this.repository.collectionRule.findByCollectionId(params.collectionId);
+    const currentRows = await this.repository.collectionRule.findByCollectionId(
+      params.collectionId,
+    );
     const currentRules = normalizeCanonicalCollectionRulesV1(
       currentRows.map((row) => ({
         field: row.field,
         operator: row.operator,
         value: row.value,
-      }))
+      })),
     );
     const listingChanged =
-      hashCanonicalCollectionRulesV1(currentRules) !==
-      hashCanonicalCollectionRulesV1(rules);
+      hashCanonicalCollectionRulesV1(currentRules) !== hashCanonicalCollectionRulesV1(rules);
     if (
       collection.revision >= 2_147_483_646 ||
       (listingChanged && collection.listingRevision >= 2_147_483_646)
     ) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" }],
+        userErrors: [
+          { message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" },
+        ],
       };
     }
     await this.repository.collectionRule.replaceRules(params.collectionId, rules);
     const refreshed = await this.repository.collection.bumpRevision(
       params.collectionId,
       params.expectedRevision,
-      { listingChanged }
+      { listingChanged },
     );
     if (!refreshed) {
       throw new Error("Collection rule compare-and-swap failed after row lock");

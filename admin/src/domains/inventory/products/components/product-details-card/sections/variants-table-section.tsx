@@ -1,16 +1,17 @@
 "use client";
 
 import { Typography, Button, Dropdown, Flex } from "antd";
-import { LuEllipsis as MoreOutlined, LuImage as PictureOutlined, LuArrowDownAZ as SortAscendingOutlined, LuChevronLeft as LeftOutlined, LuChevronRight as RightOutlined } from "react-icons/lu";
+import {
+  LuEllipsis as MoreOutlined,
+  LuImage as PictureOutlined,
+  LuArrowDownAZ as SortAscendingOutlined,
+  LuChevronLeft as LeftOutlined,
+  LuChevronRight as RightOutlined,
+} from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useVariantsTableStyles } from "../product-details-card.styles";
-import type {
-  ApiVariant,
-  ApiPageInfo,
-  ApiProductOption,
-  CurrencyCode,
-} from "@/graphql/types";
+import type { ApiVariant, ApiPageInfo, ApiProductOption, CurrencyCode } from "@/graphql/types";
 import { formatPrice } from "../../../utils/price-formatting";
 import {
   getSelectedOptionLabels,
@@ -22,10 +23,7 @@ import { TableCoverImage } from "@/shared/components/table-cover-image";
 // Stock Status Config
 // ============================================================================
 
-const stockStatusConfig: Record<
-  string,
-  { icon: string; color: string; label: string }
-> = {
+const stockStatusConfig: Record<string, { icon: string; color: string; label: string }> = {
   IN_STOCK: {
     icon: "\u25cf",
     color: "var(--ant-color-success)",
@@ -71,20 +69,13 @@ interface IVariantRowProps {
   onAction: (action: string, variantId: string) => void;
 }
 
-const VariantRow = ({
-  variant,
-  productOptions,
-  defaultCurrency,
-  onAction,
-}: IVariantRowProps) => {
+const VariantRow = ({ variant, productOptions, defaultCurrency, onAction }: IVariantRowProps) => {
   const { styles } = useVariantsTableStyles();
 
   const price = variant.price?.amountMinor ?? null;
   const compareAtPrice = variant.price?.compareAtMinor ?? null;
   const formattedPrice =
-    price !== null && defaultCurrency
-      ? formatPrice(price, defaultCurrency)
-      : "\u2014";
+    price !== null && defaultCurrency ? formatPrice(price, defaultCurrency) : "\u2014";
   const discountPercent =
     price !== null && compareAtPrice !== null && compareAtPrice > price
       ? Math.round((1 - Number(price) / Number(compareAtPrice)) * 100)
@@ -97,9 +88,8 @@ const VariantRow = ({
     label: "N/A",
   };
 
-  const imageUrl = [...variant.media].sort(
-    (left, right) => left.sortIndex - right.sortIndex,
-  )[0]?.file.url;
+  const imageUrl = [...variant.media].sort((left, right) => left.sortIndex - right.sortIndex)[0]
+    ?.file.url;
   const inventoryItem = variant.inventoryItem;
   const optionLabels = getSelectedOptionLabels(productOptions, variant);
 
@@ -119,10 +109,7 @@ const VariantRow = ({
               {variant.title ?? variant.handle}
             </Typography.Text>
             {optionLabels.length > 0 && (
-              <Typography.Text
-                type="secondary"
-                className={styles.variantOptions}
-              >
+              <Typography.Text type="secondary" className={styles.variantOptions}>
                 {optionLabels.join(" / ")}
               </Typography.Text>
             )}
@@ -133,19 +120,14 @@ const VariantRow = ({
       {/* PRICING */}
       <td data-testid={`product-variants-cell-pricing-${variant.id}`}>
         <Flex vertical gap={0}>
-          <Typography.Text>
-            {formattedPrice}
-          </Typography.Text>
+          <Typography.Text>{formattedPrice}</Typography.Text>
           {compareAtPrice !== null &&
             compareAtPrice > 0 &&
             price !== null &&
             defaultCurrency &&
             compareAtPrice !== price && (
               <Flex align="center" gap={4}>
-                <Typography.Text
-                  type="secondary"
-                  className={styles.priceStrikethrough}
-                >
+                <Typography.Text type="secondary" className={styles.priceStrikethrough}>
                   {formatPrice(compareAtPrice, defaultCurrency)}
                 </Typography.Text>
                 {discountPercent > 0 && (
@@ -165,16 +147,10 @@ const VariantRow = ({
             {inventoryItem?.sku ?? "\u2014"}
           </Typography.Text>
           <Flex align="center" gap={4}>
-            <span
-              className={styles.stockIcon}
-              style={{ color: stockConfig.color }}
-            >
+            <span className={styles.stockIcon} style={{ color: stockConfig.color }}>
               {stockConfig.icon}
             </span>
-            <Typography.Text
-              className={styles.stockLabel}
-              style={{ color: stockConfig.color }}
-            >
+            <Typography.Text className={styles.stockLabel} style={{ color: stockConfig.color }}>
               {stockConfig.label}
             </Typography.Text>
           </Flex>
@@ -316,9 +292,7 @@ export const VariantsTableSection = ({
               <tr>
                 <td colSpan={4}>
                   <Flex justify="center" style={{ padding: "24px 12px" }}>
-                    <Typography.Text type="secondary">
-                      No variants on this page
-                    </Typography.Text>
+                    <Typography.Text type="secondary">No variants on this page</Typography.Text>
                   </Flex>
                 </td>
               </tr>
@@ -327,11 +301,7 @@ export const VariantsTableSection = ({
         </table>
       </div>
       {/* Pagination */}
-      <Flex
-        justify="space-between"
-        align="center"
-        className={styles.variantsPagination}
-      >
+      <Flex justify="space-between" align="center" className={styles.variantsPagination}>
         <Typography.Text
           type="secondary"
           className={styles.variantsPaginationCount}

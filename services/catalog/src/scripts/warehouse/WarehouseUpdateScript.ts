@@ -13,7 +13,10 @@ export interface WarehouseUpdateResult {
   userErrors: UserError[];
 }
 
-export class WarehouseUpdateScript extends BaseScript<WarehouseUpdateParams, WarehouseUpdateResult> {
+export class WarehouseUpdateScript extends BaseScript<
+  WarehouseUpdateParams,
+  WarehouseUpdateResult
+> {
   protected async execute(params: WarehouseUpdateParams): Promise<WarehouseUpdateResult> {
     const { id, code, name, isDefault } = params;
 
@@ -32,7 +35,13 @@ export class WarehouseUpdateScript extends BaseScript<WarehouseUpdateParams, War
       if (codeExists) {
         return {
           warehouse: undefined,
-          userErrors: [{ message: `Warehouse with code "${code}" already exists`, field: ["code"], code: "CODE_ALREADY_EXISTS" }],
+          userErrors: [
+            {
+              message: `Warehouse with code "${code}" already exists`,
+              field: ["code"],
+              code: "CODE_ALREADY_EXISTS",
+            },
+          ],
         };
       }
     }

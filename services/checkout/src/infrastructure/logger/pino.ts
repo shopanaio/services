@@ -1,4 +1,4 @@
-import pino, { type Logger } from 'pino';
+import pino, { type Logger } from "pino";
 import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 
 const { global } = getServiceConfig("checkout");
@@ -8,11 +8,11 @@ const { global } = getServiceConfig("checkout");
  */
 export function createLogger(): Logger {
   const baseConfig = {
-    level: global.log_level ?? 'info',
+    level: global.log_level ?? "info",
     base: {
       pid: process.pid,
       hostname: undefined, // Remove hostname for cleaner output
-      service: 'checkout',
+      service: "checkout",
     },
     timestamp: pino.stdTimeFunctions.isoTime,
     formatters: {
@@ -27,17 +27,17 @@ export function createLogger(): Logger {
     return pino({
       ...baseConfig,
       transport: {
-        target: 'pino-pretty',
+        target: "pino-pretty",
         options: {
           colorize: true,
-          translateTime: 'SYS:HH:MM:ss.l',
-          ignore: 'pid,hostname',
-          messageFormat: '{level} [CHECKOUT] {msg}',
+          translateTime: "SYS:HH:MM:ss.l",
+          ignore: "pid,hostname",
+          messageFormat: "{level} [CHECKOUT] {msg}",
           levelFirst: true,
           hideObject: false,
           singleLine: false,
-        }
-      }
+        },
+      },
     });
   }
 

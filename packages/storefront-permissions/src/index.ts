@@ -12,7 +12,4 @@ export type {
   StorefrontPermissionDefinition,
   StorefrontPermissionRisk,
 } from "./definitions.js";
-export {
-  isStorefrontPermission,
-  validateStorefrontPermissionCatalog,
-} from "./validators.js";
+export { isStorefrontPermission, validateStorefrontPermissionCatalog } from "./validators.js";

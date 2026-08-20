@@ -8,13 +8,8 @@ export class MarketLoader {
   constructor(repository: Repository, storefrontStoreId?: string) {
     this.market = new DataLoader<string, MarketSnapshot | null>(async (ids) => {
       if (!storefrontStoreId) return ids.map(() => null);
-      const snapshots = await repository.market.getSnapshotsByIds(
-        storefrontStoreId,
-        ids,
-      );
-      return ids.map(
-        (id) => snapshots.find(({ market }) => market.id === id) ?? null,
-      );
+      const snapshots = await repository.market.getSnapshotsByIds(storefrontStoreId, ids);
+      return ids.map((id) => snapshots.find(({ market }) => market.id === id) ?? null);
     });
   }
 }

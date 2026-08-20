@@ -1,4 +1,7 @@
-Below is a **clean, production-grade architectural guide** (in English) for building an **Inventory Service** and a set of **consumer services** (Collections, Search Indexing, Files/Media, Pricing, SEO, etc.) using your preferred stack: **Node.js + Redis Streams/BullMQ + Event-Driven Choreography + Sync Status Aggregation**.
+Below is a **clean, production-grade architectural guide** (in English) for building an **Inventory
+Service** and a set of **consumer services** (Collections, Search Indexing, Files/Media, Pricing,
+SEO, etc.) using your preferred stack: **Node.js + Redis Streams/BullMQ + Event-Driven
+Choreography + Sync Status Aggregation**.
 
 This guide fits perfectly into a microservices ecosystem like Shopana.
 
@@ -6,10 +9,14 @@ This guide fits perfectly into a microservices ecosystem like Shopana.
 
 # 📘 **Architecture Guide: Product Update Event-Driven Sync (Inventory, Collections, Search, Media, Pricing, etc.)**
 
-This document describes the recommended architecture for handling **product update synchronization** across multiple microservices using **event-driven fanout**, **asynchronous background consumers**, and **sync status aggregation**.
+This document describes the recommended architecture for handling **product update synchronization**
+across multiple microservices using **event-driven fanout**, **asynchronous background consumers**,
+and **sync status aggregation**.
 
-The goal:
-When the Product Service updates a product, all other domain services (Inventory, Collections, Search, Media, Pricing, SEO, etc.) **react independently**, process changes asynchronously, and report their statuses back to a central aggregator. No saga or orchestration is required.
+The goal: When the Product Service updates a product, all other domain services (Inventory,
+Collections, Search, Media, Pricing, SEO, etc.) **react independently**, process changes
+asynchronously, and report their statuses back to a central aggregator. No saga or orchestration is
+required.
 
 ---
 
@@ -43,9 +50,7 @@ When the Product Service updates a product, all other domain services (Inventory
 6. **ProductSyncAggregator** updates the sync status in Redis.
 7. **Admin UI** polls `/products/{id}/sync-status` or listens via WebSockets.
 
-No direct calls between services.
-No orchestrator.
-Pure event choreography.
+No direct calls between services. No orchestrator. Pure event choreography.
 
 ---
 
@@ -87,7 +92,7 @@ await redis.xadd(
     productId,
     changes,
     timestamp: Date.now(),
-  })
+  }),
 );
 ```
 
@@ -361,7 +366,8 @@ Because:
 - Eventual consistency is expected
 - Retry policies solve transient errors
 
-Saga is only needed for **orders**, **payments**, **inventory reservation**, **shipping/waybill creation**.
+Saga is only needed for **orders**, **payments**, **inventory reservation**, **shipping/waybill
+creation**.
 
 Product sync is **event-driven async processing**, not a transaction.
 
@@ -433,17 +439,13 @@ If a service recovers → last event wins.
 - shows partial failures
 - shows completed sync
 
-No sagas.
-Pure event-driven fanout + status aggregation.
+No sagas. Pure event-driven fanout + status aggregation.
 
 ---
 
 # If you want, I can also deliver:
 
-✅ Mermaid diagrams (architecture + event flow)
-✅ Folder structure for each service
-✅ Interfaces & TypeScript types
-✅ Redis Streams vs BullMQ comparison
-✅ Ready-to-use code for all services
+✅ Mermaid diagrams (architecture + event flow) ✅ Folder structure for each service ✅ Interfaces &
+TypeScript types ✅ Redis Streams vs BullMQ comparison ✅ Ready-to-use code for all services
 
 Just tell me — should I proceed with diagrams or code next?

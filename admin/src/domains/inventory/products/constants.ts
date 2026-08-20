@@ -3,37 +3,37 @@ import { DimensionUnit, WeightUnit } from "@/graphql/types";
 export const weightUnitOptions = {
   [WeightUnit.G]: {
     key: WeightUnit.G,
-    label: 'g',
+    label: "g",
   },
   [WeightUnit.Kg]: {
     key: WeightUnit.Kg,
-    label: 'kg',
+    label: "kg",
   },
   [WeightUnit.Oz]: {
     key: WeightUnit.Oz,
-    label: 'oz',
+    label: "oz",
   },
   [WeightUnit.Lb]: {
     key: WeightUnit.Lb,
-    label: 'lb',
+    label: "lb",
   },
 };
 
 export const dimensionUnitOptions = {
   [DimensionUnit.Mm]: {
     key: DimensionUnit.Mm,
-    label: 'mm',
+    label: "mm",
   },
   [DimensionUnit.Cm]: {
     key: DimensionUnit.Cm,
-    label: 'cm',
+    label: "cm",
   },
   [DimensionUnit.M]: {
     key: DimensionUnit.M,
-    label: 'm',
+    label: "m",
   },
   [DimensionUnit.In]: {
     key: DimensionUnit.In,
-    label: 'in',
+    label: "in",
   },
 };

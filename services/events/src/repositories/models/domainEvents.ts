@@ -1,12 +1,4 @@
-import {
-  integer,
-  jsonb,
-  index,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { integer, jsonb, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const domainEvents = pgTable(
   "domain_events",
@@ -36,48 +28,37 @@ export const domainEvents = pgTable(
     subjectId: text("subject_id").notNull(),
     actorType: text("actor_type").notNull().default("service"),
     actorId: text("actor_id"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_events_type").on(table.eventType),
     index("idx_events_correlation").on(table.correlationId),
     index("idx_events_status").on(table.status),
-    index("idx_events_parent_workflow").on(
-      table.parentWorkflowId,
-      table.eventType
-    ),
+    index("idx_events_parent_workflow").on(table.parentWorkflowId, table.eventType),
     index("idx_events_organization_timestamp").on(table.organizationId, table.timestamp),
     index("idx_events_subject_timeline").on(
       table.organizationId,
       table.subjectType,
       table.subjectId,
       table.eventSequence,
-      table.timestamp
+      table.timestamp,
     ),
-    index("idx_events_type_timestamp").on(
-      table.organizationId,
-      table.eventType,
-      table.timestamp
-    ),
+    index("idx_events_type_timestamp").on(table.organizationId, table.eventType, table.timestamp),
     index("idx_domain_events_pending").on(table.status, table.createdAt),
     index("idx_domain_events_batch").on(
       table.organizationId,
       table.eventType,
       table.batchKey,
-      table.createdAt
+      table.createdAt,
     ),
     uniqueIndex("domain_events_subject_sequence_unique").on(
       table.organizationId,
       table.subjectType,
       table.subjectId,
-      table.eventSequence
+      table.eventSequence,
     ),
-  ]
+  ],
 );
 
 export type DomainEventRecord = typeof domainEvents.$inferSelect;

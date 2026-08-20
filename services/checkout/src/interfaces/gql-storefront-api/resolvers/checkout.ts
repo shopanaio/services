@@ -32,20 +32,14 @@ import {
   checkoutLoyaltyRedemptionUpdate,
   checkoutLoyaltyRedemptionRemove,
 } from "./checkout/index";
-import {
-  requireStorefrontPermission,
-  STOREFRONT_PERMISSIONS,
-} from "@shopana/shared-context";
+import { requireStorefrontPermission, STOREFRONT_PERMISSIONS } from "@shopana/shared-context";
 import type { GraphQLContext } from "../context";
 import { checkoutUserErrorFrom } from "../errors.js";
 
 const checkoutResolvers = {
   Query: {
     checkout: withPermission(STOREFRONT_PERMISSIONS.CHECKOUT_READ, checkout),
-    checkoutPlacement: withPermission(
-      STOREFRONT_PERMISSIONS.CHECKOUT_READ,
-      checkoutPlacement,
-    ),
+    checkoutPlacement: withPermission(STOREFRONT_PERMISSIONS.CHECKOUT_READ, checkoutPlacement),
   },
   Mutation: {
     checkoutCreate: withCheckoutWrite(checkoutCreate),
@@ -54,42 +48,26 @@ const checkoutResolvers = {
     checkoutLinesDelete: withCheckoutWrite(checkoutLinesDelete),
     checkoutLinesClear: withCheckoutWrite(checkoutLinesClear),
     checkoutLinesReplace: withCheckoutWrite(checkoutLinesReplace),
-    checkoutCustomerIdentityUpdate: withCheckoutWrite(
-      checkoutCustomerIdentityUpdate,
-    ),
+    checkoutCustomerIdentityUpdate: withCheckoutWrite(checkoutCustomerIdentityUpdate),
     checkoutCustomerNoteUpdate: withCheckoutWrite(checkoutCustomerNoteUpdate),
     checkoutLanguageCodeUpdate: withCheckoutWrite(checkoutLanguageCodeUpdate),
     checkoutCurrencyCodeUpdate: withCheckoutWrite(checkoutCurrencyCodeUpdate),
     checkoutBillingAddressUpdate: withCheckoutWrite(checkoutBillingAddressUpdate),
-    checkoutDeliveryAddressesAdd: withCheckoutWrite(
-      checkoutDeliveryAddressesAdd,
-    ),
-    checkoutDeliveryAddressesRemove: withCheckoutWrite(
-      checkoutDeliveryAddressesRemove,
-    ),
+    checkoutDeliveryAddressesAdd: withCheckoutWrite(checkoutDeliveryAddressesAdd),
+    checkoutDeliveryAddressesRemove: withCheckoutWrite(checkoutDeliveryAddressesRemove),
     checkoutPromoCodeAdd: withCheckoutWrite(checkoutPromoCodeAdd),
     checkoutPromoCodeRemove: withCheckoutWrite(checkoutPromoCodeRemove),
     checkoutTagCreate: withCheckoutWrite(checkoutTagCreate),
     checkoutTagUpdate: withCheckoutWrite(checkoutTagUpdate),
     checkoutTagDelete: withCheckoutWrite(checkoutTagDelete),
-    checkoutDeliveryAddressesUpdate: withCheckoutWrite(
-      checkoutDeliveryAddressesUpdate,
-    ),
+    checkoutDeliveryAddressesUpdate: withCheckoutWrite(checkoutDeliveryAddressesUpdate),
     checkoutPaymentMethodUpdate: withCheckoutWrite(checkoutPaymentMethodUpdate),
     checkoutLoyaltyRedemptionUpdate: withCheckoutWrite(checkoutLoyaltyRedemptionUpdate),
     checkoutLoyaltyRedemptionRemove: withCheckoutWrite(checkoutLoyaltyRedemptionRemove),
-    checkoutDeliveryMethodUpdate: withCheckoutWrite(
-      checkoutDeliveryMethodUpdate,
-    ),
-    checkoutDeliveryRecipientsAdd: withCheckoutWrite(
-      checkoutDeliveryRecipientsAdd,
-    ),
-    checkoutDeliveryRecipientsUpdate: withCheckoutWrite(
-      checkoutDeliveryRecipientsUpdate,
-    ),
-    checkoutDeliveryRecipientsRemove: withCheckoutWrite(
-      checkoutDeliveryRecipientsRemove,
-    ),
+    checkoutDeliveryMethodUpdate: withCheckoutWrite(checkoutDeliveryMethodUpdate),
+    checkoutDeliveryRecipientsAdd: withCheckoutWrite(checkoutDeliveryRecipientsAdd),
+    checkoutDeliveryRecipientsUpdate: withCheckoutWrite(checkoutDeliveryRecipientsUpdate),
+    checkoutDeliveryRecipientsRemove: withCheckoutWrite(checkoutDeliveryRecipientsRemove),
     placeOrder: withPermission(STOREFRONT_PERMISSIONS.ORDER_WRITE, placeOrder),
   },
   Checkout: {

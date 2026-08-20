@@ -4,16 +4,11 @@ import type { CustomerConsent } from "../../repositories/models/index.js";
 import type { CustomerConsentEventRelayInput } from "../../repositories/consent/CustomerConsentRepository.js";
 import { CustomersType } from "./CustomersType.js";
 
-export class CustomerConsentResolver extends CustomersType<
-  string,
-  CustomerConsent
-> {
+export class CustomerConsentResolver extends CustomersType<string, CustomerConsent> {
   async $preload() {
     const consent = await this.$ctx.loaders.consent.load(this.$props);
     if (!consent) {
-      throw new PreloadNotFoundError(
-        `Customer consent with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer consent with ID ${this.$props} not found`);
     }
     return consent;
   }

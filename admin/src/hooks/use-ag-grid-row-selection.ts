@@ -65,14 +65,14 @@ export function useAgGridRowSelection<T>({
       headerCheckbox: mode === "multi",
       enableClickSelection: false,
     }),
-    [mode]
+    [mode],
   );
 
   const selectionColumnDef = useMemo<SelectionColumnDef>(
     () => ({
       cellStyle: { display: "flex", alignItems: "center" },
     }),
-    []
+    [],
   );
 
   const onCellClicked = useCallback(
@@ -86,7 +86,7 @@ export function useAgGridRowSelection<T>({
         onRowAction(event.data);
       }
     },
-    [onRowAction]
+    [onRowAction],
   );
 
   return {

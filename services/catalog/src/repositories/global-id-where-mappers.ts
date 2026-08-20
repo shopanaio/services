@@ -5,10 +5,7 @@ import {
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
 
-function decodeGlobalIdOrReturnValue(
-  id: unknown,
-  entity: GlobalIdType
-): unknown {
+function decodeGlobalIdOrReturnValue(id: unknown, entity: GlobalIdType): unknown {
   if (typeof id !== "string") {
     return id;
   }
@@ -20,40 +17,26 @@ function decodeGlobalIdOrReturnValue(
   }
 }
 
-function createGlobalIdWhereFieldMapper(
-  entity: GlobalIdType
-): WhereFieldMapper {
+function createGlobalIdWhereFieldMapper(entity: GlobalIdType): WhereFieldMapper {
   return (value) => decodeGlobalIdOrReturnValue(value, entity);
 }
 
-export const decodeProductGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.Product
-);
+export const decodeProductGlobalId = createGlobalIdWhereFieldMapper(GlobalIdEntity.Product);
 
 export const decodeInventoryItemGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.InventoryItem
+  GlobalIdEntity.InventoryItem,
 );
 
-export const decodeCategoryGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.Category
-);
+export const decodeCategoryGlobalId = createGlobalIdWhereFieldMapper(GlobalIdEntity.Category);
 
-export const decodeTagGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.Tag
-);
+export const decodeTagGlobalId = createGlobalIdWhereFieldMapper(GlobalIdEntity.Tag);
 
-export const decodeVendorGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.Vendor
-);
+export const decodeVendorGlobalId = createGlobalIdWhereFieldMapper(GlobalIdEntity.Vendor);
 
 export const decodeOptionCategoryGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.OptionCategory
+  GlobalIdEntity.OptionCategory,
 );
 
-export const decodeVariantGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.Variant
-);
+export const decodeVariantGlobalId = createGlobalIdWhereFieldMapper(GlobalIdEntity.Variant);
 
-export const decodeWarehouseGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.Warehouse
-);
+export const decodeWarehouseGlobalId = createGlobalIdWhereFieldMapper(GlobalIdEntity.Warehouse);

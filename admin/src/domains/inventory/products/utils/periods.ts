@@ -77,16 +77,14 @@ export const PERIODS: readonly PeriodConfig<Period>[] = [
   },
 ] as const;
 
-export const CHART_PERIODS: readonly PeriodConfig<"7d" | "30d" | "90d">[] =
-  PERIODS.filter((period): period is PeriodConfig<"7d" | "30d" | "90d"> =>
+export const CHART_PERIODS: readonly PeriodConfig<"7d" | "30d" | "90d">[] = PERIODS.filter(
+  (period): period is PeriodConfig<"7d" | "30d" | "90d"> =>
     ["7d", "30d", "90d"].includes(period.value),
-  );
+);
 
 export type ChartPeriod = "7d" | "30d" | "90d";
 
-export const getPeriodConfig = (
-  value: Period,
-): PeriodConfig<Period> | undefined =>
+export const getPeriodConfig = (value: Period): PeriodConfig<Period> | undefined =>
   PERIODS.find((period) => period.value === value);
 
 export const getDateRangeForPeriod = (value: Period): DateRange => {

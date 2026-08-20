@@ -169,9 +169,7 @@ export class ModuleRegistry {
   getSidebarRuntimeComponents(): SidebarRuntimeComponent[] {
     return Array.from(this.domains.values())
       .map((domain) => domain.sidebarRuntime)
-      .filter((component): component is SidebarRuntimeComponent =>
-        Boolean(component),
-      );
+      .filter((component): component is SidebarRuntimeComponent => Boolean(component));
   }
 
   list(): string[] {
@@ -214,9 +212,8 @@ export class ModuleRegistry {
             }));
 
           // If no children with sidebar, use first item's path for the module
-          const modulePath = moduleChildren.length === 0 && mod.items.length > 0
-            ? mod.items[0].path
-            : undefined;
+          const modulePath =
+            moduleChildren.length === 0 && mod.items.length > 0 ? mod.items[0].path : undefined;
 
           return {
             key: mod.key,

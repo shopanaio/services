@@ -44,7 +44,7 @@ export const SelectableCell: React.FC<SelectableCellProps> = ({
 
   // Subscribe to selection state for this specific cell
   const isSelected = store((state) =>
-    state.selectedCells.some((c) => c.rowId === rowId && c.field === field)
+    state.selectedCells.some((c) => c.rowId === rowId && c.field === field),
   );
 
   const handleMouseDown = useCallback(
@@ -52,7 +52,7 @@ export const SelectableCell: React.FC<SelectableCellProps> = ({
       if (disabled) return;
       handlers.handleMouseDown(rowId, field, event);
     },
-    [handlers, rowId, field, disabled]
+    [handlers, rowId, field, disabled],
   );
 
   const handleMouseEnter = useCallback(() => {

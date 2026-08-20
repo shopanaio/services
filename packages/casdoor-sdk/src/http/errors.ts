@@ -7,7 +7,15 @@ export class CasdoorHttpError extends Error {
   public readonly responseBody?: unknown;
   public readonly cause?: unknown;
 
-  constructor(message: string, opts?: { status?: number; headers?: Record<string, unknown>; responseBody?: unknown; cause?: unknown }) {
+  constructor(
+    message: string,
+    opts?: {
+      status?: number;
+      headers?: Record<string, unknown>;
+      responseBody?: unknown;
+      cause?: unknown;
+    },
+  ) {
     super(message);
     this.status = opts?.status;
     this.headers = opts?.headers;
@@ -35,4 +43,3 @@ export class CasdoorInvalidResponseError extends Error {
     this.responseBody = responseBody;
   }
 }
-

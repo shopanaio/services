@@ -2,21 +2,14 @@ import { GraphQLError } from "graphql";
 import type { CurrencyCode, LocaleCode } from "@shopana/shared-references";
 import type { MarketSnapshot } from "../../repositories/market/MarketRepository.js";
 import { ProjectType } from "./ProjectType.js";
-import {
-  countryValue,
-  currencyValue,
-  languageValue,
-} from "./referenceValues.js";
+import { countryValue, currencyValue, languageValue } from "./referenceValues.js";
 
 interface LocalizationInput {
   storeId: string;
   marketId: string;
 }
 
-export class LocalizationResolver extends ProjectType<
-  LocalizationInput,
-  MarketSnapshot
-> {
+export class LocalizationResolver extends ProjectType<LocalizationInput, MarketSnapshot> {
   async $preload() {
     if (this.$ctx.storefrontStore?.id !== this.$props.storeId) {
       throw new GraphQLError("Store is outside the storefront scope", {
@@ -42,8 +35,7 @@ export class LocalizationResolver extends ProjectType<
 
   async country() {
     const { countries } = await this.$data;
-    const country =
-      countries.find(({ isPrimary }) => isPrimary) ?? countries[0];
+    const country = countries.find(({ isPrimary }) => isPrimary) ?? countries[0];
     if (!country) {
       throw this.configurationError("country");
     }

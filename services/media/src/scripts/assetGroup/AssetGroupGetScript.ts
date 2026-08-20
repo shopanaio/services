@@ -5,26 +5,18 @@ import {
   type AssetGroupGetResult,
 } from "./dto/AssetGroupGetDto.js";
 
-export class AssetGroupGetScript extends BaseScript<
-  AssetGroupGetParams,
-  AssetGroupGetResult
-> {
+export class AssetGroupGetScript extends BaseScript<AssetGroupGetParams, AssetGroupGetResult> {
   @ZodSchema(assetGroupGetSchema)
-  protected async execute(
-    params: AssetGroupGetParams
-  ): Promise<AssetGroupGetResult> {
+  protected async execute(params: AssetGroupGetParams): Promise<AssetGroupGetResult> {
     this.logger.info({ params }, "AssetGroupGetScript: starting");
 
     const assetGroup = await this.repository.assetGroup.findByOwner(
       params.ownerType,
-      params.ownerId
+      params.ownerId,
     );
 
     if (!assetGroup) {
-      this.logger.info(
-        { params },
-        "AssetGroupGetScript: asset group not found"
-      );
+      this.logger.info({ params }, "AssetGroupGetScript: asset group not found");
       return {
         assetGroup: null,
         userErrors: [],
@@ -33,7 +25,7 @@ export class AssetGroupGetScript extends BaseScript<
 
     this.logger.info(
       { assetGroupId: assetGroup.id },
-      "AssetGroupGetScript: completed successfully"
+      "AssetGroupGetScript: completed successfully",
     );
 
     return {
@@ -50,9 +42,7 @@ export class AssetGroupGetScript extends BaseScript<
   protected handleError(_error: unknown): AssetGroupGetResult {
     return {
       assetGroup: null,
-      userErrors: [
-        { message: "Failed to get asset group", code: "INTERNAL_ERROR" },
-      ],
+      userErrors: [{ message: "Failed to get asset group", code: "INTERNAL_ERROR" }],
     };
   }
 }

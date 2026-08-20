@@ -34,10 +34,7 @@ export interface ApplicationResolverInput {
 @SubgraphReference((reference: { id: string }) => ({
   id: decodeGlobalIdByType(reference.id, GlobalIdEntity.Application),
 }))
-export class ApplicationResolver extends IAMType<
-  ApplicationResolverInput,
-  ApplicationAdminRecord
-> {
+export class ApplicationResolver extends IAMType<ApplicationResolverInput, ApplicationAdminRecord> {
   private applicationAuthReadAuthorization?: Promise<void>;
 
   async $preload() {
@@ -67,10 +64,7 @@ export class ApplicationResolver extends IAMType<
   }
 
   async organizationId() {
-    return encodeGlobalIdByType(
-      await this.$get("organizationId"),
-      GlobalIdEntity.Organization
-    );
+    return encodeGlobalIdByType(await this.$get("organizationId"), GlobalIdEntity.Organization);
   }
 
   async organization() {
@@ -110,9 +104,7 @@ export class ApplicationResolver extends IAMType<
       resourceId: this.$props.id,
     };
     const [managementMode, binding] = await Promise.all([
-      this.$ctx.kernel
-        .getServices()
-        .repository.serviceLinkedResource.findManagementMode(resource),
+      this.$ctx.kernel.getServices().repository.serviceLinkedResource.findManagementMode(resource),
       this.$ctx.loaders.serviceLinkedResource.load(resource),
     ]);
     if (!managementMode) {
@@ -140,7 +132,7 @@ export class ApplicationResolver extends IAMType<
             linkedOwnerId: null,
             mutableFromOrganizationAdmin: true,
           },
-      this.$ctx
+      this.$ctx,
     );
   }
 
@@ -150,7 +142,7 @@ export class ApplicationResolver extends IAMType<
         organizationId: await this.$get("organizationId"),
         applicationId: this.$props.id,
       },
-      this.$ctx
+      this.$ctx,
     );
   }
 
@@ -162,7 +154,7 @@ export class ApplicationResolver extends IAMType<
           applicationId: this.$props.id,
           clientId: args.clientId,
         },
-        this.adminActor()
+        this.adminActor(),
       );
       return new ApplicationOAuthClientResolver(client, this.$ctx);
     } catch (error) {
@@ -176,16 +168,14 @@ export class ApplicationResolver extends IAMType<
     }
   }
 
-  async oauthClients(
-    args: Parameters<typeof mapApplicationOAuthClientConnectionInput>[2]
-  ) {
+  async oauthClients(args: Parameters<typeof mapApplicationOAuthClientConnectionInput>[2]) {
     return new ApplicationOAuthClientConnectionResolver(
       mapApplicationOAuthClientConnectionInput(
         await this.$get("organizationId"),
         this.$props.id,
-        args
+        args,
       ),
-      this.$ctx
+      this.$ctx,
     );
   }
 
@@ -196,18 +186,14 @@ export class ApplicationResolver extends IAMType<
         applicationId: this.$props.id,
         userId: decodeGlobalIdByType(args.id, GlobalIdEntity.ApplicationUser),
       },
-      this.$ctx
+      this.$ctx,
     );
   }
 
   async users(args: Parameters<typeof mapApplicationUserConnectionInput>[2]) {
     return new ApplicationUserConnectionResolver(
-      mapApplicationUserConnectionInput(
-        await this.$get("organizationId"),
-        this.$props.id,
-        args
-      ),
-      this.$ctx
+      mapApplicationUserConnectionInput(await this.$get("organizationId"), this.$props.id, args),
+      this.$ctx,
     );
   }
 
@@ -238,7 +224,7 @@ export class ApplicationResolver extends IAMType<
           domain: "org",
           resource: "org.application-auth",
           action: "read",
-        })
+        }),
       )
       .then((authorized) => {
         if (!authorized) {

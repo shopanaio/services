@@ -27,14 +27,14 @@ import {
 } from "./schema.js";
 
 const createdAt = () =>
-  timestamp("created_at", { withTimezone: true, mode: "string" })
-    .notNull()
-    .defaultNow();
+  timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow();
 
 export const monetaryWallets = loyaltySchema.table(
   "monetary_wallet",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     programId: uuid("program_id").notNull(),
     accountId: uuid("account_id").notNull(),
@@ -81,10 +81,7 @@ export const monetaryWallets = loyaltySchema.table(
       table.walletType,
       table.currencyCode,
     ),
-    unique("loyalty_monetary_wallet_id_program_unique").on(
-      table.id,
-      table.programId,
-    ),
+    unique("loyalty_monetary_wallet_id_program_unique").on(table.id, table.programId),
     index("loyalty_monetary_wallet_account_idx").on(
       table.storeId,
       table.accountId,
@@ -92,14 +89,8 @@ export const monetaryWallets = loyaltySchema.table(
       table.currencyCode,
       table.id,
     ),
-    check(
-      "loyalty_monetary_wallet_currency_check",
-      sql`${table.currencyCode} ~ '^[A-Z]{3}$'`,
-    ),
-    check(
-      "loyalty_monetary_wallet_revision_check",
-      sql`${table.revision} > 0`,
-    ),
+    check("loyalty_monetary_wallet_currency_check", sql`${table.currencyCode} ~ '^[A-Z]{3}$'`),
+    check("loyalty_monetary_wallet_revision_check", sql`${table.revision} > 0`),
     check(
       "loyalty_monetary_wallet_merge_check",
       sql`(${table.status} = 'MERGED' AND ${table.mergedIntoWalletId} IS NOT NULL
@@ -115,7 +106,9 @@ export const monetaryWallets = loyaltySchema.table(
 export const monetaryTransactions = loyaltySchema.table(
   "monetary_transaction",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     walletId: uuid("wallet_id").notNull(),
     programId: uuid("program_id").notNull(),
@@ -155,22 +148,13 @@ export const monetaryTransactions = loyaltySchema.table(
       columns: [table.programVersionId],
       foreignColumns: [programVersions.id],
     }),
-    unique("loyalty_monetary_transaction_id_wallet_unique").on(
-      table.id,
-      table.walletId,
-    ),
+    unique("loyalty_monetary_transaction_id_wallet_unique").on(table.id, table.walletId),
     unique("loyalty_monetary_transaction_idempotency_unique").on(
       table.walletId,
       table.idempotencyKey,
     ),
     uniqueIndex("loyalty_monetary_transaction_source_operation_unique_idx")
-      .on(
-        table.walletId,
-        table.sourceType,
-        table.sourceId,
-        table.sourceRevision,
-        table.kind,
-      )
+      .on(table.walletId, table.sourceType, table.sourceId, table.sourceRevision, table.kind)
       .where(sql`${table.sourceId} IS NOT NULL`),
     index("loyalty_monetary_transaction_wallet_history_idx").on(
       table.storeId,
@@ -211,7 +195,9 @@ export const monetaryTransactions = loyaltySchema.table(
 export const monetaryLedgerEntries = loyaltySchema.table(
   "monetary_ledger_entry",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     transactionId: uuid("transaction_id").notNull(),
     walletId: uuid("wallet_id").notNull(),
@@ -237,21 +223,17 @@ export const monetaryLedgerEntries = loyaltySchema.table(
       table.createdAt.desc(),
       table.id.desc(),
     ),
-    check(
-      "loyalty_monetary_ledger_entry_amount_check",
-      sql`${table.amountMinorDelta} <> 0`,
-    ),
-    check(
-      "loyalty_monetary_ledger_entry_sequence_check",
-      sql`${table.sequence} > 0`,
-    ),
+    check("loyalty_monetary_ledger_entry_amount_check", sql`${table.amountMinorDelta} <> 0`),
+    check("loyalty_monetary_ledger_entry_sequence_check", sql`${table.sequence} > 0`),
   ],
 );
 
 export const monetaryCreditLots = loyaltySchema.table(
   "monetary_credit_lot",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     walletId: uuid("wallet_id").notNull(),
     originEntryId: uuid("origin_entry_id").notNull(),
@@ -285,10 +267,7 @@ export const monetaryCreditLots = loyaltySchema.table(
       table.activatedAt,
       table.id,
     ),
-    check(
-      "loyalty_monetary_credit_lot_amount_check",
-      sql`${table.amountIssuedMinor} > 0`,
-    ),
+    check("loyalty_monetary_credit_lot_amount_check", sql`${table.amountIssuedMinor} > 0`),
     check(
       "loyalty_monetary_credit_lot_expiry_check",
       sql`${table.expiresAt} IS NULL OR ${table.expiresAt} > ${table.activatedAt}`,
@@ -299,7 +278,9 @@ export const monetaryCreditLots = loyaltySchema.table(
 export const monetaryLotAllocations = loyaltySchema.table(
   "monetary_lot_allocation",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     lotId: uuid("lot_id").notNull(),
     debitEntryId: uuid("debit_entry_id").notNull(),
@@ -317,14 +298,8 @@ export const monetaryLotAllocations = loyaltySchema.table(
       columns: [table.debitEntryId],
       foreignColumns: [monetaryLedgerEntries.id],
     }),
-    unique("loyalty_monetary_lot_allocation_entry_lot_unique").on(
-      table.debitEntryId,
-      table.lotId,
-    ),
-    check(
-      "loyalty_monetary_lot_allocation_amount_check",
-      sql`${table.amountMinor} > 0`,
-    ),
+    unique("loyalty_monetary_lot_allocation_entry_lot_unique").on(table.debitEntryId, table.lotId),
+    check("loyalty_monetary_lot_allocation_amount_check", sql`${table.amountMinor} > 0`),
   ],
 );
 
@@ -333,18 +308,12 @@ export const monetaryWalletBalances = loyaltySchema.table(
   {
     walletId: uuid("wallet_id").primaryKey(),
     storeId: uuid("store_id").notNull(),
-    pendingAmountMinor: bigint("pending_amount_minor", { mode: "bigint" })
-      .notNull()
-      .default(0n),
+    pendingAmountMinor: bigint("pending_amount_minor", { mode: "bigint" }).notNull().default(0n),
     availableAmountMinor: bigint("available_amount_minor", { mode: "bigint" })
       .notNull()
       .default(0n),
-    reservedAmountMinor: bigint("reserved_amount_minor", { mode: "bigint" })
-      .notNull()
-      .default(0n),
-    debtAmountMinor: bigint("debt_amount_minor", { mode: "bigint" })
-      .notNull()
-      .default(0n),
+    reservedAmountMinor: bigint("reserved_amount_minor", { mode: "bigint" }).notNull().default(0n),
+    debtAmountMinor: bigint("debt_amount_minor", { mode: "bigint" }).notNull().default(0n),
     revision: integer("revision").notNull().default(1),
     lastTransactionId: uuid("last_transaction_id"),
     updatedAt: timestamp("updated_at", {

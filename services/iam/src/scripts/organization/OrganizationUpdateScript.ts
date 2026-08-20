@@ -1,9 +1,4 @@
-import {
-  BaseScript,
-  ZodSchema,
-  Transactional,
-  ValidationError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, Transactional, ValidationError } from "../../kernel/BaseScript.js";
 import { AuthorizationError } from "@shopana/shared-kernel";
 import {
   organizationUpdateInputSchema,
@@ -22,9 +17,7 @@ export class OrganizationUpdateScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(organizationUpdateInputSchema)
-  protected async execute(
-    params: OrganizationUpdateParams
-  ): Promise<OrganizationUpdateResult> {
+  protected async execute(params: OrganizationUpdateParams): Promise<OrganizationUpdateResult> {
     const { organizationId, name, displayName, logoId } = params;
 
     // Find organization
@@ -63,10 +56,7 @@ export class OrganizationUpdateScript extends BaseScript<
 
     // Update logo if provided
     if (logoId !== undefined) {
-      const logoUpdated = await this.repository.organization.updateLogo(
-        organizationId,
-        logoId
-      );
+      const logoUpdated = await this.repository.organization.updateLogo(organizationId, logoId);
 
       if (!logoUpdated) {
         return {

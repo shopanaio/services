@@ -1,10 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { Catalog } from "@shopana/broker-types";
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   facetFeatureValueCandidateView,
@@ -16,23 +12,17 @@ import {
   type FacetTagValueCandidateView,
 } from "../models/index.js";
 
-const FACET_VALUE_CANDIDATE_TYPES = new Set<string>([
-  "TAG",
-  "OPTION",
-  "FEATURE",
-]);
+const FACET_VALUE_CANDIDATE_TYPES = new Set<string>(["TAG", "OPTION", "FEATURE"]);
 
 export const facetSourceCandidateRelayQuery = createRelayQuery(
   createQuery(facetSourceCandidateView)
     .include(["id", "storeId", "locale", "facetType", "handle"])
     .maxLimit(100)
     .defaultLimit(30),
-  { name: "facetSourceCandidate", tieBreaker: "id" }
+  { name: "facetSourceCandidate", tieBreaker: "id" },
 );
 
-export type FacetSourceCandidateRelayInput = InferRelayInput<
-  typeof facetSourceCandidateRelayQuery
->;
+export type FacetSourceCandidateRelayInput = InferRelayInput<typeof facetSourceCandidateRelayQuery>;
 
 export type FacetValueCandidateType = Catalog.FacetValueCandidateType;
 export type FacetSourceCandidateView = Catalog.FacetSourceCandidateView;
@@ -42,32 +32,27 @@ const createFacetValueCandidateRelayQuery = (
   view:
     | typeof facetTagValueCandidateView
     | typeof facetOptionValueCandidateView
-    | typeof facetFeatureValueCandidateView
+    | typeof facetFeatureValueCandidateView,
 ) =>
   createRelayQuery(
     createQuery(view)
-      .include([
-        "id",
-        "storeId",
-        "locale",
-        "facetType",
-        "sourceHandle",
-        "handle",
-        "label",
-      ])
+      .include(["id", "storeId", "locale", "facetType", "sourceHandle", "handle", "label"])
       .maxLimit(100)
       .defaultLimit(30),
-    { name: "facetValueCandidate", tieBreaker: "id" }
+    { name: "facetValueCandidate", tieBreaker: "id" },
   );
 
-export const facetTagValueCandidateRelayQuery =
-  createFacetValueCandidateRelayQuery(facetTagValueCandidateView);
+export const facetTagValueCandidateRelayQuery = createFacetValueCandidateRelayQuery(
+  facetTagValueCandidateView,
+);
 
-export const facetOptionValueCandidateRelayQuery =
-  createFacetValueCandidateRelayQuery(facetOptionValueCandidateView);
+export const facetOptionValueCandidateRelayQuery = createFacetValueCandidateRelayQuery(
+  facetOptionValueCandidateView,
+);
 
-export const facetFeatureValueCandidateRelayQuery =
-  createFacetValueCandidateRelayQuery(facetFeatureValueCandidateView);
+export const facetFeatureValueCandidateRelayQuery = createFacetValueCandidateRelayQuery(
+  facetFeatureValueCandidateView,
+);
 
 export const facetValueCandidateRelayQueries = {
   TAG: facetTagValueCandidateRelayQuery,
@@ -85,11 +70,9 @@ export type FacetValueCandidateRelayInput = InferRelayInput<
   typeof facetTagValueCandidateRelayQuery
 >;
 
-export type FacetSourceCandidateConnectionResult =
-  Catalog.FacetSourceCandidateConnectionResult;
+export type FacetSourceCandidateConnectionResult = Catalog.FacetSourceCandidateConnectionResult;
 
-export type FacetValueCandidateConnectionResult =
-  Catalog.FacetValueCandidateConnectionResult;
+export type FacetValueCandidateConnectionResult = Catalog.FacetValueCandidateConnectionResult;
 
 export interface FacetSourceCandidateQueryParams {
   storeId: string;
@@ -126,7 +109,7 @@ export interface FindFacetValueCandidatesByHandlesParams {
 
 export class FacetCandidateRepository extends BaseRepository {
   async getSourceCandidates(
-    params: FacetSourceCandidateQueryParams
+    params: FacetSourceCandidateQueryParams,
   ): Promise<FacetSourceCandidateConnectionResult> {
     const { where, orderBy, ...paginationArgs } = params.input;
     const excludedSources = normalizeSourceCandidateRefs(params.excludedSources);
@@ -136,10 +119,7 @@ export class FacetCandidateRepository extends BaseRepository {
         { locale: { _eq: params.locale } },
         ...excludedSources.map((source) => ({
           _not: {
-            _and: [
-              { facetType: { _eq: source.facetType } },
-              { handle: { _eq: source.handle } },
-            ],
+            _and: [{ facetType: { _eq: source.facetType } }, { handle: { _eq: source.handle } }],
           },
         })),
         ...(where ? [where] : []),
@@ -169,7 +149,7 @@ export class FacetCandidateRepository extends BaseRepository {
   }
 
   async getValueCandidates(
-    params: FacetValueCandidateQueryParams
+    params: FacetValueCandidateQueryParams,
   ): Promise<FacetValueCandidateConnectionResult> {
     if (!isFacetValueCandidateType(params.candidateType)) {
       throw new Error("Invalid candidateType");
@@ -220,7 +200,7 @@ export class FacetCandidateRepository extends BaseRepository {
   }
 
   async findSourceCandidateByRef(
-    params: FindFacetSourceCandidateByRefParams
+    params: FindFacetSourceCandidateByRefParams,
   ): Promise<FacetSourceCandidateView | null> {
     const rows = await this.connection
       .select()
@@ -230,8 +210,8 @@ export class FacetCandidateRepository extends BaseRepository {
           eq(facetSourceCandidateView.storeId, params.storeId),
           eq(facetSourceCandidateView.locale, params.locale),
           eq(facetSourceCandidateView.facetType, params.facetType),
-          eq(facetSourceCandidateView.handle, params.handle)
-        )
+          eq(facetSourceCandidateView.handle, params.handle),
+        ),
       )
       .limit(1);
 
@@ -239,7 +219,7 @@ export class FacetCandidateRepository extends BaseRepository {
   }
 
   async findValueCandidatesByHandles(
-    params: FindFacetValueCandidatesByHandlesParams
+    params: FindFacetValueCandidatesByHandlesParams,
   ): Promise<FacetValueCandidateView[]> {
     if (!isFacetValueCandidateType(params.candidateType)) {
       throw new Error("Invalid candidateType");
@@ -262,8 +242,8 @@ export class FacetCandidateRepository extends BaseRepository {
           eq(view.locale, params.locale),
           eq(view.facetType, params.candidateType),
           inArray(view.sourceHandle, sourceHandles),
-          inArray(view.handle, handles)
-        )
+          inArray(view.handle, handles),
+        ),
       );
 
     return rows.map(toFacetValueCandidateView);
@@ -271,9 +251,7 @@ export class FacetCandidateRepository extends BaseRepository {
 }
 
 function getFacetValueCandidateRelayQuery(type: FacetValueCandidateType) {
-  return facetValueCandidateRelayQueries[
-    type
-  ] as typeof facetTagValueCandidateRelayQuery;
+  return facetValueCandidateRelayQueries[type] as typeof facetTagValueCandidateRelayQuery;
 }
 
 function getFacetValueCandidateView(type: FacetValueCandidateType) {
@@ -281,10 +259,7 @@ function getFacetValueCandidateView(type: FacetValueCandidateType) {
 }
 
 function toFacetValueCandidateView(
-  row:
-    | FacetTagValueCandidateView
-    | FacetOptionValueCandidateView
-    | FacetFeatureValueCandidateView
+  row: FacetTagValueCandidateView | FacetOptionValueCandidateView | FacetFeatureValueCandidateView,
 ): FacetValueCandidateView {
   return row as FacetValueCandidateView;
 }
@@ -304,15 +279,11 @@ function emptyFacetValueCandidateConnection(): FacetValueCandidateConnectionResu
 
 function normalizeHandles(values?: readonly string[]): string[] {
   if (!values) return [];
-  return [
-    ...new Set(
-      values.map((value) => value.trim()).filter((value) => value.length > 0)
-    ),
-  ];
+  return [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))];
 }
 
 function normalizeSourceCandidateRefs(
-  values?: readonly FacetSourceCandidateRef[]
+  values?: readonly FacetSourceCandidateRef[],
 ): FacetSourceCandidateRef[] {
   if (!values) return [];
   const refs = new Map<string, FacetSourceCandidateRef>();
@@ -325,8 +296,6 @@ function normalizeSourceCandidateRefs(
   return [...refs.values()];
 }
 
-function isFacetValueCandidateType(
-  value: string
-): value is FacetValueCandidateType {
+function isFacetValueCandidateType(value: string): value is FacetValueCandidateType {
   return FACET_VALUE_CANDIDATE_TYPES.has(value);
 }

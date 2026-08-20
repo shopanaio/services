@@ -1,11 +1,5 @@
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-  TypePolicy,
-} from "@shopana/type-resolver";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import { PreloadNotFoundError, SubgraphReference, TypePolicy } from "@shopana/type-resolver";
 import type { AppInstallationRecord } from "../../control-plane/types.js";
 import type {
   AppInstallationLifecycleOperationsArgs,
@@ -21,17 +15,11 @@ import { AppsType } from "./AppsType.js";
   domain: (resolver) => `store:${resolver.$ctx.store.id}`,
   onDeny: "null",
 })
-export class AppInstallationResolver extends AppsType<
-  string,
-  AppInstallationRecord
-> {
+export class AppInstallationResolver extends AppsType<string, AppInstallationRecord> {
   async $preload(): Promise<AppInstallationRecord> {
-    const installation =
-      await this.$ctx.loaders.installation.load(this.$props);
+    const installation = await this.$ctx.loaders.installation.load(this.$props);
     if (!installation) {
-      throw new PreloadNotFoundError(
-        `App installation "${this.$props}" not found`,
-      );
+      throw new PreloadNotFoundError(`App installation "${this.$props}" not found`);
     }
     return installation;
   }
@@ -87,14 +75,11 @@ export class AppInstallationResolver extends AppsType<
 
   async installedByUserId() {
     const userId = await this.$get("installedByUserId");
-    return userId
-      ? this.encodeId(userId, GlobalIdEntity.User)
-      : null;
+    return userId ? this.encodeId(userId, GlobalIdEntity.User) : null;
   }
 
   async scopes() {
-    const scopes =
-      await this.$ctx.loaders.scopesByInstallation.load(this.$props);
+    const scopes = await this.$ctx.loaders.scopesByInstallation.load(this.$props);
     return scopes.map((scope) => ({
       scope: scope.scope,
       grantedAt: scope.grantedAt,
@@ -104,31 +89,16 @@ export class AppInstallationResolver extends AppsType<
   }
 
   async capabilities() {
-    const bindings =
-      await this.$ctx.loaders.capabilityBindingsByInstallation.load(
-        this.$props,
-      );
-    return Promise.all(
-      bindings.map((binding) =>
-        this.resolvers.appCapabilityBinding(binding.id),
-      ),
-    );
+    const bindings = await this.$ctx.loaders.capabilityBindingsByInstallation.load(this.$props);
+    return Promise.all(bindings.map((binding) => this.resolvers.appCapabilityBinding(binding.id)));
   }
 
-  lifecycleOperations(
-    args: AppInstallationLifecycleOperationsArgs,
-  ) {
-    return this.resolvers.appLifecycleOperationConnection(
-      this.$props,
-      args,
-    );
+  lifecycleOperations(args: AppInstallationLifecycleOperationsArgs) {
+    return this.resolvers.appLifecycleOperationConnection(this.$props, args);
   }
 
   manifestSnapshots(args: AppInstallationManifestSnapshotsArgs) {
-    return this.resolvers.appManifestSnapshotConnection(
-      this.$props,
-      args,
-    );
+    return this.resolvers.appManifestSnapshotConnection(this.$props, args);
   }
 
   installedAt() {

@@ -5,8 +5,7 @@ import type {
 import { ListingType } from "./ListingType.js";
 import { mapSearchSynonymGroupListView } from "./searchConfigurationMapper.js";
 
-export type SearchSynonymGroupConnectionInput =
-  SearchSynonymGroupRelayInput;
+export type SearchSynonymGroupConnectionInput = SearchSynonymGroupRelayInput;
 
 export class SearchSynonymGroupConnectionResolver extends ListingType<
   SearchSynonymGroupConnectionInput,

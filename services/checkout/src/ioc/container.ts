@@ -57,13 +57,10 @@ export class App {
 
     // Initialize infrastructure dependencies
     app.checkoutMutationRepository = new CheckoutMutationRepository();
-    app.checkoutCreateIdempotencyRepository =
-      new CheckoutCreateIdempotencyRepository();
+    app.checkoutCreateIdempotencyRepository = new CheckoutCreateIdempotencyRepository();
     app.checkoutPlacementRepository = new CheckoutPlacementRepository();
     const functionRunner = new CommerceFunctionRunner(
-      new FunctionTargetRegistry([
-        CHECKOUT_VALIDATION_FUNCTION_TARGET_DEFINITION,
-      ]),
+      new FunctionTargetRegistry([CHECKOUT_VALIDATION_FUNCTION_TARGET_DEFINITION]),
       new FunctionRouteResolver(broker),
       new BrokerFunctionExecutor(broker),
     );

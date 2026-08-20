@@ -63,10 +63,7 @@ import {
   LocaleDeleteInputSchema,
 } from "../../api/graphql-admin/generated/schemas.js";
 
-const automaticFulfillmentModeMap: Record<
-  ApiAutomaticFulfillmentMode,
-  AutomaticFulfillmentMode
-> = {
+const automaticFulfillmentModeMap: Record<ApiAutomaticFulfillmentMode, AutomaticFulfillmentMode> = {
   [ApiAutomaticFulfillmentModeValue.AllLineItems]: "all_line_items",
   [ApiAutomaticFulfillmentModeValue.GiftCardsOnly]: "gift_cards_only",
   [ApiAutomaticFulfillmentModeValue.Disabled]: "disabled",
@@ -91,10 +88,7 @@ const currencyGroupingMap: Record<ApiCurrencyGrouping, CurrencyGrouping> = {
   [ApiCurrencyGroupingValue.Never]: "never",
 };
 
-const currencySignDisplayMap: Record<
-  ApiCurrencySignDisplay,
-  CurrencySignDisplay
-> = {
+const currencySignDisplayMap: Record<ApiCurrencySignDisplay, CurrencySignDisplay> = {
   [ApiCurrencySignDisplayValue.Auto]: "auto",
   [ApiCurrencySignDisplayValue.Always]: "always",
   [ApiCurrencySignDisplayValue.ExceptZero]: "exceptZero",
@@ -102,10 +96,7 @@ const currencySignDisplayMap: Record<
   [ApiCurrencySignDisplayValue.Never]: "never",
 };
 
-const currencyRoundingModeMap: Record<
-  ApiCurrencyRoundingMode,
-  CurrencyRoundingMode
-> = {
+const currencyRoundingModeMap: Record<ApiCurrencyRoundingMode, CurrencyRoundingMode> = {
   [ApiCurrencyRoundingModeValue.Ceil]: "ceil",
   [ApiCurrencyRoundingModeValue.Floor]: "floor",
   [ApiCurrencyRoundingModeValue.Expand]: "expand",
@@ -142,9 +133,7 @@ interface StoreUpdateMappingResult {
   errors: UserError[];
 }
 
-function mapStoreUpdateInput(
-  input?: StoreUpdateInput | null,
-): StoreUpdateMappingResult {
+function mapStoreUpdateInput(input?: StoreUpdateInput | null): StoreUpdateMappingResult {
   const entries: StoreUpdateMappedEntry[] = [];
   const operations: StoreUpdateOperation[] = [];
   const errors: UserError[] = [];
@@ -234,14 +223,10 @@ function mapStoreUpdateInput(
       params: {
         orderNumberPrefix: input.orderProcessing.orderNumberPrefix,
         orderNumberSuffix: input.orderProcessing.orderNumberSuffix ?? null,
-        requireCheckoutConfirmation:
-          input.orderProcessing.requireCheckoutConfirmation,
+        requireCheckoutConfirmation: input.orderProcessing.requireCheckoutConfirmation,
         automaticFulfillmentMode:
-          automaticFulfillmentModeMap[
-            input.orderProcessing.automaticFulfillmentMode
-          ],
-        automaticallyArchiveOrders:
-          input.orderProcessing.automaticallyArchiveOrders,
+          automaticFulfillmentModeMap[input.orderProcessing.automaticFulfillmentMode],
+        automaticallyArchiveOrders: input.orderProcessing.automaticallyArchiveOrders,
       },
       meta: { fieldPrefix: ["operations", "orderProcessing"] },
     });
@@ -264,22 +249,15 @@ function mapStoreUpdateInput(
     add("currencySettingsUpdate", {
       type: "currencySettingsUpdate",
       params: {
-        currencyDisplay:
-          currencyDisplayMap[input.currencySettings.currencyDisplay],
+        currencyDisplay: currencyDisplayMap[input.currencySettings.currencyDisplay],
         currencySign: currencySignMap[input.currencySettings.currencySign],
         grouping: currencyGroupingMap[input.currencySettings.grouping],
-        signDisplay:
-          currencySignDisplayMap[input.currencySettings.signDisplay],
-        minimumFractionDigits:
-          input.currencySettings.minimumFractionDigits,
-        maximumFractionDigits:
-          input.currencySettings.maximumFractionDigits,
-        roundingMode:
-          currencyRoundingModeMap[input.currencySettings.roundingMode],
+        signDisplay: currencySignDisplayMap[input.currencySettings.signDisplay],
+        minimumFractionDigits: input.currencySettings.minimumFractionDigits,
+        maximumFractionDigits: input.currencySettings.maximumFractionDigits,
+        roundingMode: currencyRoundingModeMap[input.currencySettings.roundingMode],
         trailingZeroDisplay:
-          currencyTrailingZeroDisplayMap[
-            input.currencySettings.trailingZeroDisplay
-          ],
+          currencyTrailingZeroDisplayMap[input.currencySettings.trailingZeroDisplay],
       },
       meta: { fieldPrefix: ["operations", "currencySettings"] },
     });
@@ -288,10 +266,7 @@ function mapStoreUpdateInput(
   return { operations, entries, errors };
 }
 
-function safeDecodeGlobalId(
-  value: string,
-  expectedType: GlobalIdType,
-): string | null {
+function safeDecodeGlobalId(value: string, expectedType: GlobalIdType): string | null {
   try {
     return decodeGlobalIdByType(value, expectedType);
   } catch {
@@ -361,9 +336,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
    */
   private async getCurrentStore() {
     if (!this.$ctx.storeName) {
-      throw new Error(
-        "Store not found in request context. Ensure x-store-name header is set."
-      );
+      throw new Error("Store not found in request context. Ensure x-store-name header is set.");
     }
     const store = await this.$ctx.kernel
       .getServices()
@@ -379,10 +352,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   @ZodResolver(StoreCreateInputSchema())
   async storeCreate(args: { input: StoreCreateInput }) {
     const { input } = args;
-    const organizationId = decodeGlobalIdByType(
-      input.organizationId,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(input.organizationId, GlobalIdEntity.Organization);
     const result = await this.$ctx.kernel.runScript(StoreCreateScript, {
       organizationId,
       name: input.name,
@@ -425,10 +395,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
       return { store: null, operationResults: [], userErrors: [error] };
     }
 
-    if (
-      !Number.isSafeInteger(args.expectedRevision) ||
-      args.expectedRevision < 0
-    ) {
+    if (!Number.isSafeInteger(args.expectedRevision) || args.expectedRevision < 0) {
       const error = {
         message: "Expected revision must be a non-negative integer",
         field: ["expectedRevision"],
@@ -481,26 +448,25 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
     };
     let sagaResult;
     try {
-      sagaResult = await this.$ctx.kernel.getServices().broker.runSaga<
-        StoreUpdateSagaOutput,
-        StoreUpdateSagaInput
-      >(
-        "project.storeUpdate",
-        sagaInput,
-        {
-          source: "content",
-          organizationId: store.organizationId,
-          resourceId: storeId,
-          operation: "storeUpdate",
-          content: {
-            clientMutationId,
-            expectedRevision: sagaInput.expectedRevision,
-            operations: sagaInput.operations,
-            userId: sagaInput.context.userId ?? null,
+      sagaResult = await this.$ctx.kernel
+        .getServices()
+        .broker.runSaga<StoreUpdateSagaOutput, StoreUpdateSagaInput>(
+          "project.storeUpdate",
+          sagaInput,
+          {
+            source: "content",
+            organizationId: store.organizationId,
+            resourceId: storeId,
+            operation: "storeUpdate",
+            content: {
+              clientMutationId,
+              expectedRevision: sagaInput.expectedRevision,
+              operations: sagaInput.operations,
+              userId: sagaInput.context.userId ?? null,
+            },
           },
-        },
-        { adminContext: this.$ctx.adminContext },
-      );
+          { adminContext: this.$ctx.adminContext },
+        );
     } catch (error) {
       if (!(error instanceof AuthorizationError)) {
         throw error;
@@ -552,10 +518,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   async storeDelete(args: { input: StoreDeleteInput }) {
     const { input } = args;
     const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Store);
-    const organizationId = decodeGlobalIdByType(
-      input.organizationId,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(input.organizationId, GlobalIdEntity.Organization);
 
     const result = await this.$ctx.kernel.runScript(StoreDeleteScript, {
       id,

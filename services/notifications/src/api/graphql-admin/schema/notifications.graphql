@@ -29,7 +29,9 @@ type NotificationsQuery {
 }
 
 type NotificationsMutation {
-  setDefinitionEnabled(input: NotificationDefinitionSetEnabledInput!): NotificationDefinitionSetEnabledPayload!
+  setDefinitionEnabled(
+    input: NotificationDefinitionSetEnabledInput!
+  ): NotificationDefinitionSetEnabledPayload!
   setChannelEnabled(input: NotificationChannelSettingInput!): NotificationChannelSetEnabledPayload!
   updateTemplate(input: NotificationTemplateUpdateInput!): NotificationTemplateUpdatePayload!
   preview(input: NotificationPreviewInput!): NotificationPreviewPayload!

@@ -131,16 +131,11 @@ export function GroupedLinkItem({
   className,
 }: GroupedLinkItemProps) {
   const { styles, cx } = useStyles();
-  const accessibleLabel =
-    ariaLabel ?? (typeof title === "string" ? title : undefined);
+  const accessibleLabel = ariaLabel ?? (typeof title === "string" ? title : undefined);
   const content = (
     <>
       {href ? (
-        <Link
-          aria-label={accessibleLabel}
-          className={styles.overlay}
-          href={href}
-        />
+        <Link aria-label={accessibleLabel} className={styles.overlay} href={href} />
       ) : onClick ? (
         <button
           aria-label={accessibleLabel}
@@ -155,10 +150,7 @@ export function GroupedLinkItem({
         <span className={styles.description}>{description}</span>
       </span>
       {control ? (
-        <span
-          className={styles.control}
-          onClick={(event) => event.stopPropagation()}
-        >
+        <span className={styles.control} onClick={(event) => event.stopPropagation()}>
           {control}
         </span>
       ) : null}
@@ -171,11 +163,7 @@ export function GroupedLinkItem({
   return <div className={cx(styles.root, className)}>{content}</div>;
 }
 
-export function GroupedLinkItemDivider({
-  className,
-}: {
-  className?: string;
-}) {
+export function GroupedLinkItemDivider({ className }: { className?: string }) {
   const { styles, cx } = useStyles();
 
   return <div aria-hidden className={cx(styles.divider, className)} />;

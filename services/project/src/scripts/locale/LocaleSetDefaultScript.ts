@@ -2,7 +2,10 @@ import { Transactional } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { LocaleSetDefaultParams, LocaleSetDefaultResult } from "./dto/index.js";
 
-export class LocaleSetDefaultScript extends BaseScript<LocaleSetDefaultParams, LocaleSetDefaultResult> {
+export class LocaleSetDefaultScript extends BaseScript<
+  LocaleSetDefaultParams,
+  LocaleSetDefaultResult
+> {
   @Transactional()
   protected async execute(params: LocaleSetDefaultParams): Promise<LocaleSetDefaultResult> {
     const store = await this.repository.store.findByIdForUpdate(params.storeId);
@@ -18,11 +21,13 @@ export class LocaleSetDefaultScript extends BaseScript<LocaleSetDefaultParams, L
     if (!language) {
       return {
         success: false,
-        userErrors: [{
-          message: "Language is not configured for the store",
-          code: "LOCALE_NOT_FOUND",
-          field: ["locale"],
-        }],
+        userErrors: [
+          {
+            message: "Language is not configured for the store",
+            code: "LOCALE_NOT_FOUND",
+            field: ["locale"],
+          },
+        ],
       };
     }
 

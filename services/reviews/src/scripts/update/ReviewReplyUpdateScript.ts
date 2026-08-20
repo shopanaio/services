@@ -20,9 +20,7 @@ export class ReviewReplyUpdateScript extends BaseScript<
   ReviewSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: ReviewReplyUpdateParams
-  ): Promise<ReviewSectionResult> {
+  protected async execute(params: ReviewReplyUpdateParams): Promise<ReviewSectionResult> {
     const input = params.operation.params;
     const current = await this.repository.reviewReply.findById(input.replyId);
     if (!current || current.reply.reviewId !== params.reviewId) {
@@ -41,7 +39,7 @@ export class ReviewReplyUpdateScript extends BaseScript<
           input.operations.content,
           "REVIEW_REPLY",
           this.context.hasUser ? this.context.user.id : undefined,
-          ["operations", "content"]
+          ["operations", "content"],
         )
       : { patch: {}, errors: [] };
     const propertyPatch: ReviewReplyPatch = {};
@@ -75,12 +73,10 @@ export class ReviewReplyUpdateScript extends BaseScript<
     const acquired = await this.repository.content.update(
       input.replyId,
       input.expectedRevision,
-      mapped.patch
+      mapped.patch,
     );
     if (acquired.status === "not_found") {
-      return sectionErrors([
-        { message: "Reply not found", code: "NOT_FOUND", field: ["replyId"] },
-      ]);
+      return sectionErrors([{ message: "Reply not found", code: "NOT_FOUND", field: ["replyId"] }]);
     }
     if (acquired.status === "conflict") {
       return sectionErrors([
@@ -93,22 +89,13 @@ export class ReviewReplyUpdateScript extends BaseScript<
     }
 
     if (mapped.translations) {
-      await this.repository.content.replaceTranslations(
-        input.replyId,
-        mapped.translations
-      );
+      await this.repository.content.replaceTranslations(input.replyId, mapped.translations);
     }
     if (mapped.publications) {
-      await this.repository.content.replacePublications(
-        input.replyId,
-        mapped.publications
-      );
+      await this.repository.content.replacePublications(input.replyId, mapped.publications);
     }
     if (Object.keys(propertyPatch).length > 0) {
-      await this.repository.reviewReply.updateProperties(
-        input.replyId,
-        propertyPatch
-      );
+      await this.repository.reviewReply.updateProperties(input.replyId, propertyPatch);
     }
     return sectionSuccess(true, input.replyId);
   }

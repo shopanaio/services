@@ -10,9 +10,7 @@ export function setContext(context: ServiceContext): void {
 export function getContext(): ServiceContext {
   const context = storage.getStore();
   if (!context) {
-    throw new Error(
-      "Service context not available - ensure middleware is properly configured",
-    );
+    throw new Error("Service context not available - ensure middleware is properly configured");
   }
   return context;
 }

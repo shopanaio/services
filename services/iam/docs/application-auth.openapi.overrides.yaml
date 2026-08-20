@@ -172,7 +172,16 @@ paths:
           required: false
           schema:
             type: string
-            enum: [none, consent, login, create, select_account, "login consent", "select_account consent"]
+            enum:
+              [
+                none,
+                consent,
+                login,
+                create,
+                select_account,
+                "login consent",
+                "select_account consent",
+              ]
       responses:
         "302":
           description: Continue authentication or return the authorization result

@@ -22,17 +22,12 @@ const toTagItem = (name: string): EntityDetailsTagItem => ({
   handle: name,
 });
 
-export function DiscountTagsSection({
-  discount,
-  onRefresh,
-}: DiscountTagsSectionProps) {
+export function DiscountTagsSection({ discount, onRefresh }: DiscountTagsSectionProps) {
   const { message } = App.useApp();
   const { styles } = useDiscountSectionStyles();
   const { updateDiscount } = useUpdateDiscount();
   const [pendingTagId, setPendingTagId] = useState<string | null>(null);
-  const [tags, setTags] = useState<EntityDetailsTagItem[]>(() =>
-    discount.tags.map(toTagItem),
-  );
+  const [tags, setTags] = useState<EntityDetailsTagItem[]>(() => discount.tags.map(toTagItem));
   const sourceTagsKey = discount.tags.join("|");
 
   useEffect(() => {
@@ -82,20 +77,13 @@ export function DiscountTagsSection({
   };
 
   const addTags = async (entities: IPickableEntity[]) => {
-    const existingNames = new Set(
-      tags.map((tag) => tag.name.trim().toLocaleLowerCase()),
-    );
+    const existingNames = new Set(tags.map((tag) => tag.name.trim().toLocaleLowerCase()));
     const newTags = entities
-      .filter(
-        (entity) =>
-          !existingNames.has(entity.title.trim().toLocaleLowerCase()),
-      )
-      .map(
-        (entity): EntityDetailsTagItem => ({
-          id: entity.id,
-          name: entity.title,
-        }),
-      );
+      .filter((entity) => !existingNames.has(entity.title.trim().toLocaleLowerCase()))
+      .map((entity): EntityDetailsTagItem => ({
+        id: entity.id,
+        name: entity.title,
+      }));
 
     if (newTags.length === 0) {
       return;
@@ -111,11 +99,7 @@ export function DiscountTagsSection({
 
       setTags(nextTags);
       await refreshDiscount();
-      message.success(
-        newTags.length === 1
-          ? "Tag added to discount"
-          : "Tags added to discount",
-      );
+      message.success(newTags.length === 1 ? "Tag added to discount" : "Tags added to discount");
     } finally {
       setPendingTagId(null);
     }

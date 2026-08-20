@@ -12,8 +12,7 @@ import type {
   CategoryProductsWhereInput,
 } from "../graphql/operation-types";
 
-export interface UseCategoryProductsOptions
-  extends RelayCursorPaginationVariables {
+export interface UseCategoryProductsOptions extends RelayCursorPaginationVariables {
   where?: CategoryProductsWhereInput | null;
   orderBy?: CategoryProductsOrderByInput[] | null;
   skip?: boolean;

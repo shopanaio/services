@@ -6,11 +6,7 @@ import type {
   ServiceBroker,
   WorkflowRegistry,
 } from "@shopana/shared-kernel";
-import {
-  getContextSafe,
-  runWithContext,
-  ServiceContext,
-} from "../context/index.js";
+import { getContextSafe, runWithContext, ServiceContext } from "../context/index.js";
 import { createDatabase, type Database } from "../infrastructure/db/database.js";
 import { Loader } from "../loaders/Loader.js";
 import { Repository } from "../repositories/Repository.js";
@@ -31,7 +27,7 @@ export class Kernel extends BaseKernel<CustomersKernelServices> {
     repository: Repository,
     workflow: WorkflowRegistry,
     cache: Cache,
-    db: Database
+    db: Database,
   ) {
     super(broker, logger, { repository, workflow, cache });
     this.repository = repository;
@@ -43,7 +39,7 @@ export class Kernel extends BaseKernel<CustomersKernelServices> {
   static async create(
     broker: ServiceBroker,
     workflow: WorkflowRegistry,
-    dbClient: DatabaseClient
+    dbClient: DatabaseClient,
   ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
@@ -53,21 +49,14 @@ export class Kernel extends BaseKernel<CustomersKernelServices> {
     const repository = await Repository.create({ db });
     const cache = createCache({ ttl: 5 * 60 * 1000 });
 
-    this.instance = new Kernel(
-      broker,
-      consoleLogger,
-      repository,
-      workflow,
-      cache,
-      db
-    );
+    this.instance = new Kernel(broker, consoleLogger, repository, workflow, cache, db);
     return this.instance;
   }
 
   static getInstance(): Kernel {
     if (!this.instance) {
       throw new Error(
-        "Kernel not initialized. Call Kernel.create(broker, workflow, dbClient) first."
+        "Kernel not initialized. Call Kernel.create(broker, workflow, dbClient) first.",
       );
     }
     return this.instance;
@@ -82,11 +71,9 @@ export class Kernel extends BaseKernel<CustomersKernelServices> {
   }
 
   async runScript<TParams, TResult>(
-    ScriptClass: new (
-      services: CustomersKernelServices
-    ) => BaseScript<TParams, TResult>,
+    ScriptClass: new (services: CustomersKernelServices) => BaseScript<TParams, TResult>,
     params: TParams,
-    context?: RunScriptContext
+    context?: RunScriptContext,
   ): Promise<TResult> {
     const script = new ScriptClass(this.services);
 
@@ -103,14 +90,11 @@ export class Kernel extends BaseKernel<CustomersKernelServices> {
       ? {
           timeZone: ctx.segmentStoreContext.timeZone,
           currencyCode: ctx.segmentStoreContext.currencyCode,
-          configurationRevision:
-            ctx.segmentStoreContext.configurationRevision,
+          configurationRevision: ctx.segmentStoreContext.configurationRevision,
         }
       : await this.repository.segmentStoreContext.findByStoreId(ctx.storeId);
     if (!projected) {
-      throw new Error(
-        `Customer segment Store context is not projected for ${ctx.storeId}`,
-      );
+      throw new Error(`Customer segment Store context is not projected for ${ctx.storeId}`);
     }
     const defaultLocale = ctx.defaultLocale ?? ctx.locale ?? "und";
 
@@ -131,9 +115,7 @@ export class Kernel extends BaseKernel<CustomersKernelServices> {
         segmentConfigurationRevision: projected.configurationRevision,
         locales: ctx.locales ?? [defaultLocale],
       },
-      user: ctx.userId
-        ? { id: ctx.userId, name: "workflow-user" }
-        : undefined,
+      user: ctx.userId ? { id: ctx.userId, name: "workflow-user" } : undefined,
     });
   }
 }

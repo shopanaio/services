@@ -100,12 +100,9 @@ function discoverSubgraphs(meshType: MeshType): Subgraph[] {
         continue;
       }
 
-      const appCode =
-        root.kind === "app" ? buildConfig.appCode : undefined;
+      const appCode = root.kind === "app" ? buildConfig.appCode : undefined;
       if (root.kind === "app" && !appCode) {
-        throw new Error(
-          `App "${unitName}" must declare appCode in build.config.json`,
-        );
+        throw new Error(`App "${unitName}" must declare appCode in build.config.json`);
       }
       const serviceConfig =
         root.kind === "app"
@@ -116,10 +113,9 @@ function discoverSubgraphs(meshType: MeshType): Subgraph[] {
           ? meshType === "admin"
             ? globalConfig.services?.apps?.ports?.app_admin_graphql
             : globalConfig.services?.apps?.ports?.app_storefront_graphql
-          : serviceConfig?.ports?.[portKey] ??
-            (meshType === "admin" ? serviceConfig?.ports?.iam_http : undefined);
-      const subgraphName =
-        root.kind === "app" ? `apps-${unitName}` : unitName;
+          : (serviceConfig?.ports?.[portKey] ??
+            (meshType === "admin" ? serviceConfig?.ports?.iam_http : undefined));
+      const subgraphName = root.kind === "app" ? `apps-${unitName}` : unitName;
 
       if (port && serviceConfig?.enabled !== false) {
         subgraphs.push({

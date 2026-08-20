@@ -687,7 +687,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -761,7 +762,8 @@ paths:
             application/json:
               schema:
                 type: object
-                description: Returns session details when idToken is provided, or an authorize URL otherwise
+                description:
+                  Returns session details when idToken is provided, or an authorize URL otherwise
                 properties:
                   token:
                     type: string
@@ -813,7 +815,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -879,7 +882,8 @@ paths:
                   description: The URL to use for email verification callback
                 rememberMe:
                   type: boolean
-                  description: If this is false, the session will not be remembered. Default is `true`.
+                  description:
+                    If this is false, the session will not be remembered. Default is `true`.
               required:
                 - name
                 - email
@@ -971,7 +975,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -1090,7 +1095,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -1199,7 +1205,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -1302,7 +1309,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -1398,7 +1406,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -1497,7 +1506,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -1580,7 +1590,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
           $ref: "#/components/responses/ApplicationAuthError"
         "404":
           content:
@@ -1680,7 +1691,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
           $ref: "#/components/responses/ApplicationAuthError"
         "404":
           content:
@@ -1770,7 +1782,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -1876,7 +1889,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -2002,7 +2016,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -2099,7 +2114,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -2177,8 +2193,9 @@ paths:
                   token:
                     type: string
                     nullable: true
-                    description: Session token if session is created, null if disableSession is true or no session is
-                      created
+                    description:
+                      Session token if session is created, null if disableSession is true or no
+                      session is created
                   user:
                     type: object
                     nullable: true
@@ -2224,7 +2241,8 @@ paths:
                       - phoneNumberVerified
                       - createdAt
                       - updatedAt
-                    description: User object with phone number details, null if no user is created or found
+                    description:
+                      User object with phone number details, null if no user is created or found
                 required:
                   - status
                 $ref: "#/components/schemas/ApplicationAuthenticationResponse"
@@ -2253,7 +2271,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -2413,7 +2432,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
           $ref: "#/components/responses/OAuthError"
         "404":
           content:
@@ -2483,7 +2503,8 @@ paths:
                   redirect_uri:
                     type: string
                     format: uri
-                    description: The URI to redirect to, either with an authorization code or an error
+                    description:
+                      The URI to redirect to, either with an authorization code or an error
                 required:
                   - redirect_uri
                 $ref: "#/components/schemas/OAuthRedirectResponse"
@@ -2518,7 +2539,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -2587,7 +2609,8 @@ paths:
                   redirect_uri:
                     type: string
                     format: uri
-                    description: The URI to redirect to, either with an authorization code or an error
+                    description:
+                      The URI to redirect to, either with an authorization code or an error
                 required:
                   - redirect_uri
                 $ref: "#/components/schemas/OAuthRedirectResponse"
@@ -2622,7 +2645,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -2703,7 +2727,8 @@ paths:
                   description: Refresh token (for refresh_token grant)
                 resource:
                   type: string
-                  description: Requested token resource (ie audience) to obtain a JWT formatted access token
+                  description:
+                    Requested token resource (ie audience) to obtain a JWT formatted access token
                 scope:
                   type: string
                   description: Requested scopes (for client_credentials grant)
@@ -2786,7 +2811,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -2942,7 +2968,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -3055,7 +3082,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -3090,8 +3118,9 @@ paths:
     get:
       tags:
         - OAuth
-      description: RP-Initiated Logout endpoint. Allows clients to notify the OP that the End-User has
-        logged out.
+      description:
+        RP-Initiated Logout endpoint. Allows clients to notify the OP that the End-User has logged
+        out.
       operationId: endApplicationOpenIdSession
       security:
         - bearerAuth: []
@@ -3129,7 +3158,8 @@ paths:
                   redirect_uri:
                     type: string
                     format: uri
-                    description: URI to redirect to after logout (if post_logout_redirect_uri was provided)
+                    description:
+                      URI to redirect to after logout (if post_logout_redirect_uri was provided)
                   message:
                     type: string
                     description: Success message
@@ -3170,7 +3200,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:
@@ -3227,13 +3258,16 @@ paths:
                       properties:
                         kid:
                           type: string
-                          description: Key ID uniquely identifying the key, corresponds to the 'id' from the stored Jwk
+                          description:
+                            Key ID uniquely identifying the key, corresponds to the 'id' from the
+                            stored Jwk
                         kty:
                           type: string
                           description: Key type (e.g., 'RSA', 'EC', 'OKP')
                         alg:
                           type: string
-                          description: Algorithm intended for use with the key (e.g., 'EdDSA', 'RS256')
+                          description:
+                            Algorithm intended for use with the key (e.g., 'EdDSA', 'RS256')
                         use:
                           type: string
                           description: Intended use of the public key (e.g., 'sig' for signature)
@@ -3297,7 +3331,8 @@ paths:
                 properties:
                   message:
                     type: string
-          description: Forbidden. You do not have permission to access this resource or to perform this action.
+          description:
+            Forbidden. You do not have permission to access this resource or to perform this action.
         "404":
           content:
             application/json:

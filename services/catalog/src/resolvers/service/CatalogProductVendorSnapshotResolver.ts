@@ -9,9 +9,7 @@ export class CatalogProductVendorSnapshotResolver extends ServiceType<
   protected async $preload(): Promise<CatalogProductVendorSnapshot> {
     const vendor = await this.$ctx.loaders.vendor.load(this.$props);
     if (!vendor) {
-      throw new PreloadNotFoundError(
-        `Vendor with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Vendor with ID ${this.$props} not found`);
     }
 
     return {

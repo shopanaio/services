@@ -1,10 +1,7 @@
 import type { Catalog } from "@shopana/broker-types";
 import type { ServiceBroker } from "@shopana/shared-kernel";
 import DataLoader from "dataloader";
-import type {
-  CustomerWishlist,
-  CustomerWishlistItem,
-} from "../repositories/models/index.js";
+import type { CustomerWishlist, CustomerWishlistItem } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 import { mapById } from "./batch.js";
 
@@ -20,24 +17,15 @@ export class CustomerWishlistLoader {
   readonly defaultWishlist: DataLoader<string, CustomerWishlist | null>;
   readonly publishedWishlistProduct: DataLoader<string, boolean>;
 
-  constructor(
-    repository: Repository,
-    options: CustomerWishlistLoaderOptions = {},
-  ) {
+  constructor(repository: Repository, options: CustomerWishlistLoaderOptions = {}) {
     this.wishlist = new DataLoader(async (ids) =>
       options.customerId
-        ? mapById(
-            ids,
-            await repository.wishlist.getByIds(options.customerId, ids),
-          )
+        ? mapById(ids, await repository.wishlist.getByIds(options.customerId, ids))
         : ids.map(() => null),
     );
     this.wishlistItem = new DataLoader(async (ids) =>
       options.customerId
-        ? mapById(
-            ids,
-            await repository.wishlist.getItemsByIds(options.customerId, ids),
-          )
+        ? mapById(ids, await repository.wishlist.getItemsByIds(options.customerId, ids))
         : ids.map(() => null),
     );
     this.defaultWishlist = new DataLoader(async (customerIds) => {
@@ -49,12 +37,7 @@ export class CustomerWishlistLoader {
       return customerIds.map((id) => byCustomerId.get(id) ?? null);
     });
     this.publishedWishlistProduct = new DataLoader(
-      async (productIds) =>
-        loadPublishedProducts(
-          options.broker,
-          options.storeId,
-          productIds,
-        ),
+      async (productIds) => loadPublishedProducts(options.broker, options.storeId, productIds),
       { maxBatchSize: 100 },
     );
   }
@@ -69,23 +52,23 @@ async function loadPublishedProducts(
     return productIds.map(() => false);
   }
   try {
-    const result = await broker.call<
-      Catalog.CatalogQueryResult,
-      Catalog.CatalogQueryParams
-    >("catalog.query", {
-      storeId,
-      selection: {
-        populate: {
-          products: {
-            args: {
-              first: productIds.length,
-              where: { id: { _in: [...new Set(productIds)] } },
-            },
-            populate: {
-              edges: {
-                populate: {
-                  node: {
-                    fields: ["id", "storeId", "status", "publishedAt"],
+    const result = await broker.call<Catalog.CatalogQueryResult, Catalog.CatalogQueryParams>(
+      "catalog.query",
+      {
+        storeId,
+        selection: {
+          populate: {
+            products: {
+              args: {
+                first: productIds.length,
+                where: { id: { _in: [...new Set(productIds)] } },
+              },
+              populate: {
+                edges: {
+                  populate: {
+                    node: {
+                      fields: ["id", "storeId", "status", "publishedAt"],
+                    },
                   },
                 },
               },
@@ -93,7 +76,7 @@ async function loadPublishedProducts(
           },
         },
       },
-    });
+    );
     if (!result.ok) return productIds.map(() => false);
 
     const now = Date.now();

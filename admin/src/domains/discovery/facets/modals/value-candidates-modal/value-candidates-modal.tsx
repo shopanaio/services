@@ -2,11 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { App } from "antd";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { FacetValueKind } from "@/graphql/types";
 import { FacetValueCandidatesGrid } from "../../components/facet-value-candidates-grid";
@@ -35,9 +31,7 @@ export function ValueCandidatesModal() {
         handle: value.handle,
         enabled: true,
         sortIndex:
-          typedPayload.nextSortIndex === undefined
-            ? undefined
-            : typedPayload.nextSortIndex + index,
+          typedPayload.nextSortIndex === undefined ? undefined : typedPayload.nextSortIndex + index,
       });
 
       if (result.userErrors.length > 0) {

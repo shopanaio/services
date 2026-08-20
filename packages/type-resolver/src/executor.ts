@@ -15,11 +15,13 @@ import { getPreloadFailureKind } from "./preloadFailure.js";
  * Maps resolver methods to their return types.
  */
 type InstanceResult<T> = {
-  [K in keyof T as T[K] extends (...args: unknown[]) => unknown
-    ? K extends "constructor" | "$preload" | "$get" | "$data"
-      ? never
-      : K
-    : never]: T[K] extends (...args: unknown[]) => infer R ? Awaited<R> : never;
+  [
+    K in keyof T as T[K] extends (...args: unknown[]) => unknown
+      ? K extends "constructor" | "$preload" | "$get" | "$data"
+        ? never
+        : K
+      : never
+  ]: T[K] extends (...args: unknown[]) => infer R ? Awaited<R> : never;
 };
 
 /**
@@ -31,10 +33,7 @@ export class ResolverError extends Error {
   readonly type: string;
   readonly originalError?: unknown;
 
-  constructor(
-    message: string,
-    options: { cause?: unknown; field: string; type: string },
-  ) {
+  constructor(message: string, options: { cause?: unknown; field: string; type: string }) {
     super(message);
     this.name = "ResolverError";
     this.field = options.field;
@@ -64,9 +63,7 @@ export class Executor<TContext = unknown> {
    * Execute afterCreate hooks on all middleware.
    * Returns null if any middleware returns null (short-circuit).
    */
-  private async runAfterCreate(
-    ctx: AfterCreateContext<TContext>,
-  ): Promise<MiddlewareResult> {
+  private async runAfterCreate(ctx: AfterCreateContext<TContext>): Promise<MiddlewareResult> {
     for (const mw of this.middleware) {
       if (mw.afterCreate) {
         const result = await mw.afterCreate(ctx);
@@ -81,9 +78,7 @@ export class Executor<TContext = unknown> {
    * Execute afterLoad hooks on all middleware.
    * Returns null if any middleware returns null (short-circuit).
    */
-  private async runAfterLoad(
-    ctx: AfterLoadContext<TContext>,
-  ): Promise<MiddlewareResult> {
+  private async runAfterLoad(ctx: AfterLoadContext<TContext>): Promise<MiddlewareResult> {
     for (const mw of this.middleware) {
       if (mw.afterLoad) {
         const result = await mw.afterLoad(ctx);
@@ -142,9 +137,7 @@ export class Executor<TContext = unknown> {
 
     const instanceTypeName = (instance as { __typename?: unknown }).__typename;
     const result: Record<string, unknown> =
-      typeof instanceTypeName === "string"
-        ? { __typename: instanceTypeName }
-        : {};
+      typeof instanceTypeName === "string" ? { __typename: instanceTypeName } : {};
 
     // Collect all fields to resolve
     const fieldsToResolve = new Set<string>();
@@ -237,10 +230,11 @@ export class Executor<TContext = unknown> {
               break;
             case "throw":
             default:
-              throw new ResolverError(
-                `Failed to resolve field "${key}" on ${Type.name}`,
-                { cause: error, field: key, type: Type.name },
-              );
+              throw new ResolverError(`Failed to resolve field "${key}" on ${Type.name}`, {
+                cause: error,
+                field: key,
+                type: Type.name,
+              });
           }
         }
       }),
@@ -260,16 +254,13 @@ export class Executor<TContext = unknown> {
 
     const preloadError = fieldResults.find(
       (fieldResult) =>
-        fieldResult.status === "rejected" &&
-        getPreloadFailureKind(fieldResult.reason) === "error",
+        fieldResult.status === "rejected" && getPreloadFailureKind(fieldResult.reason) === "error",
     );
     if (preloadError?.status === "rejected") {
       throw preloadError.reason;
     }
 
-    const fieldFailure = fieldResults.find(
-      (fieldResult) => fieldResult.status === "rejected",
-    );
+    const fieldFailure = fieldResults.find((fieldResult) => fieldResult.status === "rejected");
     if (fieldFailure?.status === "rejected") {
       throw fieldFailure.reason;
     }
@@ -335,11 +326,7 @@ export class Executor<TContext = unknown> {
     }
 
     // 3. Plain object → resolve each field by query
-    if (
-      value !== null &&
-      typeof value === "object" &&
-      !(value instanceof Date)
-    ) {
+    if (value !== null && typeof value === "object" && !(value instanceof Date)) {
       return this.resolveObject(value as Record<string, unknown>, query);
     }
 

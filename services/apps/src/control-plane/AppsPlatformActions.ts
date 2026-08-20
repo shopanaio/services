@@ -114,27 +114,19 @@ export class AppsPlatformActions extends BrokerActions {
           );
     } catch (error) {
       if (params.capability === COMMERCE_FUNCTION_CAPABILITY) {
-        throw new CapabilityInvocationError(
-          error,
-          undefined,
-          {
-            classification: "ROUTE_UNAVAILABLE",
-            code: "FUNCTION_ROUTE_DISCOVERY_FAILED",
-          },
-        );
+        throw new CapabilityInvocationError(error, undefined, {
+          classification: "ROUTE_UNAVAILABLE",
+          code: "FUNCTION_ROUTE_DISCOVERY_FAILED",
+        });
       }
       throw error;
     }
     if (!route) {
       if (params.capability === COMMERCE_FUNCTION_CAPABILITY) {
-        throw new CapabilityInvocationError(
-          undefined,
-          undefined,
-          {
-            classification: "ROUTE_UNAVAILABLE",
-            code: "FUNCTION_ROUTE_UNAVAILABLE",
-          },
-        );
+        throw new CapabilityInvocationError(undefined, undefined, {
+          classification: "ROUTE_UNAVAILABLE",
+          code: "FUNCTION_ROUTE_UNAVAILABLE",
+        });
       }
       throw new Error(
         `No active App route for capability "${params.capability}.${params.operation}"`,
@@ -144,14 +136,10 @@ export class AppsPlatformActions extends BrokerActions {
       params.capability === COMMERCE_FUNCTION_CAPABILITY &&
       route.targetAction !== params.functionKey
     ) {
-      throw new CapabilityInvocationError(
-        undefined,
-        route,
-        {
-          classification: "ROUTE_UNAVAILABLE",
-          code: "FUNCTION_KEY_MISMATCH",
-        },
-      );
+      throw new CapabilityInvocationError(undefined, route, {
+        classification: "ROUTE_UNAVAILABLE",
+        code: "FUNCTION_KEY_MISMATCH",
+      });
     }
     if (params.capability === COMMERCE_FUNCTION_CAPABILITY) {
       assertCommerceFunctionDeadline(params.deadlineAt);
@@ -159,19 +147,12 @@ export class AppsPlatformActions extends BrokerActions {
     const input = functionInvocation ?? params.input;
     let data: unknown;
     try {
-      data = await this.router.invoke(
-        route.appCode,
-        route.targetAction,
-        input,
-        {
-          installationId: route.installationId,
-          correlationId: params.correlationId,
-          executionKind:
-            params.capability === COMMERCE_FUNCTION_CAPABILITY
-              ? "COMMERCE_FUNCTION"
-              : "STANDARD",
-        },
-      );
+      data = await this.router.invoke(route.appCode, route.targetAction, input, {
+        installationId: route.installationId,
+        correlationId: params.correlationId,
+        executionKind:
+          params.capability === COMMERCE_FUNCTION_CAPABILITY ? "COMMERCE_FUNCTION" : "STANDARD",
+      });
       if (params.capability === COMMERCE_FUNCTION_CAPABILITY) {
         data = normalizeCommerceFunctionOutput(data);
       }
@@ -205,28 +186,29 @@ export class AppsPlatformActions extends BrokerActions {
     ) {
       throw new Error("Invalid capability route query");
     }
-    const routes =
-      await this.installations.listActiveStoreCapabilityRoutes(
-        params.storeId,
-        params.capability,
-        params.operation,
-      );
+    const routes = await this.installations.listActiveStoreCapabilityRoutes(
+      params.storeId,
+      params.capability,
+      params.operation,
+    );
     return {
-      routes: routes.map(({
-        capabilityRouteId,
-        installationId,
-        appCode,
-        appVersion,
-        targetAction,
-        routeRevision,
-      }) => ({
-        capabilityRouteId,
-        installationId,
-        appCode,
-        appVersion,
-        functionKey: targetAction,
-        routeRevision,
-      })),
+      routes: routes.map(
+        ({
+          capabilityRouteId,
+          installationId,
+          appCode,
+          appVersion,
+          targetAction,
+          routeRevision,
+        }) => ({
+          capabilityRouteId,
+          installationId,
+          appCode,
+          appVersion,
+          functionKey: targetAction,
+          routeRevision,
+        }),
+      ),
     };
   }
 
@@ -278,17 +260,13 @@ export class AppsPlatformActions extends BrokerActions {
   ): Promise<Apps.AssignCapabilityResult> {
     assertPlatformCaller(context);
     const target = normalizeTarget(params.target);
-    const assignmentIds =
-      await this.installations.assignCapabilityResource({
-        storeId: required(params.storeId, "storeId"),
-        installationId: required(
-          params.installationId,
-          "installationId",
-        ),
-        capability: required(params.capability, "capability"),
-        target,
-        precedence: params.precedence ?? 0,
-      });
+    const assignmentIds = await this.installations.assignCapabilityResource({
+      storeId: required(params.storeId, "storeId"),
+      installationId: required(params.installationId, "installationId"),
+      capability: required(params.capability, "capability"),
+      target,
+      precedence: params.precedence ?? 0,
+    });
     return { assignmentIds };
   }
 
@@ -298,16 +276,12 @@ export class AppsPlatformActions extends BrokerActions {
     context: BrokerCallContext,
   ): Promise<Apps.UnassignCapabilityResult> {
     assertPlatformCaller(context);
-    const removed =
-      await this.installations.unassignCapabilityResource({
-        storeId: required(params.storeId, "storeId"),
-        installationId: required(
-          params.installationId,
-          "installationId",
-        ),
-        capability: required(params.capability, "capability"),
-        target: normalizeTarget(params.target),
-      });
+    const removed = await this.installations.unassignCapabilityResource({
+      storeId: required(params.storeId, "storeId"),
+      installationId: required(params.installationId, "installationId"),
+      capability: required(params.capability, "capability"),
+      target: normalizeTarget(params.target),
+    });
     return { removed };
   }
 }
@@ -340,10 +314,7 @@ function createCommerceFunctionInvocation(
   required(params.installationId, "installationId");
   required(params.functionKey, "functionKey");
   const executionId = required(params.executionId, "executionId");
-  const functionBindingId = required(
-    params.functionBindingId,
-    "functionBindingId",
-  );
+  const functionBindingId = required(params.functionBindingId, "functionBindingId");
   const deadlineAt = assertCommerceFunctionDeadline(params.deadlineAt);
   const invocation = canonicalizeCommerceFunctionJson(
     {
@@ -351,66 +322,44 @@ function createCommerceFunctionInvocation(
       executionId,
       functionBindingId,
       deadlineAt,
-      ...(params.correlationId
-        ? { correlationId: params.correlationId }
-        : {}),
+      ...(params.correlationId ? { correlationId: params.correlationId } : {}),
       configurationSnapshot: params.configurationSnapshot ?? null,
       input: params.input ?? null,
     },
     COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH,
   );
   if (
-    Buffer.byteLength(JSON.stringify(invocation), "utf8") >
-    COMMERCE_FUNCTION_MAX_INVOCATION_BYTES
+    Buffer.byteLength(JSON.stringify(invocation), "utf8") > COMMERCE_FUNCTION_MAX_INVOCATION_BYTES
   ) {
     throw new Error("Commerce Function invocation exceeds the size limit");
   }
   return invocation as unknown as Readonly<CommerceFunctionInvocation>;
 }
 
-function assertCommerceFunctionDeadline(
-  value: string | undefined,
-): string {
+function assertCommerceFunctionDeadline(value: string | undefined): string {
   const deadlineAt = required(value, "deadlineAt");
   const deadline = Date.parse(deadlineAt);
   if (!Number.isFinite(deadline)) {
     throw new Error("deadlineAt must be an ISO date");
   }
   if (deadline <= Date.now()) {
-    throw new CapabilityInvocationError(
-      undefined,
-      undefined,
-      {
-        classification: "DEADLINE_EXCEEDED",
-        code: "FUNCTION_DEADLINE_EXCEEDED",
-      },
-    );
+    throw new CapabilityInvocationError(undefined, undefined, {
+      classification: "DEADLINE_EXCEEDED",
+      code: "FUNCTION_DEADLINE_EXCEEDED",
+    });
   }
   return deadlineAt;
 }
 
-function normalizeCommerceFunctionOutput(
-  value: unknown,
-): CommerceFunctionJsonValue {
+function normalizeCommerceFunctionOutput(value: unknown): CommerceFunctionJsonValue {
   let output: CommerceFunctionJsonValue;
   try {
-    output = canonicalizeCommerceFunctionJson(
-      value,
-      COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH,
-    );
+    output = canonicalizeCommerceFunctionJson(value, COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH);
   } catch (error) {
-    throw new CommerceFunctionOutputError(
-      "FUNCTION_OUTPUT_JSON_VALUE_REQUIRED",
-      error,
-    );
+    throw new CommerceFunctionOutputError("FUNCTION_OUTPUT_JSON_VALUE_REQUIRED", error);
   }
-  if (
-    Buffer.byteLength(JSON.stringify(output), "utf8") >
-    COMMERCE_FUNCTION_MAX_OUTPUT_BYTES
-  ) {
-    throw new CommerceFunctionOutputError(
-      "FUNCTION_OUTPUT_SIZE_LIMIT",
-    );
+  if (Buffer.byteLength(JSON.stringify(output), "utf8") > COMMERCE_FUNCTION_MAX_OUTPUT_BYTES) {
+    throw new CommerceFunctionOutputError("FUNCTION_OUTPUT_SIZE_LIMIT");
   }
   return output;
 }

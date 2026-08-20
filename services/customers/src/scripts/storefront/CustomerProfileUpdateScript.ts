@@ -55,7 +55,7 @@ export class StorefrontCustomerUpdateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: StorefrontCustomerUpdateParams
+    params: StorefrontCustomerUpdateParams,
   ): Promise<StorefrontCustomerUpdateResult> {
     const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
     if (revisionError) return failedCustomerMutation(revisionError);
@@ -63,18 +63,12 @@ export class StorefrontCustomerUpdateScript extends BaseScript<
     const current = await this.repository.customer.findById(params.customerId);
     if (!current || current.lifecycleStatus !== "ACTIVE") {
       return failedCustomerMutation(
-        storefrontError(
-          "CUSTOMER_UNAVAILABLE",
-          "Customer is not available for storefront writes"
-        )
+        storefrontError("CUSTOMER_UNAVAILABLE", "Customer is not available for storefront writes"),
       );
     }
 
     const patch = normalizeProfilePatch(params.patch);
-    const validationErrors = validateProfilePatch(
-      patch,
-      this.context.store.locales
-    );
+    const validationErrors = validateProfilePatch(patch, this.context.store.locales);
     if (validationErrors.length > 0) {
       return failedCustomerMutation(...validationErrors);
     }
@@ -82,7 +76,7 @@ export class StorefrontCustomerUpdateScript extends BaseScript<
     const changed = changedProfilePatch(current, patch);
     const acquired = await this.repository.customer.acquireActiveRevision(
       params.customerId,
-      params.expectedRevision
+      params.expectedRevision,
     );
     if (acquired.status !== "acquired") {
       return failedCustomerMutation(revisionAcquireError(acquired));
@@ -91,7 +85,7 @@ export class StorefrontCustomerUpdateScript extends BaseScript<
     if (Object.keys(changed).length > 0) {
       const updated = await this.repository.customer.patchWithinRevision(
         params.customerId,
-        changed
+        changed,
       );
       if (!updated) throw new Error("Acquired customer could not be updated");
       await this.invalidateDynamicSegments(
@@ -117,7 +111,7 @@ export class StorefrontCustomerUpdateScript extends BaseScript<
 }
 
 function normalizeProfilePatch(
-  input: StorefrontCustomerProfilePatch
+  input: StorefrontCustomerProfilePatch,
 ): StorefrontCustomerProfilePatch {
   const patch: StorefrontCustomerProfilePatch = {};
   for (const key of Object.keys(input) as Array<keyof StorefrontCustomerProfilePatch>) {
@@ -131,9 +125,8 @@ function normalizeProfilePatch(
     Object.assign(patch, {
       [key]:
         key === "preferredLocale" && typeof normalizedString === "string"
-          ? normalizedLocale ?? normalizedString
-          : (key === "firstName" || key === "lastName") &&
-              typeof normalizedString === "string"
+          ? (normalizedLocale ?? normalizedString)
+          : (key === "firstName" || key === "lastName") && typeof normalizedString === "string"
             ? normalizedString
             : typeof normalizedString === "string"
               ? normalizedString || null
@@ -145,18 +138,12 @@ function normalizeProfilePatch(
 
 function validateProfilePatch(
   patch: StorefrontCustomerProfilePatch,
-  locales: readonly string[]
+  locales: readonly string[],
 ): StorefrontCustomerUserError[] {
   const errors: StorefrontCustomerUserError[] = [];
   for (const field of ["firstName", "lastName"] as const) {
     if (patch[field] === "") {
-      errors.push(
-        storefrontError(
-          "INVALID_VALUE",
-          "Value must not be empty",
-          [field],
-        ),
-      );
+      errors.push(storefrontError("INVALID_VALUE", "Value must not be empty", [field]));
     }
   }
   for (const [field, limit] of Object.entries(STRING_LIMITS) as Array<
@@ -165,34 +152,23 @@ function validateProfilePatch(
     const value = patch[field];
     if (typeof value === "string" && [...value].length > limit) {
       errors.push(
-        storefrontError(
-          "INVALID_VALUE",
-          `Value must not exceed ${limit} characters`,
-          [field]
-        )
+        storefrontError("INVALID_VALUE", `Value must not exceed ${limit} characters`, [field]),
       );
     }
   }
 
-  if (
-    patch.preferredLocale &&
-    !isEnabledLocale(patch.preferredLocale, locales)
-  ) {
+  if (patch.preferredLocale && !isEnabledLocale(patch.preferredLocale, locales)) {
     errors.push(
-      storefrontError(
-        "UNSUPPORTED_LOCALE",
-        "Locale is not enabled for this store",
-        ["preferredLocale"]
-      )
+      storefrontError("UNSUPPORTED_LOCALE", "Locale is not enabled for this store", [
+        "preferredLocale",
+      ]),
     );
   }
   if (patch.dateOfBirth && !isCalendarDate(patch.dateOfBirth)) {
     errors.push(
-      storefrontError(
-        "INVALID_DATE_OF_BIRTH",
-        "Date of birth must be a valid YYYY-MM-DD date",
-        ["dateOfBirth"]
-      )
+      storefrontError("INVALID_DATE_OF_BIRTH", "Date of birth must be a valid YYYY-MM-DD date", [
+        "dateOfBirth",
+      ]),
     );
   } else if (
     patch.dateOfBirth &&
@@ -202,8 +178,8 @@ function validateProfilePatch(
       storefrontError(
         "INVALID_DATE_OF_BIRTH",
         "Date of birth must be between 1900-01-01 and today",
-        ["dateOfBirth"]
-      )
+        ["dateOfBirth"],
+      ),
     );
   }
   return errors;
@@ -221,14 +197,12 @@ function isEnabledLocale(value: string, locales: readonly string[]): boolean {
   const canonical = canonicalLocale(value);
   if (!canonical) return false;
   const language = canonical.split("-")[0];
-  return locales.some(
-    (locale) => canonicalLocale(locale)?.split("-")[0] === language,
-  );
+  return locales.some((locale) => canonicalLocale(locale)?.split("-")[0] === language);
 }
 
 function changedProfilePatch(
   current: Customer,
-  patch: StorefrontCustomerProfilePatch
+  patch: StorefrontCustomerProfilePatch,
 ): StorefrontCustomerProfilePatch {
   const changed: StorefrontCustomerProfilePatch = {};
   for (const key of Object.keys(patch) as Array<keyof StorefrontCustomerProfilePatch>) {
@@ -239,17 +213,13 @@ function changedProfilePatch(
   return changed;
 }
 
-function updatedReasons(
-  patch: StorefrontCustomerProfilePatch
-): CustomerUpdatedReason[] {
+function updatedReasons(patch: StorefrontCustomerProfilePatch): CustomerUpdatedReason[] {
   const reasons = new Set<CustomerUpdatedReason>();
   for (const key of Object.keys(patch)) {
-    reasons.add(
-      key === "companyName" || key === "jobTitle" ? "company" : "profile"
-    );
+    reasons.add(key === "companyName" || key === "jobTitle" ? "company" : "profile");
   }
   return ["profile", "company"].filter((reason) =>
-    reasons.has(reason as CustomerUpdatedReason)
+    reasons.has(reason as CustomerUpdatedReason),
   ) as CustomerUpdatedReason[];
 }
 
@@ -258,9 +228,7 @@ function isCalendarDate(value: string): boolean {
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
   );
 }
 

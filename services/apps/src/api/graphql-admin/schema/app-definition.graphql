@@ -1,4 +1,6 @@
-"""Runtime state of a bundled App."""
+"""
+Runtime state of a bundled App.
+"""
 enum AppRuntimeStatus {
   REGISTERED
   STARTING
@@ -7,111 +9,167 @@ enum AppRuntimeStatus {
   STOPPED
 }
 
-"""Health reported by a ready App runtime."""
+"""
+Health reported by a ready App runtime.
+"""
 enum AppRuntimeHealthStatus {
   HEALTHY
   DEGRADED
   UNHEALTHY
 }
 
-"""The health check result for a bundled App runtime."""
+"""
+The health check result for a bundled App runtime.
+"""
 type AppRuntimeHealth {
   status: AppRuntimeHealthStatus!
   message: String
 }
 
-"""GraphQL surfaces contributed by an App."""
+"""
+GraphQL surfaces contributed by an App.
+"""
 type AppGraphQLSurfaces {
   admin: Boolean!
   storefront: Boolean!
 }
 
-"""Visual identity declared by an App manifest."""
+"""
+Visual identity declared by an App manifest.
+"""
 type AppIcon {
-  """Same-origin or trusted image URL."""
+  """
+  Same-origin or trusted image URL.
+  """
   url: String!
 
-  """Accessible alternative text."""
+  """
+  Accessible alternative text.
+  """
   alt: String!
 }
 
-"""One operation exposed by an App capability."""
+"""
+One operation exposed by an App capability.
+"""
 type AppCapabilityOperation {
-  """The operation name used by platform callers."""
+  """
+  The operation name used by platform callers.
+  """
   name: String!
 
-  """The App action that implements the operation."""
+  """
+  The App action that implements the operation.
+  """
   action: String!
 }
 
-"""How a capability is selected for execution."""
+"""
+How a capability is selected for execution.
+"""
 enum AppCapabilityAssignmentMode {
   STORE
   RESOURCE
 }
 
-"""A capability declared by an App manifest."""
+"""
+A capability declared by an App manifest.
+"""
 type AppCapabilityDefinition {
   key: String!
   assignmentMode: AppCapabilityAssignmentMode!
   operations: [AppCapabilityOperation!]!
 }
 
-"""A permission requested by an App manifest."""
+"""
+A permission requested by an App manifest.
+"""
 type AppPermission {
   scope: String!
 
-  """Whether the permission is granted to the current installation."""
+  """
+  Whether the permission is granted to the current installation.
+  """
   granted: Boolean!
 }
 
-"""A bundled App that can be installed in a store."""
+"""
+A bundled App that can be installed in a store.
+"""
 type AppDefinition {
-  """Stable manifest code used to identify the App."""
+  """
+  Stable manifest code used to identify the App.
+  """
   code: String!
 
-  """Bundled semantic version."""
+  """
+  Bundled semantic version.
+  """
   version: String!
 
-  """Human-readable App name."""
+  """
+  Human-readable App name.
+  """
   displayName: String!
 
-  """Human-readable App description."""
+  """
+  Human-readable App description.
+  """
   description: String!
 
-  """App icon or logo used by Admin surfaces."""
+  """
+  App icon or logo used by Admin surfaces.
+  """
   icon: AppIcon!
 
-  """Current process-local runtime state."""
+  """
+  Current process-local runtime state.
+  """
   runtimeStatus: AppRuntimeStatus!
 
-  """Current runtime health, when the runtime can be checked."""
+  """
+  Current runtime health, when the runtime can be checked.
+  """
   runtimeHealth: AppRuntimeHealth!
 
-  """Permissions requested by the bundled manifest."""
+  """
+  Permissions requested by the bundled manifest.
+  """
   permissions: [AppPermission!]!
 
-  """Capabilities declared by the bundled manifest."""
+  """
+  Capabilities declared by the bundled manifest.
+  """
   capabilities: [AppCapabilityDefinition!]!
 
-  """GraphQL surfaces declared by the bundled manifest."""
+  """
+  GraphQL surfaces declared by the bundled manifest.
+  """
   graphql: AppGraphQLSurfaces!
 
-  """Whether this App has a non-terminal installation in the current store."""
+  """
+  Whether this App has a non-terminal installation in the current store.
+  """
   installed: Boolean!
 
-  """The current store installation, when one exists."""
+  """
+  The current store installation, when one exists.
+  """
   installation: AppInstallation
 }
 
-"""A Relay connection of bundled Apps."""
+"""
+A Relay connection of bundled Apps.
+"""
 type AppConnection {
   edges: [AppEdge!]!
   pageInfo: PageInfo!
   totalCount: Int!
 }
 
-"""An edge in a bundled App connection."""
+"""
+An edge in a bundled App connection.
+"""
 type AppEdge {
   node: AppDefinition!
   cursor: String!

@@ -19,11 +19,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiGenericUserError } from "@/graphql/types";
 import { useSyncProductOptions } from "../../hooks";
@@ -52,11 +48,7 @@ export const EditOptionsModal = () => {
   );
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [userErrors, setUserErrors] = useState<ApiGenericUserError[]>([]);
-  const {
-    syncProductOptions,
-    loading: saving,
-    error: syncError,
-  } = useSyncProductOptions();
+  const { syncProductOptions, loading: saving, error: syncError } = useSyncProductOptions();
 
   const markDirty = useCallback(() => {
     setDirty(true);
@@ -135,19 +127,10 @@ export const EditOptionsModal = () => {
     setDirty(false);
     message.success("Product options updated");
     forcePop();
-  }, [
-    forcePop,
-    message,
-    onSaved,
-    productId,
-    setDirty,
-    syncProductOptions,
-    watchedGroups,
-  ]);
+  }, [forcePop, message, onSaved, productId, setDirty, syncProductOptions, watchedGroups]);
 
   const activeFieldIndex = fields.findIndex((field) => field.id === activeGroupId);
-  const activeGroup =
-    activeFieldIndex >= 0 ? watchedGroups[activeFieldIndex] : null;
+  const activeGroup = activeFieldIndex >= 0 ? watchedGroups[activeFieldIndex] : null;
   const errorMessages =
     userErrors.length > 0
       ? formatProductOptionUserErrors(userErrors)
@@ -182,9 +165,7 @@ export const EditOptionsModal = () => {
             description={
               <Flex vertical gap={4}>
                 {errorMessages.map((error, index) => (
-                  <Typography.Text key={`${error}-${index}`}>
-                    {error}
-                  </Typography.Text>
+                  <Typography.Text key={`${error}-${index}`}>{error}</Typography.Text>
                 ))}
               </Flex>
             }
@@ -222,12 +203,8 @@ export const EditOptionsModal = () => {
                     key={field.id}
                     group={watchedGroups[groupIndex]}
                     fieldId={field.id}
-                    onUpdateName={(name) =>
-                      handleUpdateGroupName(groupIndex, name)
-                    }
-                    onUpdateCategory={(category) =>
-                      handleUpdateGroupCategory(groupIndex, category)
-                    }
+                    onUpdateName={(name) => handleUpdateGroupName(groupIndex, name)}
+                    onUpdateCategory={(category) => handleUpdateGroupCategory(groupIndex, category)}
                     onDeleteGroup={() => handleDeleteGroup(groupIndex)}
                     onUpdateValueName={(valueIndex, name) =>
                       handleUpdateValueName(groupIndex, valueIndex, name)
@@ -235,13 +212,9 @@ export const EditOptionsModal = () => {
                     onUpdateValueSwatch={(valueIndex, swatch) =>
                       handleUpdateValueSwatch(groupIndex, valueIndex, swatch)
                     }
-                    onDeleteValue={(valueIndex) =>
-                      handleDeleteValue(groupIndex, valueIndex)
-                    }
+                    onDeleteValue={(valueIndex) => handleDeleteValue(groupIndex, valueIndex)}
                     onAddValue={() => handleAddValue(groupIndex)}
-                    onReorderValues={(values) =>
-                      handleReorderValues(groupIndex, values)
-                    }
+                    onReorderValues={(values) => handleReorderValues(groupIndex, values)}
                   />
                 ))}
               </Flex>

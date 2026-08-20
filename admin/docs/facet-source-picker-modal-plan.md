@@ -2,7 +2,8 @@
 
 ## Цель
 
-Сделать выбор source в `CreateFacetModal` не через dropdown с типом facet, а через отдельную модалку-пикер в стиле screenshot:
+Сделать выбор source в `CreateFacetModal` не через dropdown с типом facet, а через отдельную
+модалку-пикер в стиле screenshot:
 
 - пользователь нажимает на source-control в поле label;
 - открывается modal entity picker `Select source`;
@@ -12,7 +13,10 @@
 - create form сохраняет `facetType` и конкретный `source`;
 - `facetCreate` получает `sources: [{ handle, name }]`.
 
-Паттерн реализации: `usePageQuery + modal entity picker`. В текущем admin уже есть общий `EntityPickerContent` с `pageConfig`/cursor pagination. Для этого flow нужно добавить source-specific data hook, который использует тот же контракт picker-а и внутри вызывает `usePageQuery` для GraphQL connection.
+Паттерн реализации: `usePageQuery + modal entity picker`. В текущем admin уже есть общий
+`EntityPickerContent` с `pageConfig`/cursor pagination. Для этого flow нужно добавить
+source-specific data hook, который использует тот же контракт picker-а и внутри вызывает
+`usePageQuery` для GraphQL connection.
 
 ## Текущий контекст
 
@@ -39,12 +43,14 @@ Admin create modal сейчас:
    - если выбран: краткий label source, например `Color`, `Brand`, `Price`.
 3. По клику открывается `FacetSourcePickerModal`.
 4. Модалка показывает search, таблицу и cursor pagination.
-5. Для `PRICE` и `IN_STOCK` можно выбрать fixed source; для `TAG`, `OPTION`, `FEATURE` выбираются реальные candidates из API.
+5. Для `PRICE` и `IN_STOCK` можно выбрать fixed source; для `TAG`, `OPTION`, `FEATURE` выбираются
+   реальные candidates из API.
 6. После подтверждения picker возвращает один `FacetSourcePickerEntity`.
 7. Форма обновляет:
    - `facetType = entity.facetType`;
    - `source = { handle: entity.handle, name: entity.name ?? fallback }`;
-   - `uiType` пересчитывается через `getDefaultFacetUiType(facetType)`, если текущий `uiType` не разрешён.
+   - `uiType` пересчитывается через `getDefaultFacetUiType(facetType)`, если текущий `uiType` не
+     разрешён.
 8. Submit отправляет `facetCreate(input.sources)`.
 
 ## Текстовый wireframe
@@ -126,7 +132,8 @@ Mapping:
 
 Колонки picker-а:
 
-- `Name`: основной текст `title`, вторичная строка `Source: ${handle}` только если полезно отличать display name от handle;
+- `Name`: основной текст `title`, вторичная строка `Source: ${handle}` только если полезно отличать
+  display name от handle;
 - `Type`: `typeLabel`.
 
 Selection mode: только `single`.
@@ -179,10 +186,7 @@ Search condition:
 ```ts
 function buildFacetSourceSearchCondition(search: string): ApiFacetSourceCandidateWhereInput {
   return {
-    _or: [
-      { name: { _containsi: search } },
-      { handle: { _containsi: search } },
-    ],
+    _or: [{ name: { _containsi: search } }, { handle: { _containsi: search } }],
   };
 }
 ```
@@ -219,7 +223,7 @@ useFacetSourceCandidatesPageQuery({
   before,
   where,
   orderBy,
-})
+});
 ```
 
 Если в проекте уже есть shared `usePageQuery`, использовать его как единственный владелец:
@@ -230,7 +234,8 @@ useFacetSourceCandidatesPageQuery({
 - loading/error;
 - сохранение предыдущих данных при `cache-and-network`.
 
-Если shared `usePageQuery` отсутствует в admin, добавить тонкий local wrapper для этого query, но не дублировать pagination state внутри modal. State остаётся у `EntityPickerContent`/page config.
+Если shared `usePageQuery` отсутствует в admin, добавить тонкий local wrapper для этого query, но не
+дублировать pagination state внутри modal. State остаётся у `EntityPickerContent`/page config.
 
 ## Entity picker config
 
@@ -265,20 +270,32 @@ const { openPicker } = useEntityPicker<FacetSourcePickerEntity>({
   selectionMode: "single",
   initialSelection: selectedSource ? [selectedSource.id] : [],
   queryMeta: {
-    allowedFacetTypes: [FacetType.Price, FacetType.Tag, FacetType.Option, FacetType.Feature, FacetType.InStock],
+    allowedFacetTypes: [
+      FacetType.Price,
+      FacetType.Tag,
+      FacetType.Option,
+      FacetType.Feature,
+      FacetType.InStock,
+    ],
   },
   onConfirm: ([source]) => {
     if (!source) return;
     setValue("facetType", source.facetType, { shouldValidate: true });
-    setValue("source", {
-      handle: source.handle,
-      name: source.name,
-    }, { shouldValidate: true, shouldDirty: true });
+    setValue(
+      "source",
+      {
+        handle: source.handle,
+        name: source.name,
+      },
+      { shouldValidate: true, shouldDirty: true },
+    );
   },
 });
 ```
 
-Если нужен title ровно `Select source`, добавить dedicated wrapper modal `FacetSourcePickerModal`, который переиспользует `EntityPickerContent`, но задаёт свой title и confirm text. Это ближе к screenshot и не ломает generic `Select Sources`.
+Если нужен title ровно `Select source`, добавить dedicated wrapper modal `FacetSourcePickerModal`,
+который переиспользует `EntityPickerContent`, но задаёт свой title и confirm text. Это ближе к
+screenshot и не ломает generic `Select Sources`.
 
 ## Изменения формы CreateFacetModal
 
@@ -288,22 +305,24 @@ const { openPicker } = useEntityPicker<FacetSourcePickerEntity>({
 source: z.object({
   handle: z.string().trim().min(1),
   name: z.string().trim().min(1),
-}).nullable()
+}).nullable();
 ```
 
 Validation:
 
-- `source` обязателен для всех `FacetType`, потому backend `FacetCreateScript` сейчас ожидает ровно один source;
+- `source` обязателен для всех `FacetType`, потому backend `FacetCreateScript` сейчас ожидает ровно
+  один source;
 - при смене source обновлять `facetType`;
 - при несовместимом `uiType` выбирать дефолтный `uiType`.
 
 Default values:
 
 ```ts
-source: null
+source: null;
 ```
 
-`ICreateFacetModalPayload.initialValues` расширить опциональным `source`, чтобы future flows могли открывать create modal с заранее выбранным source.
+`ICreateFacetModalPayload.initialValues` расширить опциональным `source`, чтобы future flows могли
+открывать create modal с заранее выбранным source.
 
 ## Mapper
 
@@ -316,13 +335,12 @@ return {
   facetType: values.facetType,
   uiType: values.uiType,
   selectionMode: getDefaultFacetSelectionMode(values.uiType),
-  sources: values.source
-    ? [{ handle: values.source.handle, name: values.source.name }]
-    : [],
+  sources: values.source ? [{ handle: values.source.handle, name: values.source.name }] : [],
 };
 ```
 
-Важно: не генерировать source на frontend из одного `facetType`. Источник истины для `handle/name` - `facetSourceCandidates`.
+Важно: не генерировать source на frontend из одного `facetType`. Источник истины для `handle/name` -
+`facetSourceCandidates`.
 
 ## Ошибки и empty states
 
@@ -376,5 +394,7 @@ Create modal:
 ## Открытые решения
 
 1. Оставлять generic modal title `Select Sources` или делать dedicated `Select source`.
-2. Разрешать ли фильтр по `FacetType` внутри picker-а пользователю, или type должен задаваться только через caller `queryMeta`.
-3. Нужен ли preselect source для current `typedPayload.initialValues.facetType`, если create modal открыт из action `Add same type`.
+2. Разрешать ли фильтр по `FacetType` внутри picker-а пользователю, или type должен задаваться
+   только через caller `queryMeta`.
+3. Нужен ли preselect source для current `typedPayload.initialValues.facetType`, если create modal
+   открыт из action `Add same type`.

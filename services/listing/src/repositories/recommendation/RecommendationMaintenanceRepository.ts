@@ -36,7 +36,7 @@ export class RecommendationMaintenanceRepository extends BaseRepository {
     const page = rows.slice(0, input.first);
     return {
       rows: page,
-      nextCursor: rows.length > input.first ? page.at(-1) ?? null : null,
+      nextCursor: rows.length > input.first ? (page.at(-1) ?? null) : null,
     };
   }
 
@@ -87,7 +87,9 @@ export class RecommendationMaintenanceRepository extends BaseRepository {
     return rows.length === 1;
   }
 
-  async lockActiveInterval(toBoundary: string): Promise<{ fromBoundary: string; toBoundary: string } | null> {
+  async lockActiveInterval(
+    toBoundary: string,
+  ): Promise<{ fromBoundary: string; toBoundary: string } | null> {
     const rows = await this.connection.execute<RecommendationMaintenanceCursor>(sql`
       SELECT cursor_id AS "cursorId", store_id AS "storeId", status,
         bootstrap_cutoff_at AS "bootstrapCutoffAt",
@@ -130,11 +132,14 @@ export class RecommendationMaintenanceRepository extends BaseRepository {
     const page = rows.slice(0, input.first);
     return {
       rows: page,
-      nextCursor: rows.length > input.first ? page.at(-1) ?? null : null,
+      nextCursor: rows.length > input.first ? (page.at(-1) ?? null) : null,
     };
   }
 
-  async advance(fromBoundary: string, toBoundary: string): Promise<"ADVANCED" | "ALREADY_ADVANCED" | "CONFLICT"> {
+  async advance(
+    fromBoundary: string,
+    toBoundary: string,
+  ): Promise<"ADVANCED" | "ALREADY_ADVANCED" | "CONFLICT"> {
     const rows = await this.connection.execute<{ boundary: string }>(sql`
       UPDATE listing.recommendation_maintenance_cursor
       SET last_manual_boundary_at = ${toBoundary}::timestamptz, updated_at = now()
@@ -144,7 +149,8 @@ export class RecommendationMaintenanceRepository extends BaseRepository {
     `);
     if (rows[0]) return "ADVANCED";
     const current = await this.find();
-    if (current?.lastManualBoundaryAt && current.lastManualBoundaryAt >= toBoundary) return "ALREADY_ADVANCED";
+    if (current?.lastManualBoundaryAt && current.lastManualBoundaryAt >= toBoundary)
+      return "ALREADY_ADVANCED";
     return "CONFLICT";
   }
 }

@@ -2,16 +2,9 @@
 
 import { useQuery } from "@apollo/client/react";
 import { useDefaultCurrency } from "@/domains/workspace";
-import type {
-  ApiCustomer,
-  ApiCustomerConnection,
-  ApiPageInfo,
-} from "@/graphql/types";
+import type { ApiCustomer, ApiCustomerConnection, ApiPageInfo } from "@/graphql/types";
 import { CUSTOMERS_QUERY } from "../graphql";
-import type {
-  CustomersQueryData,
-  CustomersQueryVariables,
-} from "../graphql/operation-types";
+import type { CustomersQueryData, CustomersQueryVariables } from "../graphql/operation-types";
 
 export interface UseCustomersReturn {
   customers: ApiCustomer[];

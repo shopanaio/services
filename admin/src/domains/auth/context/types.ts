@@ -1,8 +1,4 @@
-import type {
-  ApiUser,
-  ApiGenericUserError,
-  ApiAuthTokenPayload,
-} from "@/graphql/types";
+import type { ApiUser, ApiGenericUserError, ApiAuthTokenPayload } from "@/graphql/types";
 
 /**
  * Auth error object returned from operations.

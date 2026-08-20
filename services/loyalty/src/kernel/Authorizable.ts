@@ -29,10 +29,12 @@ export class AuthProvider implements AuthProviderContract {
   }
 
   async authorizeProtectedResource(params: ProtectedResourceAuthorizeParams): Promise<boolean> {
-    const result = await getContext().kernel.getServices().broker.call<BrokerAuthorizeResult, ProtectedResourceAuthorizeParams>(
-      "iam.authorizeProtectedResource",
-      params,
-    );
+    const result = await getContext()
+      .kernel.getServices()
+      .broker.call<BrokerAuthorizeResult, ProtectedResourceAuthorizeParams>(
+        "iam.authorizeProtectedResource",
+        params,
+      );
     throwIfBrokerAuthorizeDenied(result);
     return result.allowed;
   }

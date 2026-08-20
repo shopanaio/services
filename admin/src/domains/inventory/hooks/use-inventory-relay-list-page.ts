@@ -4,18 +4,11 @@ import { useCallback, useMemo, type RefObject } from "react";
 import type { AgGridReact } from "ag-grid-react";
 import type { ApiPageInfo } from "@/graphql/types";
 import { usePageConfig } from "@/hooks";
-import type {
-  FilterTransformer,
-  SortFieldMapping,
-  UsePageConfigReturn,
-} from "@/hooks";
+import type { FilterTransformer, SortFieldMapping, UsePageConfigReturn } from "@/hooks";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 
-type ListPageConfigInput<
-  TWhereInput extends object,
-  TOrderField extends string,
-> = Pick<
+type ListPageConfigInput<TWhereInput extends object, TOrderField extends string> = Pick<
   UsePageConfigReturn<TWhereInput, TOrderField>,
   "first" | "after" | "last" | "before" | "where" | "orderBy"
 >;
@@ -94,13 +87,7 @@ export function useInventoryRelayListPage<
   TOrderField,
   TQueryVariables,
   TListResult
->): UseInventoryRelayListPageReturn<
-  TData,
-  TWhereInput,
-  TOrderField,
-  TQueryVariables,
-  TListResult
-> {
+>): UseInventoryRelayListPageReturn<TData, TWhereInput, TOrderField, TQueryVariables, TListResult> {
   const pageConfig = usePageConfig<TData, TWhereInput, TOrderField>({
     gridRef,
     storageKey,

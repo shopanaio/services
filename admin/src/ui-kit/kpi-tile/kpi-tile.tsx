@@ -3,20 +3,18 @@
 import { ReactNode } from "react";
 import { Typography, Tooltip, Flex } from "antd";
 import { createStyles } from "antd-style";
-import { LuCircleHelp as InfoCircleOutlined, LuArrowUp as ArrowUpOutlined, LuArrowDown as ArrowDownOutlined } from "react-icons/lu";
+import {
+  LuCircleHelp as InfoCircleOutlined,
+  LuArrowUp as ArrowUpOutlined,
+  LuArrowDown as ArrowDownOutlined,
+} from "react-icons/lu";
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export type KPITileVariant =
-  | "default"
-  | "primary"
-  | "success"
-  | "warning"
-  | "danger"
-  | "info"
-  | "purple";
+  "default" | "primary" | "success" | "warning" | "danger" | "info" | "purple";
 
 export interface IKPITileProps {
   /** Label text displayed above value */
@@ -198,11 +196,7 @@ const TrendIndicator = ({ value, suffix = "%" }: ITrendIndicatorProps) => {
     <span
       className={cx(
         styles.trendBadge,
-        isNeutral
-          ? styles.trendNeutral
-          : isPositive
-            ? styles.trendPositive
-            : styles.trendNegative
+        isNeutral ? styles.trendNeutral : isPositive ? styles.trendPositive : styles.trendNegative,
       )}
     >
       {!isNeutral && (
@@ -268,7 +262,7 @@ export const KPITile = ({
         active && styles.tileActive,
         centered && styles.tileCentered,
         getVariantClass(),
-        className
+        className,
       )}
       onClick={onClick}
       data-testid={dataTestId}
@@ -303,14 +297,8 @@ export const KPITile = ({
           justify={centered ? "center" : undefined}
           style={{ marginTop: 4 }}
         >
-          {secondary && (
-            <Typography.Text className={styles.secondary}>
-              {secondary}
-            </Typography.Text>
-          )}
-          {trend !== undefined && (
-            <TrendIndicator value={trend} suffix={trendSuffix} />
-          )}
+          {secondary && <Typography.Text className={styles.secondary}>{secondary}</Typography.Text>}
+          {trend !== undefined && <TrendIndicator value={trend} suffix={trendSuffix} />}
         </Flex>
       )}
     </div>

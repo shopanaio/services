@@ -50,7 +50,7 @@ function startGateway(
 
   if (!existsSync(supergraphPath)) {
     throw new Error(
-      `Supergraph not found: ${supergraphPath}\nRun 'yarn build' in infra/federation first`
+      `Supergraph not found: ${supergraphPath}\nRun 'yarn build' in infra/federation first`,
     );
   }
 
@@ -72,7 +72,7 @@ function startGateway(
       stdio: "inherit",
       shell: true,
       env: { ...process.env, ...environment },
-    }
+    },
   );
 
   child.on("error", (err) => {
@@ -94,28 +94,29 @@ export async function runGateway(options: GatewayOptions) {
 
   // Determine which gateways to start
   const startAdmin = options.admin || (!options.admin && !options.storefront);
-  const startStorefront =
-    options.storefront || (!options.admin && !options.storefront);
+  const startStorefront = options.storefront || (!options.admin && !options.storefront);
 
   const processes: ChildProcess[] = [];
 
   try {
     if (startStorefront) {
       const port = config.gateway.storefront.port;
-      processes.push(startGateway("storefront", port, federationDir, {
-        STOREFRONT_ACCESS_RESOLVER_URL:
-          config.gateway.storefront.access_resolver_url,
-        STOREFRONT_CUSTOMER_CONTEXT_RESOLVER_URL:
-          config.gateway.storefront.customer_context_resolver_url,
-      }));
+      processes.push(
+        startGateway("storefront", port, federationDir, {
+          STOREFRONT_ACCESS_RESOLVER_URL: config.gateway.storefront.access_resolver_url,
+          STOREFRONT_CUSTOMER_CONTEXT_RESOLVER_URL:
+            config.gateway.storefront.customer_context_resolver_url,
+        }),
+      );
     }
 
     if (startAdmin) {
       const port = config.gateway.admin.port;
-      processes.push(startGateway("admin", port, federationDir, {
-        ADMIN_CONTEXT_RESOLVER_URL:
-          config.gateway.admin.access_resolver_url,
-      }));
+      processes.push(
+        startGateway("admin", port, federationDir, {
+          ADMIN_CONTEXT_RESOLVER_URL: config.gateway.admin.access_resolver_url,
+        }),
+      );
     }
 
     // Handle graceful shutdown
@@ -136,8 +137,8 @@ export async function runGateway(options: GatewayOptions) {
         (proc) =>
           new Promise<void>((resolve) => {
             proc.on("exit", () => resolve());
-          })
-      )
+          }),
+      ),
     );
   } catch (error: any) {
     console.error(`❌ ${error.message}`);

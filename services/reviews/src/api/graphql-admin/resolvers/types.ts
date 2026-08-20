@@ -43,18 +43,15 @@ import {
 import type { Resolvers } from "../../../resolvers/admin/generated/types.js";
 
 type LoadableResolver = {
-  load(value: string, query: ReturnType<typeof parseGraphqlInfo>, ctx: ServiceContext): Promise<unknown>;
+  load(
+    value: string,
+    query: ReturnType<typeof parseGraphqlInfo>,
+    ctx: ServiceContext,
+  ): Promise<unknown>;
 };
 
-function referenceResolver(
-  entity: GlobalIdType,
-  Resolver: LoadableResolver
-) {
-  return (
-    reference: { id: string },
-    ctx: ServiceContext,
-    info: GraphQLResolveInfo
-  ) => {
+function referenceResolver(entity: GlobalIdType, Resolver: LoadableResolver) {
+  return (reference: { id: string }, ctx: ServiceContext, info: GraphQLResolveInfo) => {
     const id = decodeGlobalIdByType(reference.id, entity);
     return Resolver.load(id, parseGraphqlInfo(info), ctx);
   };
@@ -91,10 +88,14 @@ function resolveNodeType(value: unknown): string | null {
     const record = value as Record<string, unknown>;
     if (typeof record.__typename === "string") return record.__typename;
     switch (record.kind) {
-      case "REVIEW": return "Review";
-      case "REVIEW_REPLY": return "ReviewReply";
-      case "PRODUCT_QUESTION": return "ProductQuestion";
-      case "QUESTION_ANSWER": return "ProductQuestionAnswer";
+      case "REVIEW":
+        return "Review";
+      case "REVIEW_REPLY":
+        return "ReviewReply";
+      case "PRODUCT_QUESTION":
+        return "ProductQuestion";
+      case "QUESTION_ANSWER":
+        return "ProductQuestionAnswer";
     }
   }
   return null;
@@ -115,12 +116,9 @@ export const typeResolvers = {
     __resolveReference: async (
       reference: { id: string },
       ctx: ServiceContext,
-      info: GraphQLResolveInfo
+      info: GraphQLResolveInfo,
     ) => {
-      const id = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.ReviewStoreConfiguration
-      );
+      const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.ReviewStoreConfiguration);
       const row = await ctx.kernel.repository.configuration.findStoreConfiguration();
       if (!row || row.id !== id) return null;
       return StoreConfigurationResolver.load(row, parseGraphqlInfo(info), ctx);
@@ -129,112 +127,97 @@ export const typeResolvers = {
   ReviewRatingCriterion: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ReviewRatingCriterion,
-      RatingCriterionResolver
+      RatingCriterionResolver,
     ),
   },
   ReviewRatingCriterionAssignment: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ReviewRatingCriterionAssignment,
-      RatingCriterionAssignmentResolver
+      RatingCriterionAssignmentResolver,
     ),
   },
   Review: {
     __resolveReference: referenceResolver(GlobalIdEntity.Review, ReviewResolver),
   },
   ReviewMedia: {
-    __resolveReference: referenceResolver(
-      GlobalIdEntity.ReviewMedia,
-      ReviewMediaResolver
-    ),
+    __resolveReference: referenceResolver(GlobalIdEntity.ReviewMedia, ReviewMediaResolver),
   },
   ReviewReply: {
-    __resolveReference: referenceResolver(
-      GlobalIdEntity.ReviewReply,
-      ReviewReplyResolver
-    ),
+    __resolveReference: referenceResolver(GlobalIdEntity.ReviewReply, ReviewReplyResolver),
   },
   ProductQuestion: {
-    __resolveReference: referenceResolver(
-      GlobalIdEntity.ProductQuestion,
-      ProductQuestionResolver
-    ),
+    __resolveReference: referenceResolver(GlobalIdEntity.ProductQuestion, ProductQuestionResolver),
   },
   ProductQuestionAnswer: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ProductQuestionAnswer,
-      ProductQuestionAnswerResolver
+      ProductQuestionAnswerResolver,
     ),
   },
   ProductQuestionSubscription: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ProductQuestionSubscription,
-      QuestionSubscriptionResolver
+      QuestionSubscriptionResolver,
     ),
   },
   ReviewContentTranslation: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ReviewContentTranslation,
-      ContentTranslationResolver
+      ContentTranslationResolver,
     ),
   },
   ReviewContentPublication: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ReviewContentPublication,
-      ContentPublicationResolver
+      ContentPublicationResolver,
     ),
   },
   ReviewContentVote: {
-    __resolveReference: referenceResolver(
-      GlobalIdEntity.ReviewContentVote,
-      ContentVoteResolver
-    ),
+    __resolveReference: referenceResolver(GlobalIdEntity.ReviewContentVote, ContentVoteResolver),
   },
   ReviewContentReport: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ReviewContentReport,
-      ContentReportResolver
+      ContentReportResolver,
     ),
   },
   ReviewModerationCase: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ReviewModerationCase,
-      ModerationCaseResolver
+      ModerationCaseResolver,
     ),
   },
   ReviewModerationEvent: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ReviewModerationEvent,
-      ModerationEventResolver
+      ModerationEventResolver,
     ),
   },
   ReviewContentRevision: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ReviewContentRevision,
-      ContentRevisionResolver
+      ContentRevisionResolver,
     ),
   },
   ReviewModerationSignal: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ReviewModerationSignal,
-      ModerationSignalResolver
+      ModerationSignalResolver,
     ),
   },
   ReviewContentExternalReference: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ReviewContentExternalReference,
-      ContentExternalReferenceResolver
+      ContentExternalReferenceResolver,
     ),
   },
   ReviewRequest: {
-    __resolveReference: referenceResolver(
-      GlobalIdEntity.ReviewRequest,
-      ReviewRequestResolver
-    ),
+    __resolveReference: referenceResolver(GlobalIdEntity.ReviewRequest, ReviewRequestResolver),
   },
   ReviewRequestEvent: {
     __resolveReference: referenceResolver(
       GlobalIdEntity.ReviewRequestEvent,
-      ReviewRequestEventResolver
+      ReviewRequestEventResolver,
     ),
   },
 } as unknown as Partial<Resolvers>;

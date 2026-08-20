@@ -10,10 +10,7 @@ const handleSchema = z
   );
 
 export const createTagSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Name is required")
-    .max(255, "Name must be 255 characters or less"),
+  name: z.string().min(1, "Name is required").max(255, "Name must be 255 characters or less"),
   handle: handleSchema,
 });
 

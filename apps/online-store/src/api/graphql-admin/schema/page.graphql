@@ -1,18 +1,24 @@
-"""Rich text content in multiple formats."""
+"""
+Rich text content in multiple formats.
+"""
 type RichText @shareable {
   text: String!
   html: String!
   json: JSON!
 }
 
-"""Input for rich text content."""
+"""
+Input for rich text content.
+"""
 input RichTextInput {
   text: String!
   html: String!
   json: JSON!
 }
 
-"""SEO and Open Graph metadata."""
+"""
+SEO and Open Graph metadata.
+"""
 type Seo @shareable {
   seoTitle: String
   seoDescription: String
@@ -21,7 +27,9 @@ type Seo @shareable {
   ogImage: File
 }
 
-"""Input for SEO and Open Graph metadata."""
+"""
+Input for SEO and Open Graph metadata.
+"""
 input SeoInput {
   seoTitle: String
   seoDescription: String
@@ -39,7 +47,9 @@ enum OnlineStorePageStatus {
   PUBLISHED
 }
 
-"""A localized content page owned by an Online Store installation."""
+"""
+A localized content page owned by an Online Store installation.
+"""
 type OnlineStorePage implements Node @key(fields: "id") {
   id: ID!
   handle: String!

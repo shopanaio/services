@@ -43,28 +43,21 @@ export class SearchFieldRegistry {
     return definition;
   }
 
-  normalizeEnabledFields(
-    fields: readonly SearchTextField[],
-  ): readonly SearchTextField[] {
+  normalizeEnabledFields(fields: readonly SearchTextField[]): readonly SearchTextField[] {
     if (fields.length === 0) {
       throw indexUnavailable("At least one search field must be enabled");
     }
     const unique = new Set(fields);
     for (const field of unique) this.get(field);
     return Object.freeze(
-      DEFINITIONS
-        .map((definition) => definition.field)
-        .filter((field) => unique.has(field)),
+      DEFINITIONS.map((definition) => definition.field).filter((field) => unique.has(field)),
     );
   }
 
   defaultWeights(): Readonly<Record<SearchTextField, number>> {
     return Object.freeze(
       Object.fromEntries(
-        DEFINITIONS.map((definition) => [
-          definition.field,
-          definition.defaultWeight,
-        ]),
+        DEFINITIONS.map((definition) => [definition.field, definition.defaultWeight]),
       ) as Record<SearchTextField, number>,
     );
   }

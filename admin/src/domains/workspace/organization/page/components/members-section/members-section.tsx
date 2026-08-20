@@ -3,7 +3,11 @@
 import { useMemo, useCallback } from "react";
 import { Typography, Button, Avatar, Dropdown, Table, Tag, Skeleton } from "antd";
 import type { MenuProps } from "antd";
-import { LuEllipsis as MoreOutlined, LuUser as UserOutlined, LuUserPlus as UserAddOutlined } from "react-icons/lu";
+import {
+  LuEllipsis as MoreOutlined,
+  LuUser as UserOutlined,
+  LuUserPlus as UserAddOutlined,
+} from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiMember } from "@/graphql/types";
 import { useStyles } from "../../organization-page.styles";
@@ -43,7 +47,7 @@ export function MembersSection({
         },
       ];
     },
-    [roles, onChangeRole, onRemoveMember]
+    [roles, onChangeRole, onRemoveMember],
   );
 
   const columns = useMemo(
@@ -60,9 +64,7 @@ export function MembersSection({
                 {getInitials(displayName)}
               </Avatar>
               <div className={styles.memberInfo}>
-                <Typography.Text className={styles.memberName}>
-                  {displayName}
-                </Typography.Text>
+                <Typography.Text className={styles.memberName}>{displayName}</Typography.Text>
                 <Typography.Text className={styles.memberEmail}>
                   {record.user.email}
                 </Typography.Text>
@@ -99,7 +101,7 @@ export function MembersSection({
         ),
       },
     ],
-    [styles, roles, getMemberActions]
+    [styles, roles, getMemberActions],
   );
 
   if (loading) {
@@ -136,9 +138,7 @@ export function MembersSection({
         locale={{ emptyText: "No members found" }}
       />
 
-      <Typography.Text className={styles.footer}>
-        {members.length} members
-      </Typography.Text>
+      <Typography.Text className={styles.footer}>{members.length} members</Typography.Text>
     </Paper>
   );
 }

@@ -36,9 +36,7 @@ export class VariantUpdateOptionsScript extends BaseScript<
   VariantUpdateOptionsParams,
   VariantUpdateOptionsResult
 > {
-  protected async execute(
-    params: VariantUpdateOptionsParams
-  ): Promise<VariantUpdateOptionsResult> {
+  protected async execute(params: VariantUpdateOptionsParams): Promise<VariantUpdateOptionsResult> {
     const { variantId, links } = params;
 
     // Validate variant exists
@@ -57,7 +55,7 @@ export class VariantUpdateOptionsScript extends BaseScript<
         return singleError(
           "Non-default variant must have at least one option value",
           "INVALID_OPTIONS",
-          ["links"]
+          ["links"],
         );
       }
 
@@ -74,24 +72,21 @@ export class VariantUpdateOptionsScript extends BaseScript<
 
     // Validate all options belong to this product
     const optionIds = [...new Set(links.map((l) => l.optionId))];
-    const productOptions =
-      await this.repository.option.findByProductId(productId);
+    const productOptions = await this.repository.option.findByProductId(productId);
     const productOptionIds = new Set(productOptions.map((o) => o.id));
 
     for (const optionId of optionIds) {
       if (!productOptionIds.has(optionId)) {
-        return singleError(
-          `Option ${optionId} does not belong to this product`,
-          "INVALID_OPTION",
-          ["links", "optionId"]
-        );
+        return singleError(`Option ${optionId} does not belong to this product`, "INVALID_OPTION", [
+          "links",
+          "optionId",
+        ]);
       }
     }
 
     // Validate all values belong to their respective options
     const valueIds = [...new Set(links.map((l) => l.optionValueId))];
-    const valuesByOption =
-      await this.repository.option.findValuesByOptionIds(optionIds);
+    const valuesByOption = await this.repository.option.findValuesByOptionIds(optionIds);
 
     // Build a map of valid valueId -> optionId
     const valueToOption = new Map<string, string>();
@@ -104,17 +99,16 @@ export class VariantUpdateOptionsScript extends BaseScript<
     for (const link of links) {
       const expectedOptionId = valueToOption.get(link.optionValueId);
       if (!expectedOptionId) {
-        return singleError(
-          `Option value ${link.optionValueId} not found`,
-          "INVALID_OPTION_VALUE",
-          ["links", "optionValueId"]
-        );
+        return singleError(`Option value ${link.optionValueId} not found`, "INVALID_OPTION_VALUE", [
+          "links",
+          "optionValueId",
+        ]);
       }
       if (expectedOptionId !== link.optionId) {
         return singleError(
           `Option value ${link.optionValueId} does not belong to option ${link.optionId}`,
           "INVALID_OPTION_VALUE",
-          ["links", "optionValueId"]
+          ["links", "optionValueId"],
         );
       }
     }
@@ -123,27 +117,20 @@ export class VariantUpdateOptionsScript extends BaseScript<
     const seenOptions = new Set<string>();
     for (const link of links) {
       if (seenOptions.has(link.optionId)) {
-        return singleError(
-          `Duplicate option ${link.optionId} in links`,
-          "DUPLICATE_OPTION",
-          ["links"]
-        );
+        return singleError(`Duplicate option ${link.optionId} in links`, "DUPLICATE_OPTION", [
+          "links",
+        ]);
       }
       seenOptions.add(link.optionId);
     }
 
     // Get current links to compare
-    const currentLinksMap =
-      await this.repository.option.findVariantLinks([variantId]);
+    const currentLinksMap = await this.repository.option.findVariantLinks([variantId]);
     const currentLinks = currentLinksMap.get(variantId) ?? [];
 
     // Check if links actually changed
-    const currentLinkSet = new Set(
-      currentLinks.map((l) => `${l.optionId}:${l.optionValueId}`)
-    );
-    const newLinkSet = new Set(
-      links.map((l) => `${l.optionId}:${l.optionValueId}`)
-    );
+    const currentLinkSet = new Set(currentLinks.map((l) => `${l.optionId}:${l.optionValueId}`));
+    const newLinkSet = new Set(links.map((l) => `${l.optionId}:${l.optionValueId}`));
 
     const linksChanged =
       currentLinkSet.size !== newLinkSet.size ||
@@ -157,19 +144,11 @@ export class VariantUpdateOptionsScript extends BaseScript<
     // Clear existing links and set new ones
     await this.repository.option.clearVariantLinks(variantId);
     for (const link of links) {
-      await this.repository.option.linkVariant(
-        variantId,
-        link.optionId,
-        link.optionValueId
-      );
+      await this.repository.option.linkVariant(variantId, link.optionId, link.optionValueId);
     }
 
     // Build new handle from option values
-    const newHandle = await buildVariantHandle(
-      this.repository.db,
-      variantId,
-      storeId
-    );
+    const newHandle = await buildVariantHandle(this.repository.db, variantId, storeId);
 
     // Non-default variants must have a non-empty handle
     if (!existingVariant.isDefault && newHandle === "") {
@@ -177,17 +156,13 @@ export class VariantUpdateOptionsScript extends BaseScript<
       await this.repository.option.clearVariantLinks(variantId);
       for (const link of currentLinks) {
         if (link.optionValueId) {
-          await this.repository.option.linkVariant(
-            variantId,
-            link.optionId,
-            link.optionValueId
-          );
+          await this.repository.option.linkVariant(variantId, link.optionId, link.optionValueId);
         }
       }
       return singleError(
         "Non-default variant must have at least one option value",
         "INVALID_OPTIONS",
-        ["links"]
+        ["links"],
       );
     }
 
@@ -204,7 +179,7 @@ export class VariantUpdateOptionsScript extends BaseScript<
               await this.repository.option.linkVariant(
                 variantId,
                 link.optionId,
-                link.optionValueId
+                link.optionValueId,
               );
             }
           }
@@ -212,7 +187,7 @@ export class VariantUpdateOptionsScript extends BaseScript<
           return singleError(
             "Another variant with the same option combination already exists",
             "DUPLICATE_OPTIONS",
-            ["links"]
+            ["links"],
           );
         }
         throw error;
@@ -227,7 +202,7 @@ export class VariantUpdateOptionsScript extends BaseScript<
 
     this.logger.info(
       { variantId, linkCount: links.length, newHandle },
-      "Variant options updated successfully"
+      "Variant options updated successfully",
     );
 
     return successResult(existingVariant, changes);

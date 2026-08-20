@@ -19,9 +19,7 @@ export type ListingIndexItemStateRow = ListingIndexItemState & {
 
 export class ListingIndexItemStateRepository extends BaseRepository {
   @ReadOnly()
-  async findByItem(
-    key: ListingIndexItemStateKey
-  ): Promise<ListingIndexItemStateRow | null> {
+  async findByItem(key: ListingIndexItemStateKey): Promise<ListingIndexItemStateRow | null> {
     this.assertCurrentStoreKey(key);
     const rows = await this.connection
       .select()
@@ -32,12 +30,10 @@ export class ListingIndexItemStateRepository extends BaseRepository {
     return (rows[0] as ListingIndexItemStateRow | undefined) ?? null;
   }
 
-  async lockByItem(
-    key: ListingIndexItemStateKey
-  ): Promise<ListingIndexItemStateRow | null> {
+  async lockByItem(key: ListingIndexItemStateKey): Promise<ListingIndexItemStateRow | null> {
     this.assertCurrentStoreKey(key);
     await this.connection.execute(
-      sql`SELECT pg_advisory_xact_lock(hashtextextended(${this.lockKey(key)}, 0))`
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${this.lockKey(key)}, 0))`,
     );
 
     const rows = await this.connection
@@ -51,23 +47,19 @@ export class ListingIndexItemStateRepository extends BaseRepository {
   }
 
   async lockByItems(
-    keys: readonly ListingIndexItemStateKey[]
+    keys: readonly ListingIndexItemStateKey[],
   ): Promise<Map<string, ListingIndexItemStateRow>> {
     if (keys.length === 0) {
       return new Map();
     }
 
     keys.forEach((key) => this.assertCurrentStoreKey(key));
-    assertUniqueBy(
-      keys,
-      (key) => this.mapKey(key),
-      "listing index item state key"
-    );
+    assertUniqueBy(keys, (key) => this.mapKey(key), "listing index item state key");
     const orderedKeys = [...keys].sort(compareItemStateKeys);
 
     for (const key of orderedKeys) {
       await this.connection.execute(
-        sql`SELECT pg_advisory_xact_lock(hashtextextended(${this.lockKey(key)}, 0))`
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${this.lockKey(key)}, 0))`,
       );
     }
 
@@ -87,27 +79,21 @@ export class ListingIndexItemStateRepository extends BaseRepository {
     return result;
   }
 
-  async upsertLatestState(
-    row: ListingIndexItemStateRow
-  ): Promise<ListingIndexItemStateRow> {
+  async upsertLatestState(row: ListingIndexItemStateRow): Promise<ListingIndexItemStateRow> {
     const rows = await this.upsertLatestStates([row]);
 
     return rows[0] as ListingIndexItemStateRow;
   }
 
   async upsertLatestStates(
-    rows: readonly ListingIndexItemStateRow[]
+    rows: readonly ListingIndexItemStateRow[],
   ): Promise<ListingIndexItemStateRow[]> {
     if (rows.length === 0) {
       return [];
     }
 
     rows.forEach((row) => this.assertCurrentStoreKey(row));
-    assertUniqueBy(
-      rows,
-      (row) => this.mapKey(row),
-      "listing index item state row"
-    );
+    assertUniqueBy(rows, (row) => this.mapKey(row), "listing index item state row");
     const result: ListingIndexItemStateRow[] = [];
 
     for (const chunk of chunkArray(rows)) {
@@ -140,7 +126,7 @@ export class ListingIndexItemStateRepository extends BaseRepository {
   private whereItemKey(key: ListingIndexItemStateKey) {
     return and(
       eq(listingIndexItemState.storeId, this.storeId),
-      eq(listingIndexItemState.itemId, key.itemId)
+      eq(listingIndexItemState.itemId, key.itemId),
     );
   }
 
@@ -154,19 +140,14 @@ export class ListingIndexItemStateRepository extends BaseRepository {
 
   private assertCurrentStoreKey(key: ListingIndexItemStateKey): void {
     if (key.storeId !== this.storeId) {
-      throw new Error(
-        "Listing index item state key must belong to the current store"
-      );
+      throw new Error("Listing index item state key must belong to the current store");
     }
   }
 }
 
 function compareItemStateKeys(
   left: ListingIndexItemStateKey,
-  right: ListingIndexItemStateKey
+  right: ListingIndexItemStateKey,
 ): number {
-  return (
-    left.storeId.localeCompare(right.storeId) ||
-    left.itemId.localeCompare(right.itemId)
-  );
+  return left.storeId.localeCompare(right.storeId) || left.itemId.localeCompare(right.itemId);
 }

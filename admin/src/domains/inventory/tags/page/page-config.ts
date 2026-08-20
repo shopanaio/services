@@ -9,10 +9,7 @@ import {
   createGraphqlIntFilterTransformer,
   createGraphqlStringFilterTransformer,
 } from "@/layouts/filters";
-import type {
-  ApiTagOrderByInput,
-  ApiTagWhereInput,
-} from "@/graphql/types";
+import type { ApiTagOrderByInput, ApiTagWhereInput } from "@/graphql/types";
 import { TagOrderField } from "@/graphql/types";
 import type { TagsQueryVariables } from "../graphql/operation-types";
 
@@ -27,26 +24,15 @@ export const tagSortFieldMapping: SortFieldMapping<TagsOrderField> = {
   createdAt: TagOrderField.CreatedAt,
 };
 
-export const buildTagSearchCondition = (
-  search: string,
-): Partial<ApiTagWhereInput> => ({
-  _or: [
-    { name: { _containsi: search } },
-    { handle: { _containsi: search } },
-  ],
+export const buildTagSearchCondition = (search: string): Partial<ApiTagWhereInput> => ({
+  _or: [{ name: { _containsi: search } }, { handle: { _containsi: search } }],
 });
 
-export const tagFilterTransformers: Record<
-  string,
-  FilterTransformer<ApiTagWhereInput>
-> = {
+export const tagFilterTransformers: Record<string, FilterTransformer<ApiTagWhereInput>> = {
   name: createGraphqlStringFilterTransformer<ApiTagWhereInput>("name"),
   handle: createGraphqlStringFilterTransformer<ApiTagWhereInput>("handle"),
-  productsCount:
-    createGraphqlIntFilterTransformer<ApiTagWhereInput>("productsCount"),
-  createdAt: createGraphqlDateTimeRangeFilterTransformer<ApiTagWhereInput>(
-    "createdAt",
-  ),
+  productsCount: createGraphqlIntFilterTransformer<ApiTagWhereInput>("productsCount"),
+  createdAt: createGraphqlDateTimeRangeFilterTransformer<ApiTagWhereInput>("createdAt"),
 };
 
 export function buildTagsQueryVariables(
@@ -74,13 +60,8 @@ export function toTagsQueryVariables(
   return buildTagsQueryVariables({
     ...pageConfig,
     where: pageConfig.where as ApiTagWhereInput | undefined,
-    orderBy: pageConfig.orderBy as
-      | OrderByInput<TagOrderField>[]
-      | undefined,
+    orderBy: pageConfig.orderBy as OrderByInput<TagOrderField>[] | undefined,
   });
 }
 
-export type {
-  TagsOrderField,
-  TagsWhereInput,
-};
+export type { TagsOrderField, TagsWhereInput };

@@ -77,10 +77,7 @@
       "compositePrimaryKeys": {
         "locale_store_id_code_pk": {
           "name": "locale_store_id_code_pk",
-          "columns": [
-            "store_id",
-            "code"
-          ]
+          "columns": ["store_id", "code"]
         }
       },
       "uniqueConstraints": {},
@@ -180,10 +177,7 @@
       "compositePrimaryKeys": {
         "currency_store_id_code_pk": {
           "name": "currency_store_id_code_pk",
-          "columns": [
-            "store_id",
-            "code"
-          ]
+          "columns": ["store_id", "code"]
         }
       },
       "uniqueConstraints": {},
@@ -412,14 +406,8 @@
           "tableFrom": "store",
           "tableTo": "locale",
           "schemaTo": "store",
-          "columnsFrom": [
-            "id",
-            "default_locale"
-          ],
-          "columnsTo": [
-            "store_id",
-            "code"
-          ],
+          "columnsFrom": ["id", "default_locale"],
+          "columnsTo": ["store_id", "code"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -428,14 +416,8 @@
           "tableFrom": "store",
           "tableTo": "currency",
           "schemaTo": "store",
-          "columnsFrom": [
-            "id",
-            "base_currency"
-          ],
-          "columnsTo": [
-            "store_id",
-            "code"
-          ],
+          "columnsFrom": ["id", "base_currency"],
+          "columnsTo": ["store_id", "code"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -444,14 +426,8 @@
           "tableFrom": "store",
           "tableTo": "currency",
           "schemaTo": "store",
-          "columnsFrom": [
-            "id",
-            "default_currency"
-          ],
-          "columnsTo": [
-            "store_id",
-            "code"
-          ],
+          "columnsFrom": ["id", "default_currency"],
+          "columnsTo": ["store_id", "code"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -605,12 +581,8 @@
           "tableFrom": "api_key",
           "tableTo": "store",
           "schemaTo": "store",
-          "columnsFrom": [
-            "store_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["store_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -774,12 +746,8 @@
           "tableFrom": "store_integration",
           "tableTo": "store",
           "schemaTo": "store",
-          "columnsFrom": [
-            "store_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["store_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -962,13 +930,7 @@
     "reference.dimension_unit": {
       "name": "dimension_unit",
       "schema": "reference",
-      "values": [
-        "mm",
-        "cm",
-        "m",
-        "in",
-        "ft"
-      ]
+      "values": ["mm", "cm", "m", "in", "ft"]
     },
     "store.locale_code": {
       "name": "locale_code",
@@ -1115,41 +1077,22 @@
     "reference.weight_unit": {
       "name": "weight_unit",
       "schema": "reference",
-      "values": [
-        "kg",
-        "g",
-        "lb",
-        "oz"
-      ]
+      "values": ["kg", "g", "lb", "oz"]
     },
     "store.store_status": {
       "name": "store_status",
       "schema": "store",
-      "values": [
-        "active",
-        "inactive"
-      ]
+      "values": ["active", "inactive"]
     },
     "store.integration_status": {
       "name": "integration_status",
       "schema": "store",
-      "values": [
-        "active",
-        "inactive",
-        "error"
-      ]
+      "values": ["active", "inactive", "error"]
     },
     "store.integration_type": {
       "name": "integration_type",
       "schema": "store",
-      "values": [
-        "iam",
-        "payment",
-        "shipping",
-        "storage",
-        "email",
-        "analytics"
-      ]
+      "values": ["iam", "payment", "shipping", "storage", "email", "analytics"]
     }
   },
   "schemas": {

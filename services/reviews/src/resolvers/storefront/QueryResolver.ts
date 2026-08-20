@@ -11,10 +11,27 @@ export class QueryResolver extends ReviewsType<Record<string, never>> {
     const row = await this.$ctx.kernel.repository.configuration.findStoreConfiguration();
     return row ? new StoreConfigurationResolver(row, this.$ctx) : null;
   }
-  async review(args: { id: string }) { this.requireReadPermission(); return this.visibleContent(args.id, GlobalIdEntity.Review, "REVIEW"); }
-  async productQuestion(args: { id: string }) { this.requireReadPermission(); return this.visibleContent(args.id, GlobalIdEntity.ProductQuestion, "PRODUCT_QUESTION"); }
-  async reviewReply(args: { id: string }) { this.requireReadPermission(); return this.visibleContent(args.id, GlobalIdEntity.ReviewReply, "REVIEW_REPLY", true); }
-  async productQuestionAnswer(args: { id: string }) { this.requireReadPermission(); return this.visibleContent(args.id, GlobalIdEntity.ProductQuestionAnswer, "QUESTION_ANSWER", true); }
+  async review(args: { id: string }) {
+    this.requireReadPermission();
+    return this.visibleContent(args.id, GlobalIdEntity.Review, "REVIEW");
+  }
+  async productQuestion(args: { id: string }) {
+    this.requireReadPermission();
+    return this.visibleContent(args.id, GlobalIdEntity.ProductQuestion, "PRODUCT_QUESTION");
+  }
+  async reviewReply(args: { id: string }) {
+    this.requireReadPermission();
+    return this.visibleContent(args.id, GlobalIdEntity.ReviewReply, "REVIEW_REPLY", true);
+  }
+  async productQuestionAnswer(args: { id: string }) {
+    this.requireReadPermission();
+    return this.visibleContent(
+      args.id,
+      GlobalIdEntity.ProductQuestionAnswer,
+      "QUESTION_ANSWER",
+      true,
+    );
+  }
   async reviewRequest(args: { id: string }) {
     this.requireReadPermission();
     const customerId = this.$ctx.customer?.id;
@@ -24,11 +41,21 @@ export class QueryResolver extends ReviewsType<Record<string, never>> {
     return row?.customerId === customerId ? this.resolvers.reviewRequest(id) : null;
   }
 
-  private async visibleContent(id: string, type: GlobalIdEntity, kind: string, publishedOnly = false) {
+  private async visibleContent(
+    id: string,
+    type: GlobalIdEntity,
+    kind: string,
+    publishedOnly = false,
+  ) {
     const decoded = this.decodeId(id, type);
     const row = await this.$ctx.loaders.content.load(decoded);
     if (!row || row.kind !== kind) return null;
-    if (publishedOnly ? row.status !== "PUBLISHED" || row.deletedAt || row.redactedAt : !isContentVisible(row, this.$ctx.customer?.id)) return null;
+    if (
+      publishedOnly
+        ? row.status !== "PUBLISHED" || row.deletedAt || row.redactedAt
+        : !isContentVisible(row, this.$ctx.customer?.id)
+    )
+      return null;
     return this.resolvers.content(decoded);
   }
 }

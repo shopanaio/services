@@ -44,9 +44,7 @@ export interface WorkflowScript {
 export interface ScriptDefinition {
   name: string;
   supports?: (ctx: ScriptContext) => boolean | Promise<boolean>;
-  build: (
-    ctx: ScriptContext
-  ) => GeneratedConfig[] | null | Promise<GeneratedConfig[] | null>;
+  build: (ctx: ScriptContext) => GeneratedConfig[] | null | Promise<GeneratedConfig[] | null>;
 }
 
 export interface WorkflowLoader {
@@ -80,7 +78,6 @@ export enum HookStage {
   /** Executed once after all workflows generated, always runs even on errors */
   AfterAll = "after-all",
 }
-
 
 /**
  * Hook interface - similar to Buildkite CI hooks

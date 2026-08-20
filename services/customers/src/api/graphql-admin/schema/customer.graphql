@@ -6,7 +6,9 @@ enum CustomerLifecycleStatus {
   REDACTED
 }
 
-"""Lifecycle states that a merchant administrator may select directly."""
+"""
+Lifecycle states that a merchant administrator may select directly.
+"""
 enum CustomerAdminLifecycleStatus {
   ACTIVE
   DISABLED
@@ -19,13 +21,17 @@ enum CustomerAccountStatus {
   REGISTERED
 }
 
-"""A store-scoped customer business profile owned by Customers."""
+"""
+A store-scoped customer business profile owned by Customers.
+"""
 type Customer implements Node @key(fields: "id") {
   id: ID!
   lifecycleStatus: CustomerLifecycleStatus!
   accountStatus: CustomerAccountStatus!
 
-  """Opaque IAM principal identifier. Null for guests and imported profiles."""
+  """
+  Opaque IAM principal identifier. Null for guests and imported profiles.
+  """
   iamPrincipalId: String
 
   email: Email
@@ -44,9 +50,13 @@ type Customer implements Node @key(fields: "id") {
   companyName: String
   jobTitle: String
   note: String
-  """Reason the customer is currently blocked. Null for other lifecycle states."""
+  """
+  Reason the customer is currently blocked. Null for other lifecycle states.
+  """
   blockedReason: String
-  """Internal moderation context visible only to administrators."""
+  """
+  Internal moderation context visible only to administrators.
+  """
   moderationNote: String
   source: String!
   createdByUserId: String
@@ -88,7 +98,9 @@ type Customer implements Node @key(fields: "id") {
     orderBy: [CustomerTaxExemptionOrderByInput!]
   ): CustomerTaxExemptionConnection!
 
-  """At most one current consent record per channel."""
+  """
+  At most one current consent record per channel.
+  """
   consents: [CustomerConsent!]!
 
   groupMemberships(
@@ -128,14 +140,20 @@ type Customer implements Node @key(fields: "id") {
     orderBy: [CustomerMonetaryStatisticsOrderByInput!]
   ): CustomerMonetaryStatisticsConnection!
 
-  """The customer's persisted product comparison selection."""
+  """
+  The customer's persisted product comparison selection.
+  """
   comparison: CustomerComparison
 
-  """External CRM/ERP identities currently linked to this customer."""
+  """
+  External CRM/ERP identities currently linked to this customer.
+  """
   externalReferences: [CustomerExternalReference!]!
 }
 
-"""A store-scoped customer identity in an external CRM or ERP system."""
+"""
+A store-scoped customer identity in an external CRM or ERP system.
+"""
 type CustomerExternalReference implements Node @key(fields: "id") {
   id: ID!
   customer: Customer!
@@ -180,7 +198,9 @@ input CustomerDeleteInput {
   expectedRevision: Int
 }
 
-"""Personal profile fields in the unified customer update."""
+"""
+Personal profile fields in the unified customer update.
+"""
 input CustomerProfileUpdateInput {
   prefix: String
   firstName: String
@@ -192,13 +212,17 @@ input CustomerProfileUpdateInput {
   gender: String
 }
 
-"""Contact projections in the unified customer update."""
+"""
+Contact projections in the unified customer update.
+"""
 input CustomerContactUpdateInput {
   email: Email
   phoneE164: String
 }
 
-"""Company fields in the unified customer update."""
+"""
+Company fields in the unified customer update.
+"""
 input CustomerCompanyUpdateInput {
   companyName: String
   jobTitle: String
@@ -210,21 +234,29 @@ workflows and cannot be selected here.
 """
 input CustomerStatusUpdateInput {
   status: CustomerAdminLifecycleStatus!
-  """Required for BLOCKED. Omit for ACTIVE and DISABLED."""
+  """
+  Required for BLOCKED. Omit for ACTIVE and DISABLED.
+  """
   blockedReason: String
 }
 
-"""Merchant note in the unified customer update."""
+"""
+Merchant note in the unified customer update.
+"""
 input CustomerNoteUpdateInput {
   note: String
 }
 
-"""Internal moderation context independent from the merchant note."""
+"""
+Internal moderation context independent from the merchant note.
+"""
 input CustomerModerationUpdateInput {
   moderationNote: String
 }
 
-"""Customer-level sections executed by the unified customerUpdate workflow."""
+"""
+Customer-level sections executed by the unified customerUpdate workflow.
+"""
 input CustomerUpdateInput {
   profile: CustomerProfileUpdateInput
   contact: CustomerContactUpdateInput
@@ -259,7 +291,9 @@ enum CustomerOperationType {
   DATA_REQUEST_UPDATE
 }
 
-"""Result of one operation in a customer-domain update."""
+"""
+Result of one operation in a customer-domain update.
+"""
 type CustomerOperationResult {
   type: CustomerOperationType!
   applied: Boolean!

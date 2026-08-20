@@ -1,21 +1,78 @@
 import { gql } from "@apollo/client";
 import { ORDER_DETAILS_FIELDS, USER_ERROR_FIELDS } from "./fragments";
-const mutation = (name: string, field: string, input: string) => gql`mutation ${name}($input: ${input}!) { ordersMutation { ${field}(input: $input) { order { ...OrderDetailsFields } userErrors { ...UserErrorFields } } } } ${ORDER_DETAILS_FIELDS} ${USER_ERROR_FIELDS}`;
+const mutation = (name: string, field: string, input: string) =>
+  gql`mutation ${name}($input: ${input}!) { ordersMutation { ${field}(input: $input) { order { ...OrderDetailsFields } userErrors { ...UserErrorFields } } } } ${ORDER_DETAILS_FIELDS} ${USER_ERROR_FIELDS}`;
 export const ORDER_CREATE_MUTATION = mutation("OrderCreate", "orderCreate", "OrderCreateInput");
 export const ORDER_UPDATE_MUTATION = mutation("OrderUpdate", "orderUpdate", "OrderUpdateInput");
 export const ORDER_DELETE_MUTATION = mutation("OrderDelete", "orderDelete", "OrderDeleteInput");
 export const ORDER_CANCEL_MUTATION = mutation("OrderCancel", "orderCancel", "OrderCancelInput");
-export const ORDER_STATUS_UPDATE_MUTATION = mutation("OrderStatusUpdate", "orderStatusUpdate", "OrderStatusUpdateInput");
-export const ORDER_PAYMENT_STATUS_UPDATE_MUTATION = mutation("OrderPaymentStatusUpdate", "orderPaymentStatusUpdate", "OrderPaymentStatusUpdateInput");
-export const ORDER_FULFILLMENT_STATUS_UPDATE_MUTATION = mutation("OrderFulfillmentStatusUpdate", "orderFulfillmentStatusUpdate", "OrderFulfillmentStatusUpdateInput");
-export const ORDER_CUSTOMER_UPDATE_MUTATION = mutation("OrderCustomerUpdate", "orderCustomerUpdate", "OrderCustomerUpdateInput");
-export const ORDER_TAGS_UPDATE_MUTATION = mutation("OrderTagsUpdate", "orderTagsUpdate", "OrderTagsUpdateInput");
-export const ORDER_ADMIN_NOTE_UPDATE_MUTATION = mutation("OrderAdminNoteUpdate", "orderAdminNoteUpdate", "OrderAdminNoteUpdateInput");
-export const ORDER_COMMENT_ADD_MUTATION = mutation("OrderCommentAdd", "orderCommentAdd", "OrderCommentAddInput");
-export const ORDER_ITEM_ADD_MUTATION = mutation("OrderItemAdd", "orderItemAdd", "OrderItemAddInput");
-export const ORDER_ITEM_UPDATE_MUTATION = mutation("OrderItemUpdate", "orderItemUpdate", "OrderItemUpdateInput");
-export const ORDER_ITEM_DELETE_MUTATION = mutation("OrderItemDelete", "orderItemDelete", "OrderItemDeleteInput");
-export const ORDER_FULFILLMENT_SPLIT_MUTATION = mutation("OrderFulfillmentSplit", "orderFulfillmentSplit", "OrderFulfillmentSplitInput");
-export const ORDER_FULFILLMENT_UNDO_SPLIT_MUTATION = mutation("OrderFulfillmentUndoSplit", "orderFulfillmentUndoSplit", "OrderFulfillmentUndoSplitInput");
-export const ORDER_SHIPPING_ITEM_CREATE_MUTATION = mutation("OrderShippingItemCreate", "orderShippingItemCreate", "OrderShippingItemCreateInput");
-export const ORDER_SHIPPING_ITEM_UPDATE_MUTATION = mutation("OrderShippingItemUpdate", "orderShippingItemUpdate", "OrderShippingItemUpdateInput");
+export const ORDER_STATUS_UPDATE_MUTATION = mutation(
+  "OrderStatusUpdate",
+  "orderStatusUpdate",
+  "OrderStatusUpdateInput",
+);
+export const ORDER_PAYMENT_STATUS_UPDATE_MUTATION = mutation(
+  "OrderPaymentStatusUpdate",
+  "orderPaymentStatusUpdate",
+  "OrderPaymentStatusUpdateInput",
+);
+export const ORDER_FULFILLMENT_STATUS_UPDATE_MUTATION = mutation(
+  "OrderFulfillmentStatusUpdate",
+  "orderFulfillmentStatusUpdate",
+  "OrderFulfillmentStatusUpdateInput",
+);
+export const ORDER_CUSTOMER_UPDATE_MUTATION = mutation(
+  "OrderCustomerUpdate",
+  "orderCustomerUpdate",
+  "OrderCustomerUpdateInput",
+);
+export const ORDER_TAGS_UPDATE_MUTATION = mutation(
+  "OrderTagsUpdate",
+  "orderTagsUpdate",
+  "OrderTagsUpdateInput",
+);
+export const ORDER_ADMIN_NOTE_UPDATE_MUTATION = mutation(
+  "OrderAdminNoteUpdate",
+  "orderAdminNoteUpdate",
+  "OrderAdminNoteUpdateInput",
+);
+export const ORDER_COMMENT_ADD_MUTATION = mutation(
+  "OrderCommentAdd",
+  "orderCommentAdd",
+  "OrderCommentAddInput",
+);
+export const ORDER_ITEM_ADD_MUTATION = mutation(
+  "OrderItemAdd",
+  "orderItemAdd",
+  "OrderItemAddInput",
+);
+export const ORDER_ITEM_UPDATE_MUTATION = mutation(
+  "OrderItemUpdate",
+  "orderItemUpdate",
+  "OrderItemUpdateInput",
+);
+export const ORDER_ITEM_DELETE_MUTATION = mutation(
+  "OrderItemDelete",
+  "orderItemDelete",
+  "OrderItemDeleteInput",
+);
+export const ORDER_FULFILLMENT_SPLIT_MUTATION = mutation(
+  "OrderFulfillmentSplit",
+  "orderFulfillmentSplit",
+  "OrderFulfillmentSplitInput",
+);
+export const ORDER_FULFILLMENT_UNDO_SPLIT_MUTATION = mutation(
+  "OrderFulfillmentUndoSplit",
+  "orderFulfillmentUndoSplit",
+  "OrderFulfillmentUndoSplitInput",
+);
+export const ORDER_SHIPPING_ITEM_CREATE_MUTATION = mutation(
+  "OrderShippingItemCreate",
+  "orderShippingItemCreate",
+  "OrderShippingItemCreateInput",
+);
+export const ORDER_SHIPPING_ITEM_UPDATE_MUTATION = mutation(
+  "OrderShippingItemUpdate",
+  "orderShippingItemUpdate",
+  "OrderShippingItemUpdateInput",
+);

@@ -1,29 +1,18 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  createHmac,
-  randomBytes,
-} from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 
 export class DataProtectionService {
   private readonly encryptionKey: Buffer;
   private readonly hashKey: Buffer;
 
   constructor(masterKey: string) {
-    this.encryptionKey = createHash("sha256")
-      .update(`encryption:${masterKey}`)
-      .digest();
+    this.encryptionKey = createHash("sha256").update(`encryption:${masterKey}`).digest();
     this.hashKey = createHash("sha256").update(`hash:${masterKey}`).digest();
   }
 
   encrypt(value: string): string {
     const iv = randomBytes(12);
     const cipher = createCipheriv("aes-256-gcm", this.encryptionKey, iv);
-    const ciphertext = Buffer.concat([
-      cipher.update(value, "utf8"),
-      cipher.final(),
-    ]);
+    const ciphertext = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
     return [
       "v1",
       iv.toString("base64url"),
@@ -40,7 +29,7 @@ export class DataProtectionService {
     const decipher = createDecipheriv(
       "aes-256-gcm",
       this.encryptionKey,
-      Buffer.from(iv, "base64url")
+      Buffer.from(iv, "base64url"),
     );
     decipher.setAuthTag(Buffer.from(tag, "base64url"));
     return Buffer.concat([
@@ -50,8 +39,6 @@ export class DataProtectionService {
   }
 
   hash(value: string): string {
-    return createHmac("sha256", this.hashKey)
-      .update(value.trim().toLowerCase())
-      .digest("hex");
+    return createHmac("sha256", this.hashKey).update(value.trim().toLowerCase()).digest("hex");
   }
 }

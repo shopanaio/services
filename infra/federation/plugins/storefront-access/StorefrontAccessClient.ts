@@ -1,7 +1,5 @@
 import type { ResolvedStorefrontAccessContext } from "@shopana/shared-context";
-import {
-  parseResolvedStorefrontAccessContext,
-} from "./types.js";
+import { parseResolvedStorefrontAccessContext } from "./types.js";
 
 export class StorefrontAccessClient {
   private readonly endpoint: URL;
@@ -15,32 +13,22 @@ export class StorefrontAccessClient {
       throw new Error("Storefront access resolver configuration is required");
     }
     if (Buffer.byteLength(serviceToken, "utf8") < 32) {
-      throw new Error(
-        "STOREFRONT_RESOLVER_INTERNAL_TOKEN must be at least 32 bytes",
-      );
+      throw new Error("STOREFRONT_RESOLVER_INTERNAL_TOKEN must be at least 32 bytes");
     }
-    if (
-      !Number.isInteger(timeoutMs) ||
-      timeoutMs < 1 ||
-      timeoutMs > 60_000
-    ) {
+    if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 60_000) {
       throw new Error(
         "STOREFRONT_ACCESS_RESOLVE_TIMEOUT_MS must be an integer between 1 and 60000",
       );
     }
     const parsedOrigin = new URL(origin);
     if (
-      (parsedOrigin.protocol !== "http:" &&
-        parsedOrigin.protocol !== "https:") ||
+      (parsedOrigin.protocol !== "http:" && parsedOrigin.protocol !== "https:") ||
       parsedOrigin.username ||
       parsedOrigin.password
     ) {
       throw new Error("STOREFRONT_ACCESS_RESOLVER_URL is invalid");
     }
-    this.endpoint = new URL(
-      "/internal/storefront-access/resolve",
-      parsedOrigin,
-    );
+    this.endpoint = new URL("/internal/storefront-access/resolve", parsedOrigin);
   }
 
   async resolve(input: {
@@ -49,23 +37,20 @@ export class StorefrontAccessClient {
     readonly buyerIp?: string;
     readonly requestId: string;
   }): Promise<ResolvedStorefrontAccessContext | null> {
-    const response = await fetch(
-      this.endpoint,
-      {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${this.serviceToken}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          token: input.token,
-          accessMode: input.accessMode,
-          ...(input.buyerIp ? { buyerIp: input.buyerIp } : {}),
-          requestId: input.requestId,
-        }),
-        signal: AbortSignal.timeout(this.timeoutMs),
+    const response = await fetch(this.endpoint, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${this.serviceToken}`,
+        "content-type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        token: input.token,
+        accessMode: input.accessMode,
+        ...(input.buyerIp ? { buyerIp: input.buyerIp } : {}),
+        requestId: input.requestId,
+      }),
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
     if (response.status === 401) {
       const code = await readErrorCode(response);
       if (code === "STOREFRONT_CREDENTIAL_INVALID") return null;
@@ -83,9 +68,7 @@ export class StorefrontAccessClient {
 async function readErrorCode(response: Response): Promise<string | undefined> {
   try {
     const value = (await response.json()) as unknown;
-    return isRecord(value) && typeof value.code === "string"
-      ? value.code
-      : undefined;
+    return isRecord(value) && typeof value.code === "string" ? value.code : undefined;
   } catch {
     await discardResponse(response);
     return undefined;

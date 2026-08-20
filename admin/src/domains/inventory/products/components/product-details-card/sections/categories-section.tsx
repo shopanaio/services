@@ -2,15 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { App, Button, Dropdown, Flex, Tag } from "antd";
-import { LuFolder as FolderOutlined, LuEllipsis as MoreOutlined, LuPlus as PlusOutlined, LuStar as StarFilled } from "react-icons/lu";
+import {
+  LuFolder as FolderOutlined,
+  LuEllipsis as MoreOutlined,
+  LuPlus as PlusOutlined,
+  LuStar as StarFilled,
+} from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useCategoryPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
 import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
-import type {
-  ApiCategory,
-  ApiCategoryCategoriesMetaInput,
-} from "@/graphql/types";
+import type { ApiCategory, ApiCategoryCategoriesMetaInput } from "@/graphql/types";
 import { CategoryHierarchyScopeMode } from "@/graphql/types";
 import {
   useAddCategoryProduct,
@@ -45,9 +47,7 @@ export const CategoriesSection = ({
   const { addCategoryProduct } = useAddCategoryProduct();
   const { removeCategoryProduct } = useRemoveCategoryProduct();
   const { setCategoryProductPrimary } = useSetCategoryProductPrimary();
-  const [pendingCategoryId, setPendingCategoryId] = useState<string | null>(
-    null,
-  );
+  const [pendingCategoryId, setPendingCategoryId] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryItem[]>(() => {
     if (initialPrimaryCategory) {
       return [
@@ -62,9 +62,7 @@ export const CategoriesSection = ({
   const [primaryCategoryId, setPrimaryCategoryId] = useState<string | null>(
     initialPrimaryCategory?.id ?? null,
   );
-  const initialCategoriesKey = initialCategories
-    .map((category) => category.id)
-    .join("|");
+  const initialCategoriesKey = initialCategories.map((category) => category.id).join("|");
   const initialPrimaryCategoryId = initialPrimaryCategory?.id ?? null;
 
   useEffect(() => {
@@ -81,11 +79,8 @@ export const CategoriesSection = ({
     setPrimaryCategoryId(initialPrimaryCategory?.id ?? null);
   }, [initialCategoriesKey, initialPrimaryCategoryId]);
 
-  const primaryCategory =
-    categories.find((cat) => cat.id === primaryCategoryId) ?? null;
-  const nonPrimaryCategories = categories.filter(
-    (cat) => cat.id !== primaryCategoryId,
-  );
+  const primaryCategory = categories.find((cat) => cat.id === primaryCategoryId) ?? null;
+  const nonPrimaryCategories = categories.filter((cat) => cat.id !== primaryCategoryId);
 
   const refreshProduct = async () => {
     try {
@@ -160,7 +155,7 @@ export const CategoriesSection = ({
             },
           }
         : undefined,
-    [productId]
+    [productId],
   );
 
   const addCategories = async (entities: IPickableEntity[]) => {
@@ -201,9 +196,7 @@ export const CategoriesSection = ({
       }
       await refreshProduct();
       message.success(
-        newCategories.length === 1
-          ? "Category added to product"
-          : "Categories added to product",
+        newCategories.length === 1 ? "Category added to product" : "Categories added to product",
       );
     } finally {
       setPendingCategoryId(null);

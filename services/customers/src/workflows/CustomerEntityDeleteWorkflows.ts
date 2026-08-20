@@ -39,9 +39,7 @@ abstract class CustomerEntityDeleteWorkflow extends BrokerWorkflows {
     return Kernel.getInstance();
   }
 
-  protected toScriptContext(
-    context: CustomerMutationWorkflowContext
-  ): RunScriptContext {
+  protected toScriptContext(context: CustomerMutationWorkflowContext): RunScriptContext {
     return {
       storeId: context.storeId,
       organizationId: context.organizationId,
@@ -50,7 +48,6 @@ abstract class CustomerEntityDeleteWorkflow extends BrokerWorkflows {
       requestId: context.requestId,
     };
   }
-
 }
 
 @Injectable()
@@ -66,9 +63,7 @@ export class CustomerGroupDeleteWorkflow extends CustomerEntityDeleteWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CustomerGroupDeleteWorkflowInput
-  ): Promise<CustomerGroupDeleteWorkflowResult> {
+  async run(input: CustomerGroupDeleteWorkflowInput): Promise<CustomerGroupDeleteWorkflowResult> {
     return this.stepDelete(input);
   }
 
@@ -77,7 +72,7 @@ export class CustomerGroupDeleteWorkflow extends CustomerEntityDeleteWorkflow {
     return this.kernel.runScript(
       CustomerGroupDeleteScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 }
@@ -95,9 +90,7 @@ export class CustomerTagDeleteWorkflow extends CustomerEntityDeleteWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CustomerTagDeleteWorkflowInput
-  ): Promise<CustomerTagDeleteWorkflowResult> {
+  async run(input: CustomerTagDeleteWorkflowInput): Promise<CustomerTagDeleteWorkflowResult> {
     return this.stepDelete(input);
   }
 
@@ -106,7 +99,7 @@ export class CustomerTagDeleteWorkflow extends CustomerEntityDeleteWorkflow {
     return this.kernel.runScript(
       CustomerTagDeleteScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 }
@@ -125,7 +118,7 @@ export class CustomerSegmentDeleteWorkflow extends CustomerEntityDeleteWorkflow 
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: CustomerSegmentDeleteWorkflowInput
+    input: CustomerSegmentDeleteWorkflowInput,
   ): Promise<CustomerSegmentDeleteWorkflowResult> {
     return this.stepDelete(input);
   }
@@ -135,7 +128,7 @@ export class CustomerSegmentDeleteWorkflow extends CustomerEntityDeleteWorkflow 
     return this.kernel.runScript(
       CustomerSegmentDeleteScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 }
@@ -153,9 +146,7 @@ export class CustomerMergeDeleteWorkflow extends CustomerEntityDeleteWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CustomerMergeDeleteWorkflowInput
-  ): Promise<CustomerMergeDeleteWorkflowResult> {
+  async run(input: CustomerMergeDeleteWorkflowInput): Promise<CustomerMergeDeleteWorkflowResult> {
     return this.stepDelete(input);
   }
 
@@ -164,7 +155,7 @@ export class CustomerMergeDeleteWorkflow extends CustomerEntityDeleteWorkflow {
     return this.kernel.runScript(
       CustomerMergeDeleteScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 }
@@ -183,7 +174,7 @@ export class CustomerDataRequestDeleteWorkflow extends CustomerEntityDeleteWorkf
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: CustomerDataRequestDeleteWorkflowInput
+    input: CustomerDataRequestDeleteWorkflowInput,
   ): Promise<CustomerDataRequestDeleteWorkflowResult> {
     return this.stepDelete(input);
   }
@@ -193,7 +184,7 @@ export class CustomerDataRequestDeleteWorkflow extends CustomerEntityDeleteWorkf
     return this.kernel.runScript(
       CustomerDataRequestDeleteScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 }

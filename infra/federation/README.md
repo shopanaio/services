@@ -37,6 +37,7 @@ yarn dev
 ## Adding a new subgraph
 
 1. Add config to `scripts/export-schemas.ts`:
+
 ```typescript
 {
   name: "my-service-admin",
@@ -47,6 +48,7 @@ yarn dev
 ```
 
 2. Add to `supergraph.yaml`:
+
 ```yaml
 - name: my-service-admin
   routing_url: http://localhost:10010/graphql

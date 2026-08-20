@@ -100,9 +100,7 @@ export class ExternalMediaRepository {
    * Delete an external media record
    */
   async delete(fileId: string): Promise<void> {
-    await this.db
-      .delete(externalMedia)
-      .where(eq(externalMedia.fileId, fileId));
+    await this.db.delete(externalMedia).where(eq(externalMedia.fileId, fileId));
   }
 
   /**
@@ -113,10 +111,7 @@ export class ExternalMediaRepository {
       .select()
       .from(externalMedia)
       .where(
-        and(
-          eq(externalMedia.assetGroupId, assetGroupId),
-          eq(externalMedia.externalId, externalId)
-        )
+        and(eq(externalMedia.assetGroupId, assetGroupId), eq(externalMedia.externalId, externalId)),
       )
       .limit(1);
 

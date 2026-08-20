@@ -1,9 +1,5 @@
 import { gql } from "@apollo/client";
-import {
-  USER_FRAGMENT,
-  AUTH_TOKEN_FRAGMENT,
-  USER_ERROR_FRAGMENT,
-} from "./fragments";
+import { USER_FRAGMENT, AUTH_TOKEN_FRAGMENT, USER_ERROR_FRAGMENT } from "./fragments";
 
 /**
  * GraphQL mutations for auth domain.

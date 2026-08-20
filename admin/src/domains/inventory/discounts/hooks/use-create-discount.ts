@@ -2,11 +2,7 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
-import type {
-  ApiDiscount,
-  ApiDiscountCreateInput,
-  ApiGenericUserError,
-} from "@/graphql/types";
+import type { ApiDiscount, ApiDiscountCreateInput, ApiGenericUserError } from "@/graphql/types";
 import { DISCOUNT_CREATE_MUTATION } from "../graphql";
 import type {
   DiscountCreateMutationData,
@@ -43,9 +39,7 @@ export function useCreateDiscount(): UseCreateDiscountReturn {
         };
       } catch (caughtError) {
         const message =
-          caughtError instanceof Error
-            ? caughtError.message
-            : "An unexpected error occurred";
+          caughtError instanceof Error ? caughtError.message : "An unexpected error occurred";
 
         return {
           discount: null,

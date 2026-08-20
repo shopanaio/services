@@ -6,9 +6,7 @@ import {
 
 export class CustomerMonetaryStatisticsConnectionResolver extends BaseConnectionResolver<CustomerMonetaryStatisticsConnectionInput> {
   $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel.repository.statistics.getMonetaryConnection(
-      this.$props
-    );
+    return this.$ctx.kernel.repository.statistics.getMonetaryConnection(this.$props);
   }
 
   protected createNodeResolver(nodeId: string) {

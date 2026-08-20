@@ -38,7 +38,9 @@ enum DiscountState {
   ARCHIVED
 }
 
-"""Lifecycle plus schedule-derived state used by Admin list views."""
+"""
+Lifecycle plus schedule-derived state used by Admin list views.
+"""
 enum DiscountEffectiveStatus {
   DRAFT
   SCHEDULED
@@ -122,7 +124,9 @@ enum DiscountExternalSyncStatus {
   DISABLED
 }
 
-"""Sections executed by the unified discountUpdate workflow."""
+"""
+Sections executed by the unified discountUpdate workflow.
+"""
 enum DiscountOperationType {
   DEFINITION_UPDATE
   FUNCTION_BINDING_UPDATE

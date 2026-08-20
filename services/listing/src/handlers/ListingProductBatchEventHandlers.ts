@@ -40,12 +40,12 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
         eventCount: params.events.length,
         productIds: params.payloads.map((payload) => payload.productId),
       },
-      "Received productCreated event batch"
+      "Received productCreated event batch",
     );
 
     return this.handleProductEventBatch(
       params.events,
-      "Failed to enqueue productCreated listing batch sync"
+      "Failed to enqueue productCreated listing batch sync",
     );
   }
 
@@ -59,18 +59,18 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
         eventCount: params.events.length,
         productIds: params.payloads.map((payload) => payload.productId),
       },
-      "Received productUpdated event batch"
+      "Received productUpdated event batch",
     );
 
     return this.handleProductEventBatch(
       params.events,
-      "Failed to enqueue productUpdated listing batch sync"
+      "Failed to enqueue productUpdated listing batch sync",
     );
   }
 
   private async handleProductEventBatch(
     events: readonly ProductIndexBatchEvent[],
-    logMessage: string
+    logMessage: string,
   ): Promise<EventBatchHandlerResponse> {
     const failedEventIds: string[] = [];
     const errors: string[] = [];
@@ -104,7 +104,7 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
   }
 
   private async enqueueProductIndexBatchWorkflow(
-    events: readonly ProductIndexBatchEvent[]
+    events: readonly ProductIndexBatchEvent[],
   ): Promise<void> {
     // Several product events for the same product can be claimed in one batch
     // window. The batch workflow should only receive the latest event per
@@ -155,32 +155,26 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
       items: actionItems,
       effectiveIdempotencyKey,
     };
-    const idempotencyCtx =
-      buildListingProductEventBatchWorkflowIdempotencyContext({
-        organizationId,
-        storeId,
-        eventsHash: effectiveIdempotencyKey,
-      });
+    const idempotencyCtx = buildListingProductEventBatchWorkflowIdempotencyContext({
+      organizationId,
+      storeId,
+      eventsHash: effectiveIdempotencyKey,
+    });
     const workflowId = buildListingProductEventBatchWorkflowId({
       idempotencyCtx,
     });
 
     try {
-      await this.broker.startWorkflow(
-        "listing.batchProductIndex",
-        action,
-        idempotencyCtx,
-        {
-          queueName: LISTING_INDEX_ACTIONS_QUEUE,
-          enqueueOptions: {
-            queuePartitionKey: buildListingProductEventBatchQueuePartitionKey({
-              storeId,
-            }),
-          },
-          timeoutMS: LISTING_INDEX_WORKFLOW_TIMEOUT_MS,
-          workflowId,
-        }
-      );
+      await this.broker.startWorkflow("listing.batchProductIndex", action, idempotencyCtx, {
+        queueName: LISTING_INDEX_ACTIONS_QUEUE,
+        enqueueOptions: {
+          queuePartitionKey: buildListingProductEventBatchQueuePartitionKey({
+            storeId,
+          }),
+        },
+        timeoutMS: LISTING_INDEX_WORKFLOW_TIMEOUT_MS,
+        workflowId,
+      });
     } catch (error) {
       if (isDuplicateWorkflowStartError(error, workflowId)) return;
 
@@ -192,7 +186,7 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
           storeId,
           itemCount: items.length,
         },
-        "Failed to start listing batch product index workflow"
+        "Failed to start listing batch product index workflow",
       );
       throw error;
     }
@@ -202,7 +196,7 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
 type ProductIndexBatchEvent = ProductCreatedEvent | ProductUpdatedEvent;
 
 function groupProductIndexBatchEvents(
-  events: readonly ProductIndexBatchEvent[]
+  events: readonly ProductIndexBatchEvent[],
 ): Map<string, ProductIndexBatchEvent[]> {
   const groups = new Map<string, ProductIndexBatchEvent[]>();
 
@@ -221,7 +215,7 @@ function groupProductIndexBatchEvents(
 }
 
 function coalesceLatestProductIndexEvents(
-  events: readonly ProductIndexBatchEvent[]
+  events: readonly ProductIndexBatchEvent[],
 ): ProductIndexBatchEvent[] {
   const latestByProductId = new Map<string, ProductIndexBatchEvent>();
 
@@ -235,9 +229,7 @@ function coalesceLatestProductIndexEvents(
     }
   }
 
-  return [...latestByProductId.values()].sort(
-    (a, b) => getEventSequence(a) - getEventSequence(b)
-  );
+  return [...latestByProductId.values()].sort((a, b) => getEventSequence(a) - getEventSequence(b));
 }
 
 function getEventSequence(event: ProductIndexBatchEvent): number {
@@ -249,9 +241,7 @@ function getEventSequence(event: ProductIndexBatchEvent): number {
     return event.eventSequence;
   }
 
-  throw new Error(
-    `Domain event ${event.eventId} is missing a positive eventSequence`
-  );
+  throw new Error(`Domain event ${event.eventId} is missing a positive eventSequence`);
 }
 
 function buildMeta(event: ProductIndexBatchEvent): Listing.ListingUpdateMeta {

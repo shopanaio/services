@@ -51,7 +51,10 @@ export class AuthModule {
     return this.http.get(ctx, `/api/get-account${query}`);
   }
 
-  signup(ctx: RequestContext, values: Record<string, unknown>): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
+  signup(
+    ctx: RequestContext,
+    values: Record<string, unknown>,
+  ): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
     return this.http.post(ctx, "/api/signup", values);
   }
 
@@ -64,7 +67,10 @@ export class AuthModule {
     return this.http.get(ctx, `/api/get-email-and-phone?${params.toString()}`);
   }
 
-  getApplicationLogin(ctx: RequestContext, params?: GetAppLoginParams): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
+  getApplicationLogin(
+    ctx: RequestContext,
+    params?: GetAppLoginParams,
+  ): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
     let query = "";
     if (params?.type === "cas") {
       query = casLoginParamsToQuery(params);
@@ -76,17 +82,29 @@ export class AuthModule {
     return this.http.get(ctx, `/api/get-app-login${query}`);
   }
 
-  login(ctx: RequestContext, values: LoginRequest, oAuthParams?: OAuthParams): Promise<CasdoorHttpResult<LoginResponse>> {
+  login(
+    ctx: RequestContext,
+    values: LoginRequest,
+    oAuthParams?: OAuthParams,
+  ): Promise<CasdoorHttpResult<LoginResponse>> {
     const query = oAuthParamsToQuery(oAuthParams);
     return this.http.post(ctx, `/api/login${query}`, values);
   }
 
-  loginCas(ctx: RequestContext, values: LoginRequest, cas: { service: string }): Promise<CasdoorHttpResult<LoginResponse>> {
+  loginCas(
+    ctx: RequestContext,
+    values: LoginRequest,
+    cas: { service: string },
+  ): Promise<CasdoorHttpResult<LoginResponse>> {
     const params = new URLSearchParams({ service: cas.service });
     return this.http.post(ctx, `/api/login?${params.toString()}`, values);
   }
 
-  loginWithSaml(ctx: RequestContext, values: LoginRequest, param: string): Promise<CasdoorHttpResult<LoginResponse>> {
+  loginWithSaml(
+    ctx: RequestContext,
+    values: LoginRequest,
+    param: string,
+  ): Promise<CasdoorHttpResult<LoginResponse>> {
     return this.http.post(ctx, `/api/login${param}`, values);
   }
 
@@ -94,21 +112,34 @@ export class AuthModule {
     return this.http.post(ctx, "/api/logout");
   }
 
-  unlink(ctx: RequestContext, values: Record<string, unknown>): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
+  unlink(
+    ctx: RequestContext,
+    values: Record<string, unknown>,
+  ): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
     return this.http.post(ctx, "/api/unlink", values);
   }
 
-  getSamlLogin(ctx: RequestContext, providerId: string, relayState: string): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
+  getSamlLogin(
+    ctx: RequestContext,
+    providerId: string,
+    relayState: string,
+  ): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
     const params = new URLSearchParams({ id: providerId, relayState });
     return this.http.get(ctx, `/api/get-saml-login?${params.toString()}`);
   }
 
-  getWebhookEvent(ctx: RequestContext, ticket: string): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
+  getWebhookEvent(
+    ctx: RequestContext,
+    ticket: string,
+  ): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
     const params = new URLSearchParams({ ticket });
     return this.http.get(ctx, `/api/get-webhook-event?${params.toString()}`);
   }
 
-  getQrCode(ctx: RequestContext, providerId: string): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
+  getQrCode(
+    ctx: RequestContext,
+    providerId: string,
+  ): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
     const params = new URLSearchParams({ id: providerId });
     return this.http.get(ctx, `/api/get-qrcode?${params.toString()}`);
   }
@@ -121,4 +152,3 @@ export class AuthModule {
     return this.http.get(ctx, `/api/get-captcha-status?${params.toString()}`);
   }
 }
-

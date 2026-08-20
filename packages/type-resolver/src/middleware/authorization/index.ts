@@ -9,10 +9,7 @@ export type {
 } from "./types.js";
 
 // Error
-export {
-  TypeAuthorizationConfigurationError,
-  TypeAuthorizationError,
-} from "./error.js";
+export { TypeAuthorizationConfigurationError, TypeAuthorizationError } from "./error.js";
 
 // Decorator
 export { TypePolicy } from "./decorator.js";

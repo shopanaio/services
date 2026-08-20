@@ -3,12 +3,14 @@
 import { useState, useCallback } from "react";
 import { Upload, Input, Button, Tabs, message, Progress } from "antd";
 import { Paper } from "@/ui-kit/paper";
-import { LuCloudUpload as CloudUploadOutlined, LuLink as LinkOutlined, LuTrash2 as DeleteOutlined, LuCircleHelp as InfoCircleOutlined, LuCirclePlay as PlayCircleOutlined } from "react-icons/lu";
 import {
-  ModalLayout,
-  ModalHeader,
-  useModalStackContext,
-} from "@/layouts/modals";
+  LuCloudUpload as CloudUploadOutlined,
+  LuLink as LinkOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuCircleHelp as InfoCircleOutlined,
+  LuCirclePlay as PlayCircleOutlined,
+} from "react-icons/lu";
+import { ModalLayout, ModalHeader, useModalStackContext } from "@/layouts/modals";
 import { useStyles } from "./upload-media-modal.styles";
 import { parseMediaUrl } from "./upload-media-modal.utils";
 import { useUploadFiles } from "@/domains/media/hooks";
@@ -47,7 +49,13 @@ export const UploadMediaModal = () => {
   const { styles } = useStyles();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IUploadMediaModalPayload;
-  const { uploadFiles, uploadFromUrl, createExternal, loading: uploading, progress } = useUploadFiles();
+  const {
+    uploadFiles,
+    uploadFromUrl,
+    createExternal,
+    loading: uploading,
+    progress,
+  } = useUploadFiles();
 
   // Props from payload with defaults
   const accept = typedPayload?.accept ?? "image/*,video/*";
@@ -102,7 +110,7 @@ export const UploadMediaModal = () => {
       }
       return false;
     },
-    [maxFiles, maxSize, uploadFiles, onUploadCallback, pop]
+    [maxFiles, maxSize, uploadFiles, onUploadCallback, pop],
   );
 
   // Handle URL add
@@ -129,9 +137,7 @@ export const UploadMediaModal = () => {
       const parsed = await parseMediaUrl(trimmedUrl);
 
       if (!parsed) {
-        message.error(
-          "Invalid URL. Please enter a valid image or YouTube URL."
-        );
+        message.error("Invalid URL. Please enter a valid image or YouTube URL.");
         return;
       }
 
@@ -222,11 +228,7 @@ export const UploadMediaModal = () => {
         {media.type === "youtube" ? (
           <div className={styles.previewVideo}>
             {media.thumbnailUrl ? (
-              <img
-                src={media.thumbnailUrl}
-                alt={media.name}
-                className={styles.previewImage}
-              />
+              <img src={media.thumbnailUrl} alt={media.name} className={styles.previewImage} />
             ) : (
               <PlayCircleOutlined style={{ fontSize: 32 }} />
             )}
@@ -236,11 +238,7 @@ export const UploadMediaModal = () => {
             <PlayCircleOutlined style={{ fontSize: 32 }} />
           </div>
         ) : (
-          <img
-            src={thumbnailUrl}
-            alt={media.name}
-            className={styles.previewImage}
-          />
+          <img src={thumbnailUrl} alt={media.name} className={styles.previewImage} />
         )}
         <button
           className={styles.previewRemove}
@@ -296,10 +294,7 @@ export const UploadMediaModal = () => {
           <div className={styles.tabContent}>
             {/* Upload Tab Content */}
             {activeTab === "upload" && (
-              <div
-                className={styles.draggerWrapper}
-                data-testid="upload-media-file-dragger"
-              >
+              <div className={styles.draggerWrapper} data-testid="upload-media-file-dragger">
                 <Dragger
                   className={styles.dragger}
                   multiple
@@ -310,8 +305,7 @@ export const UploadMediaModal = () => {
                   <CloudUploadOutlined className={styles.uploadIcon} />
                   <p className={styles.uploadTitle}>Drag and drop files here</p>
                   <p className={styles.uploadHint}>
-                    or <span className={styles.browseLink}>browse</span> to
-                    choose files
+                    or <span className={styles.browseLink}>browse</span> to choose files
                   </p>
                   <p className={styles.uploadFormats}>
                     Images (JPG, PNG, GIF, WebP) or Videos (MP4, WebM)
@@ -355,9 +349,7 @@ export const UploadMediaModal = () => {
             <div className={styles.previewTitle}>
               Added URLs ({urlMedia.length}/{maxFiles})
             </div>
-            <div className={styles.previewGrid}>
-              {urlMedia.map(renderPreviewItem)}
-            </div>
+            <div className={styles.previewGrid}>{urlMedia.map(renderPreviewItem)}</div>
           </div>
         )}
 
@@ -371,10 +363,7 @@ export const UploadMediaModal = () => {
         {/* Footer Info */}
         <div className={styles.footerInfo}>
           <InfoCircleOutlined className={styles.infoIcon} />
-          <span>
-            First image will be set as the featured media. Drag to reorder after
-            upload.
-          </span>
+          <span>First image will be set as the featured media. Drag to reorder after upload.</span>
         </div>
       </div>
     </ModalLayout>

@@ -1,29 +1,10 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
-import {
-  Alert,
-  App,
-  Checkbox,
-  Flex,
-  Input,
-  InputNumber,
-  Typography,
-} from "antd";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, App, Checkbox, Flex, Input, InputNumber, Typography } from "antd";
 import { LuInfo } from "react-icons/lu";
-import {
-  DiscountClass,
-  DiscountMethod,
-} from "@/graphql/types";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { DiscountClass, DiscountMethod } from "@/graphql/types";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useUpdateDiscount } from "../../hooks";
 import {
@@ -32,9 +13,7 @@ import {
   validateDiscountAvailabilityForm,
   type DiscountAvailabilityFormValues,
 } from "../../mappers";
-import type {
-  IDiscountAvailabilityEditModalPayload,
-} from "../../modals";
+import type { IDiscountAvailabilityEditModalPayload } from "../../modals";
 import { useEditAvailabilityModalStyles } from "./edit-availability-modal.styles";
 
 const COMBINATIONS = [
@@ -65,52 +44,40 @@ export function EditAvailabilityModal() {
   const { styles } = useEditAvailabilityModalStyles();
   const { message } = App.useApp();
   const { payload, pop, forcePop, setDirty } = useModalStackContext();
-  const { discount, onSaved } =
-    payload as IDiscountAvailabilityEditModalPayload;
+  const { discount, onSaved } = payload as IDiscountAvailabilityEditModalPayload;
   const mutation = useUpdateDiscount();
-  const [values, setValues] = useState(() =>
-    createDiscountAvailabilityFormValues(discount),
-  );
+  const [values, setValues] = useState(() => createDiscountAvailabilityFormValues(discount));
   const [initialSnapshot] = useState(() =>
     serializeValues(createDiscountAvailabilityFormValues(discount)),
   );
   const [formError, setFormError] = useState<string | null>(null);
   const dirty = serializeValues(values) !== initialSnapshot;
   const enabledCombinations = values.combinesWith.length;
-  const timezone =
-    Intl.DateTimeFormat().resolvedOptions().timeZone || "Local time";
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Local time";
   const isCodeDiscount = discount.method === DiscountMethod.Code;
 
   useEffect(() => {
     setDirty(dirty);
   }, [dirty, setDirty]);
 
-  const updateValues = useCallback(
-    (changes: Partial<DiscountAvailabilityFormValues>) => {
-      setValues((current) => ({ ...current, ...changes }));
-      setFormError(null);
-    },
-    [],
-  );
+  const updateValues = useCallback((changes: Partial<DiscountAvailabilityFormValues>) => {
+    setValues((current) => ({ ...current, ...changes }));
+    setFormError(null);
+  }, []);
 
   const toggleCombination = useCallback(
     (discountClass: DiscountClass, enabled: boolean) => {
       updateValues({
         combinesWith: enabled
           ? [...new Set([...values.combinesWith, discountClass])]
-          : values.combinesWith.filter(
-              (item) => item !== discountClass,
-            ),
+          : values.combinesWith.filter((item) => item !== discountClass),
       });
     },
     [updateValues, values.combinesWith],
   );
 
   const save = useCallback(async () => {
-    const validationErrors = validateDiscountAvailabilityForm(
-      discount,
-      values,
-    );
+    const validationErrors = validateDiscountAvailabilityForm(discount, values);
     if (validationErrors.length > 0) {
       setFormError(validationErrors.join(" "));
       return;
@@ -124,8 +91,7 @@ export function EditAvailabilityModal() {
 
     if (!result.discount || result.errors.length > 0) {
       setFormError(
-        result.errors.map((error) => error.message).join(" ") ||
-          "Unable to update availability.",
+        result.errors.map((error) => error.message).join(" ") || "Unable to update availability.",
       );
       return;
     }
@@ -138,15 +104,7 @@ export function EditAvailabilityModal() {
         message.error("Discount saved, but the details could not be refreshed");
       });
     }
-  }, [
-    discount,
-    forcePop,
-    message,
-    mutation,
-    onSaved,
-    setDirty,
-    values,
-  ]);
+  }, [discount, forcePop, message, mutation, onSaved, setDirty, values]);
 
   const errorMessage = formError ?? mutation.error?.message ?? null;
 
@@ -169,18 +127,12 @@ export function EditAvailabilityModal() {
       bodyClassName={styles.body}
     >
       <div className={styles.container}>
-        {errorMessage ? (
-          <Alert type="error" showIcon message={errorMessage} />
-        ) : null}
+        {errorMessage ? <Alert type="error" showIcon message={errorMessage} /> : null}
 
         <Paper className={styles.section}>
           <PaperHeader
             title="Purchase eligibility"
-            actions={
-              <Typography.Text type="secondary">
-                At least one required
-              </Typography.Text>
-            }
+            actions={<Typography.Text type="secondary">At least one required</Typography.Text>}
           />
           <div className={styles.optionList}>
             <Checkbox
@@ -196,8 +148,7 @@ export function EditAvailabilityModal() {
               <span className={styles.optionCopy}>
                 <Typography.Text>One-time purchase</Typography.Text>
                 <Typography.Text className={styles.optionHelp}>
-                  appliesOnOneTimePurchase:{" "}
-                  {String(values.appliesOnOneTimePurchase)}
+                  appliesOnOneTimePurchase: {String(values.appliesOnOneTimePurchase)}
                 </Typography.Text>
               </span>
             </Checkbox>
@@ -214,8 +165,7 @@ export function EditAvailabilityModal() {
               <span className={styles.optionCopy}>
                 <Typography.Text>Subscription</Typography.Text>
                 <Typography.Text className={styles.optionHelp}>
-                  appliesOnSubscription:{" "}
-                  {String(values.appliesOnSubscription)}
+                  appliesOnSubscription: {String(values.appliesOnSubscription)}
                 </Typography.Text>
               </span>
             </Checkbox>
@@ -239,8 +189,7 @@ export function EditAvailabilityModal() {
               style={{ width: "100%" }}
             />
             <Typography.Text className={styles.fieldHelp}>
-              Optional usageLimit; must not be below reserved and consumed
-              usage.
+              Optional usageLimit; must not be below reserved and consumed usage.
             </Typography.Text>
           </div>
           <Checkbox
@@ -279,9 +228,7 @@ export function EditAvailabilityModal() {
                 className={styles.option}
                 checked={values.combinesWith.includes(option.value)}
                 data-testid={`discount-combination-${option.value.toLowerCase()}`}
-                onChange={(event) =>
-                  toggleCombination(option.value, event.target.checked)
-                }
+                onChange={(event) => toggleCombination(option.value, event.target.checked)}
               >
                 <span className={styles.optionCopy}>
                   <Typography.Text>{option.title}</Typography.Text>
@@ -295,8 +242,7 @@ export function EditAvailabilityModal() {
           <Flex align="center" gap={10} className={styles.info}>
             <LuInfo />
             <Typography.Text type="secondary">
-              Checked rows are submitted as the combinesWith DiscountClass
-              array.
+              Checked rows are submitted as the combinesWith DiscountClass array.
             </Typography.Text>
           </Flex>
         </Paper>
@@ -304,9 +250,7 @@ export function EditAvailabilityModal() {
         <Paper className={styles.section}>
           <PaperHeader
             title="Active dates"
-            actions={
-              <Typography.Text type="secondary">{timezone}</Typography.Text>
-            }
+            actions={<Typography.Text type="secondary">{timezone}</Typography.Text>}
           />
           <div className={styles.fieldGrid}>
             <div className={styles.field}>
@@ -318,13 +262,9 @@ export function EditAvailabilityModal() {
                 data-testid="discount-starts-at"
                 type="datetime-local"
                 value={values.startsAt}
-                onChange={(event) =>
-                  updateValues({ startsAt: event.target.value })
-                }
+                onChange={(event) => updateValues({ startsAt: event.target.value })}
               />
-              <Typography.Text className={styles.fieldHelp}>
-                Required DateTime.
-              </Typography.Text>
+              <Typography.Text className={styles.fieldHelp}>Required DateTime.</Typography.Text>
             </div>
             <div className={styles.field}>
               <Typography.Text strong className={styles.fieldLabel}>
@@ -335,9 +275,7 @@ export function EditAvailabilityModal() {
                 data-testid="discount-ends-at"
                 type="datetime-local"
                 value={values.endsAt}
-                onChange={(event) =>
-                  updateValues({ endsAt: event.target.value })
-                }
+                onChange={(event) => updateValues({ endsAt: event.target.value })}
               />
               <Typography.Text className={styles.fieldHelp}>
                 Optional DateTime; must be after startsAt.

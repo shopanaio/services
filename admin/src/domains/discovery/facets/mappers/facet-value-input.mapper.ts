@@ -1,8 +1,5 @@
 import { slugify } from "transliteration/dist/node/src/node/index.js";
-import type {
-  ApiFacetValueCreateInput,
-  ApiFacetValueUpdateInput,
-} from "@/graphql/types";
+import type { ApiFacetValueCreateInput, ApiFacetValueUpdateInput } from "@/graphql/types";
 
 export interface FacetValueFormInput {
   label: string;

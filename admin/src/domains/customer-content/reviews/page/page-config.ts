@@ -1,8 +1,5 @@
 import type { SortFieldMapping, UsePageConfigReturn } from "@/hooks";
-import type {
-  ApiReviewOrderByInput,
-  ApiReviewWhereInput,
-} from "@/graphql/types";
+import type { ApiReviewOrderByInput, ApiReviewWhereInput } from "@/graphql/types";
 import { ReviewOrderField } from "@/graphql/types";
 import type { ReviewsQueryVariables } from "../graphql/operation-types";
 
@@ -17,13 +14,8 @@ export const reviewSortFieldMapping: SortFieldMapping<ReviewOrderField> = {
   updatedAt: ReviewOrderField.UpdatedAt,
 };
 
-export const buildReviewSearchCondition = (
-  search: string,
-): Partial<ApiReviewWhereInput> => ({
-  _or: [
-    { title: { _containsi: search } },
-    { body: { _containsi: search } },
-  ],
+export const buildReviewSearchCondition = (search: string): Partial<ApiReviewWhereInput> => ({
+  _or: [{ title: { _containsi: search } }, { body: { _containsi: search } }],
 });
 
 export function buildReviewsQueryVariables(

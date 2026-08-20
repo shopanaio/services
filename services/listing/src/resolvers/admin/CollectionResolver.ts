@@ -29,18 +29,13 @@ export class CollectionResolver extends ListingType<AdminCollectionResolverProps
   }
 
   async products(args: AdminCollectionProductsArgs) {
-    const state = await this.$ctx.kernel.repository.collectionState.findState(
-      this.$props.id,
-    );
+    const state = await this.$ctx.kernel.repository.collectionState.findState(this.$props.id);
     if (!state || state.listingRevision !== this.$props.listingRevision) {
       throw new GraphQLError("Collection index is not ready", {
         extensions: { code: "COLLECTION_INDEX_NOT_READY" },
       });
     }
-    const currency =
-      args.currency?.trim() ||
-      this.$ctx.currency ||
-      this.$ctx.store.currencyCode;
+    const currency = args.currency?.trim() || this.$ctx.currency || this.$ctx.store.currencyCode;
     const evaluated =
       state.collectionType === "rule"
         ? await this.$ctx.kernel.repository.collectionRuleEvaluation.evaluate({
@@ -56,8 +51,10 @@ export class CollectionResolver extends ListingType<AdminCollectionResolverProps
         : null;
     const productBitmap =
       evaluated?.productBitmap ??
-      await this.$ctx.kernel.repository.collectionRuleEvaluation
-        .getManualMembership(this.$props.id, "admin");
+      (await this.$ctx.kernel.repository.collectionRuleEvaluation.getManualMembership(
+        this.$props.id,
+        "admin",
+      ));
     const listingArgs: ListingQueryArgs = {
       ...args,
       resolvedScope: {
@@ -66,11 +63,9 @@ export class CollectionResolver extends ListingType<AdminCollectionResolverProps
         listingRevision: state.listingRevision,
         rulesHash: state.rulesHash,
         productBitmap,
-        membershipBitmap:
-          evaluated?.membershipBitmap ?? productBitmap,
+        membershipBitmap: evaluated?.membershipBitmap ?? productBitmap,
         variantBitmap: evaluated?.variantBitmap ?? undefined,
-        manualSortScopeId:
-          state.collectionType === "manual" ? this.$props.id : undefined,
+        manualSortScopeId: state.collectionType === "manual" ? this.$props.id : undefined,
       },
       orderBy:
         args.orderBy ??
@@ -82,10 +77,7 @@ export class CollectionResolver extends ListingType<AdminCollectionResolverProps
   }
 }
 
-function defaultOrderBy(
-  sort: string,
-  direction: string,
-): ListingOrderByInput {
+function defaultOrderBy(sort: string, direction: string): ListingOrderByInput {
   switch (sort) {
     case "manual":
       return { by: "MANUAL" };

@@ -7,10 +7,7 @@ import type { PricingLineDiscountCandidate } from "../../discount-function-contr
 import { contentRevision } from "../../canonicalJson.js";
 import type { DiscountEvaluationSnapshot } from "../../infrastructure/DiscountEvaluationRepository.js";
 import { money } from "../componentPricing.js";
-import {
-  allocateNativeLineCandidate,
-  type DiscountOwner,
-} from "./NativeDiscountEngine.js";
+import { allocateNativeLineCandidate, type DiscountOwner } from "./NativeDiscountEngine.js";
 
 type Code = DiscountEvaluationSnapshot["codes"][number];
 
@@ -40,9 +37,7 @@ export function applyLineDiscountCandidates(input: {
   codeResolutions: readonly Pricing.PricingCheckoutDiscountCodeResolution[];
 }) {
   const flat = flatten(input.roots);
-  const remaining = new Map(
-    flat.map((line) => [line.lineId, BigInt(line.subtotal.amountMinor)]),
-  );
+  const remaining = new Map(flat.map((line) => [line.lineId, BigInt(line.subtotal.amountMinor)]));
   const applications: Pricing.PricingCheckoutDiscountApplication[] = [];
   const requirements: Pricing.PricingCheckoutDiscountUsageRequirement[] = [];
   const codes = [...input.codeResolutions];
@@ -54,36 +49,22 @@ export function applyLineDiscountCandidates(input: {
       rejectCandidate(codes, candidate, "COMBINATION_EXCLUDED");
       continue;
     }
-    const allocations = candidate.source.kind === "NATIVE"
-      ? allocateNativeLineCandidate(
-          candidate.owner,
-          flat,
-          remaining,
-          input.snapshot,
-        )
-      : allocateFunctionCandidate(candidate.source.candidate, flat, remaining);
+    const allocations =
+      candidate.source.kind === "NATIVE"
+        ? allocateNativeLineCandidate(candidate.owner, flat, remaining, input.snapshot)
+        : allocateFunctionCandidate(candidate.source.candidate, flat, remaining);
     const amount = allocations.reduce((sum, row) => sum + row.amount, 0n);
     if (amount === 0n) {
       rejectCandidate(codes, candidate, "TARGET_NOT_ELIGIBLE");
       continue;
     }
 
-    const application = applicationOf(
-      candidate,
-      allocations,
-      amount,
-      input.context.currencyCode,
-    );
+    const application = applicationOf(candidate, allocations, amount, input.context.currencyCode);
     applications.push(application);
-    requirements.push(
-      requirementOf(application, candidate, input.snapshot, input.context),
-    );
+    requirements.push(requirementOf(application, candidate, input.snapshot, input.context));
     acceptedOwners.add(candidate.owner.id);
     for (const allocation of allocations) {
-      remaining.set(
-        allocation.lineId,
-        remaining.get(allocation.lineId)! - allocation.amount,
-      );
+      remaining.set(allocation.lineId, remaining.get(allocation.lineId)! - allocation.amount);
     }
     markApplied(codes, candidate, application.applicationId);
   }
@@ -94,8 +75,7 @@ export function applyLineDiscountCandidates(input: {
   );
   requirements.sort(
     (left, right) =>
-      applicationOrder.get(left.applicationId)! -
-      applicationOrder.get(right.applicationId)!,
+      applicationOrder.get(left.applicationId)! - applicationOrder.get(right.applicationId)!,
   );
   return {
     lines: rebuild(input.roots, orderedApplications, input.context.currencyCode),
@@ -110,11 +90,10 @@ function allocateFunctionCandidate(
   lines: readonly Pricing.PricingCheckoutQuotedLine[],
   remaining: ReadonlyMap<string, bigint>,
 ) {
-  const targets = candidate.targets.type === "ORDER"
-    ? lines.filter((line) => line.contributesToTotals)
-    : candidate.targets.lineIds.map(
-        (lineId) => lines.find((line) => line.lineId === lineId)!,
-      );
+  const targets =
+    candidate.targets.type === "ORDER"
+      ? lines.filter((line) => line.contributesToTotals)
+      : candidate.targets.lineIds.map((lineId) => lines.find((line) => line.lineId === lineId)!);
   const values = targets
     .map((line) => ({
       lineId: line.lineId,
@@ -131,21 +110,16 @@ function allocateFunctionCandidate(
       amount: min(
         row.capacity,
         candidate.value.type === "PERCENTAGE"
-          ? row.capacity * BigInt(candidate.value.percentageBps) / 10_000n
+          ? (row.capacity * BigInt(candidate.value.percentageBps)) / 10_000n
           : BigInt(candidate.value.amount.amountMinor) * BigInt(row.quantity),
       ),
       quantity: null,
     }));
-    const uncappedAmount = allocations.reduce(
-      (sum, allocation) => sum + allocation.amount,
-      0n,
-    );
-    const cappedAmount = candidate.maximumDiscount === null
-      ? uncappedAmount
-      : min(
-          uncappedAmount,
-          BigInt(candidate.maximumDiscount.amountMinor),
-        );
+    const uncappedAmount = allocations.reduce((sum, allocation) => sum + allocation.amount, 0n);
+    const cappedAmount =
+      candidate.maximumDiscount === null
+        ? uncappedAmount
+        : min(uncappedAmount, BigInt(candidate.maximumDiscount.amountMinor));
     if (cappedAmount === uncappedAmount) {
       return allocations.filter((allocation) => allocation.amount > 0n);
     }
@@ -158,9 +132,10 @@ function allocateFunctionCandidate(
     );
   }
 
-  let desired = candidate.value.type === "PERCENTAGE"
-    ? total * BigInt(candidate.value.percentageBps) / 10_000n
-    : BigInt(candidate.value.amount.amountMinor);
+  let desired =
+    candidate.value.type === "PERCENTAGE"
+      ? (total * BigInt(candidate.value.percentageBps)) / 10_000n
+      : BigInt(candidate.value.amount.amountMinor);
   if (candidate.maximumDiscount !== null) {
     desired = min(desired, BigInt(candidate.maximumDiscount.amountMinor));
   }
@@ -174,9 +149,7 @@ function allocateProportionally(
   const total = values.reduce((sum, row) => sum + row.capacity, 0n);
   const amount = min(requested, total);
   if (amount === 0n || total === 0n) return [];
-  const shares = values.map((row) =>
-    min(row.capacity, amount * row.capacity / total),
-  );
+  const shares = values.map((row) => min(row.capacity, (amount * row.capacity) / total));
   let remainder = amount - shares.reduce((sum, share) => sum + share, 0n);
   for (let index = values.length - 1; index >= 0 && remainder > 0n; index--) {
     const capacity = values[index]!.capacity - shares[index]!;
@@ -185,9 +158,7 @@ function allocateProportionally(
     remainder -= extra;
   }
   return values.flatMap((row, index) =>
-    shares[index]! > 0n
-      ? [{ lineId: row.lineId, amount: shares[index]!, quantity: null }]
-      : [],
+    shares[index]! > 0n ? [{ lineId: row.lineId, amount: shares[index]!, quantity: null }] : [],
   );
 }
 
@@ -197,16 +168,17 @@ function applicationOf(
   amount: bigint,
   currencyCode: string,
 ): Pricing.PricingCheckoutDiscountApplication {
-  const source = candidate.source.kind === "NATIVE"
-    ? { kind: "NATIVE" as const }
-    : {
-        kind: "FUNCTION" as const,
-        functionBindingId: candidate.source.binding.functionBindingId,
-        implementationId: candidate.source.implementationId,
-        functionTarget: candidate.source.trace.target,
-        executionId: candidate.source.trace.executionId,
-        planRevision: candidate.source.trace.planRevision,
-      };
+  const source =
+    candidate.source.kind === "NATIVE"
+      ? { kind: "NATIVE" as const }
+      : {
+          kind: "FUNCTION" as const,
+          functionBindingId: candidate.source.binding.functionBindingId,
+          implementationId: candidate.source.implementationId,
+          functionTarget: candidate.source.trace.target,
+          executionId: candidate.source.trace.executionId,
+          planRevision: candidate.source.trace.planRevision,
+        };
   const mapped = allocations.map((allocation) => ({
     targetType: "LINE" as const,
     lineId: allocation.lineId,
@@ -224,21 +196,23 @@ function applicationOf(
     configurationRevision: String(candidate.owner.revision),
     discountClass: candidate.owner.discountClass,
     method: candidate.owner.method,
-    code: candidate.code && candidate.inputIndex !== null
-      ? {
-          codeId: candidate.code.id,
-          inputCode: candidate.inputCode!,
-          normalizedCode: candidate.code.normalizedCode!,
-        }
-      : null,
+    code:
+      candidate.code && candidate.inputIndex !== null
+        ? {
+            codeId: candidate.code.id,
+            inputCode: candidate.inputCode!,
+            normalizedCode: candidate.code.normalizedCode!,
+          }
+        : null,
     source,
     title: candidate.title,
     priority: candidate.owner.priority,
     amount: money(amount, currencyCode),
     allocations: mapped,
-    metadata: candidate.source.kind === "FUNCTION"
-      ? { candidateId: candidate.candidateId }
-      : asObject(candidate.owner.metadata),
+    metadata:
+      candidate.source.kind === "FUNCTION"
+        ? { candidateId: candidate.candidateId }
+        : asObject(candidate.owner.metadata),
   };
 }
 
@@ -248,12 +222,9 @@ function requirementOf(
   snapshot: DiscountEvaluationSnapshot,
   context: Pricing.PricingCheckoutEvaluationContext,
 ): Pricing.PricingCheckoutDiscountUsageRequirement {
-  const counter = snapshot.counters.find(
-    (row) => row.discountId === candidate.owner.id,
-  );
-  const codeCounter = candidate.code && snapshot.codeCounters.find(
-    (row) => row.codeId === candidate.code!.id,
-  );
+  const counter = snapshot.counters.find((row) => row.discountId === candidate.owner.id);
+  const codeCounter =
+    candidate.code && snapshot.codeCounters.find((row) => row.codeId === candidate.code!.id);
   return {
     applicationId: application.applicationId,
     discountId: candidate.owner.id,
@@ -280,10 +251,10 @@ function rebuild(
     const allocations = applications.flatMap((application) =>
       application.allocations
         .filter(
-          (row): row is Extract<
-            Pricing.PricingCheckoutDiscountAllocation,
-            { targetType: "LINE" }
-          > => row.targetType === "LINE" && row.lineId === line.lineId,
+          (
+            row,
+          ): row is Extract<Pricing.PricingCheckoutDiscountAllocation, { targetType: "LINE" }> =>
+            row.targetType === "LINE" && row.lineId === line.lineId,
         )
         .map((row) => ({
           applicationId: application.applicationId,
@@ -291,10 +262,7 @@ function rebuild(
           quantity: row.quantity,
         })),
     );
-    const discount = allocations.reduce(
-      (sum, row) => sum + BigInt(row.amount.amountMinor),
-      0n,
-    );
+    const discount = allocations.reduce((sum, row) => sum + BigInt(row.amount.amountMinor), 0n);
     return {
       ...line,
       total: money(BigInt(line.subtotal.amountMinor) - discount, currencyCode),
@@ -312,9 +280,7 @@ function compatible(
   return accepted.every(
     (application) =>
       snapshot.combinations.some(
-        (row) =>
-          row.discountId === owner.id &&
-          row.combinesWithClass === application.discountClass,
+        (row) => row.discountId === owner.id && row.combinesWithClass === application.discountClass,
       ) &&
       snapshot.combinations.some(
         (row) =>
@@ -324,10 +290,7 @@ function compatible(
   );
 }
 
-function compareCandidates(
-  left: LineDiscountCandidate,
-  right: LineDiscountCandidate,
-): number {
+function compareCandidates(left: LineDiscountCandidate, right: LineDiscountCandidate): number {
   return (
     classRank(left.owner.discountClass) - classRank(right.owner.discountClass) ||
     right.owner.priority - left.owner.priority ||
@@ -401,7 +364,7 @@ function flatten(
 
 function asObject(value: unknown): Pricing.PricingCheckoutJsonObject | null {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Pricing.PricingCheckoutJsonObject
+    ? (value as Pricing.PricingCheckoutJsonObject)
     : null;
 }
 

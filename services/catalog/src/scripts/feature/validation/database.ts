@@ -19,7 +19,7 @@ export interface DbValidationContext {
 export async function loadDbContext(
   repository: FeatureRepository,
   productId: string,
-  features: ValidatedFeatureInput[]
+  features: ValidatedFeatureInput[],
 ): Promise<DbValidationContext> {
   const featureIds = features.flatMap((f) => (f.id ? [f.id] : []));
   const existing = await repository.findByIds(productId, featureIds);
@@ -31,9 +31,7 @@ export async function loadDbContext(
 
   return {
     existingById: new Map(existing.map((f) => [f.id, { id: f.id, isGroup: f.isGroup }])),
-    valueIdsByFeatureId: new Map(
-      Array.from(valueIdMap.entries()).map(([k, v]) => [k, new Set(v)])
-    ),
+    valueIdsByFeatureId: new Map(Array.from(valueIdMap.entries()).map(([k, v]) => [k, new Set(v)])),
   };
 }
 
@@ -42,7 +40,7 @@ export async function loadDbContext(
  */
 export function validateDatabase(
   features: ValidatedFeatureInput[],
-  ctx: DbValidationContext
+  ctx: DbValidationContext,
 ): UserError[] {
   const errors: UserError[] = [];
 

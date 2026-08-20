@@ -1,8 +1,6 @@
 import type { Catalog } from "@shopana/broker-types";
 
-export function buildProductSnapshotSelection(
-  productId: string
-): Catalog.CatalogQuerySelection {
+export function buildProductSnapshotSelection(productId: string): Catalog.CatalogQuerySelection {
   return buildProductSnapshotSelectionFromArgs({
     first: 1,
     where: {
@@ -14,7 +12,7 @@ export function buildProductSnapshotSelection(
 }
 
 export function buildProductSnapshotBatchSelection(
-  productIds: readonly string[]
+  productIds: readonly string[],
 ): Catalog.CatalogQuerySelection {
   return buildProductSnapshotSelectionFromArgs({
     first: productIds.length,
@@ -27,7 +25,7 @@ export function buildProductSnapshotBatchSelection(
 }
 
 function buildProductSnapshotSelectionFromArgs(
-  args: Catalog.CatalogQueryProductsArgs
+  args: Catalog.CatalogQueryProductsArgs,
 ): Catalog.CatalogQuerySelection {
   return {
     populate: {

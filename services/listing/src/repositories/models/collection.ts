@@ -37,9 +37,7 @@ export const collectionState = listingSchema.table(
       withTimezone: true,
       mode: "string",
     }),
-    rulesJson: jsonb("rules_json")
-      .$type<CanonicalCollectionRule[]>()
-      .notNull(),
+    rulesJson: jsonb("rules_json").$type<CanonicalCollectionRule[]>().notNull(),
     rulesHash: text("rules_hash").notNull(),
     payloadHash: text("payload_hash").notNull(),
     eventSequence: bigint("event_sequence", { mode: "number" }).notNull(),
@@ -56,10 +54,7 @@ export const collectionState = listingSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.storeId, table.collectionId] }),
-    check(
-      "collection_state_type_check",
-      sql`${table.collectionType} IN ('manual', 'rule')`,
-    ),
+    check("collection_state_type_check", sql`${table.collectionType} IN ('manual', 'rule')`),
     check(
       "collection_state_sort_check",
       sql`${table.defaultSort} IN ('manual', 'price', 'newest', 'name')`,

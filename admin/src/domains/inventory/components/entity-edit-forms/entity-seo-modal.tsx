@@ -7,19 +7,10 @@ import { ModalHeader, ModalLayout } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SeoPreview } from "@/domains/inventory/components/entity-details-sections";
 import { useEntityEditFormStyles } from "./entity-edit-forms.styles";
-import {
-  OG_DESCRIPTION_MAX,
-  OG_TITLE_MAX,
-  SEO_DESCRIPTION_MAX,
-  SEO_TITLE_MAX,
-} from "./constants";
+import { OG_DESCRIPTION_MAX, OG_TITLE_MAX, SEO_DESCRIPTION_MAX, SEO_TITLE_MAX } from "./constants";
 import { FormField } from "./form-field";
 import { ImageUpload } from "./image-upload";
-import type {
-  EntityEditSubmitResult,
-  EntitySeoFormValues,
-  EntitySeoSubmitHelpers,
-} from "./types";
+import type { EntityEditSubmitResult, EntitySeoFormValues, EntitySeoSubmitHelpers } from "./types";
 
 interface EntitySeoModalProps {
   name: string;
@@ -118,9 +109,7 @@ export const EntitySeoModal = ({
               )}
             />
             {errors.seoTitle && (
-              <Typography.Text type="danger">
-                {errors.seoTitle.message}
-              </Typography.Text>
+              <Typography.Text type="danger">{errors.seoTitle.message}</Typography.Text>
             )}
           </FormField>
           <FormField label="Meta Description" isLast>
@@ -140,9 +129,7 @@ export const EntitySeoModal = ({
               )}
             />
             {errors.seoDescription && (
-              <Typography.Text type="danger">
-                {errors.seoDescription.message}
-              </Typography.Text>
+              <Typography.Text type="danger">{errors.seoDescription.message}</Typography.Text>
             )}
           </FormField>
         </Paper>
@@ -172,9 +159,7 @@ export const EntitySeoModal = ({
               )}
             />
             {errors.ogTitle && (
-              <Typography.Text type="danger">
-                {errors.ogTitle.message}
-              </Typography.Text>
+              <Typography.Text type="danger">{errors.ogTitle.message}</Typography.Text>
             )}
           </FormField>
           <FormField label="OG Description">
@@ -194,18 +179,14 @@ export const EntitySeoModal = ({
               )}
             />
             {errors.ogDescription && (
-              <Typography.Text type="danger">
-                {errors.ogDescription.message}
-              </Typography.Text>
+              <Typography.Text type="danger">{errors.ogDescription.message}</Typography.Text>
             )}
           </FormField>
           <FormField label="OG Image" isLast>
             <Controller
               name="ogImage"
               control={control}
-              render={({ field }) => (
-                <ImageUpload value={field.value} onChange={field.onChange} />
-              )}
+              render={({ field }) => <ImageUpload value={field.value} onChange={field.onChange} />}
             />
           </FormField>
         </Paper>

@@ -38,9 +38,7 @@ import {
 
 const MOCK_NOW = "2024-12-20T12:00:00.000Z";
 
-export const createMockPageInfo = (
-  overrides: Partial<ApiPageInfo> = {},
-): ApiPageInfo => ({
+export const createMockPageInfo = (overrides: Partial<ApiPageInfo> = {}): ApiPageInfo => ({
   __typename: "PageInfo",
   hasNextPage: false,
   hasPreviousPage: false,
@@ -73,9 +71,7 @@ export const createMockApiFile = (params: {
 }): ApiFile => ({
   __typename: "File",
   id: params.id,
-  url:
-    params.url ??
-    `https://picsum.photos/seed/${params.seed ?? params.id}/800/800`,
+  url: params.url ?? `https://picsum.photos/seed/${params.seed ?? params.id}/800/800`,
   originalName: params.name,
   altText: params.altText ?? null,
   ext: "jpg",
@@ -118,9 +114,7 @@ export const createMockApiProductOptionSwatch = (params: {
   colorTwo: params.colorTwo ?? null,
   file: params.file ?? null,
   metadata: null,
-  swatchType:
-    params.swatchType ??
-    (params.colorTwo ? SwatchType.Gradient : SwatchType.Color),
+  swatchType: params.swatchType ?? (params.colorTwo ? SwatchType.Gradient : SwatchType.Color),
 });
 
 export const createMockApiProductOptionValue = (params: {
@@ -210,9 +204,7 @@ export const createMockApiInventoryItemCost = (params: {
   effectiveFrom: params.effectiveFrom ?? MOCK_NOW,
 });
 
-export const createMockApiVariantWeight = (params: {
-  value: number;
-}): ApiVariantWeight => ({
+export const createMockApiVariantWeight = (params: { value: number }): ApiVariantWeight => ({
   __typename: "VariantWeight",
   value: params.value,
 });
@@ -235,12 +227,14 @@ const createMockWarehouseStockConnection = (): ApiWarehouseStock["warehouse"]["s
   totalCount: 0,
 });
 
-export const createMockApiWarehouse = (params: {
-  id?: string;
-  code?: string;
-  name?: string;
-  variantsCount?: number;
-} = {}): ApiWarehouse => ({
+export const createMockApiWarehouse = (
+  params: {
+    id?: string;
+    code?: string;
+    name?: string;
+    variantsCount?: number;
+  } = {},
+): ApiWarehouse => ({
   __typename: "Warehouse",
   id: params.id ?? "warehouse-main",
   code: params.code ?? "WH-MAIN",
@@ -277,8 +271,7 @@ export const createMockApiWarehouseStock = (params: {
     reservedQuantity,
     unavailableQuantity,
     availableForSale:
-      params.availableForSale ??
-      params.quantityOnHand - reservedQuantity - unavailableQuantity,
+      params.availableForSale ?? params.quantityOnHand - reservedQuantity - unavailableQuantity,
     variant,
     warehouse,
     createdAt: MOCK_NOW,
@@ -305,20 +298,18 @@ export const createMockApiInventoryItem = (params: {
   totalAvailable: params.totalAvailable ?? 0,
   unitCost: params.unitCost ?? null,
   trackInventory: params.trackInventory ?? true,
-  continueSellingWhenOutOfStock:
-    params.continueSellingWhenOutOfStock ?? false,
+  continueSellingWhenOutOfStock: params.continueSellingWhenOutOfStock ?? false,
   variant: params.variant ?? ({} as ApiVariant),
   createdAt: MOCK_NOW,
   updatedAt: MOCK_NOW,
 });
 
-export const createEmptyVariantPriceConnection =
-  (): ApiVariant["priceHistory"] => ({
-    __typename: "VariantPriceConnection",
-    edges: [],
-    pageInfo: createMockPageInfo(),
-    totalCount: 0,
-  });
+export const createEmptyVariantPriceConnection = (): ApiVariant["priceHistory"] => ({
+  __typename: "VariantPriceConnection",
+  edges: [],
+  pageInfo: createMockPageInfo(),
+  totalCount: 0,
+});
 
 export const createMockApiVariant = (params: {
   id: string;
@@ -383,8 +374,7 @@ export const createMockApiListingConnection = (): ApiListingConnection => ({
   totalCount: 0,
 });
 
-export const createMockApiCategoryProductConnection =
-  createMockApiListingConnection;
+export const createMockApiCategoryProductConnection = createMockApiListingConnection;
 
 export const createMockApiCategory = (params: {
   id: string;
@@ -438,9 +428,7 @@ export const createMockApiCategoryConnection = (
   })),
   pageInfo: createMockPageInfo({
     startCursor: categories.length ? "category-cursor-0" : null,
-    endCursor: categories.length
-      ? `category-cursor-${categories.length - 1}`
-      : null,
+    endCursor: categories.length ? `category-cursor-${categories.length - 1}` : null,
   }),
   totalCount: categories.length,
 });

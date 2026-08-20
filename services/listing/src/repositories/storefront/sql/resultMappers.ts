@@ -1,7 +1,4 @@
-import {
-  encodeCursorFloat64,
-  encodeListingCursor,
-} from "../cursor.js";
+import { encodeCursorFloat64, encodeListingCursor } from "../cursor.js";
 import {
   StorefrontRepositoryValidationError,
   type FacetRuntimeType,
@@ -71,7 +68,7 @@ export function mapPageRows(input: {
 
   const rawRows = input.rows.filter(
     (row): row is ParallelPageSqlRow & { productId: string; productDocId: number } =>
-      row.productId !== null && row.productDocId !== null
+      row.productId !== null && row.productDocId !== null,
   );
   const visibleRows = rawRows.slice(0, input.request.input.first);
 
@@ -87,7 +84,7 @@ export function mapTotalCountRows(rows: readonly TotalCountSqlRow[]): number {
 }
 
 export function mapFacetMetadataRows(
-  rows: readonly FacetMetadataSqlRow[]
+  rows: readonly FacetMetadataSqlRow[],
 ): StorefrontListingFacetResult[] {
   assertNoFacetResolutionError(rows);
 
@@ -157,7 +154,7 @@ export function mapVirtualFacetsRows(rows: readonly VirtualFacetsSqlRow[]): {
 
 function toListingPageRow(
   row: ParallelPageSqlRow & { productId: string; productDocId: number },
-  request: ResolvedListingRequest
+  request: ResolvedListingRequest,
 ): ListingPageRow {
   const cursorValues: ListingPageRow["cursorValues"] = {
     availabilityBucket: row.inStock ?? false,
@@ -171,9 +168,7 @@ function toListingPageRow(
       break;
     case "relevance":
       cursorValues.boosted = row.boosted ?? false;
-      cursorValues.relevanceScoreBits = encodeCursorFloat64(
-        row.relevanceScore ?? Number.NaN,
-      );
+      cursorValues.relevanceScoreBits = encodeCursorFloat64(row.relevanceScore ?? Number.NaN);
       if (request.searchCandidates?.attempt.mode === "FUZZY") {
         cursorValues.totalEditDistance = row.totalEditDistance;
         cursorValues.minimumTrigramSimilarityBits = encodeCursorFloat64(
@@ -204,9 +199,7 @@ function toListingPageRow(
           break;
         case "relevance":
           cursorValues.boosted = row.boosted ?? false;
-          cursorValues.relevanceScoreBits = encodeCursorFloat64(
-            row.relevanceScore ?? Number.NaN,
-          );
+          cursorValues.relevanceScoreBits = encodeCursorFloat64(row.relevanceScore ?? Number.NaN);
           if (request.searchCandidates?.attempt.mode === "FUZZY") {
             cursorValues.totalEditDistance = row.totalEditDistance;
             cursorValues.minimumTrigramSimilarityBits = encodeCursorFloat64(
@@ -234,8 +227,7 @@ function toListingPageRow(
     productId: row.productId,
     inStock: row.inStock ?? false,
     matchedVariantDocId: row.variantDocId ?? undefined,
-    matchedPriceMinor:
-      row.priceMinor === null ? undefined : Number(row.priceMinor),
+    matchedPriceMinor: row.priceMinor === null ? undefined : Number(row.priceMinor),
     identifierPriority: row.identifierPriority ?? undefined,
     boosted: row.boosted ?? undefined,
     relevanceScore: row.relevanceScore ?? undefined,
@@ -246,9 +238,7 @@ function toListingPageRow(
   };
 }
 
-function assertNoFacetResolutionError(
-  rows: readonly FacetGuardSqlRow[]
-): void {
+function assertNoFacetResolutionError(rows: readonly FacetGuardSqlRow[]): void {
   const errorRow = rows.find((row) => row.facetErrorCode);
   if (!errorRow?.facetErrorCode) {
     return;
@@ -259,25 +249,25 @@ function assertNoFacetResolutionError(
       throw new StorefrontRepositoryValidationError(
         `Unknown storefront facet value: ${errorRow.facetErrorValue}`,
         ["filters"],
-        errorRow.facetErrorCode
+        errorRow.facetErrorCode,
       );
     case "UNSUPPORTED_PRICE_FACET_FILTER":
       throw new StorefrontRepositoryValidationError(
         "PRICE facet filters must use price range input",
         ["filters"],
-        errorRow.facetErrorCode
+        errorRow.facetErrorCode,
       );
     case "INVALID_IN_STOCK_FACET_VALUE":
       throw new StorefrontRepositoryValidationError(
         "IN_STOCK facet value must be boolean-like",
         ["filters"],
-        errorRow.facetErrorCode
+        errorRow.facetErrorCode,
       );
     case "CONFLICTING_IN_STOCK_FILTERS":
       throw new StorefrontRepositoryValidationError(
         "Conflicting in-stock filters",
         ["filters"],
-        errorRow.facetErrorCode
+        errorRow.facetErrorCode,
       );
     case "VALUE_DISABLED":
     case "VALUE_REFERENCE_INVALID":
@@ -285,26 +275,20 @@ function assertNoFacetResolutionError(
     case "SOURCE_NOT_ROOT":
     case "VALUE_KIND_UNSUPPORTED":
       throw new StorefrontRepositoryValidationError(
-        invalidFacetFilterMessage(
-          errorRow.facetErrorCode,
-          errorRow.facetErrorValue
-        ),
+        invalidFacetFilterMessage(errorRow.facetErrorCode, errorRow.facetErrorValue),
         ["filters"],
-        errorRow.facetErrorCode
+        errorRow.facetErrorCode,
       );
     default:
       throw new StorefrontRepositoryValidationError(
         `Invalid storefront facet filter: ${errorRow.facetErrorValue ?? errorRow.facetErrorCode}`,
         ["filters"],
-        errorRow.facetErrorCode
+        errorRow.facetErrorCode,
       );
   }
 }
 
-function invalidFacetFilterMessage(
-  code: string,
-  value: string | null
-): string {
+function invalidFacetFilterMessage(code: string, value: string | null): string {
   const filterName = value ?? code;
 
   switch (code) {

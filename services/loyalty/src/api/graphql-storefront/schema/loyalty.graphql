@@ -24,10 +24,7 @@ type LoyaltyAccount {
   excluded by the server. The storefront must not reimplement entitlement state
   or date checks.
   """
-  availableRewards(
-    first: Int = 20
-    after: Cursor
-  ): LoyaltyAvailableRewardConnection!
+  availableRewards(first: Int = 20, after: Cursor): LoyaltyAvailableRewardConnection!
 
   """
   The nearest point expirations, ordered by expiresAt ascending.
@@ -50,7 +47,9 @@ enum LoyaltyAccountStatus {
   CLOSED
 }
 
-"""The customer's current point balances."""
+"""
+The customer's current point balances.
+"""
 type LoyaltyBalance {
   pendingPoints: UnsignedInt64!
   availablePoints: UnsignedInt64!
@@ -58,7 +57,9 @@ type LoyaltyBalance {
   debtPoints: UnsignedInt64!
 }
 
-"""The customer's current tier membership."""
+"""
+The customer's current tier membership.
+"""
 type LoyaltyTier {
   code: String!
   name: String!
@@ -67,7 +68,9 @@ type LoyaltyTier {
   effectiveTo: DateTime
 }
 
-"""Points scheduled to expire at the same time."""
+"""
+Points scheduled to expire at the same time.
+"""
 type LoyaltyPointsExpiration {
   points: UnsignedInt64!
   expiresAt: DateTime!
@@ -78,7 +81,9 @@ enum LoyaltyTransactionDirection {
   DEBIT
 }
 
-"""A stable customer-facing category rather than an internal ledger event kind."""
+"""
+A stable customer-facing category rather than an internal ledger event kind.
+"""
 enum LoyaltyTransactionType {
   EARNED
   REDEEMED
@@ -87,7 +92,9 @@ enum LoyaltyTransactionType {
   ADJUSTED
 }
 
-"""A customer-visible balance change."""
+"""
+A customer-visible balance change.
+"""
 type LoyaltyTransaction {
   id: ID!
   type: LoyaltyTransactionType!

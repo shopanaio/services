@@ -1,55 +1,57 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type {
-  CollectionClearProductsParams,
-  CollectionResult,
-} from "./dto/index.js";
+import type { CollectionClearProductsParams, CollectionResult } from "./dto/index.js";
 
 export class CollectionClearProductsScript extends BaseScript<
   CollectionClearProductsParams,
   CollectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: CollectionClearProductsParams,
-  ): Promise<CollectionResult> {
-    const collection =
-      await this.repository.collection.findByIdForUpdate(params.collectionId);
+  protected async execute(params: CollectionClearProductsParams): Promise<CollectionResult> {
+    const collection = await this.repository.collection.findByIdForUpdate(params.collectionId);
     if (!collection) {
       return {
         collection: undefined,
-        userErrors: [{
-          message: "Collection not found",
-          field: ["collectionId"],
-          code: "NOT_FOUND",
-        }],
+        userErrors: [
+          {
+            message: "Collection not found",
+            field: ["collectionId"],
+            code: "NOT_FOUND",
+          },
+        ],
       };
     }
     if (collection.revision !== params.expectedRevision) {
       return {
         collection: undefined,
-        userErrors: [{
-          message: "Collection revision does not match",
-          field: ["expectedRevision"],
-          code: "REVISION_CONFLICT",
-        }],
+        userErrors: [
+          {
+            message: "Collection revision does not match",
+            field: ["expectedRevision"],
+            code: "REVISION_CONFLICT",
+          },
+        ],
       };
     }
     if (collection.revision >= 2_147_483_646) {
       return {
         collection: undefined,
-        userErrors: [{
-          message: "Collection revision limit reached",
-          code: "REVISION_LIMIT_EXCEEDED",
-        }],
+        userErrors: [
+          {
+            message: "Collection revision limit reached",
+            code: "REVISION_LIMIT_EXCEEDED",
+          },
+        ],
       };
     }
     if (collection.type !== "manual") {
       return {
         collection: undefined,
-        userErrors: [{
-          message: "Can only clear manual collections",
-          code: "INVALID",
-        }],
+        userErrors: [
+          {
+            message: "Can only clear manual collections",
+            code: "INVALID",
+          },
+        ],
       };
     }
 

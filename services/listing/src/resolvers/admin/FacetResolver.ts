@@ -1,8 +1,5 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { ListingType } from "./ListingType.js";
 import type { Facet } from "../../repositories/models/index.js";
 

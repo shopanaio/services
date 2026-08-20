@@ -1,10 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import {
-  Action,
-  BrokerActions,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { Action, BrokerActions, InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import type { ContextStore } from "@shopana/shared-context";
 import {
   LoyaltyActionNames,
@@ -74,7 +69,8 @@ export class LoyaltyBrokerActions extends BrokerActions {
     params: GetCustomerLoyaltyAccountParams,
   ): Promise<GetCustomerLoyaltyAccountResult> {
     return this.withStore(params.storeId, `account:${params.customerId}`, () =>
-      this.service.getCustomerAccount(params));
+      this.service.getCustomerAccount(params),
+    );
   }
 
   @Action(LoyaltyCheckoutActionNames.quoteRedemption, { readOnly: true })
@@ -82,7 +78,8 @@ export class LoyaltyBrokerActions extends BrokerActions {
     params: QuoteCheckoutLoyaltyRedemptionParams,
   ): Promise<QuoteCheckoutLoyaltyRedemptionResult> {
     return this.withStore(params.context.storeId, params.context.correlationId, () =>
-      this.service.quote(params));
+      this.service.quote(params),
+    );
   }
 
   @Action(LoyaltyCheckoutActionNames.reserveRedemption)
@@ -90,17 +87,13 @@ export class LoyaltyBrokerActions extends BrokerActions {
     params: ReserveCheckoutLoyaltyRedemptionParams,
   ): Promise<ReserveCheckoutLoyaltyRedemptionResult> {
     const organizationId = await this.getOrganizationId(params.context.storeId);
-    return this.broker.runWorkflow(
-      "loyalty.reserveCheckoutLoyaltyRedemption",
-      params,
-      {
-        source: "content",
-        resourceId: params.context.checkoutId,
-        operation: "reserveCheckoutLoyaltyRedemption",
-        contentHash: params.requestHash,
-        organizationId,
-      },
-    );
+    return this.broker.runWorkflow("loyalty.reserveCheckoutLoyaltyRedemption", params, {
+      source: "content",
+      resourceId: params.context.checkoutId,
+      operation: "reserveCheckoutLoyaltyRedemption",
+      contentHash: params.requestHash,
+      organizationId,
+    });
   }
 
   @Action(LoyaltyCheckoutActionNames.commitRedemption)
@@ -108,17 +101,13 @@ export class LoyaltyBrokerActions extends BrokerActions {
     params: CommitCheckoutLoyaltyRedemptionParams,
   ): Promise<CommitCheckoutLoyaltyRedemptionResult> {
     const organizationId = await this.getOrganizationId(params.storeId);
-    return this.broker.runWorkflow(
-      "loyalty.commitCheckoutLoyaltyRedemption",
-      params,
-      {
-        source: "content",
-        resourceId: params.reservationId,
-        operation: "commitCheckoutLoyaltyRedemption",
-        contentHash: params.requestHash,
-        organizationId,
-      },
-    );
+    return this.broker.runWorkflow("loyalty.commitCheckoutLoyaltyRedemption", params, {
+      source: "content",
+      resourceId: params.reservationId,
+      operation: "commitCheckoutLoyaltyRedemption",
+      contentHash: params.requestHash,
+      organizationId,
+    });
   }
 
   @Action(LoyaltyCheckoutActionNames.releaseRedemption)
@@ -126,17 +115,13 @@ export class LoyaltyBrokerActions extends BrokerActions {
     params: ReleaseCheckoutLoyaltyRedemptionParams,
   ): Promise<ReleaseCheckoutLoyaltyRedemptionResult> {
     const organizationId = await this.getOrganizationId(params.storeId);
-    return this.broker.runWorkflow(
-      "loyalty.releaseCheckoutLoyaltyRedemption",
-      params,
-      {
-        source: "content",
-        resourceId: params.reservationId,
-        operation: "releaseCheckoutLoyaltyRedemption",
-        contentHash: params.requestHash,
-        organizationId,
-      },
-    );
+    return this.broker.runWorkflow("loyalty.releaseCheckoutLoyaltyRedemption", params, {
+      source: "content",
+      resourceId: params.reservationId,
+      operation: "releaseCheckoutLoyaltyRedemption",
+      contentHash: params.requestHash,
+      organizationId,
+    });
   }
 
   @Action(LoyaltyCheckoutActionNames.expireRedemptions)
@@ -144,17 +129,13 @@ export class LoyaltyBrokerActions extends BrokerActions {
     params: ExpireCheckoutLoyaltyRedemptionsParams,
   ): Promise<ExpireCheckoutLoyaltyRedemptionsResult> {
     const organizationId = await this.getOrganizationId(params.storeId);
-    return this.broker.runWorkflow(
-      "loyalty.expireCheckoutLoyaltyRedemptions",
-      params,
-      {
-        source: "content",
-        resourceId: params.storeId,
-        operation: "expireCheckoutLoyaltyRedemptions",
-        content: params,
-        organizationId,
-      },
-    );
+    return this.broker.runWorkflow("loyalty.expireCheckoutLoyaltyRedemptions", params, {
+      source: "content",
+      resourceId: params.storeId,
+      operation: "expireCheckoutLoyaltyRedemptions",
+      content: params,
+      organizationId,
+    });
   }
 
   @Action(LoyaltyCheckoutActionNames.reverseRedemption)
@@ -162,17 +143,13 @@ export class LoyaltyBrokerActions extends BrokerActions {
     params: ReverseCheckoutLoyaltyRedemptionParams,
   ): Promise<ReverseCheckoutLoyaltyRedemptionResult> {
     const organizationId = await this.getOrganizationId(params.storeId);
-    return this.broker.runWorkflow(
-      "loyalty.reverseCheckoutLoyaltyRedemption",
-      params,
-      {
-        source: "content",
-        resourceId: params.reservationId,
-        operation: "reverseCheckoutLoyaltyRedemption",
-        contentHash: params.requestHash,
-        organizationId,
-      },
-    );
+    return this.broker.runWorkflow("loyalty.reverseCheckoutLoyaltyRedemption", params, {
+      source: "content",
+      resourceId: params.reservationId,
+      operation: "reverseCheckoutLoyaltyRedemption",
+      contentHash: params.requestHash,
+      organizationId,
+    });
   }
 
   @Action(LoyaltyCheckoutActionNames.quoteReward, { readOnly: true })
@@ -181,17 +158,50 @@ export class LoyaltyBrokerActions extends BrokerActions {
   ): Promise<QuoteCheckoutLoyaltyRewardResult> {
     return this.withStore(params.context.storeId, params.context.correlationId, async () => {
       try {
-        if (!params.context.customerId) throw new LoyaltyDomainError("CUSTOMER_REQUIRED", "A customer is required for a loyalty reward");
-        const entitlement = await this.kernel.repository.reward.findEntitlementById(params.entitlementId);
-        if (!entitlement || entitlement.status !== "ISSUED") throw new LoyaltyDomainError("ENTITLEMENT_NOT_AVAILABLE", "Reward entitlement is not available");
+        if (!params.context.customerId)
+          throw new LoyaltyDomainError(
+            "CUSTOMER_REQUIRED",
+            "A customer is required for a loyalty reward",
+          );
+        const entitlement = await this.kernel.repository.reward.findEntitlementById(
+          params.entitlementId,
+        );
+        if (!entitlement || entitlement.status !== "ISSUED")
+          throw new LoyaltyDomainError(
+            "ENTITLEMENT_NOT_AVAILABLE",
+            "Reward entitlement is not available",
+          );
         const account = await this.kernel.repository.account.findById(entitlement.accountId);
-        if (!account || account.customerId !== params.context.customerId || account.status !== "ACTIVE") throw new LoyaltyDomainError("ENTITLEMENT_CUSTOMER_MISMATCH", "Reward entitlement does not belong to this customer");
-        if (Date.parse(entitlement.validFrom) > Date.parse(params.context.effectiveAt) || (entitlement.validTo && Date.parse(entitlement.validTo) <= Date.parse(params.context.effectiveAt))) throw new LoyaltyDomainError("ENTITLEMENT_NOT_AVAILABLE", "Reward entitlement is outside its validity window");
-        const definition = await this.kernel.repository.reward.findDefinitionById(entitlement.rewardDefinitionId);
-        if (!definition) throw new LoyaltyDomainError("REWARD_DEFINITION_NOT_FOUND", "Reward definition was not found");
-        const externalDiscountId = typeof definition.configuration.externalDiscountId === "string"
-          ? definition.configuration.externalDiscountId
-          : null;
+        if (
+          !account ||
+          account.customerId !== params.context.customerId ||
+          account.status !== "ACTIVE"
+        )
+          throw new LoyaltyDomainError(
+            "ENTITLEMENT_CUSTOMER_MISMATCH",
+            "Reward entitlement does not belong to this customer",
+          );
+        if (
+          Date.parse(entitlement.validFrom) > Date.parse(params.context.effectiveAt) ||
+          (entitlement.validTo &&
+            Date.parse(entitlement.validTo) <= Date.parse(params.context.effectiveAt))
+        )
+          throw new LoyaltyDomainError(
+            "ENTITLEMENT_NOT_AVAILABLE",
+            "Reward entitlement is outside its validity window",
+          );
+        const definition = await this.kernel.repository.reward.findDefinitionById(
+          entitlement.rewardDefinitionId,
+        );
+        if (!definition)
+          throw new LoyaltyDomainError(
+            "REWARD_DEFINITION_NOT_FOUND",
+            "Reward definition was not found",
+          );
+        const externalDiscountId =
+          typeof definition.configuration.externalDiscountId === "string"
+            ? definition.configuration.externalDiscountId
+            : null;
         if (!externalDiscountId) {
           throw new LoyaltyDomainError(
             "REWARD_NOT_CHECKOUT_APPLICABLE",
@@ -214,7 +224,13 @@ export class LoyaltyBrokerActions extends BrokerActions {
           externalReference: entitlement.externalReference,
           configuration: entitlement.configurationSnapshot,
           expiresAt: entitlement.validTo,
-          revision: canonicalHash({ entitlementId: entitlement.id, revision: entitlement.revision, checkoutId: params.context.checkoutId, pricingQuoteRevision: params.context.pricingQuoteRevision, appliedDiscountIds: params.appliedDiscountIds }),
+          revision: canonicalHash({
+            entitlementId: entitlement.id,
+            revision: entitlement.revision,
+            checkoutId: params.context.checkoutId,
+            pricingQuoteRevision: params.context.pricingQuoteRevision,
+            appliedDiscountIds: params.appliedDiscountIds,
+          }),
         };
         return { status: "QUOTED" as const, quote };
       } catch (error) {
@@ -229,15 +245,30 @@ export class LoyaltyBrokerActions extends BrokerActions {
   ): Promise<ReserveCheckoutLoyaltyRewardResult> {
     return this.withStore(params.storeId, params.idempotencyKey, async () => {
       try {
-        const entitlement = await this.kernel.repository.reward.findEntitlementById(params.quote.entitlementId);
-        const account = entitlement ? await this.kernel.repository.account.findById(entitlement.accountId) : null;
-        if (!entitlement || !account || account.customerId !== params.customerId) throw new LoyaltyDomainError("ENTITLEMENT_CUSTOMER_MISMATCH", "Reward entitlement does not belong to this customer");
-        const definition = await this.kernel.repository.reward.findDefinitionById(entitlement.rewardDefinitionId);
-        if (!definition
-          || params.quote.accountId !== account.id
-          || params.quote.rewardDefinitionId !== definition.id
-          || params.quote.pricingDiscountId !== definition.configuration.externalDiscountId) {
-          throw new LoyaltyDomainError("REWARD_QUOTE_STALE", "Reward quote no longer matches its entitlement and Pricing discount");
+        const entitlement = await this.kernel.repository.reward.findEntitlementById(
+          params.quote.entitlementId,
+        );
+        const account = entitlement
+          ? await this.kernel.repository.account.findById(entitlement.accountId)
+          : null;
+        if (!entitlement || !account || account.customerId !== params.customerId)
+          throw new LoyaltyDomainError(
+            "ENTITLEMENT_CUSTOMER_MISMATCH",
+            "Reward entitlement does not belong to this customer",
+          );
+        const definition = await this.kernel.repository.reward.findDefinitionById(
+          entitlement.rewardDefinitionId,
+        );
+        if (
+          !definition ||
+          params.quote.accountId !== account.id ||
+          params.quote.rewardDefinitionId !== definition.id ||
+          params.quote.pricingDiscountId !== definition.configuration.externalDiscountId
+        ) {
+          throw new LoyaltyDomainError(
+            "REWARD_QUOTE_STALE",
+            "Reward quote no longer matches its entitlement and Pricing discount",
+          );
         }
         const updated = await new RewardEntitlementService(this.kernel.repository).transition({
           entitlementId: entitlement.id,
@@ -249,7 +280,11 @@ export class LoyaltyBrokerActions extends BrokerActions {
           actorId: params.customerId,
           reasonCode: "CHECKOUT_REWARD_RESERVED",
         });
-        return { status: "RESERVED" as const, entitlementId: updated.id, entitlementRevision: updated.revision };
+        return {
+          status: "RESERVED" as const,
+          entitlementId: updated.id,
+          entitlementRevision: updated.revision,
+        };
       } catch (error) {
         return rewardRejected(error);
       }
@@ -257,19 +292,41 @@ export class LoyaltyBrokerActions extends BrokerActions {
   }
 
   @Action(LoyaltyCheckoutActionNames.commitReward)
-  async commitCheckoutLoyaltyReward(params: CommitCheckoutLoyaltyRewardParams): Promise<TransitionCheckoutLoyaltyRewardResult> {
-    return this.transitionReward(params.storeId, params.idempotencyKey, params.entitlementId, params.committedAt, { type: "REDEEM", orderId: params.orderId, externalReference: params.externalReference ?? null }, "COMMITTED", params.checkoutId);
+  async commitCheckoutLoyaltyReward(
+    params: CommitCheckoutLoyaltyRewardParams,
+  ): Promise<TransitionCheckoutLoyaltyRewardResult> {
+    return this.transitionReward(
+      params.storeId,
+      params.idempotencyKey,
+      params.entitlementId,
+      params.committedAt,
+      {
+        type: "REDEEM",
+        orderId: params.orderId,
+        externalReference: params.externalReference ?? null,
+      },
+      "COMMITTED",
+      params.checkoutId,
+    );
   }
 
   @Action(LoyaltyCheckoutActionNames.releaseReward)
-  async releaseCheckoutLoyaltyReward(params: ReleaseCheckoutLoyaltyRewardParams): Promise<TransitionCheckoutLoyaltyRewardResult> {
-    return this.transitionReward(params.storeId, params.idempotencyKey, params.entitlementId, params.releasedAt, { type: "RELEASE" }, "RELEASED", params.checkoutId);
+  async releaseCheckoutLoyaltyReward(
+    params: ReleaseCheckoutLoyaltyRewardParams,
+  ): Promise<TransitionCheckoutLoyaltyRewardResult> {
+    return this.transitionReward(
+      params.storeId,
+      params.idempotencyKey,
+      params.entitlementId,
+      params.releasedAt,
+      { type: "RELEASE" },
+      "RELEASED",
+      params.checkoutId,
+    );
   }
 
   @Action("runLoyaltyMaintenance")
-  async runLoyaltyMaintenance(
-    params: LoyaltyMaintenanceInput,
-  ): Promise<LoyaltyMaintenanceResult> {
+  async runLoyaltyMaintenance(params: LoyaltyMaintenanceInput): Promise<LoyaltyMaintenanceResult> {
     const organizationId = await this.getOrganizationId(params.storeId);
     return this.broker.runWorkflow("loyalty.maintenance", params, {
       source: "content",
@@ -331,19 +388,39 @@ export class LoyaltyBrokerActions extends BrokerActions {
     idempotencyKey: string,
     entitlementId: string,
     occurredAt: string,
-    transition: { type: "RELEASE" } | { type: "REDEEM"; orderId: string; externalReference?: string | null },
+    transition:
+      { type: "RELEASE" } | { type: "REDEEM"; orderId: string; externalReference?: string | null },
     status: "COMMITTED" | "RELEASED",
     checkoutId: string,
   ): Promise<TransitionCheckoutLoyaltyRewardResult> {
     return this.withStore(storeId, idempotencyKey, async () => {
       try {
         const current = await this.kernel.repository.reward.findEntitlementById(entitlementId);
-        if (!current) throw new LoyaltyDomainError("ENTITLEMENT_NOT_FOUND", "Reward entitlement was not found");
+        if (!current)
+          throw new LoyaltyDomainError("ENTITLEMENT_NOT_FOUND", "Reward entitlement was not found");
         if (current.reservedForCheckoutId !== checkoutId) {
-          if ((status === "COMMITTED" && current.status === "REDEEMED") || (status === "RELEASED" && current.status === "ISSUED")) return { status: "NOOP", entitlementId: current.id, entitlementRevision: current.revision };
-          throw new LoyaltyDomainError("CHECKOUT_MISMATCH", "Reward entitlement is reserved for another checkout");
+          if (
+            (status === "COMMITTED" && current.status === "REDEEMED") ||
+            (status === "RELEASED" && current.status === "ISSUED")
+          )
+            return {
+              status: "NOOP",
+              entitlementId: current.id,
+              entitlementRevision: current.revision,
+            };
+          throw new LoyaltyDomainError(
+            "CHECKOUT_MISMATCH",
+            "Reward entitlement is reserved for another checkout",
+          );
         }
-        const updated = await new RewardEntitlementService(this.kernel.repository).transition({ entitlementId, transition, idempotencyKey, occurredAt, actorType: "SERVICE", reasonCode: `CHECKOUT_REWARD_${status}` });
+        const updated = await new RewardEntitlementService(this.kernel.repository).transition({
+          entitlementId,
+          transition,
+          idempotencyKey,
+          occurredAt,
+          actorType: "SERVICE",
+          reasonCode: `CHECKOUT_REWARD_${status}`,
+        });
         return { status, entitlementId: updated.id, entitlementRevision: updated.revision };
       } catch (error) {
         return rewardRejected(error);

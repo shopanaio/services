@@ -1,50 +1,17 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import {
-  Alert,
-  App,
-  Avatar,
-  Button,
-  Checkbox,
-  Flex,
-  Input,
-  Segmented,
-  Typography,
-} from "antd";
-import {
-  AllCommunityModule,
-  ModuleRegistry,
-  type ColDef,
-} from "ag-grid-community";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, App, Avatar, Button, Checkbox, Flex, Input, Segmented, Typography } from "antd";
+import { AllCommunityModule, ModuleRegistry, type ColDef } from "ag-grid-community";
 import { AgGridReact, type CustomCellRendererProps } from "ag-grid-react";
-import {
-  LuInfo,
-  LuListPlus,
-  LuTrash2,
-} from "react-icons/lu";
+import { LuInfo, LuListPlus, LuTrash2 } from "react-icons/lu";
 import { DiscountBuyerContextType } from "@/graphql/types";
 import { useAgGridTheme } from "@/hooks";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
-import {
-  useEntityPicker,
-} from "@/shared/components/entity-picker-modal";
-import type {
-  IPickableEntity,
-} from "@/shared/components/entity-picker-modal/types";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
+import { useEntityPicker } from "@/shared/components/entity-picker-modal";
+import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
 import "@/domains/customers/all-customers/picker/customer-picker-config";
-import type {
-  CustomerSegmentPickerEntity,
-} from "@/domains/customers/segments/picker";
+import type { CustomerSegmentPickerEntity } from "@/domains/customers/segments/picker";
 import "@/domains/customers/segments/picker/customer-segment-picker-config";
 import { useCustomerSegments } from "@/domains/customers/segments/hooks";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
@@ -55,12 +22,8 @@ import {
   validateDiscountEligibilityChannelsForm,
   type DiscountEligibilityChannelsFormValues,
 } from "../../mappers";
-import type {
-  IDiscountEligibilityChannelsEditModalPayload,
-} from "../../modals";
-import {
-  useEditEligibilityChannelsModalStyles,
-} from "./edit-eligibility-channels-modal.styles";
+import type { IDiscountEligibilityChannelsEditModalPayload } from "../../modals";
+import { useEditEligibilityChannelsModalStyles } from "./edit-eligibility-channels-modal.styles";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -88,9 +51,7 @@ function initials(title: string) {
     .toUpperCase();
 }
 
-function EntityCell({
-  data,
-}: CustomCellRendererProps<SelectedEntityRow>) {
+function EntityCell({ data }: CustomCellRendererProps<SelectedEntityRow>) {
   const { styles } = useEditEligibilityChannelsModalStyles();
   if (!data) return null;
 
@@ -104,9 +65,7 @@ function EntityCell({
   );
 }
 
-function RemoveCell(
-  params: CustomCellRendererProps<SelectedEntityRow>,
-) {
+function RemoveCell(params: CustomCellRendererProps<SelectedEntityRow>) {
   const { styles } = useEditEligibilityChannelsModalStyles();
   if (!params.data) return null;
   const context = params.context as GridContext;
@@ -125,9 +84,7 @@ function RemoveCell(
   );
 }
 
-const serializeValues = (
-  values: DiscountEligibilityChannelsFormValues,
-) =>
+const serializeValues = (values: DiscountEligibilityChannelsFormValues) =>
   JSON.stringify({
     buyerContextType: values.buyerContextType,
     customers: values.customers.map(({ id }) => id),
@@ -144,23 +101,16 @@ export function EditEligibilityChannelsModal() {
   const { message } = App.useApp();
   const agGridTheme = useAgGridTheme();
   const { payload, pop, forcePop, setDirty } = useModalStackContext();
-  const { discount, onSaved } =
-    payload as IDiscountEligibilityChannelsEditModalPayload;
+  const { discount, onSaved } = payload as IDiscountEligibilityChannelsEditModalPayload;
   const mutation = useUpdateDiscount();
-  const [values, setValues] = useState(() =>
-    createDiscountEligibilityChannelsFormValues(discount),
-  );
+  const [values, setValues] = useState(() => createDiscountEligibilityChannelsFormValues(discount));
   const [initialSnapshot] = useState(() =>
-    serializeValues(
-      createDiscountEligibilityChannelsFormValues(discount),
-    ),
+    serializeValues(createDiscountEligibilityChannelsFormValues(discount)),
   );
   const [formError, setFormError] = useState<string | null>(null);
   const dirty = serializeValues(values) !== initialSnapshot;
-  const isCustomers =
-    values.buyerContextType === DiscountBuyerContextType.Customers;
-  const isSegments =
-    values.buyerContextType === DiscountBuyerContextType.Segments;
+  const isCustomers = values.buyerContextType === DiscountBuyerContextType.Customers;
+  const isSegments = values.buyerContextType === DiscountBuyerContextType.Segments;
   const selectedSegmentIds = values.segments.map(({ id }) => id);
   const { segments: resolvedSegments } = useCustomerSegments({
     first: Math.max(selectedSegmentIds.length, 1),
@@ -175,13 +125,10 @@ export function EditEligibilityChannelsModal() {
     setDirty(dirty);
   }, [dirty, setDirty]);
 
-  const updateValues = useCallback(
-    (changes: Partial<DiscountEligibilityChannelsFormValues>) => {
-      setValues((current) => ({ ...current, ...changes }));
-      setFormError(null);
-    },
-    [],
-  );
+  const updateValues = useCallback((changes: Partial<DiscountEligibilityChannelsFormValues>) => {
+    setValues((current) => ({ ...current, ...changes }));
+    setFormError(null);
+  }, []);
 
   const customerPicker = useEntityPicker<CustomerPickerEntity>({
     entityType: "customer",
@@ -189,9 +136,7 @@ export function EditEligibilityChannelsModal() {
     allowEmptySelection: true,
     initialSelection: values.customers.map(({ id }) => id),
     onConfirm: (entities, ids) => {
-      const current = new Map(
-        values.customers.map((item) => [item.id, item]),
-      );
+      const current = new Map(values.customers.map((item) => [item.id, item]));
       entities.forEach((entity) =>
         current.set(entity.id, {
           id: entity.id,
@@ -200,10 +145,7 @@ export function EditEligibilityChannelsModal() {
         }),
       );
       updateValues({
-        customers: ids.map(
-          (id) =>
-            current.get(id) ?? { id, title: id, email: "" },
-        ),
+        customers: ids.map((id) => current.get(id) ?? { id, title: id, email: "" }),
       });
     },
   });
@@ -214,9 +156,7 @@ export function EditEligibilityChannelsModal() {
     allowEmptySelection: true,
     initialSelection: values.segments.map(({ id }) => id),
     onConfirm: (entities, ids) => {
-      const current = new Map(
-        values.segments.map((item) => [item.id, item]),
-      );
+      const current = new Map(values.segments.map((item) => [item.id, item]));
       entities.forEach((entity) =>
         current.set(entity.id, {
           id: entity.id,
@@ -248,19 +188,12 @@ export function EditEligibilityChannelsModal() {
           }))
         : values.segments.map((segment) => ({
             id: segment.id,
-            title:
-              resolvedSegmentById.get(segment.id)?.name ?? segment.title,
+            title: resolvedSegmentById.get(segment.id)?.name ?? segment.title,
             secondary: "",
             customersCount:
-              resolvedSegmentById.get(segment.id)?.customersCount ??
-              segment.customersCount,
+              resolvedSegmentById.get(segment.id)?.customersCount ?? segment.customersCount,
           })),
-    [
-      isCustomers,
-      resolvedSegmentById,
-      values.customers,
-      values.segments,
-    ],
+    [isCustomers, resolvedSegmentById, values.customers, values.segments],
   );
 
   const remove = useCallback(
@@ -275,12 +208,7 @@ export function EditEligibilityChannelsModal() {
         });
       }
     },
-    [
-      isCustomers,
-      updateValues,
-      values.customers,
-      values.segments,
-    ],
+    [isCustomers, updateValues, values.customers, values.segments],
   );
   const gridContext = useMemo<GridContext>(() => ({ remove }), [remove]);
   const columnDefs = useMemo<ColDef<SelectedEntityRow>[]>(
@@ -321,16 +249,11 @@ export function EditEligibilityChannelsModal() {
     [isCustomers],
   );
 
-  const enabledChannels = values.channels.filter(
-    (channel) => channel.enabled,
-  );
-  const featuredChannels = enabledChannels.filter(
-    (channel) => channel.featured,
-  );
+  const enabledChannels = values.channels.filter((channel) => channel.enabled);
+  const featuredChannels = enabledChannels.filter((channel) => channel.featured);
 
   const save = useCallback(async () => {
-    const validationErrors =
-      validateDiscountEligibilityChannelsForm(values);
+    const validationErrors = validateDiscountEligibilityChannelsForm(values);
     if (validationErrors.length > 0) {
       setFormError(validationErrors.join(" "));
       return;
@@ -339,8 +262,7 @@ export function EditEligibilityChannelsModal() {
     const result = await mutation.updateDiscount({
       discountId: discount.id,
       expectedRevision: discount.revision,
-      operations:
-        buildDiscountEligibilityChannelsUpdateInput(values),
+      operations: buildDiscountEligibilityChannelsUpdateInput(values),
     });
 
     if (!result.discount || result.errors.length > 0) {
@@ -359,15 +281,7 @@ export function EditEligibilityChannelsModal() {
         message.error("Discount saved, but the details could not be refreshed");
       });
     }
-  }, [
-    discount,
-    forcePop,
-    message,
-    mutation,
-    onSaved,
-    setDirty,
-    values,
-  ]);
+  }, [discount, forcePop, message, mutation, onSaved, setDirty, values]);
 
   const contextCopy = {
     [DiscountBuyerContextType.All]: {
@@ -376,13 +290,11 @@ export function EditEligibilityChannelsModal() {
     },
     [DiscountBuyerContextType.Customers]: {
       title: "Specific customers",
-      description:
-        "Only the selected customer accounts can redeem this discount.",
+      description: "Only the selected customer accounts can redeem this discount.",
     },
     [DiscountBuyerContextType.Segments]: {
       title: "Customer segments",
-      description:
-        "Customers in the selected segments can redeem this discount.",
+      description: "Customers in the selected segments can redeem this discount.",
     },
   }[values.buyerContextType];
   const errorMessage = formError ?? mutation.error?.message ?? null;
@@ -406,9 +318,7 @@ export function EditEligibilityChannelsModal() {
       bodyClassName={styles.body}
     >
       <div className={styles.container}>
-        {errorMessage ? (
-          <Alert type="error" showIcon message={errorMessage} />
-        ) : null}
+        {errorMessage ? <Alert type="error" showIcon message={errorMessage} /> : null}
 
         <Paper className={styles.section}>
           <PaperHeader title="Buyer context" />
@@ -432,16 +342,13 @@ export function EditEligibilityChannelsModal() {
             ]}
             onChange={(buyerContextType) =>
               updateValues({
-                buyerContextType:
-                  buyerContextType as DiscountBuyerContextType,
+                buyerContextType: buyerContextType as DiscountBuyerContextType,
               })
             }
           />
           <Flex vertical className={styles.contextDescription}>
             <Typography.Text strong>{contextCopy.title}</Typography.Text>
-            <Typography.Text type="secondary">
-              {contextCopy.description}
-            </Typography.Text>
+            <Typography.Text type="secondary">{contextCopy.description}</Typography.Text>
           </Flex>
         </Paper>
 
@@ -450,11 +357,7 @@ export function EditEligibilityChannelsModal() {
             <PaperHeader
               title={`Selected ${isCustomers ? "customers" : "segments"}`}
               className={styles.selectedHeader}
-              actions={
-                <Typography.Text type="secondary">
-                  {rows.length} selected
-                </Typography.Text>
-              }
+              actions={<Typography.Text type="secondary">{rows.length} selected</Typography.Text>}
             />
             <div className={styles.selectedFields}>
               <Typography.Text strong className={styles.fieldLabel}>
@@ -466,30 +369,22 @@ export function EditEligibilityChannelsModal() {
                   className={styles.pickerSummary}
                   value={
                     rows.length > 0
-                      ? `${rows.length} ${
-                          isCustomers ? "customers" : "segments"
-                        } selected`
+                      ? `${rows.length} ${isCustomers ? "customers" : "segments"} selected`
                       : ""
                   }
-                  placeholder={`No ${
-                    isCustomers ? "customers" : "segments"
-                  } selected`}
+                  placeholder={`No ${isCustomers ? "customers" : "segments"} selected`}
                 />
                 <Button
                   icon={<LuListPlus />}
                   data-testid={`discount-${isCustomers ? "customers" : "segments"}-select-button`}
-                  onClick={
-                    isCustomers
-                      ? customerPicker.openPicker
-                      : segmentPicker.openPicker
-                  }
+                  onClick={isCustomers ? customerPicker.openPicker : segmentPicker.openPicker}
                 >
                   Select
                 </Button>
               </Flex>
               <Typography.Text className={styles.fieldHelp}>
-                Select {isCustomers ? "customers" : "segments"}, then review
-                or remove them in the grid below.
+                Select {isCustomers ? "customers" : "segments"}, then review or remove them in the
+                grid below.
               </Typography.Text>
             </div>
             <div className={styles.gridFrame}>
@@ -509,9 +404,7 @@ export function EditEligibilityChannelsModal() {
                 rowHeight={56}
                 suppressCellFocus
                 suppressMovableColumns
-                overlayNoRowsTemplate={`No ${
-                  isCustomers ? "customers" : "segments"
-                } selected`}
+                overlayNoRowsTemplate={`No ${isCustomers ? "customers" : "segments"} selected`}
               />
             </div>
             <Typography.Text className={styles.selectedFooter}>
@@ -528,8 +421,7 @@ export function EditEligibilityChannelsModal() {
             actions={
               <Typography.Text type="secondary">
                 {enabledChannels.length} channel
-                {enabledChannels.length === 1 ? "" : "s"} ·{" "}
-                {featuredChannels.length} featured
+                {enabledChannels.length === 1 ? "" : "s"} · {featuredChannels.length} featured
               </Typography.Text>
             }
           />
@@ -550,9 +442,7 @@ export function EditEligibilityChannelsModal() {
                           ? {
                               ...item,
                               enabled: event.target.checked,
-                              featured: event.target.checked
-                                ? item.featured
-                                : false,
+                              featured: event.target.checked ? item.featured : false,
                             }
                           : item,
                       ),
@@ -561,9 +451,7 @@ export function EditEligibilityChannelsModal() {
                 >
                   <Flex vertical className={styles.channelCopy}>
                     <Typography.Text>{channel.title}</Typography.Text>
-                    <Typography.Text className={styles.channelCode}>
-                      {channel.code}
-                    </Typography.Text>
+                    <Typography.Text className={styles.channelCode}>{channel.code}</Typography.Text>
                   </Flex>
                 </Checkbox>
                 <Checkbox
@@ -590,8 +478,7 @@ export function EditEligibilityChannelsModal() {
         <Flex align="center" gap={10} className={styles.info}>
           <LuInfo />
           <Typography.Text type="secondary">
-            Featured is configured per enabled channel and only affects
-            promotional placement.
+            Featured is configured per enabled channel and only affects promotional placement.
           </Typography.Text>
         </Flex>
       </div>

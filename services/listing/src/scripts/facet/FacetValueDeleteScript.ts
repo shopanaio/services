@@ -1,16 +1,11 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  FacetValueDeleteParams,
-  FacetValueDeleteResult,
-} from "./dto/index.js";
+import type { FacetValueDeleteParams, FacetValueDeleteResult } from "./dto/index.js";
 
 export class FacetValueDeleteScript extends BaseScript<
   FacetValueDeleteParams,
   FacetValueDeleteResult
 > {
-  protected async execute(
-    params: FacetValueDeleteParams
-  ): Promise<FacetValueDeleteResult> {
+  protected async execute(params: FacetValueDeleteParams): Promise<FacetValueDeleteResult> {
     const existing = await this.repository.facetValue.findById(params.id);
     if (!existing) {
       return {
@@ -20,9 +15,7 @@ export class FacetValueDeleteScript extends BaseScript<
     }
 
     if (existing.kind === "group") {
-      const children = await this.repository.facetValue.getSourceChildrenByParentIds([
-        existing.id,
-      ]);
+      const children = await this.repository.facetValue.getSourceChildrenByParentIds([existing.id]);
       if (children.length > 0) {
         return {
           deletedFacetValueId: undefined,

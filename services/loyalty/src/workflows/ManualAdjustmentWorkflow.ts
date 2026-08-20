@@ -89,43 +89,46 @@ export class ManualAdjustmentWorkflow extends BrokerWorkflows<
     }
     const store = resolved.store;
     const kernel = Kernel.getInstance();
-    const adjusted = await runWithContext(new ServiceContext({
-      requestId: input.idempotencyKey,
-      kernel,
-      loaders: new Loader(kernel.repository),
-      store,
-      locale: store.defaultLocale,
-      currency: store.currencyCode,
-    }), async () => {
-      const account = await kernel.repository.account.findById(input.accountId);
-      if (!account) throw new Error(`Loyalty account ${input.accountId} was not found`);
-      const operation = await new AccountLifecycleService(kernel.repository).adjust({
-        ...input,
-        points: parsePositive(input.points),
-      });
-      const payload: LoyaltyPointsAdjustedEvent["payload"] = {
-        schemaVersion: 1,
-        storeId: input.storeId,
-        programId: account.programId,
-        programVersionId: null,
-        accountId: account.id,
-        customerId: account.customerId,
-        transactionId: operation.transaction.id,
-        points: input.points,
-        occurredAt: input.occurredAt,
-        direction: input.direction,
-        reasonCode: input.reasonCode,
-        actorId: input.actorId,
-      };
-      return {
-        result: {
-          transactionId: operation.transaction.id,
+    const adjusted = await runWithContext(
+      new ServiceContext({
+        requestId: input.idempotencyKey,
+        kernel,
+        loaders: new Loader(kernel.repository),
+        store,
+        locale: store.defaultLocale,
+        currency: store.currencyCode,
+      }),
+      async () => {
+        const account = await kernel.repository.account.findById(input.accountId);
+        if (!account) throw new Error(`Loyalty account ${input.accountId} was not found`);
+        const operation = await new AccountLifecycleService(kernel.repository).adjust({
+          ...input,
+          points: parsePositive(input.points),
+        });
+        const payload: LoyaltyPointsAdjustedEvent["payload"] = {
+          schemaVersion: 1,
+          storeId: input.storeId,
+          programId: account.programId,
+          programVersionId: null,
           accountId: account.id,
-          availablePoints: operation.balance.availablePoints.toString(),
-        },
-        payload,
-      };
-    });
+          customerId: account.customerId,
+          transactionId: operation.transaction.id,
+          points: input.points,
+          occurredAt: input.occurredAt,
+          direction: input.direction,
+          reasonCode: input.reasonCode,
+          actorId: input.actorId,
+        };
+        return {
+          result: {
+            transactionId: operation.transaction.id,
+            accountId: account.id,
+            availablePoints: operation.balance.availablePoints.toString(),
+          },
+          payload,
+        };
+      },
+    );
     return { ...adjusted, store };
   }
 }

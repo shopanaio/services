@@ -1,23 +1,13 @@
 import { Select } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
-import {
-  FacetSelectionMode,
-  FacetUiType,
-} from "@/graphql/types";
+import { FacetSelectionMode, FacetUiType } from "@/graphql/types";
 import type { FacetGridRow } from "../mappers";
-import {
-  getAllowedFacetUiTypes,
-  getDefaultFacetSelectionMode,
-} from "../mappers";
+import { getAllowedFacetUiTypes, getDefaultFacetSelectionMode } from "../mappers";
 import { useFacetCellStyles } from "./facet-cell-styles";
 
-export interface FacetSelectCellParams
-  extends ICellRendererParams<FacetGridRow> {
+export interface FacetSelectCellParams extends ICellRendererParams<FacetGridRow> {
   onUiTypeChange: (row: FacetGridRow, value: FacetUiType) => void;
-  onSelectionModeChange: (
-    row: FacetGridRow,
-    value: FacetSelectionMode,
-  ) => void;
+  onSelectionModeChange: (row: FacetGridRow, value: FacetSelectionMode) => void;
 }
 
 export function FacetDisplayTypeCell(params: FacetSelectCellParams) {
@@ -44,10 +34,7 @@ export function FacetDisplayTypeCell(params: FacetSelectCellParams) {
             value === FacetUiType.Boolean ||
             row.selectionMode === undefined
           ) {
-            params.onSelectionModeChange(
-              row,
-              getDefaultFacetSelectionMode(value),
-            );
+            params.onSelectionModeChange(row, getDefaultFacetSelectionMode(value));
           }
         }}
       />
@@ -62,8 +49,7 @@ export function FacetSelectionModeCell(params: FacetSelectCellParams) {
     return null;
   }
 
-  const selectionDisabled =
-    row.uiType === FacetUiType.Range || row.uiType === FacetUiType.Boolean;
+  const selectionDisabled = row.uiType === FacetUiType.Range || row.uiType === FacetUiType.Boolean;
 
   return (
     <div className={styles.controlsCell} data-stop-row-click>

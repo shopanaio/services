@@ -21,7 +21,7 @@ const VALUE_CANDIDATE_TYPES = new Set(["TAG", "OPTION", "FEATURE"]);
 const MULTI_SOURCE_TYPES = new Set(["OPTION", "FEATURE"]);
 
 function normalizeValueCandidates(
-  candidates?: FacetCreateValueCandidateInput[]
+  candidates?: FacetCreateValueCandidateInput[],
 ): FacetCreateValueCandidateInput[] {
   const values = candidates ?? [];
   const byHandle = new Map<string, FacetCreateValueCandidateInput>();
@@ -101,9 +101,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       name: source.name.trim(),
     }));
 
-    const sourceWithMissingHandleIndex = selectedSources.findIndex(
-      (source) => !source.handle
-    );
+    const sourceWithMissingHandleIndex = selectedSources.findIndex((source) => !source.handle);
     if (sourceWithMissingHandleIndex !== -1) {
       return {
         facet: undefined,
@@ -117,9 +115,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       };
     }
 
-    const sourceWithMissingNameIndex = selectedSources.findIndex(
-      (source) => !source.name
-    );
+    const sourceWithMissingNameIndex = selectedSources.findIndex((source) => !source.name);
     if (sourceWithMissingNameIndex !== -1) {
       return {
         facet: undefined,
@@ -133,9 +129,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       };
     }
 
-    const selectedSourceMap = new Map(
-      selectedSources.map((source) => [source.handle, source])
-    );
+    const selectedSourceMap = new Map(selectedSources.map((source) => [source.handle, source]));
     const uniqueSelectedSources = [...selectedSourceMap.values()];
 
     if (uniqueSelectedSources.length > 1 && !MULTI_SOURCE_TYPES.has(params.facetType)) {
@@ -156,8 +150,8 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
         this.repository.facet.findAvailableFacetSourceCandidate({
           facetType: params.facetType,
           handle: source.handle,
-        })
-      )
+        }),
+      ),
     );
     const missingSourceIndex = candidates.findIndex((candidate) => !candidate);
 
@@ -175,7 +169,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
     }
 
     const candidateWithDifferentTypeIndex = candidates.findIndex(
-      (candidate) => candidate?.facetType !== params.facetType
+      (candidate) => candidate?.facetType !== params.facetType,
     );
     if (candidateWithDifferentTypeIndex !== -1) {
       return {
@@ -191,8 +185,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
     }
 
     const mismatchedSourceIndex = candidates.findIndex(
-      (candidate, index) =>
-        candidate?.handle !== uniqueSelectedSources[index]?.handle
+      (candidate, index) => candidate?.handle !== uniqueSelectedSources[index]?.handle,
     );
     if (mismatchedSourceIndex !== -1) {
       return {
@@ -207,14 +200,14 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       };
     }
 
-    const selectedSourceHandles = uniqueSelectedSources.map(
-      (source) => source.handle
-    );
+    const selectedSourceHandles = uniqueSelectedSources.map((source) => source.handle);
 
     if (params.uiType && !UI_BY_TYPE[params.facetType]?.includes(params.uiType)) {
       return {
         facet: undefined,
-        userErrors: [{ message: "Invalid uiType for facetType", field: ["uiType"], code: "INVALID" }],
+        userErrors: [
+          { message: "Invalid uiType for facetType", field: ["uiType"], code: "INVALID" },
+        ],
       };
     }
 
@@ -235,7 +228,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
 
       const selectedSourceHandleSet = new Set(selectedSourceHandles);
       const invalidSourceCandidate = valueCandidates.find(
-        (candidate) => !selectedSourceHandleSet.has(candidate.sourceHandle)
+        (candidate) => !selectedSourceHandleSet.has(candidate.sourceHandle),
       );
       if (invalidSourceCandidate) {
         return {
@@ -250,17 +243,14 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
         };
       }
 
-      const availableCandidates =
-        await this.repository.facet.findFacetValueCandidatesByHandles({
-          candidateType: params.facetType as FacetValueCandidateType,
-          sourceHandles: selectedSourceHandles,
-          handles: valueCandidates.map((value) => value.handle),
-        });
-      const availableHandles = new Set(
-        availableCandidates.map((candidate) => candidate.handle)
-      );
+      const availableCandidates = await this.repository.facet.findFacetValueCandidatesByHandles({
+        candidateType: params.facetType as FacetValueCandidateType,
+        sourceHandles: selectedSourceHandles,
+        handles: valueCandidates.map((value) => value.handle),
+      });
+      const availableHandles = new Set(availableCandidates.map((candidate) => candidate.handle));
       const missingCandidate = valueCandidates.find(
-        (candidate) => !availableHandles.has(candidate.handle)
+        (candidate) => !availableHandles.has(candidate.handle),
       );
       if (missingCandidate) {
         return {

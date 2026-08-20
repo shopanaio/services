@@ -42,12 +42,7 @@ export class CustomerComparisonVariantRemoveScript extends BaseScript<
       case "conflict":
         return failed(revisionConflict(result.actualRevision));
       case "customer_not_found":
-        return failed(
-          comparisonError(
-            "CUSTOMER_NOT_FOUND",
-            "Customer was not found",
-          ),
-        );
+        return failed(comparisonError("CUSTOMER_NOT_FOUND", "Customer was not found"));
     }
   }
 
@@ -56,9 +51,6 @@ export class CustomerComparisonVariantRemoveScript extends BaseScript<
   }
 }
 
-function failed(
-  userError: ReturnType<typeof comparisonError>,
-): CustomerComparisonMutationResult {
+function failed(userError: ReturnType<typeof comparisonError>): CustomerComparisonMutationResult {
   return { customerId: null, revision: null, userErrors: [userError] };
 }
-

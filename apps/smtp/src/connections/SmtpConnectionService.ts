@@ -66,9 +66,7 @@ export class SmtpConnectionService {
           }),
         );
       }
-      return required(
-        await this.repository.connection.findById(scope, created.id),
-      );
+      return required(await this.repository.connection.findById(scope, created.id));
     });
   }
 
@@ -79,10 +77,7 @@ export class SmtpConnectionService {
   ): Promise<SmtpConnectionRecord> {
     const normalized = normalizeInput(input, this.policy, false);
     return this.repository.runInTransaction(async () => {
-      const current = await this.repository.connection.lockById(
-        scope,
-        connectionId,
-      );
+      const current = await this.repository.connection.lockById(scope, connectionId);
       if (!current) throw new Error("SMTP_CONNECTION_NOT_FOUND");
       if (current.status === "DISCONNECTED") {
         throw new Error("SMTP_CONNECTION_INVALID_STATE");
@@ -94,21 +89,13 @@ export class SmtpConnectionService {
       ) {
         throw new Error("SMTP_CONNECTION_PASSWORD_REQUIRED");
       }
-      const updated = await this.repository.connection.update(
-        scope,
-        connectionId,
-        {
-          ...normalized.configuration,
-          displayName: normalized.displayName,
-          provider: input.provider,
-        },
-      );
+      const updated = await this.repository.connection.update(scope, connectionId, {
+        ...normalized.configuration,
+        displayName: normalized.displayName,
+        provider: input.provider,
+      });
       if (!normalized.configuration.username) {
-        await this.repository.connection.updatePasswordEnvelope(
-          scope,
-          connectionId,
-          null,
-        );
+        await this.repository.connection.updatePasswordEnvelope(scope, connectionId, null);
       } else if (input.password !== undefined) {
         await this.repository.connection.updatePasswordEnvelope(
           scope,
@@ -122,46 +109,28 @@ export class SmtpConnectionService {
         );
       }
       if (!updated) throw new Error("SMTP_CONNECTION_NOT_FOUND");
-      return required(
-        await this.repository.connection.findById(scope, connectionId),
-      );
+      return required(await this.repository.connection.findById(scope, connectionId));
     });
   }
 
-  activate(
-    scope: SmtpConnectionScope,
-    connectionId: string,
-  ): Promise<SmtpConnectionRecord> {
+  activate(scope: SmtpConnectionScope, connectionId: string): Promise<SmtpConnectionRecord> {
     return this.repository.runInTransaction(async () => {
-      const current = await this.repository.connection.lockById(
-        scope,
-        connectionId,
-      );
+      const current = await this.repository.connection.lockById(scope, connectionId);
       if (!current) throw new Error("SMTP_CONNECTION_NOT_FOUND");
       if (current.status === "DISCONNECTED") {
         throw new Error("SMTP_CONNECTION_INVALID_STATE");
       }
       if (current.status === "ACTIVE") return publicRecord(current);
-      return required(
-        await this.repository.connection.activate(scope, connectionId),
-      );
+      return required(await this.repository.connection.activate(scope, connectionId));
     });
   }
 
-  disconnect(
-    scope: SmtpConnectionScope,
-    connectionId: string,
-  ): Promise<SmtpConnectionRecord> {
+  disconnect(scope: SmtpConnectionScope, connectionId: string): Promise<SmtpConnectionRecord> {
     return this.repository.runInTransaction(async () => {
-      const current = await this.repository.connection.lockById(
-        scope,
-        connectionId,
-      );
+      const current = await this.repository.connection.lockById(scope, connectionId);
       if (!current) throw new Error("SMTP_CONNECTION_NOT_FOUND");
       if (current.status === "DISCONNECTED") return publicRecord(current);
-      return required(
-        await this.repository.connection.disconnect(scope, connectionId),
-      );
+      return required(await this.repository.connection.disconnect(scope, connectionId));
     });
   }
 
@@ -205,9 +174,7 @@ function normalizeInput(
       host: input.host,
       port: input.port,
       security: input.security,
-      ...(input.username?.trim()
-        ? { username: input.username.trim() }
-        : {}),
+      ...(input.username?.trim() ? { username: input.username.trim() } : {}),
     },
     policy,
   );
@@ -215,9 +182,7 @@ function normalizeInput(
     throw new Error("SMTP_CONNECTION_USERNAME_REQUIRED");
   }
   const suppliedPassword =
-    input.password === undefined ||
-    input.password === null ||
-    input.password.trim().length === 0
+    input.password === undefined || input.password === null || input.password.trim().length === 0
       ? undefined
       : validateSmtpPassword(input.password);
   const password = configuration.username ? suppliedPassword : undefined;
@@ -227,9 +192,7 @@ function normalizeInput(
   return { displayName, configuration, password };
 }
 
-function publicRecord(
-  record: SmtpConnectionSecretRecord,
-): SmtpConnectionRecord {
+function publicRecord(record: SmtpConnectionSecretRecord): SmtpConnectionRecord {
   const { passwordEnvelope, ...rest } = record;
   return Object.freeze({
     ...rest,
@@ -237,9 +200,7 @@ function publicRecord(
   });
 }
 
-function required(
-  value: SmtpConnectionRecord | null,
-): SmtpConnectionRecord {
+function required(value: SmtpConnectionRecord | null): SmtpConnectionRecord {
   if (!value) throw new Error("SMTP_CONNECTION_NOT_FOUND");
   return value;
 }

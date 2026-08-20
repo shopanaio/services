@@ -30,11 +30,7 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
       <PaperHeader
         title="Media"
         actions={
-          <EditAction
-            onEdit={onEdit}
-            label="Edit media"
-            testId="category-media-actions-button"
-          />
+          <EditAction onEdit={onEdit} label="Edit media" testId="category-media-actions-button" />
         }
       />
       {hasMedia ? (
@@ -81,7 +77,7 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
                 }}
                 onClick={() => mediaPreview.open(index)}
               />
-            )
+            ),
           )}
           {showMore && (
             <Flex

@@ -2,18 +2,16 @@ import { sql } from "drizzle-orm";
 import { integer, text, uuid, varchar } from "drizzle-orm/pg-core";
 import { catalogSchema, localeCodeEnum } from "./schema";
 
-export const facetSourceCandidateView = catalogSchema
-  .view("facet_source_candidate_view", {
-    id: text("id").notNull(),
-    storeId: uuid("store_id").notNull(),
-    locale: localeCodeEnum("locale").notNull(),
-    facetType: varchar("facet_type", { length: 32 }).notNull(),
-    handle: text("handle").notNull(),
-    name: text("name"),
-    sourceSortBucket: integer("source_sort_bucket").notNull(),
-    sortName: text("sort_name"),
-  })
-  .as(sql`
+export const facetSourceCandidateView = catalogSchema.view("facet_source_candidate_view", {
+  id: text("id").notNull(),
+  storeId: uuid("store_id").notNull(),
+  locale: localeCodeEnum("locale").notNull(),
+  facetType: varchar("facet_type", { length: 32 }).notNull(),
+  handle: text("handle").notNull(),
+  name: text("name"),
+  sourceSortBucket: integer("source_sort_bucket").notNull(),
+  sortName: text("sort_name"),
+}).as(sql`
     WITH project_locale_source AS (
       SELECT DISTINCT store_id, locale
       FROM catalog.product_translation
@@ -102,5 +100,4 @@ export const facetSourceCandidateView = catalogSchema
     FROM candidates c
   `);
 
-export type FacetSourceCandidateView =
-  typeof facetSourceCandidateView.$inferSelect;
+export type FacetSourceCandidateView = typeof facetSourceCandidateView.$inferSelect;

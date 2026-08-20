@@ -14,8 +14,7 @@ export type CreateCheckoutInput = {
 } & CheckoutContext;
 
 export type CheckoutLinePurchase =
-  | { type: "ONE_TIME"; sellingPlanId: null }
-  | { type: "SUBSCRIPTION"; sellingPlanId: string };
+  { type: "ONE_TIME"; sellingPlanId: null } | { type: "SUBSCRIPTION"; sellingPlanId: string };
 
 export type CheckoutLineCommand = {
   lineId: string;
@@ -27,10 +26,7 @@ export type CheckoutLineCommand = {
   children?: CheckoutChildLineInput[] | null;
 };
 
-export type CheckoutLineCreateCommand = Omit<
-  CheckoutLineCommand,
-  "lineId" | "children"
-> & {
+export type CheckoutLineCreateCommand = Omit<CheckoutLineCommand, "lineId" | "children"> & {
   children?: Array<Omit<CheckoutChildLineInput, "lineId">> | null;
 };
 
@@ -195,7 +191,10 @@ export type CheckoutDeliveryAddressFields = {
 
 export type CheckoutDeliveryAddressUpdateInput = {
   checkoutId: string;
-  updates: Array<{ addressId: string; address: Omit<CheckoutDeliveryAddressFields, "id" | "checkoutLineIds"> }>;
+  updates: Array<{
+    addressId: string;
+    address: Omit<CheckoutDeliveryAddressFields, "id" | "checkoutLineIds">;
+  }>;
 } & CheckoutContext;
 
 export type CheckoutDeliveryAddressRemoveInput = {
@@ -215,13 +214,16 @@ export type CheckoutPromoCodeRemoveInput = {
 
 export type CheckoutDeliveryGroupRecipientUpdateInput = {
   checkoutId: string;
-  updates: Array<{ deliveryGroupId: string; recipient: {
-    firstName?: string | null;
-    lastName?: string | null;
-    middleName?: string | null;
-    email?: string | null;
-    phone?: string | null;
-  } }>;
+  updates: Array<{
+    deliveryGroupId: string;
+    recipient: {
+      firstName?: string | null;
+      lastName?: string | null;
+      middleName?: string | null;
+      email?: string | null;
+      phone?: string | null;
+    };
+  }>;
 } & CheckoutContext;
 
 export type CheckoutDeliveryGroupRecipientRemoveInput = {

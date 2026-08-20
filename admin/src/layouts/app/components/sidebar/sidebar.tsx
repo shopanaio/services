@@ -15,10 +15,7 @@ import { SubitemIcon } from "@/ui-kit/arrows/arrows";
 import { usePathname, useRouter } from "next/navigation";
 import { match } from "path-to-regexp";
 import { useSidebarStore } from "./sidebar-store";
-import {
-  mergeDynamicSidebarItems,
-  useDynamicSidebarStore,
-} from "./dynamic-sidebar-store";
+import { mergeDynamicSidebarItems, useDynamicSidebarStore } from "./dynamic-sidebar-store";
 
 type AntMenuItem = NonNullable<MenuProps["items"]>[number];
 
@@ -34,14 +31,14 @@ function wrapMenuIcon(icon: ReactNode): ReactNode {
 function findMatchingItem(
   items: SidebarItem[],
   pathname: string,
-  parentKey?: string
+  parentKey?: string,
 ): MatchedItem | null {
   for (const item of items) {
     if (item.children) {
       const found = findMatchingItem(
         item.children,
         pathname,
-        item.type === "group" ? parentKey : item.key
+        item.type === "group" ? parentKey : item.key,
       );
       if (found) {
         return found;
@@ -49,11 +46,7 @@ function findMatchingItem(
     }
     if (item.path) {
       const paths = [item.path, ...(item.activePaths ?? [])];
-      if (
-        paths.some((path) =>
-          match(path, { decode: decodeURIComponent })(pathname),
-        )
-      ) {
+      if (paths.some((path) => match(path, { decode: decodeURIComponent })(pathname))) {
         return { key: item.key, parentKey };
       }
     }
@@ -79,14 +72,12 @@ function findItemByKey(items: SidebarItem[], key: string): SidebarItem | null {
 function buildMenuItems(
   items: SidebarItem[],
   isSubitem = false,
-  parentChildrenCount = 0
+  parentChildrenCount = 0,
 ): AntMenuItem[] {
   return items.map((item, index) => {
     const isFinal = isSubitem && index === parentChildrenCount - 1;
     const icon =
-      isSubitem && !item.icon
-        ? <SubitemIcon isFinal={isFinal} />
-        : wrapMenuIcon(item.icon);
+      isSubitem && !item.icon ? <SubitemIcon isFinal={isFinal} /> : wrapMenuIcon(item.icon);
 
     if (item.type === "group") {
       return {
@@ -120,59 +111,53 @@ function buildMenuItems(
   });
 }
 
-const useStyles = createStyles(
-  ({ css, token }, { collapsed }: { collapsed: boolean }) => ({
-    siderPlaceholder: css`
-      background: ${token.colorBgLayout};
-      border-right: 1px solid ${token.colorFill};
-    `,
-    siderFixed: css`
-      overflow-y: auto;
-      overflow-x: hidden;
-      position: fixed;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      background: transparent;
-      display: flex;
-      flex-direction: column;
+const useStyles = createStyles(({ css, token }, { collapsed }: { collapsed: boolean }) => ({
+  siderPlaceholder: css`
+    background: ${token.colorBgLayout};
+    border-right: 1px solid ${token.colorFill};
+  `,
+  siderFixed: css`
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
 
-      /* Hide scrollbar */
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-      &::-webkit-scrollbar {
-        display: none;
-      }
-    `,
-    content: css`
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      transition: transform 0.2s ease;
-      transform: ${collapsed
-        ? `translateX(${token.paddingXXS}px)`
-        : `translateX(${token.paddingXS}px)`};
-    `,
-    menu: css`
-      border: none;
-      transition: width 0.2s ease;
-      background: transparent;
-      flex: 1;
-      padding-bottom: 200px;
-      width: ${collapsed
-        ? `calc(100% - ${token.paddingXS}px)`
-        : `calc(100% - ${token.padding}px)`};
-    `,
-  })
-);
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  `,
+  content: css`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease;
+    transform: ${
+      collapsed ? `translateX(${token.paddingXXS}px)` : `translateX(${token.paddingXS}px)`
+    };
+  `,
+  menu: css`
+    border: none;
+    transition: width 0.2s ease;
+    background: transparent;
+    flex: 1;
+    padding-bottom: 200px;
+    width: ${collapsed ? `calc(100% - ${token.paddingXS}px)` : `calc(100% - ${token.padding}px)`};
+  `,
+}));
 
 export const Sidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const staticSidebarItems = useSidebarItems();
-  const dynamicChildren = useDynamicSidebarStore(
-    (state) => state.childrenByParentKey,
-  );
+  const dynamicChildren = useDynamicSidebarStore((state) => state.childrenByParentKey);
   const pathContext = usePathParams();
   const sidebarItems = useMemo(
     () => mergeDynamicSidebarItems(staticSidebarItems, dynamicChildren),

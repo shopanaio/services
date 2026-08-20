@@ -37,7 +37,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const { user, isAuthenticated, isLoading } = useSession();
 
   const isPublicPath = PUBLIC_PATHS.some(
-    (path) => pathname === path || pathname?.startsWith(`${path}/`)
+    (path) => pathname === path || pathname?.startsWith(`${path}/`),
   );
 
   // Only show loading on initial load (no cached user data yet)
@@ -60,14 +60,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
       router.replace(`/sign-in?returnUrl=${returnUrl}`);
       return;
     }
-  }, [
-    isAuthenticated,
-    isInitialLoading,
-    isPublicPath,
-    pathname,
-    router,
-    searchParams,
-  ]);
+  }, [isAuthenticated, isInitialLoading, isPublicPath, pathname, router, searchParams]);
 
   // Show loading state only during initial auth verification
   if (isInitialLoading) {

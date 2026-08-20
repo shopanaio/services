@@ -54,21 +54,17 @@ export const review = reviewsSchema.table(
       table.storeId,
       table.productId,
       table.rating,
-      table.id
+      table.id,
     ),
     index("review_store_rating_idx").on(table.storeId, table.rating, table.id),
-    index("review_store_verification_idx").on(
-      table.storeId,
-      table.verificationStatus,
-      table.id
-    ),
+    index("review_store_verification_idx").on(table.storeId, table.verificationStatus, table.id),
     index("review_store_order_line_idx")
       .on(table.storeId, table.orderLineId, table.id)
       .where(sql`${table.orderLineId} IS NOT NULL`),
     index("review_store_variant_idx")
       .on(table.storeId, table.variantId, table.id)
       .where(sql`${table.variantId} IS NOT NULL`),
-  ]
+  ],
 );
 
 export const reviewRating = reviewsSchema.table(
@@ -95,9 +91,9 @@ export const reviewRating = reviewsSchema.table(
       table.storeId,
       table.criterionId,
       table.value,
-      table.reviewId
+      table.reviewId,
     ),
-  ]
+  ],
 );
 
 export const reviewMedia = reviewsSchema.table(
@@ -128,17 +124,13 @@ export const reviewMedia = reviewsSchema.table(
       table.storeId,
       table.reviewId,
       table.sortIndex,
-      table.id
+      table.id,
     ),
-    index("review_media_store_file_idx").on(
-      table.storeId,
-      table.fileId,
-      table.reviewId
-    ),
+    index("review_media_store_file_idx").on(table.storeId, table.fileId, table.reviewId),
     index("review_media_pending_idx")
       .on(table.storeId, table.createdAt, table.id)
       .where(sql`${table.status} = 'PENDING'`),
-  ]
+  ],
 );
 
 export const reviewReply = reviewsSchema.table(
@@ -147,9 +139,7 @@ export const reviewReply = reviewsSchema.table(
     id: uuid("id")
       .primaryKey()
       .references(() => contentItem.id, { onDelete: "cascade" }),
-    contentKind: contentKindEnum("content_kind")
-      .notNull()
-      .default("REVIEW_REPLY"),
+    contentKind: contentKindEnum("content_kind").notNull().default("REVIEW_REPLY"),
     storeId: uuid("store_id").notNull(),
     reviewId: uuid("review_id")
       .notNull()
@@ -162,9 +152,9 @@ export const reviewReply = reviewsSchema.table(
       table.storeId,
       table.reviewId,
       table.sortIndex,
-      table.id
+      table.id,
     ),
-  ]
+  ],
 );
 
 export const reviewRequest = reviewsSchema.table(
@@ -183,9 +173,7 @@ export const reviewRequest = reviewsSchema.table(
     channel: notificationChannelEnum("channel").notNull(),
     status: reviewRequestStatusEnum("status").notNull().default("SCHEDULED"),
     locale: localeCodeEnum("locale").notNull(),
-    sourceChannel: varchar("source_channel", { length: 64 })
-      .notNull()
-      .default("STOREFRONT"),
+    sourceChannel: varchar("source_channel", { length: 64 }).notNull().default("STOREFRONT"),
     idempotencyKey: text("idempotency_key").notNull(),
     accessTokenHash: bytea("access_token_hash"),
     providerMessageId: text("provider_message_id"),
@@ -205,10 +193,7 @@ export const reviewRequest = reviewsSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("review_request_store_idempotency_unique").on(
-      table.storeId,
-      table.idempotencyKey
-    ),
+    unique("review_request_store_idempotency_unique").on(table.storeId, table.idempotencyKey),
     uniqueIndex("review_request_access_token_unique")
       .on(table.storeId, table.accessTokenHash)
       .where(sql`${table.accessTokenHash} IS NOT NULL`),
@@ -219,27 +204,27 @@ export const reviewRequest = reviewsSchema.table(
       table.storeId,
       table.status,
       table.scheduledAt,
-      table.id
+      table.id,
     ),
     index("review_request_store_customer_idx").on(
       table.storeId,
       table.customerId,
       table.createdAt,
-      table.id
+      table.id,
     ),
     index("review_request_store_order_line_idx").on(
       table.storeId,
       table.orderLineId,
       table.createdAt,
-      table.id
+      table.id,
     ),
     index("review_request_store_product_idx").on(
       table.storeId,
       table.productId,
       table.createdAt,
-      table.id
+      table.id,
     ),
-  ]
+  ],
 );
 
 export const reviewRequestEvent = reviewsSchema.table(
@@ -252,10 +237,7 @@ export const reviewRequestEvent = reviewsSchema.table(
       .references(() => reviewRequest.id, { onDelete: "cascade" }),
     type: reviewRequestEventTypeEnum("type").notNull(),
     providerEventId: text("provider_event_id"),
-    metadata: jsonb("metadata")
-      .$type<Record<string, unknown>>()
-      .notNull()
-      .default({}),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
     occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "string" }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
@@ -268,9 +250,9 @@ export const reviewRequestEvent = reviewsSchema.table(
     index("review_request_event_request_time_idx").on(
       table.reviewRequestId,
       table.occurredAt,
-      table.id
+      table.id,
     ),
-  ]
+  ],
 );
 
 export type Review = typeof review.$inferSelect;

@@ -17,9 +17,7 @@ export class CustomerGroupsUpdateScript extends BaseScript<
   CustomerSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerGroupsUpdateParams
-  ): Promise<CustomerSectionResult> {
+  protected async execute(params: CustomerGroupsUpdateParams): Promise<CustomerSectionResult> {
     const errors: Array<{ message: string; code: string; field?: string[] }> = [];
     const ids = params.operations.memberships.map((item) => item.groupId);
     const groups = await this.repository.group.getByIds(ids);
@@ -61,7 +59,7 @@ export class CustomerGroupsUpdateScript extends BaseScript<
         isPrimary: membership.isPrimary ?? false,
         expiresAt: membership.expiresAt ?? null,
         assignedById: this.context.hasUser ? this.currentUser.id : null,
-      }))
+      })),
     );
 
     await this.invalidateDynamicSegments(params.customerId, ["group"], "group");

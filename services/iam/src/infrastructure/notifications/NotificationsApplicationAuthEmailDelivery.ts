@@ -8,16 +8,14 @@ import type {
   ApplicationAuthEmailDeliveryResult,
 } from "../../services/ApplicationAuthEmailDeliveryPort.js";
 
-export class NotificationsApplicationAuthEmailDelivery
-  implements ApplicationAuthEmailDeliveryPort
-{
+export class NotificationsApplicationAuthEmailDelivery implements ApplicationAuthEmailDeliveryPort {
   constructor(
     private readonly broker: ServiceBroker,
-    private readonly repository: Repository
+    private readonly repository: Repository,
   ) {}
 
   async enqueue(
-    request: ApplicationAuthEmailDeliveryRequest
+    request: ApplicationAuthEmailDeliveryRequest,
   ): Promise<ApplicationAuthEmailDeliveryResult> {
     if (
       request.deliveryProfileId !== "notifications" ||
@@ -32,12 +30,11 @@ export class NotificationsApplicationAuthEmailDelivery
       return { accepted: false, retryable: false };
     }
 
-    const binding =
-      await this.repository.serviceLinkedResource.findActiveByResource({
-        organizationId: application.organizationId,
-        resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
-        resourceId: application.id,
-      });
+    const binding = await this.repository.serviceLinkedResource.findActiveByResource({
+      organizationId: application.organizationId,
+      resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+      resourceId: application.id,
+    });
     if (!binding || binding.linkedOwnerType !== "store") {
       return { accepted: false, retryable: false };
     }
@@ -66,9 +63,7 @@ export class NotificationsApplicationAuthEmailDelivery
   }
 }
 
-function expectedTemplateId(
-  purpose: ApplicationAuthEmailDeliveryRequest["purpose"]
-): string {
+function expectedTemplateId(purpose: ApplicationAuthEmailDeliveryRequest["purpose"]): string {
   switch (purpose) {
     case "email_verification_link":
       return "customer.auth.email_verification";
@@ -80,7 +75,7 @@ function expectedTemplateId(
 }
 
 function toNotification(
-  request: ApplicationAuthEmailDeliveryRequest
+  request: ApplicationAuthEmailDeliveryRequest,
 ): Notifications.ApplicationAuthNotificationParams {
   switch (request.purpose) {
     case "email_verification_link":

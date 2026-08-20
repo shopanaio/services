@@ -45,8 +45,7 @@ export class SearchQueryPlanBuilder {
 
       for (const group of match?.groups ?? []) {
         matchedGroupIds.add(group.groupId);
-        const alternatives = group.values
-          .map((value) => textClause(value.lexemes, enabledFields));
+        const alternatives = group.values.map((value) => textClause(value.lexemes, enabledFields));
         primaryAlternatives.push(
           Object.freeze({
             kind: "synonym",
@@ -56,37 +55,31 @@ export class SearchQueryPlanBuilder {
         );
       }
 
-      const identifierValue = sourceUnits
-        .map((unit) => unit.normalizedText)
-        .join(" ");
+      const identifierValue = sourceUnits.map((unit) => unit.normalizedText).join(" ");
       const identifierAlternatives = identifierClauses(identifierValue);
       const typoTerms = sourceUnits.flatMap((unit) => unit.typoTerms);
       requiredUnits.push(
         Object.freeze({
           index: requiredUnits.length,
-          sourceUnitIndexes: freezeArray(
-            sourceUnits.map((unit) => unit.sourceIndex),
-          ),
+          sourceUnitIndexes: freezeArray(sourceUnits.map((unit) => unit.sourceIndex)),
           primaryAlternatives: freezeArray(primaryAlternatives),
-          originalTypoAlternative: typoTerms.length === 0
-            ? null
-            : Object.freeze({
-                kind: "typoTerms",
-                terms: freezeArray(typoTerms),
-                fields: enabledFields,
-                maxDistance: 1,
-                requireSameElement: sourceUnits.length > 1,
-              }),
+          originalTypoAlternative:
+            typoTerms.length === 0
+              ? null
+              : Object.freeze({
+                  kind: "typoTerms",
+                  terms: freezeArray(typoTerms),
+                  fields: enabledFields,
+                  maxDistance: 1,
+                  requireSameElement: sourceUnits.length > 1,
+                }),
           originalIdentifierAlternatives: freezeArray(identifierAlternatives),
         }),
       );
       sourceIndex += length;
     }
 
-    if (
-      matchedGroupIds.size >
-        SEARCH_NORMALIZATION_LIMITS.synonymGroupsPerQuery
-    ) {
+    if (matchedGroupIds.size > SEARCH_NORMALIZATION_LIMITS.synonymGroupsPerQuery) {
       throw indexUnavailable(
         `Search query matches more than ${SEARCH_NORMALIZATION_LIMITS.synonymGroupsPerQuery} synonym groups`,
       );
@@ -108,8 +101,7 @@ export class SearchQueryPlanBuilder {
       matchedSynonymGroupIds: freezeArray([...matchedGroupIds].sort()),
       applicableBoostProductIds,
       enabledFields,
-      normalizationContractVersion:
-        input.lexicalizedQuery.normalizationContractVersion,
+      normalizationContractVersion: input.lexicalizedQuery.normalizationContractVersion,
       normalizationProfileRevision: input.lexicalizedQuery.profileRevision,
     };
     const fingerprint = createHash("sha256")
@@ -121,15 +113,9 @@ export class SearchQueryPlanBuilder {
 
   buildExpandedFuzzy(input: {
     primaryPlan: SearchQueryPlan;
-    verifiedAlternativesByUnit: ReadonlyMap<
-      number,
-      readonly VerifiedTypoAlternative[]
-    >;
+    verifiedAlternativesByUnit: ReadonlyMap<number, readonly VerifiedTypoAlternative[]>;
   }): ExpandedFuzzySearchQueryPlan {
-    const alternatives = new Map<
-      number,
-      readonly VerifiedTypoAlternative[]
-    >();
+    const alternatives = new Map<number, readonly VerifiedTypoAlternative[]>();
     for (const unit of input.primaryPlan.requiredUnits) {
       const typoClause = unit.originalTypoAlternative;
       if (!typoClause || typoClause.kind !== "typoTerms") {
@@ -137,9 +123,9 @@ export class SearchQueryPlanBuilder {
         continue;
       }
       const expectedTerms = new Set(typoClause.terms);
-      const unitAlternatives = [
-        ...(input.verifiedAlternativesByUnit.get(unit.index) ?? []),
-      ].sort(compareVerifiedAlternative);
+      const unitAlternatives = [...(input.verifiedAlternativesByUnit.get(unit.index) ?? [])].sort(
+        compareVerifiedAlternative,
+      );
       const seen = new Set<string>();
       for (const alternative of unitAlternatives) {
         if (
@@ -166,10 +152,14 @@ export class SearchQueryPlanBuilder {
       }
       alternatives.set(
         unit.index,
-        freezeArray(unitAlternatives.map((value) => Object.freeze({
-          ...value,
-          ftsLexemes: freezeArray(value.ftsLexemes),
-        }))),
+        freezeArray(
+          unitAlternatives.map((value) =>
+            Object.freeze({
+              ...value,
+              ftsLexemes: freezeArray(value.ftsLexemes),
+            }),
+          ),
+        ),
       );
     }
     for (const key of input.verifiedAlternativesByUnit.keys()) {
@@ -183,10 +173,12 @@ export class SearchQueryPlanBuilder {
       values,
     }));
     const fingerprint = createHash("sha256")
-      .update(JSON.stringify({
-        primaryFingerprint: input.primaryPlan.fingerprint,
-        verifiedAlternatives: serializedAlternatives,
-      }))
+      .update(
+        JSON.stringify({
+          primaryFingerprint: input.primaryPlan.fingerprint,
+          verifiedAlternatives: serializedAlternatives,
+        }),
+      )
       .digest("hex");
     return Object.freeze({
       ...input.primaryPlan,
@@ -200,10 +192,12 @@ function compareVerifiedAlternative(
   left: VerifiedTypoAlternative,
   right: VerifiedTypoAlternative,
 ): number {
-  return left.inputTerm.localeCompare(right.inputTerm) ||
+  return (
+    left.inputTerm.localeCompare(right.inputTerm) ||
     left.editDistance - right.editDistance ||
     right.trigramSimilarity - left.trigramSimilarity ||
-    left.vocabularyTerm.localeCompare(right.vocabularyTerm);
+    left.vocabularyTerm.localeCompare(right.vocabularyTerm)
+  );
 }
 
 class ReadonlyMapView<K, V> implements ReadonlyMap<K, V> {
@@ -226,10 +220,7 @@ class ReadonlyMapView<K, V> implements ReadonlyMap<K, V> {
     return this.#values.has(key);
   }
 
-  forEach(
-    callbackfn: (value: V, key: K, map: ReadonlyMap<K, V>) => void,
-    thisArg?: unknown,
-  ): void {
+  forEach(callbackfn: (value: V, key: K, map: ReadonlyMap<K, V>) => void, thisArg?: unknown): void {
     for (const [key, value] of this.#values) {
       callbackfn.call(thisArg, value, key, this);
     }
@@ -252,19 +243,13 @@ class ReadonlyMapView<K, V> implements ReadonlyMap<K, V> {
   }
 }
 
-function validateSynonyms(
-  input: BuildSearchQueryPlanInput,
-): CompiledLocaleSynonyms {
+function validateSynonyms(input: BuildSearchQueryPlanInput): CompiledLocaleSynonyms {
   const synonyms = input.synonyms ?? emptyCompiledSynonyms(input);
   if (
-    synonyms.normalizationContractVersion !==
-      input.lexicalizedQuery.normalizationContractVersion ||
-    synonyms.normalizationProfileRevision !==
-      input.lexicalizedQuery.profileRevision
+    synonyms.normalizationContractVersion !== input.lexicalizedQuery.normalizationContractVersion ||
+    synonyms.normalizationProfileRevision !== input.lexicalizedQuery.profileRevision
   ) {
-    throw indexUnavailable(
-      "Compiled synonym trie normalization profile does not match the query",
-    );
+    throw indexUnavailable("Compiled synonym trie normalization profile does not match the query");
   }
   const groups = [...synonyms.groups].sort((left, right) =>
     left.groupId.localeCompare(right.groupId),
@@ -277,35 +262,27 @@ function validateSynonyms(
     seenGroups.add(group.groupId);
     if (
       group.values.length < 2 ||
-      group.values.length >
-        SEARCH_NORMALIZATION_LIMITS.synonymAlternativesPerUnit
+      group.values.length > SEARCH_NORMALIZATION_LIMITS.synonymAlternativesPerUnit
     ) {
-      throw indexUnavailable(
-        `Synonym group ${group.groupId} has an invalid alternative count`,
-      );
+      throw indexUnavailable(`Synonym group ${group.groupId} has an invalid alternative count`);
     }
     const seenValues = new Set<string>();
     for (const value of group.values) {
       if (
         value.normalizationContractVersion !==
           input.lexicalizedQuery.normalizationContractVersion ||
-        value.normalizationProfileRevision !==
-          input.lexicalizedQuery.profileRevision
+        value.normalizationProfileRevision !== input.lexicalizedQuery.profileRevision
       ) {
         throw indexUnavailable(
           `Synonym group ${group.groupId} normalization profile does not match the query`,
         );
       }
       if (!value.preparedText || value.lexemes.length === 0) {
-        throw indexUnavailable(
-          `Synonym group ${group.groupId} contains an empty value`,
-        );
+        throw indexUnavailable(`Synonym group ${group.groupId} contains an empty value`);
       }
       const key = value.lexemes.join("\u0000");
       if (seenValues.has(key)) {
-        throw indexUnavailable(
-          `Synonym group ${group.groupId} contains duplicate values`,
-        );
+        throw indexUnavailable(`Synonym group ${group.groupId} contains duplicate values`);
       }
       seenValues.add(key);
     }
@@ -329,9 +306,7 @@ function findLongestSynonymMatch(
     for (const lexeme of units[index]!.ftsLexemes) {
       const next = node.children[lexeme];
       if (!next) {
-        return matchedLength === 0
-          ? null
-          : toSynonymMatch(matchedLength, matchedGroupIds, byId);
+        return matchedLength === 0 ? null : toSynonymMatch(matchedLength, matchedGroupIds, byId);
       }
       node = next;
     }
@@ -341,9 +316,7 @@ function findLongestSynonymMatch(
     }
   }
 
-  return matchedLength === 0
-    ? null
-    : toSynonymMatch(matchedLength, matchedGroupIds, byId);
+  return matchedLength === 0 ? null : toSynonymMatch(matchedLength, matchedGroupIds, byId);
 }
 
 function toSynonymMatch(
@@ -361,13 +334,10 @@ function toSynonymMatch(
   return Object.freeze({ length, groups: freezeArray(matched) });
 }
 
-function emptyCompiledSynonyms(
-  input: BuildSearchQueryPlanInput,
-): CompiledLocaleSynonyms {
+function emptyCompiledSynonyms(input: BuildSearchQueryPlanInput): CompiledLocaleSynonyms {
   return Object.freeze({
     resourceFingerprint: "empty",
-    normalizationContractVersion:
-      input.lexicalizedQuery.normalizationContractVersion,
+    normalizationContractVersion: input.lexicalizedQuery.normalizationContractVersion,
     normalizationProfileRevision: input.lexicalizedQuery.profileRevision,
     groups: Object.freeze([]),
     trie: Object.freeze({
@@ -403,9 +373,7 @@ function textClause(
 
 function identifierClauses(value: string): SearchClause[] {
   if (!value) return [];
-  const clauses: SearchClause[] = [
-    Object.freeze({ kind: "identifierExact", value }),
-  ];
+  const clauses: SearchClause[] = [Object.freeze({ kind: "identifierExact", value })];
   if ([...value].length >= 3) {
     clauses.push(Object.freeze({ kind: "identifierPrefix", value }));
   }
@@ -415,18 +383,12 @@ function identifierClauses(value: string): SearchClause[] {
 function countClauses(units: readonly SearchRequiredUnit[]): number {
   const count = (clause: SearchClause): number =>
     clause.kind === "synonym"
-      ? 1 + clause.alternatives.reduce(
-          (total, alternative) => total + count(alternative),
-          0,
-        )
+      ? 1 + clause.alternatives.reduce((total, alternative) => total + count(alternative), 0)
       : 1;
   return units.reduce(
     (total, unit) =>
       total +
-      unit.primaryAlternatives.reduce(
-        (subtotal, clause) => subtotal + count(clause),
-        0,
-      ) +
+      unit.primaryAlternatives.reduce((subtotal, clause) => subtotal + count(clause), 0) +
       unit.originalIdentifierAlternatives.length +
       (unit.originalTypoAlternative ? 1 : 0),
     0,

@@ -3,18 +3,11 @@ import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { CustomerTaxIdentifier } from "../../repositories/models/index.js";
 import { CustomersType } from "./CustomersType.js";
 
-export class CustomerTaxIdentifierResolver extends CustomersType<
-  string,
-  CustomerTaxIdentifier
-> {
+export class CustomerTaxIdentifierResolver extends CustomersType<string, CustomerTaxIdentifier> {
   async $preload() {
-    const taxIdentifier = await this.$ctx.loaders.taxIdentifier.load(
-      this.$props
-    );
+    const taxIdentifier = await this.$ctx.loaders.taxIdentifier.load(this.$props);
     if (!taxIdentifier) {
-      throw new PreloadNotFoundError(
-        `Customer tax identifier with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer tax identifier with ID ${this.$props} not found`);
     }
     return taxIdentifier;
   }

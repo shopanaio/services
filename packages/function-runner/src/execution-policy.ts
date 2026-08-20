@@ -1,13 +1,7 @@
-import {
-  COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH,
-} from "@shopana/broker-types";
-import type {
-  FunctionExecutionPlanItem,
-  FunctionFailureMode,
-} from "./contracts.js";
+import { COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH } from "@shopana/broker-types";
+import type { FunctionExecutionPlanItem, FunctionFailureMode } from "./contracts.js";
 
-export const DEFAULT_MAX_ENVELOPE_DEPTH =
-  COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH;
+export const DEFAULT_MAX_ENVELOPE_DEPTH = COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH;
 
 export function compareExecutionPlanItems(
   left: FunctionExecutionPlanItem,

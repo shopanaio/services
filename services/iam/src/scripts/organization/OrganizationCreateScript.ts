@@ -19,9 +19,7 @@ export class OrganizationCreateScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(organizationCreateInputSchema)
-  protected async execute(
-    params: OrganizationCreateParams
-  ): Promise<OrganizationCreateResult> {
+  protected async execute(params: OrganizationCreateParams): Promise<OrganizationCreateResult> {
     const { name, displayName } = params;
     const userId = this.currentUser.id;
 
@@ -49,9 +47,7 @@ export class OrganizationCreateScript extends BaseScript<
     const adminRoleName = "admin";
     const domain = ORG_DOMAIN;
 
-    const roleKeys = Object.keys(Roles.organization) as Array<
-      keyof typeof Roles.organization
-    >;
+    const roleKeys = Object.keys(Roles.organization) as Array<keyof typeof Roles.organization>;
     // Batch create all roles in single INSERT
     const roleInputs = roleKeys.map((roleName) => {
       const meta = RolesMeta.organization[roleName];
@@ -65,14 +61,15 @@ export class OrganizationCreateScript extends BaseScript<
       };
     });
 
-    const createdRolesArray = await this.repository.organization.createRoles(
-      roleInputs
-    );
+    const createdRolesArray = await this.repository.organization.createRoles(roleInputs);
 
-    const createdRoles = createdRolesArray.reduce((acc, role) => {
-      acc[role.name] = role;
-      return acc;
-    }, {} as Record<string, (typeof createdRolesArray)[number]>);
+    const createdRoles = createdRolesArray.reduce(
+      (acc, role) => {
+        acc[role.name] = role;
+        return acc;
+      },
+      {} as Record<string, (typeof createdRolesArray)[number]>,
+    );
 
     // Batch add all policies in single INSERT
     const allPolicies: Array<{

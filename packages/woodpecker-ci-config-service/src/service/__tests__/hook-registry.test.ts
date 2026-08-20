@@ -3,11 +3,7 @@ import { HookRegistry } from "../hook-registry";
 import type { Hook, HookContext, HookStage } from "../interface";
 
 describe("HookRegistry", () => {
-  const createMockHook = (
-    name: string,
-    stage: HookStage,
-    supports = true
-  ): Hook => ({
+  const createMockHook = (name: string, stage: HookStage, supports = true): Hook => ({
     getName: () => name,
     getStage: () => stage,
     supports: jest.fn(() => supports) as unknown as Hook["supports"],
@@ -90,9 +86,9 @@ describe("HookRegistry", () => {
     registry.register(hook);
 
     const context = createMockContext();
-    await expect(
-      registry.executeStage("before-each" as HookStage, context)
-    ).rejects.toThrow("Hook failed");
+    await expect(registry.executeStage("before-each" as HookStage, context)).rejects.toThrow(
+      "Hook failed",
+    );
 
     expect(context.errors).toHaveLength(1);
     expect(context.errors[0].hookName).toBe("failing-hook");

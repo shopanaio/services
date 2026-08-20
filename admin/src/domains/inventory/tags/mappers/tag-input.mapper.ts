@@ -1,17 +1,12 @@
 import { slugify } from "transliteration/dist/node/src/node/index.js";
-import type {
-  ApiTagCreateInput,
-  ApiTagUpdateInput,
-} from "@/graphql/types";
+import type { ApiTagCreateInput, ApiTagUpdateInput } from "@/graphql/types";
 
 export interface TagIdentityInput {
   name: string;
   handle: string;
 }
 
-export function mapTagIdentityToCreateInput(
-  values: TagIdentityInput,
-): ApiTagCreateInput {
+export function mapTagIdentityToCreateInput(values: TagIdentityInput): ApiTagCreateInput {
   return {
     name: values.name.trim(),
     handle: slugify(values.handle),

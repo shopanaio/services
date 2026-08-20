@@ -15,7 +15,10 @@ interface TransferOwnershipResult {
 }
 
 interface UseTransferOwnershipReturn {
-  transferOwnership: (organizationId: string, newOwnerId: string) => Promise<TransferOwnershipResult>;
+  transferOwnership: (
+    organizationId: string,
+    newOwnerId: string,
+  ) => Promise<TransferOwnershipResult>;
   loading: boolean;
   error: Error | null;
 }
@@ -44,7 +47,7 @@ export function useTransferOwnership(): UseTransferOwnershipReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

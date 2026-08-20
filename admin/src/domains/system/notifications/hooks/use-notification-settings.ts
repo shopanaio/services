@@ -19,28 +19,20 @@ type ToggleableNotificationDefinition = Pick<
 >;
 
 export function useNotificationSettings() {
-  const [updatingKeys, setUpdatingKeys] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  );
+  const [updatingKeys, setUpdatingKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [definitionOverrides, setDefinitionOverrides] = useState<
     ReadonlyMap<string, Pick<ApiNotificationDefinition, "enabled" | "version">>
   >(() => new Map());
-  const query = useQuery<NotificationSettingsQueryData>(
-    NOTIFICATION_SETTINGS_QUERY,
-    {
-      fetchPolicy: "cache-and-network",
-    },
-  );
+  const query = useQuery<NotificationSettingsQueryData>(NOTIFICATION_SETTINGS_QUERY, {
+    fetchPolicy: "cache-and-network",
+  });
   const [mutate, mutation] = useMutation<
     NotificationDefinitionSetEnabledMutationData,
     NotificationDefinitionSetEnabledMutationVariables
   >(NOTIFICATION_DEFINITION_SET_ENABLED_MUTATION);
 
   const setDefinitionEnabled = useCallback(
-    async (
-      definition: ToggleableNotificationDefinition,
-      enabled: boolean,
-    ) => {
+    async (definition: ToggleableNotificationDefinition, enabled: boolean) => {
       setUpdatingKeys((current) => new Set(current).add(definition.key));
       setDefinitionOverrides((current) => {
         const next = new Map(current);
@@ -74,15 +66,13 @@ export function useNotificationSettings() {
             },
           },
           update: (cache, { data }) => {
-            const payload =
-              data?.notificationsMutation.setDefinitionEnabled;
+            const payload = data?.notificationsMutation.setDefinitionEnabled;
             if (!payload?.setting || payload.userErrors.length > 0) return;
             const setting = payload.setting;
 
-            const current =
-              cache.readQuery<NotificationSettingsQueryData>({
-                query: NOTIFICATION_SETTINGS_QUERY,
-              });
+            const current = cache.readQuery<NotificationSettingsQueryData>({
+              query: NOTIFICATION_SETTINGS_QUERY,
+            });
             if (!current) return;
 
             cache.writeQuery<NotificationSettingsQueryData>({
@@ -90,23 +80,21 @@ export function useNotificationSettings() {
               data: {
                 notificationsQuery: {
                   ...current.notificationsQuery,
-                  definitions:
-                    current.notificationsQuery.definitions.map((item) =>
-                      item.key === setting.definitionKey
-                        ? {
-                            ...item,
-                            enabled: setting.enabled,
-                            version: setting.version,
-                          }
-                        : item,
-                    ),
+                  definitions: current.notificationsQuery.definitions.map((item) =>
+                    item.key === setting.definitionKey
+                      ? {
+                          ...item,
+                          enabled: setting.enabled,
+                          version: setting.version,
+                        }
+                      : item,
+                  ),
                 },
               },
             });
           },
         });
-        const payload =
-          result.data?.notificationsMutation.setDefinitionEnabled;
+        const payload = result.data?.notificationsMutation.setDefinitionEnabled;
 
         if (!payload?.setting || payload.userErrors.length > 0) {
           setDefinitionOverrides((current) => {
@@ -148,12 +136,10 @@ export function useNotificationSettings() {
   );
 
   return {
-    definitions: (query.data?.notificationsQuery.definitions ?? []).map(
-      (definition) => {
-        const override = definitionOverrides.get(definition.key);
-        return override ? { ...definition, ...override } : definition;
-      },
-    ),
+    definitions: (query.data?.notificationsQuery.definitions ?? []).map((definition) => {
+      const override = definitionOverrides.get(definition.key);
+      return override ? { ...definition, ...override } : definition;
+    }),
     staffRecipients: query.data?.notificationsQuery.staffRecipients ?? [],
     loading: query.loading,
     error: query.error ?? mutation.error ?? null,

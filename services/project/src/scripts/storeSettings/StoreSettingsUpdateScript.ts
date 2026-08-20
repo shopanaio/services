@@ -1,7 +1,4 @@
-import {
-  AuthorizationError,
-  ValidationError,
-} from "@shopana/shared-kernel";
+import { AuthorizationError, ValidationError } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { Store } from "../../repositories/index.js";
 import type { StoreSettingsUpdateResult } from "./dto.js";
@@ -15,10 +12,7 @@ export abstract class StoreSettingsUpdateScript<
   TParams extends StoreSettingsMutationContext,
 > extends BaseScript<TParams, StoreSettingsUpdateResult> {
   protected findStore(params: TParams): Promise<Store | null> {
-    return this.repository.store.findById(
-      params.storeId,
-      params.organizationId,
-    );
+    return this.repository.store.findById(params.storeId, params.organizationId);
   }
 
   protected async success(storeId: string): Promise<StoreSettingsUpdateResult> {
@@ -29,9 +23,7 @@ export abstract class StoreSettingsUpdateScript<
   protected notFound(): StoreSettingsUpdateResult {
     return {
       store: null,
-      userErrors: [
-        { message: "Store not found", code: "NOT_FOUND", field: null },
-      ],
+      userErrors: [{ message: "Store not found", code: "NOT_FOUND", field: null }],
     };
   }
 
@@ -56,9 +48,7 @@ export abstract class StoreSettingsUpdateScript<
 
     return {
       store: null,
-      userErrors: [
-        { message: "Internal error", code: "INTERNAL_ERROR", field: null },
-      ],
+      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR", field: null }],
     };
   }
 }

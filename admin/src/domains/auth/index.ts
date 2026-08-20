@@ -43,10 +43,6 @@ export {
 } from "./graphql";
 
 // Utilities
-export {
-  mapGraphQLErrorsToForm,
-  getErrorMessage,
-  createNetworkError,
-} from "./utils";
+export { mapGraphQLErrorsToForm, getErrorMessage, createNetworkError } from "./utils";
 
 // Types

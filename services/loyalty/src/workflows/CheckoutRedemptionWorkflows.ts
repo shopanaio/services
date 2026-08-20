@@ -31,8 +31,16 @@ import { runWithContext, ServiceContext } from "../context/index.js";
 import { Kernel } from "../kernel/Kernel.js";
 import { Loader } from "../loaders/Loader.js";
 
-type GetStoreByIdResult = { store: ContextStore | null; userErrors: readonly { message: string }[] };
-type Emission = { eventType: string; payload: Record<string, unknown>; accountId: string; callId: string };
+type GetStoreByIdResult = {
+  store: ContextStore | null;
+  userErrors: readonly { message: string }[];
+};
+type Emission = {
+  eventType: string;
+  payload: Record<string, unknown>;
+  accountId: string;
+  callId: string;
+};
 
 abstract class CheckoutWorkflowBase<TInput, TOutput> extends BrokerWorkflows<TInput, TOutput> {
   protected constructor(broker: ServiceBroker) {
@@ -45,14 +53,17 @@ abstract class CheckoutWorkflowBase<TInput, TOutput> extends BrokerWorkflows<TIn
 
   protected async executeWithStore<T>(storeId: string, requestId: string, work: () => Promise<T>) {
     const store = await this.getStore(storeId);
-    const result = await runWithContext(new ServiceContext({
-      requestId,
-      kernel: this.kernel,
-      loaders: new Loader(this.kernel.repository),
-      store,
-      locale: store.defaultLocale,
-      currency: store.currencyCode,
-    }), work);
+    const result = await runWithContext(
+      new ServiceContext({
+        requestId,
+        kernel: this.kernel,
+        loaders: new Loader(this.kernel.repository),
+        store,
+        locale: store.defaultLocale,
+        currency: store.currencyCode,
+      }),
+      work,
+    );
     return { result, store };
   }
 
@@ -78,8 +89,12 @@ abstract class CheckoutWorkflowBase<TInput, TOutput> extends BrokerWorkflows<TIn
   }
 
   private async getStore(storeId: string): Promise<ContextStore> {
-    const result = await this.broker.call<GetStoreByIdResult, { id: string }>("project.getStoreById", { id: storeId });
-    if (!result.store) throw new Error(result.userErrors[0]?.message ?? `Store ${storeId} was not found`);
+    const result = await this.broker.call<GetStoreByIdResult, { id: string }>(
+      "project.getStoreById",
+      { id: storeId },
+    );
+    if (!result.store)
+      throw new Error(result.userErrors[0]?.message ?? `Store ${storeId} was not found`);
     return result.store;
   }
 }
@@ -89,10 +104,14 @@ export class ReserveRedemptionWorkflow extends CheckoutWorkflowBase<
   ReserveCheckoutLoyaltyRedemptionParams,
   ReserveCheckoutLoyaltyRedemptionResult
 > {
-  constructor(@InjectBroker("loyalty") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("loyalty") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("reserveCheckoutLoyaltyRedemption")
-  async run(input: ReserveCheckoutLoyaltyRedemptionParams): Promise<ReserveCheckoutLoyaltyRedemptionResult> {
+  async run(
+    input: ReserveCheckoutLoyaltyRedemptionParams,
+  ): Promise<ReserveCheckoutLoyaltyRedemptionResult> {
     const executed = await this.stepExecute(input);
     if (executed.emission) await this.emit(executed.store, executed.emission);
     return executed.result;
@@ -101,7 +120,8 @@ export class ReserveRedemptionWorkflow extends CheckoutWorkflowBase<
   @WorkflowStep()
   private async stepExecute(input: ReserveCheckoutLoyaltyRedemptionParams) {
     const executed = await this.executeWithStore(input.context.storeId, input.idempotencyKey, () =>
-      new CheckoutRedemptionService(this.kernel.repository).reserve(input));
+      new CheckoutRedemptionService(this.kernel.repository).reserve(input),
+    );
     const result = executed.result;
     if (result.status !== "RESERVED") return { ...executed, emission: null };
     if (!input.context.customerId) {
@@ -124,7 +144,15 @@ export class ReserveRedemptionWorkflow extends CheckoutWorkflowBase<
       currencyCode: result.discount.currencyCode,
       expiresAt: result.expiresAt,
     };
-    return { ...executed, emission: { eventType: "loyaltyPointsReserved", payload: payload as unknown as Record<string, unknown>, accountId: result.accountId, callId: result.reservationId } };
+    return {
+      ...executed,
+      emission: {
+        eventType: "loyaltyPointsReserved",
+        payload: payload as unknown as Record<string, unknown>,
+        accountId: result.accountId,
+        callId: result.reservationId,
+      },
+    };
   }
 }
 
@@ -133,10 +161,14 @@ export class CommitRedemptionWorkflow extends CheckoutWorkflowBase<
   CommitCheckoutLoyaltyRedemptionParams,
   CommitCheckoutLoyaltyRedemptionResult
 > {
-  constructor(@InjectBroker("loyalty") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("loyalty") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("commitCheckoutLoyaltyRedemption")
-  async run(input: CommitCheckoutLoyaltyRedemptionParams): Promise<CommitCheckoutLoyaltyRedemptionResult> {
+  async run(
+    input: CommitCheckoutLoyaltyRedemptionParams,
+  ): Promise<CommitCheckoutLoyaltyRedemptionResult> {
     const executed = await this.stepExecute(input);
     if (executed.emission) await this.emit(executed.store, executed.emission);
     return executed.result;
@@ -148,8 +180,11 @@ export class CommitRedemptionWorkflow extends CheckoutWorkflowBase<
       const result = await new CheckoutRedemptionService(this.kernel.repository).commit(input);
       if (result.status !== "COMMITTED") return { result, emission: null };
       const reservation = await this.kernel.repository.reservation.findById(result.reservationId);
-      const account = reservation ? await this.kernel.repository.account.findById(reservation.accountId) : null;
-      if (!reservation || !account) throw new Error("Committed loyalty reservation audit is missing");
+      const account = reservation
+        ? await this.kernel.repository.account.findById(reservation.accountId)
+        : null;
+      if (!reservation || !account)
+        throw new Error("Committed loyalty reservation audit is missing");
       const payload: LoyaltyPointsRedeemedEvent["payload"] = {
         schemaVersion: 1,
         storeId: input.storeId,
@@ -167,7 +202,15 @@ export class CommitRedemptionWorkflow extends CheckoutWorkflowBase<
         discountAmountMinor: result.discount.amountMinor,
         currencyCode: result.discount.currencyCode,
       };
-      return { result, emission: { eventType: "loyaltyPointsRedeemed", payload: payload as unknown as Record<string, unknown>, accountId: account.id, callId: reservation.id } };
+      return {
+        result,
+        emission: {
+          eventType: "loyaltyPointsRedeemed",
+          payload: payload as unknown as Record<string, unknown>,
+          accountId: account.id,
+          callId: reservation.id,
+        },
+      };
     }).then(({ result: nested, store }) => ({ ...nested, store }));
   }
 }
@@ -177,10 +220,14 @@ export class ReleaseRedemptionWorkflow extends CheckoutWorkflowBase<
   ReleaseCheckoutLoyaltyRedemptionParams,
   ReleaseCheckoutLoyaltyRedemptionResult
 > {
-  constructor(@InjectBroker("loyalty") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("loyalty") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("releaseCheckoutLoyaltyRedemption")
-  async run(input: ReleaseCheckoutLoyaltyRedemptionParams): Promise<ReleaseCheckoutLoyaltyRedemptionResult> {
+  async run(
+    input: ReleaseCheckoutLoyaltyRedemptionParams,
+  ): Promise<ReleaseCheckoutLoyaltyRedemptionResult> {
     const executed = await this.stepExecute(input);
     if (executed.emission) await this.emit(executed.store, executed.emission);
     return executed.result;
@@ -192,8 +239,11 @@ export class ReleaseRedemptionWorkflow extends CheckoutWorkflowBase<
       const result = await new CheckoutRedemptionService(this.kernel.repository).release(input);
       if (result.status !== "RELEASED") return { result, emission: null };
       const reservation = await this.kernel.repository.reservation.findById(result.reservationId);
-      const account = reservation ? await this.kernel.repository.account.findById(reservation.accountId) : null;
-      if (!reservation || !account) throw new Error("Released loyalty reservation audit is missing");
+      const account = reservation
+        ? await this.kernel.repository.account.findById(reservation.accountId)
+        : null;
+      if (!reservation || !account)
+        throw new Error("Released loyalty reservation audit is missing");
       const payload: LoyaltyPointsReleasedEvent["payload"] = {
         schemaVersion: 1,
         storeId: input.storeId,
@@ -208,7 +258,15 @@ export class ReleaseRedemptionWorkflow extends CheckoutWorkflowBase<
         checkoutId: reservation.checkoutId,
         reasonCode: input.reason,
       };
-      return { result, emission: { eventType: "loyaltyPointsReleased", payload: payload as unknown as Record<string, unknown>, accountId: account.id, callId: reservation.id } };
+      return {
+        result,
+        emission: {
+          eventType: "loyaltyPointsReleased",
+          payload: payload as unknown as Record<string, unknown>,
+          accountId: account.id,
+          callId: reservation.id,
+        },
+      };
     }).then(({ result: nested, store }) => ({ ...nested, store }));
   }
 }
@@ -218,10 +276,14 @@ export class ExpireRedemptionsWorkflow extends CheckoutWorkflowBase<
   ExpireCheckoutLoyaltyRedemptionsParams,
   ExpireCheckoutLoyaltyRedemptionsResult
 > {
-  constructor(@InjectBroker("loyalty") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("loyalty") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("expireCheckoutLoyaltyRedemptions")
-  async run(input: ExpireCheckoutLoyaltyRedemptionsParams): Promise<ExpireCheckoutLoyaltyRedemptionsResult> {
+  async run(
+    input: ExpireCheckoutLoyaltyRedemptionsParams,
+  ): Promise<ExpireCheckoutLoyaltyRedemptionsResult> {
     const executed = await this.stepExecute(input);
     for (const emission of executed.emissions) await this.emit(executed.store, emission);
     return executed.result;
@@ -233,8 +295,12 @@ export class ExpireRedemptionsWorkflow extends CheckoutWorkflowBase<
       const result = await new CheckoutRedemptionService(this.kernel.repository).expire(input);
       const emissions: Emission[] = [];
       for (const expired of result.expired) {
-        const reservation = await this.kernel.repository.reservation.findById(expired.reservationId);
-        const account = reservation ? await this.kernel.repository.account.findById(reservation.accountId) : null;
+        const reservation = await this.kernel.repository.reservation.findById(
+          expired.reservationId,
+        );
+        const account = reservation
+          ? await this.kernel.repository.account.findById(reservation.accountId)
+          : null;
         if (!reservation || !account) continue;
         const payload: LoyaltyPointsReleasedEvent["payload"] = {
           schemaVersion: 1,
@@ -250,7 +316,12 @@ export class ExpireRedemptionsWorkflow extends CheckoutWorkflowBase<
           checkoutId: reservation.checkoutId,
           reasonCode: "RESERVATION_EXPIRED",
         };
-        emissions.push({ eventType: "loyaltyPointsReleased", payload: payload as unknown as Record<string, unknown>, accountId: account.id, callId: reservation.id });
+        emissions.push({
+          eventType: "loyaltyPointsReleased",
+          payload: payload as unknown as Record<string, unknown>,
+          accountId: account.id,
+          callId: reservation.id,
+        });
       }
       return { result, emissions };
     }).then(({ result: nested, store }) => ({ ...nested, store }));
@@ -262,10 +333,14 @@ export class ReverseRedemptionWorkflow extends CheckoutWorkflowBase<
   ReverseCheckoutLoyaltyRedemptionParams,
   ReverseCheckoutLoyaltyRedemptionResult
 > {
-  constructor(@InjectBroker("loyalty") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("loyalty") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("reverseCheckoutLoyaltyRedemption")
-  async run(input: ReverseCheckoutLoyaltyRedemptionParams): Promise<ReverseCheckoutLoyaltyRedemptionResult> {
+  async run(
+    input: ReverseCheckoutLoyaltyRedemptionParams,
+  ): Promise<ReverseCheckoutLoyaltyRedemptionResult> {
     const executed = await this.stepExecute(input);
     if (executed.emission) await this.emit(executed.store, executed.emission);
     return executed.result;
@@ -277,9 +352,14 @@ export class ReverseRedemptionWorkflow extends CheckoutWorkflowBase<
       const result = await new CheckoutRedemptionService(this.kernel.repository).reverse(input);
       if (result.status !== "REVERSED") return { result, emission: null };
       const reservation = await this.kernel.repository.reservation.findById(result.reservationId);
-      const account = reservation ? await this.kernel.repository.account.findById(reservation.accountId) : null;
-      if (!reservation || !account) throw new Error("Reversed loyalty reservation audit is missing");
-      const transaction = await this.kernel.repository.ledger.findTransactionById(result.restoreTransactionId);
+      const account = reservation
+        ? await this.kernel.repository.account.findById(reservation.accountId)
+        : null;
+      if (!reservation || !account)
+        throw new Error("Reversed loyalty reservation audit is missing");
+      const transaction = await this.kernel.repository.ledger.findTransactionById(
+        result.restoreTransactionId,
+      );
       const payload: LoyaltyPointsRestoredEvent["payload"] = {
         schemaVersion: 1,
         storeId: input.storeId,
@@ -294,9 +374,20 @@ export class ReverseRedemptionWorkflow extends CheckoutWorkflowBase<
         orderId: input.orderId,
         sourceType: "REFUND",
         sourceId: input.refundId,
-        expiresAt: typeof transaction?.metadata.expiresAt === "string" ? transaction.metadata.expiresAt : null,
+        expiresAt:
+          typeof transaction?.metadata.expiresAt === "string"
+            ? transaction.metadata.expiresAt
+            : null,
       };
-      return { result, emission: { eventType: "loyaltyPointsRestored", payload: payload as unknown as Record<string, unknown>, accountId: account.id, callId: `${reservation.id}:${input.refundId}` } };
+      return {
+        result,
+        emission: {
+          eventType: "loyaltyPointsRestored",
+          payload: payload as unknown as Record<string, unknown>,
+          accountId: account.id,
+          callId: `${reservation.id}:${input.refundId}`,
+        },
+      };
     }).then(({ result: nested, store }) => ({ ...nested, store }));
   }
 }

@@ -84,9 +84,7 @@ export const GeneralSection = () => {
           <div className={styles.label}>
             Handle
             <Tooltip title="URL-friendly identifier. Auto-generated from title if left empty.">
-              <InfoCircleOutlined
-                style={{ color: "var(--ant-color-text-secondary)" }}
-              />
+              <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
             </Tooltip>
           </div>
           <Controller

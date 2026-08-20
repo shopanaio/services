@@ -9,12 +9,7 @@ import {
   type CollectionProductSyncOperation,
 } from "../models/index.js";
 
-export type CollectionProductSyncReason =
-  | "add"
-  | "remove"
-  | "move"
-  | "rebalance"
-  | "clear";
+export type CollectionProductSyncReason = "add" | "remove" | "move" | "rebalance" | "clear";
 
 export interface CollectionSyncConsistencyIssue extends Record<string, unknown> {
   code:
@@ -34,15 +29,9 @@ export interface CollectionBulkSyncOperationResult {
 }
 
 export class CollectionSyncRepository extends BaseRepository {
-  async auditConsistency(
-    limit = 100,
-    offset = 0,
-  ): Promise<CollectionSyncConsistencyIssue[]> {
-    const boundedLimit = Number.isSafeInteger(limit)
-      ? Math.max(1, Math.min(limit, 1_000))
-      : 100;
-    const boundedOffset =
-      Number.isSafeInteger(offset) && offset > 0 ? offset : 0;
+  async auditConsistency(limit = 100, offset = 0): Promise<CollectionSyncConsistencyIssue[]> {
+    const boundedLimit = Number.isSafeInteger(limit) ? Math.max(1, Math.min(limit, 1_000)) : 100;
+    const boundedOffset = Number.isSafeInteger(offset) && offset > 0 ? offset : 0;
     return this.connection.execute<CollectionSyncConsistencyIssue>(sql`
       WITH item_counts AS (
         SELECT
@@ -109,9 +98,7 @@ export class CollectionSyncRepository extends BaseRepository {
     `);
   }
 
-  async findMutationReceipt(
-    workflowId: string,
-  ): Promise<CollectionMutationReceipt | null> {
+  async findMutationReceipt(workflowId: string): Promise<CollectionMutationReceipt | null> {
     const rows = await this.connection
       .select()
       .from(collectionMutationReceipt)
@@ -351,9 +338,7 @@ export class CollectionSyncRepository extends BaseRepository {
     return mapBulkOperationResult(rows[0]);
   }
 
-  async findByWorkflowId(
-    workflowId: string,
-  ): Promise<CollectionProductSyncOperation | null> {
+  async findByWorkflowId(workflowId: string): Promise<CollectionProductSyncOperation | null> {
     const rows = await this.connection
       .select()
       .from(collectionProductSyncOperation)
@@ -390,10 +375,7 @@ export class CollectionSyncRepository extends BaseRepository {
     return rows.map((row) => row.productId);
   }
 
-  async markEmitted(
-    operationId: string,
-    productIds: readonly string[],
-  ): Promise<void> {
+  async markEmitted(operationId: string, productIds: readonly string[]): Promise<void> {
     if (productIds.length === 0) return;
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -450,9 +432,7 @@ export class CollectionSyncRepository extends BaseRepository {
 }
 
 function mapBulkOperationResult(
-  row:
-    | { operationId: string | null; affectedCount: number | string }
-    | undefined,
+  row: { operationId: string | null; affectedCount: number | string } | undefined,
 ): CollectionBulkSyncOperationResult {
   if (!row) throw new Error("Collection bulk sync operation returned no row");
   const affectedCount = Number(row.affectedCount);

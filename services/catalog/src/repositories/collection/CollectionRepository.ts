@@ -36,8 +36,8 @@ export class CollectionRepository extends BaseRepository {
         and(
           eq(collection.storeId, this.storeId),
           eq(collection.id, id),
-          isNull(collection.deletedAt)
-        )
+          isNull(collection.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -60,8 +60,8 @@ export class CollectionRepository extends BaseRepository {
         and(
           eq(collection.storeId, this.storeId),
           eq(collection.id, id),
-          isNull(collection.deletedAt)
-        )
+          isNull(collection.deletedAt),
+        ),
       )
       .limit(1)
       .for("update");
@@ -76,8 +76,8 @@ export class CollectionRepository extends BaseRepository {
         and(
           eq(collection.storeId, this.storeId),
           eq(collection.handle, handle),
-          isNull(collection.deletedAt)
-        )
+          isNull(collection.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -145,8 +145,8 @@ export class CollectionRepository extends BaseRepository {
         and(
           eq(collection.storeId, this.storeId),
           inArray(collection.id, [...ids]),
-          isNull(collection.deletedAt)
-        )
+          isNull(collection.deletedAt),
+        ),
       );
   }
 
@@ -192,7 +192,7 @@ export class CollectionRepository extends BaseRepository {
       effectiveTo?: string | null;
       publishedAt?: string | null;
     },
-    options: { listingChanged: boolean }
+    options: { listingChanged: boolean },
   ): Promise<Collection | null> {
     const now = new Date().toISOString();
     const updates: Omit<
@@ -228,10 +228,8 @@ export class CollectionRepository extends BaseRepository {
           eq(collection.revision, expectedRevision),
           isNull(collection.deletedAt),
           sql`${collection.revision} < 2147483646`,
-          options.listingChanged
-            ? sql`${collection.listingRevision} < 2147483646`
-            : sql`true`
-        )
+          options.listingChanged ? sql`${collection.listingRevision} < 2147483646` : sql`true`,
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -240,15 +238,12 @@ export class CollectionRepository extends BaseRepository {
   async bumpRevision(
     id: string,
     expectedRevision: number,
-    options: { listingChanged: boolean }
+    options: { listingChanged: boolean },
   ): Promise<Collection | null> {
     return this.update(id, expectedRevision, {}, options);
   }
 
-  async softDelete(
-    id: string,
-    expectedRevision: number
-  ): Promise<Collection | null> {
+  async softDelete(id: string, expectedRevision: number): Promise<Collection | null> {
     const rows = await this.connection
       .update(collection)
       .set({
@@ -265,8 +260,8 @@ export class CollectionRepository extends BaseRepository {
           eq(collection.revision, expectedRevision),
           sql`${collection.revision} < 2147483646`,
           sql`${collection.listingRevision} < 2147483646`,
-          isNull(collection.deletedAt)
-        )
+          isNull(collection.deletedAt),
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -315,7 +310,7 @@ export class CollectionRepository extends BaseRepository {
   }
 
   async getTranslationsByCollectionIds(
-    collectionIds: readonly string[]
+    collectionIds: readonly string[],
   ): Promise<CollectionTranslation[]> {
     if (collectionIds.length === 0) return [];
     return this.connection
@@ -325,14 +320,12 @@ export class CollectionRepository extends BaseRepository {
         and(
           eq(collectionTranslation.storeId, this.storeId),
           eq(collectionTranslation.locale, this.locale),
-          inArray(collectionTranslation.collectionId, [...collectionIds])
-        )
+          inArray(collectionTranslation.collectionId, [...collectionIds]),
+        ),
       );
   }
 
-  async findDefaultTranslation(
-    collectionId: string,
-  ): Promise<CollectionTranslation | null> {
+  async findDefaultTranslation(collectionId: string): Promise<CollectionTranslation | null> {
     const rows = await this.connection
       .select()
       .from(collectionTranslation)
@@ -340,10 +333,7 @@ export class CollectionRepository extends BaseRepository {
         and(
           eq(collectionTranslation.storeId, this.storeId),
           eq(collectionTranslation.collectionId, collectionId),
-          eq(
-            collectionTranslation.locale,
-            this.ctx.store.defaultLocale,
-          ),
+          eq(collectionTranslation.locale, this.ctx.store.defaultLocale),
         ),
       )
       .limit(1);
@@ -395,8 +385,8 @@ export class CollectionRepository extends BaseRepository {
         and(
           eq(collectionSeo.storeId, this.storeId),
           eq(collectionSeo.locale, this.locale),
-          inArray(collectionSeo.collectionId, [...collectionIds])
-        )
+          inArray(collectionSeo.collectionId, [...collectionIds]),
+        ),
       );
   }
 
@@ -406,8 +396,8 @@ export class CollectionRepository extends BaseRepository {
       .where(
         and(
           eq(collectionMedia.storeId, this.storeId),
-          eq(collectionMedia.collectionId, collectionId)
-        )
+          eq(collectionMedia.collectionId, collectionId),
+        ),
       );
 
     if (fileIds.length === 0) {
@@ -420,7 +410,7 @@ export class CollectionRepository extends BaseRepository {
         fileId,
         storeId: this.storeId,
         sortIndex: index,
-      }))
+      })),
     );
   }
 
@@ -432,8 +422,8 @@ export class CollectionRepository extends BaseRepository {
       .where(
         and(
           eq(collectionMedia.storeId, this.storeId),
-          inArray(collectionMedia.collectionId, [...collectionIds])
-        )
+          inArray(collectionMedia.collectionId, [...collectionIds]),
+        ),
       )
       .orderBy(asc(collectionMedia.sortIndex));
   }

@@ -54,17 +54,11 @@ import type {
   StoreConfigurationUpdateWorkflowInput,
   StoreConfigurationUpdateWorkflowResult,
 } from "../../workflows/dto/index.js";
-import {
-  RatingCriterionResolver,
-  StoreConfigurationResolver,
-} from "./ConfigurationResolver.js";
+import { RatingCriterionResolver, StoreConfigurationResolver } from "./ConfigurationResolver.js";
 import { ContentReportResolver } from "./EngagementResolver.js";
 import { ContentExternalReferenceResolver } from "./ExternalReferenceResolver.js";
 import { ModerationCaseResolver } from "./ModerationResolver.js";
-import {
-  ProductQuestionResolver,
-  QuestionSubscriptionResolver,
-} from "./QuestionResolver.js";
+import { ProductQuestionResolver, QuestionSubscriptionResolver } from "./QuestionResolver.js";
 import { ReviewRequestResolver } from "./ReviewRequestResolver.js";
 import { ReviewResolver } from "./ReviewResolver.js";
 import { ReviewsType } from "./ReviewsType.js";
@@ -120,10 +114,7 @@ import {
   mapRatingCriterionUpdateInput,
   type RatingCriterionUpdateMappedEntry,
 } from "./ratingCriterionUpdateMapper.js";
-import {
-  mapReviewUpdateInput,
-  type ReviewUpdateMappedEntry,
-} from "./reviewUpdateMapper.js";
+import { mapReviewUpdateInput, type ReviewUpdateMappedEntry } from "./reviewUpdateMapper.js";
 
 @ApolloMutation
 export class MutationResolver extends ReviewsType<Record<string, never>> {
@@ -136,7 +127,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async storeConfigurationUpdate(args: ReviewsMutationStoreConfigurationUpdateArgs) {
     const configurationId = safeDecodeId(
       args.configurationId,
-      GlobalIdEntity.ReviewStoreConfiguration
+      GlobalIdEntity.ReviewStoreConfiguration,
     );
     if (!configurationId) {
       return invalidSingleUpdate("configuration", "storeConfigurationUpdate", "configurationId");
@@ -151,7 +142,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
         },
         context: this.mutationWorkflowContext(),
       } satisfies StoreConfigurationUpdateWorkflowInput,
-      configurationId
+      configurationId,
     );
     return {
       configuration: result.configuration
@@ -168,20 +159,22 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     if (!decoded.value) return { criterion: null, userErrors: decoded.errors };
     const result = await this.runMutationWorkflow<RatingCriterionCreateWorkflowResult>(
       "ratingCriterionCreate",
-      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies RatingCriterionCreateWorkflowInput
+      {
+        params: decoded.value,
+        context: this.mutationWorkflowContext(),
+      } satisfies RatingCriterionCreateWorkflowInput,
     );
     return {
-      criterion: result.criterion ? new RatingCriterionResolver(result.criterion.id, this.$ctx) : null,
+      criterion: result.criterion
+        ? new RatingCriterionResolver(result.criterion.id, this.$ctx)
+        : null,
       userErrors: result.userErrors,
     };
   }
 
   async ratingCriterionUpdate(args: ReviewsMutationRatingCriterionUpdateArgs) {
     const mapped = mapRatingCriterionUpdateInput(args.operations);
-    const criterionId = safeDecodeId(
-      args.criterionId,
-      GlobalIdEntity.ReviewRatingCriterion
-    );
+    const criterionId = safeDecodeId(args.criterionId, GlobalIdEntity.ReviewRatingCriterion);
     if (!criterionId) {
       const error = invalidIdError("criterionId");
       return {
@@ -205,7 +198,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
         operations: mapped.operations,
         context: this.mutationWorkflowContext(),
       } satisfies RatingCriterionUpdateWorkflowInput,
-      criterionId
+      criterionId,
     );
     this.$ctx.loaders.ratingCriterion.clear(criterionId);
     this.$ctx.loaders.ratingCriterionTranslations.clear(criterionId);
@@ -224,9 +217,13 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     if (!decoded.value) return { deletedCriterionId: null, userErrors: decoded.errors };
     const result = await this.runMutationWorkflow<RatingCriterionDeleteWorkflowResult>(
       "ratingCriterionDelete",
-      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies RatingCriterionDeleteWorkflowInput
+      {
+        params: decoded.value,
+        context: this.mutationWorkflowContext(),
+      } satisfies RatingCriterionDeleteWorkflowInput,
     );
-    if (result.deletedCriterionId) this.$ctx.loaders.ratingCriterion.clear(result.deletedCriterionId);
+    if (result.deletedCriterionId)
+      this.$ctx.loaders.ratingCriterion.clear(result.deletedCriterionId);
     return {
       deletedCriterionId: result.deletedCriterionId
         ? this.encodeId(result.deletedCriterionId, GlobalIdEntity.ReviewRatingCriterion)
@@ -239,10 +236,10 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async reviewCreate(args: ReviewsMutationReviewCreateArgs) {
     const decoded = decodeReviewInput(args.input);
     if (!decoded.value) return { review: null, userErrors: decoded.errors };
-    const result = await this.runMutationWorkflow<ReviewCreateWorkflowResult>(
-      "reviewCreate",
-      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ReviewCreateWorkflowInput
-    );
+    const result = await this.runMutationWorkflow<ReviewCreateWorkflowResult>("reviewCreate", {
+      params: decoded.value,
+      context: this.mutationWorkflowContext(),
+    } satisfies ReviewCreateWorkflowInput);
     return {
       review: result.review ? new ReviewResolver(result.review.id, this.$ctx) : null,
       userErrors: result.userErrors,
@@ -282,7 +279,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     const result = await this.runMutationWorkflow<ReviewUpdateWorkflowResult>(
       "reviewUpdate",
       workflowInput,
-      reviewId
+      reviewId,
     );
 
     this.clearReviewUpdateLoaders(reviewId, result);
@@ -304,10 +301,10 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async reviewDelete(args: ReviewsMutationReviewDeleteArgs) {
     const decoded = decodeDeleteInput(args.input, GlobalIdEntity.Review);
     if (!decoded.value) return { deletedReviewId: null, userErrors: decoded.errors };
-    const result = await this.runMutationWorkflow<ReviewDeleteWorkflowResult>(
-      "reviewDelete",
-      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ReviewDeleteWorkflowInput
-    );
+    const result = await this.runMutationWorkflow<ReviewDeleteWorkflowResult>("reviewDelete", {
+      params: decoded.value,
+      context: this.mutationWorkflowContext(),
+    } satisfies ReviewDeleteWorkflowInput);
     if (result.deletedReviewId) {
       this.$ctx.loaders.review.clear(result.deletedReviewId);
       this.$ctx.loaders.content.clear(result.deletedReviewId);
@@ -326,20 +323,22 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     if (!decoded.value) return { productQuestion: null, userErrors: decoded.errors };
     const result = await this.runMutationWorkflow<ProductQuestionCreateWorkflowResult>(
       "productQuestionCreate",
-      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ProductQuestionCreateWorkflowInput
+      {
+        params: decoded.value,
+        context: this.mutationWorkflowContext(),
+      } satisfies ProductQuestionCreateWorkflowInput,
     );
     return {
-      productQuestion: result.productQuestion ? new ProductQuestionResolver(result.productQuestion.id, this.$ctx) : null,
+      productQuestion: result.productQuestion
+        ? new ProductQuestionResolver(result.productQuestion.id, this.$ctx)
+        : null,
       userErrors: result.userErrors,
     };
   }
 
   async productQuestionUpdate(args: ReviewsMutationProductQuestionUpdateArgs) {
     const mapped = mapProductQuestionUpdateInput(args.operations);
-    const productQuestionId = safeDecodeId(
-      args.productQuestionId,
-      GlobalIdEntity.ProductQuestion
-    );
+    const productQuestionId = safeDecodeId(args.productQuestionId, GlobalIdEntity.ProductQuestion);
     if (!productQuestionId) {
       const error = {
         message: "Invalid ID format",
@@ -348,9 +347,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
       };
       return {
         productQuestion: null,
-        operationResults: mapped.entries.map(
-          mapProductQuestionPreflightOperationResult
-        ),
+        operationResults: mapped.entries.map(mapProductQuestionPreflightOperationResult),
         userErrors: [error, ...mapped.errors],
       };
     }
@@ -358,9 +355,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     if (mapped.errors.length > 0) {
       return {
         productQuestion: null,
-        operationResults: mapped.entries.map(
-          mapProductQuestionPreflightOperationResult
-        ),
+        operationResults: mapped.entries.map(mapProductQuestionPreflightOperationResult),
         userErrors: mapped.errors,
       };
     }
@@ -371,12 +366,11 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
       operations: mapped.operations,
       context: this.mutationWorkflowContext(),
     };
-    const result =
-      await this.runMutationWorkflow<ProductQuestionUpdateWorkflowResult>(
-        "productQuestionUpdate",
-        workflowInput,
-        productQuestionId
-      );
+    const result = await this.runMutationWorkflow<ProductQuestionUpdateWorkflowResult>(
+      "productQuestionUpdate",
+      workflowInput,
+      productQuestionId,
+    );
 
     this.clearProductQuestionUpdateLoaders(productQuestionId, result);
     return {
@@ -388,10 +382,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
         applied: operation.applied,
         clientMutationId: operation.clientMutationId,
         entityId: operation.entityId
-          ? this.encodeId(
-              operation.entityId,
-              GlobalIdEntity.ProductQuestionAnswer
-            )
+          ? this.encodeId(operation.entityId, GlobalIdEntity.ProductQuestionAnswer)
           : undefined,
         errors: operation.errors,
       })),
@@ -404,7 +395,10 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     if (!decoded.value) return { deletedProductQuestionId: null, userErrors: decoded.errors };
     const result = await this.runMutationWorkflow<ProductQuestionDeleteWorkflowResult>(
       "productQuestionDelete",
-      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ProductQuestionDeleteWorkflowInput
+      {
+        params: decoded.value,
+        context: this.mutationWorkflowContext(),
+      } satisfies ProductQuestionDeleteWorkflowInput,
     );
     if (result.deletedProductQuestionId) {
       this.$ctx.loaders.productQuestion.clear(result.deletedProductQuestionId);
@@ -418,17 +412,17 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     };
   }
   async productQuestionSubscriptionUpdate(
-    args: ReviewsMutationProductQuestionSubscriptionUpdateArgs
+    args: ReviewsMutationProductQuestionSubscriptionUpdateArgs,
   ) {
     const subscriptionId = safeDecodeId(
       args.subscriptionId,
-      GlobalIdEntity.ProductQuestionSubscription
+      GlobalIdEntity.ProductQuestionSubscription,
     );
     if (!subscriptionId) {
       return invalidSingleUpdate(
         "subscription",
         "productQuestionSubscriptionUpdate",
-        "subscriptionId"
+        "subscriptionId",
       );
     }
     const result = await this.runMutationWorkflow<QuestionSubscriptionUpdateWorkflowResult>(
@@ -441,7 +435,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
         },
         context: this.mutationWorkflowContext(),
       } satisfies QuestionSubscriptionUpdateWorkflowInput,
-      subscriptionId
+      subscriptionId,
     );
     this.$ctx.loaders.questionSubscription.clear(subscriptionId);
     return {
@@ -464,7 +458,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
         params: { contentId, expectedRevision: args.expectedRevision },
         context: this.mutationWorkflowContext(),
       } satisfies ContentRedactWorkflowInput,
-      contentId
+      contentId,
     );
     this.clearContentLoaders(contentId);
     return {
@@ -477,11 +471,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async contentRevisionRestore(args: ReviewsMutationContentRevisionRestoreArgs) {
     const contentId = safeDecodeId(args.contentId, undefined);
     if (!contentId) {
-      return invalidSingleUpdate(
-        "content",
-        "contentRevisionRestore",
-        "contentId"
-      );
+      return invalidSingleUpdate("content", "contentRevisionRestore", "contentId");
     }
     const result = await this.runMutationWorkflow<ContentRevisionRestoreWorkflowResult>(
       "contentRevisionRestore",
@@ -493,7 +483,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
         },
         context: this.mutationWorkflowContext(),
       } satisfies ContentRevisionRestoreWorkflowInput,
-      contentId
+      contentId,
     );
     this.clearContentLoaders(contentId);
     return {
@@ -509,25 +499,23 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     if (!decoded.value) return { reviewRequest: null, userErrors: decoded.errors };
     const result = await this.runMutationWorkflow<ReviewRequestCreateWorkflowResult>(
       "reviewRequestCreate",
-      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ReviewRequestCreateWorkflowInput
+      {
+        params: decoded.value,
+        context: this.mutationWorkflowContext(),
+      } satisfies ReviewRequestCreateWorkflowInput,
     );
     return {
-      reviewRequest: result.reviewRequest ? new ReviewRequestResolver(result.reviewRequest.id, this.$ctx) : null,
+      reviewRequest: result.reviewRequest
+        ? new ReviewRequestResolver(result.reviewRequest.id, this.$ctx)
+        : null,
       userErrors: result.userErrors,
     };
   }
 
   async reviewRequestUpdate(args: ReviewsMutationReviewRequestUpdateArgs) {
-    const reviewRequestId = safeDecodeId(
-      args.reviewRequestId,
-      GlobalIdEntity.ReviewRequest
-    );
+    const reviewRequestId = safeDecodeId(args.reviewRequestId, GlobalIdEntity.ReviewRequest);
     if (!reviewRequestId) {
-      return invalidSingleUpdate(
-        "reviewRequest",
-        "reviewRequestUpdate",
-        "reviewRequestId"
-      );
+      return invalidSingleUpdate("reviewRequest", "reviewRequestUpdate", "reviewRequestId");
     }
     const result = await this.runMutationWorkflow<ReviewRequestUpdateWorkflowResult>(
       "reviewRequestUpdate",
@@ -539,7 +527,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
         },
         context: this.mutationWorkflowContext(),
       } satisfies ReviewRequestUpdateWorkflowInput,
-      reviewRequestId
+      reviewRequestId,
     );
     this.$ctx.loaders.reviewRequest.clear(reviewRequestId);
     return {
@@ -552,16 +540,9 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   }
 
   async contentReportUpdate(args: ReviewsMutationContentReportUpdateArgs) {
-    const contentReportId = safeDecodeId(
-      args.contentReportId,
-      GlobalIdEntity.ReviewContentReport
-    );
+    const contentReportId = safeDecodeId(args.contentReportId, GlobalIdEntity.ReviewContentReport);
     if (!contentReportId) {
-      return invalidSingleUpdate(
-        "contentReport",
-        "contentReportUpdate",
-        "contentReportId"
-      );
+      return invalidSingleUpdate("contentReport", "contentReportUpdate", "contentReportId");
     }
     const result = await this.runMutationWorkflow<ContentReportUpdateWorkflowResult>(
       "contentReportUpdate",
@@ -573,7 +554,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
         },
         context: this.mutationWorkflowContext(),
       } satisfies ContentReportUpdateWorkflowInput,
-      contentReportId
+      contentReportId,
     );
     this.$ctx.loaders.contentReport.clear(contentReportId);
     if (result.contentReport) {
@@ -594,10 +575,15 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     if (!decoded.value) return { moderationCase: null, userErrors: decoded.errors };
     const result = await this.runMutationWorkflow<ModerationCaseCreateWorkflowResult>(
       "moderationCaseCreate",
-      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ModerationCaseCreateWorkflowInput
+      {
+        params: decoded.value,
+        context: this.mutationWorkflowContext(),
+      } satisfies ModerationCaseCreateWorkflowInput,
     );
     return {
-      moderationCase: result.moderationCase ? new ModerationCaseResolver(result.moderationCase.id, this.$ctx) : null,
+      moderationCase: result.moderationCase
+        ? new ModerationCaseResolver(result.moderationCase.id, this.$ctx)
+        : null,
       userErrors: result.userErrors,
     };
   }
@@ -605,14 +591,10 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   async moderationCaseUpdate(args: ReviewsMutationModerationCaseUpdateArgs) {
     const moderationCaseId = safeDecodeId(
       args.moderationCaseId,
-      GlobalIdEntity.ReviewModerationCase
+      GlobalIdEntity.ReviewModerationCase,
     );
     if (!moderationCaseId) {
-      return invalidSingleUpdate(
-        "moderationCase",
-        "moderationCaseUpdate",
-        "moderationCaseId"
-      );
+      return invalidSingleUpdate("moderationCase", "moderationCaseUpdate", "moderationCaseId");
     }
     const result = await this.runMutationWorkflow<ModerationCaseUpdateWorkflowResult>(
       "moderationCaseUpdate",
@@ -624,7 +606,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
         },
         context: this.mutationWorkflowContext(),
       } satisfies ModerationCaseUpdateWorkflowInput,
-      moderationCaseId
+      moderationCaseId,
     );
     this.$ctx.loaders.moderationCase.clear(moderationCaseId);
     return {
@@ -642,26 +624,29 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     if (!decoded.value) return { externalReference: null, userErrors: decoded.errors };
     const result = await this.runMutationWorkflow<ContentExternalReferenceCreateWorkflowResult>(
       "contentExternalReferenceCreate",
-      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ContentExternalReferenceCreateWorkflowInput
+      {
+        params: decoded.value,
+        context: this.mutationWorkflowContext(),
+      } satisfies ContentExternalReferenceCreateWorkflowInput,
     );
     return {
-      externalReference: result.externalReference ? new ContentExternalReferenceResolver(result.externalReference.id, this.$ctx) : null,
+      externalReference: result.externalReference
+        ? new ContentExternalReferenceResolver(result.externalReference.id, this.$ctx)
+        : null,
       userErrors: result.userErrors,
     };
   }
 
-  async contentExternalReferenceUpdate(
-    args: ReviewsMutationContentExternalReferenceUpdateArgs
-  ) {
+  async contentExternalReferenceUpdate(args: ReviewsMutationContentExternalReferenceUpdateArgs) {
     const externalReferenceId = safeDecodeId(
       args.externalReferenceId,
-      GlobalIdEntity.ReviewContentExternalReference
+      GlobalIdEntity.ReviewContentExternalReference,
     );
     if (!externalReferenceId) {
       return invalidSingleUpdate(
         "externalReference",
         "contentExternalReferenceUpdate",
-        "externalReferenceId"
+        "externalReferenceId",
       );
     }
     const result = await this.runMutationWorkflow<ContentExternalReferenceUpdateWorkflowResult>(
@@ -674,15 +659,12 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
         },
         context: this.mutationWorkflowContext(),
       } satisfies ContentExternalReferenceUpdateWorkflowInput,
-      externalReferenceId
+      externalReferenceId,
     );
     this.$ctx.loaders.contentExternalReference.clear(externalReferenceId);
     return {
       externalReference: result.externalReference
-        ? new ContentExternalReferenceResolver(
-            result.externalReference.id,
-            this.$ctx
-          )
+        ? new ContentExternalReferenceResolver(result.externalReference.id, this.$ctx)
         : null,
       operationResults: mapOperationResults(result.operationResults),
       userErrors: result.userErrors,
@@ -694,14 +676,20 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     if (!decoded.value) return { deletedExternalReferenceId: null, userErrors: decoded.errors };
     const result = await this.runMutationWorkflow<ContentExternalReferenceDeleteWorkflowResult>(
       "contentExternalReferenceDelete",
-      { params: decoded.value, context: this.mutationWorkflowContext() } satisfies ContentExternalReferenceDeleteWorkflowInput
+      {
+        params: decoded.value,
+        context: this.mutationWorkflowContext(),
+      } satisfies ContentExternalReferenceDeleteWorkflowInput,
     );
     if (result.deletedExternalReferenceId) {
       this.$ctx.loaders.contentExternalReference.clear(result.deletedExternalReferenceId);
     }
     return {
       deletedExternalReferenceId: result.deletedExternalReferenceId
-        ? this.encodeId(result.deletedExternalReferenceId, GlobalIdEntity.ReviewContentExternalReference)
+        ? this.encodeId(
+            result.deletedExternalReferenceId,
+            GlobalIdEntity.ReviewContentExternalReference,
+          )
         : null,
       userErrors: result.userErrors,
     };
@@ -720,7 +708,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
   private async runMutationWorkflow<TResult>(
     operation: string,
     input: unknown,
-    resourceId?: string
+    resourceId?: string,
   ): Promise<TResult> {
     return (await this.$ctx.kernel.getServices().broker.runWorkflow(
       `reviews.${operation}`,
@@ -734,10 +722,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     )) as TResult;
   }
 
-  private clearReviewUpdateLoaders(
-    reviewId: string,
-    result: ReviewUpdateWorkflowResult
-  ) {
+  private clearReviewUpdateLoaders(reviewId: string, result: ReviewUpdateWorkflowResult) {
     this.$ctx.loaders.review.clear(reviewId);
     this.$ctx.loaders.content.clear(reviewId);
     this.$ctx.loaders.contentMetrics.clear(reviewId);
@@ -758,7 +743,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
 
   private clearProductQuestionUpdateLoaders(
     productQuestionId: string,
-    result: ProductQuestionUpdateWorkflowResult
+    result: ProductQuestionUpdateWorkflowResult,
   ) {
     this.$ctx.loaders.productQuestion.clear(productQuestionId);
     this.$ctx.loaders.content.clear(productQuestionId);
@@ -793,11 +778,18 @@ interface DecodeResult<T> {
   errors: Array<{ message: string; field: string[]; code: string }>;
 }
 
-function decodeRatingCriterionInput(input: ReviewRatingCriterionCreateInput): DecodeResult<ReviewRatingCriterionCreateInput> {
+function decodeRatingCriterionInput(
+  input: ReviewRatingCriterionCreateInput,
+): DecodeResult<ReviewRatingCriterionCreateInput> {
   const errors: DecodeResult<never>["errors"] = [];
   const assignments = (input.assignments ?? []).map((item, index) => ({
     ...item,
-    targetId: decodeId(item.targetId, item.targetType === "PRODUCT" ? GlobalIdEntity.Product : GlobalIdEntity.Category, ["input", "assignments", String(index), "targetId"], errors),
+    targetId: decodeId(
+      item.targetId,
+      item.targetType === "PRODUCT" ? GlobalIdEntity.Product : GlobalIdEntity.Category,
+      ["input", "assignments", String(index), "targetId"],
+      errors,
+    ),
   }));
   return errors.length ? { errors } : { value: { ...input, assignments }, errors };
 }
@@ -808,63 +800,114 @@ function decodeReviewInput(input: ReviewCreateInput): DecodeResult<ReviewCreateI
     ...input,
     content: decodeContentInput(input.content, errors),
     productId: decodeId(input.productId, GlobalIdEntity.Product, ["input", "productId"], errors),
-    variantId: decodeOptionalId(input.variantId, GlobalIdEntity.Variant, ["input", "variantId"], errors),
+    variantId: decodeOptionalId(
+      input.variantId,
+      GlobalIdEntity.Variant,
+      ["input", "variantId"],
+      errors,
+    ),
     orderId: decodeOptionalId(input.orderId, GlobalIdEntity.Order, ["input", "orderId"], errors),
-    orderLineId: decodeOptionalId(input.orderLineId, GlobalIdEntity.OrderLine, ["input", "orderLineId"], errors),
+    orderLineId: decodeOptionalId(
+      input.orderLineId,
+      GlobalIdEntity.OrderLine,
+      ["input", "orderLineId"],
+      errors,
+    ),
     ratings: input.ratings?.map((item, index) => ({
       ...item,
-      criterionId: decodeId(item.criterionId, GlobalIdEntity.ReviewRatingCriterion, ["input", "ratings", String(index), "criterionId"], errors),
+      criterionId: decodeId(
+        item.criterionId,
+        GlobalIdEntity.ReviewRatingCriterion,
+        ["input", "ratings", String(index), "criterionId"],
+        errors,
+      ),
     })),
     media: input.media?.map((item, index) => ({
       ...item,
-      fileId: decodeId(item.fileId, GlobalIdEntity.File, ["input", "media", String(index), "fileId"], errors),
+      fileId: decodeId(
+        item.fileId,
+        GlobalIdEntity.File,
+        ["input", "media", String(index), "fileId"],
+        errors,
+      ),
     })),
   };
   return errors.length ? { errors } : { value, errors };
 }
 
-function decodeProductQuestionInput(input: ProductQuestionCreateInput): DecodeResult<ProductQuestionCreateInput> {
+function decodeProductQuestionInput(
+  input: ProductQuestionCreateInput,
+): DecodeResult<ProductQuestionCreateInput> {
   const errors: DecodeResult<never>["errors"] = [];
   const value = {
     ...input,
     content: decodeContentInput(input.content, errors),
     productId: decodeId(input.productId, GlobalIdEntity.Product, ["input", "productId"], errors),
-    variantId: decodeOptionalId(input.variantId, GlobalIdEntity.Variant, ["input", "variantId"], errors),
+    variantId: decodeOptionalId(
+      input.variantId,
+      GlobalIdEntity.Variant,
+      ["input", "variantId"],
+      errors,
+    ),
   };
   return errors.length ? { errors } : { value, errors };
 }
 
-function decodeReviewRequestInput(input: ReviewRequestCreateInput): DecodeResult<ReviewRequestCreateInput> {
+function decodeReviewRequestInput(
+  input: ReviewRequestCreateInput,
+): DecodeResult<ReviewRequestCreateInput> {
   const errors: DecodeResult<never>["errors"] = [];
   const value = {
     ...input,
-    customerId: decodeId(input.customerId, GlobalIdEntity.Customer, ["input", "customerId"], errors),
+    customerId: decodeId(
+      input.customerId,
+      GlobalIdEntity.Customer,
+      ["input", "customerId"],
+      errors,
+    ),
     orderId: decodeId(input.orderId, GlobalIdEntity.Order, ["input", "orderId"], errors),
-    orderLineId: decodeId(input.orderLineId, GlobalIdEntity.OrderLine, ["input", "orderLineId"], errors),
+    orderLineId: decodeId(
+      input.orderLineId,
+      GlobalIdEntity.OrderLine,
+      ["input", "orderLineId"],
+      errors,
+    ),
     productId: decodeId(input.productId, GlobalIdEntity.Product, ["input", "productId"], errors),
-    variantId: decodeOptionalId(input.variantId, GlobalIdEntity.Variant, ["input", "variantId"], errors),
+    variantId: decodeOptionalId(
+      input.variantId,
+      GlobalIdEntity.Variant,
+      ["input", "variantId"],
+      errors,
+    ),
   };
   return errors.length ? { errors } : { value, errors };
 }
 
-function decodeModerationCaseInput(input: ReviewModerationCaseCreateInput): DecodeResult<ReviewModerationCaseCreateInput> {
+function decodeModerationCaseInput(
+  input: ReviewModerationCaseCreateInput,
+): DecodeResult<ReviewModerationCaseCreateInput> {
   const errors: DecodeResult<never>["errors"] = [];
-  const value = { ...input, contentId: decodeId(input.contentId, undefined, ["input", "contentId"], errors) };
+  const value = {
+    ...input,
+    contentId: decodeId(input.contentId, undefined, ["input", "contentId"], errors),
+  };
   return errors.length ? { errors } : { value, errors };
 }
 
-function decodeExternalReferenceInput(input: ReviewContentExternalReferenceCreateInput): DecodeResult<ReviewContentExternalReferenceCreateInput> {
+function decodeExternalReferenceInput(
+  input: ReviewContentExternalReferenceCreateInput,
+): DecodeResult<ReviewContentExternalReferenceCreateInput> {
   const errors: DecodeResult<never>["errors"] = [];
-  const value = { ...input, contentId: decodeId(input.contentId, undefined, ["input", "contentId"], errors) };
+  const value = {
+    ...input,
+    contentId: decodeId(input.contentId, undefined, ["input", "contentId"], errors),
+  };
   return errors.length ? { errors } : { value, errors };
 }
 
 function decodeDeleteInput<
-  TInput extends ReviewContentDeleteInput | ReviewRatingCriterionDeleteInput
->(
-  input: TInput,
-  type: GlobalIdType
-): DecodeResult<TInput> {
+  TInput extends ReviewContentDeleteInput | ReviewRatingCriterionDeleteInput,
+>(input: TInput, type: GlobalIdType): DecodeResult<TInput> {
   const errors: DecodeResult<never>["errors"] = [];
   const value = {
     ...input,
@@ -874,36 +917,49 @@ function decodeDeleteInput<
 }
 
 function decodeExternalReferenceDeleteInput(
-  input: ReviewContentExternalReferenceDeleteInput
+  input: ReviewContentExternalReferenceDeleteInput,
 ): DecodeResult<ReviewContentExternalReferenceDeleteInput> {
   const errors: DecodeResult<never>["errors"] = [];
   const value = {
     ...input,
-    id: decodeId(
-      input.id,
-      GlobalIdEntity.ReviewContentExternalReference,
-      ["input", "id"],
-      errors
-    ),
+    id: decodeId(input.id, GlobalIdEntity.ReviewContentExternalReference, ["input", "id"], errors),
   };
   return errors.length ? { errors } : { value, errors };
 }
 
-function decodeContentInput(input: ReviewContentCreateInput, errors: DecodeResult<never>["errors"]): ReviewContentCreateInput {
+function decodeContentInput(
+  input: ReviewContentCreateInput,
+  errors: DecodeResult<never>["errors"],
+): ReviewContentCreateInput {
   return {
     ...input,
     author: {
       ...input.author,
-      customerId: decodeOptionalId(input.author.customerId, GlobalIdEntity.Customer, ["input", "content", "author", "customerId"], errors),
+      customerId: decodeOptionalId(
+        input.author.customerId,
+        GlobalIdEntity.Customer,
+        ["input", "content", "author", "customerId"],
+        errors,
+      ),
     },
   };
 }
 
-function decodeOptionalId(value: string | null | undefined, type: GlobalIdType, field: string[], errors: DecodeResult<never>["errors"]): string | null | undefined {
+function decodeOptionalId(
+  value: string | null | undefined,
+  type: GlobalIdType,
+  field: string[],
+  errors: DecodeResult<never>["errors"],
+): string | null | undefined {
   return value == null ? value : decodeId(value, type, field, errors);
 }
 
-function decodeId(value: string, type: GlobalIdType | undefined, field: string[], errors: DecodeResult<never>["errors"]): string {
+function decodeId(
+  value: string,
+  type: GlobalIdType | undefined,
+  field: string[],
+  errors: DecodeResult<never>["errors"],
+): string {
   try {
     return decodeGlobalIdByType(value, type);
   } catch {
@@ -912,10 +968,7 @@ function decodeId(value: string, type: GlobalIdType | undefined, field: string[]
   }
 }
 
-function safeDecodeId(
-  value: string,
-  type: GlobalIdType | undefined
-): string | null {
+function safeDecodeId(value: string, type: GlobalIdType | undefined): string | null {
   try {
     return decodeGlobalIdByType(value, type);
   } catch {
@@ -931,19 +984,17 @@ function invalidIdError(field: string) {
   };
 }
 
-function invalidSingleUpdate(
-  field: string,
-  type: ReviewsUpdateOperationType,
-  idField: string
-) {
+function invalidSingleUpdate(field: string, type: ReviewsUpdateOperationType, idField: string) {
   const error = invalidIdError(idField);
   return {
     [field]: null,
-    operationResults: [{
-      type: toGraphqlReviewsUpdateOperationType(type),
-      applied: false,
-      errors: [error],
-    }],
+    operationResults: [
+      {
+        type: toGraphqlReviewsUpdateOperationType(type),
+        applied: false,
+        errors: [error],
+      },
+    ],
     userErrors: [error],
   };
 }
@@ -956,9 +1007,7 @@ function mapOperationResults(results: ReviewsUpdateOperationResult[]) {
   }));
 }
 
-function mapRatingCriterionPreflightResult(
-  entry: RatingCriterionUpdateMappedEntry
-) {
+function mapRatingCriterionPreflightResult(entry: RatingCriterionUpdateMappedEntry) {
   return {
     type: toGraphqlReviewsUpdateOperationType(entry.type),
     applied: false,
@@ -966,9 +1015,7 @@ function mapRatingCriterionPreflightResult(
   };
 }
 
-function toGraphqlReviewsUpdateOperationType(
-  type: ReviewsUpdateOperationType
-): string {
+function toGraphqlReviewsUpdateOperationType(type: ReviewsUpdateOperationType): string {
   const types: Record<ReviewsUpdateOperationType, string> = {
     storeConfigurationUpdate: "STORE_CONFIGURATION_UPDATE",
     ratingCriterionDefinitionUpdate: "RATING_CRITERION_DEFINITION_UPDATE",
@@ -991,9 +1038,7 @@ function mapPreflightOperationResult(entry: ReviewUpdateMappedEntry) {
     type: toGraphqlReviewOperationType(entry.type),
     applied: false,
     clientMutationId: entry.clientMutationId,
-    entityId: entry.entityId
-      ? encodeReviewReplyId(entry.entityId)
-      : undefined,
+    entityId: entry.entityId ? encodeReviewReplyId(entry.entityId) : undefined,
     errors: entry.errors,
   };
 }
@@ -1002,9 +1047,7 @@ function encodeReviewReplyId(id: string): string {
   return encodeGlobalIdByType(id, GlobalIdEntity.ReviewReply);
 }
 
-function toGraphqlReviewOperationType(
-  type: ReviewUpdateOperation["type"]
-): string {
+function toGraphqlReviewOperationType(type: ReviewUpdateOperation["type"]): string {
   const types: Record<ReviewUpdateOperation["type"], string> = {
     contentUpdate: "CONTENT_UPDATE",
     contentAuthorUpdate: "CONTENT_AUTHOR_UPDATE",
@@ -1024,25 +1067,20 @@ function toGraphqlReviewOperationType(
   return types[type];
 }
 
-function mapProductQuestionPreflightOperationResult(
-  entry: ProductQuestionUpdateMappedEntry
-) {
+function mapProductQuestionPreflightOperationResult(entry: ProductQuestionUpdateMappedEntry) {
   return {
     type: toGraphqlProductQuestionOperationType(entry.type),
     applied: false,
     clientMutationId: entry.clientMutationId,
     entityId: entry.entityId
-      ? encodeGlobalIdByType(
-          entry.entityId,
-          GlobalIdEntity.ProductQuestionAnswer
-        )
+      ? encodeGlobalIdByType(entry.entityId, GlobalIdEntity.ProductQuestionAnswer)
       : undefined,
     errors: entry.errors,
   };
 }
 
 function toGraphqlProductQuestionOperationType(
-  type: ProductQuestionUpdateOperation["type"]
+  type: ProductQuestionUpdateOperation["type"],
 ): string {
   const types: Record<ProductQuestionUpdateOperation["type"], string> = {
     contentUpdate: "CONTENT_UPDATE",

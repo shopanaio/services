@@ -51,8 +51,12 @@ function LinksCell({ data }: CustomCellRendererProps<NavigationMenu>) {
   const links = flattenItems(data.items);
   return (
     <Flex gap={4} align="center" style={{ minWidth: 0, overflow: "hidden" }}>
-      {links.slice(0, 3).map((item) => <Tag key={item.id}>{item.title}</Tag>)}
-      {links.length > 3 ? <Typography.Text type="secondary">+{links.length - 3}</Typography.Text> : null}
+      {links.slice(0, 3).map((item) => (
+        <Tag key={item.id}>{item.title}</Tag>
+      ))}
+      {links.length > 3 ? (
+        <Typography.Text type="secondary">+{links.length - 3}</Typography.Text>
+      ) : null}
       {!links.length ? <Typography.Text type="secondary">No items</Typography.Text> : null}
     </Flex>
   );
@@ -100,11 +104,7 @@ export default function WebsiteNavigationPage() {
   const deleteMenu = useNavigationStore((state) => state.deleteMenu);
   const { push: openMenuModal } = useNavigationMenuModal();
   const { modal, message } = App.useApp();
-  const pageConfig = usePageConfig<
-    NavigationMenu,
-    NavigationWhereInput,
-    NavigationOrderField
-  >({
+  const pageConfig = usePageConfig<NavigationMenu, NavigationWhereInput, NavigationOrderField>({
     gridRef,
     storageKey: "navigation-grid-state",
     filterSchema: navigationFilterSchema,
@@ -169,10 +169,25 @@ export default function WebsiteNavigationPage() {
     () => [
       { headerName: "Title", field: "title", cellRenderer: TitleCell, minWidth: 280, flex: 1 },
       { headerName: "Status", field: "status", cellRenderer: StatusCell, width: 130 },
-      { headerName: "Links", colId: "links", cellRenderer: LinksCell, minWidth: 280, flex: 1, sortable: false },
+      {
+        headerName: "Links",
+        colId: "links",
+        cellRenderer: LinksCell,
+        minWidth: 280,
+        flex: 1,
+        sortable: false,
+      },
       { headerName: "Created", field: "createdAt", cellRenderer: DateCell, minWidth: 145 },
       { headerName: "Updated", field: "updatedAt", cellRenderer: DateCell, minWidth: 145 },
-      { headerName: "", colId: "actions", cellRenderer: DeleteCell, width: 64, sortable: false, resizable: false, pinned: "right" },
+      {
+        headerName: "",
+        colId: "actions",
+        cellRenderer: DeleteCell,
+        width: 64,
+        sortable: false,
+        resizable: false,
+        pinned: "right",
+      },
     ],
     [],
   );
@@ -192,12 +207,26 @@ export default function WebsiteNavigationPage() {
       name="website-navigation"
       title="Navigation"
       count={filteredMenus.length}
-      actions={<Button icon={<PlusOutlined />} onClick={handleCreate}>Create</Button>}
+      actions={
+        <Button icon={<PlusOutlined />} onClick={handleCreate}>
+          Create
+        </Button>
+      }
     >
       <DataLayout.Toolbar
-        left={<FilterWidget {...pageConfig.filterWidgetProps} searchPlaceholder="Search menus..." />}
+        left={
+          <FilterWidget {...pageConfig.filterWidgetProps} searchPlaceholder="Search menus..." />
+        }
       />
-      <div style={{ height: "100%", paddingBottom: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div
+        style={{
+          height: "100%",
+          paddingBottom: 16,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
         <div style={{ flex: 1 }} data-testid="navigation-table">
           <AgGridReact<NavigationMenu>
             ref={gridRef}

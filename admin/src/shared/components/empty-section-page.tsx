@@ -20,11 +20,7 @@ export const EmptySectionPage = ({ name, title }: EmptySectionPageProps) => (
     >
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description={
-          <Typography.Text type="secondary">
-            {title} is coming soon
-          </Typography.Text>
-        }
+        description={<Typography.Text type="secondary">{title} is coming soon</Typography.Text>}
       />
     </div>
   </DataLayout>

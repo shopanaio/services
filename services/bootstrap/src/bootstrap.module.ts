@@ -80,7 +80,7 @@ export class BootstrapModule {
           name: options.workflows.name ?? "shopana",
           schema: options.workflows.schema,
           queues: options.workflows.queues,
-        })
+        }),
       );
     }
 

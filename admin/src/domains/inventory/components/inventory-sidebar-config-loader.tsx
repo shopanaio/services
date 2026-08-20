@@ -8,11 +8,7 @@ import { useWarehouses } from "@/domains/inventory/warehouse/hooks";
 const STOCK_SIDEBAR_KEY = "stock";
 const WAREHOUSES_SIDEBAR_LIMIT = 100;
 
-function getWarehouseLabel(warehouse: {
-  name?: string | null;
-  code?: string | null;
-  id: string;
-}) {
+function getWarehouseLabel(warehouse: { name?: string | null; code?: string | null; id: string }) {
   return warehouse.name || warehouse.code || warehouse.id;
 }
 
@@ -27,9 +23,7 @@ export function InventorySidebarConfigLoader() {
         key: `inventory-warehouse-${warehouse.id}`,
         label: getWarehouseLabel(warehouse),
         order: 10 + index,
-        path: `/:orgName/:storeName/inventory/${encodeURIComponent(
-          warehouse.id,
-        )}`,
+        path: `/:orgName/:storeName/inventory/${encodeURIComponent(warehouse.id)}`,
       })),
     [warehouses],
   );

@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalLayout, useModalStackContext } from "@/layouts/modals";
 import type { NotificationItemModalPayload } from "../modals";
 
 export function NotificationItemModal() {

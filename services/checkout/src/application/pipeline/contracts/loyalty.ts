@@ -40,7 +40,11 @@ export type CheckoutLoyaltyQuoteResult =
   | Readonly<{
       status: "NOT_APPLICABLE";
       revision: string;
-      code: "CUSTOMER_REQUIRED" | "PROGRAM_NOT_FOUND" | "NO_AVAILABLE_POINTS" | LoyaltyRedemptionIneligibilityCode;
+      code:
+        | "CUSTOMER_REQUIRED"
+        | "PROGRAM_NOT_FOUND"
+        | "NO_AVAILABLE_POINTS"
+        | LoyaltyRedemptionIneligibilityCode;
       retryable: false;
       rewardQuote: LoyaltyRewardQuote | null;
       rewardContext: LoyaltyCheckoutContext | null;

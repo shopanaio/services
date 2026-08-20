@@ -31,9 +31,7 @@ interface IUseEntityPickerOptions<T extends IPickableEntity> {
  * return <Button onClick={openPicker}>Select Products</Button>;
  * ```
  */
-export function useEntityPicker<T extends IPickableEntity>(
-  options: IUseEntityPickerOptions<T>
-) {
+export function useEntityPicker<T extends IPickableEntity>(options: IUseEntityPickerOptions<T>) {
   const { push } = useModalStack();
   const {
     entityType,
@@ -86,7 +84,7 @@ export function useEntityPicker<T extends IPickableEntity>(
  * ```
  */
 export function useProductPicker(
-  options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">
+  options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">,
 ) {
   const { push } = useModalStack();
   const {
@@ -107,21 +105,13 @@ export function useProductPicker(
       queryMeta,
       onConfirm,
     });
-  }, [
-    push,
-    selectionMode,
-    initialSelection,
-    excludeIds,
-    maxSelection,
-    queryMeta,
-    onConfirm,
-  ]);
+  }, [push, selectionMode, initialSelection, excludeIds, maxSelection, queryMeta, onConfirm]);
 
   return { openPicker };
 }
 
 export function useVariantPicker(
-  options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">
+  options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">,
 ) {
   const { push } = useModalStack();
   const {
@@ -142,21 +132,13 @@ export function useVariantPicker(
       queryMeta,
       onConfirm,
     });
-  }, [
-    push,
-    selectionMode,
-    initialSelection,
-    excludeIds,
-    maxSelection,
-    queryMeta,
-    onConfirm,
-  ]);
+  }, [push, selectionMode, initialSelection, excludeIds, maxSelection, queryMeta, onConfirm]);
 
   return { openPicker };
 }
 
 export function useCategoryPicker(
-  options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">
+  options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">,
 ) {
   const { push } = useModalStack();
   const {
@@ -177,21 +159,13 @@ export function useCategoryPicker(
       queryMeta,
       onConfirm,
     });
-  }, [
-    push,
-    selectionMode,
-    initialSelection,
-    excludeIds,
-    maxSelection,
-    queryMeta,
-    onConfirm,
-  ]);
+  }, [push, selectionMode, initialSelection, excludeIds, maxSelection, queryMeta, onConfirm]);
 
   return { openPicker };
 }
 
 export function useTagPicker(
-  options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">
+  options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">,
 ) {
   const { push } = useModalStack();
   const {
@@ -210,14 +184,7 @@ export function useTagPicker(
       maxSelection,
       onConfirm,
     });
-  }, [
-    push,
-    selectionMode,
-    initialSelection,
-    excludeIds,
-    maxSelection,
-    onConfirm,
-  ]);
+  }, [push, selectionMode, initialSelection, excludeIds, maxSelection, onConfirm]);
 
   return { openPicker };
 }
@@ -268,16 +235,7 @@ export function useMediaPicker(options: IUseMediaPickerOptions) {
       maxSize,
       onConfirm,
     });
-  }, [
-    push,
-    selectionMode,
-    initialSelection,
-    excludeIds,
-    maxSelection,
-    accept,
-    maxSize,
-    onConfirm,
-  ]);
+  }, [push, selectionMode, initialSelection, excludeIds, maxSelection, accept, maxSize, onConfirm]);
 
   return { openPicker };
 }

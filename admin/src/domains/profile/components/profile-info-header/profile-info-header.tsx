@@ -1,15 +1,11 @@
 "use client";
 
+import { Button, Tag, Typography, Dropdown, Tooltip, Flex, Avatar } from "antd";
 import {
-  Button,
-  Tag,
-  Typography,
-  Dropdown,
-  Tooltip,
-  Flex,
-  Avatar,
-} from "antd";
-import { LuEllipsis as MoreOutlined, LuUser as UserOutlined, LuCircleCheck as CheckCircleOutlined } from "react-icons/lu";
+  LuEllipsis as MoreOutlined,
+  LuUser as UserOutlined,
+  LuCircleCheck as CheckCircleOutlined,
+} from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
@@ -88,11 +84,7 @@ function getInitials(name: string): string {
 // Component
 // ============================================================================
 
-export const ProfileInfoHeader = ({
-  user,
-  organizationName,
-  onEdit,
-}: IProfileInfoHeaderProps) => {
+export const ProfileInfoHeader = ({ user, organizationName, onEdit }: IProfileInfoHeaderProps) => {
   const { styles } = useStyles();
 
   const displayName = getDisplayName(user);
@@ -101,11 +93,7 @@ export const ProfileInfoHeader = ({
     <Flex align="center" gap={8}>
       {user.emailVerified ? (
         <Tooltip title="Email verified">
-          <Tag
-            color="success"
-            icon={<CheckCircleOutlined />}
-            className={styles.statusTag}
-          >
+          <Tag color="success" icon={<CheckCircleOutlined />} className={styles.statusTag}>
             Verified
           </Tag>
         </Tooltip>
@@ -166,12 +154,7 @@ export const ProfileInfoHeader = ({
           </Typography.Text>
 
           <Flex align="center" gap={12} wrap="wrap" style={{ marginTop: 4 }}>
-            <CopyableChip
-              label="ID"
-              value={user.id}
-              displayValue={user.id.slice(0, 8)}
-              mono
-            />
+            <CopyableChip label="ID" value={user.id} displayValue={user.id.slice(0, 8)} mono />
           </Flex>
         </Flex>
       </Flex>

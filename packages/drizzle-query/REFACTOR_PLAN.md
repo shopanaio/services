@@ -11,13 +11,14 @@
 ### 1. `src/operators.ts`
 
 **Текущее состояние:**
+
 ```typescript
 export const OPERATORS = {
   $eq: "eq",
   $neq: "neq",
   $gt: "gt",
   // ...
-}
+};
 
 export function isOperator(key: string): key is OperatorKey {
   return key.startsWith("$") && key in OPERATORS;
@@ -25,6 +26,7 @@ export function isOperator(key: string): key is OperatorKey {
 ```
 
 **Изменения:**
+
 - Переименовать все операторы с `$` на `_`:
   - `$eq` → `_eq`
   - `$neq` → `_neq`
@@ -55,6 +57,7 @@ export function isOperator(key: string): key is OperatorKey {
 ### 2. `src/types.ts`
 
 **Изменения в `FilterOperators<T>`:**
+
 ```typescript
 // Было:
 export type FilterOperators<T = ScalarValue> = {
@@ -88,6 +91,7 @@ export type FilterOperators<T = ScalarValue> = {
 ```
 
 **Изменения в `NestedWhereInput<T>`:**
+
 ```typescript
 // Было:
 } & {
@@ -105,6 +109,7 @@ export type FilterOperators<T = ScalarValue> = {
 ```
 
 **Новый тип для сортировки:**
+
 ```typescript
 /**
  * Order input item - object-based sort specification
@@ -118,17 +123,19 @@ export type OrderByItem<F extends string = string> = {
 ```
 
 **Примеры вложенных полей:**
+
 ```typescript
 // Вложенные поля (nested fields) - field содержит путь с точками:
 order: [
   { field: "items.product.price", order: "desc" },
   { field: "translation.value", order: "asc" },
-  { field: "events.createdAt", order: "desc" }
-]
+  { field: "events.createdAt", order: "desc" },
+];
 // OrderBuilder разбирает field.split(".") и создаёт нужные JOIN-ы
 ```
 
 **Удалить `OrderPath`** (больше не нужен):
+
 ```typescript
 // Удалить:
 export type OrderPath<F extends string> = F | `${F}:${"asc" | "desc"}`;
@@ -139,6 +146,7 @@ export type OrderPath<F extends string> = F | `${F}:${"asc" | "desc"}`;
 ### 3. `src/builder/fluent-types.ts`
 
 **Изменения в `ExecuteOptions`:**
+
 ```typescript
 // Было:
 export type ExecuteOptions<Fields extends FieldsDef> = {
@@ -156,6 +164,7 @@ export type ExecuteOptions<Fields extends FieldsDef> = {
 ```
 
 **Изменения в `FluentQueryConfig`:**
+
 ```typescript
 // Было:
 defaultOrder?: OrderPath<NestedPaths<Fields>>;
@@ -181,6 +190,7 @@ build(orders: OrderByItem<string>[] | undefined | null): SQL | undefined
 **Удалить `parseOrder()`** - больше не нужен, данные уже в нужном формате.
 
 **Обновить основной метод:**
+
 ```typescript
 build(orders: OrderByItem<string>[] | undefined | null): SQL | undefined {
   if (!orders || orders.length === 0) {
@@ -208,6 +218,7 @@ build(orders: OrderByItem<string>[] | undefined | null): SQL | undefined {
 ```
 
 **Добавить поддержку `nulls`:**
+
 ```typescript
 private buildOrderExpression(
   fieldConfig: FieldConfig,
@@ -233,6 +244,7 @@ private buildOrderExpression(
 ### 5. `src/builder/where-builder.ts`
 
 **Обновить обработку логических операторов:**
+
 - `$and` → `_and`
 - `$or` → `_or`
 - `$not` → `_not`
@@ -365,6 +377,7 @@ private collectFieldPaths(def: FieldsDef, prefix: string, result: Set<string>): 
 ```
 
 **Вызов валидации в execute():**
+
 ```typescript
 async execute(db: DrizzleExecutor, options?: ExecuteOptions<InferredFields>) {
   // Валидация входных данных
@@ -400,6 +413,7 @@ export type SortParam = {
 ### 9. `src/cursor/base-builder.ts`
 
 **Обновить типы для cursor pagination:**
+
 - `parseSortOrder` → принимает `OrderByItem[]`
 - `buildOrderPath` → работает с объектами
 
@@ -408,6 +422,7 @@ export type SortParam = {
 ### 10. `src/cursor/relay-builder.ts`
 
 **Обновить `RelayInput`:**
+
 ```typescript
 // Было:
 order?: string[];
@@ -421,35 +436,36 @@ order?: OrderByItem<string>[];
 ### 11. Тестовые файлы
 
 **`src/__tests__/sql.test.ts`:**
+
 ```typescript
 // Было:
-order: ["name:asc", "age:desc"]
+order: ["name:asc", "age:desc"];
 
 // Станет:
 order: [
   { field: "name", order: "asc" },
-  { field: "age", order: "desc" }
-]
+  { field: "age", order: "desc" },
+];
 ```
 
 **`src/__tests__/sql-snapshots.test.ts` (вложенные поля):**
+
 ```typescript
 // Было:
-order: ["translation.value:asc", "translation.searchValue:desc"]
-order: ["events.createdAt:desc"]
-order: ["items.quantity:desc"]
+order: ["translation.value:asc", "translation.searchValue:desc"];
+order: ["events.createdAt:desc"];
+order: ["items.quantity:desc"];
 
 // Станет:
 order: [
   { field: "translation.value", order: "asc" },
-  { field: "translation.searchValue", order: "desc" }
-]
-order: [{ field: "events.createdAt", order: "desc" }]
-order: [{ field: "items.quantity", order: "desc" }]
+  { field: "translation.searchValue", order: "desc" },
+];
+order: [{ field: "events.createdAt", order: "desc" }];
+order: [{ field: "items.quantity", order: "desc" }];
 ```
 
-**`src/__tests__/cursor/sort.test.ts`:**
-Обновить тесты для нового формата.
+**`src/__tests__/cursor/sort.test.ts`:** Обновить тесты для нового формата.
 
 ---
 
@@ -474,16 +490,13 @@ const result = await warehouseQuery.execute(db, {
   where: {
     name: { _contains: "test" },
     isDefault: { _eq: true },
-    _or: [
-      { code: { _eq: "WH1" } },
-      { code: { _eq: "WH2" } }
-    ]
+    _or: [{ code: { _eq: "WH1" } }, { code: { _eq: "WH2" } }],
   },
   order: [
     { field: "createdAt", order: "desc" },
-    { field: "name", order: "asc" }
+    { field: "name", order: "asc" },
   ],
-  limit: 20
+  limit: 20,
 });
 
 // Query execution - вложенные поля (nested fields)
@@ -492,15 +505,15 @@ const orders = await ordersQuery.execute(db, {
     status: { _eq: "completed" },
     items: {
       product: {
-        category: { _eq: "electronics" }
-      }
-    }
+        category: { _eq: "electronics" },
+      },
+    },
   },
   order: [
-    { field: "items.product.price", order: "desc" },  // сортировка по вложенному полю
-    { field: "createdAt", order: "desc" }
+    { field: "items.product.price", order: "desc" }, // сортировка по вложенному полю
+    { field: "createdAt", order: "desc" },
   ],
-  limit: 50
+  limit: 50,
 });
 
 // GraphQL resolver - входные данные передаются напрямую в execute()
@@ -508,7 +521,7 @@ const orders = await ordersQuery.execute(db, {
 const result = await warehouseQuery.execute(db, {
   where: { name: { _contains: "test" } },
   order: [{ field: "createdAt", order: "desc" }],
-  limit: 20
+  limit: 20,
 });
 
 // Ошибки валидации:

@@ -137,11 +137,13 @@ describe("createOrderRewardEligibilitySnapshot", () => {
       result: { finalPricing: { status: "SUCCESS", data: { lines: [] } } },
     } as unknown as CheckoutCommittedSnapshot;
 
-    expect(() => createOrderRewardEligibilitySnapshot(checkout, {
-      customerId: "customer-2",
-      segmentIds: [],
-      segmentMembershipRevision: "segments-revision-1",
-    })).toThrow("CHECKOUT_ORDER_REWARD_CUSTOMER_MISMATCH");
+    expect(() =>
+      createOrderRewardEligibilitySnapshot(checkout, {
+        customerId: "customer-2",
+        segmentIds: [],
+        segmentMembershipRevision: "segments-revision-1",
+      }),
+    ).toThrow("CHECKOUT_ORDER_REWARD_CUSTOMER_MISMATCH");
   });
 });
 

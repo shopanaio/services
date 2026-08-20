@@ -1,13 +1,17 @@
-'use client';
+"use client";
 
-import { useCallback, useMemo, useState } from 'react';
-import { Flex, Badge, Button, Card, Dropdown, Input, Tag, Typography } from 'antd';
-import { LuFilter as FilterOutlined, LuChevronRight as RightOutlined, LuX as CloseOutlined } from "react-icons/lu";
-import { IFilterSchema, IFilterValue } from '../../core/types';
-import { operatorsMeta } from '../../core/operators';
-import { findFilter } from '../../utils/find-filter';
-import { FilterValueControl } from './filter-value-control';
-import { useStyles, cardBodyStyle } from './styles';
+import { useCallback, useMemo, useState } from "react";
+import { Flex, Badge, Button, Card, Dropdown, Input, Tag, Typography } from "antd";
+import {
+  LuFilter as FilterOutlined,
+  LuChevronRight as RightOutlined,
+  LuX as CloseOutlined,
+} from "react-icons/lu";
+import { IFilterSchema, IFilterValue } from "../../core/types";
+import { operatorsMeta } from "../../core/operators";
+import { findFilter } from "../../utils/find-filter";
+import { FilterValueControl } from "./filter-value-control";
+import { useStyles, cardBodyStyle } from "./styles";
 
 export interface IFilterWidgetSearchProps {
   searchValue: string;
@@ -34,8 +38,8 @@ export const FilterWidget = ({
   value,
   onChange,
   searchProps,
-  searchPlaceholder = 'Type to search...',
-  filterButtonLabel = 'Filter',
+  searchPlaceholder = "Type to search...",
+  filterButtonLabel = "Filter",
 }: IFilterWidgetProps) => {
   const { styles } = useStyles();
   const [nestedOptions, setNestedOptions] = useState<IFilterSchema[]>([]);
@@ -48,15 +52,12 @@ export const FilterWidget = ({
     [value, onChange],
   );
 
-
   // Get current options based on nested path
   const properties = useMemo(() => {
-    const opts = nestedOptions?.length
-      ? nestedOptions.at(-1)?.children || []
-      : options;
+    const opts = nestedOptions?.length ? nestedOptions.at(-1)?.children || [] : options;
 
     return [...opts].sort((a, b) => {
-      if (typeof a.label === 'string' && typeof b.label === 'string') {
+      if (typeof a.label === "string" && typeof b.label === "string") {
         return a.label.localeCompare(b.label);
       }
       return 0;
@@ -81,7 +82,7 @@ export const FilterWidget = ({
             {
               schemaKey: record.key,
               entity: record.entity,
-              label: typeof record.label === 'string' ? record.label : record.key,
+              label: typeof record.label === "string" ? record.label : record.key,
               operator: record.operators[0],
               type: record.type,
               keyPath: nestedOptions?.length
@@ -124,7 +125,7 @@ export const FilterWidget = ({
             e.stopPropagation();
           }}
         >
-          {operatorsMeta[it?.operator]?.literal || '?'}
+          {operatorsMeta[it?.operator]?.literal || "?"}
         </Button>
       );
 
@@ -155,7 +156,7 @@ export const FilterWidget = ({
           <div
             data-node-type="ui-filter-tag"
             onKeyDown={(e) => {
-              if (e.currentTarget === e.target && e.key === 'Backspace') {
+              if (e.currentTarget === e.target && e.key === "Backspace") {
                 const searchInput = document?.querySelector(
                   'input[data-node-type="ui-filter-search"]',
                 ) as HTMLInputElement;
@@ -178,7 +179,7 @@ export const FilterWidget = ({
               <div className={styles.filterNodeCenter}>
                 {(condition?.operators || []).length > 1 ? (
                   <Dropdown
-                    trigger={['click']}
+                    trigger={["click"]}
                     menu={{
                       items: condition?.operators.map((op) => {
                         const opMeta = operatorsMeta[op];
@@ -228,9 +229,9 @@ export const FilterWidget = ({
 
   return (
     <>
-      <Flex gap="small" align="center" style={{ width: '100%' }}>
+      <Flex gap="small" align="center" style={{ width: "100%" }}>
         <Dropdown
-          trigger={['click']}
+          trigger={["click"]}
           popupRender={() => (
             <Card styles={{ body: cardBodyStyle }}>
               {!!nestedOptions?.length && (
@@ -267,7 +268,7 @@ export const FilterWidget = ({
             </Card>
           )}
           menu={{
-            mode: 'vertical',
+            mode: "vertical",
             items: [],
           }}
           open={open}
@@ -301,14 +302,11 @@ export const FilterWidget = ({
                   searchProps.onChangeSearchValue(target.value);
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Backspace' && !searchProps.searchValue) {
-                    const prevNode = e.currentTarget
-                      .previousElementSibling as HTMLElement;
+                  if (e.key === "Backspace" && !searchProps.searchValue) {
+                    const prevNode = e.currentTarget.previousElementSibling as HTMLElement;
 
-                    if (prevNode?.dataset?.nodeType === 'ui-filter-close-badge') {
-                      prevNode
-                        ?.querySelector<HTMLElement>('[data-filter-node]')
-                        ?.focus();
+                    if (prevNode?.dataset?.nodeType === "ui-filter-close-badge") {
+                      prevNode?.querySelector<HTMLElement>("[data-filter-node]")?.focus();
                     }
                   }
                 }}

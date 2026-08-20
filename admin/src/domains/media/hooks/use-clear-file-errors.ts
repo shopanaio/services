@@ -29,15 +29,13 @@ export function useClearFileErrors() {
 
   const clearFileErrors = useCallback(
     async (ids: string[]): Promise<ClearFileErrorsResult> => {
-      const results = await Promise.all(
-        ids.map((id) => mutate({ variables: { input: { id } } })),
-      );
+      const results = await Promise.all(ids.map((id) => mutate({ variables: { input: { id } } })));
       const payloads = results
         .map((result) => result.data?.mediaMutation.fileClearError)
         .filter((payload): payload is ApiFileClearErrorPayload => Boolean(payload));
 
       return {
-        files: payloads.flatMap((payload) => payload.file ? [payload.file] : []),
+        files: payloads.flatMap((payload) => (payload.file ? [payload.file] : [])),
         userErrors: payloads.flatMap((payload) => payload.userErrors),
       };
     },

@@ -1,16 +1,19 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type { ProductUpdateContentParams, ProductUpdateContentResult } from "./dto/ProductUpdateContentDto.js";
+import type {
+  ProductUpdateContentParams,
+  ProductUpdateContentResult,
+} from "./dto/ProductUpdateContentDto.js";
 import type { ContentChanges, RichTextChange } from "../types/index.js";
 import { singleError } from "../types/index.js";
-import {
-  stableRichTextValue,
-  toRichTextStorage,
-} from "../shared/richText.js";
+import { stableRichTextValue, toRichTextStorage } from "../shared/richText.js";
 
 /**
  * ProductUpdateContentScript handles product content: description and excerpt.
  */
-export class ProductUpdateContentScript extends BaseScript<ProductUpdateContentParams, ProductUpdateContentResult> {
+export class ProductUpdateContentScript extends BaseScript<
+  ProductUpdateContentParams,
+  ProductUpdateContentResult
+> {
   protected async execute(params: ProductUpdateContentParams): Promise<ProductUpdateContentResult> {
     const { id, description, excerpt } = params;
 
@@ -42,8 +45,7 @@ export class ProductUpdateContentScript extends BaseScript<ProductUpdateContentP
 
     const nextDescription =
       description === undefined ? currentDescription : toRichTextStorage(description);
-    const nextExcerpt =
-      excerpt === undefined ? currentExcerpt : toRichTextStorage(excerpt);
+    const nextExcerpt = excerpt === undefined ? currentExcerpt : toRichTextStorage(excerpt);
 
     if (
       description !== undefined &&
@@ -102,9 +104,7 @@ export class ProductUpdateContentScript extends BaseScript<ProductUpdateContentP
   }
 }
 
-function toChangePayload(
-  value: ProductUpdateContentParams["description"]
-): RichTextChange | null {
+function toChangePayload(value: ProductUpdateContentParams["description"]): RichTextChange | null {
   if (!value) {
     return null;
   }

@@ -1,7 +1,4 @@
-import type {
-  CheckoutCatalogRow,
-  FlatCheckoutMerchandiseLine,
-} from "./contracts.js";
+import type { CheckoutCatalogRow, FlatCheckoutMerchandiseLine } from "./contracts.js";
 
 export type SelectedComponentItem = NonNullable<
   CheckoutCatalogRow["configuration"]
@@ -41,9 +38,7 @@ export function validateComponentSelections(
 
     const effectiveItems = applyDependencyRules(configuration, children);
     const selected = children.map((child) =>
-      effectiveItems.find(
-        (item) => item.id === child.input.componentSelection?.componentItemId,
-      ),
+      effectiveItems.find((item) => item.id === child.input.componentSelection?.componentItemId),
     );
     const selectedItemIds = new Set<string>();
 
@@ -74,11 +69,7 @@ export function validateComponentSelections(
       }
     }
 
-    if (
-      effectiveItems.some(
-        (item) => item.required && !selectedItemIds.has(item.id),
-      )
-    ) {
+    if (effectiveItems.some((item) => item.required && !selectedItemIds.has(item.id))) {
       invalidParentLineIds.add(parent.input.lineId);
     }
 
@@ -117,27 +108,26 @@ function applyDependencyRules(
     ),
   );
   const valueFor = (
-    condition: NonNullable<CheckoutCatalogRow["configuration"]>["dependencyRules"][number]["groups"][number]["conditions"][number],
+    condition: NonNullable<
+      CheckoutCatalogRow["configuration"]
+    >["dependencyRules"][number]["groups"][number]["conditions"][number],
   ) => {
     if (condition.subject === "ITEM_SELECTED" || condition.subject === "ITEM_QTY") {
-      return condition.targetType === "ITEM"
-        ? selectedQuantity.get(condition.targetId) ?? 0
-        : 0;
+      return condition.targetType === "ITEM" ? (selectedQuantity.get(condition.targetId) ?? 0) : 0;
     }
     if (condition.subject === "GROUP_TOTAL_QTY") {
       return condition.targetType === "GROUP"
         ? items
             .filter((item) => item.groupId === condition.targetId)
-            .reduce(
-              (sum, item) => sum + (selectedQuantity.get(item.id) ?? 0),
-              0,
-            )
+            .reduce((sum, item) => sum + (selectedQuantity.get(item.id) ?? 0), 0)
         : [...selectedQuantity.values()].reduce((sum, value) => sum + value, 0);
     }
     return 0;
   };
   const matchesCondition = (
-    condition: NonNullable<CheckoutCatalogRow["configuration"]>["dependencyRules"][number]["groups"][number]["conditions"][number],
+    condition: NonNullable<
+      CheckoutCatalogRow["configuration"]
+    >["dependencyRules"][number]["groups"][number]["conditions"][number],
   ) => {
     const value = valueFor(condition);
     if (condition.operator === "IS_SELECTED") return value > 0;
@@ -156,9 +146,7 @@ function applyDependencyRules(
         : group.conditions.every(matchesCondition),
     );
     const matches =
-      rule.logicOperator === "OR"
-        ? groupResults.some(Boolean)
-        : groupResults.every(Boolean);
+      rule.logicOperator === "OR" ? groupResults.some(Boolean) : groupResults.every(Boolean);
     if (!matches) continue;
 
     for (const action of rule.actions) {

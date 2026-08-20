@@ -1,15 +1,8 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, count, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  normalizeRelayPagination,
-  type RepositoryConnectionResult,
-} from "../connection.js";
+import { normalizeRelayPagination, type RepositoryConnectionResult } from "../connection.js";
 import {
   decodeCustomerGlobalId,
   decodeCustomerGroupGlobalId,
@@ -30,7 +23,7 @@ export const customerGroupRelayQuery = createRelayQuery(
     .mapWhereField("id", decodeCustomerGroupGlobalId)
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerGroup", tieBreaker: "id" }
+  { name: "customerGroup", tieBreaker: "id" },
 );
 
 export const customerGroupMembershipRelayQuery = createRelayQuery(
@@ -43,20 +36,17 @@ export const customerGroupMembershipRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerGroupMembership", tieBreaker: "id" }
+  { name: "customerGroupMembership", tieBreaker: "id" },
 );
 
-export type CustomerGroupRelayInput = InferRelayInput<
-  typeof customerGroupRelayQuery
->;
+export type CustomerGroupRelayInput = InferRelayInput<typeof customerGroupRelayQuery>;
 export type CustomerGroupMembershipRelayInput = InferRelayInput<
   typeof customerGroupMembershipRelayQuery
 >;
-export type CustomerGroupMembershipConnectionInput =
-  CustomerGroupMembershipRelayInput & {
-    customerId?: string;
-    groupId?: string;
-  };
+export type CustomerGroupMembershipConnectionInput = CustomerGroupMembershipRelayInput & {
+  customerId?: string;
+  groupId?: string;
+};
 
 export interface CustomerGroupMembershipSetData {
   customerId: string;
@@ -73,10 +63,12 @@ export class CustomerGroupRepository extends BaseRepository {
     const rows = await this.connection
       .select({ customerId: customerGroupMembership.customerId })
       .from(customerGroupMembership)
-      .where(and(
-        eq(customerGroupMembership.storeId, this.storeId),
-        eq(customerGroupMembership.groupId, groupId),
-      ));
+      .where(
+        and(
+          eq(customerGroupMembership.storeId, this.storeId),
+          eq(customerGroupMembership.groupId, groupId),
+        ),
+      );
     return [...new Set(rows.map((row) => row.customerId))].sort();
   }
 
@@ -89,8 +81,8 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customerGroup.storeId, this.storeId),
           eq(customerGroup.id, id),
-          isNull(customerGroup.deletedAt)
-        )
+          isNull(customerGroup.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -105,8 +97,8 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customerGroup.storeId, this.storeId),
           eq(customerGroup.code, normalizeCode(code)),
-          isNull(customerGroup.deletedAt)
-        )
+          isNull(customerGroup.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -122,8 +114,8 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customerGroup.storeId, this.storeId),
           inArray(customerGroup.id, [...new Set(ids)]),
-          isNull(customerGroup.deletedAt)
-        )
+          isNull(customerGroup.deletedAt),
+        ),
       );
   }
 
@@ -133,19 +125,14 @@ export class CustomerGroupRepository extends BaseRepository {
       .select()
       .from(customerGroupMembership)
       .where(
-        and(
-          eq(customerGroupMembership.storeId, this.storeId),
-          eq(customerGroupMembership.id, id)
-        )
+        and(eq(customerGroupMembership.storeId, this.storeId), eq(customerGroupMembership.id, id)),
       )
       .limit(1);
     return rows[0] ?? null;
   }
 
   @ReadOnly()
-  async getMembershipsByIds(
-    ids: readonly string[]
-  ): Promise<CustomerGroupMembership[]> {
+  async getMembershipsByIds(ids: readonly string[]): Promise<CustomerGroupMembership[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -153,8 +140,8 @@ export class CustomerGroupRepository extends BaseRepository {
       .where(
         and(
           eq(customerGroupMembership.storeId, this.storeId),
-          inArray(customerGroupMembership.id, [...new Set(ids)])
-        )
+          inArray(customerGroupMembership.id, [...new Set(ids)]),
+        ),
       );
   }
 
@@ -191,7 +178,7 @@ export class CustomerGroupRepository extends BaseRepository {
     patch: Partial<
       Pick<NewCustomerGroup, "code" | "name" | "description" | "isDefault" | "isActive">
     >,
-    expectedRevision: number
+    expectedRevision: number,
   ): Promise<CustomerGroup | null> {
     const currentRows = await this.connection
       .select()
@@ -201,8 +188,8 @@ export class CustomerGroupRepository extends BaseRepository {
           eq(customerGroup.storeId, this.storeId),
           eq(customerGroup.id, id),
           eq(customerGroup.revision, expectedRevision),
-          isNull(customerGroup.deletedAt)
-        )
+          isNull(customerGroup.deletedAt),
+        ),
       )
       .limit(1)
       .for("update");
@@ -226,8 +213,8 @@ export class CustomerGroupRepository extends BaseRepository {
           eq(customerGroup.storeId, this.storeId),
           eq(customerGroup.id, id),
           eq(customerGroup.revision, expectedRevision),
-          isNull(customerGroup.deletedAt)
-        )
+          isNull(customerGroup.deletedAt),
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -248,52 +235,47 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customerGroup.storeId, this.storeId),
           eq(customerGroup.id, id),
-          isNull(customerGroup.deletedAt)
-        )
+          isNull(customerGroup.deletedAt),
+        ),
       )
       .returning({ id: customerGroup.id });
     return rows.length > 0;
   }
 
   @Transactional()
-  async setMembership(
-    data: CustomerGroupMembershipSetData
-  ): Promise<CustomerGroupMembership> {
+  async setMembership(data: CustomerGroupMembershipSetData): Promise<CustomerGroupMembership> {
     if (data.isPrimary) await this.clearPrimaryMembership(data.customerId);
     const now = new Date().toISOString();
     const existing = await this.findMembership(data.customerId, data.groupId);
     const values = {
-        id: await this.generateUuidV7(),
-        storeId: this.storeId,
-        customerId: data.customerId,
-        groupId: data.groupId,
-        isPrimary: data.isPrimary ?? false,
-        source: data.source ?? "MANUAL",
-        assignedById: data.assignedById ?? null,
-        assignedAt: now,
-        expiresAt: data.expiresAt ?? null,
-      };
+      id: await this.generateUuidV7(),
+      storeId: this.storeId,
+      customerId: data.customerId,
+      groupId: data.groupId,
+      isPrimary: data.isPrimary ?? false,
+      source: data.source ?? "MANUAL",
+      assignedById: data.assignedById ?? null,
+      assignedAt: now,
+      expiresAt: data.expiresAt ?? null,
+    };
     const rows = existing
       ? await this.connection
-        .update(customerGroupMembership)
-        .set({
-          isPrimary: data.isPrimary ?? false,
-          source: data.source ?? "MANUAL",
-          assignedById: data.assignedById ?? null,
-          assignedAt: now,
-          expiresAt: data.expiresAt ?? null,
-        })
-        .where(
-          and(
-            eq(customerGroupMembership.storeId, this.storeId),
-            eq(customerGroupMembership.id, existing.id)
+          .update(customerGroupMembership)
+          .set({
+            isPrimary: data.isPrimary ?? false,
+            source: data.source ?? "MANUAL",
+            assignedById: data.assignedById ?? null,
+            assignedAt: now,
+            expiresAt: data.expiresAt ?? null,
+          })
+          .where(
+            and(
+              eq(customerGroupMembership.storeId, this.storeId),
+              eq(customerGroupMembership.id, existing.id),
+            ),
           )
-        )
-        .returning()
-      : await this.connection
-        .insert(customerGroupMembership)
-        .values(values)
-        .returning();
+          .returning()
+      : await this.connection.insert(customerGroupMembership).values(values).returning();
     return rows[0];
   }
 
@@ -304,8 +286,8 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customerGroupMembership.storeId, this.storeId),
           eq(customerGroupMembership.customerId, customerId),
-          eq(customerGroupMembership.groupId, groupId)
-        )
+          eq(customerGroupMembership.groupId, groupId),
+        ),
       )
       .returning({ id: customerGroupMembership.id });
     return rows[0]?.id ?? null;
@@ -314,7 +296,7 @@ export class CustomerGroupRepository extends BaseRepository {
   @Transactional()
   async replaceManualMembershipsForCustomer(
     customerId: string,
-    memberships: readonly Omit<CustomerGroupMembershipSetData, "customerId" | "source">[]
+    memberships: readonly Omit<CustomerGroupMembershipSetData, "customerId" | "source">[],
   ): Promise<CustomerGroupMembership[]> {
     const previous = await this.connection
       .select({ groupId: customerGroupMembership.groupId })
@@ -323,8 +305,8 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customerGroupMembership.storeId, this.storeId),
           eq(customerGroupMembership.customerId, customerId),
-          eq(customerGroupMembership.source, "MANUAL")
-        )
+          eq(customerGroupMembership.source, "MANUAL"),
+        ),
       );
     await this.connection
       .delete(customerGroupMembership)
@@ -332,8 +314,8 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customerGroupMembership.storeId, this.storeId),
           eq(customerGroupMembership.customerId, customerId),
-          eq(customerGroupMembership.source, "MANUAL")
-        )
+          eq(customerGroupMembership.source, "MANUAL"),
+        ),
       );
     const result: CustomerGroupMembership[] = [];
     for (const membership of memberships) {
@@ -342,7 +324,7 @@ export class CustomerGroupRepository extends BaseRepository {
           ...membership,
           customerId,
           source: "MANUAL",
-        })
+        }),
       );
     }
 
@@ -363,8 +345,8 @@ export class CustomerGroupRepository extends BaseRepository {
           and(
             eq(customerGroup.storeId, this.storeId),
             inArray(customerGroup.id, affected),
-            isNull(customerGroup.deletedAt)
-          )
+            isNull(customerGroup.deletedAt),
+          ),
         );
     }
     return result;
@@ -377,9 +359,7 @@ export class CustomerGroupRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async countCurrentCustomersByGroupIds(
-    groupIds: readonly string[]
-  ): Promise<Map<string, number>> {
+  async countCurrentCustomersByGroupIds(groupIds: readonly string[]): Promise<Map<string, number>> {
     if (groupIds.length === 0) return new Map();
     const rows = await this.connection
       .select({
@@ -392,8 +372,8 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customer.storeId, customerGroupMembership.storeId),
           eq(customer.id, customerGroupMembership.customerId),
-          isNull(customer.deletedAt)
-        )
+          isNull(customer.deletedAt),
+        ),
       )
       .where(
         and(
@@ -401,9 +381,9 @@ export class CustomerGroupRepository extends BaseRepository {
           inArray(customerGroupMembership.groupId, [...new Set(groupIds)]),
           or(
             isNull(customerGroupMembership.expiresAt),
-            sql`${customerGroupMembership.expiresAt} > now()`
-          )
-        )
+            sql`${customerGroupMembership.expiresAt} > now()`,
+          ),
+        ),
       )
       .groupBy(customerGroupMembership.groupId);
     return new Map(rows.map((row) => [row.groupId, row.count]));
@@ -440,7 +420,7 @@ export class CustomerGroupRepository extends BaseRepository {
 
   @ReadOnly()
   async getMembershipConnection(
-    input: CustomerGroupMembershipConnectionInput
+    input: CustomerGroupMembershipConnectionInput,
   ): Promise<RepositoryConnectionResult> {
     const normalized = normalizeRelayPagination(input);
     const { customerId, groupId, where, orderBy, ...pagination } = normalized;
@@ -502,8 +482,8 @@ export class CustomerGroupRepository extends BaseRepository {
           eq(customerGroup.storeId, this.storeId),
           eq(customerGroup.isDefault, true),
           isNull(customerGroup.deletedAt),
-          exceptId ? sql`${customerGroup.id} <> ${exceptId}` : undefined
-        )
+          exceptId ? sql`${customerGroup.id} <> ${exceptId}` : undefined,
+        ),
       );
   }
 
@@ -515,15 +495,15 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customerGroupMembership.storeId, this.storeId),
           eq(customerGroupMembership.customerId, customerId),
-          eq(customerGroupMembership.isPrimary, true)
-        )
+          eq(customerGroupMembership.isPrimary, true),
+        ),
       );
   }
 
   @ReadOnly()
   async findMembership(
     customerId: string,
-    groupId: string
+    groupId: string,
   ): Promise<CustomerGroupMembership | null> {
     const rows = await this.connection
       .select()
@@ -532,8 +512,8 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customerGroupMembership.storeId, this.storeId),
           eq(customerGroupMembership.customerId, customerId),
-          eq(customerGroupMembership.groupId, groupId)
-        )
+          eq(customerGroupMembership.groupId, groupId),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;

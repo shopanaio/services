@@ -20,37 +20,24 @@ export class RatingCriterionSectionUpdateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: RatingCriterionSectionUpdateParams
+    params: RatingCriterionSectionUpdateParams,
   ): Promise<ReviewSectionResult> {
-    const aggregate = await this.repository.configuration.findCriterionById(
-      params.criterionId
-    );
+    const aggregate = await this.repository.configuration.findCriterionById(params.criterionId);
     if (!aggregate) {
-      return sectionErrors([
-        { message: "Rating criterion not found", code: "NOT_FOUND" },
-      ]);
+      return sectionErrors([{ message: "Rating criterion not found", code: "NOT_FOUND" }]);
     }
 
     switch (params.operation.type) {
       case "ratingCriterionDefinitionUpdate":
-        return this.updateDefinition(
-          params.criterionId,
-          params.operation.params
-        );
+        return this.updateDefinition(params.criterionId, params.operation.params);
       case "ratingCriterionApplicabilityUpdate":
         return this.updatePatch(params.criterionId, {
           appliesToAllProducts: params.operation.params.appliesToAllProducts,
         });
       case "ratingCriterionTranslationsSync":
-        return this.syncTranslations(
-          params.criterionId,
-          params.operation.params.items
-        );
+        return this.syncTranslations(params.criterionId, params.operation.params.items);
       case "ratingCriterionAssignmentsSync":
-        return this.syncAssignments(
-          params.criterionId,
-          params.operation.params.items
-        );
+        return this.syncAssignments(params.criterionId, params.operation.params.items);
     }
   }
 
@@ -72,7 +59,7 @@ export class RatingCriterionSectionUpdateScript extends BaseScript<
     input: Extract<
       RatingCriterionUpdateOperation,
       { type: "ratingCriterionDefinitionUpdate" }
-    >["params"]
+    >["params"],
   ): Promise<ReviewSectionResult> {
     const patch: RatingCriterionPatch = {};
     const errors: ReviewSectionResult["userErrors"] = [];
@@ -147,18 +134,15 @@ export class RatingCriterionSectionUpdateScript extends BaseScript<
 
   private async updatePatch(
     criterionId: string,
-    patch: RatingCriterionPatch
+    patch: RatingCriterionPatch,
   ): Promise<ReviewSectionResult> {
-    const updated =
-      await this.repository.configuration.updateCriterionWithinVersion(
-        criterionId,
-        patch
-      );
+    const updated = await this.repository.configuration.updateCriterionWithinVersion(
+      criterionId,
+      patch,
+    );
     return updated
       ? sectionSuccess()
-      : sectionErrors([
-          { message: "Rating criterion not found", code: "NOT_FOUND" },
-        ]);
+      : sectionErrors([{ message: "Rating criterion not found", code: "NOT_FOUND" }]);
   }
 
   private async syncTranslations(
@@ -166,7 +150,7 @@ export class RatingCriterionSectionUpdateScript extends BaseScript<
     items: Extract<
       RatingCriterionUpdateOperation,
       { type: "ratingCriterionTranslationsSync" }
-    >["params"]["items"]
+    >["params"]["items"],
   ): Promise<ReviewSectionResult> {
     const errors: ReviewSectionResult["userErrors"] = [];
     const locales = new Set<string>();
@@ -196,10 +180,7 @@ export class RatingCriterionSectionUpdateScript extends BaseScript<
       };
     });
     if (errors.length > 0) return sectionErrors(errors);
-    await this.repository.configuration.replaceCriterionTranslations(
-      criterionId,
-      mapped
-    );
+    await this.repository.configuration.replaceCriterionTranslations(criterionId, mapped);
     return sectionSuccess();
   }
 
@@ -208,7 +189,7 @@ export class RatingCriterionSectionUpdateScript extends BaseScript<
     items: Extract<
       RatingCriterionUpdateOperation,
       { type: "ratingCriterionAssignmentsSync" }
-    >["params"]["items"]
+    >["params"]["items"],
   ): Promise<ReviewSectionResult> {
     const errors: ReviewSectionResult["userErrors"] = [];
     const keys = new Set<string>();
@@ -237,10 +218,7 @@ export class RatingCriterionSectionUpdateScript extends BaseScript<
       };
     });
     if (errors.length > 0) return sectionErrors(errors);
-    await this.repository.configuration.replaceCriterionAssignments(
-      criterionId,
-      mapped
-    );
+    await this.repository.configuration.replaceCriterionAssignments(criterionId, mapped);
     return sectionSuccess();
   }
 }

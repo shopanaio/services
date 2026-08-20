@@ -9,9 +9,7 @@ import { z } from "zod";
 const identifierSchema = z.string().trim().min(1).max(256);
 const quantitySchema = z.number().int().safe().positive();
 
-const componentSelectionSchema = z
-  .object({ componentItemId: identifierSchema })
-  .strict();
+const componentSelectionSchema = z.object({ componentItemId: identifierSchema }).strict();
 
 const purchaseSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("ONE_TIME"), sellingPlanId: z.null() }).strict(),
@@ -45,9 +43,7 @@ function createLineSchema(
     .strict() as z.ZodType<Catalog.ResolveCheckoutMerchandiseLineInput>;
 }
 
-const lineSchema = createLineSchema(
-  CATALOG_CHECKOUT_MERCHANDISE_MAX_NESTING_DEPTH - 1,
-);
+const lineSchema = createLineSchema(CATALOG_CHECKOUT_MERCHANDISE_MAX_NESTING_DEPTH - 1);
 
 const paramsShapeSchema = z
   .object({
@@ -62,10 +58,7 @@ const paramsShapeSchema = z
     const lineIds = new Set<string>();
     let lineCount = 0;
 
-    const visit = (
-      lines: Catalog.ResolveCheckoutMerchandiseLineInput[],
-      nested: boolean,
-    ): void => {
+    const visit = (lines: Catalog.ResolveCheckoutMerchandiseLineInput[], nested: boolean): void => {
       for (const line of lines) {
         lineCount += 1;
         if (nested !== (line.componentSelection !== null)) {
@@ -106,9 +99,7 @@ const treeLimitsSchema = z.unknown().superRefine((value, context) => {
   const rootLines = (value as { lines?: unknown }).lines;
   if (!Array.isArray(rootLines)) return;
 
-  const pending: Array<{ lines: unknown[]; depth: number }> = [
-    { lines: rootLines, depth: 1 },
-  ];
+  const pending: Array<{ lines: unknown[]; depth: number }> = [{ lines: rootLines, depth: 1 }];
   let total = 0;
 
   while (pending.length > 0) {
@@ -148,6 +139,4 @@ const treeLimitsSchema = z.unknown().superRefine((value, context) => {
 });
 
 export const resolveCheckoutMerchandiseParamsSchema: z.ZodType<Catalog.ResolveCheckoutMerchandiseParams> =
-  treeLimitsSchema.pipe(paramsShapeSchema) as z.ZodType<
-    Catalog.ResolveCheckoutMerchandiseParams
-  >;
+  treeLimitsSchema.pipe(paramsShapeSchema) as z.ZodType<Catalog.ResolveCheckoutMerchandiseParams>;

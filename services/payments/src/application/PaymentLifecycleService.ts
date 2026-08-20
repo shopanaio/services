@@ -22,13 +22,15 @@ import type {
 } from "../infrastructure/db/PaymentLifecycleRepository.js";
 
 export class PaymentLifecycleService {
-  constructor(private readonly dependencies: {
-    repository: PaymentLifecycleRepository;
-    bindings: PaymentLifecycleMethodBindingsPort;
-    accounts: PaymentProviderAccountsPort;
-    apps: PaymentsProviderAppsPort;
-    settlement: PaymentSettlementConfirmationPort;
-  }) {}
+  constructor(
+    private readonly dependencies: {
+      repository: PaymentLifecycleRepository;
+      bindings: PaymentLifecycleMethodBindingsPort;
+      accounts: PaymentProviderAccountsPort;
+      apps: PaymentsProviderAppsPort;
+      settlement: PaymentSettlementConfirmationPort;
+    },
+  ) {}
 
   createCollection(params: Payments.CreatePaymentCollectionParams) {
     const parsed = PaymentLifecycleActionSchemas.createCollection.parse(
@@ -160,12 +162,14 @@ export class PaymentLifecycleService {
     });
   }
 
-  async getPreparedSessionForConfirmation(input: Readonly<{
-    storeId: string;
-    paymentSessionId: string;
-    operationId: string;
-    correlationId: string;
-  }>): Promise<PreparedPaymentSession> {
+  async getPreparedSessionForConfirmation(
+    input: Readonly<{
+      storeId: string;
+      paymentSessionId: string;
+      operationId: string;
+      correlationId: string;
+    }>,
+  ): Promise<PreparedPaymentSession> {
     const currentSession = await this.dependencies.repository.getSession({
       storeId: input.storeId,
       paymentSessionId: input.paymentSessionId,
@@ -300,11 +304,17 @@ export class PaymentLifecycleService {
       | Payments.ReconcilePaymentParams,
     type: "CANCEL" | "CAPTURE" | "VOID" | "REFUND" | "RECONCILE",
   ): Promise<PreparedPaymentOperation> {
-    params = (type === "CANCEL" ? PaymentLifecycleActionSchemas.cancel.parse(params)
-      : type === "CAPTURE" ? PaymentLifecycleActionSchemas.capture.parse(params)
-      : type === "VOID" ? PaymentLifecycleActionSchemas.void.parse(params)
-      : type === "REFUND" ? PaymentLifecycleActionSchemas.refund.parse(params)
-      : PaymentLifecycleActionSchemas.reconcile.parse(params)) as typeof params;
+    params = (
+      type === "CANCEL"
+        ? PaymentLifecycleActionSchemas.cancel.parse(params)
+        : type === "CAPTURE"
+          ? PaymentLifecycleActionSchemas.capture.parse(params)
+          : type === "VOID"
+            ? PaymentLifecycleActionSchemas.void.parse(params)
+            : type === "REFUND"
+              ? PaymentLifecycleActionSchemas.refund.parse(params)
+              : PaymentLifecycleActionSchemas.reconcile.parse(params)
+    ) as typeof params;
     const current = await this.dependencies.repository.getSession({
       storeId: params.storeId,
       paymentSessionId: params.paymentSessionId,
@@ -322,7 +332,12 @@ export class PaymentLifecycleService {
     ) {
       throw new Error("PAYMENT_PROVIDER_OPERATION_UNAVAILABLE");
     }
-    assertProviderCapability(account, current.session, type, "amount" in params ? params.amount : null);
+    assertProviderCapability(
+      account,
+      current.session,
+      type,
+      "amount" in params ? params.amount : null,
+    );
     const route = await this.dependencies.apps.resolveRoute({
       storeId: params.storeId,
       installationId: account.installationId,
@@ -355,17 +370,35 @@ export class PaymentLifecycleService {
     assertPinnedRoute(route, prepared.route);
     switch (prepared.request.operation) {
       case "CANCEL":
-        return rejectUnexpectedConfirmation(parseProviderOperationResult(await this.dependencies.apps.cancel(route!, prepared.request)));
+        return rejectUnexpectedConfirmation(
+          parseProviderOperationResult(
+            await this.dependencies.apps.cancel(route!, prepared.request),
+          ),
+        );
       case "CAPTURE":
-        return rejectUnexpectedConfirmation(parseProviderOperationResult(await this.dependencies.apps.capture(route!, prepared.request)));
+        return rejectUnexpectedConfirmation(
+          parseProviderOperationResult(
+            await this.dependencies.apps.capture(route!, prepared.request),
+          ),
+        );
       case "VOID":
-        return rejectUnexpectedConfirmation(parseProviderOperationResult(await this.dependencies.apps.void(route!, prepared.request)));
+        return rejectUnexpectedConfirmation(
+          parseProviderOperationResult(await this.dependencies.apps.void(route!, prepared.request)),
+        );
       case "REFUND":
-        return rejectUnexpectedConfirmation(parseProviderOperationResult(await this.dependencies.apps.refund(route!, prepared.request)));
+        return rejectUnexpectedConfirmation(
+          parseProviderOperationResult(
+            await this.dependencies.apps.refund(route!, prepared.request),
+          ),
+        );
       case "RECONCILE":
-        return parseProviderReconcileResult(await this.dependencies.apps.reconcile(route!, prepared.request));
+        return parseProviderReconcileResult(
+          await this.dependencies.apps.reconcile(route!, prepared.request),
+        );
       case "CONFIRM":
-        return parseProviderOperationResult(await this.dependencies.apps.confirmPayment(route!, prepared.request));
+        return parseProviderOperationResult(
+          await this.dependencies.apps.confirmPayment(route!, prepared.request),
+        );
       case "CREATE_PAYMENT":
         throw new Error("PAYMENT_CREATE_OPERATION_MUST_USE_SESSION_WORKFLOW");
     }
@@ -446,9 +479,8 @@ export class PaymentLifecycleService {
     if (params.event.type === "DISPUTE_CHANGED" && !account.capabilities.supportsDisputes) {
       throw new Error("PAYMENT_PROVIDER_DISPUTES_UNSUPPORTED");
     }
-    const providerOperation = params.event.type === "PAYMENT_RECONCILED"
-      ? "reconcile"
-      : "createPayment";
+    const providerOperation =
+      params.event.type === "PAYMENT_RECONCILED" ? "reconcile" : "createPayment";
     if (
       params.event.type === "PAYMENT_RECONCILED" &&
       !account.capabilities.supportsReconciliation
@@ -489,19 +521,18 @@ export class PaymentLifecycleService {
     const parsed = PaymentLifecycleActionSchemas.expire.parse(
       params,
     ) as Payments.ExpirePaymentParams;
-    return this.dependencies.repository.expireSession(
-      parsed,
-      new Date().toISOString(),
-    );
+    return this.dependencies.repository.expireSession(parsed, new Date().toISOString());
   }
 
-  failPendingOperation(input: Readonly<{
-    storeId: string;
-    paymentSessionId: string;
-    operationId: string;
-    expiresAt: string;
-    correlationId: string;
-  }>) {
+  failPendingOperation(
+    input: Readonly<{
+      storeId: string;
+      paymentSessionId: string;
+      operationId: string;
+      expiresAt: string;
+      correlationId: string;
+    }>,
+  ) {
     return this.dependencies.repository.failPendingOperation({
       ...input,
       effectiveAt: new Date().toISOString(),
@@ -512,11 +543,15 @@ export class PaymentLifecycleService {
 function providerOperationFor(
   type: "CANCEL" | "CAPTURE" | "VOID" | "REFUND" | "RECONCILE",
 ): Payments.PaymentProviderOperation {
-  return type === "CANCEL" ? "cancel"
-    : type === "CAPTURE" ? "capture"
-    : type === "VOID" ? "void"
-    : type === "REFUND" ? "refund"
-    : "reconcile";
+  return type === "CANCEL"
+    ? "cancel"
+    : type === "CAPTURE"
+      ? "capture"
+      : type === "VOID"
+        ? "void"
+        : type === "REFUND"
+          ? "refund"
+          : "reconcile";
 }
 
 function assertProviderCapability(
@@ -526,9 +561,10 @@ function assertProviderCapability(
   amount: Payments.PaymentCollectionSnapshot["targetAmount"] | null,
 ): void {
   if (type === "CAPTURE" && !account.capabilities.supportsPartialCapture && amount) {
-    const remainder = BigInt(session.authorizedAmount.amountMinor)
-      - BigInt(session.capturedAmount.amountMinor)
-      - BigInt(session.voidedAmount.amountMinor);
+    const remainder =
+      BigInt(session.authorizedAmount.amountMinor) -
+      BigInt(session.capturedAmount.amountMinor) -
+      BigInt(session.voidedAmount.amountMinor);
     if (BigInt(amount.amountMinor) !== remainder) {
       throw new Error("PAYMENT_PROVIDER_PARTIAL_CAPTURE_UNSUPPORTED");
     }
@@ -541,8 +577,8 @@ function assertProviderCapability(
     throw new Error("PAYMENT_PROVIDER_MULTIPLE_CAPTURES_UNSUPPORTED");
   }
   if (type === "REFUND" && !account.capabilities.supportsPartialRefund && amount) {
-    const remainder = BigInt(session.capturedAmount.amountMinor)
-      - BigInt(session.refundedAmount.amountMinor);
+    const remainder =
+      BigInt(session.capturedAmount.amountMinor) - BigInt(session.refundedAmount.amountMinor);
     if (BigInt(amount.amountMinor) !== remainder) {
       throw new Error("PAYMENT_PROVIDER_PARTIAL_REFUND_UNSUPPORTED");
     }

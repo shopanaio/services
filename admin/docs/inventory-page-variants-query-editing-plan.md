@@ -7,12 +7,15 @@
 В scope этого шага:
 
 - читать строки через `catalogQuery.variants`;
-- использовать cursor pagination из `VariantConnection` через общий FE API-backed Relay pagination слой;
+- использовать cursor pagination из `VariantConnection` через общий FE API-backed Relay pagination
+  слой;
 - показывать product context в плоской таблице, одна строка = один `Variant`;
 - сортировать через API `orderBy`, без локальной сортировки загруженной страницы;
 - всегда передавать `productId` первым sort key для product-first порядка;
-- редактировать `onHand` и `unavailable` через Bulk Edit Product API: `catalogMutation.productBulkUpdate`;
-- сохранить текущий inline editing UX: `readOnlyEdit`, pending edits store, floating save/discard panel, блокировку pagination/sort при unsaved changes.
+- редактировать `onHand` и `unavailable` через Bulk Edit Product API:
+  `catalogMutation.productBulkUpdate`;
+- сохранить текущий inline editing UX: `readOnlyEdit`, pending edits store, floating save/discard
+  panel, блокировку pagination/sort при unsaved changes.
 
 Out of scope:
 
@@ -20,7 +23,8 @@ Out of scope:
 - новая inventory-owned variants connection;
 - bulk inventory update mutation;
 - прямое сохранение через `inventoryMutation.inventoryItemUpdate`;
-- слежение за выполнением `ProductBulkUpdateJob`: polling, `productBulkUpdateJob`, `productBulkUpdateJobs`, job items/progress UI и обработка итоговых ошибок `BulkUpdateItem`;
+- слежение за выполнением `ProductBulkUpdateJob`: polling, `productBulkUpdateJob`,
+  `productBulkUpdateJobs`, job items/progress UI и обработка итоговых ошибок `BulkUpdateItem`;
 - `FilterWidget`, search UX и filter UX;
 - сортировка inventory-owned колонок через `catalogQuery.variants`.
 
@@ -75,13 +79,17 @@ enum VariantOrderField {
 }
 ```
 
-`sku`, `price`, `availableQuantity` и `totalAvailable` не являются `VariantOrderField`; это зафиксировано e2e тестом `inventory-api/variant-query.spec.ts`.
+`sku`, `price`, `availableQuantity` и `totalAvailable` не являются `VariantOrderField`; это
+зафиксировано e2e тестом `inventory-api/variant-query.spec.ts`.
 
-`VariantWhereInput` доступен на API уровне, но search/filter UI не входит в этот план. Для первого шага `where` используется только если странице нужен технический API-фильтр. `FilterWidget` не мапится.
+`VariantWhereInput` доступен на API уровне, но search/filter UI не входит в этот план. Для первого
+шага `where` используется только если странице нужен технический API-фильтр. `FilterWidget` не
+мапится.
 
 ## Query для страницы
 
-Inventory module должен объявить собственную operation в `admin/src/domains/inventory/inventory/graphql`, не расширяя product module fragments.
+Inventory module должен объявить собственную operation в
+`admin/src/domains/inventory/inventory/graphql`, не расширяя product module fragments.
 
 ```graphql
 query InventoryVariants(
@@ -168,7 +176,8 @@ Notes:
 
 ## Mutation для сохранения
 
-Inventory module должен объявить inventory-local operation document для сохранения, но сама mutation использует Catalog Admin API:
+Inventory module должен объявить inventory-local operation document для сохранения, но сама mutation
+использует Catalog Admin API:
 
 ```graphql
 mutation InventoryProductBulkUpdate($input: ProductBulkUpdateInput!) {
@@ -191,14 +200,19 @@ mutation InventoryProductBulkUpdate($input: ProductBulkUpdateInput!) {
 Contract:
 
 - use only `catalogMutation.productBulkUpdate` for saving inventory edits from this page;
-- every `productBulkUpdate` submit must include a fresh `X-Idempotency-Key` request header, because the Catalog Admin API requires it for async bulk updates;
-- generate the idempotency key in the inventory-local save hook per user submit attempt, pass it through Apollo mutation `context.headers`, and do not persist it as page/job state;
+- every `productBulkUpdate` submit must include a fresh `X-Idempotency-Key` request header, because
+  the Catalog Admin API requires it for async bulk updates;
+- generate the idempotency key in the inventory-local save hook per user submit attempt, pass it
+  through Apollo mutation `context.headers`, and do not persist it as page/job state;
 - do not call `inventoryMutation.inventoryItemUpdate` from the Inventory page save flow;
 - `ProductBulkUpdateInput.products[]` is grouped by product;
 - each changed row becomes one `VariantUpdateInput` under that product's `operations.variants[]`;
-- only variant inventory fields are sent: `variantId`, `inventory.warehouseId`, `inventory.onHand`, `inventory.unavailable`;
-- `productBulkUpdate` starts an async bulk job. In this plan, a returned `job.id` means the submit was accepted, not that all edits are already applied;
-- the frontend may show a submit-accepted notification with `job.id`, but must not store the job as page state, poll it, query job details, or render job progress/completion;
+- only variant inventory fields are sent: `variantId`, `inventory.warehouseId`, `inventory.onHand`,
+  `inventory.unavailable`;
+- `productBulkUpdate` starts an async bulk job. In this plan, a returned `job.id` means the submit
+  was accepted, not that all edits are already applied;
+- the frontend may show a submit-accepted notification with `job.id`, but must not store the job as
+  page state, poll it, query job details, or render job progress/completion;
 - if the mutation returns `userErrors` without a job, keep pending edits and surface the errors.
 
 ## Sorting contract
@@ -217,21 +231,21 @@ Rules:
 [
   { field: "productId", direction: "asc" },
   { field: "id", direction: "asc" },
-]
+];
 ```
 
 Supported table sort mapping in this step:
 
-| Table intent | API order field | Status |
-|---|---|---|
-| Product-first grouping | `productId` | Always first key |
-| Variant id fallback | `id` | Supported |
-| Default variant | `isDefault` | Supported |
-| Created date | `createdAt` | Supported |
-| Updated date | `updatedAt` | Supported |
-| External system/id | `externalSystem`, `externalId` | Supported if shown |
-| Variant title | none in current `VariantOrderField` | Do not expose as API sort |
-| SKU | none in current `VariantOrderField` | Do not expose as API sort |
+| Table intent                                 | API order field                     | Status                    |
+| -------------------------------------------- | ----------------------------------- | ------------------------- |
+| Product-first grouping                       | `productId`                         | Always first key          |
+| Variant id fallback                          | `id`                                | Supported                 |
+| Default variant                              | `isDefault`                         | Supported                 |
+| Created date                                 | `createdAt`                         | Supported                 |
+| Updated date                                 | `updatedAt`                         | Supported                 |
+| External system/id                           | `externalSystem`, `externalId`      | Supported if shown        |
+| Variant title                                | none in current `VariantOrderField` | Do not expose as API sort |
+| SKU                                          | none in current `VariantOrderField` | Do not expose as API sort |
 | On hand / unavailable / reserved / available | none in current `VariantOrderField` | Do not expose as API sort |
 
 Sort changes:
@@ -242,7 +256,8 @@ Sort changes:
 
 ## API-backed cursor pagination
 
-Inventory page must not implement bespoke cursor/page state. Relay cursor pagination must be handled by a shared FE abstraction reused by all table pages that integrate with Relay Connection APIs.
+Inventory page must not implement bespoke cursor/page state. Relay cursor pagination must be handled
+by a shared FE abstraction reused by all table pages that integrate with Relay Connection APIs.
 
 Use or introduce a shared API-backed pagination layer, for example:
 
@@ -253,7 +268,8 @@ admin/src/ui-kit/cursor-pagination/
   use-relay-cursor-pagination.ts # shared Relay cursor state/query variables
 ```
 
-Naming/location can follow the existing `ui-kit/cursor-pagination` structure, but the behavior must be generic and not inventory-specific.
+Naming/location can follow the existing `ui-kit/cursor-pagination` structure, but the behavior must
+be generic and not inventory-specific.
 
 Shared responsibilities:
 
@@ -264,23 +280,30 @@ Shared responsibilities:
 - clear the opposite cursor/direction variables on navigation;
 - reset to first page when sort, filter, search, or another caller-provided reset key changes;
 - reset to first page when page size changes;
-- derive `rangeStart` and `rangeEnd` from current page position, loaded rows count, `pageSize`, and `totalCount`;
+- derive `rangeStart` and `rangeEnd` from current page position, loaded rows count, `pageSize`, and
+  `totalCount`;
 - use `pageInfo.hasNextPage` and `pageInfo.hasPreviousPage` for navigation availability;
 - support disabling pagination while caller reports unsaved edits or saving state;
-- accept generic `ApiPageInfo`/Relay `PageInfo` shape and `totalCount`, not inventory-specific types.
+- accept generic `ApiPageInfo`/Relay `PageInfo` shape and `totalCount`, not inventory-specific
+  types.
 
 Inventory-specific wiring:
 
 - `InventoryPage` uses the shared Relay pagination hook/component.
-- `useInventoryVariants` receives pagination variables from the shared hook and passes them directly to `InventoryVariants`.
-- `useInventoryVariants` returns `pageInfo`, `totalCount`, and current page rows, but does not own cursor stack, page index, or range calculation.
+- `useInventoryVariants` receives pagination variables from the shared hook and passes them directly
+  to `InventoryVariants`.
+- `useInventoryVariants` returns `pageInfo`, `totalCount`, and current page rows, but does not own
+  cursor stack, page index, or range calculation.
 - Static pagination values must be removed.
-- Pagination must be API-backed: changing page or page size triggers `InventoryVariants` with new Relay variables; the grid row order and page contents always come from the API response.
+- Pagination must be API-backed: changing page or page size triggers `InventoryVariants` with new
+  Relay variables; the grid row order and page contents always come from the API response.
 - Pagination controls are disabled while there are unsaved edits.
 
 ## Row model
 
-Create a UI-local row type in the inventory module, for example `InventoryVariantRow`. This is allowed because AG Grid needs editor state and derived fields; it must not become a second API source of truth.
+Create a UI-local row type in the inventory module, for example `InventoryVariantRow`. This is
+allowed because AG Grid needs editor state and derived fields; it must not become a second API
+source of truth.
 
 ```ts
 interface InventoryVariantRow {
@@ -310,23 +333,23 @@ interface InventoryVariantRow {
 
 Mapping rules:
 
-| UI field | API source |
-|---|---|
-| `id`, `variantId` | `Variant.id` |
-| `productId` | `Variant.product.id` |
-| `productTitle` | `Variant.product.title` |
-| `productHandle` | `Variant.product.handle` |
-| `variantTitle` | `Variant.title` |
-| `variantHandle` | `Variant.handle` |
-| `imageUrl` | first `Variant.media` item by `sortIndex`, then `file.url` |
-| `sku` | `Variant.inventoryItem.sku` |
-| `inventoryItemId` | `Variant.inventoryItem.id` |
-| `warehouseStockId` | selected `InventoryItem.stock[].id` |
-| `warehouseId` | selected stock warehouse id or default warehouse id |
-| `onHand` | selected stock `quantityOnHand` |
-| `unavailable` | selected stock `unavailableQuantity` |
-| `reserved` | selected stock `reservedQuantity` |
-| `available` | selected stock `availableForSale`, then UI preview after edits |
+| UI field           | API source                                                     |
+| ------------------ | -------------------------------------------------------------- |
+| `id`, `variantId`  | `Variant.id`                                                   |
+| `productId`        | `Variant.product.id`                                           |
+| `productTitle`     | `Variant.product.title`                                        |
+| `productHandle`    | `Variant.product.handle`                                       |
+| `variantTitle`     | `Variant.title`                                                |
+| `variantHandle`    | `Variant.handle`                                               |
+| `imageUrl`         | first `Variant.media` item by `sortIndex`, then `file.url`     |
+| `sku`              | `Variant.inventoryItem.sku`                                    |
+| `inventoryItemId`  | `Variant.inventoryItem.id`                                     |
+| `warehouseStockId` | selected `InventoryItem.stock[].id`                            |
+| `warehouseId`      | selected stock warehouse id or default warehouse id            |
+| `onHand`           | selected stock `quantityOnHand`                                |
+| `unavailable`      | selected stock `unavailableQuantity`                           |
+| `reserved`         | selected stock `reservedQuantity`                              |
+| `available`        | selected stock `availableForSale`, then UI preview after edits |
 
 ## Default warehouse
 
@@ -334,9 +357,11 @@ The first implementation edits one warehouse: the default warehouse.
 
 Rules:
 
-- `useInventoryVariants` loads default warehouse with an inventory-local operation equivalent to `INVENTORY_DEFAULT_WAREHOUSE_QUERY`.
+- `useInventoryVariants` loads default warehouse with an inventory-local operation equivalent to
+  `INVENTORY_DEFAULT_WAREHOUSE_QUERY`.
 - Row mapping selects `inventoryItem.stock.find(stock.warehouseId === defaultWarehouse.id)`.
-- If stock for the default warehouse is absent, show zero values and keep `warehouseId = defaultWarehouse.id`.
+- If stock for the default warehouse is absent, show zero values and keep
+  `warehouseId = defaultWarehouse.id`.
 - If default warehouse is absent, render table read-only and disable save.
 
 `useInventoryVariants` return shape:
@@ -372,21 +397,29 @@ Read-only fields:
 Flow:
 
 1. User edits `onHand` or `unavailable`.
-2. `handleCellEditRequest` parses integer input and keeps the existing FE `validateFieldChange` behavior.
+2. `handleCellEditRequest` parses integer input and keeps the existing FE `validateFieldChange`
+   behavior.
 3. UI stores pending change in `useInventoryEditStore`.
 4. `displayData` merges API rows with pending edits.
 5. `available` preview recalculates as `onHand - unavailable - reserved`.
 6. Floating save/discard panel appears.
 7. Save maps pending row edits to one `ProductBulkUpdateInput`, grouped by product.
-8. Inventory-local save hook generates a fresh idempotency key and calls `catalogMutation.productBulkUpdate` with `X-Idempotency-Key`.
-9. If the mutation returns `userErrors` and no job, pending edits stay in the store and the UI shows the errors.
-10. If the mutation returns a job, clear pending edits and refetch variants opportunistically. Do not wait for job completion.
+8. Inventory-local save hook generates a fresh idempotency key and calls
+   `catalogMutation.productBulkUpdate` with `X-Idempotency-Key`.
+9. If the mutation returns `userErrors` and no job, pending edits stay in the store and the UI shows
+   the errors.
+10. If the mutation returns a job, clear pending edits and refetch variants opportunistically. Do
+    not wait for job completion.
 
-FE keeps the current `validateFieldChange` consistency guard for inline edits: edits that make `onHand`, `unavailable`, or calculated `available` invalid are rejected before entering the pending edit store. Backend remains the final authority during save and may return additional `userErrors`.
+FE keeps the current `validateFieldChange` consistency guard for inline edits: edits that make
+`onHand`, `unavailable`, or calculated `available` invalid are rejected before entering the pending
+edit store. Backend remains the final authority during save and may return additional `userErrors`.
 
 ## Edit store migration
 
-`useInventoryEditStore` must be extended before wiring the real save flow. The current store only tracks `edits` and `status`; API-backed bulk submit needs request/row error state for validation and submit-start failures, but must not model job progress or final job item state.
+`useInventoryEditStore` must be extended before wiring the real save flow. The current store only
+tracks `edits` and `status`; API-backed bulk submit needs request/row error state for validation and
+submit-start failures, but must not model job progress or final job item state.
 
 Add store state:
 
@@ -408,20 +441,24 @@ interface InventoryEditStore {
 Add or equivalent store actions:
 
 - `setRowErrors(rowId, errors)` stores mapper/local validation errors for one row;
-- `setSubmitErrors(errors)` stores mutation `userErrors` or runtime submit errors that are not safely attributable to a row;
+- `setSubmitErrors(errors)` stores mutation `userErrors` or runtime submit errors that are not
+  safely attributable to a row;
 - `clearRowErrors(rowId)` clears errors when the row is edited again or discarded;
 - `clearSubmitErrors()` clears request-level submit errors;
 - `finishSaving()` sets `status` back to `"idle"` without clearing all edits;
-- `onSubmitAccepted()` clears all edits and all stored errors after `productBulkUpdate` returns a job.
+- `onSubmitAccepted()` clears all edits and all stored errors after `productBulkUpdate` returns a
+  job.
 
 Rules:
 
-- `setFieldValue` clears `rowErrors[itemId]` and request-level submit errors when the user changes a row after a failed submit;
+- `setFieldValue` clears `rowErrors[itemId]` and request-level submit errors when the user changes a
+  row after a failed submit;
 - `discardItem` clears both `edits[itemId]` and `rowErrors[itemId]`;
 - `discardAll` clears all edits, row errors, submit errors, and resets status;
 - failed submit-start must not call `onSubmitAccepted()`;
 - a returned job must call `onSubmitAccepted()`, because job completion tracking is out of scope;
-- the floating panel may show aggregated error text, but stored row/request errors remain the source of truth for failed submit-start state.
+- the floating panel may show aggregated error text, but stored row/request errors remain the source
+  of truth for failed submit-start state.
 
 ## Save mapping
 
@@ -440,7 +477,7 @@ Input:
 Output:
 
 ```ts
-ApiProductBulkUpdateInput
+ApiProductBulkUpdateInput;
 ```
 
 Mutation input:
@@ -474,21 +511,29 @@ Rules:
 - create one `ProductBulkUpdateItem` per product;
 - create one `VariantUpdateInput` per changed row under `operations.variants`;
 - send only `variantId`, `inventory.warehouseId`, `inventory.onHand`, and `inventory.unavailable`;
-- do not send SKU, cost, weight, dimensions, media, options, product content, product status, `reserved`, or `available`;
+- do not send SKU, cost, weight, dimensions, media, options, product content, product status,
+  `reserved`, or `available`;
 - do not send `expectedRevision` unless `InventoryVariants` is expanded to fetch `Product.revision`;
-- enforce Product Bulk Update API limits before submit: max 100 products and max 500 operations total;
-- if pending edits exceed API limits, keep edits and show a validation error instead of creating multiple jobs in this plan;
-- skip rows without `inventoryItemId` and report them as unsavable, although the UI should normally prevent edits for these read-only rows;
-- do not reuse product variant inventory mapper if it carries product-editor behavior or UI stock consistency validation.
+- enforce Product Bulk Update API limits before submit: max 100 products and max 500 operations
+  total;
+- if pending edits exceed API limits, keep edits and show a validation error instead of creating
+  multiple jobs in this plan;
+- skip rows without `inventoryItemId` and report them as unsavable, although the UI should normally
+  prevent edits for these read-only rows;
+- do not reuse product variant inventory mapper if it carries product-editor behavior or UI stock
+  consistency validation.
 
 Submit behavior:
 
 - save hook returns submit-accepted state: `{ jobId, status }` plus mutation `userErrors`;
-- save hook generates a fresh idempotency key for each submit attempt and passes it as the `X-Idempotency-Key` header via Apollo mutation context;
+- save hook generates a fresh idempotency key for each submit attempt and passes it as the
+  `X-Idempotency-Key` header via Apollo mutation context;
 - retrying after a submit-start failure is a new submit attempt and gets a new idempotency key;
-- no row is considered successfully applied until the async job runs, and this page does not track that state;
+- no row is considered successfully applied until the async job runs, and this page does not track
+  that state;
 - submit-start failure keeps all edits and stores returned errors;
-- submit accepted clears all edits and refetches the active `InventoryVariants` query opportunistically;
+- submit accepted clears all edits and refetches the active `InventoryVariants` query
+  opportunistically;
 - do not query `productBulkUpdateJob`, `productBulkUpdateJobs`, or `BulkUpdateItem` from this page.
 
 ## Module changes
@@ -520,18 +565,25 @@ admin/src/domains/inventory/inventory/
 
 Implementation steps:
 
-1. Add inventory-local GraphQL fragments, `InventoryVariants`, default warehouse query, and `InventoryProductBulkUpdate` mutation document that calls `catalogMutation.productBulkUpdate`.
+1. Add inventory-local GraphQL fragments, `InventoryVariants`, default warehouse query, and
+   `InventoryProductBulkUpdate` mutation document that calls `catalogMutation.productBulkUpdate`.
 2. Add operation response/variable types based on Admin API types used by the frontend.
 3. Add or reuse shared API-backed Relay cursor pagination hook/component for table pages.
-4. Add `useInventoryVariants` with variants query, default warehouse query, explicit `orderBy`, shared Relay pagination variables, loading/error handling, and row mapping. Do not put inventory-local cursor stack/range logic into this hook.
+4. Add `useInventoryVariants` with variants query, default warehouse query, explicit `orderBy`,
+   shared Relay pagination variables, loading/error handling, and row mapping. Do not put
+   inventory-local cursor stack/range logic into this hook.
 5. Add row mapper from `VariantEdge` to `InventoryVariantRow`.
-6. Add sort mapper from AG Grid sort state to `VariantOrderByInput[]`, always prepending `{ field: "productId", direction: "asc" }`.
+6. Add sort mapper from AG Grid sort state to `VariantOrderByInput[]`, always prepending
+   `{ field: "productId", direction: "asc" }`.
 7. Add edit mapper to `ApiProductBulkUpdateInput`.
-8. Migrate `useInventoryEditStore` to track submit-start errors and clear edits only when `productBulkUpdate` returns a job.
-9. Add inventory-local save hook for `productBulkUpdate` submit, including per-submit `X-Idempotency-Key`, without job polling or job item tracking.
+8. Migrate `useInventoryEditStore` to track submit-start errors and clear edits only when
+   `productBulkUpdate` returns a job.
+9. Add inventory-local save hook for `productBulkUpdate` submit, including per-submit
+   `X-Idempotency-Key`, without job polling or job item tracking.
 10. Replace mock-backed `useInventory` usage in the page with `useInventoryVariants`.
 11. Replace `IInventoryListItem` typing in inventory table components with `InventoryVariantRow`.
-12. Replace static pagination with the shared Relay cursor pagination layer wired to `pageInfo`/`totalCount`.
+12. Replace static pagination with the shared Relay cursor pagination layer wired to
+    `pageInfo`/`totalCount`.
 13. Disable sort UI on columns that do not map to `VariantOrderField`.
 14. Remove imports from `@/mocks/inventory/inventory-list` from inventory page flow.
 
@@ -557,7 +609,8 @@ Implementation steps:
 - `InventoryVariants` passes `orderBy` on every request.
 - `orderBy[0]` is always `{ field: "productId", direction: "asc" }`.
 - AG Grid does not sort locally.
-- Cursor pagination is driven by the shared API-backed Relay pagination hook/component, not inventory-local state.
+- Cursor pagination is driven by the shared API-backed Relay pagination hook/component, not
+  inventory-local state.
 - Next page sends `{ first: pageSize, after: pageInfo.endCursor }`.
 - Previous page sends `{ last: pageSize, before: pageInfo.startCursor }`.
 - Page size changes reset to first page.
@@ -568,12 +621,15 @@ Implementation steps:
 - Save calls `catalogMutation.productBulkUpdate`, not `inventoryMutation.inventoryItemUpdate`.
 - Save sends `X-Idempotency-Key` on every `productBulkUpdate` submit.
 - Save sends one `ProductBulkUpdateInput` grouped by product.
-- Save sends only `products[].operations.variants[].variantId` and `inventory.{warehouseId,onHand,unavailable}` for edited rows.
-- Save does not send SKU, cost, weight, dimensions, media, options, product-level fields, `reserved`, or `available`.
+- Save sends only `products[].operations.variants[].variantId` and
+  `inventory.{warehouseId,onHand,unavailable}` for edited rows.
+- Save does not send SKU, cost, weight, dimensions, media, options, product-level fields,
+  `reserved`, or `available`.
 - Save enforces max 100 products and 500 operations before submit.
 - Submit-start errors keep edits and are shown from store state.
 - Returned job clears all edits and all stored submit errors.
-- Inventory page does not query or poll `productBulkUpdateJob`, `productBulkUpdateJobs`, `BulkUpdateItem`, or progress.
+- Inventory page does not query or poll `productBulkUpdateJob`, `productBulkUpdateJobs`,
+  `BulkUpdateItem`, or progress.
 - Editing or discarding a failed-submit row clears that row's stored errors.
 - Run project-approved build only if code is implemented.
 - Do not run `test` or `tsc` directly.

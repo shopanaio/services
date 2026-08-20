@@ -14,9 +14,7 @@ registerModule({
     {
       key: "profile",
       path: "/profile",
-      component: dynamic(
-        () => import("@/domains/profile/page/profile-page")
-      ),
+      component: dynamic(() => import("@/domains/profile/page/profile-page")),
     },
   ],
 });

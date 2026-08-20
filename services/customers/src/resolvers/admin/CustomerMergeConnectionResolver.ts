@@ -6,9 +6,7 @@ import {
 
 export class CustomerMergeConnectionResolver extends BaseConnectionResolver<CustomerMergeRelayInput> {
   $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel.repository.lifecycle.getMergeConnection(
-      this.$props
-    );
+    return this.$ctx.kernel.repository.lifecycle.getMergeConnection(this.$props);
   }
 
   protected createNodeResolver(nodeId: string) {

@@ -21,21 +21,17 @@ import {
 export const customer = customersSchema.table(
   "customer",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     iamPrincipalId: text("iam_principal_id"),
     iamPrincipalStatus: varchar("iam_principal_status", { length: 16 }).$type<
       "active" | "blocked"
     >(),
-    iamLifecycleDisabled: boolean("iam_lifecycle_disabled")
-      .notNull()
-      .default(false),
-    lifecycleStatus: customerLifecycleStatusEnum("lifecycle_status")
-      .notNull()
-      .default("ACTIVE"),
-    accountStatus: customerAccountStatusEnum("account_status")
-      .notNull()
-      .default("GUEST"),
+    iamLifecycleDisabled: boolean("iam_lifecycle_disabled").notNull().default(false),
+    lifecycleStatus: customerLifecycleStatusEnum("lifecycle_status").notNull().default("ACTIVE"),
+    accountStatus: customerAccountStatusEnum("account_status").notNull().default("GUEST"),
     email: varchar("email", { length: 320 }),
     normalizedEmail: varchar("normalized_email", { length: 320 }),
     emailDomainNormalized: varchar("email_domain_normalized", { length: 255 }),
@@ -67,7 +63,7 @@ export const customer = customersSchema.table(
     }),
     mergedIntoCustomerId: uuid("merged_into_customer_id").references(
       (): AnyPgColumn => customer.id,
-      { onDelete: "restrict" }
+      { onDelete: "restrict" },
     ),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
@@ -86,82 +82,77 @@ export const customer = customersSchema.table(
       "customer_iam_principal_status_check",
       sql`(${table.iamPrincipalId} IS NULL AND ${table.iamPrincipalStatus} IS NULL)
         OR (${table.iamPrincipalId} IS NOT NULL
-          AND ${table.iamPrincipalStatus} IN ('active', 'blocked'))`
+          AND ${table.iamPrincipalStatus} IN ('active', 'blocked'))`,
     ),
     check(
       "customer_iam_lifecycle_disabled_check",
       sql`NOT ${table.iamLifecycleDisabled}
         OR (${table.iamPrincipalId} IS NOT NULL
           AND ${table.iamPrincipalStatus} = 'blocked'
-          AND ${table.lifecycleStatus} = 'DISABLED')`
+          AND ${table.lifecycleStatus} = 'DISABLED')`,
     ),
     check(
       "customer_email_projection_check",
       sql`(${table.email} IS NULL) = (${table.normalizedEmail} IS NULL)
-        AND (${table.email} IS NULL) = (${table.emailDomainNormalized} IS NULL)`
+        AND (${table.email} IS NULL) = (${table.emailDomainNormalized} IS NULL)`,
     ),
     check(
       "customer_birthday_month_day_check",
       sql`(${table.dateOfBirth} IS NULL AND ${table.birthdayMonthDay} IS NULL)
-        OR (${table.dateOfBirth} IS NOT NULL AND ${table.birthdayMonthDay} ~ '^(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$')`
+        OR (${table.dateOfBirth} IS NOT NULL AND ${table.birthdayMonthDay} ~ '^(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$')`,
     ),
     check(
       "customer_email_verified_check",
-      sql`NOT ${table.emailVerified} OR ${table.email} IS NOT NULL`
+      sql`NOT ${table.emailVerified} OR ${table.email} IS NOT NULL`,
     ),
     check(
       "customer_phone_verified_check",
-      sql`NOT ${table.phoneVerified} OR ${table.phoneE164} IS NOT NULL`
+      sql`NOT ${table.phoneVerified} OR ${table.phoneE164} IS NOT NULL`,
     ),
     check(
       "customer_phone_e164_check",
-      sql`${table.phoneE164} IS NULL OR ${table.phoneE164} ~ '^\\+[1-9][0-9]{6,14}$'`
+      sql`${table.phoneE164} IS NULL OR ${table.phoneE164} ~ '^\\+[1-9][0-9]{6,14}$'`,
     ),
-    check(
-      "customer_revision_nonnegative_check",
-      sql`${table.revision} >= 1`
-    ),
+    check("customer_revision_nonnegative_check", sql`${table.revision} >= 1`),
     check(
       "customer_blocked_reason_check",
       sql`(${table.lifecycleStatus} <> 'BLOCKED' AND ${table.blockedReason} IS NULL)
         OR (${table.lifecycleStatus} = 'BLOCKED'
           AND ${table.blockedReason} IS NOT NULL
-          AND length(btrim(${table.blockedReason})) > 0)`
+          AND length(btrim(${table.blockedReason})) > 0)`,
     ),
     check(
       "customer_moderation_note_check",
-      sql`${table.moderationNote} IS NULL OR length(btrim(${table.moderationNote})) > 0`
+      sql`${table.moderationNote} IS NULL OR length(btrim(${table.moderationNote})) > 0`,
     ),
     check(
       "customer_merge_target_check",
       sql`(${table.lifecycleStatus} = 'MERGED' AND ${table.mergedIntoCustomerId} IS NOT NULL)
-        OR (${table.lifecycleStatus} <> 'MERGED' AND ${table.mergedIntoCustomerId} IS NULL)`
+        OR (${table.lifecycleStatus} <> 'MERGED' AND ${table.mergedIntoCustomerId} IS NULL)`,
     ),
     check(
       "customer_not_merged_into_self_check",
-      sql`${table.mergedIntoCustomerId} IS NULL OR ${table.mergedIntoCustomerId} <> ${table.id}`
+      sql`${table.mergedIntoCustomerId} IS NULL OR ${table.mergedIntoCustomerId} <> ${table.id}`,
     ),
     check(
       "customer_redaction_timestamp_check",
       sql`(${table.lifecycleStatus} = 'REDACTED' AND ${table.redactedAt} IS NOT NULL)
-        OR (${table.lifecycleStatus} <> 'REDACTED' AND ${table.redactedAt} IS NULL)`
+        OR (${table.lifecycleStatus} <> 'REDACTED' AND ${table.redactedAt} IS NULL)`,
     ),
     check(
       "customer_deleted_at_check",
-      sql`${table.deletedAt} IS NULL OR ${table.deletedAt} >= ${table.createdAt}`
+      sql`${table.deletedAt} IS NULL OR ${table.deletedAt} >= ${table.createdAt}`,
     ),
     check(
       "customer_redacted_at_check",
-      sql`${table.redactedAt} IS NULL OR ${table.redactedAt} >= ${table.createdAt}`
+      sql`${table.redactedAt} IS NULL OR ${table.redactedAt} >= ${table.createdAt}`,
     ),
     uniqueIndex("customer_store_principal_unique")
       .on(table.storeId, table.iamPrincipalId)
       .where(sql`${table.iamPrincipalId} IS NOT NULL`),
     uniqueIndex("customer_store_email_unique")
       .on(table.storeId, table.normalizedEmail)
-      .where(
-        sql`${table.normalizedEmail} IS NOT NULL AND ${table.deletedAt} IS NULL`
-      ),
+      .where(sql`${table.normalizedEmail} IS NOT NULL AND ${table.deletedAt} IS NULL`),
     uniqueIndex("customer_store_id_unique").on(table.storeId, table.id),
     index("customer_store_root_scan_idx")
       .on(table.storeId, table.id)
@@ -200,7 +191,7 @@ export const customer = customersSchema.table(
       table.storeId,
       table.lifecycleStatus,
       table.createdAt.desc(),
-      table.id
+      table.id,
     ),
     index("customer_store_lifecycle_status_idx")
       .on(table.storeId, table.lifecycleStatus, table.id)
@@ -209,12 +200,7 @@ export const customer = customersSchema.table(
       .on(table.storeId, table.accountStatus, table.id)
       .where(sql`${table.deletedAt} IS NULL`),
     index("customer_store_name_idx")
-      .on(
-        table.storeId,
-        sql`lower(${table.lastName})`,
-        sql`lower(${table.firstName})`,
-        table.id
-      )
+      .on(table.storeId, sql`lower(${table.lastName})`, sql`lower(${table.firstName})`, table.id)
       .where(sql`${table.deletedAt} IS NULL`),
     index("customer_store_phone_idx")
       .on(table.storeId, table.phoneE164)
@@ -225,7 +211,7 @@ export const customer = customersSchema.table(
     index("customer_merge_target_idx")
       .on(table.mergedIntoCustomerId)
       .where(sql`${table.mergedIntoCustomerId} IS NOT NULL`),
-  ]
+  ],
 );
 
 export type Customer = typeof customer.$inferSelect;

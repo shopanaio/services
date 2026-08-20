@@ -2,39 +2,39 @@
  * Filter type definitions
  */
 export enum FilterType {
-  String = 'String',
-  Number = 'Number',
-  Date = 'Date',
-  DateRange = 'DateRange',
-  Boolean = 'Boolean',
-  Enum = 'Enum',
-  Relation = 'Relation',
-  Price = 'Price',
-  Weight = 'Weight',
-  Integer = 'Integer',
-  Translatable = 'Translatable',
-  Locale = 'Locale',
+  String = "String",
+  Number = "Number",
+  Date = "Date",
+  DateRange = "DateRange",
+  Boolean = "Boolean",
+  Enum = "Enum",
+  Relation = "Relation",
+  Price = "Price",
+  Weight = "Weight",
+  Integer = "Integer",
+  Translatable = "Translatable",
+  Locale = "Locale",
 }
 
 /**
  * Filter operator definitions
  */
 export enum FilterOperator {
-  Eq = 'Eq',
-  NotEq = 'NotEq',
-  Gt = 'Gt',
-  Gte = 'Gte',
-  Lt = 'Lt',
-  Lte = 'Lte',
-  In = 'In',
-  NotIn = 'NotIn',
-  Like = 'Like',
-  NotLike = 'NotLike',
-  ILike = 'ILike',
-  NotILike = 'NotILike',
-  Is = 'Is',
-  IsNot = 'IsNot',
-  Between = 'Between',
+  Eq = "Eq",
+  NotEq = "NotEq",
+  Gt = "Gt",
+  Gte = "Gte",
+  Lt = "Lt",
+  Lte = "Lte",
+  In = "In",
+  NotIn = "NotIn",
+  Like = "Like",
+  NotLike = "NotLike",
+  ILike = "ILike",
+  NotILike = "NotILike",
+  Is = "Is",
+  IsNot = "IsNot",
+  Between = "Between",
 }
 
 /**
@@ -127,7 +127,7 @@ export interface IFilterAdapter<TOutput = unknown> {
    * @param filters - Array of converted filters
    * @param logic - Logical operator to combine with
    */
-  combine(filters: TOutput[], logic: 'AND' | 'OR'): TOutput;
+  combine(filters: TOutput[], logic: "AND" | "OR"): TOutput;
 
   /**
    * Build final payload from combined filters
@@ -183,8 +183,8 @@ export interface IRelationControlProps {
   onChange: (value: unknown) => void;
   isMultiple: boolean;
   entity: string;
-  status?: 'error';
-  variant?: 'outlined' | 'borderless' | 'filled';
+  status?: "error";
+  variant?: "outlined" | "borderless" | "filled";
 }
 
 /**

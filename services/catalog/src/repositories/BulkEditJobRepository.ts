@@ -6,15 +6,11 @@ import {
   type PageInfo,
 } from "@shopana/drizzle-query";
 import { BaseRepository } from "./BaseRepository.js";
-import {
-  bulkEditJob,
-  type BulkEditJob,
-  type NewBulkEditJob,
-} from "./models/bulkEditJobs";
+import { bulkEditJob, type BulkEditJob, type NewBulkEditJob } from "./models/bulkEditJobs";
 
 export const bulkEditJobRelayQuery = createRelayQuery(
   createQuery(bulkEditJob).include(["id"]).maxLimit(100).defaultLimit(20),
-  { name: "productBulkUpdateJob", tieBreaker: "id" }
+  { name: "productBulkUpdateJob", tieBreaker: "id" },
 );
 
 export type BulkEditJobRelayInput = InferRelayInput<typeof bulkEditJobRelayQuery>;
@@ -49,26 +45,19 @@ export class BulkEditJobRepository extends BaseRepository {
     const [job] = await this.connection
       .select()
       .from(bulkEditJob)
-      .where(
-        and(eq(bulkEditJob.storeId, this.storeId), eq(bulkEditJob.id, id))
-      );
+      .where(and(eq(bulkEditJob.storeId, this.storeId), eq(bulkEditJob.id, id)));
 
     return job ?? null;
   }
 
-  async getConnection(
-    input: BulkEditJobConnectionInput
-  ): Promise<BulkEditJobConnectionResult> {
+  async getConnection(input: BulkEditJobConnectionInput): Promise<BulkEditJobConnectionResult> {
     const statusFilter: NonNullable<BulkEditJobConnectionInput["statusFilter"]> =
       input.statusFilter && input.statusFilter.length > 0
         ? input.statusFilter
         : ["QUEUED", "RUNNING"];
 
     const where: BulkEditJobRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        { status: { _in: statusFilter } },
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, { status: { _in: statusFilter } }],
     };
 
     const executeInput: BulkEditJobRelayInput = {
@@ -102,12 +91,7 @@ export class BulkEditJobRepository extends BaseRepository {
     return this.connection
       .select()
       .from(bulkEditJob)
-      .where(
-        and(
-          eq(bulkEditJob.storeId, this.storeId),
-          inArray(bulkEditJob.id, [...jobIds])
-        )
-      );
+      .where(and(eq(bulkEditJob.storeId, this.storeId), inArray(bulkEditJob.id, [...jobIds])));
   }
 
   /**
@@ -125,8 +109,8 @@ export class BulkEditJobRepository extends BaseRepository {
         and(
           eq(bulkEditJob.storeId, this.storeId),
           eq(bulkEditJob.id, jobId),
-          eq(bulkEditJob.status, "QUEUED")
-        )
+          eq(bulkEditJob.status, "QUEUED"),
+        ),
       )
       .returning({ id: bulkEditJob.id });
 
@@ -141,8 +125,8 @@ export class BulkEditJobRepository extends BaseRepository {
         and(
           eq(bulkEditJob.storeId, this.storeId),
           eq(bulkEditJob.id, jobId),
-          inArray(bulkEditJob.status, ["QUEUED", "RUNNING"])
-        )
+          inArray(bulkEditJob.status, ["QUEUED", "RUNNING"]),
+        ),
       )
       .returning({ id: bulkEditJob.id });
 
@@ -156,9 +140,7 @@ export class BulkEditJobRepository extends BaseRepository {
         status,
         finishedAt: sql`NOW()`,
       })
-      .where(
-        and(eq(bulkEditJob.storeId, this.storeId), eq(bulkEditJob.id, jobId))
-      );
+      .where(and(eq(bulkEditJob.storeId, this.storeId), eq(bulkEditJob.id, jobId)));
   }
 }
 

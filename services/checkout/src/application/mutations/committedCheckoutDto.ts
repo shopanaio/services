@@ -26,19 +26,20 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
   const quote = result.finalPricing.data;
   const delivery = result.delivery.data;
   const totals = quote.totals;
-  const loyalty = result.loyalty.status === "SUCCESS" && result.loyalty.data.status === "QUOTED"
-    ? result.loyalty.data.quote
-    : null;
-  const loyaltyReward = result.loyalty.status === "SUCCESS"
-    ? result.loyalty.data.rewardQuote
-    : null;
+  const loyalty =
+    result.loyalty.status === "SUCCESS" && result.loyalty.data.status === "QUOTED"
+      ? result.loyalty.data.quote
+      : null;
+  const loyaltyReward =
+    result.loyalty.status === "SUCCESS" ? result.loyalty.data.rewardQuote : null;
   const payableAmount = loyalty?.payableAfterLoyalty ?? totals.payableTotal;
   const lineToDto = (line: CheckoutQuotedLine, parentLineId: string | null): CheckoutLineDto => {
-    const sourceLineId = preliminary.sourceLineResolutions.find(
-      (resolution) =>
-        resolution.status === "TRANSFORMED" &&
-        resolution.transformedLineIds.includes(line.lineId),
-    )?.sourceLineId ?? line.lineId;
+    const sourceLineId =
+      preliminary.sourceLineResolutions.find(
+        (resolution) =>
+          resolution.status === "TRANSFORMED" &&
+          resolution.transformedLineIds.includes(line.lineId),
+      )?.sourceLineId ?? line.lineId;
     const discountMinor = line.discountAllocations.reduce(
       (sum, allocation) => sum + BigInt(allocation.amount.amountMinor),
       0n,
@@ -84,7 +85,8 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
       totalDiscountAmount: money({
         amountMinor: (
           BigInt(totals.merchandiseDiscountTotal.amountMinor) +
-          BigInt(totals.deliveryDiscountTotal.amountMinor) + BigInt(loyalty?.discount.amountMinor ?? "0")
+          BigInt(totals.deliveryDiscountTotal.amountMinor) +
+          BigInt(loyalty?.discount.amountMinor ?? "0")
         ).toString(),
         currencyCode: totals.payableTotal.currencyCode,
       }),
@@ -94,9 +96,7 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
     },
     customerIdentity: {
       countryCode: draft.buyerIdentity?.countryCode ?? null,
-      customer: draft.buyerIdentity?.customerId
-        ? { id: draft.buyerIdentity.customerId }
-        : null,
+      customer: draft.buyerIdentity?.customerId ? { id: draft.buyerIdentity.customerId } : null,
       email: draft.buyerIdentity?.email ?? null,
       phone: draft.buyerIdentity?.phone ?? null,
       firstName: draft.buyerIdentity?.firstName ?? null,
@@ -120,21 +120,20 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
           data: option.publicData,
         },
       }));
-      const selectedHandle = group.selection.status === "SELECTED"
-        ? group.selection.optionHandle
-        : null;
-      const selected = selectedHandle === null
-        ? null
-        : group.options.find(({ handle }) => handle === selectedHandle);
+      const selectedHandle =
+        group.selection.status === "SELECTED" ? group.selection.optionHandle : null;
+      const selected =
+        selectedHandle === null
+          ? null
+          : group.options.find(({ handle }) => handle === selectedHandle);
       if (group.selection.status === "SELECTED" && !selected) {
         throw new Error("Committed delivery selection does not match an available option");
       }
       return {
         id: group.groupId,
-        checkoutLines: selectGroupedLines(
-          quote.lines,
-          new Set(group.lineIds),
-        ).map((line) => lineToDto(line, null)),
+        checkoutLines: selectGroupedLines(quote.lines, new Set(group.lineIds)).map((line) =>
+          lineToDto(line, null),
+        ),
         deliveryAddress: destination
           ? {
               id: destination.destinationId,
@@ -153,7 +152,7 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
           : null,
         deliveryMethods: methods,
         selectedDeliveryMethod: selected
-          ? methods[group.options.indexOf(selected)] ?? null
+          ? (methods[group.options.indexOf(selected)] ?? null)
           : null,
         shippingCost: selected
           ? {
@@ -165,14 +164,16 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
     }),
     appliedPromoCodes: quote.appliedDiscounts.flatMap((discount) =>
       discount.code
-        ? [{
-            code: discount.code.inputCode,
-            appliedAt: checkout.updatedAt,
-            discountType: discount.discountClass,
-            value: money(discount.amount),
-            provider: discount.source.kind,
-            conditions: discount.metadata,
-          }]
+        ? [
+            {
+              code: discount.code.inputCode,
+              appliedAt: checkout.updatedAt,
+              discountType: discount.discountClass,
+              value: money(discount.amount),
+              provider: discount.source.kind,
+              conditions: discount.metadata,
+            },
+          ]
         : [],
     ),
     createdBy: null,
@@ -181,23 +182,27 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
     expiresAt: checkout.lifecycle.expiresAt,
     metadata: {
       resultRevision: result.resultRevision,
-      loyaltyRedemption: loyalty ? {
-        quoteId: loyalty.quoteId,
-        quoteRevision: loyalty.revision,
-        accountId: loyalty.accountId,
-        programId: loyalty.program.programId,
-        programVersionId: loyalty.program.programVersionId,
-        points: loyalty.redeemablePoints,
-        discount: loyalty.discount,
-      } : null,
-      loyaltyRewardEntitlement: loyaltyReward ? {
-        entitlementId: loyaltyReward.entitlementId,
-        rewardDefinitionId: loyaltyReward.rewardDefinitionId,
-        rewardType: loyaltyReward.rewardType,
-        pricingDiscountId: loyaltyReward.pricingDiscountId,
-        externalReference: loyaltyReward.externalReference,
-        configuration: loyaltyReward.configuration,
-      } : null,
+      loyaltyRedemption: loyalty
+        ? {
+            quoteId: loyalty.quoteId,
+            quoteRevision: loyalty.revision,
+            accountId: loyalty.accountId,
+            programId: loyalty.program.programId,
+            programVersionId: loyalty.program.programVersionId,
+            points: loyalty.redeemablePoints,
+            discount: loyalty.discount,
+          }
+        : null,
+      loyaltyRewardEntitlement: loyaltyReward
+        ? {
+            entitlementId: loyaltyReward.entitlementId,
+            rewardDefinitionId: loyaltyReward.rewardDefinitionId,
+            rewardType: loyaltyReward.rewardType,
+            pricingDiscountId: loyaltyReward.pricingDiscountId,
+            externalReference: loyaltyReward.externalReference,
+            configuration: loyaltyReward.configuration,
+          }
+        : null,
     },
     deletedAt: null,
   };
@@ -216,16 +221,11 @@ function selectGroupedLines(
   selectedIds: ReadonlySet<string>,
 ): CheckoutQuotedLine[] {
   return lines.flatMap((line) =>
-    selectedIds.has(line.lineId)
-      ? [line]
-      : selectGroupedLines(line.children, selectedIds),
+    selectedIds.has(line.lineId) ? [line] : selectGroupedLines(line.children, selectedIds),
   );
 }
 
-function componentItemId(
-  draft: CheckoutCommittedSnapshot["draft"],
-  lineId: string,
-): string | null {
+function componentItemId(draft: CheckoutCommittedSnapshot["draft"], lineId: string): string | null {
   const line = flattenIntent(draft.cartIntent.lines).find((item) => item.lineId === lineId);
   return line?.componentSelection?.componentItemId ?? null;
 }

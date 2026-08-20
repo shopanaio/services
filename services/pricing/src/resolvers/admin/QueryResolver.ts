@@ -1,8 +1,4 @@
-import {
-  decodeGlobalId,
-  GlobalIdEntity,
-  type GlobalIdType,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalId, GlobalIdEntity, type GlobalIdType } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
 import type {
   DiscountCodeRelayInput,
@@ -41,9 +37,7 @@ export class PricingQueryResolver extends PricingType<Record<string, never>> {
 
     switch (typeName) {
       case GlobalIdEntity.Discount:
-        return (await this.$ctx.loaders.discount.load(id))
-          ? this.resolvers.discount(id)
-          : null;
+        return (await this.$ctx.loaders.discount.load(id)) ? this.resolvers.discount(id) : null;
       case GlobalIdEntity.DiscountCode:
         return (await this.$ctx.loaders.discountCode.load(id))
           ? this.resolvers.discountCode(id)
@@ -75,9 +69,7 @@ export class PricingQueryResolver extends PricingType<Record<string, never>> {
 
   async discount(args: { id: string }) {
     const id = this.decodeId(args.id, GlobalIdEntity.Discount);
-    return (await this.$ctx.loaders.discount.load(id))
-      ? this.resolvers.discount(id)
-      : null;
+    return (await this.$ctx.loaders.discount.load(id)) ? this.resolvers.discount(id) : null;
   }
 
   discounts(args: DiscountConnectionInput) {
@@ -86,9 +78,7 @@ export class PricingQueryResolver extends PricingType<Record<string, never>> {
 
   async discountCode(args: { id: string }) {
     const id = this.decodeId(args.id, GlobalIdEntity.DiscountCode);
-    return (await this.$ctx.loaders.discountCode.load(id))
-      ? this.resolvers.discountCode(id)
-      : null;
+    return (await this.$ctx.loaders.discountCode.load(id)) ? this.resolvers.discountCode(id) : null;
   }
 
   discountCodes(args: DiscountCodeRelayInput) {
@@ -96,10 +86,7 @@ export class PricingQueryResolver extends PricingType<Record<string, never>> {
   }
 
   async discountUsageReservation(args: { id: string }) {
-    const id = this.decodeId(
-      args.id,
-      GlobalIdEntity.DiscountUsageReservation,
-    );
+    const id = this.decodeId(args.id, GlobalIdEntity.DiscountUsageReservation);
     return (await this.$ctx.loaders.discountUsageReservation.load(id))
       ? this.resolvers.discountUsageReservation(id)
       : null;
@@ -121,20 +108,14 @@ export class PricingQueryResolver extends PricingType<Record<string, never>> {
   }
 
   async discountRedemptionAllocation(args: { id: string }) {
-    const id = this.decodeId(
-      args.id,
-      GlobalIdEntity.DiscountRedemptionAllocation,
-    );
+    const id = this.decodeId(args.id, GlobalIdEntity.DiscountRedemptionAllocation);
     return (await this.$ctx.loaders.discountRedemptionAllocation.load(id))
       ? this.resolvers.discountRedemptionAllocation(id)
       : null;
   }
 
   async discountExternalReference(args: { id: string }) {
-    const id = this.decodeId(
-      args.id,
-      GlobalIdEntity.DiscountExternalReference,
-    );
+    const id = this.decodeId(args.id, GlobalIdEntity.DiscountExternalReference);
     return (await this.$ctx.loaders.discountExternalReference.load(id))
       ? this.resolvers.discountExternalReference(id)
       : null;
@@ -144,10 +125,7 @@ export class PricingQueryResolver extends PricingType<Record<string, never>> {
     return new DiscountExternalReferenceConnectionResolver(args, this.$ctx);
   }
 
-  private safeDecodeId(
-    globalId: string,
-    expectedType: GlobalIdType,
-  ): string | null {
+  private safeDecodeId(globalId: string, expectedType: GlobalIdType): string | null {
     try {
       return this.decodeId(globalId, expectedType);
     } catch {

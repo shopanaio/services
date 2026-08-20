@@ -9,12 +9,8 @@ export class ProductQuestionSummaryRefreshScript extends BaseScript<
   void
 > {
   @Transactional()
-  protected async execute(
-    params: ProductQuestionSummaryRefreshParams
-  ): Promise<void> {
-    await this.repository.summary.refreshProductQuestionSummary(
-      params.productId
-    );
+  protected async execute(params: ProductQuestionSummaryRefreshParams): Promise<void> {
+    await this.repository.summary.refreshProductQuestionSummary(params.productId);
   }
 
   protected handleError(error: unknown): never {

@@ -85,12 +85,7 @@ export interface WorkflowResult<T = unknown> extends OperationResult<T> {
  * Simplified workflow status for external consumers
  */
 export type WorkflowStatusSimple =
-  | "PENDING"
-  | "SUCCESS"
-  | "ERROR"
-  | "RETRIES_EXCEEDED"
-  | "CANCELLED"
-  | "UNKNOWN";
+  "PENDING" | "SUCCESS" | "ERROR" | "RETRIES_EXCEEDED" | "CANCELLED" | "UNKNOWN";
 
 /**
  * Simplified handle for monitoring workflows
@@ -130,9 +125,7 @@ export interface WorkflowQueueRateLimitOptions {
 }
 
 export type WorkflowQueueConflictResolution =
-  | "update_if_latest_version"
-  | "always_update"
-  | "never_update";
+  "update_if_latest_version" | "always_update" | "never_update";
 
 export interface WorkflowQueueConfig {
   name: string;
@@ -193,12 +186,7 @@ export interface WorkflowStartOptions {
 
 /** Saga execution status (extends WorkflowStatus with compensation states) */
 export type SagaStatus =
-  | "pending"
-  | "running"
-  | "completed"
-  | "compensating"
-  | "compensated"
-  | "failed";
+  "pending" | "running" | "completed" | "compensating" | "compensated" | "failed";
 
 /**
  * Saga result with compensation tracking.

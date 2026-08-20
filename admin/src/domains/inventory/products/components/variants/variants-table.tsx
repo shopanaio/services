@@ -118,8 +118,7 @@ export function VariantsTable<T extends IVariantRowBase>({
       optionGroups.forEach((group) => {
         cols.push({
           headerName: group.title,
-          valueGetter: (params) =>
-            (params.data as IVariantRowBase)?.options[group.slug] || null,
+          valueGetter: (params) => (params.data as IVariantRowBase)?.options[group.slug] || null,
           cellRenderer: ({ value }: { value?: unknown }) =>
             value == null ? <Dash /> : <span>{String(value)}</span>,
           flex: 1,
@@ -144,13 +143,10 @@ export function VariantsTable<T extends IVariantRowBase>({
       resizable: true,
       sortable: false,
     }),
-    []
+    [],
   );
 
-  const getRowId = useCallback(
-    (params: GetRowIdParams<T>) => params.data.id,
-    []
-  );
+  const getRowId = useCallback((params: GetRowIdParams<T>) => params.data.id, []);
 
   return (
     <div className={styles.gridWrapper}>
@@ -175,7 +171,7 @@ export function VariantsTable<T extends IVariantRowBase>({
 // ============================================================================
 
 export function extractOptionGroups<T extends { options?: IVariantOption[] }>(
-  variants: T[]
+  variants: T[],
 ): IOptionGroup[] {
   const groupsMap = new Map<string, string>();
 
@@ -199,11 +195,8 @@ export function extractOptionGroups<T extends { options?: IVariantOption[] }>(
 
 export function variantsToRowData<
   TVariant extends { id: string; title: string; options?: IVariantOption[] },
-  TExtra extends Record<string, unknown>
->(
-  variants: TVariant[],
-  extraFields: (variant: TVariant) => TExtra
-): (IVariantRowBase & TExtra)[] {
+  TExtra extends Record<string, unknown>,
+>(variants: TVariant[], extraFields: (variant: TVariant) => TExtra): (IVariantRowBase & TExtra)[] {
   return variants.map((variant) => {
     const options: Record<string, string> = {};
     variant.options?.forEach((opt) => {

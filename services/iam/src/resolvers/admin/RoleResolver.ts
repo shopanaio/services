@@ -1,9 +1,6 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { GroupedPermission } from "../../casbin/CasbinService.js";
 import type { Role } from "../../repositories/models/authorization.js";
 
@@ -33,7 +30,7 @@ export class RoleResolver extends IAMType<RoleInput, RoleData> {
 
     if (!roleData) {
       throw new PreloadNotFoundError(
-        `Role not found: org=${organizationId}, domain=${domain}, name=${name}`
+        `Role not found: org=${organizationId}, domain=${domain}, name=${name}`,
       );
     }
 

@@ -22,16 +22,12 @@ export class ReviewLoader {
 
     this.reviewRatings = new DataLoader(async (reviewIds) => {
       const rows = await repository.review.getRatingsByReviewIds(reviewIds);
-      return reviewIds.map((id) =>
-        rows.filter((row) => row.reviewId === id)
-      );
+      return reviewIds.map((id) => rows.filter((row) => row.reviewId === id));
     });
 
     this.reviewMedia = new DataLoader(async (reviewIds) => {
       const rows = await repository.review.getMediaByReviewIds(reviewIds);
-      return reviewIds.map((id) =>
-        rows.filter((row) => row.reviewId === id)
-      );
+      return reviewIds.map((id) => rows.filter((row) => row.reviewId === id));
     });
 
     this.reviewMediaItem = new DataLoader(async (ids) => {

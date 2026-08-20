@@ -70,15 +70,9 @@ export const CATEGORY_DELETE_MUTATION = gql`
 `;
 
 export const PRODUCT_CATEGORY_UPDATE_MUTATION = gql`
-  mutation ProductCategoryUpdate(
-    $productId: ID!
-    $categories: [ProductCategoryOperationInput!]!
-  ) {
+  mutation ProductCategoryUpdate($productId: ID!, $categories: [ProductCategoryOperationInput!]!) {
     catalogMutation {
-      productUpdate(
-        productId: $productId
-        operations: { categories: $categories }
-      ) {
+      productUpdate(productId: $productId, operations: { categories: $categories }) {
         product {
           id
           title

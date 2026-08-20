@@ -29,15 +29,19 @@ export class RecommendationReferenceStateSyncScript extends BaseScript<
     for (const placement of PLACEMENTS) {
       const policy = await this.repository.recommendationPlacementPolicy.findByPlacement(placement);
       if (!policy?.enabled) continue;
-      requests.push(await this.repository.recommendationBuildRequest.request(
-        plan.productId,
-        placement,
-        `lifecycle:${plan.productId}:${plan.eventSequence}`,
-      ));
+      requests.push(
+        await this.repository.recommendationBuildRequest.request(
+          plan.productId,
+          placement,
+          `lifecycle:${plan.productId}:${plan.eventSequence}`,
+        ),
+      );
     }
     return { requests };
   }
-  protected handleError(error: unknown): never { throw error; }
+  protected handleError(error: unknown): never {
+    throw error;
+  }
 }
 
 export class RecommendationLifecycleAffectedPageScript extends BaseScript<
@@ -54,42 +58,46 @@ export class RecommendationLifecycleAffectedPageScript extends BaseScript<
     mode: "reverse" | "category";
     afterProductId?: string;
   }) {
-    const categoryIds = [...new Set([
-      ...input.plan.oldState.categoryIds,
-      ...input.plan.newState.categoryIds,
-    ])];
-    const page = input.mode === "reverse"
-      ? await this.repository.recommendationAnchorCollector.reverseReferences({
-          targetProductId: input.plan.productId,
-          afterProductId: input.afterProductId,
-          first: RECOMMENDATION_FAN_OUT_PAGE_SIZE,
-        })
-      : await this.repository.recommendationAnchorCollector.anchorsInCategories({
-          categoryIds,
-          afterProductId: input.afterProductId,
-          first: RECOMMENDATION_FAN_OUT_PAGE_SIZE,
-        });
+    const categoryIds = [
+      ...new Set([...input.plan.oldState.categoryIds, ...input.plan.newState.categoryIds]),
+    ];
+    const page =
+      input.mode === "reverse"
+        ? await this.repository.recommendationAnchorCollector.reverseReferences({
+            targetProductId: input.plan.productId,
+            afterProductId: input.afterProductId,
+            first: RECOMMENDATION_FAN_OUT_PAGE_SIZE,
+          })
+        : await this.repository.recommendationAnchorCollector.anchorsInCategories({
+            categoryIds,
+            afterProductId: input.afterProductId,
+            first: RECOMMENDATION_FAN_OUT_PAGE_SIZE,
+          });
     const requests: RecommendationRequestGeneration[] = [];
     for (const anchorProductId of page.anchorProductIds) {
       for (const placement of PLACEMENTS) {
-        const policy = await this.repository.recommendationPlacementPolicy.findByPlacement(placement);
+        const policy =
+          await this.repository.recommendationPlacementPolicy.findByPlacement(placement);
         if (!policy?.enabled) continue;
         if (
           input.mode === "category" &&
-          (
-            policy.strategy === "CURATED_ONLY" ||
+          (policy.strategy === "CURATED_ONLY" ||
             policy.minimumResults === 0 ||
-            !policy.fallbackChain.includes("category_popularity")
-          )
-        ) continue;
-        requests.push(await this.repository.recommendationBuildRequest.request(
-          anchorProductId,
-          placement,
-          `lifecycle:${input.plan.productId}:${input.plan.eventSequence}`,
-        ));
+            !policy.fallbackChain.includes("category_popularity"))
+        )
+          continue;
+        requests.push(
+          await this.repository.recommendationBuildRequest.request(
+            anchorProductId,
+            placement,
+            `lifecycle:${input.plan.productId}:${input.plan.eventSequence}`,
+          ),
+        );
       }
     }
     return { requests, nextCursor: page.nextCursor };
   }
-  protected handleError(error: unknown): never { throw error; }
+  protected handleError(error: unknown): never {
+    throw error;
+  }
 }

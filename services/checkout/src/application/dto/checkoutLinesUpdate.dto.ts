@@ -5,7 +5,10 @@ import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 export class CheckoutLineUpdateItemDto {
   @Expose()
-  @IsGlobalId({ entityType: GlobalIdEntity.CheckoutLine, message: "Invalid checkout line ID format" })
+  @IsGlobalId({
+    entityType: GlobalIdEntity.CheckoutLine,
+    message: "Invalid checkout line ID format",
+  })
   lineId!: string;
 
   @Expose()

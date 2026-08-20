@@ -19,21 +19,18 @@ export interface ApplicationUserCreatedEventWorkflowInput {
   readonly applicationUserId: string;
 }
 
-export interface ApplicationUserUpdatedEventWorkflowInput
-  extends ApplicationUserCreatedEventWorkflowInput {
+export interface ApplicationUserUpdatedEventWorkflowInput extends ApplicationUserCreatedEventWorkflowInput {
   readonly changedFields: ApplicationUserUpdatedEvent["payload"]["changedFields"];
   readonly updatedAt: string;
 }
 
-export interface ApplicationUserStatusChangedEventWorkflowInput
-  extends ApplicationUserCreatedEventWorkflowInput {
+export interface ApplicationUserStatusChangedEventWorkflowInput extends ApplicationUserCreatedEventWorkflowInput {
   readonly previousStatus: "active" | "blocked";
   readonly status: "active" | "blocked";
   readonly changedAt: string;
 }
 
-export interface ApplicationUserDeletedEventWorkflowInput
-  extends ApplicationUserCreatedEventWorkflowInput {
+export interface ApplicationUserDeletedEventWorkflowInput extends ApplicationUserCreatedEventWorkflowInput {
   readonly deletedAt: string;
 }
 

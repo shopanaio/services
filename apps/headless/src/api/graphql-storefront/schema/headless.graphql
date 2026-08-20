@@ -1,4 +1,6 @@
 extend type Query {
-  """Confirms that the request carries verified Headless storefront access."""
+  """
+  Confirms that the request carries verified Headless storefront access.
+  """
   headlessStorefrontAccess: Boolean!
 }

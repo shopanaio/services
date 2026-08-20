@@ -31,10 +31,10 @@ export const stockMovementReasonEnum = catalogSchema.enum("stock_movement_reason
   "CUSTOMER_RETURN",
 ]);
 
-export const stockTransferDirectionEnum = catalogSchema.enum(
-  "stock_transfer_direction",
-  ["IN", "OUT"]
-);
+export const stockTransferDirectionEnum = catalogSchema.enum("stock_transfer_direction", [
+  "IN",
+  "OUT",
+]);
 
 export const stockApplyStatusEnum = catalogSchema.enum("stock_apply_status", [
   "APPLIED",
@@ -44,10 +44,10 @@ export const stockApplyStatusEnum = catalogSchema.enum("stock_apply_status", [
 export const stockChanges = catalogSchema.table(
   "stock_changes",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
-    seq: bigint("seq", { mode: "number" })
-      .notNull()
-      .generatedAlwaysAsIdentity(),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    seq: bigint("seq", { mode: "number" }).notNull().generatedAlwaysAsIdentity(),
     storeId: uuid("store_id").notNull(),
     variantId: uuid("variant_id").notNull(),
     warehouseId: uuid("warehouse_id")
@@ -70,38 +70,27 @@ export const stockChanges = catalogSchema.table(
       .notNull()
       .defaultNow(),
     createdBy: text("created_by"),
-    applyStatus: stockApplyStatusEnum("apply_status")
-      .notNull()
-      .default("APPLIED"),
+    applyStatus: stockApplyStatusEnum("apply_status").notNull().default("APPLIED"),
   },
   (table) => [
     check(
       "stock_changes_delta_check",
-      sql`${table.movementType} = 'SEED' OR ${table.deltaOnHand} <> 0 OR ${table.deltaReserved} <> 0 OR ${table.deltaUnavailable} <> 0`
+      sql`${table.movementType} = 'SEED' OR ${table.deltaOnHand} <> 0 OR ${table.deltaReserved} <> 0 OR ${table.deltaUnavailable} <> 0`,
     ),
-    check(
-      "stock_changes_on_hand_after_check",
-      sql`${table.onHandAfter} >= 0`
-    ),
-    check(
-      "stock_changes_reserved_after_check",
-      sql`${table.reservedAfter} >= 0`
-    ),
-    check(
-      "stock_changes_unavailable_after_check",
-      sql`${table.unavailableAfter} >= 0`
-    ),
+    check("stock_changes_on_hand_after_check", sql`${table.onHandAfter} >= 0`),
+    check("stock_changes_reserved_after_check", sql`${table.reservedAfter} >= 0`),
+    check("stock_changes_unavailable_after_check", sql`${table.unavailableAfter} >= 0`),
     check(
       "stock_changes_unavailable_le_onhand_check",
-      sql`${table.unavailableAfter} <= ${table.onHandAfter}`
+      sql`${table.unavailableAfter} <= ${table.onHandAfter}`,
     ),
     check(
       "stock_changes_transfer_dir_check",
-      sql`CASE WHEN ${table.movementType} = 'TRANSFER' THEN ${table.transferDirection} IS NOT NULL ELSE ${table.transferDirection} IS NULL END`
+      sql`CASE WHEN ${table.movementType} = 'TRANSFER' THEN ${table.transferDirection} IS NOT NULL ELSE ${table.transferDirection} IS NULL END`,
     ),
     check(
       "stock_changes_transfer_correlation_check",
-      sql`${table.movementType} <> 'TRANSFER' OR ${table.correlationId} IS NOT NULL`
+      sql`${table.movementType} <> 'TRANSFER' OR ${table.correlationId} IS NOT NULL`,
     ),
     uniqueIndex("stock_changes_seq_unique").on(table.seq),
     uniqueIndex("idx_stock_changes_idempotency").on(
@@ -109,28 +98,24 @@ export const stockChanges = catalogSchema.table(
       table.sourceSystem,
       table.sourceEventId,
       table.warehouseId,
-      table.variantId
+      table.variantId,
     ),
     index("idx_stock_changes_idempo_lookup").on(
       table.storeId,
       table.sourceSystem,
-      table.sourceEventId
+      table.sourceEventId,
     ),
-    index("idx_stock_changes_variant_created_seq").on(
-      table.variantId,
-      table.createdAt,
-      table.seq
-    ),
+    index("idx_stock_changes_variant_created_seq").on(table.variantId, table.createdAt, table.seq),
     index("idx_stock_changes_variant_warehouse_created_seq").on(
       table.variantId,
       table.warehouseId,
       table.createdAt,
-      table.seq
+      table.seq,
     ),
     index("idx_stock_changes_store_seq").on(table.storeId, table.seq),
     index("idx_stock_changes_type_seq").on(table.movementType, table.seq),
     index("idx_stock_changes_reason_seq").on(table.reason, table.seq),
-  ]
+  ],
 );
 
 export type StockChange = typeof stockChanges.$inferSelect;

@@ -1,7 +1,4 @@
-import {
-  RetryableError,
-  type ServiceBroker,
-} from "@shopana/shared-kernel";
+import { RetryableError, type ServiceBroker } from "@shopana/shared-kernel";
 import type { Catalog, Listing } from "@shopana/broker-types";
 import type { ContextStore } from "@shopana/shared-context";
 import type { ListingIndexHydratedSyncAction } from "../../scripts/listingIndexActionTypes.js";
@@ -52,29 +49,24 @@ export async function fetchCatalogListingSnapshotsBatch(input: {
   const productIds = [...new Set(batch.items.map((item) => item.productId))];
   const catalogQuery =
     productIds.length > 0
-      ? broker.call<Catalog.CatalogQueryResult, Catalog.CatalogQueryParams>(
-          "catalog.query",
-          {
-            storeId: batch.storeId,
-            selection: buildProductSnapshotBatchSelection(productIds),
-          }
-        )
+      ? broker.call<Catalog.CatalogQueryResult, Catalog.CatalogQueryParams>("catalog.query", {
+          storeId: batch.storeId,
+          selection: buildProductSnapshotBatchSelection(productIds),
+        })
       : Promise.resolve<Catalog.CatalogQueryResult>({
           ok: true,
           data: { products: { edges: [] } },
         });
   const [queryResult, storeResult] = await Promise.all([
     catalogQuery,
-    broker.call<ListingBatchGetStoreByIdResult, { id: string }>(
-      "project.getStoreById",
-      { id: batch.storeId }
-    ),
+    broker.call<ListingBatchGetStoreByIdResult, { id: string }>("project.getStoreById", {
+      id: batch.storeId,
+    }),
   ]);
 
   if (!storeResult.store) {
     const message =
-      storeResult.userErrors[0]?.message ??
-      `Store with id "${batch.storeId}" not found`;
+      storeResult.userErrors[0]?.message ?? `Store with id "${batch.storeId}" not found`;
     throw new Error(message);
   }
 
@@ -91,12 +83,12 @@ export async function fetchCatalogListingSnapshotsBatch(input: {
   if (!queryResult.ok) {
     if (queryResult.retryable) {
       throw new RetryableError(
-        `Catalog product batch query failed: ${queryResult.code}: ${queryResult.message}`
+        `Catalog product batch query failed: ${queryResult.code}: ${queryResult.message}`,
       );
     }
 
     throw new Error(
-      `Catalog product batch query failed: ${queryResult.code}: ${queryResult.message}`
+      `Catalog product batch query failed: ${queryResult.code}: ${queryResult.message}`,
     );
   }
 

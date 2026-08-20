@@ -29,7 +29,7 @@ export class RatingCriterionCreateWorkflow extends ReviewsMutationWorkflow {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: RatingCriterionCreateWorkflowInput
+    input: RatingCriterionCreateWorkflowInput,
   ): Promise<RatingCriterionCreateWorkflowResult> {
     const result = await this.stepCreate(input);
     if (result.criterion && result.userErrors.length === 0) {
@@ -43,13 +43,13 @@ export class RatingCriterionCreateWorkflow extends ReviewsMutationWorkflow {
     return this.kernel.runScript(
       RatingCriterionCreateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
   private async workflowEmitEvent(
     input: RatingCriterionCreateWorkflowInput,
-    criterionId: string
+    criterionId: string,
   ): Promise<void> {
     const payload: ReviewRatingCriterionCreatedEvent["payload"] = {
       criterionId,
@@ -75,7 +75,7 @@ export class RatingCriterionCreateWorkflow extends ReviewsMutationWorkflow {
         workflowId: DBOS.workflowID!,
         stepId: "emitReviewRatingCriterionCreated",
         callId: criterionId,
-      }
+      },
     );
   }
 }

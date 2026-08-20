@@ -1,8 +1,5 @@
 import type { DeliveryCheckoutOption } from "./delivery.js";
-import type {
-  PricingCheckoutJsonObject,
-  PricingCheckoutMoney,
-} from "./pricing.js";
+import type { PricingCheckoutJsonObject, PricingCheckoutMoney } from "./pricing.js";
 
 export const DELIVERY_CUSTOMIZATION_FUNCTION_TARGET =
   "cart.delivery-options.transform.run" as const;

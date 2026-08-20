@@ -3,10 +3,7 @@
 import { useQuery } from "@apollo/client/react";
 import type { ApiWarehouse } from "@/graphql/types";
 import { WAREHOUSE_DETAILS_QUERY } from "../graphql";
-import type {
-  WarehouseDetailsQueryData,
-  WarehouseDetailsQueryVariables,
-} from "../graphql";
+import type { WarehouseDetailsQueryData, WarehouseDetailsQueryVariables } from "../graphql";
 
 export interface UseWarehouseOptions {
   id: string | null;
@@ -21,10 +18,7 @@ interface UseWarehouseReturn {
 }
 
 export function useWarehouse(options: UseWarehouseOptions): UseWarehouseReturn {
-  const {
-    id,
-    skip = false,
-  } = options;
+  const { id, skip = false } = options;
 
   const { data, previousData, loading, error, refetch } = useQuery<
     WarehouseDetailsQueryData,

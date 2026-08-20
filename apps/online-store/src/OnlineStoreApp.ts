@@ -1,8 +1,4 @@
-import type {
-  AppHostContext,
-  AppRuntimeHealth,
-  ShopanaApp,
-} from "@shopana/app-sdk";
+import type { AppHostContext, AppRuntimeHealth, ShopanaApp } from "@shopana/app-sdk";
 import { OnlineStoreRepository } from "./content/repositories/index.js";
 
 export class OnlineStoreApp implements ShopanaApp {

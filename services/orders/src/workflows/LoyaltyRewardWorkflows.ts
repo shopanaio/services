@@ -6,7 +6,11 @@ import {
   type PublishOrderLoyaltyRewardReversedParams,
   type PublishOrderLoyaltyRewardReversedResult,
 } from "@shopana/broker-types";
-import type { EventEmitResult, OrderRewardEligibleEvent, OrderRewardReversedEvent } from "@shopana/events";
+import type {
+  EventEmitResult,
+  OrderRewardEligibleEvent,
+  OrderRewardReversedEvent,
+} from "@shopana/events";
 import {
   BrokerWorkflows,
   DBOS,
@@ -47,8 +51,7 @@ export class PublishOrderLoyaltyRewardEligibleWorkflow extends BrokerWorkflows<
       customerEligibilityRevision: reward.customerEligibilityRevision,
       segmentIds: reward.segmentIds,
       segmentMembershipRevision: reward.segmentMembershipRevision,
-      eligibleAmountAfterProductDiscountsMinor:
-        reward.eligibleAmountAfterProductDiscountsMinor,
+      eligibleAmountAfterProductDiscountsMinor: reward.eligibleAmountAfterProductDiscountsMinor,
       eligibleAmountAfterAllDiscountsMinor: reward.eligibleAmountAfterAllDiscountsMinor,
       eligibleAt: input.eligibleAt,
       pricingQuoteId: reward.pricingQuoteId,
@@ -123,8 +126,7 @@ export class PublishOrderLoyaltyRewardReversedWorkflow extends BrokerWorkflows<
       sourceType: input.sourceType,
       sourceId: input.sourceId,
       sourceRevision: input.sourceRevision,
-      eligibleAmountAfterProductDiscountsMinor:
-        input.eligibleAmountAfterProductDiscountsMinor,
+      eligibleAmountAfterProductDiscountsMinor: input.eligibleAmountAfterProductDiscountsMinor,
       eligibleAmountAfterAllDiscountsMinor: input.eligibleAmountAfterAllDiscountsMinor,
       reversedAt: input.reversedAt,
       lines: input.lines,
@@ -145,7 +147,11 @@ export class PublishOrderLoyaltyRewardReversedWorkflow extends BrokerWorkflows<
     const order = await this.repository.order.findLoyaltyRewardRecord(input.orderId);
     if (!order || order.storeId !== input.storeId) throw new Error("ORDER_NOT_FOUND");
     const reward = order.snapshot.loyaltyRewardEligibility;
-    if (!reward || reward.customerId !== input.customerId || reward.currencyCode !== input.currencyCode) {
+    if (
+      !reward ||
+      reward.customerId !== input.customerId ||
+      reward.currencyCode !== input.currencyCode
+    ) {
       throw new Error("ORDER_LOYALTY_REWARD_SNAPSHOT_MISMATCH");
     }
     const originalLines = new Map(reward.lines.map((line) => [line.orderLineId, line]));
@@ -154,7 +160,10 @@ export class PublishOrderLoyaltyRewardReversedWorkflow extends BrokerWorkflows<
       afterProductDiscounts: 0n,
       afterAllDiscounts: 0n,
     };
-    const reversedByLine = new Map<string, { quantity: number; afterProduct: bigint; afterAll: bigint }>();
+    const reversedByLine = new Map<
+      string,
+      { quantity: number; afterProduct: bigint; afterAll: bigint }
+    >();
     for (const line of input.lines) {
       const original = originalLines.get(line.orderLineId);
       const afterProduct = parseUnsigned(
@@ -179,8 +188,7 @@ export class PublishOrderLoyaltyRewardReversedWorkflow extends BrokerWorkflows<
         line.quantity <= 0 ||
         afterProduct < afterAll ||
         accumulated.quantity > original.quantity ||
-        accumulated.afterProduct >
-          BigInt(original.eligibleAmountAfterProductDiscountsMinor) ||
+        accumulated.afterProduct > BigInt(original.eligibleAmountAfterProductDiscountsMinor) ||
         accumulated.afterAll > BigInt(original.eligibleAmountAfterAllDiscountsMinor)
       ) {
         throw new Error("ORDER_LOYALTY_REVERSAL_LINE_INVALID");
@@ -201,8 +209,7 @@ export class PublishOrderLoyaltyRewardReversedWorkflow extends BrokerWorkflows<
         ) ||
       totals.afterProductDiscounts < totals.afterAllDiscounts ||
       (totals.afterProductDiscounts === 0n && totals.afterAllDiscounts === 0n) ||
-      totals.afterProductDiscounts >
-        BigInt(reward.eligibleAmountAfterProductDiscountsMinor) ||
+      totals.afterProductDiscounts > BigInt(reward.eligibleAmountAfterProductDiscountsMinor) ||
       totals.afterAllDiscounts > BigInt(reward.eligibleAmountAfterAllDiscountsMinor)
     ) {
       throw new Error("ORDER_LOYALTY_REVERSAL_TOTAL_MISMATCH");
@@ -264,15 +271,13 @@ function validateReversedInput(input: PublishOrderLoyaltyRewardReversedParams): 
     input.eligibleAmountAfterProductDiscountsMinor,
     "eligibleAmountAfterProductDiscountsMinor",
   );
-  parseUnsigned(
-    input.eligibleAmountAfterAllDiscountsMinor,
-    "eligibleAmountAfterAllDiscountsMinor",
-  );
+  parseUnsigned(input.eligibleAmountAfterAllDiscountsMinor, "eligibleAmountAfterAllDiscountsMinor");
   requireTimestamp(input.reversedAt, "ORDER_LOYALTY_REVERSED_AT_INVALID");
 }
 
 function parseUnsigned(value: string, field: string): bigint {
-  if (!/^(0|[1-9][0-9]*)$/.test(value)) throw new Error(`ORDER_LOYALTY_${field.toUpperCase()}_INVALID`);
+  if (!/^(0|[1-9][0-9]*)$/.test(value))
+    throw new Error(`ORDER_LOYALTY_${field.toUpperCase()}_INVALID`);
   return BigInt(value);
 }
 

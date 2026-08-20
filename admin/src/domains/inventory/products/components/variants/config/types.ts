@@ -90,13 +90,7 @@ export interface IVariantColumn {
 // ============================================================================
 
 export type VariantColumnField =
-  | "media"
-  | "price"
-  | "compareAtPrice"
-  | "weight"
-  | "length"
-  | "width"
-  | "height";
+  "media" | "price" | "compareAtPrice" | "weight" | "length" | "width" | "height";
 
 // ============================================================================
 // Option Group (for dynamic columns)

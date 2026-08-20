@@ -6,29 +6,13 @@ import type {
   ProductCreateVariantInput,
 } from "./dto/index.js";
 import type { Variant } from "../../repositories/models/index.js";
-import {
-  serializeRichTextJson,
-  toRichTextStorage,
-} from "../shared/richText.js";
+import { serializeRichTextJson, toRichTextStorage } from "../shared/richText.js";
 
-export class ProductCreateScript extends BaseScript<
-  ProductCreateParams,
-  ProductCreateResult
-> {
+export class ProductCreateScript extends BaseScript<ProductCreateParams, ProductCreateResult> {
   @Transactional()
-  protected async execute(
-    params: ProductCreateParams
-  ): Promise<ProductCreateResult> {
-    const {
-      title,
-      handle,
-      vendorId,
-      description,
-      excerpt,
-      mediaFileIds,
-      options,
-      variants,
-    } = params;
+  protected async execute(params: ProductCreateParams): Promise<ProductCreateResult> {
+    const { title, handle, vendorId, description, excerpt, mediaFileIds, options, variants } =
+      params;
 
     if (vendorId) {
       const vendor = await this.repository.vendor.findById(vendorId);
@@ -51,16 +35,16 @@ export class ProductCreateScript extends BaseScript<
       const categories = await this.repository.optionCategory.getByIds(categoryIds);
       if (categories.length !== categoryIds.length) {
         const existingIds = new Set(categories.map((category) => category.id));
-        const optionIndex = options.findIndex(
-          (option) => !existingIds.has(option.categoryId)
-        );
+        const optionIndex = options.findIndex((option) => !existingIds.has(option.categoryId));
         return {
           product: undefined,
-          userErrors: [{
-            message: "Option category not found",
-            field: ["options", String(optionIndex), "categoryId"],
-            code: "NOT_FOUND",
-          }],
+          userErrors: [
+            {
+              message: "Option category not found",
+              field: ["options", String(optionIndex), "categoryId"],
+              code: "NOT_FOUND",
+            },
+          ],
         };
       }
     }
@@ -96,17 +80,14 @@ export class ProductCreateScript extends BaseScript<
       const orderedOptions = this.normalizeOptionSortIndexes(options);
 
       // Create options and collect option values for variant linking
-      const optionValuesBySlug = await this.createOptionsWithValues(
-        product.id,
-        orderedOptions
-      );
+      const optionValuesBySlug = await this.createOptionsWithValues(product.id, orderedOptions);
 
       // Create variants and collect media mapping
       const result = await this.createVariants(
         product.id,
         variants,
         optionValuesBySlug,
-        orderedOptions
+        orderedOptions,
       );
       createdVariants = result;
     } else {
@@ -127,13 +108,11 @@ export class ProductCreateScript extends BaseScript<
         variantsCount: createdVariants.length,
         optionsCount: options?.length ?? 0,
       },
-      "Product created"
+      "Product created",
     );
 
     return {
-      product: updatedProduct
-        ? { ...updatedProduct, _variants: createdVariants }
-        : undefined,
+      product: updatedProduct ? { ...updatedProduct, _variants: createdVariants } : undefined,
       userErrors: [],
       productMedia:
         productMediaFileIds.length > 0
@@ -146,7 +125,7 @@ export class ProductCreateScript extends BaseScript<
    * Creates options and their values, returns a map of slug -> optionValue
    */
   private normalizeOptionSortIndexes(
-    options: ProductCreateOptionInput[]
+    options: ProductCreateOptionInput[],
   ): ProductCreateOptionInput[] {
     return options
       .map((option, inputIndex) => ({
@@ -162,12 +141,9 @@ export class ProductCreateScript extends BaseScript<
 
   private async createOptionsWithValues(
     productId: string,
-    options: ProductCreateOptionInput[]
+    options: ProductCreateOptionInput[],
   ): Promise<Map<string, { optionId: string; valueId: string }>> {
-    const optionValuesBySlug = new Map<
-      string,
-      { optionId: string; valueId: string }
-    >();
+    const optionValuesBySlug = new Map<string, { optionId: string; valueId: string }>();
 
     for (const optionInput of options) {
       // Create option
@@ -187,17 +163,13 @@ export class ProductCreateScript extends BaseScript<
 
       // Create option values
       const values = [...optionInput.values].sort(
-        (left, right) => (left.sortIndex ?? 0) - (right.sortIndex ?? 0)
+        (left, right) => (left.sortIndex ?? 0) - (right.sortIndex ?? 0),
       );
       for (const valueInput of values) {
-
-        const optionValue = await this.repository.option.createValue(
-          option.id,
-          {
-            slug: valueInput.slug,
-            sortIndex: valueInput.sortIndex ?? 0,
-          }
-        );
+        const optionValue = await this.repository.option.createValue(option.id, {
+          slug: valueInput.slug,
+          sortIndex: valueInput.sortIndex ?? 0,
+        });
 
         // Create value translation
         await this.repository.translation.upsertOptionValueTranslation({
@@ -226,7 +198,7 @@ export class ProductCreateScript extends BaseScript<
     productId: string,
     variants: ProductCreateVariantInput[],
     optionValuesBySlug: Map<string, { optionId: string; valueId: string }>,
-    options: ProductCreateOptionInput[]
+    options: ProductCreateOptionInput[],
   ): Promise<Variant[]> {
     const createdVariants: Variant[] = [];
 
@@ -251,11 +223,7 @@ export class ProductCreateScript extends BaseScript<
 
         const linkData = optionValuesBySlug.get(key);
         if (linkData) {
-          await this.repository.option.linkVariant(
-            variant.id,
-            linkData.optionId,
-            linkData.valueId
-          );
+          await this.repository.option.linkVariant(variant.id, linkData.optionId, linkData.valueId);
         }
       }
 

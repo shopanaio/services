@@ -1,20 +1,14 @@
-import {
-  AuthorizationError,
-  KernelError,
-} from "@shopana/shared-kernel";
+import { AuthorizationError, KernelError } from "@shopana/shared-kernel";
 import { ZodError } from "zod";
 import type { Repository } from "../../repositories/Repository.js";
 
 const ERROR_MESSAGES: Readonly<Record<string, string>> = {
-  CHANNEL_DOES_NOT_SUPPORT_TEMPLATES:
-    "The selected channel does not support templates",
+  CHANNEL_DOES_NOT_SUPPORT_TEMPLATES: "The selected channel does not support templates",
   CHANNEL_NOT_ALLOWED: "The selected notification channel is not allowed",
-  MANDATORY_NOTIFICATION_CANNOT_BE_DISABLED:
-    "Mandatory notifications cannot be disabled",
+  MANDATORY_NOTIFICATION_CANNOT_BE_DISABLED: "Mandatory notifications cannot be disabled",
   NOT_A_STAFF_NOTIFICATION:
     "Only staff notification definitions can be assigned to staff recipients",
-  SENDER_SETTINGS_REQUIRE_EMAIL_CHANNEL:
-    "Sender settings are only supported for the email channel",
+  SENDER_SETTINGS_REQUIRE_EMAIL_CHANNEL: "Sender settings are only supported for the email channel",
   STAFF_RECIPIENT_NOT_FOUND: "Staff notification recipient was not found",
   UNSUPPORTED_WEBHOOK_API_VERSION: "Webhook API version is not supported",
   UNSUPPORTED_WEBHOOK_EVENT: "Webhook event is not supported",
@@ -49,7 +43,7 @@ export function recordAdminAudit(
   action: string,
   entityType: string,
   entityId: string,
-  payload?: Record<string, unknown>
+  payload?: Record<string, unknown>,
 ): Promise<void> {
   return repository.audit.record({
     action,
@@ -102,11 +96,9 @@ export function normalizeAdminError(error: unknown): KernelError {
 
   if (error instanceof Error) {
     if (error.message.startsWith("Unknown notification definition")) {
-      return new KernelError(
-        "Unknown notification definition",
-        "INVALID_NOTIFICATION_DEFINITION",
-        { field: ["key"] }
-      );
+      return new KernelError("Unknown notification definition", "INVALID_NOTIFICATION_DEFINITION", {
+        field: ["key"],
+      });
     }
     const [code] = error.message.split(":", 1);
     if (code && ERROR_MESSAGES[code]) {
@@ -116,15 +108,10 @@ export function normalizeAdminError(error: unknown): KernelError {
     }
   }
 
-  return new KernelError(
-    "Notification administration operation failed",
-    "INTERNAL_ERROR"
-  );
+  return new KernelError("Notification administration operation failed", "INTERNAL_ERROR");
 }
 
-function readIssues(
-  details: unknown
-): Array<{ message: string; code?: string; field?: string[] }> {
+function readIssues(details: unknown): Array<{ message: string; code?: string; field?: string[] }> {
   if (
     !details ||
     typeof details !== "object" ||
@@ -140,10 +127,7 @@ function readIssues(
       "message" in issue && typeof issue.message === "string"
         ? issue.message
         : "Notification input is invalid";
-    const code =
-      "code" in issue && typeof issue.code === "string"
-        ? issue.code
-        : undefined;
+    const code = "code" in issue && typeof issue.code === "string" ? issue.code : undefined;
     const field = readIssueField(issue);
     return [{ message, code, field }];
   });

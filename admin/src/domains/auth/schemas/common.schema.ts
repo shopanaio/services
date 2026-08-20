@@ -33,9 +33,7 @@ export const passwordSchema = z
  * Password confirmation schema.
  * Use with refine to validate password match.
  */
-export const confirmPasswordSchema = z
-  .string()
-  .min(1, "Please confirm your password");
+export const confirmPasswordSchema = z.string().min(1, "Please confirm your password");
 
 /**
  * Creates a schema for password with confirmation.

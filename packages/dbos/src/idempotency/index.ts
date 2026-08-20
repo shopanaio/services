@@ -76,9 +76,7 @@ export interface ContentIdempotencyContext {
  * Union type for all idempotency contexts.
  */
 export type IdempotencyContext =
-  | ClientIdempotencyContext
-  | WorkflowIdempotencyContext
-  | ContentIdempotencyContext;
+  ClientIdempotencyContext | WorkflowIdempotencyContext | ContentIdempotencyContext;
 
 // ============================================================================
 // HELPERS
@@ -103,15 +101,13 @@ export function hashContent(payload: unknown): string {
  * The hash input is versioned and includes all context fields for collision resistance.
  * When organizationId is provided, it's included at the beginning of the hash input for isolation.
  */
-export function buildIdempotencyKey(
-  workflowName: string,
-  ctx: IdempotencyContext,
-): string {
+export function buildIdempotencyKey(workflowName: string, ctx: IdempotencyContext): string {
   const hash = (input: string): string => {
     return createHash("sha256").update(input).digest("hex").slice(0, 32);
   };
 
-  const tenantPrefix = (organizationId: string | undefined) => organizationId ? `${organizationId}:` : "";
+  const tenantPrefix = (organizationId: string | undefined) =>
+    organizationId ? `${organizationId}:` : "";
 
   switch (ctx.source) {
     case "client": {
@@ -126,7 +122,8 @@ export function buildIdempotencyKey(
     }
 
     case "content": {
-      const contentHashValue = ctx.contentHash ?? (ctx.content !== undefined ? hashContent(ctx.content) : undefined);
+      const contentHashValue =
+        ctx.contentHash ?? (ctx.content !== undefined ? hashContent(ctx.content) : undefined);
       const contentSuffix = contentHashValue ? `:${contentHashValue}` : "";
       const input = `v1:content:${tenantPrefix(ctx.organizationId)}${ctx.resourceId}:${ctx.operation}${contentSuffix}:${workflowName}`;
       return `content:${hash(input)}`;

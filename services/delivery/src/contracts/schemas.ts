@@ -33,7 +33,7 @@ const httpsUrlSchema = z
     },
     {
       message: "Provider asset URLs cannot contain credentials or fragments",
-    }
+    },
   );
 
 export const DELIVERY_PROVIDER_MAX_PAYLOAD_BYTES = 1_048_576;
@@ -43,9 +43,7 @@ export const DELIVERY_PROVIDER_MAX_PACKAGES = 250;
 export const DELIVERY_PROVIDER_MAX_ITEMS_PER_PACKAGE = 250;
 export const DELIVERY_PROVIDER_MAX_TRACKING_EVENTS = 1_000;
 
-function createProviderJsonValueSchema(
-  remainingDepth: number,
-): z.ZodTypeAny {
+function createProviderJsonValueSchema(remainingDepth: number): z.ZodTypeAny {
   const primitiveSchema = z.union([
     z.null(),
     z.boolean(),
@@ -70,9 +68,7 @@ function createProviderJsonValueSchema(
   ]);
 }
 
-const providerJsonValueSchema = createProviderJsonValueSchema(
-  DELIVERY_PROVIDER_MAX_JSON_DEPTH,
-);
+const providerJsonValueSchema = createProviderJsonValueSchema(DELIVERY_PROVIDER_MAX_JSON_DEPTH);
 export const DeliveryProviderJsonObjectSchema = z
   .record(providerJsonValueSchema)
   .superRefine((value, context) => {
@@ -120,10 +116,7 @@ export function assertDeliveryContractPayloadSize(
   }
 }
 
-function validateCustomerInputSchemaReferences(
-  schema: unknown,
-  context: z.RefinementCtx,
-): void {
+function validateCustomerInputSchemaReferences(schema: unknown, context: z.RefinementCtx): void {
   const visit = (entry: unknown, path: (string | number)[]): void => {
     if (Array.isArray(entry)) {
       entry.forEach((child, index) => visit(child, [...path, index]));
@@ -175,7 +168,10 @@ export const DeliveryCustomerInputContractSchema = z
 
 export const DeliveryProviderMoneySchema = z
   .object({
-    amountMinor: z.string().max(128).regex(/^(0|[1-9]\d*)$/),
+    amountMinor: z
+      .string()
+      .max(128)
+      .regex(/^(0|[1-9]\d*)$/),
     currencyCode: currencyCodeSchema,
   })
   .strict();
@@ -212,8 +208,24 @@ export const DeliveryCarrierServiceCapabilitiesSchema = z
 export const DeliveryShipmentProviderCapabilitiesSchema = z
   .object({
     supportsLabels: z.boolean(),
-    labelAssetHosts: z.array(z.string().trim().toLowerCase().min(1).max(253).regex(/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/)).max(32),
-    maxLabelBytes: z.number().int().min(1_024).max(16 * 1024 * 1024),
+    labelAssetHosts: z
+      .array(
+        z
+          .string()
+          .trim()
+          .toLowerCase()
+          .min(1)
+          .max(253)
+          .regex(
+            /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/,
+          ),
+      )
+      .max(32),
+    maxLabelBytes: z
+      .number()
+      .int()
+      .min(1_024)
+      .max(16 * 1024 * 1024),
     supportsMultipleParcels: z.boolean(),
     supportsCancellation: z.boolean(),
     supportsTracking: z.boolean(),
@@ -221,10 +233,14 @@ export const DeliveryShipmentProviderCapabilitiesSchema = z
     supportsAsyncCompletion: z.boolean(),
   })
   .strict()
-  .refine((value) => value.supportsLabels ? value.labelAssetHosts.length > 0 : value.labelAssetHosts.length === 0, {
-    path: ["labelAssetHosts"],
-    message: "Label hosts are required exactly when labels are supported",
-  });
+  .refine(
+    (value) =>
+      value.supportsLabels ? value.labelAssetHosts.length > 0 : value.labelAssetHosts.length === 0,
+    {
+      path: ["labelAssetHosts"],
+      message: "Label hosts are required exactly when labels are supported",
+    },
+  );
 
 export const DeliveryProviderDimensionsMmSchema = z
   .object({
@@ -312,8 +328,7 @@ export const DeliveryProviderPackageSchema = z
   .strict()
   .superRefine((value, context) => {
     const itemWeight = value.items.reduce(
-      (sum, item) =>
-        sum + BigInt(item.weightGrams) * BigInt(item.quantity),
+      (sum, item) => sum + BigInt(item.weightGrams) * BigInt(item.quantity),
       0n,
     );
     if (BigInt(value.weightGrams) < itemWeight) {
@@ -335,8 +350,7 @@ export const DeliveryProviderPackageSchema = z
       });
     }
     const itemDeclaredValue = value.items.reduce(
-      (sum, item) =>
-        sum + BigInt(item.unitDeclaredValue.amountMinor) * BigInt(item.quantity),
+      (sum, item) => sum + BigInt(item.unitDeclaredValue.amountMinor) * BigInt(item.quantity),
       0n,
     );
     if (BigInt(value.declaredValue.amountMinor) !== itemDeclaredValue) {
@@ -346,10 +360,7 @@ export const DeliveryProviderPackageSchema = z
         message: "Package declared value must equal the extended item value",
       });
     }
-    if (
-      value.customs !== null &&
-      value.items.some((item) => item.customs === null)
-    ) {
+    if (value.customs !== null && value.items.some((item) => item.customs === null)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["items"],
@@ -421,13 +432,10 @@ export const DeliveryShipmentProviderRouteSnapshotSchema = z
   })
   .strict();
 
-export const DeliveryProviderRouteSnapshotSchema = z.discriminatedUnion(
-  "capability",
-  [
-    DeliveryCarrierServiceRouteSnapshotSchema,
-    DeliveryShipmentProviderRouteSnapshotSchema,
-  ],
-);
+export const DeliveryProviderRouteSnapshotSchema = z.discriminatedUnion("capability", [
+  DeliveryCarrierServiceRouteSnapshotSchema,
+  DeliveryShipmentProviderRouteSnapshotSchema,
+]);
 
 const deliveryOptionBindingBaseShape = {
   optionHandle: identifierSchema,
@@ -456,9 +464,8 @@ const deliveryOptionBindingBaseShape = {
   expiresAt: timestampSchema,
 };
 
-export const DeliveryOptionBindingSnapshotSchema = z.discriminatedUnion(
-  "source",
-  [
+export const DeliveryOptionBindingSnapshotSchema = z
+  .discriminatedUnion("source", [
     z
       .object({
         ...deliveryOptionBindingBaseShape,
@@ -483,33 +490,33 @@ export const DeliveryOptionBindingSnapshotSchema = z.discriminatedUnion(
         manualRateRevision: nonNegativeIntegerSchema,
       })
       .strict(),
-  ],
-).superRefine((value, context) => {
-  if (value.targetCheckoutVersion !== value.basedOnCheckoutVersion + 1) {
-    context.addIssue({ code: z.ZodIssueCode.custom, path: ["targetCheckoutVersion"], message: "Binding target checkout version must follow its base version" });
-  }
-  if (
-    value.source === "CARRIER_SERVICE" &&
-    value.customerInputContract !== null &&
-    value.customerInputContract.schemaPolicyRevision !==
-      value.customerInputSchemaPolicyRevision
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["customerInputContract", "schemaPolicyRevision"],
-      message: "Customer input contract must use the binding policy revision",
-    });
-  }
-});
+  ])
+  .superRefine((value, context) => {
+    if (value.targetCheckoutVersion !== value.basedOnCheckoutVersion + 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["targetCheckoutVersion"],
+        message: "Binding target checkout version must follow its base version",
+      });
+    }
+    if (
+      value.source === "CARRIER_SERVICE" &&
+      value.customerInputContract !== null &&
+      value.customerInputContract.schemaPolicyRevision !== value.customerInputSchemaPolicyRevision
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["customerInputContract", "schemaPolicyRevision"],
+        message: "Customer input contract must use the binding policy revision",
+      });
+    }
+  });
 
 export const DeliveryProviderConfigurationValidationRequestSchema = z
   .object({
     protocolVersion: z.literal(DELIVERY_PROVIDER_PROTOCOL_VERSION),
     storeId: identifierSchema,
-    capability: z.enum([
-      "delivery.carrier-service",
-      "delivery.shipment-provider",
-    ]),
+    capability: z.enum(["delivery.carrier-service", "delivery.shipment-provider"]),
     correlationId: correlationIdSchema,
     deadlineAt: timestampSchema,
     mode: z.enum(["TEST", "LIVE"]),
@@ -527,8 +534,8 @@ const providerConfigurationValidationResultBaseShape = {
   configurationRevision: revisionSchema,
 };
 
-export const DeliveryProviderConfigurationValidationResultSchema =
-  z.discriminatedUnion("capability", [
+export const DeliveryProviderConfigurationValidationResultSchema = z
+  .discriminatedUnion("capability", [
     z
       .object({
         ...providerConfigurationValidationResultBaseShape,
@@ -546,8 +553,7 @@ export const DeliveryProviderConfigurationValidationResultSchema =
   ])
   .superRefine((value, context) => {
     if (
-      ((value.status === "INVALID" || value.status === "DEGRADED") &&
-        value.failure === null) ||
+      ((value.status === "INVALID" || value.status === "DEGRADED") && value.failure === null) ||
       (value.status === "READY" && value.failure !== null)
     ) {
       context.addIssue({
@@ -609,8 +615,7 @@ export const DeliveryProviderConfigurationValidationResultSchema =
     }
     if (
       value.capability === "delivery.shipment-provider" &&
-      value.capabilities.supportsCancellation !==
-      supported.has("cancelShipment")
+      value.capabilities.supportsCancellation !== supported.has("cancelShipment")
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -620,8 +625,7 @@ export const DeliveryProviderConfigurationValidationResultSchema =
     }
     if (
       value.capability === "delivery.shipment-provider" &&
-      value.capabilities.supportsReconciliation !==
-      supported.has("reconcileShipment")
+      value.capabilities.supportsReconciliation !== supported.has("reconcileShipment")
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -663,15 +667,16 @@ export const DeliveryCarrierServiceRateRequestSchema = z
     channelCode: codeSchema,
     origin: DeliveryProviderOriginSchema,
     destination: DeliveryProviderDestinationSchema,
-    packages: z
-      .array(DeliveryProviderPackageSchema)
-      .min(1)
-      .max(DELIVERY_PROVIDER_MAX_PACKAGES),
+    packages: z.array(DeliveryProviderPackageSchema).min(1).max(DELIVERY_PROVIDER_MAX_PACKAGES),
   })
   .strict()
   .superRefine((value, context) => {
     if (value.targetCheckoutVersion !== value.basedOnCheckoutVersion + 1) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ["targetCheckoutVersion"], message: "Target checkout version must follow the base version" });
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["targetCheckoutVersion"],
+        message: "Target checkout version must follow the base version",
+      });
     }
     if (Date.parse(value.deadlineAt) <= Date.parse(value.effectiveAt)) {
       context.addIssue({
@@ -680,11 +685,7 @@ export const DeliveryCarrierServiceRateRequestSchema = z
         message: "deadlineAt must be after effectiveAt",
       });
     }
-    if (
-      value.packages.some(
-        (entry) => entry.declaredValue.currencyCode !== value.currencyCode,
-      )
-    ) {
+    if (value.packages.some((entry) => entry.declaredValue.currencyCode !== value.currencyCode)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["packages"],
@@ -726,8 +727,7 @@ export const DeliveryCarrierServiceRateSchema = z
     if (
       value.estimatedMinDeliveryAt !== null &&
       value.estimatedMaxDeliveryAt !== null &&
-      Date.parse(value.estimatedMaxDeliveryAt) <
-        Date.parse(value.estimatedMinDeliveryAt)
+      Date.parse(value.estimatedMaxDeliveryAt) < Date.parse(value.estimatedMinDeliveryAt)
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -751,51 +751,66 @@ export const DeliveryProviderResolveCustomerInputRequestSchema = z
   })
   .strict();
 
-export const DeliveryProviderResolveCustomerInputResultSchema = z.discriminatedUnion(
-  "status",
-  [
-    z.object({
+export const DeliveryProviderResolveCustomerInputResultSchema = z.discriminatedUnion("status", [
+  z
+    .object({
       status: z.literal("VALID"),
       normalized: jsonObjectSchema.nullable(),
       valueHash: revisionSchema,
       semanticRevision: revisionSchema,
       publicData: jsonObjectSchema,
-    }).strict(),
-    z.object({
+    })
+    .strict(),
+  z
+    .object({
       status: z.literal("INVALID"),
-      issues: z.array(z.object({
-        path: z.string().max(512),
-        code: codeSchema,
-        message: z.string().trim().min(1).max(2_000),
-      }).strict()).max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
-    }).strict(),
-  ],
-);
+      issues: z
+        .array(
+          z
+            .object({
+              path: z.string().max(512),
+              code: codeSchema,
+              message: z.string().trim().min(1).max(2_000),
+            })
+            .strict(),
+        )
+        .max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
+    })
+    .strict(),
+]);
 
 export const DeliveryProviderSearchCustomerInputOptionsRequestSchema =
-  DeliveryProviderResolveCustomerInputRequestSchema.omit({ value: true }).extend({
-    query: z.string().trim().max(255),
-    cursor: z.string().trim().min(1).max(512).nullable(),
-    limit: positiveIntegerSchema.max(100),
-  }).strict();
+  DeliveryProviderResolveCustomerInputRequestSchema.omit({ value: true })
+    .extend({
+      query: z.string().trim().max(255),
+      cursor: z.string().trim().min(1).max(512).nullable(),
+      limit: positiveIntegerSchema.max(100),
+    })
+    .strict();
 
-export const DeliveryProviderSearchCustomerInputOptionsResultSchema = z.object({
-  options: z.array(z.object({
-    value: jsonObjectSchema,
-    label: z.string().trim().min(1).max(255),
-    publicData: jsonObjectSchema,
-  }).strict()).max(100),
-  nextCursor: z.string().trim().min(1).max(512).nullable(),
-  revision: revisionSchema,
-}).strict();
+export const DeliveryProviderSearchCustomerInputOptionsResultSchema = z
+  .object({
+    options: z
+      .array(
+        z
+          .object({
+            value: jsonObjectSchema,
+            label: z.string().trim().min(1).max(255),
+            publicData: jsonObjectSchema,
+          })
+          .strict(),
+      )
+      .max(100),
+    nextCursor: z.string().trim().min(1).max(512).nullable(),
+    revision: revisionSchema,
+  })
+  .strict();
 
 export const DeliveryCarrierServiceRateResultSchema = z
   .object({
     quoteRequestId: identifierSchema,
     revision: revisionSchema,
-    rates: z
-      .array(DeliveryCarrierServiceRateSchema)
-      .max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
+    rates: z.array(DeliveryCarrierServiceRateSchema).max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
     warnings: z
       .array(
         z
@@ -871,9 +886,7 @@ const providerObservedShipmentStates = [
   "RETURNED",
   "CANCELLED",
 ] as const;
-const providerObservedShipmentStateSchema = z.enum(
-  providerObservedShipmentStates,
-);
+const providerObservedShipmentStateSchema = z.enum(providerObservedShipmentStates);
 
 export const DeliveryLabelSnapshotSchema = z
   .object({
@@ -887,7 +900,11 @@ export const DeliveryLabelSnapshotSchema = z
 export const DeliveryTrackingEventSnapshotSchema = z
   .object({
     providerEventId: identifierSchema,
-    providerShipmentSequence: z.string().max(64).regex(/^(0|[1-9]\d*)$/).nullable(),
+    providerShipmentSequence: z
+      .string()
+      .max(64)
+      .regex(/^(0|[1-9]\d*)$/)
+      .nullable(),
     parcelId: identifierSchema.nullable(),
     providerParcelReference: identifierSchema.nullable(),
     statusCode: codeSchema,
@@ -897,14 +914,10 @@ export const DeliveryTrackingEventSnapshotSchema = z
     occurredAt: timestampSchema,
   })
   .strict()
-  .refine(
-    (value) =>
-      value.parcelId !== null || value.providerParcelReference === null,
-    {
-      path: ["parcelId"],
-      message: "A provider parcel reference requires a platform parcel ID",
-    },
-  );
+  .refine((value) => value.parcelId !== null || value.providerParcelReference === null, {
+    path: ["parcelId"],
+    message: "A provider parcel reference requires a platform parcel ID",
+  });
 
 export const DeliveryTrackingSnapshotSchema = z
   .object({
@@ -918,10 +931,7 @@ export const DeliveryParcelSnapshotSchema = z
   .object({
     parcelId: identifierSchema,
     providerParcelReference: identifierSchema.nullable(),
-    packageIds: z
-      .array(identifierSchema)
-      .min(1)
-      .max(DELIVERY_PROVIDER_MAX_PACKAGES),
+    packageIds: z.array(identifierSchema).min(1).max(DELIVERY_PROVIDER_MAX_PACKAGES),
     state: shipmentStateSchema,
     tracking: z.array(DeliveryTrackingSnapshotSchema).max(100),
     labels: z.array(DeliveryLabelSnapshotSchema).max(100),
@@ -982,10 +992,7 @@ export const DeliveryProviderTrackingEventSchema = z
 export const DeliveryProviderParcelObservationSchema = z
   .object({
     providerParcelReference: identifierSchema,
-    packageIds: z
-      .array(identifierSchema)
-      .max(DELIVERY_PROVIDER_MAX_PACKAGES)
-      .nonempty(),
+    packageIds: z.array(identifierSchema).max(DELIVERY_PROVIDER_MAX_PACKAGES).nonempty(),
     state: providerObservedShipmentStateSchema,
     tracking: z.array(DeliveryTrackingSnapshotSchema).max(100),
     labels: z.array(DeliveryProviderLabelSchema).max(100),
@@ -1057,10 +1064,7 @@ export const DeliveryProviderCreateShipmentRequestSchema = z
     destination: DeliveryProviderDestinationSchema,
     sender: DeliveryProviderContactSchema,
     recipient: DeliveryProviderContactSchema,
-    packages: z
-      .array(DeliveryProviderPackageSchema)
-      .min(1)
-      .max(DELIVERY_PROVIDER_MAX_PACKAGES),
+    packages: z.array(DeliveryProviderPackageSchema).min(1).max(DELIVERY_PROVIDER_MAX_PACKAGES),
     customerInput: jsonObjectSchema.nullable(),
     customerInputHash: revisionSchema.nullable(),
   })
@@ -1127,12 +1131,8 @@ export const DeliveryProviderReconcileShipmentRequestSchema = z
 
 const providerSucceededOperationShape = {
   providerShipmentReference: identifierSchema,
-  parcels: z
-    .array(DeliveryProviderParcelObservationSchema)
-    .max(DELIVERY_PROVIDER_MAX_PACKAGES),
-  events: z
-    .array(DeliveryProviderTrackingEventSchema)
-    .max(DELIVERY_PROVIDER_MAX_TRACKING_EVENTS),
+  parcels: z.array(DeliveryProviderParcelObservationSchema).max(DELIVERY_PROVIDER_MAX_PACKAGES),
+  events: z.array(DeliveryProviderTrackingEventSchema).max(DELIVERY_PROVIDER_MAX_TRACKING_EVENTS),
   processedAt: timestampSchema,
   metadata: jsonObjectSchema.nullable(),
 };
@@ -1150,105 +1150,107 @@ const providerFailedOperationShape = {
   metadata: jsonObjectSchema.nullable(),
 };
 
-export const DeliveryProviderShipmentOperationResultSchema = z.union([
-  z
-    .object({
-      operation: z.literal("CREATE"),
-      status: z.literal("SUCCEEDED"),
-      ...providerSucceededOperationShape,
-      parcels: z
-        .array(DeliveryProviderParcelObservationSchema)
-        .min(1)
-        .max(DELIVERY_PROVIDER_MAX_PACKAGES),
-      shipmentState: providerObservedShipmentStateSchema,
-    })
-    .strict(),
-  z
-    .object({
-      operation: z.literal("CREATE"),
-      status: z.literal("PENDING"),
-      ...providerPendingOperationShape,
-      shipmentState: z.literal("PENDING"),
-    })
-    .strict(),
-  z
-    .object({
-      operation: z.literal("CREATE"),
-      status: z.literal("FAILED"),
-      ...providerFailedOperationShape,
-      providerShipmentReference: identifierSchema.nullable(),
-    })
-    .strict(),
-  z
-    .object({
-      operation: z.literal("CANCEL"),
-      status: z.literal("SUCCEEDED"),
-      ...providerSucceededOperationShape,
-      shipmentState: z.literal("CANCELLED"),
-    })
-    .strict(),
-  z
-    .object({
-      operation: z.literal("CANCEL"),
-      status: z.literal("PENDING"),
-      ...providerPendingOperationShape,
-      shipmentState: z.literal("CANCELLING"),
-    })
-    .strict(),
-  z
-    .object({
-      operation: z.literal("CANCEL"),
-      status: z.literal("FAILED"),
-      ...providerFailedOperationShape,
-      providerShipmentReference: identifierSchema,
-    })
-    .strict(),
-]).superRefine((value, context) => {
-  if (value.status !== "SUCCEEDED") {
-    return;
-  }
-  addUniqueValueIssue(
-    value.parcels.map(({ providerParcelReference }) => providerParcelReference),
-    context,
-    ["parcels"],
-    "Provider parcel references must be unique",
-  );
-  addUniqueValueIssue(
-    value.events.map(({ providerEventId }) => providerEventId),
-    context,
-    ["events"],
-    "Provider tracking event IDs must be unique",
-  );
-  const providerParcelReferences = new Set(
-    value.parcels.map(({ providerParcelReference }) => providerParcelReference),
-  );
-  value.parcels.forEach((parcel, parcelIndex) => {
-    parcel.labels.forEach((label, labelIndex) => {
+export const DeliveryProviderShipmentOperationResultSchema = z
+  .union([
+    z
+      .object({
+        operation: z.literal("CREATE"),
+        status: z.literal("SUCCEEDED"),
+        ...providerSucceededOperationShape,
+        parcels: z
+          .array(DeliveryProviderParcelObservationSchema)
+          .min(1)
+          .max(DELIVERY_PROVIDER_MAX_PACKAGES),
+        shipmentState: providerObservedShipmentStateSchema,
+      })
+      .strict(),
+    z
+      .object({
+        operation: z.literal("CREATE"),
+        status: z.literal("PENDING"),
+        ...providerPendingOperationShape,
+        shipmentState: z.literal("PENDING"),
+      })
+      .strict(),
+    z
+      .object({
+        operation: z.literal("CREATE"),
+        status: z.literal("FAILED"),
+        ...providerFailedOperationShape,
+        providerShipmentReference: identifierSchema.nullable(),
+      })
+      .strict(),
+    z
+      .object({
+        operation: z.literal("CANCEL"),
+        status: z.literal("SUCCEEDED"),
+        ...providerSucceededOperationShape,
+        shipmentState: z.literal("CANCELLED"),
+      })
+      .strict(),
+    z
+      .object({
+        operation: z.literal("CANCEL"),
+        status: z.literal("PENDING"),
+        ...providerPendingOperationShape,
+        shipmentState: z.literal("CANCELLING"),
+      })
+      .strict(),
+    z
+      .object({
+        operation: z.literal("CANCEL"),
+        status: z.literal("FAILED"),
+        ...providerFailedOperationShape,
+        providerShipmentReference: identifierSchema,
+      })
+      .strict(),
+  ])
+  .superRefine((value, context) => {
+    if (value.status !== "SUCCEEDED") {
+      return;
+    }
+    addUniqueValueIssue(
+      value.parcels.map(({ providerParcelReference }) => providerParcelReference),
+      context,
+      ["parcels"],
+      "Provider parcel references must be unique",
+    );
+    addUniqueValueIssue(
+      value.events.map(({ providerEventId }) => providerEventId),
+      context,
+      ["events"],
+      "Provider tracking event IDs must be unique",
+    );
+    const providerParcelReferences = new Set(
+      value.parcels.map(({ providerParcelReference }) => providerParcelReference),
+    );
+    value.parcels.forEach((parcel, parcelIndex) => {
+      parcel.labels.forEach((label, labelIndex) => {
+        if (
+          label.expiresAt !== null &&
+          Date.parse(label.expiresAt) <= Date.parse(value.processedAt)
+        ) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["parcels", parcelIndex, "labels", labelIndex, "expiresAt"],
+            message: "Provider label is already expired at processing time",
+          });
+        }
+      });
+    });
+    value.events.forEach((event, index) => {
       if (
-        label.expiresAt !== null &&
-        Date.parse(label.expiresAt) <= Date.parse(value.processedAt)
+        event.providerParcelReference !== null &&
+        !providerParcelReferences.has(event.providerParcelReference)
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["parcels", parcelIndex, "labels", labelIndex, "expiresAt"],
-          message: "Provider label is already expired at processing time",
+          path: ["events", index, "providerParcelReference"],
+          message: "Tracking event references an unknown parcel",
         });
       }
     });
   });
-  value.events.forEach((event, index) => {
-    if (
-      event.providerParcelReference !== null &&
-      !providerParcelReferences.has(event.providerParcelReference)
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["events", index, "providerParcelReference"],
-        message: "Tracking event references an unknown parcel",
-      });
-    }
-  });
-});
 
 export const DeliveryProviderShipmentExchangeSchema = z
   .object({
@@ -1267,10 +1269,7 @@ export const DeliveryProviderShipmentExchangeSchema = z
         message: "Provider result operation must match the request operation",
       });
     }
-    if (
-      value.request.operation === "CREATE" &&
-      value.result.status === "SUCCEEDED"
-    ) {
+    if (value.request.operation === "CREATE" && value.result.status === "SUCCEEDED") {
       const expected = value.request.packages.map((entry) => entry.packageId);
       const actual = value.result.parcels.flatMap((entry) => entry.packageIds);
       if (
@@ -1292,12 +1291,8 @@ export const DeliveryProviderReconcileShipmentResultSchema = z
     status: z.literal("RECONCILED"),
     providerShipmentReference: identifierSchema,
     shipmentState: providerObservedShipmentStateSchema,
-    parcels: z
-      .array(DeliveryProviderParcelObservationSchema)
-      .max(DELIVERY_PROVIDER_MAX_PACKAGES),
-    events: z
-      .array(DeliveryProviderTrackingEventSchema)
-      .max(DELIVERY_PROVIDER_MAX_TRACKING_EVENTS),
+    parcels: z.array(DeliveryProviderParcelObservationSchema).max(DELIVERY_PROVIDER_MAX_PACKAGES),
+    events: z.array(DeliveryProviderTrackingEventSchema).max(DELIVERY_PROVIDER_MAX_TRACKING_EVENTS),
     observedAt: timestampSchema,
     metadata: jsonObjectSchema.nullable(),
   })
@@ -1372,10 +1367,7 @@ export const DeliveryProviderExternalEventSchema = z
     if (value.type !== "SHIPMENT_STATUS_CHANGED") {
       return;
     }
-    if (
-      value.event.providerParcelReference === null &&
-      value.shipmentState !== value.event.state
-    ) {
+    if (value.event.providerParcelReference === null && value.shipmentState !== value.event.state) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["event", "state"],
@@ -1428,8 +1420,7 @@ export const CompleteDeliveryProviderOperationParamsSchema = z
   ])
   .superRefine((value, context) => {
     if (
-      (value.operationType === "CREATE" ||
-        value.operationType === "CANCEL") &&
+      (value.operationType === "CREATE" || value.operationType === "CANCEL") &&
       "operation" in value.result &&
       value.result.operation !== value.operationType
     ) {
@@ -1492,8 +1483,7 @@ export const ReportDeliveryProviderEventParamsSchema = z
     }
     if (
       value.event.type === "SHIPMENT_STATUS_CHANGED" &&
-      value.providerShipmentSequence !==
-        value.event.event.providerShipmentSequence
+      value.providerShipmentSequence !== value.event.event.providerShipmentSequence
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -1521,12 +1511,7 @@ export const DeliveryLifecycleActionSchemas = {
       storeId: identifierSchema,
       installationId: identifierSchema,
       enabledCapabilities: z
-        .array(
-          z.enum([
-            "delivery.carrier-service",
-            "delivery.shipment-provider",
-          ]),
-        )
+        .array(z.enum(["delivery.carrier-service", "delivery.shipment-provider"]))
         .min(1)
         .max(2)
         .refine((value) => new Set(value).size === value.length, {
@@ -1542,10 +1527,7 @@ export const DeliveryLifecycleActionSchemas = {
       storeId: identifierSchema,
       providerAccountId: identifierSchema,
       expectedAccountRevision: nonNegativeIntegerSchema,
-      capability: z.enum([
-        "delivery.carrier-service",
-        "delivery.shipment-provider",
-      ]),
+      capability: z.enum(["delivery.carrier-service", "delivery.shipment-provider"]),
       status: z.enum(["ACTIVE", "INACTIVE"]),
       idempotencyKey: idempotencyKeySchema,
       correlationId: correlationIdSchema,
@@ -1566,18 +1548,28 @@ export const DeliveryLifecycleActionSchemas = {
       deliveryRevision: revisionSchema,
       committedAt: timestampSchema,
       idempotencyKey: idempotencyKeySchema,
-      selections: z.array(z.object({
-        groupId: identifierSchema,
-        optionHandle: identifierSchema,
-        customerInput: DeliveryProviderJsonObjectSchema.nullable(),
-        recipient: DeliveryProviderContactSchema,
-      }).strict()).max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
+      selections: z
+        .array(
+          z
+            .object({
+              groupId: identifierSchema,
+              optionHandle: identifierSchema,
+              customerInput: DeliveryProviderJsonObjectSchema.nullable(),
+              recipient: DeliveryProviderContactSchema,
+            })
+            .strict(),
+        )
+        .max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
     })
     .strict()
-    .refine((value) => new Set(value.selections.map(({ groupId }) => groupId)).size === value.selections.length, {
-      path: ["selections"],
-      message: "Committed delivery groups must be unique",
-    }),
+    .refine(
+      (value) =>
+        new Set(value.selections.map(({ groupId }) => groupId)).size === value.selections.length,
+      {
+        path: ["selections"],
+        message: "Committed delivery groups must be unique",
+      },
+    ),
   releaseSelections: z
     .object({
       storeId: identifierSchema,
@@ -1617,11 +1609,8 @@ export const DeliveryLifecycleActionSchemas = {
     .refine(
       (value) =>
         value.lineItems === null ||
-        new Set(
-          value.lineItems.map(
-            ({ fulfillmentOrderLineItemId }) => fulfillmentOrderLineItemId,
-          ),
-        ).size === value.lineItems.length,
+        new Set(value.lineItems.map(({ fulfillmentOrderLineItemId }) => fulfillmentOrderLineItemId))
+          .size === value.lineItems.length,
       {
         path: ["lineItems"],
         message: "Requested fulfillment order line IDs must be unique",
@@ -1637,9 +1626,7 @@ export const DeliveryLifecycleActionSchemas = {
       correlationId: correlationIdSchema,
     })
     .strict(),
-  getShipment: z
-    .object({ storeId: identifierSchema, shipmentId: identifierSchema })
-    .strict(),
+  getShipment: z.object({ storeId: identifierSchema, shipmentId: identifierSchema }).strict(),
   reconcileShipment: z
     .object({
       storeId: identifierSchema,
@@ -1656,8 +1643,7 @@ export const DeliveryLifecycleActionSchemas = {
 export function parseDeliveryProviderCompletionContext(
   context: BrokerCallContext,
   requiredPermission:
-    | typeof DeliveryActions.completeProviderOperation
-    | typeof DeliveryActions.reportProviderEvent,
+    typeof DeliveryActions.completeProviderOperation | typeof DeliveryActions.reportProviderEvent,
 ): DeliveryProviderCompletionContext {
   if (
     context.caller.kind !== "action" ||
@@ -1697,10 +1683,7 @@ export function parseDeliveryProviderConfigurationValidationResult(
   request: Delivery.DeliveryProviderConfigurationValidationRequest,
   value: unknown,
 ): Delivery.DeliveryProviderConfigurationValidationResult {
-  assertDeliveryContractPayloadSize(
-    value,
-    "Delivery provider configuration validation result",
-  );
+  assertDeliveryContractPayloadSize(value, "Delivery provider configuration validation result");
   return DeliveryProviderConfigurationValidationExchangeSchema.parse({
     request,
     result: value,
@@ -1720,23 +1703,24 @@ export function parseDeliveryProviderResolveCustomerInputResult(
   value: unknown,
 ): Delivery.DeliveryProviderResolveCustomerInputResult {
   assertDeliveryContractPayloadSize(value, "Delivery provider customer input result");
-  return DeliveryProviderResolveCustomerInputResultSchema.parse(value) as Delivery.DeliveryProviderResolveCustomerInputResult;
+  return DeliveryProviderResolveCustomerInputResultSchema.parse(
+    value,
+  ) as Delivery.DeliveryProviderResolveCustomerInputResult;
 }
 
 export function parseDeliveryProviderSearchCustomerInputOptionsResult(
   value: unknown,
 ): Delivery.DeliveryProviderSearchCustomerInputOptionsResult {
   assertDeliveryContractPayloadSize(value, "Delivery provider customer input options result");
-  return DeliveryProviderSearchCustomerInputOptionsResultSchema.parse(value) as Delivery.DeliveryProviderSearchCustomerInputOptionsResult;
+  return DeliveryProviderSearchCustomerInputOptionsResultSchema.parse(
+    value,
+  ) as Delivery.DeliveryProviderSearchCustomerInputOptionsResult;
 }
 
 export function parseDeliveryProviderShipmentOperationResult(
   value: unknown,
 ): Delivery.DeliveryProviderShipmentOperationResult {
-  assertDeliveryContractPayloadSize(
-    value,
-    "Delivery provider shipment operation result",
-  );
+  assertDeliveryContractPayloadSize(value, "Delivery provider shipment operation result");
   return DeliveryProviderShipmentOperationResultSchema.parse(
     value,
   ) as Delivery.DeliveryProviderShipmentOperationResult;
@@ -1744,14 +1728,10 @@ export function parseDeliveryProviderShipmentOperationResult(
 
 export function parseDeliveryProviderShipmentExchange(
   request:
-    | Delivery.DeliveryProviderCreateShipmentRequest
-    | Delivery.DeliveryProviderCancelShipmentRequest,
+    Delivery.DeliveryProviderCreateShipmentRequest | Delivery.DeliveryProviderCancelShipmentRequest,
   result: unknown,
 ): Delivery.DeliveryProviderShipmentOperationResult {
-  assertDeliveryContractPayloadSize(
-    result,
-    "Delivery provider shipment operation result",
-  );
+  assertDeliveryContractPayloadSize(result, "Delivery provider shipment operation result");
   return DeliveryProviderShipmentExchangeSchema.parse({ request, result })
     .result as Delivery.DeliveryProviderShipmentOperationResult;
 }
@@ -1759,20 +1739,14 @@ export function parseDeliveryProviderShipmentExchange(
 export function parseDeliveryProviderReconcileShipmentResult(
   value: unknown,
 ): Delivery.DeliveryProviderReconcileShipmentResult {
-  assertDeliveryContractPayloadSize(
-    value,
-    "Delivery provider reconcile result",
-  );
+  assertDeliveryContractPayloadSize(value, "Delivery provider reconcile result");
   return DeliveryProviderReconcileShipmentResultSchema.parse(value);
 }
 
 export function parseCompleteDeliveryProviderOperationParams(
   value: unknown,
 ): Delivery.CompleteDeliveryProviderOperationParams {
-  assertDeliveryContractPayloadSize(
-    value,
-    "Delivery provider operation completion",
-  );
+  assertDeliveryContractPayloadSize(value, "Delivery provider operation completion");
   return CompleteDeliveryProviderOperationParamsSchema.parse(
     value,
   ) as Delivery.CompleteDeliveryProviderOperationParams;

@@ -7,10 +7,7 @@ import {
 } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
 import { AuthProvider } from "../../kernel/Authorizable.js";
-import {
-  getResolverRegistry,
-  type ResolverRegistry,
-} from "./ResolverRegistry.js";
+import { getResolverRegistry, type ResolverRegistry } from "./ResolverRegistry.js";
 
 export abstract class NotificationsType<TValue, TData = unknown>
   extends BaseType<TValue, TData, ServiceContext>

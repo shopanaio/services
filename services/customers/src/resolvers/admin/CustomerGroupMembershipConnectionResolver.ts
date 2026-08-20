@@ -6,9 +6,7 @@ import {
 
 export class CustomerGroupMembershipConnectionResolver extends BaseConnectionResolver<CustomerGroupMembershipConnectionInput> {
   $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel.repository.group.getMembershipConnection(
-      this.$props
-    );
+    return this.$ctx.kernel.repository.group.getMembershipConnection(this.$props);
   }
 
   protected createNodeResolver(nodeId: string) {

@@ -1,8 +1,4 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
@@ -34,10 +30,7 @@ import {
   type ReviewMedia,
   type ReviewRating,
 } from "../models/index.js";
-import type {
-  OptimisticMutationResult,
-  RepositoryConnectionResult,
-} from "../types.js";
+import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const reviewRelayQuery = createRelayQuery(
   createQuery(reviewListView)
@@ -52,7 +45,7 @@ export const reviewRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "review", tieBreaker: "id" }
+  { name: "review", tieBreaker: "id" },
 );
 
 export type ReviewRelayInput = InferRelayInput<typeof reviewRelayQuery>;
@@ -86,12 +79,7 @@ export type ReviewPatch = Partial<
 export type ReviewMediaPatch = Partial<
   Pick<
     NewReviewMedia,
-    | "sortIndex"
-    | "caption"
-    | "status"
-    | "moderationNote"
-    | "moderatedByPrincipalId"
-    | "moderatedAt"
+    "sortIndex" | "caption" | "status" | "moderationNote" | "moderatedByPrincipalId" | "moderatedAt"
   >
 >;
 
@@ -99,7 +87,7 @@ export class ReviewRepository extends BaseRepository {
   constructor(
     db: Database,
     txManager: TransactionManager<Database>,
-    private readonly content: ContentRepository
+    private readonly content: ContentRepository,
   ) {
     super(db, txManager);
   }
@@ -114,17 +102,14 @@ export class ReviewRepository extends BaseRepository {
         and(
           eq(contentItem.storeId, review.storeId),
           eq(contentItem.id, review.id),
-          isNull(contentItem.deletedAt)
-        )
+          isNull(contentItem.deletedAt),
+        ),
       )
       .where(and(eq(review.storeId, this.storeId), eq(review.id, id)))
       .limit(1);
     const row = rows[0];
     if (!row) return null;
-    const [ratings, media] = await Promise.all([
-      this.getRatings(id),
-      this.getMedia(id),
-    ]);
+    const [ratings, media] = await Promise.all([this.getRatings(id), this.getMedia(id)]);
     return { ...row, ratings, media };
   }
 
@@ -136,32 +121,20 @@ export class ReviewRepository extends BaseRepository {
       .from(review)
       .innerJoin(
         contentItem,
-        and(
-          eq(contentItem.storeId, review.storeId),
-          eq(contentItem.id, review.id)
-        )
+        and(eq(contentItem.storeId, review.storeId), eq(contentItem.id, review.id)),
       )
-      .where(
-        and(
-          eq(review.storeId, this.storeId),
-          inArray(review.id, [...new Set(ids)])
-        )
-      )
+      .where(and(eq(review.storeId, this.storeId), inArray(review.id, [...new Set(ids)])))
       .then((rows) => rows.map((row) => row.review));
   }
 
   @ReadOnly()
-  async getConnection(
-    args: ReviewConnectionInput
-  ): Promise<RepositoryConnectionResult> {
+  async getConnection(args: ReviewConnectionInput): Promise<RepositoryConnectionResult> {
     const { where, orderBy, meta, ...pagination } = args;
     const mergedWhere: ReviewRelayInput["where"] = {
       _and: [
         { storeId: { _eq: this.storeId } },
         ...(meta?.includeDeleted ? [] : [{ deletedAt: { _is: null } }]),
-        ...(meta?.includeRedacted === false
-          ? [{ redactedAt: { _is: null } }]
-          : []),
+        ...(meta?.includeRedacted === false ? [{ redactedAt: { _is: null } }] : []),
         ...(where ? [where] : []),
       ],
     };
@@ -191,17 +164,24 @@ export class ReviewRepository extends BaseRepository {
   async create(input: {
     content: Omit<
       NewContentItem,
-      "id" | "storeId" | "kind" | "revision" | "createdAt" | "updatedAt" | "deletedAt" | "redactedAt"
+      | "id"
+      | "storeId"
+      | "kind"
+      | "revision"
+      | "createdAt"
+      | "updatedAt"
+      | "deletedAt"
+      | "redactedAt"
     >;
     review: Omit<NewReview, "id" | "contentKind" | "storeId">;
     ratings?: readonly Omit<NewReviewRating, "storeId" | "reviewId" | "createdAt" | "updatedAt">[];
-    media?: readonly Omit<NewReviewMedia, "id" | "storeId" | "reviewId" | "createdAt" | "updatedAt">[];
+    media?: readonly Omit<
+      NewReviewMedia,
+      "id" | "storeId" | "reviewId" | "createdAt" | "updatedAt"
+    >[];
   }): Promise<ReviewAggregate> {
     const id = await this.generateUuidV7();
-    const content = await this.content.create(
-      { ...input.content, kind: "REVIEW" },
-      id
-    );
+    const content = await this.content.create({ ...input.content, kind: "REVIEW" }, id);
     const rows = await this.connection
       .insert(review)
       .values({ ...input.review, id, contentKind: "REVIEW", storeId: this.storeId })
@@ -230,19 +210,12 @@ export class ReviewRepository extends BaseRepository {
     return this.connection
       .select()
       .from(reviewRating)
-      .where(
-        and(
-          eq(reviewRating.storeId, this.storeId),
-          eq(reviewRating.reviewId, reviewId)
-        )
-      )
+      .where(and(eq(reviewRating.storeId, this.storeId), eq(reviewRating.reviewId, reviewId)))
       .orderBy(asc(reviewRating.criterionId));
   }
 
   @ReadOnly()
-  async getRatingsByReviewIds(
-    reviewIds: readonly string[]
-  ): Promise<ReviewRating[]> {
+  async getRatingsByReviewIds(reviewIds: readonly string[]): Promise<ReviewRating[]> {
     if (reviewIds.length === 0) return [];
     return this.connection
       .select()
@@ -250,8 +223,8 @@ export class ReviewRepository extends BaseRepository {
       .where(
         and(
           eq(reviewRating.storeId, this.storeId),
-          inArray(reviewRating.reviewId, [...new Set(reviewIds)])
-        )
+          inArray(reviewRating.reviewId, [...new Set(reviewIds)]),
+        ),
       )
       .orderBy(asc(reviewRating.reviewId), asc(reviewRating.criterionId));
   }
@@ -259,19 +232,11 @@ export class ReviewRepository extends BaseRepository {
   @Transactional()
   async replaceRatings(
     reviewId: string,
-    items: readonly Omit<
-      NewReviewRating,
-      "storeId" | "reviewId" | "createdAt" | "updatedAt"
-    >[]
+    items: readonly Omit<NewReviewRating, "storeId" | "reviewId" | "createdAt" | "updatedAt">[],
   ): Promise<ReviewRating[]> {
     await this.connection
       .delete(reviewRating)
-      .where(
-        and(
-          eq(reviewRating.storeId, this.storeId),
-          eq(reviewRating.reviewId, reviewId)
-        )
-      );
+      .where(and(eq(reviewRating.storeId, this.storeId), eq(reviewRating.reviewId, reviewId)));
     if (items.length === 0) return [];
     const now = new Date().toISOString();
     return this.connection
@@ -283,7 +248,7 @@ export class ReviewRepository extends BaseRepository {
           reviewId,
           createdAt: now,
           updatedAt: now,
-        }))
+        })),
       )
       .returning();
   }
@@ -293,19 +258,12 @@ export class ReviewRepository extends BaseRepository {
     return this.connection
       .select()
       .from(reviewMedia)
-      .where(
-        and(
-          eq(reviewMedia.storeId, this.storeId),
-          eq(reviewMedia.reviewId, reviewId)
-        )
-      )
+      .where(and(eq(reviewMedia.storeId, this.storeId), eq(reviewMedia.reviewId, reviewId)))
       .orderBy(asc(reviewMedia.sortIndex), asc(reviewMedia.id));
   }
 
   @ReadOnly()
-  async getMediaByReviewIds(
-    reviewIds: readonly string[]
-  ): Promise<ReviewMedia[]> {
+  async getMediaByReviewIds(reviewIds: readonly string[]): Promise<ReviewMedia[]> {
     if (reviewIds.length === 0) return [];
     return this.connection
       .select()
@@ -313,14 +271,10 @@ export class ReviewRepository extends BaseRepository {
       .where(
         and(
           eq(reviewMedia.storeId, this.storeId),
-          inArray(reviewMedia.reviewId, [...new Set(reviewIds)])
-        )
+          inArray(reviewMedia.reviewId, [...new Set(reviewIds)]),
+        ),
       )
-      .orderBy(
-        asc(reviewMedia.reviewId),
-        asc(reviewMedia.sortIndex),
-        asc(reviewMedia.id)
-      );
+      .orderBy(asc(reviewMedia.reviewId), asc(reviewMedia.sortIndex), asc(reviewMedia.id));
   }
 
   @ReadOnly()
@@ -330,10 +284,7 @@ export class ReviewRepository extends BaseRepository {
       .select()
       .from(reviewMedia)
       .where(
-        and(
-          eq(reviewMedia.storeId, this.storeId),
-          inArray(reviewMedia.id, [...new Set(ids)])
-        )
+        and(eq(reviewMedia.storeId, this.storeId), inArray(reviewMedia.id, [...new Set(ids)])),
       );
   }
 
@@ -343,16 +294,11 @@ export class ReviewRepository extends BaseRepository {
     items: readonly Omit<
       NewReviewMedia,
       "id" | "storeId" | "reviewId" | "createdAt" | "updatedAt"
-    >[]
+    >[],
   ): Promise<ReviewMedia[]> {
     await this.connection
       .delete(reviewMedia)
-      .where(
-        and(
-          eq(reviewMedia.storeId, this.storeId),
-          eq(reviewMedia.reviewId, reviewId)
-        )
-      );
+      .where(and(eq(reviewMedia.storeId, this.storeId), eq(reviewMedia.reviewId, reviewId)));
     if (items.length === 0) return [];
     const ids = await this.generateUuidV7s(items.length);
     const now = new Date().toISOString();
@@ -366,7 +312,7 @@ export class ReviewRepository extends BaseRepository {
           reviewId,
           createdAt: now,
           updatedAt: now,
-        }))
+        })),
       )
       .returning();
   }
@@ -375,7 +321,7 @@ export class ReviewRepository extends BaseRepository {
   async updateMedia(
     id: string,
     expectedUpdatedAt: string,
-    patch: ReviewMediaPatch
+    patch: ReviewMediaPatch,
   ): Promise<OptimisticMutationResult<ReviewMedia>> {
     const rows = await this.connection
       .update(reviewMedia)
@@ -384,15 +330,13 @@ export class ReviewRepository extends BaseRepository {
         and(
           eq(reviewMedia.storeId, this.storeId),
           eq(reviewMedia.id, id),
-          eq(reviewMedia.updatedAt, expectedUpdatedAt)
-        )
+          eq(reviewMedia.updatedAt, expectedUpdatedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findMediaById(id);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
   @ReadOnly()
@@ -400,12 +344,7 @@ export class ReviewRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(reviewMedia)
-      .where(
-        and(
-          eq(reviewMedia.storeId, this.storeId),
-          eq(reviewMedia.id, id)
-        )
-      )
+      .where(and(eq(reviewMedia.storeId, this.storeId), eq(reviewMedia.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }

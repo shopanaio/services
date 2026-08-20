@@ -62,7 +62,9 @@ export function mapManualRecommendation(row: ManualProductRecommendation) {
 
 export class RecommendationQueryResolver extends ListingType<Record<string, never>> {
   async policy(args: { placement: RecommendationPlacement }) {
-    const row = await this.$ctx.kernel.repository.recommendationPlacementPolicy.findByPlacement(args.placement);
+    const row = await this.$ctx.kernel.repository.recommendationPlacementPolicy.findByPlacement(
+      args.placement,
+    );
     return row ? mapRecommendationPolicy(row) : null;
   }
 
@@ -82,9 +84,7 @@ export class RecommendationQueryResolver extends ListingType<Record<string, neve
     if (!Number.isSafeInteger(first) || first < 1 || first > 100) {
       throw new Error("first must be an integer from 1 to 100");
     }
-    const afterId = args.after
-      ? Buffer.from(args.after, "base64url").toString("utf8")
-      : undefined;
+    const afterId = args.after ? Buffer.from(args.after, "base64url").toString("utf8") : undefined;
     if (
       afterId !== undefined &&
       !/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(afterId)
@@ -113,63 +113,86 @@ export class RecommendationQueryResolver extends ListingType<Record<string, neve
     };
   }
 
-  async preview(args: { input: {
-    anchorProductId: string;
-    placement: RecommendationPlacement;
-    policy?: RecommendationSnapshotPreviewParams["policy"] | null;
-    manualChanges: Array<{
-      create?: Record<string, unknown> & { targetProductId: string } | null;
-      update?: Record<string, unknown> & { id: string; targetProductId?: string | null } | null;
-      delete?: { id: string; expectedVersion: number } | null;
-    }>;
-  } }) {
+  async preview(args: {
+    input: {
+      anchorProductId: string;
+      placement: RecommendationPlacement;
+      policy?: RecommendationSnapshotPreviewParams["policy"] | null;
+      manualChanges: Array<{
+        create?: (Record<string, unknown> & { targetProductId: string }) | null;
+        update?: (Record<string, unknown> & { id: string; targetProductId?: string | null }) | null;
+        delete?: { id: string; expectedVersion: number } | null;
+      }>;
+    };
+  }) {
     const userErrors: Array<{ message: string; field?: string[]; code?: string }> = [];
     const changes: RecommendationSnapshotPreviewParams["manualChanges"] = [];
     for (const [index, change] of args.input.manualChanges.entries()) {
-      const operations = [change.create, change.update, change.delete].filter((value) => value != null);
+      const operations = [change.create, change.update, change.delete].filter(
+        (value) => value != null,
+      );
       if (operations.length !== 1) {
-        userErrors.push({ message: "Draft change must contain exactly one operation", field: ["input", "manualChanges", String(index)], code: "INVALID_DRAFT_CHANGE" });
+        userErrors.push({
+          message: "Draft change must contain exactly one operation",
+          field: ["input", "manualChanges", String(index)],
+          code: "INVALID_DRAFT_CHANGE",
+        });
         continue;
       }
       if (change.create) {
-        changes.push({ kind: "create", value: {
-          targetProductId: decodeGlobalIdByType(change.create.targetProductId, GlobalIdEntity.Product),
-          action: change.create.action as "PIN" | "BOOST" | "EXCLUDE",
-          position: (change.create.position as number | null | undefined) ?? null,
-          boost: (change.create.boost as string | null | undefined) ?? null,
-          enabled: change.create.enabled as boolean,
-          startsAt: (change.create.startsAt as string | null | undefined) ?? null,
-          endsAt: (change.create.endsAt as string | null | undefined) ?? null,
-        } });
+        changes.push({
+          kind: "create",
+          value: {
+            targetProductId: decodeGlobalIdByType(
+              change.create.targetProductId,
+              GlobalIdEntity.Product,
+            ),
+            action: change.create.action as "PIN" | "BOOST" | "EXCLUDE",
+            position: (change.create.position as number | null | undefined) ?? null,
+            boost: (change.create.boost as string | null | undefined) ?? null,
+            enabled: change.create.enabled as boolean,
+            startsAt: (change.create.startsAt as string | null | undefined) ?? null,
+            endsAt: (change.create.endsAt as string | null | undefined) ?? null,
+          },
+        });
       } else if (change.update) {
         const { id, targetProductId, ...values } = change.update;
-        changes.push({ kind: "update", value: {
-          ...values,
-          id: decodeGlobalIdByType(id, GlobalIdEntity.ManualProductRecommendation),
-          expectedVersion: change.update.expectedVersion as number,
-          ...(targetProductId === undefined ? {} : {
-            targetProductId: targetProductId === null
-              ? undefined
-              : decodeGlobalIdByType(targetProductId, GlobalIdEntity.Product),
-          }),
-        } });
+        changes.push({
+          kind: "update",
+          value: {
+            ...values,
+            id: decodeGlobalIdByType(id, GlobalIdEntity.ManualProductRecommendation),
+            expectedVersion: change.update.expectedVersion as number,
+            ...(targetProductId === undefined
+              ? {}
+              : {
+                  targetProductId:
+                    targetProductId === null
+                      ? undefined
+                      : decodeGlobalIdByType(targetProductId, GlobalIdEntity.Product),
+                }),
+          },
+        });
       } else if (change.delete) {
-        changes.push({ kind: "delete", value: {
-          id: decodeGlobalIdByType(change.delete.id, GlobalIdEntity.ManualProductRecommendation),
-          expectedVersion: change.delete.expectedVersion,
-        } });
+        changes.push({
+          kind: "delete",
+          value: {
+            id: decodeGlobalIdByType(change.delete.id, GlobalIdEntity.ManualProductRecommendation),
+            expectedVersion: change.delete.expectedVersion,
+          },
+        });
       }
     }
     if (userErrors.length > 0) return { active: null, draft: null, userErrors };
-    const result = await this.$ctx.kernel.runScript<RecommendationSnapshotPreviewParams, RecommendationSnapshotPreviewResult>(
-      RecommendationSnapshotPreviewScript,
-      {
-        anchorProductId: decodeGlobalIdByType(args.input.anchorProductId, GlobalIdEntity.Product),
-        placement: args.input.placement,
-        policy: args.input.policy,
-        manualChanges: changes,
-      },
-    );
+    const result = await this.$ctx.kernel.runScript<
+      RecommendationSnapshotPreviewParams,
+      RecommendationSnapshotPreviewResult
+    >(RecommendationSnapshotPreviewScript, {
+      anchorProductId: decodeGlobalIdByType(args.input.anchorProductId, GlobalIdEntity.Product),
+      placement: args.input.placement,
+      policy: args.input.policy,
+      manualChanges: changes,
+    });
     return {
       active: result.active ? mapPreviewResult(result.active) : null,
       draft: result.draft ? mapPreviewResult(result.draft) : null,
@@ -207,44 +230,75 @@ export class RecommendationMutationResolver extends ListingType<Record<string, n
     ) as Promise<TResult>;
   }
 
-  async policyUpsert(args: { input: {
-    placement: RecommendationPlacement;
-    strategy: "CURATED_ONLY" | "CURATED_FIRST" | "BLENDED" | "AUTOMATED_ONLY";
-    minimumResults: number;
-    maximumResults: number;
-    fallbackChain: string[];
-    expectedVersion?: number | null;
-  } }) {
-    const result = await this.run<RecommendationPolicyResult>("recommendationPolicyUpsert", args.input);
-    return { policy: result.policy ? mapRecommendationPolicy(result.policy) : null, userErrors: result.userErrors };
+  async policyUpsert(args: {
+    input: {
+      placement: RecommendationPlacement;
+      strategy: "CURATED_ONLY" | "CURATED_FIRST" | "BLENDED" | "AUTOMATED_ONLY";
+      minimumResults: number;
+      maximumResults: number;
+      fallbackChain: string[];
+      expectedVersion?: number | null;
+    };
+  }) {
+    const result = await this.run<RecommendationPolicyResult>(
+      "recommendationPolicyUpsert",
+      args.input,
+    );
+    return {
+      policy: result.policy ? mapRecommendationPolicy(result.policy) : null,
+      userErrors: result.userErrors,
+    };
   }
 
-  async policySetEnabled(args: { input: { placement: RecommendationPlacement; enabled: boolean; expectedVersion: number } }) {
-    const result = await this.run<RecommendationPolicyResult>("recommendationPolicySetEnabled", args.input);
-    return { policy: result.policy ? mapRecommendationPolicy(result.policy) : null, userErrors: result.userErrors };
+  async policySetEnabled(args: {
+    input: { placement: RecommendationPlacement; enabled: boolean; expectedVersion: number };
+  }) {
+    const result = await this.run<RecommendationPolicyResult>(
+      "recommendationPolicySetEnabled",
+      args.input,
+    );
+    return {
+      policy: result.policy ? mapRecommendationPolicy(result.policy) : null,
+      userErrors: result.userErrors,
+    };
   }
 
-  async manualCreate(args: { input: Record<string, unknown> & { anchorProductId: string; targetProductId: string } }) {
+  async manualCreate(args: {
+    input: Record<string, unknown> & { anchorProductId: string; targetProductId: string };
+  }) {
     const params = {
       ...args.input,
       anchorProductId: decodeGlobalIdByType(args.input.anchorProductId, GlobalIdEntity.Product),
       targetProductId: decodeGlobalIdByType(args.input.targetProductId, GlobalIdEntity.Product),
     };
     const result = await this.run<ManualRecommendationResult>("manualRecommendationCreate", params);
-    return { recommendation: result.recommendation ? mapManualRecommendation(result.recommendation) : null, userErrors: result.userErrors };
+    return {
+      recommendation: result.recommendation ? mapManualRecommendation(result.recommendation) : null,
+      userErrors: result.userErrors,
+    };
   }
 
-  async manualUpdate(args: { input: Record<string, unknown> & { id: string; targetProductId?: string | null } }) {
+  async manualUpdate(args: {
+    input: Record<string, unknown> & { id: string; targetProductId?: string | null };
+  }) {
     const { id, ...patch } = args.input;
     const params = {
       ...patch,
       id: decodeGlobalIdByType(id, GlobalIdEntity.ManualProductRecommendation),
       ...(args.input.targetProductId == null
         ? {}
-        : { targetProductId: decodeGlobalIdByType(args.input.targetProductId, GlobalIdEntity.Product) }),
+        : {
+            targetProductId: decodeGlobalIdByType(
+              args.input.targetProductId,
+              GlobalIdEntity.Product,
+            ),
+          }),
     };
     const result = await this.run<ManualRecommendationResult>("manualRecommendationUpdate", params);
-    return { recommendation: result.recommendation ? mapManualRecommendation(result.recommendation) : null, userErrors: result.userErrors };
+    return {
+      recommendation: result.recommendation ? mapManualRecommendation(result.recommendation) : null,
+      userErrors: result.userErrors,
+    };
   }
 
   async manualDelete(args: { input: { id: string; expectedVersion: number } }) {
@@ -275,7 +329,10 @@ function mapPreviewResult(result: NonNullable<RecommendationSnapshotPreviewResul
         manualPosition: candidate.sourceBreakdown.manual?.position ?? null,
         manualBoost: candidate.sourceBreakdown.manual?.boost ?? null,
         fbtRunId: candidate.sourceBreakdown.fbt?.runId
-          ? encodeGlobalIdByType(candidate.sourceBreakdown.fbt.runId, GlobalIdEntity.RecommendationCalculationRun)
+          ? encodeGlobalIdByType(
+              candidate.sourceBreakdown.fbt.runId,
+              GlobalIdEntity.RecommendationCalculationRun,
+            )
           : null,
         fbtSourceScore: candidate.sourceBreakdown.fbt?.sourceScore ?? null,
         categoryPopularityScore: candidate.sourceBreakdown.categoryPopularity?.score ?? null,

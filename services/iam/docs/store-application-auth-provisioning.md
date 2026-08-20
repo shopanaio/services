@@ -1,13 +1,11 @@
 # Store application auth provisioning
 
-The Customers service owns the lifecycle of each store's service-linked IAM
-application. Its `storeCreated` event handler starts the durable
-`customers.storefrontAuthProvision` workflow, persists the allocated application
-ID in `customers.storefront_auth_configuration`, and calls the trusted
-`iam.createApplication` action with the generic `applicationAuth` bootstrap.
-Customers owns the store ID, storefront URL templates and the decision to create
-the realm. IAM creates the following generic OAuth state in one database
-transaction:
+The Customers service owns the lifecycle of each store's service-linked IAM application. Its
+`storeCreated` event handler starts the durable `customers.storefrontAuthProvision` workflow,
+persists the allocated application ID in `customers.storefront_auth_configuration`, and calls the
+trusted `iam.createApplication` action with the generic `applicationAuth` bootstrap. Customers owns
+the store ID, storefront URL templates and the decision to create the realm. IAM creates the
+following generic OAuth state in one database transaction:
 
 - the application, immutable resource audience and service management row;
 - an auth configuration with open registration, store branding and locale;
@@ -17,17 +15,16 @@ transaction:
   `openid profile email offline_access` scope registry;
 - exact application redirect and post-logout URIs.
 
-The realm is enabled immediately while all sign-in methods initially remain
-disabled. Selecting or removing password, email OTP or social sign-in changes
-only that method and does not toggle the realm.
+The realm is enabled immediately while all sign-in methods initially remain disabled. Selecting or
+removing password, email OTP or social sign-in changes only that method and does not toggle the
+realm.
 
-Store provisioning never accepts OAuth protocol policy, social provider
-credentials, provider scopes or upstream consent configuration. Google and
-Facebook remain tenant-admin configuration performed after store creation.
-Their exact callback URLs are derived by IAM from its canonical public base URL.
+Store provisioning never accepts OAuth protocol policy, social provider credentials, provider scopes
+or upstream consent configuration. Google and Facebook remain tenant-admin configuration performed
+after store creation. Their exact callback URLs are derived by IAM from its canonical public base
+URL.
 
-The Customers service resolves storefront URLs from
-`services.customers.storefront_auth`:
+The Customers service resolves storefront URLs from `services.customers.storefront_auth`:
 
 ```yaml
 storefront_auth:
@@ -36,7 +33,6 @@ storefront_auth:
   post_logout_path: /
 ```
 
-Production templates must resolve to HTTPS. Development may use loopback HTTP.
-Failure to create any preset row rolls back the IAM transaction. The event job
-is retried and the persisted application ID is reused by the durable provisioning
-workflow.
+Production templates must resolve to HTTPS. Development may use loopback HTTP. Failure to create any
+preset row rolls back the IAM transaction. The event job is retried and the persisted application ID
+is reused by the durable provisioning workflow.

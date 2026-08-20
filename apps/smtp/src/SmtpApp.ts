@@ -6,13 +6,8 @@ import type {
   AppUpdateInput,
   ShopanaApp,
 } from "@shopana/app-sdk";
-import type {
-  NotificationDeliveryInput,
-  NotificationDeliveryReceipt,
-} from "@shopana/broker-types";
-import {
-  parseSmtpDeploymentPolicy,
-} from "./configuration.js";
+import type { NotificationDeliveryInput, NotificationDeliveryReceipt } from "@shopana/broker-types";
+import { parseSmtpDeploymentPolicy } from "./configuration.js";
 import {
   SmtpConnectionService,
   SmtpCredentialCrypto,
@@ -59,10 +54,10 @@ export class SmtpApp implements ShopanaApp {
     this.host.broker.register("health", () => ({
       status: "healthy",
     }));
-    this.host.broker.register<
-      NotificationDeliveryInput,
-      NotificationDeliveryReceipt
-    >("deliver", (input) => this.deliver(input));
+    this.host.broker.register<NotificationDeliveryInput, NotificationDeliveryReceipt>(
+      "deliver",
+      (input) => this.deliver(input),
+    );
     this.host.broker.register("getCapabilities", () => ({ channels: ["EMAIL"] }));
   }
 
@@ -94,17 +89,14 @@ export class SmtpApp implements ShopanaApp {
     const scope = this.scope();
     const connection = await this.connections.findActiveSecret(scope);
     if (!connection) {
-      throw Object.assign(
-        new Error("No active SMTP connection is configured"),
-        {
-          code: "SMTP_ACTIVE_CONNECTION_REQUIRED",
-          details: Object.freeze({
-            kind: "CONFIGURATION",
-            safeToRetry: false,
-            acceptedByProvider: false,
-          }),
-        },
-      );
+      throw Object.assign(new Error("No active SMTP connection is configured"), {
+        code: "SMTP_ACTIVE_CONNECTION_REQUIRED",
+        details: Object.freeze({
+          kind: "CONFIGURATION",
+          safeToRetry: false,
+          acceptedByProvider: false,
+        }),
+      });
     }
     const policy = parseSmtpDeploymentPolicy(this.host.config);
     const receipt = await sendEmail(

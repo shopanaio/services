@@ -1,14 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { ADMIN_CONTEXT_HEADER } from "@shopana/shared-context";
-import fastify, {
-  type FastifyInstance,
-  type FastifyRequest,
-} from "fastify";
+import fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import { AppSubgraphRegistry } from "./AppSubgraphRegistry.js";
-import type {
-  AppGraphQLSurface,
-  AppsGraphQLIngressPorts,
-} from "./types.js";
+import type { AppGraphQLSurface, AppsGraphQLIngressPorts } from "./types.js";
 
 const hopByHopHeaders = new Set([
   "connection",
@@ -68,10 +62,7 @@ export class AppsGraphQLIngress {
     this.servers.clear();
   }
 
-  private async startSurface(
-    surface: AppGraphQLSurface,
-    port: number | undefined,
-  ): Promise<void> {
+  private async startSurface(surface: AppGraphQLSurface, port: number | undefined): Promise<void> {
     if (!port) {
       return;
     }
@@ -101,9 +92,7 @@ export class AppsGraphQLIngress {
           reply.header(name, value);
         }
       });
-      return reply
-        .code(response.status)
-        .send(Buffer.from(await response.arrayBuffer()));
+      return reply.code(response.status).send(Buffer.from(await response.arrayBuffer()));
     });
     app.get("/healthz", async () => ({
       status: "ok",
@@ -125,10 +114,9 @@ export class AppsGraphQLIngress {
       const normalizedName = name.toLowerCase();
       if (
         hopByHopHeaders.has(normalizedName) ||
-        !(surface === "admin"
-          ? adminForwardHeaders
-          : storefrontForwardHeaders
-        ).has(normalizedName) ||
+        !(surface === "admin" ? adminForwardHeaders : storefrontForwardHeaders).has(
+          normalizedName,
+        ) ||
         rawValue === undefined
       ) {
         continue;

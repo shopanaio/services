@@ -24,7 +24,7 @@ interface UseOrganizationReturn {
  */
 export function useOrganization(
   name: string,
-  options: UseOrganizationOptions = {}
+  options: UseOrganizationOptions = {},
 ): UseOrganizationReturn {
   const { skip = false } = options;
 

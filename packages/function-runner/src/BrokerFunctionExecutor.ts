@@ -4,10 +4,7 @@ import {
   type CommerceFunctionInvocation,
   type CommerceFunctionJsonValue,
 } from "@shopana/broker-types";
-import {
-  AuthorizationError,
-  type ServiceBroker,
-} from "@shopana/shared-kernel";
+import { AuthorizationError, type ServiceBroker } from "@shopana/shared-kernel";
 import type {
   AppExecutionPlanItem,
   FunctionErrorClass,
@@ -18,17 +15,11 @@ import type {
   FunctionExecutionOutcome,
   FunctionImplementationExecutor,
 } from "./FunctionImplementation.js";
-import {
-  DEFAULT_MAX_ENVELOPE_DEPTH,
-} from "./execution-policy.js";
-import {
-  FunctionEnvelopeError,
-} from "./errors.js";
+import { DEFAULT_MAX_ENVELOPE_DEPTH } from "./execution-policy.js";
+import { FunctionEnvelopeError } from "./errors.js";
 import { canonicalizeEnvelope, measureEnvelope } from "./trace.js";
 
-export class BrokerFunctionExecutor
-  implements FunctionImplementationExecutor
-{
+export class BrokerFunctionExecutor implements FunctionImplementationExecutor {
   constructor(private readonly broker: ServiceBroker) {}
 
   async execute<TInput>(
@@ -44,8 +35,7 @@ export class BrokerFunctionExecutor
       inputMeasurement = measureEnvelope(
         inputEnvelope,
         context.definition.maxInputBytes,
-        context.definition.maxEnvelopeDepth ??
-          DEFAULT_MAX_ENVELOPE_DEPTH,
+        context.definition.maxEnvelopeDepth ?? DEFAULT_MAX_ENVELOPE_DEPTH,
         "input",
       );
     } catch (error) {
@@ -54,9 +44,7 @@ export class BrokerFunctionExecutor
         startedAt,
         startedMs,
         "IMPLEMENTATION_EXCEPTION",
-        error instanceof FunctionEnvelopeError
-          ? error.code
-          : "FUNCTION_INPUT_INVALID",
+        error instanceof FunctionEnvelopeError ? error.code : "FUNCTION_INPUT_INVALID",
         0,
       );
     }
@@ -107,15 +95,13 @@ export class BrokerFunctionExecutor
       actualRoute = result.actualRoute;
       const outputData = canonicalizeEnvelope(
         result.data,
-        context.definition.maxEnvelopeDepth ??
-          DEFAULT_MAX_ENVELOPE_DEPTH,
+        context.definition.maxEnvelopeDepth ?? DEFAULT_MAX_ENVELOPE_DEPTH,
         "output",
       );
       const output = measureEnvelope(
         outputData,
         context.definition.maxOutputBytes,
-        context.definition.maxEnvelopeDepth ??
-          DEFAULT_MAX_ENVELOPE_DEPTH,
+        context.definition.maxEnvelopeDepth ?? DEFAULT_MAX_ENVELOPE_DEPTH,
         "output",
       );
       const endedMs = Date.now();
@@ -146,9 +132,7 @@ export class BrokerFunctionExecutor
           ...(actualRoute ?? {}),
           status: "SUCCEEDED",
           outputBytes: output.bytes,
-          ...(context.definition.tracePolicy?.outputDigest
-            ? { outputDigest: output.digest }
-            : {}),
+          ...(context.definition.tracePolicy?.outputDigest ? { outputDigest: output.digest } : {}),
           deadlineExceeded: false,
         }),
       };
@@ -172,20 +156,11 @@ export class BrokerFunctionExecutor
     envelope: CommerceFunctionInvocation,
   ): Promise<InvocationResult> {
     if (context.item.implementationType === "NATIVE") {
-      if (
-        this.broker.getActionMetadata(
-          context.item.nativeAction,
-        )?.readOnly !== true
-      ) {
-        throw new NativeFunctionActionPolicyError(
-          context.item.nativeAction,
-        );
+      if (this.broker.getActionMetadata(context.item.nativeAction)?.readOnly !== true) {
+        throw new NativeFunctionActionPolicyError(context.item.nativeAction);
       }
       return {
-        data: await this.broker.call(
-          context.item.nativeAction,
-          envelope,
-        ),
+        data: await this.broker.call(context.item.nativeAction, envelope),
       };
     }
     const item = context.item;
@@ -222,47 +197,30 @@ interface InvocationResult {
   readonly data: unknown;
   readonly actualRoute?: Pick<
     FunctionImplementationTrace,
-    | "installationId"
-    | "capabilityRouteId"
-    | "appCode"
-    | "appVersion"
-    | "routeRevision"
+    "installationId" | "capabilityRouteId" | "appCode" | "appVersion" | "routeRevision"
   >;
 }
 
 function invocationEnvelope<TInput>(
   context: FunctionExecutionContext<TInput>,
 ): CommerceFunctionInvocation {
-  const maxDepth =
-    context.definition.maxEnvelopeDepth ??
-    DEFAULT_MAX_ENVELOPE_DEPTH;
+  const maxDepth = context.definition.maxEnvelopeDepth ?? DEFAULT_MAX_ENVELOPE_DEPTH;
   return {
     target: context.target,
     executionId: context.executionId,
-    functionBindingId:
-      context.item.functionBindingId ??
-      context.item.implementationId,
+    functionBindingId: context.item.functionBindingId ?? context.item.implementationId,
     deadlineAt: context.deadlineAt,
-    ...(context.correlationId
-      ? { correlationId: context.correlationId }
-      : {}),
+    ...(context.correlationId ? { correlationId: context.correlationId } : {}),
     configurationSnapshot: canonicalizeEnvelope(
       context.item.configurationSnapshot,
       maxDepth,
       "input",
     ),
-    input: canonicalizeEnvelope(
-      context.input,
-      maxDepth,
-      "input",
-    ) as CommerceFunctionJsonValue,
+    input: canonicalizeEnvelope(context.input, maxDepth, "input") as CommerceFunctionJsonValue,
   };
 }
 
-async function untilDeadline<T>(
-  promise: Promise<T>,
-  deadlineMs: number,
-): Promise<T> {
+async function untilDeadline<T>(promise: Promise<T>, deadlineMs: number): Promise<T> {
   const remaining = deadlineMs - Date.now();
   if (remaining <= 0) {
     throw new DeadlineExceededError();
@@ -314,10 +272,7 @@ function classifyError(error: unknown): {
       code: error.code,
     };
   }
-  if (
-    error instanceof FunctionEnvelopeError &&
-    error.code === "FUNCTION_OUTPUT_SIZE_LIMIT"
-  ) {
+  if (error instanceof FunctionEnvelopeError && error.code === "FUNCTION_OUTPUT_SIZE_LIMIT") {
     return {
       errorClass: "OUTPUT_SIZE_LIMIT",
       code: error.code,
@@ -343,20 +298,14 @@ function classifyError(error: unknown): {
   };
 }
 
-function hasAuthorizationError(
-  error: unknown,
-  depth = 0,
-): boolean {
+function hasAuthorizationError(error: unknown, depth = 0): boolean {
   if (depth > 8 || !error || typeof error !== "object") {
     return false;
   }
   const candidate = error as {
     readonly cause?: unknown;
   };
-  return (
-    error instanceof AuthorizationError ||
-    hasAuthorizationError(candidate.cause, depth + 1)
-  );
+  return error instanceof AuthorizationError || hasAuthorizationError(candidate.cause, depth + 1);
 }
 
 function stableCapabilityFailure(
@@ -451,17 +400,9 @@ function failure<TInput>(
     ok: false,
     errorClass,
     trace: Object.freeze({
-      ...baseTrace(
-        context,
-        startedAt,
-        startedMs,
-        endedMs,
-        inputBytes,
-        inputDigest,
-      ),
+      ...baseTrace(context, startedAt, startedMs, endedMs, inputBytes, inputDigest),
       ...(actualRoute ?? {}),
-      status:
-        errorClass === "DEADLINE_EXCEEDED" ? "TIMED_OUT" : "FAILED",
+      status: errorClass === "DEADLINE_EXCEEDED" ? "TIMED_OUT" : "FAILED",
       deadlineExceeded: errorClass === "DEADLINE_EXCEEDED",
       errorClass,
       errorCode,
@@ -469,9 +410,7 @@ function failure<TInput>(
   };
 }
 
-function routeFromError(
-  error: unknown,
-): InvocationResult["actualRoute"] | undefined {
+function routeFromError(error: unknown): InvocationResult["actualRoute"] | undefined {
   if (!error || typeof error !== "object") return undefined;
   const candidate = error as Record<string, unknown>;
   if (
@@ -499,10 +438,7 @@ function baseTrace<TInput>(
   endedMs: number,
   inputBytes: number,
   inputDigest?: string,
-): Omit<
-  FunctionImplementationTrace,
-  "status" | "deadlineExceeded"
-> {
+): Omit<FunctionImplementationTrace, "status" | "deadlineExceeded"> {
   const item = context.item;
   return {
     planIndex: context.planIndex,
@@ -516,19 +452,12 @@ function baseTrace<TInput>(
           installationId: item.installationId,
           ...(item.capabilityRouteId
             ? {
-                plannedCapabilityRouteId:
-                  item.capabilityRouteId,
+                plannedCapabilityRouteId: item.capabilityRouteId,
               }
             : {}),
-          ...(item.appCode
-            ? { plannedAppCode: item.appCode }
-            : {}),
-          ...(item.appVersion
-            ? { plannedAppVersion: item.appVersion }
-            : {}),
-          ...(item.routeRevision
-            ? { plannedRouteRevision: item.routeRevision }
-            : {}),
+          ...(item.appCode ? { plannedAppCode: item.appCode } : {}),
+          ...(item.appVersion ? { plannedAppVersion: item.appVersion } : {}),
+          ...(item.routeRevision ? { plannedRouteRevision: item.routeRevision } : {}),
         }),
     configurationRevision: item.configurationRevision,
     precedence: item.precedence,
@@ -538,8 +467,6 @@ function baseTrace<TInput>(
     endedAt: new Date(endedMs).toISOString(),
     durationMs: Math.max(0, endedMs - startedMs),
     inputBytes,
-    ...(context.definition.tracePolicy?.inputDigest && inputDigest
-      ? { inputDigest }
-      : {}),
+    ...(context.definition.tracePolicy?.inputDigest && inputDigest ? { inputDigest } : {}),
   };
 }

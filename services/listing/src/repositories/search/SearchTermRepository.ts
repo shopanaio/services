@@ -6,11 +6,7 @@ import {
   type NewSearchTermDictionary,
   type SearchTermDictionary,
 } from "../models/index.js";
-import {
-  assertNonEmpty,
-  chunk,
-  type SearchTermInput,
-} from "./searchRepositoryTypes.js";
+import { assertNonEmpty, chunk, type SearchTermInput } from "./searchRepositoryTypes.js";
 
 export class SearchTermRepository extends BaseRepository {
   @ReadOnly()
@@ -47,12 +43,13 @@ export class SearchTermRepository extends BaseRepository {
   @ReadOnly()
   async count(locale?: string): Promise<number> {
     if (locale !== undefined) assertNonEmpty(locale, "locale");
-    const scope = locale !== undefined
-      ? and(
-          eq(searchTermDictionary.storeId, this.storeId),
-          eq(searchTermDictionary.locale, locale),
-        )
-      : eq(searchTermDictionary.storeId, this.storeId);
+    const scope =
+      locale !== undefined
+        ? and(
+            eq(searchTermDictionary.storeId, this.storeId),
+            eq(searchTermDictionary.locale, locale),
+          )
+        : eq(searchTermDictionary.storeId, this.storeId);
     const rows = await this.connection
       .select({ value: count() })
       .from(searchTermDictionary)
@@ -61,9 +58,7 @@ export class SearchTermRepository extends BaseRepository {
   }
 
   @Transactional()
-  async upsertMany(
-    inputs: readonly SearchTermInput[],
-  ): Promise<SearchTermDictionary[]> {
+  async upsertMany(inputs: readonly SearchTermInput[]): Promise<SearchTermDictionary[]> {
     if (inputs.length === 0) return [];
 
     const uniqueInputs = [
@@ -72,8 +67,7 @@ export class SearchTermRepository extends BaseRepository {
       ).values(),
     ].sort(
       (left, right) =>
-        left.locale.localeCompare(right.locale) ||
-        left.term.localeCompare(right.term),
+        left.locale.localeCompare(right.locale) || left.term.localeCompare(right.term),
     );
 
     for (const batch of chunk(uniqueInputs)) {
@@ -128,9 +122,7 @@ export class SearchTermRepository extends BaseRepository {
         );
       }
     }
-    const byKey = new Map(
-      rows.map((row) => [JSON.stringify([row.locale, row.term]), row]),
-    );
+    const byKey = new Map(rows.map((row) => [JSON.stringify([row.locale, row.term]), row]));
     return inputs.map((input) => {
       const row = byKey.get(JSON.stringify([input.locale, input.term]));
       if (!row) {
@@ -225,5 +217,4 @@ export class SearchTermRepository extends BaseRepository {
     `);
     return (rows as unknown as { term: string }[]).length;
   }
-
 }

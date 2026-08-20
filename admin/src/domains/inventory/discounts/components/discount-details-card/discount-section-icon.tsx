@@ -5,11 +5,7 @@ import { Avatar } from "antd";
 import { createStyles } from "antd-style";
 
 type DiscountSectionIconTone =
-  | "primary"
-  | "primaryBordered"
-  | "primaryOutline"
-  | "neutral"
-  | "warning";
+  "primary" | "primaryBordered" | "primaryOutline" | "neutral" | "warning";
 
 interface DiscountSectionIconProps {
   icon: ReactNode;
@@ -71,12 +67,5 @@ export function DiscountSectionIcon({
 }: DiscountSectionIconProps) {
   const { styles, cx } = useStyles();
 
-  return (
-    <Avatar
-      icon={icon}
-      shape={shape}
-      size={size}
-      className={cx(styles.icon, styles[tone])}
-    />
-  );
+  return <Avatar icon={icon} shape={shape} size={size} className={cx(styles.icon, styles[tone])} />;
 }

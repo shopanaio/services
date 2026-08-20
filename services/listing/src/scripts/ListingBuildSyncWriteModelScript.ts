@@ -6,9 +6,7 @@ import type {
   ListingSyncWriteModelJson,
   ListingSyncWriteModel,
 } from "./listingIndexActionTypes.js";
-import type {
-  ProductSortRowInput,
-} from "../repositories/listing/listingRepositoryTypes.js";
+import type { ProductSortRowInput } from "../repositories/listing/listingRepositoryTypes.js";
 import {
   materializeListingVariantTerms,
   type ListingVariantTerm,
@@ -34,30 +32,23 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
     const knownVariantIds = new Set(item.variants.map((variant) => variant.id));
     for (const facts of item.ruleFacts.variantTerms) {
       if (!knownVariantIds.has(facts.variantId)) {
-        throw new Error(
-          `Rule facts reference unknown variant: ${facts.variantId}`,
-        );
+        throw new Error(`Rule facts reference unknown variant: ${facts.variantId}`);
       }
     }
-    const variantTermsByVariantId: Record<
-      string,
-      readonly ListingVariantTerm[]
-    > = Object.fromEntries(
-      indexableVariants
-        .map((variant) => [variant.id, buildVariantTerms(variant)] as const)
-        .sort(([left], [right]) => String(left).localeCompare(String(right)))
-    );
-    const productAvailable = Object.values(variantTermsByVariantId).some(
-      (terms) =>
-        terms.some(
-          (term) =>
-            term.fieldKey === "criterion.availability" &&
-            term.valueKey === "available"
-        )
+    const variantTermsByVariantId: Record<string, readonly ListingVariantTerm[]> =
+      Object.fromEntries(
+        indexableVariants
+          .map((variant) => [variant.id, buildVariantTerms(variant)] as const)
+          .sort(([left], [right]) => String(left).localeCompare(String(right))),
+      );
+    const productAvailable = Object.values(variantTermsByVariantId).some((terms) =>
+      terms.some(
+        (term) => term.fieldKey === "criterion.availability" && term.valueKey === "available",
+      ),
     );
     const totalStock = indexableVariants.reduce(
       (sum, variant) => sum + (variant.availability.totalQuantity ?? 0),
-      0
+      0,
     );
 
     const writeModelJson: ListingSyncWriteModelJson = {
@@ -109,8 +100,8 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
                   kind: "feature" as const,
                   sourceHandle: term.sourceHandle,
                   valueHandle: term.valueHandle,
-                }
-          )
+                },
+          ),
         ),
       },
       variants: indexableVariants
@@ -137,14 +128,12 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
               }))
               .sort((left, right) => left.currency.localeCompare(right.currency)),
           ])
-          .sort(([left], [right]) => String(left).localeCompare(String(right)))
+          .sort(([left], [right]) => String(left).localeCompare(String(right))),
       ),
       variantTermsByVariantId,
       variantRuleTermValueKeysByVariantId: Object.fromEntries(
         item.ruleFacts.variantTerms
-          .filter(({ variantId }) =>
-            indexableVariants.some((variant) => variant.id === variantId)
-          )
+          .filter(({ variantId }) => indexableVariants.some((variant) => variant.id === variantId))
           .map(({ variantId, terms }) => [
             variantId,
             canonicalCollectionRuleTermKeys(
@@ -153,15 +142,15 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
                 kind: "option" as const,
                 sourceHandle: term.sourceHandle,
                 valueHandle: term.valueHandle,
-              }))
+              })),
             ),
           ])
-          .sort(([left], [right]) => String(left).localeCompare(String(right)))
+          .sort(([left], [right]) => String(left).localeCompare(String(right))),
       ),
       variantProductValueKeysByVariantId: Object.fromEntries(
         indexableVariants
           .map((variant) => [variant.id, [item.id]])
-          .sort(([left], [right]) => String(left).localeCompare(String(right)))
+          .sort(([left], [right]) => String(left).localeCompare(String(right))),
       ),
     };
 
@@ -184,16 +173,14 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
 
 function buildSearchIndex(
   item: ListingPreparedSyncAction["params"]["item"],
-  normalizer: SearchQueryNormalizer
+  normalizer: SearchQueryNormalizer,
 ): ListingSearchIndexProductWriteModel {
   const documentInputs: SearchDocumentElementInput[] = [];
   const seenDocumentKeys = new Set<string>();
   const locales = new Set<string>();
   const variantIds = new Set(item.variants.map((variant) => variant.id));
   const categoryIds = new Set(
-    item.scopes
-      .filter((scope) => scope.scopeType === "category")
-      .map((scope) => scope.categoryId)
+    item.scopes.filter((scope) => scope.scopeType === "category").map((scope) => scope.categoryId),
   );
 
   for (const localeContent of item.searchContent.locales) {
@@ -231,10 +218,7 @@ function buildSearchIndex(
       });
     }
     if (item.searchContent.vendor) {
-      if (
-        item.vendorId &&
-        item.searchContent.vendor.elementId !== item.vendorId
-      ) {
+      if (item.vendorId && item.searchContent.vendor.elementId !== item.vendorId) {
         throw new Error("Vendor search elementId must match product vendorId");
       }
       addSearchDocumentInput({
@@ -289,25 +273,23 @@ function buildSearchIndex(
           normalizationContractVersion: normalized.normalizationContractVersion,
           normalizationProfileRevision: normalized.normalizationProfileRevision,
         };
-      })
+      }),
     )
     .sort(
       (left, right) =>
-        left.locale.localeCompare(right.locale) ||
-        left.elementId.localeCompare(right.elementId)
+        left.locale.localeCompare(right.locale) || left.elementId.localeCompare(right.elementId),
     );
   const terms = [
     ...new Map(
       normalizedElements.flatMap((element) =>
-        element.surfaceTerms.map((term) => [
-          JSON.stringify([element.locale, term]),
-          { locale: element.locale, term },
-        ] as const)
-      )
+        element.surfaceTerms.map(
+          (term) =>
+            [JSON.stringify([element.locale, term]), { locale: element.locale, term }] as const,
+        ),
+      ),
     ).values(),
   ].sort(
-    (left, right) =>
-      left.locale.localeCompare(right.locale) || left.term.localeCompare(right.term)
+    (left, right) => left.locale.localeCompare(right.locale) || left.term.localeCompare(right.term),
   );
 
   return { textElements, identifiers, terms };
@@ -351,7 +333,7 @@ function compareStrings(left: string, right: string): number {
 
 function buildProductSortRows(
   item: ListingPreparedSyncAction["params"]["item"],
-  productAvailable: boolean
+  productAvailable: boolean,
 ): ListingSyncWriteModelJson["productSortRows"] {
   const rows: Omit<ProductSortRowInput, "productDocId">[] = [
     {
@@ -375,9 +357,7 @@ function buildProductSortRows(
     },
   ];
 
-  for (const [locale, translation] of Object.entries(
-    item.content.translations
-  )) {
+  for (const [locale, translation] of Object.entries(item.content.translations)) {
     rows.push({
       productId: item.id,
       sortKind: "name",
@@ -404,33 +384,31 @@ function buildProductSortRows(
       rows.push({
         productId: item.id,
         sortKind: "manual",
-        manualScopeId:
-          scope.scopeType === "category"
-            ? scope.categoryId
-            : scope.collectionId,
+        manualScopeId: scope.scopeType === "category" ? scope.categoryId : scope.collectionId,
         boolValue: productAvailable,
         textValue: scope.manualRank,
       });
     }
   }
 
-  return rows.sort((left, right) =>
-    [
-      left.sortKind.localeCompare(right.sortKind),
-      (left.locale ?? "").localeCompare(right.locale ?? ""),
-      (left.currency ?? "").localeCompare(right.currency ?? ""),
-      (left.manualScopeId ?? "").localeCompare(right.manualScopeId ?? ""),
-    ].find((value) => value !== 0) ?? 0
+  return rows.sort(
+    (left, right) =>
+      [
+        left.sortKind.localeCompare(right.sortKind),
+        (left.locale ?? "").localeCompare(right.locale ?? ""),
+        (left.currency ?? "").localeCompare(right.currency ?? ""),
+        (left.manualScopeId ?? "").localeCompare(right.manualScopeId ?? ""),
+      ].find((value) => value !== 0) ?? 0,
   );
 }
 
 function facetValueKeys(
-  facet: ListingPreparedSyncAction["params"]["item"]["productFacets"][number]
+  facet: ListingPreparedSyncAction["params"]["item"]["productFacets"][number],
 ): string[] {
   return facet.values.map((value) => {
     if (!facet.facet.id || !value.id) {
       throw new Error(
-        `Facet value key requires facet id and value id: facet=${facet.facet.handle}, value=${value.handle}`
+        `Facet value key requires facet id and value id: facet=${facet.facet.handle}, value=${value.handle}`,
       );
     }
 
@@ -439,7 +417,7 @@ function facetValueKeys(
 }
 
 function buildVariantTerms(
-  variant: ListingPreparedSyncAction["params"]["item"]["variants"][number]
+  variant: ListingPreparedSyncAction["params"]["item"]["variants"][number],
 ): ListingVariantTerm[] {
   const availableForSale = variant.availability.availableForSale;
   return materializeListingVariantTerms({
@@ -451,7 +429,7 @@ function buildVariantTerms(
       return facet.values.map((value) => {
         if (!value.id) {
           throw new Error(
-            `Variant OPTION term requires value id: ${facet.facet.handle}:${value.handle}`
+            `Variant OPTION term requires value id: ${facet.facet.handle}:${value.handle}`,
           );
         }
         return { facetId: facet.facet.id!, facetValueId: value.id };
@@ -461,7 +439,7 @@ function buildVariantTerms(
 }
 
 function isIndexableVariant(
-  variant: ListingPreparedSyncAction["params"]["item"]["variants"][number]
+  variant: ListingPreparedSyncAction["params"]["item"]["variants"][number],
 ): boolean {
   return variant.status === "active";
 }

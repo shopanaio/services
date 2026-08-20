@@ -1,10 +1,7 @@
 import type { Customers } from "@shopana/broker-types";
 import { BaseScript } from "../kernel/BaseScript.js";
 import type { CustomersCheckoutEligibilityPort } from "./contracts.js";
-import {
-  compareEligibilityMemberships,
-  createEligibilityRevision,
-} from "./eligibilityRevision.js";
+import { compareEligibilityMemberships, createEligibilityRevision } from "./eligibilityRevision.js";
 
 const MAX_SEGMENT_IDS = 500;
 
@@ -16,13 +13,13 @@ export class ResolveCheckoutBuyerEligibilityScript
   implements CustomersCheckoutEligibilityPort
 {
   resolveBuyerEligibility(
-    params: Customers.ResolveCheckoutBuyerEligibilityParams
+    params: Customers.ResolveCheckoutBuyerEligibilityParams,
   ): Promise<Customers.ResolveCheckoutBuyerEligibilityResult> {
     return this.run(params);
   }
 
   protected async execute(
-    params: Customers.ResolveCheckoutBuyerEligibilityParams
+    params: Customers.ResolveCheckoutBuyerEligibilityParams,
   ): Promise<Customers.ResolveCheckoutBuyerEligibilityResult> {
     const read = await this.repository.checkoutEligibility.resolveBuyerEligibility({
       customerId: params.customerId,
@@ -47,13 +44,9 @@ export class ResolveCheckoutBuyerEligibilityScript
       };
     }
 
-    const memberships = [...read.memberships].sort(
-      compareEligibilityMemberships
-    );
-    const segmentIds = [...new Set(
-      memberships.map((membership) => membership.segmentId)
-    )].sort((left, right) =>
-      left < right ? -1 : left > right ? 1 : 0
+    const memberships = [...read.memberships].sort(compareEligibilityMemberships);
+    const segmentIds = [...new Set(memberships.map((membership) => membership.segmentId))].sort(
+      (left, right) => (left < right ? -1 : left > right ? 1 : 0),
     );
 
     if (segmentIds.length > MAX_SEGMENT_IDS) {
@@ -78,9 +71,7 @@ export class ResolveCheckoutBuyerEligibilityScript
     };
   }
 
-  protected handleError(
-    _error: unknown
-  ): Customers.ResolveCheckoutBuyerEligibilityResult {
+  protected handleError(_error: unknown): Customers.ResolveCheckoutBuyerEligibilityResult {
     return {
       ok: false,
       code: "BUYER_ELIGIBILITY_RESOLUTION_FAILED",

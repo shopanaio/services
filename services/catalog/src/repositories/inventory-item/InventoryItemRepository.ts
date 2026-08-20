@@ -31,7 +31,7 @@ export const inventoryItemAllStockRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "inventoryItem", tieBreaker: "id" }
+  { name: "inventoryItem", tieBreaker: "id" },
 );
 
 export const inventoryItemWarehouseStockRelayQuery = createRelayQuery(
@@ -44,19 +44,15 @@ export const inventoryItemWarehouseStockRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "inventoryItem", tieBreaker: "id" }
+  { name: "inventoryItem", tieBreaker: "id" },
 );
 
-export type InventoryItemListRelayInput = InferRelayInput<
-  typeof inventoryItemAllStockRelayQuery
->;
+export type InventoryItemListRelayInput = InferRelayInput<typeof inventoryItemAllStockRelayQuery>;
 type InventoryItemWarehouseListRelayInput = InferRelayInput<
   typeof inventoryItemWarehouseStockRelayQuery
 >;
 type InventoryItemListWhere = NonNullable<InventoryItemListRelayInput["where"]>;
-type InventoryItemWarehouseListWhere = NonNullable<
-  InventoryItemWarehouseListRelayInput["where"]
->;
+type InventoryItemWarehouseListWhere = NonNullable<InventoryItemWarehouseListRelayInput["where"]>;
 
 export type NormalizedInventoryItemWarehouseScope =
   | { kind: "all" }
@@ -143,10 +139,7 @@ export class InventoryItemRepository extends BaseRepository {
       updatedAt: now,
     };
 
-    const result = await this.connection
-      .insert(inventoryItem)
-      .values(newItem)
-      .returning();
+    const result = await this.connection.insert(inventoryItem).values(newItem).returning();
 
     return result[0];
   }
@@ -158,7 +151,7 @@ export class InventoryItemRepository extends BaseRepository {
       trackInventory?: boolean;
       requiresShipping?: boolean;
       continueSellingWhenOutOfStock?: boolean;
-    }
+    },
   ): Promise<InventoryItem | null> {
     const updateData: Partial<NewInventoryItem> = {
       updatedAt: new Date().toISOString(),
@@ -174,12 +167,7 @@ export class InventoryItemRepository extends BaseRepository {
     const result = await this.connection
       .update(inventoryItem)
       .set(updateData)
-      .where(
-        and(
-          eq(inventoryItem.storeId, this.storeId),
-          eq(inventoryItem.id, id)
-        )
-      )
+      .where(and(eq(inventoryItem.storeId, this.storeId), eq(inventoryItem.id, id)))
       .returning();
 
     return result[0] ?? null;
@@ -188,12 +176,7 @@ export class InventoryItemRepository extends BaseRepository {
   async delete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(inventoryItem)
-      .where(
-        and(
-          eq(inventoryItem.storeId, this.storeId),
-          eq(inventoryItem.id, id)
-        )
-      )
+      .where(and(eq(inventoryItem.storeId, this.storeId), eq(inventoryItem.id, id)))
       .returning({ id: inventoryItem.id });
 
     return result.length > 0;
@@ -205,12 +188,7 @@ export class InventoryItemRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(inventoryItem)
-      .where(
-        and(
-          eq(inventoryItem.storeId, this.storeId),
-          eq(inventoryItem.id, id)
-        )
-      )
+      .where(and(eq(inventoryItem.storeId, this.storeId), eq(inventoryItem.id, id)))
       .limit(1);
 
     return result[0] ?? null;
@@ -220,12 +198,7 @@ export class InventoryItemRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(inventoryItem)
-      .where(
-        and(
-          eq(inventoryItem.storeId, this.storeId),
-          eq(inventoryItem.variantId, variantId)
-        )
-      )
+      .where(and(eq(inventoryItem.storeId, this.storeId), eq(inventoryItem.variantId, variantId)))
       .limit(1);
 
     return result[0] ?? null;
@@ -237,25 +210,19 @@ export class InventoryItemRepository extends BaseRepository {
       .from(inventoryItem)
       .innerJoin(
         variant,
-        and(
-          eq(variant.storeId, inventoryItem.storeId),
-          eq(variant.id, inventoryItem.variantId)
-        )
+        and(eq(variant.storeId, inventoryItem.storeId), eq(variant.id, inventoryItem.variantId)),
       )
       .innerJoin(
         product,
-        and(
-          eq(product.storeId, inventoryItem.storeId),
-          eq(product.id, variant.productId)
-        )
+        and(eq(product.storeId, inventoryItem.storeId), eq(product.id, variant.productId)),
       )
       .where(
         and(
           eq(inventoryItem.storeId, this.storeId),
           eq(inventoryItem.id, id),
           isNull(variant.deletedAt),
-          isNull(product.deletedAt)
-        )
+          isNull(product.deletedAt),
+        ),
       )
       .limit(1);
 
@@ -268,25 +235,19 @@ export class InventoryItemRepository extends BaseRepository {
       .from(inventoryItem)
       .innerJoin(
         variant,
-        and(
-          eq(variant.storeId, inventoryItem.storeId),
-          eq(variant.id, inventoryItem.variantId)
-        )
+        and(eq(variant.storeId, inventoryItem.storeId), eq(variant.id, inventoryItem.variantId)),
       )
       .innerJoin(
         product,
-        and(
-          eq(product.storeId, inventoryItem.storeId),
-          eq(product.id, variant.productId)
-        )
+        and(eq(product.storeId, inventoryItem.storeId), eq(product.id, variant.productId)),
       )
       .where(
         and(
           eq(inventoryItem.storeId, this.storeId),
           eq(inventoryItem.variantId, variantId),
           isNull(variant.deletedAt),
-          isNull(product.deletedAt)
-        )
+          isNull(product.deletedAt),
+        ),
       )
       .limit(1);
 
@@ -301,31 +262,23 @@ export class InventoryItemRepository extends BaseRepository {
       .from(inventoryItem)
       .innerJoin(
         variant,
-        and(
-          eq(variant.storeId, inventoryItem.storeId),
-          eq(variant.id, inventoryItem.variantId)
-        )
+        and(eq(variant.storeId, inventoryItem.storeId), eq(variant.id, inventoryItem.variantId)),
       )
       .innerJoin(
         product,
-        and(
-          eq(product.storeId, inventoryItem.storeId),
-          eq(product.id, variant.productId)
-        )
+        and(eq(product.storeId, inventoryItem.storeId), eq(product.id, variant.productId)),
       )
       .where(
         and(
           eq(inventoryItem.storeId, this.storeId),
           inArray(inventoryItem.id, [...ids]),
           isNull(variant.deletedAt),
-          isNull(product.deletedAt)
-        )
+          isNull(product.deletedAt),
+        ),
       );
   }
 
-  async findActiveByVariantIds(
-    variantIds: readonly string[]
-  ): Promise<InventoryItem[]> {
+  async findActiveByVariantIds(variantIds: readonly string[]): Promise<InventoryItem[]> {
     if (variantIds.length === 0) return [];
 
     return this.connection
@@ -333,25 +286,19 @@ export class InventoryItemRepository extends BaseRepository {
       .from(inventoryItem)
       .innerJoin(
         variant,
-        and(
-          eq(variant.storeId, inventoryItem.storeId),
-          eq(variant.id, inventoryItem.variantId)
-        )
+        and(eq(variant.storeId, inventoryItem.storeId), eq(variant.id, inventoryItem.variantId)),
       )
       .innerJoin(
         product,
-        and(
-          eq(product.storeId, inventoryItem.storeId),
-          eq(product.id, variant.productId)
-        )
+        and(eq(product.storeId, inventoryItem.storeId), eq(product.id, variant.productId)),
       )
       .where(
         and(
           eq(inventoryItem.storeId, this.storeId),
           inArray(inventoryItem.variantId, [...variantIds]),
           isNull(variant.deletedAt),
-          isNull(product.deletedAt)
-        )
+          isNull(product.deletedAt),
+        ),
       );
   }
 
@@ -359,12 +306,7 @@ export class InventoryItemRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(inventoryItem)
-      .where(
-        and(
-          eq(inventoryItem.storeId, this.storeId),
-          eq(inventoryItem.sku, sku)
-        )
-      )
+      .where(and(eq(inventoryItem.storeId, this.storeId), eq(inventoryItem.sku, sku)))
       .limit(1);
 
     return result[0] ?? null;
@@ -372,9 +314,7 @@ export class InventoryItemRepository extends BaseRepository {
 
   // ============ Connection ============
 
-  async getConnection(
-    args: InventoryItemConnectionInput
-  ): Promise<InventoryItemConnectionResult> {
+  async getConnection(args: InventoryItemConnectionInput): Promise<InventoryItemConnectionResult> {
     const { where, orderBy, meta, ...paginationArgs } = args;
     const warehouseScope = meta?.warehouseScope ?? { kind: "all" };
 
@@ -398,27 +338,18 @@ export class InventoryItemRepository extends BaseRepository {
     ];
 
     if (warehouseScope.kind === "warehouse") {
-      const warehouseBaseWhere =
-        baseWhere as unknown as InventoryItemWarehouseListWhere[];
+      const warehouseBaseWhere = baseWhere as unknown as InventoryItemWarehouseListWhere[];
       const mergedWhere: InventoryItemWarehouseListWhere = {
-        _and: [
-          ...warehouseBaseWhere,
-          { warehouseScopeId: { _eq: warehouseScope.warehouseId } },
-        ],
+        _and: [...warehouseBaseWhere, { warehouseScopeId: { _eq: warehouseScope.warehouseId } }],
       };
       const executeInput: InventoryItemWarehouseListRelayInput = {
         ...paginationArgs,
         where: mergedWhere,
-        orderBy:
-          (orderBy as InventoryItemWarehouseListRelayInput["orderBy"]) ??
-          defaultOrderBy,
+        orderBy: (orderBy as InventoryItemWarehouseListRelayInput["orderBy"]) ?? defaultOrderBy,
       };
 
       const [result, totalCount] = await Promise.all([
-        inventoryItemWarehouseStockRelayQuery.execute(
-          this.connection,
-          executeInput
-        ),
+        inventoryItemWarehouseStockRelayQuery.execute(this.connection, executeInput),
         inventoryItemWarehouseStockRelayQuery.count(this.connection, {
           where: mergedWhere,
         }),
@@ -468,12 +399,7 @@ export class InventoryItemRepository extends BaseRepository {
     return this.connection
       .select()
       .from(inventoryItem)
-      .where(
-        and(
-          eq(inventoryItem.storeId, this.storeId),
-          inArray(inventoryItem.id, [...ids])
-        )
-      );
+      .where(and(eq(inventoryItem.storeId, this.storeId), inArray(inventoryItem.id, [...ids])));
   }
 
   async findByVariantIds(variantIds: readonly string[]): Promise<InventoryItem[]> {
@@ -485,8 +411,8 @@ export class InventoryItemRepository extends BaseRepository {
       .where(
         and(
           eq(inventoryItem.storeId, this.storeId),
-          inArray(inventoryItem.variantId, [...variantIds])
-        )
+          inArray(inventoryItem.variantId, [...variantIds]),
+        ),
       );
   }
 
@@ -503,7 +429,7 @@ export class InventoryItemRepository extends BaseRepository {
       trackInventory?: boolean;
       requiresShipping: boolean;
       continueSellingWhenOutOfStock?: boolean;
-    }
+    },
   ): Promise<InventoryItem> {
     const existing = await this.findByVariantId(variantId);
 
@@ -517,5 +443,4 @@ export class InventoryItemRepository extends BaseRepository {
       ...data,
     });
   }
-
 }

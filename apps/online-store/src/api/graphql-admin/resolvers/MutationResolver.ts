@@ -58,9 +58,7 @@ export class MutationResolver extends OnlineStoreType<Record<string, never>> {
   }
 }
 
-export class OnlineStoreAppMutationResolver extends OnlineStoreType<
-  Record<string, never>
-> {
+export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<string, never>> {
   pageCreate(args: { readonly input: PageCreateInput }) {
     return this.entityPayload("page", async () => {
       assertNonEmpty(args.input.handle, "handle");
@@ -71,12 +69,11 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
           templateSuffix: args.input.templateSuffix,
           publishedAt: args.input.publish ? now() : null,
         });
-        const translation =
-          await this.$ctx.repository.translation.upsertPageTranslation(
-            this.scope,
-            created.id,
-            this.pageTranslationInput(args.input),
-          );
+        const translation = await this.$ctx.repository.translation.upsertPageTranslation(
+          this.scope,
+          created.id,
+          this.pageTranslationInput(args.input),
+        );
         if (!translation) throw operationError("ONLINE_STORE_PAGE_NOT_FOUND");
         return created;
       });
@@ -90,11 +87,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
     readonly operations: PageUpdateInput;
   }) {
     return this.entityPayload("page", async () => {
-      const pageId = this.requiredId(
-        args.pageId,
-        GlobalIdEntity.OnlineStorePage,
-        "pageId",
-      );
+      const pageId = this.requiredId(args.pageId, GlobalIdEntity.OnlineStorePage, "pageId");
       if (args.operations.handle !== undefined) {
         assertNonEmpty(args.operations.handle, "operations.handle");
       }
@@ -102,29 +95,23 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
         assertNonEmpty(args.operations.title, "operations.title");
       }
       const page = await this.$ctx.repository.runInTransaction(async () => {
-        const existingTranslation =
-          await this.$ctx.repository.translation.findPageTranslation(
-            this.scope,
-            pageId,
-            this.$ctx.locale,
-          );
-        const updated = await this.$ctx.repository.page.update(
+        const existingTranslation = await this.$ctx.repository.translation.findPageTranslation(
           this.scope,
           pageId,
-          {
-            handle: args.operations.handle ?? undefined,
-            ...(hasOwn(args.operations, "templateSuffix")
-              ? { templateSuffix: args.operations.templateSuffix }
-              : {}),
-            ...(args.operations.status
-              ? {
-                  publishedAt:
-                    args.operations.status === "PUBLISHED" ? now() : null,
-                }
-              : {}),
-            expectedRevision: args.expectedRevision ?? undefined,
-          },
+          this.$ctx.locale,
         );
+        const updated = await this.$ctx.repository.page.update(this.scope, pageId, {
+          handle: args.operations.handle ?? undefined,
+          ...(hasOwn(args.operations, "templateSuffix")
+            ? { templateSuffix: args.operations.templateSuffix }
+            : {}),
+          ...(args.operations.status
+            ? {
+                publishedAt: args.operations.status === "PUBLISHED" ? now() : null,
+              }
+            : {}),
+          expectedRevision: args.expectedRevision ?? undefined,
+        });
         if (!updated) {
           throw operationError("ONLINE_STORE_PAGE_REVISION_CONFLICT");
         }
@@ -133,43 +120,42 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
           ? args.operations.title
           : existingTranslation?.title;
         assertNonEmpty(title, "operations.title");
-        const translation =
-          await this.$ctx.repository.translation.upsertPageTranslation(
-            this.scope,
-            pageId,
-            {
-              locale: this.$ctx.locale,
-              title,
-              bodyText: hasOwn(args.operations, "body")
-                ? args.operations.body?.text ?? null
-                : existingTranslation?.bodyText,
-              bodyHtml: hasOwn(args.operations, "body")
-                ? args.operations.body?.html ?? null
-                : existingTranslation?.bodyHtml,
-              bodyJson: hasOwn(args.operations, "body")
-                ? args.operations.body?.json ?? null
-                : existingTranslation?.bodyJson,
-              seoTitle: hasOwn(args.operations, "seo")
-                ? args.operations.seo?.seoTitle ?? null
-                : existingTranslation?.seoTitle,
-              seoDescription: hasOwn(args.operations, "seo")
-                ? args.operations.seo?.seoDescription ?? null
-                : existingTranslation?.seoDescription,
-              ogTitle: hasOwn(args.operations, "seo")
-                ? args.operations.seo?.ogTitle ?? null
-                : existingTranslation?.ogTitle,
-              ogDescription: hasOwn(args.operations, "seo")
-                ? args.operations.seo?.ogDescription ?? null
-                : existingTranslation?.ogDescription,
-              ogImageId: hasOwn(args.operations, "seo")
-                ? this.optionalId(
-                    args.operations.seo?.ogImageId,
-                    GlobalIdEntity.File,
-                    "operations.seo.ogImageId",
-                  ) ?? null
-                : existingTranslation?.ogImageId,
-            },
-          );
+        const translation = await this.$ctx.repository.translation.upsertPageTranslation(
+          this.scope,
+          pageId,
+          {
+            locale: this.$ctx.locale,
+            title,
+            bodyText: hasOwn(args.operations, "body")
+              ? (args.operations.body?.text ?? null)
+              : existingTranslation?.bodyText,
+            bodyHtml: hasOwn(args.operations, "body")
+              ? (args.operations.body?.html ?? null)
+              : existingTranslation?.bodyHtml,
+            bodyJson: hasOwn(args.operations, "body")
+              ? (args.operations.body?.json ?? null)
+              : existingTranslation?.bodyJson,
+            seoTitle: hasOwn(args.operations, "seo")
+              ? (args.operations.seo?.seoTitle ?? null)
+              : existingTranslation?.seoTitle,
+            seoDescription: hasOwn(args.operations, "seo")
+              ? (args.operations.seo?.seoDescription ?? null)
+              : existingTranslation?.seoDescription,
+            ogTitle: hasOwn(args.operations, "seo")
+              ? (args.operations.seo?.ogTitle ?? null)
+              : existingTranslation?.ogTitle,
+            ogDescription: hasOwn(args.operations, "seo")
+              ? (args.operations.seo?.ogDescription ?? null)
+              : existingTranslation?.ogDescription,
+            ogImageId: hasOwn(args.operations, "seo")
+              ? (this.optionalId(
+                  args.operations.seo?.ogImageId,
+                  GlobalIdEntity.File,
+                  "operations.seo.ogImageId",
+                ) ?? null)
+              : existingTranslation?.ogImageId,
+          },
+        );
         if (!translation) throw operationError("ONLINE_STORE_PAGE_NOT_FOUND");
         return updated;
       });
@@ -181,11 +167,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
     readonly input: { readonly id: string; readonly expectedRevision?: number | null };
   }) {
     return this.deletePayload("deletedPageId", async () => {
-      const pageId = this.requiredId(
-        args.input.id,
-        GlobalIdEntity.OnlineStorePage,
-        "input.id",
-      );
+      const pageId = this.requiredId(args.input.id, GlobalIdEntity.OnlineStorePage, "input.id");
       const deleted = await this.$ctx.repository.page.softDelete(
         this.scope,
         pageId,
@@ -202,10 +184,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
     return this.entityPayload("navigationMenu", async () => {
       assertNonEmpty(args.input.handle, "input.handle");
       assertNonEmpty(args.input.name, "input.name");
-      const menu = await this.$ctx.repository.navigationMenu.create(
-        this.scope,
-        args.input,
-      );
+      const menu = await this.$ctx.repository.navigationMenu.create(this.scope, args.input);
       return new NavigationMenuResolver(menu.id, this.$ctx);
     });
   }
@@ -230,15 +209,11 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
       if (args.input.name !== undefined) {
         assertNonEmpty(args.input.name, "input.name");
       }
-      const menu = await this.$ctx.repository.navigationMenu.update(
-        this.scope,
-        menuId,
-        {
-          handle: args.input.handle ?? undefined,
-          name: args.input.name ?? undefined,
-          expectedRevision: args.input.expectedRevision ?? undefined,
-        },
-      );
+      const menu = await this.$ctx.repository.navigationMenu.update(this.scope, menuId, {
+        handle: args.input.handle ?? undefined,
+        name: args.input.name ?? undefined,
+        expectedRevision: args.input.expectedRevision ?? undefined,
+      });
       if (!menu) {
         throw operationError("ONLINE_STORE_NAVIGATION_MENU_REVISION_CONFLICT");
       }
@@ -288,37 +263,32 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
         "input.menuId",
       );
       const item = await this.$ctx.repository.runInTransaction(async () => {
-        const created = await this.$ctx.repository.navigationMenuItem.create(
-          this.scope,
-          menuId,
-          {
-            handle: args.input.handle,
-            parentId: this.optionalId(
-              args.input.parentId,
-              GlobalIdEntity.OnlineStoreNavigationMenuItem,
-              "input.parentId",
-            ),
-            afterItemId: this.optionalId(
-              args.input.afterItemId,
-              GlobalIdEntity.OnlineStoreNavigationMenuItem,
-              "input.afterItemId",
-            ),
-            beforeItemId: this.optionalId(
-              args.input.beforeItemId,
-              GlobalIdEntity.OnlineStoreNavigationMenuItem,
-              "input.beforeItemId",
-            ),
-            target: this.navigationTarget(args.input.target),
-            openInNewTab: args.input.openInNewTab ?? undefined,
-          },
-        );
+        const created = await this.$ctx.repository.navigationMenuItem.create(this.scope, menuId, {
+          handle: args.input.handle,
+          parentId: this.optionalId(
+            args.input.parentId,
+            GlobalIdEntity.OnlineStoreNavigationMenuItem,
+            "input.parentId",
+          ),
+          afterItemId: this.optionalId(
+            args.input.afterItemId,
+            GlobalIdEntity.OnlineStoreNavigationMenuItem,
+            "input.afterItemId",
+          ),
+          beforeItemId: this.optionalId(
+            args.input.beforeItemId,
+            GlobalIdEntity.OnlineStoreNavigationMenuItem,
+            "input.beforeItemId",
+          ),
+          target: this.navigationTarget(args.input.target),
+          openInNewTab: args.input.openInNewTab ?? undefined,
+        });
         if (!created) throw operationError("ONLINE_STORE_NAVIGATION_PARENT_INVALID");
-        const translation =
-          await this.$ctx.repository.translation.upsertMenuItemTranslation(
-            this.scope,
-            created.id,
-            { locale: this.$ctx.locale, label: args.input.label },
-          );
+        const translation = await this.$ctx.repository.translation.upsertMenuItemTranslation(
+          this.scope,
+          created.id,
+          { locale: this.$ctx.locale, label: args.input.label },
+        );
         if (!translation) {
           throw operationError("ONLINE_STORE_NAVIGATION_ITEM_NOT_FOUND");
         }
@@ -357,55 +327,46 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
         throw operationError("NAVIGATION_TARGET_INVALID", "input.target");
       }
       const item = await this.$ctx.repository.runInTransaction(async () => {
-        const updated = await this.$ctx.repository.navigationMenuItem.update(
-          this.scope,
-          itemId,
-          {
-            ...(hasOwn(args.input, "handle")
-              ? { handle: args.input.handle! }
-              : {}),
-            ...(hasOwn(args.input, "parentId")
-              ? {
-                  parentId: this.optionalId(
-                    args.input.parentId,
-                    GlobalIdEntity.OnlineStoreNavigationMenuItem,
-                    "input.parentId",
-                  ),
-                }
-              : {}),
-            afterItemId: this.optionalId(
-              args.input.afterItemId,
-              GlobalIdEntity.OnlineStoreNavigationMenuItem,
-              "input.afterItemId",
-            ),
-            beforeItemId: this.optionalId(
-              args.input.beforeItemId,
-              GlobalIdEntity.OnlineStoreNavigationMenuItem,
-              "input.beforeItemId",
-            ),
-            ...(hasOwn(args.input, "target")
-              ? {
-                  target: args.input.target
-                    ? this.navigationTarget(args.input.target)
-                    : undefined,
-                }
-              : {}),
-            ...(hasOwn(args.input, "openInNewTab")
-              ? { openInNewTab: args.input.openInNewTab ?? false }
-              : {}),
-            expectedRevision: args.input.expectedRevision ?? undefined,
-          },
-        );
+        const updated = await this.$ctx.repository.navigationMenuItem.update(this.scope, itemId, {
+          ...(hasOwn(args.input, "handle") ? { handle: args.input.handle! } : {}),
+          ...(hasOwn(args.input, "parentId")
+            ? {
+                parentId: this.optionalId(
+                  args.input.parentId,
+                  GlobalIdEntity.OnlineStoreNavigationMenuItem,
+                  "input.parentId",
+                ),
+              }
+            : {}),
+          afterItemId: this.optionalId(
+            args.input.afterItemId,
+            GlobalIdEntity.OnlineStoreNavigationMenuItem,
+            "input.afterItemId",
+          ),
+          beforeItemId: this.optionalId(
+            args.input.beforeItemId,
+            GlobalIdEntity.OnlineStoreNavigationMenuItem,
+            "input.beforeItemId",
+          ),
+          ...(hasOwn(args.input, "target")
+            ? {
+                target: args.input.target ? this.navigationTarget(args.input.target) : undefined,
+              }
+            : {}),
+          ...(hasOwn(args.input, "openInNewTab")
+            ? { openInNewTab: args.input.openInNewTab ?? false }
+            : {}),
+          expectedRevision: args.input.expectedRevision ?? undefined,
+        });
         if (!updated) {
           throw operationError("ONLINE_STORE_NAVIGATION_ITEM_REVISION_CONFLICT");
         }
         if (hasOwn(args.input, "label")) {
-          const translation =
-            await this.$ctx.repository.translation.upsertMenuItemTranslation(
-              this.scope,
-              itemId,
-              { locale: this.$ctx.locale, label: args.input.label! },
-            );
+          const translation = await this.$ctx.repository.translation.upsertMenuItemTranslation(
+            this.scope,
+            itemId,
+            { locale: this.$ctx.locale, label: args.input.label! },
+          );
           if (!translation) {
             throw operationError("ONLINE_STORE_NAVIGATION_ITEM_NOT_FOUND");
           }
@@ -433,10 +394,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
       if (!deleted) {
         throw operationError("ONLINE_STORE_NAVIGATION_ITEM_REVISION_CONFLICT");
       }
-      return this.encodeId(
-        itemId,
-        GlobalIdEntity.OnlineStoreNavigationMenuItem,
-      );
+      return this.encodeId(itemId, GlobalIdEntity.OnlineStoreNavigationMenuItem);
     });
   }
 
@@ -459,11 +417,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
     }
   }
 
-  private requiredId(
-    value: string,
-    type: GlobalIdEntity,
-    field: string,
-  ): string {
+  private requiredId(value: string, type: GlobalIdEntity, field: string): string {
     try {
       return this.decodeId(value, type);
     } catch {
@@ -515,19 +469,12 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
       ogTitle: input.seo?.ogTitle ?? null,
       ogDescription: input.seo?.ogDescription ?? null,
       ogImageId:
-        this.optionalId(
-          input.seo?.ogImageId,
-          GlobalIdEntity.File,
-          "input.seo.ogImageId",
-        ) ?? null,
+        this.optionalId(input.seo?.ogImageId, GlobalIdEntity.File, "input.seo.ogImageId") ?? null,
     };
   }
 }
 
-function assertNonEmpty(
-  value: string | null | undefined,
-  field: string,
-): asserts value is string {
+function assertNonEmpty(value: string | null | undefined, field: string): asserts value is string {
   if (!value?.trim()) throw operationError("VALUE_REQUIRED", field);
 }
 
@@ -539,26 +486,17 @@ function now(): string {
   return new Date().toISOString();
 }
 
-function operationError(
-  code: string,
-  field?: string,
-): Error & { code: string; field?: string } {
+function operationError(code: string, field?: string): Error & { code: string; field?: string } {
   return Object.assign(new Error(code), { code, field });
 }
 
 function toUserError(error: unknown): UserError {
   const code =
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    typeof error.code === "string"
+    error && typeof error === "object" && "code" in error && typeof error.code === "string"
       ? error.code
       : "ONLINE_STORE_OPERATION_FAILED";
   const field =
-    error &&
-    typeof error === "object" &&
-    "field" in error &&
-    typeof error.field === "string"
+    error && typeof error === "object" && "field" in error && typeof error.field === "string"
       ? error.field.split(".")
       : null;
   return { code, field, message: userMessage(code) };

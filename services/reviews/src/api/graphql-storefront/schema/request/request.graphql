@@ -1,4 +1,6 @@
-"""A customer-facing invitation to review a purchased product."""
+"""
+A customer-facing invitation to review a purchased product.
+"""
 type ReviewRequest implements Node @key(fields: "id") {
   id: ID!
   customer: Customer!
@@ -15,12 +17,7 @@ type ReviewRequest implements Node @key(fields: "id") {
   openedAt: DateTime
   submittedAt: DateTime
   expiresAt: DateTime
-  events(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): ReviewRequestEventConnection!
+  events(first: Int, after: Cursor, last: Int, before: Cursor): ReviewRequestEventConnection!
   createdAt: DateTime!
   updatedAt: DateTime!
 }

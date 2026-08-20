@@ -1,6 +1,4 @@
-export {
-  type DbosTransactionBridge,
-} from "./DbosTransactionBridge.js";
+export { type DbosTransactionBridge } from "./DbosTransactionBridge.js";
 export { PostgresDbosTransactionBridge } from "./PostgresDbosTransactionBridge.js";
 export {
   TransactionalStep,

@@ -39,9 +39,7 @@ interface UseOrganizationsReturn {
  * const { organizations, loading } = useOrganizations();
  * ```
  */
-export function useOrganizations(
-  options: UseOrganizationsOptions = {}
-): UseOrganizationsReturn {
+export function useOrganizations(options: UseOrganizationsOptions = {}): UseOrganizationsReturn {
   const { skip = false } = options;
 
   const { data, loading, error, refetch } = useQuery<{

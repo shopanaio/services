@@ -1,9 +1,4 @@
-import type {
-  ApiCategory,
-  ApiProduct,
-  ApiProductOption,
-  ApiVariant,
-} from "@/graphql/types";
+import type { ApiCategory, ApiProduct, ApiProductOption, ApiVariant } from "@/graphql/types";
 import {
   createMockApiCategory,
   createMockApiRichText,
@@ -161,13 +156,7 @@ export const mockApiTags = [
   ecoFriendlyTag,
 ];
 
-const detailProductTags = [
-  newArrivalTag,
-  bestsellerTag,
-  saleTag,
-  limitedEditionTag,
-  trendingTag,
-];
+const detailProductTags = [newArrivalTag, bestsellerTag, saleTag, limitedEditionTag, trendingTag];
 
 const mockSimpleProductDescriptionJson = {
   time: 1718380800000,
@@ -193,12 +182,7 @@ const mockSimpleProductDescriptionJson = {
       type: "list",
       data: {
         style: "unordered",
-        items: [
-          "100% organic cotton",
-          "Pre-shrunk fabric",
-          "Reinforced seams",
-          "Machine washable",
-        ],
+        items: ["100% organic cotton", "Pre-shrunk fabric", "Reinforced seams", "Machine washable"],
       },
     },
     {
@@ -341,10 +325,7 @@ const storageOption = createMockApiProductOption({
   ],
 });
 
-export const mockVariableProductOptions: ApiProductOption[] = [
-  colorOption,
-  storageOption,
-];
+export const mockVariableProductOptions: ApiProductOption[] = [colorOption, storageOption];
 
 const createInventoryItem = (params: {
   variantId: string;
@@ -494,9 +475,7 @@ export const mockSimpleProduct: ApiProduct = createMockApiProduct({
       mediaSeed: "tshirt",
     }),
   ],
-  media: Array.from({ length: 5 }, (_, index) =>
-    createProductMedia("tshirt-product", index),
-  ),
+  media: Array.from({ length: 5 }, (_, index) => createProductMedia("tshirt-product", index)),
   options: [],
   categories: detailProductCategories,
   tags: detailProductTags,
@@ -519,8 +498,7 @@ export const mockVariableProduct: ApiProduct = createMockApiProduct({
   seo: {
     __typename: "ProductSeo",
     seoTitle: "Smartphone Pro Max 15 | Buy Now",
-    seoDescription:
-      "Shop Smartphone Pro Max 15. Available in multiple colors and storage options.",
+    seoDescription: "Shop Smartphone Pro Max 15. Available in multiple colors and storage options.",
     ogTitle: "Smartphone Pro Max 15",
     ogDescription: "A premium smartphone with pro performance.",
     ogImage: createMedia("phone-og", 0).file,
@@ -678,9 +656,7 @@ export const mockArchivedProduct: ApiProduct = createMockApiProduct({
       mediaSeed: "tshirt",
     }),
   ],
-  media: Array.from({ length: 3 }, (_, index) =>
-    createProductMedia("archived-product", index),
-  ),
+  media: Array.from({ length: 3 }, (_, index) => createProductMedia("archived-product", index)),
   options: [],
 });
 
@@ -691,7 +667,6 @@ export const mockProductDetailsProducts: ApiProduct[] = [
 ];
 
 export const findMockProductById = (id?: string | null): ApiProduct =>
-  mockProductDetailsProducts.find((product) => product.id === id) ??
-  mockVariableProduct;
+  mockProductDetailsProducts.find((product) => product.id === id) ?? mockVariableProduct;
 
 export const mockProduct = mockVariableProduct;

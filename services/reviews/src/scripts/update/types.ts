@@ -35,10 +35,7 @@ export interface ReviewSectionResult {
   userErrors: UserError[];
 }
 
-export function sectionSuccess(
-  changed = true,
-  entityId?: string
-): ReviewSectionResult {
+export function sectionSuccess(changed = true, entityId?: string): ReviewSectionResult {
   return { changed, entityId, userErrors: [] };
 }
 
@@ -47,9 +44,7 @@ export function sectionErrors(userErrors: UserError[]): ReviewSectionResult {
 }
 
 export function internalSectionError(): ReviewSectionResult {
-  return sectionErrors([
-    { message: "Internal error", code: "INTERNAL_ERROR" },
-  ]);
+  return sectionErrors([{ message: "Internal error", code: "INTERNAL_ERROR" }]);
 }
 
 export interface StoreConfigurationUpdateParams {

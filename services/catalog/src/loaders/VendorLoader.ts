@@ -8,9 +8,7 @@ export class VendorLoader {
   constructor(repository: Repository) {
     this.vendor = new DataLoader<string, Vendor | null>(async (vendorIds) => {
       const results = await repository.vendor.getByIds(vendorIds);
-      return vendorIds.map(
-        (id) => results.find((vendor) => vendor.id === id) ?? null
-      );
+      return vendorIds.map((id) => results.find((vendor) => vendor.id === id) ?? null);
     });
   }
 }

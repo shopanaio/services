@@ -16,11 +16,9 @@ export async function resolveFile(
   fileId: string,
   ctx: ServiceContext,
   info: GraphQLResolveInfo,
-  fieldPath?: string
+  fieldPath?: string,
 ): Promise<unknown> {
-  const fieldInfo = fieldPath
-    ? parseGraphqlInfo(info, fieldPath)
-    : parseGraphqlInfo(info);
+  const fieldInfo = fieldPath ? parseGraphqlInfo(info, fieldPath) : parseGraphqlInfo(info);
   return FileResolver.load(fileId, fieldInfo, ctx);
 }
 
@@ -48,7 +46,7 @@ export const typeResolvers = {
         id: string;
       },
       ctx: ServiceContext,
-      info: GraphQLResolveInfo
+      info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
       const fileId = decodeGlobalIdByType(reference.id, GlobalIdEntity.File);

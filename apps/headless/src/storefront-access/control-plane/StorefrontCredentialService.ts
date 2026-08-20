@@ -16,11 +16,10 @@ export class StorefrontCredentialService {
     connectionId: string,
     actor: { readonly type: string; readonly id?: string },
   ) {
-    const existing =
-      await this.repository.credential.findActivePublicByConnection(
-        scope,
-        connectionId,
-      );
+    const existing = await this.repository.credential.findActivePublicByConnection(
+      scope,
+      connectionId,
+    );
     if (existing) throw new Error("STOREFRONT_PUBLIC_CREDENTIAL_EXISTS");
     const publicGenerated = this.crypto.generate("PUBLIC");
     const privateGenerated = this.crypto.generate("PRIVATE");
@@ -38,12 +37,11 @@ export class StorefrontCredentialService {
       connectionId,
       credentialId: publicCredential.id,
     });
-    const persistedPublic =
-      await this.repository.credential.setPublicTokenCiphertext(
-        scope,
-        publicCredential.id,
-        encrypted,
-      );
+    const persistedPublic = await this.repository.credential.setPublicTokenCiphertext(
+      scope,
+      publicCredential.id,
+      encrypted,
+    );
     if (!persistedPublic) throw new Error("STOREFRONT_CREDENTIAL_CREATE_FAILED");
 
     const privateCredential = await this.create(
@@ -82,20 +80,14 @@ export class StorefrontCredentialService {
         input.clientMutationId,
       );
       if (existingId) {
-        const credential = await this.repository.credential.findById(
-          scope,
-          existingId,
-        );
+        const credential = await this.repository.credential.findById(scope, existingId);
         if (!credential) throw new Error("STOREFRONT_CREDENTIAL_NOT_FOUND");
         return Object.freeze({
           credential,
           privateAccessToken: null,
         });
       }
-      const connection = await this.repository.connection.lockById(
-        scope,
-        input.connectionId,
-      );
+      const connection = await this.repository.connection.lockById(scope, input.connectionId);
       if (!connection) {
         throw new Error("STOREFRONT_CREDENTIAL_NOT_FOUND");
       }
@@ -128,11 +120,10 @@ export class StorefrontCredentialService {
     scope: HeadlessStorefrontScope,
     connectionId: string,
   ): Promise<string | null> {
-    const credential =
-      await this.repository.credential.findActivePublicByConnection(
-        scope,
-        connectionId,
-      );
+    const credential = await this.repository.credential.findActivePublicByConnection(
+      scope,
+      connectionId,
+    );
     if (!credential?.publicTokenCiphertext) return null;
     return this.crypto.decryptPublicToken(credential.publicTokenCiphertext, {
       storeId: scope.storeId,
@@ -148,10 +139,7 @@ export class StorefrontCredentialService {
       readonly actor: { readonly type: string; readonly id?: string };
     },
   ): Promise<StorefrontCredentialRecord> {
-    const current = await this.repository.credential.findById(
-      scope,
-      input.credentialId,
-    );
+    const current = await this.repository.credential.findById(scope, input.credentialId);
     if (!current || current.kind !== "PRIVATE") {
       throw new Error("STOREFRONT_CREDENTIAL_NOT_FOUND");
     }

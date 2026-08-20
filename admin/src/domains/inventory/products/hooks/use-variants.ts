@@ -70,8 +70,10 @@ export function useVariants(options: UseVariantsOptions = {}): UseVariantsReturn
   };
 }
 
-export interface UseWarehouseAssignableVariantsOptions
-  extends Omit<UseVariantsOptions, "where" | "orderBy"> {
+export interface UseWarehouseAssignableVariantsOptions extends Omit<
+  UseVariantsOptions,
+  "where" | "orderBy"
+> {
   warehouseId: string;
   where?: ApiWarehouseAssignableVariantWhereInput | null;
   orderBy?: ApiWarehouseAssignableVariantOrderByInput[] | null;
@@ -101,8 +103,7 @@ export function useWarehouseAssignableVariants(
     variables: { warehouseId, first, after, last, before, where, orderBy },
     skip,
     fetchPolicy: "cache-and-network",
-    getConnection: (data) =>
-      data?.inventoryQuery.warehouseAssignableVariants,
+    getConnection: (data) => data?.inventoryQuery.warehouseAssignableVariants,
   });
 
   return {

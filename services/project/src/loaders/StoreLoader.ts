@@ -12,15 +12,10 @@ export class StoreLoader {
       if (!storefrontStoreId) return ids.map(() => null);
       const scopedIds = ids.filter((id) => id === storefrontStoreId);
       const items = await repository.store.getByIds(scopedIds);
-      return ids.map(
-        (id) => items.find((item) => item.id === id) ?? null,
-      );
+      return ids.map((id) => items.find((item) => item.id === id) ?? null);
     });
 
-    this.storeSettings = new DataLoader<
-      string,
-      StoreSettingsSnapshot | null
-    >(async (ids) =>
+    this.storeSettings = new DataLoader<string, StoreSettingsSnapshot | null>(async (ids) =>
       Promise.all(
         ids.map((id) =>
           id === storefrontStoreId

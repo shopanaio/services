@@ -91,11 +91,7 @@ export function selectPublicSmtpEndpoints(
         : family === 6
           ? privateIpv6Addresses.check(address, "ipv6")
           : false;
-    if (
-      (family !== 4 && family !== 6) ||
-      unsupported ||
-      (!allowPrivateNetwork && privateAddress)
-    ) {
+    if ((family !== 4 && family !== 6) || unsupported || (!allowPrivateNetwork && privateAddress)) {
       return [];
     }
     return [
@@ -115,9 +111,7 @@ export function selectPublicSmtpEndpoints(
           : "SMTP host does not resolve to a public IP address",
       ),
       {
-        code: allowPrivateNetwork
-          ? "SMTP_HOST_NOT_SUPPORTED"
-          : "SMTP_HOST_NOT_PUBLIC",
+        code: allowPrivateNetwork ? "SMTP_HOST_NOT_SUPPORTED" : "SMTP_HOST_NOT_PUBLIC",
         details: Object.freeze({
           kind: "CONFIGURATION",
           safeToRetry: false,

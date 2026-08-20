@@ -42,12 +42,8 @@ export function InformationStep() {
             />
           )}
         />
-        {errors.name && (
-          <div className={styles.error}>{errors.name.message}</div>
-        )}
-        <div className={styles.helper}>
-          This will be displayed to your customers
-        </div>
+        {errors.name && <div className={styles.error}>{errors.name.message}</div>}
+        <div className={styles.helper}>This will be displayed to your customers</div>
       </div>
     </div>
   );

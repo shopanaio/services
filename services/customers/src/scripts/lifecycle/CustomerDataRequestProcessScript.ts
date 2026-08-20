@@ -68,25 +68,18 @@ export class CustomerDataRequestProcessScript extends BaseScript<
     throw error;
   }
 
-  private async begin(
-    dataRequestId: string,
-  ): Promise<CustomerDataRequestProcessResult> {
+  private async begin(dataRequestId: string): Promise<CustomerDataRequestProcessResult> {
     const request = await this.requireLockedRequest(dataRequestId);
     if (isTerminal(request.status)) return toResult(request);
     const processing = record(record(request.requestMetadata).processing);
-    if (
-      request.status === "PROCESSING" &&
-      processing.owner === "CUSTOMER_DATA_REQUEST_PROCESSOR"
-    ) {
+    if (request.status === "PROCESSING" && processing.owner === "CUSTOMER_DATA_REQUEST_PROCESSOR") {
       return toResult(request);
     }
     if (request.status !== "PENDING") {
       throw invalidState(request, "begin processing");
     }
 
-    const customer = await this.repository.customer.lockForPrivacyRequest(
-      request.customerId,
-    );
+    const customer = await this.repository.customer.lockForPrivacyRequest(request.customerId);
     if (!customer) {
       throw new CustomerDataRequestProcessError(
         "Customer was not found",
@@ -101,23 +94,20 @@ export class CustomerDataRequestProcessScript extends BaseScript<
     }
 
     const now = new Date().toISOString();
-    const updated = await this.repository.lifecycle.updateDataRequestStatus(
-      dataRequestId,
-      {
-        status: "PROCESSING",
-        rejectionReason: null,
-        requestMetadata: {
-          ...record(request.requestMetadata),
-          processing: {
-            owner: "CUSTOMER_DATA_REQUEST_PROCESSOR",
-            startedAt: now,
-          },
+    const updated = await this.repository.lifecycle.updateDataRequestStatus(dataRequestId, {
+      status: "PROCESSING",
+      rejectionReason: null,
+      requestMetadata: {
+        ...record(request.requestMetadata),
+        processing: {
+          owner: "CUSTOMER_DATA_REQUEST_PROCESSOR",
+          startedAt: now,
         },
-        transitionedAt: now,
-        expectedStatuses: ["PENDING"],
-        expectedUpdatedAt: request.updatedAt,
       },
-    );
+      transitionedAt: now,
+      expectedStatuses: ["PENDING"],
+      expectedUpdatedAt: request.updatedAt,
+    });
     if (!updated) throw persistenceError(dataRequestId);
     return toResult(updated);
   }
@@ -130,41 +120,34 @@ export class CustomerDataRequestProcessScript extends BaseScript<
     if (request.status === "COMPLETED") return toResult(request);
     this.requireOwnedProcessing(request, ["ACCESS", "EXPORT"]);
     const completedAt = new Date().toISOString();
-    const completed = await this.repository.lifecycle.updateDataRequestStatus(
-      dataRequestId,
-      {
-        status: "COMPLETED",
-        resultFileId,
-        rejectionReason: null,
-        requestMetadata: {
-          schemaVersion: 1,
-          artifact: {
-            mediaFileId: resultFileId,
-            format: "application/json",
-          },
-          processing: {
-            owner: "CUSTOMER_DATA_REQUEST_PROCESSOR",
-            completedAt,
-          },
+    const completed = await this.repository.lifecycle.updateDataRequestStatus(dataRequestId, {
+      status: "COMPLETED",
+      resultFileId,
+      rejectionReason: null,
+      requestMetadata: {
+        schemaVersion: 1,
+        artifact: {
+          mediaFileId: resultFileId,
+          format: "application/json",
         },
-        transitionedAt: completedAt,
-        expectedStatuses: ["PROCESSING"],
-        expectedUpdatedAt: request.updatedAt,
+        processing: {
+          owner: "CUSTOMER_DATA_REQUEST_PROCESSOR",
+          completedAt,
+        },
       },
-    );
+      transitionedAt: completedAt,
+      expectedStatuses: ["PROCESSING"],
+      expectedUpdatedAt: request.updatedAt,
+    });
     if (!completed) throw persistenceError(dataRequestId);
     return toResult(completed);
   }
 
-  private async applyCorrection(
-    dataRequestId: string,
-  ): Promise<CustomerDataRequestProcessResult> {
+  private async applyCorrection(dataRequestId: string): Promise<CustomerDataRequestProcessResult> {
     const request = await this.requireLockedRequest(dataRequestId);
     if (request.status === "COMPLETED") return toResult(request);
     this.requireOwnedProcessing(request, ["CORRECTION"]);
-    const correction = parseCorrection(
-      record(request.requestMetadata).correctionDetails,
-    );
+    const correction = parseCorrection(record(request.requestMetadata).correctionDetails);
     const customer = await this.repository.customer.applyPrivacyCorrection(
       request.customerId,
       correction,
@@ -181,37 +164,30 @@ export class CustomerDataRequestProcessScript extends BaseScript<
       `privacyCorrection:${dataRequestId}`,
     );
     const completedAt = new Date().toISOString();
-    const completed = await this.repository.lifecycle.updateDataRequestStatus(
-      dataRequestId,
-      {
-        status: "COMPLETED",
-        rejectionReason: null,
-        requestMetadata: {
-          schemaVersion: 1,
-          correction: { fields: Object.keys(correction).sort() },
-          processing: {
-            owner: "CUSTOMER_DATA_REQUEST_PROCESSOR",
-            completedAt,
-          },
+    const completed = await this.repository.lifecycle.updateDataRequestStatus(dataRequestId, {
+      status: "COMPLETED",
+      rejectionReason: null,
+      requestMetadata: {
+        schemaVersion: 1,
+        correction: { fields: Object.keys(correction).sort() },
+        processing: {
+          owner: "CUSTOMER_DATA_REQUEST_PROCESSOR",
+          completedAt,
         },
-        transitionedAt: completedAt,
-        expectedStatuses: ["PROCESSING"],
-        expectedUpdatedAt: request.updatedAt,
       },
-    );
+      transitionedAt: completedAt,
+      expectedStatuses: ["PROCESSING"],
+      expectedUpdatedAt: request.updatedAt,
+    });
     if (!completed) throw persistenceError(dataRequestId);
     return toResult(completed);
   }
 
-  private async applyErasure(
-    dataRequestId: string,
-  ): Promise<CustomerDataRequestProcessResult> {
+  private async applyErasure(dataRequestId: string): Promise<CustomerDataRequestProcessResult> {
     const request = await this.requireLockedRequest(dataRequestId);
     if (request.status === "COMPLETED") return toResult(request);
     this.requireOwnedProcessing(request, ["ERASURE"]);
-    const customer = await this.repository.customer.lockForPrivacyRequest(
-      request.customerId,
-    );
+    const customer = await this.repository.customer.lockForPrivacyRequest(request.customerId);
     if (!customer) {
       throw new CustomerDataRequestProcessError(
         "Customer was not found",
@@ -225,47 +201,28 @@ export class CustomerDataRequestProcessScript extends BaseScript<
       redactedAt,
     );
     const resources: Record<string, number> = {
-      addresses: await this.repository.address.redactForCustomer(
-        request.customerId,
-        redactedAt,
-      ),
-      consents: await this.repository.consent.redactForCustomer(
-        request.customerId,
-        redactedAt,
-      ),
+      addresses: await this.repository.address.redactForCustomer(request.customerId, redactedAt),
+      consents: await this.repository.consent.redactForCustomer(request.customerId, redactedAt),
       taxIdentifiers: await this.repository.taxIdentifier.redactForCustomer(
         request.customerId,
         redactedAt,
       ),
       taxExemptions: taxExemptions.length,
-      externalReferences:
-        await this.repository.externalReference.deleteForCustomer(
-          request.customerId,
-        ),
-      groupMemberships:
-        await this.repository.group.deleteMembershipsForCustomer(
-          request.customerId,
-        ),
-      tagAssignments: await this.repository.tag.deleteAssignmentsForCustomer(
+      externalReferences: await this.repository.externalReference.deleteForCustomer(
         request.customerId,
       ),
-      segmentMemberships:
-        await this.repository.segment.deleteMembershipsForCustomer(
-          request.customerId,
-        ),
-      wishlists: await this.repository.wishlist.deleteForCustomer(
+      groupMemberships: await this.repository.group.deleteMembershipsForCustomer(
         request.customerId,
       ),
-      comparisons: await this.repository.comparison.deleteForCustomer(
+      tagAssignments: await this.repository.tag.deleteAssignmentsForCustomer(request.customerId),
+      segmentMemberships: await this.repository.segment.deleteMembershipsForCustomer(
         request.customerId,
       ),
+      wishlists: await this.repository.wishlist.deleteForCustomer(request.customerId),
+      comparisons: await this.repository.comparison.deleteForCustomer(request.customerId),
     };
-    await this.repository.segmentMaterialization.cleanupCustomer(
-      request.customerId,
-    );
-    const statistics = await this.repository.statistics.deleteForCustomer(
-      request.customerId,
-    );
+    await this.repository.segmentMaterialization.cleanupCustomer(request.customerId);
+    const statistics = await this.repository.statistics.deleteForCustomer(request.customerId);
     for (const [key, value] of Object.entries(statistics)) {
       resources[key] = value;
     }
@@ -276,10 +233,7 @@ export class CustomerDataRequestProcessScript extends BaseScript<
     );
     resources.dataRequests = lifecycle.dataRequests;
     resources.merges = lifecycle.merges;
-    const redacted = await this.repository.customer.redact(
-      request.customerId,
-      redactedAt,
-    );
+    const redacted = await this.repository.customer.redact(request.customerId, redactedAt);
     if (!redacted) {
       throw new CustomerDataRequestProcessError(
         "Customer redaction could not be persisted",
@@ -287,25 +241,22 @@ export class CustomerDataRequestProcessScript extends BaseScript<
         true,
       );
     }
-    const completed = await this.repository.lifecycle.updateDataRequestStatus(
-      dataRequestId,
-      {
-        status: "COMPLETED",
-        resultFileId: null,
-        rejectionReason: null,
-        requestMetadata: {
-          schemaVersion: 1,
-          redacted: true,
-          resources,
-          processing: {
-            owner: "CUSTOMER_DATA_REQUEST_PROCESSOR",
-            completedAt: redactedAt,
-          },
+    const completed = await this.repository.lifecycle.updateDataRequestStatus(dataRequestId, {
+      status: "COMPLETED",
+      resultFileId: null,
+      rejectionReason: null,
+      requestMetadata: {
+        schemaVersion: 1,
+        redacted: true,
+        resources,
+        processing: {
+          owner: "CUSTOMER_DATA_REQUEST_PROCESSOR",
+          completedAt: redactedAt,
         },
-        transitionedAt: redactedAt,
-        expectedStatuses: ["PROCESSING"],
       },
-    );
+      transitionedAt: redactedAt,
+      expectedStatuses: ["PROCESSING"],
+    });
     if (!completed) throw persistenceError(dataRequestId);
 
     return {
@@ -336,35 +287,28 @@ export class CustomerDataRequestProcessScript extends BaseScript<
     if (isTerminal(request.status)) return toResult(request);
     const rejectedAt = new Date().toISOString();
     const reason = safeRejectionReason(error.message);
-    const rejected = await this.repository.lifecycle.updateDataRequestStatus(
-      dataRequestId,
-      {
-        status: "REJECTED",
-        resultFileId: null,
-        rejectionReason: reason,
-        requestMetadata: {
-          schemaVersion: 1,
-          failure: {
-            failureId: error.failureId,
-            code: error.code,
-            failedAt: rejectedAt,
-          },
+    const rejected = await this.repository.lifecycle.updateDataRequestStatus(dataRequestId, {
+      status: "REJECTED",
+      resultFileId: null,
+      rejectionReason: reason,
+      requestMetadata: {
+        schemaVersion: 1,
+        failure: {
+          failureId: error.failureId,
+          code: error.code,
+          failedAt: rejectedAt,
         },
-        transitionedAt: rejectedAt,
-        expectedStatuses: ["PENDING", "PROCESSING"],
-        expectedUpdatedAt: request.updatedAt,
       },
-    );
+      transitionedAt: rejectedAt,
+      expectedStatuses: ["PENDING", "PROCESSING"],
+      expectedUpdatedAt: request.updatedAt,
+    });
     if (!rejected) throw persistenceError(dataRequestId);
     return { ...toResult(rejected), rejectionReason: reason };
   }
 
-  private async requireLockedRequest(
-    dataRequestId: string,
-  ): Promise<CustomerDataRequest> {
-    const request = await this.repository.lifecycle.lockDataRequestById(
-      dataRequestId,
-    );
+  private async requireLockedRequest(dataRequestId: string): Promise<CustomerDataRequest> {
+    const request = await this.repository.lifecycle.lockDataRequestById(dataRequestId);
     if (!request) {
       throw new CustomerDataRequestProcessError(
         `Customer data request ${dataRequestId} was not found`,
@@ -451,19 +395,13 @@ function parseCorrection(value: unknown): CustomerPrivacyCorrection {
       "CUSTOMER_DATA_REQUEST_CORRECTION_INVALID",
     );
   }
-  if (
-    correction.phoneE164 &&
-    !/^\+[1-9][0-9]{6,14}$/.test(correction.phoneE164)
-  ) {
+  if (correction.phoneE164 && !/^\+[1-9][0-9]{6,14}$/.test(correction.phoneE164)) {
     throw new CustomerDataRequestProcessError(
       "Correction phoneE164 must use E.164 format",
       "CUSTOMER_DATA_REQUEST_CORRECTION_INVALID",
     );
   }
-  if (
-    correction.dateOfBirth &&
-    !/^\d{4}-\d{2}-\d{2}$/.test(correction.dateOfBirth)
-  ) {
+  if (correction.dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(correction.dateOfBirth)) {
     throw new CustomerDataRequestProcessError(
       "Correction dateOfBirth must use YYYY-MM-DD format",
       "CUSTOMER_DATA_REQUEST_CORRECTION_INVALID",
@@ -472,9 +410,7 @@ function parseCorrection(value: unknown): CustomerPrivacyCorrection {
   return correction;
 }
 
-function toResult(
-  request: CustomerDataRequest,
-): CustomerDataRequestProcessResult {
+function toResult(request: CustomerDataRequest): CustomerDataRequestProcessResult {
   return {
     dataRequestId: request.id,
     customerId: request.customerId,
@@ -482,9 +418,7 @@ function toResult(
     status: request.status,
     resultFileId: request.resultFileId,
     ...(request.finishedAt ? { completedAt: request.finishedAt } : {}),
-    ...(request.rejectionReason
-      ? { rejectionReason: request.rejectionReason }
-      : {}),
+    ...(request.rejectionReason ? { rejectionReason: request.rejectionReason } : {}),
   };
 }
 

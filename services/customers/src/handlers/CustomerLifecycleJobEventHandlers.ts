@@ -5,12 +5,7 @@ import type {
   EventHandlerDelivery,
   EventHandlerResponse,
 } from "@shopana/events";
-import {
-  EventHandler,
-  EventHandlers,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { EventHandler, EventHandlers, InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import { Kernel } from "../kernel/Kernel.js";
 import {
   CustomerLifecycleJobEventScript,
@@ -63,22 +58,16 @@ export class CustomerLifecycleJobEventHandlers extends EventHandlers {
   }
 
   private async apply(
-    event:
-      | CustomerLifecycleJobDispatchedEvent
-      | CustomerLifecycleJobCompletedEvent,
+    event: CustomerLifecycleJobDispatchedEvent | CustomerLifecycleJobCompletedEvent,
     delivery: EventHandlerDelivery,
     params: CustomerLifecycleJobEventParams,
   ): Promise<EventHandlerResponse<CustomerLifecycleJobEventResult>> {
     try {
-      const data = await Kernel.getInstance().runScript(
-        CustomerLifecycleJobEventScript,
-        params,
-        {
-          storeId: event.payload.storeId,
-          organizationId: event.context.organizationId,
-          requestId: delivery.idempotencyKey,
-        },
-      );
+      const data = await Kernel.getInstance().runScript(CustomerLifecycleJobEventScript, params, {
+        storeId: event.payload.storeId,
+        organizationId: event.context.organizationId,
+        requestId: delivery.idempotencyKey,
+      });
       return { success: true, data };
     } catch (error) {
       const value = error as {
@@ -94,8 +83,7 @@ export class CustomerLifecycleJobEventHandlers extends EventHandlers {
               ? value.message
               : "Customer lifecycle job event failed",
           ...(typeof value?.code === "string" ? { code: value.code } : {}),
-          retryable:
-            typeof value?.retryable === "boolean" ? value.retryable : true,
+          retryable: typeof value?.retryable === "boolean" ? value.retryable : true,
         },
       };
     }

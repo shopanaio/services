@@ -5,12 +5,8 @@ import { Tag } from "antd";
 import { LuUser as UserOutlined } from "react-icons/lu";
 import type { ColDef } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
-import {
-  EntityCellRenderer,
-} from "@/shared/components/entity-picker-modal/cell-renderers";
-import {
-  registerEntityPickerConfig,
-} from "@/shared/components/entity-picker-modal/configs";
+import { EntityCellRenderer } from "@/shared/components/entity-picker-modal/cell-renderers";
+import { registerEntityPickerConfig } from "@/shared/components/entity-picker-modal/configs";
 import type {
   IEntityPickerConfig,
   IEntityPickerDataResult,
@@ -55,7 +51,9 @@ const statusCopy: Record<CustomerLifecycleStatus, { label: string; color: string
   [CustomerLifecycleStatus.Redacted]: { label: "Redacted", color: "default" },
 };
 
-function CustomerStatusCell({ value }: CustomCellRendererProps<CustomerPickerEntity, CustomerLifecycleStatus>) {
+function CustomerStatusCell({
+  value,
+}: CustomCellRendererProps<CustomerPickerEntity, CustomerLifecycleStatus>) {
   const status = statusCopy[value ?? CustomerLifecycleStatus.Active];
   return <Tag color={status.color}>{status.label}</Tag>;
 }
@@ -70,16 +68,7 @@ function useCustomersPickerData(options: {
   orderBy?: object[] | null;
   excludeIds: string[];
 }): IEntityPickerDataResult<CustomerPickerEntity> {
-  const {
-    pageSize,
-    first,
-    after,
-    last,
-    before,
-    where,
-    orderBy,
-    excludeIds,
-  } = options;
+  const { pageSize, first, after, last, before, where, orderBy, excludeIds } = options;
   const customerWhere = useMemo<ApiCustomerWhereInput | null>(() => {
     const conditions: ApiCustomerWhereInput[] = [];
     if (where) conditions.push(where as ApiCustomerWhereInput);

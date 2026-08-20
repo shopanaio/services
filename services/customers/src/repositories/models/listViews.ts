@@ -52,10 +52,8 @@ export const customerListView = customersSchema
       mode: "string",
     }),
     mergedIntoCustomerId: uuid("merged_into_customer_id"),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
-      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
     redactedAt: timestamp("redacted_at", {
       withTimezone: true,
@@ -121,20 +119,15 @@ export const customerSegmentListView = customersSchema
     type: customerSegmentTypeEnum("type").notNull(),
     status: customerSegmentStatusEnum("status").notNull(),
     query: text("query"),
-    definition: jsonb("definition")
-      .$type<Record<string, unknown>>()
-      .notNull(),
+    definition: jsonb("definition").$type<Record<string, unknown>>().notNull(),
     createdById: text("created_by_id"),
     revision: integer("revision").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
-      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
     customersCount: integer("customers_count").notNull(),
   })
   .existing();
 
 export type CustomerListView = typeof customerListView.$inferSelect;
-export type CustomerSegmentListView =
-  typeof customerSegmentListView.$inferSelect;
+export type CustomerSegmentListView = typeof customerSegmentListView.$inferSelect;

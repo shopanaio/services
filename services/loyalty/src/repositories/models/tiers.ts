@@ -25,14 +25,14 @@ import {
 } from "./schema.js";
 
 const createdAt = () =>
-  timestamp("created_at", { withTimezone: true, mode: "string" })
-    .notNull()
-    .defaultNow();
+  timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow();
 
 export const tierPolicies = loyaltySchema.table(
   "tier_policy",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     programVersionId: uuid("program_version_id").notNull(),
     windowType: tierEvaluationWindowTypeEnum("window_type").notNull(),
@@ -41,12 +41,8 @@ export const tierPolicies = loyaltySchema.table(
     programYearStartsMonth: smallint("program_year_starts_month"),
     membershipDurationDays: integer("membership_duration_days"),
     gracePeriodDays: integer("grace_period_days").notNull().default(0),
-    downgradePolicy: tierDowngradePolicyEnum("downgrade_policy")
-      .notNull()
-      .default("IMMEDIATE"),
-    requalificationPolicy: tierRequalificationPolicyEnum(
-      "requalification_policy",
-    )
+    downgradePolicy: tierDowngradePolicyEnum("downgrade_policy").notNull().default("IMMEDIATE"),
+    requalificationPolicy: tierRequalificationPolicyEnum("requalification_policy")
       .notNull()
       .default("AUTOMATIC"),
     metricSchemaVersion: integer("metric_schema_version").notNull().default(1),
@@ -58,9 +54,7 @@ export const tierPolicies = loyaltySchema.table(
       columns: [table.programVersionId],
       foreignColumns: [programVersions.id],
     }),
-    unique("loyalty_tier_policy_program_version_unique").on(
-      table.programVersionId,
-    ),
+    unique("loyalty_tier_policy_program_version_unique").on(table.programVersionId),
     check(
       "loyalty_tier_policy_window_check",
       sql`(${table.windowType} = 'LIFETIME'
@@ -87,28 +81,23 @@ export const tierPolicies = loyaltySchema.table(
         AND ${table.gracePeriodDays} >= 0
         AND (${table.downgradePolicy} = 'GRACE_PERIOD' OR ${table.gracePeriodDays} = 0)`,
     ),
-    check(
-      "loyalty_tier_policy_metric_schema_check",
-      sql`${table.metricSchemaVersion} > 0`,
-    ),
+    check("loyalty_tier_policy_metric_schema_check", sql`${table.metricSchemaVersion} > 0`),
   ],
 );
 
 export const tiers = loyaltySchema.table(
   "tier",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     programVersionId: uuid("program_version_id").notNull(),
     code: varchar("code", { length: 64 }).notNull(),
     name: varchar("name", { length: 160 }).notNull(),
     rank: integer("rank").notNull(),
-    qualificationSchemaVersion: integer("qualification_schema_version")
-      .notNull()
-      .default(1),
-    qualification: jsonb("qualification")
-      .$type<Record<string, unknown>>()
-      .notNull(),
+    qualificationSchemaVersion: integer("qualification_schema_version").notNull().default(1),
+    qualification: jsonb("qualification").$type<Record<string, unknown>>().notNull(),
     maintenance: jsonb("maintenance").$type<Record<string, unknown>>(),
     createdAt: createdAt(),
   },
@@ -119,18 +108,9 @@ export const tiers = loyaltySchema.table(
       foreignColumns: [programVersions.id, programVersions.storeId],
     }),
     unique("loyalty_tier_id_store_unique").on(table.id, table.storeId),
-    unique("loyalty_tier_version_code_unique").on(
-      table.programVersionId,
-      table.code,
-    ),
-    unique("loyalty_tier_version_rank_unique").on(
-      table.programVersionId,
-      table.rank,
-    ),
-    check(
-      "loyalty_tier_code_check",
-      sql`${table.code} ~ '^[a-z][a-z0-9_-]{1,63}$'`,
-    ),
+    unique("loyalty_tier_version_code_unique").on(table.programVersionId, table.code),
+    unique("loyalty_tier_version_rank_unique").on(table.programVersionId, table.rank),
+    check("loyalty_tier_code_check", sql`${table.code} ~ '^[a-z][a-z0-9_-]{1,63}$'`),
     check("loyalty_tier_name_check", sql`btrim(${table.name}) <> ''`),
     check("loyalty_tier_rank_check", sql`${table.rank} >= 0`),
     check(
@@ -145,7 +125,9 @@ export const tiers = loyaltySchema.table(
 export const tierMemberships = loyaltySchema.table(
   "tier_membership",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     accountId: uuid("account_id").notNull(),
     tierId: uuid("tier_id").notNull(),
@@ -190,10 +172,7 @@ export const tierMemberships = loyaltySchema.table(
       columns: [table.tierId, table.storeId],
       foreignColumns: [tiers.id, tiers.storeId],
     }),
-    unique("loyalty_tier_membership_id_store_unique").on(
-      table.id,
-      table.storeId,
-    ),
+    unique("loyalty_tier_membership_id_store_unique").on(table.id, table.storeId),
     uniqueIndex("loyalty_tier_membership_one_active_idx")
       .on(table.accountId)
       .where(sql`${table.status} = 'ACTIVE'`),
@@ -218,17 +197,16 @@ export const tierMemberships = loyaltySchema.table(
           AND (${table.effectiveTo} IS NULL OR ${table.effectiveTo} > ${table.effectiveFrom}))
         OR (${table.status} <> 'ACTIVE' AND ${table.effectiveTo} IS NOT NULL)`,
     ),
-    check(
-      "loyalty_tier_membership_revision_check",
-      sql`${table.revision} > 0`,
-    ),
+    check("loyalty_tier_membership_revision_check", sql`${table.revision} > 0`),
   ],
 );
 
 export const tierMembershipEvents = loyaltySchema.table(
   "tier_membership_event",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     accountId: uuid("account_id").notNull(),
     membershipId: uuid("membership_id").notNull(),
@@ -277,10 +255,7 @@ export const tierMembershipEvents = loyaltySchema.table(
       "loyalty_tier_membership_event_revision_check",
       sql`${table.evaluationRevision} ~ '^[0-9a-f]{64}$'`,
     ),
-    check(
-      "loyalty_tier_membership_event_reason_check",
-      sql`btrim(${table.reasonCode}) <> ''`,
-    ),
+    check("loyalty_tier_membership_event_reason_check", sql`btrim(${table.reasonCode}) <> ''`),
     check(
       "loyalty_tier_membership_event_metadata_check",
       sql`jsonb_typeof(${table.metadata}) = 'object'`,

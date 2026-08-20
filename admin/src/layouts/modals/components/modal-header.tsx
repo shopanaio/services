@@ -71,8 +71,7 @@ export const ModalHeader = ({
   extra = null,
 }: IModalHeaderProps) => {
   const { styles } = useStyles();
-  const { children: submitButtonChildren = "Save", ...submitButtonRest } =
-    submitButtonProps ?? {};
+  const { children: submitButtonChildren = "Save", ...submitButtonRest } = submitButtonProps ?? {};
 
   return (
     <div className={styles.header}>
@@ -89,11 +88,7 @@ export const ModalHeader = ({
           <kbd className={styles.escBadge}>esc</kbd>
         </div>
         <Flex gap={12} align="center" className={styles.titleWrapper}>
-          {rawTitle ? (
-            title
-          ) : (
-            <Typography.Text className={styles.title}>{title}</Typography.Text>
-          )}
+          {rawTitle ? title : <Typography.Text className={styles.title}>{title}</Typography.Text>}
         </Flex>
       </Flex>
       <Flex gap={16} align="center">

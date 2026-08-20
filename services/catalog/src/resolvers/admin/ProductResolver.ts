@@ -1,15 +1,6 @@
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-} from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
-import type {
-  ProductMediaItem,
-  ProductPriceRange,
-  RichText,
-} from "./interfaces/index.js";
+import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import type { ProductMediaItem, ProductPriceRange, RichText } from "./interfaces/index.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 import { CatalogType } from "./CatalogType.js";
@@ -26,9 +17,7 @@ export class ProductResolver extends CatalogType<string, Product> {
   async $preload() {
     const product = await this.$ctx.loaders.product.load(this.$props);
     if (!product) {
-      throw new PreloadNotFoundError(
-        `Product with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Product with ID ${this.$props} not found`);
     }
     return product;
   }
@@ -76,32 +65,30 @@ export class ProductResolver extends CatalogType<string, Product> {
   }
 
   async title() {
-    const translation = await this.$ctx.loaders.productTranslation.load(
-      this.$props
-    );
+    const translation = await this.$ctx.loaders.productTranslation.load(this.$props);
     return translation?.name ?? "";
   }
 
   async description(): Promise<RichText | null> {
-    const translation = await this.$ctx.loaders.productTranslation.load(
-      this.$props
+    const translation = await this.$ctx.loaders.productTranslation.load(this.$props);
+    return toRichText(
+      translation && {
+        text: translation.descriptionText,
+        html: translation.descriptionHtml,
+        json: translation.descriptionJson,
+      },
     );
-    return toRichText(translation && {
-      text: translation.descriptionText,
-      html: translation.descriptionHtml,
-      json: translation.descriptionJson,
-    });
   }
 
   async excerpt(): Promise<RichText | null> {
-    const translation = await this.$ctx.loaders.productTranslation.load(
-      this.$props
+    const translation = await this.$ctx.loaders.productTranslation.load(this.$props);
+    return toRichText(
+      translation && {
+        text: translation.excerptText,
+        html: translation.excerptHtml,
+        json: translation.excerptJson,
+      },
     );
-    return toRichText(translation && {
-      text: translation.excerptText,
-      html: translation.excerptHtml,
-      json: translation.excerptJson,
-    });
   }
 
   /**
@@ -179,29 +166,27 @@ export class ProductResolver extends CatalogType<string, Product> {
   }
 
   async primaryCategory() {
-    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
-      this.$props
-    );
+    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(this.$props);
     const primary = links.find((link) => link.isPrimary);
     return primary ? this.resolvers.category(primary.categoryId) : null;
   }
 
   async categoryAssignments() {
-    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
-      this.$props
-    );
+    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(this.$props);
 
-    return Promise.all([...links]
-      .sort((a, b) => {
-        if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
-        const rank = a.lexoRank.localeCompare(b.lexoRank);
-        if (rank !== 0) return rank;
-        return a.categoryId.localeCompare(b.categoryId);
-      })
-      .map(async (link) => ({
-        category: await this.resolvers.category(link.categoryId),
-        isPrimary: link.isPrimary,
-      })));
+    return Promise.all(
+      [...links]
+        .sort((a, b) => {
+          if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+          const rank = a.lexoRank.localeCompare(b.lexoRank);
+          if (rank !== 0) return rank;
+          return a.categoryId.localeCompare(b.categoryId);
+        })
+        .map(async (link) => ({
+          category: await this.resolvers.category(link.categoryId),
+          isPrimary: link.isPrimary,
+        })),
+    );
   }
 
   /**
@@ -213,11 +198,8 @@ export class ProductResolver extends CatalogType<string, Product> {
   }
 
   async productComponent() {
-    const component =
-      await this.$ctx.loaders.componentByProductId.load(this.$props);
-    return component
-      ? this.resolvers.productComponent(component.id)
-      : null;
+    const component = await this.$ctx.loaders.componentByProductId.load(this.$props);
+    return component ? this.resolvers.productComponent(component.id) : null;
   }
 
   async effectiveComparisonProfile() {
@@ -240,9 +222,7 @@ export class ProductReferenceResolver extends ProductResolver {
   async $preload() {
     const product = await this.$ctx.loaders.productReference.load(this.$props);
     if (!product) {
-      throw new PreloadNotFoundError(
-        `Product with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Product with ID ${this.$props} not found`);
     }
     return product;
   }

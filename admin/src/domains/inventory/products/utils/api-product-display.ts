@@ -21,29 +21,25 @@ export const getProductMediaFiles = (product: ApiProduct): ApiFile[] => {
     .map((item) => item.file);
 };
 
-export const getProductThumbnailFile = (
-  product: ApiProduct,
-): ApiFile | null => getProductMediaFiles(product)[0] ?? null;
+export const getProductThumbnailFile = (product: ApiProduct): ApiFile | null =>
+  getProductMediaFiles(product)[0] ?? null;
 
 export const getProductSku = (product: ApiProduct): string | null =>
   getDefaultVariant(product)?.inventoryItem?.sku ?? null;
 
-export const getProductPrimaryPriceAmount = (
-  product: ApiProduct,
-): number | null => getDefaultVariant(product)?.price?.amountMinor ?? null;
+export const getProductPrimaryPriceAmount = (product: ApiProduct): number | null =>
+  getDefaultVariant(product)?.price?.amountMinor ?? null;
 
 export const getProductPriceAmounts = (product: ApiProduct): number[] =>
   getProductVariants(product)
     .map((variant) => variant.price?.amountMinor ?? null)
     .filter((amount): amount is number => amount !== null);
 
-export const getProductMinPriceAmount = (
-  product: ApiProduct,
-): number | null => product.priceRange?.minPriceAmount ?? null;
+export const getProductMinPriceAmount = (product: ApiProduct): number | null =>
+  product.priceRange?.minPriceAmount ?? null;
 
-export const getProductMaxPriceAmount = (
-  product: ApiProduct,
-): number | null => product.priceRange?.maxPriceAmount ?? null;
+export const getProductMaxPriceAmount = (product: ApiProduct): number | null =>
+  product.priceRange?.maxPriceAmount ?? null;
 
 export const getProductTotalAvailable = (product: ApiProduct): number =>
   getProductVariants(product).reduce(
@@ -51,16 +47,12 @@ export const getProductTotalAvailable = (product: ApiProduct): number =>
     0,
   );
 
-export const getProductPrimaryCategoryName = (
-  product: ApiProduct,
-): string | null => getProductPrimaryCategory(product)?.name ?? null;
+export const getProductPrimaryCategoryName = (product: ApiProduct): string | null =>
+  getProductPrimaryCategory(product)?.name ?? null;
 
-export const getProductPrimaryCategory = (
-  product: ApiProduct,
-): ApiCategory | null =>
+export const getProductPrimaryCategory = (product: ApiProduct): ApiCategory | null =>
   product.primaryCategory ??
-  (product.categoryAssignments ?? []).find((assignment) => assignment.isPrimary)
-    ?.category ??
+  (product.categoryAssignments ?? []).find((assignment) => assignment.isPrimary)?.category ??
   null;
 
 export const getProductCategories = (product: ApiProduct): ApiCategory[] =>
@@ -79,10 +71,7 @@ export const getVariantStockQuantity = (variant: ApiVariant): number => {
 
   return (
     inventoryItem.totalAvailable ??
-    (inventoryItem.stock ?? []).reduce(
-      (total, stock) => total + stock.quantityOnHand,
-      0,
-    )
+    (inventoryItem.stock ?? []).reduce((total, stock) => total + stock.quantityOnHand, 0)
   );
 };
 
@@ -90,15 +79,11 @@ export const getSelectedOptionLabels = (
   productOptions: ApiProductOption[],
   variant: ApiVariant,
 ): string[] => {
-  const optionsById = new Map(
-    productOptions.map((option) => [option.id, option]),
-  );
+  const optionsById = new Map(productOptions.map((option) => [option.id, option]));
 
   return variant.selectedOptions.map((selectedOption) => {
     const option = optionsById.get(selectedOption.optionId);
-    const value = option?.values.find(
-      (candidate) => candidate.id === selectedOption.optionValueId,
-    );
+    const value = option?.values.find((candidate) => candidate.id === selectedOption.optionValueId);
 
     if (option && value) {
       return `${option.name}: ${value.name}`;

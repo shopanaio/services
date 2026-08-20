@@ -8,8 +8,7 @@ import type { UserError } from "../../kernel/BaseScript.js";
 export type RatingCriterionDeleteParams = ReviewRatingCriterionDeleteInput;
 export type ReviewDeleteParams = ReviewContentDeleteInput;
 export type ProductQuestionDeleteParams = ReviewContentDeleteInput;
-export type ContentExternalReferenceDeleteParams =
-  ReviewContentExternalReferenceDeleteInput;
+export type ContentExternalReferenceDeleteParams = ReviewContentExternalReferenceDeleteInput;
 
 interface DeleteResult {
   userErrors: UserError[];

@@ -1,10 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import {
-  EventHandler,
-  EventHandlers,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { EventHandler, EventHandlers, InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import type { EventHandlerResponse, StoreCreatedEvent } from "@shopana/events";
 import { Kernel } from "../kernel/Kernel.js";
 import type { SearchSettingsValueInput } from "../repositories/search/searchRepositoryTypes.js";
@@ -19,9 +14,7 @@ export class ListingStoreEventHandlers extends EventHandlers {
   }
 
   @EventHandler("storeCreated", { retry: { maxAttempts: 5 } })
-  async handleStoreCreated(params: {
-    event: StoreCreatedEvent;
-  }): Promise<EventHandlerResponse> {
+  async handleStoreCreated(params: { event: StoreCreatedEvent }): Promise<EventHandlerResponse> {
     const { event } = params;
 
     this.logger.debug(
@@ -34,12 +27,11 @@ export class ListingStoreEventHandlers extends EventHandlers {
     );
 
     try {
-      const result = await Kernel.getInstance().repository.searchSettings
-        .acquireVersion({
-          storeId: event.payload.storeId,
-          expectedVersion: 0,
-          initialValues: this.defaultSearchSettings(),
-        });
+      const result = await Kernel.getInstance().repository.searchSettings.acquireVersion({
+        storeId: event.payload.storeId,
+        expectedVersion: 0,
+        initialValues: this.defaultSearchSettings(),
+      });
 
       if (result.status === "applied") {
         this.logger.log(

@@ -1,11 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import type { Database } from "../infrastructure/db/database";
-import {
-  assetGroups,
-  type AssetGroup,
-  type NewAssetGroup,
-  type AssetOwnerType,
-} from "./models";
+import { assetGroups, type AssetGroup, type NewAssetGroup, type AssetOwnerType } from "./models";
 
 // ---- Types ----
 
@@ -26,11 +21,7 @@ export class AssetGroupRepository {
    * Find an asset group by ID
    */
   async findById(id: string): Promise<AssetGroup | null> {
-    const result = await this.db
-      .select()
-      .from(assetGroups)
-      .where(eq(assetGroups.id, id))
-      .limit(1);
+    const result = await this.db.select().from(assetGroups).where(eq(assetGroups.id, id)).limit(1);
 
     return result[0] ?? null;
   }
@@ -38,19 +29,11 @@ export class AssetGroupRepository {
   /**
    * Find an asset group by owner (type + id)
    */
-  async findByOwner(
-    ownerType: AssetOwnerType,
-    ownerId: string
-  ): Promise<AssetGroup | null> {
+  async findByOwner(ownerType: AssetOwnerType, ownerId: string): Promise<AssetGroup | null> {
     const result = await this.db
       .select()
       .from(assetGroups)
-      .where(
-        and(
-          eq(assetGroups.ownerType, ownerType),
-          eq(assetGroups.ownerId, ownerId)
-        )
-      )
+      .where(and(eq(assetGroups.ownerType, ownerType), eq(assetGroups.ownerId, ownerId)))
       .limit(1);
 
     return result[0] ?? null;
@@ -59,19 +42,11 @@ export class AssetGroupRepository {
   /**
    * Check if an asset group exists for owner
    */
-  async existsByOwner(
-    ownerType: AssetOwnerType,
-    ownerId: string
-  ): Promise<boolean> {
+  async existsByOwner(ownerType: AssetOwnerType, ownerId: string): Promise<boolean> {
     const result = await this.db
       .select({ id: assetGroups.id })
       .from(assetGroups)
-      .where(
-        and(
-          eq(assetGroups.ownerType, ownerType),
-          eq(assetGroups.ownerId, ownerId)
-        )
-      )
+      .where(and(eq(assetGroups.ownerType, ownerType), eq(assetGroups.ownerId, ownerId)))
       .limit(1);
 
     return result.length > 0;
@@ -91,10 +66,7 @@ export class AssetGroupRepository {
       ownerId: data.ownerId,
     };
 
-    const result = await this.db
-      .insert(assetGroups)
-      .values(newAssetGroup)
-      .returning();
+    const result = await this.db.insert(assetGroups).values(newAssetGroup).returning();
 
     return result[0];
   }
@@ -111,17 +83,9 @@ export class AssetGroupRepository {
    * Delete an asset group by owner (type + id)
    * Note: Files with this asset_group_id will be deleted via CASCADE
    */
-  async deleteByOwner(
-    ownerType: AssetOwnerType,
-    ownerId: string
-  ): Promise<void> {
+  async deleteByOwner(ownerType: AssetOwnerType, ownerId: string): Promise<void> {
     await this.db
       .delete(assetGroups)
-      .where(
-        and(
-          eq(assetGroups.ownerType, ownerType),
-          eq(assetGroups.ownerId, ownerId)
-        )
-      );
+      .where(and(eq(assetGroups.ownerType, ownerType), eq(assetGroups.ownerId, ownerId)));
   }
 }

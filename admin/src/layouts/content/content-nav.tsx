@@ -1,8 +1,8 @@
-import { createStyles } from 'antd-style';
-import { Button, Flex, Skeleton, Typography } from 'antd';
-import { ReactNode } from 'react';
-import { DrawerPaper } from '@/layouts/drawer/components/drawer-paper';
-import { DrawerPaperHeader } from '@/layouts/drawer/components/paper-header';
+import { createStyles } from "antd-style";
+import { Button, Flex, Skeleton, Typography } from "antd";
+import { ReactNode } from "react";
+import { DrawerPaper } from "@/layouts/drawer/components/drawer-paper";
+import { DrawerPaperHeader } from "@/layouts/drawer/components/paper-header";
 
 const useStyles = createStyles(({ css, token }, { isActive }: { isActive: boolean }) => ({
   navItem: css`
@@ -14,10 +14,10 @@ const useStyles = createStyles(({ css, token }, { isActive }: { isActive: boolea
     &:hover span {
       text-decoration: underline;
     }
-    ${isActive ? `background-color: ${token.colorFillTertiary};` : ''}
+    ${isActive ? `background-color: ${token.colorFillTertiary};` : ""}
   `,
   activeText: css`
-    ${isActive ? `color: ${token.colorText};` : ''}
+    ${isActive ? `color: ${token.colorText};` : ""}
   `,
 }));
 
@@ -68,8 +68,8 @@ export const ContentNav = ({
   activeId,
   items,
   loading,
-  title = 'Navigation',
-  createLabel = 'Create new',
+  title = "Navigation",
+  createLabel = "Create new",
   description,
 }: IContentNavProps) => {
   return (

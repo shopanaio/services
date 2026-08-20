@@ -20,7 +20,11 @@ export const CUSTOMER_CREATE_MUTATION = gql`
 `;
 
 export const CUSTOMER_UPDATE_MUTATION = gql`
-  mutation CustomerUpdate($customerId: ID!, $expectedRevision: Int!, $operations: CustomerUpdateInput!) {
+  mutation CustomerUpdate(
+    $customerId: ID!
+    $expectedRevision: Int!
+    $operations: CustomerUpdateInput!
+  ) {
     customersMutation {
       customerUpdate(
         customerId: $customerId

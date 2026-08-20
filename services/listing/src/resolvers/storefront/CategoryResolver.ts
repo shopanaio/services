@@ -9,8 +9,6 @@ export class CategoryResolver extends ListingType<string> {
   }
 
   products(args: CategoryProductsArgs) {
-    return this.resolvers.productConnection(
-      categoryProductsInput(this.$props, args)
-    );
+    return this.resolvers.productConnection(categoryProductsInput(this.$props, args));
   }
 }

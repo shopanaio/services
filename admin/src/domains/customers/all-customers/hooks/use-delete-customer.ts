@@ -15,25 +15,28 @@ export function useDeleteCustomer() {
     CustomerDeleteMutationVariables
   >(CUSTOMER_DELETE_MUTATION);
 
-  const deleteCustomer = useCallback(async (input: ApiCustomerDeleteInput) => {
-    try {
-      const result = await mutate({
-        variables: { input },
-        refetchQueries: [CUSTOMERS_QUERY],
-      });
-      const payload = result.data?.customersMutation.customerDelete;
-      return {
-        deletedCustomerId: payload?.deletedCustomerId ?? null,
-        userErrors: payload?.userErrors ?? [],
-      };
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "Unable to delete customer";
-      return {
-        deletedCustomerId: null,
-        userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[],
-      };
-    }
-  }, [mutate]);
+  const deleteCustomer = useCallback(
+    async (input: ApiCustomerDeleteInput) => {
+      try {
+        const result = await mutate({
+          variables: { input },
+          refetchQueries: [CUSTOMERS_QUERY],
+        });
+        const payload = result.data?.customersMutation.customerDelete;
+        return {
+          deletedCustomerId: payload?.deletedCustomerId ?? null,
+          userErrors: payload?.userErrors ?? [],
+        };
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : "Unable to delete customer";
+        return {
+          deletedCustomerId: null,
+          userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[],
+        };
+      }
+    },
+    [mutate],
+  );
 
   return { deleteCustomer, loading, error: error ?? null, reset };
 }

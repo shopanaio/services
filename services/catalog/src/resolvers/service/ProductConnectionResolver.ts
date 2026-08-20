@@ -18,9 +18,7 @@ export class ServiceProductConnectionResolver extends BaseConnectionResolver<
   ServiceProductEdgeResolver
 > {
   async $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel
-      .getServices()
-      .repository.product.getConnection(this.$props);
+    return this.$ctx.kernel.getServices().repository.product.getConnection(this.$props);
   }
 
   protected createEdgeResolver(edge: EdgeData): ServiceProductEdgeResolver {

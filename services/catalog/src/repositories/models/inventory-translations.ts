@@ -1,10 +1,4 @@
-import {
-  uuid,
-  varchar,
-  text,
-  primaryKey,
-  index,
-} from "drizzle-orm/pg-core";
+import { uuid, varchar, text, primaryKey, index } from "drizzle-orm/pg-core";
 import { catalogSchema, localeCodeEnum } from "./schema";
 import { warehouses } from "./stock";
 
@@ -27,7 +21,7 @@ export const warehouseTranslation = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.warehouseId, table.locale] }),
     index("idx_warehouse_translation_store").on(table.storeId),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────

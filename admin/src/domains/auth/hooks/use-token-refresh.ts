@@ -5,10 +5,7 @@ import { useCallback } from "react";
 import { TOKEN_REFRESH_MUTATION } from "../graphql";
 import { createNetworkError } from "../utils";
 import type { TokenRefreshResult } from "../context/types";
-import type {
-  ApiUserTokenRefreshInput,
-  ApiUserTokenRefreshPayload,
-} from "@/graphql/types";
+import type { ApiUserTokenRefreshInput, ApiUserTokenRefreshPayload } from "@/graphql/types";
 
 export interface UseTokenRefreshReturn {
   /** Execute token refresh mutation */
@@ -53,7 +50,7 @@ export function useTokenRefresh(): UseTokenRefreshReturn {
         };
       }
     },
-    [mutate]
+    [mutate],
   );
 
   return { refreshToken, loading, error: error ?? null };

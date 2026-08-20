@@ -4,11 +4,7 @@ import type {
   AppManifest,
 } from "@shopana/app-sdk";
 
-export type AppLifecycleOperationStatus =
-  | "PENDING"
-  | "RUNNING"
-  | "SUCCEEDED"
-  | "FAILED";
+export type AppLifecycleOperationStatus = "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED";
 
 export interface AppInstallationRecord {
   readonly id: string;

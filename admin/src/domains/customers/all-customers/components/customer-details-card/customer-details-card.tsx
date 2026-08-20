@@ -22,7 +22,12 @@ interface CustomerDetailsCardProps {
   onTechnicalMetadata: () => void;
 }
 
-export function CustomerDetailsCard({ customer, onEdit, onDelete, onTechnicalMetadata }: CustomerDetailsCardProps) {
+export function CustomerDetailsCard({
+  customer,
+  onEdit,
+  onDelete,
+  onTechnicalMetadata,
+}: CustomerDetailsCardProps) {
   const { styles } = useCustomerDetailsStyles();
   const currency = useDefaultCurrency();
 

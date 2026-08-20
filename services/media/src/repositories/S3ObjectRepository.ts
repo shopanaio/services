@@ -43,10 +43,7 @@ export class S3ObjectRepository {
       return new Map();
     }
 
-    const result = await this.db
-      .select()
-      .from(s3Objects)
-      .where(inArray(s3Objects.fileId, fileIds));
+    const result = await this.db.select().from(s3Objects).where(inArray(s3Objects.fileId, fileIds));
 
     const map = new Map<string, S3Object>();
     for (const obj of result) {
@@ -104,9 +101,7 @@ export class S3ObjectRepository {
    * Delete an S3 object record
    */
   async delete(fileId: string): Promise<void> {
-    await this.db
-      .delete(s3Objects)
-      .where(eq(s3Objects.fileId, fileId));
+    await this.db.delete(s3Objects).where(eq(s3Objects.fileId, fileId));
   }
 
   /**
@@ -116,12 +111,7 @@ export class S3ObjectRepository {
     const result = await this.db
       .select()
       .from(s3Objects)
-      .where(
-        and(
-          eq(s3Objects.bucketId, bucketId),
-          eq(s3Objects.objectKey, objectKey)
-        )
-      )
+      .where(and(eq(s3Objects.bucketId, bucketId), eq(s3Objects.objectKey, objectKey)))
       .limit(1);
 
     return result[0] ?? null;

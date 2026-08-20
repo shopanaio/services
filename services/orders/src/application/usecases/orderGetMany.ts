@@ -32,10 +32,7 @@ export interface GetOrdersUseCaseDependencies {
  * Use case for retrieving paginated list of orders with filtering and sorting
  */
 export class GetOrdersUseCase extends UseCase<GetOrdersUseCaseInput, GetOrdersOutput> {
-  constructor(
-    deps: GetOrdersUseCaseDependencies,
-    baseDeps?: any
-  ) {
+  constructor(deps: GetOrdersUseCaseDependencies, baseDeps?: any) {
     super(baseDeps);
     this.orderReadRepository = deps.orderReadRepository;
   }
@@ -59,14 +56,17 @@ export class GetOrdersUseCase extends UseCase<GetOrdersUseCaseInput, GetOrdersOu
       // TODO: Implement repository method for paginated order retrieval
       // For now, return empty result structure
 
-      this.logger.info({
-        storeId: context.store.id,
-        userId: context.user?.id,
-        page,
-        pageSize,
-        where,
-        order
-      }, "Fetching paginated orders");
+      this.logger.info(
+        {
+          storeId: context.store.id,
+          userId: context.user?.id,
+          page,
+          pageSize,
+          where,
+          order,
+        },
+        "Fetching paginated orders",
+      );
 
       // Placeholder implementation - should be replaced with actual repository call
       // Example: const result = await this.orderReadRepository.findMany({
@@ -90,13 +90,10 @@ export class GetOrdersUseCase extends UseCase<GetOrdersUseCaseInput, GetOrdersOu
           pageCount,
         },
       };
-
     } catch (error) {
       this.logger.error({ error, storeId: context.store.id }, "Failed to fetch orders");
       throw new Error(
-        `Failed to fetch orders: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        `Failed to fetch orders: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
   }

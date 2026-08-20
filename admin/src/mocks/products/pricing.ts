@@ -4,7 +4,7 @@ import { CurrencyCode } from "@/graphql/types";
 export const generateMockHistory = (
   currentPrice: number,
   currentCompareAt?: number | null,
-  currency: CurrencyCode = CurrencyCode.Rub
+  currency: CurrencyCode = CurrencyCode.Rub,
 ): ApiVariantPrice[] => {
   const now = new Date();
   const history: ApiVariantPrice[] = [

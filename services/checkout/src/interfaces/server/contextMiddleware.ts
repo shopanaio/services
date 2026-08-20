@@ -28,8 +28,7 @@ function headerIsTrue(value: unknown): boolean {
  * Checks if request is a GraphQL introspection query
  */
 function isGraphqlIntrospectionRequest(request: FastifyRequest): boolean {
-  const isGraphqlPath =
-    typeof request.url === "string" && request.url.startsWith("/graphql");
+  const isGraphqlPath = typeof request.url === "string" && request.url.startsWith("/graphql");
   if (!isGraphqlPath) return false;
 
   if (request.headers["user-agent"]?.includes("rover")) {
@@ -48,10 +47,7 @@ export function buildCoreContextMiddleware(grpcConfig: GrpcConfigPort) {
   void grpcConfig;
   const verifier = new StorefrontContextVerifier();
 
-  return async function coreContextMiddleware(
-    request: FastifyRequest,
-    reply: FastifyReply
-  ) {
+  return async function coreContextMiddleware(request: FastifyRequest, reply: FastifyReply) {
     try {
       const raw = request.headers[STOREFRONT_CONTEXT_HEADER];
       if (typeof raw !== "string") throw new Error("missing context");
@@ -60,9 +56,7 @@ export function buildCoreContextMiddleware(grpcConfig: GrpcConfigPort) {
       request.store = toCoreStore(claims.store);
       request.storefrontAccess = claims.storefront;
       request.storefrontVisitorId = claims.visitorId;
-      request.customer = claims.customer
-        ? toCoreCustomer(claims.customer)
-        : null;
+      request.customer = claims.customer ? toCoreCustomer(claims.customer) : null;
 
       // Set context in async local storage
       setContext({
@@ -73,9 +67,7 @@ export function buildCoreContextMiddleware(grpcConfig: GrpcConfigPort) {
         user: null, // TODO: Add user support if needed
       });
     } catch {
-      return reply
-        .status(401)
-        .send({ data: null, errors: [{ message: "Unauthorized" }] });
+      return reply.status(401).send({ data: null, errors: [{ message: "Unauthorized" }] });
     }
   };
 }
@@ -104,11 +96,13 @@ function toCoreStore(store: import("@shopana/shared-context").ContextStore): Cor
     country: "",
     timezone: store.timezone,
     currency: store.currencyCode,
-    currencies: [{
-      code: store.currencyCode,
-      exchangeRate: 1,
-      isActive: true,
-    }],
+    currencies: [
+      {
+        code: store.currencyCode,
+        exchangeRate: 1,
+        isActive: true,
+      },
+    ],
     locale: store.defaultLocale,
     locales: store.locales.map((code) => ({ code, isActive: true })),
     stockStatuses: [],

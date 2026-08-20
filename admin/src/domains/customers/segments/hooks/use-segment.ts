@@ -2,7 +2,10 @@
 
 import { useQuery } from "@apollo/client/react";
 import { CUSTOMER_SEGMENT_QUERY } from "../graphql";
-import type { CustomerSegmentQueryData, CustomerSegmentQueryVariables } from "../graphql/operation-types";
+import type {
+  CustomerSegmentQueryData,
+  CustomerSegmentQueryVariables,
+} from "../graphql/operation-types";
 
 export function useCustomerSegment(id?: string) {
   const { data, previousData, loading, error, refetch } = useQuery<

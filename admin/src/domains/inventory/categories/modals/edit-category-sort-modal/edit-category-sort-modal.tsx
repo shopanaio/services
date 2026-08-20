@@ -2,18 +2,11 @@
 
 import { App, Flex, Segmented, Select, Typography } from "antd";
 import { Controller, useForm } from "react-hook-form";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { ProductSortBy, SortDirection } from "@/graphql/types";
 import { useUpdateCategory } from "../../hooks";
-import {
-  mapCategorySortToUpdateInput,
-  type CategorySortFormValues,
-} from "../../mappers";
+import { mapCategorySortToUpdateInput, type CategorySortFormValues } from "../../mappers";
 import type { ICategoryEditSortModalPayload } from "../../modals";
 
 export const EditCategorySortModal = () => {

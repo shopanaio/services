@@ -1,7 +1,11 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
 import type { RatingCriterion } from "./types";
-import type { ApiReviewContentExternalReference, ApiReviewModerationCase, ApiReviewRequest } from "@/graphql/types";
+import type {
+  ApiReviewContentExternalReference,
+  ApiReviewModerationCase,
+  ApiReviewRequest,
+} from "@/graphql/types";
 
 export const RATING_CRITERION_MODAL_TYPE = "review-rating-criterion";
 export const MODERATION_CASE_MODAL_TYPE = "review-moderation-case";
@@ -9,10 +13,19 @@ export const REVIEW_REQUEST_MODAL_TYPE = "review-request";
 export const EXTERNAL_REFERENCE_MODAL_TYPE = "review-external-reference";
 export const PRODUCT_INSIGHTS_MODAL_TYPE = "product-insights";
 
-interface SavedPayload extends IModalStackPayload { onSaved?: () => Promise<unknown> | unknown }
-export interface RatingCriterionModalPayload extends SavedPayload { criterion?: RatingCriterion }
-export interface ModerationCaseModalPayload extends SavedPayload { moderationCase?: ApiReviewModerationCase; contentId?: string }
-export interface ReviewRequestModalPayload extends SavedPayload { reviewRequest?: ApiReviewRequest }
+interface SavedPayload extends IModalStackPayload {
+  onSaved?: () => Promise<unknown> | unknown;
+}
+export interface RatingCriterionModalPayload extends SavedPayload {
+  criterion?: RatingCriterion;
+}
+export interface ModerationCaseModalPayload extends SavedPayload {
+  moderationCase?: ApiReviewModerationCase;
+  contentId?: string;
+}
+export interface ReviewRequestModalPayload extends SavedPayload {
+  reviewRequest?: ApiReviewRequest;
+}
 export interface ExternalReferenceModalPayload extends SavedPayload {
   externalReference?: ApiReviewContentExternalReference;
   contentId?: string;

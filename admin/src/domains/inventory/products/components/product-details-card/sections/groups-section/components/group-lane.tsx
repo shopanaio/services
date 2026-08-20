@@ -1,7 +1,12 @@
 "use client";
 
 import { Typography, Tag } from "antd";
-import { LuLockKeyhole as LockOutlined, LuLockOpen as UnlockOutlined, LuCircleCheck as CheckCircleOutlined, LuSquareCheckBig as CheckSquareOutlined } from "react-icons/lu";
+import {
+  LuLockKeyhole as LockOutlined,
+  LuLockOpen as UnlockOutlined,
+  LuCircleCheck as CheckCircleOutlined,
+  LuSquareCheckBig as CheckSquareOutlined,
+} from "react-icons/lu";
 import type { ApiProductComponentGroup } from "@/graphql/types";
 import { getSelectionLabel } from "../helpers";
 import { useStyles } from "../styles";
@@ -24,27 +29,20 @@ export const GroupLane = ({ group, onClick }: IGroupLaneProps) => {
     <div className={styles.lane} onClick={onClick}>
       <div className={styles.laneHeader}>
         <div className={styles.laneInfo}>
-          <Typography.Text className={styles.laneTitle}>
-            {group.title}
-          </Typography.Text>
+          <Typography.Text className={styles.laneTitle}>{group.title}</Typography.Text>
           <Typography.Text type="secondary" className={styles.laneCount}>
             {group.items?.length || 0} items
           </Typography.Text>
         </div>
         <div className={styles.laneTags}>
-          <Tag
-            className={styles.laneTag}
-            icon={isRequired ? <LockOutlined /> : <UnlockOutlined />}
-          >
+          <Tag className={styles.laneTag} icon={isRequired ? <LockOutlined /> : <UnlockOutlined />}>
             {isRequired ? "Required" : "Optional"}
           </Tag>
           <Tag
             className={styles.laneTag}
             icon={isMultiple ? <CheckSquareOutlined /> : <CheckCircleOutlined />}
           >
-            {isMultiple
-              ? `Multiple ${selectionLabel ?? ""}`
-              : "Single"}
+            {isMultiple ? `Multiple ${selectionLabel ?? ""}` : "Single"}
           </Tag>
         </div>
       </div>

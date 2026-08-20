@@ -30,14 +30,11 @@ export interface RenderedNotification {
   sms?: { encoding: "GSM_7" | "UCS_2"; segmentCount: number; length: number };
 }
 
-type ActiveTemplate = NonNullable<
-  Awaited<ReturnType<TemplateRepository["findActive"]>>
->;
+type ActiveTemplate = NonNullable<Awaited<ReturnType<TemplateRepository["findActive"]>>>;
 
 export type TemplateSourceField = "SUBJECT" | "BODY" | "PLAIN_TEXT";
 
-export interface StructuredTemplateValidationIssue
-  extends TemplateValidationIssue {
+export interface StructuredTemplateValidationIssue extends TemplateValidationIssue {
   field: TemplateSourceField;
 }
 
@@ -48,7 +45,7 @@ export class NotificationTemplateRenderer {
 
   constructor(
     private readonly definitions: TemplateDefinitionRegistry,
-    private readonly templates: TemplateRepository
+    private readonly templates: TemplateRepository,
   ) {
     this.defaults = createDefaultTemplateManifest(definitions);
     for (const template of this.defaults.values()) {
@@ -63,7 +60,7 @@ export class NotificationTemplateRenderer {
         throw new Error(
           `Invalid default template ${template.key}/${template.channel}: ${issues
             .map((issue) => `${issue.code}@${issue.line}:${issue.column}`)
-            .join(", ")}`
+            .join(", ")}`,
         );
       }
     }
@@ -89,19 +86,17 @@ export class NotificationTemplateRenderer {
     const definition = this.definitions.get(input.key);
     const issues = [
       ...(input.subjectTemplate
-        ? this.validator.validate(
-            input.subjectTemplate,
-            definition.variables
-          ).map((issue) => ({ ...issue, field: "SUBJECT" as const }))
+        ? this.validator
+            .validate(input.subjectTemplate, definition.variables)
+            .map((issue) => ({ ...issue, field: "SUBJECT" as const }))
         : []),
       ...this.validator
         .validate(input.bodyTemplate, definition.variables)
         .map((issue) => ({ ...issue, field: "BODY" as const })),
       ...(input.plainTextTemplate
-        ? this.validator.validate(
-            input.plainTextTemplate,
-            definition.variables
-          ).map((issue) => ({ ...issue, field: "PLAIN_TEXT" as const }))
+        ? this.validator
+            .validate(input.plainTextTemplate, definition.variables)
+            .map((issue) => ({ ...issue, field: "PLAIN_TEXT" as const }))
         : []),
     ];
     if (input.channel === "EMAIL") {
@@ -113,10 +108,7 @@ export class NotificationTemplateRenderer {
           line: 1,
           column: 1,
           code: "UNSAFE_EMAIL_HTML",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Email HTML is unsafe",
+          message: error instanceof Error ? error.message : "Email HTML is unsafe",
         });
       }
     }
@@ -143,11 +135,7 @@ export class NotificationTemplateRenderer {
       input.storeDefaultLocale,
       "en",
     ]);
-    const selected = await this.resolveTemplate(
-      input.key,
-      input.channel,
-      locales
-    );
+    const selected = await this.resolveTemplate(input.key, input.channel, locales);
     return this.renderSources({
       key: input.key,
       channel: input.channel,
@@ -184,7 +172,9 @@ export class NotificationTemplateRenderer {
       });
       if (issues.length > 0) {
         throw new Error(
-          issues.map((issue) => `${issue.code}@${issue.line}:${issue.column} ${issue.message}`).join("; ")
+          issues
+            .map((issue) => `${issue.code}@${issue.line}:${issue.column} ${issue.message}`)
+            .join("; "),
         );
       }
       const rendered = this.renderSources({
@@ -196,11 +186,7 @@ export class NotificationTemplateRenderer {
         bodyTemplate: input.bodyTemplate,
         plainTextTemplate: input.plainTextTemplate,
         cachePrefix: `preview:${hash(
-          JSON.stringify([
-            input.subjectTemplate,
-            input.bodyTemplate,
-            input.plainTextTemplate,
-          ])
+          JSON.stringify([input.subjectTemplate, input.bodyTemplate, input.plainTextTemplate]),
         )}`,
       });
       return {
@@ -243,33 +229,31 @@ export class NotificationTemplateRenderer {
       key: NotificationDefinitionKey;
       channel: NotificationChannel;
       locale: string;
-    }[]
+    }[],
   ) {
     const supportedInputs = inputs.filter(
       (
-        input
+        input,
       ): input is {
         key: NotificationDefinitionKey;
         channel: Extract<NotificationChannel, "EMAIL" | "SMS">;
         locale: string;
-      } => input.channel === "EMAIL" || input.channel === "SMS"
+      } => input.channel === "EMAIL" || input.channel === "SMS",
     );
     const lookupKeys = supportedInputs.flatMap((input) =>
-      unique([input.locale, "en"]).map((locale) => ({ ...input, locale }))
+      unique([input.locale, "en"]).map((locale) => ({ ...input, locale })),
     );
     const activeTemplates =
-      lookupKeys.length === 0
-        ? []
-        : await this.templates.findActiveMany(lookupKeys);
+      lookupKeys.length === 0 ? [] : await this.templates.findActiveMany(lookupKeys);
     const activeByTemplateId = new Map(
       activeTemplates.map((active) => [
         templateId(
           active.revision.definitionKey as NotificationDefinitionKey,
           active.revision.channel,
-          active.revision.locale
+          active.revision.locale,
         ),
         active,
-      ])
+      ]),
     );
 
     return inputs.map((input) => {
@@ -281,7 +265,7 @@ export class NotificationTemplateRenderer {
           input.key,
           input.channel,
           unique([input.locale, "en"]),
-          activeByTemplateId
+          activeByTemplateId,
         );
         return {
           key: input.key,
@@ -316,25 +300,13 @@ export class NotificationTemplateRenderer {
     templateSourceVersion?: string;
   }): RenderedNotification {
     const subject = input.subjectTemplate
-      ? this.engine.render(
-          input.subjectTemplate,
-          input.data,
-          `${input.cachePrefix}:subject`
-        )
+      ? this.engine.render(input.subjectTemplate, input.data, `${input.cachePrefix}:subject`)
       : undefined;
-    const body = this.engine.render(
-      input.bodyTemplate,
-      input.data,
-      `${input.cachePrefix}:body`
-    );
+    const body = this.engine.render(input.bodyTemplate, input.data, `${input.cachePrefix}:body`);
     if (input.channel === "EMAIL") {
       assertSafeEmailHtml(body);
       const text = input.plainTextTemplate
-        ? this.engine.render(
-            input.plainTextTemplate,
-            input.data,
-            `${input.cachePrefix}:text`
-          )
+        ? this.engine.render(input.plainTextTemplate, input.data, `${input.cachePrefix}:text`)
         : htmlToText(body);
       const contentHash = hash(JSON.stringify({ subject, html: body, text }));
       return {
@@ -366,20 +338,20 @@ export class NotificationTemplateRenderer {
   private async resolveTemplate(
     key: NotificationDefinitionKey,
     channel: Extract<NotificationChannel, "EMAIL" | "SMS">,
-    locales: string[]
+    locales: string[],
   ) {
     const activeTemplates = await this.templates.findActiveMany(
-      locales.map((locale) => ({ key, channel, locale }))
+      locales.map((locale) => ({ key, channel, locale })),
     );
     const activeByTemplateId = new Map(
       activeTemplates.map((active) => [
         templateId(
           active.revision.definitionKey as NotificationDefinitionKey,
           active.revision.channel,
-          active.revision.locale
+          active.revision.locale,
         ),
         active,
-      ])
+      ]),
     );
     return this.selectTemplate(key, channel, locales, activeByTemplateId);
   }
@@ -388,7 +360,7 @@ export class NotificationTemplateRenderer {
     key: NotificationDefinitionKey,
     channel: Extract<NotificationChannel, "EMAIL" | "SMS">,
     locales: string[],
-    activeByTemplateId: ReadonlyMap<string, ActiveTemplate>
+    activeByTemplateId: ReadonlyMap<string, ActiveTemplate>,
   ) {
     for (const locale of locales) {
       const active = activeByTemplateId.get(templateId(key, channel, locale));
@@ -397,8 +369,7 @@ export class NotificationTemplateRenderer {
           locale,
           subjectTemplate: active.revision.subjectTemplate ?? undefined,
           bodyTemplate: active.revision.bodyTemplate,
-          plainTextTemplate:
-            active.revision.plainTextTemplate ?? undefined,
+          plainTextTemplate: active.revision.plainTextTemplate ?? undefined,
           cachePrefix: `revision:${active.revision.id}:${active.revision.sourceHash}`,
           templateRevisionId: active.revision.id,
           templateRevision: active.revision.revision,

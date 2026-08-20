@@ -75,7 +75,7 @@ export class Repository {
     checkoutEligibility: CustomerCheckoutEligibilityRepository,
     wishlist: CustomerWishlistRepository,
     comparison: CustomerComparisonRepository,
-    txManager: TransactionManager<Database>
+    txManager: TransactionManager<Database>,
   ) {
     this.customer = customer;
     this.address = address;
@@ -123,7 +123,7 @@ export class Repository {
       new CustomerCheckoutEligibilityRepository(config.db, txManager),
       new CustomerWishlistRepository(config.db, txManager),
       new CustomerComparisonRepository(config.db, txManager),
-      txManager
+      txManager,
     );
   }
 }

@@ -107,9 +107,7 @@ import { DataLayout } from "@/layouts/data";
     <Flex justify="space-between" align="center">
       <Flex vertical>
         <Typography.Title level={4}>Products</Typography.Title>
-        <Typography.Text type="secondary">
-          Manage your product catalog
-        </Typography.Text>
+        <Typography.Text type="secondary">Manage your product catalog</Typography.Text>
       </Flex>
       <Space>
         <Button icon={<DownloadOutlined />}>Export</Button>
@@ -302,10 +300,7 @@ export default function ProductsPage() {
         }
       />
 
-      <ProductTable
-        data={products}
-        onRowClick={(row) => push("product", { entityId: row.id })}
-      />
+      <ProductTable data={products} onRowClick={(row) => push("product", { entityId: row.id })} />
 
       <DataLayout.Footer left={<Pagination page={1} total={100} />} />
     </DataLayout>
@@ -343,11 +338,7 @@ export default function OrdersPage() {
         right={<SearchInput />}
       />
 
-      <OrdersTable
-        data={orders}
-        selectedRows={selectedRows}
-        onSelectionChange={setSelectedRows}
-      />
+      <OrdersTable data={orders} selectedRows={selectedRows} onSelectionChange={setSelectedRows} />
 
       <DataLayout.Footer left={<Pagination />} />
     </DataLayout>

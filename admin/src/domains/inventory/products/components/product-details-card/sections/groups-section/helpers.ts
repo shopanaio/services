@@ -11,9 +11,7 @@ import {
   ProductComponentPriceStrategy,
 } from "@/graphql/types";
 
-export const getItemImageUrl = (
-  item: ApiProductComponentItem,
-): string | null => {
+export const getItemImageUrl = (item: ApiProductComponentItem): string | null => {
   if (item.featuredImage?.url) return item.featuredImage.url;
   if (item.itemType === ProductComponentItemType.Variant) {
     return item.refVariant?.media?.[0]?.file?.url ?? null;
@@ -26,9 +24,7 @@ export const getItemName = (item: ApiProductComponentItem): string =>
 
 const getAmount = (rule: ApiProductComponentPriceRule): number | null =>
   "amounts" in rule
-    ? Number(
-        (rule.amounts as Array<{ amountMinor: number }>)[0]?.amountMinor ?? 0,
-      )
+    ? Number((rule.amounts as Array<{ amountMinor: number }>)[0]?.amountMinor ?? 0)
     : null;
 
 export const getPriceRuleLabel = (
@@ -44,9 +40,7 @@ export const getPriceRuleLabel = (
 
   const adjustment = rule as ApiProductComponentAdjustmentPriceRule;
   const direction =
-    adjustment.operation === PriceAdjustmentOperation.Decrease
-      ? "Discount"
-      : "Markup";
+    adjustment.operation === PriceAdjustmentOperation.Decrease ? "Discount" : "Markup";
 
   if (adjustment.valueType === PriceAdjustmentValueType.Percentage) {
     return `${direction} ${Number(adjustment.percentageBps ?? 0) / 100}%`;
@@ -54,9 +48,7 @@ export const getPriceRuleLabel = (
   return `${direction} $${getAmount(rule) ?? 0}`;
 };
 
-export const getPriceRuleColor = (
-  strategy: ProductComponentPriceStrategy,
-): string => {
+export const getPriceRuleColor = (strategy: ProductComponentPriceStrategy): string => {
   if (
     strategy === ProductComponentPriceStrategy.Free ||
     strategy === ProductComponentPriceStrategy.Adjustment
@@ -67,9 +59,7 @@ export const getPriceRuleColor = (
   return "default";
 };
 
-export const getItemQtyLabel = (
-  item: ApiProductComponentItem,
-): string | null => {
+export const getItemQtyLabel = (item: ApiProductComponentItem): string | null => {
   const { minQty: min, maxQty: max } = item;
   if (!min && !max) return null;
   if (min && max) return min === max ? `Qty: ${min}` : `Qty: ${min}–${max}`;
@@ -78,9 +68,7 @@ export const getItemQtyLabel = (
   return null;
 };
 
-export const getSelectionLabel = (
-  group: ApiProductComponentGroup,
-): string | null => {
+export const getSelectionLabel = (group: ApiProductComponentGroup): string | null => {
   const { minSelection: min, maxSelection: max } = group;
   if (min == null && max == null) return null;
   if (min != null && max != null) {

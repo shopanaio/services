@@ -1,14 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import {
-  Button,
-  Dropdown,
-  Flex,
-  Tag,
-  Timeline,
-  Typography,
-} from "antd";
+import { Button, Dropdown, Flex, Tag, Timeline, Typography } from "antd";
 import {
   LuBox,
   LuEllipsis,
@@ -18,11 +11,7 @@ import {
   LuTruck,
   LuTriangleAlert,
 } from "react-icons/lu";
-import type {
-  ApiDiscount,
-  ApiDiscountTarget,
-  ApiDiscountTargetSelection,
-} from "@/graphql/types";
+import type { ApiDiscount, ApiDiscountTarget, ApiDiscountTargetSelection } from "@/graphql/types";
 import {
   DiscountKind,
   DiscountReferenceStatus,
@@ -61,11 +50,7 @@ function getTargetDescription(target: ApiDiscountTarget): string {
   return formatDiscountEnum(target.targetType);
 }
 
-function SelectionContent({
-  selection,
-}: {
-  selection: ApiDiscountTargetSelection;
-}) {
+function SelectionContent({ selection }: { selection: ApiDiscountTargetSelection }) {
   const { styles } = useDiscountSectionStyles();
   const staleCount = selection.targets.filter(
     (target) => target.referenceStatus === DiscountReferenceStatus.Stale,
@@ -76,11 +61,7 @@ function SelectionContent({
     return (
       <div className={styles.entityRow}>
         <Flex align="center" gap={10}>
-          <DiscountSectionIcon
-            icon={<LuBox />}
-            shape="square"
-            size={32}
-          />
+          <DiscountSectionIcon icon={<LuBox />} shape="square" size={32} />
           <Flex vertical>
             <Typography.Text strong>All products</Typography.Text>
             <Typography.Text type="secondary">
@@ -98,8 +79,7 @@ function SelectionContent({
         <Flex align="flex-start" gap={8} className={styles.warningBox}>
           <LuTriangleAlert />
           <Typography.Text>
-            {staleCount} catalog reference{staleCount === 1 ? "" : "s"} need
-            attention.
+            {staleCount} catalog reference{staleCount === 1 ? "" : "s"} need attention.
           </Typography.Text>
         </Flex>
       )}
@@ -108,8 +88,7 @@ function SelectionContent({
           Selected {formatDiscountEnum(selection.targetType).toLowerCase()}
         </Typography.Text>
         <Typography.Text type="secondary">
-          {selection.targets.length}{" "}
-          {formatDiscountEnum(selection.targetType).toLowerCase()}
+          {selection.targets.length} {formatDiscountEnum(selection.targetType).toLowerCase()}
         </Typography.Text>
       </Flex>
       <div className={styles.targetGrid}>
@@ -139,9 +118,7 @@ function SelectionContent({
                   <Typography.Text strong ellipsis>
                     {getTargetTitle(target)}
                   </Typography.Text>
-                  <Typography.Text type="secondary">
-                    {getTargetDescription(target)}
-                  </Typography.Text>
+                  <Typography.Text type="secondary">{getTargetDescription(target)}</Typography.Text>
                 </Flex>
               </Flex>
               {target.referenceStatus === DiscountReferenceStatus.Stale && (
@@ -170,18 +147,11 @@ function BuyXFlow({
   benefit: ApiDiscountTargetSelection;
 }) {
   const { styles } = useDiscountSectionStyles();
-  const rule =
-    discount.rule?.__typename === "DiscountBuyXGetYRule"
-      ? discount.rule
-      : null;
-  const qualifierTitles = qualifier.targets
-    .slice(0, 2)
-    .map(getTargetTitle);
+  const rule = discount.rule?.__typename === "DiscountBuyXGetYRule" ? discount.rule : null;
+  const qualifierTitles = qualifier.targets.slice(0, 2).map(getTargetTitle);
   const qualifierSummary = [
     qualifierTitles[0],
-    qualifier.targets.length > 1
-      ? `+${qualifier.targets.length - 1} more`
-      : null,
+    qualifier.targets.length > 1 ? `+${qualifier.targets.length - 1} more` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -192,52 +162,30 @@ function BuyXFlow({
       className={styles.buyXTimeline}
       items={[
         {
-          dot: (
-            <DiscountSectionIcon
-              icon={<LuShoppingCart />}
-              tone="neutral"
-              size={24}
-            />
-          ),
+          dot: <DiscountSectionIcon icon={<LuShoppingCart />} tone="neutral" size={24} />,
           children: (
             <Flex vertical>
-              <Typography.Text className={styles.eyebrow}>
-                When · Customer buys
-              </Typography.Text>
+              <Typography.Text className={styles.eyebrow}>When · Customer buys</Typography.Text>
               <Typography.Text strong>
-                {rule?.requiredQuantity ?? qualifier.targets.length} eligible
-                items from selected{" "}
+                {rule?.requiredQuantity ?? qualifier.targets.length} eligible items from selected{" "}
                 {formatDiscountEnum(qualifier.targetType).toLowerCase()}
               </Typography.Text>
-              <Typography.Text type="secondary">
-                {qualifierSummary}
-              </Typography.Text>
+              <Typography.Text type="secondary">{qualifierSummary}</Typography.Text>
             </Flex>
           ),
         },
         {
-          dot: (
-            <DiscountSectionIcon
-              icon={<LuGift />}
-              tone="primaryBordered"
-              size={24}
-            />
-          ),
+          dot: <DiscountSectionIcon icon={<LuGift />} tone="primaryBordered" size={24} />,
           children: (
             <Flex vertical>
-              <Typography.Text
-                className={`${styles.eyebrow} ${styles.primaryEyebrow}`}
-              >
+              <Typography.Text className={`${styles.eyebrow} ${styles.primaryEyebrow}`}>
                 Then · Customer gets
               </Typography.Text>
               <Typography.Text strong>
-                {benefitTarget
-                  ? getTargetTitle(benefitTarget)
-                  : "Selected benefit items"}
+                {benefitTarget ? getTargetTitle(benefitTarget) : "Selected benefit items"}
               </Typography.Text>
               <Typography.Text type="secondary">
-                {rule?.benefitQuantity ?? benefit.targets.length} eligible item
-                free
+                {rule?.benefitQuantity ?? benefit.targets.length} eligible item free
                 {rule?.usesPerOrderLimit != null
                   ? ` · Up to ${rule.usesPerOrderLimit} times per order`
                   : ""}
@@ -250,20 +198,11 @@ function BuyXFlow({
   );
 }
 
-function ScopeHeader({
-  label,
-}: {
-  label: string;
-}) {
+function ScopeHeader({ label }: { label: string }) {
   const { styles } = useDiscountSectionStyles();
 
   return (
-    <Flex
-      align="center"
-      justify="space-between"
-      gap={8}
-      className={styles.scopeHeader}
-    >
+    <Flex align="center" justify="space-between" gap={8} className={styles.scopeHeader}>
       <Tag color="blue">{label}</Tag>
       <Typography.Text type="secondary">No catalog targets</Typography.Text>
     </Flex>
@@ -294,10 +233,7 @@ function ScopeContent({
   );
 }
 
-export function AppliesToSection({
-  discount,
-  onEdit,
-}: AppliesToSectionProps) {
+export function AppliesToSection({ discount, onEdit }: AppliesToSectionProps) {
   const { styles } = useDiscountSectionStyles();
   const qualifier = discount.targetSelections.find(
     (selection) => selection.role === DiscountTargetRole.Qualifier,
@@ -305,10 +241,8 @@ export function AppliesToSection({
   const benefit = discount.targetSelections.find(
     (selection) => selection.role === DiscountTargetRole.Benefit,
   );
-  const isConnectedFlow =
-    discount.kind === DiscountKind.BuyXGetY && qualifier && benefit;
-  const appliesToEntireOrder =
-    discount.kind === DiscountKind.AmountOffOrder;
+  const isConnectedFlow = discount.kind === DiscountKind.BuyXGetY && qualifier && benefit;
+  const appliesToEntireOrder = discount.kind === DiscountKind.AmountOffOrder;
   const appliesToShipping = discount.kind === DiscountKind.FreeShipping;
 
   return (
@@ -366,16 +300,11 @@ export function AppliesToSection({
           icon={<LuBox />}
           state={{
             title: "No products or collections selected",
-            description:
-              "Choose which catalog items are eligible for this discount.",
+            description: "Choose which catalog items are eligible for this discount.",
           }}
         />
       ) : isConnectedFlow ? (
-        <BuyXFlow
-          discount={discount}
-          qualifier={qualifier}
-          benefit={benefit}
-        />
+        <BuyXFlow discount={discount} qualifier={qualifier} benefit={benefit} />
       ) : (
         discount.targetSelections.map((selection) => (
           <SelectionContent

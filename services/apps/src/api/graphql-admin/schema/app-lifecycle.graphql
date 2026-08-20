@@ -1,4 +1,6 @@
-"""Type of an App lifecycle operation."""
+"""
+Type of an App lifecycle operation.
+"""
 enum AppLifecycleOperationType {
   INSTALL
   UPDATE
@@ -7,7 +9,9 @@ enum AppLifecycleOperationType {
   UNINSTALL
 }
 
-"""Execution state of an App lifecycle operation."""
+"""
+Execution state of an App lifecycle operation.
+"""
 enum AppLifecycleOperationStatus {
   PENDING
   RUNNING
@@ -15,14 +19,18 @@ enum AppLifecycleOperationStatus {
   FAILED
 }
 
-"""Actor that initiated an App lifecycle operation."""
+"""
+Actor that initiated an App lifecycle operation.
+"""
 enum AppLifecycleActorType {
   USER
   SERVICE
   SYSTEM
 }
 
-"""A durable App lifecycle operation."""
+"""
+A durable App lifecycle operation.
+"""
 type AppLifecycleOperation implements Node @key(fields: "id") {
   id: ID!
   installation: AppInstallation!
@@ -41,26 +49,34 @@ type AppLifecycleOperation implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""Failure recorded for an App lifecycle operation."""
+"""
+Failure recorded for an App lifecycle operation.
+"""
 type AppLifecycleOperationError {
   code: String!
   message: String!
 }
 
-"""A Relay connection of lifecycle operations."""
+"""
+A Relay connection of lifecycle operations.
+"""
 type AppLifecycleOperationConnection {
   edges: [AppLifecycleOperationEdge!]!
   pageInfo: PageInfo!
   totalCount: Int!
 }
 
-"""An edge in an App lifecycle operation connection."""
+"""
+An edge in an App lifecycle operation connection.
+"""
 type AppLifecycleOperationEdge {
   node: AppLifecycleOperation!
   cursor: String!
 }
 
-"""An immutable manifest snapshot used by a lifecycle operation."""
+"""
+An immutable manifest snapshot used by a lifecycle operation.
+"""
 type AppManifestSnapshot implements Node @key(fields: "id") {
   id: ID!
   appCode: String!
@@ -70,25 +86,33 @@ type AppManifestSnapshot implements Node @key(fields: "id") {
   createdAt: DateTime!
 }
 
-"""A Relay connection of App manifest snapshots."""
+"""
+A Relay connection of App manifest snapshots.
+"""
 type AppManifestSnapshotConnection {
   edges: [AppManifestSnapshotEdge!]!
   pageInfo: PageInfo!
   totalCount: Int!
 }
 
-"""An edge in an App manifest snapshot connection."""
+"""
+An edge in an App manifest snapshot connection.
+"""
 type AppManifestSnapshotEdge {
   node: AppManifestSnapshot!
   cursor: String!
 }
 
-"""Payload returned after accepting a lifecycle operation."""
+"""
+Payload returned after accepting a lifecycle operation.
+"""
 type AppLifecyclePayload {
   installation: AppInstallation
   operation: AppLifecycleOperation
 
-  """Whether an earlier request with the same client mutation ID was reused."""
+  """
+  Whether an earlier request with the same client mutation ID was reused.
+  """
   duplicate: Boolean!
 
   userErrors: [GenericUserError!]!

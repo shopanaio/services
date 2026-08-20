@@ -21,13 +21,15 @@ export const DeliveryProviderAssetPolicySnapshotSchema = z
       .array(z.enum(["application/pdf", "image/png", "application/zpl"]))
       .min(1)
       .max(3),
-    allowedPorts: z
-      .array(z.number().int().safe().min(1).max(65_535))
-      .min(1)
-      .max(16),
+    allowedPorts: z.array(z.number().int().safe().min(1).max(65_535)).min(1).max(16),
     maxRedirects: z.literal(0),
     networkPolicy: z.literal("PUBLIC_IPS_ONLY_DNS_PINNED"),
-    maxBytes: z.number().int().safe().min(1_024).max(50 * 1_024 * 1_024),
+    maxBytes: z
+      .number()
+      .int()
+      .safe()
+      .min(1_024)
+      .max(50 * 1_024 * 1_024),
     fetchTimeoutMs: z.number().int().safe().min(50).max(30_000),
   })
   .strict()
@@ -39,10 +41,7 @@ export const DeliveryProviderAssetPolicySnapshotSchema = z
         message: "Allowed provider asset hosts must be unique",
       });
     }
-    if (
-      new Set(value.allowedContentTypes).size !==
-      value.allowedContentTypes.length
-    ) {
+    if (new Set(value.allowedContentTypes).size !== value.allowedContentTypes.length) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["allowedContentTypes"],

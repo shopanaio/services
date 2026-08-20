@@ -18,7 +18,9 @@ export const useFulfillmentLayoutStyles = createStyles(({ css, token }) => ({
     gap: 16px;
     flex-shrink: 0;
   `,
-  title: css`margin: 0 !important;`,
+  title: css`
+    margin: 0 !important;
+  `,
   filters: css`
     min-height: 57px;
     margin: 0 -15px;
@@ -33,5 +35,8 @@ export const useFulfillmentLayoutStyles = createStyles(({ css, token }) => ({
     flex: 1;
     overflow: auto;
   `,
-  progress: css`position: absolute; inset: 0 0 auto;`,
+  progress: css`
+    position: absolute;
+    inset: 0 0 auto;
+  `,
 }));

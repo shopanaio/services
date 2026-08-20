@@ -45,9 +45,7 @@ export class CustomerMergeProcessScript extends BaseScript<
   CustomerMergeProcessResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerMergeProcessParams,
-  ): Promise<CustomerMergeProcessResult> {
+  protected async execute(params: CustomerMergeProcessParams): Promise<CustomerMergeProcessResult> {
     if (params.phase === "BEGIN") return this.begin(params.mergeId);
     if (params.phase === "FAIL") return this.fail(params.mergeId, params.error);
     return this.apply(params.mergeId);
@@ -64,10 +62,7 @@ export class CustomerMergeProcessScript extends BaseScript<
       return completedResult(current);
     }
     const processing = asRecord(resolution.processing);
-    if (
-      current.status === "IN_PROGRESS" &&
-      processing.owner === "CUSTOMER_MERGE_PROCESSOR"
-    ) {
+    if (current.status === "IN_PROGRESS" && processing.owner === "CUSTOMER_MERGE_PROCESSOR") {
       return { mergeId, status: "IN_PROGRESS" };
     }
 
@@ -105,10 +100,7 @@ export class CustomerMergeProcessScript extends BaseScript<
         "CUSTOMER_MERGE_INVALID_STATE",
       );
     }
-    if (
-      asRecord(asRecord(current.resolution).processing).owner !==
-      "CUSTOMER_MERGE_PROCESSOR"
-    ) {
+    if (asRecord(asRecord(current.resolution).processing).owner !== "CUSTOMER_MERGE_PROCESSOR") {
       throw new CustomerMergeProcessError(
         `Customer merge ${mergeId} is owned by another processor`,
         "CUSTOMER_MERGE_PROCESSOR_OWNERSHIP_LOST",
@@ -194,9 +186,7 @@ export class CustomerMergeProcessScript extends BaseScript<
     };
     await this.repository.statistics.rebuildForCustomer(current.targetCustomerId);
     if (current.sourceCustomerId < current.targetCustomerId) {
-      await this.repository.segmentMaterialization.cleanupCustomer(
-        current.sourceCustomerId,
-      );
+      await this.repository.segmentMaterialization.cleanupCustomer(current.sourceCustomerId);
       await this.invalidateDynamicSegments(
         current.targetCustomerId,
         ["customer.any"],
@@ -210,9 +200,7 @@ export class CustomerMergeProcessScript extends BaseScript<
         `merge:${mergeId}`,
         now,
       );
-      await this.repository.segmentMaterialization.cleanupCustomer(
-        current.sourceCustomerId,
-      );
+      await this.repository.segmentMaterialization.cleanupCustomer(current.sourceCustomerId);
     }
     const revisions = await this.repository.merge.finalizeCustomers(
       locked,
@@ -276,15 +264,10 @@ export class CustomerMergeProcessScript extends BaseScript<
     if (current.status === "COMPLETED") return completedResult(current);
     const now = new Date().toISOString();
     const resolution = asRecord(current.resolution);
-    const failures = Array.isArray(resolution.failures)
-      ? resolution.failures.slice(-9)
-      : [];
+    const failures = Array.isArray(resolution.failures) ? resolution.failures.slice(-9) : [];
     if (
       current.status === "FAILED" &&
-      failures.some(
-        (failure) =>
-          asRecord(failure).failureId === error.failureId,
-      )
+      failures.some((failure) => asRecord(failure).failureId === error.failureId)
     ) {
       return {
         mergeId,
@@ -347,14 +330,8 @@ function completedResult(merge: CustomerMerge): CustomerMergeProcessResult {
     sourceCustomerId: merge.sourceCustomerId,
     targetCustomerId: merge.targetCustomerId,
     mergeRevision,
-    sourceRevision: requiredInteger(
-      revisions.sourceRevisionAfter,
-      "sourceRevisionAfter",
-    ),
-    targetRevision: requiredInteger(
-      revisions.targetRevisionAfter,
-      "targetRevisionAfter",
-    ),
+    sourceRevision: requiredInteger(revisions.sourceRevisionAfter, "sourceRevisionAfter"),
+    targetRevision: requiredInteger(revisions.targetRevisionAfter, "targetRevisionAfter"),
     completedAt: requiredString(resolution.completedAt, "completedAt"),
     resolution,
   };
@@ -379,9 +356,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function integer(value: unknown): number {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
-    ? value
-    : 0;
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : 0;
 }
 
 function requiredInteger(value: unknown, field: string): number {

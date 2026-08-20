@@ -14,7 +14,7 @@ export function createExpressRouter(service: ConfigService): Router {
       verify: (req, _res, buf) => {
         (req as unknown as { rawBody?: Buffer }).rawBody = buf;
       },
-    })
+    }),
   );
 
   router.post("/", async (req: Request, res: Response): Promise<void> => {

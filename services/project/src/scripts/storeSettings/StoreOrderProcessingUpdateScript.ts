@@ -15,10 +15,7 @@ export class StoreOrderProcessingUpdateScript extends StoreSettingsUpdateScript<
     if (!(await this.findStore(params))) return this.notFound();
 
     const { storeId, organizationId: _organizationId, ...settings } = params;
-    await this.repository.storeSettings.upsertOrderProcessing(
-      storeId,
-      settings,
-    );
+    await this.repository.storeSettings.upsertOrderProcessing(storeId, settings);
     return this.success(storeId);
   }
 }

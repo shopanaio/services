@@ -14,7 +14,10 @@ const DECIMAL = /^(0|[1-9][0-9]*)$/;
 
 export function parsePoints(value: string, field = "points"): bigint {
   if (!DECIMAL.test(value)) {
-    throw new LoyaltyDomainError("INVALID_DECIMAL", `${field} must be a non-negative decimal integer`);
+    throw new LoyaltyDomainError(
+      "INVALID_DECIMAL",
+      `${field} must be a non-negative decimal integer`,
+    );
   }
   return BigInt(value);
 }
@@ -57,7 +60,10 @@ export function multiplyBasisPoints(
   mode: LoyaltyRoundingMode,
 ): bigint {
   if (!Number.isSafeInteger(basisPoints) || basisPoints < 0) {
-    throw new LoyaltyDomainError("INVALID_BASIS_POINTS", "Basis points must be a non-negative integer");
+    throw new LoyaltyDomainError(
+      "INVALID_BASIS_POINTS",
+      "Basis points must be a non-negative integer",
+    );
   }
   return divideRounded(value * BigInt(basisPoints), 10_000n, mode);
 }
@@ -95,12 +101,18 @@ export function matchesCatalogSelector(
   if (selector.type === "ALL") return true;
   const selected = new Set(selector.ids);
   switch (selector.type) {
-    case "PRODUCT": return line.productId !== undefined && selected.has(line.productId);
-    case "VARIANT": return line.variantId !== undefined && selected.has(line.variantId);
-    case "CATEGORY": return (line.categoryIds ?? []).some((id) => selected.has(id));
-    case "TAG": return (line.tagIds ?? []).some((id) => selected.has(id));
-    case "FEATURE": return (line.featureIds ?? []).some((id) => selected.has(id));
-    case "OPTION_VALUE": return (line.optionValueIds ?? []).some((id) => selected.has(id));
+    case "PRODUCT":
+      return line.productId !== undefined && selected.has(line.productId);
+    case "VARIANT":
+      return line.variantId !== undefined && selected.has(line.variantId);
+    case "CATEGORY":
+      return (line.categoryIds ?? []).some((id) => selected.has(id));
+    case "TAG":
+      return (line.tagIds ?? []).some((id) => selected.has(id));
+    case "FEATURE":
+      return (line.featureIds ?? []).some((id) => selected.has(id));
+    case "OPTION_VALUE":
+      return (line.optionValueIds ?? []).some((id) => selected.has(id));
   }
 }
 
@@ -115,9 +127,15 @@ export function modifierBasisPoints(
   const at = Date.parse(occurredAt);
   const matching = modifiers
     .filter((modifier) => matchesCatalogSelector(modifier.selector, line))
-    .filter((modifier) => modifier.segmentIds.length === 0 || modifier.segmentIds.some((id) => segments.has(id)))
-    .filter((modifier) => (modifier.startsAt === null || Date.parse(modifier.startsAt) <= at)
-      && (modifier.endsAt === null || at < Date.parse(modifier.endsAt)))
+    .filter(
+      (modifier) =>
+        modifier.segmentIds.length === 0 || modifier.segmentIds.some((id) => segments.has(id)),
+    )
+    .filter(
+      (modifier) =>
+        (modifier.startsAt === null || Date.parse(modifier.startsAt) <= at) &&
+        (modifier.endsAt === null || at < Date.parse(modifier.endsAt)),
+    )
     .sort((left, right) => left.priority - right.priority || left.id.localeCompare(right.id));
   if (matching.length === 0) return { basisPoints: 10_000, modifierIds: [] };
   if (stacking === "HIGHEST") {
@@ -127,7 +145,8 @@ export function modifierBasisPoints(
     return { basisPoints: highest.multiplierBps, modifierIds: [highest.id] };
   }
   if (stacking === "ADD") {
-    const basisPoints = 10_000 + matching.reduce((sum, item) => sum + item.multiplierBps - 10_000, 0);
+    const basisPoints =
+      10_000 + matching.reduce((sum, item) => sum + item.multiplierBps - 10_000, 0);
     requireSafeBasisPoints(basisPoints);
     return {
       basisPoints,
@@ -167,24 +186,40 @@ export function evaluateCondition(
   context: ConditionContext,
 ): boolean {
   switch (expression.type) {
-    case "ALL": return expression.conditions.every((item) => evaluateCondition(item, context));
-    case "ANY": return expression.conditions.some((item) => evaluateCondition(item, context));
-    case "NOT": return !evaluateCondition(expression.condition, context);
+    case "ALL":
+      return expression.conditions.every((item) => evaluateCondition(item, context));
+    case "ANY":
+      return expression.conditions.some((item) => evaluateCondition(item, context));
+    case "NOT":
+      return !evaluateCondition(expression.condition, context);
     case "SEGMENT": {
       const segments = new Set(context.segmentIds);
       return expression.match === "ALL"
         ? expression.segmentIds.every((id) => segments.has(id))
         : expression.segmentIds.some((id) => segments.has(id));
     }
-    case "CHANNEL": return context.channelCode !== undefined && expression.channelCodes.includes(context.channelCode);
-    case "CATALOG": return context.catalog !== undefined && matchesCatalogSelector(expression.selector, context.catalog);
-    case "PAYMENT_METHOD": return context.paymentMethodCode !== undefined
-      && expression.paymentMethodCodes.includes(context.paymentMethodCode);
-    case "FIRST_PURCHASE": return context.firstPurchase === true;
+    case "CHANNEL":
+      return (
+        context.channelCode !== undefined && expression.channelCodes.includes(context.channelCode)
+      );
+    case "CATALOG":
+      return (
+        context.catalog !== undefined &&
+        matchesCatalogSelector(expression.selector, context.catalog)
+      );
+    case "PAYMENT_METHOD":
+      return (
+        context.paymentMethodCode !== undefined &&
+        expression.paymentMethodCodes.includes(context.paymentMethodCode)
+      );
+    case "FIRST_PURCHASE":
+      return context.firstPurchase === true;
     case "SCHEDULE": {
       const at = Date.parse(context.occurredAt);
-      return (expression.startsAt === null || Date.parse(expression.startsAt) <= at)
-        && (expression.endsAt === null || at < Date.parse(expression.endsAt));
+      return (
+        (expression.startsAt === null || Date.parse(expression.startsAt) <= at) &&
+        (expression.endsAt === null || at < Date.parse(expression.endsAt))
+      );
     }
     case "EVENT_FIELD": {
       const actual = readPath(context.event, expression.path);
@@ -194,9 +229,13 @@ export function evaluateCondition(
 }
 
 function readPath(value: unknown, path: readonly string[]): unknown {
-  return path.reduce<unknown>((current, key) =>
-    current && typeof current === "object" ? (current as Record<string, unknown>)[key] : undefined,
-  value);
+  return path.reduce<unknown>(
+    (current, key) =>
+      current && typeof current === "object"
+        ? (current as Record<string, unknown>)[key]
+        : undefined,
+    value,
+  );
 }
 
 function compareJson(
@@ -206,8 +245,11 @@ function compareJson(
 ): boolean {
   if (operator === "EQ") return canonicalHash(actual) === canonicalHash(expected);
   if (operator === "NE") return canonicalHash(actual) !== canonicalHash(expected);
-  if (operator === "IN") return Array.isArray(expected)
-    && expected.some((item) => canonicalHash(item) === canonicalHash(actual));
+  if (operator === "IN")
+    return (
+      Array.isArray(expected) &&
+      expected.some((item) => canonicalHash(item) === canonicalHash(actual))
+    );
   const left = comparable(actual);
   const right = comparable(expected);
   if (left === null || right === null || typeof left !== typeof right) return false;
@@ -223,10 +265,7 @@ function compareJson(
   return false;
 }
 
-function compareResult(
-  comparison: number,
-  operator: "GTE" | "GT" | "LTE" | "LT",
-): boolean {
+function compareResult(comparison: number, operator: "GTE" | "GT" | "LTE" | "LT"): boolean {
   if (operator === "GT") return comparison > 0;
   if (operator === "GTE") return comparison >= 0;
   if (operator === "LT") return comparison < 0;
@@ -246,13 +285,17 @@ export function evaluateTierExpression(
   metrics: TierMetrics,
 ): boolean {
   switch (expression.type) {
-    case "ALL": return expression.expressions.every((item) => evaluateTierExpression(item, metrics));
-    case "ANY": return expression.expressions.some((item) => evaluateTierExpression(item, metrics));
-    case "NOT": return !evaluateTierExpression(expression.expression, metrics);
+    case "ALL":
+      return expression.expressions.every((item) => evaluateTierExpression(item, metrics));
+    case "ANY":
+      return expression.expressions.some((item) => evaluateTierExpression(item, metrics));
+    case "NOT":
+      return !evaluateTierExpression(expression.expression, metrics);
     case "METRIC": {
-      const key = expression.metric === "CUSTOM"
-        ? `CUSTOM:${expression.customMetricCode ?? ""}:${expression.currencyCode ?? ""}`
-        : `${expression.metric}:${expression.currencyCode ?? ""}`;
+      const key =
+        expression.metric === "CUSTOM"
+          ? `CUSTOM:${expression.customMetricCode ?? ""}:${expression.currencyCode ?? ""}`
+          : `${expression.metric}:${expression.currencyCode ?? ""}`;
       const actual = metrics[key] ?? 0n;
       const threshold = parsePoints(expression.threshold, "tier threshold");
       return expression.operator === "GT" ? actual > threshold : actual >= threshold;

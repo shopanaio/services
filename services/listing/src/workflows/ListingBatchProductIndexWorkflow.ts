@@ -122,9 +122,7 @@ export function buildListingProductEventBatchWorkflowId(input: {
   return buildIdempotencyKey("listing.batchProductIndex", input.idempotencyCtx);
 }
 
-export function buildListingProductEventBatchQueuePartitionKey(input: {
-  storeId: string;
-}): string {
+export function buildListingProductEventBatchQueuePartitionKey(input: { storeId: string }): string {
   // Batch product updates use a store-scoped partition instead of item-scoped
   // partitions because a single workflow can cover many products.
   return [input.storeId, "product-event-batch"].join(":");
@@ -141,7 +139,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
 
   @Workflow("batchProductIndex")
   async run(
-    input: ListingIndexProductUpdateBatchInput
+    input: ListingIndexProductUpdateBatchInput,
   ): Promise<ListingIndexProductUpdateBatchResult> {
     /*
      * Intended batch indexing pipeline:
@@ -188,18 +186,16 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     const writeModels = await this.stepBuildListingSyncWriteModelsBatch({
       actions: prepared.actions,
     });
-    const facetReferencePlans =
-      await this.stepBuildListingFacetReferenceSyncPlansBatch({
-        items: writeModels.items,
-      });
+    const facetReferencePlans = await this.stepBuildListingFacetReferenceSyncPlansBatch({
+      items: writeModels.items,
+    });
     const writeResult = await this.stepWriteListingBatchSyncIndexAction({
       items: writeModels.items,
     });
-    const facetReferenceSync =
-      await this.stepStartFacetReferenceStateSyncBatch({
-        writeResult,
-        plansByProductId: facetReferencePlans.plansByProductId,
-      });
+    const facetReferenceSync = await this.stepStartFacetReferenceStateSyncBatch({
+      writeResult,
+      plansByProductId: facetReferencePlans.plansByProductId,
+    });
 
     this.logger.debug(
       {
@@ -210,19 +206,16 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
         resolved: resolution.actions.length,
         prepared: prepared.actions.length,
         writeModels: writeModels.items.length,
-        facetReferencePlans: Object.keys(
-          facetReferencePlans.plansByProductId
-        ).length,
+        facetReferencePlans: Object.keys(facetReferencePlans.plansByProductId).length,
         writeResults: writeResult.results.length,
         applied: writeResult.appliedProductIds.length,
-        facetReferenceSyncStarted: Object.values(
-          facetReferenceSync.workflowIdsByProductId
-        ).filter((workflowId) => workflowId !== null).length,
-        finalizedWithoutWrite:
-          hydration.missing.length + prepared.finalResults.length,
+        facetReferenceSyncStarted: Object.values(facetReferenceSync.workflowIdsByProductId).filter(
+          (workflowId) => workflowId !== null,
+        ).length,
+        finalizedWithoutWrite: hydration.missing.length + prepared.finalResults.length,
         finalizedBeforeWrite: prepared.finalResults.length,
       },
-      "Listing batch product index workflow wrote listing index rows"
+      "Listing batch product index workflow wrote listing index rows",
     );
 
     return {
@@ -244,7 +237,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     },
   })
   private async stepFetchCatalogListingSnapshotsBatch(
-    input: ListingIndexProductUpdateBatchInput
+    input: ListingIndexProductUpdateBatchInput,
   ): Promise<ListingBatchHydrationStepResult> {
     return fetchCatalogListingSnapshotsBatch({
       broker: this.broker,
@@ -262,7 +255,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     },
   })
   private async stepResolveListingFacetSelectionsBatch(
-    input: ListingBatchHydrationStepResult
+    input: ListingBatchHydrationStepResult,
   ): Promise<ListingBatchFacetResolutionStepResult> {
     return resolveListingFacetSelectionsBatch(input);
   }
@@ -277,7 +270,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     },
   })
   private async stepPrepareListingSyncIndexActionsBatch(
-    input: ListingBatchPrepareStepInput
+    input: ListingBatchPrepareStepInput,
   ): Promise<ListingBatchPrepareStepResult> {
     /*
      * Contract:
@@ -305,7 +298,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     },
   })
   private async stepBuildListingSyncWriteModelsBatch(
-    input: ListingBatchBuildWriteModelsStepInput
+    input: ListingBatchBuildWriteModelsStepInput,
   ): Promise<ListingBatchBuildWriteModelsStepResult> {
     /*
      * Contract:
@@ -332,7 +325,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     },
   })
   private async stepBuildListingFacetReferenceSyncPlansBatch(
-    input: ListingBatchBuildFacetReferencePlansStepInput
+    input: ListingBatchBuildFacetReferencePlansStepInput,
   ): Promise<ListingBatchBuildFacetReferencePlansStepResult> {
     /*
      * Contract:
@@ -359,7 +352,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     },
   })
   private async stepWriteListingBatchSyncIndexAction(
-    input: ListingBatchWriteIndexStepInput
+    input: ListingBatchWriteIndexStepInput,
   ): Promise<ListingBatchWriteIndexStepResult> {
     /*
      * Contract:
@@ -463,7 +456,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
   }
 
   private async stepStartFacetReferenceStateSyncBatch(
-    input: ListingBatchStartFacetReferenceSyncStepInput
+    input: ListingBatchStartFacetReferenceSyncStepInput,
   ): Promise<ListingBatchStartFacetReferenceSyncStepResult> {
     /*
      * Contract:

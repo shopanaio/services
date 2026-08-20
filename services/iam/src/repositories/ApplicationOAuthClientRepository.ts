@@ -43,15 +43,11 @@ export interface ActiveApplicationOAuthClientPolicy {
   clientId: string;
   applicationId: string;
   resource: string;
-  tokenEndpointAuthMethod:
-    | "none"
-    | "client_secret_basic"
-    | "client_secret_post";
+  tokenEndpointAuthMethod: "none" | "client_secret_basic" | "client_secret_post";
   public: boolean;
 }
 
-export interface ActiveApplicationOAuthHostedUiClient
-  extends ActiveApplicationOAuthClientPolicy {
+export interface ActiveApplicationOAuthHostedUiClient extends ActiveApplicationOAuthClientPolicy {
   name: string | null;
   icon: string | null;
   redirectUris: readonly string[];
@@ -68,9 +64,7 @@ export interface ApplicationOAuthClientManagementScope {
 }
 
 export type ManagedApplicationOAuthClientType = "public" | "confidential";
-export type ManagedApplicationOAuthClientEnvironment =
-  | "development"
-  | "production";
+export type ManagedApplicationOAuthClientEnvironment = "development" | "production";
 
 /** Secret-free representation used by the administrative domain service. */
 export interface ManagedApplicationOAuthClient {
@@ -137,15 +131,16 @@ export const applicationOAuthClientRelayQuery = createRelayQuery(
     ])
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "applicationOAuthClient", tieBreaker: "id" }
+  { name: "applicationOAuthClient", tieBreaker: "id" },
 );
 
 export type ApplicationOAuthClientRelayInput = InferRelayInput<
   typeof applicationOAuthClientRelayQuery
 >;
 
-export type ManagedApplicationOAuthClientConnectionInput =
-  ApplicationOAuthClientRelayInput & { applicationId: string };
+export type ManagedApplicationOAuthClientConnectionInput = ApplicationOAuthClientRelayInput & {
+  applicationId: string;
+};
 
 export interface ManagedApplicationOAuthClientConnectionResult {
   edges: Array<{
@@ -225,8 +220,7 @@ const managedClientSelection = {
 } as const;
 
 type ManagedClientRecord = {
-  [K in keyof typeof managedClientSelection]:
-    (typeof managedClientSelection)[K]["_"]["data"];
+  [K in keyof typeof managedClientSelection]: (typeof managedClientSelection)[K]["_"]["data"];
 };
 
 /**
@@ -244,7 +238,7 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
   @ReadOnly()
   async findActivePolicy(
     applicationId: string,
-    clientId: string
+    clientId: string,
   ): Promise<ActiveApplicationOAuthClientPolicy | null> {
     const applicationIdResult = z.string().uuid().safeParse(applicationId);
     const clientIdResult = z.string().min(1).max(512).safeParse(clientId);
@@ -256,11 +250,9 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
         clientId: applicationOauthClient.clientId,
         applicationId: applicationOauthClient.applicationId,
         resourceAudience: applicationOauthClient.resourceAudience,
-        tokenEndpointAuthMethod:
-          applicationOauthClient.tokenEndpointAuthMethod,
+        tokenEndpointAuthMethod: applicationOauthClient.tokenEndpointAuthMethod,
         public: applicationOauthClient.public,
-        protocolPolicyVersion:
-          applicationOauthClient.protocolPolicyVersion,
+        protocolPolicyVersion: applicationOauthClient.protocolPolicyVersion,
         grantTypes: applicationOauthClient.grantTypes,
         responseTypes: applicationOauthClient.responseTypes,
         requirePKCE: applicationOauthClient.requirePKCE,
@@ -270,15 +262,9 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
       .from(applicationOauthClient)
       .innerJoin(
         applicationAuthConfiguration,
-        eq(
-          applicationAuthConfiguration.applicationId,
-          applicationOauthClient.applicationId
-        )
+        eq(applicationAuthConfiguration.applicationId, applicationOauthClient.applicationId),
       )
-      .innerJoin(
-        application,
-        eq(application.id, applicationOauthClient.applicationId)
-      )
+      .innerJoin(application, eq(application.id, applicationOauthClient.applicationId))
       .innerJoin(organization, eq(organization.id, application.organizationId))
       .where(
         and(
@@ -288,8 +274,8 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
           isNull(applicationOauthClient.deletedAt),
           eq(applicationAuthConfiguration.realmEnabled, true),
           isNull(application.deletedAt),
-          isNull(organization.deletedAt)
-        )
+          isNull(organization.deletedAt),
+        ),
       )
       .limit(1);
 
@@ -297,25 +283,18 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
     if (
       record.applicationId !== validApplicationId ||
       record.resourceAudience !== record.configuredResource ||
-      record.protocolPolicyVersion !==
-        APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION ||
+      record.protocolPolicyVersion !== APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION ||
       !record.requirePKCE ||
       !hasExactStringValues(record.grantTypes, APPLICATION_OAUTH_GRANT_TYPES) ||
-      !hasExactStringValues(
-        record.responseTypes,
-        APPLICATION_OAUTH_RESPONSE_TYPES
-      )
+      !hasExactStringValues(record.responseTypes, APPLICATION_OAUTH_RESPONSE_TYPES)
     ) {
       return null;
     }
 
-    const metadata = readApplicationOAuthClientPolicyMetadata(
-      record.metadata ?? undefined,
-      {
-        applicationId: validApplicationId,
-        resource: record.configuredResource,
-      }
-    );
+    const metadata = readApplicationOAuthClientPolicyMetadata(record.metadata ?? undefined, {
+      applicationId: validApplicationId,
+      resource: record.configuredResource,
+    });
     if (metadata.clientId !== validClientId) return null;
     if (
       record.tokenEndpointAuthMethod !== "none" &&
@@ -337,7 +316,7 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
   @ReadOnly()
   async findActiveHostedUiClient(
     applicationId: string,
-    clientId: string
+    clientId: string,
   ): Promise<ActiveApplicationOAuthHostedUiClient | null> {
     const policy = await this.findActivePolicy(applicationId, clientId);
     if (!policy) return null;
@@ -346,8 +325,7 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
         name: applicationOauthClient.name,
         icon: applicationOauthClient.icon,
         redirectUris: applicationOauthClient.redirectUris,
-        postLogoutRedirectUris:
-          applicationOauthClient.postLogoutRedirectUris,
+        postLogoutRedirectUris: applicationOauthClient.postLogoutRedirectUris,
         enableEndSession: applicationOauthClient.enableEndSession,
         scopes: applicationOauthClient.scopes,
       })
@@ -357,8 +335,8 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
           eq(applicationOauthClient.applicationId, applicationId),
           eq(applicationOauthClient.clientId, clientId),
           eq(applicationOauthClient.disabled, false),
-          isNull(applicationOauthClient.deletedAt)
-        )
+          isNull(applicationOauthClient.deletedAt),
+        ),
       )
       .limit(1);
     if (!client) return null;
@@ -367,9 +345,7 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
       name: client.name,
       icon: client.icon,
       redirectUris: Object.freeze([...client.redirectUris]),
-      postLogoutRedirectUris: Object.freeze([
-        ...(client.postLogoutRedirectUris ?? []),
-      ]),
+      postLogoutRedirectUris: Object.freeze([...(client.postLogoutRedirectUris ?? [])]),
       enableEndSession: client.enableEndSession,
       scopes: Object.freeze([...(client.scopes ?? [])]),
     };
@@ -378,7 +354,7 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
   @ReadOnly()
   async findManagementScope(
     organizationId: string,
-    applicationId: string
+    applicationId: string,
   ): Promise<ApplicationOAuthClientManagementScope | null> {
     const organizationIdResult = z.string().uuid().safeParse(organizationId);
     const applicationIdResult = z.string().uuid().safeParse(applicationId);
@@ -397,15 +373,15 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
       .innerJoin(organization, eq(organization.id, application.organizationId))
       .innerJoin(
         applicationAuthConfiguration,
-        eq(applicationAuthConfiguration.applicationId, application.id)
+        eq(applicationAuthConfiguration.applicationId, application.id),
       )
       .where(
         and(
           eq(application.organizationId, organizationIdResult.data),
           eq(application.id, applicationIdResult.data),
           isNull(application.deletedAt),
-          isNull(organization.deletedAt)
-        )
+          isNull(organization.deletedAt),
+        ),
       )
       .limit(1);
 
@@ -416,7 +392,7 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
   async findManaged(
     applicationId: string,
     clientId: string,
-    options: { includeArchived?: boolean } = {}
+    options: { includeArchived?: boolean } = {},
   ): Promise<ManagedApplicationOAuthClient | null> {
     const conditions: SQL[] = [
       eq(applicationOauthClient.applicationId, applicationId),
@@ -435,28 +411,22 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
 
   @ReadOnly()
   async listManaged(
-    input: ListManagedApplicationOAuthClientsInput
+    input: ListManagedApplicationOAuthClientsInput,
   ): Promise<ManagedApplicationOAuthClientPage> {
-    const conditions: SQL[] = [
-      eq(applicationOauthClient.applicationId, input.applicationId),
-    ];
+    const conditions: SQL[] = [eq(applicationOauthClient.applicationId, input.applicationId)];
     if (input.search) {
       const search = `%${input.search}%`;
       const condition = or(
         ilike(applicationOauthClient.name, search),
-        ilike(applicationOauthClient.clientId, search)
+        ilike(applicationOauthClient.clientId, search),
       );
       if (condition) conditions.push(condition);
     }
     if (input.clientTypes?.length === 1) {
-      conditions.push(
-        eq(applicationOauthClient.public, input.clientTypes[0] === "public")
-      );
+      conditions.push(eq(applicationOauthClient.public, input.clientTypes[0] === "public"));
     }
     if (input.environments?.length) {
-      conditions.push(
-        inArray(applicationOauthClient.environment, [...input.environments])
-      );
+      conditions.push(inArray(applicationOauthClient.environment, [...input.environments]));
     }
     if (input.disabled !== undefined) {
       conditions.push(eq(applicationOauthClient.disabled, input.disabled));
@@ -480,22 +450,14 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
         .select(managedClientSelection)
         .from(applicationOauthClient)
         .where(where)
-        .orderBy(
-          direction(orderColumn),
-          direction(applicationOauthClient.clientId)
-        )
+        .orderBy(direction(orderColumn), direction(applicationOauthClient.clientId))
         .limit(input.limit)
         .offset(input.offset),
-      this.connection
-        .select({ value: count() })
-        .from(applicationOauthClient)
-        .where(where),
+      this.connection.select({ value: count() }).from(applicationOauthClient).where(where),
     ]);
     const totalCount = totals[0]?.value ?? 0;
     return {
-      clients: records.map((record) =>
-        mapManagedClient(record as ManagedClientRecord)
-      ),
+      clients: records.map((record) => mapManagedClient(record as ManagedClientRecord)),
       totalCount,
       offset: input.offset,
       limit: input.limit,
@@ -505,14 +467,11 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
 
   @ReadOnly()
   async getManagedConnection(
-    input: ManagedApplicationOAuthClientConnectionInput
+    input: ManagedApplicationOAuthClientConnectionInput,
   ): Promise<ManagedApplicationOAuthClientConnectionResult> {
     const { applicationId, where, orderBy, ...pagination } = input;
     const mergedWhere: ApplicationOAuthClientRelayInput["where"] = {
-      _and: [
-        { applicationId: { _eq: applicationId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ applicationId: { _eq: applicationId } }, ...(where ? [where] : [])],
     };
     const executeInput: ApplicationOAuthClientRelayInput = {
       ...pagination,
@@ -540,7 +499,7 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
 
   @Transactional()
   async createManaged(
-    input: CreateManagedApplicationOAuthClientInput
+    input: CreateManagedApplicationOAuthClientInput,
   ): Promise<ManagedApplicationOAuthClient> {
     const id = await this.generateUuidV7();
     const isPublic = input.clientType === "public";
@@ -586,19 +545,15 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
 
   @Transactional()
   async updateManaged(
-    input: UpdateManagedApplicationOAuthClientInput
+    input: UpdateManagedApplicationOAuthClientInput,
   ): Promise<ManagedApplicationOAuthClient | null> {
     const patch = input.patch;
     const [updated] = await this.connection
       .update(applicationOauthClient)
       .set({
         ...(patch.name !== undefined ? { name: patch.name } : {}),
-        ...(patch.environment !== undefined
-          ? { environment: patch.environment }
-          : {}),
-        ...(patch.redirectUris !== undefined
-          ? { redirectUris: [...patch.redirectUris] }
-          : {}),
+        ...(patch.environment !== undefined ? { environment: patch.environment } : {}),
+        ...(patch.redirectUris !== undefined ? { redirectUris: [...patch.redirectUris] } : {}),
         ...(patch.postLogoutRedirectUris !== undefined
           ? { postLogoutRedirectUris: [...patch.postLogoutRedirectUris] }
           : {}),
@@ -614,8 +569,8 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
           eq(applicationOauthClient.applicationId, input.applicationId),
           eq(applicationOauthClient.clientId, input.clientId),
           eq(applicationOauthClient.revision, input.expectedRevision),
-          isNull(applicationOauthClient.deletedAt)
-        )
+          isNull(applicationOauthClient.deletedAt),
+        ),
       )
       .returning(managedClientSelection);
     return updated ? mapManagedClient(updated as ManagedClientRecord) : null;
@@ -642,8 +597,8 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
           eq(applicationOauthClient.applicationId, input.applicationId),
           eq(applicationOauthClient.clientId, input.clientId),
           eq(applicationOauthClient.revision, input.expectedRevision),
-          isNull(applicationOauthClient.deletedAt)
-        )
+          isNull(applicationOauthClient.deletedAt),
+        ),
       )
       .returning(managedClientSelection);
     return updated ? mapManagedClient(updated as ManagedClientRecord) : null;
@@ -670,8 +625,8 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
           eq(applicationOauthClient.applicationId, input.applicationId),
           eq(applicationOauthClient.clientId, input.clientId),
           eq(applicationOauthClient.revision, input.expectedRevision),
-          isNull(applicationOauthClient.deletedAt)
-        )
+          isNull(applicationOauthClient.deletedAt),
+        ),
       )
       .returning(managedClientSelection);
     return updated ? mapManagedClient(updated as ManagedClientRecord) : null;
@@ -699,8 +654,8 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
           eq(applicationOauthClient.clientId, input.clientId),
           eq(applicationOauthClient.revision, input.expectedRevision),
           eq(applicationOauthClient.public, false),
-          isNull(applicationOauthClient.deletedAt)
-        )
+          isNull(applicationOauthClient.deletedAt),
+        ),
       )
       .returning(managedClientSelection);
     return updated ? mapManagedClient(updated as ManagedClientRecord) : null;
@@ -728,23 +683,19 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
           eq(applicationOauthClient.applicationId, input.applicationId),
           eq(applicationOauthClient.clientId, input.clientId),
           eq(applicationOauthClient.revision, input.expectedRevision),
-          isNull(applicationOauthClient.deletedAt)
-        )
+          isNull(applicationOauthClient.deletedAt),
+        ),
       )
       .returning(managedClientSelection);
     return updated ? mapManagedClient(updated as ManagedClientRecord) : null;
   }
 }
 
-function mapManagedClient(
-  record: ManagedClientRecord
-): ManagedApplicationOAuthClient {
+function mapManagedClient(record: ManagedClientRecord): ManagedApplicationOAuthClient {
   if (!record.name) {
     throw new Error("Managed OAuth client name is missing");
   }
-  const expectedAuthMethod = record.public
-    ? "none"
-    : "client_secret_basic";
+  const expectedAuthMethod = record.public ? "none" : "client_secret_basic";
   if (record.tokenEndpointAuthMethod !== expectedAuthMethod) {
     throw new Error("Managed OAuth client auth method violates policy");
   }
@@ -756,9 +707,7 @@ function mapManagedClient(
     clientType: record.public ? "public" : "confidential",
     environment: record.environment,
     redirectUris: Object.freeze([...record.redirectUris]),
-    postLogoutRedirectUris: Object.freeze([
-      ...(record.postLogoutRedirectUris ?? []),
-    ]),
+    postLogoutRedirectUris: Object.freeze([...(record.postLogoutRedirectUris ?? [])]),
     resourceAudience: record.resourceAudience,
     grantTypes: Object.freeze([...record.grantTypes]),
     responseTypes: Object.freeze([...record.responseTypes]),

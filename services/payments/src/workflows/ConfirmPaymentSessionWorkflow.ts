@@ -38,14 +38,8 @@ export class ConfirmPaymentSessionWorkflow extends BrokerWorkflows<
   async run(input: ConfirmPaymentSessionInput) {
     const prepared = await this.load(input);
     const confirmation = await this.requestConfirmation(prepared);
-    const confirmationOperation = await this.prepareConfirmation(
-      prepared,
-      confirmation,
-    );
-    if (
-      confirmationOperation.request &&
-      confirmationOperation.operation.state === "PROCESSING"
-    ) {
+    const confirmationOperation = await this.prepareConfirmation(prepared, confirmation);
+    if (confirmationOperation.request && confirmationOperation.operation.state === "PROCESSING") {
       const result = await this.invoke(confirmationOperation);
       await this.complete(confirmationOperation, result);
     }

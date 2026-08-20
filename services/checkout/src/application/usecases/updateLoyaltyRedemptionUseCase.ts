@@ -3,10 +3,7 @@ import type {
   CheckoutLoyaltyRedemptionRemoveInput,
   CheckoutLoyaltyRedemptionUpdateInput,
 } from "../checkout/types.js";
-import {
-  invalidCheckoutMutation,
-  type CheckoutCommittedSnapshot,
-} from "../mutations/index.js";
+import { invalidCheckoutMutation, type CheckoutCommittedSnapshot } from "../mutations/index.js";
 
 export class UpdateLoyaltyRedemptionUseCase extends UseCase<
   CheckoutLoyaltyRedemptionUpdateInput,
@@ -27,7 +24,11 @@ export class UpdateLoyaltyRedemptionUseCase extends UseCase<
         "Requested points cannot be supplied when point redemption is disabled.",
       );
     }
-    if (input.redeemPoints && requestedPoints !== null && (!/^\d+$/.test(requestedPoints) || BigInt(requestedPoints) <= 0n)) {
+    if (
+      input.redeemPoints &&
+      requestedPoints !== null &&
+      (!/^\d+$/.test(requestedPoints) || BigInt(requestedPoints) <= 0n)
+    ) {
       throw invalidCheckoutMutation(
         "LOYALTY_POINTS_INVALID",
         "Requested loyalty points must be a positive integer.",
@@ -39,26 +40,34 @@ export class UpdateLoyaltyRedemptionUseCase extends UseCase<
         "Select point redemption, a reward entitlement, or both.",
       );
     }
-    return (await this.checkoutMutationCoordinator.execute({
-      checkoutId,
-      storeId: store.id,
-      change: "LOYALTY_REDEMPTION_UPDATE",
-      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
-      apply: (draft) => {
-        if (draft.buyerIdentity?.customerId !== customer.id) {
-          throw invalidCheckoutMutation(
-            "LOYALTY_CUSTOMER_MISMATCH",
-            "Checkout customer does not match the authenticated customer.",
-          );
-        }
-        draft.loyaltyRedemption = {
-          redeemPoints: input.redeemPoints,
-          requestedPoints,
-          programId: input.programId,
-          rewardEntitlementId: input.rewardEntitlementId,
-        };
-      },
-    })).checkout;
+    return (
+      await this.checkoutMutationCoordinator.execute({
+        checkoutId,
+        storeId: store.id,
+        change: "LOYALTY_REDEMPTION_UPDATE",
+        context: this.mutationContext({
+          visitorId: input.visitorId,
+          storefrontAccess,
+          store,
+          customer,
+          user,
+        }),
+        apply: (draft) => {
+          if (draft.buyerIdentity?.customerId !== customer.id) {
+            throw invalidCheckoutMutation(
+              "LOYALTY_CUSTOMER_MISMATCH",
+              "Checkout customer does not match the authenticated customer.",
+            );
+          }
+          draft.loyaltyRedemption = {
+            redeemPoints: input.redeemPoints,
+            requestedPoints,
+            programId: input.programId,
+            rewardEntitlementId: input.rewardEntitlementId,
+          };
+        },
+      })
+    ).checkout;
   }
 }
 
@@ -68,12 +77,22 @@ export class RemoveLoyaltyRedemptionUseCase extends UseCase<
 > {
   async execute(input: CheckoutLoyaltyRedemptionRemoveInput) {
     const { storefrontAccess, store, customer, user, checkoutId } = input;
-    return (await this.checkoutMutationCoordinator.execute({
-      checkoutId,
-      storeId: store.id,
-      change: "LOYALTY_REDEMPTION_UPDATE",
-      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
-      apply: (draft) => { draft.loyaltyRedemption = null; },
-    })).checkout;
+    return (
+      await this.checkoutMutationCoordinator.execute({
+        checkoutId,
+        storeId: store.id,
+        change: "LOYALTY_REDEMPTION_UPDATE",
+        context: this.mutationContext({
+          visitorId: input.visitorId,
+          storefrontAccess,
+          store,
+          customer,
+          user,
+        }),
+        apply: (draft) => {
+          draft.loyaltyRedemption = null;
+        },
+      })
+    ).checkout;
   }
 }

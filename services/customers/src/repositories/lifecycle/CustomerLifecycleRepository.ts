@@ -1,15 +1,8 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly } from "@shopana/shared-kernel";
 import { and, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  normalizeRelayPagination,
-  type RepositoryConnectionResult,
-} from "../connection.js";
+import { normalizeRelayPagination, type RepositoryConnectionResult } from "../connection.js";
 import {
   decodeCustomerDataRequestGlobalId,
   decodeCustomerGlobalId,
@@ -34,7 +27,7 @@ export const customerMergeRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerMerge", tieBreaker: "id" }
+  { name: "customerMerge", tieBreaker: "id" },
 );
 
 export const customerDataRequestRelayQuery = createRelayQuery(
@@ -46,17 +39,14 @@ export const customerDataRequestRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerDataRequest", tieBreaker: "id" }
+  { name: "customerDataRequest", tieBreaker: "id" },
 );
 
-export type CustomerMergeRelayInput = InferRelayInput<
-  typeof customerMergeRelayQuery
->;
-export type CustomerDataRequestRelayInput = InferRelayInput<
-  typeof customerDataRequestRelayQuery
->;
-export type CustomerDataRequestConnectionInput =
-  CustomerDataRequestRelayInput & { customerId: string };
+export type CustomerMergeRelayInput = InferRelayInput<typeof customerMergeRelayQuery>;
+export type CustomerDataRequestRelayInput = InferRelayInput<typeof customerDataRequestRelayQuery>;
+export type CustomerDataRequestConnectionInput = CustomerDataRequestRelayInput & {
+  customerId: string;
+};
 
 export type CustomerDataRequestCancelResult =
   | { status: "cancelled"; dataRequest: CustomerDataRequest }
@@ -95,10 +85,7 @@ export type CustomerMergePatch = Partial<
 >;
 
 export type CustomerDataRequestPatch = Partial<
-  Pick<
-    NewCustomerDataRequest,
-    "customerId" | "type" | "legalBasis" | "requestMetadata" | "dueAt"
-  >
+  Pick<NewCustomerDataRequest, "customerId" | "type" | "legalBasis" | "requestMetadata" | "dueAt">
 >;
 
 export class CustomerLifecycleRepository extends BaseRepository {
@@ -106,12 +93,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(customerMerge)
-      .where(
-        and(
-          eq(customerMerge.storeId, this.storeId),
-          eq(customerMerge.id, id),
-        ),
-      )
+      .where(and(eq(customerMerge.storeId, this.storeId), eq(customerMerge.id, id)))
       .limit(1)
       .for("update");
     return rows[0] ?? null;
@@ -122,12 +104,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(customerMerge)
-      .where(
-        and(
-          eq(customerMerge.storeId, this.storeId),
-          eq(customerMerge.id, id)
-        )
-      )
+      .where(and(eq(customerMerge.storeId, this.storeId), eq(customerMerge.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -139,10 +116,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
       .select()
       .from(customerMerge)
       .where(
-        and(
-          eq(customerMerge.storeId, this.storeId),
-          inArray(customerMerge.id, [...new Set(ids)])
-        )
+        and(eq(customerMerge.storeId, this.storeId), inArray(customerMerge.id, [...new Set(ids)])),
       );
   }
 
@@ -151,12 +125,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(customerDataRequest)
-      .where(
-        and(
-          eq(customerDataRequest.storeId, this.storeId),
-          eq(customerDataRequest.id, id)
-        )
-      )
+      .where(and(eq(customerDataRequest.storeId, this.storeId), eq(customerDataRequest.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -165,12 +134,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(customerDataRequest)
-      .where(
-        and(
-          eq(customerDataRequest.storeId, this.storeId),
-          eq(customerDataRequest.id, id),
-        ),
-      )
+      .where(and(eq(customerDataRequest.storeId, this.storeId), eq(customerDataRequest.id, id)))
       .limit(1)
       .for("update");
     return rows[0] ?? null;
@@ -179,7 +143,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
   @ReadOnly()
   async findOwnedDataRequestById(
     customerId: string,
-    id: string
+    id: string,
   ): Promise<CustomerDataRequest | null> {
     const rows = await this.connection
       .select()
@@ -188,8 +152,8 @@ export class CustomerLifecycleRepository extends BaseRepository {
         and(
           eq(customerDataRequest.storeId, this.storeId),
           eq(customerDataRequest.customerId, customerId),
-          eq(customerDataRequest.id, id)
-        )
+          eq(customerDataRequest.id, id),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -204,8 +168,8 @@ export class CustomerLifecycleRepository extends BaseRepository {
       .where(
         and(
           eq(customerDataRequest.storeId, this.storeId),
-          inArray(customerDataRequest.id, [...new Set(ids)])
-        )
+          inArray(customerDataRequest.id, [...new Set(ids)]),
+        ),
       );
   }
 
@@ -244,7 +208,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
       transitionedAt?: string;
       expectedStatuses?: readonly CustomerMerge["status"][];
       expectedUpdatedAt?: string;
-    }
+    },
   ): Promise<CustomerMerge | null> {
     const now = input.transitionedAt ?? new Date().toISOString();
     const rows = await this.connection
@@ -255,9 +219,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
         ...(input.errorCode !== undefined ? { errorCode: input.errorCode } : {}),
         ...(input.errorMessage !== undefined ? { errorMessage: input.errorMessage } : {}),
         ...(input.status === "IN_PROGRESS" ? { startedAt: now, finishedAt: null } : {}),
-        ...(input.status === "COMPLETED" || input.status === "FAILED"
-          ? { finishedAt: now }
-          : {}),
+        ...(input.status === "COMPLETED" || input.status === "FAILED" ? { finishedAt: now } : {}),
         updatedAt: now,
       })
       .where(
@@ -276,10 +238,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async updateMerge(
-    id: string,
-    patch: CustomerMergePatch
-  ): Promise<CustomerMerge | null> {
+  async updateMerge(id: string, patch: CustomerMergePatch): Promise<CustomerMerge | null> {
     const rows = await this.connection
       .update(customerMerge)
       .set({
@@ -290,8 +249,8 @@ export class CustomerLifecycleRepository extends BaseRepository {
         and(
           eq(customerMerge.storeId, this.storeId),
           eq(customerMerge.id, id),
-          eq(customerMerge.status, "REQUESTED")
-        )
+          eq(customerMerge.status, "REQUESTED"),
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -304,16 +263,14 @@ export class CustomerLifecycleRepository extends BaseRepository {
         and(
           eq(customerMerge.storeId, this.storeId),
           eq(customerMerge.id, id),
-          eq(customerMerge.status, "REQUESTED")
-        )
+          eq(customerMerge.status, "REQUESTED"),
+        ),
       )
       .returning({ id: customerMerge.id });
     return rows.length > 0;
   }
 
-  async createDataRequest(
-    data: CustomerDataRequestCreateData
-  ): Promise<CustomerDataRequest> {
+  async createDataRequest(data: CustomerDataRequestCreateData): Promise<CustomerDataRequest> {
     const existing = await this.findDataRequestByIdempotencyKey(data.idempotencyKey);
     if (existing) return existing;
     const now = new Date().toISOString();
@@ -345,7 +302,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
       transitionedAt?: string;
       expectedStatuses?: readonly CustomerDataRequest["status"][];
       expectedUpdatedAt?: string;
-    }
+    },
   ): Promise<CustomerDataRequest | null> {
     const now = input.transitionedAt ?? new Date().toISOString();
     const isTerminal = ["COMPLETED", "REJECTED", "CANCELLED"].includes(input.status);
@@ -354,12 +311,8 @@ export class CustomerLifecycleRepository extends BaseRepository {
       .set({
         status: input.status,
         ...(input.resultFileId !== undefined ? { resultFileId: input.resultFileId } : {}),
-        ...(input.rejectionReason !== undefined
-          ? { rejectionReason: input.rejectionReason }
-          : {}),
-        ...(input.requestMetadata !== undefined
-          ? { requestMetadata: input.requestMetadata }
-          : {}),
+        ...(input.rejectionReason !== undefined ? { rejectionReason: input.rejectionReason } : {}),
+        ...(input.requestMetadata !== undefined ? { requestMetadata: input.requestMetadata } : {}),
         ...(input.status === "PROCESSING" ? { startedAt: now, finishedAt: null } : {}),
         ...(isTerminal ? { finishedAt: now } : {}),
         updatedAt: now,
@@ -374,7 +327,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
           input.expectedUpdatedAt
             ? eq(customerDataRequest.updatedAt, input.expectedUpdatedAt)
             : undefined,
-        )
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -384,7 +337,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
     id: string,
     patch: CustomerDataRequestPatch,
     cancel: boolean,
-    cancelReason?: string | null
+    cancelReason?: string | null,
   ): Promise<CustomerDataRequest | null> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -404,8 +357,8 @@ export class CustomerLifecycleRepository extends BaseRepository {
         and(
           eq(customerDataRequest.storeId, this.storeId),
           eq(customerDataRequest.id, id),
-          eq(customerDataRequest.status, "PENDING")
-        )
+          eq(customerDataRequest.status, "PENDING"),
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -438,16 +391,13 @@ export class CustomerLifecycleRepository extends BaseRepository {
           eq(customerDataRequest.customerId, input.customerId),
           eq(customerDataRequest.id, input.id),
           eq(customerDataRequest.status, "PENDING"),
-          eq(customerDataRequest.updatedAt, input.expectedUpdatedAt)
-        )
+          eq(customerDataRequest.updatedAt, input.expectedUpdatedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "cancelled", dataRequest: rows[0] };
 
-    const current = await this.findOwnedDataRequestById(
-      input.customerId,
-      input.id
-    );
+    const current = await this.findOwnedDataRequestById(input.customerId, input.id);
     if (!current) return { status: "not_found" };
     if (current.status !== "PENDING") return { status: "invalid_state" };
     return { status: "conflict", actualUpdatedAt: current.updatedAt };
@@ -460,8 +410,8 @@ export class CustomerLifecycleRepository extends BaseRepository {
         and(
           eq(customerDataRequest.storeId, this.storeId),
           eq(customerDataRequest.id, id),
-          eq(customerDataRequest.status, "PENDING")
-        )
+          eq(customerDataRequest.status, "PENDING"),
+        ),
       )
       .returning({ id: customerDataRequest.id });
     return rows.length > 0;
@@ -581,47 +531,36 @@ export class CustomerLifecycleRepository extends BaseRepository {
       .returning({ id: customerMerge.id });
     return {
       dataRequests: updatedRequests.length,
-      resultFileIds: requests.flatMap((row) =>
-        row.resultFileId ? [row.resultFileId] : [],
-      ),
+      resultFileIds: requests.flatMap((row) => (row.resultFileId ? [row.resultFileId] : [])),
       merges: failedActiveMerges.length + redactedTerminalMerges.length,
     };
   }
 
   @ReadOnly()
-  async getMergeConnection(
-    input: CustomerMergeRelayInput
-  ): Promise<RepositoryConnectionResult> {
-    return this.executeConnection(
-      input,
-      customerMergeRelayQuery,
-      [{ field: "requestedAt", direction: "desc" }]
-    );
+  async getMergeConnection(input: CustomerMergeRelayInput): Promise<RepositoryConnectionResult> {
+    return this.executeConnection(input, customerMergeRelayQuery, [
+      { field: "requestedAt", direction: "desc" },
+    ]);
   }
 
   @ReadOnly()
   async getDataRequestConnection(
-    input: CustomerDataRequestRelayInput
+    input: CustomerDataRequestRelayInput,
   ): Promise<RepositoryConnectionResult> {
-    return this.executeConnection(
-      input,
-      customerDataRequestRelayQuery,
-      [{ field: "requestedAt", direction: "desc" }]
-    );
+    return this.executeConnection(input, customerDataRequestRelayQuery, [
+      { field: "requestedAt", direction: "desc" },
+    ]);
   }
 
   @ReadOnly()
   async getOwnedDataRequestConnection(
-    input: CustomerDataRequestConnectionInput
+    input: CustomerDataRequestConnectionInput,
   ): Promise<RepositoryConnectionResult> {
     const { customerId, where, ...pagination } = input;
     return this.getDataRequestConnection({
       ...pagination,
       where: {
-        _and: [
-          { customerId: { _eq: customerId } },
-          ...(where ? [where] : []),
-        ],
+        _and: [{ customerId: { _eq: customerId } }, ...(where ? [where] : [])],
       },
     });
   }
@@ -629,15 +568,12 @@ export class CustomerLifecycleRepository extends BaseRepository {
   private async executeConnection(
     input: CustomerMergeRelayInput | CustomerDataRequestRelayInput,
     queryBuilder: typeof customerMergeRelayQuery | typeof customerDataRequestRelayQuery,
-    defaultOrder: Array<{ field: "requestedAt"; direction: "desc" }>
+    defaultOrder: Array<{ field: "requestedAt"; direction: "desc" }>,
   ): Promise<RepositoryConnectionResult> {
     const normalized = normalizeRelayPagination(input);
     const { where, orderBy, ...pagination } = normalized;
     const mergedWhere = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, ...(where ? [where] : [])],
     };
     const effectiveOrder = orderBy ?? defaultOrder;
     const executeInput = {
@@ -661,27 +597,20 @@ export class CustomerLifecycleRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(customerMerge)
-      .where(
-        and(
-          eq(customerMerge.storeId, this.storeId),
-          eq(customerMerge.idempotencyKey, key)
-        )
-      )
+      .where(and(eq(customerMerge.storeId, this.storeId), eq(customerMerge.idempotencyKey, key)))
       .limit(1);
     return rows[0] ?? null;
   }
 
-  private async findDataRequestByIdempotencyKey(
-    key: string
-  ): Promise<CustomerDataRequest | null> {
+  private async findDataRequestByIdempotencyKey(key: string): Promise<CustomerDataRequest | null> {
     const rows = await this.connection
       .select()
       .from(customerDataRequest)
       .where(
         and(
           eq(customerDataRequest.storeId, this.storeId),
-          eq(customerDataRequest.idempotencyKey, key)
-        )
+          eq(customerDataRequest.idempotencyKey, key),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;

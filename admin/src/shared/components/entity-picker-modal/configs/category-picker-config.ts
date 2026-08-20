@@ -12,11 +12,7 @@ import {
 } from "@/domains/inventory/categories/page/page-config";
 import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
-import type {
-  IEntityPickerConfig,
-  IEntityPickerDataResult,
-  IPickableEntity,
-} from "../types";
+import type { IEntityPickerConfig, IEntityPickerDataResult, IPickableEntity } from "../types";
 import type {
   ApiCategory,
   ApiCategoryCategoriesMetaInput,
@@ -63,25 +59,22 @@ function useCategoriesPickerData(options: {
     excludeIds,
     queryMeta,
   } = options;
-  const where = useMemo<ApiCategoryWhereInput | null>(
-    () => {
-      const conditions: ApiCategoryWhereInput[] = [];
+  const where = useMemo<ApiCategoryWhereInput | null>(() => {
+    const conditions: ApiCategoryWhereInput[] = [];
 
-      if (inputWhere) {
-        conditions.push(inputWhere as ApiCategoryWhereInput);
-      }
+    if (inputWhere) {
+      conditions.push(inputWhere as ApiCategoryWhereInput);
+    }
 
-      if (excludeIds.length > 0) {
-        conditions.push({ id: { _notIn: excludeIds } });
-      }
+    if (excludeIds.length > 0) {
+      conditions.push({ id: { _notIn: excludeIds } });
+    }
 
-      if (conditions.length === 0) return null;
-      if (conditions.length === 1) return conditions[0];
+    if (conditions.length === 0) return null;
+    if (conditions.length === 1) return conditions[0];
 
-      return { _and: conditions };
-    },
-    [excludeIds, inputWhere],
-  );
+    return { _and: conditions };
+  }, [excludeIds, inputWhere]);
   const { categories, totalCount, pageInfo, loading, error } = useCategories({
     first,
     after,
@@ -93,10 +86,7 @@ function useCategoriesPickerData(options: {
     fetchPolicy: "network-only",
   });
 
-  const data = useMemo(
-    () => categories.map(transformCategory),
-    [categories],
-  );
+  const data = useMemo(() => categories.map(transformCategory), [categories]);
 
   return {
     data,

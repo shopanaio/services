@@ -49,10 +49,7 @@ interface FacetScopeSelectorProps {
   onChange: (value: FacetScopeType[]) => void;
 }
 
-export function FacetScopeSelector({
-  value,
-  onChange,
-}: FacetScopeSelectorProps) {
+export function FacetScopeSelector({ value, onChange }: FacetScopeSelectorProps) {
   const { styles } = useStyles();
 
   return (
@@ -71,9 +68,7 @@ export function FacetScopeSelector({
           >
             <span className={styles.optionContent}>
               <span className={styles.optionLabel}>{option.label}</span>
-              <span className={styles.optionDescription}>
-                {option.description}
-              </span>
+              <span className={styles.optionDescription}>{option.description}</span>
             </span>
           </Checkbox>
         ))}

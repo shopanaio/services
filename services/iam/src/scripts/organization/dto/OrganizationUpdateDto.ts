@@ -13,9 +13,7 @@ export const organizationUpdateInputSchema = z.object({
   logoId: z.string().uuid("Invalid logo ID").nullable().optional(),
 });
 
-export type OrganizationUpdateInput = z.infer<
-  typeof organizationUpdateInputSchema
->;
+export type OrganizationUpdateInput = z.infer<typeof organizationUpdateInputSchema>;
 
 /**
  * Script params

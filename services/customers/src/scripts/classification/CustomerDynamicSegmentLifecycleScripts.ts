@@ -31,9 +31,7 @@ export class CustomerDynamicSegmentMergeScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(params: CustomerDynamicSegmentMergeParams): Promise<number> {
-    await this.repository.segmentMaterialization.cleanupCustomer(
-      params.sourceCustomerId,
-    );
+    await this.repository.segmentMaterialization.cleanupCustomer(params.sourceCustomerId);
     return this.repository.segmentMaterialization.enqueueCustomer(
       params.targetCustomerId,
       new Set(["customer.any"]),

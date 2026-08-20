@@ -1,5 +1,9 @@
 import { Button, Dropdown, Flex, Input } from "antd";
-import { LuTrash2 as DeleteOutlined, LuGripVertical as HolderOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
+import {
+  LuTrash2 as DeleteOutlined,
+  LuGripVertical as HolderOutlined,
+  LuPlus as PlusOutlined,
+} from "react-icons/lu";
 import {
   DndContext,
   KeyboardSensor,
@@ -71,14 +75,9 @@ export const SortableOptionGroup = ({
     },
   });
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: fieldId });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: fieldId,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -87,7 +86,7 @@ export const SortableOptionGroup = ({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -117,10 +116,7 @@ export const SortableOptionGroup = ({
       ref={setNodeRef}
       style={style}
       data-testid="edit-options-option-card"
-      className={cx(
-        styles.optionGroup,
-        isDragging && styles.optionGroupDragging
-      )}
+      className={cx(styles.optionGroup, isDragging && styles.optionGroupDragging)}
     >
       <div className={styles.optionGroupHeader}>
         <Input
@@ -143,11 +139,7 @@ export const SortableOptionGroup = ({
             </Flex>
           }
           suffix={
-            <Flex
-              gap={4}
-              align="center"
-              onPointerDown={(e) => e.stopPropagation()}
-            >
+            <Flex gap={4} align="center" onPointerDown={(e) => e.stopPropagation()}>
               <Button
                 size="small"
                 onClick={openCategoryPicker}
@@ -176,11 +168,7 @@ export const SortableOptionGroup = ({
       </div>
 
       <div className={styles.optionGroupBody}>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
             items={group.values.map((v) => v.id)}
             strategy={verticalListSortingStrategy}
@@ -191,12 +179,8 @@ export const SortableOptionGroup = ({
                   key={value.id}
                   value={value}
                   isDeleteDisabled={group.values.length <= 1}
-                  onNameChange={(name) =>
-                    onUpdateValueName(valueIndex, name)
-                  }
-                  onSwatchChange={(swatch) =>
-                    onUpdateValueSwatch(valueIndex, swatch)
-                  }
+                  onNameChange={(name) => onUpdateValueName(valueIndex, name)}
+                  onSwatchChange={(swatch) => onUpdateValueSwatch(valueIndex, swatch)}
                   onDelete={() => onDeleteValue(valueIndex)}
                 />
               ))}

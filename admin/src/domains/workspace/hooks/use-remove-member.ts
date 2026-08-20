@@ -44,7 +44,7 @@ export function useRemoveMember(): UseRemoveMemberReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

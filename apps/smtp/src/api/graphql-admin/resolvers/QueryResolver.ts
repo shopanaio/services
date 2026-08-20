@@ -16,27 +16,17 @@ export class SmtpAppQueryResolver extends SmtpType<Record<string, never>> {
 
   async smtpConnections() {
     const connections = await this.$ctx.connections.list(this.scope);
-    return connections.map(
-      ({ id }) => new SmtpConnectionResolver(id, this.$ctx),
-    );
+    return connections.map(({ id }) => new SmtpConnectionResolver(id, this.$ctx));
   }
 
   async smtpConnection(args: { id: string }) {
     let connectionId: string;
     try {
-      connectionId = this.decodeId(
-        args.id,
-        GlobalIdEntity.SmtpConnection,
-      );
+      connectionId = this.decodeId(args.id, GlobalIdEntity.SmtpConnection);
     } catch {
       return null;
     }
-    const connection = await this.$ctx.connections.findById(
-      this.scope,
-      connectionId,
-    );
-    return connection
-      ? new SmtpConnectionResolver(connectionId, this.$ctx)
-      : null;
+    const connection = await this.$ctx.connections.findById(this.scope, connectionId);
+    return connection ? new SmtpConnectionResolver(connectionId, this.$ctx) : null;
   }
 }

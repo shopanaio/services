@@ -11,21 +11,13 @@ const VARIANTS_PAGE_SIZE = 10;
 export const ProductModal = () => {
   const { payload, pop, forcePop } = useModalStackContext();
   const [variantsPageIndex, setVariantsPageIndex] = useState(0);
-  const [variantCursorHistory, setVariantCursorHistory] = useState<
-    Array<string | null>
-  >([null]);
-  const [paginationEntityId, setPaginationEntityId] = useState<string | null>(
-    null,
-  );
+  const [variantCursorHistory, setVariantCursorHistory] = useState<Array<string | null>>([null]);
+  const [paginationEntityId, setPaginationEntityId] = useState<string | null>(null);
   const entityId =
-    payload.entityId === undefined || payload.entityId === null
-      ? null
-      : String(payload.entityId);
+    payload.entityId === undefined || payload.entityId === null ? null : String(payload.entityId);
 
   const variantsAfter =
-    paginationEntityId === entityId
-      ? variantCursorHistory[variantsPageIndex] ?? null
-      : null;
+    paginationEntityId === entityId ? (variantCursorHistory[variantsPageIndex] ?? null) : null;
   const { product, loading, error, refetch } = useProduct({
     id: entityId,
     variantsFirst: VARIANTS_PAGE_SIZE,

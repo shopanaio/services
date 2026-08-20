@@ -4,28 +4,44 @@
 Represents a price for a variant.
 """
 type VariantPrice implements Node {
-  """The globally unique ID of the price record."""
+  """
+  The globally unique ID of the price record.
+  """
   id: ID!
 
-  """The currency code."""
+  """
+  The currency code.
+  """
   currency: CurrencyCode!
 
-  """The price amount in minor units (cents, kopecks, etc.)."""
+  """
+  The price amount in minor units (cents, kopecks, etc.).
+  """
   amountMinor: BigInt!
 
-  """The compare-at price in minor units (strikethrough price)."""
+  """
+  The compare-at price in minor units (strikethrough price).
+  """
   compareAtMinor: BigInt
 
-  """When this price became effective."""
+  """
+  When this price became effective.
+  """
   effectiveFrom: DateTime!
 
-  """When this price stopped being effective (null if current)."""
+  """
+  When this price stopped being effective (null if current).
+  """
   effectiveTo: DateTime
 
-  """When this price record was created."""
+  """
+  When this price record was created.
+  """
   recordedAt: DateTime!
 
-  """Whether this is the current active price."""
+  """
+  Whether this is the current active price.
+  """
   isCurrent: Boolean!
 }
 
@@ -33,13 +49,19 @@ type VariantPrice implements Node {
 A connection to a list of VariantPrice items.
 """
 type VariantPriceConnection {
-  """A list of edges."""
+  """
+  A list of edges.
+  """
   edges: [VariantPriceEdge!]!
 
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
 
-  """The total number of price records."""
+  """
+  The total number of price records.
+  """
   totalCount: Int!
 }
 
@@ -47,10 +69,14 @@ type VariantPriceConnection {
 An edge in a VariantPrice connection.
 """
 type VariantPriceEdge {
-  """The item at the end of the edge."""
+  """
+  The item at the end of the edge.
+  """
   node: VariantPrice!
 
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: String!
 }
 
@@ -58,25 +84,39 @@ type VariantPriceEdge {
 Represents the cost of a variant.
 """
 type VariantCost implements Node {
-  """The globally unique ID of the cost record."""
+  """
+  The globally unique ID of the cost record.
+  """
   id: ID!
 
-  """The currency code."""
+  """
+  The currency code.
+  """
   currency: CurrencyCode!
 
-  """The unit cost in minor units."""
+  """
+  The unit cost in minor units.
+  """
   unitCostMinor: BigInt!
 
-  """When this cost became effective."""
+  """
+  When this cost became effective.
+  """
   effectiveFrom: DateTime!
 
-  """When this cost stopped being effective (null if current)."""
+  """
+  When this cost stopped being effective (null if current).
+  """
   effectiveTo: DateTime
 
-  """When this cost record was created."""
+  """
+  When this cost record was created.
+  """
   recordedAt: DateTime!
 
-  """Whether this is the current active cost."""
+  """
+  Whether this is the current active cost.
+  """
   isCurrent: Boolean!
 }
 
@@ -84,13 +124,19 @@ type VariantCost implements Node {
 A connection to a list of VariantCost items.
 """
 type VariantCostConnection {
-  """A list of edges."""
+  """
+  A list of edges.
+  """
   edges: [VariantCostEdge!]!
 
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
 
-  """The total number of cost records."""
+  """
+  The total number of cost records.
+  """
   totalCount: Int!
 }
 
@@ -98,10 +144,14 @@ type VariantCostConnection {
 An edge in a VariantCost connection.
 """
 type VariantCostEdge {
-  """The item at the end of the edge."""
+  """
+  The item at the end of the edge.
+  """
   node: VariantCost!
 
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: String!
 }
 
@@ -111,13 +161,21 @@ type VariantCostEdge {
 Statistics for variant price history over a period.
 """
 type VariantPriceHistoryStatistics {
-  """Minimum price over the period (minor units)."""
+  """
+  Minimum price over the period (minor units).
+  """
   minPriceMinor: BigInt!
-  """Maximum price over the period (minor units)."""
+  """
+  Maximum price over the period (minor units).
+  """
   maxPriceMinor: BigInt!
-  """Average price over the period (minor units)."""
+  """
+  Average price over the period (minor units).
+  """
   avgPriceMinor: BigInt!
-  """Currency code."""
+  """
+  Currency code.
+  """
   currency: CurrencyCode!
 }
 
@@ -125,13 +183,21 @@ type VariantPriceHistoryStatistics {
 Pricing widget payload with current price, cost, history and statistics.
 """
 type PricingWidgetPayload {
-  """Current active price."""
+  """
+  Current active price.
+  """
   currentPrice: VariantPrice
-  """Current active cost."""
+  """
+  Current active cost.
+  """
   currentCostPrice: VariantCost
-  """Price history for the period."""
+  """
+  Price history for the period.
+  """
   history: VariantPriceConnection!
-  """Computed statistics for the period."""
+  """
+  Computed statistics for the period.
+  """
   statistics: VariantPriceHistoryStatistics!
 }
 
@@ -139,17 +205,29 @@ type PricingWidgetPayload {
 Input for pricing widget query.
 """
 input PricingWidgetInput {
-  """The variant ID to get pricing data for."""
+  """
+  The variant ID to get pricing data for.
+  """
   variantId: ID!
-  """Currency code to filter by."""
+  """
+  Currency code to filter by.
+  """
   currency: CurrencyCode!
-  """Start of the period (optional, defaults to 30 days ago)."""
+  """
+  Start of the period (optional, defaults to 30 days ago).
+  """
   from: DateTime
-  """End of the period (optional, defaults to now)."""
+  """
+  End of the period (optional, defaults to now).
+  """
   to: DateTime
-  """Pagination: first N items."""
+  """
+  Pagination: first N items.
+  """
   first: Int
-  """Pagination: cursor after."""
+  """
+  Pagination: cursor after.
+  """
   after: String
 }
 
@@ -159,16 +237,24 @@ input PricingWidgetInput {
 Input for updating a price on a variant.
 """
 input VariantUpdatePricingInput {
-  """The ID of the variant."""
+  """
+  The ID of the variant.
+  """
   variantId: ID!
 
-  """The currency code."""
+  """
+  The currency code.
+  """
   currency: CurrencyCode!
 
-  """The price amount in minor units."""
+  """
+  The price amount in minor units.
+  """
   amountMinor: BigInt!
 
-  """The compare-at price in minor units (optional)."""
+  """
+  The compare-at price in minor units (optional).
+  """
   compareAtMinor: BigInt
 }
 
@@ -176,10 +262,13 @@ input VariantUpdatePricingInput {
 Payload for variant pricing update.
 """
 type VariantUpdatePricingPayload {
-  """The updated variant."""
+  """
+  The updated variant.
+  """
   variant: Variant
 
-  """List of errors that occurred during the mutation."""
+  """
+  List of errors that occurred during the mutation.
+  """
   userErrors: [GenericUserError!]!
 }
-

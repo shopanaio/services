@@ -64,21 +64,24 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
 
     let providerRetry = 0;
     for (;;) {
-      const current = await this.loadSession(
-        input.storeId,
-        input.initialResult.paymentSessionId,
-      );
+      const current = await this.loadSession(input.storeId, input.initialResult.paymentSessionId);
       const session = current.session;
       const operation = current.operations.at(-1);
       if (!operation) throw new Error("PAYMENT_OPERATION_NOT_FOUND");
 
       if (isSettled(session.state)) {
         const eligibleAt = new Date(await DBOS.now()).toISOString();
-        const finalizationFailures = await this.runCompensations([
-          ["commitLoyaltyAt", () => this.commitLoyaltyAt(input, eligibleAt)],
-          ["confirmInventory", () => this.confirmInventory(input.storeId, input.orderId)],
-          ["publishOrderRewardEligible", () => this.publishOrderRewardEligible(input, eligibleAt)],
-        ], eligibleAt);
+        const finalizationFailures = await this.runCompensations(
+          [
+            ["commitLoyaltyAt", () => this.commitLoyaltyAt(input, eligibleAt)],
+            ["confirmInventory", () => this.confirmInventory(input.storeId, input.orderId)],
+            [
+              "publishOrderRewardEligible",
+              () => this.publishOrderRewardEligible(input, eligibleAt),
+            ],
+          ],
+          eligibleAt,
+        );
         if (finalizationFailures.length > 0) {
           await this.recordCompensationFailures(input.placementId, finalizationFailures);
         }
@@ -104,7 +107,12 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       if (session.state === "PROCESSING") {
         providerRetry += 1;
         try {
-          await this.retryCreatePaymentSession(input, workflowId, session.paymentSessionId, providerRetry);
+          await this.retryCreatePaymentSession(
+            input,
+            workflowId,
+            session.paymentSessionId,
+            providerRetry,
+          );
         } catch {
           const now = await DBOS.now();
           const retryAt = new Date(now + providerRetryDelay(providerRetry)).toISOString();
@@ -130,8 +138,9 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       const delay = Date.parse(deadline) - now;
       if (delay > 0) {
         if (delay > 1_000) {
-          const inventoryDeadline = new Date(Math.max(Date.parse(deadline), now + 60_000))
-            .toISOString();
+          const inventoryDeadline = new Date(
+            Math.max(Date.parse(deadline), now + 60_000),
+          ).toISOString();
           await this.renewInventory(input.storeId, input.orderId, inventoryDeadline);
         }
         await DBOS.sleep(delay);
@@ -202,37 +211,37 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     return this.broker.runWorkflow<
       Payments.PaymentOperationAcceptedResult,
       Payments.ExpirePaymentParams
-    >("payments.expireSession", {
-      organizationId: input.organizationId,
-      storeId: input.storeId,
-      paymentSessionId: session.paymentSessionId,
-      expectedSessionRevision: session.revision,
-      reason: "Checkout payment was not completed before its deadline.",
-      idempotencyKey: `${input.idempotencyKey}:payment-expire`,
-      correlationId: input.correlationId,
-    }, {
-      source: "workflow",
-      organizationId: input.organizationId,
-      workflowId,
-      stepId: "expirePaymentSession",
-      callId: `${session.paymentSessionId}:${session.revision}`,
-    });
+    >(
+      "payments.expireSession",
+      {
+        organizationId: input.organizationId,
+        storeId: input.storeId,
+        paymentSessionId: session.paymentSessionId,
+        expectedSessionRevision: session.revision,
+        reason: "Checkout payment was not completed before its deadline.",
+        idempotencyKey: `${input.idempotencyKey}:payment-expire`,
+        correlationId: input.correlationId,
+      },
+      {
+        source: "workflow",
+        organizationId: input.organizationId,
+        workflowId,
+        stepId: "expirePaymentSession",
+        callId: `${session.paymentSessionId}:${session.revision}`,
+      },
+    );
   }
 
   @WorkflowStep()
   private loadSession(storeId: string, paymentSessionId: string) {
-    return this.broker.call<
-      Payments.GetPaymentSessionResult,
-      Payments.GetPaymentSessionParams
-    >("payments.getPaymentSession", { storeId, paymentSessionId });
+    return this.broker.call<Payments.GetPaymentSessionResult, Payments.GetPaymentSessionParams>(
+      "payments.getPaymentSession",
+      { storeId, paymentSessionId },
+    );
   }
 
   @WorkflowStep()
-  private async renewInventory(
-    storeId: string,
-    orderId: string,
-    expiresAt: string,
-  ): Promise<void> {
+  private async renewInventory(storeId: string, orderId: string, expiresAt: string): Promise<void> {
     await this.broker.call<
       Inventory.RenewCheckoutInventoryResult,
       Inventory.RenewCheckoutInventoryParams
@@ -357,10 +366,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
   }
 
   private async releaseLoyalty(input: MonitorPlacedPaymentInput): Promise<void> {
-    return this.releaseLoyaltyAt(
-      input,
-      new Date(await DBOS.now()).toISOString(),
-    );
+    return this.releaseLoyaltyAt(input, new Date(await DBOS.now()).toISOString());
   }
 
   @WorkflowStep()
@@ -474,13 +480,17 @@ function earliestTimestamp(platformDeadline: string, providerDeadline?: string |
 // treating them as terminal failures would incorrectly release/reverse resources for
 // an order that was actually paid.
 function isSettled(state: Payments.PaymentSessionState): boolean {
-  return state === "AUTHORIZED" || state === "PARTIALLY_CAPTURED" || state === "CAPTURED" ||
-    state === "REFUNDED" || state === "PARTIALLY_REFUNDED";
+  return (
+    state === "AUTHORIZED" ||
+    state === "PARTIALLY_CAPTURED" ||
+    state === "CAPTURED" ||
+    state === "REFUNDED" ||
+    state === "PARTIALLY_REFUNDED"
+  );
 }
 
 function isTerminalFailure(state: Payments.PaymentSessionState): boolean {
-  return state === "FAILED" || state === "EXPIRED" || state === "CANCELLED" ||
-    state === "VOIDED";
+  return state === "FAILED" || state === "EXPIRED" || state === "CANCELLED" || state === "VOIDED";
 }
 
 function paymentResult(
@@ -488,12 +498,14 @@ function paymentResult(
   session: Payments.PaymentSessionSnapshot,
   operationId: string,
 ): PlaceOrderWorkflowResult {
-  const status = session.state === "CAPTURED" || session.state === "REFUNDED"
-    ? "PAID"
-    : session.state === "AUTHORIZED" || session.state === "PARTIALLY_CAPTURED" ||
-        session.state === "PARTIALLY_REFUNDED"
-      ? "AUTHORIZED"
-      : "PAYMENT_FAILED";
+  const status =
+    session.state === "CAPTURED" || session.state === "REFUNDED"
+      ? "PAID"
+      : session.state === "AUTHORIZED" ||
+          session.state === "PARTIALLY_CAPTURED" ||
+          session.state === "PARTIALLY_REFUNDED"
+        ? "AUTHORIZED"
+        : "PAYMENT_FAILED";
   return {
     ...initial,
     status,
@@ -508,6 +520,5 @@ function providerRetryDelay(attempt: number): number {
 }
 
 function isPaymentRevisionConflict(error: unknown): boolean {
-  return error instanceof Error &&
-    error.message.includes("PAYMENT_SESSION_REVISION_CONFLICT");
+  return error instanceof Error && error.message.includes("PAYMENT_SESSION_REVISION_CONFLICT");
 }

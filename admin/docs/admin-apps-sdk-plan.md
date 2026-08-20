@@ -4,8 +4,8 @@
 
 - Статус документа: proposed.
 - Версия решения: v1.
-- Область: Admin UI, `services/apps`, backend hosted Apps из `apps/*`,
-  hosted App UI из `admin/src/domains/apps/<appCode>`, App build pipeline.
+- Область: Admin UI, `services/apps`, backend hosted Apps из `apps/*`, hosted App UI из
+  `admin/src/domains/apps/<appCode>`, App build pipeline.
 - Admin runtime: Next.js App Router + Turbopack host.
 - Remote runtime: client-only Module Federation modules.
 - UI stack: React, Ant Design, `antd-style`, `@ant-design/cssinjs`, AG Grid.
@@ -19,8 +19,8 @@ docs/apps-platform-architecture.ru.md
 
 ## 1. Резюме решения
 
-В первой версии Apps SDK не создаётся как отдельный workspace/npm package.
-Он реализуется непосредственно внутри Admin:
+В первой версии Apps SDK не создаётся как отдельный workspace/npm package. Он реализуется
+непосредственно внутри Admin:
 
 ```text
 admin/src/domains/apps/sdk
@@ -57,8 +57,8 @@ URL страницы управления Apps может остаться пр�
 /:orgName/:storeName/system/integrations/apps
 ```
 
-Но route registration, page, hooks и GraphQL принадлежат
-`admin/src/domains/apps`, а не `admin/src/domains/system`.
+Но route registration, page, hooks и GraphQL принадлежат `admin/src/domains/apps`, а не
+`admin/src/domains/system`.
 
 Установленное App получает собственную runtime page:
 
@@ -66,9 +66,8 @@ URL страницы управления Apps может остаться пр�
 /:orgName/:storeName/apps/:appCode{/*appPath}
 ```
 
-Admin остаётся владельцем Next routing, React tree, Ant Design providers,
-theme, CSS-in-JS cache, modal stack, AG Grid configuration и security
-boundary.
+Admin остаётся владельцем Next routing, React tree, Ant Design providers, theme, CSS-in-JS cache,
+modal stack, AG Grid configuration и security boundary.
 
 ## 2. Цели v1
 
@@ -77,14 +76,11 @@ boundary.
 1. рендерить client component на своей странице;
 2. поддерживать deep links внутри собственного `appPath`;
 3. открывать свои modals в общем Admin modal stack;
-4. открывать разрешённые core modals, например Product details и Product
-   picker;
+4. открывать разрешённые core modals, например Product details и Product picker;
 5. участвовать в стандартных Admin pages через typed extension points;
-6. использовать Ant Design, `antd-style`, CSS-in-JS tokens и theme текущего
-   Admin;
+6. использовать Ant Design, `antd-style`, CSS-in-JS tokens и theme текущего Admin;
 7. использовать AG Grid через host-owned wrapper;
-8. использовать Admin navigation, notifications и GraphQL transport без
-   доступа к auth token;
+8. использовать Admin navigation, notifications и GraphQL transport без доступа к auth token;
 9. корректно отключаться при store switch, suspend и uninstall;
 10. загружать remote JS только при первом фактическом использовании.
 
@@ -107,8 +103,8 @@ boundary.
 - произвольные UI slots, отсутствующие в Admin extension point catalog;
 - полная runtime-выгрузка уже загруженного JavaScript без browser reload.
 
-Module Federation runtime предназначен только для trusted Apps, которые входят
-в platform repository и проходят build validation.
+Module Federation runtime предназначен только для trusted Apps, которые входят в platform repository
+и проходят build validation.
 
 ## 4. Связь с backend Apps architecture
 
@@ -143,8 +139,7 @@ AppInstallation
 └─ configuration
 ```
 
-Отдельные `AppRelease`, `InstalledUiApp` или frontend release pinning в v1 не
-создаются.
+Отдельные `AppRelease`, `InstalledUiApp` или frontend release pinning в v1 не создаются.
 
 ### 4.1 Два execution plane
 
@@ -162,9 +157,8 @@ Admin plane:
 - App component рендерится внутри существующего React tree;
 - UI registry очищается при смене installation context.
 
-Backend static registry и frontend runtime loading не конфликтуют. Динамической
-является активация App для store и загрузка browser artifact, но не состав
-platform release.
+Backend static registry и frontend runtime loading не конфликтуют. Динамической является активация
+App для store и загрузка browser artifact, но не состав platform release.
 
 ### 4.2 Backend slots и Admin extension points
 
@@ -178,8 +172,7 @@ Admin extension point
   -> выбирает UI contribution для места на core page
 ```
 
-Admin extension points не сохраняются в backend `platform.slots` и не
-используют capability routing.
+Admin extension points не сохраняются в backend `platform.slots` и не используют capability routing.
 
 ## 5. Target structure Admin domain
 
@@ -244,14 +237,14 @@ admin/src/domains/apps/
 
 - другие domains импортируют только `@/domains/apps`;
 - internal files `runtime/*` и `sdk/*` не импортируются напрямую;
-- `apps/index.ts` экспортирует только host components и extension point
-  contracts, необходимые core Admin;
-- hosted App UI импортирует из Apps SDK только type-only contract alias и не
-  импортирует `runtime/*` или другие internal Admin domains;
+- `apps/index.ts` экспортирует только host components и extension point contracts, необходимые core
+  Admin;
+- hosted App UI импортирует из Apps SDK только type-only contract alias и не импортирует `runtime/*`
+  или другие internal Admin domains;
 - core Admin не импортирует source конкретного hosted App напрямую;
 - public SDK contracts не содержат types из внутренних Admin domains;
-- generated GraphQL API types импортируются напрямую из
-  `@/graphql/types`, согласно Admin GraphQL conventions.
+- generated GraphQL API types импортируются напрямую из `@/graphql/types`, согласно Admin GraphQL
+  conventions.
 
 ## 6. Как remote App использует внутренний SDK
 
@@ -296,10 +289,7 @@ interface AdminAppPageProps {
 ```
 
 ```tsx
-export default function NovaPoshtaPage({
-  sdk,
-  route,
-}: AdminAppPageProps) {
+export default function NovaPoshtaPage({ sdk, route }: AdminAppPageProps) {
   return (
     <sdk.ui.AppPage title="Nova Poshta">
       <Button
@@ -316,13 +306,12 @@ export default function NovaPoshtaPage({
 }
 ```
 
-Runtime SDK не включается в remote bundle и не загружается как отдельный
-federated module.
+Runtime SDK не включается в remote bundle и не загружается как отдельный federated module.
 
 ### 6.2 Type-only contract для producer
 
-Чтобы App author получал TypeScript autocomplete без отдельного package, App
-producer использует type-only alias:
+Чтобы App author получал TypeScript autocomplete без отдельного package, App producer использует
+type-only alias:
 
 ```ts
 import type {
@@ -348,8 +337,7 @@ admin/src/domains/apps/sdk/index.ts
 - type imports полностью удаляются producer build;
 - Module Federation remote получает настоящий SDK object от host.
 
-Такой контракт можно позднее перенести в отдельный package без изменения
-remote component props.
+Такой контракт можно позднее перенести в отдельный package без изменения remote component props.
 
 ## 7. App source layout
 
@@ -382,12 +370,12 @@ admin/src/domains/apps/nova-poshta/
       └─ create-shipment-action.tsx
 ```
 
-Связь backend и UI определяется единым `appCode + version`. App generator
-создаёт backend source и Admin UI source в двух соответствующих roots.
+Связь backend и UI определяется единым `appCode + version`. App generator создаёт backend source и
+Admin UI source в двух соответствующих roots.
 
-Физическое расположение UI внутри Admin repository не означает статический
-импорт в Admin host. Source конкретного App используется только отдельным App
-UI producer build. Core Admin и runtime registries не импортируют его напрямую.
+Физическое расположение UI внутри Admin repository не означает статический импорт в Admin host.
+Source конкретного App используется только отдельным App UI producer build. Core Admin и runtime
+registries не импортируют его напрямую.
 
 Browser runtime никогда не получает filesystem source path:
 
@@ -495,8 +483,7 @@ interface AdminUiBuildArtifact {
 }
 ```
 
-Artifact metadata является частью bundled App registry текущего platform
-release.
+Artifact metadata является частью bundled App registry текущего platform release.
 
 Browser URL вычисляет `services/apps`:
 
@@ -613,11 +600,10 @@ Resolver:
 8. вычисляет immutable browser URL;
 9. возвращает normalized descriptor.
 
-`SUSPENDED`, `UNINSTALLED`, incompatible и unhealthy App не получает активный
-descriptor.
+`SUSPENDED`, `UNINSTALLED`, incompatible и unhealthy App не получает активный descriptor.
 
-Client-side filtering не является security boundary. App GraphQL resolvers и
-core actions повторно проверяют installation, store, scopes и RBAC.
+Client-side filtering не является security boundary. App GraphQL resolvers и core actions повторно
+проверяют installation, store, scopes и RBAC.
 
 ## 11. Admin runtime lifecycle
 
@@ -752,8 +738,7 @@ Host владеет и предоставляет как singleton:
 
 Версии определяет Admin release.
 
-App producer не должен включать вторые копии этих dependencies в emitted
-chunks.
+App producer не должен включать вторые копии этих dependencies в emitted chunks.
 
 ## 14. Theme и styling contract
 
@@ -818,11 +803,7 @@ interface AdminAppUiApi {
 App использует:
 
 ```tsx
-<sdk.ui.DataGrid
-  rowData={rows}
-  columnDefs={columns}
-  getRowId={getRowId}
-/>
+<sdk.ui.DataGrid rowData={rows} columnDefs={columns} getRowId={getRowId} />
 ```
 
 `AdminDataGrid`:
@@ -882,9 +863,7 @@ interface AdminAppModalApi {
   openCore<TKey extends keyof CoreModalContractMap>(
     modal: TKey,
     input: CoreModalContractMap[TKey]["input"],
-  ): Promise<
-    AdminModalResult<CoreModalContractMap[TKey]["result"]>
-  >;
+  ): Promise<AdminModalResult<CoreModalContractMap[TKey]["result"]>>;
 
   closeCurrent<TResult>(result?: TResult): void;
   setCurrentDirty(dirty: boolean): void;
@@ -900,8 +879,7 @@ interface AdminAppModalProps<TPayload = unknown> {
 }
 ```
 
-App modal может открыть другую App modal или разрешённую core modal поверх
-себя.
+App modal может открыть другую App modal или разрешённую core modal поверх себя.
 
 ### 16.2 Core modal allowlist
 
@@ -961,8 +939,7 @@ Core adapter:
 
 ## 17. GraphQL access
 
-Remote App может использовать GraphQL только через текущий Admin session и
-store context.
+Remote App может использовать GraphQL только через текущий Admin session и store context.
 
 SDK предоставляет adapter:
 
@@ -988,8 +965,8 @@ Adapter:
 - добавляет telemetry metadata;
 - завершает request ошибкой после dispose App scope.
 
-Допускается прямое использование Apollo hooks только после фиксации shared
-singleton contract. Предпочтительный v1 API — `sdk.graphql`.
+Допускается прямое использование Apollo hooks только после фиксации shared singleton contract.
+Предпочтительный v1 API — `sdk.graphql`.
 
 Backend App GraphQL resolver всё равно проверяет:
 
@@ -1032,8 +1009,8 @@ Core page вставляет host component:
 />
 ```
 
-App получает только stable context, а не internal React state, Zustand stores
-или mutable domain services.
+App получает только stable context, а не internal React state, Zustand stores или mutable domain
+services.
 
 Render flow:
 
@@ -1089,8 +1066,8 @@ management/mappers
 management/page
 ```
 
-Mocks удаляются после подключения control-plane GraphQL. API responses не
-преобразуются в отдельные UI view models.
+Mocks удаляются после подключения control-plane GraphQL. API responses не преобразуются в отдельные
+UI view models.
 
 Route registration переносится из:
 
@@ -1104,8 +1081,7 @@ admin/src/domains/system/register.tsx
 admin/src/domains/apps/register.tsx
 ```
 
-При этом Apps management page может остаться визуально в группе
-`System -> Integrations`.
+При этом Apps management page может остаться визуально в группе `System -> Integrations`.
 
 ## 20. Security и failure isolation
 
@@ -1154,8 +1130,8 @@ Remote failure не должна:
 7. Admin host;
 8. bootstrap.
 
-Admin host не содержит hardcoded remote URLs и не требует списка конкретных
-Apps для runtime routing.
+Admin host не содержит hardcoded remote URLs и не требует списка конкретных Apps для runtime
+routing.
 
 ### 21.2 App UI validator
 
@@ -1207,14 +1183,13 @@ build App backend
 5. Зафиксировать initial core modal catalog.
 6. Зафиксировать initial Orders extension point catalog.
 
-Результат: backend, Admin host и App producer используют одну терминологию и
-один `appCode + version`.
+Результат: backend, Admin host и App producer используют одну терминологию и один
+`appCode + version`.
 
 ### Этап 1. Выделить Apps domain
 
 1. Создать `admin/src/domains/apps`.
-2. Перенести page, hooks, modals и GraphQL из
-   `admin/src/domains/system/apps`.
+2. Перенести page, hooks, modals и GraphQL из `admin/src/domains/system/apps`.
 3. Создать `apps/register.tsx`.
 4. Удалить Apps ownership из `system/register.tsx`.
 5. Сохранить management URL в `System -> Integrations`.
@@ -1232,8 +1207,7 @@ build App backend
 6. Запретить runtime imports из alias.
 7. Добавить UI, navigation, GraphQL и notification adapters.
 
-Результат: SDK существует внутри Admin и передаётся remote modules через
-props.
+Результат: SDK существует внутри Admin и передаётся remote modules через props.
 
 ### Этап 3. Backend UI descriptor
 
@@ -1292,8 +1266,7 @@ props.
 5. Добавить isolated lazy rendering.
 6. Реализовать Nova Poshta contributions.
 
-Результат: Nova Poshta участвует в стандартных Orders pages без прямого
-импорта App source.
+Результат: Nova Poshta участвует в стандартных Orders pages без прямого импорта App source.
 
 ### Этап 8. App build integration
 
@@ -1328,12 +1301,10 @@ props.
 
 ### Page
 
-- `ACTIVE` App открывается по
-  `/:orgName/:storeName/apps/:appCode`.
+- `ACTIVE` App открывается по `/:orgName/:storeName/apps/:appCode`.
 - Deep link и browser refresh работают.
 - Nested `appPath` работает без App router.
-- Suspended, uninstalled, unhealthy или incompatible App не загружает remote
-  JS.
+- Suspended, uninstalled, unhealthy или incompatible App не загружает remote JS.
 
 ### SDK
 
@@ -1378,10 +1349,9 @@ props.
 
 ### Discovery
 
-- Admin host, runtime descriptors и bundled registry не содержат filesystem
-  source paths конкретных Apps.
-- Hosted App UI source находится в
-  `admin/src/domains/apps/<appCode>`.
+- Admin host, runtime descriptors и bundled registry не содержат filesystem source paths конкретных
+  Apps.
+- Hosted App UI source находится в `admin/src/domains/apps/<appCode>`.
 - Admin не содержит hardcoded production remote URLs.
 - `services/apps` возвращает immutable manifest URL.
 - Descriptor соответствует общей App version и installation.
@@ -1390,28 +1360,28 @@ props.
 
 ## 24. Ownership
 
-| Область | Владелец |
-|---|---|
-| App identity, version и common manifest | App definition |
-| Backend runtime | `services/apps` |
-| Installation lifecycle | `services/apps` control plane |
-| App GraphQL schema/resolvers | App package |
-| GraphQL hosting и guards | `services/apps` |
-| Admin UI source | `admin/src/domains/apps/<appCode>` |
-| Admin UI artifact build | App build tooling |
-| Browser asset hosting metadata | bundled App registry + deployment config |
-| Apps management UI | `admin/src/domains/apps/management` |
-| Module Federation runtime | `admin/src/domains/apps/runtime` |
-| Internal SDK | `admin/src/domains/apps/sdk` |
-| React root and contexts | Admin |
-| Theme and CSS-in-JS cache | Admin |
-| Modal stack | Admin |
-| Core modal implementations | соответствующие core domains |
-| Core modal public adapters | Admin Apps SDK |
-| Extension point locations | core Admin domains |
-| Extension registry and rendering | Admin Apps domain |
-| AG Grid modules/theme/license | Admin |
-| App authorization | backend scopes/RBAC |
+| Область                                 | Владелец                                 |
+| --------------------------------------- | ---------------------------------------- |
+| App identity, version и common manifest | App definition                           |
+| Backend runtime                         | `services/apps`                          |
+| Installation lifecycle                  | `services/apps` control plane            |
+| App GraphQL schema/resolvers            | App package                              |
+| GraphQL hosting и guards                | `services/apps`                          |
+| Admin UI source                         | `admin/src/domains/apps/<appCode>`       |
+| Admin UI artifact build                 | App build tooling                        |
+| Browser asset hosting metadata          | bundled App registry + deployment config |
+| Apps management UI                      | `admin/src/domains/apps/management`      |
+| Module Federation runtime               | `admin/src/domains/apps/runtime`         |
+| Internal SDK                            | `admin/src/domains/apps/sdk`             |
+| React root and contexts                 | Admin                                    |
+| Theme and CSS-in-JS cache               | Admin                                    |
+| Modal stack                             | Admin                                    |
+| Core modal implementations              | соответствующие core domains             |
+| Core modal public adapters              | Admin Apps SDK                           |
+| Extension point locations               | core Admin domains                       |
+| Extension registry and rendering        | Admin Apps domain                        |
+| AG Grid modules/theme/license           | Admin                                    |
+| App authorization                       | backend scopes/RBAC                      |
 
 ## 25. Возможное развитие после v1
 
@@ -1433,5 +1403,4 @@ Runtime implementations остаются в Admin и после такого в�
 - build tooling умеет публиковать совместимую SDK version;
 - появился реальный сценарий разработки App вне текущего monorepo.
 
-До выполнения этих условий отдельный package создаёт лишний release lifecycle
-и не используется.
+До выполнения этих условий отдельный package создаёт лишний release lifecycle и не используется.

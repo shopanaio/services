@@ -1,8 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type {
-  LoyaltyPointsActivatedEvent,
-  LoyaltyPointsExpiredEvent,
-} from "@shopana/events";
+import type { LoyaltyPointsActivatedEvent, LoyaltyPointsExpiredEvent } from "@shopana/events";
 import type { ContextStore } from "@shopana/shared-context";
 import {
   BrokerWorkflows,
@@ -47,17 +44,29 @@ export interface LoyaltyMaintenanceResult {
   failedProgramVersionReconciliations: number;
 }
 
-type GetStoreByIdResult = { store: ContextStore | null; userErrors: readonly { message: string }[] };
-type Emission = { eventType: string; payload: Record<string, unknown>; accountId: string; transactionId: string };
+type GetStoreByIdResult = {
+  store: ContextStore | null;
+  userErrors: readonly { message: string }[];
+};
+type Emission = {
+  eventType: string;
+  payload: Record<string, unknown>;
+  accountId: string;
+  transactionId: string;
+};
 
 @Injectable()
 export class LoyaltyMaintenanceWorkflow extends BrokerWorkflows<
   LoyaltyMaintenanceInput,
   LoyaltyMaintenanceResult
 > {
-  constructor(@InjectBroker("loyalty") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("loyalty") broker: ServiceBroker) {
+    super(broker);
+  }
 
-  private get kernel(): Kernel { return Kernel.getInstance(); }
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
 
   @Workflow("maintenance")
   async run(input: LoyaltyMaintenanceInput): Promise<LoyaltyMaintenanceResult> {
@@ -69,129 +78,160 @@ export class LoyaltyMaintenanceWorkflow extends BrokerWorkflows<
   @WorkflowStep({ retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 } })
   private async stepMaintain(input: LoyaltyMaintenanceInput) {
     if (!Number.isFinite(Date.parse(input.effectiveAt))) {
-      throw new LoyaltyDomainError("INVALID_MAINTENANCE_TIME", "Maintenance effectiveAt must be a valid timestamp");
+      throw new LoyaltyDomainError(
+        "INVALID_MAINTENANCE_TIME",
+        "Maintenance effectiveAt must be a valid timestamp",
+      );
     }
     const limit = input.limit ?? 100;
     if (!Number.isSafeInteger(limit) || limit <= 0 || limit > 10_000) {
-      throw new LoyaltyDomainError("INVALID_MAINTENANCE_LIMIT", "Maintenance limit must be between 1 and 10000");
+      throw new LoyaltyDomainError(
+        "INVALID_MAINTENANCE_LIMIT",
+        "Maintenance limit must be between 1 and 10000",
+      );
     }
     const store = await this.getStore(input.storeId);
-    const maintained = await runWithContext(new ServiceContext({
-      requestId: `maintenance:${input.effectiveAt}`,
-      kernel: this.kernel,
-      loaders: new Loader(this.kernel.repository),
-      store,
-      locale: store.defaultLocale,
-      currency: store.currencyCode,
-    }), async () => {
-      const repository = this.kernel.repository;
-      const points = new PointsLedgerService(repository);
-      const walletService = new MonetaryWalletService(repository);
-      const expiredReservations = await new CheckoutRedemptionService(repository).expire({
-        storeId: input.storeId,
-        effectiveAt: input.effectiveAt,
-        limit,
-      });
-      const programs = new ProgramLifecycleService(
-        repository,
-        new BrokerLoyaltyReferenceValidator(this.broker),
-      );
-      const activatedVersions = await programs.activateScheduled(input.effectiveAt, limit);
-      const reconciliation = await programs.reconcilePublishedReferences(input.effectiveAt, limit);
-      const accounts = await repository.account.listAllForStore();
-      const emissions: Emission[] = [];
-      let activatedPointLots = 0;
-      let expiredPointLots = 0;
-      let activatedMonetaryLots = 0;
-      let expiredMonetaryLots = 0;
-      let evaluatedTiers = 0;
-      let rebuiltBalances = 0;
-      for (const account of accounts) {
-        if (account.status !== "ACTIVE") continue;
-        const activated = await points.activateDueLots(account, input.effectiveAt);
-        const expired = await points.expireLots(account, input.effectiveAt);
-        activatedPointLots += activated.length;
-        expiredPointLots += expired.length;
-        for (const operation of activated) {
-          if (!operation.transaction.programVersionId) continue;
-          const pointCount = operation.entries.find(({ bucket, pointsDelta }) => bucket === "AVAILABLE" && pointsDelta > 0n)?.pointsDelta ?? 0n;
-          const payload: LoyaltyPointsActivatedEvent["payload"] = {
-            schemaVersion: 1,
-            storeId: account.storeId,
-            programId: account.programId,
-            programVersionId: operation.transaction.programVersionId,
-            accountId: account.id,
-            customerId: account.customerId,
-            transactionId: operation.transaction.id,
-            points: pointCount.toString(),
-            occurredAt: input.effectiveAt,
-            lotIds: [String(operation.transaction.metadata.lotId)],
-          };
-          emissions.push({ eventType: "loyaltyPointsActivated", payload: payload as unknown as Record<string, unknown>, accountId: account.id, transactionId: operation.transaction.id });
-        }
-        for (const operation of expired) {
-          if (!operation.transaction.programVersionId) continue;
-          const pointCount = operation.entries.find(({ pointsDelta }) => pointsDelta < 0n)?.pointsDelta ?? 0n;
-          const payload: LoyaltyPointsExpiredEvent["payload"] = {
-            schemaVersion: 1,
-            storeId: account.storeId,
-            programId: account.programId,
-            programVersionId: operation.transaction.programVersionId,
-            accountId: account.id,
-            customerId: account.customerId,
-            transactionId: operation.transaction.id,
-            points: (-pointCount).toString(),
-            occurredAt: input.effectiveAt,
-            lotIds: [String(operation.transaction.metadata.lotId)],
-          };
-          emissions.push({ eventType: "loyaltyPointsExpired", payload: payload as unknown as Record<string, unknown>, accountId: account.id, transactionId: operation.transaction.id });
-        }
-        const programVersion = await repository.program.findEffectiveVersion(account.programId, input.effectiveAt);
-        if (programVersion) {
-          await new TierEvaluationService(repository).evaluate({
-            account,
-            programVersionId: programVersion.id,
-            effectiveAt: input.effectiveAt,
-            reasonCode: "SCHEDULED_REEVALUATION",
-          });
-          evaluatedTiers += 1;
-        }
-        for (const wallet of await repository.wallet.listForAccount(account.id)) {
-          if (wallet.status !== "ACTIVE") continue;
-          activatedMonetaryLots += (await walletService.activateDue(wallet, input.effectiveAt)).length;
-          expiredMonetaryLots += (await walletService.expireWallet(wallet, input.effectiveAt)).length;
+    const maintained = await runWithContext(
+      new ServiceContext({
+        requestId: `maintenance:${input.effectiveAt}`,
+        kernel: this.kernel,
+        loaders: new Loader(this.kernel.repository),
+        store,
+        locale: store.defaultLocale,
+        currency: store.currencyCode,
+      }),
+      async () => {
+        const repository = this.kernel.repository;
+        const points = new PointsLedgerService(repository);
+        const walletService = new MonetaryWalletService(repository);
+        const expiredReservations = await new CheckoutRedemptionService(repository).expire({
+          storeId: input.storeId,
+          effectiveAt: input.effectiveAt,
+          limit,
+        });
+        const programs = new ProgramLifecycleService(
+          repository,
+          new BrokerLoyaltyReferenceValidator(this.broker),
+        );
+        const activatedVersions = await programs.activateScheduled(input.effectiveAt, limit);
+        const reconciliation = await programs.reconcilePublishedReferences(
+          input.effectiveAt,
+          limit,
+        );
+        const accounts = await repository.account.listAllForStore();
+        const emissions: Emission[] = [];
+        let activatedPointLots = 0;
+        let expiredPointLots = 0;
+        let activatedMonetaryLots = 0;
+        let expiredMonetaryLots = 0;
+        let evaluatedTiers = 0;
+        let rebuiltBalances = 0;
+        for (const account of accounts) {
+          if (account.status !== "ACTIVE") continue;
+          const activated = await points.activateDueLots(account, input.effectiveAt);
+          const expired = await points.expireLots(account, input.effectiveAt);
+          activatedPointLots += activated.length;
+          expiredPointLots += expired.length;
+          for (const operation of activated) {
+            if (!operation.transaction.programVersionId) continue;
+            const pointCount =
+              operation.entries.find(
+                ({ bucket, pointsDelta }) => bucket === "AVAILABLE" && pointsDelta > 0n,
+              )?.pointsDelta ?? 0n;
+            const payload: LoyaltyPointsActivatedEvent["payload"] = {
+              schemaVersion: 1,
+              storeId: account.storeId,
+              programId: account.programId,
+              programVersionId: operation.transaction.programVersionId,
+              accountId: account.id,
+              customerId: account.customerId,
+              transactionId: operation.transaction.id,
+              points: pointCount.toString(),
+              occurredAt: input.effectiveAt,
+              lotIds: [String(operation.transaction.metadata.lotId)],
+            };
+            emissions.push({
+              eventType: "loyaltyPointsActivated",
+              payload: payload as unknown as Record<string, unknown>,
+              accountId: account.id,
+              transactionId: operation.transaction.id,
+            });
+          }
+          for (const operation of expired) {
+            if (!operation.transaction.programVersionId) continue;
+            const pointCount =
+              operation.entries.find(({ pointsDelta }) => pointsDelta < 0n)?.pointsDelta ?? 0n;
+            const payload: LoyaltyPointsExpiredEvent["payload"] = {
+              schemaVersion: 1,
+              storeId: account.storeId,
+              programId: account.programId,
+              programVersionId: operation.transaction.programVersionId,
+              accountId: account.id,
+              customerId: account.customerId,
+              transactionId: operation.transaction.id,
+              points: (-pointCount).toString(),
+              occurredAt: input.effectiveAt,
+              lotIds: [String(operation.transaction.metadata.lotId)],
+            };
+            emissions.push({
+              eventType: "loyaltyPointsExpired",
+              payload: payload as unknown as Record<string, unknown>,
+              accountId: account.id,
+              transactionId: operation.transaction.id,
+            });
+          }
+          const programVersion = await repository.program.findEffectiveVersion(
+            account.programId,
+            input.effectiveAt,
+          );
+          if (programVersion) {
+            await new TierEvaluationService(repository).evaluate({
+              account,
+              programVersionId: programVersion.id,
+              effectiveAt: input.effectiveAt,
+              reasonCode: "SCHEDULED_REEVALUATION",
+            });
+            evaluatedTiers += 1;
+          }
+          for (const wallet of await repository.wallet.listForAccount(account.id)) {
+            if (wallet.status !== "ACTIVE") continue;
+            activatedMonetaryLots += (await walletService.activateDue(wallet, input.effectiveAt))
+              .length;
+            expiredMonetaryLots += (await walletService.expireWallet(wallet, input.effectiveAt))
+              .length;
+            if (input.rebuildBalances) {
+              await walletService.rebuildBalance(wallet.id);
+              rebuiltBalances += 1;
+            }
+          }
           if (input.rebuildBalances) {
-            await walletService.rebuildBalance(wallet.id);
+            await points.rebuildBalance(account.id);
             rebuiltBalances += 1;
           }
         }
-        if (input.rebuildBalances) {
-          await points.rebuildBalance(account.id);
-          rebuiltBalances += 1;
-        }
-      }
-      const expiredRewards = await new RewardEntitlementService(repository).expireDue(
-        input.effectiveAt,
-        limit,
-      );
-      return {
-        result: {
-          activatedProgramVersions: activatedVersions.length,
-          expiredReservations: expiredReservations.expired.length,
-          activatedPointLots,
-          expiredPointLots,
-          activatedMonetaryLots,
-          expiredMonetaryLots,
-          evaluatedTiers,
-          expiredRewards: expiredRewards.length,
-          rebuiltBalances,
-          reconciledProgramVersions: reconciliation.checked,
-          staleProgramVersions: reconciliation.stale,
-          failedProgramVersionReconciliations: reconciliation.failed,
-        },
-        emissions,
-      };
-    });
+        const expiredRewards = await new RewardEntitlementService(repository).expireDue(
+          input.effectiveAt,
+          limit,
+        );
+        return {
+          result: {
+            activatedProgramVersions: activatedVersions.length,
+            expiredReservations: expiredReservations.expired.length,
+            activatedPointLots,
+            expiredPointLots,
+            activatedMonetaryLots,
+            expiredMonetaryLots,
+            evaluatedTiers,
+            expiredRewards: expiredRewards.length,
+            rebuiltBalances,
+            reconciledProgramVersions: reconciliation.checked,
+            staleProgramVersions: reconciliation.stale,
+            failedProgramVersionReconciliations: reconciliation.failed,
+          },
+          emissions,
+        };
+      },
+    );
     return { ...maintained, store };
   }
 
@@ -217,8 +257,12 @@ export class LoyaltyMaintenanceWorkflow extends BrokerWorkflows<
   }
 
   private async getStore(storeId: string): Promise<ContextStore> {
-    const result = await this.broker.call<GetStoreByIdResult, { id: string }>("project.getStoreById", { id: storeId });
-    if (!result.store) throw new Error(result.userErrors[0]?.message ?? `Store ${storeId} was not found`);
+    const result = await this.broker.call<GetStoreByIdResult, { id: string }>(
+      "project.getStoreById",
+      { id: storeId },
+    );
+    if (!result.store)
+      throw new Error(result.userErrors[0]?.message ?? `Store ${storeId} was not found`);
     return result.store;
   }
 }

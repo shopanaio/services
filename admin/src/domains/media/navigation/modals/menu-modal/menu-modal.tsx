@@ -145,7 +145,9 @@ export function NavigationMenuModal() {
         name="navigation-menu"
         headerProps={{ title: "Menu", onClose: pop, submitButtonProps: null }}
       >
-        <Paper><Typography.Text type="danger">Menu not found.</Typography.Text></Paper>
+        <Paper>
+          <Typography.Text type="danger">Menu not found.</Typography.Text>
+        </Paper>
       </ModalLayout>
     );
   }
@@ -171,7 +173,9 @@ export function NavigationMenuModal() {
             <Paper>
               <div className={styles.fields}>
                 <div>
-                  <label className={styles.label} htmlFor="navigation-title">Title *</label>
+                  <label className={styles.label} htmlFor="navigation-title">
+                    Title *
+                  </label>
                   <Controller
                     name="title"
                     control={control}
@@ -191,7 +195,9 @@ export function NavigationMenuModal() {
                   {errors.title ? <div className={styles.error}>{errors.title.message}</div> : null}
                 </div>
                 <div>
-                  <label className={styles.label} htmlFor="navigation-slug">Slug *</label>
+                  <label className={styles.label} htmlFor="navigation-slug">
+                    Slug *
+                  </label>
                   <Controller
                     name="slug"
                     control={control}
@@ -236,7 +242,9 @@ export function NavigationMenuModal() {
           <div className={styles.column}>
             <Paper>
               <PaperHeader title="Information" />
-              <label className={styles.label} htmlFor="navigation-status">Status *</label>
+              <label className={styles.label} htmlFor="navigation-status">
+                Status *
+              </label>
               <Controller
                 name="status"
                 control={control}

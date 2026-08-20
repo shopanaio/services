@@ -30,8 +30,8 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         and(
           eq(variantListingPriceIndex.storeId, this.storeId),
           eq(variantListingPriceIndex.variantId, variantId),
-          eq(variantListingPriceIndex.currency, currency)
-        )
+          eq(variantListingPriceIndex.currency, currency),
+        ),
       )
       .limit(1);
 
@@ -39,10 +39,7 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async find(
-    variantId: string,
-    currency: string
-  ): Promise<VariantListingPriceIndex | null> {
+  async find(variantId: string, currency: string): Promise<VariantListingPriceIndex | null> {
     assertCurrency(currency);
     const rows = await this.connection
       .select()
@@ -51,8 +48,8 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         and(
           eq(variantListingPriceIndex.storeId, this.storeId),
           eq(variantListingPriceIndex.variantId, variantId),
-          eq(variantListingPriceIndex.currency, currency)
-        )
+          eq(variantListingPriceIndex.currency, currency),
+        ),
       )
       .limit(1);
 
@@ -67,15 +64,15 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingPriceIndex.storeId, this.storeId),
-          eq(variantListingPriceIndex.variantId, variantId)
-        )
+          eq(variantListingPriceIndex.variantId, variantId),
+        ),
       );
   }
 
   @ReadOnly()
   async getByVariantIds(
     variantIds: readonly string[],
-    currencies?: readonly string[]
+    currencies?: readonly string[],
   ): Promise<VariantListingPriceIndex[]> {
     if (variantIds.length === 0) {
       return [];
@@ -92,23 +89,20 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         ? and(
             eq(variantListingPriceIndex.storeId, this.storeId),
             inArray(variantListingPriceIndex.variantId, uniqueVariantIds),
-            inArray(variantListingPriceIndex.currency, uniqueCurrencies)
+            inArray(variantListingPriceIndex.currency, uniqueCurrencies),
           )
         : and(
             eq(variantListingPriceIndex.storeId, this.storeId),
-            inArray(variantListingPriceIndex.variantId, uniqueVariantIds)
+            inArray(variantListingPriceIndex.variantId, uniqueVariantIds),
           );
 
-    return this.connection
-      .select()
-      .from(variantListingPriceIndex)
-      .where(where);
+    return this.connection.select().from(variantListingPriceIndex).where(where);
   }
 
   @ReadOnly()
   async getByProductIds(
     productIds: readonly string[],
-    currencies?: readonly string[]
+    currencies?: readonly string[],
   ): Promise<VariantListingPriceIndex[]> {
     if (productIds.length === 0) {
       return [];
@@ -126,12 +120,12 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
             eq(variantListingPriceIndex.storeId, this.storeId),
             eq(variantListingIndex.storeId, this.storeId),
             inArray(variantListingIndex.productId, uniqueProductIds),
-            inArray(variantListingPriceIndex.currency, uniqueCurrencies)
+            inArray(variantListingPriceIndex.currency, uniqueCurrencies),
           )
         : and(
             eq(variantListingPriceIndex.storeId, this.storeId),
             eq(variantListingIndex.storeId, this.storeId),
-            inArray(variantListingIndex.productId, uniqueProductIds)
+            inArray(variantListingIndex.productId, uniqueProductIds),
           );
 
     return this.connection
@@ -152,8 +146,8 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         variantListingIndex,
         and(
           eq(variantListingIndex.storeId, variantListingPriceIndex.storeId),
-          eq(variantListingIndex.variantId, variantListingPriceIndex.variantId)
-        )
+          eq(variantListingIndex.variantId, variantListingPriceIndex.variantId),
+        ),
       )
       .where(where);
   }
@@ -168,25 +162,19 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
     return rows[0]?.value ?? 0;
   }
 
-  async upsert(
-    row: VariantListingPriceRowInput
-  ): Promise<VariantListingPriceIndex> {
+  async upsert(row: VariantListingPriceRowInput): Promise<VariantListingPriceIndex> {
     const rows = await this.upsertMany([row]);
     return rows[0];
   }
 
   async upsertMany(
-    rows: readonly VariantListingPriceRowInput[]
+    rows: readonly VariantListingPriceRowInput[],
   ): Promise<VariantListingPriceIndex[]> {
     if (rows.length === 0) {
       return [];
     }
 
-    assertUniqueBy(
-      rows,
-      (row) => `${row.variantId}:${row.currency}`,
-      "variant listing price row"
-    );
+    assertUniqueBy(rows, (row) => `${row.variantId}:${row.currency}`, "variant listing price row");
 
     const now = nowIso();
     const result: VariantListingPriceIndex[] = [];
@@ -197,10 +185,7 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         .insert(variantListingPriceIndex)
         .values(values)
         .onConflictDoUpdate({
-          target: [
-            variantListingPriceIndex.variantId,
-            variantListingPriceIndex.currency,
-          ],
+          target: [variantListingPriceIndex.variantId, variantListingPriceIndex.currency],
           setWhere: eq(variantListingPriceIndex.storeId, this.storeId),
           set: {
             variantDocId: sql`excluded.variant_doc_id`,
@@ -223,7 +208,7 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
   @Transactional()
   async replaceForVariant(
     variantId: string,
-    rows: readonly VariantListingPriceRowInput[]
+    rows: readonly VariantListingPriceRowInput[],
   ): Promise<VariantListingPriceIndex[]> {
     for (const row of rows) {
       if (row.variantId !== variantId) {
@@ -237,7 +222,7 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
 
   @Transactional()
   async replaceForVariants(
-    rowsByVariantId: ReadonlyMap<string, readonly VariantListingPriceRowInput[]>
+    rowsByVariantId: ReadonlyMap<string, readonly VariantListingPriceRowInput[]>,
   ): Promise<VariantListingPriceIndex[]> {
     if (rowsByVariantId.size === 0) {
       return [];
@@ -265,8 +250,8 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         and(
           eq(variantListingPriceIndex.storeId, this.storeId),
           eq(variantListingPriceIndex.variantId, variantId),
-          eq(variantListingPriceIndex.currency, currency)
-        )
+          eq(variantListingPriceIndex.currency, currency),
+        ),
       )
       .returning({ variantId: variantListingPriceIndex.variantId });
 
@@ -279,8 +264,8 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingPriceIndex.storeId, this.storeId),
-          eq(variantListingPriceIndex.variantId, variantId)
-        )
+          eq(variantListingPriceIndex.variantId, variantId),
+        ),
       )
       .returning({ variantId: variantListingPriceIndex.variantId });
 
@@ -299,8 +284,8 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         .where(
           and(
             eq(variantListingPriceIndex.storeId, this.storeId),
-            inArray(variantListingPriceIndex.variantId, chunk)
-          )
+            inArray(variantListingPriceIndex.variantId, chunk),
+          ),
         )
         .returning({ variantId: variantListingPriceIndex.variantId });
 
@@ -317,8 +302,8 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          eq(variantListingIndex.productId, productId)
-        )
+          eq(variantListingIndex.productId, productId),
+        ),
       );
 
     const rows = await this.connection
@@ -326,8 +311,8 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingPriceIndex.storeId, this.storeId),
-          inArray(variantListingPriceIndex.variantId, variantIds)
-        )
+          inArray(variantListingPriceIndex.variantId, variantIds),
+        ),
       )
       .returning({ variantId: variantListingPriceIndex.variantId });
 
@@ -347,8 +332,8 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         .where(
           and(
             eq(variantListingIndex.storeId, this.storeId),
-            inArray(variantListingIndex.productId, chunk)
-          )
+            inArray(variantListingIndex.productId, chunk),
+          ),
         );
 
       const rows = await this.connection
@@ -356,8 +341,8 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         .where(
           and(
             eq(variantListingPriceIndex.storeId, this.storeId),
-            inArray(variantListingPriceIndex.variantId, variantIds)
-          )
+            inArray(variantListingPriceIndex.variantId, variantIds),
+          ),
         )
         .returning({ variantId: variantListingPriceIndex.variantId });
 
@@ -370,7 +355,7 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
   @ReadOnly()
   async getPriceAggregatesByProductIds(
     productIds: readonly string[],
-    currencies: readonly string[]
+    currencies: readonly string[],
   ): Promise<Map<string, ProductListingPriceRowInput[]>> {
     const uniqueProductIds = [...new Set(productIds)];
     const uniqueCurrencies = [...new Set(currencies)];
@@ -388,7 +373,7 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
           hasPrice: false,
           minPriceMinor: null,
           maxPriceMinor: null,
-        }))
+        })),
       );
     }
 
@@ -408,8 +393,8 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         variantListingIndex,
         and(
           eq(variantListingIndex.storeId, variantListingPriceIndex.storeId),
-          eq(variantListingIndex.variantId, variantListingPriceIndex.variantId)
-        )
+          eq(variantListingIndex.variantId, variantListingPriceIndex.variantId),
+        ),
       )
       .where(
         and(
@@ -417,8 +402,8 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
           eq(variantListingIndex.storeId, this.storeId),
           inArray(variantListingIndex.productId, uniqueProductIds),
           inArray(variantListingPriceIndex.currency, uniqueCurrencies),
-          eq(variantListingPriceIndex.hasPrice, true)
-        )
+          eq(variantListingPriceIndex.hasPrice, true),
+        ),
       )
       .groupBy(variantListingIndex.productId, variantListingPriceIndex.currency);
 
@@ -439,10 +424,7 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
     return result;
   }
 
-  private toInsertRow(
-    row: VariantListingPriceRowInput,
-    now: string
-  ): NewVariantListingPriceIndex {
+  private toInsertRow(row: VariantListingPriceRowInput, now: string): NewVariantListingPriceIndex {
     assertCurrency(row.currency);
     const variantDocId = normalizeDocId(row.variantDocId, "variantDocId");
     const productDocId = normalizeDocId(row.productDocId, "productDocId");

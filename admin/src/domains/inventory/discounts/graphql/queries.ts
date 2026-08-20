@@ -1,8 +1,5 @@
 import { gql } from "@apollo/client";
-import {
-  DISCOUNT_DETAILS_FRAGMENT,
-  DISCOUNT_LIST_FRAGMENT,
-} from "./fragments";
+import { DISCOUNT_DETAILS_FRAGMENT, DISCOUNT_LIST_FRAGMENT } from "./fragments";
 
 export const DISCOUNTS_QUERY = gql`
   query Discounts(

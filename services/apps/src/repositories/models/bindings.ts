@@ -1,12 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  index,
-  integer,
-  timestamp,
-  uniqueIndex,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { index, integer, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 import { appsSchema } from "./schema";
 import { appInstallations } from "./installations";
 
@@ -17,15 +10,17 @@ export const appBindingStatus = appsSchema.enum("slot_status", [
   "deprecated",
 ]);
 
-export const appBindingAssignmentStatus = appsSchema.enum(
-  "slot_assignment_status",
-  ["active", "disabled"],
-);
+export const appBindingAssignmentStatus = appsSchema.enum("slot_assignment_status", [
+  "active",
+  "disabled",
+]);
 
 export const appBindings = appsSchema.table(
   "slots",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     status: appBindingStatus("status").notNull().default("active"),
     installationId: uuid("installation_id")
@@ -67,7 +62,9 @@ export const appBindings = appsSchema.table(
 export const appBindingAssignments = appsSchema.table(
   "slot_assignments",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     aggregate: varchar("aggregate", { length: 255 }).notNull(),
     aggregateId: varchar("aggregate_id", { length: 255 }).notNull(),
@@ -76,9 +73,7 @@ export const appBindingAssignments = appsSchema.table(
       .references(() => appBindings.id, { onDelete: "cascade" }),
     domain: varchar("domain", { length: 255 }).notNull(),
     precedence: integer("precedence").notNull().default(0),
-    status: appBindingAssignmentStatus("status")
-      .notNull()
-      .default("active"),
+    status: appBindingAssignmentStatus("status").notNull().default("active"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -109,5 +104,4 @@ export const appBindingAssignments = appsSchema.table(
 export type AppBinding = typeof appBindings.$inferSelect;
 export type NewAppBinding = typeof appBindings.$inferInsert;
 export type AppBindingAssignment = typeof appBindingAssignments.$inferSelect;
-export type NewAppBindingAssignment =
-  typeof appBindingAssignments.$inferInsert;
+export type NewAppBindingAssignment = typeof appBindingAssignments.$inferInsert;

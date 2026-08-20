@@ -11,21 +11,26 @@ import { MediaType } from "./MediaType.js";
   domain: (resolver) => `store:${resolver.$ctx.store.id}`,
   onDeny: "null",
 })
-export class CdnDeliveryPreviewResolver extends MediaType<
-  CdnDeliveryResult,
-  CdnDeliveryResult
-> {
-  async $preload() { return this.$props; }
-  async url() { return this.$get("url"); }
-  async originUrl() { return this.$get("originUrl"); }
-  async fallback() { return this.$get("fallback"); }
-  async userErrors() { return this.$get("userErrors"); }
+export class CdnDeliveryPreviewResolver extends MediaType<CdnDeliveryResult, CdnDeliveryResult> {
+  async $preload() {
+    return this.$props;
+  }
+  async url() {
+    return this.$get("url");
+  }
+  async originUrl() {
+    return this.$get("originUrl");
+  }
+  async fallback() {
+    return this.$get("fallback");
+  }
+  async userErrors() {
+    return this.$get("userErrors");
+  }
 
   async configuration() {
     const configuration = await this.$get("configuration");
-    return configuration
-      ? new CdnConfigurationResolver(configuration.id, this.$ctx)
-      : null;
+    return configuration ? new CdnConfigurationResolver(configuration.id, this.$ctx) : null;
   }
 
   async routingRule() {

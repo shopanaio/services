@@ -29,10 +29,15 @@ export class ProductQuestionDeleteWorkflow extends ReviewsMutationWorkflow {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: ProductQuestionDeleteWorkflowInput
+    input: ProductQuestionDeleteWorkflowInput,
   ): Promise<ProductQuestionDeleteWorkflowResult> {
     const result = await this.stepDelete(input);
-    if (result.deletedProductQuestionId && result.productId && result.permanent !== undefined && result.userErrors.length === 0) {
+    if (
+      result.deletedProductQuestionId &&
+      result.productId &&
+      result.permanent !== undefined &&
+      result.userErrors.length === 0
+    ) {
       await this.stepRefreshProductQuestionSummary({
         context: input.context,
         productId: result.productId,
@@ -51,13 +56,13 @@ export class ProductQuestionDeleteWorkflow extends ReviewsMutationWorkflow {
     return this.kernel.runScript(
       ProductQuestionDeleteScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
   private async workflowEmitEvent(
     input: ProductQuestionDeleteWorkflowInput,
-    deleted: { productQuestionId: string; productId: string; permanent: boolean }
+    deleted: { productQuestionId: string; productId: string; permanent: boolean },
   ): Promise<void> {
     const payload: ProductQuestionDeletedEvent["payload"] = {
       ...deleted,
@@ -83,7 +88,7 @@ export class ProductQuestionDeleteWorkflow extends ReviewsMutationWorkflow {
         workflowId: DBOS.workflowID!,
         stepId: "emitProductQuestionDeleted",
         callId: deleted.productQuestionId,
-      }
+      },
     );
   }
 }

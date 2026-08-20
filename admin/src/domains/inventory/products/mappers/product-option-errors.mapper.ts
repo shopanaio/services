@@ -1,8 +1,5 @@
 import type { ApiGenericUserError } from "@/graphql/types";
-import type {
-  OptionEditorGroup,
-  OptionEditorValue,
-} from "../modals/edit-options-modal/types";
+import type { OptionEditorGroup, OptionEditorValue } from "../modals/edit-options-modal/types";
 import type { ProductOptionsSyncDraft } from "./product-options.mapper";
 
 export interface ProductOptionEditorErrorMap {
@@ -19,25 +16,17 @@ function formatFieldPath(field: string[] | null | undefined): string | null {
   return field.join(".");
 }
 
-export function formatProductOptionUserError(
-  error: ApiGenericUserError,
-): string {
+export function formatProductOptionUserError(error: ApiGenericUserError): string {
   const fieldPath = formatFieldPath(error.field);
 
   return fieldPath ? `${fieldPath}: ${error.message}` : error.message;
 }
 
-export function formatProductOptionUserErrors(
-  errors: ApiGenericUserError[],
-): string[] {
+export function formatProductOptionUserErrors(errors: ApiGenericUserError[]): string[] {
   return errors.map(formatProductOptionUserError);
 }
 
-function pushError(
-  target: Record<string, string[]>,
-  key: string,
-  message: string,
-): void {
+function pushError(target: Record<string, string[]>, key: string, message: string): void {
   target[key] = [...(target[key] ?? []), message];
 }
 
@@ -66,9 +55,7 @@ export function mapProductOptionUserErrorsToEditorErrors(input: {
 
     if (field[2] === "values" && Number.isInteger(valueIndex)) {
       const value: OptionEditorValue | undefined =
-        input.draft.valuesByInputPath[
-          `options.${optionIndex}.values.${valueIndex}`
-        ];
+        input.draft.valuesByInputPath[`options.${optionIndex}.values.${valueIndex}`];
 
       if (value) {
         pushError(errorMap.values, value.id, error.message);

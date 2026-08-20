@@ -32,4 +32,3 @@ export class WebAuthnModule {
     return this.http.post(ctx, `/api/webauthn/signin/finish?${params.toString()}`, values.body);
   }
 }
-

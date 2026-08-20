@@ -11,9 +11,7 @@ import type {
 } from "../graphql/operation-types";
 
 interface UseMergeFacetValuesReturn {
-  mergeFacetValues: (
-    input: ApiFacetValueMergeInput,
-  ) => Promise<FacetValueMergeMutationResult>;
+  mergeFacetValues: (input: ApiFacetValueMergeInput) => Promise<FacetValueMergeMutationResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
@@ -26,9 +24,7 @@ export function useMergeFacetValues(): UseMergeFacetValuesReturn {
   >(FACET_VALUE_MERGE_MUTATION);
 
   const mergeFacetValues = useCallback(
-    async (
-      input: ApiFacetValueMergeInput,
-    ): Promise<FacetValueMergeMutationResult> => {
+    async (input: ApiFacetValueMergeInput): Promise<FacetValueMergeMutationResult> => {
       try {
         const result = await mergeFacetValuesMutation({
           variables: { input },
@@ -43,8 +39,7 @@ export function useMergeFacetValues(): UseMergeFacetValuesReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
         return {
           facetValue: null,
           sourceValues: [],

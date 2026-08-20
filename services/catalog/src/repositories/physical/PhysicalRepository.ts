@@ -15,7 +15,7 @@ export class PhysicalRepository extends BaseRepository {
    */
   async upsertDimensions(
     variantId: string,
-    data: { wMm: number; lMm: number; hMm: number }
+    data: { wMm: number; lMm: number; hMm: number },
   ): Promise<ItemDimensions> {
     const newDimensions: NewItemDimensions = {
       variantId,
@@ -45,10 +45,7 @@ export class PhysicalRepository extends BaseRepository {
   /**
    * Upsert weight for a variant (variantId is PK)
    */
-  async upsertWeight(
-    variantId: string,
-    data: { weightGr: number }
-  ): Promise<ItemWeight> {
+  async upsertWeight(variantId: string, data: { weightGr: number }): Promise<ItemWeight> {
     const newWeight: NewItemWeight = {
       variantId,
       storeId: this.storeId,
@@ -73,9 +70,7 @@ export class PhysicalRepository extends BaseRepository {
   /**
    * Get dimensions for multiple variants (batch loader)
    */
-  async getDimensionsByVariantIds(
-    variantIds: readonly string[]
-  ): Promise<ItemDimensions[]> {
+  async getDimensionsByVariantIds(variantIds: readonly string[]): Promise<ItemDimensions[]> {
     if (variantIds.length === 0) return [];
 
     return this.connection
@@ -84,27 +79,22 @@ export class PhysicalRepository extends BaseRepository {
       .where(
         and(
           eq(itemDimensions.storeId, this.storeId),
-          inArray(itemDimensions.variantId, [...variantIds])
-        )
+          inArray(itemDimensions.variantId, [...variantIds]),
+        ),
       );
   }
 
   /**
    * Get weights for multiple variants (batch loader)
    */
-  async getWeightsByVariantIds(
-    variantIds: readonly string[]
-  ): Promise<ItemWeight[]> {
+  async getWeightsByVariantIds(variantIds: readonly string[]): Promise<ItemWeight[]> {
     if (variantIds.length === 0) return [];
 
     return this.connection
       .select()
       .from(itemWeight)
       .where(
-        and(
-          eq(itemWeight.storeId, this.storeId),
-          inArray(itemWeight.variantId, [...variantIds])
-        )
+        and(eq(itemWeight.storeId, this.storeId), inArray(itemWeight.variantId, [...variantIds])),
       );
   }
 }

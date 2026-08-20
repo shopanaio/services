@@ -1,14 +1,5 @@
-import {
-  and,
-  desc,
-  eq,
-  getTableColumns,
-  inArray,
-} from "drizzle-orm";
-import type {
-  AppInstallationStatus,
-  AppLifecycleOperationType,
-} from "@shopana/app-sdk";
+import { and, desc, eq, getTableColumns, inArray } from "drizzle-orm";
+import type { AppInstallationStatus, AppLifecycleOperationType } from "@shopana/app-sdk";
 import {
   createQuery,
   createRelayQuery,
@@ -26,10 +17,7 @@ import {
 } from "../models/index.js";
 
 export const appLifecycleOperationRelayQuery = createRelayQuery(
-  createQuery(appLifecycleOperations)
-    .include(["id"])
-    .maxLimit(100)
-    .defaultLimit(20),
+  createQuery(appLifecycleOperations).include(["id"]).maxLimit(100).defaultLimit(20),
   { name: "appLifecycleOperation", tieBreaker: "id" },
 );
 
@@ -63,16 +51,11 @@ export interface CreateLifecycleOperationInput {
 }
 
 export class AppLifecycleOperationRepository extends BaseRepository {
-  constructor(
-    db: Database,
-    txManager: TransactionManager<Database>,
-  ) {
+  constructor(db: Database, txManager: TransactionManager<Database>) {
     super(db, txManager);
   }
 
-  async findById(
-    id: string,
-  ): Promise<AppLifecycleOperationRecord | null> {
+  async findById(id: string): Promise<AppLifecycleOperationRecord | null> {
     const rows = await this.connection
       .select()
       .from(appLifecycleOperations)
@@ -81,45 +64,24 @@ export class AppLifecycleOperationRepository extends BaseRepository {
     return rows[0] ? mapOperation(rows[0]) : null;
   }
 
-  async findByIdForStore(
-    id: string,
-  ): Promise<AppLifecycleOperationRecord | null> {
+  async findByIdForStore(id: string): Promise<AppLifecycleOperationRecord | null> {
     const rows = await this.connection
       .select(getTableColumns(appLifecycleOperations))
       .from(appLifecycleOperations)
-      .innerJoin(
-        appInstallations,
-        eq(
-          appInstallations.id,
-          appLifecycleOperations.installationId,
-        ),
-      )
-      .where(
-        and(
-          eq(appInstallations.storeId, this.storeId),
-          eq(appLifecycleOperations.id, id),
-        ),
-      )
+      .innerJoin(appInstallations, eq(appInstallations.id, appLifecycleOperations.installationId))
+      .where(and(eq(appInstallations.storeId, this.storeId), eq(appLifecycleOperations.id, id)))
       .limit(1);
     return rows[0] ? mapOperation(rows[0]) : null;
   }
 
-  async getByIdsForStore(
-    ids: readonly string[],
-  ): Promise<AppLifecycleOperationRecord[]> {
+  async getByIdsForStore(ids: readonly string[]): Promise<AppLifecycleOperationRecord[]> {
     if (ids.length === 0) {
       return [];
     }
     const rows = await this.connection
       .select(getTableColumns(appLifecycleOperations))
       .from(appLifecycleOperations)
-      .innerJoin(
-        appInstallations,
-        eq(
-          appInstallations.id,
-          appLifecycleOperations.installationId,
-        ),
-      )
+      .innerJoin(appInstallations, eq(appInstallations.id, appLifecycleOperations.installationId))
       .where(
         and(
           eq(appInstallations.storeId, this.storeId),
@@ -129,9 +91,7 @@ export class AppLifecycleOperationRepository extends BaseRepository {
     return rows.map(mapOperation);
   }
 
-  async lockById(
-    id: string,
-  ): Promise<AppLifecycleOperationRecord | null> {
+  async lockById(id: string): Promise<AppLifecycleOperationRecord | null> {
     const rows = await this.connection
       .select()
       .from(appLifecycleOperations)
@@ -171,29 +131,20 @@ export class AppLifecycleOperationRepository extends BaseRepository {
           eq(appLifecycleOperations.installationId, installationId),
           eq(appLifecycleOperations.type, "UPDATE"),
           eq(appLifecycleOperations.status, "FAILED"),
-          inArray(
-            appLifecycleOperations.previousInstallationStatus,
-            ["ACTIVE", "SUSPENDED"],
-          ),
+          inArray(appLifecycleOperations.previousInstallationStatus, ["ACTIVE", "SUSPENDED"]),
         ),
       )
       .orderBy(desc(appLifecycleOperations.createdAt))
       .limit(1);
     const status = rows[0]?.status;
-    return status === "ACTIVE" || status === "SUSPENDED"
-      ? status
-      : null;
+    return status === "ACTIVE" || status === "SUSPENDED" ? status : null;
   }
 
-  async listByInstallation(
-    installationId: string,
-  ): Promise<AppLifecycleOperationRecord[]> {
+  async listByInstallation(installationId: string): Promise<AppLifecycleOperationRecord[]> {
     const rows = await this.connection
       .select()
       .from(appLifecycleOperations)
-      .where(
-        eq(appLifecycleOperations.installationId, installationId),
-      )
+      .where(eq(appLifecycleOperations.installationId, installationId))
       .orderBy(desc(appLifecycleOperations.createdAt));
     return rows.map(mapOperation);
   }
@@ -210,10 +161,7 @@ export class AppLifecycleOperationRepository extends BaseRepository {
       installationId: { _eq: installationId },
     };
     const relayInput: AppLifecycleOperationRelayInput = {
-      first:
-        input.first == null && input.last == null
-          ? 20
-          : input.first,
+      first: input.first == null && input.last == null ? 20 : input.first,
       after: input.after,
       last: input.last,
       before: input.before,
@@ -225,10 +173,7 @@ export class AppLifecycleOperationRepository extends BaseRepository {
     };
 
     const [result, totalCount] = await Promise.all([
-      appLifecycleOperationRelayQuery.execute(
-        this.connection,
-        relayInput,
-      ),
+      appLifecycleOperationRelayQuery.execute(this.connection, relayInput),
       appLifecycleOperationRelayQuery.count(this.connection, {
         where,
       }),
@@ -244,9 +189,7 @@ export class AppLifecycleOperationRepository extends BaseRepository {
     };
   }
 
-  async create(
-    input: CreateLifecycleOperationInput,
-  ): Promise<AppLifecycleOperationRecord> {
+  async create(input: CreateLifecycleOperationInput): Promise<AppLifecycleOperationRecord> {
     const rows = await this.connection
       .insert(appLifecycleOperations)
       .values({
@@ -254,8 +197,7 @@ export class AppLifecycleOperationRepository extends BaseRepository {
         type: input.type,
         status: "PENDING",
         targetVersion: input.targetVersion,
-        previousInstallationStatus:
-          input.previousInstallationStatus,
+        previousInstallationStatus: input.previousInstallationStatus,
         idempotencyKey: input.idempotencyKey,
         workflowId: input.workflowId,
         actorType: input.actorType,
@@ -274,12 +216,7 @@ export class AppLifecycleOperationRepository extends BaseRepository {
         startedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          eq(appLifecycleOperations.id, id),
-          eq(appLifecycleOperations.status, "PENDING"),
-        ),
-      )
+      .where(and(eq(appLifecycleOperations.id, id), eq(appLifecycleOperations.status, "PENDING")))
       .returning({ id: appLifecycleOperations.id });
     return rows.length === 1;
   }
@@ -311,17 +248,12 @@ export class AppLifecycleOperationRepository extends BaseRepository {
       .where(eq(appLifecycleOperations.id, id));
   }
 
-  private async installationBelongsToCurrentStore(
-    installationId: string,
-  ): Promise<boolean> {
+  private async installationBelongsToCurrentStore(installationId: string): Promise<boolean> {
     const rows = await this.connection
       .select({ id: appInstallations.id })
       .from(appInstallations)
       .where(
-        and(
-          eq(appInstallations.storeId, this.storeId),
-          eq(appInstallations.id, installationId),
-        ),
+        and(eq(appInstallations.storeId, this.storeId), eq(appInstallations.id, installationId)),
       )
       .limit(1);
     return rows.length === 1;
@@ -341,28 +273,16 @@ function emptyConnection(): AppLifecycleOperationConnectionResult {
   };
 }
 
-function mapOperation(
-  row: AppLifecycleOperationModel,
-): AppLifecycleOperationRecord {
-  if (
-    row.actorType !== "USER" &&
-    row.actorType !== "SERVICE" &&
-    row.actorType !== "SYSTEM"
-  ) {
-    throw new Error(
-      `Unsupported App lifecycle actor type "${row.actorType}"`,
-    );
+function mapOperation(row: AppLifecycleOperationModel): AppLifecycleOperationRecord {
+  if (row.actorType !== "USER" && row.actorType !== "SERVICE" && row.actorType !== "SYSTEM") {
+    throw new Error(`Unsupported App lifecycle actor type "${row.actorType}"`);
   }
   return { ...row, actorType: row.actorType };
 }
 
-function requiredRow(
-  row: AppLifecycleOperationModel | undefined,
-): AppLifecycleOperationModel {
+function requiredRow(row: AppLifecycleOperationModel | undefined): AppLifecycleOperationModel {
   if (!row) {
-    throw new Error(
-      "App lifecycle operation was not returned by PostgreSQL",
-    );
+    throw new Error("App lifecycle operation was not returned by PostgreSQL");
   }
   return row;
 }

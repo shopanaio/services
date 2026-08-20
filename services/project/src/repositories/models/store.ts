@@ -1,12 +1,4 @@
-import {
-  check,
-  integer,
-  uuid,
-  varchar,
-  timestamp,
-  index,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { check, integer, uuid, varchar, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { storeSchema } from "./schema.js";
 import {
@@ -29,15 +21,9 @@ export {
   type CurrencyCode,
 };
 
-export const storeStatusEnum = storeSchema.enum("store_status", [
-  "active",
-  "inactive",
-]);
+export const storeStatusEnum = storeSchema.enum("store_status", ["active", "inactive"]);
 
-export const unitSystemEnum = storeSchema.enum("unit_system", [
-  "metric",
-  "imperial",
-]);
+export const unitSystemEnum = storeSchema.enum("unit_system", ["metric", "imperial"]);
 
 export const store = storeSchema.table(
   "store",
@@ -60,26 +46,15 @@ export const store = storeSchema.table(
     defaultWeightUnit: weightUnitEnum("default_weight_unit").notNull(),
     defaultDimensionUnit: dimensionUnitEnum("default_dimension_unit").notNull(),
     revision: integer("revision").notNull().default(0),
-    segmentConfigurationRevision: integer("segment_configuration_revision")
-      .notNull()
-      .default(0),
+    segmentConfigurationRevision: integer("segment_configuration_revision").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
-    check(
-      "store_name_format_check",
-      sql`${table.name} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`,
-    ),
-    check(
-      "store_display_name_not_blank_check",
-      sql`btrim(${table.displayName}) <> ''`,
-    ),
-    check(
-      "store_timezone_not_blank_check",
-      sql`btrim(${table.timezone}) <> ''`,
-    ),
+    check("store_name_format_check", sql`${table.name} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
+    check("store_display_name_not_blank_check", sql`btrim(${table.displayName}) <> ''`),
+    check("store_timezone_not_blank_check", sql`btrim(${table.timezone}) <> ''`),
     check(
       "store_email_not_blank_check",
       sql`${table.email} IS NULL OR btrim(${table.email}) <> ''`,
@@ -107,7 +82,7 @@ export const store = storeSchema.table(
       ),
     index("idx_store_organization").on(table.organizationId),
     index("idx_store_revision").on(table.id, table.revision),
-  ]
+  ],
 );
 
 export type StoreRecord = typeof store.$inferSelect;

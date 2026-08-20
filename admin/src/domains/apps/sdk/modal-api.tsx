@@ -1,10 +1,6 @@
 import type { ComponentType } from "react";
 import { lazy } from "react";
-import {
-  modalStackRegistry,
-  useModalStackContext,
-  useModalStackStore,
-} from "@/layouts/modals";
+import { modalStackRegistry, useModalStackContext, useModalStackStore } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
 import type { AdminAppUiDescriptor } from "../runtime/descriptor-schema";
 import { loadAdminAppRemoteModule } from "../runtime/federation/load-remote-module";
@@ -22,10 +18,7 @@ interface AppModalPayload extends IModalStackPayload {
   __adminAppResolve: (result: AdminModalResult<unknown>) => void;
 }
 
-const appModalType = (
-  owner: string,
-  modalId: string,
-): string => `${owner}:${modalId}`;
+const appModalType = (owner: string, modalId: string): string => `${owner}:${modalId}`;
 
 export function registerAdminAppModals(
   descriptor: AdminAppUiDescriptor,
@@ -34,10 +27,7 @@ export function registerAdminAppModals(
 ): void {
   descriptor.modals.forEach((modalDescriptor) => {
     const RemoteModal = lazy(async () => {
-      const remoteModule = await loadAdminAppRemoteModule(
-        descriptor,
-        modalDescriptor.module,
-      );
+      const remoteModule = await loadAdminAppRemoteModule(descriptor, modalDescriptor.module);
       return {
         default: remoteModule.default as ComponentType<AdminAppModalProps>,
       };
@@ -46,12 +36,7 @@ export function registerAdminAppModals(
     function ScopedAdminAppModal() {
       const { payload } = useModalStackContext();
       const appPayload = payload as AppModalPayload;
-      return (
-        <RemoteModal
-          sdk={getSdk()}
-          payload={appPayload.__adminAppPayload}
-        />
-      );
+      return <RemoteModal sdk={getSdk()} payload={appPayload.__adminAppPayload} />;
     }
 
     modalStackRegistry.register({
@@ -85,7 +70,7 @@ export function createAdminAppModalApi(
   };
 
   return {
-    openApp: <TPayload, TResult,>(modalId: string, payload: TPayload) => {
+    openApp: <TPayload, TResult>(modalId: string, payload: TPayload) => {
       const definition = descriptor.modals.find((modal) => modal.id === modalId);
       if (!definition) {
         return Promise.reject(
@@ -97,9 +82,7 @@ export function createAdminAppModalApi(
         (scope) => !descriptor.grantedScopes.includes(scope),
       );
       if (missingScope) {
-        return Promise.reject(
-          new Error(`App modal "${modalId}" requires scope "${missingScope}"`),
-        );
+        return Promise.reject(new Error(`App modal "${modalId}" requires scope "${missingScope}"`));
       }
 
       return new Promise<AdminModalResult<TResult>>((resolve) => {
@@ -117,8 +100,7 @@ export function createAdminAppModalApi(
           },
           {
             owner,
-            onRemoved: (reason) =>
-              settle({ status: "cancelled", reason }),
+            onRemoved: (reason) => settle({ status: "cancelled", reason }),
           },
         );
       });
@@ -127,13 +109,9 @@ export function createAdminAppModalApi(
       modal: TKey,
       input: CoreModalContractMap[TKey]["input"],
     ) => {
-      return new Promise<
-        AdminModalResult<CoreModalContractMap[TKey]["result"]>
-      >((resolve) => {
+      return new Promise<AdminModalResult<CoreModalContractMap[TKey]["result"]>>((resolve) => {
         let settled = false;
-        const settle = (
-          result: AdminModalResult<CoreModalContractMap[TKey]["result"]>,
-        ) => {
+        const settle = (result: AdminModalResult<CoreModalContractMap[TKey]["result"]>) => {
           if (settled) return;
           settled = true;
           resolve(result);
@@ -175,15 +153,10 @@ export function createAdminAppModalApi(
           });
         }
 
-        useModalStackStore.getState().push(
-          CORE_MODAL_TYPES[modal],
-          basePayload,
-          {
-            owner,
-            onRemoved: (reason) =>
-              settle({ status: "cancelled", reason }),
-          },
-        );
+        useModalStackStore.getState().push(CORE_MODAL_TYPES[modal], basePayload, {
+          owner,
+          onRemoved: (reason) => settle({ status: "cancelled", reason }),
+        });
       });
     },
     closeCurrent: <TResult,>(result?: TResult) =>

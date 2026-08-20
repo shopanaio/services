@@ -1,8 +1,5 @@
 import { gql } from "@apollo/client";
-import {
-  FILE_FRAGMENT,
-  RICH_TEXT_FRAGMENT,
-} from "../../graphql/shared-fragments";
+import { FILE_FRAGMENT, RICH_TEXT_FRAGMENT } from "../../graphql/shared-fragments";
 
 export { FILE_FRAGMENT } from "../../graphql/shared-fragments";
 

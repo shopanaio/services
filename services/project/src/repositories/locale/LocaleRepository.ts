@@ -15,10 +15,7 @@ export interface UpdateLocaleData {
 export class LocaleRepository extends BaseRepository {
   @ReadOnly()
   async findByStoreId(storeId: string): Promise<Locale[]> {
-    return this.connection
-      .select()
-      .from(locale)
-      .where(eq(locale.storeId, storeId));
+    return this.connection.select().from(locale).where(eq(locale.storeId, storeId));
   }
 
   @Transactional()

@@ -6,11 +6,7 @@ import { LuFile as FileOutlined } from "react-icons/lu";
 import type { ColDef } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { registerEntityPickerConfig } from ".";
-import type {
-  IEntityPickerConfig,
-  IEntityPickerDataResult,
-  IPickableEntity,
-} from "../types";
+import type { IEntityPickerConfig, IEntityPickerDataResult, IPickableEntity } from "../types";
 import type { IFilterValue } from "@/layouts/filters/core/types";
 import { useFiles } from "@/domains/media/hooks";
 import type { ApiFile } from "@/graphql/types";

@@ -92,7 +92,9 @@ input CustomerTaxIdentifierCreateOperationInput {
   identifierType: String!
   countryCode: String
   value: String!
-  """Defaults to UNVERIFIED when omitted."""
+  """
+  Defaults to UNVERIFIED when omitted.
+  """
   status: CustomerTaxIdentifierStatus
   isPrimary: Boolean = false
   validFrom: Date
@@ -104,7 +106,9 @@ input CustomerTaxIdentifierUpdateOperationInput {
   operations: CustomerTaxIdentifierPatchInput!
 }
 
-"""Batched tax identifier changes scoped to the customer being updated."""
+"""
+Batched tax identifier changes scoped to the customer being updated.
+"""
 input CustomerTaxIdentifiersUpdateInput {
   create: [CustomerTaxIdentifierCreateOperationInput!]
   update: [CustomerTaxIdentifierUpdateOperationInput!]
@@ -116,7 +120,9 @@ input CustomerTaxExemptionCreateOperationInput {
   countryCode: String
   regionCode: String
   reason: String
-  """Defaults to ACTIVE when omitted."""
+  """
+  Defaults to ACTIVE when omitted.
+  """
   status: CustomerTaxExemptionStatus
   certificateFileId: ID
   validFrom: Date
@@ -128,7 +134,9 @@ input CustomerTaxExemptionUpdateOperationInput {
   operations: CustomerTaxExemptionPatchInput!
 }
 
-"""Batched tax exemption changes scoped to the customer being updated."""
+"""
+Batched tax exemption changes scoped to the customer being updated.
+"""
 input CustomerTaxExemptionsUpdateInput {
   create: [CustomerTaxExemptionCreateOperationInput!]
   update: [CustomerTaxExemptionUpdateOperationInput!]

@@ -37,8 +37,7 @@ export interface CustomerDataRequestProcessWorkflowInput {
   context: CustomerDataRequestProcessWorkflowContext;
 }
 
-export type CustomerDataRequestProcessWorkflowResult =
-  CustomerDataRequestProcessResult;
+export type CustomerDataRequestProcessWorkflowResult = CustomerDataRequestProcessResult;
 
 @Injectable()
 export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
@@ -117,9 +116,7 @@ export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
     timeoutMs: 60_000,
     retry: { maxAttempts: 5, intervalSeconds: 2, backoffRate: 2 },
   })
-  private async createArtifact(
-    input: CustomerDataRequestProcessWorkflowInput,
-  ): Promise<string> {
+  private async createArtifact(input: CustomerDataRequestProcessWorkflowInput): Promise<string> {
     const artifact = await this.kernel.runScript(
       CustomerDataRequestArtifactScript,
       { dataRequestId: input.dataRequestId },
@@ -154,10 +151,7 @@ export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
   @WorkflowStep({
     retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
   })
-  private completeArtifact(
-    input: CustomerDataRequestProcessWorkflowInput,
-    resultFileId: string,
-  ) {
+  private completeArtifact(input: CustomerDataRequestProcessWorkflowInput, resultFileId: string) {
     return this.kernel.runScript(
       CustomerDataRequestProcessScript,
       {
@@ -183,9 +177,7 @@ export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
   @WorkflowStep({
     retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
   })
-  private async deleteIamPrincipal(
-    input: CustomerDataRequestProcessWorkflowInput,
-  ): Promise<void> {
+  private async deleteIamPrincipal(input: CustomerDataRequestProcessWorkflowInput): Promise<void> {
     const link = await this.kernel.runScript(
       CustomerDataRequestIamLinkScript,
       { dataRequestId: input.dataRequestId },
@@ -251,16 +243,16 @@ export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
     result: CustomerDataRequestProcessResult,
   ): Promise<void> {
     for (const entity of result.mediaEntitiesToDelete ?? []) {
-      await this.broker.call<
-        Media.EntityDeletedResult,
-        Media.EntityDeletedParams
-      >("media.entityDeleted", {
-        entityRef: {
-          service: "customers",
-          entityType: entity.entityType,
-          entityId: entity.entityId,
+      await this.broker.call<Media.EntityDeletedResult, Media.EntityDeletedParams>(
+        "media.entityDeleted",
+        {
+          entityRef: {
+            service: "customers",
+            entityType: entity.entityType,
+            entityId: entity.entityId,
+          },
         },
-      });
+      );
     }
     if ((result.resultFileIdsToDelete?.length ?? 0) === 0) return;
     const deleted = await this.broker.call<
@@ -332,29 +324,20 @@ export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
       storeId: input.context.storeId,
       requestType: result.type,
       status: result.status,
-      ...(result.resultFileId !== undefined
-        ? { resultFileId: result.resultFileId }
-        : {}),
-      ...(result.rejectionReason
-        ? { rejectionReason: result.rejectionReason }
-        : {}),
+      ...(result.resultFileId !== undefined ? { resultFileId: result.resultFileId } : {}),
+      ...(result.rejectionReason ? { rejectionReason: result.rejectionReason } : {}),
       occurredAt,
       notification: {
         storeId: input.context.storeId,
         locale: delivery.recipient?.locale ?? input.context.locale,
-        recipients:
-          includeRecipient && delivery.recipient ? [delivery.recipient] : [],
+        recipients: includeRecipient && delivery.recipient ? [delivery.recipient] : [],
         data: {
           request: {
             id: input.dataRequestId,
             type: result.type,
             status: result.status,
-            ...(result.resultFileId !== undefined
-              ? { resultFileId: result.resultFileId }
-              : {}),
-            ...(result.rejectionReason
-              ? { rejectionReason: result.rejectionReason }
-              : {}),
+            ...(result.resultFileId !== undefined ? { resultFileId: result.resultFileId } : {}),
+            ...(result.rejectionReason ? { rejectionReason: result.rejectionReason } : {}),
           },
         },
       },
@@ -435,9 +418,7 @@ export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
   }
 }
 
-function toScriptContext(
-  context: CustomerDataRequestProcessWorkflowContext,
-): RunScriptContext {
+function toScriptContext(context: CustomerDataRequestProcessWorkflowContext): RunScriptContext {
   return {
     storeId: context.storeId,
     organizationId: context.organizationId,

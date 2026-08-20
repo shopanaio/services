@@ -4,16 +4,11 @@ import type { CustomerSegment } from "../../repositories/models/index.js";
 import type { CustomerSegmentMembershipRelayInput } from "../../repositories/classification/CustomerSegmentRepository.js";
 import { CustomersType } from "./CustomersType.js";
 
-export class CustomerSegmentResolver extends CustomersType<
-  string,
-  CustomerSegment
-> {
+export class CustomerSegmentResolver extends CustomersType<string, CustomerSegment> {
   async $preload() {
     const segment = await this.$ctx.loaders.segment.load(this.$props);
     if (!segment) {
-      throw new PreloadNotFoundError(
-        `Customer segment with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer segment with ID ${this.$props} not found`);
     }
     return segment;
   }

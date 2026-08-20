@@ -7,10 +7,7 @@ import {
   WorkflowStep,
 } from "@shopana/shared-kernel";
 import type { RunScriptContext } from "../kernel/types.js";
-import {
-  RatingCriterionSectionUpdateScript,
-  type ReviewSectionResult,
-} from "../scripts/index.js";
+import { RatingCriterionSectionUpdateScript, type ReviewSectionResult } from "../scripts/index.js";
 import type {
   RatingCriterionUpdateOperation,
   RatingCriterionUpdateWorkflowInput,
@@ -33,12 +30,9 @@ export class RatingCriterionUpdateWorkflow extends ReviewsMutationWorkflow {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: RatingCriterionUpdateWorkflowInput
+    input: RatingCriterionUpdateWorkflowInput,
   ): Promise<RatingCriterionUpdateWorkflowResult> {
-    const acquired = await this.stepAcquireVersion(
-      input.criterionId,
-      input.expectedUpdatedAt
-    );
+    const acquired = await this.stepAcquireVersion(input.criterionId, input.expectedUpdatedAt);
     if (acquired) {
       return {
         criterion: null,
@@ -50,11 +44,7 @@ export class RatingCriterionUpdateWorkflow extends ReviewsMutationWorkflow {
     const context = this.toScriptContext(input.context);
     const operationResults: ReviewsUpdateOperationResult[] = [];
     for (const operation of input.operations) {
-      const result = await this.stepUpdateSection(
-        input.criterionId,
-        operation,
-        context
-      );
+      const result = await this.stepUpdateSection(input.criterionId, operation, context);
       const errors = prefixErrors(result.userErrors, operation);
       operationResults.push({
         type: operation.type,
@@ -71,14 +61,11 @@ export class RatingCriterionUpdateWorkflow extends ReviewsMutationWorkflow {
   }
 
   @WorkflowStep()
-  private async stepAcquireVersion(
-    criterionId: string,
-    expectedUpdatedAt: string
-  ) {
+  private async stepAcquireVersion(criterionId: string, expectedUpdatedAt: string) {
     const acquired = await this.kernel.repository.configuration.updateCriterion(
       criterionId,
       expectedUpdatedAt,
-      {}
+      {},
     );
     if (acquired.status === "applied") return null;
     if (acquired.status === "conflict") {
@@ -99,19 +86,19 @@ export class RatingCriterionUpdateWorkflow extends ReviewsMutationWorkflow {
   private stepUpdateSection(
     criterionId: string,
     operation: RatingCriterionUpdateOperation,
-    context: RunScriptContext
+    context: RunScriptContext,
   ) {
     return this.kernel.runScript(
       RatingCriterionSectionUpdateScript,
       { criterionId, operation },
-      context
+      context,
     );
   }
 }
 
 function prefixErrors(
   errors: ReviewSectionResult["userErrors"],
-  operation: RatingCriterionUpdateOperation
+  operation: RatingCriterionUpdateOperation,
 ) {
   return errors.map((error) => ({
     ...error,

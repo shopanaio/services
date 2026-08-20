@@ -18,8 +18,7 @@ import { productListingIndex } from "./listingIndex.js";
 import { tsvector } from "./postgresTypes.js";
 import { listingSchema, localeCodeEnum } from "./schema.js";
 
-const uuidV7 = (column: unknown) =>
-  sql`substring(${column}::text FROM 15 FOR 1) = '7'`;
+const uuidV7 = (column: unknown) => sql`substring(${column}::text FROM 15 FOR 1) = '7'`;
 
 export const productSearchText = listingSchema.table(
   "product_search_text",
@@ -37,10 +36,9 @@ export const productSearchText = listingSchema.table(
     normalizationProfileRevision: varchar("normalization_profile_revision", {
       length: 64,
     }).notNull(),
-    searchVector: tsvector("search_vector")
-      .generatedAlwaysAs(
-        sql`to_tsvector('pg_catalog.simple'::regconfig, prepared_text)`,
-      ),
+    searchVector: tsvector("search_vector").generatedAlwaysAs(
+      sql`to_tsvector('pg_catalog.simple'::regconfig, prepared_text)`,
+    ),
     indexedAt: timestamp("indexed_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -52,19 +50,13 @@ export const productSearchText = listingSchema.table(
     foreignKey({
       name: "fk_product_search_text_product",
       columns: [table.productDocId, table.productId],
-      foreignColumns: [
-        productListingIndex.productDocId,
-        productListingIndex.productId,
-      ],
+      foreignColumns: [productListingIndex.productDocId, productListingIndex.productId],
     }).onDelete("cascade"),
     check(
       "chk_product_search_text_uuid_v7",
       sql`${uuidV7(table.storeId)} AND ${uuidV7(table.productId)} AND ${uuidV7(table.elementId)}`,
     ),
-    check(
-      "chk_product_search_text_product_doc_positive",
-      sql`${table.productDocId} > 0`,
-    ),
+    check("chk_product_search_text_product_doc_positive", sql`${table.productDocId} > 0`),
     check(
       "chk_product_search_text_field",
       sql`${table.field} IN ('product_title', 'variant_title', 'vendor_name', 'category_name')`,
@@ -77,11 +69,7 @@ export const productSearchText = listingSchema.table(
       "chk_product_search_text_contract",
       sql`${table.normalizationContractVersion} <> '' AND ${table.normalizationProfileRevision} <> ''`,
     ),
-    index("product_search_text_store_vector_gin").using(
-      "gin",
-      table.storeId,
-      table.searchVector,
-    ),
+    index("product_search_text_store_vector_gin").using("gin", table.storeId, table.searchVector),
     index("product_search_text_scope_idx").on(
       table.storeId,
       table.locale,
@@ -118,19 +106,13 @@ export const productSearchIdentifier = listingSchema.table(
     foreignKey({
       name: "fk_product_search_identifier_product",
       columns: [table.productDocId, table.productId],
-      foreignColumns: [
-        productListingIndex.productDocId,
-        productListingIndex.productId,
-      ],
+      foreignColumns: [productListingIndex.productDocId, productListingIndex.productId],
     }).onDelete("cascade"),
     check(
       "chk_product_search_identifier_uuid_v7",
       sql`${uuidV7(table.storeId)} AND ${uuidV7(table.productId)} AND ${uuidV7(table.elementId)}`,
     ),
-    check(
-      "chk_product_search_identifier_product_doc_positive",
-      sql`${table.productDocId} > 0`,
-    ),
+    check("chk_product_search_identifier_product_doc_positive", sql`${table.productDocId} > 0`),
     check("chk_product_search_identifier_kind", sql`${table.kind} = 'SKU'`),
     check(
       "chk_product_search_identifier_value",
@@ -213,12 +195,8 @@ export const searchSettings = listingSchema.table(
     version: integer("version").notNull().default(1),
     enabledFields: jsonb("enabled_fields").notNull(),
     fieldWeights: jsonb("field_weights").notNull(),
-    typoToleranceEnabled: boolean("typo_tolerance_enabled")
-      .notNull()
-      .default(false),
-    outOfStockPolicy: varchar("out_of_stock_policy", { length: 16 })
-      .notNull()
-      .default("SHOW"),
+    typoToleranceEnabled: boolean("typo_tolerance_enabled").notNull().default(false),
+    outOfStockPolicy: varchar("out_of_stock_policy", { length: 16 }).notNull().default("SHOW"),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -231,10 +209,7 @@ export const searchSettings = listingSchema.table(
       "chk_search_settings_enabled_fields",
       sql`jsonb_typeof(${table.enabledFields}) = 'array'`,
     ),
-    check(
-      "chk_search_settings_field_weights",
-      sql`jsonb_typeof(${table.fieldWeights}) = 'object'`,
-    ),
+    check("chk_search_settings_field_weights", sql`jsonb_typeof(${table.fieldWeights}) = 'object'`),
     check(
       "chk_search_settings_oos_policy",
       sql`${table.outOfStockPolicy} IN ('SHOW', 'HIDE', 'PLACE_LAST')`,
@@ -259,10 +234,7 @@ export const searchSynonymGroup = listingSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("search_synonym_group_store_id_unique").on(
-      table.storeId,
-      table.groupId,
-    ),
+    unique("search_synonym_group_store_id_unique").on(table.storeId, table.groupId),
     unique("search_synonym_group_store_id_locale_unique").on(
       table.storeId,
       table.groupId,
@@ -303,11 +275,7 @@ export const searchSynonymValue = listingSchema.table(
     }).notNull(),
   },
   (table) => [
-    unique("search_synonym_value_position_unique").on(
-      table.storeId,
-      table.groupId,
-      table.position,
-    ),
+    unique("search_synonym_value_position_unique").on(table.storeId, table.groupId, table.position),
     unique("search_synonym_value_normalized_unique").on(
       table.storeId,
       table.groupId,
@@ -322,10 +290,7 @@ export const searchSynonymValue = listingSchema.table(
       "chk_search_synonym_value_uuid_v7",
       sql`${uuidV7(table.storeId)} AND ${uuidV7(table.groupId)} AND ${uuidV7(table.valueId)}`,
     ),
-    check(
-      "chk_search_synonym_value_position",
-      sql`${table.position} BETWEEN 1 AND 20`,
-    ),
+    check("chk_search_synonym_value_position", sql`${table.position} BETWEEN 1 AND 20`),
     check(
       "chk_search_synonym_value_lengths",
       sql`${table.displayValue} <> '' AND ${table.normalizedValue} <> '' AND ${table.preparedText} <> '' AND char_length(${table.displayValue}) <= 128 AND char_length(${table.normalizedValue}) <= 128 AND char_length(${table.preparedText}) <= 512`,
@@ -392,10 +357,7 @@ export const searchProductBoost = listingSchema.table(
       table.locale,
       table.name,
     ),
-    unique("search_product_boost_store_id_unique").on(
-      table.storeId,
-      table.boostId,
-    ),
+    unique("search_product_boost_store_id_unique").on(table.storeId, table.boostId),
     check(
       "chk_search_product_boost_uuid_v7",
       sql`${uuidV7(table.storeId)} AND ${uuidV7(table.boostId)}`,
@@ -444,10 +406,7 @@ export const searchProductBoostPhrase = listingSchema.table(
       "chk_search_product_boost_phrase_uuid_v7",
       sql`${uuidV7(table.storeId)} AND ${uuidV7(table.boostId)} AND ${uuidV7(table.phraseId)}`,
     ),
-    check(
-      "chk_search_product_boost_phrase_position",
-      sql`${table.position} BETWEEN 1 AND 20`,
-    ),
+    check("chk_search_product_boost_phrase_position", sql`${table.position} BETWEEN 1 AND 20`),
     check(
       "chk_search_product_boost_phrase_lengths",
       sql`${table.displayPhrase} <> '' AND ${table.normalizedPhrase} <> '' AND char_length(${table.displayPhrase}) <= 128 AND char_length(${table.normalizedPhrase}) <= 128`,
@@ -488,19 +447,14 @@ export const searchProductBoostProduct = listingSchema.table(
       "chk_search_product_boost_product_uuid_v7",
       sql`${uuidV7(table.storeId)} AND ${uuidV7(table.boostId)} AND ${uuidV7(table.productId)}`,
     ),
-    check(
-      "chk_search_product_boost_product_position",
-      sql`${table.position} BETWEEN 1 AND 50`,
-    ),
+    check("chk_search_product_boost_product_position", sql`${table.position} BETWEEN 1 AND 50`),
   ],
 );
 
 export type ProductSearchText = typeof productSearchText.$inferSelect;
 export type NewProductSearchText = typeof productSearchText.$inferInsert;
-export type ProductSearchIdentifier =
-  typeof productSearchIdentifier.$inferSelect;
-export type NewProductSearchIdentifier =
-  typeof productSearchIdentifier.$inferInsert;
+export type ProductSearchIdentifier = typeof productSearchIdentifier.$inferSelect;
+export type NewProductSearchIdentifier = typeof productSearchIdentifier.$inferInsert;
 export type SearchTermDictionary = typeof searchTermDictionary.$inferSelect;
 export type NewSearchTermDictionary = typeof searchTermDictionary.$inferInsert;
 export type SearchSettings = typeof searchSettings.$inferSelect;
@@ -513,11 +467,7 @@ export type SearchSynonymClaim = typeof searchSynonymClaim.$inferSelect;
 export type NewSearchSynonymClaim = typeof searchSynonymClaim.$inferInsert;
 export type SearchProductBoost = typeof searchProductBoost.$inferSelect;
 export type NewSearchProductBoost = typeof searchProductBoost.$inferInsert;
-export type SearchProductBoostPhrase =
-  typeof searchProductBoostPhrase.$inferSelect;
-export type NewSearchProductBoostPhrase =
-  typeof searchProductBoostPhrase.$inferInsert;
-export type SearchProductBoostProduct =
-  typeof searchProductBoostProduct.$inferSelect;
-export type NewSearchProductBoostProduct =
-  typeof searchProductBoostProduct.$inferInsert;
+export type SearchProductBoostPhrase = typeof searchProductBoostPhrase.$inferSelect;
+export type NewSearchProductBoostPhrase = typeof searchProductBoostPhrase.$inferInsert;
+export type SearchProductBoostProduct = typeof searchProductBoostProduct.$inferSelect;
+export type NewSearchProductBoostProduct = typeof searchProductBoostProduct.$inferInsert;

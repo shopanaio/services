@@ -87,7 +87,9 @@ type UserError = { message: string; field: string[]; code: string; retryable: bo
 
 @ApolloMutation
 export class MutationResolver extends LoyaltyType<Record<string, never>> {
-  loyaltyMutation() { return this.resolvers.loyaltyMutation(); }
+  loyaltyMutation() {
+    return this.resolvers.loyaltyMutation();
+  }
 }
 
 @TypePolicy<LoyaltyMutationResolver>({
@@ -100,15 +102,22 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   @ZodResolver(LoyaltyProgramCreateInputSchema())
   async programCreate({ input }: LoyaltyMutationProgramCreateArgs) {
     return this.result("program", async () => {
-      const program = await this.configMutation("programCreate", input, "PROGRAM", (id) => this.$ctx.kernel.repository.program.findById(id), () => this.programs.createProgram({
-        code: input.code,
-        name: input.name,
-        status: "DRAFT",
-        isDefault: input.isDefault ?? false,
-        defaultCurrencyCode: input.defaultCurrencyCode,
-        metadata: input.metadata ?? {},
-        archivedAt: null,
-      }));
+      const program = await this.configMutation(
+        "programCreate",
+        input,
+        "PROGRAM",
+        (id) => this.$ctx.kernel.repository.program.findById(id),
+        () =>
+          this.programs.createProgram({
+            code: input.code,
+            name: input.name,
+            status: "DRAFT",
+            isDefault: input.isDefault ?? false,
+            defaultCurrencyCode: input.defaultCurrencyCode,
+            metadata: input.metadata ?? {},
+            archivedAt: null,
+          }),
+      );
       this.$ctx.loaders.program.clear(program.id).prime(program.id, program);
       return this.resolvers.program(program.id);
     });
@@ -118,12 +127,23 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async programUpdate({ input }: LoyaltyMutationProgramUpdateArgs) {
     return this.result("program", async () => {
       const programId = this.decodeId(input.programId, GlobalIdEntity.LoyaltyProgram);
-      const program = await this.configMutation("programUpdate", input, "PROGRAM", (id) => this.$ctx.kernel.repository.program.findById(id), () => this.programs.updateProgram(programId, {
-        name: input.name ?? undefined,
-        status: input.status ?? undefined,
-        isDefault: input.isDefault ?? undefined,
-        metadata: input.metadata ?? undefined,
-      }, input.expectedRevision));
+      const program = await this.configMutation(
+        "programUpdate",
+        input,
+        "PROGRAM",
+        (id) => this.$ctx.kernel.repository.program.findById(id),
+        () =>
+          this.programs.updateProgram(
+            programId,
+            {
+              name: input.name ?? undefined,
+              status: input.status ?? undefined,
+              isDefault: input.isDefault ?? undefined,
+              metadata: input.metadata ?? undefined,
+            },
+            input.expectedRevision,
+          ),
+      );
       this.$ctx.loaders.program.clear(program.id).prime(program.id, program);
       return this.resolvers.program(program.id);
     });
@@ -133,78 +153,97 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async programVersionCreate({ input }: LoyaltyMutationProgramVersionCreateArgs) {
     return this.result("programVersion", async () => {
       const programId = this.decodeId(input.programId, GlobalIdEntity.LoyaltyProgram);
-      const version = await this.configMutation("programVersionCreate", input, "PROGRAM_VERSION", (id) => this.$ctx.kernel.repository.program.findVersionById(id), () => this.programs.createDraftVersion(programId, {
-        effectiveFrom: input.effectiveFrom ?? null,
-        effectiveTo: input.effectiveTo ?? null,
-        earningEnabled: input.earningEnabled ?? true,
-        redemptionEnabled: input.redemptionEnabled ?? true,
-        activationDelaySeconds: input.activationDelaySeconds ?? 0,
-        pointsExpiryDays: input.pointsExpiryDays ?? null,
-        earnPoints: BigInt(input.earnPoints),
-        earnAmountMinor: BigInt(input.earnAmountMinor),
-        minimumEligibleAmountMinor: BigInt(input.minimumEligibleAmountMinor ?? "0"),
-        redeemPoints: BigInt(input.redeemPoints),
-        redeemAmountMinor: BigInt(input.redeemAmountMinor),
-        minimumRedeemPoints: BigInt(input.minimumRedeemPoints ?? "1"),
-        maximumRedeemPointsPerOrder: input.maximumRedeemPointsPerOrder == null
-          ? null : BigInt(input.maximumRedeemPointsPerOrder),
-        maximumOrderPercentageBps: input.maximumOrderPercentageBps ?? 10_000,
-        roundingMode: input.roundingMode ?? "DOWN",
-        refundPolicy: input.refundPolicy ?? "PROPORTIONAL",
-        debtPolicy: input.debtPolicy ?? "TRACK_DEBT",
-        restoredPointsExpiryPolicy: input.restoredPointsExpiryPolicy ?? "ORIGINAL_EXPIRY",
-        createdById: this.$ctx.user.id,
-        rules: normalizeProgramRulesInput(input.rules as unknown as Record<string, unknown>) as never,
-      }, {
-        expectedProgramRevision: input.expectedProgramRevision,
-        earningRules: (input.earningRules ?? []).map((rule) => ({
-          code: rule.code,
-          name: rule.name,
-          priority: rule.priority ?? 0,
-          triggerType: rule.triggerType,
-          triggerSchemaVersion: rule.triggerSchemaVersion ?? 1,
-          triggerConfig: rule.triggerConfig ?? {},
-          conditionSchemaVersion: rule.conditionSchemaVersion ?? 1,
-          conditions: rule.conditions,
-          actionType: rule.actionType,
-          actionSchemaVersion: rule.actionSchemaVersion ?? 1,
-          action: rule.action,
-          limitSchemaVersion: rule.limitSchemaVersion ?? 1,
-          limits: normalizeEarningLimits(rule.limits),
-          stopProcessing: rule.stopProcessing ?? false,
-        })),
-        rewardDefinitions: (input.rewardDefinitions ?? []).map((definition) => ({
-          code: definition.code,
-          name: definition.name,
-          rewardType: definition.rewardType,
-          configurationSchemaVersion: definition.configurationSchemaVersion ?? 1,
-          configuration: definition.configuration,
-          validityDays: definition.validityDays ?? null,
-          startsAt: definition.startsAt ?? null,
-          endsAt: definition.endsAt ?? null,
-          issuanceLimit: definition.issuanceLimit == null ? null : BigInt(definition.issuanceLimit),
-          perAccountLimit: definition.perAccountLimit == null ? null : BigInt(definition.perAccountLimit),
-        })),
-        tierPolicy: input.tierPolicy ? {
-          windowType: input.tierPolicy.windowType,
-          rollingWindowDays: input.tierPolicy.rollingWindowDays ?? null,
-          calendarPeriod: input.tierPolicy.calendarPeriod ?? null,
-          programYearStartsMonth: input.tierPolicy.programYearStartsMonth ?? null,
-          membershipDurationDays: input.tierPolicy.membershipDurationDays ?? null,
-          gracePeriodDays: input.tierPolicy.gracePeriodDays ?? 0,
-          downgradePolicy: input.tierPolicy.downgradePolicy ?? "IMMEDIATE",
-          requalificationPolicy: input.tierPolicy.requalificationPolicy ?? "AUTOMATIC",
-          metricSchemaVersion: input.tierPolicy.metricSchemaVersion ?? 1,
-        } : null,
-        tiers: (input.tiers ?? []).map((tier) => ({
-          code: tier.code,
-          name: tier.name,
-          rank: tier.rank,
-          qualificationSchemaVersion: tier.qualificationSchemaVersion ?? 1,
-          qualification: tier.qualification,
-          maintenance: tier.maintenance ?? null,
-        })),
-      }));
+      const version = await this.configMutation(
+        "programVersionCreate",
+        input,
+        "PROGRAM_VERSION",
+        (id) => this.$ctx.kernel.repository.program.findVersionById(id),
+        () =>
+          this.programs.createDraftVersion(
+            programId,
+            {
+              effectiveFrom: input.effectiveFrom ?? null,
+              effectiveTo: input.effectiveTo ?? null,
+              earningEnabled: input.earningEnabled ?? true,
+              redemptionEnabled: input.redemptionEnabled ?? true,
+              activationDelaySeconds: input.activationDelaySeconds ?? 0,
+              pointsExpiryDays: input.pointsExpiryDays ?? null,
+              earnPoints: BigInt(input.earnPoints),
+              earnAmountMinor: BigInt(input.earnAmountMinor),
+              minimumEligibleAmountMinor: BigInt(input.minimumEligibleAmountMinor ?? "0"),
+              redeemPoints: BigInt(input.redeemPoints),
+              redeemAmountMinor: BigInt(input.redeemAmountMinor),
+              minimumRedeemPoints: BigInt(input.minimumRedeemPoints ?? "1"),
+              maximumRedeemPointsPerOrder:
+                input.maximumRedeemPointsPerOrder == null
+                  ? null
+                  : BigInt(input.maximumRedeemPointsPerOrder),
+              maximumOrderPercentageBps: input.maximumOrderPercentageBps ?? 10_000,
+              roundingMode: input.roundingMode ?? "DOWN",
+              refundPolicy: input.refundPolicy ?? "PROPORTIONAL",
+              debtPolicy: input.debtPolicy ?? "TRACK_DEBT",
+              restoredPointsExpiryPolicy: input.restoredPointsExpiryPolicy ?? "ORIGINAL_EXPIRY",
+              createdById: this.$ctx.user.id,
+              rules: normalizeProgramRulesInput(
+                input.rules as unknown as Record<string, unknown>,
+              ) as never,
+            },
+            {
+              expectedProgramRevision: input.expectedProgramRevision,
+              earningRules: (input.earningRules ?? []).map((rule) => ({
+                code: rule.code,
+                name: rule.name,
+                priority: rule.priority ?? 0,
+                triggerType: rule.triggerType,
+                triggerSchemaVersion: rule.triggerSchemaVersion ?? 1,
+                triggerConfig: rule.triggerConfig ?? {},
+                conditionSchemaVersion: rule.conditionSchemaVersion ?? 1,
+                conditions: rule.conditions,
+                actionType: rule.actionType,
+                actionSchemaVersion: rule.actionSchemaVersion ?? 1,
+                action: rule.action,
+                limitSchemaVersion: rule.limitSchemaVersion ?? 1,
+                limits: normalizeEarningLimits(rule.limits),
+                stopProcessing: rule.stopProcessing ?? false,
+              })),
+              rewardDefinitions: (input.rewardDefinitions ?? []).map((definition) => ({
+                code: definition.code,
+                name: definition.name,
+                rewardType: definition.rewardType,
+                configurationSchemaVersion: definition.configurationSchemaVersion ?? 1,
+                configuration: definition.configuration,
+                validityDays: definition.validityDays ?? null,
+                startsAt: definition.startsAt ?? null,
+                endsAt: definition.endsAt ?? null,
+                issuanceLimit:
+                  definition.issuanceLimit == null ? null : BigInt(definition.issuanceLimit),
+                perAccountLimit:
+                  definition.perAccountLimit == null ? null : BigInt(definition.perAccountLimit),
+              })),
+              tierPolicy: input.tierPolicy
+                ? {
+                    windowType: input.tierPolicy.windowType,
+                    rollingWindowDays: input.tierPolicy.rollingWindowDays ?? null,
+                    calendarPeriod: input.tierPolicy.calendarPeriod ?? null,
+                    programYearStartsMonth: input.tierPolicy.programYearStartsMonth ?? null,
+                    membershipDurationDays: input.tierPolicy.membershipDurationDays ?? null,
+                    gracePeriodDays: input.tierPolicy.gracePeriodDays ?? 0,
+                    downgradePolicy: input.tierPolicy.downgradePolicy ?? "IMMEDIATE",
+                    requalificationPolicy: input.tierPolicy.requalificationPolicy ?? "AUTOMATIC",
+                    metricSchemaVersion: input.tierPolicy.metricSchemaVersion ?? 1,
+                  }
+                : null,
+              tiers: (input.tiers ?? []).map((tier) => ({
+                code: tier.code,
+                name: tier.name,
+                rank: tier.rank,
+                qualificationSchemaVersion: tier.qualificationSchemaVersion ?? 1,
+                qualification: tier.qualification,
+                maintenance: tier.maintenance ?? null,
+              })),
+            },
+          ),
+      );
       this.$ctx.loaders.programVersion.clear(version.id).prime(version.id, version);
       this.$ctx.loaders.programVersions.clear(programId);
       return this.resolvers.programVersion(version.id);
@@ -215,14 +254,21 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async programVersionPublish({ input }: LoyaltyMutationProgramVersionPublishArgs) {
     return this.result("programVersion", async () => {
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
-      const version = await this.configMutation("programVersionPublish", input, "PROGRAM_VERSION", (id) => this.$ctx.kernel.repository.program.findVersionById(id), () => this.programs.publishVersion({
-        versionId,
-        expectedRevision: input.expectedRevision,
-        effectiveFrom: input.effectiveFrom,
-        effectiveTo: input.effectiveTo,
-        publishedAt: new Date().toISOString(),
-        publishedById: this.$ctx.user.id,
-      }));
+      const version = await this.configMutation(
+        "programVersionPublish",
+        input,
+        "PROGRAM_VERSION",
+        (id) => this.$ctx.kernel.repository.program.findVersionById(id),
+        () =>
+          this.programs.publishVersion({
+            versionId,
+            expectedRevision: input.expectedRevision,
+            effectiveFrom: input.effectiveFrom,
+            effectiveTo: input.effectiveTo,
+            publishedAt: new Date().toISOString(),
+            publishedById: this.$ctx.user.id,
+          }),
+      );
       this.$ctx.loaders.programVersion.clear(version.id).prime(version.id, version);
       this.$ctx.loaders.programVersions.clear(version.programId);
       this.$ctx.loaders.program.clear(version.programId);
@@ -234,7 +280,10 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async accountStatusUpdate({ input }: LoyaltyMutationAccountStatusUpdateArgs) {
     return this.result("account", async () => {
       if (input.status === "MERGED") {
-        throw new LoyaltyDomainError("INVALID_ACCOUNT_STATUS", "MERGED is managed only by customer merge");
+        throw new LoyaltyDomainError(
+          "INVALID_ACCOUNT_STATUS",
+          "MERGED is managed only by customer merge",
+        );
       }
       const accountId = this.decodeId(input.accountId, GlobalIdEntity.LoyaltyAccount);
       const account = await new AccountLifecycleService(this.$ctx.kernel.repository).changeStatus({
@@ -255,7 +304,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       const accountId = this.decodeId(input.accountId, GlobalIdEntity.LoyaltyAccount);
       const occurredAt = new Date().toISOString();
       const requestHash = canonicalHash({ ...input, accountId });
-      const result = await this.$ctx.kernel.getServices().broker.runWorkflow(
+      const result = (await this.$ctx.kernel.getServices().broker.runWorkflow(
         "loyalty.adjustPoints",
         {
           storeId: this.$ctx.store.id,
@@ -280,7 +329,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
           organizationId: this.$ctx.store.organizationId,
         },
         { adminContext: this.$ctx.adminContext },
-      ) as ManualLoyaltyAdjustmentResult;
+      )) as ManualLoyaltyAdjustmentResult;
       this.$ctx.loaders.accountBalance.clear(result.accountId);
       return {
         account: await this.resolvers.account(result.accountId),
@@ -288,7 +337,11 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         userErrors: [],
       };
     } catch (error) {
-      return { account: null, transaction: null, userErrors: [this.toUserError(error, "pointsAdjust")] };
+      return {
+        account: null,
+        transaction: null,
+        userErrors: [this.toUserError(error, "pointsAdjust")],
+      };
     }
   }
 
@@ -297,7 +350,8 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     try {
       const reservationId = this.decodeId(input.reservationId, GlobalIdEntity.LoyaltyReservation);
       const current = await this.$ctx.kernel.repository.reservation.findById(reservationId);
-      if (!current) throw new LoyaltyDomainError("RESERVATION_NOT_FOUND", "Loyalty reservation was not found");
+      if (!current)
+        throw new LoyaltyDomainError("RESERVATION_NOT_FOUND", "Loyalty reservation was not found");
       const requestHash = canonicalHash({ reservationId, input });
       const result = await new CheckoutRedemptionService(this.$ctx.kernel.repository).releaseAdmin({
         storeId: this.$ctx.store.id,
@@ -311,9 +365,18 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         requestHash,
       });
       if (result.status === "REJECTED") {
-        return { reservation: null, transaction: null, userErrors: [{
-          message: result.message, field: [], code: result.code, retryable: result.retryable,
-        }] };
+        return {
+          reservation: null,
+          transaction: null,
+          userErrors: [
+            {
+              message: result.message,
+              field: [],
+              code: result.code,
+              retryable: result.retryable,
+            },
+          ],
+        };
       }
       const transactionId = result.status === "RELEASED" ? result.releaseTransactionId : null;
       this.$ctx.loaders.reservation.clear(reservationId);
@@ -323,7 +386,11 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         userErrors: [],
       };
     } catch (error) {
-      return { reservation: null, transaction: null, userErrors: [this.toUserError(error, "reservationRelease")] };
+      return {
+        reservation: null,
+        transaction: null,
+        userErrors: [this.toUserError(error, "reservationRelease")],
+      };
     }
   }
 
@@ -333,27 +400,50 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
       const changes: Record<string, unknown> = {};
       copyDefined(changes, input, [
-        "effectiveFrom", "earningEnabled", "redemptionEnabled", "activationDelaySeconds",
-        "earnPoints", "earnAmountMinor", "minimumEligibleAmountMinor", "redeemPoints",
-        "redeemAmountMinor", "minimumRedeemPoints", "maximumOrderPercentageBps",
-        "roundingMode", "refundPolicy", "debtPolicy", "restoredPointsExpiryPolicy",
+        "effectiveFrom",
+        "earningEnabled",
+        "redemptionEnabled",
+        "activationDelaySeconds",
+        "earnPoints",
+        "earnAmountMinor",
+        "minimumEligibleAmountMinor",
+        "redeemPoints",
+        "redeemAmountMinor",
+        "minimumRedeemPoints",
+        "maximumOrderPercentageBps",
+        "roundingMode",
+        "refundPolicy",
+        "debtPolicy",
+        "restoredPointsExpiryPolicy",
       ]);
       if (input.earnPoints != null) changes.earnPoints = BigInt(input.earnPoints);
       if (input.earnAmountMinor != null) changes.earnAmountMinor = BigInt(input.earnAmountMinor);
-      if (input.minimumEligibleAmountMinor != null) changes.minimumEligibleAmountMinor = BigInt(input.minimumEligibleAmountMinor);
+      if (input.minimumEligibleAmountMinor != null)
+        changes.minimumEligibleAmountMinor = BigInt(input.minimumEligibleAmountMinor);
       if (input.redeemPoints != null) changes.redeemPoints = BigInt(input.redeemPoints);
-      if (input.redeemAmountMinor != null) changes.redeemAmountMinor = BigInt(input.redeemAmountMinor);
-      if (input.minimumRedeemPoints != null) changes.minimumRedeemPoints = BigInt(input.minimumRedeemPoints);
+      if (input.redeemAmountMinor != null)
+        changes.redeemAmountMinor = BigInt(input.redeemAmountMinor);
+      if (input.minimumRedeemPoints != null)
+        changes.minimumRedeemPoints = BigInt(input.minimumRedeemPoints);
       if (input.clearEffectiveTo) changes.effectiveTo = null;
       else if (input.effectiveTo != null) changes.effectiveTo = input.effectiveTo;
       if (input.clearPointsExpiryDays) changes.pointsExpiryDays = null;
       else if (input.pointsExpiryDays != null) changes.pointsExpiryDays = input.pointsExpiryDays;
       if (input.clearMaximumRedeemPointsPerOrder) changes.maximumRedeemPointsPerOrder = null;
-      else if (input.maximumRedeemPointsPerOrder != null) changes.maximumRedeemPointsPerOrder = BigInt(input.maximumRedeemPointsPerOrder);
+      else if (input.maximumRedeemPointsPerOrder != null)
+        changes.maximumRedeemPointsPerOrder = BigInt(input.maximumRedeemPointsPerOrder);
       if (input.rules != null) {
-        changes.rules = normalizeProgramRulesInput(input.rules as unknown as Record<string, unknown>);
+        changes.rules = normalizeProgramRulesInput(
+          input.rules as unknown as Record<string, unknown>,
+        );
       }
-      const version = await this.configMutation("programVersionUpdate", input, "PROGRAM_VERSION", (id) => this.$ctx.kernel.repository.program.findVersionById(id), () => this.programs.updateDraftVersion(versionId, changes as never, input.expectedRevision));
+      const version = await this.configMutation(
+        "programVersionUpdate",
+        input,
+        "PROGRAM_VERSION",
+        (id) => this.$ctx.kernel.repository.program.findVersionById(id),
+        () => this.programs.updateDraftVersion(versionId, changes as never, input.expectedRevision),
+      );
       this.$ctx.loaders.programVersion.clear(version.id).prime(version.id, version);
       this.$ctx.loaders.programVersions.clear(version.programId);
       return this.resolvers.programVersion(version.id);
@@ -365,15 +455,27 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     try {
       const id = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
       const version = await this.$ctx.kernel.repository.program.findVersionById(id);
-      await this.configMutation("programVersionDelete", input, "DELETED_PROGRAM_VERSION", async () => ({ id }), async () => {
-        await this.programs.deleteDraftVersion(id, input.expectedRevision);
-        return { id };
-      });
+      await this.configMutation(
+        "programVersionDelete",
+        input,
+        "DELETED_PROGRAM_VERSION",
+        async () => ({ id }),
+        async () => {
+          await this.programs.deleteDraftVersion(id, input.expectedRevision);
+          return { id };
+        },
+      );
       this.$ctx.loaders.programVersion.clear(id);
       if (version) this.$ctx.loaders.programVersions.clear(version.programId);
-      return { deletedProgramVersionId: this.encodeId(id, GlobalIdEntity.LoyaltyProgramVersion), userErrors: [] };
+      return {
+        deletedProgramVersionId: this.encodeId(id, GlobalIdEntity.LoyaltyProgramVersion),
+        userErrors: [],
+      };
     } catch (error) {
-      return { deletedProgramVersionId: null, userErrors: [this.toUserError(error, "programVersionDelete")] };
+      return {
+        deletedProgramVersionId: null,
+        userErrors: [this.toUserError(error, "programVersionDelete")],
+      };
     }
   }
 
@@ -381,22 +483,29 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async earningRuleCreate({ input }: LoyaltyMutationEarningRuleCreateArgs) {
     return this.result("earningRule", async () => {
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
-      const rule = await this.configMutation("earningRuleCreate", input, "EARNING_RULE", (id) => this.$ctx.kernel.repository.earningRule.findById(id), () => this.programs.createEarningRule(versionId, {
-        code: input.code,
-        name: input.name,
-        priority: input.priority ?? 0,
-        triggerType: input.triggerType,
-        triggerSchemaVersion: input.triggerSchemaVersion ?? 1,
-        triggerConfig: input.triggerConfig ?? {},
-        conditionSchemaVersion: input.conditionSchemaVersion ?? 1,
-        conditions: input.conditions,
-        actionType: input.actionType,
-        actionSchemaVersion: input.actionSchemaVersion ?? 1,
-        action: input.action,
-        limitSchemaVersion: input.limitSchemaVersion ?? 1,
-        limits: normalizeEarningLimits(input.limits),
-        stopProcessing: input.stopProcessing ?? false,
-      }));
+      const rule = await this.configMutation(
+        "earningRuleCreate",
+        input,
+        "EARNING_RULE",
+        (id) => this.$ctx.kernel.repository.earningRule.findById(id),
+        () =>
+          this.programs.createEarningRule(versionId, {
+            code: input.code,
+            name: input.name,
+            priority: input.priority ?? 0,
+            triggerType: input.triggerType,
+            triggerSchemaVersion: input.triggerSchemaVersion ?? 1,
+            triggerConfig: input.triggerConfig ?? {},
+            conditionSchemaVersion: input.conditionSchemaVersion ?? 1,
+            conditions: input.conditions,
+            actionType: input.actionType,
+            actionSchemaVersion: input.actionSchemaVersion ?? 1,
+            action: input.action,
+            limitSchemaVersion: input.limitSchemaVersion ?? 1,
+            limits: normalizeEarningLimits(input.limits),
+            stopProcessing: input.stopProcessing ?? false,
+          }),
+      );
       this.$ctx.loaders.earningRule.clear(rule.id).prime(rule.id, rule);
       this.$ctx.loaders.earningRulesByVersion.clear(versionId);
       return this.resolvers.earningRule(rule.id);
@@ -409,11 +518,27 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       const id = this.decodeId(input.earningRuleId, GlobalIdEntity.LoyaltyEarningRule);
       const changes: Record<string, unknown> = {};
       copyDefined(changes, input, [
-        "name", "priority", "triggerType", "triggerSchemaVersion", "triggerConfig",
-        "conditionSchemaVersion", "conditions", "actionType", "actionSchemaVersion",
-        "action", "limitSchemaVersion", "limits", "stopProcessing",
+        "name",
+        "priority",
+        "triggerType",
+        "triggerSchemaVersion",
+        "triggerConfig",
+        "conditionSchemaVersion",
+        "conditions",
+        "actionType",
+        "actionSchemaVersion",
+        "action",
+        "limitSchemaVersion",
+        "limits",
+        "stopProcessing",
       ]);
-      const rule = await this.configMutation("earningRuleUpdate", input, "EARNING_RULE", (resultId) => this.$ctx.kernel.repository.earningRule.findById(resultId), () => this.programs.updateEarningRule(id, changes as never));
+      const rule = await this.configMutation(
+        "earningRuleUpdate",
+        input,
+        "EARNING_RULE",
+        (resultId) => this.$ctx.kernel.repository.earningRule.findById(resultId),
+        () => this.programs.updateEarningRule(id, changes as never),
+      );
       this.$ctx.loaders.earningRule.clear(rule.id).prime(rule.id, rule);
       this.$ctx.loaders.earningRulesByVersion.clear(rule.programVersionId);
       return this.resolvers.earningRule(rule.id);
@@ -428,10 +553,16 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       (id) => this.$ctx.kernel.repository.earningRule.findById(id),
     );
     return this.deleteResult(input.earningRuleId, GlobalIdEntity.LoyaltyEarningRule, async (id) => {
-      await this.configMutation("earningRuleDelete", input, "DELETED_EARNING_RULE", async () => ({ id }), async () => {
-        await this.programs.deleteEarningRule(id);
-        return { id };
-      });
+      await this.configMutation(
+        "earningRuleDelete",
+        input,
+        "DELETED_EARNING_RULE",
+        async () => ({ id }),
+        async () => {
+          await this.programs.deleteEarningRule(id);
+          return { id };
+        },
+      );
       this.$ctx.loaders.earningRule.clear(id);
       if (current) this.$ctx.loaders.earningRulesByVersion.clear(current.programVersionId);
     });
@@ -441,7 +572,13 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async rewardDefinitionCreate({ input }: LoyaltyMutationRewardDefinitionCreateArgs) {
     return this.result("rewardDefinition", async () => {
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
-      const definition = await this.configMutation("rewardDefinitionCreate", input, "REWARD_DEFINITION", (id) => this.$ctx.kernel.repository.reward.findDefinitionById(id), () => this.programs.createRewardDefinition(versionId, rewardDefinitionInput(input)));
+      const definition = await this.configMutation(
+        "rewardDefinitionCreate",
+        input,
+        "REWARD_DEFINITION",
+        (id) => this.$ctx.kernel.repository.reward.findDefinitionById(id),
+        () => this.programs.createRewardDefinition(versionId, rewardDefinitionInput(input)),
+      );
       this.$ctx.loaders.rewardDefinition.clear(definition.id).prime(definition.id, definition);
       this.$ctx.loaders.rewardDefinitionsByVersion.clear(versionId);
       return this.resolvers.rewardDefinition(definition.id);
@@ -453,13 +590,28 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     return this.result("rewardDefinition", async () => {
       const id = this.decodeId(input.rewardDefinitionId, GlobalIdEntity.LoyaltyRewardDefinition);
       const changes: Record<string, unknown> = {};
-      copyDefined(changes, input, ["name", "rewardType", "configurationSchemaVersion", "configuration"]);
+      copyDefined(changes, input, [
+        "name",
+        "rewardType",
+        "configurationSchemaVersion",
+        "configuration",
+      ]);
       nullableChange(changes, input, "validityDays", "clearValidityDays", (value) => value);
       nullableChange(changes, input, "startsAt", "clearStartsAt", (value) => value);
       nullableChange(changes, input, "endsAt", "clearEndsAt", (value) => value);
-      nullableChange(changes, input, "issuanceLimit", "clearIssuanceLimit", (value) => BigInt(value));
-      nullableChange(changes, input, "perAccountLimit", "clearPerAccountLimit", (value) => BigInt(value));
-      const definition = await this.configMutation("rewardDefinitionUpdate", input, "REWARD_DEFINITION", (resultId) => this.$ctx.kernel.repository.reward.findDefinitionById(resultId), () => this.programs.updateRewardDefinition(id, changes as never));
+      nullableChange(changes, input, "issuanceLimit", "clearIssuanceLimit", (value) =>
+        BigInt(value),
+      );
+      nullableChange(changes, input, "perAccountLimit", "clearPerAccountLimit", (value) =>
+        BigInt(value),
+      );
+      const definition = await this.configMutation(
+        "rewardDefinitionUpdate",
+        input,
+        "REWARD_DEFINITION",
+        (resultId) => this.$ctx.kernel.repository.reward.findDefinitionById(resultId),
+        () => this.programs.updateRewardDefinition(id, changes as never),
+      );
       this.$ctx.loaders.rewardDefinition.clear(definition.id).prime(definition.id, definition);
       this.$ctx.loaders.rewardDefinitionsByVersion.clear(definition.programVersionId);
       return this.resolvers.rewardDefinition(definition.id);
@@ -473,31 +625,49 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       GlobalIdEntity.LoyaltyRewardDefinition,
       (id) => this.$ctx.kernel.repository.reward.findDefinitionById(id),
     );
-    return this.deleteResult(input.rewardDefinitionId, GlobalIdEntity.LoyaltyRewardDefinition, async (id) => {
-      await this.configMutation("rewardDefinitionDelete", input, "DELETED_REWARD_DEFINITION", async () => ({ id }), async () => {
-        await this.programs.deleteRewardDefinition(id);
-        return { id };
-      });
-      this.$ctx.loaders.rewardDefinition.clear(id);
-      if (current) this.$ctx.loaders.rewardDefinitionsByVersion.clear(current.programVersionId);
-    });
+    return this.deleteResult(
+      input.rewardDefinitionId,
+      GlobalIdEntity.LoyaltyRewardDefinition,
+      async (id) => {
+        await this.configMutation(
+          "rewardDefinitionDelete",
+          input,
+          "DELETED_REWARD_DEFINITION",
+          async () => ({ id }),
+          async () => {
+            await this.programs.deleteRewardDefinition(id);
+            return { id };
+          },
+        );
+        this.$ctx.loaders.rewardDefinition.clear(id);
+        if (current) this.$ctx.loaders.rewardDefinitionsByVersion.clear(current.programVersionId);
+      },
+    );
   }
 
   @ZodResolver(LoyaltyTierPolicyUpsertInputSchema())
   async tierPolicyUpsert({ input }: LoyaltyMutationTierPolicyUpsertArgs) {
     return this.result("tierPolicy", async () => {
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
-      const policy = await this.configMutation("tierPolicyUpsert", input, "TIER_POLICY", (id) => this.$ctx.kernel.repository.tier.getPoliciesByIds([id]).then((rows) => rows[0] ?? null), () => this.programs.upsertTierPolicy(versionId, {
-        windowType: input.windowType,
-        rollingWindowDays: input.rollingWindowDays ?? null,
-        calendarPeriod: input.calendarPeriod ?? null,
-        programYearStartsMonth: input.programYearStartsMonth ?? null,
-        membershipDurationDays: input.membershipDurationDays ?? null,
-        gracePeriodDays: input.gracePeriodDays ?? 0,
-        downgradePolicy: input.downgradePolicy ?? "IMMEDIATE",
-        requalificationPolicy: input.requalificationPolicy ?? "AUTOMATIC",
-        metricSchemaVersion: input.metricSchemaVersion ?? 1,
-      }));
+      const policy = await this.configMutation(
+        "tierPolicyUpsert",
+        input,
+        "TIER_POLICY",
+        (id) =>
+          this.$ctx.kernel.repository.tier.getPoliciesByIds([id]).then((rows) => rows[0] ?? null),
+        () =>
+          this.programs.upsertTierPolicy(versionId, {
+            windowType: input.windowType,
+            rollingWindowDays: input.rollingWindowDays ?? null,
+            calendarPeriod: input.calendarPeriod ?? null,
+            programYearStartsMonth: input.programYearStartsMonth ?? null,
+            membershipDurationDays: input.membershipDurationDays ?? null,
+            gracePeriodDays: input.gracePeriodDays ?? 0,
+            downgradePolicy: input.downgradePolicy ?? "IMMEDIATE",
+            requalificationPolicy: input.requalificationPolicy ?? "AUTOMATIC",
+            metricSchemaVersion: input.metricSchemaVersion ?? 1,
+          }),
+      );
       this.$ctx.loaders.tierPolicy.clear(policy.id).prime(policy.id, policy);
       this.$ctx.loaders.tierPolicyByVersion.clear(versionId);
       return this.resolvers.tierPolicy(policy.id);
@@ -509,13 +679,22 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     try {
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
       const policy = await this.$ctx.kernel.repository.tier.findPolicy(versionId);
-      const deleted = await this.configMutation("tierPolicyDelete", input, "DELETED_TIER_POLICY", async (id) => ({ id }), async () => {
-        await this.programs.deleteTierPolicy(versionId);
-        return { id: policy?.id ?? versionId };
-      });
+      const deleted = await this.configMutation(
+        "tierPolicyDelete",
+        input,
+        "DELETED_TIER_POLICY",
+        async (id) => ({ id }),
+        async () => {
+          await this.programs.deleteTierPolicy(versionId);
+          return { id: policy?.id ?? versionId };
+        },
+      );
       this.$ctx.loaders.tierPolicyByVersion.clear(versionId);
       if (policy) this.$ctx.loaders.tierPolicy.clear(policy.id);
-      return { deletedId: this.encodeId(deleted.id, GlobalIdEntity.LoyaltyTierPolicy), userErrors: [] };
+      return {
+        deletedId: this.encodeId(deleted.id, GlobalIdEntity.LoyaltyTierPolicy),
+        userErrors: [],
+      };
     } catch (error) {
       return { deletedId: null, userErrors: [this.toUserError(error, "tierPolicyDelete")] };
     }
@@ -525,14 +704,21 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async tierCreate({ input }: LoyaltyMutationTierCreateArgs) {
     return this.result("tier", async () => {
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
-      const tier = await this.configMutation("tierCreate", input, "TIER", (id) => this.$ctx.kernel.repository.tier.findTierById(id), () => this.programs.createTier(versionId, {
-        code: input.code,
-        name: input.name,
-        rank: input.rank,
-        qualificationSchemaVersion: input.qualificationSchemaVersion ?? 1,
-        qualification: input.qualification,
-        maintenance: input.maintenance ?? null,
-      }));
+      const tier = await this.configMutation(
+        "tierCreate",
+        input,
+        "TIER",
+        (id) => this.$ctx.kernel.repository.tier.findTierById(id),
+        () =>
+          this.programs.createTier(versionId, {
+            code: input.code,
+            name: input.name,
+            rank: input.rank,
+            qualificationSchemaVersion: input.qualificationSchemaVersion ?? 1,
+            qualification: input.qualification,
+            maintenance: input.maintenance ?? null,
+          }),
+      );
       this.$ctx.loaders.tier.clear(tier.id).prime(tier.id, tier);
       this.$ctx.loaders.tiersByVersion.clear(versionId);
       return this.resolvers.tier(tier.id);
@@ -546,7 +732,13 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       const changes: Record<string, unknown> = {};
       copyDefined(changes, input, ["name", "rank", "qualificationSchemaVersion", "qualification"]);
       nullableChange(changes, input, "maintenance", "clearMaintenance", (value) => value);
-      const tier = await this.configMutation("tierUpdate", input, "TIER", (resultId) => this.$ctx.kernel.repository.tier.findTierById(resultId), () => this.programs.updateTier(id, changes as never));
+      const tier = await this.configMutation(
+        "tierUpdate",
+        input,
+        "TIER",
+        (resultId) => this.$ctx.kernel.repository.tier.findTierById(resultId),
+        () => this.programs.updateTier(id, changes as never),
+      );
       this.$ctx.loaders.tier.clear(tier.id).prime(tier.id, tier);
       this.$ctx.loaders.tiersByVersion.clear(tier.programVersionId);
       return this.resolvers.tier(tier.id);
@@ -555,16 +747,20 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
 
   @ZodResolver(LoyaltyTierDeleteInputSchema())
   async tierDelete({ input }: LoyaltyMutationTierDeleteArgs) {
-    const current = await this.loadForDelete(
-      input.tierId,
-      GlobalIdEntity.LoyaltyTier,
-      (id) => this.$ctx.kernel.repository.tier.findTierById(id),
+    const current = await this.loadForDelete(input.tierId, GlobalIdEntity.LoyaltyTier, (id) =>
+      this.$ctx.kernel.repository.tier.findTierById(id),
     );
     return this.deleteResult(input.tierId, GlobalIdEntity.LoyaltyTier, async (id) => {
-      await this.configMutation("tierDelete", input, "DELETED_TIER", async () => ({ id }), async () => {
-        await this.programs.deleteTier(id);
-        return { id };
-      });
+      await this.configMutation(
+        "tierDelete",
+        input,
+        "DELETED_TIER",
+        async () => ({ id }),
+        async () => {
+          await this.programs.deleteTier(id);
+          return { id };
+        },
+      );
       this.$ctx.loaders.tier.clear(id);
       this.$ctx.loaders.tierRewardBenefits.clear(id);
       if (current) this.$ctx.loaders.tiersByVersion.clear(current.programVersionId);
@@ -574,12 +770,22 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   @ZodResolver(LoyaltyTierRewardBenefitCreateInputSchema())
   async tierRewardBenefitCreate({ input }: LoyaltyMutationTierRewardBenefitCreateArgs) {
     return this.result("tierRewardBenefit", async () => {
-      const benefit = await this.configMutation("tierRewardBenefitCreate", input, "TIER_REWARD_BENEFIT", (id) => this.$ctx.kernel.repository.reward.findTierBenefitById(id), () => this.programs.createTierRewardBenefit({
-        tierId: this.decodeId(input.tierId, GlobalIdEntity.LoyaltyTier),
-        rewardDefinitionId: this.decodeId(input.rewardDefinitionId, GlobalIdEntity.LoyaltyRewardDefinition),
-        grantPolicySchemaVersion: input.grantPolicySchemaVersion ?? 1,
-        grantPolicy: input.grantPolicy ?? { type: "ON_QUALIFICATION" },
-      }));
+      const benefit = await this.configMutation(
+        "tierRewardBenefitCreate",
+        input,
+        "TIER_REWARD_BENEFIT",
+        (id) => this.$ctx.kernel.repository.reward.findTierBenefitById(id),
+        () =>
+          this.programs.createTierRewardBenefit({
+            tierId: this.decodeId(input.tierId, GlobalIdEntity.LoyaltyTier),
+            rewardDefinitionId: this.decodeId(
+              input.rewardDefinitionId,
+              GlobalIdEntity.LoyaltyRewardDefinition,
+            ),
+            grantPolicySchemaVersion: input.grantPolicySchemaVersion ?? 1,
+            grantPolicy: input.grantPolicy ?? { type: "ON_QUALIFICATION" },
+          }),
+      );
       this.$ctx.loaders.tierRewardBenefit.clear(benefit.id).prime(benefit.id, benefit);
       this.$ctx.loaders.tierRewardBenefits.clear(benefit.tierId);
       return this.resolvers.tierRewardBenefit(benefit.id);
@@ -593,14 +799,24 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       GlobalIdEntity.LoyaltyTierRewardBenefit,
       (id) => this.$ctx.kernel.repository.reward.findTierBenefitById(id),
     );
-    return this.deleteResult(input.tierRewardBenefitId, GlobalIdEntity.LoyaltyTierRewardBenefit, async (id) => {
-      await this.configMutation("tierRewardBenefitDelete", input, "DELETED_TIER_REWARD_BENEFIT", async () => ({ id }), async () => {
-        await this.programs.deleteTierRewardBenefit(id);
-        return { id };
-      });
-      this.$ctx.loaders.tierRewardBenefit.clear(id);
-      if (current) this.$ctx.loaders.tierRewardBenefits.clear(current.tierId);
-    });
+    return this.deleteResult(
+      input.tierRewardBenefitId,
+      GlobalIdEntity.LoyaltyTierRewardBenefit,
+      async (id) => {
+        await this.configMutation(
+          "tierRewardBenefitDelete",
+          input,
+          "DELETED_TIER_REWARD_BENEFIT",
+          async () => ({ id }),
+          async () => {
+            await this.programs.deleteTierRewardBenefit(id);
+            return { id };
+          },
+        );
+        this.$ctx.loaders.tierRewardBenefit.clear(id);
+        if (current) this.$ctx.loaders.tierRewardBenefits.clear(current.tierId);
+      },
+    );
   }
 
   @ZodResolver(LoyaltyTierEvaluateInputSchema())
@@ -608,12 +824,22 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     return this.result("tierMembership", async () => {
       const accountId = this.decodeId(input.accountId, GlobalIdEntity.LoyaltyAccount);
       const account = await this.$ctx.kernel.repository.account.findById(accountId);
-      if (!account) throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
+      if (!account)
+        throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
       const effectiveAt = input.effectiveAt ?? new Date().toISOString();
       const versionId = input.programVersionId
         ? this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion)
-        : (await this.$ctx.kernel.repository.program.findEffectiveVersion(account.programId, effectiveAt))?.id;
-      if (!versionId) throw new LoyaltyDomainError("PROGRAM_VERSION_NOT_FOUND", "Effective loyalty program version was not found");
+        : (
+            await this.$ctx.kernel.repository.program.findEffectiveVersion(
+              account.programId,
+              effectiveAt,
+            )
+          )?.id;
+      if (!versionId)
+        throw new LoyaltyDomainError(
+          "PROGRAM_VERSION_NOT_FOUND",
+          "Effective loyalty program version was not found",
+        );
       const membership = await new TierEvaluationService(this.$ctx.kernel.repository).evaluate({
         account,
         programVersionId: versionId,
@@ -651,10 +877,14 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     return this.result("rewardEntitlement", async () => {
       const accountId = this.decodeId(input.accountId, GlobalIdEntity.LoyaltyAccount);
       const account = await this.$ctx.kernel.repository.account.findById(accountId);
-      if (!account) throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
+      if (!account)
+        throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
       const entitlement = await new RewardEntitlementService(this.$ctx.kernel.repository).issue({
         account,
-        definitionId: this.decodeId(input.rewardDefinitionId, GlobalIdEntity.LoyaltyRewardDefinition),
+        definitionId: this.decodeId(
+          input.rewardDefinitionId,
+          GlobalIdEntity.LoyaltyRewardDefinition,
+        ),
         quantity: BigInt(input.quantity ?? "1"),
         externalReference: input.externalReference ?? null,
         idempotencyKey: input.idempotencyKey,
@@ -681,21 +911,42 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async monetaryWalletStatusUpdate({ input }: LoyaltyMutationMonetaryWalletStatusUpdateArgs) {
     return this.result("monetaryWallet", async () => {
       const id = this.decodeId(input.walletId, GlobalIdEntity.LoyaltyMonetaryWallet);
-      if (input.status === "MERGED") throw new LoyaltyDomainError("INVALID_WALLET_STATUS", "MERGED is managed only by customer merge");
+      if (input.status === "MERGED")
+        throw new LoyaltyDomainError(
+          "INVALID_WALLET_STATUS",
+          "MERGED is managed only by customer merge",
+        );
       const current = await this.$ctx.kernel.repository.wallet.findById(id);
-      if (!current) throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
-      if (current.status === "MERGED") throw new LoyaltyDomainError("WALLET_MERGED", "Merged monetary wallets cannot change state");
+      if (!current)
+        throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
+      if (current.status === "MERGED")
+        throw new LoyaltyDomainError(
+          "WALLET_MERGED",
+          "Merged monetary wallets cannot change state",
+        );
       if (current.status === "CLOSED") {
         if (input.status === "CLOSED") return this.resolvers.monetaryWallet(id);
-        throw new LoyaltyDomainError("WALLET_CLOSED", "A closed monetary wallet cannot be reopened");
+        throw new LoyaltyDomainError(
+          "WALLET_CLOSED",
+          "A closed monetary wallet cannot be reopened",
+        );
       }
       if (current.status === input.status) return this.resolvers.monetaryWallet(id);
-      const wallet = await this.$ctx.kernel.repository.wallet.updateWalletState(id, input.expectedRevision, {
-        status: input.status,
-        mergedIntoWalletId: null,
-        closedAt: input.status === "CLOSED" ? new Date().toISOString() : null,
-      });
-      if (!wallet) throw new LoyaltyDomainError("WALLET_CONCURRENT_CHANGE", "Monetary wallet changed concurrently", true);
+      const wallet = await this.$ctx.kernel.repository.wallet.updateWalletState(
+        id,
+        input.expectedRevision,
+        {
+          status: input.status,
+          mergedIntoWalletId: null,
+          closedAt: input.status === "CLOSED" ? new Date().toISOString() : null,
+        },
+      );
+      if (!wallet)
+        throw new LoyaltyDomainError(
+          "WALLET_CONCURRENT_CHANGE",
+          "Monetary wallet changed concurrently",
+          true,
+        );
       this.$ctx.loaders.monetaryWallet.clear(id).prime(id, wallet);
       return this.resolvers.monetaryWallet(id);
     });
@@ -706,35 +957,66 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     try {
       const walletId = this.decodeId(input.walletId, GlobalIdEntity.LoyaltyMonetaryWallet);
       const wallet = await this.$ctx.kernel.repository.wallet.findById(walletId);
-      if (!wallet) throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
+      if (!wallet)
+        throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
       const amountMinor = BigInt(input.amountMinor);
-      if (amountMinor <= 0n) throw new LoyaltyDomainError("INVALID_MONETARY_AMOUNT", "Monetary adjustment must be positive");
+      if (amountMinor <= 0n)
+        throw new LoyaltyDomainError(
+          "INVALID_MONETARY_AMOUNT",
+          "Monetary adjustment must be positive",
+        );
       const occurredAt = input.occurredAt ?? new Date().toISOString();
       const requestHash = canonicalHash({ ...input, walletId });
       const service = new MonetaryWalletService(this.$ctx.kernel.repository);
-      const operation = input.direction === "CREDIT"
-        ? await service.credit({
-            wallet, programVersionId: null, kind: "ADJUST_CREDIT", sourceType: "ADMIN",
-            idempotencyKey: input.idempotencyKey, requestHash, actorType: "ADMIN_USER",
-            actorId: this.$ctx.user.id, reasonCode: input.reasonCode, occurredAt, effectiveAt: occurredAt,
-            amountMinor, activationAt: occurredAt, expiresAt: input.expiresAt ?? null,
-            metadata: input.metadata ?? {},
-          })
-        : await service.debitAvailableWithLots({
-            wallet, programVersionId: null, kind: "ADJUST_DEBIT", sourceType: "ADMIN",
-            idempotencyKey: input.idempotencyKey, requestHash, actorType: "ADMIN_USER",
-            actorId: this.$ctx.user.id, reasonCode: input.reasonCode, occurredAt, effectiveAt: occurredAt,
-            amountMinor, metadata: input.metadata ?? {},
-          });
+      const operation =
+        input.direction === "CREDIT"
+          ? await service.credit({
+              wallet,
+              programVersionId: null,
+              kind: "ADJUST_CREDIT",
+              sourceType: "ADMIN",
+              idempotencyKey: input.idempotencyKey,
+              requestHash,
+              actorType: "ADMIN_USER",
+              actorId: this.$ctx.user.id,
+              reasonCode: input.reasonCode,
+              occurredAt,
+              effectiveAt: occurredAt,
+              amountMinor,
+              activationAt: occurredAt,
+              expiresAt: input.expiresAt ?? null,
+              metadata: input.metadata ?? {},
+            })
+          : await service.debitAvailableWithLots({
+              wallet,
+              programVersionId: null,
+              kind: "ADJUST_DEBIT",
+              sourceType: "ADMIN",
+              idempotencyKey: input.idempotencyKey,
+              requestHash,
+              actorType: "ADMIN_USER",
+              actorId: this.$ctx.user.id,
+              reasonCode: input.reasonCode,
+              occurredAt,
+              effectiveAt: occurredAt,
+              amountMinor,
+              metadata: input.metadata ?? {},
+            });
       this.$ctx.loaders.monetaryWalletBalance.clear(walletId);
-      this.$ctx.loaders.monetaryTransaction.clear(operation.transaction.id).prime(operation.transaction.id, operation.transaction);
+      this.$ctx.loaders.monetaryTransaction
+        .clear(operation.transaction.id)
+        .prime(operation.transaction.id, operation.transaction);
       return {
         monetaryWallet: await this.resolvers.monetaryWallet(walletId),
         transaction: await this.resolvers.monetaryTransaction(operation.transaction.id),
         userErrors: [],
       };
     } catch (error) {
-      return { monetaryWallet: null, transaction: null, userErrors: [this.toUserError(error, "monetaryWalletAdjust")] };
+      return {
+        monetaryWallet: null,
+        transaction: null,
+        userErrors: [this.toUserError(error, "monetaryWalletAdjust")],
+      };
     }
   }
 
@@ -743,20 +1025,31 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     try {
       const accountId = this.decodeId(input.accountId, GlobalIdEntity.LoyaltyAccount);
       const account = await this.$ctx.kernel.repository.account.findById(accountId);
-      if (!account) throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
+      if (!account)
+        throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
       const occurredAt = input.occurredAt ?? new Date().toISOString();
-      const result = await new MonetaryWalletService(this.$ctx.kernel.repository).convertPointsToMoney({
+      const result = await new MonetaryWalletService(
+        this.$ctx.kernel.repository,
+      ).convertPointsToMoney({
         account,
         walletType: input.walletType,
-        programVersionId: this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion),
+        programVersionId: this.decodeId(
+          input.programVersionId,
+          GlobalIdEntity.LoyaltyProgramVersion,
+        ),
         currencyCode: input.currencyCode,
         points: BigInt(input.points),
         idempotencyKey: input.idempotencyKey,
         requestHash: canonicalHash({ ...input, accountId }),
         occurredAt,
       });
-      const wallet = await this.$ctx.kernel.repository.wallet.findForAccount(accountId, input.walletType, input.currencyCode);
-      if (!wallet) throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
+      const wallet = await this.$ctx.kernel.repository.wallet.findForAccount(
+        accountId,
+        input.walletType,
+        input.currencyCode,
+      );
+      if (!wallet)
+        throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
       this.$ctx.loaders.accountBalance.clear(accountId);
       this.$ctx.loaders.monetaryWalletBalance.clear(wallet.id);
       return {
@@ -768,26 +1061,38 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         userErrors: [],
       };
     } catch (error) {
-      return { account: null, monetaryWallet: null, pointsTransaction: null, monetaryTransaction: null, amount: null, userErrors: [this.toUserError(error, "pointsConvertToMonetary")] };
+      return {
+        account: null,
+        monetaryWallet: null,
+        pointsTransaction: null,
+        monetaryTransaction: null,
+        amount: null,
+        userErrors: [this.toUserError(error, "pointsConvertToMonetary")],
+      };
     }
   }
 
   @ZodResolver(LoyaltyMaintenanceRunInputSchema())
   async maintenanceRun({ input }: LoyaltyMutationMaintenanceRunArgs) {
     try {
-      const result = await this.$ctx.kernel.getServices().broker.runWorkflow("loyalty.maintenance", {
-        storeId: this.$ctx.store.id,
-        organizationId: this.$ctx.store.organizationId,
-        effectiveAt: input.effectiveAt,
-        limit: input.limit ?? 100,
-        rebuildBalances: input.rebuildBalances ?? false,
-      }, {
-        source: "content",
-        resourceId: this.$ctx.store.id,
-        operation: "loyaltyMaintenance",
-        content: input,
-        organizationId: this.$ctx.store.organizationId,
-      }, { adminContext: this.$ctx.adminContext });
+      const result = await this.$ctx.kernel.getServices().broker.runWorkflow(
+        "loyalty.maintenance",
+        {
+          storeId: this.$ctx.store.id,
+          organizationId: this.$ctx.store.organizationId,
+          effectiveAt: input.effectiveAt,
+          limit: input.limit ?? 100,
+          rebuildBalances: input.rebuildBalances ?? false,
+        },
+        {
+          source: "content",
+          resourceId: this.$ctx.store.id,
+          operation: "loyaltyMaintenance",
+          content: input,
+          organizationId: this.$ctx.store.organizationId,
+        },
+        { adminContext: this.$ctx.adminContext },
+      );
       return { result, userErrors: [] };
     } catch (error) {
       return { result: null, userErrors: [this.toUserError(error, "maintenanceRun")] };
@@ -799,16 +1104,24 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     try {
       const accountId = this.decodeId(input.accountId, GlobalIdEntity.LoyaltyAccount);
       const account = await this.$ctx.kernel.repository.account.findById(accountId);
-      if (!account) throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
+      if (!account)
+        throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
       await new PointsLedgerService(this.$ctx.kernel.repository).rebuildBalance(accountId);
       this.$ctx.loaders.accountBalance.clear(accountId);
       return {
         account: await this.resolvers.account(accountId),
-        balance: new (await import("./AccountResolvers.js")).LoyaltyAccountBalanceResolver(accountId, this.$ctx),
+        balance: new (await import("./AccountResolvers.js")).LoyaltyAccountBalanceResolver(
+          accountId,
+          this.$ctx,
+        ),
         userErrors: [],
       };
     } catch (error) {
-      return { account: null, balance: null, userErrors: [this.toUserError(error, "accountBalanceRebuild")] };
+      return {
+        account: null,
+        balance: null,
+        userErrors: [this.toUserError(error, "accountBalanceRebuild")],
+      };
     }
   }
 
@@ -817,17 +1130,23 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     return this.result("monetaryWallet", async () => {
       const walletId = this.decodeId(input.walletId, GlobalIdEntity.LoyaltyMonetaryWallet);
       const wallet = await this.$ctx.kernel.repository.wallet.findById(walletId);
-      if (!wallet) throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
+      if (!wallet)
+        throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
       await new MonetaryWalletService(this.$ctx.kernel.repository).rebuildBalance(walletId);
       this.$ctx.loaders.monetaryWalletBalance.clear(walletId);
       return this.resolvers.monetaryWallet(walletId);
     });
   }
 
-  private async rewardTransition(input: Record<string, any>, transition: { type: "RELEASE" | "REVOKE" }) {
+  private async rewardTransition(
+    input: Record<string, any>,
+    transition: { type: "RELEASE" | "REVOKE" },
+  ) {
     return this.result("rewardEntitlement", async () => {
       const id = this.decodeId(input.entitlementId, GlobalIdEntity.LoyaltyRewardEntitlement);
-      const entitlement = await new RewardEntitlementService(this.$ctx.kernel.repository).transition({
+      const entitlement = await new RewardEntitlementService(
+        this.$ctx.kernel.repository,
+      ).transition({
         entitlementId: id,
         expectedRevision: input.expectedRevision,
         transition,
@@ -843,7 +1162,11 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     });
   }
 
-  private async deleteResult(idValue: string, type: GlobalIdType, work: (id: string) => Promise<void>) {
+  private async deleteResult(
+    idValue: string,
+    type: GlobalIdType,
+    work: (id: string) => Promise<void>,
+  ) {
     try {
       const id = this.decodeId(idValue, type);
       await work(id);
@@ -880,16 +1203,28 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     work: () => Promise<T>,
   ): Promise<T> {
     const idempotencyKey = input.idempotencyKey.trim();
-    if (!idempotencyKey) throw new LoyaltyDomainError("INVALID_IDEMPOTENCY_KEY", "idempotencyKey must not be blank");
+    if (!idempotencyKey)
+      throw new LoyaltyDomainError("INVALID_IDEMPOTENCY_KEY", "idempotencyKey must not be blank");
     const requestHash = canonicalHash({ operation, input });
     return this.$ctx.kernel.repository.runInTransaction(async () => {
       await this.$ctx.kernel.repository.configMutation.lock(operation, idempotencyKey);
-      const previous = await this.$ctx.kernel.repository.configMutation.find(operation, idempotencyKey);
+      const previous = await this.$ctx.kernel.repository.configMutation.find(
+        operation,
+        idempotencyKey,
+      );
       if (previous) {
         this.$ctx.kernel.repository.configMutation.requireSameRequest(previous, requestHash);
-        if (!previous.resultId) throw new LoyaltyDomainError("IDEMPOTENCY_RESULT_MISSING", "Stored loyalty configuration result is incomplete");
+        if (!previous.resultId)
+          throw new LoyaltyDomainError(
+            "IDEMPOTENCY_RESULT_MISSING",
+            "Stored loyalty configuration result is incomplete",
+          );
         const restored = await load(previous.resultId);
-        if (!restored) throw new LoyaltyDomainError("IDEMPOTENCY_RESULT_MISSING", "Stored loyalty configuration result no longer exists");
+        if (!restored)
+          throw new LoyaltyDomainError(
+            "IDEMPOTENCY_RESULT_MISSING",
+            "Stored loyalty configuration result no longer exists",
+          );
         return restored;
       }
       const value = await work();
@@ -920,9 +1255,10 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       {
         requestId: this.$ctx.requestId,
         operation,
-        error: error instanceof Error
-          ? { name: error.name, message: error.message, stack: error.stack }
-          : { value: String(error) },
+        error:
+          error instanceof Error
+            ? { name: error.name, message: error.message, stack: error.stack }
+            : { value: String(error) },
       },
       "Loyalty Admin GraphQL mutation failed",
     );
@@ -935,13 +1271,18 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   }
 }
 
-function copyDefined(target: Record<string, unknown>, source: Record<string, any>, keys: readonly string[]): void {
-  for (const key of keys) if (source[key] !== undefined && source[key] !== null) target[key] = source[key];
+function copyDefined(
+  target: Record<string, unknown>,
+  source: Record<string, any>,
+  keys: readonly string[],
+): void {
+  for (const key of keys)
+    if (source[key] !== undefined && source[key] !== null) target[key] = source[key];
 }
 
 function normalizeEarningLimits(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && Object.keys(value).length > 0
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : { startsAt: null, endsAt: null, perEventMaxPoints: null, perAccount: null, campaign: null };
 }
 
@@ -953,7 +1294,8 @@ function nullableChange(
   map: (value: any) => unknown,
 ): void {
   if (source[clearKey]) target[valueKey] = null;
-  else if (source[valueKey] !== undefined && source[valueKey] !== null) target[valueKey] = map(source[valueKey]);
+  else if (source[valueKey] !== undefined && source[valueKey] !== null)
+    target[valueKey] = map(source[valueKey]);
 }
 
 function rewardDefinitionInput(input: Record<string, any>) {

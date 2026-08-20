@@ -77,11 +77,7 @@ describeIntegration("TransactionalStep DBOS integration", () => {
 
     expect(
       () =>
-        new PostgresDataSource(
-          `${workflowPrefix}-datasource`,
-          postgresOptionsFromUrl(url),
-          "dbos",
-        ),
+        new PostgresDataSource(`${workflowPrefix}-datasource`, postgresOptionsFromUrl(url), "dbos"),
     ).toThrow("already registered");
 
     const bridge = new PostgresDbosTransactionBridge<TransactionSql>(
@@ -151,19 +147,17 @@ describeIntegration("TransactionalStep DBOS integration", () => {
     const key = `success-${randomUUID()}`;
     const workflowId = `${workflowPrefix}-${randomUUID()}`;
 
-    await expect(
-      DBOS.withNextWorkflowID(workflowId, () => workflow(key, "success")),
-    ).resolves.toBe(1);
-    await expect(
-      DBOS.withNextWorkflowID(workflowId, () => workflow(key, "success")),
-    ).resolves.toBe(1);
+    await expect(DBOS.withNextWorkflowID(workflowId, () => workflow(key, "success"))).resolves.toBe(
+      1,
+    );
+    await expect(DBOS.withNextWorkflowID(workflowId, () => workflow(key, "success"))).resolves.toBe(
+      1,
+    );
 
     const rows = await client<{ value: number }[]>`
       SELECT value FROM transactional_step_integration_rows WHERE key = ${key}
     `;
-    const checkpoints = await client<
-      { output: string | null; error: string | null }[]
-    >`
+    const checkpoints = await client<{ output: string | null; error: string | null }[]>`
       SELECT output, error
       FROM dbos.transaction_completion
       WHERE workflow_id = ${workflowId} AND function_num = 0
@@ -191,9 +185,7 @@ describeIntegration("TransactionalStep DBOS integration", () => {
     const rows = await client`
       SELECT value FROM transactional_step_integration_rows WHERE key = ${key}
     `;
-    const checkpoints = await client<
-      { output: string | null; error: string | null }[]
-    >`
+    const checkpoints = await client<{ output: string | null; error: string | null }[]>`
       SELECT output, error
       FROM dbos.transaction_completion
       WHERE workflow_id = ${workflowId} AND function_num = 0
@@ -213,9 +205,7 @@ describeIntegration("TransactionalStep DBOS integration", () => {
     const workflowId = `${workflowPrefix}-${randomUUID()}`;
 
     await expect(
-      DBOS.withNextWorkflowID(workflowId, () =>
-        workflow(key, "serialization-retry"),
-      ),
+      DBOS.withNextWorkflowID(workflowId, () => workflow(key, "serialization-retry")),
     ).resolves.toBe(1);
 
     const rows = await client<{ value: number }[]>`

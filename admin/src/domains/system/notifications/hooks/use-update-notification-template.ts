@@ -2,10 +2,7 @@
 
 import { useMutation } from "@apollo/client/react";
 import type { ApiNotificationTemplateUpdateInput } from "@/graphql/types";
-import {
-  NOTIFICATION_TEMPLATE_QUERY,
-  NOTIFICATION_TEMPLATE_UPDATE_MUTATION,
-} from "../graphql";
+import { NOTIFICATION_TEMPLATE_QUERY, NOTIFICATION_TEMPLATE_UPDATE_MUTATION } from "../graphql";
 import type {
   NotificationTemplateUpdateMutationData,
   NotificationTemplateUpdateMutationVariables,

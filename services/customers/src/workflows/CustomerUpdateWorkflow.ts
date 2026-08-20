@@ -50,9 +50,7 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CustomerUpdateWorkflowInput
-  ): Promise<CustomerUpdateWorkflowResult> {
+  async run(input: CustomerUpdateWorkflowInput): Promise<CustomerUpdateWorkflowResult> {
     const validationResults = await this.stepValidateOperations(input);
     if (validationResults.some((result) => result.errors.length > 0)) {
       const rejectedResults = validationResults.map((result) => ({
@@ -65,10 +63,7 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
         userErrors: rejectedResults.flatMap((result) => result.errors),
       };
     }
-    const acquired = await this.stepAcquireRevision(
-      input.customerId,
-      input.expectedRevision
-    );
+    const acquired = await this.stepAcquireRevision(input.customerId, input.expectedRevision);
     if ("error" in acquired) {
       return {
         customer: null,
@@ -86,7 +81,7 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
         input.customerId,
         input.context.requestId,
         operation,
-        scriptContext
+        scriptContext,
       );
       const errors = prefixErrors(result.userErrors, operation);
       operationResults.push({
@@ -107,9 +102,8 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
       await this.stepReleaseRevision(input.customerId, acquired.revision);
     }
     return {
-      customer: userErrors.length === 0
-        ? { id: input.customerId, revision: acquired.revision }
-        : null,
+      customer:
+        userErrors.length === 0 ? { id: input.customerId, revision: acquired.revision } : null,
       operationResults,
       userErrors,
     };
@@ -131,9 +125,7 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
       ) {
         errors = validateCustomerPatch(operation.params);
         if (operation.type === "contactUpdate" && operation.params.email) {
-          const owner = await this.kernel.repository.customer.findByEmail(
-            operation.params.email,
-          );
+          const owner = await this.kernel.repository.customer.findByEmail(operation.params.email);
           if (owner && owner.id !== input.customerId) {
             errors.push({
               message: "A customer with this email already exists",
@@ -184,16 +176,11 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
   @WorkflowStep()
   private async stepAcquireRevision(
     customerId: string,
-    expectedRevision?: number
+    expectedRevision?: number,
   ): Promise<
-    | { revision: number }
-    | { error: { message: string; code: string; field?: string[] } }
+    { revision: number } | { error: { message: string; code: string; field?: string[] } }
   > {
-    const customer = await this.kernel.repository.customer.update(
-      customerId,
-      {},
-      expectedRevision
-    );
+    const customer = await this.kernel.repository.customer.update(customerId, {}, expectedRevision);
     if (customer) return { revision: customer.revision };
 
     const exists = await this.kernel.repository.customer.exists(customerId);
@@ -221,7 +208,7 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
     customerId: string,
     requestId: string,
     operation: CustomerUpdateOperation,
-    context: RunScriptContext
+    context: RunScriptContext,
   ): Promise<CustomerSectionResult> {
     switch (operation.type) {
       case "profileUpdate":
@@ -229,42 +216,17 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
       case "companyUpdate":
       case "noteUpdate":
       case "moderationUpdate":
-        return this.stepCustomerPatch(
-          customerId,
-          operation.params,
-          context
-        );
+        return this.stepCustomerPatch(customerId, operation.params, context);
       case "statusUpdate":
-        return this.stepCustomerPatch(
-          customerId,
-          statusPatch(operation.params),
-          context
-        );
+        return this.stepCustomerPatch(customerId, statusPatch(operation.params), context);
       case "addressUpdate":
-        return this.stepAddressesUpdate(
-          customerId,
-          operation.params,
-          context
-        );
+        return this.stepAddressesUpdate(customerId, operation.params, context);
       case "consentUpdate":
-        return this.stepConsentsUpdate(
-          customerId,
-          requestId,
-          operation.params,
-          context
-        );
+        return this.stepConsentsUpdate(customerId, requestId, operation.params, context);
       case "taxIdentifierUpdate":
-        return this.stepTaxIdentifiersUpdate(
-          customerId,
-          operation.params,
-          context
-        );
+        return this.stepTaxIdentifiersUpdate(customerId, operation.params, context);
       case "taxExemptionUpdate":
-        return this.stepTaxExemptionsUpdate(
-          customerId,
-          operation.params,
-          context
-        );
+        return this.stepTaxExemptionsUpdate(customerId, operation.params, context);
       case "groupUpdate":
         return this.stepGroupsUpdate(customerId, operation.params, context);
       case "tagUpdate":
@@ -275,31 +237,20 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep()
-  private stepCustomerPatch(
-    customerId: string,
-    patch: CustomerPatch,
-    context: RunScriptContext
-  ) {
-    return this.kernel.runScript(
-      CustomerPatchScript,
-      { customerId, patch },
-      context
-    );
+  private stepCustomerPatch(customerId: string, patch: CustomerPatch, context: RunScriptContext) {
+    return this.kernel.runScript(CustomerPatchScript, { customerId, patch }, context);
   }
 
   @WorkflowStep()
   private stepAddressesUpdate(
     customerId: string,
-    operations: Extract<
-      CustomerUpdateOperation,
-      { type: "addressUpdate" }
-    >["params"],
-    context: RunScriptContext
+    operations: Extract<CustomerUpdateOperation, { type: "addressUpdate" }>["params"],
+    context: RunScriptContext,
   ) {
     return this.kernel.runScript(
       CustomerAddressesUpdateScript,
       { customerId, operations },
-      context
+      context,
     );
   }
 
@@ -307,102 +258,72 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
   private stepConsentsUpdate(
     customerId: string,
     requestId: string,
-    operations: Extract<
-      CustomerUpdateOperation,
-      { type: "consentUpdate" }
-    >["params"],
-    context: RunScriptContext
+    operations: Extract<CustomerUpdateOperation, { type: "consentUpdate" }>["params"],
+    context: RunScriptContext,
   ) {
     return this.kernel.runScript(
       CustomerConsentsUpdateScript,
       { customerId, operations, requestId },
-      context
+      context,
     );
   }
 
   @WorkflowStep()
   private stepTaxIdentifiersUpdate(
     customerId: string,
-    operations: Extract<
-      CustomerUpdateOperation,
-      { type: "taxIdentifierUpdate" }
-    >["params"],
-    context: RunScriptContext
+    operations: Extract<CustomerUpdateOperation, { type: "taxIdentifierUpdate" }>["params"],
+    context: RunScriptContext,
   ) {
     return this.kernel.runScript(
       CustomerTaxIdentifiersUpdateScript,
       { customerId, operations },
-      context
+      context,
     );
   }
 
   @WorkflowStep()
   private stepTaxExemptionsUpdate(
     customerId: string,
-    operations: Extract<
-      CustomerUpdateOperation,
-      { type: "taxExemptionUpdate" }
-    >["params"],
-    context: RunScriptContext
+    operations: Extract<CustomerUpdateOperation, { type: "taxExemptionUpdate" }>["params"],
+    context: RunScriptContext,
   ) {
     return this.kernel.runScript(
       CustomerTaxExemptionsUpdateScript,
       { customerId, operations },
-      context
+      context,
     );
   }
 
   @WorkflowStep()
   private stepGroupsUpdate(
     customerId: string,
-    operations: Extract<
-      CustomerUpdateOperation,
-      { type: "groupUpdate" }
-    >["params"],
-    context: RunScriptContext
+    operations: Extract<CustomerUpdateOperation, { type: "groupUpdate" }>["params"],
+    context: RunScriptContext,
   ) {
-    return this.kernel.runScript(
-      CustomerGroupsUpdateScript,
-      { customerId, operations },
-      context
-    );
+    return this.kernel.runScript(CustomerGroupsUpdateScript, { customerId, operations }, context);
   }
 
   @WorkflowStep()
   private stepTagsUpdate(
     customerId: string,
-    operations: Extract<
-      CustomerUpdateOperation,
-      { type: "tagUpdate" }
-    >["params"],
-    context: RunScriptContext
+    operations: Extract<CustomerUpdateOperation, { type: "tagUpdate" }>["params"],
+    context: RunScriptContext,
   ) {
-    return this.kernel.runScript(
-      CustomerTagsUpdateScript,
-      { customerId, operations },
-      context
-    );
+    return this.kernel.runScript(CustomerTagsUpdateScript, { customerId, operations }, context);
   }
 
   @WorkflowStep()
   private stepSegmentsUpdate(
     customerId: string,
-    operations: Extract<
-      CustomerUpdateOperation,
-      { type: "segmentUpdate" }
-    >["params"],
-    context: RunScriptContext
+    operations: Extract<CustomerUpdateOperation, { type: "segmentUpdate" }>["params"],
+    context: RunScriptContext,
   ) {
-    return this.kernel.runScript(
-      CustomerSegmentsUpdateScript,
-      { customerId, operations },
-      context
-    );
+    return this.kernel.runScript(CustomerSegmentsUpdateScript, { customerId, operations }, context);
   }
 
   private async workflowEmitEvent(
     input: CustomerUpdateWorkflowInput,
-    reasons: CustomerUpdatedReason[]
+    reasons: CustomerUpdatedReason[],
   ): Promise<void> {
     await this.broker.runWorkflow(
       "events.emit",
@@ -418,9 +339,7 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
           userId: input.context.userId,
         },
         subject: { type: "customer", id: input.customerId },
-        actor: input.context.userId
-          ? { type: "user", id: input.context.userId }
-          : undefined,
+        actor: input.context.userId ? { type: "user", id: input.context.userId } : undefined,
         emitKey: `customer:${input.customerId}`,
       },
       {
@@ -428,14 +347,12 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
         workflowId: DBOS.workflowID!,
         stepId: "emitCustomerUpdated",
         callId: input.customerId,
-      }
+      },
     );
   }
 }
 
-function toScriptContext(
-  context: CustomerUpdateWorkflowContext
-): RunScriptContext {
+function toScriptContext(context: CustomerUpdateWorkflowContext): RunScriptContext {
   return {
     storeId: context.storeId,
     organizationId: context.organizationId,
@@ -446,44 +363,36 @@ function toScriptContext(
 }
 
 function statusPatch(
-  params: Extract<
-    CustomerUpdateOperation,
-    { type: "statusUpdate" }
-  >["params"]
+  params: Extract<CustomerUpdateOperation, { type: "statusUpdate" }>["params"],
 ): CustomerPatch {
   return {
     lifecycleStatus: params.status,
-    blockedReason:
-      params.status === "BLOCKED" ? params.blockedReason?.trim() || null : null,
+    blockedReason: params.status === "BLOCKED" ? params.blockedReason?.trim() || null : null,
   };
 }
 
 function certificateReferences(
-  operations: Extract<
-    CustomerUpdateOperation,
-    { type: "taxExemptionUpdate" }
-  >["params"],
+  operations: Extract<CustomerUpdateOperation, { type: "taxExemptionUpdate" }>["params"],
 ): Array<{ fileId: string; field: string[] }> {
   return [
     ...operations.create.flatMap((input, index) =>
       input.certificateFileId
-        ? [{
-            fileId: input.certificateFileId,
-            field: ["create", String(index), "certificateFileId"],
-          }]
+        ? [
+            {
+              fileId: input.certificateFileId,
+              field: ["create", String(index), "certificateFileId"],
+            },
+          ]
         : [],
     ),
     ...operations.update.flatMap((input, index) =>
       input.operations.certificateFileId
-        ? [{
-            fileId: input.operations.certificateFileId,
-            field: [
-              "update",
-              String(index),
-              "operations",
-              "certificateFileId",
-            ],
-          }]
+        ? [
+            {
+              fileId: input.operations.certificateFileId,
+              field: ["update", String(index), "operations", "certificateFileId"],
+            },
+          ]
         : [],
     ),
   ];
@@ -491,7 +400,7 @@ function certificateReferences(
 
 function prefixErrors(
   errors: CustomerSectionResult["userErrors"],
-  operation: CustomerUpdateOperation
+  operation: CustomerUpdateOperation,
 ) {
   return errors.map((error) => ({
     ...error,
@@ -501,9 +410,7 @@ function prefixErrors(
   }));
 }
 
-function reasonForOperation(
-  operation: CustomerUpdateOperation
-): CustomerUpdatedReason {
+function reasonForOperation(operation: CustomerUpdateOperation): CustomerUpdatedReason {
   const reasons: Record<CustomerUpdateOperation["type"], CustomerUpdatedReason> = {
     profileUpdate: "profile",
     contactUpdate: "contact",
@@ -522,9 +429,7 @@ function reasonForOperation(
   return reasons[operation.type];
 }
 
-function sortReasons(
-  reasons: ReadonlySet<CustomerUpdatedReason>
-): CustomerUpdatedReason[] {
+function sortReasons(reasons: ReadonlySet<CustomerUpdatedReason>): CustomerUpdatedReason[] {
   const order: CustomerUpdatedReason[] = [
     "profile",
     "contact",

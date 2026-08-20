@@ -37,11 +37,7 @@ export interface PricingDiscountFunctionBinding {
 export type PricingDiscountCalculationStrategy =
   | Readonly<{
       type: "NATIVE";
-      ruleKind:
-        | "AMOUNT_OFF_PRODUCTS"
-        | "BUY_X_GET_Y"
-        | "AMOUNT_OFF_ORDER"
-        | "FREE_SHIPPING";
+      ruleKind: "AMOUNT_OFF_PRODUCTS" | "BUY_X_GET_Y" | "AMOUNT_OFF_ORDER" | "FREE_SHIPPING";
     }>
   | Readonly<{
       type: "FUNCTION";
@@ -50,24 +46,28 @@ export type PricingDiscountCalculationStrategy =
 
 export interface PricingDiscountFunctionBindingPort {
   /** Load active Pricing-owned bindings in stable execution order. */
-  listActive(input: Readonly<{
-    storeId: string;
-    target: PricingDiscountFunctionTarget;
-    discountIds: readonly string[];
-  }>): Promise<Readonly<{
-    bindingSetRevision: string;
-    bindings: readonly PricingDiscountFunctionBinding[];
-  }>>;
+  listActive(
+    input: Readonly<{
+      storeId: string;
+      target: PricingDiscountFunctionTarget;
+      discountIds: readonly string[];
+    }>,
+  ): Promise<
+    Readonly<{
+      bindingSetRevision: string;
+      bindings: readonly PricingDiscountFunctionBinding[];
+    }>
+  >;
 }
 
 export interface PricingDiscountOwnerResolutionPort {
-  resolveLineOwners(input: PricingLineDiscountFunctionInput): Promise<
-    readonly PricingResolvedDiscountOwnerSnapshot[]
-  >;
+  resolveLineOwners(
+    input: PricingLineDiscountFunctionInput,
+  ): Promise<readonly PricingResolvedDiscountOwnerSnapshot[]>;
 
-  resolveDeliveryOwners(input: PricingDeliveryDiscountFunctionInput): Promise<
-    readonly PricingResolvedDiscountOwnerSnapshot[]
-  >;
+  resolveDeliveryOwners(
+    input: PricingDeliveryDiscountFunctionInput,
+  ): Promise<readonly PricingResolvedDiscountOwnerSnapshot[]>;
 }
 
 const identifierSchema = z.string().trim().min(1).max(256);
@@ -93,7 +93,10 @@ export const pricingDiscountFunctionContextSchema = z
     buyer: z
       .object({
         customerId: identifierSchema.nullable(),
-        countryCode: z.string().regex(/^[A-Z]{2}$/).nullable(),
+        countryCode: z
+          .string()
+          .regex(/^[A-Z]{2}$/)
+          .nullable(),
         marketId: identifierSchema.nullable(),
         companyId: identifierSchema.nullable(),
         segmentIds: identifiersSchema,
@@ -115,11 +118,7 @@ export const pricingDiscountFunctionContextSchema = z
         message: "Guest buyer cannot have customer segment membership",
       });
     }
-    if (
-      buyer !== null &&
-      buyer.customerId !== null &&
-      buyer.segmentMembershipRevision === null
-    ) {
+    if (buyer !== null && buyer.customerId !== null && buyer.segmentMembershipRevision === null) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["buyer", "segmentMembershipRevision"],
@@ -191,35 +190,30 @@ const adjustmentValueSchema = z.discriminatedUnion("type", [
     .strict(),
 ]);
 
-export const pricingLineDiscountCandidateSchema = z.discriminatedUnion(
-  "discountClass",
-  [
-    z
-      .object({
-        candidateId: identifierSchema,
-        discountClass: z.literal("PRODUCT"),
-        title: z.string().trim().min(1).max(255),
-        targets: z
-          .object({ type: z.literal("LINES"), lineIds: identifiersSchema.min(1) })
-          .strict(),
-        value: adjustmentValueSchema,
-        allocationMethod: z.enum(["EACH", "ACROSS"]),
-        maximumDiscount: moneySchema.nullable(),
-      })
-      .strict(),
-    z
-      .object({
-        candidateId: identifierSchema,
-        discountClass: z.literal("ORDER"),
-        title: z.string().trim().min(1).max(255),
-        targets: z.object({ type: z.literal("ORDER") }).strict(),
-        value: adjustmentValueSchema,
-        allocationMethod: z.literal("ACROSS"),
-        maximumDiscount: moneySchema.nullable(),
-      })
-      .strict(),
-  ],
-);
+export const pricingLineDiscountCandidateSchema = z.discriminatedUnion("discountClass", [
+  z
+    .object({
+      candidateId: identifierSchema,
+      discountClass: z.literal("PRODUCT"),
+      title: z.string().trim().min(1).max(255),
+      targets: z.object({ type: z.literal("LINES"), lineIds: identifiersSchema.min(1) }).strict(),
+      value: adjustmentValueSchema,
+      allocationMethod: z.enum(["EACH", "ACROSS"]),
+      maximumDiscount: moneySchema.nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      candidateId: identifierSchema,
+      discountClass: z.literal("ORDER"),
+      title: z.string().trim().min(1).max(255),
+      targets: z.object({ type: z.literal("ORDER") }).strict(),
+      value: adjustmentValueSchema,
+      allocationMethod: z.literal("ACROSS"),
+      maximumDiscount: moneySchema.nullable(),
+    })
+    .strict(),
+]);
 
 export const pricingLineDiscountFunctionOutputSchema = z
   .object({
@@ -262,10 +256,7 @@ export const pricingDeliveryDiscountCandidateSchema = z
     discountClass: z.literal("SHIPPING"),
     title: z.string().trim().min(1).max(255),
     groupIds: identifiersSchema.min(1),
-    value: z.union([
-      adjustmentValueSchema,
-      z.object({ type: z.literal("FREE") }).strict(),
-    ]),
+    value: z.union([adjustmentValueSchema, z.object({ type: z.literal("FREE") }).strict()]),
     maximumShippingPrice: moneySchema.nullable(),
   })
   .strict();
@@ -280,9 +271,7 @@ export const pricingDeliveryDiscountFunctionOutputSchema = z
 export type PricingLineDiscountFunctionInput = z.infer<
   typeof pricingLineDiscountFunctionInputSchema
 >;
-export type PricingLineDiscountCandidate = z.infer<
-  typeof pricingLineDiscountCandidateSchema
->;
+export type PricingLineDiscountCandidate = z.infer<typeof pricingLineDiscountCandidateSchema>;
 export type PricingLineDiscountFunctionOutput = z.infer<
   typeof pricingLineDiscountFunctionOutputSchema
 >;
@@ -307,15 +296,19 @@ export interface PricingDiscountFunctionRunnerPort {
 }
 
 export interface PricingDiscountApplicatorPort {
-  applyLineCandidates(input: Readonly<{
-    functionInput: PricingLineDiscountFunctionInput;
-    candidates: readonly PricingLineDiscountCandidateEnvelope[];
-  }>): Promise<PricingLineDiscountApplicationResult>;
+  applyLineCandidates(
+    input: Readonly<{
+      functionInput: PricingLineDiscountFunctionInput;
+      candidates: readonly PricingLineDiscountCandidateEnvelope[];
+    }>,
+  ): Promise<PricingLineDiscountApplicationResult>;
 
-  applyDeliveryCandidates(input: Readonly<{
-    functionInput: PricingDeliveryDiscountFunctionInput;
-    candidates: readonly PricingDeliveryDiscountCandidateEnvelope[];
-  }>): Promise<PricingDeliveryDiscountApplicationResult>;
+  applyDeliveryCandidates(
+    input: Readonly<{
+      functionInput: PricingDeliveryDiscountFunctionInput;
+      candidates: readonly PricingDeliveryDiscountCandidateEnvelope[];
+    }>,
+  ): Promise<PricingDeliveryDiscountApplicationResult>;
 }
 
 export interface PricingResolvedDiscountOwnerSnapshot {

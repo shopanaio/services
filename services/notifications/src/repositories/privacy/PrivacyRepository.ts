@@ -1,15 +1,4 @@
-import {
-  and,
-  eq,
-  inArray,
-  isNotNull,
-  isNull,
-  like,
-  lte,
-  notLike,
-  or,
-  sql,
-} from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, like, lte, notLike, or, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   notificationDeliveries,
@@ -34,8 +23,8 @@ export class PrivacyRepository extends BaseRepository {
       .where(
         and(
           eq(notificationRecipients.storeId, this.storeId),
-          eq(notificationRecipients.customerId, customerId)
-        )
+          eq(notificationRecipients.customerId, customerId),
+        ),
       );
     const occurrenceIds = [...new Set(occurrences.map(({ id }) => id))];
     if (occurrenceIds.length === 0) return 0;
@@ -46,8 +35,8 @@ export class PrivacyRepository extends BaseRepository {
       .where(
         and(
           eq(notificationDeliveries.storeId, this.storeId),
-          inArray(notificationDeliveries.occurrenceId, occurrenceIds)
-        )
+          inArray(notificationDeliveries.occurrenceId, occurrenceIds),
+        ),
       );
     await this.connection
       .update(notificationRecipients)
@@ -64,8 +53,8 @@ export class PrivacyRepository extends BaseRepository {
       .where(
         and(
           eq(notificationRecipients.storeId, this.storeId),
-          eq(notificationRecipients.customerId, customerId)
-        )
+          eq(notificationRecipients.customerId, customerId),
+        ),
       );
     await this.connection
       .update(notificationOccurrences)
@@ -77,8 +66,8 @@ export class PrivacyRepository extends BaseRepository {
       .where(
         and(
           eq(notificationOccurrences.storeId, this.storeId),
-          inArray(notificationOccurrences.id, occurrenceIds)
-        )
+          inArray(notificationOccurrences.id, occurrenceIds),
+        ),
       );
     return occurrenceIds.length;
   }
@@ -97,21 +86,15 @@ export class PrivacyRepository extends BaseRepository {
           isNull(notificationOccurrences.piiPurgedAt),
           or(
             and(
-              like(
-                notificationOccurrences.definitionKey,
-                "customer.auth.%"
-              ),
-              lte(notificationOccurrences.createdAt, input.authenticationCutoff)
+              like(notificationOccurrences.definitionKey, "customer.auth.%"),
+              lte(notificationOccurrences.createdAt, input.authenticationCutoff),
             ),
             and(
-              notLike(
-                notificationOccurrences.definitionKey,
-                "customer.auth.%"
-              ),
-              lte(notificationOccurrences.createdAt, input.defaultCutoff)
-            )
-          )
-        )
+              notLike(notificationOccurrences.definitionKey, "customer.auth.%"),
+              lte(notificationOccurrences.createdAt, input.defaultCutoff),
+            ),
+          ),
+        ),
       )
       .limit(RETENTION_BATCH_SIZE);
     const occurrenceIds = occurrences.map(({ id }) => id);
@@ -136,8 +119,8 @@ export class PrivacyRepository extends BaseRepository {
         .where(
           and(
             inArray(notificationDeliveries.occurrenceId, occurrenceIds),
-            isNotNull(notificationDeliveries.renderedContent)
-          )
+            isNotNull(notificationDeliveries.renderedContent),
+          ),
         )
         .returning({ id: notificationDeliveries.id });
       renderedWithExpiredOccurrence = clearedDeliveries.length;
@@ -156,7 +139,7 @@ export class PrivacyRepository extends BaseRepository {
       .from(notificationDeliveries)
       .innerJoin(
         notificationOccurrences,
-        eq(notificationOccurrences.id, notificationDeliveries.occurrenceId)
+        eq(notificationOccurrences.id, notificationDeliveries.occurrenceId),
       )
       .where(
         and(
@@ -164,27 +147,15 @@ export class PrivacyRepository extends BaseRepository {
           isNotNull(notificationDeliveries.renderedContent),
           or(
             and(
-              like(
-                notificationOccurrences.definitionKey,
-                "customer.auth.%"
-              ),
-              lte(
-                notificationDeliveries.createdAt,
-                input.authenticationRenderedCutoff
-              )
+              like(notificationOccurrences.definitionKey, "customer.auth.%"),
+              lte(notificationDeliveries.createdAt, input.authenticationRenderedCutoff),
             ),
             and(
-              notLike(
-                notificationOccurrences.definitionKey,
-                "customer.auth.%"
-              ),
-              lte(
-                notificationDeliveries.createdAt,
-                input.defaultRenderedCutoff
-              )
-            )
-          )
-        )
+              notLike(notificationOccurrences.definitionKey, "customer.auth.%"),
+              lte(notificationDeliveries.createdAt, input.defaultRenderedCutoff),
+            ),
+          ),
+        ),
       )
       .limit(RETENTION_BATCH_SIZE);
     const renderedIds = rendered.map(({ id }) => id);
@@ -200,25 +171,19 @@ export class PrivacyRepository extends BaseRepository {
       .where(
         and(
           eq(webhookStoreSecretVersions.active, false),
-          lte(
-            webhookStoreSecretVersions.graceExpiresAt,
-            new Date().toISOString()
-          )
-        )
+          lte(webhookStoreSecretVersions.graceExpiresAt, new Date().toISOString()),
+        ),
       )
       .returning({ id: webhookStoreSecretVersions.id });
 
     return {
       occurrencesPurged: occurrenceIds.length,
-      renderedDeliveriesPurged:
-        renderedWithExpiredOccurrence + renderedIds.length,
+      renderedDeliveriesPurged: renderedWithExpiredOccurrence + renderedIds.length,
       webhookSecretsPurged: expiredSecrets.length,
     };
   }
 
   private redactedSnapshot(reason: string): string {
-    return this.protection.encrypt(
-      JSON.stringify({ redacted: true, reason })
-    );
+    return this.protection.encrypt(JSON.stringify({ redacted: true, reason }));
   }
 }

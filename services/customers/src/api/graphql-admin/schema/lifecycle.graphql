@@ -20,7 +20,9 @@ enum CustomerDataRequestStatus {
   CANCELLED
 }
 
-"""Idempotent workflow that merges one customer profile into another."""
+"""
+Idempotent workflow that merges one customer profile into another.
+"""
 type CustomerMerge implements Node {
   id: ID!
   sourceCustomer: Customer!
@@ -50,7 +52,9 @@ type CustomerMergeEdge {
   cursor: String!
 }
 
-"""Auditable privacy access, export, correction or erasure workflow."""
+"""
+Auditable privacy access, export, correction or erasure workflow.
+"""
 type CustomerDataRequest implements Node {
   id: ID!
   customer: Customer!
@@ -88,7 +92,9 @@ input CustomerMergeCreateInput {
   reason: String
 }
 
-"""Update merge metadata or either customer relation before processing starts."""
+"""
+Update merge metadata or either customer relation before processing starts.
+"""
 input CustomerMergeUpdateInput {
   sourceCustomerId: ID
   targetCustomerId: ID
@@ -111,7 +117,9 @@ input CustomerDataRequestCancelOperationInput {
   reason: String
 }
 
-"""Update request metadata, its customer relation, or cancel the workflow."""
+"""
+Update request metadata, its customer relation, or cancel the workflow.
+"""
 input CustomerDataRequestUpdateInput {
   customerId: ID
   type: CustomerDataRequestType

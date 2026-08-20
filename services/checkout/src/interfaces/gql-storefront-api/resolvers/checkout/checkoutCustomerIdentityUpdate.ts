@@ -16,32 +16,28 @@ import { createValidated } from "@src/utils/validation";
 export const checkoutCustomerIdentityUpdate = async (
   _parent: ApiMutation,
   args: ApiMutationCheckoutCustomerIdentityUpdateArgs,
-  ctx: GraphQLContext
+  ctx: GraphQLContext,
 ) => {
   const { checkoutUsecase, logger } = App.getInstance();
 
   try {
-    const dto = createValidated(
-      CheckoutCustomerIdentityUpdateInput,
-      args.input
-    );
+    const dto = createValidated(CheckoutCustomerIdentityUpdateInput, args.input);
 
-    const checkout =
-      await checkoutUsecase.updateCustomerIdentity.execute({
-        checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
-        email: dto.email,
-        customerId: dto.customerId, // Already decoded by validator
-        phone: dto.phone,
-        countryCode: dto.countryCode,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        middleName: dto.middleName,
+    const checkout = await checkoutUsecase.updateCustomerIdentity.execute({
+      checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
+      email: dto.email,
+      customerId: dto.customerId, // Already decoded by validator
+      phone: dto.phone,
+      countryCode: dto.countryCode,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      middleName: dto.middleName,
       storefrontAccess: ctx.storefrontAccess,
       visitorId: ctx.visitorId,
-        store: ctx.store,
-        customer: ctx.customer,
-        user: ctx.user,
-      });
+      store: ctx.store,
+      customer: ctx.customer,
+      user: ctx.user,
+    });
     return { checkout: mapCommittedCheckoutToApi(checkout), userErrors: [] };
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);

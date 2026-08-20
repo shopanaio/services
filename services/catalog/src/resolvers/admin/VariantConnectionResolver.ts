@@ -14,11 +14,10 @@ export type VariantConnectionInput = VariantRelayInput & {
   warehouseId?: string;
 };
 
-export type WarehouseAssignableVariantConnectionInput =
-  WarehouseAssignableVariantRelayInput & {
-    empty?: boolean;
-    warehouseId: string;
-  };
+export type WarehouseAssignableVariantConnectionInput = WarehouseAssignableVariantRelayInput & {
+  empty?: boolean;
+  warehouseId: string;
+};
 
 const EMPTY_PAGE_INFO: PageInfo = {
   hasNextPage: false,
@@ -49,16 +48,11 @@ export class VariantConnectionResolver extends BaseConnectionResolver<VariantCon
     if (warehouseId) {
       return this.$ctx.kernel
         .getServices()
-        .repository.variant.getWarehouseAssignableConnection(
-          warehouseId,
-          args
-        );
+        .repository.variant.getWarehouseAssignableConnection(warehouseId, args);
     }
 
     if (!productId) {
-      return this.$ctx.kernel
-        .getServices()
-        .repository.variant.getConnection(args);
+      return this.$ctx.kernel.getServices().repository.variant.getConnection(args);
     }
 
     return this.$ctx.kernel
@@ -82,7 +76,7 @@ export class WarehouseAssignableVariantConnectionResolver extends BaseConnection
       .getServices()
       .repository.variant.getWarehouseAssignableConnection(
         warehouseId,
-        args as WarehouseAssignableVariantRelayInput
+        args as WarehouseAssignableVariantRelayInput,
       );
   }
 

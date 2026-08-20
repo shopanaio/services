@@ -6,11 +6,7 @@ import { Input, Tooltip } from "antd";
 import { LuCircleHelp as InfoCircleOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
 import type { ICreateOrganizationModalPayload } from "../../modals";
 
@@ -97,7 +93,7 @@ export const CreateOrganizationModal = () => {
         setIsSubmitting(false);
       }
     },
-    [typedPayload, pop]
+    [typedPayload, pop],
   );
 
   return (
@@ -150,9 +146,7 @@ export const CreateOrganizationModal = () => {
               <div className={styles.label}>
                 Slug
                 <Tooltip title="URL-friendly identifier. Auto-generated from name if left empty.">
-                  <InfoCircleOutlined
-                    style={{ color: "var(--ant-color-text-secondary)" }}
-                  />
+                  <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
                 </Tooltip>
               </div>
               <Controller

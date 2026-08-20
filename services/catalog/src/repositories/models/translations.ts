@@ -1,11 +1,4 @@
-import {
-  uuid,
-  varchar,
-  text,
-  jsonb,
-  primaryKey,
-  index,
-} from "drizzle-orm/pg-core";
+import { uuid, varchar, text, jsonb, primaryKey, index } from "drizzle-orm/pg-core";
 import { catalogSchema, localeCodeEnum } from "./schema";
 import { product, variant } from "./products";
 import { productOption, productOptionValue } from "./options";
@@ -42,17 +35,14 @@ export const productTranslation = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.productId, table.locale] }),
     index("idx_product_translation_store").on(table.storeId),
-    index("idx_product_translation_store_locale").on(
-      table.storeId,
-      table.locale
-    ),
+    index("idx_product_translation_store_locale").on(table.storeId, table.locale),
     index("idx_product_translation_listing_name").on(
       table.storeId,
       table.locale,
       table.name,
-      table.productId
+      table.productId,
     ),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -75,7 +65,7 @@ export const variantTranslation = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.variantId, table.locale] }),
     index("idx_variant_translation_store").on(table.storeId),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -98,7 +88,7 @@ export const productOptionTranslation = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.optionId, table.locale] }),
     index("idx_product_option_translation_store").on(table.storeId),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -121,7 +111,7 @@ export const productOptionValueTranslation = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.optionValueId, table.locale] }),
     index("idx_product_option_value_translation_store").on(table.storeId),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -143,7 +133,7 @@ export const productFeatureTranslation = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.featureId, table.locale] }),
     index("idx_product_feature_translation_store").on(table.storeId),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -165,7 +155,7 @@ export const productFeatureValueTranslation = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.featureValueId, table.locale] }),
     index("idx_product_feature_value_translation_store").on(table.storeId),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -182,22 +172,14 @@ export type NewProductTranslation = typeof productTranslation.$inferInsert;
 export type VariantTranslation = typeof variantTranslation.$inferSelect;
 export type NewVariantTranslation = typeof variantTranslation.$inferInsert;
 
-export type ProductOptionTranslation =
-  typeof productOptionTranslation.$inferSelect;
-export type NewProductOptionTranslation =
-  typeof productOptionTranslation.$inferInsert;
+export type ProductOptionTranslation = typeof productOptionTranslation.$inferSelect;
+export type NewProductOptionTranslation = typeof productOptionTranslation.$inferInsert;
 
-export type ProductOptionValueTranslation =
-  typeof productOptionValueTranslation.$inferSelect;
-export type NewProductOptionValueTranslation =
-  typeof productOptionValueTranslation.$inferInsert;
+export type ProductOptionValueTranslation = typeof productOptionValueTranslation.$inferSelect;
+export type NewProductOptionValueTranslation = typeof productOptionValueTranslation.$inferInsert;
 
-export type ProductFeatureTranslation =
-  typeof productFeatureTranslation.$inferSelect;
-export type NewProductFeatureTranslation =
-  typeof productFeatureTranslation.$inferInsert;
+export type ProductFeatureTranslation = typeof productFeatureTranslation.$inferSelect;
+export type NewProductFeatureTranslation = typeof productFeatureTranslation.$inferInsert;
 
-export type ProductFeatureValueTranslation =
-  typeof productFeatureValueTranslation.$inferSelect;
-export type NewProductFeatureValueTranslation =
-  typeof productFeatureValueTranslation.$inferInsert;
+export type ProductFeatureValueTranslation = typeof productFeatureValueTranslation.$inferSelect;
+export type NewProductFeatureValueTranslation = typeof productFeatureValueTranslation.$inferInsert;

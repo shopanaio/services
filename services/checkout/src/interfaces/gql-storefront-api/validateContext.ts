@@ -1,11 +1,6 @@
 import { GraphQLError } from "graphql";
 import { Type } from "class-transformer";
-import {
-  IsDefined,
-  IsNotEmpty,
-  IsString,
-  ValidateNested,
-} from "class-validator";
+import { IsDefined, IsNotEmpty, IsString, ValidateNested } from "class-validator";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { createValidated } from "@src/utils/validation";
 
@@ -33,9 +28,7 @@ class GraphQLContextDto {
   storefrontAccess!: GraphQLContext["storefrontAccess"];
 }
 
-export function validateGraphQLContext(
-  ctx: Partial<GraphQLContext>
-): GraphQLContext {
+export function validateGraphQLContext(ctx: Partial<GraphQLContext>): GraphQLContext {
   try {
     createValidated(GraphQLContextDto, ctx);
     return ctx as GraphQLContext;

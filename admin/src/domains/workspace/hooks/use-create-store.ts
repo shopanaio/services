@@ -3,21 +3,11 @@
 import { useMutation } from "@apollo/client/react";
 import { useCallback } from "react";
 import { CREATE_STORE_MUTATION, STORES_QUERY } from "../graphql";
-import type {
-  ApiStoreCreateInput,
-  ApiStore,
-  ApiGenericUserError,
-} from "@/graphql/types";
+import type { ApiStoreCreateInput, ApiStore, ApiGenericUserError } from "@/graphql/types";
 
 type CreatedStore = Pick<
   ApiStore,
-  | "id"
-  | "revision"
-  | "name"
-  | "displayName"
-  | "status"
-  | "currencyCode"
-  | "createdAt"
+  "id" | "revision" | "name" | "displayName" | "status" | "currencyCode" | "createdAt"
 >;
 
 interface CreateStoreResult {
@@ -103,7 +93,7 @@ export function useCreateStore(): UseCreateStoreReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

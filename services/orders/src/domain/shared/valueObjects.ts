@@ -1,9 +1,6 @@
 // Value Objects and validators for domain invariants
 
-import {
-  DeliveryMethodType,
-  ShippingPaymentModel,
-} from "@shopana/shared-service-api";
+import { DeliveryMethodType, ShippingPaymentModel } from "@shopana/shared-service-api";
 import { Money } from "@shopana/shared-money";
 
 export type CurrencyCode = string & { readonly __brand: "CurrencyCode" };
@@ -41,17 +38,15 @@ export type Address = {
 };
 
 export function assertCurrencyCode(
-  value: string | null | undefined
+  value: string | null | undefined,
 ): asserts value is CurrencyCode {
   if (!value || !/^[A-Z]{3}$/.test(value)) {
-    throw new Error(
-      "Invalid currency code: must be ISO-4217, 3 uppercase letters"
-    );
+    throw new Error("Invalid currency code: must be ISO-4217, 3 uppercase letters");
   }
 }
 
 export function assertOptionalCurrencyCode(
-  value: string | null | undefined
+  value: string | null | undefined,
 ): asserts value is CurrencyCode | null | undefined {
   if (value == null) return;
   assertCurrencyCode(value);
@@ -63,16 +58,14 @@ export function normalizeCurrencyCode(value: string): CurrencyCode {
   return upper as CurrencyCode;
 }
 
-export function assertFxRatePositive(
-  value: number | null | undefined
-): asserts value is FxRate {
+export function assertFxRatePositive(value: number | null | undefined): asserts value is FxRate {
   if (value == null || !(value > 0)) {
     throw new Error("Invalid FX rate: must be a positive number");
   }
 }
 
 export function assertIdempotencyKey(
-  value: string | null | undefined
+  value: string | null | undefined,
 ): asserts value is IdempotencyKey {
   if (!value || typeof value !== "string") {
     throw new Error("Invalid idempotencyKey: required");
@@ -85,7 +78,7 @@ export function assertIdempotencyKey(
 
 export function normalizeSalesChannel(
   value: string | null | undefined,
-  fallback: string = "web"
+  fallback: string = "web",
 ): SalesChannel {
   const candidate = (value ?? fallback).trim();
   if (candidate.length === 0) {
@@ -95,23 +88,14 @@ export function normalizeSalesChannel(
 }
 
 export const vo: {
-  assertCurrencyCode: (
-    value: string | null | undefined
-  ) => asserts value is CurrencyCode;
+  assertCurrencyCode: (value: string | null | undefined) => asserts value is CurrencyCode;
   assertOptionalCurrencyCode: (
-    value: string | null | undefined
+    value: string | null | undefined,
   ) => asserts value is CurrencyCode | null | undefined;
   normalizeCurrencyCode: (value: string) => CurrencyCode;
-  assertFxRatePositive: (
-    value: number | null | undefined
-  ) => asserts value is FxRate;
-  assertIdempotencyKey: (
-    value: string | null | undefined
-  ) => asserts value is IdempotencyKey;
-  normalizeSalesChannel: (
-    value: string | null | undefined,
-    fallback?: string
-  ) => SalesChannel;
+  assertFxRatePositive: (value: number | null | undefined) => asserts value is FxRate;
+  assertIdempotencyKey: (value: string | null | undefined) => asserts value is IdempotencyKey;
+  normalizeSalesChannel: (value: string | null | undefined, fallback?: string) => SalesChannel;
 } = {
   assertCurrencyCode,
   assertOptionalCurrencyCode,

@@ -32,16 +32,14 @@ const ALLOWED_PATHS = ["/onboarding", "/sign-out"];
  * - Allows access to onboarding and sign-out routes
  * - Blocks access to all other protected routes until profile is complete
  */
-export function ProfileCompletionGuard({
-  children,
-}: ProfileCompletionGuardProps) {
+export function ProfileCompletionGuard({ children }: ProfileCompletionGuardProps) {
   const { styles } = useStyles();
   const router = useRouter();
   const pathname = usePathname();
   const { user, isLoading } = useSession();
 
   const isAllowedPath = ALLOWED_PATHS.some(
-    (path) => pathname === path || pathname?.startsWith(`${path}/`)
+    (path) => pathname === path || pathname?.startsWith(`${path}/`),
   );
 
   // Only show loading on initial load (no cached user data yet)

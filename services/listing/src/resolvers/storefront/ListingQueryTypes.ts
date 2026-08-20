@@ -26,9 +26,7 @@ export interface ProductConnectionInput {
   sort?: ListingSort | null;
 }
 
-export function globalProductsInput(
-  args: QueryProductsArgs
-): ProductConnectionInput {
+export function globalProductsInput(args: QueryProductsArgs): ProductConnectionInput {
   return {
     entryPoint: "products",
     first: args.first,
@@ -38,9 +36,7 @@ export function globalProductsInput(
   };
 }
 
-export function searchProductsInput(
-  args: QuerySearchProductsArgs
-): ProductConnectionInput {
+export function searchProductsInput(args: QuerySearchProductsArgs): ProductConnectionInput {
   return {
     entryPoint: "search",
     query: args.query,
@@ -53,7 +49,7 @@ export function searchProductsInput(
 
 export function categoryProductsInput(
   categoryId: string,
-  args: CategoryProductsArgs
+  args: CategoryProductsArgs,
 ): ProductConnectionInput {
   return {
     entryPoint: "category",

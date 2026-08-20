@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useMemo,
-  useCallback,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useMemo, useCallback, type ReactNode } from "react";
 import type { ParamData } from "path-to-regexp";
 
 // ============================================================================
@@ -59,10 +53,7 @@ export interface PathParamsProviderProps {
  * </PathParamsProvider>
  * ```
  */
-export function PathParamsProvider({
-  children,
-  pathParams,
-}: PathParamsProviderProps) {
+export function PathParamsProvider({ children, pathParams }: PathParamsProviderProps) {
   const resolvePath = useCallback(
     (pattern: string): string => {
       return pattern.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, (match, key) => {
@@ -74,7 +65,7 @@ export function PathParamsProvider({
         return match;
       });
     },
-    [pathParams]
+    [pathParams],
   );
 
   const getParam = useCallback(
@@ -82,7 +73,7 @@ export function PathParamsProvider({
       const value = pathParams[key];
       return typeof value === "string" ? value : undefined;
     },
-    [pathParams]
+    [pathParams],
   );
 
   const value = useMemo<PathParamsContextValue>(
@@ -91,14 +82,10 @@ export function PathParamsProvider({
       resolvePath,
       getParam,
     }),
-    [pathParams, resolvePath, getParam]
+    [pathParams, resolvePath, getParam],
   );
 
-  return (
-    <PathParamsContext.Provider value={value}>
-      {children}
-    </PathParamsContext.Provider>
-  );
+  return <PathParamsContext.Provider value={value}>{children}</PathParamsContext.Provider>;
 }
 
 // ============================================================================

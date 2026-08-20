@@ -21,9 +21,8 @@ type AuthorValues = Pick<
 function buildAuthor(values: AuthorValues): ApiReviewContentAuthorCreateInput {
   return {
     type: values.authorType,
-    customerId: values.authorType === ReviewContentAuthorType.Customer
-      ? values.customerId || null
-      : null,
+    customerId:
+      values.authorType === ReviewContentAuthorType.Customer ? values.customerId || null : null,
     displayName: values.authorDisplayName.trim(),
     email: values.authorEmail.trim() || null,
   };
@@ -38,15 +37,16 @@ function buildAnswerAuthor(
 ): ApiReviewContentAuthorCreateInput {
   return {
     type: answer.authorType,
-    customerId: answer.authorType === ReviewContentAuthorType.Customer
-      ? answer.customerId || null
-      : null,
+    customerId:
+      answer.authorType === ReviewContentAuthorType.Customer ? answer.customerId || null : null,
     displayName: answer.authorName.trim(),
     email: answer.authorEmail.trim() || null,
   };
 }
 
-export function buildQuestionCreateInput(values: QuestionFormValues): ApiProductQuestionCreateInput {
+export function buildQuestionCreateInput(
+  values: QuestionFormValues,
+): ApiProductQuestionCreateInput {
   return {
     productId: values.productId,
     content: {
@@ -77,7 +77,9 @@ export function buildQuestionCreateAnswers(
   }));
 }
 
-export function buildQuestionUpdateInput(values: QuestionFormValues): ApiProductQuestionUpdateInput {
+export function buildQuestionUpdateInput(
+  values: QuestionFormValues,
+): ApiProductQuestionUpdateInput {
   return {
     content: {
       text: { body: values.body.trim(), locale: values.locale.trim() },
@@ -102,7 +104,7 @@ export function buildQuestionAnswerMutationPlan(
   question: ApiProductQuestion,
 ): QuestionAnswerMutationPlan {
   const currentAnswers = question.answers.edges.map((edge) => edge.node);
-  const submittedIds = new Set(values.answers.flatMap((answer) => answer.id ? [answer.id] : []));
+  const submittedIds = new Set(values.answers.flatMap((answer) => (answer.id ? [answer.id] : [])));
   const create: ApiProductQuestionAnswerCreateOperationInput[] = [];
   const update: QuestionAnswerMutationPlan["update"] = [];
 
@@ -174,9 +176,10 @@ const fieldMap: Record<string, FieldPath<QuestionFormValues>> = {
 export function mapQuestionUserErrors(errors: ApiGenericUserError[]) {
   return errors.map((error) => {
     const path = error.field?.join(".") ?? "";
-    const field = Object.entries(fieldMap).find(
-      ([apiPath]) => path === apiPath || path.endsWith(`.${apiPath}`),
-    )?.[1] ?? null;
+    const field =
+      Object.entries(fieldMap).find(
+        ([apiPath]) => path === apiPath || path.endsWith(`.${apiPath}`),
+      )?.[1] ?? null;
     return { field, message: error.message };
   });
 }

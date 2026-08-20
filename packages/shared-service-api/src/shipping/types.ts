@@ -1,7 +1,4 @@
-import {
-  DeliveryMethodType,
-  ShippingPaymentModel,
-} from "@shopana/checkout-sdk";
+import { DeliveryMethodType, ShippingPaymentModel } from "@shopana/checkout-sdk";
 
 export { DeliveryMethodType, ShippingPaymentModel };
 

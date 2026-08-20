@@ -48,20 +48,14 @@ export const CURRENCY_ROUNDING_MODE_LABELS: Record<CurrencyRoundingMode, string>
   [CurrencyRoundingMode.HalfEven]: "Half even",
 };
 
-export const CURRENCY_TRAILING_ZERO_LABELS: Record<
-  CurrencyTrailingZeroDisplay,
-  string
-> = {
+export const CURRENCY_TRAILING_ZERO_LABELS: Record<CurrencyTrailingZeroDisplay, string> = {
   [CurrencyTrailingZeroDisplay.Auto]: "Auto",
   [CurrencyTrailingZeroDisplay.StripIfInteger]: "Strip if integer",
 };
 
 export const formatCurrencyName = (currencyCode: CurrencyCode) => {
   try {
-    return (
-      new Intl.DisplayNames(["en"], { type: "currency" }).of(currencyCode) ??
-      currencyCode
-    );
+    return new Intl.DisplayNames(["en"], { type: "currency" }).of(currencyCode) ?? currencyCode;
   } catch {
     return currencyCode;
   }
@@ -92,10 +86,7 @@ export const getCurrencyOptions = () =>
 export const toIntlOptionValue = <T extends string>(value: T) =>
   value.toLowerCase().replaceAll(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
 
-export const formatCurrencyPreview = (
-  values: StoreCurrencyFormValues,
-  amount = 1249,
-) => {
+export const formatCurrencyPreview = (values: StoreCurrencyFormValues, amount = 1249) => {
   try {
     return new Intl.NumberFormat(undefined, {
       style: "currency",

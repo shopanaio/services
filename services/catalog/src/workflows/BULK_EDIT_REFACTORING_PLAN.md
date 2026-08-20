@@ -2,8 +2,10 @@
 
 ## Цель
 
-1. **Переделать GraphQL API** — изменить существующий `productBulkUpdate` чтобы фронтенд отправлял input в формате `productWorkflowUpdate`, но для нескольких продуктов
-2. **Переписать ProductBulkEditWorkflow** — использовать `ProductUpdateWorkflow` вместо отдельных операций
+1. **Переделать GraphQL API** — изменить существующий `productBulkUpdate` чтобы фронтенд отправлял
+   input в формате `productWorkflowUpdate`, но для нескольких продуктов
+2. **Переписать ProductBulkEditWorkflow** — использовать `ProductUpdateWorkflow` вместо отдельных
+   операций
 
 **ВАЖНО:** Это breaking change для фронтенда. Фронтенд должен быть обновлён одновременно с бэкендом.
 
@@ -22,6 +24,7 @@ input ProductBulkUpdateInput {
 ```
 
 **Проблемы:**
+
 - Плоские массивы по типу операции
 - Нет группировки по продукту
 - Разные типы инпутов для bulk и single update
@@ -30,23 +33,32 @@ input ProductBulkUpdateInput {
 
 ```graphql
 input ProductBulkUpdateInput {
-  """Список продуктов для обновления."""
+  """
+  Список продуктов для обновления.
+  """
   products: [ProductBulkUpdateItem!]!
 }
 
 input ProductBulkUpdateItem {
-  """ID продукта."""
+  """
+  ID продукта.
+  """
   productId: ID!
 
-  """Ожидаемая ревизия для optimistic locking (опционально)."""
+  """
+  Ожидаемая ревизия для optimistic locking (опционально).
+  """
   expectedRevision: Int
 
-  """Операции для этого продукта."""
+  """
+  Операции для этого продукта.
+  """
   operations: [ProductUpdateOperationInput!]!
 }
 ```
 
 **Преимущества:**
+
 - Тот же формат операций что и в `productWorkflowUpdate`
 - Группировка по продукту на стороне фронта
 - Поддержка optimistic locking per product
@@ -63,6 +75,7 @@ input ProductBulkUpdateItem {
 **Файл:** `services/inventory/src/api/graphql-admin/schema/bulk.graphql`
 
 **Удалить:**
+
 ```graphql
 input ProductBulkUpdateInput {
   productUpdate: [ProductUpdateInput!]
@@ -79,22 +92,35 @@ input ProductUpdateStatusInput {
 ```
 
 **Добавить:**
+
 ```graphql
-"""Input for bulk update - same structure as productWorkflowUpdate but for multiple products."""
+"""
+Input for bulk update - same structure as productWorkflowUpdate but for multiple products.
+"""
 input ProductBulkUpdateInput {
-  """List of products to update with their operations."""
+  """
+  List of products to update with their operations.
+  """
   products: [ProductBulkUpdateItem!]!
 }
 
-"""A single product's update operations within a bulk request."""
+"""
+A single product's update operations within a bulk request.
+"""
 input ProductBulkUpdateItem {
-  """The product ID to update."""
+  """
+  The product ID to update.
+  """
   productId: ID!
 
-  """Expected revision for optimistic locking. If provided, fails if product was modified."""
+  """
+  Expected revision for optimistic locking. If provided, fails if product was modified.
+  """
   expectedRevision: Int
 
-  """Operations to perform on this product (same format as productWorkflowUpdate)."""
+  """
+  Operations to perform on this product (same format as productWorkflowUpdate).
+  """
   operations: [ProductUpdateOperationInput!]!
 }
 ```
@@ -119,6 +145,7 @@ productBulkUpdate(input: ProductBulkUpdateInput!): BulkEditJob!
 **Удалить:** `FlatOperation`, `ProductBulkEditInput` (старые типы)
 
 **Заменить на:**
+
 ```typescript
 import type { ProductUpdateOperation, WorkflowContext } from "./ProductUpdateWorkflowDto.js";
 
@@ -144,11 +171,13 @@ export interface ProductBulkUpdateItem {
 **Файл:** `services/inventory/src/resolvers/admin/MutationResolver.ts`
 
 **Удалить:**
+
 - `flattenBulkInput()` функцию
 - `collectVariantIds()` функцию
 - Старую логику в `productBulkUpdate`
 
 **Заменить на:**
+
 ```typescript
 @Mutation()
 async productBulkUpdate(
@@ -203,26 +232,29 @@ private mapOperationsForBulk(ops: ProductUpdateOperationInput[]): ProductUpdateO
 **Файл:** `services/inventory/src/resolvers/admin/validation/productBulkEditSchema.ts`
 
 **Заменить существующую схему:**
+
 ```typescript
 export const ProductBulkUpdateInputSchema = () =>
-  z.object({
-    products: z.array(
-      z.object({
-        productId: z.string(),
-        expectedRevision: z.number().int().optional(),
-        operations: z.array(ProductUpdateOperationInputSchema()),
-      })
-    )
-    .min(1, "At least one product required")
-    .max(100, "Maximum 100 products per request"),
-  })
-  .refine(
-    (input) => {
-      const totalOps = input.products.reduce((sum, p) => sum + p.operations.length, 0);
-      return totalOps <= 500;
-    },
-    { message: "Total operations exceed limit of 500" }
-  );
+  z
+    .object({
+      products: z
+        .array(
+          z.object({
+            productId: z.string(),
+            expectedRevision: z.number().int().optional(),
+            operations: z.array(ProductUpdateOperationInputSchema()),
+          }),
+        )
+        .min(1, "At least one product required")
+        .max(100, "Maximum 100 products per request"),
+    })
+    .refine(
+      (input) => {
+        const totalOps = input.products.reduce((sum, p) => sum + p.operations.length, 0);
+        return totalOps <= 500;
+      },
+      { message: "Total operations exceed limit of 500" },
+    );
 ```
 
 ---
@@ -309,9 +341,9 @@ interface CreateJobInput {
 
 ## Маппинг операций
 
-| GraphQL Input | Workflow Operation |
-|--------------|-------------------|
-| `{ productUpdate: { id, handle, title, content, seo, status, media } }` | `{ type: "productUpdate", params: {...} }` |
+| GraphQL Input                                                                      | Workflow Operation                         |
+| ---------------------------------------------------------------------------------- | ------------------------------------------ |
+| `{ productUpdate: { id, handle, title, content, seo, status, media } }`            | `{ type: "productUpdate", params: {...} }` |
 | `{ variantUpdate: { variantId, pricing, inventory, dimensions, media, options } }` | `{ type: "variantUpdate", params: {...} }` |
 
 **Примечание:** Используется тот же `ProductUpdateOperationInput` что и в `productWorkflowUpdate`.
@@ -320,16 +352,16 @@ interface CreateJobInput {
 
 ## Файлы для изменения
 
-| Файл | Действие |
-|------|----------|
-| `services/inventory/src/api/graphql-admin/schema/bulk.graphql` | Заменить `ProductBulkUpdateInput` на новый формат |
-| `services/inventory/src/workflows/dto/BulkEditWorkflowDto.ts` | Заменить DTO types |
-| `services/inventory/src/resolvers/admin/MutationResolver.ts` | Переписать `productBulkUpdate` метод |
-| `services/inventory/src/resolvers/admin/validation/productBulkEditSchema.ts` | Заменить validation schema |
-| `services/inventory/src/workflows/ProductBulkEditWorkflow.ts` | Основной рефакторинг |
-| `services/inventory/src/scripts/bulk-edit/BulkEditCreateJobScript.ts` | Новый input format |
-| `services/inventory/src/workflows/BulkEditOperationWorkflow.ts` | **Удалить** |
-| `services/inventory/src/workflows/index.ts` | Убрать экспорт `BulkEditOperationWorkflow` |
+| Файл                                                                         | Действие                                          |
+| ---------------------------------------------------------------------------- | ------------------------------------------------- |
+| `services/inventory/src/api/graphql-admin/schema/bulk.graphql`               | Заменить `ProductBulkUpdateInput` на новый формат |
+| `services/inventory/src/workflows/dto/BulkEditWorkflowDto.ts`                | Заменить DTO types                                |
+| `services/inventory/src/resolvers/admin/MutationResolver.ts`                 | Переписать `productBulkUpdate` метод              |
+| `services/inventory/src/resolvers/admin/validation/productBulkEditSchema.ts` | Заменить validation schema                        |
+| `services/inventory/src/workflows/ProductBulkEditWorkflow.ts`                | Основной рефакторинг                              |
+| `services/inventory/src/scripts/bulk-edit/BulkEditCreateJobScript.ts`        | Новый input format                                |
+| `services/inventory/src/workflows/BulkEditOperationWorkflow.ts`              | **Удалить**                                       |
+| `services/inventory/src/workflows/index.ts`                                  | Убрать экспорт `BulkEditOperationWorkflow`        |
 
 ---
 
@@ -337,24 +369,29 @@ interface CreateJobInput {
 
 ```graphql
 mutation BulkUpdate {
-  productBulkUpdate(input: {
-    products: [
-      {
-        productId: "gid://shopana/Product/123"
-        expectedRevision: 5
-        operations: [
-          { productUpdate: { id: "gid://shopana/Product/123", title: "New Title" } }
-          { variantUpdate: { variantId: "gid://shopana/Variant/456", pricing: { currency: UAH, amountMinor: 10000 } } }
-        ]
-      }
-      {
-        productId: "gid://shopana/Product/789"
-        operations: [
-          { productUpdate: { id: "gid://shopana/Product/789", status: PUBLISHED } }
-        ]
-      }
-    ]
-  }) {
+  productBulkUpdate(
+    input: {
+      products: [
+        {
+          productId: "gid://shopana/Product/123"
+          expectedRevision: 5
+          operations: [
+            { productUpdate: { id: "gid://shopana/Product/123", title: "New Title" } }
+            {
+              variantUpdate: {
+                variantId: "gid://shopana/Variant/456"
+                pricing: { currency: UAH, amountMinor: 10000 }
+              }
+            }
+          ]
+        }
+        {
+          productId: "gid://shopana/Product/789"
+          operations: [{ productUpdate: { id: "gid://shopana/Product/789", status: PUBLISHED } }]
+        }
+      ]
+    }
+  ) {
     id
     status
   }

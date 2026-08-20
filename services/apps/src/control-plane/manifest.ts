@@ -16,9 +16,7 @@ function canonicalize(value: unknown): unknown {
   return value;
 }
 
-export function snapshotManifest(
-  manifest: AppManifest,
-): AppManifestSnapshot {
+export function snapshotManifest(manifest: AppManifest): AppManifestSnapshot {
   const canonical = JSON.stringify(canonicalize(manifest));
   return {
     manifest,

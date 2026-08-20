@@ -16,11 +16,9 @@ export class CustomerDataRequestDeleteScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: CustomerDataRequestDeleteParams
+    params: CustomerDataRequestDeleteParams,
   ): Promise<CustomerDataRequestDeleteResult> {
-    const dataRequest = await this.repository.lifecycle.findDataRequestById(
-      params.id
-    );
+    const dataRequest = await this.repository.lifecycle.findDataRequestById(params.id);
     if (!dataRequest) {
       return notFound();
     }
@@ -28,17 +26,12 @@ export class CustomerDataRequestDeleteScript extends BaseScript<
       return invalidState();
     }
 
-    const deleted = await this.repository.lifecycle.deleteDataRequest(
-      params.id
-    );
+    const deleted = await this.repository.lifecycle.deleteDataRequest(params.id);
     if (!deleted) {
       return invalidState();
     }
 
-    this.logger.info(
-      { dataRequestId: params.id },
-      "Customer data request deleted"
-    );
+    this.logger.info({ dataRequestId: params.id }, "Customer data request deleted");
     return { deletedDataRequestId: params.id, userErrors: [] };
   }
 

@@ -10,10 +10,7 @@ export type RecommendationIntegrityCode =
   | "LIFECYCLE_PLAN_LIMIT_EXCEEDED";
 
 export class RecommendationIntegrityError extends FatalError {
-  constructor(
-    code: RecommendationIntegrityCode,
-    message: string,
-  ) {
+  constructor(code: RecommendationIntegrityCode, message: string) {
     super(message, undefined, code);
     this.name = "RecommendationIntegrityError";
   }

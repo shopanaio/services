@@ -1,7 +1,4 @@
-import type {
-  WorkflowExecutionContext,
-  WorkflowStartOptions,
-} from "@shopana/dbos";
+import type { WorkflowExecutionContext, WorkflowStartOptions } from "@shopana/dbos";
 import type { AdminAuthorizationContext } from "@shopana/rbac";
 
 /**

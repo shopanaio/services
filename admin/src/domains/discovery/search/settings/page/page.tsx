@@ -73,8 +73,7 @@ export default function SearchSettingsPage() {
   const mutation = useUpdateSearchSettings();
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const hydratedRef = useRef(false);
-  const [baselineSettings, setBaselineSettings] =
-    useState<ApiSearchSettings | null>(null);
+  const [baselineSettings, setBaselineSettings] = useState<ApiSearchSettings | null>(null);
   const [apiErrors, setApiErrors] = useState<MappedSearchSettingsError[]>([]);
   const [versionConflict, setVersionConflict] = useState(false);
   const [submittedFingerprint, setSubmittedFingerprint] = useState<string | null>(null);
@@ -96,12 +95,7 @@ export default function SearchSettingsPage() {
   useSearchSettingsNavigationGuard(isDirty, mutation.loading);
 
   useEffect(() => {
-    if (
-      hydratedRef.current ||
-      !query.hasLoaded ||
-      query.error ||
-      mutation.loading
-    ) {
+    if (hydratedRef.current || !query.hasLoaded || query.error || mutation.loading) {
       return;
     }
 
@@ -128,11 +122,7 @@ export default function SearchSettingsPage() {
   }, [query.error, query.hasLoaded, query.loading, query.refetch, query.settings]);
 
   useEffect(() => {
-    if (
-      submittedFingerprint &&
-      submittedFingerprint !== draftFingerprint &&
-      apiErrors.length > 0
-    ) {
+    if (submittedFingerprint && submittedFingerprint !== draftFingerprint && apiErrors.length > 0) {
       setApiErrors([]);
       setSubmittedFingerprint(null);
     }
@@ -180,14 +170,9 @@ export default function SearchSettingsPage() {
       );
 
       if (!result.applied || !result.settings || result.userErrors.length > 0) {
-        const mapped = mapSearchSettingsErrors(
-          result.userErrors,
-          mapping.submittedIndexToField,
-        );
+        const mapped = mapSearchSettingsErrors(result.userErrors, mapping.submittedIndexToField);
         setApiErrors(mapped);
-        setVersionConflict(
-          mapped.some((error) => error.target === "versionConflict"),
-        );
+        setVersionConflict(mapped.some((error) => error.target === "versionConflict"));
         focusFirstApiError(mapped);
         return;
       }
@@ -201,25 +186,27 @@ export default function SearchSettingsPage() {
       message.success("Search settings saved.");
       requestAnimationFrame(() => saveButtonRef.current?.focus());
     },
-    [baselineSettings?.version, message, mutation, query.error, query.hasLoaded, reset, versionConflict],
+    [
+      baselineSettings?.version,
+      message,
+      mutation,
+      query.error,
+      query.hasLoaded,
+      reset,
+      versionConflict,
+    ],
   );
 
-  const handleInvalid = useCallback(
-    (validationErrors: FieldErrors<SearchSettingsFormValues>) => {
-      const fieldsGroupError = validationErrors.fields as
-        | { message?: string; root?: { message?: string } }
-        | undefined;
-      if (!fieldsGroupError?.message && !fieldsGroupError?.root?.message) return;
-      requestAnimationFrame(() => {
-        document
-          .querySelector<HTMLElement>(
-            '[data-testid="search-field-product-title-switch"]',
-          )
-          ?.focus();
-      });
-    },
-    [],
-  );
+  const handleInvalid = useCallback((validationErrors: FieldErrors<SearchSettingsFormValues>) => {
+    const fieldsGroupError = validationErrors.fields as
+      { message?: string; root?: { message?: string } } | undefined;
+    if (!fieldsGroupError?.message && !fieldsGroupError?.root?.message) return;
+    requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>('[data-testid="search-field-product-title-switch"]')
+        ?.focus();
+    });
+  }, []);
 
   const initialLoading = query.loading && !query.hasLoaded;
   const waitingForSettings = query.hasLoaded && !query.error && query.settings === null;

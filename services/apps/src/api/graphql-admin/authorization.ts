@@ -1,24 +1,14 @@
-import {
-  AuthorizationError,
-  type AuthProvider,
-} from "@shopana/shared-kernel";
+import { AuthorizationError, type AuthProvider } from "@shopana/shared-kernel";
 import type { ServiceContext } from "../../context/types.js";
 
-export type AppsAuthorizationOperation =
-  | "read"
-  | "install"
-  | "configure"
-  | "uninstall";
+export type AppsAuthorizationOperation = "read" | "install" | "configure" | "uninstall";
 
 const actionByOperation = {
   read: "read",
   install: "write",
   configure: "write",
   uninstall: "admin",
-} as const satisfies Record<
-  AppsAuthorizationOperation,
-  "read" | "write" | "admin"
->;
+} as const satisfies Record<AppsAuthorizationOperation, "read" | "write" | "admin">;
 
 /**
  * Authorizes an Apps admin operation in the current store domain.

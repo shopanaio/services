@@ -26,11 +26,11 @@ import type { ServiceBroker } from "./ServiceBroker.js";
  *   }
  * }
  */
-export abstract class BrokerWorkflows<TInput = unknown, TOutput = unknown> extends BaseWorkflow<TInput, TOutput> {
+export abstract class BrokerWorkflows<TInput = unknown, TOutput = unknown> extends BaseWorkflow<
+  TInput,
+  TOutput
+> {
   constructor(public readonly broker: ServiceBroker) {
-    super(
-      broker.getWorkflowRegistry(),
-      broker["options"].serviceName,
-    );
+    super(broker.getWorkflowRegistry(), broker["options"].serviceName);
   }
 }

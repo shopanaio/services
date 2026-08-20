@@ -1,20 +1,17 @@
-import { createStyles } from 'antd-style';
-import { CheckboxProps, Empty, Table } from 'antd';
-import { MouseEvent, ReactNode, Key } from 'react';
-import { ColumnsType, TableProps } from 'antd/es/table';
+import { createStyles } from "antd-style";
+import { CheckboxProps, Empty, Table } from "antd";
+import { MouseEvent, ReactNode, Key } from "react";
+import { ColumnsType, TableProps } from "antd/es/table";
 
 const useStyles = createStyles(({ css }, { hasRowClick }: { hasRowClick: boolean }) => ({
   table: css`
     & td {
-      cursor: ${hasRowClick ? 'pointer' : 'default'};
+      cursor: ${hasRowClick ? "pointer" : "default"};
     }
   `,
 }));
 
-export type IDataTableProps<T = any> = Omit<
-  TableProps<T>,
-  'rowSelection' | 'onRow'
-> & {
+export type IDataTableProps<T = any> = Omit<TableProps<T>, "rowSelection" | "onRow"> & {
   name: string;
   data: T[];
   virtual?: boolean;
@@ -23,32 +20,26 @@ export type IDataTableProps<T = any> = Omit<
   bulkActions?: {
     options: any;
   };
-  layout?: 'fixed' | 'auto';
+  layout?: "fixed" | "auto";
   className?: string;
   notFoundElement?: ReactNode;
   loading?: boolean;
   onRow?: (record: T, e: MouseEvent) => void;
   selectedRows?: T[];
-  onChangeSelectedRows?: (
-    selectedRowKeys: T[],
-    record?: T,
-    selected?: boolean,
-  ) => void;
+  onChangeSelectedRows?: (selectedRowKeys: T[], record?: T, selected?: boolean) => void;
   componentProps?: TableProps<T>;
-  rowSelection?: boolean | TableProps<T>['rowSelection'];
+  rowSelection?: boolean | TableProps<T>["rowSelection"];
   showHeader?: boolean;
-  expandable?: TableProps<T>['expandable'];
-  getCheckboxProps?: (
-    record: T,
-  ) => Partial<Omit<CheckboxProps, 'checked' | 'defaultChecked'>>;
+  expandable?: TableProps<T>["expandable"];
+  getCheckboxProps?: (record: T) => Partial<Omit<CheckboxProps, "checked" | "defaultChecked">>;
 };
 
 export const DataTable = <T extends { id?: string | number }>({
-  name = 'needs-fix',
+  name = "needs-fix",
   data,
   columns = [],
   virtual,
-  layout = 'auto',
+  layout = "auto",
   className,
   rowSelection = true,
   notFoundElement,
@@ -74,10 +65,8 @@ export const DataTable = <T extends { id?: string | number }>({
     <Table
       className={cx(styles.table, className)}
       showSorterTooltip={false}
-      sortDirections={['ascend', 'descend']}
-      sticky={
-        sticky ? (sticky === true ? { offsetHeader: 64 } : sticky) : undefined
-      }
+      sortDirections={["ascend", "descend"]}
+      sticky={sticky ? (sticky === true ? { offsetHeader: 64 } : sticky) : undefined}
       virtual={virtual}
       {...componentProps}
       expandable={expandable}
@@ -85,38 +74,40 @@ export const DataTable = <T extends { id?: string | number }>({
       rowSelection={
         rowSelection === true
           ? {
-              fixed: 'left',
+              fixed: "left",
               onCell: () => ({
-                style: { cursor: 'pointer' },
+                style: { cursor: "pointer" },
                 onClick: handleCellCheckboxClick,
               }),
               preserveSelectedRowKeys: true,
               getCheckboxProps: (record) =>
                 ({
                   ...getCheckboxProps?.(record),
-                  'data-testid': 'table-row-checkbox',
+                  "data-testid": "table-row-checkbox",
                 }) as any,
-              selectedRowKeys: selectedRows.map((it) => {
-                if (typeof rowKey === 'string') {
-                  return it[rowKey as keyof T];
-                }
+              selectedRowKeys: selectedRows
+                .map((it) => {
+                  if (typeof rowKey === "string") {
+                    return it[rowKey as keyof T];
+                  }
 
-                if (typeof rowKey === 'function') {
-                  return rowKey(it);
-                }
+                  if (typeof rowKey === "function") {
+                    return rowKey(it);
+                  }
 
-                return it.id;
-              }).filter((key): key is Key => key !== undefined),
+                  return it.id;
+                })
+                .filter((key): key is Key => key !== undefined),
               columnWidth: 40,
               onSelect: (record, selected, records) => {
                 onChangeSelectedRows(records, record, selected);
               },
               onChange: (_: any, records, info) => {
-                if (info.type === 'all') {
+                if (info.type === "all") {
                   onChangeSelectedRows(records);
                 }
 
-                if (info.type === 'none') {
+                if (info.type === "none") {
                   onChangeSelectedRows([]);
                 }
               },
@@ -126,7 +117,7 @@ export const DataTable = <T extends { id?: string | number }>({
       onRow={
         onRow
           ? (record, idx) => ({
-              'data-testid': `${name ? `${name}-` : ''}table-row-${idx}`,
+              "data-testid": `${name ? `${name}-` : ""}table-row-${idx}`,
               onClick: (e: MouseEvent) => {
                 onRow(record, e);
               },
@@ -141,7 +132,7 @@ export const DataTable = <T extends { id?: string | number }>({
       tableLayout={layout}
       columns={columns}
       dataSource={data}
-      rowKey={rowKey ? rowKey : (record, idx) => record.id?.toString() || idx?.toString() || ''}
+      rowKey={rowKey ? rowKey : (record, idx) => record.id?.toString() || idx?.toString() || ""}
       {...props}
     />
   );

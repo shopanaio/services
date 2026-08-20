@@ -12,9 +12,7 @@ import type { DbConfig } from "@shopana/shared-service-config";
 import { buildDbUrl } from "@shopana/shared-service-config";
 
 export const DATABASE_CLIENT = Symbol("DATABASE_CLIENT");
-export const DATABASE_CONNECTION_OPTIONS = Symbol(
-  "DATABASE_CONNECTION_OPTIONS"
-);
+export const DATABASE_CONNECTION_OPTIONS = Symbol("DATABASE_CONNECTION_OPTIONS");
 
 export type DatabaseClient = Sql;
 
@@ -48,8 +46,7 @@ export interface DatabaseModuleOptions {
 }
 
 export const InjectDatabaseClient = () => Inject(DATABASE_CLIENT);
-export const InjectDatabaseConnectionOptions = () =>
-  Inject(DATABASE_CONNECTION_OPTIONS);
+export const InjectDatabaseConnectionOptions = () => Inject(DATABASE_CONNECTION_OPTIONS);
 
 @Injectable()
 class DatabaseLifecycle implements OnApplicationShutdown {
@@ -57,7 +54,7 @@ class DatabaseLifecycle implements OnApplicationShutdown {
 
   constructor(
     @Inject(DATABASE_CLIENT)
-    private readonly client: DatabaseClient
+    private readonly client: DatabaseClient,
   ) {}
 
   async onApplicationShutdown(): Promise<void> {
@@ -97,8 +94,7 @@ export class DatabaseModule {
         date: {
           to: 1184,
           from: [1082, 1114, 1184], // date, timestamp, timestamptz
-          serialize: (x: unknown) =>
-            x instanceof Date ? x.toISOString() : String(x),
+          serialize: (x: unknown) => (x instanceof Date ? x.toISOString() : String(x)),
           parse: (x: string) => x, // Return as string, not Date
         },
       },

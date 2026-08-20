@@ -1,7 +1,5 @@
 import type { ProductSeo as ProductSeoModel } from "../../repositories/models/index.js";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
 
 /**

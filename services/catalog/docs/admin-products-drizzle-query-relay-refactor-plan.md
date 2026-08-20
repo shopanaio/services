@@ -15,7 +15,11 @@ products(
 ): ProductConnection!
 ```
 
-`ProductWhereInput`, `ProductOrderField` и `ProductOrderByInput` должны быть generated schema из `@shopana/drizzle-query` на базе product relay query. Резолверы должны только нормализовать raw GraphQL input и возвращать connection resolver. Репозитории должны выполнять relay query через `drizzle-query`, добавлять tenant/soft-delete фильтры внутри repository layer и считать `totalCount` по тем же matching-фильтрам.
+`ProductWhereInput`, `ProductOrderField` и `ProductOrderByInput` должны быть generated schema из
+`@shopana/drizzle-query` на базе product relay query. Резолверы должны только нормализовать raw
+GraphQL input и возвращать connection resolver. Репозитории должны выполнять relay query через
+`drizzle-query`, добавлять tenant/soft-delete фильтры внутри repository layer и считать `totalCount`
+по тем же matching-фильтрам.
 
 План выровнен с:
 
@@ -30,14 +34,17 @@ products(
   - `catalogQuery.products` принимает только `first/after/last/before`.
 - `services/catalog/src/api/graphql-admin/schema/product.graphql`
   - вручную объявляет `ProductOrderByInput` на базе `ProductSortBy`;
-  - этот input сейчас фактически используется для PLP/category-products сортировки (`MANUAL`, `NAME`, `NEWEST`, `PRICE`), а не для root product table.
+  - этот input сейчас фактически используется для PLP/category-products сортировки (`MANUAL`,
+    `NAME`, `NEWEST`, `PRICE`), а не для root product table.
 - `services/catalog/scripts/generate-filters.ts`
   - генерирует фильтры и order inputs для `Category`, `CategoryProduct`, `Variant`;
   - не генерирует `ProductWhereInput/ProductOrderByInput`.
 - `services/catalog/src/repositories/product/ProductRepository.ts`
   - уже имеет `productRelayQuery`, но query построен только от `product` table;
-  - `getConnection(args)` принимает `ProductRelayInput`, но root GraphQL schema не пропускает `where/orderBy`;
-  - `totalCount` вызывает `this.count()`, поэтому считает все неудаленные продукты магазина, а не результат текущего `where`.
+  - `getConnection(args)` принимает `ProductRelayInput`, но root GraphQL schema не пропускает
+    `where/orderBy`;
+  - `totalCount` вызывает `this.count()`, поэтому считает все неудаленные продукты магазина, а не
+    результат текущего `where`.
 - `services/catalog/src/resolvers/admin/QueryResolver.ts`
   - `products(args: ProductConnectionInput)` передает args напрямую в `ProductConnectionResolver`;
   - нет нормализации global ID фильтров для product `id` и потенциальных relation IDs.
@@ -61,16 +68,21 @@ input ProductOrderByInput {
 }
 ```
 
-Генератор `@shopana/drizzle-query` не умеет отдельно переименовать только `ProductOrderByInput`, поэтому recommended cutover:
+Генератор `@shopana/drizzle-query` не умеет отдельно переименовать только `ProductOrderByInput`,
+поэтому recommended cutover:
 
 1. Освободить имя `ProductOrderByInput` для generated root products query.
 2. Переименовать текущий manual input в `ListingOrderByInput`.
 3. Оставить enum `ProductSortBy` для PLP/default sort и category-products семантики.
-4. Обновить `Category.products(orderBy:)` и `CategoryProductConnectionResolver` на `ListingOrderByInput`.
+4. Обновить `Category.products(orderBy:)` и `CategoryProductConnectionResolver` на
+   `ListingOrderByInput`.
 
-Это сохраняет существующую category-products семантику (`MANUAL/NAME/NEWEST/PRICE`) и позволяет root product table получить generated drizzle-query contract.
+Это сохраняет существующую category-products семантику (`MANUAL/NAME/NEWEST/PRICE`) и позволяет root
+product table получить generated drizzle-query contract.
 
-Переименование manual `ProductOrderByInput` является обязательным первым шагом cutover. Нельзя добавлять generated `ProductOrderByInput`, пока ручной input остается объявлен в `product.graphql` или используется в `Category.products`, иначе schema composition/codegen получат конфликт имени.
+Переименование manual `ProductOrderByInput` является обязательным первым шагом cutover. Нельзя
+добавлять generated `ProductOrderByInput`, пока ручной input остается объявлен в `product.graphql`
+или используется в `Category.products`, иначе schema composition/codegen получат конфликт имени.
 
 ## Target backend files
 
@@ -92,8 +104,10 @@ services/catalog/src/resolvers/admin/generated/schemas.ts
 
 В `services/catalog/src/api/graphql-admin/schema/product.graphql`:
 
-- оставить `ProductSortBy` и `ProductSortInput`, потому что они используются для collection/category PLP semantics и default sort;
-- переименовать ручной order input. Это listing-level sort contract, а не product table order contract:
+- оставить `ProductSortBy` и `ProductSortInput`, потому что они используются для collection/category
+  PLP semantics и default sort;
+- переименовать ручной order input. Это listing-level sort contract, а не product table order
+  contract:
 
 ```graphql
 input ListingOrderByInput {
@@ -115,9 +129,11 @@ products(
 ): CategoryProductConnection!
 ```
 
-Обновить TypeScript resolver-local interface в `CategoryProductConnectionResolver.ts` с `ProductOrderByInput` на `ListingOrderByInput`.
+Обновить TypeScript resolver-local interface в `CategoryProductConnectionResolver.ts` с
+`ProductOrderByInput` на `ListingOrderByInput`.
 
-Runtime mapping в `CategoryRepository.getCategoryProductsConnection()` должен остаться без изменений:
+Runtime mapping в `CategoryRepository.getCategoryProductsConnection()` должен остаться без
+изменений:
 
 - `MANUAL` -> `category.lexoRank`;
 - `NAME` -> `translation.title`;
@@ -150,15 +166,20 @@ Generated root product filters/sorts тогда включают поля produc
 
 `storeId`, `deletedAt`, `revision` не должны быть публичными filter/order fields.
 
-Если product list должен фильтровать/сортировать по `title`, `category`, `brand`, `inventory`, `variantsCount` в том же релизе, не добавлять это вручную в GraphQL schema. Нужно расширять drizzle-query builder через joins/views и генерировать схему из него:
+Если product list должен фильтровать/сортировать по `title`, `category`, `brand`, `inventory`,
+`variantsCount` в том же релизе, не добавлять это вручную в GraphQL schema. Нужно расширять
+drizzle-query builder через joins/views и генерировать схему из него:
 
 - `title`: join на `productTranslation` с locale-aware ограничением в repository/query design;
 - `category`: join на `productCategory`/`category` или отдельный dedicated list view;
 - `brand`: join на feature tables только если есть стабильная бизнес-модель brand feature;
-- `inventory`: скорее inventory service/widget boundary, не добавлять в catalog product query без отдельного cross-service решения;
-- `variantsCount`: либо materialized/read model, либо отдельный view; не вычислять в resolver для сортировки.
+- `inventory`: скорее inventory service/widget boundary, не добавлять в catalog product query без
+  отдельного cross-service решения;
+- `variantsCount`: либо materialized/read model, либо отдельный view; не вычислять в resolver для
+  сортировки.
 
-Recommended first cut: root products supports table-level filters/sorts only. Unsupported fields require separate follow-up query-builder work.
+Recommended first cut: root products supports table-level filters/sorts only. Unsupported fields
+require separate follow-up query-builder work.
 
 ## 3. Сгенерировать ProductWhereInput/ProductOrderByInput из drizzle-query
 
@@ -179,9 +200,11 @@ const productOrderBy = generateOrderByInputType(productRelayQuery, "Product", {
 });
 ```
 
-3. Добавить секцию `# ---- Product ----` в generated content до `CategoryProduct` или рядом с `Category`.
+3. Добавить секцию `# ---- Product ----` в generated content до `CategoryProduct` или рядом с
+   `Category`.
 
-После запуска generation в `services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql` должны появиться:
+После запуска generation в
+`services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql` должны появиться:
 
 ```graphql
 input ProductWhereInput
@@ -206,7 +229,8 @@ products(
 ): ProductConnection!
 ```
 
-`ProductWhereInput` и `ProductOrderByInput` должны существовать только в generated schema file. Не добавлять ручные copies в `product.graphql` или `base.graphql`.
+`ProductWhereInput` и `ProductOrderByInput` должны существовать только в generated schema file. Не
+добавлять ручные copies в `product.graphql` или `base.graphql`.
 
 ## 5. Нормализовать raw GraphQL input в resolver boundary
 
@@ -238,7 +262,8 @@ products(args: ProductConnectionInput) {
 }
 ```
 
-`orderBy` не маппить через `ProductSortBy`. Generated `ProductOrderField` значения должны проходить в drizzle-query как field names (`createdAt`, `handle`, etc.).
+`orderBy` не маппить через `ProductSortBy`. Generated `ProductOrderField` значения должны проходить
+в drizzle-query как field names (`createdAt`, `handle`, etc.).
 
 ## 6. Исправить ProductRepository.getConnection
 
@@ -248,7 +273,8 @@ products(args: ProductConnectionInput) {
 - user `where` merge через `_and`;
 - default sort совпадает с categories pattern;
 - `totalCount` считается через `productRelayQuery.count` с тем же `mergedWhere`;
-- `select` должен гарантировать поля для cursor/order, если текущий drizzle-query relay builder этого требует.
+- `select` должен гарантировать поля для cursor/order, если текущий drizzle-query relay builder
+  этого требует.
 
 Целевой pattern:
 
@@ -298,15 +324,21 @@ Required generated artifacts after source schema changes:
 - `services/catalog/src/resolvers/admin/generated/types.ts`;
 - `services/catalog/src/resolvers/admin/generated/schemas.ts`.
 
-Use project CLI/codegen/schema generation flow. Do not edit generated TS or generated GraphQL schema files by hand.
+Use project CLI/codegen/schema generation flow. Do not edit generated TS or generated GraphQL schema
+files by hand.
 
 Important generation cwd detail:
 
-- `services/catalog/scripts/generate-filters.ts` writes `src/api/graphql-admin/schema/__generated__/filters.graphql` relative to the current working directory.
-- Run the filters generation command from `services/catalog/`, or use the project CLI command that sets this cwd internally.
-- Do not run the script from repository root unless the command explicitly changes cwd to `services/catalog/`.
+- `services/catalog/scripts/generate-filters.ts` writes
+  `src/api/graphql-admin/schema/__generated__/filters.graphql` relative to the current working
+  directory.
+- Run the filters generation command from `services/catalog/`, or use the project CLI command that
+  sets this cwd internally.
+- Do not run the script from repository root unless the command explicitly changes cwd to
+  `services/catalog/`.
 
-Project instruction: do not run `test` or `tsc`. Run `build` only when a new compiled code version is needed.
+Project instruction: do not run `test` or `tsc`. Run `build` only when a new compiled code version
+is needed.
 
 ## 8. Drift and verification checks
 
@@ -323,12 +355,15 @@ rg 'ListingOrderByInput|ProductOrderByInput' services/catalog/src/api/graphql-ad
 
 Expected:
 
-- generated `ProductWhereInput/ProductOrderField/ProductOrderByInput` exist exactly in `__generated__/filters.graphql`;
-- no manual `ProductWhereInput` or generated-name `ProductOrderByInput` remains in non-generated catalog schema files;
+- generated `ProductWhereInput/ProductOrderField/ProductOrderByInput` exist exactly in
+  `__generated__/filters.graphql`;
+- no manual `ProductWhereInput` or generated-name `ProductOrderByInput` remains in non-generated
+  catalog schema files;
 - category-products uses `ListingOrderByInput`;
 - root `CatalogQuery.products` exposes `where/orderBy`;
 - generated service admin resolver TS types reflect the final schema.
-- category-products still maps `MANUAL/NAME/NEWEST/PRICE` to the same repository order fields after the input rename.
+- category-products still maps `MANUAL/NAME/NEWEST/PRICE` to the same repository order fields after
+  the input rename.
 
 Build verification:
 
@@ -343,14 +378,20 @@ Manual API verification after implementation:
 - `orderBy: [{ field: createdAt, direction: desc }]` returns stable cursor pages;
 - product global IDs in `where.id` are accepted and normalized;
 - `Category.products(orderBy: [{ field: NAME, direction: asc }])` still works after input rename.
-- category-products `MANUAL/NAME/NEWEST/PRICE` sorting keeps the same runtime behavior after the input rename.
+- category-products `MANUAL/NAME/NEWEST/PRICE` sorting keeps the same runtime behavior after the
+  input rename.
 
 ## Acceptance criteria
 
 - `catalogQuery.products` accepts generated `ProductWhereInput` and `[ProductOrderByInput!]`.
-- `ProductWhereInput`, `ProductOrderField`, `ProductOrderByInput` are generated from `productRelayQuery`, not manually written.
-- Legacy PLP/listing sort input is renamed to `ListingOrderByInput` and category-products behavior is preserved.
-- `QueryResolver.products()` normalizes product global ID filters before constructing `ProductConnectionResolver`.
-- `ProductRepository.getConnection()` uses `productRelayQuery.execute()` and `productRelayQuery.count()` with the same merged `where`.
-- Repository-internal filters keep `storeId = storeId` and `deletedAt is null` out of the public schema.
+- `ProductWhereInput`, `ProductOrderField`, `ProductOrderByInput` are generated from
+  `productRelayQuery`, not manually written.
+- Legacy PLP/listing sort input is renamed to `ListingOrderByInput` and category-products behavior
+  is preserved.
+- `QueryResolver.products()` normalizes product global ID filters before constructing
+  `ProductConnectionResolver`.
+- `ProductRepository.getConnection()` uses `productRelayQuery.execute()` and
+  `productRelayQuery.count()` with the same merged `where`.
+- Repository-internal filters keep `storeId = storeId` and `deletedAt is null` out of the public
+  schema.
 - Category-products runtime sort mapping for `MANUAL/NAME/NEWEST/PRICE` is unchanged.

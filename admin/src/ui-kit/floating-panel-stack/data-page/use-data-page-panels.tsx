@@ -81,18 +81,11 @@ export interface UseDataPagePanelsReturn {
 // Hook
 // ============================================================================
 
-export function useDataPagePanels(
-  options: UseDataPagePanelsOptions
-): UseDataPagePanelsReturn {
+export function useDataPagePanels(options: UseDataPagePanelsOptions): UseDataPagePanelsReturn {
   const { selection, editing, stackConfig } = options;
 
-  const {
-    sortedPanels,
-    setPanel,
-    removePanel,
-    getPosition,
-    config,
-  } = usePanelStack<unknown>(stackConfig);
+  const { sortedPanels, setPanel, removePanel, getPosition, config } =
+    usePanelStack<unknown>(stackConfig);
 
   // Sync selection panel state
   useEffect(() => {

@@ -9,7 +9,7 @@ import { runner } from "node-pg-migrate";
  */
 export async function runMigrations(
   connectionString: string,
-  migrationsFolder: string
+  migrationsFolder: string,
 ): Promise<void> {
   // postgres.js doesn't support schema parameter in connection string
   const cleanUrl = connectionString.replace(/[?&]schema=[^&]+/g, "");

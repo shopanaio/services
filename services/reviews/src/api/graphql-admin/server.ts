@@ -2,19 +2,14 @@ import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
 import { unwrapResolverError } from "@apollo/server/errors";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import fastify from "fastify";
 import { readFileSync } from "fs";
 import { GraphQLError } from "graphql";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import {
-  getServiceConfig,
-  isDevelopment,
-} from "@shopana/shared-service-config";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import { ResolverError } from "@shopana/type-resolver";
 import { setContext, ServiceContext } from "../../context/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
@@ -45,7 +40,7 @@ const userErrorsPlugin: ApolloServerPlugin<ServiceContext> = {
                 code: error.code ?? "BAD_USER_INPUT",
                 field: error.field,
               },
-            }).toJSON()
+            }).toJSON(),
           ),
         ];
       },
@@ -53,9 +48,7 @@ const userErrorsPlugin: ApolloServerPlugin<ServiceContext> = {
   },
 };
 
-function getHeaderValue(
-  value: string | string[] | undefined
-): string | undefined {
+function getHeaderValue(value: string | string[] | undefined): string | undefined {
   const headerValue = Array.isArray(value) ? value[0] : value;
   const trimmed = headerValue?.trim();
   return trimmed ? trimmed : undefined;
@@ -164,8 +157,7 @@ export async function startServer(serverConfig: ServerConfig) {
         }
 
         const requestId =
-          getHeaderValue(request.headers["x-idempotency-key"]) ??
-          (request.id as string);
+          getHeaderValue(request.headers["x-idempotency-key"]) ?? (request.id as string);
         const context = new ServiceContext({
           requestId,
           kernel: kernel!,
@@ -186,12 +178,10 @@ export async function startServer(serverConfig: ServerConfig) {
       status: "ok",
       service: "reviews",
       environment: global.environment,
-    })
+    }),
   );
 
-  app.get("/healthz", async (_request, reply) =>
-    reply.send({ status: "ok", service: "reviews" })
-  );
+  app.get("/healthz", async (_request, reply) => reply.send({ status: "ok", service: "reviews" }));
 
   await app.listen({ port: serverConfig.port, host: "0.0.0.0" });
   return app;

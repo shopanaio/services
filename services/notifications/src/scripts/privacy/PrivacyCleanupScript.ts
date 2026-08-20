@@ -10,13 +10,9 @@ export class PrivacyCleanupScript extends BaseScript<
   { occurrencesPurged: number }
 > {
   @Transactional()
-  protected async execute(
-    params: PrivacyCleanupParams
-  ): Promise<{ occurrencesPurged: number }> {
+  protected async execute(params: PrivacyCleanupParams): Promise<{ occurrencesPurged: number }> {
     return {
-      occurrencesPurged: await this.repository.privacy.purgeCustomer(
-        params.customerId
-      ),
+      occurrencesPurged: await this.repository.privacy.purgeCustomer(params.customerId),
     };
   }
 

@@ -7,20 +7,11 @@ export type {
 } from "./shared.js";
 
 // Feature DTOs
-export type {
-  FeatureCreateParams,
-  FeatureCreateResult,
-} from "./FeatureCreateDto.js";
+export type { FeatureCreateParams, FeatureCreateResult } from "./FeatureCreateDto.js";
 
-export type {
-  FeatureUpdateParams,
-  FeatureUpdateResult,
-} from "./FeatureUpdateDto.js";
+export type { FeatureUpdateParams, FeatureUpdateResult } from "./FeatureUpdateDto.js";
 
-export type {
-  FeatureDeleteParams,
-  FeatureDeleteResult,
-} from "./FeatureDeleteDto.js";
+export type { FeatureDeleteParams, FeatureDeleteResult } from "./FeatureDeleteDto.js";
 
 export type {
   FeatureSyncParams,

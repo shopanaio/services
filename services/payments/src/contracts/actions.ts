@@ -24,27 +24,15 @@ export interface PaymentsLifecyclePort {
   createSession(
     params: Payments.CreatePaymentSessionParams,
   ): Promise<Payments.CreatePaymentSessionResult>;
-  getSession(
-    params: Payments.GetPaymentSessionParams,
-  ): Promise<Payments.GetPaymentSessionResult>;
-  cancel(
-    params: Payments.CancelPaymentParams,
-  ): Promise<Payments.PaymentOperationAcceptedResult>;
-  capture(
-    params: Payments.CapturePaymentParams,
-  ): Promise<Payments.PaymentOperationAcceptedResult>;
-  void(
-    params: Payments.VoidPaymentParams,
-  ): Promise<Payments.PaymentOperationAcceptedResult>;
-  refund(
-    params: Payments.RefundPaymentParams,
-  ): Promise<Payments.PaymentOperationAcceptedResult>;
+  getSession(params: Payments.GetPaymentSessionParams): Promise<Payments.GetPaymentSessionResult>;
+  cancel(params: Payments.CancelPaymentParams): Promise<Payments.PaymentOperationAcceptedResult>;
+  capture(params: Payments.CapturePaymentParams): Promise<Payments.PaymentOperationAcceptedResult>;
+  void(params: Payments.VoidPaymentParams): Promise<Payments.PaymentOperationAcceptedResult>;
+  refund(params: Payments.RefundPaymentParams): Promise<Payments.PaymentOperationAcceptedResult>;
   reconcile(
     params: Payments.ReconcilePaymentParams,
   ): Promise<Payments.PaymentOperationAcceptedResult>;
-  expire(
-    params: Payments.ExpirePaymentParams,
-  ): Promise<Payments.PaymentOperationAcceptedResult>;
+  expire(params: Payments.ExpirePaymentParams): Promise<Payments.PaymentOperationAcceptedResult>;
   completeProviderOperation(
     params: Payments.CompleteProviderOperationParams,
     context: PaymentProviderCompletionContext,
@@ -101,9 +89,7 @@ export interface PaymentsLifecycleActionsContract {
   capturePayment(
     params: Payments.CapturePaymentParams,
   ): Promise<Payments.PaymentOperationAcceptedResult>;
-  voidPayment(
-    params: Payments.VoidPaymentParams,
-  ): Promise<Payments.PaymentOperationAcceptedResult>;
+  voidPayment(params: Payments.VoidPaymentParams): Promise<Payments.PaymentOperationAcceptedResult>;
   refundPayment(
     params: Payments.RefundPaymentParams,
   ): Promise<Payments.PaymentOperationAcceptedResult>;

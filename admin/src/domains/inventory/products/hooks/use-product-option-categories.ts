@@ -14,16 +14,13 @@ import type {
   ProductOptionCategoriesQueryVariables,
 } from "../graphql/operation-types";
 
-export interface UseProductOptionCategoriesOptions
-  extends RelayCursorPaginationVariables {
+export interface UseProductOptionCategoriesOptions extends RelayCursorPaginationVariables {
   where?: ApiProductOptionCategoryWhereInput | null;
   orderBy?: ApiProductOptionCategoryOrderByInput[] | null;
   fetchPolicy?: "cache-and-network" | "network-only";
 }
 
-export function useProductOptionCategories(
-  options: UseProductOptionCategoriesOptions = {},
-) {
+export function useProductOptionCategories(options: UseProductOptionCategoriesOptions = {}) {
   const { data, previousData, loading, error } = useQuery<
     ProductOptionCategoriesQueryData,
     ProductOptionCategoriesQueryVariables

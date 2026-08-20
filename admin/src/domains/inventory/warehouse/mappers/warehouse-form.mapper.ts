@@ -1,8 +1,5 @@
 import { slugify } from "transliteration/dist/node/src/node/index.js";
-import type {
-  ApiWarehouseCreateInput,
-  ApiWarehouseUpdateInput,
-} from "@/graphql/types";
+import type { ApiWarehouseCreateInput, ApiWarehouseUpdateInput } from "@/graphql/types";
 
 export interface CreateWarehouseInput {
   name: string;

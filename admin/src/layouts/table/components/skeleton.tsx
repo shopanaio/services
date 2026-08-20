@@ -1,14 +1,14 @@
-import { createStyles } from 'antd-style';
-import { Flex, Skeleton } from 'antd';
-import SkeletonButton from 'antd/es/skeleton/Button';
+import { createStyles } from "antd-style";
+import { Flex, Skeleton } from "antd";
+import SkeletonButton from "antd/es/skeleton/Button";
 
 const useStyles = createStyles(({ token }) => ({
   filters: {
     marginTop: token.padding,
     marginBottom: token.paddingXS,
     padding: token.paddingXXS,
-    width: '100%',
-    boxSizing: 'border-box',
+    width: "100%",
+    boxSizing: "border-box",
     background: token.colorBgContainer,
   },
   filtersInner: {
@@ -57,7 +57,7 @@ export const LayoutSkeleton = ({ filters = true }: { filters?: boolean }) => {
       <HeaderSkeleton />
       {filters && <FiltersSkeleton />}
       <div className={styles.paper}>
-        <Flex gap="large" vertical style={{ padding: '24px 40px' }}>
+        <Flex gap="large" vertical style={{ padding: "24px 40px" }}>
           <Skeleton active paragraph={{ rows: 5 }} />
         </Flex>
       </div>

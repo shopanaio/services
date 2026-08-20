@@ -14,20 +14,14 @@ import type { Repository } from "../repositories/Repository.js";
 
 export class OperationsLoader {
   public readonly reviewRequest: DataLoader<string, ReviewRequest | null>;
-  public readonly reviewRequestEvent: DataLoader<
-    string,
-    ReviewRequestEvent | null
-  >;
+  public readonly reviewRequestEvent: DataLoader<string, ReviewRequestEvent | null>;
   public readonly contentVote: DataLoader<string, ContentVote | null>;
   public readonly contentReport: DataLoader<string, ContentReport | null>;
   public readonly moderationCase: DataLoader<string, ModerationCase | null>;
   public readonly moderationEvent: DataLoader<string, ModerationEvent | null>;
   public readonly contentRevision: DataLoader<string, ContentRevision | null>;
   public readonly moderationSignal: DataLoader<string, ModerationSignal | null>;
-  public readonly contentExternalReference: DataLoader<
-    string,
-    ContentExternalReference | null
-  >;
+  public readonly contentExternalReference: DataLoader<string, ContentExternalReference | null>;
 
   constructor(repository: Repository) {
     this.reviewRequest = new DataLoader(async (ids) => {

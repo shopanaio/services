@@ -9,9 +9,7 @@ export class CatalogProductOptionValueRefResolver extends ServiceType<
   protected async $preload(): Promise<CatalogProductOptionValueRef> {
     const value = await this.$ctx.loaders.optionValue.load(this.$props);
     if (!value) {
-      throw new PreloadNotFoundError(
-        `Product option value with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Product option value with ID ${this.$props} not found`);
     }
     return { id: value.id, handle: value.slug };
   }

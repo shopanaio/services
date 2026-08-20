@@ -1,10 +1,5 @@
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-} from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { RichText } from "./interfaces/index.js";
 import type { Category } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
@@ -20,9 +15,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
   async $preload() {
     const category = await this.$ctx.loaders.category.load(this.$props);
     if (!category) {
-      throw new PreloadNotFoundError(
-        `Category with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Category with ID ${this.$props} not found`);
     }
     return category;
   }
@@ -73,9 +66,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
    * Returns the translated name for this category
    */
   async name() {
-    const translation = await this.$ctx.loaders.categoryTranslation.load(
-      this.$props
-    );
+    const translation = await this.$ctx.loaders.categoryTranslation.load(this.$props);
     return translation?.name ?? "";
   }
 
@@ -93,25 +84,25 @@ export class CategoryResolver extends CatalogType<string, Category> {
    * Returns the translated description for this category
    */
   async description(): Promise<RichText | null> {
-    const translation = await this.$ctx.loaders.categoryTranslation.load(
-      this.$props
+    const translation = await this.$ctx.loaders.categoryTranslation.load(this.$props);
+    return toRichText(
+      translation && {
+        text: translation.descriptionText,
+        html: translation.descriptionHtml,
+        json: translation.descriptionJson,
+      },
     );
-    return toRichText(translation && {
-      text: translation.descriptionText,
-      html: translation.descriptionHtml,
-      json: translation.descriptionJson,
-    });
   }
 
   async excerpt(): Promise<RichText | null> {
-    const translation = await this.$ctx.loaders.categoryTranslation.load(
-      this.$props
+    const translation = await this.$ctx.loaders.categoryTranslation.load(this.$props);
+    return toRichText(
+      translation && {
+        text: translation.excerptText,
+        html: translation.excerptHtml,
+        json: translation.excerptJson,
+      },
     );
-    return toRichText(translation && {
-      text: translation.excerptText,
-      html: translation.excerptHtml,
-      json: translation.excerptJson,
-    });
   }
 
   /**
@@ -182,7 +173,9 @@ export class CategoryResolver extends CatalogType<string, Category> {
   }
 
   async effectiveComparisonProfile() {
-    const effective = await this.$ctx.loaders.effectiveComparisonProfileByCategory.load(this.$props);
+    const effective = await this.$ctx.loaders.effectiveComparisonProfileByCategory.load(
+      this.$props,
+    );
     return effective?.profileId && effective.enabled
       ? this.resolvers.comparisonProfile(effective.profileId)
       : null;

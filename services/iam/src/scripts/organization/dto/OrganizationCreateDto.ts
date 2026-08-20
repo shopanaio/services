@@ -10,13 +10,10 @@ export const slugSchema = z
   .string()
   .min(3, "Slug must be at least 3 characters")
   .max(64, "Slug must be at most 64 characters")
-  .regex(
-    /^[a-z0-9-]+$/,
-    "Slug must contain only lowercase letters, numbers, and hyphens"
-  )
+  .regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens")
   .refine(
     (slug) => !slug.startsWith("-") && !slug.endsWith("-"),
-    "Slug cannot start or end with a hyphen"
+    "Slug cannot start or end with a hyphen",
   );
 
 /**
@@ -37,9 +34,7 @@ export const organizationCreateInputSchema = z.object({
   displayName: organizationNameSchema,
 });
 
-export type OrganizationCreateInput = z.infer<
-  typeof organizationCreateInputSchema
->;
+export type OrganizationCreateInput = z.infer<typeof organizationCreateInputSchema>;
 
 /**
  * Script params

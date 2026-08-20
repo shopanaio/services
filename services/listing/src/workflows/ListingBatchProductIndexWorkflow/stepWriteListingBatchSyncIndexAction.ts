@@ -33,10 +33,7 @@ export type ListingBatchWriteIndexActionResult = {
   appliedProductIds: string[];
 };
 
-type BatchWriteDecisionStatus = Exclude<
-  Listing.ListingUpdateResult["status"],
-  "accepted"
->;
+type BatchWriteDecisionStatus = Exclude<Listing.ListingUpdateResult["status"], "accepted">;
 
 type BatchWriteDecision = {
   item: ListingBatchWriteModelItem;
@@ -77,7 +74,7 @@ type MergedBatchSyncPayload = {
 };
 
 export async function writeListingBatchSyncIndexAction(
-  input: ListingBatchWriteIndexActionInput
+  input: ListingBatchWriteIndexActionInput,
 ): Promise<ListingBatchWriteIndexActionResult> {
   if (input.items.length === 0) {
     return {
@@ -90,7 +87,7 @@ export async function writeListingBatchSyncIndexAction(
   return kernel.runScript(
     ListingBatchWriteIndexActionScript,
     input,
-    buildRunScriptContext(input.items[0].action)
+    buildRunScriptContext(input.items[0].action),
   );
 }
 
@@ -99,22 +96,19 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
   ListingBatchWriteIndexActionResult
 > {
   protected async execute(
-    input: ListingBatchWriteIndexActionInput
+    input: ListingBatchWriteIndexActionInput,
   ): Promise<ListingBatchWriteIndexActionResult> {
     validateBatchInput(input.items);
 
     return this.repository.runListingIndexItemTransaction(async () => {
-      const stateRowsByKey =
-        await this.repository.listingIndexItemState.lockByItems(
-          input.items.map((item) => item.action.itemKey)
-        );
+      const stateRowsByKey = await this.repository.listingIndexItemState.lockByItems(
+        input.items.map((item) => item.action.itemKey),
+      );
       const processedAt = new Date().toISOString();
       const decisions = input.items.map((item) =>
-        this.classifyItem(item, stateRowsByKey.get(itemStateKey(item.action)))
+        this.classifyItem(item, stateRowsByKey.get(itemStateKey(item.action))),
       );
-      const appliedDecisions = decisions.filter(
-        (decision) => decision.status === "applied"
-      );
+      const appliedDecisions = decisions.filter((decision) => decision.status === "applied");
 
       if (appliedDecisions.length > 0) {
         await this.applySyncBatch(appliedDecisions, processedAt);
@@ -122,7 +116,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
 
       return {
         results: decisions.map((decision) =>
-          this.buildResult(decision.item.action, decision.status, processedAt)
+          this.buildResult(decision.item.action, decision.status, processedAt),
         ),
         appliedProductIds: appliedDecisions
           .map((decision) => decision.item.action.itemKey.itemId)
@@ -137,7 +131,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
 
   private classifyItem(
     item: ListingBatchWriteModelItem,
-    current: ListingIndexItemStateRow | undefined
+    current: ListingIndexItemStateRow | undefined,
   ): BatchWriteDecision {
     const action = item.action;
     const payloadHash = item.syncWriteModel.writeModelHash;
@@ -174,8 +168,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
         {
           code: "REVISION_CONFLICT",
           field: ["eventSequence"],
-          message:
-            "Listing sync action reused an eventSequence with a different payload",
+          message: "Listing sync action reused an eventSequence with a different payload",
         },
       ]);
     }
@@ -189,29 +182,20 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
 
   private async applySyncBatch(
     decisions: readonly BatchWriteDecision[],
-    processedAt: string
+    processedAt: string,
   ): Promise<void> {
-    const appliedItems = decisions
-      .map((decision) => decision.item)
-      .sort(compareBatchWriteItems);
+    const appliedItems = decisions.map((decision) => decision.item).sort(compareBatchWriteItems);
     const productIds = appliedItems.map((item) => item.action.itemKey.itemId);
     const productDocIds =
-      await this.repository.listingDocIdAllocator.allocateProductDocIds(
-        productIds
-      );
+      await this.repository.listingDocIdAllocator.allocateProductDocIds(productIds);
     const variantIds = uniqueSortedStrings(
       appliedItems.flatMap((item) =>
-        item.syncWriteModel.writeModelJson.variants.map(
-          (variant) => variant.variantId
-        )
-      )
+        item.syncWriteModel.writeModelJson.variants.map((variant) => variant.variantId),
+      ),
     );
     const variantDocIds =
-      await this.repository.listingDocIdAllocator.allocateVariantDocIds(
-        variantIds
-      );
-    const existingVariants =
-      await this.repository.variantListingIndex.getByProductIds(productIds);
+      await this.repository.listingDocIdAllocator.allocateVariantDocIds(variantIds);
+    const existingVariants = await this.repository.variantListingIndex.getByProductIds(productIds);
     const payload = this.buildMergedPayload({
       decisions,
       appliedItems,
@@ -221,24 +205,20 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       processedAt,
     });
 
-    await this.repository.productListingIndex.ensureBootstrapRows(
-      payload.productBootstrapRows
-    );
+    await this.repository.productListingIndex.ensureBootstrapRows(payload.productBootstrapRows);
     await this.repository.productListingIndex.upsertMany(payload.productRows);
     await this.repository.productListingPriceIndex.replaceForProducts(
-      payload.productPricesByProductId
+      payload.productPricesByProductId,
     );
-    await this.repository.listingSearchIndex.replaceForProducts(
-      payload.searchIndexByProductId
-    );
+    await this.repository.listingSearchIndex.replaceForProducts(payload.searchIndexByProductId);
     await this.repository.listingPostingProductSort.replaceForProducts(
-      payload.productSortRowsByProductDocId
+      payload.productSortRowsByProductDocId,
     );
     await this.replaceProductMemberships(payload.productMemberships);
     await this.repository.variantListingIndex.upsertMany(payload.variantRows);
     await this.repository.listingPostingBitmap.ensureDeclaredVariantTermRows();
     await this.repository.variantListingPriceIndex.replaceForVariants(
-      payload.sourcePriceRowsByVariantId
+      payload.sourcePriceRowsByVariantId,
     );
     await this.repository.listingPostingBitmap.replaceVariantTermMemberships([
       ...payload.variantMemberships
@@ -255,14 +235,12 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
     await this.replaceVariantMemberships(payload.variantMemberships);
     await this.deleteStaleVariantDependencies(payload.staleVariants);
     await this.repository.variantListingIndex.deleteByVariantIds(
-      payload.staleVariants.map((variant) => variant.variantId)
+      payload.staleVariants.map((variant) => variant.variantId),
     );
     await this.repository.listingPostingVariantProjectionBlock.refreshBlocksForVariantDocIds(
-      payload.projectionRefreshVariantDocIds
+      payload.projectionRefreshVariantDocIds,
     );
-    await this.repository.listingIndexItemState.upsertLatestStates(
-      payload.stateRows
-    );
+    await this.repository.listingIndexItemState.upsertLatestStates(payload.stateRows);
   }
 
   private buildMergedPayload(input: {
@@ -275,24 +253,12 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
   }): MergedBatchSyncPayload {
     const productBootstrapRows: ProductListingIndexBootstrapInput[] = [];
     const productRows: ProductListingIndexUpsertInput[] = [];
-    const productPricesByProductId = new Map<
-      string,
-      ProductListingPriceRowInput[]
-    >();
-    const searchIndexByProductId = new Map<
-      string,
-      ListingSearchIndexAllocatedProductWriteModel
-    >();
-    const productSortRowsByProductDocId = new Map<
-      number,
-      ProductSortRowInput[]
-    >();
+    const productPricesByProductId = new Map<string, ProductListingPriceRowInput[]>();
+    const searchIndexByProductId = new Map<string, ListingSearchIndexAllocatedProductWriteModel>();
+    const productSortRowsByProductDocId = new Map<number, ProductSortRowInput[]>();
     const productMemberships: ProductMembershipReplacement[] = [];
     const variantRows: VariantListingIndexUpsertInput[] = [];
-    const sourcePriceRowsByVariantId = new Map<
-      string,
-      VariantListingPriceRowInput[]
-    >();
+    const sourcePriceRowsByVariantId = new Map<string, VariantListingPriceRowInput[]>();
     const variantMemberships: VariantMembershipReplacement[] = [];
     const currentVariantIdsByProductId = new Map<string, Set<string>>();
 
@@ -300,14 +266,8 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       const action = item.action;
       const productId = action.itemKey.itemId;
       const writeModel = item.syncWriteModel.writeModelJson;
-      const productDocId = getRequiredMapValue(
-        input.productDocIds,
-        productId,
-        "product doc id"
-      );
-      const currentVariantIds = new Set(
-        writeModel.variants.map((variant) => variant.variantId)
-      );
+      const productDocId = getRequiredMapValue(input.productDocIds, productId, "product doc id");
+      const currentVariantIds = new Set(writeModel.variants.map((variant) => variant.variantId));
 
       currentVariantIdsByProductId.set(productId, currentVariantIds);
       productBootstrapRows.push({
@@ -323,7 +283,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       });
       productPricesByProductId.set(
         productId,
-        [...writeModel.productPrices].sort(compareCurrencyRows)
+        [...writeModel.productPrices].sort(compareCurrencyRows),
       );
       if (writeModel.searchIndex) {
         searchIndexByProductId.set(productId, {
@@ -338,7 +298,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
             ...row,
             productDocId,
           }))
-          .sort(compareProductSortRows)
+          .sort(compareProductSortRows),
       );
       productMemberships.push(
         buildProductMembership(productDocId, "category", writeModel),
@@ -348,14 +308,14 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
           productDocId,
           field: "status",
           nextValueKeys: [writeModel.product.status],
-        }
+        },
       );
 
       for (const variant of writeModel.variants) {
         const variantDocId = getRequiredMapValue(
           input.variantDocIds,
           variant.variantId,
-          "variant doc id"
+          "variant doc id",
         );
         const variantRow: VariantListingIndexUpsertInput = {
           ...variant,
@@ -372,7 +332,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
               productDocId,
               variantDocId,
             }))
-            .sort(compareCurrencyRows)
+            .sort(compareCurrencyRows),
         );
         variantMemberships.push(
           {
@@ -386,19 +346,16 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
             variantDocId,
             field: "variant_product",
             nextValueKeys: sortedValueKeys(
-              writeModel.variantProductValueKeysByVariantId[variant.variantId] ??
-                []
+              writeModel.variantProductValueKeysByVariantId[variant.variantId] ?? [],
             ),
-          }
+          },
         );
       }
     }
 
     const staleVariants = input.existingVariants
       .filter((variant) => {
-        const currentVariantIds = currentVariantIdsByProductId.get(
-          variant.productId
-        );
+        const currentVariantIds = currentVariantIdsByProductId.get(variant.productId);
         return currentVariantIds ? !currentVariantIds.has(variant.variantId) : false;
       })
       .map((variant) => ({
@@ -414,15 +371,13 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       input.decisions.map((decision) => [
         decision.item.action.itemKey.itemId,
         decision.payloadHash,
-      ])
+      ]),
     );
     const stateRows = input.appliedItems.map((item) => {
       const action = item.action;
       const payloadHash = payloadHashByProductId.get(action.itemKey.itemId);
       if (!payloadHash) {
-        throw new Error(
-          `Failed to resolve payload hash for product: ${action.itemKey.itemId}`
-        );
+        throw new Error(`Failed to resolve payload hash for product: ${action.itemKey.itemId}`);
       }
 
       return {
@@ -443,8 +398,8 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       productPricesByProductId: sortStringMap(productPricesByProductId),
       searchIndexByProductId: new Map(
         [...searchIndexByProductId.entries()].sort(([left], [right]) =>
-          compareStrings(left, right)
-        )
+          compareStrings(left, right),
+        ),
       ),
       productSortRowsByProductDocId: sortNumberMap(productSortRowsByProductDocId),
       productMemberships: productMemberships.sort(compareProductMemberships),
@@ -458,43 +413,34 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
   }
 
   private async replaceProductMemberships(
-    replacements: readonly ProductMembershipReplacement[]
+    replacements: readonly ProductMembershipReplacement[],
   ): Promise<void> {
     for (const replacement of replacements) {
-      await this.repository.listingPostingBitmap.replaceProductMemberships(
-        replacement
-      );
+      await this.repository.listingPostingBitmap.replaceProductMemberships(replacement);
     }
   }
 
   private async replaceVariantMemberships(
-    replacements: readonly VariantMembershipReplacement[]
+    replacements: readonly VariantMembershipReplacement[],
   ): Promise<void> {
     for (const replacement of replacements) {
       if (replacement.field === "term") {
         continue;
       }
-      await this.repository.listingPostingBitmap.replaceVariantMemberships(
-        replacement
-      );
+      await this.repository.listingPostingBitmap.replaceVariantMemberships(replacement);
     }
   }
 
-  private async deleteStaleVariantDependencies(
-    variants: readonly StaleVariant[]
-  ): Promise<void> {
+  private async deleteStaleVariantDependencies(variants: readonly StaleVariant[]): Promise<void> {
     for (const variant of variants) {
-      await this.repository.listingPostingBitmap.deleteVariantMemberships(
-        variant.variantDocId
-      );
+      await this.repository.listingPostingBitmap.deleteVariantMemberships(variant.variantDocId);
     }
-
   }
 
   private buildResult(
     action: ListingPreparedSyncAction,
     status: BatchWriteDecisionStatus,
-    processedAt: string
+    processedAt: string,
   ): Listing.ListingUpdateResult {
     const result: Listing.ListingUpdateResult = {
       operationId: action.params.meta.operationId,
@@ -584,7 +530,7 @@ function stateKey(key: ListingIndexItemStateKey): string {
 function buildProductMembership(
   productDocId: number,
   field: Exclude<ProductMembershipReplacement["field"], "status">,
-  writeModel: ListingSyncWriteModelJson
+  writeModel: ListingSyncWriteModelJson,
 ): ProductMembershipReplacement {
   return {
     productDocId,
@@ -596,7 +542,7 @@ function buildProductMembership(
 function getRequiredMapValue<TKey, TValue>(
   map: ReadonlyMap<TKey, TValue>,
   key: TKey,
-  label: string
+  label: string,
 ): TValue {
   const value = map.get(key);
   if (value === undefined) {
@@ -618,42 +564,35 @@ function uniqueSortedNumbers(values: readonly number[]): number[] {
 }
 
 function sortStringMap<T>(map: Map<string, T[]>): Map<string, T[]> {
-  return new Map(
-    [...map.entries()].sort(([left], [right]) => compareStrings(left, right))
-  );
+  return new Map([...map.entries()].sort(([left], [right]) => compareStrings(left, right)));
 }
 
 function sortNumberMap<T>(map: Map<number, T[]>): Map<number, T[]> {
-  return new Map(
-    [...map.entries()].sort(([left], [right]) => compareNumbers(left, right))
-  );
+  return new Map([...map.entries()].sort(([left], [right]) => compareNumbers(left, right)));
 }
 
 function compareBatchWriteItems(
   left: ListingBatchWriteModelItem,
-  right: ListingBatchWriteModelItem
+  right: ListingBatchWriteModelItem,
 ): number {
   return compareStrings(left.action.itemKey.itemId, right.action.itemKey.itemId);
 }
 
 function compareProductBootstrapRows(
   left: ProductListingIndexBootstrapInput,
-  right: ProductListingIndexBootstrapInput
+  right: ProductListingIndexBootstrapInput,
 ): number {
   return compareStrings(left.productId, right.productId);
 }
 
 function compareProductRows(
   left: ProductListingIndexUpsertInput,
-  right: ProductListingIndexUpsertInput
+  right: ProductListingIndexUpsertInput,
 ): number {
   return compareStrings(left.productId, right.productId);
 }
 
-function compareProductSortRows(
-  left: ProductSortRowInput,
-  right: ProductSortRowInput
-): number {
+function compareProductSortRows(left: ProductSortRowInput, right: ProductSortRowInput): number {
   return (
     compareStrings(left.productId, right.productId) ||
     compareStrings(left.sortKind, right.sortKind) ||
@@ -665,28 +604,26 @@ function compareProductSortRows(
 
 function compareProductMemberships(
   left: ProductMembershipReplacement,
-  right: ProductMembershipReplacement
+  right: ProductMembershipReplacement,
 ): number {
   return (
-    compareNumbers(left.productDocId, right.productDocId) ||
-    compareStrings(left.field, right.field)
+    compareNumbers(left.productDocId, right.productDocId) || compareStrings(left.field, right.field)
   );
 }
 
 function compareVariantRows(
   left: VariantListingIndexUpsertInput,
-  right: VariantListingIndexUpsertInput
+  right: VariantListingIndexUpsertInput,
 ): number {
   return compareStrings(left.variantId, right.variantId);
 }
 
 function compareVariantMemberships(
   left: VariantMembershipReplacement,
-  right: VariantMembershipReplacement
+  right: VariantMembershipReplacement,
 ): number {
   return (
-    compareNumbers(left.variantDocId, right.variantDocId) ||
-    compareStrings(left.field, right.field)
+    compareNumbers(left.variantDocId, right.variantDocId) || compareStrings(left.field, right.field)
   );
 }
 
@@ -697,10 +634,7 @@ function compareStaleVariants(left: StaleVariant, right: StaleVariant): number {
   );
 }
 
-function compareCurrencyRows(
-  left: { currency: string },
-  right: { currency: string }
-): number {
+function compareCurrencyRows(left: { currency: string }, right: { currency: string }): number {
   return compareStrings(left.currency, right.currency);
 }
 

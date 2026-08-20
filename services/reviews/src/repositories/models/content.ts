@@ -34,13 +34,8 @@ export const contentItem = reviewsSchema.table(
     authorPrincipalId: text("author_principal_id"),
     authorDisplayName: varchar("author_display_name", { length: 150 }).notNull(),
     authorEmail: varchar("author_email", { length: 320 }),
-    sourceChannel: varchar("source_channel", { length: 64 })
-      .notNull()
-      .default("STOREFRONT"),
-    sourceMetadata: jsonb("source_metadata")
-      .$type<Record<string, unknown>>()
-      .notNull()
-      .default({}),
+    sourceChannel: varchar("source_channel", { length: 64 }).notNull().default("STOREFRONT"),
+    sourceMetadata: jsonb("source_metadata").$type<Record<string, unknown>>().notNull().default({}),
     idempotencyKey: text("idempotency_key"),
     status: contentStatusEnum("status").notNull().default("PENDING"),
     moderationNote: varchar("moderation_note", { length: 1000 }),
@@ -70,17 +65,9 @@ export const contentItem = reviewsSchema.table(
       .on(table.storeId, table.kind, table.updatedAt, table.id)
       .where(sql`${table.deletedAt} IS NULL`),
     index("content_item_store_author_customer_idx")
-      .on(
-        table.storeId,
-        table.authorCustomerId,
-        table.kind,
-        table.createdAt,
-        table.id
-      )
-      .where(
-        sql`${table.authorCustomerId} IS NOT NULL AND ${table.deletedAt} IS NULL`
-      ),
-  ]
+      .on(table.storeId, table.authorCustomerId, table.kind, table.createdAt, table.id)
+      .where(sql`${table.authorCustomerId} IS NOT NULL AND ${table.deletedAt} IS NULL`),
+  ],
 );
 
 export const contentTranslation = reviewsSchema.table(
@@ -107,17 +94,14 @@ export const contentTranslation = reviewsSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("content_translation_content_locale_unique").on(
-      table.contentId,
-      table.locale
-    ),
+    unique("content_translation_content_locale_unique").on(table.contentId, table.locale),
     index("content_translation_store_locale_status_idx").on(
       table.storeId,
       table.locale,
       table.status,
-      table.contentId
+      table.contentId,
     ),
-  ]
+  ],
 );
 
 export const contentPublication = reviewsSchema.table(
@@ -146,7 +130,7 @@ export const contentPublication = reviewsSchema.table(
     uniqueIndex("content_publication_destination_unique").on(
       table.contentId,
       table.channel,
-      sql`coalesce(${table.locale}::text, '')`
+      sql`coalesce(${table.locale}::text, '')`,
     ),
     index("content_publication_schedule_idx")
       .on(table.scheduledAt, table.id)
@@ -155,9 +139,9 @@ export const contentPublication = reviewsSchema.table(
       table.storeId,
       table.channel,
       table.status,
-      table.contentId
+      table.contentId,
     ),
-  ]
+  ],
 );
 
 export type ContentItem = typeof contentItem.$inferSelect;

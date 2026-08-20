@@ -1,11 +1,4 @@
-import {
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { domainEvents } from "./domainEvents.js";
 
 export const eventHandlerJobs = pgTable(
@@ -28,27 +21,18 @@ export const eventHandlerJobs = pgTable(
     intervalSeconds: integer("interval_seconds").notNull(),
     backoffRate: integer("backoff_rate").notNull(),
     timeoutMs: integer("timeout_ms"),
-    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
     lockedBy: text("locked_by"),
     lockedUntil: timestamp("locked_until", { withTimezone: true }),
     lastError: text("last_error"),
     lastErrorCode: text("last_error_code"),
     succeededAt: timestamp("succeeded_at", { withTimezone: true }),
     failedAt: timestamp("failed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("event_handler_jobs_event_action_unique").on(
-      table.eventId,
-      table.handlerAction,
-    ),
+    uniqueIndex("event_handler_jobs_event_action_unique").on(table.eventId, table.handlerAction),
     index("idx_event_handler_jobs_event").on(table.eventId),
     index("idx_event_handler_jobs_ready").on(table.status, table.nextAttemptAt),
     index("idx_event_handler_jobs_batch").on(

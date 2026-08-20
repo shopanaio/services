@@ -46,10 +46,7 @@ export function AdminAppPage({
     >
       <div className={styles.content}>
         {description ? (
-          <Typography.Text
-            className={styles.description}
-            type="secondary"
-          >
+          <Typography.Text className={styles.description} type="secondary">
             {description}
           </Typography.Text>
         ) : null}

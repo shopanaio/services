@@ -54,10 +54,7 @@ export interface IEntityMediaGalleryProps {
   /** Optional metadata rendered in list mode */
   renderListMeta?: (file: ApiFile, index: number) => ReactNode;
   /** Optional domain-specific menu items appended to built-in item actions */
-  getItemMenuItems?: (
-    file: ApiFile,
-    index: number,
-  ) => MenuProps["items"];
+  getItemMenuItems?: (file: ApiFile, index: number) => MenuProps["items"];
   /** Optional domain-specific item editor */
   onEditItem?: (file: ApiFile, index: number) => void;
   /** Label for the domain-specific item editor */

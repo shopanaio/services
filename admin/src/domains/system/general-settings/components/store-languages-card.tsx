@@ -104,7 +104,8 @@ export const StoreLanguagesCard = ({
                             onClick: () =>
                               modal.confirm({
                                 title: `Delete ${language.name}?`,
-                                content: "Translated content will no longer be available in this language.",
+                                content:
+                                  "Translated content will no longer be available in this language.",
                                 okText: "Delete",
                                 okButtonProps: { danger: true },
                                 onOk: () => onDelete(language.code),

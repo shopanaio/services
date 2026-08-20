@@ -21,23 +21,16 @@ export interface WishlistUpdateResult {
   userErrors: WishlistUserError[];
 }
 
-export class WishlistUpdateScript extends BaseScript<
-  WishlistUpdateParams,
-  WishlistUpdateResult
-> {
+export class WishlistUpdateScript extends BaseScript<WishlistUpdateParams, WishlistUpdateResult> {
   @Transactional()
-  protected async execute(
-    params: WishlistUpdateParams,
-  ): Promise<WishlistUpdateResult> {
+  protected async execute(params: WishlistUpdateParams): Promise<WishlistUpdateResult> {
     if (!isValidExpectedTimestamp(params.expectedUpdatedAt)) {
       return {
         wishlist: null,
         userErrors: [
-          wishlistError(
-            "INVALID_UPDATED_AT",
-            "Expected update timestamp is invalid",
-            ["expectedUpdatedAt"],
-          ),
+          wishlistError("INVALID_UPDATED_AT", "Expected update timestamp is invalid", [
+            "expectedUpdatedAt",
+          ]),
         ],
       };
     }
@@ -56,20 +49,16 @@ export class WishlistUpdateScript extends BaseScript<
     if (result.status === "not_found") {
       return {
         wishlist: null,
-        userErrors: [
-          wishlistError("NOT_FOUND", "Wishlist was not found", ["id"]),
-        ],
+        userErrors: [wishlistError("NOT_FOUND", "Wishlist was not found", ["id"])],
       };
     }
     if (result.status === "name_taken") {
       return {
         wishlist: null,
         userErrors: [
-          wishlistError(
-            "WISHLIST_NAME_TAKEN",
-            "A wishlist with this name already exists",
-            ["name"],
-          ),
+          wishlistError("WISHLIST_NAME_TAKEN", "A wishlist with this name already exists", [
+            "name",
+          ]),
         ],
       };
     }
@@ -77,11 +66,9 @@ export class WishlistUpdateScript extends BaseScript<
       return {
         wishlist: null,
         userErrors: [
-          wishlistError(
-            "UPDATED_AT_CONFLICT",
-            "Wishlist was modified by another request",
-            ["expectedUpdatedAt"],
-          ),
+          wishlistError("UPDATED_AT_CONFLICT", "Wishlist was modified by another request", [
+            "expectedUpdatedAt",
+          ]),
         ],
       };
     }

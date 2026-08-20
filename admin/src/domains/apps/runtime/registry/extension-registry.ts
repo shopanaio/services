@@ -23,9 +23,7 @@ class AdminAppExtensionRegistry {
   }
 
   forPoint(point: string): RegisteredAdminAppExtension[] {
-    return this.extensions.filter(
-      (extension) => extension.descriptor.point === point,
-    );
+    return this.extensions.filter((extension) => extension.descriptor.point === point);
   }
 
   subscribe(listener: () => void): () => void {

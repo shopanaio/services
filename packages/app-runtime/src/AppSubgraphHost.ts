@@ -2,10 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import type { AppHostContext } from "@shopana/app-sdk";
 import { AppGraphQLServerFactory } from "./AppGraphQLServerFactory.js";
 import { AppSubgraphRegistry } from "./AppSubgraphRegistry.js";
-import type {
-  AppGraphQLSurface,
-  HostedAppDefinition,
-} from "./types.js";
+import type { AppGraphQLSurface, HostedAppDefinition } from "./types.js";
 
 const surfaces = ["admin", "storefront"] as const;
 
@@ -18,10 +15,7 @@ export class AppSubgraphHost {
     private readonly serverFactory: AppGraphQLServerFactory,
   ) {}
 
-  async start(
-    hosted: HostedAppDefinition,
-    host: AppHostContext,
-  ): Promise<void> {
+  async start(hosted: HostedAppDefinition, host: AppHostContext): Promise<void> {
     this.validateDefinition(hosted);
     const started: AppGraphQLSurface[] = [];
 
@@ -71,10 +65,7 @@ export class AppSubgraphHost {
     }
   }
 
-  private async close(
-    appCode: string,
-    surface: AppGraphQLSurface,
-  ): Promise<void> {
+  private async close(appCode: string, surface: AppGraphQLSurface): Promise<void> {
     const runtime = this.registry.get(appCode, surface);
     if (!runtime) {
       return;

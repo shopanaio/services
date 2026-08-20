@@ -1,27 +1,32 @@
 extend type Query {
-  """Returns a published Online Store page by its global Relay ID."""
+  """
+  Returns a published Online Store page by its global Relay ID.
+  """
   onlineStorePage(id: ID!): OnlineStorePage
 
-  """Returns a published Online Store page by its stable URL handle."""
+  """
+  Returns a published Online Store page by its stable URL handle.
+  """
   onlineStorePageByHandle(handle: String!): OnlineStorePage
 
-  """Returns published Online Store pages using Relay cursor pagination."""
-  onlineStorePages(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): OnlineStorePageConnection!
+  """
+  Returns published Online Store pages using Relay cursor pagination.
+  """
+  onlineStorePages(first: Int, after: Cursor, last: Int, before: Cursor): OnlineStorePageConnection!
 
-  """Returns an Online Store navigation menu by its global Relay ID."""
+  """
+  Returns an Online Store navigation menu by its global Relay ID.
+  """
   onlineStoreNavigationMenu(id: ID!): OnlineStoreNavigationMenu
 
-  """Returns an Online Store navigation menu by its stable handle."""
-  onlineStoreNavigationMenuByHandle(
-    handle: String!
-  ): OnlineStoreNavigationMenu
+  """
+  Returns an Online Store navigation menu by its stable handle.
+  """
+  onlineStoreNavigationMenuByHandle(handle: String!): OnlineStoreNavigationMenu
 
-  """Returns Online Store navigation menus using Relay cursor pagination."""
+  """
+  Returns Online Store navigation menus using Relay cursor pagination.
+  """
   onlineStoreNavigationMenus(
     first: Int
     after: Cursor

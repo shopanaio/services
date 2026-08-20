@@ -50,7 +50,9 @@ type Store @key(fields: "id") {
   List of enabled locale codes for the store
   """
   locales: [LocaleCode!]!
-  """All configured languages, including inactive drafts"""
+  """
+  All configured languages, including inactive drafts
+  """
   languageSettings: [Locale!]!
   """
   Default locale for new content
@@ -76,23 +78,37 @@ type Store @key(fields: "id") {
   Timestamp when the store was last updated
   """
   updatedAt: DateTime!
-  """Optimistic locking revision incremented by each unified update"""
+  """
+  Optimistic locking revision incremented by each unified update
+  """
   revision: Int!
   """
   Membership info (resolved from IAM by domain)
   """
   membership: Membership!
-  """Store contact details and ordered phone numbers"""
+  """
+  Store contact details and ordered phone numbers
+  """
   contactDetails: StoreContactDetails!
-  """Customer-visible store address"""
+  """
+  Customer-visible store address
+  """
   address: StoreAddress
-  """Store brand assets, colors, copy, and social links"""
+  """
+  Store brand assets, colors, copy, and social links
+  """
   brand: StoreBrand!
-  """Order numbering and processing behavior"""
+  """
+  Order numbering and processing behavior
+  """
   orderProcessing: StoreOrderProcessing!
-  """Regional and measurement defaults"""
+  """
+  Regional and measurement defaults
+  """
   defaults: StoreDefaults!
-  """Currency and number-formatting settings"""
+  """
+  Currency and number-formatting settings
+  """
   currencySettings: StoreCurrencySettings!
 }
 

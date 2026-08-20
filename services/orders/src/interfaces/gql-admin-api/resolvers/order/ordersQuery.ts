@@ -1,17 +1,11 @@
 import { App } from "@src/ioc/container";
-import type {
-  ApiOrderQueryOrdersArgs,
-  ApiOrderQuery,
-} from "@src/interfaces/gql-admin-api/types";
+import type { ApiOrderQueryOrdersArgs, ApiOrderQuery } from "@src/interfaces/gql-admin-api/types";
 import { mapOrderReadToApi } from "@src/interfaces/gql-admin-api/mapper/order";
 
 /**
  * orders(input: OrdersInput): OrdersOutput!
  */
-export const orders = async (
-  _parent: ApiOrderQuery,
-  args: ApiOrderQueryOrdersArgs
-) => {
+export const orders = async (_parent: ApiOrderQuery, args: ApiOrderQueryOrdersArgs) => {
   // TODO: Implement proper pagination and filtering
   const app = App.getInstance();
   const orderReadRepository = app.orderReadRepository;

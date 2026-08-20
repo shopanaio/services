@@ -3,10 +3,7 @@ import {
   normalizeBirthdayMonthDay,
   normalizePreferredLocale,
 } from "../../segments/normalization.js";
-import type {
-  CustomerCreateParams,
-  CustomerCreateResult,
-} from "./dto/index.js";
+import type { CustomerCreateParams, CustomerCreateResult } from "./dto/index.js";
 
 const STRING_LIMITS = {
   email: 320,
@@ -23,21 +20,14 @@ const STRING_LIMITS = {
 
 const MODERATION_NOTE_LIMIT = 10_000;
 
-export class CustomerCreateScript extends BaseScript<
-  CustomerCreateParams,
-  CustomerCreateResult
-> {
+export class CustomerCreateScript extends BaseScript<CustomerCreateParams, CustomerCreateResult> {
   @Transactional()
-  protected async execute(
-    params: CustomerCreateParams
-  ): Promise<CustomerCreateResult> {
+  protected async execute(params: CustomerCreateParams): Promise<CustomerCreateResult> {
     const normalizedParams = normalizeCreateParams(params);
     const errors = validateCreate(normalizedParams);
 
     if (normalizedParams.email) {
-      const existing = await this.repository.customer.findByEmail(
-        normalizedParams.email
-      );
+      const existing = await this.repository.customer.findByEmail(normalizedParams.email);
       if (existing) {
         errors.push({
           message: "A customer with this email already exists",
@@ -49,9 +39,7 @@ export class CustomerCreateScript extends BaseScript<
 
     if (errors.length > 0) return { customer: undefined, userErrors: errors };
 
-    const customer = await this.repository.customer.createIfAbsent(
-      normalizedParams
-    );
+    const customer = await this.repository.customer.createIfAbsent(normalizedParams);
     if (!customer) {
       return {
         customer: undefined,
@@ -65,11 +53,7 @@ export class CustomerCreateScript extends BaseScript<
       };
     }
 
-    await this.invalidateDynamicSegments(
-      customer.id,
-      ["customer.any"],
-      "customerCreated",
-    );
+    await this.invalidateDynamicSegments(customer.id, ["customer.any"], "customerCreated");
     this.logger.info({ customerId: customer.id }, "Customer created");
     return {
       customer: { id: customer.id, revision: customer.revision },
@@ -85,9 +69,7 @@ export class CustomerCreateScript extends BaseScript<
   }
 }
 
-function normalizeCreateParams(
-  params: CustomerCreateParams
-): CustomerCreateParams {
+function normalizeCreateParams(params: CustomerCreateParams): CustomerCreateParams {
   if (typeof params.email !== "string") return params;
   return {
     ...params,
@@ -123,10 +105,7 @@ function validateCreate(params: CustomerCreateParams) {
     });
   }
 
-  if (
-    typeof params.moderationNote === "string" &&
-    params.moderationNote.trim().length === 0
-  ) {
+  if (typeof params.moderationNote === "string" && params.moderationNote.trim().length === 0) {
     errors.push({
       message: "Moderation note cannot be empty",
       code: "INVALID_MODERATION_NOTE",

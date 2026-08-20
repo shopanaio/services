@@ -33,7 +33,7 @@ export function encodeListingCursor(payload: ListingCursorPayload): string {
 export function decodeListingCursor(raw: string): DecodedListingCursor {
   try {
     const decoded = JSON.parse(
-      Buffer.from(raw, "base64url").toString("utf8")
+      Buffer.from(raw, "base64url").toString("utf8"),
     ) as ListingCursorPayload;
 
     if (
@@ -46,11 +46,7 @@ export function decodeListingCursor(raw: string): DecodedListingCursor {
     if (!isStorefrontSortKind(decoded.sort)) {
       throw new StorefrontRepositoryValidationError("Invalid listing cursor");
     }
-    if (
-      decoded.mode !== null &&
-      decoded.mode !== "PRIMARY" &&
-      decoded.mode !== "FUZZY"
-    ) {
+    if (decoded.mode !== null && decoded.mode !== "PRIMARY" && decoded.mode !== "FUZZY") {
       throw new StorefrontRepositoryValidationError("Invalid listing cursor");
     }
     if (
@@ -81,10 +77,12 @@ export function decodeListingCursor(raw: string): DecodedListingCursor {
 
 export function buildListingFilterHash(input: FilterHashInput): string {
   return createHash("sha256")
-    .update(stableStringify({
-      ...input,
-      scope: canonicalScopeHashInput(input.scope),
-    }))
+    .update(
+      stableStringify({
+        ...input,
+        scope: canonicalScopeHashInput(input.scope),
+      }),
+    )
     .digest("base64url")
     .slice(0, 32);
 }
@@ -121,9 +119,7 @@ export function assertCursorMatches(
 
 export function encodeCursorFloat64(value: number): string {
   if (!Number.isFinite(value)) {
-    throw new StorefrontRepositoryValidationError(
-      "Listing cursor cannot encode a non-finite rank",
-    );
+    throw new StorefrontRepositoryValidationError("Listing cursor cannot encode a non-finite rank");
   }
   const bytes = Buffer.allocUnsafe(8);
   bytes.writeDoubleBE(value);
@@ -168,19 +164,12 @@ function assertSortTuple(payload: ListingCursorPayload): void {
           payload.variantDocId <= 0 ||
           payload.variantDocId > POSTGRES_INT4_MAX)
       ) {
-        throw new StorefrontRepositoryValidationError(
-          "Invalid listing cursor variantDocId",
-        );
+        throw new StorefrontRepositoryValidationError("Invalid listing cursor variantDocId");
       }
       return;
     case "relevance":
-      if (
-        typeof payload.relevanceScoreBits !== "string" ||
-        typeof payload.boosted !== "boolean"
-      ) {
-        throw new StorefrontRepositoryValidationError(
-          "Invalid listing cursor relevance tuple",
-        );
+      if (typeof payload.relevanceScoreBits !== "string" || typeof payload.boosted !== "boolean") {
+        throw new StorefrontRepositoryValidationError("Invalid listing cursor relevance tuple");
       }
       decodeCursorFloat64(payload.relevanceScoreBits);
       if (payload.mode === "FUZZY") {
@@ -194,13 +183,9 @@ function assertSortTuple(payload: ListingCursorPayload): void {
             "Invalid listing cursor fuzzy relevance tuple",
           );
         }
-        const similarity = decodeCursorFloat64(
-          payload.minimumTrigramSimilarityBits,
-        );
+        const similarity = decodeCursorFloat64(payload.minimumTrigramSimilarityBits);
         if (similarity < 0 || similarity > 1) {
-          throw new StorefrontRepositoryValidationError(
-            "Invalid listing cursor fuzzy similarity",
-          );
+          throw new StorefrontRepositoryValidationError("Invalid listing cursor fuzzy similarity");
         }
       } else if (
         !Number.isInteger(payload.identifierPriority) ||
@@ -218,9 +203,7 @@ function assertSortTuple(payload: ListingCursorPayload): void {
 
 function assertNullableString(value: unknown, label: string): void {
   if (value !== null && typeof value !== "string") {
-    throw new StorefrontRepositoryValidationError(
-      `Invalid listing cursor ${label}`,
-    );
+    throw new StorefrontRepositoryValidationError(`Invalid listing cursor ${label}`);
   }
 }
 
@@ -229,39 +212,29 @@ function assertNullableBigint(value: unknown, label: string): void {
     return;
   }
   if (typeof value !== "string" || !/^\d{1,19}$/u.test(value)) {
-    throw new StorefrontRepositoryValidationError(
-      `Invalid listing cursor ${label}`,
-    );
+    throw new StorefrontRepositoryValidationError(`Invalid listing cursor ${label}`);
   }
   try {
     if (BigInt(value) > POSTGRES_INT8_MAX) {
-      throw new StorefrontRepositoryValidationError(
-        `Invalid listing cursor ${label}`,
-      );
+      throw new StorefrontRepositoryValidationError(`Invalid listing cursor ${label}`);
     }
   } catch (error) {
     if (error instanceof StorefrontRepositoryValidationError) {
       throw error;
     }
-    throw new StorefrontRepositoryValidationError(
-      `Invalid listing cursor ${label}`,
-    );
+    throw new StorefrontRepositoryValidationError(`Invalid listing cursor ${label}`);
   }
 }
 
 function assertNullableTimestamp(value: unknown, label: string): void {
   if (value !== null && (typeof value !== "string" || !isIsoTimestamp(value))) {
-    throw new StorefrontRepositoryValidationError(
-      `Invalid listing cursor ${label}`,
-    );
+    throw new StorefrontRepositoryValidationError(`Invalid listing cursor ${label}`);
   }
 }
 
 function assertTimestamp(value: unknown, label: string): void {
   if (typeof value !== "string" || !isIsoTimestamp(value)) {
-    throw new StorefrontRepositoryValidationError(
-      `Invalid listing cursor ${label}`,
-    );
+    throw new StorefrontRepositoryValidationError(`Invalid listing cursor ${label}`);
   }
 }
 

@@ -51,7 +51,7 @@ export class Repository {
     moderation: ModerationRepository,
     externalReference: ExternalReferenceRepository,
     summary: SummaryRepository,
-    txManager: TransactionManager<Database>
+    txManager: TransactionManager<Database>,
   ) {
     this.configuration = configuration;
     this.content = content;
@@ -75,20 +75,9 @@ export class Repository {
     const content = new ContentRepository(db, txManager);
     const review = new ReviewRepository(db, txManager, content);
     const reviewReply = new ReviewReplyRepository(db, txManager, content);
-    const productQuestion = new ProductQuestionRepository(
-      db,
-      txManager,
-      content
-    );
-    const productQuestionAnswer = new ProductQuestionAnswerRepository(
-      db,
-      txManager,
-      content
-    );
-    const questionSubscription = new QuestionSubscriptionRepository(
-      db,
-      txManager
-    );
+    const productQuestion = new ProductQuestionRepository(db, txManager, content);
+    const productQuestionAnswer = new ProductQuestionAnswerRepository(db, txManager, content);
+    const questionSubscription = new QuestionSubscriptionRepository(db, txManager);
     const reviewRequest = new ReviewRequestRepository(db, txManager);
     const engagement = new EngagementRepository(db, txManager);
     const moderation = new ModerationRepository(db, txManager);
@@ -108,7 +97,7 @@ export class Repository {
       moderation,
       externalReference,
       summary,
-      txManager
+      txManager,
     );
   }
 

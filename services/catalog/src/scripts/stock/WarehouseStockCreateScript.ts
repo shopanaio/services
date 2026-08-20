@@ -1,9 +1,5 @@
 import { randomUUID } from "crypto";
-import {
-  BaseScript,
-  Transactional,
-  type UserError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import type { WarehouseStock } from "../../repositories/models/index.js";
 
 export interface WarehouseStockCreateItemParams {
@@ -31,9 +27,7 @@ export class WarehouseStockCreateScript extends BaseScript<
   WarehouseStockCreateResult
 > {
   @Transactional()
-  protected async execute(
-    params: WarehouseStockCreateParams,
-  ): Promise<WarehouseStockCreateResult> {
+  protected async execute(params: WarehouseStockCreateParams): Promise<WarehouseStockCreateResult> {
     const userErrors: UserError[] = [];
     const validItems: WarehouseStockCreateItemParams[] = [];
     const seenKeys = new Set<string>();
@@ -62,9 +56,7 @@ export class WarehouseStockCreateScript extends BaseScript<
         continue;
       }
 
-      const warehouseExists = await this.repository.warehouse.exists(
-        item.warehouseId,
-      );
+      const warehouseExists = await this.repository.warehouse.exists(item.warehouseId);
       if (!warehouseExists) {
         userErrors.push({
           message: "Warehouse not found",

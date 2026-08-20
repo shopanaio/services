@@ -28,8 +28,7 @@ export interface ProductOptionsSyncDraft {
 }
 
 function createTemporaryId(prefix: string): string {
-  const uuid =
-    globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+  const uuid = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 
   return `${prefix}-${uuid}`;
 }
@@ -145,8 +144,8 @@ function apiSwatchToEditorSwatch(
     swatchType: swatch.swatchType,
     colorOne: swatch.colorOne,
     colorTwo: swatch.colorTwo,
-    fileId: swatch.swatchType === SwatchType.Image ? swatch.file?.id ?? null : null,
-    fileUrl: swatch.swatchType === SwatchType.Image ? swatch.file?.url ?? null : null,
+    fileId: swatch.swatchType === SwatchType.Image ? (swatch.file?.id ?? null) : null,
+    fileUrl: swatch.swatchType === SwatchType.Image ? (swatch.file?.url ?? null) : null,
     metadata: swatch.metadata,
   };
 }
@@ -173,16 +172,12 @@ export function apiProductOptionsToOptionEditorGroups(
   }));
 }
 
-function swatchMetadataInput(
-  metadata: unknown,
-): Record<string, unknown> | null | undefined {
+function swatchMetadataInput(metadata: unknown): Record<string, unknown> | null | undefined {
   if (metadata === null || metadata === undefined) {
     return metadata;
   }
 
-  return typeof metadata === "object"
-    ? (metadata as Record<string, unknown>)
-    : undefined;
+  return typeof metadata === "object" ? (metadata as Record<string, unknown>) : undefined;
 }
 
 export function optionEditorSwatchToProductOptionSwatchInput(
@@ -336,15 +331,11 @@ export function optionEditorGroupsToProductOptionsSyncInput(input: {
   return buildProductOptionsSyncDraft(input).input;
 }
 
-function getOptionIndexById(
-  groups: OptionEditorGroup[],
-): Map<string, number> {
+function getOptionIndexById(groups: OptionEditorGroup[]): Map<string, number> {
   return new Map(sortedGroups(groups).map((group, index) => [group.id, index]));
 }
 
-function getValueIndexById(
-  values: OptionEditorValue[],
-): Map<string, number> {
+function getValueIndexById(values: OptionEditorValue[]): Map<string, number> {
   return new Map(sortedValues(values).map((value, index) => [value.id, index]));
 }
 
@@ -380,10 +371,7 @@ function validateSwatch(input: {
     return;
   }
 
-  if (
-    input.swatch.swatchType === SwatchType.Color &&
-    !input.swatch.colorOne
-  ) {
+  if (input.swatch.swatchType === SwatchType.Color && !input.swatch.colorOne) {
     input.errors.push(
       makeUserError("Color swatches require a primary color.", [
         "options",
@@ -410,10 +398,7 @@ function validateSwatch(input: {
     );
   }
 
-  if (
-    input.swatch.swatchType === SwatchType.Image &&
-    !isExistingApiFileId(input.swatch.fileId)
-  ) {
+  if (input.swatch.swatchType === SwatchType.Image && !isExistingApiFileId(input.swatch.fileId)) {
     input.errors.push(
       makeUserError("Image swatches require an existing uploaded file.", [
         "options",
@@ -448,11 +433,7 @@ export function validateOptionEditorGroups(input: {
 
     if (optionRowIds.has(group.id)) {
       errors.push(
-        makeUserError("Option row IDs must be unique.", [
-          "options",
-          optionIndex,
-          "sortIndex",
-        ]),
+        makeUserError("Option row IDs must be unique.", ["options", optionIndex, "sortIndex"]),
       );
     }
     optionRowIds.add(group.id);
@@ -460,24 +441,14 @@ export function validateOptionEditorGroups(input: {
     if (group.apiId) {
       if (optionApiIds.has(group.apiId)) {
         errors.push(
-          makeUserError("Option API IDs must be unique.", [
-            "options",
-            optionIndex,
-            "sortIndex",
-          ]),
+          makeUserError("Option API IDs must be unique.", ["options", optionIndex, "sortIndex"]),
         );
       }
       optionApiIds.add(group.apiId);
     }
 
     if (!optionName) {
-      errors.push(
-        makeUserError("Option name is required.", [
-          "options",
-          optionIndex,
-          "name",
-        ]),
-      );
+      errors.push(makeUserError("Option name is required.", ["options", optionIndex, "name"]));
     }
 
     if (!isNonNegativeInteger(group.sortIndex)) {
@@ -493,11 +464,7 @@ export function validateOptionEditorGroups(input: {
     const existingOptionPosition = optionPositions.get(group.sortIndex);
     if (existingOptionPosition && existingOptionPosition.id !== group.id) {
       errors.push(
-        makeUserError("Option sort indexes must be unique.", [
-          "options",
-          optionIndex,
-          "sortIndex",
-        ]),
+        makeUserError("Option sort indexes must be unique.", ["options", optionIndex, "sortIndex"]),
       );
     } else {
       optionPositions.set(group.sortIndex, group);
@@ -505,11 +472,7 @@ export function validateOptionEditorGroups(input: {
 
     if (!group.category) {
       errors.push(
-        makeUserError("Option category is required.", [
-          "options",
-          optionIndex,
-          "categoryId",
-        ]),
+        makeUserError("Option category is required.", ["options", optionIndex, "categoryId"]),
       );
     }
 
@@ -625,13 +588,7 @@ export function validateOptionEditorGroups(input: {
 
   draft.input.options.forEach((option, optionIndex) => {
     if (!isValidSlug(option.slug)) {
-      errors.push(
-        makeUserError("Option slug is invalid.", [
-          "options",
-          optionIndex,
-          "slug",
-        ]),
-      );
+      errors.push(makeUserError("Option slug is invalid.", ["options", optionIndex, "slug"]));
     }
 
     const existingOptionIndex = optionSlugs.get(option.slug);
@@ -676,7 +633,6 @@ export function validateOptionEditorGroups(input: {
       } else {
         valueSlugs.set(value.slug, valueIndex);
       }
-
     });
   });
 

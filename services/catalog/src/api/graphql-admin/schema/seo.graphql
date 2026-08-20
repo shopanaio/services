@@ -1,18 +1,30 @@
-"""SEO and Open Graph metadata."""
+"""
+SEO and Open Graph metadata.
+"""
 type Seo @shareable {
-  """SEO title for search engines (max 70 chars)."""
+  """
+  SEO title for search engines (max 70 chars).
+  """
   seoTitle: String
 
-  """SEO description for search engines (max 160 chars)."""
+  """
+  SEO description for search engines (max 160 chars).
+  """
   seoDescription: String
 
-  """Open Graph title for social media sharing (max 95 chars)."""
+  """
+  Open Graph title for social media sharing (max 95 chars).
+  """
   ogTitle: String
 
-  """Open Graph description for social media sharing."""
+  """
+  Open Graph description for social media sharing.
+  """
   ogDescription: String
 
-  """Open Graph image for social media sharing."""
+  """
+  Open Graph image for social media sharing.
+  """
   ogImage: File
 }
 
@@ -20,25 +32,37 @@ type Seo @shareable {
 Input for SEO and Open Graph metadata.
 """
 input SeoInput {
-  """SEO title (max 70 chars)."""
+  """
+  SEO title (max 70 chars).
+  """
   seoTitle: String
 
-  """SEO description (max 160 chars)."""
+  """
+  SEO description (max 160 chars).
+  """
   seoDescription: String
 
-  """Open Graph title (max 95 chars)."""
+  """
+  Open Graph title (max 95 chars).
+  """
   ogTitle: String
 
-  """Open Graph description."""
+  """
+  Open Graph description.
+  """
   ogDescription: String
 
-  """Open Graph image file ID."""
+  """
+  Open Graph image file ID.
+  """
   ogImageId: ID
 }
 
 # ---- Product SEO (backward compatibility) ----
 
-"""SEO and Open Graph metadata for a product."""
+"""
+SEO and Open Graph metadata for a product.
+"""
 type ProductSeo {
   seoTitle: String
   seoDescription: String
@@ -47,7 +71,9 @@ type ProductSeo {
   ogImage: File
 }
 
-"""Input for updating product SEO data."""
+"""
+Input for updating product SEO data.
+"""
 input ProductSeoInput {
   seoTitle: String
   seoDescription: String

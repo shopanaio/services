@@ -15,11 +15,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import {
-  currencyCodeEnum,
-  listingSchema,
-  localeCodeEnum,
-} from "./schema.js";
+import { currencyCodeEnum, listingSchema, localeCodeEnum } from "./schema.js";
 import { roaringbitmap } from "./postgresTypes.js";
 
 export const listingDocIdAllocator = listingSchema.table(
@@ -34,14 +30,8 @@ export const listingDocIdAllocator = listingSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.storeId] }),
-    check(
-      "chk_listing_doc_id_allocator_product_positive",
-      sql`${table.nextProductDocId} > 0`,
-    ),
-    check(
-      "chk_listing_doc_id_allocator_variant_positive",
-      sql`${table.nextVariantDocId} > 0`,
-    ),
+    check("chk_listing_doc_id_allocator_product_positive", sql`${table.nextProductDocId} > 0`),
+    check("chk_listing_doc_id_allocator_variant_positive", sql`${table.nextVariantDocId} > 0`),
   ],
 );
 
@@ -53,9 +43,7 @@ export const listingIndexItemState = listingSchema.table(
     eventSequence: integer("event_sequence").notNull(),
     payloadHash: text("payload_hash").notNull(),
     lifecycleStatus: varchar("lifecycle_status", { length: 32 }).notNull(),
-    lastEffectiveIdempotencyKey: text(
-      "last_effective_idempotency_key",
-    ).notNull(),
+    lastEffectiveIdempotencyKey: text("last_effective_idempotency_key").notNull(),
     lastOperationId: text("last_operation_id").notNull(),
     updatedAt: timestamp("updated_at", {
       withTimezone: true,
@@ -66,10 +54,7 @@ export const listingIndexItemState = listingSchema.table(
     primaryKey({
       columns: [table.storeId, table.itemId],
     }),
-    check(
-      "chk_listing_index_item_state_event_sequence",
-      sql`${table.eventSequence} > 0`,
-    ),
+    check("chk_listing_index_item_state_event_sequence", sql`${table.eventSequence} > 0`),
     check(
       "chk_listing_index_item_state_lifecycle_status",
       sql`${table.lifecycleStatus} IN ('indexed', 'deleted')`,
@@ -109,44 +94,20 @@ export const productListingIndex = listingSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("product_listing_store_doc_unique").on(
-      table.storeId,
-      table.productDocId,
-    ),
-    unique("product_listing_store_product_unique").on(
-      table.storeId,
-      table.productId,
-    ),
+    unique("product_listing_store_doc_unique").on(table.storeId, table.productDocId),
+    unique("product_listing_store_product_unique").on(table.storeId, table.productId),
     unique("product_listing_store_doc_product_unique").on(
       table.storeId,
       table.productDocId,
       table.productId,
     ),
-    unique("product_listing_doc_product_unique").on(
-      table.productDocId,
-      table.productId,
-    ),
-    check(
-      "chk_product_listing_entity_type",
-      sql`${table.entityType} = 'product'`,
-    ),
-    check(
-      "chk_product_listing_status",
-      sql`${table.status} IN ('published', 'draft')`,
-    ),
+    unique("product_listing_doc_product_unique").on(table.productDocId, table.productId),
+    check("chk_product_listing_entity_type", sql`${table.entityType} = 'product'`),
+    check("chk_product_listing_status", sql`${table.status} IN ('published', 'draft')`),
     check("chk_product_listing_doc_positive", sql`${table.productDocId} > 0`),
-    check(
-      "chk_product_listing_total_stock_nonnegative",
-      sql`${table.totalStock} >= 0`,
-    ),
-    index("idx_product_listing_store_product").on(
-      table.storeId,
-      table.productId,
-    ),
-    index("idx_product_listing_store_doc").on(
-      table.storeId,
-      table.productDocId,
-    ),
+    check("chk_product_listing_total_stock_nonnegative", sql`${table.totalStock} >= 0`),
+    index("idx_product_listing_store_product").on(table.storeId, table.productId),
+    index("idx_product_listing_store_doc").on(table.storeId, table.productDocId),
     index("idx_product_listing_published_doc")
       .on(table.storeId, table.productDocId)
       .where(sql`${table.status} = 'published'`),
@@ -187,10 +148,7 @@ export const productListingPriceIndex = listingSchema.table(
     foreignKey({
       name: "fk_product_listing_price_store_product",
       columns: [table.storeId, table.productId],
-      foreignColumns: [
-        productListingIndex.storeId,
-        productListingIndex.productId,
-      ],
+      foreignColumns: [productListingIndex.storeId, productListingIndex.productId],
     }).onDelete("cascade"),
     check(
       "chk_product_listing_price_state",
@@ -201,20 +159,10 @@ export const productListingPriceIndex = listingSchema.table(
       )`,
     ),
     index("idx_product_listing_price_visible_asc")
-      .on(
-        table.storeId,
-        table.currency,
-        table.minPriceMinor.asc(),
-        table.productId,
-      )
+      .on(table.storeId, table.currency, table.minPriceMinor.asc(), table.productId)
       .where(sql`${table.hasPrice} = true`),
     index("idx_product_listing_price_visible_desc")
-      .on(
-        table.storeId,
-        table.currency,
-        table.maxPriceMinor.desc(),
-        table.productId,
-      )
+      .on(table.storeId, table.currency, table.maxPriceMinor.desc(), table.productId)
       .where(sql`${table.hasPrice} = true`),
   ],
 );
@@ -236,18 +184,9 @@ export const variantListingIndex = listingSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("variant_listing_store_product_variant_unique").on(
-      table.productId,
-      table.variantId,
-    ),
-    unique("variant_listing_store_variant_unique").on(
-      table.storeId,
-      table.variantId,
-    ),
-    unique("variant_listing_store_doc_unique").on(
-      table.storeId,
-      table.variantDocId,
-    ),
+    unique("variant_listing_store_product_variant_unique").on(table.productId, table.variantId),
+    unique("variant_listing_store_variant_unique").on(table.storeId, table.variantId),
+    unique("variant_listing_store_doc_unique").on(table.storeId, table.variantDocId),
     unique("variant_listing_store_doc_variant_unique").on(
       table.storeId,
       table.variantDocId,
@@ -269,26 +208,11 @@ export const variantListingIndex = listingSchema.table(
       ],
     }).onDelete("cascade"),
     check("chk_variant_listing_doc_positive", sql`${table.variantDocId} > 0`),
-    check(
-      "chk_variant_listing_product_doc_positive",
-      sql`${table.productDocId} > 0`,
-    ),
-    check(
-      "chk_variant_listing_total_stock_nonnegative",
-      sql`${table.totalStock} >= 0`,
-    ),
-    index("idx_variant_listing_store_product").on(
-      table.storeId,
-      table.productId,
-    ),
-    index("idx_variant_listing_store_variant").on(
-      table.storeId,
-      table.variantId,
-    ),
-    index("idx_variant_listing_store_doc").on(
-      table.storeId,
-      table.variantDocId,
-    ),
+    check("chk_variant_listing_product_doc_positive", sql`${table.productDocId} > 0`),
+    check("chk_variant_listing_total_stock_nonnegative", sql`${table.totalStock} >= 0`),
+    index("idx_variant_listing_store_product").on(table.storeId, table.productId),
+    index("idx_variant_listing_store_variant").on(table.storeId, table.variantId),
+    index("idx_variant_listing_store_doc").on(table.storeId, table.variantDocId),
   ],
 );
 
@@ -320,10 +244,7 @@ export const variantListingPriceIndex = listingSchema.table(
     foreignKey({
       name: "fk_variant_listing_price_store_variant",
       columns: [table.storeId, table.variantId],
-      foreignColumns: [
-        variantListingIndex.storeId,
-        variantListingIndex.variantId,
-      ],
+      foreignColumns: [variantListingIndex.storeId, variantListingIndex.variantId],
     }).onDelete("cascade"),
     check(
       "chk_variant_listing_price_state",
@@ -333,14 +254,8 @@ export const variantListingPriceIndex = listingSchema.table(
         (${table.hasPrice} = true AND ${table.priceMinor} IS NOT NULL AND ${table.priceMinor} >= 0)
       )`,
     ),
-    check(
-      "chk_variant_listing_price_variant_doc_positive",
-      sql`${table.variantDocId} > 0`,
-    ),
-    check(
-      "chk_variant_listing_price_product_doc_positive",
-      sql`${table.productDocId} > 0`,
-    ),
+    check("chk_variant_listing_price_variant_doc_positive", sql`${table.variantDocId} > 0`),
+    check("chk_variant_listing_price_product_doc_positive", sql`${table.productDocId} > 0`),
     index("idx_variant_listing_price_value")
       .on(table.storeId, table.currency, table.priceMinor)
       .where(sql`${table.hasPrice} = true`),
@@ -392,10 +307,7 @@ export const listingPostingBitmap = listingSchema.table(
     valueKey: text("value_key").notNull(),
     bitmap: roaringbitmap("bitmap").notNull(),
     cardinality: bigint("cardinality", { mode: "number" }).notNull(),
-    metadata: jsonb("metadata")
-      .$type<Record<string, unknown>>()
-      .notNull()
-      .default({}),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -583,10 +495,7 @@ export const listingPostingVariantProjectionBlock = listingSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.storeId, table.blockId] }),
-    check(
-      "chk_listing_storeion_block_id_nonnegative",
-      sql`${table.blockId} >= 0`,
-    ),
+    check("chk_listing_storeion_block_id_nonnegative", sql`${table.blockId} >= 0`),
     check(
       "chk_listing_storeion_block_range",
       sql`${table.variantDocFrom} >= 0 AND ${table.variantDocTo} > ${table.variantDocFrom}`,
@@ -604,36 +513,28 @@ export const listingPostingVariantProjectionBlock = listingSchema.table(
 );
 
 export type ListingDocIdAllocator = typeof listingDocIdAllocator.$inferSelect;
-export type NewListingDocIdAllocator =
-  typeof listingDocIdAllocator.$inferInsert;
+export type NewListingDocIdAllocator = typeof listingDocIdAllocator.$inferInsert;
 
 export type ListingIndexItemState = typeof listingIndexItemState.$inferSelect;
-export type NewListingIndexItemState =
-  typeof listingIndexItemState.$inferInsert;
+export type NewListingIndexItemState = typeof listingIndexItemState.$inferInsert;
 
 export type ProductListingIndex = typeof productListingIndex.$inferSelect;
 export type NewProductListingIndex = typeof productListingIndex.$inferInsert;
 
-export type ProductListingPriceIndex =
-  typeof productListingPriceIndex.$inferSelect;
-export type NewProductListingPriceIndex =
-  typeof productListingPriceIndex.$inferInsert;
+export type ProductListingPriceIndex = typeof productListingPriceIndex.$inferSelect;
+export type NewProductListingPriceIndex = typeof productListingPriceIndex.$inferInsert;
 
 export type VariantListingIndex = typeof variantListingIndex.$inferSelect;
 export type NewVariantListingIndex = typeof variantListingIndex.$inferInsert;
 
-export type VariantListingPriceIndex =
-  typeof variantListingPriceIndex.$inferSelect;
-export type NewVariantListingPriceIndex =
-  typeof variantListingPriceIndex.$inferInsert;
+export type VariantListingPriceIndex = typeof variantListingPriceIndex.$inferSelect;
+export type NewVariantListingPriceIndex = typeof variantListingPriceIndex.$inferInsert;
 
 export type ListingPostingBitmap = typeof listingPostingBitmap.$inferSelect;
 export type NewListingPostingBitmap = typeof listingPostingBitmap.$inferInsert;
 
-export type ListingPostingProductSort =
-  typeof listingPostingProductSort.$inferSelect;
-export type NewListingPostingProductSort =
-  typeof listingPostingProductSort.$inferInsert;
+export type ListingPostingProductSort = typeof listingPostingProductSort.$inferSelect;
+export type NewListingPostingProductSort = typeof listingPostingProductSort.$inferInsert;
 
 export type ListingPostingVariantProjectionBlock =
   typeof listingPostingVariantProjectionBlock.$inferSelect;

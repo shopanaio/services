@@ -4,10 +4,7 @@ import { App } from "antd";
 import { useModalStackContext } from "@/layouts/modals";
 import { EntityIdentityModal } from "@/domains/inventory/components/entity-edit-forms";
 import { useUpdateTag } from "../../hooks";
-import {
-  mapTagIdentityToUpdateInput,
-  mapTagUserErrorsToFormErrors,
-} from "../../mappers";
+import { mapTagIdentityToUpdateInput, mapTagUserErrorsToFormErrors } from "../../mappers";
 import type { ITagEditIdentityModalPayload } from "../../modals";
 
 export const EditTagIdentityModal = () => {

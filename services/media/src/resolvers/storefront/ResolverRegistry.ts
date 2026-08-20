@@ -37,9 +37,7 @@ export class ResolverRegistry {
   }
 
   async externalVideo(id: string) {
-    const { ExternalVideoResolver } = await import(
-      "./ExternalVideoResolver.js"
-    );
+    const { ExternalVideoResolver } = await import("./ExternalVideoResolver.js");
     return new ExternalVideoResolver(id, this.ctx);
   }
 
@@ -54,9 +52,7 @@ export class ResolverRegistry {
   }
 
   async model3dSource(input: StorefrontSourceInput) {
-    const { Model3dSourceResolver } = await import(
-      "./Model3dSourceResolver.js"
-    );
+    const { Model3dSourceResolver } = await import("./Model3dSourceResolver.js");
     return new Model3dSourceResolver(input, this.ctx);
   }
 

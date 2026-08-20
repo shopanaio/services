@@ -42,9 +42,7 @@ interface ListingPreviewProductCardProps {
   item: CategoryListingPreviewItem;
 }
 
-export const ListingPreviewProductCard = ({
-  item,
-}: ListingPreviewProductCardProps) => {
+export const ListingPreviewProductCard = ({ item }: ListingPreviewProductCardProps) => {
   const { styles } = useListingPreviewStyles();
   const image = getFirstImage(item);
 

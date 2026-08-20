@@ -102,9 +102,7 @@ export class StoreDeleteSaga extends BrokerSaga<StoreDeleteInput, StoreDeleteOut
     }
   }
 
-  private async workflowEmitStoreDeleted(
-    input: StoreDeleteInput,
-  ): Promise<void> {
+  private async workflowEmitStoreDeleted(input: StoreDeleteInput): Promise<void> {
     await this.broker.runWorkflow(
       "events.emit",
       {

@@ -19,9 +19,7 @@ export class BulkEditCreateJobScript extends BaseScript<
   BulkEditCreateJobResult
 > {
   @Transactional()
-  protected async execute(
-    params: BulkEditCreateJobParams
-  ): Promise<BulkEditCreateJobResult> {
+  protected async execute(params: BulkEditCreateJobParams): Promise<BulkEditCreateJobResult> {
     const { products } = params;
 
     if (products.length === 0) {
@@ -32,9 +30,7 @@ export class BulkEditCreateJobScript extends BaseScript<
 
     if (products.length > 100) {
       return {
-        userErrors: [
-          { message: "Maximum 100 products per request", code: "BATCH_LIMIT_EXCEEDED" },
-        ],
+        userErrors: [{ message: "Maximum 100 products per request", code: "BATCH_LIMIT_EXCEEDED" }],
       };
     }
 
@@ -67,7 +63,7 @@ export class BulkEditCreateJobScript extends BaseScript<
         productId,
         fenceToken: fenceTokens.get(productId)!,
         jobId,
-      }))
+      })),
     );
 
     // 5. Supersede active items for these products

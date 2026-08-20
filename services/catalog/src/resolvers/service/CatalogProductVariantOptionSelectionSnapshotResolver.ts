@@ -19,22 +19,17 @@ export class CatalogProductVariantOptionSelectionSnapshotResolver extends Servic
   CatalogProductVariantOptionSelectionSnapshotData
 > {
   protected async $preload(): Promise<CatalogProductVariantOptionSelectionSnapshotData> {
-    const option = await this.$ctx.loaders.productOption.load(
-      this.$props.optionId
-    );
+    const option = await this.$ctx.loaders.productOption.load(this.$props.optionId);
     if (!option) {
-      throw new PreloadNotFoundError(
-        `Product option with ID ${this.$props.optionId} not found`
-      );
+      throw new PreloadNotFoundError(`Product option with ID ${this.$props.optionId} not found`);
     }
 
     const valueIds = await this.getSelectedValueIds();
     const values = await Promise.all(
       valueIds.map(async (valueId) => {
-        const resolver =
-          await this.resolvers.catalogProductOptionValueRef(valueId);
+        const resolver = await this.resolvers.catalogProductOptionValueRef(valueId);
         return resolver.$snapshot();
-      })
+      }),
     );
 
     return {
@@ -55,9 +50,7 @@ export class CatalogProductVariantOptionSelectionSnapshotResolver extends Servic
   async values(): Promise<CatalogProductOptionValueRefResolver[]> {
     const valueIds = await this.getSelectedValueIds();
     return Promise.all(
-      valueIds.map((valueId) =>
-        this.resolvers.catalogProductOptionValueRef(valueId)
-      )
+      valueIds.map((valueId) => this.resolvers.catalogProductOptionValueRef(valueId)),
     );
   }
 
@@ -66,14 +59,9 @@ export class CatalogProductVariantOptionSelectionSnapshotResolver extends Servic
   }
 
   private async getSelectedValueIds(): Promise<string[]> {
-    const links = await this.$ctx.loaders.variantSelectedOptions.load(
-      this.$props.variantId
-    );
+    const links = await this.$ctx.loaders.variantSelectedOptions.load(this.$props.variantId);
     return links
-      .filter(
-        (link) =>
-          link.optionId === this.$props.optionId && link.optionValueId !== null
-      )
+      .filter((link) => link.optionId === this.$props.optionId && link.optionValueId !== null)
       .map((link) => link.optionValueId!);
   }
 }

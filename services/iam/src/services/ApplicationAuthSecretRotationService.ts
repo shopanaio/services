@@ -9,7 +9,7 @@ export interface ApplicationAuthCacheInvalidator {
 export class ApplicationAuthSecretRotationService {
   constructor(
     private readonly configurations: ApplicationAuthConfigurationRepository,
-    private readonly cache: ApplicationAuthCacheInvalidator
+    private readonly cache: ApplicationAuthCacheInvalidator,
   ) {}
 
   async rotateRealmSecret(input: {
@@ -20,7 +20,7 @@ export class ApplicationAuthSecretRotationService {
     const configuration = await this.configurations.rotateRealmSecret(
       input.applicationId,
       input.expectedRevision,
-      input.targetKeyVersion
+      input.targetKeyVersion,
     );
     this.cache.invalidate(input.applicationId);
     return configuration;
@@ -34,8 +34,7 @@ export class ApplicationAuthSecretRotationService {
     return this.configurations.reencryptStoredSecrets(
       input.sourceVersion,
       input.targetVersion,
-      input.batchSize
+      input.batchSize,
     );
   }
 }
-

@@ -66,9 +66,7 @@ export class TranslationRepository extends BaseRepository {
         and(
           eq(pageTranslations.storeId, scope.storeId),
           inArray(pageTranslations.pageId, [...new Set(pageIds)]),
-          locale === undefined
-            ? undefined
-            : eq(pageTranslations.locale, locale),
+          locale === undefined ? undefined : eq(pageTranslations.locale, locale),
           this.ownedPageExists(scope, pageTranslations.pageId),
         ),
       )
@@ -81,9 +79,7 @@ export class TranslationRepository extends BaseRepository {
     pageId: string,
     input: UpsertPageTranslationInput,
   ): Promise<PageTranslationRecord | null> {
-    return this.txManager.run(() =>
-      this.upsertPageTranslationInTransaction(scope, pageId, input),
-    );
+    return this.txManager.run(() => this.upsertPageTranslationInTransaction(scope, pageId, input));
   }
 
   private async upsertPageTranslationInTransaction(
@@ -184,13 +180,8 @@ export class TranslationRepository extends BaseRepository {
       .where(
         and(
           eq(navigationMenuItemTranslations.storeId, scope.storeId),
-          inArray(
-            navigationMenuItemTranslations.itemId,
-            [...new Set(itemIds)],
-          ),
-          locale === undefined
-            ? undefined
-            : eq(navigationMenuItemTranslations.locale, locale),
+          inArray(navigationMenuItemTranslations.itemId, [...new Set(itemIds)]),
+          locale === undefined ? undefined : eq(navigationMenuItemTranslations.locale, locale),
           this.ownedItemExists(scope, navigationMenuItemTranslations.itemId),
         ),
       )
@@ -230,10 +221,7 @@ export class TranslationRepository extends BaseRepository {
         label: input.label,
       })
       .onConflictDoUpdate({
-        target: [
-          navigationMenuItemTranslations.itemId,
-          navigationMenuItemTranslations.locale,
-        ],
+        target: [navigationMenuItemTranslations.itemId, navigationMenuItemTranslations.locale],
         set: { label: input.label },
       })
       .returning();
@@ -260,9 +248,7 @@ export class TranslationRepository extends BaseRepository {
   }
 }
 
-function mapPageTranslation(
-  row: PageTranslationModel,
-): PageTranslationRecord {
+function mapPageTranslation(row: PageTranslationModel): PageTranslationRecord {
   return Object.freeze({ ...row });
 }
 
@@ -272,9 +258,7 @@ function mapMenuItemTranslation(
   return Object.freeze({ ...row });
 }
 
-function requiredPageTranslation(
-  row: PageTranslationModel | undefined,
-): PageTranslationModel {
+function requiredPageTranslation(row: PageTranslationModel | undefined): PageTranslationModel {
   if (!row) {
     throw new Error("page translation was not returned by PostgreSQL");
   }

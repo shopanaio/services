@@ -24,10 +24,7 @@ type ReviewRequestEventConnectionInput = ReviewRequestEventRelayInput & {
 export class ReviewRequestEventConnectionResolver extends BaseConnectionResolver<ReviewRequestEventConnectionInput> {
   $preload(): Promise<ConnectionData> {
     const { reviewRequestId, ...args } = this.$props;
-    return this.$ctx.kernel.repository.reviewRequest.getEventConnection(
-      reviewRequestId,
-      args
-    );
+    return this.$ctx.kernel.repository.reviewRequest.getEventConnection(reviewRequestId, args);
   }
 
   protected createNodeResolver(nodeId: string) {

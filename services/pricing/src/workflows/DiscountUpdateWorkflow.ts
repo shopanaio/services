@@ -57,9 +57,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     return Kernel.getInstance();
   }
 
-  private toScriptContext(
-    context: PricingMutationWorkflowContext,
-  ): RunScriptContext {
+  private toScriptContext(context: PricingMutationWorkflowContext): RunScriptContext {
     return {
       storeId: context.storeId,
       organizationId: context.organizationId,
@@ -80,9 +78,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: DiscountUpdateWorkflowInput,
-  ): Promise<DiscountUpdateWorkflowResult> {
+  async run(input: DiscountUpdateWorkflowInput): Promise<DiscountUpdateWorkflowResult> {
     const acquired = await this.stepAcquireRevision(
       input.discountId,
       input.expectedRevision,
@@ -234,11 +230,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     params: DiscountUpdateDefinitionParams,
     context: RunScriptContext,
   ): Promise<DiscountUpdateOperationResult> {
-    const result = await this.kernel.runScript(
-      DiscountUpdateDefinitionScript,
-      params,
-      context,
-    );
+    const result = await this.kernel.runScript(DiscountUpdateDefinitionScript, params, context);
     return operationResult("discountDefinitionUpdate", result);
   }
 
@@ -247,11 +239,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     params: DiscountUpdateRuleParams,
     context: RunScriptContext,
   ): Promise<DiscountUpdateOperationResult> {
-    const result = await this.kernel.runScript(
-      DiscountUpdateRuleScript,
-      params,
-      context,
-    );
+    const result = await this.kernel.runScript(DiscountUpdateRuleScript, params, context);
     return operationResult("discountRuleUpdate", result);
   }
 
@@ -286,11 +274,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     params: DiscountUpdateTargetsParams,
     context: RunScriptContext,
   ): Promise<DiscountUpdateOperationResult> {
-    const result = await this.kernel.runScript(
-      DiscountUpdateTargetsScript,
-      params,
-      context,
-    );
+    const result = await this.kernel.runScript(DiscountUpdateTargetsScript, params, context);
     return operationResult("discountTargetsUpdate", result);
   }
 
@@ -299,11 +283,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     params: DiscountUpdateEligibilityParams,
     context: RunScriptContext,
   ): Promise<DiscountUpdateOperationResult> {
-    const result = await this.kernel.runScript(
-      DiscountUpdateEligibilityScript,
-      params,
-      context,
-    );
+    const result = await this.kernel.runScript(DiscountUpdateEligibilityScript, params, context);
     return operationResult("discountEligibilityUpdate", result);
   }
 
@@ -312,11 +292,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     params: DiscountUpdateCodesParams,
     context: RunScriptContext,
   ): Promise<DiscountUpdateOperationResult> {
-    const result = await this.kernel.runScript(
-      DiscountUpdateCodesScript,
-      params,
-      context,
-    );
+    const result = await this.kernel.runScript(DiscountUpdateCodesScript, params, context);
     return operationResult("discountCodesUpdate", result);
   }
 
@@ -325,11 +301,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     params: DiscountUpdateTagsParams,
     context: RunScriptContext,
   ): Promise<DiscountUpdateOperationResult> {
-    const result = await this.kernel.runScript(
-      DiscountUpdateTagsScript,
-      params,
-      context,
-    );
+    const result = await this.kernel.runScript(DiscountUpdateTagsScript, params, context);
     return operationResult("discountTagsUpdate", result);
   }
 
@@ -338,11 +310,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     params: DiscountUpdateChannelsParams,
     context: RunScriptContext,
   ): Promise<DiscountUpdateOperationResult> {
-    const result = await this.kernel.runScript(
-      DiscountUpdateChannelsScript,
-      params,
-      context,
-    );
+    const result = await this.kernel.runScript(DiscountUpdateChannelsScript, params, context);
     return operationResult("discountChannelsUpdate", result);
   }
 
@@ -351,11 +319,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     params: DiscountUpdateCombinationsParams,
     context: RunScriptContext,
   ): Promise<DiscountUpdateOperationResult> {
-    const result = await this.kernel.runScript(
-      DiscountUpdateCombinationsScript,
-      params,
-      context,
-    );
+    const result = await this.kernel.runScript(DiscountUpdateCombinationsScript, params, context);
     return operationResult("discountCombinationsUpdate", result);
   }
 
@@ -364,11 +328,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     params: DiscountUpdateLifecycleParams,
     context: RunScriptContext,
   ): Promise<DiscountUpdateOperationResult> {
-    const result = await this.kernel.runScript(
-      DiscountUpdateLifecycleScript,
-      params,
-      context,
-    );
+    const result = await this.kernel.runScript(DiscountUpdateLifecycleScript, params, context);
     return operationResult("discountLifecycleUpdate", result);
   }
 
@@ -377,11 +337,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     params: DiscountUpdateMetadataParams,
     context: RunScriptContext,
   ): Promise<DiscountUpdateOperationResult> {
-    const result = await this.kernel.runScript(
-      DiscountUpdateMetadataScript,
-      params,
-      context,
-    );
+    const result = await this.kernel.runScript(DiscountUpdateMetadataScript, params, context);
     return operationResult("discountMetadataUpdate", result);
   }
 }

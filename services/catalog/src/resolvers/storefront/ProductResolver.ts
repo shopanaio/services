@@ -1,9 +1,6 @@
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
-import type {
-  Product,
-  ProductFeature,
-} from "../../repositories/models/index.js";
+import type { Product, ProductFeature } from "../../repositories/models/index.js";
 import { toRichTextValue } from "../shared/richText.js";
 import { CatalogType } from "./CatalogType.js";
 import type {
@@ -42,16 +39,12 @@ export class ProductResolver extends CatalogType<string, Product> {
   }
 
   async title() {
-    const translation = await this.$ctx.loaders.productTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.productTranslation.load(this.$props);
     return translation?.name ?? (await this.$get("handle")) ?? "";
   }
 
   async description() {
-    const translation = await this.$ctx.loaders.productTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.productTranslation.load(this.$props);
     return toRichTextValue(
       translation && {
         text: translation.descriptionText,
@@ -62,9 +55,7 @@ export class ProductResolver extends CatalogType<string, Product> {
   }
 
   async excerpt() {
-    const translation = await this.$ctx.loaders.productTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.productTranslation.load(this.$props);
     return toRichTextValue(
       translation && {
         text: translation.excerptText,
@@ -90,15 +81,11 @@ export class ProductResolver extends CatalogType<string, Product> {
   }
 
   async primaryCategory() {
-    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
-      this.$props,
-    );
+    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(this.$props);
     const primary = links.find((link) => link.isPrimary);
     if (!primary) return null;
     const value = await this.$ctx.loaders.category.load(primary.categoryId);
-    return value && isPublishedAt(value.publishedAt)
-      ? this.resolvers.category(value.id)
-      : null;
+    return value && isPublishedAt(value.publishedAt) ? this.resolvers.category(value.id) : null;
   }
 
   async categories(args: ProductCategoriesArgs) {
@@ -153,9 +140,7 @@ export class ProductResolver extends CatalogType<string, Product> {
     return this.findVariant(args.selectedOptions, true, false);
   }
 
-  async selectedOrFirstAvailableVariant(
-    args: ProductSelectedOrFirstAvailableVariantArgs,
-  ) {
+  async selectedOrFirstAvailableVariant(args: ProductSelectedOrFirstAvailableVariantArgs) {
     return this.findVariant(args.selectedOptions ?? [], false, true);
   }
 
@@ -190,15 +175,11 @@ export class ProductResolver extends CatalogType<string, Product> {
 
   async totalInventory() {
     const ids = await this.$ctx.loaders.variantIds.load(this.$props);
-    const states = await Promise.all(
-      ids.map((id) => inventoryState(this.$ctx, id)),
-    );
+    const states = await Promise.all(ids.map((id) => inventoryState(this.$ctx, id)));
     const quantities = states.flatMap((state) =>
       state.quantityAvailable == null ? [] : [state.quantityAvailable],
     );
-    return quantities.length === 0
-      ? null
-      : quantities.reduce((sum, value) => sum + value, 0);
+    return quantities.length === 0 ? null : quantities.reduce((sum, value) => sum + value, 0);
   }
 
   async comparison() {
@@ -222,9 +203,7 @@ export class ProductResolver extends CatalogType<string, Product> {
     const ids = await this.$ctx.loaders.productFeatureIds.load(this.$props);
     const values = await this.$ctx.loaders.productFeature.loadMany(ids);
     return values
-      .filter((value): value is ProductFeature =>
-        Boolean(value && !(value instanceof Error)),
-      )
+      .filter((value): value is ProductFeature => Boolean(value && !(value instanceof Error)))
       .sort((left, right) => compareIndex(left.index, right.index));
   }
 
@@ -288,9 +267,7 @@ export class ProductResolver extends CatalogType<string, Product> {
     );
 
     for (const candidate of candidates) {
-      const links = await this.$ctx.loaders.variantSelectedOptions.load(
-        candidate.id,
-      );
+      const links = await this.$ctx.loaders.variantSelectedOptions.load(candidate.id);
       const pairs = await Promise.all(
         links.flatMap((link) =>
           link.optionValueId
@@ -305,8 +282,7 @@ export class ProductResolver extends CatalogType<string, Product> {
       );
       const matches = selectedOptions.every((selected) =>
         pairs.some(
-          ([option, value]) =>
-            option?.slug === selected.option && value?.slug === selected.value,
+          ([option, value]) => option?.slug === selected.option && value?.slug === selected.value,
         ),
       );
       if (!matches || (requireExact && selectedOptions.length !== pairs.length)) {

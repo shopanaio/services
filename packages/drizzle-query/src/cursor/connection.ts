@@ -59,12 +59,7 @@ function getLimit(nodes: unknown[], paging: PagingInput): { limit: number; isFor
   return { limit: nodes.length, isForward: true };
 }
 
-function trimNodes<T>(
-  nodes: T[],
-  limit: number,
-  isForward: boolean,
-  paging: PagingInput
-): T[] {
+function trimNodes<T>(nodes: T[], limit: number, isForward: boolean, paging: PagingInput): T[] {
   if (limit <= 0 || nodes.length <= limit) {
     return nodes;
   }
@@ -84,16 +79,19 @@ function buildEdgeCursor(
   node: CursorNode,
   filtersHash: string,
   tieBreaker: string,
-  sortParams: SortParam[]
+  sortParams: SortParam[],
 ): string {
   const seekValues = node.getSeekValues();
-  const values = seekValues.length > 0
-    ? seekValues
-    : [buildTieBreakerSeekValue({
-        value: node.getId(),
-        tieBreaker,
-        sortParams,
-      })];
+  const values =
+    seekValues.length > 0
+      ? seekValues
+      : [
+          buildTieBreakerSeekValue({
+            value: node.getId(),
+            tieBreaker,
+            sortParams,
+          }),
+        ];
 
   return encode({
     type: node.getCursorType(),
@@ -127,7 +125,7 @@ function buildEdgeCursor(
  * - invertOrder=false or has before → don't reverse (case 1 handled by trimNodes)
  */
 export function makeConnection<T extends CursorNode, K>(
-  input: MakeConnectionInput<T, K>
+  input: MakeConnectionInput<T, K>,
 ): Connection<K> {
   const nodes = [...input.nodes];
   const { paging } = input;
@@ -202,7 +200,7 @@ export function createCursorNode(options: CreateCursorNodeOptions): CursorNode {
           tieBreaker,
           sortParams,
           direction: tieBreakerDir,
-        })
+        }),
       );
 
       return values;

@@ -1,19 +1,13 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { AuthorizeParams, AuthorizeResult } from "./dto/AuthorizeDto.js";
 import { ORG_DOMAIN } from "../../casbin/CasbinService.js";
-import {
-  validateAuthorizeInput,
-  type ValidatedAuthorizeInput,
-} from "@shopana/rbac";
+import { validateAuthorizeInput, type ValidatedAuthorizeInput } from "@shopana/rbac";
 
 /**
  * Authorization against current IAM state without request context or ALS.
  * This makes the action safe to call while DBOS is recovering a workflow.
  */
-export class AuthorizeScript extends BaseScript<
-  AuthorizeParams,
-  AuthorizeResult
-> {
+export class AuthorizeScript extends BaseScript<AuthorizeParams, AuthorizeResult> {
   protected async execute(params: AuthorizeParams): Promise<AuthorizeResult> {
     if (!params.subject) return this.denied(params);
 
@@ -23,11 +17,7 @@ export class AuthorizeScript extends BaseScript<
     const authorization = this.validateAuthorization(params);
     if (!authorization) return this.denied(params);
 
-    const allowed = await this.hasAccess(
-      params.subject,
-      organizationId,
-      authorization
-    );
+    const allowed = await this.hasAccess(params.subject, organizationId, authorization);
     return allowed ? { allowed: true } : this.denied(params);
   }
 
@@ -38,34 +28,25 @@ export class AuthorizeScript extends BaseScript<
     };
   }
 
-  private async resolveOrganizationId(
-    params: AuthorizeParams
-  ): Promise<string | null> {
+  private async resolveOrganizationId(params: AuthorizeParams): Promise<string | null> {
     if (!params.organizationName) {
       return params.organizationId ?? null;
     }
 
-    const organizationIdFromName =
-      await this.services.nameResolver.resolveOrganizationId(
-        params.organizationName,
-        async (name) =>
-          (await this.repository.organization.findByName(name))?.id ?? null
-      );
+    const organizationIdFromName = await this.services.nameResolver.resolveOrganizationId(
+      params.organizationName,
+      async (name) => (await this.repository.organization.findByName(name))?.id ?? null,
+    );
     if (!organizationIdFromName) return null;
 
-    if (
-      params.organizationId &&
-      params.organizationId !== organizationIdFromName
-    ) {
+    if (params.organizationId && params.organizationId !== organizationIdFromName) {
       return null;
     }
 
     return organizationIdFromName;
   }
 
-  private validateAuthorization(
-    params: AuthorizeParams
-  ): ValidatedAuthorizeInput | null {
+  private validateAuthorization(params: AuthorizeParams): ValidatedAuthorizeInput | null {
     const result = validateAuthorizeInput({
       domain: params.domain ?? ORG_DOMAIN,
       resource: params.resource,
@@ -77,7 +58,7 @@ export class AuthorizeScript extends BaseScript<
   private async hasAccess(
     subject: string,
     organizationId: string,
-    authorization: ValidatedAuthorizeInput
+    authorization: ValidatedAuthorizeInput,
   ): Promise<boolean> {
     const [siteAdminUserIds, owner, casbinAllowed] = await Promise.all([
       this.repository.user.findAdminUserIds([subject]),
@@ -91,11 +72,7 @@ export class AuthorizeScript extends BaseScript<
       }),
     ]);
 
-    return (
-      siteAdminUserIds.includes(subject) ||
-      owner?.userId === subject ||
-      casbinAllowed
-    );
+    return siteAdminUserIds.includes(subject) || owner?.userId === subject || casbinAllowed;
   }
 
   private denied(params: AuthorizeParams): AuthorizeResult {

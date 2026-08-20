@@ -26,15 +26,11 @@ export const organization = iamSchema.table(
     displayName: varchar("display_name", { length: 256 }).notNull(),
     /** Media file ID for organization logo (references media service) */
     logoId: text("logo_id"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
-  (table) => [uniqueIndex("idx_organization_name").on(table.name)]
+  (table) => [uniqueIndex("idx_organization_name").on(table.name)],
 );
 
 export type Organization = typeof organization.$inferSelect;
@@ -76,11 +72,8 @@ export const application = iamSchema.table(
   },
   (table) => [
     index("idx_application_org").on(table.organizationId),
-    uniqueIndex("idx_application_org_name").on(
-      table.organizationId,
-      table.name
-    ),
-  ]
+    uniqueIndex("idx_application_org_name").on(table.organizationId, table.name),
+  ],
 );
 
 export type Application = typeof application.$inferSelect;
@@ -102,18 +95,14 @@ export const organizationMember = iamSchema.table(
     /** Organization owner flag. Only one member per org can have is_owner=true */
     isOwner: boolean("is_owner").notNull().default(false),
     invitedBy: varchar("invited_by", { length: 128 }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_org_member_org").on(table.organizationId),
     index("idx_org_member_user").on(table.userId),
     uniqueIndex("idx_org_member_unique").on(table.organizationId, table.userId),
-  ]
+  ],
 );
 
 export type OrganizationMember = typeof organizationMember.$inferSelect;
@@ -132,17 +121,13 @@ export const registeredResource = iamSchema.table(
     name: varchar("name", { length: 128 }).notNull(),
     displayName: varchar("display_name", { length: 256 }),
     actions: text("actions").notNull(), // JSON array of action names
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("idx_registered_resource_unique").on(table.service, table.name),
     index("idx_registered_resource_service").on(table.service),
-  ]
+  ],
 );
 
 export type RegisteredResource = typeof registeredResource.$inferSelect;
@@ -166,23 +151,15 @@ export const role = iamSchema.table(
     displayName: varchar("display_name", { length: 256 }),
     description: text("description"),
     isSystem: boolean("is_system").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_role_org").on(table.organizationId),
     index("idx_role_domain").on(table.organizationId, table.domain),
     // Same role name can exist in different domains
-    uniqueIndex("idx_role_org_domain_name").on(
-      table.organizationId,
-      table.domain,
-      table.name
-    ),
-  ]
+    uniqueIndex("idx_role_org_domain_name").on(table.organizationId, table.domain, table.name),
+  ],
 );
 
 export type Role = typeof role.$inferSelect;
@@ -207,21 +184,15 @@ export const userRole = iamSchema.table(
     // Domain scope: "org" for organization-level, or "store:{id}" for store-level
     domain: varchar("domain", { length: 256 }).notNull(),
     grantedBy: varchar("granted_by", { length: 128 }),
-    grantedAt: timestamp("granted_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_user_role_org_user").on(table.organizationId, table.userId),
     index("idx_user_role_user").on(table.userId),
     index("idx_user_role_domain").on(table.domain),
     // Unique constraint: one role per user per domain per organization
-    uniqueIndex("idx_user_role_unique").on(
-      table.organizationId,
-      table.userId,
-      table.domain
-    ),
-  ]
+    uniqueIndex("idx_user_role_unique").on(table.organizationId, table.userId, table.domain),
+  ],
 );
 
 export type UserRole = typeof userRole.$inferSelect;
@@ -257,7 +228,7 @@ export const casbinRule = iamSchema.table(
     index("idx_casbin_rule_v1").on(table.v1), // domain index
     // Composite index for efficient org+domain filtering
     index("idx_casbin_rule_org_domain").on(table.organizationId, table.v1),
-  ]
+  ],
 );
 
 export type CasbinRule = typeof casbinRule.$inferSelect;
@@ -285,9 +256,9 @@ export const roleHierarchy = iamSchema.table(
     uniqueIndex("idx_role_hierarchy_unique").on(
       table.organizationId,
       table.parentRoleId,
-      table.childRoleId
+      table.childRoleId,
     ),
-  ]
+  ],
 );
 
 export type RoleHierarchy = typeof roleHierarchy.$inferSelect;

@@ -1,16 +1,9 @@
 "use client";
 
-import type {
-  ApiDiscount,
-  ApiDiscountConnection,
-  ApiPageInfo,
-} from "@/graphql/types";
+import type { ApiDiscount, ApiDiscountConnection, ApiPageInfo } from "@/graphql/types";
 import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import { DISCOUNTS_QUERY } from "../graphql";
-import type {
-  DiscountsQueryData,
-  DiscountsQueryVariables,
-} from "../graphql/operation-types";
+import type { DiscountsQueryData, DiscountsQueryVariables } from "../graphql/operation-types";
 
 export interface UseDiscountsReturn {
   discounts: ApiDiscount[];
@@ -22,9 +15,7 @@ export interface UseDiscountsReturn {
   refetch: () => Promise<unknown>;
 }
 
-export function useDiscounts(
-  variables: DiscountsQueryVariables,
-): UseDiscountsReturn {
+export function useDiscounts(variables: DiscountsQueryVariables): UseDiscountsReturn {
   const result = useRelayConnectionQuery<
     DiscountsQueryData,
     DiscountsQueryVariables,

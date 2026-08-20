@@ -4,17 +4,11 @@ import { useEffect, useState } from "react";
 import { Button, Input, InputNumber, Select, Typography } from "antd";
 import { createStyles } from "antd-style";
 import type { AdminAppModalProps } from "@shopana/admin-app-sdk";
-import {
-  SmtpConnectionProvider,
-  SmtpConnectionSecurity,
-} from "@/graphql/types";
+import { SmtpConnectionProvider, SmtpConnectionSecurity } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { SmtpSettings } from "../components/smtp-settings-form";
 import { useSmtpConnectionActions } from "../hooks";
-import type {
-  CreateSmtpConnectionModalPayload,
-  CreateSmtpConnectionModalResult,
-} from ".";
+import type { CreateSmtpConnectionModalPayload, CreateSmtpConnectionModalResult } from ".";
 
 const useStyles = createStyles(({ token }) => ({
   fields: {
@@ -44,13 +38,10 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-function createInitialSettings(
-  payload: CreateSmtpConnectionModalPayload,
-): SmtpSettings {
+function createInitialSettings(payload: CreateSmtpConnectionModalPayload): SmtpSettings {
   const preset =
-    payload.presets.find(
-      ({ provider }) => provider === SmtpConnectionProvider.Sendgrid,
-    ) ?? payload.presets[0];
+    payload.presets.find(({ provider }) => provider === SmtpConnectionProvider.Sendgrid) ??
+    payload.presets[0];
 
   return {
     displayName: "",
@@ -69,38 +60,28 @@ export default function CreateSmtpConnectionModal({
 }: AdminAppModalProps<CreateSmtpConnectionModalPayload>) {
   const { styles, cx } = useStyles();
   const actions = useSmtpConnectionActions(sdk);
-  const [settings, setSettings] = useState(() =>
-    createInitialSettings(payload),
-  );
-  const isDirty = JSON.stringify(settings) !== JSON.stringify(
-    createInitialSettings(payload),
-  );
+  const [settings, setSettings] = useState(() => createInitialSettings(payload));
+  const isDirty = JSON.stringify(settings) !== JSON.stringify(createInitialSettings(payload));
   const canSubmit = Boolean(
     !actions.loading &&
-      settings.displayName.trim() &&
-      settings.host.trim() &&
-      settings.port >= 1 &&
-      settings.port <= 65535 &&
-      (settings.provider === SmtpConnectionProvider.Custom ||
-        settings.username?.trim()) &&
-      (!settings.username?.trim() || settings.password?.trim()),
+    settings.displayName.trim() &&
+    settings.host.trim() &&
+    settings.port >= 1 &&
+    settings.port <= 65535 &&
+    (settings.provider === SmtpConnectionProvider.Custom || settings.username?.trim()) &&
+    (!settings.username?.trim() || settings.password?.trim()),
   );
 
   useEffect(() => {
     sdk.modals.setCurrentDirty(isDirty);
   }, [isDirty, sdk]);
 
-  const update = <TKey extends keyof SmtpSettings>(
-    key: TKey,
-    value: SmtpSettings[TKey],
-  ) => {
+  const update = <TKey extends keyof SmtpSettings>(key: TKey, value: SmtpSettings[TKey]) => {
     setSettings((current) => ({ ...current, [key]: value }));
   };
 
   const applyProvider = (provider: SmtpConnectionProvider) => {
-    const preset = payload.presets.find(
-      (candidate) => candidate.provider === provider,
-    );
+    const preset = payload.presets.find((candidate) => candidate.provider === provider);
     setSettings((current) => ({
       ...current,
       provider,
@@ -159,9 +140,7 @@ export default function CreateSmtpConnectionModal({
         />
         <div className={styles.fields}>
           <label className={cx(styles.field, styles.fieldFull)}>
-            <Typography.Text className={styles.label}>
-              Connection name
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Connection name</Typography.Text>
             <Input
               autoFocus
               placeholder="Primary transactional email"
@@ -170,9 +149,7 @@ export default function CreateSmtpConnectionModal({
             />
           </label>
           <label className={cx(styles.field, styles.fieldFull)}>
-            <Typography.Text className={styles.label}>
-              Provider
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Provider</Typography.Text>
             <Select
               options={payload.presets.map((preset) => ({
                 label: preset.label,
@@ -189,13 +166,8 @@ export default function CreateSmtpConnectionModal({
         <PaperHeader title="SMTP server" />
         <div className={styles.fields}>
           <label className={styles.field}>
-            <Typography.Text className={styles.label}>
-              SMTP host
-            </Typography.Text>
-            <Input
-              value={settings.host}
-              onChange={({ target }) => update("host", target.value)}
-            />
+            <Typography.Text className={styles.label}>SMTP host</Typography.Text>
+            <Input value={settings.host} onChange={({ target }) => update("host", target.value)} />
           </label>
           <label className={styles.field}>
             <Typography.Text className={styles.label}>Port</Typography.Text>
@@ -208,9 +180,7 @@ export default function CreateSmtpConnectionModal({
             />
           </label>
           <label className={styles.field}>
-            <Typography.Text className={styles.label}>
-              Security
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Security</Typography.Text>
             <Select
               options={[
                 { label: "STARTTLS", value: SmtpConnectionSecurity.Starttls },
@@ -222,9 +192,7 @@ export default function CreateSmtpConnectionModal({
             />
           </label>
           <label className={styles.field}>
-            <Typography.Text className={styles.label}>
-              Username
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Username</Typography.Text>
             <Input
               autoComplete="username"
               value={settings.username}

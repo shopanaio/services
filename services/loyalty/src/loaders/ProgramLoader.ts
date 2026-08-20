@@ -31,7 +31,10 @@ export class ProgramLoader {
       return ids.map((id) => byId.get(id) ?? null);
     });
     this.versionsByProgram = new DataLoader(async (ids: readonly string[]) => {
-      const grouped = groupBy(await repository.program.getVersionsByProgramIds(ids), (row) => row.programId);
+      const grouped = groupBy(
+        await repository.program.getVersionsByProgramIds(ids),
+        (row) => row.programId,
+      );
       return ids.map((id) => grouped.get(id) ?? []);
     });
     this.earningRule = new DataLoader(async (ids: readonly string[]) => {
@@ -40,7 +43,10 @@ export class ProgramLoader {
       return ids.map((id) => byId.get(id) ?? null);
     });
     this.earningRulesByVersion = new DataLoader(async (ids: readonly string[]) => {
-      const grouped = groupBy(await repository.earningRule.listForVersions(ids), (row) => row.programVersionId);
+      const grouped = groupBy(
+        await repository.earningRule.listForVersions(ids),
+        (row) => row.programVersionId,
+      );
       return ids.map((id) => grouped.get(id) ?? []);
     });
     this.rewardDefinition = new DataLoader(async (ids: readonly string[]) => {
@@ -49,7 +55,10 @@ export class ProgramLoader {
       return ids.map((id) => byId.get(id) ?? null);
     });
     this.rewardDefinitionsByVersion = new DataLoader(async (ids: readonly string[]) => {
-      const grouped = groupBy(await repository.reward.listDefinitionsForVersions(ids), (row) => row.programVersionId);
+      const grouped = groupBy(
+        await repository.reward.listDefinitionsForVersions(ids),
+        (row) => row.programVersionId,
+      );
       return ids.map((id) => grouped.get(id) ?? []);
     });
     this.tierPolicyByVersion = new DataLoader(async (ids: readonly string[]) => {
@@ -63,7 +72,10 @@ export class ProgramLoader {
       return ids.map((id) => byId.get(id) ?? null);
     });
     this.tiersByVersion = new DataLoader(async (ids: readonly string[]) => {
-      const grouped = groupBy(await repository.tier.listForVersions(ids), (row) => row.programVersionId);
+      const grouped = groupBy(
+        await repository.tier.listForVersions(ids),
+        (row) => row.programVersionId,
+      );
       return ids.map((id) => grouped.get(id) ?? []);
     });
   }

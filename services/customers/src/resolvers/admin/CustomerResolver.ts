@@ -1,8 +1,5 @@
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-} from "@shopana/type-resolver";
+import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
 import type { Customer } from "../../repositories/models/index.js";
 import type { CustomerAddressRelayInput } from "../../repositories/address/CustomerAddressRepository.js";
 import type { CustomerGroupMembershipRelayInput } from "../../repositories/classification/CustomerGroupRepository.js";
@@ -18,9 +15,7 @@ export class CustomerResolver extends CustomersType<string, Customer> {
   async $preload() {
     const customer = await this.$ctx.loaders.customer.load(this.$props);
     if (!customer) {
-      throw new PreloadNotFoundError(
-        `Customer with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer with ID ${this.$props} not found`);
     }
     return customer;
   }
@@ -169,17 +164,13 @@ export class CustomerResolver extends CustomersType<string, Customer> {
   }
 
   async defaultShippingAddress() {
-    const addresses = await this.$ctx.loaders.addressesByCustomer.load(
-      this.$props
-    );
+    const addresses = await this.$ctx.loaders.addressesByCustomer.load(this.$props);
     const address = addresses.find((item) => item.isDefaultShipping);
     return address ? this.resolvers.address(address.id) : null;
   }
 
   async defaultBillingAddress() {
-    const addresses = await this.$ctx.loaders.addressesByCustomer.load(
-      this.$props
-    );
+    const addresses = await this.$ctx.loaders.addressesByCustomer.load(this.$props);
     const address = addresses.find((item) => item.isDefaultBilling);
     return address ? this.resolvers.address(address.id) : null;
   }
@@ -206,12 +197,8 @@ export class CustomerResolver extends CustomersType<string, Customer> {
   }
 
   async consents() {
-    const consents = await this.$ctx.loaders.consentsByCustomer.load(
-      this.$props
-    );
-    return Promise.all(
-      consents.map((consent) => this.resolvers.consent(consent.id))
-    );
+    const consents = await this.$ctx.loaders.consentsByCustomer.load(this.$props);
+    return Promise.all(consents.map((consent) => this.resolvers.consent(consent.id)));
   }
 
   groupMemberships(args: CustomerGroupMembershipRelayInput) {
@@ -236,9 +223,7 @@ export class CustomerResolver extends CustomersType<string, Customer> {
   }
 
   async statistics() {
-    const statistics = await this.$ctx.loaders.statisticsByCustomer.load(
-      this.$props
-    );
+    const statistics = await this.$ctx.loaders.statisticsByCustomer.load(this.$props);
     return statistics ? this.resolvers.statistics(this.$props) : null;
   }
 
@@ -250,19 +235,14 @@ export class CustomerResolver extends CustomersType<string, Customer> {
   }
 
   async comparison() {
-    const comparison = await this.$ctx.loaders.comparisonByCustomer.load(
-      this.$props,
-    );
+    const comparison = await this.$ctx.loaders.comparisonByCustomer.load(this.$props);
     return comparison ? this.resolvers.comparison(comparison.id) : null;
   }
 
   async externalReferences() {
-    const references =
-      await this.$ctx.loaders.externalReferencesByCustomer.load(this.$props);
+    const references = await this.$ctx.loaders.externalReferencesByCustomer.load(this.$props);
     return Promise.all(
-      references.map((reference) =>
-        this.resolvers.externalReference(reference.id)
-      )
+      references.map((reference) => this.resolvers.externalReference(reference.id)),
     );
   }
 }

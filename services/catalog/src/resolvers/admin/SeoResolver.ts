@@ -1,6 +1,4 @@
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
 
 export interface SeoShape {

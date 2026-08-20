@@ -1,7 +1,4 @@
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { GraphQLResolveInfo } from "graphql";
 import type { ServiceContext } from "../../../context/types.js";
@@ -12,10 +9,7 @@ import { FacetSwatchResolver } from "../../../resolvers/storefront/FacetSwatchRe
 import { FacetValueResolver } from "../../../resolvers/storefront/FacetValueResolver.js";
 import { ProductConnectionResolver } from "../../../resolvers/storefront/ProductConnectionResolver.js";
 import { ProductRecommendationConnectionResolver } from "../../../resolvers/storefront/ProductRecommendationConnectionResolver.js";
-import type {
-  Resolvers,
-  ResolversTypes,
-} from "../../../resolvers/storefront/generated/types.js";
+import type { Resolvers, ResolversTypes } from "../../../resolvers/storefront/generated/types.js";
 
 export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
   Node: {
@@ -38,40 +32,47 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
   },
 
   Product: {
-    __resolveReference: (reference) =>
-      reference as unknown as ResolversTypes["Product"],
+    __resolveReference: (reference) => reference as unknown as ResolversTypes["Product"],
     relatedProducts: (
       reference: { id: string },
       args: { first?: number | null; after?: string | null },
       ctx: ServiceContext,
-    ) => new ProductRecommendationConnectionResolver({
-      anchorProductId: decodeGlobalIdByType(reference.id, GlobalIdEntity.Product),
-      placement: "PRODUCT_RELATED",
-      first: args.first ?? 12,
-      after: args.after ?? null,
-    }, ctx),
+    ) =>
+      new ProductRecommendationConnectionResolver(
+        {
+          anchorProductId: decodeGlobalIdByType(reference.id, GlobalIdEntity.Product),
+          placement: "PRODUCT_RELATED",
+          first: args.first ?? 12,
+          after: args.after ?? null,
+        },
+        ctx,
+      ),
     frequentlyBoughtTogether: (
       reference: { id: string },
       args: { first?: number | null; after?: string | null },
       ctx: ServiceContext,
-    ) => new ProductRecommendationConnectionResolver({
-      anchorProductId: decodeGlobalIdByType(reference.id, GlobalIdEntity.Product),
-      placement: "FREQUENTLY_BOUGHT_TOGETHER",
-      first: args.first ?? 3,
-      after: args.after ?? null,
-    }, ctx),
+    ) =>
+      new ProductRecommendationConnectionResolver(
+        {
+          anchorProductId: decodeGlobalIdByType(reference.id, GlobalIdEntity.Product),
+          placement: "FREQUENTLY_BOUGHT_TOGETHER",
+          first: args.first ?? 3,
+          after: args.after ?? null,
+        },
+        ctx,
+      ),
   },
 
   Category: {
     __resolveReference: (
       reference: { id: string },
       ctx: ServiceContext,
-      info: GraphQLResolveInfo
+      info: GraphQLResolveInfo,
     ) =>
       CategoryResolver.load(
         decodeGlobalIdByType(reference.id, GlobalIdEntity.Category),
         parseGraphqlInfo(info),
-        ctx
+        ctx,
       ),
   },
 
@@ -79,12 +80,9 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
     __resolveReference: (
       reference: { id: string; listingRevision: number },
       ctx: ServiceContext,
-      info: GraphQLResolveInfo
+      info: GraphQLResolveInfo,
     ) => {
-      if (
-        !Number.isSafeInteger(reference.listingRevision) ||
-        reference.listingRevision < 0
-      ) {
+      if (!Number.isSafeInteger(reference.listingRevision) || reference.listingRevision < 0) {
         return null;
       }
       return CollectionResolver.load(
@@ -93,7 +91,7 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
           listingRevision: reference.listingRevision,
         },
         parseGraphqlInfo(info),
-        ctx
+        ctx,
       );
     },
   },
@@ -102,7 +100,7 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
     __resolveReference: async (
       reference: { id: string },
       ctx: ServiceContext,
-      info: GraphQLResolveInfo
+      info: GraphQLResolveInfo,
     ) => {
       const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.Facet);
       if (!(await ctx.loaders.facet.load(id))) return null;
@@ -114,7 +112,7 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
     __resolveReference: async (
       reference: { id: string },
       ctx: ServiceContext,
-      info: GraphQLResolveInfo
+      info: GraphQLResolveInfo,
     ) => {
       const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.FacetValue);
       const value = await ctx.loaders.facetValue.load(id);
@@ -134,7 +132,7 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
     __resolveReference: async (
       reference: { id: string },
       ctx: ServiceContext,
-      info: GraphQLResolveInfo
+      info: GraphQLResolveInfo,
     ) => {
       const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.FacetSwatch);
       const swatch = await ctx.loaders.facetSwatch.load(id);

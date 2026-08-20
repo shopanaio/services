@@ -21,16 +21,12 @@ export function DiscountModal() {
   const { payload, forcePop } = useModalStackContext();
   const { styles } = useDiscountModalStyles();
   const typedPayload = payload as IDiscountModalPayload;
-  const entityId =
-    typeof typedPayload.entityId === "string" ? typedPayload.entityId : null;
+  const entityId = typeof typedPayload.entityId === "string" ? typedPayload.entityId : null;
   const { discount, loading, error, refetch } = useDiscount(entityId);
   const { push: openGeneralSettingsModal } = useDiscountGeneralEditModal();
-  const { push: openValueTargetsModal } =
-    useDiscountValueTargetsEditModal();
-  const { push: openEligibilityChannelsModal } =
-    useDiscountEligibilityChannelsEditModal();
-  const { push: openAvailabilityModal } =
-    useDiscountAvailabilityEditModal();
+  const { push: openValueTargetsModal } = useDiscountValueTargetsEditModal();
+  const { push: openEligibilityChannelsModal } = useDiscountEligibilityChannelsEditModal();
+  const { push: openAvailabilityModal } = useDiscountAvailabilityEditModal();
 
   const editValueTargets = useCallback(() => {
     if (!discount) {
@@ -138,11 +134,7 @@ export function DiscountModal() {
         onClose: forcePop,
         submitButtonProps: null,
         extra: discount ? (
-          <DiscountStatusTag
-            status={discount.effectiveStatus}
-            method={discount.method}
-            compact
-          />
+          <DiscountStatusTag status={discount.effectiveStatus} method={discount.method} compact />
         ) : null,
       }}
       bodyClassName={styles.body}

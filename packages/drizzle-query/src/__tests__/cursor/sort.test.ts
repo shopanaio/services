@@ -113,9 +113,7 @@ describe("validateCursorOrder", () => {
         filtersHash: "",
         seek: [{ field: "updatedAt", value: 1, direction: "desc" }],
       };
-      expect(() => validateCursorOrder(cursor, params, "id")).toThrow(
-        "length mismatch"
-      );
+      expect(() => validateCursorOrder(cursor, params, "id")).toThrow("length mismatch");
     });
 
     it("throws when cursor has too many seek values", () => {
@@ -130,9 +128,7 @@ describe("validateCursorOrder", () => {
           { field: "id", value: "123", direction: "asc" },
         ],
       };
-      expect(() => validateCursorOrder(cursor, params, "id")).toThrow(
-        "length mismatch"
-      );
+      expect(() => validateCursorOrder(cursor, params, "id")).toThrow("length mismatch");
     });
   });
 
@@ -148,9 +144,7 @@ describe("validateCursorOrder", () => {
           { field: "id", value: "1", direction: "desc" },
         ],
       };
-      expect(() => validateCursorOrder(cursor, params, "id")).toThrow(
-        "field mismatch"
-      );
+      expect(() => validateCursorOrder(cursor, params, "id")).toThrow("field mismatch");
     });
   });
 
@@ -166,9 +160,7 @@ describe("validateCursorOrder", () => {
           { field: "id", value: "1", direction: "desc" },
         ],
       };
-      expect(() => validateCursorOrder(cursor, params, "id")).toThrow(
-        "direction mismatch"
-      );
+      expect(() => validateCursorOrder(cursor, params, "id")).toThrow("direction mismatch");
     });
   });
 
@@ -184,9 +176,7 @@ describe("validateCursorOrder", () => {
           { field: "uuid", value: "1", direction: "desc" },
         ],
       };
-      expect(() => validateCursorOrder(cursor, params, "id")).toThrow(
-        "must be id"
-      );
+      expect(() => validateCursorOrder(cursor, params, "id")).toThrow("must be id");
     });
 
     it("accepts custom tieBreaker field", () => {

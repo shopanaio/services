@@ -46,7 +46,7 @@ export function useUpdateProfile(): UseUpdateProfileReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

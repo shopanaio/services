@@ -42,19 +42,11 @@ export interface IDeleteAccountModalPayload extends IModalStackPayload {
 }
 
 // Create typed hooks
-export const useEditProfileModal = createModalStackHook(
-  EDIT_PROFILE_MODAL_TYPE
-);
-export const useChangeEmailModal = createModalStackHook(
-  CHANGE_EMAIL_MODAL_TYPE
-);
-export const useChangePasswordModal = createModalStackHook(
-  CHANGE_PASSWORD_MODAL_TYPE
-);
+export const useEditProfileModal = createModalStackHook(EDIT_PROFILE_MODAL_TYPE);
+export const useChangeEmailModal = createModalStackHook(CHANGE_EMAIL_MODAL_TYPE);
+export const useChangePasswordModal = createModalStackHook(CHANGE_PASSWORD_MODAL_TYPE);
 export const useEditAvatarModal = createModalStackHook(EDIT_AVATAR_MODAL_TYPE);
-export const useDeleteAccountModal = createModalStackHook(
-  DELETE_ACCOUNT_MODAL_TYPE
-);
+export const useDeleteAccountModal = createModalStackHook(DELETE_ACCOUNT_MODAL_TYPE);
 
 // Declare module augmentation for type safety
 declare module "@/layouts/modals" {

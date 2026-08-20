@@ -2,7 +2,13 @@
 
 import { useCallback, useMemo, useRef } from "react";
 import { Alert, Avatar, Button, Flex, Tag, Typography } from "antd";
-import { LuCircleCheckBig as CheckCircleFilled, LuClock as ClockCircleOutlined, LuMapPin as EnvironmentOutlined, LuMail as MailOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
+import {
+  LuCircleCheckBig as CheckCircleFilled,
+  LuClock as ClockCircleOutlined,
+  LuMapPin as EnvironmentOutlined,
+  LuMail as MailOutlined,
+  LuPlus as PlusOutlined,
+} from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {
@@ -69,8 +75,12 @@ function CustomerCell({ data }: CustomCellRendererProps<ApiCustomer>) {
     <Flex align="center" gap="small" style={{ minWidth: 0 }}>
       <Avatar>{initials}</Avatar>
       <Flex vertical gap={2} style={{ minWidth: 0 }}>
-        <Typography.Text strong ellipsis title={data.displayName}>{data.displayName}</Typography.Text>
-        <Typography.Text type="secondary" ellipsis title={data.email ?? undefined}>{data.email ?? "No email"}</Typography.Text>
+        <Typography.Text strong ellipsis title={data.displayName}>
+          {data.displayName}
+        </Typography.Text>
+        <Typography.Text type="secondary" ellipsis title={data.email ?? undefined}>
+          {data.email ?? "No email"}
+        </Typography.Text>
       </Flex>
     </Flex>
   );
@@ -83,20 +93,39 @@ function StatusCell({ value }: CustomCellRendererProps<ApiCustomer, CustomerLife
 
 function MarketingCell({ value }: CustomCellRendererProps<ApiCustomer, CustomerConsentState>) {
   if (value === CustomerConsentState.Subscribed) {
-    return <Flex align="center" gap={6}><CheckCircleFilled style={{ color: "#52c41a" }} /><Typography.Text>Subscribed</Typography.Text></Flex>;
+    return (
+      <Flex align="center" gap={6}>
+        <CheckCircleFilled style={{ color: "#52c41a" }} />
+        <Typography.Text>Subscribed</Typography.Text>
+      </Flex>
+    );
   }
   if (value === CustomerConsentState.Pending) {
-    return <Flex align="center" gap={6}><ClockCircleOutlined style={{ color: "#d48806" }} /><Typography.Text>Pending</Typography.Text></Flex>;
+    return (
+      <Flex align="center" gap={6}>
+        <ClockCircleOutlined style={{ color: "#d48806" }} />
+        <Typography.Text>Pending</Typography.Text>
+      </Flex>
+    );
   }
-  return <Flex align="center" gap={6}><MailOutlined /><Typography.Text type="secondary">Not subscribed</Typography.Text></Flex>;
+  return (
+    <Flex align="center" gap={6}>
+      <MailOutlined />
+      <Typography.Text type="secondary">Not subscribed</Typography.Text>
+    </Flex>
+  );
 }
 
 function LocationCell({ data }: CustomCellRendererProps<ApiCustomer>) {
-  if (!data?.defaultShippingAddress) return <Typography.Text type="secondary">No address</Typography.Text>;
+  if (!data?.defaultShippingAddress)
+    return <Typography.Text type="secondary">No address</Typography.Text>;
   return (
     <Flex align="center" gap={6} style={{ minWidth: 0 }}>
       <EnvironmentOutlined style={{ color: "#8c8c8c" }} />
-      <Typography.Text ellipsis title={`${data.defaultShippingAddress.city}, ${data.defaultShippingAddress.countryCode}`}>
+      <Typography.Text
+        ellipsis
+        title={`${data.defaultShippingAddress.city}, ${data.defaultShippingAddress.countryCode}`}
+      >
         {data.defaultShippingAddress.city}, {data.defaultShippingAddress.countryCode}
       </Typography.Text>
     </Flex>
@@ -104,9 +133,11 @@ function LocationCell({ data }: CustomCellRendererProps<ApiCustomer>) {
 }
 
 function LastOrderCell({ value }: CustomCellRendererProps<ApiCustomer, string | null>) {
-  return value
-    ? <Typography.Text>{customerDateFormatter.format(new Date(value))}</Typography.Text>
-    : <Typography.Text type="secondary">No orders</Typography.Text>;
+  return value ? (
+    <Typography.Text>{customerDateFormatter.format(new Date(value))}</Typography.Text>
+  ) : (
+    <Typography.Text type="secondary">No orders</Typography.Text>
+  );
 }
 
 export default function AllCustomersPage() {
@@ -117,9 +148,7 @@ export default function AllCustomersPage() {
     where: { status: { _eq: CustomerSegmentStatus.Active } },
   });
   const filterSchema = useMemo(
-    () => createCustomerFilterSchema(
-      segmentQuery.connection?.edges.map((edge) => edge.node) ?? [],
-    ),
+    () => createCustomerFilterSchema(segmentQuery.connection?.edges.map((edge) => edge.node) ?? []),
     [segmentQuery.connection],
   );
   const gridRef = useRef<AgGridReact<ApiCustomer>>(null);
@@ -154,9 +183,12 @@ export default function AllCustomersPage() {
     openCustomerCreateModal({ onCreated: refetch });
   }, [openCustomerCreateModal, refetch]);
 
-  const handleEdit = useCallback((customer: ApiCustomer) => {
-    openCustomerModal({ entityId: customer.id, onSaved: refetch });
-  }, [openCustomerModal, refetch]);
+  const handleEdit = useCallback(
+    (customer: ApiCustomer) => {
+      openCustomerModal({ entityId: customer.id, onSaved: refetch });
+    },
+    [openCustomerModal, refetch],
+  );
 
   const handleNextPage = useCallback(() => {
     if (pageInfo?.endCursor) pageConfig.goToNextPage(pageInfo.endCursor);
@@ -166,62 +198,70 @@ export default function AllCustomersPage() {
     if (pageInfo?.startCursor) pageConfig.goToPrevPage(pageInfo.startCursor);
   }, [pageConfig, pageInfo?.startCursor]);
 
-  const columnDefs = useMemo<ColDef<ApiCustomer>[]>(() => [
-    {
-      headerName: "Customer",
-      colId: "displayName",
-      cellRenderer: CustomerCell,
-      minWidth: 280,
-      flex: 2,
-    },
-    {
-      headerName: "Status",
-      field: "lifecycleStatus",
-      cellRenderer: StatusCell,
-      width: 120,
-    },
-    {
-      headerName: "Marketing",
-      valueGetter: ({ data }) => data?.consents.find((consent) => consent.channel === CustomerConsentChannel.Email)?.state ?? CustomerConsentState.NotSubscribed,
-      cellRenderer: MarketingCell,
-      minWidth: 165,
-      sortable: false,
-    },
-    {
-      headerName: "Location",
-      colId: "location",
-      cellRenderer: LocationCell,
-      minWidth: 165,
-      sortable: false,
-    },
-    {
-      headerName: "Orders",
-      colId: "ordersCount",
-      valueGetter: ({ data }) => data?.statistics?.ordersCount ?? 0,
-      width: 105,
-    },
-    {
-      headerName: "Total spent",
-      colId: "totalSpentMinor",
-      valueGetter: ({ data }) => data?.monetaryStatistics.edges[0]?.node.totalSpentMinor ?? 0,
-      valueFormatter: ({ value }) => formatMoney(Number(value ?? 0), defaultCurrency),
-      minWidth: 135,
-    },
-    {
-      headerName: "Last order",
-      colId: "lastOrderAt",
-      valueGetter: ({ data }) => data?.statistics?.lastOrderAt ?? null,
-      cellRenderer: LastOrderCell,
-      minWidth: 145,
-    },
-  ], [defaultCurrency]);
+  const columnDefs = useMemo<ColDef<ApiCustomer>[]>(
+    () => [
+      {
+        headerName: "Customer",
+        colId: "displayName",
+        cellRenderer: CustomerCell,
+        minWidth: 280,
+        flex: 2,
+      },
+      {
+        headerName: "Status",
+        field: "lifecycleStatus",
+        cellRenderer: StatusCell,
+        width: 120,
+      },
+      {
+        headerName: "Marketing",
+        valueGetter: ({ data }) =>
+          data?.consents.find((consent) => consent.channel === CustomerConsentChannel.Email)
+            ?.state ?? CustomerConsentState.NotSubscribed,
+        cellRenderer: MarketingCell,
+        minWidth: 165,
+        sortable: false,
+      },
+      {
+        headerName: "Location",
+        colId: "location",
+        cellRenderer: LocationCell,
+        minWidth: 165,
+        sortable: false,
+      },
+      {
+        headerName: "Orders",
+        colId: "ordersCount",
+        valueGetter: ({ data }) => data?.statistics?.ordersCount ?? 0,
+        width: 105,
+      },
+      {
+        headerName: "Total spent",
+        colId: "totalSpentMinor",
+        valueGetter: ({ data }) => data?.monetaryStatistics.edges[0]?.node.totalSpentMinor ?? 0,
+        valueFormatter: ({ value }) => formatMoney(Number(value ?? 0), defaultCurrency),
+        minWidth: 135,
+      },
+      {
+        headerName: "Last order",
+        colId: "lastOrderAt",
+        valueGetter: ({ data }) => data?.statistics?.lastOrderAt ?? null,
+        cellRenderer: LastOrderCell,
+        minWidth: 145,
+      },
+    ],
+    [defaultCurrency],
+  );
 
-  const defaultColDef = useMemo<ColDef<ApiCustomer>>(() => ({
-    resizable: true,
-    sortable: true,
-    comparator: () => 0,
-    cellStyle: { display: "flex", alignItems: "center" },
-  }), []);
+  const defaultColDef = useMemo<ColDef<ApiCustomer>>(
+    () => ({
+      resizable: true,
+      sortable: true,
+      comparator: () => 0,
+      cellStyle: { display: "flex", alignItems: "center" },
+    }),
+    [],
+  );
 
   return (
     <DataLayout
@@ -229,14 +269,25 @@ export default function AllCustomersPage() {
       name="customers"
       title="Customers"
       count={totalCount}
-      actions={<Button icon={<PlusOutlined />} onClick={handleCreate}>Create customer</Button>}
+      actions={
+        <Button icon={<PlusOutlined />} onClick={handleCreate}>
+          Create customer
+        </Button>
+      }
     >
       <DataLayout.Toolbar
-        left={<FilterWidget {...pageConfig.filterWidgetProps} searchPlaceholder="Search name, email, or phone..." />}
+        left={
+          <FilterWidget
+            {...pageConfig.filterWidgetProps}
+            searchPlaceholder="Search name, email, or phone..."
+          />
+        }
       />
 
       <div style={{ height: "100%", paddingBottom: 16, display: "flex", flexDirection: "column" }}>
-        {error ? <Alert type="error" message={error.message} showIcon style={{ marginBottom: 12 }} /> : null}
+        {error ? (
+          <Alert type="error" message={error.message} showIcon style={{ marginBottom: 12 }} />
+        ) : null}
 
         <div style={{ flex: 1 }} data-testid="customers-table">
           <AgGridReact<ApiCustomer>
@@ -251,7 +302,9 @@ export default function AllCustomersPage() {
             suppressCellFocus
             suppressMovableColumns
             rowStyle={{ cursor: "pointer" }}
-            onRowClicked={({ data }) => { if (data) handleEdit(data); }}
+            onRowClicked={({ data }) => {
+              if (data) handleEdit(data);
+            }}
             onSortChanged={pageConfig.onSortChanged}
             initialState={pageConfig.gridStateProps.initialState}
             onStateUpdated={pageConfig.gridStateProps.onStateUpdated}

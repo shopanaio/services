@@ -1,9 +1,7 @@
 import type { CatalogProductAvailabilitySnapshot } from "@shopana/broker-types";
 import { ServiceType } from "./ServiceType.js";
 
-export type CatalogProductAvailabilitySnapshotInput =
-  | { productId: string }
-  | { variantId: string };
+export type CatalogProductAvailabilitySnapshotInput = { productId: string } | { variantId: string };
 
 export class CatalogProductAvailabilitySnapshotResolver extends ServiceType<
   CatalogProductAvailabilitySnapshotInput,
@@ -22,29 +20,20 @@ export class CatalogProductAvailabilitySnapshotResolver extends ServiceType<
           this.$ctx.loaders.inventoryItemByVariant.load(variantId),
         ]);
         const totalQuantity = stockItems.reduce(
-          (total, stock) =>
-            total +
-            stock.quantityOnHand -
-            stock.reservedQty -
-            stock.unavailableQty,
-          0
+          (total, stock) => total + stock.quantityOnHand - stock.reservedQty - stock.unavailableQty,
+          0,
         );
 
         return {
-          availableForSale:
-            totalQuantity > 0 ||
-            !!inventoryItem?.continueSellingWhenOutOfStock,
+          availableForSale: totalQuantity > 0 || !!inventoryItem?.continueSellingWhenOutOfStock,
           totalQuantity,
         };
-      })
+      }),
     );
 
     return {
       availableForSale: availability.some((item) => item.availableForSale),
-      totalQuantity: availability.reduce(
-        (total, item) => total + (item.totalQuantity ?? 0),
-        0
-      ),
+      totalQuantity: availability.reduce((total, item) => total + (item.totalQuantity ?? 0), 0),
     };
   }
 

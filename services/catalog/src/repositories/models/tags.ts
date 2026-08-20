@@ -37,7 +37,7 @@ export const tag = catalogSchema.table(
   (table) => [
     uniqueIndex("tag_store_id_handle_key").on(table.storeId, table.handle),
     index("idx_tag_store_id").on(table.storeId),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ export const tagTranslation = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.tagId, table.locale] }),
     index("idx_tag_translation_store").on(table.storeId),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ export const productTag = catalogSchema.table(
     primaryKey({ columns: [table.productId, table.tagId] }),
     index("idx_product_tag_product").on(table.productId),
     index("idx_product_tag_tag").on(table.tagId),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ export const categoryTag = catalogSchema.table(
     primaryKey({ columns: [table.categoryId, table.tagId] }),
     index("idx_category_tag_category").on(table.categoryId),
     index("idx_category_tag_tag").on(table.tagId),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────

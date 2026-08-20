@@ -10,12 +10,7 @@ import type {
   QueryBuilderConfig,
 } from "../types.js";
 import { decode, encode, InvalidCursorError } from "./cursor.js";
-import {
-  getNestedValue,
-  hashFilters,
-  invertOrder,
-  tieBreakerOrder,
-} from "./helpers.js";
+import { getNestedValue, hashFilters, invertOrder, tieBreakerOrder } from "./helpers.js";
 import { parseSort, validateCursorOrder } from "./sort.js";
 import type {
   CursorDirection,
@@ -100,7 +95,7 @@ function buildSeekValuesFromRow(
   tieBreaker: string,
   cursorType: string,
   filtersHash: string,
-  seekTransforms?: SeekTransforms
+  seekTransforms?: SeekTransforms,
 ): { cursor: string; seekValues: SeekValue[] } {
   const tieBreakerDir = tieBreakerOrder(sortParams);
 
@@ -118,7 +113,9 @@ function buildSeekValuesFromRow(
   const tieBreakerTransform = seekTransforms?.[tieBreaker];
   seekValues.push({
     field: tieBreaker,
-    value: tieBreakerTransform ? tieBreakerTransform.encode(tieBreakerRawValue) : tieBreakerRawValue,
+    value: tieBreakerTransform
+      ? tieBreakerTransform.encode(tieBreakerRawValue)
+      : tieBreakerRawValue,
     direction: tieBreakerDir,
   });
 
@@ -138,27 +135,18 @@ export function createBaseCursorBuilder<
   F extends string,
   Fields extends FieldsDef,
   Types = T["$inferSelect"],
-  Result = Types
->(
-  schema: ObjectSchema<T, F, Fields, Types>,
-  config: BaseCursorBuilderConfig<Fields, Types>
-) {
+  Result = Types,
+>(schema: ObjectSchema<T, F, Fields, Types>, config: BaseCursorBuilderConfig<Fields, Types>) {
   type Row = Types;
 
   const qb = createQueryBuilder(schema, config.queryConfig);
-  const mapResult =
-    config.mapResult ?? ((row: Row) => row as unknown as Result);
+  const mapResult = config.mapResult ?? ((row: Row) => row as unknown as Result);
 
-  function parseSortOrder(
-    order: OrderByItem<string>[] | undefined
-  ): SortParam[] {
+  function parseSortOrder(order: OrderByItem<string>[] | undefined): SortParam[] {
     return parseSort(order, config.tieBreaker as string);
   }
 
-  function buildOrderPath(
-    sortParams: SortParam[],
-    invert: boolean
-  ): OrderByItem<string>[] {
+  function buildOrderPath(sortParams: SortParam[], invert: boolean): OrderByItem<string>[] {
     const tieBreakerDir = tieBreakerOrder(sortParams);
     const entries = [
       ...sortParams,
@@ -172,7 +160,7 @@ export function createBaseCursorBuilder<
 
   function mergeWhere(
     userWhere: NestedWhereInput<Fields> | null | undefined,
-    cursorWhere: NestedWhereInput<Fields> | null
+    cursorWhere: NestedWhereInput<Fields> | null,
   ): NestedWhereInput<Fields> | null {
     if (!cursorWhere && !userWhere) {
       return null;
@@ -197,9 +185,7 @@ export function createBaseCursorBuilder<
     const isForward = input.direction === "forward";
 
     // Parse sort
-    const sortParams = parseSortOrder(
-      input.orderBy as OrderByItem<string>[] | undefined
-    );
+    const sortParams = parseSortOrder(input.orderBy as OrderByItem<string>[] | undefined);
     const filtersHash = hashFilters(input.filters);
 
     // Decode cursor if present
@@ -210,7 +196,7 @@ export function createBaseCursorBuilder<
       cursor = decode(input.cursor);
       if (cursor.type !== config.cursorType) {
         throw new InvalidCursorError(
-          `Expected cursor type '${config.cursorType}', got '${cursor.type}'`
+          `Expected cursor type '${config.cursorType}', got '${cursor.type}'`,
         );
       }
 
@@ -240,9 +226,7 @@ export function createBaseCursorBuilder<
     const invertOrderFlag = !isForward;
 
     // Build ORDER
-    const order = buildOrderPath(sortParams, invertOrderFlag) as OrderByItem<
-      NestedPaths<Fields>
-    >[];
+    const order = buildOrderPath(sortParams, invertOrderFlag) as OrderByItem<NestedPaths<Fields>>[];
 
     return {
       isForward,
@@ -293,7 +277,7 @@ export function createBaseCursorBuilder<
      */
     async query(
       db: DrizzleExecutor,
-      input: BaseCursorInput<Fields>
+      input: BaseCursorInput<Fields>,
     ): Promise<BaseCursorResult<Result>> {
       const prepared = prepareQuery(input);
 
@@ -330,8 +314,8 @@ export function createBaseCursorBuilder<
             config.tieBreaker as string,
             config.cursorType,
             prepared.filtersHash,
-            config.seekTransforms
-          ).cursor
+            config.seekTransforms,
+          ).cursor,
         );
       }
 

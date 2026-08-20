@@ -7,14 +7,10 @@ export interface RepositoryConnectionResult {
 }
 
 export type OptimisticMutationResult<T> =
-  | { status: "applied"; value: T }
-  | { status: "not_found" }
-  | { status: "conflict"; current: T };
+  { status: "applied"; value: T } | { status: "not_found" } | { status: "conflict"; current: T };
 
 export type DeleteMutationResult<T> =
-  | { status: "applied"; value: T }
-  | { status: "not_found" }
-  | { status: "conflict"; current: T };
+  { status: "applied"; value: T } | { status: "not_found" } | { status: "conflict"; current: T };
 
 export interface RelayPaginationInput {
   first?: number;

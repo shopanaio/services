@@ -1,9 +1,7 @@
 import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import type { FastifyInstance, FastifyPluginAsync } from "fastify";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -33,9 +31,10 @@ const timingPlugin: ApolloServerPlugin<ServiceContext> = {
 };
 
 /** Admin GraphQL is an encapsulated sibling of the public auth HTTP plugin. */
-export const adminGraphqlPlugin: FastifyPluginAsync<
-  AdminGraphqlPluginOptions
-> = async (instance, options) => {
+export const adminGraphqlPlugin: FastifyPluginAsync<AdminGraphqlPluginOptions> = async (
+  instance,
+  options,
+) => {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   const schemaFiles = [

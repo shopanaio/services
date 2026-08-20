@@ -13,26 +13,40 @@ enum SwatchType {
 A product option defines a configurable aspect of a product, such as Size or Color.
 """
 type ProductOption implements Node @key(fields: "id") {
-  """The globally unique ID of the option."""
+  """
+  The globally unique ID of the option.
+  """
   id: ID!
 
-  """The URL-friendly identifier for this option."""
+  """
+  The URL-friendly identifier for this option.
+  """
   slug: String!
 
-  """Display name."""
+  """
+  Display name.
+  """
   name: String!
 
-  """The reusable category assigned to this option."""
+  """
+  The reusable category assigned to this option.
+  """
   category: ProductOptionCategory!
 
-  """Sort order within the product options list."""
+  """
+  Sort order within the product options list.
+  """
   sortIndex: Int!
 
-  """The available values for this option."""
+  """
+  The available values for this option.
+  """
   values: [ProductOptionValue!]!
 }
 
-"""A reusable category for grouping product options, such as color or size."""
+"""
+A reusable category for grouping product options, such as color or size.
+"""
 type ProductOptionCategory implements Node @key(fields: "id") {
   id: ID!
   name: String!
@@ -86,19 +100,29 @@ type ProductOptionCategoryDeletePayload {
 A value for a product option, such as "Red" for Color or "Large" for Size.
 """
 type ProductOptionValue implements Node @key(fields: "id") {
-  """The globally unique ID of the option value."""
+  """
+  The globally unique ID of the option value.
+  """
   id: ID!
 
-  """The URL-friendly identifier for this value."""
+  """
+  The URL-friendly identifier for this value.
+  """
   slug: String!
 
-  """Display name."""
+  """
+  Display name.
+  """
   name: String!
 
-  """Sort order within the option values list."""
+  """
+  Sort order within the option values list.
+  """
   sortIndex: Int!
 
-  """The visual swatch for this value (if applicable)."""
+  """
+  The visual swatch for this value (if applicable).
+  """
   swatch: ProductOptionSwatch
 }
 
@@ -106,22 +130,34 @@ type ProductOptionValue implements Node @key(fields: "id") {
 A visual swatch for representing an option value.
 """
 type ProductOptionSwatch implements Node @key(fields: "id") {
-  """The globally unique ID of the swatch."""
+  """
+  The globally unique ID of the swatch.
+  """
   id: ID!
 
-  """The type of swatch."""
+  """
+  The type of swatch.
+  """
   swatchType: SwatchType!
 
-  """The primary color (hex code or color name)."""
+  """
+  The primary color (hex code or color name).
+  """
   colorOne: String
 
-  """The secondary color for gradients."""
+  """
+  The secondary color for gradients.
+  """
   colorTwo: String
 
-  """The file for image-based swatches."""
+  """
+  The file for image-based swatches.
+  """
   file: File
 
-  """Additional metadata for the swatch."""
+  """
+  Additional metadata for the swatch.
+  """
   metadata: JSON
 }
 
@@ -129,10 +165,14 @@ type ProductOptionSwatch implements Node @key(fields: "id") {
 Represents a selected option for a variant.
 """
 type SelectedOption {
-  """The option ID."""
+  """
+  The option ID.
+  """
   optionId: ID!
 
-  """The selected value ID."""
+  """
+  The selected value ID.
+  """
   optionValueId: ID!
 }
 
@@ -140,10 +180,14 @@ type SelectedOption {
 Input for selecting an option value for a variant.
 """
 input SelectedOptionInput {
-  """The ID of the option."""
+  """
+  The ID of the option.
+  """
   optionId: ID!
 
-  """The ID of the option value."""
+  """
+  The ID of the option value.
+  """
   optionValueId: ID!
 }
 
@@ -154,19 +198,29 @@ input SelectedOptionInput {
 Input for creating/updating a swatch.
 """
 input ProductOptionSwatchInput {
-  """The type of swatch."""
+  """
+  The type of swatch.
+  """
   swatchType: SwatchType!
 
-  """The primary color (hex code or color name)."""
+  """
+  The primary color (hex code or color name).
+  """
   colorOne: String
 
-  """The secondary color for gradients."""
+  """
+  The secondary color for gradients.
+  """
   colorTwo: String
 
-  """The file ID for image-based swatches."""
+  """
+  The file ID for image-based swatches.
+  """
   fileId: ID
 
-  """Additional metadata."""
+  """
+  Additional metadata.
+  """
   metadata: JSON
 }
 
@@ -174,16 +228,24 @@ input ProductOptionSwatchInput {
 Input for creating an option value.
 """
 input ProductOptionValueCreateInput {
-  """The URL-friendly slug for the value."""
+  """
+  The URL-friendly slug for the value.
+  """
   slug: String!
 
-  """Display name."""
+  """
+  Display name.
+  """
   name: String!
 
-  """The swatch for this value."""
+  """
+  The swatch for this value.
+  """
   swatch: ProductOptionSwatchInput
 
-  """Sort order within the option values list."""
+  """
+  Sort order within the option values list.
+  """
   sortIndex: Int
 }
 
@@ -191,22 +253,34 @@ input ProductOptionValueCreateInput {
 Input for creating an option on a product.
 """
 input ProductOptionCreateInput {
-  """The ID of the product (optional when creating with product)."""
+  """
+  The ID of the product (optional when creating with product).
+  """
   productId: ID
 
-  """The URL-friendly slug for the option."""
+  """
+  The URL-friendly slug for the option.
+  """
   slug: String!
 
-  """Display name."""
+  """
+  Display name.
+  """
   name: String!
 
-  """The category assigned to the option."""
+  """
+  The category assigned to the option.
+  """
   categoryId: ID!
 
-  """Sort order within the product options list."""
+  """
+  Sort order within the product options list.
+  """
   sortIndex: Int
 
-  """The values for this option."""
+  """
+  The values for this option.
+  """
   values: [ProductOptionValueCreateInput!]!
 }
 
@@ -214,13 +288,19 @@ input ProductOptionCreateInput {
 Payload for option create. Returns the product with new variants.
 """
 type ProductOptionCreatePayload {
-  """The product with updated options and variants."""
+  """
+  The product with updated options and variants.
+  """
   product: Product
 
-  """The created option."""
+  """
+  The created option.
+  """
   option: ProductOption
 
-  """List of errors that occurred during the mutation."""
+  """
+  List of errors that occurred during the mutation.
+  """
   userErrors: [GenericUserError!]!
 }
 
@@ -228,19 +308,29 @@ type ProductOptionCreatePayload {
 Input for updating an existing option value.
 """
 input ProductOptionValueUpdateInput {
-  """The ID of the value to update."""
+  """
+  The ID of the value to update.
+  """
   id: ID!
 
-  """The new slug for the value."""
+  """
+  The new slug for the value.
+  """
   slug: String
 
-  """Display name."""
+  """
+  Display name.
+  """
   name: String
 
-  """The swatch for this value."""
+  """
+  The swatch for this value.
+  """
   swatch: ProductOptionSwatchInput
 
-  """Sort order within the option values list."""
+  """
+  Sort order within the option values list.
+  """
   sortIndex: Int
 }
 
@@ -248,13 +338,19 @@ input ProductOptionValueUpdateInput {
 Input for nested value operations in option update.
 """
 input ProductOptionValuesInput {
-  """Values to create."""
+  """
+  Values to create.
+  """
   create: [ProductOptionValueCreateInput!]
 
-  """Values to update."""
+  """
+  Values to update.
+  """
   update: [ProductOptionValueUpdateInput!]
 
-  """IDs of values to delete."""
+  """
+  IDs of values to delete.
+  """
   delete: [ID!]
 }
 
@@ -262,22 +358,34 @@ input ProductOptionValuesInput {
 Input for updating an option.
 """
 input ProductOptionUpdateInput {
-  """The ID of the option to update."""
+  """
+  The ID of the option to update.
+  """
   id: ID!
 
-  """The new slug for the option."""
+  """
+  The new slug for the option.
+  """
   slug: String
 
-  """Display name."""
+  """
+  Display name.
+  """
   name: String
 
-  """The new category assigned to the option."""
+  """
+  The new category assigned to the option.
+  """
   categoryId: ID
 
-  """Sort order within the product options list."""
+  """
+  Sort order within the product options list.
+  """
   sortIndex: Int
 
-  """Nested value operations."""
+  """
+  Nested value operations.
+  """
   values: ProductOptionValuesInput
 }
 
@@ -285,13 +393,19 @@ input ProductOptionUpdateInput {
 Payload for option update.
 """
 type ProductOptionUpdatePayload {
-  """The product with updated options and variants."""
+  """
+  The product with updated options and variants.
+  """
   product: Product
 
-  """The updated option."""
+  """
+  The updated option.
+  """
   option: ProductOption
 
-  """List of errors that occurred during the mutation."""
+  """
+  List of errors that occurred during the mutation.
+  """
   userErrors: [GenericUserError!]!
 }
 
@@ -299,7 +413,9 @@ type ProductOptionUpdatePayload {
 Input for deleting an option from a product.
 """
 input ProductOptionDeleteInput {
-  """The ID of the option to delete."""
+  """
+  The ID of the option to delete.
+  """
   id: ID!
 }
 
@@ -307,13 +423,19 @@ input ProductOptionDeleteInput {
 Payload for option delete.
 """
 type ProductOptionDeletePayload {
-  """The product with updated options and variants."""
+  """
+  The product with updated options and variants.
+  """
   product: Product
 
-  """The ID of the deleted option."""
+  """
+  The ID of the deleted option.
+  """
   deletedOptionId: ID
 
-  """List of errors that occurred during the mutation."""
+  """
+  List of errors that occurred during the mutation.
+  """
   userErrors: [GenericUserError!]!
 }
 
@@ -323,19 +445,29 @@ type ProductOptionDeletePayload {
 Input for syncing a single option value.
 """
 input ProductOptionValueSyncInput {
-  """Existing value ID (null = create new)."""
+  """
+  Existing value ID (null = create new).
+  """
   id: ID
 
-  """Sort order within the option values list."""
+  """
+  Sort order within the option values list.
+  """
   sortIndex: Int!
 
-  """The URL-friendly slug for the value."""
+  """
+  The URL-friendly slug for the value.
+  """
   slug: String!
 
-  """Display name."""
+  """
+  Display name.
+  """
   name: String!
 
-  """The swatch for this value (null to remove)."""
+  """
+  The swatch for this value (null to remove).
+  """
   swatch: ProductOptionSwatchInput
 }
 
@@ -343,22 +475,34 @@ input ProductOptionValueSyncInput {
 Input for syncing a single option.
 """
 input ProductOptionSyncItemInput {
-  """Existing option ID (null = create new)."""
+  """
+  Existing option ID (null = create new).
+  """
   id: ID
 
-  """Sort order within the product options list."""
+  """
+  Sort order within the product options list.
+  """
   sortIndex: Int!
 
-  """The URL-friendly slug for the option."""
+  """
+  The URL-friendly slug for the option.
+  """
   slug: String!
 
-  """Display name."""
+  """
+  Display name.
+  """
   name: String!
 
-  """The category assigned to the option."""
+  """
+  The category assigned to the option.
+  """
   categoryId: ID!
 
-  """The values for this option."""
+  """
+  The values for this option.
+  """
   values: [ProductOptionValueSyncInput!]!
 }
 
@@ -366,10 +510,14 @@ input ProductOptionSyncItemInput {
 Input for syncing all product options.
 """
 input ProductOptionsSyncInput {
-  """The product to sync options for."""
+  """
+  The product to sync options for.
+  """
   productId: ID!
 
-  """Complete list of options (replaces existing)."""
+  """
+  Complete list of options (replaces existing).
+  """
   options: [ProductOptionSyncItemInput!]!
 }
 
@@ -377,12 +525,18 @@ input ProductOptionsSyncInput {
 Payload for options sync mutation.
 """
 type ProductOptionsSyncPayload {
-  """The product with updated options."""
+  """
+  The product with updated options.
+  """
   product: Product
 
-  """All synced options with final IDs."""
+  """
+  All synced options with final IDs.
+  """
   options: [ProductOption!]!
 
-  """List of errors that occurred."""
+  """
+  List of errors that occurred.
+  """
   userErrors: [GenericUserError!]!
 }

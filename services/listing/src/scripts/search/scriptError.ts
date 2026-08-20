@@ -18,21 +18,25 @@ export function searchConfigurationUserErrors(error: unknown): UserError[] {
     isUniqueViolation(error, "search_synonym_claim_store_locale_value_pk") ||
     isUniqueViolation(error, "search_synonym_value_normalized_unique")
   ) {
-    return [{
-      message: "Synonym value is already claimed by another active group",
-      field: ["input", "values"],
-      code: "SYNONYM_CONFLICT",
-    }];
+    return [
+      {
+        message: "Synonym value is already claimed by another active group",
+        field: ["input", "values"],
+        code: "SYNONYM_CONFLICT",
+      },
+    ];
   }
   if (
     isUniqueViolation(error, "search_synonym_group_store_locale_name_unique") ||
     isUniqueViolation(error, "search_product_boost_store_locale_name_unique")
   ) {
-    return [{
-      message: "A search configuration resource with this name already exists",
-      field: ["input", "name"],
-      code: "CONFIGURATION_CONFLICT",
-    }];
+    return [
+      {
+        message: "A search configuration resource with this name already exists",
+        field: ["input", "name"],
+        code: "CONFIGURATION_CONFLICT",
+      },
+    ];
   }
   return [{ message: "Internal error", code: "INTERNAL_ERROR" }];
 }

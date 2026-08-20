@@ -34,12 +34,8 @@ export const category = catalogSchema.table(
     handle: varchar("handle", { length: 255 }).notNull(),
 
     // Listing sort defaults
-    defaultSort: varchar("default_sort", { length: 32 })
-      .notNull()
-      .default("manual"),
-    defaultSortDirection: varchar("default_sort_direction", { length: 4 })
-      .notNull()
-      .default("asc"),
+    defaultSort: varchar("default_sort", { length: 32 }).notNull().default("manual"),
+    defaultSortDirection: varchar("default_sort_direction", { length: 4 }).notNull().default("asc"),
 
     // Publication
     publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }),
@@ -60,18 +56,12 @@ export const category = catalogSchema.table(
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
-    check(
-      "category_published_requires_handle",
-      sql`published_at IS NULL OR handle IS NOT NULL`
-    ),
+    check("category_published_requires_handle", sql`published_at IS NULL OR handle IS NOT NULL`),
     check(
       "category_default_sort_check",
-      sql`default_sort IN ('manual', 'price', 'newest', 'name')`
+      sql`default_sort IN ('manual', 'price', 'newest', 'name')`,
     ),
-    check(
-      "category_default_sort_direction_check",
-      sql`default_sort_direction IN ('asc', 'desc')`
-    ),
+    check("category_default_sort_direction_check", sql`default_sort_direction IN ('asc', 'desc')`),
     uniqueIndex("category_store_id_handle_key")
       .on(table.storeId, table.handle)
       .where(sql`deleted_at IS NULL`),
@@ -81,7 +71,7 @@ export const category = catalogSchema.table(
     index("idx_category_published")
       .on(table.storeId, table.publishedAt)
       .where(sql`deleted_at IS NULL`),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -102,7 +92,7 @@ export const categoryMedia = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.categoryId, table.fileId] }),
     index("idx_category_media_category").on(table.categoryId),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -130,11 +120,8 @@ export const categoryTranslation = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.categoryId, table.locale] }),
     index("idx_category_translation_store").on(table.storeId),
-    index("idx_category_translation_store_locale").on(
-      table.storeId,
-      table.locale
-    ),
-  ]
+    index("idx_category_translation_store_locale").on(table.storeId, table.locale),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,9 +158,9 @@ export const productCategory = catalogSchema.table(
       table.storeId,
       table.categoryId,
       table.lexoRank,
-      table.productId
+      table.productId,
     ),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────

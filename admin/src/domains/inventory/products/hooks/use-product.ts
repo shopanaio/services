@@ -23,12 +23,7 @@ interface UseProductReturn {
 }
 
 export function useProduct(options: UseProductOptions): UseProductReturn {
-  const {
-    id,
-    variantsFirst,
-    variantsAfter = null,
-    skip = false,
-  } = options;
+  const { id, variantsFirst, variantsAfter = null, skip = false } = options;
 
   const { data, previousData, loading, error, refetch } = useQuery<
     ProductDetailsQueryData,

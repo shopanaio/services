@@ -1,8 +1,7 @@
 import type { Catalog } from "@shopana/broker-types";
 
 export type CheckoutMerchandiseErrorCode =
-  | "CATALOG_CHECKOUT_SOURCE_UNAVAILABLE"
-  | "CATALOG_CHECKOUT_DATA_INVARIANT";
+  "CATALOG_CHECKOUT_SOURCE_UNAVAILABLE" | "CATALOG_CHECKOUT_DATA_INVARIANT";
 
 export class CheckoutMerchandiseError extends Error {
   constructor(

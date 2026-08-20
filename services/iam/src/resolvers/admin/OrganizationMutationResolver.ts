@@ -52,9 +52,7 @@ import {
  * OrganizationMutation namespace resolver.
  * Handles organization and member operations.
  */
-export class OrganizationMutationResolver extends IAMType<
-  Record<string, never>
-> {
+export class OrganizationMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Create a new organization.
    * Uses OrganizationCreateWorkflow to ensure media asset group is created after DB commit.
@@ -90,7 +88,7 @@ export class OrganizationMutationResolver extends IAMType<
         resourceId: input.name,
         operation: "organizationCreate",
         contentHash: hashContent({ name: input.name }),
-      }
+      },
     );
 
     const data = result.data;
@@ -100,8 +98,7 @@ export class OrganizationMutationResolver extends IAMType<
         userErrors: [
           {
             code: result.error?.code ?? "ORGANIZATION_CREATE_FAILED",
-            message:
-              result.error?.message ?? "Failed to create organization",
+            message: result.error?.message ?? "Failed to create organization",
             field: null,
           },
         ],
@@ -128,10 +125,7 @@ export class OrganizationMutationResolver extends IAMType<
     const { input } = args;
     const { kernel } = this.$ctx;
     const broker = kernel.getServices().broker;
-    const organizationId = decodeGlobalIdByType(
-      input.id,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(input.id, GlobalIdEntity.Organization);
 
     // Get previous logo ID for back-ref cleanup
     const existingOrg = await kernel.repository.organization.findById(organizationId);
@@ -151,10 +145,7 @@ export class OrganizationMutationResolver extends IAMType<
       }
     }
 
-    const result = await broker.runSaga<
-      OrganizationUpdateResult,
-      OrganizationUpdateSagaInput
-    >(
+    const result = await broker.runSaga<OrganizationUpdateResult, OrganizationUpdateSagaInput>(
       "iam.organizationUpdate",
       {
         organizationId,
@@ -180,8 +171,7 @@ export class OrganizationMutationResolver extends IAMType<
         userErrors: [
           {
             code: result.error?.code ?? "ORGANIZATION_UPDATE_FAILED",
-            message:
-              result.error?.message ?? "Failed to update organization",
+            message: result.error?.message ?? "Failed to update organization",
             field: null,
           },
         ],
@@ -205,10 +195,7 @@ export class OrganizationMutationResolver extends IAMType<
    * Uses OrganizationDeleteWorkflow to ensure cleanup happens after DB commit.
    */
   async organizationDelete(args: { id: string }) {
-    const organizationId = decodeGlobalIdByType(
-      args.id,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(args.id, GlobalIdEntity.Organization);
     const broker = this.$ctx.kernel.getServices().broker;
 
     const result = await broker.runSaga<OrganizationDeleteResult, OrganizationDeleteParams>(
@@ -226,10 +213,7 @@ export class OrganizationMutationResolver extends IAMType<
     const data = result.data;
     return {
       deletedOrganizationId: data?.deletedOrganizationId
-        ? encodeGlobalIdByType(
-            data.deletedOrganizationId,
-            GlobalIdEntity.Organization
-          )
+        ? encodeGlobalIdByType(data.deletedOrganizationId, GlobalIdEntity.Organization)
         : null,
       userErrors: (data?.userErrors ?? []).map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
@@ -243,18 +227,10 @@ export class OrganizationMutationResolver extends IAMType<
    * Transfer organization ownership to another admin.
    * Only the current owner can transfer ownership.
    */
-  async ownershipTransfer(args: {
-    input: { organizationId: string; newOwnerId: string };
-  }) {
+  async ownershipTransfer(args: { input: { organizationId: string; newOwnerId: string } }) {
     const { input } = args;
-    const organizationId = decodeGlobalIdByType(
-      input.organizationId,
-      GlobalIdEntity.Organization
-    );
-    const newOwnerId = decodeGlobalIdByType(
-      input.newOwnerId,
-      GlobalIdEntity.User
-    );
+    const organizationId = decodeGlobalIdByType(input.organizationId, GlobalIdEntity.Organization);
+    const newOwnerId = decodeGlobalIdByType(input.newOwnerId, GlobalIdEntity.User);
     const result = await this.$ctx.kernel.runScript(OwnershipTransferScript, {
       organizationId,
       newOwnerId,
@@ -276,20 +252,14 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(MemberInviteInputSchema())
   async memberInvite(args: { input: MemberInviteInput }) {
     const { input } = args;
-    const organizationId = decodeGlobalIdByType(
-      input.organizationId,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(input.organizationId, GlobalIdEntity.Organization);
     const workflowInput: MemberInviteParams = {
       organizationId,
       invitedBy: this.$ctx.adminContext?.user.id ?? "",
       email: input.email,
       roles: input.roles,
     };
-    const result = await this.runAdminWorkflow<
-      MemberInviteResult,
-      MemberInviteParams
-    >(
+    const result = await this.runAdminWorkflow<MemberInviteResult, MemberInviteParams>(
       "iam.memberInvite",
       "memberInvite",
       organizationId,
@@ -305,7 +275,7 @@ export class OrganizationMutationResolver extends IAMType<
               domain: result.member.domain,
               organizationId: result.member.organizationId,
             },
-            this.$ctx
+            this.$ctx,
           )
         : null,
       userErrors: result.userErrors.map((e) => ({
@@ -320,20 +290,12 @@ export class OrganizationMutationResolver extends IAMType<
    * Remove member from organization and revoke all roles.
    * Owner cannot be removed.
    */
-  async memberRemove(args: {
-    input: { organizationId: string; userId: string };
-  }) {
+  async memberRemove(args: { input: { organizationId: string; userId: string } }) {
     const { input } = args;
-    const organizationId = decodeGlobalIdByType(
-      input.organizationId,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(input.organizationId, GlobalIdEntity.Organization);
     const userId = decodeGlobalIdByType(input.userId, GlobalIdEntity.User);
     const workflowInput: MemberRemoveParams = { organizationId, userId };
-    const result = await this.runAdminWorkflow<
-      MemberRemoveResult,
-      MemberRemoveParams
-    >(
+    const result = await this.runAdminWorkflow<MemberRemoveResult, MemberRemoveParams>(
       "iam.memberRemove",
       "memberRemove",
       userId,
@@ -359,10 +321,7 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(MemberRoleChangeInputSchema())
   async memberRoleChange(args: { input: MemberRoleChangeInput }) {
     const { input } = args;
-    const organizationId = decodeGlobalIdByType(
-      input.organizationId,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(input.organizationId, GlobalIdEntity.Organization);
     const userId = decodeGlobalIdByType(input.userId, GlobalIdEntity.User);
 
     const workflowInput: MemberRoleChangeParams = {
@@ -371,10 +330,7 @@ export class OrganizationMutationResolver extends IAMType<
       domain: input.domain,
       role: input.role,
     };
-    const result = await this.runAdminWorkflow<
-      MemberRoleChangeResult,
-      MemberRoleChangeParams
-    >(
+    const result = await this.runAdminWorkflow<MemberRoleChangeResult, MemberRoleChangeParams>(
       "iam.memberRoleChange",
       "memberRoleChange",
       userId,
@@ -390,7 +346,7 @@ export class OrganizationMutationResolver extends IAMType<
               domain: result.member.domain,
               organizationId: result.member.organizationId,
             },
-            this.$ctx
+            this.$ctx,
           )
         : null,
       userErrors: result.userErrors.map((e) => ({
@@ -407,10 +363,7 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(MemberAccessRemoveInputSchema())
   async memberAccessRemove(args: { input: MemberAccessRemoveInput }) {
     const { input } = args;
-    const organizationId = decodeGlobalIdByType(
-      input.organizationId,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(input.organizationId, GlobalIdEntity.Organization);
     const userId = decodeGlobalIdByType(input.userId, GlobalIdEntity.User);
 
     const workflowInput: MemberAccessRemoveParams = {
@@ -418,10 +371,7 @@ export class OrganizationMutationResolver extends IAMType<
       userId,
       domain: input.domain,
     };
-    const result = await this.runAdminWorkflow<
-      MemberAccessRemoveResult,
-      MemberAccessRemoveParams
-    >(
+    const result = await this.runAdminWorkflow<MemberAccessRemoveResult, MemberAccessRemoveParams>(
       "iam.memberAccessRemove",
       "memberAccessRemove",
       userId,
@@ -437,5 +387,4 @@ export class OrganizationMutationResolver extends IAMType<
       })),
     };
   }
-
 }

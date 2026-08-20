@@ -4,10 +4,7 @@ import type { ServiceContext } from "../../../context/index.js";
 import { UserResolver } from "../../../resolvers/admin/UserResolver.js";
 import { OrganizationResolver } from "../../../resolvers/admin/OrganizationResolver.js";
 import { MembershipResolver } from "../../../resolvers/admin/MembershipResolver.js";
-import {
-  MemberResolver,
-  type MemberInput,
-} from "../../../resolvers/admin/MemberResolver.js";
+import { MemberResolver, type MemberInput } from "../../../resolvers/admin/MemberResolver.js";
 import type { Domain } from "../../../casbin/CasbinService.js";
 import type {
   Resolvers,
@@ -25,11 +22,9 @@ export async function resolveUser(
   userId: string,
   ctx: ServiceContext,
   info: GraphQLResolveInfo,
-  fieldPath?: string
+  fieldPath?: string,
 ): Promise<User | null> {
-  const fieldInfo = fieldPath
-    ? parseGraphqlInfo(info, fieldPath)
-    : parseGraphqlInfo(info);
+  const fieldInfo = fieldPath ? parseGraphqlInfo(info, fieldPath) : parseGraphqlInfo(info);
   return UserResolver.load(userId, fieldInfo, ctx) as Promise<User | null>;
 }
 
@@ -41,16 +36,10 @@ export async function resolveOrganization(
   organizationId: string,
   ctx: ServiceContext,
   info: GraphQLResolveInfo,
-  fieldPath?: string
+  fieldPath?: string,
 ): Promise<Organization | null> {
-  const fieldInfo = fieldPath
-    ? parseGraphqlInfo(info, fieldPath)
-    : parseGraphqlInfo(info);
-  return OrganizationResolver.load(
-    organizationId,
-    fieldInfo,
-    ctx
-  ) as Promise<Organization | null>;
+  const fieldInfo = fieldPath ? parseGraphqlInfo(info, fieldPath) : parseGraphqlInfo(info);
+  return OrganizationResolver.load(organizationId, fieldInfo, ctx) as Promise<Organization | null>;
 }
 
 /**
@@ -63,15 +52,13 @@ export async function resolveMembership(
   organizationId: string,
   ctx: ServiceContext,
   info: GraphQLResolveInfo,
-  fieldPath?: string
+  fieldPath?: string,
 ): Promise<Membership | null> {
-  const fieldInfo = fieldPath
-    ? parseGraphqlInfo(info, fieldPath)
-    : parseGraphqlInfo(info);
+  const fieldInfo = fieldPath ? parseGraphqlInfo(info, fieldPath) : parseGraphqlInfo(info);
   return MembershipResolver.load(
     { domain, organizationId },
     fieldInfo,
-    ctx
+    ctx,
   ) as Promise<Membership | null>;
 }
 
@@ -83,11 +70,9 @@ export async function resolveMember(
   input: MemberInput,
   ctx: ServiceContext,
   info: GraphQLResolveInfo,
-  fieldPath?: string
+  fieldPath?: string,
 ): Promise<Member | null> {
-  const fieldInfo = fieldPath
-    ? parseGraphqlInfo(info, fieldPath)
-    : parseGraphqlInfo(info);
+  const fieldInfo = fieldPath ? parseGraphqlInfo(info, fieldPath) : parseGraphqlInfo(info);
   return MemberResolver.load(input, fieldInfo, ctx) as Promise<Member | null>;
 }
 
@@ -102,7 +87,7 @@ export const typeResolvers: Partial<Resolvers> = {
     __resolveReference: async (
       reference: { __typename: "Membership"; domain: string; organizationId: string },
       ctx: ServiceContext,
-      info: GraphQLResolveInfo
+      info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
       return MembershipResolver.load(
@@ -111,7 +96,7 @@ export const typeResolvers: Partial<Resolvers> = {
           organizationId: reference.organizationId,
         },
         fieldInfo,
-        ctx
+        ctx,
       );
     },
   },

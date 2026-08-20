@@ -25,13 +25,8 @@ import {
   type ApiVariantOperationInput,
   type CurrencyCode,
 } from "@/graphql/types";
-import {
-  useProductVariantsLoader,
-  useUpdateProduct,
-} from "../../../hooks";
-import {
-  PRODUCT_PRICING_WIDGET_QUERY,
-} from "../../../graphql";
+import { useProductVariantsLoader, useUpdateProduct } from "../../../hooks";
+import { PRODUCT_PRICING_WIDGET_QUERY } from "../../../graphql";
 import {
   prepareChangedVariantUpdateOperations,
   prepareDraftVariantCreateOperations,
@@ -43,22 +38,10 @@ interface UseProductModalsOptions {
   defaultCurrency?: CurrencyCode | null;
 }
 
-const GENERAL_VARIANTS_EDITABLE_COLUMNS: NonNullable<
-  IEditVariantsModalPayload["editableColumns"]
-> = [
-  "media",
-  "price",
-  "compareAtPrice",
-  "weight",
-  "length",
-  "width",
-  "height",
-];
+const GENERAL_VARIANTS_EDITABLE_COLUMNS: NonNullable<IEditVariantsModalPayload["editableColumns"]> =
+  ["media", "price", "compareAtPrice", "weight", "length", "width", "height"];
 
-export const useProductModals = (
-  product: ApiProduct,
-  options: UseProductModalsOptions = {},
-) => {
+export const useProductModals = (product: ApiProduct, options: UseProductModalsOptions = {}) => {
   const client = useApolloClient();
   const { message } = App.useApp();
   const { updateProduct } = useUpdateProduct();
@@ -69,12 +52,8 @@ export const useProductModals = (
   const { push: openEditSeoModal } = useEditSeoModal();
   const { push: openEditVariantsModal } = useEditVariantsModal();
   const { push: openEditTagsModal } = useEditTagsModal();
-  const {
-    loadAllProductVariants,
-    loading: isEditVariantsLoading,
-  } = useProductVariantsLoader();
-  const [isPreparingEditVariants, setIsPreparingEditVariants] =
-    useState(false);
+  const { loadAllProductVariants, loading: isEditVariantsLoading } = useProductVariantsLoader();
+  const [isPreparingEditVariants, setIsPreparingEditVariants] = useState(false);
 
   const handleOpenProductModal = useCallback(() => {
     openProductModal({ entityId: product.id });
@@ -87,9 +66,7 @@ export const useProductModals = (
       productId: product.id,
       featured: mediaFiles[0] ?? null,
       gallery: mediaFiles,
-      onSave: async (
-        media: Parameters<NonNullable<IEditMediaModalPayload["onSave"]>>[0],
-      ) => {
+      onSave: async (media: Parameters<NonNullable<IEditMediaModalPayload["onSave"]>>[0]) => {
         const operations: ApiProductUpdateInput = {
           media: {
             fileIds: media.gallery.map((file) => file.id),
@@ -129,12 +106,7 @@ export const useProductModals = (
       options: product.options,
       onSaved: options.onProductRefresh,
     });
-  }, [
-    product.id,
-    product.options,
-    options.onProductRefresh,
-    openEditOptionsModal,
-  ]);
+  }, [product.id, product.options, options.onProductRefresh, openEditOptionsModal]);
 
   const handleEditAttributes = useCallback(() => {
     openEditAttributesModal({
@@ -142,12 +114,7 @@ export const useProductModals = (
       features: product.features,
       onSaved: options.onProductRefresh,
     });
-  }, [
-    product.id,
-    product.features,
-    options.onProductRefresh,
-    openEditAttributesModal,
-  ]);
+  }, [product.id, product.features, options.onProductRefresh, openEditAttributesModal]);
 
   const handleEditSeo = useCallback(() => {
     openEditSeoModal({
@@ -159,9 +126,7 @@ export const useProductModals = (
       ogTitle: product.seo?.ogTitle ?? null,
       ogDescription: product.seo?.ogDescription ?? null,
       ogImage: product.seo?.ogImage ?? null,
-      onSave: async (
-        values: Parameters<NonNullable<IEditSeoModalPayload["onSave"]>>[0]
-      ) => {
+      onSave: async (values: Parameters<NonNullable<IEditSeoModalPayload["onSave"]>>[0]) => {
         const result = await updateProduct({
           productId: product.id,
           expectedRevision: product.revision,
@@ -197,11 +162,7 @@ export const useProductModals = (
   ]);
 
   const refreshAfterVariantSave = useCallback(
-    async ({
-      pricingChanged,
-    }: {
-      pricingChanged: boolean;
-    }): Promise<boolean> => {
+    async ({ pricingChanged }: { pricingChanged: boolean }): Promise<boolean> => {
       const refreshes: Promise<unknown>[] = [
         loadAllProductVariants(product, { forceNetwork: true }),
       ];
@@ -221,16 +182,9 @@ export const useProductModals = (
 
       const refreshResults = await Promise.allSettled(refreshes);
 
-      return refreshResults.every(
-        (refreshResult) => refreshResult.status === "fulfilled",
-      );
+      return refreshResults.every((refreshResult) => refreshResult.status === "fulfilled");
     },
-    [
-      client,
-      loadAllProductVariants,
-      options.onProductRefresh,
-      product,
-    ],
+    [client, loadAllProductVariants, options.onProductRefresh, product],
   );
 
   const handleEditVariants = useCallback(async () => {
@@ -250,11 +204,8 @@ export const useProductModals = (
         productOptions: product.options,
         defaultCurrency: options.defaultCurrency ?? null,
         editableColumns: GENERAL_VARIANTS_EDITABLE_COLUMNS,
-        onSave: async (
-          input: EditVariantsSaveInput,
-        ): Promise<EditVariantsSaveResult> => {
-          const { existingRows, draftRows, deletedRows, additionalOperations } =
-            input;
+        onSave: async (input: EditVariantsSaveInput): Promise<EditVariantsSaveResult> => {
+          const { existingRows, draftRows, deletedRows, additionalOperations } = input;
           let updateOperations: NonNullable<ApiProductUpdateInput["variants"]>;
           let createOperations: NonNullable<ApiProductUpdateInput["variants"]>;
           let deleteOperations: ApiVariantOperationInput[];
@@ -281,20 +232,13 @@ export const useProductModals = (
               includeMedia: true,
             });
           } catch (err) {
-            message.error(
-              err instanceof Error
-                ? err.message
-                : "Variant changes are invalid.",
-            );
+            message.error(err instanceof Error ? err.message : "Variant changes are invalid.");
             return {
               ok: false,
               operationResults: [],
               userErrors: [
                 {
-                  message:
-                    err instanceof Error
-                      ? err.message
-                      : "Variant changes are invalid.",
+                  message: err instanceof Error ? err.message : "Variant changes are invalid.",
                   code: "VARIANT_CHANGES_INVALID",
                 },
               ],
@@ -328,10 +272,7 @@ export const useProductModals = (
           });
 
           if (result.errors.length > 0) {
-            message.error(
-              result.errors[0].message ||
-                "Variant changes could not be saved.",
-            );
+            message.error(result.errors[0].message || "Variant changes could not be saved.");
             return {
               ok: false,
               operationResults: result.operationResults,
@@ -340,9 +281,7 @@ export const useProductModals = (
             };
           }
 
-          const pricingChanged = variantOperations.some(
-            (operation) => !!operation.pricing,
-          );
+          const pricingChanged = variantOperations.some((operation) => !!operation.pricing);
           const refreshSucceeded = await refreshAfterVariantSave({
             pricingChanged,
           });
@@ -362,11 +301,7 @@ export const useProductModals = (
         },
       });
     } catch (err) {
-      message.error(
-        err instanceof Error
-          ? err.message
-          : "Product variants could not be loaded",
-      );
+      message.error(err instanceof Error ? err.message : "Product variants could not be loaded");
     } finally {
       setIsPreparingEditVariants(false);
     }

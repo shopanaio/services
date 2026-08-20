@@ -33,9 +33,7 @@ export interface UseProductBoostsReturn {
   refetch: () => Promise<unknown>;
 }
 
-export function useProductBoosts(
-  options: UseProductBoostsOptions = {},
-): UseProductBoostsReturn {
+export function useProductBoosts(options: UseProductBoostsOptions = {}): UseProductBoostsReturn {
   const {
     first,
     after = null,

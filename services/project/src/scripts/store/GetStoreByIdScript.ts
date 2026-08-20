@@ -7,13 +7,8 @@ export interface GetStoreByIdParams {
 
 export type GetStoreByIdResult = StorePayload;
 
-export class GetStoreByIdScript extends BaseScript<
-  GetStoreByIdParams,
-  GetStoreByIdResult
-> {
-  protected async execute(
-    params: GetStoreByIdParams
-  ): Promise<GetStoreByIdResult> {
+export class GetStoreByIdScript extends BaseScript<GetStoreByIdParams, GetStoreByIdResult> {
+  protected async execute(params: GetStoreByIdParams): Promise<GetStoreByIdResult> {
     const { id } = params;
 
     const store = await this.repository.store.findById(id);

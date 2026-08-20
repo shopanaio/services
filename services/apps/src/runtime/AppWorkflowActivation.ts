@@ -6,11 +6,7 @@ import type {
   AppWorkflow,
   AppWorkflowInvocation,
 } from "@shopana/app-sdk";
-import {
-  ConfiguredInstance,
-  FatalError,
-  Workflow,
-} from "@shopana/shared-kernel";
+import { ConfiguredInstance, FatalError, Workflow } from "@shopana/shared-kernel";
 import { AppContextRunner } from "./AppContextRunner.js";
 import { restrictGrantedScopes } from "./AppManifestContracts.js";
 
@@ -46,14 +42,10 @@ export class AppWorkflowActivation extends ConfiguredInstance {
       operationId: reference.operationId,
     });
     const context = this.restoreContext(reference, resolved);
-    return this.contextRunner.run(context, () =>
-      this.workflow.run(invocation.input),
-    );
+    return this.contextRunner.run(context, () => this.workflow.run(invocation.input));
   }
 
-  private assertInvocation(
-    invocation: AppWorkflowInvocation<unknown>,
-  ): AppDurableContextRef {
+  private assertInvocation(invocation: AppWorkflowInvocation<unknown>): AppDurableContextRef {
     if (
       !invocation ||
       typeof invocation !== "object" ||
@@ -106,10 +98,7 @@ export class AppWorkflowActivation extends ConfiguredInstance {
       operationId: reference.operationId,
       actor: reference.actor,
       correlationId: reference.correlationId,
-      grantedScopes: restrictGrantedScopes(
-        this.manifest,
-        resolved.grantedScopes,
-      ),
+      grantedScopes: restrictGrantedScopes(this.manifest, resolved.grantedScopes),
     });
   }
 }

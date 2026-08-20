@@ -21,9 +21,7 @@ import type {
   CheckoutPipelineMoney,
 } from "../../../application/pipeline/contracts/index.js";
 
-export function mapCommittedCheckoutToApi(
-  checkout: CheckoutCommittedSnapshot,
-): ApiCheckout {
+export function mapCommittedCheckoutToApi(checkout: CheckoutCommittedSnapshot): ApiCheckout {
   const { draft, result } = checkout;
   if (result.preliminaryPricing.status !== "SUCCESS") {
     throw new Error("Committed checkout contains an incomplete pipeline result");
@@ -44,21 +42,22 @@ export function mapCommittedCheckoutToApi(
   const finalQuote = result.finalPricing.data;
   const delivery = result.delivery.data;
   const payment = result.payment.data;
-  const loyalty = result.loyalty.status === "SUCCESS" && result.loyalty.data.status === "QUOTED"
-    ? result.loyalty.data.quote
-    : null;
-  const loyaltyReward = result.loyalty.status === "SUCCESS"
-    ? result.loyalty.data.rewardQuote
-    : null;
+  const loyalty =
+    result.loyalty.status === "SUCCESS" && result.loyalty.data.status === "QUOTED"
+      ? result.loyalty.data.quote
+      : null;
+  const loyaltyReward =
+    result.loyalty.status === "SUCCESS" ? result.loyalty.data.rewardQuote : null;
   const buyer = draft.buyerIdentity;
   const allQuotedLines = flatten(finalQuote.lines);
   const sourceFor = (lineId: string) =>
     preliminary.sourceLineResolutions.find(
       (resolution) =>
-        resolution.status === "TRANSFORMED" &&
-        resolution.transformedLineIds.includes(lineId),
+        resolution.status === "TRANSFORMED" && resolution.transformedLineIds.includes(lineId),
     )?.sourceLineId ?? lineId;
-  const intentById = new Map(flattenIntent(draft.cartIntent.lines).map((line) => [line.lineId, line]));
+  const intentById = new Map(
+    flattenIntent(draft.cartIntent.lines).map((line) => [line.lineId, line]),
+  );
   const lineToApi = (
     line: (typeof allQuotedLines)[number],
     parent: ApiCheckout["lines"][number] | null = null,
@@ -66,9 +65,7 @@ export function mapCommittedCheckoutToApi(
     const sourceLineId = sourceFor(line.lineId);
     const source = intentById.get(sourceLineId);
     const assignment = draft.lineTagAssignments.find(({ lineId }) => lineId === sourceLineId);
-    const tag = assignment
-      ? draft.tags.find(({ id }) => id === assignment.tagId)
-      : undefined;
+    const tag = assignment ? draft.tags.find(({ id }) => id === assignment.tagId) : undefined;
     const discountMinor = line.discountAllocations.reduce(
       (sum, allocation) => sum + BigInt(allocation.amount.amountMinor),
       0n,
@@ -89,16 +86,10 @@ export function mapCommittedCheckoutToApi(
             GlobalIdEntity.ProductComponentItem,
           )
         : null,
-      purchasableId: encodeGlobalIdByType(
-        line.merchandise.variantId,
-        GlobalIdEntity.Variant,
-      ),
+      purchasableId: encodeGlobalIdByType(line.merchandise.variantId, GlobalIdEntity.Variant),
       purchasable: {
         __typename: "ProductVariant",
-        id: encodeGlobalIdByType(
-          line.merchandise.variantId,
-          GlobalIdEntity.Variant,
-        ),
+        id: encodeGlobalIdByType(line.merchandise.variantId, GlobalIdEntity.Variant),
       },
       purchase: {
         __typename: "CheckoutLinePurchase",
@@ -140,37 +131,38 @@ export function mapCommittedCheckoutToApi(
       ({ destinationId }) => destinationId === group.destinationId,
     );
     const options = group.options.map(deliveryOptionToApi);
-    const selection = group.selection.status === "SELECTED"
-      ? {
-          __typename: "CheckoutDeliveryOptionSelection" as const,
-          status: "SELECTED" as ApiCheckoutSelectionStatus,
-          option: exactSelection(
-            options,
-            group.selection.optionHandle,
-            "Committed delivery selection does not match an available option.",
-          ),
-          previousOptionHandle: null,
-          resetReason: null,
-        }
-      : group.selection.status === "RESET"
+    const selection =
+      group.selection.status === "SELECTED"
         ? {
             __typename: "CheckoutDeliveryOptionSelection" as const,
-            status: "RESET" as ApiCheckoutSelectionStatus,
-            option: null,
-            previousOptionHandle: group.selection.previousOptionHandle,
-            resetReason: {
-              __typename: "CheckoutSelectionResetReason" as const,
-              code: group.selection.reason.code,
-              message: group.selection.reason.message,
-            },
-          }
-        : {
-            __typename: "CheckoutDeliveryOptionSelection" as const,
-            status: "NONE" as ApiCheckoutSelectionStatus,
-            option: null,
+            status: "SELECTED" as ApiCheckoutSelectionStatus,
+            option: exactSelection(
+              options,
+              group.selection.optionHandle,
+              "Committed delivery selection does not match an available option.",
+            ),
             previousOptionHandle: null,
             resetReason: null,
-          };
+          }
+        : group.selection.status === "RESET"
+          ? {
+              __typename: "CheckoutDeliveryOptionSelection" as const,
+              status: "RESET" as ApiCheckoutSelectionStatus,
+              option: null,
+              previousOptionHandle: group.selection.previousOptionHandle,
+              resetReason: {
+                __typename: "CheckoutSelectionResetReason" as const,
+                code: group.selection.reason.code,
+                message: group.selection.reason.message,
+              },
+            }
+          : {
+              __typename: "CheckoutDeliveryOptionSelection" as const,
+              status: "NONE" as ApiCheckoutSelectionStatus,
+              option: null,
+              previousOptionHandle: null,
+              resetReason: null,
+            };
     return {
       __typename: "CheckoutDeliveryGroup" as const,
       id: encodeGlobalIdByType(group.groupId, GlobalIdEntity.CheckoutDeliveryGroup),
@@ -180,7 +172,10 @@ export function mapCommittedCheckoutToApi(
       deliveryAddress: destination
         ? {
             __typename: "CheckoutDeliveryAddress" as const,
-            id: encodeGlobalIdByType(destination.destinationId, GlobalIdEntity.CheckoutDeliveryAddress),
+            id: encodeGlobalIdByType(
+              destination.destinationId,
+              GlobalIdEntity.CheckoutDeliveryAddress,
+            ),
             address1: destination.address.address1,
             address2: destination.address.address2,
             city: destination.address.city,
@@ -200,13 +195,20 @@ export function mapCommittedCheckoutToApi(
               destination.address.city,
               destination.address.provinceName,
               destination.address.countryCode,
-            ].filter(Boolean).join(", "),
+            ]
+              .filter(Boolean)
+              .join(", "),
             lastName: destination.address.lastName,
-            name: [
-              destination.address.firstName,
-              destination.address.middleName,
-              destination.address.lastName,
-            ].filter(Boolean).join(" ") || destination.address.company || destination.address.address1,
+            name:
+              [
+                destination.address.firstName,
+                destination.address.middleName,
+                destination.address.lastName,
+              ]
+                .filter(Boolean)
+                .join(" ") ||
+              destination.address.company ||
+              destination.address.address1,
             phone: destination.address.phone,
             province: destination.address.provinceName,
             provinceCode: destination.address.provinceCode,
@@ -236,37 +238,38 @@ export function mapCommittedCheckoutToApi(
     providerCode: method.provider,
     flow: method.flow as ApiPaymentFlow,
   }));
-  const paymentSelection = payment.selection.status === "SELECTED"
-    ? {
-        __typename: "CheckoutPaymentMethodSelection" as const,
-        status: "SELECTED" as ApiCheckoutSelectionStatus,
-        method: exactSelection(
-          methods,
-          payment.selection.methodHandle,
-          "Committed payment selection does not match an available method.",
-        ),
-        previousMethodHandle: null,
-        resetReason: null,
-      }
-    : payment.selection.status === "RESET"
+  const paymentSelection =
+    payment.selection.status === "SELECTED"
       ? {
           __typename: "CheckoutPaymentMethodSelection" as const,
-          status: "RESET" as ApiCheckoutSelectionStatus,
-          method: null,
-          previousMethodHandle: payment.selection.previousMethodHandle,
-          resetReason: {
-            __typename: "CheckoutSelectionResetReason" as const,
-            code: payment.selection.reason.code,
-            message: payment.selection.reason.message,
-          },
-        }
-      : {
-          __typename: "CheckoutPaymentMethodSelection" as const,
-          status: "NONE" as ApiCheckoutSelectionStatus,
-          method: null,
+          status: "SELECTED" as ApiCheckoutSelectionStatus,
+          method: exactSelection(
+            methods,
+            payment.selection.methodHandle,
+            "Committed payment selection does not match an available method.",
+          ),
           previousMethodHandle: null,
           resetReason: null,
-        };
+        }
+      : payment.selection.status === "RESET"
+        ? {
+            __typename: "CheckoutPaymentMethodSelection" as const,
+            status: "RESET" as ApiCheckoutSelectionStatus,
+            method: null,
+            previousMethodHandle: payment.selection.previousMethodHandle,
+            resetReason: {
+              __typename: "CheckoutSelectionResetReason" as const,
+              code: payment.selection.reason.code,
+              message: payment.selection.reason.message,
+            },
+          }
+        : {
+            __typename: "CheckoutPaymentMethodSelection" as const,
+            status: "NONE" as ApiCheckoutSelectionStatus,
+            method: null,
+            previousMethodHandle: null,
+            resetReason: null,
+          };
   const totals = finalQuote.totals;
   const payableAmount = loyalty?.payableAfterLoyalty ?? totals.payableTotal;
   const loyaltyDiscountMinor = loyalty ? BigInt(loyalty.discount.amountMinor) : 0n;
@@ -288,9 +291,7 @@ export function mapCommittedCheckoutToApi(
       severity: issue.severity as ApiCheckoutIssueSeverity,
       effect: issue.effect as ApiCheckoutIssueEffect,
       field: [...(issue.field ?? [])],
-      lineId: issue.lineId
-        ? encodeGlobalIdByType(issue.lineId, GlobalIdEntity.CheckoutLine)
-        : null,
+      lineId: issue.lineId ? encodeGlobalIdByType(issue.lineId, GlobalIdEntity.CheckoutLine) : null,
       retryable: issue.retryable,
     })),
     createdAt: checkout.createdAt,
@@ -300,16 +301,11 @@ export function mapCommittedCheckoutToApi(
     lines: finalQuote.lines.map((line) => lineToApi(line)),
     customerIdentity: {
       __typename: "CheckoutCustomerIdentity",
-      countryCode: buyer?.countryCode
-        ? buyer.countryCode as ApiCountryCode
-        : null,
+      countryCode: buyer?.countryCode ? (buyer.countryCode as ApiCountryCode) : null,
       customer: buyer?.customerId
         ? {
             __typename: "Customer" as const,
-            id: encodeGlobalIdByType(
-              buyer.customerId,
-              GlobalIdEntity.Customer,
-            ),
+            id: encodeGlobalIdByType(buyer.customerId, GlobalIdEntity.Customer),
           }
         : null,
       email: buyer?.email ?? null,
@@ -325,7 +321,8 @@ export function mapCommittedCheckoutToApi(
       totalDiscountAmount: pipelineMoney({
         amountMinor: (
           BigInt(totals.merchandiseDiscountTotal.amountMinor) +
-          BigInt(totals.deliveryDiscountTotal.amountMinor) + loyaltyDiscountMinor
+          BigInt(totals.deliveryDiscountTotal.amountMinor) +
+          loyaltyDiscountMinor
         ).toString(),
         currencyCode: totals.payableTotal.currencyCode,
       }),
@@ -335,15 +332,17 @@ export function mapCommittedCheckoutToApi(
     },
     appliedPromoCodes: finalQuote.appliedDiscounts.flatMap((discount) =>
       discount.code
-        ? [{
-            __typename: "CheckoutPromoCode" as const,
-            code: discount.code.inputCode,
-            appliedAt: checkout.updatedAt,
-            discountType: discount.discountClass,
-            value: Number(discount.amount.amountMinor),
-            provider: discount.source.kind,
-            conditions: discount.metadata,
-          }]
+        ? [
+            {
+              __typename: "CheckoutPromoCode" as const,
+              code: discount.code.inputCode,
+              appliedAt: checkout.updatedAt,
+              discountType: discount.discountClass,
+              value: Number(discount.amount.amountMinor),
+              provider: discount.source.kind,
+              conditions: discount.metadata,
+            },
+          ]
         : [],
     ),
     tags: draft.tags.map((tag) => ({
@@ -361,21 +360,23 @@ export function mapCommittedCheckoutToApi(
       selection: paymentSelection,
       payableAmount: pipelineMoney(payableAmount),
     },
-    loyaltyRedemption: loyalty ? {
-      __typename: "CheckoutLoyaltyRedemption",
-      quoteId: loyalty.quoteId,
-      revision: loyalty.revision,
-      accountId: encodeGlobalIdByType(loyalty.accountId, GlobalIdEntity.LoyaltyAccount),
-      programId: encodeGlobalIdByType(loyalty.program.programId, GlobalIdEntity.LoyaltyProgram),
-      programCode: loyalty.program.programCode,
-      programVersion: loyalty.program.programVersion,
-      requestedPoints: loyalty.requestedPoints,
-      redeemablePoints: loyalty.redeemablePoints,
-      availablePoints: loyalty.availablePoints,
-      discount: pipelineMoney(loyalty.discount),
-      payableAfterLoyalty: pipelineMoney(loyalty.payableAfterLoyalty),
-      expiresAt: loyalty.expiresAt,
-    } as any : null,
+    loyaltyRedemption: loyalty
+      ? ({
+          __typename: "CheckoutLoyaltyRedemption",
+          quoteId: loyalty.quoteId,
+          revision: loyalty.revision,
+          accountId: encodeGlobalIdByType(loyalty.accountId, GlobalIdEntity.LoyaltyAccount),
+          programId: encodeGlobalIdByType(loyalty.program.programId, GlobalIdEntity.LoyaltyProgram),
+          programCode: loyalty.program.programCode,
+          programVersion: loyalty.program.programVersion,
+          requestedPoints: loyalty.requestedPoints,
+          redeemablePoints: loyalty.redeemablePoints,
+          availablePoints: loyalty.availablePoints,
+          discount: pipelineMoney(loyalty.discount),
+          payableAfterLoyalty: pipelineMoney(loyalty.payableAfterLoyalty),
+          expiresAt: loyalty.expiresAt,
+        } as any)
+      : null,
     loyaltyRewardEntitlementId: loyaltyReward
       ? encodeGlobalIdByType(loyaltyReward.entitlementId, GlobalIdEntity.LoyaltyRewardEntitlement)
       : null,
@@ -386,16 +387,14 @@ function mapBillingAddress(
   address: CheckoutCommittedSnapshot["draft"]["billingAddress"],
 ): ApiCheckout["billingAddress"] {
   if (!address) return null;
-  const name = [address.firstName, address.lastName].filter(Boolean).join(" ") ||
-    address.company || "";
+  const name =
+    [address.firstName, address.lastName].filter(Boolean).join(" ") || address.company || "";
   const formatted = [
     name || null,
     address.company && address.company !== name ? address.company : null,
     address.address1,
     address.address2,
-    [address.city, address.provinceCode, address.postalCode]
-      .filter(Boolean)
-      .join(" ") || null,
+    [address.city, address.provinceCode, address.postalCode].filter(Boolean).join(" ") || null,
     address.countryCode,
   ].filter((line): line is string => Boolean(line));
   return {
@@ -415,9 +414,8 @@ function mapBillingAddress(
     phone: address.phone,
     data: address.data,
     formatted,
-    formattedArea: [address.city, address.provinceCode, address.countryCode]
-      .filter(Boolean)
-      .join(", ") || null,
+    formattedArea:
+      [address.city, address.provinceCode, address.countryCode].filter(Boolean).join(", ") || null,
   };
 }
 
@@ -449,9 +447,7 @@ function selectGroupedLines<T extends { lineId: string; children: readonly T[] }
   selectedIds: ReadonlySet<string>,
 ): T[] {
   return lines.flatMap((line) =>
-    selectedIds.has(line.lineId)
-      ? [line]
-      : selectGroupedLines(line.children, selectedIds),
+    selectedIds.has(line.lineId) ? [line] : selectGroupedLines(line.children, selectedIds),
   );
 }
 

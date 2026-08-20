@@ -37,11 +37,7 @@ export class LoyaltyNestService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit(): Promise<void> {
     this.logger.debug("Loyalty onModuleInit started");
 
-    this.kernel = await Kernel.create(
-      this.broker,
-      this.workflow,
-      this.dbClient,
-    );
+    this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
     this.logger.debug("Kernel created");
 
     this.adminGraphqlServer = await startServer({

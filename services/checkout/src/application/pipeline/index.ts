@@ -7,10 +7,7 @@ export {
   createCheckoutPipeline,
   runWithCheckoutDeadline,
 } from "./CheckoutPipeline.js";
-export type {
-  CheckoutPipelinePorts,
-  CheckoutPipelineRuntime,
-} from "./CheckoutPipeline.js";
+export type { CheckoutPipelinePorts, CheckoutPipelineRuntime } from "./CheckoutPipeline.js";
 export {
   CheckoutValidationRunner,
   CHECKOUT_VALIDATION_FUNCTION_TARGET_DEFINITION,
@@ -26,8 +23,4 @@ export type {
   CommerceFunctionRunRequest,
 } from "./CheckoutValidationRunner.js";
 export { CheckoutPipelineStageError } from "./CheckoutPipelineStageError.js";
-export {
-  canonicalJson,
-  canonicalJsonRevision,
-  canonicalJsonSha256,
-} from "./canonicalJson.js";
+export { canonicalJson, canonicalJsonRevision, canonicalJsonSha256 } from "./canonicalJson.js";

@@ -3,10 +3,7 @@ import { useEdgesState, useNodesState, useReactFlow } from "@xyflow/react";
 import type { Edge, Node } from "@xyflow/react";
 import { v4 as uuid } from "uuid";
 
-import type {
-  ApiProductComponentDependencyRule,
-  ApiProductComponentGroup,
-} from "@/graphql/types";
+import type { ApiProductComponentDependencyRule, ApiProductComponentGroup } from "@/graphql/types";
 import { ProductComponentLogicOperator } from "@/graphql/types";
 import type { SelectedNode, ItemNodeData, ComponentNodeData, RuleSortMode } from "../types";
 import { useDerivedGraph } from "./use-derived-graph";
@@ -28,7 +25,7 @@ export const useDependencyChart = ({
   // Draft state - changes don't affect parent until Save
   const [draftRules, setDraftRules] = useState<ApiProductComponentDependencyRule[]>(initialRules);
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(
-    initialSelectedRuleId ?? null
+    initialSelectedRuleId ?? null,
   );
   const [selectedNode, setSelectedNode] = useState<SelectedNode>(null);
   const [ruleSortMode, setRuleSortMode] = useState<RuleSortMode>("desc");
@@ -80,7 +77,7 @@ export const useDependencyChart = ({
   // Filter rules based on visibility
   const visibleRules = useMemo(
     () => draftRules.filter((r) => visibleRuleIds.has(r.id)),
-    [draftRules, visibleRuleIds]
+    [draftRules, visibleRuleIds],
   );
 
   // Derive graph from visible rules
@@ -111,9 +108,7 @@ export const useDependencyChart = ({
     if (layoutNodes.length === 0) return;
 
     // Create a key based on node IDs and positions only
-    const layoutKey = layoutNodes
-      .map((n) => `${n.id}:${n.position.x}:${n.position.y}`)
-      .join("|");
+    const layoutKey = layoutNodes.map((n) => `${n.id}:${n.position.x}:${n.position.y}`).join("|");
 
     if (prevLayoutKeyRef.current === layoutKey) return;
     prevLayoutKeyRef.current = layoutKey;
@@ -168,7 +163,7 @@ export const useDependencyChart = ({
         setSelectedNode({ type: "component", label: data.label });
       }
     },
-    [draftRules, groups]
+    [draftRules, groups],
   );
 
   // Handler to clear selection (click on empty canvas)
@@ -178,9 +173,7 @@ export const useDependencyChart = ({
   }, []);
 
   const handleRuleChange = useCallback((updatedRule: ApiProductComponentDependencyRule) => {
-    setDraftRules((prev) =>
-      prev.map((r) => (r.id === updatedRule.id ? updatedRule : r))
-    );
+    setDraftRules((prev) => prev.map((r) => (r.id === updatedRule.id ? updatedRule : r)));
   }, []);
 
   const handleFitView = useCallback(() => {
@@ -197,7 +190,7 @@ export const useDependencyChart = ({
   // Get selected rule
   const selectedRule = useMemo(
     () => draftRules.find((r) => r.id === selectedRuleId) ?? null,
-    [draftRules, selectedRuleId]
+    [draftRules, selectedRuleId],
   );
 
   // Keep selectedNode in sync when rule data changes

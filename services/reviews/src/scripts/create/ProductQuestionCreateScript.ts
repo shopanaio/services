@@ -1,10 +1,7 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
 import { internalError, mapContentCreate } from "./content.js";
-import type {
-  ProductQuestionCreateParams,
-  ProductQuestionCreateResult,
-} from "./types.js";
+import type { ProductQuestionCreateParams, ProductQuestionCreateResult } from "./types.js";
 
 export class ProductQuestionCreateScript extends BaseScript<
   ProductQuestionCreateParams,
@@ -12,12 +9,12 @@ export class ProductQuestionCreateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: ProductQuestionCreateParams
+    params: ProductQuestionCreateParams,
   ): Promise<ProductQuestionCreateResult> {
     const mapped = mapContentCreate(
       params.content,
       "PRODUCT_QUESTION",
-      this.context.hasUser ? this.context.user.id : undefined
+      this.context.hasUser ? this.context.user.id : undefined,
     );
     if (mapped.errors.length > 0 || !mapped.values) {
       return { userErrors: mapped.errors };
@@ -31,10 +28,7 @@ export class ProductQuestionCreateScript extends BaseScript<
           variantId: params.variantId ?? null,
         },
       });
-      this.logger.info(
-        { productQuestionId: aggregate.question.id },
-        "Product question created"
-      );
+      this.logger.info({ productQuestionId: aggregate.question.id }, "Product question created");
       return {
         productQuestion: {
           id: aggregate.question.id,

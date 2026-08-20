@@ -18,14 +18,9 @@ export class FunctionTargetRegistry {
   register(definition: FunctionTargetDefinition): void {
     assertDefinition(definition);
     if (this.definitions.has(definition.target)) {
-      throw new Error(
-        `Commerce Function target "${definition.target}" is already registered`,
-      );
+      throw new Error(`Commerce Function target "${definition.target}" is already registered`);
     }
-    this.definitions.set(
-      definition.target,
-      deepFreeze(structuredClone(definition)),
-    );
+    this.definitions.set(definition.target, deepFreeze(structuredClone(definition)));
   }
 
   get(target: string): FunctionTargetDefinition {
@@ -56,32 +51,24 @@ function assertDefinition(definition: FunctionTargetDefinition): void {
     definition.concurrencyLimit <= 0 ||
     !Number.isSafeInteger(definition.maxInputBytes) ||
     definition.maxInputBytes <= 0 ||
-    definition.maxInputBytes >
-      COMMERCE_FUNCTION_MAX_INVOCATION_BYTES ||
+    definition.maxInputBytes > COMMERCE_FUNCTION_MAX_INVOCATION_BYTES ||
     !Number.isSafeInteger(definition.maxOutputBytes) ||
     definition.maxOutputBytes <= 0 ||
-    definition.maxOutputBytes >
-      COMMERCE_FUNCTION_MAX_OUTPUT_BYTES ||
+    definition.maxOutputBytes > COMMERCE_FUNCTION_MAX_OUTPUT_BYTES ||
     (definition.maxEnvelopeDepth !== undefined &&
       (!Number.isSafeInteger(definition.maxEnvelopeDepth) ||
         definition.maxEnvelopeDepth <= 0 ||
-        definition.maxEnvelopeDepth >
-          COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH))
+        definition.maxEnvelopeDepth > COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH))
   ) {
     throw new Error(`Invalid execution policy for "${definition.target}"`);
   }
   const ids = new Set<string>();
   for (const implementation of definition.nativeImplementations ?? []) {
-    if (
-      !implementation.implementationId.trim() ||
-      !implementation.action.includes(".")
-    ) {
+    if (!implementation.implementationId.trim() || !implementation.action.includes(".")) {
       throw new Error(`Invalid native route for "${definition.target}"`);
     }
     if (ids.has(implementation.implementationId)) {
-      throw new Error(
-        `Duplicate native implementation "${implementation.implementationId}"`,
-      );
+      throw new Error(`Duplicate native implementation "${implementation.implementationId}"`);
     }
     ids.add(implementation.implementationId);
   }
@@ -90,9 +77,7 @@ function assertDefinition(definition: FunctionTargetDefinition): void {
 function deepFreeze<T>(value: T): T {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
     Object.freeze(value);
-    for (const entry of Object.values(
-      value as Record<string, unknown>,
-    )) {
+    for (const entry of Object.values(value as Record<string, unknown>)) {
       deepFreeze(entry);
     }
   }

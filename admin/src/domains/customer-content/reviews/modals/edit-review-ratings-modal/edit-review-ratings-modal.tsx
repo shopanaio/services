@@ -10,7 +10,11 @@ import {
   reviewRatingsSectionSchema,
   type ReviewRatingsSectionValues,
 } from "../review-modal/schema";
-import { ReviewFormField, ReviewModalFrame, useReviewSectionModal } from "../shared/review-section-modal";
+import {
+  ReviewFormField,
+  ReviewModalFrame,
+  useReviewSectionModal,
+} from "../shared/review-section-modal";
 
 export function EditReviewRatingsModal() {
   const state = useReviewSectionModal("Review ratings updated");
@@ -21,7 +25,14 @@ export function EditReviewRatingsModal() {
     defaultValues: { overall: 5, criteria: [] },
     mode: "onChange",
   });
-  const { control, handleSubmit, reset, setError, watch, formState: { errors, isDirty, isValid } } = form;
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setError,
+    watch,
+    formState: { errors, isDirty, isValid },
+  } = form;
   const { fields } = useFieldArray({ control, name: "criteria" });
   const overall = watch("overall");
 
@@ -30,7 +41,11 @@ export function EditReviewRatingsModal() {
     if (initialized.current && lastReload.current === state.reloadVersion) return;
     reset({
       overall: state.review.rating,
-      criteria: state.review.ratings.map((item) => ({ criterionId: item.criterion.id, title: item.criterion.defaultTitle, value: item.value })),
+      criteria: state.review.ratings.map((item) => ({
+        criterionId: item.criterion.id,
+        title: item.criterion.defaultTitle,
+        value: item.value,
+      })),
     });
     initialized.current = true;
     lastReload.current = state.reloadVersion;
@@ -38,7 +53,9 @@ export function EditReviewRatingsModal() {
   useEffect(() => state.setDirty(isDirty), [isDirty, state.setDirty]);
 
   const submit = handleSubmit(async (values) => {
-    const fieldMap: Record<string, Path<ReviewRatingsSectionValues>> = { "rating.overall": "overall" };
+    const fieldMap: Record<string, Path<ReviewRatingsSectionValues>> = {
+      "rating.overall": "overall",
+    };
     values.criteria.forEach((_, index) => {
       fieldMap[`rating.criteria.${index}.value`] = `criteria.${index}.value`;
       fieldMap[`rating.criteria.${index}.criterionId`] = `criteria.${index}.criterionId`;
@@ -47,7 +64,10 @@ export function EditReviewRatingsModal() {
       {
         rating: {
           overall: values.overall,
-          criteria: values.criteria.map((item) => ({ criterionId: item.criterionId, value: item.value })),
+          criteria: values.criteria.map((item) => ({
+            criterionId: item.criterionId,
+            value: item.value,
+          })),
         },
       },
       fieldMap,
@@ -75,9 +95,13 @@ export function EditReviewRatingsModal() {
             <PaperHeader title="Overall rating" />
             <ReviewFormField label="Overall *" error={errors.overall?.message}>
               <Flex gap={12} align="center" wrap="wrap">
-                <Controller name="overall" control={control} render={({ field }) => (
-                  <Rate autoFocus value={field.value} onChange={field.onChange} />
-                )} />
+                <Controller
+                  name="overall"
+                  control={control}
+                  render={({ field }) => (
+                    <Rate autoFocus value={field.value} onChange={field.onChange} />
+                  )}
+                />
                 <Typography.Text>{overall} / 5</Typography.Text>
               </Flex>
             </ReviewFormField>
@@ -87,16 +111,26 @@ export function EditReviewRatingsModal() {
               <PaperHeader title="Rating criteria" />
               <Flex vertical gap="middle">
                 {fields.map((field, index) => (
-                  <ReviewFormField key={field.id} label={field.title} error={errors.criteria?.[index]?.value?.message}>
+                  <ReviewFormField
+                    key={field.id}
+                    label={field.title}
+                    error={errors.criteria?.[index]?.value?.message}
+                  >
                     <Flex gap={12} align="center" wrap="wrap">
-                      <Controller name={`criteria.${index}.value`} control={control} render={({ field: ratingField }) => (
-                        <Rate value={ratingField.value} onChange={ratingField.onChange} />
-                      )} />
+                      <Controller
+                        name={`criteria.${index}.value`}
+                        control={control}
+                        render={({ field: ratingField }) => (
+                          <Rate value={ratingField.value} onChange={ratingField.onChange} />
+                        )}
+                      />
                       <Typography.Text>{watch(`criteria.${index}.value`)} / 5</Typography.Text>
                     </Flex>
                   </ReviewFormField>
                 ))}
-                <Typography.Text type="secondary">Values are saved as one complete criterion rating set.</Typography.Text>
+                <Typography.Text type="secondary">
+                  Values are saved as one complete criterion rating set.
+                </Typography.Text>
               </Flex>
             </Paper>
           ) : null}

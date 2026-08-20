@@ -1,10 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from "@nestjs/common";
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import {
   DATABASE_CLIENT,
   InjectBroker,
@@ -28,9 +22,9 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
   private storefrontGraphqlServer: FastifyInstance | null = null;
 
   constructor(
-    @InjectBroker('project') private readonly broker: ServiceBroker,
+    @InjectBroker("project") private readonly broker: ServiceBroker,
     @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
-    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
+    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient,
   ) {}
 
   async onModuleInit() {

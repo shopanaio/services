@@ -1,7 +1,4 @@
-import type {
-  CheckoutRecalculationRequest,
-  ValidateCheckoutRequest,
-} from "../contracts/index.js";
+import type { CheckoutRecalculationRequest, ValidateCheckoutRequest } from "../contracts/index.js";
 
 const money = { amountMinor: "0", currencyCode: "USD" } as const;
 
@@ -90,8 +87,7 @@ export function validationRequestFixture(): ValidateCheckoutRequest {
     quoteId: "quote-1",
     revision: "final-v1",
     discountEvaluationRevision: "discounts-final-v1",
-    basedOnPreliminaryDiscountEvaluationRevision:
-      preliminary.discountEvaluationRevision,
+    basedOnPreliminaryDiscountEvaluationRevision: preliminary.discountEvaluationRevision,
     basedOnPreliminaryRevision: preliminary.revision,
     basedOnDeliveryRevision: delivery.revision,
     lines: [],

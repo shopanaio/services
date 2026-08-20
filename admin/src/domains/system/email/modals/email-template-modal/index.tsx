@@ -4,18 +4,11 @@ import { Alert, App, Button, Input, Typography } from "antd";
 import { createStyles } from "antd-style";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
 import { CodeEditor } from "@/domains/system/email-templates/components";
 import { getEmailTemplateVariables } from "../../constants";
-import {
-  useCreateEmailTemplate,
-  useUpdateEmailTemplate,
-} from "../../hooks";
+import { useCreateEmailTemplate, useUpdateEmailTemplate } from "../../hooks";
 import type { EmailTemplateModalPayload } from "../../modals";
 
 interface EmailTemplateFormValues {
@@ -67,9 +60,7 @@ export const EmailTemplateModal = () => {
   const [showVariables, setShowVariables] = useState(false);
   const createMutation = useCreateEmailTemplate();
   const updateMutation = useUpdateEmailTemplate();
-  const activeMutation = typedPayload.template
-    ? updateMutation
-    : createMutation;
+  const activeMutation = typedPayload.template ? updateMutation : createMutation;
   const {
     control,
     formState: { errors, isDirty },
@@ -96,9 +87,7 @@ export const EmailTemplateModal = () => {
     if (!result.data) return;
 
     await typedPayload.onSaved?.();
-    message.success(
-      typedPayload.template ? "Email template updated" : "Email template created",
-    );
+    message.success(typedPayload.template ? "Email template updated" : "Email template created");
     forcePop();
   });
 
@@ -147,9 +136,7 @@ export const EmailTemplateModal = () => {
                 )}
               />
               {errors.subject ? (
-                <Typography.Text type="danger">
-                  {errors.subject.message}
-                </Typography.Text>
+                <Typography.Text type="danger">{errors.subject.message}</Typography.Text>
               ) : null}
             </div>
             <div className={styles.editorField}>
@@ -185,9 +172,7 @@ export const EmailTemplateModal = () => {
                 />
               )}
               {errors.body && !showVariables ? (
-                <Typography.Text type="danger">
-                  {errors.body.message}
-                </Typography.Text>
+                <Typography.Text type="danger">{errors.body.message}</Typography.Text>
               ) : null}
             </div>
           </div>

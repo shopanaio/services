@@ -1,18 +1,11 @@
 import { describe, it, expect } from "vitest";
-import {
-  makeConnection,
-  createCursorNode,
-  type CursorNode,
-} from "../../cursor/connection.js";
+import { makeConnection, createCursorNode, type CursorNode } from "../../cursor/connection.js";
 import { decode } from "../../cursor/cursor.js";
 import type { SortParam } from "../../cursor/helpers.js";
 
 // ============ Test Helpers ============
 
-function createMockNode(
-  id: string,
-  values: Record<string, unknown> = {}
-): CursorNode {
+function createMockNode(id: string, values: Record<string, unknown> = {}): CursorNode {
   return createCursorNode({
     row: { id, ...values },
     cursorType: "test",
@@ -24,7 +17,7 @@ function createMockNode(
 function createMockNodeWithSort(
   id: string,
   values: Record<string, unknown>,
-  sortParams: SortParam[]
+  sortParams: SortParam[],
 ): CursorNode {
   return createCursorNode({
     row: { id, ...values },
@@ -112,11 +105,7 @@ describe("createCursorNode", () => {
 describe("makeConnection", () => {
   describe("forward pagination (first/after)", () => {
     it("creates connection with edges and pageInfo", () => {
-      const nodes = [
-        createMockNode("1"),
-        createMockNode("2"),
-        createMockNode("3"),
-      ];
+      const nodes = [createMockNode("1"), createMockNode("2"), createMockNode("3")];
 
       const connection = makeConnection({
         nodes,
@@ -135,11 +124,7 @@ describe("makeConnection", () => {
 
     it("sets hasNextPage=true when more items exist", () => {
       // Query requested 2 items, but we got 3 (limit + 1)
-      const nodes = [
-        createMockNode("1"),
-        createMockNode("2"),
-        createMockNode("3"),
-      ];
+      const nodes = [createMockNode("1"), createMockNode("2"), createMockNode("3")];
 
       const connection = makeConnection({
         nodes,
@@ -194,11 +179,7 @@ describe("makeConnection", () => {
 
   describe("backward pagination (last/before)", () => {
     it("handles last pagination", () => {
-      const nodes = [
-        createMockNode("1"),
-        createMockNode("2"),
-        createMockNode("3"),
-      ];
+      const nodes = [createMockNode("1"), createMockNode("2"), createMockNode("3")];
 
       const connection = makeConnection({
         nodes,
@@ -230,11 +211,7 @@ describe("makeConnection", () => {
     });
 
     it("sets hasPreviousPage=true when more items exist in backward pagination", () => {
-      const nodes = [
-        createMockNode("1"),
-        createMockNode("2"),
-        createMockNode("3"),
-      ];
+      const nodes = [createMockNode("1"), createMockNode("2"), createMockNode("3")];
 
       const connection = makeConnection({
         nodes,
@@ -293,11 +270,7 @@ describe("makeConnection", () => {
     });
 
     it("sets startCursor and endCursor correctly", () => {
-      const nodes = [
-        createMockNode("1"),
-        createMockNode("2"),
-        createMockNode("3"),
-      ];
+      const nodes = [createMockNode("1"), createMockNode("2"), createMockNode("3")];
 
       const connection = makeConnection({
         nodes,
@@ -375,10 +348,7 @@ describe("makeConnection", () => {
 
   describe("mapper function", () => {
     it("applies mapper to each node", () => {
-      const nodes = [
-        createMockNode("1"),
-        createMockNode("2"),
-      ];
+      const nodes = [createMockNode("1"), createMockNode("2")];
 
       const connection = makeConnection({
         nodes,
@@ -487,11 +457,7 @@ describe("makeConnection", () => {
 
   describe("exact limit (no hasMore)", () => {
     it("returns all items when count equals limit", () => {
-      const nodes = [
-        createMockNode("1"),
-        createMockNode("2"),
-        createMockNode("3"),
-      ];
+      const nodes = [createMockNode("1"), createMockNode("2"), createMockNode("3")];
 
       const connection = makeConnection({
         nodes,
@@ -507,11 +473,7 @@ describe("makeConnection", () => {
     });
 
     it("returns all items for last when count equals limit", () => {
-      const nodes = [
-        createMockNode("1"),
-        createMockNode("2"),
-        createMockNode("3"),
-      ];
+      const nodes = [createMockNode("1"), createMockNode("2"), createMockNode("3")];
 
       const connection = makeConnection({
         nodes,
@@ -550,11 +512,7 @@ describe("makeConnection", () => {
     });
 
     it("does not reverse when invertOrder is false (last with before)", () => {
-      const nodes = [
-        createMockNode("1"),
-        createMockNode("2"),
-        createMockNode("3"),
-      ];
+      const nodes = [createMockNode("1"), createMockNode("2"), createMockNode("3")];
 
       const connection = makeConnection({
         nodes,
@@ -596,11 +554,7 @@ describe("makeConnection", () => {
 
   describe("combined pagination scenarios", () => {
     it("first page forward: no cursors, hasNextPage based on results", () => {
-      const nodes = [
-        createMockNode("1"),
-        createMockNode("2"),
-        createMockNode("3"),
-      ];
+      const nodes = [createMockNode("1"), createMockNode("2"), createMockNode("3")];
 
       const connection = makeConnection({
         nodes,
@@ -616,11 +570,7 @@ describe("makeConnection", () => {
     });
 
     it("middle page forward: has after cursor, both pages exist", () => {
-      const nodes = [
-        createMockNode("3"),
-        createMockNode("4"),
-        createMockNode("5"),
-      ];
+      const nodes = [createMockNode("3"), createMockNode("4"), createMockNode("5")];
 
       const connection = makeConnection({
         nodes,
@@ -636,10 +586,7 @@ describe("makeConnection", () => {
     });
 
     it("last page forward: has after cursor, no next page", () => {
-      const nodes = [
-        createMockNode("8"),
-        createMockNode("9"),
-      ];
+      const nodes = [createMockNode("8"), createMockNode("9")];
 
       const connection = makeConnection({
         nodes,
@@ -655,11 +602,7 @@ describe("makeConnection", () => {
     });
 
     it("first page backward (last without before): invertOrder, hasPrevious based on results", () => {
-      const nodes = [
-        createMockNode("8"),
-        createMockNode("9"),
-        createMockNode("10"),
-      ];
+      const nodes = [createMockNode("8"), createMockNode("9"), createMockNode("10")];
 
       const connection = makeConnection({
         nodes,
@@ -676,11 +619,7 @@ describe("makeConnection", () => {
     });
 
     it("middle page backward: has before cursor, both pages exist", () => {
-      const nodes = [
-        createMockNode("4"),
-        createMockNode("5"),
-        createMockNode("6"),
-      ];
+      const nodes = [createMockNode("4"), createMockNode("5"), createMockNode("6")];
 
       const connection = makeConnection({
         nodes,

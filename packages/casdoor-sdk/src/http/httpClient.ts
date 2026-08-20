@@ -1,6 +1,11 @@
 import axios from "axios";
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
-import type { CasdoorApiResponse, CasdoorHttpResult, CookieStrategy, RequestContext } from "../types/api.js";
+import type {
+  CasdoorApiResponse,
+  CasdoorHttpResult,
+  CookieStrategy,
+  RequestContext,
+} from "../types/api.js";
 import { CasdoorApiError, CasdoorHttpError, CasdoorInvalidResponseError } from "./errors.js";
 
 function toRecordHeaders(headers: unknown): Record<string, unknown> {
@@ -16,7 +21,12 @@ function extractSetCookie(headers: Record<string, unknown>): string[] | undefine
 }
 
 function isCasdoorApiResponse(value: unknown): value is CasdoorApiResponse {
-  return !!value && typeof value === "object" && "status" in (value as any) && (value as any).status !== undefined;
+  return (
+    !!value &&
+    typeof value === "object" &&
+    "status" in (value as any) &&
+    (value as any).status !== undefined
+  );
 }
 
 export interface CasdoorHttpClientConfig {
@@ -47,11 +57,20 @@ export class CasdoorHttpClient {
     });
   }
 
-  async get<T>(ctx: RequestContext, path: string, config?: AxiosRequestConfig): Promise<CasdoorHttpResult<T>> {
+  async get<T>(
+    ctx: RequestContext,
+    path: string,
+    config?: AxiosRequestConfig,
+  ): Promise<CasdoorHttpResult<T>> {
     return this.request<T>(ctx, { ...(config ?? {}), method: "GET", url: path });
   }
 
-  async post<T>(ctx: RequestContext, path: string, data?: unknown, config?: AxiosRequestConfig): Promise<CasdoorHttpResult<T>> {
+  async post<T>(
+    ctx: RequestContext,
+    path: string,
+    data?: unknown,
+    config?: AxiosRequestConfig,
+  ): Promise<CasdoorHttpResult<T>> {
     return this.request<T>(ctx, { ...(config ?? {}), method: "POST", url: path, data });
   }
 
@@ -125,4 +144,3 @@ export class CasdoorHttpClient {
     return result as CasdoorHttpResult<CasdoorApiResponse<TData, TData2, TData3>>;
   }
 }
-

@@ -24,9 +24,7 @@ export const stableSerialize = (value: unknown): string => {
   return JSON.stringify(value);
 };
 
-export const toFacetInput = (
-  value: ApiListingFacetValue,
-): ApiListingProductFilter | null => {
+export const toFacetInput = (value: ApiListingFacetValue): ApiListingProductFilter | null => {
   if (!value.input || typeof value.input !== "object" || Array.isArray(value.input)) {
     return null;
   }
@@ -122,17 +120,13 @@ export const ListingPreviewFacets = ({
                           placeholder="Min"
                           min={0}
                           value={min}
-                          onChange={(amount) =>
-                            onSetRange(facet, value, "min", amount)
-                          }
+                          onChange={(amount) => onSetRange(facet, value, "min", amount)}
                         />
                         <InputNumber
                           placeholder="Max"
                           min={0}
                           value={max}
-                          onChange={(amount) =>
-                            onSetRange(facet, value, "max", amount)
-                          }
+                          onChange={(amount) => onSetRange(facet, value, "max", amount)}
                         />
                       </div>
                     </div>

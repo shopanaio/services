@@ -21,8 +21,6 @@ export class MarketConnectionResolver extends BaseConnectionResolver<MarketConne
 
   async nodes() {
     const edges = await this.$get("edges");
-    return Promise.all(
-      edges.map(({ nodeId }) => this.createNodeResolver(nodeId)),
-    );
+    return Promise.all(edges.map(({ nodeId }) => this.createNodeResolver(nodeId)));
   }
 }

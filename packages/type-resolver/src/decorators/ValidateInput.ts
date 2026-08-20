@@ -42,12 +42,12 @@ function formatZodIssues(issues: ZodIssue[]): UserError[] {
  * ```
  */
 export function ZodResolver<T extends ZodType<unknown, ZodTypeDef, unknown>>(
-  schemaOrFn: T | (() => T)
+  schemaOrFn: T | (() => T),
 ) {
   return function (
     _target: object,
     _propertyKey: string | symbol,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ): PropertyDescriptor {
     const originalMethod = descriptor.value;
 

@@ -7,11 +7,13 @@ import type { CheckoutPlacementRecord } from "../infrastructure/mutations/Checko
 
 describe("checkout placement recovery decisions", () => {
   it("completes a durable placement when the original workflow succeeded", () => {
-    expect(placementRecoveryAction("SUCCESS", {
-      placementId: "0198c4d4-9c00-7000-8000-000000000001",
-      orderId: "0198c4d4-9c00-7000-8000-000000000002",
-      status: "PAID",
-    })).toBe("COMPLETE");
+    expect(
+      placementRecoveryAction("SUCCESS", {
+        placementId: "0198c4d4-9c00-7000-8000-000000000001",
+        orderId: "0198c4d4-9c00-7000-8000-000000000002",
+        status: "PAID",
+      }),
+    ).toBe("COMPLETE");
   });
 
   it.each(["ERROR", "CANCELLED", "MAX_RECOVERY_ATTEMPTS_EXCEEDED"])(
@@ -38,9 +40,8 @@ describe("checkout placement recovery decisions", () => {
       loyaltyReservation: null,
     } as unknown as CheckoutPlacementRecord;
 
-    expect(() => assertCompensationRecoveryData(
-      placement,
-      new Set(["releaseDiscountUsage"]),
-    )).toThrow("CHECKOUT_COMPENSATION_DISCOUNT_RESERVATIONS_MISSING");
+    expect(() =>
+      assertCompensationRecoveryData(placement, new Set(["releaseDiscountUsage"])),
+    ).toThrow("CHECKOUT_COMPENSATION_DISCOUNT_RESERVATIONS_MISSING");
   });
 });

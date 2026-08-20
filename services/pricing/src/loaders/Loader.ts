@@ -30,8 +30,7 @@ export class Loader {
 
     this.discount = discountLoader.discount;
     this.discountRule = discountLoader.discountRule;
-    this.discountMinimumRequirement =
-      discountLoader.discountMinimumRequirement;
+    this.discountMinimumRequirement = discountLoader.discountMinimumRequirement;
     this.discountTargetSelections = discountLoader.discountTargetSelections;
     this.discountTargets = discountLoader.discountTargets;
     this.discountBuyerContext = discountLoader.discountBuyerContext;
@@ -43,10 +42,8 @@ export class Loader {
     this.discountCode = discountLoader.discountCode;
     this.discountUsageReservation = discountLoader.discountUsageReservation;
     this.discountRedemption = discountLoader.discountRedemption;
-    this.discountRedemptionAllocation =
-      discountLoader.discountRedemptionAllocation;
-    this.discountRedemptionAllocations =
-      discountLoader.discountRedemptionAllocations;
+    this.discountRedemptionAllocation = discountLoader.discountRedemptionAllocation;
+    this.discountRedemptionAllocations = discountLoader.discountRedemptionAllocations;
     this.discountExternalReference = discountLoader.discountExternalReference;
   }
 }

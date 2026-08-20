@@ -3,18 +3,12 @@
 import { useQuery } from "@apollo/client/react";
 import { useEffect, useMemo } from "react";
 import { AppInstallationStatus } from "@/graphql/types";
-import {
-  ADMIN_UI_APPS_QUERY,
-  APPS_MANAGEMENT_QUERY,
-} from "../management/graphql";
+import { ADMIN_UI_APPS_QUERY, APPS_MANAGEMENT_QUERY } from "../management/graphql";
 import type {
   AdminUiAppsQueryData,
   AppsManagementQueryData,
 } from "../management/graphql/operation-types";
-import {
-  parseAdminAppUiDescriptors,
-  type AdminAppUiDescriptor,
-} from "./descriptor-schema";
+import { parseAdminAppUiDescriptors, type AdminAppUiDescriptor } from "./descriptor-schema";
 import { getLocalAdminApp } from "./local-app-registry";
 
 interface Props {
@@ -22,26 +16,16 @@ interface Props {
   onDescriptors: (descriptors: AdminAppUiDescriptor[]) => void;
 }
 
-export function InstalledAppsRuntimeSync({
-  fallbackDescriptors,
-  onDescriptors,
-}: Props) {
-  const discoveryEnabled =
-    process.env.NEXT_PUBLIC_ADMIN_APPS_DISCOVERY === "true";
-  const {
-    data: discoveredData,
-    loading: discoveredLoading,
-  } = useQuery<AdminUiAppsQueryData>(
+export function InstalledAppsRuntimeSync({ fallbackDescriptors, onDescriptors }: Props) {
+  const discoveryEnabled = process.env.NEXT_PUBLIC_ADMIN_APPS_DISCOVERY === "true";
+  const { data: discoveredData, loading: discoveredLoading } = useQuery<AdminUiAppsQueryData>(
     ADMIN_UI_APPS_QUERY,
     {
       skip: !discoveryEnabled,
       fetchPolicy: "cache-and-network",
     },
   );
-  const {
-    data: managementData,
-    loading: managementLoading,
-  } = useQuery<AppsManagementQueryData>(
+  const { data: managementData, loading: managementLoading } = useQuery<AppsManagementQueryData>(
     APPS_MANAGEMENT_QUERY,
     {
       skip: discoveryEnabled,
@@ -51,69 +35,49 @@ export function InstalledAppsRuntimeSync({
   const localDescriptors = useMemo<AdminAppUiDescriptor[]>(() => {
     if (discoveryEnabled) return [];
 
-    return (managementData?.appsQuery.apps.edges ?? []).flatMap(
-      ({ node: app }) => {
-        const registration = getLocalAdminApp(app.code);
-        const installation = app.installation;
-        if (
-          !registration ||
-          !installation ||
-          installation.status !== AppInstallationStatus.Active
-        ) {
-          return [];
-        }
+    return (managementData?.appsQuery.apps.edges ?? []).flatMap(({ node: app }) => {
+      const registration = getLocalAdminApp(app.code);
+      const installation = app.installation;
+      if (!registration || !installation || installation.status !== AppInstallationStatus.Active) {
+        return [];
+      }
 
-        return [
-          {
-            installationId: installation.id,
-            appCode: app.code,
-            displayName: app.displayName,
-            description: app.description,
-            icon: app.icon,
-            version: installation.installedVersion,
-            sdkVersionRange: "^1.0.0",
-            remote: {
-              name: registration.remoteName,
-              manifestUrl: `local:${app.code}`,
-              contentHash: "local",
-            },
-            page: {
-              module: registration.pageModule,
-              defaultPath: registration.defaultPath,
-            },
-            navigation: [],
-            modals:
-              registration.modals?.map(
-                ({
-                  load: _load,
-                  confirmOnDirtyClose = false,
-                  requiredScopes = [],
-                  ...modal
-                }) => ({
-                  ...modal,
-                  confirmOnDirtyClose,
-                  requiredScopes,
-                }),
-              ) ?? [],
-            extensions: [],
-            grantedScopes: app.permissions
-              .filter(({ granted }) => granted)
-              .map(({ scope }) => scope),
+      return [
+        {
+          installationId: installation.id,
+          appCode: app.code,
+          displayName: app.displayName,
+          description: app.description,
+          icon: app.icon,
+          version: installation.installedVersion,
+          sdkVersionRange: "^1.0.0",
+          remote: {
+            name: registration.remoteName,
+            manifestUrl: `local:${app.code}`,
+            contentHash: "local",
           },
-        ];
-      },
-    );
-  }, [
-    discoveryEnabled,
-    managementData?.appsQuery.apps.edges,
-  ]);
+          page: {
+            module: registration.pageModule,
+            defaultPath: registration.defaultPath,
+          },
+          navigation: [],
+          modals:
+            registration.modals?.map(
+              ({ load: _load, confirmOnDirtyClose = false, requiredScopes = [], ...modal }) => ({
+                ...modal,
+                confirmOnDirtyClose,
+                requiredScopes,
+              }),
+            ) ?? [],
+          extensions: [],
+          grantedScopes: app.permissions.filter(({ granted }) => granted).map(({ scope }) => scope),
+        },
+      ];
+    });
+  }, [discoveryEnabled, managementData?.appsQuery.apps.edges]);
 
-  const source = discoveryEnabled
-    ? discoveredData?.appsQuery.adminUiApps
-    : localDescriptors;
-  const loading = discoveryEnabled
-    ? discoveredLoading
-    : managementLoading;
+  const source = discoveryEnabled ? discoveredData?.appsQuery.adminUiApps : localDescriptors;
+  const loading = discoveryEnabled ? discoveredLoading : managementLoading;
 
   useEffect(() => {
     if (

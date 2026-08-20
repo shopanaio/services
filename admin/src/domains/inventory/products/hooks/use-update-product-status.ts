@@ -2,10 +2,7 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
-import type {
-  ApiGenericUserError,
-  ApiProduct,
-} from "@/graphql/types";
+import type { ApiGenericUserError, ApiProduct } from "@/graphql/types";
 import { ProductStatus } from "@/graphql/types";
 import { PRODUCT_UPDATE_MUTATION } from "../graphql";
 import type {
@@ -25,9 +22,7 @@ interface UpdateProductStatusResult {
 }
 
 interface UseUpdateProductStatusReturn {
-  updateProductStatus: (
-    input: ProductStatusUpdateInput,
-  ) => Promise<UpdateProductStatusResult>;
+  updateProductStatus: (input: ProductStatusUpdateInput) => Promise<UpdateProductStatusResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
@@ -40,18 +35,14 @@ export function useUpdateProductStatus(): UseUpdateProductStatusReturn {
   >(PRODUCT_UPDATE_MUTATION);
 
   const updateProductStatus = useCallback(
-    async (
-      input: ProductStatusUpdateInput,
-    ): Promise<UpdateProductStatusResult> => {
+    async (input: ProductStatusUpdateInput): Promise<UpdateProductStatusResult> => {
       try {
         const result = await updateStatusMutation({
           variables: {
             productId: input.productId,
             expectedRevision: input.expectedRevision ?? undefined,
             operations: {
-              status: input.published
-                ? ProductStatus.Published
-                : ProductStatus.Draft,
+              status: input.published ? ProductStatus.Published : ProductStatus.Draft,
             },
           },
         });
@@ -63,8 +54,7 @@ export function useUpdateProductStatus(): UseUpdateProductStatusReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
 
         return {
           product: null,

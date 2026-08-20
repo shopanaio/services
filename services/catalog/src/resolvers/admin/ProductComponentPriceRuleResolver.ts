@@ -7,10 +7,7 @@ import type {
 } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 
-abstract class ProductComponentPriceRuleResolver extends CatalogType<
-  string,
-  ComponentPriceRule
-> {
+abstract class ProductComponentPriceRuleResolver extends CatalogType<string, ComponentPriceRule> {
   async $preload() {
     const rule = await this.$ctx.loaders.componentPriceRule.load(this.$props);
     if (!rule) {
@@ -50,9 +47,7 @@ export class ProductComponentAdjustmentPriceRuleResolver extends ProductComponen
   }
 
   async percentageBps() {
-    const percent = await this.$ctx.loaders.componentPriceRulePercent.load(
-      this.$props,
-    );
+    const percent = await this.$ctx.loaders.componentPriceRulePercent.load(this.$props);
     return percent?.percentageBps ?? null;
   }
 }
@@ -69,15 +64,10 @@ export class ProductComponentFreePriceRuleResolver extends ProductComponentPrice
   readonly __typename = "ProductComponentFreePriceRule" as const;
 }
 
-export async function createProductComponentPriceRuleResolver(
-  id: string,
-  ctx: ServiceContext,
-) {
+export async function createProductComponentPriceRuleResolver(id: string, ctx: ServiceContext) {
   const rule = await ctx.loaders.componentPriceRule.load(id);
   if (!rule) {
-    throw new PreloadNotFoundError(
-      `Product component price rule with ID ${id} not found`,
-    );
+    throw new PreloadNotFoundError(`Product component price rule with ID ${id} not found`);
   }
 
   switch (rule.strategy) {
@@ -90,9 +80,7 @@ export async function createProductComponentPriceRuleResolver(
     case "FREE":
       return new ProductComponentFreePriceRuleResolver(id, ctx);
     default:
-      throw new Error(
-        `Unsupported product component price strategy: ${rule.strategy}`,
-      );
+      throw new Error(`Unsupported product component price strategy: ${rule.strategy}`);
   }
 }
 
@@ -101,9 +89,7 @@ export class ProductComponentPricingTemplateResolver extends CatalogType<
   ComponentPricingTemplate
 > {
   async $preload() {
-    const template = await this.$ctx.loaders.componentPricingTemplate.load(
-      this.$props,
-    );
+    const template = await this.$ctx.loaders.componentPricingTemplate.load(this.$props);
     if (!template) {
       throw new PreloadNotFoundError(
         `Product component pricing template with ID ${this.$props} not found`,
@@ -113,10 +99,7 @@ export class ProductComponentPricingTemplateResolver extends CatalogType<
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.ProductComponentPricingTemplate,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.ProductComponentPricingTemplate);
   }
 
   async name() {
@@ -124,9 +107,7 @@ export class ProductComponentPricingTemplateResolver extends CatalogType<
   }
 
   async priceRule() {
-    return this.resolvers.productComponentPriceRule(
-      await this.$get("priceRuleId"),
-    );
+    return this.resolvers.productComponentPriceRule(await this.$get("priceRuleId"));
   }
 
   async sortIndex() {

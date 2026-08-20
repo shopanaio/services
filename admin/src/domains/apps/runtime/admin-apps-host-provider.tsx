@@ -3,12 +3,7 @@
 import { App } from "antd";
 import { useApolloClient } from "@apollo/client/react";
 import { useRouter } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { usePathParams } from "@/registry/path-params-context";
 import type { SidebarItem } from "@/registry/registry";
 import { useDynamicSidebarStore } from "@/layouts/app/components/sidebar/dynamic-sidebar-store";
@@ -19,11 +14,7 @@ import {
   registerAdminAppModals,
   unregisterAdminAppModals,
 } from "../sdk/modal-api";
-import type {
-  AdminAppPageLayoutProps,
-  AdminAppSdk,
-  AdminAppUiApi,
-} from "../sdk";
+import type { AdminAppPageLayoutProps, AdminAppSdk, AdminAppUiApi } from "../sdk";
 import { AdminAppIcon } from "./app-icon";
 import { AppRuntimeScope } from "./app-runtime-scope";
 import { createAdminAppPath } from "./app-route";
@@ -41,10 +32,7 @@ function createAppUi(descriptor: AdminAppUiDescriptor): AdminAppUiApi {
     return (
       <AdminAppPage
         {...props}
-        description={
-          props.description ??
-          (appIdentityPage ? descriptor.description : undefined)
-        }
+        description={props.description ?? (appIdentityPage ? descriptor.description : undefined)}
         icon={
           props.icon ??
           (appIdentityPage ? (
@@ -80,12 +68,8 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
   const client = useApolloClient();
   const { notification } = App.useApp();
   const path = usePathParams();
-  const setSidebarChildren = useDynamicSidebarStore(
-    (state) => state.setChildren,
-  );
-  const clearSidebarChildren = useDynamicSidebarStore(
-    (state) => state.clearChildren,
-  );
+  const setSidebarChildren = useDynamicSidebarStore((state) => state.setChildren);
+  const clearSidebarChildren = useDynamicSidebarStore((state) => state.clearChildren);
   const activeRef = useRef<ActiveAdminApp[]>([]);
   const disposeActiveApps = useCallback(() => {
     activeRef.current.forEach(({ scope }) => {
@@ -114,8 +98,7 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
             previous &&
             previous.sdk.context.orgName === orgName &&
             previous.sdk.context.storeName === storeName &&
-            descriptorSignature(previous.descriptor) ===
-              descriptorSignature(descriptor);
+            descriptorSignature(previous.descriptor) === descriptorSignature(descriptor);
 
           if (canReuse) {
             previousByAppCode.delete(descriptor.appCode);
@@ -131,9 +114,7 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
           const owner = ownerFor(descriptor);
           const scope = new AppRuntimeScope(owner);
           const modalApi = createAdminAppModalApi(descriptor, owner);
-          const storePrefix = `/${encodeURIComponent(orgName)}/${encodeURIComponent(
-            storeName,
-          )}`;
+          const storePrefix = `/${encodeURIComponent(orgName)}/${encodeURIComponent(storeName)}`;
 
           const sdk: AdminAppSdk = createAdminAppSdk({
             identity: {
@@ -155,19 +136,23 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
             modals: modalApi,
             navigation: {
               openAppPath: (appPath) =>
-                router.push(createAdminAppPath({
-                  orgName,
-                  storeName,
-                  appCode: descriptor.appCode,
-                  appPath,
-                })),
+                router.push(
+                  createAdminAppPath({
+                    orgName,
+                    storeName,
+                    appCode: descriptor.appCode,
+                    appPath,
+                  }),
+                ),
               replaceAppPath: (appPath) =>
-                router.replace(createAdminAppPath({
-                  orgName,
-                  storeName,
-                  appCode: descriptor.appCode,
-                  appPath,
-                })),
+                router.replace(
+                  createAdminAppPath({
+                    orgName,
+                    storeName,
+                    appCode: descriptor.appCode,
+                    appPath,
+                  }),
+                ),
               openCorePath: (corePath) => {
                 if (
                   !corePath.startsWith("/") ||
@@ -200,14 +185,10 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
               },
             },
             notifications: {
-              success: (message, description) =>
-                notification.success({ message, description }),
-              error: (message, description) =>
-                notification.error({ message, description }),
-              info: (message, description) =>
-                notification.info({ message, description }),
-              warning: (message, description) =>
-                notification.warning({ message, description }),
+              success: (message, description) => notification.success({ message, description }),
+              error: (message, description) => notification.error({ message, description }),
+              info: (message, description) => notification.info({ message, description }),
+              warning: (message, description) => notification.warning({ message, description }),
             },
             ui: createAppUi(descriptor),
           });
@@ -247,16 +228,10 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
           key: `admin-app-${descriptor.appCode}`,
           label: descriptor.displayName,
           iconKey: descriptor.icon.url,
-          icon: (
-            <AdminAppIcon decorative icon={descriptor.icon} size={18} />
-          ),
-          path: `/:orgName/:storeName/apps/${encodeURIComponent(
-            descriptor.appCode,
-          )}`,
+          icon: <AdminAppIcon decorative icon={descriptor.icon} size={18} />,
+          path: `/:orgName/:storeName/apps/${encodeURIComponent(descriptor.appCode)}`,
           activePaths: [
-            `/:orgName/:storeName/apps/${encodeURIComponent(
-              descriptor.appCode,
-            )}{/*appPath}`,
+            `/:orgName/:storeName/apps/${encodeURIComponent(descriptor.appCode)}{/*appPath}`,
           ],
         }))
         .sort((left, right) => left.label.localeCompare(right.label))
@@ -266,13 +241,7 @@ export function AdminAppsHostProvider({ children }: { children: ReactNode }) {
         }));
       setSidebarChildren("admin-apps", navigationItems);
     },
-    [
-      client,
-      notification,
-      path,
-      router,
-      setSidebarChildren,
-    ],
+    [client, notification, path, router, setSidebarChildren],
   );
 
   useEffect(

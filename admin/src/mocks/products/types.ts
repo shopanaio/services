@@ -3,53 +3,53 @@
  * These are simplified interfaces for development/testing purposes
  */
 
-import type { ApiFile, ApiRichText } from '@/graphql/types';
+import type { ApiFile, ApiRichText } from "@/graphql/types";
 
 // ============================================================================
 // Enums (mock replacements for GraphQL types)
 // ============================================================================
 
 export enum EntityStatus {
-  DRAFT = 'DRAFT',
-  PUBLISHED = 'PUBLISHED',
-  ARCHIVED = 'ARCHIVED',
+  DRAFT = "DRAFT",
+  PUBLISHED = "PUBLISHED",
+  ARCHIVED = "ARCHIVED",
 }
 
 export enum WeightUnit {
-  G = 'G',
-  KG = 'KG',
-  LB = 'LB',
-  OZ = 'OZ',
+  G = "G",
+  KG = "KG",
+  LB = "LB",
+  OZ = "OZ",
 }
 
 export enum DimensionUnit {
-  MM = 'MM',
-  CM = 'CM',
-  M = 'M',
-  IN = 'IN',
+  MM = "MM",
+  CM = "CM",
+  M = "M",
+  IN = "IN",
 }
 
 export enum FeatureStyleType {
-  DEFAULT = 'DEFAULT',
-  COLOR = 'COLOR',
-  IMAGE = 'IMAGE',
+  DEFAULT = "DEFAULT",
+  COLOR = "COLOR",
+  IMAGE = "IMAGE",
 }
 
 export enum FeatureSwatchType {
-  NONE = 'NONE',
-  COLOR = 'COLOR',
-  TWO_COLOR = 'TWO_COLOR',
-  IMAGE = 'IMAGE',
+  NONE = "NONE",
+  COLOR = "COLOR",
+  TWO_COLOR = "TWO_COLOR",
+  IMAGE = "IMAGE",
 }
 
 export enum FileDriver {
-  LOCAL = 'LOCAL',
-  S3 = 'S3',
+  LOCAL = "LOCAL",
+  S3 = "S3",
 }
 
 export enum ProductGroupPriceType {
-  FIXED = 'FIXED',
-  PERCENTAGE = 'PERCENTAGE',
+  FIXED = "FIXED",
+  PERCENTAGE = "PERCENTAGE",
 }
 
 // ============================================================================

@@ -9,12 +9,7 @@ import type {
   EventHandlerResponse,
 } from "@shopana/events";
 import type { SegmentDependency } from "@shopana/customer-segment-dsl";
-import {
-  EventHandler,
-  EventHandlers,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { EventHandler, EventHandlers, InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import { Kernel } from "../kernel/Kernel.js";
 import { CustomerDynamicSegmentEnqueueScript } from "../scripts/classification/CustomerDynamicSegmentEnqueueScript.js";
 import {
@@ -167,13 +162,7 @@ export class CustomerDynamicSegmentEventHandlers extends EventHandlers {
         },
         { storeId, organizationId, requestId },
       );
-      await this.startMaintenance(
-        storeId,
-        organizationId,
-        customerId,
-        sourceEventId,
-        requestId,
-      );
+      await this.startMaintenance(storeId, organizationId, customerId, sourceEventId, requestId);
       return { success: true, data: { invalidatedMemberships: enqueuedSegments } };
     } catch (error) {
       return {
@@ -207,10 +196,7 @@ export class CustomerDynamicSegmentEventHandlers extends EventHandlers {
   }
 }
 
-function failure(
-  error: unknown,
-  code: string,
-): EventHandlerResponse<never> {
+function failure(error: unknown, code: string): EventHandlerResponse<never> {
   return {
     success: false,
     error: {

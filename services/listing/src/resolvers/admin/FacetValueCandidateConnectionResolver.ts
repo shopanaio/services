@@ -11,9 +11,7 @@ export class FacetValueCandidateConnectionResolver extends ListingType<
   FacetValueCandidateConnectionResult
 > {
   async $preload(): Promise<FacetValueCandidateConnectionResult> {
-    return this.$ctx.kernel.repository.facet.getFacetValueCandidates(
-      this.$props
-    );
+    return this.$ctx.kernel.repository.facet.getFacetValueCandidates(this.$props);
   }
 
   async edges() {
@@ -22,7 +20,7 @@ export class FacetValueCandidateConnectionResolver extends ListingType<
       edgesData.map(async (edge) => ({
         cursor: edge.cursor,
         node: await this.resolvers.facetValueCandidate(edge.node),
-      }))
+      })),
     );
   }
 

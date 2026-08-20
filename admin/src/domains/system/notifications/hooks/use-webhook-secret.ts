@@ -7,10 +7,9 @@ import type { NotificationWebhookSecretRevealMutationData } from "../graphql/ope
 
 export function useWebhookSecret() {
   const requested = useRef(false);
-  const [reveal, result] =
-    useMutation<NotificationWebhookSecretRevealMutationData>(
-      NOTIFICATION_WEBHOOK_SECRET_REVEAL_MUTATION,
-    );
+  const [reveal, result] = useMutation<NotificationWebhookSecretRevealMutationData>(
+    NOTIFICATION_WEBHOOK_SECRET_REVEAL_MUTATION,
+  );
 
   useEffect(() => {
     if (requested.current) return;
@@ -18,8 +17,7 @@ export function useWebhookSecret() {
     void reveal().catch(() => undefined);
   }, [reveal]);
 
-  const payload =
-    result.data?.notificationsMutation.revealWebhookSecret ?? null;
+  const payload = result.data?.notificationsMutation.revealWebhookSecret ?? null;
 
   return {
     secret: payload?.secret ?? null,

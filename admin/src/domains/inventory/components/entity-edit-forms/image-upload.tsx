@@ -31,10 +31,7 @@ export const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
 
   if (value) {
     return (
-      <div
-        className={styles.imagePreviewContainer}
-        data-testid="edit-seo-og-image-preview"
-      >
+      <div className={styles.imagePreviewContainer} data-testid="edit-seo-og-image-preview">
         <Image
           src={value.url}
           alt={value.originalName || "OG Image"}
@@ -72,9 +69,7 @@ export const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
         <Typography.Text strong type="secondary">
           Upload OG Image
         </Typography.Text>
-        <Typography.Text type="secondary">
-          Recommended: 1200 x 630px
-        </Typography.Text>
+        <Typography.Text type="secondary">Recommended: 1200 x 630px</Typography.Text>
       </Flex>
     </div>
   );

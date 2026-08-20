@@ -27,9 +27,7 @@ export abstract class BaseConnectionResolver<TInput> extends StorefrontCustomers
 
   async nodes() {
     const edges = await this.$get("edges");
-    return Promise.all(
-      edges.map((edge) => this.createNodeResolver(edge.nodeId)),
-    );
+    return Promise.all(edges.map((edge) => this.createNodeResolver(edge.nodeId)));
   }
 
   pageInfo() {

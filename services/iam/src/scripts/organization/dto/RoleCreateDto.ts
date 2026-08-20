@@ -24,7 +24,7 @@ export const roleCreateInputSchema = z.object({
     .max(64, "Role name must be at most 64 characters")
     .regex(
       /^[a-z0-9_-]+$/,
-      "Role name must contain only lowercase letters, numbers, underscores, and hyphens"
+      "Role name must contain only lowercase letters, numbers, underscores, and hyphens",
     ),
   displayName: z
     .string()

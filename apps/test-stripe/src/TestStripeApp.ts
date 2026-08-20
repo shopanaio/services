@@ -9,33 +9,9 @@ import type {
 } from "@shopana/app-sdk";
 import type { Payments, Pricing } from "@shopana/broker-types";
 
-const SUPPORTED_COUNTRIES = [
-  "AU",
-  "CA",
-  "DE",
-  "FR",
-  "GB",
-  "JP",
-  "PL",
-  "UA",
-  "US",
-] as const;
-const SUPPORTED_CURRENCIES = [
-  "AUD",
-  "CAD",
-  "EUR",
-  "GBP",
-  "JPY",
-  "PLN",
-  "UAH",
-  "USD",
-] as const;
-const METHOD_KEYS = [
-  "card",
-  "card-3ds",
-  "bank-transfer",
-  "declined-card",
-] as const;
+const SUPPORTED_COUNTRIES = ["AU", "CA", "DE", "FR", "GB", "JP", "PL", "UA", "US"] as const;
+const SUPPORTED_CURRENCIES = ["AUD", "CAD", "EUR", "GBP", "JPY", "PLN", "UAH", "USD"] as const;
+const METHOD_KEYS = ["card", "card-3ds", "bank-transfer", "declined-card"] as const;
 
 const CAPABILITIES = {
   supportsAsynchronousCompletion: true,
@@ -106,12 +82,8 @@ export class TestStripeApp implements ShopanaApp {
       this.validateConfiguration(input),
     );
     this.host.broker.register("getMethods", (input) => this.getMethods(input));
-    this.host.broker.register("createPayment", (input) =>
-      this.createPayment(input),
-    );
-    this.host.broker.register("confirmPayment", (input) =>
-      this.confirmPayment(input),
-    );
+    this.host.broker.register("createPayment", (input) => this.createPayment(input));
+    this.host.broker.register("confirmPayment", (input) => this.confirmPayment(input));
     this.host.broker.register("cancel", (input) => this.cancel(input));
     this.host.broker.register("capture", (input) => this.capture(input));
     this.host.broker.register("void", (input) => this.voidPayment(input));
@@ -134,12 +106,8 @@ export class TestStripeApp implements ShopanaApp {
   private validateConfiguration(
     input: unknown,
   ): Payments.PaymentProviderConfigurationValidationResult {
-    const request =
-      requireInput<Payments.PaymentProviderConfigurationValidationRequest>(
-        input,
-      );
-    if (request.protocolVersion !== 1)
-      throw new Error("Unsupported payment provider protocol");
+    const request = requireInput<Payments.PaymentProviderConfigurationValidationRequest>(input);
+    if (request.protocolVersion !== 1) throw new Error("Unsupported payment provider protocol");
     return {
       status: "READY",
       providerCode: "test-stripe",
@@ -164,26 +132,11 @@ export class TestStripeApp implements ShopanaApp {
     };
   }
 
-  private getMethods(
-    input: unknown,
-  ): Payments.PaymentProviderMethodDiscoveryResult {
-    const request =
-      requireInput<Payments.PaymentProviderMethodDiscoveryRequest>(input);
+  private getMethods(input: unknown): Payments.PaymentProviderMethodDiscoveryResult {
+    const request = requireInput<Payments.PaymentProviderMethodDiscoveryRequest>(input);
     const methods: Payments.PaymentProviderMethodDefinition[] = [
-      method(
-        "card",
-        "test-stripe-card",
-        "Test card",
-        "ONLINE",
-        "REQUIRES_CONFIRMATION",
-      ),
-      method(
-        "card-3ds",
-        "test-stripe-card-3ds",
-        "Test card · 3DS",
-        "ONLINE",
-        "REQUIRES_ACTION",
-      ),
+      method("card", "test-stripe-card", "Test card", "ONLINE", "REQUIRES_CONFIRMATION"),
+      method("card-3ds", "test-stripe-card-3ds", "Test card · 3DS", "ONLINE", "REQUIRES_ACTION"),
       method(
         "bank-transfer",
         "test-stripe-bank-transfer",
@@ -211,18 +164,11 @@ export class TestStripeApp implements ShopanaApp {
     };
   }
 
-  private createPayment(
-    input: unknown,
-  ): Payments.PaymentProviderOperationResult {
-    const request =
-      requireInput<Payments.PaymentProviderCreatePaymentRequest>(input);
+  private createPayment(input: unknown): Payments.PaymentProviderOperationResult {
+    const request = requireInput<Payments.PaymentProviderCreatePaymentRequest>(input);
     return this.idempotent(request, () => {
       const providerReference = `pi_test_${digest("payment-v2", [request.providerAccountId, request.paymentSessionId]).slice(0, 24)}`;
-      if (
-        !METHOD_KEYS.includes(
-          request.providerMethodKey as (typeof METHOD_KEYS)[number],
-        )
-      ) {
+      if (!METHOD_KEYS.includes(request.providerMethodKey as (typeof METHOD_KEYS)[number])) {
         return failed(
           providerReference,
           "NOT_SUPPORTED",
@@ -303,16 +249,13 @@ export class TestStripeApp implements ShopanaApp {
     });
   }
 
-  private confirmPayment(
-    input: unknown,
-  ): Payments.PaymentProviderOperationResult {
+  private confirmPayment(input: unknown): Payments.PaymentProviderOperationResult {
     const request = requireInput<Payments.PaymentProviderConfirmRequest>(input);
     return this.idempotent(request, () => {
       const record = this.requireRecord(request);
       if (
         record.state !== "PENDING" ||
-        (record.pendingStage !== "ACTION" &&
-          record.pendingStage !== "CONFIRMATION")
+        (record.pendingStage !== "ACTION" && record.pendingStage !== "CONFIRMATION")
       ) {
         return invalidState(record, request.operationId, "confirm");
       }
@@ -349,8 +292,7 @@ export class TestStripeApp implements ShopanaApp {
           null,
           false,
         );
-      if (record.state !== "PENDING")
-        return invalidState(record, request.operationId, "cancel");
+      if (record.state !== "PENDING") return invalidState(record, request.operationId, "cancel");
       record.state = "CANCELLED";
       record.pendingStage = null;
       return succeeded(
@@ -392,11 +334,7 @@ export class TestStripeApp implements ShopanaApp {
         compareMoney(record.capturedAmount, record.authorizedAmount) < 0
           ? "PARTIALLY_CAPTURED"
           : "CAPTURED";
-      return succeeded(
-        record.providerReference,
-        request.operationId,
-        "captured",
-      );
+      return succeeded(record.providerReference, request.operationId, "captured");
     });
   }
 
@@ -415,19 +353,9 @@ export class TestStripeApp implements ShopanaApp {
         );
       if (record.kind !== "AUTHORIZATION" || record.state !== "AUTHORIZED")
         return invalidState(record, request.operationId, "void");
-      record.voidedAmount = subtractMoney(
-        record.authorizedAmount,
-        record.capturedAmount,
-      );
+      record.voidedAmount = subtractMoney(record.authorizedAmount, record.capturedAmount);
       record.state = "VOIDED";
-      return succeeded(
-        record.providerReference,
-        request.operationId,
-        "voided",
-        null,
-        null,
-        false,
-      );
+      return succeeded(record.providerReference, request.operationId, "voided", null, null, false);
     });
   }
 
@@ -459,23 +387,15 @@ export class TestStripeApp implements ShopanaApp {
       if (compareMoney(record.refundedAmount, record.capturedAmount) < 0) {
         record.state = "PARTIALLY_REFUNDED";
       } else {
-        record.voidedAmount = subtractMoney(
-          record.authorizedAmount,
-          record.capturedAmount,
-        );
+        record.voidedAmount = subtractMoney(record.authorizedAmount, record.capturedAmount);
         record.state = "REFUNDED";
       }
-      return succeeded(
-        record.providerReference,
-        request.operationId,
-        "refunded",
-      );
+      return succeeded(record.providerReference, request.operationId, "refunded");
     });
   }
 
   private reconcile(input: unknown): Payments.PaymentProviderReconcileResult {
-    const request =
-      requireInput<Payments.PaymentProviderReconcileRequest>(input);
+    const request = requireInput<Payments.PaymentProviderReconcileRequest>(input);
     return this.idempotent(request, () => {
       const record = this.requireRecord(request);
       if (record.state === "PENDING") {
@@ -546,9 +466,7 @@ export class TestStripeApp implements ShopanaApp {
     const existing = this.idempotentResults.get(key);
     if (existing) {
       if (existing.requestHash !== request.idempotencyRequestHash)
-        throw new Error(
-          `Test Stripe idempotency conflict for ${request.operation}`,
-        );
+        throw new Error(`Test Stripe idempotency conflict for ${request.operation}`);
       return existing.result as TResult;
     }
     const result = execute();
@@ -599,9 +517,7 @@ function settleCreated(record: PaymentRecord): void {
   }
 }
 
-function reconciled(
-  record: PaymentRecord,
-): Payments.PaymentProviderReconcileResult {
+function reconciled(record: PaymentRecord): Payments.PaymentProviderReconcileResult {
   const base = {
     status: "RECONCILED" as const,
     providerReference: record.providerReference,
@@ -626,10 +542,7 @@ function reconciled(
     ? {
         ...base,
         state: "PENDING",
-        pendingReason:
-          record.pendingStage === "OFFLINE"
-            ? "OFFLINE_PAYMENT"
-            : "BUYER_ACTION",
+        pendingReason: record.pendingStage === "OFFLINE" ? "OFFLINE_PAYMENT" : "BUYER_ACTION",
         pendingExpiresAt: record.pendingExpiresAt,
       }
     : {
@@ -702,18 +615,12 @@ function validateIncrement(
       code: `invalid_${operation}_amount`,
       message: `${capitalize(operation)} amount must be positive.`,
     };
-  if (
-    amount.currencyCode !== limit.currencyCode ||
-    current.currencyCode !== limit.currencyCode
-  )
+  if (amount.currencyCode !== limit.currencyCode || current.currencyCode !== limit.currencyCode)
     return {
       code: `${operation}_currency_mismatch`,
       message: `${capitalize(operation)} currency must match the payment currency.`,
     };
-  if (
-    BigInt(current.amountMinor) + BigInt(amount.amountMinor) >
-    BigInt(limit.amountMinor)
-  ) {
+  if (BigInt(current.amountMinor) + BigInt(amount.amountMinor) > BigInt(limit.amountMinor)) {
     return {
       code: `${operation}_amount_exceeded`,
       message: `${capitalize(operation)} total cannot exceed ${operation === "capture" ? "the authorization" : "the captured amount"}.`,
@@ -722,9 +629,7 @@ function validateIncrement(
   return null;
 }
 
-function readReconcileOutcome(
-  value: Pricing.PricingCheckoutJsonObject | null,
-): ReconcileOutcome {
+function readReconcileOutcome(value: Pricing.PricingCheckoutJsonObject | null): ReconcileOutcome {
   const outcome = value?.testReconcileOutcome;
   return outcome === "SUCCEED" ||
     outcome === "FAIL" ||
@@ -748,8 +653,7 @@ function addMoney(
   left: Pricing.PricingCheckoutMoney,
   right: Pricing.PricingCheckoutMoney,
 ): Pricing.PricingCheckoutMoney {
-  if (left.currencyCode !== right.currencyCode)
-    throw new Error("Test payment currency mismatch");
+  if (left.currencyCode !== right.currencyCode) throw new Error("Test payment currency mismatch");
   return money(
     (BigInt(left.amountMinor) + BigInt(right.amountMinor)).toString(),
     left.currencyCode,
@@ -760,8 +664,7 @@ function subtractMoney(
   left: Pricing.PricingCheckoutMoney,
   right: Pricing.PricingCheckoutMoney,
 ): Pricing.PricingCheckoutMoney {
-  if (left.currencyCode !== right.currencyCode)
-    throw new Error("Test payment currency mismatch");
+  if (left.currencyCode !== right.currencyCode) throw new Error("Test payment currency mismatch");
   return money(
     (BigInt(left.amountMinor) - BigInt(right.amountMinor)).toString(),
     left.currencyCode,
@@ -772,8 +675,7 @@ function compareMoney(
   left: Pricing.PricingCheckoutMoney,
   right: Pricing.PricingCheckoutMoney,
 ): number {
-  if (left.currencyCode !== right.currencyCode)
-    throw new Error("Test payment currency mismatch");
+  if (left.currencyCode !== right.currencyCode) throw new Error("Test payment currency mismatch");
   const leftAmount = BigInt(left.amountMinor);
   const rightAmount = BigInt(right.amountMinor);
   return leftAmount < rightAmount ? -1 : leftAmount > rightAmount ? 1 : 0;
@@ -783,20 +685,14 @@ function sameMoney(
   left: Pricing.PricingCheckoutMoney,
   right: Pricing.PricingCheckoutMoney,
 ): boolean {
-  return (
-    left.currencyCode === right.currencyCode &&
-    left.amountMinor === right.amountMinor
-  );
+  return left.currencyCode === right.currencyCode && left.amountMinor === right.amountMinor;
 }
 
 function isPositive(value: Pricing.PricingCheckoutMoney): boolean {
   return BigInt(value.amountMinor) > 0n;
 }
 
-function money(
-  amountMinor: string,
-  currencyCode: string,
-): Pricing.PricingCheckoutMoney {
+function money(amountMinor: string, currencyCode: string): Pricing.PricingCheckoutMoney {
   return { amountMinor, currencyCode };
 }
 
@@ -813,14 +709,10 @@ function capitalize(value: string): string {
 }
 
 function digest(namespace: string, value: unknown): string {
-  return createHash("sha256")
-    .update(namespace)
-    .update(JSON.stringify(value))
-    .digest("hex");
+  return createHash("sha256").update(namespace).update(JSON.stringify(value)).digest("hex");
 }
 
 function requireInput<T>(input: unknown): T {
-  if (!input || typeof input !== "object")
-    throw new Error("Provider input is required");
+  if (!input || typeof input !== "object") throw new Error("Provider input is required");
   return input as T;
 }

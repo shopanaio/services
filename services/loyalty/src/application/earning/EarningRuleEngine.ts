@@ -51,10 +51,15 @@ export class EarningRuleEngine {
     if (!account || account.status !== "ACTIVE") {
       throw new LoyaltyDomainError("ACCOUNT_NOT_ACTIVE", "Loyalty account is not active");
     }
-    const rules = (await this.repository.earningRule.listForVersion(input.version.id))
-      .filter(({ triggerType }) => triggerType === input.triggerType);
+    const rules = (await this.repository.earningRule.listForVersion(input.version.id)).filter(
+      ({ triggerType }) => triggerType === input.triggerType,
+    );
     for (const rule of rules) {
-      const existing = await this.repository.event.findEvaluation(input.fact.id, rule.id, input.account.id);
+      const existing = await this.repository.event.findEvaluation(
+        input.fact.id,
+        rule.id,
+        input.account.id,
+      );
       if (existing) continue;
       if (!this.matchesTriggerConfig(rule, input.fact)) {
         await this.decision(input, rule, "IGNORED", "TRIGGER_CONFIG_NOT_MATCHED");
@@ -71,16 +76,34 @@ export class EarningRuleEngine {
         continue;
       }
       const award = this.calculateAward(rule, input.version, input.context);
-      const limited = limits.perEventMaxPoints === null
-        ? award.points
-        : award.points < parsePoints(limits.perEventMaxPoints) ? award.points : parsePoints(limits.perEventMaxPoints);
+      const limited =
+        limits.perEventMaxPoints === null
+          ? award.points
+          : award.points < parsePoints(limits.perEventMaxPoints)
+            ? award.points
+            : parsePoints(limits.perEventMaxPoints);
       const usages = await this.lockUsages(rule, limits, input.account.id, input.fact.occurredAt);
-      const limitFailure = this.limitFailure(usages, limits, limited, award.monetaryAmountMinor, award.currencyCode);
+      const limitFailure = this.limitFailure(
+        usages,
+        limits,
+        limited,
+        award.monetaryAmountMinor,
+        award.currencyCode,
+      );
       if (limitFailure) {
-        await this.decision(input, rule, limitFailure === "CAMPAIGN" ? "BUDGET_EXHAUSTED" : "LIMIT_REACHED", `${limitFailure}_LIMIT_REACHED`);
+        await this.decision(
+          input,
+          rule,
+          limitFailure === "CAMPAIGN" ? "BUDGET_EXHAUSTED" : "LIMIT_REACHED",
+          `${limitFailure}_LIMIT_REACHED`,
+        );
         continue;
       }
-      const result = await this.executeAction({ ...input, rule, award: { ...award, points: limited } });
+      const result = await this.executeAction({
+        ...input,
+        rule,
+        award: { ...award, points: limited },
+      });
       await this.incrementUsages(usages, limited, award.monetaryAmountMinor, award.currencyCode);
       await this.repository.event.appendEvaluation({
         eventFactId: input.fact.id,
@@ -110,10 +133,12 @@ export class EarningRuleEngine {
       event: fact.payload,
     };
     if (lines.length === 0) return evaluateCondition(expression, base);
-    return lines.some((line) => evaluateCondition(expression, {
-      ...base,
-      catalog: catalogLine(line),
-    }));
+    return lines.some((line) =>
+      evaluateCondition(expression, {
+        ...base,
+        catalog: catalogLine(line),
+      }),
+    );
   }
 
   private matchesTriggerConfig(rule: EarningRule, fact: EventFact): boolean {
@@ -128,26 +153,64 @@ export class EarningRuleEngine {
     return subjectType === null || subjectType === fact.subjectType;
   }
 
-  private calculateAward(rule: EarningRule, version: ProgramVersion, context: EarningEvaluationContext) {
+  private calculateAward(
+    rule: EarningRule,
+    version: ProgramVersion,
+    context: EarningEvaluationContext,
+  ) {
     const action = rule.action as unknown as LoyaltyEarningActionV1;
     if (action.type === "AWARD_FIXED_POINTS") {
-      return { points: parsePoints(action.points), monetaryAmountMinor: 0n, currencyCode: null as string | null };
+      return {
+        points: parsePoints(action.points),
+        monetaryAmountMinor: 0n,
+        currencyCode: null as string | null,
+      };
     }
     if (action.type === "AWARD_SPEND_RATIO") {
       const amount = context.eligibleAmountMinor ?? 0n;
-      return { points: calculateRatio(amount, parsePoints(action.points), parsePoints(action.amountMinor), version.roundingMode), monetaryAmountMinor: 0n, currencyCode: null as string | null };
+      return {
+        points: calculateRatio(
+          amount,
+          parsePoints(action.points),
+          parsePoints(action.amountMinor),
+          version.roundingMode,
+        ),
+        monetaryAmountMinor: 0n,
+        currencyCode: null as string | null,
+      };
     }
     if (action.type === "APPLY_MULTIPLIER") {
       const base = context.basePoints ?? 0n;
       const multiplied = multiplyBasisPoints(base, action.multiplierBps, version.roundingMode);
-      return { points: multiplied > base ? multiplied - base : 0n, monetaryAmountMinor: 0n, currencyCode: null as string | null };
+      return {
+        points: multiplied > base ? multiplied - base : 0n,
+        monetaryAmountMinor: 0n,
+        currencyCode: null as string | null,
+      };
     }
     if (action.type === "AWARD_CASHBACK") {
-      const amount = multiplyBasisPoints(context.eligibleAmountMinor ?? 0n, action.basisPoints, "DOWN");
+      const amount = multiplyBasisPoints(
+        context.eligibleAmountMinor ?? 0n,
+        action.basisPoints,
+        "DOWN",
+      );
       if (action.settlement === "MONETARY") {
-        return { points: 0n, monetaryAmountMinor: amount, currencyCode: action.currencyCode ?? context.currencyCode ?? null };
+        return {
+          points: 0n,
+          monetaryAmountMinor: amount,
+          currencyCode: action.currencyCode ?? context.currencyCode ?? null,
+        };
       }
-      return { points: calculateRatio(amount, version.earnPoints, version.earnAmountMinor, version.roundingMode), monetaryAmountMinor: 0n, currencyCode: null as string | null };
+      return {
+        points: calculateRatio(
+          amount,
+          version.earnPoints,
+          version.earnAmountMinor,
+          version.roundingMode,
+        ),
+        monetaryAmountMinor: 0n,
+        currencyCode: null as string | null,
+      };
     }
     return { points: 0n, monetaryAmountMinor: 0n, currencyCode: null as string | null };
   }
@@ -175,9 +238,14 @@ export class EarningRuleEngine {
       return { transactionId: null, result: { entitlementId: entitlement.id } };
     }
     if (input.award.monetaryAmountMinor > 0n) {
-      if (!input.award.currencyCode) throw new LoyaltyDomainError("CURRENCY_REQUIRED", "Monetary cashback requires a currency");
+      if (!input.award.currencyCode)
+        throw new LoyaltyDomainError("CURRENCY_REQUIRED", "Monetary cashback requires a currency");
       const walletService = new MonetaryWalletService(this.repository);
-      const wallet = await walletService.ensureWallet(input.account, "CASHBACK", input.award.currencyCode);
+      const wallet = await walletService.ensureWallet(
+        input.account,
+        "CASHBACK",
+        input.award.currencyCode,
+      );
       const transaction = await walletService.credit({
         wallet,
         programVersionId: input.version.id,
@@ -193,12 +261,19 @@ export class EarningRuleEngine {
         effectiveAt: addSeconds(input.fact.occurredAt, input.version.activationDelaySeconds),
         amountMinor: input.award.monetaryAmountMinor,
         activationAt: addSeconds(input.fact.occurredAt, input.version.activationDelaySeconds),
-        expiresAt: input.version.pointsExpiryDays === null
-          ? null
-          : addDays(addSeconds(input.fact.occurredAt, input.version.activationDelaySeconds), input.version.pointsExpiryDays),
+        expiresAt:
+          input.version.pointsExpiryDays === null
+            ? null
+            : addDays(
+                addSeconds(input.fact.occurredAt, input.version.activationDelaySeconds),
+                input.version.pointsExpiryDays,
+              ),
         metadata: { eventFactId: input.fact.id, earningRuleId: input.rule.id },
       });
-      return { transactionId: null, result: { monetaryTransactionId: transaction.transaction.id, walletId: wallet.id } };
+      return {
+        transactionId: null,
+        result: { monetaryTransactionId: transaction.transaction.id, walletId: wallet.id },
+      };
     }
     if (input.award.points <= 0n) return { transactionId: null, result: { awardedPoints: "0" } };
     const activationAt = addSeconds(input.fact.occurredAt, input.version.activationDelaySeconds);
@@ -217,16 +292,24 @@ export class EarningRuleEngine {
       effectiveAt: activationAt,
       points: input.award.points,
       activationAt,
-      expiresAt: input.version.pointsExpiryDays === null ? null : addDays(activationAt, input.version.pointsExpiryDays),
+      expiresAt:
+        input.version.pointsExpiryDays === null
+          ? null
+          : addDays(activationAt, input.version.pointsExpiryDays),
       metadata: { eventFactId: input.fact.id, earningRuleId: input.rule.id },
     });
-    return { transactionId: operation.transaction.id, result: { lotId: operation.lot?.id ?? null } };
+    return {
+      transactionId: operation.transaction.id,
+      result: { lotId: operation.lot?.id ?? null },
+    };
   }
 
   private withinSchedule(limits: LoyaltyEarningLimitsV1, at: string): boolean {
     const time = Date.parse(at);
-    return (limits.startsAt === null || Date.parse(limits.startsAt) <= time)
-      && (limits.endsAt === null || time < Date.parse(limits.endsAt));
+    return (
+      (limits.startsAt === null || Date.parse(limits.startsAt) <= time) &&
+      (limits.endsAt === null || time < Date.parse(limits.endsAt))
+    );
   }
 
   private async lockUsages(
@@ -236,21 +319,33 @@ export class EarningRuleEngine {
     at: string,
   ) {
     const usages = [];
-    if (limits.perAccount) usages.push(await this.lockUsage(rule.id, `account:${accountId}`, limits.perAccount.window, at));
-    if (limits.campaign) usages.push(await this.lockUsage(rule.id, "campaign", { type: "LIFETIME", rollingWindowSeconds: null }, at));
+    if (limits.perAccount)
+      usages.push(
+        await this.lockUsage(rule.id, `account:${accountId}`, limits.perAccount.window, at),
+      );
+    if (limits.campaign)
+      usages.push(
+        await this.lockUsage(
+          rule.id,
+          "campaign",
+          { type: "LIFETIME", rollingWindowSeconds: null },
+          at,
+        ),
+      );
     return usages;
   }
 
   private async lockUsage(
     ruleId: string,
     scopeKey: string,
-    window: { type: "LIFETIME" | "DAY" | "WEEK" | "MONTH" | "ROLLING"; rollingWindowSeconds: number | null },
+    window: {
+      type: "LIFETIME" | "DAY" | "WEEK" | "MONTH" | "ROLLING";
+      rollingWindowSeconds: number | null;
+    },
     at: string,
   ): Promise<EarningRuleUsage> {
     const bounds = this.windowBounds(window, at);
-    const storageWindowStart = window.type === "ROLLING"
-      ? new Date(0).toISOString()
-      : bounds.start;
+    const storageWindowStart = window.type === "ROLLING" ? new Date(0).toISOString() : bounds.start;
     const usage = await this.repository.event.lockOrCreateUsage({
       earningRuleId: ruleId,
       scopeKey,
@@ -273,17 +368,30 @@ export class EarningRuleEngine {
     const date = new Date(at);
     if (window.type === "LIFETIME") return { start: new Date(0).toISOString(), end: null };
     if (window.type === "DAY") {
-      const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-      return { start: start.toISOString(), end: new Date(start.getTime() + 86_400_000).toISOString() };
+      const start = new Date(
+        Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+      );
+      return {
+        start: start.toISOString(),
+        end: new Date(start.getTime() + 86_400_000).toISOString(),
+      };
     }
     if (window.type === "WEEK") {
       const day = (date.getUTCDay() + 6) % 7;
-      const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - day));
-      return { start: start.toISOString(), end: new Date(start.getTime() + 7 * 86_400_000).toISOString() };
+      const start = new Date(
+        Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - day),
+      );
+      return {
+        start: start.toISOString(),
+        end: new Date(start.getTime() + 7 * 86_400_000).toISOString(),
+      };
     }
     if (window.type === "MONTH") {
       const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
-      return { start: start.toISOString(), end: new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)).toISOString() };
+      return {
+        start: start.toISOString(),
+        end: new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)).toISOString(),
+      };
     }
     const seconds = window.rollingWindowSeconds ?? 1;
     return {
@@ -301,16 +409,33 @@ export class EarningRuleEngine {
   ): "ACCOUNT" | "CAMPAIGN" | null {
     const account = usages.find(({ scopeKey }) => scopeKey.startsWith("account:"));
     if (account && limits.perAccount) {
-      if (limits.perAccount.maxOccurrences !== null && account.occurrenceCount + 1n > parsePoints(limits.perAccount.maxOccurrences)) return "ACCOUNT";
-      if (limits.perAccount.maxPoints !== null && account.pointsAwarded + points > parsePoints(limits.perAccount.maxPoints)) return "ACCOUNT";
+      if (
+        limits.perAccount.maxOccurrences !== null &&
+        account.occurrenceCount + 1n > parsePoints(limits.perAccount.maxOccurrences)
+      )
+        return "ACCOUNT";
+      if (
+        limits.perAccount.maxPoints !== null &&
+        account.pointsAwarded + points > parsePoints(limits.perAccount.maxPoints)
+      )
+        return "ACCOUNT";
     }
     const campaign = usages.find(({ scopeKey }) => scopeKey === "campaign");
     if (campaign && limits.campaign) {
-      if (limits.campaign.maxOccurrences !== null && campaign.occurrenceCount + 1n > parsePoints(limits.campaign.maxOccurrences)) return "CAMPAIGN";
-      if (limits.campaign.maxPoints !== null && campaign.pointsAwarded + points > parsePoints(limits.campaign.maxPoints)) return "CAMPAIGN";
+      if (
+        limits.campaign.maxOccurrences !== null &&
+        campaign.occurrenceCount + 1n > parsePoints(limits.campaign.maxOccurrences)
+      )
+        return "CAMPAIGN";
+      if (
+        limits.campaign.maxPoints !== null &&
+        campaign.pointsAwarded + points > parsePoints(limits.campaign.maxPoints)
+      )
+        return "CAMPAIGN";
       if (currency && limits.campaign.maxMonetaryMinorByCurrency[currency]) {
         const used = BigInt(campaign.monetaryAmounts[currency] ?? "0");
-        if (used + money > parsePoints(limits.campaign.maxMonetaryMinorByCurrency[currency]!)) return "CAMPAIGN";
+        if (used + money > parsePoints(limits.campaign.maxMonetaryMinorByCurrency[currency]!))
+          return "CAMPAIGN";
       }
     }
     return null;
@@ -324,13 +449,19 @@ export class EarningRuleEngine {
   ): Promise<void> {
     for (const usage of usages) {
       const monetaryAmounts = { ...usage.monetaryAmounts };
-      if (currency && money > 0n) monetaryAmounts[currency] = (BigInt(monetaryAmounts[currency] ?? "0") + money).toString();
+      if (currency && money > 0n)
+        monetaryAmounts[currency] = (BigInt(monetaryAmounts[currency] ?? "0") + money).toString();
       const updated = await this.repository.event.updateUsage(usage.id, usage.revision, {
         occurrenceCount: usage.occurrenceCount + 1n,
         pointsAwarded: usage.pointsAwarded + points,
         monetaryAmounts,
       });
-      if (!updated) throw new LoyaltyDomainError("EARNING_LIMIT_CONCURRENT_CHANGE", "Earning rule limit changed concurrently", true);
+      if (!updated)
+        throw new LoyaltyDomainError(
+          "EARNING_LIMIT_CONCURRENT_CHANGE",
+          "Earning rule limit changed concurrently",
+          true,
+        );
     }
   }
 
@@ -350,14 +481,16 @@ export class EarningRuleEngine {
   }
 }
 
-function catalogLine(value: unknown): {
-  productId?: string;
-  variantId?: string;
-  categoryIds?: readonly string[];
-  tagIds?: readonly string[];
-  featureIds?: readonly string[];
-  optionValueIds?: readonly string[];
-} | undefined {
+function catalogLine(value: unknown):
+  | {
+      productId?: string;
+      variantId?: string;
+      categoryIds?: readonly string[];
+      tagIds?: readonly string[];
+      featureIds?: readonly string[];
+      optionValueIds?: readonly string[];
+    }
+  | undefined {
   if (!value || typeof value !== "object") return undefined;
   const line = value as Record<string, unknown>;
   return {
@@ -371,5 +504,7 @@ function catalogLine(value: unknown): {
 }
 
 function stringArray(value: unknown): readonly string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }

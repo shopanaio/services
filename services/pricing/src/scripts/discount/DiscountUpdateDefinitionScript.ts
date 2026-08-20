@@ -7,11 +7,7 @@ import type {
   DiscountUpdateDefinitionParams,
   DiscountUpdateDefinitionResult,
 } from "./dto/index.js";
-import {
-  hasOwn,
-  parseDateTime,
-  parsePositiveBigInt,
-} from "./shared.js";
+import { hasOwn, parseDateTime, parsePositiveBigInt } from "./shared.js";
 import { BaseDiscountUpdateScript } from "./BaseDiscountUpdateScript.js";
 import { sectionErrors, sectionSuccess } from "./types.js";
 
@@ -44,11 +40,7 @@ export class DiscountUpdateDefinitionScript extends BaseDiscountUpdateScript<Dis
     }
 
     if (hasOwn(input, "priority")) {
-      if (
-        input.priority == null ||
-        !Number.isSafeInteger(input.priority) ||
-        input.priority < 0
-      ) {
+      if (input.priority == null || !Number.isSafeInteger(input.priority) || input.priority < 0) {
         errors.push({
           message: "Priority must be a non-negative integer",
           code: "INVALID_PRIORITY",
@@ -70,8 +62,7 @@ export class DiscountUpdateDefinitionScript extends BaseDiscountUpdateScript<Dis
         (usageLimit !== null || input.usage.appliesOncePerCustomer)
       ) {
         errors.push({
-          message:
-            "Automatic discounts cannot have customer or aggregate usage limits",
+          message: "Automatic discounts cannot have customer or aggregate usage limits",
           code: "INVALID_USAGE_LIMIT",
           field: ["usage"],
         });
@@ -83,8 +74,7 @@ export class DiscountUpdateDefinitionScript extends BaseDiscountUpdateScript<Dis
         : 0n;
       if (usageLimit !== null && usageLimit < consumed) {
         errors.push({
-          message:
-            "Usage limit cannot be lower than current reserved and consumed usage",
+          message: "Usage limit cannot be lower than current reserved and consumed usage",
           code: "USAGE_LIMIT_BELOW_USAGE",
           field: ["usage", "usageLimit"],
         });
@@ -104,26 +94,16 @@ export class DiscountUpdateDefinitionScript extends BaseDiscountUpdateScript<Dis
           field: ["purchaseModes"],
         });
       }
-      patch.appliesOnOneTimePurchase =
-        input.purchaseModes.appliesOnOneTimePurchase;
-      patch.appliesOnSubscription =
-        input.purchaseModes.appliesOnSubscription;
+      patch.appliesOnOneTimePurchase = input.purchaseModes.appliesOnOneTimePurchase;
+      patch.appliesOnSubscription = input.purchaseModes.appliesOnSubscription;
     }
 
     if (input.schedule != null) {
-      const startsAt = parseDateTime(
-        input.schedule.startsAt,
-        ["schedule", "startsAt"],
-        errors,
-      );
+      const startsAt = parseDateTime(input.schedule.startsAt, ["schedule", "startsAt"], errors);
       const endsAt =
         input.schedule.endsAt == null
           ? null
-          : parseDateTime(
-              input.schedule.endsAt,
-              ["schedule", "endsAt"],
-              errors,
-            );
+          : parseDateTime(input.schedule.endsAt, ["schedule", "endsAt"], errors);
       if (startsAt && endsAt && Date.parse(endsAt) <= Date.parse(startsAt)) {
         errors.push({
           message: "Discount end time must be after its start time",
@@ -136,10 +116,7 @@ export class DiscountUpdateDefinitionScript extends BaseDiscountUpdateScript<Dis
     }
 
     if (errors.length > 0) return sectionErrors(errors);
-    const changed = await this.repository.discount.updateRoot(
-      aggregate.discount.id,
-      patch,
-    );
+    const changed = await this.repository.discount.updateRoot(aggregate.discount.id, patch);
     return sectionSuccess(changed);
   }
 }

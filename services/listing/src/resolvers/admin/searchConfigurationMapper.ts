@@ -1,7 +1,4 @@
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type {
   SearchProductBoostListView,
   SearchSynonymGroupListView,
@@ -11,9 +8,7 @@ import type {
   SearchSynonymGroupAggregate,
 } from "../../repositories/search/searchRepositoryTypes.js";
 
-export function mapSearchSynonymGroupAggregate(
-  aggregate: SearchSynonymGroupAggregate,
-) {
+export function mapSearchSynonymGroupAggregate(aggregate: SearchSynonymGroupAggregate) {
   return {
     id: encodeSearchSynonymGroupId(aggregate.group.groupId),
     locale: aggregate.group.locale,
@@ -30,9 +25,7 @@ export function mapSearchSynonymGroupAggregate(
   };
 }
 
-export function mapSearchSynonymGroupListView(
-  row: SearchSynonymGroupListView,
-) {
+export function mapSearchSynonymGroupListView(row: SearchSynonymGroupListView) {
   return {
     id: encodeSearchSynonymGroupId(row.id),
     locale: row.locale,
@@ -46,9 +39,7 @@ export function mapSearchSynonymGroupListView(
   };
 }
 
-export function mapSearchProductBoostAggregate(
-  aggregate: SearchProductBoostAggregate,
-) {
+export function mapSearchProductBoostAggregate(aggregate: SearchProductBoostAggregate) {
   return {
     id: encodeSearchProductBoostId(aggregate.boost.boostId),
     locale: aggregate.boost.locale,
@@ -62,16 +53,12 @@ export function mapSearchProductBoostAggregate(
       position: phrase.position,
     })),
     phrasesCount: aggregate.phrases.length,
-    products: toProductReferences(
-      aggregate.products.map((product) => product.productId),
-    ),
+    products: toProductReferences(aggregate.products.map((product) => product.productId)),
     productsCount: aggregate.products.length,
   };
 }
 
-export function mapSearchProductBoostListView(
-  row: SearchProductBoostListView,
-) {
+export function mapSearchProductBoostListView(row: SearchProductBoostListView) {
   return {
     id: encodeSearchProductBoostId(row.id),
     locale: row.locale,

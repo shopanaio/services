@@ -2,18 +2,21 @@ import { shopCountries, shopLocales } from "@/defs/localization";
 import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
 import { CustomerTaxExemptionStatus, CustomerTaxIdentifierStatus } from "@/graphql/types";
 
-export const customerTaxIdentifierStatusColor: Partial<Record<CustomerTaxIdentifierStatus, string>> = {
+export const customerTaxIdentifierStatusColor: Partial<
+  Record<CustomerTaxIdentifierStatus, string>
+> = {
   [CustomerTaxIdentifierStatus.Verified]: "green",
   [CustomerTaxIdentifierStatus.Unverified]: "gold",
   [CustomerTaxIdentifierStatus.Rejected]: "red",
   [CustomerTaxIdentifierStatus.Expired]: "default",
 };
 
-export const customerTaxExemptionStatusColor: Partial<Record<CustomerTaxExemptionStatus, string>> = {
-  [CustomerTaxExemptionStatus.Active]: "green",
-  [CustomerTaxExemptionStatus.Revoked]: "red",
-  [CustomerTaxExemptionStatus.Expired]: "default",
-};
+export const customerTaxExemptionStatusColor: Partial<Record<CustomerTaxExemptionStatus, string>> =
+  {
+    [CustomerTaxExemptionStatus.Active]: "green",
+    [CustomerTaxExemptionStatus.Revoked]: "red",
+    [CustomerTaxExemptionStatus.Expired]: "default",
+  };
 
 export function compactParts(parts: Array<string | null | undefined>, separator = " · ") {
   return parts.filter((part): part is string => Boolean(part?.trim())).join(separator);

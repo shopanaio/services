@@ -60,11 +60,7 @@ export interface IEditOrganizationModalPayload extends IModalStackPayload {
   slug: string;
   currentLogo?: string | null;
   currentLogoId?: string | null;
-  onSave?: (values: {
-    displayName: string;
-    slug: string;
-    logoId: string | null;
-  }) => void;
+  onSave?: (values: { displayName: string; slug: string; logoId: string | null }) => void;
 }
 
 export interface ITransferOwnershipModalPayload extends IModalStackPayload {
@@ -89,32 +85,17 @@ export interface ICreateStoreModalPayload extends IModalStackPayload {
 }
 
 export interface ICreateOrganizationModalPayload extends IModalStackPayload {
-  onCreate?: (values: {
-    name: string;
-    displayName: string;
-  }) => Promise<void> | void;
+  onCreate?: (values: { name: string; displayName: string }) => Promise<void> | void;
 }
 
 // Create typed hooks
-export const useInviteMemberModal = createModalStackHook(
-  INVITE_MEMBER_MODAL_TYPE
-);
+export const useInviteMemberModal = createModalStackHook(INVITE_MEMBER_MODAL_TYPE);
 export const useRoleModal = createModalStackHook(ROLE_MODAL_TYPE);
-export const useEditOrganizationModal = createModalStackHook(
-  EDIT_ORGANIZATION_MODAL_TYPE
-);
-export const useTransferOwnershipModal = createModalStackHook(
-  TRANSFER_OWNERSHIP_MODAL_TYPE
-);
-export const useDeleteOrganizationModal = createModalStackHook(
-  DELETE_ORGANIZATION_MODAL_TYPE
-);
-export const useCreateStoreModal = createModalStackHook(
-  CREATE_STORE_MODAL_TYPE
-);
-export const useCreateOrganizationModal = createModalStackHook(
-  CREATE_ORGANIZATION_MODAL_TYPE
-);
+export const useEditOrganizationModal = createModalStackHook(EDIT_ORGANIZATION_MODAL_TYPE);
+export const useTransferOwnershipModal = createModalStackHook(TRANSFER_OWNERSHIP_MODAL_TYPE);
+export const useDeleteOrganizationModal = createModalStackHook(DELETE_ORGANIZATION_MODAL_TYPE);
+export const useCreateStoreModal = createModalStackHook(CREATE_STORE_MODAL_TYPE);
+export const useCreateOrganizationModal = createModalStackHook(CREATE_ORGANIZATION_MODAL_TYPE);
 
 // Declare module augmentation for type safety
 declare module "@/layouts/modals" {

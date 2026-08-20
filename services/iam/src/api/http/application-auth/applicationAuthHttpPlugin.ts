@@ -1,8 +1,4 @@
-import type {
-  FastifyPluginAsync,
-  FastifyReply,
-  FastifyRequest,
-} from "fastify";
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { ApplicationAuthFactoryRuntime } from "../../../auth/ApplicationAuthFactory.js";
 import {
@@ -48,11 +44,7 @@ interface ApplicationAuthRouteParams {
   "*": string;
 }
 
-const ALLOWED_CORS_REQUEST_HEADERS = new Set([
-  "authorization",
-  "content-type",
-  "x-request-id",
-]);
+const ALLOWED_CORS_REQUEST_HEADERS = new Set(["authorization", "content-type", "x-request-id"]);
 const NORMALIZED_EMAIL_JSON_ROUTES = new Set([
   "/email-otp/send-verification-otp",
   "/request-password-reset",
@@ -67,7 +59,7 @@ class ApplicationAuthBoundaryError extends Error {
   constructor(
     public readonly statusCode: number,
     public readonly oauthError: string,
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "ApplicationAuthBoundaryError";
@@ -78,7 +70,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
   ApplicationAuthHttpPluginOptions
 > = async (instance, options) => {
   const resourceGuard = new ApplicationOAuthResourcePolicyGuard(
-    options.kernel.repository.applicationOAuthClient
+    options.kernel.repository.applicationOAuthClient,
   );
   const hostedUi = new ApplicationAuthHostedUiController(options.kernel);
 
@@ -86,22 +78,22 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
   const rawParser = (
     _request: FastifyRequest,
     body: Buffer,
-    done: (error: Error | null, body?: Buffer) => void
+    done: (error: Error | null, body?: Buffer) => void,
   ) => done(null, body);
   instance.addContentTypeParser(
     "application/json",
     { parseAs: "buffer", bodyLimit: APPLICATION_AUTH_BODY_LIMIT },
-    rawParser
+    rawParser,
   );
   instance.addContentTypeParser(
     "application/x-www-form-urlencoded",
     { parseAs: "buffer", bodyLimit: APPLICATION_AUTH_BODY_LIMIT },
-    rawParser
+    rawParser,
   );
   instance.addContentTypeParser(
     "*",
     { parseAs: "buffer", bodyLimit: APPLICATION_AUTH_BODY_LIMIT },
-    rawParser
+    rawParser,
   );
 
   instance.setErrorHandler(async (error, request, reply) => {
@@ -126,7 +118,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         .header("pragma", "no-cache")
         .header(
           "content-security-policy",
-          "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+          "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
         )
         .header("x-content-type-options", "nosniff")
         .header("referrer-policy", "no-referrer")
@@ -136,7 +128,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         reply.header("retry-after", String(known.retryAfterSeconds));
       }
       await reply.send(
-        '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Authentication unavailable</title></head><body><main><h1>Authentication unavailable</h1><p>This authentication request is unavailable or has expired.</p></main></body></html>'
+        '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Authentication unavailable</title></head><body><main><h1>Authentication unavailable</h1><p>This authentication request is unavailable or has expired.</p></main></body></html>',
       );
       return;
     }
@@ -163,23 +155,16 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
     bodyLimit: APPLICATION_AUTH_BODY_LIMIT,
     handler: async (request, reply) => {
       let raw = readRawApplicationAuthRequest(request);
-      const applicationId = parseCanonicalApplicationId(
-        request.params.applicationId
-      );
+      const applicationId = parseCanonicalApplicationId(request.params.applicationId);
       const prefix = `/auth/applications/${applicationId}`;
-      if (
-        !raw.rawPath.startsWith(`${prefix}/`) ||
-        raw.rawPath.length <= prefix.length
-      ) {
+      if (!raw.rawPath.startsWith(`${prefix}/`) || raw.rawPath.length <= prefix.length) {
         throw notFound();
       }
-      const normalizedPath = normalizeApplicationAuthRelativePath(
-        raw.rawPath.slice(prefix.length)
-      );
+      const normalizedPath = normalizeApplicationAuthRelativePath(raw.rawPath.slice(prefix.length));
       const runtime = await loadActiveRuntime(
         options.kernel,
         applicationId,
-        routeRequiresForcedRevisionCheck(normalizedPath)
+        routeRequiresForcedRevisionCheck(normalizedPath),
       );
 
       if (request.method === "OPTIONS") {
@@ -190,36 +175,23 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
           raw,
           contentEncoding: request.headers["content-encoding"],
         });
-        await handlePreflight(
-          request,
-          reply,
-          runtime,
-          normalizedPath,
-          options.publicBaseUrl
-        );
+        await handlePreflight(request, reply, runtime, normalizedPath, options.publicBaseUrl);
         return;
       }
-      if (
-        !isApplicationAuthRouteAllowed(
-          runtime.routeManifest,
-          request.method,
-          normalizedPath
-        )
-      ) {
+      if (!isApplicationAuthRouteAllowed(runtime.routeManifest, request.method, normalizedPath)) {
         throw notFound();
       }
-      const socialCallbackProvider =
-        resolveAllowedSocialCallbackProvider({
-          method: request.method,
-          normalizedPath,
-          manifest: runtime.routeManifest,
-        });
+      const socialCallbackProvider = resolveAllowedSocialCallbackProvider({
+        method: request.method,
+        normalizedPath,
+        manifest: runtime.routeManifest,
+      });
 
       const allowedOrigin = assertAllowedOrigin(
         request,
         runtime,
         options.publicBaseUrl,
-        socialCallbackProvider !== null
+        socialCallbackProvider !== null,
       );
       applyCorsResponseHeaders(reply, allowedOrigin);
       reply.header("x-request-id", String(request.id));
@@ -254,7 +226,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
               path: normalizedPath,
               reason: error instanceof Error ? error.name : "Error",
             },
-            "Hosted application authentication request rejected"
+            "Hosted application authentication request rejected",
           );
           await hostedUi.handleError({
             reply,
@@ -339,7 +311,7 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
       response = await normalizeSensitiveApplicationAuthResponse(
         normalizedPath,
         response,
-        otpStartedAt
+        otpStartedAt,
       );
       if (normalizedPath === "/oauth2/introspect") {
         response = await applyApplicationTokenIntrospection({
@@ -387,11 +359,8 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
     exposeHeadRoute: false,
     handler: async (request, reply) => {
       const raw = readRawApplicationAuthRequest(request);
-      const applicationId = parseCanonicalApplicationId(
-        request.params.applicationId
-      );
-      const expectedPath =
-        `/.well-known/oauth-authorization-server/auth/applications/${applicationId}`;
+      const applicationId = parseCanonicalApplicationId(request.params.applicationId);
+      const expectedPath = `/.well-known/oauth-authorization-server/auth/applications/${applicationId}`;
       if (raw.rawPath !== expectedPath) throw notFound();
       validateApplicationAuthRequestBody({
         method: request.method,
@@ -400,16 +369,8 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         raw,
         contentEncoding: request.headers["content-encoding"],
       });
-      const runtime = await loadActiveRuntime(
-        options.kernel,
-        applicationId,
-        false
-      );
-      const allowedOrigin = assertAllowedOrigin(
-        request,
-        runtime,
-        options.publicBaseUrl
-      );
+      const runtime = await loadActiveRuntime(options.kernel, applicationId, false);
+      const allowedOrigin = assertAllowedOrigin(request, runtime, options.publicBaseUrl);
       applyCorsResponseHeaders(reply, allowedOrigin);
       reply.header("x-request-id", String(request.id));
 
@@ -432,12 +393,10 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
 async function loadActiveRuntime(
   kernel: Kernel,
   applicationId: string,
-  forceRevisionCheck: boolean
+  forceRevisionCheck: boolean,
 ): Promise<ApplicationAuthFactoryRuntime> {
   const configuration =
-    await kernel.repository.applicationAuthConfiguration.findActive(
-      applicationId
-    );
+    await kernel.repository.applicationAuthConfiguration.findActive(applicationId);
   if (!configuration) throw notFound();
   return kernel.applicationAuth.forApplication(applicationId, {
     forceRevisionCheck,
@@ -449,7 +408,7 @@ function acceptsHostedUiHtml(request: FastifyRequest): boolean {
   if (typeof accept !== "string" || !accept.includes("text/html")) return false;
   const rawPath = request.raw.url?.split("?", 1)[0] ?? "";
   return /\/auth\/applications\/[^/]+\/(?:login|signup|email-otp|consent|logout|error|password\/|verification-|verified|account-created|account\/)/u.test(
-    rawPath
+    rawPath,
   );
 }
 
@@ -458,29 +417,19 @@ async function handlePreflight(
   reply: FastifyReply,
   runtime: ApplicationAuthFactoryRuntime,
   normalizedPath: string,
-  publicBaseUrl: string
+  publicBaseUrl: string,
 ): Promise<void> {
-  const origin = assertAllowedOrigin(
-    request,
-    runtime,
-    publicBaseUrl,
-    false,
-    true
-  );
+  const origin = assertAllowedOrigin(request, runtime, publicBaseUrl, false, true);
   const requestedMethod = request.headers["access-control-request-method"];
   if (
     typeof requestedMethod !== "string" ||
-    !assertApplicationAuthPreflightMethod(
-      runtime.routeManifest,
-      requestedMethod,
-      normalizedPath
-    )
+    !assertApplicationAuthPreflightMethod(runtime.routeManifest, requestedMethod, normalizedPath)
   ) {
     throw notFound();
   }
 
   const requestedHeaders = parseRequestedCorsHeaders(
-    request.headers["access-control-request-headers"]
+    request.headers["access-control-request-headers"],
   );
   applyCorsResponseHeaders(reply, origin);
   reply
@@ -499,7 +448,7 @@ function assertAllowedOrigin(
   runtime: ApplicationAuthFactoryRuntime,
   publicBaseUrl: string,
   allowCrossSiteNavigation = false,
-  required = false
+  required = false,
 ): string | undefined {
   const origin = request.headers.origin;
   if (origin === undefined && !required) return undefined;
@@ -512,17 +461,10 @@ function assertAllowedOrigin(
   if (typeof origin === "string" && allowCrossSiteNavigation && !required) {
     return undefined;
   }
-  throw new ApplicationAuthBoundaryError(
-    403,
-    "access_denied",
-    "Request origin is not allowed"
-  );
+  throw new ApplicationAuthBoundaryError(403, "access_denied", "Request origin is not allowed");
 }
 
-function applyCorsResponseHeaders(
-  reply: FastifyReply,
-  origin: string | undefined
-): void {
+function applyCorsResponseHeaders(reply: FastifyReply, origin: string | undefined): void {
   if (!origin) return;
   reply
     .header("vary", "Origin")
@@ -530,15 +472,13 @@ function applyCorsResponseHeaders(
     .header("access-control-allow-credentials", "true");
 }
 
-function parseRequestedCorsHeaders(
-  value: string | string[] | undefined
-): string[] {
+function parseRequestedCorsHeaders(value: string | string[] | undefined): string[] {
   if (value === undefined) return [];
   if (Array.isArray(value)) {
     throw new ApplicationAuthBoundaryError(
       400,
       "invalid_request",
-      "Duplicate CORS request header is invalid"
+      "Duplicate CORS request header is invalid",
     );
   }
   const headers = value
@@ -552,7 +492,7 @@ function parseRequestedCorsHeaders(
     throw new ApplicationAuthBoundaryError(
       403,
       "access_denied",
-      "CORS request headers are not allowed"
+      "CORS request headers are not allowed",
     );
   }
   return headers;
@@ -561,7 +501,7 @@ function parseRequestedCorsHeaders(
 function assertEffectiveRequestPolicy(
   runtime: ApplicationAuthFactoryRuntime,
   normalizedPath: string,
-  raw: RawApplicationAuthRequest
+  raw: RawApplicationAuthRequest,
 ): void {
   if (normalizedPath === "/sign-up/email") {
     if (!raw.body) {
@@ -570,7 +510,7 @@ function assertEffectiveRequestPolicy(
     const body = parseJsonBody(raw.body);
     if ("phoneNumber" in body || "phoneNumberVerified" in body) {
       throw new ApplicationAuthRequestError(
-        "Phone identity fields cannot be set during email sign-up"
+        "Phone identity fields cannot be set during email sign-up",
       );
     }
   }
@@ -586,9 +526,7 @@ function assertEffectiveRequestPolicy(
       body.oauth_query.length < 32 ||
       body.oauth_query.length > 16_384
     ) {
-      throw new ApplicationAuthRequestError(
-        "Social sign-in request is invalid"
-      );
+      throw new ApplicationAuthRequestError("Social sign-in request is invalid");
     }
     let provider: ApplicationAuthProviderName;
     try {
@@ -648,9 +586,7 @@ async function auditSocialProviderCallback(input: {
     input.response.status < 400 &&
     target !== null &&
     errorCode === null;
-  const reasonCategory = callbackSucceeded
-    ? "success"
-    : mapSocialCallbackAuditReason(errorCode);
+  const reasonCategory = callbackSucceeded ? "success" : mapSocialCallbackAuditReason(errorCode);
   await input.kernel.applicationAuthAudit.record({
     action: "provider_callback",
     outcome: callbackSucceeded ? "success" : "failure",
@@ -680,7 +616,7 @@ async function auditSocialProviderCallback(input: {
 }
 
 function mapSocialCallbackAuditReason(
-  errorCode: string | null
+  errorCode: string | null,
 ): ApplicationAuthAuditReasonCategory {
   switch (errorCode) {
     case "email_not_found":
@@ -716,7 +652,7 @@ function notFound(): ApplicationAuthBoundaryError {
   return new ApplicationAuthBoundaryError(
     404,
     "not_found",
-    "Application auth endpoint was not found"
+    "Application auth endpoint was not found",
   );
 }
 
@@ -793,13 +729,13 @@ async function assertApplicationAuthRateLimit(input: {
   const secret = input.kernel.applicationAuthSecrets.derivePurposeSecret(
     input.runtime.applicationId,
     input.runtime.secretKeyVersion,
-    "rate-limit"
+    "rate-limit",
   );
   if (input.normalizedPath === "/oauth2/authorize") {
     const clientId = requireSingleParameter(
       parseRawSearchParams(input.raw.rawQuery),
       "client_id",
-      512
+      512,
     );
     await input.kernel.applicationAuthRateLimiter.assertAuthorize({
       applicationId: input.runtime.applicationId,
@@ -811,9 +747,7 @@ async function assertApplicationAuthRateLimit(input: {
   }
   if (input.normalizedPath === "/email-otp/send-verification-otp") {
     if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
-    const email = parseApplicationAuthEmail(
-      parseJsonBody(input.raw.body).email
-    );
+    const email = parseApplicationAuthEmail(parseJsonBody(input.raw.body).email);
     await input.kernel.applicationAuthRateLimiter.assertEmailOtpRequest({
       applicationId: input.runtime.applicationId,
       normalizedEmail: email,
@@ -824,9 +758,7 @@ async function assertApplicationAuthRateLimit(input: {
   }
   if (input.normalizedPath === "/sign-in/email-otp") {
     if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
-    const email = parseApplicationAuthEmail(
-      parseJsonBody(input.raw.body).email
-    );
+    const email = parseApplicationAuthEmail(parseJsonBody(input.raw.body).email);
     await input.kernel.applicationAuthRateLimiter.assertEmailOtpVerify({
       applicationId: input.runtime.applicationId,
       verificationId: `sign-in-otp-${email}`,
@@ -837,9 +769,7 @@ async function assertApplicationAuthRateLimit(input: {
   }
   if (input.normalizedPath === "/phone-number/send-otp") {
     if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
-    const phoneNumber = parseApplicationAuthPhone(
-      parseJsonBody(input.raw.body).phoneNumber
-    );
+    const phoneNumber = parseApplicationAuthPhone(parseJsonBody(input.raw.body).phoneNumber);
     await input.kernel.applicationAuthRateLimiter.assertPhoneOtpRequest({
       applicationId: input.runtime.applicationId,
       phoneNumber,
@@ -850,9 +780,7 @@ async function assertApplicationAuthRateLimit(input: {
   }
   if (input.normalizedPath === "/phone-number/verify") {
     if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
-    const phoneNumber = parseApplicationAuthPhone(
-      parseJsonBody(input.raw.body).phoneNumber
-    );
+    const phoneNumber = parseApplicationAuthPhone(parseJsonBody(input.raw.body).phoneNumber);
     await input.kernel.applicationAuthRateLimiter.assertPhoneOtpVerify({
       applicationId: input.runtime.applicationId,
       phoneNumber,
@@ -928,7 +856,7 @@ async function assertApplicationAuthRateLimit(input: {
 async function normalizeSensitiveApplicationAuthResponse(
   normalizedPath: string,
   response: Response,
-  otpStartedAt?: number
+  otpStartedAt?: number,
 ): Promise<Response> {
   if (normalizedPath === "/sign-in/email" && !response.ok) {
     return replaceJsonResponse(response, 401, {
@@ -958,8 +886,7 @@ async function normalizeSensitiveApplicationAuthResponse(
     return response.ok
       ? replaceJsonResponse(response, 202, {
           status: true,
-          message:
-            "If the email can sign in, an authentication code will be sent",
+          message: "If the email can sign in, an authentication code will be sent",
         })
       : response.status === 429
         ? replaceJsonResponse(response, 429, {
@@ -1013,18 +940,12 @@ async function assertPhoneOtpUserCanSignIn(input: {
 }): Promise<void> {
   if (input.normalizedPath !== "/phone-number/verify") return;
   if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
-  const phoneNumber = parseApplicationAuthPhone(
-    parseJsonBody(input.raw.body).phoneNumber
-  );
+  const phoneNumber = parseApplicationAuthPhone(parseJsonBody(input.raw.body).phoneNumber);
   const user = await input.kernel.repository.applicationUser
     .forApplication(input.runtime.applicationId)
     .findByPhoneNumber(phoneNumber);
   if (user?.status === "blocked") {
-    throw new ApplicationAuthBoundaryError(
-      401,
-      "invalid_code",
-      "Phone or code is invalid"
-    );
+    throw new ApplicationAuthBoundaryError(401, "invalid_code", "Phone or code is invalid");
   }
 }
 
@@ -1040,22 +961,17 @@ async function assertRefreshGrantLiveState(input: {
   }
   const clientId = requireProtocolClientId(form, input.authorizationHeader);
   const token = requireSingleParameter(form, "refresh_token", 16 * 1024);
-  const result = await input.kernel.applicationTokenValidation.validateRefreshGrant(
-    {
-      token,
-      expectedApplicationId: input.runtime.applicationId,
-      expectedAudience: input.runtime.resource,
-      expectedClientId: clientId,
-    }
-  );
-  if (
-    !result.active &&
-    result.reasonCategory !== "token_family_revoked"
-  ) {
+  const result = await input.kernel.applicationTokenValidation.validateRefreshGrant({
+    token,
+    expectedApplicationId: input.runtime.applicationId,
+    expectedAudience: input.runtime.resource,
+    expectedClientId: clientId,
+  });
+  if (!result.active && result.reasonCategory !== "token_family_revoked") {
     throw new ApplicationAuthBoundaryError(
       400,
       "invalid_grant",
-      "Refresh token is invalid or inactive"
+      "Refresh token is invalid or inactive",
     );
   }
 }
@@ -1070,7 +986,7 @@ async function assertUserInfoLiveState(input: {
     throw new ApplicationAuthBoundaryError(
       401,
       "invalid_token",
-      "Access token is invalid or inactive"
+      "Access token is invalid or inactive",
     );
   }
   const result = await input.kernel.applicationTokenValidation.validateAccessToken({
@@ -1082,14 +998,14 @@ async function assertUserInfoLiveState(input: {
     throw new ApplicationAuthBoundaryError(
       401,
       "invalid_token",
-      "Access token is invalid or inactive"
+      "Access token is invalid or inactive",
     );
   }
 }
 
 function assertSupportedOAuthGrantType(
   normalizedPath: string,
-  raw: RawApplicationAuthRequest
+  raw: RawApplicationAuthRequest,
 ): void {
   if (normalizedPath !== "/oauth2/token" || !raw.body) return;
   const form = requireOAuthProtocolForm(raw);
@@ -1103,7 +1019,7 @@ function assertSupportedOAuthGrantType(
     throw new ApplicationAuthBoundaryError(
       400,
       "unsupported_grant_type",
-      "OAuth grant type is unsupported"
+      "OAuth grant type is unsupported",
     );
   }
 }
@@ -1192,9 +1108,7 @@ async function recordApplicationTokenRevocation(input: {
   });
 }
 
-function requireOAuthProtocolForm(
-  raw: RawApplicationAuthRequest
-): URLSearchParams {
+function requireOAuthProtocolForm(raw: RawApplicationAuthRequest): URLSearchParams {
   if (!raw.body) {
     throw new ApplicationAuthRequestError("OAuth protocol body is required");
   }
@@ -1203,14 +1117,12 @@ function requireOAuthProtocolForm(
 
 function requireProtocolClientId(
   form: URLSearchParams,
-  authorizationHeader: string | undefined
+  authorizationHeader: string | undefined,
 ): string {
   const formClientId = optionalSingleParameter(form, "client_id", 512);
   const basicClientId = readBasicClientId(authorizationHeader);
   if (formClientId && basicClientId && formClientId !== basicClientId) {
-    throw new ApplicationAuthRequestError(
-      "Conflicting OAuth client identifiers"
-    );
+    throw new ApplicationAuthRequestError("Conflicting OAuth client identifiers");
   }
   const clientId = formClientId ?? basicClientId;
   if (!clientId) {
@@ -1222,7 +1134,7 @@ function requireProtocolClientId(
 function replaceJsonResponse(
   response: Response,
   status: number,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
 ): Response {
   const headers = new Headers(response.headers);
   headers.set("content-type", "application/json; charset=utf-8");
@@ -1231,11 +1143,7 @@ function replaceJsonResponse(
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-function requireSingleParameter(
-  params: URLSearchParams,
-  name: string,
-  maxLength: number
-): string {
+function requireSingleParameter(params: URLSearchParams, name: string, maxLength: number): string {
   const value = optionalSingleParameter(params, name, maxLength);
   if (!value) throw new ApplicationAuthRequestError(`${name} is required`);
   return value;
@@ -1244,7 +1152,7 @@ function requireSingleParameter(
 function optionalSingleParameter(
   params: URLSearchParams,
   name: string,
-  maxLength: number
+  maxLength: number,
 ): string | null {
   const values = params.getAll(name);
   if (values.length === 0) return null;
@@ -1284,7 +1192,11 @@ function parseApplicationAuthEmail(value: unknown): string {
 }
 
 function parseApplicationAuthPhone(value: unknown): string {
-  const parsed = z.string().trim().regex(/^\+[1-9][0-9]{6,14}$/u).safeParse(value);
+  const parsed = z
+    .string()
+    .trim()
+    .regex(/^\+[1-9][0-9]{6,14}$/u)
+    .safeParse(value);
   if (!parsed.success) {
     throw new ApplicationAuthRequestError("Phone number is invalid");
   }
@@ -1293,7 +1205,7 @@ function parseApplicationAuthPhone(value: unknown): string {
 
 function normalizeApplicationAuthEmailBody(
   normalizedPath: string,
-  raw: RawApplicationAuthRequest
+  raw: RawApplicationAuthRequest,
 ): RawApplicationAuthRequest {
   if (!raw.body || !NORMALIZED_EMAIL_JSON_ROUTES.has(normalizedPath)) {
     return raw;
@@ -1308,16 +1220,13 @@ function normalizeApplicationAuthEmailBody(
         ...body,
         email: body.email.trim().toLowerCase(),
       }),
-      "utf8"
+      "utf8",
     ),
   };
 }
 
-async function waitForOtpGenericResponseFloor(
-  startedAt: number
-): Promise<void> {
-  const remaining =
-    OTP_GENERIC_RESPONSE_FLOOR_MS - (Date.now() - startedAt);
+async function waitForOtpGenericResponseFloor(startedAt: number): Promise<void> {
+  const remaining = OTP_GENERIC_RESPONSE_FLOOR_MS - (Date.now() - startedAt);
   if (remaining <= 0) return;
   await new Promise<void>((resolve) => setTimeout(resolve, remaining));
 }
@@ -1326,6 +1235,6 @@ function otpDeliveryUnavailable(): ApplicationAuthBoundaryError {
   return new ApplicationAuthBoundaryError(
     503,
     "temporarily_unavailable",
-    "Authentication message could not be accepted"
+    "Authentication message could not be accepted",
   );
 }

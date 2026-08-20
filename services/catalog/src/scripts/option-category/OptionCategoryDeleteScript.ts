@@ -1,23 +1,28 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type {
-  OptionCategoryDeleteParams,
-  OptionCategoryDeleteResult,
-} from "./dto/index.js";
+import type { OptionCategoryDeleteParams, OptionCategoryDeleteResult } from "./dto/index.js";
 
 export class OptionCategoryDeleteScript extends BaseScript<
   OptionCategoryDeleteParams,
   OptionCategoryDeleteResult
 > {
   @Transactional()
-  protected async execute(
-    params: OptionCategoryDeleteParams
-  ): Promise<OptionCategoryDeleteResult> {
+  protected async execute(params: OptionCategoryDeleteParams): Promise<OptionCategoryDeleteResult> {
     const existing = await this.repository.optionCategory.findById(params.id);
     if (!existing) {
-      return { userErrors: [{ message: "Option category not found", field: ["id"], code: "NOT_FOUND" }] };
+      return {
+        userErrors: [{ message: "Option category not found", field: ["id"], code: "NOT_FOUND" }],
+      };
     }
     if (await this.repository.optionCategory.isInUse(params.id)) {
-      return { userErrors: [{ message: "Option category is assigned to product options", field: ["id"], code: "IN_USE" }] };
+      return {
+        userErrors: [
+          {
+            message: "Option category is assigned to product options",
+            field: ["id"],
+            code: "IN_USE",
+          },
+        ],
+      };
     }
     await this.repository.optionCategory.delete(params.id);
     return { deletedCategoryId: params.id, userErrors: [] };

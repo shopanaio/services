@@ -10,9 +10,7 @@ export function setContext(context: ServiceContext): void {
 export function getContext(): ServiceContext {
   const context = storage.getStore();
   if (!context) {
-    throw new Error(
-      "Service context not available - ensure middleware is properly configured",
-    );
+    throw new Error("Service context not available - ensure middleware is properly configured");
   }
   return context;
 }
@@ -21,9 +19,6 @@ export function getContextSafe(): ServiceContext | null {
   return storage.getStore() ?? null;
 }
 
-export async function runWithContext<T>(
-  context: ServiceContext,
-  fn: () => Promise<T>,
-): Promise<T> {
+export async function runWithContext<T>(context: ServiceContext, fn: () => Promise<T>): Promise<T> {
   return storage.run(context, fn);
 }

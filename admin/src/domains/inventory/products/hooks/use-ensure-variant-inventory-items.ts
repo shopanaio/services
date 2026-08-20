@@ -41,8 +41,7 @@ export function useEnsureVariantInventoryItems(): UseEnsureVariantInventoryItems
             fetchPolicy: "network-only",
           });
 
-          const inventoryItem =
-            result.data?.inventoryQuery.inventoryItemByVariant ?? null;
+          const inventoryItem = result.data?.inventoryQuery.inventoryItemByVariant ?? null;
 
           if (!inventoryItem) {
             throw new Error(

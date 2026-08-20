@@ -4,10 +4,7 @@ import {
   recordAdminAudit,
   type AdminUserError,
 } from "../shared/adminScriptSupport.js";
-import type {
-  StaffRecipientUpsertParams,
-  StaffRecipientWriteView,
-} from "./dto/index.js";
+import type { StaffRecipientUpsertParams, StaffRecipientWriteView } from "./dto/index.js";
 
 export interface StaffRecipientUpsertResult {
   recipient?: StaffRecipientWriteView;
@@ -19,9 +16,7 @@ export class StaffRecipientUpsertScript extends BaseScript<
   StaffRecipientUpsertResult
 > {
   @Transactional()
-  protected async execute(
-    params: StaffRecipientUpsertParams
-  ) {
+  protected async execute(params: StaffRecipientUpsertParams) {
     for (const key of params.eventKeys) {
       if (this.definitions.get(key).audience !== "STAFF") {
         throw new Error(`NOT_A_STAFF_NOTIFICATION:${key}`);
@@ -34,7 +29,7 @@ export class StaffRecipientUpsertScript extends BaseScript<
       params.id ? "staff.recipient.updated" : "staff.recipient.created",
       "staffRecipient",
       recipient.id,
-      { eventKeys: recipient.eventKeys, enabled: recipient.enabled }
+      { eventKeys: recipient.eventKeys, enabled: recipient.enabled },
     );
     return { recipient, userErrors: [] };
   }

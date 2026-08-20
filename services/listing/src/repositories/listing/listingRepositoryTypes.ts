@@ -9,12 +9,7 @@ export type ProductEntityType = "product";
 export type ListingStatus = "published" | "draft";
 export type PostingEntityType = "product" | "variant";
 export type ProductPostingField =
-  | "category"
-  | "vendor"
-  | "facet"
-  | "collection"
-  | "rule_term"
-  | "status";
+  "category" | "vendor" | "facet" | "collection" | "rule_term" | "status";
 export type VariantPostingField = "term" | "variant_product" | "rule_term";
 export type PostingField = ProductPostingField | VariantPostingField;
 
@@ -170,7 +165,7 @@ export function nowIso(): string {
 
 export function chunkArray<T>(
   values: readonly T[],
-  chunkSize = LISTING_REPOSITORY_BULK_CHUNK_SIZE
+  chunkSize = LISTING_REPOSITORY_BULK_CHUNK_SIZE,
 ): T[][] {
   const chunks: T[][] = [];
   for (let index = 0; index < values.length; index += chunkSize) {
@@ -247,20 +242,12 @@ export function assertPostingKey(input: PostingKeyInput): void {
     if (input.field === "rule_term") {
       decodeCollectionRuleTerm("product", input.valueKey);
     }
-    if (
-      input.field === "status" &&
-      input.valueKey !== "published" &&
-      input.valueKey !== "draft"
-    ) {
+    if (input.field === "status" && input.valueKey !== "published" && input.valueKey !== "draft") {
       throw new Error(`Unsupported product status posting: ${input.valueKey}`);
     }
     return;
   }
-  if (
-    input.field !== "term" &&
-    input.field !== "variant_product" &&
-    input.field !== "rule_term"
-  ) {
+  if (input.field !== "term" && input.field !== "variant_product" && input.field !== "rule_term") {
     throw new Error(`Unsupported variant posting field: ${input.field}`);
   }
   if (input.field === "term") {
@@ -274,7 +261,7 @@ export function assertPostingKey(input: PostingKeyInput): void {
 export function assertUniqueBy<T>(
   values: readonly T[],
   getKey: (value: T) => string,
-  label: string
+  label: string,
 ): void {
   const seen = new Set<string>();
   for (const value of values) {
@@ -286,10 +273,7 @@ export function assertUniqueBy<T>(
   }
 }
 
-export function matchesAnyPrefix(
-  value: string,
-  prefixes?: readonly string[]
-): boolean {
+export function matchesAnyPrefix(value: string, prefixes?: readonly string[]): boolean {
   if (!prefixes || prefixes.length === 0) {
     return true;
   }
@@ -298,7 +282,7 @@ export function matchesAnyPrefix(
 
 export function assertValueKeysMatchPrefixes(
   valueKeys: readonly string[],
-  prefixes?: readonly string[]
+  prefixes?: readonly string[],
 ): void {
   if (!prefixes || prefixes.length === 0) {
     return;
@@ -311,7 +295,9 @@ export function assertValueKeysMatchPrefixes(
   }
 }
 
-export function normalizeSortKey<T extends ProductSortKeyInput>(input: T): T & {
+export function normalizeSortKey<T extends ProductSortKeyInput>(
+  input: T,
+): T & {
   locale: string | null;
   currency: string | null;
   manualScopeId: string;

@@ -28,7 +28,9 @@ export class StorefrontReviewUpdateScript extends BaseScript<
   StorefrontReviewUpdateResult
 > {
   @Transactional()
-  protected async execute(params: StorefrontReviewUpdateParams): Promise<StorefrontReviewUpdateResult> {
+  protected async execute(
+    params: StorefrontReviewUpdateParams,
+  ): Promise<StorefrontReviewUpdateResult> {
     const updated = await this.repository.content.update(
       params.id,
       params.expectedRevision,
@@ -76,13 +78,11 @@ export class StorefrontQuestionAnswerCreateScript extends BaseScript<
   StorefrontQuestionAnswerCreateResult
 > {
   @Transactional()
-  protected async execute(params: StorefrontQuestionAnswerCreateParams): Promise<StorefrontQuestionAnswerCreateResult> {
+  protected async execute(
+    params: StorefrontQuestionAnswerCreateParams,
+  ): Promise<StorefrontQuestionAnswerCreateResult> {
     const question = await this.repository.productQuestion.findById(params.questionId);
-    if (
-      !question
-      || question.content.status !== "PUBLISHED"
-      || question.content.redactedAt
-    ) {
+    if (!question || question.content.status !== "PUBLISHED" || question.content.redactedAt) {
       return { status: "not_found", userErrors: [] };
     }
     const count = await this.repository.productQuestionAnswer.getConnection({

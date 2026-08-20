@@ -2,8 +2,7 @@ import { newEnforcer, Enforcer, newModelFromString, Util } from "casbin";
 import DrizzleAdapterModule from "drizzle-adapter";
 import { eq, or, and } from "drizzle-orm";
 
-const DrizzleAdapter = (DrizzleAdapterModule as any)
-  .default as typeof DrizzleAdapterModule;
+const DrizzleAdapter = (DrizzleAdapterModule as any).default as typeof DrizzleAdapterModule;
 
 import { casbinRule } from "../repositories/models/authorization.js";
 import type { Database } from "../infrastructure/db/database.js";
@@ -217,9 +216,7 @@ export class CasbinService {
    */
   async getEnforcer(organizationId: string): Promise<Enforcer> {
     if (!this.initialized || !this.adapter) {
-      throw new Error(
-        "CasbinService not initialized. Call initialize() first."
-      );
+      throw new Error("CasbinService not initialized. Call initialize() first.");
     }
 
     const cached = this.enforcers.get(organizationId);
@@ -258,10 +255,7 @@ export class CasbinService {
    * Uses direct SQL query to filter at DB level, then adds to enforcer
    * without the organizationId field (since model doesn't include it).
    */
-  private async loadFilteredPolicies(
-    enforcer: Enforcer,
-    organizationId: string
-  ): Promise<void> {
+  private async loadFilteredPolicies(enforcer: Enforcer, organizationId: string): Promise<void> {
     // Clear existing policies in enforcer
     enforcer.clearPolicy();
 
@@ -274,8 +268,8 @@ export class CasbinService {
       .where(
         or(
           and(eq(casbinRule.ptype, "p"), eq(casbinRule.v4, organizationId)),
-          and(eq(casbinRule.ptype, "g"), eq(casbinRule.v3, organizationId))
-        )
+          and(eq(casbinRule.ptype, "g"), eq(casbinRule.v3, organizationId)),
+        ),
       );
 
     // Add policies and groupings to enforcer
@@ -314,27 +308,14 @@ export class CasbinService {
   /**
    * Remove all policies for a role in organization
    */
-  async removeFilteredPolicy(params: {
-    organizationId: string;
-    role: string;
-  }): Promise<boolean> {
+  async removeFilteredPolicy(params: { organizationId: string; role: string }): Promise<boolean> {
     const { organizationId, role } = params;
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
     }
 
-    await this.adapter.removeFilteredPolicy(
-      "p",
-      "p",
-      0,
-      role,
-      "",
-      "",
-      "",
-      "",
-      organizationId
-    );
+    await this.adapter.removeFilteredPolicy("p", "p", 0, role, "", "", "", "", organizationId);
 
     const enforcer = await this.getEnforcer(organizationId);
     await enforcer.removeFilteredPolicy(0, role);
@@ -365,12 +346,7 @@ export class CasbinService {
     }
 
     try {
-      await this.adapter.addPolicy("g", "g", [
-        `user:${userId}`,
-        role,
-        domain,
-        organizationId,
-      ]);
+      await this.adapter.addPolicy("g", "g", [`user:${userId}`, role, domain, organizationId]);
     } catch (error: any) {
       if (error?.code !== "23505") throw error;
       return false;
@@ -390,12 +366,7 @@ export class CasbinService {
       throw new Error("Adapter not initialized");
     }
 
-    await this.adapter.removePolicy("g", "g", [
-      `user:${userId}`,
-      role,
-      domain,
-      organizationId,
-    ]);
+    await this.adapter.removePolicy("g", "g", [`user:${userId}`, role, domain, organizationId]);
 
     await this.invalidateEnforcer(organizationId);
     return true;
@@ -404,9 +375,7 @@ export class CasbinService {
   /**
    * Remove all roles for user in specific domain.
    */
-  async removeAllRolesInDomain(
-    params: Omit<AssignRoleParams, "role">
-  ): Promise<boolean> {
+  async removeAllRolesInDomain(params: Omit<AssignRoleParams, "role">): Promise<boolean> {
     const { organizationId, userId, domain } = params;
     const enforcer = await this.getEnforcer(organizationId);
     const groupings = await enforcer.getGroupingPolicy();
@@ -437,13 +406,7 @@ export class CasbinService {
     }
 
     try {
-      await this.adapter.addPolicy("p", "p", [
-        role,
-        domain,
-        resource,
-        action,
-        organizationId,
-      ]);
+      await this.adapter.addPolicy("p", "p", [role, domain, resource, action, organizationId]);
     } catch (error: any) {
       if (error?.code !== "23505") throw error;
       return false;
@@ -464,13 +427,7 @@ export class CasbinService {
       throw new Error("Adapter not initialized");
     }
 
-    await this.adapter.removePolicy("p", "p", [
-      role,
-      domain,
-      resource,
-      action,
-      organizationId,
-    ]);
+    await this.adapter.removePolicy("p", "p", [role, domain, resource, action, organizationId]);
 
     const enforcer = await this.getEnforcer(organizationId);
     await enforcer.removePolicy(role, domain, resource, action);
@@ -498,13 +455,7 @@ export class CasbinService {
     for (const policy of policies) {
       const [, policyDomain, resource, action] = policy;
       if (policyDomain === domain) {
-        await this.adapter.removePolicy("p", "p", [
-          role,
-          domain,
-          resource,
-          action,
-          organizationId,
-        ]);
+        await this.adapter.removePolicy("p", "p", [role, domain, resource, action, organizationId]);
       }
     }
 
@@ -517,9 +468,7 @@ export class CasbinService {
   /**
    * Get members for specific domain.
    */
-  async getMembers(
-    params: GetMembersParams
-  ): Promise<Array<{ userId: string; role: string }>> {
+  async getMembers(params: GetMembersParams): Promise<Array<{ userId: string; role: string }>> {
     const { organizationId, domain } = params;
     const enforcer = await this.getEnforcer(organizationId);
     const groupings = await enforcer.getGroupingPolicy();
@@ -528,9 +477,7 @@ export class CasbinService {
 
     for (const grouping of groupings) {
       if (grouping[2] === domain) {
-        const userId = grouping[0].startsWith("user:")
-          ? grouping[0].substring(5)
-          : grouping[0];
+        const userId = grouping[0].startsWith("user:") ? grouping[0].substring(5) : grouping[0];
         members.push({ userId, role: grouping[1] });
       }
     }
@@ -550,10 +497,7 @@ export class CasbinService {
    * Get policies for a specific role in organization.
    * Policy format: [role, domain, resource, action]
    */
-  async getPoliciesForRole(
-    organizationId: string,
-    role: string
-  ): Promise<string[][]> {
+  async getPoliciesForRole(organizationId: string, role: string): Promise<string[][]> {
     const enforcer = await this.getEnforcer(organizationId);
     // fieldIndex 0 = role field in policy tuple
     const ROLE_FIELD_INDEX = 0;
@@ -567,7 +511,7 @@ export class CasbinService {
   async getPoliciesForRoleInDomain(
     organizationId: string,
     role: string,
-    domain: Domain
+    domain: Domain,
   ): Promise<string[][]> {
     const enforcer = await this.getEnforcer(organizationId);
     // fieldIndex 0 = role, the next filtered field is domain
@@ -581,7 +525,7 @@ export class CasbinService {
    */
   async getGroupedPoliciesForRole(
     organizationId: string,
-    role: string
+    role: string,
   ): Promise<GroupedPermission[]> {
     const policies = await this.getPoliciesForRole(organizationId, role);
 
@@ -629,13 +573,7 @@ export class CasbinService {
     await this.adapter.addPolicies(
       "p",
       "p",
-      policies.map((p) => [
-        p.role,
-        p.domain,
-        p.resource,
-        p.action,
-        organizationId,
-      ])
+      policies.map((p) => [p.role, p.domain, p.resource, p.action, organizationId]),
     );
 
     // Invalidate enforcer once at the end

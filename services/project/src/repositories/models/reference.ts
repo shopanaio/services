@@ -15,22 +15,22 @@ export const referenceSchema = pgSchema("reference");
 
 export const weightUnitEnum = referenceSchema.enum(
   "weight_unit",
-  WEIGHT_UNITS as [string, ...string[]]
+  WEIGHT_UNITS as [string, ...string[]],
 );
 
 export const dimensionUnitEnum = referenceSchema.enum(
   "dimension_unit",
-  DIMENSION_UNITS as [string, ...string[]]
+  DIMENSION_UNITS as [string, ...string[]],
 );
 
 export const currencyCodeEnum = storeSchema.enum(
   "currency_code",
-  CURRENCY_CODES as [CurrencyCodeEnum, ...CurrencyCodeEnum[]]
+  CURRENCY_CODES as [CurrencyCodeEnum, ...CurrencyCodeEnum[]],
 );
 
 export const localeCodeEnum = storeSchema.enum(
   "locale_code",
-  LOCALE_CODES as [LocaleCodeEnum, ...LocaleCodeEnum[]]
+  LOCALE_CODES as [LocaleCodeEnum, ...LocaleCodeEnum[]],
 );
 
 export type WeightUnit = WeightUnitEnum;

@@ -1,7 +1,4 @@
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { GraphQLError } from "graphql";
 import type {
   StorefrontListingFilterInput,
@@ -31,7 +28,7 @@ export interface NormalizedListingRequest {
 export class ListingResolverInputError extends Error {
   constructor(
     message: string,
-    public readonly field?: readonly string[]
+    public readonly field?: readonly string[],
   ) {
     super(message);
     this.name = "ListingResolverInputError";
@@ -40,7 +37,7 @@ export class ListingResolverInputError extends Error {
 
 export function normalizeListingRequest(
   input: ProductConnectionInput,
-  defaults: { locale: string; currency: string }
+  defaults: { locale: string; currency: string },
 ): NormalizedListingRequest {
   const query = normalizeQuery(input.query, input.entryPoint === "search");
   const availableSorts = resolveAvailableSorts(input, !!query);
@@ -54,24 +51,16 @@ export function normalizeListingRequest(
       : input.entryPoint === "collection"
         ? {
             kind: "collection" as const,
-            collectionId: requiredCollectionValue(
-              input.collectionId,
-              "collectionId"
-            ),
-            listingRevision: requiredCollectionRevision(
-              input.collectionListingRevision
-            ),
-            rulesHash: requiredCollectionValue(
-              input.collectionRulesHash,
-              "collectionRulesHash"
-            ),
+            collectionId: requiredCollectionValue(input.collectionId, "collectionId"),
+            listingRevision: requiredCollectionRevision(input.collectionListingRevision),
+            rulesHash: requiredCollectionValue(input.collectionRulesHash, "collectionRulesHash"),
             membershipBitmap: requiredCollectionValue(
               input.collectionMembershipBitmap,
-              "collectionMembershipBitmap"
+              "collectionMembershipBitmap",
             ),
             productBitmap: requiredCollectionValue(
               input.collectionProductBitmap,
-              "collectionProductBitmap"
+              "collectionProductBitmap",
             ),
             variantBitmap: input.collectionVariantBitmap,
             manualSortScopeId:
@@ -136,7 +125,7 @@ export function throwGraphqlListingError(error: unknown): never {
 
 function normalizeFilters(
   filters: readonly ListingFilterInput[],
-  currency: string
+  currency: string,
 ): StorefrontListingFilterInput[] {
   return filters.map((filter, index) => {
     const field = ["filters", String(index)];
@@ -148,10 +137,7 @@ function normalizeFilters(
     ].filter(Boolean);
 
     if (keys.length !== 1) {
-      throw new ListingResolverInputError(
-        "ListingFilterInput requires exactly one field",
-        field
-      );
+      throw new ListingResolverInputError("ListingFilterInput requires exactly one field", field);
     }
 
     if (filter.facet) {
@@ -186,48 +172,27 @@ function normalizeFilters(
 function normalizePriceFilter(
   input: PriceRangeFilterInput,
   currency: string,
-  field: readonly string[]
+  field: readonly string[],
 ): StorefrontListingFilterInput {
   if (input.min == null && input.max == null) {
-    throw new ListingResolverInputError(
-      "Price filter requires at least one bound",
-      field
-    );
+    throw new ListingResolverInputError("Price filter requires at least one bound", field);
   }
 
   const minPriceMinor =
-    input.min == null
-      ? undefined
-      : decimalToMinorUnits(input.min, currency, [...field, "min"]);
+    input.min == null ? undefined : decimalToMinorUnits(input.min, currency, [...field, "min"]);
   const maxPriceMinor =
-    input.max == null
-      ? undefined
-      : decimalToMinorUnits(input.max, currency, [...field, "max"]);
-  if (
-    minPriceMinor !== undefined &&
-    maxPriceMinor !== undefined &&
-    minPriceMinor > maxPriceMinor
-  ) {
-    throw new ListingResolverInputError(
-      "Price filter min bound must not exceed max bound",
-      field
-    );
+    input.max == null ? undefined : decimalToMinorUnits(input.max, currency, [...field, "max"]);
+  if (minPriceMinor !== undefined && maxPriceMinor !== undefined && minPriceMinor > maxPriceMinor) {
+    throw new ListingResolverInputError("Price filter min bound must not exceed max bound", field);
   }
   return { kind: "price", minPriceMinor, maxPriceMinor };
 }
 
-function decimalToMinorUnits(
-  value: string,
-  currency: string,
-  field: readonly string[]
-): number {
+function decimalToMinorUnits(value: string, currency: string, field: readonly string[]): number {
   const text = String(value).trim();
   const match = /^(0|[1-9]\d*)(?:\.(\d+))?$/.exec(text);
   if (!match) {
-    throw new ListingResolverInputError(
-      "Price bounds must be non-negative decimal amounts",
-      field
-    );
+    throw new ListingResolverInputError("Price bounds must be non-negative decimal amounts", field);
   }
 
   const decimalPlaces = currencyDecimalPlaces(currency);
@@ -237,12 +202,10 @@ function decimalToMinorUnits(
   if (excess && /[1-9]/.test(excess)) {
     throw new ListingResolverInputError(
       `Price bounds support at most ${decimalPlaces} decimal places for ${currency}`,
-      field
+      field,
     );
   }
-  const normalizedFraction = fraction
-    .slice(0, decimalPlaces)
-    .padEnd(decimalPlaces, "0");
+  const normalizedFraction = fraction.slice(0, decimalPlaces).padEnd(decimalPlaces, "0");
   const minor = BigInt(`${whole}${normalizedFraction}`);
   if (minor > BigInt(Number.MAX_SAFE_INTEGER)) {
     throw new ListingResolverInputError("Price bound is too large", field);
@@ -253,7 +216,7 @@ function decimalToMinorUnits(
 function resolveSort(
   input: ProductConnectionInput,
   query: string | null,
-  availableSorts: readonly ListingSort[]
+  availableSorts: readonly ListingSort[],
 ): ListingSort {
   const fallback =
     input.entryPoint === "category"
@@ -263,24 +226,20 @@ function resolveSort(
       : input.entryPoint === "collection"
         ? query
           ? ListingSort.Relevance
-          : input.collectionDefaultSort ?? ListingSort.Newest
-      : input.entryPoint === "search"
-        ? ListingSort.Relevance
-        : ListingSort.Newest;
+          : (input.collectionDefaultSort ?? ListingSort.Newest)
+        : input.entryPoint === "search"
+          ? ListingSort.Relevance
+          : ListingSort.Newest;
   const sort = input.sort ?? fallback;
   if (!availableSorts.includes(sort)) {
-    throw new ListingResolverInputError(
-      `Sort ${sort} is not available for this listing context`,
-      ["sort"]
-    );
+    throw new ListingResolverInputError(`Sort ${sort} is not available for this listing context`, [
+      "sort",
+    ]);
   }
   return sort;
 }
 
-function resolveAvailableSorts(
-  input: ProductConnectionInput,
-  hasQuery: boolean
-): ListingSort[] {
+function resolveAvailableSorts(input: ProductConnectionInput, hasQuery: boolean): ListingSort[] {
   return [
     ...(input.entryPoint === "category" ||
     (input.entryPoint === "collection" && input.collectionType === "manual")
@@ -317,25 +276,19 @@ function toRepositorySort(sort: ListingSort): StorefrontSortInput {
   }
 }
 
-function normalizeQuery(
-  value: string | null | undefined,
-  required: boolean
-): string | null {
+function normalizeQuery(value: string | null | undefined, required: boolean): string | null {
   const normalized = value?.trim().replace(/\s+/gu, " ") ?? "";
   if (!normalized) {
     if (required) {
       throw new ListingResolverInputError(
         "Search query must contain at least one Unicode code point",
-        ["query"]
+        ["query"],
       );
     }
     return null;
   }
   if ([...normalized].length > 128) {
-    throw new ListingResolverInputError(
-      "Search query exceeds 128 Unicode code points",
-      ["query"]
-    );
+    throw new ListingResolverInputError("Search query exceeds 128 Unicode code points", ["query"]);
   }
   return normalized;
 }
@@ -343,10 +296,7 @@ function normalizeQuery(
 function normalizePageSize(value: number | null | undefined): number {
   const first = value ?? DEFAULT_PAGE_SIZE;
   if (!Number.isSafeInteger(first) || first < 1 || first > MAX_PAGE_SIZE) {
-    throw new ListingResolverInputError(
-      `first must be between 1 and ${MAX_PAGE_SIZE}`,
-      ["first"]
-    );
+    throw new ListingResolverInputError(`first must be between 1 and ${MAX_PAGE_SIZE}`, ["first"]);
   }
   return first;
 }
@@ -358,15 +308,9 @@ function requiredCategoryId(categoryId: string | undefined): string {
   return categoryId;
 }
 
-function requiredCollectionValue(
-  value: string | undefined,
-  field: string,
-): string {
+function requiredCollectionValue(value: string | undefined, field: string): string {
   if (!value?.trim()) {
-    throw new ListingResolverInputError(
-      `Collection scope requires ${field}`,
-      [field],
-    );
+    throw new ListingResolverInputError(`Collection scope requires ${field}`, [field]);
   }
   return value;
 }

@@ -1,17 +1,12 @@
 import { HeadlessType } from "./HeadlessType.js";
-import type {
-  StorefrontAccessPolicyRecord,
-} from "../../../storefront-access/repositories/index.js";
+import type { StorefrontAccessPolicyRecord } from "../../../storefront-access/repositories/index.js";
 
 export class StorefrontAccessPolicyResolver extends HeadlessType<
   string,
   StorefrontAccessPolicyRecord | null
 > {
   protected $preload() {
-    return this.$ctx.repository.accessPolicy.findByConnectionId(
-      this.scope,
-      this.$props,
-    );
+    return this.$ctx.repository.accessPolicy.findByConnectionId(this.scope, this.$props);
   }
 
   permissions() {
@@ -26,9 +21,9 @@ export class StorefrontAccessPolicyResolver extends HeadlessType<
     return this.requiredData("updatedAt");
   }
 
-  private async requiredData<
-    TKey extends keyof StorefrontAccessPolicyRecord,
-  >(key: TKey): Promise<StorefrontAccessPolicyRecord[TKey]> {
+  private async requiredData<TKey extends keyof StorefrontAccessPolicyRecord>(
+    key: TKey,
+  ): Promise<StorefrontAccessPolicyRecord[TKey]> {
     const data = await this.$data;
     if (!data) {
       throw new Error("Storefront access policy was not found");

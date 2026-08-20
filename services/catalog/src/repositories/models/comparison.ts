@@ -47,14 +47,8 @@ export const comparisonProfile = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("comparison_profile_store_id_handle_uniq").on(
-      table.storeId,
-      table.handle,
-    ),
-    index("idx_comparison_profile_store_enabled").on(
-      table.storeId,
-      table.enabled,
-    ),
+    unique("comparison_profile_store_id_handle_uniq").on(table.storeId, table.handle),
+    index("idx_comparison_profile_store_enabled").on(table.storeId, table.enabled),
     index("idx_comparison_profile_id_revision").on(table.id, table.revision),
   ],
 );
@@ -83,27 +77,12 @@ export const comparisonGroup = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("comparison_group_profile_id_handle_uniq").on(
-      table.profileId,
-      table.handle,
-    ),
-    unique("comparison_group_profile_id_sort_index_uniq").on(
-      table.profileId,
-      table.sortIndex,
-    ),
-    unique("comparison_group_profile_id_id_uniq").on(
-      table.profileId,
-      table.id,
-    ),
+    unique("comparison_group_profile_id_handle_uniq").on(table.profileId, table.handle),
+    unique("comparison_group_profile_id_sort_index_uniq").on(table.profileId, table.sortIndex),
+    unique("comparison_group_profile_id_id_uniq").on(table.profileId, table.id),
     index("idx_comparison_group_store_id").on(table.storeId),
-    index("idx_comparison_group_store_profile").on(
-      table.storeId,
-      table.profileId,
-    ),
-    index("idx_comparison_group_profile_sort").on(
-      table.profileId,
-      table.sortIndex,
-    ),
+    index("idx_comparison_group_store_profile").on(table.storeId, table.profileId),
+    index("idx_comparison_group_profile_sort").on(table.profileId, table.sortIndex),
   ],
 );
 
@@ -116,9 +95,7 @@ export const comparisonField = catalogSchema.table(
     groupId: uuid("group_id").notNull(),
     handle: varchar("handle", { length: 255 }).notNull(),
     valueType: comparisonValueTypeEnum("value_type").notNull(),
-    cardinality: comparisonCardinalityEnum("cardinality")
-      .notNull()
-      .default("SINGLE"),
+    cardinality: comparisonCardinalityEnum("cardinality").notNull().default("SINGLE"),
     canonicalUnit: varchar("canonical_unit", { length: 32 }),
     sortIndex: integer("sort_index").notNull(),
     featured: boolean("featured").notNull().default(false),
@@ -141,22 +118,10 @@ export const comparisonField = catalogSchema.table(
       columns: [table.profileId, table.groupId],
       foreignColumns: [comparisonGroup.profileId, comparisonGroup.id],
     }).onDelete("cascade"),
-    unique("comparison_field_profile_id_handle_uniq").on(
-      table.profileId,
-      table.handle,
-    ),
-    unique("comparison_field_group_id_sort_index_uniq").on(
-      table.groupId,
-      table.sortIndex,
-    ),
-    unique("comparison_field_profile_id_id_uniq").on(
-      table.profileId,
-      table.id,
-    ),
-    unique("comparison_field_id_value_type_uniq").on(
-      table.id,
-      table.valueType,
-    ),
+    unique("comparison_field_profile_id_handle_uniq").on(table.profileId, table.handle),
+    unique("comparison_field_group_id_sort_index_uniq").on(table.groupId, table.sortIndex),
+    unique("comparison_field_profile_id_id_uniq").on(table.profileId, table.id),
+    unique("comparison_field_id_value_type_uniq").on(table.id, table.valueType),
     check(
       "comparison_field_canonical_unit_shape_check",
       sql`${table.canonicalUnit} IS NULL OR (
@@ -166,11 +131,7 @@ export const comparisonField = catalogSchema.table(
       )`,
     ),
     index("idx_comparison_field_store_id").on(table.storeId),
-    index("idx_comparison_field_profile_sort").on(
-      table.profileId,
-      table.groupId,
-      table.sortIndex,
-    ),
+    index("idx_comparison_field_profile_sort").on(table.profileId, table.groupId, table.sortIndex),
     index("idx_comparison_field_profile_featured").on(
       table.profileId,
       table.featured,
@@ -185,9 +146,7 @@ export const comparisonFieldOption = catalogSchema.table(
     storeId: uuid("store_id").notNull(),
     id: uuid("id").primaryKey(),
     fieldId: uuid("field_id").notNull(),
-    valueType: comparisonValueTypeEnum("value_type")
-      .notNull()
-      .default("ENUM"),
+    valueType: comparisonValueTypeEnum("value_type").notNull().default("ENUM"),
     handle: varchar("handle", { length: 255 }).notNull(),
     sortIndex: integer("sort_index").notNull(),
     createdAt: timestamp("created_at", {
@@ -209,27 +168,12 @@ export const comparisonFieldOption = catalogSchema.table(
       columns: [table.fieldId, table.valueType],
       foreignColumns: [comparisonField.id, comparisonField.valueType],
     }).onDelete("cascade"),
-    check(
-      "comparison_field_option_enum_only_check",
-      sql`${table.valueType} = 'ENUM'`,
-    ),
-    unique("comparison_field_option_field_id_handle_uniq").on(
-      table.fieldId,
-      table.handle,
-    ),
-    unique("comparison_field_option_field_id_sort_index_uniq").on(
-      table.fieldId,
-      table.sortIndex,
-    ),
-    unique("comparison_field_option_field_id_id_uniq").on(
-      table.fieldId,
-      table.id,
-    ),
+    check("comparison_field_option_enum_only_check", sql`${table.valueType} = 'ENUM'`),
+    unique("comparison_field_option_field_id_handle_uniq").on(table.fieldId, table.handle),
+    unique("comparison_field_option_field_id_sort_index_uniq").on(table.fieldId, table.sortIndex),
+    unique("comparison_field_option_field_id_id_uniq").on(table.fieldId, table.id),
     index("idx_comparison_field_option_store_id").on(table.storeId),
-    index("idx_comparison_field_option_field_sort").on(
-      table.fieldId,
-      table.sortIndex,
-    ),
+    index("idx_comparison_field_option_field_sort").on(table.fieldId, table.sortIndex),
   ],
 );
 
@@ -244,16 +188,11 @@ export const comparisonProfileTranslation = catalogSchema.table(
     name: text("name").notNull(),
     missingLabel: text("missing_label").notNull().default("—"),
     notApplicableLabel: text("not_applicable_label").notNull().default("N/A"),
-    unavailableLabel: text("unavailable_label")
-      .notNull()
-      .default("Unavailable"),
+    unavailableLabel: text("unavailable_label").notNull().default("Unavailable"),
   },
   (table) => [
     primaryKey({ columns: [table.profileId, table.locale] }),
-    index("idx_comparison_profile_translation_store_locale").on(
-      table.storeId,
-      table.locale,
-    ),
+    index("idx_comparison_profile_translation_store_locale").on(table.storeId, table.locale),
     check(
       "comparison_profile_translation_labels_shape_check",
       sql`length(btrim(${table.missingLabel})) > 0
@@ -275,10 +214,7 @@ export const comparisonGroupTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.groupId, table.locale] }),
-    index("idx_comparison_group_translation_store_locale").on(
-      table.storeId,
-      table.locale,
-    ),
+    index("idx_comparison_group_translation_store_locale").on(table.storeId, table.locale),
   ],
 );
 
@@ -295,10 +231,7 @@ export const comparisonFieldTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.fieldId, table.locale] }),
-    index("idx_comparison_field_translation_store_locale").on(
-      table.storeId,
-      table.locale,
-    ),
+    index("idx_comparison_field_translation_store_locale").on(table.storeId, table.locale),
   ],
 );
 
@@ -314,10 +247,7 @@ export const comparisonFieldOptionTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.fieldOptionId, table.locale] }),
-    index("idx_comparison_field_option_translation_store_locale").on(
-      table.storeId,
-      table.locale,
-    ),
+    index("idx_comparison_field_option_translation_store_locale").on(table.storeId, table.locale),
   ],
 );
 
@@ -340,14 +270,8 @@ export const categoryComparisonProfile = catalogSchema.table(
   },
   (table) => [
     index("idx_category_comparison_profile_store_id").on(table.storeId),
-    index("idx_category_comparison_profile_store_category").on(
-      table.storeId,
-      table.categoryId,
-    ),
-    index("idx_category_comparison_profile_store_profile").on(
-      table.storeId,
-      table.profileId,
-    ),
+    index("idx_category_comparison_profile_store_category").on(table.storeId, table.categoryId),
+    index("idx_category_comparison_profile_store_profile").on(table.storeId, table.profileId),
     index("idx_category_comparison_profile_profile_id").on(table.profileId),
   ],
 );
@@ -384,24 +308,15 @@ export const comparisonFeatureBinding = catalogSchema.table(
       columns: [table.profileId, table.fieldId],
       foreignColumns: [comparisonField.profileId, comparisonField.id],
     }).onDelete("restrict"),
-    unique("comparison_feature_binding_feature_field_uniq").on(
-      table.featureId,
-      table.fieldId,
-    ),
-    unique("comparison_feature_binding_product_field_uniq").on(
-      table.productId,
-      table.fieldId,
-    ),
+    unique("comparison_feature_binding_feature_field_uniq").on(table.featureId, table.fieldId),
+    unique("comparison_feature_binding_product_field_uniq").on(table.productId, table.fieldId),
     index("idx_comparison_feature_binding_store_id").on(table.storeId),
     index("idx_comparison_feature_binding_store_product_field").on(
       table.storeId,
       table.productId,
       table.fieldId,
     ),
-    index("idx_comparison_feature_binding_profile_field").on(
-      table.profileId,
-      table.fieldId,
-    ),
+    index("idx_comparison_feature_binding_profile_field").on(table.profileId, table.fieldId),
   ],
 );
 
@@ -442,24 +357,15 @@ export const comparisonOptionBinding = catalogSchema.table(
       columns: [table.profileId, table.fieldId],
       foreignColumns: [comparisonField.profileId, comparisonField.id],
     }).onDelete("restrict"),
-    unique("comparison_option_binding_option_field_uniq").on(
-      table.optionId,
-      table.fieldId,
-    ),
-    unique("comparison_option_binding_product_field_uniq").on(
-      table.productId,
-      table.fieldId,
-    ),
+    unique("comparison_option_binding_option_field_uniq").on(table.optionId, table.fieldId),
+    unique("comparison_option_binding_product_field_uniq").on(table.productId, table.fieldId),
     index("idx_comparison_option_binding_store_id").on(table.storeId),
     index("idx_comparison_option_binding_store_product_field").on(
       table.storeId,
       table.productId,
       table.fieldId,
     ),
-    index("idx_comparison_option_binding_profile_field").on(
-      table.profileId,
-      table.fieldId,
-    ),
+    index("idx_comparison_option_binding_profile_field").on(table.profileId, table.fieldId),
   ],
 );
 
@@ -503,10 +409,7 @@ export const comparisonFieldNotApplicable = catalogSchema.table(
       table.productId,
       table.fieldId,
     ),
-    index("idx_comparison_field_not_applicable_profile_field").on(
-      table.profileId,
-      table.fieldId,
-    ),
+    index("idx_comparison_field_not_applicable_profile_field").on(table.profileId, table.fieldId),
   ],
 );
 
@@ -549,10 +452,7 @@ export const comparisonFeatureValueBinding = catalogSchema.table(
     foreignKey({
       name: "comparison_feature_value_binding_feature_field_fk",
       columns: [table.featureId, table.fieldId],
-      foreignColumns: [
-        comparisonFeatureBinding.featureId,
-        comparisonFeatureBinding.fieldId,
-      ],
+      foreignColumns: [comparisonFeatureBinding.featureId, comparisonFeatureBinding.fieldId],
     }).onDelete("cascade"),
     foreignKey({
       name: "comparison_feature_value_binding_field_type_fk",
@@ -562,10 +462,7 @@ export const comparisonFeatureValueBinding = catalogSchema.table(
     foreignKey({
       name: "comparison_feature_value_binding_field_option_fk",
       columns: [table.fieldId, table.fieldOptionId],
-      foreignColumns: [
-        comparisonFieldOption.fieldId,
-        comparisonFieldOption.id,
-      ],
+      foreignColumns: [comparisonFieldOption.fieldId, comparisonFieldOption.id],
     }).onDelete("restrict"),
     check(
       "comparison_feature_value_binding_shape_check",
@@ -608,17 +505,10 @@ export const comparisonFeatureValueBinding = catalogSchema.table(
         )`,
     ),
     index("idx_comparison_feature_value_binding_store_id").on(table.storeId),
-    index("idx_comparison_feature_value_binding_feature_id").on(
-      table.featureId,
-    ),
+    index("idx_comparison_feature_value_binding_feature_id").on(table.featureId),
     index("idx_comparison_feature_value_binding_field_id").on(table.fieldId),
-    index("idx_comparison_feature_value_binding_store_field").on(
-      table.storeId,
-      table.fieldId,
-    ),
-    index("idx_comparison_feature_value_binding_field_option_id").on(
-      table.fieldOptionId,
-    ),
+    index("idx_comparison_feature_value_binding_store_field").on(table.storeId, table.fieldId),
+    index("idx_comparison_feature_value_binding_field_option_id").on(table.fieldOptionId),
   ],
 );
 
@@ -666,10 +556,7 @@ export const comparisonOptionValueBinding = catalogSchema.table(
     foreignKey({
       name: "comparison_option_value_binding_option_field_fk",
       columns: [table.optionId, table.fieldId],
-      foreignColumns: [
-        comparisonOptionBinding.optionId,
-        comparisonOptionBinding.fieldId,
-      ],
+      foreignColumns: [comparisonOptionBinding.optionId, comparisonOptionBinding.fieldId],
     }).onDelete("cascade"),
     foreignKey({
       name: "comparison_option_value_binding_field_type_fk",
@@ -724,13 +611,8 @@ export const comparisonOptionValueBinding = catalogSchema.table(
     index("idx_comparison_option_value_binding_store_id").on(table.storeId),
     index("idx_comparison_option_value_binding_option_id").on(table.optionId),
     index("idx_comparison_option_value_binding_field_id").on(table.fieldId),
-    index("idx_comparison_option_value_binding_store_field").on(
-      table.storeId,
-      table.fieldId,
-    ),
-    index("idx_comparison_option_value_binding_field_option_id").on(
-      table.fieldOptionId,
-    ),
+    index("idx_comparison_option_value_binding_store_field").on(table.storeId, table.fieldId),
+    index("idx_comparison_option_value_binding_field_option_id").on(table.fieldOptionId),
   ],
 );
 
@@ -741,45 +623,25 @@ export type NewComparisonGroup = typeof comparisonGroup.$inferInsert;
 export type ComparisonField = typeof comparisonField.$inferSelect;
 export type NewComparisonField = typeof comparisonField.$inferInsert;
 export type ComparisonFieldOption = typeof comparisonFieldOption.$inferSelect;
-export type NewComparisonFieldOption =
-  typeof comparisonFieldOption.$inferInsert;
-export type ComparisonProfileTranslation =
-  typeof comparisonProfileTranslation.$inferSelect;
-export type NewComparisonProfileTranslation =
-  typeof comparisonProfileTranslation.$inferInsert;
-export type ComparisonGroupTranslation =
-  typeof comparisonGroupTranslation.$inferSelect;
-export type NewComparisonGroupTranslation =
-  typeof comparisonGroupTranslation.$inferInsert;
-export type ComparisonFieldTranslation =
-  typeof comparisonFieldTranslation.$inferSelect;
-export type NewComparisonFieldTranslation =
-  typeof comparisonFieldTranslation.$inferInsert;
-export type ComparisonFieldOptionTranslation =
-  typeof comparisonFieldOptionTranslation.$inferSelect;
+export type NewComparisonFieldOption = typeof comparisonFieldOption.$inferInsert;
+export type ComparisonProfileTranslation = typeof comparisonProfileTranslation.$inferSelect;
+export type NewComparisonProfileTranslation = typeof comparisonProfileTranslation.$inferInsert;
+export type ComparisonGroupTranslation = typeof comparisonGroupTranslation.$inferSelect;
+export type NewComparisonGroupTranslation = typeof comparisonGroupTranslation.$inferInsert;
+export type ComparisonFieldTranslation = typeof comparisonFieldTranslation.$inferSelect;
+export type NewComparisonFieldTranslation = typeof comparisonFieldTranslation.$inferInsert;
+export type ComparisonFieldOptionTranslation = typeof comparisonFieldOptionTranslation.$inferSelect;
 export type NewComparisonFieldOptionTranslation =
   typeof comparisonFieldOptionTranslation.$inferInsert;
-export type CategoryComparisonProfile =
-  typeof categoryComparisonProfile.$inferSelect;
-export type NewCategoryComparisonProfile =
-  typeof categoryComparisonProfile.$inferInsert;
-export type ComparisonFieldNotApplicable =
-  typeof comparisonFieldNotApplicable.$inferSelect;
-export type NewComparisonFieldNotApplicable =
-  typeof comparisonFieldNotApplicable.$inferInsert;
-export type ComparisonFeatureBinding =
-  typeof comparisonFeatureBinding.$inferSelect;
-export type NewComparisonFeatureBinding =
-  typeof comparisonFeatureBinding.$inferInsert;
-export type ComparisonOptionBinding =
-  typeof comparisonOptionBinding.$inferSelect;
-export type NewComparisonOptionBinding =
-  typeof comparisonOptionBinding.$inferInsert;
-export type ComparisonFeatureValueBinding =
-  typeof comparisonFeatureValueBinding.$inferSelect;
-export type NewComparisonFeatureValueBinding =
-  typeof comparisonFeatureValueBinding.$inferInsert;
-export type ComparisonOptionValueBinding =
-  typeof comparisonOptionValueBinding.$inferSelect;
-export type NewComparisonOptionValueBinding =
-  typeof comparisonOptionValueBinding.$inferInsert;
+export type CategoryComparisonProfile = typeof categoryComparisonProfile.$inferSelect;
+export type NewCategoryComparisonProfile = typeof categoryComparisonProfile.$inferInsert;
+export type ComparisonFieldNotApplicable = typeof comparisonFieldNotApplicable.$inferSelect;
+export type NewComparisonFieldNotApplicable = typeof comparisonFieldNotApplicable.$inferInsert;
+export type ComparisonFeatureBinding = typeof comparisonFeatureBinding.$inferSelect;
+export type NewComparisonFeatureBinding = typeof comparisonFeatureBinding.$inferInsert;
+export type ComparisonOptionBinding = typeof comparisonOptionBinding.$inferSelect;
+export type NewComparisonOptionBinding = typeof comparisonOptionBinding.$inferInsert;
+export type ComparisonFeatureValueBinding = typeof comparisonFeatureValueBinding.$inferSelect;
+export type NewComparisonFeatureValueBinding = typeof comparisonFeatureValueBinding.$inferInsert;
+export type ComparisonOptionValueBinding = typeof comparisonOptionValueBinding.$inferSelect;
+export type NewComparisonOptionValueBinding = typeof comparisonOptionValueBinding.$inferInsert;

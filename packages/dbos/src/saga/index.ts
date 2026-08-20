@@ -2,12 +2,7 @@
  * @file Saga Module Exports
  */
 
-export {
-  Saga,
-  SagaStep,
-  SAGA_DEFINITION_KEY,
-  SAGA_STEP_KEY,
-} from "./decorators.js";
+export { Saga, SagaStep, SAGA_DEFINITION_KEY, SAGA_STEP_KEY } from "./decorators.js";
 
 export {
   SagaExecutionContext,

@@ -1,13 +1,11 @@
 import { createHash } from "node:crypto";
 
 export const APPLICATION_AUTH_EMAIL_DELIVERY_PORT = Symbol.for(
-  "shopana.iam.application-auth-email-delivery-port"
+  "shopana.iam.application-auth-email-delivery-port",
 );
 
 export type ApplicationAuthEmailDeliveryPurpose =
-  | "email_verification_link"
-  | "password_reset_link"
-  | "email_otp_sign_in";
+  "email_verification_link" | "password_reset_link" | "email_otp_sign_in";
 
 interface ApplicationAuthEmailDeliveryRequestBase {
   idempotencyKey: string;
@@ -28,20 +26,17 @@ export type ApplicationAuthEmailDeliveryRequest =
     });
 
 export type ApplicationAuthEmailDeliveryResult =
-  | { accepted: true; messageId: string }
-  | { accepted: false; retryable: boolean };
+  { accepted: true; messageId: string } | { accepted: false; retryable: boolean };
 
 export interface ApplicationAuthEmailDeliveryPort {
   enqueue(
-    request: ApplicationAuthEmailDeliveryRequest
+    request: ApplicationAuthEmailDeliveryRequest,
   ): Promise<ApplicationAuthEmailDeliveryResult>;
 }
 
 export class ApplicationAuthEmailDeliveryUnavailableError extends Error {
   constructor() {
-    super(
-      "Application authentication email delivery is temporarily unavailable"
-    );
+    super("Application authentication email delivery is temporarily unavailable");
     this.name = "ApplicationAuthEmailDeliveryUnavailableError";
   }
 }
@@ -59,7 +54,7 @@ export async function enqueueApplicationAuthEmail(input: {
       new Promise<never>((_resolve, reject) => {
         timeout = setTimeout(
           () => reject(new ApplicationAuthEmailDeliveryUnavailableError()),
-          timeoutMs
+          timeoutMs,
         );
       }),
     ]);

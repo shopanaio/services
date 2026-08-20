@@ -14,10 +14,7 @@ interface OldestPendingRow extends Record<string, unknown> {
   ageSeconds: number;
 }
 
-export async function startMetricsServer(input: {
-  port: number;
-  database: Database;
-}) {
+export async function startMetricsServer(input: { port: number; database: Database }) {
   const app = fastify({ disableRequestLogging: true, logger: false });
 
   app.get("/healthz", async () => {
@@ -25,12 +22,7 @@ export async function startMetricsServer(input: {
     return { status: "ok", service: "notifications-metrics" };
   });
   app.get("/metrics", async (_request, reply) => {
-    const [
-      deliveries,
-      occurrences,
-      attempts,
-      oldestPending,
-    ] = await Promise.all([
+    const [deliveries, occurrences, attempts, oldestPending] = await Promise.all([
       input.database.execute<CountRow>(sql`
         SELECT
           channel::text AS channel,
@@ -80,27 +72,25 @@ export async function startMetricsServer(input: {
       "# TYPE shopana_notifications_deliveries_total gauge",
       ...deliveries.map(
         (row) =>
-          `shopana_notifications_deliveries_total{channel="${label(row.channel)}",status="${label(row.status)}"} ${Number(row.count)}`
+          `shopana_notifications_deliveries_total{channel="${label(row.channel)}",status="${label(row.status)}"} ${Number(row.count)}`,
       ),
       "# HELP shopana_notifications_occurrences_total Occurrences by definition and status.",
       "# TYPE shopana_notifications_occurrences_total gauge",
       ...occurrences.map(
         (row) =>
-          `shopana_notifications_occurrences_total{definition="${label(row.definitionKey)}",status="${label(row.status)}"} ${Number(row.count)}`
+          `shopana_notifications_occurrences_total{definition="${label(row.definitionKey)}",status="${label(row.status)}"} ${Number(row.count)}`,
       ),
       "# HELP shopana_notifications_attempts_total Provider attempts by provider and status.",
       "# TYPE shopana_notifications_attempts_total gauge",
       ...attempts.map(
         (row) =>
-          `shopana_notifications_attempts_total{provider="${label(row.providerCode)}",status="${label(row.status)}"} ${Number(row.count)}`
+          `shopana_notifications_attempts_total{provider="${label(row.providerCode)}",status="${label(row.status)}"} ${Number(row.count)}`,
       ),
       "# HELP shopana_notifications_oldest_pending_age_seconds Age of the oldest non-terminal delivery.",
       "# TYPE shopana_notifications_oldest_pending_age_seconds gauge",
       `shopana_notifications_oldest_pending_age_seconds ${Number(oldestPending[0]?.ageSeconds ?? 0)}`,
     ];
-    return reply
-      .type("text/plain; version=0.0.4; charset=utf-8")
-      .send(`${lines.join("\n")}\n`);
+    return reply.type("text/plain; version=0.0.4; charset=utf-8").send(`${lines.join("\n")}\n`);
   });
 
   await app.listen({ port: input.port, host: "0.0.0.0" });

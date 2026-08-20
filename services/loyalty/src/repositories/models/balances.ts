@@ -1,13 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  bigint,
-  check,
-  foreignKey,
-  index,
-  integer,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { bigint, check, foreignKey, index, integer, timestamp, uuid } from "drizzle-orm/pg-core";
 import { accounts } from "./accounts.js";
 import { transactions } from "./ledger.js";
 import { loyaltySchema } from "./schema.js";
@@ -17,18 +9,10 @@ export const accountBalances = loyaltySchema.table(
   {
     accountId: uuid("account_id").primaryKey(),
     storeId: uuid("store_id").notNull(),
-    pendingPoints: bigint("pending_points", { mode: "bigint" })
-      .notNull()
-      .default(0n),
-    availablePoints: bigint("available_points", { mode: "bigint" })
-      .notNull()
-      .default(0n),
-    reservedPoints: bigint("reserved_points", { mode: "bigint" })
-      .notNull()
-      .default(0n),
-    debtPoints: bigint("debt_points", { mode: "bigint" })
-      .notNull()
-      .default(0n),
+    pendingPoints: bigint("pending_points", { mode: "bigint" }).notNull().default(0n),
+    availablePoints: bigint("available_points", { mode: "bigint" }).notNull().default(0n),
+    reservedPoints: bigint("reserved_points", { mode: "bigint" }).notNull().default(0n),
+    debtPoints: bigint("debt_points", { mode: "bigint" }).notNull().default(0n),
     lifetimeEarnedPoints: bigint("lifetime_earned_points", {
       mode: "bigint",
     })
@@ -84,10 +68,7 @@ export const accountBalances = loyaltySchema.table(
         AND ${table.lifetimeRedeemedPoints} >= 0
         AND ${table.lifetimeExpiredPoints} >= 0`,
     ),
-    check(
-      "loyalty_account_balance_revision_check",
-      sql`${table.revision} > 0`,
-    ),
+    check("loyalty_account_balance_revision_check", sql`${table.revision} > 0`),
   ],
 );
 

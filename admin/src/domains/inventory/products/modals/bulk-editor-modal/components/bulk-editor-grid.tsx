@@ -41,14 +41,7 @@ const useStyles = createStyles(({ token }) => ({
 // Selectable columns for cell selection
 // ============================================================================
 
-const SELECTABLE_COLUMNS = [
-  "price",
-  "compareAtPrice",
-  "weight",
-  "length",
-  "width",
-  "height",
-];
+const SELECTABLE_COLUMNS = ["price", "compareAtPrice", "weight", "length", "width", "height"];
 
 // ============================================================================
 // Component
@@ -97,7 +90,7 @@ export const BulkEditorGrid: React.FC = () => {
 
       setFieldValue(rowId, field, originalValue, newValue);
     },
-    [setFieldValue, rows, message]
+    [setFieldValue, rows, message],
   );
 
   return (

@@ -6,8 +6,7 @@ import {
 } from "./connection/BaseConnectionResolver.js";
 import { ApplicationUserResolver } from "./ApplicationUserResolver.js";
 
-export interface ApplicationUserConnectionResolverInput
-  extends ApplicationUserRelayInput {
+export interface ApplicationUserConnectionResolverInput extends ApplicationUserRelayInput {
   organizationId: string;
   applicationId: string;
 }
@@ -22,10 +21,12 @@ interface ApplicationUserConnectionGraphqlArgs {
     status?: readonly string[] | null;
     emailVerified?: boolean | null;
   } | null;
-  orderBy?: readonly {
-    field: string;
-    direction: "asc" | "desc";
-  }[] | null;
+  orderBy?:
+    | readonly {
+        field: string;
+        direction: "asc" | "desc";
+      }[]
+    | null;
 }
 
 /** ApplicationUserConnection resolver using the shared IAM Relay contract. */
@@ -44,8 +45,7 @@ export class ApplicationUserConnectionResolver extends BaseConnectionResolver<Ap
     if (!application) {
       throw new PreloadNotFoundError("Application not found");
     }
-    const { organizationId: _organizationId, applicationId, ...relayInput } =
-      this.$props;
+    const { organizationId: _organizationId, applicationId, ...relayInput } = this.$props;
     return this.$ctx.kernel.repository.applicationUser
       .forApplication(applicationId)
       .getConnection(relayInput);
@@ -59,7 +59,7 @@ export class ApplicationUserConnectionResolver extends BaseConnectionResolver<Ap
         userId: nodeId,
         applicationUsersReadAuthorized: true,
       },
-      this.$ctx
+      this.$ctx,
     );
   }
 }
@@ -67,7 +67,7 @@ export class ApplicationUserConnectionResolver extends BaseConnectionResolver<Ap
 export function mapApplicationUserConnectionInput(
   organizationId: string,
   applicationId: string,
-  args: ApplicationUserConnectionGraphqlArgs = {}
+  args: ApplicationUserConnectionGraphqlArgs = {},
 ): ApplicationUserConnectionResolverInput {
   const filters: NonNullable<ApplicationUserRelayInput["where"]>[] = [];
   const search = args.where?.search?.trim();
@@ -107,9 +107,7 @@ export function mapApplicationUserConnectionInput(
   };
 }
 
-function mapApplicationUserOrderField(
-  field: string
-): "name" | "email" | "createdAt" | "updatedAt" {
+function mapApplicationUserOrderField(field: string): "name" | "email" | "createdAt" | "updatedAt" {
   switch (field) {
     case "NAME":
       return "name";

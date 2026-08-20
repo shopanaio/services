@@ -7,87 +7,117 @@ type Query {
 }
 
 type Mutation {
-  """Updates non-authentication profile fields for the current customer."""
+  """
+  Updates non-authentication profile fields for the current customer.
+  """
   customerUpdate(input: CustomerUpdateInput!): CustomerUpdatePayload!
 
-  """Creates a mailing address owned by the current customer."""
-  customerAddressCreate(
-    input: CustomerAddressCreateInput!
-  ): CustomerAddressCreatePayload!
+  """
+  Creates a mailing address owned by the current customer.
+  """
+  customerAddressCreate(input: CustomerAddressCreateInput!): CustomerAddressCreatePayload!
 
-  """Updates a mailing address owned by the current customer."""
-  customerAddressUpdate(
-    input: CustomerAddressUpdateInput!
-  ): CustomerAddressUpdatePayload!
+  """
+  Updates a mailing address owned by the current customer.
+  """
+  customerAddressUpdate(input: CustomerAddressUpdateInput!): CustomerAddressUpdatePayload!
 
-  """Deletes a mailing address owned by the current customer."""
-  customerAddressDelete(
-    input: CustomerAddressDeleteInput!
-  ): CustomerAddressDeletePayload!
+  """
+  Deletes a mailing address owned by the current customer.
+  """
+  customerAddressDelete(input: CustomerAddressDeleteInput!): CustomerAddressDeletePayload!
 
-  """Atomically sets or clears shipping and billing address defaults."""
+  """
+  Atomically sets or clears shipping and billing address defaults.
+  """
   customerAddressDefaultSet(
     input: CustomerAddressDefaultSetInput!
   ): CustomerAddressDefaultSetPayload!
 
-  """Transitions one customer-selectable marketing consent channel."""
+  """
+  Transitions one customer-selectable marketing consent channel.
+  """
   customerMarketingConsentUpdate(
     input: CustomerMarketingConsentUpdateInput!
   ): CustomerMarketingConsentUpdatePayload!
 
-  """Creates an auditable privacy request for the current customer."""
+  """
+  Creates an auditable privacy request for the current customer.
+  """
   customerDataRequestCreate(
     input: CustomerDataRequestCreateInput!
   ): CustomerDataRequestCreatePayload!
 
-  """Cancels a pending privacy request owned by the current customer."""
+  """
+  Cancels a pending privacy request owned by the current customer.
+  """
   customerDataRequestCancel(
     input: CustomerDataRequestCancelInput!
   ): CustomerDataRequestCancelPayload!
 
-  """Creates an unverified tax identifier for the current customer."""
+  """
+  Creates an unverified tax identifier for the current customer.
+  """
   customerTaxIdentifierCreate(
     input: CustomerTaxIdentifierCreateInput!
   ): CustomerTaxIdentifierCreatePayload!
 
-  """Updates a customer-owned tax identifier and resets its verification."""
+  """
+  Updates a customer-owned tax identifier and resets its verification.
+  """
   customerTaxIdentifierUpdate(
     input: CustomerTaxIdentifierUpdateInput!
   ): CustomerTaxIdentifierUpdatePayload!
 
-  """Deletes a customer-owned tax identifier."""
+  """
+  Deletes a customer-owned tax identifier.
+  """
   customerTaxIdentifierDelete(
     input: CustomerTaxIdentifierDeleteInput!
   ): CustomerTaxIdentifierDeletePayload!
 
-  """Creates a wishlist for the authenticated customer."""
+  """
+  Creates a wishlist for the authenticated customer.
+  """
   wishlistCreate(input: WishlistCreateInput!): WishlistCreatePayload!
 
-  """Renames a wishlist owned by the authenticated customer."""
+  """
+  Renames a wishlist owned by the authenticated customer.
+  """
   wishlistUpdate(input: WishlistUpdateInput!): WishlistUpdatePayload!
 
-  """Deletes a non-default wishlist owned by the authenticated customer."""
+  """
+  Deletes a non-default wishlist owned by the authenticated customer.
+  """
   wishlistDelete(input: WishlistDeleteInput!): WishlistDeletePayload!
 
-  """Adds a published product to a customer-owned wishlist."""
+  """
+  Adds a published product to a customer-owned wishlist.
+  """
   wishlistProductAdd(input: WishlistProductAddInput!): WishlistProductAddPayload!
 
-  """Removes a saved product item owned by the authenticated customer."""
-  wishlistProductRemove(
-    input: WishlistProductRemoveInput!
-  ): WishlistProductRemovePayload!
+  """
+  Removes a saved product item owned by the authenticated customer.
+  """
+  wishlistProductRemove(input: WishlistProductRemoveInput!): WishlistProductRemovePayload!
 
-  """Adds one concrete Catalog variant to the customer's comparisons."""
+  """
+  Adds one concrete Catalog variant to the customer's comparisons.
+  """
   customerComparisonVariantAdd(
     input: CustomerComparisonVariantAddInput!
   ): CustomerComparisonMutationPayload!
 
-  """Removes one concrete Catalog variant from the customer's comparisons."""
+  """
+  Removes one concrete Catalog variant from the customer's comparisons.
+  """
   customerComparisonVariantRemove(
     input: CustomerComparisonVariantRemoveInput!
   ): CustomerComparisonMutationPayload!
 
-  """Removes every selected variant currently grouped under one category."""
+  """
+  Removes every selected variant currently grouped under one category.
+  """
   customerComparisonCategoryClear(
     input: CustomerComparisonCategoryClearInput!
   ): CustomerComparisonMutationPayload!

@@ -5,21 +5,13 @@ import { Controller, useForm } from "react-hook-form";
 import { Alert, App, Select, Typography } from "antd";
 import { createStyles } from "antd-style";
 import { UnitSystem, WeightUnit } from "@/graphql/types";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
 import { useUpdateGeneralSettings } from "../../hooks";
 import { mapStoreDefaultsInput } from "../../mappers";
 import type { EditStoreDefaultsModalPayload } from "../../modals";
 import type { StoreDefaultsFormValues } from "../../types";
-import {
-  getTimeZoneOptions,
-  UNIT_SYSTEM_LABELS,
-  WEIGHT_UNIT_LABELS,
-} from "../../utils";
+import { getTimeZoneOptions, UNIT_SYSTEM_LABELS, WEIGHT_UNIT_LABELS } from "../../utils";
 
 const useStyles = createStyles(({ token }) => ({
   intro: {
@@ -147,15 +139,14 @@ export const StoreDefaultsModal = () => {
       expectedRevision: store.revision,
       operations: mapStoreDefaultsInput(values, store),
     });
-    const operationErrors = result.operationResults.flatMap(
-      ({ applied, errors }) => (applied ? [] : errors),
+    const operationErrors = result.operationResults.flatMap(({ applied, errors }) =>
+      applied ? [] : errors,
     );
     const mutationErrors = [...result.userErrors, ...operationErrors];
 
     if (!result.data || mutationErrors.length > 0) {
       setSubmitError(
-        [...new Set(mutationErrors.map(({ message: errorMessage }) => errorMessage))]
-          .join("\n") ||
+        [...new Set(mutationErrors.map(({ message: errorMessage }) => errorMessage))].join("\n") ||
           updateMutation.error?.message ||
           "The store defaults could not be saved.",
       );
@@ -200,18 +191,12 @@ export const StoreDefaultsModal = () => {
                 control={control}
                 name="unitSystem"
                 render={({ field }) => (
-                  <Select
-                    {...field}
-                    options={unitSystemOptions}
-                    placeholder="Select unit system"
-                  />
+                  <Select {...field} options={unitSystemOptions} placeholder="Select unit system" />
                 )}
               />
             </div>
             <div className={styles.field}>
-              <Typography.Text className={styles.label}>
-                Default weight unit
-              </Typography.Text>
+              <Typography.Text className={styles.label}>Default weight unit</Typography.Text>
               <Controller
                 control={control}
                 name="defaultWeightUnit"
@@ -242,9 +227,7 @@ export const StoreDefaultsModal = () => {
                 />
               )}
             />
-            <span className={styles.hint}>
-              Sets the time used for orders and analytics.
-            </span>
+            <span className={styles.hint}>Sets the time used for orders and analytics.</span>
           </div>
         </FormPaper>
       </form>

@@ -28,10 +28,7 @@ import type {
   WorkflowContext,
   ProductUpdateOperation,
 } from "./dto/ProductUpdateWorkflowDto.js";
-import type {
-  ProductChanges,
-  VariantChanges,
-} from "../scripts/types/ProductChanges.js";
+import type { ProductChanges, VariantChanges } from "../scripts/types/ProductChanges.js";
 import type { UserError } from "../scripts/types/ScriptResult.js";
 
 import type { Inventory } from "@shopana/broker-types";
@@ -47,10 +44,7 @@ import {
   CategoryRemoveProductScript,
   CategorySetProductPrimaryScript,
 } from "../scripts/category/index.js";
-import {
-  ProductTagAddScript,
-  ProductTagRemoveScript,
-} from "../scripts/tag/index.js";
+import { ProductTagAddScript, ProductTagRemoveScript } from "../scripts/tag/index.js";
 import { VariantUpdatePricingScript } from "../scripts/variant/VariantUpdatePricingScript.js";
 import { VariantUpdateMediaScript } from "../scripts/variant/VariantUpdateMediaScript.js";
 import { VariantCreateScript } from "../scripts/variant/VariantCreateScript.js";
@@ -123,14 +117,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: ProductUpdateWorkflowInput,
-  ): Promise<ProductUpdateWorkflowResult> {
+  async run(input: ProductUpdateWorkflowInput): Promise<ProductUpdateWorkflowResult> {
     const results: OperationResult[] = [];
     const changes: ProductChanges = { productId: input.productId };
-    const hasVariantOperations = input.operations.some((op) =>
-      isVariantOperation(op),
-    );
+    const hasVariantOperations = input.operations.some((op) => isVariantOperation(op));
 
     const definitionValidation = await this.stepPreValidateDefinitions(input);
     if (!definitionValidation.valid) {
@@ -152,10 +142,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         return {
           product: null,
           operationResults: input.operations.map((op, index) =>
-            this.buildValidationFailureResult(
-              op,
-              validation.errorsByOperationIndex[index] ?? [],
-            ),
+            this.buildValidationFailureResult(op, validation.errorsByOperationIndex[index] ?? []),
           ),
           userErrors: validation.userErrors,
         };
@@ -163,10 +150,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     // 1. Acquire revision (atomic compare-and-swap)
-    const acquired = await this.stepAcquireRevision(
-      input.productId,
-      input.expectedRevision,
-    );
+    const acquired = await this.stepAcquireRevision(input.productId, input.expectedRevision);
     if ("error" in acquired) {
       return {
         product: null,
@@ -191,38 +175,19 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         const result = await this.stepProductUpdate(op.params, changes, scriptCtx);
         results.push(prefixOperationResultErrors(result, op));
       } else if (op.type === "productCategoryUpdate") {
-        const result = await this.stepProductCategoryUpdate(
-          op.params,
-          changes,
-          scriptCtx,
-        );
+        const result = await this.stepProductCategoryUpdate(op.params, changes, scriptCtx);
         results.push(prefixOperationResultErrors(result, op));
       } else if (op.type === "productTagUpdate") {
-        const result = await this.stepProductTagUpdate(
-          op.params,
-          changes,
-          scriptCtx,
-        );
+        const result = await this.stepProductTagUpdate(op.params, changes, scriptCtx);
         results.push(prefixOperationResultErrors(result, op));
       } else if (op.type === "productOptionsSync") {
-        const result = await this.stepProductOptionsSync(
-          op.params,
-          changes,
-          scriptCtx,
-        );
+        const result = await this.stepProductOptionsSync(op.params, changes, scriptCtx);
         results.push(prefixOperationResultErrors(result, op));
       } else if (op.type === "productFeaturesSync") {
-        const result = await this.stepProductFeaturesSync(
-          op.params,
-          changes,
-          scriptCtx,
-        );
+        const result = await this.stepProductFeaturesSync(op.params, changes, scriptCtx);
         results.push(prefixOperationResultErrors(result, op));
       } else if (isComponentOperation(op)) {
-        const result = await this.stepProductComponentOperation(
-          op,
-          scriptCtx,
-        );
+        const result = await this.stepProductComponentOperation(op, scriptCtx);
         if (result.applied) {
           changes.component = { changed: true };
         }
@@ -303,40 +268,27 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     for (const [index, op] of input.operations.entries()) {
       let errors: UserError[] = [];
       if (op.type === "productOptionsSync") {
-        const validation = await validateOptionSyncParams(
-          this.kernel.repository,
-          op.params,
-        );
+        const validation = await validateOptionSyncParams(this.kernel.repository, op.params);
         errors = prefixUserErrors(validation.userErrors, op);
       } else if (op.type === "productFeaturesSync") {
-        const validation = await validateFeatureSyncParams(
-          this.kernel.repository,
-          op.params,
-        );
+        const validation = await validateFeatureSyncParams(this.kernel.repository, op.params);
         errors = prefixUserErrors(validation.userErrors, op);
-      } else if (
-        isComponentOperation(op) &&
-        input.expectedRevision === undefined
-      ) {
+      } else if (isComponentOperation(op) && input.expectedRevision === undefined) {
         errors = [
           {
-            message:
-              "Expected revision is required for product component operations",
+            message: "Expected revision is required for product component operations",
             code: "EXPECTED_REVISION_REQUIRED",
             field: ["expectedRevision"],
           },
         ];
       } else if (op.type === "productComponentConfigurationCreate") {
-        const previousIndex = componentCreateIds.get(
-          op.params.clientMutationId,
-        );
+        const previousIndex = componentCreateIds.get(op.params.clientMutationId);
         if (previousIndex === undefined) {
           componentCreateIds.set(op.params.clientMutationId, index);
         } else {
           errors = [
             {
-              message:
-                "Client mutation ID must be unique within the request",
+              message: "Client mutation ID must be unique within the request",
               code: "DUPLICATE_CLIENT_MUTATION_ID",
               field: fieldPath(op, "clientMutationId"),
             },
@@ -475,8 +427,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       });
     }
 
-    const allProductVariants =
-      await this.kernel.repository.variant.findByProductId(input.productId);
+    const allProductVariants = await this.kernel.repository.variant.findByProductId(
+      input.productId,
+    );
     const variantById = new Map(allProductVariants.map((v) => [v.id, v]));
     const optionsSyncOperation = input.operations.find(
       (op): op is Extract<ProductUpdateOperation, { type: "productOptionsSync" }> =>
@@ -523,8 +476,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     const inventoryItemRequiredVariantIds = variantOps.flatMap(({ op }) =>
-      op.type === "variantUpdate" &&
-      (op.params.inventory || op.params.weight !== undefined)
+      op.type === "variantUpdate" && (op.params.inventory || op.params.weight !== undefined)
         ? [op.params.variantId]
         : [],
     );
@@ -532,9 +484,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       await this.kernel.repository.inventoryItem.findActiveByVariantIds(
         inventoryItemRequiredVariantIds,
       );
-    const inventoryItemVariantIds = new Set(
-      existingInventoryItems.map((item) => item.variantId),
-    );
+    const inventoryItemVariantIds = new Set(existingInventoryItems.map((item) => item.variantId));
     for (const { op, index } of variantOps) {
       if (
         op.type === "variantUpdate" &&
@@ -568,9 +518,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     const createClientMutationIds = new Map<string, number>();
     for (const { op, index } of variantOps) {
       if (op.type !== "variantCreate") continue;
-      const previousIndex = createClientMutationIds.get(
-        op.params.clientMutationId,
-      );
+      const previousIndex = createClientMutationIds.get(op.params.clientMutationId);
       if (previousIndex !== undefined) {
         const error: UserError = {
           message: "Client mutation ID must be unique within the request",
@@ -615,10 +563,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
             field: fieldPath(op, "pricing", "amountMinor"),
           });
         }
-        if (
-          params.pricing.compareAtMinor != null &&
-          params.pricing.compareAtMinor < 0
-        ) {
+        if (params.pricing.compareAtMinor != null && params.pricing.compareAtMinor < 0) {
           addError(index, {
             message: "Compare at price must be a non-negative value",
             code: "INVALID_COMPARE_AT",
@@ -642,8 +587,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         }
         if (
           params.inventory.onHand !== undefined &&
-          (!Number.isInteger(params.inventory.onHand) ||
-            params.inventory.onHand < 0)
+          (!Number.isInteger(params.inventory.onHand) || params.inventory.onHand < 0)
         ) {
           addError(index, {
             message: "On-hand quantity must be a non-negative integer",
@@ -661,8 +605,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         }
         if (
           params.inventory.unitCostMinor != null &&
-          (!Number.isInteger(params.inventory.unitCostMinor) ||
-            params.inventory.unitCostMinor < 0)
+          (!Number.isInteger(params.inventory.unitCostMinor) || params.inventory.unitCostMinor < 0)
         ) {
           addError(index, {
             message: "Unit cost must be a non-negative integer",
@@ -713,10 +656,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         }
       }
 
-      if (
-        params.weight != null &&
-        (!Number.isInteger(params.weight) || params.weight <= 0)
-      ) {
+      if (params.weight != null && (!Number.isInteger(params.weight) || params.weight <= 0)) {
         addError(index, {
           message: "Weight must be a positive integer",
           code: "INVALID_WEIGHT",
@@ -732,12 +672,8 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (warehouseIds.size > 0) {
-      const warehouses = await this.kernel.repository.warehouse.getByIds([
-        ...warehouseIds,
-      ]);
-      const existingWarehouseIds = new Set(
-        warehouses.map((warehouse) => warehouse.id),
-      );
+      const warehouses = await this.kernel.repository.warehouse.getByIds([...warehouseIds]);
+      const existingWarehouseIds = new Set(warehouses.map((warehouse) => warehouse.id));
       for (const { op, index } of variantOps) {
         if (
           op.type !== "variantDelete" &&
@@ -755,14 +691,11 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (mediaFileIds.size > 0) {
-      const registeredMedia =
-        await this.kernel.repository.media.getProductMediaByFileIds(
-          input.productId,
-          [...mediaFileIds],
-        );
-      const registeredFileIds = new Set(
-        registeredMedia.map((media) => media.fileId),
+      const registeredMedia = await this.kernel.repository.media.getProductMediaByFileIds(
+        input.productId,
+        [...mediaFileIds],
       );
+      const registeredFileIds = new Set(registeredMedia.map((media) => media.fileId));
       for (const { op, index } of variantOps) {
         if (op.type === "variantDelete" || !op.params.media) continue;
         const missingFileId = op.params.media.fileIds.find(
@@ -770,8 +703,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         );
         if (missingFileId) {
           addError(index, {
-            message:
-              "Variant media must be registered on the product before it can be attached",
+            message: "Variant media must be registered on the product before it can be attached",
             code: "PRODUCT_MEDIA_NOT_REGISTERED",
             field: fieldPath(op, "media", "fileIds"),
           });
@@ -780,12 +712,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     for (const [sku, index] of requestedSkus) {
-      const existingItem =
-        await this.kernel.repository.inventoryItem.findBySku(sku);
+      const existingItem = await this.kernel.repository.inventoryItem.findBySku(sku);
       if (!existingItem) continue;
       const op = input.operations[index];
-      const allowedVariantId =
-        op.type === "variantUpdate" ? op.params.variantId : undefined;
+      const allowedVariantId = op.type === "variantUpdate" ? op.params.variantId : undefined;
       if (existingItem.variantId !== allowedVariantId) {
         addError(index, {
           message: `SKU "${sku}" is already in use`,
@@ -796,9 +726,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     const deleteVariantIds = new Set(
-      variantOps.flatMap(({ op }) =>
-        op.type === "variantDelete" ? [op.params.variantId] : [],
-      ),
+      variantOps.flatMap(({ op }) => (op.type === "variantDelete" ? [op.params.variantId] : [])),
     );
     const createOps = variantOps.filter(({ op }) => op.type === "variantCreate");
     const optionValueCounts = productOptions.map(
@@ -811,10 +739,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     const remainingVariantCount = allProductVariants.filter(
       (variant) => !deleteVariantIds.has(variant.id),
     ).length;
-    if (
-      remainingVariantCount + createOps.length >
-      totalPossibleCombinations
-    ) {
+    if (remainingVariantCount + createOps.length > totalPossibleCombinations) {
       addError(createOps[0]?.index ?? firstVariantIndex, {
         message: "Variant option combinations exceed possible product combinations",
         code: "VARIANT_COMBINATION_LIMIT_EXCEEDED",
@@ -874,9 +799,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       op.type === "productComponentDependencyRulesSync"
     ) {
       result.entityId =
-        op.type === "variantDelete"
-          ? op.params.variantId
-          : op.params.configurationId;
+        op.type === "variantDelete" ? op.params.variantId : op.params.configurationId;
     }
     return result;
   }
@@ -896,12 +819,16 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // Identity fields (handle, title, vendor)
     if (handle !== undefined || title !== undefined || vendorId !== undefined) {
-      const r = await this.kernel.runScript(ProductUpdateScript, {
-        id,
-        handle,
-        title,
-        vendorId,
-      }, ctx);
+      const r = await this.kernel.runScript(
+        ProductUpdateScript,
+        {
+          id,
+          handle,
+          title,
+          vendorId,
+        },
+        ctx,
+      );
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, ...r.changes };
@@ -910,10 +837,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // Content fields (description, excerpt)
     if (content) {
-      const r = await this.kernel.runScript(ProductUpdateContentScript, {
-        id,
-        ...content,
-      }, ctx);
+      const r = await this.kernel.runScript(
+        ProductUpdateContentScript,
+        {
+          id,
+          ...content,
+        },
+        ctx,
+      );
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, content: r.changes };
@@ -922,10 +853,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // SEO fields
     if (seo) {
-      const r = await this.kernel.runScript(ProductUpdateSeoScript, {
-        id,
-        ...seo,
-      }, ctx);
+      const r = await this.kernel.runScript(
+        ProductUpdateSeoScript,
+        {
+          id,
+          ...seo,
+        },
+        ctx,
+      );
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, seo: r.changes };
@@ -934,10 +869,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // Status change
     if (status) {
-      const r = await this.kernel.runScript(ProductUpdateStatusScript, {
-        id,
-        status,
-      }, ctx);
+      const r = await this.kernel.runScript(
+        ProductUpdateStatusScript,
+        {
+          id,
+          status,
+        },
+        ctx,
+      );
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, status: r.changes.status };
@@ -946,10 +885,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // Media
     if (media) {
-      const r = await this.kernel.runScript(ProductUpdateMediaScript, {
-        id,
-        fileIds: media.fileIds,
-      }, ctx);
+      const r = await this.kernel.runScript(
+        ProductUpdateMediaScript,
+        {
+          id,
+          fileIds: media.fileIds,
+        },
+        ctx,
+      );
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, media: r.changes };
@@ -1015,9 +958,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     if (errors.length === 0 && affectedProductIds?.includes(productId)) {
       const currentCategories = changes.product?.categories;
-      const categoryIds = [
-        ...new Set([...(currentCategories?.categoryIds ?? []), categoryId]),
-      ];
+      const categoryIds = [...new Set([...(currentCategories?.categoryIds ?? []), categoryId])];
       const reason =
         params.action === "move" && currentCategories?.reason !== "assignment"
           ? "rank"
@@ -1056,19 +997,11 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     let affectedProductIds: string[] | undefined;
 
     if (params.action === "add") {
-      const r = await this.kernel.runScript(
-        ProductTagAddScript,
-        { productId, tagId },
-        ctx,
-      );
+      const r = await this.kernel.runScript(ProductTagAddScript, { productId, tagId }, ctx);
       errors.push(...r.userErrors);
       affectedProductIds = r.affectedProductIds;
     } else {
-      const r = await this.kernel.runScript(
-        ProductTagRemoveScript,
-        { productId, tagId },
-        ctx,
-      );
+      const r = await this.kernel.runScript(ProductTagRemoveScript, { productId, tagId }, ctx);
       errors.push(...r.userErrors);
       affectedProductIds = r.affectedProductIds;
     }
@@ -1143,11 +1076,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     operation: ComponentWorkflowOperation,
     ctx: RunScriptContext,
   ): Promise<OperationResult> {
-    const result = await this.kernel.runScript(
-      ProductComponentOperationScript,
-      operation,
-      ctx,
-    );
+    const result = await this.kernel.runScript(ProductComponentOperationScript, operation, ctx);
 
     const operationResult: OperationResult = {
       type: operation.type,
@@ -1173,10 +1102,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     ctx: RunScriptContext,
   ): Promise<OperationResult> {
     const errors: UserError[] = [];
-    const createResult = await this.kernel.runScript(VariantCreateScript, {
-      productId: params.productId,
-      options: params.options.set,
-    }, ctx);
+    const createResult = await this.kernel.runScript(
+      VariantCreateScript,
+      {
+        productId: params.productId,
+        options: params.options.set,
+      },
+      ctx,
+    );
     errors.push(...createResult.userErrors);
 
     if (!createResult.variant) {
@@ -1222,10 +1155,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (params.pricing) {
-      const r = await this.kernel.runScript(VariantUpdatePricingScript, {
-        variantId,
-        ...params.pricing,
-      }, ctx);
+      const r = await this.kernel.runScript(
+        VariantUpdatePricingScript,
+        {
+          variantId,
+          ...params.pricing,
+        },
+        ctx,
+      );
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ pricing: r.changes });
     }
@@ -1241,8 +1178,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           unavailable: params.inventory.unavailable,
           sku: params.inventory.sku,
           trackInventory: params.inventory.trackInventory,
-          continueSellingWhenOutOfStock:
-            params.inventory.continueSellingWhenOutOfStock,
+          continueSellingWhenOutOfStock: params.inventory.continueSellingWhenOutOfStock,
           unitCostMinor: params.inventory.unitCostMinor,
           costCurrency: params.inventory.costCurrency,
         },
@@ -1257,8 +1193,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
             unavailable: params.inventory.unavailable ?? 0,
             sku: params.inventory.sku,
             trackInventory: params.inventory.trackInventory,
-            continueSellingWhenOutOfStock:
-              params.inventory.continueSellingWhenOutOfStock,
+            continueSellingWhenOutOfStock: params.inventory.continueSellingWhenOutOfStock,
             unitCostMinor: params.inventory.unitCostMinor,
             costCurrency: params.inventory.costCurrency,
           },
@@ -1267,10 +1202,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (params.weight !== undefined) {
-      const r = await this.kernel.runScript(InventoryItemUpdateScript, {
-        variantId,
-        weight: params.weight,
-      }, ctx);
+      const r = await this.kernel.runScript(
+        InventoryItemUpdateScript,
+        {
+          variantId,
+          weight: params.weight,
+        },
+        ctx,
+      );
       errors.push(...r.userErrors);
       if (r.changes?.weight !== undefined) {
         mergeVariantChanges({ physical: { weight: r.changes.weight } });
@@ -1278,16 +1217,16 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (params.dimensions) {
-      const r = await this.broker.call<Inventory.UpdateItemDimensionsResult, Inventory.UpdateItemDimensionsParams>(
-        "inventory.updateItemDimensions",
-        {
-          storeId: ctx.storeId,
-          variantId,
-          width: params.dimensions.width,
-          height: params.dimensions.height,
-          length: params.dimensions.length,
-        },
-      );
+      const r = await this.broker.call<
+        Inventory.UpdateItemDimensionsResult,
+        Inventory.UpdateItemDimensionsParams
+      >("inventory.updateItemDimensions", {
+        storeId: ctx.storeId,
+        variantId,
+        width: params.dimensions.width,
+        height: params.dimensions.height,
+        length: params.dimensions.length,
+      });
       if (!r.success) {
         errors.push(...mapBrokerErrors(r.userErrors));
       } else {
@@ -1302,10 +1241,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (params.media) {
-      const r = await this.kernel.runScript(VariantUpdateMediaScript, {
-        variantId,
-        ...params.media,
-      }, ctx);
+      const r = await this.kernel.runScript(
+        VariantUpdateMediaScript,
+        {
+          variantId,
+          ...params.media,
+        },
+        ctx,
+      );
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ media: r.changes });
     }
@@ -1325,10 +1268,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     changes: ProductChanges,
     ctx: RunScriptContext,
   ): Promise<OperationResult> {
-    const result = await this.kernel.runScript(VariantDeleteScript, {
-      id: params.variantId,
-      permanent: false,
-    }, ctx);
+    const result = await this.kernel.runScript(
+      VariantDeleteScript,
+      {
+        id: params.variantId,
+        permanent: false,
+      },
+      ctx,
+    );
 
     if (result.userErrors.length === 0 && result.deletedVariantId) {
       changes.variants = changes.variants ?? {};
@@ -1370,10 +1317,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
 
     if (pricing) {
-      const r = await this.kernel.runScript(VariantUpdatePricingScript, {
-        variantId,
-        ...pricing,
-      }, ctx);
+      const r = await this.kernel.runScript(
+        VariantUpdatePricingScript,
+        {
+          variantId,
+          ...pricing,
+        },
+        ctx,
+      );
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ pricing: r.changes });
     }
@@ -1390,8 +1341,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           unavailable: params.inventory.unavailable,
           sku: params.inventory.sku,
           trackInventory: params.inventory.trackInventory,
-          continueSellingWhenOutOfStock:
-            params.inventory.continueSellingWhenOutOfStock,
+          continueSellingWhenOutOfStock: params.inventory.continueSellingWhenOutOfStock,
           unitCostMinor: params.inventory.unitCostMinor,
           costCurrency: params.inventory.costCurrency,
         },
@@ -1406,8 +1356,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
             unavailable: params.inventory.unavailable ?? 0,
             sku: params.inventory.sku,
             trackInventory: params.inventory.trackInventory,
-            continueSellingWhenOutOfStock:
-              params.inventory.continueSellingWhenOutOfStock,
+            continueSellingWhenOutOfStock: params.inventory.continueSellingWhenOutOfStock,
             unitCostMinor: params.inventory.unitCostMinor,
             costCurrency: params.inventory.costCurrency,
           },
@@ -1416,10 +1365,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (params.weight !== undefined) {
-      const r = await this.kernel.runScript(InventoryItemUpdateScript, {
-        variantId,
-        weight: params.weight,
-      }, ctx);
+      const r = await this.kernel.runScript(
+        InventoryItemUpdateScript,
+        {
+          variantId,
+          weight: params.weight,
+        },
+        ctx,
+      );
       errors.push(...r.userErrors);
       if (r.changes?.weight !== undefined) {
         mergeVariantChanges({ physical: { weight: r.changes.weight } });
@@ -1427,16 +1380,16 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (params.dimensions) {
-      const r = await this.broker.call<Inventory.UpdateItemDimensionsResult, Inventory.UpdateItemDimensionsParams>(
-        "inventory.updateItemDimensions",
-        {
-          storeId: ctx.storeId,
-          variantId,
-          width: params.dimensions.width,
-          height: params.dimensions.height,
-          length: params.dimensions.length,
-        },
-      );
+      const r = await this.broker.call<
+        Inventory.UpdateItemDimensionsResult,
+        Inventory.UpdateItemDimensionsParams
+      >("inventory.updateItemDimensions", {
+        storeId: ctx.storeId,
+        variantId,
+        width: params.dimensions.width,
+        height: params.dimensions.height,
+        length: params.dimensions.length,
+      });
       if (!r.success) {
         errors.push(...mapBrokerErrors(r.userErrors));
       } else {
@@ -1451,10 +1404,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (media) {
-      const r = await this.kernel.runScript(VariantUpdateMediaScript, {
-        variantId,
-        ...media,
-      }, ctx);
+      const r = await this.kernel.runScript(
+        VariantUpdateMediaScript,
+        {
+          variantId,
+          ...media,
+        },
+        ctx,
+      );
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ media: r.changes });
     }
@@ -1477,10 +1434,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     changes: ProductChanges,
     ctx: RunScriptContext,
   ): Promise<Array<{ variantId: string; applied: boolean; errors: UserError[] }>> {
-    const r = await this.kernel.runScript(VariantBatchUpdateOptionsScript, {
-      productId,
-      updates,
-    }, ctx);
+    const r = await this.kernel.runScript(
+      VariantBatchUpdateOptionsScript,
+      {
+        productId,
+        updates,
+      },
+      ctx,
+    );
 
     if (r.userErrors.length > 0) {
       // Script-level error
@@ -1576,9 +1537,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           userId: input.context.userId,
         },
         subject: { type: "product", id: input.productId },
-        actor: input.context.userId
-          ? { type: "user", id: input.context.userId }
-          : undefined,
+        actor: input.context.userId ? { type: "user", id: input.context.userId } : undefined,
         emitKey: `product:${input.productId}`,
       },
       {
@@ -1670,19 +1629,11 @@ function sortProductUpdatedReasons(
   return order.filter((reason) => reasons.has(reason));
 }
 
-function isVariantOperation(
-  op: ProductUpdateOperation,
-): op is VariantWorkflowOperation {
-  return (
-    op.type === "variantCreate" ||
-    op.type === "variantUpdate" ||
-    op.type === "variantDelete"
-  );
+function isVariantOperation(op: ProductUpdateOperation): op is VariantWorkflowOperation {
+  return op.type === "variantCreate" || op.type === "variantUpdate" || op.type === "variantDelete";
 }
 
-function isComponentOperation(
-  op: ProductUpdateOperation,
-): op is ComponentWorkflowOperation {
+function isComponentOperation(op: ProductUpdateOperation): op is ComponentWorkflowOperation {
   return op.type.startsWith("productComponent");
 }
 
@@ -1700,10 +1651,7 @@ function prefixOperationResultErrors(
   };
 }
 
-function prefixUserErrors(
-  errors: readonly UserError[],
-  op: ProductUpdateOperation,
-): UserError[] {
+function prefixUserErrors(errors: readonly UserError[], op: ProductUpdateOperation): UserError[] {
   const fieldPrefix = op.meta?.fieldPrefix;
   if (!fieldPrefix || fieldPrefix.length === 0) {
     return [...errors];
@@ -1735,14 +1683,8 @@ function prefixUserErrors(
   });
 }
 
-function isProductIdField(
-  op: ProductUpdateOperation,
-  field: readonly string[],
-): boolean {
-  return (
-    field[0] === "productId" ||
-    (op.type === "productUpdate" && field[0] === "id")
-  );
+function isProductIdField(op: ProductUpdateOperation, field: readonly string[]): boolean {
+  return field[0] === "productId" || (op.type === "productUpdate" && field[0] === "id");
 }
 
 function productIdFieldPath(fieldPrefix: readonly string[]): string[] {
@@ -1803,25 +1745,13 @@ function validateVariantOptions(args: {
       addError(index, {
         message: "Option value not found",
         code: "INVALID_OPTION_VALUE",
-        field: fieldPath(
-          op,
-          "options",
-          "set",
-          String(linkIndex),
-          "optionValueId",
-        ),
+        field: fieldPath(op, "options", "set", String(linkIndex), "optionValueId"),
       });
     } else if (expectedOptionId !== link.optionId) {
       addError(index, {
         message: "Option value does not belong to option",
         code: "INVALID_OPTION_VALUE",
-        field: fieldPath(
-          op,
-          "options",
-          "set",
-          String(linkIndex),
-          "optionValueId",
-        ),
+        field: fieldPath(op, "options", "set", String(linkIndex), "optionValueId"),
       });
     }
   }
@@ -1852,10 +1782,7 @@ function validateVariantOptions(args: {
 function validateFinalVariantCombinations(args: {
   variantOps: Array<{ op: VariantWorkflowOperation; index: number }>;
   allProductVariants: Array<{ id: string }>;
-  currentLinksMap: Map<
-    string,
-    Array<{ optionId: string; optionValueId: string | null }>
-  >;
+  currentLinksMap: Map<string, Array<{ optionId: string; optionValueId: string | null }>>;
   productOptionIds: string[];
   deleteVariantIds: Set<string>;
   errorsByOperationIndex: Record<number, UserError[]>;
@@ -1895,19 +1822,13 @@ function validateFinalVariantCombinations(args: {
       continue;
     }
 
-    const links =
-      updateEntry?.op.params.options?.set ??
-      (currentLinksMap.get(variant.id) ?? []);
+    const links = updateEntry?.op.params.options?.set ?? currentLinksMap.get(variant.id) ?? [];
     const key = variantCombinationKey(links, productOptionIds);
     const previous = ownerByCombination.get(key);
     if (previous?.operationIndex !== undefined && updateEntry) {
       addDuplicateCombinationError(addError, updateEntry.index, updateEntry.op);
       if (previous.op) {
-        addDuplicateCombinationError(
-          addError,
-          previous.operationIndex,
-          previous.op,
-        );
+        addDuplicateCombinationError(addError, previous.operationIndex, previous.op);
       }
     } else if (previous && updateEntry) {
       addDuplicateCombinationError(addError, updateEntry.index, updateEntry.op);
@@ -1929,11 +1850,7 @@ function validateFinalVariantCombinations(args: {
     if (previous) {
       addDuplicateCombinationError(addError, index, op);
       if (previous.operationIndex !== undefined && previous.op) {
-        addDuplicateCombinationError(
-          addError,
-          previous.operationIndex,
-          previous.op,
-        );
+        addDuplicateCombinationError(addError, previous.operationIndex, previous.op);
       }
     }
 
@@ -1948,9 +1865,7 @@ function variantCombinationKey(
   links: Array<{ optionId: string; optionValueId: string | null }>,
   productOptionIds: string[],
 ): string {
-  const optionOrder = new Map(
-    productOptionIds.map((optionId, index) => [optionId, index]),
-  );
+  const optionOrder = new Map(productOptionIds.map((optionId, index) => [optionId, index]));
   return [...links]
     .filter((link) => link.optionValueId)
     .sort((a, b) => {

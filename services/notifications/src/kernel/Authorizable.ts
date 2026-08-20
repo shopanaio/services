@@ -33,12 +33,10 @@ export class AuthProvider implements IAuthProvider {
     });
   }
 
-  async authorizeProtectedResource(
-    params: ProtectedResourceAuthorizeParams
-  ): Promise<boolean> {
+  async authorizeProtectedResource(params: ProtectedResourceAuthorizeParams): Promise<boolean> {
     const result = (await this.services.broker.call(
       "iam.authorizeProtectedResource",
-      params
+      params,
     )) as BrokerAuthorizeResult;
     throwIfBrokerAuthorizeDenied(result);
     return result.allowed;

@@ -21,39 +21,28 @@ export function StoreItem({ store, onClick }: StoreItemProps) {
   const color = getColorFromString(store.id);
 
   return (
-    <div
-      className={cx(styles.storeItem, !isActive && styles.storeItemDisabled)}
-      onClick={onClick}
-    >
+    <div className={cx(styles.storeItem, !isActive && styles.storeItemDisabled)} onClick={onClick}>
       <Flex align="center">
         <Avatar
           size="large"
           style={{
-            backgroundColor: isActive
-              ? `var(--ant-${color}-2, #e6f4ff)`
-              : "#f5f5f5",
+            backgroundColor: isActive ? `var(--ant-${color}-2, #e6f4ff)` : "#f5f5f5",
           }}
         >
           <ShopOutlined
             style={{
-              color: isActive
-                ? `var(--ant-${color}-6, #1890ff)`
-                : "#8c8c8c",
+              color: isActive ? `var(--ant-${color}-6, #1890ff)` : "#8c8c8c",
               fontSize: 20,
             }}
           />
         </Avatar>
         <div className={styles.storeInfo}>
-          <Typography.Text className={styles.storeName}>
-            {store.displayName}
-          </Typography.Text>
+          <Typography.Text className={styles.storeName}>{store.displayName}</Typography.Text>
           <div className={styles.storeSlug}>{store.name}</div>
         </div>
       </Flex>
       <Flex align="center" gap={8}>
-        <Tag color={isActive ? "success" : "default"}>
-          {isActive ? "Active" : "Inactive"}
-        </Tag>
+        <Tag color={isActive ? "success" : "default"}>{isActive ? "Active" : "Inactive"}</Tag>
         <RightOutlined style={{ color: "#8c8c8c" }} />
       </Flex>
     </div>

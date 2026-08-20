@@ -68,9 +68,7 @@ export class RecommendationOrderFactRepository extends BaseRepository {
   }
 
   async insert(input: RecommendationOrderFactWrite): Promise<RecommendationOrderFact> {
-    const [orderFactId, ...productFactIds] = await this.generateUuidV7s(
-      input.lines.length + 1,
-    );
+    const [orderFactId, ...productFactIds] = await this.generateUuidV7s(input.lines.length + 1);
     if (!orderFactId) throw new Error("Order fact UUID was not generated");
     const [row] = await this.connection
       .insert(recommendationOrderFact)

@@ -1,4 +1,6 @@
-"""Distribution of reviews across the five supported rating values."""
+"""
+Distribution of reviews across the five supported rating values.
+"""
 type ReviewRatingBreakdown {
   rating1Count: Int!
   rating2Count: Int!
@@ -7,7 +9,9 @@ type ReviewRatingBreakdown {
   rating5Count: Int!
 }
 
-"""Published review aggregates for one product."""
+"""
+Published review aggregates for one product.
+"""
 type ProductReviewSummary {
   product: Product!
   reviewCount: Int!
@@ -28,7 +32,9 @@ type ProductRatingCriterionSummary {
   updatedAt: DateTime!
 }
 
-"""Published question and answer aggregates for one product."""
+"""
+Published question and answer aggregates for one product.
+"""
 type ProductQuestionSummary {
   product: Product!
   questionCount: Int!

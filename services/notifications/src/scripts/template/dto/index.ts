@@ -16,17 +16,13 @@ export interface NotificationTemplateQueryParams {
   locale: string;
 }
 
-export interface NotificationTemplateUpdateParams
-  extends NotificationTemplateQueryParams {
+export interface NotificationTemplateUpdateParams extends NotificationTemplateQueryParams {
   subjectTemplate?: string;
   bodyTemplate: string;
   plainTextTemplate?: string;
   expectedVersion: number;
 }
 
-export type NotificationPreviewParams = Omit<
-  PreviewNotificationParams,
-  "storeId"
->;
+export type NotificationPreviewParams = Omit<PreviewNotificationParams, "storeId">;
 
 export type NotificationPreviewView = PreviewNotificationResult;

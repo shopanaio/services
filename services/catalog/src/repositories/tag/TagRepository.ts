@@ -30,7 +30,7 @@ export const tagRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "tag", tieBreaker: "id" }
+  { name: "tag", tieBreaker: "id" },
 );
 
 export type TagQueryInput = InferExecuteOptions<typeof tagQuery>;
@@ -53,9 +53,7 @@ export class TagRepository extends BaseRepository {
     const result = await this.connection
       .select({ id: tag.id })
       .from(tag)
-      .where(
-        and(eq(tag.storeId, this.storeId), eq(tag.id, id))
-      )
+      .where(and(eq(tag.storeId, this.storeId), eq(tag.id, id)))
       .limit(1);
 
     return result.length > 0;
@@ -65,9 +63,7 @@ export class TagRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(tag)
-      .where(
-        and(eq(tag.storeId, this.storeId), eq(tag.id, id))
-      )
+      .where(and(eq(tag.storeId, this.storeId), eq(tag.id, id)))
       .limit(1);
 
     return result[0] ?? null;
@@ -77,9 +73,7 @@ export class TagRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(tag)
-      .where(
-        and(eq(tag.storeId, this.storeId), eq(tag.handle, handle))
-      )
+      .where(and(eq(tag.storeId, this.storeId), eq(tag.handle, handle)))
       .limit(1);
 
     return result[0] ?? null;
@@ -96,10 +90,7 @@ export class TagRepository extends BaseRepository {
       createdAt: now,
     };
 
-    const result = await this.connection
-      .insert(tag)
-      .values(newTag)
-      .returning();
+    const result = await this.connection.insert(tag).values(newTag).returning();
 
     return result[0];
   }
@@ -110,9 +101,7 @@ export class TagRepository extends BaseRepository {
     const result = await this.connection
       .update(tag)
       .set({ handle: data.handle })
-      .where(
-        and(eq(tag.storeId, this.storeId), eq(tag.id, id))
-      )
+      .where(and(eq(tag.storeId, this.storeId), eq(tag.id, id)))
       .returning();
 
     return result[0] ?? null;
@@ -121,9 +110,7 @@ export class TagRepository extends BaseRepository {
   async delete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(tag)
-      .where(
-        and(eq(tag.storeId, this.storeId), eq(tag.id, id))
-      )
+      .where(and(eq(tag.storeId, this.storeId), eq(tag.id, id)))
       .returning({ id: tag.id });
 
     return result.length > 0;
@@ -200,17 +187,10 @@ export class TagRepository extends BaseRepository {
     return this.connection
       .select()
       .from(tag)
-      .where(
-        and(
-          eq(tag.storeId, this.storeId),
-          inArray(tag.id, [...tagIds])
-        )
-      );
+      .where(and(eq(tag.storeId, this.storeId), inArray(tag.id, [...tagIds])));
   }
 
-  async getTranslationsByTagIds(
-    tagIds: readonly string[]
-  ): Promise<TagTranslation[]> {
+  async getTranslationsByTagIds(tagIds: readonly string[]): Promise<TagTranslation[]> {
     return this.connection
       .select()
       .from(tagTranslation)
@@ -218,31 +198,23 @@ export class TagRepository extends BaseRepository {
         and(
           eq(tagTranslation.storeId, this.storeId),
           inArray(tagTranslation.tagId, [...tagIds]),
-          eq(tagTranslation.locale, this.locale)
-        )
+          eq(tagTranslation.locale, this.locale),
+        ),
       );
   }
 
   // ============ Product-Tag Relations ============
 
-  async getProductTagLinks(
-    productIds: readonly string[]
-  ): Promise<ProductTag[]> {
+  async getProductTagLinks(productIds: readonly string[]): Promise<ProductTag[]> {
     return this.connection
       .select()
       .from(productTag)
       .where(
-        and(
-          eq(productTag.storeId, this.storeId),
-          inArray(productTag.productId, [...productIds])
-        )
+        and(eq(productTag.storeId, this.storeId), inArray(productTag.productId, [...productIds])),
       );
   }
 
-  async getProductTag(
-    productId: string,
-    tagId: string
-  ): Promise<ProductTag | null> {
+  async getProductTag(productId: string, tagId: string): Promise<ProductTag | null> {
     const result = await this.connection
       .select()
       .from(productTag)
@@ -250,8 +222,8 @@ export class TagRepository extends BaseRepository {
         and(
           eq(productTag.storeId, this.storeId),
           eq(productTag.productId, productId),
-          eq(productTag.tagId, tagId)
-        )
+          eq(productTag.tagId, tagId),
+        ),
       )
       .limit(1);
 
@@ -262,17 +234,10 @@ export class TagRepository extends BaseRepository {
     return this.connection
       .select()
       .from(productTag)
-      .where(
-        and(
-          eq(productTag.storeId, this.storeId),
-          inArray(productTag.tagId, [...tagIds])
-        )
-      );
+      .where(and(eq(productTag.storeId, this.storeId), inArray(productTag.tagId, [...tagIds])));
   }
 
-  async countProductsByTagIds(
-    tagIds: readonly string[]
-  ): Promise<Map<string, number>> {
+  async countProductsByTagIds(tagIds: readonly string[]): Promise<Map<string, number>> {
     if (tagIds.length === 0) return new Map();
 
     const rows = await this.connection
@@ -281,12 +246,7 @@ export class TagRepository extends BaseRepository {
         count: tag.productsCount,
       })
       .from(tag)
-      .where(
-        and(
-          eq(tag.storeId, this.storeId),
-          inArray(tag.id, [...tagIds])
-        )
-      );
+      .where(and(eq(tag.storeId, this.storeId), inArray(tag.id, [...tagIds])));
 
     return new Map(rows.map((row) => [row.tagId, row.count]));
   }
@@ -326,8 +286,8 @@ export class TagRepository extends BaseRepository {
           and(
             eq(productTag.storeId, this.storeId),
             eq(productTag.productId, productId),
-            eq(productTag.tagId, tagId)
-          )
+            eq(productTag.tagId, tagId),
+          ),
         )
         .limit(1);
       return existing[0];
@@ -345,8 +305,8 @@ export class TagRepository extends BaseRepository {
         and(
           eq(productTag.storeId, this.storeId),
           eq(productTag.productId, productId),
-          eq(productTag.tagId, tagId)
-        )
+          eq(productTag.tagId, tagId),
+        ),
       )
       .returning({ productId: productTag.productId });
 

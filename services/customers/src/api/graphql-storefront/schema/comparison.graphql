@@ -2,40 +2,60 @@
 # selection. The persistence shape is intentionally not exposed in Storefront
 # GraphQL. Catalog extends Customer with category-grouped presentation models.
 
-"""Values used to add one concrete variant to product comparisons."""
+"""
+Values used to add one concrete variant to product comparisons.
+"""
 input CustomerComparisonVariantAddInput {
-  """Published Catalog variant to add in the current storefront context."""
+  """
+  Published Catalog variant to add in the current storefront context.
+  """
   variantId: ID!
 
-  """Revision observed on Customer.productComparisons."""
+  """
+  Revision observed on Customer.productComparisons.
+  """
   expectedRevision: Int!
 
   idempotencyKey: String!
 }
 
-"""Values used to remove one concrete variant from product comparisons."""
+"""
+Values used to remove one concrete variant from product comparisons.
+"""
 input CustomerComparisonVariantRemoveInput {
-  """Catalog variant to remove from the authenticated customer's selection."""
+  """
+  Catalog variant to remove from the authenticated customer's selection.
+  """
   variantId: ID!
 
-  """Revision observed on Customer.productComparisons."""
+  """
+  Revision observed on Customer.productComparisons.
+  """
   expectedRevision: Int!
 
   idempotencyKey: String!
 }
 
-"""Values used to clear one category-based product comparison."""
+"""
+Values used to clear one category-based product comparison.
+"""
 input CustomerComparisonCategoryClearInput {
-  """Current Catalog category whose selected variants must be removed."""
+  """
+  Current Catalog category whose selected variants must be removed.
+  """
   categoryId: ID!
 
-  """Revision observed on Customer.productComparisons."""
+  """
+  Revision observed on Customer.productComparisons.
+  """
   expectedRevision: Int!
 
   idempotencyKey: String!
 }
 
-"""Result of changing the authenticated customer's comparison selection."""
+"""
+Result of changing the authenticated customer's comparison selection.
+"""
 type CustomerComparisonMutationPayload {
   """
   Customer whose presentation models can be refetched through the Catalog-owned
@@ -43,7 +63,9 @@ type CustomerComparisonMutationPayload {
   """
   customer: Customer
 
-  """New persisted selection revision, or null when the operation failed."""
+  """
+  New persisted selection revision, or null when the operation failed.
+  """
   revision: Int
 
   userErrors: [CustomerUserError!]!

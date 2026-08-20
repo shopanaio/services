@@ -50,7 +50,7 @@ export function useSignIn(): UseSignInReturn {
           setStoredTokens(
             payload.token.accessToken,
             payload.token.refreshToken,
-            payload.token.expiresIn
+            payload.token.expiresIn,
           );
 
           client.writeQuery({
@@ -79,7 +79,7 @@ export function useSignIn(): UseSignInReturn {
         };
       }
     },
-    [mutate, client]
+    [mutate, client],
   );
 
   return { signIn, loading, error: error ?? null, reset };

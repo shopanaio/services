@@ -12,8 +12,7 @@ const DEFAULT_STATUS_MAP: StatusMap = {
   archived: { label: "Archived", color: "warning" },
 };
 
-interface IStatusCellRendererProps<T extends IPickableEntity>
-  extends CustomCellRendererProps<T> {
+interface IStatusCellRendererProps<T extends IPickableEntity> extends CustomCellRendererProps<T> {
   statusMap?: StatusMap;
 }
 

@@ -1,7 +1,4 @@
-import type {
-  CheckoutPipelineAddress,
-  CheckoutPipelineJsonObject,
-} from "./common.js";
+import type { CheckoutPipelineAddress, CheckoutPipelineJsonObject } from "./common.js";
 import type { PricingCheckoutCartLineIntent } from "@shopana/broker-types";
 
 /** Shared verbatim with Pricing to prevent merchandise/component drift. */

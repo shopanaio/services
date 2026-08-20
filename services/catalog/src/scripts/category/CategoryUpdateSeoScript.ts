@@ -14,9 +14,7 @@ export class CategoryUpdateSeoScript extends BaseScript<
   CategoryUpdateSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: CategoryUpdateSeoParams,
-  ): Promise<CategoryUpdateSectionResult> {
+  protected async execute(params: CategoryUpdateSeoParams): Promise<CategoryUpdateSectionResult> {
     const existing = await this.repository.category.findById(params.categoryId);
     if (!existing) {
       return {
@@ -32,10 +30,7 @@ export class CategoryUpdateSeoScript extends BaseScript<
     }
 
     if (params.seo === null) {
-      await this.repository.translation.deleteCategorySeo(
-        params.categoryId,
-        this.getLocale(),
-      );
+      await this.repository.translation.deleteCategorySeo(params.categoryId, this.getLocale());
     } else {
       await this.repository.translation.upsertCategorySeo({
         storeId: this.getProjectId(),

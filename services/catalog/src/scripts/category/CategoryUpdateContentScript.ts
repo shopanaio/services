@@ -3,10 +3,7 @@ import type {
   CategoryContentParams,
   CategoryUpdateSectionResult,
 } from "../../workflows/dto/CategoryUpdateWorkflowDto.js";
-import {
-  serializeRichTextJsonText,
-  toRichTextStorage,
-} from "../shared/richText.js";
+import { serializeRichTextJsonText, toRichTextStorage } from "../shared/richText.js";
 
 export interface CategoryUpdateContentParams extends CategoryContentParams {
   categoryId: string;
@@ -34,10 +31,9 @@ export class CategoryUpdateContentScript extends BaseScript<
       };
     }
 
-    const [existingTranslation] =
-      await this.repository.category.getTranslationsByCategoryIds([
-        params.categoryId,
-      ]);
+    const [existingTranslation] = await this.repository.category.getTranslationsByCategoryIds([
+      params.categoryId,
+    ]);
 
     const nextDescription =
       params.description === undefined
@@ -66,17 +62,13 @@ export class CategoryUpdateContentScript extends BaseScript<
       descriptionJson:
         params.description === undefined
           ? (nextDescription.json as string | null)
-          : serializeRichTextJsonText(
-              nextDescription.json as Record<string, unknown> | null,
-            ),
+          : serializeRichTextJsonText(nextDescription.json as Record<string, unknown> | null),
       excerptText: nextExcerpt.text,
       excerptHtml: nextExcerpt.html,
       excerptJson:
         params.excerpt === undefined
           ? (nextExcerpt.json as string | null)
-          : serializeRichTextJsonText(
-              nextExcerpt.json as Record<string, unknown> | null,
-            ),
+          : serializeRichTextJsonText(nextExcerpt.json as Record<string, unknown> | null),
     });
 
     const category = await this.repository.category.findById(params.categoryId);

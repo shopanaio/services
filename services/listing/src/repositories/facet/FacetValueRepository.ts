@@ -58,9 +58,7 @@ const facetValueSelectColumns = {
   updatedAt: facetValue.updatedAt,
 };
 
-function uniqueFacetSourceValueRefs(
-  refs: readonly FacetSourceValueRef[]
-): FacetSourceValueRef[] {
+function uniqueFacetSourceValueRefs(refs: readonly FacetSourceValueRef[]): FacetSourceValueRef[] {
   return [
     ...new Map(
       refs
@@ -70,10 +68,7 @@ function uniqueFacetSourceValueRefs(
           valueHandle: ref.valueHandle?.trim(),
         }))
         .filter((ref) => ref.sourceHandle.length > 0)
-        .map((ref) => [
-          `${ref.facetType}\0${ref.sourceHandle}\0${ref.valueHandle ?? ""}`,
-          ref,
-        ])
+        .map((ref) => [`${ref.facetType}\0${ref.sourceHandle}\0${ref.valueHandle ?? ""}`, ref]),
     ).values(),
   ];
 }
@@ -126,8 +121,8 @@ export class FacetValueRepository extends BaseRepository {
         and(
           eq(facetValue.storeId, this.storeId),
           eq(facetValue.facetId, facetId),
-          isNull(facetValue.parentId)
-        )
+          isNull(facetValue.parentId),
+        ),
       )
       .orderBy(asc(facetValue.sortIndex), asc(facetValue.id));
   }
@@ -141,8 +136,8 @@ export class FacetValueRepository extends BaseRepository {
         and(
           eq(facetValue.storeId, this.storeId),
           inArray(facetValue.facetId, [...facetIds]),
-          isNull(facetValue.parentId)
-        )
+          isNull(facetValue.parentId),
+        ),
       )
       .orderBy(asc(facetValue.sortIndex), asc(facetValue.id));
   }
@@ -155,10 +150,7 @@ export class FacetValueRepository extends BaseRepository {
       .orderBy(asc(facetValue.sortIndex), asc(facetValue.id));
   }
 
-  async findRootByFacetIdAndHandle(
-    facetId: string,
-    handle: string
-  ): Promise<FacetValue | null> {
+  async findRootByFacetIdAndHandle(facetId: string, handle: string): Promise<FacetValue | null> {
     const rows = await this.connection
       .select()
       .from(facetValue)
@@ -167,8 +159,8 @@ export class FacetValueRepository extends BaseRepository {
           eq(facetValue.storeId, this.storeId),
           eq(facetValue.facetId, facetId),
           eq(facetValue.handle, handle),
-          isNull(facetValue.parentId)
-        )
+          isNull(facetValue.parentId),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -176,7 +168,7 @@ export class FacetValueRepository extends BaseRepository {
 
   async getRootValuesByFacetIdAndHandles(
     facetId: string,
-    handles: readonly string[]
+    handles: readonly string[],
   ): Promise<FacetValue[]> {
     const uniqueHandles = [...new Set(handles)];
     if (uniqueHandles.length === 0) return [];
@@ -188,8 +180,8 @@ export class FacetValueRepository extends BaseRepository {
           eq(facetValue.storeId, this.storeId),
           eq(facetValue.facetId, facetId),
           inArray(facetValue.handle, uniqueHandles),
-          isNull(facetValue.parentId)
-        )
+          isNull(facetValue.parentId),
+        ),
       );
   }
 
@@ -222,10 +214,7 @@ export class FacetValueRepository extends BaseRepository {
     return rows[0];
   }
 
-  async updateValue(
-    id: string,
-    data: FacetValueUpdateData
-  ): Promise<FacetValue | null> {
+  async updateValue(id: string, data: FacetValueUpdateData): Promise<FacetValue | null> {
     const updates: Partial<NewFacetValue> = {
       updatedAt: new Date().toISOString(),
     };
@@ -274,9 +263,7 @@ export class FacetValueRepository extends BaseRepository {
       .where(and(eq(facetValue.storeId, this.storeId), inArray(facetValue.id, [...valueIds])));
   }
 
-  async getTranslationsByValueIds(
-    valueIds: readonly string[]
-  ): Promise<FacetValueTranslation[]> {
+  async getTranslationsByValueIds(valueIds: readonly string[]): Promise<FacetValueTranslation[]> {
     if (valueIds.length === 0) return [];
     return this.connection
       .select()
@@ -285,14 +272,12 @@ export class FacetValueRepository extends BaseRepository {
         and(
           eq(facetValueTranslation.storeId, this.storeId),
           eq(facetValueTranslation.locale, this.locale),
-          inArray(facetValueTranslation.facetValueId, [...valueIds])
-        )
+          inArray(facetValueTranslation.facetValueId, [...valueIds]),
+        ),
       );
   }
 
-  async getSourceChildrenByParentIds(
-    parentIds: readonly string[]
-  ): Promise<FacetValue[]> {
+  async getSourceChildrenByParentIds(parentIds: readonly string[]): Promise<FacetValue[]> {
     const uniqueParentIds = [...new Set(parentIds)];
     if (uniqueParentIds.length === 0) return [];
     return this.connection
@@ -302,15 +287,13 @@ export class FacetValueRepository extends BaseRepository {
         and(
           eq(facetValue.storeId, this.storeId),
           inArray(facetValue.parentId, uniqueParentIds),
-          eq(facetValue.kind, "source")
-        )
+          eq(facetValue.kind, "source"),
+        ),
       )
       .orderBy(asc(facetValue.handle), asc(facetValue.id));
   }
 
-  async getSourceValuesByFacetIds(
-    facetIds: readonly string[]
-  ): Promise<FacetValue[]> {
+  async getSourceValuesByFacetIds(facetIds: readonly string[]): Promise<FacetValue[]> {
     const uniqueFacetIds = [...new Set(facetIds)];
     if (uniqueFacetIds.length === 0) return [];
 
@@ -321,14 +304,14 @@ export class FacetValueRepository extends BaseRepository {
         and(
           eq(facetValue.storeId, this.storeId),
           inArray(facetValue.facetId, uniqueFacetIds),
-          eq(facetValue.kind, "source")
-        )
+          eq(facetValue.kind, "source"),
+        ),
       )
       .orderBy(asc(facetValue.facetId), asc(facetValue.handle), asc(facetValue.id));
   }
 
   async getSourceValuesByFacetTypes(
-    facetTypes: readonly FacetSourceValueFacetType[]
+    facetTypes: readonly FacetSourceValueFacetType[],
   ): Promise<FacetValue[]> {
     const uniqueFacetTypes = [...new Set(facetTypes)];
     if (uniqueFacetTypes.length === 0) return [];
@@ -338,46 +321,38 @@ export class FacetValueRepository extends BaseRepository {
       .from(facetValue)
       .innerJoin(
         facet,
-        and(eq(facet.id, facetValue.facetId), eq(facet.storeId, facetValue.storeId))
+        and(eq(facet.id, facetValue.facetId), eq(facet.storeId, facetValue.storeId)),
       )
       .where(
         and(
           eq(facetValue.storeId, this.storeId),
           eq(facetValue.kind, "source"),
-          inArray(facet.facetType, uniqueFacetTypes)
-        )
+          inArray(facet.facetType, uniqueFacetTypes),
+        ),
       )
       .orderBy(asc(facetValue.facetId), asc(facetValue.handle), asc(facetValue.id));
   }
 
-  async getSourceValuesByRefs(
-    refs: readonly FacetValueRef[]
-  ): Promise<FacetValue[]> {
+  async getSourceValuesByRefs(refs: readonly FacetValueRef[]): Promise<FacetValue[]> {
     const uniqueRefs = [
       ...new Map(refs.map((ref) => [`${ref.facetId}:${ref.handle}`, ref])).values(),
     ];
     if (uniqueRefs.length === 0) return [];
 
     const predicates = uniqueRefs.map((ref) =>
-      and(eq(facetValue.facetId, ref.facetId), eq(facetValue.handle, ref.handle))
+      and(eq(facetValue.facetId, ref.facetId), eq(facetValue.handle, ref.handle)),
     );
 
     return this.connection
       .select()
       .from(facetValue)
       .where(
-        and(
-          eq(facetValue.storeId, this.storeId),
-          eq(facetValue.kind, "source"),
-          or(...predicates)
-        )
+        and(eq(facetValue.storeId, this.storeId), eq(facetValue.kind, "source"), or(...predicates)),
       )
       .orderBy(asc(facetValue.facetId), asc(facetValue.handle), asc(facetValue.id));
   }
 
-  async getSourceValuesBySourceRefs(
-    refs: readonly FacetSourceValueRef[]
-  ): Promise<FacetValue[]> {
+  async getSourceValuesBySourceRefs(refs: readonly FacetSourceValueRef[]): Promise<FacetValue[]> {
     const uniqueRefs = uniqueFacetSourceValueRefs(refs);
     if (uniqueRefs.length === 0) return [];
 
@@ -390,7 +365,7 @@ export class FacetValueRepository extends BaseRepository {
         predicates.push(
           valueHandle
             ? and(eq(facet.facetType, "TAG"), eq(facetValue.handle, valueHandle))!
-            : eq(facet.facetType, "TAG")
+            : eq(facet.facetType, "TAG"),
         );
         continue;
       }
@@ -399,10 +374,7 @@ export class FacetValueRepository extends BaseRepository {
       predicates.push(
         valueHandle
           ? and(eq(facet.facetType, ref.facetType), eq(facetValue.handle, valueHandle))!
-          : and(
-              eq(facet.facetType, ref.facetType),
-              sourceValueHandleStartsWith(ref.sourceHandle)
-            )!
+          : and(eq(facet.facetType, ref.facetType), sourceValueHandleStartsWith(ref.sourceHandle))!,
       );
     }
 
@@ -413,21 +385,15 @@ export class FacetValueRepository extends BaseRepository {
       .from(facetValue)
       .innerJoin(
         facet,
-        and(eq(facet.id, facetValue.facetId), eq(facet.storeId, facetValue.storeId))
+        and(eq(facet.id, facetValue.facetId), eq(facet.storeId, facetValue.storeId)),
       )
       .where(
-        and(
-          eq(facetValue.storeId, this.storeId),
-          eq(facetValue.kind, "source"),
-          or(...predicates)
-        )
+        and(eq(facetValue.storeId, this.storeId), eq(facetValue.kind, "source"), or(...predicates)),
       )
       .orderBy(asc(facetValue.facetId), asc(facetValue.handle), asc(facetValue.id));
   }
 
-  async getValidSourceValuesByHandles(
-    handles: readonly string[]
-  ): Promise<FacetValue[]> {
+  async getValidSourceValuesByHandles(handles: readonly string[]): Promise<FacetValue[]> {
     const uniqueHandles = [...new Set(handles)];
     if (uniqueHandles.length === 0) return [];
 
@@ -440,21 +406,19 @@ export class FacetValueRepository extends BaseRepository {
           eq(facetValue.kind, "source"),
           inArray(facetValue.handle, uniqueHandles),
           eq(facetValue.enabled, true),
-          eq(facetValue.referenceStatus, "VALID")
-        )
+          eq(facetValue.referenceStatus, "VALID"),
+        ),
       )
       .orderBy(asc(facetValue.handle), asc(facetValue.facetId), asc(facetValue.id));
   }
 
-  async getGroupParentsBySourceValueIds(
-    valueIds: readonly string[]
-  ): Promise<FacetValue[]> {
+  async getGroupParentsBySourceValueIds(valueIds: readonly string[]): Promise<FacetValue[]> {
     const sourceValues = await this.getByIds(valueIds);
     const parentIds = [
       ...new Set(
         sourceValues
           .map((value) => value.parentId)
-          .filter((parentId): parentId is string => typeof parentId === "string")
+          .filter((parentId): parentId is string => typeof parentId === "string"),
       ),
     ];
     if (parentIds.length === 0) return [];
@@ -466,14 +430,14 @@ export class FacetValueRepository extends BaseRepository {
         and(
           eq(facetValue.storeId, this.storeId),
           inArray(facetValue.id, parentIds),
-          eq(facetValue.kind, "group")
-        )
+          eq(facetValue.kind, "group"),
+        ),
       );
   }
 
   async refreshValueStatus(
     id: string,
-    referenceStatus: FacetValue["referenceStatus"]
+    referenceStatus: FacetValue["referenceStatus"],
   ): Promise<{
     id: string;
     previousStatus: FacetValue["referenceStatus"];
@@ -514,9 +478,7 @@ export class FacetValueRepository extends BaseRepository {
     };
   }
 
-  async getVisibleValueSourceHandles(
-    valueIds: readonly string[]
-  ): Promise<Map<string, string[]>> {
+  async getVisibleValueSourceHandles(valueIds: readonly string[]): Promise<Map<string, string[]>> {
     const result = new Map<string, string[]>();
     const values = await this.getByIds(valueIds);
 
@@ -555,10 +517,7 @@ export class FacetValueRepository extends BaseRepository {
     return result;
   }
 
-  async attachSourcesToGroup(
-    groupValueId: string,
-    sourceValueIds: string[]
-  ): Promise<void> {
+  async attachSourcesToGroup(groupValueId: string, sourceValueIds: string[]): Promise<void> {
     const uniqueSourceValueIds = [...new Set(sourceValueIds)];
     if (uniqueSourceValueIds.length === 0) return;
 
@@ -572,8 +531,8 @@ export class FacetValueRepository extends BaseRepository {
         and(
           eq(facetValue.storeId, this.storeId),
           inArray(facetValue.id, uniqueSourceValueIds),
-          eq(facetValue.kind, "source")
-        )
+          eq(facetValue.kind, "source"),
+        ),
       );
   }
 
@@ -591,8 +550,8 @@ export class FacetValueRepository extends BaseRepository {
         and(
           eq(facetValue.storeId, this.storeId),
           inArray(facetValue.id, uniqueSourceValueIds),
-          eq(facetValue.kind, "source")
-        )
+          eq(facetValue.kind, "source"),
+        ),
       );
   }
 }

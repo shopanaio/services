@@ -1,15 +1,8 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  decodeCustomerGlobalId,
-  decodeReviewsOwnedGlobalId,
-} from "../global-id-where-mappers.js";
+import { decodeCustomerGlobalId, decodeReviewsOwnedGlobalId } from "../global-id-where-mappers.js";
 import {
   contentItem,
   contentListView,
@@ -24,10 +17,7 @@ import {
   type NewContentPublication,
   type NewContentTranslation,
 } from "../models/index.js";
-import type {
-  OptimisticMutationResult,
-  RepositoryConnectionResult,
-} from "../types.js";
+import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const contentRelayQuery = createRelayQuery(
   createQuery(contentListView)
@@ -38,7 +28,7 @@ export const contentRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "reviewContent", tieBreaker: "id" }
+  { name: "reviewContent", tieBreaker: "id" },
 );
 
 export type ContentRelayInput = InferRelayInput<typeof contentRelayQuery>;
@@ -80,25 +70,14 @@ export type ContentRestorePatch = ContentPatch & {
 export type ContentTranslationPatch = Partial<
   Pick<
     NewContentTranslation,
-    | "title"
-    | "body"
-    | "source"
-    | "status"
-    | "reviewedByPrincipalId"
-    | "reviewedAt"
+    "title" | "body" | "source" | "status" | "reviewedByPrincipalId" | "reviewedAt"
   >
 >;
 
 export type ContentPublicationPatch = Partial<
   Pick<
     NewContentPublication,
-    | "channel"
-    | "locale"
-    | "status"
-    | "scheduledAt"
-    | "publishedAt"
-    | "unpublishedAt"
-    | "lastError"
+    "channel" | "locale" | "status" | "scheduledAt" | "publishedAt" | "unpublishedAt" | "lastError"
   >
 >;
 
@@ -106,21 +85,27 @@ export class ContentRepository extends BaseRepository {
   @ReadOnly()
   async findByIdempotencyKey(
     sourceChannel: string,
-    idempotencyKey: string
+    idempotencyKey: string,
   ): Promise<ContentItem | null> {
-    const rows = await this.connection.select().from(contentItem).where(and(
-      eq(contentItem.storeId, this.storeId),
-      eq(contentItem.sourceChannel, sourceChannel),
-      eq(contentItem.idempotencyKey, idempotencyKey),
-      isNull(contentItem.deletedAt)
-    )).limit(1);
+    const rows = await this.connection
+      .select()
+      .from(contentItem)
+      .where(
+        and(
+          eq(contentItem.storeId, this.storeId),
+          eq(contentItem.sourceChannel, sourceChannel),
+          eq(contentItem.idempotencyKey, idempotencyKey),
+          isNull(contentItem.deletedAt),
+        ),
+      )
+      .limit(1);
     return rows[0] ?? null;
   }
 
   @ReadOnly()
   async findById(
     id: string,
-    options: { includeDeleted?: boolean } = {}
+    options: { includeDeleted?: boolean } = {},
   ): Promise<ContentItem | null> {
     const rows = await this.connection
       .select()
@@ -129,8 +114,8 @@ export class ContentRepository extends BaseRepository {
         and(
           eq(contentItem.storeId, this.storeId),
           eq(contentItem.id, id),
-          ...(options.includeDeleted ? [] : [isNull(contentItem.deletedAt)])
-        )
+          ...(options.includeDeleted ? [] : [isNull(contentItem.deletedAt)]),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -139,7 +124,7 @@ export class ContentRepository extends BaseRepository {
   @ReadOnly()
   async getByIds(
     ids: readonly string[],
-    options: { includeDeleted?: boolean } = {}
+    options: { includeDeleted?: boolean } = {},
   ): Promise<ContentItem[]> {
     if (ids.length === 0) return [];
     return this.connection
@@ -149,23 +134,19 @@ export class ContentRepository extends BaseRepository {
         and(
           eq(contentItem.storeId, this.storeId),
           inArray(contentItem.id, [...new Set(ids)]),
-          ...(options.includeDeleted ? [] : [isNull(contentItem.deletedAt)])
-        )
+          ...(options.includeDeleted ? [] : [isNull(contentItem.deletedAt)]),
+        ),
       );
   }
 
   @ReadOnly()
-  async getConnection(
-    args: ContentConnectionInput
-  ): Promise<RepositoryConnectionResult> {
+  async getConnection(args: ContentConnectionInput): Promise<RepositoryConnectionResult> {
     const { where, orderBy, meta, ...pagination } = args;
     const mergedWhere: ContentRelayInput["where"] = {
       _and: [
         { storeId: { _eq: this.storeId } },
         ...(meta?.includeDeleted ? [] : [{ deletedAt: { _is: null } }]),
-        ...(meta?.includeRedacted === false
-          ? [{ redactedAt: { _is: null } }]
-          : []),
+        ...(meta?.includeRedacted === false ? [{ redactedAt: { _is: null } }] : []),
         ...(where ? [where] : []),
       ],
     };
@@ -197,7 +178,7 @@ export class ContentRepository extends BaseRepository {
       NewContentItem,
       "id" | "storeId" | "revision" | "createdAt" | "updatedAt" | "deletedAt" | "redactedAt"
     >,
-    id?: string
+    id?: string,
   ): Promise<ContentItem> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -223,7 +204,7 @@ export class ContentRepository extends BaseRepository {
   async update(
     id: string,
     expectedRevision: number,
-    patch: ContentPatch
+    patch: ContentPatch,
   ): Promise<OptimisticMutationResult<ContentItem>> {
     const rows = await this.connection
       .update(contentItem)
@@ -237,8 +218,8 @@ export class ContentRepository extends BaseRepository {
           eq(contentItem.storeId, this.storeId),
           eq(contentItem.id, id),
           eq(contentItem.revision, expectedRevision),
-          isNull(contentItem.deletedAt)
-        )
+          isNull(contentItem.deletedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
@@ -246,10 +227,7 @@ export class ContentRepository extends BaseRepository {
   }
 
   @Transactional()
-  async updateWithinRevision(
-    id: string,
-    patch: ContentPatch
-  ): Promise<ContentItem | null> {
+  async updateWithinRevision(id: string, patch: ContentPatch): Promise<ContentItem | null> {
     const rows = await this.connection
       .update(contentItem)
       .set({ ...patch, updatedAt: new Date().toISOString() })
@@ -257,8 +235,8 @@ export class ContentRepository extends BaseRepository {
         and(
           eq(contentItem.storeId, this.storeId),
           eq(contentItem.id, id),
-          isNull(contentItem.deletedAt)
-        )
+          isNull(contentItem.deletedAt),
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -274,7 +252,7 @@ export class ContentRepository extends BaseRepository {
       eq(contentItem.storeId, this.storeId),
       eq(contentItem.id, input.id),
       eq(contentItem.revision, input.expectedRevision),
-      isNull(contentItem.deletedAt)
+      isNull(contentItem.deletedAt),
     );
     const now = new Date().toISOString();
     const rows = input.permanent
@@ -295,7 +273,7 @@ export class ContentRepository extends BaseRepository {
   @Transactional()
   async redact(
     id: string,
-    expectedRevision: number
+    expectedRevision: number,
   ): Promise<OptimisticMutationResult<ContentItem>> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -318,8 +296,8 @@ export class ContentRepository extends BaseRepository {
           eq(contentItem.storeId, this.storeId),
           eq(contentItem.id, id),
           eq(contentItem.revision, expectedRevision),
-          isNull(contentItem.deletedAt)
-        )
+          isNull(contentItem.deletedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
@@ -330,7 +308,7 @@ export class ContentRepository extends BaseRepository {
   async restore(
     id: string,
     expectedRevision: number,
-    patch: ContentRestorePatch
+    patch: ContentRestorePatch,
   ): Promise<OptimisticMutationResult<ContentItem>> {
     const rows = await this.connection
       .update(contentItem)
@@ -344,8 +322,8 @@ export class ContentRepository extends BaseRepository {
           eq(contentItem.storeId, this.storeId),
           eq(contentItem.id, id),
           eq(contentItem.revision, expectedRevision),
-          isNull(contentItem.deletedAt)
-        )
+          isNull(contentItem.deletedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
@@ -357,20 +335,13 @@ export class ContentRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(contentMetrics)
-      .where(
-        and(
-          eq(contentMetrics.storeId, this.storeId),
-          eq(contentMetrics.contentId, contentId)
-        )
-      )
+      .where(and(eq(contentMetrics.storeId, this.storeId), eq(contentMetrics.contentId, contentId)))
       .limit(1);
     return rows[0] ?? null;
   }
 
   @ReadOnly()
-  async getMetricsByContentIds(
-    contentIds: readonly string[]
-  ): Promise<ContentMetrics[]> {
+  async getMetricsByContentIds(contentIds: readonly string[]): Promise<ContentMetrics[]> {
     if (contentIds.length === 0) return [];
     return this.connection
       .select()
@@ -378,8 +349,8 @@ export class ContentRepository extends BaseRepository {
       .where(
         and(
           eq(contentMetrics.storeId, this.storeId),
-          inArray(contentMetrics.contentId, [...new Set(contentIds)])
-        )
+          inArray(contentMetrics.contentId, [...new Set(contentIds)]),
+        ),
       );
   }
 
@@ -391,16 +362,14 @@ export class ContentRepository extends BaseRepository {
       .where(
         and(
           eq(contentTranslation.storeId, this.storeId),
-          eq(contentTranslation.contentId, contentId)
-        )
+          eq(contentTranslation.contentId, contentId),
+        ),
       )
       .orderBy(asc(contentTranslation.locale));
   }
 
   @ReadOnly()
-  async getTranslationsByContentIds(
-    contentIds: readonly string[]
-  ): Promise<ContentTranslation[]> {
+  async getTranslationsByContentIds(contentIds: readonly string[]): Promise<ContentTranslation[]> {
     if (contentIds.length === 0) return [];
     return this.connection
       .select()
@@ -408,19 +377,14 @@ export class ContentRepository extends BaseRepository {
       .where(
         and(
           eq(contentTranslation.storeId, this.storeId),
-          inArray(contentTranslation.contentId, [...new Set(contentIds)])
-        )
+          inArray(contentTranslation.contentId, [...new Set(contentIds)]),
+        ),
       )
-      .orderBy(
-        asc(contentTranslation.contentId),
-        asc(contentTranslation.locale)
-      );
+      .orderBy(asc(contentTranslation.contentId), asc(contentTranslation.locale));
   }
 
   @ReadOnly()
-  async getTranslationsByIds(
-    ids: readonly string[]
-  ): Promise<ContentTranslation[]> {
+  async getTranslationsByIds(ids: readonly string[]): Promise<ContentTranslation[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -428,17 +392,14 @@ export class ContentRepository extends BaseRepository {
       .where(
         and(
           eq(contentTranslation.storeId, this.storeId),
-          inArray(contentTranslation.id, [...new Set(ids)])
-        )
+          inArray(contentTranslation.id, [...new Set(ids)]),
+        ),
       );
   }
 
   @Transactional()
   async createTranslation(
-    input: Omit<
-      NewContentTranslation,
-      "id" | "storeId" | "revision" | "createdAt" | "updatedAt"
-    >
+    input: Omit<NewContentTranslation, "id" | "storeId" | "revision" | "createdAt" | "updatedAt">,
   ): Promise<ContentTranslation> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -463,15 +424,15 @@ export class ContentRepository extends BaseRepository {
     items: readonly Omit<
       NewContentTranslation,
       "id" | "storeId" | "contentId" | "revision" | "createdAt" | "updatedAt"
-    >[]
+    >[],
   ): Promise<ContentTranslation[]> {
     await this.connection
       .delete(contentTranslation)
       .where(
         and(
           eq(contentTranslation.storeId, this.storeId),
-          eq(contentTranslation.contentId, contentId)
-        )
+          eq(contentTranslation.contentId, contentId),
+        ),
       );
     if (items.length === 0) return [];
 
@@ -488,7 +449,7 @@ export class ContentRepository extends BaseRepository {
           revision: 1,
           createdAt: now,
           updatedAt: now,
-        }))
+        })),
       )
       .returning();
   }
@@ -497,7 +458,7 @@ export class ContentRepository extends BaseRepository {
   async updateTranslation(
     id: string,
     expectedRevision: number,
-    patch: ContentTranslationPatch
+    patch: ContentTranslationPatch,
   ): Promise<OptimisticMutationResult<ContentTranslation>> {
     const rows = await this.connection
       .update(contentTranslation)
@@ -510,21 +471,19 @@ export class ContentRepository extends BaseRepository {
         and(
           eq(contentTranslation.storeId, this.storeId),
           eq(contentTranslation.id, id),
-          eq(contentTranslation.revision, expectedRevision)
-        )
+          eq(contentTranslation.revision, expectedRevision),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findTranslationById(id);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
   @Transactional()
   async deleteTranslation(
     id: string,
-    expectedRevision: number
+    expectedRevision: number,
   ): Promise<OptimisticMutationResult<ContentTranslation>> {
     const rows = await this.connection
       .delete(contentTranslation)
@@ -532,15 +491,13 @@ export class ContentRepository extends BaseRepository {
         and(
           eq(contentTranslation.storeId, this.storeId),
           eq(contentTranslation.id, id),
-          eq(contentTranslation.revision, expectedRevision)
-        )
+          eq(contentTranslation.revision, expectedRevision),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findTranslationById(id);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
   @ReadOnly()
@@ -551,16 +508,14 @@ export class ContentRepository extends BaseRepository {
       .where(
         and(
           eq(contentPublication.storeId, this.storeId),
-          eq(contentPublication.contentId, contentId)
-        )
+          eq(contentPublication.contentId, contentId),
+        ),
       )
       .orderBy(asc(contentPublication.channel), asc(contentPublication.locale));
   }
 
   @ReadOnly()
-  async getPublicationsByContentIds(
-    contentIds: readonly string[]
-  ): Promise<ContentPublication[]> {
+  async getPublicationsByContentIds(contentIds: readonly string[]): Promise<ContentPublication[]> {
     if (contentIds.length === 0) return [];
     return this.connection
       .select()
@@ -568,20 +523,18 @@ export class ContentRepository extends BaseRepository {
       .where(
         and(
           eq(contentPublication.storeId, this.storeId),
-          inArray(contentPublication.contentId, [...new Set(contentIds)])
-        )
+          inArray(contentPublication.contentId, [...new Set(contentIds)]),
+        ),
       )
       .orderBy(
         asc(contentPublication.contentId),
         asc(contentPublication.channel),
-        asc(contentPublication.locale)
+        asc(contentPublication.locale),
       );
   }
 
   @ReadOnly()
-  async getPublicationsByIds(
-    ids: readonly string[]
-  ): Promise<ContentPublication[]> {
+  async getPublicationsByIds(ids: readonly string[]): Promise<ContentPublication[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -589,17 +542,14 @@ export class ContentRepository extends BaseRepository {
       .where(
         and(
           eq(contentPublication.storeId, this.storeId),
-          inArray(contentPublication.id, [...new Set(ids)])
-        )
+          inArray(contentPublication.id, [...new Set(ids)]),
+        ),
       );
   }
 
   @Transactional()
   async createPublication(
-    input: Omit<
-      NewContentPublication,
-      "id" | "storeId" | "createdAt" | "updatedAt"
-    >
+    input: Omit<NewContentPublication, "id" | "storeId" | "createdAt" | "updatedAt">,
   ): Promise<ContentPublication> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -623,15 +573,15 @@ export class ContentRepository extends BaseRepository {
     items: readonly Omit<
       NewContentPublication,
       "id" | "storeId" | "contentId" | "createdAt" | "updatedAt"
-    >[]
+    >[],
   ): Promise<ContentPublication[]> {
     await this.connection
       .delete(contentPublication)
       .where(
         and(
           eq(contentPublication.storeId, this.storeId),
-          eq(contentPublication.contentId, contentId)
-        )
+          eq(contentPublication.contentId, contentId),
+        ),
       );
     if (items.length === 0) return [];
 
@@ -646,11 +596,10 @@ export class ContentRepository extends BaseRepository {
           storeId: this.storeId,
           contentId,
           publishedAt: item.status === "PUBLISHED" ? now : item.publishedAt,
-          unpublishedAt:
-            item.status === "UNPUBLISHED" ? now : item.unpublishedAt,
+          unpublishedAt: item.status === "UNPUBLISHED" ? now : item.unpublishedAt,
           createdAt: now,
           updatedAt: now,
-        }))
+        })),
       )
       .returning();
   }
@@ -659,7 +608,7 @@ export class ContentRepository extends BaseRepository {
   async updatePublication(
     id: string,
     expectedUpdatedAt: string,
-    patch: ContentPublicationPatch
+    patch: ContentPublicationPatch,
   ): Promise<OptimisticMutationResult<ContentPublication>> {
     const rows = await this.connection
       .update(contentPublication)
@@ -668,21 +617,19 @@ export class ContentRepository extends BaseRepository {
         and(
           eq(contentPublication.storeId, this.storeId),
           eq(contentPublication.id, id),
-          eq(contentPublication.updatedAt, expectedUpdatedAt)
-        )
+          eq(contentPublication.updatedAt, expectedUpdatedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findPublicationById(id);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
   @Transactional()
   async deletePublication(
     id: string,
-    expectedUpdatedAt: string
+    expectedUpdatedAt: string,
   ): Promise<OptimisticMutationResult<ContentPublication>> {
     const rows = await this.connection
       .delete(contentPublication)
@@ -690,56 +637,36 @@ export class ContentRepository extends BaseRepository {
         and(
           eq(contentPublication.storeId, this.storeId),
           eq(contentPublication.id, id),
-          eq(contentPublication.updatedAt, expectedUpdatedAt)
-        )
+          eq(contentPublication.updatedAt, expectedUpdatedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findPublicationById(id);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
-  private async optimisticContentMiss(
-    id: string
-  ): Promise<OptimisticMutationResult<ContentItem>> {
+  private async optimisticContentMiss(id: string): Promise<OptimisticMutationResult<ContentItem>> {
     const current = await this.findById(id, { includeDeleted: true });
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
   @ReadOnly()
-  async findTranslationById(
-    id: string
-  ): Promise<ContentTranslation | null> {
+  async findTranslationById(id: string): Promise<ContentTranslation | null> {
     const rows = await this.connection
       .select()
       .from(contentTranslation)
-      .where(
-        and(
-          eq(contentTranslation.storeId, this.storeId),
-          eq(contentTranslation.id, id)
-        )
-      )
+      .where(and(eq(contentTranslation.storeId, this.storeId), eq(contentTranslation.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
 
   @ReadOnly()
-  async findPublicationById(
-    id: string
-  ): Promise<ContentPublication | null> {
+  async findPublicationById(id: string): Promise<ContentPublication | null> {
     const rows = await this.connection
       .select()
       .from(contentPublication)
-      .where(
-        and(
-          eq(contentPublication.storeId, this.storeId),
-          eq(contentPublication.id, id)
-        )
-      )
+      .where(and(eq(contentPublication.storeId, this.storeId), eq(contentPublication.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }

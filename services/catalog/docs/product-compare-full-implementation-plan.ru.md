@@ -2,25 +2,22 @@
 
 ## Цель
 
-Довести Product Compare до production-ready backend-функции с единой canonical
-моделью в Catalog, полным management API для Admin и presentation-ready API для
-Storefront.
+Довести Product Compare до production-ready backend-функции с единой canonical моделью в Catalog,
+полным management API для Admin и presentation-ready API для Storefront.
 
 Результат реализации:
 
 - merchant создаёт comparison profiles, группы, поля и ENUM options;
-- category получает прямой profile, а product — effective profile только через
-  primary category и её ancestors;
+- category получает прямой profile, а product — effective profile только через primary category и её
+  ancestors;
 - product-local features и variant options явно связываются с canonical fields;
 - значения нормализуются при Admin-записи, а не во время Storefront-чтения;
-- authenticated customer хранит упорядоченный список concrete variants в
-  Customers;
-- Storefront получает готовые матрицы с выровненными колонками/cells, актуальными
-  price, availability и media;
+- authenticated customer хранит упорядоченный список concrete variants в Customers;
+- Storefront получает готовые матрицы с выровненными колонками/cells, актуальными price,
+  availability и media;
 - все операции store-scoped, transactional и fail closed при несовместимости.
 
-План следует
-`knowledge/vault/architecture/product-compare.ru.md`. Это clean-database cutover:
+План следует `knowledge/vault/architecture/product-compare.ru.md`. Это clean-database cutover:
 backfill, legacy tables, compatibility views, dual-read и dual-write запрещены.
 
 ## Scope
@@ -30,8 +27,7 @@ backfill, legacy tables, compatibility views, dual-read и dual-write запре
 - Catalog physical model и integrity rules;
 - Catalog repositories, loaders, application read model и scripts;
 - Catalog Admin GraphQL API;
-- Catalog Storefront GraphQL API: `Product.comparison` и
-  `Customer.productComparisons`;
+- Catalog Storefront GraphQL API: `Product.comparison` и `Customer.productComparisons`;
 - Customers Storefront mutations add/remove/clear и revision semantics;
 - Customers Admin read-only view сохранённого selection;
 - broker contracts между Catalog и Customers;
@@ -51,39 +47,34 @@ backfill, legacy tables, compatibility views, dual-read и dual-write запре
 
 ### Уже реализовано
 
-- Canonical SQL baseline находится в
-  `services/catalog/migrations/domains/0450_comparison/`.
-- Drizzle tables и types находятся в
-  `services/catalog/src/repositories/models/comparison.ts`.
-- Integrity triggers уже покрывают leaf feature, `SINGLE`, immutable populated
-  unit и mutual exclusion feature/option/`NOT_APPLICABLE`.
-- Customers хранит один flat ordered selection в `customer_comparison` и
-  `customer_comparison_item` с optimistic `revision`.
+- Canonical SQL baseline находится в `services/catalog/migrations/domains/0450_comparison/`.
+- Drizzle tables и types находятся в `services/catalog/src/repositories/models/comparison.ts`.
+- Integrity triggers уже покрывают leaf feature, `SINGLE`, immutable populated unit и mutual
+  exclusion feature/option/`NOT_APPLICABLE`.
+- Customers хранит один flat ordered selection в `customer_comparison` и `customer_comparison_item`
+  с optimistic `revision`.
 - Customers имеет transactional add/remove/clear scripts и Storefront mutations.
-- Broker actions ограничивают вызовы по trusted caller:
-  Customers selection читает только Catalog, Catalog variants валидирует только
-  для Customers.
-- Storefront SDL уже описывает `Customer.productComparisons`, comparison column
-  connection, groups, rows и cells.
-- Customers Admin API уже показывает read-only selection и федеративные ссылки
-  на Product/Variant.
+- Broker actions ограничивают вызовы по trusted caller: Customers selection читает только Catalog,
+  Catalog variants валидирует только для Customers.
+- Storefront SDL уже описывает `Customer.productComparisons`, comparison column connection, groups,
+  rows и cells.
+- Customers Admin API уже показывает read-only selection и федеративные ссылки на Product/Variant.
 
 ### Незавершённые части
 
 - В Catalog нет `ComparisonRepository`, comparison loaders и management scripts.
-- В Catalog Admin schema нет profiles, groups, fields, options, category
-  assignment и product mapping API.
+- В Catalog Admin schema нет profiles, groups, fields, options, category assignment и product
+  mapping API.
 - Comparison entity types отсутствуют в `GlobalIdEntity` и Admin `node/nodes`.
 - `ProductResolver` не реализует поле `comparison`.
 - `ProductComparisonColumnConnectionResolver.groups()` всегда возвращает `[]`.
-- Customer matrices группируют selection по category, но не проверяют effective
-  profile compatibility и не строят canonical rows/cells.
+- Customer matrices группируют selection по category, но не проверяют effective profile
+  compatibility и не строят canonical rows/cells.
 - Product page comparison candidate selection, ordering и limit отсутствуют.
-- Existing `getPublishedComparisonVariants()` проверяет базовую публикацию, но
-  comparison read path ещё не переиспользует полный storefront visibility
-  predicate.
-- Product/category lifecycle scripts не валидируют compatibility существующих
-  bindings при publish, primary-category move и profile assignment.
+- Existing `getPublishedComparisonVariants()` проверяет базовую публикацию, но comparison read path
+  ещё не переиспользует полный storefront visibility predicate.
+- Product/category lifecycle scripts не валидируют compatibility существующих bindings при publish,
+  primary-category move и profile assignment.
 - Static configuration cache и comparison-specific observability отсутствуют.
 
 ## Обязательные архитектурные решения
@@ -93,19 +84,17 @@ backfill, legacy tables, compatibility views, dual-read и dual-write запре
 - Catalog владеет profiles, mappings, normalized values и matrix builder.
 - Customers владеет только persisted selection:
   `(customer_id, revision, ordered product_id + variant_id)`.
-- Pricing/inventory/media остаются у owning domains и читаются в текущем
-  Storefront context.
+- Pricing/inventory/media остаются у owning domains и читаются в текущем Storefront context.
 - Customers никогда не читает Catalog DB, Catalog никогда не читает Customers DB.
 
 ### Tenant boundary
 
-- `store_id` всегда берётся из trusted `ServiceContext`; GraphQL input не содержит
-  `storeId`.
+- `store_id` всегда берётся из trusted `ServiceContext`; GraphQL input не содержит `storeId`.
 - Каждый repository query включает `store_id`.
-- Каждый script отдельно проверяет, что все owner entities принадлежат текущему
-  store, даже если это дополнительно защищено FK/trigger.
-- Static cache key начинается с `store:${storeId}` и включает locale и profile
-  revision. Contextual values не попадают в static cache.
+- Каждый script отдельно проверяет, что все owner entities принадлежат текущему store, даже если это
+  дополнительно защищено FK/trigger.
+- Static cache key начинается с `store:${storeId}` и включает locale и profile revision. Contextual
+  values не попадают в static cache.
 
 ### Effective profile
 
@@ -115,42 +104,39 @@ backfill, legacy tables, compatibility views, dual-read и dual-write запре
 2. ближайший assignment среди ancestors;
 3. `null`, если assignment отсутствует или resolved profile disabled.
 
-Secondary categories не участвуют. Для batch resolution использовать один
-store-scoped recursive CTE по `category.parent_id` или эквивалентный batch query;
-не выполнять обход hierarchy по одному product в resolver.
+Secondary categories не участвуют. Для batch resolution использовать один store-scoped recursive CTE
+по `category.parent_id` или эквивалентный batch query; не выполнять обход hierarchy по одному
+product в resolver.
 
 ### Совместимость
 
-- В первой полной версии поддерживается только `FULL`: все columns одной matrix
-  должны иметь один enabled effective `profile_id`.
+- В первой полной версии поддерживается только `FULL`: все columns одной matrix должны иметь один
+  enabled effective `profile_id`.
 - Incompatible persisted items не смешиваются и не сравниваются по `handle`.
-- Если сохранённый item больше не published/visible, он не попадает в presentation
-  model, но физически не удаляется read-запросом.
-- Если category/profile configuration стала несовместимой, matrix не должна
-  показывать частично неверные rows: группа пропускается с structured log, а
-  management mutation, создающая несовместимость, должна быть отклонена заранее.
+- Если сохранённый item больше не published/visible, он не попадает в presentation model, но
+  физически не удаляется read-запросом.
+- Если category/profile configuration стала несовместимой, matrix не должна показывать частично
+  неверные rows: группа пропускается с structured log, а management mutation, создающая
+  несовместимость, должна быть отклонена заранее.
 
 ### Source identity
 
 - Feature, option и localized value names не являются semantic identity.
-- Один `(product_id, comparison_field_id)` имеет только один source kind:
-  `FEATURE`, `OPTION` или `NOT_APPLICABLE`.
+- Один `(product_id, comparison_field_id)` имеет только один source kind: `FEATURE`, `OPTION` или
+  `NOT_APPLICABLE`.
 - Option можно привязать только к `SINGLE` field.
 - Group feature (`is_group = true`) не может быть source.
 
 ### Значения и статусы
 
-- `BOOLEAN`, `DECIMAL`, `ENUM`, `INTEGER`, `TEXT` хранятся в уже существующем
-  typed payload.
-- `DECIMAL`/`INTEGER` сохраняются в canonical unit; parsing и conversion
-  выполняются в Admin script.
+- `BOOLEAN`, `DECIMAL`, `ENUM`, `INTEGER`, `TEXT` хранятся в уже существующем typed payload.
+- `DECIMAL`/`INTEGER` сохраняются в canonical unit; parsing и conversion выполняются в Admin script.
 - `VALUE`: найден хотя бы один normalized source value.
 - `MISSING`: field применим, но source или normalized mapping отсутствует.
 - `NOT_APPLICABLE`: существует явная product/field запись.
-- `UNAVAILABLE`: только временный runtime failure contextual source; он не
-  записывается в configuration tables.
-- `hasDifferences` сравнивает canonical typed values и status, а не
-  `displayValue`.
+- `UNAVAILABLE`: только временный runtime failure contextual source; он не записывается в
+  configuration tables.
+- `hasDifferences` сравнивает canonical typed values и status, а не `displayValue`.
 
 ### Ordering и limits
 
@@ -158,11 +144,11 @@ store-scoped recursive CTE по `category.parent_id` или эквивалент
 - Fields: `sort_index`, затем `id` внутри group.
 - ENUM options: `sort_index`, затем `id`.
 - Persisted customer columns сохраняют `customer_comparison_item.position`.
-- Product-page columns: variants текущего product первыми, затем category
-  `lexo_rank`, product ID, default variant first, variant creation time и ID.
-- Вынести limits в один Catalog policy module. Начальные значения:
-  `20` columns для безаргументного `Product.comparison`, `100` как hard maximum
-  одной Relay page. Не размазывать magic numbers по resolvers.
+- Product-page columns: variants текущего product первыми, затем category `lexo_rank`, product ID,
+  default variant first, variant creation time и ID.
+- Вынести limits в один Catalog policy module. Начальные значения: `20` columns для безаргументного
+  `Product.comparison`, `100` как hard maximum одной Relay page. Не размазывать magic numbers по
+  resolvers.
 
 ## Целевой Admin API
 
@@ -216,9 +202,9 @@ type ComparisonProfile implements Node @key(fields: "id") {
 }
 ```
 
-`ComparisonGroup`, `ComparisonField` и `ComparisonFieldOption` также получают
-global IDs и доступны через `node/nodes`. Binding rows отдельными Node не делать:
-они представлены внутри `ProductComparisonConfiguration`.
+`ComparisonGroup`, `ComparisonField` и `ComparisonFieldOption` также получают global IDs и доступны
+через `node/nodes`. Binding rows отдельными Node не делать: они представлены внутри
+`ProductComparisonConfiguration`.
 
 `ProductComparisonConfiguration` возвращает:
 
@@ -226,8 +212,8 @@ global IDs и доступны через `node/nodes`. Binding rows отдел�
 - effective profile;
 - profile compatibility status;
 - ordered entries по всем fields effective profile;
-- для каждого entry — source kind, bound feature/option, normalized local values
-  либо explicit `NOT_APPLICABLE` reason;
+- для каждого entry — source kind, bound feature/option, normalized local values либо explicit
+  `NOT_APPLICABLE` reason;
 - unmapped local leaf features/options отдельными candidate lists для Admin UI.
 
 ### Mutation contract
@@ -244,17 +230,16 @@ productComparisonConfigurationSync(
 ): ProductComparisonConfigurationPayload!
 ```
 
-Profile create/update принимает весь nested aggregate: translations текущего
-context locale, groups, fields и ENUM options. Nested items имеют optional `id`:
-существующий ID обновляется, отсутствие ID создаёт UUIDv7, отсутствующий в полном
-update списке item удаляется.
+Profile create/update принимает весь nested aggregate: translations текущего context locale, groups,
+fields и ENUM options. Nested items имеют optional `id`: существующий ID обновляется, отсутствие ID
+создаёт UUIDv7, отсутствующий в полном update списке item удаляется.
 
-`comparisonProfileUpdate` принимает `expectedRevision`; `comparison_profile`
-получает `revision integer not null default 0`. Вложенные изменения выполняются
-одной compare-and-swap transaction и увеличивают aggregate revision один раз.
+`comparisonProfileUpdate` принимает `expectedRevision`; `comparison_profile` получает
+`revision integer not null default 0`. Вложенные изменения выполняются одной compare-and-swap
+transaction и увеличивают aggregate revision один раз.
 
-`categoryComparisonProfileSet` принимает `profileId: ID`; `null` удаляет direct
-assignment и возвращает новый effective profile.
+`categoryComparisonProfileSet` принимает `profileId: ID`; `null` удаляет direct assignment и
+возвращает новый effective profile.
 
 `productComparisonConfigurationSync` принимает:
 
@@ -264,14 +249,12 @@ assignment и возвращает новый effective profile.
 - для каждого field ровно один из `feature`, `option`, `notApplicable`;
 - feature/option local value IDs и typed normalized payloads.
 
-GraphQL input для normalized value содержит nullable typed fields
-`booleanValue`, `decimalValue`, `integerValue`, `textValue`, `fieldOptionId`.
-Script, ориентируясь на target field, требует ровно один корректный payload.
-GraphQL input union не имитировать неявно без semantic validation.
+GraphQL input для normalized value содержит nullable typed fields `booleanValue`, `decimalValue`,
+`integerValue`, `textValue`, `fieldOptionId`. Script, ориентируясь на target field, требует ровно
+один корректный payload. GraphQL input union не имитировать неявно без semantic validation.
 
-Все payloads возвращают entity/configuration и
-`userErrors: [GenericUserError!]!`. Field paths должны указывать точное nested
-место, например `groups.1.fields.2.canonicalUnit` или
+Все payloads возвращают entity/configuration и `userErrors: [GenericUserError!]!`. Field paths
+должны указывать точное nested место, например `groups.1.fields.2.canonicalUnit` или
 `mappings.4.feature.values.0.value`.
 
 ### Admin error codes
@@ -298,8 +281,7 @@ GraphQL input union не имитировать неявно без semantic val
 - `PRODUCT_REVISION_CONFLICT`
 - `INVALID_ID`
 
-DB constraint errors переводить в эти user errors; raw PostgreSQL messages не
-возвращать клиенту.
+DB constraint errors переводить в эти user errors; raw PostgreSQL messages не возвращать клиенту.
 
 ## Целевой Storefront API
 
@@ -315,8 +297,7 @@ DB constraint errors переводить в эти user errors; raw PostgreSQL 
 - `customerComparisonVariantRemove`
 - `customerComparisonCategoryClear`
 
-Не добавлять аргументы к `Product.comparison` и не добавлять root compare query с
-arbitrary IDs.
+Не добавлять аргументы к `Product.comparison` и не добавлять root compare query с arbitrary IDs.
 
 ### Product page flow
 
@@ -325,10 +306,8 @@ arbitrary IDs.
 1. Проверяет storefront visibility текущего product.
 2. Находит primary category и enabled effective profile.
 3. Если profile отсутствует, возвращает `null`.
-4. Выбирает все storefront-visible products этой primary category с тем же
-   effective profile.
-5. Выбирает concrete visible variants; не подставляет «первый available» вместо
-   variant silently.
+4. Выбирает все storefront-visible products этой primary category с тем же effective profile.
+5. Выбирает concrete visible variants; не подставляет «первый available» вместо variant silently.
 6. Применяет deterministic ordering и product-page limit.
 7. Если customer authenticated, одним broker read получает saved variant IDs.
 8. Передаёт columns в общий matrix builder.
@@ -347,8 +326,8 @@ arbitrary IDs.
 7. Оставляет только `FULL` compatible category groups.
 8. Для каждой группы создаёт `ProductComparison`.
 9. Relay pagination режет columns до matrix build.
-10. `groups/rows/cells` строятся строго для текущей page: число cells каждой row
-    равно числу `connection.nodes`, порядок совпадает.
+10. `groups/rows/cells` строятся строго для текущей page: число cells каждой row равно числу
+    `connection.nodes`, порядок совпадает.
 
 ### Общий matrix builder
 
@@ -363,8 +342,7 @@ services/catalog/src/application/comparison/
   types.ts
 ```
 
-Builder получает `storeId` из context, `profileId`, locale и ordered columns.
-Алгоритм:
+Builder получает `storeId` из context, `profileId`, locale и ordered columns. Алгоритм:
 
 1. Batch-load profile translation, ordered groups, fields и field options.
 2. Batch-load feature binding + normalized values для всех unique product IDs.
@@ -372,12 +350,12 @@ Builder получает `storeId` из context, `profileId`, locale и ordered 
 4. Batch-load selected option links только для requested variant IDs.
 5. Batch-load explicit N/A rows.
 6. Для каждого `(field, column)` выбрать ровно один source path.
-7. Для `MULTIPLE` сортировать values по local source order, затем canonical
-   option order/typed value как tie-breaker.
+7. Для `MULTIPLE` сортировать values по local source order, затем canonical option order/typed value
+   как tie-breaker.
 8. Сформировать canonical comparison key, status и `displayValue`.
 9. Вычислить `hasDifferences` по canonical keys/status.
-10. Удалять полностью пустые groups нельзя: profile layout остаётся merchant-defined;
-    row с `MISSING` cells также возвращается.
+10. Удалять полностью пустые groups нельзя: profile layout остаётся merchant-defined; row с
+    `MISSING` cells также возвращается.
 
 Formatter:
 
@@ -389,8 +367,8 @@ Formatter:
 - missing/N/A/unavailable — labels из profile translation.
 
 Если перевод текущего locale отсутствует, fallback order:
-`ctx.locale -> store.defaultLocale -> handle`. Fallback должен быть batch-based и
-одинаковым для Admin/Storefront.
+`ctx.locale -> store.defaultLocale -> handle`. Fallback должен быть batch-based и одинаковым для
+Admin/Storefront.
 
 ### Contextual headers
 
@@ -403,30 +381,27 @@ Column headers собираются через существующие Storefro
 - current inventory availability;
 - `savedForComparison` по exact `variant_id`.
 
-Static profile/mapping data разрешено cache-ировать. Price, stock, media fallback
-и customer saved state не cache-ировать как часть static matrix.
+Static profile/mapping data разрешено cache-ировать. Price, stock, media fallback и customer saved
+state не cache-ировать как часть static matrix.
 
 ## Persistence adjustments
 
-Текущую clean-DB baseline не заменять новыми compatibility migrations. До
-реализации API провести audit SQL и Drizzle parity и дополнить существующие
-`0450_comparison` migrations:
+Текущую clean-DB baseline не заменять новыми compatibility migrations. До реализации API провести
+audit SQL и Drizzle parity и дополнить существующие `0450_comparison` migrations:
 
 1. `comparison_profile.revision integer not null default 0` и index `(id, revision)`.
-2. В `comparison_profile_translation` добавить non-empty labels:
-   `missing_label`, `not_applicable_label`, `unavailable_label` с нейтральными
-   defaults для baseline.
-3. Проверить store-scoped indexes всех hot read paths:
-   `(store_id, profile_id)`, `(store_id, product_id, field_id)`,
-   `(store_id, field_id)` и category profile lookup.
+2. В `comparison_profile_translation` добавить non-empty labels: `missing_label`,
+   `not_applicable_label`, `unavailable_label` с нейтральными defaults для baseline.
+3. Проверить store-scoped indexes всех hot read paths: `(store_id, profile_id)`,
+   `(store_id, product_id, field_id)`, `(store_id, field_id)` и category profile lookup.
 4. Сохранить UUIDv7 generation только в application scripts.
-5. Не добавлять `store_id` в PK/FK в обход зафиксированной canonical architecture;
-   owner/store consistency валидируется scripts/repositories.
+5. Не добавлять `store_id` в PK/FK в обход зафиксированной canonical architecture; owner/store
+   consistency валидируется scripts/repositories.
 6. Не редактировать `dist/migrations` вручную — он создаётся build pipeline.
 
-Удаление canonical field/profile остаётся `RESTRICT`, если есть category
-assignments, bindings или N/A. Aggregate update должен сначала объяснить
-dependency через user error, а не полагаться на generic FK failure.
+Удаление canonical field/profile остаётся `RESTRICT`, если есть category assignments, bindings или
+N/A. Aggregate update должен сначала объяснить dependency через user error, а не полагаться на
+generic FK failure.
 
 ## Repository и Loader слой
 
@@ -462,8 +437,8 @@ services/catalog/src/repositories/comparison/
 - selected option values by variant IDs;
 - visible candidates для product-page comparison.
 
-Оба repository используют только `this.connection` и всегда фильтруют
-`this.storeId`. Подключить их в `Repository.ts`.
+Оба repository используют только `this.connection` и всегда фильтруют `this.storeId`. Подключить их
+в `Repository.ts`.
 
 ### Loaders
 
@@ -477,8 +452,8 @@ services/catalog/src/repositories/comparison/
 - product bindings и N/A;
 - field option translation.
 
-Matrix builder может вызывать batch repository methods напрямую как один
-application read, но GraphQL entity resolvers должны использовать loaders.
+Matrix builder может вызывать batch repository methods напрямую как один application read, но
+GraphQL entity resolvers должны использовать loaders.
 
 ## Business scripts
 
@@ -491,34 +466,30 @@ application read, но GraphQL entity resolvers должны использов�
 - `ProductComparisonConfigurationSyncScript`
 - shared DTO, validation, error mapping и index barrel.
 
-Все пять scripts transactional. Profile update и product configuration sync
-являются aggregate replacement operations: partial DB state после user error
-запрещён.
+Все пять scripts transactional. Profile update и product configuration sync являются aggregate
+replacement operations: partial DB state после user error запрещён.
 
 ### Lifecycle guards
 
 Встроить comparison validation в существующие flows:
 
-- product publish/status update: все active mappings/N/A должны соответствовать
-  effective profile;
-- `CategorySetProductPrimaryScript` и любой другой primary-category write path:
-  вычислить будущий effective profile до изменения и отклонить несовместимый
-  move;
-- category profile set/clear: проверить products самой category и affected
-  descendants, для которых изменится nearest inherited assignment;
-- category hierarchy move: проверить изменение inherited effective profile для
-  affected subtree;
-- feature sync/update: нельзя превратить bound leaf в group; удаление source
-  оставляет field `MISSING` через cascade, но result/log должен это отражать;
-- option sync/update: удалённые values каскадно удаляют normalization; field
-  становится `MISSING` для соответствующих variants;
-- field semantic update: type/cardinality/unit нельзя менять, пока существуют
-  normalized bindings; безопасный rename/reorder разрешён;
-- profile disable разрешён без удаления configuration, но сразу исключает
-  profile из Storefront read model.
+- product publish/status update: все active mappings/N/A должны соответствовать effective profile;
+- `CategorySetProductPrimaryScript` и любой другой primary-category write path: вычислить будущий
+  effective profile до изменения и отклонить несовместимый move;
+- category profile set/clear: проверить products самой category и affected descendants, для которых
+  изменится nearest inherited assignment;
+- category hierarchy move: проверить изменение inherited effective profile для affected subtree;
+- feature sync/update: нельзя превратить bound leaf в group; удаление source оставляет field
+  `MISSING` через cascade, но result/log должен это отражать;
+- option sync/update: удалённые values каскадно удаляют normalization; field становится `MISSING`
+  для соответствующих variants;
+- field semantic update: type/cardinality/unit нельзя менять, пока существуют normalized bindings;
+  безопасный rename/reorder разрешён;
+- profile disable разрешён без удаления configuration, но сразу исключает profile из Storefront read
+  model.
 
-Для потенциально больших affected category subtrees выполнять bounded set-based
-validation query. Не загружать каждый product отдельным script/resolver loop.
+Для потенциально больших affected category subtrees выполнять bounded set-based validation query. Не
+загружать каждый product отдельным script/resolver loop.
 
 ## Admin resolver слой
 
@@ -543,8 +514,7 @@ services/catalog/src/resolvers/admin/ProductComparisonConfigurationResolver.ts
 
 На GraphQL boundary:
 
-- decode profile/group/field/field-option/product/category/feature/option/value
-  global IDs;
+- decode profile/group/field/field-option/product/category/feature/option/value global IDs;
 - repositories/scripts получают только raw UUID;
 - deleted entity IDs в payload снова encode;
 - `node/nodes` распознаёт все четыре comparison Node types;
@@ -563,20 +533,18 @@ Binding IDs не нужны: binding addressing выполняется owner/sou
 
 Изменить:
 
-- `services/catalog/src/resolvers/storefront/ProductResolver.ts` — реализовать
-  `comparison()`;
-- `ProductComparisonResolvers.ts` — заменить placeholder groups на общий matrix
-  builder и убрать ручной N+1 header resolution;
+- `services/catalog/src/resolvers/storefront/ProductResolver.ts` — реализовать `comparison()`;
+- `ProductComparisonResolvers.ts` — заменить placeholder groups на общий matrix builder и убрать
+  ручной N+1 header resolution;
 - Storefront `ResolverRegistry` — зарегистрировать comparison constructors;
-- `VariantRepository.getPublishedComparisonVariants()` — заменить/расширить
-  единым storefront visibility batch method;
-- Catalog broker action `resolveCustomerComparisonVariants` — использовать тот
-  же visibility predicate, что и GraphQL read path.
+- `VariantRepository.getPublishedComparisonVariants()` — заменить/расширить единым storefront
+  visibility batch method;
+- Catalog broker action `resolveCustomerComparisonVariants` — использовать тот же visibility
+  predicate, что и GraphQL read path.
 
-Cursor должен кодировать как минимум version, category ID и stable item key, а
-не только array index. Decode проверяет version/category и возвращает
-`BAD_USER_INPUT` для чужого/устаревшего cursor. Pagination выполняется до matrix
-build.
+Cursor должен кодировать как минимум version, category ID и stable item key, а не только array
+index. Decode проверяет version/category и возвращает `BAD_USER_INPUT` для чужого/устаревшего
+cursor. Pagination выполняется до matrix build.
 
 Matrix key и row/group keys строятся из stable UUID identities, а не handles:
 
@@ -587,27 +555,24 @@ Matrix key и row/group keys строятся из stable UUID identities, а н
 
 ## Customers hardening
 
-Существующий Customers implementation сохранить, но завершить следующие
-правила:
+Существующий Customers implementation сохранить, но завершить следующие правила:
 
 - add валидирует exact visible variant через Catalog до DB write;
 - duplicate add остаётся idempotent и не увеличивает revision;
-- remove принимает exact variant; отсутствующий variant возвращает business
-  error и не меняет revision;
-- clear category получает список текущих matching variants из Catalog, затем
-  удаляет их одной transaction и compact positions;
-- revision conflict всегда возвращает actual revision в стабильном error
-  extension/details contract;
+- remove принимает exact variant; отсутствующий variant возвращает business error и не меняет
+  revision;
+- clear category получает список текущих matching variants из Catalog, затем удаляет их одной
+  transaction и compact positions;
+- revision conflict всегда возвращает actual revision в стабильном error extension/details contract;
 - все writes блокируют active customer и comparison aggregate;
-- физическая uniqueness остаётся по variant, не product — несколько variants
-  одного product разрешены;
+- физическая uniqueness остаётся по variant, не product — несколько variants одного product
+  разрешены;
 - Customers Admin comparison остаётся read-only;
 - Catalog read никогда не очищает stale selection скрытым side effect.
 
-Если вводится per-category saved limit, его проверка должна быть atomic: Catalog
-возвращает category/effective profile metadata, Customers проверяет limit под
-aggregate lock до append. До отдельного product decision не добавлять скрытый
-лимит, отличный от GraphQL page hard cap.
+Если вводится per-category saved limit, его проверка должна быть atomic: Catalog возвращает
+category/effective profile metadata, Customers проверяет limit под aggregate lock до append. До
+отдельного product decision не добавлять скрытый лимит, отличный от GraphQL page hard cap.
 
 ## Cache, invalidation и consistency
 
@@ -626,10 +591,9 @@ Cacheable:
 - current publication/visibility без полного context key;
 - media, если media policy/context может менять result.
 
-Cache key включает `storeId`, locale, entity ID и profile/product revision.
-После management mutation либо revision меняет key, либо выполняется explicit
-eviction. Category assignment/hierarchy move инвалидирует effective-profile
-entries affected subtree.
+Cache key включает `storeId`, locale, entity ID и profile/product revision. После management
+mutation либо revision меняет key, либо выполняется explicit eviction. Category assignment/hierarchy
+move инвалидирует effective-profile entries affected subtree.
 
 ## Observability
 
@@ -655,8 +619,8 @@ Metrics:
 
 ## Test coverage, которую нужно добавить
 
-Тестовые файлы добавляются как часть реализации, но запускать `test`, `tsc`, dev
-server или browser нельзя по правилам проекта.
+Тестовые файлы добавляются как часть реализации, но запускать `test`, `tsc`, dev server или browser
+нельзя по правилам проекта.
 
 ### Database/repository
 
@@ -715,8 +679,8 @@ server или browser нельзя по правилам проекта.
 4. Добавить Admin SDL и уточнить Storefront descriptions/cursor contract.
 5. Выполнить Catalog/Customers codegen через `shopana-cli`.
 
-Gate: schema генерируется, federation ownership не конфликтует, generated files
-не редактируются вручную.
+Gate: schema генерируется, federation ownership не конфликтует, generated files не редактируются
+вручную.
 
 ### Этап 2. Реализовать data access
 
@@ -726,8 +690,7 @@ Gate: schema генерируется, federation ownership не конфлик�
 4. Реализовать batch effective-profile и storefront candidate queries.
 5. Добавить repository/integrity test cases.
 
-Gate: нет direct DB access из resolvers/scripts, все queries store-scoped и
-transaction-aware.
+Gate: нет direct DB access из resolvers/scripts, все queries store-scoped и transaction-aware.
 
 ### Этап 3. Реализовать Admin business logic
 
@@ -737,8 +700,8 @@ transaction-aware.
 4. Lifecycle compatibility guards.
 5. Stable database-error mapping.
 
-Gate: каждый management use case atomic, conflict/ownership/type ошибки
-возвращаются как `userErrors`.
+Gate: каждый management use case atomic, conflict/ownership/type ошибки возвращаются как
+`userErrors`.
 
 ### Этап 4. Подключить Admin GraphQL API
 
@@ -748,8 +711,8 @@ Gate: каждый management use case atomic, conflict/ownership/type ошиб�
 4. Product/Category comparison fields.
 5. Повторный Admin codegen.
 
-Gate: полный merchant configuration flow возможен только через public Admin API,
-без raw DB операций.
+Gate: полный merchant configuration flow возможен только через public Admin API, без raw DB
+операций.
 
 ### Этап 5. Реализовать общий matrix builder
 
@@ -770,8 +733,7 @@ Gate: builder не импортирует GraphQL resolver classes и не вы�
 5. Удалить placeholder `groups() { return []; }`.
 6. Повторный Storefront codegen и federation schema build.
 
-Gate: Storefront только рендерит готовую matrix и нигде не сопоставляет local
-feature slugs.
+Gate: Storefront только рендерит готовую matrix и нигде не сопоставляет local feature slugs.
 
 ### Этап 7. Harden Customers integration
 
@@ -790,20 +752,20 @@ Gate: add/remove/clear безопасны при retry и concurrent tabs.
 2. Federation/schema composition check.
 3. Catalog, Customers, shared GraphQL GUID package и bootstrap build.
 
-По правилам проекта не запускать `test`, `tsc`, dev/start server или browser.
-Generated `dist` и resolver types обновлять только соответствующими командами,
-не вручную. Changeset-файл вручную не редактировать.
+По правилам проекта не запускать `test`, `tsc`, dev/start server или browser. Generated `dist` и
+resolver types обновлять только соответствующими командами, не вручную. Changeset-файл вручную не
+редактировать.
 
 ## Definition of Done
 
-- Admin может создать, локализовать, перестроить, включить/выключить и удалить
-  свободный от dependencies profile.
+- Admin может создать, локализовать, перестроить, включить/выключить и удалить свободный от
+  dependencies profile.
 - Admin может назначить profile category и увидеть direct/effective result.
 - Admin может атомарно настроить feature, option и N/A mappings продукта.
 - Несовместимые publish/primary-category/profile/hierarchy changes отклоняются.
 - Storefront `Product.comparison` возвращает deterministic bounded matrix.
-- Storefront `Customer.productComparisons` сохраняет persisted order и возвращает
-  Relay-paged aligned cells.
+- Storefront `Customer.productComparisons` сохраняет persisted order и возвращает Relay-paged
+  aligned cells.
 - Все statuses и value types форматируются server-side.
 - Price, availability, media и saved state относятся к exact variant.
 - Нет N+1 по profiles, fields, mappings, selected options или translations.
@@ -812,4 +774,3 @@ Generated `dist` и resolver types обновлять только соотве�
 - Admin/Storefront generated contracts и federation schema согласованы.
 - Relevant packages успешно проходят build через `shopana-cli`.
 - В коде нет compatibility/backfill paths и не остаётся placeholder empty matrix.
-

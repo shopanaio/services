@@ -1,8 +1,5 @@
 import { PreloadNotFoundError, TypePolicy } from "@shopana/type-resolver";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { CdnRoutingRule } from "../../repositories/models/index.js";
 import { CdnConfigurationResolver } from "./CdnConfigurationResolver.js";
 import { MediaType } from "./MediaType.js";
@@ -18,13 +15,10 @@ export class CdnRoutingRuleResolver extends MediaType<string, CdnRoutingRule> {
   async $preload() {
     const assetGroup = await this.$ctx.kernel.repository.assetGroup.findByOwner(
       "store",
-      this.$ctx.store.id
+      this.$ctx.store.id,
     );
     const rule = assetGroup
-      ? await this.$ctx.kernel.repository.cdnRoutingRule.findById(
-          assetGroup.id,
-          this.$props
-        )
+      ? await this.$ctx.kernel.repository.cdnRoutingRule.findById(assetGroup.id, this.$props)
       : null;
     if (!rule) throw new PreloadNotFoundError("CDN routing rule not found");
     return rule;
@@ -39,11 +33,25 @@ export class CdnRoutingRuleResolver extends MediaType<string, CdnRoutingRule> {
     return new CdnConfigurationResolver(id, this.$ctx);
   }
 
-  async name() { return this.$get("name"); }
-  async priority() { return this.$get("priority"); }
-  async enabled() { return this.$get("enabled"); }
-  async conditions() { return this.$get("conditions"); }
-  async transformOverrides() { return this.$get("transformOverrides"); }
-  async createdAt() { return this.$get("createdAt"); }
-  async updatedAt() { return this.$get("updatedAt"); }
+  async name() {
+    return this.$get("name");
+  }
+  async priority() {
+    return this.$get("priority");
+  }
+  async enabled() {
+    return this.$get("enabled");
+  }
+  async conditions() {
+    return this.$get("conditions");
+  }
+  async transformOverrides() {
+    return this.$get("transformOverrides");
+  }
+  async createdAt() {
+    return this.$get("createdAt");
+  }
+  async updatedAt() {
+    return this.$get("updatedAt");
+  }
 }

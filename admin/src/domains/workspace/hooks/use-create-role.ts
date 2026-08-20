@@ -55,7 +55,7 @@ export function useCreateRole(): UseCreateRoleReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

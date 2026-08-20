@@ -17,9 +17,7 @@ export function FacetValuesCell(params: ICellRendererParams<FacetGridRow>) {
     return <Typography.Text type="secondary">Automatic</Typography.Text>;
   }
 
-  const values = [...row.values].sort(
-    (left, right) => left.sortIndex - right.sortIndex,
-  );
+  const values = [...row.values].sort((left, right) => left.sortIndex - right.sortIndex);
   const visibleValues = values.slice(0, MAX_VISIBLE_VALUES);
   const hiddenCount = values.length - visibleValues.length;
 
@@ -38,17 +36,13 @@ export function FacetValuesCell(params: ICellRendererParams<FacetGridRow>) {
         >
           <Typography.Text
             ellipsis
-            className={
-              value.enabled === false ? styles.disabledValueText : undefined
-            }
+            className={value.enabled === false ? styles.disabledValueText : undefined}
           >
             {value.name}
           </Typography.Text>
         </Tag>
       ))}
-      {hiddenCount > 0 ? (
-        <Typography.Text type="secondary">+{hiddenCount}</Typography.Text>
-      ) : null}
+      {hiddenCount > 0 ? <Typography.Text type="secondary">+{hiddenCount}</Typography.Text> : null}
     </div>
   );
 }

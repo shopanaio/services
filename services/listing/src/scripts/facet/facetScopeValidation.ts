@@ -1,11 +1,8 @@
 import type { UserError } from "../../kernel/BaseScript.js";
-import {
-  isFacetScopeType,
-  type FacetScopeType,
-} from "../../repositories/facet/facetScopes.js";
+import { isFacetScopeType, type FacetScopeType } from "../../repositories/facet/facetScopes.js";
 
 export function validateFacetScopes(
-  scopes: readonly FacetScopeType[] | undefined
+  scopes: readonly FacetScopeType[] | undefined,
 ): UserError | null {
   if (scopes === undefined) return null;
 
@@ -17,9 +14,7 @@ export function validateFacetScopes(
     };
   }
 
-  const invalidScopeIndex = scopes.findIndex(
-    (scope) => !isFacetScopeType(scope)
-  );
+  const invalidScopeIndex = scopes.findIndex((scope) => !isFacetScopeType(scope));
   if (invalidScopeIndex !== -1) {
     return {
       message: "Invalid facet scope",

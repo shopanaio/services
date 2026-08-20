@@ -14,15 +14,8 @@ import { DiscountUpdateMinimumRequirementScript } from "./DiscountUpdateMinimumR
 import { DiscountUpdateRuleScript } from "./DiscountUpdateRuleScript.js";
 import { DiscountUpdateTagsScript } from "./DiscountUpdateTagsScript.js";
 import { DiscountUpdateTargetsScript } from "./DiscountUpdateTargetsScript.js";
-import type {
-  DiscountCreateParams,
-  DiscountCreateResult,
-} from "./dto/index.js";
-import {
-  isRecord,
-  parseDateTime,
-  parsePositiveBigInt,
-} from "./shared.js";
+import type { DiscountCreateParams, DiscountCreateResult } from "./dto/index.js";
+import { isRecord, parseDateTime, parsePositiveBigInt } from "./shared.js";
 import type { DiscountSectionResult } from "./types.js";
 import { validateDiscountAggregate } from "./validation.js";
 
@@ -40,14 +33,9 @@ class DiscountCreateValidationError extends ValidationError {
 }
 
 /** Creates the complete discount aggregate in one transaction. */
-export class DiscountCreateScript extends BaseScript<
-  DiscountCreateParams,
-  DiscountCreateResult
-> {
+export class DiscountCreateScript extends BaseScript<DiscountCreateParams, DiscountCreateResult> {
   @Transactional()
-  protected async execute(
-    params: DiscountCreateParams,
-  ): Promise<DiscountCreateResult> {
+  protected async execute(params: DiscountCreateParams): Promise<DiscountCreateResult> {
     const mappedRoot = this.mapRoot(params);
     if (!mappedRoot.value || mappedRoot.errors.length > 0) {
       return { userErrors: mappedRoot.errors };
@@ -66,15 +54,22 @@ export class DiscountCreateScript extends BaseScript<
 
     const { discountId, input } = params;
     if (input.functionBinding != null) {
-      const activationSequence = parseNonNegativeBigInt(
-        input.functionBinding.activationSequence,
-      );
+      const activationSequence = parseNonNegativeBigInt(input.functionBinding.activationSequence);
       if (activationSequence === null) {
-        throw new DiscountCreateValidationError([{ message: "Activation sequence must be a non-negative integer", code: "INVALID_ACTIVATION_SEQUENCE", field: ["input", "functionBinding", "activationSequence"] }]);
+        throw new DiscountCreateValidationError([
+          {
+            message: "Activation sequence must be a non-negative integer",
+            code: "INVALID_ACTIVATION_SEQUENCE",
+            field: ["input", "functionBinding", "activationSequence"],
+          },
+        ]);
       }
       await this.repository.discount.createFunctionBinding({
         discountId,
-        target: mappedRoot.value.discountClass === "SHIPPING" ? "cart.delivery-options.discounts.generate.run" : "cart.lines.discounts.generate.run",
+        target:
+          mappedRoot.value.discountClass === "SHIPPING"
+            ? "cart.delivery-options.discounts.generate.run"
+            : "cart.lines.discounts.generate.run",
         contractVersion: 1,
         installationId: input.functionBinding.installationId,
         functionKey: input.functionBinding.functionKey.trim(),
@@ -171,15 +166,11 @@ export class DiscountCreateScript extends BaseScript<
       );
     }
 
-    const aggregate = await this.repository.discount.findAggregateById(
-      discountId,
-    );
+    const aggregate = await this.repository.discount.findAggregateById(discountId);
     if (!aggregate) throw new Error("Created discount could not be loaded");
     const aggregateErrors = validateDiscountAggregate(aggregate);
     if (aggregateErrors.length > 0) {
-      throw new DiscountCreateValidationError(
-        prefixErrors(aggregateErrors, ["input"]),
-      );
+      throw new DiscountCreateValidationError(prefixErrors(aggregateErrors, ["input"]));
     }
 
     this.logger.info({ discountId }, "Discount created");
@@ -204,9 +195,7 @@ export class DiscountCreateScript extends BaseScript<
     wrapperField?: string,
   ): void {
     if (result.userErrors.length === 0) return;
-    throw new DiscountCreateValidationError(
-      prefixErrors(result.userErrors, prefix, wrapperField),
-    );
+    throw new DiscountCreateValidationError(prefixErrors(result.userErrors, prefix, wrapperField));
   }
 
   private mapRoot(params: DiscountCreateParams): {
@@ -245,24 +234,17 @@ export class DiscountCreateScript extends BaseScript<
       ["input", "usage", "usageLimit"],
       errors,
     );
-    const appliesOncePerCustomer =
-      input.usage?.appliesOncePerCustomer ?? false;
-    if (
-      input.method === "AUTOMATIC" &&
-      (usageLimit !== null || appliesOncePerCustomer)
-    ) {
+    const appliesOncePerCustomer = input.usage?.appliesOncePerCustomer ?? false;
+    if (input.method === "AUTOMATIC" && (usageLimit !== null || appliesOncePerCustomer)) {
       errors.push({
-        message:
-          "Automatic discounts cannot have customer or aggregate usage limits",
+        message: "Automatic discounts cannot have customer or aggregate usage limits",
         code: "INVALID_USAGE_LIMIT",
         field: ["input", "usage"],
       });
     }
 
-    const appliesOnOneTimePurchase =
-      input.purchaseModes?.appliesOnOneTimePurchase ?? true;
-    const appliesOnSubscription =
-      input.purchaseModes?.appliesOnSubscription ?? false;
+    const appliesOnOneTimePurchase = input.purchaseModes?.appliesOnOneTimePurchase ?? true;
+    const appliesOnSubscription = input.purchaseModes?.appliesOnSubscription ?? false;
     if (!appliesOnOneTimePurchase && !appliesOnSubscription) {
       errors.push({
         message: "At least one purchase mode must be enabled",
@@ -272,21 +254,13 @@ export class DiscountCreateScript extends BaseScript<
     }
 
     const parsedStartsAt = input.schedule
-      ? parseDateTime(
-          input.schedule.startsAt,
-          ["input", "schedule", "startsAt"],
-          errors,
-        )
+      ? parseDateTime(input.schedule.startsAt, ["input", "schedule", "startsAt"], errors)
       : undefined;
     const startsAt = parsedStartsAt ?? undefined;
     const endsAt =
       input.schedule?.endsAt == null
         ? null
-        : parseDateTime(
-            input.schedule.endsAt,
-            ["input", "schedule", "endsAt"],
-            errors,
-          );
+        : parseDateTime(input.schedule.endsAt, ["input", "schedule", "endsAt"], errors);
     if (startsAt && endsAt && Date.parse(endsAt) <= Date.parse(startsAt)) {
       errors.push({
         message: "Discount end time must be after its start time",
@@ -313,19 +287,49 @@ export class DiscountCreateScript extends BaseScript<
 
     const calculationStrategy = input.calculationStrategy ?? "NATIVE";
     if (calculationStrategy === "NATIVE" && input.kind == null) {
-      errors.push({ message: "Native discounts require a kind", code: "KIND_REQUIRED", field: ["input", "kind"] });
+      errors.push({
+        message: "Native discounts require a kind",
+        code: "KIND_REQUIRED",
+        field: ["input", "kind"],
+      });
     }
     if (calculationStrategy === "FUNCTION" && (!input.discountClass || !input.functionBinding)) {
-      errors.push({ message: "Function discounts require discountClass and functionBinding", code: "FUNCTION_BINDING_REQUIRED", field: ["input", "functionBinding"] });
+      errors.push({
+        message: "Function discounts require discountClass and functionBinding",
+        code: "FUNCTION_BINDING_REQUIRED",
+        field: ["input", "functionBinding"],
+      });
     }
     if (calculationStrategy === "FUNCTION" && (input.kind != null || input.rule != null)) {
-      errors.push({ message: "Function discounts cannot define a native kind or rule", code: "INVALID_FUNCTION_DISCOUNT", field: ["input"] });
+      errors.push({
+        message: "Function discounts cannot define a native kind or rule",
+        code: "INVALID_FUNCTION_DISCOUNT",
+        field: ["input"],
+      });
     }
-    if (input.functionBinding && (!input.functionBinding.functionKey.trim() || !input.functionBinding.configurationRevision.trim() || !input.functionBinding.routeRevision.trim() || !isRecord(input.functionBinding.configurationSnapshot))) {
-      errors.push({ message: "Function binding identifiers and configuration must be valid", code: "INVALID_FUNCTION_BINDING", field: ["input", "functionBinding"] });
+    if (
+      input.functionBinding &&
+      (!input.functionBinding.functionKey.trim() ||
+        !input.functionBinding.configurationRevision.trim() ||
+        !input.functionBinding.routeRevision.trim() ||
+        !isRecord(input.functionBinding.configurationSnapshot))
+    ) {
+      errors.push({
+        message: "Function binding identifiers and configuration must be valid",
+        code: "INVALID_FUNCTION_BINDING",
+        field: ["input", "functionBinding"],
+      });
     }
-    if (input.functionBinding && (!Number.isSafeInteger(input.functionBinding.precedence ?? 0) || (input.functionBinding.precedence ?? 0) < 0)) {
-      errors.push({ message: "Function binding precedence must be a non-negative integer", code: "INVALID_FUNCTION_BINDING", field: ["input", "functionBinding", "precedence"] });
+    if (
+      input.functionBinding &&
+      (!Number.isSafeInteger(input.functionBinding.precedence ?? 0) ||
+        (input.functionBinding.precedence ?? 0) < 0)
+    ) {
+      errors.push({
+        message: "Function binding precedence must be a non-negative integer",
+        code: "INVALID_FUNCTION_BINDING",
+        field: ["input", "functionBinding", "precedence"],
+      });
     }
 
     if (errors.length > 0 || (input.schedule && !startsAt)) {
@@ -337,7 +341,10 @@ export class DiscountCreateScript extends BaseScript<
         method: input.method,
         calculationStrategy,
         kind: calculationStrategy === "NATIVE" ? input.kind! : null,
-        discountClass: calculationStrategy === "NATIVE" ? discountClassForKind(input.kind!) : input.discountClass!,
+        discountClass:
+          calculationStrategy === "NATIVE"
+            ? discountClassForKind(input.kind!)
+            : input.discountClass!,
         title,
         currency: input.currency,
         priority,
@@ -360,7 +367,9 @@ function parseNonNegativeBigInt(value: string): bigint | null {
   try {
     const parsed = BigInt(value);
     return parsed <= BigInt(Number.MAX_SAFE_INTEGER) ? parsed : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 function discountClassForKind(
@@ -371,19 +380,13 @@ function discountClassForKind(
   return "PRODUCT";
 }
 
-function prefixErrors(
-  errors: UserError[],
-  prefix: string[],
-  wrapperField?: string,
-): UserError[] {
+function prefixErrors(errors: UserError[], prefix: string[], wrapperField?: string): UserError[] {
   return errors.map((error) => ({
     ...error,
     field: error.field
       ? [
           ...prefix,
-          ...(wrapperField && error.field[0] === wrapperField
-            ? error.field.slice(1)
-            : error.field),
+          ...(wrapperField && error.field[0] === wrapperField ? error.field.slice(1) : error.field),
         ]
       : prefix,
   }));

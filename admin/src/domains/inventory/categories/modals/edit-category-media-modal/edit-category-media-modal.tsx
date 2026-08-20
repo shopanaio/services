@@ -2,18 +2,11 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { App } from "antd";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { EntityMediaGallery } from "@/domains/media/components";
 import type { ApiFile } from "@/graphql/types";
 import { useUpdateCategory } from "../../hooks";
-import {
-  mapCategoryMediaToUpdateInput,
-  type CategoryMediaFormValues,
-} from "../../mappers";
+import { mapCategoryMediaToUpdateInput, type CategoryMediaFormValues } from "../../mappers";
 import type { ICategoryEditMediaModalPayload } from "../../modals";
 
 export const EditCategoryMediaModal = () => {
@@ -23,10 +16,7 @@ export const EditCategoryMediaModal = () => {
   const { category, onSaved } = typedPayload;
   const { updateCategory, loading } = useUpdateCategory();
   const initialFiles = useMemo(
-    () =>
-      [...category.media]
-        .sort((a, b) => a.sortIndex - b.sortIndex)
-        .map((item) => item.file),
+    () => [...category.media].sort((a, b) => a.sortIndex - b.sortIndex).map((item) => item.file),
     [category.media],
   );
   const [files, setFiles] = useState<ApiFile[]>(initialFiles);

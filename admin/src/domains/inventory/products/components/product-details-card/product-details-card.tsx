@@ -29,10 +29,7 @@ import type {
   ApiProductComponentOperationInput,
   ApiProductComponentPricingTemplate,
 } from "@/graphql/types";
-import {
-  ProductComponentLogicOperator,
-  ProductComponentOperationAction,
-} from "@/graphql/types";
+import { ProductComponentLogicOperator, ProductComponentOperationAction } from "@/graphql/types";
 import type { IVariantsTableData } from "./types";
 import {
   getProductCategories,
@@ -83,24 +80,21 @@ export const ProductDetailsCard = ({
   const reviewsWidget = useProductReviewsWidget(product.id);
   const { push: openProductInsights } = useProductInsightsModal();
   const { push: openEditGroupsModal } = useEditComponentGroupsModal();
-  const { push: openEditConfigurationModal } =
-    useEditComponentConfigurationModal();
+  const { push: openEditConfigurationModal } = useEditComponentConfigurationModal();
   const { push: openEditTemplatesModal } = useEditComponentTemplatesModal();
   const { push: openDependencyChartModal } = useDependencyChartModal();
   const configurations = product.productComponent?.configurations ?? [];
   const [activeConfigurationId, setActiveConfigurationId] = useState("");
   const activeConfiguration = useMemo(
     () =>
-      configurations.find(
-        (configuration) => configuration.id === activeConfigurationId,
-      ) ?? configurations[0],
+      configurations.find((configuration) => configuration.id === activeConfigurationId) ??
+      configurations[0],
     [activeConfigurationId, configurations],
   );
   const groups = activeConfiguration?.groups ?? [];
   const dependencyRules = activeConfiguration?.dependencyRules ?? [];
   const shouldRenderVariantsSection =
-    !!variantsTableData &&
-    (variantsTableData.totalCount > 0 || product.variantsCount > 0);
+    !!variantsTableData && (variantsTableData.totalCount > 0 || product.variantsCount > 0);
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
@@ -117,10 +111,7 @@ export const ProductDetailsCard = ({
   }, [activeConfigurationId, configurations]);
 
   const saveComponentOperation = useCallback(
-    async (
-      operation: ApiProductComponentOperationInput,
-      successMessage: string,
-    ) => {
+    async (operation: ApiProductComponentOperationInput, successMessage: string) => {
       const result = await updateProduct({
         productId: product.id,
         expectedRevision: product.revision,
@@ -147,41 +138,35 @@ export const ProductDetailsCard = ({
     [message, onProductRefresh, product.id, product.revision, updateProduct],
   );
 
-  const handleCreateConfiguration = useCallback(
-    () => {
-      openEditConfigurationModal({
-        title: `Configuration ${configurations.length + 1}`,
-        modalTitle: "New Component Configuration",
-        submitLabel: "Create",
-        onSave: async ({ title }: { title: string }) => {
-          const clientMutationId = crypto.randomUUID();
-          const result = await saveComponentOperation(
-            {
-              action: ProductComponentOperationAction.ConfigurationCreate,
-              clientMutationId,
-              name: title,
-            },
-            "Component configuration created",
-          );
-          const createdConfigurationId = result?.operationResults.find(
-            (operationResult) =>
-              operationResult.clientMutationId === clientMutationId,
-          )?.entityId;
-          if (createdConfigurationId) {
-            setActiveConfigurationId(createdConfigurationId);
-          }
-          return !!result;
-        },
-      });
-    },
-    [configurations.length, openEditConfigurationModal, saveComponentOperation],
-  );
+  const handleCreateConfiguration = useCallback(() => {
+    openEditConfigurationModal({
+      title: `Configuration ${configurations.length + 1}`,
+      modalTitle: "New Component Configuration",
+      submitLabel: "Create",
+      onSave: async ({ title }: { title: string }) => {
+        const clientMutationId = crypto.randomUUID();
+        const result = await saveComponentOperation(
+          {
+            action: ProductComponentOperationAction.ConfigurationCreate,
+            clientMutationId,
+            name: title,
+          },
+          "Component configuration created",
+        );
+        const createdConfigurationId = result?.operationResults.find(
+          (operationResult) => operationResult.clientMutationId === clientMutationId,
+        )?.entityId;
+        if (createdConfigurationId) {
+          setActiveConfigurationId(createdConfigurationId);
+        }
+        return !!result;
+      },
+    });
+  }, [configurations.length, openEditConfigurationModal, saveComponentOperation]);
 
   const handleEditConfiguration = useCallback(
     (configurationId: string) => {
-      const configuration = configurations.find(
-        (item) => item.id === configurationId,
-      );
+      const configuration = configurations.find((item) => item.id === configurationId);
 
       if (!configuration) return;
 
@@ -231,10 +216,7 @@ export const ProductDetailsCard = ({
           {
             action: ProductComponentOperationAction.GroupsSync,
             configurationId: activeConfiguration.id,
-            groups: toProductComponentGroupsInput(
-              updatedGroups,
-              defaultCurrency,
-            ),
+            groups: toProductComponentGroupsInput(updatedGroups, defaultCurrency),
           },
           "Component items updated",
         );
@@ -321,10 +303,7 @@ export const ProductDetailsCard = ({
   ]);
 
   const handleAddRule = useCallback(() => {
-    const maxPriority = Math.max(
-      0,
-      ...dependencyRules.map((rule) => rule.priority),
-    );
+    const maxPriority = Math.max(0, ...dependencyRules.map((rule) => rule.priority));
     const now = new Date().toISOString();
     const newRule: ApiProductComponentDependencyRule = {
       __typename: "ProductComponentDependencyRule",
@@ -420,18 +399,13 @@ export const ProductDetailsCard = ({
       <ProductContentTabs product={product} />
 
       {/* PRICING */}
-      <PricingBlock
-        product={product}
-        onProductRefresh={onProductRefresh}
-      />
+      <PricingBlock product={product} onProductRefresh={onProductRefresh} />
 
       {/* MEDIA SECTION */}
       <MediaSection mediaFiles={getProductMediaFiles(product)} onEdit={modals.editMedia} />
 
       {/* INVENTORY */}
-      <InventorySection
-        product={product}
-      />
+      <InventorySection product={product} />
 
       {/* CATEGORIES & TAGS */}
 
@@ -463,9 +437,11 @@ export const ProductDetailsCard = ({
         loading={reviewsWidget.loading}
         error={reviewsWidget.error}
         onEdit={() => handleEdit("reviews")}
-        onViewInsights={() => openProductInsights({
-          product: { id: product.id, title: product.title, handle: product.handle },
-        })}
+        onViewInsights={() =>
+          openProductInsights({
+            product: { id: product.id, title: product.title, handle: product.handle },
+          })
+        }
       />
 
       {/* ATTRIBUTES */}

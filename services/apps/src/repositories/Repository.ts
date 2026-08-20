@@ -51,30 +51,12 @@ export class Repository {
   static async create(config: RepositoryConfig): Promise<Repository> {
     const txManager = new TransactionManager(config.db);
     const app = new AppRepository(config.db, txManager);
-    const installation = new AppInstallationRepository(
-      config.db,
-      txManager,
-    );
-    const lifecycleOperation = new AppLifecycleOperationRepository(
-      config.db,
-      txManager,
-    );
-    const manifestSnapshot = new AppManifestSnapshotRepository(
-      config.db,
-      txManager,
-    );
-    const scope = new AppInstallationScopeRepository(
-      config.db,
-      txManager,
-    );
-    const secret = new AppInstallationSecretRepository(
-      config.db,
-      txManager,
-    );
-    const capability = new AppCapabilityRepository(
-      config.db,
-      txManager,
-    );
+    const installation = new AppInstallationRepository(config.db, txManager);
+    const lifecycleOperation = new AppLifecycleOperationRepository(config.db, txManager);
+    const manifestSnapshot = new AppManifestSnapshotRepository(config.db, txManager);
+    const scope = new AppInstallationScopeRepository(config.db, txManager);
+    const secret = new AppInstallationSecretRepository(config.db, txManager);
+    const capability = new AppCapabilityRepository(config.db, txManager);
     return new Repository(
       app,
       installation,

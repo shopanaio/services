@@ -99,10 +99,7 @@ const RuleNodeComponent = ({ data, selected }: RuleNodeProps) => {
   const { styles, cx } = useStyles();
   const { rule, isDimmed, isHighlighted } = data;
 
-  const conditionCount = rule.conditionGroups.reduce(
-    (sum, g) => sum + g.conditions.length,
-    0,
-  );
+  const conditionCount = rule.conditionGroups.reduce((sum, g) => sum + g.conditions.length, 0);
   const actionCount = rule.actions.length;
 
   return (
@@ -120,9 +117,7 @@ const RuleNodeComponent = ({ data, selected }: RuleNodeProps) => {
 
       <div className={styles.header}>
         <ThunderboltOutlined className={styles.icon} />
-        <Typography.Text className={styles.title}>
-          {rule.name || "Unnamed Rule"}
-        </Typography.Text>
+        <Typography.Text className={styles.title}>{rule.name || "Unnamed Rule"}</Typography.Text>
       </div>
       <div className={styles.info}>
         <Tag color="orange" className={styles.priorityTag}>
@@ -134,11 +129,7 @@ const RuleNodeComponent = ({ data, selected }: RuleNodeProps) => {
         {!rule.enabled && <Badge status="default" text="" />}
       </div>
 
-      <Handle
-        type="source"
-        position={Position.Right}
-        className={styles.handle}
-      />
+      <Handle type="source" position={Position.Right} className={styles.handle} />
     </div>
   );
 };

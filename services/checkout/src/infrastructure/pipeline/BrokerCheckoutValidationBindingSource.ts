@@ -5,9 +5,7 @@ import {
   type CheckoutValidationBindingSource,
 } from "../../application/pipeline/contracts/validationFunction.js";
 
-export class BrokerCheckoutValidationBindingSource
-  implements CheckoutValidationBindingSource
-{
+export class BrokerCheckoutValidationBindingSource implements CheckoutValidationBindingSource {
   constructor(private readonly broker: ServiceBroker) {}
 
   async loadForTarget(input: {

@@ -15,22 +15,25 @@ export function useCreateCustomer() {
     CustomerCreateMutationVariables
   >(CUSTOMER_CREATE_MUTATION);
 
-  const createCustomer = useCallback(async (input: ApiCustomerCreateInput) => {
-    try {
-      const result = await mutate({ variables: { input }, refetchQueries: [CUSTOMERS_QUERY] });
-      const payload = result.data?.customersMutation.customerCreate;
-      return {
-        customer: payload?.customer ?? null,
-        userErrors: payload?.userErrors ?? [],
-      };
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "Unable to create customer";
-      return {
-        customer: null,
-        userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[],
-      };
-    }
-  }, [mutate]);
+  const createCustomer = useCallback(
+    async (input: ApiCustomerCreateInput) => {
+      try {
+        const result = await mutate({ variables: { input }, refetchQueries: [CUSTOMERS_QUERY] });
+        const payload = result.data?.customersMutation.customerCreate;
+        return {
+          customer: payload?.customer ?? null,
+          userErrors: payload?.userErrors ?? [],
+        };
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : "Unable to create customer";
+        return {
+          customer: null,
+          userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[],
+        };
+      }
+    },
+    [mutate],
+  );
 
   return { createCustomer, loading, error: error ?? null, reset };
 }

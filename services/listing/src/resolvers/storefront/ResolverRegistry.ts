@@ -32,16 +32,13 @@ export class ResolverRegistry {
   }
 
   async productConnection(input: ProductConnectionInput) {
-    const { ProductConnectionResolver } = await import(
-      "./ProductConnectionResolver.js"
-    );
+    const { ProductConnectionResolver } = await import("./ProductConnectionResolver.js");
     return new ProductConnectionResolver(input, this.ctx);
   }
 
   async productRecommendationConnection(input: ProductRecommendationConnectionInput) {
-    const { ProductRecommendationConnectionResolver } = await import(
-      "./ProductRecommendationConnectionResolver.js"
-    );
+    const { ProductRecommendationConnectionResolver } =
+      await import("./ProductRecommendationConnectionResolver.js");
     return new ProductRecommendationConnectionResolver(input, this.ctx);
   }
 
@@ -56,9 +53,7 @@ export class ResolverRegistry {
   }
 
   async filterPriceRange(input: FilterPriceRangeResolverInput) {
-    const { FilterPriceRangeResolver } = await import(
-      "./FilterPriceRangeResolver.js"
-    );
+    const { FilterPriceRangeResolver } = await import("./FilterPriceRangeResolver.js");
     return new FilterPriceRangeResolver(input, this.ctx);
   }
 

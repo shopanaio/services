@@ -1,10 +1,7 @@
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { SubgraphReference } from "@shopana/type-resolver";
 import type { File } from "../../repositories/models/index.js";
-import {
-  loadStorefrontFile,
-  resolvePreviewImageId,
-} from "./helpers/storefrontFile.js";
+import { loadStorefrontFile, resolvePreviewImageId } from "./helpers/storefrontFile.js";
 import { MediaType } from "./MediaType.js";
 
 @SubgraphReference()
@@ -30,11 +27,7 @@ export class MediaImageResolver extends MediaType<string, File> {
   }
 
   async previewImage() {
-    const previewId = await resolvePreviewImageId(
-      this.$ctx,
-      await this.$data,
-      true,
-    );
+    const previewId = await resolvePreviewImageId(this.$ctx, await this.$data, true);
     return previewId ? this.resolvers.image(previewId) : null;
   }
 }

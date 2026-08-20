@@ -1,18 +1,10 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
-import type {
-  VendorCreateParams,
-  VendorCreateResult,
-} from "./dto/index.js";
+import type { VendorCreateParams, VendorCreateResult } from "./dto/index.js";
 
-export class VendorCreateScript extends BaseScript<
-  VendorCreateParams,
-  VendorCreateResult
-> {
+export class VendorCreateScript extends BaseScript<VendorCreateParams, VendorCreateResult> {
   @Transactional()
-  protected async execute(
-    params: VendorCreateParams
-  ): Promise<VendorCreateResult> {
+  protected async execute(params: VendorCreateParams): Promise<VendorCreateResult> {
     const name = params.name.trim();
     if (!name) {
       return {

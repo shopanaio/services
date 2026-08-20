@@ -43,9 +43,7 @@ abstract class CustomerEntityUpdateWorkflow extends BrokerWorkflows {
     return Kernel.getInstance();
   }
 
-  protected toScriptContext(
-    context: CustomerMutationWorkflowContext
-  ): RunScriptContext {
+  protected toScriptContext(context: CustomerMutationWorkflowContext): RunScriptContext {
     return {
       storeId: context.storeId,
       organizationId: context.organizationId,
@@ -57,7 +55,7 @@ abstract class CustomerEntityUpdateWorkflow extends BrokerWorkflows {
 
   protected operationResult(
     type: CustomerUpdateOperationType,
-    errors: CustomerUpdateOperationResult["errors"]
+    errors: CustomerUpdateOperationResult["errors"],
   ): CustomerUpdateOperationResult[] {
     return [{ type, applied: errors.length === 0, errors }];
   }
@@ -65,7 +63,7 @@ abstract class CustomerEntityUpdateWorkflow extends BrokerWorkflows {
   protected async emitCustomerUpdated(
     context: CustomerMutationWorkflowContext,
     customerIds: readonly string[],
-    reason: CustomerUpdatedReason
+    reason: CustomerUpdatedReason,
   ): Promise<void> {
     for (const customerId of new Set(customerIds)) {
       await this.broker.runWorkflow(
@@ -82,9 +80,7 @@ abstract class CustomerEntityUpdateWorkflow extends BrokerWorkflows {
             userId: context.userId,
           },
           subject: { type: "customer", id: customerId },
-          actor: context.userId
-            ? { type: "user" as const, id: context.userId }
-            : undefined,
+          actor: context.userId ? { type: "user" as const, id: context.userId } : undefined,
           emitKey: `customer:${customerId}`,
         },
         {
@@ -92,7 +88,7 @@ abstract class CustomerEntityUpdateWorkflow extends BrokerWorkflows {
           workflowId: DBOS.workflowID!,
           stepId: `emitCustomerUpdated:${reason}`,
           callId: customerId,
-        }
+        },
       );
     }
   }
@@ -111,16 +107,10 @@ export class CustomerGroupUpdateWorkflow extends CustomerEntityUpdateWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CustomerGroupUpdateWorkflowInput
-  ): Promise<CustomerGroupUpdateWorkflowResult> {
+  async run(input: CustomerGroupUpdateWorkflowInput): Promise<CustomerGroupUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
     if (result.group && result.userErrors.length === 0) {
-      await this.emitCustomerUpdated(
-        input.context,
-        result.affectedCustomerIds,
-        "group"
-      );
+      await this.emitCustomerUpdated(input.context, result.affectedCustomerIds, "group");
     }
     return {
       ...result,
@@ -133,7 +123,7 @@ export class CustomerGroupUpdateWorkflow extends CustomerEntityUpdateWorkflow {
     return this.kernel.runScript(
       CustomerGroupUpdateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 }
@@ -151,16 +141,10 @@ export class CustomerTagUpdateWorkflow extends CustomerEntityUpdateWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CustomerTagUpdateWorkflowInput
-  ): Promise<CustomerTagUpdateWorkflowResult> {
+  async run(input: CustomerTagUpdateWorkflowInput): Promise<CustomerTagUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
     if (result.tag && result.userErrors.length === 0) {
-      await this.emitCustomerUpdated(
-        input.context,
-        result.affectedCustomerIds,
-        "tag"
-      );
+      await this.emitCustomerUpdated(input.context, result.affectedCustomerIds, "tag");
     }
     return {
       ...result,
@@ -173,7 +157,7 @@ export class CustomerTagUpdateWorkflow extends CustomerEntityUpdateWorkflow {
     return this.kernel.runScript(
       CustomerTagUpdateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 }
@@ -192,15 +176,11 @@ export class CustomerSegmentUpdateWorkflow extends CustomerEntityUpdateWorkflow 
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: CustomerSegmentUpdateWorkflowInput
+    input: CustomerSegmentUpdateWorkflowInput,
   ): Promise<CustomerSegmentUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
     if (result.segment && result.userErrors.length === 0) {
-      await this.emitCustomerUpdated(
-        input.context,
-        result.affectedCustomerIds,
-        "segment"
-      );
+      await this.emitCustomerUpdated(input.context, result.affectedCustomerIds, "segment");
       await this.startMaterialization(input, result.segment.id);
     }
     return {
@@ -214,14 +194,11 @@ export class CustomerSegmentUpdateWorkflow extends CustomerEntityUpdateWorkflow 
     return this.kernel.runScript(
       CustomerSegmentUpdateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
-  private startMaterialization(
-    input: CustomerSegmentUpdateWorkflowInput,
-    segmentId: string,
-  ) {
+  private startMaterialization(input: CustomerSegmentUpdateWorkflowInput, segmentId: string) {
     return this.broker.startWorkflow(
       "customers.customerSegmentMaterialize",
       { context: this.toScriptContext(input.context) },
@@ -248,9 +225,7 @@ export class CustomerMergeUpdateWorkflow extends CustomerEntityUpdateWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CustomerMergeUpdateWorkflowInput
-  ): Promise<CustomerMergeUpdateWorkflowResult> {
+  async run(input: CustomerMergeUpdateWorkflowInput): Promise<CustomerMergeUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
     return {
       ...result,
@@ -263,7 +238,7 @@ export class CustomerMergeUpdateWorkflow extends CustomerEntityUpdateWorkflow {
     return this.kernel.runScript(
       CustomerMergeUpdateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 }
@@ -282,15 +257,12 @@ export class CustomerDataRequestUpdateWorkflow extends CustomerEntityUpdateWorkf
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: CustomerDataRequestUpdateWorkflowInput
+    input: CustomerDataRequestUpdateWorkflowInput,
   ): Promise<CustomerDataRequestUpdateWorkflowResult> {
     const result = await this.stepUpdate(input);
     return {
       ...result,
-      operationResults: this.operationResult(
-        "dataRequestUpdate",
-        result.userErrors
-      ),
+      operationResults: this.operationResult("dataRequestUpdate", result.userErrors),
     };
   }
 
@@ -299,7 +271,7 @@ export class CustomerDataRequestUpdateWorkflow extends CustomerEntityUpdateWorkf
     return this.kernel.runScript(
       CustomerDataRequestUpdateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 }

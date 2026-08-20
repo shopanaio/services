@@ -39,10 +39,7 @@ export const EditDescriptionModal = () => {
               if (!typedPayload.product) return;
               openAIWriterModal({
                 product: typedPayload.product,
-                onApply: (values: {
-                  description?: RenderedContent;
-                  excerpt?: RenderedContent;
-                }) => {
+                onApply: (values: { description?: RenderedContent; excerpt?: RenderedContent }) => {
                   if (values.description?.json) {
                     setValue("description", values.description.json);
                   }

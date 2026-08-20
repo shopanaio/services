@@ -7,17 +7,8 @@ import {
   type Table,
 } from "drizzle-orm";
 import type { Selectable } from "../types.js";
-import {
-  ObjectSchema,
-  tablePrefix,
-  type AliasedTable,
-  type JoinInfo,
-} from "../schema.js";
-import {
-  JoinDepthExceededError,
-  QueryBuilderError,
-  UnknownFieldError,
-} from "../errors.js";
+import { ObjectSchema, tablePrefix, type AliasedTable, type JoinInfo } from "../schema.js";
+import { JoinDepthExceededError, QueryBuilderError, UnknownFieldError } from "../errors.js";
 
 /**
  * Symbol for accessing view base config
@@ -67,11 +58,7 @@ function isAliasedView(table: AliasedTable): boolean {
   const asRecord = table as unknown as Record<symbol, ViewBaseConfig | undefined>;
   const config = asRecord[DrizzleViewBaseConfig];
   // It's a view if ViewBaseConfig exists, has selectedFields, and is NOT just an aliased table
-  return (
-    config !== undefined &&
-    config.selectedFields !== undefined &&
-    !config.isAlias
-  );
+  return config !== undefined && config.selectedFields !== undefined && !config.isAlias;
 }
 
 /**
@@ -116,7 +103,7 @@ export function createJoinCollectorContext(): JoinCollectorContext {
 export class JoinCollector {
   constructor(
     private readonly schemaTable: Selectable,
-    private readonly context: JoinCollectorContext = createJoinCollectorContext()
+    private readonly context: JoinCollectorContext = createJoinCollectorContext(),
   ) {}
   private readonly processedPaths = new Set<string>();
 
@@ -142,7 +129,7 @@ export class JoinCollector {
     if (!table) {
       throw new QueryBuilderError(
         `Aliased table "${alias}" was not registered`,
-        "ALIASED_TABLE_MISSING"
+        "ALIASED_TABLE_MISSING",
       );
     }
     return table;
@@ -220,7 +207,7 @@ export class JoinCollector {
 
     throw new QueryBuilderError(
       `Column "${columnName}" was not found on aliased table`,
-      "COLUMN_NOT_FOUND"
+      "COLUMN_NOT_FOUND",
     );
   }
 
@@ -231,7 +218,7 @@ export class JoinCollector {
     sourceCol: string,
     targetCol: string,
     type?: JoinInfo["type"],
-    composite?: Array<{ field: string; column: string }>
+    composite?: Array<{ field: string; column: string }>,
   ): void {
     if (this.context.joins.has(targetAlias)) {
       return;
@@ -240,9 +227,7 @@ export class JoinCollector {
     const sourceTable = this.requireAliasedTable(sourceAlias);
     const targetAliased = this.getOrCreateAliasedTable(targetTable, targetAlias);
 
-    const conditions: JoinInfo["conditions"] = [
-      { sourceCol, targetCol },
-    ];
+    const conditions: JoinInfo["conditions"] = [{ sourceCol, targetCol }];
 
     if (composite) {
       for (const { field, column } of composite) {
@@ -266,7 +251,7 @@ export class JoinCollector {
     fieldPath: string,
     schema: ObjectSchema,
     depth: number,
-    maxDepth?: number
+    maxDepth?: number,
   ): void {
     if (this.processedPaths.has(fieldPath)) {
       return;
@@ -311,7 +296,7 @@ export class JoinCollector {
         fieldConfig.column,
         joinColumn,
         fieldConfig.join.type,
-        fieldConfig.join.composite
+        fieldConfig.join.composite,
       );
 
       currentSchema = childSchema;

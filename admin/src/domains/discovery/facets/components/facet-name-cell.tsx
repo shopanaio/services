@@ -13,9 +13,7 @@ export function FacetNameCell(params: ICellRendererParams<FacetGridRow>) {
   return (
     <div
       className={styles.nameCell}
-      data-testid={
-        row.slug ? `facets-table-name-cell-${row.slug}` : undefined
-      }
+      data-testid={row.slug ? `facets-table-name-cell-${row.slug}` : undefined}
     >
       {row.facetType ? (
         <span className={styles.sourceIcon}>{getFacetTypeIcon(row.facetType)}</span>

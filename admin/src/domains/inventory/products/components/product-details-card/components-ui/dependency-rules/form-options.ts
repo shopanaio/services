@@ -8,7 +8,12 @@ import {
 } from "@/graphql/types";
 
 import { PRICE_RULE_OPTIONS } from "../types";
-import { ACTIONS_BY_CATEGORY, ACTIONS_BY_TARGET, ACTION_META, CATEGORIES_BY_TARGET } from "./actions";
+import {
+  ACTIONS_BY_CATEGORY,
+  ACTIONS_BY_TARGET,
+  ACTION_META,
+  CATEGORIES_BY_TARGET,
+} from "./actions";
 import {
   ACTION_CATEGORY_LABELS,
   COMPARISON_OPERATOR_LABELS,
@@ -40,9 +45,18 @@ export const getTargetOptions = (
 };
 
 export const CONDITION_TARGET_TYPE_OPTIONS: SelectOption<ProductComponentDependencyTargetType>[] = [
-  { value: ProductComponentDependencyTargetType.Item, label: TARGET_TYPE_LABELS[ProductComponentDependencyTargetType.Item] },
-  { value: ProductComponentDependencyTargetType.Group, label: TARGET_TYPE_LABELS[ProductComponentDependencyTargetType.Group] },
-  { value: ProductComponentDependencyTargetType.Configuration, label: TARGET_TYPE_LABELS[ProductComponentDependencyTargetType.Configuration] },
+  {
+    value: ProductComponentDependencyTargetType.Item,
+    label: TARGET_TYPE_LABELS[ProductComponentDependencyTargetType.Item],
+  },
+  {
+    value: ProductComponentDependencyTargetType.Group,
+    label: TARGET_TYPE_LABELS[ProductComponentDependencyTargetType.Group],
+  },
+  {
+    value: ProductComponentDependencyTargetType.Configuration,
+    label: TARGET_TYPE_LABELS[ProductComponentDependencyTargetType.Configuration],
+  },
 ];
 
 export const ACTION_TARGET_TYPE_OPTIONS = CONDITION_TARGET_TYPE_OPTIONS;
@@ -66,7 +80,10 @@ export const getOperatorOptions = (
 export const getActionTypeOptions = (
   targetType: ProductComponentDependencyTargetType,
 ): SelectOption<ProductComponentDependencyActionType>[] =>
-  ACTIONS_BY_TARGET[targetType].map((action) => ({ value: action, label: ACTION_META[action].label }));
+  ACTIONS_BY_TARGET[targetType].map((action) => ({
+    value: action,
+    label: ACTION_META[action].label,
+  }));
 
 export const getActionCategoryOptions = (
   targetType: ProductComponentDependencyTargetType,
@@ -79,11 +96,20 @@ export const getActionCategoryOptions = (
 export const getActionTypeOptionsByCategory = (
   category: ActionCategory,
 ): SelectOption<ProductComponentDependencyActionType>[] =>
-  ACTIONS_BY_CATEGORY[category].map((action) => ({ value: action, label: ACTION_META[action].label }));
+  ACTIONS_BY_CATEGORY[category].map((action) => ({
+    value: action,
+    label: ACTION_META[action].label,
+  }));
 
 export const LOGIC_OPERATOR_OPTIONS: SelectOption<ProductComponentLogicOperator>[] = [
-  { value: ProductComponentLogicOperator.And, label: LOGIC_OPERATOR_LABELS[ProductComponentLogicOperator.And] },
-  { value: ProductComponentLogicOperator.Or, label: LOGIC_OPERATOR_LABELS[ProductComponentLogicOperator.Or] },
+  {
+    value: ProductComponentLogicOperator.And,
+    label: LOGIC_OPERATOR_LABELS[ProductComponentLogicOperator.And],
+  },
+  {
+    value: ProductComponentLogicOperator.Or,
+    label: LOGIC_OPERATOR_LABELS[ProductComponentLogicOperator.Or],
+  },
 ];
 
 export const getPriceTypeOptions = () =>

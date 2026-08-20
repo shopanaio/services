@@ -23,7 +23,7 @@ export default function OrganizationsPage() {
     (organization: ApiOrganization) => {
       router.push(`/workspace/${organization.name}`);
     },
-    [router]
+    [router],
   );
 
   const handleCreateOrganization = useCallback(() => {

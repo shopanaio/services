@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  ReactNode,
-  Children,
-  isValidElement,
-  useMemo,
-} from "react";
+import { createContext, useContext, ReactNode, Children, isValidElement, useMemo } from "react";
 import { createStyles } from "antd-style";
 import { Badge, Button, Typography, Flex, Spin } from "antd";
 import { LuArrowLeft as ArrowLeftOutlined } from "react-icons/lu";
@@ -159,11 +152,7 @@ const Title = ({ children, count }: ITitleProps) => {
       overflowCount={9999}
       offset={[count && count > 9 ? 6 : 0, 5]}
     >
-      <Typography.Title
-        level={4}
-        className={styles.title}
-        data-testid="page-title"
-      >
+      <Typography.Title level={4} className={styles.title} data-testid="page-title">
         {children}
       </Typography.Title>
     </Badge>
@@ -199,25 +188,13 @@ interface IToolbarProps {
   className?: string;
 }
 
-const Toolbar = ({
-  children,
-  left,
-  center,
-  right,
-  sticky = true,
-  className,
-}: IToolbarProps) => {
+const Toolbar = ({ children, left, center, right, sticky = true, className }: IToolbarProps) => {
   const { styles, cx } = useStyles();
 
   // If children provided, render as-is
   if (children) {
     return (
-      <div
-        className={cx(
-          sticky ? styles.toolbarSticky : styles.toolbar,
-          className
-        )}
-      >
+      <div className={cx(sticky ? styles.toolbarSticky : styles.toolbar, className)}>
         {children}
       </div>
     );
@@ -225,9 +202,7 @@ const Toolbar = ({
 
   // Otherwise use slots
   return (
-    <div
-      className={cx(sticky ? styles.toolbarSticky : styles.toolbar, className)}
-    >
+    <div className={cx(sticky ? styles.toolbarSticky : styles.toolbar, className)}>
       <div className={styles.toolbarInner}>
         {left && <div className={styles.toolbarLeft}>{left}</div>}
         {center && <div className={styles.toolbarCenter}>{center}</div>}
@@ -273,11 +248,7 @@ const Content = ({ children, className }: IContentProps) => {
   if (loading) {
     return (
       <div className={cx(styles.content, className)}>
-        <Flex
-          justify="center"
-          align="center"
-          style={{ height: "100%", minHeight: 200 }}
-        >
+        <Flex justify="center" align="center" style={{ height: "100%", minHeight: 200 }}>
           <Spin size="large" />
         </Flex>
       </div>
@@ -299,31 +270,19 @@ interface IFooterProps {
   className?: string;
 }
 
-const Footer = ({
-  children,
-  left,
-  right,
-  sticky = true,
-  className,
-}: IFooterProps) => {
+const Footer = ({ children, left, right, sticky = true, className }: IFooterProps) => {
   const { styles, cx } = useStyles();
 
   // If children provided, render as-is
   if (children) {
     return (
-      <div
-        className={cx(sticky ? styles.footerSticky : styles.footer, className)}
-      >
-        {children}
-      </div>
+      <div className={cx(sticky ? styles.footerSticky : styles.footer, className)}>{children}</div>
     );
   }
 
   // Otherwise use slots
   return (
-    <div
-      className={cx(sticky ? styles.footerSticky : styles.footer, className)}
-    >
+    <div className={cx(sticky ? styles.footerSticky : styles.footer, className)}>
       <div className={styles.footerInner}>
         <div>{left}</div>
         <div>{right}</div>
@@ -442,11 +401,9 @@ export const DataLayout = ({
     ));
 
   const toolbarNode =
-    slots.toolbar ??
-    (toolbar && <Toolbar sticky={stickyToolbar}>{toolbar}</Toolbar>);
+    slots.toolbar ?? (toolbar && <Toolbar sticky={stickyToolbar}>{toolbar}</Toolbar>);
 
-  const footerNode =
-    slots.footer ?? (footer && <Footer sticky={stickyFooter}>{footer}</Footer>);
+  const footerNode = slots.footer ?? (footer && <Footer sticky={stickyFooter}>{footer}</Footer>);
 
   const contextValue = useMemo(() => ({ loading }), [loading]);
 

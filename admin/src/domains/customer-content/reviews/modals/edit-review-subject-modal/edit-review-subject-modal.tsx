@@ -13,7 +13,11 @@ import {
   type ReviewSubjectSectionValues,
 } from "../review-modal/schema";
 import { useReviewFormStyles } from "../shared/review-form.styles";
-import { ReviewFormField, ReviewModalFrame, useReviewSectionModal } from "../shared/review-section-modal";
+import {
+  ReviewFormField,
+  ReviewModalFrame,
+  useReviewSectionModal,
+} from "../shared/review-section-modal";
 
 interface VariantPickerEntity extends IPickableEntity {
   productId?: string;
@@ -32,7 +36,15 @@ export function EditReviewSubjectModal() {
     defaultValues: { productId: "", variantId: "", orderId: "", orderLineId: "" },
     mode: "onChange",
   });
-  const { control, handleSubmit, reset, setError, setValue, watch, formState: { errors, isDirty, isValid } } = form;
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setError,
+    setValue,
+    watch,
+    formState: { errors, isDirty, isValid },
+  } = form;
   const productId = watch("productId");
   const variantId = watch("variantId");
 
@@ -129,28 +141,71 @@ export function EditReviewSubjectModal() {
             <Flex vertical gap="middle">
               <ReviewFormField label="Product *" error={errors.productId?.message}>
                 <Flex gap="small">
-                  <Input readOnly value={product?.title ?? ""} status={errors.productId ? "error" : undefined} />
-                  <Button autoFocus icon={<ShoppingOutlined />} onClick={productPicker.openPicker}>Select</Button>
+                  <Input
+                    readOnly
+                    value={product?.title ?? ""}
+                    status={errors.productId ? "error" : undefined}
+                  />
+                  <Button autoFocus icon={<ShoppingOutlined />} onClick={productPicker.openPicker}>
+                    Select
+                  </Button>
                 </Flex>
               </ReviewFormField>
-              <ReviewFormField label="Variant" error={errors.variantId?.message} help="Variant options are restricted to the selected product.">
+              <ReviewFormField
+                label="Variant"
+                error={errors.variantId?.message}
+                help="Variant options are restricted to the selected product."
+              >
                 <Flex gap="small">
                   <Input readOnly allowClear value={variant?.title ?? ""} />
-                  <Button disabled={!productId} onClick={variantPicker.openPicker}>Select</Button>
-                  {variantId ? <Button onClick={() => { setVariant(null); setValue("variantId", "", { shouldDirty: true, shouldValidate: true }); }}>Clear</Button> : null}
+                  <Button disabled={!productId} onClick={variantPicker.openPicker}>
+                    Select
+                  </Button>
+                  {variantId ? (
+                    <Button
+                      onClick={() => {
+                        setVariant(null);
+                        setValue("variantId", "", { shouldDirty: true, shouldValidate: true });
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  ) : null}
                 </Flex>
               </ReviewFormField>
-              {variantNotice ? <Alert type="info" showIcon message="The previous variant was cleared because it does not belong to the selected product." /> : null}
+              {variantNotice ? (
+                <Alert
+                  type="info"
+                  showIcon
+                  message="The previous variant was cleared because it does not belong to the selected product."
+                />
+              ) : null}
             </Flex>
           </Paper>
           <Paper>
             <PaperHeader title="Order evidence" />
             <div className={styles.fieldGrid}>
               <ReviewFormField label="Order ID" error={errors.orderId?.message}>
-                <Controller name="orderId" control={control} render={({ field }) => <Input {...field} allowClear status={errors.orderId ? "error" : undefined} />} />
+                <Controller
+                  name="orderId"
+                  control={control}
+                  render={({ field }) => (
+                    <Input {...field} allowClear status={errors.orderId ? "error" : undefined} />
+                  )}
+                />
               </ReviewFormField>
               <ReviewFormField label="Order line ID" error={errors.orderLineId?.message}>
-                <Controller name="orderLineId" control={control} render={({ field }) => <Input {...field} allowClear status={errors.orderLineId ? "error" : undefined} />} />
+                <Controller
+                  name="orderLineId"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      allowClear
+                      status={errors.orderLineId ? "error" : undefined}
+                    />
+                  )}
+                />
               </ReviewFormField>
             </div>
           </Paper>

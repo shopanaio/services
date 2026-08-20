@@ -1,10 +1,10 @@
-import { createStyles } from 'antd-style';
-import { ReactNode } from 'react';
+import { createStyles } from "antd-style";
+import { ReactNode } from "react";
 
 const useStyles = createStyles(({ token }) => ({
   container: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 200px',
+    display: "grid",
+    gridTemplateColumns: "1fr 200px",
     gridColumnGap: token.padding,
   },
 }));

@@ -22,11 +22,13 @@ export class RecommendationCandidateSourceRepository extends BaseRepository {
     diagnostic?: boolean;
   }): Promise<Array<RecommendationCandidate & { insufficientSupport?: boolean }>> {
     assertSourceLimit(input.limit);
-    const rows = await this.connection.execute<AutomatedCandidateRow & {
-      ordersTogether: bigint;
-      confidence: string;
-      lift: string;
-    }>(sql`
+    const rows = await this.connection.execute<
+      AutomatedCandidateRow & {
+        ordersTogether: bigint;
+        confidence: string;
+        lift: string;
+      }
+    >(sql`
       WITH active_run AS (
         SELECT run_id
         FROM listing.recommendation_calculation_run
@@ -193,9 +195,15 @@ export class RecommendationCandidateSourceRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async currentEligibility(ids: readonly string[]): Promise<Map<string, "ELIGIBLE" | "UNPUBLISHED" | "UNAVAILABLE" | "STALE">> {
+  async currentEligibility(
+    ids: readonly string[],
+  ): Promise<Map<string, "ELIGIBLE" | "UNPUBLISHED" | "UNAVAILABLE" | "STALE">> {
     if (ids.length === 0) return new Map();
-    const rows = await this.connection.execute<{ productId: string; status: string | null; available: boolean | null }>(sql`
+    const rows = await this.connection.execute<{
+      productId: string;
+      status: string | null;
+      available: boolean | null;
+    }>(sql`
       SELECT input.product_id AS "productId", p.status,
         bool_or(availability.bool_value = true) AS available
       FROM unnest(${[...ids]}::uuid[]) AS input(product_id)
@@ -206,18 +214,26 @@ export class RecommendationCandidateSourceRepository extends BaseRepository {
         AND availability.sort_kind = 'availability'
       GROUP BY input.product_id, p.status
     `);
-    return new Map(rows.map((row) => [
-      row.productId,
-      row.status === null ? "STALE"
-        : row.status !== "published" ? "UNPUBLISHED"
-        : row.available ? "ELIGIBLE" : "UNAVAILABLE",
-    ]));
+    return new Map(
+      rows.map((row) => [
+        row.productId,
+        row.status === null
+          ? "STALE"
+          : row.status !== "published"
+            ? "UNPUBLISHED"
+            : row.available
+              ? "ELIGIBLE"
+              : "UNAVAILABLE",
+      ]),
+    );
   }
 }
 
 function assertSourceLimit(limit: number): void {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_RECOMMENDATION_SOURCE_LIMIT) {
-    throw new Error(`Recommendation source limit must be from 1 to ${MAX_RECOMMENDATION_SOURCE_LIMIT}`);
+    throw new Error(
+      `Recommendation source limit must be from 1 to ${MAX_RECOMMENDATION_SOURCE_LIMIT}`,
+    );
   }
 }
 

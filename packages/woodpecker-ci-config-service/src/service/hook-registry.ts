@@ -39,10 +39,7 @@ export class HookRegistry {
         }
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        console.error(
-          `Error executing hook ${hook.getName()} at stage ${stage}:`,
-          err
-        );
+        console.error(`Error executing hook ${hook.getName()} at stage ${stage}:`, err);
         context.errors.push({
           stage,
           hookName: hook.getName(),

@@ -1,8 +1,4 @@
-import {
-  decodeGlobalId,
-  GlobalIdEntity,
-  type GlobalIdType,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalId, GlobalIdEntity, type GlobalIdType } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
 import type { RatingCriterionRelayInput } from "../../repositories/configuration/ConfigurationRepository.js";
 import type { ContentConnectionInput } from "../../repositories/content/ContentRepository.js";
@@ -67,23 +63,17 @@ export class ReviewsQueryResolver extends ReviewsType<Record<string, never>> {
 
     switch (typeName) {
       case GlobalIdEntity.ReviewStoreConfiguration: {
-        const row =
-          await this.$ctx.kernel.repository.configuration.findStoreConfiguration();
-        return row?.id === id
-          ? new StoreConfigurationResolver(row, this.$ctx)
-          : null;
+        const row = await this.$ctx.kernel.repository.configuration.findStoreConfiguration();
+        return row?.id === id ? new StoreConfigurationResolver(row, this.$ctx) : null;
       }
       case GlobalIdEntity.ReviewRatingCriterion:
-        return (await this.isActiveRatingCriterion(id))
-          ? this.resolvers.ratingCriterion(id)
-          : null;
+        return (await this.isActiveRatingCriterion(id)) ? this.resolvers.ratingCriterion(id) : null;
       case GlobalIdEntity.ReviewRatingCriterionAssignment:
         return (await this.$ctx.loaders.ratingCriterionAssignment.load(id))
           ? this.resolvers.ratingCriterionAssignment(id)
           : null;
       case GlobalIdEntity.Review:
-        return (await this.isActiveContent(id)) &&
-          (await this.$ctx.loaders.review.load(id))
+        return (await this.isActiveContent(id)) && (await this.$ctx.loaders.review.load(id))
           ? this.resolvers.review(id)
           : null;
       case GlobalIdEntity.ReviewMedia:
@@ -91,8 +81,7 @@ export class ReviewsQueryResolver extends ReviewsType<Record<string, never>> {
           ? this.resolvers.reviewMedia(id)
           : null;
       case GlobalIdEntity.ReviewReply:
-        return (await this.isActiveContent(id)) &&
-          (await this.$ctx.loaders.reviewReply.load(id))
+        return (await this.isActiveContent(id)) && (await this.$ctx.loaders.reviewReply.load(id))
           ? this.resolvers.reviewReply(id)
           : null;
       case GlobalIdEntity.ProductQuestion:
@@ -163,16 +152,13 @@ export class ReviewsQueryResolver extends ReviewsType<Record<string, never>> {
   }
 
   async storeConfiguration() {
-    const row =
-      await this.$ctx.kernel.repository.configuration.findStoreConfiguration();
+    const row = await this.$ctx.kernel.repository.configuration.findStoreConfiguration();
     return row ? new StoreConfigurationResolver(row, this.$ctx) : null;
   }
 
   async ratingCriterion(args: { id: string }) {
     const id = this.decodeId(args.id, GlobalIdEntity.ReviewRatingCriterion);
-    return (await this.isActiveRatingCriterion(id))
-      ? this.resolvers.ratingCriterion(id)
-      : null;
+    return (await this.isActiveRatingCriterion(id)) ? this.resolvers.ratingCriterion(id) : null;
   }
 
   ratingCriteria(args: RatingCriterionRelayInput) {
@@ -190,8 +176,7 @@ export class ReviewsQueryResolver extends ReviewsType<Record<string, never>> {
 
   async review(args: { id: string }) {
     const id = this.decodeId(args.id, GlobalIdEntity.Review);
-    return (await this.isActiveContent(id)) &&
-      (await this.$ctx.loaders.review.load(id))
+    return (await this.isActiveContent(id)) && (await this.$ctx.loaders.review.load(id))
       ? this.resolvers.review(id)
       : null;
   }
@@ -202,8 +187,7 @@ export class ReviewsQueryResolver extends ReviewsType<Record<string, never>> {
 
   async reviewReply(args: { id: string }) {
     const id = this.decodeId(args.id, GlobalIdEntity.ReviewReply);
-    return (await this.isActiveContent(id)) &&
-      (await this.$ctx.loaders.reviewReply.load(id))
+    return (await this.isActiveContent(id)) && (await this.$ctx.loaders.reviewReply.load(id))
       ? this.resolvers.reviewReply(id)
       : null;
   }
@@ -214,8 +198,7 @@ export class ReviewsQueryResolver extends ReviewsType<Record<string, never>> {
 
   async productQuestion(args: { id: string }) {
     const id = this.decodeId(args.id, GlobalIdEntity.ProductQuestion);
-    return (await this.isActiveContent(id)) &&
-      (await this.$ctx.loaders.productQuestion.load(id))
+    return (await this.isActiveContent(id)) && (await this.$ctx.loaders.productQuestion.load(id))
       ? this.resolvers.productQuestion(id)
       : null;
   }
@@ -270,10 +253,7 @@ export class ReviewsQueryResolver extends ReviewsType<Record<string, never>> {
   }
 
   async contentExternalReference(args: { id: string }) {
-    const id = this.decodeId(
-      args.id,
-      GlobalIdEntity.ReviewContentExternalReference
-    );
+    const id = this.decodeId(args.id, GlobalIdEntity.ReviewContentExternalReference);
     return (await this.$ctx.loaders.contentExternalReference.load(id))
       ? this.resolvers.contentExternalReference(id)
       : null;

@@ -12,10 +12,7 @@ import type { FacetValueCandidateConnectionInput } from "./FacetValueCandidateCo
 import { ListingType } from "./ListingType.js";
 import type { ListingQueryArgs } from "./ListingQueryTypes.js";
 
-function safeDecodeGlobalId(
-  globalId: string,
-  expectedType: GlobalIdType
-): string | null {
+function safeDecodeGlobalId(globalId: string, expectedType: GlobalIdType): string | null {
   try {
     return decodeGlobalIdByType(globalId, expectedType);
   } catch {
@@ -23,10 +20,7 @@ function safeDecodeGlobalId(
   }
 }
 
-type FacetValueCandidatesArgs = Omit<
-  FacetValueCandidateConnectionInput,
-  "meta"
-> & {
+type FacetValueCandidatesArgs = Omit<FacetValueCandidateConnectionInput, "meta"> & {
   meta: Omit<FacetValueCandidateConnectionInput["meta"], "sourceHandles" | "facetId"> & {
     sourceHandles?: string[] | null;
     facetId?: string | null;
@@ -41,7 +35,9 @@ export class QueryResolver extends ListingType<Record<string, never>> {
 }
 
 export class ListingQueryResolver extends ListingType<Record<string, never>> {
-  async recommendationPlacementPolicy(args: { placement: "PRODUCT_RELATED" | "FREQUENTLY_BOUGHT_TOGETHER" }) {
+  async recommendationPlacementPolicy(args: {
+    placement: "PRODUCT_RELATED" | "FREQUENTLY_BOUGHT_TOGETHER";
+  }) {
     return (await this.resolvers.recommendationQuery()).policy(args);
   }
 
@@ -58,7 +54,11 @@ export class ListingQueryResolver extends ListingType<Record<string, never>> {
     return (await this.resolvers.recommendationQuery()).manualConnection(args);
   }
 
-  async recommendationSnapshotPreview(args: Parameters<import("./RecommendationResolvers.js").RecommendationQueryResolver["preview"]>[0]) {
+  async recommendationSnapshotPreview(
+    args: Parameters<
+      import("./RecommendationResolvers.js").RecommendationQueryResolver["preview"]
+    >[0],
+  ) {
     return (await this.resolvers.recommendationQuery()).preview(args);
   }
   async search() {
@@ -111,10 +111,7 @@ export class ListingQueryResolver extends ListingType<Record<string, never>> {
     let facetId: string | undefined;
 
     if (args.meta.facetId != null) {
-      const decodedFacetId = safeDecodeGlobalId(
-        args.meta.facetId,
-        GlobalIdEntity.Facet
-      );
+      const decodedFacetId = safeDecodeGlobalId(args.meta.facetId, GlobalIdEntity.Facet);
       if (!decodedFacetId) {
         throw new GraphQLError("Invalid facetId", {
           extensions: { code: "BAD_USER_INPUT" },
@@ -123,16 +120,14 @@ export class ListingQueryResolver extends ListingType<Record<string, never>> {
       facetId = decodedFacetId;
     }
 
-    return this.resolvers.facetValueCandidateConnection(
-      {
-        ...args,
-        meta: {
-          candidateType: args.meta.candidateType,
-          sourceHandles: args.meta.sourceHandles ?? undefined,
-          facetId,
-        },
-      }
-    );
+    return this.resolvers.facetValueCandidateConnection({
+      ...args,
+      meta: {
+        candidateType: args.meta.candidateType,
+        sourceHandles: args.meta.sourceHandles ?? undefined,
+        facetId,
+      },
+    });
   }
 
   async facetValue(args: { id: string }) {
@@ -146,9 +141,7 @@ export class ListingQueryResolver extends ListingType<Record<string, never>> {
   async facetValues(args: { facetId: string }) {
     const facetId = safeDecodeGlobalId(args.facetId, GlobalIdEntity.Facet);
     if (!facetId) return [];
-    const values = await this.$ctx.kernel.repository.facetValue.findByFacetId(
-      facetId
-    );
+    const values = await this.$ctx.kernel.repository.facetValue.findByFacetId(facetId);
     return Promise.all(values.map((item) => this.resolvers.facetValue(item.id)));
   }
 

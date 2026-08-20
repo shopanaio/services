@@ -7,10 +7,7 @@ import {
   type ServiceBroker,
   type WorkflowRegistry,
 } from "@shopana/shared-kernel";
-import {
-  createDatabase,
-  type Database,
-} from "../infrastructure/db/database.js";
+import { createDatabase, type Database } from "../infrastructure/db/database.js";
 import { Repository } from "../repositories/Repository.js";
 import type { LoyaltyKernelServices } from "./types.js";
 
@@ -50,14 +47,7 @@ export class Kernel extends BaseKernel<LoyaltyKernelServices> {
     const repository = await Repository.create({ db });
     const cache = createCache({ ttl: 5 * 60 * 1000 });
 
-    this.instance = new Kernel(
-      broker,
-      consoleLogger,
-      repository,
-      workflow,
-      cache,
-      db,
-    );
+    this.instance = new Kernel(broker, consoleLogger, repository, workflow, cache, db);
     return this.instance;
   }
 

@@ -27,16 +27,17 @@ export interface RunScriptContext {
   requestId?: string;
 }
 
-export type TransactionScript<
-  TParams = unknown,
-  TResult = unknown
-> = BaseTransactionScript<TParams, TResult, PricingKernelServices>;
+export type TransactionScript<TParams = unknown, TResult = unknown> = BaseTransactionScript<
+  TParams,
+  TResult,
+  PricingKernelServices
+>;
 
 export class KernelError extends Error {
   constructor(
     message: string,
     public readonly code: string,
-    public readonly details?: unknown
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = "KernelError";
@@ -69,10 +70,7 @@ export function getPgErrorInfo(error: unknown): PgErrorInfo | null {
   return null;
 }
 
-export function isUniqueViolation(
-  error: unknown,
-  constraintName?: string
-): boolean {
+export function isUniqueViolation(error: unknown, constraintName?: string): boolean {
   const info = getPgErrorInfo(error);
   if (!info || info.code !== PG_ERROR_CODES.UNIQUE_VIOLATION) {
     return false;

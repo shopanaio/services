@@ -14,11 +14,7 @@ import { KPITile } from "@/ui-kit/kpi-tile";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ReviewEditSection } from "../../modals";
 import { useReviewDetailsStyles } from "./review-details-card.styles";
-import {
-  formatReviewDate,
-  humanizeEnum,
-  reviewStatusConfig,
-} from "./review-details-card.utils";
+import { formatReviewDate, humanizeEnum, reviewStatusConfig } from "./review-details-card.utils";
 
 interface ReviewInfoHeaderProps {
   review: ApiReview;
@@ -43,7 +39,9 @@ export function ReviewInfoHeader({
     `Created ${formatReviewDate(review.createdAt)}`,
     review.updatedAt ? `Updated ${formatReviewDate(review.updatedAt)}` : null,
     humanizeEnum(review.sourceChannel),
-  ].filter(Boolean).join(" · ");
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const copyAdminUrl = async () => {
     await navigator.clipboard.writeText(window.location.href);
@@ -54,7 +52,7 @@ export function ReviewInfoHeader({
   return (
     <Paper data-testid="review-info-header">
       <PaperHeader
-        title={(
+        title={
           <Flex align="center" gap={8} wrap="wrap" className={styles.headerMeta}>
             <Tooltip title={status.hint}>
               <Tag
@@ -70,8 +68,8 @@ export function ReviewInfoHeader({
               {audit}
             </Typography.Text>
           </Flex>
-        )}
-        actions={(
+        }
+        actions={
           <Flex gap={8} align="center">
             <Tooltip title={linkCopied ? "Copied" : "Copy Admin URL"}>
               <Button
@@ -87,18 +85,70 @@ export function ReviewInfoHeader({
               trigger={["click"]}
               menu={{
                 items: [
-                  { key: "content", label: "Edit review content", "data-testid": "review-header-edit-content", onClick: () => onEdit("content") },
-                  { key: "reviewer", label: "Edit reviewer", "data-testid": "review-header-edit-reviewer", onClick: () => onEdit("reviewer") },
-                  { key: "subject", label: "Edit product & purchase", "data-testid": "review-header-edit-subject", onClick: () => onEdit("subject") },
-                  { key: "ratings", label: "Edit ratings", "data-testid": "review-header-edit-ratings", onClick: () => onEdit("ratings") },
+                  {
+                    key: "content",
+                    label: "Edit review content",
+                    "data-testid": "review-header-edit-content",
+                    onClick: () => onEdit("content"),
+                  },
+                  {
+                    key: "reviewer",
+                    label: "Edit reviewer",
+                    "data-testid": "review-header-edit-reviewer",
+                    onClick: () => onEdit("reviewer"),
+                  },
+                  {
+                    key: "subject",
+                    label: "Edit product & purchase",
+                    "data-testid": "review-header-edit-subject",
+                    onClick: () => onEdit("subject"),
+                  },
+                  {
+                    key: "ratings",
+                    label: "Edit ratings",
+                    "data-testid": "review-header-edit-ratings",
+                    onClick: () => onEdit("ratings"),
+                  },
                   { type: "divider" as const },
-                  { key: "moderation", label: "Review moderation", "data-testid": "review-header-edit-moderation", onClick: () => onEdit("moderation") },
-                  { key: "verification", label: "Edit purchase verification", "data-testid": "review-header-edit-verification", onClick: () => onEdit("verification") },
-                  { key: "incentive", label: "Edit incentive disclosure", "data-testid": "review-header-edit-incentive", onClick: () => onEdit("incentive") },
-                  { key: "technical", label: "View technical metadata", "data-testid": "review-header-technical", onClick: onOpenTechnicalMetadata },
+                  {
+                    key: "moderation",
+                    label: "Review moderation",
+                    "data-testid": "review-header-edit-moderation",
+                    onClick: () => onEdit("moderation"),
+                  },
+                  {
+                    key: "verification",
+                    label: "Edit purchase verification",
+                    "data-testid": "review-header-edit-verification",
+                    onClick: () => onEdit("verification"),
+                  },
+                  {
+                    key: "incentive",
+                    label: "Edit incentive disclosure",
+                    "data-testid": "review-header-edit-incentive",
+                    onClick: () => onEdit("incentive"),
+                  },
+                  {
+                    key: "technical",
+                    label: "View technical metadata",
+                    "data-testid": "review-header-technical",
+                    onClick: onOpenTechnicalMetadata,
+                  },
                   { type: "divider" as const },
-                  { key: "redact", label: "Redact personal content", danger: true, "data-testid": "review-header-redact", onClick: onRedact },
-                  { key: "delete", label: "Delete review", danger: true, "data-testid": "review-header-delete", onClick: onDelete },
+                  {
+                    key: "redact",
+                    label: "Redact personal content",
+                    danger: true,
+                    "data-testid": "review-header-redact",
+                    onClick: onRedact,
+                  },
+                  {
+                    key: "delete",
+                    label: "Delete review",
+                    danger: true,
+                    "data-testid": "review-header-delete",
+                    onClick: onDelete,
+                  },
                 ],
               }}
             >
@@ -110,7 +160,7 @@ export function ReviewInfoHeader({
               />
             </Dropdown>
           </Flex>
-        )}
+        }
       />
 
       <Flex vertical gap={8}>
@@ -131,7 +181,9 @@ export function ReviewInfoHeader({
           <Typography.Text strong>{authorName}</Typography.Text>
           <Tag>{humanizeEnum(review.author.type)}</Tag>
           {review.isVerifiedPurchase ? (
-            <Tag color="green" icon={<SafetyCertificateOutlined />}>Verified purchase</Tag>
+            <Tag color="green" icon={<SafetyCertificateOutlined />}>
+              Verified purchase
+            </Tag>
           ) : null}
         </Flex>
         <CopyableChip
@@ -148,7 +200,11 @@ export function ReviewInfoHeader({
       <div className={styles.kpiGrid}>
         <KPITile label="Helpful" value={review.metrics.likeCount} tooltip="Helpful votes" />
         <KPITile label="Unhelpful" value={review.metrics.dislikeCount} tooltip="Unhelpful votes" />
-        <KPITile label="Open reports" value={review.metrics.openReportCount} variant={review.metrics.openReportCount ? "warning" : "default"} />
+        <KPITile
+          label="Open reports"
+          value={review.metrics.openReportCount}
+          variant={review.metrics.openReportCount ? "warning" : "default"}
+        />
         <KPITile label="Replies" value={review.replies.totalCount} />
       </div>
     </Paper>

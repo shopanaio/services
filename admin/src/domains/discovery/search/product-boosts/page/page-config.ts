@@ -1,8 +1,4 @@
-import type {
-  FilterTransformer,
-  SortFieldMapping,
-  UsePageConfigReturn,
-} from "@/hooks";
+import type { FilterTransformer, SortFieldMapping, UsePageConfigReturn } from "@/hooks";
 import {
   createGraphqlBooleanFilterTransformer,
   createGraphqlDateTimeRangeFilterTransformer,
@@ -37,42 +33,21 @@ export const productBoostFilterTransformers: Record<
   string,
   FilterTransformer<ApiSearchProductBoostWhereInput>
 > = {
-  name: createGraphqlStringFilterTransformer<ApiSearchProductBoostWhereInput>(
-    "name",
-  ),
-  phrases:
-    createGraphqlStringFilterTransformer<ApiSearchProductBoostWhereInput>(
-      "phrases",
-    ),
-  locale:
-    createGraphqlStringFilterTransformer<ApiSearchProductBoostWhereInput>(
-      "locale",
-    ),
-  enabled:
-    createGraphqlBooleanFilterTransformer<ApiSearchProductBoostWhereInput>(
-      "enabled",
-    ),
-  phrasesCount:
-    createGraphqlIntFilterTransformer<ApiSearchProductBoostWhereInput>(
-      "phrasesCount",
-    ),
+  name: createGraphqlStringFilterTransformer<ApiSearchProductBoostWhereInput>("name"),
+  phrases: createGraphqlStringFilterTransformer<ApiSearchProductBoostWhereInput>("phrases"),
+  locale: createGraphqlStringFilterTransformer<ApiSearchProductBoostWhereInput>("locale"),
+  enabled: createGraphqlBooleanFilterTransformer<ApiSearchProductBoostWhereInput>("enabled"),
+  phrasesCount: createGraphqlIntFilterTransformer<ApiSearchProductBoostWhereInput>("phrasesCount"),
   productsCount:
-    createGraphqlIntFilterTransformer<ApiSearchProductBoostWhereInput>(
-      "productsCount",
-    ),
+    createGraphqlIntFilterTransformer<ApiSearchProductBoostWhereInput>("productsCount"),
   productIds: () => null,
   updatedAt:
-    createGraphqlDateTimeRangeFilterTransformer<ApiSearchProductBoostWhereInput>(
-      "updatedAt",
-    ),
+    createGraphqlDateTimeRangeFilterTransformer<ApiSearchProductBoostWhereInput>("updatedAt"),
 };
 
 export function buildProductBoostsQueryVariables(
   pageConfig: Pick<
-    UsePageConfigReturn<
-      ApiSearchProductBoostWhereInput,
-      SearchProductBoostOrderField
-    >,
+    UsePageConfigReturn<ApiSearchProductBoostWhereInput, SearchProductBoostOrderField>,
     "first" | "after" | "last" | "before" | "where" | "orderBy" | "filters"
   >,
 ): SearchProductBoostsQueryVariables {
@@ -82,18 +57,15 @@ export function buildProductBoostsQueryVariables(
     last: pageConfig.last,
     before: pageConfig.before,
     where: pageConfig.where ?? null,
-    orderBy: (pageConfig.orderBy ??
-      null) as ApiSearchProductBoostOrderByInput[] | null,
+    orderBy: (pageConfig.orderBy ?? null) as ApiSearchProductBoostOrderByInput[] | null,
     meta: buildProductBoostsMeta(pageConfig.filters),
   };
 }
 
-function buildProductBoostsMeta(
-  filters: IFilterValue[],
-): ApiSearchProductBoostsMetaInput | null {
+function buildProductBoostsMeta(filters: IFilterValue[]): ApiSearchProductBoostsMetaInput | null {
   const productIds = filters
     .filter((filter) => filter.payloadKey === "productIds")
-    .flatMap((filter) => Array.isArray(filter.value) ? filter.value : [filter.value])
+    .flatMap((filter) => (Array.isArray(filter.value) ? filter.value : [filter.value]))
     .filter((value): value is string => typeof value === "string" && value.length > 0);
 
   return productIds.length > 0 ? { productIds: [...new Set(productIds)] } : null;

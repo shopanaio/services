@@ -23,9 +23,7 @@ export interface DiscountUpdateMappingResult {
   errors: UserError[];
 }
 
-export function mapDiscountUpdateInput(
-  input: DiscountUpdateInput,
-): DiscountUpdateMappingResult {
+export function mapDiscountUpdateInput(input: DiscountUpdateInput): DiscountUpdateMappingResult {
   const entries: DiscountUpdateMappedEntry[] = [];
 
   if (input.definition != null) {
@@ -40,20 +38,25 @@ export function mapDiscountUpdateInput(
   if (input.functionBinding != null) {
     const errors: UserError[] = [];
     const fieldPrefix = ["operations", "functionBinding"];
-    entries.push(mappedEntry({
-      type: "discountFunctionBindingUpdate",
-      params: {
-        ...input.functionBinding,
-        installationId:
-          decodeId(
-            input.functionBinding.installationId,
-            GlobalIdEntity.AppInstallation,
-            [...fieldPrefix, "installationId"],
-            errors,
-          ) ?? input.functionBinding.installationId,
-      },
-      meta: { fieldPrefix },
-    }, errors));
+    entries.push(
+      mappedEntry(
+        {
+          type: "discountFunctionBindingUpdate",
+          params: {
+            ...input.functionBinding,
+            installationId:
+              decodeId(
+                input.functionBinding.installationId,
+                GlobalIdEntity.AppInstallation,
+                [...fieldPrefix, "installationId"],
+                errors,
+              ) ?? input.functionBinding.installationId,
+          },
+          meta: { fieldPrefix },
+        },
+        errors,
+      ),
+    );
   }
   if (input.rule != null) {
     entries.push(
@@ -137,17 +140,13 @@ export function mapDiscountUpdateInput(
   }
 
   return {
-    operations: entries.flatMap((entry) =>
-      entry.operation ? [entry.operation] : [],
-    ),
+    operations: entries.flatMap((entry) => (entry.operation ? [entry.operation] : [])),
     entries,
     errors: entries.flatMap((entry) => entry.errors),
   };
 }
 
-export function mapPreflightDiscountOperationResult(
-  entry: DiscountUpdateMappedEntry,
-) {
+export function mapPreflightDiscountOperationResult(entry: DiscountUpdateMappedEntry) {
   return {
     type: toGraphqlDiscountOperationType(entry.type),
     applied: false,
@@ -158,43 +157,36 @@ export function mapPreflightDiscountOperationResult(
 export function toGraphqlDiscountOperationType(
   type: DiscountUpdateOperation["type"],
 ): DiscountOperationType {
-  const types: Record<
-    DiscountUpdateOperation["type"],
-    DiscountOperationType
-  > = {
+  const types: Record<DiscountUpdateOperation["type"], DiscountOperationType> = {
     discountDefinitionUpdate: "DEFINITION_UPDATE" as DiscountOperationType,
-    discountFunctionBindingUpdate:
-      "FUNCTION_BINDING_UPDATE" as DiscountOperationType,
+    discountFunctionBindingUpdate: "FUNCTION_BINDING_UPDATE" as DiscountOperationType,
     discountRuleUpdate: "RULE_UPDATE" as DiscountOperationType,
-    discountMinimumRequirementUpdate:
-      "MINIMUM_REQUIREMENT_UPDATE" as DiscountOperationType,
+    discountMinimumRequirementUpdate: "MINIMUM_REQUIREMENT_UPDATE" as DiscountOperationType,
     discountTargetsUpdate: "TARGETS_UPDATE" as DiscountOperationType,
     discountEligibilityUpdate: "ELIGIBILITY_UPDATE" as DiscountOperationType,
     discountCodesUpdate: "CODES_UPDATE" as DiscountOperationType,
     discountTagsUpdate: "TAGS_UPDATE" as DiscountOperationType,
     discountChannelsUpdate: "CHANNELS_UPDATE" as DiscountOperationType,
-    discountCombinationsUpdate:
-      "COMBINATIONS_UPDATE" as DiscountOperationType,
+    discountCombinationsUpdate: "COMBINATIONS_UPDATE" as DiscountOperationType,
     discountLifecycleUpdate: "LIFECYCLE_UPDATE" as DiscountOperationType,
     discountMetadataUpdate: "METADATA_UPDATE" as DiscountOperationType,
   };
   return types[type];
 }
 
-function mapTargets(
-  inputs: DiscountTargetSelectionInput[],
-): DiscountUpdateMappedEntry {
+function mapTargets(inputs: DiscountTargetSelectionInput[]): DiscountUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "targetSelections"];
   const items = inputs.map((input, index) => ({
     ...input,
-    targetIds: input.targetIds.map((targetId, targetIndex) =>
-      decodeId(
-        targetId,
-        targetGlobalIdType(input.targetType),
-        [...fieldPrefix, String(index), "targetIds", String(targetIndex)],
-        errors,
-      ) ?? targetId,
+    targetIds: input.targetIds.map(
+      (targetId, targetIndex) =>
+        decodeId(
+          targetId,
+          targetGlobalIdType(input.targetType),
+          [...fieldPrefix, String(index), "targetIds", String(targetIndex)],
+          errors,
+        ) ?? targetId,
     ),
   }));
   return mappedEntry(
@@ -214,21 +206,23 @@ function mapEligibility(
   const fieldPrefix = ["operations", "eligibility"];
   const params = {
     ...input,
-    customerIds: input.customerIds?.map((id, index) =>
-      decodeId(
-        id,
-        GlobalIdEntity.Customer,
-        [...fieldPrefix, "customerIds", String(index)],
-        errors,
-      ) ?? id,
+    customerIds: input.customerIds?.map(
+      (id, index) =>
+        decodeId(
+          id,
+          GlobalIdEntity.Customer,
+          [...fieldPrefix, "customerIds", String(index)],
+          errors,
+        ) ?? id,
     ),
-    segmentIds: input.segmentIds?.map((id, index) =>
-      decodeId(
-        id,
-        GlobalIdEntity.CustomerSegment,
-        [...fieldPrefix, "segmentIds", String(index)],
-        errors,
-      ) ?? id,
+    segmentIds: input.segmentIds?.map(
+      (id, index) =>
+        decodeId(
+          id,
+          GlobalIdEntity.CustomerSegment,
+          [...fieldPrefix, "segmentIds", String(index)],
+          errors,
+        ) ?? id,
     ),
   };
   return mappedEntry(
@@ -241,9 +235,7 @@ function mapEligibility(
   );
 }
 
-function mapCodes(
-  input: NonNullable<DiscountUpdateInput["codes"]>,
-): DiscountUpdateMappedEntry {
+function mapCodes(input: NonNullable<DiscountUpdateInput["codes"]>): DiscountUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "codes"];
   const params = {
@@ -279,9 +271,7 @@ function mapCodes(
   );
 }
 
-function targetGlobalIdType(
-  type: DiscountTargetSelectionInput["targetType"],
-): GlobalIdType {
+function targetGlobalIdType(type: DiscountTargetSelectionInput["targetType"]): GlobalIdType {
   switch (type) {
     case "PRODUCTS":
       return GlobalIdEntity.Product;
@@ -295,9 +285,7 @@ function targetGlobalIdType(
   throw new Error(`Unsupported discount target type: ${String(type)}`);
 }
 
-function validEntry(
-  operation: DiscountUpdateOperation,
-): DiscountUpdateMappedEntry {
+function validEntry(operation: DiscountUpdateOperation): DiscountUpdateMappedEntry {
   return { type: operation.type, operation, errors: [] };
 }
 

@@ -4,11 +4,7 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Input, Typography, Alert, App } from "antd";
 import { createStyles } from "antd-style";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useUpdateEmail } from "../../hooks";
 import type { IChangeEmailModalPayload } from "../../modals";
@@ -100,9 +96,7 @@ export const ChangeEmailModal = () => {
 
         <form>
           <div className={styles.formItem}>
-            <Typography.Text className={styles.label}>
-              New Email Address
-            </Typography.Text>
+            <Typography.Text className={styles.label}>New Email Address</Typography.Text>
             <Controller
               name="newEmail"
               control={control}
@@ -112,8 +106,7 @@ export const ChangeEmailModal = () => {
                   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                   message: "Invalid email address",
                 },
-                validate: (value) =>
-                  value !== currentEmail || "New email must be different",
+                validate: (value) => value !== currentEmail || "New email must be different",
               }}
               render={({ field }) => (
                 <Input
@@ -125,9 +118,7 @@ export const ChangeEmailModal = () => {
               )}
             />
             {errors.newEmail && (
-              <Typography.Text className={styles.error}>
-                {errors.newEmail.message}
-              </Typography.Text>
+              <Typography.Text className={styles.error}>{errors.newEmail.message}</Typography.Text>
             )}
           </div>
         </form>

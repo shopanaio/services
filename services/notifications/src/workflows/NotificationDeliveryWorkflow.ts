@@ -21,19 +21,12 @@ import type {
 } from "./NotificationProviderDeliveryWorkflow.js";
 import type { DeliveryWorkflowInput } from "./types.js";
 
-type ProviderSuccessOutcome = Extract<
-  ProviderOutcome,
-  { status: "ACCEPTED" | "DELIVERED" }
->;
+type ProviderSuccessOutcome = Extract<ProviderOutcome, { status: "ACCEPTED" | "DELIVERED" }>;
 
 type ProviderFailureOutcome = Extract<
   ProviderOutcome,
   {
-    status:
-      | "UNKNOWN"
-      | "FAILED_PERMANENT"
-      | "DEAD"
-      | "BLOCKED_NO_PROVIDER";
+    status: "UNKNOWN" | "FAILED_PERMANENT" | "DEAD" | "BLOCKED_NO_PROVIDER";
   }
 >;
 
@@ -79,8 +72,7 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
       const attempt = await this.stepScript(input, {
         operation: "createAttempt",
         deliveryId: input.deliveryId,
-        workflowId:
-          DBOS.workflowID ?? `notifications.deliver:${input.deliveryId}`,
+        workflowId: DBOS.workflowID ?? `notifications.deliver:${input.deliveryId}`,
       });
       if (!("attemptId" in attempt)) {
         throw new Error("NOTIFICATION_ATTEMPT_NOT_CREATED");
@@ -107,8 +99,7 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
       const attempt = await this.stepScript(input, {
         operation: "createAttempt",
         deliveryId: input.deliveryId,
-        workflowId:
-          DBOS.workflowID ?? `notifications.deliver:${input.deliveryId}`,
+        workflowId: DBOS.workflowID ?? `notifications.deliver:${input.deliveryId}`,
       });
       if (!("attemptId" in attempt)) {
         throw new Error("NOTIFICATION_ATTEMPT_NOT_CREATED");
@@ -135,10 +126,7 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
     }
     const outcomes = await Promise.all(
       routes.map((route) =>
-        this.broker.runWorkflow<
-          ProviderOutcome,
-          NotificationProviderDeliveryInput
-        >(
+        this.broker.runWorkflow<ProviderOutcome, NotificationProviderDeliveryInput>(
           "notifications.deliverProvider",
           {
             delivery: input,
@@ -162,9 +150,7 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
     input: DeliveryWorkflowInput,
     outcomes: readonly ProviderOutcome[],
   ): Promise<{ status: string }> {
-    const eligible = outcomes.filter(
-      (outcome) => outcome.status !== "UNSUPPORTED",
-    );
+    const eligible = outcomes.filter((outcome) => outcome.status !== "UNSUPPORTED");
     if (eligible.length === 0) {
       await this.stepScript(input, {
         operation: "finalizeFailure",
@@ -178,14 +164,12 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
 
     const successful = eligible.filter(
       (outcome): outcome is ProviderSuccessOutcome =>
-        outcome.status === "ACCEPTED" ||
-        outcome.status === "DELIVERED",
+        outcome.status === "ACCEPTED" || outcome.status === "DELIVERED",
     );
     if (successful.length === eligible.length) {
-      const state =
-        successful.every((outcome) => outcome.status === "DELIVERED")
-          ? "DELIVERED"
-          : "ACCEPTED";
+      const state = successful.every((outcome) => outcome.status === "DELIVERED")
+        ? "DELIVERED"
+        : "ACCEPTED";
       const provider = eligible.length === 1 ? successful[0] : undefined;
       await this.stepScript(input, {
         operation: "finalizeSuccess",
@@ -208,23 +192,16 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
       return { status: "UNKNOWN" };
     }
 
-    const failure = selectAggregateFailure(
-      eligible as readonly ProviderFailureOutcome[],
-    );
+    const failure = selectAggregateFailure(eligible as readonly ProviderFailureOutcome[]);
     await this.stepScript(input, {
       operation: "finalizeFailure",
       deliveryId: input.deliveryId,
       status: failure.status,
       errorKind: failure.errorKind,
       errorCode: failure.errorCode,
-      providerCode:
-        eligible.length === 1 ? failure.providerCode : undefined,
-      providerSlotId:
-        eligible.length === 1 ? failure.providerSlotId : undefined,
-      providerMessageId:
-        eligible.length === 1
-          ? failure.providerMessageId
-          : undefined,
+      providerCode: eligible.length === 1 ? failure.providerCode : undefined,
+      providerSlotId: eligible.length === 1 ? failure.providerSlotId : undefined,
+      providerMessageId: eligible.length === 1 ? failure.providerMessageId : undefined,
     });
     return { status: failure.status };
   }
@@ -249,15 +226,14 @@ export class NotificationDeliveryWorkflow extends BrokerWorkflows {
     operation: string;
   }): Promise<Apps.CapabilityRoute[]> {
     try {
-      const result =
-        await this.broker.call<Apps.ListCapabilityRoutesResult>(
-          "apps.listCapabilityRoutes",
-          {
-            storeId: input.storeId,
-            capability: "notifications",
-            operation: input.operation,
-          } satisfies Apps.ListCapabilityRoutesParams,
-        );
+      const result = await this.broker.call<Apps.ListCapabilityRoutesResult>(
+        "apps.listCapabilityRoutes",
+        {
+          storeId: input.storeId,
+          capability: "notifications",
+          operation: input.operation,
+        } satisfies Apps.ListCapabilityRoutesParams,
+      );
       return result.routes;
     } catch (error) {
       throw new RetryableError(
@@ -278,15 +254,12 @@ function selectAggregateFailure(
   return (
     outcomes.find((outcome) => outcome.status === "UNKNOWN") ??
     outcomes.find((outcome) => outcome.status === "DEAD") ??
-    outcomes.find(
-      (outcome) => outcome.status === "FAILED_PERMANENT",
-    ) ??
+    outcomes.find((outcome) => outcome.status === "FAILED_PERMANENT") ??
     fallback
   );
 }
 
 function toErrorCode(error: unknown): string {
-  const value =
-    error instanceof Error ? error.message : "DELIVERY_PREFLIGHT_FAILED";
+  const value = error instanceof Error ? error.message : "DELIVERY_PREFLIGHT_FAILED";
   return value.replace(/[^A-Z0-9_:-]/gi, "_").slice(0, 128);
 }

@@ -4,11 +4,7 @@
  */
 
 // Re-export fragments
-export {
-  USER_FRAGMENT,
-  AUTH_TOKEN_FRAGMENT,
-  USER_ERROR_FRAGMENT,
-} from "./fragments";
+export { USER_FRAGMENT, AUTH_TOKEN_FRAGMENT, USER_ERROR_FRAGMENT } from "./fragments";
 
 // Re-export queries
 export { CURRENT_USER_QUERY } from "./queries";

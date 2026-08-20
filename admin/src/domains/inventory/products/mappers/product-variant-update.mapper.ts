@@ -43,10 +43,7 @@ function parseOptionalMinorUnit(value: unknown): number | null {
   return parseRequiredMinorUnit(value);
 }
 
-function parseOptionalInteger(
-  value: unknown,
-  label: string,
-): number | null {
+function parseOptionalInteger(value: unknown, label: string): number | null {
   if (value === null || value === undefined || value === "") {
     return null;
   }
@@ -105,10 +102,7 @@ function applyPricingUpdate(
   const originalAmountMinor = variant.price?.amountMinor ?? null;
   const originalCompareAtMinor = variant.price?.compareAtMinor ?? null;
 
-  if (
-    amountMinor === originalAmountMinor &&
-    compareAtMinor === originalCompareAtMinor
-  ) {
+  if (amountMinor === originalAmountMinor && compareAtMinor === originalCompareAtMinor) {
     return;
   }
 
@@ -155,9 +149,7 @@ function applyShippingUpdate(
   const width = parseOptionalInteger(row.width, "Width");
   const height = parseOptionalInteger(row.height, "Height");
   const dimensionsChanged =
-    length !== originalLength ||
-    width !== originalWidth ||
-    height !== originalHeight;
+    length !== originalLength || width !== originalWidth || height !== originalHeight;
 
   if (weightChanged && weight === null && originalWeight !== null) {
     throw new Error("Clearing existing weight is not supported.");
@@ -185,9 +177,7 @@ function applyDimensionsOperation(
   }
 
   if (length === null || width === null || height === null) {
-    throw new Error(
-      "Length, width, and height are required to save dimensions.",
-    );
+    throw new Error("Length, width, and height are required to save dimensions.");
   }
 
   operation.dimensions = {
@@ -197,10 +187,7 @@ function applyDimensionsOperation(
   };
 }
 
-function areSameFileIdSet(
-  left: readonly string[],
-  right: readonly string[],
-): boolean {
+function areSameFileIdSet(left: readonly string[], right: readonly string[]): boolean {
   if (left.length !== right.length) {
     return false;
   }
@@ -270,11 +257,11 @@ function applyMaterializedRowFields(
 function hasVariantOperationFields(operation: ApiVariantOperationInput): boolean {
   return Boolean(
     operation.pricing ||
-      operation.dimensions ||
-      operation.weight !== undefined ||
-      operation.media ||
-      operation.options ||
-      operation.inventory,
+    operation.dimensions ||
+    operation.weight !== undefined ||
+    operation.media ||
+    operation.options ||
+    operation.inventory,
   );
 }
 
@@ -286,9 +273,7 @@ export function prepareChangedVariantUpdateOperations({
   includeShipping = true,
   includeMedia = true,
 }: PrepareChangedVariantUpdateOperationsParams): ApiVariantOperationInput[] {
-  const variantsById = new Map(
-    variants.map((variant) => [variant.id, variant]),
-  );
+  const variantsById = new Map(variants.map((variant) => [variant.id, variant]));
   const updatesByVariantId = new Map<string, ApiVariantOperationInput>();
 
   for (const row of rows) {
@@ -358,9 +343,7 @@ export function prepareDraftVariantCreateOperations({
             }
 
             if (!option.values.some((value) => value.id === optionValueId)) {
-              throw new Error(
-                "Draft variant selected option values are invalid.",
-              );
+              throw new Error("Draft variant selected option values are invalid.");
             }
 
             return {

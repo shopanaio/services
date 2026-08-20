@@ -1,7 +1,4 @@
-import type {
-  GatewayConfig,
-  GatewayPlugin,
-} from "@graphql-hive/gateway";
+import type { GatewayConfig, GatewayPlugin } from "@graphql-hive/gateway";
 import { createHash, randomUUID } from "node:crypto";
 import { GraphQLError } from "graphql";
 import { createWebSocketRequest } from "../WebSocketRequest.js";
@@ -15,10 +12,7 @@ import {
   STOREFRONT_REQUEST_ID_HEADER,
 } from "./StorefrontRequestHeaders.js";
 
-type RequestIdConfig = Exclude<
-  GatewayConfig["requestId"],
-  boolean | undefined
->;
+type RequestIdConfig = Exclude<GatewayConfig["requestId"], boolean | undefined>;
 
 // Network-derived headers such as x-forwarded-for must not be read from
 // client-controlled WebSocket connectionParams.
@@ -63,25 +57,27 @@ export function createStorefrontAccessPlugin() {
     async onRequest({ request, fetchAPI, endResponse }) {
       if (new URL(request.url).pathname === "/health") return;
       try {
-        contexts.set(
-          request,
-          await resolveRequest(request, generatedRequestIds.get(request)),
-        );
+        contexts.set(request, await resolveRequest(request, generatedRequestIds.get(request)));
       } catch (error) {
         const known = error as {
           code?: string;
         };
         const code = known.code ?? "STOREFRONT_ACCESS_UNAVAILABLE";
-        endResponse(new fetchAPI.Response(JSON.stringify({
-          data: null,
-          errors: [{ message: code, extensions: { code } }],
-        }), {
-          // Authentication and resolver failures are represented by the
-          // GraphQL error envelope. Keep the HTTP transport successful so
-          // GraphQL clients can inspect the stable error code.
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }));
+        endResponse(
+          new fetchAPI.Response(
+            JSON.stringify({
+              data: null,
+              errors: [{ message: code, extensions: { code } }],
+            }),
+            {
+              // Authentication and resolver failures are represented by the
+              // GraphQL error envelope. Keep the HTTP transport successful so
+              // GraphQL clients can inspect the stable error code.
+              status: 200,
+              headers: { "content-type": "application/json" },
+            },
+          ),
+        );
       }
     },
     async onContextBuilding({ context, extendContext }) {
@@ -118,11 +114,7 @@ export function createStorefrontAccessPlugin() {
       requestId,
     });
     if (!context) {
-      throw requestError(
-        401,
-        "STOREFRONT_CREDENTIAL_INVALID",
-        "Invalid storefront credential",
-      );
+      throw requestError(401, "STOREFRONT_CREDENTIAL_INVALID", "Invalid storefront credential");
     }
     const customerToken = parseCustomerAccessToken(request);
     if (!customerToken) {
@@ -177,19 +169,13 @@ function storefrontVisitorId(
   const identity = clientVisitorId
     ? `client:${clientVisitorId}`
     : `network:${buyerIp ?? "unknown"}:${request.headers.get("user-agent")?.slice(0, 256) ?? "unknown"}`;
-  return createHash("sha256")
-    .update(`${storeId}:${credentialId}:${identity}`)
-    .digest("base64url");
+  return createHash("sha256").update(`${storeId}:${credentialId}:${identity}`).digest("base64url");
 }
 
 function parseCustomerAccessToken(request: Request): string | undefined {
   const value = request.headers.get("authorization")?.trim();
   if (!value) return undefined;
-  if (
-    value.includes(",") ||
-    !value.startsWith("Bearer ") ||
-    value.length > 16_391
-  ) {
+  if (value.includes(",") || !value.startsWith("Bearer ") || value.length > 16_391) {
     throw requestError(
       401,
       "STOREFRONT_CUSTOMER_INVALID",

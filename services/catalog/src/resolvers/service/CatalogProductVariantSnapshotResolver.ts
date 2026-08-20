@@ -37,9 +37,7 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
   protected async $preload() {
     const variant = await this.$ctx.loaders.variant.load(this.$props);
     if (!variant) {
-      throw new PreloadNotFoundError(
-        `Variant with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Variant with ID ${this.$props} not found`);
     }
 
     const [prices, optionSelections, content, inventoryItem] = await Promise.all([
@@ -100,15 +98,11 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
       : prices;
 
     return Promise.all(
-      filtered.map((price) =>
-        this.resolvers.catalogProductVariantPriceSnapshot(price.id)
-      )
+      filtered.map((price) => this.resolvers.catalogProductVariantPriceSnapshot(price.id)),
     );
   }
 
-  async options(): Promise<
-    CatalogProductVariantOptionSelectionSnapshotResolver[]
-  > {
+  async options(): Promise<CatalogProductVariantOptionSelectionSnapshotResolver[]> {
     const links = await this.$ctx.loaders.variantSelectedOptions.load(this.$props);
     const optionIds = [...new Set(links.map((link) => link.optionId))];
     return Promise.all(
@@ -116,36 +110,31 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
         this.resolvers.catalogProductVariantOptionSelectionSnapshot({
           variantId: this.$props,
           optionId,
-        })
-      )
+        }),
+      ),
     );
   }
 
   async content(): Promise<CatalogVariantLocalizedContentSnapshotResolver[]> {
-    const translations = await this.$ctx.loaders.variantTranslations.load(
-      this.$props
-    );
+    const translations = await this.$ctx.loaders.variantTranslations.load(this.$props);
     return Promise.all(
       translations
         .filter(
           (translation) =>
-            typeof translation.title === "string" &&
-            translation.title.trim().length > 0
+            typeof translation.title === "string" && translation.title.trim().length > 0,
         )
         .sort((left, right) => left.locale.localeCompare(right.locale))
         .map((translation) =>
           this.resolvers.catalogVariantLocalizedContentSnapshot({
             variantId: this.$props,
             locale: translation.locale,
-          })
-        )
+          }),
+        ),
     );
   }
 
   async inventoryItem(): Promise<CatalogProductVariantInventoryItemSnapshotResolver | null> {
-    const inventoryItem = await this.$ctx.loaders.inventoryItemByVariant.load(
-      this.$props
-    );
+    const inventoryItem = await this.$ctx.loaders.inventoryItemByVariant.load(this.$props);
     return inventoryItem
       ? this.resolvers.catalogProductVariantInventoryItemSnapshot(this.$props)
       : null;
@@ -155,9 +144,7 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
     return this.$data;
   }
 
-  private async createPriceSnapshots(): Promise<
-    CatalogProductVariantPriceSnapshot[]
-  > {
+  private async createPriceSnapshots(): Promise<CatalogProductVariantPriceSnapshot[]> {
     const resolvers = await this.prices();
     return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
   }
@@ -167,16 +154,12 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
     return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
   }
 
-  private async createContentSnapshots(): Promise<
-    CatalogVariantLocalizedContentSnapshot[]
-  > {
+  private async createContentSnapshots(): Promise<CatalogVariantLocalizedContentSnapshot[]> {
     const resolvers = await this.content();
     return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
   }
 
-  private async createInventoryItemSnapshot(): Promise<
-    CatalogProductVariantInventoryItemSnapshot | null
-  > {
+  private async createInventoryItemSnapshot(): Promise<CatalogProductVariantInventoryItemSnapshot | null> {
     const resolver = await this.inventoryItem();
     return resolver ? resolver.$snapshot() : null;
   }

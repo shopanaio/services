@@ -1,9 +1,6 @@
 import { Logger, OnModuleInit } from "@nestjs/common";
 import { ServiceBroker } from "./ServiceBroker.js";
-import {
-  ACTION_METADATA_KEY,
-  type ActionDecoratorMetadata,
-} from "../decorators/Action.js";
+import { ACTION_METADATA_KEY, type ActionDecoratorMetadata } from "../decorators/Action.js";
 import type { BrokerCallContext } from "./BrokerCallContext.js";
 import "reflect-metadata";
 
@@ -61,26 +58,19 @@ export abstract class BrokerActions implements OnModuleInit {
     const registeredActions: string[] = [];
 
     for (const methodName of methodNames) {
-      const metadata = Reflect.getMetadata(
-        ACTION_METADATA_KEY,
-        prototype,
-        methodName
-      ) as ActionDecoratorMetadata | undefined;
+      const metadata = Reflect.getMetadata(ACTION_METADATA_KEY, prototype, methodName) as
+        ActionDecoratorMetadata | undefined;
 
       if (metadata) {
         const method = (this as Record<string, unknown>)[methodName] as (
           params: unknown,
-          context: BrokerCallContext
+          context: BrokerCallContext,
         ) => Promise<unknown>;
 
         // Bind the method to this instance
         const boundMethod = method.bind(this);
 
-        this.broker.register(
-          metadata.actionName,
-          boundMethod,
-          metadata.metadata,
-        );
+        this.broker.register(metadata.actionName, boundMethod, metadata.metadata);
         registeredActions.push(metadata.actionName);
       }
     }

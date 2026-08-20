@@ -14,19 +14,12 @@ export interface CustomerPatchParams {
   patch: CustomerPatch;
 }
 
-export class CustomerPatchScript extends BaseScript<
-  CustomerPatchParams,
-  CustomerSectionResult
-> {
+export class CustomerPatchScript extends BaseScript<CustomerPatchParams, CustomerSectionResult> {
   @Transactional()
-  protected async execute(
-    params: CustomerPatchParams
-  ): Promise<CustomerSectionResult> {
+  protected async execute(params: CustomerPatchParams): Promise<CustomerSectionResult> {
     const current = await this.repository.customer.findById(params.customerId);
     if (!current) {
-      return sectionErrors([
-        { message: "Customer not found", code: "NOT_FOUND" },
-      ]);
+      return sectionErrors([{ message: "Customer not found", code: "NOT_FOUND" }]);
     }
 
     const errors = validateCustomerPatch(params.patch);
@@ -46,14 +39,9 @@ export class CustomerPatchScript extends BaseScript<
     if (Object.keys(patch).length === 0) return sectionSuccess(false);
 
     try {
-      const updated = await this.repository.customer.patchWithinRevision(
-        params.customerId,
-        patch
-      );
+      const updated = await this.repository.customer.patchWithinRevision(params.customerId, patch);
       if (!updated) {
-        return sectionErrors([
-          { message: "Customer not found", code: "NOT_FOUND" },
-        ]);
+        return sectionErrors([{ message: "Customer not found", code: "NOT_FOUND" }]);
       }
     } catch (error) {
       if (isUniqueViolation(error, "customer_store_email_unique")) {
@@ -92,15 +80,21 @@ function patchDependencies(patch: CustomerPatch): SegmentDependency[] {
     dependencies.add("company");
   }
   if (keys.has("lifecycleStatus")) dependencies.add("status");
-  if (dependencies.size === 0 || [...keys].some((key) => ![
-    "email",
-    "emailVerified",
-    "phoneE164",
-    "phoneVerified",
-    "companyName",
-    "jobTitle",
-    "lifecycleStatus",
-  ].includes(key))) {
+  if (
+    dependencies.size === 0 ||
+    [...keys].some(
+      (key) =>
+        ![
+          "email",
+          "emailVerified",
+          "phoneE164",
+          "phoneVerified",
+          "companyName",
+          "jobTitle",
+          "lifecycleStatus",
+        ].includes(key),
+    )
+  ) {
     dependencies.add("profile");
   }
   return [...dependencies];
@@ -132,10 +126,7 @@ export function validateCustomerPatch(patch: CustomerPatch) {
     });
   }
 
-  if (
-    typeof patch.moderationNote === "string" &&
-    patch.moderationNote.trim().length === 0
-  ) {
+  if (typeof patch.moderationNote === "string" && patch.moderationNote.trim().length === 0) {
     errors.push({
       message: "Moderation note cannot be empty",
       code: "INVALID_MODERATION_NOTE",
@@ -148,7 +139,7 @@ export function validateCustomerPatch(patch: CustomerPatch) {
 
 function changedPatch<T extends Record<string, unknown>>(
   current: T,
-  patch: CustomerPatch
+  patch: CustomerPatch,
 ): CustomerPatch {
   const result: CustomerPatch = {};
 

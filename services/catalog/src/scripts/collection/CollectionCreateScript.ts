@@ -5,17 +5,11 @@ import {
 } from "@shopana/broker-types";
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CollectionCreateParams, CollectionResult } from "./dto/index.js";
-import {
-  serializeRichTextJsonText,
-  toRichTextStorage,
-} from "../shared/richText.js";
+import { serializeRichTextJsonText, toRichTextStorage } from "../shared/richText.js";
 
 const ALLOWED_SORTS = new Set(["manual", "price", "newest", "name"]);
 
-export class CollectionCreateScript extends BaseScript<
-  CollectionCreateParams,
-  CollectionResult
-> {
+export class CollectionCreateScript extends BaseScript<CollectionCreateParams, CollectionResult> {
   @Transactional()
   protected async execute(params: CollectionCreateParams): Promise<CollectionResult> {
     // Validate name
@@ -27,16 +21,17 @@ export class CollectionCreateScript extends BaseScript<
     }
     if (
       params.publish &&
-      (this.context.locale ?? this.context.store.defaultLocale) !==
-        this.context.store.defaultLocale
+      (this.context.locale ?? this.context.store.defaultLocale) !== this.context.store.defaultLocale
     ) {
       return {
         collection: undefined,
-        userErrors: [{
-          message: "Published collection requires a default-locale name",
-          field: ["name"],
-          code: "NAME_REQUIRED",
-        }],
+        userErrors: [
+          {
+            message: "Published collection requires a default-locale name",
+            field: ["name"],
+            code: "NAME_REQUIRED",
+          },
+        ],
       };
     }
 
@@ -44,7 +39,9 @@ export class CollectionCreateScript extends BaseScript<
     if (!params.handle || params.handle.trim() === "") {
       return {
         collection: undefined,
-        userErrors: [{ message: "Handle is required", field: ["input", "handle"], code: "REQUIRED" }],
+        userErrors: [
+          { message: "Handle is required", field: ["input", "handle"], code: "REQUIRED" },
+        ],
       };
     }
 
@@ -54,14 +51,16 @@ export class CollectionCreateScript extends BaseScript<
     } catch (error) {
       return {
         collection: undefined,
-        userErrors: [{
-          message:
-            error instanceof CollectionContractValidationError
-              ? error.message
-              : "Invalid handle format",
-          field: ["input", "handle"],
-          code: "INVALID_HANDLE",
-        }],
+        userErrors: [
+          {
+            message:
+              error instanceof CollectionContractValidationError
+                ? error.message
+                : "Invalid handle format",
+            field: ["input", "handle"],
+            code: "INVALID_HANDLE",
+          },
+        ],
       };
     }
 
@@ -70,16 +69,15 @@ export class CollectionCreateScript extends BaseScript<
     if (existing) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Handle already exists", field: ["input", "handle"], code: "DUPLICATE" }],
+        userErrors: [
+          { message: "Handle already exists", field: ["input", "handle"], code: "DUPLICATE" },
+        ],
       };
     }
 
-    const defaultSort =
-      params.defaultSort ??
-      (params.type === "manual" ? "manual" : "newest");
+    const defaultSort = params.defaultSort ?? (params.type === "manual" ? "manual" : "newest");
     const defaultSortDirection =
-      params.defaultSortDirection ??
-      (defaultSort === "newest" ? "desc" : "asc");
+      params.defaultSortDirection ?? (defaultSort === "newest" ? "desc" : "asc");
 
     if (!ALLOWED_SORTS.has(defaultSort)) {
       return {
@@ -91,7 +89,13 @@ export class CollectionCreateScript extends BaseScript<
     if (params.type === "rule" && defaultSort === "manual") {
       return {
         collection: undefined,
-        userErrors: [{ message: "Rule collection cannot use manual sort", field: ["defaultSort"], code: "INVALID" }],
+        userErrors: [
+          {
+            message: "Rule collection cannot use manual sort",
+            field: ["defaultSort"],
+            code: "INVALID",
+          },
+        ],
       };
     }
     if (
@@ -100,55 +104,58 @@ export class CollectionCreateScript extends BaseScript<
     ) {
       return {
         collection: undefined,
-        userErrors: [{
-          message: "Invalid default sort direction",
-          field: ["defaultSortDirection"],
-          code: "INVALID",
-        }],
+        userErrors: [
+          {
+            message: "Invalid default sort direction",
+            field: ["defaultSortDirection"],
+            code: "INVALID",
+          },
+        ],
       };
     }
     if (params.type === "rule" && params.publish) {
       return {
         collection: undefined,
-        userErrors: [{
-          message: "A rule collection must contain rules before publication",
-          field: ["publish"],
-          code: "RULES_REQUIRED",
-        }],
+        userErrors: [
+          {
+            message: "A rule collection must contain rules before publication",
+            field: ["publish"],
+            code: "RULES_REQUIRED",
+          },
+        ],
       };
     }
     let effectiveFrom: string | null;
     let effectiveTo: string | null;
     try {
       effectiveFrom =
-        params.activeFrom == null
-          ? null
-          : normalizeCollectionInstantV1(params.activeFrom);
-      effectiveTo =
-        params.activeTo == null
-          ? null
-          : normalizeCollectionInstantV1(params.activeTo);
+        params.activeFrom == null ? null : normalizeCollectionInstantV1(params.activeFrom);
+      effectiveTo = params.activeTo == null ? null : normalizeCollectionInstantV1(params.activeTo);
     } catch (error) {
       return {
         collection: undefined,
-        userErrors: [{
-          message:
-            error instanceof CollectionContractValidationError
-              ? error.message
-              : "Collection effective interval is invalid",
-          field: ["activeFrom"],
-          code: "INVALID_EFFECTIVE_INTERVAL",
-        }],
+        userErrors: [
+          {
+            message:
+              error instanceof CollectionContractValidationError
+                ? error.message
+                : "Collection effective interval is invalid",
+            field: ["activeFrom"],
+            code: "INVALID_EFFECTIVE_INTERVAL",
+          },
+        ],
       };
     }
     if (effectiveFrom && effectiveTo && effectiveFrom >= effectiveTo) {
       return {
         collection: undefined,
-        userErrors: [{
-          message: "Active-to must be later than active-from",
-          field: ["activeTo"],
-          code: "INVALID_EFFECTIVE_INTERVAL",
-        }],
+        userErrors: [
+          {
+            message: "Active-to must be later than active-from",
+            field: ["activeTo"],
+            code: "INVALID_EFFECTIVE_INTERVAL",
+          },
+        ],
       };
     }
 
@@ -159,9 +166,7 @@ export class CollectionCreateScript extends BaseScript<
       defaultSortDirection,
       effectiveFrom,
       effectiveTo,
-      publishedAt: params.publish
-        ? await this.repository.collection.currentTimestamp()
-        : null,
+      publishedAt: params.publish ? await this.repository.collection.currentTimestamp() : null,
     });
 
     const excerptStorage = toRichTextStorage(params.excerpt);
@@ -198,11 +203,13 @@ export class CollectionCreateScript extends BaseScript<
     if (isUniqueViolation(error)) {
       return {
         collection: undefined,
-        userErrors: [{
-          message: "Handle already exists",
-          field: ["input", "handle"],
-          code: "DUPLICATE",
-        }],
+        userErrors: [
+          {
+            message: "Handle already exists",
+            field: ["input", "handle"],
+            code: "DUPLICATE",
+          },
+        ],
       };
     }
     return {

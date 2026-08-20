@@ -8,7 +8,7 @@ export async function gqlRequest<T>(
   config: { getCoreAppsGraphqlUrl(): string },
   query: string,
   variables: Record<string, unknown>,
-  headers: Record<string, string>
+  headers: Record<string, string>,
 ): Promise<T> {
   return request<T>({
     url: config.getCoreAppsGraphqlUrl(),

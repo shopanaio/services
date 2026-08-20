@@ -27,16 +27,12 @@ export class CategoryResolver extends CatalogType<string, Category> {
   }
 
   async name() {
-    const translation = await this.$ctx.loaders.categoryTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.categoryTranslation.load(this.$props);
     return translation?.name ?? "";
   }
 
   async description() {
-    const translation = await this.$ctx.loaders.categoryTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.categoryTranslation.load(this.$props);
     return toRichTextValue(
       translation && {
         text: translation.descriptionText,
@@ -47,9 +43,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
   }
 
   async excerpt() {
-    const translation = await this.$ctx.loaders.categoryTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.categoryTranslation.load(this.$props);
     return toRichTextValue(
       translation && {
         text: translation.excerptText,
@@ -68,9 +62,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
     const parentId = await this.$get("parentId");
     if (!parentId) return null;
     const parent = await this.$ctx.loaders.category.load(parentId);
-    return parent && isPublishedAt(parent.publishedAt)
-      ? this.resolvers.category(parentId)
-      : null;
+    return parent && isPublishedAt(parent.publishedAt) ? this.resolvers.category(parentId) : null;
   }
 
   async ancestors() {

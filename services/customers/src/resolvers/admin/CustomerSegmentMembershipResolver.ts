@@ -8,22 +8,17 @@ export class CustomerSegmentMembershipResolver extends CustomersType<
   CustomerSegmentMembership
 > {
   async $preload() {
-    const membership = await this.$ctx.loaders.segmentMembership.load(
-      this.$props
-    );
+    const membership = await this.$ctx.loaders.segmentMembership.load(this.$props);
     if (!membership) {
       throw new PreloadNotFoundError(
-        `Customer segment membership with ID ${this.$props} not found`
+        `Customer segment membership with ID ${this.$props} not found`,
       );
     }
     return membership;
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.CustomerSegmentMembership
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.CustomerSegmentMembership);
   }
 
   async customer() {

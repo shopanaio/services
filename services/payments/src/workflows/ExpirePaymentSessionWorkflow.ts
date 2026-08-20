@@ -23,9 +23,7 @@ export class ExpirePaymentSessionWorkflow extends BrokerWorkflows<
   }
 
   @Workflow("expireSession", { idempotencyStrategy: "workflow" })
-  async run(
-    input: Payments.ExpirePaymentParams,
-  ): Promise<Payments.PaymentOperationAcceptedResult> {
+  async run(input: Payments.ExpirePaymentParams): Promise<Payments.PaymentOperationAcceptedResult> {
     let current = await this.load(input.storeId, input.paymentSessionId);
     if (
       current.session.providerReference &&
@@ -49,9 +47,10 @@ export class ExpirePaymentSessionWorkflow extends BrokerWorkflows<
         if (!isUnsupportedCancellation(error)) throw error;
       }
     }
-    const expireInput = current.session.revision === input.expectedSessionRevision
-      ? input
-      : { ...input, expectedSessionRevision: current.session.revision };
+    const expireInput =
+      current.session.revision === input.expectedSessionRevision
+        ? input
+        : { ...input, expectedSessionRevision: current.session.revision };
     const expired = await this.expire(expireInput);
     await this.publish(input, expired.operation.operationId);
     return {
@@ -113,9 +112,10 @@ export class ExpirePaymentSessionWorkflow extends BrokerWorkflows<
 }
 
 function isUnsupportedCancellation(error: unknown): boolean {
-  return error instanceof Error && (
-    error.message.includes("PAYMENT_PROVIDER_OPERATION_UNAVAILABLE") ||
-    error.message.includes("PAYMENT_PROVIDER_ROUTE_UNAVAILABLE") ||
-    error.message.includes("PAYMENT_NOT_CANCELLABLE")
+  return (
+    error instanceof Error &&
+    (error.message.includes("PAYMENT_PROVIDER_OPERATION_UNAVAILABLE") ||
+      error.message.includes("PAYMENT_PROVIDER_ROUTE_UNAVAILABLE") ||
+      error.message.includes("PAYMENT_NOT_CANCELLABLE"))
   );
 }

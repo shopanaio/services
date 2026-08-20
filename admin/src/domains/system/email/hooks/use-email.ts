@@ -4,11 +4,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import { getEmailSnapshot, subscribeToEmail } from "../mock/email-store";
 
 export const useEmailSettings = () => {
-  const snapshot = useSyncExternalStore(
-    subscribeToEmail,
-    getEmailSnapshot,
-    getEmailSnapshot,
-  );
+  const snapshot = useSyncExternalStore(subscribeToEmail, getEmailSnapshot, getEmailSnapshot);
   const refetch = useCallback(async () => getEmailSnapshot(), []);
 
   return {
@@ -21,11 +17,7 @@ export const useEmailSettings = () => {
 };
 
 export const useEmailTemplates = () => {
-  const snapshot = useSyncExternalStore(
-    subscribeToEmail,
-    getEmailSnapshot,
-    getEmailSnapshot,
-  );
+  const snapshot = useSyncExternalStore(subscribeToEmail, getEmailSnapshot, getEmailSnapshot);
   const refetch = useCallback(async () => getEmailSnapshot(), []);
 
   return {

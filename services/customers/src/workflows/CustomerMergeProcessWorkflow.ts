@@ -44,9 +44,7 @@ export class CustomerMergeProcessWorkflow extends BrokerWorkflows<
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CustomerMergeProcessWorkflowInput,
-  ): Promise<CustomerMergeProcessWorkflowResult> {
+  async run(input: CustomerMergeProcessWorkflowInput): Promise<CustomerMergeProcessWorkflowResult> {
     const started = await this.stepBegin(input);
     if (started.status === "COMPLETED") {
       await this.emitCustomerMerged(input, started);
@@ -151,9 +149,7 @@ export class CustomerMergeProcessWorkflow extends BrokerWorkflows<
   }
 }
 
-function toScriptContext(
-  context: CustomerMutationWorkflowContext,
-): RunScriptContext {
+function toScriptContext(context: CustomerMutationWorkflowContext): RunScriptContext {
   return {
     storeId: context.storeId,
     organizationId: context.organizationId,
@@ -174,14 +170,9 @@ function serializeError(error: unknown): {
     retryable?: unknown;
   };
   return {
-    code:
-      typeof value?.code === "string"
-        ? value.code
-        : "CUSTOMER_MERGE_PROCESS_FAILED",
+    code: typeof value?.code === "string" ? value.code : "CUSTOMER_MERGE_PROCESS_FAILED",
     message:
-      typeof value?.message === "string"
-        ? value.message
-        : "Customer merge processing failed",
+      typeof value?.message === "string" ? value.message : "Customer merge processing failed",
     retryable: value?.retryable !== false,
   };
 }

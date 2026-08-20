@@ -5,7 +5,7 @@ export const reviewsSchema = pgSchema("reviews");
 
 export const localeCodeEnum = reviewsSchema.enum(
   "locale_code",
-  LOCALE_CODES as [string, ...string[]]
+  LOCALE_CODES as [string, ...string[]],
 );
 
 export const contentKindEnum = reviewsSchema.enum("content_kind", [
@@ -36,15 +36,16 @@ export const moderationModeEnum = reviewsSchema.enum("moderation_mode", [
   "AUTOMATED",
 ]);
 
-export const reviewDuplicatePolicyEnum = reviewsSchema.enum(
-  "review_duplicate_policy",
-  ["ONE_PER_PRODUCT", "ONE_PER_ORDER_LINE", "ALLOW_MULTIPLE"]
-);
+export const reviewDuplicatePolicyEnum = reviewsSchema.enum("review_duplicate_policy", [
+  "ONE_PER_PRODUCT",
+  "ONE_PER_ORDER_LINE",
+  "ALLOW_MULTIPLE",
+]);
 
-export const ratingCriterionTargetTypeEnum = reviewsSchema.enum(
-  "rating_criterion_target_type",
-  ["PRODUCT", "CATEGORY"]
-);
+export const ratingCriterionTargetTypeEnum = reviewsSchema.enum("rating_criterion_target_type", [
+  "PRODUCT",
+  "CATEGORY",
+]);
 
 export const translationSourceEnum = reviewsSchema.enum("translation_source", [
   "HUMAN",
@@ -60,56 +61,51 @@ export const publicationStatusEnum = reviewsSchema.enum("publication_status", [
   "FAILED",
 ]);
 
-export const reviewVerificationStatusEnum = reviewsSchema.enum(
-  "review_verification_status",
-  ["UNVERIFIED", "VERIFIED", "REVOKED"]
-);
-
-export const notificationChannelEnum = reviewsSchema.enum(
-  "notification_channel",
-  ["EMAIL", "SMS", "PUSH", "IN_APP"]
-);
-
-export const reviewRequestStatusEnum = reviewsSchema.enum(
-  "review_request_status",
-  [
-    "SCHEDULED",
-    "SENT",
-    "DELIVERED",
-    "OPENED",
-    "SUBMITTED",
-    "EXPIRED",
-    "CANCELLED",
-    "FAILED",
-  ]
-);
-
-export const reviewRequestEventTypeEnum = reviewsSchema.enum(
-  "review_request_event_type",
-  [
-    "SCHEDULED",
-    "SENT",
-    "DELIVERED",
-    "OPENED",
-    "CLICKED",
-    "SUBMITTED",
-    "BOUNCED",
-    "COMPLAINED",
-    "FAILED",
-    "CANCELLED",
-    "EXPIRED",
-  ]
-);
-
-export const subscriptionStatusEnum = reviewsSchema.enum(
-  "subscription_status",
-  ["ACTIVE", "PAUSED", "UNSUBSCRIBED"]
-);
-
-export const contentVoteTypeEnum = reviewsSchema.enum("content_vote_type", [
-  "LIKE",
-  "DISLIKE",
+export const reviewVerificationStatusEnum = reviewsSchema.enum("review_verification_status", [
+  "UNVERIFIED",
+  "VERIFIED",
+  "REVOKED",
 ]);
+
+export const notificationChannelEnum = reviewsSchema.enum("notification_channel", [
+  "EMAIL",
+  "SMS",
+  "PUSH",
+  "IN_APP",
+]);
+
+export const reviewRequestStatusEnum = reviewsSchema.enum("review_request_status", [
+  "SCHEDULED",
+  "SENT",
+  "DELIVERED",
+  "OPENED",
+  "SUBMITTED",
+  "EXPIRED",
+  "CANCELLED",
+  "FAILED",
+]);
+
+export const reviewRequestEventTypeEnum = reviewsSchema.enum("review_request_event_type", [
+  "SCHEDULED",
+  "SENT",
+  "DELIVERED",
+  "OPENED",
+  "CLICKED",
+  "SUBMITTED",
+  "BOUNCED",
+  "COMPLAINED",
+  "FAILED",
+  "CANCELLED",
+  "EXPIRED",
+]);
+
+export const subscriptionStatusEnum = reviewsSchema.enum("subscription_status", [
+  "ACTIVE",
+  "PAUSED",
+  "UNSUBSCRIBED",
+]);
+
+export const contentVoteTypeEnum = reviewsSchema.enum("content_vote_type", ["LIKE", "DISLIKE"]);
 
 export const reportReasonEnum = reviewsSchema.enum("report_reason", [
   "SPAM",
@@ -132,10 +128,12 @@ export const reportStatusEnum = reviewsSchema.enum("report_status", [
   "DISMISSED",
 ]);
 
-export const moderationCaseStatusEnum = reviewsSchema.enum(
-  "moderation_case_status",
-  ["OPEN", "IN_REVIEW", "RESOLVED", "CANCELLED"]
-);
+export const moderationCaseStatusEnum = reviewsSchema.enum("moderation_case_status", [
+  "OPEN",
+  "IN_REVIEW",
+  "RESOLVED",
+  "CANCELLED",
+]);
 
 export const moderationActionEnum = reviewsSchema.enum("moderation_action", [
   "SUBMITTED",
@@ -149,20 +147,24 @@ export const moderationActionEnum = reviewsSchema.enum("moderation_action", [
   "DELETED",
 ]);
 
-export const moderationVerdictEnum = reviewsSchema.enum(
-  "moderation_verdict",
-  ["PASS", "REVIEW", "BLOCK"]
-);
+export const moderationVerdictEnum = reviewsSchema.enum("moderation_verdict", [
+  "PASS",
+  "REVIEW",
+  "BLOCK",
+]);
 
-export const externalSyncDirectionEnum = reviewsSchema.enum(
-  "external_sync_direction",
-  ["IMPORT", "EXPORT", "BIDIRECTIONAL"]
-);
+export const externalSyncDirectionEnum = reviewsSchema.enum("external_sync_direction", [
+  "IMPORT",
+  "EXPORT",
+  "BIDIRECTIONAL",
+]);
 
-export const externalSyncStatusEnum = reviewsSchema.enum(
-  "external_sync_status",
-  ["PENDING", "SYNCED", "FAILED", "DISABLED"]
-);
+export const externalSyncStatusEnum = reviewsSchema.enum("external_sync_status", [
+  "PENDING",
+  "SYNCED",
+  "FAILED",
+  "DISABLED",
+]);
 
 export const bytea = customType<{
   data: Uint8Array;

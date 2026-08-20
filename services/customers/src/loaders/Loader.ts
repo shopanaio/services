@@ -54,47 +54,26 @@ export class Loader {
   readonly consentEvent: DataLoader<string, CustomerConsentEvent | null>;
   readonly consentsByCustomer: DataLoader<string, CustomerConsent[]>;
   readonly group: DataLoader<string, CustomerGroup | null>;
-  readonly groupMembership: DataLoader<
-    string,
-    CustomerGroupMembership | null
-  >;
+  readonly groupMembership: DataLoader<string, CustomerGroupMembership | null>;
   readonly groupCustomersCount: DataLoader<string, number>;
   readonly tag: DataLoader<string, CustomerTag | null>;
   readonly tagAssignment: DataLoader<string, CustomerTagAssignment | null>;
   readonly tagCustomersCount: DataLoader<string, number>;
   readonly segment: DataLoader<string, CustomerSegment | null>;
-  readonly segmentMembership: DataLoader<
-    string,
-    CustomerSegmentMembership | null
-  >;
+  readonly segmentMembership: DataLoader<string, CustomerSegmentMembership | null>;
   readonly segmentCustomersCount: DataLoader<string, number>;
-  readonly statisticsByCustomer: DataLoader<
-    string,
-    CustomerStatistics | null
-  >;
-  readonly monetaryStatistics: DataLoader<
-    string,
-    CustomerMonetaryStatistics | null
-  >;
+  readonly statisticsByCustomer: DataLoader<string, CustomerStatistics | null>;
+  readonly monetaryStatistics: DataLoader<string, CustomerMonetaryStatistics | null>;
   readonly customerMerge: DataLoader<string, CustomerMerge | null>;
   readonly customerDataRequest: DataLoader<string, CustomerDataRequest | null>;
-  readonly externalReference: DataLoader<
-    string,
-    CustomerExternalReference | null
-  >;
-  readonly externalReferencesByCustomer: DataLoader<
-    string,
-    CustomerExternalReference[]
-  >;
+  readonly externalReference: DataLoader<string, CustomerExternalReference | null>;
+  readonly externalReferencesByCustomer: DataLoader<string, CustomerExternalReference[]>;
   readonly wishlist: DataLoader<string, CustomerWishlist | null>;
   readonly wishlistItem: DataLoader<string, CustomerWishlistItem | null>;
   readonly defaultWishlist: DataLoader<string, CustomerWishlist | null>;
   readonly publishedWishlistProduct: DataLoader<string, boolean>;
   readonly comparison: DataLoader<string, CustomerComparison | null>;
-  readonly comparisonByCustomer: DataLoader<
-    string,
-    CustomerComparison | null
-  >;
+  readonly comparisonByCustomer: DataLoader<string, CustomerComparison | null>;
   readonly comparisonItem: DataLoader<string, CustomerComparisonItem | null>;
   readonly comparisonItems: DataLoader<string, CustomerComparisonItem[]>;
 
@@ -106,9 +85,7 @@ export class Loader {
     const addressLoader = new CustomerAddressLoader(repository);
     const taxLoader = new CustomerTaxLoader(repository);
     const consentLoader = new CustomerConsentLoader(repository);
-    const externalReferenceLoader = new CustomerExternalReferenceLoader(
-      repository
-    );
+    const externalReferenceLoader = new CustomerExternalReferenceLoader(repository);
     const comparisonLoader = new CustomerComparisonLoader(repository);
     const groupLoader = new CustomerGroupLoader(repository);
     const tagLoader = new CustomerTagLoader(repository);
@@ -139,8 +116,7 @@ export class Loader {
     this.customerMerge = lifecycleLoader.customerMerge;
     this.customerDataRequest = lifecycleLoader.customerDataRequest;
     this.externalReference = externalReferenceLoader.externalReference;
-    this.externalReferencesByCustomer =
-      externalReferenceLoader.externalReferencesByCustomer;
+    this.externalReferencesByCustomer = externalReferenceLoader.externalReferencesByCustomer;
     this.wishlist = wishlistLoader.wishlist;
     this.wishlistItem = wishlistLoader.wishlistItem;
     this.defaultWishlist = wishlistLoader.defaultWishlist;

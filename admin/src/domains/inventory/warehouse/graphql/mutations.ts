@@ -1,8 +1,5 @@
 import { gql } from "@apollo/client";
-import {
-  WAREHOUSE_LIST_FRAGMENT,
-  WAREHOUSE_USER_ERROR_FRAGMENT,
-} from "./fragments";
+import { WAREHOUSE_LIST_FRAGMENT, WAREHOUSE_USER_ERROR_FRAGMENT } from "./fragments";
 
 export const WAREHOUSE_CREATE_MUTATION = gql`
   mutation WarehouseCreate($input: WarehouseCreateInput!) {

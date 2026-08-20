@@ -45,8 +45,7 @@ const useStyles = createStyles(({ token }) => ({
 
 export function GeneralSection() {
   const { styles } = useStyles();
-  const { control, watch, setValue } =
-    useFormContext<CreateWarehouseFormValues>();
+  const { control, watch, setValue } = useFormContext<CreateWarehouseFormValues>();
   const [isCodeManual, setIsCodeManual] = useState(false);
   const name = watch("name");
 
@@ -87,9 +86,7 @@ export function GeneralSection() {
           <div className={styles.label}>
             Code
             <Tooltip title="Used in operations, imports, and stock reports.">
-              <InfoCircleOutlined
-                style={{ color: "var(--ant-color-text-secondary)" }}
-              />
+              <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
             </Tooltip>
           </div>
           <Controller

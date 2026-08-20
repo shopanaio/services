@@ -4,13 +4,9 @@ import * as schema from "./models/index.js";
 
 export type HeadlessDatabase = PostgresJsDatabase<typeof schema>;
 
-export function createHeadlessDatabase(
-  databaseClient: unknown,
-): HeadlessDatabase {
+export function createHeadlessDatabase(databaseClient: unknown): HeadlessDatabase {
   if (typeof databaseClient !== "function") {
-    throw new TypeError(
-      "Headless App host.databaseClient must be a postgres.js client",
-    );
+    throw new TypeError("Headless App host.databaseClient must be a postgres.js client");
   }
   return drizzle(databaseClient as DatabaseClient, { schema });
 }

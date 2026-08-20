@@ -9,12 +9,8 @@ import type {
  * TransactionManager, success records commit atomically with their mutation;
  * failure records append in their own transaction after rollback.
  */
-export class LocalApplicationAuthAdminAuditAdapter
-  implements ApplicationAuthAdminAuditPort
-{
-  constructor(
-    private readonly repository: ApplicationAuthAdminAuditRepository
-  ) {}
+export class LocalApplicationAuthAdminAuditAdapter implements ApplicationAuthAdminAuditPort {
+  constructor(private readonly repository: ApplicationAuthAdminAuditRepository) {}
 
   append(record: ApplicationAuthAdminAuditRecord): Promise<void> {
     return this.repository.append(record);

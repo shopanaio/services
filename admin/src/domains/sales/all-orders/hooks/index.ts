@@ -3,23 +3,83 @@ import { useOrderMutation } from "./use-order-mutation";
 import * as api from "../api/request-orders";
 export { useOrders } from "./use-orders";
 export { useOrder } from "./use-order";
-export const useCreateOrder = () => { const value = useOrderMutation(api.requestCreateOrder); return { createOrder: value.mutate, ...value }; };
-export const useUpdateOrder = () => { const value = useOrderMutation(api.requestUpdateOrder); return { updateOrder: value.mutate, ...value }; };
-export const useDeleteOrder = () => { const value = useOrderMutation(api.requestDeleteOrder); return { deleteOrder: value.mutate, ...value }; };
-export const useCancelOrder = () => { const value = useOrderMutation(api.requestCancelOrder); return { cancelOrder: value.mutate, ...value }; };
-export const useUpdateOrderStatus = () => { const value = useOrderMutation(api.requestUpdateOrderStatus); return { updateOrderStatus: value.mutate, ...value }; };
-export const useUpdatePaymentStatus = () => { const value = useOrderMutation(api.requestUpdatePaymentStatus); return { updatePaymentStatus: value.mutate, ...value }; };
-export const useUpdateFulfillmentStatus = () => { const value = useOrderMutation(api.requestUpdateFulfillmentStatus); return { updateFulfillmentStatus: value.mutate, ...value }; };
-export const useUpdateOrderCustomer = () => { const value = useOrderMutation(api.requestUpdateOrderCustomer); return { updateOrderCustomer: value.mutate, ...value }; };
-export const useUpdateOrderTags = () => { const value = useOrderMutation(api.requestUpdateOrderTags); return { updateOrderTags: value.mutate, ...value }; };
-export const useUpdateAdminNote = () => { const value = useOrderMutation(api.requestUpdateAdminNote); return { updateAdminNote: value.mutate, ...value }; };
-export const useAddOrderComment = () => { const value = useOrderMutation(api.requestAddOrderComment); return { addOrderComment: value.mutate, ...value }; };
-export const useAddOrderItem = () => { const value = useOrderMutation(api.requestAddOrderItem); return { addOrderItem: value.mutate, ...value }; };
-export const useUpdateOrderItem = () => { const value = useOrderMutation(api.requestUpdateOrderItem); return { updateOrderItem: value.mutate, ...value }; };
-export const useDeleteOrderItem = () => { const value = useOrderMutation(api.requestDeleteOrderItem); return { deleteOrderItem: value.mutate, ...value }; };
-export const useSplitFulfillment = () => { const value = useOrderMutation(api.requestSplitFulfillment); return { splitFulfillment: value.mutate, ...value }; };
-export const useUndoFulfillmentSplit = () => { const value = useOrderMutation(api.requestUndoFulfillmentSplit); return { undoFulfillmentSplit: value.mutate, ...value }; };
-export const useCreateShippingItem = () => { const value = useOrderMutation(api.requestCreateShippingItem); return { createShippingItem: value.mutate, ...value }; };
-export const useUpdateShippingItem = () => { const value = useOrderMutation(api.requestUpdateShippingItem); return { updateShippingItem: value.mutate, ...value }; };
-export const useUpdateShippingDetails = () => { const value = useOrderMutation(api.requestUpdateShippingDetails); return { updateShippingDetails: value.mutate, ...value }; };
-export const useUpdatePaymentDetails = () => { const value = useOrderMutation(api.requestUpdatePaymentDetails); return { updatePaymentDetails: value.mutate, ...value }; };
+export const useCreateOrder = () => {
+  const value = useOrderMutation(api.requestCreateOrder);
+  return { createOrder: value.mutate, ...value };
+};
+export const useUpdateOrder = () => {
+  const value = useOrderMutation(api.requestUpdateOrder);
+  return { updateOrder: value.mutate, ...value };
+};
+export const useDeleteOrder = () => {
+  const value = useOrderMutation(api.requestDeleteOrder);
+  return { deleteOrder: value.mutate, ...value };
+};
+export const useCancelOrder = () => {
+  const value = useOrderMutation(api.requestCancelOrder);
+  return { cancelOrder: value.mutate, ...value };
+};
+export const useUpdateOrderStatus = () => {
+  const value = useOrderMutation(api.requestUpdateOrderStatus);
+  return { updateOrderStatus: value.mutate, ...value };
+};
+export const useUpdatePaymentStatus = () => {
+  const value = useOrderMutation(api.requestUpdatePaymentStatus);
+  return { updatePaymentStatus: value.mutate, ...value };
+};
+export const useUpdateFulfillmentStatus = () => {
+  const value = useOrderMutation(api.requestUpdateFulfillmentStatus);
+  return { updateFulfillmentStatus: value.mutate, ...value };
+};
+export const useUpdateOrderCustomer = () => {
+  const value = useOrderMutation(api.requestUpdateOrderCustomer);
+  return { updateOrderCustomer: value.mutate, ...value };
+};
+export const useUpdateOrderTags = () => {
+  const value = useOrderMutation(api.requestUpdateOrderTags);
+  return { updateOrderTags: value.mutate, ...value };
+};
+export const useUpdateAdminNote = () => {
+  const value = useOrderMutation(api.requestUpdateAdminNote);
+  return { updateAdminNote: value.mutate, ...value };
+};
+export const useAddOrderComment = () => {
+  const value = useOrderMutation(api.requestAddOrderComment);
+  return { addOrderComment: value.mutate, ...value };
+};
+export const useAddOrderItem = () => {
+  const value = useOrderMutation(api.requestAddOrderItem);
+  return { addOrderItem: value.mutate, ...value };
+};
+export const useUpdateOrderItem = () => {
+  const value = useOrderMutation(api.requestUpdateOrderItem);
+  return { updateOrderItem: value.mutate, ...value };
+};
+export const useDeleteOrderItem = () => {
+  const value = useOrderMutation(api.requestDeleteOrderItem);
+  return { deleteOrderItem: value.mutate, ...value };
+};
+export const useSplitFulfillment = () => {
+  const value = useOrderMutation(api.requestSplitFulfillment);
+  return { splitFulfillment: value.mutate, ...value };
+};
+export const useUndoFulfillmentSplit = () => {
+  const value = useOrderMutation(api.requestUndoFulfillmentSplit);
+  return { undoFulfillmentSplit: value.mutate, ...value };
+};
+export const useCreateShippingItem = () => {
+  const value = useOrderMutation(api.requestCreateShippingItem);
+  return { createShippingItem: value.mutate, ...value };
+};
+export const useUpdateShippingItem = () => {
+  const value = useOrderMutation(api.requestUpdateShippingItem);
+  return { updateShippingItem: value.mutate, ...value };
+};
+export const useUpdateShippingDetails = () => {
+  const value = useOrderMutation(api.requestUpdateShippingDetails);
+  return { updateShippingDetails: value.mutate, ...value };
+};
+export const useUpdatePaymentDetails = () => {
+  const value = useOrderMutation(api.requestUpdatePaymentDetails);
+  return { updatePaymentDetails: value.mutate, ...value };
+};

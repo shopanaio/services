@@ -1,8 +1,8 @@
-import { MCPTool } from 'mcp-framework';
-import { z } from 'zod';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { CODEGEN_SERVICE_NAMES, formatServiceNames } from '../serviceNames.js';
+import { MCPTool } from "mcp-framework";
+import { z } from "zod";
+import { exec } from "child_process";
+import { promisify } from "util";
+import { CODEGEN_SERVICE_NAMES, formatServiceNames } from "../serviceNames.js";
 
 const execAsync = promisify(exec);
 
@@ -11,15 +11,14 @@ const CodegenToolSchema = z.object({
     .string()
     .min(1)
     .optional()
-    .describe(`Generate types for a specific service or hosted App. Services: ${formatServiceNames(CODEGEN_SERVICE_NAMES)}`),
-  workingDir: z
-    .string()
-    .optional()
-    .describe('Working directory (defaults to current directory)')
+    .describe(
+      `Generate types for a specific service or hosted App. Services: ${formatServiceNames(CODEGEN_SERVICE_NAMES)}`,
+    ),
+  workingDir: z.string().optional().describe("Working directory (defaults to current directory)"),
 });
 
 class CodegenTool extends MCPTool<typeof CodegenToolSchema> {
-  name = 'shopana_codegen';
+  name = "shopana_codegen";
   description = `Generate TypeScript types from GraphQL schemas using GraphQL Code Generator.
 
 This tool runs codegen to generate TypeScript types for GraphQL operations and schemas.
@@ -35,7 +34,7 @@ Available project units are discovered dynamically from services/* and apps/*.`;
   async execute(input: z.infer<typeof CodegenToolSchema>) {
     const { service, workingDir } = input;
 
-    let command = 'yarn shopana codegen';
+    let command = "yarn shopana codegen";
 
     if (service) {
       command += ` -s ${service}`;
@@ -45,36 +44,44 @@ Available project units are discovered dynamically from services/* and apps/*.`;
       const { stdout, stderr } = await execAsync(command, {
         cwd: workingDir || process.cwd(),
         timeout: 120000, // 2 minutes timeout
-        maxBuffer: 10 * 1024 * 1024
+        maxBuffer: 10 * 1024 * 1024,
       });
 
       return {
         content: [
           {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: true,
-              command,
-              output: stdout,
-              warnings: stderr || undefined
-            }, null, 2)
-          }
-        ]
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                success: true,
+                command,
+                output: stdout,
+                warnings: stderr || undefined,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
     } catch (error: any) {
       return {
         content: [
           {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: false,
-              command,
-              error: error.message,
-              stdout: error.stdout,
-              stderr: error.stderr
-            }, null, 2)
-          }
-        ]
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                success: false,
+                command,
+                error: error.message,
+                stdout: error.stdout,
+                stderr: error.stderr,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
     }
   }

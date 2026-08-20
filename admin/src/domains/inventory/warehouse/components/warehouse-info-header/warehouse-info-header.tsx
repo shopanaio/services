@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { Button, Divider, Dropdown, Flex, Popover, Tag, Typography } from "antd";
 import type { MenuProps } from "antd";
-import { LuCircleCheck as CheckCircleOutlined, LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuEllipsis as MoreOutlined } from "react-icons/lu";
+import {
+  LuCircleCheck as CheckCircleOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuPencil as EditOutlined,
+  LuEllipsis as MoreOutlined,
+} from "react-icons/lu";
 import type { ApiWarehouse } from "@/graphql/types";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 import { KPITile } from "@/ui-kit/kpi-tile";
@@ -58,20 +63,14 @@ export function WarehouseInfoHeader({
 
   const statusTitle = (
     <Flex align="center" gap={8}>
-      {!warehouse.isDefault && (
-        <Tag className={styles.statusTag}>Warehouse</Tag>
-      )}
+      {!warehouse.isDefault && <Tag className={styles.statusTag}>Warehouse</Tag>}
       <WarehouseDefaultTag isDefault={warehouse.isDefault} />
       <Typography.Text type="secondary" className={styles.metaText}>
         Updated {formatDetailDate(warehouse.updatedAt)}
         <span style={{ marginLeft: 4 }}>by</span>
         <Popover
           content={
-            <UserPopoverContent
-              firstName="Admin"
-              lastName="User"
-              email="admin@shopana.io"
-            />
+            <UserPopoverContent firstName="Admin" lastName="User" email="admin@shopana.io" />
           }
           placement="bottom"
           arrow={false}

@@ -1,8 +1,4 @@
-import {
-  FilterType,
-  priceOperators,
-  relationOperators,
-} from "@/layouts/filters";
+import { FilterType, priceOperators, relationOperators } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
 
 export const productLikeBaseFilterSchema: IFilterSchema[] = [

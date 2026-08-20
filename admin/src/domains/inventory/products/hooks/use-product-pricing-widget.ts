@@ -78,9 +78,7 @@ export function useProductPricingWidget<T extends string = Period>({
 }: UseProductPricingWidgetOptions<T>): UseProductPricingWidgetReturn<T> {
   const storeDefaultCurrency = useDefaultCurrency();
   const fallbackCurrency = defaultCurrency ?? storeDefaultCurrency;
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
-    null,
-  );
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [period, setPeriod] = useState<T>(initialPeriod);
 
   const {
@@ -110,9 +108,7 @@ export function useProductPricingWidget<T extends string = Period>({
   }, [variants.edges]);
 
   const selectedVariant = useMemo(
-    () =>
-      variants.edges.find((edge) => edge.node.id === selectedVariantId)?.node ??
-      null,
+    () => variants.edges.find((edge) => edge.node.id === selectedVariantId)?.node ?? null,
     [selectedVariantId, variants.edges],
   );
 
@@ -124,12 +120,7 @@ export function useProductPricingWidget<T extends string = Period>({
         fallbackCurrency,
         period,
       ),
-    [
-      fallbackCurrency,
-      period,
-      selectedVariant?.price?.currency,
-      selectedVariantId,
-    ],
+    [fallbackCurrency, period, selectedVariant?.price?.currency, selectedVariantId],
   );
 
   const pricingQueryOptions = useMemo(
@@ -149,10 +140,10 @@ export function useProductPricingWidget<T extends string = Period>({
     loading: isLoadingPricing,
     error: pricingError,
     refetch: refetchPricing,
-  } = useQuery<
-    ProductPricingWidgetQueryData,
-    ProductPricingWidgetQueryVariables
-  >(PRODUCT_PRICING_WIDGET_QUERY, pricingQueryOptions);
+  } = useQuery<ProductPricingWidgetQueryData, ProductPricingWidgetQueryVariables>(
+    PRODUCT_PRICING_WIDGET_QUERY,
+    pricingQueryOptions,
+  );
 
   const selectVariant = useCallback((id: string) => {
     setSelectedVariantId(id);

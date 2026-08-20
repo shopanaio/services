@@ -14,15 +14,10 @@ export interface IamHttpServerOptions {
 }
 
 /** Create the single IAM listener and register transport siblings. */
-export async function startIamHttpServer(
-  options: IamHttpServerOptions
-): Promise<FastifyInstance> {
+export async function startIamHttpServer(options: IamHttpServerOptions): Promise<FastifyInstance> {
   const app = fastify({
     disableRequestLogging: true,
-    trustProxy:
-      options.http.trustedProxyCidrs.length > 0
-        ? options.http.trustedProxyCidrs
-        : false,
+    trustProxy: options.http.trustedProxyCidrs.length > 0 ? options.http.trustedProxyCidrs : false,
     logger: isDevelopment(options.global)
       ? {
           level: options.global.log_level ?? "info",
@@ -46,9 +41,7 @@ export async function startIamHttpServer(
   });
   await app.register(adminContextHttpPlugin, {
     kernel: options.kernel,
-    serviceToken: requiredEnvironment(
-      "ADMIN_CONTEXT_RESOLVER_INTERNAL_TOKEN",
-    ),
+    serviceToken: requiredEnvironment("ADMIN_CONTEXT_RESOLVER_INTERNAL_TOKEN"),
   });
   await app.register(adminGraphqlPlugin, {
     kernel: options.kernel,
@@ -60,11 +53,9 @@ export async function startIamHttpServer(
       status: "ok",
       service: "iam",
       environment: options.global.environment,
-    })
+    }),
   );
-  app.get("/healthz", async (_request, reply) =>
-    reply.send({ status: "ok", service: "iam" })
-  );
+  app.get("/healthz", async (_request, reply) => reply.send({ status: "ok", service: "iam" }));
   await app.listen({ port: options.http.port, host: "0.0.0.0" });
   return app;
 }

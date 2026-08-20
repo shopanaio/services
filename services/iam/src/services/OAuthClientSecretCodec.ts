@@ -13,15 +13,11 @@ export class OAuthClientSecretCodec {
   static readonly randomByteLength = 32;
 
   generateClientId(): string {
-    return randomBytes(OAuthClientSecretCodec.randomByteLength).toString(
-      "base64url"
-    );
+    return randomBytes(OAuthClientSecretCodec.randomByteLength).toString("base64url");
   }
 
   generateSecret(): string {
-    return randomBytes(OAuthClientSecretCodec.randomByteLength).toString(
-      "base64url"
-    );
+    return randomBytes(OAuthClientSecretCodec.randomByteLength).toString("base64url");
   }
 
   hash(secret: string): string {
@@ -35,8 +31,6 @@ export class OAuthClientSecretCodec {
     if (!secret || !storedHash) return false;
     const actual = Buffer.from(this.hash(secret), "utf8");
     const expected = Buffer.from(storedHash, "utf8");
-    return (
-      actual.length === expected.length && timingSafeEqual(actual, expected)
-    );
+    return actual.length === expected.length && timingSafeEqual(actual, expected);
   }
 }

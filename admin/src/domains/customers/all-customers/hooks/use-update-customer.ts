@@ -15,30 +15,29 @@ export function useUpdateCustomer() {
     CustomerUpdateMutationVariables
   >(CUSTOMER_UPDATE_MUTATION);
 
-  const updateCustomer = useCallback(async (
-    customerId: string,
-    expectedRevision: number,
-    operations: ApiCustomerUpdateInput,
-  ) => {
-    try {
-      const result = await mutate({
-        variables: { customerId, expectedRevision, operations },
-        refetchQueries: [CUSTOMERS_QUERY],
-      });
-      const payload = result.data?.customersMutation.customerUpdate;
-      const operationErrors = payload?.operationResults.flatMap((item) => item.errors) ?? [];
-      return {
-        customer: payload?.customer ?? null,
-        userErrors: [...(payload?.userErrors ?? []), ...operationErrors],
-      };
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "Unable to update customer";
-      return {
-        customer: null,
-        userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[],
-      };
-    }
-  }, [mutate]);
+  const updateCustomer = useCallback(
+    async (customerId: string, expectedRevision: number, operations: ApiCustomerUpdateInput) => {
+      try {
+        const result = await mutate({
+          variables: { customerId, expectedRevision, operations },
+          refetchQueries: [CUSTOMERS_QUERY],
+        });
+        const payload = result.data?.customersMutation.customerUpdate;
+        const operationErrors = payload?.operationResults.flatMap((item) => item.errors) ?? [];
+        return {
+          customer: payload?.customer ?? null,
+          userErrors: [...(payload?.userErrors ?? []), ...operationErrors],
+        };
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : "Unable to update customer";
+        return {
+          customer: null,
+          userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[],
+        };
+      }
+    },
+    [mutate],
+  );
 
   return { updateCustomer, loading, error: error ?? null, reset };
 }

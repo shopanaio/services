@@ -1,16 +1,8 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  FileLinkManyParams,
-  FileLinkManyResult,
-} from "./dto/index.js";
+import type { FileLinkManyParams, FileLinkManyResult } from "./dto/index.js";
 
-export class FileLinkManyScript extends BaseScript<
-  FileLinkManyParams,
-  FileLinkManyResult
-> {
-  protected async execute(
-    params: FileLinkManyParams
-  ): Promise<FileLinkManyResult> {
+export class FileLinkManyScript extends BaseScript<FileLinkManyParams, FileLinkManyResult> {
+  protected async execute(params: FileLinkManyParams): Promise<FileLinkManyResult> {
     const { items, entityRef, owner } = params;
 
     if (items.length === 0) {
@@ -19,7 +11,7 @@ export class FileLinkManyScript extends BaseScript<
 
     // Deduplicate items by fileId+role for accurate counting
     const uniqueItems = Array.from(
-      new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values()
+      new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values(),
     );
 
     // linkMany enforces active-file and owner constraints for every item.
@@ -37,7 +29,7 @@ export class FileLinkManyScript extends BaseScript<
     if (skippedCount > 0) {
       this.logger.info(
         { skippedCount, totalCount: uniqueItems.length, linkedCount },
-        "fileLinkMany: some files missing, inactive, foreign-owned, or already linked"
+        "fileLinkMany: some files missing, inactive, foreign-owned, or already linked",
       );
     }
 

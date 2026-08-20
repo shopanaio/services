@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  CustomerAdminLifecycleStatus,
-  CustomerConsentAdminState,
-} from "@/graphql/types";
+import { CustomerAdminLifecycleStatus, CustomerConsentAdminState } from "@/graphql/types";
 
 export const customerFormSchema = z
   .object({

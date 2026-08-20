@@ -1,9 +1,6 @@
 import { Expose } from "class-transformer";
 import { ArrayMinSize, IsArray } from "class-validator";
-import {
-  IsGlobalId,
-  IsGlobalIdArray,
-} from "@src/application/validation/globalIdValidators";
+import { IsGlobalId, IsGlobalIdArray } from "@src/application/validation/globalIdValidators";
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 /**

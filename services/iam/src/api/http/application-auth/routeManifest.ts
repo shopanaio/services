@@ -40,9 +40,7 @@ export function normalizeApplicationAuthRelativePath(rawPath: string): string {
   try {
     decodeURIComponent(rawPath);
   } catch {
-    throw new ApplicationAuthPathError(
-      "Application auth path encoding is invalid"
-    );
+    throw new ApplicationAuthPathError("Application auth path encoding is invalid");
   }
 
   let normalized = "";
@@ -55,30 +53,22 @@ export function normalizeApplicationAuthRelativePath(rawPath: string): string {
 
     const byte = rawPath.slice(index + 1, index + 3);
     if (!HEX_BYTE.test(byte)) {
-      throw new ApplicationAuthPathError(
-        "Application auth path encoding is invalid"
-      );
+      throw new ApplicationAuthPathError("Application auth path encoding is invalid");
     }
     const decoded = String.fromCharCode(Number.parseInt(byte, 16));
     if (decoded === "/" || decoded === "\\" || decoded === "\0") {
-      throw new ApplicationAuthPathError(
-        "Encoded application auth path separator is forbidden"
-      );
+      throw new ApplicationAuthPathError("Encoded application auth path separator is forbidden");
     }
     normalized += UNRESERVED.test(decoded) ? decoded : `%${byte.toUpperCase()}`;
     index += 2;
   }
 
   if (normalized.includes("//") || normalized.includes("\\")) {
-    throw new ApplicationAuthPathError(
-      "Application auth path structure is invalid"
-    );
+    throw new ApplicationAuthPathError("Application auth path structure is invalid");
   }
   const segments = normalized.split("/");
   if (segments.some((segment) => segment === "." || segment === "..")) {
-    throw new ApplicationAuthPathError(
-      "Application auth dot segments are forbidden"
-    );
+    throw new ApplicationAuthPathError("Application auth dot segments are forbidden");
   }
   return normalized;
 }
@@ -86,30 +76,25 @@ export function normalizeApplicationAuthRelativePath(rawPath: string): string {
 export function isApplicationAuthRouteAllowed(
   manifest: EffectiveApplicationAuthRouteManifest,
   method: string,
-  normalizedPath: string
+  normalizedPath: string,
 ): boolean {
   if (method !== "GET" && method !== "POST") return false;
   return manifest.allowedRoutes.some(
-    (entry) =>
-      entry.method === method && routeEntryMatches(entry, normalizedPath)
+    (entry) => entry.method === method && routeEntryMatches(entry, normalizedPath),
   );
 }
 
 export function assertApplicationAuthPreflightMethod(
   manifest: EffectiveApplicationAuthRouteManifest,
   requestedMethod: string,
-  normalizedPath: string
+  normalizedPath: string,
 ): ApplicationAuthHttpMethod | null {
   const method = requestedMethod.toUpperCase();
   if (method !== "GET" && method !== "POST") return null;
-  return isApplicationAuthRouteAllowed(manifest, method, normalizedPath)
-    ? method
-    : null;
+  return isApplicationAuthRouteAllowed(manifest, method, normalizedPath) ? method : null;
 }
 
-export function routeRequiresForcedRevisionCheck(
-  normalizedPath: string
-): boolean {
+export function routeRequiresForcedRevisionCheck(normalizedPath: string): boolean {
   if (normalizedPath === "/oauth2/token") return true;
   const callback = /^\/callback\/([^/]+)$/u.exec(normalizedPath);
   if (!callback) return false;
@@ -133,7 +118,7 @@ export function resolveAllowedSocialCallbackProvider(input: {
       (entry) =>
         entry.method === input.method &&
         entry.pathKind === "social-callback" &&
-        entry.path === callbackPath
+        entry.path === callbackPath,
     );
     return exactEntry ? provider : null;
   }
@@ -142,7 +127,7 @@ export function resolveAllowedSocialCallbackProvider(input: {
 
 function routeEntryMatches(
   entry: ApplicationAuthRouteManifestEntry,
-  normalizedPath: string
+  normalizedPath: string,
 ): boolean {
   if (entry.pathKind !== "reset-token") {
     return entry.path === normalizedPath;

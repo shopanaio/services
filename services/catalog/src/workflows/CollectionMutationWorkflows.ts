@@ -76,9 +76,7 @@ export class CollectionRulesPreviewWorkflow extends BrokerWorkflows<
     organizationId: (_self, input) => input.organizationId,
     domain: (_self, input) => `store:${input.storeId}`,
   })
-  async run(
-    input: CollectionRulesPreviewWorkflowInput,
-  ): Promise<PreviewCollectionRulesResult> {
+  async run(input: CollectionRulesPreviewWorkflowInput): Promise<PreviewCollectionRulesResult> {
     try {
       return await this.preview(input.params);
     } catch (error) {
@@ -129,9 +127,7 @@ export class CollectionMutationWorkflow extends BrokerWorkflows<
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CollectionMutationWorkflowInput,
-  ): Promise<CollectionMutationDispatchResult> {
+  async run(input: CollectionMutationWorkflowInput): Promise<CollectionMutationDispatchResult> {
     const result = await this.mutate({
       input,
       workflowId: DBOS.workflowID!,
@@ -142,7 +138,9 @@ export class CollectionMutationWorkflow extends BrokerWorkflows<
     const collectionId =
       "deletedCollectionId" in result
         ? result.deletedCollectionId
-        : "collection" in result ? result.collection?.id : undefined;
+        : "collection" in result
+          ? result.collection?.id
+          : undefined;
     if (result.syncOperationId && collectionId) {
       await this.startProductSync({
         operationId: result.syncOperationId,
@@ -247,9 +245,7 @@ export class CollectionMutationWorkflow extends BrokerWorkflows<
     timeoutMs: 30_000,
     retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
   })
-  private async startProductSync(
-    input: CollectionProductSyncWorkflowInput,
-  ): Promise<void> {
+  private async startProductSync(input: CollectionProductSyncWorkflowInput): Promise<void> {
     const workflowName = "catalog.collectionProductSync";
     const idempotencyContext: IdempotencyContext = {
       source: "content",
@@ -258,19 +254,14 @@ export class CollectionMutationWorkflow extends BrokerWorkflows<
       operation: workflowName,
       contentHash: input.operationId,
     };
-    await this.broker.startWorkflow(
-      workflowName,
-      input,
-      idempotencyContext,
-      {
-        workflowId: buildIdempotencyKey(workflowName, idempotencyContext),
-        queueName: "catalog_collection_product_sync",
-        enqueueOptions: {
-          queuePartitionKey: `${input.context.storeId}:collection:${input.collectionId}`,
-        },
-        timeoutMS: 600_000,
+    await this.broker.startWorkflow(workflowName, input, idempotencyContext, {
+      workflowId: buildIdempotencyKey(workflowName, idempotencyContext),
+      queueName: "catalog_collection_product_sync",
+      enqueueOptions: {
+        queuePartitionKey: `${input.context.storeId}:collection:${input.collectionId}`,
       },
-    );
+      timeoutMS: 600_000,
+    });
   }
 }
 
@@ -378,10 +369,7 @@ export class CollectionProductSyncWorkflow extends BrokerWorkflows<
   }
 }
 
-function runScriptContext(
-  context: CollectionWorkflowContext,
-  requestId = context.requestId,
-) {
+function runScriptContext(context: CollectionWorkflowContext, requestId = context.requestId) {
   return {
     storeId: context.storeId,
     organizationId: context.organizationId,

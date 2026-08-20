@@ -20,7 +20,8 @@ export class ReservationLoader {
     this.reservationEvents = new DataLoader(async (ids: readonly string[]) => {
       const rows = await repository.reservation.getEventsByReservationIds(ids);
       const grouped = new Map<string, typeof rows>();
-      for (const row of rows) grouped.set(row.reservationId, [...(grouped.get(row.reservationId) ?? []), row]);
+      for (const row of rows)
+        grouped.set(row.reservationId, [...(grouped.get(row.reservationId) ?? []), row]);
       return ids.map((id) => grouped.get(id) ?? []);
     });
   }

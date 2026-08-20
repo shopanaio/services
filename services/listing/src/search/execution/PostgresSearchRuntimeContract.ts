@@ -19,8 +19,7 @@ export interface PostgresSearchRuntimeContract {
   readonly ginFuzzySearchLimit: 0;
 }
 
-export const POSTGRES_SEARCH_RUNTIME_CONTRACT:
-PostgresSearchRuntimeContract = Object.freeze({
+export const POSTGRES_SEARCH_RUNTIME_CONTRACT: PostgresSearchRuntimeContract = Object.freeze({
   ftsConfiguration: "pg_catalog.simple",
   compilerVersion: POSTGRES_FTS_COMPILER_VERSION,
   ginFuzzySearchLimit: 0,
@@ -73,10 +72,7 @@ export function assertPostgresSearchRuntimeCompatible(
   if (!observed.roaringBitmapAvailable) {
     throw indexUnavailable("roaringbitmap is unavailable");
   }
-  if (
-    observed.ginFuzzySearchLimit !==
-      POSTGRES_SEARCH_RUNTIME_CONTRACT.ginFuzzySearchLimit
-  ) {
+  if (observed.ginFuzzySearchLimit !== POSTGRES_SEARCH_RUNTIME_CONTRACT.ginFuzzySearchLimit) {
     throw indexUnavailable("gin_fuzzy_search_limit must be 0");
   }
   if (!options.requireTypo) return;

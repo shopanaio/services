@@ -1,8 +1,5 @@
 import type { ApiVariantOrderByInput } from "@/graphql/types";
-import {
-  SortDirection as ApiSortDirection,
-  VariantOrderField,
-} from "@/graphql/types";
+import { SortDirection as ApiSortDirection, VariantOrderField } from "@/graphql/types";
 import type { SortModel } from "@/hooks/use-grid-sort";
 
 const SUPPORTED_SORT_FIELDS: Record<string, VariantOrderField> = {

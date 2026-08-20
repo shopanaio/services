@@ -32,10 +32,7 @@ export class HeadlessStorefrontConnectionService {
         input.clientMutationId,
       );
       if (existingId) {
-        const existing = await this.repository.connection.findById(
-          scope,
-          existingId,
-        );
+        const existing = await this.repository.connection.findById(scope, existingId);
         if (!existing) throw new Error("STOREFRONT_NOT_FOUND");
         return Object.freeze({
           connection: existing,
@@ -53,12 +50,11 @@ export class HeadlessStorefrontConnectionService {
         input.permissions ?? this.defaultPermissions,
       );
       if (!policy) throw new Error("STOREFRONT_CREATE_FAILED");
-      const initialCredentials =
-        await this.credentials.createInitialCredentials(
-          scope,
-          connection.id,
-          { type: "USER", id: input.createdById },
-        );
+      const initialCredentials = await this.credentials.createInitialCredentials(
+        scope,
+        connection.id,
+        { type: "USER", id: input.createdById },
+      );
       await this.repository.idempotency.record(
         scope,
         "CONNECTION_CREATE",
@@ -84,41 +80,26 @@ export class HeadlessStorefrontConnectionService {
   ) {
     const normalized = normalizeDisplayName(displayName);
     return this.repository.runInTransaction(async () => {
-      const current = await this.repository.connection.lockById(
-        scope,
-        connectionId,
-      );
+      const current = await this.repository.connection.lockById(scope, connectionId);
       if (!current) throw new Error("STOREFRONT_NOT_FOUND");
       if (current.status === "DISCONNECTED") {
         throw new Error("STOREFRONT_INVALID_STATE");
       }
       return required(
-        await this.repository.connection.updateDisplayName(
-          scope,
-          connectionId,
-          normalized,
-        ),
+        await this.repository.connection.updateDisplayName(scope, connectionId, normalized),
       );
     });
   }
 
-  async suspendConnection(
-    scope: HeadlessStorefrontScope,
-    connectionId: string,
-  ) {
+  async suspendConnection(scope: HeadlessStorefrontScope, connectionId: string) {
     return this.repository.runInTransaction(async () => {
-      const current = await this.repository.connection.lockById(
-        scope,
-        connectionId,
-      );
+      const current = await this.repository.connection.lockById(scope, connectionId);
       if (!current) throw new Error("STOREFRONT_NOT_FOUND");
       if (current.status === "SUSPENDED") return current;
       if (current.status !== "ACTIVE") {
         throw new Error("STOREFRONT_INVALID_STATE");
       }
-      return required(
-        await this.repository.connection.suspend(scope, connectionId),
-      );
+      return required(await this.repository.connection.suspend(scope, connectionId));
     });
   }
 
@@ -134,24 +115,16 @@ export class HeadlessStorefrontConnectionService {
         clientMutationId,
       );
       if (existingId) {
-        const existing = await this.repository.connection.findById(
-          scope,
-          existingId,
-        );
+        const existing = await this.repository.connection.findById(scope, existingId);
         if (!existing) throw new Error("STOREFRONT_NOT_FOUND");
         return existing;
       }
-      const current = await this.repository.connection.lockById(
-        scope,
-        connectionId,
-      );
+      const current = await this.repository.connection.lockById(scope, connectionId);
       if (!current) throw new Error("STOREFRONT_NOT_FOUND");
       if (current.status !== "SUSPENDED") {
         throw new Error("STOREFRONT_INVALID_STATE");
       }
-      const resumed = required(
-        await this.repository.connection.resume(scope, connectionId),
-      );
+      const resumed = required(await this.repository.connection.resume(scope, connectionId));
       await this.repository.idempotency.record(
         scope,
         "CONNECTION_RESUME",
@@ -168,20 +141,11 @@ export class HeadlessStorefrontConnectionService {
     actor: { readonly type: string; readonly id?: string },
   ) {
     return this.repository.runInTransaction(async () => {
-      const current = await this.repository.connection.lockById(
-        scope,
-        connectionId,
-      );
+      const current = await this.repository.connection.lockById(scope, connectionId);
       if (!current) throw new Error("STOREFRONT_NOT_FOUND");
       if (current.status === "DISCONNECTED") return current;
-      const result = required(
-        await this.repository.connection.disconnect(scope, connectionId),
-      );
-      await this.repository.credential.revokeAllActiveByConnection(
-        scope,
-        connectionId,
-        actor,
-      );
+      const result = required(await this.repository.connection.disconnect(scope, connectionId));
+      await this.repository.credential.revokeAllActiveByConnection(scope, connectionId, actor);
       return result;
     });
   }
@@ -195,11 +159,7 @@ export class HeadlessStorefrontConnectionService {
       for (const connection of connections) {
         if (connection.status !== "DISCONNECTED") {
           await this.repository.connection.disconnect(scope, connection.id);
-          await this.repository.credential.revokeAllActiveByConnection(
-            scope,
-            connection.id,
-            actor,
-          );
+          await this.repository.credential.revokeAllActiveByConnection(scope, connection.id, actor);
         }
       }
     });

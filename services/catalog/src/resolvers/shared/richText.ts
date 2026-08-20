@@ -10,9 +10,7 @@ export type RichTextValue = {
   json: unknown;
 };
 
-export function toRichTextValue(
-  value: RichTextLike | null | undefined
-): RichTextValue | null {
+export function toRichTextValue(value: RichTextLike | null | undefined): RichTextValue | null {
   if (!value) {
     return null;
   }

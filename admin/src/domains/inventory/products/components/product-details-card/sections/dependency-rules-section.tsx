@@ -1,16 +1,9 @@
 "use client";
 
-import {
-  Typography,
-  Empty,
-  Tag,
-  Button } from "antd";
+import { Typography, Empty, Tag, Button } from "antd";
 import { LuChevronRight as RightOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
-import type {
-  ApiProductComponentDependencyRule,
-  ApiProductComponentGroup,
-} from "@/graphql/types";
+import type { ApiProductComponentDependencyRule, ApiProductComponentGroup } from "@/graphql/types";
 import type { ProductComponentDependencyTargetType } from "@/graphql/types";
 import {
   resolveTargetName,
@@ -139,17 +132,10 @@ const FlowBlock = ({
     <div className={styles.flowLabel}>{label}</div>
     {items.map((item) => (
       <div key={item.key} className={styles.flowRow}>
-        <Tag
-          className={styles.targetTag}
-          color={TARGET_TYPE_COLORS[item.targetType]}
-        >
+        <Tag className={styles.targetTag} color={TARGET_TYPE_COLORS[item.targetType]}>
           {CHART_NODE_ICONS[item.targetType]}
         </Tag>
-        {item.name && (
-          <Typography.Text className={styles.targetName}>
-            {item.name}
-          </Typography.Text>
-        )}
+        {item.name && <Typography.Text className={styles.targetName}>{item.name}</Typography.Text>}
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
           {item.description}
         </Typography.Text>
@@ -182,10 +168,7 @@ export const DependencyRulesSection = ({
   return (
     <>
       {dependencyRules.length === 0 ? (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="No dependency rules configured"
-        />
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No dependency rules configured" />
       ) : (
         <>
           <div className={styles.rules}>
@@ -203,10 +186,7 @@ export const DependencyRulesSection = ({
                   >
                     {rule.name}
                     {!rule.enabled && (
-                      <Tag
-                        className={styles.disabledBadge}
-                        style={{ marginLeft: 8 }}
-                      >
+                      <Tag className={styles.disabledBadge} style={{ marginLeft: 8 }}>
                         DISABLED
                       </Tag>
                     )}
@@ -224,11 +204,7 @@ export const DependencyRulesSection = ({
                         .map((cond) => ({
                           key: cond.id,
                           targetType: cond.targetType,
-                          name: resolveTargetName(
-                            cond.targetType,
-                            cond.targetId,
-                            groups,
-                          ),
+                          name: resolveTargetName(cond.targetType, cond.targetId, groups),
                           description: formatCondition(cond),
                         }))}
                     />
@@ -236,9 +212,7 @@ export const DependencyRulesSection = ({
                       <Button
                         size="small"
                         type="text"
-                        icon={
-                          <RightOutlined style={{ color: theme.colorIcon }} />
-                        }
+                        icon={<RightOutlined style={{ color: theme.colorIcon }} />}
                       />
                     </div>
                     <FlowBlock
@@ -247,21 +221,14 @@ export const DependencyRulesSection = ({
                       items={rule.actions.map((action) => ({
                         key: action.id,
                         targetType: action.targetType,
-                        name: resolveTargetName(
-                          action.targetType,
-                          action.targetId,
-                          groups,
-                        ),
+                        name: resolveTargetName(action.targetType, action.targetId, groups),
                         description: formatAction(action),
                       }))}
                     />
                   </div>
                 ) : (
                   <div className={styles.compactBody}>
-                    {rule.conditionGroups.reduce(
-                      (sum, g) => sum + g.conditions.length,
-                      0,
-                    )}{" "}
+                    {rule.conditionGroups.reduce((sum, g) => sum + g.conditions.length, 0)}{" "}
                     conditions → {rule.actions.length} actions
                   </div>
                 )}

@@ -1,8 +1,5 @@
 import type { ApiFile, ApiProductOption, ApiVariant } from "@/graphql/types";
-import type {
-  IVariantEditorInput,
-  IVariantEditorRow,
-} from "../components/variants/config/types";
+import type { IVariantEditorInput, IVariantEditorRow } from "../components/variants/config/types";
 import {
   DEFAULT_DIMENSION_UNIT,
   DEFAULT_WEIGHT_UNIT,
@@ -30,10 +27,7 @@ export interface VariantEditorSaveRow {
   mediaFileIds: string[];
 }
 
-function sortVariantMediaFiles(
-  variant: ApiVariant,
-  productMediaFiles?: ApiFile[],
-): ApiFile[] {
+function sortVariantMediaFiles(variant: ApiVariant, productMediaFiles?: ApiFile[]): ApiFile[] {
   const productMediaOrder = new Map(
     (productMediaFiles ?? []).map((file, index) => [file.id, index]),
   );
@@ -44,8 +38,7 @@ function sortVariantMediaFiles(
       const rightOrder = productMediaOrder.get(right.file.id);
 
       if (leftOrder !== undefined || rightOrder !== undefined) {
-        return (leftOrder ?? Number.MAX_SAFE_INTEGER) -
-          (rightOrder ?? Number.MAX_SAFE_INTEGER);
+        return (leftOrder ?? Number.MAX_SAFE_INTEGER) - (rightOrder ?? Number.MAX_SAFE_INTEGER);
       }
 
       return left.sortIndex - right.sortIndex;
@@ -58,13 +51,8 @@ export function mapApiVariantToEditorInput(
   productOptions: ApiProductOption[],
   options?: MapApiVariantsToEditorInputsOptions,
 ): IVariantEditorInput {
-  const optionsById = new Map(
-    productOptions.map((option) => [option.id, option]),
-  );
-  const sortedMediaFiles = sortVariantMediaFiles(
-    variant,
-    options?.productMediaFiles,
-  );
+  const optionsById = new Map(productOptions.map((option) => [option.id, option]));
+  const sortedMediaFiles = sortVariantMediaFiles(variant, options?.productMediaFiles);
 
   return {
     ...mapApiWeightToVariantFields(variant.weight),
@@ -106,14 +94,10 @@ export function mapApiVariantsToEditorInputs(
   productOptions: ApiProductOption[],
   options?: MapApiVariantsToEditorInputsOptions,
 ): IVariantEditorInput[] {
-  return variants.map((variant) =>
-    mapApiVariantToEditorInput(variant, productOptions, options),
-  );
+  return variants.map((variant) => mapApiVariantToEditorInput(variant, productOptions, options));
 }
 
-export function mapVariantEditorInputsToRows(
-  inputs: IVariantEditorInput[],
-): IVariantEditorRow[] {
+export function mapVariantEditorInputsToRows(inputs: IVariantEditorInput[]): IVariantEditorRow[] {
   return inputs.map((input) => ({
     id: input.id,
     kind: input.kind,
@@ -134,9 +118,7 @@ export function mapVariantEditorInputsToRows(
   }));
 }
 
-export function getVariantEditorRowsForSave(
-  rows: IVariantEditorRow[],
-): VariantEditorSaveRow[] {
+export function getVariantEditorRowsForSave(rows: IVariantEditorRow[]): VariantEditorSaveRow[] {
   return rows.map((row) => ({
     id: row.id,
     kind: row.kind,

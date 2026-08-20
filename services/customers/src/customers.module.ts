@@ -12,17 +12,11 @@ import {
 } from "./handlers/CustomerStatisticsEventHandlers.js";
 import { CustomerDynamicSegmentEventHandlers } from "./handlers/CustomerDynamicSegmentEventHandlers.js";
 import { CustomerLifecycleJobEventHandlers } from "./handlers/CustomerLifecycleJobEventHandlers.js";
-import {
-  CustomerExternalReferenceBrokerActions,
-  CustomersBrokerActions,
-} from "./actions/index.js";
+import { CustomerExternalReferenceBrokerActions, CustomersBrokerActions } from "./actions/index.js";
 import { CustomerSegmentMaintenanceScheduler } from "./segments/CustomerSegmentMaintenanceScheduler.js";
 
 @Module({
-  imports: [
-    BrokerModule.forFeature({ serviceName: "customers" }),
-    ScheduleModule.forRoot(),
-  ],
+  imports: [BrokerModule.forFeature({ serviceName: "customers" }), ScheduleModule.forRoot()],
   providers: [
     CustomersNestService,
     StoreEventHandlers,

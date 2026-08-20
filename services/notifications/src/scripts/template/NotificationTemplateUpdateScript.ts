@@ -20,19 +20,13 @@ export class NotificationTemplateUpdateScript extends BaseScript<
   NotificationTemplateUpdateResult
 > {
   @Transactional()
-  protected async execute(
-    params: NotificationTemplateUpdateParams
-  ) {
+  protected async execute(params: NotificationTemplateUpdateParams) {
     if (params.channel !== "EMAIL" && params.channel !== "SMS") {
       throw new Error("CHANNEL_DOES_NOT_SUPPORT_TEMPLATES");
     }
     const issues = this.renderer.validateSources(params);
     if (issues.length > 0) {
-      throw new KernelError(
-        "Notification template is invalid",
-        "INVALID_TEMPLATE",
-        { issues }
-      );
+      throw new KernelError("Notification template is invalid", "INVALID_TEMPLATE", { issues });
     }
     const revision = await this.repository.templates.createRevision({
       key: params.key,
@@ -60,7 +54,7 @@ export class NotificationTemplateUpdateScript extends BaseScript<
         locale: params.locale,
         revision: revision.revision,
         pointerVersion: pointer.version,
-      }
+      },
     );
     return {
       template: await this.renderer.getEffectiveTemplate(params),

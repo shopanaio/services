@@ -72,7 +72,7 @@ const createMockVariant = (index: number): ApiVariant => {
 export const getMockVariantsTableData = (
   page: number = 1,
   pageSize: number = 10,
-  totalVariants: number = 25
+  totalVariants: number = 25,
 ): IVariantsTableData => {
   const startIndex = (page - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalVariants);

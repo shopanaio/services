@@ -19,18 +19,13 @@ import { createGlobalIdWhereFieldMapper } from "./global-id-where-mappers.js";
 export const navigationMenuRelayQuery = createRelayQuery(
   createQuery(navigationMenuListView)
     .include(["id"])
-    .mapWhereField(
-      "id",
-      createGlobalIdWhereFieldMapper(GlobalIdEntity.OnlineStoreNavigationMenu),
-    )
+    .mapWhereField("id", createGlobalIdWhereFieldMapper(GlobalIdEntity.OnlineStoreNavigationMenu))
     .maxLimit(100)
     .defaultLimit(20),
   { name: "onlineStoreNavigationMenu", tieBreaker: "id" },
 );
 
-export type NavigationMenuRelayInput = InferRelayInput<
-  typeof navigationMenuRelayQuery
->;
+export type NavigationMenuRelayInput = InferRelayInput<typeof navigationMenuRelayQuery>;
 
 export interface NavigationMenuConnectionResult {
   readonly edges: ReadonlyArray<{
@@ -53,10 +48,7 @@ export interface UpdateNavigationMenuInput {
 }
 
 export class NavigationMenuRepository extends BaseRepository {
-  async findById(
-    scope: OnlineStoreScope,
-    menuId: string,
-  ): Promise<NavigationMenuRecord | null> {
+  async findById(scope: OnlineStoreScope, menuId: string): Promise<NavigationMenuRecord | null> {
     const rows = await this.connection
       .select()
       .from(navigationMenus)
@@ -65,10 +57,7 @@ export class NavigationMenuRepository extends BaseRepository {
     return rows[0] ? mapMenu(rows[0]) : null;
   }
 
-  async lockById(
-    scope: OnlineStoreScope,
-    menuId: string,
-  ): Promise<NavigationMenuRecord | null> {
+  async lockById(scope: OnlineStoreScope, menuId: string): Promise<NavigationMenuRecord | null> {
     const rows = await this.connection
       .select()
       .from(navigationMenus)
@@ -134,12 +123,7 @@ export class NavigationMenuRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(navigationMenus)
-      .where(
-        and(
-          this.menuScope(scope),
-          inArray(navigationMenus.id, [...new Set(menuIds)]),
-        ),
-      );
+      .where(and(this.menuScope(scope), inArray(navigationMenus.id, [...new Set(menuIds)])));
     return Object.freeze(rows.map(mapMenu));
   }
 
@@ -159,10 +143,7 @@ export class NavigationMenuRepository extends BaseRepository {
       updatedAt: timestamp,
       deletedAt: null,
     };
-    const rows = await this.connection
-      .insert(navigationMenus)
-      .values(insert)
-      .returning();
+    const rows = await this.connection.insert(navigationMenus).values(insert).returning();
     return mapMenu(requiredRow(rows[0]));
   }
 
@@ -221,9 +202,7 @@ function mapMenu(row: NavigationMenuModel): NavigationMenuRecord {
   return Object.freeze({ ...row });
 }
 
-function requiredRow(
-  row: NavigationMenuModel | undefined,
-): NavigationMenuModel {
+function requiredRow(row: NavigationMenuModel | undefined): NavigationMenuModel {
   if (!row) throw new Error("navigation menu was not returned by PostgreSQL");
   return row;
 }

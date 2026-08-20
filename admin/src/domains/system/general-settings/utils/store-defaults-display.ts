@@ -40,9 +40,7 @@ export const getTimeZoneOptions = () => {
     "Asia/Tokyo",
   ];
   const timeZones =
-    typeof Intl.supportedValuesOf === "function"
-      ? Intl.supportedValuesOf("timeZone")
-      : fallback;
+    typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : fallback;
 
   return timeZones.map((value) => ({
     label: formatTimeZoneLabel(value),

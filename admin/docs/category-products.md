@@ -1,4 +1,6 @@
-Ниже — **подробная схема ProductsSection** (в твоём стиле: Paper + header controls + table + footer), но **enterprise-ready**: merchandising rules, bulk actions, validations, conflicts, permissions, scopes, saved views.
+Ниже — **подробная схема ProductsSection** (в твоём стиле: Paper + header controls + table +
+footer), но **enterprise-ready**: merchandising rules, bulk actions, validations, conflicts,
+permissions, scopes, saved views.
 
 ---
 
@@ -129,8 +131,7 @@
 Если `canEdit=false`:
 
 - кнопки выключены
-- показывается “view-only”
-  Если `lockedBy`:
+- показывается “view-only” Если `lockedBy`:
 - “Locked by …” и запрет редактирования
 
 ---
@@ -153,5 +154,7 @@ interface IProductsSectionEnterprise {
 
 Если хочешь, могу следующим сообщением:
 
-- расписать **точные компоненты antd** (Segmented, Dropdown, Table row actions, Drawer для conflicts, Collapse для rules)
-- и структуру **columns** (с `render`, `sorter`, `filters`, sticky header, rowSelection) — прям готовую для реализации.
+- расписать **точные компоненты antd** (Segmented, Dropdown, Table row actions, Drawer для
+  conflicts, Collapse для rules)
+- и структуру **columns** (с `render`, `sorter`, `filters`, sticky header, rowSelection) — прям
+  готовую для реализации.

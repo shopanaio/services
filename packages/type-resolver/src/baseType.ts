@@ -36,13 +36,9 @@ export abstract class BaseType<TProps, TData = TProps, TContext = unknown> {
     this: T & { executor?: Executor<TypeContext<T>> },
     value: ConstructorParameters<T>[0],
     query: QueryArgs | undefined,
-    ctx: TypeContext<T>
+    ctx: TypeContext<T>,
   ): Promise<TResult | null> {
-    const instance = new this(value, ctx) as unknown as BaseType<
-      unknown,
-      unknown,
-      TypeContext<T>
-    >;
+    const instance = new this(value, ctx) as unknown as BaseType<unknown, unknown, TypeContext<T>>;
     if (this.executor) {
       return this.executor.load(instance, query) as Promise<TResult | null>;
     }
@@ -62,20 +58,13 @@ export abstract class BaseType<TProps, TData = TProps, TContext = unknown> {
     this: T & { executor?: Executor<TypeContext<T>> },
     values: ConstructorParameters<T>[0][],
     query: QueryArgs | undefined,
-    ctx: TypeContext<T>
+    ctx: TypeContext<T>,
   ): Promise<(TResult | null)[]> {
     const instances = values.map(
-      (value) =>
-        new this(value, ctx) as unknown as BaseType<
-          unknown,
-          unknown,
-          TypeContext<T>
-        >
+      (value) => new this(value, ctx) as unknown as BaseType<unknown, unknown, TypeContext<T>>,
     );
     if (this.executor) {
-      return this.executor.loadMany(instances, query) as Promise<
-        (TResult | null)[]
-      >;
+      return this.executor.loadMany(instances, query) as Promise<(TResult | null)[]>;
     }
     const { loadMany } = await import("./executor.js");
     return loadMany(instances, query) as Promise<(TResult | null)[]>;

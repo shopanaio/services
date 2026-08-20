@@ -34,7 +34,10 @@ export class FileCreateExternalScript extends BaseScript<
     const assetGroup = await this.getOrCreateStoreAssetGroup();
     const assetGroupId = assetGroup.id;
 
-    this.logger.info({ params, storeId: this.storeId, assetGroupId }, "FileCreateExternalScript: starting");
+    this.logger.info(
+      { params, storeId: this.storeId, assetGroupId },
+      "FileCreateExternalScript: starting",
+    );
 
     // 1. Validate provider
     if (!isValidProvider(params.provider)) {
@@ -55,13 +58,13 @@ export class FileCreateExternalScript extends BaseScript<
     if (params.idempotencyKey) {
       const existingFile = await this.repository.file.findByIdempotencyKey(
         assetGroupId,
-        params.idempotencyKey
+        params.idempotencyKey,
       );
 
       if (existingFile) {
         this.logger.info(
           { fileId: existingFile.id, idempotencyKey: params.idempotencyKey },
-          "FileCreateExternalScript: returning existing file by idempotency key"
+          "FileCreateExternalScript: returning existing file by idempotency key",
         );
         return {
           file: { id: existingFile.id },
@@ -74,19 +77,17 @@ export class FileCreateExternalScript extends BaseScript<
     {
       const existingExternal = await this.repository.externalMedia.findByExternalId(
         assetGroupId,
-        params.externalId
+        params.externalId,
       );
 
       if (existingExternal) {
         // Check if the existing file's provider matches
-        const existingFile = await this.repository.file.findById(
-          existingExternal.fileId
-        );
+        const existingFile = await this.repository.file.findById(existingExternal.fileId);
 
         if (existingFile && existingFile.provider === params.provider) {
           this.logger.info(
             { fileId: existingFile.id, externalId: params.externalId },
-            "FileCreateExternalScript: returning existing file by external ID"
+            "FileCreateExternalScript: returning existing file by external ID",
           );
           return {
             file: { id: existingFile.id },

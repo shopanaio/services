@@ -1,7 +1,5 @@
 {
   "entryPoint": "src/delivery.module.ts",
   "migrations": { "path": "dist/migrations", "type": "node-pg-migrate" },
-  "assets": [
-    { "include": "migrations/**/*", "outDir": "dist/migrations" }
-  ]
+  "assets": [{ "include": "migrations/**/*", "outDir": "dist/migrations" }]
 }

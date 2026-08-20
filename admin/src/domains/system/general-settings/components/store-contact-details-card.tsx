@@ -48,15 +48,13 @@ interface StoreContactDetailsCardProps {
   onEdit: (section: StoreSettingsSection) => void;
 }
 
-export const StoreContactDetailsCard = ({
-  store,
-  onEdit,
-}: StoreContactDetailsCardProps) => {
+export const StoreContactDetailsCard = ({ store, onEdit }: StoreContactDetailsCardProps) => {
   const { styles } = useStyles();
   const details = store.contactDetails;
   const countryName =
-    shopCountries.find(({ value }) => value === store.address?.countryCode)
-      ?.name ?? store.address?.countryCode ?? "Not configured";
+    shopCountries.find(({ value }) => value === store.address?.countryCode)?.name ??
+    store.address?.countryCode ??
+    "Not configured";
   const phone = details.phoneNumbers[0] ?? "No phone number";
 
   const menuItems = [

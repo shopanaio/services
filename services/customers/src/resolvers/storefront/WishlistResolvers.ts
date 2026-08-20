@@ -1,16 +1,10 @@
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import type {
-  CustomerWishlist,
-  CustomerWishlistItem,
-} from "../../repositories/models/index.js";
+import type { CustomerWishlist, CustomerWishlistItem } from "../../repositories/models/index.js";
 import type { CustomerWishlistItemsArgs } from "./generated/types.js";
 import { StorefrontCustomersType } from "./StorefrontCustomersType.js";
 
-export class CustomerWishlistResolver extends StorefrontCustomersType<
-  string,
-  CustomerWishlist
-> {
+export class CustomerWishlistResolver extends StorefrontCustomersType<string, CustomerWishlist> {
   async $preload(): Promise<CustomerWishlist> {
     const wishlist = await this.$ctx.loaders.wishlist.load(this.$props);
     if (!wishlist) {
@@ -78,8 +72,7 @@ export class CustomerWishlistItemResolver extends StorefrontCustomersType<
 
   async product() {
     const productId = await this.$get("productId");
-    const isPublished =
-      await this.$ctx.loaders.publishedWishlistProduct.load(productId);
+    const isPublished = await this.$ctx.loaders.publishedWishlistProduct.load(productId);
     return isPublished
       ? {
           __typename: "Product" as const,

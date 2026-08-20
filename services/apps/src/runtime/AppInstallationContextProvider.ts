@@ -7,21 +7,14 @@ import type {
   AppInstallationStatus,
 } from "@shopana/app-sdk";
 import type { GetCurrentStoreResult } from "@shopana/shared-context";
-import {
-  InjectBroker,
-  type ServiceBroker,
-} from "@shopana/shared-kernel";
+import { InjectBroker, type ServiceBroker } from "@shopana/shared-kernel";
 import { AppInstallationStore } from "../control-plane/AppInstallationStore.js";
 import type { AppInstallationRecord } from "../control-plane/types.js";
 
-export const APP_INSTALLATION_CONTEXT_PROVIDER = Symbol(
-  "APP_INSTALLATION_CONTEXT_PROVIDER",
-);
+export const APP_INSTALLATION_CONTEXT_PROVIDER = Symbol("APP_INSTALLATION_CONTEXT_PROVIDER");
 
 @Injectable()
-export class DatabaseAppInstallationContextProvider
-  implements AppInstallationContextProvider
-{
+export class DatabaseAppInstallationContextProvider implements AppInstallationContextProvider {
   constructor(
     @Inject(AppInstallationStore)
     private readonly installations: AppInstallationStore,
@@ -31,13 +24,9 @@ export class DatabaseAppInstallationContextProvider
   async resolve(
     reference: Readonly<AppContextResolutionReference>,
   ): Promise<Readonly<AppExecutionContext>> {
-    const installation = await this.installations.findById(
-      reference.installationId,
-    );
+    const installation = await this.installations.findById(reference.installationId);
     if (!installation) {
-      throw new Error(
-        `App installation "${reference.installationId}" not found`,
-      );
+      throw new Error(`App installation "${reference.installationId}" not found`);
     }
     if (installation.appCode !== reference.appCode) {
       throw new Error("App installation does not belong to this App");
@@ -49,24 +38,21 @@ export class DatabaseAppInstallationContextProvider
   async resolveActive(
     reference: Readonly<ActiveAppContextResolutionReference>,
   ): Promise<Readonly<AppExecutionContext>> {
-    const storeResult = await this.broker.call<
-      GetCurrentStoreResult,
-      { name: string }
-    >("project.getCurrentStore", { name: reference.storeName });
+    const storeResult = await this.broker.call<GetCurrentStoreResult, { name: string }>(
+      "project.getCurrentStore",
+      { name: reference.storeName },
+    );
     const store = storeResult?.store;
     if (!store) {
       throw new Error(`Store "${reference.storeName}" not found`);
     }
 
-    const installation =
-      await this.installations.findNonTerminalByStoreAndApp(
-        store.id,
-        reference.appCode,
-      );
+    const installation = await this.installations.findNonTerminalByStoreAndApp(
+      store.id,
+      reference.appCode,
+    );
     if (!installation || installation.status !== "ACTIVE") {
-      throw new Error(
-        `Active App installation for "${reference.appCode}" was not found`,
-      );
+      throw new Error(`Active App installation for "${reference.appCode}" was not found`);
     }
     if (installation.organizationId !== store.organizationId) {
       throw new Error("App installation organization mismatch");
@@ -77,12 +63,9 @@ export class DatabaseAppInstallationContextProvider
 
   private async createContext(
     installation: AppInstallationRecord,
-    reference: Readonly<
-      AppContextResolutionReference | ActiveAppContextResolutionReference
-    >,
+    reference: Readonly<AppContextResolutionReference | ActiveAppContextResolutionReference>,
   ): Promise<Readonly<AppExecutionContext>> {
-    const effectiveVersion =
-      installation.targetVersion ?? installation.installedVersion;
+    const effectiveVersion = installation.targetVersion ?? installation.installedVersion;
     if (effectiveVersion !== reference.appVersion) {
       throw new Error(
         `App installation version mismatch: expected "${reference.appVersion}", received "${effectiveVersion}"`,
@@ -91,20 +74,15 @@ export class DatabaseAppInstallationContextProvider
 
     let actor: AppExecutionContext["actor"] = { type: "SYSTEM" };
     let correlationId: string | undefined;
-    const operationId =
-      "operationId" in reference ? reference.operationId : undefined;
+    const operationId = "operationId" in reference ? reference.operationId : undefined;
     if (operationId) {
-      const operation = await this.installations.findOperationById(
-        operationId,
-      );
+      const operation = await this.installations.findOperationById(operationId);
       if (
         !operation ||
         operation.installationId !== installation.id ||
         (operation.status !== "PENDING" && operation.status !== "RUNNING")
       ) {
-        throw new Error(
-          `App lifecycle operation "${operationId}" is not active`,
-        );
+        throw new Error(`App lifecycle operation "${operationId}" is not active`);
       }
       const allowedStatuses = operationAllowedStatuses(operation.type);
       if (!allowedStatuses.includes(installation.status)) {
@@ -118,13 +96,10 @@ export class DatabaseAppInstallationContextProvider
       };
       correlationId = operation.correlationId ?? undefined;
     } else if (installation.status !== "ACTIVE") {
-      throw new Error(
-        `App installation "${installation.id}" is not active`,
-      );
+      throw new Error(`App installation "${installation.id}" is not active`);
     }
 
-    const grantedScopes =
-      await this.installations.listGrantedScopes(installation.id);
+    const grantedScopes = await this.installations.listGrantedScopes(installation.id);
     return Object.freeze({
       appCode: installation.appCode,
       installationId: installation.id,

@@ -33,10 +33,7 @@ import type {
 import type { FacetScopeType } from "../../repositories/facet/facetScopes.js";
 import { ListingType } from "./ListingType.js";
 
-function safeDecodeGlobalId(
-  globalId: string,
-  expectedType: GlobalIdType
-): string | null {
+function safeDecodeGlobalId(globalId: string, expectedType: GlobalIdType): string | null {
   try {
     return decodeGlobalIdByType(globalId, expectedType);
   } catch {
@@ -47,7 +44,7 @@ function safeDecodeGlobalId(
 function safeDecodeGlobalIds(
   globalIds: readonly string[],
   expectedType: GlobalIdType,
-  field: string[]
+  field: string[],
 ): { ids: string[]; userErrors: UserError[] } {
   const ids: string[] = [];
   const userErrors: UserError[] = [];
@@ -76,23 +73,43 @@ export class MutationResolver extends ListingType<Record<string, never>> {
 }
 
 export class ListingMutationResolver extends ListingType<Record<string, never>> {
-  async recommendationPlacementPolicyUpsert(args: Parameters<import("./RecommendationResolvers.js").RecommendationMutationResolver["policyUpsert"]>[0]) {
+  async recommendationPlacementPolicyUpsert(
+    args: Parameters<
+      import("./RecommendationResolvers.js").RecommendationMutationResolver["policyUpsert"]
+    >[0],
+  ) {
     return (await this.resolvers.recommendationMutation()).policyUpsert(args);
   }
 
-  async recommendationPlacementPolicySetEnabled(args: Parameters<import("./RecommendationResolvers.js").RecommendationMutationResolver["policySetEnabled"]>[0]) {
+  async recommendationPlacementPolicySetEnabled(
+    args: Parameters<
+      import("./RecommendationResolvers.js").RecommendationMutationResolver["policySetEnabled"]
+    >[0],
+  ) {
     return (await this.resolvers.recommendationMutation()).policySetEnabled(args);
   }
 
-  async manualProductRecommendationCreate(args: Parameters<import("./RecommendationResolvers.js").RecommendationMutationResolver["manualCreate"]>[0]) {
+  async manualProductRecommendationCreate(
+    args: Parameters<
+      import("./RecommendationResolvers.js").RecommendationMutationResolver["manualCreate"]
+    >[0],
+  ) {
     return (await this.resolvers.recommendationMutation()).manualCreate(args);
   }
 
-  async manualProductRecommendationUpdate(args: Parameters<import("./RecommendationResolvers.js").RecommendationMutationResolver["manualUpdate"]>[0]) {
+  async manualProductRecommendationUpdate(
+    args: Parameters<
+      import("./RecommendationResolvers.js").RecommendationMutationResolver["manualUpdate"]
+    >[0],
+  ) {
     return (await this.resolvers.recommendationMutation()).manualUpdate(args);
   }
 
-  async manualProductRecommendationDelete(args: Parameters<import("./RecommendationResolvers.js").RecommendationMutationResolver["manualDelete"]>[0]) {
+  async manualProductRecommendationDelete(
+    args: Parameters<
+      import("./RecommendationResolvers.js").RecommendationMutationResolver["manualDelete"]
+    >[0],
+  ) {
     return (await this.resolvers.recommendationMutation()).manualDelete(args);
   }
   async search() {
@@ -114,7 +131,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     workflowName: string,
     params: TParams,
     operation: string,
-    resourceId: string
+    resourceId: string,
   ): Promise<TResult> {
     const paramsHash = hashContent({
       v: 1,
@@ -169,26 +186,28 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       scopes?: FacetScopeType[] | null;
     };
   }) {
-    const result = await this.runFacetMutationWorkflow<
-      FacetResult,
-      FacetCreateParams
-    >("facetCreate", {
-      facetType: args.input.facetType,
-      slug: args.input.slug,
-      label: args.input.label,
-      uiType: args.input.uiType?.toLowerCase(),
-      selectionMode: args.input.selectionMode?.toLowerCase(),
-      sources: args.input.sources?.map((source) => ({
-        handle: source.handle,
-        name: source.name,
-      })),
-      valueCandidates: args.input.valueCandidates?.map((candidate) => ({
-        handle: candidate.handle,
-        label: candidate.label,
-        sourceHandle: candidate.sourceHandle,
-      })),
-      scopes: args.input.scopes ?? undefined,
-    }, "facetCreate", args.input.slug);
+    const result = await this.runFacetMutationWorkflow<FacetResult, FacetCreateParams>(
+      "facetCreate",
+      {
+        facetType: args.input.facetType,
+        slug: args.input.slug,
+        label: args.input.label,
+        uiType: args.input.uiType?.toLowerCase(),
+        selectionMode: args.input.selectionMode?.toLowerCase(),
+        sources: args.input.sources?.map((source) => ({
+          handle: source.handle,
+          name: source.name,
+        })),
+        valueCandidates: args.input.valueCandidates?.map((candidate) => ({
+          handle: candidate.handle,
+          label: candidate.label,
+          sourceHandle: candidate.sourceHandle,
+        })),
+        scopes: args.input.scopes ?? undefined,
+      },
+      "facetCreate",
+      args.input.slug,
+    );
 
     return {
       facet: result.facet ? await this.resolvers.facet(result.facet.id) : null,
@@ -262,9 +281,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     >(FacetScopesUpdateScript, { updates: decodedUpdates });
 
     return {
-      facets: await Promise.all(
-        result.facets.map((facet) => this.resolvers.facet(facet.id))
-      ),
+      facets: await Promise.all(result.facets.map((facet) => this.resolvers.facet(facet.id))),
       userErrors: result.userErrors,
     };
   }
@@ -277,10 +294,12 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
         userErrors: [{ message: "Invalid facet ID", field: ["input", "id"], code: "INVALID_ID" }],
       };
     }
-    const result = await this.runFacetMutationWorkflow<
-      FacetDeleteResult,
-      { id: string }
-    >("facetDelete", { id }, "facetDelete", id);
+    const result = await this.runFacetMutationWorkflow<FacetDeleteResult, { id: string }>(
+      "facetDelete",
+      { id },
+      "facetDelete",
+      id,
+    );
     return {
       deletedFacetId: result.deletedFacetId ? args.input.id : null,
       userErrors: result.userErrors,
@@ -308,7 +327,13 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     if (args.input.afterFacetId && !afterFacetId) {
       return {
         facet: null,
-        userErrors: [{ message: "Invalid after facet ID", field: ["input", "afterFacetId"], code: "INVALID_ID" }],
+        userErrors: [
+          {
+            message: "Invalid after facet ID",
+            field: ["input", "afterFacetId"],
+            code: "INVALID_ID",
+          },
+        ],
       };
     }
 
@@ -318,7 +343,13 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     if (args.input.beforeFacetId && !beforeFacetId) {
       return {
         facet: null,
-        userErrors: [{ message: "Invalid before facet ID", field: ["input", "beforeFacetId"], code: "INVALID_ID" }],
+        userErrors: [
+          {
+            message: "Invalid before facet ID",
+            field: ["input", "beforeFacetId"],
+            code: "INVALID_ID",
+          },
+        ],
       };
     }
 
@@ -338,9 +369,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     const result = await this.$ctx.kernel.runScript(FacetRebalanceScript, {});
 
     return {
-      facets: await Promise.all(
-        result.facets.map((facet) => this.resolvers.facet(facet.id))
-      ),
+      facets: await Promise.all(result.facets.map((facet) => this.resolvers.facet(facet.id))),
       userErrors: result.userErrors,
     };
   }
@@ -361,7 +390,9 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     if (!facetId) {
       return {
         facetValue: null,
-        userErrors: [{ message: "Invalid facet ID", field: ["input", "facetId"], code: "INVALID_ID" }],
+        userErrors: [
+          { message: "Invalid facet ID", field: ["input", "facetId"], code: "INVALID_ID" },
+        ],
       };
     }
     const swatchId = args.input.swatchId
@@ -370,37 +401,39 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     if (args.input.swatchId && !swatchId) {
       return {
         facetValue: null,
-        userErrors: [{ message: "Invalid swatch ID", field: ["input", "swatchId"], code: "INVALID_ID" }],
+        userErrors: [
+          { message: "Invalid swatch ID", field: ["input", "swatchId"], code: "INVALID_ID" },
+        ],
       };
     }
 
     const decodedSourceValues = safeDecodeGlobalIds(
       args.input.sourceValueIds ?? [],
       GlobalIdEntity.FacetValue,
-      ["input", "sourceValueIds"]
+      ["input", "sourceValueIds"],
     );
     if (decodedSourceValues.userErrors.length > 0) {
       return { facetValue: null, userErrors: decodedSourceValues.userErrors };
     }
 
-    const result = await this.runFacetMutationWorkflow<
-      FacetValueResult,
-      FacetValueCreateParams
-    >("facetValueCreate", {
+    const result = await this.runFacetMutationWorkflow<FacetValueResult, FacetValueCreateParams>(
+      "facetValueCreate",
+      {
+        facetId,
+        kind: (args.input.kind ?? "GROUP").toLowerCase() as "source" | "group",
+        handle: args.input.handle,
+        label: args.input.label,
+        sourceValueIds: decodedSourceValues.ids,
+        swatchId,
+        sortIndex: args.input.sortIndex ?? undefined,
+        enabled: args.input.enabled ?? undefined,
+      },
+      "facetValueCreate",
       facetId,
-      kind: (args.input.kind ?? "GROUP").toLowerCase() as "source" | "group",
-      handle: args.input.handle,
-      label: args.input.label,
-      sourceValueIds: decodedSourceValues.ids,
-      swatchId,
-      sortIndex: args.input.sortIndex ?? undefined,
-      enabled: args.input.enabled ?? undefined,
-    }, "facetValueCreate", facetId);
+    );
 
     return {
-      facetValue: result.facetValue
-        ? await this.resolvers.facetValue(result.facetValue.id)
-        : null,
+      facetValue: result.facetValue ? await this.resolvers.facetValue(result.facetValue.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -419,7 +452,9 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     if (!id) {
       return {
         facetValue: null,
-        userErrors: [{ message: "Invalid facet value ID", field: ["input", "id"], code: "INVALID_ID" }],
+        userErrors: [
+          { message: "Invalid facet value ID", field: ["input", "id"], code: "INVALID_ID" },
+        ],
       };
     }
     const swatchId = args.input.swatchId
@@ -430,25 +465,27 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     if (args.input.swatchId && !swatchId) {
       return {
         facetValue: null,
-        userErrors: [{ message: "Invalid swatch ID", field: ["input", "swatchId"], code: "INVALID_ID" }],
+        userErrors: [
+          { message: "Invalid swatch ID", field: ["input", "swatchId"], code: "INVALID_ID" },
+        ],
       };
     }
-    const result = await this.runFacetMutationWorkflow<
-      FacetValueResult,
-      FacetValueUpdateParams
-    >("facetValueUpdate", {
+    const result = await this.runFacetMutationWorkflow<FacetValueResult, FacetValueUpdateParams>(
+      "facetValueUpdate",
+      {
+        id,
+        handle: args.input.handle ?? undefined,
+        label: args.input.label ?? undefined,
+        swatchId,
+        sortIndex: args.input.sortIndex ?? undefined,
+        enabled: args.input.enabled ?? undefined,
+      },
+      "facetValueUpdate",
       id,
-      handle: args.input.handle ?? undefined,
-      label: args.input.label ?? undefined,
-      swatchId,
-      sortIndex: args.input.sortIndex ?? undefined,
-      enabled: args.input.enabled ?? undefined,
-    }, "facetValueUpdate", id);
+    );
 
     return {
-      facetValue: result.facetValue
-        ? await this.resolvers.facetValue(result.facetValue.id)
-        : null,
+      facetValue: result.facetValue ? await this.resolvers.facetValue(result.facetValue.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -467,7 +504,9 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       return {
         facetValue: null,
         sourceValues: [],
-        userErrors: [{ message: "Invalid facet ID", field: ["input", "facetId"], code: "INVALID_ID" }],
+        userErrors: [
+          { message: "Invalid facet ID", field: ["input", "facetId"], code: "INVALID_ID" },
+        ],
       };
     }
 
@@ -478,14 +517,20 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       return {
         facetValue: null,
         sourceValues: [],
-        userErrors: [{ message: "Invalid target group value ID", field: ["input", "targetGroupValueId"], code: "INVALID_ID" }],
+        userErrors: [
+          {
+            message: "Invalid target group value ID",
+            field: ["input", "targetGroupValueId"],
+            code: "INVALID_ID",
+          },
+        ],
       };
     }
 
     const decodedSourceValues = safeDecodeGlobalIds(
       args.input.sourceValueIds,
       GlobalIdEntity.FacetValue,
-      ["input", "sourceValueIds"]
+      ["input", "sourceValueIds"],
     );
     if (decodedSourceValues.userErrors.length > 0) {
       return {
@@ -498,20 +543,23 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     const result = await this.runFacetMutationWorkflow<
       FacetValueMergeResult,
       FacetValueMergeParams
-    >("facetValueMerge", {
+    >(
+      "facetValueMerge",
+      {
+        facetId,
+        targetGroupValueId: targetGroupValueId ?? undefined,
+        targetHandle: args.input.targetHandle ?? undefined,
+        targetLabel: args.input.targetLabel ?? undefined,
+        sourceValueIds: decodedSourceValues.ids,
+      },
+      "facetValueMerge",
       facetId,
-      targetGroupValueId: targetGroupValueId ?? undefined,
-      targetHandle: args.input.targetHandle ?? undefined,
-      targetLabel: args.input.targetLabel ?? undefined,
-      sourceValueIds: decodedSourceValues.ids,
-    }, "facetValueMerge", facetId);
+    );
 
     return {
-      facetValue: result.facetValue
-        ? await this.resolvers.facetValue(result.facetValue.id)
-        : null,
+      facetValue: result.facetValue ? await this.resolvers.facetValue(result.facetValue.id) : null,
       sourceValues: await Promise.all(
-        result.sourceValues.map((value) => this.resolvers.facetValue(value.id))
+        result.sourceValues.map((value) => this.resolvers.facetValue(value.id)),
       ),
       userErrors: result.userErrors,
     };
@@ -525,7 +573,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     const decodedSourceValues = safeDecodeGlobalIds(
       args.input.sourceValueIds,
       GlobalIdEntity.FacetValue,
-      ["input", "sourceValueIds"]
+      ["input", "sourceValueIds"],
     );
     if (decodedSourceValues.userErrors.length > 0) {
       return {
@@ -538,18 +586,21 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     const result = await this.runFacetMutationWorkflow<
       FacetValueUnmergeResult,
       FacetValueUnmergeParams
-    >("facetValueUnmerge", {
-      sourceValueIds: decodedSourceValues.ids,
-    }, "facetValueUnmerge", decodedSourceValues.ids.join(","));
+    >(
+      "facetValueUnmerge",
+      {
+        sourceValueIds: decodedSourceValues.ids,
+      },
+      "facetValueUnmerge",
+      decodedSourceValues.ids.join(","),
+    );
 
     return {
       sourceValues: await Promise.all(
-        result.sourceValues.map((value) => this.resolvers.facetValue(value.id))
+        result.sourceValues.map((value) => this.resolvers.facetValue(value.id)),
       ),
       affectedGroupValues: await Promise.all(
-        result.affectedGroupValues.map((value) =>
-          this.resolvers.facetValue(value.id)
-        )
+        result.affectedGroupValues.map((value) => this.resolvers.facetValue(value.id)),
       ),
       userErrors: result.userErrors,
     };
@@ -560,13 +611,17 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     if (!id) {
       return {
         deletedFacetValueId: null,
-        userErrors: [{ message: "Invalid facet value ID", field: ["input", "id"], code: "INVALID_ID" }],
+        userErrors: [
+          { message: "Invalid facet value ID", field: ["input", "id"], code: "INVALID_ID" },
+        ],
       };
     }
-    const result = await this.runFacetMutationWorkflow<
-      FacetValueDeleteResult,
-      { id: string }
-    >("facetValueDelete", { id }, "facetValueDelete", id);
+    const result = await this.runFacetMutationWorkflow<FacetValueDeleteResult, { id: string }>(
+      "facetValueDelete",
+      { id },
+      "facetValueDelete",
+      id,
+    );
     return {
       deletedFacetValueId: result.deletedFacetValueId ? args.input.id : null,
       userErrors: result.userErrors,
@@ -613,7 +668,9 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     if (!id) {
       return {
         facetSwatch: null,
-        userErrors: [{ message: "Invalid facet swatch ID", field: ["input", "id"], code: "INVALID_ID" }],
+        userErrors: [
+          { message: "Invalid facet swatch ID", field: ["input", "id"], code: "INVALID_ID" },
+        ],
       };
     }
     const result = await this.$ctx.kernel.runScript(FacetSwatchUpdateScript, {
@@ -639,7 +696,9 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     if (!id) {
       return {
         deletedFacetSwatchId: null,
-        userErrors: [{ message: "Invalid facet swatch ID", field: ["input", "id"], code: "INVALID_ID" }],
+        userErrors: [
+          { message: "Invalid facet swatch ID", field: ["input", "id"], code: "INVALID_ID" },
+        ],
       };
     }
     const result = await this.$ctx.kernel.runScript(FacetSwatchDeleteScript, {

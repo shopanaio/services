@@ -29,19 +29,11 @@ export type CdnConfigurationUpdateInput = Partial<CdnConfigurationInput>;
 export class CdnConfigurationRepository {
   constructor(private readonly db: Database) {}
 
-  async findById(
-    assetGroupId: string,
-    id: string
-  ): Promise<CdnConfiguration | null> {
+  async findById(assetGroupId: string, id: string): Promise<CdnConfiguration | null> {
     const rows = await this.db
       .select()
       .from(cdnConfigurations)
-      .where(
-        and(
-          eq(cdnConfigurations.assetGroupId, assetGroupId),
-          eq(cdnConfigurations.id, id)
-        )
-      )
+      .where(and(eq(cdnConfigurations.assetGroupId, assetGroupId), eq(cdnConfigurations.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -62,17 +54,14 @@ export class CdnConfigurationRepository {
         and(
           eq(cdnConfigurations.assetGroupId, assetGroupId),
           eq(cdnConfigurations.enabled, true),
-          eq(cdnConfigurations.isDefault, true)
-        )
+          eq(cdnConfigurations.isDefault, true),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
   }
 
-  async create(
-    assetGroupId: string,
-    input: CdnConfigurationInput
-  ): Promise<CdnConfiguration> {
+  async create(assetGroupId: string, input: CdnConfigurationInput): Promise<CdnConfiguration> {
     const id = await generateUuidV7(this.db);
     return this.db.transaction(async (tx) => {
       if (input.isDefault) {
@@ -108,7 +97,7 @@ export class CdnConfigurationRepository {
   async update(
     assetGroupId: string,
     id: string,
-    input: CdnConfigurationUpdateInput
+    input: CdnConfigurationUpdateInput,
   ): Promise<CdnConfiguration | null> {
     return this.db.transaction(async (tx) => {
       if (input.isDefault) {
@@ -138,33 +127,20 @@ export class CdnConfigurationRepository {
       const rows = await tx
         .update(cdnConfigurations)
         .set(values)
-        .where(
-          and(
-            eq(cdnConfigurations.assetGroupId, assetGroupId),
-            eq(cdnConfigurations.id, id)
-          )
-        )
+        .where(and(eq(cdnConfigurations.assetGroupId, assetGroupId), eq(cdnConfigurations.id, id)))
         .returning();
       return rows[0] ?? null;
     });
   }
 
-  async setDefault(
-    assetGroupId: string,
-    id: string
-  ): Promise<CdnConfiguration | null> {
+  async setDefault(assetGroupId: string, id: string): Promise<CdnConfiguration | null> {
     return this.update(assetGroupId, id, { isDefault: true, enabled: true });
   }
 
   async delete(assetGroupId: string, id: string): Promise<boolean> {
     const rows = await this.db
       .delete(cdnConfigurations)
-      .where(
-        and(
-          eq(cdnConfigurations.assetGroupId, assetGroupId),
-          eq(cdnConfigurations.id, id)
-        )
-      )
+      .where(and(eq(cdnConfigurations.assetGroupId, assetGroupId), eq(cdnConfigurations.id, id)))
       .returning({ id: cdnConfigurations.id });
     return rows.length > 0;
   }

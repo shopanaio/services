@@ -15,17 +15,16 @@ export function rankRecommendationCandidates(input: {
   strategy: RecommendationStrategy;
   maximumResults: number;
 }): RankedRecommendationCandidate[] {
-  const enriched = input.candidates.map((candidate) => scoreCandidate(
-    candidate,
-    input.placement,
-    input.strategy,
-  ));
+  const enriched = input.candidates.map((candidate) =>
+    scoreCandidate(candidate, input.placement, input.strategy),
+  );
   const pins = enriched
     .filter((candidate) => candidate.manualAction === "PIN")
-    .sort((left, right) =>
-      (left.manualPosition ?? Number.MAX_SAFE_INTEGER) -
-        (right.manualPosition ?? Number.MAX_SAFE_INTEGER) ||
-      left.targetProductId.localeCompare(right.targetProductId),
+    .sort(
+      (left, right) =>
+        (left.manualPosition ?? Number.MAX_SAFE_INTEGER) -
+          (right.manualPosition ?? Number.MAX_SAFE_INTEGER) ||
+        left.targetProductId.localeCompare(right.targetProductId),
     );
   const rest = enriched
     .filter((candidate) => candidate.manualAction !== "PIN")
@@ -43,9 +42,7 @@ export function rankRecommendationCandidates(input: {
       return score || left.targetProductId.localeCompare(right.targetProductId);
     });
 
-  const pinByPosition = new Map(
-    pins.map((candidate) => [candidate.manualPosition!, candidate]),
-  );
+  const pinByPosition = new Map(pins.map((candidate) => [candidate.manualPosition!, candidate]));
   const output: RankedRecommendationCandidate[] = [];
   let next = 0;
   for (let position = 1; position <= input.maximumResults; position += 1) {
@@ -65,9 +62,10 @@ function scoreCandidate(
   const fbtNormalized = divide(fbt, SCALE + fbt);
   const popularity = decimal(candidate.popularityScore ?? "0");
   const manualBoost = divide(decimal(candidate.manualBoost ?? "0"), decimal("1000"));
-  const automated = placement === "FREQUENTLY_BOUGHT_TOGETHER"
-    ? add(multiply(fbtNormalized, decimal("0.90")), multiply(popularity, decimal("0.10")))
-    : add(multiply(fbtNormalized, decimal("0.70")), multiply(popularity, decimal("0.30")));
+  const automated =
+    placement === "FREQUENTLY_BOUGHT_TOGETHER"
+      ? add(multiply(fbtNormalized, decimal("0.90")), multiply(popularity, decimal("0.10")))
+      : add(multiply(fbtNormalized, decimal("0.70")), multiply(popularity, decimal("0.30")));
   let score: bigint;
   if (candidate.manualAction === "PIN") score = 0n;
   else if (strategy === "CURATED_ONLY") score = manualBoost;

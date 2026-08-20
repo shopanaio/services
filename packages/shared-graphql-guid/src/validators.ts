@@ -1,10 +1,5 @@
 import { Transform } from "class-transformer";
-import {
-  registerDecorator,
-  ValidationOptions,
-  ValidationArguments,
-  isUUID,
-} from "class-validator";
+import { registerDecorator, ValidationOptions, ValidationArguments, isUUID } from "class-validator";
 import { GlobalIdEntity } from "./core.js";
 import { decodeGlobalIdByType } from "./idCodec.js";
 
@@ -64,10 +59,7 @@ export function IsGlobalId({
           }
 
           try {
-            const { [args.property]: value } = args.object as Record<
-              string,
-              unknown
-            >;
+            const { [args.property]: value } = args.object as Record<string, unknown>;
 
             return isUUID(value, 7);
           } catch {
@@ -141,10 +133,7 @@ export function IsGlobalIdArray({
       },
       validator: {
         validate(_: unknown, args: ValidationArguments) {
-          const { [args.property]: originalArray } = args.object as Record<
-            string,
-            unknown[]
-          >;
+          const { [args.property]: originalArray } = args.object as Record<string, unknown[]>;
 
           if (!Array.isArray(originalArray)) {
             return false;

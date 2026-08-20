@@ -89,9 +89,7 @@ export function prepareVariants(
   }));
 }
 
-export function prepareProductPayload(
-  input: CreateProductInput,
-): ApiProductCreateInput {
+export function prepareProductPayload(input: CreateProductInput): ApiProductCreateInput {
   return {
     title: input.title,
     handle: input.handle,

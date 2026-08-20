@@ -1,12 +1,16 @@
-import { LuCopy as CopyOutlined, LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuEllipsis as MoreOutlined } from "react-icons/lu";
+import {
+  LuCopy as CopyOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuPencil as EditOutlined,
+  LuEllipsis as MoreOutlined,
+} from "react-icons/lu";
 import { Button, Dropdown } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import type { MenuProps } from "antd";
 import type { FacetGridRow } from "../mappers";
 import { useFacetCellStyles } from "./facet-cell-styles";
 
-export interface FacetTreeActionsCellParams
-  extends ICellRendererParams<FacetGridRow> {
+export interface FacetTreeActionsCellParams extends ICellRendererParams<FacetGridRow> {
   hasUnsavedChanges?: boolean;
   onEdit: (row: FacetGridRow) => void;
   onDuplicate: (row: FacetGridRow) => void;
@@ -38,15 +42,13 @@ export function FacetTreeActionsCell(params: FacetTreeActionsCellParams) {
     icon: <CopyOutlined />,
   });
 
-  items.push(
-    {
-      key: "delete",
-      label: deleteDisabled ? "Save or discard changes first" : "Delete",
-      icon: <DeleteOutlined />,
-      danger: true,
-      disabled: deleteDisabled,
-    },
-  );
+  items.push({
+    key: "delete",
+    label: deleteDisabled ? "Save or discard changes first" : "Delete",
+    icon: <DeleteOutlined />,
+    danger: true,
+    disabled: deleteDisabled,
+  });
 
   return (
     <div className={styles.actionsCell} data-stop-row-click>

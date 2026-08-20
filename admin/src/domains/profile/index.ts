@@ -6,11 +6,7 @@
 // ============================================
 // Hooks
 // ============================================
-export {
-  useUpdateProfile,
-  useUpdateEmail,
-  useUpdatePassword,
-} from "./hooks";
+export { useUpdateProfile, useUpdateEmail, useUpdatePassword } from "./hooks";
 
 // ============================================
 // Modal Hooks
@@ -28,7 +24,6 @@ export {
   EDIT_AVATAR_MODAL_TYPE,
   DELETE_ACCOUNT_MODAL_TYPE,
 } from "./modals";
-
 
 // ============================================
 // GraphQL Operations

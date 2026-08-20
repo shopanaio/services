@@ -1,8 +1,4 @@
-export {
-  FILE_FRAGMENT,
-  RICH_TEXT_FRAGMENT,
-  USER_ERROR_FRAGMENT,
-} from "./shared-fragments";
+export { FILE_FRAGMENT, RICH_TEXT_FRAGMENT, USER_ERROR_FRAGMENT } from "./shared-fragments";
 
 export {
   INVENTORY_ITEM_FRAGMENT,

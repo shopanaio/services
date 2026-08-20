@@ -2,10 +2,9 @@
 
 ## 1. Цель
 
-Перенести страницу списка заказов и весь рабочий UI заказа из
-`admin-old/admin/src/modules/orders` в Next-приложение `admin`, сохранив
-поведение старого интерфейса и адаптировав реализацию к текущей архитектуре
-Admin.
+Перенести страницу списка заказов и весь рабочий UI заказа из `admin-old/admin/src/modules/orders` в
+Next-приложение `admin`, сохранив поведение старого интерфейса и адаптировав реализацию к текущей
+архитектуре Admin.
 
 Результат переноса должен включать:
 
@@ -24,17 +23,15 @@ Admin.
 - `knowledge/vault/patterns/admin-graphql-layer.md`;
 - существующими модулями `admin/src/domains/customers/all-customers` и
   `admin/src/domains/customer-content/reviews`;
-- текущими `DataLayout`, `FilterWidget`, `usePageConfig`, `CursorPagination` и
-  modal stack;
+- текущими `DataLayout`, `FilterWidget`, `usePageConfig`, `CursorPagination` и modal stack;
 - существующей регистрацией Sales domain в `admin/src/domains/sales`.
 
 ## 2. Ключевое архитектурное решение
 
 ### 2.1. Сохранение старой order view
 
-Старые компоненты работают не с сырым ответом GraphQL, а с собственной
-агрегированной моделью `IOrder`, создаваемой классом `Order.create`. В ней уже
-собраны:
+Старые компоненты работают не с сырым ответом GraphQL, а с собственной агрегированной моделью
+`IOrder`, создаваемой классом `Order.create`. В ней уже собраны:
 
 - `customerDetails`;
 - `paymentSummary`;
@@ -45,36 +42,32 @@ Admin.
 - `customerStatistic`;
 - `events`, `tags`, адреса и методы оплаты/доставки.
 
-На этом этапе семантическую форму этой view нужно сохранить. Перенос не должен
-одновременно перерабатывать UI под текущий backend orders API: это отдельная
-последующая задача.
+На этом этапе семантическую форму этой view нужно сохранить. Перенос не должен одновременно
+перерабатывать UI под текущий backend orders API: это отдельная последующая задача.
 
-При этом новую реализацию не следует снова строить на entity-классах и runtime
-маппинге ответа API в UI-view. Временная сохранённая view оформляется как сам
-контракт будущего GraphQL UI API:
+При этом новую реализацию не следует снова строить на entity-классах и runtime маппинге ответа API в
+UI-view. Временная сохранённая view оформляется как сам контракт будущего GraphQL UI API:
 
 - `ApiOrder` повторяет нужную UI структуру старого `IOrder`;
 - list/detail hooks возвращают `ApiOrder` напрямую;
 - mocks сразу создаются в форме `ApiOrder`;
-- компоненты не вызывают `Order.create` и не получают отдельный output view
-  model;
-- mappers используются только для преобразования form state в mutation input и
-  `userErrors` в ошибки формы.
+- компоненты не вызывают `Order.create` и не получают отдельный output view model;
+- mappers используются только для преобразования form state в mutation input и `userErrors` в ошибки
+  формы.
 
 Иными словами, сохраняется структура старой view, но удаляется старый механизм
 `GraphQL response -> entity class -> UI view`.
 
 ### 2.2. Допустимая техническая нормализация
 
-GraphQL `DateTime` в UI-контракте хранится как ISO string, а не `Date`. Это не
-меняет смысл старой view и соответствует правилам нового Admin. Преобразование в
-`Date` выполняется только на границе отображения через formatter.
+GraphQL `DateTime` в UI-контракте хранится как ISO string, а не `Date`. Это не меняет смысл старой
+view и соответствует правилам нового Admin. Преобразование в `Date` выполняется только на границе
+отображения через formatter.
 
-Денежные поля на первом этапе сохраняют старую семантику и единицу измерения.
-Нельзя молча менять major/minor units во время визуального переноса. В контракте
-и mock-данных нужно явно документировать единицу, а форматирование вынести в
-один helper. Переход на Money object или minor units выполняется вместе с
-реальным API отдельным изменением.
+Денежные поля на первом этапе сохраняют старую семантику и единицу измерения. Нельзя молча менять
+major/minor units во время визуального переноса. В контракте и mock-данных нужно явно
+документировать единицу, а форматирование вынести в один helper. Переход на Money object или minor
+units выполняется вместе с реальным API отдельным изменением.
 
 ### 2.3. Граница транспорта
 
@@ -87,9 +80,8 @@ page/modal
       -> временный in-memory mock repository
 ```
 
-При подключении GraphQL заменяется реализация request-функций или hooks, но не
-props компонентов, формы, таблица и modal payloads. Hooks не импортируют seed
-data напрямую.
+При подключении GraphQL заменяется реализация request-функций или hooks, но не props компонентов,
+формы, таблица и modal payloads. Hooks не импортируют seed data напрямую.
 
 ## 3. Текущий baseline
 
@@ -107,8 +99,7 @@ data напрямую.
 /:orgName/:storeName/orders
 ```
 
-Но item `all-orders-list` в `admin/src/domains/sales/register.tsx` имеет
-`disabled: true`.
+Но item `all-orders-list` в `admin/src/domains/sales/register.tsx` имеет `disabled: true`.
 
 ### 3.2. Старый Orders UI
 
@@ -121,40 +112,39 @@ data напрямую.
 - `admin-old/admin/src/modules/orders/graphql/findOne.ts` — details query;
 - `admin-old/admin/src/entity/Order/*` — старая UI-view и её сборка.
 
-В старом router и `DrawerModuleMap` Orders уже закомментирован. Источником
-поведения остаётся код модуля, а не его текущая доступность через старый route.
+В старом router и `DrawerModuleMap` Orders уже закомментирован. Источником поведения остаётся код
+модуля, а не его текущая доступность через старый route.
 
 ### 3.3. Реестр переносимого UI
 
-| Старый компонент | Назначение | Целевое место |
-| --- | --- | --- |
-| `Orders.tsx` | список, сортировка, фильтры, create/open | `page/page.tsx` |
-| `Edit.tsx` | основная карточка заказа | `modals/order-modal/` |
-| `DraftFulfillment.tsx` | позиции draft-заказа | `components/fulfillment/` |
-| `ActiveFulfillment.tsx` | active fulfillment | `components/fulfillment/` |
-| `FulfillmentMenu.tsx` | действия fulfillment | `components/fulfillment/` |
-| `TrackingInfo.tsx` | tracking display | `components/shipping/` |
-| `ActivePaymentSummary.tsx` | состояние оплаты | `components/payment/` |
-| `DraftPaymentSummary.tsx` | расчёт draft оплаты | `components/payment/` |
-| `PaymentActions.tsx` | действия оплаты | `components/payment/` |
-| `PaymentSummaryData.tsx` | суммы заказа | `components/payment/` |
-| `OrderStatusAndInfo.tsx` | статус и метаданные | `components/status/` |
-| `Customer.tsx` | связь с клиентом | `components/customer/` |
-| `ContactInfo.tsx` | snapshot контактов | `components/customer/` |
-| `ShippingDetails.tsx` | адрес и метод доставки | `components/details/` |
-| `PaymentDetails.tsx` | billing address и payment method | `components/details/` |
-| `Tags.tsx` | теги | `components/moderation/` |
-| `EditableNote.tsx` | admin note | `components/moderation/` |
-| `TimeLine.tsx` | события и комментарии | `components/activity/` |
-| `QntPopover.tsx` | изменение количества | `components/items/` |
-| `WeightPopover.tsx` | изменение веса | `components/items/` |
-| `CostPricePopover.tsx` | изменение себестоимости | `components/items/` |
-| `StatusSummary.tsx` | агрегированное состояние | `components/status/` |
-| `Price.tsx` | вывод денег | `components/money/` или local utility |
+| Старый компонент           | Назначение                               | Целевое место                         |
+| -------------------------- | ---------------------------------------- | ------------------------------------- |
+| `Orders.tsx`               | список, сортировка, фильтры, create/open | `page/page.tsx`                       |
+| `Edit.tsx`                 | основная карточка заказа                 | `modals/order-modal/`                 |
+| `DraftFulfillment.tsx`     | позиции draft-заказа                     | `components/fulfillment/`             |
+| `ActiveFulfillment.tsx`    | active fulfillment                       | `components/fulfillment/`             |
+| `FulfillmentMenu.tsx`      | действия fulfillment                     | `components/fulfillment/`             |
+| `TrackingInfo.tsx`         | tracking display                         | `components/shipping/`                |
+| `ActivePaymentSummary.tsx` | состояние оплаты                         | `components/payment/`                 |
+| `DraftPaymentSummary.tsx`  | расчёт draft оплаты                      | `components/payment/`                 |
+| `PaymentActions.tsx`       | действия оплаты                          | `components/payment/`                 |
+| `PaymentSummaryData.tsx`   | суммы заказа                             | `components/payment/`                 |
+| `OrderStatusAndInfo.tsx`   | статус и метаданные                      | `components/status/`                  |
+| `Customer.tsx`             | связь с клиентом                         | `components/customer/`                |
+| `ContactInfo.tsx`          | snapshot контактов                       | `components/customer/`                |
+| `ShippingDetails.tsx`      | адрес и метод доставки                   | `components/details/`                 |
+| `PaymentDetails.tsx`       | billing address и payment method         | `components/details/`                 |
+| `Tags.tsx`                 | теги                                     | `components/moderation/`              |
+| `EditableNote.tsx`         | admin note                               | `components/moderation/`              |
+| `TimeLine.tsx`             | события и комментарии                    | `components/activity/`                |
+| `QntPopover.tsx`           | изменение количества                     | `components/items/`                   |
+| `WeightPopover.tsx`        | изменение веса                           | `components/items/`                   |
+| `CostPricePopover.tsx`     | изменение себестоимости                  | `components/items/`                   |
+| `StatusSummary.tsx`        | агрегированное состояние                 | `components/status/`                  |
+| `Price.tsx`                | вывод денег                              | `components/money/` или local utility |
 
-`OrderDetails/Old.tsx` не переносится. Это альтернативная старая реализация
-деталей, не используемая текущим `Edit.tsx`. Перенос двух редакторов создаст
-расходящиеся сценарии и лишнюю поддержку.
+`OrderDetails/Old.tsx` не переносится. Это альтернативная старая реализация деталей, не используемая
+текущим `Edit.tsx`. Перенос двух редакторов создаст расходящиеся сценарии и лишнюю поддержку.
 
 ## 4. Целевая структура domain-модуля
 
@@ -234,11 +224,10 @@ admin/src/domains/sales/all-orders/
 
 Правила структуры:
 
-- GraphQL documents и operation types принадлежат модулю, а не общему
-  `sales/graphql`;
+- GraphQL documents и operation types принадлежат модулю, а не общему `sales/graphql`;
 - hooks инкапсулируют loading/error/result и не отдают сырой вложенный payload;
-- `api/` является временной реализацией транспорта, но использует те же
-  operation types, что и будущий GraphQL;
+- `api/` является временной реализацией транспорта, но использует те же operation types, что и
+  будущий GraphQL;
 - `mappers/` не преобразует query output;
 - визуальные компоненты не импортируют `api/` и seed data;
 - компоненты, нужные только одной модалке, остаются внутри её каталога;
@@ -248,9 +237,8 @@ admin/src/domains/sales/all-orders/
 
 ### 5.1. Основные output types
 
-До появления generated schema types временные типы объявляются в
-`graphql/operation-types.ts`. Имена должны совпадать с ожидаемыми GraphQL
-сущностями, чтобы последующая замена была механической.
+До появления generated schema types временные типы объявляются в `graphql/operation-types.ts`. Имена
+должны совпадать с ожидаемыми GraphQL сущностями, чтобы последующая замена была механической.
 
 Минимальный контракт:
 
@@ -304,8 +292,8 @@ export interface ApiOrderItem {
 }
 ```
 
-`ApiOrderFulfillment.orderItems` также остаётся агрегированной UI-view. Это
-осознанный временный контракт для сохранения старого UI.
+`ApiOrderFulfillment.orderItems` также остаётся агрегированной UI-view. Это осознанный временный
+контракт для сохранения старого UI.
 
 ### 5.2. Relay connection
 
@@ -337,8 +325,8 @@ export interface OrdersQueryVariables {
 }
 ```
 
-Не добавлять page-number pagination. Mock должен реально интерпретировать
-cursor arguments, включая backward pagination через `last`/`before`.
+Не добавлять page-number pagination. Mock должен реально интерпретировать cursor arguments, включая
+backward pagination через `last`/`before`.
 
 ### 5.3. Enums
 
@@ -346,12 +334,11 @@ cursor arguments, включая backward pagination через `last`/`before`.
 
 - order: `DRAFT`, `ACTIVE`, `COMPLETED`, `CANCELLED`, `ARCHIVED`;
 - payment: `PENDING`, `PAID`, `CANCELLED`;
-- fulfillment: `PENDING`, `PROCESSING`, `ON_HOLD`, `SHIPPED`, `DELIVERED`,
-  `RETURNED`, `CANCELLED`, `FULFILLED`.
+- fulfillment: `PENDING`, `PROCESSING`, `ON_HOLD`, `SHIPPED`, `DELIVERED`, `RETURNED`, `CANCELLED`,
+  `FULFILLED`.
 
-Enums не должны содержать React nodes. Labels, colors и danger-state находятся
-в `components/status/status-config.tsx` или `page/page-config.ts`, но не в API
-типах.
+Enums не должны содержать React nodes. Labels, colors и danger-state находятся в
+`components/status/status-config.tsx` или `page/page-config.ts`, но не в API типах.
 
 ### 5.4. Query documents
 
@@ -360,11 +347,10 @@ Enums не должны содержать React nodes. Labels, colors и danger
 - `ORDERS_QUERY`;
 - `ORDER_QUERY`;
 - focused fragments `OrderListFields` и `OrderDetailsFields`;
-- общий `PageInfoFields` и `UserErrorFields`, если нет подходящего shared
-  fragment.
+- общий `PageInfoFields` и `UserErrorFields`, если нет подходящего shared fragment.
 
-`OrderListFields` включает только поля таблицы. `OrderDetailsFields` включает
-полную сохранённую view, необходимую основной модалке.
+`OrderListFields` включает только поля таблицы. `OrderDetailsFields` включает полную сохранённую
+view, необходимую основной модалке.
 
 ### 5.5. Mutation contracts
 
@@ -403,16 +389,15 @@ export interface OrderUserError {
 - `OrderShippingItemCreateInput`;
 - `OrderShippingItemUpdateInput`.
 
-Каждый update input содержит `id` и `expectedVersion`. Для вложенной сущности
-дополнительно передаётся её id, но проверяется версия родительского заказа.
+Каждый update input содержит `id` и `expectedVersion`. Для вложенной сущности дополнительно
+передаётся её id, но проверяется версия родительского заказа.
 
 ## 6. Mock transport
 
 ### 6.1. Repository behavior
 
-`order-mock-repository.ts` хранит нормальный изменяемый массив `ApiOrder[]` и
-предоставляет request-функции. Он должен имитировать backend, а не просто
-возвращать fixtures.
+`order-mock-repository.ts` хранит нормальный изменяемый массив `ApiOrder[]` и предоставляет
+request-функции. Он должен имитировать backend, а не просто возвращать fixtures.
 
 Обязательное поведение:
 
@@ -453,20 +438,20 @@ Seed должен покрывать не менее 30 заказов, чтоб
 `request-orders.ts` экспортирует функции, повторяющие будущие GraphQL use cases:
 
 ```ts
-requestOrders(variables)
-requestOrder(id)
-requestCreateOrder(input)
-requestUpdateOrder(input)
-requestDeleteOrder(input)
-requestCancelOrder(input)
-requestUpdateOrderStatus(input)
-requestUpdatePaymentStatus(input)
-requestUpdateFulfillmentStatus(input)
+requestOrders(variables);
+requestOrder(id);
+requestCreateOrder(input);
+requestUpdateOrder(input);
+requestDeleteOrder(input);
+requestCancelOrder(input);
+requestUpdateOrderStatus(input);
+requestUpdatePaymentStatus(input);
+requestUpdateFulfillmentStatus(input);
 // ...остальные действия
 ```
 
-Hooks зависят только от этих функций и operation types. Seed/repository не
-импортируются за пределами `api/`.
+Hooks зависят только от этих функций и operation types. Seed/repository не импортируются за
+пределами `api/`.
 
 ### 6.4. Замена mocks на GraphQL
 
@@ -477,12 +462,10 @@ Hooks зависят только от этих функций и operation type
 3. заменить request-вызовы на Apollo в hooks;
 4. сохранить return contracts hooks;
 5. убрать `order-mock-repository.ts` и seed;
-6. не менять props таблицы и модалок, если реальный API выполняет сохранённый
-   контракт.
+6. не менять props таблицы и модалок, если реальный API выполняет сохранённый контракт.
 
-Если реальный API не вернёт сохранённую агрегированную view, это будет отдельная
-осознанная миграция контракта. Нельзя скрывать расхождения новым output mapper в
-этом модуле.
+Если реальный API не вернёт сохранённую агрегированную view, это будет отдельная осознанная миграция
+контракта. Нельзя скрывать расхождения новым output mapper в этом модуле.
 
 ## 7. Страница списка заказов
 
@@ -499,34 +482,34 @@ Hooks зависят только от этих функций и operation type
 - `useOrders`;
 - `useOrderModal`.
 
-После завершения страницы `disabled: true` удаляется только у
-`all-orders-list`. Остальные Sales placeholders этим переносом не активируются.
+После завершения страницы `disabled: true` удаляется только у `all-orders-list`. Остальные Sales
+placeholders этим переносом не активируются.
 
 ### 7.2. Операционные колонки
 
-В таблице показываются только данные, необходимые оператору для быстрого
-решения. Рекомендуемый default набор:
+В таблице показываются только данные, необходимые оператору для быстрого решения. Рекомендуемый
+default набор:
 
-| Колонка | Поле/источник | Sort |
-| --- | --- | --- |
-| Order | `orderNumber`, `createdAt` | `ORDER_NUMBER`, `CREATED_AT` |
-| Customer | `customerDetails` | `CUSTOMER_NAME` или отключён до API support |
-| Items | первые product thumbnails + count | без сортировки |
-| Total | `paymentSummary.totalAmount`, `currencyCode` | `TOTAL_AMOUNT` |
-| Order status | `status` | `STATUS` |
-| Payment | `paymentItem.status` или `PENDING` | `PAYMENT_STATUS` |
-| Fulfillment | агрегат `fulfillments[].status` | `FULFILLMENT_STATUS` |
-| Delivery | shipping method/tracking indicator | без сортировки |
-| Updated | `updatedAt` | `UPDATED_AT` |
+| Колонка      | Поле/источник                                | Sort                                        |
+| ------------ | -------------------------------------------- | ------------------------------------------- |
+| Order        | `orderNumber`, `createdAt`                   | `ORDER_NUMBER`, `CREATED_AT`                |
+| Customer     | `customerDetails`                            | `CUSTOMER_NAME` или отключён до API support |
+| Items        | первые product thumbnails + count            | без сортировки                              |
+| Total        | `paymentSummary.totalAmount`, `currencyCode` | `TOTAL_AMOUNT`                              |
+| Order status | `status`                                     | `STATUS`                                    |
+| Payment      | `paymentItem.status` или `PENDING`           | `PAYMENT_STATUS`                            |
+| Fulfillment  | агрегат `fulfillments[].status`              | `FULFILLMENT_STATUS`                        |
+| Delivery     | shipping method/tracking indicator           | без сортировки                              |
+| Updated      | `updatedAt`                                  | `UPDATED_AT`                                |
 
-Подробные адреса, billing method, tags, все customer fields и полная товарная
-информация не включаются в default grid. Они доступны в order modal. Это
-уменьшает горизонтальную перегрузку старой таблицы.
+Подробные адреса, billing method, tags, все customer fields и полная товарная информация не
+включаются в default grid. Они доступны в order modal. Это уменьшает горизонтальную перегрузку
+старой таблицы.
 
 Default sort: `UPDATED_AT DESC`, затем `ORDER_NUMBER DESC` для стабильности.
 
-`defaultColDef.comparator` возвращает `0`, потому что сортировка серверная.
-`onSortChanged` передаётся из `usePageConfig`.
+`defaultColDef.comparator` возвращает `0`, потому что сортировка серверная. `onSortChanged`
+передаётся из `usePageConfig`.
 
 ### 7.3. Поиск
 
@@ -538,8 +521,8 @@ Default sort: `UPDATED_AT DESC`, затем `ORDER_NUMBER DESC` для стаб�
 - customer first/last/full name;
 - tracking code.
 
-Mock repository обязан обработать этот shape. Поиск сбрасывает cursor на первую
-страницу через `usePageConfig`.
+Mock repository обязан обработать этот shape. Поиск сбрасывает cursor на первую страницу через
+`usePageConfig`.
 
 ### 7.4. Required filters
 
@@ -562,12 +545,11 @@ Mock repository обязан обработать этот shape. Поиск с�
 - tags;
 - tracking presence или tracking code.
 
-Под `required filters` понимается обязательная доступность этих фильтров в
-schema страницы, а не требование выбрать значение перед первым запросом.
+Под `required filters` понимается обязательная доступность этих фильтров в schema страницы, а не
+требование выбрать значение перед первым запросом.
 
-Для price/date filters использовать существующие transformers из
-`@/hooks` и `@/layouts/filters`. В page config не писать ручной повтор
-универсальной логики.
+Для price/date filters использовать существующие transformers из `@/hooks` и `@/layouts/filters`. В
+page config не писать ручной повтор универсальной логики.
 
 ### 7.5. Relay pagination
 
@@ -578,15 +560,15 @@ schema страницы, а не требование выбрать значе�
 - `where`;
 - mapped `orderBy`.
 
-`CursorPagination` получает реальные `pageInfo.startCursor`,
-`pageInfo.endCursor`, `hasNextPage`, `hasPreviousPage` и `totalCount`.
+`CursorPagination` получает реальные `pageInfo.startCursor`, `pageInfo.endCursor`, `hasNextPage`,
+`hasPreviousPage` и `totalCount`.
 
 ### 7.6. Page interactions
 
 - `Create order` открывает `{ mode: "create", onSaved: refetch }`;
 - row click открывает `{ mode: "edit", entityId, onSaved: refetch }`;
-- row action `Delete` использует общее подтверждение, передаёт `id` и
-  `expectedVersion`, а после успеха вызывает `refetch`;
+- row action `Delete` использует общее подтверждение, передаёт `id` и `expectedVersion`, а после
+  успеха вызывает `refetch`;
 - после сохранения модалка вызывает `onSaved`, затем закрывается;
 - при изменении фильтров/поиска/сортировки selection и cursor сбрасываются;
 - loading не очищает уже отображённые rows без необходимости;
@@ -650,26 +632,24 @@ export interface OrderModalPayload extends IModalStackPayload {
    - tags/flags;
    - status controls и причины изменения в timeline.
 
-Старая order view не содержит отдельную complaint entity. Поэтому перенос не
-должен придумывать mock-only complaints. Блок получает соответствующее orders
-содержимое — admin note, flags/tags и историю операторских решений. Реальные
-complaints добавляются позже только вместе с API-контрактом.
+Старая order view не содержит отдельную complaint entity. Поэтому перенос не должен придумывать
+mock-only complaints. Блок получает соответствующее orders содержимое — admin note, flags/tags и
+историю операторских решений. Реальные complaints добавляются позже только вместе с API-контрактом.
 
 ### 8.3. Editability rules
 
 - draft order: доступны customer, items, shipping/payment details;
-- active/completed/cancelled/archived: поля, которые старый UI делал read-only,
-  остаются read-only;
+- active/completed/cancelled/archived: поля, которые старый UI делал read-only, остаются read-only;
 - status changes выполняются отдельными confirmation modals;
-- inline quantity/weight/cost editors могут остаться `Popover`, но mutation
-  проходит через domain hook и учитывает `expectedVersion`;
-- split/undo fulfillment и shipping actions не изменяют объект формы напрямую,
-  а выполняют mutation и refetch order.
+- inline quantity/weight/cost editors могут остаться `Popover`, но mutation проходит через domain
+  hook и учитывает `expectedVersion`;
+- split/undo fulfillment и shipping actions не изменяют объект формы напрямую, а выполняют mutation
+  и refetch order.
 
 ## 9. Все order-модалки
 
-Все полноэкранные и подтверждающие диалоги регистрируются в modal stack. Они не
-должны управляться локальными `open` booleans внутри `OrderModal`.
+Все полноэкранные и подтверждающие диалоги регистрируются в modal stack. Они не должны управляться
+локальными `open` booleans внутри `OrderModal`.
 
 ### 9.1. `order-status-modal`
 
@@ -686,29 +666,26 @@ Payload:
 }
 ```
 
-Форма: `comment`. Zod ограничивает длину и может требовать comment для
-`CANCELLED`/`ARCHIVED`. Danger button используется для destructive transitions.
+Форма: `comment`. Zod ограничивает длину и может требовать comment для `CANCELLED`/`ARCHIVED`.
+Danger button используется для destructive transitions.
 
 ### 9.2. `payment-status-modal`
 
 Переносит `PaymentStatusModal.tsx`.
 
-Payload содержит `orderId`, `paymentItemId`, `expectedVersion`, `nextStatus` и
-`onSaved`. Форма содержит comment. Модалка показывает текущий и новый статус и
-не разрешает submit в тот же статус.
+Payload содержит `orderId`, `paymentItemId`, `expectedVersion`, `nextStatus` и `onSaved`. Форма
+содержит comment. Модалка показывает текущий и новый статус и не разрешает submit в тот же статус.
 
 ### 9.3. `fulfillment-status-modal`
 
 Переносит `FulfillmentStatusModal.tsx`.
 
-Payload содержит `orderId`, `fulfillmentId`, `expectedVersion`, `nextStatus` и
-`onSaved`. Mock repository проверяет допустимые переходы и возвращает business
-error при недопустимом переходе.
+Payload содержит `orderId`, `fulfillmentId`, `expectedVersion`, `nextStatus` и `onSaved`. Mock
+repository проверяет допустимые переходы и возвращает business error при недопустимом переходе.
 
 ### 9.4. `shipping-item-modal`
 
-Объединяет create/edit behavior старых `CreateShippingModal.tsx` и
-`ShippingModal.tsx`.
+Объединяет create/edit behavior старых `CreateShippingModal.tsx` и `ShippingModal.tsx`.
 
 Payload:
 
@@ -751,16 +728,14 @@ Payload:
 
 ### 9.7. Вложенные picker-модалки
 
-Если customer, product, shipping method или payment method выбираются через
-picker, picker открывается следующим уровнем modal stack. Order-specific modal
-получает результат через typed payload callback или существующий picker API.
-Нельзя возвращаться к старому drawer store.
+Если customer, product, shipping method или payment method выбираются через picker, picker
+открывается следующим уровнем modal stack. Order-specific modal получает результат через typed
+payload callback или существующий picker API. Нельзя возвращаться к старому drawer store.
 
 ### 9.8. Modal registration
 
-`modals.ts` объявляет typed payloads через module augmentation и экспортирует
-hooks. Компоненты лениво регистрируются в общей карте
-`admin/src/domains/modals.tsx` по текущему паттерну приложения.
+`modals.ts` объявляет typed payloads через module augmentation и экспортирует hooks. Компоненты
+лениво регистрируются в общей карте `admin/src/domains/modals.tsx` по текущему паттерну приложения.
 
 Рекомендуемые type keys:
 
@@ -776,15 +751,15 @@ hooks. Компоненты лениво регистрируются в общ�
 
 ### 10.1. Form state
 
-UI-local `OrderFormValues` допустим, потому что это editable draft state, а не
-output view model. Он выводится из Zod schema:
+UI-local `OrderFormValues` допустим, потому что это editable draft state, а не output view model. Он
+выводится из Zod schema:
 
 ```ts
 export type OrderFormValues = z.infer<typeof orderFormSchema>;
 ```
 
-Нельзя использовать `ApiOrder` как mutable form object и нельзя отправлять
-`getValues()` целиком как mutation input.
+Нельзя использовать `ApiOrder` как mutable form object и нельзя отправлять `getValues()` целиком как
+mutation input.
 
 ### 10.2. Validation
 
@@ -819,13 +794,12 @@ export type OrderFormValues = z.infer<typeof orderFormSchema>;
 - в update включают `expectedVersion: order.version`;
 - добавляют `clientMutationId` для create, если это предусмотрено контрактом.
 
-`mapOrderToFormValues` допустим: это API output -> локальное состояние формы,
-но не новый output view model для компонентов.
+`mapOrderToFormValues` допустим: это API output -> локальное состояние формы, но не новый output
+view model для компонентов.
 
 ### 10.4. API errors
 
-`order-errors.mapper.ts` содержит единую карту API field path -> React Hook Form
-field path.
+`order-errors.mapper.ts` содержит единую карту API field path -> React Hook Form field path.
 
 Примеры:
 
@@ -837,18 +811,15 @@ items.0.quantity         -> items.0.quantity
 adminNote                -> adminNote
 ```
 
-Field errors устанавливаются через `setError`. Ошибки без известного field
-показываются в global `Alert`. Transport error хранится отдельно и не
-превращается в fake validation error.
+Field errors устанавливаются через `setError`. Ошибки без известного field показываются в global
+`Alert`. Transport error хранится отдельно и не превращается в fake validation error.
 
-`VERSION_CONFLICT` не привязывается к полю. UI показывает понятное сообщение:
-заказ изменён другим оператором, предлагает обновить данные и не закрывает
-модалку автоматически.
+`VERSION_CONFLICT` не привязывается к полю. UI показывает понятное сообщение: заказ изменён другим
+оператором, предлагает обновить данные и не закрывает модалку автоматически.
 
 ## 11. Optimistic concurrency
 
-`ApiOrder.version` обязателен в list/detail contract и во всех изменяющих
-операциях.
+`ApiOrder.version` обязателен в list/detail contract и во всех изменяющих операциях.
 
 Правила:
 
@@ -857,11 +828,9 @@ Field errors устанавливаются через `setError`. Ошибки 
 - mock repository сравнивает `expectedVersion` атомарно перед mutation;
 - успешная mutation увеличивает version;
 - mutation payload возвращает обновлённый order;
-- после nested mutation родительский `OrderModal` refetch-ит order, чтобы
-  получить новую version;
+- после nested mutation родительский `OrderModal` refetch-ит order, чтобы получить новую version;
 - повторный submit со старой version возвращает `VERSION_CONFLICT`;
-- UI не делает автоматический retry mutation, который может перезаписать чужие
-  изменения.
+- UI не делает автоматический retry mutation, который может перезаписать чужие изменения.
 
 ## 12. Hooks
 
@@ -879,13 +848,13 @@ interface UseOrdersReturn {
 }
 ```
 
-Hook защищается от race conditions через request id или abort semantics, чтобы
-медленный старый запрос не перезаписал новый результат после смены filters.
+Hook защищается от race conditions через request id или abort semantics, чтобы медленный старый
+запрос не перезаписал новый результат после смены filters.
 
 ### 12.2. Detail hook
 
-`useOrder(id)` возвращает `order`, `loading`, `error`, `refetch`. Он не вызывает
-output mapper и не импортирует mocks.
+`useOrder(id)` возвращает `order`, `loading`, `error`, `refetch`. Он не вызывает output mapper и не
+импортирует mocks.
 
 ### 12.3. Mutation hooks
 
@@ -898,8 +867,8 @@ output mapper и не импортирует mocks.
 - не закрывает modal;
 - возвращает обновлённый `ApiOrder` при успехе.
 
-После успешного сохранения source of truth обновляется через `refetch` на первом
-этапе. Cache-specific оптимизация откладывается до реального Apollo transport.
+После успешного сохранения source of truth обновляется через `refetch` на первом этапе.
+Cache-specific оптимизация откладывается до реального Apollo transport.
 
 ## 13. Адаптация UI и styles
 
@@ -907,15 +876,13 @@ output mapper и не импортирует mocks.
 
 Ant Design компоненты из старого UI в основном совместимы:
 
-- `Avatar`, `Button`, `Divider`, `Dropdown`, `Input`, `Popover`, `Select`,
-  `Skeleton`, `Tag`, `Typography`;
+- `Avatar`, `Button`, `Divider`, `Dropdown`, `Input`, `Popover`, `Select`, `Skeleton`, `Tag`,
+  `Typography`;
 - `react-hook-form` и `Controller`;
-- иконки заменяются на Lucide из `react-icons/lu`, если в новом Admin уже есть
-  эквивалент.
+- иконки заменяются на Lucide из `react-icons/lu`, если в новом Admin уже есть эквивалент.
 
-Полноэкранные модалки используют новый `ModalLayout`; небольшие confirm UI
-также регистрируются в stack и не должны вкладывать собственный visible-state
-`antd Modal` поверх stack item.
+Полноэкранные модалки используют новый `ModalLayout`; небольшие confirm UI также регистрируются в
+stack и не должны вкладывать собственный visible-state `antd Modal` поверх stack item.
 
 ### 13.2. Emotion -> `antd-style`
 
@@ -933,14 +900,14 @@ import { createStyles } from "antd-style";
 
 Стили используют design tokens:
 
-| Старый token/style | Новый источник |
-| --- | --- |
-| `var(--x2)`, `var(--x4)` | `token.paddingSM`, `token.padding` |
-| `var(--color-border)` | `token.colorBorder` |
-| `var(--color-gray-4)` | `token.colorBorderSecondary` |
-| `var(--radius-base)` | `token.borderRadius` |
-| hardcoded background | `token.colorBgContainer` / `colorFillAlter` |
-| hardcoded text color | `token.colorText` / `colorTextSecondary` |
+| Старый token/style       | Новый источник                              |
+| ------------------------ | ------------------------------------------- |
+| `var(--x2)`, `var(--x4)` | `token.paddingSM`, `token.padding`          |
+| `var(--color-border)`    | `token.colorBorder`                         |
+| `var(--color-gray-4)`    | `token.colorBorderSecondary`                |
+| `var(--radius-base)`     | `token.borderRadius`                        |
+| hardcoded background     | `token.colorBgContainer` / `colorFillAlter` |
+| hardcoded text color     | `token.colorText` / `colorTextSecondary`    |
 
 Правила:
 
@@ -948,17 +915,16 @@ import { createStyles } from "antd-style";
 - не добавлять CSS modules только для orders;
 - не переносить старые custom `Box`/`Flex`, если эквивалент даёт `antd Flex`;
 - layout grids описывать через `createStyles`;
-- inline style оставлять только для динамических значений или небольших
-  AG Grid cell layouts;
+- inline style оставлять только для динамических значений или небольших AG Grid cell layouts;
 - responsive rules хранить рядом с modal/page styles;
 - использовать токены, чтобы dark theme работала автоматически.
 
 ### 13.3. Общие компоненты
 
-Перед копированием `AddressForm`, method selectors, money formatter, validation
-alert и product/customer pickers нужно проверить аналоги нового Admin. Если
-аналог уже есть, Orders использует его. Order-specific копия допускается только
-при отличающемся контракте и должна оставаться внутри domain module.
+Перед копированием `AddressForm`, method selectors, money formatter, validation alert и
+product/customer pickers нужно проверить аналоги нового Admin. Если аналог уже есть, Orders
+использует его. Order-specific копия допускается только при отличающемся контракте и должна
+оставаться внутри domain module.
 
 ## 14. Порядок реализации
 
@@ -1001,8 +967,8 @@ alert и product/customer pickers нужно проверить аналоги �
 
 - status confirmation base UI;
 - order status;
-- отдельное cancel action, если будущий контракт сохраняет старую семантику
-  `cancel`, отличную от обычного status update;
+- отдельное cancel action, если будущий контракт сохраняет старую семантику `cancel`, отличную от
+  обычного status update;
 - payment status;
 - fulfillment status;
 - shipping item create/edit;
@@ -1024,8 +990,7 @@ alert и product/customer pickers нужно проверить аналоги �
 ### Этап 7. Styles и cleanup
 
 - заменить все Emotion styles на `antd-style`;
-- убрать зависимости от старых `Box`, `Flex`, drawer store, entity classes и
-  старого i18n API;
+- убрать зависимости от старых `Box`, `Flex`, drawer store, entity classes и старого i18n API;
 - проверить light/dark theme и responsive layout;
 - убедиться, что `OrderDetails/Old.tsx` не был перенесён;
 - удалить временные compatibility imports внутри нового модуля.
@@ -1059,8 +1024,7 @@ alert и product/customer pickers нужно проверить аналоги �
 - status, payment, fulfillment и shipping flows работают через stack;
 - родительская order modal остаётся под дочерней;
 - после nested save родитель получает свежий order/version;
-- destructive actions визуально отмечены и требуют подтверждения/comment по
-  schema.
+- destructive actions визуально отмечены и требуют подтверждения/comment по schema.
 
 ### Архитектура
 
@@ -1090,39 +1054,37 @@ alert и product/customer pickers нужно проверить аналоги �
 
 ### Расхождение временного и реального API
 
-Сохранённая view богаче текущего orders API. Риск ограничивается явной границей
-контракта: UI зависит от `ApiOrder`, а mock transport изолирован. После появления
-API расхождения должны решаться в schema/operation contract или отдельной UI
-миграции, но не скрытым permanent adapter.
+Сохранённая view богаче текущего orders API. Риск ограничивается явной границей контракта: UI
+зависит от `ApiOrder`, а mock transport изолирован. После появления API расхождения должны решаться
+в schema/operation contract или отдельной UI миграции, но не скрытым permanent adapter.
 
 ### Потеря поведения при визуальном копировании
 
-Orders содержит много небольших mutations. Простое копирование `Edit.tsx` без
-инвентаризации действий потеряет split fulfillment, tracking, comment, tags,
-quantity, weight или cost price. Поэтому перенос выполняется по use-case hooks и
-реестру компонентов, а не одним большим компонентом.
+Orders содержит много небольших mutations. Простое копирование `Edit.tsx` без инвентаризации
+действий потеряет split fulfillment, tracking, comment, tags, quantity, weight или cost price.
+Поэтому перенос выполняется по use-case hooks и реестру компонентов, а не одним большим компонентом.
 
 ### Несогласованная version после вложенной mutation
 
-Любая nested mutation меняет order version. Если родитель не refetch-ит order,
-следующее сохранение даст ложный conflict. Каждый дочерний modal/action обязан
-вызывать общий `onSaved/refetch` до закрытия.
+Любая nested mutation меняет order version. Если родитель не refetch-ит order, следующее сохранение
+даст ложный conflict. Каждый дочерний modal/action обязан вызывать общий `onSaved/refetch` до
+закрытия.
 
 ### Двойное состояние формы и repository
 
-Нельзя оптимистично мутировать `ApiOrder` внутри компонентов и одновременно
-refetch-ить repository. На mock-этапе выбран простой и предсказуемый путь:
-mutation payload -> successful result -> refetch -> reset form при необходимости.
+Нельзя оптимистично мутировать `ApiOrder` внутри компонентов и одновременно refetch-ить repository.
+На mock-этапе выбран простой и предсказуемый путь: mutation payload -> successful result -> refetch
+-> reset form при необходимости.
 
 ## 18. Итоговая точка подключения реального API
 
-После реализации этого плана Orders UI будет завершён на mock transport, но его
-публичная граница уже будет GraphQL-shaped. Для подключения backend останется:
+После реализации этого плана Orders UI будет завершён на mock transport, но его публичная граница
+уже будет GraphQL-shaped. Для подключения backend останется:
 
 - синхронизировать `ApiOrder`, inputs, enums и connections с generated schema;
 - подключить Apollo внутри hooks;
 - удалить `api/order-mock-repository.ts` и seed;
 - сохранить page config, forms, mappers, modal payloads и UI components.
 
-Это отделяет большой визуальный перенос от последующей миграции данных и не
-блокирует разработку интерфейса отсутствующим или несовпадающим API.
+Это отделяет большой визуальный перенос от последующей миграции данных и не блокирует разработку
+интерфейса отсутствующим или несовпадающим API.

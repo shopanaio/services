@@ -8,11 +8,10 @@ import { ImageCrop, type ImageCropProps } from "./image-crop";
 // Types
 // ============================================================================
 
-export interface ImageCropModalProps
-  extends Omit<
-    ImageCropProps,
-    "onCancel" | "onApply" | "showActions" | "onCropChange"
-  > {
+export interface ImageCropModalProps extends Omit<
+  ImageCropProps,
+  "onCancel" | "onApply" | "showActions" | "onCropChange"
+> {
   /** Whether the modal is visible */
   open: boolean;
   /** Modal title (default: "Crop Image") */

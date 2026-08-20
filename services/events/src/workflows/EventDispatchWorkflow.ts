@@ -23,10 +23,7 @@ import { getConfig } from "@shopana/shared-service-config";
 import { Kernel } from "../kernel/Kernel.js";
 import type { DomainEventRecord } from "../repositories/models/domainEvents.js";
 import type { EventHandlerJobRecord } from "../repositories/models/eventHandlerJobs.js";
-import type {
-  EventHandlerJobDefinition,
-  EventHandlerJobKind,
-} from "../repositories/Repository.js";
+import type { EventHandlerJobDefinition, EventHandlerJobKind } from "../repositories/Repository.js";
 
 const DEFAULT_HANDLER_TIMEOUT_MS = 30_000;
 const DEFAULT_DISPATCH_LIMIT = 500;
@@ -63,11 +60,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
 
     const eventIds = records.map((record) => record.eventId);
     const lockedBy = this.getDispatchRunId();
-    const claimLimit = Math.max(
-      jobDefinitions.length,
-      records.length * 10,
-      DEFAULT_DISPATCH_LIMIT,
-    );
+    const claimLimit = Math.max(jobDefinitions.length, records.length * 10, DEFAULT_DISPATCH_LIMIT);
     let statuses = await this.repository.refreshEventDispatchStatuses(eventIds);
 
     while (statuses.dispatching > 0) {
@@ -95,9 +88,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     };
   }
 
-  private async findDispatchRecords(
-    input: EventDispatchInput,
-  ): Promise<DomainEventRecord[]> {
+  private async findDispatchRecords(input: EventDispatchInput): Promise<DomainEventRecord[]> {
     if (input.kind === "event") {
       return this.repository.findEventForDispatch({
         organizationId: input.organizationId,
@@ -128,10 +119,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
 
       const singleHandlers = await this.getAvailableHandlers(firstRecord.eventType);
       const batchHandlers = await this.getAvailableBatchHandlers(firstRecord.eventType);
-      const singleOnlyHandlers = excludeBatchHandledActions(
-        singleHandlers,
-        batchHandlers,
-      );
+      const singleOnlyHandlers = excludeBatchHandledActions(singleHandlers, batchHandlers);
 
       for (const record of eventRecords) {
         if (record.dispatchMode === "deferred") {
@@ -142,9 +130,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
           continue;
         }
 
-        definitions.push(
-          ...this.buildDefinitionsForHandlers(record, singleHandlers, "single"),
-        );
+        definitions.push(...this.buildDefinitionsForHandlers(record, singleHandlers, "single"));
       }
     }
 
@@ -178,9 +164,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
         : [];
 
     const claimed = dedupeJobs([...alreadyClaimed, ...newlyClaimed]);
-    const exhaustedJobs = claimed.filter(
-      (job) => job.attempts > job.maxAttempts,
-    );
+    const exhaustedJobs = claimed.filter((job) => job.attempts > job.maxAttempts);
 
     await this.handleFailedJobs(exhaustedJobs, {
       message: HANDLER_ATTEMPTS_EXHAUSTED_MESSAGE,
@@ -227,17 +211,14 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     return handlers;
   }
 
-  private async getAvailableBatchHandlers(
-    eventType: string,
-  ): Promise<HandlerInfo[]> {
+  private async getAvailableBatchHandlers(eventType: string): Promise<HandlerInfo[]> {
     const config = getConfig();
     const serviceNames = Object.keys(config.services ?? {});
     const handlers: HandlerInfo[] = [];
 
     for (const serviceName of serviceNames) {
       for (const subscribedEventType of getSubscribedEventTypes(eventType)) {
-        const action =
-          `${serviceName}.${subscribedEventType}${BATCH_EVENT_ACTION_SUFFIX}`;
+        const action = `${serviceName}.${subscribedEventType}${BATCH_EVENT_ACTION_SUFFIX}`;
         if (!this.broker.hasAction(action)) continue;
         const metadata = this.broker.getActionMetadata(action);
         const retryPolicy = metadata?.retryPolicy ?? {
@@ -257,9 +238,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     records: readonly DomainEventRecord[],
     jobs: readonly EventHandlerJobRecord[],
   ): Promise<void> {
-    const eventsById = new Map(
-      records.map((record) => [record.eventId, toDomainEvent(record)]),
-    );
+    const eventsById = new Map(records.map((record) => [record.eventId, toDomainEvent(record)]));
     const jobsWithEvents = jobs
       .map((job) => ({ job, event: eventsById.get(job.eventId) }))
       .filter(
@@ -267,16 +246,10 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
           item.event !== undefined,
       );
 
-    const singleJobs = jobsWithEvents.filter(
-      (item) => item.job.handlerKind === "single",
-    );
-    const batchJobs = jobsWithEvents.filter(
-      (item) => item.job.handlerKind === "batch",
-    );
+    const singleJobs = jobsWithEvents.filter((item) => item.job.handlerKind === "single");
+    const batchJobs = jobsWithEvents.filter((item) => item.job.handlerKind === "batch");
 
-    await Promise.all(
-      singleJobs.map(({ job, event }) => this.invokeSingleHandlerJob(job, event)),
-    );
+    await Promise.all(singleJobs.map(({ job, event }) => this.invokeSingleHandlerJob(job, event)));
 
     for (const groupedJobs of groupBatchJobs(batchJobs).values()) {
       await this.invokeBatchHandlerJobs(groupedJobs);
@@ -370,15 +343,11 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     }
 
     if (response.success) {
-      await this.repository.markHandlerJobsSucceeded(
-        items.map((item) => item.job),
-      );
+      await this.repository.markHandlerJobsSucceeded(items.map((item) => item.job));
       return;
     }
 
-    const failedEventIds = new Set(
-      normalizeFailedEventIds(response.failedEventIds, eventIds),
-    );
+    const failedEventIds = new Set(normalizeFailedEventIds(response.failedEventIds, eventIds));
     const succeededJobs = items
       .filter((item) => !failedEventIds.has(item.job.eventId))
       .map((item) => item.job);
@@ -425,9 +394,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
   }
 }
 
-function groupRecordsByEventType(
-  records: DomainEventRecord[],
-): Map<string, DomainEventRecord[]> {
+function groupRecordsByEventType(records: DomainEventRecord[]): Map<string, DomainEventRecord[]> {
   const groups = new Map<string, DomainEventRecord[]>();
 
   for (const record of records) {
@@ -442,10 +409,7 @@ function groupRecordsByEventType(
 function groupBatchJobs(
   items: readonly { job: EventHandlerJobRecord; event: DomainEvent }[],
 ): Map<string, Array<{ job: EventHandlerJobRecord; event: DomainEvent }>> {
-  const groups = new Map<
-    string,
-    Array<{ job: EventHandlerJobRecord; event: DomainEvent }>
-  >();
+  const groups = new Map<string, Array<{ job: EventHandlerJobRecord; event: DomainEvent }>>();
 
   for (const item of items) {
     const groupKey = [
@@ -468,20 +432,14 @@ function excludeBatchHandledActions(
   batchHandlers: readonly HandlerInfo[],
 ): HandlerInfo[] {
   const batchHandledActions = new Set(
-    batchHandlers.map((handler) =>
-      handler.action.slice(0, -BATCH_EVENT_ACTION_SUFFIX.length),
-    ),
+    batchHandlers.map((handler) => handler.action.slice(0, -BATCH_EVENT_ACTION_SUFFIX.length)),
   );
 
-  return individualHandlers.filter(
-    (handler) => !batchHandledActions.has(handler.action),
-  );
+  return individualHandlers.filter((handler) => !batchHandledActions.has(handler.action));
 }
 
 function getSubscribedEventTypes(eventType: string): string[] {
-  return eventType === CATCH_ALL_EVENT_TYPE
-    ? [eventType]
-    : [eventType, CATCH_ALL_EVENT_TYPE];
+  return eventType === CATCH_ALL_EVENT_TYPE ? [eventType] : [eventType, CATCH_ALL_EVENT_TYPE];
 }
 
 function normalizeFailedEventIds(
@@ -493,9 +451,7 @@ function normalizeFailedEventIds(
   }
 
   const allEventIdSet = new Set(allEventIds);
-  const normalized = [...new Set(failedEventIds)].filter((eventId) =>
-    allEventIdSet.has(eventId),
-  );
+  const normalized = [...new Set(failedEventIds)].filter((eventId) => allEventIdSet.has(eventId));
 
   return normalized.length > 0 ? normalized : [...allEventIds];
 }
@@ -520,9 +476,7 @@ function normalizeHandlerError(error: unknown): {
 }
 
 function getRetryDelayMs(job: EventHandlerJobRecord): number {
-  return Math.round(
-    job.intervalSeconds * Math.pow(job.backoffRate, job.attempts - 1) * 1000,
-  );
+  return Math.round(job.intervalSeconds * Math.pow(job.backoffRate, job.attempts - 1) * 1000);
 }
 
 function getDelayUntil(date: Date): number {
@@ -540,9 +494,7 @@ function dedupeJobs(jobs: readonly EventHandlerJobRecord[]): EventHandlerJobReco
 }
 
 function buildHandlerJobId(eventId: string, handlerAction: string): string {
-  return createHash("sha256")
-    .update(`${eventId}\0${handlerAction}`)
-    .digest("hex");
+  return createHash("sha256").update(`${eventId}\0${handlerAction}`).digest("hex");
 }
 
 function toDelivery(job: EventHandlerJobRecord): EventHandlerDelivery {

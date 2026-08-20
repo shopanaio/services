@@ -19,9 +19,7 @@ registerModule({
         icon: null,
         order: 1,
       },
-      component: dynamic(
-        () => import("@/domains/customers/all-customers/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/customers/all-customers/page/page")),
     },
     {
       key: "customer-groups-list",
@@ -37,9 +35,7 @@ registerModule({
         icon: null,
         order: 3,
       },
-      component: dynamic(
-        () => import("@/domains/customers/segments/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/customers/segments/page/page")),
     },
     {
       key: "customer-tags-list",
@@ -56,25 +52,19 @@ registerModule({
         icon: null,
         order: 5,
       },
-      component: dynamic(
-        () => import("@/domains/customers/loyalty-programs/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/customers/loyalty-programs/page/page")),
     },
     {
       key: "loyalty-rewards-list",
       path: "/:orgName/:storeName/customers/loyalty/rewards",
       disabled: true,
-      component: dynamic(
-        () => import("@/domains/customers/loyalty-rewards/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/customers/loyalty-rewards/page/page")),
     },
     {
       key: "loyalty-tiers-list",
       path: "/:orgName/:storeName/customers/loyalty/tiers",
       disabled: true,
-      component: dynamic(
-        () => import("@/domains/customers/loyalty-tiers/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/customers/loyalty-tiers/page/page")),
     },
   ],
 });

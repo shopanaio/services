@@ -238,7 +238,7 @@ interface EditorGridInnerProps<T extends IEditorRowBase> {
     rowId: string,
     field: string,
     originalValue: unknown,
-    newValue: unknown
+    newValue: unknown,
   ) => void;
   // Row drag-drop
   rowDragManaged?: boolean;
@@ -279,7 +279,7 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
       if (!params.data || !getRowClassProp) return "";
       return getRowClassProp(params.data);
     },
-    [getRowClassProp]
+    [getRowClassProp],
   );
 
   // Handle cell edit request - update all selected cells
@@ -296,9 +296,7 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
         selectedCells.forEach((cell) => {
           const originalRow = rows.find((r) => r.id === cell.rowId);
           if (originalRow) {
-            const originalValue = (originalRow as Record<string, unknown>)[
-              field
-            ];
+            const originalValue = (originalRow as Record<string, unknown>)[field];
             onSetFieldValue(cell.rowId, field, originalValue, newValue);
           }
         });
@@ -311,7 +309,7 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
         onSetFieldValue(data.id, field, originalValue, newValue);
       }
     },
-    [rows, onSetFieldValue, selectionApi]
+    [rows, onSetFieldValue, selectionApi],
   );
 
   return (
@@ -393,16 +391,14 @@ export function EditorGrid<T extends IEditorRowBase>({
         if (row && originalRow) {
           const currentValue = (row as Record<string, unknown>)[field];
           if (typeof currentValue === "number") {
-            const originalValue = (originalRow as Record<string, unknown>)[
-              field
-            ];
+            const originalValue = (originalRow as Record<string, unknown>)[field];
             onSetFieldValue(rowId, field, originalValue, currentValue + delta);
           }
         }
       },
       onSelectionEnter,
     }),
-    [displayRows, rows, selectableColumns, onSetFieldValue, onSelectionEnter]
+    [displayRows, rows, selectableColumns, onSetFieldValue, onSelectionEnter],
   );
 
   return (

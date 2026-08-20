@@ -40,7 +40,7 @@ export class NameResolver {
    */
   async resolveStoreId(
     name: string,
-    loader: (name: string) => Promise<string | null>
+    loader: (name: string) => Promise<string | null>,
   ): Promise<string | null> {
     const cacheKey = this.storeCacheKey(name);
 

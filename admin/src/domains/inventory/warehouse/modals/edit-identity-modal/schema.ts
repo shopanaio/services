@@ -11,8 +11,5 @@ export const editWarehouseIdentitySchema = z.object({
     .trim()
     .min(1, "Code is required")
     .max(32, "Code must be 32 characters or less")
-    .regex(
-      /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
-      "Use uppercase letters, numbers, and single hyphens",
-    ),
+    .regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, "Use uppercase letters, numbers, and single hyphens"),
 });

@@ -4,16 +4,11 @@ import type { ProductOptionCategory } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 
 @SubgraphReference()
-export class OptionCategoryResolver extends CatalogType<
-  string,
-  ProductOptionCategory
-> {
+export class OptionCategoryResolver extends CatalogType<string, ProductOptionCategory> {
   async $preload() {
     const category = await this.$ctx.loaders.optionCategory.load(this.$props);
     if (!category) {
-      throw new PreloadNotFoundError(
-        `Product option category with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Product option category with ID ${this.$props} not found`);
     }
     return category;
   }

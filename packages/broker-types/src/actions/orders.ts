@@ -29,10 +29,12 @@ export interface GetOrderDeliveryShipmentPlanParams {
   storeId: string;
   fulfillmentOrderId: string;
   expectedFulfillmentOrderRevision: number;
-  lineItems: readonly Readonly<{
-    fulfillmentOrderLineItemId: string;
-    quantity: number;
-  }>[] | null;
+  lineItems:
+    | readonly Readonly<{
+        fulfillmentOrderLineItemId: string;
+        quantity: number;
+      }>[]
+    | null;
 }
 
 export type GetOrderDeliveryShipmentPlanResult = DeliveryShipmentPlanAvailability;

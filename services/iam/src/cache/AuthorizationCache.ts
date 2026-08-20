@@ -62,7 +62,7 @@ export class AuthorizationCache {
     organizationId: string,
     userId: string,
     resource: string,
-    action: string
+    action: string,
   ): string {
     return `${CACHE_KEYS.AUTH}:${organizationId}:${userId}:${resource}:${action}`;
   }
@@ -150,7 +150,7 @@ export class AuthorizationCache {
     userId: string,
     roleName: string,
     resource: string,
-    action: string
+    action: string,
   ): Promise<{ hit: boolean; allowed?: boolean }> {
     const cacheKey = this.authCacheKey(organizationId, userId, resource, action);
 
@@ -180,7 +180,7 @@ export class AuthorizationCache {
     roleName: string,
     resource: string,
     action: string,
-    allowed: boolean
+    allowed: boolean,
   ): Promise<void> {
     const cacheKey = this.authCacheKey(organizationId, userId, resource, action);
 
@@ -205,7 +205,7 @@ export class AuthorizationCache {
   async getUserRole(
     organizationId: string,
     userId: string,
-    roleName: string
+    roleName: string,
   ): Promise<CachedUserRole | null> {
     const cacheKey = this.userRoleCacheKey(organizationId, userId);
 
@@ -233,7 +233,7 @@ export class AuthorizationCache {
     userId: string,
     roleName: string,
     role: string | null,
-    permissions: string[]
+    permissions: string[],
   ): Promise<void> {
     const cacheKey = this.userRoleCacheKey(organizationId, userId);
 
@@ -286,15 +286,12 @@ export class AuthorizationCache {
     organizationId: string,
     userId: string,
     roleName: string,
-    cached: { userVersion: number; roleVersion: number }
+    cached: { userVersion: number; roleVersion: number },
   ): boolean {
     const currentUserVersion = this.getUserVersion(organizationId, userId);
     const currentRoleVersion = this.getRoleVersion(organizationId, roleName);
 
-    return (
-      cached.userVersion === currentUserVersion &&
-      cached.roleVersion === currentRoleVersion
-    );
+    return cached.userVersion === currentUserVersion && cached.roleVersion === currentRoleVersion;
   }
 
   /**

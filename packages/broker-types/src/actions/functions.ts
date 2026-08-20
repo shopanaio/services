@@ -8,11 +8,7 @@ export const COMMERCE_FUNCTION_MAX_INVOCATION_BYTES = 1_048_576;
 export const COMMERCE_FUNCTION_MAX_OUTPUT_BYTES = 1_048_576;
 export const COMMERCE_FUNCTION_MAX_ENVELOPE_DEPTH = 64;
 
-export type CommerceFunctionJsonPrimitive =
-  | null
-  | boolean
-  | number
-  | string;
+export type CommerceFunctionJsonPrimitive = null | boolean | number | string;
 export type CommerceFunctionJsonValue =
   | CommerceFunctionJsonPrimitive
   | readonly CommerceFunctionJsonValue[]
@@ -55,11 +51,7 @@ function canonicalizeJsonValue(
   path: string,
   ancestors: Set<object>,
 ): CommerceFunctionJsonValue {
-  if (
-    value === null ||
-    typeof value === "boolean" ||
-    typeof value === "string"
-  ) {
+  if (value === null || typeof value === "boolean" || typeof value === "string") {
     return value;
   }
   if (typeof value === "number") {
@@ -80,12 +72,7 @@ function canonicalizeJsonValue(
       assertJsonArrayShape(value, path);
       return Object.freeze(
         value.map((entry, index) =>
-          canonicalizeJsonValue(
-            entry,
-            remainingDepth - 1,
-            `${path}[${index}]`,
-            ancestors,
-          ),
+          canonicalizeJsonValue(entry, remainingDepth - 1, `${path}[${index}]`, ancestors),
         ),
       );
     }

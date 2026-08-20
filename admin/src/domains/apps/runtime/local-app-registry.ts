@@ -28,22 +28,12 @@ export function registerLocalAdminApp(
   loadPage: () => Promise<{ default: ComponentType<AdminAppPageProps> }>,
 ): void {
   registrations.set(registration.appCode, registration);
-  registerLocalAdminAppModule(
-    registration.remoteName,
-    registration.pageModule,
-    loadPage,
-  );
+  registerLocalAdminAppModule(registration.remoteName, registration.pageModule, loadPage);
   registration.modals?.forEach((modal) => {
-    registerLocalAdminAppModule(
-      registration.remoteName,
-      modal.module,
-      modal.load,
-    );
+    registerLocalAdminAppModule(registration.remoteName, modal.module, modal.load);
   });
 }
 
-export function getLocalAdminApp(
-  appCode: string,
-): LocalAdminAppRegistration | undefined {
+export function getLocalAdminApp(appCode: string): LocalAdminAppRegistration | undefined {
   return registrations.get(appCode);
 }

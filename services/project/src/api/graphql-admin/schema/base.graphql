@@ -12,59 +12,99 @@ extend schema
     ]
   )
 
-"""ISO 8601 date-time string"""
+"""
+ISO 8601 date-time string
+"""
 scalar DateTime
-"""Valid email address"""
+"""
+Valid email address
+"""
 scalar Email
-"""Unix timestamp in milliseconds"""
+"""
+Unix timestamp in milliseconds
+"""
 scalar Timestamp
 
 extend type Query {
-  """Store-related queries"""
+  """
+  Store-related queries
+  """
   storeQuery: StoreQuery!
 }
 
 extend type Mutation {
-  """Store-related mutations"""
+  """
+  Store-related mutations
+  """
   storeMutation: StoreMutation!
 }
 
-"""Queries for store management"""
+"""
+Queries for store management
+"""
 type StoreQuery {
-  """Get all stores accessible to the current user in the organization"""
+  """
+  Get all stores accessible to the current user in the organization
+  """
   stores(
-    """Organization ID to list stores from"""
+    """
+    Organization ID to list stores from
+    """
     organizationId: ID!
   ): [Store!]!
 
-  """Get the current store from context"""
+  """
+  Get the current store from context
+  """
   currentStore: Store
 }
 
-"""Mutations for store management"""
+"""
+Mutations for store management
+"""
 type StoreMutation {
   # Store mutations
-  """Create a new store"""
+  """
+  Create a new store
+  """
   storeCreate(input: StoreCreateInput!): StoreCreatePayload!
-  """Unified store update composed from independent settings operations"""
+  """
+  Unified store update composed from independent settings operations
+  """
   storeUpdate(
-    """The store ID to update"""
+    """
+    The store ID to update
+    """
     storeId: ID!
-    """Unique client-generated ID reused only when retrying this mutation"""
+    """
+    Unique client-generated ID reused only when retrying this mutation
+    """
     clientMutationId: String!
-    """Expected store revision for optimistic locking"""
+    """
+    Expected store revision for optimistic locking
+    """
     expectedRevision: Int!
-    """Store settings operations to apply"""
+    """
+    Store settings operations to apply
+    """
     operations: StoreUpdateInput
   ): StoreUpdatePayload!
-  """Delete a store"""
+  """
+  Delete a store
+  """
   storeDelete(input: StoreDeleteInput!): StoreDeletePayload!
 
   # Locale mutations
-  """Add a new locale to the store"""
+  """
+  Add a new locale to the store
+  """
   localeCreate(input: LocaleCreateInput!): LocaleCreatePayload!
-  """Remove a locale from the store"""
+  """
+  Remove a locale from the store
+  """
   localeDelete(input: LocaleDeleteInput!): LocaleDeletePayload!
-  """Set the default locale for the store"""
+  """
+  Set the default locale for the store
+  """
   localeSetDefault(input: LocaleSetDefaultInput!): LocaleUpdatePayload!
 }

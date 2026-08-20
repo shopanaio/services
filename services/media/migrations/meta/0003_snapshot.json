@@ -194,9 +194,7 @@
         "buckets_bucket_name_unique": {
           "name": "buckets_bucket_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "bucket_name"
-          ]
+          "columns": ["bucket_name"]
         }
       },
       "policies": {},
@@ -454,12 +452,8 @@
           "tableFrom": "files",
           "tableTo": "asset_groups",
           "schemaTo": "media",
-          "columnsFrom": [
-            "asset_group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["asset_group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -574,12 +568,8 @@
           "tableFrom": "file_back_refs",
           "tableTo": "files",
           "schemaTo": "media",
-          "columnsFrom": [
-            "file_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["file_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -587,13 +577,7 @@
       "compositePrimaryKeys": {
         "file_back_refs_file_id_service_entity_type_entity_id_role_pk": {
           "name": "file_back_refs_file_id_service_entity_type_entity_id_role_pk",
-          "columns": [
-            "file_id",
-            "service",
-            "entity_type",
-            "entity_id",
-            "role"
-          ]
+          "columns": ["file_id", "service", "entity_type", "entity_id", "role"]
         }
       },
       "uniqueConstraints": {},
@@ -705,12 +689,8 @@
           "tableFrom": "file_deletion_states",
           "tableTo": "files",
           "schemaTo": "media",
-          "columnsFrom": [
-            "file_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["file_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -847,12 +827,8 @@
           "tableFrom": "s3_objects",
           "tableTo": "files",
           "schemaTo": "media",
-          "columnsFrom": [
-            "file_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["file_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -861,12 +837,8 @@
           "tableFrom": "s3_objects",
           "tableTo": "asset_groups",
           "schemaTo": "media",
-          "columnsFrom": [
-            "asset_group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["asset_group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -875,12 +847,8 @@
           "tableFrom": "s3_objects",
           "tableTo": "buckets",
           "schemaTo": "media",
-          "columnsFrom": [
-            "bucket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["bucket_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -964,12 +932,8 @@
           "tableFrom": "external_media",
           "tableTo": "files",
           "schemaTo": "media",
-          "columnsFrom": [
-            "file_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["file_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -978,12 +942,8 @@
           "tableFrom": "external_media",
           "tableTo": "asset_groups",
           "schemaTo": "media",
-          "columnsFrom": [
-            "asset_group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["asset_group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1120,12 +1080,8 @@
           "tableFrom": "upload_sessions",
           "tableTo": "buckets",
           "schemaTo": "media",
-          "columnsFrom": [
-            "bucket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["bucket_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1213,12 +1169,8 @@
           "tableFrom": "bucket_rotation_log",
           "tableTo": "buckets",
           "schemaTo": "media",
-          "columnsFrom": [
-            "old_bucket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["old_bucket_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1227,12 +1179,8 @@
           "tableFrom": "bucket_rotation_log",
           "tableTo": "buckets",
           "schemaTo": "media",
-          "columnsFrom": [
-            "new_bucket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["new_bucket_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }

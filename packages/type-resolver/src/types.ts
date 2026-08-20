@@ -11,13 +11,14 @@ export interface TypeClass<TValue = any, TContext = any> {
 /**
  * Extracts the context type from a TypeClass.
  */
-export type TypeContext<T extends TypeClass> = T extends TypeClass<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  any,
-  infer TCtx
->
-  ? TCtx
-  : unknown;
+export type TypeContext<T extends TypeClass> =
+  T extends TypeClass<
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any,
+    infer TCtx
+  >
+    ? TCtx
+    : unknown;
 
 /**
  * Instance of a TypeClass with value and resolver methods.
@@ -78,15 +79,14 @@ export type ResolverKeys<T extends TypeClass> = {
     : never;
 }[keyof Instance<T>];
 
-
 /**
  * Extracts the argument type for a resolver method.
  * Returns `undefined` for methods without parameters.
  */
-export type ArgsForField<
-  T extends TypeClass,
-  K extends ResolverKeys<T>
-> = Instance<T>[K] extends (arg: infer P, ...rest: never[]) => unknown
+export type ArgsForField<T extends TypeClass, K extends ResolverKeys<T>> = Instance<T>[K] extends (
+  arg: infer P,
+  ...rest: never[]
+) => unknown
   ? P
   : undefined;
 
@@ -163,21 +163,19 @@ type BaseTypeInternalMethods = "$preload" | "$get" | "$data";
  * Excludes constructor and internal BaseType methods ($preload, $get, $data).
  */
 export type TypeResult<T extends TypeClass> = {
-  [K in keyof InstanceType<T> as InstanceType<T>[K] extends (
-    ...args: unknown[]
-  ) => unknown
-    ? K extends "constructor" | BaseTypeInternalMethods
-      ? never
-      : K
-    : never]: InstanceType<T>[K] extends ResolverMethod<infer R> ? R : never;
+  [
+    K in keyof InstanceType<T> as InstanceType<T>[K] extends (...args: unknown[]) => unknown
+      ? K extends "constructor" | BaseTypeInternalMethods
+        ? never
+        : K
+      : never
+  ]: InstanceType<T>[K] extends ResolverMethod<infer R> ? R : never;
 };
 
 /**
  * Utility type to extract the value type from a TypeClass.
  */
-export type TypeValue<T extends TypeClass> = T extends TypeClass<infer V>
-  ? V
-  : never;
+export type TypeValue<T extends TypeClass> = T extends TypeClass<infer V> ? V : never;
 
 // ============================================================================
 // Middleware Types
@@ -200,8 +198,7 @@ export interface MiddlewareContext<TContext = unknown> {
 /**
  * Context for afterCreate hook - instance is available.
  */
-export interface AfterCreateContext<TContext = unknown>
-  extends MiddlewareContext<TContext> {
+export interface AfterCreateContext<TContext = unknown> extends MiddlewareContext<TContext> {
   /** The created instance (mutable) */
   readonly instance: object;
 }
@@ -209,8 +206,7 @@ export interface AfterCreateContext<TContext = unknown>
 /**
  * Context for afterLoad hook - result is available.
  */
-export interface AfterLoadContext<TContext = unknown>
-  extends AfterCreateContext<TContext> {
+export interface AfterLoadContext<TContext = unknown> extends AfterCreateContext<TContext> {
   /** The resolved result object (mutable) */
   result: Record<string, unknown>;
 }

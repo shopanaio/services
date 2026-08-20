@@ -4,11 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { Alert, App, InputNumber, Select, Typography } from "antd";
 import { createStyles } from "antd-style";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
 import { useUpdateGeneralSettings } from "../../hooks";
 import { mapStoreCurrencyInput } from "../../mappers";
@@ -162,15 +158,13 @@ export const StoreCurrencyModal = () => {
       operations: mapStoreCurrencyInput(formValues),
     });
     const operationErrors = result.operationResults.flatMap(
-      ({ applied, errors: operationErrorList }) =>
-        applied ? [] : operationErrorList,
+      ({ applied, errors: operationErrorList }) => (applied ? [] : operationErrorList),
     );
     const mutationErrors = [...result.userErrors, ...operationErrors];
 
     if (!result.data || mutationErrors.length > 0) {
       setSubmitError(
-        [...new Set(mutationErrors.map(({ message: errorMessage }) => errorMessage))]
-          .join("\n") ||
+        [...new Set(mutationErrors.map(({ message: errorMessage }) => errorMessage))].join("\n") ||
           updateMutation.error?.message ||
           "The currency settings could not be saved.",
       );
@@ -206,10 +200,7 @@ export const StoreCurrencyModal = () => {
     </div>
   );
 
-  const numberField = (
-    name: "minimumFractionDigits" | "maximumFractionDigits",
-    label: string,
-  ) => (
+  const numberField = (name: "minimumFractionDigits" | "maximumFractionDigits", label: string) => (
     <div className={styles.field}>
       <Typography.Text className={styles.label}>{label}</Typography.Text>
       <Controller
@@ -292,16 +283,8 @@ export const StoreCurrencyModal = () => {
               "Currency display",
               optionsFromLabels(CURRENCY_DISPLAY_LABELS),
             )}
-            {selectField(
-              "currencySign",
-              "Currency sign",
-              optionsFromLabels(CURRENCY_SIGN_LABELS),
-            )}
-            {selectField(
-              "grouping",
-              "Grouping",
-              optionsFromLabels(CURRENCY_GROUPING_LABELS),
-            )}
+            {selectField("currencySign", "Currency sign", optionsFromLabels(CURRENCY_SIGN_LABELS))}
+            {selectField("grouping", "Grouping", optionsFromLabels(CURRENCY_GROUPING_LABELS))}
             {selectField(
               "signDisplay",
               "Sign display",
@@ -323,9 +306,7 @@ export const StoreCurrencyModal = () => {
           <div className={styles.preview}>
             <div className={styles.previewCopy}>
               <span className={styles.previewLabel}>Preview</span>
-              <span className={styles.previewValue}>
-                {formatCurrencyPreview(values)}
-              </span>
+              <span className={styles.previewValue}>{formatCurrencyPreview(values)}</span>
             </div>
             <span className={styles.resolved}>
               {displayValue} · {values.maximumFractionDigits} fraction digits

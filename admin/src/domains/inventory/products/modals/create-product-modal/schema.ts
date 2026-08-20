@@ -1,12 +1,12 @@
-import { z } from 'zod';
-import type { OutputData } from '@editorjs/editorjs';
+import { z } from "zod";
+import type { OutputData } from "@editorjs/editorjs";
 
 /**
  * Schema for option value input
  */
 const optionValueInputSchema = z.object({
-  value: z.string().min(1, 'Value is required'),
-  slug: z.string().min(1, 'Slug is required'),
+  value: z.string().min(1, "Value is required"),
+  slug: z.string().min(1, "Slug is required"),
 });
 
 /**
@@ -14,13 +14,15 @@ const optionValueInputSchema = z.object({
  */
 const optionInputSchema = z.object({
   id: z.string(),
-  name: z.string().min(1, 'Option name is required'),
-  category: z.object({
-    id: z.string().min(1),
-    name: z.string().min(1),
-    slug: z.string().min(1),
-  }).nullish(),
-  values: z.array(optionValueInputSchema).min(1, 'At least one value is required'),
+  name: z.string().min(1, "Option name is required"),
+  category: z
+    .object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      slug: z.string().min(1),
+    })
+    .nullish(),
+  values: z.array(optionValueInputSchema).min(1, "At least one value is required"),
 });
 
 /**
@@ -46,27 +48,29 @@ const generatedVariantSchema = z.object({
  * Schema for ApiFile (already uploaded to server)
  * Uses z.any() since ApiFile comes from the upload modal and is already validated
  */
-const apiFileSchema = z.custom<import('@/graphql/types').ApiFile>(
-  (val) => val != null && typeof val === 'object' && 'id' in val && 'url' in val
+const apiFileSchema = z.custom<import("@/graphql/types").ApiFile>(
+  (val) => val != null && typeof val === "object" && "id" in val && "url" in val,
 );
 
 /**
  * Schema for EditorJS OutputData
  */
-const editorDataSchema = z.custom<OutputData>(
-  (val) => val === null || (val != null && typeof val === 'object' && 'blocks' in val)
-).nullable();
+const editorDataSchema = z
+  .custom<OutputData>(
+    (val) => val === null || (val != null && typeof val === "object" && "blocks" in val),
+  )
+  .nullable();
 
 /**
  * Schema for product handle (URL slug)
  */
 const handleSchema = z
   .string()
-  .min(1, 'Handle is required')
-  .max(255, 'Handle must be 255 characters or less')
+  .min(1, "Handle is required")
+  .max(255, "Handle must be 255 characters or less")
   .regex(
     /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-    'Handle must contain only lowercase letters, numbers, and hyphens'
+    "Handle must contain only lowercase letters, numbers, and hyphens",
   );
 
 /**
@@ -75,10 +79,7 @@ const handleSchema = z
 export const createProductSchema = z
   .object({
     // General
-    title: z
-      .string()
-      .min(1, 'Title is required')
-      .max(255, 'Title must be 255 characters or less'),
+    title: z.string().min(1, "Title is required").max(255, "Title must be 255 characters or less"),
     handle: handleSchema,
     description: editorDataSchema,
 
@@ -90,13 +91,10 @@ export const createProductSchema = z
     options: z.array(optionInputSchema),
     variants: z.array(generatedVariantSchema),
   })
-  .refine(
-    (data) => !data.hasVariants || data.options.every((option) => option.category),
-    {
-      message: 'Every option must have a category',
-      path: ['options'],
-    }
-  )
+  .refine((data) => !data.hasVariants || data.options.every((option) => option.category), {
+    message: "Every option must have a category",
+    path: ["options"],
+  })
   .refine(
     (data) => {
       // If hasVariants is true, at least one option must be defined
@@ -106,9 +104,9 @@ export const createProductSchema = z
       return true;
     },
     {
-      message: 'At least one option is required when variants are enabled',
-      path: ['options'],
-    }
+      message: "At least one option is required when variants are enabled",
+      path: ["options"],
+    },
   )
   .refine(
     (data) => {
@@ -119,9 +117,9 @@ export const createProductSchema = z
       return true;
     },
     {
-      message: 'At least one variant must be enabled',
-      path: ['variants'],
-    }
+      message: "At least one variant must be enabled",
+      path: ["variants"],
+    },
   );
 
 export type CreateProductFormValues = z.infer<typeof createProductSchema>;

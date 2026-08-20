@@ -54,7 +54,9 @@ function SegmentCell({ data }: CustomCellRendererProps<ApiCustomerSegment>) {
         }}
       />
       <Flex vertical gap={2} style={{ minWidth: 0 }}>
-        <Typography.Text strong ellipsis title={data.name}>{data.name}</Typography.Text>
+        <Typography.Text strong ellipsis title={data.name}>
+          {data.name}
+        </Typography.Text>
         <Typography.Text type="secondary" ellipsis title={data.description ?? undefined}>
           {data.description ?? "No description"}
         </Typography.Text>
@@ -72,12 +74,16 @@ function MemberCountCell({ value }: CustomCellRendererProps<ApiCustomerSegment, 
   );
 }
 
-function SegmentTypeCell({ value }: CustomCellRendererProps<ApiCustomerSegment, CustomerSegmentType>) {
+function SegmentTypeCell({
+  value,
+}: CustomCellRendererProps<ApiCustomerSegment, CustomerSegmentType>) {
   return <Tag color="blue">{value === CustomerSegmentType.Manual ? "Manual" : value}</Tag>;
 }
 
 function DateCell({ value }: CustomCellRendererProps<ApiCustomerSegment, string>) {
-  return <Typography.Text>{value ? segmentDateFormatter.format(new Date(value)) : ""}</Typography.Text>;
+  return (
+    <Typography.Text>{value ? segmentDateFormatter.format(new Date(value)) : ""}</Typography.Text>
+  );
 }
 
 export default function CustomerSegmentsPage() {
@@ -109,16 +115,20 @@ export default function CustomerSegmentsPage() {
       pageConfig.orderBy,
     ],
   );
-  const { segments, totalCount, pageInfo, loading, error, refetch } = useCustomerSegments(variables);
+  const { segments, totalCount, pageInfo, loading, error, refetch } =
+    useCustomerSegments(variables);
   const { push: openSegmentModal } = useCustomerSegmentModal();
 
   const handleCreate = useCallback(() => {
     openSegmentModal({ mode: "create", onSaved: refetch });
   }, [openSegmentModal, refetch]);
 
-  const handleEdit = useCallback((segment: ApiCustomerSegment) => {
-    openSegmentModal({ mode: "edit", entityId: segment.id, onSaved: refetch });
-  }, [openSegmentModal, refetch]);
+  const handleEdit = useCallback(
+    (segment: ApiCustomerSegment) => {
+      openSegmentModal({ mode: "edit", entityId: segment.id, onSaved: refetch });
+    },
+    [openSegmentModal, refetch],
+  );
 
   const handleNextPage = useCallback(() => {
     if (pageInfo?.endCursor) pageConfig.goToNextPage(pageInfo.endCursor);
@@ -128,48 +138,54 @@ export default function CustomerSegmentsPage() {
     if (pageInfo?.startCursor) pageConfig.goToPrevPage(pageInfo.startCursor);
   }, [pageConfig, pageInfo?.startCursor]);
 
-  const columnDefs = useMemo<ColDef<ApiCustomerSegment>[]>(() => [
-    {
-      headerName: "Segment",
-      colId: "name",
-      cellRenderer: SegmentCell,
-      minWidth: 340,
-      flex: 2,
-    },
-    {
-      headerName: "Customers",
-      colId: "customersCount",
-      field: "customersCount",
-      cellRenderer: MemberCountCell,
-      width: 135,
-    },
-    {
-      headerName: "Type",
-      field: "type",
-      cellRenderer: SegmentTypeCell,
-      width: 120,
-      sortable: false,
-    },
-    {
-      headerName: "Created",
-      field: "createdAt",
-      cellRenderer: DateCell,
-      minWidth: 145,
-    },
-    {
-      headerName: "Updated",
-      field: "updatedAt",
-      cellRenderer: DateCell,
-      minWidth: 145,
-    },
-  ], []);
+  const columnDefs = useMemo<ColDef<ApiCustomerSegment>[]>(
+    () => [
+      {
+        headerName: "Segment",
+        colId: "name",
+        cellRenderer: SegmentCell,
+        minWidth: 340,
+        flex: 2,
+      },
+      {
+        headerName: "Customers",
+        colId: "customersCount",
+        field: "customersCount",
+        cellRenderer: MemberCountCell,
+        width: 135,
+      },
+      {
+        headerName: "Type",
+        field: "type",
+        cellRenderer: SegmentTypeCell,
+        width: 120,
+        sortable: false,
+      },
+      {
+        headerName: "Created",
+        field: "createdAt",
+        cellRenderer: DateCell,
+        minWidth: 145,
+      },
+      {
+        headerName: "Updated",
+        field: "updatedAt",
+        cellRenderer: DateCell,
+        minWidth: 145,
+      },
+    ],
+    [],
+  );
 
-  const defaultColDef = useMemo<ColDef<ApiCustomerSegment>>(() => ({
-    resizable: true,
-    sortable: true,
-    comparator: () => 0,
-    cellStyle: { display: "flex", alignItems: "center" },
-  }), []);
+  const defaultColDef = useMemo<ColDef<ApiCustomerSegment>>(
+    () => ({
+      resizable: true,
+      sortable: true,
+      comparator: () => 0,
+      cellStyle: { display: "flex", alignItems: "center" },
+    }),
+    [],
+  );
 
   return (
     <DataLayout
@@ -177,14 +193,22 @@ export default function CustomerSegmentsPage() {
       name="customer-segments"
       title="Segments"
       count={totalCount}
-      actions={<Button icon={<PlusOutlined />} onClick={handleCreate}>Create segment</Button>}
+      actions={
+        <Button icon={<PlusOutlined />} onClick={handleCreate}>
+          Create segment
+        </Button>
+      }
     >
       <DataLayout.Toolbar
-        left={<FilterWidget {...pageConfig.filterWidgetProps} searchPlaceholder="Search segments..." />}
+        left={
+          <FilterWidget {...pageConfig.filterWidgetProps} searchPlaceholder="Search segments..." />
+        }
       />
 
       <div style={{ height: "100%", paddingBottom: 16, display: "flex", flexDirection: "column" }}>
-        {error ? <Alert type="error" message={error.message} showIcon style={{ marginBottom: 12 }} /> : null}
+        {error ? (
+          <Alert type="error" message={error.message} showIcon style={{ marginBottom: 12 }} />
+        ) : null}
 
         <div style={{ flex: 1 }} data-testid="customer-segments-table">
           <AgGridReact<ApiCustomerSegment>
@@ -199,7 +223,9 @@ export default function CustomerSegmentsPage() {
             suppressCellFocus
             suppressMovableColumns
             rowStyle={{ cursor: "pointer" }}
-            onRowClicked={({ data }) => { if (data) handleEdit(data); }}
+            onRowClicked={({ data }) => {
+              if (data) handleEdit(data);
+            }}
             onSortChanged={pageConfig.onSortChanged}
             initialState={pageConfig.gridStateProps.initialState}
             onStateUpdated={pageConfig.gridStateProps.onStateUpdated}

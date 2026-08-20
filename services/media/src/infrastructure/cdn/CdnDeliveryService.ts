@@ -47,29 +47,21 @@ export interface CdnDeliveryResult {
 export class CdnDeliveryService {
   constructor(
     private readonly repository: Repository,
-    private readonly adapters: CdnAdapterRegistry = cdnAdapterRegistry
+    private readonly adapters: CdnAdapterRegistry = cdnAdapterRegistry,
   ) {}
 
-  async resolve(
-    file: File,
-    options: CdnDeliveryOptions = {}
-  ): Promise<CdnDeliveryResult> {
+  async resolve(file: File, options: CdnDeliveryOptions = {}): Promise<CdnDeliveryResult> {
     const originUrl = file.url;
     const s3Object =
-      file.provider === "S3"
-        ? await this.repository.s3Object.findByFileId(file.id)
-        : null;
+      file.provider === "S3" ? await this.repository.s3Object.findByFileId(file.id) : null;
 
     if (isPrivateFile(file)) {
       if (!s3Object) {
         throw new Error("Private media object is unavailable");
       }
-      const url = await getS3Client().presignedGetObject(
-        getBucketName(),
-        s3Object.objectKey,
-        300,
-        { "response-cache-control": "private, no-store" },
-      );
+      const url = await getS3Client().presignedGetObject(getBucketName(), s3Object.objectKey, 300, {
+        "response-cache-control": "private, no-store",
+      });
       return {
         url,
         originUrl,
@@ -106,12 +98,9 @@ export class CdnDeliveryService {
     const values = this.mergeTransformValues(
       selection.configuration,
       selection.routingRule,
-      options.transform
+      options.transform,
     );
-    const transformErrors = this.validateTransformValues(
-      selection.configuration,
-      values
-    );
+    const transformErrors = this.validateTransformValues(selection.configuration, values);
     if (transformErrors.length > 0) {
       return {
         url: originUrl,
@@ -122,11 +111,7 @@ export class CdnDeliveryService {
         userErrors: [...selection.userErrors, ...transformErrors],
       };
     }
-    const candidateUrl = this.buildUrl(
-      selection.configuration,
-      s3Object.objectKey,
-      values
-    );
+    const candidateUrl = this.buildUrl(selection.configuration, s3Object.objectKey, values);
     const adapted = await this.applyAdapters({
       configuration: selection.configuration,
       routingRule: selection.routingRule,
@@ -149,21 +134,22 @@ export class CdnDeliveryService {
   async preview(
     configuration: CdnConfiguration,
     objectPath: string,
-    transform?: ImageTransformOptions | null
+    transform?: ImageTransformOptions | null,
   ): Promise<CdnDeliveryResult> {
     const userErrors = this.validateConfiguration(configuration);
     const values = this.mergeTransformValues(configuration, null, transform);
     userErrors.push(...this.validateTransformValues(configuration, values));
     const candidateUrl = this.buildUrl(configuration, objectPath, values);
-    const adapted = userErrors.length === 0
-      ? await this.applyAdapters({
-          configuration,
-          routingRule: null,
-          objectPath,
-          transform: values,
-          url: candidateUrl,
-        })
-      : { url: candidateUrl, userErrors: [] };
+    const adapted =
+      userErrors.length === 0
+        ? await this.applyAdapters({
+            configuration,
+            routingRule: null,
+            objectPath,
+            transform: values,
+            url: candidateUrl,
+          })
+        : { url: candidateUrl, userErrors: [] };
     userErrors.push(...adapted.userErrors);
     return {
       url: adapted.url,
@@ -178,17 +164,13 @@ export class CdnDeliveryService {
   validateConfiguration(
     configuration: Pick<
       CdnConfiguration,
-      | "baseUrl"
-      | "signingMode"
-      | "secretRef"
-      | "transformStrategy"
-      | "urlTemplate"
-    >
+      "baseUrl" | "signingMode" | "secretRef" | "transformStrategy" | "urlTemplate"
+    >,
   ): CdnDeliveryError[] {
     const errors: CdnDeliveryError[] = [];
     try {
       const url = new URL(configuration.baseUrl);
-      if (!['http:', 'https:'].includes(url.protocol)) {
+      if (!["http:", "https:"].includes(url.protocol)) {
         throw new Error("Unsupported protocol");
       }
     } catch {
@@ -199,10 +181,7 @@ export class CdnDeliveryService {
       });
     }
 
-    if (
-      configuration.signingMode !== "NONE" &&
-      !configuration.secretRef?.trim()
-    ) {
+    if (configuration.signingMode !== "NONE" && !configuration.secretRef?.trim()) {
       errors.push({
         field: ["secretRef"],
         code: "SECRET_REF_REQUIRED",
@@ -242,7 +221,7 @@ export class CdnDeliveryService {
 
   private async selectConfiguration(
     file: File,
-    options: CdnDeliveryOptions
+    options: CdnDeliveryOptions,
   ): Promise<{
     configuration: CdnConfiguration | null;
     routingRule: CdnRoutingRule | null;
@@ -251,7 +230,7 @@ export class CdnDeliveryService {
     if (options.configurationId) {
       const configuration = await this.repository.cdnConfiguration.findById(
         file.assetGroupId,
-        options.configurationId
+        options.configurationId,
       );
       return configuration
         ? { configuration, routingRule: null, userErrors: [] }
@@ -268,14 +247,12 @@ export class CdnDeliveryService {
           };
     }
 
-    const rules = await this.repository.cdnRoutingRule.getEnabled(
-      file.assetGroupId
-    );
+    const rules = await this.repository.cdnRoutingRule.getEnabled(file.assetGroupId);
     for (const rule of rules) {
       if (!this.matches(file, rule.conditions, options.country)) continue;
       const configuration = await this.repository.cdnConfiguration.findById(
         file.assetGroupId,
-        rule.cdnConfigurationId
+        rule.cdnConfigurationId,
       );
       if (configuration?.enabled) {
         return { configuration, routingRule: rule, userErrors: [] };
@@ -283,19 +260,13 @@ export class CdnDeliveryService {
     }
 
     return {
-      configuration: await this.repository.cdnConfiguration.findDefault(
-        file.assetGroupId
-      ),
+      configuration: await this.repository.cdnConfiguration.findDefault(file.assetGroupId),
       routingRule: null,
       userErrors: [],
     };
   }
 
-  private matches(
-    file: File,
-    conditions: CdnRoutingConditions,
-    country?: string | null
-  ): boolean {
+  private matches(file: File, conditions: CdnRoutingConditions, country?: string | null): boolean {
     const matchesArray = (values: string[] | undefined, value: string | null) =>
       !values?.length || (value !== null && values.includes(value));
 
@@ -318,7 +289,7 @@ export class CdnDeliveryService {
       const matchesMime = conditions.mimeTypes.some((candidate) =>
         candidate.endsWith("/*")
           ? mimeType.startsWith(candidate.slice(0, -1))
-          : mimeType === candidate
+          : mimeType === candidate,
       );
       if (!matchesMime) return false;
     }
@@ -328,7 +299,7 @@ export class CdnDeliveryService {
   private mergeTransformValues(
     configuration: CdnConfiguration,
     rule: CdnRoutingRule | null,
-    requested?: ImageTransformOptions | null
+    requested?: ImageTransformOptions | null,
   ): CdnNormalizedTransform {
     const configured = configuration.transformConfig as Record<string, unknown>;
     const overrides = (rule?.transformOverrides ?? {}) as Record<string, unknown>;
@@ -338,9 +309,7 @@ export class CdnDeliveryService {
     let gravity =
       requested?.gravity ??
       (typeof overrides.gravity === "string" ? overrides.gravity : undefined) ??
-      (typeof configured.defaultGravity === "string"
-        ? configured.defaultGravity
-        : undefined);
+      (typeof configured.defaultGravity === "string" ? configured.defaultGravity : undefined);
 
     if (gravity?.toUpperCase() === "AUTO") {
       const allowedGravities = configured.allowedGravities;
@@ -356,9 +325,7 @@ export class CdnDeliveryService {
       fit:
         requested?.fit ??
         (typeof overrides.fit === "string" ? overrides.fit : undefined) ??
-        (typeof configured.defaultFit === "string"
-          ? configured.defaultFit
-          : undefined),
+        (typeof configured.defaultFit === "string" ? configured.defaultFit : undefined),
       gravity,
       height:
         requested?.maxHeight ??
@@ -371,13 +338,9 @@ export class CdnDeliveryService {
       format:
         requested?.preferredContentType?.toLowerCase() ??
         (typeof overrides.format === "string" ? overrides.format : undefined) ??
-        (typeof configured.defaultFormat === "string"
-          ? configured.defaultFormat
-          : undefined),
+        (typeof configured.defaultFormat === "string" ? configured.defaultFormat : undefined),
       scale:
-        requested?.scale ??
-        numberValue(overrides.scale) ??
-        numberValue(configured.defaultScale),
+        requested?.scale ?? numberValue(overrides.scale) ?? numberValue(configured.defaultScale),
       quality:
         numberValue(requested?.quality) ??
         numberValue(overrides.quality) ??
@@ -388,22 +351,15 @@ export class CdnDeliveryService {
   private buildUrl(
     configuration: CdnConfiguration,
     objectPath: string,
-    values: CdnNormalizedTransform
+    values: CdnNormalizedTransform,
   ): string {
     const baseUrl = configuration.baseUrl.replace(/\/$/, "");
     const pathPrefix = configuration.pathPrefix.replace(/^\/+|\/+$/g, "");
-    const encodedPath = objectPath
-      .split("/")
-      .filter(Boolean)
-      .map(encodeURIComponent)
-      .join("/");
+    const encodedPath = objectPath.split("/").filter(Boolean).map(encodeURIComponent).join("/");
     const path = [pathPrefix, encodedPath].filter(Boolean).join("/");
     const directUrl = `${baseUrl}/${path}`;
 
-    const transformConfig = configuration.transformConfig as Record<
-      string,
-      unknown
-    >;
+    const transformConfig = configuration.transformConfig as Record<string, unknown>;
     const configuredMap = transformConfig.parameterMap;
     const parameterMap =
       typeof configuredMap === "object" && configuredMap !== null
@@ -425,7 +381,7 @@ export class CdnDeliveryService {
     if (values.gravity) {
       parameters.set(
         parameterName("gravity"),
-        mapValue(transformConfig, "gravity", values.gravity)
+        mapValue(transformConfig, "gravity", values.gravity),
       );
     }
     if (values.scale) parameters.set(parameterName("scale"), String(values.scale));
@@ -440,9 +396,7 @@ export class CdnDeliveryService {
         width: values.width,
         height: values.height,
         fit: values.fit ? mapValue(transformConfig, "fit", values.fit) : undefined,
-        gravity: values.gravity
-          ? mapValue(transformConfig, "gravity", values.gravity)
-          : undefined,
+        gravity: values.gravity ? mapValue(transformConfig, "gravity", values.gravity) : undefined,
         scale: values.scale,
         format: values.format,
         quality: values.quality,
@@ -462,7 +416,7 @@ export class CdnDeliveryService {
 
   private validateTransformValues(
     configuration: CdnConfiguration,
-    values: CdnNormalizedTransform
+    values: CdnNormalizedTransform,
   ): CdnDeliveryError[] {
     const config = configuration.transformConfig as Record<string, unknown>;
     const errors: CdnDeliveryError[] = [];
@@ -474,7 +428,7 @@ export class CdnDeliveryService {
       field: string,
       value: number | undefined,
       minKey: string,
-      maxKey: string
+      maxKey: string,
     ) => {
       if (value === undefined) return;
       const min = finiteNumber(minKey);
@@ -487,11 +441,7 @@ export class CdnDeliveryService {
         });
       }
     };
-    const checkAllowed = (
-      field: string,
-      value: string | undefined,
-      key: string
-    ) => {
+    const checkAllowed = (field: string, value: string | undefined, key: string) => {
       const allowed = config[key];
       if (!value || !Array.isArray(allowed)) return;
       const normalized = allowed
@@ -518,7 +468,7 @@ export class CdnDeliveryService {
 
   private renderTemplate(
     template: string,
-    values: Record<string, string | number | undefined>
+    values: Record<string, string | number | undefined>,
   ): string {
     return template.replace(/\{([a-zA-Z]+)\}/g, (_match, key: string) => {
       const value = values[key];
@@ -527,15 +477,13 @@ export class CdnDeliveryService {
   }
 
   private async applyAdapters(
-    context: CdnAdapterContext
+    context: CdnAdapterContext,
   ): Promise<{ url: string; userErrors: CdnDeliveryError[] }> {
     const userErrors: CdnDeliveryError[] = [];
     let url = context.url;
 
     if (context.configuration.transformStrategy !== "NONE") {
-      const adapter = this.adapters.getTransform(
-        context.configuration.transformStrategy
-      );
+      const adapter = this.adapters.getTransform(context.configuration.transformStrategy);
       if (!adapter) {
         userErrors.push({
           code: "TRANSFORM_ADAPTER_UNAVAILABLE",
@@ -593,11 +541,9 @@ export class CdnDeliveryService {
 export function mapValue(
   transformConfig: Record<string, unknown>,
   field: string,
-  normalizedValue: string
+  normalizedValue: string,
 ): string {
-  const valueMap = transformConfig.valueMap as
-    | Record<string, Record<string, string>>
-    | undefined;
+  const valueMap = transformConfig.valueMap as Record<string, Record<string, string>> | undefined;
   return valueMap?.[field]?.[normalizedValue] ?? normalizedValue.toLowerCase();
 }
 

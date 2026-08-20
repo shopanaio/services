@@ -3,11 +3,7 @@
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
 import type { ApiTagUpdateInput } from "@/graphql/types";
-import {
-  TAG_DETAILS_QUERY,
-  TAG_UPDATE_MUTATION,
-  TAGS_QUERY,
-} from "../graphql";
+import { TAG_DETAILS_QUERY, TAG_UPDATE_MUTATION, TAGS_QUERY } from "../graphql";
 import type {
   TagMutationResult,
   TagUpdateMutationData,
@@ -42,8 +38,7 @@ export function useUpdateTag(): UseUpdateTagReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
 
         return {
           tag: null,

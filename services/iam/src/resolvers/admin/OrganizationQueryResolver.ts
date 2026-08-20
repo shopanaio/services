@@ -1,7 +1,4 @@
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { OrganizationResolver } from "./OrganizationResolver.js";
 import {
@@ -37,9 +34,7 @@ export class OrganizationQueryResolver extends IAMType<Record<string, never>> {
     }
 
     if (args.name) {
-      const org = await this.$ctx.kernel.repository.organization.findByName(
-        args.name
-      );
+      const org = await this.$ctx.kernel.repository.organization.findByName(args.name);
       if (!org) {
         return null;
       }
@@ -59,10 +54,7 @@ export class OrganizationQueryResolver extends IAMType<Record<string, never>> {
     // Return empty connection for unauthenticated users
     // Note: currentUser is always set by middleware, but id will be empty if not authenticated
     if (!currentUser?.id) {
-      return new OrganizationConnectionResolver(
-        { userId: "", first: 0 },
-        this.$ctx
-      );
+      return new OrganizationConnectionResolver({ userId: "", first: 0 }, this.$ctx);
     }
 
     // Transform orderBy from GraphQL format to relay format

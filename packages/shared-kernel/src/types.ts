@@ -42,7 +42,11 @@ export type KernelServices<TExtension = {}> = BaseKernelServices & TExtension;
  * @template TResult - Return type of the script
  * @template TServices - Extended kernel services type
  */
-export interface TransactionScript<TParams = any, TResult = any, TServices extends BaseKernelServices = BaseKernelServices> {
+export interface TransactionScript<
+  TParams = any,
+  TResult = any,
+  TServices extends BaseKernelServices = BaseKernelServices,
+> {
   (params: TParams, services: TServices, context?: ScriptContext): Promise<TResult>;
 }
 
@@ -75,10 +79,10 @@ export class KernelError extends Error {
   constructor(
     message: string,
     public readonly code: string,
-    public readonly details?: any
+    public readonly details?: any,
   ) {
     super(message);
-    this.name = 'KernelError';
+    this.name = "KernelError";
   }
 }
 

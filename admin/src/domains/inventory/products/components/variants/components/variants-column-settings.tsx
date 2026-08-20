@@ -3,11 +3,7 @@ import { createStyles } from "antd-style";
 import { Popover, Checkbox, Divider, Typography, Button } from "antd";
 import { LuSettings as SettingOutlined } from "react-icons/lu";
 import { useVariantsEditorStore } from "../hooks";
-import {
-  MEDIA_COLUMNS,
-  PRICING_COLUMNS,
-  ATTRIBUTES_COLUMNS,
-} from "../config";
+import { MEDIA_COLUMNS, PRICING_COLUMNS, ATTRIBUTES_COLUMNS } from "../config";
 import type { IOptionGroup } from "../config/types";
 
 const { Text } = Typography;
@@ -54,19 +50,13 @@ interface VariantsColumnSettingsProps {
 // Component
 // ============================================================================
 
-export const VariantsColumnSettings: React.FC<VariantsColumnSettingsProps> = ({
-  optionGroups,
-}) => {
+export const VariantsColumnSettings: React.FC<VariantsColumnSettingsProps> = ({ optionGroups }) => {
   const { styles } = useStyles();
 
   const columnVisibility = useVariantsEditorStore((s) => s.columnVisibility);
   const toggleColumn = useVariantsEditorStore((s) => s.toggleColumn);
-  const isOptionColumnVisible = useVariantsEditorStore(
-    (s) => s.isOptionColumnVisible
-  );
-  const toggleOptionColumn = useVariantsEditorStore(
-    (s) => s.toggleOptionColumn
-  );
+  const isOptionColumnVisible = useVariantsEditorStore((s) => s.isOptionColumnVisible);
+  const toggleOptionColumn = useVariantsEditorStore((s) => s.toggleOptionColumn);
 
   const sections = [
     { title: "Options", columns: optionGroups, isOptions: true },
@@ -137,12 +127,7 @@ export const VariantsColumnSettings: React.FC<VariantsColumnSettingsProps> = ({
   );
 
   return (
-    <Popover
-      content={content}
-      title="Columns"
-      trigger="click"
-      placement="bottomLeft"
-    >
+    <Popover content={content} title="Columns" trigger="click" placement="bottomLeft">
       <Button size="small" icon={<SettingOutlined />} data-testid="variants-columns-button">
         Columns
       </Button>

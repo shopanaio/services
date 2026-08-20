@@ -58,10 +58,7 @@ export interface VerifiedTypoAlternative {
 }
 
 export interface ExpandedFuzzySearchQueryPlan extends SearchQueryPlan {
-  readonly verifiedAlternativesByUnit: ReadonlyMap<
-    number,
-    readonly VerifiedTypoAlternative[]
-  >;
+  readonly verifiedAlternativesByUnit: ReadonlyMap<number, readonly VerifiedTypoAlternative[]>;
 }
 
 export interface CompiledSearchSynonymValue {

@@ -47,10 +47,7 @@ export interface CustomerPrivacySnapshot {
   }>;
   segments: Array<{
     membership: typeof customerSegmentMembership.$inferSelect;
-    segment: Pick<
-      typeof customerSegment.$inferSelect,
-      "id" | "name" | "type" | "status"
-    >;
+    segment: Pick<typeof customerSegment.$inferSelect, "id" | "name" | "type" | "status">;
   }>;
   externalReferences: Array<typeof customerExternalReference.$inferSelect>;
   statistics: typeof customerStatistics.$inferSelect | null;
@@ -109,9 +106,7 @@ export class CustomerPrivacyRepository extends BaseRepository {
     const customerRows = await this.connection
       .select()
       .from(customer)
-      .where(
-        and(eq(customer.storeId, this.storeId), eq(customer.id, customerId)),
-      )
+      .where(and(eq(customer.storeId, this.storeId), eq(customer.id, customerId)))
       .limit(1);
     const profile = customerRows[0];
     if (!profile) return null;
@@ -312,7 +307,10 @@ export class CustomerPrivacyRepository extends BaseRepository {
             eq(customerCheckoutProjection.customerId, customerId),
           ),
         )
-        .orderBy(asc(customerCheckoutProjection.occurredAt), asc(customerCheckoutProjection.checkoutId)),
+        .orderBy(
+          asc(customerCheckoutProjection.occurredAt),
+          asc(customerCheckoutProjection.checkoutId),
+        ),
       this.connection
         .select()
         .from(customerRefundProjection)

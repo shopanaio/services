@@ -7,11 +7,7 @@ import {
   variantListingIndex,
   type ListingDocIdAllocator,
 } from "../models/index.js";
-import {
-  assertNonNegativeInteger,
-  nowIso,
-  uniqueValues,
-} from "./listingRepositoryTypes.js";
+import { assertNonNegativeInteger, nowIso, uniqueValues } from "./listingRepositoryTypes.js";
 
 export class ListingDocIdAllocatorRepository extends BaseRepository {
   @ReadOnly()
@@ -78,9 +74,7 @@ export class ListingDocIdAllocatorRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getExistingProductDocIds(
-    productIds: readonly string[]
-  ): Promise<Map<string, number>> {
+  async getExistingProductDocIds(productIds: readonly string[]): Promise<Map<string, number>> {
     const uniqueProductIds = uniqueValues(productIds);
     if (uniqueProductIds.length === 0) {
       return new Map();
@@ -95,17 +89,15 @@ export class ListingDocIdAllocatorRepository extends BaseRepository {
       .where(
         and(
           eq(productListingIndex.storeId, this.storeId),
-          inArray(productListingIndex.productId, uniqueProductIds)
-        )
+          inArray(productListingIndex.productId, uniqueProductIds),
+        ),
       );
 
     return new Map(rows.map((row) => [row.productId, row.productDocId]));
   }
 
   @ReadOnly()
-  async getExistingVariantDocIds(
-    variantIds: readonly string[]
-  ): Promise<Map<string, number>> {
+  async getExistingVariantDocIds(variantIds: readonly string[]): Promise<Map<string, number>> {
     const uniqueVariantIds = uniqueValues(variantIds);
     if (uniqueVariantIds.length === 0) {
       return new Map();
@@ -120,42 +112,34 @@ export class ListingDocIdAllocatorRepository extends BaseRepository {
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          inArray(variantListingIndex.variantId, uniqueVariantIds)
-        )
+          inArray(variantListingIndex.variantId, uniqueVariantIds),
+        ),
       );
 
     return new Map(rows.map((row) => [row.variantId, row.variantDocId]));
   }
 
   @Transactional()
-  async allocateProductDocIds(
-    productIds: readonly string[]
-  ): Promise<Map<string, number>> {
+  async allocateProductDocIds(productIds: readonly string[]): Promise<Map<string, number>> {
     const uniqueProductIds = uniqueValues(productIds);
     if (uniqueProductIds.length === 0) {
       return new Map();
     }
 
     const result = await this.getExistingProductDocIds(uniqueProductIds);
-    const missingProductIds = uniqueProductIds.filter(
-      (productId) => !result.has(productId)
-    );
+    const missingProductIds = uniqueProductIds.filter((productId) => !result.has(productId));
 
     if (missingProductIds.length === 0) {
       return result;
     }
 
     const allocator = await this.lockAllocatorRow();
-    const existingAfterLock = await this.getExistingProductDocIds(
-      missingProductIds
-    );
+    const existingAfterLock = await this.getExistingProductDocIds(missingProductIds);
     for (const [productId, productDocId] of existingAfterLock) {
       result.set(productId, productDocId);
     }
 
-    const stillMissingProductIds = missingProductIds.filter(
-      (productId) => !result.has(productId)
-    );
+    const stillMissingProductIds = missingProductIds.filter((productId) => !result.has(productId));
     if (stillMissingProductIds.length === 0) {
       return result;
     }
@@ -172,34 +156,26 @@ export class ListingDocIdAllocatorRepository extends BaseRepository {
   }
 
   @Transactional()
-  async allocateVariantDocIds(
-    variantIds: readonly string[]
-  ): Promise<Map<string, number>> {
+  async allocateVariantDocIds(variantIds: readonly string[]): Promise<Map<string, number>> {
     const uniqueVariantIds = uniqueValues(variantIds);
     if (uniqueVariantIds.length === 0) {
       return new Map();
     }
 
     const result = await this.getExistingVariantDocIds(uniqueVariantIds);
-    const missingVariantIds = uniqueVariantIds.filter(
-      (variantId) => !result.has(variantId)
-    );
+    const missingVariantIds = uniqueVariantIds.filter((variantId) => !result.has(variantId));
 
     if (missingVariantIds.length === 0) {
       return result;
     }
 
     const allocator = await this.lockAllocatorRow();
-    const existingAfterLock = await this.getExistingVariantDocIds(
-      missingVariantIds
-    );
+    const existingAfterLock = await this.getExistingVariantDocIds(missingVariantIds);
     for (const [variantId, variantDocId] of existingAfterLock) {
       result.set(variantId, variantDocId);
     }
 
-    const stillMissingVariantIds = missingVariantIds.filter(
-      (variantId) => !result.has(variantId)
-    );
+    const stillMissingVariantIds = missingVariantIds.filter((variantId) => !result.has(variantId));
     if (stillMissingVariantIds.length === 0) {
       return result;
     }

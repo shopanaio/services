@@ -12,9 +12,7 @@ export type VendorConnectionInput = VendorRelayInput;
  */
 export class VendorConnectionResolver extends BaseConnectionResolver<VendorRelayInput> {
   async $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel
-      .getServices()
-      .repository.vendor.getConnection(this.$props);
+    return this.$ctx.kernel.getServices().repository.vendor.getConnection(this.$props);
   }
 
   protected createNodeResolver(nodeId: string) {

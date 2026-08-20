@@ -3,12 +3,13 @@
 import { useState, useCallback } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { Button, Steps, App } from "antd";
-import { LuStore as ShopOutlined, LuGlobe as GlobalOutlined, LuRocket as RocketOutlined, LuArrowLeft as ArrowLeftOutlined } from "react-icons/lu";
 import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+  LuStore as ShopOutlined,
+  LuGlobe as GlobalOutlined,
+  LuRocket as RocketOutlined,
+  LuArrowLeft as ArrowLeftOutlined,
+} from "react-icons/lu";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
 import type { ICreateStoreModalPayload } from "../../modals";
 import { useStyles } from "./create-store-modal.styles";
@@ -82,13 +83,7 @@ export const CreateStoreModal = () => {
   return (
     <ModalLayout
       name="create-store"
-      header={
-        <ModalHeader
-          name="create-store"
-          title="Create New Store"
-          onClose={pop}
-        />
-      }
+      header={<ModalHeader name="create-store" title="Create New Store" onClose={pop} />}
       bodyClassName={styles.container}
     >
       <Paper className={styles.card}>
@@ -115,9 +110,7 @@ export const CreateStoreModal = () => {
                 )}
               </div>
               <Button type="primary" onClick={handleNext}>
-                {currentStep === CreateStoreSteps.Localization
-                  ? "Create Store"
-                  : "Next"}
+                {currentStep === CreateStoreSteps.Localization ? "Create Store" : "Next"}
               </Button>
             </div>
           )}

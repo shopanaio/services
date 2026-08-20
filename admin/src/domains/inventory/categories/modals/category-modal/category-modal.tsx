@@ -10,8 +10,7 @@ import type { ICategoryModalPayload } from "../../modals";
 export const CategoryModal = () => {
   const { payload, pop, forcePop } = useModalStackContext();
   const typedPayload = payload as ICategoryModalPayload;
-  const categoryId =
-    typeof typedPayload.entityId === "string" ? typedPayload.entityId : null;
+  const categoryId = typeof typedPayload.entityId === "string" ? typedPayload.entityId : null;
   const { category, loading, error, refetch } = useCategory(categoryId);
 
   useEffect(() => {

@@ -4,7 +4,8 @@ Modular monolith - composition root for Shopana services.
 
 ## Overview
 
-Bootstrap is a modular monolith that runs all Shopana services in a single process. All service modules are loaded and communicate via RabbitMQ.
+Bootstrap is a modular monolith that runs all Shopana services in a single process. All service
+modules are loaded and communicate via RabbitMQ.
 
 ## Configuration
 
@@ -91,4 +92,5 @@ Bootstrap uses NestJS to:
 
 ## Graceful Shutdown
 
-Handles `SIGINT`, `SIGTERM`, and uncaught exceptions, ensuring all services are properly stopped before exit.
+Handles `SIGINT`, `SIGTERM`, and uncaught exceptions, ensuring all services are properly stopped
+before exit.

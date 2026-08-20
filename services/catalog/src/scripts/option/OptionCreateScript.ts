@@ -16,7 +16,13 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
     } catch {
       return {
         option: undefined,
-        userErrors: [{ message: "Option or value slug format is invalid", field: ["slug"], code: "INVALID_SLUG" }],
+        userErrors: [
+          {
+            message: "Option or value slug format is invalid",
+            field: ["slug"],
+            code: "INVALID_SLUG",
+          },
+        ],
       };
     }
 
@@ -31,7 +37,9 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
     if (!(await this.repository.optionCategory.findById(categoryId))) {
       return {
         option: undefined,
-        userErrors: [{ message: "Option category not found", field: ["categoryId"], code: "NOT_FOUND" }],
+        userErrors: [
+          { message: "Option category not found", field: ["categoryId"], code: "NOT_FOUND" },
+        ],
       };
     }
 
@@ -40,11 +48,13 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
     if (existingOption) {
       return {
         option: undefined,
-        userErrors: [{
-          message: `Option with slug "${slug}" already exists`,
-          field: ["slug"],
-          code: "SLUG_ALREADY_EXISTS",
-        }],
+        userErrors: [
+          {
+            message: `Option with slug "${slug}" already exists`,
+            field: ["slug"],
+            code: "SLUG_ALREADY_EXISTS",
+          },
+        ],
       };
     }
 
@@ -90,7 +100,7 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
 
     this.logger.info(
       { optionId: option.id, productId, valuesCount: values.length },
-      "Option created"
+      "Option created",
     );
 
     return {

@@ -2,9 +2,12 @@
 
 ## Senior Staff Engineer Architecture Design
 
-This document outlines a comprehensive plan for implementing **user authentication** (sign-in, sign-up) and **session management** in the auth domain using modern React/Next.js/GraphQL patterns and best practices.
+This document outlines a comprehensive plan for implementing **user authentication** (sign-in,
+sign-up) and **session management** in the auth domain using modern React/Next.js/GraphQL patterns
+and best practices.
 
-> **Scope**: This plan focuses on core authentication flows. Permission management and authorization are out of scope and will be addressed separately.
+> **Scope**: This plan focuses on core authentication flows. Permission management and authorization
+> are out of scope and will be addressed separately.
 
 ---
 
@@ -25,6 +28,7 @@ This document outlines a comprehensive plan for implementing **user authenticati
 ## Current State Analysis
 
 ### Existing Infrastructure
+
 - **GraphQL Backend**: Full auth mutations available (`signIn`, `signUp`, `signOut`, `tokenRefresh`)
 - **Token Strategy**: Dual-token (JWT 15min + Session 7d) via Better Auth
 - **Hooks Location**: Currently in `workspace` domain (should migrate to `auth`)
@@ -32,6 +36,7 @@ This document outlines a comprehensive plan for implementing **user authenticati
 - **UI Framework**: Ant Design 6.x
 
 ### Current Limitations
+
 - Auth hooks scattered in workspace domain
 - No centralized auth state management
 - Missing password reset flow
@@ -169,8 +174,8 @@ auth/
 
 ```typescript
 // context/auth-context.tsx
-import { createContext } from 'react';
-import type { AuthContextValue } from './types';
+import { createContext } from "react";
+import type { AuthContextValue } from "./types";
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -195,8 +200,8 @@ export interface AuthContextValue {
 
 ```typescript
 // schemas/sign-in.schema.ts
-import { z } from 'zod';
-import { emailSchema, passwordSchema } from './common.schema';
+import { z } from "zod";
+import { emailSchema, passwordSchema } from "./common.schema";
 
 export const signInSchema = z.object({
   email: emailSchema,
@@ -209,27 +214,27 @@ export type SignInFormValues = z.infer<typeof signInSchema>;
 // schemas/common.schema.ts
 export const emailSchema = z
   .string()
-  .min(1, 'Email is required')
-  .email('Please enter a valid email address')
-  .max(255, 'Email must be 255 characters or less');
+  .min(1, "Email is required")
+  .email("Please enter a valid email address")
+  .max(255, "Email must be 255 characters or less");
 
 export const passwordSchema = z
   .string()
-  .min(1, 'Password is required')
-  .min(8, 'Password must be at least 8 characters')
-  .max(128, 'Password must be 128 characters or less');
+  .min(1, "Password is required")
+  .min(8, "Password must be at least 8 characters")
+  .max(128, "Password must be 128 characters or less");
 
-export const passwordConfirmSchema = (passwordField: string = 'password') =>
-  z.string().min(1, 'Please confirm your password');
+export const passwordConfirmSchema = (passwordField: string = "password") =>
+  z.string().min(1, "Please confirm your password");
 
 export const passwordWithConfirmSchema = z
   .object({
     password: passwordSchema,
-    confirmPassword: z.string().min(1, 'Please confirm your password'),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
   });
 ```
 
@@ -237,7 +242,7 @@ export const passwordWithConfirmSchema = z
 
 ```typescript
 // utils/error-mapper.ts
-import type { ApiGenericUserError } from '@/graphql/types';
+import type { ApiGenericUserError } from "@/graphql/types";
 
 interface ErrorMapping {
   [code: string]: {
@@ -259,25 +264,25 @@ interface ErrorMapping {
 const AUTH_ERROR_MAP: ErrorMapping = {
   // Sign In Errors
   INVALID_CREDENTIALS: {
-    field: 'password',
-    message: 'Invalid email or password',
+    field: "password",
+    message: "Invalid email or password",
   },
 
   // Sign Up Errors
   EMAIL_ALREADY_EXISTS: {
-    field: 'email',
-    message: 'A user with this email already exists',
+    field: "email",
+    message: "A user with this email already exists",
   },
   SIGNUP_FAILED: {
-    message: 'Failed to create account. Please try again.',
+    message: "Failed to create account. Please try again.",
   },
 
   // General Errors
   INTERNAL_ERROR: {
-    message: 'An unexpected error occurred. Please try again.',
+    message: "An unexpected error occurred. Please try again.",
   },
   NETWORK_ERROR: {
-    message: 'Unable to connect. Please check your connection.',
+    message: "Unable to connect. Please check your connection.",
   },
 };
 
@@ -294,7 +299,7 @@ const AUTH_ERROR_MAP: ErrorMapping = {
  */
 export function mapGraphQLErrorsToForm<T extends Record<string, any>>(
   errors: ApiGenericUserError[],
-  setError: (name: keyof T, error: { message: string }) => void
+  setError: (name: keyof T, error: { message: string }) => void,
 ): { hasFieldErrors: boolean; generalErrors: string[] } {
   const generalErrors: string[] = [];
   let hasFieldErrors = false;
@@ -337,10 +342,10 @@ export interface AuthOperationResult<T = unknown> {
 
 ```typescript
 // hooks/use-sign-in.ts
-import { useMutation } from '@apollo/client';
-import { useCallback } from 'react';
-import { SIGN_IN_MUTATION, CURRENT_USER_QUERY } from '../graphql';
-import type { SignInInput, SignInResult } from '../types';
+import { useMutation } from "@apollo/client";
+import { useCallback } from "react";
+import { SIGN_IN_MUTATION, CURRENT_USER_QUERY } from "../graphql";
+import type { SignInInput, SignInResult } from "../types";
 
 export interface UseSignInReturn {
   signIn: (input: SignInInput) => Promise<SignInResult>;
@@ -376,14 +381,16 @@ export function useSignIn(): UseSignInReturn {
           success: false,
           user: null,
           token: null,
-          userErrors: [{
-            code: 'NETWORK_ERROR',
-            message: 'Unable to connect. Please check your connection.',
-          }],
+          userErrors: [
+            {
+              code: "NETWORK_ERROR",
+              message: "Unable to connect. Please check your connection.",
+            },
+          ],
         };
       }
     },
-    [mutate]
+    [mutate],
   );
 
   return { signIn, loading, error: error ?? null, reset };
@@ -563,6 +570,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
 **Objective**: Set up auth domain structure and migrate existing functionality
 
 **Tasks**:
+
 1. Create directory structure as specified above
 2. Move GraphQL operations from workspace to auth domain
 3. Create auth context and provider
@@ -571,6 +579,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
 6. Create error mapping utilities
 
 **Deliverables**:
+
 - `context/` - Auth context with types
 - `graphql/` - All auth-related GraphQL operations
 - `schemas/` - Zod validation schemas
@@ -582,6 +591,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
 **Objective**: Create composable hooks for all auth operations
 
 **Tasks**:
+
 1. Implement `useSignIn` hook with Apollo integration
 2. Implement `useSignUp` hook with Apollo integration
 3. Implement `useSignOut` hook
@@ -590,6 +600,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
 6. Create `useAuth` main hook that consumes context
 
 **Deliverables**:
+
 - `hooks/use-sign-in.ts`
 - `hooks/use-sign-up.ts`
 - `hooks/use-sign-out.ts`
@@ -602,6 +613,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
 **Objective**: Refactor sign-in and sign-up pages with new patterns
 
 **Tasks**:
+
 1. Refactor `sign-in-page.tsx` using new form patterns
 2. Create `SignInForm` presentation component
 3. Refactor `sign-up-page.tsx` using new form patterns
@@ -610,6 +622,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
 6. Implement proper loading states and error handling
 
 **Deliverables**:
+
 - Refactored sign-in page and form
 - Refactored sign-up page and form
 - Password strength component
@@ -620,6 +633,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
 **Objective**: Improve session management and auth guard
 
 **Tasks**:
+
 1. Enhance `AuthGuard` with better loading states
 2. Implement token refresh on Apollo link level
 3. Add session expiry detection and auto-logout
@@ -627,6 +641,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
 5. Add multi-tab session synchronization
 
 **Deliverables**:
+
 - Enhanced `auth-guard.tsx`
 - Token refresh Apollo link
 - Session sync utilities
@@ -638,14 +653,17 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
 The following features are intentionally deferred:
 
 **Password Recovery Flow**:
+
 - Forgot password / reset password pages
 - Requires backend email service integration
 
 **Email Verification Flow**:
+
 - Verify email page after sign up
 - Currently disabled in Better Auth config (`requireEmailVerification: false`)
 
 **Permission Management**:
+
 - Role-based access control UI
 - Authorization checks (`useAuthorize` hook)
 - Protected routes with permission requirements
@@ -952,38 +970,45 @@ export function PasswordStrength({ password, showRequirements = true }: Password
 ## Security Considerations
 
 ### 1. Token Storage
+
 - **Access Token**: Stored in memory (React state/context), never in localStorage
 - **Refresh Token**: HTTP-only cookie set by server (current implementation)
 - **Session**: Managed server-side with Better Auth
 
 ### 2. CSRF Protection
+
 - All mutations use GraphQL over POST
 - Credentials included via `credentials: 'include'`
 - Server validates session cookie
 
 ### 3. XSS Prevention
+
 - No token storage in localStorage or sessionStorage
 - React's built-in XSS protection for rendered content
 - Sanitize any user-generated content
 
 ### 4. Rate Limiting
+
 - Already configured: 100 requests per 60 seconds
 - Consider adding client-side rate limiting for auth forms
 - Implement exponential backoff on failures
 
 ### 5. Password Security
+
 - Minimum 8 characters (enforced client and server)
 - Maximum 128 characters
 - Strength indicator encourages strong passwords
 - No password hints or security questions
 
 ### 6. Session Security
+
 - 7-day session expiry
 - IP and user-agent tracking
 - Ability to revoke all sessions
 - Session refresh on activity
 
 ### 7. Error Messages
+
 - Generic error messages for auth failures
 - No username enumeration (same message for invalid email/password)
 - Detailed errors only in development mode
@@ -993,6 +1018,7 @@ export function PasswordStrength({ password, showRequirements = true }: Password
 ## Testing Strategy
 
 ### Unit Tests
+
 ```typescript
 // __tests__/hooks/use-sign-in.test.ts
 import { renderHook, act } from '@testing-library/react';
@@ -1044,6 +1070,7 @@ describe('useSignIn', () => {
 ```
 
 ### Integration Tests
+
 ```typescript
 // __tests__/pages/sign-in.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -1079,29 +1106,30 @@ describe('SignInPage', () => {
 ```
 
 ### E2E Tests (Playwright)
+
 ```typescript
 // e2e/tests/auth/sign-in.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Sign In Flow', () => {
-  test('should sign in with valid credentials', async ({ page }) => {
-    await page.goto('/sign-in');
+test.describe("Sign In Flow", () => {
+  test("should sign in with valid credentials", async ({ page }) => {
+    await page.goto("/sign-in");
 
-    await page.fill('[name="email"]', 'test@example.com');
-    await page.fill('[name="password"]', 'ValidPassword123!');
+    await page.fill('[name="email"]', "test@example.com");
+    await page.fill('[name="password"]', "ValidPassword123!");
     await page.click('button[type="submit"]');
 
-    await expect(page).toHaveURL('/workspace/organization');
+    await expect(page).toHaveURL("/workspace/organization");
   });
 
-  test('should show error for invalid credentials', async ({ page }) => {
-    await page.goto('/sign-in');
+  test("should show error for invalid credentials", async ({ page }) => {
+    await page.goto("/sign-in");
 
-    await page.fill('[name="email"]', 'invalid@example.com');
-    await page.fill('[name="password"]', 'wrongpassword');
+    await page.fill('[name="email"]', "invalid@example.com");
+    await page.fill('[name="password"]', "wrongpassword");
     await page.click('button[type="submit"]');
 
-    await expect(page.locator('.ant-message-error')).toBeVisible();
+    await expect(page.locator(".ant-message-error")).toBeVisible();
   });
 });
 ```
@@ -1111,26 +1139,31 @@ test.describe('Sign In Flow', () => {
 ## Migration Path
 
 ### Step 1: Create New Structure (Non-Breaking)
+
 1. Create new directories and files
 2. Keep existing code functional
 3. Add new implementations alongside old
 
 ### Step 2: Migrate GraphQL Operations
+
 1. Move fragments from workspace to auth domain
 2. Update imports throughout codebase
 3. Deprecate old locations
 
 ### Step 3: Migrate Hooks
+
 1. Create new hooks in auth domain
 2. Update workspace hooks to re-export from auth
 3. Add deprecation warnings
 
 ### Step 4: Migrate Pages
+
 1. Refactor one page at a time
 2. Start with sign-in (most used)
 3. Follow with sign-up
 
 ### Step 5: Cleanup
+
 1. Remove deprecated code
 2. Update documentation
 3. Remove re-exports from workspace
@@ -1193,7 +1226,9 @@ type AuthMutation {
 
 ```graphql
 type UserQuery {
-  """Get current authenticated admin user"""
+  """
+  Get current authenticated admin user
+  """
   current: User
 }
 ```
@@ -1212,7 +1247,7 @@ input UserSignUpInput {
 }
 
 input UserSignOutInput {
-  allSessions: Boolean  # Sign out from all devices
+  allSessions: Boolean # Sign out from all devices
 }
 
 input UserTokenRefreshInput {
@@ -1249,7 +1284,9 @@ type UserTokenRefreshPayload {
 ### Core Types
 
 ```graphql
-"""User type representing admin users (CMS/backoffice)"""
+"""
+User type representing admin users (CMS/backoffice)
+"""
 type User @key(fields: "id") {
   id: ID!
   email: Email!
@@ -1265,14 +1302,18 @@ type User @key(fields: "id") {
   updatedAt: DateTime
 }
 
-"""Authentication tokens"""
+"""
+Authentication tokens
+"""
 type AuthTokenPayload {
-  accessToken: String!   # JWT, 15 min expiry
-  refreshToken: String!  # Session token, 7 day expiry
-  expiresIn: Int!        # Seconds (900)
+  accessToken: String! # JWT, 15 min expiry
+  refreshToken: String! # Session token, 7 day expiry
+  expiresIn: Int! # Seconds (900)
 }
 
-"""Generic user error interface"""
+"""
+Generic user error interface
+"""
 interface UserError {
   message: String!
   field: [String!]
@@ -1281,8 +1322,8 @@ interface UserError {
 
 type GenericUserError implements UserError {
   message: String!
-  field: [String!]       # Path to field that caused error, e.g., ["email"]
-  code: String           # Error code for programmatic handling
+  field: [String!] # Path to field that caused error, e.g., ["email"]
+  code: String # Error code for programmatic handling
 }
 
 scalar DateTime
@@ -1298,32 +1339,32 @@ scalar LocaleCode
 
 ### Sign In Errors (`UserSignInScript.ts`)
 
-| Code | Message | Field | When |
-|------|---------|-------|------|
-| `INVALID_CREDENTIALS` | Invalid email or password | - | Wrong email or password |
-| `INTERNAL_ERROR` | An unexpected error occurred | - | Server exception |
+| Code                  | Message                      | Field | When                    |
+| --------------------- | ---------------------------- | ----- | ----------------------- |
+| `INVALID_CREDENTIALS` | Invalid email or password    | -     | Wrong email or password |
+| `INTERNAL_ERROR`      | An unexpected error occurred | -     | Server exception        |
 
 ### Sign Up Errors (`UserSignUpScript.ts`)
 
-| Code | Message | Field | When |
-|------|---------|-------|------|
-| `EMAIL_ALREADY_EXISTS` | A user with this email already exists | `["email"]` | Email taken |
-| `SIGNUP_FAILED` | Failed to create user | - | Internal error |
-| `INTERNAL_ERROR` | An unexpected error occurred | - | Server exception |
+| Code                   | Message                               | Field       | When             |
+| ---------------------- | ------------------------------------- | ----------- | ---------------- |
+| `EMAIL_ALREADY_EXISTS` | A user with this email already exists | `["email"]` | Email taken      |
+| `SIGNUP_FAILED`        | Failed to create user                 | -           | Internal error   |
+| `INTERNAL_ERROR`       | An unexpected error occurred          | -           | Server exception |
 
 ### Token Refresh Errors (`TokenRefreshScript.ts`)
 
-| Code | Message | Field | When |
-|------|---------|-------|------|
-| `INVALID_REFRESH_TOKEN` | Invalid or expired refresh token | - | Bad/expired token |
-| `INTERNAL_ERROR` | An unexpected error occurred | - | Server exception |
+| Code                    | Message                          | Field | When              |
+| ----------------------- | -------------------------------- | ----- | ----------------- |
+| `INVALID_REFRESH_TOKEN` | Invalid or expired refresh token | -     | Bad/expired token |
+| `INTERNAL_ERROR`        | An unexpected error occurred     | -     | Server exception  |
 
 ### Current User Errors (`GetCurrentUserScript.ts`)
 
-| Code | Message | Field | When |
-|------|---------|-------|------|
-| `UNAUTHORIZED` | Invalid or expired token | - | No valid session |
-| `INTERNAL_ERROR` | An unexpected error occurred | - | Server exception |
+| Code             | Message                      | Field | When             |
+| ---------------- | ---------------------------- | ----- | ---------------- |
+| `UNAUTHORIZED`   | Invalid or expired token     | -     | No valid session |
+| `INTERNAL_ERROR` | An unexpected error occurred | -     | Server exception |
 
 ---
 
@@ -1336,9 +1377,15 @@ scalar LocaleCode
 mutation SignIn($input: UserSignInInput!) {
   authMutation {
     signIn(input: $input) {
-      user { ...UserFields }
-      token { ...AuthTokenFields }
-      userErrors { ...UserErrorFields }
+      user {
+        ...UserFields
+      }
+      token {
+        ...AuthTokenFields
+      }
+      userErrors {
+        ...UserErrorFields
+      }
     }
   }
 }
@@ -1347,9 +1394,15 @@ mutation SignIn($input: UserSignInInput!) {
 mutation SignUp($input: UserSignUpInput!) {
   authMutation {
     signUp(input: $input) {
-      user { ...UserFields }
-      token { ...AuthTokenFields }
-      userErrors { ...UserErrorFields }
+      user {
+        ...UserFields
+      }
+      token {
+        ...AuthTokenFields
+      }
+      userErrors {
+        ...UserErrorFields
+      }
     }
   }
 }
@@ -1359,7 +1412,9 @@ mutation SignOut($input: UserSignOutInput!) {
   authMutation {
     signOut(input: $input) {
       success
-      userErrors { ...UserErrorFields }
+      userErrors {
+        ...UserErrorFields
+      }
     }
   }
 }
@@ -1368,8 +1423,12 @@ mutation SignOut($input: UserSignOutInput!) {
 mutation TokenRefresh($input: UserTokenRefreshInput!) {
   authMutation {
     tokenRefresh(input: $input) {
-      token { ...AuthTokenFields }
-      userErrors { ...UserErrorFields }
+      token {
+        ...AuthTokenFields
+      }
+      userErrors {
+        ...UserErrorFields
+      }
     }
   }
 }
@@ -1425,10 +1484,10 @@ fragment UserErrorFields on GenericUserError {
 
 ### Token Configuration
 
-| Token Type | Expiry | Storage | Purpose |
-|------------|--------|---------|---------|
-| Access Token (JWT) | 15 minutes | Memory | API requests |
-| Refresh Token (Session) | 7 days | HTTP-only cookie | Token refresh |
+| Token Type              | Expiry     | Storage          | Purpose       |
+| ----------------------- | ---------- | ---------------- | ------------- |
+| Access Token (JWT)      | 15 minutes | Memory           | API requests  |
+| Refresh Token (Session) | 7 days     | HTTP-only cookie | Token refresh |
 
 ### JWT Configuration
 
@@ -1486,7 +1545,5 @@ fragment UserErrorFields on GenericUserError {
 
 ---
 
-*Document Version: 1.2*
-*Last Updated: January 2026*
-*Scope: Authentication & Session Management*
-*Author: Senior Staff Engineer*
+_Document Version: 1.2_ _Last Updated: January 2026_ _Scope: Authentication & Session Management_
+_Author: Senior Staff Engineer_

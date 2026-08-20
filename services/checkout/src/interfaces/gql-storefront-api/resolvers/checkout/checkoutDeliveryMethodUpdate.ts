@@ -16,7 +16,7 @@ import { createValidated } from "@src/utils/validation";
 export const checkoutDeliveryMethodUpdate = async (
   _parent: ApiMutation,
   args: ApiMutationCheckoutDeliveryMethodUpdateArgs,
-  ctx: GraphQLContext
+  ctx: GraphQLContext,
 ) => {
   const app = App.getInstance();
   const { checkoutUsecase, logger } = app;

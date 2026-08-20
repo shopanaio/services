@@ -2,20 +2,30 @@
 
 ## Goal
 
-Integrate the Admin create product modal with the GraphQL `productCreate` API using the module architecture defined in `knowledge/vault/patterns/admin-graphql-layer.md`.
+Integrate the Admin create product modal with the GraphQL `productCreate` API using the module
+architecture defined in `knowledge/vault/patterns/admin-graphql-layer.md`.
 
-The integration must create products through `inventoryMutation.productCreate`, upload/select media before submit, send enabled variant handles, handle API `userErrors`, and keep product list/detail screens ready for API-backed data.
+The integration must create products through `inventoryMutation.productCreate`, upload/select media
+before submit, send enabled variant handles, handle API `userErrors`, and keep product list/detail
+screens ready for API-backed data.
 
 ## Current State
 
 - A preliminary `PRODUCT_CREATE_MUTATION` exists in `src/domains/inventory/graphql/mutations.ts`.
-- A preliminary `useCreateProduct` hook exists in `src/domains/inventory/products/hooks/use-create-product.ts`.
-- A preliminary `prepareProductPayload` helper exists and maps modal data into `ApiProductCreateInput`.
-- `CreateProductModal` currently calls `useCreateProduct`, but this is not the final integration shape defined by this plan.
-- The current implementation still needs to be aligned with the Admin GraphQL layer rules: product-specific GraphQL files, operation types, mappers, normalized error mapping, and documented refresh behavior.
+- A preliminary `useCreateProduct` hook exists in
+  `src/domains/inventory/products/hooks/use-create-product.ts`.
+- A preliminary `prepareProductPayload` helper exists and maps modal data into
+  `ApiProductCreateInput`.
+- `CreateProductModal` currently calls `useCreateProduct`, but this is not the final integration
+  shape defined by this plan.
+- The current implementation still needs to be aligned with the Admin GraphQL layer rules:
+  product-specific GraphQL files, operation types, mappers, normalized error mapping, and documented
+  refresh behavior.
 - Product list still uses `@/mocks/products/products-list`.
-- Product details still depend on mock-heavy UI models with fields that are not present on `ApiProduct`.
-- Category API is not present in the current generated Admin GraphQL types, so category assignment must stay out of product create integration until the API contract exists.
+- Product details still depend on mock-heavy UI models with fields that are not present on
+  `ApiProduct`.
+- Category API is not present in the current generated Admin GraphQL types, so category assignment
+  must stay out of product create integration until the API contract exists.
 
 ## Target API Contract
 
@@ -37,11 +47,14 @@ Use `ApiProductCreateInput`:
 }
 ```
 
-The create modal sends only the fields collected by the current UI: `title`, `handle`, `description`, `media`, `hasVariants`, `options`, and generated `variants` selection. The payload mapper converts those fields into `ApiProductCreateInput`.
+The create modal sends only the fields collected by the current UI: `title`, `handle`,
+`description`, `media`, `hasVariants`, `options`, and generated `variants` selection. The payload
+mapper converts those fields into `ApiProductCreateInput`.
 
 ## UI Form To Payload Contract
 
-This contract describes the current create product UI only. It must not include fields from product details mocks or future product editing screens.
+This contract describes the current create product UI only. It must not include fields from product
+details mocks or future product editing screens.
 
 ### Form State Shape
 
@@ -77,19 +90,19 @@ interface CreateProductFormValues {
 
 ### Field Mapping
 
-| UI section | UI control | Form field | Payload field | Transformation |
-|---|---|---|---|---|
-| General | Title input | `title` | `title` | Trim/validate in form schema if needed; send as product title. |
-| General | Handle input | `handle` | `handle` | Auto-generated from title with `slugify`; manual edits are normalized through `slugify`; send as product handle. |
-| General | Description editor | `description` | `description` | Convert EditorJS `OutputData` to `{ text, html, json }` using `renderContent`; send `undefined` when empty or no blocks exist. |
-| Media | Entity media gallery | `media` | `mediaFileIds` | Extract `ApiFile.id` in the current gallery order; send `undefined` when empty. |
-| Variants | Variants switch | `hasVariants` | none | UI-only switch; controls whether `options` and `variants` are included. |
-| Variants | Option title input | `options[].name` | `options[].name` | Send only when variants are enabled and the option has a valid name and values. |
-| Variants | Option title input | `options[].name` | `options[].slug` | Generate with `slugify(options[].name)` in the payload mapper. |
-| Variants | Option values tags | `options[].values[].value` | `options[].values[].name` | Send tag label as API display name. |
-| Variants | Option values tags | `options[].values[].slug` | `options[].values[].slug` | Generated with `slugify(value)` when the tag is created; preserve existing slug for unchanged values. |
-| Variants | Generated variant row selection | `variants[].enabled` | controls `variants[]` inclusion | Include only selected/enabled generated variants. |
-| Variants | Generated variant id | `variants[].id` | `variants[].handle` | Send the generated variant id as API handle; the id is built from option value slugs, for example `red-s`. |
+| UI section | UI control                      | Form field                 | Payload field                   | Transformation                                                                                                                 |
+| ---------- | ------------------------------- | -------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| General    | Title input                     | `title`                    | `title`                         | Trim/validate in form schema if needed; send as product title.                                                                 |
+| General    | Handle input                    | `handle`                   | `handle`                        | Auto-generated from title with `slugify`; manual edits are normalized through `slugify`; send as product handle.               |
+| General    | Description editor              | `description`              | `description`                   | Convert EditorJS `OutputData` to `{ text, html, json }` using `renderContent`; send `undefined` when empty or no blocks exist. |
+| Media      | Entity media gallery            | `media`                    | `mediaFileIds`                  | Extract `ApiFile.id` in the current gallery order; send `undefined` when empty.                                                |
+| Variants   | Variants switch                 | `hasVariants`              | none                            | UI-only switch; controls whether `options` and `variants` are included.                                                        |
+| Variants   | Option title input              | `options[].name`           | `options[].name`                | Send only when variants are enabled and the option has a valid name and values.                                                |
+| Variants   | Option title input              | `options[].name`           | `options[].slug`                | Generate with `slugify(options[].name)` in the payload mapper.                                                                 |
+| Variants   | Option values tags              | `options[].values[].value` | `options[].values[].name`       | Send tag label as API display name.                                                                                            |
+| Variants   | Option values tags              | `options[].values[].slug`  | `options[].values[].slug`       | Generated with `slugify(value)` when the tag is created; preserve existing slug for unchanged values.                          |
+| Variants   | Generated variant row selection | `variants[].enabled`       | controls `variants[]` inclusion | Include only selected/enabled generated variants.                                                                              |
+| Variants   | Generated variant id            | `variants[].id`            | `variants[].handle`             | Send the generated variant id as API handle; the id is built from option value slugs, for example `red-s`.                     |
 
 ### Payload Examples
 
@@ -145,20 +158,29 @@ Product with variants:
 
 - If `description` is `null` or contains no blocks, omit `description`.
 - If `media` is empty, omit `mediaFileIds`.
-- If `hasVariants` is `false`, omit both `options` and `variants`; the API is expected to create the default variant.
-- If `hasVariants` is `true`, the form must contain at least one valid option and at least one enabled generated variant.
+- If `hasVariants` is `false`, omit both `options` and `variants`; the API is expected to create the
+  default variant.
+- If `hasVariants` is `true`, the form must contain at least one valid option and at least one
+  enabled generated variant.
 - If an option has no name or no values, validation must fail before submit.
 - If a generated variant is not enabled, do not include it in `variants`.
 
 ### Product Media Semantics
 
-Product media is stored on variants, not directly on the product. During `productCreate`, `mediaFileIds` are handled by the backend as variant media:
+Product media is stored on variants, not directly on the product. During `productCreate`,
+`mediaFileIds` are handled by the backend as variant media:
 
-- If the product is created without options and variants, the backend creates a default variant and attaches all `mediaFileIds` to that default variant.
-- If the product is created with variants, the backend attaches the same `mediaFileIds` list to every created variant.
-- File order is persisted through `variant_media.sortIndex`, so the mapper must preserve the gallery order when sending `mediaFileIds`.
-- There is no separate featured or primary media field in the current product create API. If the create UI exposes featured selection, it must be treated as ordering only: the featured file should be placed first in `mediaFileIds`.
-- The current create API does not support per-variant media selection. Per-variant media requires a variant media update flow after product creation or a backend contract extension.
+- If the product is created without options and variants, the backend creates a default variant and
+  attaches all `mediaFileIds` to that default variant.
+- If the product is created with variants, the backend attaches the same `mediaFileIds` list to
+  every created variant.
+- File order is persisted through `variant_media.sortIndex`, so the mapper must preserve the gallery
+  order when sending `mediaFileIds`.
+- There is no separate featured or primary media field in the current product create API. If the
+  create UI exposes featured selection, it must be treated as ordering only: the featured file
+  should be placed first in `mediaFileIds`.
+- The current create API does not support per-variant media selection. Per-variant media requires a
+  variant media update flow after product creation or a backend contract extension.
 
 ### Fields Explicitly Not Sent
 
@@ -195,7 +217,8 @@ src/domains/inventory/products/
     index.ts
 ```
 
-Keep `src/domains/inventory/graphql` as a compatibility export while existing imports still depend on it.
+Keep `src/domains/inventory/graphql` as a compatibility export while existing imports still depend
+on it.
 
 ## Integration Phases
 
@@ -204,21 +227,27 @@ Keep `src/domains/inventory/graphql` as a compatibility export while existing im
 - Create `src/domains/inventory/products/graphql`.
 - Move product fragments needed by creation into `products/graphql/fragments.ts`.
 - Move `PRODUCT_CREATE_MUTATION` into `products/graphql/mutations.ts`.
-- Add `ProductCreateMutationResponse` and `ProductCreateMutationVariables` to `products/graphql/operation-types.ts`.
+- Add `ProductCreateMutationResponse` and `ProductCreateMutationVariables` to
+  `products/graphql/operation-types.ts`.
 - Re-export product operations from `products/graphql/index.ts`.
-- Re-export from the existing `inventory/graphql/index.ts` temporarily to avoid breaking old imports.
+- Re-export from the existing `inventory/graphql/index.ts` temporarily to avoid breaking old
+  imports.
 
 ### 2. Move Payload Preparation Into Mappers
 
-- Move `prepareProductPayload`, `prepareDescription`, `prepareMediaFileIds`, `prepareOptions`, and `prepareVariants` from modal utils into `products/mappers/product-create.mapper.ts`.
-- Keep modal-local variant generation utilities in the modal folder because they are UI behavior, not API mapping.
+- Move `prepareProductPayload`, `prepareDescription`, `prepareMediaFileIds`, `prepareOptions`, and
+  `prepareVariants` from modal utils into `products/mappers/product-create.mapper.ts`.
+- Keep modal-local variant generation utilities in the modal folder because they are UI behavior,
+  not API mapping.
 - Export a single `toProductCreateInput(formValues)` mapper that returns `ApiProductCreateInput`.
-- Preserve the current behavior: only enabled variants are sent, media sends only file IDs, and empty optional sections become `undefined`.
+- Preserve the current behavior: only enabled variants are sent, media sends only file IDs, and
+  empty optional sections become `undefined`.
 
 ### 3. Normalize API Error Mapping
 
 - Add `products/mappers/product-errors.mapper.ts`.
-- Map API paths like `["input", "title"]`, `["input", "handle"]`, and `["input", "description"]` to `CreateProductFormValues` field names.
+- Map API paths like `["input", "title"]`, `["input", "handle"]`, and `["input", "description"]` to
+  `CreateProductFormValues` field names.
 - Return unknown field errors as global modal errors.
 - Remove inline field-name mapping from `CreateProductModal`.
 
@@ -237,7 +266,8 @@ Keep `src/domains/inventory/graphql` as a compatibility export while existing im
 
 - Keep unexpected runtime errors in `error`.
 - Add `reset` if the modal needs to clear runtime error state between submits.
-- Define refresh behavior after successful create. First implementation can use `refetchQueries` once a real products list query exists.
+- Define refresh behavior after successful create. First implementation can use `refetchQueries`
+  once a real products list query exists.
 
 ### 5. Wire Modal Submit Flow
 
@@ -262,7 +292,8 @@ Keep `src/domains/inventory/graphql` as a compatibility export while existing im
   - `inventory` -> not available on `Product`; requires variant stock query or placeholder
   - `category` -> not available until category API exists
   - `brand` -> not available
-  - `image` -> not available on `Product`; media currently lives on variants/API-specific media fields
+  - `image` -> not available on `Product`; media currently lives on variants/API-specific media
+    fields
 
 ### 7. Defer Unsupported Mock Fields
 
@@ -275,7 +306,8 @@ Do not block product creation on fields that are absent from `ProductCreateInput
 - shipping dimensions and weight, unless variant create/update APIs are added to the flow
 - SEO fields, unless the create API adds them or the flow performs a follow-up `productUpdate`
 
-If these fields must be set during creation, the backend contract needs to be extended or the Admin flow must run follow-up mutations after `productCreate`.
+If these fields must be set during creation, the backend contract needs to be extended or the Admin
+flow must run follow-up mutations after `productCreate`.
 
 ### 8. Verification
 
@@ -295,13 +327,16 @@ Use these checks during implementation:
 - Modal form data is converted to `ApiProductCreateInput` through a module mapper.
 - API `userErrors` are mapped through a reusable mapper.
 - No API-backed hook imports from `@/mocks`.
-- Product creation succeeds with title, handle, description, uploaded media IDs, options, and enabled variants.
+- Product creation succeeds with title, handle, description, uploaded media IDs, options, and
+  enabled variants.
 - Unsupported mock fields are explicitly excluded from the create payload.
 - Product list refresh behavior is defined before list UI is switched from mocks.
 
 ## Main Risks
 
-- The current Admin GraphQL schema has no category API, so category assignment cannot be integrated yet.
+- The current Admin GraphQL schema has no category API, so category assignment cannot be integrated
+  yet.
 - Product list columns expect fields that `ApiProduct` does not provide directly.
 - Media ownership/order semantics depend on how `mediaFileIds` is interpreted by the backend.
-- Price, cost, stock, weight, and dimensions belong to variant-related APIs, not the current product create input.
+- Price, cost, stock, weight, and dimensions belong to variant-related APIs, not the current product
+  create input.

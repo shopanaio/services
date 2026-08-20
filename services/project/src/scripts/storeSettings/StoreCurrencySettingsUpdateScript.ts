@@ -15,19 +15,16 @@ export class StoreCurrencySettingsUpdateScript extends StoreSettingsUpdateScript
     const store = await this.findStore(params);
     if (!store) return this.notFound();
 
-    await this.repository.storeSettings.upsertCurrencyFormatting(
-      params.storeId,
-      {
-        currencyDisplay: params.currencyDisplay,
-        currencySign: params.currencySign,
-        grouping: params.grouping,
-        signDisplay: params.signDisplay,
-        minimumFractionDigits: params.minimumFractionDigits,
-        maximumFractionDigits: params.maximumFractionDigits,
-        roundingMode: params.roundingMode,
-        trailingZeroDisplay: params.trailingZeroDisplay,
-      },
-    );
+    await this.repository.storeSettings.upsertCurrencyFormatting(params.storeId, {
+      currencyDisplay: params.currencyDisplay,
+      currencySign: params.currencySign,
+      grouping: params.grouping,
+      signDisplay: params.signDisplay,
+      minimumFractionDigits: params.minimumFractionDigits,
+      maximumFractionDigits: params.maximumFractionDigits,
+      roundingMode: params.roundingMode,
+      trailingZeroDisplay: params.trailingZeroDisplay,
+    });
 
     return this.success(params.storeId);
   }

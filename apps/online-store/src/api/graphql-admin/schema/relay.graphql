@@ -1,10 +1,16 @@
-"""An object with a globally unique ID."""
+"""
+An object with a globally unique ID.
+"""
 interface Node {
-  """The globally unique ID of the object."""
+  """
+  The globally unique ID of the object.
+  """
   id: ID!
 }
 
-"""Information about a Relay connection page."""
+"""
+Information about a Relay connection page.
+"""
 type PageInfo @shareable {
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
@@ -12,14 +18,18 @@ type PageInfo @shareable {
   endCursor: String
 }
 
-"""A user-facing mutation error."""
+"""
+A user-facing mutation error.
+"""
 interface UserError {
   message: String!
   field: [String!]
   code: String
 }
 
-"""A generic user-facing mutation error."""
+"""
+A generic user-facing mutation error.
+"""
 type GenericUserError implements UserError @shareable {
   message: String!
   field: [String!]

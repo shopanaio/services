@@ -1,5 +1,8 @@
 import { App } from "@src/ioc/container";
-import type { ApiMutation, ApiMutationCheckoutPaymentMethodUpdateArgs } from "@src/interfaces/gql-storefront-api/types";
+import type {
+  ApiMutation,
+  ApiMutationCheckoutPaymentMethodUpdateArgs,
+} from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutPaymentMethodUpdateDto } from "@src/application/dto/checkoutPaymentMethodUpdate.dto";
 import { createValidated } from "@src/utils/validation";
@@ -26,7 +29,13 @@ export const checkoutPaymentMethodUpdate = async (
     });
     return { checkout: mapCommittedCheckoutToApi(checkout), userErrors: [] };
   } catch (error) {
-    logger.error({ reason: error instanceof Error ? error.message : String(error), checkoutId: dto.checkoutId }, "checkoutPaymentMethodUpdate error");
+    logger.error(
+      {
+        reason: error instanceof Error ? error.message : String(error),
+        checkoutId: dto.checkoutId,
+      },
+      "checkoutPaymentMethodUpdate error",
+    );
     throw await fromDomainError(error);
   }
 };

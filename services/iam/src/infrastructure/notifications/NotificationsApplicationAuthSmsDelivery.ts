@@ -8,16 +8,14 @@ import type {
   ApplicationAuthSmsDeliveryResult,
 } from "../../services/ApplicationAuthSmsDeliveryPort.js";
 
-export class NotificationsApplicationAuthSmsDelivery
-  implements ApplicationAuthSmsDeliveryPort
-{
+export class NotificationsApplicationAuthSmsDelivery implements ApplicationAuthSmsDeliveryPort {
   constructor(
     private readonly broker: ServiceBroker,
-    private readonly repository: Repository
+    private readonly repository: Repository,
   ) {}
 
   async enqueue(
-    request: ApplicationAuthSmsDeliveryRequest
+    request: ApplicationAuthSmsDeliveryRequest,
   ): Promise<ApplicationAuthSmsDeliveryResult> {
     const [application] = await this.repository.application.getByKeys([
       { id: request.applicationId },
@@ -25,12 +23,11 @@ export class NotificationsApplicationAuthSmsDelivery
     if (!application || application.status !== "active") {
       return { accepted: false, retryable: false };
     }
-    const binding =
-      await this.repository.serviceLinkedResource.findActiveByResource({
-        organizationId: application.organizationId,
-        resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
-        resourceId: application.id,
-      });
+    const binding = await this.repository.serviceLinkedResource.findActiveByResource({
+      organizationId: application.organizationId,
+      resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+      resourceId: application.id,
+    });
     if (!binding || binding.linkedOwnerType !== "store") {
       return { accepted: false, retryable: false };
     }

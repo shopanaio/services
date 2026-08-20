@@ -1,8 +1,4 @@
-import type {
-  AdminContextClaims,
-  ContextStore,
-  ContextUser,
-} from "@shopana/shared-context";
+import type { AdminContextClaims, ContextStore, ContextUser } from "@shopana/shared-context";
 import type { Kernel } from "../kernel/Kernel.js";
 import type { Loader } from "../loaders/Loader.js";
 

@@ -13,7 +13,9 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
       } catch {
         return {
           feature: undefined,
-          userErrors: [{ message: "Feature slug format is invalid", field: ["slug"], code: "INVALID_SLUG" }],
+          userErrors: [
+            { message: "Feature slug format is invalid", field: ["slug"], code: "INVALID_SLUG" },
+          ],
         };
       }
     }
@@ -30,11 +32,13 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
     if (existingFeature.isGroup && values) {
       return {
         feature: undefined,
-        userErrors: [{
-          message: "Groups cannot have values",
-          field: ["values"],
-          code: "INVALID_VALUES",
-        }],
+        userErrors: [
+          {
+            message: "Groups cannot have values",
+            field: ["values"],
+            code: "INVALID_VALUES",
+          },
+        ],
       };
     }
     const existingValues = existingFeature.isGroup
@@ -43,14 +47,17 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
 
     if (slug !== undefined) {
       if (slug !== existingFeature.slug) {
-        const duplicate = await this.repository.feature.findBySlug(
-          existingFeature.productId,
-          slug
-        );
+        const duplicate = await this.repository.feature.findBySlug(existingFeature.productId, slug);
         if (duplicate) {
           return {
             feature: undefined,
-            userErrors: [{ message: `Feature with slug "${slug}" already exists`, field: ["slug"], code: "DUPLICATE" }],
+            userErrors: [
+              {
+                message: `Feature with slug "${slug}" already exists`,
+                field: ["slug"],
+                code: "DUPLICATE",
+              },
+            ],
           };
         }
       }
@@ -75,11 +82,7 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
 
     // 3. Handle values updates
     if (values) {
-      const valueResult = await this.processValuesUpdate(
-        existingFeature,
-        existingValues,
-        values
-      );
+      const valueResult = await this.processValuesUpdate(existingFeature, existingValues, values);
       const { errors } = valueResult;
       if (errors.length > 0) {
         return { feature: undefined, userErrors: errors };
@@ -100,7 +103,7 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
   private async processValuesUpdate(
     feature: ProductFeature,
     existingValues: ProductFeatureValue[],
-    values: FeatureValuesInput
+    values: FeatureValuesInput,
   ): Promise<{
     errors: UserError[];
   }> {
@@ -109,9 +112,7 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
     // Value slugs that remain occupied after delete step.
     const deletedIds = new Set(values.delete ?? []);
     const occupiedSlugs = new Set(
-      existingValues
-        .filter((value) => !deletedIds.has(value.id))
-        .map((value) => value.slug)
+      existingValues.filter((value) => !deletedIds.has(value.id)).map((value) => value.slug),
     );
 
     // Delete values
@@ -120,7 +121,13 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
         const existingValue = existingById.get(valueId);
         if (!existingValue) {
           return {
-            errors: [{ message: "Feature value not found", field: ["values", "delete"], code: "NOT_FOUND" }],
+            errors: [
+              {
+                message: "Feature value not found",
+                field: ["values", "delete"],
+                code: "NOT_FOUND",
+              },
+            ],
           };
         }
         await this.repository.feature.deleteValue(valueId);
@@ -134,7 +141,13 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
         const existingValue = existingById.get(valueUpdate.id);
         if (!existingValue) {
           return {
-            errors: [{ message: "Feature value not found", field: ["values", "update", String(i), "id"], code: "NOT_FOUND" }],
+            errors: [
+              {
+                message: "Feature value not found",
+                field: ["values", "update", String(i), "id"],
+                code: "NOT_FOUND",
+              },
+            ],
           };
         }
 
@@ -192,9 +205,8 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
 
     // Create new values
     if (values.create?.length) {
-      let index = existingValues.length > 0
-        ? Math.max(...existingValues.map((v) => v.index)) + 1
-        : 0;
+      let index =
+        existingValues.length > 0 ? Math.max(...existingValues.map((v) => v.index)) + 1 : 0;
 
       for (let i = 0; i < values.create.length; i++) {
         const valueInput = values.create[i];
@@ -202,15 +214,15 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
         try {
           canonicalSlug = normalizeCollectionRuleHandleV1(valueInput.slug);
         } catch {
-            return {
-              errors: [
-                {
-                  message: "Feature value slug format is invalid",
-                  field: ["values", "create", String(i), "slug"],
-                  code: "INVALID_SLUG",
-                },
-              ],
-            };
+          return {
+            errors: [
+              {
+                message: "Feature value slug format is invalid",
+                field: ["values", "create", String(i), "slug"],
+                code: "INVALID_SLUG",
+              },
+            ],
+          };
         }
         if (occupiedSlugs.has(canonicalSlug)) {
           return {

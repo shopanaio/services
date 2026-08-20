@@ -1,4 +1,4 @@
-import { IFilterSchema } from '../core/types';
+import { IFilterSchema } from "../core/types";
 
 /**
  * Find a filter schema by key path

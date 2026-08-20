@@ -19,9 +19,7 @@ export class SearchSettingsUpdateScript extends BaseScript<
   SearchSettingsUpdateParams,
   SearchSettingsResult
 > {
-  protected async execute(
-    params: SearchSettingsUpdateParams,
-  ): Promise<SearchSettingsResult> {
+  protected async execute(params: SearchSettingsUpdateParams): Promise<SearchSettingsResult> {
     const values = validateAndNormalizeSearchSettings(params);
     const result = await this.repository.searchSettings.update({
       ...values,
@@ -29,11 +27,13 @@ export class SearchSettingsUpdateScript extends BaseScript<
 
     if (result.status === "not_found") {
       return {
-        userErrors: [{
-          message: "Search settings are not initialized",
-          field: [],
-          code: "SETTINGS_NOT_INITIALIZED",
-        }],
+        userErrors: [
+          {
+            message: "Search settings are not initialized",
+            field: [],
+            code: "SETTINGS_NOT_INITIALIZED",
+          },
+        ],
       };
     }
     return {
@@ -52,11 +52,13 @@ export function validateAndNormalizeSearchSettings(
   params: SearchSettingsWriteParams,
 ): SearchSettingsValueInput {
   if (params.fields.length === 0) {
-    throw new SearchConfigurationInputError([{
-      message: "At least one search field must be enabled",
-      field: ["input", "fields"],
-      code: "EMPTY_FIELDS",
-    }]);
+    throw new SearchConfigurationInputError([
+      {
+        message: "At least one search field must be enabled",
+        field: ["input", "fields"],
+        code: "EMPTY_FIELDS",
+      },
+    ]);
   }
 
   const userErrors: Array<{
@@ -97,7 +99,8 @@ export function validateAndNormalizeSearchSettings(
     throw new SearchConfigurationInputError(userErrors);
   }
 
-  const enabledFields = fieldRegistry.list()
+  const enabledFields = fieldRegistry
+    .list()
     .map((definition) => definition.field)
     .filter((field) => seen.has(field));
   const fieldWeights: Partial<Record<SearchTextField, number>> = {};

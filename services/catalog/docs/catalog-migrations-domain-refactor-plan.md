@@ -2,21 +2,27 @@
 
 ## Goal
 
-Create a domain/entity-oriented canonical migration baseline for catalog from the current Drizzle runtime models in TypeScript while keeping `node-pg-migrate` as the catalog migration runner.
+Create a domain/entity-oriented canonical migration baseline for catalog from the current Drizzle
+runtime models in TypeScript while keeping `node-pg-migrate` as the catalog migration runner.
 
-The structured migrations must create the catalog schema directly from the current model contract. The source of truth for table shape, enum values, indexes, constraints, and views is the runtime model layer under:
+The structured migrations must create the catalog schema directly from the current model contract.
+The source of truth for table shape, enum values, indexes, constraints, and views is the runtime
+model layer under:
 
 ```text
 services/catalog/src/repositories/models/**
 ```
 
-Drizzle remains a runtime schema/query model. Catalog migrations are handwritten PostgreSQL SQL executed by `node-pg-migrate`; do not use the Drizzle migrator for catalog.
+Drizzle remains a runtime schema/query model. Catalog migrations are handwritten PostgreSQL SQL
+executed by `node-pg-migrate`; do not use the Drizzle migrator for catalog.
 
 ## Current State
 
-`services/catalog/migrations/` is the destination for catalog SQL migrations. The new baseline should be created under `migrations/domains/**`.
+`services/catalog/migrations/` is the destination for catalog SQL migrations. The new baseline
+should be created under `migrations/domains/**`.
 
-The baseline should support fresh disposable databases. There is no stage or production data for catalog.
+The baseline should support fresh disposable databases. There is no stage or production data for
+catalog.
 
 ## Constraints
 
@@ -41,18 +47,25 @@ services/catalog/src/repositories/models/**/*.ts
 The inventory must be extracted from Drizzle runtime definitions:
 
 - `pgSchema`, `pgTable`, `pgEnum`, view definitions, and exported table/view objects;
-- column definitions, PostgreSQL types, enum references, defaults, nullability, generated/identity behavior, arrays, JSON, numeric precision, and timestamp modes;
-- primary keys, unique constraints, foreign keys, checks, indexes, partial predicates, operator classes, sort order, and deferrability when represented in models;
+- column definitions, PostgreSQL types, enum references, defaults, nullability, generated/identity
+  behavior, arrays, JSON, numeric precision, and timestamp modes;
+- primary keys, unique constraints, foreign keys, checks, indexes, partial predicates, operator
+  classes, sort order, and deferrability when represented in models;
 - raw SQL fragments used by model definitions, especially view definitions and expression indexes;
 - model export names and repository usage where ownership is ambiguous.
 
-If a required database detail is not expressible or not visible in the Drizzle model, record that gap in the inventory before writing SQL. Resolve the gap by making an explicit decision in the inventory, not by guessing inside a migration file.
+If a required database detail is not expressible or not visible in the Drizzle model, record that
+gap in the inventory before writing SQL. Resolve the gap by making an explicit decision in the
+inventory, not by guessing inside a migration file.
 
 ## Target Layout
 
-Use domain folders for navigation and ownership. Numeric prefixes are only an execution-order mechanism for `node-pg-migrate`; they are not domain names.
+Use domain folders for navigation and ownership. Numeric prefixes are only an execution-order
+mechanism for `node-pg-migrate`; they are not domain names.
 
-Keep globally unique file basenames because `node-pg-migrate` tracks migrations by basename in `catalog.pgmigrations`. If two domain folders contain the same basename, tracking becomes ambiguous. The domain/entity name after the prefix is the human-readable ownership marker.
+Keep globally unique file basenames because `node-pg-migrate` tracks migrations by basename in
+`catalog.pgmigrations`. If two domain folders contain the same basename, tracking becomes ambiguous.
+The domain/entity name after the prefix is the human-readable ownership marker.
 
 ```text
 services/catalog/migrations/
@@ -128,22 +141,30 @@ services/catalog/migrations/
       9003_read_models__inventory.sql
 ```
 
-The exact file list may change after inventory. Every final file must answer two questions from its path alone: which domain owns it, and which entity/read model it changes.
+The exact file list may change after inventory. Every final file must answer two questions from its
+path alone: which domain owns it, and which entity/read model it changes.
 
 ## Domain Ownership Rules
 
 - Foundation owns schema creation, enums, global helper types, and extension setup.
-- Product owns `product`, `variant`, product translations, product SEO, product media, variant media, search index tables, and product/variant read models.
-- Category owns `category`, `tag`, translations, category SEO/media, category-product joins, category-tag joins, product-tag joins, and category/tag list views.
+- Product owns `product`, `variant`, product translations, product SEO, product media, variant
+  media, search index tables, and product/variant read models.
+- Category owns `category`, `tag`, translations, category SEO/media, category-product joins,
+  category-tag joins, product-tag joins, and category/tag list views.
 - Options owns product options, option values, swatches, and variant option links.
 - Features owns product feature groups, feature values, translations, and feature relations.
-- Facets owns facets, facet values, facet translations, swatches, source handles/sources, and facet relation tables.
-- Inventory owns warehouses, inventory items, stock, stock changes, reservations, inbound supply, and inventory views.
-- Pricing owns item pricing, variant cost history, current price/cost views, and product price range views.
-- Components owns the optional product component aggregate, configurations, variant assignments, pricing rules, groups, items, option selections, translations, and dependency rules.
+- Facets owns facets, facet values, facet translations, swatches, source handles/sources, and facet
+  relation tables.
+- Inventory owns warehouses, inventory items, stock, stock changes, reservations, inbound supply,
+  and inventory views.
+- Pricing owns item pricing, variant cost history, current price/cost views, and product price range
+  views.
+- Components owns the optional product component aggregate, configurations, variant assignments,
+  pricing rules, groups, items, option selections, translations, and dependency rules.
 - Collections owns collections, collection items, collection rules, translations, SEO, and media.
 - Bulk edit owns bulk edit jobs, items, operation fences, statuses, and cancel reasons.
-- Cross-domain read models go in `9000_read_models` only when no single entity clearly owns the view.
+- Cross-domain read models go in `9000_read_models` only when no single entity clearly owns the
+  view.
 
 ## Inventory Contract
 
@@ -155,20 +176,24 @@ object type -> object name -> owning domain -> target canonical file -> complete
 
 For every table column, the inventory must include:
 
-- exact PostgreSQL type, including enum schema, precision, scale, array type, and JSON type where applicable;
+- exact PostgreSQL type, including enum schema, precision, scale, array type, and JSON type where
+  applicable;
 - `NOT NULL` vs nullable;
-- default expression, including `now()`, identity/sequence defaults, boolean defaults, numeric defaults, enum defaults, JSON defaults, and string literal defaults;
+- default expression, including `now()`, identity/sequence defaults, boolean defaults, numeric
+  defaults, enum defaults, JSON defaults, and string literal defaults;
 - generated/identity/sequence behavior if present;
 - collation or special storage options if present;
 - source TypeScript model file and exported model symbol.
 
-For every primary key, unique constraint, foreign key, and check constraint, the inventory must include:
+For every primary key, unique constraint, foreign key, and check constraint, the inventory must
+include:
 
 - exact constraint name;
 - ordered column list or check expression;
 - referenced schema/table/columns for foreign keys;
 - `ON DELETE`, `ON UPDATE`, `MATCH`, `DEFERRABLE`, and `INITIALLY` options;
-- whether the constraint is inline in the table file or attached in a later constraints file because of dependency order;
+- whether the constraint is inline in the table file or attached in a later constraints file because
+  of dependency order;
 - source TypeScript model file and model declaration.
 
 For every index, the inventory must include:
@@ -196,9 +221,11 @@ For every enum and extension, the inventory must include:
 - extension name, target schema, and whether `CREATE EXTENSION IF NOT EXISTS` is required;
 - source TypeScript model file for enums, or explicit inventory decision for extensions.
 
-The inventory is complete only when every exported Drizzle table, enum, and view model is either assigned to a canonical SQL file or explicitly documented as not creating a database object.
+The inventory is complete only when every exported Drizzle table, enum, and view model is either
+assigned to a canonical SQL file or explicitly documented as not creating a database object.
 
-Keep the inventory document or generated report in `services/catalog/docs/` until the baseline is reviewed.
+Keep the inventory document or generated report in `services/catalog/docs/` until the baseline is
+reviewed.
 
 ## Canonical SQL Rules
 
@@ -216,12 +243,14 @@ Rules:
 
 - generate SQL from the accepted model inventory;
 - keep SQL readable and reviewable;
-- keep unrelated entities in separate owner files even if dependency order would allow combining them;
+- keep unrelated entities in separate owner files even if dependency order would allow combining
+  them;
 - keep FK constraints after both referenced tables exist;
 - keep views after all source tables and prerequisite views exist;
 - schema-qualify catalog objects with `"catalog"`;
 - use exact names from Drizzle models when the model declares names;
-- when Drizzle uses generated/default names, choose stable explicit names and record them in the inventory;
+- when Drizzle uses generated/default names, choose stable explicit names and record them in the
+  inventory;
 - do not create placeholder files unless they document a deliberate reserved domain boundary.
 
 Build the baseline in dependency layers:
@@ -234,7 +263,8 @@ Build the baseline in dependency layers:
 
 ## Runner Changes
 
-`node-pg-migrate` does not recursively read nested directories when `dir` is a normal folder. Update the catalog runner to use glob mode.
+`node-pg-migrate` does not recursively read nested directories when `dir` is a normal folder. Update
+the catalog runner to use glob mode.
 
 Target runner shape:
 
@@ -253,7 +283,9 @@ await runner({
 });
 ```
 
-Keep `singleTransaction: false` so a future migration can opt into PostgreSQL operations that cannot run inside one global transaction. Individual SQL files should stay transaction-safe unless a specific operation requires otherwise.
+Keep `singleTransaction: false` so a future migration can opt into PostgreSQL operations that cannot
+run inside one global transaction. Individual SQL files should stay transaction-safe unless a
+specific operation requires otherwise.
 
 Update both catalog migration entry points:
 
@@ -280,21 +312,25 @@ Classify final objects by owner:
 - indexes -> indexed table owner;
 - final view definitions -> read model owner.
 
-Do not start Phase 2 until every exported Drizzle model object is assigned to a canonical file or explicitly documented as non-DDL.
+Do not start Phase 2 until every exported Drizzle model object is assigned to a canonical file or
+explicitly documented as non-DDL.
 
 ### Phase 2: Create Structured Baseline SQL
 
 Create canonical baseline files under `migrations/domains/**`.
 
-Use the complete model inventory as the SQL contract, including types, nullability, defaults, constraints, index predicates, and final view definitions.
+Use the complete model inventory as the SQL contract, including types, nullability, defaults,
+constraints, index predicates, and final view definitions.
 
 ### Phase 3: Update Catalog Runner
 
-Update both migration entry points to use `useGlob: true` and `dir: ${migrationsFolder}/domains/**/*.sql`.
+Update both migration entry points to use `useGlob: true` and
+`dir: ${migrationsFolder}/domains/**/*.sql`.
 
 ### Phase 4: Build Asset Check
 
-Current catalog build assets copy `migrations/**/*` to `dist/migrations`, which should preserve nested domain folders.
+Current catalog build assets copy `migrations/**/*` to `dist/migrations`, which should preserve
+nested domain folders.
 
 Verify after build that the dist output contains:
 
@@ -302,7 +338,8 @@ Verify after build that the dist output contains:
 services/catalog/dist/migrations/domains/**/*.sql
 ```
 
-If the build tool flattens nested assets unexpectedly, update the catalog `assets` entry before enabling nested runner glob.
+If the build tool flattens nested assets unexpectedly, update the catalog `assets` entry before
+enabling nested runner glob.
 
 ### Phase 5: Validation Matrix
 
@@ -338,14 +375,18 @@ For schema inspection, use PostgreSQL tools against disposable databases:
 pg_dump --schema-only --schema=catalog "$DATABASE_URL" > /tmp/catalog-schema.sql
 ```
 
-Normalize volatile dump lines before diffing, such as ownership and comments, if they are environment-specific.
+Normalize volatile dump lines before diffing, such as ownership and comments, if they are
+environment-specific.
 
 ## Acceptance Criteria
 
 - Catalog migrations are under `migrations/domains/**` and grouped by entity/domain.
-- Fresh catalog migrations create the final schema directly from the accepted Drizzle model inventory.
-- The final-schema inventory is complete enough to recreate the schema from the Drizzle model contract.
-- Fresh catalog schema matches the accepted inventory for column types, nullability, defaults, enum values, constraints, indexes, partial predicates, and views.
+- Fresh catalog migrations create the final schema directly from the accepted Drizzle model
+  inventory.
+- The final-schema inventory is complete enough to recreate the schema from the Drizzle model
+  contract.
+- Fresh catalog schema matches the accepted inventory for column types, nullability, defaults, enum
+  values, constraints, indexes, partial predicates, and views.
 - `catalog.pgmigrations` remains the only `node-pg-migrate` tracking table for catalog.
 - Future catalog migrations have a clear owner folder and globally unique basename.
 - Catalog runner loads only `migrations/domains/**/*.sql` for catalog.
@@ -356,4 +397,5 @@ After the baseline is implemented:
 
 - update knowledge base docs for catalog migration conventions;
 - keep catalog migrations handwritten for `node-pg-migrate`;
-- keep Drizzle models as runtime query/schema definitions and as the source for future model-derived migration planning.
+- keep Drizzle models as runtime query/schema definitions and as the source for future model-derived
+  migration planning.

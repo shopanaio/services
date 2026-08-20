@@ -23,18 +23,12 @@ import {
 } from "../models/index.js";
 
 const wishlistRelayQuery = createRelayQuery(
-  createQuery(customerWishlist)
-    .include(["id"])
-    .maxLimit(100)
-    .defaultLimit(20),
+  createQuery(customerWishlist).include(["id"]).maxLimit(100).defaultLimit(20),
   { name: "customerWishlist", tieBreaker: "id" },
 );
 
 const wishlistItemRelayQuery = createRelayQuery(
-  createQuery(customerWishlistItem)
-    .include(["id"])
-    .maxLimit(100)
-    .defaultLimit(20),
+  createQuery(customerWishlistItem).include(["id"]).maxLimit(100).defaultLimit(20),
   { name: "customerWishlistItem", tieBreaker: "id" },
 );
 
@@ -75,10 +69,7 @@ const EMPTY_PAGE_INFO: PageInfo = {
  */
 export class CustomerWishlistRepository extends BaseRepository {
   @ReadOnly()
-  async findById(
-    customerId: string,
-    wishlistId: string,
-  ): Promise<CustomerWishlist | null> {
+  async findById(customerId: string, wishlistId: string): Promise<CustomerWishlist | null> {
     const rows = await this.connection
       .select({ wishlist: customerWishlist })
       .from(customerWishlist)
@@ -103,10 +94,7 @@ export class CustomerWishlistRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getByIds(
-    customerId: string,
-    wishlistIds: readonly string[],
-  ): Promise<CustomerWishlist[]> {
+  async getByIds(customerId: string, wishlistIds: readonly string[]): Promise<CustomerWishlist[]> {
     if (wishlistIds.length === 0) return [];
     const rows = await this.connection
       .select({ wishlist: customerWishlist })
@@ -131,9 +119,7 @@ export class CustomerWishlistRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getDefaultByCustomerIds(
-    customerIds: readonly string[],
-  ): Promise<CustomerWishlist[]> {
+  async getDefaultByCustomerIds(customerIds: readonly string[]): Promise<CustomerWishlist[]> {
     if (customerIds.length === 0) return [];
     const rows = await this.connection
       .select({ wishlist: customerWishlist })
@@ -158,10 +144,7 @@ export class CustomerWishlistRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findItemById(
-    customerId: string,
-    itemId: string,
-  ): Promise<CustomerWishlistItem | null> {
+  async findItemById(customerId: string, itemId: string): Promise<CustomerWishlistItem | null> {
     const rows = await this.connection
       .select({ item: customerWishlistItem })
       .from(customerWishlistItem)
@@ -241,9 +224,7 @@ export class CustomerWishlistRepository extends BaseRepository {
       ...data,
       isDefault: currentDefault === null,
     });
-    return created
-      ? { status: "created", value: created }
-      : { status: "name_taken" };
+    return created ? { status: "created", value: created } : { status: "name_taken" };
   }
 
   @Transactional()
@@ -310,10 +291,7 @@ export class CustomerWishlistRepository extends BaseRepository {
     if (!sameInstant(current.updatedAt, input.expectedUpdatedAt)) {
       return { status: "conflict", value: current };
     }
-    if (
-      current.name === input.name &&
-      current.normalizedName === input.normalizedName
-    ) {
+    if (current.name === input.name && current.normalizedName === input.normalizedName) {
       return { status: "applied", value: current };
     }
     const duplicateName = await this.connection
@@ -348,9 +326,7 @@ export class CustomerWishlistRepository extends BaseRepository {
     if (rows[0]) return { status: "applied", value: rows[0] };
 
     const latest = await this.findById(input.customerId, input.wishlistId);
-    return latest
-      ? { status: "conflict", value: latest }
-      : { status: "not_found" };
+    return latest ? { status: "conflict", value: latest } : { status: "not_found" };
   }
 
   @Transactional()
@@ -393,9 +369,7 @@ export class CustomerWishlistRepository extends BaseRepository {
         ),
       )
       .returning();
-    return deleted[0]
-      ? { status: "applied", value: deleted[0] }
-      : { status: "not_found" };
+    return deleted[0] ? { status: "applied", value: deleted[0] } : { status: "not_found" };
   }
 
   @Transactional()
@@ -436,10 +410,7 @@ export class CustomerWishlistRepository extends BaseRepository {
   }
 
   @Transactional()
-  async removeItem(
-    customerId: string,
-    itemId: string,
-  ): Promise<CustomerWishlistItem | null> {
+  async removeItem(customerId: string, itemId: string): Promise<CustomerWishlistItem | null> {
     const item = await this.findItemById(customerId, itemId);
     if (!item) return null;
     const deleted = await this.connection
@@ -456,19 +427,14 @@ export class CustomerWishlistRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getConnection(
-    input: CustomerWishlistConnectionInput,
-  ): Promise<RepositoryConnectionResult> {
+  async getConnection(input: CustomerWishlistConnectionInput): Promise<RepositoryConnectionResult> {
     if (!(await this.isActiveCustomer(input.customerId))) {
       return emptyConnection();
     }
     const normalized = normalizeRelayPagination(input);
     const { customerId, ...pagination } = normalized;
     const where: WishlistRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        { customerId: { _eq: customerId } },
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, { customerId: { _eq: customerId } }],
     };
     const query: WishlistRelayInput = {
       ...pagination,
@@ -503,10 +469,7 @@ export class CustomerWishlistRepository extends BaseRepository {
     const normalized = normalizeRelayPagination(input);
     const { customerId: _customerId, wishlistId, ...pagination } = normalized;
     const where: WishlistItemRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        { wishlistId: { _eq: wishlistId } },
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, { wishlistId: { _eq: wishlistId } }],
     };
     const query: WishlistItemRelayInput = {
       ...pagination,
@@ -545,10 +508,7 @@ export class CustomerWishlistRepository extends BaseRepository {
   }
 
   private async insert(
-    data: Pick<
-      NewCustomerWishlist,
-      "customerId" | "name" | "normalizedName" | "isDefault"
-    >,
+    data: Pick<NewCustomerWishlist, "customerId" | "name" | "normalizedName" | "isDefault">,
   ): Promise<CustomerWishlist | null> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -565,9 +525,7 @@ export class CustomerWishlistRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  private async findDefault(
-    customerId: string,
-  ): Promise<CustomerWishlist | null> {
+  private async findDefault(customerId: string): Promise<CustomerWishlist | null> {
     const rows = await this.connection
       .select()
       .from(customerWishlist)

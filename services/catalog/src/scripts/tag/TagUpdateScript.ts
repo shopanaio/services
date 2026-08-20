@@ -11,9 +11,7 @@ export class TagUpdateScript extends BaseScript<TagUpdateParams, TagUpdateResult
     if (!existing) {
       return {
         tag: undefined,
-        userErrors: [
-          { message: "Tag not found", field: ["id"], code: "NOT_FOUND" },
-        ],
+        userErrors: [{ message: "Tag not found", field: ["id"], code: "NOT_FOUND" }],
       };
     }
 

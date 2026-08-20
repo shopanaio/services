@@ -17,6 +17,4 @@ export interface StaffRecipientUpsertParams {
 
 export type StaffRecipientListView = StaffRecipientView[];
 
-export type StaffRecipientWriteView = Awaited<
-  ReturnType<StaffRepository["upsert"]>
->;
+export type StaffRecipientWriteView = Awaited<ReturnType<StaffRepository["upsert"]>>;

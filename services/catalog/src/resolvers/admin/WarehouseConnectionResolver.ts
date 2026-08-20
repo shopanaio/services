@@ -12,9 +12,7 @@ export type WarehouseConnectionResolverInput = WarehouseRelayInput;
  */
 export class WarehouseConnectionResolver extends BaseConnectionResolver<WarehouseRelayInput> {
   async $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel
-      .getServices()
-      .repository.warehouse.getConnection(this.$props);
+    return this.$ctx.kernel.getServices().repository.warehouse.getConnection(this.$props);
   }
 
   protected async createNodeResolver(nodeId: string) {

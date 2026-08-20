@@ -1,17 +1,10 @@
-import {
-  requireStorefrontPermission,
-  STOREFRONT_PERMISSIONS,
-} from "@shopana/shared-context";
+import { requireStorefrontPermission, STOREFRONT_PERMISSIONS } from "@shopana/shared-context";
 import {
   decodeGlobalIdByType,
   encodeGlobalIdByType,
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
-import {
-  BaseType,
-  createExecutor,
-  type CacheStore,
-} from "@shopana/type-resolver";
+import { BaseType, createExecutor, type CacheStore } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
 import {
   getStorefrontResolverRegistry,
@@ -42,16 +35,10 @@ export abstract class StorefrontCustomersType<TValue, TData = unknown> extends B
   }
 
   protected requireReadPermission(): void {
-    requireStorefrontPermission(
-      this.$ctx.storefrontAccess,
-      STOREFRONT_PERMISSIONS.CUSTOMER_READ,
-    );
+    requireStorefrontPermission(this.$ctx.storefrontAccess, STOREFRONT_PERMISSIONS.CUSTOMER_READ);
   }
 
   protected requireWritePermission(): void {
-    requireStorefrontPermission(
-      this.$ctx.storefrontAccess,
-      STOREFRONT_PERMISSIONS.CUSTOMER_WRITE,
-    );
+    requireStorefrontPermission(this.$ctx.storefrontAccess, STOREFRONT_PERMISSIONS.CUSTOMER_WRITE);
   }
 }

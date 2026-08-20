@@ -47,7 +47,7 @@ const deserializeLineCost = (dto: CheckoutLineDto["cost"]): CheckoutLineCost => 
 });
 
 const deserializePriceConfig = (
-  dto: CheckoutLinePriceConfigDto | null | undefined
+  dto: CheckoutLinePriceConfigDto | null | undefined,
 ): CheckoutLinePriceConfig | null => {
   if (!dto) return null;
   return {
@@ -57,9 +57,7 @@ const deserializePriceConfig = (
   };
 };
 
-const deserializeLineTag = (
-  dto: CheckoutLineTagDto | null | undefined
-): CheckoutLineTag | null => {
+const deserializeLineTag = (dto: CheckoutLineTagDto | null | undefined): CheckoutLineTag | null => {
   if (!dto) return null;
   return {
     id: dto.id,
@@ -92,9 +90,7 @@ const deserializeDeliveryProvider = (
   data: dto.data,
 });
 
-const deserializeDeliveryMethod = (
-  dto: CheckoutDeliveryMethodDto,
-): CheckoutDeliveryMethod => ({
+const deserializeDeliveryMethod = (dto: CheckoutDeliveryMethodDto): CheckoutDeliveryMethod => ({
   code: dto.code,
   deliveryMethodType: dto.deliveryMethodType,
   shippingPaymentModel: dto.shippingPaymentModel,
@@ -121,9 +117,7 @@ const deserializeDeliveryAddress = (
   };
 };
 
-const deserializeDeliveryGroup = (
-  dto: CheckoutDeliveryGroupDto,
-): CheckoutDeliveryGroup => ({
+const deserializeDeliveryGroup = (dto: CheckoutDeliveryGroupDto): CheckoutDeliveryGroup => ({
   id: dto.id,
   checkoutLines: dto.checkoutLines.map(deserializeLine),
   deliveryAddress: deserializeDeliveryAddress(dto.deliveryAddress ?? null),
@@ -154,9 +148,7 @@ const deserializeCustomerIdentity = (
   middleName: dto.middleName,
 });
 
-const deserializeNotification = (
-  dto: CheckoutNotificationDto,
-): CheckoutNotification => ({
+const deserializeNotification = (dto: CheckoutNotificationDto): CheckoutNotification => ({
   id: dto.id,
   code: dto.code,
   severity: dto.severity,

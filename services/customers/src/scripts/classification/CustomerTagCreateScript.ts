@@ -17,9 +17,7 @@ export class CustomerTagCreateScript extends BaseScript<
   CustomerTagCreateResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerTagCreateParams
-  ): Promise<CustomerTagCreateResult> {
+  protected async execute(params: CustomerTagCreateParams): Promise<CustomerTagCreateResult> {
     const name = normalizeTagDisplayName(params.name);
     if (name.length === 0) {
       return {
@@ -36,11 +34,13 @@ export class CustomerTagCreateScript extends BaseScript<
     if ([...name].length > 255) {
       return {
         tag: undefined,
-        userErrors: [{
-          message: "Tag name cannot exceed 255 characters",
-          code: "INVALID_NAME",
-          field: ["name"],
-        }],
+        userErrors: [
+          {
+            message: "Tag name cannot exceed 255 characters",
+            code: "INVALID_NAME",
+            field: ["name"],
+          },
+        ],
       };
     }
     if (await this.repository.tag.findByName(name)) {

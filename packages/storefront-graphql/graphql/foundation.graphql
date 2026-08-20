@@ -8,54 +8,82 @@ extend schema
     import: ["@external", "@inaccessible", "@key", "@requires", "@shareable"]
   )
 
-"""A CSS color represented as a hexadecimal string."""
+"""
+A CSS color represented as a hexadecimal string.
+"""
 scalar Color
 
-"""An opaque cursor used for pagination."""
+"""
+An opaque cursor used for pagination.
+"""
 scalar Cursor
 
-"""An ISO 8601-encoded date and time string."""
+"""
+An ISO 8601-encoded date and time string.
+"""
 scalar DateTime
 
-"""An arbitrary-precision signed decimal number."""
+"""
+An arbitrary-precision signed decimal number.
+"""
 scalar Decimal
 
-"""An email address."""
+"""
+An email address.
+"""
 scalar Email
 
-"""A string containing HTML code."""
+"""
+A string containing HTML code.
+"""
 scalar HTML
 
-"""An ISO 8601-encoded date and time string."""
+"""
+An ISO 8601-encoded date and time string.
+"""
 scalar ISO8601DateTime
 
-"""A JSON-serializable value."""
+"""
+A JSON-serializable value.
+"""
 scalar JSON
 
-"""An unsigned 64-bit integer serialized as a decimal string."""
+"""
+An unsigned 64-bit integer serialized as a decimal string.
+"""
 scalar UnsignedInt64
 
-"""An RFC 3986 and RFC 3987 compliant URI string."""
+"""
+An RFC 3986 and RFC 3987 compliant URI string.
+"""
 scalar URL
 
-"""Enables global object identification following the Relay specification."""
+"""
+Enables global object identification following the Relay specification.
+"""
 interface Node {
   id: ID!
 }
 
-"""Represents an error in the input of a mutation."""
+"""
+Represents an error in the input of a mutation.
+"""
 interface DisplayableError {
   field: [String!]
   message: String!
 }
 
-"""Shared fields exposed by every Relay-style connection."""
+"""
+Shared fields exposed by every Relay-style connection.
+"""
 interface Connection {
   pageInfo: PageInfo!
   totalCount: Int!
 }
 
-"""Returns information about pagination in a connection."""
+"""
+Returns information about pagination in a connection.
+"""
 type PageInfo @shareable {
   endCursor: Cursor
   hasNextPage: Boolean!
@@ -63,19 +91,25 @@ type PageInfo @shareable {
   startCursor: Cursor
 }
 
-"""A precise monetary value with its associated currency."""
+"""
+A precise monetary value with its associated currency.
+"""
 type Money @shareable {
   amount: Decimal!
   currencyCode: CurrencyCode!
 }
 
-"""A weight measurement expressed in a supported unit."""
+"""
+A weight measurement expressed in a supported unit.
+"""
 type Weight @shareable {
   value: Float!
   unit: WeightUnit!
 }
 
-"""Physical dimensions expressed in a common length unit."""
+"""
+Physical dimensions expressed in a common length unit.
+"""
 type Dimensions @shareable {
   width: Float!
   height: Float!
@@ -83,20 +117,26 @@ type Dimensions @shareable {
   unit: DimensionUnit!
 }
 
-"""Localized rich text in plain text, HTML, and structured JSON formats."""
+"""
+Localized rich text in plain text, HTML, and structured JSON formats.
+"""
 type RichText @shareable {
   text: String!
   html: HTML!
   json: JSON!
 }
 
-"""Represents a generic error in the input of a mutation."""
+"""
+Represents a generic error in the input of a mutation.
+"""
 type UserError implements DisplayableError @shareable {
   field: [String!]
   message: String!
 }
 
-"""Supported country codes."""
+"""
+Supported country codes.
+"""
 enum CountryCode {
   AC
   AD

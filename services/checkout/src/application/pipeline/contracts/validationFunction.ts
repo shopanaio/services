@@ -1,11 +1,7 @@
-import type {
-  CheckoutPipelineJsonObject,
-  CheckoutPipelineJsonValue,
-} from "./common.js";
+import type { CheckoutPipelineJsonObject, CheckoutPipelineJsonValue } from "./common.js";
 import type { ValidateCheckoutRequest } from "./validation.js";
 
-export const CHECKOUT_VALIDATION_FUNCTION_TARGET =
-  "cart.validations.generate.run" as const;
+export const CHECKOUT_VALIDATION_FUNCTION_TARGET = "cart.validations.generate.run" as const;
 
 export interface CheckoutValidationBinding {
   readonly functionBindingId: string;
@@ -261,8 +257,7 @@ export interface CheckoutValidationFunctionPreliminaryTotals {
   readonly merchandiseTotal: CheckoutValidationFunctionMoney;
 }
 
-export interface CheckoutValidationFunctionTotals
-  extends CheckoutValidationFunctionPreliminaryTotals {
+export interface CheckoutValidationFunctionTotals extends CheckoutValidationFunctionPreliminaryTotals {
   readonly taxTotal: CheckoutValidationFunctionMoney;
   readonly deliverySubtotal: CheckoutValidationFunctionMoney;
   readonly deliveryDiscountTotal: CheckoutValidationFunctionMoney;
@@ -293,12 +288,7 @@ export interface CheckoutValidationFunctionDeliveryOption {
   readonly title: string;
   readonly description: string | null;
   readonly deliveryMethodType:
-    | "LOCAL"
-    | "NONE"
-    | "PICK_UP"
-    | "PICKUP_POINT"
-    | "RETAIL"
-    | "SHIPPING";
+    "LOCAL" | "NONE" | "PICK_UP" | "PICKUP_POINT" | "RETAIL" | "SHIPPING";
   readonly cost: CheckoutValidationFunctionMoney;
   readonly estimatedMinDeliveryAt: string | null;
   readonly estimatedMaxDeliveryAt: string | null;

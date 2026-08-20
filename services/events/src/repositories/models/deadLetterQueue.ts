@@ -1,12 +1,4 @@
-import {
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const deadLetterQueue = pgTable(
   "dead_letter_queue",
@@ -24,21 +16,19 @@ export const deadLetterQueue = pgTable(
     dbosWorkflowId: text("dbos_workflow_id"),
     dbosStepName: text("dbos_step_name"),
     status: text("status").notNull().default("failed"),
-    failedAt: timestamp("failed_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    failedAt: timestamp("failed_at", { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
   },
   (table) => [
     uniqueIndex("dlq_event_handler_unique").on(
       table.eventId,
       table.handlerService,
-      table.handlerAction
+      table.handlerAction,
     ),
     index("idx_dlq_status").on(table.status),
     index("idx_dlq_event_type").on(table.eventType, table.status),
     index("idx_dlq_organization").on(table.organizationId, table.status),
-  ]
+  ],
 );
 
 export type DLQEntry = typeof deadLetterQueue.$inferSelect;

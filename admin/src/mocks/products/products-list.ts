@@ -87,7 +87,10 @@ export const brands = [
 export const statuses = ["published", "draft"] as const;
 
 const toHandle = (value: string): string =>
-  value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
 const listCategories = categories.map((name, index) =>
   createMockApiCategory({
@@ -187,19 +190,15 @@ const createListProduct = (_: unknown, index: number): ApiProduct => {
   });
 };
 
-export const mockProductsList: ApiProduct[] = Array.from(
-  { length: 50 },
-  createListProduct,
-);
+export const mockProductsList: ApiProduct[] = Array.from({ length: 50 }, createListProduct);
 
-export const mockProductsConnection: ApiProductConnection =
-  createMockApiProductConnection(
-    mockProductsList,
-    createMockPageInfo({
-      hasNextPage: false,
-      hasPreviousPage: false,
-      startCursor: "product-cursor-0",
-      endCursor: `product-cursor-${mockProductsList.length - 1}`,
-    }),
-    mockProductsList.length,
-  );
+export const mockProductsConnection: ApiProductConnection = createMockApiProductConnection(
+  mockProductsList,
+  createMockPageInfo({
+    hasNextPage: false,
+    hasPreviousPage: false,
+    startCursor: "product-cursor-0",
+    endCursor: `product-cursor-${mockProductsList.length - 1}`,
+  }),
+  mockProductsList.length,
+);

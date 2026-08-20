@@ -9,10 +9,7 @@ import type {
   ShopanaApp,
 } from "@shopana/app-sdk";
 import { STOREFRONT_PERMISSION_CATALOG } from "@shopana/storefront-permissions";
-import {
-  HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS,
-  headlessManifest,
-} from "../app.manifest.js";
+import { HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS, headlessManifest } from "../app.manifest.js";
 import {
   HeadlessStorefrontConnectionService,
   StorefrontAccessPolicyService,
@@ -44,24 +41,17 @@ export class HeadlessApp implements ShopanaApp {
   private readonly internalServer: StorefrontAccessInternalServer;
 
   constructor(private readonly host: AppHostContext) {
-    this.repository = HeadlessStorefrontRepository.create(
-      host.databaseClient,
-    );
+    this.repository = HeadlessStorefrontRepository.create(host.databaseClient);
     this.crypto = StorefrontCredentialCrypto.fromEnvironment();
     this.policies = new StorefrontAccessPolicyService(this.repository);
-    this.credentials = new StorefrontCredentialService(
-      this.repository,
-      this.crypto,
-    );
+    this.credentials = new StorefrontCredentialService(this.repository, this.crypto);
     this.connections = new HeadlessStorefrontConnectionService(
       this.repository,
       this.policies,
       this.credentials,
       HEADLESS_STOREFRONT_DEFAULT_PERMISSIONS,
     );
-    const internal = host.config.internal as
-      | { readonly port?: unknown }
-      | undefined;
+    const internal = host.config.internal as { readonly port?: unknown } | undefined;
     this.internalServer = new StorefrontAccessInternalServer(
       new StorefrontCredentialResolver(
         this.repository,
@@ -77,10 +67,7 @@ export class HeadlessApp implements ShopanaApp {
 
   register(): void {
     this.registerInstallationLifecycle();
-    this.host.broker.register(
-      "permissionCatalog",
-      () => STOREFRONT_PERMISSION_CATALOG,
-    );
+    this.host.broker.register("permissionCatalog", () => STOREFRONT_PERMISSION_CATALOG);
   }
 
   async start(): Promise<void> {
@@ -133,27 +120,16 @@ export class HeadlessApp implements ShopanaApp {
         };
       },
     });
-    this.host.broker.register<AppSuspendInput, InstallationStateResult>(
-      "suspend",
-      (input) => ({
-        status: "suspended",
-        installationId:
-          input?.installationId ??
-          this.host.executionContext.current().installationId,
-      }),
-    );
-    this.host.broker.register<AppResumeInput, InstallationStateResult>(
-      "resume",
-      (input) => ({
-        status: "active",
-        installationId:
-          input?.installationId ??
-          this.host.executionContext.current().installationId,
-      }),
-    );
+    this.host.broker.register<AppSuspendInput, InstallationStateResult>("suspend", (input) => ({
+      status: "suspended",
+      installationId: input?.installationId ?? this.host.executionContext.current().installationId,
+    }));
+    this.host.broker.register<AppResumeInput, InstallationStateResult>("resume", (input) => ({
+      status: "active",
+      installationId: input?.installationId ?? this.host.executionContext.current().installationId,
+    }));
     this.host.broker.register("health", () => this.health());
   }
-
 }
 
 function requireEnvironment(name: string): string {

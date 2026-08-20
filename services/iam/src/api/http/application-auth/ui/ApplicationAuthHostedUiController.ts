@@ -1,9 +1,4 @@
-import {
-  createHash,
-  createHmac,
-  randomBytes,
-  timingSafeEqual,
-} from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { makeSignature } from "better-auth/crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createLocalJWKSet, decodeJwt, jwtVerify, type JSONWebKeySet } from "jose";
@@ -33,12 +28,7 @@ import {
   type ActiveApplicationAuthorizationContext,
 } from "./ApplicationAuthorizationContextService.js";
 import { createApplicationAuthTranslator } from "./localization.js";
-import {
-  escapeHtml,
-  hiddenInput,
-  renderApplicationAuthPage,
-  renderMessage,
-} from "./render.js";
+import { escapeHtml, hiddenInput, renderApplicationAuthPage, renderMessage } from "./render.js";
 
 const EMAIL_OTP_GENERIC_RESPONSE_FLOOR_MS = 250;
 
@@ -95,7 +85,7 @@ export class ApplicationAuthHostedUiController {
     this.authorizationContexts = new ApplicationAuthorizationContextService(
       kernel.repository.applicationAuthorizationContext,
       kernel.repository.applicationOAuthClient,
-      kernel.applicationAuthSecrets
+      kernel.applicationAuthSecrets,
     );
   }
 
@@ -118,10 +108,7 @@ export class ApplicationAuthHostedUiController {
     publicBaseUrl: string;
   }): Promise<boolean> {
     if (!this.isRoute(input.request.method, input.normalizedPath)) return false;
-    if (
-      input.request.method === "GET" &&
-      input.normalizedPath === APPLICATION_AUTH_UI_STYLE_PATH
-    ) {
+    if (input.request.method === "GET" && input.normalizedPath === APPLICATION_AUTH_UI_STYLE_PATH) {
       await input.reply
         .header("cache-control", "public, max-age=31536000, immutable")
         .header("x-content-type-options", "nosniff")
@@ -243,10 +230,7 @@ export class ApplicationAuthHostedUiController {
         : 500;
     input.reply.code(statusCode);
     if (input.error instanceof ApplicationAuthRateLimitError) {
-      input.reply.header(
-        "retry-after",
-        String(input.error.retryAfterSeconds)
-      );
+      input.reply.header("retry-after", String(input.error.retryAfterSeconds));
     }
     const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
     await sendHtml(
@@ -256,8 +240,8 @@ export class ApplicationAuthHostedUiController {
       `<h1>${escapeHtml(t("unavailableTitle"))}</h1>${renderMessage(
         input.runtime,
         "error",
-        "genericAuthError"
-      )}`
+        "genericAuthError",
+      )}`,
     );
   }
 
@@ -265,7 +249,7 @@ export class ApplicationAuthHostedUiController {
     if (input.raw.rawQuery) {
       const previous = await this.authorizationContexts.readFromRequest(
         input.request,
-        input.runtime
+        input.runtime,
       );
       const active = await this.authorizationContexts.captureSignedOAuthQuery({
         runtime: input.runtime,
@@ -274,10 +258,7 @@ export class ApplicationAuthHostedUiController {
         previousOpaqueId: previous?.opaqueId,
       });
       await redirectToUi(input, "/login", [
-        await this.authorizationContexts.serializeCookie(
-          input.runtime,
-          active.opaqueId
-        ),
+        await this.authorizationContexts.serializeCookie(input.runtime, active.opaqueId),
       ]);
       return;
     }
@@ -288,14 +269,14 @@ export class ApplicationAuthHostedUiController {
   private async renderLogin(
     input: HandlerInput,
     active: ActiveApplicationAuthorizationContext,
-    error = false
+    error = false,
   ): Promise<void> {
     const { runtime } = input;
     const t = createApplicationAuthTranslator(runtime.defaultLocale);
     const csrf = await this.authorizationContexts.createCsrfToken(
       runtime,
       active.opaqueId,
-      "password-signin"
+      "password-signin",
     );
     const signInForm = runtime.policy.passwordSignInAllowed
       ? `<form method="post" action="./login/password">
@@ -305,29 +286,26 @@ export class ApplicationAuthHostedUiController {
           <button type="submit">${escapeHtml(t("signIn"))}</button>
         </form>`
       : "";
-    const socialForms = runtime.routeManifest.allowedSocialProviders
-      .map((provider) => {
-        const socialCsrf = this.authorizationContexts.createCsrfToken(
-          runtime,
-          active.opaqueId,
-          `social-signin:${provider}`
-        );
-        return { provider, socialCsrf };
-      });
+    const socialForms = runtime.routeManifest.allowedSocialProviders.map((provider) => {
+      const socialCsrf = this.authorizationContexts.createCsrfToken(
+        runtime,
+        active.opaqueId,
+        `social-signin:${provider}`,
+      );
+      return { provider, socialCsrf };
+    });
     const socialButtons = (
       await Promise.all(
-        socialForms.map(async ({ provider, socialCsrf }) =>
-          `<form method="post" action="./login/social">
+        socialForms.map(
+          async ({ provider, socialCsrf }) =>
+            `<form method="post" action="./login/social">
             ${hiddenInput("csrf", await socialCsrf)}
             ${hiddenInput("provider", provider)}
             <button class="button-secondary" type="submit">${escapeHtml(
-              t(
-                getApplicationSocialProviderDefinition(provider)
-                  .continueLabelKey
-              )
+              t(getApplicationSocialProviderDefinition(provider).continueLabelKey),
             )}</button>
-          </form>`
-        )
+          </form>`,
+        ),
       )
     ).join("");
     const links = [
@@ -355,12 +333,7 @@ export class ApplicationAuthHostedUiController {
   private async postSocialSignIn(input: HandlerInput): Promise<void> {
     const form = parseForm(input.raw);
     const provider = parseSocialProvider(
-      singleFormValue(
-        form,
-        "provider",
-        1,
-        APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH
-      )
+      singleFormValue(form, "provider", 1, APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH),
     );
     if (!input.runtime.routeManifest.allowedSocialProviders.includes(provider)) {
       throw uiNotFound();
@@ -370,27 +343,19 @@ export class ApplicationAuthHostedUiController {
       input.runtime,
       active,
       `social-signin:${provider}`,
-      singleFormValue(form, "csrf", 16, 1024)
+      singleFormValue(form, "csrf", 16, 1024),
     );
-    const rotated = await this.authorizationContexts.rotate(
-      input.runtime,
-      active,
-      { currentStep: "login" }
-    );
+    const rotated = await this.authorizationContexts.rotate(input.runtime, active, {
+      currentStep: "login",
+    });
     const response = await this.callBetterAuth(input, "/sign-in/social", {
       provider,
-      oauth_query: await this.authorizationContexts.buildSignedOAuthQuery(
-        input.runtime,
-        rotated
-      ),
+      oauth_query: await this.authorizationContexts.buildSignedOAuthQuery(input.runtime, rotated),
     });
     if (!isRedirectResponse(response)) {
       input.reply.header(
         "set-cookie",
-        await this.authorizationContexts.serializeCookie(
-          input.runtime,
-          rotated.opaqueId
-        )
+        await this.authorizationContexts.serializeCookie(input.runtime, rotated.opaqueId),
       );
       await this.renderLogin(input, rotated, true);
       return;
@@ -398,12 +363,9 @@ export class ApplicationAuthHostedUiController {
     await this.authorizationContexts.consume(input.runtime, rotated);
     await sendApplicationAuthFetchResponse(
       asBrowserRedirect(
-        appendSetCookie(
-          response,
-          this.authorizationContexts.clearCookie(input.runtime)
-        )
+        appendSetCookie(response, this.authorizationContexts.clearCookie(input.runtime)),
       ),
-      input.reply
+      input.reply,
     );
   }
 
@@ -417,7 +379,7 @@ export class ApplicationAuthHostedUiController {
       input.runtime,
       active,
       "password-signin",
-      singleFormValue(form, "csrf", 16, 1024)
+      singleFormValue(form, "csrf", 16, 1024),
     );
     await this.kernel.applicationAuthRateLimiter.assertPasswordSignIn({
       applicationId: input.runtime.applicationId,
@@ -425,14 +387,12 @@ export class ApplicationAuthHostedUiController {
       ip: input.request.ip,
       secret: this.rateLimitSecret(input.runtime),
     });
-    const rotated = await this.authorizationContexts.rotate(
-      input.runtime,
-      active,
-      { currentStep: "login" }
-    );
+    const rotated = await this.authorizationContexts.rotate(input.runtime, active, {
+      currentStep: "login",
+    });
     const oauthQuery = await this.authorizationContexts.buildSignedOAuthQuery(
       input.runtime,
-      rotated
+      rotated,
     );
     const response = await this.callBetterAuth(input, "/sign-in/email", {
       email,
@@ -442,16 +402,13 @@ export class ApplicationAuthHostedUiController {
     });
     const contextCookie = await this.authorizationContexts.serializeCookie(
       input.runtime,
-      rotated.opaqueId
+      rotated.opaqueId,
     );
     if (isRedirectResponse(response)) {
       await this.authorizationContexts.consume(input.runtime, rotated);
       await sendApplicationAuthFetchResponse(
-        appendSetCookie(
-          response,
-          this.authorizationContexts.clearCookie(input.runtime)
-        ),
-        input.reply
+        appendSetCookie(response, this.authorizationContexts.clearCookie(input.runtime)),
+        input.reply,
       );
       return;
     }
@@ -468,13 +425,13 @@ export class ApplicationAuthHostedUiController {
   private async renderSignup(
     input: HandlerInput,
     active: ActiveApplicationAuthorizationContext,
-    error = false
+    error = false,
   ): Promise<void> {
     const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
     const csrf = await this.authorizationContexts.createCsrfToken(
       input.runtime,
       active.opaqueId,
-      "password-signup"
+      "password-signup",
     );
     const body = `<h1>${escapeHtml(t("signUpTitle"))}</h1><p class="muted">${escapeHtml(t("signUpHint"))}</p>${
       error ? renderMessage(input.runtime, "error", "genericAuthError") : ""
@@ -499,7 +456,7 @@ export class ApplicationAuthHostedUiController {
       input.runtime,
       active,
       "password-signup",
-      singleFormValue(form, "csrf", 16, 1024)
+      singleFormValue(form, "csrf", 16, 1024),
     );
     await this.kernel.applicationAuthRateLimiter.assertPasswordSignUp({
       applicationId: input.runtime.applicationId,
@@ -507,45 +464,34 @@ export class ApplicationAuthHostedUiController {
       ip: input.request.ip,
       secret: this.rateLimitSecret(input.runtime),
     });
-    const rotated = await this.authorizationContexts.rotate(
-      input.runtime,
-      active,
-      { currentStep: "login" }
-    );
+    const rotated = await this.authorizationContexts.rotate(input.runtime, active, {
+      currentStep: "login",
+    });
     const response = await this.callBetterAuth(input, "/sign-up/email", {
       name,
       email,
       password,
       rememberMe: true,
       callbackURL: `${input.runtime.issuer}/verified`,
-      oauth_query:
-        await this.authorizationContexts.buildSignedOAuthQuery(
-          input.runtime,
-          rotated
-        ),
+      oauth_query: await this.authorizationContexts.buildSignedOAuthQuery(input.runtime, rotated),
     });
     const contextCookie = await this.authorizationContexts.serializeCookie(
       input.runtime,
-      rotated.opaqueId
+      rotated.opaqueId,
     );
     if (isRedirectResponse(response)) {
       await this.authorizationContexts.consume(input.runtime, rotated);
       await sendApplicationAuthFetchResponse(
-        appendSetCookie(
-          response,
-          this.authorizationContexts.clearCookie(input.runtime)
-        ),
-        input.reply
+        appendSetCookie(response, this.authorizationContexts.clearCookie(input.runtime)),
+        input.reply,
       );
       return;
     }
     if (response.ok) {
       await redirectToUi(
         input,
-        input.runtime.emailVerificationRequired
-          ? "/verification-pending"
-          : "/account-created",
-        [contextCookie]
+        input.runtime.emailVerificationRequired ? "/verification-pending" : "/account-created",
+        [contextCookie],
       );
       return;
     }
@@ -560,10 +506,10 @@ export class ApplicationAuthHostedUiController {
     const csrf = await this.authorizationContexts.createCsrfToken(
       input.runtime,
       active.opaqueId,
-      "phone-otp-request"
+      "phone-otp-request",
     );
     const body = `<h1>${escapeHtml(t("phoneOtpTitle"))}</h1><p class="muted">${escapeHtml(
-      t("phoneOtpRequestHint")
+      t("phoneOtpRequestHint"),
     )}</p><form method="post" action="./phone-otp/request">
       ${hiddenInput("csrf", csrf)}
       <div class="field"><label for="phoneNumber">${escapeHtml(t("phone"))}</label><input id="phoneNumber" name="phoneNumber" type="tel" autocomplete="tel" required maxlength="16" pattern="\\+[1-9][0-9]{6,14}"></div>
@@ -582,7 +528,7 @@ export class ApplicationAuthHostedUiController {
       input.runtime,
       active,
       "phone-otp-request",
-      singleFormValue(form, "csrf", 16, 1024)
+      singleFormValue(form, "csrf", 16, 1024),
     );
     await this.kernel.applicationAuthRateLimiter.assertPhoneOtpRequest({
       applicationId: input.runtime.applicationId,
@@ -599,7 +545,9 @@ export class ApplicationAuthHostedUiController {
     }
     await waitForEmailOtpGenericResponseFloor(startedAt);
     if (!response.ok) throw emailOtpDeliveryUnavailable();
-    const rotated = await this.authorizationContexts.rotate(input.runtime, active, { currentStep: "login" });
+    const rotated = await this.authorizationContexts.rotate(input.runtime, active, {
+      currentStep: "login",
+    });
     await redirectToUi(input, "/phone-otp/verify", [
       await this.authorizationContexts.serializeCookie(input.runtime, rotated.opaqueId),
     ]);
@@ -614,18 +562,18 @@ export class ApplicationAuthHostedUiController {
   private async renderPhoneOtpVerify(
     input: HandlerInput,
     active: ActiveApplicationAuthorizationContext,
-    error = false
+    error = false,
   ): Promise<void> {
     const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
     const csrf = await this.authorizationContexts.createCsrfToken(
       input.runtime,
       active.opaqueId,
-      "phone-otp-verify"
+      "phone-otp-verify",
     );
     const body = `<h1>${escapeHtml(t("phoneOtpVerifyTitle"))}</h1>${renderMessage(
       input.runtime,
       "success",
-      "phoneOtpAccepted"
+      "phoneOtpAccepted",
     )}<p class="muted">${escapeHtml(t("phoneOtpVerifyHint"))}</p>${
       error ? renderMessage(input.runtime, "error", "genericAuthError") : ""
     }<form method="post" action="./verify">
@@ -636,7 +584,7 @@ export class ApplicationAuthHostedUiController {
     </form><nav class="links"><a href="../phone-otp">${escapeHtml(t("resendPhoneOtp"))}</a><a href="../login">${escapeHtml(t("backToSignIn"))}</a></nav>`;
     input.reply.header(
       "set-cookie",
-      await this.authorizationContexts.serializeCookie(input.runtime, active.opaqueId)
+      await this.authorizationContexts.serializeCookie(input.runtime, active.opaqueId),
     );
     await sendHtml(input.reply, input.runtime, t("phoneOtpVerifyTitle"), body);
   }
@@ -651,7 +599,7 @@ export class ApplicationAuthHostedUiController {
       input.runtime,
       active,
       "phone-otp-verify",
-      singleFormValue(form, "csrf", 16, 1024)
+      singleFormValue(form, "csrf", 16, 1024),
     );
     await this.kernel.applicationAuthRateLimiter.assertPhoneOtpVerify({
       applicationId: input.runtime.applicationId,
@@ -659,7 +607,9 @@ export class ApplicationAuthHostedUiController {
       ip: input.request.ip,
       secret: this.rateLimitSecret(input.runtime),
     });
-    const rotated = await this.authorizationContexts.rotate(input.runtime, active, { currentStep: "login" });
+    const rotated = await this.authorizationContexts.rotate(input.runtime, active, {
+      currentStep: "login",
+    });
     const existingUser = await this.kernel.repository.applicationUser
       .forApplication(input.runtime.applicationId)
       .findByPhoneNumber(phoneNumber);
@@ -682,7 +632,7 @@ export class ApplicationAuthHostedUiController {
       await this.authorizationContexts.consume(input.runtime, rotated);
       await sendApplicationAuthFetchResponse(
         appendSetCookie(response, this.authorizationContexts.clearCookie(input.runtime)),
-        input.reply
+        input.reply,
       );
       return;
     }
@@ -696,17 +646,15 @@ export class ApplicationAuthHostedUiController {
     const csrf = await this.authorizationContexts.createCsrfToken(
       input.runtime,
       active.opaqueId,
-      "email-otp-request"
+      "email-otp-request",
     );
     const body = `<h1>${escapeHtml(t("emailOtpTitle"))}</h1><p class="muted">${escapeHtml(
-      t("emailOtpRequestHint")
+      t("emailOtpRequestHint"),
     )}</p><form method="post" action="./email-otp/request">
       ${hiddenInput("csrf", csrf)}
       <div class="field"><label for="email">${escapeHtml(t("email"))}</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="320"></div>
       <button type="submit">${escapeHtml(t("sendEmailOtp"))}</button>
-    </form><nav class="links"><a href="./login">${escapeHtml(
-      t("backToSignIn")
-    )}</a></nav>`;
+    </form><nav class="links"><a href="./login">${escapeHtml(t("backToSignIn"))}</a></nav>`;
     await sendHtml(input.reply, input.runtime, t("emailOtpTitle"), body);
   }
 
@@ -720,7 +668,7 @@ export class ApplicationAuthHostedUiController {
       input.runtime,
       active,
       "email-otp-request",
-      singleFormValue(form, "csrf", 16, 1024)
+      singleFormValue(form, "csrf", 16, 1024),
     );
     await this.kernel.applicationAuthRateLimiter.assertEmailOtpRequest({
       applicationId: input.runtime.applicationId,
@@ -731,11 +679,10 @@ export class ApplicationAuthHostedUiController {
 
     let response: Response;
     try {
-      response = await this.callBetterAuth(
-        input,
-        "/email-otp/send-verification-otp",
-        { email, type: "sign-in" }
-      );
+      response = await this.callBetterAuth(input, "/email-otp/send-verification-otp", {
+        email,
+        type: "sign-in",
+      });
     } catch {
       await waitForEmailOtpGenericResponseFloor(startedAt);
       throw emailOtpDeliveryUnavailable();
@@ -746,22 +693,17 @@ export class ApplicationAuthHostedUiController {
         throw new ApplicationAuthRateLimitError(
           429,
           readRetryAfterSeconds(response.headers.get("retry-after")),
-          "slow_down"
+          "slow_down",
         );
       }
       throw emailOtpDeliveryUnavailable();
     }
 
-    const rotated = await this.authorizationContexts.rotate(
-      input.runtime,
-      active,
-      { currentStep: "login" }
-    );
+    const rotated = await this.authorizationContexts.rotate(input.runtime, active, {
+      currentStep: "login",
+    });
     await redirectToUi(input, "/email-otp/verify", [
-      await this.authorizationContexts.serializeCookie(
-        input.runtime,
-        rotated.opaqueId
-      ),
+      await this.authorizationContexts.serializeCookie(input.runtime, rotated.opaqueId),
     ]);
   }
 
@@ -774,18 +716,18 @@ export class ApplicationAuthHostedUiController {
   private async renderEmailOtpVerify(
     input: HandlerInput,
     active: ActiveApplicationAuthorizationContext,
-    error = false
+    error = false,
   ): Promise<void> {
     const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
     const csrf = await this.authorizationContexts.createCsrfToken(
       input.runtime,
       active.opaqueId,
-      "email-otp-verify"
+      "email-otp-verify",
     );
     const body = `<h1>${escapeHtml(t("emailOtpVerifyTitle"))}</h1>${renderMessage(
       input.runtime,
       "success",
-      "emailOtpAccepted"
+      "emailOtpAccepted",
     )}<p class="muted">${escapeHtml(t("emailOtpVerifyHint"))}</p>${
       error ? renderMessage(input.runtime, "error", "genericAuthError") : ""
     }<form method="post" action="./verify">
@@ -794,24 +736,18 @@ export class ApplicationAuthHostedUiController {
       <div class="field"><label for="otp">${escapeHtml(t("emailOtpCode"))}</label><input id="otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" required minlength="6" maxlength="6" pattern="[0-9]{6}"></div>
       <button type="submit">${escapeHtml(t("verifyEmailOtp"))}</button>
     </form><nav class="links"><a href="../email-otp">${escapeHtml(
-      t("resendEmailOtp")
+      t("resendEmailOtp"),
     )}</a><a href="../login">${escapeHtml(t("backToSignIn"))}</a></nav>`;
     input.reply.header(
       "set-cookie",
-      await this.authorizationContexts.serializeCookie(
-        input.runtime,
-        active.opaqueId
-      )
+      await this.authorizationContexts.serializeCookie(input.runtime, active.opaqueId),
     );
     await sendHtml(
       input.reply,
       input.runtime,
       t("emailOtpVerifyTitle"),
       body,
-      await this.authorizationContexts.resolveBoundRedirectUri(
-        input.runtime,
-        active
-      )
+      await this.authorizationContexts.resolveBoundRedirectUri(input.runtime, active),
     );
   }
 
@@ -825,7 +761,7 @@ export class ApplicationAuthHostedUiController {
       input.runtime,
       active,
       "email-otp-verify",
-      singleFormValue(form, "csrf", 16, 1024)
+      singleFormValue(form, "csrf", 16, 1024),
     );
     await this.kernel.applicationAuthRateLimiter.assertEmailOtpVerify({
       applicationId: input.runtime.applicationId,
@@ -833,15 +769,12 @@ export class ApplicationAuthHostedUiController {
       ip: input.request.ip,
       secret: this.rateLimitSecret(input.runtime),
     });
-    const rotated = await this.authorizationContexts.rotate(
-      input.runtime,
-      active,
-      { currentStep: "login" }
-    );
-    const existingUser =
-      await this.kernel.repository.applicationUser
-        .forApplication(input.runtime.applicationId)
-        .findByEmail(email);
+    const rotated = await this.authorizationContexts.rotate(input.runtime, active, {
+      currentStep: "login",
+    });
+    const existingUser = await this.kernel.repository.applicationUser
+      .forApplication(input.runtime.applicationId)
+      .findByEmail(email);
     if (existingUser?.status === "blocked") {
       await this.renderEmailOtpVerify(input, rotated, true);
       return;
@@ -851,34 +784,24 @@ export class ApplicationAuthHostedUiController {
       response = await this.callBetterAuth(input, "/sign-in/email-otp", {
         email,
         otp,
-        oauth_query:
-          await this.authorizationContexts.buildSignedOAuthQuery(
-            input.runtime,
-            rotated
-          ),
+        oauth_query: await this.authorizationContexts.buildSignedOAuthQuery(input.runtime, rotated),
       });
     } catch {
       input.reply.header(
         "set-cookie",
-        await this.authorizationContexts.serializeCookie(
-          input.runtime,
-          rotated.opaqueId
-        )
+        await this.authorizationContexts.serializeCookie(input.runtime, rotated.opaqueId),
       );
       throw new ApplicationAuthRequestError(
         "Email OTP sign-in could not be completed",
         503,
-        "temporarily_unavailable"
+        "temporarily_unavailable",
       );
     }
     if (isRedirectResponse(response)) {
       await this.authorizationContexts.consume(input.runtime, rotated);
       await sendApplicationAuthFetchResponse(
-        appendSetCookie(
-          response,
-          this.authorizationContexts.clearCookie(input.runtime)
-        ),
-        input.reply
+        appendSetCookie(response, this.authorizationContexts.clearCookie(input.runtime)),
+        input.reply,
       );
       return;
     }
@@ -892,7 +815,7 @@ export class ApplicationAuthHostedUiController {
     const csrf = await this.authorizationContexts.createCsrfToken(
       input.runtime,
       active.opaqueId,
-      "password-reset-request"
+      "password-reset-request",
     );
     const body = `<h1>${escapeHtml(t("resetPasswordTitle"))}</h1><p class="muted">${escapeHtml(t("resetPasswordRequestHint"))}</p><form method="post" action="./forgot">
       ${hiddenInput("csrf", csrf)}
@@ -911,7 +834,7 @@ export class ApplicationAuthHostedUiController {
       input.runtime,
       active,
       "password-reset-request",
-      singleFormValue(form, "csrf", 16, 1024)
+      singleFormValue(form, "csrf", 16, 1024),
     );
     await this.kernel.applicationAuthRateLimiter.assertPasswordReset({
       applicationId: input.runtime.applicationId,
@@ -919,27 +842,22 @@ export class ApplicationAuthHostedUiController {
       ip: input.request.ip,
       secret: this.rateLimitSecret(input.runtime),
     });
-    const rotated = await this.authorizationContexts.rotate(
-      input.runtime,
-      active,
-      { currentStep: "login" }
-    );
+    const rotated = await this.authorizationContexts.rotate(input.runtime, active, {
+      currentStep: "login",
+    });
     await this.callBetterAuth(input, "/request-password-reset", {
       email,
       redirectTo: `${input.runtime.issuer}/password/reset`,
     });
     input.reply.header(
       "set-cookie",
-      await this.authorizationContexts.serializeCookie(
-        input.runtime,
-        rotated.opaqueId
-      )
+      await this.authorizationContexts.serializeCookie(input.runtime, rotated.opaqueId),
     );
     const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
     const body = `<h1>${escapeHtml(t("resetPasswordTitle"))}</h1>${renderMessage(
       input.runtime,
       "success",
-      "resetRequestAccepted"
+      "resetRequestAccepted",
     )}<nav class="links"><a href="../login">${escapeHtml(t("backToSignIn"))}</a></nav>`;
     await sendHtml(input.reply, input.runtime, t("resetPasswordTitle"), body);
   }
@@ -976,12 +894,12 @@ export class ApplicationAuthHostedUiController {
       ? `<h1>${escapeHtml(t("resetPasswordTitle"))}</h1>${renderMessage(
           input.runtime,
           "success",
-          "resetComplete"
+          "resetComplete",
         )}<nav class="links"><a href="../login">${escapeHtml(t("backToSignIn"))}</a></nav>`
       : `<h1>${escapeHtml(t("resetPasswordTitle"))}</h1>${renderMessage(
           input.runtime,
           "error",
-          "genericAuthError"
+          "genericAuthError",
         )}`;
     await sendHtml(input.reply, input.runtime, t("resetPasswordTitle"), body);
   }
@@ -992,32 +910,24 @@ export class ApplicationAuthHostedUiController {
     const csrf = await this.authorizationContexts.createCsrfToken(
       input.runtime,
       active.opaqueId,
-      "verification-resend"
+      "verification-resend",
     );
     const resend = input.runtime.emailVerificationRequired
       ? `<form method="post" action="./verification/resend">${hiddenInput(
           "csrf",
-          csrf
+          csrf,
         )}<div class="field"><label for="email">${escapeHtml(
-          t("email")
+          t("email"),
         )}</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="320"></div><button type="submit">${escapeHtml(
-          t("resendVerification")
+          t("resendVerification"),
         )}</button></form>`
       : "";
     const body = `<h1>${escapeHtml(t("verificationPendingTitle"))}</h1><p class="muted">${escapeHtml(t("verificationPendingHint"))}</p>${resend}<nav class="links"><a href="./login">${escapeHtml(t("backToSignIn"))}</a></nav>`;
     input.reply.header(
       "set-cookie",
-      await this.authorizationContexts.serializeCookie(
-        input.runtime,
-        active.opaqueId
-      )
+      await this.authorizationContexts.serializeCookie(input.runtime, active.opaqueId),
     );
-    await sendHtml(
-      input.reply,
-      input.runtime,
-      t("verificationPendingTitle"),
-      body
-    );
+    await sendHtml(input.reply, input.runtime, t("verificationPendingTitle"), body);
   }
 
   private async postVerificationResend(input: HandlerInput): Promise<void> {
@@ -1029,7 +939,7 @@ export class ApplicationAuthHostedUiController {
       input.runtime,
       active,
       "verification-resend",
-      singleFormValue(form, "csrf", 16, 1024)
+      singleFormValue(form, "csrf", 16, 1024),
     );
     await this.kernel.applicationAuthRateLimiter.assertPasswordReset({
       applicationId: input.runtime.applicationId,
@@ -1037,21 +947,16 @@ export class ApplicationAuthHostedUiController {
       ip: input.request.ip,
       secret: this.rateLimitSecret(input.runtime),
     });
-    const rotated = await this.authorizationContexts.rotate(
-      input.runtime,
-      active,
-      { currentStep: "login" }
-    );
+    const rotated = await this.authorizationContexts.rotate(input.runtime, active, {
+      currentStep: "login",
+    });
     await this.callBetterAuth(input, "/send-verification-email", {
       email,
       callbackURL: `${input.runtime.issuer}/verified`,
     });
     input.reply.header(
       "set-cookie",
-      await this.authorizationContexts.serializeCookie(
-        input.runtime,
-        rotated.opaqueId
-      )
+      await this.authorizationContexts.serializeCookie(input.runtime, rotated.opaqueId),
     );
     const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
     await sendHtml(
@@ -1061,8 +966,8 @@ export class ApplicationAuthHostedUiController {
       `<h1>${escapeHtml(t("verificationPendingTitle"))}</h1>${renderMessage(
         input.runtime,
         "success",
-        "verificationResent"
-      )}`
+        "verificationResent",
+      )}`,
     );
   }
 
@@ -1075,12 +980,7 @@ export class ApplicationAuthHostedUiController {
   private async getAccountCreated(input: HandlerInput): Promise<void> {
     const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
     const body = `<h1>${escapeHtml(t("accountCreatedTitle"))}</h1><p class="muted">${escapeHtml(t("accountCreatedHint"))}</p>`;
-    await sendHtml(
-      input.reply,
-      input.runtime,
-      t("accountCreatedTitle"),
-      body
-    );
+    await sendHtml(input.reply, input.runtime, t("accountCreatedTitle"), body);
   }
 
   private async getAccountConnections(input: HandlerInput): Promise<void> {
@@ -1101,25 +1001,17 @@ export class ApplicationAuthHostedUiController {
           },
         ];
       } catch {
-        throw new ApplicationAuthRequestError(
-          "Application accounts are unavailable"
-        );
+        throw new ApplicationAuthRequestError("Application accounts are unavailable");
       }
     });
-    const providers = APPLICATION_AUTH_PROVIDER_NAMES
-      .map((provider) => {
-        const matches = socialAccounts.filter(
-          (account) => account.provider === provider
-        );
-        const enabled =
-          input.runtime.routeManifest.allowedSocialProviders.includes(provider);
-        const label = t(
-          getApplicationSocialProviderDefinition(provider).providerLabelKey
-        );
-        if (matches.length === 0 && !enabled) return "";
-        if (matches.length === 1) {
-          const unlink = fresh
-            ? `<form method="post" action="./connections/unlink">
+    const providers = APPLICATION_AUTH_PROVIDER_NAMES.map((provider) => {
+      const matches = socialAccounts.filter((account) => account.provider === provider);
+      const enabled = input.runtime.routeManifest.allowedSocialProviders.includes(provider);
+      const label = t(getApplicationSocialProviderDefinition(provider).providerLabelKey);
+      if (matches.length === 0 && !enabled) return "";
+      if (matches.length === 1) {
+        const unlink = fresh
+          ? `<form method="post" action="./connections/unlink">
                 ${hiddenInput("provider", provider)}
                 ${hiddenInput(
                   "csrf",
@@ -1127,29 +1019,27 @@ export class ApplicationAuthHostedUiController {
                     this.kernel,
                     input.runtime,
                     session.session.id,
-                    `unlink:${provider}`
-                  )
+                    `unlink:${provider}`,
+                  ),
                 )}
                 <button class="button-secondary" type="submit">${escapeHtml(
-                  t("disconnectProvider")
+                  t("disconnectProvider"),
                 )}</button>
               </form>`
-            : `<p class="muted">${escapeHtml(t("freshSessionRequired"))}</p>`;
-          return `<section class="connection"><div><strong>${escapeHtml(
-            label
-          )}</strong><p class="muted">${escapeHtml(
-            t("providerConnected")
-          )}</p></div>${unlink}</section>`;
-        }
-        if (matches.length > 1) {
-          return `<section class="connection"><div><strong>${escapeHtml(
-            label
-          )}</strong><p class="muted">${escapeHtml(
-            t("providerConflict")
-          )}</p></div></section>`;
-        }
-        const link = fresh
-          ? `<form method="post" action="./connections/link">
+          : `<p class="muted">${escapeHtml(t("freshSessionRequired"))}</p>`;
+        return `<section class="connection"><div><strong>${escapeHtml(
+          label,
+        )}</strong><p class="muted">${escapeHtml(
+          t("providerConnected"),
+        )}</p></div>${unlink}</section>`;
+      }
+      if (matches.length > 1) {
+        return `<section class="connection"><div><strong>${escapeHtml(
+          label,
+        )}</strong><p class="muted">${escapeHtml(t("providerConflict"))}</p></div></section>`;
+      }
+      const link = fresh
+        ? `<form method="post" action="./connections/link">
               ${hiddenInput("provider", provider)}
               ${hiddenInput(
                 "csrf",
@@ -1157,18 +1047,18 @@ export class ApplicationAuthHostedUiController {
                   this.kernel,
                   input.runtime,
                   session.session.id,
-                  `link:${provider}`
-                )
+                  `link:${provider}`,
+                ),
               )}
               <button type="submit">${escapeHtml(t("connectProvider"))}</button>
             </form>`
-          : `<p class="muted">${escapeHtml(t("freshSessionRequired"))}</p>`;
-        return `<section class="connection"><div><strong>${escapeHtml(
-          label
-        )}</strong><p class="muted">${escapeHtml(
-          t("providerNotConnected")
-        )}</p></div>${link}</section>`;
-      })
+        : `<p class="muted">${escapeHtml(t("freshSessionRequired"))}</p>`;
+      return `<section class="connection"><div><strong>${escapeHtml(
+        label,
+      )}</strong><p class="muted">${escapeHtml(
+        t("providerNotConnected"),
+      )}</p></div>${link}</section>`;
+    })
       .filter(Boolean)
       .join("");
     const status = hasError
@@ -1177,25 +1067,15 @@ export class ApplicationAuthHostedUiController {
         ? renderMessage(input.runtime, "success", "connectionsUpdated")
         : "";
     const body = `<h1>${escapeHtml(t("connectionsTitle"))}</h1><p class="muted">${escapeHtml(
-      t("connectionsHint")
+      t("connectionsHint"),
     )}</p>${status}${providers || `<p>${escapeHtml(t("noSocialProviders"))}</p>`}`;
-    await sendHtml(
-      input.reply,
-      input.runtime,
-      t("connectionsTitle"),
-      body
-    );
+    await sendHtml(input.reply, input.runtime, t("connectionsTitle"), body);
   }
 
   private async postAccountConnectionLink(input: HandlerInput): Promise<void> {
     const form = parseForm(input.raw);
     const provider = parseSocialProvider(
-      singleFormValue(
-        form,
-        "provider",
-        1,
-        APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH
-      )
+      singleFormValue(form, "provider", 1, APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH),
     );
     let session: ApplicationAuthCurrentSession;
     try {
@@ -1230,7 +1110,7 @@ export class ApplicationAuthHostedUiController {
       throw new ApplicationAuthRequestError(
         "A recent application session is required",
         403,
-        "access_denied"
+        "access_denied",
       );
     }
     try {
@@ -1239,7 +1119,7 @@ export class ApplicationAuthHostedUiController {
         input.runtime,
         session.session.id,
         `link:${provider}`,
-        singleFormValue(form, "csrf", 16, 1024)
+        singleFormValue(form, "csrf", 16, 1024),
       );
     } catch (error) {
       await this.recordAccountAudit(input, {
@@ -1273,33 +1153,23 @@ export class ApplicationAuthHostedUiController {
       await this.recordAccountAudit(input, {
         action: "account_link",
         outcome: "failure",
-        reasonCategory: mapBetterAuthAccountError(
-          await readBetterAuthErrorCode(response)
-        ),
+        reasonCategory: mapBetterAuthAccountError(await readBetterAuthErrorCode(response)),
         provider,
         actorId: session.user.id,
       });
       throw new ApplicationAuthRequestError(
         "Account connection could not be started",
         response.status === 403 ? 403 : 400,
-        "access_denied"
+        "access_denied",
       );
     }
-    await sendApplicationAuthFetchResponse(
-      asBrowserRedirect(response),
-      input.reply
-    );
+    await sendApplicationAuthFetchResponse(asBrowserRedirect(response), input.reply);
   }
 
   private async postAccountConnectionUnlink(input: HandlerInput): Promise<void> {
     const form = parseForm(input.raw);
     const provider = parseSocialProvider(
-      singleFormValue(
-        form,
-        "provider",
-        1,
-        APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH
-      )
+      singleFormValue(form, "provider", 1, APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH),
     );
     let session: ApplicationAuthCurrentSession;
     try {
@@ -1324,7 +1194,7 @@ export class ApplicationAuthHostedUiController {
       throw new ApplicationAuthRequestError(
         "A recent application session is required",
         403,
-        "access_denied"
+        "access_denied",
       );
     }
     try {
@@ -1333,7 +1203,7 @@ export class ApplicationAuthHostedUiController {
         input.runtime,
         session.session.id,
         `unlink:${provider}`,
-        singleFormValue(form, "csrf", 16, 1024)
+        singleFormValue(form, "csrf", 16, 1024),
       );
     } catch (error) {
       await this.recordAccountAudit(input, {
@@ -1348,7 +1218,7 @@ export class ApplicationAuthHostedUiController {
     let matchingAccounts: ApplicationAuthAccount[];
     try {
       matchingAccounts = (await this.readCurrentAccounts(input)).filter(
-        (account) => account.providerId === provider
+        (account) => account.providerId === provider,
       );
     } catch (error) {
       await this.recordAccountAudit(input, {
@@ -1364,15 +1234,14 @@ export class ApplicationAuthHostedUiController {
       await this.recordAccountAudit(input, {
         action: "account_unlink",
         outcome: "failure",
-        reasonCategory:
-          matchingAccounts.length === 0 ? "invalid_request" : "account_conflict",
+        reasonCategory: matchingAccounts.length === 0 ? "invalid_request" : "account_conflict",
         provider,
         actorId: session.user.id,
       });
       throw new ApplicationAuthRequestError(
         "Account connection could not be removed",
         400,
-        "invalid_request"
+        "invalid_request",
       );
     }
     let response: Response;
@@ -1394,16 +1263,14 @@ export class ApplicationAuthHostedUiController {
       await this.recordAccountAudit(input, {
         action: "account_unlink",
         outcome: "failure",
-        reasonCategory: mapBetterAuthAccountError(
-          await readBetterAuthErrorCode(response)
-        ),
+        reasonCategory: mapBetterAuthAccountError(await readBetterAuthErrorCode(response)),
         provider,
         actorId: session.user.id,
       });
       throw new ApplicationAuthRequestError(
         "Account connection could not be removed",
         response.status === 403 ? 403 : 400,
-        "access_denied"
+        "access_denied",
       );
     }
     await this.recordAccountAudit(input, {
@@ -1424,7 +1291,7 @@ export class ApplicationAuthHostedUiController {
       reasonCategory: ApplicationAuthAuditReasonCategory;
       provider: ApplicationAuthProviderName;
       actorId?: string;
-    }
+    },
   ): Promise<void> {
     await this.kernel.applicationAuthAudit.record({
       ...event,
@@ -1440,7 +1307,7 @@ export class ApplicationAuthHostedUiController {
     if (input.raw.rawQuery) {
       const previous = await this.authorizationContexts.readFromRequest(
         input.request,
-        input.runtime
+        input.runtime,
       );
       const sessionId = await this.readCurrentSessionId(input);
       const active = await this.authorizationContexts.captureSignedOAuthQuery({
@@ -1451,23 +1318,20 @@ export class ApplicationAuthHostedUiController {
         previousOpaqueId: previous?.opaqueId,
       });
       await redirectToUi(input, "/consent", [
-        await this.authorizationContexts.serializeCookie(
-          input.runtime,
-          active.opaqueId
-        ),
+        await this.authorizationContexts.serializeCookie(input.runtime, active.opaqueId),
       ]);
       return;
     }
     const active = await this.requireContext(input, "consent");
     const client = await this.kernel.repository.applicationOAuthClient.findActiveHostedUiClient(
       input.runtime.applicationId,
-      active.context.clientId
+      active.context.clientId,
     );
     if (!client) throw uiNotFound();
     const csrf = await this.authorizationContexts.createCsrfToken(
       input.runtime,
       active.opaqueId,
-      "consent"
+      "consent",
     );
     const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
     const clientName = client.name ?? "Application";
@@ -1488,49 +1352,38 @@ export class ApplicationAuthHostedUiController {
       input.runtime,
       active,
       "consent",
-      singleFormValue(form, "csrf", 16, 1024)
+      singleFormValue(form, "csrf", 16, 1024),
     );
     const decision = singleFormValue(form, "decision", 4, 5);
     if (decision !== "allow" && decision !== "deny") {
       throw new ApplicationAuthRequestError("Consent decision is invalid");
     }
-    const rotated = await this.authorizationContexts.rotate(
-      input.runtime,
-      active,
-      { currentStep: "consent", sessionId: active.context.sessionId }
-    );
+    const rotated = await this.authorizationContexts.rotate(input.runtime, active, {
+      currentStep: "consent",
+      sessionId: active.context.sessionId,
+    });
     const response = await this.callBetterAuth(input, "/oauth2/consent", {
       accept: decision === "allow",
       scope: active.context.scopes.join(" "),
-      oauth_query:
-        await this.authorizationContexts.buildSignedOAuthQuery(
-          input.runtime,
-          rotated
-        ),
+      oauth_query: await this.authorizationContexts.buildSignedOAuthQuery(input.runtime, rotated),
     });
     const browserRedirect = await asBetterAuthBrowserRedirect(response);
     if (browserRedirect) {
       await this.authorizationContexts.assertOAuthRedirectTarget(
         input.runtime,
         rotated,
-        browserRedirect.headers.get("location") ?? ""
+        browserRedirect.headers.get("location") ?? "",
       );
       await this.authorizationContexts.consume(input.runtime, rotated);
       await sendApplicationAuthFetchResponse(
-        appendSetCookie(
-          browserRedirect,
-          this.authorizationContexts.clearCookie(input.runtime)
-        ),
-        input.reply
+        appendSetCookie(browserRedirect, this.authorizationContexts.clearCookie(input.runtime)),
+        input.reply,
       );
       return;
     }
     input.reply.header(
       "set-cookie",
-      await this.authorizationContexts.serializeCookie(
-        input.runtime,
-        rotated.opaqueId
-      )
+      await this.authorizationContexts.serializeCookie(input.runtime, rotated.opaqueId),
     );
     const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
     await sendHtml(
@@ -1540,8 +1393,8 @@ export class ApplicationAuthHostedUiController {
       `<h1>${escapeHtml(t("consentTitle"))}</h1>${renderMessage(
         input.runtime,
         "error",
-        "genericAuthError"
-      )}`
+        "genericAuthError",
+      )}`,
     );
   }
 
@@ -1554,40 +1407,28 @@ export class ApplicationAuthHostedUiController {
     } catch {
       throw new ApplicationAuthRequestError("End-session token is invalid");
     }
-    const decodedAudience = Array.isArray(decoded.aud)
-      ? decoded.aud[0]
-      : decoded.aud;
-    const requestedClientId = optionalSingleQueryValue(
-      query,
-      "client_id",
-      1,
-      512
-    );
+    const decodedAudience = Array.isArray(decoded.aud) ? decoded.aud[0] : decoded.aud;
+    const requestedClientId = optionalSingleQueryValue(query, "client_id", 1, 512);
     const clientId = requestedClientId ?? decodedAudience;
     if (!clientId || (requestedClientId && !audienceIncludes(decoded.aud, clientId))) {
       throw new ApplicationAuthRequestError("End-session client is invalid");
     }
     const client = await this.kernel.repository.applicationOAuthClient.findActiveHostedUiClient(
       input.runtime.applicationId,
-      clientId
+      clientId,
     );
     if (!client?.enableEndSession) throw uiNotFound();
     const postLogoutRedirectUri = optionalSingleQueryValue(
       query,
       "post_logout_redirect_uri",
       1,
-      2048
+      2048,
     );
-    if (
-      postLogoutRedirectUri &&
-      !client.postLogoutRedirectUris.includes(postLogoutRedirectUri)
-    ) {
-      throw new ApplicationAuthRequestError(
-        "Post-logout redirect URI is invalid"
-      );
+    if (postLogoutRedirectUri && !client.postLogoutRedirectUris.includes(postLogoutRedirectUri)) {
+      throw new ApplicationAuthRequestError("Post-logout redirect URI is invalid");
     }
     const jwksResponse = await input.runtime.auth.handler(
-      new Request(`${input.runtime.issuer}/jwks`, { method: "GET" })
+      new Request(`${input.runtime.issuer}/jwks`, { method: "GET" }),
     );
     if (!jwksResponse.ok) {
       throw new ApplicationAuthRequestError("End-session token is invalid");
@@ -1616,16 +1457,12 @@ export class ApplicationAuthHostedUiController {
       clientId,
       userId: payload.sub,
       sessionId: payload.sid,
-      postLogoutRedirectUriHash: postLogoutRedirectUri
-        ? hashValue(postLogoutRedirectUri)
-        : null,
+      postLogoutRedirectUriHash: postLogoutRedirectUri ? hashValue(postLogoutRedirectUri) : null,
       state: optionalSingleQueryValue(query, "state", 1, 2048),
       nonce: randomBytes(32).toString("base64url"),
       expiresAt: Date.now() + 10 * 60 * 1_000,
     };
-    await redirectToUi(input, "/logout", [
-      await this.serializeLogoutCookie(input.runtime, state),
-    ]);
+    await redirectToUi(input, "/logout", [await this.serializeLogoutCookie(input.runtime, state)]);
   }
 
   private async getLogout(input: HandlerInput): Promise<void> {
@@ -1638,10 +1475,8 @@ export class ApplicationAuthHostedUiController {
     const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
     const body = `<h1>${escapeHtml(t("logoutTitle"))}</h1><p class="muted">${escapeHtml(t("logoutHint"))}</p><form method="post" action="./logout">${hiddenInput(
       "csrf",
-      csrf
-    )}<div class="actions"><button type="submit">${escapeHtml(
-      t("logout")
-    )}</button></div></form>`;
+      csrf,
+    )}<div class="actions"><button type="submit">${escapeHtml(t("logout"))}</button></div></form>`;
     await sendHtml(input.reply, input.runtime, t("logoutTitle"), body);
   }
 
@@ -1656,16 +1491,13 @@ export class ApplicationAuthHostedUiController {
     }
     const client = await this.kernel.repository.applicationOAuthClient.findActiveHostedUiClient(
       input.runtime.applicationId,
-      state.clientId
+      state.clientId,
     );
     if (!client?.enableEndSession) throw uiNotFound();
     const sessionRepository = this.kernel.repository.authSession.forApplication(
-      input.runtime.applicationId
+      input.runtime.applicationId,
     );
-    const session = await sessionRepository.validate(
-      state.userId,
-      state.sessionId
-    );
+    const session = await sessionRepository.validate(state.userId, state.sessionId);
     if (!session) {
       throw new ApplicationAuthRequestError("Logout state is already consumed");
     }
@@ -1676,19 +1508,17 @@ export class ApplicationAuthHostedUiController {
         applicationId: input.runtime.applicationId,
         userId: state.userId,
         sessionId: state.sessionId,
-      })
+      }),
     );
 
     const cookies = this.clearLogoutCookies(input.runtime);
     const redirectUri = state.postLogoutRedirectUriHash
       ? client.postLogoutRedirectUris.find(
-          (candidate) => hashValue(candidate) === state.postLogoutRedirectUriHash
+          (candidate) => hashValue(candidate) === state.postLogoutRedirectUriHash,
         )
       : undefined;
     if (state.postLogoutRedirectUriHash && !redirectUri) {
-      throw new ApplicationAuthRequestError(
-        "Post-logout redirect binding is invalid"
-      );
+      throw new ApplicationAuthRequestError("Post-logout redirect binding is invalid");
     }
     if (redirectUri) {
       const target = new URL(redirectUri);
@@ -1705,26 +1535,16 @@ export class ApplicationAuthHostedUiController {
     }
     input.reply.header("set-cookie", cookies);
     const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
-    await sendHtml(
-      input.reply,
-      input.runtime,
-      t("logout"),
-      `<h1>${escapeHtml(t("logout"))}</h1>`
-    );
+    await sendHtml(input.reply, input.runtime, t("logout"), `<h1>${escapeHtml(t("logout"))}</h1>`);
   }
 
   private async requireContext(
     input: HandlerInput,
-    expectedStep: "login" | "consent"
+    expectedStep: "login" | "consent",
   ): Promise<ActiveApplicationAuthorizationContext> {
-    const active = await this.authorizationContexts.readFromRequest(
-      input.request,
-      input.runtime
-    );
+    const active = await this.authorizationContexts.readFromRequest(input.request, input.runtime);
     if (!active || active.context.currentStep !== expectedStep) {
-      throw new ApplicationAuthRequestError(
-        "Authorization context is unavailable or expired"
-      );
+      throw new ApplicationAuthRequestError("Authorization context is unavailable or expired");
     }
     return active;
   }
@@ -1732,7 +1552,7 @@ export class ApplicationAuthHostedUiController {
   private async callBetterAuth(
     input: HandlerInput,
     path: string,
-    body: Record<string, unknown>
+    body: Record<string, unknown>,
   ): Promise<Response> {
     const headers = new Headers({
       accept: "text/html,application/xhtml+xml",
@@ -1756,7 +1576,7 @@ export class ApplicationAuthHostedUiController {
         headers,
         body: JSON.stringify(body),
         redirect: "manual",
-      })
+      }),
     );
   }
 
@@ -1764,9 +1584,7 @@ export class ApplicationAuthHostedUiController {
     return (await this.readCurrentSession(input)).session.id;
   }
 
-  private async readCurrentSession(
-    input: HandlerInput
-  ): Promise<ApplicationAuthCurrentSession> {
+  private async readCurrentSession(input: HandlerInput): Promise<ApplicationAuthCurrentSession> {
     const headers = new Headers({
       accept: "application/json",
       host: new URL(input.publicBaseUrl).host,
@@ -1779,7 +1597,7 @@ export class ApplicationAuthHostedUiController {
       new Request(`${input.runtime.issuer}/get-session`, {
         method: "GET",
         headers,
-      })
+      }),
     );
     if (!response.ok) {
       throw new ApplicationAuthRequestError("Application session is unavailable");
@@ -1791,8 +1609,7 @@ export class ApplicationAuthHostedUiController {
     if (
       !value ||
       typeof value.session?.id !== "string" ||
-      (typeof value.session.createdAt !== "string" &&
-        !(value.session.createdAt instanceof Date)) ||
+      (typeof value.session.createdAt !== "string" && !(value.session.createdAt instanceof Date)) ||
       typeof value.user?.id !== "string"
     ) {
       throw new ApplicationAuthRequestError("Application session is unavailable");
@@ -1807,9 +1624,7 @@ export class ApplicationAuthHostedUiController {
     };
   }
 
-  private async readCurrentAccounts(
-    input: HandlerInput
-  ): Promise<ApplicationAuthAccount[]> {
+  private async readCurrentAccounts(input: HandlerInput): Promise<ApplicationAuthAccount[]> {
     const headers = new Headers({
       accept: "application/json",
       host: new URL(input.publicBaseUrl).host,
@@ -1824,7 +1639,7 @@ export class ApplicationAuthHostedUiController {
       new Request(`${input.runtime.issuer}/list-accounts`, {
         method: "GET",
         headers,
-      })
+      }),
     );
     if (!response.ok) {
       throw new ApplicationAuthRequestError("Application accounts are unavailable");
@@ -1839,9 +1654,7 @@ export class ApplicationAuthHostedUiController {
         typeof account !== "object" ||
         typeof (account as { providerId?: unknown }).providerId !== "string"
       ) {
-        throw new ApplicationAuthRequestError(
-          "Application accounts are unavailable"
-        );
+        throw new ApplicationAuthRequestError("Application accounts are unavailable");
       }
       return {
         providerId: (account as { providerId: string }).providerId,
@@ -1853,37 +1666,27 @@ export class ApplicationAuthHostedUiController {
     return this.kernel.applicationAuthSecrets.derivePurposeSecret(
       runtime.applicationId,
       runtime.secretKeyVersion,
-      "rate-limit"
+      "rate-limit",
     );
   }
 
-  private createResetCsrf(
-    runtime: ApplicationAuthFactoryRuntime,
-    token: string
-  ): Promise<string> {
+  private createResetCsrf(runtime: ApplicationAuthFactoryRuntime, token: string): Promise<string> {
     return makeSignature(
-      `shopana:iam:application-auth-reset-csrf:v1\0${runtime.applicationId}\0${hashValue(
-        token
-      )}`,
+      `shopana:iam:application-auth-reset-csrf:v1\0${runtime.applicationId}\0${hashValue(token)}`,
       this.kernel.applicationAuthSecrets.derivePurposeSecret(
         runtime.applicationId,
         runtime.secretKeyVersion,
-        "authorization-context"
-      )
+        "authorization-context",
+      ),
     );
   }
 
   private async serializeLogoutCookie(
     runtime: ApplicationAuthFactoryRuntime,
-    state: LogoutState
+    state: LogoutState,
   ): Promise<string> {
-    const payload = Buffer.from(JSON.stringify(state), "utf8").toString(
-      "base64url"
-    );
-    const signature = await makeSignature(
-      payload,
-      this.logoutSecret(runtime)
-    );
+    const payload = Buffer.from(JSON.stringify(state), "utf8").toString("base64url");
+    const signature = await makeSignature(payload, this.logoutSecret(runtime));
     return serializeCookie(logoutCookieName(runtime), `${payload}.${signature}`, {
       path: `/auth/applications/${runtime.applicationId}`,
       maxAge: 10 * 60,
@@ -1892,10 +1695,7 @@ export class ApplicationAuthHostedUiController {
   }
 
   private async readLogoutState(input: HandlerInput): Promise<LogoutState | null> {
-    const raw = readCookie(
-      input.request.headers.cookie,
-      logoutCookieName(input.runtime)
-    );
+    const raw = readCookie(input.request.headers.cookie, logoutCookieName(input.runtime));
     if (!raw) return null;
     const separator = raw.lastIndexOf(".");
     if (separator <= 0) return null;
@@ -1922,11 +1722,11 @@ export class ApplicationAuthHostedUiController {
 
   private createLogoutCsrf(
     runtime: ApplicationAuthFactoryRuntime,
-    state: LogoutState
+    state: LogoutState,
   ): Promise<string> {
     return makeSignature(
       `shopana:iam:application-auth-logout-csrf:v1\0${runtime.applicationId}\0${state.nonce}\0${state.sessionId}`,
-      this.logoutSecret(runtime)
+      this.logoutSecret(runtime),
     );
   }
 
@@ -1934,31 +1734,27 @@ export class ApplicationAuthHostedUiController {
     return this.kernel.applicationAuthSecrets.derivePurposeSecret(
       runtime.applicationId,
       runtime.secretKeyVersion,
-      "hosted-ui-logout"
+      "hosted-ui-logout",
     );
   }
 
   private clearLogoutCookies(runtime: ApplicationAuthFactoryRuntime): string[] {
     const path = `/auth/applications/${runtime.applicationId}`;
     const secure = runtime.issuer.startsWith("https://");
-    const prefix = `${secure ? "__Secure-" : ""}shopana_application_${
-      runtime.applicationId
-    }`;
+    const prefix = `${secure ? "__Secure-" : ""}shopana_application_${runtime.applicationId}`;
     return [
       logoutCookieName(runtime),
       `${prefix}.session_token`,
       `${prefix}.session_data`,
       `${prefix}.account_data`,
       `${prefix}.dont_remember`,
-    ].map((name) =>
-      serializeCookie(name, "", { path, maxAge: 0, secure })
-    );
+    ].map((name) => serializeCookie(name, "", { path, maxAge: 0, secure }));
   }
 
   private async sendUnavailable(
     reply: FastifyReply,
     runtime: ApplicationAuthFactoryRuntime,
-    statusCode: number
+    statusCode: number,
   ): Promise<void> {
     const t = createApplicationAuthTranslator(runtime.defaultLocale);
     reply.code(statusCode);
@@ -1967,8 +1763,8 @@ export class ApplicationAuthHostedUiController {
       runtime,
       t("unavailableTitle"),
       `<h1>${escapeHtml(t("unavailableTitle"))}</h1><p class="muted">${escapeHtml(
-        t("unavailableHint")
-      )}</p>`
+        t("unavailableHint"),
+      )}</p>`,
     );
   }
 }
@@ -1998,9 +1794,11 @@ const logoutStateSchema = z
   .strict();
 
 function parseForm(raw: RawApplicationAuthRequest): URLSearchParams {
-  if (raw.contentType?.split(";", 1)[0]?.trim().toLowerCase() !== "application/x-www-form-urlencoded") {
+  if (
+    raw.contentType?.split(";", 1)[0]?.trim().toLowerCase() !== "application/x-www-form-urlencoded"
+  ) {
     throw new ApplicationAuthRequestError(
-      "Hosted authentication forms require application/x-www-form-urlencoded"
+      "Hosted authentication forms require application/x-www-form-urlencoded",
     );
   }
   if (!raw.body || raw.body.length === 0) {
@@ -2026,17 +1824,17 @@ function createAccountConnectionCsrf(
   kernel: Kernel,
   runtime: ApplicationAuthFactoryRuntime,
   sessionId: string,
-  action: string
+  action: string,
 ): string {
   const secret = kernel.applicationAuthSecrets.derivePurposeSecret(
     runtime.applicationId,
     runtime.secretKeyVersion,
-    "account-connections"
+    "account-connections",
   );
   return createHmac("sha256", secret)
     .update(
       `shopana:iam:application-auth-account-connections:v1\0${runtime.applicationId}\0${sessionId}\0${action}`,
-      "utf8"
+      "utf8",
     )
     .digest("base64url");
 }
@@ -2046,22 +1844,15 @@ function assertAccountConnectionCsrf(
   runtime: ApplicationAuthFactoryRuntime,
   sessionId: string,
   action: string,
-  actual: string
+  actual: string,
 ): void {
-  const expected = createAccountConnectionCsrf(
-    kernel,
-    runtime,
-    sessionId,
-    action
-  );
+  const expected = createAccountConnectionCsrf(kernel, runtime, sessionId, action);
   if (!constantTimeEqual(actual, expected)) {
     throw new ApplicationAuthRequestError("CSRF token is invalid");
   }
 }
 
-async function readBetterAuthErrorCode(
-  response: Response
-): Promise<string | null> {
+async function readBetterAuthErrorCode(response: Response): Promise<string | null> {
   try {
     const value = (await response.clone().json()) as {
       code?: unknown;
@@ -2074,9 +1865,7 @@ async function readBetterAuthErrorCode(
   }
 }
 
-function mapBetterAuthAccountError(
-  code: string | null
-): ApplicationAuthAuditReasonCategory {
+function mapBetterAuthAccountError(code: string | null): ApplicationAuthAuditReasonCategory {
   switch (code?.toUpperCase()) {
     case "SESSION_NOT_FRESH":
       return "session_not_fresh";
@@ -2097,7 +1886,7 @@ function singleFormValue(
   form: URLSearchParams,
   name: string,
   minLength: number,
-  maxLength: number
+  maxLength: number,
 ): string {
   return singleQueryValue(form, name, minLength, maxLength);
 }
@@ -2106,7 +1895,7 @@ function singleQueryValue(
   params: URLSearchParams,
   name: string,
   minLength: number,
-  maxLength: number
+  maxLength: number,
 ): string {
   const values = params.getAll(name);
   const value = values[0];
@@ -2125,7 +1914,7 @@ function optionalSingleQueryValue(
   params: URLSearchParams,
   name: string,
   minLength: number,
-  maxLength: number
+  maxLength: number,
 ): string | null {
   const values = params.getAll(name);
   if (values.length === 0) return null;
@@ -2163,11 +1952,8 @@ function emailOtpVerificationId(normalizedEmail: string): string {
   return `sign-in-otp-${normalizedEmail}`;
 }
 
-async function waitForEmailOtpGenericResponseFloor(
-  startedAt: number
-): Promise<void> {
-  const remaining =
-    EMAIL_OTP_GENERIC_RESPONSE_FLOOR_MS - (Date.now() - startedAt);
+async function waitForEmailOtpGenericResponseFloor(startedAt: number): Promise<void> {
+  const remaining = EMAIL_OTP_GENERIC_RESPONSE_FLOOR_MS - (Date.now() - startedAt);
   if (remaining <= 0) return;
   await new Promise<void>((resolve) => setTimeout(resolve, remaining));
 }
@@ -2176,7 +1962,7 @@ function emailOtpDeliveryUnavailable(): ApplicationAuthRequestError {
   return new ApplicationAuthRequestError(
     "Authentication message could not be accepted",
     503,
-    "temporarily_unavailable"
+    "temporarily_unavailable",
   );
 }
 
@@ -2201,20 +1987,18 @@ async function sendHtml(
   runtime: ApplicationAuthFactoryRuntime,
   title: string,
   body: string,
-  boundRedirectUri?: string
+  boundRedirectUri?: string,
 ): Promise<void> {
   const formAction = boundRedirectUri
     ? `'self' ${oauthRedirectCspSource(boundRedirectUri)}`
     : "'self'";
   reply.headers({
     ...noStoreHeaders(),
-    "content-security-policy":
-      `default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action ${formAction}; img-src 'self' https: data:; style-src 'self'`,
+    "content-security-policy": `default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action ${formAction}; img-src 'self' https: data:; style-src 'self'`,
     "content-language": runtime.defaultLocale,
     "x-content-type-options": "nosniff",
     "referrer-policy": "same-origin",
-    "permissions-policy":
-      "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+    "permissions-policy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
   });
   await reply
     .type("text/html; charset=utf-8")
@@ -2227,9 +2011,7 @@ function oauthRedirectCspSource(redirectUri: string): string {
     return target.origin;
   }
   if (!/^[a-z][a-z0-9+.-]*:$/u.test(target.protocol)) {
-    throw new ApplicationAuthRequestError(
-      "Authorization redirect URI scheme is invalid"
-    );
+    throw new ApplicationAuthRequestError("Authorization redirect URI scheme is invalid");
   }
   return target.protocol;
 }
@@ -2237,7 +2019,7 @@ function oauthRedirectCspSource(redirectUri: string): string {
 async function redirectToUi(
   input: HandlerInput,
   relativePath: string,
-  cookies: readonly string[]
+  cookies: readonly string[],
 ): Promise<void> {
   input.reply
     .code(303)
@@ -2264,11 +2046,7 @@ function appendSetCookie(response: Response, cookie: string): Response {
 }
 
 function isRedirectResponse(response: Response): boolean {
-  return (
-    response.status >= 300 &&
-    response.status < 400 &&
-    response.headers.has("location")
-  );
+  return response.status >= 300 && response.status < 400 && response.headers.has("location");
 }
 
 function asBrowserRedirect(response: Response): Response {
@@ -2283,9 +2061,7 @@ function asBrowserRedirect(response: Response): Response {
   });
 }
 
-async function asBetterAuthBrowserRedirect(
-  response: Response
-): Promise<Response | null> {
+async function asBetterAuthBrowserRedirect(response: Response): Promise<Response | null> {
   let location = response.headers.get("location");
   if (!location && response.ok) {
     try {
@@ -2318,7 +2094,7 @@ function noStoreHeaders(): Record<string, string> {
 function serializeCookie(
   name: string,
   value: string,
-  input: { path: string; maxAge: number; secure: boolean }
+  input: { path: string; maxAge: number; secure: boolean },
 ): string {
   return [
     `${name}=${encodeURIComponent(value)}`,
@@ -2352,21 +2128,15 @@ function hashValue(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("base64url");
 }
 
-function audienceIncludes(
-  audience: string | string[] | undefined,
-  clientId: string
-): boolean {
-  return Array.isArray(audience)
-    ? audience.includes(clientId)
-    : audience === clientId;
+function audienceIncludes(audience: string | string[] | undefined, clientId: string): boolean {
+  return Array.isArray(audience) ? audience.includes(clientId) : audience === clientId;
 }
 
 function constantTimeEqual(left: string, right: string): boolean {
   const leftBuffer = Buffer.from(left, "utf8");
   const rightBuffer = Buffer.from(right, "utf8");
   return (
-    leftBuffer.byteLength === rightBuffer.byteLength &&
-    timingSafeEqual(leftBuffer, rightBuffer)
+    leftBuffer.byteLength === rightBuffer.byteLength && timingSafeEqual(leftBuffer, rightBuffer)
   );
 }
 
@@ -2374,14 +2144,12 @@ function uiNotFound(): ApplicationAuthRequestError {
   return new ApplicationAuthRequestError(
     "Hosted authentication endpoint was not found",
     404,
-    "not_found"
+    "not_found",
   );
 }
 
 export function isApplicationAuthHostedUiPath(path: string): boolean {
   return (
-    UI_GET_PATHS.has(path) ||
-    UI_FORM_PATHS.has(path) ||
-    path === APPLICATION_AUTH_UI_STYLE_PATH
+    UI_GET_PATHS.has(path) || UI_FORM_PATHS.has(path) || path === APPLICATION_AUTH_UI_STYLE_PATH
   );
 }

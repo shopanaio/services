@@ -95,21 +95,22 @@ export class CheckoutMutationCoordinator {
       }
       return { checkout: committed.checkout, value: input.value };
     } catch (cause) {
-      const publicError = cause instanceof CheckoutMutationError
-        ? cause
-        : cause instanceof CheckoutPipelineBoundaryError
-          ? new CheckoutMutationError(
-              "CHECKOUT_DRAFT_INVALID",
-              "Checkout input could not produce a valid recalculation request.",
-              false,
-              { cause },
-            )
-        : new CheckoutMutationError(
-            "CHECKOUT_PIPELINE_FAILED",
-            "Checkout could not be recalculated.",
-            true,
-            { cause },
-          );
+      const publicError =
+        cause instanceof CheckoutMutationError
+          ? cause
+          : cause instanceof CheckoutPipelineBoundaryError
+            ? new CheckoutMutationError(
+                "CHECKOUT_DRAFT_INVALID",
+                "Checkout input could not produce a valid recalculation request.",
+                false,
+                { cause },
+              )
+            : new CheckoutMutationError(
+                "CHECKOUT_PIPELINE_FAILED",
+                "Checkout could not be recalculated.",
+                true,
+                { cause },
+              );
       const failure = {
         code: publicError.code,
         message: publicError.message,
@@ -214,11 +215,7 @@ export class CheckoutMutationCoordinator {
   ): Promise<CheckoutCommittedSnapshot> {
     const current = await this.dependencies.snapshots.loadOwned({ checkoutId, storeId, visitorId });
     if (!current) {
-      throw new CheckoutMutationError(
-        "CHECKOUT_NOT_FOUND",
-        "Checkout was not found.",
-        false,
-      );
+      throw new CheckoutMutationError("CHECKOUT_NOT_FOUND", "Checkout was not found.", false);
     }
     return current;
   }

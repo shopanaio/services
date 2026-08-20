@@ -2,18 +2,10 @@
 
 import { Alert, Skeleton } from "antd";
 import { useRouter } from "next/navigation";
-import {
-  Suspense,
-  use,
-  useEffect,
-  useSyncExternalStore,
-} from "react";
+import { Suspense, use, useEffect, useSyncExternalStore } from "react";
 import type { ModulePageProps } from "@/registry";
 import type { AdminAppPageComponent } from "../sdk";
-import {
-  AdminAppLoadingContent,
-  AdminAppPage,
-} from "../sdk/ui";
+import { AdminAppLoadingContent, AdminAppPage } from "../sdk/ui";
 import { createAdminAppPath } from "./app-route";
 import { AppRuntimeBoundary } from "./app-runtime-boundary";
 import { loadAdminAppRemoteModule } from "./federation/load-remote-module";
@@ -31,9 +23,7 @@ function AppPageLoader({ active }: { active?: ActiveAdminApp }) {
 
   return (
     <AdminAppPage
-      description={
-        <Skeleton.Input active size="small" style={{ width: 280 }} />
-      }
+      description={<Skeleton.Input active size="small" style={{ width: 280 }} />}
       title={<Skeleton.Input active size="small" style={{ width: 160 }} />}
     >
       <AdminAppLoadingContent />
@@ -52,9 +42,7 @@ function RemotePageMount({
 }) {
   const pageDeclaration = active.descriptor.page;
   if (!pageDeclaration) return null;
-  const loadedRemote = use(
-    loadAdminAppRemoteModule(active.descriptor, pageDeclaration.module),
-  );
+  const loadedRemote = use(loadAdminAppRemoteModule(active.descriptor, pageDeclaration.module));
   const Component = loadedRemote.default as AdminAppPageComponent;
 
   return (
@@ -64,8 +52,7 @@ function RemotePageMount({
         appPath,
         searchParams: Object.fromEntries(
           Object.entries(searchParams).filter(
-            (entry): entry is [string, string | string[]] =>
-              entry[1] !== undefined,
+            (entry): entry is [string, string | string[]] => entry[1] !== undefined,
           ),
         ),
       }}
@@ -73,38 +60,27 @@ function RemotePageMount({
   );
 }
 
-export default function AppRuntimePage({
-  pathParams,
-  searchParams = {},
-}: ModulePageProps) {
+export default function AppRuntimePage({ pathParams, searchParams = {} }: ModulePageProps) {
   const router = useRouter();
   const registryRevision = useSyncExternalStore(
     adminAppRegistry.subscribe.bind(adminAppRegistry),
     adminAppRegistry.getSnapshot,
     adminAppRegistry.getSnapshot,
   );
-  const appCode =
-    typeof pathParams.appCode === "string" ? pathParams.appCode : "";
+  const appCode = typeof pathParams.appCode === "string" ? pathParams.appCode : "";
   const active = adminAppRegistry.get(appCode);
   const appPath = Array.isArray(pathParams.appPath)
     ? pathParams.appPath.join("/")
     : typeof pathParams.appPath === "string"
       ? pathParams.appPath
       : "";
-  const defaultPath = active?.descriptor.page?.defaultPath
-    ?.split("/")
-    .filter(Boolean)
-    .join("/");
-  const shouldOpenDefaultPath = Boolean(
-    active && !appPath && defaultPath,
-  );
+  const defaultPath = active?.descriptor.page?.defaultPath?.split("/").filter(Boolean).join("/");
+  const shouldOpenDefaultPath = Boolean(active && !appPath && defaultPath);
 
   useEffect(() => {
     if (!active || !shouldOpenDefaultPath || !defaultPath) return;
-    const orgName =
-      typeof pathParams.orgName === "string" ? pathParams.orgName : "";
-    const storeName =
-      typeof pathParams.storeName === "string" ? pathParams.storeName : "";
+    const orgName = typeof pathParams.orgName === "string" ? pathParams.orgName : "";
+    const storeName = typeof pathParams.storeName === "string" ? pathParams.storeName : "";
     router.replace(
       createAdminAppPath({
         orgName,
@@ -139,11 +115,7 @@ export default function AppRuntimePage({
 
   if (!active.descriptor.page) {
     return (
-      <Alert
-        type="info"
-        showIcon
-        message={`${active.descriptor.displayName} has no Admin page`}
-      />
+      <Alert type="info" showIcon message={`${active.descriptor.displayName} has no Admin page`} />
     );
   }
 
@@ -154,11 +126,7 @@ export default function AppRuntimePage({
   return (
     <AppRuntimeBoundary appCode={active.descriptor.appCode}>
       <Suspense fallback={<AppPageLoader active={active} />}>
-        <RemotePageMount
-          active={active}
-          appPath={appPath}
-          searchParams={searchParams}
-        />
+        <RemotePageMount active={active} appPath={appPath} searchParams={searchParams} />
       </Suspense>
     </AppRuntimeBoundary>
   );

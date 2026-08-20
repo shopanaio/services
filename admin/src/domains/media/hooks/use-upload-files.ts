@@ -41,10 +41,7 @@ export interface CreateExternalInput {
 interface UseUploadFilesReturn {
   uploadFile: (file: File, altText?: string) => Promise<UploadFileResult>;
   uploadFiles: (files: File[]) => Promise<UploadFilesResult>;
-  uploadFromUrl: (
-    sourceUrl: string,
-    altText?: string
-  ) => Promise<UploadFileResult>;
+  uploadFromUrl: (sourceUrl: string, altText?: string) => Promise<UploadFileResult>;
   createExternal: (input: CreateExternalInput) => Promise<UploadFileResult>;
   loading: boolean;
   progress: number;
@@ -126,8 +123,7 @@ export function useUploadFiles(): UseUploadFilesReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const errorObj =
-          err instanceof Error ? err : new Error("Upload failed");
+        const errorObj = err instanceof Error ? err : new Error("Upload failed");
         setError(errorObj);
         return {
           file: null,
@@ -137,7 +133,7 @@ export function useUploadFiles(): UseUploadFilesReturn {
         setLoading(false);
       }
     },
-    [uploadFileMutation]
+    [uploadFileMutation],
   );
 
   const uploadFiles = useCallback(
@@ -180,21 +176,17 @@ export function useUploadFiles(): UseUploadFilesReturn {
           userErrors: allErrors,
         };
       } catch (err) {
-        const errorObj =
-          err instanceof Error ? err : new Error("Upload failed");
+        const errorObj = err instanceof Error ? err : new Error("Upload failed");
         setError(errorObj);
         return {
           files: uploadedFiles,
-          userErrors: [
-            ...allErrors,
-            { message: errorObj.message, code: "UPLOAD_FAILED" },
-          ],
+          userErrors: [...allErrors, { message: errorObj.message, code: "UPLOAD_FAILED" }],
         };
       } finally {
         setLoading(false);
       }
     },
-    [uploadFileMutation]
+    [uploadFileMutation],
   );
 
   const uploadFromUrl = useCallback(
@@ -218,20 +210,17 @@ export function useUploadFiles(): UseUploadFilesReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const errorObj =
-          err instanceof Error ? err : new Error("Upload from URL failed");
+        const errorObj = err instanceof Error ? err : new Error("Upload from URL failed");
         setError(errorObj);
         return {
           file: null,
-          userErrors: [
-            { message: errorObj.message, code: "UPLOAD_FROM_URL_FAILED" },
-          ],
+          userErrors: [{ message: errorObj.message, code: "UPLOAD_FROM_URL_FAILED" }],
         };
       } finally {
         setLoading(false);
       }
     },
-    [uploadFromUrlMutation]
+    [uploadFromUrlMutation],
   );
 
   const createExternal = useCallback(
@@ -261,22 +250,17 @@ export function useUploadFiles(): UseUploadFilesReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const errorObj =
-          err instanceof Error
-            ? err
-            : new Error("Failed to create external media");
+        const errorObj = err instanceof Error ? err : new Error("Failed to create external media");
         setError(errorObj);
         return {
           file: null,
-          userErrors: [
-            { message: errorObj.message, code: "CREATE_EXTERNAL_FAILED" },
-          ],
+          userErrors: [{ message: errorObj.message, code: "CREATE_EXTERNAL_FAILED" }],
         };
       } finally {
         setLoading(false);
       }
     },
-    [createExternalMutation]
+    [createExternalMutation],
   );
 
   return {

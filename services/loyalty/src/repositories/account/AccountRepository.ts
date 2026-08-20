@@ -48,23 +48,30 @@ export class AccountRepository extends BaseRepository {
     const { where, ...pagination } = input;
     const predicates = [eq(accounts.storeId, this.storeId)];
     if (where?.ids?.length) predicates.push(inArray(accounts.id, [...where.ids]));
-    if (where?.programIds?.length) predicates.push(inArray(accounts.programId, [...where.programIds]));
-    if (where?.customerIds?.length) predicates.push(inArray(accounts.customerId, [...where.customerIds]));
+    if (where?.programIds?.length)
+      predicates.push(inArray(accounts.programId, [...where.programIds]));
+    if (where?.customerIds?.length)
+      predicates.push(inArray(accounts.customerId, [...where.customerIds]));
     if (where?.statuses?.length) predicates.push(inArray(accounts.status, [...where.statuses]));
     if (where?.minimumAvailablePoints !== undefined) {
       predicates.push(gte(accountBalances.availablePoints, where.minimumAvailablePoints));
     }
     if (where?.hasDebt === true) predicates.push(gt(accountBalances.debtPoints, 0n));
     if (where?.hasDebt === false) predicates.push(eq(accountBalances.debtPoints, 0n));
-    if (where?.tierIds?.length) predicates.push(inArray(tierMemberships.tierId, [...where.tierIds]));
+    if (where?.tierIds?.length)
+      predicates.push(inArray(tierMemberships.tierId, [...where.tierIds]));
 
-    const needsBalance = where?.minimumAvailablePoints !== undefined || where?.hasDebt !== undefined;
+    const needsBalance =
+      where?.minimumAvailablePoints !== undefined || where?.hasDebt !== undefined;
     const needsTier = Boolean(where?.tierIds?.length);
     let query = this.connection.selectDistinct({ id: accounts.id }).from(accounts).$dynamic();
     if (needsBalance) {
       query = query.innerJoin(
         accountBalances,
-        and(eq(accountBalances.storeId, accounts.storeId), eq(accountBalances.accountId, accounts.id)),
+        and(
+          eq(accountBalances.storeId, accounts.storeId),
+          eq(accountBalances.accountId, accounts.id),
+        ),
       );
     }
     if (needsTier) {
@@ -81,7 +88,11 @@ export class AccountRepository extends BaseRepository {
     const relayWhere: AccountRelayInput["where"] = {
       _and: [
         { storeId: { _eq: this.storeId } },
-        { id: { _in: matchingIds.length > 0 ? matchingIds : ["00000000-0000-0000-0000-000000000000"] } },
+        {
+          id: {
+            _in: matchingIds.length > 0 ? matchingIds : ["00000000-0000-0000-0000-000000000000"],
+          },
+        },
       ],
     };
     const relayInput: AccountRelayInput = {
@@ -126,9 +137,7 @@ export class AccountRepository extends BaseRepository {
     return this.connection
       .select()
       .from(accounts)
-      .where(
-        and(eq(accounts.storeId, this.storeId), inArray(accounts.id, [...ids])),
-      );
+      .where(and(eq(accounts.storeId, this.storeId), inArray(accounts.id, [...ids])));
   }
 
   async getByCustomerIdsAndProgramIds(
@@ -139,17 +148,16 @@ export class AccountRepository extends BaseRepository {
     return this.connection
       .select()
       .from(accounts)
-      .where(and(
-        eq(accounts.storeId, this.storeId),
-        inArray(accounts.customerId, [...customerIds]),
-        inArray(accounts.programId, [...programIds]),
-      ));
+      .where(
+        and(
+          eq(accounts.storeId, this.storeId),
+          inArray(accounts.customerId, [...customerIds]),
+          inArray(accounts.programId, [...programIds]),
+        ),
+      );
   }
 
-  async findByCustomerAndProgram(
-    customerId: string,
-    programId: string,
-  ): Promise<Account | null> {
+  async findByCustomerAndProgram(customerId: string, programId: string): Promise<Account | null> {
     const rows = await this.connection
       .select()
       .from(accounts)
@@ -168,12 +176,7 @@ export class AccountRepository extends BaseRepository {
     return this.connection
       .select()
       .from(accounts)
-      .where(
-        and(
-          eq(accounts.storeId, this.storeId),
-          eq(accounts.customerId, customerId),
-        ),
-      )
+      .where(and(eq(accounts.storeId, this.storeId), eq(accounts.customerId, customerId)))
       .orderBy(desc(accounts.openedAt), desc(accounts.id));
   }
 
@@ -220,19 +223,12 @@ export class AccountRepository extends BaseRepository {
     input: Partial<
       Pick<
         NewAccount,
-        | "status"
-        | "mergedIntoAccountId"
-        | "suspendedReason"
-        | "suspendedAt"
-        | "closedAt"
+        "status" | "mergedIntoAccountId" | "suspendedReason" | "suspendedAt" | "closedAt"
       >
     >,
     expectedRevision?: number,
   ): Promise<Account | null> {
-    const conditions = [
-      eq(accounts.storeId, this.storeId),
-      eq(accounts.id, id),
-    ];
+    const conditions = [eq(accounts.storeId, this.storeId), eq(accounts.id, id)];
     if (expectedRevision !== undefined) {
       conditions.push(eq(accounts.revision, expectedRevision));
     }

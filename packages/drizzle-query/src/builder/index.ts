@@ -19,7 +19,7 @@ export function createQueryBuilder<
   Types = T["$inferSelect"],
 >(
   schema: ObjectSchema<T, F, Fields, Types>,
-  config?: QueryBuilderConfig
+  config?: QueryBuilderConfig,
 ): QueryBuilder<T, F, Fields, Types> {
   return new QueryBuilder(schema, config);
 }

@@ -1,23 +1,8 @@
-import {
-  and,
-  eq,
-  gt,
-  inArray,
-  isNotNull,
-  isNull,
-  lt,
-  lte,
-  or,
-  sql,
-  type SQL,
-} from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, isNull, lt, lte, or, sql, type SQL } from "drizzle-orm";
 import { Transactional, TransactionManager } from "@shopana/shared-kernel";
 import type { DomainEvent, EmitDispatchOptions } from "@shopana/events";
 import type { Database } from "../infrastructure/db/database.js";
-import {
-  domainEvents,
-  type DomainEventRecord,
-} from "./models/domainEvents.js";
+import { domainEvents, type DomainEventRecord } from "./models/domainEvents.js";
 import { deadLetterQueue } from "./models/deadLetterQueue.js";
 import {
   eventHandlerJobs,
@@ -43,9 +28,8 @@ export interface AddToDLQParams {
   dbosStepName?: string;
 }
 
-export type PersistDispatchOptions = Required<
-  Extract<EmitDispatchOptions, { mode: "deferred" }>
-> | { mode: "immediate" };
+export type PersistDispatchOptions =
+  Required<Extract<EmitDispatchOptions, { mode: "deferred" }>> | { mode: "immediate" };
 
 export interface ClaimEventInput {
   organizationId: string;
@@ -117,7 +101,10 @@ const HANDLER_ATTEMPTS_EXHAUSTED_MESSAGE = "Handler retry attempts exhausted";
 export class Repository {
   public readonly txManager: TransactionManager<Database>;
 
-  constructor(private readonly db: Database, txManager: TransactionManager<Database>) {
+  constructor(
+    private readonly db: Database,
+    txManager: TransactionManager<Database>,
+  ) {
     this.txManager = txManager;
   }
 
@@ -147,7 +134,7 @@ export class Repository {
     }
 
     await this.connection.execute(
-      sql`SELECT pg_advisory_xact_lock(hashtextextended(${this.sequenceLockKey(event)}, 0))`
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${this.sequenceLockKey(event)}, 0))`,
     );
 
     const existing = await this.connection
@@ -198,8 +185,7 @@ export class Repository {
       dispatchMode: dispatch.mode,
       status: "pending",
       batchKey: dispatch.mode === "deferred" ? dispatch.batchKey : null,
-      aggregateKey:
-        dispatch.mode === "deferred" ? dispatch.aggregateKey : null,
+      aggregateKey: dispatch.mode === "deferred" ? dispatch.aggregateKey : null,
       subjectType: event.subject.type,
       subjectId: event.subject.id,
       actorType: event.actor?.type ?? "service",
@@ -262,15 +248,17 @@ export class Repository {
           eq(domainEvents.batchKey, input.batchKey),
         );
 
-    const claimed = this.connection.$with("claimed").as(
-      this.connection
-        .select({ eventId: domainEvents.eventId })
-        .from(domainEvents)
-        .where(where)
-        .orderBy(domainEvents.createdAt)
-        .limit(limit)
-        .for("update", { skipLocked: true }),
-    );
+    const claimed = this.connection
+      .$with("claimed")
+      .as(
+        this.connection
+          .select({ eventId: domainEvents.eventId })
+          .from(domainEvents)
+          .where(where)
+          .orderBy(domainEvents.createdAt)
+          .limit(limit)
+          .for("update", { skipLocked: true }),
+      );
 
     return this.connection
       .with(claimed)
@@ -326,17 +314,13 @@ export class Repository {
       .select()
       .from(domainEvents)
       .where(
-        input.eventType
-          ? and(baseWhere, eq(domainEvents.eventType, input.eventType))
-          : baseWhere,
+        input.eventType ? and(baseWhere, eq(domainEvents.eventType, input.eventType)) : baseWhere,
       )
       .orderBy(domainEvents.createdAt)
       .limit(limit);
   }
 
-  async ensureHandlerJobs(
-    definitions: readonly EventHandlerJobDefinition[],
-  ): Promise<void> {
+  async ensureHandlerJobs(definitions: readonly EventHandlerJobDefinition[]): Promise<void> {
     if (definitions.length === 0) return;
 
     const uniqueDefinitions = dedupeHandlerJobDefinitions(definitions);
@@ -373,9 +357,7 @@ export class Repository {
       });
   }
 
-  async claimHandlerJobs(
-    input: ClaimHandlerJobsInput,
-  ): Promise<EventHandlerJobRecord[]> {
+  async claimHandlerJobs(input: ClaimHandlerJobsInput): Promise<EventHandlerJobRecord[]> {
     if (input.eventIds && input.eventIds.length === 0) return [];
 
     const limit = input.limit ?? DEFAULT_DISPATCH_LIMIT;
@@ -465,10 +447,13 @@ export class Repository {
         correlationId: domainEvents.correlationId,
       })
       .from(domainEvents)
-      .where(inArray(domainEvents.eventId, jobs.map((job) => job.eventId)));
-    const correlationByEventId = new Map(
-      eventRows.map((row) => [row.eventId, row.correlationId]),
-    );
+      .where(
+        inArray(
+          domainEvents.eventId,
+          jobs.map((job) => job.eventId),
+        ),
+      );
+    const correlationByEventId = new Map(eventRows.map((row) => [row.eventId, row.correlationId]));
 
     let marked = 0;
 
@@ -521,9 +506,7 @@ export class Repository {
     return marked;
   }
 
-  async findNextHandlerJobClaimAt(
-    eventIds: readonly string[],
-  ): Promise<Date | null> {
+  async findNextHandlerJobClaimAt(eventIds: readonly string[]): Promise<Date | null> {
     if (eventIds.length === 0) return null;
 
     const rows = await this.connection
@@ -552,9 +535,7 @@ export class Repository {
     return claimAt ? new Date(claimAt) : null;
   }
 
-  async markHandlerJobsSucceeded(
-    jobs: readonly EventHandlerJobRecord[],
-  ): Promise<void> {
+  async markHandlerJobsSucceeded(jobs: readonly EventHandlerJobRecord[]): Promise<void> {
     if (jobs.length === 0) return;
 
     await Promise.all(
@@ -807,12 +788,7 @@ export class Repository {
     const expiredIds = this.connection
       .select({ id: deadLetterQueue.id })
       .from(deadLetterQueue)
-      .where(
-        and(
-          isNotNull(deadLetterQueue.expiresAt),
-          lt(deadLetterQueue.expiresAt, sql`NOW()`)
-        )
-      )
+      .where(and(isNotNull(deadLetterQueue.expiresAt), lt(deadLetterQueue.expiresAt, sql`NOW()`)))
       .limit(batchSize);
 
     const deleted = await this.connection
@@ -832,7 +808,7 @@ export class Repository {
         and(
           lt(domainEvents.timestamp, cutoffDate),
           inArray(domainEvents.status, ["dispatched", "failed"]),
-        )
+        ),
       )
       .limit(batchSize);
 
@@ -860,16 +836,10 @@ export class Repository {
 
 function buildDueHandlerJobWhere(organizationId?: string): SQL | undefined {
   const dueWhere = or(
-    and(
-      eq(eventHandlerJobs.status, "pending"),
-      lte(eventHandlerJobs.nextAttemptAt, sql`NOW()`),
-    ),
+    and(eq(eventHandlerJobs.status, "pending"), lte(eventHandlerJobs.nextAttemptAt, sql`NOW()`)),
     and(
       eq(eventHandlerJobs.status, "dispatching"),
-      or(
-        isNull(eventHandlerJobs.lockedUntil),
-        lt(eventHandlerJobs.lockedUntil, sql`NOW()`),
-      ),
+      or(isNull(eventHandlerJobs.lockedUntil), lt(eventHandlerJobs.lockedUntil, sql`NOW()`)),
     ),
   );
 
@@ -879,9 +849,7 @@ function buildDueHandlerJobWhere(organizationId?: string): SQL | undefined {
 }
 
 function buildClaimHandlerJobWhere(input: ClaimHandlerJobsInput): SQL | undefined {
-  const conditions: Array<SQL | undefined> = [
-    buildDueHandlerJobWhere(input.organizationId),
-  ];
+  const conditions: Array<SQL | undefined> = [buildDueHandlerJobWhere(input.organizationId)];
 
   if (input.eventIds) {
     conditions.push(inArray(eventHandlerJobs.eventId, [...input.eventIds]));

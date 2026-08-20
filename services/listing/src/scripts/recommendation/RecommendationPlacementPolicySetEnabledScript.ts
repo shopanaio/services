@@ -9,8 +9,14 @@ export class RecommendationPlacementPolicySetEnabledScript extends BaseScript<
   RecommendationPolicyResult
 > {
   @Transactional()
-  protected async execute(input: { placement: RecommendationPlacement; enabled: boolean; expectedVersion: number }): Promise<RecommendationPolicyResult> {
-    const current = await this.repository.recommendationPlacementPolicy.lockByPlacement(input.placement);
+  protected async execute(input: {
+    placement: RecommendationPlacement;
+    enabled: boolean;
+    expectedVersion: number;
+  }): Promise<RecommendationPolicyResult> {
+    const current = await this.repository.recommendationPlacementPolicy.lockByPlacement(
+      input.placement,
+    );
     if (!current) return { userErrors: [{ message: "Policy not found", code: "NOT_FOUND" }] };
     if (current.version !== input.expectedVersion) {
       return { userErrors: [{ message: "Policy version changed", code: "VERSION_CONFLICT" }] };
@@ -21,7 +27,8 @@ export class RecommendationPlacementPolicySetEnabledScript extends BaseScript<
       current.version,
       input.enabled,
     );
-    if (!policy) return { userErrors: [{ message: "Policy version changed", code: "VERSION_CONFLICT" }] };
+    if (!policy)
+      return { userErrors: [{ message: "Policy version changed", code: "VERSION_CONFLICT" }] };
     return {
       policy,
       generationTrigger: policy.enabled ? `policy:${policy.policyId}:${policy.version}` : undefined,

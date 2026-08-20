@@ -10,10 +10,7 @@ import type {
 } from "@/graphql/types";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { WAREHOUSES_QUERY } from "../graphql";
-import type {
-  WarehousesQueryData,
-  WarehousesQueryVariables,
-} from "../graphql";
+import type { WarehousesQueryData, WarehousesQueryVariables } from "../graphql";
 
 export interface UseWarehousesOptions extends RelayCursorPaginationVariables {
   where?: ApiWarehouseWhereInput | null;
@@ -31,9 +28,7 @@ interface UseWarehousesReturn {
   refetch: () => Promise<unknown>;
 }
 
-export function useWarehouses(
-  options: UseWarehousesOptions = {},
-): UseWarehousesReturn {
+export function useWarehouses(options: UseWarehousesOptions = {}): UseWarehousesReturn {
   const {
     first,
     after = null,

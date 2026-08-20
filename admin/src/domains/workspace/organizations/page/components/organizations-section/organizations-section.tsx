@@ -34,11 +34,7 @@ export function OrganizationsSection({
         <div className={styles.emptyState}>
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <Typography.Text type="secondary">
-                No organizations found
-              </Typography.Text>
-            }
+            description={<Typography.Text type="secondary">No organizations found</Typography.Text>}
           />
         </div>
       );

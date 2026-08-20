@@ -38,14 +38,8 @@ export default function CompleteProfilePage() {
         setError("An unexpected error occurred. Please try again.");
       }
     },
-    [updateProfile, router]
+    [updateProfile, router],
   );
 
-  return (
-    <CompleteProfileForm
-      onSubmit={handleSubmit}
-      isLoading={loading}
-      error={error}
-    />
-  );
+  return <CompleteProfileForm onSubmit={handleSubmit} isLoading={loading} error={error} />;
 }

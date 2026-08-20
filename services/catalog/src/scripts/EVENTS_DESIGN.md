@@ -2,7 +2,8 @@
 
 ## Overview
 
-Event system for syncing data from **Inventory Service** to **Listing Service** and **Search Service** via RabbitMQ.
+Event system for syncing data from **Inventory Service** to **Listing Service** and **Search
+Service** via RabbitMQ.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -42,9 +43,11 @@ Event system for syncing data from **Inventory Service** to **Listing Service** 
 
 ### 1. Single Event `product.sync.requested`
 
-Instead of multiple events (`product.created`, `product.updated`, `option.added`, `price.changed`, etc.) we use **one event** with a full product data snapshot:
+Instead of multiple events (`product.created`, `product.updated`, `option.added`, `price.changed`,
+etc.) we use **one event** with a full product data snapshot:
 
 **Why:**
+
 - **Simplicity** — single handler on consumer side
 - **Idempotency** — reprocessing is safe (full state, not delta)
 - **Ordering** — no dependency on event order
@@ -90,6 +93,7 @@ Event is sent **after successful commit** directly to RabbitMQ:
 ```
 
 **RabbitMQ Guarantees:**
+
 - Publisher confirms — broker acknowledges receipt
 - Durable exchange + persistent messages
 - Consumer ack — message removed only after processing
@@ -100,6 +104,7 @@ Event is sent **after successful commit** directly to RabbitMQ:
 ## Event Schema
 
 All types defined in `src/snapshots/types.ts` — single source of truth for:
+
 - RabbitMQ events
 - Redis cache
 - API responses
@@ -119,29 +124,29 @@ interface ProductSyncEvent {
 }
 
 interface ProductSyncEventMeta {
-  readonly eventId: string;           // UUID
-  readonly eventType: 'product.sync.requested';
-  readonly version: '1.0';
-  readonly timestamp: string;         // ISO 8601
-  readonly source: 'inventory';
+  readonly eventId: string; // UUID
+  readonly eventType: "product.sync.requested";
+  readonly version: "1.0";
+  readonly timestamp: string; // ISO 8601
+  readonly source: "inventory";
 }
 
 type ProductSyncTrigger =
-  | 'product.created'
-  | 'product.updated'
-  | 'product.published'
-  | 'product.unpublished'
-  | 'product.deleted'
-  | 'variant.created'
-  | 'variant.updated'
-  | 'variant.deleted'
-  | 'pricing.changed'
-  | 'stock.changed'
-  | 'option.changed'
-  | 'feature.changed'
-  | 'translation.changed'
-  | 'media.changed'
-  | 'manual.resync';
+  | "product.created"
+  | "product.updated"
+  | "product.published"
+  | "product.unpublished"
+  | "product.deleted"
+  | "variant.created"
+  | "variant.updated"
+  | "variant.deleted"
+  | "pricing.changed"
+  | "stock.changed"
+  | "option.changed"
+  | "feature.changed"
+  | "translation.changed"
+  | "media.changed"
+  | "manual.resync";
 ```
 
 ### ProductSnapshot (Type Hierarchy)
@@ -174,7 +179,7 @@ ProductSnapshot
 interface ProductSnapshot {
   readonly id: string;
   readonly storeId: string;
-  readonly publishedAt: string | null;  // ISO 8601
+  readonly publishedAt: string | null; // ISO 8601
   readonly createdAt: string;
   readonly updatedAt: string;
 
@@ -200,10 +205,13 @@ interface AggregatedPricingSnapshot {
   readonly baseCurrency: string;
   readonly minPriceMinor: number | null;
   readonly maxPriceMinor: number | null;
-  readonly byCurrency: Record<string, {
-    readonly minPriceMinor: number;
-    readonly maxPriceMinor: number;
-  }>;
+  readonly byCurrency: Record<
+    string,
+    {
+      readonly minPriceMinor: number;
+      readonly maxPriceMinor: number;
+    }
+  >;
 }
 
 interface AggregatedStockSnapshot {
@@ -221,7 +229,7 @@ import {
   deserializeSnapshot,
   serializeEvent,
   deserializeEvent,
-} from '../snapshots';
+} from "../snapshots";
 
 // For Redis
 const json = serializeSnapshot(snapshot);
@@ -373,7 +381,7 @@ Full implementation: `src/snapshots/SnapshotRepository.ts`
 export class Kernel extends BaseKernel<InventoryKernelServices> {
   async executeScript<TParams, TResult>(
     script: TransactionScript<TParams, ScriptResultWithSync<TResult>>,
-    params: TParams
+    params: TParams,
   ): Promise<TResult> {
     let syncRequest: SyncRequest | undefined;
 
@@ -401,10 +409,10 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
       const event: ProductSyncEvent = {
         meta: {
           eventId: randomUUID(),
-          eventType: 'product.sync.requested',
-          version: '1.0',
+          eventType: "product.sync.requested",
+          version: "1.0",
           timestamp: new Date().toISOString(),
-          source: 'inventory',
+          source: "inventory",
         },
         storeId: sync.storeId,
         productId: sync.productId,
@@ -413,10 +421,10 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
         snapshot,
       };
 
-      await this.broker.emit('product.sync.requested', event);
+      await this.broker.emit("product.sync.requested", event);
     } catch (error) {
       // Log but don't fail — next update will resync
-      this.logger.error({ error, sync }, 'Failed to emit sync event');
+      this.logger.error({ error, sync }, "Failed to emit sync event");
     }
   }
 }
@@ -450,7 +458,7 @@ export const productCreate: TransactionScript<
     sync: {
       storeId,
       productId: product.id,
-      trigger: 'product.created',
+      trigger: "product.created",
     },
   };
 };
@@ -471,7 +479,7 @@ export const variantSetPricing: TransactionScript<
     return {
       result: {
         success: false,
-        userErrors: [{ message: 'Variant not found', field: ['variantId'] }],
+        userErrors: [{ message: "Variant not found", field: ["variantId"] }],
       },
     };
   }
@@ -491,7 +499,7 @@ export const variantSetPricing: TransactionScript<
     sync: {
       storeId,
       productId: variant.productId,
-      trigger: 'pricing.changed',
+      trigger: "pricing.changed",
     },
   };
 };
@@ -514,7 +522,7 @@ export const productDelete: TransactionScript<
     sync: {
       storeId,
       productId,
-      trigger: 'product.deleted',
+      trigger: "product.deleted",
       deleted: true,
     },
   };
@@ -565,7 +573,7 @@ export class IndexService {
   async upsertProduct(
     storeId: string,
     productId: string,
-    snapshot: ProductSnapshot
+    snapshot: ProductSnapshot,
   ): Promise<void> {
     const indexRow = {
       store_id: storeId,
@@ -580,9 +588,7 @@ export class IndexService {
       total_stock: snapshot.stock.totalQuantity,
 
       // Features as "slug:value" pairs
-      feature_slugs: snapshot.features.flatMap(f =>
-        f.values.map(v => `${f.slug}:${v.slug}`)
-      ),
+      feature_slugs: snapshot.features.flatMap((f) => f.values.map((v) => `${f.slug}:${v.slug}`)),
 
       // Options aggregated from all variants
       option_slugs: this.aggregateOptionSlugs(snapshot),
@@ -659,24 +665,24 @@ private buildSearchDocument(event: ProductSyncEvent): SearchDocument {
 
 ## Scripts That Must Emit Events
 
-| Script | Trigger | Notes |
-|--------|---------|-------|
-| `productCreate` | `product.created` | After product + default variant created |
-| `productUpdate` | `product.updated` | After any product field update |
-| `productPublish` | `product.published` | When `publishedAt` set |
-| `productUnpublish` | `product.unpublished` | When `publishedAt` cleared |
-| `productDelete` | `product.deleted` | Soft delete, `deleted: true` |
-| `variantCreate` | `variant.created` | New variant added |
-| `variantSetPricing` | `pricing.changed` | Price update |
-| `variantSetStock` | `stock.changed` | Stock update |
-| `variantSetSku` | `variant.updated` | SKU change |
-| `variantDelete` | `variant.deleted` | Variant removed |
-| `optionCreate` | `option.changed` | New option added |
-| `optionValueCreate` | `option.changed` | New value added |
-| `featureCreate` | `feature.changed` | New feature added |
-| `featureValueCreate` | `feature.changed` | New value added |
-| `translationUpdate` | `translation.changed` | Text updates |
-| `mediaAssign` | `media.changed` | Media updates |
+| Script               | Trigger               | Notes                                   |
+| -------------------- | --------------------- | --------------------------------------- |
+| `productCreate`      | `product.created`     | After product + default variant created |
+| `productUpdate`      | `product.updated`     | After any product field update          |
+| `productPublish`     | `product.published`   | When `publishedAt` set                  |
+| `productUnpublish`   | `product.unpublished` | When `publishedAt` cleared              |
+| `productDelete`      | `product.deleted`     | Soft delete, `deleted: true`            |
+| `variantCreate`      | `variant.created`     | New variant added                       |
+| `variantSetPricing`  | `pricing.changed`     | Price update                            |
+| `variantSetStock`    | `stock.changed`       | Stock update                            |
+| `variantSetSku`      | `variant.updated`     | SKU change                              |
+| `variantDelete`      | `variant.deleted`     | Variant removed                         |
+| `optionCreate`       | `option.changed`      | New option added                        |
+| `optionValueCreate`  | `option.changed`      | New value added                         |
+| `featureCreate`      | `feature.changed`     | New feature added                       |
+| `featureValueCreate` | `feature.changed`     | New value added                         |
+| `translationUpdate`  | `translation.changed` | Text updates                            |
+| `mediaAssign`        | `media.changed`       | Media updates                           |
 
 ---
 
@@ -686,10 +692,10 @@ private buildSearchDocument(event: ProductSyncEvent): SearchDocument {
 
 ```typescript
 // Event metrics
-product_sync_events_emitted_total   // Counter by trigger type
-product_sync_events_consumed_total  // Counter by consumer
-product_sync_emit_duration_ms       // Histogram: emit latency
-product_sync_emit_errors_total      // Counter: failed emits
+product_sync_events_emitted_total; // Counter by trigger type
+product_sync_events_consumed_total; // Counter by consumer
+product_sync_emit_duration_ms; // Histogram: emit latency
+product_sync_emit_errors_total; // Counter: failed emits
 ```
 
 ### Dead Letter Queue Handling
@@ -725,10 +731,10 @@ async handleDeadLetter(
 
 ```typescript
 // One-time backfill for existing products
-export const backfillProductSync: TransactionScript<
-  BackfillParams,
-  BackfillResult
-> = async (params, services) => {
+export const backfillProductSync: TransactionScript<BackfillParams, BackfillResult> = async (
+  params,
+  services,
+) => {
   const { repository } = services;
   const { storeId, batchSize = 100 } = params;
 
@@ -746,17 +752,17 @@ export const backfillProductSync: TransactionScript<
     for (const product of products) {
       const snapshot = await repository.snapshot.buildSnapshot(storeId, product.id);
 
-      await services.broker.emit('product.sync.requested', {
+      await services.broker.emit("product.sync.requested", {
         meta: {
           eventId: randomUUID(),
-          eventType: 'product.sync.requested',
-          version: '1.0',
+          eventType: "product.sync.requested",
+          version: "1.0",
           timestamp: new Date().toISOString(),
-          source: 'inventory',
+          source: "inventory",
         },
         storeId,
         productId: product.id,
-        trigger: 'manual.resync',
+        trigger: "manual.resync",
         deleted: false,
         snapshot,
       });
@@ -778,6 +784,7 @@ export const backfillProductSync: TransactionScript<
 ### Q: What if emit fails after commit?
 
 **A:** Event is lost, but:
+
 - Next product update will resync everything (full snapshot)
 - Can run periodic reconciliation job
 - In practice this is extremely rare (microseconds between commit and emit)
@@ -785,6 +792,7 @@ export const backfillProductSync: TransactionScript<
 ### Q: Why full snapshot instead of delta?
 
 **A:**
+
 - **Idempotency**: Reprocessing is safe
 - **Simplicity**: Consumer doesn't store state
 - **Ordering**: No dependency on event order
@@ -792,11 +800,12 @@ export const backfillProductSync: TransactionScript<
 
 ### Q: How does consumer know what changed?
 
-**A:** It doesn't need to — just does `UPSERT` of entire snapshot. But can use `trigger` for optimizations:
+**A:** It doesn't need to — just does `UPSERT` of entire snapshot. But can use `trigger` for
+optimizations:
 
 ```typescript
 switch (event.trigger) {
-  case 'stock.changed':
+  case "stock.changed":
     // Fast path — update only stock fields
     await db.update({ in_stock, total_stock });
     break;
@@ -809,6 +818,7 @@ switch (event.trigger) {
 ### Q: How to ensure ordering?
 
 **A:** For a single `productId`:
+
 - RabbitMQ preserves order in queue
 - Consumer processes sequentially (prefetch=1 if critical)
 - Full snapshot makes ordering less important

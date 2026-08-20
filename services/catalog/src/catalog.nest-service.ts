@@ -1,10 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from "@nestjs/common";
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import {
   DATABASE_CLIENT,
   DATABASE_CONNECTION_OPTIONS,
@@ -34,7 +28,7 @@ export class CatalogNestService implements OnModuleInit, OnModuleDestroy {
     @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
     @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient,
     @Inject(DATABASE_CONNECTION_OPTIONS)
-    private readonly databaseConnectionOptions: DatabaseConnectionOptions
+    private readonly databaseConnectionOptions: DatabaseConnectionOptions,
   ) {}
 
   async onModuleInit() {
@@ -44,7 +38,7 @@ export class CatalogNestService implements OnModuleInit, OnModuleDestroy {
       this.broker,
       this.workflow,
       this.dbClient,
-      this.databaseConnectionOptions
+      this.databaseConnectionOptions,
     );
     this.logger.debug("Kernel created");
 

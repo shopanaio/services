@@ -34,10 +34,7 @@ export class StoreContactDetailsUpdateScript extends StoreSettingsUpdateScript<S
       displayName: params.name,
       email: params.email,
     });
-    await this.repository.storeSettings.replacePhones(
-      params.storeId,
-      params.phoneNumbers,
-    );
+    await this.repository.storeSettings.replacePhones(params.storeId, params.phoneNumbers);
 
     return this.success(params.storeId);
   }

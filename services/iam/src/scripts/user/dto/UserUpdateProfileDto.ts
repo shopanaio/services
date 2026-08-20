@@ -23,21 +23,16 @@ export const userUpdateProfileInputSchema = z.object({
   image: z.string().uuid("Invalid image ID").nullable().optional(),
 });
 
-export const userUpdateProfileParamsSchema =
-  userUpdateProfileInputSchema.extend({
-    userId: z.string().min(1, "User ID is required"),
-  });
+export const userUpdateProfileParamsSchema = userUpdateProfileInputSchema.extend({
+  userId: z.string().min(1, "User ID is required"),
+});
 
-export type UserUpdateProfileInput = z.infer<
-  typeof userUpdateProfileInputSchema
->;
+export type UserUpdateProfileInput = z.infer<typeof userUpdateProfileInputSchema>;
 
 /**
  * Script params
  */
-export type UserUpdateProfileParams = z.infer<
-  typeof userUpdateProfileParamsSchema
->;
+export type UserUpdateProfileParams = z.infer<typeof userUpdateProfileParamsSchema>;
 
 /**
  * Script result

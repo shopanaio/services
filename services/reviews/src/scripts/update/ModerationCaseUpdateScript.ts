@@ -6,22 +6,15 @@ import {
   internalError,
   notFoundError,
 } from "./StoreConfigurationUpdateScript.js";
-import type {
-  ModerationCaseUpdateParams,
-  ModerationCaseUpdateResult,
-} from "./types.js";
+import type { ModerationCaseUpdateParams, ModerationCaseUpdateResult } from "./types.js";
 
 export class ModerationCaseUpdateScript extends BaseScript<
   ModerationCaseUpdateParams,
   ModerationCaseUpdateResult
 > {
   @Transactional()
-  protected async execute(
-    params: ModerationCaseUpdateParams
-  ): Promise<ModerationCaseUpdateResult> {
-    const current = await this.repository.moderation.findCaseById(
-      params.moderationCaseId
-    );
+  protected async execute(params: ModerationCaseUpdateParams): Promise<ModerationCaseUpdateResult> {
+    const current = await this.repository.moderation.findCaseById(params.moderationCaseId);
     if (!current) {
       return { userErrors: [notFoundError("Moderation case", "moderationCaseId")] };
     }
@@ -55,8 +48,7 @@ export class ModerationCaseUpdateScript extends BaseScript<
         }
       }
       if (hasOwn(input.details, "assignedToPrincipalId")) {
-        patch.assignedToPrincipalId =
-          input.details.assignedToPrincipalId?.trim() || null;
+        patch.assignedToPrincipalId = input.details.assignedToPrincipalId?.trim() || null;
         if (current.status === "OPEN" && patch.assignedToPrincipalId) {
           patch.status = "IN_REVIEW";
         } else if (current.status === "IN_REVIEW" && !patch.assignedToPrincipalId) {
@@ -108,9 +100,7 @@ export class ModerationCaseUpdateScript extends BaseScript<
       patch.status = input.resolution.status;
       patch.resolutionCode = code;
       patch.resolutionNote = note;
-      patch.resolvedByPrincipalId = this.context.hasUser
-        ? this.currentUser.id
-        : null;
+      patch.resolvedByPrincipalId = this.context.hasUser ? this.currentUser.id : null;
       patch.resolvedAt = new Date().toISOString();
     }
     if (errors.length > 0) return { userErrors: errors };
@@ -118,7 +108,7 @@ export class ModerationCaseUpdateScript extends BaseScript<
     const updated = await this.repository.moderation.updateCase(
       params.moderationCaseId,
       params.expectedUpdatedAt,
-      patch
+      patch,
     );
     if (updated.status === "applied") {
       return {

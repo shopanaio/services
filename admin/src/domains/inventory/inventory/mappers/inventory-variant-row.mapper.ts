@@ -42,11 +42,7 @@ function getPrimaryImageUrl(edge: ApiInventoryItemEdge): string | null {
 
 function sumStockField(
   stock: ApiInventoryItemEdge["node"]["stock"],
-  field:
-    | "quantityOnHand"
-    | "unavailableQuantity"
-    | "reservedQuantity"
-    | "availableForSale",
+  field: "quantityOnHand" | "unavailableQuantity" | "reservedQuantity" | "availableForSale",
 ) {
   return stock.reduce((total, item) => total + item[field], 0);
 }
@@ -58,8 +54,7 @@ export function mapInventoryVariantEdgeToRow(
   const inventoryItem = edge.node;
   const variant = inventoryItem.variant;
   const selectedStock = warehouseId
-    ? inventoryItem.stock.find((stock) => stock.warehouseId === warehouseId) ??
-      null
+    ? (inventoryItem.stock.find((stock) => stock.warehouseId === warehouseId) ?? null)
     : null;
 
   const onHand = selectedStock
@@ -71,13 +66,9 @@ export function mapInventoryVariantEdgeToRow(
   const reserved = selectedStock
     ? selectedStock.reservedQuantity
     : sumStockField(inventoryItem.stock, "reservedQuantity");
-  const available = selectedStock
-    ? selectedStock.availableForSale
-    : inventoryItem.totalAvailable;
+  const available = selectedStock ? selectedStock.availableForSale : inventoryItem.totalAvailable;
 
-  const readOnlyReason = !warehouseId
-    ? "Select a warehouse to edit inventory."
-    : null;
+  const readOnlyReason = !warehouseId ? "Select a warehouse to edit inventory." : null;
 
   return {
     id: inventoryItem.id,
@@ -99,8 +90,7 @@ export function mapInventoryVariantEdgeToRow(
     reserved,
     available,
     trackInventory: inventoryItem.trackInventory,
-    continueSellingWhenOutOfStock:
-      inventoryItem.continueSellingWhenOutOfStock,
+    continueSellingWhenOutOfStock: inventoryItem.continueSellingWhenOutOfStock,
     cursor: edge.cursor,
     readOnly: Boolean(readOnlyReason),
     readOnlyReason,
@@ -111,7 +101,5 @@ export function mapInventoryVariantEdgesToRows(
   edges: ApiInventoryItemEdge[],
   warehouseId: string | null,
 ): InventoryVariantRow[] {
-  return edges.map((edge) =>
-    mapInventoryVariantEdgeToRow(edge, warehouseId),
-  );
+  return edges.map((edge) => mapInventoryVariantEdgeToRow(edge, warehouseId));
 }

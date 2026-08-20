@@ -23,18 +23,19 @@ export class RecommendationFanOutPageScript extends BaseScript<
   RecommendationFanOutPageResult
 > {
   @Transactional()
-  protected async execute(input: RecommendationFanOutPageParams): Promise<RecommendationFanOutPageResult> {
-    const policy = await this.repository.recommendationPlacementPolicy.findByPlacement(input.placement);
-    const fallbackEnabled = policy &&
-      policy.enabled &&
-      policy.strategy !== "CURATED_ONLY" &&
-      policy.minimumResults > 0;
+  protected async execute(
+    input: RecommendationFanOutPageParams,
+  ): Promise<RecommendationFanOutPageResult> {
+    const policy = await this.repository.recommendationPlacementPolicy.findByPlacement(
+      input.placement,
+    );
+    const fallbackEnabled =
+      policy && policy.enabled && policy.strategy !== "CURATED_ONLY" && policy.minimumResults > 0;
     if (
       !policy?.enabled ||
       (input.calculationRunId && policy.strategy === "CURATED_ONLY") ||
-      (input.requiredFallbackCode && (
-        !fallbackEnabled || !policy.fallbackChain.includes(input.requiredFallbackCode)
-      ))
+      (input.requiredFallbackCode &&
+        (!fallbackEnabled || !policy.fallbackChain.includes(input.requiredFallbackCode)))
     ) {
       return { requests: [], nextCursor: null };
     }
@@ -45,8 +46,8 @@ export class RecommendationFanOutPageScript extends BaseScript<
           includePopularityPolicies:
             (input.includePopularityPolicies ?? false) &&
             Boolean(fallbackEnabled) &&
-            policy.fallbackChain.some((code) =>
-              code === "category_popularity" || code === "store_popularity"
+            policy.fallbackChain.some(
+              (code) => code === "category_popularity" || code === "store_popularity",
             ),
           afterProductId: input.afterProductId,
           first: RECOMMENDATION_FAN_OUT_PAGE_SIZE,
@@ -58,11 +59,13 @@ export class RecommendationFanOutPageScript extends BaseScript<
         });
     const requests: RecommendationRequestGeneration[] = [];
     for (const anchorProductId of page.anchorProductIds) {
-      requests.push(await this.repository.recommendationBuildRequest.request(
-        anchorProductId,
-        input.placement,
-        input.triggerKey,
-      ));
+      requests.push(
+        await this.repository.recommendationBuildRequest.request(
+          anchorProductId,
+          input.placement,
+          input.triggerKey,
+        ),
+      );
     }
     return { requests, nextCursor: page.nextCursor };
   }

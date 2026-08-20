@@ -9,9 +9,7 @@ import {
 export class StoreDefaultsUpdateScript extends StoreSettingsUpdateScript<StoreDefaultsUpdateParams> {
   @ZodSchema(storeDefaultsUpdateSchema)
   @Transactional()
-  protected async execute(
-    params: StoreDefaultsUpdateParams,
-  ): Promise<StoreSettingsUpdateResult> {
+  protected async execute(params: StoreDefaultsUpdateParams): Promise<StoreSettingsUpdateResult> {
     if (!(await this.findStore(params))) return this.notFound();
 
     await this.repository.store.update(params.storeId, {

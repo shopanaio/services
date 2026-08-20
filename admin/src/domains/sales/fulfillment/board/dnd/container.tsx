@@ -1,7 +1,14 @@
-import type { DraggableAttributes, DraggableSyntheticListeners, UniqueIdentifier } from "@dnd-kit/core";
+import type {
+  DraggableAttributes,
+  DraggableSyntheticListeners,
+  UniqueIdentifier,
+} from "@dnd-kit/core";
 import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
 
-export interface DragHandleProps { attributes?: DraggableAttributes; listeners?: DraggableSyntheticListeners }
+export interface DragHandleProps {
+  attributes?: DraggableAttributes;
+  listeners?: DraggableSyntheticListeners;
+}
 
 export interface RenderColumnProps {
   value: UniqueIdentifier;
@@ -27,5 +34,9 @@ export const Container = forwardRef<HTMLDivElement, ContainerProps>(function Con
   { children, handleProps, value, dragOverlay, renderColumn, disabled, count, ...props },
   ref,
 ) {
-  return <div {...props} ref={ref} tabIndex={0}>{renderColumn({ value, handleProps, dragOverlay, children, disabled, count })}</div>;
+  return (
+    <div {...props} ref={ref} tabIndex={0}>
+      {renderColumn({ value, handleProps, dragOverlay, children, disabled, count })}
+    </div>
+  );
 });

@@ -17,9 +17,7 @@ export class CustomerTagsUpdateScript extends BaseScript<
   CustomerSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerTagsUpdateParams
-  ): Promise<CustomerSectionResult> {
+  protected async execute(params: CustomerTagsUpdateParams): Promise<CustomerSectionResult> {
     const tags = await this.repository.tag.getByIds(params.operations.tagIds);
     const existingIds = new Set(tags.map((tag) => tag.id));
     const seen = new Set<string>();
@@ -47,7 +45,7 @@ export class CustomerTagsUpdateScript extends BaseScript<
     await this.repository.tag.replaceForCustomer(
       params.customerId,
       params.operations.tagIds,
-      this.context.hasUser ? this.currentUser.id : null
+      this.context.hasUser ? this.currentUser.id : null,
     );
     await this.invalidateDynamicSegments(params.customerId, ["tag"], "tag");
     return sectionSuccess();

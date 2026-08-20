@@ -141,11 +141,15 @@ export async function runAllDbGenerate(): Promise<boolean> {
 
   if (servicesWithScript.length === 0) {
     console.log(chalk.yellow("\n📋 No services with db:generate script found\n"));
-    console.log(chalk.gray("Add a db:generate script to service package.json to enable migration generation"));
+    console.log(
+      chalk.gray("Add a db:generate script to service package.json to enable migration generation"),
+    );
     return true;
   }
 
-  console.log(chalk.cyan(`\n📋 Generating migrations for ${servicesWithScript.length} service(s)\n`));
+  console.log(
+    chalk.cyan(`\n📋 Generating migrations for ${servicesWithScript.length} service(s)\n`),
+  );
 
   const results: GenerateResult[] = [];
 
@@ -170,7 +174,9 @@ export async function runAllDbGenerate(): Promise<boolean> {
   console.log(chalk.gray(`\n${"═".repeat(50)}\n`));
 
   if (failed.length === 0) {
-    console.log(chalk.green(`✅ All ${succeeded.length} service(s) generated migrations successfully`));
+    console.log(
+      chalk.green(`✅ All ${succeeded.length} service(s) generated migrations successfully`),
+    );
     return true;
   } else {
     console.log(chalk.yellow(`⚠️  ${succeeded.length} succeeded, ${failed.length} failed`));

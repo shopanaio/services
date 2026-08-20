@@ -7,10 +7,7 @@ import type {
   AppIdempotencyContext,
   AppWorkflowStartOptions,
 } from "@shopana/app-sdk";
-import {
-  InjectBroker,
-  type ServiceBroker,
-} from "@shopana/shared-kernel";
+import { InjectBroker, type ServiceBroker } from "@shopana/shared-kernel";
 import { AppRuntimeRegistry } from "./AppRuntimeRegistry.js";
 import { APP_INSTALLATION_CONTEXT_PROVIDER } from "./AppInstallationContextProvider.js";
 import {
@@ -45,39 +42,25 @@ export class AppsRuntimeRouter {
   ): Promise<TResult> {
     const runtime = this.registry.get(appCode);
     if (!runtime || runtime.status !== "READY") {
-      throw new AppRuntimeInvocationError(
-        "APP_RUNTIME_UNAVAILABLE",
-      );
+      throw new AppRuntimeInvocationError("APP_RUNTIME_UNAVAILABLE");
     }
     if (!contextRef.installationId) {
-      throw new AppRuntimeInvocationError(
-        "APP_ROUTE_UNAVAILABLE",
-      );
+      throw new AppRuntimeInvocationError("APP_ROUTE_UNAVAILABLE");
     }
 
     const localAction = action.trim();
     if (!localAction || localAction.includes(".")) {
-      throw new AppRuntimeInvocationError(
-        "APP_ROUTE_UNAVAILABLE",
-      );
+      throw new AppRuntimeInvocationError("APP_ROUTE_UNAVAILABLE");
     }
-    if (
-      !getExternallyRoutableActions(
-        runtime.definition.manifest,
-      ).has(localAction)
-    ) {
-      throw new AppRuntimeInvocationError(
-        "APP_ROUTE_UNAVAILABLE",
-      );
+    if (!getExternallyRoutableActions(runtime.definition.manifest).has(localAction)) {
+      throw new AppRuntimeInvocationError("APP_ROUTE_UNAVAILABLE");
     }
     const qualifiedAction = `apps.${appCode}.${localAction}`;
     if (
       contextRef.executionKind === "COMMERCE_FUNCTION" &&
       this.broker.getActionMetadata(qualifiedAction)?.readOnly !== true
     ) {
-      throw new AppRuntimeInvocationError(
-        "APP_ACTION_NOT_READ_ONLY",
-      );
+      throw new AppRuntimeInvocationError("APP_ACTION_NOT_READ_ONLY");
     }
 
     const context = await (async () => {
@@ -89,10 +72,7 @@ export class AppsRuntimeRouter {
           operationId: contextRef.operationId,
         });
       } catch (error) {
-        throw new AppRuntimeInvocationError(
-          "APP_ROUTE_UNAVAILABLE",
-          error,
-        );
+        throw new AppRuntimeInvocationError("APP_ROUTE_UNAVAILABLE", error);
       }
     })();
     if (
@@ -102,9 +82,7 @@ export class AppsRuntimeRouter {
       !context.organizationId ||
       !context.storeId
     ) {
-      throw new AppRuntimeInvocationError(
-        "APP_ROUTE_UNAVAILABLE",
-      );
+      throw new AppRuntimeInvocationError("APP_ROUTE_UNAVAILABLE");
     }
 
     return this.broker.callAsApp<TResult, TInput>(
@@ -114,10 +92,7 @@ export class AppsRuntimeRouter {
         ...context,
         correlationId: contextRef.correlationId ?? context.correlationId,
         executionKind: contextRef.executionKind ?? "STANDARD",
-        grantedScopes: restrictGrantedScopes(
-          runtime.definition.manifest,
-          context.grantedScopes,
-        ),
+        grantedScopes: restrictGrantedScopes(runtime.definition.manifest, context.grantedScopes),
       }),
     );
   }
@@ -154,21 +129,15 @@ export class AppsRuntimeRouter {
       throw new Error(`App runtime "${appCode}" is not ready`);
     }
     if (!contextRef.installationId || !contextRef.operationId) {
-      throw new Error(
-        "App lifecycle workflow requires installation and operation references",
-      );
+      throw new Error("App lifecycle workflow requires installation and operation references");
     }
     const localWorkflow = workflow.trim();
     if (
       !localWorkflow ||
       localWorkflow.includes(".") ||
-      !getExternallyRoutableWorkflows(
-        runtime.definition.manifest,
-      ).has(localWorkflow)
+      !getExternallyRoutableWorkflows(runtime.definition.manifest).has(localWorkflow)
     ) {
-      throw new Error(
-        `App workflow "${localWorkflow}" is not declared as a lifecycle contract`,
-      );
+      throw new Error(`App workflow "${localWorkflow}" is not declared as a lifecycle contract`);
     }
 
     const context = await this.resolveContext(

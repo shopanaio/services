@@ -1,12 +1,6 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import {
-  adminUserErrors,
-  type AdminUserError,
-} from "../shared/adminScriptSupport.js";
-import type {
-  NotificationPreviewParams,
-  NotificationPreviewView,
-} from "./dto/index.js";
+import { adminUserErrors, type AdminUserError } from "../shared/adminScriptSupport.js";
+import type { NotificationPreviewParams, NotificationPreviewView } from "./dto/index.js";
 
 export interface NotificationPreviewResult {
   preview?: NotificationPreviewView;
@@ -17,9 +11,7 @@ export class NotificationPreviewScript extends BaseScript<
   NotificationPreviewParams,
   NotificationPreviewResult
 > {
-  protected async execute(
-    params: NotificationPreviewParams
-  ) {
+  protected async execute(params: NotificationPreviewParams) {
     return {
       preview: await this.renderer.preview(params),
       userErrors: [],

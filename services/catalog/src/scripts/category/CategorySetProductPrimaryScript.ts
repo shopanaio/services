@@ -51,10 +51,25 @@ export class CategorySetProductPrimaryScript extends BaseScript<
       };
     }
 
-    const futureProfile = (await this.repository.comparisonRead.getEffectiveProfilesByCategoryIds([params.categoryId]))[0]?.profileId ?? null;
-    const configuredProfiles = await this.repository.comparisonRead.productConfigurationProfileIds(params.productId);
+    const futureProfile =
+      (
+        await this.repository.comparisonRead.getEffectiveProfilesByCategoryIds([params.categoryId])
+      )[0]?.profileId ?? null;
+    const configuredProfiles = await this.repository.comparisonRead.productConfigurationProfileIds(
+      params.productId,
+    );
     if (configuredProfiles.some((profileId) => profileId !== futureProfile)) {
-      return { category: undefined, affectedProductIds: [], userErrors: [{ message: "Primary category change conflicts with comparison configuration", field: ["input", "categoryId"], code: "COMPARISON_EFFECTIVE_PROFILE_MISMATCH" }] };
+      return {
+        category: undefined,
+        affectedProductIds: [],
+        userErrors: [
+          {
+            message: "Primary category change conflicts with comparison configuration",
+            field: ["input", "categoryId"],
+            code: "COMPARISON_EFFECTIVE_PROFILE_MISMATCH",
+          },
+        ],
+      };
     }
 
     const link = await this.repository.category.setProductPrimaryCategory(

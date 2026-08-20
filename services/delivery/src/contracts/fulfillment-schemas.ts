@@ -32,13 +32,7 @@ const committedDeliveryMethodBaseShape = {
   methodDefinitionId: identifierSchema,
   code: identifierSchema,
   presentedName: z.string().trim().min(1).max(255),
-  methodType: z.enum([
-    "LOCAL",
-    "PICK_UP",
-    "PICKUP_POINT",
-    "RETAIL",
-    "SHIPPING",
-  ]),
+  methodType: z.enum(["LOCAL", "PICK_UP", "PICKUP_POINT", "RETAIL", "SHIPPING"]),
   cost: DeliveryProviderMoneySchema,
   estimatedMinDeliveryAt: nullableTimestampSchema,
   estimatedMaxDeliveryAt: nullableTimestampSchema,
@@ -85,8 +79,7 @@ export const DeliveryCommittedMethodSnapshotSchema = z
     if (
       value.estimatedMinDeliveryAt !== null &&
       value.estimatedMaxDeliveryAt !== null &&
-      Date.parse(value.estimatedMaxDeliveryAt) <
-        Date.parse(value.estimatedMinDeliveryAt)
+      Date.parse(value.estimatedMaxDeliveryAt) < Date.parse(value.estimatedMinDeliveryAt)
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -112,30 +105,27 @@ export const DeliveryFulfillmentOrderLineItemSnapshotSchema = z
     message: "Remaining quantity cannot exceed ordered quantity",
   });
 
-const fulfillmentOrderAssignedLocationSchema = z.discriminatedUnion(
-  "management",
-  [
-    z
-      .object({
-        locationId: identifierSchema,
-        management: z.literal("MERCHANT"),
-        fulfillmentService: z.null(),
-      })
-      .strict(),
-    z
-      .object({
-        locationId: identifierSchema,
-        management: z.literal("FULFILLMENT_SERVICE"),
-        fulfillmentService: z
-          .object({
-            fulfillmentServiceId: identifierSchema,
-            appInstallationId: identifierSchema,
-          })
-          .strict(),
-      })
-      .strict(),
-  ],
-);
+const fulfillmentOrderAssignedLocationSchema = z.discriminatedUnion("management", [
+  z
+    .object({
+      locationId: identifierSchema,
+      management: z.literal("MERCHANT"),
+      fulfillmentService: z.null(),
+    })
+    .strict(),
+  z
+    .object({
+      locationId: identifierSchema,
+      management: z.literal("FULFILLMENT_SERVICE"),
+      fulfillmentService: z
+        .object({
+          fulfillmentServiceId: identifierSchema,
+          appInstallationId: identifierSchema,
+        })
+        .strict(),
+    })
+    .strict(),
+]);
 
 export const DeliveryFulfillmentOrderSnapshotSchema = z
   .object({
@@ -225,9 +215,7 @@ export const DeliveryFulfillmentOrderSnapshotSchema = z
         message: "Fulfillment order line item IDs must be unique",
       });
     }
-    const checkoutLineIds = value.lineItems.map(
-      ({ checkoutLineId }) => checkoutLineId,
-    );
+    const checkoutLineIds = value.lineItems.map(({ checkoutLineId }) => checkoutLineId);
     if (new Set(checkoutLineIds).size !== checkoutLineIds.length) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -250,7 +238,7 @@ export const DeliveryFulfillmentOrderSnapshotSchema = z
         message: "Fulfillment order hold IDs must be unique",
       });
     }
-    if ((value.status === "ON_HOLD") !== (value.holds.length > 0)) {
+    if ((value.status === "ON_HOLD") !== value.holds.length > 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["holds"],
@@ -278,20 +266,14 @@ export const DeliveryFulfillmentOrderSnapshotSchema = z
         message: "Shipment creation requires an open or in-progress fulfillment order",
       });
     }
-    if (
-      value.status === "ON_HOLD" &&
-      !value.supportedActions.includes("RELEASE_HOLD")
-    ) {
+    if (value.status === "ON_HOLD" && !value.supportedActions.includes("RELEASE_HOLD")) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["supportedActions"],
         message: "A held fulfillment order must advertise RELEASE_HOLD",
       });
     }
-    if (
-      value.assignedLocation.management === "MERCHANT" &&
-      value.requestStatus !== "UNSUBMITTED"
-    ) {
+    if (value.assignedLocation.management === "MERCHANT" && value.requestStatus !== "UNSUBMITTED") {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["requestStatus"],
@@ -353,10 +335,7 @@ export const DeliveryShipmentPlanSnapshotSchema = z
     destination: DeliveryProviderDestinationSchema,
     sender: DeliveryProviderContactSchema,
     recipient: DeliveryProviderContactSchema,
-    packages: z
-      .array(DeliveryProviderPackageSchema)
-      .min(1)
-      .max(DELIVERY_PROVIDER_MAX_PACKAGES),
+    packages: z.array(DeliveryProviderPackageSchema).min(1).max(DELIVERY_PROVIDER_MAX_PACKAGES),
     planHash: z.string().trim().min(1).max(512),
   })
   .strict()
@@ -390,9 +369,7 @@ export const DeliveryShipmentPlanSnapshotSchema = z
     const allocatedByLine = new Map<string, number>();
     const variantsByLine = new Map<string, string>();
     value.lineItems.forEach((selection, selectionIndex) => {
-      const allocation = allocationsById.get(
-        selection.fulfillmentOrderLineItemId,
-      );
+      const allocation = allocationsById.get(selection.fulfillmentOrderLineItemId);
       if (allocation === undefined) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -401,10 +378,7 @@ export const DeliveryShipmentPlanSnapshotSchema = z
         });
         return;
       }
-      if (
-        !allocation.requiresShipping ||
-        selection.quantity > allocation.remainingQuantity
-      ) {
+      if (!allocation.requiresShipping || selection.quantity > allocation.remainingQuantity) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["lineItems", selectionIndex, "quantity"],
@@ -413,14 +387,10 @@ export const DeliveryShipmentPlanSnapshotSchema = z
       }
       allocatedByLine.set(
         allocation.checkoutLineId,
-        (allocatedByLine.get(allocation.checkoutLineId) ?? 0) +
-          selection.quantity,
+        (allocatedByLine.get(allocation.checkoutLineId) ?? 0) + selection.quantity,
       );
       const existingVariant = variantsByLine.get(allocation.checkoutLineId);
-      if (
-        existingVariant !== undefined &&
-        existingVariant !== allocation.variantId
-      ) {
+      if (existingVariant !== undefined && existingVariant !== allocation.variantId) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["fulfillmentOrder", "lineItems"],
@@ -433,10 +403,7 @@ export const DeliveryShipmentPlanSnapshotSchema = z
     const packagedByLine = new Map<string, number>();
     value.packages.forEach((entry, packageIndex) => {
       entry.items.forEach((item, itemIndex) => {
-        packagedByLine.set(
-          item.lineId,
-          (packagedByLine.get(item.lineId) ?? 0) + item.quantity,
-        );
+        packagedByLine.set(item.lineId, (packagedByLine.get(item.lineId) ?? 0) + item.quantity);
         const expectedVariant = variantsByLine.get(item.lineId);
         if (expectedVariant === undefined) {
           context.addIssue({
@@ -463,10 +430,7 @@ export const DeliveryShipmentPlanSnapshotSchema = z
         });
       }
     }
-    if (
-      value.origin.fulfillmentLocationId !==
-      value.fulfillmentOrder.assignedLocation.locationId
-    ) {
+    if (value.origin.fulfillmentLocationId !== value.fulfillmentOrder.assignedLocation.locationId) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["origin", "fulfillmentLocationId"],
@@ -494,8 +458,7 @@ export const DeliveryShipmentPlanSnapshotSchema = z
       });
     }
     if (
-      value.fulfillmentOrder.assignedLocation.management ===
-        "FULFILLMENT_SERVICE" &&
+      value.fulfillmentOrder.assignedLocation.management === "FULFILLMENT_SERVICE" &&
       value.fulfillmentOrder.requestStatus !== "ACCEPTED" &&
       value.fulfillmentOrder.requestStatus !== "CANCELLATION_REJECTED"
     ) {
@@ -543,23 +506,14 @@ export const DeliveryFulfillmentShipmentUpdateSchema = z
       .array(fulfillmentLineItemInputSchema)
       .max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS)
       .nonempty(),
-    state: z.enum([
-      "SHIPMENT_CREATED",
-      "IN_TRANSIT",
-      "DELIVERED",
-      "DELIVERY_FAILED",
-      "CANCELLED",
-    ]),
+    state: z.enum(["SHIPMENT_CREATED", "IN_TRANSIT", "DELIVERED", "DELIVERY_FAILED", "CANCELLED"]),
     occurredAt: timestampSchema,
   })
   .strict()
   .refine(
     (value) =>
-      new Set(
-        value.lineItems.map(
-          ({ fulfillmentOrderLineItemId }) => fulfillmentOrderLineItemId,
-        ),
-      ).size === value.lineItems.length,
+      new Set(value.lineItems.map(({ fulfillmentOrderLineItemId }) => fulfillmentOrderLineItemId))
+        .size === value.lineItems.length,
     {
       path: ["lineItems"],
       message: "Shipment update line item IDs must be unique",
@@ -587,9 +541,6 @@ export function parseDeliveryCommittedMethodSnapshot(
 export function parseDeliveryFulfillmentShipmentUpdate(
   value: unknown,
 ): Delivery.DeliveryFulfillmentShipmentUpdate {
-  assertDeliveryContractPayloadSize(
-    value,
-    "Delivery fulfillment shipment update",
-  );
+  assertDeliveryContractPayloadSize(value, "Delivery fulfillment shipment update");
   return DeliveryFulfillmentShipmentUpdateSchema.parse(value);
 }

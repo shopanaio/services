@@ -1,25 +1,11 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import {
-  getPgErrorInfo,
-  PG_ERROR_CODES,
-} from "../../kernel/types.js";
-import type {
-  DiscountDeleteParams,
-  DiscountDeleteResult,
-} from "./dto/index.js";
+import { getPgErrorInfo, PG_ERROR_CODES } from "../../kernel/types.js";
+import type { DiscountDeleteParams, DiscountDeleteResult } from "./dto/index.js";
 
-export class DiscountDeleteScript extends BaseScript<
-  DiscountDeleteParams,
-  DiscountDeleteResult
-> {
+export class DiscountDeleteScript extends BaseScript<DiscountDeleteParams, DiscountDeleteResult> {
   @Transactional()
-  protected async execute(
-    params: DiscountDeleteParams,
-  ): Promise<DiscountDeleteResult> {
-    if (
-      !Number.isSafeInteger(params.expectedRevision) ||
-      params.expectedRevision < 0
-    ) {
+  protected async execute(params: DiscountDeleteParams): Promise<DiscountDeleteResult> {
+    if (!Number.isSafeInteger(params.expectedRevision) || params.expectedRevision < 0) {
       return errorResult({
         message: "Expected revision must be a non-negative integer",
         code: "INVALID_REVISION",
@@ -27,9 +13,7 @@ export class DiscountDeleteScript extends BaseScript<
       });
     }
 
-    const aggregate = await this.repository.discount.findAggregateById(
-      params.id,
-    );
+    const aggregate = await this.repository.discount.findAggregateById(params.id);
     if (!aggregate) {
       return errorResult({
         message: "Discount not found",
@@ -45,19 +29,12 @@ export class DiscountDeleteScript extends BaseScript<
     }
 
     const hasCounterUsage =
-      hasUsage(aggregate.usageCounter) ||
-      aggregate.codeUsageCounters.some(hasUsage);
-    if (
-      hasCounterUsage ||
-      (await this.repository.discount.hasUsageHistory(params.id))
-    ) {
+      hasUsage(aggregate.usageCounter) || aggregate.codeUsageCounters.some(hasUsage);
+    if (hasCounterUsage || (await this.repository.discount.hasUsageHistory(params.id))) {
       return deleteNotAllowed();
     }
 
-    const deleted = await this.repository.discount.deleteDraft(
-      params.id,
-      params.expectedRevision,
-    );
+    const deleted = await this.repository.discount.deleteDraft(params.id, params.expectedRevision);
     if (!deleted) return revisionConflict();
 
     this.logger.info({ discountId: params.id }, "Discount deleted");
@@ -76,16 +53,16 @@ export class DiscountDeleteScript extends BaseScript<
   }
 }
 
-function hasUsage(counter: {
-  reservedCount: bigint;
-  committedCount: bigint;
-  reversedCount: bigint;
-} | null): boolean {
+function hasUsage(
+  counter: {
+    reservedCount: bigint;
+    committedCount: bigint;
+    reversedCount: bigint;
+  } | null,
+): boolean {
   return Boolean(
     counter &&
-      (counter.reservedCount > 0n ||
-        counter.committedCount > 0n ||
-        counter.reversedCount > 0n),
+    (counter.reservedCount > 0n || counter.committedCount > 0n || counter.reversedCount > 0n),
   );
 }
 
@@ -105,8 +82,6 @@ function deleteNotAllowed(): DiscountDeleteResult {
   });
 }
 
-function errorResult(
-  error: DiscountDeleteResult["userErrors"][number],
-): DiscountDeleteResult {
+function errorResult(error: DiscountDeleteResult["userErrors"][number]): DiscountDeleteResult {
   return { deletedCodeIds: [], userErrors: [error] };
 }

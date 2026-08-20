@@ -8,11 +8,7 @@ import type {
   SearchSynonymValue,
 } from "../models/index.js";
 
-export type SearchTextField =
-  | "product_title"
-  | "variant_title"
-  | "vendor_name"
-  | "category_name";
+export type SearchTextField = "product_title" | "variant_title" | "vendor_name" | "category_name";
 
 export type SearchIdentifierKind = "SKU";
 export type SearchOutOfStockPolicy = "SHOW" | "HIDE" | "PLACE_LAST";

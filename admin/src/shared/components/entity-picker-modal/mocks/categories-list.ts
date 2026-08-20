@@ -34,16 +34,12 @@ const categoryNames = [
   "Tools & Hardware",
 ];
 
-export const mockCategoriesList: ApiCategory[] = Array.from(
-  { length: 30 },
-  (_, i) =>
-    createMockApiCategory({
-      id: `cat-${i + 1}`,
-      name: categoryNames[i % categoryNames.length],
-      handle: categoryNames[i % categoryNames.length]
-        .toLowerCase()
-        .replace(/[&\s]+/g, "-"),
-      isPublished: i % 7 !== 0,
-      productsCount: Math.floor(Math.random() * 200),
-    }),
+export const mockCategoriesList: ApiCategory[] = Array.from({ length: 30 }, (_, i) =>
+  createMockApiCategory({
+    id: `cat-${i + 1}`,
+    name: categoryNames[i % categoryNames.length],
+    handle: categoryNames[i % categoryNames.length].toLowerCase().replace(/[&\s]+/g, "-"),
+    isPublished: i % 7 !== 0,
+    productsCount: Math.floor(Math.random() * 200),
+  }),
 );

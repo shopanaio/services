@@ -1,4 +1,8 @@
-import { LuEye as EyeOutlined, LuPencil as EditOutlined, LuShield as SafetyOutlined } from "react-icons/lu";
+import {
+  LuEye as EyeOutlined,
+  LuPencil as EditOutlined,
+  LuShield as SafetyOutlined,
+} from "react-icons/lu";
 import { Action } from "@/graphql/types";
 import type { ApiResourceDefinition } from "@/graphql/types";
 import type {
@@ -12,7 +16,7 @@ import type {
  * Build single permission category from API resources.
  */
 export function buildPermissionCategories(
-  apiResources: ApiResourceDefinition[]
+  apiResources: ApiResourceDefinition[],
 ): IPermissionCategory[] {
   return [
     {
@@ -65,8 +69,7 @@ export const PERMISSION_PRESETS: IPermissionPreset[] = [
     label: "Viewer",
     description: "Read-only access to all resources",
     icon: <EyeOutlined />,
-    getPermissions: (resources) =>
-      resources.map((resource) => ({ resource, action: Action.Read })),
+    getPermissions: (resources) => resources.map((resource) => ({ resource, action: Action.Read })),
   },
   {
     id: "editor",

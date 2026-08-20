@@ -59,12 +59,7 @@ const JSONScalar = new GraphQLScalarType({
       const parsed = JSON.parse(value);
 
       // Check if it has superjson metadata structure
-      if (
-        parsed &&
-        typeof parsed === "object" &&
-        "json" in parsed &&
-        "meta" in parsed
-      ) {
+      if (parsed && typeof parsed === "object" && "json" in parsed && "meta" in parsed) {
         return superjson.deserialize(parsed);
       }
 
@@ -97,7 +92,6 @@ const JSONScalar = new GraphQLScalarType({
   },
 });
 
-
 /**
  * Helper function to parse GraphQL object literals
  */
@@ -114,7 +108,7 @@ const DecimalScalar = new GraphQLScalarType({
   description:
     "Decimal represented as integer amount and scale internally; serialized as float number",
   serialize(value: unknown): number | null {
-    console.log('value', value);
+    console.log("value", value);
 
     // If we were passed Money already - use its conversion
     if (value instanceof Money) {

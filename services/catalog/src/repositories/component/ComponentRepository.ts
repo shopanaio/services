@@ -1,12 +1,4 @@
-import {
-  and,
-  asc,
-  eq,
-  inArray,
-  isNull,
-  notExists,
-  notInArray,
-} from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, notExists, notInArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import type {
   ProductComponentDependencyRulesSyncParams,
@@ -65,12 +57,7 @@ export class ComponentRepository extends BaseRepository {
     return this.connection
       .select()
       .from(component)
-      .where(
-        and(
-          eq(component.storeId, this.storeId),
-          inArray(component.id, [...ids]),
-        ),
-      );
+      .where(and(eq(component.storeId, this.storeId), inArray(component.id, [...ids])));
   }
 
   async getByProductIds(productIds: readonly string[]): Promise<Component[]> {
@@ -79,10 +66,7 @@ export class ComponentRepository extends BaseRepository {
       .select()
       .from(component)
       .where(
-        and(
-          eq(component.storeId, this.storeId),
-          inArray(component.productId, [...productIds]),
-        ),
+        and(eq(component.storeId, this.storeId), inArray(component.productId, [...productIds])),
       );
   }
 
@@ -91,9 +75,7 @@ export class ComponentRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async getConfigurationsByIds(
-    ids: readonly string[],
-  ): Promise<ComponentConfiguration[]> {
+  async getConfigurationsByIds(ids: readonly string[]): Promise<ComponentConfiguration[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -148,10 +130,7 @@ export class ComponentRepository extends BaseRepository {
       .where(
         and(
           eq(componentConfigurationVariant.storeId, this.storeId),
-          inArray(
-            componentConfigurationVariant.configurationId,
-            [...configurationIds],
-          ),
+          inArray(componentConfigurationVariant.configurationId, [...configurationIds]),
         ),
       )
       .orderBy(
@@ -180,12 +159,7 @@ export class ComponentRepository extends BaseRepository {
     return this.connection
       .select()
       .from(componentGroup)
-      .where(
-        and(
-          eq(componentGroup.storeId, this.storeId),
-          inArray(componentGroup.id, [...ids]),
-        ),
-      );
+      .where(and(eq(componentGroup.storeId, this.storeId), inArray(componentGroup.id, [...ids])));
   }
 
   async getGroupsByConfigurationIds(
@@ -229,32 +203,18 @@ export class ComponentRepository extends BaseRepository {
     return this.connection
       .select()
       .from(componentItem)
-      .where(
-        and(
-          eq(componentItem.storeId, this.storeId),
-          inArray(componentItem.id, [...ids]),
-        ),
-      );
+      .where(and(eq(componentItem.storeId, this.storeId), inArray(componentItem.id, [...ids])));
   }
 
-  async getItemsByGroupIds(
-    groupIds: readonly string[],
-  ): Promise<ComponentItem[]> {
+  async getItemsByGroupIds(groupIds: readonly string[]): Promise<ComponentItem[]> {
     if (groupIds.length === 0) return [];
     return this.connection
       .select()
       .from(componentItem)
       .where(
-        and(
-          eq(componentItem.storeId, this.storeId),
-          inArray(componentItem.groupId, [...groupIds]),
-        ),
+        and(eq(componentItem.storeId, this.storeId), inArray(componentItem.groupId, [...groupIds])),
       )
-      .orderBy(
-        asc(componentItem.groupId),
-        asc(componentItem.sortIndex),
-        asc(componentItem.id),
-      );
+      .orderBy(asc(componentItem.groupId), asc(componentItem.sortIndex), asc(componentItem.id));
   }
 
   async getItemTranslationsByItemIds(
@@ -273,9 +233,7 @@ export class ComponentRepository extends BaseRepository {
       );
   }
 
-  async getOptionSelectionsByIds(
-    ids: readonly string[],
-  ): Promise<ComponentItemOptionSelection[]> {
+  async getOptionSelectionsByIds(ids: readonly string[]): Promise<ComponentItemOptionSelection[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -333,10 +291,7 @@ export class ComponentRepository extends BaseRepository {
       .where(
         and(
           eq(componentItemOptionValueSelection.storeId, this.storeId),
-          inArray(
-            componentItemOptionValueSelection.optionSelectionId,
-            [...selectionIds],
-          ),
+          inArray(componentItemOptionValueSelection.optionSelectionId, [...selectionIds]),
         ),
       )
       .orderBy(
@@ -346,18 +301,13 @@ export class ComponentRepository extends BaseRepository {
       );
   }
 
-  async getPriceRulesByIds(
-    ids: readonly string[],
-  ): Promise<ComponentPriceRule[]> {
+  async getPriceRulesByIds(ids: readonly string[]): Promise<ComponentPriceRule[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
       .from(componentPriceRule)
       .where(
-        and(
-          eq(componentPriceRule.storeId, this.storeId),
-          inArray(componentPriceRule.id, [...ids]),
-        ),
+        and(eq(componentPriceRule.storeId, this.storeId), inArray(componentPriceRule.id, [...ids])),
       );
   }
 
@@ -371,10 +321,7 @@ export class ComponentRepository extends BaseRepository {
       .where(
         and(
           eq(componentPriceRule.storeId, this.storeId),
-          inArray(
-            componentPriceRule.configurationId,
-            [...configurationIds],
-          ),
+          inArray(componentPriceRule.configurationId, [...configurationIds]),
         ),
       );
   }
@@ -392,10 +339,7 @@ export class ComponentRepository extends BaseRepository {
           inArray(componentPriceRuleAmount.priceRuleId, [...priceRuleIds]),
         ),
       )
-      .orderBy(
-        asc(componentPriceRuleAmount.priceRuleId),
-        asc(componentPriceRuleAmount.currency),
-      );
+      .orderBy(asc(componentPriceRuleAmount.priceRuleId), asc(componentPriceRuleAmount.currency));
   }
 
   async getPriceRulePercentsByPriceRuleIds(
@@ -413,9 +357,7 @@ export class ComponentRepository extends BaseRepository {
       );
   }
 
-  async getPricingTemplatesByIds(
-    ids: readonly string[],
-  ): Promise<ComponentPricingTemplate[]> {
+  async getPricingTemplatesByIds(ids: readonly string[]): Promise<ComponentPricingTemplate[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -438,9 +380,7 @@ export class ComponentRepository extends BaseRepository {
       .where(
         and(
           eq(componentPricingTemplate.storeId, this.storeId),
-          inArray(componentPricingTemplate.configurationId, [
-            ...configurationIds,
-          ]),
+          inArray(componentPricingTemplate.configurationId, [...configurationIds]),
         ),
       )
       .orderBy(
@@ -450,19 +390,12 @@ export class ComponentRepository extends BaseRepository {
       );
   }
 
-  async getDependencyRulesByIds(
-    ids: readonly string[],
-  ): Promise<DependencyRule[]> {
+  async getDependencyRulesByIds(ids: readonly string[]): Promise<DependencyRule[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
       .from(dependencyRule)
-      .where(
-        and(
-          eq(dependencyRule.storeId, this.storeId),
-          inArray(dependencyRule.id, [...ids]),
-        ),
-      );
+      .where(and(eq(dependencyRule.storeId, this.storeId), inArray(dependencyRule.id, [...ids])));
   }
 
   async getDependencyRulesByConfigurationIds(
@@ -485,39 +418,23 @@ export class ComponentRepository extends BaseRepository {
       );
   }
 
-  async getConditionGroupsByIds(
-    ids: readonly string[],
-  ): Promise<ConditionGroup[]> {
+  async getConditionGroupsByIds(ids: readonly string[]): Promise<ConditionGroup[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
       .from(conditionGroup)
-      .where(
-        and(
-          eq(conditionGroup.storeId, this.storeId),
-          inArray(conditionGroup.id, [...ids]),
-        ),
-      );
+      .where(and(eq(conditionGroup.storeId, this.storeId), inArray(conditionGroup.id, [...ids])));
   }
 
-  async getConditionGroupsByRuleIds(
-    ruleIds: readonly string[],
-  ): Promise<ConditionGroup[]> {
+  async getConditionGroupsByRuleIds(ruleIds: readonly string[]): Promise<ConditionGroup[]> {
     if (ruleIds.length === 0) return [];
     return this.connection
       .select()
       .from(conditionGroup)
       .where(
-        and(
-          eq(conditionGroup.storeId, this.storeId),
-          inArray(conditionGroup.ruleId, [...ruleIds]),
-        ),
+        and(eq(conditionGroup.storeId, this.storeId), inArray(conditionGroup.ruleId, [...ruleIds])),
       )
-      .orderBy(
-        asc(conditionGroup.ruleId),
-        asc(conditionGroup.sortIndex),
-        asc(conditionGroup.id),
-      );
+      .orderBy(asc(conditionGroup.ruleId), asc(conditionGroup.sortIndex), asc(conditionGroup.id));
   }
 
   async getConditionsByIds(ids: readonly string[]): Promise<Condition[]> {
@@ -525,52 +442,29 @@ export class ComponentRepository extends BaseRepository {
     return this.connection
       .select()
       .from(condition)
-      .where(
-        and(
-          eq(condition.storeId, this.storeId),
-          inArray(condition.id, [...ids]),
-        ),
-      );
+      .where(and(eq(condition.storeId, this.storeId), inArray(condition.id, [...ids])));
   }
 
-  async getConditionsByGroupIds(
-    groupIds: readonly string[],
-  ): Promise<Condition[]> {
+  async getConditionsByGroupIds(groupIds: readonly string[]): Promise<Condition[]> {
     if (groupIds.length === 0) return [];
     return this.connection
       .select()
       .from(condition)
-      .where(
-        and(
-          eq(condition.storeId, this.storeId),
-          inArray(condition.groupId, [...groupIds]),
-        ),
-      )
-      .orderBy(
-        asc(condition.groupId),
-        asc(condition.sortIndex),
-        asc(condition.id),
-      );
+      .where(and(eq(condition.storeId, this.storeId), inArray(condition.groupId, [...groupIds])))
+      .orderBy(asc(condition.groupId), asc(condition.sortIndex), asc(condition.id));
   }
 
-  async getDependencyActionsByIds(
-    ids: readonly string[],
-  ): Promise<DependencyAction[]> {
+  async getDependencyActionsByIds(ids: readonly string[]): Promise<DependencyAction[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
       .from(dependencyAction)
       .where(
-        and(
-          eq(dependencyAction.storeId, this.storeId),
-          inArray(dependencyAction.id, [...ids]),
-        ),
+        and(eq(dependencyAction.storeId, this.storeId), inArray(dependencyAction.id, [...ids])),
       );
   }
 
-  async getDependencyActionsByRuleIds(
-    ruleIds: readonly string[],
-  ): Promise<DependencyAction[]> {
+  async getDependencyActionsByRuleIds(ruleIds: readonly string[]): Promise<DependencyAction[]> {
     if (ruleIds.length === 0) return [];
     return this.connection
       .select()
@@ -588,21 +482,13 @@ export class ComponentRepository extends BaseRepository {
       );
   }
 
-  async upsertSettings(
-    productId: string,
-    displayStyle: string,
-  ): Promise<Component> {
+  async upsertSettings(productId: string, displayStyle: string): Promise<Component> {
     const existing = await this.getByProductId(productId);
     if (existing) {
       const rows = await this.connection
         .update(component)
         .set({ displayStyle, updatedAt: new Date().toISOString() })
-        .where(
-          and(
-            eq(component.storeId, this.storeId),
-            eq(component.id, existing.id),
-          ),
-        )
+        .where(and(eq(component.storeId, this.storeId), eq(component.id, existing.id)))
         .returning();
       return rows[0];
     }
@@ -623,28 +509,16 @@ export class ComponentRepository extends BaseRepository {
   async removeByProductId(productId: string): Promise<boolean> {
     const owner = await this.getByProductId(productId);
     if (!owner) return false;
-    const configurations = await this.getConfigurationsByComponentIds([
-      owner.id,
-    ]);
-    await this.deleteConfigurationGraph(
-      configurations.map((configuration) => configuration.id),
-    );
+    const configurations = await this.getConfigurationsByComponentIds([owner.id]);
+    await this.deleteConfigurationGraph(configurations.map((configuration) => configuration.id));
     const rows = await this.connection
       .delete(component)
-      .where(
-        and(
-          eq(component.storeId, this.storeId),
-          eq(component.productId, productId),
-        ),
-      )
+      .where(and(eq(component.storeId, this.storeId), eq(component.productId, productId)))
       .returning({ id: component.id });
     return rows.length > 0;
   }
 
-  async createConfiguration(
-    productId: string,
-    name: string,
-  ): Promise<ComponentConfiguration> {
+  async createConfiguration(productId: string, name: string): Promise<ComponentConfiguration> {
     const owner = await this.ensureComponent(productId);
     const id = await this.generateUuidV7();
     const rows = await this.connection
@@ -697,9 +571,7 @@ export class ComponentRepository extends BaseRepository {
     return true;
   }
 
-  private async deleteConfigurationGraph(
-    configurationIds: string[],
-  ): Promise<void> {
+  private async deleteConfigurationGraph(configurationIds: string[]): Promise<void> {
     if (configurationIds.length === 0) return;
     const [groups, rules, templates] = await Promise.all([
       this.getGroupsByConfigurationIds(configurationIds),
@@ -740,19 +612,10 @@ export class ComponentRepository extends BaseRepository {
     }
   }
 
-  async syncGroups(
-    params: ProductComponentGroupsSyncParams,
-    locale: string,
-  ): Promise<void> {
-    const existingGroups = await this.getGroupsByConfigurationIds([
-      params.configurationId,
-    ]);
-    const keepGroupIds = params.groups.flatMap((group) =>
-      group.id ? [group.id] : [],
-    );
-    const removedGroups = existingGroups.filter(
-      (group) => !keepGroupIds.includes(group.id),
-    );
+  async syncGroups(params: ProductComponentGroupsSyncParams, locale: string): Promise<void> {
+    const existingGroups = await this.getGroupsByConfigurationIds([params.configurationId]);
+    const keepGroupIds = params.groups.flatMap((group) => (group.id ? [group.id] : []));
+    const removedGroups = existingGroups.filter((group) => !keepGroupIds.includes(group.id));
     await this.deleteGroups(removedGroups.map((group) => group.id));
 
     for (const groupInput of params.groups) {
@@ -796,49 +659,34 @@ export class ComponentRepository extends BaseRepository {
         .values({
           storeId: this.storeId,
           groupId,
-          locale:
-            locale as (typeof componentGroupTranslation.$inferInsert)["locale"],
+          locale: locale as (typeof componentGroupTranslation.$inferInsert)["locale"],
           name: groupInput.title,
         })
         .onConflictDoUpdate({
-          target: [
-            componentGroupTranslation.groupId,
-            componentGroupTranslation.locale,
-          ],
+          target: [componentGroupTranslation.groupId, componentGroupTranslation.locale],
           set: { name: groupInput.title },
         });
 
-      await this.syncGroupItems(
-        params.configurationId,
-        groupId,
-        groupInput.items,
-        locale,
-      );
+      await this.syncGroupItems(params.configurationId, groupId, groupInput.items, locale);
     }
   }
 
-  async syncPricingTemplates(
-    params: ProductComponentPricingTemplatesSyncParams,
-  ): Promise<void> {
-    const existing = await this.getPricingTemplatesByConfigurationIds([
-      params.configurationId,
-    ]);
+  async syncPricingTemplates(params: ProductComponentPricingTemplatesSyncParams): Promise<void> {
+    const existing = await this.getPricingTemplatesByConfigurationIds([params.configurationId]);
     const keepIds = params.pricingTemplates.flatMap((template) =>
       template.id ? [template.id] : [],
     );
     const removed = existing.filter((template) => !keepIds.includes(template.id));
     if (removed.length > 0) {
-      await this.connection
-        .delete(componentPricingTemplate)
-        .where(
-          and(
-            eq(componentPricingTemplate.storeId, this.storeId),
-            inArray(
-              componentPricingTemplate.id,
-              removed.map((template) => template.id),
-            ),
+      await this.connection.delete(componentPricingTemplate).where(
+        and(
+          eq(componentPricingTemplate.storeId, this.storeId),
+          inArray(
+            componentPricingTemplate.id,
+            removed.map((template) => template.id),
           ),
-        );
+        ),
+      );
       await this.deletePriceRules(removed.map((template) => template.priceRuleId));
     }
 
@@ -864,10 +712,7 @@ export class ComponentRepository extends BaseRepository {
             and(
               eq(componentPricingTemplate.storeId, this.storeId),
               eq(componentPricingTemplate.id, input.id),
-              eq(
-                componentPricingTemplate.configurationId,
-                params.configurationId,
-              ),
+              eq(componentPricingTemplate.configurationId, params.configurationId),
             ),
           );
       } else {
@@ -881,27 +726,16 @@ export class ComponentRepository extends BaseRepository {
         });
       }
 
-      if (
-        existingTemplate &&
-        existingTemplate.priceRuleId !== priceRuleId
-      ) {
+      if (existingTemplate && existingTemplate.priceRuleId !== priceRuleId) {
         await this.deletePriceRules([existingTemplate.priceRuleId]);
       }
     }
   }
 
-  async syncDependencyRules(
-    params: ProductComponentDependencyRulesSyncParams,
-  ): Promise<void> {
-    const existingRules = await this.getDependencyRulesByConfigurationIds([
-      params.configurationId,
-    ]);
-    const keepRuleIds = params.dependencyRules.flatMap((rule) =>
-      rule.id ? [rule.id] : [],
-    );
-    const removedRules = existingRules.filter(
-      (rule) => !keepRuleIds.includes(rule.id),
-    );
+  async syncDependencyRules(params: ProductComponentDependencyRulesSyncParams): Promise<void> {
+    const existingRules = await this.getDependencyRulesByConfigurationIds([params.configurationId]);
+    const keepRuleIds = params.dependencyRules.flatMap((rule) => (rule.id ? [rule.id] : []));
+    const removedRules = existingRules.filter((rule) => !keepRuleIds.includes(rule.id));
     await this.deleteDependencyRules(removedRules.map((rule) => rule.id));
 
     for (const ruleInput of params.dependencyRules) {
@@ -935,22 +769,13 @@ export class ComponentRepository extends BaseRepository {
         });
       }
 
-      await this.syncConditionGroups(
-        params.configurationId,
-        ruleId,
-        ruleInput.conditionGroups,
-      );
-      await this.syncDependencyActions(
-        params.configurationId,
-        ruleId,
-        ruleInput.actions,
-      );
+      await this.syncConditionGroups(params.configurationId, ruleId, ruleInput.conditionGroups);
+      await this.syncDependencyActions(params.configurationId, ruleId, ruleInput.actions);
     }
   }
 
   private async ensureComponent(productId: string): Promise<Component> {
-    return (await this.getByProductId(productId)) ??
-      this.upsertSettings(productId, "ACCORDION");
+    return (await this.getByProductId(productId)) ?? this.upsertSettings(productId, "ACCORDION");
   }
 
   private async syncGroupItems(
@@ -965,9 +790,7 @@ export class ComponentRepository extends BaseRepository {
     await this.deleteItems(removedItems.map((item) => item.id));
 
     for (const input of items) {
-      const existing = input.id
-        ? existingItems.find((item) => item.id === input.id)
-        : undefined;
+      const existing = input.id ? existingItems.find((item) => item.id === input.id) : undefined;
       const priceRuleId = input.priceRule
         ? await this.upsertPriceRule(
             configurationId,
@@ -1037,15 +860,11 @@ export class ComponentRepository extends BaseRepository {
           .values({
             storeId: this.storeId,
             itemId,
-            locale:
-              locale as (typeof componentItemTranslation.$inferInsert)["locale"],
+            locale: locale as (typeof componentItemTranslation.$inferInsert)["locale"],
             name: input.title,
           })
           .onConflictDoUpdate({
-            target: [
-              componentItemTranslation.itemId,
-              componentItemTranslation.locale,
-            ],
+            target: [componentItemTranslation.itemId, componentItemTranslation.locale],
             set: { name: input.title },
           });
       }
@@ -1063,9 +882,7 @@ export class ComponentRepository extends BaseRepository {
       ProductComponentGroupsSyncParams["groups"][number]["items"][number]["optionSelections"]
     >,
   ): Promise<void> {
-    const keepIds = selections.flatMap((selection) =>
-      selection.id ? [selection.id] : [],
-    );
+    const keepIds = selections.flatMap((selection) => (selection.id ? [selection.id] : []));
     await this.deleteExcept(
       componentItemOptionSelection,
       componentItemOptionSelection.itemId,
@@ -1133,10 +950,7 @@ export class ComponentRepository extends BaseRepository {
             and(
               eq(componentItemOptionValueSelection.storeId, this.storeId),
               eq(componentItemOptionValueSelection.id, input.id),
-              eq(
-                componentItemOptionValueSelection.optionSelectionId,
-                selectionId,
-              ),
+              eq(componentItemOptionValueSelection.optionSelectionId, selectionId),
             ),
           );
       } else {
@@ -1205,8 +1019,7 @@ export class ComponentRepository extends BaseRepository {
         input.amounts.map((amount) => ({
           storeId: this.storeId,
           priceRuleId: id,
-          currency:
-            amount.currency as (typeof componentPriceRuleAmount.$inferInsert)["currency"],
+          currency: amount.currency as (typeof componentPriceRuleAmount.$inferInsert)["currency"],
           amountMinor: amount.amountMinor,
         })),
       );
@@ -1270,13 +1083,7 @@ export class ComponentRepository extends BaseRepository {
     conditions: ProductComponentDependencyRulesSyncParams["dependencyRules"][number]["conditionGroups"][number]["conditions"],
   ): Promise<void> {
     const keepIds = conditions.flatMap((item) => (item.id ? [item.id] : []));
-    await this.deleteExcept(
-      condition,
-      condition.groupId,
-      groupId,
-      condition.id,
-      keepIds,
-    );
+    await this.deleteExcept(condition, condition.groupId, groupId, condition.id, keepIds);
     for (const input of conditions) {
       const values = {
         category: input.category,
@@ -1320,21 +1127,17 @@ export class ComponentRepository extends BaseRepository {
     const keepIds = actions.flatMap((action) => (action.id ? [action.id] : []));
     const removed = existing.filter((action) => !keepIds.includes(action.id));
     if (removed.length > 0) {
-      await this.connection
-        .delete(dependencyAction)
-        .where(
-          and(
-            eq(dependencyAction.storeId, this.storeId),
-            inArray(
-              dependencyAction.id,
-              removed.map((action) => action.id),
-            ),
+      await this.connection.delete(dependencyAction).where(
+        and(
+          eq(dependencyAction.storeId, this.storeId),
+          inArray(
+            dependencyAction.id,
+            removed.map((action) => action.id),
           ),
-        );
-      await this.deletePriceRules(
-        removed.flatMap((action) =>
-          action.priceRuleId ? [action.priceRuleId] : [],
         ),
+      );
+      await this.deletePriceRules(
+        removed.flatMap((action) => (action.priceRuleId ? [action.priceRuleId] : [])),
       );
     }
 
@@ -1379,10 +1182,7 @@ export class ComponentRepository extends BaseRepository {
           ...values,
         });
       }
-      if (
-        existingAction?.priceRuleId &&
-        existingAction.priceRuleId !== priceRuleId
-      ) {
+      if (existingAction?.priceRuleId && existingAction.priceRuleId !== priceRuleId) {
         await this.deletePriceRules([existingAction.priceRuleId]);
       }
     }
@@ -1427,16 +1227,9 @@ export class ComponentRepository extends BaseRepository {
     const actions = await this.getDependencyActionsByRuleIds(ids);
     await this.connection
       .delete(dependencyRule)
-      .where(
-        and(
-          eq(dependencyRule.storeId, this.storeId),
-          inArray(dependencyRule.id, ids),
-        ),
-      );
+      .where(and(eq(dependencyRule.storeId, this.storeId), inArray(dependencyRule.id, ids)));
     await this.deletePriceRules(
-      actions.flatMap((action) =>
-        action.priceRuleId ? [action.priceRuleId] : [],
-      ),
+      actions.flatMap((action) => (action.priceRuleId ? [action.priceRuleId] : [])),
     );
   }
 
@@ -1459,20 +1252,13 @@ export class ComponentRepository extends BaseRepository {
             this.connection
               .select({ id: componentPricingTemplate.id })
               .from(componentPricingTemplate)
-              .where(
-                eq(
-                  componentPricingTemplate.priceRuleId,
-                  componentPriceRule.id,
-                ),
-              ),
+              .where(eq(componentPricingTemplate.priceRuleId, componentPriceRule.id)),
           ),
           notExists(
             this.connection
               .select({ id: dependencyAction.id })
               .from(dependencyAction)
-              .where(
-                eq(dependencyAction.priceRuleId, componentPriceRule.id),
-              ),
+              .where(eq(dependencyAction.priceRuleId, componentPriceRule.id)),
           ),
         ),
       );
@@ -1485,13 +1271,8 @@ export class ComponentRepository extends BaseRepository {
     idColumn: any,
     keepIds: string[],
   ): Promise<void> {
-    const filters = [
-      eq(table.storeId, this.storeId),
-      eq(parentColumn, parentId),
-    ];
+    const filters = [eq(table.storeId, this.storeId), eq(parentColumn, parentId)];
     if (keepIds.length > 0) filters.push(notInArray(idColumn, keepIds));
-    await this.connection
-      .delete(table)
-      .where(and(...filters));
+    await this.connection.delete(table).where(and(...filters));
   }
 }

@@ -5,7 +5,10 @@ import { singleError } from "../types/index.js";
 /**
  * ProductUpdateStatusScript handles product publish/unpublish status.
  */
-export class ProductUpdateStatusScript extends BaseScript<ProductUpdateStatusParams, ProductUpdateStatusResult> {
+export class ProductUpdateStatusScript extends BaseScript<
+  ProductUpdateStatusParams,
+  ProductUpdateStatusResult
+> {
   protected async execute(params: ProductUpdateStatusParams): Promise<ProductUpdateStatusResult> {
     const { id, status } = params;
 
@@ -28,10 +31,16 @@ export class ProductUpdateStatusScript extends BaseScript<ProductUpdateStatusPar
     }
 
     if (status === "published") {
-      const effective = (await this.repository.comparisonRead.getEffectiveProfilesByProductIds([id]))[0];
+      const effective = (
+        await this.repository.comparisonRead.getEffectiveProfilesByProductIds([id])
+      )[0];
       const configured = await this.repository.comparisonRead.productConfigurationProfileIds(id);
       if (configured.some((profileId) => profileId !== effective?.profileId)) {
-        return singleError("Product comparison configuration does not match its effective profile", "COMPARISON_EFFECTIVE_PROFILE_MISMATCH", ["status"]);
+        return singleError(
+          "Product comparison configuration does not match its effective profile",
+          "COMPARISON_EFFECTIVE_PROFILE_MISMATCH",
+          ["status"],
+        );
       }
     }
 

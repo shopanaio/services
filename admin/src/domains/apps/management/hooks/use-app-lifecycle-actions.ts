@@ -24,8 +24,7 @@ const unexpectedPayload = (cause: unknown): AppLifecycleMutationPayload => ({
   userErrors: [
     {
       code: "UNEXPECTED_ERROR",
-      message:
-        cause instanceof Error ? cause.message : "Unable to update the app",
+      message: cause instanceof Error ? cause.message : "Unable to update the app",
     },
   ] as ApiGenericUserError[],
 });
@@ -81,13 +80,8 @@ export const useAppLifecycleActions = () => {
 
   return {
     runAction,
-    loading:
-      suspendState.loading || resumeState.loading || uninstallState.loading,
-    error:
-      suspendState.error ??
-      resumeState.error ??
-      uninstallState.error ??
-      null,
+    loading: suspendState.loading || resumeState.loading || uninstallState.loading,
+    error: suspendState.error ?? resumeState.error ?? uninstallState.error ?? null,
     reset: () => {
       suspendState.reset();
       resumeState.reset();

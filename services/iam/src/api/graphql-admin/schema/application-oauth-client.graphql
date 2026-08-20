@@ -2,44 +2,62 @@
 # APPLICATION OAUTH CLIENT TYPES
 # ============================================================================
 
-"""OAuth client confidentiality classification."""
+"""
+OAuth client confidentiality classification.
+"""
 enum ApplicationOAuthClientType {
   PUBLIC
   CONFIDENTIAL
 }
 
-"""Environment used to enforce redirect URI policy."""
+"""
+Environment used to enforce redirect URI policy.
+"""
 enum ApplicationOAuthClientEnvironment {
   DEVELOPMENT
   PRODUCTION
 }
 
-"""Token endpoint authentication method enforced by IAM."""
+"""
+Token endpoint authentication method enforced by IAM.
+"""
 enum ApplicationOAuthTokenEndpointAuthMethod {
   NONE
   CLIENT_SECRET_BASIC
 }
 
-"""An OAuth 2.1 client registered within an application realm."""
+"""
+An OAuth 2.1 client registered within an application realm.
+"""
 type ApplicationOAuthClient implements Node {
   id: ID!
   organizationId: ID!
   applicationId: ID!
-  """Public, globally unique OAuth client identifier."""
+  """
+  Public, globally unique OAuth client identifier.
+  """
   clientId: String!
   name: String!
   clientType: ApplicationOAuthClientType!
   environment: ApplicationOAuthClientEnvironment!
   redirectUris: [String!]!
   postLogoutRedirectUris: [String!]!
-  """Read-only resource audience inherited from the application."""
+  """
+  Read-only resource audience inherited from the application.
+  """
   resources: [String!]!
-  """Read-only grant types enforced by the protocol policy."""
+  """
+  Read-only grant types enforced by the protocol policy.
+  """
   grantTypes: [String!]!
-  """Read-only response types enforced by the protocol policy."""
+  """
+  Read-only response types enforced by the protocol policy.
+  """
   responseTypes: [String!]!
   tokenEndpointAuthMethod: ApplicationOAuthTokenEndpointAuthMethod!
-  """Whether Proof Key for Code Exchange is required."""
+  """
+  Whether Proof Key for Code Exchange is required.
+  """
   requirePkce: Boolean!
   protocolPolicyVersion: Int!
   skipConsent: Boolean!
@@ -58,14 +76,18 @@ type ApplicationOAuthClient implements Node {
 # CONNECTION TYPES
 # ============================================================================
 
-"""A paginated connection of OAuth clients."""
+"""
+A paginated connection of OAuth clients.
+"""
 type ApplicationOAuthClientConnection {
   edges: [ApplicationOAuthClientEdge!]!
   pageInfo: PageInfo!
   totalCount: Int!
 }
 
-"""An OAuth client and its pagination cursor."""
+"""
+An OAuth client and its pagination cursor.
+"""
 type ApplicationOAuthClientEdge {
   node: ApplicationOAuthClient!
   cursor: String!
@@ -75,7 +97,9 @@ type ApplicationOAuthClientEdge {
 # FILTER AND ORDER TYPES
 # ============================================================================
 
-"""Filter conditions for application OAuth clients."""
+"""
+Filter conditions for application OAuth clients.
+"""
 input ApplicationOAuthClientWhereInput {
   search: String
   clientType: [ApplicationOAuthClientType!]
@@ -84,14 +108,18 @@ input ApplicationOAuthClientWhereInput {
   archived: Boolean
 }
 
-"""Fields available for ordering application OAuth clients."""
+"""
+Fields available for ordering application OAuth clients.
+"""
 enum ApplicationOAuthClientOrderField {
   NAME
   CREATED_AT
   UPDATED_AT
 }
 
-"""Ordering configuration for application OAuth clients."""
+"""
+Ordering configuration for application OAuth clients.
+"""
 input ApplicationOAuthClientOrderByInput {
   field: ApplicationOAuthClientOrderField!
   direction: SortDirection!
@@ -101,7 +129,9 @@ input ApplicationOAuthClientOrderByInput {
 # INPUTS
 # ============================================================================
 
-"""Input for creating an OAuth client with fixed protocol policy."""
+"""
+Input for creating an OAuth client with fixed protocol policy.
+"""
 input ApplicationOAuthClientCreateInput {
   organizationId: ID!
   applicationId: ID!
@@ -114,7 +144,9 @@ input ApplicationOAuthClientCreateInput {
   enableEndSession: Boolean
 }
 
-"""Input for updating mutable OAuth client metadata."""
+"""
+Input for updating mutable OAuth client metadata.
+"""
 input ApplicationOAuthClientUpdateInput {
   organizationId: ID!
   applicationId: ID!
@@ -127,7 +159,9 @@ input ApplicationOAuthClientUpdateInput {
   expectedRevision: Int!
 }
 
-"""Input for enabling or disabling an OAuth client."""
+"""
+Input for enabling or disabling an OAuth client.
+"""
 input ApplicationOAuthClientEnabledSetInput {
   organizationId: ID!
   applicationId: ID!
@@ -136,7 +170,9 @@ input ApplicationOAuthClientEnabledSetInput {
   expectedRevision: Int!
 }
 
-"""Input for changing first-party consent bypass policy."""
+"""
+Input for changing first-party consent bypass policy.
+"""
 input ApplicationOAuthClientSkipConsentSetInput {
   organizationId: ID!
   applicationId: ID!
@@ -145,7 +181,9 @@ input ApplicationOAuthClientSkipConsentSetInput {
   expectedRevision: Int!
 }
 
-"""Input for rotating a confidential OAuth client secret."""
+"""
+Input for rotating a confidential OAuth client secret.
+"""
 input ApplicationOAuthClientSecretRotateInput {
   organizationId: ID!
   applicationId: ID!
@@ -153,7 +191,9 @@ input ApplicationOAuthClientSecretRotateInput {
   expectedRevision: Int!
 }
 
-"""Input for archiving an OAuth client."""
+"""
+Input for archiving an OAuth client.
+"""
 input ApplicationOAuthClientArchiveInput {
   organizationId: ID!
   applicationId: ID!
@@ -165,24 +205,34 @@ input ApplicationOAuthClientArchiveInput {
 # PAYLOADS
 # ============================================================================
 
-"""Result of changing an OAuth client."""
+"""
+Result of changing an OAuth client.
+"""
 type ApplicationOAuthClientPayload {
   client: ApplicationOAuthClient
   userErrors: [GenericUserError!]!
 }
 
-"""Result of creating an OAuth client."""
+"""
+Result of creating an OAuth client.
+"""
 type ApplicationOAuthClientCreatePayload {
   client: ApplicationOAuthClient
-  """One-time plaintext secret for a confidential client; otherwise null."""
+  """
+  One-time plaintext secret for a confidential client; otherwise null.
+  """
   clientSecret: String
   userErrors: [GenericUserError!]!
 }
 
-"""Result of rotating a confidential OAuth client secret."""
+"""
+Result of rotating a confidential OAuth client secret.
+"""
 type ApplicationOAuthClientSecretRotatePayload {
   client: ApplicationOAuthClient
-  """One-time plaintext replacement secret."""
+  """
+  One-time plaintext replacement secret.
+  """
   clientSecret: String
   userErrors: [GenericUserError!]!
 }

@@ -49,38 +49,45 @@ export class LoyaltyEventHandlers extends EventHandlers {
     delivery: EventHandlerDelivery;
   }): Promise<EventHandlerResponse> {
     const { event } = params;
-    if (isExplicitlyHandledEvent(event.eventType)
-      || event.source === "loyalty"
-      || event.eventType.startsWith("loyalty")) {
+    if (
+      isExplicitlyHandledEvent(event.eventType) ||
+      event.source === "loyalty" ||
+      event.eventType.startsWith("loyalty")
+    ) {
       return { success: true };
     }
     const storeId = optionalString(event.payload.storeId);
-    const customerId = optionalString(event.payload.customerId)
-      ?? (event.subject.type === "customer" ? event.subject.id : null);
+    const customerId =
+      optionalString(event.payload.customerId) ??
+      (event.subject.type === "customer" ? event.subject.id : null);
     if (!storeId || !customerId) return { success: true };
     try {
-      const result = await this.broker.runWorkflow<ExternalRewardWorkflowResult>("loyalty.processExternalReward", {
-        producer: event.source,
-        externalEventId: event.eventId,
-        eventType: event.eventType,
-        subjectType: event.subject.type,
-        subjectId: event.subject.id,
-        customerId,
-        storeId,
-        occurredAt: event.timestamp,
-        payload: { ...event.payload, eventType: event.eventType },
-        triggerType: triggerForEvent(event.eventType),
-        channelCode: optionalString(event.payload.channelCode) ?? undefined,
-        paymentMethodCode: optionalString(event.payload.paymentMethodCode) ?? undefined,
-        segmentIds: stringArray(event.payload.segmentIds),
-        currencyCode: optionalString(event.payload.currencyCode) ?? undefined,
-      }, {
-        source: "content",
-        resourceId: event.eventId,
-        operation: "processExternalReward",
-        contentHash: hashContent(event),
-        organizationId: event.context.organizationId,
-      });
+      const result = await this.broker.runWorkflow<ExternalRewardWorkflowResult>(
+        "loyalty.processExternalReward",
+        {
+          producer: event.source,
+          externalEventId: event.eventId,
+          eventType: event.eventType,
+          subjectType: event.subject.type,
+          subjectId: event.subject.id,
+          customerId,
+          storeId,
+          occurredAt: event.timestamp,
+          payload: { ...event.payload, eventType: event.eventType },
+          triggerType: triggerForEvent(event.eventType),
+          channelCode: optionalString(event.payload.channelCode) ?? undefined,
+          paymentMethodCode: optionalString(event.payload.paymentMethodCode) ?? undefined,
+          segmentIds: stringArray(event.payload.segmentIds),
+          currencyCode: optionalString(event.payload.currencyCode) ?? undefined,
+        },
+        {
+          source: "content",
+          resourceId: event.eventId,
+          operation: "processExternalReward",
+          contentHash: hashContent(event),
+          organizationId: event.context.organizationId,
+        },
+      );
       if (!result.success) {
         return {
           success: false,
@@ -123,11 +130,13 @@ export class LoyaltyEventHandlers extends EventHandlers {
   async handleOrderRewardReversed(params: {
     event: OrderRewardReversedEvent;
     delivery: EventHandlerDelivery;
-  }): Promise<EventHandlerResponse<{
-    earningReversalTransactionId: string | null;
-    redemptionRestoreTransactionIds: readonly string[];
-    debtPoints: string;
-  }>> {
+  }): Promise<
+    EventHandlerResponse<{
+      earningReversalTransactionId: string | null;
+      redemptionRestoreTransactionIds: readonly string[];
+      debtPoints: string;
+    }>
+  > {
     try {
       const data = await this.broker.runWorkflow<
         {
@@ -162,7 +171,8 @@ export class LoyaltyEventHandlers extends EventHandlers {
           mergeId: params.event.payload.mergeId,
           mergeRevision: params.event.payload.mergeRevision,
           occurredAt: params.event.payload.completedAt,
-        }));
+        }),
+      );
       return { success: true };
     } catch (error) {
       return this.failure(error, "CUSTOMER_LOYALTY_MERGE_FAILED");
@@ -179,7 +189,8 @@ export class LoyaltyEventHandlers extends EventHandlers {
         new AccountLifecycleService(this.kernel.repository).closeCustomer(
           params.event.payload.customerId,
           params.event.payload.deletedAt,
-        ));
+        ),
+      );
       return { success: true };
     } catch (error) {
       return this.failure(error, "CUSTOMER_LOYALTY_CLOSE_FAILED");
@@ -195,35 +206,50 @@ export class LoyaltyEventHandlers extends EventHandlers {
       const data = await this.broker.runWorkflow<
         { closedAccounts: number },
         { storeId: string; organizationId: string; occurredAt: string; eventId: string }
-      >("loyalty.closeStore", {
-        storeId: params.event.payload.storeId,
-        organizationId: params.event.payload.organizationId,
-        occurredAt: params.event.timestamp,
-        eventId: params.event.eventId,
-      }, {
-        source: "content",
-        resourceId: params.event.payload.storeId,
-        operation: "closeStoreLoyalty",
-        contentHash: hashContent({ eventId: params.event.eventId }),
-        organizationId: params.event.context.organizationId,
-      });
+      >(
+        "loyalty.closeStore",
+        {
+          storeId: params.event.payload.storeId,
+          organizationId: params.event.payload.organizationId,
+          occurredAt: params.event.timestamp,
+          eventId: params.event.eventId,
+        },
+        {
+          source: "content",
+          resourceId: params.event.payload.storeId,
+          operation: "closeStoreLoyalty",
+          contentHash: hashContent({ eventId: params.event.eventId }),
+          organizationId: params.event.context.organizationId,
+        },
+      );
       return { success: true, data };
     } catch (error) {
       return this.failure(error, "STORE_LOYALTY_CLOSE_FAILED");
     }
   }
 
-  private async withStore<T>(storeId: string, requestId: string, work: () => Promise<T>): Promise<T> {
-    const result = await this.broker.call<GetStoreByIdResult, { id: string }>("project.getStoreById", { id: storeId });
-    if (!result.store) throw new Error(result.userErrors[0]?.message ?? `Store ${storeId} was not found`);
-    return runWithContext(new ServiceContext({
-      requestId,
-      kernel: this.kernel,
-      loaders: new Loader(this.kernel.repository),
-      store: result.store,
-      locale: result.store.defaultLocale,
-      currency: result.store.currencyCode,
-    }), work);
+  private async withStore<T>(
+    storeId: string,
+    requestId: string,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    const result = await this.broker.call<GetStoreByIdResult, { id: string }>(
+      "project.getStoreById",
+      { id: storeId },
+    );
+    if (!result.store)
+      throw new Error(result.userErrors[0]?.message ?? `Store ${storeId} was not found`);
+    return runWithContext(
+      new ServiceContext({
+        requestId,
+        kernel: this.kernel,
+        loaders: new Loader(this.kernel.repository),
+        store: result.store,
+        locale: result.store.defaultLocale,
+        currency: result.store.currencyCode,
+      }),
+      work,
+    );
   }
 
   private failure(error: unknown, code: string): EventHandlerResponse<any> {
@@ -255,10 +281,14 @@ function optionalString(value: unknown): string | null {
 }
 
 function stringArray(value: unknown): readonly string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
-function triggerForEvent(eventType: string):
+function triggerForEvent(
+  eventType: string,
+):
   | "SIGNUP"
   | "REVIEW"
   | "REFERRAL"
@@ -268,21 +298,24 @@ function triggerForEvent(eventType: string):
   | "SUBSCRIPTION_RENEWAL"
   | "CUSTOM_EVENT" {
   const normalized = eventType.toLowerCase();
-  if (normalized.includes("signup") || normalized === "customercreated" || normalized === "customeraccountactivated") return "SIGNUP";
+  if (
+    normalized.includes("signup") ||
+    normalized === "customercreated" ||
+    normalized === "customeraccountactivated"
+  )
+    return "SIGNUP";
   if (normalized.includes("review")) return "REVIEW";
   if (normalized.includes("referral")) return "REFERRAL";
   if (normalized.includes("birthday")) return "BIRTHDAY";
   if (normalized.includes("anniversary")) return "ANNIVERSARY";
   if (normalized.includes("login")) return "LOGIN";
-  if (normalized.includes("subscription") && normalized.includes("renew")) return "SUBSCRIPTION_RENEWAL";
+  if (normalized.includes("subscription") && normalized.includes("renew"))
+    return "SUBSCRIPTION_RENEWAL";
   return "CUSTOM_EVENT";
 }
 
 /** Public event-handler bindings and signatures. */
-export {
-  LoyaltyEventHandlerBindings,
-  LoyaltyEventHandlerNames,
-} from "../contracts/handlers.js";
+export { LoyaltyEventHandlerBindings, LoyaltyEventHandlerNames } from "../contracts/handlers.js";
 export type {
   LoyaltyConsumableEvent,
   LoyaltyEventHandlerContract,

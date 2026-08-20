@@ -1,8 +1,5 @@
 import { TransactionManager } from "@shopana/shared-kernel";
-import {
-  createOnlineStoreDatabase,
-  type OnlineStoreDatabase,
-} from "./database.js";
+import { createOnlineStoreDatabase, type OnlineStoreDatabase } from "./database.js";
 import { NavigationMenuItemRepository } from "./NavigationMenuItemRepository.js";
 import { NavigationMenuRepository } from "./NavigationMenuRepository.js";
 import { PageRepository } from "./PageRepository.js";
@@ -22,14 +19,8 @@ export class OnlineStoreRepository {
   private constructor(database: OnlineStoreDatabase) {
     this.txManager = new TransactionManager(database);
     this.page = new PageRepository(database, this.txManager);
-    this.navigationMenu = new NavigationMenuRepository(
-      database,
-      this.txManager,
-    );
-    this.navigationMenuItem = new NavigationMenuItemRepository(
-      database,
-      this.txManager,
-    );
+    this.navigationMenu = new NavigationMenuRepository(database, this.txManager);
+    this.navigationMenuItem = new NavigationMenuItemRepository(database, this.txManager);
     this.translation = new TranslationRepository(database, this.txManager);
   }
 
@@ -37,9 +28,7 @@ export class OnlineStoreRepository {
     return new OnlineStoreRepository(createOnlineStoreDatabase(databaseClient));
   }
 
-  runInTransaction<TResult>(
-    callback: () => Promise<TResult>,
-  ): Promise<TResult> {
+  runInTransaction<TResult>(callback: () => Promise<TResult>): Promise<TResult> {
     return this.txManager.run(callback);
   }
 }

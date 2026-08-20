@@ -1,7 +1,4 @@
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { authorizeAdminContext } from "@shopana/shared-context";
 import { BaseResolver } from "./BaseResolver.js";
 import { StoreResolver } from "./StoreResolver.js";
@@ -19,10 +16,7 @@ export class StoreQueryResolver extends BaseResolver<Record<string, never>> {
    * Get all stores in the organization that the user has access to.
    */
   async stores(args: StoresArgs) {
-    const organizationId = decodeGlobalIdByType(
-      args.organizationId,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(args.organizationId, GlobalIdEntity.Organization);
 
     // User must be authenticated
     if (!this.$ctx.user?.id) return [];
@@ -71,9 +65,7 @@ export class StoreQueryResolver extends BaseResolver<Record<string, never>> {
         new StoreResolver(
           {
             ...store,
-            authorizationDomain: hasOrganizationAccess
-              ? "org"
-              : `store:${store.id}`,
+            authorizationDomain: hasOrganizationAccess ? "org" : `store:${store.id}`,
           },
           this.$ctx,
         ),

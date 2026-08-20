@@ -6,11 +6,7 @@ import {
   stringOperators,
 } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
-import {
-  DiscountEffectiveStatus,
-  DiscountKind,
-  DiscountMethod,
-} from "@/graphql/types";
+import { DiscountEffectiveStatus, DiscountKind, DiscountMethod } from "@/graphql/types";
 
 export const filterSchema: IFilterSchema[] = [
   {

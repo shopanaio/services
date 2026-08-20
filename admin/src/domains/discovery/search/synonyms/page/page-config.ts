@@ -1,8 +1,4 @@
-import type {
-  FilterTransformer,
-  SortFieldMapping,
-  UsePageConfigReturn,
-} from "@/hooks";
+import type { FilterTransformer, SortFieldMapping, UsePageConfigReturn } from "@/hooks";
 import {
   createGraphqlBooleanFilterTransformer,
   createGraphqlDateTimeRangeFilterTransformer,
@@ -34,36 +30,18 @@ export const synonymGroupFilterTransformers: Record<
   string,
   FilterTransformer<ApiSearchSynonymGroupWhereInput>
 > = {
-  name: createGraphqlStringFilterTransformer<ApiSearchSynonymGroupWhereInput>(
-    "name",
-  ),
-  terms: createGraphqlStringFilterTransformer<ApiSearchSynonymGroupWhereInput>(
-    "terms",
-  ),
-  locale:
-    createGraphqlStringFilterTransformer<ApiSearchSynonymGroupWhereInput>(
-      "locale",
-    ),
-  enabled:
-    createGraphqlBooleanFilterTransformer<ApiSearchSynonymGroupWhereInput>(
-      "enabled",
-    ),
-  valuesCount:
-    createGraphqlIntFilterTransformer<ApiSearchSynonymGroupWhereInput>(
-      "valuesCount",
-    ),
+  name: createGraphqlStringFilterTransformer<ApiSearchSynonymGroupWhereInput>("name"),
+  terms: createGraphqlStringFilterTransformer<ApiSearchSynonymGroupWhereInput>("terms"),
+  locale: createGraphqlStringFilterTransformer<ApiSearchSynonymGroupWhereInput>("locale"),
+  enabled: createGraphqlBooleanFilterTransformer<ApiSearchSynonymGroupWhereInput>("enabled"),
+  valuesCount: createGraphqlIntFilterTransformer<ApiSearchSynonymGroupWhereInput>("valuesCount"),
   updatedAt:
-    createGraphqlDateTimeRangeFilterTransformer<ApiSearchSynonymGroupWhereInput>(
-      "updatedAt",
-    ),
+    createGraphqlDateTimeRangeFilterTransformer<ApiSearchSynonymGroupWhereInput>("updatedAt"),
 };
 
 export function buildSynonymGroupsQueryVariables(
   pageConfig: Pick<
-    UsePageConfigReturn<
-      ApiSearchSynonymGroupWhereInput,
-      SearchSynonymGroupOrderField
-    >,
+    UsePageConfigReturn<ApiSearchSynonymGroupWhereInput, SearchSynonymGroupOrderField>,
     "first" | "after" | "last" | "before" | "where" | "orderBy"
   >,
 ): SearchSynonymGroupsQueryVariables {
@@ -73,7 +51,6 @@ export function buildSynonymGroupsQueryVariables(
     last: pageConfig.last,
     before: pageConfig.before,
     where: pageConfig.where ?? null,
-    orderBy: (pageConfig.orderBy ??
-      null) as ApiSearchSynonymGroupOrderByInput[] | null,
+    orderBy: (pageConfig.orderBy ?? null) as ApiSearchSynonymGroupOrderByInput[] | null,
   };
 }

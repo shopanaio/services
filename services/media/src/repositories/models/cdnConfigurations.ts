@@ -34,13 +34,9 @@ export const cdnConfigurations = mediaSchema.table(
     pathPrefix: text("path_prefix").notNull().default(""),
     enabled: boolean("enabled").notNull().default(true),
     isDefault: boolean("is_default").notNull().default(false),
-    signingMode: varchar("signing_mode", { length: 32 })
-      .notNull()
-      .default("NONE"),
+    signingMode: varchar("signing_mode", { length: 32 }).notNull().default("NONE"),
     secretRef: text("secret_ref"),
-    transformStrategy: varchar("transform_strategy", { length: 64 })
-      .notNull()
-      .default("NONE"),
+    transformStrategy: varchar("transform_strategy", { length: 64 }).notNull().default("NONE"),
     urlTemplate: text("url_template"),
     providerConfig: jsonb("provider_config")
       .$type<CdnProviderConfig>()
@@ -58,18 +54,12 @@ export const cdnConfigurations = mediaSchema.table(
       .defaultNow(),
   },
   (table) => [
-    uniqueIndex("idx_cdn_configurations_name").on(
-      table.assetGroupId,
-      table.name
-    ),
+    uniqueIndex("idx_cdn_configurations_name").on(table.assetGroupId, table.name),
     uniqueIndex("idx_cdn_configurations_default")
       .on(table.assetGroupId)
       .where(sql`enabled = true AND is_default = true`),
-    index("idx_cdn_configurations_provider").on(
-      table.assetGroupId,
-      table.provider
-    ),
-  ]
+    index("idx_cdn_configurations_provider").on(table.assetGroupId, table.provider),
+  ],
 );
 
 export type CdnConfiguration = typeof cdnConfigurations.$inferSelect;

@@ -1,8 +1,13 @@
-"""Repository-enforced visibility controls for moderated content lists."""
-
+"""
+Repository-enforced visibility controls for moderated content lists.
+"""
 input ReviewContentConnectionMetaInput {
-  """Include soft-deleted content; false by default."""
+  """
+  Include soft-deleted content; false by default.
+  """
   includeDeleted: Boolean = false
-  """Include privacy-redacted content; true by default for audit workflows."""
+  """
+  Include privacy-redacted content; true by default for audit workflows.
+  """
   includeRedacted: Boolean = true
 }

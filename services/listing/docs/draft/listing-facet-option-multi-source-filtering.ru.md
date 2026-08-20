@@ -4,13 +4,10 @@
 
 Документ объясняет частный storefront case:
 
-- один storefront facet типа `option` может быть собран из нескольких catalog
-  option sources;
-- значения этих options могут быть сгруппированы через
-  `facet_value.kind = 'group'`;
-- runtime listing index хранит не raw option handles и не row-based token
-  tables, а roaring bitmap memberships for resolved
-  `facet_id + facet_value_id`;
+- один storefront facet типа `option` может быть собран из нескольких catalog option sources;
+- значения этих options могут быть сгруппированы через `facet_value.kind = 'group'`;
+- runtime listing index хранит не raw option handles и не row-based token tables, а roaring bitmap
+  memberships for resolved `facet_id + facet_value_id`;
 - filtering and counts must preserve same-variant semantics.
 
 Канонические документы:
@@ -30,9 +27,8 @@ Catalog option source - это конкретная option-модель това
 - `shoe_size`
 - `frame_size`
 
-В facet configuration такие sources хранятся в `catalog.facet_source`.
-Для facet типа `option` один storefront facet может выбрать несколько option
-sources.
+В facet configuration такие sources хранятся в `catalog.facet_source`. Для facet типа `option` один
+storefront facet может выбрать несколько option sources.
 
 Пример:
 
@@ -44,15 +40,14 @@ facet_source:
   - frame_size
 ```
 
-Storefront показывает один фильтр `Fit Size`, но source data приходит из
-нескольких catalog options.
+Storefront показывает один фильтр `Fit Size`, но source data приходит из нескольких catalog options.
 
 ### Source value
 
 Source value - значение конкретного catalog source.
 
-Для option facets source value должен быть source-qualified, потому что
-одинаковый value handle в разных options может значить разные вещи.
+Для option facets source value должен быть source-qualified, потому что одинаковый value handle в
+разных options может значить разные вещи.
 
 Persisted source value handle:
 
@@ -68,14 +63,14 @@ shoe_size:m
 frame_size:m
 ```
 
-Если root source value остается public storefront value, его public handle тоже
-source-qualified. Если URL должен быть `?fit-size=m`, нужен root group value
-with `handle = m`, к которому attached source values.
+Если root source value остается public storefront value, его public handle тоже source-qualified.
+Если URL должен быть `?fit-size=m`, нужен root group value with `handle = m`, к которому attached
+source values.
 
 ### Group value
 
-`facet_value.kind = 'group'` - группирующее значение, которое объединяет
-несколько source values в одно storefront value.
+`facet_value.kind = 'group'` - группирующее значение, которое объединяет несколько source values в
+одно storefront value.
 
 Example:
 
@@ -125,9 +120,9 @@ cardinality = rb_cardinality(bitmap)
 Canonical `variant_id -> variant_doc_id -> product_doc_id` связь живет в
 `listing.variant_listing_index`.
 
-Raw handles используются только transient во время sync/rebuild, чтобы resolve
-canonical option values into stable `facet_id` / `facet_value_id`. Storefront read
-path работает только с resolved ids and roaring bitmaps.
+Raw handles используются только transient во время sync/rebuild, чтобы resolve canonical option
+values into stable `facet_id` / `facet_value_id`. Storefront read path работает только с resolved
+ids and roaring bitmaps.
 
 ## Как source value резолвится при sync
 
@@ -183,13 +178,12 @@ clothing_size:m
 
 Resolve:
 
-1. Find `facet_source` where `facet_type = 'option'` and
-   `handle = 'clothing_size'`.
+1. Find `facet_source` where `facet_type = 'option'` and `handle = 'clothing_size'`.
 2. Get `facet_id = facet_fit_size`.
-3. Find enabled source `facet_value` with
-   `facet_id = facet_fit_size`, `kind = source`, `handle = clothing_size:m`.
-4. If source value is missing, disabled or no longer belongs to configured
-   source, do not add bitmap membership.
+3. Find enabled source `facet_value` with `facet_id = facet_fit_size`, `kind = source`,
+   `handle = clothing_size:m`.
+4. If source value is missing, disabled or no longer belongs to configured source, do not add bitmap
+   membership.
 5. If `source.parent_id IS NOT NULL`, resolved value is parent group id.
 6. Otherwise resolved value is source value id.
 
@@ -210,8 +204,8 @@ field = facet
 value_key = facet_fit_size:group_m
 ```
 
-Variant B with `shoe_size = m` resolves to the same `value_key`, so both variant
-doc ids land in the same bitmap row.
+Variant B with `shoe_size = m` resolves to the same `value_key`, so both variant doc ids land in the
+same bitmap row.
 
 ## Правило выбора `facet_value_id`
 
@@ -226,11 +220,11 @@ else:
   facet_value_id = source_value.id
 ```
 
-`kind = group` itself is not stored in runtime index. Group affects
-membership only through source value parent mapping.
+`kind = group` itself is not stored in runtime index. Group affects membership only through source
+value parent mapping.
 
-If source value disabled, missing or removed from `facet_source`, old bitmap
-memberships become stale and must be refreshed.
+If source value disabled, missing or removed from `facet_source`, old bitmap memberships become
+stale and must be refreshed.
 
 ## Как storefront filter резолвится на read path
 
@@ -256,9 +250,8 @@ facet_value_id = group_m
 value_key = facet_fit_size:group_m
 ```
 
-For `kind = group`, resolver must check that the group value has at least one
-enabled source child. Otherwise the value has no real catalog membership and must
-not participate in filters/counts.
+For `kind = group`, resolver must check that the group value has at least one enabled source child.
+Otherwise the value has no real catalog membership and must not participate in filters/counts.
 
 Listing query then reads bitmap row:
 
@@ -275,8 +268,7 @@ Missing posting row means empty bitmap for this value.
 
 ## Same-variant semantics
 
-Option filters must find one in-stock variant that satisfies all active
-variant-level predicates.
+Option filters must find one in-stock variant that satisfies all active variant-level predicates.
 
 Input:
 
@@ -309,8 +301,8 @@ variant_3 has price <= 10000
 product passes filter
 ```
 
-This is not allowed because user expects one purchasable variant matching all
-selected options and price.
+This is not allowed because user expects one purchasable variant matching all selected options and
+price.
 
 ## OR и AND
 
@@ -339,8 +331,8 @@ Both groups are applied on `variant_doc_id` before projection.
 
 ## Deduplication
 
-If one variant has multiple source options resolving to the same group value,
-sync must add `variant_doc_id` to the bitmap only once.
+If one variant has multiple source options resolving to the same group value, sync must add
+`variant_doc_id` to the bitmap only once.
 
 Example:
 
@@ -357,8 +349,8 @@ facet_value_id = group_m
 value_key = facet_fit_size:group_m
 ```
 
-Bitmap membership is a set membership, so one `variant_doc_id` appears once in
-the roaring bitmap. This prevents double-counting for variants or products.
+Bitmap membership is a set membership, so one `variant_doc_id` appears once in the roaring bitmap.
+This prevents double-counting for variants or products.
 
 ## Counts для facet с несколькими option sources
 
@@ -373,11 +365,9 @@ after all active filters except active filters from fit-size facet?
 
 Rules:
 
-- source values `clothing_size:m`, `shoe_size:m`, `frame_size:m` count as one
-  value `group_m`;
+- source values `clothing_size:m`, `shoe_size:m`, `frame_size:m` count as one value `group_m`;
 - multiple variants of one product with `group_m` count as one product;
-- multiple source mappings of one variant with `group_m` count as one variant
-  membership;
+- multiple source mappings of one variant with `group_m` count as one variant membership;
 - facet isolation excludes only the active predicate of the same `facet_id`.
 
 Canonical count shape:
@@ -393,19 +383,16 @@ value_products = project_variants_to_products(value_variants) & product_base
 value_count = rb_cardinality(value_products)
 ```
 
-For every returned option `facet_id`, query builder builds a count branch that
-omits only this facet's active predicate. Branches for multiple option facets may
-be unioned in SQL as long as common base bitmaps are reused and one full query per
-value is avoided.
+For every returned option `facet_id`, query builder builds a count branch that omits only this
+facet's active predicate. Branches for multiple option facets may be unioned in SQL as long as
+common base bitmaps are reused and one full query per value is avoided.
 
-Returned values must come from configured visible values that resolve to at
-least one enabled source value. Do not aggregate every posting row ever generated
-for the project.
+Returned values must come from configured visible values that resolve to at least one enabled source
+value. Do not aggregate every posting row ever generated for the project.
 
 ## Что происходит при изменении grouping
 
-If source value is moved to another group value, `facet_value.parent_id`
-changes.
+If source value is moved to another group value, `facet_value.parent_id` changes.
 
 Example:
 
@@ -426,8 +413,8 @@ This must trigger posting refresh:
 - for affected variants, if they can be found by source handles;
 - otherwise project-level posting rebuild for the affected facet type.
 
-This refresh should not recompute price rows or stock rows. It changes only
-resolved bitmap memberships and affected bitmap cardinalities.
+This refresh should not recompute price rows or stock rows. It changes only resolved bitmap
+memberships and affected bitmap cardinalities.
 
 Refresh is also required when:
 
@@ -437,9 +424,9 @@ Refresh is also required when:
 - source enters or leaves `catalog.facet_source`;
 - affected variants/products cannot be found cheaply by source handles.
 
-Changing group label, sort, swatch or public handle does not require rewriting
-posting bitmaps if `facet_value_id` remains the same. Storefront
-resolve/aggregation still reads current visible values.
+Changing group label, sort, swatch or public handle does not require rewriting posting bitmaps if
+`facet_value_id` remains the same. Storefront resolve/aggregation still reads current visible
+values.
 
 ## Главный инвариант
 
@@ -455,5 +442,5 @@ not with:
 option_slug + value_slug
 ```
 
-Multi-source option facet and `kind = group` are resolved before read path.
-Runtime listing queries operate on stable ids and set algebra.
+Multi-source option facet and `kind = group` are resolved before read path. Runtime listing queries
+operate on stable ids and set algebra.

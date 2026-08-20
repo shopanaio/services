@@ -1,10 +1,4 @@
-import {
-  uuid,
-  varchar,
-  bigint,
-  timestamp,
-  index,
-} from "drizzle-orm/pg-core";
+import { uuid, varchar, bigint, timestamp, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { mediaSchema } from "./schema";
 import { buckets } from "./buckets";
@@ -21,9 +15,7 @@ export const uploadSessions = mediaSchema.table(
     originalName: varchar("original_name", { length: 255 }),
     mimeType: varchar("mime_type", { length: 127 }),
     totalSizeBytes: bigint("total_size_bytes", { mode: "number" }).notNull(),
-    uploadedBytes: bigint("uploaded_bytes", { mode: "number" })
-      .notNull()
-      .default(0),
+    uploadedBytes: bigint("uploaded_bytes", { mode: "number" }).notNull().default(0),
     multipartUploadId: varchar("multipart_upload_id", { length: 255 }),
     status: varchar("status", { length: 32 }).notNull().default("pending"),
     expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
@@ -39,7 +31,7 @@ export const uploadSessions = mediaSchema.table(
     index("idx_upload_sessions_expires")
       .on(table.expiresAt)
       .where(sql`status = 'pending'`),
-  ]
+  ],
 );
 
 export type UploadSession = typeof uploadSessions.$inferSelect;

@@ -19,25 +19,17 @@ function formatFieldPath(field: string[] | null | undefined): string | null {
   return field.join(".");
 }
 
-export function formatProductFeatureUserError(
-  error: ApiGenericUserError,
-): string {
+export function formatProductFeatureUserError(error: ApiGenericUserError): string {
   const fieldPath = formatFieldPath(error.field);
 
   return fieldPath ? `${fieldPath}: ${error.message}` : error.message;
 }
 
-export function formatProductFeatureUserErrors(
-  errors: ApiGenericUserError[],
-): string[] {
+export function formatProductFeatureUserErrors(errors: ApiGenericUserError[]): string[] {
   return errors.map(formatProductFeatureUserError);
 }
 
-function pushError(
-  target: Record<string, string[]>,
-  key: string,
-  message: string,
-): void {
+function pushError(target: Record<string, string[]>, key: string, message: string): void {
   target[key] = [...(target[key] ?? []), message];
 }
 
@@ -66,9 +58,7 @@ export function mapProductFeatureUserErrorsToEditorErrors(input: {
 
     if (field[2] === "values" && Number.isInteger(valueIndex)) {
       const value: AttributeEditorValue | undefined =
-        input.draft.valuesByInputPath[
-          `features.${featureIndex}.values.${valueIndex}`
-        ];
+        input.draft.valuesByInputPath[`features.${featureIndex}.values.${valueIndex}`];
 
       if (value) {
         pushError(errorMap.values, value.id, error.message);

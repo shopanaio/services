@@ -16,12 +16,8 @@
       "@src/*": ["src/*"],
       "@domain/*": ["src/domain/*"],
       "@shopana/platform-api/*": ["../../packages/platform-api/dist/*"],
-      "@shopana/shared-service-api/*": [
-        "../../packages/shared-service-api/dist/*"
-      ],
-      "@shopana/shared-async-context/*": [
-        "../../packages/shared-async-context/dist/*"
-      ],
+      "@shopana/shared-service-api/*": ["../../packages/shared-service-api/dist/*"],
+      "@shopana/shared-async-context/*": ["../../packages/shared-async-context/dist/*"],
       "@shopana/shared-money/*": ["../../packages/shared-money/dist/*"]
     },
     "experimentalDecorators": true,

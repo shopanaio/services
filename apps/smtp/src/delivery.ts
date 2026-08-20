@@ -1,7 +1,4 @@
-import type {
-  EmailDeliveryInput,
-  NotificationDeliveryReceipt,
-} from "@shopana/broker-types";
+import type { EmailDeliveryInput, NotificationDeliveryReceipt } from "@shopana/broker-types";
 import nodemailer from "nodemailer";
 import type SMTPTransport from "nodemailer/lib/smtp-transport/index.js";
 import {
@@ -9,14 +6,8 @@ import {
   type SmtpConfiguration,
   type SmtpDeploymentPolicy,
 } from "./configuration.js";
-import {
-  smtpConfigurationError,
-  validateSmtpPassword,
-} from "./configuration.js";
-import {
-  resolvePublicSmtpEndpoints,
-  type ResolvedSmtpEndpoint,
-} from "./network.js";
+import { smtpConfigurationError, validateSmtpPassword } from "./configuration.js";
+import { resolvePublicSmtpEndpoints, type ResolvedSmtpEndpoint } from "./network.js";
 
 export interface SmtpDeliveryCredentials {
   readonly username?: string;
@@ -25,9 +16,7 @@ export interface SmtpDeliveryCredentials {
 
 interface SmtpTransporter {
   sendMail(
-    options: Parameters<
-      ReturnType<typeof nodemailer.createTransport>["sendMail"]
-    >[0],
+    options: Parameters<ReturnType<typeof nodemailer.createTransport>["sendMail"]>[0],
   ): Promise<SMTPTransport.SentMessageInfo>;
   close(): void;
 }
@@ -37,9 +26,7 @@ export interface SmtpDeliveryDependencies {
     host: string,
     allowPrivateNetwork: boolean,
   ) => Promise<readonly ResolvedSmtpEndpoint[]>;
-  readonly createTransport: (
-    options: SMTPTransport.Options,
-  ) => SmtpTransporter;
+  readonly createTransport: (options: SMTPTransport.Options) => SmtpTransporter;
   readonly now: () => Date;
 }
 
@@ -74,16 +61,11 @@ export async function deliverEmail(
       "SMTP password secret is required when username is configured",
     );
   }
-  const password = credentials.password
-    ? validateSmtpPassword(credentials.password)
-    : undefined;
+  const password = credentials.password ? validateSmtpPassword(credentials.password) : undefined;
 
   let endpoints: readonly ResolvedSmtpEndpoint[];
   try {
-    endpoints = await dependencies.resolveEndpoints(
-      configuration.host,
-      policy.allowPrivateNetwork,
-    );
+    endpoints = await dependencies.resolveEndpoints(configuration.host, policy.allowPrivateNetwork);
   } catch (error) {
     const failure = normalizeSmtpError(error);
     if (failure.receipt) {
@@ -160,10 +142,7 @@ export async function deliverEmail(
       if (failure.receipt) {
         return failure.receipt;
       }
-      if (
-        index < endpoints.length - 1 &&
-        isEndpointConnectionFailure(failure.error)
-      ) {
+      if (index < endpoints.length - 1 && isEndpointConnectionFailure(failure.error)) {
         lastConnectionError = failure.error;
         continue;
       }
@@ -175,33 +154,21 @@ export async function deliverEmail(
 
   throw (
     lastConnectionError ??
-    smtpConfigurationError(
-      "SMTP_ENDPOINTS_UNAVAILABLE",
-      "No SMTP endpoint is available",
-    )
+    smtpConfigurationError("SMTP_ENDPOINTS_UNAVAILABLE", "No SMTP endpoint is available")
   );
 }
 
-export function normalizeSmtpError(error: unknown):
+export function normalizeSmtpError(
+  error: unknown,
+):
   | { readonly receipt: NotificationDeliveryReceipt; readonly error?: never }
   | { readonly receipt?: never; readonly error: Error } {
-  const smtpError =
-    error && typeof error === "object"
-      ? (error as Record<string, unknown>)
-      : {};
+  const smtpError = error && typeof error === "object" ? (error as Record<string, unknown>) : {};
   const responseCode =
-    typeof smtpError.responseCode === "number"
-      ? smtpError.responseCode
-      : undefined;
-  const command =
-    typeof smtpError.command === "string" ? smtpError.command : undefined;
-  const originalCode =
-    typeof smtpError.code === "string" ? smtpError.code : undefined;
-  if (
-    error instanceof Error &&
-    smtpError.details &&
-    typeof smtpError.details === "object"
-  ) {
+    typeof smtpError.responseCode === "number" ? smtpError.responseCode : undefined;
+  const command = typeof smtpError.command === "string" ? smtpError.command : undefined;
+  const originalCode = typeof smtpError.code === "string" ? smtpError.code : undefined;
+  if (error instanceof Error && smtpError.details && typeof smtpError.details === "object") {
     return { error };
   }
 
@@ -229,23 +196,16 @@ export function normalizeSmtpError(error: unknown):
     originalCode === "SELF_SIGNED_CERT_IN_CHAIN" ||
     originalCode === "UNABLE_TO_VERIFY_LEAF_SIGNATURE";
   const retryable =
-    !unknown &&
-    !configuration &&
-    (responseCode === undefined || responseCode < 500);
-  const code =
-    configuration
-      ? "SMTP_AUTH_OR_TLS_CONFIGURATION"
-      : originalCode ?? (responseCode ? `SMTP_${responseCode}` : "SMTP_FAILED");
+    !unknown && !configuration && (responseCode === undefined || responseCode < 500);
+  const code = configuration
+    ? "SMTP_AUTH_OR_TLS_CONFIGURATION"
+    : (originalCode ?? (responseCode ? `SMTP_${responseCode}` : "SMTP_FAILED"));
 
   return {
     error: Object.assign(new Error("SMTP delivery failed"), {
       code,
       details: Object.freeze({
-        kind: unknown
-          ? "UNKNOWN"
-          : configuration
-            ? "CONFIGURATION"
-            : "TEMPORARY",
+        kind: unknown ? "UNKNOWN" : configuration ? "CONFIGURATION" : "TEMPORARY",
         safeToRetry: retryable,
         acceptedByProvider: unknown,
         ...(responseCode ? { responseCode } : {}),

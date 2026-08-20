@@ -1,11 +1,4 @@
-import {
-  uuid,
-  bigint,
-  timestamp,
-  index,
-  uniqueIndex,
-  check,
-} from "drizzle-orm/pg-core";
+import { uuid, bigint, timestamp, index, uniqueIndex, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { catalogSchema, currencyCodeEnum } from "./schema";
 import { variant } from "./products";
@@ -37,26 +30,26 @@ export const itemPricing = catalogSchema.table(
     check("item_pricing_compare_at_minor_check", sql`${table.compareAtMinor} >= 0`),
     check(
       "item_pricing_effective_interval_check",
-      sql`${table.effectiveTo} IS NULL OR ${table.effectiveTo} > ${table.effectiveFrom}`
+      sql`${table.effectiveTo} IS NULL OR ${table.effectiveTo} > ${table.effectiveFrom}`,
     ),
     // Indexes
     index("idx_item_pricing_variant_currency_effective_from").on(
       table.storeId,
       table.variantId,
       table.currency,
-      table.effectiveFrom
+      table.effectiveFrom,
     ),
     index("idx_item_pricing_variant_effective_from").on(
       table.storeId,
       table.variantId,
-      table.effectiveFrom
+      table.effectiveFrom,
     ),
     index("idx_item_pricing_recorded_at").on(table.storeId, table.recordedAt),
     index("idx_item_pricing_effective_to").on(table.storeId, table.effectiveTo),
     uniqueIndex("idx_item_pricing_current_unique")
       .on(table.storeId, table.variantId, table.currency)
       .where(sql`effective_to IS NULL`),
-  ]
+  ],
 );
 
 // View: current prices (effective_to IS NULL)
@@ -74,7 +67,7 @@ export const variantPricesCurrent = catalogSchema.view("variant_prices_current")
       recordedAt: itemPricing.recordedAt,
     })
     .from(itemPricing)
-    .where(sql`${itemPricing.effectiveTo} IS NULL`)
+    .where(sql`${itemPricing.effectiveTo} IS NULL`),
 );
 
 // View: product price range - aggregates min/max prices across all variants for sorting
@@ -88,9 +81,12 @@ export const productPriceRange = catalogSchema.view("product_price_range").as((q
       maxAmountMinor: sql<number>`MAX(${itemPricing.amountMinor})`.as("max_amount_minor"),
     })
     .from(itemPricing)
-    .innerJoin(variant, sql`${variant.id} = ${itemPricing.variantId} AND ${variant.deletedAt} IS NULL`)
+    .innerJoin(
+      variant,
+      sql`${variant.id} = ${itemPricing.variantId} AND ${variant.deletedAt} IS NULL`,
+    )
     .where(sql`${itemPricing.effectiveTo} IS NULL`)
-    .groupBy(itemPricing.storeId, variant.productId, itemPricing.currency)
+    .groupBy(itemPricing.storeId, variant.productId, itemPricing.currency),
 );
 
 export type ItemPricing = typeof itemPricing.$inferSelect;

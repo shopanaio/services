@@ -17,7 +17,10 @@ type PlaceOrderPayloadContext = {
   failure?: { code: string; message: string; retryable: boolean } | null;
 };
 
-type PlaceOrderErrorContext = Omit<PlaceOrderPayloadContext, "placementId" | "checkoutId" | "resultRevision"> & {
+type PlaceOrderErrorContext = Omit<
+  PlaceOrderPayloadContext,
+  "placementId" | "checkoutId" | "resultRevision"
+> & {
   checkoutId: string | null;
   resultRevision: string | null;
 };
@@ -28,19 +31,14 @@ export function mapPlaceOrderPayload(
 ): ApiPlaceOrderPayload {
   return {
     __typename: "PlaceOrderPayload",
-    placementId: encodeGlobalIdByType(
-      context.placementId,
-      GlobalIdEntity.CheckoutPlacement,
-    ),
-    placementState: context.placementState ?? "PLACED" as ApiCheckoutPlacementState,
+    placementId: encodeGlobalIdByType(context.placementId, GlobalIdEntity.CheckoutPlacement),
+    placementState: context.placementState ?? ("PLACED" as ApiCheckoutPlacementState),
     checkoutId: context.checkoutId
       ? encodeGlobalIdByType(context.checkoutId, GlobalIdEntity.Checkout)
       : null,
     resultRevision: context.resultRevision,
-    orderId: result
-      ? encodeGlobalIdByType(result.orderId, GlobalIdEntity.Order)
-      : null,
-    status: result ? result.status as ApiPlaceOrderStatus : null,
+    orderId: result ? encodeGlobalIdByType(result.orderId, GlobalIdEntity.Order) : null,
+    status: result ? (result.status as ApiPlaceOrderStatus) : null,
     paymentCollectionId: result?.paymentCollectionId ?? null,
     paymentSessionId: result?.paymentSessionId ?? null,
     paymentOperationId: result?.paymentOperationId ?? null,
@@ -48,19 +46,14 @@ export function mapPlaceOrderPayload(
       ? {
           __typename: "PlaceOrderCustomerAction",
           type: result.customerAction.type as ApiPlaceOrderCustomerActionType,
-          url: result.customerAction.type === "REDIRECT"
-            ? result.customerAction.url
-            : null,
-          title: result.customerAction.type === "INSTRUCTIONS"
-            ? result.customerAction.title
-            : null,
-          instructions: result.customerAction.type === "INSTRUCTIONS"
-            ? result.customerAction.instructions
-            : null,
+          url: result.customerAction.type === "REDIRECT" ? result.customerAction.url : null,
+          title: result.customerAction.type === "INSTRUCTIONS" ? result.customerAction.title : null,
+          instructions:
+            result.customerAction.type === "INSTRUCTIONS"
+              ? result.customerAction.instructions
+              : null,
           expiresAt: result.customerAction.expiresAt,
-          data: result.customerAction.type === "INSTRUCTIONS"
-            ? result.customerAction.data
-            : null,
+          data: result.customerAction.type === "INSTRUCTIONS" ? result.customerAction.data : null,
         }
       : null,
     paymentFailure: result?.paymentFailure
@@ -71,13 +64,15 @@ export function mapPlaceOrderPayload(
         }
       : null,
     userErrors: context.failure
-      ? [{
-          __typename: "CheckoutUserError",
-          field: [],
-          code: context.failure.code,
-          message: context.failure.message,
-          retryable: context.failure.retryable,
-        }]
+      ? [
+          {
+            __typename: "CheckoutUserError",
+            field: [],
+            code: context.failure.code,
+            message: context.failure.message,
+            retryable: context.failure.retryable,
+          },
+        ]
       : [],
   };
 }

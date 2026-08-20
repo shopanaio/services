@@ -17,7 +17,7 @@ export class Kernel extends BaseKernel<EventsKernelServices> {
     logger: Logger,
     repository: Repository,
     workflow: WorkflowRegistry,
-    db: Database
+    db: Database,
   ) {
     super(broker, logger, { repository, workflow });
     this.repository = repository;
@@ -28,7 +28,7 @@ export class Kernel extends BaseKernel<EventsKernelServices> {
   static async create(
     broker: ServiceBroker,
     workflow: WorkflowRegistry,
-    dbClient: DatabaseClient
+    dbClient: DatabaseClient,
   ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;

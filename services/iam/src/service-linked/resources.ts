@@ -6,7 +6,7 @@ export const IAM_SERVICE_LINKED_RESOURCE_KIND = Object.freeze({
 
 export function matchesServiceLinkedOwner(
   protectedResource: ProtectedResourceRef,
-  binding: { linkedOwnerType: string; linkedOwnerId: string }
+  binding: { linkedOwnerType: string; linkedOwnerId: string },
 ): boolean {
   return (
     protectedResource.ownerType === binding.linkedOwnerType &&

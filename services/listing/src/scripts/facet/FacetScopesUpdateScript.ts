@@ -1,8 +1,5 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type {
-  FacetScopesUpdateParams,
-  FacetScopesUpdateResult,
-} from "./dto/index.js";
+import type { FacetScopesUpdateParams, FacetScopesUpdateResult } from "./dto/index.js";
 import { validateFacetScopes } from "./facetScopeValidation.js";
 
 export class FacetScopesUpdateScript extends BaseScript<
@@ -10,9 +7,7 @@ export class FacetScopesUpdateScript extends BaseScript<
   FacetScopesUpdateResult
 > {
   @Transactional()
-  protected async execute(
-    params: FacetScopesUpdateParams
-  ): Promise<FacetScopesUpdateResult> {
+  protected async execute(params: FacetScopesUpdateParams): Promise<FacetScopesUpdateResult> {
     const userErrors: FacetScopesUpdateResult["userErrors"] = [];
     const seenIds = new Set<string>();
 

@@ -1,10 +1,12 @@
 import { uuid, timestamp, index } from "drizzle-orm/pg-core";
 import { catalogSchema } from "./schema";
 
-export const bulkEditJobStatusEnum = catalogSchema.enum(
-  "bulk_edit_job_status",
-  ["QUEUED", "RUNNING", "COMPLETED", "CANCELLED"]
-);
+export const bulkEditJobStatusEnum = catalogSchema.enum("bulk_edit_job_status", [
+  "QUEUED",
+  "RUNNING",
+  "COMPLETED",
+  "CANCELLED",
+]);
 
 export const bulkEditJob = catalogSchema.table(
   "bulk_edit_job",
@@ -19,15 +21,9 @@ export const bulkEditJob = catalogSchema.table(
     finishedAt: timestamp("finished_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
-    index("bulk_edit_job_store_created_idx").on(
-      table.storeId,
-      table.createdAt
-    ),
-    index("bulk_edit_job_store_status_idx").on(
-      table.storeId,
-      table.status
-    ),
-  ]
+    index("bulk_edit_job_store_created_idx").on(table.storeId, table.createdAt),
+    index("bulk_edit_job_store_status_idx").on(table.storeId, table.status),
+  ],
 );
 
 export type BulkEditJob = typeof bulkEditJob.$inferSelect;

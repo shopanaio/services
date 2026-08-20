@@ -35,13 +35,8 @@ export class ReviewUpdateWorkflow extends ReviewsMutationWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: ReviewUpdateWorkflowInput
-  ): Promise<ReviewUpdateWorkflowResult> {
-    const acquired = await this.stepAcquireRevision(
-      input.reviewId,
-      input.expectedRevision
-    );
+  async run(input: ReviewUpdateWorkflowInput): Promise<ReviewUpdateWorkflowResult> {
+    const acquired = await this.stepAcquireRevision(input.reviewId, input.expectedRevision);
     if ("error" in acquired) {
       return {
         review: null,
@@ -53,23 +48,18 @@ export class ReviewUpdateWorkflow extends ReviewsMutationWorkflow {
     const context = this.toScriptContext(input.context);
     const operationResults: ReviewUpdateOperationResult[] = [];
     for (const operation of input.operations) {
-      const result = await this.runOperation(
-        input.reviewId,
-        operation,
-        context
-      );
+      const result = await this.runOperation(input.reviewId, operation, context);
       const errors = prefixErrors(result.userErrors, operation);
       operationResults.push({
         type: operation.type,
         applied: errors.length === 0,
         clientMutationId:
           operation.type === "reviewReplyCreate"
-            ? operation.params.clientMutationId ?? undefined
+            ? (operation.params.clientMutationId ?? undefined)
             : undefined,
         entityId:
           result.entityId ??
-          (operation.type === "reviewReplyUpdate" ||
-          operation.type === "reviewReplyDelete"
+          (operation.type === "reviewReplyUpdate" || operation.type === "reviewReplyDelete"
             ? operation.params.replyId
             : undefined),
         errors,
@@ -93,7 +83,7 @@ export class ReviewUpdateWorkflow extends ReviewsMutationWorkflow {
   @WorkflowStep()
   private async stepAcquireRevision(
     reviewId: string,
-    expectedRevision: number
+    expectedRevision: number,
   ): Promise<
     | { revision: number; productId: string }
     | { error: { message: string; code: string; field: string[] } }
@@ -109,11 +99,7 @@ export class ReviewUpdateWorkflow extends ReviewsMutationWorkflow {
       };
     }
 
-    const acquired = await this.kernel.repository.content.update(
-      reviewId,
-      expectedRevision,
-      {}
-    );
+    const acquired = await this.kernel.repository.content.update(reviewId, expectedRevision, {});
     if (acquired.status === "applied") {
       return {
         revision: acquired.value.revision,
@@ -141,7 +127,7 @@ export class ReviewUpdateWorkflow extends ReviewsMutationWorkflow {
   private runOperation(
     reviewId: string,
     operation: ReviewUpdateOperation,
-    context: RunScriptContext
+    context: RunScriptContext,
   ): Promise<ReviewSectionResult> {
     switch (operation.type) {
       case "reviewReplyCreate":
@@ -160,72 +146,42 @@ export class ReviewUpdateWorkflow extends ReviewsMutationWorkflow {
     reviewId: string,
     operation: Exclude<
       ReviewUpdateOperation,
-      | { type: "reviewReplyCreate" }
-      | { type: "reviewReplyUpdate" }
-      | { type: "reviewReplyDelete" }
+      { type: "reviewReplyCreate" } | { type: "reviewReplyUpdate" } | { type: "reviewReplyDelete" }
     >,
-    context: RunScriptContext
+    context: RunScriptContext,
   ) {
-    return this.kernel.runScript(
-      ReviewSectionUpdateScript,
-      { reviewId, operation },
-      context
-    );
+    return this.kernel.runScript(ReviewSectionUpdateScript, { reviewId, operation }, context);
   }
 
   @WorkflowStep()
   private stepReplyCreate(
     reviewId: string,
-    operation: Extract<
-      ReviewUpdateOperation,
-      { type: "reviewReplyCreate" }
-    >,
-    context: RunScriptContext
+    operation: Extract<ReviewUpdateOperation, { type: "reviewReplyCreate" }>,
+    context: RunScriptContext,
   ) {
-    return this.kernel.runScript(
-      ReviewReplyCreateScript,
-      { reviewId, operation },
-      context
-    );
+    return this.kernel.runScript(ReviewReplyCreateScript, { reviewId, operation }, context);
   }
 
   @WorkflowStep()
   private stepReplyUpdate(
     reviewId: string,
-    operation: Extract<
-      ReviewUpdateOperation,
-      { type: "reviewReplyUpdate" }
-    >,
-    context: RunScriptContext
+    operation: Extract<ReviewUpdateOperation, { type: "reviewReplyUpdate" }>,
+    context: RunScriptContext,
   ) {
-    return this.kernel.runScript(
-      ReviewReplyUpdateScript,
-      { reviewId, operation },
-      context
-    );
+    return this.kernel.runScript(ReviewReplyUpdateScript, { reviewId, operation }, context);
   }
 
   @WorkflowStep()
   private stepReplyDelete(
     reviewId: string,
-    operation: Extract<
-      ReviewUpdateOperation,
-      { type: "reviewReplyDelete" }
-    >,
-    context: RunScriptContext
+    operation: Extract<ReviewUpdateOperation, { type: "reviewReplyDelete" }>,
+    context: RunScriptContext,
   ) {
-    return this.kernel.runScript(
-      ReviewReplyDeleteScript,
-      { reviewId, operation },
-      context
-    );
+    return this.kernel.runScript(ReviewReplyDeleteScript, { reviewId, operation }, context);
   }
 }
 
-function prefixErrors(
-  errors: ReviewSectionResult["userErrors"],
-  operation: ReviewUpdateOperation
-) {
+function prefixErrors(errors: ReviewSectionResult["userErrors"], operation: ReviewUpdateOperation) {
   return errors.map((error) => ({
     ...error,
     field: error.field

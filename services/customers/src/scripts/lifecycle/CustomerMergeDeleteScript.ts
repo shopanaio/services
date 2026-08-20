@@ -15,9 +15,7 @@ export class CustomerMergeDeleteScript extends BaseScript<
   CustomerMergeDeleteResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerMergeDeleteParams
-  ): Promise<CustomerMergeDeleteResult> {
+  protected async execute(params: CustomerMergeDeleteParams): Promise<CustomerMergeDeleteResult> {
     const merge = await this.repository.lifecycle.findMergeById(params.id);
     if (!merge) {
       return notFound();
@@ -46,9 +44,7 @@ export class CustomerMergeDeleteScript extends BaseScript<
 function notFound(): CustomerMergeDeleteResult {
   return {
     deletedMergeId: undefined,
-    userErrors: [
-      { message: "Customer merge not found", field: ["id"], code: "NOT_FOUND" },
-    ],
+    userErrors: [{ message: "Customer merge not found", field: ["id"], code: "NOT_FOUND" }],
   };
 }
 

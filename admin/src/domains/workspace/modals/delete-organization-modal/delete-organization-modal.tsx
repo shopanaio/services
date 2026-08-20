@@ -4,11 +4,7 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Input, Typography, Alert, List, App } from "antd";
 import { createStyles } from "antd-style";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { IDeleteOrganizationModalPayload } from "../../modals";
 
@@ -120,9 +116,7 @@ export const DeleteOrganizationModal = () => {
 
         <div className={styles.formItem}>
           <Typography.Text className={styles.label}>
-            Type{" "}
-            <span className={styles.confirmText}>{confirmationText}</span> to
-            confirm
+            Type <span className={styles.confirmText}>{confirmationText}</span> to confirm
           </Typography.Text>
           <Controller
             name="confirmation"
@@ -135,9 +129,7 @@ export const DeleteOrganizationModal = () => {
               <Input
                 {...field}
                 placeholder={confirmationText}
-                status={
-                  confirmationValue && !isConfirmed ? "error" : undefined
-                }
+                status={confirmationValue && !isConfirmed ? "error" : undefined}
               />
             )}
           />

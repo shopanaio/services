@@ -16,10 +16,7 @@ import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useAgGridTheme, usePageConfig } from "@/hooks";
-import type {
-  ApiSearchProductBoost,
-  ApiSearchProductBoostWhereInput,
-} from "@/graphql/types";
+import type { ApiSearchProductBoost, ApiSearchProductBoostWhereInput } from "@/graphql/types";
 import { SearchProductBoostOrderField } from "@/graphql/types";
 import { useProductBoosts } from "../hooks";
 import { filterSchema } from "./filter-schema";
@@ -51,21 +48,13 @@ function formatDate(value: string | null | undefined): string {
   }).format(date);
 }
 
-const NameCellRenderer = (
-  props: CustomCellRendererProps<ApiSearchProductBoost, string>,
-) => (
-  <Typography.Text
-    strong
-    ellipsis={{ tooltip: props.value }}
-    style={{ maxWidth: "100%" }}
-  >
+const NameCellRenderer = (props: CustomCellRendererProps<ApiSearchProductBoost, string>) => (
+  <Typography.Text strong ellipsis={{ tooltip: props.value }} style={{ maxWidth: "100%" }}>
     {props.value}
   </Typography.Text>
 );
 
-const PhrasesCellRenderer = (
-  props: CustomCellRendererProps<ApiSearchProductBoost, number>,
-) => {
+const PhrasesCellRenderer = (props: CustomCellRendererProps<ApiSearchProductBoost, number>) => {
   const phrases = [...(props.data?.phrases ?? [])]
     .sort((left, right) => left.position - right.position)
     .map(({ phrase }) => phrase)
@@ -85,21 +74,15 @@ const PhrasesCellRenderer = (
   );
 };
 
-const LocaleCellRenderer = (
-  props: CustomCellRendererProps<ApiSearchProductBoost, string>,
-) => <Tag style={{ marginInlineEnd: 0 }}>{props.value?.toUpperCase()}</Tag>;
-
-const StatusCellRenderer = (
-  props: CustomCellRendererProps<ApiSearchProductBoost, boolean>,
-) => (
-  <Tag color={props.value ? "success" : "default"}>
-    {props.value ? "Enabled" : "Disabled"}
-  </Tag>
+const LocaleCellRenderer = (props: CustomCellRendererProps<ApiSearchProductBoost, string>) => (
+  <Tag style={{ marginInlineEnd: 0 }}>{props.value?.toUpperCase()}</Tag>
 );
 
-const ProductsCellRenderer = (
-  props: CustomCellRendererProps<ApiSearchProductBoost, number>,
-) => {
+const StatusCellRenderer = (props: CustomCellRendererProps<ApiSearchProductBoost, boolean>) => (
+  <Tag color={props.value ? "success" : "default"}>{props.value ? "Enabled" : "Disabled"}</Tag>
+);
+
+const ProductsCellRenderer = (props: CustomCellRendererProps<ApiSearchProductBoost, number>) => {
   const count = props.value ?? 0;
 
   return (
@@ -109,9 +92,9 @@ const ProductsCellRenderer = (
   );
 };
 
-const DateCellRenderer = (
-  props: CustomCellRendererProps<ApiSearchProductBoost, string>,
-) => <Typography.Text>{formatDate(props.value)}</Typography.Text>;
+const DateCellRenderer = (props: CustomCellRendererProps<ApiSearchProductBoost, string>) => (
+  <Typography.Text>{formatDate(props.value)}</Typography.Text>
+);
 
 export default function ProductBoostsPage() {
   const router = useRouter();
@@ -263,10 +246,7 @@ export default function ProductBoostsPage() {
       >
         {error ? <Alert type="error" message={error.message} showIcon /> : null}
 
-        <div
-          style={{ flex: 1, minHeight: 0 }}
-          data-testid="product-boosts-table"
-        >
+        <div style={{ flex: 1, minHeight: 0 }} data-testid="product-boosts-table">
           <AgGridReact<ApiSearchProductBoost>
             ref={gridRef}
             theme={agGridTheme}
@@ -290,10 +270,7 @@ export default function ProductBoostsPage() {
           name="product-boosts"
           total={totalCount}
           rangeStart={pageConfig.getRangeStart(productBoosts.length)}
-          rangeEnd={Math.min(
-            pageConfig.getRangeEnd(productBoosts.length),
-            totalCount,
-          )}
+          rangeEnd={Math.min(pageConfig.getRangeEnd(productBoosts.length), totalCount)}
           pageSize={pageConfig.pageSize}
           pageSizeOptions={pageConfig.pageSizeOptions}
           hasNext={pageInfo?.hasNextPage ?? false}

@@ -16,7 +16,7 @@ export class CleanupScheduler {
     do {
       const result = await this.broker.call<{ deleted: number }>(
         this.broker.qualifyAction("cleanupDLQ"),
-        { batchSize: 1000 }
+        { batchSize: 1000 },
       );
       deleted = result.deleted;
       totalDeleted += deleted;
@@ -38,7 +38,7 @@ export class CleanupScheduler {
     do {
       const result = await this.broker.call<{ deleted: number }>(
         this.broker.qualifyAction("cleanupDomainEvents"),
-        { retentionDays, batchSize }
+        { retentionDays, batchSize },
       );
       deleted = result.deleted;
       totalDeleted += deleted;
@@ -50,7 +50,7 @@ export class CleanupScheduler {
 
     if (totalDeleted > 0) {
       this.logger.log(
-        `Domain events cleanup: deleted ${totalDeleted} events older than ${retentionDays} days`
+        `Domain events cleanup: deleted ${totalDeleted} events older than ${retentionDays} days`,
       );
     }
   }

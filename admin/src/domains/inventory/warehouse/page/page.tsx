@@ -15,10 +15,7 @@ import {
   RowSelectionModule,
 } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data";
-import {
-  RelayCursorPagination,
-  useRelayCursorPagination,
-} from "@/ui-kit/cursor-pagination";
+import { RelayCursorPagination, useRelayCursorPagination } from "@/ui-kit/cursor-pagination";
 import { useAgGridTheme, useGridSort, useGridState } from "@/hooks";
 import type { SortModel } from "@/hooks/use-grid-sort";
 import type {
@@ -26,23 +23,13 @@ import type {
   ApiWarehouseOrderByInput,
   ApiWarehouseWhereInput,
 } from "@/graphql/types";
-import {
-  SortDirection,
-  WarehouseOrderField,
-} from "@/graphql/types";
+import { SortDirection, WarehouseOrderField } from "@/graphql/types";
 import { WarehouseNameCell } from "../components";
 import { useWarehouses } from "../hooks";
-import {
-  useWarehouseCreateModal,
-  useWarehouseModal,
-} from "../modals";
+import { useWarehouseCreateModal, useWarehouseModal } from "../modals";
 import type { WarehousesQueryVariables } from "../graphql";
 
-ModuleRegistry.registerModules([
-  AllCommunityModule,
-  RowSelectionModule,
-  GridStateModule,
-]);
+ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule, GridStateModule]);
 
 type DefaultFilterValue = "all" | "default" | "non-default";
 
@@ -85,9 +72,7 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-function mapSortModelToOrderBy(
-  sortModel: SortModel[],
-): ApiWarehouseOrderByInput[] | null {
+function mapSortModelToOrderBy(sortModel: SortModel[]): ApiWarehouseOrderByInput[] | null {
   const orderBy = sortModel
     .map((sort) => {
       const field = WAREHOUSE_SORT_FIELDS[sort.colId];
@@ -98,8 +83,7 @@ function mapSortModelToOrderBy(
 
       return {
         field,
-        direction:
-          sort.sort === "desc" ? SortDirection.Desc : SortDirection.Asc,
+        direction: sort.sort === "desc" ? SortDirection.Desc : SortDirection.Asc,
       };
     })
     .filter((item): item is ApiWarehouseOrderByInput => item !== null);
@@ -107,9 +91,7 @@ function mapSortModelToOrderBy(
   return orderBy.length > 0 ? orderBy : null;
 }
 
-const WarehouseCellRenderer = (
-  props: CustomCellRendererProps<ApiWarehouse>,
-) => {
+const WarehouseCellRenderer = (props: CustomCellRendererProps<ApiWarehouse>) => {
   if (!props.data) {
     return null;
   }
@@ -117,25 +99,22 @@ const WarehouseCellRenderer = (
   return <WarehouseNameCell warehouse={props.data} />;
 };
 
-const CodeCellRenderer = (
-  props: CustomCellRendererProps<ApiWarehouse, string>,
-) => (
+const CodeCellRenderer = (props: CustomCellRendererProps<ApiWarehouse, string>) => (
   <Typography.Text className={props.context?.styles?.monospace}>
     {props.value ?? ""}
   </Typography.Text>
 );
 
-const DateCellRenderer = (
-  props: CustomCellRendererProps<ApiWarehouse, string>,
-) => <Typography.Text>{props.value ? formatDate(props.value) : ""}</Typography.Text>;
+const DateCellRenderer = (props: CustomCellRendererProps<ApiWarehouse, string>) => (
+  <Typography.Text>{props.value ? formatDate(props.value) : ""}</Typography.Text>
+);
 
 export default function WarehousePage() {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiWarehouse>>(null);
   const [searchValue, setSearchValue] = useState("");
-  const [defaultFilter, setDefaultFilter] =
-    useState<DefaultFilterValue>("all");
+  const [defaultFilter, setDefaultFilter] = useState<DefaultFilterValue>("all");
   const [sortModel, setSortModel] = useState<SortModel[]>([]);
   const { push: openCreateModal } = useWarehouseCreateModal();
   const { push: openWarehouseModal } = useWarehouseModal();
@@ -149,10 +128,7 @@ export default function WarehousePage() {
 
     if (query) {
       filters.push({
-        _or: [
-          { name: { _containsi: query } },
-          { code: { _containsi: query } },
-        ],
+        _or: [{ name: { _containsi: query } }, { code: { _containsi: query } }],
       });
     }
 
@@ -167,14 +143,8 @@ export default function WarehousePage() {
     return filters.length > 0 ? { _and: filters } : null;
   }, [defaultFilter, searchValue]);
 
-  const orderBy = useMemo(
-    () => mapSortModelToOrderBy(sortModel),
-    [sortModel],
-  );
-  const resetKey = useMemo(
-    () => JSON.stringify({ where, orderBy }),
-    [orderBy, where],
-  );
+  const orderBy = useMemo(() => mapSortModelToOrderBy(sortModel), [sortModel]);
+  const resetKey = useMemo(() => JSON.stringify({ where, orderBy }), [orderBy, where]);
   const pagination = useRelayCursorPagination({
     defaultPageSize: 20,
     resetKey,
@@ -189,13 +159,7 @@ export default function WarehousePage() {
     [orderBy, pagination.variables, where],
   );
 
-  const {
-    warehouses,
-    totalCount,
-    pageInfo,
-    loading,
-    error,
-  } = useWarehouses(listQueryVariables);
+  const { warehouses, totalCount, pageInfo, loading, error } = useWarehouses(listQueryVariables);
 
   const handleSortChange = useCallback((model: SortModel[]) => {
     setSortModel(model);

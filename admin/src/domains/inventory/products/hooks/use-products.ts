@@ -11,10 +11,7 @@ import type {
 import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { PRODUCTS_QUERY } from "../graphql";
-import type {
-  ProductsQueryData,
-  ProductsQueryVariables,
-} from "../graphql/operation-types";
+import type { ProductsQueryData, ProductsQueryVariables } from "../graphql/operation-types";
 
 export interface UseProductsOptions extends RelayCursorPaginationVariables {
   where?: ApiProductWhereInput | null;

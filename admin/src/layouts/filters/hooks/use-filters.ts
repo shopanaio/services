@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from "react";
 import {
   IFilterSchema,
   IFilterValue,
   IFilterAdapter,
   IUseFiltersOptions,
   IUseFiltersReturn,
-} from '../core/types';
+} from "../core/types";
 
 /**
  * Hook for managing filter state
@@ -107,7 +107,7 @@ export function useFilters<TPayload = unknown>(
 
     if (converted.length === 0) return null;
 
-    const combined = adapter.combine(converted, 'AND');
+    const combined = adapter.combine(converted, "AND");
     return adapter.build(combined) as TPayload;
   }, [adapter, filters, findSchema]);
 

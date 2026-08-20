@@ -17,19 +17,37 @@ function ReplyRow({ reply }: { reply: ApiReviewReply }) {
       <Flex justify="space-between" align="flex-start" gap={12} wrap="wrap">
         <Flex gap={8} align="center" wrap="wrap">
           <Typography.Text strong>{reply.author.displayName || "Anonymous"}</Typography.Text>
-          <Tag color={reply.isOfficial ? "blue" : undefined}>{reply.isOfficial ? "Official" : humanizeEnum(reply.author.type)}</Tag>
-          <Tag color={reply.status === "PUBLISHED" ? "green" : reply.status === "REJECTED" ? "red" : "gold"}>
+          <Tag color={reply.isOfficial ? "blue" : undefined}>
+            {reply.isOfficial ? "Official" : humanizeEnum(reply.author.type)}
+          </Tag>
+          <Tag
+            color={
+              reply.status === "PUBLISHED" ? "green" : reply.status === "REJECTED" ? "red" : "gold"
+            }
+          >
             {humanizeEnum(reply.status)}
           </Tag>
         </Flex>
         <Typography.Text type="secondary">{formatReviewDateTime(reply.createdAt)}</Typography.Text>
       </Flex>
-      <Typography.Paragraph className={cx(!expanded && canExpand && styles.replyBodyCollapsed)} style={{ margin: "8px 0 0" }}>
+      <Typography.Paragraph
+        className={cx(!expanded && canExpand && styles.replyBodyCollapsed)}
+        style={{ margin: "8px 0 0" }}
+      >
         {reply.body}
       </Typography.Paragraph>
-      {canExpand ? <Button type="link" style={{ padding: 0 }} onClick={() => setExpanded((current) => !current)}>{expanded ? "Show less" : "Show more"}</Button> : null}
+      {canExpand ? (
+        <Button
+          type="link"
+          style={{ padding: 0 }}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          {expanded ? "Show less" : "Show more"}
+        </Button>
+      ) : null}
       <Typography.Text type="secondary">
-        {reply.metrics.likeCount} helpful · {reply.metrics.reportCount} {reply.metrics.reportCount === 1 ? "report" : "reports"}
+        {reply.metrics.likeCount} helpful · {reply.metrics.reportCount}{" "}
+        {reply.metrics.reportCount === 1 ? "report" : "reports"}
       </Typography.Text>
     </div>
   );
@@ -42,8 +60,15 @@ export function ReviewRepliesSection({ review }: { review: ApiReview }) {
   return (
     <Paper data-testid="review-replies-section">
       <PaperHeader title={`Replies (${review.replies.totalCount})`} />
-      {visibleReplies.length ? visibleReplies.map((reply) => <ReplyRow key={reply.id} reply={reply} />) : (
-        <EntityDetailsEmptyState state={{ title: "No replies yet", description: "No customer or official replies have been added." }} />
+      {visibleReplies.length ? (
+        visibleReplies.map((reply) => <ReplyRow key={reply.id} reply={reply} />)
+      ) : (
+        <EntityDetailsEmptyState
+          state={{
+            title: "No replies yet",
+            description: "No customer or official replies have been added.",
+          }}
+        />
       )}
       {replies.length > 5 ? (
         <Flex justify="center" style={{ marginTop: 12 }}>

@@ -3,14 +3,9 @@ import {
   CheckoutPipelineStageError,
   CheckoutValidationRunner,
 } from "../index.js";
-import type {
-  CommerceFunctionRunnerPort,
-} from "../CheckoutValidationRunner.js";
+import type { CommerceFunctionRunnerPort } from "../CheckoutValidationRunner.js";
 import type { CheckoutValidationBindingSource } from "../contracts/index.js";
-import {
-  recalculationRequestFixture,
-  validationRequestFixture,
-} from "./fixtures.js";
+import { recalculationRequestFixture, validationRequestFixture } from "./fixtures.js";
 
 function dependencies(overrides?: {
   preliminary?: (request: unknown) => Promise<any>;
@@ -87,9 +82,7 @@ describe("CheckoutPipeline", () => {
       "PAYMENT",
       "VALIDATION",
     ]);
-    expect(result.resultRevision).toMatch(
-      /^checkout-pipeline-result:v1:sha256:[0-9a-f]{64}$/,
-    );
+    expect(result.resultRevision).toMatch(/^checkout-pipeline-result:v1:sha256:[0-9a-f]{64}$/);
     expect(deps.pricing.calculatePreliminaryQuote).toHaveBeenCalledWith({
       context: expect.objectContaining({
         checkoutId: request.context.checkoutId,
@@ -196,9 +189,7 @@ describe("CheckoutPipeline", () => {
         });
       },
     });
-    const result = await new CheckoutPipeline(deps).recalculate(
-      recalculationRequestFixture(),
-    );
+    const result = await new CheckoutPipeline(deps).recalculate(recalculationRequestFixture());
     expect(result.preliminaryPricing).toMatchObject({
       status: "FAILED",
       failure: {
@@ -227,9 +218,7 @@ describe("CheckoutPipeline", () => {
         ],
       }),
     });
-    const result = await new CheckoutPipeline(deps).recalculate(
-      recalculationRequestFixture(),
-    );
+    const result = await new CheckoutPipeline(deps).recalculate(recalculationRequestFixture());
     expect(result.delivery.issues).toEqual([
       {
         stage: "DELIVERY",

@@ -16,14 +16,42 @@ export function validatePolicy(input: {
   fallbackChain: readonly string[];
 }): UserError[] {
   const errors: UserError[] = [];
-  if (!Number.isSafeInteger(input.minimumResults) || input.minimumResults < 0 || input.minimumResults > 100) {
-    errors.push(error("minimumResults", "INVALID_RESULT_LIMIT", "minimumResults must be from 0 to 100"));
+  if (
+    !Number.isSafeInteger(input.minimumResults) ||
+    input.minimumResults < 0 ||
+    input.minimumResults > 100
+  ) {
+    errors.push(
+      error("minimumResults", "INVALID_RESULT_LIMIT", "minimumResults must be from 0 to 100"),
+    );
   }
-  if (!Number.isSafeInteger(input.maximumResults) || input.maximumResults < 1 || input.maximumResults > 100 || input.minimumResults > input.maximumResults) {
-    errors.push(error("maximumResults", "INVALID_RESULT_LIMIT", "maximumResults must be from 1 to 100 and at least minimumResults"));
+  if (
+    !Number.isSafeInteger(input.maximumResults) ||
+    input.maximumResults < 1 ||
+    input.maximumResults > 100 ||
+    input.minimumResults > input.maximumResults
+  ) {
+    errors.push(
+      error(
+        "maximumResults",
+        "INVALID_RESULT_LIMIT",
+        "maximumResults must be from 1 to 100 and at least minimumResults",
+      ),
+    );
   }
-  if (new Set(input.fallbackChain).size !== input.fallbackChain.length || input.fallbackChain.some((code) => !(RECOMMENDATION_FALLBACK_CODES as readonly string[]).includes(code))) {
-    errors.push(error("fallbackChain", "INVALID_FALLBACK_CHAIN", "fallbackChain contains duplicates or unsupported sources"));
+  if (
+    new Set(input.fallbackChain).size !== input.fallbackChain.length ||
+    input.fallbackChain.some(
+      (code) => !(RECOMMENDATION_FALLBACK_CODES as readonly string[]).includes(code),
+    )
+  ) {
+    errors.push(
+      error(
+        "fallbackChain",
+        "INVALID_FALLBACK_CHAIN",
+        "fallbackChain contains duplicates or unsupported sources",
+      ),
+    );
   }
   return errors;
 }
@@ -45,20 +73,45 @@ export function validateManualValues(input: {
     errors.push(error("targetProductId", "SELF_REFERENCE", "A product cannot recommend itself"));
   }
   if (input.action === "PIN") {
-    if (!Number.isSafeInteger(input.position) || (input.position ?? 0) < 1 || (input.position ?? 0) > input.maximumResults || input.boost !== null) {
-      errors.push(error("position", "INVALID_ACTION_VALUES", "PIN requires a position inside policy maximum and no boost"));
+    if (
+      !Number.isSafeInteger(input.position) ||
+      (input.position ?? 0) < 1 ||
+      (input.position ?? 0) > input.maximumResults ||
+      input.boost !== null
+    ) {
+      errors.push(
+        error(
+          "position",
+          "INVALID_ACTION_VALUES",
+          "PIN requires a position inside policy maximum and no boost",
+        ),
+      );
     }
   } else if (input.action === "BOOST") {
     if (input.position !== null || input.boost === null || !validBoost(input.boost)) {
-      errors.push(error("boost", "INVALID_ACTION_VALUES", "BOOST requires a decimal boost greater than 0 and at most 1000"));
+      errors.push(
+        error(
+          "boost",
+          "INVALID_ACTION_VALUES",
+          "BOOST requires a decimal boost greater than 0 and at most 1000",
+        ),
+      );
     }
   } else if (input.position !== null || input.boost !== null) {
-    errors.push(error("action", "INVALID_ACTION_VALUES", "EXCLUDE does not accept position or boost"));
+    errors.push(
+      error("action", "INVALID_ACTION_VALUES", "EXCLUDE does not accept position or boost"),
+    );
   }
   const starts = input.startsAt === null ? null : Date.parse(input.startsAt);
   const ends = input.endsAt === null ? null : Date.parse(input.endsAt);
-  if ((starts !== null && !Number.isFinite(starts)) || (ends !== null && !Number.isFinite(ends)) || (starts !== null && ends !== null && starts >= ends)) {
-    errors.push(error("startsAt", "INVALID_SCHEDULE", "Schedule must be a valid half-open interval"));
+  if (
+    (starts !== null && !Number.isFinite(starts)) ||
+    (ends !== null && !Number.isFinite(ends)) ||
+    (starts !== null && ends !== null && starts >= ends)
+  ) {
+    errors.push(
+      error("startsAt", "INVALID_SCHEDULE", "Schedule must be a valid half-open interval"),
+    );
   }
   return errors;
 }

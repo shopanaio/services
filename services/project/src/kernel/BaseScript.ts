@@ -1,7 +1,4 @@
-import {
-  ValidationError,
-  AuthorizationError,
-} from "@shopana/shared-kernel";
+import { ValidationError, AuthorizationError } from "@shopana/shared-kernel";
 import type { ProjectKernelServices } from "./types.js";
 import { getContext } from "../context/index.js";
 
@@ -31,10 +28,7 @@ export abstract class BaseScript<TParams, TResult> {
     try {
       return await this.execute(params);
     } catch (error) {
-      if (
-        !(error instanceof ValidationError) &&
-        !(error instanceof AuthorizationError)
-      ) {
+      if (!(error instanceof ValidationError) && !(error instanceof AuthorizationError)) {
         this.logger.error({ error }, `${this.constructor.name} failed`);
       }
       return this.handleError(error);
@@ -74,7 +68,7 @@ export abstract class BaseScript<TParams, TResult> {
    */
   protected executeScript<P, R>(
     ScriptClass: new (services: ProjectKernelServices) => BaseScript<P, R>,
-    params: P
+    params: P,
   ): Promise<R> {
     const script = new ScriptClass(this.services);
     return script.run(params);

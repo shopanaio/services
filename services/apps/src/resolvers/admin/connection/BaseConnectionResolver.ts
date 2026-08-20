@@ -13,14 +13,10 @@ export interface ConnectionData {
 /**
  * Shared Relay connection resolver used by the Apps admin API.
  */
-export abstract class BaseConnectionResolver<
-  TInput,
-> extends AppsType<TInput, ConnectionData> {
+export abstract class BaseConnectionResolver<TInput> extends AppsType<TInput, ConnectionData> {
   abstract $preload(): Promise<ConnectionData>;
 
-  protected abstract createNodeResolver(
-    nodeId: string,
-  ): unknown | Promise<unknown>;
+  protected abstract createNodeResolver(nodeId: string): unknown | Promise<unknown>;
 
   async edges() {
     const edges = await this.$get("edges");

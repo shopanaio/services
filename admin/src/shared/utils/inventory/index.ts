@@ -37,11 +37,7 @@ export interface CalculationResult {
  * Calculates available inventory
  * Formula: Available = On Hand - Unavailable - Reserved
  */
-export function calculateAvailable(
-  onHand: number,
-  unavailable: number,
-  reserved: number
-): number {
+export function calculateAvailable(onHand: number, unavailable: number, reserved: number): number {
   return onHand - unavailable - reserved;
 }
 
@@ -101,7 +97,7 @@ export function validateInventory(values: InventoryValues): ValidationResult {
  */
 export function calculateInventory(
   values: Partial<InventoryValues>,
-  base: InventoryValues
+  base: InventoryValues,
 ): CalculationResult {
   const onHand = values.onHand ?? base.onHand;
   const unavailable = values.unavailable ?? base.unavailable;
@@ -137,7 +133,7 @@ export function calculateInventory(
 export function validateFieldChange(
   field: "onHand" | "unavailable",
   newValue: number,
-  base: InventoryValues
+  base: InventoryValues,
 ): ValidationResult {
   const testValues: Partial<InventoryValues> = { [field]: newValue };
   const result = calculateInventory(testValues, base);

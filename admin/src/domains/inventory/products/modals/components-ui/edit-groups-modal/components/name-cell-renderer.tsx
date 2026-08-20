@@ -1,12 +1,16 @@
-import { LuFolder as FolderOutlined, LuFolderOpen as FolderOpenOutlined, LuChevronRight as RightOutlined, LuChevronDown as DownOutlined } from "react-icons/lu";
+import {
+  LuFolder as FolderOutlined,
+  LuFolderOpen as FolderOpenOutlined,
+  LuChevronRight as RightOutlined,
+  LuChevronDown as DownOutlined,
+} from "react-icons/lu";
 import { Avatar } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import { useStyles } from "../edit-groups-modal.styles";
 import type { ITableRow } from "../types";
 import { ProductComponentItemType, type ApiProduct, type ApiVariant } from "@/graphql/types";
 
-export interface INameCellRendererParams
-  extends ICellRendererParams<ITableRow> {
+export interface INameCellRendererParams extends ICellRendererParams<ITableRow> {
   expandedIds: Set<string>;
   onToggleExpand: (id: string) => void;
   allRows: ITableRow[];
@@ -24,8 +28,7 @@ const getProductImageUrl = (product?: ApiProduct): string | null => {
   if (!product) return null;
 
   const variants = product.variants?.edges ?? [];
-  const variant = variants.find((edge) => edge.node.isDefault)?.node
-    ?? variants[0]?.node;
+  const variant = variants.find((edge) => edge.node.isDefault)?.node ?? variants[0]?.node;
 
   return getVariantImageUrl(variant);
 };
@@ -37,8 +40,7 @@ export const NameCellRenderer = (params: INameCellRendererParams) => {
 
   const { expandedIds, onToggleExpand, allRows } = params;
   // Only groups can have children (items)
-  const hasChildren =
-    data.type === "group" && allRows.some((r) => r.parentId === data.id);
+  const hasChildren = data.type === "group" && allRows.some((r) => r.parentId === data.id);
   const isExpanded = expandedIds.has(data.id);
 
   const indent = data.level * 24;
@@ -78,10 +80,7 @@ export const NameCellRenderer = (params: INameCellRendererParams) => {
     const variant = data.assignedVariant;
     const productTitle = variant?.product?.title;
     const variantTitle =
-      data.title ||
-      variant?.title ||
-      variant?.inventoryItem?.sku ||
-      "Unknown Variant";
+      data.title || variant?.title || variant?.inventoryItem?.sku || "Unknown Variant";
     const imageUrl = getVariantImageUrl(variant);
 
     return (

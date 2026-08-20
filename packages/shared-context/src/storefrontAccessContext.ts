@@ -1,18 +1,10 @@
-import {
-  createPublicKey,
-  verify as verifySignature,
-  type KeyObject,
-} from "node:crypto";
+import { createPublicKey, verify as verifySignature, type KeyObject } from "node:crypto";
 import type { ContextCustomer, ContextStore } from "./types.js";
-import {
-  isStorefrontPermission,
-  type StorefrontPermission,
-} from "./storefrontPermissions.js";
+import { isStorefrontPermission, type StorefrontPermission } from "./storefrontPermissions.js";
 
 export const STOREFRONT_CONTEXT_HEADER = "x-shopana-storefront-context";
 export const STOREFRONT_CONTEXT_ISSUER = "shopana-storefront-gateway";
-export const STOREFRONT_CONTEXT_AUDIENCE =
-  "shopana-storefront-subgraphs";
+export const STOREFRONT_CONTEXT_AUDIENCE = "shopana-storefront-subgraphs";
 
 export interface ContextStorefrontAccess {
   readonly connectionId: string;
@@ -53,17 +45,15 @@ export class StorefrontContextVerifier {
   private readonly keys: ReadonlyMap<string, KeyObject>;
   private readonly tolerance: number;
 
-  constructor(options: {
-    readonly publicKeys?: Readonly<Record<string, string>>;
-    readonly clockToleranceSeconds?: number;
-  } = {}) {
-    const configured =
-      options.publicKeys ?? readPublicKeysFromEnvironment();
+  constructor(
+    options: {
+      readonly publicKeys?: Readonly<Record<string, string>>;
+      readonly clockToleranceSeconds?: number;
+    } = {},
+  ) {
+    const configured = options.publicKeys ?? readPublicKeysFromEnvironment();
     this.keys = new Map(
-      Object.entries(configured).map(([kid, value]) => [
-        kid,
-        createPublicKey(normalizeKey(value)),
-      ]),
+      Object.entries(configured).map(([kid, value]) => [kid, createPublicKey(normalizeKey(value))]),
     );
     if (this.keys.size === 0) {
       throw new Error(
@@ -81,36 +71,20 @@ export class StorefrontContextVerifier {
     if (parts.length !== 3) throw new Error("Invalid storefront context");
     const [encodedHeader, encodedPayload, encodedSignature] = parts;
     const header = parseObject(encodedHeader);
-    if (
-      header.alg !== "EdDSA" ||
-      header.typ !== "JWT" ||
-      typeof header.kid !== "string"
-    ) {
+    if (header.alg !== "EdDSA" || header.typ !== "JWT" || typeof header.kid !== "string") {
       throw new Error("Invalid storefront context header");
     }
     const key = this.keys.get(header.kid);
     if (!key) throw new Error("Unknown storefront context key");
-    const input = Buffer.from(
-      `${encodedHeader}.${encodedPayload}`,
-      "ascii",
-    );
-    if (
-      !verifySignature(
-        null,
-        input,
-        key,
-        Buffer.from(encodedSignature, "base64url"),
-      )
-    ) {
+    const input = Buffer.from(`${encodedHeader}.${encodedPayload}`, "ascii");
+    if (!verifySignature(null, input, key, Buffer.from(encodedSignature, "base64url"))) {
       throw new Error("Invalid storefront context signature");
     }
     return validateClaims(parseObject(encodedPayload), this.tolerance);
   }
 }
 
-export function readPublicKeysFromEnvironment(): Readonly<
-  Record<string, string>
-> {
+export function readPublicKeysFromEnvironment(): Readonly<Record<string, string>> {
   const value = process.env.STOREFRONT_CONTEXT_PUBLIC_KEYS;
   if (!value) return Object.freeze({});
   const parsed = JSON.parse(value) as unknown;
@@ -119,8 +93,7 @@ export function readPublicKeysFromEnvironment(): Readonly<
   }
   if (
     Object.entries(parsed).some(
-      ([kid, key]) =>
-        !kid.trim() || typeof key !== "string" || !key.trim(),
+      ([kid, key]) => !kid.trim() || typeof key !== "string" || !key.trim(),
     )
   ) {
     throw new Error("Invalid STOREFRONT_CONTEXT_PUBLIC_KEYS entry");
@@ -159,22 +132,23 @@ function validateClaims(
   const permissions = access.permissions;
   if (
     !hasStrings(store, [
-      "id", "name", "displayName", "organizationId", "timezone",
-      "defaultLocale", "currencyCode",
+      "id",
+      "name",
+      "displayName",
+      "organizationId",
+      "timezone",
+      "defaultLocale",
+      "currencyCode",
     ]) ||
     !Number.isSafeInteger(store.segmentConfigurationRevision) ||
     (store.segmentConfigurationRevision as number) < 0 ||
     store.organizationId !== value.organizationId ||
     !Array.isArray(store.locales) ||
     !store.locales.every((item) => typeof item === "string") ||
-    !hasStrings(access, [
-      "connectionId", "installationId", "credentialId", "accessMode",
-    ]) ||
+    !hasStrings(access, ["connectionId", "installationId", "credentialId", "accessMode"]) ||
     (access.accessMode !== "PUBLIC" && access.accessMode !== "PRIVATE") ||
     !Array.isArray(permissions) ||
-    !permissions.every(
-      (item) => typeof item === "string" && isStorefrontPermission(item),
-    ) ||
+    !permissions.every((item) => typeof item === "string" && isStorefrontPermission(item)) ||
     new Set(permissions).size !== permissions.length ||
     !Number.isInteger(access.policyRevision) ||
     (access.policyRevision as number) < 1
@@ -183,18 +157,10 @@ function validateClaims(
   }
   if (
     customer !== null &&
-    (
-      !hasStrings(customer, ["id", "createdAt", "updatedAt"]) ||
-      !hasNullableStrings(customer, [
-        "email",
-        "firstName",
-        "lastName",
-        "phone",
-        "language",
-      ]) ||
+    (!hasStrings(customer, ["id", "createdAt", "updatedAt"]) ||
+      !hasNullableStrings(customer, ["email", "firstName", "lastName", "phone", "language"]) ||
       typeof customer.isVerified !== "boolean" ||
-      typeof customer.isBlocked !== "boolean"
-    )
+      typeof customer.isBlocked !== "boolean")
   ) {
     throw new Error("Invalid storefront context claims");
   }
@@ -208,17 +174,13 @@ function validateClaims(
       ...(access as unknown as ContextStorefrontAccess),
       permissions: Object.freeze([...(permissions as StorefrontPermission[])]),
     }),
-    customer: customer
-      ? Object.freeze({ ...(customer as unknown as ContextCustomer) })
-      : null,
+    customer: customer ? Object.freeze({ ...(customer as unknown as ContextCustomer) }) : null,
   });
 }
 
 function parseObject(value: string): Record<string, unknown> {
   try {
-    const parsed = JSON.parse(
-      Buffer.from(value, "base64url").toString("utf8"),
-    ) as unknown;
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as unknown;
     if (!isRecord(parsed)) throw new Error();
     return parsed;
   } catch {
@@ -227,29 +189,17 @@ function parseObject(value: string): Record<string, unknown> {
 }
 
 function normalizeKey(value: string): string | Buffer {
-  return value.includes("BEGIN PUBLIC KEY")
-    ? value
-    : Buffer.from(value, "base64");
+  return value.includes("BEGIN PUBLIC KEY") ? value : Buffer.from(value, "base64");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function hasStrings(
-  value: Record<string, unknown>,
-  keys: readonly string[],
-): boolean {
-  return keys.every(
-    (key) => typeof value[key] === "string" && Boolean(value[key]),
-  );
+function hasStrings(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  return keys.every((key) => typeof value[key] === "string" && Boolean(value[key]));
 }
 
-function hasNullableStrings(
-  value: Record<string, unknown>,
-  keys: readonly string[],
-): boolean {
-  return keys.every(
-    (key) => value[key] === null || typeof value[key] === "string",
-  );
+function hasNullableStrings(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  return keys.every((key) => value[key] === null || typeof value[key] === "string");
 }

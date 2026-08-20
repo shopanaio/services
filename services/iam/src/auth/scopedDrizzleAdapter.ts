@@ -49,10 +49,7 @@ import {
   user,
   verification,
 } from "../repositories/models/index.js";
-import {
-  assertApplicationId,
-  type AuthAdapterScope,
-} from "./AuthScope.js";
+import { assertApplicationId, type AuthAdapterScope } from "./AuthScope.js";
 import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
 import { createApplicationResource } from "./applicationAuthConfiguration.js";
 import {
@@ -89,9 +86,7 @@ const applicationAuthSchema = {
   oauthConsent: applicationOauthConsent,
 };
 
-type AuthModelName =
-  | keyof typeof platformAuthSchema
-  | keyof typeof applicationAuthSchema;
+type AuthModelName = keyof typeof platformAuthSchema | keyof typeof applicationAuthSchema;
 
 const APPLICATION_SCOPED_MODELS = new Set<AuthModelName>([
   "user",
@@ -129,14 +124,12 @@ export function createScopedDrizzleAdapter(
   security?: {
     keyring: ApplicationAuthKeyring;
     liveStateInvalidation?: ApplicationAuthLiveStateInvalidationBus;
-  }
+  },
 ): DBAdapterInstance<BetterAuthOptions> {
   if (scope.kind === "application") {
     assertApplicationId(scope.applicationId);
     if (!security?.keyring) {
-      throw new BetterAuthError(
-        "Application auth keyring is required for scoped persistence"
-      );
+      throw new BetterAuthError("Application auth keyring is required for scoped persistence");
     }
   }
 
@@ -158,7 +151,7 @@ export function createScopedDrizzleAdapter(
   const createCustomAdapter = createScopedCustomAdapter(
     scope,
     security?.keyring,
-    security?.liveStateInvalidation
+    security?.liveStateInvalidation,
   );
   const adapterFactory = createAdapterFactory<CoreBetterAuthOptions>({
     config: {
@@ -185,9 +178,7 @@ export function createScopedDrizzleAdapter(
 
   const instance: CoreDBAdapterInstance<CoreBetterAuthOptions> = (options) => {
     if (options.experimental?.joins) {
-      throw new BetterAuthError(
-        "Shopana scoped auth does not support Better Auth native joins"
-      );
+      throw new BetterAuthError("Shopana scoped auth does not support Better Auth native joins");
     }
 
     lazyOptions = options;
@@ -200,43 +191,35 @@ export function createScopedDrizzleAdapter(
 function createScopedCustomAdapter(
   scope: AuthAdapterScope,
   keyring?: ApplicationAuthKeyring,
-  liveStateInvalidation?: ApplicationAuthLiveStateInvalidationBus
+  liveStateInvalidation?: ApplicationAuthLiveStateInvalidationBus,
 ): (connection: DrizzleConnection) => AdapterFactoryCustomizeAdapterCreator {
   return (connection) =>
     ({ getDefaultModelName, getFieldName }): CustomAdapter => {
       const schema: Partial<Record<AuthModelName, unknown>> =
-        scope.kind === "application"
-          ? applicationAuthSchema
-          : platformAuthSchema;
+        scope.kind === "application" ? applicationAuthSchema : platformAuthSchema;
 
       const getSchemaModel = (model: string): Record<string, any> => {
         const defaultModel = getDefaultModelName(model) as AuthModelName;
         const schemaModel = schema[defaultModel];
         if (!schemaModel) {
-          throw new BetterAuthError(
-            `The model "${model}" was not found in the IAM auth schema`
-          );
+          throw new BetterAuthError(`The model "${model}" was not found in the IAM auth schema`);
         }
         return schemaModel as unknown as Record<string, any>;
       };
 
       const isScopedModel = (model: string): boolean =>
         scope.kind === "application" &&
-        APPLICATION_SCOPED_MODELS.has(
-          getDefaultModelName(model) as AuthModelName
-        );
+        APPLICATION_SCOPED_MODELS.has(getDefaultModelName(model) as AuthModelName);
 
       const isApplicationUserModel = (model: string): boolean =>
-        scope.kind === "application" &&
-        getDefaultModelName(model) === "user";
+        scope.kind === "application" && getDefaultModelName(model) === "user";
 
       const isApplicationJwksModel = (model: string): boolean =>
-        scope.kind === "application" &&
-        getDefaultModelName(model) === "jwks";
+        scope.kind === "application" && getDefaultModelName(model) === "jwks";
 
       const isApplicationPasswordResetVerification = (
         model: string,
-        data: Record<string, any>
+        data: Record<string, any>,
       ): boolean =>
         scope.kind === "application" &&
         getDefaultModelName(model) === "verification" &&
@@ -246,37 +229,27 @@ function createScopedCustomAdapter(
         data.value.length > 0;
 
       const isApplicationOauthClientModel = (model: string): boolean =>
-        scope.kind === "application" &&
-        getDefaultModelName(model) === "oauthClient";
+        scope.kind === "application" && getDefaultModelName(model) === "oauthClient";
 
       const scopeData = (
         model: string,
         data: unknown,
-        operation: "create" | "update"
+        operation: "create" | "update",
       ): Record<string, any> => {
         const record = data as Record<string, any>;
         if (!isScopedModel(model)) return record;
         if (scope.kind !== "application") return record;
 
-        if (
-          record.applicationId !== undefined &&
-          record.applicationId !== scope.applicationId
-        ) {
-          throw new BetterAuthError(
-            "Cross-application auth model input is forbidden"
-          );
+        if (record.applicationId !== undefined && record.applicationId !== scope.applicationId) {
+          throw new BetterAuthError("Cross-application auth model input is forbidden");
         }
 
         if (operation === "update") {
           if (
             isApplicationOauthClientModel(model) &&
-            Object.keys(record).some((field) =>
-              IMMUTABLE_OAUTH_CLIENT_FIELDS.has(field)
-            )
+            Object.keys(record).some((field) => IMMUTABLE_OAUTH_CLIENT_FIELDS.has(field))
           ) {
-            throw new BetterAuthError(
-              "OAuth client protocol policy fields are immutable"
-            );
+            throw new BetterAuthError("OAuth client protocol policy fields are immutable");
           }
           const { applicationId: _applicationId, ...update } = record;
           return update;
@@ -290,44 +263,29 @@ function createScopedCustomAdapter(
         }
 
         const resource = createApplicationResource(scope.applicationId);
-        if (
-          record.resourceAudience !== undefined &&
-          record.resourceAudience !== resource
-        ) {
-          throw new BetterAuthError(
-            "OAuth client resource is owned by the application realm"
-          );
+        if (record.resourceAudience !== undefined && record.resourceAudience !== resource) {
+          throw new BetterAuthError("OAuth client resource is owned by the application realm");
         }
         if (
           record.grantTypes !== undefined &&
           !hasExactStringValues(record.grantTypes, APPLICATION_OAUTH_GRANT_TYPES)
         ) {
-          throw new BetterAuthError(
-            "OAuth client grant types violate protocol policy v1"
-          );
+          throw new BetterAuthError("OAuth client grant types violate protocol policy v1");
         }
         if (
           record.responseTypes !== undefined &&
-          !hasExactStringValues(
-            record.responseTypes,
-            APPLICATION_OAUTH_RESPONSE_TYPES
-          )
+          !hasExactStringValues(record.responseTypes, APPLICATION_OAUTH_RESPONSE_TYPES)
         ) {
-          throw new BetterAuthError(
-            "OAuth client response types violate protocol policy v1"
-          );
+          throw new BetterAuthError("OAuth client response types violate protocol policy v1");
         }
         if (record.requirePKCE !== undefined && record.requirePKCE !== true) {
           throw new BetterAuthError("OAuth clients must require PKCE");
         }
         if (
           record.protocolPolicyVersion !== undefined &&
-          record.protocolPolicyVersion !==
-            APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION
+          record.protocolPolicyVersion !== APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION
         ) {
-          throw new BetterAuthError(
-            "OAuth client protocol policy version is invalid"
-          );
+          throw new BetterAuthError("OAuth client protocol policy version is invalid");
         }
         if (typeof record.clientId !== "string" || !record.clientId) {
           throw new BetterAuthError("OAuth client id is required");
@@ -353,7 +311,7 @@ function createScopedCustomAdapter(
       const encryptJwksPrivateKey = (
         model: string,
         data: Record<string, any>,
-        rowId?: string
+        rowId?: string,
       ): Record<string, any> => {
         if (!isApplicationJwksModel(model) || data.privateKey === undefined) {
           return data;
@@ -363,9 +321,7 @@ function createScopedCustomAdapter(
         }
         const id = rowId ?? data.id;
         if (typeof id !== "string" || !id) {
-          throw new BetterAuthError(
-            "Application JWKS private key encryption requires a row id"
-          );
+          throw new BetterAuthError("Application JWKS private key encryption requires a row id");
         }
         if (typeof data.privateKey !== "string" || !data.privateKey) {
           throw new BetterAuthError("Application JWKS private key is invalid");
@@ -382,10 +338,7 @@ function createScopedCustomAdapter(
         };
       };
 
-      const decryptJwksPrivateKey = <T>(
-        model: string,
-        data: T | null
-      ): T | null => {
+      const decryptJwksPrivateKey = <T>(model: string, data: T | null): T | null => {
         if (!data || !isApplicationJwksModel(model)) return data;
         const record = data as Record<string, any>;
         if (record.privateKey === undefined) return data;
@@ -397,17 +350,10 @@ function createScopedCustomAdapter(
           typeof record.privateKey !== "string" ||
           typeof record.privateKeyKeyVersion !== "number"
         ) {
-          throw new BetterAuthError(
-            "Application JWKS encrypted record is incomplete"
-          );
+          throw new BetterAuthError("Application JWKS encrypted record is incomplete");
         }
-        if (
-          keyring.getEnvelopeKeyVersion(record.privateKey) !==
-          record.privateKeyKeyVersion
-        ) {
-          throw new BetterAuthError(
-            "Application JWKS private key version mismatch"
-          );
+        if (keyring.getEnvelopeKeyVersion(record.privateKey) !== record.privateKeyKeyVersion) {
+          throw new BetterAuthError("Application JWKS private key version mismatch");
         }
         return {
           ...record,
@@ -420,48 +366,35 @@ function createScopedCustomAdapter(
         } as T;
       };
 
-      const getColumn = (
-        schemaModel: Record<string, any>,
-        model: string,
-        field: string
-      ) => {
+      const getColumn = (schemaModel: Record<string, any>, model: string, field: string) => {
         const fieldName = getFieldName({ model, field });
         const column = schemaModel[fieldName];
         if (!column) {
           throw new BetterAuthError(
-            `The field "${field}" does not exist in the schema for model "${model}"`
+            `The field "${field}" does not exist in the schema for model "${model}"`,
           );
         }
         return column;
       };
 
-      const getApplicationConditions = (
-        model: string,
-        schemaModel: Record<string, any>
-      ) => {
+      const getApplicationConditions = (model: string, schemaModel: Record<string, any>) => {
         if (!isScopedModel(model) || scope.kind !== "application") return [];
 
         const activeApplicationIds = connection
           .select({ id: application.id })
           .from(application)
-          .innerJoin(
-            organization,
-            eq(organization.id, application.organizationId)
-          )
+          .innerJoin(organization, eq(organization.id, application.organizationId))
           .innerJoin(
             applicationAuthConfiguration,
-            eq(
-              applicationAuthConfiguration.applicationId,
-              application.id
-            )
+            eq(applicationAuthConfiguration.applicationId, application.id),
           )
           .where(
             and(
               eq(application.id, scope.applicationId),
               isNull(application.deletedAt),
               isNull(organization.deletedAt),
-              eq(applicationAuthConfiguration.realmEnabled, true)
-            )
+              eq(applicationAuthConfiguration.realmEnabled, true),
+            ),
           );
         const conditions = [
           eq(schemaModel.applicationId, scope.applicationId),
@@ -472,10 +405,7 @@ function createScopedCustomAdapter(
           conditions.push(eq(schemaModel.status, "active"));
         }
         if (isApplicationOauthClientModel(model)) {
-          conditions.push(
-            eq(schemaModel.disabled, false),
-            isNull(schemaModel.deletedAt)
-          );
+          conditions.push(eq(schemaModel.disabled, false), isNull(schemaModel.deletedAt));
         }
 
         return conditions;
@@ -484,7 +414,7 @@ function createScopedCustomAdapter(
       const assertApplicationWriteAllowed = async (
         model: string,
         values: Record<string, any>,
-        operation: "create" | "update"
+        operation: "create" | "update",
       ): Promise<void> => {
         if (!isScopedModel(model) || scope.kind !== "application") return;
 
@@ -494,24 +424,18 @@ function createScopedCustomAdapter(
             resource: applicationAuthConfiguration.resource,
           })
           .from(application)
-          .innerJoin(
-            organization,
-            eq(organization.id, application.organizationId)
-          )
+          .innerJoin(organization, eq(organization.id, application.organizationId))
           .innerJoin(
             applicationAuthConfiguration,
-            eq(
-              applicationAuthConfiguration.applicationId,
-              application.id
-            )
+            eq(applicationAuthConfiguration.applicationId, application.id),
           )
           .where(
             and(
               eq(application.id, scope.applicationId),
               isNull(application.deletedAt),
               isNull(organization.deletedAt),
-              eq(applicationAuthConfiguration.realmEnabled, true)
-            )
+              eq(applicationAuthConfiguration.realmEnabled, true),
+            ),
           )
           .limit(1);
         if (!activeApplication) {
@@ -521,14 +445,10 @@ function createScopedCustomAdapter(
         const defaultModel = getDefaultModelName(model) as AuthModelName;
         if (
           operation === "create" &&
-          ["oauthRefreshToken", "oauthAccessToken", "oauthConsent"].includes(
-            defaultModel
-          ) &&
+          ["oauthRefreshToken", "oauthAccessToken", "oauthConsent"].includes(defaultModel) &&
           typeof values.userId !== "string"
         ) {
-          throw new BetterAuthError(
-            "Application OAuth v1 models require an application user"
-          );
+          throw new BetterAuthError("Application OAuth v1 models require an application user");
         }
         const assertActiveUser = async (userId: string): Promise<void> => {
           const [activeUser] = await connection
@@ -538,14 +458,12 @@ function createScopedCustomAdapter(
               and(
                 eq(applicationUser.applicationId, scope.applicationId),
                 eq(applicationUser.id, userId),
-                eq(applicationUser.status, "active")
-              )
+                eq(applicationUser.status, "active"),
+              ),
             )
             .limit(1);
           if (!activeUser) {
-            throw new BetterAuthError(
-              "Application auth model requires an active scoped user"
-            );
+            throw new BetterAuthError("Application auth model requires an active scoped user");
           }
         };
         const assertActiveClient = async (clientId: string): Promise<void> => {
@@ -557,14 +475,12 @@ function createScopedCustomAdapter(
                 eq(applicationOauthClient.applicationId, scope.applicationId),
                 eq(applicationOauthClient.clientId, clientId),
                 eq(applicationOauthClient.disabled, false),
-                isNull(applicationOauthClient.deletedAt)
-              )
+                isNull(applicationOauthClient.deletedAt),
+              ),
             )
             .limit(1);
           if (!activeClient) {
-            throw new BetterAuthError(
-              "Application OAuth model requires an active scoped client"
-            );
+            throw new BetterAuthError("Application OAuth model requires an active scoped client");
           }
         };
         const assertSession = async (sessionId: string): Promise<void> => {
@@ -574,35 +490,28 @@ function createScopedCustomAdapter(
             .where(
               and(
                 eq(applicationSession.applicationId, scope.applicationId),
-                eq(applicationSession.id, sessionId)
-              )
+                eq(applicationSession.id, sessionId),
+              ),
             )
             .limit(1);
           if (!applicationSessionRecord) {
-            throw new BetterAuthError(
-              "Application OAuth model requires a scoped session"
-            );
+            throw new BetterAuthError("Application OAuth model requires a scoped session");
           }
         };
-        const assertRefreshToken = async (
-          refreshTokenId: string
-        ): Promise<void> => {
+        const assertRefreshToken = async (refreshTokenId: string): Promise<void> => {
           const [refreshToken] = await connection
             .select({ id: applicationOauthRefreshToken.id })
             .from(applicationOauthRefreshToken)
             .where(
               and(
-                eq(
-                  applicationOauthRefreshToken.applicationId,
-                  scope.applicationId
-                ),
-                eq(applicationOauthRefreshToken.id, refreshTokenId)
-              )
+                eq(applicationOauthRefreshToken.applicationId, scope.applicationId),
+                eq(applicationOauthRefreshToken.id, refreshTokenId),
+              ),
             )
             .limit(1);
           if (!refreshToken) {
             throw new BetterAuthError(
-              "Application OAuth access token requires a scoped refresh token"
+              "Application OAuth access token requires a scoped refresh token",
             );
           }
         };
@@ -622,36 +531,25 @@ function createScopedCustomAdapter(
         }
 
         if (defaultModel === "oauthClient") {
-          if (
-            operation === "create" &&
-            values.resourceAudience !== activeApplication.resource
-          ) {
-            throw new BetterAuthError(
-              "OAuth client resource does not match its application realm"
-            );
+          if (operation === "create" && values.resourceAudience !== activeApplication.resource) {
+            throw new BetterAuthError("OAuth client resource does not match its application realm");
           }
           return;
         }
 
         if (
-          ["oauthRefreshToken", "oauthAccessToken", "oauthConsent"].includes(
-            defaultModel
-          ) &&
+          ["oauthRefreshToken", "oauthAccessToken", "oauthConsent"].includes(defaultModel) &&
           typeof values.clientId === "string"
         ) {
           await assertActiveClient(values.clientId);
         }
         if (
-          (defaultModel === "oauthRefreshToken" ||
-            defaultModel === "oauthAccessToken") &&
+          (defaultModel === "oauthRefreshToken" || defaultModel === "oauthAccessToken") &&
           typeof values.sessionId === "string"
         ) {
           await assertSession(values.sessionId);
         }
-        if (
-          defaultModel === "oauthAccessToken" &&
-          typeof values.refreshId === "string"
-        ) {
+        if (defaultModel === "oauthAccessToken" && typeof values.refreshId === "string") {
           await assertRefreshToken(values.refreshId);
         }
       };
@@ -659,41 +557,40 @@ function createScopedCustomAdapter(
       const convertCondition = (
         schemaModel: Record<string, any>,
         model: string,
-        item: CleanedWhere
+        item: CleanedWhere,
       ) => {
         const column = getColumn(schemaModel, model, item.field);
         const insensitive =
           item.mode === "insensitive" &&
           (typeof item.value === "string" ||
-            (Array.isArray(item.value) &&
-              item.value.every((value) => typeof value === "string")));
+            (Array.isArray(item.value) && item.value.every((value) => typeof value === "string")));
 
         switch (item.operator) {
           case "in":
             if (!Array.isArray(item.value)) {
               throw new BetterAuthError(
-                `The value for "${item.field}" must be an array for the in operator`
+                `The value for "${item.field}" must be an array for the in operator`,
               );
             }
             if (insensitive) {
               if (item.value.length === 0) return sql`false`;
               return sql`LOWER(${column}) IN (${sql.join(
                 item.value.map((value) => sql`LOWER(${value})`),
-                sql`, `
+                sql`, `,
               )})`;
             }
             return inArray(column, item.value);
           case "not_in":
             if (!Array.isArray(item.value)) {
               throw new BetterAuthError(
-                `The value for "${item.field}" must be an array for the not_in operator`
+                `The value for "${item.field}" must be an array for the not_in operator`,
               );
             }
             if (insensitive) {
               if (item.value.length === 0) return sql`true`;
               return sql`LOWER(${column}) NOT IN (${sql.join(
                 item.value.map((value) => sql`LOWER(${value})`),
-                sql`, `
+                sql`, `,
               )})`;
             }
             return notInArray(column, item.value);
@@ -730,16 +627,10 @@ function createScopedCustomAdapter(
         }
       };
 
-      const convertWhere = (
-        model: string,
-        where: CleanedWhere[] | undefined
-      ) => {
+      const convertWhere = (model: string, where: CleanedWhere[] | undefined) => {
         const schemaModel = getSchemaModel(model);
         const scopedWhere = where ?? [];
-        const applicationConditions = getApplicationConditions(
-          model,
-          schemaModel
-        );
+        const applicationConditions = getApplicationConditions(model, schemaModel);
 
         const andConditions = scopedWhere
           .filter((item) => item.connector !== "OR")
@@ -751,9 +642,7 @@ function createScopedCustomAdapter(
         const andClause = and(...andConditions);
         const orClause = or(...orConditions);
         const whereClause =
-          andClause && orClause
-            ? and(andClause, orClause)
-            : andClause ?? orClause;
+          andClause && orClause ? and(andClause, orClause) : (andClause ?? orClause);
 
         if (whereClause && applicationConditions.length) {
           return [and(whereClause, ...applicationConditions)];
@@ -768,7 +657,7 @@ function createScopedCustomAdapter(
       const createSelection = (
         schemaModel: Record<string, any>,
         model: string,
-        fields: string[] | undefined
+        fields: string[] | undefined,
       ) => {
         if (!fields?.length) return undefined;
         const selection = fields.reduce<Record<string, any>>((result, field) => {
@@ -788,20 +677,15 @@ function createScopedCustomAdapter(
 
       const ensureNoNativeJoin = (join: unknown): void => {
         if (join && Object.keys(join as object).length > 0) {
-          throw new BetterAuthError(
-            "Native joins are disabled for Shopana scoped auth"
-          );
+          throw new BetterAuthError("Native joins are disabled for Shopana scoped auth");
         }
       };
 
       const prepareApplicationSessionDeletion = async (
         model: string,
-        where: CleanedWhere[] | undefined
+        where: CleanedWhere[] | undefined,
       ): Promise<Array<{ id: string; userId: string }>> => {
-        if (
-          scope.kind !== "application" ||
-          getDefaultModelName(model) !== "session"
-        ) {
+        if (scope.kind !== "application" || getDefaultModelName(model) !== "session") {
           return [];
         }
         const sessionModel = getSchemaModel(model);
@@ -818,42 +702,26 @@ function createScopedCustomAdapter(
           .delete(applicationOauthAccessToken)
           .where(
             and(
-              eq(
-                applicationOauthAccessToken.applicationId,
-                scope.applicationId
-              ),
-              inArray(
-                applicationOauthAccessToken.sessionId,
-                targetSessionIds
-              )
-            )
+              eq(applicationOauthAccessToken.applicationId, scope.applicationId),
+              inArray(applicationOauthAccessToken.sessionId, targetSessionIds),
+            ),
           );
         await connection
           .update(applicationOauthRefreshToken)
           .set({ revoked: new Date(), sessionId: null })
           .where(
             and(
-              eq(
-                applicationOauthRefreshToken.applicationId,
-                scope.applicationId
-              ),
-              inArray(
-                applicationOauthRefreshToken.sessionId,
-                targetSessionIds
-              )
-            )
+              eq(applicationOauthRefreshToken.applicationId, scope.applicationId),
+              inArray(applicationOauthRefreshToken.sessionId, targetSessionIds),
+            ),
           );
         return sessions;
       };
 
       const publishSessionInvalidations = async (
-        sessions: Array<{ id: string; userId: string }>
+        sessions: Array<{ id: string; userId: string }>,
       ): Promise<void> => {
-        if (
-          scope.kind !== "application" ||
-          !liveStateInvalidation ||
-          sessions.length === 0
-        ) {
+        if (scope.kind !== "application" || !liveStateInvalidation || sessions.length === 0) {
           return;
         }
         await Promise.all(
@@ -864,28 +732,22 @@ function createScopedCustomAdapter(
                 applicationId: scope.applicationId,
                 userId: session.userId,
                 sessionId: session.id,
-              })
-            )
-          )
+              }),
+            ),
+          ),
         );
       };
 
       const adapter: CustomAdapter = {
         async create({ model, data }) {
           const schemaModel = getSchemaModel(model);
-          const values = encryptJwksPrivateKey(
-            model,
-            scopeData(model, data, "create")
-          );
+          const values = encryptJwksPrivateKey(model, scopeData(model, data, "create"));
           await assertApplicationWriteAllowed(model, values, "create");
           const insert = connection.insert(schemaModel).values(values);
           const rows = isApplicationPasswordResetVerification(model, values)
             ? await insert
                 .onConflictDoUpdate({
-                  target: [
-                    applicationVerification.applicationId,
-                    applicationVerification.value,
-                  ],
+                  target: [applicationVerification.applicationId, applicationVerification.value],
                   targetWhere: sql`${applicationVerification.identifier} LIKE 'reset-password:%'`,
                   set: {
                     id: values.id,
@@ -925,16 +787,12 @@ function createScopedCustomAdapter(
           if (clauses.length) query = query.where(...clauses);
           if (sortBy?.field) {
             const column = getColumn(schemaModel, model, sortBy.field);
-            query = query.orderBy(
-              sortBy.direction === "desc" ? desc(column) : asc(column)
-            );
+            query = query.orderBy(sortBy.direction === "desc" ? desc(column) : asc(column));
           }
           if (typeof limit === "number") query = query.limit(limit);
           if (typeof offset === "number") query = query.offset(offset);
           const rows = await query;
-          return rows.map((row: Record<string, any>) =>
-            decryptJwksPrivateKey(model, row)
-          );
+          return rows.map((row: Record<string, any>) => decryptJwksPrivateKey(model, row));
         },
 
         async count({ model, where }) {
@@ -952,13 +810,9 @@ function createScopedCustomAdapter(
             (condition) =>
               condition.field === "id" &&
               (condition.operator === "eq" || condition.operator === undefined) &&
-              typeof condition.value === "string"
+              typeof condition.value === "string",
           )?.value as string | undefined;
-          const values = encryptJwksPrivateKey(
-            model,
-            scopeData(model, update, "update"),
-            id
-          );
+          const values = encryptJwksPrivateKey(model, scopeData(model, update, "update"), id);
           await assertApplicationWriteAllowed(model, values, "update");
           const rows = await connection
             .update(schemaModel)
@@ -971,9 +825,7 @@ function createScopedCustomAdapter(
         async updateMany({ model, where, update }) {
           const schemaModel = getSchemaModel(model);
           if (isApplicationJwksModel(model) && update.privateKey !== undefined) {
-            throw new BetterAuthError(
-              "Bulk application JWKS private key updates are forbidden"
-            );
+            throw new BetterAuthError("Bulk application JWKS private key updates are forbidden");
           }
           const idColumn = getColumn(schemaModel, model, "id");
           const values = scopeData(model, update, "update");
@@ -989,9 +841,7 @@ function createScopedCustomAdapter(
         async delete({ model, where }) {
           const schemaModel = getSchemaModel(model);
           const sessions = await prepareApplicationSessionDeletion(model, where);
-          await connection
-            .delete(schemaModel)
-            .where(...convertWhere(model, where));
+          await connection.delete(schemaModel).where(...convertWhere(model, where));
           await publishSessionInvalidations(sessions);
         },
 

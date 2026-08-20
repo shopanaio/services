@@ -1,17 +1,13 @@
-import { Module } from '@nestjs/common';
-import { BrokerModule } from '@shopana/shared-kernel';
-import { CatalogNestService } from './catalog.nest-service';
-import { CatalogBrokerActions } from './actions';
-import { FacetCandidateBrokerActions } from './actions/FacetCandidateBrokerActions.js';
-import { CatalogEventHandlers } from './handlers';
-import { InventoryBrokerActions } from './actions/InventoryBrokerActions.js';
-import { InventoryEventHandlers } from './handlers/InventoryEventHandlers.js';
-import {
-  BackRefNotifySaga,
-  EntityDeletedNotifySaga,
-  ProductCreateSaga,
-} from './sagas/index.js';
-import { workflows } from './workflows/index.js';
+import { Module } from "@nestjs/common";
+import { BrokerModule } from "@shopana/shared-kernel";
+import { CatalogNestService } from "./catalog.nest-service";
+import { CatalogBrokerActions } from "./actions";
+import { FacetCandidateBrokerActions } from "./actions/FacetCandidateBrokerActions.js";
+import { CatalogEventHandlers } from "./handlers";
+import { InventoryBrokerActions } from "./actions/InventoryBrokerActions.js";
+import { InventoryEventHandlers } from "./handlers/InventoryEventHandlers.js";
+import { BackRefNotifySaga, EntityDeletedNotifySaga, ProductCreateSaga } from "./sagas/index.js";
+import { workflows } from "./workflows/index.js";
 
 /**
  * Catalog Service Module.
@@ -20,8 +16,8 @@ import { workflows } from './workflows/index.js';
  */
 @Module({
   imports: [
-    BrokerModule.forFeature({ serviceName: 'catalog' }),
-    BrokerModule.forFeature({ serviceName: 'inventory' }),
+    BrokerModule.forFeature({ serviceName: "catalog" }),
+    BrokerModule.forFeature({ serviceName: "inventory" }),
   ],
   providers: [
     CatalogBrokerActions,

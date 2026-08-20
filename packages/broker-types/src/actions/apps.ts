@@ -187,10 +187,7 @@ export interface ExecuteCapabilityResult<TData = unknown> {
 export interface PaymentProviderCapabilityInvocation<
   TOperation extends string,
   TInput,
-> extends Omit<
-    ExecuteCapabilityParams,
-    "capability" | "operation" | "installationId" | "input"
-  > {
+> extends Omit<ExecuteCapabilityParams, "capability" | "operation" | "installationId" | "input"> {
   capability: "payments.provider";
   operation: TOperation;
   installationId: string;
@@ -203,29 +200,14 @@ export type ExecutePaymentProviderCapabilityParams =
       "validateConfiguration",
       PaymentProviderConfigurationValidationRequest
     >
-  | PaymentProviderCapabilityInvocation<
-      "getMethods",
-      PaymentProviderMethodDiscoveryRequest
-    >
-  | PaymentProviderCapabilityInvocation<
-      "createPayment",
-      PaymentProviderCreatePaymentRequest
-    >
-  | PaymentProviderCapabilityInvocation<
-      "confirmPayment",
-      PaymentProviderConfirmRequest
-    >
+  | PaymentProviderCapabilityInvocation<"getMethods", PaymentProviderMethodDiscoveryRequest>
+  | PaymentProviderCapabilityInvocation<"createPayment", PaymentProviderCreatePaymentRequest>
+  | PaymentProviderCapabilityInvocation<"confirmPayment", PaymentProviderConfirmRequest>
   | PaymentProviderCapabilityInvocation<"cancel", PaymentProviderCancelRequest>
-  | PaymentProviderCapabilityInvocation<
-      "capture",
-      PaymentProviderCaptureRequest
-    >
+  | PaymentProviderCapabilityInvocation<"capture", PaymentProviderCaptureRequest>
   | PaymentProviderCapabilityInvocation<"void", PaymentProviderVoidRequest>
   | PaymentProviderCapabilityInvocation<"refund", PaymentProviderRefundRequest>
-  | PaymentProviderCapabilityInvocation<
-      "reconcile",
-      PaymentProviderReconcileRequest
-    >;
+  | PaymentProviderCapabilityInvocation<"reconcile", PaymentProviderReconcileRequest>;
 
 export type ExecutePaymentProviderCapabilityResult = ExecuteCapabilityResult<
   | PaymentProviderConfigurationValidationResult
@@ -251,10 +233,7 @@ export interface ListPaymentProviderRoutesParams {
 
 export interface DeliveryProviderCapabilityInvocation<
   TOperation extends keyof DeliveryProviderOperationContractMap,
-> extends Omit<
-    ExecuteCapabilityParams,
-    "capability" | "operation" | "installationId" | "input"
-  > {
+> extends Omit<ExecuteCapabilityParams, "capability" | "operation" | "installationId" | "input"> {
   capability: DeliveryProviderOperationContractMap[TOperation]["capability"];
   operation: TOperation;
   installationId: string;
@@ -265,21 +244,13 @@ export interface DeliveryProviderCapabilityInvocation<
 export interface DeliveryProviderOperationContractMap {
   validateCarrierServiceConfiguration: {
     capability: "delivery.carrier-service";
-    input: DeliveryProviderConfigurationValidationRequest<
-      "delivery.carrier-service"
-    >;
-    output: DeliveryProviderConfigurationValidationResult<
-      "delivery.carrier-service"
-    >;
+    input: DeliveryProviderConfigurationValidationRequest<"delivery.carrier-service">;
+    output: DeliveryProviderConfigurationValidationResult<"delivery.carrier-service">;
   };
   validateShipmentConfiguration: {
     capability: "delivery.shipment-provider";
-    input: DeliveryProviderConfigurationValidationRequest<
-      "delivery.shipment-provider"
-    >;
-    output: DeliveryProviderConfigurationValidationResult<
-      "delivery.shipment-provider"
-    >;
+    input: DeliveryProviderConfigurationValidationRequest<"delivery.shipment-provider">;
+    output: DeliveryProviderConfigurationValidationResult<"delivery.shipment-provider">;
   };
   quoteRates: {
     capability: "delivery.carrier-service";
@@ -320,16 +291,16 @@ export interface DeliveryProviderOperationContractMap {
 
 /** Typed Apps invocation envelope for every delivery provider operation. */
 export type ExecuteDeliveryProviderCapabilityParams<
-  TOperation extends keyof DeliveryProviderOperationContractMap = keyof DeliveryProviderOperationContractMap,
+  TOperation extends keyof DeliveryProviderOperationContractMap =
+    keyof DeliveryProviderOperationContractMap,
 > = {
   [K in TOperation]: DeliveryProviderCapabilityInvocation<K>;
 }[TOperation];
 
 export type ExecuteDeliveryProviderCapabilityResult<
-  TOperation extends keyof DeliveryProviderOperationContractMap = keyof DeliveryProviderOperationContractMap,
-> = ExecuteCapabilityResult<
-  DeliveryProviderOperationContractMap[TOperation]["output"]
->;
+  TOperation extends keyof DeliveryProviderOperationContractMap =
+    keyof DeliveryProviderOperationContractMap,
+> = ExecuteCapabilityResult<DeliveryProviderOperationContractMap[TOperation]["output"]>;
 
 export type ListDeliveryProviderRoutesParams =
   | Readonly<{

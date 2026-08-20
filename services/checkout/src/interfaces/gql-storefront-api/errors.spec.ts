@@ -3,10 +3,12 @@ import { checkoutUserErrorFrom } from "./errors.js";
 
 describe("checkout GraphQL user errors", () => {
   it("maps business errors into the SDL payload shape", () => {
-    expect(checkoutUserErrorFrom(
-      new CheckoutMutationError("CHECKOUT_VERSION_CONFLICT", "Retry the mutation.", true),
-      ["input"],
-    )).toEqual({
+    expect(
+      checkoutUserErrorFrom(
+        new CheckoutMutationError("CHECKOUT_VERSION_CONFLICT", "Retry the mutation.", true),
+        ["input"],
+      ),
+    ).toEqual({
       __typename: "CheckoutUserError",
       code: "CHECKOUT_VERSION_CONFLICT",
       message: "Retry the mutation.",

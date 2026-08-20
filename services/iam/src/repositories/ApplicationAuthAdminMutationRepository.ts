@@ -136,7 +136,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   constructor(
     db: Database,
     txManager: TransactionManager<Database>,
-    private readonly keyring: ApplicationAuthKeyring
+    private readonly keyring: ApplicationAuthKeyring,
   ) {
     super(db, txManager);
   }
@@ -145,7 +145,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   async findScope(
     organizationId: string,
     applicationId: string,
-    options: { includeArchived?: boolean } = {}
+    options: { includeArchived?: boolean } = {},
   ): Promise<ApplicationAuthAdminMutationScope | null> {
     const conditions = [
       eq(application.organizationId, organizationId),
@@ -164,7 +164,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .innerJoin(organization, eq(organization.id, application.organizationId))
       .innerJoin(
         applicationAuthConfiguration,
-        eq(applicationAuthConfiguration.applicationId, application.id)
+        eq(applicationAuthConfiguration.applicationId, application.id),
       )
       .where(and(...conditions))
       .limit(1);
@@ -172,9 +172,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     const [delivery] = await this.connection
       .select({ applicationId: applicationAuthDeliveryProfile.applicationId })
       .from(applicationAuthDeliveryProfile)
-      .where(
-        eq(applicationAuthDeliveryProfile.applicationId, record.applicationId)
-      )
+      .where(eq(applicationAuthDeliveryProfile.applicationId, record.applicationId))
       .limit(1);
     const [providers] = await this.connection
       .select({ count: sql<number>`count(*)::int` })
@@ -182,8 +180,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthProvider.applicationId, record.applicationId),
-          eq(applicationAuthProvider.enabled, true)
-        )
+          eq(applicationAuthProvider.enabled, true),
+        ),
       );
     return {
       organizationId: record.organizationId,
@@ -197,17 +195,12 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
 
   @Transactional()
   async createApplication(
-    input: CreateAdminApplicationInput
+    input: CreateAdminApplicationInput,
   ): Promise<{ application: Application; configuration: ApplicationAuthConfigurationRecord }> {
     const [activeOrganization] = await this.connection
       .select({ id: organization.id })
       .from(organization)
-      .where(
-        and(
-          eq(organization.id, input.organizationId),
-          isNull(organization.deletedAt)
-        )
-      )
+      .where(and(eq(organization.id, input.organizationId), isNull(organization.deletedAt)))
       .limit(1);
     if (!activeOrganization) {
       throw new Error("Active organization does not exist");
@@ -243,8 +236,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       ...(input.applicationAuth
         ? {
             registrationMode: "open",
-            emailVerificationRequired:
-              input.applicationAuth.emailVerificationRequired,
+            emailVerificationRequired: input.applicationAuth.emailVerificationRequired,
             brandingJson: {
               displayName: truncateUtf16(input.displayName, 80),
             },
@@ -276,12 +268,10 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
           emailOtpSignInTemplateId: "customer.auth.login_code",
           updatedBy: applicationAuth.actorId,
         });
-        await this.connection
-          .insert(applicationAuthDeliveryProfile)
-          .values({
-            applicationId: input.applicationId,
-            ...deliveryProfile,
-          });
+        await this.connection.insert(applicationAuthDeliveryProfile).values({
+          applicationId: input.applicationId,
+          ...deliveryProfile,
+        });
       }
       await this.connection.insert(applicationAuthOrigin).values({
         applicationId: input.applicationId,
@@ -316,9 +306,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
           }),
           resourceAudience: createdConfiguration.resource,
           protocolPolicyVersion: APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION,
-          environment: applicationAuth.origin.startsWith("https://")
-            ? "production"
-            : "development",
+          environment: applicationAuth.origin.startsWith("https://") ? "production" : "development",
           createdBy: applicationAuth.actorId,
           updatedBy: applicationAuth.actorId,
         })
@@ -350,8 +338,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .where(
         and(
           eq(application.id, input.applicationId),
-          eq(application.organizationId, input.organizationId)
-        )
+          eq(application.organizationId, input.organizationId),
+        ),
       )
       .limit(1);
 
@@ -368,8 +356,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .where(
         and(
           eq(application.id, input.applicationId),
-          eq(application.organizationId, input.organizationId)
-        )
+          eq(application.organizationId, input.organizationId),
+        ),
       )
       .returning({ id: application.id });
 
@@ -377,13 +365,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   }
 
   @Transactional()
-  async updateApplication(
-    input: UpdateAdminApplicationInput
-  ): Promise<number | null> {
-    const revision = await this.claimRevision(
-      input.applicationId,
-      input.expectedRevision
-    );
+  async updateApplication(input: UpdateAdminApplicationInput): Promise<number | null> {
+    const revision = await this.claimRevision(input.applicationId, input.expectedRevision);
     if (revision === null) return null;
     const rows = await this.connection
       .update(application)
@@ -392,8 +375,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         and(
           eq(application.id, input.applicationId),
           eq(application.organizationId, input.organizationId),
-          isNull(application.deletedAt)
-        )
+          isNull(application.deletedAt),
+        ),
       )
       .returning({ id: application.id });
     if (rows.length !== 1) throw new Error("Application could not be updated");
@@ -406,11 +389,9 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     applicationId: string;
     expectedRevision: number;
   }): Promise<number | null> {
-    const revision = await this.claimRevision(
-      input.applicationId,
-      input.expectedRevision,
-      { realmEnabled: false }
-    );
+    const revision = await this.claimRevision(input.applicationId, input.expectedRevision, {
+      realmEnabled: false,
+    });
     if (revision === null) return null;
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -420,8 +401,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         and(
           eq(application.id, input.applicationId),
           eq(application.organizationId, input.organizationId),
-          isNull(application.deletedAt)
-        )
+          isNull(application.deletedAt),
+        ),
       )
       .returning({ id: application.id });
     if (rows.length !== 1) throw new Error("Application could not be archived");
@@ -430,7 +411,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
 
   @Transactional()
   async updateAuth(
-    input: UpdateAdminApplicationAuthInput
+    input: UpdateAdminApplicationAuthInput,
   ): Promise<ApplicationAuthConfigurationRecord | null> {
     const current = await this.findConfiguration(input.applicationId);
     if (!current || current.revision !== input.expectedRevision) return null;
@@ -463,8 +444,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthConfiguration.applicationId, input.applicationId),
-          eq(applicationAuthConfiguration.revision, input.expectedRevision)
-        )
+          eq(applicationAuthConfiguration.revision, input.expectedRevision),
+        ),
       )
       .returning();
     if (!updated) return null;
@@ -478,14 +459,12 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
           input.trustedOrigins.map((origin) => ({
             applicationId: input.applicationId,
             origin,
-          }))
+          })),
         );
       }
     }
     if (input.emailDelivery !== undefined) {
-      const delivery = applicationAuthDeliveryProfileSchema.parse(
-        input.emailDelivery
-      );
+      const delivery = applicationAuthDeliveryProfileSchema.parse(input.emailDelivery);
       await this.connection
         .insert(applicationAuthDeliveryProfile)
         .values({ applicationId: input.applicationId, ...delivery })
@@ -513,8 +492,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthConfiguration.applicationId, input.applicationId),
-          eq(applicationAuthConfiguration.revision, input.expectedRevision)
-        )
+          eq(applicationAuthConfiguration.revision, input.expectedRevision),
+        ),
       )
       .returning();
     return updated ?? null;
@@ -528,21 +507,22 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     expectedRevision: number;
   }): Promise<ApplicationAuthConfigurationRecord | null> {
     const enabled = new Set(input.enabledCapabilities);
-    const patch = input.methodId === "password"
-      ? {
+    const patch =
+      input.methodId === "password"
+        ? {
             passwordSignInEnabled: enabled.has("sign_in"),
             passwordSignUpEnabled: enabled.has("sign_up"),
             passwordResetEnabled: enabled.has("password_reset"),
-        }
-      : input.methodId === "email_otp"
-      ? {
-            emailOtpSignInEnabled: enabled.has("sign_in"),
-            emailOtpSignUpEnabled: enabled.has("sign_up"),
-        }
-      : {
-          phoneOtpSignInEnabled: enabled.has("sign_in"),
-          phoneOtpSignUpEnabled: enabled.has("sign_up"),
-        };
+          }
+        : input.methodId === "email_otp"
+          ? {
+              emailOtpSignInEnabled: enabled.has("sign_in"),
+              emailOtpSignUpEnabled: enabled.has("sign_up"),
+            }
+          : {
+              phoneOtpSignInEnabled: enabled.has("sign_in"),
+              phoneOtpSignUpEnabled: enabled.has("sign_up"),
+            };
     const [updated] = await this.connection
       .update(applicationAuthConfiguration)
       .set({
@@ -553,8 +533,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthConfiguration.applicationId, input.applicationId),
-          eq(applicationAuthConfiguration.revision, input.expectedRevision)
-        )
+          eq(applicationAuthConfiguration.revision, input.expectedRevision),
+        ),
       )
       .returning();
     return updated ?? null;
@@ -582,8 +562,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthConfiguration.applicationId, input.applicationId),
-          eq(applicationAuthConfiguration.revision, input.expectedRevision)
-        )
+          eq(applicationAuthConfiguration.revision, input.expectedRevision),
+        ),
       )
       .returning();
     return updated ?? null;
@@ -591,7 +571,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
 
   @Transactional()
   async configureProvider(
-    input: ConfigureAdminApplicationProviderInput
+    input: ConfigureAdminApplicationProviderInput,
   ): Promise<AdminApplicationProviderRecord | "already_configured" | null> {
     const provider = parseApplicationAuthProviderName(input.provider);
     const [existing] = await this.connection
@@ -600,8 +580,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthProvider.applicationId, input.applicationId),
-          eq(applicationAuthProvider.provider, provider)
-        )
+          eq(applicationAuthProvider.provider, provider),
+        ),
       )
       .limit(1);
     if (existing) return "already_configured";
@@ -613,16 +593,13 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       scopes: [...input.scopes],
       updatedBy: input.actorId,
     });
-    const revision = await this.claimRevision(
-      input.applicationId,
-      input.expectedRevision
-    );
+    const revision = await this.claimRevision(input.applicationId, input.expectedRevision);
     if (revision === null) return null;
     const encrypted = this.encryptProviderCredentials(
       input.applicationId,
       provider,
       credentials.clientId,
-      credentials.clientSecret
+      credentials.clientSecret,
     );
     const [created] = await this.connection
       .insert(applicationAuthProvider)
@@ -643,7 +620,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
 
   @Transactional()
   async updateProvider(
-    input: UpdateAdminApplicationProviderInput
+    input: UpdateAdminApplicationProviderInput,
   ): Promise<AdminApplicationProviderRecord | "not_configured" | null> {
     const provider = parseApplicationAuthProviderName(input.provider);
     const current = await this.findProvider(input.applicationId, provider);
@@ -656,10 +633,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     }
     assertApplicationSocialProviderScopes(provider, scopes);
     if (input.enabled === true) this.assertStoredProviderCredentials(current, provider);
-    const revision = await this.claimRevision(
-      input.applicationId,
-      input.expectedRevision
-    );
+    const revision = await this.claimRevision(input.applicationId, input.expectedRevision);
     if (revision === null) return null;
     const [updated] = await this.connection
       .update(applicationAuthProvider)
@@ -673,8 +647,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         and(
           eq(applicationAuthProvider.id, current.id),
           eq(applicationAuthProvider.applicationId, input.applicationId),
-          eq(applicationAuthProvider.provider, provider)
-        )
+          eq(applicationAuthProvider.provider, provider),
+        ),
       )
       .returning();
     if (!updated) throw new Error("Application auth provider could not be updated");
@@ -683,7 +657,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
 
   @Transactional()
   async rotateProviderCredentials(
-    input: RotateAdminApplicationProviderCredentialsInput
+    input: RotateAdminApplicationProviderCredentialsInput,
   ): Promise<AdminApplicationProviderRecord | "not_configured" | null> {
     const provider = parseApplicationAuthProviderName(input.provider);
     const current = await this.findProvider(input.applicationId, provider);
@@ -697,16 +671,13 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       scopes,
       updatedBy: input.actorId,
     });
-    const revision = await this.claimRevision(
-      input.applicationId,
-      input.expectedRevision
-    );
+    const revision = await this.claimRevision(input.applicationId, input.expectedRevision);
     if (revision === null) return null;
     const encrypted = this.encryptProviderCredentials(
       input.applicationId,
       provider,
       credentials.clientId,
-      credentials.clientSecret
+      credentials.clientSecret,
     );
     const [updated] = await this.connection
       .update(applicationAuthProvider)
@@ -721,8 +692,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         and(
           eq(applicationAuthProvider.id, current.id),
           eq(applicationAuthProvider.applicationId, input.applicationId),
-          eq(applicationAuthProvider.provider, provider)
-        )
+          eq(applicationAuthProvider.provider, provider),
+        ),
       )
       .returning();
     if (!updated) throw new Error("Application auth provider credentials could not be rotated");
@@ -739,10 +710,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     const current = await this.findProvider(input.applicationId, provider);
     if (!current) return "not_configured";
     if (current.enabled) return "enabled";
-    const revision = await this.claimRevision(
-      input.applicationId,
-      input.expectedRevision
-    );
+    const revision = await this.claimRevision(input.applicationId, input.expectedRevision);
     if (revision === null) return "conflict";
     const rows = await this.connection
       .delete(applicationAuthProvider)
@@ -751,11 +719,12 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
           eq(applicationAuthProvider.id, current.id),
           eq(applicationAuthProvider.applicationId, input.applicationId),
           eq(applicationAuthProvider.provider, provider),
-          eq(applicationAuthProvider.enabled, false)
-        )
+          eq(applicationAuthProvider.enabled, false),
+        ),
       )
       .returning({ id: applicationAuthProvider.id });
-    if (rows.length !== 1) throw new Error("Application auth provider credentials could not be deleted");
+    if (rows.length !== 1)
+      throw new Error("Application auth provider credentials could not be deleted");
     return "deleted";
   }
 
@@ -811,7 +780,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   @ReadOnly()
   async hasEnabledProvider(
     applicationId: string,
-    excludeProvider?: ApplicationAuthProviderName
+    excludeProvider?: ApplicationAuthProviderName,
   ): Promise<boolean> {
     const [record] = await this.connection
       .select({ id: applicationAuthProvider.id })
@@ -820,17 +789,15 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         and(
           eq(applicationAuthProvider.applicationId, applicationId),
           eq(applicationAuthProvider.enabled, true),
-          excludeProvider
-            ? ne(applicationAuthProvider.provider, excludeProvider)
-            : undefined
-        )
+          excludeProvider ? ne(applicationAuthProvider.provider, excludeProvider) : undefined,
+        ),
       )
       .limit(1);
     return Boolean(record);
   }
 
   private async findConfiguration(
-    applicationId: string
+    applicationId: string,
   ): Promise<ApplicationAuthConfigurationRecord | null> {
     const [record] = await this.connection
       .select()
@@ -842,7 +809,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
 
   private async findProvider(
     applicationId: string,
-    provider: ApplicationAuthProviderName
+    provider: ApplicationAuthProviderName,
   ): Promise<typeof applicationAuthProvider.$inferSelect | null> {
     const [record] = await this.connection
       .select()
@@ -850,8 +817,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthProvider.applicationId, applicationId),
-          eq(applicationAuthProvider.provider, provider)
-        )
+          eq(applicationAuthProvider.provider, provider),
+        ),
       )
       .limit(1);
     return record ?? null;
@@ -860,7 +827,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   private async claimRevision(
     applicationId: string,
     expectedRevision: number,
-    patch: Partial<Pick<ApplicationAuthConfigurationRecord, "realmEnabled">> = {}
+    patch: Partial<Pick<ApplicationAuthConfigurationRecord, "realmEnabled">> = {},
   ): Promise<number | null> {
     const [updated] = await this.connection
       .update(applicationAuthConfiguration)
@@ -872,8 +839,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAuthConfiguration.applicationId, applicationId),
-          eq(applicationAuthConfiguration.revision, expectedRevision)
-        )
+          eq(applicationAuthConfiguration.revision, expectedRevision),
+        ),
       )
       .returning({ revision: applicationAuthConfiguration.revision });
     return updated?.revision ?? null;
@@ -883,7 +850,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     applicationId: string,
     provider: ApplicationAuthProviderName,
     clientId: string,
-    clientSecret: string
+    clientSecret: string,
   ) {
     const keyVersion = this.keyring.activeVersion;
     return {
@@ -905,21 +872,19 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
 
   private assertStoredProviderCredentials(
     record: typeof applicationAuthProvider.$inferSelect,
-    provider: ApplicationAuthProviderName
+    provider: ApplicationAuthProviderName,
   ): void {
     this.readStoredProviderCredentials(record, provider);
   }
 
   private readStoredProviderCredentials(
     record: typeof applicationAuthProvider.$inferSelect,
-    provider: ApplicationAuthProviderName
+    provider: ApplicationAuthProviderName,
   ): { clientId: string; clientSecret: string } {
     this.keyring.assertVersionsAvailable([record.secretKeyVersion]);
     if (
-      this.keyring.getEnvelopeKeyVersion(record.encryptedClientId) !==
-        record.secretKeyVersion ||
-      this.keyring.getEnvelopeKeyVersion(record.encryptedClientSecret) !==
-        record.secretKeyVersion
+      this.keyring.getEnvelopeKeyVersion(record.encryptedClientId) !== record.secretKeyVersion ||
+      this.keyring.getEnvelopeKeyVersion(record.encryptedClientSecret) !== record.secretKeyVersion
     ) {
       throw new Error("Application auth provider key version mismatch");
     }
@@ -961,7 +926,7 @@ function truncateUtf16(value: string, maximumLength: number): string {
 
 function mapProviderRecord(
   record: typeof applicationAuthProvider.$inferSelect,
-  revision: number
+  revision: number,
 ): AdminApplicationProviderRecord {
   const provider = parseApplicationAuthProviderName(record.provider);
   const scopes = applicationAuthProviderScopesSchema.parse(record.scopesJson);

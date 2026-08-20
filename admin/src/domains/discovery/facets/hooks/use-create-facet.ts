@@ -38,8 +38,7 @@ export function useCreateFacet(): UseCreateFacetReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
         return {
           facet: null,
           userErrors: [{ message, code: "UNEXPECTED_ERROR" }],

@@ -47,8 +47,16 @@ describe("buildRecommendation", () => {
       anchorProductId: "00000000-0000-7000-8000-000000000020",
       policy,
       manualRows: [
-        boost("00000000-0000-7000-8000-000000000030", "00000000-0000-7000-8000-000000000040", "1.000001"),
-        boost("00000000-0000-7000-8000-000000000031", "00000000-0000-7000-8000-000000000041", "1.000000"),
+        boost(
+          "00000000-0000-7000-8000-000000000030",
+          "00000000-0000-7000-8000-000000000040",
+          "1.000001",
+        ),
+        boost(
+          "00000000-0000-7000-8000-000000000031",
+          "00000000-0000-7000-8000-000000000041",
+          "1.000000",
+        ),
       ],
       loadFbt: loadFallback,
       loadCategoryPopularity: loadFallback,
@@ -57,10 +65,12 @@ describe("buildRecommendation", () => {
     });
 
     expect(result.candidates).toHaveLength(1);
-    expect(result.excluded).toEqual([{
-      targetProductId: "00000000-0000-7000-8000-000000000041",
-      reason: "LIMIT_EXCEEDED",
-    }]);
+    expect(result.excluded).toEqual([
+      {
+        targetProductId: "00000000-0000-7000-8000-000000000041",
+        reason: "LIMIT_EXCEEDED",
+      },
+    ]);
     expect(loadFallback).not.toHaveBeenCalled();
   });
 });

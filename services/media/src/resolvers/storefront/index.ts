@@ -9,7 +9,4 @@ export { ExternalVideoResolver } from "./ExternalVideoResolver.js";
 export { Model3dResolver } from "./Model3dResolver.js";
 export { VideoSourceResolver } from "./VideoSourceResolver.js";
 export { Model3dSourceResolver } from "./Model3dSourceResolver.js";
-export {
-  ResolverRegistry,
-  getResolverRegistry,
-} from "./ResolverRegistry.js";
+export { ResolverRegistry, getResolverRegistry } from "./ResolverRegistry.js";

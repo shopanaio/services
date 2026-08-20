@@ -8,9 +8,7 @@ export type { EntityRef, UserError, AssetOwnerType } from "../shared.js";
 // Apps service actions
 export * as Apps from "./apps.js";
 export * as Project from "./project.js";
-export {
-  ProjectRecommendationActionNames,
-} from "./project.js";
+export { ProjectRecommendationActionNames } from "./project.js";
 export type {
   ActiveStoreWorkflowContext,
   ListActiveStoresParams,
@@ -66,9 +64,7 @@ export type {
 
 // Notifications service actions
 export * as Notifications from "./notifications.js";
-export {
-  NOTIFICATION_DEFINITION_KEYS,
-} from "./notifications.js";
+export { NOTIFICATION_DEFINITION_KEYS } from "./notifications.js";
 
 // Customers service checkout actions
 export * as Customers from "./customers.js";
@@ -207,10 +203,7 @@ export {
 
 // Checkout completion actions
 export * as Checkout from "./checkout.js";
-export {
-  CheckoutCompletionActionNames,
-  CheckoutCompletionActions,
-} from "./checkout.js";
+export { CheckoutCompletionActionNames, CheckoutCompletionActions } from "./checkout.js";
 
 // Orders service review-purchase verification
 export * as Orders from "./orders.js";
@@ -611,10 +604,7 @@ export type {
 
 // Inventory service actions
 export * as Inventory from "./inventory.js";
-export {
-  InventoryCheckoutActionNames,
-  InventoryCheckoutActions,
-} from "./inventory.js";
+export { InventoryCheckoutActionNames, InventoryCheckoutActions } from "./inventory.js";
 export type {
   ReserveCheckoutInventoryParams,
   CheckoutInventoryReservationAllocation,

@@ -13,33 +13,51 @@ extend schema
   )
 
 extend type Query {
-  """Admin-only Reviews query namespace."""
+  """
+  Admin-only Reviews query namespace.
+  """
   reviewsQuery: ReviewsQuery!
 
-  """Shared query namespace for product widgets."""
+  """
+  Shared query namespace for product widgets.
+  """
   widgetQuery: WidgetQuery! @shareable
 }
 
-"""Product widgets contributed by the Reviews service."""
+"""
+Product widgets contributed by the Reviews service.
+"""
 type WidgetQuery {
-  """Aggregated reviews and Q&A data for a product."""
+  """
+  Aggregated reviews and Q&A data for a product.
+  """
   reviews(productId: ID!): ProductReviewsWidget!
 }
 
 extend type Mutation {
-  """Admin-only Reviews mutation namespace."""
+  """
+  Admin-only Reviews mutation namespace.
+  """
   reviewsMutation: ReviewsMutation!
 }
 
-"""Administrative reads for review, Q&A, moderation, and configuration data."""
+"""
+Administrative reads for review, Q&A, moderation, and configuration data.
+"""
 type ReviewsQuery {
-  """Resolve a Reviews-owned node by global ID."""
+  """
+  Resolve a Reviews-owned node by global ID.
+  """
   node(id: ID!): Node
 
-  """Resolve multiple Reviews-owned nodes while preserving input order."""
+  """
+  Resolve multiple Reviews-owned nodes while preserving input order.
+  """
   nodes(ids: [ID!]!): [Node]!
 
-  """Current store review and Q&A configuration."""
+  """
+  Current store review and Q&A configuration.
+  """
   storeConfiguration: ReviewStoreConfiguration
 
   ratingCriterion(id: ID!): ReviewRatingCriterion
@@ -52,7 +70,9 @@ type ReviewsQuery {
     orderBy: [ReviewRatingCriterionOrderByInput!]
   ): ReviewRatingCriterionConnection!
 
-  """Any moderated content aggregate owned by Reviews."""
+  """
+  Any moderated content aggregate owned by Reviews.
+  """
   content(id: ID!): ReviewContent
   contents(
     first: Int
@@ -147,10 +167,11 @@ type ReviewsQuery {
     where: ReviewContentExternalReferenceWhereInput
     orderBy: [ReviewContentExternalReferenceOrderByInput!]
   ): ReviewContentExternalReferenceConnection!
-
 }
 
-"""Administrative commands. Storefront submission and engagement commands live elsewhere."""
+"""
+Administrative commands. Storefront submission and engagement commands live elsewhere.
+"""
 type ReviewsMutation {
   storeConfigurationUpdate(
     configurationId: ID!
@@ -178,17 +199,13 @@ type ReviewsMutation {
   ): ReviewUpdatePayload!
   reviewDelete(input: ReviewContentDeleteInput!): ReviewDeletePayload!
 
-  productQuestionCreate(
-    input: ProductQuestionCreateInput!
-  ): ProductQuestionCreatePayload!
+  productQuestionCreate(input: ProductQuestionCreateInput!): ProductQuestionCreatePayload!
   productQuestionUpdate(
     productQuestionId: ID!
     expectedRevision: Int!
     operations: ProductQuestionUpdateInput
   ): ProductQuestionUpdatePayload!
-  productQuestionDelete(
-    input: ReviewContentDeleteInput!
-  ): ProductQuestionDeletePayload!
+  productQuestionDelete(input: ReviewContentDeleteInput!): ProductQuestionDeletePayload!
 
   productQuestionSubscriptionUpdate(
     subscriptionId: ID!
@@ -196,10 +213,7 @@ type ReviewsMutation {
     operations: ProductQuestionSubscriptionUpdateInput
   ): ProductQuestionSubscriptionUpdatePayload!
 
-  contentRedact(
-    contentId: ID!
-    expectedRevision: Int!
-  ): ReviewContentUpdatePayload!
+  contentRedact(contentId: ID!, expectedRevision: Int!): ReviewContentUpdatePayload!
   contentRevisionRestore(
     contentId: ID!
     revision: Int!
@@ -219,9 +233,7 @@ type ReviewsMutation {
     operations: ReviewContentReportUpdateInput
   ): ReviewContentReportUpdatePayload!
 
-  moderationCaseCreate(
-    input: ReviewModerationCaseCreateInput!
-  ): ReviewModerationCaseCreatePayload!
+  moderationCaseCreate(input: ReviewModerationCaseCreateInput!): ReviewModerationCaseCreatePayload!
   moderationCaseUpdate(
     moderationCaseId: ID!
     expectedUpdatedAt: DateTime!

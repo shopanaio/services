@@ -1,8 +1,5 @@
 import type { DiscountAggregate } from "../../repositories/DiscountRepository.js";
-import type {
-  DiscountUpdateMetadataParams,
-  DiscountUpdateMetadataResult,
-} from "./dto/index.js";
+import type { DiscountUpdateMetadataParams, DiscountUpdateMetadataResult } from "./dto/index.js";
 import { isRecord } from "./shared.js";
 import { BaseDiscountUpdateScript } from "./BaseDiscountUpdateScript.js";
 import { sectionErrors, sectionSuccess } from "./types.js";

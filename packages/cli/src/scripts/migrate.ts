@@ -10,11 +10,7 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { load as yamlLoad } from "js-yaml";
 import { findRootDir } from "../utils.js";
-import {
-  discoverProjectUnits,
-  findProjectUnit,
-  type ProjectUnitKind,
-} from "../project-units.js";
+import { discoverProjectUnits, findProjectUnit, type ProjectUnitKind } from "../project-units.js";
 
 const rootDir = findRootDir();
 interface MigrationsConfig {
@@ -144,8 +140,7 @@ function getServiceDatabaseUrl(serviceName: string): string | null {
   }
 
   // Fallback to shared database config
-  const sharedDbConfig =
-    config.shared?.db?.default ?? config.shared?.database?.default;
+  const sharedDbConfig = config.shared?.db?.default ?? config.shared?.database?.default;
   if (sharedDbConfig) {
     return buildDatabaseUrl(sharedDbConfig);
   }
@@ -153,10 +148,7 @@ function getServiceDatabaseUrl(serviceName: string): string | null {
   return null;
 }
 
-function getProjectUnitDatabaseUrl(
-  name: string,
-  kind: ProjectUnitKind,
-): string | null {
+function getProjectUnitDatabaseUrl(name: string, kind: ProjectUnitKind): string | null {
   return getServiceDatabaseUrl(kind === "app" ? "apps" : name);
 }
 
@@ -169,7 +161,7 @@ interface MigrationResult {
 async function runDrizzleMigration(
   connectionString: string,
   migrationsFolder: string,
-  serviceName: string
+  serviceName: string,
 ): Promise<void> {
   const { drizzle } = await import("drizzle-orm/postgres-js");
   const { migrate } = await import("drizzle-orm/postgres-js/migrator");
@@ -182,7 +174,7 @@ async function runDrizzleMigration(
   await migrate(db, {
     migrationsFolder,
     migrationsTable: `__drizzle_migrations_${serviceName}`,
-    migrationsSchema: "drizzle"
+    migrationsSchema: "drizzle",
   });
   await sql.end();
 }
@@ -192,7 +184,7 @@ async function runNodePgMigrateMigration(
   migrationsFolder: string,
   serviceName: string,
   migrationsSchema?: string,
-  migrationsTable?: string
+  migrationsTable?: string,
 ): Promise<void> {
   const { runner } = await import("node-pg-migrate");
   const cleanUrl = connectionString.replace(/[?&]schema=[^&]+/g, "");
@@ -214,7 +206,7 @@ async function runNodePgMigrateMigration(
 async function migrateService(
   serviceName: string,
   config: ServiceMigrationConfig,
-  databaseUrl: string
+  databaseUrl: string,
 ): Promise<MigrationResult> {
   const configuredMigrationsPath = join(config.unitPath, config.path);
   const sourceMigrationsPath = join(config.unitPath, "migrations");
@@ -240,7 +232,7 @@ async function migrateService(
         fullMigrationsPath,
         serviceName,
         config.migrationsSchema,
-        config.migrationsTable
+        config.migrationsTable,
       );
     } else {
       return {
@@ -294,12 +286,13 @@ export async function runMigration(
   const buildConfig = unit ? readBuildConfig(unit.path) : null;
 
   if (!buildConfig?.migrations?.path || !buildConfig?.migrations?.type) {
-    console.error(`\n❌ ${kind} "${serviceName}" does not have migrations configured in build.config.json`);
+    console.error(
+      `\n❌ ${kind} "${serviceName}" does not have migrations configured in build.config.json`,
+    );
     return false;
   }
 
-  const databaseUrl =
-    getProjectUnitDatabaseUrl(serviceName, kind) ?? getDatabaseUrl();
+  const databaseUrl = getProjectUnitDatabaseUrl(serviceName, kind) ?? getDatabaseUrl();
 
   console.log(`\n📦 Migrating ${serviceName}...`);
   console.log(`   Database: ${databaseUrl.replace(/:[^:@]+@/, ":***@")}`);
@@ -346,8 +339,7 @@ export async function runAllMigrations(): Promise<boolean> {
   const results: MigrationResult[] = [];
 
   for (const service of migratableServices) {
-    const databaseUrl =
-      getProjectUnitDatabaseUrl(service.name, service.kind) ?? getDatabaseUrl();
+    const databaseUrl = getProjectUnitDatabaseUrl(service.name, service.kind) ?? getDatabaseUrl();
     console.log(`📦 Migrating ${service.name}...`);
 
     const result = await migrateService(service.name, service, databaseUrl);

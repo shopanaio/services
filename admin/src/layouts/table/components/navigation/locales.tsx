@@ -1,6 +1,6 @@
 import { LuLanguages as TranslationOutlined } from "react-icons/lu";
-import { Button, Dropdown, Flex, Radio, Typography } from 'antd';
-import { useState } from 'react';
+import { Button, Dropdown, Flex, Radio, Typography } from "antd";
+import { useState } from "react";
 
 interface LocaleOption {
   label: string;
@@ -15,23 +15,19 @@ export interface ILocalesProps {
 }
 
 export const Locales = ({
-  value = '',
+  value = "",
   options = [],
   onChange: onChangeProp,
-  label = 'Language',
+  label = "Language",
 }: ILocalesProps) => {
   const [open, setOpen] = useState(false);
 
-  const renderLabel = () =>
-    options.find(({ value: v }) => v === value)?.label || label;
+  const renderLabel = () => options.find(({ value: v }) => v === value)?.label || label;
 
   const items = options.map(({ label, value: itemValue }) => ({
     label: (
       <Flex>
-        <Radio
-          checked={itemValue === value}
-          onChange={() => onChangeProp(itemValue)}
-        />
+        <Radio checked={itemValue === value} onChange={() => onChangeProp(itemValue)} />
         <Typography.Text>{label}</Typography.Text>
       </Flex>
     ),
@@ -41,7 +37,7 @@ export const Locales = ({
   return (
     <Dropdown
       disabled={!value.length}
-      trigger={['click']}
+      trigger={["click"]}
       menu={{ items, style: { minWidth: 150 } }}
       open={open}
       onOpenChange={setOpen}

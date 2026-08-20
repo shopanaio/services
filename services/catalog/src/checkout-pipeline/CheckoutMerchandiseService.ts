@@ -78,9 +78,7 @@ export class CheckoutMerchandiseService {
     );
     const resolvedEntries: ResolvedCheckoutMerchandiseEntry[] = prepared.flatMap(
       ({ source: sourceLine, row, rejection }) =>
-        rejection === null && row !== null
-          ? [{ source: sourceLine, row }]
-          : [],
+        rejection === null && row !== null ? [{ source: sourceLine, row }] : [],
     );
     const aggregateDemand = aggregateResolvedDemand(resolvedEntries);
     const lines = prepared.map((entry) =>
@@ -125,9 +123,7 @@ export function flattenCheckoutLines(
   for (const input of lines) {
     const absoluteQuantity = multiplier * input.quantity;
     result.push({ input, parentLineId, absoluteQuantity });
-    result.push(
-      ...flattenCheckoutLines(input.children, input.lineId, absoluteQuantity),
-    );
+    result.push(...flattenCheckoutLines(input.children, input.lineId, absoluteQuantity));
   }
   return result;
 }
@@ -141,8 +137,7 @@ function prepareLines(
 ): PreparedLine[] {
   const rejectedLineIds = new Set<string>();
   return flat.map((source) => {
-    const parentRejected =
-      source.parentLineId !== null && rejectedLineIds.has(source.parentLineId);
+    const parentRejected = source.parentLineId !== null && rejectedLineIds.has(source.parentLineId);
     const row = rows.get(source.input.variantId) ?? null;
     const rejection =
       parentRejected || invalidParentLineIds.has(source.input.lineId)
@@ -193,8 +188,7 @@ function buildLineResolution(
       lineId: prepared.source.input.lineId,
       parentLineId: prepared.source.parentLineId,
       variantId: prepared.source.input.variantId,
-      componentItemId:
-        prepared.source.input.componentSelection?.componentItemId ?? null,
+      componentItemId: prepared.source.input.componentSelection?.componentItemId ?? null,
       code: rejection,
       message: rejection.replaceAll("_", " ").toLowerCase(),
     };
@@ -221,12 +215,11 @@ function buildResolvedLine(
   const price = row.prices[0]!;
   const configuration = row.configuration;
   const selected = source.input.componentSelection
-    ? selectedItem ??
+    ? (selectedItem ??
       configuration?.items.find(
-        (item) =>
-          item.id === source.input.componentSelection!.componentItemId,
+        (item) => item.id === source.input.componentSelection!.componentItemId,
       ) ??
-      null
+      null)
     : null;
   const title =
     row.titles.requestedVariant ??
@@ -265,9 +258,7 @@ function buildResolvedLine(
       ? configuration.groups.some((group) => (group.minSelection ?? 0) > 0) ||
         configuration.dependencyRules.some((rule) =>
           rule.actions.some(
-            (action) =>
-              action.actionType === "SET_REQUIRED" &&
-              action.requiredValue === true,
+            (action) => action.actionType === "SET_REQUIRED" && action.requiredValue === true,
           ),
         )
       : false,

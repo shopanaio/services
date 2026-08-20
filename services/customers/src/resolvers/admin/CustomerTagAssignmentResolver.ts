@@ -3,16 +3,11 @@ import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { CustomerTagAssignment } from "../../repositories/models/index.js";
 import { CustomersType } from "./CustomersType.js";
 
-export class CustomerTagAssignmentResolver extends CustomersType<
-  string,
-  CustomerTagAssignment
-> {
+export class CustomerTagAssignmentResolver extends CustomersType<string, CustomerTagAssignment> {
   async $preload() {
     const assignment = await this.$ctx.loaders.tagAssignment.load(this.$props);
     if (!assignment) {
-      throw new PreloadNotFoundError(
-        `Customer tag assignment with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer tag assignment with ID ${this.$props} not found`);
     }
     return assignment;
   }

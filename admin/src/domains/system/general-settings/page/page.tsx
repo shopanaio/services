@@ -88,7 +88,9 @@ export default function GeneralSettingsPage() {
     editOrderProcessingModal.push({ store, onSaved: refetch });
   };
 
-  const setDefaultLanguage = async (locale: Parameters<typeof languageMutations.setDefaultLanguage>[0]) => {
+  const setDefaultLanguage = async (
+    locale: Parameters<typeof languageMutations.setDefaultLanguage>[0],
+  ) => {
     const result = await languageMutations.setDefaultLanguage(locale);
     if (!result.success || result.userErrors.length > 0) {
       message.error(
@@ -158,10 +160,7 @@ export default function GeneralSettingsPage() {
                 onEdit={openCustomerAccountsEditor}
               />
             ) : null}
-            <StoreOrderProcessingCard
-              onEdit={openOrderProcessingEditor}
-              store={store}
-            />
+            <StoreOrderProcessingCard onEdit={openOrderProcessingEditor} store={store} />
             <StoreDangerZoneCard store={store} />
           </>
         ) : null}

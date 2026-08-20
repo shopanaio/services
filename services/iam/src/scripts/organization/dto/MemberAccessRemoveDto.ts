@@ -10,9 +10,7 @@ export const memberAccessRemoveInputSchema = z.object({
   domain: z.string().min(1, "Domain is required"),
 });
 
-export type MemberAccessRemoveInput = z.infer<
-  typeof memberAccessRemoveInputSchema
->;
+export type MemberAccessRemoveInput = z.infer<typeof memberAccessRemoveInputSchema>;
 
 /**
  * Script params

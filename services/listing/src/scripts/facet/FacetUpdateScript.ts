@@ -43,7 +43,9 @@ export class FacetUpdateScript extends BaseScript<FacetUpdateParams, FacetResult
         if (duplicate) {
           return {
             facet: undefined,
-            userErrors: [{ message: "Facet slug already exists", field: ["slug"], code: "DUPLICATE" }],
+            userErrors: [
+              { message: "Facet slug already exists", field: ["slug"], code: "DUPLICATE" },
+            ],
           };
         }
       }
@@ -56,7 +58,9 @@ export class FacetUpdateScript extends BaseScript<FacetUpdateParams, FacetResult
     ) {
       return {
         facet: undefined,
-        userErrors: [{ message: "Invalid uiType for facetType", field: ["uiType"], code: "INVALID" }],
+        userErrors: [
+          { message: "Invalid uiType for facetType", field: ["uiType"], code: "INVALID" },
+        ],
       };
     }
 

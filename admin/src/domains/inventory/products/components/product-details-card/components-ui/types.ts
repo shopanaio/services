@@ -21,11 +21,7 @@ export enum ComponentPriceType {
 // Tab Types
 // ============================================================================
 
-export type EditComponentItemsTabKey =
-  | "groups"
-  | "pricing"
-  | "preview"
-  | "settings";
+export type EditComponentItemsTabKey = "groups" | "pricing" | "preview" | "settings";
 
 // ============================================================================
 // Helper Types & Constants
@@ -91,8 +87,4 @@ export const STOCK_STATUS_LABELS: Record<StockStatus, string> = {
 // Dependency Rules (re-exported from dedicated module)
 // ============================================================================
 
-export {
-  ACTION_TYPE_LABELS,
-  TARGET_TYPE_LABELS,
-  ACTIONS_BY_TARGET,
-} from "./dependency-rules";
+export { ACTION_TYPE_LABELS, TARGET_TYPE_LABELS, ACTIONS_BY_TARGET } from "./dependency-rules";

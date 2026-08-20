@@ -23,8 +23,7 @@ export interface StorefrontCustomerTaxIdentifierCreateParams {
   expectedRevision: number;
 }
 
-export type StorefrontCustomerTaxIdentifierCreateResult =
-  TaxIdentifierMutationResult;
+export type StorefrontCustomerTaxIdentifierCreateResult = TaxIdentifierMutationResult;
 
 export interface StorefrontCustomerTaxIdentifierUpdateParams {
   customerId: string;
@@ -36,8 +35,7 @@ export interface StorefrontCustomerTaxIdentifierUpdateParams {
   expectedRevision: number;
 }
 
-export type StorefrontCustomerTaxIdentifierUpdateResult =
-  TaxIdentifierMutationResult;
+export type StorefrontCustomerTaxIdentifierUpdateResult = TaxIdentifierMutationResult;
 
 export interface StorefrontCustomerTaxIdentifierDeleteParams {
   customerId: string;
@@ -45,8 +43,7 @@ export interface StorefrontCustomerTaxIdentifierDeleteParams {
   expectedRevision: number;
 }
 
-export interface StorefrontCustomerTaxIdentifierDeleteResult
-  extends StorefrontCustomerMutationResult {
+export interface StorefrontCustomerTaxIdentifierDeleteResult extends StorefrontCustomerMutationResult {
   deletedTaxIdentifierId: string | null;
 }
 
@@ -56,25 +53,22 @@ export class StorefrontCustomerTaxIdentifierCreateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: StorefrontCustomerTaxIdentifierCreateParams
+    params: StorefrontCustomerTaxIdentifierCreateParams,
   ): Promise<StorefrontCustomerTaxIdentifierCreateResult> {
     const errors = validateIdentifier(
       params.expectedRevision,
       params.identifierType,
       params.countryCode,
-      params.value
+      params.value,
     );
-    if (
-      errors.length === 0 &&
-      (await this.repository.taxIdentifier.findDuplicate(params))
-    ) {
+    if (errors.length === 0 && (await this.repository.taxIdentifier.findDuplicate(params))) {
       errors.push(duplicateError());
     }
     if (errors.length > 0) return failedIdentifier(...errors);
 
     const acquired = await this.repository.customer.acquireActiveRevision(
       params.customerId,
-      params.expectedRevision
+      params.expectedRevision,
     );
     if (acquired.status !== "acquired") {
       return failedIdentifier(revisionAcquireError(acquired));
@@ -92,16 +86,10 @@ export class StorefrontCustomerTaxIdentifierCreateScript extends BaseScript<
       ["taxIdentifier"],
       "storefrontTaxIdentifierCreate",
     );
-    return successfulIdentifier(
-      identifier.id,
-      acquired.customer.id,
-      acquired.customer.revision
-    );
+    return successfulIdentifier(identifier.id, acquired.customer.id, acquired.customer.revision);
   }
 
-  protected handleError(
-    _error: unknown
-  ): StorefrontCustomerTaxIdentifierCreateResult {
+  protected handleError(_error: unknown): StorefrontCustomerTaxIdentifierCreateResult {
     return failedIdentifier(internalStorefrontError());
   }
 }
@@ -112,34 +100,24 @@ export class StorefrontCustomerTaxIdentifierUpdateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: StorefrontCustomerTaxIdentifierUpdateParams
+    params: StorefrontCustomerTaxIdentifierUpdateParams,
   ): Promise<StorefrontCustomerTaxIdentifierUpdateResult> {
     const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
     if (revisionError) return failedIdentifier(revisionError);
     const current = await this.repository.taxIdentifier.findOwnedById(
       params.customerId,
-      params.taxIdentifierId
+      params.taxIdentifierId,
     );
     if (!current) {
       return failedIdentifier(
-        storefrontError(
-          "NOT_FOUND",
-          "Tax identifier was not found",
-          ["taxIdentifierId"]
-        )
+        storefrontError("NOT_FOUND", "Tax identifier was not found", ["taxIdentifierId"]),
       );
     }
 
     const identifierType = params.identifierType ?? current.identifierType;
-    const countryCode =
-      params.countryCode === undefined ? current.countryCode : params.countryCode;
+    const countryCode = params.countryCode === undefined ? current.countryCode : params.countryCode;
     const value = params.value ?? current.value;
-    const errors = validateIdentifier(
-      params.expectedRevision,
-      identifierType,
-      countryCode,
-      value
-    );
+    const errors = validateIdentifier(params.expectedRevision, identifierType, countryCode, value);
     if (
       errors.length === 0 &&
       (await this.repository.taxIdentifier.findDuplicate({
@@ -156,7 +134,7 @@ export class StorefrontCustomerTaxIdentifierUpdateScript extends BaseScript<
 
     const acquired = await this.repository.customer.acquireActiveRevision(
       params.customerId,
-      params.expectedRevision
+      params.expectedRevision,
     );
     if (acquired.status !== "acquired") {
       return failedIdentifier(revisionAcquireError(acquired));
@@ -173,11 +151,9 @@ export class StorefrontCustomerTaxIdentifierUpdateScript extends BaseScript<
         ...(params.identifierType !== undefined ? { identifierType } : {}),
         ...(params.countryCode !== undefined ? { countryCode } : {}),
         ...(params.value !== undefined ? { value } : {}),
-        ...(typeof params.isPrimary === "boolean"
-          ? { isPrimary: params.isPrimary }
-          : {}),
+        ...(typeof params.isPrimary === "boolean" ? { isPrimary: params.isPrimary } : {}),
         ...(identityChanged ? { status: "UNVERIFIED" as const } : {}),
-      }
+      },
     );
     if (!updated) throw new Error("Owned tax identifier disappeared during update");
     await this.invalidateDynamicSegments(
@@ -185,16 +161,10 @@ export class StorefrontCustomerTaxIdentifierUpdateScript extends BaseScript<
       ["taxIdentifier"],
       "storefrontTaxIdentifierUpdate",
     );
-    return successfulIdentifier(
-      updated.id,
-      acquired.customer.id,
-      acquired.customer.revision
-    );
+    return successfulIdentifier(updated.id, acquired.customer.id, acquired.customer.revision);
   }
 
-  protected handleError(
-    _error: unknown
-  ): StorefrontCustomerTaxIdentifierUpdateResult {
+  protected handleError(_error: unknown): StorefrontCustomerTaxIdentifierUpdateResult {
     return failedIdentifier(internalStorefrontError());
   }
 }
@@ -205,28 +175,24 @@ export class StorefrontCustomerTaxIdentifierDeleteScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: StorefrontCustomerTaxIdentifierDeleteParams
+    params: StorefrontCustomerTaxIdentifierDeleteParams,
   ): Promise<StorefrontCustomerTaxIdentifierDeleteResult> {
     const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
     if (revisionError) return failedDelete(revisionError);
     if (
       !(await this.repository.taxIdentifier.findOwnedById(
         params.customerId,
-        params.taxIdentifierId
+        params.taxIdentifierId,
       ))
     ) {
       return failedDelete(
-        storefrontError(
-          "NOT_FOUND",
-          "Tax identifier was not found",
-          ["taxIdentifierId"]
-        )
+        storefrontError("NOT_FOUND", "Tax identifier was not found", ["taxIdentifierId"]),
       );
     }
 
     const acquired = await this.repository.customer.acquireActiveRevision(
       params.customerId,
-      params.expectedRevision
+      params.expectedRevision,
     );
     if (acquired.status !== "acquired") {
       return failedDelete(revisionAcquireError(acquired));
@@ -234,7 +200,7 @@ export class StorefrontCustomerTaxIdentifierDeleteScript extends BaseScript<
     if (
       !(await this.repository.taxIdentifier.softDeleteOwned(
         params.customerId,
-        params.taxIdentifierId
+        params.taxIdentifierId,
       ))
     ) {
       throw new Error("Owned tax identifier disappeared during delete");
@@ -255,9 +221,7 @@ export class StorefrontCustomerTaxIdentifierDeleteScript extends BaseScript<
     };
   }
 
-  protected handleError(
-    _error: unknown
-  ): StorefrontCustomerTaxIdentifierDeleteResult {
+  protected handleError(_error: unknown): StorefrontCustomerTaxIdentifierDeleteResult {
     return failedDelete(internalStorefrontError());
   }
 }
@@ -266,7 +230,7 @@ function validateIdentifier(
   expectedRevision: number,
   identifierType: string,
   countryCode: string | null | undefined,
-  value: string
+  value: string,
 ): StorefrontCustomerUserError[] {
   const errors: StorefrontCustomerUserError[] = [];
   const revisionError = validateStorefrontExpectedRevision(expectedRevision);
@@ -276,8 +240,8 @@ function validateIdentifier(
       storefrontError(
         "INVALID_IDENTIFIER_TYPE",
         "Identifier type must contain between 1 and 64 characters",
-        ["identifierType"]
-      )
+        ["identifierType"],
+      ),
     );
   }
   if (!value.trim() || [...value.trim()].length > 255) {
@@ -285,34 +249,30 @@ function validateIdentifier(
       storefrontError(
         "INVALID_VALUE",
         "Identifier value must contain between 1 and 255 characters",
-        ["value"]
-      )
+        ["value"],
+      ),
     );
   }
   if (countryCode != null && !/^[A-Z]{2}$/i.test(countryCode.trim())) {
     errors.push(
-      storefrontError(
-        "INVALID_COUNTRY_CODE",
-        "Country code must contain two letters",
-        ["countryCode"]
-      )
+      storefrontError("INVALID_COUNTRY_CODE", "Country code must contain two letters", [
+        "countryCode",
+      ]),
     );
   }
   return errors;
 }
 
 function duplicateError(): StorefrontCustomerUserError {
-  return storefrontError(
-    "TAX_IDENTIFIER_ALREADY_EXISTS",
-    "This tax identifier already exists",
-    ["value"]
-  );
+  return storefrontError("TAX_IDENTIFIER_ALREADY_EXISTS", "This tax identifier already exists", [
+    "value",
+  ]);
 }
 
 function successfulIdentifier(
   id: string,
   customerId: string,
-  revision: number
+  revision: number,
 ): TaxIdentifierMutationResult {
   return {
     taxIdentifier: { id },

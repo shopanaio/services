@@ -50,8 +50,7 @@ export function toPricingLineAvailability(
       !availability.tracked || availability.continueSellingWhenOutOfStock
         ? null
         : availability.availableQuantity,
-    continueSellingWhenOutOfStock:
-      availability.continueSellingWhenOutOfStock,
+    continueSellingWhenOutOfStock: availability.continueSellingWhenOutOfStock,
     reasonCode: availability.unavailabilityReason,
     revision: availability.revision,
   };

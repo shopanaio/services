@@ -57,7 +57,8 @@ export class RecommendationSnapshotTransitionScript extends BaseScript<
       placement: snapshot.placement,
       asOf: locks.activationAsOf,
     });
-    const valid = locks.snapshot?.status === "READY" &&
+    const valid =
+      locks.snapshot?.status === "READY" &&
       locks.policy?.enabled === true &&
       locks.policy.policyId === snapshot.policyId &&
       locks.policy.version === snapshot.policyVersion &&
@@ -66,10 +67,11 @@ export class RecommendationSnapshotTransitionScript extends BaseScript<
       snapshot.modelVersion === recommendationModelVersion(snapshot.placement) &&
       items.length === snapshot.itemCount &&
       items.length <= (locks.policy?.maximumResults ?? -1) &&
-      items.every((item, index) =>
-        item.rank === index + 1 &&
-        item.targetProductId !== snapshot.anchorProductId &&
-        eligible.has(item.targetProductId)
+      items.every(
+        (item, index) =>
+          item.rank === index + 1 &&
+          item.targetProductId !== snapshot.anchorProductId &&
+          eligible.has(item.targetProductId),
       ) &&
       currentHash === fixed.manualConfigurationHash &&
       (snapshot.calculationRunId === null || locks.run?.status === "ACTIVE");
@@ -77,10 +79,10 @@ export class RecommendationSnapshotTransitionScript extends BaseScript<
       await this.repository.recommendationSnapshot.markFailed(snapshot.snapshotId, "STALE_INPUT");
       let rebuildRequest: RecommendationRequestGeneration | undefined;
       if (locks.policy?.enabled) {
-        const requestAlreadyAdvanced = locks.request && (
-          locks.request.generation.toString() !== fixed.requestedGeneration ||
-          locks.request.triggerKey !== fixed.triggerKey
-        );
+        const requestAlreadyAdvanced =
+          locks.request &&
+          (locks.request.generation.toString() !== fixed.requestedGeneration ||
+            locks.request.triggerKey !== fixed.triggerKey);
         rebuildRequest = requestAlreadyAdvanced
           ? {
               requestId: locks.request!.requestId,

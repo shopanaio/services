@@ -24,10 +24,7 @@ export const DeliveryProviderExecutionPolicySnapshotSchema = z
         message: "Disabled rate cache must have zero max age",
       });
     }
-    if (
-      value.cache.mode === "IDEMPOTENT_REQUEST" &&
-      value.cache.maxAgeSeconds === 0
-    ) {
+    if (value.cache.mode === "IDEMPOTENT_REQUEST" && value.cache.maxAgeSeconds === 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["cache", "maxAgeSeconds"],

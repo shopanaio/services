@@ -77,22 +77,12 @@ export function applyShippingDiscountCandidates(input: {
       continue;
     }
 
-    const application = applicationOf(
-      candidate,
-      allocations,
-      amount,
-      input.context.currencyCode,
-    );
+    const application = applicationOf(candidate, allocations, amount, input.context.currencyCode);
     applications.push(application);
-    requirements.push(
-      requirementOf(application, candidate, input.snapshot, input.context),
-    );
+    requirements.push(requirementOf(application, candidate, input.snapshot, input.context));
     acceptedOwners.add(candidate.owner.id);
     for (const allocation of allocations) {
-      remaining.set(
-        allocation.groupId,
-        remaining.get(allocation.groupId)! - allocation.amount,
-      );
+      remaining.set(allocation.groupId, remaining.get(allocation.groupId)! - allocation.amount);
     }
     markApplied(codes, candidate, application.applicationId);
   }
@@ -119,9 +109,7 @@ export function applyShippingDiscountCandidates(input: {
 function selectedCosts(delivery: Pricing.PricingCheckoutDeliverySnapshot) {
   const result = new Map<string, bigint>();
   for (const group of delivery.groups) {
-    const selected = group.options.find(
-      (option) => option.handle === group.selectedOptionHandle,
-    );
+    const selected = group.options.find((option) => option.handle === group.selectedOptionHandle);
     if (selected) result.set(group.groupId, BigInt(selected.cost.amountMinor));
   }
   return result;
@@ -137,11 +125,12 @@ function allocateCandidate(
     .filter((row) => row.capacity > 0n);
   const total = values.reduce((sum, row) => sum + row.capacity, 0n);
   if (total === 0n) return [];
-  const desired = candidate.value.type === "FREE"
-    ? total
-    : candidate.value.type === "PERCENTAGE"
-      ? total * BigInt(candidate.value.percentageBps) / 10_000n
-      : min(BigInt(candidate.value.amount.amountMinor), total);
+  const desired =
+    candidate.value.type === "FREE"
+      ? total
+      : candidate.value.type === "PERCENTAGE"
+        ? (total * BigInt(candidate.value.percentageBps)) / 10_000n
+        : min(BigInt(candidate.value.amount.amountMinor), total);
   return allocateProportionally(desired, values);
 }
 
@@ -152,9 +141,7 @@ function allocateProportionally(
   const total = values.reduce((sum, row) => sum + row.capacity, 0n);
   const amount = min(requested, total);
   if (amount === 0n || total === 0n) return [];
-  const shares = values.map((row) =>
-    min(row.capacity, amount * row.capacity / total),
-  );
+  const shares = values.map((row) => min(row.capacity, (amount * row.capacity) / total));
   let remainder = amount - shares.reduce((sum, share) => sum + share, 0n);
   for (let index = values.length - 1; index >= 0 && remainder > 0n; index--) {
     const capacity = values[index]!.capacity - shares[index]!;
@@ -163,9 +150,7 @@ function allocateProportionally(
     remainder -= extra;
   }
   return values.flatMap((row, index) =>
-    shares[index]! > 0n
-      ? [{ groupId: row.groupId, amount: shares[index]! }]
-      : [],
+    shares[index]! > 0n ? [{ groupId: row.groupId, amount: shares[index]! }] : [],
   );
 }
 
@@ -175,16 +160,17 @@ function applicationOf(
   amount: bigint,
   currencyCode: string,
 ): Pricing.PricingCheckoutDiscountApplication {
-  const source = candidate.source.kind === "NATIVE"
-    ? { kind: "NATIVE" as const }
-    : {
-        kind: "FUNCTION" as const,
-        functionBindingId: candidate.source.binding.functionBindingId,
-        implementationId: candidate.source.implementationId,
-        functionTarget: candidate.source.trace.target,
-        executionId: candidate.source.trace.executionId,
-        planRevision: candidate.source.trace.planRevision,
-      };
+  const source =
+    candidate.source.kind === "NATIVE"
+      ? { kind: "NATIVE" as const }
+      : {
+          kind: "FUNCTION" as const,
+          functionBindingId: candidate.source.binding.functionBindingId,
+          implementationId: candidate.source.implementationId,
+          functionTarget: candidate.source.trace.target,
+          executionId: candidate.source.trace.executionId,
+          planRevision: candidate.source.trace.planRevision,
+        };
   const mapped = allocations.map((row) => ({
     targetType: "DELIVERY_GROUP" as const,
     groupId: row.groupId,
@@ -201,21 +187,23 @@ function applicationOf(
     configurationRevision: String(candidate.owner.revision),
     discountClass: "SHIPPING",
     method: candidate.owner.method,
-    code: candidate.code && candidate.inputIndex !== null
-      ? {
-          codeId: candidate.code.id,
-          inputCode: candidate.inputCode!,
-          normalizedCode: candidate.code.normalizedCode!,
-        }
-      : null,
+    code:
+      candidate.code && candidate.inputIndex !== null
+        ? {
+            codeId: candidate.code.id,
+            inputCode: candidate.inputCode!,
+            normalizedCode: candidate.code.normalizedCode!,
+          }
+        : null,
     source,
     title: candidate.title,
     priority: candidate.owner.priority,
     amount: money(amount, currencyCode),
     allocations: mapped,
-    metadata: candidate.source.kind === "FUNCTION"
-      ? { candidateId: candidate.candidateId }
-      : asObject(candidate.owner.metadata),
+    metadata:
+      candidate.source.kind === "FUNCTION"
+        ? { candidateId: candidate.candidateId }
+        : asObject(candidate.owner.metadata),
   };
 }
 
@@ -225,12 +213,9 @@ function requirementOf(
   snapshot: DiscountEvaluationSnapshot,
   context: Pricing.PricingCheckoutEvaluationContext,
 ): Pricing.PricingCheckoutDiscountUsageRequirement {
-  const counter = snapshot.counters.find(
-    (row) => row.discountId === candidate.owner.id,
-  );
-  const codeCounter = candidate.code && snapshot.codeCounters.find(
-    (row) => row.codeId === candidate.code!.id,
-  );
+  const counter = snapshot.counters.find((row) => row.discountId === candidate.owner.id);
+  const codeCounter =
+    candidate.code && snapshot.codeCounters.find((row) => row.codeId === candidate.code!.id);
   return {
     applicationId: application.applicationId,
     discountId: candidate.owner.id,
@@ -256,9 +241,7 @@ function compatible(
   return accepted.every(
     (application) =>
       snapshot.combinations.some(
-        (row) =>
-          row.discountId === owner.id &&
-          row.combinesWithClass === application.discountClass,
+        (row) => row.discountId === owner.id && row.combinesWithClass === application.discountClass,
       ) &&
       snapshot.combinations.some(
         (row) =>
@@ -323,7 +306,7 @@ function rejectCandidate(
 
 function asObject(value: unknown): Pricing.PricingCheckoutJsonObject | null {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Pricing.PricingCheckoutJsonObject
+    ? (value as Pricing.PricingCheckoutJsonObject)
     : null;
 }
 

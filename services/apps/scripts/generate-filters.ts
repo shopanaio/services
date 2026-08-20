@@ -7,8 +7,7 @@ import {
 } from "@shopana/drizzle-query";
 import { appRelayQuery } from "../src/repositories/app/AppRepository.js";
 
-const generatedSchemaDirectory =
-  "src/api/graphql-admin/schema/__generated__";
+const generatedSchemaDirectory = "src/api/graphql-admin/schema/__generated__";
 
 mkdirSync(generatedSchemaDirectory, { recursive: true });
 
@@ -33,17 +32,9 @@ const filters = `# Auto-generated GraphQL filter types for Apps service.
 
 # ---- App ----
 
-${generateWhereInputType(
-  appRelayQuery,
-  "App",
-  appOptions,
-)}
+${generateWhereInputType(appRelayQuery, "App", appOptions)}
 
-${generateOrderByInputType(
-  appRelayQuery,
-  "App",
-  appOptions,
-)}
+${generateOrderByInputType(appRelayQuery, "App", appOptions)}
 `;
 
 writeFileSync(

@@ -42,7 +42,8 @@ export function useSetCustomerSegmentMembers() {
           userErrors: [...(payload?.userErrors ?? []), ...operationErrors],
         };
       } catch (cause) {
-        const message = cause instanceof Error ? cause.message : "Unable to update segment customers";
+        const message =
+          cause instanceof Error ? cause.message : "Unable to update segment customers";
         return {
           segment: null,
           userErrors: [{ code: "UNEXPECTED_ERROR", message }] as ApiGenericUserError[],

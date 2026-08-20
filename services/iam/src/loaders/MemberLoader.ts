@@ -41,11 +41,10 @@ export class MemberLoader {
 
         for (const [, domainKeys] of groupedByDomain) {
           const { organizationId, domain } = domainKeys[0];
-          const userRoles =
-            await repository.organization.getUserRolesByDomain(
-              organizationId,
-              domain
-            );
+          const userRoles = await repository.organization.getUserRolesByDomain(
+            organizationId,
+            domain,
+          );
 
           for (const ur of userRoles) {
             const key = keyToString({
@@ -62,7 +61,7 @@ export class MemberLoader {
       },
       {
         cacheKeyFn: (key: MemberKey) => keyToString(key),
-      }
+      },
     );
   }
 }

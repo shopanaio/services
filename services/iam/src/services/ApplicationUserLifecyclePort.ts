@@ -4,28 +4,20 @@ export interface ApplicationUserProvisioningRequiredInput {
   readonly applicationUserId: string;
 }
 
-export interface ApplicationUserProjectionChangedInput
-  extends ApplicationUserProvisioningRequiredInput {
+export interface ApplicationUserProjectionChangedInput extends ApplicationUserProvisioningRequiredInput {
   readonly changedFields: readonly (
-    | "email"
-    | "emailVerified"
-    | "firstName"
-    | "lastName"
-    | "phoneNumber"
-    | "phoneNumberVerified"
+    "email" | "emailVerified" | "firstName" | "lastName" | "phoneNumber" | "phoneNumberVerified"
   )[];
   readonly updatedAt: string;
 }
 
-export interface ApplicationUserStatusChangedInput
-  extends ApplicationUserProvisioningRequiredInput {
+export interface ApplicationUserStatusChangedInput extends ApplicationUserProvisioningRequiredInput {
   readonly previousStatus: "active" | "blocked";
   readonly status: "active" | "blocked";
   readonly changedAt: string;
 }
 
-export interface ApplicationUserDeletedInput
-  extends ApplicationUserProvisioningRequiredInput {
+export interface ApplicationUserDeletedInput extends ApplicationUserProvisioningRequiredInput {
   readonly deletedAt: string;
 }
 
@@ -34,9 +26,7 @@ export interface ApplicationUserDeletedInput
  * workflow that publishes application-user domain events.
  */
 export interface ApplicationUserLifecyclePort {
-  provisioningRequired(
-    input: ApplicationUserProvisioningRequiredInput,
-  ): Promise<void>;
+  provisioningRequired(input: ApplicationUserProvisioningRequiredInput): Promise<void>;
   projectionChanged(input: ApplicationUserProjectionChangedInput): Promise<void>;
   statusChanged(input: ApplicationUserStatusChangedInput): Promise<void>;
   deleted(input: ApplicationUserDeletedInput): Promise<void>;

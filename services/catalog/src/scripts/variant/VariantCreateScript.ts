@@ -1,8 +1,4 @@
-import {
-  BaseScript,
-  Transactional,
-  type UserError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import type { Variant } from "../../repositories/models/index.js";
 
 export interface SelectedOptionParam {
@@ -65,7 +61,7 @@ export class VariantCreateScript extends BaseScript<VariantCreateParams, Variant
     const productOptionIds = new Set(productOptions.map((o) => o.id));
 
     const optionValuesByOptionId = await this.repository.option.findValuesByOptionIds(
-      productOptions.map((o) => o.id)
+      productOptions.map((o) => o.id),
     );
 
     const handleParts: string[] = [];
@@ -85,9 +81,7 @@ export class VariantCreateScript extends BaseScript<VariantCreateParams, Variant
       }
 
       const optionValues = optionValuesByOptionId.get(selectedOption.optionId) ?? [];
-      const selectedValue = optionValues.find(
-        (v) => v.id === selectedOption.optionValueId
-      );
+      const selectedValue = optionValues.find((v) => v.id === selectedOption.optionValueId);
 
       if (!selectedValue) {
         return {
@@ -121,14 +115,11 @@ export class VariantCreateScript extends BaseScript<VariantCreateParams, Variant
       await this.repository.option.linkVariant(
         variant.id,
         selectedOption.optionId,
-        selectedOption.optionValueId
+        selectedOption.optionValueId,
       );
     }
 
-    this.logger.info(
-      { variantId: variant.id, productId, handle },
-      "Variant created successfully"
-    );
+    this.logger.info({ variantId: variant.id, productId, handle }, "Variant created successfully");
 
     return { variant, userErrors: [] };
   }

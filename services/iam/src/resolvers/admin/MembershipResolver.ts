@@ -14,16 +14,11 @@ export interface MembershipInput {
 /**
  * Membership resolver - resolves membership container for members and roles
  */
-@SubgraphReference(
-  (ref: { __typename: "Membership"; domain: string; organizationId: string }) => ({
-    domain: ref.domain as Domain,
-    organizationId: ref.organizationId,
-  })
-)
-export class MembershipResolver extends IAMType<
-  MembershipInput,
-  MembershipInput
-> {
+@SubgraphReference((ref: { __typename: "Membership"; domain: string; organizationId: string }) => ({
+  domain: ref.domain as Domain,
+  organizationId: ref.organizationId,
+}))
+export class MembershipResolver extends IAMType<MembershipInput, MembershipInput> {
   async $preload() {
     return this.$props;
   }
@@ -46,8 +41,7 @@ export class MembershipResolver extends IAMType<
     });
 
     return roles.map(
-      (role) =>
-        new RoleResolver({ organizationId, domain, name: role.name }, this.$ctx)
+      (role) => new RoleResolver({ organizationId, domain, name: role.name }, this.$ctx),
     );
   }
 
@@ -70,8 +64,8 @@ export class MembershipResolver extends IAMType<
             domain,
             organizationId,
           },
-          this.$ctx
-        )
+          this.$ctx,
+        ),
     );
   }
 

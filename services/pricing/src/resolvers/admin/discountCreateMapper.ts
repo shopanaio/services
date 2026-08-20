@@ -4,19 +4,14 @@ import {
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
 import type { UserError } from "../../kernel/BaseScript.js";
-import type {
-  DiscountCreateInput,
-  DiscountTargetSelectionInput,
-} from "./generated/types.js";
+import type { DiscountCreateInput, DiscountTargetSelectionInput } from "./generated/types.js";
 
 export interface DiscountCreateMappingResult {
   input: DiscountCreateInput;
   errors: UserError[];
 }
 
-export function mapDiscountCreateInput(
-  input: DiscountCreateInput,
-): DiscountCreateMappingResult {
+export function mapDiscountCreateInput(input: DiscountCreateInput): DiscountCreateMappingResult {
   const errors: UserError[] = [];
   return {
     input: {
@@ -41,13 +36,7 @@ export function mapDiscountCreateInput(
             decodeId(
               targetId,
               targetGlobalIdType(selection.targetType),
-              [
-                "input",
-                "targetSelections",
-                String(index),
-                "targetIds",
-                String(targetIndex),
-              ],
+              ["input", "targetSelections", String(index), "targetIds", String(targetIndex)],
               errors,
             ) ?? targetId,
         ),
@@ -81,9 +70,7 @@ export function mapDiscountCreateInput(
   };
 }
 
-function targetGlobalIdType(
-  type: DiscountTargetSelectionInput["targetType"],
-): GlobalIdType {
+function targetGlobalIdType(type: DiscountTargetSelectionInput["targetType"]): GlobalIdType {
   switch (type) {
     case "PRODUCTS":
       return GlobalIdEntity.Product;

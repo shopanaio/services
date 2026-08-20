@@ -1,4 +1,8 @@
-import { decodeGlobalIdByType, encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import {
+  decodeGlobalIdByType,
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 
 const SELECTOR_ENTITY = {
   PRODUCT: GlobalIdEntity.Product,
@@ -17,7 +21,9 @@ export function encodeSelectorIds(selector: { type: string; ids: readonly string
   };
 }
 
-export function normalizeProgramRulesInput(value: Record<string, unknown>): Record<string, unknown> {
+export function normalizeProgramRulesInput(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
   const eligibility = value.eligibility as Record<string, unknown>;
   const earning = value.earning as Record<string, unknown>;
   return {
@@ -37,7 +43,9 @@ export function normalizeProgramRulesInput(value: Record<string, unknown>): Reco
             const modifier = item as Record<string, unknown>;
             return {
               ...modifier,
-              selector: decodeSelectorIds(modifier.selector as { type: string; ids: readonly string[] }),
+              selector: decodeSelectorIds(
+                modifier.selector as { type: string; ids: readonly string[] },
+              ),
               segmentIds: decodeSegments(modifier.segmentIds),
               startsAt: modifier.startsAt ?? null,
               endsAt: modifier.endsAt ?? null,
@@ -61,27 +69,33 @@ export function presentProgramRules(value: Record<string, unknown>): Record<stri
   const earning = value.earning as Record<string, unknown> | undefined;
   return {
     ...value,
-    eligibility: eligibility ? {
-      ...eligibility,
-      segmentIds: encodeSegments(eligibility.segmentIds),
-      excludedSegmentIds: encodeSegments(eligibility.excludedSegmentIds),
-    } : eligibility,
-    earning: earning ? {
-      ...earning,
-      excludedSelectors: encodeSelectors(earning.excludedSelectors),
-      modifiers: Array.isArray(earning.modifiers)
-        ? earning.modifiers.map((item) => {
-            const modifier = item as Record<string, unknown>;
-            return {
-              ...modifier,
-              selector: modifier.selector
-                ? encodeSelectorIds(modifier.selector as { type: string; ids: readonly string[] })
-                : modifier.selector,
-              segmentIds: encodeSegments(modifier.segmentIds),
-            };
-          })
-        : earning.modifiers,
-    } : earning,
+    eligibility: eligibility
+      ? {
+          ...eligibility,
+          segmentIds: encodeSegments(eligibility.segmentIds),
+          excludedSegmentIds: encodeSegments(eligibility.excludedSegmentIds),
+        }
+      : eligibility,
+    earning: earning
+      ? {
+          ...earning,
+          excludedSelectors: encodeSelectors(earning.excludedSelectors),
+          modifiers: Array.isArray(earning.modifiers)
+            ? earning.modifiers.map((item) => {
+                const modifier = item as Record<string, unknown>;
+                return {
+                  ...modifier,
+                  selector: modifier.selector
+                    ? encodeSelectorIds(
+                        modifier.selector as { type: string; ids: readonly string[] },
+                      )
+                    : modifier.selector,
+                  segmentIds: encodeSegments(modifier.segmentIds),
+                };
+              })
+            : earning.modifiers,
+        }
+      : earning,
   };
 }
 
@@ -93,7 +107,9 @@ function encodeSegments(value: unknown): unknown {
 
 function encodeSelectors(value: unknown): unknown {
   return Array.isArray(value)
-    ? value.map((selector) => encodeSelectorIds(selector as { type: string; ids: readonly string[] }))
+    ? value.map((selector) =>
+        encodeSelectorIds(selector as { type: string; ids: readonly string[] }),
+      )
     : value;
 }
 
@@ -105,6 +121,8 @@ function decodeSegments(value: unknown): unknown {
 
 function decodeSelectors(value: unknown): unknown {
   return Array.isArray(value)
-    ? value.map((selector) => decodeSelectorIds(selector as { type: string; ids: readonly string[] }))
+    ? value.map((selector) =>
+        decodeSelectorIds(selector as { type: string; ids: readonly string[] }),
+      )
     : [];
 }

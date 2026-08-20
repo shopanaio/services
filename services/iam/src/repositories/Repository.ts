@@ -66,7 +66,7 @@ export class Repository {
     applicationTokenValidation: ApplicationTokenValidationRepository,
     serviceLinkedResource: ServiceLinkedResourceRepository,
     casbin: CasbinService,
-    txManager: TransactionManager<Database>
+    txManager: TransactionManager<Database>,
   ) {
     this.user = user;
     this.applicationUser = applicationUser;
@@ -89,12 +89,7 @@ export class Repository {
    * Create Repository with database and auth instances
    */
   static async create(config: RepositoryConfig): Promise<Repository> {
-    const {
-      db,
-      auth,
-      applicationAuthKeyring,
-      applicationAuthLiveStateInvalidation,
-    } = config;
+    const { db, auth, applicationAuthKeyring, applicationAuthLiveStateInvalidation } = config;
 
     // Create transaction manager
     const txManager = new TransactionManager(db);
@@ -109,45 +104,34 @@ export class Repository {
     const applicationUserRepo = new ApplicationUserRepositoryFactory(
       db,
       txManager,
-      applicationAuthLiveStateInvalidation
+      applicationAuthLiveStateInvalidation,
     );
     const organizationRepo = new OrganizationRepository(db, txManager);
     const applicationRepo = new ApplicationRepository(db, txManager);
-    const applicationAuthAdminQueryRepo =
-      new ApplicationAuthAdminQueryRepository(
-        db,
-        txManager,
-        applicationAuthKeyring
-      );
-    const applicationAuthAdminMutationRepo =
-      new ApplicationAuthAdminMutationRepository(
-        db,
-        txManager,
-        applicationAuthKeyring
-      );
-    const applicationAuthAdminAuditRepo = new ApplicationAuthAdminAuditRepository(
+    const applicationAuthAdminQueryRepo = new ApplicationAuthAdminQueryRepository(
       db,
-      txManager
+      txManager,
+      applicationAuthKeyring,
     );
-    const applicationAuthConfigurationRepo =
-      new ApplicationAuthConfigurationRepository(
-        db,
-        txManager,
-        applicationAuthKeyring,
-        applicationAuthLiveStateInvalidation
-      );
-    const applicationAuthorizationContextRepo =
-      new ApplicationAuthorizationContextRepository(db, txManager);
-    const applicationOAuthClientRepo = new ApplicationOAuthClientRepository(
+    const applicationAuthAdminMutationRepo = new ApplicationAuthAdminMutationRepository(
       db,
-      txManager
+      txManager,
+      applicationAuthKeyring,
     );
-    const applicationTokenValidationRepo =
-      new ApplicationTokenValidationRepository(db, txManager);
-    const serviceLinkedResourceRepo = new ServiceLinkedResourceRepository(
+    const applicationAuthAdminAuditRepo = new ApplicationAuthAdminAuditRepository(db, txManager);
+    const applicationAuthConfigurationRepo = new ApplicationAuthConfigurationRepository(
       db,
-      txManager
+      txManager,
+      applicationAuthKeyring,
+      applicationAuthLiveStateInvalidation,
     );
+    const applicationAuthorizationContextRepo = new ApplicationAuthorizationContextRepository(
+      db,
+      txManager,
+    );
+    const applicationOAuthClientRepo = new ApplicationOAuthClientRepository(db, txManager);
+    const applicationTokenValidationRepo = new ApplicationTokenValidationRepository(db, txManager);
+    const serviceLinkedResourceRepo = new ServiceLinkedResourceRepository(db, txManager);
 
     return new Repository(
       userRepo,
@@ -164,7 +148,7 @@ export class Repository {
       applicationTokenValidationRepo,
       serviceLinkedResourceRepo,
       casbinService,
-      txManager
+      txManager,
     );
   }
 }

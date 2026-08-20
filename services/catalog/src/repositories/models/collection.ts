@@ -58,41 +58,28 @@ export const collection = catalogSchema.table(
     check("collection_type_check", sql`type IN ('manual', 'rule')`),
     check(
       "collection_default_sort_check",
-      sql`default_sort IN ('manual', 'price', 'newest', 'name')`
+      sql`default_sort IN ('manual', 'price', 'newest', 'name')`,
     ),
     check(
       "collection_default_sort_direction_check",
-      sql`default_sort_direction IN ('asc', 'desc')`
+      sql`default_sort_direction IN ('asc', 'desc')`,
     ),
     check(
       "collection_default_sort_direction_pair_check",
       sql`(default_sort = 'manual' AND default_sort_direction = 'asc')
         OR (default_sort = 'newest' AND default_sort_direction = 'desc')
-        OR (default_sort IN ('price', 'name') AND default_sort_direction IN ('asc', 'desc'))`
+        OR (default_sort IN ('price', 'name') AND default_sort_direction IN ('asc', 'desc'))`,
     ),
-    check(
-      "collection_rule_manual_sort_check",
-      sql`type != 'rule' OR default_sort != 'manual'`
-    ),
+    check("collection_rule_manual_sort_check", sql`type != 'rule' OR default_sort != 'manual'`),
     check(
       "collection_effective_range_check",
-      sql`effective_to IS NULL OR effective_from IS NULL OR effective_to > effective_from`
+      sql`effective_to IS NULL OR effective_from IS NULL OR effective_to > effective_from`,
     ),
-    check(
-      "collection_revision_check",
-      sql`revision BETWEEN 0 AND 2147483646`
-    ),
-    check(
-      "collection_listing_revision_check",
-      sql`listing_revision BETWEEN 0 AND 2147483646`
-    ),
+    check("collection_revision_check", sql`revision BETWEEN 0 AND 2147483646`),
+    check("collection_listing_revision_check", sql`listing_revision BETWEEN 0 AND 2147483646`),
     uniqueIndex("collection_store_id_id_uniq").on(table.storeId, table.id),
-    index("idx_collection_scheduling").on(
-      table.storeId,
-      table.effectiveFrom,
-      table.effectiveTo
-    ),
-  ]
+    index("idx_collection_scheduling").on(table.storeId, table.effectiveFrom, table.effectiveTo),
+  ],
 );
 
 export const collectionTranslation = catalogSchema.table(
@@ -113,11 +100,8 @@ export const collectionTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.collectionId, table.locale] }),
-    index("idx_collection_translation_store_locale").on(
-      table.storeId,
-      table.locale
-    ),
-  ]
+    index("idx_collection_translation_store_locale").on(table.storeId, table.locale),
+  ],
 );
 
 export const collectionSeo = catalogSchema.table(
@@ -137,7 +121,7 @@ export const collectionSeo = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.collectionId, table.locale] }),
     index("idx_collection_seo_store_locale").on(table.storeId, table.locale),
-  ]
+  ],
 );
 
 export const collectionMedia = catalogSchema.table(
@@ -150,7 +134,7 @@ export const collectionMedia = catalogSchema.table(
     storeId: uuid("store_id").notNull(),
     sortIndex: integer("sort_index").notNull().default(0),
   },
-  (table) => [primaryKey({ columns: [table.collectionId, table.fileId] })]
+  (table) => [primaryKey({ columns: [table.collectionId, table.fileId] })],
 );
 
 export const collectionItem = catalogSchema.table(
@@ -175,9 +159,9 @@ export const collectionItem = catalogSchema.table(
       table.storeId,
       table.collectionId,
       table.lexoRank,
-      table.productId
+      table.productId,
     ),
-  ]
+  ],
 );
 
 export const collectionRule = catalogSchema.table(
@@ -200,26 +184,22 @@ export const collectionRule = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    index("idx_collection_rule_collection").on(
-      table.storeId,
-      table.collectionId,
-      table.sortIndex
-    ),
+    index("idx_collection_rule_collection").on(table.storeId, table.collectionId, table.sortIndex),
     uniqueIndex("collection_rule_store_collection_sort_uniq").on(
       table.storeId,
       table.collectionId,
-      table.sortIndex
+      table.sortIndex,
     ),
     check(
       "collection_rule_field_check",
-      sql`field IN ('category', 'tag', 'vendor', 'feature', 'option', 'price', 'in_stock', 'created_at')`
+      sql`field IN ('category', 'tag', 'vendor', 'feature', 'option', 'price', 'in_stock', 'created_at')`,
     ),
     check(
       "collection_rule_operator_check",
-      sql`operator IN ('in', 'all', 'eq', 'gt', 'gte', 'lt', 'lte', 'between')`
+      sql`operator IN ('in', 'all', 'eq', 'gt', 'gte', 'lt', 'lte', 'between')`,
     ),
     check("collection_rule_sort_index_check", sql`sort_index >= 0`),
-  ]
+  ],
 );
 
 export const collectionMutationReceipt = catalogSchema.table(
@@ -242,12 +222,9 @@ export const collectionMutationReceipt = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.storeId, table.workflowId] }),
-    check(
-      "collection_mutation_receipt_hash_check",
-      sql`request_hash ~ '^sha256:v1:[0-9a-f]{64}$'`
-    ),
+    check("collection_mutation_receipt_hash_check", sql`request_hash ~ '^sha256:v1:[0-9a-f]{64}$'`),
     index("idx_collection_mutation_receipt_cleanup").on(table.completedAt),
-  ]
+  ],
 );
 
 export const collectionProductSyncOperation = catalogSchema.table(
@@ -279,24 +256,24 @@ export const collectionProductSyncOperation = catalogSchema.table(
     }).onDelete("cascade"),
     uniqueIndex("collection_product_sync_operation_workflow_uniq").on(
       table.storeId,
-      table.workflowId
+      table.workflowId,
     ),
     check(
       "collection_product_sync_operation_status_check",
-      sql`status IN ('pending', 'completed')`
+      sql`status IN ('pending', 'completed')`,
     ),
     check(
       "collection_product_sync_operation_reason_check",
-      sql`reason IN ('add', 'remove', 'move', 'rebalance', 'clear')`
+      sql`reason IN ('add', 'remove', 'move', 'rebalance', 'clear')`,
     ),
     check(
       "collection_product_sync_operation_counts_check",
-      sql`affected_count >= 0 AND emitted_count >= 0 AND emitted_count <= affected_count`
+      sql`affected_count >= 0 AND emitted_count >= 0 AND emitted_count <= affected_count`,
     ),
     index("idx_collection_product_sync_operation_cleanup")
       .on(table.status, table.completedAt)
       .where(sql`status = 'completed'`),
-  ]
+  ],
 );
 
 export const collectionProductSyncItem = catalogSchema.table(
@@ -314,7 +291,7 @@ export const collectionProductSyncItem = catalogSchema.table(
     index("idx_collection_product_sync_item_pending")
       .on(table.storeId, table.operationId, table.productId)
       .where(sql`emitted_at IS NULL`),
-  ]
+  ],
 );
 
 export type Collection = typeof collection.$inferSelect;
@@ -329,9 +306,6 @@ export type CollectionItem = typeof collectionItem.$inferSelect;
 export type NewCollectionItem = typeof collectionItem.$inferInsert;
 export type CollectionRule = typeof collectionRule.$inferSelect;
 export type NewCollectionRule = typeof collectionRule.$inferInsert;
-export type CollectionMutationReceipt =
-  typeof collectionMutationReceipt.$inferSelect;
-export type CollectionProductSyncOperation =
-  typeof collectionProductSyncOperation.$inferSelect;
-export type CollectionProductSyncItem =
-  typeof collectionProductSyncItem.$inferSelect;
+export type CollectionMutationReceipt = typeof collectionMutationReceipt.$inferSelect;
+export type CollectionProductSyncOperation = typeof collectionProductSyncOperation.$inferSelect;
+export type CollectionProductSyncItem = typeof collectionProductSyncItem.$inferSelect;

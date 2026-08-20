@@ -11,10 +11,7 @@ import {
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
-import {
-  category,
-  productCategory,
-} from "../repositories/models/index.js";
+import { category, productCategory } from "../repositories/models/index.js";
 import { CategoryUpdateContentScript } from "../scripts/category/CategoryUpdateContentScript.js";
 import { CategoryUpdateHierarchyScript } from "../scripts/category/CategoryUpdateHierarchyScript.js";
 import { CategoryUpdateIdentityScript } from "../scripts/category/CategoryUpdateIdentityScript.js";
@@ -59,9 +56,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CategoryUpdateWorkflowInput,
-  ): Promise<CategoryUpdateWorkflowResult> {
+  async run(input: CategoryUpdateWorkflowInput): Promise<CategoryUpdateWorkflowResult> {
     const acquired = await this.stepAcquireRevision(
       input.categoryId,
       input.context.storeId,
@@ -98,11 +93,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
         input.context.storeId,
       );
       if (affectedProductIds.length > 0) {
-        await this.workflowEmitProductUpdatedEvents(
-          input,
-          affectedProductIds,
-          changes,
-        );
+        await this.workflowEmitProductUpdatedEvents(input, affectedProductIds, changes);
       }
     }
 
@@ -145,11 +136,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
       .select({ id: category.id })
       .from(category)
       .where(
-        and(
-          eq(category.storeId, storeId),
-          eq(category.id, categoryId),
-          isNull(category.deletedAt),
-        ),
+        and(eq(category.storeId, storeId), eq(category.id, categoryId), isNull(category.deletedAt)),
       )
       .limit(1)
       .then((result) => result.length > 0);
@@ -194,8 +181,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
 
     if (
       params.content &&
-      (params.content.description !== undefined ||
-        params.content.excerpt !== undefined)
+      (params.content.description !== undefined || params.content.excerpt !== undefined)
     ) {
       const result = await this.kernel.runScript(
         CategoryUpdateContentScript,
@@ -240,10 +226,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
       mergeCategoryChanges(changes, result.changes);
     }
 
-    if (
-      params.hierarchy &&
-      Object.prototype.hasOwnProperty.call(params.hierarchy, "parentId")
-    ) {
+    if (params.hierarchy && Object.prototype.hasOwnProperty.call(params.hierarchy, "parentId")) {
       const result = await this.kernel.runScript(
         CategoryUpdateHierarchyScript,
         { categoryId, parentId: params.hierarchy.parentId ?? null },
@@ -275,19 +258,11 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep()
-  private async stepGetAffectedProductIds(
-    categoryId: string,
-    storeId: string,
-  ): Promise<string[]> {
+  private async stepGetAffectedProductIds(categoryId: string, storeId: string): Promise<string[]> {
     const rows = await this.kernel.db
       .select({ productId: productCategory.productId })
       .from(productCategory)
-      .where(
-        and(
-          eq(productCategory.storeId, storeId),
-          eq(productCategory.categoryId, categoryId),
-        ),
-      );
+      .where(and(eq(productCategory.storeId, storeId), eq(productCategory.categoryId, categoryId)));
 
     return rows.map((row) => row.productId);
   }
@@ -312,9 +287,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
             userId: input.context.userId,
           },
           subject: { type: "product", id: productId },
-          actor: input.context.userId
-            ? { type: "user", id: input.context.userId }
-            : undefined,
+          actor: input.context.userId ? { type: "user", id: input.context.userId } : undefined,
           emitKey: `product:${productId}`,
         },
         {
@@ -326,7 +299,6 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
       );
     }
   }
-
 }
 
 function getProductUpdatedReasons(changes: CategoryChanges): ["category"] {
@@ -343,8 +315,7 @@ function hasRequestedSections(
     operations.name !== undefined ||
     (operations.content !== null &&
       operations.content !== undefined &&
-      (operations.content.description !== undefined ||
-        operations.content.excerpt !== undefined)) ||
+      (operations.content.description !== undefined || operations.content.excerpt !== undefined)) ||
     operations.seo !== undefined ||
     operations.status !== undefined ||
     operations.media !== undefined ||

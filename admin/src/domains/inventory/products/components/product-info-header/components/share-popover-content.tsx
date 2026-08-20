@@ -1,12 +1,6 @@
 import { Button, Flex, Input, Tooltip } from "antd";
 import { LuCopy as CopyOutlined, LuCheck as CheckOutlined } from "react-icons/lu";
-import {
-  FaTelegramPlane,
-  FaWhatsapp,
-  FaFacebookF,
-  FaLinkedinIn,
-  FaViber,
-} from "react-icons/fa";
+import { FaTelegramPlane, FaWhatsapp, FaFacebookF, FaLinkedinIn, FaViber } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
 import { HiOutlineMail } from "react-icons/hi";
 import { useSharePopoverStyles } from "../product-info-header.styles";
@@ -29,24 +23,20 @@ const socialLinks: ISocialLink[] = [
     key: "X",
     icon: <FaXTwitter />,
     color: "#000000",
-    getUrl: (url) =>
-      `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`,
+    getUrl: (url) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`,
   },
   {
     key: "Facebook",
     icon: <FaFacebookF />,
     color: "#1877F2",
-    getUrl: (url) =>
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+    getUrl: (url) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
   },
   {
     key: "LinkedIn",
     icon: <FaLinkedinIn />,
     color: "#0A66C2",
     getUrl: (url) =>
-      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-        url
-      )}`,
+      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
   },
   {
     key: "Viber",
@@ -62,11 +52,7 @@ const socialLinks: ISocialLink[] = [
   },
 ];
 
-export const SharePopoverContent = ({
-  url,
-  copied,
-  onCopy,
-}: ISharePopoverProps) => {
+export const SharePopoverContent = ({ url, copied, onCopy }: ISharePopoverProps) => {
   const { styles } = useSharePopoverStyles();
 
   return (
@@ -92,10 +78,7 @@ export const SharePopoverContent = ({
         size="small"
         className={styles.shareInput}
         enterButton={
-          <Button
-            size="small"
-            icon={copied ? <CheckOutlined /> : <CopyOutlined />}
-          >
+          <Button size="small" icon={copied ? <CheckOutlined /> : <CopyOutlined />}>
             {copied ? "Copied" : "Copy"}
           </Button>
         }

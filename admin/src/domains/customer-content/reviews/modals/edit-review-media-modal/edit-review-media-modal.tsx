@@ -8,13 +8,18 @@ import type { ApiFile, ApiGenericUserError } from "@/graphql/types";
 import { ReviewContentStatus } from "@/graphql/types";
 import { EntityMediaGallery } from "@/domains/media/components/entity-media-gallery";
 import { useReviewConfiguration } from "@/domains/customer-content/management/hooks";
-import { humanizeEnum, reviewStatusConfig } from "../../components/review-details-card/review-details-card.utils";
+import {
+  humanizeEnum,
+  reviewStatusConfig,
+} from "../../components/review-details-card/review-details-card.utils";
 import type { ReviewMediaDraftItem } from "../../modals";
 import { useReviewMediaItemModal } from "../../modals";
 import { useReviewFormStyles } from "../shared/review-form.styles";
 import { ReviewModalFrame, useReviewSectionModal } from "../shared/review-section-modal";
 
-function draftFromReview(review: NonNullable<ReturnType<typeof useReviewSectionModal>["review"]>): ReviewMediaDraftItem[] {
+function draftFromReview(
+  review: NonNullable<ReturnType<typeof useReviewSectionModal>["review"]>,
+): ReviewMediaDraftItem[] {
   return review.media.map((item) => ({
     file: item.file,
     caption: item.caption ?? null,
@@ -53,15 +58,20 @@ export function EditReviewMediaModal() {
 
   const reconcileFiles = (files: ApiFile[]) => {
     const current = new Map(items.map((item) => [item.file.id, item]));
-    setItems(files.map((file) => current.get(file.id) ?? {
-      file,
-      caption: null,
-      status: ReviewContentStatus.Pending,
-      moderationNote: null,
-      moderatedByPrincipalId: null,
-      moderatedAt: null,
-      moderationDirty: false,
-    }));
+    setItems(
+      files.map(
+        (file) =>
+          current.get(file.id) ?? {
+            file,
+            caption: null,
+            status: ReviewContentStatus.Pending,
+            moderationNote: null,
+            moderatedByPrincipalId: null,
+            moderatedAt: null,
+            moderationDirty: false,
+          },
+      ),
+    );
     setDirty(true);
   };
 
@@ -83,7 +93,9 @@ export function EditReviewMediaModal() {
     openItem({
       item,
       onApply: (next: ReviewMediaDraftItem) => {
-        setItems((current) => current.map((candidate) => candidate.file.id === next.file.id ? next : candidate));
+        setItems((current) =>
+          current.map((candidate) => (candidate.file.id === next.file.id ? next : candidate)),
+        );
         setItemErrors((current) => {
           const nextErrors = { ...current };
           delete nextErrors[next.file.id];
@@ -102,7 +114,9 @@ export function EditReviewMediaModal() {
     openItem({
       item,
       onApply: (next: ReviewMediaDraftItem) => {
-        setItems((current) => current.map((candidate) => candidate.file.id === next.file.id ? next : candidate));
+        setItems((current) =>
+          current.map((candidate) => (candidate.file.id === next.file.id ? next : candidate)),
+        );
         setDirty(true);
       },
     });
@@ -143,7 +157,13 @@ export function EditReviewMediaModal() {
       name="review-edit-media"
       title="Edit customer media"
       loading={state.mutationLoading}
-      disabled={!dirty || !state.review || maxFiles === undefined || items.length > maxFiles || state.conflict}
+      disabled={
+        !dirty ||
+        !state.review ||
+        maxFiles === undefined ||
+        items.length > maxFiles ||
+        state.conflict
+      }
       onSubmit={() => void save()}
       onClose={state.pop}
       queryLoading={state.queryLoading}
@@ -166,7 +186,11 @@ export function EditReviewMediaModal() {
           accept="image/*,video/*"
           maxFiles={maxFiles}
           title="Customer media"
-          headerExtra={<Typography.Text type="secondary">{items.length} / {maxFiles ?? "…"}</Typography.Text>}
+          headerExtra={
+            <Typography.Text type="secondary">
+              {items.length} / {maxFiles ?? "…"}
+            </Typography.Text>
+          }
           emptyMessage="No customer media"
           renderListMeta={(file) => {
             const item = items.find((candidate) => candidate.file.id === file.id);
@@ -177,7 +201,9 @@ export function EditReviewMediaModal() {
                 <Tag color={config.color} icon={config.icon} className={styles.mediaItemMeta}>
                   {humanizeEnum(item.status)}
                 </Tag>
-                {itemErrors[file.id] ? <Typography.Text type="danger">{itemErrors[file.id]}</Typography.Text> : null}
+                {itemErrors[file.id] ? (
+                  <Typography.Text type="danger">{itemErrors[file.id]}</Typography.Text>
+                ) : null}
               </Flex>
             );
           }}

@@ -25,7 +25,9 @@ import {
 export const customerGroup = customersSchema.table(
   "customer_group",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     code: varchar("code", { length: 64 }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
@@ -42,36 +44,29 @@ export const customerGroup = customersSchema.table(
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
-    check(
-      "customer_group_code_check",
-      sql`${table.code} ~ '^[a-z0-9][a-z0-9_-]{0,63}$'`
-    ),
-    check(
-      "customer_group_name_check",
-      sql`length(btrim(${table.name})) > 0`
-    ),
-    check(
-      "customer_group_revision_nonnegative_check",
-      sql`${table.revision} >= 1`
-    ),
+    check("customer_group_code_check", sql`${table.code} ~ '^[a-z0-9][a-z0-9_-]{0,63}$'`),
+    check("customer_group_name_check", sql`length(btrim(${table.name})) > 0`),
+    check("customer_group_revision_nonnegative_check", sql`${table.revision} >= 1`),
     uniqueIndex("customer_group_store_code_unique")
       .on(table.storeId, table.code)
       .where(sql`${table.deletedAt} IS NULL`),
     uniqueIndex("customer_group_store_default_unique")
       .on(table.storeId)
       .where(
-        sql`${table.isDefault} = true AND ${table.isActive} = true AND ${table.deletedAt} IS NULL`
+        sql`${table.isDefault} = true AND ${table.isActive} = true AND ${table.deletedAt} IS NULL`,
       ),
     index("customer_group_store_active_idx")
       .on(table.storeId, table.isActive, sql`lower(${table.name})`, table.id)
       .where(sql`${table.deletedAt} IS NULL`),
-  ]
+  ],
 );
 
 export const customerGroupMembership = customersSchema.table(
   "customer_group_membership",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     customerId: uuid("customer_id")
       .notNull()
@@ -94,38 +89,37 @@ export const customerGroupMembership = customersSchema.table(
     }),
   },
   (table) => [
-    unique("customer_group_membership_customer_group_unique").on(
-      table.customerId,
-      table.groupId
-    ),
+    unique("customer_group_membership_customer_group_unique").on(table.customerId, table.groupId),
     uniqueIndex("customer_group_membership_primary_unique")
       .on(table.customerId)
       .where(sql`${table.isPrimary} = true AND ${table.expiresAt} IS NULL`),
     index("customer_group_membership_store_group_idx").on(
       table.storeId,
       table.groupId,
-      table.customerId
+      table.customerId,
     ),
     index("customer_group_membership_customer_idx").on(table.customerId),
     index("customer_group_membership_store_customer_group_idx").on(
       table.storeId,
       table.customerId,
       table.groupId,
-      table.expiresAt
+      table.expiresAt,
     ),
     index("customer_group_membership_store_group_expiry_idx").on(
       table.storeId,
       table.groupId,
       table.expiresAt,
-      table.customerId
+      table.customerId,
     ),
-  ]
+  ],
 );
 
 export const customerTag = customersSchema.table(
   "customer_tag",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     normalizedName: varchar("normalized_name", { length: 255 }).notNull(),
@@ -138,23 +132,22 @@ export const customerTag = customersSchema.table(
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
-    check(
-      "customer_tag_name_check",
-      sql`length(btrim(${table.normalizedName})) > 0`
-    ),
+    check("customer_tag_name_check", sql`length(btrim(${table.normalizedName})) > 0`),
     uniqueIndex("customer_tag_store_name_unique")
       .on(table.storeId, table.normalizedName)
       .where(sql`${table.deletedAt} IS NULL`),
     index("customer_tag_store_name_idx")
       .on(table.storeId, table.normalizedName, table.id)
       .where(sql`${table.deletedAt} IS NULL`),
-  ]
+  ],
 );
 
 export const customerTagAssignment = customersSchema.table(
   "customer_tag_assignment",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     customerId: uuid("customer_id")
       .notNull()
@@ -171,28 +164,23 @@ export const customerTagAssignment = customersSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("customer_tag_assignment_customer_tag_unique").on(
-      table.customerId,
-      table.tagId
-    ),
-    index("customer_tag_assignment_store_tag_idx").on(
-      table.storeId,
-      table.tagId,
-      table.customerId
-    ),
+    unique("customer_tag_assignment_customer_tag_unique").on(table.customerId, table.tagId),
+    index("customer_tag_assignment_store_tag_idx").on(table.storeId, table.tagId, table.customerId),
     index("customer_tag_assignment_customer_idx").on(table.customerId),
     index("customer_tag_assignment_store_customer_tag_idx").on(
       table.storeId,
       table.customerId,
-      table.tagId
+      table.tagId,
     ),
-  ]
+  ],
 );
 
 export const customerSegment = customersSchema.table(
   "customer_segment",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
@@ -200,14 +188,14 @@ export const customerSegment = customersSchema.table(
     type: customerSegmentTypeEnum("type").notNull(),
     status: customerSegmentStatusEnum("status").notNull().default("DRAFT"),
     query: text("query"),
-    definition: jsonb("definition").notNull().default(sql`'{}'::jsonb`),
+    definition: jsonb("definition")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     createdById: text("created_by_id"),
     revision: integer("revision").notNull().default(1),
     definitionRevision: integer("definition_revision").notNull().default(1),
     evaluationGeneration: integer("evaluation_generation").notNull().default(0),
-    materializationStatus: customerSegmentMaterializationStatusEnum(
-      "materialization_status"
-    ),
+    materializationStatus: customerSegmentMaterializationStatusEnum("materialization_status"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -217,10 +205,7 @@ export const customerSegment = customersSchema.table(
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
-    check(
-      "customer_segment_name_check",
-      sql`length(btrim(${table.name})) > 0`
-    ),
+    check("customer_segment_name_check", sql`length(btrim(${table.name})) > 0`),
     check(
       "customer_segment_dynamic_definition_check",
       sql`(${table.type} = 'DYNAMIC'
@@ -229,28 +214,25 @@ export const customerSegment = customersSchema.table(
           AND ${table.definition} ->> 'version' = '1')
         OR (${table.type} = 'MANUAL'
           AND ${table.query} IS NULL
-          AND ${table.definition} = '{}'::jsonb)`
+          AND ${table.definition} = '{}'::jsonb)`,
     ),
     check(
       "customer_segment_color_check",
-      sql`${table.color} IS NULL OR ${table.color} ~ '^#[0-9A-Fa-f]{6}$'`
+      sql`${table.color} IS NULL OR ${table.color} ~ '^#[0-9A-Fa-f]{6}$'`,
     ),
-    check(
-      "customer_segment_revision_nonnegative_check",
-      sql`${table.revision} >= 1`
-    ),
+    check("customer_segment_revision_nonnegative_check", sql`${table.revision} >= 1`),
     check(
       "customer_segment_definition_revision_nonnegative_check",
-      sql`${table.definitionRevision} >= 1`
+      sql`${table.definitionRevision} >= 1`,
     ),
     check(
       "customer_segment_evaluation_generation_nonnegative_check",
-      sql`${table.evaluationGeneration} >= 0`
+      sql`${table.evaluationGeneration} >= 0`,
     ),
     check(
       "customer_segment_materialization_type_check",
       sql`(${table.type} = 'DYNAMIC' AND ${table.materializationStatus} IS NOT NULL)
-        OR (${table.type} = 'MANUAL' AND ${table.materializationStatus} IS NULL AND ${table.evaluationGeneration} = 0)`
+        OR (${table.type} = 'MANUAL' AND ${table.materializationStatus} IS NULL AND ${table.evaluationGeneration} = 0)`,
     ),
     uniqueIndex("customer_segment_store_name_unique")
       .on(table.storeId, sql`lower(${table.name})`)
@@ -259,13 +241,15 @@ export const customerSegment = customersSchema.table(
     index("customer_segment_store_status_idx")
       .on(table.storeId, table.status, table.type, table.id)
       .where(sql`${table.deletedAt} IS NULL`),
-  ]
+  ],
 );
 
 export const customerSegmentMembership = customersSchema.table(
   "customer_segment_membership",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     customerId: uuid("customer_id")
       .notNull()
@@ -300,7 +284,7 @@ export const customerSegmentMembership = customersSchema.table(
     }).onDelete("cascade"),
     unique("customer_segment_membership_customer_segment_unique").on(
       table.customerId,
-      table.segmentId
+      table.segmentId,
     ),
     check(
       "customer_segment_membership_definition_revision_check",
@@ -309,20 +293,20 @@ export const customerSegmentMembership = customersSchema.table(
           AND ${table.evaluatedGeneration} IS NOT NULL)
         OR (${table.source} <> 'RULE'
           AND ${table.evaluatedDefinitionRevision} IS NULL
-          AND ${table.evaluatedGeneration} IS NULL)`
+          AND ${table.evaluatedGeneration} IS NULL)`,
     ),
     check(
       "customer_segment_membership_definition_revision_nonnegative_check",
-      sql`${table.evaluatedDefinitionRevision} IS NULL OR ${table.evaluatedDefinitionRevision} >= 0`
+      sql`${table.evaluatedDefinitionRevision} IS NULL OR ${table.evaluatedDefinitionRevision} >= 0`,
     ),
     check(
       "customer_segment_membership_generation_nonnegative_check",
-      sql`${table.evaluatedGeneration} IS NULL OR ${table.evaluatedGeneration} >= 0`
+      sql`${table.evaluatedGeneration} IS NULL OR ${table.evaluatedGeneration} >= 0`,
     ),
     index("customer_segment_membership_store_segment_idx").on(
       table.storeId,
       table.segmentId,
-      table.customerId
+      table.customerId,
     ),
     index("customer_segment_membership_customer_idx").on(table.customerId),
     index("customer_segment_membership_expiry_idx")
@@ -332,9 +316,9 @@ export const customerSegmentMembership = customersSchema.table(
       table.storeId,
       table.customerId,
       table.expiresAt,
-      table.segmentId
+      table.segmentId,
     ),
-  ]
+  ],
 );
 
 export type CustomerGroup = typeof customerGroup.$inferSelect;

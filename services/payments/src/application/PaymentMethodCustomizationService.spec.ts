@@ -94,9 +94,7 @@ function params(): Payments.ConfigurePaymentMethodCustomizationParams {
   };
 }
 
-function route(
-  overrides: Partial<Apps.CapabilityRoute> = {},
-): Apps.CapabilityRoute {
+function route(overrides: Partial<Apps.CapabilityRoute> = {}): Apps.CapabilityRoute {
   return {
     capabilityRouteId: "capability-route-1",
     installationId: INSTALLATION_ID,

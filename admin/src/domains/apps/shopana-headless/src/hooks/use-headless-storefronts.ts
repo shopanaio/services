@@ -23,18 +23,10 @@ export function useHeadlessStorefronts(sdk: AdminAppSdk) {
     try {
       const data = await sdk.graphql.query(HEADLESS_STOREFRONTS_QUERY, {});
       setStorefronts(data.headlessAppQuery.headlessStorefrontConnections);
-      setPermissionCatalog(
-        data.headlessAppQuery.headlessStorefrontPermissionCatalog,
-      );
-      setDefaultPermissions(
-        data.headlessAppQuery.headlessStorefrontDefaultPermissions,
-      );
+      setPermissionCatalog(data.headlessAppQuery.headlessStorefrontPermissionCatalog);
+      setDefaultPermissions(data.headlessAppQuery.headlessStorefrontDefaultPermissions);
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause
-          : new Error("Unable to load storefronts."),
-      );
+      setError(cause instanceof Error ? cause : new Error("Unable to load storefronts."));
     } finally {
       setLoading(false);
     }
@@ -48,21 +40,13 @@ export function useHeadlessStorefronts(sdk: AdminAppSdk) {
       .then((data) => {
         if (!active) return;
         setStorefronts(data.headlessAppQuery.headlessStorefrontConnections);
-        setPermissionCatalog(
-          data.headlessAppQuery.headlessStorefrontPermissionCatalog,
-        );
-        setDefaultPermissions(
-          data.headlessAppQuery.headlessStorefrontDefaultPermissions,
-        );
+        setPermissionCatalog(data.headlessAppQuery.headlessStorefrontPermissionCatalog);
+        setDefaultPermissions(data.headlessAppQuery.headlessStorefrontDefaultPermissions);
         setLoading(false);
       })
       .catch((cause: unknown) => {
         if (!active) return;
-        setError(
-          cause instanceof Error
-            ? cause
-            : new Error("Unable to load storefronts."),
-        );
+        setError(cause instanceof Error ? cause : new Error("Unable to load storefronts."));
         setLoading(false);
       });
 

@@ -6,10 +6,7 @@ import { createStyles } from "antd-style";
 import type { AdminAppModalProps } from "@shopana/admin-app-sdk";
 import { Paper } from "@/ui-kit/paper";
 import { useHeadlessStorefrontActions } from "../hooks";
-import type {
-  DisconnectStorefrontModalPayload,
-  DisconnectStorefrontModalResult,
-} from ".";
+import type { DisconnectStorefrontModalPayload, DisconnectStorefrontModalResult } from ".";
 
 const useStyles = createStyles(({ token }) => ({
   warningList: {
@@ -100,8 +97,7 @@ export default function DisconnectStorefrontModal({
         />
 
         <Typography.Text className={styles.label}>
-          Type <span className={styles.confirmText}>{confirmationText}</span> to
-          confirm
+          Type <span className={styles.confirmText}>{confirmationText}</span> to confirm
         </Typography.Text>
         <Input
           autoFocus

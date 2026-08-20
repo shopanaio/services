@@ -22,10 +22,12 @@ export const PAYMENT_METHOD_CUSTOMIZATION_POLICY_REVISION = contentRevision(
 );
 
 export class PaymentMethodCustomizationService {
-  constructor(private readonly dependencies: {
-    bindings: PaymentCustomizationBindingsPort;
-    routes: PaymentFunctionRoutesPort;
-  }) {}
+  constructor(
+    private readonly dependencies: {
+      bindings: PaymentCustomizationBindingsPort;
+      routes: PaymentFunctionRoutesPort;
+    },
+  ) {}
 
   async configure(
     params: Payments.ConfigurePaymentMethodCustomizationParams,
@@ -38,17 +40,14 @@ export class PaymentMethodCustomizationService {
       const activeBindings = [
         ...existing.filter(
           (binding) =>
-            binding.functionBindingId !== params.functionBindingId &&
-            binding.status === "ACTIVE",
+            binding.functionBindingId !== params.functionBindingId && binding.status === "ACTIVE",
         ),
         ...(params.bindingStatus === "ACTIVE" ? [params] : []),
       ];
       if (activeBindings.length === 0) {
         throw new Error("PAYMENT_CUSTOMIZATION_BINDING_NOT_ACTIVE");
       }
-      await Promise.all(
-        activeBindings.map((binding) => this.confirmBindingRoute(binding)),
-      );
+      await Promise.all(activeBindings.map((binding) => this.confirmBindingRoute(binding)));
     } else {
       await this.confirmBindingRoute(params);
     }

@@ -15,11 +15,7 @@ import type {
   ReviewContentUpdateInput,
 } from "../../resolvers/admin/generated/types.js";
 
-type ContentKind =
-  | "REVIEW"
-  | "REVIEW_REPLY"
-  | "PRODUCT_QUESTION"
-  | "QUESTION_ANSWER";
+type ContentKind = "REVIEW" | "REVIEW_REPLY" | "PRODUCT_QUESTION" | "QUESTION_ANSWER";
 
 export interface ContentPatchMappingResult {
   patch: ContentPatch;
@@ -40,10 +36,7 @@ export interface NestedContentUpdateMappingResult {
     >
   >;
   publications?: Array<
-    Omit<
-      NewContentPublication,
-      "id" | "storeId" | "contentId" | "createdAt" | "updatedAt"
-    >
+    Omit<NewContentPublication, "id" | "storeId" | "contentId" | "createdAt" | "updatedAt">
   >;
   errors: UserError[];
 }
@@ -52,7 +45,7 @@ export function mapContentTextUpdate(
   current: ContentItem,
   input: ReviewContentTextUpdateInput,
   kind: ContentKind,
-  fieldPrefix: string[] = []
+  fieldPrefix: string[] = [],
 ): ContentPatchMappingResult {
   const patch: ContentPatch = {};
   const errors: UserError[] = [];
@@ -109,7 +102,7 @@ export function mapContentTextUpdate(
 export function mapContentAuthorUpdate(
   current: ContentItem,
   input: ReviewContentAuthorUpdateInput,
-  fieldPrefix: string[] = []
+  fieldPrefix: string[] = [],
 ): ContentPatchMappingResult {
   const patch: ContentPatch = {};
   const errors: UserError[] = [];
@@ -166,9 +159,7 @@ export function mapContentAuthorUpdate(
   const resultingCustomerId = hasOwn(patch, "authorCustomerId")
     ? patch.authorCustomerId
     : current.authorCustomerId;
-  const resultingEmail = hasOwn(patch, "authorEmail")
-    ? patch.authorEmail
-    : current.authorEmail;
+  const resultingEmail = hasOwn(patch, "authorEmail") ? patch.authorEmail : current.authorEmail;
   if (resultingType === "CUSTOMER" && !resultingCustomerId) {
     errors.push({
       message: "Customer authors require customerId",
@@ -190,7 +181,7 @@ export function mapContentAuthorUpdate(
 export function mapContentSourceUpdate(
   current: ContentItem,
   input: ReviewContentSourceUpdateInput,
-  fieldPrefix: string[] = []
+  fieldPrefix: string[] = [],
 ): ContentPatchMappingResult {
   const patch: ContentPatch = {};
   const errors: UserError[] = [];
@@ -231,7 +222,7 @@ export function mapContentModerationUpdate(
   current: ContentItem,
   input: ReviewContentModerationInput,
   actorId?: string,
-  fieldPrefix: string[] = []
+  fieldPrefix: string[] = [],
 ): ContentPatchMappingResult {
   const moderationNote = input.moderationNote?.trim() || null;
   const errors: UserError[] = [];
@@ -249,10 +240,7 @@ export function mapContentModerationUpdate(
       field: [...fieldPrefix, "moderationNote"],
     });
   }
-  if (
-    input.status === current.status &&
-    moderationNote === current.moderationNote
-  ) {
+  if (input.status === current.status && moderationNote === current.moderationNote) {
     return { patch: {}, errors };
   }
 
@@ -260,7 +248,7 @@ export function mapContentModerationUpdate(
   const patch: ContentPatch = {
     status: input.status,
     moderationNote,
-    moderatedByPrincipalId: input.status === "PENDING" ? null : actorId ?? null,
+    moderatedByPrincipalId: input.status === "PENDING" ? null : (actorId ?? null),
     moderatedAt: input.status === "PENDING" ? null : now,
   };
   if (input.status === "PUBLISHED") {
@@ -276,7 +264,7 @@ export function mapContentTranslations(
   inputs: readonly ReviewContentTranslationSyncInput[],
   kind: ContentKind,
   actorId?: string,
-  fieldPrefix: string[] = []
+  fieldPrefix: string[] = [],
 ): ContentCollectionMappingResult<
   Omit<
     NewContentTranslation,
@@ -290,19 +278,33 @@ export function mapContentTranslations(
     const locale = input.locale.trim();
     const title = input.title?.trim() || null;
     const body = input.body.trim();
-    const status = (input.status ?? "PENDING") as NonNullable<
-      NewContentTranslation["status"]
-    >;
+    const status = (input.status ?? "PENDING") as NonNullable<NewContentTranslation["status"]>;
     if (!locale || locale.length > 35) {
-      errors.push({ message: "Locale must contain between 1 and 35 characters", code: "INVALID_LOCALE", field: [...itemPrefix, "locale"] });
+      errors.push({
+        message: "Locale must contain between 1 and 35 characters",
+        code: "INVALID_LOCALE",
+        field: [...itemPrefix, "locale"],
+      });
     } else if (locales.has(locale)) {
-      errors.push({ message: "Translation locale must be unique", code: "DUPLICATE_LOCALE", field: [...itemPrefix, "locale"] });
+      errors.push({
+        message: "Translation locale must be unique",
+        code: "DUPLICATE_LOCALE",
+        field: [...itemPrefix, "locale"],
+      });
     }
     locales.add(locale);
     if (kind !== "REVIEW" && title !== null) {
-      errors.push({ message: "Only reviews may have a title", code: "INVALID_TITLE", field: [...itemPrefix, "title"] });
+      errors.push({
+        message: "Only reviews may have a title",
+        code: "INVALID_TITLE",
+        field: [...itemPrefix, "title"],
+      });
     } else if (title !== null && title.length > 150) {
-      errors.push({ message: "Title cannot exceed 150 characters", code: "INVALID_TITLE", field: [...itemPrefix, "title"] });
+      errors.push({
+        message: "Title cannot exceed 150 characters",
+        code: "INVALID_TITLE",
+        field: [...itemPrefix, "title"],
+      });
     }
     const minimumLength = minimumBodyLength(kind);
     if (body.length < minimumLength || body.length > 5000) {
@@ -326,7 +328,7 @@ export function mapContentTranslations(
       body,
       source: input.source,
       status,
-      reviewedByPrincipalId: reviewed ? actorId ?? null : null,
+      reviewedByPrincipalId: reviewed ? (actorId ?? null) : null,
       reviewedAt: reviewed ? new Date().toISOString() : null,
     };
   });
@@ -335,12 +337,9 @@ export function mapContentTranslations(
 
 export function mapContentPublications(
   inputs: readonly ReviewContentPublicationSyncInput[],
-  fieldPrefix: string[] = []
+  fieldPrefix: string[] = [],
 ): ContentCollectionMappingResult<
-  Omit<
-    NewContentPublication,
-    "id" | "storeId" | "contentId" | "createdAt" | "updatedAt"
-  >
+  Omit<NewContentPublication, "id" | "storeId" | "contentId" | "createdAt" | "updatedAt">
 > {
   const errors: UserError[] = [];
   const destinations = new Set<string>();
@@ -350,16 +349,32 @@ export function mapContentPublications(
     const locale = input.locale?.trim() || null;
     const destination = `${channel}\u0000${locale ?? ""}`;
     if (!channel || channel.length > 64) {
-      errors.push({ message: "Publication channel must contain between 1 and 64 characters", code: "INVALID_CHANNEL", field: [...itemPrefix, "channel"] });
+      errors.push({
+        message: "Publication channel must contain between 1 and 64 characters",
+        code: "INVALID_CHANNEL",
+        field: [...itemPrefix, "channel"],
+      });
     } else if (destinations.has(destination)) {
-      errors.push({ message: "Publication destination must be unique", code: "DUPLICATE_DESTINATION", field: itemPrefix });
+      errors.push({
+        message: "Publication destination must be unique",
+        code: "DUPLICATE_DESTINATION",
+        field: itemPrefix,
+      });
     }
     if (locale && locale.length > 35) {
-      errors.push({ message: "Publication locale cannot exceed 35 characters", code: "INVALID_LOCALE", field: [...itemPrefix, "locale"] });
+      errors.push({
+        message: "Publication locale cannot exceed 35 characters",
+        code: "INVALID_LOCALE",
+        field: [...itemPrefix, "locale"],
+      });
     }
     destinations.add(destination);
     if (input.status === "SCHEDULED" && !input.scheduledAt) {
-      errors.push({ message: "Scheduled publication requires scheduledAt", code: "INVALID_SCHEDULE", field: [...itemPrefix, "scheduledAt"] });
+      errors.push({
+        message: "Scheduled publication requires scheduledAt",
+        code: "INVALID_SCHEDULE",
+        field: [...itemPrefix, "scheduledAt"],
+      });
     }
     if (
       input.status === "SCHEDULED" &&
@@ -367,17 +382,25 @@ export function mapContentPublications(
       (!Number.isFinite(Date.parse(input.scheduledAt)) ||
         Date.parse(input.scheduledAt) < Date.now())
     ) {
-      errors.push({ message: "Scheduled publication must use a valid future date", code: "INVALID_SCHEDULE", field: [...itemPrefix, "scheduledAt"] });
+      errors.push({
+        message: "Scheduled publication must use a valid future date",
+        code: "INVALID_SCHEDULE",
+        field: [...itemPrefix, "scheduledAt"],
+      });
     }
     if (input.status === "FAILED") {
-      errors.push({ message: "FAILED status is reserved for publication delivery", code: "INVALID_STATUS", field: [...itemPrefix, "status"] });
+      errors.push({
+        message: "FAILED status is reserved for publication delivery",
+        code: "INVALID_STATUS",
+        field: [...itemPrefix, "status"],
+      });
     }
     const now = new Date().toISOString();
     return {
       channel,
       locale,
       status: input.status,
-      scheduledAt: input.status === "SCHEDULED" ? input.scheduledAt ?? null : null,
+      scheduledAt: input.status === "SCHEDULED" ? (input.scheduledAt ?? null) : null,
       publishedAt: input.status === "PUBLISHED" ? now : null,
       unpublishedAt: input.status === "UNPUBLISHED" ? now : null,
       lastError: null,
@@ -391,53 +414,46 @@ export function mapNestedContentUpdate(
   input: ReviewContentUpdateInput,
   kind: ContentKind,
   actorId?: string,
-  fieldPrefix: string[] = []
+  fieldPrefix: string[] = [],
 ): NestedContentUpdateMappingResult {
   const result: NestedContentUpdateMappingResult = { patch: {}, errors: [] };
   if (input.text) {
     mergePatchResult(
       result,
-      mapContentTextUpdate(current, input.text, kind, [...fieldPrefix, "text"])
+      mapContentTextUpdate(current, input.text, kind, [...fieldPrefix, "text"]),
     );
   }
   if (input.author) {
     mergePatchResult(
       result,
-      mapContentAuthorUpdate(current, input.author, [...fieldPrefix, "author"])
+      mapContentAuthorUpdate(current, input.author, [...fieldPrefix, "author"]),
     );
   }
   if (input.source) {
     mergePatchResult(
       result,
-      mapContentSourceUpdate(current, input.source, [...fieldPrefix, "source"])
+      mapContentSourceUpdate(current, input.source, [...fieldPrefix, "source"]),
     );
   }
   if (input.moderation) {
     mergePatchResult(
       result,
-      mapContentModerationUpdate(
-        current,
-        input.moderation,
-        actorId,
-        [...fieldPrefix, "moderation"]
-      )
+      mapContentModerationUpdate(current, input.moderation, actorId, [
+        ...fieldPrefix,
+        "moderation",
+      ]),
     );
   }
   if (input.translations != null) {
-    const mapped = mapContentTranslations(
-      input.translations,
-      kind,
-      actorId,
-      [...fieldPrefix, "translations"]
-    );
+    const mapped = mapContentTranslations(input.translations, kind, actorId, [
+      ...fieldPrefix,
+      "translations",
+    ]);
     result.translations = mapped.items;
     result.errors.push(...mapped.errors);
   }
   if (input.publications != null) {
-    const mapped = mapContentPublications(input.publications, [
-      ...fieldPrefix,
-      "publications",
-    ]);
+    const mapped = mapContentPublications(input.publications, [...fieldPrefix, "publications"]);
     result.publications = mapped.items;
     result.errors.push(...mapped.errors);
   }
@@ -446,7 +462,7 @@ export function mapNestedContentUpdate(
 
 function mergePatchResult(
   target: NestedContentUpdateMappingResult,
-  source: ContentPatchMappingResult
+  source: ContentPatchMappingResult,
 ) {
   Object.assign(target.patch, source.patch);
   target.errors.push(...source.errors);

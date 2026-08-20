@@ -41,9 +41,7 @@ abstract class CustomerEntityCreateWorkflow extends BrokerWorkflows {
     return Kernel.getInstance();
   }
 
-  protected toScriptContext(
-    context: CustomerMutationWorkflowContext
-  ): RunScriptContext {
+  protected toScriptContext(context: CustomerMutationWorkflowContext): RunScriptContext {
     return {
       storeId: context.storeId,
       organizationId: context.organizationId,
@@ -52,7 +50,6 @@ abstract class CustomerEntityCreateWorkflow extends BrokerWorkflows {
       requestId: context.requestId,
     };
   }
-
 }
 
 @Injectable()
@@ -68,9 +65,7 @@ export class CustomerGroupCreateWorkflow extends CustomerEntityCreateWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CustomerGroupCreateWorkflowInput
-  ): Promise<CustomerGroupCreateWorkflowResult> {
+  async run(input: CustomerGroupCreateWorkflowInput): Promise<CustomerGroupCreateWorkflowResult> {
     return this.stepCreate(input);
   }
 
@@ -79,7 +74,7 @@ export class CustomerGroupCreateWorkflow extends CustomerEntityCreateWorkflow {
     return this.kernel.runScript(
       CustomerGroupCreateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 }
@@ -97,9 +92,7 @@ export class CustomerTagCreateWorkflow extends CustomerEntityCreateWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: CustomerTagCreateWorkflowInput
-  ): Promise<CustomerTagCreateWorkflowResult> {
+  async run(input: CustomerTagCreateWorkflowInput): Promise<CustomerTagCreateWorkflowResult> {
     return this.stepCreate(input);
   }
 
@@ -108,7 +101,7 @@ export class CustomerTagCreateWorkflow extends CustomerEntityCreateWorkflow {
     return this.kernel.runScript(
       CustomerTagCreateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 }
@@ -127,7 +120,7 @@ export class CustomerSegmentCreateWorkflow extends CustomerEntityCreateWorkflow 
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: CustomerSegmentCreateWorkflowInput
+    input: CustomerSegmentCreateWorkflowInput,
   ): Promise<CustomerSegmentCreateWorkflowResult> {
     const result = await this.stepCreate(input);
     if (result.segment && result.userErrors.length === 0) {
@@ -141,14 +134,11 @@ export class CustomerSegmentCreateWorkflow extends CustomerEntityCreateWorkflow 
     return this.kernel.runScript(
       CustomerSegmentCreateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
-  private startMaterialization(
-    input: CustomerSegmentCreateWorkflowInput,
-    segmentId: string,
-  ) {
+  private startMaterialization(input: CustomerSegmentCreateWorkflowInput, segmentId: string) {
     return this.broker.startWorkflow(
       "customers.customerSegmentMaterialize",
       { context: this.toScriptContext(input.context) },
@@ -194,7 +184,7 @@ export class CustomerMergeCreateWorkflow extends CustomerEntityCreateWorkflow {
     return this.kernel.runScript(
       CustomerMergeCreateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
@@ -232,7 +222,7 @@ export class CustomerDataRequestCreateWorkflow extends CustomerEntityCreateWorkf
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: CustomerDataRequestCreateWorkflowInput
+    input: CustomerDataRequestCreateWorkflowInput,
   ): Promise<CustomerDataRequestCreateWorkflowResult> {
     const result = await this.stepCreate(input);
     if (result.dataRequest && result.userErrors.length === 0) {
@@ -246,14 +236,11 @@ export class CustomerDataRequestCreateWorkflow extends CustomerEntityCreateWorkf
     return this.kernel.runScript(
       CustomerDataRequestCreateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
-  private stepStartProcess(
-    input: CustomerDataRequestCreateWorkflowInput,
-    dataRequestId: string,
-  ) {
+  private stepStartProcess(input: CustomerDataRequestCreateWorkflowInput, dataRequestId: string) {
     return this.broker.startWorkflow(
       "customers.customerDataRequestProcess",
       { dataRequestId, context: input.context },

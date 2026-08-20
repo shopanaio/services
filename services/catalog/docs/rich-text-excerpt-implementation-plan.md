@@ -2,9 +2,11 @@
 
 ## Goal
 
-Implement `excerpt` in the Catalog service with the same storage, API, resolver, and admin frontend behavior as `description`.
+Implement `excerpt` in the Catalog service with the same storage, API, resolver, and admin frontend
+behavior as `description`.
 
-The shared GraphQL value type must be named `RichText`, with the matching input type named `RichTextInput`.
+The shared GraphQL value type must be named `RichText`, with the matching input type named
+`RichTextInput`.
 
 ## Current State
 
@@ -14,11 +16,16 @@ The shared GraphQL value type must be named `RichText`, with the matching input 
   - `description_json`
 - `Product.excerpt` is stored as a single text column:
   - `excerpt`
-- `Category` and `Collection` translations store `description_*` columns, but do not store excerpt columns.
-- `ProductResolver.excerpt`, `CategoryResolver.excerpt`, and `CollectionResolver.excerpt` return hardcoded empty rich-text objects.
-- GraphQL schema currently uses `Description` and `DescriptionInput` for rich text. These names should become `RichText` and `RichTextInput`.
-- Product create/update paths already accept excerpt-like input, but product persistence only saves `excerpt.text`.
-- Category and collection GraphQL schemas expose `excerpt`, but DTOs and scripts do not currently carry it through to storage.
+- `Category` and `Collection` translations store `description_*` columns, but do not store excerpt
+  columns.
+- `ProductResolver.excerpt`, `CategoryResolver.excerpt`, and `CollectionResolver.excerpt` return
+  hardcoded empty rich-text objects.
+- GraphQL schema currently uses `Description` and `DescriptionInput` for rich text. These names
+  should become `RichText` and `RichTextInput`.
+- Product create/update paths already accept excerpt-like input, but product persistence only saves
+  `excerpt.text`.
+- Category and collection GraphQL schemas expose `excerpt`, but DTOs and scripts do not currently
+  carry it through to storage.
 
 ## Scope
 
@@ -28,7 +35,8 @@ This plan covers Catalog admin API rich text fields for:
 - Category `description` and `excerpt`
 - Collection `description` and `excerpt`
 
-Storefront schema should be checked during implementation. If it does not expose these fields today, no storefront API change is required.
+Storefront schema should be checked during implementation. If it does not expose these fields today,
+no storefront API change is required.
 
 ## Phase 1: GraphQL Contract Rename
 
@@ -96,7 +104,8 @@ excerpt_json text or jsonb
 
 Migration requirements:
 
-- For `product_translation`, replace the old `excerpt` text column with nullable `excerpt_text`, `excerpt_html`, and `excerpt_json` columns.
+- For `product_translation`, replace the old `excerpt` text column with nullable `excerpt_text`,
+  `excerpt_html`, and `excerpt_json` columns.
 - For `category_translation`, add nullable `excerpt_text`, `excerpt_html`, `excerpt_json`.
 - For `collection_translation`, add nullable `excerpt_text`, `excerpt_html`, `excerpt_json`.
 - Do not manually edit changeset files.
@@ -105,11 +114,15 @@ Migration requirements:
 
 Open implementation decision:
 
-- `description_json` is `jsonb` for products, but `text` for categories and collections. Decide whether to:
-  - keep category/collection `excerpt_json` aligned with their current `description_json` as `text`, or
-  - normalize category/collection `description_json` and `excerpt_json` to `jsonb` in the same migration.
+- `description_json` is `jsonb` for products, but `text` for categories and collections. Decide
+  whether to:
+  - keep category/collection `excerpt_json` aligned with their current `description_json` as `text`,
+    or
+  - normalize category/collection `description_json` and `excerpt_json` to `jsonb` in the same
+    migration.
 
-The lower-risk implementation is to keep category/collection JSON column types aligned with their existing `description_json` columns.
+The lower-risk implementation is to keep category/collection JSON column types aligned with their
+existing `description_json` columns.
 
 ## Phase 3: Shared Rich Text Types and Helpers
 
@@ -155,7 +168,8 @@ Required changes:
   - `excerptHtml`
   - `excerptJson`
 - `upsertProductTranslationsBatch` must include the same fields.
-- Existing reads through product loaders should include the new inferred model fields automatically after Drizzle model updates.
+- Existing reads through product loaders should include the new inferred model fields automatically
+  after Drizzle model updates.
 
 Update category translation persistence:
 
@@ -192,10 +206,12 @@ Product create:
 Product content update:
 
 - `services/catalog/src/scripts/product/ProductUpdateContentScript.ts`
-- Compare `excerpt.text`, `excerpt.html`, and `excerpt.json`, or compare a stable serialized rich-text object.
+- Compare `excerpt.text`, `excerpt.html`, and `excerpt.json`, or compare a stable serialized
+  rich-text object.
 - Persist all excerpt fields when excerpt changes.
 - Preserve existing excerpt fields when only description changes.
-- Clear all excerpt fields when the input explicitly clears excerpt, if clearing is supported by the API contract.
+- Clear all excerpt fields when the input explicitly clears excerpt, if clearing is supported by the
+  API contract.
 
 Product identity update:
 
@@ -206,7 +222,8 @@ Product update workflow:
 
 - `services/catalog/src/workflows/dto/ProductUpdateWorkflowDto.ts`
 - `services/catalog/src/scripts/types/ProductChanges.ts`
-- Replace content change payloads that only carry strings with a rich-text-aware shape, or explicitly document that event changes expose only the plain text projection.
+- Replace content change payloads that only carry strings with a rich-text-aware shape, or
+  explicitly document that event changes expose only the plain text projection.
 
 Category create/update:
 
@@ -291,7 +308,8 @@ Use project tooling:
 
 ## Phase 9: E2E Coverage Updates
 
-Update E2E GraphQL query documents so they request and send `excerpt` as `RichText`, not as `String`.
+Update E2E GraphQL query documents so they request and send `excerpt` as `RichText`, not as
+`String`.
 
 Product query documents:
 
@@ -300,7 +318,8 @@ Product query documents:
 - `e2e/queries/inventory-api/ProductUpdate.gql`
   - Replace scalar `excerpt` selection with `excerpt { text html json }`.
 - `e2e/queries/inventory-api/ProductFindOne.gql`
-  - Add `description { text html json }` and `excerpt { text html json }` if read-after-create or read-after-update assertions use this query.
+  - Add `description { text html json }` and `excerpt { text html json }` if read-after-create or
+    read-after-update assertions use this query.
 - `e2e/queries/inventory-api/ProductFindMany.gql`
   - Update only if product list assertions or generated operation types include content fields.
 - `e2e/queries/inventory-api/ProductBulkUpdate.gql`
@@ -311,7 +330,8 @@ Product query documents:
 Product specs:
 
 - `e2e/tests/inventory-api/product-create.spec.ts`
-  - Extend the existing description create case to create `description` and `excerpt` as `RichTextInput`.
+  - Extend the existing description create case to create `description` and `excerpt` as
+    `RichTextInput`.
   - Assert `excerpt.text`, `excerpt.html`, and `excerpt.json`.
   - Update full-data creation assertions if the full-data scenario includes excerpt.
 - `e2e/tests/inventory-api/product-update.spec.ts`
@@ -340,7 +360,8 @@ Category query documents:
 Category specs:
 
 - `e2e/tests/category-api/category-seo.spec.ts`
-  - Update if category create/update inputs include description-like content alongside SEO assertions.
+  - Update if category create/update inputs include description-like content alongside SEO
+    assertions.
 - `e2e/tests/category-api/category-sort.spec.ts`
   - Update only if category create helpers require the new generated input type.
 - `e2e/tests/category-api/category-products.spec.ts`
@@ -349,7 +370,8 @@ Category specs:
   - Update only if category create helpers require the new generated input type.
 - `e2e/tests/category-api/category-product-reordering-complex.spec.ts`
   - Update only if category create helpers require the new generated input type.
-- Add a focused category rich-text case to an existing category spec or create `e2e/tests/category-api/category-rich-text.spec.ts`:
+- Add a focused category rich-text case to an existing category spec or create
+  `e2e/tests/category-api/category-rich-text.spec.ts`:
   - create category with `description` and `excerpt`;
   - update category `excerpt`;
   - query category by id and assert `excerpt.text`, `excerpt.html`, and `excerpt.json`.
@@ -384,11 +406,13 @@ Collection specs:
 E2E fixtures and seed data:
 
 - `e2e/fixtures/admin/category.ts`
-  - Update typed defaults if `ApiCategoryCreateInput` or helper defaults reference rich-text input types.
+  - Update typed defaults if `ApiCategoryCreateInput` or helper defaults reference rich-text input
+    types.
 - `e2e/fixtures/admin/collection.ts`
   - Update typed defaults if collection helpers add or assert excerpt.
 - `e2e/data/seed-project.ts`
-  - Replace product/category excerpt string payloads with `RichTextInput` if seed data still creates catalog content through admin GraphQL.
+  - Replace product/category excerpt string payloads with `RichTextInput` if seed data still creates
+    catalog content through admin GraphQL.
 
 Generated E2E artifacts:
 
@@ -407,7 +431,8 @@ E2E run policy:
   - `e2e/tests/inventory-api/product-create.spec.ts`
   - `e2e/tests/inventory-api/product-update.spec.ts`
   - `e2e/tests/inventory-api/product-bulk-edit.spec.ts`
-  - `e2e/tests/category-api/category-rich-text.spec.ts` or the category spec where the rich-text case is added
+  - `e2e/tests/category-api/category-rich-text.spec.ts` or the category spec where the rich-text
+    case is added
   - `e2e/tests/collection-api/collection-crud.spec.ts`
 
 ## Phase 10: Verification

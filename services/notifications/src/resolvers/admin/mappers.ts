@@ -17,9 +17,7 @@ export function toDefinitionKey(value: string): NotificationDefinitionKey {
   return value as NotificationDefinitionKey;
 }
 
-export function toDomainChannel(
-  value: NotificationChannel
-): DomainNotificationChannel {
+export function toDomainChannel(value: NotificationChannel): DomainNotificationChannel {
   switch (value) {
     case NotificationChannel.Email:
       return "EMAIL";
@@ -30,9 +28,7 @@ export function toDomainChannel(
   }
 }
 
-export function toGraphQLChannel(
-  value: DomainNotificationChannel
-): NotificationChannel {
+export function toGraphQLChannel(value: DomainNotificationChannel): NotificationChannel {
   switch (value) {
     case "EMAIL":
       return NotificationChannel.Email;
@@ -43,28 +39,20 @@ export function toGraphQLChannel(
   }
 }
 
-export function toGraphQLAudience(
-  value: DomainNotificationAudience
-): NotificationAudience {
-  return value === "CUSTOMER"
-    ? NotificationAudience.Customer
-    : NotificationAudience.Staff;
+export function toGraphQLAudience(value: DomainNotificationAudience): NotificationAudience {
+  return value === "CUSTOMER" ? NotificationAudience.Customer : NotificationAudience.Staff;
 }
 
-export function toDomainWebhookFormat(
-  value: NotificationWebhookFormat
-): "JSON" | "XML" {
+export function toDomainWebhookFormat(value: NotificationWebhookFormat): "JSON" | "XML" {
   return value === NotificationWebhookFormat.Json ? "JSON" : "XML";
 }
 
-export function toDomainWebhookStatus(
-  value: NotificationWebhookStatus
-): "ACTIVE" | "DISABLED" {
+export function toDomainWebhookStatus(value: NotificationWebhookStatus): "ACTIVE" | "DISABLED" {
   return value === NotificationWebhookStatus.Active ? "ACTIVE" : "DISABLED";
 }
 
 export function toGraphQLWebhookStability(
-  value: "UNSTABLE" | "STABLE" | "DEPRECATED"
+  value: "UNSTABLE" | "STABLE" | "DEPRECATED",
 ): NotificationWebhookApiStability {
   switch (value) {
     case "UNSTABLE":
@@ -77,7 +65,7 @@ export function toGraphQLWebhookStability(
 }
 
 export function toGraphQLTemplateVariable(
-  variable: NotificationTemplateVariable
+  variable: NotificationTemplateVariable,
 ): GraphQLNotificationTemplateVariable {
   return {
     path: variable.path,
@@ -93,10 +81,8 @@ export function optional<T>(value: T | null | undefined): T | undefined {
 }
 
 export function optionalStringRecord(
-  value: Record<string, unknown> | null | undefined
+  value: Record<string, unknown> | null | undefined,
 ): Record<string, string> | undefined {
   if (value === null || value === undefined) return undefined;
-  return Object.fromEntries(
-    Object.entries(value).map(([key, entry]) => [key, String(entry)])
-  );
+  return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, String(entry)]));
 }

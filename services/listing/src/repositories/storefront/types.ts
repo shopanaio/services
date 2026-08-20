@@ -1,15 +1,12 @@
 import type { SQL } from "drizzle-orm";
 import type { ListingVariantTermGroup } from "../../listing/variantTerms/index.js";
-import type {
-  SearchCandidateContract,
-  SearchExecutionMode,
-} from "../../search/execution/index.js";
+import type { SearchCandidateContract, SearchExecutionMode } from "../../search/execution/index.js";
 
 export class StorefrontRepositoryValidationError extends Error {
   constructor(
     message: string,
     public readonly field?: readonly string[],
-    public readonly code?: string
+    public readonly code?: string,
   ) {
     super(message);
     this.name = "StorefrontRepositoryValidationError";
@@ -26,19 +23,11 @@ export type StorefrontSortKind =
   | "price_desc"
   | "relevance";
 
-export type ProductPostingField =
-  | "category"
-  | "vendor"
-  | "facet";
+export type ProductPostingField = "category" | "vendor" | "facet";
 
 export type VariantPostingField = "term" | "variant_product";
 
-export type FacetRuntimeType =
-  | "TAG"
-  | "FEATURE"
-  | "OPTION"
-  | "PRICE"
-  | "IN_STOCK";
+export type FacetRuntimeType = "TAG" | "FEATURE" | "OPTION" | "PRICE" | "IN_STOCK";
 
 export interface StorefrontListingInput {
   scope: StorefrontListingScope;
@@ -177,10 +166,7 @@ export interface ListingCursorPayload {
   minimumTrigramSimilarityBits?: string | null;
 }
 
-export type ListingCollectorKind =
-  | "product_sort"
-  | "matched_variant_price"
-  | "relevance";
+export type ListingCollectorKind = "product_sort" | "matched_variant_price" | "relevance";
 
 export interface SearchTieBreakerSql {
   relevanceScoreSql: SQL;
@@ -192,13 +178,7 @@ export interface ListingPageCollectResult {
 }
 
 export type ProductSortCollectKind =
-  | "manual"
-  | "newest"
-  | "created"
-  | "name_asc"
-  | "name_desc"
-  | "price_asc"
-  | "price_desc";
+  "manual" | "newest" | "created" | "name_asc" | "name_desc" | "price_asc" | "price_desc";
 
 export interface ResolvedListingRequest {
   input: StorefrontListingInput;

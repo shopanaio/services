@@ -42,9 +42,7 @@ export const searchSynonymGroupRelayQuery = createRelayQuery(
   { name: "searchSynonymGroup", tieBreaker: "id" },
 );
 
-export type SearchSynonymGroupRelayInput = InferRelayInput<
-  typeof searchSynonymGroupRelayQuery
->;
+export type SearchSynonymGroupRelayInput = InferRelayInput<typeof searchSynonymGroupRelayQuery>;
 
 export interface SearchSynonymGroupConnectionResult {
   edges: Array<{ cursor: string; node: SearchSynonymGroupListView }>;
@@ -59,8 +57,7 @@ export interface SearchSynonymGroupCreateInput {
   values: readonly SearchSynonymValueInput[];
 }
 
-export interface SearchSynonymGroupUpdateInput
-  extends SearchSynonymGroupCreateInput {
+export interface SearchSynonymGroupUpdateInput extends SearchSynonymGroupCreateInput {
   groupId: string;
   expectedVersion: number;
 }
@@ -77,9 +74,9 @@ export interface SearchSynonymClaimConflict {
 
 export class SearchSynonymRepository extends BaseRepository {
   @ReadOnly()
-  async listEnabledHeaders(locale: string): Promise<
-    Array<Pick<SearchSynonymGroup, "groupId" | "version">>
-  > {
+  async listEnabledHeaders(
+    locale: string,
+  ): Promise<Array<Pick<SearchSynonymGroup, "groupId" | "version">>> {
     assertNonEmpty(locale, "locale");
     return this.connection
       .select({
@@ -103,10 +100,7 @@ export class SearchSynonymRepository extends BaseRepository {
       .select()
       .from(searchSynonymGroup)
       .where(
-        and(
-          eq(searchSynonymGroup.storeId, this.storeId),
-          eq(searchSynonymGroup.groupId, groupId),
-        ),
+        and(eq(searchSynonymGroup.storeId, this.storeId), eq(searchSynonymGroup.groupId, groupId)),
       )
       .limit(1);
     const group = groups[0];
@@ -118,12 +112,10 @@ export class SearchSynonymRepository extends BaseRepository {
   @ReadOnly()
   async list(locale?: string): Promise<SearchSynonymGroupAggregate[]> {
     if (locale !== undefined) assertNonEmpty(locale, "locale");
-    const scope = locale !== undefined
-      ? and(
-          eq(searchSynonymGroup.storeId, this.storeId),
-          eq(searchSynonymGroup.locale, locale),
-        )
-      : eq(searchSynonymGroup.storeId, this.storeId);
+    const scope =
+      locale !== undefined
+        ? and(eq(searchSynonymGroup.storeId, this.storeId), eq(searchSynonymGroup.locale, locale))
+        : eq(searchSynonymGroup.storeId, this.storeId);
     const groups = await this.connection
       .select()
       .from(searchSynonymGroup)
@@ -142,14 +134,9 @@ export class SearchSynonymRepository extends BaseRepository {
   ): Promise<SearchSynonymGroupConnectionResult> {
     const normalizedInput = normalizeSearchRelayPagination(args);
     const { where, orderBy, ...paginationArgs } = normalizedInput;
-    const effectiveOrderBy = orderBy ?? [
-      { field: "updatedAt", direction: "desc" },
-    ];
+    const effectiveOrderBy = orderBy ?? [{ field: "updatedAt", direction: "desc" }];
     const mergedWhere: SearchSynonymGroupRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, ...(where ? [where] : [])],
     };
     const executeInput: SearchSynonymGroupRelayInput = {
       ...paginationArgs,
@@ -200,10 +187,8 @@ export class SearchSynonymRepository extends BaseRepository {
         aggregate.values.length >= 2 &&
         aggregate.values.every(
           (value) =>
-            value.normalizationContractVersion ===
-              input.normalizationContractVersion &&
-            value.normalizationProfileRevision ===
-              input.normalizationProfileRevision,
+            value.normalizationContractVersion === input.normalizationContractVersion &&
+            value.normalizationProfileRevision === input.normalizationProfileRevision,
         ),
     );
   }
@@ -234,9 +219,7 @@ export class SearchSynonymRepository extends BaseRepository {
   }
 
   @Transactional()
-  async create(
-    input: SearchSynonymGroupCreateInput,
-  ): Promise<SearchSynonymGroupAggregate> {
+  async create(input: SearchSynonymGroupCreateInput): Promise<SearchSynonymGroupAggregate> {
     this.assertWriteInput(input);
     const now = new Date().toISOString();
     const groupId = await this.generateUuidV7();
@@ -250,10 +233,7 @@ export class SearchSynonymRepository extends BaseRepository {
       createdAt: now,
       updatedAt: now,
     };
-    const groups = await this.connection
-      .insert(searchSynonymGroup)
-      .values(groupRow)
-      .returning();
+    const groups = await this.connection.insert(searchSynonymGroup).values(groupRow).returning();
     const group = groups[0];
     if (!group) throw new Error("Failed to create search synonym group");
     const values = await this.insertValues(groupId, input.values);
@@ -355,10 +335,7 @@ export class SearchSynonymRepository extends BaseRepository {
       .select()
       .from(searchSynonymGroup)
       .where(
-        and(
-          eq(searchSynonymGroup.storeId, this.storeId),
-          eq(searchSynonymGroup.groupId, groupId),
-        ),
+        and(eq(searchSynonymGroup.storeId, this.storeId), eq(searchSynonymGroup.groupId, groupId)),
       )
       .limit(1)
       .for("update");
@@ -441,23 +418,14 @@ export class SearchSynonymRepository extends BaseRepository {
       assertNonEmpty(value.displayValue, "displayValue");
       assertNonEmpty(value.normalizedValue, "normalizedValue");
       assertNonEmpty(value.preparedText, "preparedText");
-      assertNonEmpty(
-        value.normalizationContractVersion,
-        "normalizationContractVersion",
-      );
-      assertNonEmpty(
-        value.normalizationProfileRevision,
-        "normalizationProfileRevision",
-      );
+      assertNonEmpty(value.normalizationContractVersion, "normalizationContractVersion");
+      assertNonEmpty(value.normalizationProfileRevision, "normalizationProfileRevision");
       if (
-        value.normalizationContractVersion !==
-          input.values[0].normalizationContractVersion ||
-        value.normalizationProfileRevision !==
-          input.values[0].normalizationProfileRevision
+        value.normalizationContractVersion !== input.values[0].normalizationContractVersion ||
+        value.normalizationProfileRevision !== input.values[0].normalizationProfileRevision
       ) {
         throw new Error("All synonym values must use one normalization profile");
       }
     }
   }
-
 }

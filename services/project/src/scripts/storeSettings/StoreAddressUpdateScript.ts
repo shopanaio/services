@@ -9,9 +9,7 @@ import {
 export class StoreAddressUpdateScript extends StoreSettingsUpdateScript<StoreAddressUpdateParams> {
   @ZodSchema(storeAddressUpdateSchema)
   @Transactional()
-  protected async execute(
-    params: StoreAddressUpdateParams,
-  ): Promise<StoreSettingsUpdateResult> {
+  protected async execute(params: StoreAddressUpdateParams): Promise<StoreSettingsUpdateResult> {
     if (!(await this.findStore(params))) return this.notFound();
 
     const { storeId, organizationId: _organizationId, ...address } = params;

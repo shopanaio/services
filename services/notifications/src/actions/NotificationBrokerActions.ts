@@ -30,7 +30,7 @@ export class NotificationBrokerActions extends BrokerActions {
   @Action("enqueue")
   async enqueue(
     params: Notifications.EnqueueNotificationParams,
-    context: BrokerCallContext
+    context: BrokerCallContext,
   ): Promise<Notifications.EnqueueNotificationResult> {
     const started = await this.broker.startWorkflow(
       "notifications.enqueue",
@@ -49,7 +49,7 @@ export class NotificationBrokerActions extends BrokerActions {
         resourceId: `${context.caller.service}:${params.idempotencyKey}`,
         operation: `notifications.enqueue:${params.key}`,
         content: params,
-      }
+      },
     );
     return { workflowId: started.workflowId, accepted: true };
   }
@@ -57,18 +57,14 @@ export class NotificationBrokerActions extends BrokerActions {
   @Action("enqueueApplicationAuth")
   async enqueueApplicationAuth(
     params: Notifications.EnqueueApplicationAuthNotificationParams,
-    context: BrokerCallContext
+    context: BrokerCallContext,
   ): Promise<Notifications.EnqueueNotificationResult> {
     if (context.caller.service !== "iam") {
-      throw new Error(
-        "Application auth notifications can only be enqueued by IAM"
-      );
+      throw new Error("Application auth notifications can only be enqueued by IAM");
     }
     const store = await this.getStore(params.storeId);
     if (store.organizationId !== params.organizationId) {
-      throw new Error(
-        "Application auth notification store is outside the organization"
-      );
+      throw new Error("Application auth notification store is outside the organization");
     }
     const notification = applicationAuthNotification(params);
     const isSms = params.notification.kind === "PHONE_OTP_SIGN_IN";
@@ -123,7 +119,7 @@ export class NotificationBrokerActions extends BrokerActions {
           notificationKind: params.notification.kind,
           idempotencyKey: params.idempotencyKey,
         },
-      }
+      },
     );
     return { workflowId: started.workflowId, accepted: true };
   }
@@ -131,7 +127,7 @@ export class NotificationBrokerActions extends BrokerActions {
   @Action("sendTest")
   async sendTest(
     params: Notifications.SendTestNotificationParams,
-    context: BrokerCallContext
+    context: BrokerCallContext,
   ): Promise<Notifications.EnqueueNotificationResult> {
     this.assertInternalCaller(context);
     const started = await this.broker.startWorkflow(
@@ -156,7 +152,7 @@ export class NotificationBrokerActions extends BrokerActions {
         resourceId: params.idempotencyKey,
         operation: "notifications.sendTest",
         content: params,
-      }
+      },
     );
     return { workflowId: started.workflowId, accepted: true };
   }
@@ -164,7 +160,7 @@ export class NotificationBrokerActions extends BrokerActions {
   @Action("preview")
   async preview(
     params: Notifications.PreviewNotificationParams,
-    context: BrokerCallContext
+    context: BrokerCallContext,
   ): Promise<Notifications.PreviewNotificationResult> {
     this.assertInternalCaller(context);
     const store = await this.getStore(params.storeId);
@@ -174,16 +170,14 @@ export class NotificationBrokerActions extends BrokerActions {
   @Action("getDefinition")
   async getDefinition(
     params: Notifications.GetNotificationDefinitionParams,
-    context: BrokerCallContext
+    context: BrokerCallContext,
   ) {
     this.assertInternalCaller(context);
     const store = await this.getStore(params.storeId);
     return this.withStore(store, async () => {
       const definition = this.kernel.definitions.get(params.key);
-      const setting =
-        await this.kernel.repository.settings.getDefinitionSetting(params.key);
-      const channelSettings =
-        await this.kernel.repository.settings.listChannelSettings(params.key);
+      const setting = await this.kernel.repository.settings.getDefinitionSetting(params.key);
+      const channelSettings = await this.kernel.repository.settings.listChannelSettings(params.key);
       return {
         ...definition,
         dataSchema: undefined,
@@ -191,8 +185,8 @@ export class NotificationBrokerActions extends BrokerActions {
         enabled: definition.optional ? (setting?.enabled ?? false) : true,
         activeChannels: definition.allowedChannels.filter(
           (channel) =>
-            channelSettings.find((entry) => entry.channel === channel)
-              ?.enabled ?? definition.defaultChannels.includes(channel)
+            channelSettings.find((entry) => entry.channel === channel)?.enabled ??
+            definition.defaultChannels.includes(channel),
         ),
       };
     });
@@ -201,7 +195,7 @@ export class NotificationBrokerActions extends BrokerActions {
   @Action("getTemplate")
   async getTemplate(
     params: Notifications.GetNotificationTemplateParams,
-    context: BrokerCallContext
+    context: BrokerCallContext,
   ) {
     this.assertInternalCaller(context);
     const store = await this.getStore(params.storeId);
@@ -209,7 +203,7 @@ export class NotificationBrokerActions extends BrokerActions {
       const active = await this.kernel.repository.templates.findActive(
         params.key,
         params.channel,
-        params.locale
+        params.locale,
       );
       return active
         ? {
@@ -224,13 +218,12 @@ export class NotificationBrokerActions extends BrokerActions {
   @Action("getDelivery")
   async getDelivery(
     params: Notifications.GetNotificationDeliveryParams,
-    context: BrokerCallContext
+    context: BrokerCallContext,
   ) {
     this.assertInternalCaller(context);
     const store = await this.getStore(params.storeId);
     return this.withStore(store, async () => {
-      const bundle =
-        await this.kernel.repository.deliveries.getBundle(params.deliveryId);
+      const bundle = await this.kernel.repository.deliveries.getBundle(params.deliveryId);
       if (!bundle) return null;
       return {
         delivery: {
@@ -273,41 +266,33 @@ export class NotificationBrokerActions extends BrokerActions {
   @Action("listDeliveryAttempts")
   async listDeliveryAttempts(
     params: Notifications.ListNotificationDeliveryAttemptsParams,
-    context: BrokerCallContext
+    context: BrokerCallContext,
   ) {
     this.assertInternalCaller(context);
     const store = await this.getStore(params.storeId);
     return this.withStore(store, () =>
-      this.kernel.repository.deliveries.listAttempts(params.deliveryId)
+      this.kernel.repository.deliveries.listAttempts(params.deliveryId),
     );
   }
 
   private assertInternalCaller(context: BrokerCallContext): void {
-    if (
-      context.caller.kind !== "action" ||
-      context.caller.service !== "notifications"
-    ) {
+    if (context.caller.kind !== "action" || context.caller.service !== "notifications") {
       throw new Error("Notification administration action is internal");
     }
   }
 
   private async getStore(storeId: string): Promise<ContextStore> {
-    const result = await this.broker.call<
-      GetStoreByIdResult,
-      { id: string }
-    >("project.getStoreById", { id: storeId });
+    const result = await this.broker.call<GetStoreByIdResult, { id: string }>(
+      "project.getStoreById",
+      { id: storeId },
+    );
     if (!result.store) {
-      throw new Error(
-        result.userErrors[0]?.message ?? `Store ${storeId} was not found`
-      );
+      throw new Error(result.userErrors[0]?.message ?? `Store ${storeId} was not found`);
     }
     return result.store;
   }
 
-  private withStore<T>(
-    store: ContextStore,
-    operation: () => Promise<T>
-  ): Promise<T> {
+  private withStore<T>(store: ContextStore, operation: () => Promise<T>): Promise<T> {
     return runWithContext(
       new ServiceContext({
         requestId: `notification-broker-${Date.now()}`,
@@ -316,13 +301,13 @@ export class NotificationBrokerActions extends BrokerActions {
         store,
         locale: store.defaultLocale,
       }),
-      operation
+      operation,
     );
   }
 }
 
 function applicationAuthNotification(
-  params: Notifications.EnqueueApplicationAuthNotificationParams
+  params: Notifications.EnqueueApplicationAuthNotificationParams,
 ): {
   key:
     | "customer.auth.email_verification"
@@ -363,11 +348,7 @@ function applicationAuthNotification(
 function normalizeEmail(value: string | undefined): string {
   if (!value) throw new Error("Application auth notification email is missing");
   const email = value.trim().toLowerCase();
-  if (
-    email.length === 0 ||
-    email.length > 320 ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email)
-  ) {
+  if (email.length === 0 || email.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email)) {
     throw new Error("Application auth notification email is invalid");
   }
   return email;
@@ -387,8 +368,7 @@ function requireHttpsOrLocalUrl(value: string): string {
   if (
     url.username ||
     url.password ||
-    (url.protocol !== "https:" &&
-      !(url.protocol === "http:" && localHosts.has(url.hostname)))
+    (url.protocol !== "https:" && !(url.protocol === "http:" && localHosts.has(url.hostname)))
   ) {
     throw new Error("Application auth notification URL is invalid");
   }

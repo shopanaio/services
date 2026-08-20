@@ -7,9 +7,7 @@ export class FacetValueResolver extends ListingType<string, FacetValue> {
   async $preload() {
     const value = await this.$ctx.loaders.facetValue.load(this.$props);
     if (!value) {
-      throw new PreloadNotFoundError(
-        `FacetValue with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`FacetValue with ID ${this.$props} not found`);
     }
     return value;
   }

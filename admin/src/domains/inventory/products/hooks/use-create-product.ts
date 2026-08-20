@@ -4,10 +4,7 @@ import { useMutation } from "@apollo/client/react";
 import { useCallback } from "react";
 import { PRODUCT_CREATE_MUTATION, PRODUCTS_QUERY } from "../graphql";
 import type { ApiGenericUserError, ApiProduct } from "@/graphql/types";
-import {
-  prepareProductPayload,
-  type CreateProductInput,
-} from "../mappers";
+import { prepareProductPayload, type CreateProductInput } from "../mappers";
 import type {
   ProductCreateMutationData,
   ProductCreateMutationVariables,
@@ -84,8 +81,7 @@ export function useCreateProduct(): UseCreateProductReturn {
           awaitRefetchQueries: true,
         });
 
-        const createPayload =
-          createResult.data?.catalogMutation.productCreate;
+        const createPayload = createResult.data?.catalogMutation.productCreate;
 
         if (createPayload?.userErrors && createPayload.userErrors.length > 0) {
           return {
@@ -99,8 +95,7 @@ export function useCreateProduct(): UseCreateProductReturn {
           userErrors: [],
         };
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
 
         return {
           product: null,
@@ -108,7 +103,7 @@ export function useCreateProduct(): UseCreateProductReturn {
         };
       }
     },
-    [createProductMutation]
+    [createProductMutation],
   );
 
   return {

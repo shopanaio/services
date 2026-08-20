@@ -25,8 +25,7 @@ export interface StorefrontCustomerDataRequestCancelParams {
   expectedUpdatedAt: string;
 }
 
-export type StorefrontCustomerDataRequestCancelResult =
-  StorefrontCustomerDataRequestCreateResult;
+export type StorefrontCustomerDataRequestCancelResult = StorefrontCustomerDataRequestCreateResult;
 
 export class StorefrontCustomerDataRequestCreateScript extends BaseScript<
   StorefrontCustomerDataRequestCreateParams,
@@ -34,16 +33,13 @@ export class StorefrontCustomerDataRequestCreateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: StorefrontCustomerDataRequestCreateParams
+    params: StorefrontCustomerDataRequestCreateParams,
   ): Promise<StorefrontCustomerDataRequestCreateResult> {
     const errors = validateCreate(params);
     const customer = await this.repository.customer.findById(params.customerId);
     if (!customer || customer.lifecycleStatus !== "ACTIVE") {
       errors.push(
-        storefrontError(
-          "CUSTOMER_UNAVAILABLE",
-          "Customer is not available for privacy requests"
-        )
+        storefrontError("CUSTOMER_UNAVAILABLE", "Customer is not available for privacy requests"),
       );
     }
     if (errors.length > 0) return failed(...errors);
@@ -56,17 +52,13 @@ export class StorefrontCustomerDataRequestCreateScript extends BaseScript<
       idempotencyKey: `storefront:${params.customerId}:${params.idempotencyKey}`,
       legalBasis: "customer_request",
       requestMetadata:
-        params.type === "CORRECTION"
-          ? { correctionDetails: params.correctionDetails }
-          : {},
+        params.type === "CORRECTION" ? { correctionDetails: params.correctionDetails } : {},
       dueAt: null,
     });
     return { dataRequest: { id: dataRequest.id }, userErrors: [] };
   }
 
-  protected handleError(
-    _error: unknown
-  ): StorefrontCustomerDataRequestCreateResult {
+  protected handleError(_error: unknown): StorefrontCustomerDataRequestCreateResult {
     return failed(internalStorefrontError());
   }
 }
@@ -77,15 +69,13 @@ export class StorefrontCustomerDataRequestCancelScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: StorefrontCustomerDataRequestCancelParams
+    params: StorefrontCustomerDataRequestCancelParams,
   ): Promise<StorefrontCustomerDataRequestCancelResult> {
     if (!isValidTimestamp(params.expectedUpdatedAt)) {
       return failed(
-        storefrontError(
-          "INVALID_UPDATED_AT",
-          "Expected update timestamp is invalid",
-          ["expectedUpdatedAt"]
-        )
+        storefrontError("INVALID_UPDATED_AT", "Expected update timestamp is invalid", [
+          "expectedUpdatedAt",
+        ]),
       );
     }
     const result = await this.repository.lifecycle.cancelOwnedDataRequest({
@@ -98,46 +88,36 @@ export class StorefrontCustomerDataRequestCancelScript extends BaseScript<
         return { dataRequest: { id: result.dataRequest.id }, userErrors: [] };
       case "not_found":
         return failed(
-          storefrontError(
-            "NOT_FOUND",
-            "Privacy request was not found",
-            ["dataRequestId"]
-          )
+          storefrontError("NOT_FOUND", "Privacy request was not found", ["dataRequestId"]),
         );
       case "invalid_state":
         return failed(
-          storefrontError(
-            "INVALID_STATE",
-            "Only a pending privacy request can be cancelled",
-            ["dataRequestId"]
-          )
+          storefrontError("INVALID_STATE", "Only a pending privacy request can be cancelled", [
+            "dataRequestId",
+          ]),
         );
       case "conflict":
         return failed(
           storefrontError(
             "UPDATED_AT_CONFLICT",
             "Privacy request was modified by another request",
-            ["expectedUpdatedAt"]
-          )
+            ["expectedUpdatedAt"],
+          ),
         );
     }
   }
 
-  protected handleError(
-    _error: unknown
-  ): StorefrontCustomerDataRequestCancelResult {
+  protected handleError(_error: unknown): StorefrontCustomerDataRequestCancelResult {
     return failed(internalStorefrontError());
   }
 }
 
 function validateCreate(
-  params: StorefrontCustomerDataRequestCreateParams
+  params: StorefrontCustomerDataRequestCreateParams,
 ): StorefrontCustomerUserError[] {
   const errors: StorefrontCustomerUserError[] = [];
   if (!["ACCESS", "EXPORT", "CORRECTION", "ERASURE"].includes(params.type)) {
-    errors.push(
-      storefrontError("INVALID_TYPE", "Unknown privacy request type", ["type"])
-    );
+    errors.push(storefrontError("INVALID_TYPE", "Unknown privacy request type", ["type"]));
   }
   if (params.type === "CORRECTION") {
     const correctionError = validateCorrectionDetails(params.correctionDetails);
@@ -150,8 +130,8 @@ function validateCreate(
           correctionError === "missing"
             ? "Correction details are required for a correction request"
             : "Correction details are malformed or too large",
-          ["correctionDetails"]
-        )
+          ["correctionDetails"],
+        ),
       );
     }
   } else if (params.correctionDetails != null) {
@@ -159,8 +139,8 @@ function validateCreate(
       storefrontError(
         "CORRECTION_DETAILS_FORBIDDEN",
         "Correction details are allowed only for a correction request",
-        ["correctionDetails"]
-      )
+        ["correctionDetails"],
+      ),
     );
   }
   return errors;

@@ -15,19 +15,13 @@ const TX_MANAGER_KEY = "txManager";
  * If already in transaction - reuses it
  */
 export function Transactional(): MethodDecorator {
-  return function (
-    _target: object,
-    _propertyKey: string | symbol,
-    descriptor: PropertyDescriptor
-  ) {
+  return function (_target: object, _propertyKey: string | symbol, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (this: any, ...args: any[]) {
       const txManager = this[TX_MANAGER_KEY] as TransactionManager<any, any>;
       if (!txManager) {
-        throw new Error(
-          `@Executable requires '${TX_MANAGER_KEY}' property on class instance`
-        );
+        throw new Error(`@Executable requires '${TX_MANAGER_KEY}' property on class instance`);
       }
 
       return txManager.run(() => originalMethod.apply(this, args));
@@ -43,11 +37,7 @@ export function Transactional(): MethodDecorator {
  * Method should use this.connection which returns tx or db automatically
  */
 export function ReadOnly(): MethodDecorator {
-  return function (
-    _target: object,
-    _propertyKey: string | symbol,
-    descriptor: PropertyDescriptor
-  ) {
+  return function (_target: object, _propertyKey: string | symbol, descriptor: PropertyDescriptor) {
     // No-op decorator - just documents intent
     // Read methods use this.connection which handles tx/db automatically
     return descriptor;
@@ -85,11 +75,9 @@ export interface TransactionalDatabase<TTransaction> {
  */
 export class TransactionManager<
   TDatabase extends TransactionalDatabase<TTransaction>,
-  TTransaction = TDatabase
+  TTransaction = TDatabase,
 > {
-  private readonly transactionStorage = new AsyncLocalStorage<
-    TransactionStore<TTransaction>
-  >();
+  private readonly transactionStorage = new AsyncLocalStorage<TransactionStore<TTransaction>>();
 
   constructor(private readonly db: TDatabase) {}
 
@@ -184,15 +172,13 @@ export class TransactionManager<
    */
   async runWithExistingTransaction<TResult>(
     tx: TTransaction,
-    fn: () => Promise<TResult>
+    fn: () => Promise<TResult>,
   ): Promise<TResult> {
     const existingStore = this.transactionStorage.getStore();
 
     if (existingStore) {
       if (existingStore.tx !== tx) {
-        throw new Error(
-          "Cannot replace the active transaction with a different transaction"
-        );
+        throw new Error("Cannot replace the active transaction with a different transaction");
       }
 
       existingStore.depth++;

@@ -16,28 +16,16 @@ export interface LoyaltyMoney {
 }
 
 export type LoyaltyProgramStatus = "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
-export type LoyaltyProgramVersionStatus =
-  | "DRAFT"
-  | "SCHEDULED"
-  | "ACTIVE"
-  | "RETIRED";
+export type LoyaltyProgramVersionStatus = "DRAFT" | "SCHEDULED" | "ACTIVE" | "RETIRED";
 export type LoyaltyRoundingMode = "DOWN" | "NEAREST" | "UP";
 export type LoyaltyRefundPolicy = "PROPORTIONAL" | "FULL_REVERSAL";
 export type LoyaltyDebtPolicy = "TRACK_DEBT" | "REJECT_REVERSAL";
-export type LoyaltyRestoredPointsExpiryPolicy =
-  | "ORIGINAL_EXPIRY"
-  | "RESET_FROM_RESTORE";
-export type LoyaltyEligibleSpendBasis =
-  | "AFTER_PRODUCT_DISCOUNTS"
-  | "AFTER_ALL_DISCOUNTS";
+export type LoyaltyRestoredPointsExpiryPolicy = "ORIGINAL_EXPIRY" | "RESET_FROM_RESTORE";
+export type LoyaltyEligibleSpendBasis = "AFTER_PRODUCT_DISCOUNTS" | "AFTER_ALL_DISCOUNTS";
 export type LoyaltyModifierStackingMode = "HIGHEST" | "ADD" | "MULTIPLY";
 export type LoyaltyProgramEligibilityType = "ALL" | "SEGMENTS";
 export type LoyaltySegmentMatchMode = "ANY" | "ALL";
-export type LoyaltyAccountStatus =
-  | "ACTIVE"
-  | "SUSPENDED"
-  | "CLOSED"
-  | "MERGED";
+export type LoyaltyAccountStatus = "ACTIVE" | "SUSPENDED" | "CLOSED" | "MERGED";
 export type LoyaltyBalanceBucket = "PENDING" | "AVAILABLE" | "RESERVED" | "DEBT";
 export type LoyaltyTransactionKind =
   | "EARN_PENDING"
@@ -53,36 +41,15 @@ export type LoyaltyTransactionKind =
   | "MERGE_TRANSFER"
   | "DEBT_RECOVERY";
 export type LoyaltyTransactionSource =
-  | "ORDER"
-  | "CHECKOUT"
-  | "REFUND"
-  | "EXPIRATION"
-  | "ADMIN"
-  | "MERGE"
-  | "IMPORT"
-  | "SYSTEM";
+  "ORDER" | "CHECKOUT" | "REFUND" | "EXPIRATION" | "ADMIN" | "MERGE" | "IMPORT" | "SYSTEM";
 export type LoyaltyActorType = "ADMIN_USER" | "CUSTOMER" | "SERVICE" | "SYSTEM";
 export type LoyaltyLotAllocationType = "REDEEM" | "EXPIRE" | "REVERSE" | "MERGE";
-export type LoyaltyReservationStatus =
-  | "ACTIVE"
-  | "COMMITTED"
-  | "RELEASED"
-  | "EXPIRED"
-  | "REVERSED";
+export type LoyaltyReservationStatus = "ACTIVE" | "COMMITTED" | "RELEASED" | "EXPIRED" | "REVERSED";
 export type LoyaltyReservationEventType =
-  | "CREATED"
-  | "COMMITTED"
-  | "RELEASED"
-  | "EXPIRED"
-  | "REVERSED";
+  "CREATED" | "COMMITTED" | "RELEASED" | "EXPIRED" | "REVERSED";
 export type LoyaltyTierMembershipStatus = "ACTIVE" | "EXPIRED" | "REVOKED";
 export type LoyaltyTierMembershipEventType =
-  | "QUALIFIED"
-  | "UPGRADED"
-  | "DOWNGRADED"
-  | "RENEWED"
-  | "EXPIRED"
-  | "REVOKED";
+  "QUALIFIED" | "UPGRADED" | "DOWNGRADED" | "RENEWED" | "EXPIRED" | "REVOKED";
 export type LoyaltyEarningTriggerType =
   | "ORDER"
   | "SIGNUP"
@@ -109,17 +76,10 @@ export type LoyaltyRewardType =
   | "MEMBER_BENEFIT"
   | "MONETARY_CREDIT";
 export type LoyaltyRewardEntitlementStatus =
-  | "ISSUED"
-  | "RESERVED"
-  | "REDEEMED"
-  | "EXPIRED"
-  | "REVOKED";
+  "ISSUED" | "RESERVED" | "REDEEMED" | "EXPIRED" | "REVOKED";
 export type LoyaltyTierEvaluationWindowType = "LIFETIME" | "ROLLING" | "CALENDAR";
 export type LoyaltyTierCalendarPeriod = "MONTH" | "QUARTER" | "YEAR" | "PROGRAM_YEAR";
-export type LoyaltyTierDowngradePolicy =
-  | "IMMEDIATE"
-  | "GRACE_PERIOD"
-  | "END_OF_MEMBERSHIP";
+export type LoyaltyTierDowngradePolicy = "IMMEDIATE" | "GRACE_PERIOD" | "END_OF_MEMBERSHIP";
 export type LoyaltyTierRequalificationPolicy = "AUTOMATIC" | "MANUAL";
 export type LoyaltyMonetaryWalletType = "CASHBACK" | "STORE_CREDIT";
 export type LoyaltyMonetaryWalletStatus = "ACTIVE" | "SUSPENDED" | "CLOSED" | "MERGED";
@@ -205,12 +165,7 @@ export type LoyaltyTierMetricExpressionV1 =
   | Readonly<{ type: "NOT"; expression: LoyaltyTierMetricExpressionV1 }>
   | Readonly<{
       type: "METRIC";
-      metric:
-        | "QUALIFYING_POINTS"
-        | "NET_SPEND_MINOR"
-        | "ORDER_COUNT"
-        | "REFERRAL_COUNT"
-        | "CUSTOM";
+      metric: "QUALIFYING_POINTS" | "NET_SPEND_MINOR" | "ORDER_COUNT" | "REFERRAL_COUNT" | "CUSTOM";
       customMetricCode: string | null;
       operator: "GTE" | "GT";
       threshold: string;

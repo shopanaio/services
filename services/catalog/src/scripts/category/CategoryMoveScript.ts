@@ -1,14 +1,9 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CategoryMoveParams, CategoryMoveResult } from "./dto/index.js";
 
-export class CategoryMoveScript extends BaseScript<
-  CategoryMoveParams,
-  CategoryMoveResult
-> {
+export class CategoryMoveScript extends BaseScript<CategoryMoveParams, CategoryMoveResult> {
   @Transactional()
-  protected async execute(
-    params: CategoryMoveParams
-  ): Promise<CategoryMoveResult> {
+  protected async execute(params: CategoryMoveParams): Promise<CategoryMoveResult> {
     const { id, newParentId } = params;
 
     // 1. Check if category exists
@@ -16,9 +11,7 @@ export class CategoryMoveScript extends BaseScript<
     if (!existing) {
       return {
         category: undefined,
-        userErrors: [
-          { message: "Category not found", field: ["id"], code: "NOT_FOUND" },
-        ],
+        userErrors: [{ message: "Category not found", field: ["id"], code: "NOT_FOUND" }],
       };
     }
 
@@ -39,7 +32,11 @@ export class CategoryMoveScript extends BaseScript<
         return {
           category: undefined,
           userErrors: [
-            { message: "Category cannot be its own parent", field: ["newParentId"], code: "CIRCULAR_REFERENCE" },
+            {
+              message: "Category cannot be its own parent",
+              field: ["newParentId"],
+              code: "CIRCULAR_REFERENCE",
+            },
           ],
         };
       }
@@ -50,16 +47,36 @@ export class CategoryMoveScript extends BaseScript<
         return {
           category: undefined,
           userErrors: [
-            { message: "Cannot move category to its own descendant", field: ["newParentId"], code: "CIRCULAR_REFERENCE" },
+            {
+              message: "Cannot move category to its own descendant",
+              field: ["newParentId"],
+              code: "CIRCULAR_REFERENCE",
+            },
           ],
         };
       }
     }
 
-    const direct = (await this.repository.comparisonRead.getDirectProfilesByCategoryIds([id]))[0]?.profileId ?? null;
-    const inherited = newParentId ? (await this.repository.comparisonRead.getEffectiveProfilesByCategoryIds([newParentId]))[0]?.profileId ?? null : null;
-    if (await this.repository.comparisonRead.categoryAssignmentHasConflicts(id, direct ?? inherited)) {
-      return { category: undefined, userErrors: [{ message: "Category hierarchy change conflicts with product comparison mappings", field: ["newParentId"], code: "COMPARISON_CATEGORY_PROFILE_CONFLICT" }] };
+    const direct =
+      (await this.repository.comparisonRead.getDirectProfilesByCategoryIds([id]))[0]?.profileId ??
+      null;
+    const inherited = newParentId
+      ? ((await this.repository.comparisonRead.getEffectiveProfilesByCategoryIds([newParentId]))[0]
+          ?.profileId ?? null)
+      : null;
+    if (
+      await this.repository.comparisonRead.categoryAssignmentHasConflicts(id, direct ?? inherited)
+    ) {
+      return {
+        category: undefined,
+        userErrors: [
+          {
+            message: "Category hierarchy change conflicts with product comparison mappings",
+            field: ["newParentId"],
+            code: "COMPARISON_CATEGORY_PROFILE_CONFLICT",
+          },
+        ],
+      };
     }
 
     // 4. Move category
@@ -72,10 +89,7 @@ export class CategoryMoveScript extends BaseScript<
       };
     }
 
-    this.logger.info(
-      { categoryId: id, newParentId },
-      "Category moved"
-    );
+    this.logger.info({ categoryId: id, newParentId }, "Category moved");
 
     return { category, userErrors: [] };
   }

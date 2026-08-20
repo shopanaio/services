@@ -6,13 +6,9 @@ export class StockLoader {
   public readonly stockByVariant: DataLoader<string, WarehouseStock[]>;
 
   constructor(repository: Repository) {
-    this.stockByVariant = new DataLoader<string, WarehouseStock[]>(
-      async (variantIds) => {
-        const stocksByVariant = await repository.stock.getByVariantsBatch([
-          ...variantIds,
-        ]);
-        return variantIds.map((id) => stocksByVariant.get(id) ?? []);
-      }
-    );
+    this.stockByVariant = new DataLoader<string, WarehouseStock[]>(async (variantIds) => {
+      const stocksByVariant = await repository.stock.getByVariantsBatch([...variantIds]);
+      return variantIds.map((id) => stocksByVariant.get(id) ?? []);
+    });
   }
 }

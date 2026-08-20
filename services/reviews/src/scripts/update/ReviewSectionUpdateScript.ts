@@ -1,9 +1,6 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
-import type {
-  NewReviewMedia,
-  NewReviewRating,
-} from "../../repositories/models/index.js";
+import type { NewReviewMedia, NewReviewRating } from "../../repositories/models/index.js";
 import type { ContentPatch } from "../../repositories/content/ContentRepository.js";
 import type { ReviewPatch } from "../../repositories/review/ReviewRepository.js";
 import type { ReviewUpdateOperation } from "../../workflows/dto/index.js";
@@ -24,9 +21,7 @@ import {
 
 type ReviewAggregateSectionOperation = Exclude<
   ReviewUpdateOperation,
-  | { type: "reviewReplyCreate" }
-  | { type: "reviewReplyUpdate" }
-  | { type: "reviewReplyDelete" }
+  { type: "reviewReplyCreate" } | { type: "reviewReplyUpdate" } | { type: "reviewReplyDelete" }
 >;
 
 export interface ReviewSectionUpdateParams {
@@ -39,14 +34,10 @@ export class ReviewSectionUpdateScript extends BaseScript<
   ReviewSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: ReviewSectionUpdateParams
-  ): Promise<ReviewSectionResult> {
+  protected async execute(params: ReviewSectionUpdateParams): Promise<ReviewSectionResult> {
     const aggregate = await this.repository.review.findById(params.reviewId);
     if (!aggregate) {
-      return sectionErrors([
-        { message: "Review not found", code: "NOT_FOUND" },
-      ]);
+      return sectionErrors([{ message: "Review not found", code: "NOT_FOUND" }]);
     }
 
     const { operation } = params;
@@ -54,21 +45,17 @@ export class ReviewSectionUpdateScript extends BaseScript<
       case "contentUpdate":
         return this.updateContentPatch(
           params.reviewId,
-          mapContentTextUpdate(
-            aggregate.content,
-            operation.params,
-            "REVIEW"
-          )
+          mapContentTextUpdate(aggregate.content, operation.params, "REVIEW"),
         );
       case "contentAuthorUpdate":
         return this.updateContentPatch(
           params.reviewId,
-          mapContentAuthorUpdate(aggregate.content, operation.params)
+          mapContentAuthorUpdate(aggregate.content, operation.params),
         );
       case "contentSourceUpdate":
         return this.updateContentPatch(
           params.reviewId,
-          mapContentSourceUpdate(aggregate.content, operation.params)
+          mapContentSourceUpdate(aggregate.content, operation.params),
         );
       case "contentModerationUpdate":
         return this.updateContentPatch(
@@ -76,61 +63,35 @@ export class ReviewSectionUpdateScript extends BaseScript<
           mapContentModerationUpdate(
             aggregate.content,
             operation.params,
-            this.context.hasUser ? this.context.user.id : undefined
-          )
+            this.context.hasUser ? this.context.user.id : undefined,
+          ),
         );
       case "contentTranslationsSync": {
         const mapped = mapContentTranslations(
           operation.params.items,
           "REVIEW",
-          this.context.hasUser ? this.context.user.id : undefined
+          this.context.hasUser ? this.context.user.id : undefined,
         );
         if (mapped.errors.length > 0) return sectionErrors(mapped.errors);
-        await this.repository.content.replaceTranslations(
-          params.reviewId,
-          mapped.items
-        );
+        await this.repository.content.replaceTranslations(params.reviewId, mapped.items);
         return sectionSuccess();
       }
       case "contentPublicationsSync": {
         const mapped = mapContentPublications(operation.params.items);
         if (mapped.errors.length > 0) return sectionErrors(mapped.errors);
-        await this.repository.content.replacePublications(
-          params.reviewId,
-          mapped.items
-        );
+        await this.repository.content.replacePublications(params.reviewId, mapped.items);
         return sectionSuccess();
       }
       case "reviewSubjectUpdate":
-        return this.updateSubject(
-          params.reviewId,
-          aggregate.review,
-          operation.params
-        );
+        return this.updateSubject(params.reviewId, aggregate.review, operation.params);
       case "reviewRatingUpdate":
-        return this.updateRating(
-          params.reviewId,
-          aggregate.review.rating,
-          operation.params
-        );
+        return this.updateRating(params.reviewId, aggregate.review.rating, operation.params);
       case "reviewVerificationUpdate":
-        return this.updateVerification(
-          params.reviewId,
-          aggregate.review,
-          operation.params
-        );
+        return this.updateVerification(params.reviewId, aggregate.review, operation.params);
       case "reviewIncentiveUpdate":
-        return this.updateIncentive(
-          params.reviewId,
-          aggregate.review,
-          operation.params
-        );
+        return this.updateIncentive(params.reviewId, aggregate.review, operation.params);
       case "reviewMediaSync":
-        return this.syncMedia(
-          params.reviewId,
-          aggregate.media,
-          operation.params.items
-        );
+        return this.syncMedia(params.reviewId, aggregate.media, operation.params.items);
     }
   }
 
@@ -152,14 +113,11 @@ export class ReviewSectionUpdateScript extends BaseScript<
     mapped: {
       patch: ContentPatch;
       errors: ReviewSectionResult["userErrors"];
-    }
+    },
   ): Promise<ReviewSectionResult> {
     if (mapped.errors.length > 0) return sectionErrors(mapped.errors);
     if (Object.keys(mapped.patch).length === 0) return sectionSuccess(false);
-    const updated = await this.repository.content.updateWithinRevision(
-      reviewId,
-      mapped.patch
-    );
+    const updated = await this.repository.content.updateWithinRevision(reviewId, mapped.patch);
     return updated
       ? sectionSuccess()
       : sectionErrors([{ message: "Review not found", code: "NOT_FOUND" }]);
@@ -173,10 +131,7 @@ export class ReviewSectionUpdateScript extends BaseScript<
       orderId: string | null;
       orderLineId: string | null;
     },
-    input: Extract<
-      ReviewAggregateSectionOperation,
-      { type: "reviewSubjectUpdate" }
-    >["params"]
+    input: Extract<ReviewAggregateSectionOperation, { type: "reviewSubjectUpdate" }>["params"],
   ): Promise<ReviewSectionResult> {
     const patch: ReviewPatch = {};
     if (hasOwn(input, "productId")) {
@@ -207,10 +162,7 @@ export class ReviewSectionUpdateScript extends BaseScript<
   private async updateRating(
     reviewId: string,
     currentOverall: number,
-    input: Extract<
-      ReviewAggregateSectionOperation,
-      { type: "reviewRatingUpdate" }
-    >["params"]
+    input: Extract<ReviewAggregateSectionOperation, { type: "reviewRatingUpdate" }>["params"],
   ): Promise<ReviewSectionResult> {
     const errors: ReviewSectionResult["userErrors"] = [];
     let overall: number | undefined;
@@ -227,13 +179,7 @@ export class ReviewSectionUpdateScript extends BaseScript<
     }
 
     let ratings:
-      | Array<
-          Omit<
-            NewReviewRating,
-            "storeId" | "reviewId" | "createdAt" | "updatedAt"
-          >
-        >
-      | undefined;
+      Array<Omit<NewReviewRating, "storeId" | "reviewId" | "createdAt" | "updatedAt">> | undefined;
     if (input.criteria != null) {
       const criterionIds = new Set<string>();
       ratings = input.criteria.map((item, index) => {
@@ -255,13 +201,11 @@ export class ReviewSectionUpdateScript extends BaseScript<
         return { criterionId: item.criterionId, value: item.value };
       });
       if (criterionIds.size > 0) {
-        const criteria = await this.repository.configuration.getCriteriaByIds([
-          ...criterionIds,
-        ]);
+        const criteria = await this.repository.configuration.getCriteriaByIds([...criterionIds]);
         const existingIds = new Set(
           criteria
             .filter((criterion) => criterion.deletedAt === null)
-            .map((criterion) => criterion.id)
+            .map((criterion) => criterion.id),
         );
         for (const [index, item] of input.criteria.entries()) {
           if (!existingIds.has(item.criterionId)) {
@@ -291,10 +235,7 @@ export class ReviewSectionUpdateScript extends BaseScript<
       verificationMethod: string | null;
       verifiedAt: string | null;
     },
-    input: Extract<
-      ReviewAggregateSectionOperation,
-      { type: "reviewVerificationUpdate" }
-    >["params"]
+    input: Extract<ReviewAggregateSectionOperation, { type: "reviewVerificationUpdate" }>["params"],
   ): Promise<ReviewSectionResult> {
     const unverified = input.status === "UNVERIFIED";
     const method = unverified
@@ -305,7 +246,7 @@ export class ReviewSectionUpdateScript extends BaseScript<
     const verifiedAt = unverified
       ? null
       : hasOwn(input, "verifiedAt")
-        ? input.verifiedAt ?? null
+        ? (input.verifiedAt ?? null)
         : current.verifiedAt;
     if (!unverified && (!method || !verifiedAt)) {
       return sectionErrors([
@@ -337,10 +278,7 @@ export class ReviewSectionUpdateScript extends BaseScript<
   private async updateIncentive(
     reviewId: string,
     current: { isIncentivized: boolean; incentiveDisclosure: string | null },
-    input: Extract<
-      ReviewAggregateSectionOperation,
-      { type: "reviewIncentiveUpdate" }
-    >["params"]
+    input: Extract<ReviewAggregateSectionOperation, { type: "reviewIncentiveUpdate" }>["params"],
   ): Promise<ReviewSectionResult> {
     const disclosure = input.isIncentivized
       ? hasOwn(input, "disclosure")
@@ -386,42 +324,58 @@ export class ReviewSectionUpdateScript extends BaseScript<
     inputs: Extract<
       ReviewAggregateSectionOperation,
       { type: "reviewMediaSync" }
-    >["params"]["items"]
+    >["params"]["items"],
   ): Promise<ReviewSectionResult> {
     const errors: ReviewSectionResult["userErrors"] = [];
     const fileIds = new Set<string>();
     const currentByFileId = new Map(current.map((item) => [item.fileId, item]));
     const now = new Date().toISOString();
     const items: Array<
-      Omit<
-        NewReviewMedia,
-        "id" | "storeId" | "reviewId" | "createdAt" | "updatedAt"
-      >
+      Omit<NewReviewMedia, "id" | "storeId" | "reviewId" | "createdAt" | "updatedAt">
     > = inputs.map((input, index) => {
       const existing = currentByFileId.get(input.fileId);
       const status = input.moderation?.status ?? existing?.status ?? "PENDING";
       const moderationNote = input.moderation
         ? input.moderation.moderationNote?.trim() || null
-        : existing?.moderationNote ?? null;
+        : (existing?.moderationNote ?? null);
       const caption = input.caption?.trim() || null;
       if (input.sortIndex < 0) {
-        errors.push({ message: "Media sort index cannot be negative", code: "INVALID_SORT_INDEX", field: [String(index), "sortIndex"] });
+        errors.push({
+          message: "Media sort index cannot be negative",
+          code: "INVALID_SORT_INDEX",
+          field: [String(index), "sortIndex"],
+        });
       }
       if (fileIds.has(input.fileId)) {
-        errors.push({ message: "A media file may only be attached once", code: "DUPLICATE_MEDIA", field: [String(index), "fileId"] });
+        errors.push({
+          message: "A media file may only be attached once",
+          code: "DUPLICATE_MEDIA",
+          field: [String(index), "fileId"],
+        });
       }
       if (status === "REJECTED" && !moderationNote) {
-        errors.push({ message: "Rejected media requires a moderation note", code: "INVALID_MODERATION_NOTE", field: [String(index), "moderation", "moderationNote"] });
+        errors.push({
+          message: "Rejected media requires a moderation note",
+          code: "INVALID_MODERATION_NOTE",
+          field: [String(index), "moderation", "moderationNote"],
+        });
       }
       if (caption && caption.length > 500) {
-        errors.push({ message: "Media caption cannot exceed 500 characters", code: "INVALID_CAPTION", field: [String(index), "caption"] });
+        errors.push({
+          message: "Media caption cannot exceed 500 characters",
+          code: "INVALID_CAPTION",
+          field: [String(index), "caption"],
+        });
       }
       if (moderationNote && moderationNote.length > 1000) {
-        errors.push({ message: "Media moderation note cannot exceed 1000 characters", code: "INVALID_MODERATION_NOTE", field: [String(index), "moderation", "moderationNote"] });
+        errors.push({
+          message: "Media moderation note cannot exceed 1000 characters",
+          code: "INVALID_MODERATION_NOTE",
+          field: [String(index), "moderation", "moderationNote"],
+        });
       }
       fileIds.add(input.fileId);
-      const moderationChanged =
-        input.moderation !== null && input.moderation !== undefined;
+      const moderationChanged = input.moderation !== null && input.moderation !== undefined;
       return {
         fileId: input.fileId,
         sortIndex: input.sortIndex,
@@ -432,12 +386,12 @@ export class ReviewSectionUpdateScript extends BaseScript<
           ? status === "PENDING" || !this.context.hasUser
             ? null
             : this.context.user.id
-          : existing?.moderatedByPrincipalId ?? null,
+          : (existing?.moderatedByPrincipalId ?? null),
         moderatedAt: moderationChanged
           ? status === "PENDING"
             ? null
             : now
-          : existing?.moderatedAt ?? null,
+          : (existing?.moderatedAt ?? null),
       };
     });
     if (errors.length > 0) return sectionErrors(errors);
@@ -448,7 +402,7 @@ export class ReviewSectionUpdateScript extends BaseScript<
 
 function changedReviewPatch<T extends Record<string, unknown>>(
   current: T,
-  patch: ReviewPatch
+  patch: ReviewPatch,
 ): ReviewPatch {
   const result: ReviewPatch = {};
   for (const [key, value] of Object.entries(patch)) {

@@ -16,12 +16,12 @@ export interface CheckoutCatalogRow {
     effectiveTo: string | null;
   }>;
   supportsCurrency: boolean;
-  inventory: ({
+  inventory: {
     sku: string | null;
     trackInventory: boolean;
     continueSellingWhenOutOfStock: boolean;
     requiresShipping: boolean;
-  }) | null;
+  } | null;
   stocks: Array<{
     quantityOnHand: number;
     reservedQty: number;

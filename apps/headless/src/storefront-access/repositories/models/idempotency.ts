@@ -1,10 +1,4 @@
-import {
-  index,
-  primaryKey,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { index, primaryKey, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { headlessSchema } from "./schema.js";
 
 export const storefrontMutationIdempotency = headlessSchema.table(
@@ -21,15 +15,13 @@ export const storefrontMutationIdempotency = headlessSchema.table(
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "string",
-    }).notNull().defaultNow(),
+    })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     primaryKey({
-      columns: [
-        table.installationId,
-        table.operation,
-        table.clientMutationId,
-      ],
+      columns: [table.installationId, table.operation, table.clientMutationId],
       name: "storefront_mutation_idempotency_pkey",
     }),
     index("storefront_mutation_idempotency_tenant_idx").on(

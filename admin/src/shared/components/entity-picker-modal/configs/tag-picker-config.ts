@@ -5,11 +5,7 @@ import type { ColDef } from "ag-grid-community";
 import { LuTag as TagOutlined } from "react-icons/lu";
 import { EntityCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
-import type {
-  IEntityPickerConfig,
-  IEntityPickerDataResult,
-  IPickableEntity,
-} from "../types";
+import type { IEntityPickerConfig, IEntityPickerDataResult, IPickableEntity } from "../types";
 import { useTags } from "@/domains/inventory/tags/hooks";
 import {
   buildTagSearchCondition,
@@ -17,11 +13,7 @@ import {
   tagSortFieldMapping,
 } from "@/domains/inventory/tags/page/page-config";
 import { filterSchema } from "@/domains/inventory/tags/page/filter-schema";
-import type {
-  ApiTag,
-  ApiTagOrderByInput,
-  ApiTagWhereInput,
-} from "@/graphql/types";
+import type { ApiTag, ApiTagOrderByInput, ApiTagWhereInput } from "@/graphql/types";
 import { TagOrderField } from "@/graphql/types";
 
 interface ITagPickerEntity extends IPickableEntity {
@@ -49,35 +41,23 @@ function useTagsPickerData(options: {
   orderBy?: object[] | null;
   excludeIds: string[];
 }): IEntityPickerDataResult<ITagPickerEntity> {
-  const {
-    pageSize,
-    first,
-    after,
-    last,
-    before,
-    where: inputWhere,
-    orderBy,
-    excludeIds,
-  } = options;
-  const where = useMemo<ApiTagWhereInput | null>(
-    () => {
-      const conditions: ApiTagWhereInput[] = [];
+  const { pageSize, first, after, last, before, where: inputWhere, orderBy, excludeIds } = options;
+  const where = useMemo<ApiTagWhereInput | null>(() => {
+    const conditions: ApiTagWhereInput[] = [];
 
-      if (inputWhere) {
-        conditions.push(inputWhere as ApiTagWhereInput);
-      }
+    if (inputWhere) {
+      conditions.push(inputWhere as ApiTagWhereInput);
+    }
 
-      if (excludeIds.length > 0) {
-        conditions.push({ id: { _notIn: excludeIds } });
-      }
+    if (excludeIds.length > 0) {
+      conditions.push({ id: { _notIn: excludeIds } });
+    }
 
-      if (conditions.length === 0) return null;
-      if (conditions.length === 1) return conditions[0];
+    if (conditions.length === 0) return null;
+    if (conditions.length === 1) return conditions[0];
 
-      return { _and: conditions };
-    },
-    [excludeIds, inputWhere],
-  );
+    return { _and: conditions };
+  }, [excludeIds, inputWhere]);
   const { tags, totalCount, pageInfo, loading, error } = useTags({
     first,
     after,
@@ -86,10 +66,7 @@ function useTagsPickerData(options: {
     where,
     orderBy: orderBy as ApiTagOrderByInput[] | null,
   });
-  const data = useMemo(
-    () => tags.map(transformTag),
-    [tags],
-  );
+  const data = useMemo(() => tags.map(transformTag), [tags]);
 
   return {
     data,

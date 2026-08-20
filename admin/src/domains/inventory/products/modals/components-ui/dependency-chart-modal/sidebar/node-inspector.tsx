@@ -1,16 +1,24 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { Typography, Button, Empty, Avatar, Tag, Flex, Divider } from "antd";
 import {
-  Typography,
-  Button,
-  Empty,
-  Avatar,
-  Tag,
-  Flex,
-  Divider,
-} from "antd";
-import { LuChevronLeft as LeftOutlined, LuChevronRight as RightOutlined, LuFolder as FolderOutlined, LuImage as PictureOutlined, LuGift as GiftOutlined, LuEye as EyeOutlined, LuEyeOff as EyeInvisibleOutlined, LuCircleCheck as CheckCircleOutlined, LuSquareCheckBig as CheckSquareOutlined, LuCircleMinus as MinusCircleOutlined, LuHash as NumberOutlined, LuCircleDollarSign as DollarOutlined, LuLayoutGrid as AppstoreOutlined, LuLockKeyhole as LockOutlined, LuLockOpen as UnlockOutlined } from "react-icons/lu";
+  LuChevronLeft as LeftOutlined,
+  LuChevronRight as RightOutlined,
+  LuFolder as FolderOutlined,
+  LuImage as PictureOutlined,
+  LuGift as GiftOutlined,
+  LuEye as EyeOutlined,
+  LuEyeOff as EyeInvisibleOutlined,
+  LuCircleCheck as CheckCircleOutlined,
+  LuSquareCheckBig as CheckSquareOutlined,
+  LuCircleMinus as MinusCircleOutlined,
+  LuHash as NumberOutlined,
+  LuCircleDollarSign as DollarOutlined,
+  LuLayoutGrid as AppstoreOutlined,
+  LuLockKeyhole as LockOutlined,
+  LuLockOpen as UnlockOutlined,
+} from "react-icons/lu";
 
 import type {
   ApiProductComponentDependencyRule,
@@ -47,12 +55,7 @@ const getItemImageUrl = (item: ApiProductComponentItem): string | undefined => {
 };
 
 const getItemTitle = (item: ApiProductComponentItem): string => {
-  return (
-    item.title ??
-    item.refProduct?.title ??
-    item.refVariant?.product?.title ??
-    "Unnamed"
-  );
+  return item.title ?? item.refProduct?.title ?? item.refVariant?.product?.title ?? "Unnamed";
 };
 
 const getVariantTitle = (item: ApiProductComponentItem): string | undefined => {
@@ -61,9 +64,7 @@ const getVariantTitle = (item: ApiProductComponentItem): string | undefined => {
 
 const getPriceRuleLabel = (item: ApiProductComponentItem): string => {
   const rule = item.pricingTemplate?.priceRule ?? item.priceRule;
-  return rule
-    ? (formatPriceRule(rule, item.pricingTemplate?.name) ?? "Base price")
-    : "No rule";
+  return rule ? (formatPriceRule(rule, item.pricingTemplate?.name) ?? "Base price") : "No rule";
 };
 
 const getPriceRuleType = (item: ApiProductComponentItem): string => {
@@ -163,9 +164,7 @@ const ItemInspectorContent = ({ item, group }: IItemInspectorContentProps) => {
             <Typography.Text type="secondary" className={styles.statLabel}>
               {getPriceRuleType(item)}
             </Typography.Text>
-            <Typography.Text strong>
-              {getPriceRuleLabel(item)}
-            </Typography.Text>
+            <Typography.Text strong>{getPriceRuleLabel(item)}</Typography.Text>
           </div>
         </div>
       </div>
@@ -192,11 +191,7 @@ const GroupInspectorContent = ({ group }: IGroupInspectorContentProps) => {
     <div className={styles.content}>
       {/* Header */}
       <div className={styles.header}>
-        <Avatar
-          size={64}
-          icon={<FolderOutlined />}
-          className={styles.avatarGroup}
-        />
+        <Avatar size={64} icon={<FolderOutlined />} className={styles.avatarGroup} />
         <div className={styles.headerInfo}>
           <Typography.Text strong className={styles.title}>
             {group.title}
@@ -225,11 +220,7 @@ const GroupInspectorContent = ({ group }: IGroupInspectorContentProps) => {
         <div className={styles.itemsGrid}>
           {group.items.map((item) => (
             <div key={item.id} className={styles.itemChip}>
-              <Avatar
-                size={32}
-                src={getItemImageUrl(item)}
-                icon={<PictureOutlined />}
-              />
+              <Avatar size={32} src={getItemImageUrl(item)} icon={<PictureOutlined />} />
               <Typography.Text ellipsis className={styles.itemChipText}>
                 {getItemTitle(item)}
               </Typography.Text>
@@ -258,37 +249,27 @@ const ComponentInspectorContent = ({ label, groups }: IComponentInspectorContent
     <div className={styles.content}>
       {/* Header */}
       <div className={styles.header}>
-        <Avatar
-          size={64}
-          icon={<GiftOutlined />}
-          className={styles.avatarComponent}
-        />
+        <Avatar size={64} icon={<GiftOutlined />} className={styles.avatarComponent} />
         <div className={styles.headerInfo}>
           <Typography.Text strong className={styles.title}>
             {label}
           </Typography.Text>
-          <Typography.Text type="secondary">
-            Components Root
-          </Typography.Text>
+          <Typography.Text type="secondary">Components Root</Typography.Text>
         </div>
       </div>
 
       {/* Stats tags */}
       <Flex gap={8} className={styles.statusRow}>
-        <Tag icon={<FolderOutlined />}>
-          {groups.length} groups
-        </Tag>
-        <Tag icon={<AppstoreOutlined />}>
-          {totalItems} items
-        </Tag>
+        <Tag icon={<FolderOutlined />}>{groups.length} groups</Tag>
+        <Tag icon={<AppstoreOutlined />}>{totalItems} items</Tag>
       </Flex>
 
       <Divider className={styles.divider} />
 
       {/* Description */}
       <Typography.Paragraph type="secondary" className={styles.description}>
-        This is the components root node. It represents the entire component configuration
-        and is the target for component-level actions in dependency rules.
+        This is the components root node. It represents the entire component configuration and is
+        the target for component-level actions in dependency rules.
       </Typography.Paragraph>
     </div>
   );
@@ -298,11 +279,7 @@ const ComponentInspectorContent = ({ label, groups }: IComponentInspectorContent
 // Main Component
 // ============================================================================
 
-export const NodeInspector = ({
-  selectedNode,
-  groups,
-  onRuleChange,
-}: INodeInspectorProps) => {
+export const NodeInspector = ({ selectedNode, groups, onRuleChange }: INodeInspectorProps) => {
   const { styles, cx } = useStyles();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -318,12 +295,7 @@ export const NodeInspector = ({
           icon={null}
           bordered={false}
           extra={
-            <Button
-              type="text"
-              size="small"
-              icon={<LeftOutlined />}
-              onClick={toggleCollapsed}
-            />
+            <Button type="text" size="small" icon={<LeftOutlined />} onClick={toggleCollapsed} />
           }
         />
         <div className={styles.collapsedContent}>
@@ -335,24 +307,27 @@ export const NodeInspector = ({
 
   // For rule nodes, delegate to RuleInspector
   if (selectedNode?.type === "rule") {
-    return (
-      <RuleInspector
-        rule={selectedNode.rule}
-        groups={groups}
-        onRuleChange={onRuleChange}
-      />
-    );
+    return <RuleInspector rule={selectedNode.rule} groups={groups} onRuleChange={onRuleChange} />;
   }
 
   // Get title and icon based on selected node type
   const getInspectorHeader = () => {
     switch (selectedNode?.type) {
       case "item":
-        return { icon: CHART_NODE_ICONS[ProductComponentDependencyTargetType.Item], title: "Item Inspector" };
+        return {
+          icon: CHART_NODE_ICONS[ProductComponentDependencyTargetType.Item],
+          title: "Item Inspector",
+        };
       case "group":
-        return { icon: CHART_NODE_ICONS[ProductComponentDependencyTargetType.Group], title: "Group Inspector" };
+        return {
+          icon: CHART_NODE_ICONS[ProductComponentDependencyTargetType.Group],
+          title: "Group Inspector",
+        };
       case "component":
-        return { icon: CHART_NODE_ICONS[ProductComponentDependencyTargetType.Configuration], title: "Components Inspector" };
+        return {
+          icon: CHART_NODE_ICONS[ProductComponentDependencyTargetType.Configuration],
+          title: "Components Inspector",
+        };
       default:
         return { icon: null, title: "Inspector" };
     }
@@ -368,19 +343,11 @@ export const NodeInspector = ({
           icon={null}
           title="Inspector"
           actions={
-            <Button
-              type="text"
-              size="small"
-              icon={<RightOutlined />}
-              onClick={toggleCollapsed}
-            />
+            <Button type="text" size="small" icon={<RightOutlined />} onClick={toggleCollapsed} />
           }
         />
         <div className={styles.content}>
-          <Empty
-            description="Select a node to view details"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
+          <Empty description="Select a node to view details" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       </Paper>
     );
@@ -392,21 +359,14 @@ export const NodeInspector = ({
         icon={icon}
         title={title}
         actions={
-          <Button
-            type="text"
-            size="small"
-            icon={<RightOutlined />}
-            onClick={toggleCollapsed}
-          />
+          <Button type="text" size="small" icon={<RightOutlined />} onClick={toggleCollapsed} />
         }
       />
 
       {selectedNode.type === "item" && (
         <ItemInspectorContent item={selectedNode.item} group={selectedNode.group} />
       )}
-      {selectedNode.type === "group" && (
-        <GroupInspectorContent group={selectedNode.group} />
-      )}
+      {selectedNode.type === "group" && <GroupInspectorContent group={selectedNode.group} />}
       {selectedNode.type === "component" && (
         <ComponentInspectorContent label={selectedNode.label} groups={groups} />
       )}

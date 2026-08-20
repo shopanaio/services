@@ -8,10 +8,7 @@ import type {
 import type { CalculateDeliveryOptionsResult } from "./delivery.js";
 import type { GetAvailablePaymentMethodsResult } from "./payment.js";
 import type { CheckoutLoyaltyQuoteResult, CheckoutLoyaltyRedemptionIntent } from "./loyalty.js";
-import type {
-  CalculatePreliminaryPricingResult,
-  FinalizePricingQuoteResult,
-} from "./pricing.js";
+import type { CalculatePreliminaryPricingResult, FinalizePricingQuoteResult } from "./pricing.js";
 import type { ValidateCheckoutResult } from "./validation.js";
 
 export type CheckoutPipelineChange =
@@ -59,23 +56,11 @@ export type CheckoutRecalculationResult = Readonly<{
     CalculatePreliminaryPricingResult,
     "PRICING_PRELIMINARY"
   >;
-  delivery: CheckoutPipelineStageOutcome<
-    CalculateDeliveryOptionsResult,
-    "DELIVERY"
-  >;
-  finalPricing: CheckoutPipelineStageOutcome<
-    FinalizePricingQuoteResult,
-    "PRICING_FINAL"
-  >;
+  delivery: CheckoutPipelineStageOutcome<CalculateDeliveryOptionsResult, "DELIVERY">;
+  finalPricing: CheckoutPipelineStageOutcome<FinalizePricingQuoteResult, "PRICING_FINAL">;
   loyalty: CheckoutPipelineStageOutcome<CheckoutLoyaltyQuoteResult, "LOYALTY">;
-  payment: CheckoutPipelineStageOutcome<
-    GetAvailablePaymentMethodsResult,
-    "PAYMENT"
-  >;
-  validation: CheckoutPipelineStageOutcome<
-    ValidateCheckoutResult,
-    "VALIDATION"
-  >;
+  payment: CheckoutPipelineStageOutcome<GetAvailablePaymentMethodsResult, "PAYMENT">;
+  validation: CheckoutPipelineStageOutcome<ValidateCheckoutResult, "VALIDATION">;
   /** Exact concatenation of all stage issues in pipeline execution order. */
   issues: readonly CheckoutPipelineIssue[];
   trace: CheckoutPipelineExecutionTrace;

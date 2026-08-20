@@ -47,7 +47,11 @@ export class CustomerSegmentEvaluationRepository extends BaseRepository {
     readonly effectiveAt: string;
     readonly afterCustomerId: string | null;
     readonly limit: number;
-  }): Promise<{ readonly customerIds: readonly string[]; readonly totalCount: number; readonly hasNextPage: boolean }> {
+  }): Promise<{
+    readonly customerIds: readonly string[];
+    readonly totalCount: number;
+    readonly hasNextPage: boolean;
+  }> {
     this.assertStore(input.storeContext);
     const definition = validatePersistedSegmentDefinition(
       input.definition,
@@ -57,10 +61,15 @@ export class CustomerSegmentEvaluationRepository extends BaseRepository {
     await this.connection.execute(sql`SELECT set_config('statement_timeout', '2000', true)`);
     const [rows, counts] = await Promise.all([
       this.connection.execute<{ id: string }>(
-        compileCustomerSegmentScanQuery(definition, {
-          store: input.storeContext,
-          effectiveAt: input.effectiveAt,
-        }, input.afterCustomerId, input.limit + 1),
+        compileCustomerSegmentScanQuery(
+          definition,
+          {
+            store: input.storeContext,
+            effectiveAt: input.effectiveAt,
+          },
+          input.afterCustomerId,
+          input.limit + 1,
+        ),
       ),
       this.connection.execute<{ count: number }>(
         compileCustomerSegmentCountQuery(definition, {
@@ -95,10 +104,15 @@ export class CustomerSegmentEvaluationRepository extends BaseRepository {
     );
     await this.connection.execute(sql`SELECT set_config('statement_timeout', '10000', true)`);
     const rows = await this.connection.execute<{ id: string }>(
-      compileCustomerSegmentScanQuery(definition, {
-        store: input.storeContext,
-        effectiveAt: input.effectiveAt,
-      }, input.afterCustomerId, input.limit),
+      compileCustomerSegmentScanQuery(
+        definition,
+        {
+          store: input.storeContext,
+          effectiveAt: input.effectiveAt,
+        },
+        input.afterCustomerId,
+        input.limit,
+      ),
     );
     return rows.map((row) => row.id);
   }
@@ -115,21 +129,25 @@ export class CustomerSegmentEvaluationRepository extends BaseRepository {
         : this.connection
             .select({ id: customerTag.id })
             .from(customerTag)
-            .where(and(
-              eq(customerTag.storeId, this.storeId),
-              inArray(customerTag.id, tagIds),
-              isNull(customerTag.deletedAt),
-            )),
+            .where(
+              and(
+                eq(customerTag.storeId, this.storeId),
+                inArray(customerTag.id, tagIds),
+                isNull(customerTag.deletedAt),
+              ),
+            ),
       groupIds.length === 0
         ? []
         : this.connection
             .select({ id: customerGroup.id })
             .from(customerGroup)
-            .where(and(
-              eq(customerGroup.storeId, this.storeId),
-              inArray(customerGroup.id, groupIds),
-              isNull(customerGroup.deletedAt),
-            )),
+            .where(
+              and(
+                eq(customerGroup.storeId, this.storeId),
+                inArray(customerGroup.id, groupIds),
+                isNull(customerGroup.deletedAt),
+              ),
+            ),
     ]);
     return new Set([
       ...tags.map((row) => `${GlobalIdEntity.CustomerTag}\0${row.id}`),
@@ -144,13 +162,12 @@ export class CustomerSegmentEvaluationRepository extends BaseRepository {
   }
 }
 
-function uniqueIds(
-  references: readonly SegmentEntityReference[],
-  entity: string,
-): string[] {
-  return [...new Set(
-    references
-      .filter((reference) => reference.entity === entity)
-      .map((reference) => reference.id),
-  )];
+function uniqueIds(references: readonly SegmentEntityReference[], entity: string): string[] {
+  return [
+    ...new Set(
+      references
+        .filter((reference) => reference.entity === entity)
+        .map((reference) => reference.id),
+    ),
+  ];
 }

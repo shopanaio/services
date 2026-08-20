@@ -69,20 +69,13 @@ export class CustomerComparisonRepository extends BaseRepository {
           eq(customer.storeId, customerComparison.storeId),
         ),
       )
-      .where(
-        and(
-          eq(customerComparison.storeId, this.storeId),
-          eq(customerComparison.id, id),
-        ),
-      )
+      .where(and(eq(customerComparison.storeId, this.storeId), eq(customerComparison.id, id)))
       .limit(1);
     return rows[0]?.comparison ?? null;
   }
 
   @ReadOnly()
-  async findByCustomerId(
-    customerId: string,
-  ): Promise<CustomerComparison | null> {
+  async findByCustomerId(customerId: string): Promise<CustomerComparison | null> {
     const rows = await this.connection
       .select({ comparison: customerComparison })
       .from(customerComparison)
@@ -126,9 +119,7 @@ export class CustomerComparisonRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getByCustomerIds(
-    customerIds: readonly string[],
-  ): Promise<CustomerComparison[]> {
+  async getByCustomerIds(customerIds: readonly string[]): Promise<CustomerComparison[]> {
     if (customerIds.length === 0) return [];
     const rows = await this.connection
       .select({ comparison: customerComparison })
@@ -150,9 +141,7 @@ export class CustomerComparisonRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getItemsByIds(
-    itemIds: readonly string[],
-  ): Promise<CustomerComparisonItem[]> {
+  async getItemsByIds(itemIds: readonly string[]): Promise<CustomerComparisonItem[]> {
     if (itemIds.length === 0) return [];
     const rows = await this.connection
       .select({ item: customerComparisonItem })
@@ -191,10 +180,7 @@ export class CustomerComparisonRepository extends BaseRepository {
       .where(
         and(
           eq(customerComparisonItem.storeId, this.storeId),
-          inArray(
-            customerComparisonItem.comparisonId,
-            [...new Set(comparisonIds)],
-          ),
+          inArray(customerComparisonItem.comparisonId, [...new Set(comparisonIds)]),
         ),
       )
       .orderBy(
@@ -233,10 +219,7 @@ export class CustomerComparisonRepository extends BaseRepository {
           eq(customerComparison.customerId, customerId),
         ),
       )
-      .orderBy(
-        asc(customerComparisonItem.position),
-        asc(customerComparisonItem.id),
-      );
+      .orderBy(asc(customerComparisonItem.position), asc(customerComparisonItem.id));
     const comparison = rows[0]?.comparison ?? null;
     if (!comparison) {
       return { comparison: null, items: [], revision: 0 };
@@ -270,10 +253,7 @@ export class CustomerComparisonRepository extends BaseRepository {
       return { status: "conflict", actualRevision: comparison.revision };
     }
 
-    const existing = await this.findItemByVariantId(
-      comparison.id,
-      input.variantId,
-    );
+    const existing = await this.findItemByVariantId(comparison.id, input.variantId);
     if (existing) {
       return { status: "already_selected", comparison, item: existing };
     }
@@ -329,10 +309,7 @@ export class CustomerComparisonRepository extends BaseRepository {
       return { status: "conflict", actualRevision: comparison.revision };
     }
 
-    const item = await this.findItemByVariantId(
-      comparison.id,
-      input.variantId,
-    );
+    const item = await this.findItemByVariantId(comparison.id, input.variantId);
     if (!item) {
       return { status: "not_selected", actualRevision: comparison.revision };
     }
@@ -456,9 +433,7 @@ export class CustomerComparisonRepository extends BaseRepository {
     return rows.length > 0;
   }
 
-  private async lockComparison(
-    customerId: string,
-  ): Promise<CustomerComparison | null> {
+  private async lockComparison(customerId: string): Promise<CustomerComparison | null> {
     const rows = await this.connection
       .select()
       .from(customerComparison)
@@ -473,9 +448,7 @@ export class CustomerComparisonRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  private async createComparison(
-    customerId: string,
-  ): Promise<CustomerComparison> {
+  private async createComparison(customerId: string): Promise<CustomerComparison> {
     const now = new Date().toISOString();
     const rows = await this.connection
       .insert(customerComparison)
@@ -511,10 +484,7 @@ export class CustomerComparisonRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  private async compactPositions(
-    comparisonId: string,
-    updatedAt: string,
-  ): Promise<void> {
+  private async compactPositions(comparisonId: string, updatedAt: string): Promise<void> {
     const bounds = await this.connection
       .select({
         maxPosition: sql<number>`coalesce(max(${customerComparisonItem.position}), -1)`,
@@ -570,10 +540,7 @@ export class CustomerComparisonRepository extends BaseRepository {
         updatedAt,
       })
       .where(
-        and(
-          eq(customerComparison.storeId, this.storeId),
-          eq(customerComparison.id, comparisonId),
-        ),
+        and(eq(customerComparison.storeId, this.storeId), eq(customerComparison.id, comparisonId)),
       )
       .returning();
     const comparison = rows[0];

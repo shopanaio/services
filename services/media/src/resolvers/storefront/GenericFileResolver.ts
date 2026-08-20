@@ -31,10 +31,7 @@ export class GenericFileResolver extends MediaType<string, File> {
   }
 
   async previewImage() {
-    const previewId = await resolvePreviewImageId(
-      this.$ctx,
-      await this.$data,
-    );
+    const previewId = await resolvePreviewImageId(this.$ctx, await this.$data);
     return previewId ? this.resolvers.image(previewId) : null;
   }
 

@@ -3,31 +3,18 @@
 import { Flex } from "antd";
 import { CategoryInfoHeader } from "../category-info-header";
 import { CategoryContentTabs } from "../category-content-tabs";
-import {
-  HierarchySection,
-  MediaSection,
-  ProductsSection,
-  SeoSection,
-} from "./sections";
+import { HierarchySection, MediaSection, ProductsSection, SeoSection } from "./sections";
 import { useCategoryModals } from "./hooks";
 import type { CategoryDetailsCardProps } from "./types";
 
-export const CategoryDetailsCard = ({
-  category,
-  onRefetch,
-}: CategoryDetailsCardProps) => {
+export const CategoryDetailsCard = ({ category, onRefetch }: CategoryDetailsCardProps) => {
   const modals = useCategoryModals(category, onRefetch);
   const gallery = [...category.media]
     .sort((a, b) => a.sortIndex - b.sortIndex)
     .map((item) => item.file);
 
   return (
-    <Flex
-      vertical
-      gap={12}
-      style={{ width: "100%" }}
-      data-testid="category-details-card"
-    >
+    <Flex vertical gap={12} style={{ width: "100%" }} data-testid="category-details-card">
       <CategoryInfoHeader
         category={category}
         onEditIdentity={modals.editIdentity}

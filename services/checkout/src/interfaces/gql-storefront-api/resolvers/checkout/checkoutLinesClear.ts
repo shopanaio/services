@@ -16,7 +16,7 @@ import { createValidated } from "@src/utils/validation";
 export const checkoutLinesClear = async (
   _parent: ApiMutation,
   args: ApiMutationCheckoutLinesClearArgs,
-  ctx: GraphQLContext
+  ctx: GraphQLContext,
 ) => {
   const app = App.getInstance();
   const { checkoutUsecase, logger } = app;

@@ -1,11 +1,7 @@
 "use client";
 
 import { useMutation } from "@apollo/client/react";
-import type {
-  ApiGenericUserError,
-  ApiLocale,
-  LocaleCode,
-} from "@/graphql/types";
+import type { ApiGenericUserError, ApiLocale, LocaleCode } from "@/graphql/types";
 import {
   CREATE_STORE_LANGUAGE_MUTATION,
   DELETE_STORE_LANGUAGE_MUTATION,
@@ -48,17 +44,21 @@ export const useLanguageSettingsMutations = () => {
     },
     deleteLanguage: async (code: LocaleCode) => {
       const result = await deleteMutation({ variables: { input: { code } } });
-      return result.data?.storeMutation.localeDelete ?? {
-        deletedLocaleCode: null,
-        userErrors: [],
-      };
+      return (
+        result.data?.storeMutation.localeDelete ?? {
+          deletedLocaleCode: null,
+          userErrors: [],
+        }
+      );
     },
     setDefaultLanguage: async (locale: LocaleCode) => {
       const result = await setDefaultMutation({ variables: { input: { locale } } });
-      return result.data?.storeMutation.localeSetDefault ?? {
-        success: false,
-        userErrors: [],
-      };
+      return (
+        result.data?.storeMutation.localeSetDefault ?? {
+          success: false,
+          userErrors: [],
+        }
+      );
     },
     creating: createState.loading,
     deleting: deleteState.loading,

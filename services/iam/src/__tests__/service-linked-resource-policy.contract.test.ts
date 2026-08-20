@@ -36,7 +36,7 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
         resource: "org.applications",
         action: "write",
         protectedResource: protectedApplication,
-      })
+      }),
     ).toThrow();
   });
 
@@ -53,7 +53,7 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
             protectedResource: protectedApplication,
           },
         ],
-      })
+      }),
     ).toThrow();
   });
 
@@ -61,25 +61,25 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
     expect(
       protectedResourceAuthorizeInputSchema.parse({
         protectedResource: protectedApplication,
-      }).protectedResource
+      }).protectedResource,
     ).toEqual(protectedApplication);
     expect(
       protectedResourceAuthorizeInputSchema.parse({
         protectedResource: protectedApplicationWithOwner,
-      }).protectedResource
+      }).protectedResource,
     ).toEqual(protectedApplicationWithOwner);
   });
 
-  it.each([
-    { ownerType: "store" },
-    { ownerId: protectedApplicationWithOwner.ownerId },
-  ])("rejects an incomplete protected-resource owner claim", (owner) => {
-    expect(() =>
-      protectedResourceAuthorizeInputSchema.parse({
-        protectedResource: { ...protectedApplication, ...owner },
-      })
-    ).toThrow();
-  });
+  it.each([{ ownerType: "store" }, { ownerId: protectedApplicationWithOwner.ownerId }])(
+    "rejects an incomplete protected-resource owner claim",
+    (owner) => {
+      expect(() =>
+        protectedResourceAuthorizeInputSchema.parse({
+          protectedResource: { ...protectedApplication, ...owner },
+        }),
+      ).toThrow();
+    },
+  );
 
   it("keeps RBAC authorization independent from service-linked bindings", async () => {
     const services = createServices({
@@ -88,9 +88,7 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
     });
 
     await expect(authorizeRbac(services)).resolves.toBe(true);
-    expect(
-      services.repository.serviceLinkedResource.findActiveByResource
-    ).not.toHaveBeenCalled();
+    expect(services.repository.serviceLinkedResource.findActiveByResource).not.toHaveBeenCalled();
   });
 
   it("keeps batch RBAC authorization independent from service-linked bindings", async () => {
@@ -99,9 +97,7 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
     await expect(runBatchAuthorize(services)).resolves.toEqual({
       results: [true],
     });
-    expect(
-      services.repository.serviceLinkedResource.findActiveByResources
-    ).not.toHaveBeenCalled();
+    expect(services.repository.serviceLinkedResource.findActiveByResources).not.toHaveBeenCalled();
   });
 
   it("allows an unbound admin-managed protected resource", async () => {
@@ -110,9 +106,7 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
       bindingByResource: null,
     });
 
-    await expect(
-      authorizeProtectedResource(services, protectedApplication)
-    ).resolves.toBe(true);
+    await expect(authorizeProtectedResource(services, protectedApplication)).resolves.toBe(true);
   });
 
   it("denies a service-linked resource when its binding is missing", async () => {
@@ -121,9 +115,7 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
       bindingByResource: null,
     });
 
-    await expect(
-      authorizeProtectedResource(services, protectedApplication)
-    ).resolves.toBe(false);
+    await expect(authorizeProtectedResource(services, protectedApplication)).resolves.toBe(false);
   });
 
   it("denies an admin-managed resource with an unexpected binding", async () => {
@@ -132,9 +124,7 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
       bindingByResource: linkedOwner,
     });
 
-    await expect(
-      authorizeProtectedResource(services, protectedApplication)
-    ).resolves.toBe(false);
+    await expect(authorizeProtectedResource(services, protectedApplication)).resolves.toBe(false);
   });
 
   it("denies generic Admin access to a service-linked resource", async () => {
@@ -143,9 +133,9 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
       bindingByResource: linkedOwner,
     });
 
-    await expect(
-      authorizeProtectedResource(services, protectedApplication)
-    ).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
+    await expect(authorizeProtectedResource(services, protectedApplication)).rejects.toBeInstanceOf(
+      ServiceLinkedResourceAuthorizationError,
+    );
   });
 
   it("allows the linked service with the matching owner type and ID", async () => {
@@ -155,11 +145,9 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
     });
 
     await expect(
-      authorizeProtectedResource(
-        services,
-        protectedApplicationWithOwner,
-        { caller: { kind: "action", service: "owner-service" } }
-      )
+      authorizeProtectedResource(services, protectedApplicationWithOwner, {
+        caller: { kind: "action", service: "owner-service" },
+      }),
     ).resolves.toBe(true);
   });
 
@@ -191,7 +179,7 @@ describe("separate RBAC and protected-resource authorization contracts", () => {
     await expect(
       authorizeProtectedResource(services, resource, {
         caller: { kind: "action", service: callerService },
-      })
+      }),
     ).rejects.toBeInstanceOf(ServiceLinkedResourceAuthorizationError);
   });
 });
@@ -204,21 +192,19 @@ function authorizeRbac(services: ReturnType<typeof createServices>) {
       domain: "org",
       resource: "org.applications",
       action: "write",
-    })
+    }),
   );
 }
 
 function authorizeProtectedResource(
   services: ReturnType<typeof createServices>,
-  protectedResource:
-    | typeof protectedApplication
-    | typeof protectedApplicationWithOwner,
-  brokerCallContext?: BrokerCallContext
+  protectedResource: typeof protectedApplication | typeof protectedApplicationWithOwner,
+  brokerCallContext?: BrokerCallContext,
 ) {
   return withIamContext(services, brokerCallContext, () =>
     new AuthProvider().authorizeProtectedResource({
       protectedResource,
-    })
+    }),
   );
 }
 
@@ -234,14 +220,14 @@ function runBatchAuthorize(services: ReturnType<typeof createServices>) {
           action: "write",
         },
       ],
-    })
+    }),
   );
 }
 
 function withIamContext<T>(
   services: ReturnType<typeof createServices>,
   brokerCallContext: BrokerCallContext | undefined,
-  operation: () => Promise<T>
+  operation: () => Promise<T>,
 ) {
   return runWithContext(
     {
@@ -256,7 +242,7 @@ function withIamContext<T>(
       requestHeaders: {},
       brokerCallContext,
     } as never,
-    operation
+    operation,
   );
 }
 
@@ -278,17 +264,11 @@ function createServices(input: {
       },
       casbin: {
         enforce: jest.fn().mockResolvedValue(input.casbinAllowed ?? false),
-        batchEnforce: jest
-          .fn()
-          .mockResolvedValue(input.batchCasbinResults ?? []),
+        batchEnforce: jest.fn().mockResolvedValue(input.batchCasbinResults ?? []),
       },
       serviceLinkedResource: {
-        findManagementMode: jest
-          .fn()
-          .mockResolvedValue(input.managementMode ?? "organization"),
-        findActiveByResource: jest
-          .fn()
-          .mockResolvedValue(input.bindingByResource ?? null),
+        findManagementMode: jest.fn().mockResolvedValue(input.managementMode ?? "organization"),
+        findActiveByResource: jest.fn().mockResolvedValue(input.bindingByResource ?? null),
         findActiveByResources: jest.fn().mockResolvedValue([]),
       },
     },

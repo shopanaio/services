@@ -1,7 +1,5 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { BulkEditJob } from "../../repositories/models/index.js";
 import type { BulkEditItemConnectionInput } from "../../repositories/BulkEditItemRepository.js";
 import { CatalogType } from "./CatalogType.js";
@@ -10,9 +8,7 @@ export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJo
   async $preload() {
     const job = await this.$ctx.loaders.bulkEditJob.load(this.$props);
     if (!job) {
-      throw new PreloadNotFoundError(
-        `BulkEditJob with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`BulkEditJob with ID ${this.$props} not found`);
     }
     return job;
   }
@@ -59,7 +55,7 @@ export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJo
       result.edges.map(async (edge) => ({
         cursor: edge.cursor,
         node: await this.resolvers.bulkUpdateItem(edge.nodeId),
-      }))
+      })),
     );
 
     return {

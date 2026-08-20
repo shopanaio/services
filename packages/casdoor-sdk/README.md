@@ -2,7 +2,8 @@
 
 Node.js (TypeScript) клиент‑расширение для Casdoor, построенный поверх `casdoor-nodejs-sdk`.
 
-Задача пакета: закрыть “браузерные” `/api/*` endpoints (login/signup/logout, verification code, captcha, webauthn), **не дублируя** существующие методы официального SDK.
+Задача пакета: закрыть “браузерные” `/api/*` endpoints (login/signup/logout, verification code,
+captcha, webauthn), **не дублируя** существующие методы официального SDK.
 
 ## Установка
 
@@ -13,7 +14,11 @@ npm i casdoor-nodejs-sdk axios form-data @zaytra/casdoor-node-client-ext
 ## Быстрый старт (BFF/proxy с прокидыванием cookies)
 
 ```ts
-import { CasdoorNodeClient, ctxFromHeaders, applySetCookieHeader } from "@zaytra/casdoor-node-client-ext";
+import {
+  CasdoorNodeClient,
+  ctxFromHeaders,
+  applySetCookieHeader,
+} from "@zaytra/casdoor-node-client-ext";
 
 const client = new CasdoorNodeClient({
   casdoorBaseUrl: "https://door.example.com",
@@ -48,5 +53,5 @@ const users = await client.sdk.getUsers();
 ## Cookie стратегии
 
 - `cookie: { mode: "forward" }` — проброс `Cookie` клиента в Casdoor и возврат `Set-Cookie` обратно.
-- `cookie: { mode: "jar", getJar }` — серверный cookie jar (любой объект с `getCookieString()`/`setCookie()`).
-
+- `cookie: { mode: "jar", getJar }` — серверный cookie jar (любой объект с
+  `getCookieString()`/`setCookie()`).

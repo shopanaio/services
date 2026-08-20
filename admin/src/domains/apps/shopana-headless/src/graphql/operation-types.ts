@@ -13,12 +13,7 @@ import type {
 
 export type HeadlessStorefront = Pick<
   ApiHeadlessStorefrontConnection,
-  | "id"
-  | "displayName"
-  | "status"
-  | "publicAccessToken"
-  | "createdAt"
-  | "updatedAt"
+  "id" | "displayName" | "status" | "publicAccessToken" | "createdAt" | "updatedAt"
 > & {
   storefrontAccessPolicy: ApiStorefrontAccessPolicy | null;
   storefrontCredentials: ApiStorefrontCredential[];

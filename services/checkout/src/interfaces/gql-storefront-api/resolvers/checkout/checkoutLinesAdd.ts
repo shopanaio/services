@@ -1,6 +1,9 @@
 import { v7 as uuidv7 } from "uuid";
 import { App } from "@src/ioc/container";
-import type { ApiMutationCheckoutLinesAddArgs, ApiMutation } from "@src/interfaces/gql-storefront-api/types";
+import type {
+  ApiMutationCheckoutLinesAddArgs,
+  ApiMutation,
+} from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutLinesAddDto } from "@src/application/dto/checkoutLinesAdd.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
@@ -8,7 +11,11 @@ import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/ma
 import { createValidated } from "@src/utils/validation";
 import { purchaseOf } from "./checkoutCreate.js";
 
-export const checkoutLinesAdd = async (_parent: ApiMutation, args: ApiMutationCheckoutLinesAddArgs, ctx: GraphQLContext) => {
+export const checkoutLinesAdd = async (
+  _parent: ApiMutation,
+  args: ApiMutationCheckoutLinesAddArgs,
+  ctx: GraphQLContext,
+) => {
   const { checkoutUsecase, logger } = App.getInstance();
   const dto = createValidated(CheckoutLinesAddDto, args.input);
   try {
@@ -21,14 +28,15 @@ export const checkoutLinesAdd = async (_parent: ApiMutation, args: ApiMutationCh
         purchase: purchaseOf(line.purchase),
         attributes: line.attributes ?? {},
         tagSlug: line.tagSlug ?? null,
-        children: line.children?.map((child) => ({
-          lineId: uuidv7(),
-          componentItemId: child.componentItemId,
-          variantId: child.purchasableId,
-          quantity: child.quantity,
-          purchase: purchaseOf(child.purchase),
-          attributes: child.attributes ?? {},
-        })) ?? null,
+        children:
+          line.children?.map((child) => ({
+            lineId: uuidv7(),
+            componentItemId: child.componentItemId,
+            variantId: child.purchasableId,
+            quantity: child.quantity,
+            purchase: purchaseOf(child.purchase),
+            attributes: child.attributes ?? {},
+          })) ?? null,
       })),
       storefrontAccess: ctx.storefrontAccess,
       visitorId: ctx.visitorId,
@@ -38,7 +46,13 @@ export const checkoutLinesAdd = async (_parent: ApiMutation, args: ApiMutationCh
     });
     return { checkout: mapCommittedCheckoutToApi(checkout), userErrors: [] };
   } catch (error) {
-    logger.error({ reason: error instanceof Error ? error.message : String(error), checkoutId: dto.checkoutId }, "checkoutLinesAdd failed");
+    logger.error(
+      {
+        reason: error instanceof Error ? error.message : String(error),
+        checkoutId: dto.checkoutId,
+      },
+      "checkoutLinesAdd failed",
+    );
     throw await fromDomainError(error);
   }
 };

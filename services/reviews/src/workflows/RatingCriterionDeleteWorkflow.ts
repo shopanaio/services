@@ -29,10 +29,14 @@ export class RatingCriterionDeleteWorkflow extends ReviewsMutationWorkflow {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: RatingCriterionDeleteWorkflowInput
+    input: RatingCriterionDeleteWorkflowInput,
   ): Promise<RatingCriterionDeleteWorkflowResult> {
     const result = await this.stepDelete(input);
-    if (result.deletedCriterionId && result.permanent !== undefined && result.userErrors.length === 0) {
+    if (
+      result.deletedCriterionId &&
+      result.permanent !== undefined &&
+      result.userErrors.length === 0
+    ) {
       await this.workflowEmitEvent(input, {
         criterionId: result.deletedCriterionId,
         permanent: result.permanent,
@@ -46,13 +50,13 @@ export class RatingCriterionDeleteWorkflow extends ReviewsMutationWorkflow {
     return this.kernel.runScript(
       RatingCriterionDeleteScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
   private async workflowEmitEvent(
     input: RatingCriterionDeleteWorkflowInput,
-    deleted: { criterionId: string; permanent: boolean }
+    deleted: { criterionId: string; permanent: boolean },
   ): Promise<void> {
     const payload: ReviewRatingCriterionDeletedEvent["payload"] = {
       ...deleted,
@@ -78,7 +82,7 @@ export class RatingCriterionDeleteWorkflow extends ReviewsMutationWorkflow {
         workflowId: DBOS.workflowID!,
         stepId: "emitReviewRatingCriterionDeleted",
         callId: deleted.criterionId,
-      }
+      },
     );
   }
 }

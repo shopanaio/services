@@ -37,7 +37,7 @@ export class MaterializeNotificationScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: MaterializeNotificationParams
+    params: MaterializeNotificationParams,
   ): Promise<MaterializeNotificationResult> {
     if (params.storeId !== this.context.store.id) {
       throw new Error("STORE_CONTEXT_MISMATCH");
@@ -45,11 +45,8 @@ export class MaterializeNotificationScript extends BaseScript<
     const definition = this.definitions.get(params.key);
     definition.dataSchema.parse(params.data);
 
-    const definitionSetting =
-      await this.repository.settings.getDefinitionSetting(params.key);
-    const enabled = definition.optional
-      ? (definitionSetting?.enabled ?? false)
-      : true;
+    const definitionSetting = await this.repository.settings.getDefinitionSetting(params.key);
+    const enabled = definition.optional ? (definitionSetting?.enabled ?? false) : true;
     if (!enabled && params.purpose !== "TEST") {
       return {
         deliveryIds: [],
@@ -69,15 +66,10 @@ export class MaterializeNotificationScript extends BaseScript<
       channels: readonly NotificationChannel[];
     }> = recipients.map((recipient) => ({ recipient, channels }));
 
-    if (
-      params.includeEventWebhooks &&
-      params.sourceEventType &&
-      params.purpose !== "TEST"
-    ) {
-      const subscriptions =
-        await this.repository.webhooks.listActiveForEvent(
-          params.sourceEventType
-        );
+    if (params.includeEventWebhooks && params.sourceEventType && params.purpose !== "TEST") {
+      const subscriptions = await this.repository.webhooks.listActiveForEvent(
+        params.sourceEventType,
+      );
       targets.push(
         ...subscriptions.map((subscription) => ({
           recipient: {
@@ -86,7 +78,7 @@ export class MaterializeNotificationScript extends BaseScript<
             name: `Webhook ${subscription.eventType}`,
           },
           channels: ["WEBHOOK" as const],
-        }))
+        })),
       );
     }
 
@@ -108,13 +100,12 @@ export class MaterializeNotificationScript extends BaseScript<
     });
     return {
       ...materialized,
-      skippedReason:
-        targets.length === 0 ? ("NO_RECIPIENT" as const) : undefined,
+      skippedReason: targets.length === 0 ? ("NO_RECIPIENT" as const) : undefined,
     };
   }
 
   private async resolveChannels(
-    params: MaterializeNotificationParams
+    params: MaterializeNotificationParams,
   ): Promise<NotificationChannel[]> {
     const definition = this.definitions.get(params.key);
     if (params.forcedChannels) {
@@ -126,14 +117,10 @@ export class MaterializeNotificationScript extends BaseScript<
       return [...new Set(params.forcedChannels)];
     }
 
-    const settings =
-      await this.repository.settings.listChannelSettings(params.key);
+    const settings = await this.repository.settings.listChannelSettings(params.key);
     return definition.allowedChannels.filter((channel) => {
       const configured = settings.find((entry) => entry.channel === channel);
-      return (
-        configured?.enabled ??
-        definition.defaultChannels.includes(channel)
-      );
+      return configured?.enabled ?? definition.defaultChannels.includes(channel);
     });
   }
 

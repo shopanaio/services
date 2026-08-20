@@ -8,7 +8,10 @@ export type { SeekValue, CursorParams } from "./types.js";
 // ============ Errors ============
 
 export class InvalidCursorError extends Error {
-  constructor(message: string, public readonly cause?: unknown) {
+  constructor(
+    message: string,
+    public readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "InvalidCursorError";
     if (cause && typeof (this as Error & { cause?: unknown }).cause === "undefined") {
@@ -23,7 +26,9 @@ function isOrderDirection(value: string): value is OrderDirection {
   return value === "asc" || value === "desc";
 }
 
-export function validateCursorParams(params: CursorParams | null | undefined): asserts params is CursorParams {
+export function validateCursorParams(
+  params: CursorParams | null | undefined,
+): asserts params is CursorParams {
   if (!params) {
     throw new InvalidCursorError("Cursor params cannot be null");
   }

@@ -28,9 +28,7 @@ export class ModerationCaseCreateWorkflow extends ReviewsMutationWorkflow {
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: ModerationCaseCreateWorkflowInput
-  ): Promise<ModerationCaseCreateWorkflowResult> {
+  async run(input: ModerationCaseCreateWorkflowInput): Promise<ModerationCaseCreateWorkflowResult> {
     const result = await this.stepCreate(input);
     if (result.moderationCase && result.userErrors.length === 0) {
       await this.workflowEmitEvent(input, result.moderationCase);
@@ -43,13 +41,13 @@ export class ModerationCaseCreateWorkflow extends ReviewsMutationWorkflow {
     return this.kernel.runScript(
       ModerationCaseCreateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
   private async workflowEmitEvent(
     input: ModerationCaseCreateWorkflowInput,
-    moderationCase: { id: string; contentId: string }
+    moderationCase: { id: string; contentId: string },
   ): Promise<void> {
     const payload: ReviewModerationCaseCreatedEvent["payload"] = {
       moderationCaseId: moderationCase.id,
@@ -76,7 +74,7 @@ export class ModerationCaseCreateWorkflow extends ReviewsMutationWorkflow {
         workflowId: DBOS.workflowID!,
         stepId: "emitReviewModerationCaseCreated",
         callId: moderationCase.id,
-      }
+      },
     );
   }
 }

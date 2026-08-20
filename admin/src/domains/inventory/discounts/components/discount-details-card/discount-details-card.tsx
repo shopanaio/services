@@ -34,12 +34,7 @@ export function DiscountDetailsCard({
       : undefined;
 
   return (
-    <Flex
-      vertical
-      gap={12}
-      className={styles.card}
-      data-testid="discount-details-card"
-    >
+    <Flex vertical gap={12} className={styles.card} data-testid="discount-details-card">
       <DiscountSummarySection
         discount={discount}
         currency={currency}
@@ -54,38 +49,14 @@ export function DiscountDetailsCard({
         onEdit={onEditValueTargets}
         onViewActivity={onViewActivity}
       />
-      <AppliesToSection
-        discount={discount}
-        onEdit={onEditValueTargets}
-      />
-      <CustomerEligibilitySection
-        discount={discount}
-        onEdit={editHandler("eligibility")}
-      />
-      <ChannelsSection
-        discount={discount}
-        onEdit={editHandler("channels")}
-      />
-      <CombinationsSection
-        discount={discount}
-        onEdit={editHandler("combinations")}
-      />
-      <AvailabilityLimitsSection
-        discount={discount}
-        onEdit={editHandler("availability")}
-      />
-      <DiscountTagsSection
-        discount={discount}
-        onRefresh={onRefresh}
-      />
-      <DiscountCodesSection
-        discount={discount}
-        onEdit={editHandler("codes")}
-      />
-      <ExternalReferencesSection
-        discount={discount}
-        onEdit={editHandler("external-references")}
-      />
+      <AppliesToSection discount={discount} onEdit={onEditValueTargets} />
+      <CustomerEligibilitySection discount={discount} onEdit={editHandler("eligibility")} />
+      <ChannelsSection discount={discount} onEdit={editHandler("channels")} />
+      <CombinationsSection discount={discount} onEdit={editHandler("combinations")} />
+      <AvailabilityLimitsSection discount={discount} onEdit={editHandler("availability")} />
+      <DiscountTagsSection discount={discount} onRefresh={onRefresh} />
+      <DiscountCodesSection discount={discount} onEdit={editHandler("codes")} />
+      <ExternalReferencesSection discount={discount} onEdit={editHandler("external-references")} />
     </Flex>
   );
 }

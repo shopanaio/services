@@ -1,8 +1,4 @@
-import {
-  FilterType,
-  numberOperators,
-  stringOperators,
-} from "@/layouts/filters";
+import { FilterType, numberOperators, stringOperators } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
 
 export const filterSchema: IFilterSchema[] = [

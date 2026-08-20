@@ -11,22 +11,14 @@ interface ListingPreviewGridProps {
   hasInitialData: boolean;
 }
 
-export const ListingPreviewGrid = ({
-  items,
-  loading,
-  hasInitialData,
-}: ListingPreviewGridProps) => {
+export const ListingPreviewGrid = ({ items, loading, hasInitialData }: ListingPreviewGridProps) => {
   const { styles } = useListingPreviewStyles();
 
   if (loading && !hasInitialData) {
     return (
       <div className={styles.grid}>
         {Array.from({ length: 8 }).map((_, index) => (
-          <Skeleton.Node
-            key={index}
-            active
-            style={{ width: "100%", height: 220 }}
-          />
+          <Skeleton.Node key={index} active style={{ width: "100%", height: 220 }} />
         ))}
       </div>
     );

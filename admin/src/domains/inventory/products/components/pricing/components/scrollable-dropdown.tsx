@@ -21,8 +21,7 @@ const useStyles = createStyles(() => ({
   },
 }));
 
-export interface IScrollableDropdownProps
-  extends Omit<DropdownProps, "popupRender"> {
+export interface IScrollableDropdownProps extends Omit<DropdownProps, "popupRender"> {
   hasNextPage: boolean;
   isLoadingMore: boolean;
   onLoadMore: () => void;

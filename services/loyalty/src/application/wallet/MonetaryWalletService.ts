@@ -54,7 +54,11 @@ export class MonetaryWalletService {
     currencyCode: string,
   ): Promise<MonetaryWallet> {
     return this.repository.runInTransaction(async () => {
-      const existing = await this.repository.wallet.findForAccount(account.id, walletType, currencyCode);
+      const existing = await this.repository.wallet.findForAccount(
+        account.id,
+        walletType,
+        currencyCode,
+      );
       if (existing) return existing;
       const wallet = await this.repository.wallet.createWalletIfMissing({
         programId: account.programId,
@@ -71,20 +75,23 @@ export class MonetaryWalletService {
     return this.repository.runInTransaction(() => this.applyInside(input));
   }
 
-  async credit(input: Omit<MonetaryOperationInput, "entries"> & {
-    amountMinor: bigint;
-    activationAt: string;
-    expiresAt: string | null;
-  }): Promise<MonetaryOperationResult & { lot: MonetaryCreditLot | null }> {
+  async credit(
+    input: Omit<MonetaryOperationInput, "entries"> & {
+      amountMinor: bigint;
+      activationAt: string;
+      expiresAt: string | null;
+    },
+  ): Promise<MonetaryOperationResult & { lot: MonetaryCreditLot | null }> {
     return this.repository.runInTransaction(async () => {
-      if (input.amountMinor <= 0n) throw new LoyaltyDomainError("INVALID_MONETARY_AMOUNT", "Monetary credit must be positive");
+      if (input.amountMinor <= 0n)
+        throw new LoyaltyDomainError("INVALID_MONETARY_AMOUNT", "Monetary credit must be positive");
       await this.lockWalletForOperation(input.wallet.id);
       const balance = await this.requireBalance(input.wallet.id, true);
-      const recovered = balance.debtAmountMinor < input.amountMinor ? balance.debtAmountMinor : input.amountMinor;
+      const recovered =
+        balance.debtAmountMinor < input.amountMinor ? balance.debtAmountMinor : input.amountMinor;
       const credited = input.amountMinor - recovered;
-      const bucket: MonetaryBucket = Date.parse(input.activationAt) > Date.parse(input.occurredAt)
-        ? "PENDING"
-        : "AVAILABLE";
+      const bucket: MonetaryBucket =
+        Date.parse(input.activationAt) > Date.parse(input.occurredAt) ? "PENDING" : "AVAILABLE";
       const operation = await this.applyInside({
         ...input,
         metadata: {
@@ -99,17 +106,25 @@ export class MonetaryWalletService {
         ],
       });
       if (!operation.created || credited === 0n) return { ...operation, lot: null };
-      const entry = operation.entries.find(({ bucket: entryBucket, amountMinorDelta }) =>
-        entryBucket === bucket && amountMinorDelta > 0n,
+      const entry = operation.entries.find(
+        ({ bucket: entryBucket, amountMinorDelta }) =>
+          entryBucket === bucket && amountMinorDelta > 0n,
       );
-      if (!entry) throw new LoyaltyDomainError("MONETARY_LEDGER_INTEGRITY", "Monetary credit entry is missing", true);
-      const [lot] = await this.repository.wallet.createCreditLots([{
-        walletId: input.wallet.id,
-        originEntryId: entry.id,
-        amountIssuedMinor: credited,
-        activatedAt: input.activationAt,
-        expiresAt: input.expiresAt,
-      }]);
+      if (!entry)
+        throw new LoyaltyDomainError(
+          "MONETARY_LEDGER_INTEGRITY",
+          "Monetary credit entry is missing",
+          true,
+        );
+      const [lot] = await this.repository.wallet.createCreditLots([
+        {
+          walletId: input.wallet.id,
+          originEntryId: entry.id,
+          amountIssuedMinor: credited,
+          activatedAt: input.activationAt,
+          expiresAt: input.expiresAt,
+        },
+      ]);
       return { ...operation, lot: lot ?? null };
     });
   }
@@ -128,12 +143,21 @@ export class MonetaryWalletService {
         ...input,
         entries: [
           { bucket: debitBucket, amountMinorDelta: -input.amountMinor },
-          ...(input.creditReserved ? [{ bucket: "RESERVED" as const, amountMinorDelta: input.amountMinor }] : []),
+          ...(input.creditReserved
+            ? [{ bucket: "RESERVED" as const, amountMinorDelta: input.amountMinor }]
+            : []),
         ],
       });
       if (!operation.created) return operation;
-      const debit = operation.entries.find(({ bucket, amountMinorDelta }) => bucket === debitBucket && amountMinorDelta < 0n);
-      if (!debit) throw new LoyaltyDomainError("MONETARY_LEDGER_INTEGRITY", "Monetary debit entry is missing", true);
+      const debit = operation.entries.find(
+        ({ bucket, amountMinorDelta }) => bucket === debitBucket && amountMinorDelta < 0n,
+      );
+      if (!debit)
+        throw new LoyaltyDomainError(
+          "MONETARY_LEDGER_INTEGRITY",
+          "Monetary debit entry is missing",
+          true,
+        );
       const allocations = await this.allocateLots(
         input.wallet.id,
         input.effectiveAt,
@@ -143,15 +167,21 @@ export class MonetaryWalletService {
         input.lotIds,
       );
       await this.repository.wallet.createLotAllocations(
-        allocations.map(({ lot, amountMinor }) => ({ lotId: lot.id, debitEntryId: debit.id, amountMinor })),
+        allocations.map(({ lot, amountMinor }) => ({
+          lotId: lot.id,
+          debitEntryId: debit.id,
+          amountMinor,
+        })),
       );
       return operation;
     });
   }
 
-  async reserve(input: Omit<MonetaryOperationInput, "kind" | "entries"> & {
-    amountMinor: bigint;
-  }): Promise<MonetaryOperationResult> {
+  async reserve(
+    input: Omit<MonetaryOperationInput, "kind" | "entries"> & {
+      amountMinor: bigint;
+    },
+  ): Promise<MonetaryOperationResult> {
     return this.debitAvailableWithLots({
       ...input,
       kind: "RESERVE",
@@ -160,21 +190,35 @@ export class MonetaryWalletService {
     });
   }
 
-  async releaseReserved(input: Omit<MonetaryOperationInput, "programVersionId" | "kind" | "entries"> & {
-    reserveTransactionId: string;
-    amountMinor: bigint;
-  }): Promise<MonetaryOperationResult> {
+  async releaseReserved(
+    input: Omit<MonetaryOperationInput, "programVersionId" | "kind" | "entries"> & {
+      reserveTransactionId: string;
+      amountMinor: bigint;
+    },
+  ): Promise<MonetaryOperationResult> {
     return this.repository.runInTransaction(async () => {
-      const previous = await this.existingOperation(input.wallet.id, input.idempotencyKey, input.requestHash);
+      const previous = await this.existingOperation(
+        input.wallet.id,
+        input.idempotencyKey,
+        input.requestHash,
+      );
       if (previous) return previous;
       await this.lockWalletForOperation(input.wallet.id, true);
       const reserve = await this.requireReserve(input.wallet.id, input.reserveTransactionId);
       const originalAmount = await this.reserveAmount(reserve);
       const settled = await this.settledReserveAmount(input.wallet.id, reserve.id);
       if (input.amountMinor <= 0n || settled + input.amountMinor > originalAmount) {
-        throw new LoyaltyDomainError("MONETARY_RELEASE_EXCEEDS_RESERVATION", "Released credit exceeds the original reservation");
+        throw new LoyaltyDomainError(
+          "MONETARY_RELEASE_EXCEEDS_RESERVATION",
+          "Released credit exceeds the original reservation",
+        );
       }
-      const chunks = await this.originalReserveChunks(input.wallet.id, reserve, settled, input.amountMinor);
+      const chunks = await this.originalReserveChunks(
+        input.wallet.id,
+        reserve,
+        settled,
+        input.amountMinor,
+      );
       const operation = await this.applyInside({
         ...input,
         programVersionId: reserve.programVersionId,
@@ -187,7 +231,10 @@ export class MonetaryWalletService {
         },
         entries: [
           { bucket: "RESERVED", amountMinorDelta: -input.amountMinor },
-          ...chunks.map(({ amountMinor }) => ({ bucket: "AVAILABLE" as const, amountMinorDelta: amountMinor })),
+          ...chunks.map(({ amountMinor }) => ({
+            bucket: "AVAILABLE" as const,
+            amountMinorDelta: amountMinor,
+          })),
         ],
       });
       if (operation.created) await this.createRestoredLots(input.wallet.id, operation, chunks);
@@ -195,19 +242,28 @@ export class MonetaryWalletService {
     });
   }
 
-  async spendReserved(input: Omit<MonetaryOperationInput, "programVersionId" | "kind" | "entries"> & {
-    reserveTransactionId: string;
-    amountMinor: bigint;
-  }): Promise<MonetaryOperationResult> {
+  async spendReserved(
+    input: Omit<MonetaryOperationInput, "programVersionId" | "kind" | "entries"> & {
+      reserveTransactionId: string;
+      amountMinor: bigint;
+    },
+  ): Promise<MonetaryOperationResult> {
     return this.repository.runInTransaction(async () => {
-      const previous = await this.existingOperation(input.wallet.id, input.idempotencyKey, input.requestHash);
+      const previous = await this.existingOperation(
+        input.wallet.id,
+        input.idempotencyKey,
+        input.requestHash,
+      );
       if (previous) return previous;
       await this.lockWalletForOperation(input.wallet.id, true);
       const reserve = await this.requireReserve(input.wallet.id, input.reserveTransactionId);
       const originalAmount = await this.reserveAmount(reserve);
       const settled = await this.settledReserveAmount(input.wallet.id, reserve.id);
       if (input.amountMinor <= 0n || settled + input.amountMinor > originalAmount) {
-        throw new LoyaltyDomainError("MONETARY_SPEND_EXCEEDS_RESERVATION", "Spent credit exceeds the original reservation");
+        throw new LoyaltyDomainError(
+          "MONETARY_SPEND_EXCEEDS_RESERVATION",
+          "Spent credit exceeds the original reservation",
+        );
       }
       return this.applyInside({
         ...input,
@@ -224,31 +280,55 @@ export class MonetaryWalletService {
     });
   }
 
-  async restoreSpend(input: Omit<MonetaryOperationInput, "programVersionId" | "kind" | "entries"> & {
-    spendTransactionId: string;
-    amountMinor: bigint;
-  }): Promise<MonetaryOperationResult> {
+  async restoreSpend(
+    input: Omit<MonetaryOperationInput, "programVersionId" | "kind" | "entries"> & {
+      spendTransactionId: string;
+      amountMinor: bigint;
+    },
+  ): Promise<MonetaryOperationResult> {
     return this.repository.runInTransaction(async () => {
-      const previous = await this.existingOperation(input.wallet.id, input.idempotencyKey, input.requestHash);
+      const previous = await this.existingOperation(
+        input.wallet.id,
+        input.idempotencyKey,
+        input.requestHash,
+      );
       if (previous) return previous;
       await this.lockWalletForOperation(input.wallet.id, true);
       const spend = await this.repository.wallet.findTransactionById(input.spendTransactionId);
       if (!spend || spend.walletId !== input.wallet.id || spend.kind !== "SPEND") {
-        throw new LoyaltyDomainError("MONETARY_SPEND_NOT_FOUND", "Monetary spend transaction was not found");
+        throw new LoyaltyDomainError(
+          "MONETARY_SPEND_NOT_FOUND",
+          "Monetary spend transaction was not found",
+        );
       }
-      const reserveTransactionId = typeof spend.metadata.reserveTransactionId === "string"
-        ? spend.metadata.reserveTransactionId
-        : null;
-      if (!reserveTransactionId) throw new LoyaltyDomainError("MONETARY_AUDIT_INCOMPLETE", "Spend reservation audit is missing", true);
+      const reserveTransactionId =
+        typeof spend.metadata.reserveTransactionId === "string"
+          ? spend.metadata.reserveTransactionId
+          : null;
+      if (!reserveTransactionId)
+        throw new LoyaltyDomainError(
+          "MONETARY_AUDIT_INCOMPLETE",
+          "Spend reservation audit is missing",
+          true,
+        );
       const reserve = await this.requireReserve(input.wallet.id, reserveTransactionId);
       const spendAmount = BigInt(String(spend.metadata.amountMinor ?? "0"));
       const transactions = await this.repository.wallet.listAllTransactions(input.wallet.id);
       const restored = transactions
-        .filter((transaction) => transaction.kind === "RESTORE_SPEND"
-          && transaction.metadata.spendTransactionId === spend.id)
-        .reduce((sum, transaction) => sum + BigInt(String(transaction.metadata.amountMinor ?? "0")), 0n);
+        .filter(
+          (transaction) =>
+            transaction.kind === "RESTORE_SPEND" &&
+            transaction.metadata.spendTransactionId === spend.id,
+        )
+        .reduce(
+          (sum, transaction) => sum + BigInt(String(transaction.metadata.amountMinor ?? "0")),
+          0n,
+        );
       if (input.amountMinor <= 0n || restored + input.amountMinor > spendAmount) {
-        throw new LoyaltyDomainError("MONETARY_RESTORE_EXCEEDS_SPEND", "Restored credit exceeds the original spend");
+        throw new LoyaltyDomainError(
+          "MONETARY_RESTORE_EXCEEDS_SPEND",
+          "Restored credit exceeds the original spend",
+        );
       }
       const allocationOffset = BigInt(String(spend.metadata.allocationOffset ?? "0")) + restored;
       const chunks = await this.originalReserveChunks(
@@ -277,13 +357,19 @@ export class MonetaryWalletService {
     });
   }
 
-  async reverseCredit(input: Omit<MonetaryOperationInput, "kind" | "entries"> & {
-    originalTransactionId: string;
-    amountMinor: bigint;
-    debtPolicy: "TRACK_DEBT" | "REJECT_REVERSAL";
-  }): Promise<MonetaryOperationResult & { debtAmountMinor: bigint }> {
+  async reverseCredit(
+    input: Omit<MonetaryOperationInput, "kind" | "entries"> & {
+      originalTransactionId: string;
+      amountMinor: bigint;
+      debtPolicy: "TRACK_DEBT" | "REJECT_REVERSAL";
+    },
+  ): Promise<MonetaryOperationResult & { debtAmountMinor: bigint }> {
     return this.repository.runInTransaction(async () => {
-      const previous = await this.existingOperation(input.wallet.id, input.idempotencyKey, input.requestHash);
+      const previous = await this.existingOperation(
+        input.wallet.id,
+        input.idempotencyKey,
+        input.requestHash,
+      );
       if (previous) {
         return {
           ...previous,
@@ -291,47 +377,59 @@ export class MonetaryWalletService {
         };
       }
       await this.lockWalletForOperation(input.wallet.id, true);
-      const original = await this.repository.wallet.findTransactionById(input.originalTransactionId);
+      const original = await this.repository.wallet.findTransactionById(
+        input.originalTransactionId,
+      );
       if (!original || original.walletId !== input.wallet.id) {
-        throw new LoyaltyDomainError("MONETARY_EARNING_NOT_FOUND", "Original monetary earning was not found");
+        throw new LoyaltyDomainError(
+          "MONETARY_EARNING_NOT_FOUND",
+          "Original monetary earning was not found",
+        );
       }
       const originalEntries = await this.repository.wallet.listEntries(original.id);
       const originalRecovered = originalEntries
         .filter(({ bucket, amountMinorDelta }) => bucket === "DEBT" && amountMinorDelta < 0n)
         .reduce((sum, { amountMinorDelta }) => sum - amountMinorDelta, 0n);
       const originalCredited = originalEntries
-        .filter(({ bucket, amountMinorDelta }) =>
-          (bucket === "PENDING" || bucket === "AVAILABLE") && amountMinorDelta > 0n,
+        .filter(
+          ({ bucket, amountMinorDelta }) =>
+            (bucket === "PENDING" || bucket === "AVAILABLE") && amountMinorDelta > 0n,
         )
         .reduce((sum, { amountMinorDelta }) => sum + amountMinorDelta, 0n);
       const originalAmount = originalRecovered + originalCredited;
-      const previousReversals = (await this.repository.wallet.listAllTransactions(input.wallet.id))
-        .filter((transaction) => transaction.kind === "REVERSE_EARN"
-          && transaction.metadata.originalTransactionId === original.id);
-      const previouslyReversed = previousReversals
-        .reduce((sum, transaction) => sum + BigInt(String(transaction.metadata.amountMinor ?? "0")), 0n);
+      const previousReversals = (
+        await this.repository.wallet.listAllTransactions(input.wallet.id)
+      ).filter(
+        (transaction) =>
+          transaction.kind === "REVERSE_EARN" &&
+          transaction.metadata.originalTransactionId === original.id,
+      );
+      const previouslyReversed = previousReversals.reduce(
+        (sum, transaction) => sum + BigInt(String(transaction.metadata.amountMinor ?? "0")),
+        0n,
+      );
       if (input.amountMinor <= 0n || previouslyReversed + input.amountMinor > originalAmount) {
         throw new LoyaltyDomainError(
           "MONETARY_REVERSAL_EXCEEDS_EARNING",
           "Monetary reversal exceeds the original earning",
         );
       }
-      const recoveredBefore = previouslyReversed < originalRecovered
-        ? previouslyReversed
-        : originalRecovered;
-      const recoveredAfter = previouslyReversed + input.amountMinor < originalRecovered
-        ? previouslyReversed + input.amountMinor
-        : originalRecovered;
+      const recoveredBefore =
+        previouslyReversed < originalRecovered ? previouslyReversed : originalRecovered;
+      const recoveredAfter =
+        previouslyReversed + input.amountMinor < originalRecovered
+          ? previouslyReversed + input.amountMinor
+          : originalRecovered;
       const recoveredDebt = recoveredAfter - recoveredBefore;
       const creditedToReverse = input.amountMinor - recoveredDebt;
       const balance = await this.requireBalance(input.wallet.id, true);
-      const pending = balance.pendingAmountMinor < creditedToReverse
-        ? balance.pendingAmountMinor
-        : creditedToReverse;
+      const pending =
+        balance.pendingAmountMinor < creditedToReverse
+          ? balance.pendingAmountMinor
+          : creditedToReverse;
       const afterPending = creditedToReverse - pending;
-      const available = balance.availableAmountMinor < afterPending
-        ? balance.availableAmountMinor
-        : afterPending;
+      const available =
+        balance.availableAmountMinor < afterPending ? balance.availableAmountMinor : afterPending;
       const shortage = afterPending - available;
       const debtAmountMinor = recoveredDebt + shortage;
       if (debtAmountMinor > 0n && input.debtPolicy === "REJECT_REVERSAL") {
@@ -353,28 +451,42 @@ export class MonetaryWalletService {
         },
         entries: [
           ...(pending > 0n ? [{ bucket: "PENDING" as const, amountMinorDelta: -pending }] : []),
-          ...(available > 0n ? [{ bucket: "AVAILABLE" as const, amountMinorDelta: -available }] : []),
-          ...(debtAmountMinor > 0n ? [{ bucket: "DEBT" as const, amountMinorDelta: debtAmountMinor }] : []),
+          ...(available > 0n
+            ? [{ bucket: "AVAILABLE" as const, amountMinorDelta: -available }]
+            : []),
+          ...(debtAmountMinor > 0n
+            ? [{ bucket: "DEBT" as const, amountMinorDelta: debtAmountMinor }]
+            : []),
         ],
       });
       if (operation.created) {
-        for (const [bucket, amountMinor] of [["PENDING", pending], ["AVAILABLE", available]] as const) {
+        for (const [bucket, amountMinor] of [
+          ["PENDING", pending],
+          ["AVAILABLE", available],
+        ] as const) {
           if (amountMinor <= 0n) continue;
-          const debit = operation.entries.find((entry) =>
-            entry.bucket === bucket && entry.amountMinorDelta < 0n,
+          const debit = operation.entries.find(
+            (entry) => entry.bucket === bucket && entry.amountMinorDelta < 0n,
           );
-          if (!debit) throw new LoyaltyDomainError("MONETARY_LEDGER_INTEGRITY", "Reversal debit entry is missing", true);
+          if (!debit)
+            throw new LoyaltyDomainError(
+              "MONETARY_LEDGER_INTEGRITY",
+              "Reversal debit entry is missing",
+              true,
+            );
           const allocations = await this.allocateLots(
             input.wallet.id,
             input.effectiveAt,
             amountMinor,
             bucket,
           );
-          await this.repository.wallet.createLotAllocations(allocations.map(({ lot, amountMinor: allocated }) => ({
-            lotId: lot.id,
-            debitEntryId: debit.id,
-            amountMinor: allocated,
-          })));
+          await this.repository.wallet.createLotAllocations(
+            allocations.map(({ lot, amountMinor: allocated }) => ({
+              lotId: lot.id,
+              debitEntryId: debit.id,
+              amountMinor: allocated,
+            })),
+          );
         }
       }
       return { ...operation, debtAmountMinor };
@@ -393,14 +505,28 @@ export class MonetaryWalletService {
   }): Promise<{ pointsTransactionId: string; monetaryTransactionId: string; amountMinor: bigint }> {
     return this.repository.runInTransaction(async () => {
       if (input.account.status !== "ACTIVE") {
-        throw new LoyaltyDomainError("ACCOUNT_NOT_ACTIVE", "Points can be converted only for an active loyalty account");
+        throw new LoyaltyDomainError(
+          "ACCOUNT_NOT_ACTIVE",
+          "Points can be converted only for an active loyalty account",
+        );
       }
       const version = await this.repository.program.findVersionById(input.programVersionId);
       if (!version || version.programId !== input.account.programId) {
-        throw new LoyaltyDomainError("PROGRAM_VERSION_NOT_FOUND", "Loyalty program version was not found");
+        throw new LoyaltyDomainError(
+          "PROGRAM_VERSION_NOT_FOUND",
+          "Loyalty program version was not found",
+        );
       }
-      const amountMinor = divideRounded(input.points * version.redeemAmountMinor, version.redeemPoints, "DOWN");
-      if (amountMinor <= 0n) throw new LoyaltyDomainError("CONVERSION_TOO_SMALL", "Points conversion produces no monetary credit");
+      const amountMinor = divideRounded(
+        input.points * version.redeemAmountMinor,
+        version.redeemPoints,
+        "DOWN",
+      );
+      if (amountMinor <= 0n)
+        throw new LoyaltyDomainError(
+          "CONVERSION_TOO_SMALL",
+          "Points conversion produces no monetary credit",
+        );
       const wallet = await this.ensureWallet(input.account, input.walletType, input.currencyCode);
       const points = new PointsLedgerService(this.repository);
       const pointOperation = await points.moveWithLotAllocation({
@@ -416,7 +542,11 @@ export class MonetaryWalletService {
         reasonCode: "POINTS_TO_MONETARY_CONVERSION",
         occurredAt: input.occurredAt,
         effectiveAt: input.occurredAt,
-        metadata: { walletId: wallet.id, amountMinor: amountMinor.toString(), currencyCode: input.currencyCode },
+        metadata: {
+          walletId: wallet.id,
+          amountMinor: amountMinor.toString(),
+          currencyCode: input.currencyCode,
+        },
         entries: [{ bucket: "AVAILABLE", pointsDelta: -input.points }],
         lifetime: { adjusted: -input.points },
         debitBucket: "AVAILABLE",
@@ -438,12 +568,22 @@ export class MonetaryWalletService {
         effectiveAt: input.occurredAt,
         amountMinor,
         activationAt: input.occurredAt,
-        expiresAt: version.pointsExpiryDays === null
-          ? null
-          : new Date(Date.parse(input.occurredAt) + version.pointsExpiryDays * 86_400_000).toISOString(),
-        metadata: { pointsTransactionId: pointOperation.transaction.id, points: input.points.toString() },
+        expiresAt:
+          version.pointsExpiryDays === null
+            ? null
+            : new Date(
+                Date.parse(input.occurredAt) + version.pointsExpiryDays * 86_400_000,
+              ).toISOString(),
+        metadata: {
+          pointsTransactionId: pointOperation.transaction.id,
+          points: input.points.toString(),
+        },
       });
-      return { pointsTransactionId: pointOperation.transaction.id, monetaryTransactionId: monetary.transaction.id, amountMinor };
+      return {
+        pointsTransactionId: pointOperation.transaction.id,
+        monetaryTransactionId: monetary.transaction.id,
+        amountMinor,
+      };
     });
   }
 
@@ -459,31 +599,38 @@ export class MonetaryWalletService {
         const sourceTransaction = origin
           ? await this.repository.wallet.findTransactionById(origin.transactionId)
           : null;
-        const activation = origin?.bucket === "PENDING"
-          ? await this.repository.wallet.findTransactionByIdempotencyKey(wallet.id, `activate:${lot.id}`)
-          : null;
-        const debitBucket = origin?.bucket === "PENDING" && !activation
-          ? "PENDING" as const
-          : "AVAILABLE" as const;
+        const activation =
+          origin?.bucket === "PENDING"
+            ? await this.repository.wallet.findTransactionByIdempotencyKey(
+                wallet.id,
+                `activate:${lot.id}`,
+              )
+            : null;
+        const debitBucket =
+          origin?.bucket === "PENDING" && !activation
+            ? ("PENDING" as const)
+            : ("AVAILABLE" as const);
         const amountMinor = remaining.get(lot.id) ?? 0n;
         if (amountMinor <= 0n) continue;
-        results.push(await this.debitAvailableWithLots({
-          wallet,
-          programVersionId: sourceTransaction?.programVersionId ?? null,
-          kind: "EXPIRE",
-          sourceType: "EXPIRATION",
-          sourceId: lot.id,
-          sourceRevision: "1",
-          idempotencyKey: `expire:${lot.id}`,
-          requestHash: canonicalHash({ lotId: lot.id, amountMinor: amountMinor.toString() }),
-          actorType: "SYSTEM",
-          reasonCode: "MONETARY_CREDIT_EXPIRED",
-          occurredAt: at,
-          effectiveAt: at,
-          amountMinor,
-          debitBucket,
-          lotIds: [lot.id],
-        }));
+        results.push(
+          await this.debitAvailableWithLots({
+            wallet,
+            programVersionId: sourceTransaction?.programVersionId ?? null,
+            kind: "EXPIRE",
+            sourceType: "EXPIRATION",
+            sourceId: lot.id,
+            sourceRevision: "1",
+            idempotencyKey: `expire:${lot.id}`,
+            requestHash: canonicalHash({ lotId: lot.id, amountMinor: amountMinor.toString() }),
+            actorType: "SYSTEM",
+            reasonCode: "MONETARY_CREDIT_EXPIRED",
+            occurredAt: at,
+            effectiveAt: at,
+            amountMinor,
+            debitBucket,
+            lotIds: [lot.id],
+          }),
+        );
       }
       return results;
     });
@@ -497,31 +644,38 @@ export class MonetaryWalletService {
       const remaining = await this.remainingByLot(lots);
       const results: MonetaryOperationResult[] = [];
       for (const lot of lots) {
-        const previous = await this.repository.wallet.findTransactionByIdempotencyKey(wallet.id, `activate:${lot.id}`);
+        const previous = await this.repository.wallet.findTransactionByIdempotencyKey(
+          wallet.id,
+          `activate:${lot.id}`,
+        );
         if (previous) continue;
         const origin = await this.repository.wallet.findEntryById(lot.originEntryId);
         if (origin?.bucket !== "PENDING") continue;
-        const sourceTransaction = await this.repository.wallet.findTransactionById(origin.transactionId);
+        const sourceTransaction = await this.repository.wallet.findTransactionById(
+          origin.transactionId,
+        );
         const amountMinor = remaining.get(lot.id) ?? 0n;
         if (amountMinor <= 0n) continue;
-        results.push(await this.applyInside({
-          wallet,
-          programVersionId: sourceTransaction?.programVersionId ?? null,
-          kind: "ACTIVATE",
-          sourceType: "SYSTEM",
-          sourceId: lot.id,
-          sourceRevision: "1",
-          idempotencyKey: `activate:${lot.id}`,
-          requestHash: canonicalHash({ lotId: lot.id, amountMinor: amountMinor.toString() }),
-          actorType: "SYSTEM",
-          reasonCode: "MONETARY_ACTIVATION_DELAY_ELAPSED",
-          occurredAt: at,
-          effectiveAt: at,
-          entries: [
-            { bucket: "PENDING", amountMinorDelta: -amountMinor },
-            { bucket: "AVAILABLE", amountMinorDelta: amountMinor },
-          ],
-        }));
+        results.push(
+          await this.applyInside({
+            wallet,
+            programVersionId: sourceTransaction?.programVersionId ?? null,
+            kind: "ACTIVATE",
+            sourceType: "SYSTEM",
+            sourceId: lot.id,
+            sourceRevision: "1",
+            idempotencyKey: `activate:${lot.id}`,
+            requestHash: canonicalHash({ lotId: lot.id, amountMinor: amountMinor.toString() }),
+            actorType: "SYSTEM",
+            reasonCode: "MONETARY_ACTIVATION_DELAY_ELAPSED",
+            occurredAt: at,
+            effectiveAt: at,
+            entries: [
+              { bucket: "PENDING", amountMinorDelta: -amountMinor },
+              { bucket: "AVAILABLE", amountMinorDelta: amountMinor },
+            ],
+          }),
+        );
       }
       return results;
     });
@@ -548,15 +702,10 @@ export class MonetaryWalletService {
         );
       }
       for (const bucket of ["PENDING", "AVAILABLE"] as const) {
-        const amount = bucket === "PENDING"
-          ? balance.pendingAmountMinor
-          : balance.availableAmountMinor;
+        const amount =
+          bucket === "PENDING" ? balance.pendingAmountMinor : balance.availableAmountMinor;
         if (amount <= 0n) continue;
-        const chunks = await this.remainingLotChunks(
-          input.sourceWallet.id,
-          bucket,
-          amount,
-        );
+        const chunks = await this.remainingLotChunks(input.sourceWallet.id, bucket, amount);
         const source = await this.applyInside({
           wallet: input.sourceWallet,
           programVersionId: null,
@@ -574,12 +723,19 @@ export class MonetaryWalletService {
         });
         if (source.created) {
           const debitEntry = source.entries.find(({ amountMinorDelta }) => amountMinorDelta < 0n);
-          if (!debitEntry) throw new LoyaltyDomainError("MONETARY_LEDGER_INTEGRITY", "Merge debit entry is missing", true);
-          await this.repository.wallet.createLotAllocations(chunks.map(({ lot, amountMinor }) => ({
-            lotId: lot.id,
-            debitEntryId: debitEntry.id,
-            amountMinor,
-          })));
+          if (!debitEntry)
+            throw new LoyaltyDomainError(
+              "MONETARY_LEDGER_INTEGRITY",
+              "Merge debit entry is missing",
+              true,
+            );
+          await this.repository.wallet.createLotAllocations(
+            chunks.map(({ lot, amountMinor }) => ({
+              lotId: lot.id,
+              debitEntryId: debitEntry.id,
+              amountMinor,
+            })),
+          );
         }
         const target = await this.applyInside({
           wallet: input.targetWallet,
@@ -597,17 +753,25 @@ export class MonetaryWalletService {
           entries: chunks.map(({ amountMinor }) => ({ bucket, amountMinorDelta: amountMinor })),
         });
         if (target.created) {
-          const creditEntries = target.entries.filter(({ amountMinorDelta }) => amountMinorDelta > 0n);
+          const creditEntries = target.entries.filter(
+            ({ amountMinorDelta }) => amountMinorDelta > 0n,
+          );
           if (creditEntries.length !== chunks.length) {
-            throw new LoyaltyDomainError("MONETARY_LEDGER_INTEGRITY", "Merge credit lots do not match entries", true);
+            throw new LoyaltyDomainError(
+              "MONETARY_LEDGER_INTEGRITY",
+              "Merge credit lots do not match entries",
+              true,
+            );
           }
-          await this.repository.wallet.createCreditLots(chunks.map(({ lot, amountMinor }, index) => ({
-            walletId: input.targetWallet.id,
-            originEntryId: creditEntries[index]!.id,
-            amountIssuedMinor: amountMinor,
-            activatedAt: lot.activatedAt,
-            expiresAt: lot.expiresAt,
-          })));
+          await this.repository.wallet.createCreditLots(
+            chunks.map(({ lot, amountMinor }, index) => ({
+              walletId: input.targetWallet.id,
+              originEntryId: creditEntries[index]!.id,
+              amountIssuedMinor: amountMinor,
+              activatedAt: lot.activatedAt,
+              expiresAt: lot.expiresAt,
+            })),
+          );
         }
       }
       if (balance.debtAmountMinor > 0n) {
@@ -668,15 +832,23 @@ export class MonetaryWalletService {
         debtAmountMinor: totals.DEBT,
         lastTransactionId: transactions.at(-1)?.id ?? null,
       });
-      if (!balance) throw new LoyaltyDomainError("WALLET_BALANCE_NOT_FOUND", "Monetary wallet balance was not found");
+      if (!balance)
+        throw new LoyaltyDomainError(
+          "WALLET_BALANCE_NOT_FOUND",
+          "Monetary wallet balance was not found",
+        );
       return balance;
     });
   }
 
   private async applyInside(input: MonetaryOperationInput): Promise<MonetaryOperationResult> {
-    const existing = await this.repository.wallet.findTransactionByIdempotencyKey(input.wallet.id, input.idempotencyKey);
+    const existing = await this.repository.wallet.findTransactionByIdempotencyKey(
+      input.wallet.id,
+      input.idempotencyKey,
+    );
     if (existing) {
-      if (existing.requestHash !== input.requestHash) throw new LoyaltyDomainError("IDEMPOTENCY_CONFLICT", "Monetary idempotency conflict");
+      if (existing.requestHash !== input.requestHash)
+        throw new LoyaltyDomainError("IDEMPOTENCY_CONFLICT", "Monetary idempotency conflict");
       const [entries, balance] = await Promise.all([
         this.repository.wallet.listEntries(existing.id),
         this.requireBalance(input.wallet.id),
@@ -685,13 +857,19 @@ export class MonetaryWalletService {
     }
     const wallet = await this.repository.wallet.lockById(input.wallet.id);
     if (!wallet) throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
-    if (wallet.status === "MERGED"
-      || (requiresActiveWallet(input.kind) && wallet.status !== "ACTIVE")) {
+    if (
+      wallet.status === "MERGED" ||
+      (requiresActiveWallet(input.kind) && wallet.status !== "ACTIVE")
+    ) {
       throw new LoyaltyDomainError("WALLET_NOT_ACTIVE", "Monetary wallet is not active");
     }
     const balance = await this.requireBalance(wallet.id, true);
     const entries = input.entries.filter(({ amountMinorDelta }) => amountMinorDelta !== 0n);
-    if (entries.length === 0) throw new LoyaltyDomainError("EMPTY_TRANSACTION", "A monetary transaction requires ledger entries");
+    if (entries.length === 0)
+      throw new LoyaltyDomainError(
+        "EMPTY_TRANSACTION",
+        "A monetary transaction requires ledger entries",
+      );
     const next = this.applyEntries(balance, entries);
     const appended = await this.repository.wallet.appendTransaction(
       {
@@ -717,7 +895,12 @@ export class MonetaryWalletService {
       ...next,
       lastTransactionId: appended.transaction.id,
     });
-    if (!updated) throw new LoyaltyDomainError("CONCURRENT_WALLET_BALANCE_CHANGE", "Monetary wallet balance changed concurrently", true);
+    if (!updated)
+      throw new LoyaltyDomainError(
+        "CONCURRENT_WALLET_BALANCE_CHANGE",
+        "Monetary wallet balance changed concurrently",
+        true,
+      );
     return { ...appended, balance: updated, created: true };
   }
 
@@ -726,7 +909,10 @@ export class MonetaryWalletService {
     idempotencyKey: string,
     requestHash: string,
   ): Promise<MonetaryOperationResult | null> {
-    const transaction = await this.repository.wallet.findTransactionByIdempotencyKey(walletId, idempotencyKey);
+    const transaction = await this.repository.wallet.findTransactionByIdempotencyKey(
+      walletId,
+      idempotencyKey,
+    );
     if (!transaction) return null;
     if (transaction.requestHash !== requestHash) {
       throw new LoyaltyDomainError("IDEMPOTENCY_CONFLICT", "Monetary idempotency conflict");
@@ -752,26 +938,43 @@ export class MonetaryWalletService {
   ): Promise<MonetaryTransaction> {
     const transaction = await this.repository.wallet.findTransactionById(transactionId);
     if (!transaction || transaction.walletId !== walletId || transaction.kind !== "RESERVE") {
-      throw new LoyaltyDomainError("MONETARY_RESERVATION_NOT_FOUND", "Monetary reservation transaction was not found");
+      throw new LoyaltyDomainError(
+        "MONETARY_RESERVATION_NOT_FOUND",
+        "Monetary reservation transaction was not found",
+      );
     }
     return transaction;
   }
 
   private async reserveAmount(reserve: MonetaryTransaction): Promise<bigint> {
     const entries = await this.repository.wallet.listEntries(reserve.id);
-    const debit = entries.find(({ bucket, amountMinorDelta }) =>
-      bucket === "AVAILABLE" && amountMinorDelta < 0n,
+    const debit = entries.find(
+      ({ bucket, amountMinorDelta }) => bucket === "AVAILABLE" && amountMinorDelta < 0n,
     );
-    if (!debit) throw new LoyaltyDomainError("MONETARY_AUDIT_INCOMPLETE", "Reservation debit audit is missing", true);
+    if (!debit)
+      throw new LoyaltyDomainError(
+        "MONETARY_AUDIT_INCOMPLETE",
+        "Reservation debit audit is missing",
+        true,
+      );
     return -debit.amountMinorDelta;
   }
 
-  private async settledReserveAmount(walletId: string, reserveTransactionId: string): Promise<bigint> {
+  private async settledReserveAmount(
+    walletId: string,
+    reserveTransactionId: string,
+  ): Promise<bigint> {
     const transactions = await this.repository.wallet.listAllTransactions(walletId);
     return transactions
-      .filter((transaction) => (transaction.kind === "RELEASE" || transaction.kind === "SPEND")
-        && transaction.metadata.reserveTransactionId === reserveTransactionId)
-      .reduce((sum, transaction) => sum + BigInt(String(transaction.metadata.amountMinor ?? "0")), 0n);
+      .filter(
+        (transaction) =>
+          (transaction.kind === "RELEASE" || transaction.kind === "SPEND") &&
+          transaction.metadata.reserveTransactionId === reserveTransactionId,
+      )
+      .reduce(
+        (sum, transaction) => sum + BigInt(String(transaction.metadata.amountMinor ?? "0")),
+        0n,
+      );
   }
 
   private async originalReserveChunks(
@@ -781,10 +984,15 @@ export class MonetaryWalletService {
     requested: bigint,
   ): Promise<{ lot: MonetaryCreditLot; amountMinor: bigint }[]> {
     const entries = await this.repository.wallet.listEntries(reserve.id);
-    const debit = entries.find(({ bucket, amountMinorDelta }) =>
-      bucket === "AVAILABLE" && amountMinorDelta < 0n,
+    const debit = entries.find(
+      ({ bucket, amountMinorDelta }) => bucket === "AVAILABLE" && amountMinorDelta < 0n,
     );
-    if (!debit) throw new LoyaltyDomainError("MONETARY_AUDIT_INCOMPLETE", "Reservation lot debit is missing", true);
+    if (!debit)
+      throw new LoyaltyDomainError(
+        "MONETARY_AUDIT_INCOMPLETE",
+        "Reservation lot debit is missing",
+        true,
+      );
     const lots = await this.repository.wallet.listCreditLots(walletId);
     const allocations = await this.repository.wallet.listLotAllocations(lots.map(({ id }) => id));
     const byId = new Map(lots.map((lot) => [lot.id, lot]));
@@ -805,7 +1013,12 @@ export class MonetaryWalletService {
       chunks.push({ lot, amountMinor });
       remaining -= amountMinor;
     }
-    if (remaining > 0n) throw new LoyaltyDomainError("MONETARY_AUDIT_INCOMPLETE", "Reservation lots do not cover the requested amount", true);
+    if (remaining > 0n)
+      throw new LoyaltyDomainError(
+        "MONETARY_AUDIT_INCOMPLETE",
+        "Reservation lots do not cover the requested amount",
+        true,
+      );
     return chunks;
   }
 
@@ -814,22 +1027,28 @@ export class MonetaryWalletService {
     operation: MonetaryOperationResult,
     chunks: readonly { lot: MonetaryCreditLot; amountMinor: bigint }[],
   ): Promise<void> {
-    const credits = operation.entries.filter(({ bucket, amountMinorDelta }) =>
-      bucket === "AVAILABLE" && amountMinorDelta > 0n,
+    const credits = operation.entries.filter(
+      ({ bucket, amountMinorDelta }) => bucket === "AVAILABLE" && amountMinorDelta > 0n,
     );
     if (credits.length !== chunks.length) {
-      throw new LoyaltyDomainError("MONETARY_LEDGER_INTEGRITY", "Restored monetary lots do not match ledger credits", true);
+      throw new LoyaltyDomainError(
+        "MONETARY_LEDGER_INTEGRITY",
+        "Restored monetary lots do not match ledger credits",
+        true,
+      );
     }
-    await this.repository.wallet.createCreditLots(chunks.map(({ lot, amountMinor }, index) => ({
-      walletId,
-      originEntryId: credits[index]!.id,
-      amountIssuedMinor: amountMinor,
-      activatedAt: lot.expiresAt
-        && Date.parse(lot.expiresAt) <= Date.parse(operation.transaction.occurredAt)
-        ? lot.activatedAt
-        : operation.transaction.occurredAt,
-      expiresAt: lot.expiresAt,
-    })));
+    await this.repository.wallet.createCreditLots(
+      chunks.map(({ lot, amountMinor }, index) => ({
+        walletId,
+        originEntryId: credits[index]!.id,
+        amountIssuedMinor: amountMinor,
+        activatedAt:
+          lot.expiresAt && Date.parse(lot.expiresAt) <= Date.parse(operation.transaction.occurredAt)
+            ? lot.activatedAt
+            : operation.transaction.occurredAt,
+        expiresAt: lot.expiresAt,
+      })),
+    );
   }
 
   private applyEntries(balance: MonetaryWalletBalance, entries: readonly MonetaryEntryChange[]) {
@@ -845,8 +1064,16 @@ export class MonetaryWalletService {
       if (entry.bucket === "RESERVED") next.reservedAmountMinor += entry.amountMinorDelta;
       if (entry.bucket === "DEBT") next.debtAmountMinor += entry.amountMinorDelta;
     }
-    if (next.pendingAmountMinor < 0n || next.availableAmountMinor < 0n || next.reservedAmountMinor < 0n || next.debtAmountMinor < 0n) {
-      throw new LoyaltyDomainError("INSUFFICIENT_MONETARY_BALANCE", "Monetary operation would make a balance bucket negative");
+    if (
+      next.pendingAmountMinor < 0n ||
+      next.availableAmountMinor < 0n ||
+      next.reservedAmountMinor < 0n ||
+      next.debtAmountMinor < 0n
+    ) {
+      throw new LoyaltyDomainError(
+        "INSUFFICIENT_MONETARY_BALANCE",
+        "Monetary operation would make a balance bucket negative",
+      );
     }
     return next;
   }
@@ -855,7 +1082,11 @@ export class MonetaryWalletService {
     const balance = lock
       ? await this.repository.wallet.lockBalance(walletId)
       : await this.repository.wallet.findBalance(walletId);
-    if (!balance) throw new LoyaltyDomainError("WALLET_BALANCE_NOT_FOUND", "Monetary wallet balance was not found");
+    if (!balance)
+      throw new LoyaltyDomainError(
+        "WALLET_BALANCE_NOT_FOUND",
+        "Monetary wallet balance was not found",
+      );
     return balance;
   }
 
@@ -879,7 +1110,10 @@ export class MonetaryWalletService {
       for (const lot of lots) {
         const origin = await this.repository.wallet.findEntryById(lot.originEntryId);
         if (origin?.bucket !== "PENDING") continue;
-        const activation = await this.repository.wallet.findTransactionByIdempotencyKey(walletId, `activate:${lot.id}`);
+        const activation = await this.repository.wallet.findTransactionByIdempotencyKey(
+          walletId,
+          `activate:${lot.id}`,
+        );
         if (!activation) pending.push(lot);
       }
       lots = pending;
@@ -895,15 +1129,26 @@ export class MonetaryWalletService {
       required -= allocated;
       if (required === 0n) break;
     }
-    if (required > 0n) throw new LoyaltyDomainError("INSUFFICIENT_MONETARY_LOTS", "Monetary lots do not cover the debit", true);
+    if (required > 0n)
+      throw new LoyaltyDomainError(
+        "INSUFFICIENT_MONETARY_LOTS",
+        "Monetary lots do not cover the debit",
+        true,
+      );
     return result;
   }
 
   private async remainingByLot(lots: readonly MonetaryCreditLot[]): Promise<Map<string, bigint>> {
     const allocations = await this.repository.wallet.listLotAllocations(lots.map(({ id }) => id));
     const allocated = new Map<string, bigint>();
-    for (const allocation of allocations) allocated.set(allocation.lotId, (allocated.get(allocation.lotId) ?? 0n) + allocation.amountMinor);
-    return new Map(lots.map((lot) => [lot.id, lot.amountIssuedMinor - (allocated.get(lot.id) ?? 0n)]));
+    for (const allocation of allocations)
+      allocated.set(
+        allocation.lotId,
+        (allocated.get(allocation.lotId) ?? 0n) + allocation.amountMinor,
+      );
+    return new Map(
+      lots.map((lot) => [lot.id, lot.amountIssuedMinor - (allocated.get(lot.id) ?? 0n)]),
+    );
   }
 
   private async remainingLotChunks(
@@ -917,9 +1162,13 @@ export class MonetaryWalletService {
     let outstanding = required;
     for (const lot of lots) {
       const origin = await this.repository.wallet.findEntryById(lot.originEntryId);
-      const activation = origin?.bucket === "PENDING"
-        ? await this.repository.wallet.findTransactionByIdempotencyKey(walletId, `activate:${lot.id}`)
-        : null;
+      const activation =
+        origin?.bucket === "PENDING"
+          ? await this.repository.wallet.findTransactionByIdempotencyKey(
+              walletId,
+              `activate:${lot.id}`,
+            )
+          : null;
       const isPending = origin?.bucket === "PENDING" && !activation;
       if ((bucket === "PENDING") !== isPending) continue;
       const available = remaining.get(lot.id) ?? 0n;
@@ -941,9 +1190,11 @@ export class MonetaryWalletService {
 }
 
 function requiresActiveWallet(kind: NewMonetaryTransaction["kind"]): boolean {
-  return kind === "EARN_PENDING"
-    || kind === "RESERVE"
-    || kind === "ADJUST_CREDIT"
-    || kind === "ADJUST_DEBIT"
-    || kind === "ACTIVATE";
+  return (
+    kind === "EARN_PENDING" ||
+    kind === "RESERVE" ||
+    kind === "ADJUST_CREDIT" ||
+    kind === "ADJUST_DEBIT" ||
+    kind === "ACTIVATE"
+  );
 }

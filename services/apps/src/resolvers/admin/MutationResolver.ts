@@ -37,10 +37,7 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
     return this.lifecyclePayload("APP_INSTALL_FAILED", async () => {
       await this.authorize("install");
       const input = AppInstallInputSchema().parse(args.input);
-      return this.$ctx.broker.call<
-        Apps.AppLifecycleAcceptedResult,
-        Apps.InstallAppParams
-      >(
+      return this.$ctx.broker.call<Apps.AppLifecycleAcceptedResult, Apps.InstallAppParams>(
         "apps.installApp",
         {
           appCode: input.appCode,
@@ -49,9 +46,7 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
           configuration: input.configuration ?? undefined,
           grantedScopes: input.grantedScopes ?? undefined,
           secrets: secretsToRecord(input.secrets),
-          installedByUserId: this.$ctx.hasUser
-            ? this.$ctx.user.id
-            : undefined,
+          installedByUserId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
           idempotencyKey: input.clientMutationId,
           correlationId: this.$ctx.requestId,
         },
@@ -64,27 +59,16 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
     return this.lifecyclePayload("APP_UPDATE_FAILED", async () => {
       await this.authorize("configure");
       const input = AppUpdateInputSchema().parse(args.input);
-      if (
-        input.configuration != null &&
-        input.expectedConfigurationVersion == null
-      ) {
-        throw new Error(
-          "expectedConfigurationVersion is required when configuration is changed",
-        );
+      if (input.configuration != null && input.expectedConfigurationVersion == null) {
+        throw new Error("expectedConfigurationVersion is required when configuration is changed");
       }
-      return this.$ctx.broker.call<
-        Apps.AppLifecycleAcceptedResult,
-        Apps.UpdateAppParams
-      >(
+      return this.$ctx.broker.call<Apps.AppLifecycleAcceptedResult, Apps.UpdateAppParams>(
         "apps.updateApp",
         {
-          installationId: this.decodeInstallationId(
-            input.installationId,
-          ),
+          installationId: this.decodeInstallationId(input.installationId),
           storeId: this.$ctx.store.id,
           configuration: input.configuration ?? undefined,
-          expectedConfigurationVersion:
-            input.expectedConfigurationVersion ?? undefined,
+          expectedConfigurationVersion: input.expectedConfigurationVersion ?? undefined,
           grantedScopes: input.grantedScopes ?? undefined,
           secrets: secretsToRecord(input.secrets),
           idempotencyKey: input.clientMutationId,
@@ -100,34 +84,23 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
     try {
       await this.authorize("configure");
       const input = AppConfigureInputSchema().parse(args.input);
-      const installationId = this.decodeInstallationId(
-        input.installationId,
-      );
-      await this.validateGrantedScopes(
-        installationId,
-        input.grantedScopes ?? undefined,
-      );
+      const installationId = this.decodeInstallationId(input.installationId);
+      await this.validateGrantedScopes(installationId, input.grantedScopes ?? undefined);
       const installation = await this.$ctx.installations.configure({
         installationId,
-        expectedConfigurationVersion:
-          input.expectedConfigurationVersion,
+        expectedConfigurationVersion: input.expectedConfigurationVersion,
         configuration: input.configuration,
         grantedScopes: input.grantedScopes ?? undefined,
       });
 
       return {
-        installation: await this.resolvers.appInstallation(
-          installation.id,
-        ),
+        installation: await this.resolvers.appInstallation(installation.id),
         userErrors: [],
       };
     } catch (error) {
       return {
         installation: null,
-        userErrors: toAppsUserErrors(
-          error,
-          "APP_CONFIGURE_FAILED",
-        ),
+        userErrors: toAppsUserErrors(error, "APP_CONFIGURE_FAILED"),
       };
     }
   }
@@ -162,19 +135,14 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
   private installationActionPayload(
     rawInput: AppInstallationActionInput,
     authorization: AppsAuthorizationOperation,
-    action:
-      | "apps.suspendApp"
-      | "apps.resumeApp"
-      | "apps.uninstallApp",
+    action: "apps.suspendApp" | "apps.resumeApp" | "apps.uninstallApp",
     fallbackCode: string,
   ) {
     return this.lifecyclePayload(fallbackCode, async () => {
       await this.authorize(authorization);
       const input = AppInstallationActionInputSchema().parse(rawInput);
       const params = {
-        installationId: this.decodeInstallationId(
-          input.installationId,
-        ),
+        installationId: this.decodeInstallationId(input.installationId),
         storeId: this.$ctx.store.id,
         idempotencyKey: input.clientMutationId,
         userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
@@ -182,14 +150,8 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
       };
       return this.$ctx.broker.call<
         Apps.AppLifecycleAcceptedResult,
-        | Apps.SuspendAppParams
-        | Apps.ResumeAppParams
-        | Apps.UninstallAppParams
-      >(
-        action,
-        params,
-        { adminContext: this.$ctx.adminContext },
-      );
+        Apps.SuspendAppParams | Apps.ResumeAppParams | Apps.UninstallAppParams
+      >(action, params, { adminContext: this.$ctx.adminContext });
     });
   }
 
@@ -219,22 +181,13 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
     }
   }
 
-  private authorize(
-    operation: AppsAuthorizationOperation,
-  ): Promise<void> {
-    return assertAppsAuthorized(
-      this.authProvider,
-      this.$ctx,
-      operation,
-    );
+  private authorize(operation: AppsAuthorizationOperation): Promise<void> {
+    return assertAppsAuthorized(this.authProvider, this.$ctx, operation);
   }
 
   private decodeInstallationId(globalId: string): string {
     try {
-      return this.decodeId(
-        globalId,
-        GlobalIdEntity.AppInstallation,
-      );
+      return this.decodeId(globalId, GlobalIdEntity.AppInstallation);
     } catch {
       throw new Error("installationId is invalid");
     }
@@ -247,25 +200,16 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
     if (scopes === undefined) {
       return;
     }
-    const installation =
-      await this.$ctx.repository.installation.findByIdForStore(
-        installationId,
-      );
+    const installation = await this.$ctx.repository.installation.findByIdForStore(installationId);
     if (!installation) {
-      throw new Error(
-        `App installation "${installationId}" not found`,
-      );
+      throw new Error(`App installation "${installationId}" not found`);
     }
     const runtime = this.$ctx.runtimes.get(installation.appCode);
     if (!runtime) {
-      throw new Error(
-        `App runtime "${installation.appCode}" is not registered`,
-      );
+      throw new Error(`App runtime "${installation.appCode}" is not registered`);
     }
     const declared = new Set(runtime.definition.manifest.permissions);
-    const unknown = [...new Set(scopes)].filter(
-      (scope) => !declared.has(scope),
-    );
+    const unknown = [...new Set(scopes)].filter((scope) => !declared.has(scope));
     if (unknown.length > 0) {
       throw new Error(
         `App "${installation.appCode}" cannot receive undeclared scopes: ${unknown.join(", ")}`,
@@ -280,7 +224,5 @@ function secretsToRecord(
   if (!secrets) {
     return undefined;
   }
-  return Object.fromEntries(
-    secrets.map(({ name, value }) => [name, value]),
-  );
+  return Object.fromEntries(secrets.map(({ name, value }) => [name, value]));
 }

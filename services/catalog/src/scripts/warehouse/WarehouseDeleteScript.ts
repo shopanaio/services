@@ -9,7 +9,10 @@ export interface WarehouseDeleteResult {
   userErrors: UserError[];
 }
 
-export class WarehouseDeleteScript extends BaseScript<WarehouseDeleteParams, WarehouseDeleteResult> {
+export class WarehouseDeleteScript extends BaseScript<
+  WarehouseDeleteParams,
+  WarehouseDeleteResult
+> {
   protected async execute(params: WarehouseDeleteParams): Promise<WarehouseDeleteResult> {
     const { id } = params;
 

@@ -3,16 +3,11 @@ import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { CustomerTaxExemption } from "../../repositories/models/index.js";
 import { CustomersType } from "./CustomersType.js";
 
-export class CustomerTaxExemptionResolver extends CustomersType<
-  string,
-  CustomerTaxExemption
-> {
+export class CustomerTaxExemptionResolver extends CustomersType<string, CustomerTaxExemption> {
   async $preload() {
     const taxExemption = await this.$ctx.loaders.taxExemption.load(this.$props);
     if (!taxExemption) {
-      throw new PreloadNotFoundError(
-        `Customer tax exemption with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer tax exemption with ID ${this.$props} not found`);
     }
     return taxExemption;
   }

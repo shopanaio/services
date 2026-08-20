@@ -7,24 +7,33 @@ export class CollectionRebalanceScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(params: CollectionRebalanceParams): Promise<CollectionResult> {
-    const collection =
-      await this.repository.collection.findByIdForUpdate(params.collectionId);
+    const collection = await this.repository.collection.findByIdForUpdate(params.collectionId);
     if (!collection) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Collection not found", field: ["collectionId"], code: "NOT_FOUND" }],
+        userErrors: [
+          { message: "Collection not found", field: ["collectionId"], code: "NOT_FOUND" },
+        ],
       };
     }
     if (collection.revision !== params.expectedRevision) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Collection revision does not match", field: ["expectedRevision"], code: "REVISION_CONFLICT" }],
+        userErrors: [
+          {
+            message: "Collection revision does not match",
+            field: ["expectedRevision"],
+            code: "REVISION_CONFLICT",
+          },
+        ],
       };
     }
     if (collection.revision >= 2_147_483_646) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" }],
+        userErrors: [
+          { message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" },
+        ],
       };
     }
     if (collection.type !== "manual") {
@@ -34,19 +43,18 @@ export class CollectionRebalanceScript extends BaseScript<
       };
     }
 
-    const syncOperation =
-      await this.repository.collectionSync.rebalanceCollection({
-        workflowId: `${this.context.requestId}:collection:rebalance`,
-        collectionId: params.collectionId,
-        collectionRevision: collection.revision + 1,
-      });
+    const syncOperation = await this.repository.collectionSync.rebalanceCollection({
+      workflowId: `${this.context.requestId}:collection:rebalance`,
+      collectionId: params.collectionId,
+      collectionRevision: collection.revision + 1,
+    });
     if (syncOperation.affectedCount === 0) {
       return { collection, userErrors: [] };
     }
     const refreshed = await this.repository.collection.bumpRevision(
       params.collectionId,
       params.expectedRevision,
-      { listingChanged: false }
+      { listingChanged: false },
     );
     if (!refreshed) {
       throw new Error("Collection rebalance compare-and-swap failed after row lock");

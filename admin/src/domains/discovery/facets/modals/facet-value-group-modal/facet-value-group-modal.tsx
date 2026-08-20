@@ -7,18 +7,10 @@ import { App, AutoComplete, Button, Flex, Input, Typography } from "antd";
 import { LuX as CloseOutlined } from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { FacetValueKind } from "@/graphql/types";
-import {
-  useMergeFacetValues,
-  useUnmergeFacetValues,
-  useUpdateFacetValue,
-} from "../../hooks";
+import { useMergeFacetValues, useUnmergeFacetValues, useUpdateFacetValue } from "../../hooks";
 import type { IFacetValueGroupModalPayload } from "../../modals";
 import type { FacetValueEditorRow } from "../edit-facet-modal/types";
 import {
@@ -87,7 +79,7 @@ export function FacetValueGroupModal() {
     () =>
       uniqueSourceRows(
         typedPayload.groupMode === "edit"
-          ? typedPayload.initialGroupedValues ?? []
+          ? (typedPayload.initialGroupedValues ?? [])
           : typedPayload.selectedValues,
       ),
     [typedPayload.groupMode, typedPayload.initialGroupedValues, typedPayload.selectedValues],
@@ -95,11 +87,7 @@ export function FacetValueGroupModal() {
   const [draftValues, setDraftValues] = useState<FacetValueEditorRow[]>(initialValues);
   const [adding, setAdding] = useState(false);
 
-  const methods = useForm<
-    FacetValueGroupFormInput,
-    unknown,
-    FacetValueGroupFormValues
-  >({
+  const methods = useForm<FacetValueGroupFormInput, unknown, FacetValueGroupFormValues>({
     resolver: zodResolver(facetValueGroupSchema),
     defaultValues: {
       label: typedPayload.initialGroupLabel ?? "",
@@ -128,9 +116,7 @@ export function FacetValueGroupModal() {
       const value = typedPayload.availableValues.find((candidate) => candidate.id === id);
       if (!value || value.kind !== FacetValueKind.Source) return;
       setDraftValues((current) =>
-        current.some((candidate) => candidate.id === id)
-          ? current
-          : [...current, value],
+        current.some((candidate) => candidate.id === id) ? current : [...current, value],
       );
       setAdding(false);
     },
@@ -158,9 +144,7 @@ export function FacetValueGroupModal() {
         .map((value) => value.id);
       const removedIds =
         typedPayload.groupMode === "edit"
-          ? initialValues
-              .filter((value) => !draftIds.has(value.id))
-              .map((value) => value.id)
+          ? initialValues.filter((value) => !draftIds.has(value.id)).map((value) => value.id)
           : [];
 
       if (typedPayload.groupMode === "edit" && !typedPayload.groupValueId) {
@@ -193,9 +177,7 @@ export function FacetValueGroupModal() {
       }
 
       const sourceValueIds =
-        typedPayload.groupMode === "edit"
-          ? addedIds
-          : draftValues.map((value) => value.id);
+        typedPayload.groupMode === "edit" ? addedIds : draftValues.map((value) => value.id);
 
       if (sourceValueIds.length > 0) {
         const result = await mergeFacetValues({
@@ -219,9 +201,7 @@ export function FacetValueGroupModal() {
       }
 
       await typedPayload.onSaved?.();
-      message.success(
-        typedPayload.groupMode === "edit" ? "Group updated." : "Group created.",
-      );
+      message.success(typedPayload.groupMode === "edit" ? "Group updated." : "Group created.");
       pop();
     },
     [
@@ -237,10 +217,8 @@ export function FacetValueGroupModal() {
     ],
   );
 
-  const title =
-    typedPayload.groupMode === "edit" ? "Edit value group" : "Create value group";
-  const submitLabel =
-    typedPayload.groupMode === "edit" ? "Save changes" : "Create group";
+  const title = typedPayload.groupMode === "edit" ? "Edit value group" : "Create value group";
+  const submitLabel = typedPayload.groupMode === "edit" ? "Save changes" : "Create group";
 
   return (
     <FormProvider {...methods}>
@@ -279,9 +257,7 @@ export function FacetValueGroupModal() {
                 </>
               )}
             />
-            <div className={styles.help}>
-              Customers will see this in your store's filters
-            </div>
+            <div className={styles.help}>Customers will see this in your store's filters</div>
           </div>
         </Paper>
 
@@ -318,7 +294,7 @@ export function FacetValueGroupModal() {
                   const query = input.toLowerCase();
                   return Boolean(
                     value?.label.toLowerCase().includes(query) ||
-                      value?.handle.toLowerCase().includes(query),
+                    value?.handle.toLowerCase().includes(query),
                   );
                 }}
                 onSelect={appendValue}

@@ -102,7 +102,9 @@ export const StoreDangerZoneCard = ({ store }: StoreDangerZoneCardProps) => {
               Transfer ownership to another person. You will remain as a collaborator.
             </span>
           </div>
-          <Button danger disabled size="small">Manage</Button>
+          <Button danger disabled size="small">
+            Manage
+          </Button>
         </div>
         <div className={styles.row}>
           <div className={styles.copy}>
@@ -143,8 +145,8 @@ export const StoreDangerZoneCard = ({ store }: StoreDangerZoneCardProps) => {
         width={800}
       >
         <Typography.Paragraph className={styles.modalCopy}>
-          This permanently deletes “{store.name}”, including products, orders, customers,
-          settings, integrations, and media.
+          This permanently deletes “{store.name}”, including products, orders, customers, settings,
+          integrations, and media.
         </Typography.Paragraph>
         <Alert
           className={styles.warning}
@@ -153,7 +155,9 @@ export const StoreDangerZoneCard = ({ store }: StoreDangerZoneCardProps) => {
           showIcon
           type="error"
         />
-        {deleteError ? <Alert className={styles.warning} message={deleteError} showIcon type="error" /> : null}
+        {deleteError ? (
+          <Alert className={styles.warning} message={deleteError} showIcon type="error" />
+        ) : null}
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Type {store.name} to confirm</span>
           <Input

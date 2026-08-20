@@ -68,18 +68,13 @@ export function EditingPanel({
   const { styles } = useStyles();
 
   const displayLabel =
-    changesCount !== undefined && changesCount > 0
-      ? `${label} (${changesCount})`
-      : label;
+    changesCount !== undefined && changesCount > 0 ? `${label} (${changesCount})` : label;
 
   return (
     <PanelBase width={width} className={className}>
       <Flex align="center" gap="small" style={{ flex: 1 }}>
         <EditOutlined className={styles.icon} />
-        <Typography.Text
-          className={styles.label}
-          data-testid="editing-panel-changes-label"
-        >
+        <Typography.Text className={styles.label} data-testid="editing-panel-changes-label">
           {displayLabel}
         </Typography.Text>
       </Flex>

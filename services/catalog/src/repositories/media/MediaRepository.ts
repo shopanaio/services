@@ -32,18 +32,11 @@ export class MediaRepository extends BaseRepository {
     return this.connection
       .select()
       .from(productMedia)
-      .where(
-        and(
-          eq(productMedia.storeId, this.storeId),
-          eq(productMedia.productId, productId)
-        )
-      )
+      .where(and(eq(productMedia.storeId, this.storeId), eq(productMedia.productId, productId)))
       .orderBy(asc(productMedia.sortIndex));
   }
 
-  async getProductMediaByProductIds(
-    productIds: readonly string[]
-  ): Promise<ProductMedia[]> {
+  async getProductMediaByProductIds(productIds: readonly string[]): Promise<ProductMedia[]> {
     if (productIds.length === 0) return [];
 
     return this.connection
@@ -52,15 +45,15 @@ export class MediaRepository extends BaseRepository {
       .where(
         and(
           eq(productMedia.storeId, this.storeId),
-          inArray(productMedia.productId, [...productIds])
-        )
+          inArray(productMedia.productId, [...productIds]),
+        ),
       )
       .orderBy(asc(productMedia.productId), asc(productMedia.sortIndex));
   }
 
   async getProductMediaByFileIds(
     productId: string,
-    fileIds: readonly string[]
+    fileIds: readonly string[],
   ): Promise<ProductMedia[]> {
     const uniqueFileIds = this.dedupeFileIds(fileIds);
     if (uniqueFileIds.length === 0) return [];
@@ -72,20 +65,15 @@ export class MediaRepository extends BaseRepository {
         and(
           eq(productMedia.storeId, this.storeId),
           eq(productMedia.productId, productId),
-          inArray(productMedia.fileId, uniqueFileIds)
-        )
+          inArray(productMedia.fileId, uniqueFileIds),
+        ),
       );
   }
 
-  async setProductMedia(
-    productId: string,
-    fileIds: readonly string[]
-  ): Promise<ProductMedia[]> {
+  async setProductMedia(productId: string, fileIds: readonly string[]): Promise<ProductMedia[]> {
     const uniqueFileIds = this.dedupeFileIds(fileIds);
     const existing = await this.getProductMedia(productId);
-    const existingByFileId = new Map(
-      existing.map((media) => [media.fileId, media])
-    );
+    const existingByFileId = new Map(existing.map((media) => [media.fileId, media]));
     const requestedFileIdSet = new Set(uniqueFileIds);
 
     const removedFileIds = existing
@@ -99,14 +87,12 @@ export class MediaRepository extends BaseRepository {
           and(
             eq(productMedia.storeId, this.storeId),
             eq(productMedia.productId, productId),
-            inArray(productMedia.fileId, removedFileIds)
-          )
+            inArray(productMedia.fileId, removedFileIds),
+          ),
         );
     }
 
-    const newMediaCount = uniqueFileIds.filter(
-      (fileId) => !existingByFileId.has(fileId)
-    ).length;
+    const newMediaCount = uniqueFileIds.filter((fileId) => !existingByFileId.has(fileId)).length;
     const newMediaIds = await this.generateUuidV7s(newMediaCount);
     let newMediaIndex = 0;
     const inserts: NewProductMedia[] = [];
@@ -130,10 +116,7 @@ export class MediaRepository extends BaseRepository {
           .update(productMedia)
           .set({ sortIndex })
           .where(
-            and(
-              eq(productMedia.storeId, this.storeId),
-              eq(productMedia.id, existingMedia.id)
-            )
+            and(eq(productMedia.storeId, this.storeId), eq(productMedia.id, existingMedia.id)),
           );
       }
     }
@@ -166,20 +149,15 @@ export class MediaRepository extends BaseRepository {
         and(
           eq(variantMedia.storeId, productMedia.storeId),
           eq(variantMedia.productId, productMedia.productId),
-          eq(variantMedia.productMediaId, productMedia.id)
-        )
+          eq(variantMedia.productMediaId, productMedia.id),
+        ),
       )
-      .where(
-        and(
-          eq(variantMedia.storeId, this.storeId),
-          eq(variantMedia.variantId, variantId)
-        )
-      )
+      .where(and(eq(variantMedia.storeId, this.storeId), eq(variantMedia.variantId, variantId)))
       .orderBy(asc(variantMedia.sortIndex));
   }
 
   async getVariantMediaByVariantIds(
-    variantIds: readonly string[]
+    variantIds: readonly string[],
   ): Promise<VariantMediaWithFile[]> {
     if (variantIds.length === 0) return [];
 
@@ -199,21 +177,21 @@ export class MediaRepository extends BaseRepository {
         and(
           eq(variantMedia.storeId, productMedia.storeId),
           eq(variantMedia.productId, productMedia.productId),
-          eq(variantMedia.productMediaId, productMedia.id)
-        )
+          eq(variantMedia.productMediaId, productMedia.id),
+        ),
       )
       .where(
         and(
           eq(variantMedia.storeId, this.storeId),
-          inArray(variantMedia.variantId, [...variantIds])
-        )
+          inArray(variantMedia.variantId, [...variantIds]),
+        ),
       )
       .orderBy(asc(variantMedia.variantId), asc(variantMedia.sortIndex));
   }
 
   async setVariantMedia(
     variantId: string,
-    fileIds: readonly string[]
+    fileIds: readonly string[],
   ): Promise<VariantMediaWithFile[]> {
     const targetVariant = await this.getVariantForMediaUpdate(variantId);
     if (!targetVariant) {
@@ -223,14 +201,10 @@ export class MediaRepository extends BaseRepository {
     const uniqueFileIds = this.dedupeFileIds(fileIds);
     const registeredMedia = await this.getProductMediaByFileIds(
       targetVariant.productId,
-      uniqueFileIds
+      uniqueFileIds,
     );
-    const productMediaByFileId = new Map(
-      registeredMedia.map((media) => [media.fileId, media])
-    );
-    const missingFileIds = uniqueFileIds.filter(
-      (fileId) => !productMediaByFileId.has(fileId)
-    );
+    const productMediaByFileId = new Map(registeredMedia.map((media) => [media.fileId, media]));
+    const missingFileIds = uniqueFileIds.filter((fileId) => !productMediaByFileId.has(fileId));
 
     if (missingFileIds.length > 0) {
       throw new ProductMediaRegistrationError(missingFileIds);
@@ -265,12 +239,7 @@ export class MediaRepository extends BaseRepository {
   async clearVariantMedia(variantId: string): Promise<number> {
     const result = await this.connection
       .delete(variantMedia)
-      .where(
-        and(
-          eq(variantMedia.storeId, this.storeId),
-          eq(variantMedia.variantId, variantId)
-        )
-      )
+      .where(and(eq(variantMedia.storeId, this.storeId), eq(variantMedia.variantId, variantId)))
       .returning({ variantId: variantMedia.variantId });
 
     return result.length;
@@ -285,9 +254,7 @@ export class MediaRepository extends BaseRepository {
     return result.length;
   }
 
-  private async getVariantForMediaUpdate(
-    variantId: string
-  ): Promise<Variant | null> {
+  private async getVariantForMediaUpdate(variantId: string): Promise<Variant | null> {
     const result = await this.connection
       .select()
       .from(variant)
@@ -295,8 +262,8 @@ export class MediaRepository extends BaseRepository {
         and(
           eq(variant.storeId, this.storeId),
           eq(variant.id, variantId),
-          isNull(variant.deletedAt)
-        )
+          isNull(variant.deletedAt),
+        ),
       )
       .limit(1);
 

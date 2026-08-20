@@ -49,15 +49,9 @@ export const checkoutPipelineStageSchema = z.enum([
   "VALIDATION",
 ]);
 
-export const checkoutPipelineStageStatusSchema = z.enum([
-  "SUCCESS",
-  "FAILED",
-  "SKIPPED",
-]);
+export const checkoutPipelineStageStatusSchema = z.enum(["SUCCESS", "FAILED", "SKIPPED"]);
 
-function createJsonValueSchema(
-  remainingDepth: number,
-): z.ZodType<CheckoutPipelineJsonValue> {
+function createJsonValueSchema(remainingDepth: number): z.ZodType<CheckoutPipelineJsonValue> {
   const primitiveSchema = z.union([
     z.null(),
     z.boolean(),
@@ -99,7 +93,10 @@ export const checkoutPipelineJsonObjectSchema = z
 
 export const checkoutPipelineMoneySchema = z
   .object({
-    amountMinor: z.string().max(128).regex(/^-?\d+$/),
+    amountMinor: z
+      .string()
+      .max(128)
+      .regex(/^-?\d+$/),
     currencyCode: currencyCodeSchema,
   })
   .strict();
@@ -142,10 +139,7 @@ export const checkoutPipelineBuyerSchema = z
         message: "Guest buyer cannot have customer segment membership",
       });
     }
-    if (
-      buyer.customerId !== null &&
-      buyer.segmentMembershipRevision === null
-    ) {
+    if (buyer.customerId !== null && buyer.segmentMembershipRevision === null) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["segmentMembershipRevision"],
@@ -175,10 +169,7 @@ export const checkoutBuyerEligibilityContextSchema = z
         message: "Guest buyer cannot have customer segment membership",
       });
     }
-    if (
-      buyer.customerId !== null &&
-      buyer.segmentMembershipRevision === null
-    ) {
+    if (buyer.customerId !== null && buyer.segmentMembershipRevision === null) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["segmentMembershipRevision"],
@@ -312,9 +303,7 @@ export const checkoutPipelineExecutionContextSchema = z
   .strict()
   .superRefine(refineDeadline);
 
-function createCartLineIntentSchema(
-  remainingDepth: number,
-): z.ZodType<CheckoutCartLineIntent> {
+function createCartLineIntentSchema(remainingDepth: number): z.ZodType<CheckoutCartLineIntent> {
   const childrenSchema =
     remainingDepth === 1
       ? z.array(z.never()).max(0)
@@ -323,10 +312,7 @@ function createCartLineIntentSchema(
     .object({
       lineId: identifierSchema,
       variantId: identifierSchema,
-      componentSelection: z
-        .object({ componentItemId: identifierSchema })
-        .strict()
-        .nullable(),
+      componentSelection: z.object({ componentItemId: identifierSchema }).strict().nullable(),
       quantity: positiveIntegerSchema,
       purchase: checkoutLinePurchaseIntentSchema,
       attributes: checkoutPipelineJsonObjectSchema,
@@ -367,19 +353,13 @@ export const checkoutCartIntentSchema = z
     lines: collection(checkoutCartLineIntentSchema),
     discountCodes: collection(z.string().trim().min(1).max(256)),
     destinations: collection(checkoutDeliveryDestinationIntentSchema),
-    selectedDeliveryOptions: collection(
-      checkoutDeliveryOptionSelectionIntentSchema,
-    ),
-    selectedPaymentMethod:
-      checkoutPaymentMethodSelectionIntentSchema.nullable(),
+    selectedDeliveryOptions: collection(checkoutDeliveryOptionSelectionIntentSchema),
+    selectedPaymentMethod: checkoutPaymentMethodSelectionIntentSchema.nullable(),
     attributes: checkoutPipelineJsonObjectSchema,
   })
   .strict()
   .superRefine((intent, context) => {
-    const visit = (
-      lines: readonly CheckoutCartLineIntent[],
-      nested: boolean,
-    ): void => {
+    const visit = (lines: readonly CheckoutCartLineIntent[], nested: boolean): void => {
       for (const line of lines) {
         if (nested !== (line.componentSelection !== null)) {
           context.addIssue({
@@ -421,10 +401,7 @@ export const checkoutPricingCartIntentSchema = z
   })
   .strict()
   .superRefine((intent, context) => {
-    const visit = (
-      lines: readonly CheckoutCartLineIntent[],
-      nested: boolean,
-    ): void => {
+    const visit = (lines: readonly CheckoutCartLineIntent[], nested: boolean): void => {
       for (const line of lines) {
         if (nested !== (line.componentSelection !== null)) {
           context.addIssue({
@@ -486,8 +463,7 @@ export const checkoutLineAvailabilitySchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["continueSellingWhenOutOfStock"],
-        message:
-          "Continue-selling availability must be available and unbounded",
+        message: "Continue-selling availability must be available and unbounded",
       });
     }
     if (!availability.available && availability.maxQuantity === null) {
@@ -521,26 +497,23 @@ export const checkoutDiscountCodeReferenceSchema = z
   })
   .strict();
 
-export const checkoutDiscountAllocationSchema = z.discriminatedUnion(
-  "targetType",
-  [
-    z
-      .object({
-        targetType: z.literal("LINE"),
-        lineId: identifierSchema,
-        quantity: positiveIntegerSchema.nullable(),
-        amount: checkoutPipelineNonNegativeMoneySchema,
-      })
-      .strict(),
-    z
-      .object({
-        targetType: z.literal("DELIVERY_GROUP"),
-        groupId: identifierSchema,
-        amount: checkoutPipelineNonNegativeMoneySchema,
-      })
-      .strict(),
-  ],
-);
+export const checkoutDiscountAllocationSchema = z.discriminatedUnion("targetType", [
+  z
+    .object({
+      targetType: z.literal("LINE"),
+      lineId: identifierSchema,
+      quantity: positiveIntegerSchema.nullable(),
+      amount: checkoutPipelineNonNegativeMoneySchema,
+    })
+    .strict(),
+  z
+    .object({
+      targetType: z.literal("DELIVERY_GROUP"),
+      groupId: identifierSchema,
+      amount: checkoutPipelineNonNegativeMoneySchema,
+    })
+    .strict(),
+]);
 
 export const checkoutDiscountApplicationSchema = z
   .object({
@@ -582,43 +555,40 @@ const discountCodeRejectionReasonSchema = z.enum([
   "INVALID_FUNCTION_OUTPUT",
 ]);
 
-export const checkoutDiscountCodeResolutionSchema = z.discriminatedUnion(
-  "status",
-  [
-    z
-      .object({
-        inputCode: z.string().trim().min(1).max(256),
-        normalizedCode: z.string().trim().min(1).max(256),
-        status: z.literal("APPLIED"),
-        discountId: identifierSchema,
-        codeId: identifierSchema,
-        applicationIds: collection(identifierSchema).min(1),
-      })
-      .strict(),
-    z
-      .object({
-        inputCode: z.string().trim().min(1).max(256),
-        normalizedCode: z.string().trim().min(1).max(256),
-        status: z.literal("PENDING"),
-        discountId: identifierSchema,
-        codeId: identifierSchema,
-        reason: z.literal("AWAITING_DELIVERY"),
-      })
-      .strict(),
-    z
-      .object({
-        inputCode: z.string().trim().min(1).max(256),
-        normalizedCode: z.string().trim().min(1).max(256),
-        status: z.literal("REJECTED"),
-        discountId: identifierSchema.nullable(),
-        codeId: identifierSchema.nullable(),
-        reason: discountCodeRejectionReasonSchema,
-        message: z.string().min(1),
-        retryable: z.boolean(),
-      })
-      .strict(),
-  ],
-);
+export const checkoutDiscountCodeResolutionSchema = z.discriminatedUnion("status", [
+  z
+    .object({
+      inputCode: z.string().trim().min(1).max(256),
+      normalizedCode: z.string().trim().min(1).max(256),
+      status: z.literal("APPLIED"),
+      discountId: identifierSchema,
+      codeId: identifierSchema,
+      applicationIds: collection(identifierSchema).min(1),
+    })
+    .strict(),
+  z
+    .object({
+      inputCode: z.string().trim().min(1).max(256),
+      normalizedCode: z.string().trim().min(1).max(256),
+      status: z.literal("PENDING"),
+      discountId: identifierSchema,
+      codeId: identifierSchema,
+      reason: z.literal("AWAITING_DELIVERY"),
+    })
+    .strict(),
+  z
+    .object({
+      inputCode: z.string().trim().min(1).max(256),
+      normalizedCode: z.string().trim().min(1).max(256),
+      status: z.literal("REJECTED"),
+      discountId: identifierSchema.nullable(),
+      codeId: identifierSchema.nullable(),
+      reason: discountCodeRejectionReasonSchema,
+      message: z.string().min(1),
+      retryable: z.boolean(),
+    })
+    .strict(),
+]);
 
 export const checkoutDiscountUsageRequirementSchema = z
   .object({
@@ -632,9 +602,7 @@ export const checkoutDiscountUsageRequirementSchema = z
   })
   .strict();
 
-function createQuotedLineSchema(
-  remainingDepth: number,
-): z.ZodType<CheckoutQuotedLine> {
+function createQuotedLineSchema(remainingDepth: number): z.ZodType<CheckoutQuotedLine> {
   const childrenSchema =
     remainingDepth === 1
       ? z.array(z.never()).max(0)
@@ -669,30 +637,27 @@ export const checkoutTransformedLineLineageSchema = z
   })
   .strict();
 
-export const checkoutSourceLineResolutionSchema = z.discriminatedUnion(
-  "status",
-  [
-    z
-      .object({
-        sourceLineId: identifierSchema,
-        status: z.literal("TRANSFORMED"),
-        transformedLineIds: collection(identifierSchema).min(1),
-      })
-      .strict(),
-    z
-      .object({
-        sourceLineId: identifierSchema,
-        status: z.literal("REMOVED"),
-        reason: z
-          .object({
-            code: identifierSchema,
-            message: z.string().min(1),
-          })
-          .strict(),
-      })
-      .strict(),
-  ],
-);
+export const checkoutSourceLineResolutionSchema = z.discriminatedUnion("status", [
+  z
+    .object({
+      sourceLineId: identifierSchema,
+      status: z.literal("TRANSFORMED"),
+      transformedLineIds: collection(identifierSchema).min(1),
+    })
+    .strict(),
+  z
+    .object({
+      sourceLineId: identifierSchema,
+      status: z.literal("REMOVED"),
+      reason: z
+        .object({
+          code: identifierSchema,
+          message: z.string().min(1),
+        })
+        .strict(),
+    })
+    .strict(),
+]);
 
 export const checkoutCanonicalDeliveryDestinationSchema = z
   .object({
@@ -799,14 +764,7 @@ const checkoutDeliveryOptionBaseShape = {
   code: identifierSchema,
   title: z.string().min(1),
   description: z.string().min(1).nullable(),
-  deliveryMethodType: z.enum([
-    "LOCAL",
-    "NONE",
-    "PICK_UP",
-    "PICKUP_POINT",
-    "RETAIL",
-    "SHIPPING",
-  ]),
+  deliveryMethodType: z.enum(["LOCAL", "NONE", "PICK_UP", "PICKUP_POINT", "RETAIL", "SHIPPING"]),
   cost: checkoutPipelineNonNegativeMoneySchema,
   estimatedMinDeliveryAt: timestampSchema.nullable(),
   estimatedMaxDeliveryAt: timestampSchema.nullable(),
@@ -836,27 +794,24 @@ export const checkoutDeliveryOptionSchema = z.discriminatedUnion("source", [
     .strict(),
 ]);
 
-export const checkoutDeliveryOptionSelectionResolutionSchema =
-  z.discriminatedUnion("status", [
-    z.object({ status: z.literal("NONE") }).strict(),
-    z
-      .object({
-        status: z.literal("SELECTED"),
-        optionHandle: identifierSchema,
-        customerInput: checkoutPipelineJsonObjectSchema.nullable(),
-      })
-      .strict(),
-    z
-      .object({
-        status: z.literal("RESET"),
-        previousOptionHandle: identifierSchema,
-        customerInput: checkoutPipelineJsonObjectSchema.nullable(),
-        reason: z
-          .object({ code: identifierSchema, message: z.string().min(1) })
-          .strict(),
-      })
-      .strict(),
-  ]);
+export const checkoutDeliveryOptionSelectionResolutionSchema = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("NONE") }).strict(),
+  z
+    .object({
+      status: z.literal("SELECTED"),
+      optionHandle: identifierSchema,
+      customerInput: checkoutPipelineJsonObjectSchema.nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      status: z.literal("RESET"),
+      previousOptionHandle: identifierSchema,
+      customerInput: checkoutPipelineJsonObjectSchema.nullable(),
+      reason: z.object({ code: identifierSchema, message: z.string().min(1) }).strict(),
+    })
+    .strict(),
+]);
 
 export const checkoutDeliveryGroupSchema = z
   .object({
@@ -873,9 +828,7 @@ export const checkoutOrphanedDeliverySelectionResetSchema = z
     groupId: identifierSchema,
     previousOptionHandle: identifierSchema,
     customerInput: checkoutPipelineJsonObjectSchema.nullable(),
-    reason: z
-      .object({ code: identifierSchema, message: z.string().min(1) })
-      .strict(),
+    reason: z.object({ code: identifierSchema, message: z.string().min(1) }).strict(),
   })
   .strict();
 
@@ -894,14 +847,7 @@ export const checkoutPricingDeliveryOptionSchema = z
     handle: identifierSchema,
     code: identifierSchema,
     carrierCode: identifierSchema.nullable(),
-    deliveryMethodType: z.enum([
-      "LOCAL",
-      "NONE",
-      "PICK_UP",
-      "PICKUP_POINT",
-      "RETAIL",
-      "SHIPPING",
-    ]),
+    deliveryMethodType: z.enum(["LOCAL", "NONE", "PICK_UP", "PICKUP_POINT", "RETAIL", "SHIPPING"]),
     cost: checkoutPipelineNonNegativeMoneySchema,
   })
   .strict();
@@ -934,9 +880,7 @@ export const calculateDeliveryOptionsResultSchema = z
     customizationRevision: revisionSchema,
     customizationPolicyRevision: revisionSchema,
     groups: collection(checkoutDeliveryGroupSchema),
-    orphanedSelectionResets: collection(
-      checkoutOrphanedDeliverySelectionResetSchema,
-    ),
+    orphanedSelectionResets: collection(checkoutOrphanedDeliverySelectionResetSchema),
     carrierServiceExecutions: collection(
       z
         .object({
@@ -955,21 +899,11 @@ export const calculateDeliveryOptionsResultSchema = z
               routeRevision: revisionSchema,
             })
             .strict(),
-          status: z.enum([
-            "SUCCEEDED",
-            "NO_SERVICE",
-            "FAILED",
-            "TIMED_OUT",
-            "BACKUP_RATE_APPLIED",
-          ]),
+          status: z.enum(["SUCCEEDED", "NO_SERVICE", "FAILED", "TIMED_OUT", "BACKUP_RATE_APPLIED"]),
           rateCount: z.number().int().nonnegative(),
           durationMs: z.number().int().nonnegative(),
           attemptCount: z.number().int().nonnegative().max(1),
-          rateSource: z.enum([
-            "CARRIER_SERVICE_LIVE",
-            "CARRIER_SERVICE_CACHE",
-            "BACKUP_RATE",
-          ]),
+          rateSource: z.enum(["CARRIER_SERVICE_LIVE", "CARRIER_SERVICE_CACHE", "BACKUP_RATE"]),
           startedAt: timestampSchema,
           completedAt: timestampSchema,
           failure: z
@@ -1047,8 +981,7 @@ export const calculateDeliveryOptionsResultSchema = z
           message: "Provider execution cannot complete before it starts",
         });
       }
-      const measuredDuration =
-        Date.parse(execution.completedAt) - Date.parse(execution.startedAt);
+      const measuredDuration = Date.parse(execution.completedAt) - Date.parse(execution.startedAt);
       if (Math.abs(measuredDuration - execution.durationMs) > 1_000) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -1056,10 +989,7 @@ export const calculateDeliveryOptionsResultSchema = z
           message: "Provider execution duration disagrees with its timestamps",
         });
       }
-      if (
-        execution.rateSource === "CARRIER_SERVICE_CACHE" &&
-        execution.attemptCount !== 0
-      ) {
+      if (execution.rateSource === "CARRIER_SERVICE_CACHE" && execution.attemptCount !== 0) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["carrierServiceExecutions", index, "attemptCount"],
@@ -1077,10 +1007,7 @@ export const calculateDeliveryOptionsResultSchema = z
           message: "Cached provider data can only produce success or no-service",
         });
       }
-      if (
-        execution.rateSource === "CARRIER_SERVICE_LIVE" &&
-        execution.attemptCount === 0
-      ) {
+      if (execution.rateSource === "CARRIER_SERVICE_LIVE" && execution.attemptCount === 0) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["carrierServiceExecutions", index, "attemptCount"],
@@ -1104,11 +1031,9 @@ export const calculateDeliveryOptionsResultSchema = z
           execution.failure === null ||
           execution.rateCount === 0 ||
           execution.rateSource !== "BACKUP_RATE" ||
-          !new Set<string>([
-            "PROVIDER_UNAVAILABLE",
-            "TIMEOUT",
-            "RATE_LIMITED",
-          ]).has(execution.failure.category)
+          !new Set<string>(["PROVIDER_UNAVAILABLE", "TIMEOUT", "RATE_LIMITED"]).has(
+            execution.failure.category,
+          )
         ) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
@@ -1155,10 +1080,7 @@ export const calculateDeliveryOptionsResultSchema = z
           message: "Failed and timed-out executions require failure details",
         });
       }
-      if (
-        execution.status === "TIMED_OUT" &&
-        execution.failure?.category !== "TIMEOUT"
-      ) {
+      if (execution.status === "TIMED_OUT" && execution.failure?.category !== "TIMEOUT") {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["carrierServiceExecutions", index, "failure", "category"],
@@ -1214,27 +1136,24 @@ export const checkoutPaymentMethodSchema = z
   })
   .strict();
 
-export const checkoutPaymentMethodSelectionResolutionSchema =
-  z.discriminatedUnion("status", [
-    z.object({ status: z.literal("NONE") }).strict(),
-    z
-      .object({
-        status: z.literal("SELECTED"),
-        methodHandle: identifierSchema,
-        customerInput: checkoutPipelineJsonObjectSchema.nullable(),
-      })
-      .strict(),
-    z
-      .object({
-        status: z.literal("RESET"),
-        previousMethodHandle: identifierSchema,
-        customerInput: checkoutPipelineJsonObjectSchema.nullable(),
-        reason: z
-          .object({ code: identifierSchema, message: z.string().min(1) })
-          .strict(),
-      })
-      .strict(),
-  ]);
+export const checkoutPaymentMethodSelectionResolutionSchema = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("NONE") }).strict(),
+  z
+    .object({
+      status: z.literal("SELECTED"),
+      methodHandle: identifierSchema,
+      customerInput: checkoutPipelineJsonObjectSchema.nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      status: z.literal("RESET"),
+      previousMethodHandle: identifierSchema,
+      customerInput: checkoutPipelineJsonObjectSchema.nullable(),
+      reason: z.object({ code: identifierSchema, message: z.string().min(1) }).strict(),
+    })
+    .strict(),
+]);
 
 export const checkoutPaymentDestinationSnapshotSchema = z
   .object({
@@ -1268,11 +1187,14 @@ export const getAvailablePaymentMethodsRequestSchema = z
     selection: checkoutPaymentMethodSelectionIntentSchema.nullable(),
     finalQuote: finalizePricingQuoteResultSchema,
     payableAmount: checkoutPipelineNonNegativeMoneySchema,
-    loyaltyRedemption: z.object({
-      quoteId: identifierSchema,
-      quoteRevision: revisionSchema,
-      discount: checkoutPipelineNonNegativeMoneySchema,
-    }).strict().nullable(),
+    loyaltyRedemption: z
+      .object({
+        quoteId: identifierSchema,
+        quoteRevision: revisionSchema,
+        discount: checkoutPipelineNonNegativeMoneySchema,
+      })
+      .strict()
+      .nullable(),
     delivery: checkoutPaymentDeliverySnapshotSchema,
   })
   .strict();
@@ -1288,12 +1210,16 @@ export const getAvailablePaymentMethodsResultSchema = z
     basedOnDeliveryRevision: revisionSchema,
     methods: collection(checkoutPaymentMethodSchema),
     selection: checkoutPaymentMethodSelectionResolutionSchema,
-    issues: collection(z.object({
-      code: identifierSchema,
-      message: z.string().min(1).max(1024),
-      severity: z.enum(["WARNING", "ERROR"]),
-      retryable: z.boolean(),
-    }).strict()),
+    issues: collection(
+      z
+        .object({
+          code: identifierSchema,
+          message: z.string().min(1).max(1024),
+          severity: z.enum(["WARNING", "ERROR"]),
+          retryable: z.boolean(),
+        })
+        .strict(),
+    ),
   })
   .strict();
 
@@ -1359,9 +1285,7 @@ export const validateCheckoutResultSchema = z
   })
   .strict()
   .superRefine((result, context) => {
-    const expectedValid = !result.operations.some(
-      ({ severity }) => severity === "ERROR",
-    );
+    const expectedValid = !result.operations.some(({ severity }) => severity === "ERROR");
     if (result.valid !== expectedValid) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -1391,91 +1315,157 @@ export const checkoutPipelineChangeSchema = z.enum([
   "LOYALTY_REDEMPTION_UPDATE",
 ]);
 
-const loyaltyProgramSnapshotSchema = z.object({
-  programId: identifierSchema,
-  programCode: identifierSchema,
-  programVersionId: identifierSchema,
-  programVersion: z.number().int().safe().positive(),
-  programRevision: z.number().int().safe().nonnegative(),
-  currencyCode: currencyCodeSchema,
-  redemptionEnabled: z.boolean(),
-  redeemPoints: z.string().regex(/^\d+$/),
-  redeemAmountMinor: z.string().regex(/^\d+$/),
-  minimumRedeemPoints: z.string().regex(/^\d+$/),
-  maximumRedeemPointsPerOrder: z.string().regex(/^\d+$/).nullable(),
-  maximumOrderPercentageBps: z.number().int().min(0).max(10_000),
-  policyRevision: revisionSchema,
-}).strict();
+const loyaltyProgramSnapshotSchema = z
+  .object({
+    programId: identifierSchema,
+    programCode: identifierSchema,
+    programVersionId: identifierSchema,
+    programVersion: z.number().int().safe().positive(),
+    programRevision: z.number().int().safe().nonnegative(),
+    currencyCode: currencyCodeSchema,
+    redemptionEnabled: z.boolean(),
+    redeemPoints: z.string().regex(/^\d+$/),
+    redeemAmountMinor: z.string().regex(/^\d+$/),
+    minimumRedeemPoints: z.string().regex(/^\d+$/),
+    maximumRedeemPointsPerOrder: z.string().regex(/^\d+$/).nullable(),
+    maximumOrderPercentageBps: z.number().int().min(0).max(10_000),
+    policyRevision: revisionSchema,
+  })
+  .strict();
 
-const loyaltyQuoteSchema = z.object({
-  quoteId: identifierSchema,
-  revision: revisionSchema,
-  accountId: identifierSchema,
-  accountRevision: z.number().int().safe().nonnegative(),
-  program: loyaltyProgramSnapshotSchema,
-  requestedPoints: z.string().regex(/^\d+$/).nullable(),
-  redeemablePoints: z.string().regex(/^\d+$/),
-  discount: checkoutPipelineNonNegativeMoneySchema,
-  payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema,
-  availablePoints: z.string().regex(/^\d+$/),
-  expiresAt: timestampSchema,
-  basedOnCheckoutVersion: checkoutVersionSchema,
-  basedOnPricingQuoteRevision: revisionSchema,
-  basedOnCustomerEligibilityRevision: revisionSchema,
-}).strict();
+const loyaltyQuoteSchema = z
+  .object({
+    quoteId: identifierSchema,
+    revision: revisionSchema,
+    accountId: identifierSchema,
+    accountRevision: z.number().int().safe().nonnegative(),
+    program: loyaltyProgramSnapshotSchema,
+    requestedPoints: z.string().regex(/^\d+$/).nullable(),
+    redeemablePoints: z.string().regex(/^\d+$/),
+    discount: checkoutPipelineNonNegativeMoneySchema,
+    payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema,
+    availablePoints: z.string().regex(/^\d+$/),
+    expiresAt: timestampSchema,
+    basedOnCheckoutVersion: checkoutVersionSchema,
+    basedOnPricingQuoteRevision: revisionSchema,
+    basedOnCustomerEligibilityRevision: revisionSchema,
+  })
+  .strict();
 
-const loyaltyCheckoutContextSchema = z.object({
-  executionId: identifierSchema,
-  checkoutId: identifierSchema,
-  checkoutVersion: checkoutVersionSchema,
-  storeId: identifierSchema,
-  customerId: identifierSchema.nullable(),
-  currencyCode: currencyCodeSchema,
-  channelCode: identifierSchema,
-  effectiveAt: timestampSchema,
-  requestedAt: timestampSchema,
-  deadlineAt: timestampSchema,
-  correlationId: identifierSchema,
-  pricingQuoteId: identifierSchema,
-  pricingQuoteRevision: revisionSchema,
-  payableBeforeLoyalty: checkoutPipelineNonNegativeMoneySchema,
-  customerEligibilityRevision: revisionSchema,
-  segmentIds: collection(identifierSchema),
-  segmentMembershipRevision: revisionSchema,
-}).strict();
+const loyaltyCheckoutContextSchema = z
+  .object({
+    executionId: identifierSchema,
+    checkoutId: identifierSchema,
+    checkoutVersion: checkoutVersionSchema,
+    storeId: identifierSchema,
+    customerId: identifierSchema.nullable(),
+    currencyCode: currencyCodeSchema,
+    channelCode: identifierSchema,
+    effectiveAt: timestampSchema,
+    requestedAt: timestampSchema,
+    deadlineAt: timestampSchema,
+    correlationId: identifierSchema,
+    pricingQuoteId: identifierSchema,
+    pricingQuoteRevision: revisionSchema,
+    payableBeforeLoyalty: checkoutPipelineNonNegativeMoneySchema,
+    customerEligibilityRevision: revisionSchema,
+    segmentIds: collection(identifierSchema),
+    segmentMembershipRevision: revisionSchema,
+  })
+  .strict();
 
-export const checkoutLoyaltyRedemptionIntentSchema = z.object({
-  redeemPoints: z.boolean(),
-  requestedPoints: z.string().regex(/^\d+$/).nullable(),
-  programId: identifierSchema.nullable(),
-  rewardEntitlementId: identifierSchema.nullable(),
-}).strict().superRefine((value, ctx) => {
-  if (!value.redeemPoints && value.requestedPoints !== null) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["requestedPoints"], message: "requestedPoints requires redeemPoints" });
-  }
-  if (!value.redeemPoints && value.rewardEntitlementId === null) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A point redemption or reward entitlement is required" });
-  }
-});
+export const checkoutLoyaltyRedemptionIntentSchema = z
+  .object({
+    redeemPoints: z.boolean(),
+    requestedPoints: z.string().regex(/^\d+$/).nullable(),
+    programId: identifierSchema.nullable(),
+    rewardEntitlementId: identifierSchema.nullable(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (!value.redeemPoints && value.requestedPoints !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["requestedPoints"],
+        message: "requestedPoints requires redeemPoints",
+      });
+    }
+    if (!value.redeemPoints && value.rewardEntitlementId === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A point redemption or reward entitlement is required",
+      });
+    }
+  });
 
-const loyaltyRewardQuoteSchema = z.object({
-  entitlementId: identifierSchema,
-  entitlementRevision: z.number().int().nonnegative(),
-  accountId: identifierSchema,
-  rewardDefinitionId: identifierSchema,
-  rewardType: z.enum(["POINTS", "VOUCHER", "FIXED_DISCOUNT", "PERCENTAGE_DISCOUNT", "FREE_SHIPPING", "FREE_PRODUCT", "MEMBER_BENEFIT", "MONETARY_CREDIT"]),
-  pricingDiscountId: identifierSchema,
-  externalReference: z.string().min(1).nullable(),
-  configuration: z.record(z.unknown()),
-  expiresAt: timestampSchema.nullable(),
-  revision: revisionSchema,
-}).strict();
+const loyaltyRewardQuoteSchema = z
+  .object({
+    entitlementId: identifierSchema,
+    entitlementRevision: z.number().int().nonnegative(),
+    accountId: identifierSchema,
+    rewardDefinitionId: identifierSchema,
+    rewardType: z.enum([
+      "POINTS",
+      "VOUCHER",
+      "FIXED_DISCOUNT",
+      "PERCENTAGE_DISCOUNT",
+      "FREE_SHIPPING",
+      "FREE_PRODUCT",
+      "MEMBER_BENEFIT",
+      "MONETARY_CREDIT",
+    ]),
+    pricingDiscountId: identifierSchema,
+    externalReference: z.string().min(1).nullable(),
+    configuration: z.record(z.unknown()),
+    expiresAt: timestampSchema.nullable(),
+    revision: revisionSchema,
+  })
+  .strict();
 
 export const checkoutLoyaltyQuoteResultSchema = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("NONE"), revision: revisionSchema, rewardQuote: loyaltyRewardQuoteSchema.nullable(), rewardContext: loyaltyCheckoutContextSchema.nullable(), payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
-  z.object({ status: z.literal("QUOTED"), revision: revisionSchema, quote: loyaltyQuoteSchema, context: loyaltyCheckoutContextSchema, rewardQuote: loyaltyRewardQuoteSchema.nullable(), rewardContext: loyaltyCheckoutContextSchema.nullable(), payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
-  z.object({ status: z.literal("NOT_APPLICABLE"), revision: revisionSchema, code: identifierSchema, retryable: z.literal(false), rewardQuote: loyaltyRewardQuoteSchema.nullable(), rewardContext: loyaltyCheckoutContextSchema.nullable(), payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
-  z.object({ status: z.literal("REJECTED"), revision: revisionSchema, code: identifierSchema, message: z.string().min(1), retryable: z.boolean(), rewardQuote: loyaltyRewardQuoteSchema.nullable(), rewardContext: loyaltyCheckoutContextSchema.nullable(), payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
+  z
+    .object({
+      status: z.literal("NONE"),
+      revision: revisionSchema,
+      rewardQuote: loyaltyRewardQuoteSchema.nullable(),
+      rewardContext: loyaltyCheckoutContextSchema.nullable(),
+      payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema,
+    })
+    .strict(),
+  z
+    .object({
+      status: z.literal("QUOTED"),
+      revision: revisionSchema,
+      quote: loyaltyQuoteSchema,
+      context: loyaltyCheckoutContextSchema,
+      rewardQuote: loyaltyRewardQuoteSchema.nullable(),
+      rewardContext: loyaltyCheckoutContextSchema.nullable(),
+      payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema,
+    })
+    .strict(),
+  z
+    .object({
+      status: z.literal("NOT_APPLICABLE"),
+      revision: revisionSchema,
+      code: identifierSchema,
+      retryable: z.literal(false),
+      rewardQuote: loyaltyRewardQuoteSchema.nullable(),
+      rewardContext: loyaltyCheckoutContextSchema.nullable(),
+      payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema,
+    })
+    .strict(),
+  z
+    .object({
+      status: z.literal("REJECTED"),
+      revision: revisionSchema,
+      code: identifierSchema,
+      message: z.string().min(1),
+      retryable: z.boolean(),
+      rewardQuote: loyaltyRewardQuoteSchema.nullable(),
+      rewardContext: loyaltyCheckoutContextSchema.nullable(),
+      payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema,
+    })
+    .strict(),
 ]);
 
 export const checkoutRecalculationRequestSchema = z
@@ -1552,26 +1542,14 @@ export const checkoutRecalculationResultSchema = z
       "PRICING_PRELIMINARY",
       calculatePreliminaryPricingResultSchema,
     ),
-    delivery: checkoutPipelineStageOutcomeSchema(
-      "DELIVERY",
-      calculateDeliveryOptionsResultSchema,
-    ),
+    delivery: checkoutPipelineStageOutcomeSchema("DELIVERY", calculateDeliveryOptionsResultSchema),
     finalPricing: checkoutPipelineStageOutcomeSchema(
       "PRICING_FINAL",
       finalizePricingQuoteResultSchema,
     ),
-    loyalty: checkoutPipelineStageOutcomeSchema(
-      "LOYALTY",
-      checkoutLoyaltyQuoteResultSchema,
-    ),
-    payment: checkoutPipelineStageOutcomeSchema(
-      "PAYMENT",
-      getAvailablePaymentMethodsResultSchema,
-    ),
-    validation: checkoutPipelineStageOutcomeSchema(
-      "VALIDATION",
-      validateCheckoutResultSchema,
-    ),
+    loyalty: checkoutPipelineStageOutcomeSchema("LOYALTY", checkoutLoyaltyQuoteResultSchema),
+    payment: checkoutPipelineStageOutcomeSchema("PAYMENT", getAvailablePaymentMethodsResultSchema),
+    validation: checkoutPipelineStageOutcomeSchema("VALIDATION", validateCheckoutResultSchema),
     issues: collection(checkoutPipelineIssueSchema),
     trace: checkoutPipelineExecutionTraceSchema,
   })

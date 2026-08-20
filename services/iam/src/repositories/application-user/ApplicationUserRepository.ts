@@ -25,16 +25,11 @@ import {
 } from "../models/application-auth.js";
 
 export const applicationUserRelayQuery = createRelayQuery(
-  createQuery(applicationUser)
-    .include(["id"])
-    .maxLimit(100)
-    .defaultLimit(20),
-  { name: "applicationUser", tieBreaker: "id" }
+  createQuery(applicationUser).include(["id"]).maxLimit(100).defaultLimit(20),
+  { name: "applicationUser", tieBreaker: "id" },
 );
 
-export type ApplicationUserRelayInput = InferRelayInput<
-  typeof applicationUserRelayQuery
->;
+export type ApplicationUserRelayInput = InferRelayInput<typeof applicationUserRelayQuery>;
 
 export interface ApplicationUserConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -69,17 +64,12 @@ export class ApplicationUserRepositoryFactory {
   constructor(
     private readonly db: Database,
     private readonly txManager: TransactionManager<Database>,
-    private readonly invalidation: ApplicationAuthLiveStateInvalidationBus
+    private readonly invalidation: ApplicationAuthLiveStateInvalidationBus,
   ) {}
 
   forApplication(applicationId: string): ApplicationUserRepository {
     assertApplicationId(applicationId);
-    return new ApplicationUserRepository(
-      this.db,
-      this.txManager,
-      applicationId,
-      this.invalidation
-    );
+    return new ApplicationUserRepository(this.db, this.txManager, applicationId, this.invalidation);
   }
 }
 
@@ -89,7 +79,7 @@ export class ApplicationUserRepository extends BaseRepository {
     db: Database,
     txManager: TransactionManager<Database>,
     private readonly applicationId: string,
-    private readonly invalidation: ApplicationAuthLiveStateInvalidationBus
+    private readonly invalidation: ApplicationAuthLiveStateInvalidationBus,
   ) {
     super(db, txManager);
     assertApplicationId(applicationId);
@@ -101,10 +91,7 @@ export class ApplicationUserRepository extends BaseRepository {
       .select()
       .from(applicationUser)
       .where(
-        and(
-          eq(applicationUser.applicationId, this.applicationId),
-          eq(applicationUser.id, userId)
-        )
+        and(eq(applicationUser.applicationId, this.applicationId), eq(applicationUser.id, userId)),
       )
       .limit(1);
 
@@ -119,8 +106,8 @@ export class ApplicationUserRepository extends BaseRepository {
       .where(
         and(
           eq(applicationUser.applicationId, this.applicationId),
-          eq(applicationUser.email, normalizeEmail(email))
-        )
+          eq(applicationUser.email, normalizeEmail(email)),
+        ),
       )
       .limit(1);
 
@@ -135,25 +122,23 @@ export class ApplicationUserRepository extends BaseRepository {
       .where(
         and(
           eq(applicationUser.applicationId, this.applicationId),
-          eq(applicationUser.phoneNumber, phoneNumber)
-        )
+          eq(applicationUser.phoneNumber, phoneNumber),
+        ),
       )
       .limit(1);
     return result ?? null;
   }
 
   @ReadOnly()
-  async findByGlobalUserId(
-    globalUserId: string
-  ): Promise<ApplicationUser | null> {
+  async findByGlobalUserId(globalUserId: string): Promise<ApplicationUser | null> {
     const [result] = await this.connection
       .select()
       .from(applicationUser)
       .where(
         and(
           eq(applicationUser.applicationId, this.applicationId),
-          eq(applicationUser.globalUserId, globalUserId)
-        )
+          eq(applicationUser.globalUserId, globalUserId),
+        ),
       )
       .limit(1);
 
@@ -177,21 +162,16 @@ export class ApplicationUserRepository extends BaseRepository {
       .where(
         and(
           eq(applicationUser.applicationId, this.applicationId),
-          inArray(applicationUser.id, [...new Set(userIds)])
-        )
+          inArray(applicationUser.id, [...new Set(userIds)]),
+        ),
       );
   }
 
   @ReadOnly()
-  async getConnection(
-    input: ApplicationUserRelayInput
-  ): Promise<ApplicationUserConnectionResult> {
+  async getConnection(input: ApplicationUserRelayInput): Promise<ApplicationUserConnectionResult> {
     const { where, orderBy, ...pagination } = input;
     const mergedWhere: ApplicationUserRelayInput["where"] = {
-      _and: [
-        { applicationId: { _eq: this.applicationId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ applicationId: { _eq: this.applicationId } }, ...(where ? [where] : [])],
     };
     const executeInput: ApplicationUserRelayInput = {
       ...pagination,
@@ -216,9 +196,7 @@ export class ApplicationUserRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getSecurityViews(
-    userIds: readonly string[]
-  ): Promise<ApplicationUserSecurityView[]> {
+  async getSecurityViews(userIds: readonly string[]): Promise<ApplicationUserSecurityView[]> {
     if (userIds.length === 0) return [];
     const uniqueUserIds = [...new Set(userIds)];
     const [sessions, accounts] = await Promise.all([
@@ -229,8 +207,8 @@ export class ApplicationUserRepository extends BaseRepository {
           and(
             eq(applicationSession.applicationId, this.applicationId),
             inArray(applicationSession.userId, uniqueUserIds),
-            gt(applicationSession.expiresAt, new Date())
-          )
+            gt(applicationSession.expiresAt, new Date()),
+          ),
         ),
       this.connection
         .select({
@@ -244,8 +222,8 @@ export class ApplicationUserRepository extends BaseRepository {
         .where(
           and(
             eq(applicationAccount.applicationId, this.applicationId),
-            inArray(applicationAccount.userId, uniqueUserIds)
-          )
+            inArray(applicationAccount.userId, uniqueUserIds),
+          ),
         )
         .orderBy(applicationAccount.providerId, applicationAccount.id),
     ]);
@@ -254,16 +232,12 @@ export class ApplicationUserRepository extends BaseRepository {
     const accountsByUser = groupBy(accounts, ({ userId }) => userId);
     return uniqueUserIds.map((userId) => {
       const userAccounts = accountsByUser.get(userId) ?? [];
-      const linkedAccounts = userAccounts.filter(
-        ({ provider }) => provider !== "credential"
-      );
+      const linkedAccounts = userAccounts.filter(({ provider }) => provider !== "credential");
       return {
         userId,
         activeSessionCount: sessionCounts.get(userId) ?? 0,
         linkedAccountCount: linkedAccounts.length,
-        hasPasswordLogin: userAccounts.some(
-          ({ provider }) => provider === "credential"
-        ),
+        hasPasswordLogin: userAccounts.some(({ provider }) => provider === "credential"),
         linkedAccounts: Object.freeze(
           linkedAccounts.map((account) => ({
             id: account.id,
@@ -271,7 +245,7 @@ export class ApplicationUserRepository extends BaseRepository {
             isOnlyLoginMethod: userAccounts.length === 1,
             createdAt: account.createdAt,
             updatedAt: account.updatedAt,
-          }))
+          })),
         ),
       };
     });
@@ -288,18 +262,12 @@ export class ApplicationUserRepository extends BaseRepository {
    * The caller is responsible for completing the ownership challenge first.
    */
   @Transactional()
-  async linkGlobalUser(
-    userId: string,
-    globalUserId: string
-  ): Promise<ApplicationUser | null> {
+  async linkGlobalUser(userId: string, globalUserId: string): Promise<ApplicationUser | null> {
     const [result] = await this.connection
       .update(applicationUser)
       .set({ globalUserId, updatedAt: new Date() })
       .where(
-        and(
-          eq(applicationUser.applicationId, this.applicationId),
-          eq(applicationUser.id, userId)
-        )
+        and(eq(applicationUser.applicationId, this.applicationId), eq(applicationUser.id, userId)),
       )
       .returning();
 
@@ -307,10 +275,7 @@ export class ApplicationUserRepository extends BaseRepository {
   }
 
   /** Blocking an identity immediately revokes every session in this realm. */
-  async setStatus(
-    userId: string,
-    status: ApplicationUserStatus
-  ): Promise<ApplicationUser | null> {
+  async setStatus(userId: string, status: ApplicationUserStatus): Promise<ApplicationUser | null> {
     const result = await this.txManager.run(async () => {
       const [updated] = await this.connection
         .update(applicationUser)
@@ -318,8 +283,8 @@ export class ApplicationUserRepository extends BaseRepository {
         .where(
           and(
             eq(applicationUser.applicationId, this.applicationId),
-            eq(applicationUser.id, userId)
-          )
+            eq(applicationUser.id, userId),
+          ),
         )
         .returning();
 
@@ -329,32 +294,26 @@ export class ApplicationUserRepository extends BaseRepository {
           .delete(applicationOauthAccessToken)
           .where(
             and(
-              eq(
-                applicationOauthAccessToken.applicationId,
-                this.applicationId
-              ),
-              eq(applicationOauthAccessToken.userId, userId)
-            )
+              eq(applicationOauthAccessToken.applicationId, this.applicationId),
+              eq(applicationOauthAccessToken.userId, userId),
+            ),
           );
         await this.connection
           .update(applicationOauthRefreshToken)
           .set({ revoked: revokedAt, sessionId: null })
           .where(
             and(
-              eq(
-                applicationOauthRefreshToken.applicationId,
-                this.applicationId
-              ),
-              eq(applicationOauthRefreshToken.userId, userId)
-            )
+              eq(applicationOauthRefreshToken.applicationId, this.applicationId),
+              eq(applicationOauthRefreshToken.userId, userId),
+            ),
           );
         await this.connection
           .delete(applicationSession)
           .where(
             and(
               eq(applicationSession.applicationId, this.applicationId),
-              eq(applicationSession.userId, userId)
-            )
+              eq(applicationSession.userId, userId),
+            ),
           );
       }
       return updated ?? null;
@@ -365,7 +324,7 @@ export class ApplicationUserRepository extends BaseRepository {
           kind: "user",
           applicationId: this.applicationId,
           userId,
-        })
+        }),
       );
     }
     return result ?? null;
@@ -379,16 +338,13 @@ export class ApplicationUserRepository extends BaseRepository {
   @Transactional()
   async setAdminStatus(
     userId: string,
-    status: ApplicationUserStatus
+    status: ApplicationUserStatus,
   ): Promise<ApplicationUser | null> {
     const [updated] = await this.connection
       .update(applicationUser)
       .set({ status, updatedAt: new Date() })
       .where(
-        and(
-          eq(applicationUser.applicationId, this.applicationId),
-          eq(applicationUser.id, userId)
-        )
+        and(eq(applicationUser.applicationId, this.applicationId), eq(applicationUser.id, userId)),
       )
       .returning();
     if (!updated) return null;
@@ -406,8 +362,8 @@ export class ApplicationUserRepository extends BaseRepository {
       .where(
         and(
           eq(applicationSession.applicationId, this.applicationId),
-          eq(applicationSession.userId, userId)
-        )
+          eq(applicationSession.userId, userId),
+        ),
       )
       .returning({ id: applicationSession.id });
     const now = new Date();
@@ -416,8 +372,8 @@ export class ApplicationUserRepository extends BaseRepository {
       .where(
         and(
           eq(applicationOauthAccessToken.applicationId, this.applicationId),
-          eq(applicationOauthAccessToken.userId, userId)
-        )
+          eq(applicationOauthAccessToken.userId, userId),
+        ),
       );
     await this.connection
       .update(applicationOauthRefreshToken)
@@ -425,8 +381,8 @@ export class ApplicationUserRepository extends BaseRepository {
       .where(
         and(
           eq(applicationOauthRefreshToken.applicationId, this.applicationId),
-          eq(applicationOauthRefreshToken.userId, userId)
-        )
+          eq(applicationOauthRefreshToken.userId, userId),
+        ),
       );
     return sessions.length;
   }
@@ -435,16 +391,13 @@ export class ApplicationUserRepository extends BaseRepository {
   @Transactional()
   async unlinkAdminAccount(
     userId: string,
-    accountId: string
+    accountId: string,
   ): Promise<ApplicationUserAccountUnlinkResult> {
     const [user] = await this.connection
       .select({ id: applicationUser.id })
       .from(applicationUser)
       .where(
-        and(
-          eq(applicationUser.applicationId, this.applicationId),
-          eq(applicationUser.id, userId)
-        )
+        and(eq(applicationUser.applicationId, this.applicationId), eq(applicationUser.id, userId)),
       )
       .for("update")
       .limit(1);
@@ -458,8 +411,8 @@ export class ApplicationUserRepository extends BaseRepository {
       .where(
         and(
           eq(applicationAccount.applicationId, this.applicationId),
-          eq(applicationAccount.userId, userId)
-        )
+          eq(applicationAccount.userId, userId),
+        ),
       );
     const account = accounts.find(({ id }) => id === accountId);
     if (!account || account.provider === "credential") {
@@ -472,8 +425,8 @@ export class ApplicationUserRepository extends BaseRepository {
         and(
           eq(applicationAccount.applicationId, this.applicationId),
           eq(applicationAccount.userId, userId),
-          eq(applicationAccount.id, accountId)
-        )
+          eq(applicationAccount.id, accountId),
+        ),
       )
       .returning({ id: applicationAccount.id });
     if (rows.length !== 1) return { status: "account_not_found" };
@@ -492,10 +445,7 @@ export class ApplicationUserRepository extends BaseRepository {
     const result = await this.connection
       .delete(applicationUser)
       .where(
-        and(
-          eq(applicationUser.applicationId, this.applicationId),
-          eq(applicationUser.id, userId),
-        ),
+        and(eq(applicationUser.applicationId, this.applicationId), eq(applicationUser.id, userId)),
       )
       .returning({ id: applicationUser.id });
     return result.length > 0;
@@ -518,8 +468,8 @@ export class ApplicationUserRepository extends BaseRepository {
       .where(
         and(
           eq(applicationOauthAccessToken.applicationId, this.applicationId),
-          eq(applicationOauthAccessToken.userId, userId)
-        )
+          eq(applicationOauthAccessToken.userId, userId),
+        ),
       );
     await this.connection
       .update(applicationOauthRefreshToken)
@@ -527,16 +477,16 @@ export class ApplicationUserRepository extends BaseRepository {
       .where(
         and(
           eq(applicationOauthRefreshToken.applicationId, this.applicationId),
-          eq(applicationOauthRefreshToken.userId, userId)
-        )
+          eq(applicationOauthRefreshToken.userId, userId),
+        ),
       );
     await this.connection
       .delete(applicationSession)
       .where(
         and(
           eq(applicationSession.applicationId, this.applicationId),
-          eq(applicationSession.userId, userId)
-        )
+          eq(applicationSession.userId, userId),
+        ),
       );
   }
 }
@@ -545,10 +495,7 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-function groupBy<T>(
-  values: readonly T[],
-  key: (value: T) => string
-): Map<string, T[]> {
+function groupBy<T>(values: readonly T[], key: (value: T) => string): Map<string, T[]> {
   const result = new Map<string, T[]>();
   for (const value of values) {
     const groupKey = key(value);
@@ -559,10 +506,7 @@ function groupBy<T>(
   return result;
 }
 
-function countBy<T>(
-  values: readonly T[],
-  key: (value: T) => string
-): Map<string, number> {
+function countBy<T>(values: readonly T[], key: (value: T) => string): Map<string, number> {
   const result = new Map<string, number>();
   for (const value of values) {
     const groupKey = key(value);

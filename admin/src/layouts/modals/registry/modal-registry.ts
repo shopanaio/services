@@ -1,4 +1,4 @@
-import type { IModalStackDefinition, ModalStackRegistryMap, IModalStackPayload } from '../types';
+import type { IModalStackDefinition, ModalStackRegistryMap, IModalStackPayload } from "../types";
 
 /**
  * Global modal stack registry
@@ -27,7 +27,7 @@ class ModalStackRegistry {
   register<T extends IModalStackPayload>(definition: IModalStackDefinition<T>): void {
     if (this.registry.has(definition.type)) {
       console.warn(
-        `[ModalStackRegistry] Item type "${definition.type}" is already registered. Overwriting.`
+        `[ModalStackRegistry] Item type "${definition.type}" is already registered. Overwriting.`,
       );
     }
 
@@ -138,7 +138,7 @@ export const modalStackRegistry = new ModalStackRegistry();
  * Shorthand for modalStackRegistry.register()
  */
 export const registerModalStackItem = <T extends IModalStackPayload>(
-  definition: IModalStackDefinition<T>
+  definition: IModalStackDefinition<T>,
 ): void => {
   modalStackRegistry.register(definition);
 };

@@ -1,8 +1,4 @@
-import {
-  normalizeCollectionRuleHandleV1,
-  type Catalog,
-  type Listing,
-} from "@shopana/broker-types";
+import { normalizeCollectionRuleHandleV1, type Catalog, type Listing } from "@shopana/broker-types";
 import { FatalError } from "@shopana/shared-kernel";
 
 export function mapCatalogProductToListingSnapshot(input: {
@@ -45,7 +41,7 @@ export function mapCatalogProductToListingSnapshot(input: {
 
 function mapContent(
   product: Catalog.CatalogProductSnapshot,
-  defaultLocale: string
+  defaultLocale: string,
 ): Listing.ListingContentSnapshot {
   const seoByLocale = new Map(product.seo.map((seo) => [seo.locale, seo]));
   const translations: Record<string, Listing.ListingLocalizedContentSnapshot> = {};
@@ -76,7 +72,7 @@ function mapContent(
 }
 
 function buildPriceRanges(
-  variants: readonly Catalog.CatalogProductVariantSnapshot[]
+  variants: readonly Catalog.CatalogProductVariantSnapshot[],
 ): Listing.ListingPriceRangeSnapshot[] {
   const ranges = new Map<
     string,
@@ -85,13 +81,11 @@ function buildPriceRanges(
 
   for (const variant of variants) {
     for (const price of variant.prices) {
-      const range =
-        ranges.get(price.currencyCode) ??
-        {
-          currencyCode: price.currencyCode,
-          minAmountMinor: null,
-          maxAmountMinor: null,
-        };
+      const range = ranges.get(price.currencyCode) ?? {
+        currencyCode: price.currencyCode,
+        minAmountMinor: null,
+        maxAmountMinor: null,
+      };
 
       if (price.amountMinor !== null) {
         range.minAmountMinor =
@@ -109,12 +103,12 @@ function buildPriceRanges(
   }
 
   return [...ranges.values()].sort((left, right) =>
-    left.currencyCode.localeCompare(right.currencyCode)
+    left.currencyCode.localeCompare(right.currencyCode),
   );
 }
 
 function mapScopes(
-  product: Catalog.CatalogProductSnapshot
+  product: Catalog.CatalogProductSnapshot,
 ): Listing.ListingScopeMembershipSnapshot[] {
   const primaryCategoryId = product.primaryCategory?.id ?? null;
 
@@ -129,28 +123,21 @@ function mapScopes(
       if (left.primary !== right.primary) return left.primary ? -1 : 1;
       return left.categoryId.localeCompare(right.categoryId);
     });
-  const collections: Listing.ListingScopeMembershipSnapshot[] =
-    product.collections
-      .map((membership) => ({
-        scopeType: "collection" as const,
-        collectionId: membership.id,
-        manualRank: membership.manualRank,
-      }))
-      .sort((left, right) =>
-        left.collectionId.localeCompare(right.collectionId)
-      );
+  const collections: Listing.ListingScopeMembershipSnapshot[] = product.collections
+    .map((membership) => ({
+      scopeType: "collection" as const,
+      collectionId: membership.id,
+      manualRank: membership.manualRank,
+    }))
+    .sort((left, right) => left.collectionId.localeCompare(right.collectionId));
   return [...categories, ...collections];
 }
 
-function mapRuleFacts(
-  product: Catalog.CatalogProductSnapshot
-): Listing.ListingRuleFactsSnapshot {
+function mapRuleFacts(product: Catalog.CatalogProductSnapshot): Listing.ListingRuleFactsSnapshot {
   const productTerms: Listing.ListingProductRuleTermSnapshot[] = [
     ...product.tags.map((tag) => {
       if (!tag.id) {
-        throw new Error(
-          `Catalog tag snapshot has no id for product "${product.id}"`,
-        );
+        throw new Error(`Catalog tag snapshot has no id for product "${product.id}"`);
       }
       return { kind: "tag" as const, tagId: tag.id };
     }),
@@ -182,7 +169,7 @@ function mapRuleFacts(
             sourceHandle,
             valueHandle: assertCanonicalHandle(value.handle),
           }));
-        })
+        }),
       );
       if (terms.length > 256) {
         throw new FatalError(
@@ -216,15 +203,13 @@ function assertCanonicalHandle(value: string): string {
 }
 
 function dedupeAndSort<T>(values: readonly T[]): T[] {
-  return [
-    ...new Map(values.map((value) => [JSON.stringify(value), value])).entries(),
-  ]
+  return [...new Map(values.map((value) => [JSON.stringify(value), value])).entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([, value]) => value);
 }
 
 function mapProductFacets(
-  product: Catalog.CatalogProductSnapshot
+  product: Catalog.CatalogProductSnapshot,
 ): Listing.ListingFacetSelectionSnapshot[] {
   return [
     ...product.tags.map((tag) => ({
@@ -256,7 +241,7 @@ function mapProductFacets(
 }
 
 function mapVariant(
-  variant: Catalog.CatalogProductVariantSnapshot
+  variant: Catalog.CatalogProductVariantSnapshot,
 ): Listing.ListingVariantSnapshot {
   return {
     id: variant.id,
@@ -291,11 +276,9 @@ function mapVariant(
 
 function mapSearchContent(
   product: Catalog.CatalogProductSnapshot,
-  locales: readonly string[]
+  locales: readonly string[],
 ): Listing.ListingSearchContentSnapshot {
-  const productTitles = new Map(
-    product.content.map((content) => [content.locale, content.title])
-  );
+  const productTitles = new Map(product.content.map((content) => [content.locale, content.title]));
   const localeSnapshots = [...new Set(locales)]
     .sort((left, right) => left.localeCompare(right))
     .map((locale) => ({
@@ -310,7 +293,7 @@ function mapSearchContent(
             .map((content) => ({
               elementId: variant.id,
               value: content.title,
-            }))
+            })),
         )
         .sort(compareSearchValues),
       categoryNames: product.categories
@@ -320,16 +303,14 @@ function mapSearchContent(
             .map((content) => ({
               elementId: category.id,
               value: content.name,
-            }))
+            })),
         )
         .sort(compareSearchValues),
     }));
 
   return {
     locales: localeSnapshots,
-    vendor: product.vendor
-      ? { elementId: product.vendor.id, value: product.vendor.name }
-      : null,
+    vendor: product.vendor ? { elementId: product.vendor.id, value: product.vendor.name } : null,
     skus: product.variants
       .flatMap((variant) => {
         const sku = variant.inventoryItem?.sku;
@@ -341,14 +322,14 @@ function mapSearchContent(
 
 function compareSearchValues(
   left: Listing.ListingSearchTextValueSnapshot,
-  right: Listing.ListingSearchTextValueSnapshot
+  right: Listing.ListingSearchTextValueSnapshot,
 ): number {
   return left.elementId.localeCompare(right.elementId) || left.value.localeCompare(right.value);
 }
 
 function compareFacetSelections(
   left: Listing.ListingFacetSelectionSnapshot,
-  right: Listing.ListingFacetSelectionSnapshot
+  right: Listing.ListingFacetSelectionSnapshot,
 ): number {
   return (
     left.scope.localeCompare(right.scope) ||

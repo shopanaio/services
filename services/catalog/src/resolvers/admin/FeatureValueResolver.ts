@@ -1,7 +1,5 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { ProductFeatureValue } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 
@@ -9,16 +7,11 @@ import { CatalogType } from "./CatalogType.js";
  * Feature value view - resolves ProductFeatureValue domain interface
  * Accepts feature value ID, loads data lazily via loaders
  */
-export class FeatureValueResolver extends CatalogType<
-  string,
-  ProductFeatureValue
-> {
+export class FeatureValueResolver extends CatalogType<string, ProductFeatureValue> {
   async $preload() {
     const data = await this.$ctx.loaders.featureValue.load(this.$props);
     if (!data) {
-      throw new PreloadNotFoundError(
-        `Feature value ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Feature value ${this.$props} not found`);
     }
     return data;
   }
@@ -36,9 +29,7 @@ export class FeatureValueResolver extends CatalogType<
   }
 
   async name() {
-    const translation = await this.$ctx.loaders.featureValueTranslation.load(
-      this.$props
-    );
+    const translation = await this.$ctx.loaders.featureValueTranslation.load(this.$props);
     if (translation?.name) return translation.name;
     // Fallback to index representation if no translation
     const idx = await this.index();

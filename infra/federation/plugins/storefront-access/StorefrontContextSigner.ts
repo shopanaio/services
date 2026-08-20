@@ -1,8 +1,4 @@
-import {
-  createPrivateKey,
-  sign,
-  type KeyObject,
-} from "node:crypto";
+import { createPrivateKey, sign, type KeyObject } from "node:crypto";
 import {
   STOREFRONT_CONTEXT_AUDIENCE,
   STOREFRONT_CONTEXT_ISSUER,
@@ -21,14 +17,10 @@ export class StorefrontContextSigner {
       throw new Error("Storefront context signing configuration is required");
     }
     this.key = createPrivateKey(
-      privateKey.includes("BEGIN PRIVATE KEY")
-        ? privateKey
-        : Buffer.from(privateKey, "base64"),
+      privateKey.includes("BEGIN PRIVATE KEY") ? privateKey : Buffer.from(privateKey, "base64"),
     );
     if (this.key.asymmetricKeyType !== "ed25519") {
-      throw new Error(
-        "STOREFRONT_CONTEXT_PRIVATE_KEY must be an Ed25519 private key",
-      );
+      throw new Error("STOREFRONT_CONTEXT_PRIVATE_KEY must be an Ed25519 private key");
     }
   }
 

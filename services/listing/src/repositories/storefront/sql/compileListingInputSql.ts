@@ -48,14 +48,12 @@ export function toListingSqlRequest(input: {
       request.filters.facetFilters.map((filter) => ({
         facet_slug: filter.facetSlug,
         value_handle: filter.valueHandle,
-      }))
+      })),
     ),
     vendorIdsJson: JSON.stringify(request.filters.vendorIds),
     priceFilterJson: JSON.stringify(request.filters.priceRange ?? {}),
     stockFilterJson: JSON.stringify(
-      request.filters.inStock === undefined
-        ? {}
-        : { value: request.filters.inStock }
+      request.filters.inStock === undefined ? {} : { value: request.filters.inStock },
     ),
     cursorJson: JSON.stringify(request.cursor?.payload ?? {}),
     normalizedQuery: request.normalizedQuery,

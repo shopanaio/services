@@ -17,23 +17,17 @@ export class CustomerSegmentDeleteScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: CustomerSegmentDeleteParams
+    params: CustomerSegmentDeleteParams,
   ): Promise<CustomerSegmentDeleteResult> {
     const segment = await this.repository.segment.findById(params.id);
     if (!segment) {
       return notFound();
     }
-    if (
-      params.expectedRevision !== undefined &&
-      segment.revision !== params.expectedRevision
-    ) {
+    if (params.expectedRevision !== undefined && segment.revision !== params.expectedRevision) {
       return revisionConflict();
     }
 
-    const deleted = await this.repository.segment.softDelete(
-      params.id,
-      params.expectedRevision
-    );
+    const deleted = await this.repository.segment.softDelete(params.id, params.expectedRevision);
     if (!deleted) {
       return revisionConflict();
     }
@@ -41,7 +35,7 @@ export class CustomerSegmentDeleteScript extends BaseScript<
 
     this.logger.info(
       { segmentId: params.id, revision: segment.revision },
-      "Customer segment deleted"
+      "Customer segment deleted",
     );
     return { deletedSegmentId: params.id, userErrors: [] };
   }
@@ -57,9 +51,7 @@ export class CustomerSegmentDeleteScript extends BaseScript<
 function notFound(): CustomerSegmentDeleteResult {
   return {
     deletedSegmentId: undefined,
-    userErrors: [
-      { message: "Customer segment not found", field: ["id"], code: "NOT_FOUND" },
-    ],
+    userErrors: [{ message: "Customer segment not found", field: ["id"], code: "NOT_FOUND" }],
   };
 }
 

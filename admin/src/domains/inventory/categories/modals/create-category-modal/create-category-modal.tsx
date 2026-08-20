@@ -5,11 +5,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { App } from "antd";
 import { createStyles } from "antd-style";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { useCreateCategory } from "../../hooks";
 import { mapCategoryUserErrorsToFormErrors } from "../../mappers";
 import type { ICreateCategoryModalPayload } from "../../modals";

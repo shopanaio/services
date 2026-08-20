@@ -1,4 +1,4 @@
-import type { ServiceBroker } from '@shopana/shared-kernel';
+import type { ServiceBroker } from "@shopana/shared-kernel";
 
 /**
  * Options for broker calls.

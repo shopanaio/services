@@ -1,8 +1,4 @@
-extend schema
-  @link(
-    url: "https://specs.apollo.dev/federation/v2.7"
-    import: ["@key", "@shareable"]
-  )
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.7", import: ["@key", "@shareable"])
 
 scalar DateTime
 
@@ -114,16 +110,8 @@ type SmtpAppQuery {
 }
 
 type SmtpAppMutation {
-  smtpConnectionCreate(
-    input: SmtpConnectionCreateInput!
-  ): SmtpConnectionPayload!
-  smtpConnectionUpdate(
-    input: SmtpConnectionUpdateInput!
-  ): SmtpConnectionPayload!
-  smtpConnectionActivate(
-    input: SmtpConnectionActionInput!
-  ): SmtpConnectionPayload!
-  smtpConnectionDisconnect(
-    input: SmtpConnectionActionInput!
-  ): SmtpConnectionPayload!
+  smtpConnectionCreate(input: SmtpConnectionCreateInput!): SmtpConnectionPayload!
+  smtpConnectionUpdate(input: SmtpConnectionUpdateInput!): SmtpConnectionPayload!
+  smtpConnectionActivate(input: SmtpConnectionActionInput!): SmtpConnectionPayload!
+  smtpConnectionDisconnect(input: SmtpConnectionActionInput!): SmtpConnectionPayload!
 }

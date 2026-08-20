@@ -13,24 +13,36 @@ extend schema
   )
 
 type Query {
-  """Customers Admin query namespace."""
+  """
+  Customers Admin query namespace.
+  """
   customersQuery: CustomersQuery!
 }
 
 type Mutation {
-  """Customers Admin mutation namespace."""
+  """
+  Customers Admin mutation namespace.
+  """
   customersMutation: CustomersMutation!
 }
 
-"""Store-scoped customer reads. The current Store is taken from trusted context."""
+"""
+Store-scoped customer reads. The current Store is taken from trusted context.
+"""
 type CustomersQuery {
-  """Authentication settings for customer accounts in the current store."""
+  """
+  Authentication settings for customer accounts in the current store.
+  """
   customerAccountsSettings: CustomerAccountsSettings
 
-  """Resolve a customer-owned Relay node by global ID."""
+  """
+  Resolve a customer-owned Relay node by global ID.
+  """
   node(id: ID!): Node
 
-  """Resolve customer-owned Relay nodes while preserving input order."""
+  """
+  Resolve customer-owned Relay nodes while preserving input order.
+  """
   nodes(ids: [ID!]!): [Node]!
 
   customer(id: ID!): Customer
@@ -80,11 +92,7 @@ type CustomersQuery {
   ): CustomerSegmentConnection!
 
   customerSegmentQueryValidate(query: String!): CustomerSegmentQueryValidationResult!
-  customerSegmentPreview(
-    query: String!
-    first: Int = 50
-    after: String
-  ): CustomerSegmentPreview!
+  customerSegmentPreview(query: String!, first: Int = 50, after: String): CustomerSegmentPreview!
   customerSegmentAttributeCatalog: [CustomerSegmentAttributeDescriptor!]!
 
   customerMerge(id: ID!): CustomerMerge
@@ -108,21 +116,33 @@ type CustomersQuery {
   ): CustomerDataRequestConnection!
 }
 
-"""Store-scoped customer commands."""
+"""
+Store-scoped customer commands.
+"""
 type CustomersMutation {
-  """Replace the enabled customer authentication methods for the current store."""
+  """
+  Replace the enabled customer authentication methods for the current store.
+  """
   customerAccountsSettingsUpdate(
     input: CustomerAccountsSettingsUpdateInput!
   ): CustomerAccountsSettingsUpdatePayload!
 
   customerCreate(input: CustomerCreateInput!): CustomerCreatePayload!
-  """Unified customer profile update with optimistic locking."""
+  """
+  Unified customer profile update with optimistic locking.
+  """
   customerUpdate(
-    """The customer ID to update."""
+    """
+    The customer ID to update.
+    """
     customerId: ID!
-    """Expected aggregate revision. The update fails on a stale revision."""
+    """
+    Expected aggregate revision. The update fails on a stale revision.
+    """
     expectedRevision: Int!
-    """Customer-level operations executed by one update workflow."""
+    """
+    Customer-level operations executed by one update workflow.
+    """
     operations: CustomerUpdateInput!
   ): CustomerUpdatePayload!
   customerDelete(input: CustomerDeleteInput!): CustomerDeletePayload!
@@ -130,31 +150,28 @@ type CustomersMutation {
   customerGroupCreate(input: CustomerGroupCreateInput!): CustomerGroupCreatePayload!
   customerGroupUpdate(
     groupId: ID!
-    """Expected aggregate revision. Fails when definition or membership changed."""
+    """
+    Expected aggregate revision. Fails when definition or membership changed.
+    """
     expectedRevision: Int!
     operations: CustomerGroupUpdateInput!
   ): CustomerGroupUpdatePayload!
   customerGroupDelete(input: CustomerGroupDeleteInput!): CustomerGroupDeletePayload!
 
   customerTagCreate(input: CustomerTagCreateInput!): CustomerTagCreatePayload!
-  customerTagUpdate(
-    tagId: ID!
-    operations: CustomerTagUpdateInput
-  ): CustomerTagUpdatePayload!
+  customerTagUpdate(tagId: ID!, operations: CustomerTagUpdateInput): CustomerTagUpdatePayload!
   customerTagDelete(input: CustomerTagDeleteInput!): CustomerTagDeletePayload!
 
-  customerSegmentCreate(
-    input: CustomerSegmentCreateInput!
-  ): CustomerSegmentCreatePayload!
+  customerSegmentCreate(input: CustomerSegmentCreateInput!): CustomerSegmentCreatePayload!
   customerSegmentUpdate(
     segmentId: ID!
-    """Expected aggregate revision. Fails when definition or membership changed."""
+    """
+    Expected aggregate revision. Fails when definition or membership changed.
+    """
     expectedRevision: Int!
     operations: CustomerSegmentUpdateInput!
   ): CustomerSegmentUpdatePayload!
-  customerSegmentDelete(
-    input: CustomerSegmentDeleteInput!
-  ): CustomerSegmentDeletePayload!
+  customerSegmentDelete(input: CustomerSegmentDeleteInput!): CustomerSegmentDeletePayload!
 
   customerMergeCreate(input: CustomerMergeCreateInput!): CustomerMergeCreatePayload!
   customerMergeUpdate(

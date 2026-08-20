@@ -1,9 +1,7 @@
 import { gql } from "@apollo/client";
 
 export const NOTIFICATION_DEFINITION_SET_ENABLED_MUTATION = gql`
-  mutation NotificationDefinitionSetEnabled(
-    $input: NotificationDefinitionSetEnabledInput!
-  ) {
+  mutation NotificationDefinitionSetEnabled($input: NotificationDefinitionSetEnabledInput!) {
     notificationsMutation {
       setDefinitionEnabled(input: $input) {
         setting {
@@ -38,9 +36,7 @@ export const NOTIFICATION_WEBHOOK_SECRET_REVEAL_MUTATION = gql`
 `;
 
 export const NOTIFICATION_TEMPLATE_UPDATE_MUTATION = gql`
-  mutation NotificationTemplateUpdate(
-    $input: NotificationTemplateUpdateInput!
-  ) {
+  mutation NotificationTemplateUpdate($input: NotificationTemplateUpdateInput!) {
     notificationsMutation {
       updateTemplate(input: $input) {
         template {
@@ -93,9 +89,7 @@ export const NOTIFICATION_TEMPLATE_PREVIEW_MUTATION = gql`
 `;
 
 export const NOTIFICATION_WEBHOOK_CREATE_MUTATION = gql`
-  mutation NotificationWebhookCreate(
-    $input: NotificationWebhookCreateInput!
-  ) {
+  mutation NotificationWebhookCreate($input: NotificationWebhookCreateInput!) {
     notificationsMutation {
       createWebhook(input: $input) {
         webhook {
@@ -120,9 +114,7 @@ export const NOTIFICATION_WEBHOOK_CREATE_MUTATION = gql`
 `;
 
 export const NOTIFICATION_WEBHOOK_UPDATE_MUTATION = gql`
-  mutation NotificationWebhookUpdate(
-    $input: NotificationWebhookUpdateInput!
-  ) {
+  mutation NotificationWebhookUpdate($input: NotificationWebhookUpdateInput!) {
     notificationsMutation {
       updateWebhook(input: $input) {
         webhook {

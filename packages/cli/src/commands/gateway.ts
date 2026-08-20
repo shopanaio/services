@@ -29,8 +29,7 @@ export async function gatewayCommand(options: GatewayOptions) {
 
   // Determine which gateways will start
   const startAdmin = options.admin || (!options.admin && !options.storefront);
-  const startStorefront =
-    options.storefront || (!options.admin && !options.storefront);
+  const startStorefront = options.storefront || (!options.admin && !options.storefront);
 
   // Check supergraph files exist
   if (startStorefront) {

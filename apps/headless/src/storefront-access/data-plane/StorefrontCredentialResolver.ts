@@ -1,7 +1,4 @@
-import type {
-  AppHostContext,
-  AppExecutionContext,
-} from "@shopana/app-sdk";
+import type { AppHostContext, AppExecutionContext } from "@shopana/app-sdk";
 import type {
   ContextStore,
   ResolvedStorefrontAccessContext,
@@ -32,10 +29,7 @@ export class StorefrontCredentialResolver {
 
   start(): void {
     if (this.usageTimer) return;
-    this.usageTimer = setInterval(
-      () => void this.flushUsage(),
-      60_000,
-    );
+    this.usageTimer = setInterval(() => void this.flushUsage(), 60_000);
     this.usageTimer.unref();
   }
 
@@ -55,19 +49,14 @@ export class StorefrontCredentialResolver {
       return null;
     }
     if (parsed.kind !== input.accessMode) return null;
-    const credential =
-      await this.repository.credential.findByKid(parsed.kid);
+    const credential = await this.repository.credential.findByKid(parsed.kid);
     if (
       !credential ||
       credential.kind !== input.accessMode ||
       credential.status !== "ACTIVE" ||
       credential.tokenVersion !== parsed.tokenVersion ||
       credential.connectionStatus !== "ACTIVE" ||
-      !this.crypto.verify(
-        input.token,
-        credential.pepperVersion,
-        credential.tokenDigest,
-      )
+      !this.crypto.verify(input.token, credential.pepperVersion, credential.tokenDigest)
     ) {
       return null;
     }
@@ -88,18 +77,17 @@ export class StorefrontCredentialResolver {
     ) {
       return null;
     }
-    const storeResult = await this.host.executionContext.run(
-      installation,
-      () => this.host.broker.call<{
-        readonly store: ContextStore | null;
-        readonly userErrors: readonly {
-          readonly code: string;
-          readonly message: string;
-        }[];
-      }, { readonly id: string }>(
-        "project.getStoreById",
-        { id: credential.storeId },
-      ),
+    const storeResult = await this.host.executionContext.run(installation, () =>
+      this.host.broker.call<
+        {
+          readonly store: ContextStore | null;
+          readonly userErrors: readonly {
+            readonly code: string;
+            readonly message: string;
+          }[];
+        },
+        { readonly id: string }
+      >("project.getStoreById", { id: credential.storeId }),
     );
     const store = storeResult?.store;
     if (
@@ -114,11 +102,10 @@ export class StorefrontCredentialResolver {
       organizationId: credential.organizationId,
       storeId: credential.storeId,
     };
-    const policy =
-      await this.repository.accessPolicy.findByConnectionId(
-        scope,
-        credential.connectionId,
-      );
+    const policy = await this.repository.accessPolicy.findByConnectionId(
+      scope,
+      credential.connectionId,
+    );
     if (!policy) return null;
     this.usedCredentialIds.add(credential.id);
     return Object.freeze({
@@ -128,9 +115,7 @@ export class StorefrontCredentialResolver {
         installationId: credential.installationId,
         credentialId: credential.id,
         mode: input.accessMode,
-        permissions: Object.freeze(
-          [...policy.permissions] as StorefrontPermission[],
-        ),
+        permissions: Object.freeze([...policy.permissions] as StorefrontPermission[]),
         policyRevision: policy.revision,
       }),
     });

@@ -23,13 +23,17 @@ extend type Model3d implements Media @key(fields: "id") {
   id: ID! @external
 }
 
-"""An ordered media item registered on a product."""
+"""
+An ordered media item registered on a product.
+"""
 type ProductMediaEdge {
   cursor: Cursor!
   node: Media!
 }
 
-"""A Relay connection to the media registered on a product."""
+"""
+A Relay connection to the media registered on a product.
+"""
 type ProductMediaConnection implements Connection {
   edges: [ProductMediaEdge!]!
   nodes: [Media!]!
@@ -37,13 +41,17 @@ type ProductMediaConnection implements Connection {
   totalCount: Int!
 }
 
-"""An ordered media item registered on a category."""
+"""
+An ordered media item registered on a category.
+"""
 type CategoryMediaEdge {
   cursor: Cursor!
   node: Media!
 }
 
-"""A Relay connection to the media registered on a category."""
+"""
+A Relay connection to the media registered on a category.
+"""
 type CategoryMediaConnection implements Connection {
   edges: [CategoryMediaEdge!]!
   nodes: [Media!]!
@@ -51,13 +59,17 @@ type CategoryMediaConnection implements Connection {
   totalCount: Int!
 }
 
-"""An ordered media item selected for a particular product variant."""
+"""
+An ordered media item selected for a particular product variant.
+"""
 type ProductVariantMediaEdge {
   cursor: Cursor!
   node: Media!
 }
 
-"""A Relay connection to media selected for a particular product variant."""
+"""
+A Relay connection to media selected for a particular product variant.
+"""
 type ProductVariantMediaConnection implements Connection {
   edges: [ProductVariantMediaEdge!]!
   nodes: [Media!]!

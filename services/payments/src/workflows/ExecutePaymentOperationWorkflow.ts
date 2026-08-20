@@ -104,10 +104,7 @@ export class ExecutePaymentOperationWorkflow extends BrokerWorkflows<
     );
   }
 
-  private startMonitor(
-    prepared: PreparedPaymentOperation,
-    expiresAt: string,
-  ) {
+  private startMonitor(prepared: PreparedPaymentOperation, expiresAt: string) {
     return this.broker.startWorkflow(
       "payments.monitorOperation",
       {

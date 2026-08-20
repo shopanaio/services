@@ -1,8 +1,5 @@
 import { ZodResolver } from "@shopana/type-resolver";
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
 import { SessionResolver } from "./SessionResolver.js";
@@ -40,13 +37,7 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
       .getUserSessions(currentUser.id);
     const currentSessionId = currentUser.sessionId;
 
-    return sessions.map(
-      (session) =>
-        new SessionResolver(
-          { session, currentSessionId },
-          this.$ctx
-        )
-    );
+    return sessions.map((session) => new SessionResolver({ session, currentSessionId }, this.$ctx));
   }
 
   /**
@@ -69,10 +60,7 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
       };
     }
 
-    const organizationId = decodeGlobalIdByType(
-      input.organizationId,
-      GlobalIdEntity.Organization
-    );
+    const organizationId = decodeGlobalIdByType(input.organizationId, GlobalIdEntity.Organization);
 
     const result = await kernel.runScript(AuthorizeScript, {
       subject: currentUser.id,

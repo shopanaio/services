@@ -31,21 +31,18 @@ export interface ActionDecoratorMetadata {
  *   }
  * }
  */
-export function Action(
-  actionName: string,
-  metadata?: ActionMetadata,
-): MethodDecorator {
+export function Action(actionName: string, metadata?: ActionMetadata): MethodDecorator {
   return function (
     target: object,
     propertyKey: string | symbol,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ): PropertyDescriptor {
     // Store action metadata
     Reflect.defineMetadata(
       ACTION_METADATA_KEY,
       { actionName, metadata } as ActionDecoratorMetadata,
       target,
-      propertyKey
+      propertyKey,
     );
 
     return descriptor;

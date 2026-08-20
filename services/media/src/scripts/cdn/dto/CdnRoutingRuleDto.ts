@@ -23,7 +23,7 @@ const cdnRoutingConditionsSchema = z
     {
       message: "maxSizeBytes must be greater than or equal to minSizeBytes",
       path: ["maxSizeBytes"],
-    }
+    },
   )
   .nullable()
   .optional();

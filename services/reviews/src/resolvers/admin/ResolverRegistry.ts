@@ -27,10 +27,14 @@ export class ResolverRegistry {
     const content = await this.ctx.loaders.content.load(id);
     if (!content) return null;
     switch (content.kind) {
-      case "REVIEW": return this.review(id);
-      case "REVIEW_REPLY": return this.reviewReply(id);
-      case "PRODUCT_QUESTION": return this.productQuestion(id);
-      case "QUESTION_ANSWER": return this.productQuestionAnswer(id);
+      case "REVIEW":
+        return this.review(id);
+      case "REVIEW_REPLY":
+        return this.reviewReply(id);
+      case "PRODUCT_QUESTION":
+        return this.productQuestion(id);
+      case "QUESTION_ANSWER":
+        return this.productQuestionAnswer(id);
     }
   }
 

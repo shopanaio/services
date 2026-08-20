@@ -33,11 +33,17 @@ export class VerificationModule {
     });
   }
 
-  verifyCode(ctx: RequestContext, values: Record<string, unknown>): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
+  verifyCode(
+    ctx: RequestContext,
+    values: Record<string, unknown>,
+  ): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
     return this.http.post(ctx, "/api/verify-code", values);
   }
 
-  checkUserPassword(ctx: RequestContext, values: Record<string, unknown>): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
+  checkUserPassword(
+    ctx: RequestContext,
+    values: Record<string, unknown>,
+  ): Promise<CasdoorHttpResult<CasdoorApiResponse>> {
     return this.http.post(ctx, "/api/check-user-password", values);
   }
 

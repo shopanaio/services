@@ -848,12 +848,8 @@
           "tableFrom": "store_brand_social_link",
           "tableTo": "store_brand",
           "schemaTo": "store",
-          "columnsFrom": [
-            "brand_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["brand_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1425,12 +1421,8 @@
           "tableFrom": "market_country",
           "tableTo": "market",
           "schemaTo": "store",
-          "columnsFrom": [
-            "market_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["market_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1438,10 +1430,7 @@
       "compositePrimaryKeys": {
         "market_country_pkey": {
           "name": "market_country_pkey",
-          "columns": [
-            "market_id",
-            "country_code"
-          ]
+          "columns": ["market_id", "country_code"]
         }
       },
       "uniqueConstraints": {},
@@ -1520,12 +1509,8 @@
           "tableFrom": "market_currency",
           "tableTo": "market",
           "schemaTo": "store",
-          "columnsFrom": [
-            "market_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["market_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1533,10 +1518,7 @@
       "compositePrimaryKeys": {
         "market_currency_pkey": {
           "name": "market_currency_pkey",
-          "columns": [
-            "market_id",
-            "currency_code"
-          ]
+          "columns": ["market_id", "currency_code"]
         }
       },
       "uniqueConstraints": {},
@@ -1610,12 +1592,8 @@
           "tableFrom": "market_locale",
           "tableTo": "market",
           "schemaTo": "store",
-          "columnsFrom": [
-            "market_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["market_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1623,10 +1601,7 @@
       "compositePrimaryKeys": {
         "market_locale_pkey": {
           "name": "market_locale_pkey",
-          "columns": [
-            "market_id",
-            "locale_code"
-          ]
+          "columns": ["market_id", "locale_code"]
         }
       },
       "uniqueConstraints": {},
@@ -1903,12 +1878,8 @@
           "tableFrom": "market_sales_channel",
           "tableTo": "market",
           "schemaTo": "store",
-          "columnsFrom": [
-            "market_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["market_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1917,12 +1888,8 @@
           "tableFrom": "market_sales_channel",
           "tableTo": "sales_channel",
           "schemaTo": "store",
-          "columnsFrom": [
-            "sales_channel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sales_channel_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1930,10 +1897,7 @@
       "compositePrimaryKeys": {
         "market_sales_channel_pkey": {
           "name": "market_sales_channel_pkey",
-          "columns": [
-            "market_id",
-            "sales_channel_id"
-          ]
+          "columns": ["market_id", "sales_channel_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2084,12 +2048,8 @@
           "tableFrom": "api_key",
           "tableTo": "store",
           "schemaTo": "store",
-          "columnsFrom": [
-            "store_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["store_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2253,12 +2213,8 @@
           "tableFrom": "store_integration",
           "tableTo": "store",
           "schemaTo": "store",
-          "columnsFrom": [
-            "store_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["store_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2441,13 +2397,7 @@
     "reference.dimension_unit": {
       "name": "dimension_unit",
       "schema": "reference",
-      "values": [
-        "mm",
-        "cm",
-        "m",
-        "in",
-        "ft"
-      ]
+      "values": ["mm", "cm", "m", "in", "ft"]
     },
     "store.locale_code": {
       "name": "locale_code",
@@ -2594,57 +2544,32 @@
     "reference.weight_unit": {
       "name": "weight_unit",
       "schema": "reference",
-      "values": [
-        "kg",
-        "g",
-        "lb",
-        "oz"
-      ]
+      "values": ["kg", "g", "lb", "oz"]
     },
     "store.store_status": {
       "name": "store_status",
       "schema": "store",
-      "values": [
-        "active",
-        "inactive"
-      ]
+      "values": ["active", "inactive"]
     },
     "store.unit_system": {
       "name": "unit_system",
       "schema": "store",
-      "values": [
-        "metric",
-        "imperial"
-      ]
+      "values": ["metric", "imperial"]
     },
     "store.automatic_fulfillment_mode": {
       "name": "automatic_fulfillment_mode",
       "schema": "store",
-      "values": [
-        "all_line_items",
-        "gift_cards_only",
-        "disabled"
-      ]
+      "values": ["all_line_items", "gift_cards_only", "disabled"]
     },
     "store.currency_display": {
       "name": "currency_display",
       "schema": "store",
-      "values": [
-        "symbol",
-        "narrowSymbol",
-        "code",
-        "name"
-      ]
+      "values": ["symbol", "narrowSymbol", "code", "name"]
     },
     "store.currency_grouping": {
       "name": "currency_grouping",
       "schema": "store",
-      "values": [
-        "auto",
-        "always",
-        "min2",
-        "never"
-      ]
+      "values": ["auto", "always", "min2", "never"]
     },
     "store.currency_rounding_mode": {
       "name": "currency_rounding_mode",
@@ -2664,78 +2589,42 @@
     "store.currency_sign_display": {
       "name": "currency_sign_display",
       "schema": "store",
-      "values": [
-        "auto",
-        "always",
-        "exceptZero",
-        "negative",
-        "never"
-      ]
+      "values": ["auto", "always", "exceptZero", "negative", "never"]
     },
     "store.currency_sign": {
       "name": "currency_sign",
       "schema": "store",
-      "values": [
-        "standard",
-        "accounting"
-      ]
+      "values": ["standard", "accounting"]
     },
     "store.currency_trailing_zero_display": {
       "name": "currency_trailing_zero_display",
       "schema": "store",
-      "values": [
-        "auto",
-        "stripIfInteger"
-      ]
+      "values": ["auto", "stripIfInteger"]
     },
     "store.market_status": {
       "name": "market_status",
       "schema": "store",
-      "values": [
-        "active",
-        "inactive"
-      ]
+      "values": ["active", "inactive"]
     },
     "store.sales_channel_status": {
       "name": "sales_channel_status",
       "schema": "store",
-      "values": [
-        "active",
-        "inactive"
-      ]
+      "values": ["active", "inactive"]
     },
     "store.sales_channel_type": {
       "name": "sales_channel_type",
       "schema": "store",
-      "values": [
-        "online_store",
-        "mobile_app",
-        "point_of_sale",
-        "marketplace",
-        "b2b",
-        "custom"
-      ]
+      "values": ["online_store", "mobile_app", "point_of_sale", "marketplace", "b2b", "custom"]
     },
     "store.integration_status": {
       "name": "integration_status",
       "schema": "store",
-      "values": [
-        "active",
-        "inactive",
-        "error"
-      ]
+      "values": ["active", "inactive", "error"]
     },
     "store.integration_type": {
       "name": "integration_type",
       "schema": "store",
-      "values": [
-        "iam",
-        "payment",
-        "shipping",
-        "storage",
-        "email",
-        "analytics"
-      ]
+      "values": ["iam", "payment", "shipping", "storage", "email", "analytics"]
     }
   },
   "schemas": {

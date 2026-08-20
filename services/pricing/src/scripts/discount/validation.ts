@@ -1,16 +1,10 @@
 import type { UserError } from "../../kernel/BaseScript.js";
 import type { DiscountAggregate } from "../../repositories/DiscountRepository.js";
 
-export function validateDiscountAggregate(
-  aggregate: DiscountAggregate,
-): UserError[] {
+export function validateDiscountAggregate(aggregate: DiscountAggregate): UserError[] {
   const errors: UserError[] = [];
   const root = aggregate.discount;
-  const rules = [
-    aggregate.amountOff,
-    aggregate.buyXGetY,
-    aggregate.freeShipping,
-  ].filter(Boolean);
+  const rules = [aggregate.amountOff, aggregate.buyXGetY, aggregate.freeShipping].filter(Boolean);
   const isFunction = root.calculationStrategy === "FUNCTION";
 
   if (isFunction && (root.kind !== null || rules.length > 0)) {
@@ -97,13 +91,9 @@ export function validateDiscountAggregate(
     });
   }
   for (const code of aggregate.codes) {
-    const counter = aggregate.codeUsageCounters.find(
-      (value) => value.codeId === code.id,
-    );
+    const counter = aggregate.codeUsageCounters.find((value) => value.codeId === code.id);
     const usage = counter
-      ? counter.reservedCount +
-        counter.committedCount -
-        counter.reversedCount
+      ? counter.reservedCount + counter.committedCount - counter.reversedCount
       : 0n;
     if (code.usageLimit !== null && code.usageLimit < usage) {
       errors.push({
@@ -116,9 +106,7 @@ export function validateDiscountAggregate(
   const roles = new Set(aggregate.targetSelections.map((item) => item.role));
   for (const selection of aggregate.targetSelections) {
     const targets = aggregate.targets.filter(
-      (target) =>
-        target.role === selection.role &&
-        target.targetType === selection.targetType,
+      (target) => target.role === selection.role && target.targetType === selection.targetType,
     );
     if (selection.targetType === "ALL_PRODUCTS" && targets.length > 0) {
       errors.push({
@@ -133,19 +121,13 @@ export function validateDiscountAggregate(
       });
     }
   }
-  if (
-    (root.kind === "AMOUNT_OFF_ORDER" || root.kind === "FREE_SHIPPING") &&
-    roles.size > 0
-  ) {
+  if ((root.kind === "AMOUNT_OFF_ORDER" || root.kind === "FREE_SHIPPING") && roles.size > 0) {
     errors.push({
       message: "Order and shipping discounts cannot have catalog targets",
       code: "TARGETS_NOT_ALLOWED",
     });
   }
-  if (
-    root.kind === "AMOUNT_OFF_PRODUCTS" &&
-    [...roles].some((role) => role !== "BENEFIT")
-  ) {
+  if (root.kind === "AMOUNT_OFF_PRODUCTS" && [...roles].some((role) => role !== "BENEFIT")) {
     errors.push({
       message: "Amount-off product discounts only support BENEFIT targets",
       code: "INVALID_TARGET_ROLE",
@@ -156,8 +138,7 @@ export function validateDiscountAggregate(
     const type = aggregate.buyerContext.contextType;
     if (
       type === "ALL" &&
-      (aggregate.eligibleCustomers.length > 0 ||
-        aggregate.eligibleSegments.length > 0)
+      (aggregate.eligibleCustomers.length > 0 || aggregate.eligibleSegments.length > 0)
     ) {
       errors.push({
         message: "ALL eligibility cannot contain customers or segments",
@@ -166,8 +147,7 @@ export function validateDiscountAggregate(
     }
     if (
       type === "CUSTOMERS" &&
-      (aggregate.eligibleCustomers.length === 0 ||
-        aggregate.eligibleSegments.length > 0)
+      (aggregate.eligibleCustomers.length === 0 || aggregate.eligibleSegments.length > 0)
     ) {
       errors.push({
         message: "CUSTOMERS eligibility requires customers only",
@@ -176,8 +156,7 @@ export function validateDiscountAggregate(
     }
     if (
       type === "SEGMENTS" &&
-      (aggregate.eligibleSegments.length === 0 ||
-        aggregate.eligibleCustomers.length > 0)
+      (aggregate.eligibleSegments.length === 0 || aggregate.eligibleCustomers.length > 0)
     ) {
       errors.push({
         message: "SEGMENTS eligibility requires segments only",
@@ -211,19 +190,13 @@ export function validateDiscountAggregate(
         code: "CHANNEL_REQUIRED",
       });
     }
-    if (
-      root.method === "CODE" &&
-      !aggregate.codes.some((code) => code.status === "ACTIVE")
-    ) {
+    if (root.method === "CODE" && !aggregate.codes.some((code) => code.status === "ACTIVE")) {
       errors.push({
         message: "A non-draft code discount requires an active redeem code",
         code: "ACTIVE_CODE_REQUIRED",
       });
     }
-    if (
-      root.kind === "AMOUNT_OFF_PRODUCTS" &&
-      (roles.size !== 1 || !roles.has("BENEFIT"))
-    ) {
+    if (root.kind === "AMOUNT_OFF_PRODUCTS" && (roles.size !== 1 || !roles.has("BENEFIT"))) {
       errors.push({
         message: "Amount-off product discounts require BENEFIT targets",
         code: "TARGETS_REQUIRED",
@@ -231,9 +204,7 @@ export function validateDiscountAggregate(
     }
     if (
       root.kind === "BUY_X_GET_Y" &&
-      (roles.size !== 2 ||
-        !roles.has("QUALIFIER") ||
-        !roles.has("BENEFIT"))
+      (roles.size !== 2 || !roles.has("QUALIFIER") || !roles.has("BENEFIT"))
     ) {
       errors.push({
         message: "Buy X Get Y discounts require QUALIFIER and BENEFIT targets",

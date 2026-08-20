@@ -1,7 +1,4 @@
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { GraphQLResolveInfo } from "graphql";
 import { createIsoDateTimeScalar } from "../../graphql/scalars.js";
@@ -37,10 +34,7 @@ export const typeResolvers: Partial<Resolvers> = {
         typeof obj === "object" && obj !== null
           ? (obj as { __typename?: unknown }).__typename
           : undefined;
-      if (
-        typeof explicitTypeName === "string" &&
-        isNodeTypeName(explicitTypeName)
-      ) {
+      if (typeof explicitTypeName === "string" && isNodeTypeName(explicitTypeName)) {
         return explicitTypeName;
       }
       if (obj instanceof CustomerResolver) return "Customer";
@@ -105,12 +99,9 @@ export const typeResolvers: Partial<Resolvers> = {
     __resolveReference: (
       reference: { __typename: "Customer"; id: string },
       ctx: ServiceContext,
-      info: GraphQLResolveInfo
+      info: GraphQLResolveInfo,
     ) => {
-      const customerId = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.Customer
-      );
+      const customerId = decodeGlobalIdByType(reference.id, GlobalIdEntity.Customer);
       return CustomerResolver.load(customerId, parseGraphqlInfo(info), ctx);
     },
   },
@@ -120,10 +111,7 @@ export const typeResolvers: Partial<Resolvers> = {
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
     ) => {
-      const id = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.CustomerComparison,
-      );
+      const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.CustomerComparison);
       return CustomerComparisonResolver.load(id, parseGraphqlInfo(info), ctx);
     },
   },
@@ -133,32 +121,18 @@ export const typeResolvers: Partial<Resolvers> = {
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
     ) => {
-      const id = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.CustomerComparisonItem,
-      );
-      return CustomerComparisonItemResolver.load(
-        id,
-        parseGraphqlInfo(info),
-        ctx,
-      );
+      const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.CustomerComparisonItem);
+      return CustomerComparisonItemResolver.load(id, parseGraphqlInfo(info), ctx);
     },
   },
   CustomerExternalReference: {
     __resolveReference: (
       reference: { __typename: "CustomerExternalReference"; id: string },
       ctx: ServiceContext,
-      info: GraphQLResolveInfo
+      info: GraphQLResolveInfo,
     ) => {
-      const id = decodeGlobalIdByType(
-        reference.id,
-        GlobalIdEntity.CustomerExternalReference
-      );
-      return CustomerExternalReferenceResolver.load(
-        id,
-        parseGraphqlInfo(info),
-        ctx
-      );
+      const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.CustomerExternalReference);
+      return CustomerExternalReferenceResolver.load(id, parseGraphqlInfo(info), ctx);
     },
   },
 };

@@ -29,10 +29,8 @@ export const DeliveryCheckoutActionNames = {
 } as const;
 
 export const DeliveryCheckoutActions = {
-  calculateOptions:
-    `delivery.${DeliveryCheckoutActionNames.calculateOptions}`,
-  searchOptionChoices:
-    `delivery.${DeliveryCheckoutActionNames.searchOptionChoices}`,
+  calculateOptions: `delivery.${DeliveryCheckoutActionNames.calculateOptions}`,
+  searchOptionChoices: `delivery.${DeliveryCheckoutActionNames.searchOptionChoices}`,
 } as const;
 
 export interface SearchDeliveryOptionChoicesParams {
@@ -60,16 +58,13 @@ export interface SearchDeliveryOptionChoicesResult {
 }
 
 /** Real-time checkout rate calculation, independent from fulfillment ownership. */
-export const DELIVERY_CARRIER_SERVICE_CAPABILITY =
-  "delivery.carrier-service" as const;
+export const DELIVERY_CARRIER_SERVICE_CAPABILITY = "delivery.carrier-service" as const;
 
 /** Post-order shipment execution, independent from checkout rate calculation. */
-export const DELIVERY_SHIPMENT_PROVIDER_CAPABILITY =
-  "delivery.shipment-provider" as const;
+export const DELIVERY_SHIPMENT_PROVIDER_CAPABILITY = "delivery.shipment-provider" as const;
 
 export type DeliveryProviderCapability =
-  | typeof DELIVERY_CARRIER_SERVICE_CAPABILITY
-  | typeof DELIVERY_SHIPMENT_PROVIDER_CAPABILITY;
+  typeof DELIVERY_CARRIER_SERVICE_CAPABILITY | typeof DELIVERY_SHIPMENT_PROVIDER_CAPABILITY;
 
 /** Version of the platform-to-provider delivery protocol. */
 export const DELIVERY_PROVIDER_PROTOCOL_VERSION = 2 as const;
@@ -145,10 +140,8 @@ export const DeliveryActionNames = {
 } as const;
 
 export const DeliveryActions = {
-  configureProviderAccount:
-    `delivery.${DeliveryActionNames.configureProviderAccount}`,
-  setProviderCapabilityStatus:
-    `delivery.${DeliveryActionNames.setProviderCapabilityStatus}`,
+  configureProviderAccount: `delivery.${DeliveryActionNames.configureProviderAccount}`,
+  setProviderCapabilityStatus: `delivery.${DeliveryActionNames.setProviderCapabilityStatus}`,
   getProviderAccount: `delivery.${DeliveryActionNames.getProviderAccount}`,
   commitSelections: `delivery.${DeliveryActionNames.commitSelections}`,
   releaseSelections: `delivery.${DeliveryActionNames.releaseSelections}`,
@@ -156,8 +149,7 @@ export const DeliveryActions = {
   cancelShipment: `delivery.${DeliveryActionNames.cancelShipment}`,
   getShipment: `delivery.${DeliveryActionNames.getShipment}`,
   reconcileShipment: `delivery.${DeliveryActionNames.reconcileShipment}`,
-  completeProviderOperation:
-    `delivery.${DeliveryActionNames.completeProviderOperation}`,
+  completeProviderOperation: `delivery.${DeliveryActionNames.completeProviderOperation}`,
   reportProviderEvent: `delivery.${DeliveryActionNames.reportProviderEvent}`,
 } as const;
 
@@ -222,12 +214,7 @@ export interface DeliveryCheckoutOptionSelectionIntent {
 }
 
 export type DeliveryCheckoutMethodType =
-  | "LOCAL"
-  | "NONE"
-  | "PICK_UP"
-  | "PICKUP_POINT"
-  | "RETAIL"
-  | "SHIPPING";
+  "LOCAL" | "NONE" | "PICK_UP" | "PICKUP_POINT" | "RETAIL" | "SHIPPING";
 export interface DeliveryCheckoutOptionBase {
   handle: string;
   profileId: string;
@@ -298,10 +285,7 @@ export interface DeliveryCheckoutCarrierServiceExecutionBase {
   rateCount: number;
   durationMs: number;
   attemptCount: number;
-  rateSource:
-    | "CARRIER_SERVICE_LIVE"
-    | "CARRIER_SERVICE_CACHE"
-    | "BACKUP_RATE";
+  rateSource: "CARRIER_SERVICE_LIVE" | "CARRIER_SERVICE_CACHE" | "BACKUP_RATE";
   startedAt: string;
   completedAt: string;
 }
@@ -316,9 +300,7 @@ export type DeliveryCheckoutCarrierServiceExecution =
   | Readonly<
       DeliveryCheckoutCarrierServiceExecutionBase & {
         status: "NO_SERVICE";
-        failure:
-          | (DeliveryProviderFailure & Readonly<{ category: "NO_SERVICE" }>)
-          | null;
+        failure: (DeliveryProviderFailure & Readonly<{ category: "NO_SERVICE" }>) | null;
       }
     >
   | Readonly<
@@ -336,8 +318,7 @@ export type DeliveryCheckoutCarrierServiceExecution =
   | Readonly<
       DeliveryCheckoutCarrierServiceExecutionBase & {
         status: "BACKUP_RATE_APPLIED";
-        failure: DeliveryProviderFailure &
-          Readonly<{ category: DeliveryRateFallbackCategory }>;
+        failure: DeliveryProviderFailure & Readonly<{ category: DeliveryRateFallbackCategory }>;
       }
     >;
 
@@ -358,8 +339,7 @@ export interface CalculateCheckoutDeliveryOptionsParams {
   cartAttributes: PricingCheckoutJsonObject;
 }
 
-export interface CalculateCheckoutDeliveryOptionsResult
-  extends PricingCheckoutStageProvenance {
+export interface CalculateCheckoutDeliveryOptionsResult extends PricingCheckoutStageProvenance {
   revision: string;
   basedOnPreliminaryRevision: string;
   ratePlanRevision: string;
@@ -377,12 +357,7 @@ export interface CalculateCheckoutDeliveryOptionsResult
 // ---------------------------------------------------------------------------
 
 export type DeliveryProviderCapabilityStatus =
-  | "CONFIGURING"
-  | "READY"
-  | "ACTIVE"
-  | "INACTIVE"
-  | "DEGRADED"
-  | "SUSPENDED";
+  "CONFIGURING" | "READY" | "ACTIVE" | "INACTIVE" | "DEGRADED" | "SUSPENDED";
 
 export const DeliveryProviderCapabilityTransitions = {
   CONFIGURING: ["READY", "DEGRADED", "SUSPENDED"],
@@ -392,10 +367,7 @@ export const DeliveryProviderCapabilityTransitions = {
   DEGRADED: ["READY", "ACTIVE", "INACTIVE", "SUSPENDED"],
   SUSPENDED: ["CONFIGURING", "INACTIVE"],
 } as const satisfies Readonly<
-  Record<
-    DeliveryProviderCapabilityStatus,
-    readonly DeliveryProviderCapabilityStatus[]
-  >
+  Record<DeliveryProviderCapabilityStatus, readonly DeliveryProviderCapabilityStatus[]>
 >;
 
 export type DeliveryProviderMode = "TEST" | "LIVE";
@@ -461,12 +433,8 @@ export type DeliveryProviderCapabilityState<TCapabilities> =
 export type DeliveryProviderAccountSnapshot = Readonly<
   DeliveryProviderAccountSnapshotBase & {
     capabilityStates: Readonly<{
-      carrierService:
-        | DeliveryProviderCapabilityState<DeliveryCarrierServiceCapabilities>
-        | null;
-      shipmentProvider:
-        | DeliveryProviderCapabilityState<DeliveryShipmentProviderCapabilities>
-        | null;
+      carrierService: DeliveryProviderCapabilityState<DeliveryCarrierServiceCapabilities> | null;
+      shipmentProvider: DeliveryProviderCapabilityState<DeliveryShipmentProviderCapabilities> | null;
     }>;
   }
 >;
@@ -523,14 +491,12 @@ export interface DeliveryOptionBindingSnapshotBase {
 }
 
 /** Exact provider binding hidden behind a checkout-facing option handle. */
-export interface DeliveryCarrierServiceOptionBindingSnapshot
-  extends DeliveryOptionBindingSnapshotBase {
+export interface DeliveryCarrierServiceOptionBindingSnapshot extends DeliveryOptionBindingSnapshotBase {
   source: "CARRIER_SERVICE";
   carrierServiceAccountId: string;
   carrierCode: string;
   serviceCode: string;
-  quoteRoute: DeliveryProviderRouteSnapshot &
-    Readonly<{ operation: "quoteRates" }>;
+  quoteRoute: DeliveryProviderRouteSnapshot & Readonly<{ operation: "quoteRates" }>;
   carrierServiceConfigurationRevision: string;
   executionPolicyRevision: string;
   customerInputSchemaPolicyRevision: string;
@@ -539,15 +505,13 @@ export interface DeliveryCarrierServiceOptionBindingSnapshot
 }
 
 /** Merchant-owned rate which does not imply a provider shipment integration. */
-export interface DeliveryManualRateOptionBindingSnapshot
-  extends DeliveryOptionBindingSnapshotBase {
+export interface DeliveryManualRateOptionBindingSnapshot extends DeliveryOptionBindingSnapshotBase {
   source: "MANUAL";
   manualRateRevision: number;
 }
 
 export type DeliveryOptionBindingSnapshot =
-  | DeliveryCarrierServiceOptionBindingSnapshot
-  | DeliveryManualRateOptionBindingSnapshot;
+  DeliveryCarrierServiceOptionBindingSnapshot | DeliveryManualRateOptionBindingSnapshot;
 
 // ---------------------------------------------------------------------------
 // Canonical shipping facts shared with provider Apps
@@ -586,13 +550,7 @@ export interface DeliveryProviderCustomsItem {
 }
 
 export interface DeliveryProviderCustomsDeclaration {
-  contentsType:
-    | "MERCHANDISE"
-    | "GIFT"
-    | "DOCUMENTS"
-    | "SAMPLE"
-    | "RETURNED_GOODS"
-    | "OTHER";
+  contentsType: "MERCHANDISE" | "GIFT" | "DOCUMENTS" | "SAMPLE" | "RETURNED_GOODS" | "OTHER";
   incoterm: "DAP" | "DDP" | "DDU";
   nonDeliveryOption: "RETURN_TO_SENDER" | "ABANDON";
   signer: string | null;
@@ -666,8 +624,7 @@ export interface DeliveryProviderCustomerInputContract {
   schema: PricingCheckoutJsonObject;
 }
 
-export interface DeliveryCustomerInputContract
-  extends DeliveryProviderCustomerInputContract {
+export interface DeliveryCustomerInputContract extends DeliveryProviderCustomerInputContract {
   /** Both fields are assigned by Delivery Core after policy validation. */
   schemaHash: string;
   schemaPolicyRevision: string;
@@ -708,18 +665,18 @@ export interface DeliveryProviderConfigurationValidationResultBase<
 export type DeliveryProviderConfigurationValidationResult<
   TCapability extends DeliveryProviderCapability = DeliveryProviderCapability,
 > = TCapability extends DeliveryProviderCapability
-  ? Readonly<
-      DeliveryProviderConfigurationValidationResultBase<TCapability> & {
-        status: "READY";
-        failure: null;
-      }
-    >
-  | Readonly<
-      DeliveryProviderConfigurationValidationResultBase<TCapability> & {
-        status: "DEGRADED" | "INVALID";
-        failure: DeliveryProviderFailure;
-      }
-    >
+  ? | Readonly<
+        DeliveryProviderConfigurationValidationResultBase<TCapability> & {
+          status: "READY";
+          failure: null;
+        }
+      >
+    | Readonly<
+        DeliveryProviderConfigurationValidationResultBase<TCapability> & {
+          status: "DEGRADED" | "INVALID";
+          failure: DeliveryProviderFailure;
+        }
+      >
   : never;
 
 export interface DeliveryCarrierServiceRateRequest {
@@ -857,12 +814,7 @@ export const DeliveryShipmentTransitions = {
   SUBMITTING: ["PENDING", "ACCEPTED", "CANCELLING", "FAILED"],
   PENDING: ["ACCEPTED", "CANCELLING", "CANCELLED", "FAILED"],
   ACCEPTED: ["IN_TRANSIT", "CANCELLING", "CANCELLED", "FAILED"],
-  IN_TRANSIT: [
-    "OUT_FOR_DELIVERY",
-    "DELIVERED",
-    "DELIVERY_FAILED",
-    "RETURNING",
-  ],
+  IN_TRANSIT: ["OUT_FOR_DELIVERY", "DELIVERED", "DELIVERY_FAILED", "RETURNING"],
   OUT_FOR_DELIVERY: ["DELIVERED", "DELIVERY_FAILED", "RETURNING"],
   DELIVERED: ["RETURNING"],
   DELIVERY_FAILED: ["IN_TRANSIT", "OUT_FOR_DELIVERY", "RETURNING", "RETURNED"],
@@ -871,22 +823,12 @@ export const DeliveryShipmentTransitions = {
   CANCELLING: ["CANCELLED", "ACCEPTED", "IN_TRANSIT", "FAILED"],
   CANCELLED: [],
   FAILED: ["SUBMITTING", "CANCELLING"],
-} as const satisfies Readonly<
-  Record<DeliveryShipmentState, readonly DeliveryShipmentState[]>
->;
+} as const satisfies Readonly<Record<DeliveryShipmentState, readonly DeliveryShipmentState[]>>;
 
-export type DeliveryShipmentOperationType =
-  | "CREATE"
-  | "CANCEL"
-  | "GET"
-  | "RECONCILE";
+export type DeliveryShipmentOperationType = "CREATE" | "CANCEL" | "GET" | "RECONCILE";
 
 export type DeliveryShipmentOperationState =
-  | "REQUESTED"
-  | "PROCESSING"
-  | "PENDING"
-  | "SUCCEEDED"
-  | "FAILED";
+  "REQUESTED" | "PROCESSING" | "PENDING" | "SUCCEEDED" | "FAILED";
 
 export interface DeliveryIdempotencySnapshot {
   scope: string;
@@ -1005,12 +947,7 @@ export interface DeliveryShipmentSnapshot {
   lastFailure: DeliveryProviderFailure | null;
   /** Last state durably projected to the Orders fulfillment boundary. */
   lastFulfillmentState:
-    | "SHIPMENT_CREATED"
-    | "IN_TRANSIT"
-    | "DELIVERED"
-    | "DELIVERY_FAILED"
-    | "CANCELLED"
-    | null;
+    "SHIPMENT_CREATED" | "IN_TRANSIT" | "DELIVERED" | "DELIVERY_FAILED" | "CANCELLED" | null;
   revision: number;
   createdAt: string;
   updatedAt: string;
@@ -1047,8 +984,7 @@ export interface SetDeliveryProviderCapabilityStatusParams {
   providerAccountId: string;
   expectedAccountRevision: number;
   capability:
-    | typeof DELIVERY_CARRIER_SERVICE_CAPABILITY
-    | typeof DELIVERY_SHIPMENT_PROVIDER_CAPABILITY;
+    typeof DELIVERY_CARRIER_SERVICE_CAPABILITY | typeof DELIVERY_SHIPMENT_PROVIDER_CAPABILITY;
   status: "ACTIVE" | "INACTIVE";
   idempotencyKey: string;
   correlationId: string;
@@ -1123,10 +1059,7 @@ export interface CreateDeliveryShipmentParams {
   expectedFulfillmentOrderRevision: number;
   /** Null means every currently remaining physical line; a subset creates a partial shipment. */
   lineItems:
-    | readonly [
-        DeliveryFulfillmentOrderLineItemInput,
-        ...DeliveryFulfillmentOrderLineItemInput[],
-      ]
+    | readonly [DeliveryFulfillmentOrderLineItemInput, ...DeliveryFulfillmentOrderLineItemInput[]]
     | null;
   idempotencyKey: string;
   correlationId: string;
@@ -1193,8 +1126,7 @@ export interface DeliveryProviderShipmentRequestBase {
   deadlineAt: string;
 }
 
-export interface DeliveryProviderCreateShipmentRequest
-  extends DeliveryProviderShipmentRequestBase {
+export interface DeliveryProviderCreateShipmentRequest extends DeliveryProviderShipmentRequestBase {
   operation: "CREATE";
   orderReference: string;
   fulfillmentOrderReference: string;
@@ -1222,21 +1154,21 @@ export interface DeliveryProviderCreateShipmentRequest
   customerInputHash: string | null;
 }
 
-export interface DeliveryProviderCancelShipmentRequest
-  extends DeliveryProviderShipmentRequestBase {
+export interface DeliveryProviderCancelShipmentRequest extends DeliveryProviderShipmentRequestBase {
   operation: "CANCEL";
   providerShipmentReference: string;
   reason: string | null;
 }
 
-export interface DeliveryProviderGetShipmentRequest
-  extends Omit<DeliveryProviderShipmentRequestBase, "idempotencyKey" | "idempotencyRequestHash"> {
+export interface DeliveryProviderGetShipmentRequest extends Omit<
+  DeliveryProviderShipmentRequestBase,
+  "idempotencyKey" | "idempotencyRequestHash"
+> {
   operation: "GET";
   providerShipmentReference: string;
 }
 
-export interface DeliveryProviderReconcileShipmentRequest
-  extends DeliveryProviderShipmentRequestBase {
+export interface DeliveryProviderReconcileShipmentRequest extends DeliveryProviderShipmentRequestBase {
   operation: "RECONCILE";
   providerShipmentReference: string;
 }
@@ -1262,10 +1194,7 @@ export type DeliveryProviderCreateShipmentOperationResult =
         | "RETURNING"
         | "RETURNED"
         | "CANCELLED";
-      parcels: readonly [
-        DeliveryProviderParcelObservation,
-        ...DeliveryProviderParcelObservation[],
-      ];
+      parcels: readonly [DeliveryProviderParcelObservation, ...DeliveryProviderParcelObservation[]];
       events: readonly DeliveryProviderTrackingEvent[];
       processedAt: string;
       metadata: PricingCheckoutJsonObject | null;
@@ -1352,15 +1281,9 @@ export type DeliveryProviderExternalEvent =
 
 export interface DeliveryCarrierServiceAppContract {
   validateCarrierServiceConfiguration(
-    request: DeliveryProviderConfigurationValidationRequest<
-      "delivery.carrier-service"
-    >,
-  ): Promise<
-    DeliveryProviderConfigurationValidationResult<"delivery.carrier-service">
-  >;
-  quoteRates(
-    request: DeliveryCarrierServiceRateRequest,
-  ): Promise<DeliveryCarrierServiceRateResult>;
+    request: DeliveryProviderConfigurationValidationRequest<"delivery.carrier-service">,
+  ): Promise<DeliveryProviderConfigurationValidationResult<"delivery.carrier-service">>;
+  quoteRates(request: DeliveryCarrierServiceRateRequest): Promise<DeliveryCarrierServiceRateResult>;
   resolveCustomerInput(
     request: DeliveryProviderResolveCustomerInputRequest,
   ): Promise<DeliveryProviderResolveCustomerInputResult>;
@@ -1371,12 +1294,8 @@ export interface DeliveryCarrierServiceAppContract {
 
 export interface DeliveryShipmentProviderAppContract {
   validateShipmentConfiguration(
-    request: DeliveryProviderConfigurationValidationRequest<
-      "delivery.shipment-provider"
-    >,
-  ): Promise<
-    DeliveryProviderConfigurationValidationResult<"delivery.shipment-provider">
-  >;
+    request: DeliveryProviderConfigurationValidationRequest<"delivery.shipment-provider">,
+  ): Promise<DeliveryProviderConfigurationValidationResult<"delivery.shipment-provider">>;
   createShipment(
     request: DeliveryProviderCreateShipmentRequest,
   ): Promise<DeliveryProviderShipmentOperationResult<"CREATE">>;
@@ -1420,8 +1339,7 @@ export type DeliveryProviderAppDefinition =
             DeliveryShipmentProviderManifestCapability,
             DeliveryCarrierServiceManifestCapability,
           ];
-      handlers: DeliveryCarrierServiceAppContract &
-        DeliveryShipmentProviderAppContract;
+      handlers: DeliveryCarrierServiceAppContract & DeliveryShipmentProviderAppContract;
     }>;
 
 interface CompleteDeliveryProviderOperationParamsBase {

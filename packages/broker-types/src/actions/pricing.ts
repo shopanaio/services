@@ -17,8 +17,7 @@ export const PricingCheckoutActionNames = {
 } as const;
 
 export const PricingCheckoutActions = {
-  calculatePreliminaryQuote:
-    `pricing.${PricingCheckoutActionNames.calculatePreliminaryQuote}`,
+  calculatePreliminaryQuote: `pricing.${PricingCheckoutActionNames.calculatePreliminaryQuote}`,
   finalizeQuote: `pricing.${PricingCheckoutActionNames.finalizeQuote}`,
   reserveUsage: `pricing.${PricingCheckoutActionNames.reserveUsage}`,
   commitUsage: `pricing.${PricingCheckoutActionNames.commitUsage}`,
@@ -308,12 +307,7 @@ export interface PricingCheckoutCanonicalDeliveryIntent {
 }
 
 export type PricingCheckoutDeliveryMethodType =
-  | "LOCAL"
-  | "NONE"
-  | "PICK_UP"
-  | "PICKUP_POINT"
-  | "RETAIL"
-  | "SHIPPING";
+  "LOCAL" | "NONE" | "PICK_UP" | "PICKUP_POINT" | "RETAIL" | "SHIPPING";
 
 export interface PricingCheckoutDeliveryOption {
   handle: string;
@@ -323,8 +317,7 @@ export interface PricingCheckoutDeliveryOption {
   cost: PricingCheckoutMoney;
 }
 
-export interface PricingCheckoutDeliverySnapshot
-  extends PricingCheckoutStageProvenance {
+export interface PricingCheckoutDeliverySnapshot extends PricingCheckoutStageProvenance {
   revision: string;
   basedOnPreliminaryRevision: string;
   groups: readonly Readonly<{
@@ -358,8 +351,7 @@ export interface CalculateCheckoutPreliminaryQuoteParams {
   cartIntent: PricingCheckoutCartIntent;
 }
 
-export interface CalculateCheckoutPreliminaryQuoteResult
-  extends PricingCheckoutStageProvenance {
+export interface CalculateCheckoutPreliminaryQuoteResult extends PricingCheckoutStageProvenance {
   preliminaryQuoteId: string;
   revision: string;
   discountEvaluationRevision: string;
@@ -380,8 +372,7 @@ export interface FinalizeCheckoutPricingQuoteParams {
   delivery: PricingCheckoutDeliverySnapshot;
 }
 
-export interface FinalizeCheckoutPricingQuoteResult
-  extends PricingCheckoutStageProvenance {
+export interface FinalizeCheckoutPricingQuoteResult extends PricingCheckoutStageProvenance {
   quoteId: string;
   revision: string;
   discountEvaluationRevision: string;
@@ -409,21 +400,47 @@ export interface ReserveCheckoutDiscountUsageResult {
   reservations: readonly Readonly<{ applicationId: string; reservationId: string }>[];
 }
 
-export interface CommitCheckoutDiscountUsageParams { storeId: string; checkoutId: string; quoteId: string; quoteRevision: string; orderId: string; idempotencyKey: string; reservationIds: readonly string[]; }
-export interface CommitCheckoutDiscountUsageResult { redemptions: readonly Readonly<{ reservationId: string | null; redemptionId: string }>[]; }
-export interface ReleaseCheckoutDiscountUsageParams { storeId: string; reservationIds: readonly string[]; }
-export interface ReleaseCheckoutDiscountUsageResult { releasedReservationIds: readonly string[]; }
-export interface ExpireCheckoutDiscountUsageParams { storeId: string; effectiveAt: string; limit?: number; }
-export interface ExpireCheckoutDiscountUsageResult { expiredReservationIds: readonly string[]; }
-export interface ReverseCheckoutDiscountUsageParams { storeId: string; redemptionIds: readonly string[]; reason: string; }
-export interface ReverseCheckoutDiscountUsageResult { reversedRedemptionIds: readonly string[]; }
+export interface CommitCheckoutDiscountUsageParams {
+  storeId: string;
+  checkoutId: string;
+  quoteId: string;
+  quoteRevision: string;
+  orderId: string;
+  idempotencyKey: string;
+  reservationIds: readonly string[];
+}
+export interface CommitCheckoutDiscountUsageResult {
+  redemptions: readonly Readonly<{ reservationId: string | null; redemptionId: string }>[];
+}
+export interface ReleaseCheckoutDiscountUsageParams {
+  storeId: string;
+  reservationIds: readonly string[];
+}
+export interface ReleaseCheckoutDiscountUsageResult {
+  releasedReservationIds: readonly string[];
+}
+export interface ExpireCheckoutDiscountUsageParams {
+  storeId: string;
+  effectiveAt: string;
+  limit?: number;
+}
+export interface ExpireCheckoutDiscountUsageResult {
+  expiredReservationIds: readonly string[];
+}
+export interface ReverseCheckoutDiscountUsageParams {
+  storeId: string;
+  redemptionIds: readonly string[];
+  reason: string;
+}
+export interface ReverseCheckoutDiscountUsageResult {
+  reversedRedemptionIds: readonly string[];
+}
 export const PricingLoyaltyActionNames = {
   validateRewardReferences: "validateLoyaltyRewardReferences",
 } as const;
 
 export const PricingLoyaltyActions = {
-  validateRewardReferences:
-    `pricing.${PricingLoyaltyActionNames.validateRewardReferences}`,
+  validateRewardReferences: `pricing.${PricingLoyaltyActionNames.validateRewardReferences}`,
 } as const;
 
 export interface ValidateLoyaltyRewardReferencesParams {

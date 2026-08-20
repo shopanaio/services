@@ -2,7 +2,12 @@
 
 import { Button, Descriptions, Empty, Flex, List, Tag, Typography } from "antd";
 import { createStyles } from "antd-style";
-import { LuFlag as FlagOutlined, LuThumbsDown as DislikeOutlined, LuThumbsUp as LikeOutlined, LuUsers as TeamOutlined } from "react-icons/lu";
+import {
+  LuFlag as FlagOutlined,
+  LuThumbsDown as DislikeOutlined,
+  LuThumbsUp as LikeOutlined,
+  LuUsers as TeamOutlined,
+} from "react-icons/lu";
 import type { ApiReviewContent } from "@/graphql/types";
 import { ReviewContentReportReason } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
@@ -39,9 +44,12 @@ interface ContentDetailsSectionsProps {
   onManageExternalReferences?: () => void;
 }
 
-const formatDate = (value?: string | null) => value
-  ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
-  : "—";
+const formatDate = (value?: string | null) =>
+  value
+    ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(
+        new Date(value),
+      )
+    : "—";
 const pretty = (value: unknown) => JSON.stringify(value, null, 2);
 const reportReasonCopy: Record<ReviewContentReportReason, string> = {
   [ReviewContentReportReason.ConflictOfInterest]: "Conflict of interest",
@@ -76,16 +84,43 @@ export function ContentDetailsSections({
     <>
       <Paper>
         <PaperHeader title="Author & source" icon={<TeamOutlined />} />
-        <Descriptions column={{ xs: 1, sm: 2, lg: 3 }} items={[
-          { key: "author", label: "Author", children: content.author.displayName },
-          { key: "author-type", label: "Author type", children: content.author.type.toLowerCase() },
-          { key: "email", label: "Email", children: content.author.email ?? "—" },
-          { key: "customer", label: "Customer", children: content.author.customer?.id ? <Typography.Text copyable>{content.author.customer.id}</Typography.Text> : "—" },
-          { key: "principal", label: "Principal", children: content.author.principalId ?? "—" },
-          { key: "source", label: "Source", children: content.sourceChannel },
-          { key: "idempotency", label: "Idempotency key", children: content.idempotencyKey ? <Typography.Text copyable>{content.idempotencyKey}</Typography.Text> : "—" },
-        ]} />
-        {Object.keys(content.sourceMetadata).length ? <pre style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>{pretty(content.sourceMetadata)}</pre> : null}
+        <Descriptions
+          column={{ xs: 1, sm: 2, lg: 3 }}
+          items={[
+            { key: "author", label: "Author", children: content.author.displayName },
+            {
+              key: "author-type",
+              label: "Author type",
+              children: content.author.type.toLowerCase(),
+            },
+            { key: "email", label: "Email", children: content.author.email ?? "—" },
+            {
+              key: "customer",
+              label: "Customer",
+              children: content.author.customer?.id ? (
+                <Typography.Text copyable>{content.author.customer.id}</Typography.Text>
+              ) : (
+                "—"
+              ),
+            },
+            { key: "principal", label: "Principal", children: content.author.principalId ?? "—" },
+            { key: "source", label: "Source", children: content.sourceChannel },
+            {
+              key: "idempotency",
+              label: "Idempotency key",
+              children: content.idempotencyKey ? (
+                <Typography.Text copyable>{content.idempotencyKey}</Typography.Text>
+              ) : (
+                "—"
+              ),
+            },
+          ]}
+        />
+        {Object.keys(content.sourceMetadata).length ? (
+          <pre style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>
+            {pretty(content.sourceMetadata)}
+          </pre>
+        ) : null}
       </Paper>
 
       <Paper>
@@ -100,7 +135,9 @@ export function ContentDetailsSections({
               <Typography.Title level={4} className={styles.metricValue}>
                 {content.metrics.likeCount}
               </Typography.Title>
-              <Typography.Text type="secondary">Customers who found the review helpful.</Typography.Text>
+              <Typography.Text type="secondary">
+                Customers who found the review helpful.
+              </Typography.Text>
             </Flex>
             <Flex vertical gap={4} className={styles.engagementMetric}>
               <Flex align="center" gap="small">
@@ -110,7 +147,9 @@ export function ContentDetailsSections({
               <Typography.Title level={4} className={styles.metricValue}>
                 {content.metrics.dislikeCount}
               </Typography.Title>
-              <Typography.Text type="secondary">Customers who found the review unhelpful.</Typography.Text>
+              <Typography.Text type="secondary">
+                Customers who found the review unhelpful.
+              </Typography.Text>
             </Flex>
             <Flex vertical gap={4} className={styles.engagementMetric}>
               <Flex align="center" gap="small">
@@ -120,7 +159,9 @@ export function ContentDetailsSections({
               <Typography.Title level={4} className={styles.metricValue}>
                 {content.metrics.reportCount}
               </Typography.Title>
-              <Typography.Text type="secondary">Customers who asked to inspect this review.</Typography.Text>
+              <Typography.Text type="secondary">
+                Customers who asked to inspect this review.
+              </Typography.Text>
             </Flex>
           </div>
 
@@ -131,9 +172,13 @@ export function ContentDetailsSections({
                   <Flex align="center" justify="space-between" gap="small" wrap>
                     <Flex align="center" gap="small" wrap>
                       <Tag color="red">{reportReasonCopy[report.reason]}</Tag>
-                      <Typography.Text>{report.reporterCustomer?.displayName ?? "Anonymous reporter"}</Typography.Text>
+                      <Typography.Text>
+                        {report.reporterCustomer?.displayName ?? "Anonymous reporter"}
+                      </Typography.Text>
                       {report.reporterCustomer?.email ? (
-                        <Typography.Text type="secondary">{report.reporterCustomer.email}</Typography.Text>
+                        <Typography.Text type="secondary">
+                          {report.reporterCustomer.email}
+                        </Typography.Text>
                       ) : null}
                     </Flex>
                     <Typography.Text type="secondary">
@@ -145,16 +190,45 @@ export function ContentDetailsSections({
               ))}
             </div>
           ) : (
-            <Typography.Text type="secondary">No abuse reports were submitted for this review.</Typography.Text>
+            <Typography.Text type="secondary">
+              No abuse reports were submitted for this review.
+            </Typography.Text>
           )}
         </Flex>
       </Paper>
 
       <Paper>
-        <PaperHeader title={`External references (${content.externalReferences.totalCount})`} actions={onManageExternalReferences ? <Button size="small" onClick={onManageExternalReferences}>Manage</Button> : undefined} />
-        {references.length ? <List dataSource={references} renderItem={(item) => <List.Item><List.Item.Meta title={`${item.externalSystem} · ${item.externalType} · ${item.externalId}`} description={item.lastError ?? item.externalUrl ?? `Last synced ${formatDate(item.lastSyncedAt)}`} /><Tag>{item.syncStatus.toLowerCase()}</Tag></List.Item>} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No external references" />}
+        <PaperHeader
+          title={`External references (${content.externalReferences.totalCount})`}
+          actions={
+            onManageExternalReferences ? (
+              <Button size="small" onClick={onManageExternalReferences}>
+                Manage
+              </Button>
+            ) : undefined
+          }
+        />
+        {references.length ? (
+          <List
+            dataSource={references}
+            renderItem={(item) => (
+              <List.Item>
+                <List.Item.Meta
+                  title={`${item.externalSystem} · ${item.externalType} · ${item.externalId}`}
+                  description={
+                    item.lastError ??
+                    item.externalUrl ??
+                    `Last synced ${formatDate(item.lastSyncedAt)}`
+                  }
+                />
+                <Tag>{item.syncStatus.toLowerCase()}</Tag>
+              </List.Item>
+            )}
+          />
+        ) : (
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No external references" />
+        )}
       </Paper>
-
     </>
   );
 }

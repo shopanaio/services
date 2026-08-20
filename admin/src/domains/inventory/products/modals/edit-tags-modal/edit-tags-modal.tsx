@@ -1,21 +1,13 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { Typography, Input, Empty, Tag, Checkbox, Divider, message } from "antd";
 import {
-  Typography,
-  Input,
-  Empty,
-  Tag,
-  Checkbox,
-  Divider,
-  message,
-} from "antd";
-import { LuSearch as SearchOutlined, LuPlus as PlusOutlined, LuTag as TagOutlined } from "react-icons/lu";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+  LuSearch as SearchOutlined,
+  LuPlus as PlusOutlined,
+  LuTag as TagOutlined,
+} from "react-icons/lu";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
 import type { ApiTag } from "@/graphql/types";
 import type { IEditTagsModalPayload } from "../../modals";
@@ -47,25 +39,17 @@ export const EditTagsModal = () => {
     if (!searchTerm) return availableTags;
     const term = searchTerm.toLowerCase();
     return availableTags.filter(
-      (tag) =>
-        tag.name.toLowerCase().includes(term) ||
-        tag.handle.toLowerCase().includes(term)
+      (tag) => tag.name.toLowerCase().includes(term) || tag.handle.toLowerCase().includes(term),
     );
   }, [availableTags, searchTerm]);
 
   // Tag map for quick lookup
-  const tagMap = useMemo(
-    () => new Map(availableTags.map((t) => [t.id, t])),
-    [availableTags]
-  );
+  const tagMap = useMemo(() => new Map(availableTags.map((t) => [t.id, t])), [availableTags]);
 
   // Get selected tags
   const selectedTags = useMemo(
-    () =>
-      selectedIds
-        .map((id) => tagMap.get(id))
-        .filter((t): t is ApiTag => t !== undefined),
-    [selectedIds, tagMap]
+    () => selectedIds.map((id) => tagMap.get(id)).filter((t): t is ApiTag => t !== undefined),
+    [selectedIds, tagMap],
   );
 
   // Handle tag toggle
@@ -79,7 +63,7 @@ export const EditTagsModal = () => {
       });
       markDirty();
     },
-    [markDirty]
+    [markDirty],
   );
 
   // Handle remove tag from selection
@@ -88,7 +72,7 @@ export const EditTagsModal = () => {
       setSelectedIds((prev) => prev.filter((id) => id !== tagId));
       markDirty();
     },
-    [markDirty]
+    [markDirty],
   );
 
   // Handle create new tag
@@ -114,8 +98,7 @@ export const EditTagsModal = () => {
     if (!searchTerm.trim()) return false;
     const term = searchTerm.toLowerCase();
     return !availableTags.some(
-      (tag) =>
-        tag.name.toLowerCase() === term || tag.handle.toLowerCase() === term
+      (tag) => tag.name.toLowerCase() === term || tag.handle.toLowerCase() === term,
     );
   }, [searchTerm, availableTags]);
 
@@ -168,9 +151,7 @@ export const EditTagsModal = () => {
 
         {/* Tag Selection */}
         <Paper>
-          <Typography.Text className={styles.sectionTitle}>
-            Available Tags
-          </Typography.Text>
+          <Typography.Text className={styles.sectionTitle}>Available Tags</Typography.Text>
           <Typography.Text className={styles.sectionHint}>
             Click on tags to select or deselect them.
           </Typography.Text>
@@ -216,10 +197,7 @@ export const EditTagsModal = () => {
                 return (
                   <div
                     key={tag.id}
-                    className={cx(
-                      styles.tagRow,
-                      isSelected && styles.tagRowSelected
-                    )}
+                    className={cx(styles.tagRow, isSelected && styles.tagRowSelected)}
                     onClick={() => handleToggle(tag.id)}
                     role="button"
                     tabIndex={0}
@@ -227,12 +205,8 @@ export const EditTagsModal = () => {
                   >
                     <div className={styles.tagInfo}>
                       <TagOutlined className={styles.tagIcon} />
-                      <Typography.Text className={styles.tagLabel}>
-                        {tag.name}
-                      </Typography.Text>
-                      <Typography.Text className={styles.tagSlug}>
-                        #{tag.handle}
-                      </Typography.Text>
+                      <Typography.Text className={styles.tagLabel}>{tag.name}</Typography.Text>
+                      <Typography.Text className={styles.tagSlug}>#{tag.handle}</Typography.Text>
                     </div>
                     <Checkbox
                       checked={isSelected}
@@ -245,11 +219,7 @@ export const EditTagsModal = () => {
               })
             ) : (
               <Empty
-                description={
-                  searchTerm
-                    ? "No tags match your search"
-                    : "No tags available"
-                }
+                description={searchTerm ? "No tags match your search" : "No tags available"}
                 className={styles.emptyState}
               />
             )}

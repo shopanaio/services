@@ -45,7 +45,7 @@ export class ApplicationAuthorizationContextRepository extends BaseRepository {
   @Transactional()
   async create(
     applicationId: string,
-    input: CreateApplicationAuthorizationContextInput
+    input: CreateApplicationAuthorizationContextInput,
   ): Promise<CreatedApplicationAuthorizationContext> {
     assertApplicationId(applicationId);
     const value = authorizationContextInputSchema.parse(input);
@@ -86,7 +86,7 @@ export class ApplicationAuthorizationContextRepository extends BaseRepository {
   @ReadOnly()
   async findActive(
     applicationId: string,
-    opaqueId: string
+    opaqueId: string,
   ): Promise<ApplicationAuthorizationContext | null> {
     assertApplicationId(applicationId);
     const [context] = await this.connection
@@ -97,8 +97,8 @@ export class ApplicationAuthorizationContextRepository extends BaseRepository {
           eq(applicationAuthorizationContext.applicationId, applicationId),
           eq(applicationAuthorizationContext.id, hashValue(opaqueId)),
           isNull(applicationAuthorizationContext.consumedAt),
-          gt(applicationAuthorizationContext.expiresAt, new Date())
-        )
+          gt(applicationAuthorizationContext.expiresAt, new Date()),
+        ),
       )
       .limit(1);
     return context ?? null;
@@ -107,7 +107,7 @@ export class ApplicationAuthorizationContextRepository extends BaseRepository {
   @Transactional()
   async consume(
     applicationId: string,
-    opaqueId: string
+    opaqueId: string,
   ): Promise<ApplicationAuthorizationContext | null> {
     assertApplicationId(applicationId);
     const now = new Date();
@@ -119,8 +119,8 @@ export class ApplicationAuthorizationContextRepository extends BaseRepository {
           eq(applicationAuthorizationContext.applicationId, applicationId),
           eq(applicationAuthorizationContext.id, hashValue(opaqueId)),
           isNull(applicationAuthorizationContext.consumedAt),
-          gt(applicationAuthorizationContext.expiresAt, now)
-        )
+          gt(applicationAuthorizationContext.expiresAt, now),
+        ),
       )
       .returning();
     return context ?? null;
@@ -138,7 +138,7 @@ export class ApplicationAuthorizationContextRepository extends BaseRepository {
     input: {
       currentStep: "login" | "consent";
       sessionId?: string | null;
-    }
+    },
   ): Promise<CreatedApplicationAuthorizationContext | null> {
     assertApplicationId(applicationId);
     const now = new Date();
@@ -150,8 +150,8 @@ export class ApplicationAuthorizationContextRepository extends BaseRepository {
           eq(applicationAuthorizationContext.applicationId, applicationId),
           eq(applicationAuthorizationContext.id, hashValue(opaqueId)),
           isNull(applicationAuthorizationContext.consumedAt),
-          gt(applicationAuthorizationContext.expiresAt, now)
-        )
+          gt(applicationAuthorizationContext.expiresAt, now),
+        ),
       )
       .returning();
     if (!previous) return null;
@@ -194,8 +194,8 @@ export class ApplicationAuthorizationContextRepository extends BaseRepository {
       .where(
         or(
           lt(applicationAuthorizationContext.expiresAt, cutoff),
-          lt(applicationAuthorizationContext.consumedAt, cutoff)
-        )
+          lt(applicationAuthorizationContext.consumedAt, cutoff),
+        ),
       )
       .returning({ id: applicationAuthorizationContext.id });
     return rows.length;

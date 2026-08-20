@@ -71,10 +71,7 @@ function ValueEditMenu({ onEdit }: { onEdit: () => void }) {
   );
 }
 
-function formatRuleValue(
-  discount: ApiDiscount,
-  currency: CurrencyCode | null,
-): string {
+function formatRuleValue(discount: ApiDiscount, currency: CurrencyCode | null): string {
   const { rule } = discount;
   if (!rule) return "Not configured";
 
@@ -120,10 +117,7 @@ interface ValueDetail {
   value: string;
 }
 
-function getValueDetails(
-  discount: ApiDiscount,
-  currency: CurrencyCode | null,
-): ValueDetail[] {
+function getValueDetails(discount: ApiDiscount, currency: CurrencyCode | null): ValueDetail[] {
   const details: ValueDetail[] = [];
   const minimum = discount.minimumRequirement;
   const rule = discount.rule;
@@ -213,10 +207,7 @@ function getValueDetails(
   return details;
 }
 
-function buildUsagePoints(
-  discount: ApiDiscount,
-  period: ChartPeriod,
-): PriceChartPoint[] {
+function buildUsagePoints(discount: ApiDiscount, period: ChartPeriod): PriceChartPoint[] {
   const dayMs = 24 * 60 * 60 * 1000;
   const days = getPeriodDays(period);
   const end = new Date();
@@ -251,10 +242,7 @@ export function ValueUsageSection({
   const [period, setPeriod] = useState<ChartPeriod>(DEFAULT_CHART_PERIOD);
   const valueDetails = getValueDetails(discount, currency);
   const valuePresentation = getValuePresentation(discount);
-  const usagePoints = useMemo(
-    () => buildUsagePoints(discount, period),
-    [discount, period],
-  );
+  const usagePoints = useMemo(() => buildUsagePoints(discount, period), [discount, period]);
 
   if (!discount.rule) {
     return (
@@ -262,18 +250,13 @@ export function ValueUsageSection({
         <PaperHeader
           title="Value & usage"
           className={styles.compactHeader}
-          actions={
-            onEdit ? (
-              <ValueEditMenu onEdit={onEdit} />
-            ) : undefined
-          }
+          actions={onEdit ? <ValueEditMenu onEdit={onEdit} /> : undefined}
         />
         <EntityDetailsEmptyState
           icon={<LuPercent />}
           state={{
             title: "Discount value not configured",
-            description:
-              "Add a discount value and usage policy to calculate the benefit.",
+            description: "Add a discount value and usage policy to calculate the benefit.",
           }}
         />
       </Paper>
@@ -291,17 +274,11 @@ export function ValueUsageSection({
           onEdit || onViewActivity ? (
             <Flex align="center" gap={8}>
               {onViewActivity ? (
-                <Button
-                  size="small"
-                  icon={<LuActivity />}
-                  onClick={onViewActivity}
-                >
+                <Button size="small" icon={<LuActivity />} onClick={onViewActivity}>
                   View activity
                 </Button>
               ) : null}
-              {onEdit ? (
-                <ValueEditMenu onEdit={onEdit} />
-              ) : null}
+              {onEdit ? <ValueEditMenu onEdit={onEdit} /> : null}
             </Flex>
           ) : undefined
         }
@@ -311,13 +288,8 @@ export function ValueUsageSection({
         <div className={pricingStyles.priceColumnWrapper}>
           <div className={pricingStyles.column}>
             <Flex align="center" gap={8}>
-              <DiscountSectionIcon
-                icon={valuePresentation.icon}
-                size={28}
-              />
-              <Typography.Text
-                className={styles.valueTypeLabel}
-              >
+              <DiscountSectionIcon icon={valuePresentation.icon} size={28} />
+              <Typography.Text className={styles.valueTypeLabel}>
                 {valuePresentation.label}
               </Typography.Text>
             </Flex>
@@ -331,16 +303,10 @@ export function ValueUsageSection({
             <div className={styles.detailList}>
               {valueDetails.map((detail) => (
                 <div className={styles.valueDetailRow} key={detail.label}>
-                  <Typography.Text
-                    type="secondary"
-                    className={styles.valueDetailLabel}
-                  >
+                  <Typography.Text type="secondary" className={styles.valueDetailLabel}>
                     {detail.label}
                   </Typography.Text>
-                  <Typography.Text
-                    strong
-                    className={styles.valueDetailValue}
-                  >
+                  <Typography.Text strong className={styles.valueDetailValue}>
                     {detail.value}
                   </Typography.Text>
                 </div>
@@ -399,9 +365,7 @@ export function ValueUsageSection({
               : formatDiscountCount(discount.usage.remainingCount)
           }
           tooltip={
-            discount.usage.usageLimit == null
-              ? "No aggregate usage cap"
-              : "Available discount uses"
+            discount.usage.usageLimit == null ? "No aggregate usage cap" : "Available discount uses"
           }
           centered
           className={pricingStyles.kpiTile}

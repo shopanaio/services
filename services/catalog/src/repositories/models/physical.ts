@@ -1,9 +1,4 @@
-import {
-  uuid,
-  integer,
-  index,
-  check,
-} from "drizzle-orm/pg-core";
+import { uuid, integer, index, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 
@@ -32,10 +27,10 @@ export const itemDimensions = catalogSchema.table(
     // CHECK constraint: all dimensions must be positive
     check(
       "item_dimensions_positive_check",
-      sql`${table.wMm} > 0 AND ${table.lMm} > 0 AND ${table.hMm} > 0`
+      sql`${table.wMm} > 0 AND ${table.lMm} > 0 AND ${table.hMm} > 0`,
     ),
     index("idx_item_dimensions_store_id").on(table.storeId),
-  ]
+  ],
 );
 
 export const itemWeight = catalogSchema.table(
@@ -50,7 +45,7 @@ export const itemWeight = catalogSchema.table(
     // CHECK constraint: weight must be positive
     check("item_weight_positive_check", sql`${table.weightGr} > 0`),
     index("idx_item_weight_store_id").on(table.storeId),
-  ]
+  ],
 );
 
 export type ItemDimensions = typeof itemDimensions.$inferSelect;

@@ -19,9 +19,7 @@ describe("ProtectedResource contract", () => {
     const boundary = new ProtectedBoundary();
 
     await expect(boundary.run(protectedApplication)).resolves.toBe("executed");
-    expect(
-      boundary.authProvider.authorizeProtectedResource
-    ).toHaveBeenCalledWith({
+    expect(boundary.authProvider.authorizeProtectedResource).toHaveBeenCalledWith({
       protectedResource: protectedApplication,
     });
     expect(boundary.authProvider.authorize).not.toHaveBeenCalled();
@@ -35,7 +33,7 @@ describe("ProtectedResource contract", () => {
         organizationId: protectedApplication.organizationId,
         resourceKind: protectedApplication.resourceKind,
         resourceId: protectedApplication.resourceId,
-      })
+      }),
     ).resolves.toBe("executed");
   });
 
@@ -48,15 +46,11 @@ describe("ProtectedResource contract", () => {
         resourceKind: protectedApplication.resourceKind,
         resourceId: protectedApplication.resourceId,
         ownerId: protectedApplication.ownerId,
-      })
+      }),
     ).rejects.toMatchObject({
-      errors: [
-        expect.objectContaining({ code: "PROTECTED_RESOURCE_REQUIRED" }),
-      ],
+      errors: [expect.objectContaining({ code: "PROTECTED_RESOURCE_REQUIRED" })],
     });
-    expect(
-      boundary.authProvider.authorizeProtectedResource
-    ).not.toHaveBeenCalled();
+    expect(boundary.authProvider.authorizeProtectedResource).not.toHaveBeenCalled();
   });
 
   it.each(["organizationId", "resourceKind", "resourceId"] as const)(
@@ -64,17 +58,11 @@ describe("ProtectedResource contract", () => {
     async (field) => {
       const boundary = new ProtectedBoundary();
 
-      await expect(
-        boundary.run({ ...protectedApplication, [field]: " " })
-      ).rejects.toMatchObject({
-        errors: [
-          expect.objectContaining({ code: "PROTECTED_RESOURCE_REQUIRED" }),
-        ],
+      await expect(boundary.run({ ...protectedApplication, [field]: " " })).rejects.toMatchObject({
+        errors: [expect.objectContaining({ code: "PROTECTED_RESOURCE_REQUIRED" })],
       });
-      expect(
-        boundary.authProvider.authorizeProtectedResource
-      ).not.toHaveBeenCalled();
-    }
+      expect(boundary.authProvider.authorizeProtectedResource).not.toHaveBeenCalled();
+    },
   );
 
   it("composes after Policy so RBAC is checked first", async () => {
@@ -82,15 +70,12 @@ describe("ProtectedResource contract", () => {
 
     await expect(boundary.run(protectedApplication)).resolves.toBe("executed");
     expect(boundary.authProvider.authorize).toHaveBeenCalledTimes(1);
+    expect(boundary.authProvider.authorizeProtectedResource).toHaveBeenCalledTimes(1);
     expect(
-      boundary.authProvider.authorizeProtectedResource
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      boundary.authProvider.authorize.mock.invocationCallOrder[0] ??
-        Number.MAX_SAFE_INTEGER
+      boundary.authProvider.authorize.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
     ).toBeLessThan(
-      boundary.authProvider.authorizeProtectedResource.mock
-        .invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER
+      boundary.authProvider.authorizeProtectedResource.mock.invocationCallOrder[0] ??
+        Number.MAX_SAFE_INTEGER,
     );
   });
 });
@@ -98,13 +83,10 @@ describe("ProtectedResource contract", () => {
 class ProtectedBoundary {
   readonly authProvider = createAuthProvider();
 
-  @ProtectedResource<
-    [ProtectedResourceAuthorizeParams["protectedResource"]],
-    ProtectedBoundary
-  >((resource) => resource)
-  async run(
-    _resource: ProtectedResourceAuthorizeParams["protectedResource"]
-  ): Promise<string> {
+  @ProtectedResource<[ProtectedResourceAuthorizeParams["protectedResource"]], ProtectedBoundary>(
+    (resource) => resource,
+  )
+  async run(_resource: ProtectedResourceAuthorizeParams["protectedResource"]): Promise<string> {
     return "executed";
   }
 }
@@ -112,29 +94,21 @@ class ProtectedBoundary {
 class CombinedBoundary {
   readonly authProvider = createAuthProvider();
 
-  @Policy<
-    ProtectedResourceAuthorizeParams["protectedResource"],
-    CombinedBoundary
-  >({
+  @Policy<ProtectedResourceAuthorizeParams["protectedResource"], CombinedBoundary>({
     resource: "org.applications",
     action: "write",
     organizationId: (_self, resource) => resource.organizationId,
   })
-  @ProtectedResource<
-    [ProtectedResourceAuthorizeParams["protectedResource"]],
-    CombinedBoundary
-  >((resource) => resource)
-  async run(
-    _resource: ProtectedResourceAuthorizeParams["protectedResource"]
-  ): Promise<string> {
+  @ProtectedResource<[ProtectedResourceAuthorizeParams["protectedResource"]], CombinedBoundary>(
+    (resource) => resource,
+  )
+  async run(_resource: ProtectedResourceAuthorizeParams["protectedResource"]): Promise<string> {
     return "executed";
   }
 }
 
 function createAuthProvider(): AuthProvider & {
-  authorize: jest.MockedFunction<
-    (params: AuthorizeParams) => Promise<boolean>
-  >;
+  authorize: jest.MockedFunction<(params: AuthorizeParams) => Promise<boolean>>;
   authorizeProtectedResource: jest.MockedFunction<
     (params: ProtectedResourceAuthorizeParams) => Promise<boolean>
   >;
@@ -142,8 +116,6 @@ function createAuthProvider(): AuthProvider & {
   return {
     subject: "platform-user",
     authorize: jest.fn(async (_params: AuthorizeParams) => true),
-    authorizeProtectedResource: jest.fn(
-      async (_params: ProtectedResourceAuthorizeParams) => true
-    ),
+    authorizeProtectedResource: jest.fn(async (_params: ProtectedResourceAuthorizeParams) => true),
   };
 }

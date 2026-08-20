@@ -61,18 +61,17 @@ const getDefaultGroup = (
 /** Update conditions in the first group, creating the group if needed */
 const updateFirstGroupConditions = (
   rule: ApiProductComponentDependencyRule,
-  updater: (
-    conditions: ApiProductComponentCondition[],
-  ) => ApiProductComponentCondition[],
+  updater: (conditions: ApiProductComponentCondition[]) => ApiProductComponentCondition[],
 ): ApiProductComponentDependencyRule => {
   const group = getDefaultGroup(rule);
   const updatedGroup: ApiProductComponentConditionGroup = {
     ...group,
     conditions: updater(group.conditions),
   };
-  const groups = rule.conditionGroups.length > 0
-    ? [updatedGroup, ...rule.conditionGroups.slice(1)]
-    : [updatedGroup];
+  const groups =
+    rule.conditionGroups.length > 0
+      ? [updatedGroup, ...rule.conditionGroups.slice(1)]
+      : [updatedGroup];
   return { ...rule, conditionGroups: groups };
 };
 
@@ -86,11 +85,7 @@ interface UseRuleInspectorOptions {
   onRuleChange: (rule: ApiProductComponentDependencyRule) => void;
 }
 
-export const useRuleInspector = ({
-  rule,
-  groups,
-  onRuleChange,
-}: UseRuleInspectorOptions) => {
+export const useRuleInspector = ({ rule, groups, onRuleChange }: UseRuleInspectorOptions) => {
   const [collapsed, setCollapsed] = useState(false);
 
   const handleNameChange = useCallback(
@@ -98,7 +93,7 @@ export const useRuleInspector = ({
       if (!rule) return;
       onRuleChange({ ...rule, name });
     },
-    [rule, onRuleChange]
+    [rule, onRuleChange],
   );
 
   const handlePriorityChange = useCallback(
@@ -106,7 +101,7 @@ export const useRuleInspector = ({
       if (!rule) return;
       onRuleChange({ ...rule, priority: priority ?? 0 });
     },
-    [rule, onRuleChange]
+    [rule, onRuleChange],
   );
 
   const handleEnabledChange = useCallback(
@@ -114,7 +109,7 @@ export const useRuleInspector = ({
       if (!rule) return;
       onRuleChange({ ...rule, enabled });
     },
-    [rule, onRuleChange]
+    [rule, onRuleChange],
   );
 
   // Condition handlers
@@ -141,24 +136,22 @@ export const useRuleInspector = ({
       onRuleChange(
         updateFirstGroupConditions(rule, (conds) =>
           conds.map((c) =>
-            c.id === conditionId ? ({ ...c, ...updates } as ApiProductComponentCondition) : c
-          )
-        )
+            c.id === conditionId ? ({ ...c, ...updates } as ApiProductComponentCondition) : c,
+          ),
+        ),
       );
     },
-    [rule, onRuleChange]
+    [rule, onRuleChange],
   );
 
   const handleDeleteCondition = useCallback(
     (conditionId: string) => {
       if (!rule) return;
       onRuleChange(
-        updateFirstGroupConditions(rule, (conds) =>
-          conds.filter((c) => c.id !== conditionId)
-        )
+        updateFirstGroupConditions(rule, (conds) => conds.filter((c) => c.id !== conditionId)),
       );
     },
-    [rule, onRuleChange]
+    [rule, onRuleChange],
   );
 
   // Action handlers
@@ -187,12 +180,10 @@ export const useRuleInspector = ({
       if (!rule) return;
       onRuleChange({
         ...rule,
-        actions: rule.actions.map((a) =>
-          a.id === actionId ? { ...a, ...updates } : a
-        ),
+        actions: rule.actions.map((a) => (a.id === actionId ? { ...a, ...updates } : a)),
       });
     },
-    [rule, onRuleChange]
+    [rule, onRuleChange],
   );
 
   const handleDeleteAction = useCallback(
@@ -203,7 +194,7 @@ export const useRuleInspector = ({
         actions: rule.actions.filter((a) => a.id !== actionId),
       });
     },
-    [rule, onRuleChange]
+    [rule, onRuleChange],
   );
 
   const toggleCollapsed = useCallback(() => {

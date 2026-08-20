@@ -11,8 +11,7 @@ export class ProductComponentItemOptionSelectionResolver extends CatalogType<
   ComponentItemOptionSelection
 > {
   async $preload() {
-    const selection =
-      await this.$ctx.loaders.componentOptionSelection.load(this.$props);
+    const selection = await this.$ctx.loaders.componentOptionSelection.load(this.$props);
     if (!selection) {
       throw new PreloadNotFoundError(
         `Product component option selection with ID ${this.$props} not found`,
@@ -22,10 +21,7 @@ export class ProductComponentItemOptionSelectionResolver extends CatalogType<
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.ProductComponentItemOptionSelection,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.ProductComponentItemOptionSelection);
   }
 
   async option() {
@@ -38,14 +34,11 @@ export class ProductComponentItemOptionSelectionResolver extends CatalogType<
   }
 
   async values() {
-    const ids =
-      await this.$ctx.loaders.componentOptionValueSelectionIdsBySelectionId.load(
-        this.$props,
-      );
+    const ids = await this.$ctx.loaders.componentOptionValueSelectionIdsBySelectionId.load(
+      this.$props,
+    );
     return Promise.all(
-      ids.map((id: string) =>
-        this.resolvers.productComponentItemOptionValueSelection(id)
-      ),
+      ids.map((id: string) => this.resolvers.productComponentItemOptionValueSelection(id)),
     );
   }
 
@@ -59,8 +52,7 @@ export class ProductComponentItemOptionValueSelectionResolver extends CatalogTyp
   ComponentItemOptionValueSelection
 > {
   async $preload() {
-    const selection =
-      await this.$ctx.loaders.componentOptionValueSelection.load(this.$props);
+    const selection = await this.$ctx.loaders.componentOptionValueSelection.load(this.$props);
     if (!selection) {
       throw new PreloadNotFoundError(
         `Product component option value selection with ID ${this.$props} not found`,
@@ -70,10 +62,7 @@ export class ProductComponentItemOptionValueSelectionResolver extends CatalogTyp
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.ProductComponentItemOptionValueSelection,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.ProductComponentItemOptionValueSelection);
   }
 
   async optionValue() {

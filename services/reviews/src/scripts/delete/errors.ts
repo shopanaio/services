@@ -9,11 +9,13 @@ export function notFound(entity: string, field = "id"): UserError[] {
 }
 
 export function conflict(field: string): UserError[] {
-  return [{
-    message: "The entity was modified by another operation",
-    field: [field],
-    code: "CONFLICT",
-  }];
+  return [
+    {
+      message: "The entity was modified by another operation",
+      field: [field],
+      code: "CONFLICT",
+    },
+  ];
 }
 
 export function invalidDate(field: string): UserError[] {

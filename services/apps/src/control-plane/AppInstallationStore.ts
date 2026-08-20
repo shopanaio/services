@@ -6,12 +6,8 @@ import type {
   AppManifest,
 } from "@shopana/app-sdk";
 import { Transactional } from "@shopana/shared-kernel";
-import type {
-  AppCapabilityBindingRecord,
-} from "../repositories/capability/AppCapabilityRepository.js";
-import type {
-  AppManifestSnapshotRecord,
-} from "../repositories/manifest/AppManifestSnapshotRepository.js";
+import type { AppCapabilityBindingRecord } from "../repositories/capability/AppCapabilityRepository.js";
+import type { AppManifestSnapshotRecord } from "../repositories/manifest/AppManifestSnapshotRepository.js";
 import { Repository } from "../repositories/Repository.js";
 import type {
   AppInstallationRecord,
@@ -75,30 +71,19 @@ export class AppInstallationStore {
   }
 
   @Transactional()
-  async beginInstall(
-    input: BeginInstallInput,
-  ): Promise<BegunLifecycleOperation> {
-    await this.repository.installation.lockInstallSlot(
+  async beginInstall(input: BeginInstallInput): Promise<BegunLifecycleOperation> {
+    await this.repository.installation.lockInstallSlot(input.storeId, input.appCode);
+    const current = await this.repository.installation.findNonTerminalByStoreAndAppForUpdate(
       input.storeId,
       input.appCode,
     );
-    const current =
-      await this.repository.installation.findNonTerminalByStoreAndAppForUpdate(
-        input.storeId,
-        input.appCode,
-      );
     if (current) {
-      const duplicate =
-        await this.repository.lifecycleOperation.findByIdempotency(
-          current.id,
-          input.idempotencyKey,
-        );
+      const duplicate = await this.repository.lifecycleOperation.findByIdempotency(
+        current.id,
+        input.idempotencyKey,
+      );
       if (duplicate) {
-        assertDuplicateMatches(
-          duplicate,
-          "INSTALL",
-          input.targetVersion,
-        );
+        assertDuplicateMatches(duplicate, "INSTALL", input.targetVersion);
         return {
           installation: current,
           operation: duplicate,
@@ -111,32 +96,20 @@ export class AppInstallationStore {
         );
       }
 
-      const installation = await this.repository.installation.update(
-        current.id,
-        {
-          status: "INSTALLING",
-          targetVersion: input.targetVersion,
-          configuration: input.configuration,
-          configurationVersion: current.configurationVersion + 1,
-          installedByUserId:
-            input.installedByUserId ?? current.installedByUserId,
-          lastErrorCode: null,
-          lastErrorMessage: null,
-        },
-      );
+      const installation = await this.repository.installation.update(current.id, {
+        status: "INSTALLING",
+        targetVersion: input.targetVersion,
+        configuration: input.configuration,
+        configurationVersion: current.configurationVersion + 1,
+        installedByUserId: input.installedByUserId ?? current.installedByUserId,
+        lastErrorCode: null,
+        lastErrorMessage: null,
+      });
       if (!installation) {
-        throw new Error(
-          `App installation "${current.id}" disappeared during install`,
-        );
+        throw new Error(`App installation "${current.id}" disappeared during install`);
       }
-      await this.repository.scope.replace(
-        current.id,
-        input.grantedScopes,
-      );
-      await this.repository.manifestSnapshot.save(
-        current.id,
-        input.snapshot,
-      );
+      await this.repository.scope.replace(current.id, input.grantedScopes);
+      await this.repository.manifestSnapshot.save(current.id, input.snapshot);
       const operation = await this.createOperation({
         installationId: current.id,
         type: "INSTALL",
@@ -159,14 +132,8 @@ export class AppInstallationStore {
       configurationVersion: 1,
       installedByUserId: input.installedByUserId,
     });
-    await this.repository.scope.replace(
-      installation.id,
-      input.grantedScopes,
-    );
-    await this.repository.manifestSnapshot.save(
-      installation.id,
-      input.snapshot,
-    );
+    await this.repository.scope.replace(installation.id, input.grantedScopes);
+    await this.repository.manifestSnapshot.save(installation.id, input.snapshot);
     const operation = await this.createOperation({
       installationId: installation.id,
       type: "INSTALL",
@@ -183,28 +150,20 @@ export class AppInstallationStore {
   async beginExistingOperation(
     input: BeginExistingOperationInput,
   ): Promise<BegunLifecycleOperation> {
-    const installation =
-      await this.repository.installation.lockByIdAndStore(
-        input.installationId,
-        input.storeId,
-      );
+    const installation = await this.repository.installation.lockByIdAndStore(
+      input.installationId,
+      input.storeId,
+    );
     if (!installation) {
-      throw new Error(
-        `App installation "${input.installationId}" not found`,
-      );
+      throw new Error(`App installation "${input.installationId}" not found`);
     }
 
-    const duplicate =
-      await this.repository.lifecycleOperation.findByIdempotency(
-        input.installationId,
-        input.idempotencyKey,
-      );
+    const duplicate = await this.repository.lifecycleOperation.findByIdempotency(
+      input.installationId,
+      input.idempotencyKey,
+    );
     if (duplicate) {
-      assertDuplicateMatches(
-        duplicate,
-        input.type,
-        input.targetVersion,
-      );
+      assertDuplicateMatches(duplicate, input.type, input.targetVersion);
       return { installation, operation: duplicate, duplicate: true };
     }
     if (!input.expectedStatuses.includes(installation.status)) {
@@ -214,8 +173,7 @@ export class AppInstallationStore {
     }
     if (
       input.expectedConfigurationVersion !== undefined &&
-      installation.configurationVersion !==
-        input.expectedConfigurationVersion
+      installation.configurationVersion !== input.expectedConfigurationVersion
     ) {
       throw new Error(
         `App installation configuration version conflict: expected ${input.expectedConfigurationVersion}, received ${installation.configurationVersion}`,
@@ -223,32 +181,25 @@ export class AppInstallationStore {
     }
 
     let previousStatus = installation.status;
-    if (
-      input.type === "UPDATE" &&
-      installation.status === "UPDATE_FAILED"
-    ) {
+    if (input.type === "UPDATE" && installation.status === "UPDATE_FAILED") {
       previousStatus =
         (await this.repository.lifecycleOperation.findLatestFailedUpdatePreviousStatus(
           input.installationId,
         )) ?? previousStatus;
     }
 
-    const updated = await this.repository.installation.update(
-      input.installationId,
-      {
-        status: input.transitionStatus,
-        targetVersion: input.targetVersion,
-        lastErrorCode: null,
-        lastErrorMessage: null,
-        ...(input.configuration === undefined
-          ? {}
-          : {
-              configuration: input.configuration,
-              configurationVersion:
-                installation.configurationVersion + 1,
-            }),
-      },
-    );
+    const updated = await this.repository.installation.update(input.installationId, {
+      status: input.transitionStatus,
+      targetVersion: input.targetVersion,
+      lastErrorCode: null,
+      lastErrorMessage: null,
+      ...(input.configuration === undefined
+        ? {}
+        : {
+            configuration: input.configuration,
+            configurationVersion: installation.configurationVersion + 1,
+          }),
+    });
     if (!updated) {
       throw new Error(
         `App installation "${input.installationId}" disappeared during lifecycle transition`,
@@ -256,16 +207,10 @@ export class AppInstallationStore {
     }
 
     if (input.grantedScopes) {
-      await this.repository.scope.replace(
-        input.installationId,
-        input.grantedScopes,
-      );
+      await this.repository.scope.replace(input.installationId, input.grantedScopes);
     }
     if (input.snapshot) {
-      await this.repository.manifestSnapshot.save(
-        input.installationId,
-        input.snapshot,
-      );
+      await this.repository.manifestSnapshot.save(input.installationId, input.snapshot);
     }
     const operation = await this.createOperation({
       installationId: input.installationId,
@@ -278,10 +223,7 @@ export class AppInstallationStore {
     });
 
     if (input.type === "SUSPEND" || input.type === "UNINSTALL") {
-      await this.repository.capability.setEnabled(
-        input.installationId,
-        false,
-      );
+      await this.repository.capability.setEnabled(input.installationId, false);
     }
     if (input.type === "UNINSTALL") {
       await this.repository.secret.revokeAll(input.installationId);
@@ -293,10 +235,7 @@ export class AppInstallationStore {
     return this.repository.installation.findById(id);
   }
 
-  findByIdAndStore(
-    id: string,
-    storeId: string,
-  ): Promise<AppInstallationRecord | null> {
+  findByIdAndStore(id: string, storeId: string): Promise<AppInstallationRecord | null> {
     return this.repository.installation.findByIdAndStore(id, storeId);
   }
 
@@ -304,21 +243,14 @@ export class AppInstallationStore {
     storeId: string,
     appCode: string,
   ): Promise<AppInstallationRecord | null> {
-    return this.repository.installation.findNonTerminalByStoreAndApp(
-      storeId,
-      appCode,
-    );
+    return this.repository.installation.findNonTerminalByStoreAndApp(storeId, appCode);
   }
 
-  findOperationById(
-    id: string,
-  ): Promise<AppLifecycleOperationRecord | null> {
+  findOperationById(id: string): Promise<AppLifecycleOperationRecord | null> {
     return this.repository.lifecycleOperation.findById(id);
   }
 
-  listGrantedScopes(
-    installationId: string,
-  ): Promise<readonly string[]> {
+  listGrantedScopes(installationId: string): Promise<readonly string[]> {
     return this.repository.scope.listGranted(installationId);
   }
 
@@ -333,34 +265,19 @@ export class AppInstallationStore {
     organizationId: string,
     statuses?: readonly AppInstallationStatus[],
   ): Promise<AppInstallationRecord[]> {
-    return this.repository.installation.listByOrganization(
-      organizationId,
-      statuses,
-    );
+    return this.repository.installation.listByOrganization(organizationId, statuses);
   }
 
-  listOperations(
-    installationId: string,
-  ): Promise<AppLifecycleOperationRecord[]> {
-    return this.repository.lifecycleOperation.listByInstallation(
-      installationId,
-    );
+  listOperations(installationId: string): Promise<AppLifecycleOperationRecord[]> {
+    return this.repository.lifecycleOperation.listByInstallation(installationId);
   }
 
-  listManifestSnapshots(
-    installationId: string,
-  ): Promise<AppManifestSnapshotRecord[]> {
-    return this.repository.manifestSnapshot.listByInstallation(
-      installationId,
-    );
+  listManifestSnapshots(installationId: string): Promise<AppManifestSnapshotRecord[]> {
+    return this.repository.manifestSnapshot.listByInstallation(installationId);
   }
 
-  listCapabilityBindings(
-    installationId: string,
-  ): Promise<AppCapabilityBindingRecord[]> {
-    return this.repository.capability.listByInstallation(
-      installationId,
-    );
+  listCapabilityBindings(installationId: string): Promise<AppCapabilityBindingRecord[]> {
+    return this.repository.capability.listByInstallation(installationId);
   }
 
   @Transactional()
@@ -370,39 +287,30 @@ export class AppInstallationStore {
     readonly configuration: Readonly<Record<string, unknown>>;
     readonly grantedScopes?: readonly string[];
   }): Promise<AppInstallationRecord> {
-    const installation =
-      await this.repository.installation.updateConfigurationForStore({
-        id: input.installationId,
-        expectedVersion: input.expectedConfigurationVersion,
-        configuration: input.configuration,
-      });
+    const installation = await this.repository.installation.updateConfigurationForStore({
+      id: input.installationId,
+      expectedVersion: input.expectedConfigurationVersion,
+      configuration: input.configuration,
+    });
     if (!installation) {
       throw new Error(
         `App installation configuration version conflict: expected ${input.expectedConfigurationVersion}`,
       );
     }
     if (input.grantedScopes) {
-      await this.repository.scope.replace(
-        input.installationId,
-        input.grantedScopes,
-      );
+      await this.repository.scope.replace(input.installationId, input.grantedScopes);
     }
     return installation;
   }
 
   @Transactional()
   async markOperationRunning(operationId: string): Promise<void> {
-    if (
-      await this.repository.lifecycleOperation.markRunning(operationId)
-    ) {
+    if (await this.repository.lifecycleOperation.markRunning(operationId)) {
       return;
     }
-    const current =
-      await this.repository.lifecycleOperation.findById(operationId);
+    const current = await this.repository.lifecycleOperation.findById(operationId);
     if (current?.status !== "RUNNING") {
-      throw new Error(
-        `Lifecycle operation "${operationId}" is not pending or running`,
-      );
+      throw new Error(`Lifecycle operation "${operationId}" is not pending or running`);
     }
   }
 
@@ -411,28 +319,20 @@ export class AppInstallationStore {
     operationId: string,
     manifest: AppManifest,
   ): Promise<AppInstallationRecord> {
-    const operation =
-      await this.repository.lifecycleOperation.lockById(operationId);
+    const operation = await this.repository.lifecycleOperation.lockById(operationId);
     if (!operation) {
       throw new Error(`Lifecycle operation "${operationId}" not found`);
     }
-    const installation =
-      await this.repository.installation.findById(
-        operation.installationId,
-      );
+    const installation = await this.repository.installation.findById(operation.installationId);
     if (!installation) {
-      throw new Error(
-        `App installation "${operation.installationId}" not found`,
-      );
+      throw new Error(`App installation "${operation.installationId}" not found`);
     }
     if (operation.status === "SUCCEEDED") {
       return installation;
     }
 
     let nextStatus: AppInstallationStatus;
-    const update: Parameters<
-      Repository["installation"]["update"]
-    >[1] = {
+    const update: Parameters<Repository["installation"]["update"]>[1] = {
       targetVersion: null,
       lastErrorCode: null,
       lastErrorMessage: null,
@@ -447,18 +347,12 @@ export class AppInstallationStore {
         await this.repository.capability.sync(installation, manifest);
         break;
       case "UPDATE":
-        nextStatus =
-          operation.previousInstallationStatus === "SUSPENDED"
-            ? "SUSPENDED"
-            : "ACTIVE";
+        nextStatus = operation.previousInstallationStatus === "SUSPENDED" ? "SUSPENDED" : "ACTIVE";
         update.installedVersion = operation.targetVersion;
         update.manifestHash = snapshotManifest(manifest).hash;
         await this.repository.capability.sync(installation, manifest);
         if (nextStatus === "SUSPENDED") {
-          await this.repository.capability.setEnabled(
-            installation.id,
-            false,
-          );
+          await this.repository.capability.setEnabled(installation.id, false);
         }
         break;
       case "SUSPEND":
@@ -468,27 +362,19 @@ export class AppInstallationStore {
       case "RESUME":
         nextStatus = "ACTIVE";
         update.suspendedAt = null;
-        await this.repository.capability.setEnabled(
-          installation.id,
-          true,
-        );
+        await this.repository.capability.setEnabled(installation.id, true);
         break;
       case "UNINSTALL":
         nextStatus = "UNINSTALLED";
         update.uninstalledAt = new Date().toISOString();
         update.healthStatus = "UNKNOWN";
-        await this.repository.capability.deleteByInstallation(
-          installation.id,
-        );
+        await this.repository.capability.deleteByInstallation(installation.id);
         await this.repository.scope.revokeAll(installation.id);
         break;
     }
     update.status = nextStatus;
 
-    const completed = await this.repository.installation.update(
-      installation.id,
-      update,
-    );
+    const completed = await this.repository.installation.update(installation.id, update);
     if (!completed) {
       throw new Error(
         `App installation "${installation.id}" disappeared while completing operation`,
@@ -500,8 +386,7 @@ export class AppInstallationStore {
 
   @Transactional()
   async failOperation(operationId: string, error: unknown): Promise<void> {
-    const operation =
-      await this.repository.lifecycleOperation.lockById(operationId);
+    const operation = await this.repository.lifecycleOperation.lockById(operationId);
     if (!operation || operation.status === "SUCCEEDED") {
       return;
     }
@@ -517,20 +402,14 @@ export class AppInstallationStore {
               : "ACTIVE";
     const normalized = normalizeError(error);
 
-    await this.repository.installation.update(
-      operation.installationId,
-      {
-        status: failureStatus,
-        lastErrorCode: normalized.code,
-        lastErrorMessage: normalized.message,
-        targetVersion: null,
-        healthStatus: "UNHEALTHY",
-      },
-    );
-    await this.repository.lifecycleOperation.markFailed(
-      operationId,
-      normalized,
-    );
+    await this.repository.installation.update(operation.installationId, {
+      status: failureStatus,
+      lastErrorCode: normalized.code,
+      lastErrorMessage: normalized.message,
+      targetVersion: null,
+      healthStatus: "UNHEALTHY",
+    });
+    await this.repository.lifecycleOperation.markFailed(operationId, normalized);
     if (operation.type === "SUSPEND" || operation.type === "RESUME") {
       await this.repository.capability.setEnabled(
         operation.installationId,
@@ -545,12 +424,7 @@ export class AppInstallationStore {
     operation: string,
     target?: CapabilityRouteTarget,
   ): Promise<ResolvedCapabilityRoute | null> {
-    return this.repository.capability.resolveRoute(
-      storeId,
-      capability,
-      operation,
-      target,
-    );
+    return this.repository.capability.resolveRoute(storeId, capability, operation, target);
   }
 
   listActiveStoreCapabilityRoutes(
@@ -558,11 +432,7 @@ export class AppInstallationStore {
     capability: string,
     operation: string,
   ): Promise<ResolvedCapabilityRoute[]> {
-    return this.repository.capability.listActiveStoreRoutes(
-      storeId,
-      capability,
-      operation,
-    );
+    return this.repository.capability.listActiveStoreRoutes(storeId, capability, operation);
   }
 
   resolveActiveStoreCapabilityRouteForInstallation(
@@ -634,10 +504,7 @@ function lifecycleWorkflowId(
   targetVersion: string,
   idempotencyKey: string,
 ): string {
-  const requestHash = createHash("sha256")
-    .update(idempotencyKey)
-    .digest("hex")
-    .slice(0, 16);
+  const requestHash = createHash("sha256").update(idempotencyKey).digest("hex").slice(0, 16);
   return `apps:lifecycle:${installationId}:${operation}:${targetVersion}:${requestHash}`;
 }
 
@@ -646,10 +513,7 @@ function assertDuplicateMatches(
   expectedType: AppLifecycleOperationType,
   expectedTargetVersion: string,
 ): void {
-  if (
-    operation.type !== expectedType ||
-    operation.targetVersion !== expectedTargetVersion
-  ) {
+  if (operation.type !== expectedType || operation.targetVersion !== expectedTargetVersion) {
     throw new Error(
       `App lifecycle idempotency key is already used for ${operation.type}:${operation.targetVersion}`,
     );

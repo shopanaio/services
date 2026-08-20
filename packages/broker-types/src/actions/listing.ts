@@ -4,8 +4,7 @@
 
 export const LISTING_UPDATE_CONTRACT_VERSION = "2026-08-19" as const;
 
-export type ListingUpdateContractVersion =
-  typeof LISTING_UPDATE_CONTRACT_VERSION;
+export type ListingUpdateContractVersion = typeof LISTING_UPDATE_CONTRACT_VERSION;
 
 export type ListingUpdateActor = "admin" | "system" | "migration" | "api";
 
@@ -84,8 +83,7 @@ export interface ListingRuleFactsSnapshot {
 }
 
 export type ListingScopeMembershipSnapshot =
-  | ListingCategoryScopeMembershipSnapshot
-  | ListingCollectionScopeMembershipSnapshot;
+  ListingCategoryScopeMembershipSnapshot | ListingCollectionScopeMembershipSnapshot;
 
 export interface ListingCategoryScopeMembershipSnapshot {
   scopeType: "category";

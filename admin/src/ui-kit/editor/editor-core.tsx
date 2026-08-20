@@ -59,9 +59,12 @@ const EditorCore = memo(function EditorCore({
     [onChange],
   );
 
-  const handleChange = useCallback((api: API) => {
-    void syncChange(api);
-  }, [syncChange]);
+  const handleChange = useCallback(
+    (api: API) => {
+      void syncChange(api);
+    },
+    [syncChange],
+  );
 
   useEffect(() => {
     if (initializedRef.current) return;

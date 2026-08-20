@@ -1,14 +1,10 @@
-import { Inject, Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
-import {
-  ActionHandler,
-  ActionRegistry,
-  type ActionMetadata,
-} from './ActionRegistry';
+import { Inject, Injectable, Logger, OnModuleDestroy, Optional } from "@nestjs/common";
+import { ActionHandler, ActionRegistry, type ActionMetadata } from "./ActionRegistry";
 import type {
   BrokerAppContext,
   BrokerCallContext,
   BrokerCallOptions,
-} from './BrokerCallContext.js';
+} from "./BrokerCallContext.js";
 import {
   WORKFLOW_REGISTRY,
   type WorkflowRegistry,
@@ -16,13 +12,13 @@ import {
   type SagaResult,
   type WorkflowExecutionContext,
   type WorkflowStartOptions,
-} from '@shopana/dbos';
+} from "@shopana/dbos";
 import {
   AuthorizationError,
   authorizePoliciesWithAdminContext,
   hasPolicies,
-} from '../decorators/Authorize.js';
-import type { BrokerWorkflowStartOptions } from './WorkflowAuthorization.js';
+} from "../decorators/Authorize.js";
+import type { BrokerWorkflowStartOptions } from "./WorkflowAuthorization.js";
 
 export interface ServiceBrokerOptions {
   serviceName: string;
@@ -66,7 +62,7 @@ export class ServiceBroker implements OnModuleDestroy {
   ): Promise<TResult> {
     const context = this.createCallContext(
       {
-        kind: 'action',
+        kind: "action",
         service: this.options.serviceName,
       },
       undefined,
@@ -84,12 +80,12 @@ export class ServiceBroker implements OnModuleDestroy {
     params: TParams | undefined,
     app: Readonly<BrokerAppContext>,
   ): Promise<TResult> {
-    if (this.options.serviceName !== 'apps') {
-      throw new Error('Only apps service can create App broker calls');
+    if (this.options.serviceName !== "apps") {
+      throw new Error("Only apps service can create App broker calls");
     }
     const context = this.createCallContext(
       {
-        kind: 'action',
+        kind: "action",
         service: this.options.serviceName,
       },
       app,
@@ -106,17 +102,17 @@ export class ServiceBroker implements OnModuleDestroy {
     params: TParams,
     producerService: string,
   ): Promise<TResult> {
-    if (this.options.serviceName !== 'events') {
-      throw new Error('Only events service can dispatch event broker calls');
+    if (this.options.serviceName !== "events") {
+      throw new Error("Only events service can dispatch event broker calls");
     }
     const service = producerService.trim();
     if (!service) {
-      throw new Error('Event producer service is required');
+      throw new Error("Event producer service is required");
     }
     return this.invoke<TResult, TParams>(
       action,
       params,
-      this.createCallContext({ kind: 'event', service }),
+      this.createCallContext({ kind: "event", service }),
     );
   }
 
@@ -137,9 +133,9 @@ export class ServiceBroker implements OnModuleDestroy {
   }
 
   private createCallContext(
-    caller: BrokerCallContext['caller'],
+    caller: BrokerCallContext["caller"],
     app?: Readonly<BrokerAppContext>,
-    adminContext?: BrokerCallContext['adminContext'],
+    adminContext?: BrokerCallContext["adminContext"],
   ): BrokerCallContext {
     return Object.freeze({
       caller: Object.freeze(caller),
@@ -187,20 +183,13 @@ export class ServiceBroker implements OnModuleDestroy {
   ): Promise<TResult> {
     if (!this.workflowRegistry) {
       throw new Error(
-        'WorkflowRegistry not available. Import WorkflowModule.forRoot() in your app module.'
+        "WorkflowRegistry not available. Import WorkflowModule.forRoot() in your app module.",
       );
     }
 
     const qualifiedWorkflow = this.assertFullyQualified(workflow);
-    const trustedParams = this.withTrustedWorkflowCaller(
-      qualifiedWorkflow,
-      params,
-    );
-    const prepared = await this.prepareWorkflowStart(
-      qualifiedWorkflow,
-      trustedParams,
-      options,
-    );
+    const trustedParams = this.withTrustedWorkflowCaller(qualifiedWorkflow, params);
+    const prepared = await this.prepareWorkflowStart(qualifiedWorkflow, trustedParams, options);
     const handle = await this.workflowRegistry.start<TParams, TResult>(
       qualifiedWorkflow,
       trustedParams,
@@ -219,23 +208,16 @@ export class ServiceBroker implements OnModuleDestroy {
     params: TParams,
     idempotencyCtx: IdempotencyContext,
     options?: BrokerWorkflowStartOptions,
-  ): Promise<{ workflowId: string; status: 'started' }> {
+  ): Promise<{ workflowId: string; status: "started" }> {
     if (!this.workflowRegistry) {
       throw new Error(
-        'WorkflowRegistry not available. Import WorkflowModule.forRoot() in your app module.'
+        "WorkflowRegistry not available. Import WorkflowModule.forRoot() in your app module.",
       );
     }
 
     const qualifiedWorkflow = this.assertFullyQualified(workflow);
-    const trustedParams = this.withTrustedWorkflowCaller(
-      qualifiedWorkflow,
-      params,
-    );
-    const prepared = await this.prepareWorkflowStart(
-      qualifiedWorkflow,
-      trustedParams,
-      options,
-    );
+    const trustedParams = this.withTrustedWorkflowCaller(qualifiedWorkflow, params);
+    const prepared = await this.prepareWorkflowStart(qualifiedWorkflow, trustedParams, options);
     const handle = await this.workflowRegistry.start<TParams, unknown>(
       qualifiedWorkflow,
       trustedParams,
@@ -244,7 +226,7 @@ export class ServiceBroker implements OnModuleDestroy {
       prepared.context,
     );
 
-    return { workflowId: handle.workflowId, status: 'started' };
+    return { workflowId: handle.workflowId, status: "started" };
   }
 
   /**
@@ -284,7 +266,7 @@ export class ServiceBroker implements OnModuleDestroy {
   getWorkflowRegistry(): WorkflowRegistry {
     if (!this.workflowRegistry) {
       throw new Error(
-        'WorkflowRegistry not available. Import WorkflowModule.forRoot() in your app module.'
+        "WorkflowRegistry not available. Import WorkflowModule.forRoot() in your app module.",
       );
     }
     return this.workflowRegistry;
@@ -327,24 +309,21 @@ export class ServiceBroker implements OnModuleDestroy {
    * Qualify action/workflow name with service prefix.
    */
   qualifyAction(action: string): string {
-    return action.includes('.') ? action : `${this.options.serviceName}.${action}`;
+    return action.includes(".") ? action : `${this.options.serviceName}.${action}`;
   }
 
   private assertFullyQualified(action: string): string {
-    if (!action.includes('.')) {
+    if (!action.includes(".")) {
       throw new Error(`Action "${action}" must include service prefix`);
     }
 
     return action;
   }
 
-  private withTrustedWorkflowCaller<TParams>(
-    qualifiedWorkflow: string,
-    params: TParams,
-  ): TParams {
+  private withTrustedWorkflowCaller<TParams>(qualifiedWorkflow: string, params: TParams): TParams {
     if (
-      qualifiedWorkflow !== 'events.emit' ||
-      typeof params !== 'object' ||
+      qualifiedWorkflow !== "events.emit" ||
+      typeof params !== "object" ||
       params === null ||
       Array.isArray(params)
     ) {
@@ -369,9 +348,7 @@ export class ServiceBroker implements OnModuleDestroy {
       return {};
     }
     if (options?.adminContext && options.workflowContext) {
-      throw new Error(
-        'Workflow start accepts either adminContext or workflowContext, not both',
-      );
+      throw new Error("Workflow start accepts either adminContext or workflowContext, not both");
     }
 
     const descriptor = this.workflowRegistry.getDescriptor(qualifiedWorkflow);
@@ -379,26 +356,21 @@ export class ServiceBroker implements OnModuleDestroy {
     let context: WorkflowExecutionContext | undefined;
 
     if (options?.adminContext) {
-      await authorizePoliciesWithAdminContext(
-        instance,
-        'run',
-        params,
-        options.adminContext,
-      );
+      await authorizePoliciesWithAdminContext(instance, "run", params, options.adminContext);
       context = this.createWorkflowContext(options.adminContext);
     } else if (options?.workflowContext) {
       context = this.normalizeWorkflowContext(options.workflowContext);
-    } else if (hasPolicies(instance, 'run')) {
+    } else if (hasPolicies(instance, "run")) {
       throw new AuthorizationError(
         [
           {
-            code: 'UNAUTHENTICATED',
-            message: 'Verified admin workflow context is required',
+            code: "UNAUTHENTICATED",
+            message: "Verified admin workflow context is required",
             field: null,
           },
         ],
-        'workflow',
-        'run',
+        "workflow",
+        "run",
       );
     }
 
@@ -410,36 +382,33 @@ export class ServiceBroker implements OnModuleDestroy {
   }
 
   private createWorkflowContext(
-    adminContext: NonNullable<BrokerWorkflowStartOptions['adminContext']>,
+    adminContext: NonNullable<BrokerWorkflowStartOptions["adminContext"]>,
   ): WorkflowExecutionContext {
     const organizationId = adminContext.organizationId;
     if (
       !adminContext.user.id.trim() ||
-      typeof organizationId !== 'string' ||
+      typeof organizationId !== "string" ||
       !organizationId.trim() ||
       (adminContext.store !== null && !adminContext.store.id.trim())
     ) {
       throw new AuthorizationError(
         [
           {
-            code: 'UNAUTHENTICATED',
-            message: 'Admin organization context is required',
+            code: "UNAUTHENTICATED",
+            message: "Admin organization context is required",
             field: null,
           },
         ],
-        'workflow',
-        'run',
+        "workflow",
+        "run",
       );
     }
-    if (
-      adminContext.store &&
-      adminContext.store.organizationId !== organizationId
-    ) {
-      throw new Error('Admin store does not belong to its organization context');
+    if (adminContext.store && adminContext.store.organizationId !== organizationId) {
+      throw new Error("Admin store does not belong to its organization context");
     }
     return Object.freeze({
       authorization: Object.freeze({
-        kind: 'admin',
+        kind: "admin",
         subject: adminContext.user.id,
         organizationId,
         ...(adminContext.store ? { storeId: adminContext.store.id } : {}),
@@ -447,38 +416,33 @@ export class ServiceBroker implements OnModuleDestroy {
     });
   }
 
-  private normalizeWorkflowContext(
-    context: WorkflowExecutionContext,
-  ): WorkflowExecutionContext {
+  private normalizeWorkflowContext(context: WorkflowExecutionContext): WorkflowExecutionContext {
     const authorization = context.authorization;
     if (
       !authorization ||
-      authorization.kind !== 'admin' ||
+      authorization.kind !== "admin" ||
       !authorization.subject.trim() ||
       !authorization.organizationId.trim() ||
-      (authorization.storeId !== undefined &&
-        !authorization.storeId.trim())
+      (authorization.storeId !== undefined && !authorization.storeId.trim())
     ) {
       throw new AuthorizationError(
         [
           {
-            code: 'UNAUTHENTICATED',
-            message: 'Invalid nested workflow authorization context',
+            code: "UNAUTHENTICATED",
+            message: "Invalid nested workflow authorization context",
             field: null,
           },
         ],
-        'workflow',
-        'run',
+        "workflow",
+        "run",
       );
     }
     return Object.freeze({
       authorization: Object.freeze({
-        kind: 'admin',
+        kind: "admin",
         subject: authorization.subject,
         organizationId: authorization.organizationId,
-        ...(authorization.storeId
-          ? { storeId: authorization.storeId }
-          : {}),
+        ...(authorization.storeId ? { storeId: authorization.storeId } : {}),
       }),
     });
   }

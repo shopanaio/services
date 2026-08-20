@@ -9,22 +9,17 @@ export class CustomerExternalReferenceResolver extends CustomersType<
   CustomerExternalReference
 > {
   async $preload() {
-    const reference = await this.$ctx.loaders.externalReference.load(
-      this.$props
-    );
+    const reference = await this.$ctx.loaders.externalReference.load(this.$props);
     if (!reference) {
       throw new PreloadNotFoundError(
-        `Customer external reference with ID ${this.$props} not found`
+        `Customer external reference with ID ${this.$props} not found`,
       );
     }
     return reference;
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.CustomerExternalReference
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.CustomerExternalReference);
   }
 
   async customer() {

@@ -2,10 +2,7 @@
 
 import { useQuery } from "@apollo/client/react";
 import { FACET_GRID_QUERY } from "../graphql";
-import type {
-  FacetGridFields,
-  FacetGridQueryData,
-} from "../graphql/operation-types";
+import type { FacetGridFields, FacetGridQueryData } from "../graphql/operation-types";
 
 export interface UseFacetsReturn {
   facets: FacetGridFields[];
@@ -15,10 +12,12 @@ export interface UseFacetsReturn {
 }
 
 export function useFacets(): UseFacetsReturn {
-  const { data, previousData, loading, error, refetch } =
-    useQuery<FacetGridQueryData>(FACET_GRID_QUERY, {
+  const { data, previousData, loading, error, refetch } = useQuery<FacetGridQueryData>(
+    FACET_GRID_QUERY,
+    {
       fetchPolicy: "cache-and-network",
-    });
+    },
+  );
 
   const effectiveData = data ?? previousData;
 

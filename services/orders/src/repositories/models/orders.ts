@@ -53,7 +53,9 @@ export const orders = ordersSchema.table(
 );
 
 export const orderNumberCounters = ordersSchema.table("order_number_counters", {
-  id: uuid("id").primaryKey().default(sql`uuidv7()`),
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`uuidv7()`),
   storeId: uuid("store_id").notNull().unique(),
   lastNumber: bigint("last_number", { mode: "bigint" }).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -64,7 +66,9 @@ export const orderItems = ordersSchema.table(
   {
     id: uuid("id").primaryKey(),
     storeId: uuid("store_id").notNull(),
-    orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
     quantity: integer("quantity").notNull(),
     subtotalAmount: bigint("subtotal_amount", { mode: "bigint" }).notNull(),
     discountAmount: bigint("discount_amount", { mode: "bigint" }).notNull(),
@@ -116,7 +120,9 @@ export const ordersPiiRecords = ordersSchema.table(
   "orders_pii_records",
   {
     storeId: uuid("store_id").notNull(),
-    orderId: uuid("order_id").primaryKey().references(() => orders.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id")
+      .primaryKey()
+      .references(() => orders.id, { onDelete: "cascade" }),
     firstName: text("first_name"),
     lastName: text("last_name"),
     middleName: text("middle_name"),
@@ -137,9 +143,15 @@ export const orderDeliveryGroups = ordersSchema.table(
   {
     id: uuid("id").primaryKey(),
     storeId: uuid("store_id").notNull(),
-    orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
-    addressId: uuid("address_id").references(() => orderDeliveryAddresses.id, { onDelete: "set null" }),
-    recipientId: uuid("recipient_id").references(() => orderRecipients.id, { onDelete: "set null" }),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    addressId: uuid("address_id").references(() => orderDeliveryAddresses.id, {
+      onDelete: "set null",
+    }),
+    recipientId: uuid("recipient_id").references(() => orderRecipients.id, {
+      onDelete: "set null",
+    }),
     selectedDeliveryMethodCode: text("selected_delivery_method_code"),
     selectedDeliveryMethodProvider: text("selected_delivery_method_provider"),
     lineItemIds: uuid("line_item_ids").array().notNull(),
@@ -154,7 +166,9 @@ export const orderDeliveryMethods = ordersSchema.table(
     code: text("code").notNull(),
     provider: text("provider").notNull(),
     storeId: uuid("store_id").notNull(),
-    deliveryGroupId: uuid("delivery_group_id").notNull().references(() => orderDeliveryGroups.id, { onDelete: "cascade" }),
+    deliveryGroupId: uuid("delivery_group_id")
+      .notNull()
+      .references(() => orderDeliveryGroups.id, { onDelete: "cascade" }),
     deliveryMethodType: varchar("delivery_method_type", { length: 32 }),
     paymentModel: varchar("payment_model", { length: 32 }),
     metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
@@ -166,8 +180,12 @@ export const orderDeliveryMethods = ordersSchema.table(
 export const orderPaymentMethods = ordersSchema.table(
   "order_payment_methods",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
-    orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
     storeId: uuid("store_id").notNull(),
     billingAddressId: uuid("billing_address_id"),
     code: text("code").notNull(),
@@ -176,17 +194,26 @@ export const orderPaymentMethods = ordersSchema.table(
     flow: varchar("flow", { length: 32 }).notNull(),
     isSelected: boolean("is_selected").notNull().default(false),
     providerData: jsonb("provider_data").$type<Record<string, unknown>>().notNull().default({}),
-    customerInputSnapshot: jsonb("customer_input_snapshot").$type<Record<string, unknown>>().notNull().default({}),
+    customerInputSnapshot: jsonb("customer_input_snapshot")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
     ...auditColumns(),
   },
-  (table) => [index("order_payment_methods_store_order_idx").on(table.storeId, table.orderId, table.id)],
+  (table) => [
+    index("order_payment_methods_store_order_idx").on(table.storeId, table.orderId, table.id),
+  ],
 );
 
 export const orderAppliedDiscounts = ordersSchema.table(
   "order_applied_discounts",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
-    orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
     storeId: uuid("store_id").notNull(),
     code: text("code"),
     discountType: varchar("discount_type", { length: 32 }),
@@ -201,7 +228,9 @@ export const orderAppliedDiscounts = ordersSchema.table(
 export const idempotency = ordersSchema.table(
   "idempotency",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     idempotencyKey: text("idempotency_key").notNull(),
     requestHash: text("request_hash").notNull(),

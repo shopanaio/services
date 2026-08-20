@@ -15,11 +15,13 @@ export class LocaleDeleteScript extends BaseScript<LocaleDeleteParams, LocaleDel
     if (store.defaultLocale === params.code) {
       return {
         deletedLocaleCode: null,
-        userErrors: [{
-          message: "The default language cannot be deleted",
-          code: "DEFAULT_LOCALE_DELETE_FORBIDDEN",
-          field: ["code"],
-        }],
+        userErrors: [
+          {
+            message: "The default language cannot be deleted",
+            code: "DEFAULT_LOCALE_DELETE_FORBIDDEN",
+            field: ["code"],
+          },
+        ],
       };
     }
 

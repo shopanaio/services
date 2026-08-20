@@ -9,14 +9,8 @@ export class ApplicationAuthSecretService {
     const context = `shopana:iam:application-auth:${applicationId}:${keyVersion}`;
     return this.keyring.withRootKey(keyVersion, (rootKey) =>
       Buffer.from(
-        hkdfSync(
-          "sha256",
-          rootKey,
-          Buffer.alloc(0),
-          Buffer.from(context, "utf8"),
-          32
-        )
-      ).toString("base64url")
+        hkdfSync("sha256", rootKey, Buffer.alloc(0), Buffer.from(context, "utf8"), 32),
+      ).toString("base64url"),
     );
   }
 
@@ -28,20 +22,13 @@ export class ApplicationAuthSecretService {
       | "rate-limit"
       | "hosted-ui-logout"
       | "account-connections"
-      | "security-audit"
+      | "security-audit",
   ): string {
-    const context =
-      `shopana:iam:application-auth:${purpose}:${applicationId}:${keyVersion}`;
+    const context = `shopana:iam:application-auth:${purpose}:${applicationId}:${keyVersion}`;
     return this.keyring.withRootKey(keyVersion, (rootKey) =>
       Buffer.from(
-        hkdfSync(
-          "sha256",
-          rootKey,
-          Buffer.alloc(0),
-          Buffer.from(context, "utf8"),
-          32
-        )
-      ).toString("base64url")
+        hkdfSync("sha256", rootKey, Buffer.alloc(0), Buffer.from(context, "utf8"), 32),
+      ).toString("base64url"),
     );
   }
 }

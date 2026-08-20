@@ -14,29 +14,23 @@ import type { IAM, Media } from "@shopana/broker-types";
 import { v7 as uuidv7 } from "uuid";
 import { Roles, RolesMeta } from "@shopana/rbac";
 import { Kernel } from "../kernel/Kernel.js";
-import type {
-  CurrencyCode,
-  LocaleCode,
-  StoreStatus,
-} from "../repositories/models/index.js";
+import type { CurrencyCode, LocaleCode, StoreStatus } from "../repositories/models/index.js";
 
 /** Convert @shopana/rbac Roles.store to RoleConfig[] for iam.createRoles */
 function buildStoreRoles(): IAM.RoleConfig[] {
-  return (Object.keys(Roles.store) as Array<keyof typeof Roles.store>).map(
-    (roleName) => {
-      const permissions = Roles.store[roleName];
-      const meta = RolesMeta.store[roleName];
-      return {
-        name: roleName,
-        displayName: meta.displayName,
-        description: meta.description,
-        permissions: permissions.map((p) => ({
-          resource: p.resource,
-          action: p.action,
-        })),
-      };
-    },
-  );
+  return (Object.keys(Roles.store) as Array<keyof typeof Roles.store>).map((roleName) => {
+    const permissions = Roles.store[roleName];
+    const meta = RolesMeta.store[roleName];
+    return {
+      name: roleName,
+      displayName: meta.displayName,
+      description: meta.description,
+      permissions: permissions.map((p) => ({
+        resource: p.resource,
+        action: p.action,
+      })),
+    };
+  });
 }
 
 export interface StoreCreateInput {
@@ -106,10 +100,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   }
 
   @SagaStep()
-  private async createStore(
-    id: string,
-    input: StoreCreateInput,
-  ): Promise<void> {
+  private async createStore(id: string, input: StoreCreateInput): Promise<void> {
     await this.kernel.repository.store.create({
       id,
       organizationId: input.organizationId,
@@ -128,10 +119,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     input: StoreCreateInput,
     workflowContext: WorkflowExecutionContext,
   ): Promise<void> {
-    const result = await this.broker.runWorkflow<
-      IAM.CreateRolesResult,
-      IAM.CreateRolesParams
-    >(
+    const result = await this.broker.runWorkflow<IAM.CreateRolesResult, IAM.CreateRolesParams>(
       "iam.createRoles",
       {
         userId: input.userId,
@@ -150,11 +138,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
 
     if (result.success) return;
 
-    throw new FatalError(
-      result.error ?? "Failed to create roles",
-      undefined,
-      "ROLE_CREATE_FAILED",
-    );
+    throw new FatalError(result.error ?? "Failed to create roles", undefined, "ROLE_CREATE_FAILED");
   }
 
   private async workflowAssignAdminRole(
@@ -162,10 +146,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     input: StoreCreateInput,
     workflowContext: WorkflowExecutionContext,
   ): Promise<void> {
-    const result = await this.broker.runWorkflow<
-      IAM.AssignRoleResult,
-      IAM.AssignRoleParams
-    >(
+    const result = await this.broker.runWorkflow<IAM.AssignRoleResult, IAM.AssignRoleParams>(
       "iam.assignRole",
       {
         userId: input.userId,
@@ -236,10 +217,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     );
   }
 
-  private async emitStoreConfigurationUpdated(
-    id: string,
-    input: StoreCreateInput,
-  ): Promise<void> {
+  private async emitStoreConfigurationUpdated(id: string, input: StoreCreateInput): Promise<void> {
     const occurredAt = new Date().toISOString();
     await this.broker.runWorkflow(
       "events.emit",
@@ -277,13 +255,13 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
 
   async compensateCreateMediaAssetGroup(id: string): Promise<void> {
     try {
-      await this.broker.call<
-        Media.DeleteAssetGroupResult,
-        Media.DeleteAssetGroupParams
-      >("media.deleteAssetGroup", {
-        ownerType: "store",
-        ownerId: id,
-      });
+      await this.broker.call<Media.DeleteAssetGroupResult, Media.DeleteAssetGroupParams>(
+        "media.deleteAssetGroup",
+        {
+          ownerType: "store",
+          ownerId: id,
+        },
+      );
       this.logger.log({ storeId: id }, "Compensated: deleted media asset group");
     } catch (error) {
       this.logger.warn({ storeId: id, error }, "Failed to compensate media asset group");

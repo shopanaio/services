@@ -35,21 +35,18 @@ interface UseRevokeSessionReturn {
  * Provides methods to revoke a specific session or all sessions except current.
  */
 export function useRevokeSession(): UseRevokeSessionReturn {
-  const [revokeMutate, { loading: revokeLoading, error: revokeError }] =
-    useMutation<
-      { userMutation: { sessionRevoke: ApiSessionRevokePayload } },
-      { input: { sessionId: string } }
-    >(REVOKE_SESSION_MUTATION, {
-      refetchQueries: [{ query: MY_SESSIONS_QUERY }],
-    });
+  const [revokeMutate, { loading: revokeLoading, error: revokeError }] = useMutation<
+    { userMutation: { sessionRevoke: ApiSessionRevokePayload } },
+    { input: { sessionId: string } }
+  >(REVOKE_SESSION_MUTATION, {
+    refetchQueries: [{ query: MY_SESSIONS_QUERY }],
+  });
 
-  const [revokeAllMutate, { loading: revokeAllLoading, error: revokeAllError }] =
-    useMutation<{ userMutation: { sessionRevokeAll: ApiSessionRevokeAllPayload } }>(
-      REVOKE_ALL_SESSIONS_MUTATION,
-      {
-        refetchQueries: [{ query: MY_SESSIONS_QUERY }],
-      }
-    );
+  const [revokeAllMutate, { loading: revokeAllLoading, error: revokeAllError }] = useMutation<{
+    userMutation: { sessionRevokeAll: ApiSessionRevokeAllPayload };
+  }>(REVOKE_ALL_SESSIONS_MUTATION, {
+    refetchQueries: [{ query: MY_SESSIONS_QUERY }],
+  });
 
   const revokeSession = useCallback(
     async (sessionId: string): Promise<RevokeSessionResult> => {
@@ -61,7 +58,7 @@ export function useRevokeSession(): UseRevokeSessionReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [revokeMutate]
+    [revokeMutate],
   );
 
   const revokeAllSessions = useCallback(async (): Promise<RevokeAllSessionsResult> => {

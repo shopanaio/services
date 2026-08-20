@@ -1,9 +1,6 @@
 export { CustomersType, Cache } from "./CustomersType.js";
 export { QueryResolver, CustomersQueryResolver } from "./QueryResolver.js";
-export {
-  MutationResolver,
-  CustomersMutationResolver,
-} from "./MutationResolver.js";
+export { MutationResolver, CustomersMutationResolver } from "./MutationResolver.js";
 export { ResolverRegistry, getResolverRegistry } from "./ResolverRegistry.js";
 export { CustomerResolver } from "./CustomerResolver.js";
 export { CustomerExternalReferenceResolver } from "./CustomerExternalReferenceResolver.js";

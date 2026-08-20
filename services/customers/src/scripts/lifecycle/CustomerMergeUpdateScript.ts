@@ -22,9 +22,7 @@ export class CustomerMergeUpdateScript extends BaseScript<
   CustomerMergeUpdateResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerMergeUpdateParams
-  ): Promise<CustomerMergeUpdateResult> {
+  protected async execute(params: CustomerMergeUpdateParams): Promise<CustomerMergeUpdateResult> {
     const current = await this.repository.lifecycle.findMergeById(params.id);
     if (!current) return notFound();
     if (current.status !== "REQUESTED") return invalidState();
@@ -96,7 +94,7 @@ export class CustomerMergeUpdateScript extends BaseScript<
     try {
       const merge = await this.repository.lifecycle.updateMerge(
         params.id,
-        mergePatch(params.operations)
+        mergePatch(params.operations),
       );
       if (!merge) return invalidState();
       this.logger.info({ mergeId: merge.id }, "Customer merge request updated");
@@ -126,9 +124,7 @@ export class CustomerMergeUpdateScript extends BaseScript<
   }
 }
 
-function mergePatch(
-  operations: CustomerMergeUpdateParams["operations"]
-): CustomerMergePatch {
+function mergePatch(operations: CustomerMergeUpdateParams["operations"]): CustomerMergePatch {
   const patch: CustomerMergePatch = {};
   for (const field of ["sourceCustomerId", "targetCustomerId", "reason"] as const) {
     if (hasOwn(operations, field)) {

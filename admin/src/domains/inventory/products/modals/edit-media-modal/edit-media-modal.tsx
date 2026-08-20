@@ -1,11 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { EntityMediaGallery } from "@/domains/media/components";
 import type { ApiFile } from "@/graphql/types";
 import type { IEditMediaModalPayload } from "../../modals";
@@ -24,10 +20,7 @@ export const EditMediaModal = () => {
 
   const [gallery, setGallery] = useState<ApiFile[]>(() => {
     const items = [...typedPayload.gallery];
-    if (
-      typedPayload.featured &&
-      !items.find((item) => item.id === typedPayload.featured?.id)
-    ) {
+    if (typedPayload.featured && !items.find((item) => item.id === typedPayload.featured?.id)) {
       items.unshift(typedPayload.featured);
     }
     return items;
@@ -55,7 +48,7 @@ export const EditMediaModal = () => {
       setGallery(items);
       markDirty();
     },
-    [markDirty]
+    [markDirty],
   );
 
   const handleSelectedFileIdsChange = useCallback(

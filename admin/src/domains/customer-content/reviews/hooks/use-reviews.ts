@@ -1,16 +1,9 @@
 "use client";
 
-import type {
-  ApiPageInfo,
-  ApiReview,
-  ApiReviewConnection,
-} from "@/graphql/types";
+import type { ApiPageInfo, ApiReview, ApiReviewConnection } from "@/graphql/types";
 import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import { REVIEWS_QUERY } from "../graphql";
-import type {
-  ReviewsQueryData,
-  ReviewsQueryVariables,
-} from "../graphql/operation-types";
+import type { ReviewsQueryData, ReviewsQueryVariables } from "../graphql/operation-types";
 
 export interface UseReviewsReturn {
   reviews: ApiReview[];

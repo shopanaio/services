@@ -17,15 +17,19 @@ export interface UseDefaultWarehouseReturn {
 }
 
 export function useDefaultWarehouse(): UseDefaultWarehouseReturn {
-  const { data, loading, error, refetch: refetchDefaultWarehouse } = useQuery<
-    InventoryDefaultWarehouseQueryData,
-    InventoryDefaultWarehouseQueryVariables
-  >(INVENTORY_DEFAULT_WAREHOUSE_QUERY, {
-    fetchPolicy: "cache-and-network",
-  });
+  const {
+    data,
+    loading,
+    error,
+    refetch: refetchDefaultWarehouse,
+  } = useQuery<InventoryDefaultWarehouseQueryData, InventoryDefaultWarehouseQueryVariables>(
+    INVENTORY_DEFAULT_WAREHOUSE_QUERY,
+    {
+      fetchPolicy: "cache-and-network",
+    },
+  );
 
-  const defaultWarehouse =
-    data?.inventoryQuery.warehouses.edges[0]?.node ?? null;
+  const defaultWarehouse = data?.inventoryQuery.warehouses.edges[0]?.node ?? null;
 
   const refetch = useCallback(async () => {
     const result = await refetchDefaultWarehouse();

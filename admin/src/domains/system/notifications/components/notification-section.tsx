@@ -2,27 +2,14 @@
 
 import { App, Switch } from "antd";
 import { createStyles } from "antd-style";
-import type {
-  ApiGenericUserError,
-  ApiNotificationDefinition,
-} from "@/graphql/types";
-import {
-  GroupedLinkItem,
-  GroupedLinkItemDivider,
-} from "@/ui-kit/grouped-link-item";
+import type { ApiGenericUserError, ApiNotificationDefinition } from "@/graphql/types";
+import { GroupedLinkItem, GroupedLinkItemDivider } from "@/ui-kit/grouped-link-item";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import type {
-  NotificationItemConfig,
-  NotificationSectionConfig,
-} from "../constants";
+import type { NotificationItemConfig, NotificationSectionConfig } from "../constants";
 
 type NotificationDefinitionSummary = Pick<
   ApiNotificationDefinition,
-  | "key"
-  | "enabled"
-  | "version"
-  | "allowedChannels"
-  | "variables"
+  "key" | "enabled" | "version" | "allowedChannels" | "variables"
 >;
 
 const useStyles = createStyles(({ css, token }) => ({
@@ -46,10 +33,7 @@ export interface NotificationSectionProps {
   section: NotificationSectionConfig;
   definitions: NotificationDefinitionSummary[];
   updatingKeys: ReadonlySet<string>;
-  onOpen: (
-    item: NotificationItemConfig,
-    definition?: NotificationDefinitionSummary,
-  ) => void;
+  onOpen: (item: NotificationItemConfig, definition?: NotificationDefinitionSummary) => void;
   onToggle: (
     definition: NotificationDefinitionSummary,
     enabled: boolean,
@@ -65,26 +49,17 @@ export function NotificationSection({
 }: NotificationSectionProps) {
   const { styles } = useStyles();
   const { message } = App.useApp();
-  const definitionByKey = new Map(
-    definitions.map((definition) => [definition.key, definition]),
-  );
+  const definitionByKey = new Map(definitions.map((definition) => [definition.key, definition]));
 
-  const toggle = async (
-    definition: NotificationDefinitionSummary,
-    enabled: boolean,
-  ) => {
+  const toggle = async (definition: NotificationDefinitionSummary, enabled: boolean) => {
     try {
       const result = await onToggle(definition, enabled);
       if (result.userErrors.length > 0) {
-        message.error(
-          result.userErrors.map(({ message: text }) => text).join("\n"),
-        );
+        message.error(result.userErrors.map(({ message: text }) => text).join("\n"));
       }
     } catch (error) {
       message.error(
-        error instanceof Error
-          ? error.message
-          : "The notification setting could not be changed.",
+        error instanceof Error ? error.message : "The notification setting could not be changed.",
       );
     }
   };

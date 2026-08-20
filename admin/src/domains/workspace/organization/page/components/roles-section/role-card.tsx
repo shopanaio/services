@@ -1,7 +1,13 @@
 "use client";
 
 import { Typography, Button, Dropdown } from "antd";
-import { LuShield as SafetyOutlined, LuPencil as EditOutlined, LuEye as EyeOutlined, LuTrash2 as DeleteOutlined, LuEllipsis as MoreOutlined } from "react-icons/lu";
+import {
+  LuShield as SafetyOutlined,
+  LuPencil as EditOutlined,
+  LuEye as EyeOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuEllipsis as MoreOutlined,
+} from "react-icons/lu";
 import { useStyles } from "../../organization-page.styles";
 import type { RoleCardProps } from "../../types";
 
@@ -12,13 +18,7 @@ const roleIcons: Record<string, React.ReactNode> = {
   member: <EyeOutlined style={{ color: "#8c8c8c" }} />,
 };
 
-export function RoleCard({
-  role,
-  onEdit,
-  onDelete,
-  selected,
-  onSelect,
-}: RoleCardProps) {
+export function RoleCard({ role, onEdit, onDelete, selected, onSelect }: RoleCardProps) {
   const { styles, cx } = useStyles();
   const isSelectable = onSelect !== undefined;
 
@@ -32,12 +32,8 @@ export function RoleCard({
           {roleIcons[role.name] || <EyeOutlined style={{ color: "#8c8c8c" }} />}
         </span>
         <div className={styles.roleDetails}>
-          <Typography.Text className={styles.roleName}>
-            {role.displayName}
-          </Typography.Text>
-          <Typography.Text className={styles.roleDescription}>
-            {role.description}
-          </Typography.Text>
+          <Typography.Text className={styles.roleName}>{role.displayName}</Typography.Text>
+          <Typography.Text className={styles.roleDescription}>{role.description}</Typography.Text>
         </div>
       </div>
 

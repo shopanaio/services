@@ -26,8 +26,7 @@ export class AuthProvider implements AuthProviderContract {
     const context = getContext();
     return authorizeAdminContext(context.adminContext, {
       subject,
-      organizationId:
-        params.organizationId ?? context.store.organizationId,
+      organizationId: params.organizationId ?? context.store.organizationId,
       organizationName: params.organizationName,
       resource: params.resource,
       action: params.action,
@@ -35,9 +34,7 @@ export class AuthProvider implements AuthProviderContract {
     });
   }
 
-  async authorizeProtectedResource(
-    params: ProtectedResourceAuthorizeParams,
-  ): Promise<boolean> {
+  async authorizeProtectedResource(params: ProtectedResourceAuthorizeParams): Promise<boolean> {
     const result = (await getContext().broker.call(
       "iam.authorizeProtectedResource",
       params,

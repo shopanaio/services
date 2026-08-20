@@ -1,8 +1,5 @@
 import DataLoader from "dataloader";
-import type {
-  CasbinService,
-  GroupedPermission,
-} from "../casbin/CasbinService.js";
+import type { CasbinService, GroupedPermission } from "../casbin/CasbinService.js";
 import type { Repository } from "../repositories/Repository.js";
 import type { Role } from "../repositories/models/authorization.js";
 
@@ -50,49 +47,40 @@ export class RoleLoader {
       async (keys) => {
         const results = await Promise.all(
           keys.map((key) =>
-            repository.organization.findRole(
-              key.organizationId,
-              key.domain,
-              key.name
-            )
-          )
+            repository.organization.findRole(key.organizationId, key.domain, key.name),
+          ),
         );
         return results;
       },
       {
         cacheKeyFn: roleKeyToString,
-      }
+      },
     );
 
     this.rolePermissions = new DataLoader<RoleKey, GroupedPermission[], string>(
       async (keys) => {
         const results = await Promise.all(
-          keys.map((key) =>
-            casbin.getGroupedPoliciesForRole(key.organizationId, key.name)
-          )
+          keys.map((key) => casbin.getGroupedPoliciesForRole(key.organizationId, key.name)),
         );
         return results;
       },
       {
         cacheKeyFn: roleKeyToString,
-      }
+      },
     );
 
     this.rolesByDomain = new DataLoader<DomainKey, Role[], string>(
       async (keys) => {
         const results = await Promise.all(
           keys.map((key) =>
-            repository.organization.getRolesByDomain(
-              key.organizationId,
-              key.domain
-            )
-          )
+            repository.organization.getRolesByDomain(key.organizationId, key.domain),
+          ),
         );
         return results;
       },
       {
         cacheKeyFn: domainKeyToString,
-      }
+      },
     );
   }
 }

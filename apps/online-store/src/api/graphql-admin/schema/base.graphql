@@ -5,30 +5,46 @@ extend schema
   )
 
 extend type Query {
-  """Online Store content query namespace."""
+  """
+  Online Store content query namespace.
+  """
   onlineStoreAppQuery: OnlineStoreAppQuery!
 }
 
 extend type Mutation {
-  """Online Store content mutation namespace."""
+  """
+  Online Store content mutation namespace.
+  """
   onlineStoreAppMutation: OnlineStoreAppMutation!
 }
 
-"""Admin queries scoped to the active Online Store App installation."""
+"""
+Admin queries scoped to the active Online Store App installation.
+"""
 type OnlineStoreAppQuery {
-  """Get an Online Store node by its global ID."""
+  """
+  Get an Online Store node by its global ID.
+  """
   node(id: ID!): Node
 
-  """Get Online Store nodes by their global IDs."""
+  """
+  Get Online Store nodes by their global IDs.
+  """
   nodes(ids: [ID!]!): [Node]!
 
-  """Get a page by its global ID."""
+  """
+  Get a page by its global ID.
+  """
   page(id: ID!): OnlineStorePage
 
-  """Get a page by its URL handle."""
+  """
+  Get a page by its URL handle.
+  """
   pageByHandle(handle: String!): OnlineStorePage
 
-  """Get pages with Relay-style pagination."""
+  """
+  Get pages with Relay-style pagination.
+  """
   pages(
     first: Int
     after: String
@@ -38,13 +54,19 @@ type OnlineStoreAppQuery {
     orderBy: [OnlineStorePageOrderByInput!]
   ): OnlineStorePageConnection!
 
-  """Get a navigation menu by its global ID."""
+  """
+  Get a navigation menu by its global ID.
+  """
   navigationMenu(id: ID!): OnlineStoreNavigationMenu
 
-  """Get a navigation menu by its URL handle."""
+  """
+  Get a navigation menu by its URL handle.
+  """
   navigationMenuByHandle(handle: String!): OnlineStoreNavigationMenu
 
-  """Get navigation menus with Relay-style pagination."""
+  """
+  Get navigation menus with Relay-style pagination.
+  """
   navigationMenus(
     first: Int
     after: String
@@ -55,7 +77,9 @@ type OnlineStoreAppQuery {
   ): OnlineStoreNavigationMenuConnection!
 }
 
-"""Admin mutations scoped to the active Online Store App installation."""
+"""
+Admin mutations scoped to the active Online Store App installation.
+"""
 type OnlineStoreAppMutation {
   pageCreate(input: OnlineStorePageCreateInput!): OnlineStorePageCreatePayload!
   pageUpdate(

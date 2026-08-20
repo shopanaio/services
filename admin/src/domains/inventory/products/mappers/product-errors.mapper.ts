@@ -8,12 +8,7 @@ import { OperationType, VariantOperationAction } from "@/graphql/types";
 import type { VariantEditorSaveRow } from "./product-variant-editor.mapper";
 
 export type ProductFormErrorField =
-  | "title"
-  | "handle"
-  | "description"
-  | "media"
-  | "options"
-  | "variants";
+  "title" | "handle" | "description" | "media" | "options" | "variants";
 
 export interface ProductFormError {
   field: ProductFormErrorField;
@@ -142,15 +137,16 @@ function getFallbackRowForVariantIndex(
   const operation = submittedOperation ?? additionalOperation;
 
   if (operation?.action === VariantOperationAction.Create) {
-    return input.draftRows.find(
-      (row) => row.clientMutationId === operation.clientMutationId,
-    ) ?? null;
+    return (
+      input.draftRows.find((row) => row.clientMutationId === operation.clientMutationId) ?? null
+    );
   }
 
   if (operation?.variantId) {
-    return [...input.existingRows, ...input.deletedRows].find(
-      (row) => row.id === operation.variantId,
-    ) ?? null;
+    return (
+      [...input.existingRows, ...input.deletedRows].find((row) => row.id === operation.variantId) ??
+      null
+    );
   }
 
   return [...input.existingRows, ...input.draftRows][index] ?? null;
@@ -160,20 +156,15 @@ export function mapVariantOperationResultsToRowState(
   input: VariantOperationRowStateInput,
 ): VariantOperationRowState {
   const rowErrors: Record<string, string | null> = {};
-  const materializedDraftRows: VariantOperationRowState["materializedDraftRows"] =
-    [];
+  const materializedDraftRows: VariantOperationRowState["materializedDraftRows"] = [];
   const appliedDeletedRowIds: string[] = [];
   const draftRowsByClientMutationId = new Map(
     input.draftRows
       .filter((row) => row.clientMutationId)
       .map((row) => [row.clientMutationId as string, row]),
   );
-  const existingRowsById = new Map(
-    input.existingRows.map((row) => [row.id, row]),
-  );
-  const deletedRowsById = new Map(
-    input.deletedRows.map((row) => [row.id, row]),
-  );
+  const existingRowsById = new Map(input.existingRows.map((row) => [row.id, row]));
+  const deletedRowsById = new Map(input.deletedRows.map((row) => [row.id, row]));
   let firstMessage: string | null = null;
 
   for (const [index, operationResult] of input.operationResults.entries()) {
@@ -190,9 +181,7 @@ export function mapVariantOperationResultsToRowState(
     if (operationResult.type === OperationType.VariantCreate) {
       const fallbackRow = getFallbackRowForVariantIndex(input, index);
       const clientMutationId =
-        operationResult.clientMutationId ??
-        fallbackRow?.clientMutationId ??
-        undefined;
+        operationResult.clientMutationId ?? fallbackRow?.clientMutationId ?? undefined;
       const draftRow = clientMutationId
         ? draftRowsByClientMutationId.get(clientMutationId)
         : undefined;
@@ -214,9 +203,7 @@ export function mapVariantOperationResultsToRowState(
     }
 
     if (operationResult.type === OperationType.VariantUpdate) {
-      const rowId =
-        operationResult.entityId ??
-        getFallbackRowForVariantIndex(input, index)?.id;
+      const rowId = operationResult.entityId ?? getFallbackRowForVariantIndex(input, index)?.id;
 
       if (rowId && message && existingRowsById.has(rowId)) {
         rowErrors[rowId] = message;
@@ -227,9 +214,7 @@ export function mapVariantOperationResultsToRowState(
     }
 
     if (operationResult.type === OperationType.VariantDelete) {
-      const rowId =
-        operationResult.entityId ??
-        getFallbackRowForVariantIndex(input, index)?.id;
+      const rowId = operationResult.entityId ?? getFallbackRowForVariantIndex(input, index)?.id;
 
       if (rowId && operationResult.applied) {
         appliedDeletedRowIds.push(rowId);

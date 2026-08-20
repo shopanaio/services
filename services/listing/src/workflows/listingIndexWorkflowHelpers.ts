@@ -1,20 +1,13 @@
-import {
-  buildIdempotencyKey,
-  hashContent,
-  type IdempotencyContext,
-} from "@shopana/shared-kernel";
+import { buildIdempotencyKey, hashContent, type IdempotencyContext } from "@shopana/shared-kernel";
 import type { Listing } from "@shopana/broker-types";
 
 export const LISTING_INDEX_ACTIONS_QUEUE = "listing_index_actions" as const;
 export const LISTING_INDEX_WORKFLOW_TIMEOUT_MS = 120_000;
 
-export type ListingIndexActionType =
-  | "syncSellableItem"
-  | "deleteSellableItem";
+export type ListingIndexActionType = "syncSellableItem" | "deleteSellableItem";
 
 export type ListingIndexWorkflowName =
-  | "listing.syncSellableItemIndex"
-  | "listing.deleteSellableItemIndex";
+  "listing.syncSellableItemIndex" | "listing.deleteSellableItemIndex";
 
 export function buildListingIndexEffectiveIdempotencyKey(input: {
   rawIdempotencyKey: string;
@@ -53,7 +46,7 @@ export function buildListingIndexWorkflowIdempotencyContext(input: {
 }
 
 export function buildListingIndexWorkflowName(
-  actionType: ListingIndexActionType
+  actionType: ListingIndexActionType,
 ): ListingIndexWorkflowName {
   return actionType === "syncSellableItem"
     ? "listing.syncSellableItemIndex"
@@ -75,15 +68,17 @@ export function buildListingIndexQueuePartitionKey(input: {
   return [input.storeId, input.entityType, input.itemId].join(":");
 }
 
-export function buildListingIndexPayloadHash(input:
-  | {
-      type: "syncSellableItem";
-      params: Listing.SyncSellableItemParams;
-    }
-  | {
-      type: "deleteSellableItem";
-      params: Listing.DeleteSellableItemParams;
-    }): string {
+export function buildListingIndexPayloadHash(
+  input:
+    | {
+        type: "syncSellableItem";
+        params: Listing.SyncSellableItemParams;
+      }
+    | {
+        type: "deleteSellableItem";
+        params: Listing.DeleteSellableItemParams;
+      },
+): string {
   if (input.type === "syncSellableItem") {
     return hashContent({
       v: 1,
@@ -124,10 +119,7 @@ export function buildAcceptedListingUpdateResult(input: {
   };
 }
 
-export function isDuplicateWorkflowStartError(
-  error: unknown,
-  expectedWorkflowId: string
-): boolean {
+export function isDuplicateWorkflowStartError(error: unknown, expectedWorkflowId: string): boolean {
   if (!(error instanceof Error)) {
     return false;
   }

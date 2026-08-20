@@ -1,21 +1,13 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CategoryUpdateParams, CategoryUpdateResult } from "./dto/index.js";
-import {
-  serializeRichTextJsonText,
-  toRichTextStorage,
-} from "../shared/richText.js";
+import { serializeRichTextJsonText, toRichTextStorage } from "../shared/richText.js";
 
 const ALLOWED_SORTS = new Set(["manual", "price", "newest", "name"]);
 const ALLOWED_DIRECTIONS = new Set(["asc", "desc"]);
 
-export class CategoryUpdateScript extends BaseScript<
-  CategoryUpdateParams,
-  CategoryUpdateResult
-> {
+export class CategoryUpdateScript extends BaseScript<CategoryUpdateParams, CategoryUpdateResult> {
   @Transactional()
-  protected async execute(
-    params: CategoryUpdateParams
-  ): Promise<CategoryUpdateResult> {
+  protected async execute(params: CategoryUpdateParams): Promise<CategoryUpdateResult> {
     const {
       id,
       handle,
@@ -33,9 +25,7 @@ export class CategoryUpdateScript extends BaseScript<
     if (!existing) {
       return {
         category: undefined,
-        userErrors: [
-          { message: "Category not found", field: ["id"], code: "NOT_FOUND" },
-        ],
+        userErrors: [{ message: "Category not found", field: ["id"], code: "NOT_FOUND" }],
       };
     }
 
@@ -59,10 +49,7 @@ export class CategoryUpdateScript extends BaseScript<
       };
     }
 
-    if (
-      defaultSortDirection !== undefined &&
-      !ALLOWED_DIRECTIONS.has(defaultSortDirection)
-    ) {
+    if (defaultSortDirection !== undefined && !ALLOWED_DIRECTIONS.has(defaultSortDirection)) {
       return {
         category: undefined,
         userErrors: [
@@ -85,16 +72,10 @@ export class CategoryUpdateScript extends BaseScript<
     }
 
     // 4. Update translation if content fields are provided
-    if (
-      name !== undefined ||
-      description !== undefined ||
-      excerpt !== undefined
-    ) {
+    if (name !== undefined || description !== undefined || excerpt !== undefined) {
       // Get existing translation
       const translations = await this.repository.category.getTranslationsByCategoryIds([id]);
-      const existingTranslation = translations.find(
-        (t) => t.locale === this.getLocale()
-      );
+      const existingTranslation = translations.find((t) => t.locale === this.getLocale());
       const nextDescription =
         description === undefined
           ? {

@@ -1,8 +1,4 @@
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-} from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { findRootDir } from "./utils.js";
 
@@ -15,10 +11,7 @@ export interface ProjectUnit {
   readonly hostService?: string;
 }
 
-function discoverIn(
-  root: string,
-  kind: ProjectUnitKind,
-): ProjectUnit[] {
+function discoverIn(root: string, kind: ProjectUnitKind): ProjectUnit[] {
   if (!existsSync(root)) {
     return [];
   }
@@ -47,13 +40,8 @@ export function discoverProjectUnits(): ProjectUnit[] {
   });
 }
 
-export function findProjectUnit(
-  name: string,
-  kind?: ProjectUnitKind,
-): ProjectUnit | undefined {
-  return discoverProjectUnits().find(
-    (unit) => unit.name === name && (!kind || unit.kind === kind),
-  );
+export function findProjectUnit(name: string, kind?: ProjectUnitKind): ProjectUnit | undefined {
+  return discoverProjectUnits().find((unit) => unit.name === name && (!kind || unit.kind === kind));
 }
 
 export function readProjectUnitPackage(unit: ProjectUnit): {
@@ -61,7 +49,5 @@ export function readProjectUnitPackage(unit: ProjectUnit): {
   readonly description?: string;
   readonly scripts?: Record<string, string>;
 } {
-  return JSON.parse(
-    readFileSync(join(unit.path, "package.json"), "utf8"),
-  );
+  return JSON.parse(readFileSync(join(unit.path, "package.json"), "utf8"));
 }

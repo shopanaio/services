@@ -5,10 +5,7 @@ import { createStyles } from "antd-style";
 import { useRouter } from "next/navigation";
 import { DataLayout } from "@/layouts/data";
 import { usePathParams } from "@/registry";
-import {
-  GroupedLinkItem,
-  GroupedLinkItemDivider,
-} from "@/ui-kit/grouped-link-item";
+import { GroupedLinkItem, GroupedLinkItemDivider } from "@/ui-kit/grouped-link-item";
 import { Paper } from "@/ui-kit/paper";
 import { useWebhookSecret, useWebhooks } from "../hooks";
 import { useNotificationWebhookModal } from "../modals";
@@ -57,17 +54,13 @@ export default function WebhooksPage() {
   const { push: openWebhookModal } = useNotificationWebhookModal();
   const webhooksQuery = useWebhooks();
   const webhookSecret = useWebhookSecret();
-  const userErrorMessage = webhookSecret.userErrors
-    .map(({ message }) => message)
-    .join("\n");
+  const userErrorMessage = webhookSecret.userErrors.map(({ message }) => message).join("\n");
 
   return (
     <DataLayout
       fullWidth
       name="webhooks"
-      onBack={() =>
-        router.push(resolvePath("/:orgName/:storeName/system/notifications"))
-      }
+      onBack={() => router.push(resolvePath("/:orgName/:storeName/system/notifications"))}
       title="Webhooks"
     >
       <main className={styles.content}>
@@ -79,8 +72,7 @@ export default function WebhooksPage() {
             type="error"
           />
         ) : null}
-        {webhooksQuery.webhooks.length > 0 &&
-        (webhookSecret.error || userErrorMessage) ? (
+        {webhooksQuery.webhooks.length > 0 && (webhookSecret.error || userErrorMessage) ? (
           <Alert
             description={webhookSecret.error?.message ?? userErrorMessage}
             message="Unable to reveal the webhook signing secret"
@@ -90,9 +82,7 @@ export default function WebhooksPage() {
         ) : null}
 
         <Paper className={styles.card}>
-          <p className={styles.intro}>
-            Send XML or JSON notifications about store events to a URL
-          </p>
+          <p className={styles.intro}>Send XML or JSON notifications about store events to a URL</p>
           <GroupedLinkItem
             ariaLabel="Create webhook"
             description="Add a new event endpoint"

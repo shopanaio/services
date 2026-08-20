@@ -24,9 +24,7 @@ const SimpleEdgeComponent = ({
   // Control points: extend horizontally from source/target, creating a smooth S-curve
   const edgePath = `M ${sourceX} ${sourceY} C ${sourceX + controlOffset} ${sourceY}, ${targetX - controlOffset} ${targetY}, ${targetX} ${targetY}`;
 
-  return (
-    <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />
-  );
+  return <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />;
 };
 
 export const LabeledEdge = memo(SimpleEdgeComponent);

@@ -19,11 +19,7 @@ export class AppSecretResolverFactory {
             `App secret context mismatch: expected "${appCode}", received "${context.appCode}"`,
           );
         }
-        return this.secrets.resolve(
-          context.installationId,
-          appCode,
-          name,
-        );
+        return this.secrets.resolve(context.installationId, appCode, name);
       },
     });
   }

@@ -54,7 +54,7 @@ const FALLBACK_EXT: Record<string, string> = {
  */
 export async function analyzeMedia(
   buffer: Buffer,
-  fallbackMimeType?: string
+  fallbackMimeType?: string,
 ): Promise<MediaMetadata> {
   // 1. Detect MIME type from magic bytes
   const fileType = await fileTypeFromBuffer(buffer);

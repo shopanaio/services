@@ -5,10 +5,7 @@ import type {
   OptionValueSyncInput,
   OptionSwatchInput,
 } from "./dto/index.js";
-import {
-  type ValidatedOptionInput,
-  validateOptionSyncParams,
-} from "./validation/index.js";
+import { type ValidatedOptionInput, validateOptionSyncParams } from "./validation/index.js";
 
 interface ResolvedOption {
   readonly input: ValidatedOptionInput;
@@ -49,10 +46,7 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
       this.repository.option.findByProductId(productId),
     ]);
 
-    this.logger.info(
-      { productId, optionCount: syncedOptions.length },
-      "Product options synced"
-    );
+    this.logger.info({ productId, optionCount: syncedOptions.length }, "Product options synced");
 
     return {
       product: product ?? undefined,
@@ -66,7 +60,7 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
    */
   private async resolveOptions(
     productId: string,
-    options: ValidatedOptionInput[]
+    options: ValidatedOptionInput[],
   ): Promise<ResolvedOption[]> {
     const resolved: ResolvedOption[] = [];
 
@@ -105,7 +99,10 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
     });
   }
 
-  private async syncValues(optionId: string, values: ValidatedOptionInput["values"]): Promise<void> {
+  private async syncValues(
+    optionId: string,
+    values: ValidatedOptionInput["values"],
+  ): Promise<void> {
     const keepIds = values.flatMap((v) => (v.id ? [v.id] : []));
     await this.repository.option.deleteValuesExcept(optionId, keepIds);
 

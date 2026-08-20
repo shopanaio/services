@@ -11,10 +11,7 @@ import type {
 import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { CATEGORIES_QUERY } from "../graphql";
-import type {
-  CategoriesQueryData,
-  CategoriesQueryVariables,
-} from "../graphql/operation-types";
+import type { CategoriesQueryData, CategoriesQueryVariables } from "../graphql/operation-types";
 
 export interface UseCategoriesOptions extends RelayCursorPaginationVariables {
   where?: ApiCategoryWhereInput | null;
@@ -34,9 +31,7 @@ export interface UseCategoriesReturn {
   refetch: () => Promise<unknown>;
 }
 
-export function useCategories(
-  options: UseCategoriesOptions = {},
-): UseCategoriesReturn {
+export function useCategories(options: UseCategoriesOptions = {}): UseCategoriesReturn {
   const {
     first,
     after = null,

@@ -2,10 +2,7 @@
 // Dropdown Cell Renderer
 // =============================================================================
 
-export {
-  DropdownCellRenderer,
-  YES_NO_OPTIONS,
-} from "./dropdown-cell-renderer";
+export { DropdownCellRenderer, YES_NO_OPTIONS } from "./dropdown-cell-renderer";
 export { Dash } from "./dash";
 
 // =============================================================================

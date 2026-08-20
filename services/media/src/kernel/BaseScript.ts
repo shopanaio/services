@@ -63,10 +63,7 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
     try {
       return await this.execute(params);
     } catch (error) {
-      if (
-        !(error instanceof ValidationError) &&
-        !(error instanceof AuthorizationError)
-      ) {
+      if (!(error instanceof ValidationError) && !(error instanceof AuthorizationError)) {
         this.logger.error({ error }, `${this.constructor.name} failed`);
       }
       return this.handleError(error);
@@ -107,10 +104,7 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
 
   /** Current store media library, created lazily for upload/settings flows. */
   protected async getOrCreateStoreAssetGroup(): Promise<AssetGroup> {
-    const existing = await this.repository.assetGroup.findByOwner(
-      "store",
-      this.storeId
-    );
+    const existing = await this.repository.assetGroup.findByOwner("store", this.storeId);
     if (existing) return existing;
 
     return this.repository.assetGroup.create({
@@ -120,16 +114,8 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
   }
 
   /** Tenant-safe lookup used before every store file mutation. */
-  protected findStoreFile(
-    fileId: string,
-    includeDeleted = false
-  ): Promise<File | null> {
-    return this.repository.file.findByOwner(
-      fileId,
-      "store",
-      this.storeId,
-      includeDeleted
-    );
+  protected findStoreFile(fileId: string, includeDeleted = false): Promise<File | null> {
+    return this.repository.file.findByOwner(fileId, "store", this.storeId, includeDeleted);
   }
 
   /**
@@ -137,7 +123,7 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
    */
   protected executeScript<P, R>(
     ScriptClass: new (services: MediaKernelServices) => BaseScript<P, R>,
-    params: P
+    params: P,
   ): Promise<R> {
     const script = new ScriptClass(this.services);
     return script.run(params);

@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   App,
@@ -27,11 +23,7 @@ import {
   DiscountTargetType,
   PriceAdjustmentValueType,
 } from "@/graphql/types";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import {
   useCategoryPicker,
   useProductPicker,
@@ -113,9 +105,7 @@ function mergePickerSelection(
   entities: IPickableEntity[],
   ids: string[],
 ): DiscountTargetEditorItem[] {
-  const titleById = new Map(
-    current.map((target) => [target.id, target.title]),
-  );
+  const titleById = new Map(current.map((target) => [target.id, target.title]));
   entities.forEach((entity) => titleById.set(entity.id, entity.title));
 
   return ids.map((id) => ({
@@ -141,10 +131,7 @@ interface TargetSelectionEditorProps {
   title: string;
   targetType: DiscountTargetType;
   targets: DiscountTargetEditorItem[];
-  onChange: (
-    targetType: DiscountTargetType,
-    targets: DiscountTargetEditorItem[],
-  ) => void;
+  onChange: (targetType: DiscountTargetType, targets: DiscountTargetEditorItem[]) => void;
 }
 
 function TargetSelectionEditor({
@@ -159,10 +146,7 @@ function TargetSelectionEditor({
   const targetCopy = getTargetCopy(targetType);
   const handlePickerConfirm = useCallback(
     (entities: IPickableEntity[], ids: string[]) => {
-      onChange(
-        targetType,
-        mergePickerSelection(targets, entities, ids),
-      );
+      onChange(targetType, mergePickerSelection(targets, entities, ids));
     },
     [onChange, targetType, targets],
   );
@@ -199,9 +183,7 @@ function TargetSelectionEditor({
           className={styles.targetGroup}
           value={targetType}
           data-testid={`${testIdPrefix}-type`}
-          onChange={(event) =>
-            onChange(event.target.value as DiscountTargetType, [])
-          }
+          onChange={(event) => onChange(event.target.value as DiscountTargetType, [])}
         >
           {TARGET_OPTIONS.map((option) => (
             <Radio
@@ -210,14 +192,11 @@ function TargetSelectionEditor({
               data-testid={`${testIdPrefix}-${option.value.toLowerCase()}`}
               className={cx(
                 styles.targetOption,
-                targetType === option.value &&
-                  styles.targetOptionSelected,
+                targetType === option.value && styles.targetOptionSelected,
               )}
             >
               <span className={styles.targetCopy}>
-                <Typography.Text className={styles.targetTitle}>
-                  {option.title}
-                </Typography.Text>
+                <Typography.Text className={styles.targetTitle}>{option.title}</Typography.Text>
                 <Typography.Text className={styles.targetDescription}>
                   {option.description}
                 </Typography.Text>
@@ -228,32 +207,21 @@ function TargetSelectionEditor({
       </Paper>
 
       {targetCopy ? (
-        <Paper
-          className={styles.section}
-          data-testid={`${testIdPrefix}-selection-section`}
-        >
+        <Paper className={styles.section} data-testid={`${testIdPrefix}-selection-section`}>
           <PaperHeader
             title={`Selected ${targetCopy.plural}`}
-            actions={
-              <Typography.Text type="secondary">
-                {targets.length} selected
-              </Typography.Text>
-            }
+            actions={<Typography.Text type="secondary">{targets.length} selected</Typography.Text>}
           />
           <div className={styles.field}>
             <Typography.Text strong className={styles.fieldLabel}>
-              {targetCopy.plural[0].toUpperCase() +
-                targetCopy.plural.slice(1)}{" "}
-              *
+              {targetCopy.plural[0].toUpperCase() + targetCopy.plural.slice(1)} *
             </Typography.Text>
             <Flex gap={8} className={styles.pickerRow}>
               <Input
                 readOnly
                 className={styles.pickerSummary}
                 value={
-                  targets.length === 0
-                    ? ""
-                    : `${targets.length} ${targetCopy.plural} selected`
+                  targets.length === 0 ? "" : `${targets.length} ${targetCopy.plural} selected`
                 }
                 placeholder={`No ${targetCopy.plural} selected`}
               />
@@ -267,10 +235,7 @@ function TargetSelectionEditor({
             </Flex>
           </div>
           {targets.length > 0 ? (
-            <div
-              className={styles.selectedTags}
-              data-testid={`${testIdPrefix}-selected-targets`}
-            >
+            <div className={styles.selectedTags} data-testid={`${testIdPrefix}-selected-targets`}>
               {targets.map((target) => (
                 <Tag
                   key={target.id}
@@ -299,8 +264,7 @@ export function EditValueTargetsModal() {
   const { styles, cx } = useEditValueTargetsModalStyles();
   const { message } = App.useApp();
   const { payload, pop, forcePop, setDirty } = useModalStackContext();
-  const { discount, onSaved } =
-    payload as IDiscountValueTargetsEditModalPayload;
+  const { discount, onSaved } = payload as IDiscountValueTargetsEditModalPayload;
   const mutation = useUpdateDiscount();
   const [values, setValues] = useState<DiscountValueTargetsFormValues>(() =>
     createDiscountValueTargetsFormValues(discount),
@@ -321,19 +285,13 @@ export function EditValueTargetsModal() {
     setDirty(dirty);
   }, [dirty, setDirty]);
 
-  const updateValues = useCallback(
-    (changes: Partial<DiscountValueTargetsFormValues>) => {
-      setValues((current) => ({ ...current, ...changes }));
-      setFormError(null);
-    },
-    [],
-  );
+  const updateValues = useCallback((changes: Partial<DiscountValueTargetsFormValues>) => {
+    setValues((current) => ({ ...current, ...changes }));
+    setFormError(null);
+  }, []);
 
   const save = useCallback(async () => {
-    const validationErrors = validateDiscountValueTargetsForm(
-      discount,
-      values,
-    );
+    const validationErrors = validateDiscountValueTargetsForm(discount, values);
     if (validationErrors.length > 0) {
       setFormError(validationErrors.join(" "));
       return;
@@ -347,8 +305,7 @@ export function EditValueTargetsModal() {
 
     if (!result.discount || result.errors.length > 0) {
       setFormError(
-        result.errors.map((error) => error.message).join(" ") ||
-          "Unable to update discount.",
+        result.errors.map((error) => error.message).join(" ") || "Unable to update discount.",
       );
       return;
     }
@@ -362,15 +319,7 @@ export function EditValueTargetsModal() {
         message.error("Discount saved, but the details could not be refreshed");
       });
     }
-  }, [
-    discount,
-    forcePop,
-    message,
-    mutation,
-    onSaved,
-    setDirty,
-    values,
-  ]);
+  }, [discount, forcePop, message, mutation, onSaved, setDirty, values]);
 
   const errorMessage = formError ?? mutation.error?.message ?? null;
 
@@ -393,94 +342,86 @@ export function EditValueTargetsModal() {
       bodyClassName={styles.body}
     >
       <div className={styles.container}>
-        {errorMessage ? (
-          <Alert type="error" showIcon message={errorMessage} />
-        ) : null}
+        {errorMessage ? <Alert type="error" showIcon message={errorMessage} /> : null}
 
         {isAmountOff ? (
           <Paper className={styles.section}>
             <PaperHeader title="Value" />
             <div className={styles.fieldGrid}>
-            <div className={styles.field}>
-              <Typography.Text strong className={styles.fieldLabel}>
-                Value type *
-              </Typography.Text>
-              <Select
-                aria-label="Discount value type"
-                data-testid="discount-value-type"
-                value={values.valueType}
-                options={[
-                  {
-                    value: PriceAdjustmentValueType.Percentage,
-                    label: (
-                      <span data-testid="discount-value-type-option-percentage">
-                        Percentage
-                      </span>
-                    ),
-                  },
-                  {
-                    value: PriceAdjustmentValueType.FixedAmount,
-                    label: (
-                      <span data-testid="discount-value-type-option-fixed-amount">
-                        Fixed amount
-                      </span>
-                    ),
-                  },
-                ]}
-                onChange={(valueType) => updateValues({ valueType })}
-                style={{ width: "100%" }}
-              />
-              <Typography.Text className={styles.fieldHelp}>
-                PERCENTAGE or FIXED_AMOUNT.
-              </Typography.Text>
-            </div>
-
-            <div className={styles.field}>
-              <Typography.Text strong className={styles.fieldLabel}>
-                {values.valueType === PriceAdjustmentValueType.Percentage
-                  ? "Percentage *"
-                  : "Amount *"}
-              </Typography.Text>
-              {values.valueType === PriceAdjustmentValueType.Percentage ? (
-                <InputNumber
-                  aria-label="Discount percentage"
-                  data-testid="discount-percentage-input"
-                  min={0.01}
-                  max={100}
-                  precision={2}
-                  value={values.percentage}
-                  suffix="%"
-                  onChange={(percentage) => updateValues({ percentage })}
+              <div className={styles.field}>
+                <Typography.Text strong className={styles.fieldLabel}>
+                  Value type *
+                </Typography.Text>
+                <Select
+                  aria-label="Discount value type"
+                  data-testid="discount-value-type"
+                  value={values.valueType}
+                  options={[
+                    {
+                      value: PriceAdjustmentValueType.Percentage,
+                      label: (
+                        <span data-testid="discount-value-type-option-percentage">Percentage</span>
+                      ),
+                    },
+                    {
+                      value: PriceAdjustmentValueType.FixedAmount,
+                      label: (
+                        <span data-testid="discount-value-type-option-fixed-amount">
+                          Fixed amount
+                        </span>
+                      ),
+                    },
+                  ]}
+                  onChange={(valueType) => updateValues({ valueType })}
                   style={{ width: "100%" }}
                 />
-              ) : (
-                <Input
-                  aria-label="Discount fixed amount"
-                  data-testid="discount-fixed-amount-input"
-                  inputMode="decimal"
-                  prefix={currencySymbol}
-                  value={values.amount}
-                  onChange={(event) =>
-                    updateValues({ amount: event.target.value })
-                  }
-                />
-              )}
-              <Typography.Text className={styles.fieldHelp}>
-                {values.valueType === PriceAdjustmentValueType.Percentage
-                  ? `Sent as percentageBps: ${Math.round(
-                      (values.percentage ?? 0) * 100,
-                    )}. Valid range is 1 to 10000.`
-                  : "Sent as amountMinor; must be a positive amount."}
-              </Typography.Text>
-            </div>
+                <Typography.Text className={styles.fieldHelp}>
+                  PERCENTAGE or FIXED_AMOUNT.
+                </Typography.Text>
+              </div>
+
+              <div className={styles.field}>
+                <Typography.Text strong className={styles.fieldLabel}>
+                  {values.valueType === PriceAdjustmentValueType.Percentage
+                    ? "Percentage *"
+                    : "Amount *"}
+                </Typography.Text>
+                {values.valueType === PriceAdjustmentValueType.Percentage ? (
+                  <InputNumber
+                    aria-label="Discount percentage"
+                    data-testid="discount-percentage-input"
+                    min={0.01}
+                    max={100}
+                    precision={2}
+                    value={values.percentage}
+                    suffix="%"
+                    onChange={(percentage) => updateValues({ percentage })}
+                    style={{ width: "100%" }}
+                  />
+                ) : (
+                  <Input
+                    aria-label="Discount fixed amount"
+                    data-testid="discount-fixed-amount-input"
+                    inputMode="decimal"
+                    prefix={currencySymbol}
+                    value={values.amount}
+                    onChange={(event) => updateValues({ amount: event.target.value })}
+                  />
+                )}
+                <Typography.Text className={styles.fieldHelp}>
+                  {values.valueType === PriceAdjustmentValueType.Percentage
+                    ? `Sent as percentageBps: ${Math.round(
+                        (values.percentage ?? 0) * 100,
+                      )}. Valid range is 1 to 10000.`
+                    : "Sent as amountMinor; must be a positive amount."}
+                </Typography.Text>
+              </div>
             </div>
 
             <Checkbox
               className={styles.allocation}
               data-testid="discount-allocation-each-checkbox"
-              checked={
-                values.allocationMethod === DiscountAllocationMethod.Each
-              }
+              checked={values.allocationMethod === DiscountAllocationMethod.Each}
               onChange={(event) =>
                 updateValues({
                   allocationMethod: event.target.checked
@@ -490,9 +431,7 @@ export function EditValueTargetsModal() {
               }
             >
               <span className={styles.allocationCopy}>
-                <Typography.Text>
-                  Allocate to each eligible line
-                </Typography.Text>
+                <Typography.Text>Allocate to each eligible line</Typography.Text>
                 <Typography.Text className={styles.fieldHelp}>
                   EACH when enabled; ACROSS when disabled.
                 </Typography.Text>
@@ -507,14 +446,10 @@ export function EditValueTargetsModal() {
                 aria-label="Maximum discount"
                 data-testid="discount-maximum-input"
                 inputMode="decimal"
-                prefix={
-                  values.maximumDiscount ? currencySymbol : undefined
-                }
+                prefix={values.maximumDiscount ? currencySymbol : undefined}
                 placeholder="No limit"
                 value={values.maximumDiscount}
-                onChange={(event) =>
-                  updateValues({ maximumDiscount: event.target.value })
-                }
+                onChange={(event) => updateValues({ maximumDiscount: event.target.value })}
               />
               <Typography.Text className={styles.fieldHelp}>
                 Optional maximumDiscountMinor; must be a positive amount.
@@ -534,11 +469,7 @@ export function EditValueTargetsModal() {
                 aria-label="Maximum shipping price"
                 data-testid="discount-maximum-shipping-price-input"
                 inputMode="decimal"
-                prefix={
-                  values.maximumShippingPrice
-                    ? currencySymbol
-                    : undefined
-                }
+                prefix={values.maximumShippingPrice ? currencySymbol : undefined}
                 placeholder="No limit"
                 value={values.maximumShippingPrice}
                 onChange={(event) =>
@@ -585,30 +516,24 @@ export function EditValueTargetsModal() {
                         ),
                       },
                     ]}
-                    onChange={(buyRequirementType) =>
-                      updateValues({ buyRequirementType })
-                    }
+                    onChange={(buyRequirementType) => updateValues({ buyRequirementType })}
                     style={{ width: "100%" }}
                   />
                 </div>
                 <div className={styles.field}>
                   <Typography.Text strong className={styles.fieldLabel}>
-                    {values.buyRequirementType ===
-                    DiscountRequirementType.Quantity
+                    {values.buyRequirementType === DiscountRequirementType.Quantity
                       ? "Required quantity *"
                       : "Required subtotal *"}
                   </Typography.Text>
-                  {values.buyRequirementType ===
-                  DiscountRequirementType.Quantity ? (
+                  {values.buyRequirementType === DiscountRequirementType.Quantity ? (
                     <InputNumber
                       aria-label="Required quantity"
                       data-testid="discount-required-quantity-input"
                       min={1}
                       precision={0}
                       value={values.requiredQuantity}
-                      onChange={(requiredQuantity) =>
-                        updateValues({ requiredQuantity })
-                      }
+                      onChange={(requiredQuantity) => updateValues({ requiredQuantity })}
                       style={{ width: "100%" }}
                     />
                   ) : (
@@ -642,9 +567,7 @@ export function EditValueTargetsModal() {
                     min={1}
                     precision={0}
                     value={values.benefitQuantity}
-                    onChange={(benefitQuantity) =>
-                      updateValues({ benefitQuantity })
-                    }
+                    onChange={(benefitQuantity) => updateValues({ benefitQuantity })}
                     style={{ width: "100%" }}
                   />
                 </div>
@@ -656,8 +579,7 @@ export function EditValueTargetsModal() {
                     aria-label="Benefit value type"
                     data-testid="discount-benefit-value-type"
                     value={
-                      values.benefitStrategy ===
-                      DiscountBenefitStrategy.Free
+                      values.benefitStrategy === DiscountBenefitStrategy.Free
                         ? DiscountBenefitStrategy.Free
                         : values.benefitValueType
                     }
@@ -665,9 +587,7 @@ export function EditValueTargetsModal() {
                       {
                         value: DiscountBenefitStrategy.Free,
                         label: (
-                          <span data-testid="discount-benefit-value-type-option-free">
-                            Free
-                          </span>
+                          <span data-testid="discount-benefit-value-type-option-free">Free</span>
                         ),
                       },
                       {
@@ -695,8 +615,7 @@ export function EditValueTargetsModal() {
                         return;
                       }
                       updateValues({
-                        benefitStrategy:
-                          DiscountBenefitStrategy.Adjustment,
+                        benefitStrategy: DiscountBenefitStrategy.Adjustment,
                         benefitValueType: benefitKind,
                       });
                     }}
@@ -705,18 +624,15 @@ export function EditValueTargetsModal() {
                 </div>
               </div>
 
-              {values.benefitStrategy ===
-              DiscountBenefitStrategy.Adjustment ? (
+              {values.benefitStrategy === DiscountBenefitStrategy.Adjustment ? (
                 <div className={styles.fieldGrid}>
                   <div className={styles.field}>
                     <Typography.Text strong className={styles.fieldLabel}>
-                      {values.benefitValueType ===
-                      PriceAdjustmentValueType.Percentage
+                      {values.benefitValueType === PriceAdjustmentValueType.Percentage
                         ? "Benefit percentage *"
                         : "Benefit amount *"}
                     </Typography.Text>
-                    {values.benefitValueType ===
-                    PriceAdjustmentValueType.Percentage ? (
+                    {values.benefitValueType === PriceAdjustmentValueType.Percentage ? (
                       <InputNumber
                         aria-label="Benefit percentage"
                         data-testid="discount-benefit-percentage-input"
@@ -725,9 +641,7 @@ export function EditValueTargetsModal() {
                         precision={2}
                         suffix="%"
                         value={values.benefitPercentage}
-                        onChange={(benefitPercentage) =>
-                          updateValues({ benefitPercentage })
-                        }
+                        onChange={(benefitPercentage) => updateValues({ benefitPercentage })}
                         style={{ width: "100%" }}
                       />
                     ) : (
@@ -756,9 +670,7 @@ export function EditValueTargetsModal() {
                       precision={0}
                       placeholder="No limit"
                       value={values.usesPerOrderLimit}
-                      onChange={(usesPerOrderLimit) =>
-                        updateValues({ usesPerOrderLimit })
-                      }
+                      onChange={(usesPerOrderLimit) => updateValues({ usesPerOrderLimit })}
                       style={{ width: "100%" }}
                     />
                   </div>
@@ -775,9 +687,7 @@ export function EditValueTargetsModal() {
                     precision={0}
                     placeholder="No limit"
                     value={values.usesPerOrderLimit}
-                    onChange={(usesPerOrderLimit) =>
-                      updateValues({ usesPerOrderLimit })
-                    }
+                    onChange={(usesPerOrderLimit) => updateValues({ usesPerOrderLimit })}
                     style={{ width: "100%" }}
                   />
                 </div>
@@ -792,9 +702,7 @@ export function EditValueTargetsModal() {
             title="Applies to"
             targetType={values.targetType}
             targets={values.targets}
-            onChange={(targetType, targets) =>
-              updateValues({ targetType, targets })
-            }
+            onChange={(targetType, targets) => updateValues({ targetType, targets })}
           />
         ) : null}
 
@@ -817,28 +725,18 @@ export function EditValueTargetsModal() {
               title="Customer gets"
               targetType={values.targetType}
               targets={values.targets}
-              onChange={(targetType, targets) =>
-                updateValues({ targetType, targets })
-              }
+              onChange={(targetType, targets) => updateValues({ targetType, targets })}
             />
           </>
         ) : null}
 
-        {discount.kind === DiscountKind.AmountOffOrder ||
-        isFreeShipping ? (
+        {discount.kind === DiscountKind.AmountOffOrder || isFreeShipping ? (
           <Paper className={styles.section}>
             <PaperHeader title="Applies to" />
-            <div
-              className={cx(
-                styles.targetOption,
-                styles.targetOptionSelected,
-              )}
-            >
+            <div className={cx(styles.targetOption, styles.targetOptionSelected)}>
               <span className={styles.targetCopy}>
                 <Typography.Text className={styles.targetTitle}>
-                  {isFreeShipping
-                    ? "Eligible shipping rates"
-                    : "Entire order"}
+                  {isFreeShipping ? "Eligible shipping rates" : "Entire order"}
                 </Typography.Text>
                 <Typography.Text className={styles.targetDescription}>
                   {isFreeShipping
@@ -852,98 +750,92 @@ export function EditValueTargetsModal() {
 
         {!isBuyXGetY ? (
           <Paper className={styles.section}>
-          <PaperHeader title="Minimum requirements" />
-          <div className={styles.field}>
-            <Typography.Text strong className={styles.fieldLabel}>
-              Requirement
-            </Typography.Text>
-            <Select
-              aria-label="Minimum requirement"
-              data-testid="discount-minimum-requirement-type"
-              value={values.requirementType ?? "NONE"}
-              options={[
-                {
-                  value: "NONE",
-                  label: (
-                    <span data-testid="discount-minimum-requirement-type-option-none">
-                      None
-                    </span>
-                  ),
-                },
-                {
-                  value: DiscountRequirementType.Subtotal,
-                  label: (
-                    <span data-testid="discount-minimum-requirement-type-option-minimum-subtotal">
-                      Minimum subtotal
-                    </span>
-                  ),
-                },
-                {
-                  value: DiscountRequirementType.Quantity,
-                  label: (
-                    <span data-testid="discount-minimum-requirement-type-option-minimum-quantity">
-                      Minimum quantity
-                    </span>
-                  ),
-                },
-              ]}
-              onChange={(requirementType) =>
-                updateValues({
-                  requirementType:
-                    requirementType === "NONE"
-                      ? null
-                      : (requirementType as DiscountRequirementType),
-                })
-              }
-              style={{ width: "100%" }}
-            />
-            <Typography.Text className={styles.fieldHelp}>
-              None clears requirement; otherwise SUBTOTAL or QUANTITY.
-            </Typography.Text>
-          </div>
-
-          {values.requirementType === DiscountRequirementType.Subtotal ? (
+            <PaperHeader title="Minimum requirements" />
             <div className={styles.field}>
               <Typography.Text strong className={styles.fieldLabel}>
-                Minimum subtotal *
+                Requirement
               </Typography.Text>
-              <Input
-                aria-label="Minimum subtotal"
-                data-testid="discount-minimum-subtotal-input"
-                inputMode="decimal"
-                prefix={currencySymbol}
-                value={values.minimumSubtotal}
-                onChange={(event) =>
-                  updateValues({ minimumSubtotal: event.target.value })
-                }
-              />
-              <Typography.Text className={styles.fieldHelp}>
-                Sent as subtotalMinor; quantity is omitted.
-              </Typography.Text>
-            </div>
-          ) : null}
-
-          {values.requirementType === DiscountRequirementType.Quantity ? (
-            <div className={styles.field}>
-              <Typography.Text strong className={styles.fieldLabel}>
-                Minimum quantity *
-              </Typography.Text>
-              <InputNumber
-                aria-label="Minimum quantity"
-                data-testid="discount-minimum-quantity-input"
-                min={1}
-                precision={0}
-                value={values.minimumQuantity}
-                onChange={(minimumQuantity) =>
-                  updateValues({ minimumQuantity })
+              <Select
+                aria-label="Minimum requirement"
+                data-testid="discount-minimum-requirement-type"
+                value={values.requirementType ?? "NONE"}
+                options={[
+                  {
+                    value: "NONE",
+                    label: (
+                      <span data-testid="discount-minimum-requirement-type-option-none">None</span>
+                    ),
+                  },
+                  {
+                    value: DiscountRequirementType.Subtotal,
+                    label: (
+                      <span data-testid="discount-minimum-requirement-type-option-minimum-subtotal">
+                        Minimum subtotal
+                      </span>
+                    ),
+                  },
+                  {
+                    value: DiscountRequirementType.Quantity,
+                    label: (
+                      <span data-testid="discount-minimum-requirement-type-option-minimum-quantity">
+                        Minimum quantity
+                      </span>
+                    ),
+                  },
+                ]}
+                onChange={(requirementType) =>
+                  updateValues({
+                    requirementType:
+                      requirementType === "NONE"
+                        ? null
+                        : (requirementType as DiscountRequirementType),
+                  })
                 }
                 style={{ width: "100%" }}
               />
               <Typography.Text className={styles.fieldHelp}>
-                Sent as quantity; subtotalMinor is omitted.
+                None clears requirement; otherwise SUBTOTAL or QUANTITY.
               </Typography.Text>
             </div>
-          ) : null}
+
+            {values.requirementType === DiscountRequirementType.Subtotal ? (
+              <div className={styles.field}>
+                <Typography.Text strong className={styles.fieldLabel}>
+                  Minimum subtotal *
+                </Typography.Text>
+                <Input
+                  aria-label="Minimum subtotal"
+                  data-testid="discount-minimum-subtotal-input"
+                  inputMode="decimal"
+                  prefix={currencySymbol}
+                  value={values.minimumSubtotal}
+                  onChange={(event) => updateValues({ minimumSubtotal: event.target.value })}
+                />
+                <Typography.Text className={styles.fieldHelp}>
+                  Sent as subtotalMinor; quantity is omitted.
+                </Typography.Text>
+              </div>
+            ) : null}
+
+            {values.requirementType === DiscountRequirementType.Quantity ? (
+              <div className={styles.field}>
+                <Typography.Text strong className={styles.fieldLabel}>
+                  Minimum quantity *
+                </Typography.Text>
+                <InputNumber
+                  aria-label="Minimum quantity"
+                  data-testid="discount-minimum-quantity-input"
+                  min={1}
+                  precision={0}
+                  value={values.minimumQuantity}
+                  onChange={(minimumQuantity) => updateValues({ minimumQuantity })}
+                  style={{ width: "100%" }}
+                />
+                <Typography.Text className={styles.fieldHelp}>
+                  Sent as quantity; subtotalMinor is omitted.
+                </Typography.Text>
+              </div>
+            ) : null}
           </Paper>
         ) : null}
       </div>

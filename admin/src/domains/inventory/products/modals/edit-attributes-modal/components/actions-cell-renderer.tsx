@@ -1,11 +1,14 @@
 import { Button, Dropdown } from "antd";
-import { LuPlus as PlusOutlined, LuTrash2 as DeleteOutlined, LuEllipsis as MoreOutlined } from "react-icons/lu";
+import {
+  LuPlus as PlusOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuEllipsis as MoreOutlined,
+} from "react-icons/lu";
 import type { ICellRendererParams } from "ag-grid-community";
 import { useStyles } from "../edit-attributes-modal.styles";
 import type { AttributeEditorRow } from "../types";
 
-export interface IActionsCellRendererParams
-  extends ICellRendererParams<AttributeEditorRow> {
+export interface IActionsCellRendererParams extends ICellRendererParams<AttributeEditorRow> {
   onDelete: (id: string) => void;
   onAdd: (parentId: string) => void;
 }

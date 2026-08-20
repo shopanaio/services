@@ -19,9 +19,7 @@ registerModule({
         icon: null,
         order: 1,
       },
-      component: dynamic(
-        () => import("@/domains/sales/all-orders/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/sales/all-orders/page/page")),
     },
     {
       key: "draft-orders-list",
@@ -32,9 +30,7 @@ registerModule({
         icon: null,
         order: 2,
       },
-      component: dynamic(
-        () => import("@/domains/sales/draft-orders/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/sales/draft-orders/page/page")),
     },
     {
       key: "abandoned-checkouts-list",
@@ -45,9 +41,7 @@ registerModule({
         icon: null,
         order: 3,
       },
-      component: dynamic(
-        () => import("@/domains/sales/abandoned-checkouts/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/sales/abandoned-checkouts/page/page")),
     },
     {
       key: "fulfillment-page",
@@ -57,9 +51,7 @@ registerModule({
         icon: null,
         order: 4,
       },
-      component: dynamic(
-        () => import("@/domains/sales/fulfillment/board/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/sales/fulfillment/board/page/page")),
     },
   ],
 });

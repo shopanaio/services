@@ -1,13 +1,7 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  TokenRefreshParams,
-  TokenRefreshResult,
-} from "./dto/TokenRefreshDto.js";
+import type { TokenRefreshParams, TokenRefreshResult } from "./dto/TokenRefreshDto.js";
 
-export class TokenRefreshScript extends BaseScript<
-  TokenRefreshParams,
-  TokenRefreshResult
-> {
+export class TokenRefreshScript extends BaseScript<TokenRefreshParams, TokenRefreshResult> {
   protected async execute(params: TokenRefreshParams): Promise<TokenRefreshResult> {
     const { refreshToken } = params;
 

@@ -7,10 +7,7 @@ import type {
 } from "@/graphql/types";
 import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import { QUESTIONS_QUERY } from "../graphql";
-import type {
-  QuestionsQueryData,
-  QuestionsQueryVariables,
-} from "../graphql/operation-types";
+import type { QuestionsQueryData, QuestionsQueryVariables } from "../graphql/operation-types";
 
 export interface UseQuestionsReturn {
   questions: ApiProductQuestion[];

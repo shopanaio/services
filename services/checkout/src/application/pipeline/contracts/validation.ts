@@ -5,10 +5,7 @@ import type {
 } from "./common.js";
 import type { CalculateDeliveryOptionsResult } from "./delivery.js";
 import type { GetAvailablePaymentMethodsResult } from "./payment.js";
-import type {
-  CalculatePreliminaryPricingResult,
-  FinalizePricingQuoteResult,
-} from "./pricing.js";
+import type { CalculatePreliminaryPricingResult, FinalizePricingQuoteResult } from "./pricing.js";
 
 export type ValidateCheckoutRequest = Readonly<{
   context: CheckoutPipelineExecutionContext;

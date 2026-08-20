@@ -2,14 +2,8 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
-import type {
-  ApiFacetSwatchCreateInput,
-  ApiFacetSwatchUpdateInput,
-} from "@/graphql/types";
-import {
-  FACET_SWATCH_CREATE_MUTATION,
-  FACET_SWATCH_UPDATE_MUTATION,
-} from "../graphql";
+import type { ApiFacetSwatchCreateInput, ApiFacetSwatchUpdateInput } from "@/graphql/types";
+import { FACET_SWATCH_CREATE_MUTATION, FACET_SWATCH_UPDATE_MUTATION } from "../graphql";
 import type {
   FacetSwatchCreateMutationData,
   FacetSwatchCreateMutationVariables,
@@ -19,12 +13,8 @@ import type {
 } from "../graphql/operation-types";
 
 interface UseUpsertFacetSwatchReturn {
-  createFacetSwatch: (
-    input: ApiFacetSwatchCreateInput,
-  ) => Promise<FacetSwatchMutationResult>;
-  updateFacetSwatch: (
-    input: ApiFacetSwatchUpdateInput,
-  ) => Promise<FacetSwatchMutationResult>;
+  createFacetSwatch: (input: ApiFacetSwatchCreateInput) => Promise<FacetSwatchMutationResult>;
+  updateFacetSwatch: (input: ApiFacetSwatchUpdateInput) => Promise<FacetSwatchMutationResult>;
   loading: boolean;
 }
 
@@ -33,8 +23,7 @@ function getUnexpectedError(error: unknown): FacetSwatchMutationResult {
     facetSwatch: null,
     userErrors: [
       {
-        message:
-          error instanceof Error ? error.message : "An unexpected error occurred",
+        message: error instanceof Error ? error.message : "An unexpected error occurred",
         code: "UNEXPECTED_ERROR",
       },
     ],
@@ -52,9 +41,7 @@ export function useUpsertFacetSwatch(): UseUpsertFacetSwatchReturn {
   >(FACET_SWATCH_UPDATE_MUTATION);
 
   const createFacetSwatch = useCallback(
-    async (
-      input: ApiFacetSwatchCreateInput,
-    ): Promise<FacetSwatchMutationResult> => {
+    async (input: ApiFacetSwatchCreateInput): Promise<FacetSwatchMutationResult> => {
       try {
         const result = await createMutation({ variables: { input } });
         const payload = result.data?.listingMutation.facetSwatchCreate;
@@ -71,9 +58,7 @@ export function useUpsertFacetSwatch(): UseUpsertFacetSwatchReturn {
   );
 
   const updateFacetSwatch = useCallback(
-    async (
-      input: ApiFacetSwatchUpdateInput,
-    ): Promise<FacetSwatchMutationResult> => {
+    async (input: ApiFacetSwatchUpdateInput): Promise<FacetSwatchMutationResult> => {
       try {
         const result = await updateMutation({ variables: { input } });
         const payload = result.data?.listingMutation.facetSwatchUpdate;

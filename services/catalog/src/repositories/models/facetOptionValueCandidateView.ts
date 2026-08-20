@@ -2,8 +2,9 @@ import { sql } from "drizzle-orm";
 import { text, uuid, varchar } from "drizzle-orm/pg-core";
 import { catalogSchema, localeCodeEnum } from "./schema";
 
-export const facetOptionValueCandidateView = catalogSchema
-  .view("facet_option_value_candidate_view", {
+export const facetOptionValueCandidateView = catalogSchema.view(
+  "facet_option_value_candidate_view",
+  {
     id: text("id").notNull(),
     storeId: uuid("store_id").notNull(),
     locale: localeCodeEnum("locale").notNull(),
@@ -11,8 +12,8 @@ export const facetOptionValueCandidateView = catalogSchema
     sourceHandle: text("source_handle").notNull(),
     handle: text("handle").notNull(),
     label: text("label").notNull(),
-  })
-  .as(sql`
+  },
+).as(sql`
     SELECT
       'OPTION:' || po.slug || ':' || pov.slug AS id,
       po.store_id,
@@ -35,5 +36,4 @@ export const facetOptionValueCandidateView = catalogSchema
     GROUP BY po.store_id, povt.locale, po.slug, pov.slug
   `);
 
-export type FacetOptionValueCandidateView =
-  typeof facetOptionValueCandidateView.$inferSelect;
+export type FacetOptionValueCandidateView = typeof facetOptionValueCandidateView.$inferSelect;

@@ -131,7 +131,7 @@ export function FloatingPanelStack({ panels }: FloatingPanelStackProps) {
 
   // Sync external panels with internal state
   useEffect(() => {
-    const currentIds = new Set(panels.map((p) => p.type === "custom" ? p.id : p.type));
+    const currentIds = new Set(panels.map((p) => (p.type === "custom" ? p.id : p.type)));
 
     // oxlint-disable-next-line react/set-state-in-effect -- syncing props to state is a valid pattern
     setInternalPanels((prev) => {
@@ -187,9 +187,7 @@ export function FloatingPanelStack({ panels }: FloatingPanelStackProps) {
 
     const timer = setTimeout(() => {
       setInternalPanels((prev) =>
-        prev.map((p) =>
-          p.state === "entering" ? { ...p, state: "visible" } : p
-        )
+        prev.map((p) => (p.state === "entering" ? { ...p, state: "visible" } : p)),
       );
     }, ANIMATION_DURATION);
 

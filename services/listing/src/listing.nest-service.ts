@@ -23,9 +23,7 @@ import { RecommendationScheduler } from "./scheduled/RecommendationScheduler.js"
 const { service } = getServiceConfig("listing");
 
 @Injectable()
-export class ListingNestService
-  implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy
-{
+export class ListingNestService implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(ListingNestService.name);
   private kernel!: Kernel;
   private graphqlServer: FastifyInstance | null = null;

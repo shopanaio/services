@@ -1,14 +1,24 @@
-"""Storefront-visible state of the customer's store account."""
+"""
+Storefront-visible state of the customer's store account.
+"""
 enum CustomerAccountStatus {
-  """A checkout-created profile that is not linked to an IAM principal."""
+  """
+  A checkout-created profile that is not linked to an IAM principal.
+  """
   GUEST
-  """A profile for which account enrollment has been initiated."""
+  """
+  A profile for which account enrollment has been initiated.
+  """
   INVITED
-  """A profile linked to a registered IAM principal."""
+  """
+  A profile linked to a registered IAM principal.
+  """
   REGISTERED
 }
 
-"""An ISO 8601 calendar date in YYYY-MM-DD form."""
+"""
+An ISO 8601 calendar date in YYYY-MM-DD form.
+"""
 scalar Date
 
 """
@@ -18,11 +28,17 @@ Authentication credentials, sessions, verification challenges, and linked
 identity providers are owned by IAM and deliberately do not appear here.
 """
 type Customer @key(fields: "id") {
-  """Globally unique customer ID."""
+  """
+  Globally unique customer ID.
+  """
   id: ID!
-  """Revision used for optimistic concurrency on customer-owned writes."""
+  """
+  Revision used for optimistic concurrency on customer-owned writes.
+  """
   revision: Int!
-  """Store-account enrollment state."""
+  """
+  Store-account enrollment state.
+  """
   accountStatus: CustomerAccountStatus!
 
   prefix: String
@@ -30,47 +46,66 @@ type Customer @key(fields: "id") {
   middleName: String
   lastName: String
   suffix: String
-  """Display name derived from available profile and contact information."""
+  """
+  Display name derived from available profile and contact information.
+  """
   displayName: String!
-  """Customer-selected BCP 47 locale."""
+  """
+  Customer-selected BCP 47 locale.
+  """
   preferredLocale: String
   dateOfBirth: Date
-  """Customer-provided gender value."""
+  """
+  Customer-provided gender value.
+  """
   gender: String
   companyName: String
   jobTitle: String
 
-  """Authenticated customer's email projection and verification state."""
+  """
+  Authenticated customer's email projection and verification state.
+  """
   emailAddress: CustomerEmailAddress
-  """Authenticated customer's phone projection and verification state."""
+  """
+  Authenticated customer's phone projection and verification state.
+  """
   phoneNumber: CustomerPhoneNumber
 
-  """Default address used for physical fulfillment."""
+  """
+  Default address used for physical fulfillment.
+  """
   defaultShippingAddress: CustomerAddress
-  """Default address used for billing and tax calculations."""
+  """
+  Default address used for billing and tax calculations.
+  """
   defaultBillingAddress: CustomerAddress
 
-  """One address owned by the customer; inaccessible IDs return null."""
+  """
+  One address owned by the customer; inaccessible IDs return null.
+  """
   address(id: ID!): CustomerAddress
-  """Customer addresses in deterministic creation order."""
-  addresses(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): CustomerAddressConnection!
+  """
+  Customer addresses in deterministic creation order.
+  """
+  addresses(first: Int, after: Cursor, last: Int, before: Cursor): CustomerAddressConnection!
 
-  """Current marketing preferences for every configured channel."""
+  """
+  Current marketing preferences for every configured channel.
+  """
   marketingConsents: [CustomerMarketingConsent!]!
 
-  """Customer-owned tax identifiers."""
+  """
+  Customer-owned tax identifiers.
+  """
   taxIdentifiers(
     first: Int
     after: Cursor
     last: Int
     before: Cursor
   ): CustomerTaxIdentifierConnection!
-  """Merchant-approved tax exemptions visible to this customer."""
+  """
+  Merchant-approved tax exemptions visible to this customer.
+  """
   taxExemptions(
     first: Int
     after: Cursor
@@ -78,15 +113,14 @@ type Customer @key(fields: "id") {
     before: Cursor
   ): CustomerTaxExemptionConnection!
 
-  """One privacy request owned by the customer; inaccessible IDs return null."""
+  """
+  One privacy request owned by the customer; inaccessible IDs return null.
+  """
   dataRequest(id: ID!): CustomerDataRequest
-  """Auditable privacy requests created by the customer."""
-  dataRequests(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): CustomerDataRequestConnection!
+  """
+  Auditable privacy requests created by the customer.
+  """
+  dataRequests(first: Int, after: Cursor, last: Int, before: Cursor): CustomerDataRequestConnection!
 
   """
   Wishlist collections owned by the authenticated customer.
@@ -95,17 +129,16 @@ type Customer @key(fields: "id") {
   Omitting all pagination arguments returns the first 20 entries. At most 100
   entries can be requested in either direction.
   """
-  wishlists(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): CustomerWishlistConnection!
+  wishlists(first: Int, after: Cursor, last: Int, before: Cursor): CustomerWishlistConnection!
 
-  """The customer's primary wishlist, when one has been created."""
+  """
+  The customer's primary wishlist, when one has been created.
+  """
   defaultWishlist: CustomerWishlist
 
-  """One wishlist owned by the customer; inaccessible IDs return null."""
+  """
+  One wishlist owned by the customer; inaccessible IDs return null.
+  """
   wishlist(id: ID!): CustomerWishlist
 
   createdAt: DateTime!
@@ -131,18 +164,24 @@ input CustomerUpdateInput {
   jobTitle: String
 }
 
-"""Result of updating the authenticated customer's profile."""
+"""
+Result of updating the authenticated customer's profile.
+"""
 type CustomerUpdatePayload {
   customer: Customer
   userErrors: [CustomerUserError!]!
 }
 
-"""A customer-facing validation, ownership, dependency, or business error."""
+"""
+A customer-facing validation, ownership, dependency, or business error.
+"""
 type CustomerUserError implements DisplayableError {
   field: [String!]
   message: String!
   code: String!
   retryable: Boolean!
-  """Current comparison revision when code is REVISION_CONFLICT."""
+  """
+  Current comparison revision when code is REVISION_CONFLICT.
+  """
   actualRevision: Int
 }

@@ -82,10 +82,12 @@ describe("ordered line discount application", () => {
       codeResolutions: [],
     });
 
-    expect(result.applications.map((application) => ({
-      discountId: application.discountId,
-      amount: application.amount.amountMinor,
-    }))).toEqual([
+    expect(
+      result.applications.map((application) => ({
+        discountId: application.discountId,
+        amount: application.amount.amountMinor,
+      })),
+    ).toEqual([
       { discountId: "order", amount: "30" },
       { discountId: "product", amount: "50" },
     ]);
@@ -236,10 +238,7 @@ function owner(
   } as DiscountOwner;
 }
 
-function line(
-  lineId = "line",
-  amountMinor: bigint = 100n,
-): Pricing.PricingCheckoutQuotedLine {
+function line(lineId = "line", amountMinor: bigint = 100n): Pricing.PricingCheckoutQuotedLine {
   const amount = { amountMinor: amountMinor.toString(), currencyCode: "USD" };
   return {
     lineId,

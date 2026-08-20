@@ -53,10 +53,7 @@ function isNonNegativeInteger(value: number): boolean {
 }
 
 function isValidFeatureIndex(index: number[]): boolean {
-  return (
-    (index.length === 1 || index.length === 2) &&
-    index.every(isNonNegativeInteger)
-  );
+  return (index.length === 1 || index.length === 2) && index.every(isNonNegativeInteger);
 }
 
 function isValidSlug(slug: string): boolean {
@@ -155,11 +152,7 @@ function getRowsInInputOrder(rows: AttributeEditorRow[]): AttributeEditorRow[] {
     }
 
     result.push(
-      ...sortedRows(
-        rows.filter(
-          (row) => row.parentId === rootRow.id && row.type === "attribute",
-        ),
-      ),
+      ...sortedRows(rows.filter((row) => row.parentId === rootRow.id && row.type === "attribute")),
     );
   }
 
@@ -173,17 +166,13 @@ function getRowsInInputOrder(rows: AttributeEditorRow[]): AttributeEditorRow[] {
 }
 
 function getRowInputIndexMap(rows: AttributeEditorRow[]): Map<string, number> {
-  return new Map(
-    getRowsInInputOrder(rows).map((row, index) => [row.id, index]),
-  );
+  return new Map(getRowsInInputOrder(rows).map((row, index) => [row.id, index]));
 }
 
 export function apiProductFeaturesToAttributeEditorRows(
   features: ApiProductFeature[],
 ): AttributeEditorRow[] {
-  const sortedFeatures = [...features].sort((left, right) =>
-    compareIndex(left.index, right.index),
-  );
+  const sortedFeatures = [...features].sort((left, right) => compareIndex(left.index, right.index));
   const groupIdByIndex = new Map<string, string>();
   const rows: AttributeEditorRow[] = [];
 
@@ -274,20 +263,22 @@ export function getProductFeatureEditorLoadErrors(
   features.forEach((feature, featureIndex) => {
     if (!isValidFeatureIndex(feature.index)) {
       errors.push(
-        makeUserError(
-          `Feature "${feature.name}" has an unsupported tree index.`,
-          ["features", featureIndex, "index"],
-        ),
+        makeUserError(`Feature "${feature.name}" has an unsupported tree index.`, [
+          "features",
+          featureIndex,
+          "index",
+        ]),
       );
       return;
     }
 
     if (feature.isGroup && feature.index.length !== 1) {
       errors.push(
-        makeUserError(
-          `Group "${feature.name}" is nested and cannot be edited safely.`,
-          ["features", featureIndex, "index"],
-        ),
+        makeUserError(`Group "${feature.name}" is nested and cannot be edited safely.`, [
+          "features",
+          featureIndex,
+          "index",
+        ]),
       );
       return;
     }
@@ -338,9 +329,7 @@ export function parseAttributeValuesText(input: {
     const sameIndexValue = existingValues[index];
     const matchedValue =
       exactMatch ??
-      (sameIndexValue && !usedExistingIds.has(sameIndexValue.id)
-        ? sameIndexValue
-        : undefined);
+      (sameIndexValue && !usedExistingIds.has(sameIndexValue.id) ? sameIndexValue : undefined);
 
     if (matchedValue) {
       usedExistingIds.add(matchedValue.id);
@@ -386,10 +375,7 @@ function createFeatureSyncItem(input: {
       const valueInput = {
         index: valueIndex,
         name: value.name.trim(),
-        slug: toUniqueSlug(
-          toValueSlug(value.name, `value-${valueIndex + 1}`),
-          usedValueSlugs,
-        ),
+        slug: toUniqueSlug(toValueSlug(value.name, `value-${valueIndex + 1}`), usedValueSlugs),
       };
 
       if (value.apiId) {
@@ -416,9 +402,7 @@ export function buildProductFeaturesSyncDraft(input: {
   const usedFeatureSlugs = new Set<string>();
   const rootRows = sortedRows(
     input.rows.filter(
-      (row) =>
-        row.parentId === null &&
-        (row.type === "group" || row.type === "attribute"),
+      (row) => row.parentId === null && (row.type === "group" || row.type === "attribute"),
     ),
   );
 
@@ -441,9 +425,7 @@ export function buildProductFeaturesSyncDraft(input: {
     }
 
     const childRows = sortedRows(
-      input.rows.filter(
-        (row) => row.parentId === rootRow.id && row.type === "attribute",
-      ),
+      input.rows.filter((row) => row.parentId === rootRow.id && row.type === "attribute"),
     );
 
     childRows.forEach((childRow, childIndex) => {
@@ -458,9 +440,7 @@ export function buildProductFeaturesSyncDraft(input: {
       featureRowsByInputIndex.push(childRow);
 
       sortedValues(childRow.values).forEach((value, valueIndex) => {
-        valuesByInputPath[
-          `features.${childInputIndex}.values.${valueIndex}`
-        ] = value;
+        valuesByInputPath[`features.${childInputIndex}.values.${valueIndex}`] = value;
       });
     });
   });
@@ -508,11 +488,7 @@ export function validateAttributeEditorRows(input: {
 
     if (featureRowIds.has(row.id)) {
       errors.push(
-        makeUserError("Feature row IDs must be unique.", [
-          "features",
-          featureIndex,
-          "index",
-        ]),
+        makeUserError("Feature row IDs must be unique.", ["features", featureIndex, "index"]),
       );
     }
     featureRowIds.add(row.id);
@@ -520,24 +496,14 @@ export function validateAttributeEditorRows(input: {
     if (row.apiId) {
       if (featureApiIds.has(row.apiId)) {
         errors.push(
-          makeUserError("Feature API IDs must be unique.", [
-            "features",
-            featureIndex,
-            "index",
-          ]),
+          makeUserError("Feature API IDs must be unique.", ["features", featureIndex, "index"]),
         );
       }
       featureApiIds.add(row.apiId);
     }
 
     if (!name) {
-      errors.push(
-        makeUserError("Feature name is required.", [
-          "features",
-          featureIndex,
-          "name",
-        ]),
-      );
+      errors.push(makeUserError("Feature name is required.", ["features", featureIndex, "name"]));
     }
 
     if (!isNonNegativeInteger(row.sortIndex)) {
@@ -551,13 +517,7 @@ export function validateAttributeEditorRows(input: {
     }
 
     if (!isValidSlug(featureSlug)) {
-      errors.push(
-        makeUserError("Feature slug is invalid.", [
-          "features",
-          featureIndex,
-          "name",
-        ]),
-      );
+      errors.push(makeUserError("Feature slug is invalid.", ["features", featureIndex, "name"]));
     }
 
     const existingFeatureWithSlug = featureSlugs.get(featureSlug);
@@ -608,21 +568,13 @@ export function validateAttributeEditorRows(input: {
     if (row.type === "group") {
       if (row.parentId !== null) {
         errors.push(
-          makeUserError("Groups must be root rows.", [
-            "features",
-            featureIndex,
-            "index",
-          ]),
+          makeUserError("Groups must be root rows.", ["features", featureIndex, "index"]),
         );
       }
 
       if (row.values.length > 0) {
         errors.push(
-          makeUserError("Groups cannot contain values.", [
-            "features",
-            featureIndex,
-            "index",
-          ]),
+          makeUserError("Groups cannot contain values.", ["features", featureIndex, "index"]),
         );
       }
     }
@@ -640,11 +592,7 @@ export function validateAttributeEditorRows(input: {
         );
       } else if (parent.type !== "group") {
         errors.push(
-          makeUserError("Attribute parent must be a group.", [
-            "features",
-            featureIndex,
-            "index",
-          ]),
+          makeUserError("Attribute parent must be a group.", ["features", featureIndex, "index"]),
         );
       } else if (parent.parentId !== null || Number(row.level) > 1) {
         errors.push(

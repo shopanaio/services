@@ -34,9 +34,7 @@ export const resolveTargetName = (
   return null;
 };
 
-export const formatCondition = (
-  condition: ApiProductComponentCondition,
-): string => {
+export const formatCondition = (condition: ApiProductComponentCondition): string => {
   if (condition.category === ProductComponentConditionCategory.StateCheck) {
     return STATE_CHECK_OPERATOR_META[condition.operator]?.label ?? condition.operator;
   }
@@ -47,17 +45,12 @@ export const formatCondition = (
     : `${subject} ${operator} ${condition.value}`;
 };
 
-export const formatAction = (
-  action: ApiProductComponentDependencyAction,
-): string => {
+export const formatAction = (action: ApiProductComponentDependencyAction): string => {
   const phrase = ACTION_PHRASE[action.actionType] ?? action.actionType;
   if (action.actionType === ProductComponentDependencyActionType.SetRequired) {
     return `${phrase}: ${action.requiredValue ? "yes" : "no"}`;
   }
-  if (
-    action.actionType === ProductComponentDependencyActionType.AdjustPrice &&
-    action.priceRule
-  ) {
+  if (action.actionType === ProductComponentDependencyActionType.AdjustPrice && action.priceRule) {
     return getPriceRuleLabel(action.priceRule) ?? phrase;
   }
   return phrase;

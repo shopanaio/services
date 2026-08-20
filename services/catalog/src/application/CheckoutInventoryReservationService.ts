@@ -2,11 +2,7 @@ import { createHash } from "node:crypto";
 import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
 import type { Inventory } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
-import {
-  inventoryItem,
-  reservations,
-  warehouseStock,
-} from "../repositories/models/index.js";
+import { inventoryItem, reservations, warehouseStock } from "../repositories/models/index.js";
 
 export class CheckoutInventoryReservationService {
   constructor(private readonly kernel: Kernel) {}
@@ -14,20 +10,23 @@ export class CheckoutInventoryReservationService {
   async reserve(
     params: Inventory.ReserveCheckoutInventoryParams,
   ): Promise<Inventory.ReserveCheckoutInventoryResult> {
-    const expiresAt = futureTimestamp(
-      params.expiresAt,
-      "INVENTORY_RESERVATION_EXPIRY_INVALID",
-    );
+    const expiresAt = futureTimestamp(params.expiresAt, "INVENTORY_RESERVATION_EXPIRY_INVALID");
     const lines = aggregateLines(params.lines);
     return this.kernel.repository.txManager.run(async () => {
       const db = this.kernel.repository.db;
       const variantIds = lines.map(({ variantId }) => variantId);
-      const items = variantIds.length === 0
-        ? []
-        : await db.select().from(inventoryItem).where(and(
-            eq(inventoryItem.storeId, params.storeId),
-            inArray(inventoryItem.variantId, variantIds),
-          ));
+      const items =
+        variantIds.length === 0
+          ? []
+          : await db
+              .select()
+              .from(inventoryItem)
+              .where(
+                and(
+                  eq(inventoryItem.storeId, params.storeId),
+                  inArray(inventoryItem.variantId, variantIds),
+                ),
+              );
       const byVariant = new Map(items.map((item) => [item.variantId, item]));
       const requiredLines = lines.filter((line) => {
         const item = byVariant.get(line.variantId);
@@ -36,11 +35,13 @@ export class CheckoutInventoryReservationService {
       const existing = await db
         .select()
         .from(reservations)
-        .where(and(
-          eq(reservations.storeId, params.storeId),
-          eq(reservations.orderSystem, "shopana"),
-          eq(reservations.orderId, params.orderId),
-        ))
+        .where(
+          and(
+            eq(reservations.storeId, params.storeId),
+            eq(reservations.orderSystem, "shopana"),
+            eq(reservations.orderId, params.orderId),
+          ),
+        )
         .orderBy(asc(reservations.variantId), asc(reservations.warehouseId))
         .for("update");
       if (existing.length > 0) {
@@ -54,17 +55,25 @@ export class CheckoutInventoryReservationService {
             expiresAt,
             ...expiring.map(({ expiresAt }) => expiresAt!),
           ]);
-          await db.update(reservations).set({ expiresAt: renewedUntil }).where(
-            inArray(reservations.id, expiring.map(({ id }) => id)),
-          );
+          await db
+            .update(reservations)
+            .set({ expiresAt: renewedUntil })
+            .where(
+              inArray(
+                reservations.id,
+                expiring.map(({ id }) => id),
+              ),
+            );
         }
-        return result(existing.map((row) => ({
-          reservationId: row.id,
-          lineId: lines.find((line) => line.variantId === row.variantId)?.lineId ?? row.variantId,
-          variantId: row.variantId,
-          warehouseId: row.warehouseId,
-          quantity: row.quantity,
-        })));
+        return result(
+          existing.map((row) => ({
+            reservationId: row.id,
+            lineId: lines.find((line) => line.variantId === row.variantId)?.lineId ?? row.variantId,
+            variantId: row.variantId,
+            warehouseId: row.warehouseId,
+            quantity: row.quantity,
+          })),
+        );
       }
 
       const allocations: Inventory.CheckoutInventoryReservationAllocation[] = [];
@@ -73,10 +82,12 @@ export class CheckoutInventoryReservationService {
         const stocks = await db
           .select()
           .from(warehouseStock)
-          .where(and(
-            eq(warehouseStock.storeId, params.storeId),
-            eq(warehouseStock.variantId, line.variantId),
-          ))
+          .where(
+            and(
+              eq(warehouseStock.storeId, params.storeId),
+              eq(warehouseStock.variantId, line.variantId),
+            ),
+          )
           .orderBy(asc(warehouseStock.warehouseId))
           .for("update");
         let remaining = line.quantity;
@@ -100,16 +111,19 @@ export class CheckoutInventoryReservationService {
             correlationId: params.correlationId,
           });
           if (change.status === "REJECTED") throw new Error("INVENTORY_RESERVATION_REJECTED");
-          const [reservation] = await db.insert(reservations).values({
-            storeId: params.storeId,
-            variantId: line.variantId,
-            warehouseId: stock.warehouseId,
-            orderSystem: "shopana",
-            orderId: params.orderId,
-            quantity,
-            status: "ACTIVE",
-            expiresAt,
-          }).returning();
+          const [reservation] = await db
+            .insert(reservations)
+            .values({
+              storeId: params.storeId,
+              variantId: line.variantId,
+              warehouseId: stock.warehouseId,
+              orderSystem: "shopana",
+              orderId: params.orderId,
+              quantity,
+              status: "ACTIVE",
+              expiresAt,
+            })
+            .returning();
           allocations.push({
             reservationId: reservation!.id,
             lineId: line.lineId,
@@ -129,30 +143,35 @@ export class CheckoutInventoryReservationService {
   async renew(
     params: Inventory.RenewCheckoutInventoryParams,
   ): Promise<Inventory.RenewCheckoutInventoryResult> {
-    const expiresAt = futureTimestamp(
-      params.expiresAt,
-      "INVENTORY_RESERVATION_EXPIRY_INVALID",
-    );
+    const expiresAt = futureTimestamp(params.expiresAt, "INVENTORY_RESERVATION_EXPIRY_INVALID");
     return this.kernel.repository.txManager.run(async () => {
       const active = await this.kernel.repository.db
         .select({ id: reservations.id, expiresAt: reservations.expiresAt })
         .from(reservations)
-        .where(and(
-          eq(reservations.storeId, params.storeId),
-          eq(reservations.orderSystem, "shopana"),
-          eq(reservations.orderId, params.orderId),
-          eq(reservations.status, "ACTIVE"),
-          isNotNull(reservations.expiresAt),
-        ))
+        .where(
+          and(
+            eq(reservations.storeId, params.storeId),
+            eq(reservations.orderSystem, "shopana"),
+            eq(reservations.orderId, params.orderId),
+            eq(reservations.status, "ACTIVE"),
+            isNotNull(reservations.expiresAt),
+          ),
+        )
         .for("update");
       if (active.length > 0) {
         const renewedUntil = latestTimestamp([
           expiresAt,
           ...active.map(({ expiresAt }) => expiresAt!),
         ]);
-        await this.kernel.repository.db.update(reservations).set({ expiresAt: renewedUntil }).where(
-          inArray(reservations.id, active.map(({ id }) => id)),
-        );
+        await this.kernel.repository.db
+          .update(reservations)
+          .set({ expiresAt: renewedUntil })
+          .where(
+            inArray(
+              reservations.id,
+              active.map(({ id }) => id),
+            ),
+          );
       }
       return { renewedReservationIds: active.map(({ id }) => id) };
     });
@@ -165,17 +184,25 @@ export class CheckoutInventoryReservationService {
       const active = await this.kernel.repository.db
         .select({ id: reservations.id })
         .from(reservations)
-        .where(and(
-          eq(reservations.storeId, params.storeId),
-          eq(reservations.orderSystem, "shopana"),
-          eq(reservations.orderId, params.orderId),
-          eq(reservations.status, "ACTIVE"),
-        ))
+        .where(
+          and(
+            eq(reservations.storeId, params.storeId),
+            eq(reservations.orderSystem, "shopana"),
+            eq(reservations.orderId, params.orderId),
+            eq(reservations.status, "ACTIVE"),
+          ),
+        )
         .for("update");
       if (active.length > 0) {
-        await this.kernel.repository.db.update(reservations).set({ expiresAt: null }).where(
-          inArray(reservations.id, active.map(({ id }) => id)),
-        );
+        await this.kernel.repository.db
+          .update(reservations)
+          .set({ expiresAt: null })
+          .where(
+            inArray(
+              reservations.id,
+              active.map(({ id }) => id),
+            ),
+          );
       }
       return { confirmedReservationIds: active.map(({ id }) => id) };
     });
@@ -189,12 +216,14 @@ export class CheckoutInventoryReservationService {
       const active = await db
         .select()
         .from(reservations)
-        .where(and(
-          eq(reservations.storeId, params.storeId),
-          eq(reservations.orderSystem, "shopana"),
-          eq(reservations.orderId, params.orderId),
-          eq(reservations.status, "ACTIVE"),
-        ))
+        .where(
+          and(
+            eq(reservations.storeId, params.storeId),
+            eq(reservations.orderSystem, "shopana"),
+            eq(reservations.orderId, params.orderId),
+            eq(reservations.status, "ACTIVE"),
+          ),
+        )
         .orderBy(asc(reservations.variantId), asc(reservations.warehouseId))
         .for("update");
       for (const reservation of active) {
@@ -205,20 +234,24 @@ export class CheckoutInventoryReservationService {
           deltaReserved: -reservation.quantity,
           movementType: "RELEASE",
           sourceSystem: "checkout.placeOrder",
-          sourceEventId: stockSourceEventId(
-            "release",
-            params.idempotencyKey,
-            reservation.id,
-          ),
+          sourceEventId: stockSourceEventId("release", params.idempotencyKey, reservation.id),
           correlationId: params.correlationId,
         });
         if (change.status === "REJECTED") throw new Error("INVENTORY_RELEASE_REJECTED");
       }
       if (active.length > 0) {
-        await db.update(reservations).set({
-          status: "RELEASED",
-          releasedAt: new Date().toISOString(),
-        }).where(inArray(reservations.id, active.map(({ id }) => id)));
+        await db
+          .update(reservations)
+          .set({
+            status: "RELEASED",
+            releasedAt: new Date().toISOString(),
+          })
+          .where(
+            inArray(
+              reservations.id,
+              active.map(({ id }) => id),
+            ),
+          );
       }
       return { releasedReservationIds: active.map(({ id }) => id) };
     });
@@ -259,12 +292,12 @@ function assertExistingReservationMatches(
   }
 }
 
-function aggregateLines(
-  lines: Inventory.ReserveCheckoutInventoryParams["lines"],
-) {
+function aggregateLines(lines: Inventory.ReserveCheckoutInventoryParams["lines"]) {
   const byVariant = new Map<string, { lineId: string; variantId: string; quantity: number }>();
-  for (const line of [...lines].sort((left, right) =>
-    left.variantId.localeCompare(right.variantId) || left.lineId.localeCompare(right.lineId))) {
+  for (const line of [...lines].sort(
+    (left, right) =>
+      left.variantId.localeCompare(right.variantId) || left.lineId.localeCompare(right.lineId),
+  )) {
     if (!Number.isSafeInteger(line.quantity) || line.quantity <= 0) {
       throw new Error("INVENTORY_RESERVATION_QUANTITY_INVALID");
     }
@@ -274,8 +307,7 @@ function aggregateLines(
       if (!Number.isSafeInteger(current.quantity)) {
         throw new Error("INVENTORY_RESERVATION_QUANTITY_INVALID");
       }
-    }
-    else byVariant.set(line.variantId, { ...line });
+    } else byVariant.set(line.variantId, { ...line });
   }
   return [...byVariant.values()];
 }

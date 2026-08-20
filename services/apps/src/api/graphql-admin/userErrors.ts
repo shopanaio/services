@@ -20,10 +20,7 @@ export function toAppsUserErrors(
       code: "INVALID_INPUT",
     }));
   }
-  if (
-    error instanceof AuthorizationError ||
-    error instanceof TypeAuthorizationError
-  ) {
+  if (error instanceof AuthorizationError || error instanceof TypeAuthorizationError) {
     return [
       {
         message: "Access denied",
@@ -55,10 +52,7 @@ function inferCode(message: string, fallbackCode: string): string {
   return fallbackCode;
 }
 
-function inferField(
-  message: string,
-  fieldPrefix: readonly string[],
-): readonly string[] | null {
+function inferField(message: string, fieldPrefix: readonly string[]): readonly string[] | null {
   const match = message.match(
     /^(appCode|installationId|connectionId|specificationId|clientMutationId|expectedConfigurationVersion) is (?:required|invalid)(?: .*)?$/,
   );

@@ -26,11 +26,9 @@ export class CustomerDataRequestUpdateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: CustomerDataRequestUpdateParams
+    params: CustomerDataRequestUpdateParams,
   ): Promise<CustomerDataRequestUpdateResult> {
-    const current = await this.repository.lifecycle.findDataRequestById(
-      params.id
-    );
+    const current = await this.repository.lifecycle.findDataRequestById(params.id);
     if (!current) return notFound();
 
     const cancel = params.operations.cancel != null;
@@ -103,12 +101,12 @@ export class CustomerDataRequestUpdateScript extends BaseScript<
       params.id,
       requestPatch(params.operations),
       cancel,
-      params.operations.cancel?.reason
+      params.operations.cancel?.reason,
     );
     if (!updated) return invalidState();
     this.logger.info(
       { dataRequestId: updated.id, cancelled: cancel },
-      "Customer data request updated"
+      "Customer data request updated",
     );
     return { dataRequest: { id: updated.id }, userErrors: [] };
   }
@@ -122,21 +120,13 @@ export class CustomerDataRequestUpdateScript extends BaseScript<
 }
 
 function requestPatch(
-  operations: CustomerDataRequestUpdateParams["operations"]
+  operations: CustomerDataRequestUpdateParams["operations"],
 ): CustomerDataRequestPatch {
   const patch: CustomerDataRequestPatch = {};
-  for (const field of [
-    "customerId",
-    "type",
-    "legalBasis",
-    "requestMetadata",
-    "dueAt",
-  ] as const) {
+  for (const field of ["customerId", "type", "legalBasis", "requestMetadata", "dueAt"] as const) {
     if (!hasOwn(operations, field)) continue;
     const value =
-      field === "requestMetadata" && operations[field] === null
-        ? {}
-        : operations[field];
+      field === "requestMetadata" && operations[field] === null ? {} : operations[field];
     Object.assign(patch, { [field]: value });
   }
   return patch;

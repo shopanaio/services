@@ -18,12 +18,8 @@ export interface EditorPriceRule {
   priceValue: number | null;
 }
 
-const getRuleAmounts = (
-  rule: ApiProductComponentPriceRule,
-): Array<{ amountMinor: number }> =>
-  "amounts" in rule
-    ? (rule.amounts as Array<{ amountMinor: number }>)
-    : [];
+const getRuleAmounts = (rule: ApiProductComponentPriceRule): Array<{ amountMinor: number }> =>
+  "amounts" in rule ? (rule.amounts as Array<{ amountMinor: number }>) : [];
 
 export const toEditorPriceRule = (
   rule: ApiProductComponentPriceRule | null | undefined,
@@ -71,17 +67,31 @@ export const toApiPriceRule = (
   | ApiProductComponentOverridePriceRule
   | ApiProductComponentAdjustmentPriceRule => {
   if (value.priceType === ComponentPriceType.Base) {
-    return { __typename: "ProductComponentBasePriceRule", id, strategy: ProductComponentPriceStrategy.Base };
+    return {
+      __typename: "ProductComponentBasePriceRule",
+      id,
+      strategy: ProductComponentPriceStrategy.Base,
+    };
   }
   if (value.priceType === ComponentPriceType.Free) {
-    return { __typename: "ProductComponentFreePriceRule", id, strategy: ProductComponentPriceStrategy.Free };
+    return {
+      __typename: "ProductComponentFreePriceRule",
+      id,
+      strategy: ProductComponentPriceStrategy.Free,
+    };
   }
   if (value.priceType === ComponentPriceType.Fixed) {
     return {
       __typename: "ProductComponentOverridePriceRule",
       id,
       strategy: ProductComponentPriceStrategy.Override,
-      amounts: [{ __typename: "ProductComponentPriceRuleAmount", currency: CurrencyCode.Usd, amountMinor: value.priceValue ?? 0 }],
+      amounts: [
+        {
+          __typename: "ProductComponentPriceRuleAmount",
+          currency: CurrencyCode.Usd,
+          amountMinor: value.priceValue ?? 0,
+        },
+      ],
     };
   }
   const percentage =
@@ -95,8 +105,18 @@ export const toApiPriceRule = (
     id,
     strategy: ProductComponentPriceStrategy.Adjustment,
     operation: decrease ? PriceAdjustmentOperation.Decrease : PriceAdjustmentOperation.Increase,
-    valueType: percentage ? PriceAdjustmentValueType.Percentage : PriceAdjustmentValueType.FixedAmount,
+    valueType: percentage
+      ? PriceAdjustmentValueType.Percentage
+      : PriceAdjustmentValueType.FixedAmount,
     percentageBps: percentage ? Math.round((value.priceValue ?? 0) * 100) : null,
-    amounts: percentage ? [] : [{ __typename: "ProductComponentPriceRuleAmount", currency: CurrencyCode.Usd, amountMinor: value.priceValue ?? 0 }],
+    amounts: percentage
+      ? []
+      : [
+          {
+            __typename: "ProductComponentPriceRuleAmount",
+            currency: CurrencyCode.Usd,
+            amountMinor: value.priceValue ?? 0,
+          },
+        ],
   };
 };

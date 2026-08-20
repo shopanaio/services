@@ -2,10 +2,7 @@ export { ListingType, Cache } from "./ListingType.js";
 export { ResolverRegistry, getResolverRegistry } from "./ResolverRegistry.js";
 export { QueryResolver, ListingQueryResolver } from "./QueryResolver.js";
 export { ListingConnectionResolver } from "./ListingConnectionResolver.js";
-export {
-  ListingSearchQueryResolver,
-  ListingSearchMutationResolver,
-} from "./SearchResolvers.js";
+export { ListingSearchQueryResolver, ListingSearchMutationResolver } from "./SearchResolvers.js";
 export {
   SearchSynonymGroupConnectionResolver,
   type SearchSynonymGroupConnectionInput,
@@ -27,7 +24,4 @@ export {
   FacetValueCandidateConnectionResolver,
   type FacetValueCandidateConnectionInput,
 } from "./FacetValueCandidateConnectionResolver.js";
-export {
-  MutationResolver,
-  ListingMutationResolver,
-} from "./MutationResolver.js";
+export { MutationResolver, ListingMutationResolver } from "./MutationResolver.js";

@@ -2,9 +2,13 @@
 
 ## Цель
 
-Спроектировать новый UI для `ReviewDetailsCard`, details modal и связанных модалок редактирования секций. Новый экран должен выглядеть как часть той же системы, что `ProductDetailsCard` и `CategoryDetailsCard`: компактная summary-карточка сверху, последовательные `Paper`-секции, локальные действия секций и предсказуемый Modal Stack.
+Спроектировать новый UI для `ReviewDetailsCard`, details modal и связанных модалок редактирования
+секций. Новый экран должен выглядеть как часть той же системы, что `ProductDetailsCard` и
+`CategoryDetailsCard`: компактная summary-карточка сверху, последовательные `Paper`-секции,
+локальные действия секций и предсказуемый Modal Stack.
 
-Документ описывает presentation и interaction design. Он не меняет GraphQL-контракт и не предлагает отдельную страницу вместо существующего modal flow.
+Документ описывает presentation и interaction design. Он не меняет GraphQL-контракт и не предлагает
+отдельную страницу вместо существующего modal flow.
 
 Референсы в текущем Admin UI:
 
@@ -22,30 +26,42 @@
 
 ## Что меняется относительно чернового UI
 
-Текущий экран показывает данные, но воспринимается как техническая выгрузка: много одинаковых `Descriptions`, повторяющиеся статусы, несколько видимых кнопок `Edit`, необработанный JSON и слабая визуальная иерархия.
+Текущий экран показывает данные, но воспринимается как техническая выгрузка: много одинаковых
+`Descriptions`, повторяющиеся статусы, несколько видимых кнопок `Edit`, необработанный JSON и слабая
+визуальная иерархия.
 
 В новом варианте:
 
-1. Details modal получает стабильный заголовок `Review details`; пользовательский title живёт только в summary-card.
-2. Верхняя карточка повторяет композицию Product/Category info header: status/meta, title, chips, actions, divider и реальные KPI.
-3. Сначала показываются данные для принятия решения: текст review и moderation reports. Технические интеграционные поля находятся внизу.
+1. Details modal получает стабильный заголовок `Review details`; пользовательский title живёт только
+   в summary-card.
+2. Верхняя карточка повторяет композицию Product/Category info header: status/meta, title, chips,
+   actions, divider и реальные KPI.
+3. Сначала показываются данные для принятия решения: текст review и moderation reports. Технические
+   интеграционные поля находятся внизу.
 4. Engagement metrics показываются один раз в header и не дублируются отдельной тяжёлой секцией.
-5. Все секционные действия используют существующий `EditAction` с `⋯`; явные primary-кнопки остаются только в modal header.
-6. Большая общая edit-modal разделяется по агрегатным API-секциям. Каждая форма отправляет только собственный subtree `ReviewUpdateInput`.
-7. Standalone `Trust & incentive` и `Author & source` удаляются: audit summary живёт в header, verification — в Moderation, incentive disclosure — рядом с review content.
-8. Raw source metadata не участвует в основном reading flow и открывается отдельным `View technical metadata` из header overflow.
+5. Все секционные действия используют существующий `EditAction` с `⋯`; явные primary-кнопки остаются
+   только в modal header.
+6. Большая общая edit-modal разделяется по агрегатным API-секциям. Каждая форма отправляет только
+   собственный subtree `ReviewUpdateInput`.
+7. Standalone `Trust & incentive` и `Author & source` удаляются: audit summary живёт в header,
+   verification — в Moderation, incentive disclosure — рядом с review content.
+8. Raw source metadata не участвует в основном reading flow и открывается отдельным
+   `View technical metadata` из header overflow.
 9. Empty/loading/error states используют те же визуальные принципы, что Product/Category details.
 
 ## Визуальные правила
 
 - Контент details и edit modals использует стандартный `ModalLayout`, `max-width: 800px`.
 - Между карточками — `12px`, внутри `Paper` — текущий token-based padding.
-- Одна карточка отвечает на один пользовательский вопрос: «что написал клиент», «какое принято решение», «к чему относится review».
+- Одна карточка отвечает на один пользовательский вопрос: «что написал клиент», «какое принято
+  решение», «к чему относится review».
 - `Typography.Title level={3}` используется один раз — в `ReviewInfoHeader`.
 - `PaperHeader` используется для всех секций; локальное действие находится справа.
 - Цвет используется только семантически: status, report severity, verification и errors.
-- Системные ID показываются через `CopyableChip` или `Typography.Text copyable`, а не как обычный длинный текст.
-- Не использовать отдельные декоративные градиенты, большие цветные hero-блоки и новые card primitives.
+- Системные ID показываются через `CopyableChip` или `Typography.Text copyable`, а не как обычный
+  длинный текст.
+- Не использовать отдельные декоративные градиенты, большие цветные hero-блоки и новые card
+  primitives.
 - Тексты controls остаются на английском, как в существующем Admin UI.
 
 ## Information architecture
@@ -68,7 +84,8 @@ Review details modal
 └── ReviewExternalReferencesSection
 ```
 
-Порядок намеренный: review можно прочитать и модерировать в верхней части modal, не прокручивая через source metadata, integration IDs и sync state.
+Порядок намеренный: review можно прочитать и модерировать в верхней части modal, не прокручивая
+через source metadata, integration IDs и sync state.
 
 ## Modal Stack
 
@@ -92,7 +109,9 @@ Reviews page
     └── External reference create/edit     level 1
 ```
 
-После сохранения дочерняя modal вызывает `onSaved`, details query refetch выполняется до закрытия child modal, затем пользователь возвращается к актуальному Review Details. Отмена вложенного picker не меняет draft родительской формы.
+После сохранения дочерняя modal вызывает `onSaved`, details query refetch выполняется до закрытия
+child modal, затем пользователь возвращается к актуальному Review Details. Отмена вложенного picker
+не меняет draft родительской формы.
 
 Рекомендуемые section keys:
 
@@ -198,7 +217,8 @@ type ReviewEditSection =
 
 ![Review info header](assets/review-details-redesign/01-review-info-header.png)
 
-Композиция повторяет `ProductInfoHeader` и `CategoryInfoHeader`, но показывает только релевантные review actions.
+Композиция повторяет `ProductInfoHeader` и `CategoryInfoHeader`, но показывает только релевантные
+review actions.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -226,7 +246,8 @@ type ReviewEditSection =
   - `PUBLISHED` — green, check, `Visible in published review surfaces`;
   - `REJECTED` — red, circle-x, `Rejected by moderation`;
 - компактная audit line: `Created {createdAt} · Updated {updatedAt} by {actor} · {source}`;
-- если `updatedAt` ещё не запрашивается details fragment, показывать `Created {createdAt} · {source}` без пустых separators.
+- если `updatedAt` ещё не запрашивается details fragment, показывать
+  `Created {createdAt} · {source}` без пустых separators.
 
 `PaperHeader actions`:
 
@@ -248,16 +269,20 @@ Redact personal content       danger
 Delete review                 danger
 ```
 
-Dropdown является fallback navigation. Основной путь редактирования — `EditAction` в соответствующей секции.
+Dropdown является fallback navigation. Основной путь редактирования — `EditAction` в соответствующей
+секции.
 
 Title area:
 
 - title с ellipsis максимум две строки, fallback `Untitled review`;
-- `Rate disabled` + текстовое значение `{rating} / 5`, чтобы рейтинг не зависел только от формы звёзд;
+- `Rate disabled` + текстовое значение `{rating} / 5`, чтобы рейтинг не зависел только от формы
+  звёзд;
 - author display name, author type `Tag`, условный `Verified purchase` badge;
 - `CopyableChip label="ID"` с коротким display value.
 
-Author email и linked customer ID не повторяются в details. Они остаются доступны в `Edit reviewer`. `View technical metadata` открывает read-only modal/drawer с principal ID, idempotency key и formatted source metadata; эти поля не занимают место в основном scroll.
+Author email и linked customer ID не повторяются в details. Они остаются доступны в `Edit reviewer`.
+`View technical metadata` открывает read-only modal/drawer с principal ID, idempotency key и
+formatted source metadata; эти поля не занимают место в основном scroll.
 
 KPI panel:
 
@@ -266,7 +291,8 @@ KPI panel:
 - `KPITile` для `metrics.openReportCount`;
 - `KPITile` для `replies.totalCount`.
 
-`PeriodSwitch` не используется: API содержит aggregate counters без временных рядов. Нельзя показывать фиктивную динамику по образцу mock KPI Product/Category.
+`PeriodSwitch` не используется: API содержит aggregate counters без временных рядов. Нельзя
+показывать фиктивную динамику по образцу mock KPI Product/Category.
 
 ### ReviewContentSection
 
@@ -288,15 +314,19 @@ KPI panel:
 - Body показывается полностью; details modal уже имеет собственный scroll.
 - Locale выводится читаемым label + code через `shopLocales`, а не только `en`.
 - Character count — secondary text, без отдельного `Descriptions` ради одного поля.
-- Incentive alert рендерится только при `isIncentivized=true`; это disclosure marker из API, а не сведения о начисленном вознаграждении.
-- При `isIncentivized=false` не показывать `Not incentivized`, пустой placeholder или отдельный вертикальный отступ.
-- Section menu содержит `Edit review content` и условный `Edit incentive disclosure`; обе modal отправляют независимые subtrees.
+- Incentive alert рендерится только при `isIncentivized=true`; это disclosure marker из API, а не
+  сведения о начисленном вознаграждении.
+- При `isIncentivized=false` не показывать `Not incentivized`, пустой placeholder или отдельный
+  вертикальный отступ.
+- Section menu содержит `Edit review content` и условный `Edit incentive disclosure`; обе modal
+  отправляют независимые subtrees.
 
 ### ReviewModerationSection
 
 ![Review moderation section](assets/review-details-redesign/03-review-moderation.png)
 
-Секция объединяет текущие `Moderation` и reports. Это убирает дублирование и держит решение рядом с evidence.
+Секция объединяет текущие `Moderation` и reports. Это убирает дублирование и держит решение рядом с
+evidence.
 
 ```text
 ┌─ Moderation ─────────────────────────────────────────────────────── [⋯] ┐
@@ -327,19 +357,25 @@ KPI panel:
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Верхняя часть повторяет прежний horizontal status pattern из версии до `034f0c32`: три равных segment, текущий status выделен семантическим цветом.
-- В details это read-only presentation: segments не имеют `onChange`, hover/focus state и не должны объявляться screen reader как selectable controls.
-- В edit modal тот же визуальный pattern становится настоящим `Segmented block`; одинаковая геометрия сохраняет узнаваемость view/edit state.
+- Верхняя часть повторяет прежний horizontal status pattern из версии до `034f0c32`: три равных
+  segment, текущий status выделен семантическим цветом.
+- В details это read-only presentation: segments не имеют `onChange`, hover/focus state и не должны
+  объявляться screen reader как selectable controls.
+- В edit modal тот же визуальный pattern становится настоящим `Segmented block`; одинаковая
+  геометрия сохраняет узнаваемость view/edit state.
 - Под status strip показываются moderated timestamp и moderator.
 - `moderationNote` отображается как нормальный текст; при отсутствии — `No internal note` secondary.
-- Purchase verification — одна компактная строка: status, method и verified timestamp. Она заменяет отдельный `Trust & incentive` Paper.
-- `Verified purchase` в header остаётся только summary badge; полные verification values не дублируются там.
+- Purchase verification — одна компактная строка: status, method и verified timestamp. Она заменяет
+  отдельный `Trust & incentive` Paper.
+- `Verified purchase` в header остаётся только summary badge; полные verification values не
+  дублируются там.
 - Ниже показывается `openReportCount / reportCount`.
 - Сначала открытые reports, затем закрытые; внутри одинаковой группы — новые первыми.
 - По умолчанию видны максимум три report rows, затем `Show all reports (N)`.
 - Report row показывает status, human-readable reason, reporter, date и details.
 - `last-child` border отсутствует, как в существующем reports list.
-- Section menu содержит два независимых действия: `Review moderation` и `Edit purchase verification`. Report resolution не смешивается ни с одним из них.
+- Section menu содержит два независимых действия: `Review moderation` и
+  `Edit purchase verification`. Report resolution не смешивается ни с одним из них.
 - При отсутствии reports использовать `EntityDetailsEmptyState`, а не большой `Empty` illustration.
 
 ### ReviewSubjectSection
@@ -362,8 +398,10 @@ KPI panel:
 
 - Product title — link/button, открывающий существующий Product Details modal.
 - Variant — link на Variant details, если entity доступна; иначе copyable ID/title.
-- Order и Order line остаются copyable global IDs: admin federation entity для orders пока отсутствует.
-- Не показывать fake product image: текущий review details fragment возвращает только `product { id title }`.
+- Order и Order line остаются copyable global IDs: admin federation entity для orders пока
+  отсутствует.
+- Не показывать fake product image: текущий review details fragment возвращает только
+  `product { id title }`.
 - Action: `Edit product & purchase`.
 
 ### ReviewRatingsSection
@@ -387,14 +425,22 @@ KPI panel:
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Название `Review rating` и helper text `Submitted by the reviewer` явно отделяют оценку конкретного review от агрегированного product rating.
-- Слева — компактный overall summary: крупное значение, disabled `Rate`, текстовое `{value} out of 5`.
-- Справа — вложенная панель `Criteria breakdown`: count badge, пояснение и criterion ratings в API order.
-- Criterion row состоит из title, пятисегментной шкалы и числового значения. Сегменты визуально отличаются от stars общей оценки и лучше сканируются в плотном списке.
-- Footer `All assigned criteria answered` показывается только когда API подтверждает полноту применимых criteria; при отсутствии такой проверки footer не выводится.
-- Если detailed ratings отсутствуют, панель показывает компактный empty state `No criterion scores were submitted` без count badge и completion footer.
-- На узкой ширине колонки складываются вертикально: overall summary сверху, criteria panel снизу; title и value каждой строки остаются на одной линии.
-- Единственное действие секции — явная кнопка `Edit`, открывающая `Edit ratings`; ambiguous overflow menu здесь не нужен.
+- Название `Review rating` и helper text `Submitted by the reviewer` явно отделяют оценку
+  конкретного review от агрегированного product rating.
+- Слева — компактный overall summary: крупное значение, disabled `Rate`, текстовое
+  `{value} out of 5`.
+- Справа — вложенная панель `Criteria breakdown`: count badge, пояснение и criterion ratings в API
+  order.
+- Criterion row состоит из title, пятисегментной шкалы и числового значения. Сегменты визуально
+  отличаются от stars общей оценки и лучше сканируются в плотном списке.
+- Footer `All assigned criteria answered` показывается только когда API подтверждает полноту
+  применимых criteria; при отсутствии такой проверки footer не выводится.
+- Если detailed ratings отсутствуют, панель показывает компактный empty state
+  `No criterion scores were submitted` без count badge и completion footer.
+- На узкой ширине колонки складываются вертикально: overall summary сверху, criteria panel снизу;
+  title и value каждой строки остаются на одной линии.
+- Единственное действие секции — явная кнопка `Edit`, открывающая `Edit ratings`; ambiguous overflow
+  menu здесь не нужен.
 
 ### ReviewMediaSection
 
@@ -423,27 +469,32 @@ Details presentation переиспользует визуальный grid `Med
 - `MediaPreview` для изображений и video;
 - максимум 12 cells в overview, `+N` для остатка;
 - upload cell открывает edit media modal;
-- tabs `Published / Pending / Rejected` отсутствуют: при небольшом количестве media они занимают место и скрывают общий контекст review;
-- каждый item показывает icon-only moderation badge в одном и том же top-right slot: `CheckCircle`, `Clock`, `CircleX`;
-- badge использует icon + semantic color, имеет `Tooltip` и `aria-label`; цвет не является единственным способом различить state;
-- полный status text, caption, moderation note и audit metadata доступны только в item details modal;
-- click по thumbnail открывает preview/details; action `Edit details` доступен также из item overflow menu.
+- tabs `Published / Pending / Rejected` отсутствуют: при небольшом количестве media они занимают
+  место и скрывают общий контекст review;
+- каждый item показывает icon-only moderation badge в одном и том же top-right slot: `CheckCircle`,
+  `Clock`, `CircleX`;
+- badge использует icon + semantic color, имеет `Tooltip` и `aria-label`; цвет не является
+  единственным способом различить state;
+- полный status text, caption, moderation note и audit metadata доступны только в item details
+  modal;
+- click по thumbnail открывает preview/details; action `Edit details` доступен также из item
+  overflow menu.
 
-Общий grid расширяется optional slots. Не нужно копировать media preview, placeholder, DnD и keyboard interaction в новый review-only component.
+Общий grid расширяется optional slots. Не нужно копировать media preview, placeholder, DnD и
+keyboard interaction в новый review-only component.
 
 #### Расширение EntityMediaGallery для moderation
 
-Текущий `EntityMediaGallery` принимает только `ApiFile[]`, тогда как moderation metadata принадлежит `ReviewMedia`, а не `File`. Поэтому gallery сохраняет file-based contract, а Review adapter держит metadata по `file.id` и передаёт optional render/action slots:
+Текущий `EntityMediaGallery` принимает только `ApiFile[]`, тогда как moderation metadata принадлежит
+`ReviewMedia`, а не `File`. Поэтому gallery сохраняет file-based contract, а Review adapter держит
+metadata по `file.id` и передаёт optional render/action slots:
 
 ```ts
 interface IEntityMediaGalleryProps {
   // existing props remain unchanged
   renderItemBadge?: (file: ApiFile, index: number) => React.ReactNode;
   renderListMeta?: (file: ApiFile, index: number) => React.ReactNode;
-  getItemMenuItems?: (
-    file: ApiFile,
-    index: number,
-  ) => MenuProps["items"];
+  getItemMenuItems?: (file: ApiFile, index: number) => MenuProps["items"];
   onEditItem?: (file: ApiFile, index: number) => void;
   editItemLabel?: string;
 }
@@ -468,10 +519,14 @@ const metadataByFileId = new Map(items.map((item) => [item.file.id, item]));
 Правила extension:
 
 - existing Product/Category consumers не передают новые props и визуально не меняются;
-- built-in menu items `Preview`, `Set as featured`, `Delete` объединяются с `getItemMenuItems`, сохраняя test IDs на menu item object;
-- `renderItemBadge` рендерится поверх grid thumbnail, но не внутри drag handle и не перекрывает overflow action;
-- в list mode `renderListMeta` может показывать icon + полный text status, потому что там достаточно горизонтального места;
-- reorder/add/delete возвращают `ApiFile[]`; Review adapter синхронно перестраивает draft, сохраняя metadata существующих file IDs;
+- built-in menu items `Preview`, `Set as featured`, `Delete` объединяются с `getItemMenuItems`,
+  сохраняя test IDs на menu item object;
+- `renderItemBadge` рендерится поверх grid thumbnail, но не внутри drag handle и не перекрывает
+  overflow action;
+- в list mode `renderListMeta` может показывать icon + полный text status, потому что там достаточно
+  горизонтального места;
+- reorder/add/delete возвращают `ApiFile[]`; Review adapter синхронно перестраивает draft, сохраняя
+  metadata существующих file IDs;
 - новая media получает `PENDING`, `moderationNote=null`, `moderatedAt=null`.
 
 ### ReviewRepliesSection
@@ -496,15 +551,18 @@ const metadataByFileId = new Map(items.map((item) => [item.file.id, item]));
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Reply row: author, official/customer tag, publication status, created date, body, helpful/report counts.
+- Reply row: author, official/customer tag, publication status, created date, body, helpful/report
+  counts.
 - Длинный body ограничивается четырьмя строками с `Show more`.
 - По умолчанию показываются первые пять replies; `Show all (N)` раскрывает список внутри секции.
 - Empty state: `No replies yet` + пояснение без action.
-- На этом этапе секция read-only: текущий Review Details не имеет отдельного reply management flow. Не показывать неработающую кнопку `Manage`.
+- На этом этапе секция read-only: текущий Review Details не имеет отдельного reply management flow.
+  Не показывать неработающую кнопку `Manage`.
 
 ### Почему нет Trust & incentive и Author & source
 
-Эти standalone sections удалены намеренно: они повторяли header и показывали технические scalar values как равнозначный business content.
+Эти standalone sections удалены намеренно: они повторяли header и показывали технические scalar
+values как равнозначный business content.
 
 ```text
 Удалённый блок                  Новое место
@@ -532,7 +590,8 @@ Principal / idempotency / JSON View technical metadata из header overflow
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-JSON используется в token-based code container с horizontal scroll. Пустой `{}` не создаёт отдельную строку. Modal не содержит `Save`, потому что source audit data immutable в Review Admin flow.
+JSON используется в token-based code container с horizontal scroll. Пустой `{}` не создаёт отдельную
+строку. Modal не содержит `Save`, потому что source audit data immutable в Review Admin flow.
 
 ### ReviewExternalReferencesSection
 
@@ -557,7 +616,8 @@ Empty state:
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Header action — small `+ Add`, потому что это create collection action, а не редактирование всей секции.
+- Header action — small `+ Add`, потому что это create collection action, а не редактирование всей
+  секции.
 - Row: sync status tag, system/type/id, last synced или last error, optional external URL.
 - Row `EditAction` открывает существующий `ExternalReferenceModal` с `externalReference`.
 - `FAILED` row визуально акцентирует `lastError`, но вся карточка не становится красной.
@@ -580,12 +640,15 @@ ModalLayout
 Общие правила:
 
 1. `Save` disabled, пока detail loading, форма невалидна, submit выполняется или edit form не dirty.
-2. Любое изменение вызывает `setDirty(true)`; закрытие обрабатывается стандартным Modal Stack confirmation.
-3. Field errors находятся под конкретным control; operation/network error — `Alert` над первой `Paper`.
+2. Любое изменение вызывает `setDirty(true)`; закрытие обрабатывается стандартным Modal Stack
+   confirmation.
+3. Field errors находятся под конкретным control; operation/network error — `Alert` над первой
+   `Paper`.
 4. После submit ошибка не закрывает modal и не очищает draft.
 5. При success: refetch details, success toast, `setDirty(false)`, `forcePop()`.
 6. Каждая modal отправляет только свою секцию и текущий `expectedRevision`.
-7. Валидация и API error mapping должны переиспользовать `reviewFormSchema`/mapper rules, разделённые на section schemas.
+7. Валидация и API error mapping должны переиспользовать `reviewFormSchema`/mapper rules,
+   разделённые на section schemas.
 8. Form controls имеют видимые labels; placeholders не заменяют labels.
 
 ### 1. Edit Review Content
@@ -671,7 +734,8 @@ ModalLayout
 
 - Product — existing Product Picker, single selection.
 - Variant — existing Variant Picker, single selection and constrained to selected Product.
-- Если Product меняется и текущий Variant ему не принадлежит, Variant очищается с понятным inline notice.
+- Если Product меняется и текущий Variant ему не принадлежит, Variant очищается с понятным inline
+  notice.
 - Order IDs optional и `allowClear`.
 - Submit subtree: `subject`.
 
@@ -729,9 +793,12 @@ ModalLayout
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Восстанавливается точный interaction pattern до `034f0c32`: full-width `Segmented block` с иконками `ClockCircleOutlined`, `CheckCircleOutlined`, `CloseCircleOutlined`.
-- Consequence copy показывается один раз в отдельной semantic context panel для выбранного status, а не трижды внутри segments.
-- Details и form используют одинаковый horizontal layout; разница выражена поведением: details static/read-only, form selectable и сохраняется через `Save`.
+- Восстанавливается точный interaction pattern до `034f0c32`: full-width `Segmented block` с
+  иконками `ClockCircleOutlined`, `CheckCircleOutlined`, `CloseCircleOutlined`.
+- Consequence copy показывается один раз в отдельной semantic context panel для выбранного status, а
+  не трижды внутри segments.
+- Details и form используют одинаковый horizontal layout; разница выражена поведением: details
+  static/read-only, form selectable и сохраняется через `Save`.
 - Rejected требует non-empty moderation note.
 - Current moderator/time — read-only secondary line вне editable fields.
 - Reports видны в parent details и не повторяются внутри edit form.
@@ -754,8 +821,10 @@ ModalLayout
 ```
 
 - Verification status — `Segmented` из трёх значений.
-- Method и verified datetime доступны для `VERIFIED`; при другом status UI явно показывает, будут ли значения сохранены или очищены согласно mapper policy.
-- Не использовать одно поле `verificationStatus`, как в текущем draft: API также поддерживает method/time.
+- Method и verified datetime доступны для `VERIFIED`; при другом status UI явно показывает, будут ли
+  значения сохранены или очищены согласно mapper policy.
+- Не использовать одно поле `verificationStatus`, как в текущем draft: API также поддерживает
+  method/time.
 - Submit subtree: `verification`.
 
 ### 7. Edit Incentive Disclosure
@@ -774,9 +843,12 @@ ModalLayout
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-- `Switch` управляет `isIncentivized`; disclosure появляется и становится required только при enabled.
-- При disabled API получает `isIncentivized=false`, а disclosure очищается согласно существующему contract.
-- Не добавлять reward type, amount, coupon или payout: таких полей и выдачи вознаграждения в API нет.
+- `Switch` управляет `isIncentivized`; disclosure появляется и становится required только при
+  enabled.
+- При disabled API получает `isIncentivized=false`, а disclosure очищается согласно существующему
+  contract.
+- Не добавлять reward type, amount, coupon или payout: таких полей и выдачи вознаграждения в API
+  нет.
 - Submit subtree: `incentive`.
 
 ### 8. Edit Customer Media
@@ -801,7 +873,8 @@ ModalLayout
 
 - media picker, upload modal, preview, DnD и remove остаются общими;
 - `hasFeatured={false}`;
-- limit берётся из review configuration (`maxReviewMediaCount`), а не дублируется в нескольких компонентах;
+- limit берётся из review configuration (`maxReviewMediaCount`), а не дублируется в нескольких
+  компонентах;
 - optional item metadata slot показывает review media status;
 - item action `Edit details` открывает вложенную modal.
 
@@ -831,14 +904,23 @@ Nested media details:
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Status использует тот же horizontal `Segmented block`, что review moderation: `Pending`, `Published`, `Rejected` с icon и text.
+- Status использует тот же horizontal `Segmented block`, что review moderation: `Pending`,
+  `Published`, `Rejected` с icon и text.
 - Context panel объясняет consequence только выбранного status.
-- При `Rejected` moderation note обязательна; максимум 1000 characters. При других statuses note optional, но существующая note не очищается молча.
-- `Pending` очищает `moderatedByPrincipalId` и `moderatedAt`; `Published`/`Rejected` записывают текущего admin и timestamp согласно существующему update script.
-- `Apply` валидирует item и изменяет только draft родительской media modal. Server update выполняется один раз по `Save` родителя, потому что `ReviewUpdateInput.media` является complete replacement.
-- Закрытие nested modal без `Apply` не меняет parent draft. Закрытие dirty parent modal использует стандартное Modal Stack confirmation.
-- Parent Save отправляет `caption` для каждого item, но `moderation` subtree — только когда `moderationDirty=true`. Если отправлять moderation для всех items при обычном reorder, текущий backend перезапишет moderator/timestamp.
-- Для unchanged item отсутствие `moderation` заставляет update script сохранить existing status, note, moderator и timestamp по `fileId`.
+- При `Rejected` moderation note обязательна; максимум 1000 characters. При других statuses note
+  optional, но существующая note не очищается молча.
+- `Pending` очищает `moderatedByPrincipalId` и `moderatedAt`; `Published`/`Rejected` записывают
+  текущего admin и timestamp согласно существующему update script.
+- `Apply` валидирует item и изменяет только draft родительской media modal. Server update
+  выполняется один раз по `Save` родителя, потому что `ReviewUpdateInput.media` является complete
+  replacement.
+- Закрытие nested modal без `Apply` не меняет parent draft. Закрытие dirty parent modal использует
+  стандартное Modal Stack confirmation.
+- Parent Save отправляет `caption` для каждого item, но `moderation` subtree — только когда
+  `moderationDirty=true`. Если отправлять moderation для всех items при обычном reorder, текущий
+  backend перезапишет moderator/timestamp.
+- Для unchanged item отсутствие `moderation` заставляет update script сохранить existing status,
+  note, moderator и timestamp по `fileId`.
 
 ### 9. External Reference Create/Edit
 
@@ -867,7 +949,8 @@ Nested media details:
 
 - Metadata JSON, ETag и checksum скрыты в `Collapse` `Advanced`.
 - Sync state отображается в той же synchronization Paper, а не отдельной карточкой.
-- Delete находится в header `⋯` и требует danger confirmation; отдельная большая `Danger zone` Paper не нужна.
+- Delete находится в header `⋯` и требует danger confirmation; отдельная большая `Danger zone` Paper
+  не нужна.
 - Enum labels форматируются human-readable: `Bidirectional`, а не `bidirectional`.
 
 ## Destructive confirmations
@@ -885,7 +968,8 @@ Nested media details:
 └──────────────────────────────────────────────────────────────┘
 ```
 
-`Redact` — danger button. После success details остаётся открытой и refetch показывает redacted state.
+`Redact` — danger button. После success details остаётся открытой и refetch показывает redacted
+state.
 
 ### Delete review
 
@@ -904,24 +988,24 @@ Nested media details:
 
 ## Component reuse matrix
 
-| UI responsibility | Переиспользовать | Решение |
-|---|---|---|
-| Modal shell | `ModalLayout`, `ModalHeader` | Без нового shell/footer |
-| Section surface | `Paper`, `PaperHeader` | Один pattern для всех sections |
-| Local section action | `EditAction` | `⋯` с понятным menu label |
-| Status/meta header | composition Product/Category `InfoHeader` | Новый `ReviewInfoHeader`, та же структура |
-| IDs | `CopyableChip` | Review, customer, order IDs |
-| Header metrics | `KPITile` | Только реальные aggregate values |
-| Dates | `formatDetailDate` | Один formatter вместо `toLocaleString()` в каждом компоненте |
-| Empty content | `EntityDetailsEmptyState` | Review-specific copy/icon |
-| Media overview | Product `MediaSection` primitives + `MediaPreview` | `hasFeatured=false`, metadata slots |
-| Media editor | `EntityMediaGallery` | List mode, DnD, picker, upload, preview |
-| Media moderation extension | optional `renderItemBadge`, `renderListMeta`, `getItemMenuItems`, `onEditItem` slots | Shared gallery остаётся file-based; Review adapter владеет moderation draft |
-| Product/customer/variant selection | existing Entity Picker hooks/configs | Не создавать review-specific pickers |
-| Locale | `shopLocales` | Human label + locale code |
-| Forms | `react-hook-form`, section Zod schemas | Dirty/errors/submit единообразны |
-| Unsaved close | Modal Stack built-in confirmation | Не создавать локальный confirm |
-| External references | existing `ExternalReferenceModal` | Улучшить layout, сохранить API flow |
+| UI responsibility                  | Переиспользовать                                                                     | Решение                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Modal shell                        | `ModalLayout`, `ModalHeader`                                                         | Без нового shell/footer                                                     |
+| Section surface                    | `Paper`, `PaperHeader`                                                               | Один pattern для всех sections                                              |
+| Local section action               | `EditAction`                                                                         | `⋯` с понятным menu label                                                   |
+| Status/meta header                 | composition Product/Category `InfoHeader`                                            | Новый `ReviewInfoHeader`, та же структура                                   |
+| IDs                                | `CopyableChip`                                                                       | Review, customer, order IDs                                                 |
+| Header metrics                     | `KPITile`                                                                            | Только реальные aggregate values                                            |
+| Dates                              | `formatDetailDate`                                                                   | Один formatter вместо `toLocaleString()` в каждом компоненте                |
+| Empty content                      | `EntityDetailsEmptyState`                                                            | Review-specific copy/icon                                                   |
+| Media overview                     | Product `MediaSection` primitives + `MediaPreview`                                   | `hasFeatured=false`, metadata slots                                         |
+| Media editor                       | `EntityMediaGallery`                                                                 | List mode, DnD, picker, upload, preview                                     |
+| Media moderation extension         | optional `renderItemBadge`, `renderListMeta`, `getItemMenuItems`, `onEditItem` slots | Shared gallery остаётся file-based; Review adapter владеет moderation draft |
+| Product/customer/variant selection | existing Entity Picker hooks/configs                                                 | Не создавать review-specific pickers                                        |
+| Locale                             | `shopLocales`                                                                        | Human label + locale code                                                   |
+| Forms                              | `react-hook-form`, section Zod schemas                                               | Dirty/errors/submit единообразны                                            |
+| Unsaved close                      | Modal Stack built-in confirmation                                                    | Не создавать локальный confirm                                              |
+| External references                | existing `ExternalReferenceModal`                                                    | Улучшить layout, сохранить API flow                                         |
 
 ## Что должно стать отдельными Review components
 
@@ -942,7 +1026,9 @@ admin/src/domains/customer-content/reviews/components/review-details-card/
     └── use-review-modals.ts
 ```
 
-`ContentDetailsSections` не должен продолжать рендерить один большой generic хвост для Review. Общие formatter, report row, author summary и external reference row можно вынести в маленькие shared components, но порядок и composition остаются domain-specific.
+`ContentDetailsSections` не должен продолжать рендерить один большой generic хвост для Review. Общие
+formatter, report row, author summary и external reference row можно вынести в маленькие shared
+components, но порядок и composition остаются domain-specific.
 
 Edit modals рекомендуется разделить физически, как в Category Details:
 
@@ -963,34 +1049,44 @@ admin/src/domains/customer-content/reviews/modals/
 
 ## Section/API ownership
 
-| Section modal | Единственный update subtree |
-|---|---|
-| Edit review content | `{ content: { text: { title, body, locale } } }` |
-| Edit reviewer | `{ content: { author: { ... } } }` |
-| Edit product & purchase | `{ subject: { productId, variantId, orderId, orderLineId } }` |
-| Edit ratings | `{ rating: { overall, criteria } }` |
-| Review moderation | `{ content: { moderation: { status, moderationNote } } }` |
-| Edit purchase verification | `{ verification: { ... } }` |
-| Edit incentive disclosure | `{ incentive: { isIncentivized, disclosure } }` |
-| Edit customer media | `{ media: [...] }` complete replacement |
-| External reference | отдельные external reference create/update/delete mutations |
+| Section modal              | Единственный update subtree                                   |
+| -------------------------- | ------------------------------------------------------------- |
+| Edit review content        | `{ content: { text: { title, body, locale } } }`              |
+| Edit reviewer              | `{ content: { author: { ... } } }`                            |
+| Edit product & purchase    | `{ subject: { productId, variantId, orderId, orderLineId } }` |
+| Edit ratings               | `{ rating: { overall, criteria } }`                           |
+| Review moderation          | `{ content: { moderation: { status, moderationNote } } }`     |
+| Edit purchase verification | `{ verification: { ... } }`                                   |
+| Edit incentive disclosure  | `{ incentive: { isIncentivized, disclosure } }`               |
+| Edit customer media        | `{ media: [...] }` complete replacement                       |
+| External reference         | отдельные external reference create/update/delete mutations   |
 
-Это ключевое правило redesign: открытие `Edit review content` не должно повторно отправлять author, product, rating, moderation, verification, incentive или media из устаревшего form snapshot.
+Это ключевое правило redesign: открытие `Edit review content` не должно повторно отправлять author,
+product, rating, moderation, verification, incentive или media из устаревшего form snapshot.
 
 ## Data readiness
 
-Для wireframe используются уже доступные поля `ReviewDetailsFields`. Небольшие read additions допустимы без изменения API schema:
+Для wireframe используются уже доступные поля `ReviewDetailsFields`. Небольшие read additions
+допустимы без изменения API schema:
 
 - добавить `updatedAt`, если header показывает updated meta;
 - добавить lifecycle timestamps только если они реально выводятся;
 - не запрашивать product media только ради декоративного thumbnail;
-- не делать отдельные queries для author, reports или external references, уже вложенных в details operation.
+- не делать отдельные queries для author, reports или external references, уже вложенных в details
+  operation.
 
-Review details query остаётся источником истины. Edit modal получает `entityId`, повторно загружает актуальную entity и использует `revision` для optimistic concurrency.
+Review details query остаётся источником истины. Edit modal получает `entityId`, повторно загружает
+актуальную entity и использует `revision` для optimistic concurrency.
 
-Review media moderation уже поддерживается Admin API полями `status`, `moderationNote`, `moderatedByPrincipalId`, `moderatedAt` и input `ReviewMediaSyncItemInput.moderation`; schema extension для editor не требуется.
+Review media moderation уже поддерживается Admin API полями `status`, `moderationNote`,
+`moderatedByPrincipalId`, `moderatedAt` и input `ReviewMediaSyncItemInput.moderation`; schema
+extension для editor не требуется.
 
-Customer-facing delivery требует отдельного обязательного правила: наружу возвращаются только media со `status=PUBLISHED`. Текущий repository loader получает все review media без status filter, поэтому icon badge сам по себе ещё не обеспечивает скрытие `PENDING`/`REJECTED`. До появления storefront resolver это фиксируется как implementation requirement, а не считается готовым поведением API.
+Customer-facing delivery требует отдельного обязательного правила: наружу возвращаются только media
+со `status=PUBLISHED`. Текущий repository loader получает все review media без status filter,
+поэтому icon badge сам по себе ещё не обеспечивает скрытие `PENDING`/`REJECTED`. До появления
+storefront resolver это фиксируется как implementation requirement, а не считается готовым
+поведением API.
 
 При conflict:
 
@@ -1019,13 +1115,13 @@ It may have been deleted or is no longer available.
 
 ### Section empty states
 
-| Section | Copy |
-|---|---|
-| Media | `No customer media` / `This review has no attached photos or videos.` |
-| Replies | `No replies yet` / `No customer or official replies have been added.` |
-| Reports | `No abuse reports` / `No customers have reported this review.` |
-| Detailed ratings | `No criterion ratings` |
-| External references | `No external references` + `Add external reference` |
+| Section             | Copy                                                                  |
+| ------------------- | --------------------------------------------------------------------- |
+| Media               | `No customer media` / `This review has no attached photos or videos.` |
+| Replies             | `No replies yet` / `No customer or official replies have been added.` |
+| Reports             | `No abuse reports` / `No customers have reported this review.`        |
+| Detailed ratings    | `No criterion ratings`                                                |
+| External references | `No external references` + `Add external reference`                   |
 
 ### Errors
 
@@ -1063,22 +1159,30 @@ It may have been deleted or is no longer available.
 
 ## Acceptance criteria
 
-- Review Details визуально следует Product/Category details pattern: summary header + `Paper` sections + local `EditAction`.
+- Review Details визуально следует Product/Category details pattern: summary header + `Paper`
+  sections + local `EditAction`.
 - Modal header называется `Review details`; review title не дублируется в двух headers.
 - Header KPI использует только реальные review counters и не показывает fake trends/periods.
 - Content и moderation доступны без прокрутки через technical metadata.
 - Engagement counters не дублируются отдельной секцией.
 - Reports находятся рядом с moderation decision и сортируются open-first.
-- Standalone `Trust & incentive` и `Author & source` отсутствуют; их уникальные данные распределены по header, content и moderation без повторов.
-- Raw source metadata не участвует в основном scroll и доступна через отдельный read-only utility view.
-- Review content, reviewer, subject, ratings, moderation, verification, incentive и media имеют независимые edit flows.
+- Standalone `Trust & incentive` и `Author & source` отсутствуют; их уникальные данные распределены
+  по header, content и moderation без повторов.
+- Raw source metadata не участвует в основном scroll и доступна через отдельный read-only utility
+  view.
+- Review content, reviewer, subject, ratings, moderation, verification, incentive и media имеют
+  независимые edit flows.
 - Каждая edit modal отправляет только собственный `ReviewUpdateInput` subtree.
 - Product, Variant, Customer и Media selection переиспользуют существующие pickers.
 - Media переиспользует gallery/preview/upload primitives и сохраняет caption/moderation metadata.
-- Media grid не содержит status tabs и full-text thumbnail badges; status представлен icon-only badge с Tooltip и accessible name.
-- Каждый media item можно открыть в nested details modal и изменить `Pending / Published / Rejected`; rejected требует moderation note.
-- Reorder/add/delete не сбрасывают moderation metadata существующих items и не переписывают moderation audit без реального изменения.
-- Customer-facing review media исключает `PENDING` и `REJECTED`; Admin details продолжает видеть все statuses.
+- Media grid не содержит status tabs и full-text thumbnail badges; status представлен icon-only
+  badge с Tooltip и accessible name.
+- Каждый media item можно открыть в nested details modal и изменить
+  `Pending / Published / Rejected`; rejected требует moderation note.
+- Reorder/add/delete не сбрасывают moderation metadata существующих items и не переписывают
+  moderation audit без реального изменения.
+- Customer-facing review media исключает `PENDING` и `REJECTED`; Admin details продолжает видеть все
+  statuses.
 - External reference rows открываются в create/edit варианте существующей modal.
 - Redact и Delete имеют разные, точные consequence messages.
 - Loading, not found, empty, conflict и API error states описаны и не уничтожают form draft.

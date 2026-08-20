@@ -10,10 +10,5 @@ type Store implements Node @key(fields: "id") {
   contact: StoreContact
   address: StoreAddress
   brand: StoreBrand!
-  markets(
-    first: Int = 20
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): MarketConnection!
+  markets(first: Int = 20, after: Cursor, last: Int, before: Cursor): MarketConnection!
 }

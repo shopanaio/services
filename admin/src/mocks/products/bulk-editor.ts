@@ -138,10 +138,7 @@ export const MOCK_PRODUCTS: IMockProduct[] = [
     brand: "Apple",
     tags: ["audio", "wireless", "anc"],
     imageUrl: "https://picsum.photos/seed/airpods/200",
-    media: [
-      "https://picsum.photos/seed/airpods-1/200",
-      "https://picsum.photos/seed/airpods-2/200",
-    ],
+    media: ["https://picsum.photos/seed/airpods-1/200", "https://picsum.photos/seed/airpods-2/200"],
     variants: [
       {
         id: "var-2-1",

@@ -1,12 +1,7 @@
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { ListingNodeReference } from "./ListingQueryTypes.js";
 
-export function toListingNodeReference(
-  productId: string
-): ListingNodeReference {
+export function toListingNodeReference(productId: string): ListingNodeReference {
   return {
     __typename: "Product",
     id: encodeGlobalIdByType(productId, GlobalIdEntity.Product),

@@ -56,7 +56,7 @@ export interface TemplateValidationIssue {
 export class TemplateVariableValidator {
   validate(
     source: string,
-    variables: readonly NotificationTemplateVariable[]
+    variables: readonly NotificationTemplateVariable[],
   ): TemplateValidationIssue[] {
     if (Buffer.byteLength(source, "utf8") > MAX_TEMPLATE_SIZE) {
       return [
@@ -78,20 +78,14 @@ export class TemplateVariableValidator {
           line: location.line,
           column: location.column,
           code: "INVALID_HANDLEBARS",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Invalid Handlebars template",
+          message: error instanceof Error ? error.message : "Invalid Handlebars template",
         },
       ];
     }
 
     const allowedPaths = new Set<string>();
     const dynamicPrefixes = new Set<string>();
-    const pathTypes = new Map<
-      string,
-      NotificationTemplateVariable["type"]
-    >();
+    const pathTypes = new Map<string, NotificationTemplateVariable["type"]>();
     const collect = (entries: readonly NotificationTemplateVariable[]) => {
       for (const variable of entries) {
         if (variable.path === "*") {
@@ -121,15 +115,15 @@ export class TemplateVariableValidator {
     program: AstNode,
     scopes: Array<string | undefined>,
     nesting: number,
-    context: ValidationContext
+    context: ValidationContext,
   ): void {
     if (nesting > MAX_TEMPLATE_NESTING) {
       context.issues.push(
         issueAt(
           program,
           "MAX_NESTING_EXCEEDED",
-          `Template nesting exceeds ${MAX_TEMPLATE_NESTING} levels`
-        )
+          `Template nesting exceeds ${MAX_TEMPLATE_NESTING} levels`,
+        ),
       );
       return;
     }
@@ -147,8 +141,8 @@ export class TemplateVariableValidator {
             issueAt(
               node,
               "UNSUPPORTED_EXPRESSION",
-              "Comments, partials, and decorators are not supported"
-            )
+              "Comments, partials, and decorators are not supported",
+            ),
           );
           break;
         case "MustacheStatement":
@@ -162,8 +156,8 @@ export class TemplateVariableValidator {
             issueAt(
               node,
               "UNSUPPORTED_EXPRESSION",
-              `Unsupported Handlebars AST node "${node.type}"`
-            )
+              `Unsupported Handlebars AST node "${node.type}"`,
+            ),
           );
       }
     }
@@ -172,21 +166,19 @@ export class TemplateVariableValidator {
   private validateMustache(
     node: AstNode,
     scopes: Array<string | undefined>,
-    context: ValidationContext
+    context: ValidationContext,
   ): void {
     if (node.escaped === false) {
       context.issues.push(
         issueAt(
           node,
           "UNESCAPED_EXPRESSION",
-          "Triple-stash and unescaped expressions are not supported"
-        )
+          "Triple-stash and unescaped expressions are not supported",
+        ),
       );
     }
 
-    const hasArguments =
-      (node.params?.length ?? 0) > 0 ||
-      (node.hash?.pairs?.length ?? 0) > 0;
+    const hasArguments = (node.params?.length ?? 0) > 0 || (node.hash?.pairs?.length ?? 0) > 0;
     const name = node.path?.original ?? "";
     if (hasArguments || INLINE_HELPERS.has(name)) {
       this.validateHelper(node.path, INLINE_HELPERS, context);
@@ -200,7 +192,7 @@ export class TemplateVariableValidator {
     node: AstNode,
     scopes: Array<string | undefined>,
     nesting: number,
-    context: ValidationContext
+    context: ValidationContext,
   ): void {
     const name = node.path?.original ?? "";
     this.validateHelper(node.path, BLOCK_HELPERS, context);
@@ -209,50 +201,37 @@ export class TemplateVariableValidator {
         issueAt(
           node,
           "UNSUPPORTED_BLOCK_PARAMS",
-          "Block parameter aliases are not supported; use scoped paths"
-        )
+          "Block parameter aliases are not supported; use scoped paths",
+        ),
       );
     }
     this.validateArguments(node, scopes, context);
 
     if (name === "each") {
       const collection = node.params?.[0];
-      if (
-        !collection ||
-        collection.type !== "PathExpression" ||
-        (node.params?.length ?? 0) !== 1
-      ) {
+      if (!collection || collection.type !== "PathExpression" || (node.params?.length ?? 0) !== 1) {
         context.issues.push(
           issueAt(
             node,
             "INVALID_EACH_TARGET",
-            "The each helper requires exactly one catalogued array path"
-          )
+            "The each helper requires exactly one catalogued array path",
+          ),
         );
       }
       const collectionPath =
-        collection?.type === "PathExpression"
-          ? this.resolvePath(collection, scopes)
-          : undefined;
-      const collectionType = collectionPath
-        ? context.pathTypes.get(collectionPath)
-        : undefined;
+        collection?.type === "PathExpression" ? this.resolvePath(collection, scopes) : undefined;
+      const collectionType = collectionPath ? context.pathTypes.get(collectionPath) : undefined;
       if (collectionPath && collectionType && collectionType !== "ARRAY") {
         context.issues.push(
           issueAt(
             collection,
             "INVALID_EACH_TARGET",
-            `Template variable "${collection?.original ?? collectionPath}" is not an array`
-          )
+            `Template variable "${collection?.original ?? collectionPath}" is not an array`,
+          ),
         );
       }
       if (node.program) {
-        this.validateProgram(
-          node.program,
-          [...scopes, collectionPath],
-          nesting + 1,
-          context
-        );
+        this.validateProgram(node.program, [...scopes, collectionPath], nesting + 1, context);
       }
     } else if (node.program) {
       this.validateProgram(node.program, scopes, nesting + 1, context);
@@ -266,7 +245,7 @@ export class TemplateVariableValidator {
   private validateArguments(
     node: AstNode,
     scopes: Array<string | undefined>,
-    context: ValidationContext
+    context: ValidationContext,
   ): void {
     for (const parameter of node.params ?? []) {
       this.validateExpression(parameter, scopes, context);
@@ -279,7 +258,7 @@ export class TemplateVariableValidator {
   private validateExpression(
     node: AstNode,
     scopes: Array<string | undefined>,
-    context: ValidationContext
+    context: ValidationContext,
   ): void {
     if (node.type === "PathExpression") {
       this.validatePath(node, scopes, context);
@@ -294,16 +273,12 @@ export class TemplateVariableValidator {
   private validateHelper(
     path: AstNode | undefined,
     allowed: ReadonlySet<string>,
-    context: ValidationContext
+    context: ValidationContext,
   ): void {
     const name = path?.original ?? "";
     if (!allowed.has(name)) {
       context.issues.push(
-        issueAt(
-          path,
-          "UNKNOWN_HELPER",
-          `Unknown or unsupported template helper "${name}"`
-        )
+        issueAt(path, "UNKNOWN_HELPER", `Unknown or unsupported template helper "${name}"`),
       );
     }
   }
@@ -311,7 +286,7 @@ export class TemplateVariableValidator {
   private validatePath(
     path: AstNode,
     scopes: Array<string | undefined>,
-    context: ValidationContext
+    context: ValidationContext,
   ): void {
     if (path.data) {
       if (
@@ -322,8 +297,8 @@ export class TemplateVariableValidator {
           issueAt(
             path,
             "UNKNOWN_DATA_VARIABLE",
-            `Unknown template data variable "${path.original ?? ""}"`
-          )
+            `Unknown template data variable "${path.original ?? ""}"`,
+          ),
         );
       }
       return;
@@ -334,26 +309,20 @@ export class TemplateVariableValidator {
       !resolved ||
       (!context.allowedPaths.has(resolved) &&
         ![...context.dynamicPrefixes].some(
-          (prefix) =>
-            prefix === "" ||
-            resolved === prefix ||
-            resolved.startsWith(`${prefix}.`)
+          (prefix) => prefix === "" || resolved === prefix || resolved.startsWith(`${prefix}.`),
         ))
     ) {
       context.issues.push(
         issueAt(
           path,
           "UNKNOWN_VARIABLE",
-          `Unknown template variable "${path.original ?? resolved}"`
-        )
+          `Unknown template variable "${path.original ?? resolved}"`,
+        ),
       );
     }
   }
 
-  private resolvePath(
-    path: AstNode,
-    scopes: Array<string | undefined>
-  ): string | undefined {
+  private resolvePath(path: AstNode, scopes: Array<string | undefined>): string | undefined {
     const depth = path.depth ?? 0;
     const scopeIndex = Math.max(0, scopes.length - 1 - depth);
     const scope = scopes[scopeIndex];
@@ -366,7 +335,7 @@ export class TemplateVariableValidator {
 function issueAt(
   node: AstNode | undefined,
   code: string,
-  message: string
+  message: string,
 ): TemplateValidationIssue {
   return {
     line: node?.loc?.start.line ?? 1,

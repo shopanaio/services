@@ -5,9 +5,7 @@ export class FacetSwatchUpdateScript extends BaseScript<
   FacetSwatchUpdateParams,
   FacetSwatchResult
 > {
-  protected async execute(
-    params: FacetSwatchUpdateParams
-  ): Promise<FacetSwatchResult> {
+  protected async execute(params: FacetSwatchUpdateParams): Promise<FacetSwatchResult> {
     const existing = await this.repository.facetSwatch.findById(params.id);
     if (!existing) {
       return {

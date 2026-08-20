@@ -5,18 +5,17 @@ import type {
 } from "@shopana/rbac";
 import { AuthorizationError } from "./Authorize.js";
 
-type Resolvable<TArgs extends unknown[], TValue> =
-  | TValue
-  | ((...args: TArgs) => TValue);
+type Resolvable<TArgs extends unknown[], TValue> = TValue | ((...args: TArgs) => TValue);
 
-export type ProtectedResourceResolver<
-  TArgs extends unknown[] = unknown[]
-> = Resolvable<TArgs, ProtectedResourceRef | null | undefined>;
+export type ProtectedResourceResolver<TArgs extends unknown[] = unknown[]> = Resolvable<
+  TArgs,
+  ProtectedResourceRef | null | undefined
+>;
 
 type ProtectedResourceDecorator = <T>(
   _target: object,
   _propertyKey: string | symbol,
-  descriptor: TypedPropertyDescriptor<T>
+  descriptor: TypedPropertyDescriptor<T>,
 ) => TypedPropertyDescriptor<T>;
 
 /**
@@ -25,23 +24,16 @@ type ProtectedResourceDecorator = <T>(
  */
 export function ProtectedResource<
   TArgs extends unknown[],
-  TSelf extends { authProvider: AuthProvider }
->(
-  resolver: ProtectedResourceResolver<TArgs>
-): ProtectedResourceDecorator {
+  TSelf extends { authProvider: AuthProvider },
+>(resolver: ProtectedResourceResolver<TArgs>): ProtectedResourceDecorator {
   return function <T>(
     _target: object,
     _propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<T>
+    descriptor: TypedPropertyDescriptor<T>,
   ): TypedPropertyDescriptor<T> {
-    const originalMethod = descriptor.value as unknown as (
-      ...args: TArgs
-    ) => Promise<unknown>;
+    const originalMethod = descriptor.value as unknown as (...args: TArgs) => Promise<unknown>;
 
-    descriptor.value = async function (
-      this: TSelf,
-      ...args: TArgs
-    ): Promise<unknown> {
+    descriptor.value = async function (this: TSelf, ...args: TArgs): Promise<unknown> {
       const protectedResource = resolve(resolver, args);
 
       if (
@@ -53,20 +45,20 @@ export function ProtectedResource<
           [
             {
               code: "PROTECTED_RESOURCE_REQUIRED",
-              message: "Access denied: a concrete protected resource with a complete owner claim is required",
+              message:
+                "Access denied: a concrete protected resource with a complete owner claim is required",
               field: null,
             },
           ],
           "protected-resource",
-          "write"
+          "write",
         );
       }
 
       const authorizeParams: ProtectedResourceAuthorizeParams = {
         protectedResource,
       };
-      const allowed =
-        await this.authProvider.authorizeProtectedResource(authorizeParams);
+      const allowed = await this.authProvider.authorizeProtectedResource(authorizeParams);
       if (!allowed) {
         throw new AuthorizationError(
           [
@@ -77,7 +69,7 @@ export function ProtectedResource<
             },
           ],
           "protected-resource",
-          "write"
+          "write",
         );
       }
 
@@ -90,11 +82,9 @@ export function ProtectedResource<
 
 function resolve<TArgs extends unknown[], TValue>(
   value: Resolvable<TArgs, TValue>,
-  args: TArgs
+  args: TArgs,
 ): TValue {
-  return typeof value === "function"
-    ? (value as (...args: TArgs) => TValue)(...args)
-    : value;
+  return typeof value === "function" ? (value as (...args: TArgs) => TValue)(...args) : value;
 }
 
 function hasCompleteOwnerClaim(resource: ProtectedResourceRef): boolean {
@@ -105,8 +95,6 @@ function hasCompleteOwnerClaim(resource: ProtectedResourceRef): boolean {
 
 function hasConcreteResourceIdentity(resource: ProtectedResourceRef): boolean {
   return Boolean(
-    resource.organizationId.trim() &&
-      resource.resourceKind.trim() &&
-      resource.resourceId.trim()
+    resource.organizationId.trim() && resource.resourceKind.trim() && resource.resourceId.trim(),
   );
 }

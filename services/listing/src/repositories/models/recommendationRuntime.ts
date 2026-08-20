@@ -13,49 +13,26 @@ import {
 } from "drizzle-orm/pg-core";
 import { listingSchema } from "./schema.js";
 
-export type RecommendationPlacement =
-  | "PRODUCT_RELATED"
-  | "FREQUENTLY_BOUGHT_TOGETHER";
+export type RecommendationPlacement = "PRODUCT_RELATED" | "FREQUENTLY_BOUGHT_TOGETHER";
 export type RecommendationStrategy =
-  | "CURATED_ONLY"
-  | "CURATED_FIRST"
-  | "BLENDED"
-  | "AUTOMATED_ONLY";
+  "CURATED_ONLY" | "CURATED_FIRST" | "BLENDED" | "AUTOMATED_ONLY";
 export type ManualRecommendationAction = "PIN" | "BOOST" | "EXCLUDE";
 export type RecommendationReferenceStatus = "VALID" | "STALE";
-export type RecommendationRunStatus =
-  | "BUILDING"
-  | "READY"
-  | "ACTIVE"
-  | "SUPERSEDED"
-  | "FAILED";
-export type RecommendationMaterializationPhase =
-  | "ACCUMULATE"
-  | "PRODUCTS"
-  | "PAIRS"
-  | "COMPLETE";
+export type RecommendationRunStatus = "BUILDING" | "READY" | "ACTIVE" | "SUPERSEDED" | "FAILED";
+export type RecommendationMaterializationPhase = "ACCUMULATE" | "PRODUCTS" | "PAIRS" | "COMPLETE";
 export type ProductRecommendationSource =
-  | "MANUAL"
-  | "FREQUENTLY_BOUGHT_TOGETHER"
-  | "CONTENT_SIMILARITY"
-  | "POPULARITY"
-  | "FALLBACK";
+  "MANUAL" | "FREQUENTLY_BOUGHT_TOGETHER" | "CONTENT_SIMILARITY" | "POPULARITY" | "FALLBACK";
 
-const time = (name: string) =>
-  timestamp(name, { withTimezone: true, mode: "string" });
+const time = (name: string) => timestamp(name, { withTimezone: true, mode: "string" });
 
 export const recommendationPlacementPolicy = listingSchema.table(
   "recommendation_placement_policy",
   {
     policyId: uuid("policy_id").primaryKey(),
     storeId: uuid("store_id").notNull(),
-    placement: varchar("placement", { length: 48 })
-      .$type<RecommendationPlacement>()
-      .notNull(),
+    placement: varchar("placement", { length: 48 }).$type<RecommendationPlacement>().notNull(),
     enabled: boolean("enabled").notNull().default(true),
-    strategy: varchar("strategy", { length: 32 })
-      .$type<RecommendationStrategy>()
-      .notNull(),
+    strategy: varchar("strategy", { length: 32 }).$type<RecommendationStrategy>().notNull(),
     minimumResults: smallint("minimum_results").notNull(),
     maximumResults: smallint("maximum_results").notNull(),
     fallbackChain: jsonb("fallback_chain").$type<string[]>().notNull(),
@@ -71,35 +48,28 @@ export const recommendationPlacementPolicy = listingSchema.table(
   ],
 );
 
-export const manualProductRecommendation = listingSchema.table(
-  "manual_product_recommendation",
-  {
-    recommendationId: uuid("recommendation_id").primaryKey(),
-    storeId: uuid("store_id").notNull(),
-    anchorProductId: uuid("anchor_product_id").notNull(),
-    targetProductId: uuid("target_product_id").notNull(),
-    placement: varchar("placement", { length: 48 })
-      .$type<RecommendationPlacement>()
-      .notNull(),
-    action: varchar("action", { length: 16 })
-      .$type<ManualRecommendationAction>()
-      .notNull(),
-    position: smallint("position"),
-    boost: numeric("boost", { precision: 12, scale: 6, mode: "string" }),
-    enabled: boolean("enabled").notNull(),
-    startsAt: time("starts_at"),
-    endsAt: time("ends_at"),
-    anchorReferenceStatus: varchar("anchor_reference_status", { length: 16 })
-      .$type<RecommendationReferenceStatus>()
-      .notNull(),
-    targetReferenceStatus: varchar("target_reference_status", { length: 16 })
-      .$type<RecommendationReferenceStatus>()
-      .notNull(),
-    version: integer("version").notNull(),
-    createdAt: time("created_at").notNull(),
-    updatedAt: time("updated_at").notNull(),
-  },
-);
+export const manualProductRecommendation = listingSchema.table("manual_product_recommendation", {
+  recommendationId: uuid("recommendation_id").primaryKey(),
+  storeId: uuid("store_id").notNull(),
+  anchorProductId: uuid("anchor_product_id").notNull(),
+  targetProductId: uuid("target_product_id").notNull(),
+  placement: varchar("placement", { length: 48 }).$type<RecommendationPlacement>().notNull(),
+  action: varchar("action", { length: 16 }).$type<ManualRecommendationAction>().notNull(),
+  position: smallint("position"),
+  boost: numeric("boost", { precision: 12, scale: 6, mode: "string" }),
+  enabled: boolean("enabled").notNull(),
+  startsAt: time("starts_at"),
+  endsAt: time("ends_at"),
+  anchorReferenceStatus: varchar("anchor_reference_status", { length: 16 })
+    .$type<RecommendationReferenceStatus>()
+    .notNull(),
+  targetReferenceStatus: varchar("target_reference_status", { length: 16 })
+    .$type<RecommendationReferenceStatus>()
+    .notNull(),
+  version: integer("version").notNull(),
+  createdAt: time("created_at").notNull(),
+  updatedAt: time("updated_at").notNull(),
+});
 
 export const recommendationIngestionCursor = listingSchema.table(
   "recommendation_ingestion_cursor",
@@ -119,9 +89,7 @@ export const recommendationOrderFact = listingSchema.table(
     ingestionPosition: bigint("ingestion_position", { mode: "bigint" }).notNull(),
     storeId: uuid("store_id").notNull(),
     orderId: uuid("order_id").notNull(),
-    state: varchar("state", { length: 16 })
-      .$type<"COMMITTED" | "REVERSED">()
-      .notNull(),
+    state: varchar("state", { length: 16 }).$type<"COMMITTED" | "REVERSED">().notNull(),
     orderRevision: integer("order_revision").notNull(),
     committedAt: time("committed_at").notNull(),
     occurredAt: time("occurred_at").notNull(),
@@ -165,9 +133,7 @@ export const recommendationCalculationRun = listingSchema.table(
     calculationType: varchar("calculation_type", { length: 32 })
       .$type<"FREQUENTLY_BOUGHT_TOGETHER">()
       .notNull(),
-    status: varchar("status", { length: 16 })
-      .$type<RecommendationRunStatus>()
-      .notNull(),
+    status: varchar("status", { length: 16 }).$type<RecommendationRunStatus>().notNull(),
     algorithmVersion: varchar("algorithm_version", { length: 64 }).notNull(),
     windowStartedAt: time("window_started_at").notNull(),
     windowEndedAt: time("window_ended_at").notNull(),
@@ -213,10 +179,7 @@ export const recommendationProductStat = listingSchema.table(
     lastPurchasedAt: time("last_purchased_at").notNull(),
   },
   (table) => [
-    unique("recommendation_product_stat_run_product_unique").on(
-      table.runId,
-      table.productId,
-    ),
+    unique("recommendation_product_stat_run_product_unique").on(table.runId, table.productId),
   ],
 );
 
@@ -252,26 +215,16 @@ export const recommendationSnapshot = listingSchema.table(
     snapshotId: uuid("snapshot_id").primaryKey(),
     storeId: uuid("store_id").notNull(),
     anchorProductId: uuid("anchor_product_id").notNull(),
-    placement: varchar("placement", { length: 48 })
-      .$type<RecommendationPlacement>()
-      .notNull(),
-    status: varchar("status", { length: 16 })
-      .$type<RecommendationRunStatus>()
-      .notNull(),
-    strategy: varchar("strategy", { length: 32 })
-      .$type<RecommendationStrategy>()
-      .notNull(),
+    placement: varchar("placement", { length: 48 }).$type<RecommendationPlacement>().notNull(),
+    status: varchar("status", { length: 16 }).$type<RecommendationRunStatus>().notNull(),
+    strategy: varchar("strategy", { length: 32 }).$type<RecommendationStrategy>().notNull(),
     policyId: uuid("policy_id").notNull(),
     policyVersion: integer("policy_version").notNull(),
     calculationRunId: uuid("calculation_run_id"),
-    rankerType: varchar("ranker_type", { length: 16 })
-      .$type<"RULES" | "ML">()
-      .notNull(),
+    rankerType: varchar("ranker_type", { length: 16 }).$type<"RULES" | "ML">().notNull(),
     modelVersion: varchar("model_version", { length: 64 }).notNull(),
     buildKey: varchar("build_key", { length: 255 }).notNull(),
-    sourceWatermarks: jsonb("source_watermarks")
-      .$type<Record<string, unknown>>()
-      .notNull(),
+    sourceWatermarks: jsonb("source_watermarks").$type<Record<string, unknown>>().notNull(),
     itemCount: smallint("item_count").notNull(),
     contentHash: varchar("content_hash", { length: 64 }),
     generatedAt: time("generated_at").notNull(),
@@ -317,16 +270,11 @@ export const recommendationSnapshotItem = listingSchema.table(
       .notNull(),
     pinned: boolean("pinned").notNull(),
     features: jsonb("features").$type<RecommendationItemFeaturesV1>().notNull(),
-    sourceBreakdown: jsonb("source_breakdown")
-      .$type<RecommendationSourceBreakdownV1>()
-      .notNull(),
+    sourceBreakdown: jsonb("source_breakdown").$type<RecommendationSourceBreakdownV1>().notNull(),
     createdAt: time("created_at").notNull(),
   },
   (table) => [
-    unique("recommendation_snapshot_item_rank_unique").on(
-      table.snapshotId,
-      table.rank,
-    ),
+    unique("recommendation_snapshot_item_rank_unique").on(table.snapshotId, table.rank),
     unique("recommendation_snapshot_item_product_unique").on(
       table.snapshotId,
       table.targetProductId,
@@ -367,9 +315,7 @@ export const recommendationMaintenanceCursor = listingSchema.table(
   {
     cursorId: uuid("cursor_id").primaryKey(),
     storeId: uuid("store_id").notNull().unique(),
-    status: varchar("status", { length: 16 })
-      .$type<"BOOTSTRAPPING" | "ACTIVE">()
-      .notNull(),
+    status: varchar("status", { length: 16 }).$type<"BOOTSTRAPPING" | "ACTIVE">().notNull(),
     bootstrapCutoffAt: time("bootstrap_cutoff_at").notNull(),
     lastManualBoundaryAt: time("last_manual_boundary_at"),
     createdAt: time("created_at").notNull(),
@@ -383,9 +329,7 @@ export const recommendationBuildRequest = listingSchema.table(
     requestId: uuid("request_id").primaryKey(),
     storeId: uuid("store_id").notNull(),
     anchorProductId: uuid("anchor_product_id").notNull(),
-    placement: varchar("placement", { length: 48 })
-      .$type<RecommendationPlacement>()
-      .notNull(),
+    placement: varchar("placement", { length: 48 }).$type<RecommendationPlacement>().notNull(),
     generation: bigint("generation", { mode: "bigint" }).notNull(),
     triggerKey: varchar("trigger_key", { length: 255 }).notNull(),
     createdAt: time("created_at").notNull(),
@@ -421,10 +365,12 @@ export type NewRecommendationSnapshot = typeof recommendationSnapshot.$inferInse
 export type RecommendationSnapshotItem = typeof recommendationSnapshotItem.$inferSelect;
 export type NewRecommendationSnapshotItem = typeof recommendationSnapshotItem.$inferInsert;
 export type RecommendationProductAccumulator = typeof recommendationProductAccumulator.$inferSelect;
-export type NewRecommendationProductAccumulator = typeof recommendationProductAccumulator.$inferInsert;
+export type NewRecommendationProductAccumulator =
+  typeof recommendationProductAccumulator.$inferInsert;
 export type RecommendationPairAccumulator = typeof recommendationPairAccumulator.$inferSelect;
 export type NewRecommendationPairAccumulator = typeof recommendationPairAccumulator.$inferInsert;
 export type RecommendationMaintenanceCursor = typeof recommendationMaintenanceCursor.$inferSelect;
-export type NewRecommendationMaintenanceCursor = typeof recommendationMaintenanceCursor.$inferInsert;
+export type NewRecommendationMaintenanceCursor =
+  typeof recommendationMaintenanceCursor.$inferInsert;
 export type RecommendationBuildRequest = typeof recommendationBuildRequest.$inferSelect;
 export type NewRecommendationBuildRequest = typeof recommendationBuildRequest.$inferInsert;

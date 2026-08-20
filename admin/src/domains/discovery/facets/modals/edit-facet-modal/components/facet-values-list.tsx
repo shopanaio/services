@@ -31,10 +31,7 @@ interface FacetValuesListProps {
   swatchesEnabled: boolean;
   onReorder: (values: OptionEditorValue[]) => void;
   onUpdateValueName: (valueIndex: number, name: string) => void;
-  onUpdateValueSwatch: (
-    valueIndex: number,
-    swatch: OptionEditorSwatch,
-  ) => void;
+  onUpdateValueSwatch: (valueIndex: number, swatch: OptionEditorSwatch) => void;
   onDeleteValue: (valueIndex: number) => void;
 }
 
@@ -72,11 +69,7 @@ export function FacetValuesList({
   };
 
   if (values.length === 0) {
-    return (
-      <Typography.Text type="secondary">
-        No public values yet.
-      </Typography.Text>
-    );
+    return <Typography.Text type="secondary">No public values yet.</Typography.Text>;
   }
 
   return (
@@ -98,9 +91,7 @@ export function FacetValuesList({
               swatchesEnabled={swatchesEnabled}
               isDeleteDisabled={values.length <= 1}
               onNameChange={(name) => onUpdateValueName(valueIndex, name)}
-              onSwatchChange={(swatch) =>
-                onUpdateValueSwatch(valueIndex, swatch)
-              }
+              onSwatchChange={(swatch) => onUpdateValueSwatch(valueIndex, swatch)}
               onDelete={() => onDeleteValue(valueIndex)}
             />
           ))}

@@ -34,13 +34,16 @@ describe("ResolveCheckoutBuyerEligibilityScript", () => {
         message: "Customer is not eligible for checkout.",
         retryable: false,
       });
-    }
+    },
   );
 
   it("returns a deterministic sorted snapshot for an active customer", async () => {
     const result = await runScript({
       customer: { id: params.customerId, lifecycleStatus: "ACTIVE" },
-      memberships: [membership("segment-2", "membership-2"), membership("segment-1", "membership-1")],
+      memberships: [
+        membership("segment-2", "membership-2"),
+        membership("segment-1", "membership-1"),
+      ],
     });
     expect(result).toMatchObject({
       ok: true,
@@ -49,9 +52,7 @@ describe("ResolveCheckoutBuyerEligibilityScript", () => {
       effectiveAt: params.effectiveAt,
       segmentIds: ["segment-1", "segment-2"],
     });
-    expect(result.ok && result.segmentMembershipRevision).toMatch(
-      /^sha256:[0-9a-f]{64}$/
-    );
+    expect(result.ok && result.segmentMembershipRevision).toMatch(/^sha256:[0-9a-f]{64}$/);
   });
 
   it("sanitizes repository failures", async () => {
@@ -66,16 +67,13 @@ describe("ResolveCheckoutBuyerEligibilityScript", () => {
 
   it("returns an explicit failure instead of truncating segments", async () => {
     const memberships = Array.from({ length: 501 }, (_, index) =>
-      membership(
-        `segment-${String(index).padStart(3, "0")}`,
-        `membership-${index}`
-      )
+      membership(`segment-${String(index).padStart(3, "0")}`, `membership-${index}`),
     );
     await expect(
       runScript({
         customer: { id: params.customerId, lifecycleStatus: "ACTIVE" },
         memberships,
-      })
+      }),
     ).resolves.toMatchObject({
       ok: false,
       code: "BUYER_ELIGIBILITY_LIMIT_EXCEEDED",
@@ -122,6 +120,6 @@ async function runScript(read: unknown, failure?: Error) {
     },
   });
   return runWithContext(context, () =>
-    new ResolveCheckoutBuyerEligibilityScript(services).run(params)
+    new ResolveCheckoutBuyerEligibilityScript(services).run(params),
   );
 }

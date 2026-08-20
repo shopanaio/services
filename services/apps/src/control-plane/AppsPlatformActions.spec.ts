@@ -4,10 +4,7 @@ import {
   COMMERCE_FUNCTION_MAX_OUTPUT_BYTES,
   type Apps,
 } from "@shopana/broker-types";
-import type {
-  BrokerCallContext,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import type { BrokerCallContext, ServiceBroker } from "@shopana/shared-kernel";
 import { AppsRuntimeRouter } from "../runtime/AppsRuntimeRouter.js";
 import { AppInstallationStore } from "./AppInstallationStore.js";
 import { AppLifecycleService } from "./AppLifecycleService.js";
@@ -20,9 +17,7 @@ describe("AppsPlatformActions Commerce Function output boundary", () => {
     circular.self = circular;
     const actions = createActions(circular);
 
-    await expect(
-      actions.executeCapability(params(), context()),
-    ).rejects.toMatchObject({
+    await expect(actions.executeCapability(params(), context())).rejects.toMatchObject({
       errorClassification: "INVALID_IMPLEMENTATION_OUTPUT",
       errorCode: "FUNCTION_OUTPUT_JSON_VALUE_REQUIRED",
       capabilityRouteId: "route-1",
@@ -32,13 +27,9 @@ describe("AppsPlatformActions Commerce Function output boundary", () => {
   });
 
   it("rejects output above the global Apps ceiling", async () => {
-    const actions = createActions(
-      "x".repeat(COMMERCE_FUNCTION_MAX_OUTPUT_BYTES),
-    );
+    const actions = createActions("x".repeat(COMMERCE_FUNCTION_MAX_OUTPUT_BYTES));
 
-    await expect(
-      actions.executeCapability(params(), context()),
-    ).rejects.toMatchObject({
+    await expect(actions.executeCapability(params(), context())).rejects.toMatchObject({
       errorClassification: "OUTPUT_SIZE_LIMIT",
       errorCode: "FUNCTION_OUTPUT_SIZE_LIMIT",
       capabilityRouteId: "route-1",
@@ -47,9 +38,7 @@ describe("AppsPlatformActions Commerce Function output boundary", () => {
 
   it("does not invoke an App when route resolution crosses the deadline", async () => {
     let now = 1_000;
-    const nowSpy = jest
-      .spyOn(Date, "now")
-      .mockImplementation(() => now);
+    const nowSpy = jest.spyOn(Date, "now").mockImplementation(() => now);
     const invoke = jest.fn(async () => ({ ok: true }));
     const installations = {
       resolveActiveStoreCapabilityRouteForInstallation: async () => {
@@ -86,11 +75,9 @@ describe("AppsPlatformActions Commerce Function output boundary", () => {
 
 describe("AppsPlatformActions Commerce Function bindings", () => {
   it("projects active store routes into ordered binding snapshots", async () => {
-    const listActiveStoreCapabilityRoutes = jest.fn(async (
-      _storeId: string,
-      _capability: string,
-      _operation: string,
-    ) => [route()]);
+    const listActiveStoreCapabilityRoutes = jest.fn(
+      async (_storeId: string, _capability: string, _operation: string) => [route()],
+    );
     const actions = new AppsPlatformActions(
       {} as ServiceBroker,
       {} as AppLifecycleService,
@@ -98,29 +85,36 @@ describe("AppsPlatformActions Commerce Function bindings", () => {
       {} as AppsRuntimeRouter,
     );
 
-    await expect(actions.listCommerceFunctionBindings({
-      storeId: "store-1",
-      target: "cart.validations.generate.run",
-    }, context("checkout"))).resolves.toEqual({
-      bindings: [{
-        functionBindingId: "route-1",
-        storeId: "store-1",
-        target: "cart.validations.generate.run",
-        installationId: "installation-1",
-        functionKey: "transform",
-        owner: {
-          service: "checkout",
-          resourceType: "store",
-          resourceId: "store-1",
+    await expect(
+      actions.listCommerceFunctionBindings(
+        {
+          storeId: "store-1",
+          target: "cart.validations.generate.run",
         },
-        status: "ACTIVE",
-        failureMode: "REQUIRED",
-        configurationSnapshot: null,
-        configurationRevision: "revision-1",
-        routeRevision: "revision-1",
-        precedence: 0,
-        activationSequence: 0,
-      }],
+        context("checkout"),
+      ),
+    ).resolves.toEqual({
+      bindings: [
+        {
+          functionBindingId: "route-1",
+          storeId: "store-1",
+          target: "cart.validations.generate.run",
+          installationId: "installation-1",
+          functionKey: "transform",
+          owner: {
+            service: "checkout",
+            resourceType: "store",
+            resourceId: "store-1",
+          },
+          status: "ACTIVE",
+          failureMode: "REQUIRED",
+          configurationSnapshot: null,
+          configurationRevision: "revision-1",
+          routeRevision: "revision-1",
+          precedence: 0,
+          activationSequence: 0,
+        },
+      ],
     });
     expect(listActiveStoreCapabilityRoutes).toHaveBeenCalledWith(
       "store-1",

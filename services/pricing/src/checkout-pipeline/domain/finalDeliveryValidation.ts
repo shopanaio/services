@@ -32,9 +32,7 @@ export function validateFinalDelivery(
     }
 
     if (group.selectedOptionHandle !== null) {
-      const selected = group.options.find(
-        (option) => option.handle === group.selectedOptionHandle,
-      );
+      const selected = group.options.find((option) => option.handle === group.selectedOptionHandle);
       if (!selected) mismatch("Selected delivery option does not exist");
       subtotal += BigInt(selected.cost.amountMinor);
     }
@@ -60,9 +58,5 @@ function sameIds(left: readonly string[], right: readonly string[]): boolean {
 }
 
 function mismatch(message: string): never {
-  throw new PricingCheckoutError(
-    "PRICING_FINAL_DELIVERY_MISMATCH",
-    message,
-    false,
-  );
+  throw new PricingCheckoutError("PRICING_FINAL_DELIVERY_MISMATCH", message, false);
 }

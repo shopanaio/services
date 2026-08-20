@@ -1,20 +1,11 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnModuleInit,
-  OnApplicationShutdown,
-} from "@nestjs/common";
+import { Inject, Injectable, Logger, OnModuleInit, OnApplicationShutdown } from "@nestjs/common";
 import {
   AppManifestSchema,
   type AppDeploymentConfig,
   type AppInstallationContextProvider,
   type ShopanaAppDefinition,
 } from "@shopana/app-sdk";
-import {
-  AppSubgraphHost,
-  type HostedAppDefinition,
-} from "@shopana/app-runtime";
+import { AppSubgraphHost, type HostedAppDefinition } from "@shopana/app-runtime";
 import {
   DATABASE_CLIENT,
   InjectBroker,
@@ -36,9 +27,7 @@ interface AppsServiceConfig {
 }
 
 @Injectable()
-export class AppsRuntimeHost
-  implements OnModuleInit, OnApplicationShutdown
-{
+export class AppsRuntimeHost implements OnModuleInit, OnApplicationShutdown {
   private readonly logger = new Logger(AppsRuntimeHost.name);
   private readonly contextRunners = new Map<string, AppContextRunner>();
   private started = false;
@@ -96,10 +85,7 @@ export class AppsRuntimeHost
           if (config.required) {
             throw error;
           }
-          this.logger.error(
-            `Optional App "${definition.manifest.code}" failed to start`,
-            error,
-          );
+          this.logger.error(`Optional App "${definition.manifest.code}" failed to start`, error);
         }
       }
       this.started = true;
@@ -120,21 +106,16 @@ export class AppsRuntimeHost
           await runtime.app.stop();
         }
       } catch (error) {
-        const stopError =
-          error instanceof Error ? error : new Error(String(error));
+        const stopError = error instanceof Error ? error : new Error(String(error));
         errors.push(stopError);
         this.logger.error(`Failed to stop App "${appCode}"`, stopError);
       } finally {
         try {
           await this.brokerFactory.release(appCode, this.broker);
         } catch (error) {
-          const releaseError =
-            error instanceof Error ? error : new Error(String(error));
+          const releaseError = error instanceof Error ? error : new Error(String(error));
           errors.push(releaseError);
-          this.logger.error(
-            `Failed to release App "${appCode}" contracts`,
-            releaseError,
-          );
+          this.logger.error(`Failed to release App "${appCode}" contracts`, releaseError);
         }
         runtime.status = "STOPPED";
         this.registry.remove(appCode);
@@ -167,10 +148,7 @@ export class AppsRuntimeHost
     const hostContext = {
       broker: appBroker,
       config,
-      configuration: this.configurationResolverFactory.create(
-        appCode,
-        contextRunner,
-      ),
+      configuration: this.configurationResolverFactory.create(appCode, contextRunner),
       databaseClient: this.databaseClient,
       logger: new Logger(`App:${appCode}`),
       installations: this.installations,
@@ -193,10 +171,7 @@ export class AppsRuntimeHost
     runtime.status = "READY";
   }
 
-  private async failDefinition(
-    definition: ShopanaAppDefinition,
-    error: unknown,
-  ): Promise<void> {
+  private async failDefinition(definition: ShopanaAppDefinition, error: unknown): Promise<void> {
     const appCode = definition.manifest.code;
     const runtime = this.registry.get(appCode);
     if (runtime) {
@@ -207,22 +182,17 @@ export class AppsRuntimeHost
         this.logger.error(`Failed to stop App "${appCode}"`, stopError);
       }
       runtime.status = "FAILED";
-      runtime.error =
-        error instanceof Error ? error : new Error(String(error));
+      runtime.error = error instanceof Error ? error : new Error(String(error));
     }
     await this.brokerFactory.release(appCode, this.broker);
     this.contextRunners.delete(appCode);
   }
 
-  private resolveConfig(
-    definition: ShopanaAppDefinition,
-  ): AppDeploymentConfig {
+  private resolveConfig(definition: ShopanaAppDefinition): AppDeploymentConfig {
     const service = getServiceConfig("apps").service as AppsServiceConfig;
     const rawConfig = service.applications?.[definition.manifest.code];
     if (!rawConfig) {
-      throw new Error(
-        `Missing config services.apps.applications.${definition.manifest.code}`,
-      );
+      throw new Error(`Missing config services.apps.applications.${definition.manifest.code}`);
     }
     return Object.freeze({
       ...rawConfig,
@@ -231,9 +201,7 @@ export class AppsRuntimeHost
     });
   }
 
-  private validateDefinitions(
-    definitions: readonly ShopanaAppDefinition[],
-  ): void {
+  private validateDefinitions(definitions: readonly ShopanaAppDefinition[]): void {
     const codes = new Set<string>();
     for (const definition of definitions) {
       AppManifestSchema.parse(definition.manifest);
@@ -245,9 +213,7 @@ export class AppsRuntimeHost
     }
   }
 
-  private validateRegisteredContracts(
-    definition: ShopanaAppDefinition,
-  ): void {
+  private validateRegisteredContracts(definition: ShopanaAppDefinition): void {
     const appCode = definition.manifest.code;
     const lifecycle = definition.manifest.lifecycle;
     const actionNames = [...getExternallyRoutableActions(definition.manifest)];
@@ -259,16 +225,12 @@ export class AppsRuntimeHost
 
     for (const action of actionNames) {
       if (!this.broker.hasAction(`apps.${appCode}.${action}`)) {
-        throw new Error(
-          `App "${appCode}" did not register manifest action "${action}"`,
-        );
+        throw new Error(`App "${appCode}" did not register manifest action "${action}"`);
       }
     }
     for (const workflow of workflowNames) {
       if (!this.broker.hasWorkflow(`apps.${appCode}.${workflow}`)) {
-        throw new Error(
-          `App "${appCode}" did not register manifest workflow "${workflow}"`,
-        );
+        throw new Error(`App "${appCode}" did not register manifest workflow "${workflow}"`);
       }
     }
   }
@@ -280,10 +242,7 @@ export class AppsRuntimeHost
       .reverse();
     for (const appCode of appCodes) {
       const runtime = this.registry.get(appCode);
-      if (
-        runtime &&
-        (runtime.status === "READY" || runtime.status === "STARTING")
-      ) {
+      if (runtime && (runtime.status === "READY" || runtime.status === "STARTING")) {
         try {
           await this.subgraphHost.stop(appCode);
           await runtime.app.stop();

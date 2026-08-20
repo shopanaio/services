@@ -1,12 +1,5 @@
-import type {
-  FilterTransformer,
-  SortFieldMapping,
-  UsePageConfigReturn,
-} from "@/hooks";
-import type {
-  ApiProductOrderByInput,
-  ApiProductWhereInput,
-} from "@/graphql/types";
+import type { FilterTransformer, SortFieldMapping, UsePageConfigReturn } from "@/hooks";
+import type { ApiProductOrderByInput, ApiProductWhereInput } from "@/graphql/types";
 import { ProductOrderField } from "@/graphql/types";
 import {
   buildProductLikeQueryVariables,
@@ -26,8 +19,7 @@ export const productSortFieldMapping: SortFieldMapping<ProductOrderField> =
     BrandName: ProductOrderField.BrandName,
   });
 
-export const buildProductSearchCondition =
-  buildProductLikeSearchCondition<ApiProductWhereInput>;
+export const buildProductSearchCondition = buildProductLikeSearchCondition<ApiProductWhereInput>;
 
 export const productFilterTransformers: Record<
   string,

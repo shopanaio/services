@@ -21,11 +21,7 @@ export function base64UrlEncode(value: string): string {
   if (typeof runtime.btoa !== "function") {
     throw new Error("Base64 encoding is not supported in this environment");
   }
-  return runtime
-    .btoa(value)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  return runtime.btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 /**
@@ -66,14 +62,10 @@ export function snakeToCamel(value: string): string {
     return value;
   }
 
-  return value
-    .toLowerCase()
-    .replace(/_+([a-z0-9])/g, (_, char: string) => char.toUpperCase());
+  return value.toLowerCase().replace(/_+([a-z0-9])/g, (_, char: string) => char.toUpperCase());
 }
 
-export function cloneSortParams(
-  params: SortParam[] | undefined | null
-): SortParam[] {
+export function cloneSortParams(params: SortParam[] | undefined | null): SortParam[] {
   if (!params || params.length === 0) {
     return [];
   }
@@ -92,9 +84,7 @@ export function invertOrder(direction: OrderDirection): OrderDirection {
   return direction === "asc" ? "desc" : "asc";
 }
 
-export function buildTieBreakerSeekValue(
-  input: BuildTieBreakerInput
-): SeekValue {
+export function buildTieBreakerSeekValue(input: BuildTieBreakerInput): SeekValue {
   const direction = input.direction ?? tieBreakerOrder(input.sortParams);
   return {
     field: input.tieBreaker,
@@ -104,11 +94,7 @@ export function buildTieBreakerSeekValue(
 }
 
 function normalizeValue(value: unknown): unknown {
-  if (
-    value === null ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
+  if (value === null || typeof value === "number" || typeof value === "boolean") {
     return value;
   }
 
@@ -149,9 +135,7 @@ function normalizeValue(value: unknown): unknown {
   return value;
 }
 
-export function hashFilters(
-  filters: Record<string, unknown> | null | undefined
-): string {
+export function hashFilters(filters: Record<string, unknown> | null | undefined): string {
   if (!filters || Object.keys(filters).length === 0) {
     return "";
   }

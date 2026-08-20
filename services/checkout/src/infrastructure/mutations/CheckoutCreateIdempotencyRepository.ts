@@ -23,9 +23,7 @@ interface IdempotencyRow {
   snapshot: CheckoutCommittedSnapshot | null;
 }
 
-export class CheckoutCreateIdempotencyRepository
-  implements CheckoutCreateIdempotencyPort
-{
+export class CheckoutCreateIdempotencyRepository implements CheckoutCreateIdempotencyPort {
   constructor(
     private readonly execute: SQLExecutor = dumboPool.execute,
     private readonly now: () => Date = () => new Date(),
@@ -33,13 +31,12 @@ export class CheckoutCreateIdempotencyRepository
     private readonly createLeaseToken: () => string = uuidv7,
   ) {}
 
-  async reserve(
-    input: CheckoutCreateIdempotencyRequest,
-  ): Promise<CheckoutCreateReservationResult> {
+  async reserve(input: CheckoutCreateIdempotencyRequest): Promise<CheckoutCreateReservationResult> {
     const now = this.now();
     const leaseToken = this.createLeaseToken();
-    const insert = knex.raw(
-      `INSERT INTO checkout.checkout_create_idempotency (
+    const insert = knex
+      .raw(
+        `INSERT INTO checkout.checkout_create_idempotency (
          store_id, connection_id, operation, idempotency_key, request_hash,
          checkout_id, initiating_credential_id, reserved_ids, status,
          lease_token, lease_expires_at, created_at, updated_at
@@ -51,21 +48,22 @@ export class CheckoutCreateIdempotencyRepository
        RETURNING request_hash, checkout_id, initiating_credential_id, reserved_ids,
                  status, lease_token, lease_expires_at, public_failure,
                  NULL::jsonb AS snapshot`,
-      [
-        input.identity.storeId,
-        input.identity.connectionId,
-        input.identity.operation,
-        input.identity.idempotencyKey,
-        input.requestHash,
-        input.checkoutId,
-        input.initiatingCredentialId,
-        JSON.stringify(input.reservedIds),
-        leaseToken,
-        this.leaseMs,
-        now.toISOString(),
-        now.toISOString(),
-      ],
-    ).toString();
+        [
+          input.identity.storeId,
+          input.identity.connectionId,
+          input.identity.operation,
+          input.identity.idempotencyKey,
+          input.requestHash,
+          input.checkoutId,
+          input.initiatingCredentialId,
+          JSON.stringify(input.reservedIds),
+          leaseToken,
+          this.leaseMs,
+          now.toISOString(),
+          now.toISOString(),
+        ],
+      )
+      .toString();
     let row = await singleOrNull(this.execute.query<IdempotencyRow>(rawSql(insert)));
     if (row) {
       return {
@@ -127,8 +125,9 @@ export class CheckoutCreateIdempotencyRepository
   }
 
   private async loadRow(input: CheckoutCreateIdempotencyRequest) {
-    const query = knex.raw(
-      `SELECT i.request_hash, i.checkout_id, i.initiating_credential_id,
+    const query = knex
+      .raw(
+        `SELECT i.request_hash, i.checkout_id, i.initiating_credential_id,
               i.reserved_ids, i.status, i.lease_token, i.lease_expires_at,
               i.public_failure,
               s.snapshot
@@ -137,13 +136,14 @@ export class CheckoutCreateIdempotencyRepository
            ON s.checkout_id = i.committed_checkout_id AND s.store_id = i.store_id
         WHERE i.store_id = ? AND i.connection_id = ? AND i.operation = ?
           AND i.idempotency_key = ?`,
-      [
-        input.identity.storeId,
-        input.identity.connectionId,
-        input.identity.operation,
-        input.identity.idempotencyKey,
-      ],
-    ).toString();
+        [
+          input.identity.storeId,
+          input.identity.connectionId,
+          input.identity.operation,
+          input.identity.idempotencyKey,
+        ],
+      )
+      .toString();
     return singleOrNull(this.execute.query<IdempotencyRow>(rawSql(query)));
   }
 
@@ -153,8 +153,9 @@ export class CheckoutCreateIdempotencyRepository
     leaseToken: string,
     now: Date,
   ): Promise<CheckoutCreateIdempotencyReservation | null> {
-    const query = knex.raw(
-      `UPDATE checkout.checkout_create_idempotency
+    const query = knex
+      .raw(
+        `UPDATE checkout.checkout_create_idempotency
           SET status = 'IN_PROGRESS', lease_token = ?,
               lease_expires_at = CURRENT_TIMESTAMP + (? * INTERVAL '1 millisecond'),
               public_failure = NULL, updated_at = ?
@@ -162,23 +163,26 @@ export class CheckoutCreateIdempotencyRepository
           AND idempotency_key = ? AND request_hash = ? AND status = ?
           AND (status = 'RETRYABLE_FAILED' OR lease_expires_at <= CURRENT_TIMESTAMP)
       RETURNING checkout_id, initiating_credential_id, reserved_ids, lease_token`,
-      [
-        leaseToken,
-        this.leaseMs,
-        now.toISOString(),
-        input.identity.storeId,
-        input.identity.connectionId,
-        input.identity.operation,
-        input.identity.idempotencyKey,
-        input.requestHash,
-        previousStatus,
-      ],
-    ).toString();
+        [
+          leaseToken,
+          this.leaseMs,
+          now.toISOString(),
+          input.identity.storeId,
+          input.identity.connectionId,
+          input.identity.operation,
+          input.identity.idempotencyKey,
+          input.requestHash,
+          previousStatus,
+        ],
+      )
+      .toString();
     const row = await singleOrNull(
-      this.execute.query<Pick<
-        IdempotencyRow,
-        "checkout_id" | "initiating_credential_id" | "reserved_ids" | "lease_token"
-      >>(rawSql(query)),
+      this.execute.query<
+        Pick<
+          IdempotencyRow,
+          "checkout_id" | "initiating_credential_id" | "reserved_ids" | "lease_token"
+        >
+      >(rawSql(query)),
     );
     return row
       ? {

@@ -1,11 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { EntityPickerContent } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
 import type { IFacetSourcePickerModalPayload } from "../../modals";
@@ -28,9 +24,7 @@ export function FacetSourcePickerModal() {
   } = typedPayload;
 
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelection);
-  const [selectedEntities, setSelectedEntities] = useState<
-    FacetSourcePickerEntity[]
-  >([]);
+  const [selectedEntities, setSelectedEntities] = useState<FacetSourcePickerEntity[]>([]);
 
   const selectedFacetType = selectedEntities[0]?.facetType ?? initialFacetType;
   const config = useMemo(
@@ -42,13 +36,10 @@ export function FacetSourcePickerModal() {
     [selectedFacetType],
   );
 
-  const handleSelectionChange = useCallback(
-    (ids: string[], entities: IPickableEntity[]) => {
-      setSelectedIds(ids);
-      setSelectedEntities(entities as FacetSourcePickerEntity[]);
-    },
-    [],
-  );
+  const handleSelectionChange = useCallback((ids: string[], entities: IPickableEntity[]) => {
+    setSelectedIds(ids);
+    setSelectedEntities(entities as FacetSourcePickerEntity[]);
+  }, []);
 
   const handleConfirm = useCallback(() => {
     onConfirm(selectedEntities, selectedIds);
@@ -59,8 +50,7 @@ export function FacetSourcePickerModal() {
     forcePop();
   }, [forcePop]);
 
-  const confirmText =
-    selectedIds.length > 0 ? `Confirm (${selectedIds.length})` : "Confirm";
+  const confirmText = selectedIds.length > 0 ? `Confirm (${selectedIds.length})` : "Confirm";
 
   return (
     <ModalLayout

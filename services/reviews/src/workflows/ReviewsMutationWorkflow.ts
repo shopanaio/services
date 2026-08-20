@@ -1,8 +1,4 @@
-import {
-  BrokerWorkflows,
-  ServiceBroker,
-  WorkflowStep,
-} from "@shopana/shared-kernel";
+import { BrokerWorkflows, ServiceBroker, WorkflowStep } from "@shopana/shared-kernel";
 import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
 import {
@@ -20,9 +16,7 @@ export abstract class ReviewsMutationWorkflow extends BrokerWorkflows {
     return Kernel.getInstance();
   }
 
-  protected toScriptContext(
-    context: ReviewsMutationWorkflowContext
-  ): RunScriptContext {
+  protected toScriptContext(context: ReviewsMutationWorkflowContext): RunScriptContext {
     return {
       storeId: context.storeId,
       organizationId: context.organizationId,
@@ -47,7 +41,7 @@ export abstract class ReviewsMutationWorkflow extends BrokerWorkflows {
     return this.kernel.runScript(
       ProductReviewSummaryRefreshScript,
       { productId: input.productId },
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
@@ -66,7 +60,7 @@ export abstract class ReviewsMutationWorkflow extends BrokerWorkflows {
     return this.kernel.runScript(
       ProductQuestionSummaryRefreshScript,
       { productId: input.productId },
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 }

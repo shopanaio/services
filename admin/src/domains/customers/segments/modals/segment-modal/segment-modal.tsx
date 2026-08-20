@@ -4,26 +4,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLazyQuery, useQuery } from "@apollo/client/react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Alert, App, Button, Flex, Input, Select, Skeleton, Tag, Tooltip, Typography } from "antd";
 import {
-  Alert,
-  App,
-  Button,
-  Flex,
-  Input,
-  Select,
-  Skeleton,
-  Tag,
-  Tooltip,
-  Typography,
-} from "antd";
-import { LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuCircleHelp as InfoCircleOutlined, LuUsers as TeamOutlined } from "react-icons/lu";
+  LuTrash2 as DeleteOutlined,
+  LuPencil as EditOutlined,
+  LuCircleHelp as InfoCircleOutlined,
+  LuUsers as TeamOutlined,
+} from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { CustomerSegmentStatus, CustomerSegmentType } from "@/graphql/types";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useEntityPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
@@ -157,7 +147,11 @@ export function CustomerSegmentModal() {
   const { createSegment, loading: creating, error: createError } = useCreateCustomerSegment();
   const { updateSegment, loading: updating, error: updateError } = useUpdateCustomerSegment();
   const { deleteSegment, loading: deleting, error: deleteError } = useDeleteCustomerSegment();
-  const { setSegmentMembers, loading: settingMembers, error: membersError } = useSetCustomerSegmentMembers();
+  const {
+    setSegmentMembers,
+    loading: settingMembers,
+    error: membersError,
+  } = useSetCustomerSegmentMembers();
   const [globalErrors, setGlobalErrors] = useState<string[]>([]);
   const [advancedDirty, setAdvancedDirty] = useState(false);
   const [segmentType, setSegmentType] = useState(CustomerSegmentType.Manual);
@@ -167,9 +161,7 @@ export function CustomerSegmentModal() {
   const [builderConditions, setBuilderConditions] = useState<BuilderCondition[]>([]);
   const [validation, setValidation] = useState<SegmentValidation | null>(null);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
-  const catalogQuery = useQuery<SegmentCatalogData>(
-    CUSTOMER_SEGMENT_ATTRIBUTE_CATALOG_QUERY,
-  );
+  const catalogQuery = useQuery<SegmentCatalogData>(CUSTOMER_SEGMENT_ATTRIBUTE_CATALOG_QUERY);
   const [validateQuery, { loading: validating }] = useLazyQuery<{
     customersQuery: { customerSegmentQueryValidate: SegmentValidation };
   }>(CUSTOMER_SEGMENT_QUERY_VALIDATE, { fetchPolicy: "no-cache" });
@@ -223,33 +215,36 @@ export function CustomerSegmentModal() {
       setPreviewCount(null);
       setAdvancedDirty(false);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [isEdit, reset, segmentQuery.segment]);
 
   const memberIds = useMemo(
-    () => segmentQuery.segment?.customerMemberships.edges.map((edge) => edge.node.customer.id) ?? [],
+    () =>
+      segmentQuery.segment?.customerMemberships.edges.map((edge) => edge.node.customer.id) ?? [],
     [segmentQuery.segment?.customerMemberships.edges],
   );
 
-  const handleSetMembers = useCallback(async (
-    _customers: IPickableEntity[],
-    customerIds: string[],
-  ) => {
-    const current = segmentQuery.segment;
-    if (!current) return;
-    const result = await setSegmentMembers({
-      segmentId: current.id,
-      expectedRevision: current.revision,
-      customerIds,
-    });
-    if (!result.segment || result.userErrors.length > 0) {
-      message.error(result.userErrors[0]?.message ?? "Unable to update segment customers");
-      return;
-    }
-    await segmentQuery.refetch();
-    await typedPayload.onSaved?.();
-    message.success("Segment customers updated");
-  }, [message, segmentQuery, setSegmentMembers, typedPayload]);
+  const handleSetMembers = useCallback(
+    async (_customers: IPickableEntity[], customerIds: string[]) => {
+      const current = segmentQuery.segment;
+      if (!current) return;
+      const result = await setSegmentMembers({
+        segmentId: current.id,
+        expectedRevision: current.revision,
+        customerIds,
+      });
+      if (!result.segment || result.userErrors.length > 0) {
+        message.error(result.userErrors[0]?.message ?? "Unable to update segment customers");
+        return;
+      }
+      await segmentQuery.refetch();
+      await typedPayload.onSaved?.();
+      message.success("Segment customers updated");
+    },
+    [message, segmentQuery, setSegmentMembers, typedPayload],
+  );
 
   const { openPicker: openCustomerPicker } = useEntityPicker<IPickableEntity>({
     entityType: "customer",
@@ -294,21 +289,23 @@ export function CustomerSegmentModal() {
     setAdvancedDirty(true);
   }, [visualAttributes]);
 
-  const updateBuilderCondition = useCallback((
-    id: number,
-    patch: Partial<Omit<BuilderCondition, "id">>,
-  ) => {
-    setBuilderConditions((current) => current.map((condition) =>
-      condition.id === id ? { ...condition, ...patch } : condition,
-    ));
-    setAdvancedDirty(true);
-  }, []);
+  const updateBuilderCondition = useCallback(
+    (id: number, patch: Partial<Omit<BuilderCondition, "id">>) => {
+      setBuilderConditions((current) =>
+        current.map((condition) => (condition.id === id ? { ...condition, ...patch } : condition)),
+      );
+      setAdvancedDirty(true);
+    },
+    [],
+  );
 
   const applyVisualBuilder = useCallback(() => {
-    const clauses = builderConditions.map((condition) => {
-      const attribute = visualAttributes.find((item) => item.name === condition.attribute);
-      return attribute ? printBuilderCondition(condition, attribute) : "";
-    }).filter(Boolean);
+    const clauses = builderConditions
+      .map((condition) => {
+        const attribute = visualAttributes.find((item) => item.name === condition.attribute);
+        return attribute ? printBuilderCondition(condition, attribute) : "";
+      })
+      .filter(Boolean);
     if (clauses.length === 0) return;
     setQuery(clauses.join(` ${builderJoin} `));
     setValidation(null);
@@ -316,49 +313,63 @@ export function CustomerSegmentModal() {
     setAdvancedDirty(true);
   }, [builderConditions, builderJoin, visualAttributes]);
 
-  const onSubmit = useCallback(async (values: SegmentFormValues) => {
-    setGlobalErrors([]);
-    clearErrors();
-    const current = segmentQuery.segment;
-    if (segmentType === CustomerSegmentType.Dynamic) {
-      const result = await handleValidateQuery();
-      if (!result?.valid) {
-        setGlobalErrors(["Fix the segment query before saving."]);
+  const onSubmit = useCallback(
+    async (values: SegmentFormValues) => {
+      setGlobalErrors([]);
+      clearErrors();
+      const current = segmentQuery.segment;
+      if (segmentType === CustomerSegmentType.Dynamic) {
+        const result = await handleValidateQuery();
+        if (!result?.valid) {
+          setGlobalErrors(["Fix the segment query before saving."]);
+          return;
+        }
+      }
+      const result =
+        isEdit && current
+          ? await updateSegment(current.id, current.revision, {
+              ...buildCustomerSegmentUpdateInput(values),
+              ...(current.type === CustomerSegmentType.Dynamic
+                ? { definition: { query: query.trim() } }
+                : {}),
+              state: { status: segmentStatus },
+            })
+          : await createSegment(
+              buildCustomerSegmentCreateInput(values, segmentType, segmentStatus, query),
+            );
+
+      if (!result.segment || result.userErrors.length > 0) {
+        const global: string[] = [];
+        mapCustomerSegmentUserErrors(result.userErrors).forEach((error) => {
+          if (error.field) setError(error.field, { message: error.message });
+          else global.push(error.message);
+        });
+        setGlobalErrors(global);
         return;
       }
-    }
-    const result = isEdit && current
-      ? await updateSegment(current.id, current.revision, {
-          ...buildCustomerSegmentUpdateInput(values),
-          ...(current.type === CustomerSegmentType.Dynamic
-            ? { definition: { query: query.trim() } }
-            : {}),
-          state: { status: segmentStatus },
-        })
-      : await createSegment(
-          buildCustomerSegmentCreateInput(
-            values,
-            segmentType,
-            segmentStatus,
-            query,
-          ),
-        );
 
-    if (!result.segment || result.userErrors.length > 0) {
-      const global: string[] = [];
-      mapCustomerSegmentUserErrors(result.userErrors).forEach((error) => {
-        if (error.field) setError(error.field, { message: error.message });
-        else global.push(error.message);
-      });
-      setGlobalErrors(global);
-      return;
-    }
-
-    await typedPayload.onSaved?.();
-    setDirty(false);
-    message.success(isEdit ? "Segment updated" : "Segment created");
-    forcePop();
-  }, [clearErrors, createSegment, forcePop, handleValidateQuery, isEdit, message, query, segmentQuery.segment, segmentStatus, segmentType, setDirty, setError, typedPayload, updateSegment]);
+      await typedPayload.onSaved?.();
+      setDirty(false);
+      message.success(isEdit ? "Segment updated" : "Segment created");
+      forcePop();
+    },
+    [
+      clearErrors,
+      createSegment,
+      forcePop,
+      handleValidateQuery,
+      isEdit,
+      message,
+      query,
+      segmentQuery.segment,
+      segmentStatus,
+      segmentType,
+      setDirty,
+      setError,
+      typedPayload,
+      updateSegment,
+    ],
+  );
 
   const handleDelete = useCallback(async () => {
     const current = segmentQuery.segment;
@@ -387,7 +398,8 @@ export function CustomerSegmentModal() {
 
   const loading = isEdit && segmentQuery.loading;
   const saving = creating || updating;
-  const transportError = segmentQuery.error ?? createError ?? updateError ?? deleteError ?? membersError;
+  const transportError =
+    segmentQuery.error ?? createError ?? updateError ?? deleteError ?? membersError;
   const title = isEdit ? "Edit segment" : "New segment";
   const segment = segmentQuery.segment;
 
@@ -404,7 +416,10 @@ export function CustomerSegmentModal() {
 
   if (isEdit && !segment) {
     return (
-      <ModalLayout name="customer-segment" headerProps={{ title, onClose: pop, submitButtonProps: null }}>
+      <ModalLayout
+        name="customer-segment"
+        headerProps={{ title, onClose: pop, submitButtonProps: null }}
+      >
         <Alert type="error" showIcon message="Segment not found" />
       </ModalLayout>
     );
@@ -461,18 +476,27 @@ export function CustomerSegmentModal() {
           <PaperHeader title="Segment details" icon={<EditOutlined />} />
           <div className={styles.fields}>
             <div>
-              <label className={styles.label} htmlFor="customer-segment-name">Name *</label>
+              <label className={styles.label} htmlFor="customer-segment-name">
+                Name *
+              </label>
               <Controller
                 name="name"
                 control={control}
                 render={({ field }) => (
-                  <Input {...field} id="customer-segment-name" maxLength={100} status={errors.name ? "error" : undefined} />
+                  <Input
+                    {...field}
+                    id="customer-segment-name"
+                    maxLength={100}
+                    status={errors.name ? "error" : undefined}
+                  />
                 )}
               />
               {errors.name ? <div className={styles.error}>{errors.name.message}</div> : null}
             </div>
             <div>
-              <label className={styles.label} htmlFor="customer-segment-color">Color *</label>
+              <label className={styles.label} htmlFor="customer-segment-color">
+                Color *
+              </label>
               <Controller
                 name="color"
                 control={control}
@@ -484,7 +508,15 @@ export function CustomerSegmentModal() {
                       value: option.value,
                       label: (
                         <Flex align="center" gap={8}>
-                          <span aria-hidden style={{ width: 10, height: 10, borderRadius: "50%", background: option.value }} />
+                          <span
+                            aria-hidden
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              background: option.value,
+                            }}
+                          />
                           {option.label}
                         </Flex>
                       ),
@@ -496,7 +528,9 @@ export function CustomerSegmentModal() {
               {errors.color ? <div className={styles.error}>{errors.color.message}</div> : null}
             </div>
             <div className={styles.fullWidth}>
-              <label className={styles.label} htmlFor="customer-segment-description">Description</label>
+              <label className={styles.label} htmlFor="customer-segment-description">
+                Description
+              </label>
               <Controller
                 name="description"
                 control={control}
@@ -511,7 +545,9 @@ export function CustomerSegmentModal() {
                   />
                 )}
               />
-              {errors.description ? <div className={styles.error}>{errors.description.message}</div> : null}
+              {errors.description ? (
+                <div className={styles.error}>{errors.description.message}</div>
+              ) : null}
             </div>
           </div>
         </Paper>
@@ -543,8 +579,14 @@ export function CustomerSegmentModal() {
                 <label className={styles.label}>Status</label>
                 <Select
                   value={segmentStatus}
-                  options={Object.values(CustomerSegmentStatus).map((value) => ({ value, label: value.toLowerCase() }))}
-                  onChange={(value) => { setSegmentStatus(value); setAdvancedDirty(true); }}
+                  options={Object.values(CustomerSegmentStatus).map((value) => ({
+                    value,
+                    label: value.toLowerCase(),
+                  }))}
+                  onChange={(value) => {
+                    setSegmentStatus(value);
+                    setAdvancedDirty(true);
+                  }}
                   style={{ width: "100%" }}
                 />
               </div>
@@ -558,8 +600,8 @@ export function CustomerSegmentModal() {
                       const attribute = visualAttributes.find(
                         (item) => item.name === condition.attribute,
                       );
-                      const valueless = condition.operator === "is_null" ||
-                        condition.operator === "is_not_null";
+                      const valueless =
+                        condition.operator === "is_null" || condition.operator === "is_not_null";
                       return (
                         <div className={styles.builderRow} key={condition.id}>
                           <Select
@@ -585,40 +627,65 @@ export function CustomerSegmentModal() {
                               value: operator,
                               label: operatorLabel(operator),
                             }))}
-                            onChange={(operator) => updateBuilderCondition(condition.id, { operator })}
+                            onChange={(operator) =>
+                              updateBuilderCondition(condition.id, { operator })
+                            }
                           />
                           <Flex gap="small">
                             {valueless ? (
                               <Input value="No value" disabled />
                             ) : attribute?.enumValues.length &&
-                              condition.operator !== "in" && condition.operator !== "not_in" ? (
+                              condition.operator !== "in" &&
+                              condition.operator !== "not_in" ? (
                               <Select
                                 value={condition.value || undefined}
                                 placeholder="Value"
-                                options={attribute.enumValues.map((value) => ({ value, label: value }))}
-                                onChange={(value) => updateBuilderCondition(condition.id, { value })}
+                                options={attribute.enumValues.map((value) => ({
+                                  value,
+                                  label: value,
+                                }))}
+                                onChange={(value) =>
+                                  updateBuilderCondition(condition.id, { value })
+                                }
                                 style={{ width: "100%" }}
                               />
                             ) : attribute?.valueType === "Boolean" ? (
                               <Select
                                 value={condition.value || undefined}
                                 placeholder="Value"
-                                options={[{ value: "TRUE", label: "true" }, { value: "FALSE", label: "false" }]}
-                                onChange={(value) => updateBuilderCondition(condition.id, { value })}
+                                options={[
+                                  { value: "TRUE", label: "true" },
+                                  { value: "FALSE", label: "false" },
+                                ]}
+                                onChange={(value) =>
+                                  updateBuilderCondition(condition.id, { value })
+                                }
                                 style={{ width: "100%" }}
                               />
                             ) : (
                               <Input
                                 value={condition.value}
-                                placeholder={condition.operator === "in" || condition.operator === "not_in" ? "Comma-separated values" : "Value"}
-                                onChange={(event) => updateBuilderCondition(condition.id, { value: event.target.value })}
+                                placeholder={
+                                  condition.operator === "in" || condition.operator === "not_in"
+                                    ? "Comma-separated values"
+                                    : "Value"
+                                }
+                                onChange={(event) =>
+                                  updateBuilderCondition(condition.id, {
+                                    value: event.target.value,
+                                  })
+                                }
                               />
                             )}
                             {condition.operator === "between" ? (
                               <Input
                                 value={condition.upperValue}
                                 placeholder="Upper value"
-                                onChange={(event) => updateBuilderCondition(condition.id, { upperValue: event.target.value })}
+                                onChange={(event) =>
+                                  updateBuilderCondition(condition.id, {
+                                    upperValue: event.target.value,
+                                  })
+                                }
                               />
                             ) : null}
                           </Flex>
@@ -628,7 +695,9 @@ export function CustomerSegmentModal() {
                             aria-label="Remove condition"
                             icon={<DeleteOutlined />}
                             onClick={() => {
-                              setBuilderConditions((current) => current.filter((item) => item.id !== condition.id));
+                              setBuilderConditions((current) =>
+                                current.filter((item) => item.id !== condition.id),
+                              );
                               setAdvancedDirty(true);
                             }}
                           />
@@ -636,25 +705,46 @@ export function CustomerSegmentModal() {
                       );
                     })}
                     <div className={styles.builderActions}>
-                      <Button onClick={addBuilderCondition} disabled={visualAttributes.length === 0}>
+                      <Button
+                        onClick={addBuilderCondition}
+                        disabled={visualAttributes.length === 0}
+                      >
                         Add condition
                       </Button>
                       <Select
                         value={builderJoin}
-                        options={[{ value: "AND", label: "Match all (AND)" }, { value: "OR", label: "Match any (OR)" }]}
-                        onChange={(value: "AND" | "OR") => { setBuilderJoin(value); setAdvancedDirty(true); }}
+                        options={[
+                          { value: "AND", label: "Match all (AND)" },
+                          { value: "OR", label: "Match any (OR)" },
+                        ]}
+                        onChange={(value: "AND" | "OR") => {
+                          setBuilderJoin(value);
+                          setAdvancedDirty(true);
+                        }}
                         style={{ minWidth: 160 }}
                       />
-                      <Button type="primary" ghost onClick={applyVisualBuilder} disabled={builderConditions.length === 0}>
+                      <Button
+                        type="primary"
+                        ghost
+                        onClick={applyVisualBuilder}
+                        disabled={builderConditions.length === 0}
+                      >
                         Apply to query
                       </Button>
                     </div>
                     <div className={styles.help}>
-                      Attribute types and operators come from the server catalog. Aggregate functions remain available in the advanced editor below.
+                      Attribute types and operators come from the server catalog. Aggregate
+                      functions remain available in the advanced editor below.
                     </div>
                   </Flex>
                 </div>
-                {catalogQuery.error ? <Alert type="error" showIcon message="Could not load the segment attribute catalog" /> : null}
+                {catalogQuery.error ? (
+                  <Alert
+                    type="error"
+                    showIcon
+                    message="Could not load the segment attribute catalog"
+                  />
+                ) : null}
                 <div>
                   <label className={styles.label}>Insert function template</label>
                   <Select
@@ -662,14 +752,19 @@ export function CustomerSegmentModal() {
                     value={null}
                     loading={catalogQuery.loading}
                     placeholder="Choose a server-defined function"
-                    options={catalog.filter((item) => item.kind === "FUNCTION").map((item) => ({
-                      value: item.name,
-                      label: item.name,
-                      disabled: item.availability !== "AVAILABLE",
-                      title: item.unavailabilityReason ?? undefined,
-                    }))}
+                    options={catalog
+                      .filter((item) => item.kind === "FUNCTION")
+                      .map((item) => ({
+                        value: item.name,
+                        label: item.name,
+                        disabled: item.availability !== "AVAILABLE",
+                        title: item.unavailabilityReason ?? undefined,
+                      }))}
                     onChange={(value) => {
-                      setQuery((current) => `${current}${current.trim() ? " AND " : ""}${value} MATCHES ()`);
+                      setQuery(
+                        (current) =>
+                          `${current}${current.trim() ? " AND " : ""}${value} MATCHES ()`,
+                      );
                       setValidation(null);
                       setPreviewCount(null);
                       setAdvancedDirty(true);
@@ -678,7 +773,9 @@ export function CustomerSegmentModal() {
                   />
                 </div>
                 <div>
-                  <label className={styles.label} htmlFor="customer-segment-query">Advanced query</label>
+                  <label className={styles.label} htmlFor="customer-segment-query">
+                    Advanced query
+                  </label>
                   <Input.TextArea
                     id="customer-segment-query"
                     value={query}
@@ -702,10 +799,14 @@ export function CustomerSegmentModal() {
                   </Button>
                   {validation ? (
                     <Tag color={validation.valid ? "success" : "error"}>
-                      {validation.valid ? `Valid · complexity ${validation.complexity ?? 0}` : "Invalid query"}
+                      {validation.valid
+                        ? `Valid · complexity ${validation.complexity ?? 0}`
+                        : "Invalid query"}
                     </Tag>
                   ) : null}
-                  {previewCount !== null ? <Tag color="blue">{previewCount} matching customers</Tag> : null}
+                  {previewCount !== null ? (
+                    <Tag color="blue">{previewCount} matching customers</Tag>
+                  ) : null}
                 </Flex>
                 {validation?.diagnostics.length ? (
                   <Alert
@@ -727,9 +828,17 @@ export function CustomerSegmentModal() {
         <Paper>
           <PaperHeader title="Customers" icon={<TeamOutlined />} />
           <Flex vertical gap="middle">
-            <Flex align="center" justify="space-between" gap="middle" wrap className={styles.membershipCard}>
+            <Flex
+              align="center"
+              justify="space-between"
+              gap="middle"
+              wrap
+              className={styles.membershipCard}
+            >
               <div>
-                <Typography.Title level={3} className={styles.memberCount}>{segment?.customersCount ?? 0}</Typography.Title>
+                <Typography.Title level={3} className={styles.memberCount}>
+                  {segment?.customersCount ?? 0}
+                </Typography.Title>
                 <Typography.Text type="secondary">
                   {segmentType === CustomerSegmentType.Dynamic
                     ? "customers in the current published materialization"
@@ -737,7 +846,9 @@ export function CustomerSegmentModal() {
                 </Typography.Text>
               </div>
               {isEdit && segment?.type === CustomerSegmentType.Manual ? (
-                <Tooltip title={isDirty ? "Save segment details before changing customers" : undefined}>
+                <Tooltip
+                  title={isDirty ? "Save segment details before changing customers" : undefined}
+                >
                   <span>
                     <Button
                       icon={<TeamOutlined />}
@@ -750,9 +861,13 @@ export function CustomerSegmentModal() {
                   </span>
                 </Tooltip>
               ) : isEdit ? (
-                <Typography.Text type="secondary">Dynamic membership is managed by the segment definition.</Typography.Text>
+                <Typography.Text type="secondary">
+                  Dynamic membership is managed by the segment definition.
+                </Typography.Text>
               ) : (
-                <Typography.Text type="secondary">Create the segment before assigning customers.</Typography.Text>
+                <Typography.Text type="secondary">
+                  Create the segment before assigning customers.
+                </Typography.Text>
               )}
             </Flex>
             <Flex align="flex-start" gap="small" className={styles.manualNotice}>
@@ -790,10 +905,7 @@ function operatorLabel(operator: string): string {
   return OPERATOR_LABELS[operator] ?? operator;
 }
 
-function printBuilderCondition(
-  condition: BuilderCondition,
-  attribute: SegmentCatalogItem,
-): string {
+function printBuilderCondition(condition: BuilderCondition, attribute: SegmentCatalogItem): string {
   const operator = operatorLabel(condition.operator);
   if (condition.operator === "is_null" || condition.operator === "is_not_null") {
     return `${condition.attribute} ${operator}`;
@@ -802,7 +914,10 @@ function printBuilderCondition(
     return `${condition.attribute} BETWEEN ${builderLiteral(condition.value, attribute)} AND ${builderLiteral(condition.upperValue, attribute)}`;
   }
   if (condition.operator === "in" || condition.operator === "not_in") {
-    const values = condition.value.split(",").map((value) => value.trim()).filter(Boolean);
+    const values = condition.value
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
     return `${condition.attribute} ${operator} (${values.map((value) => builderLiteral(value, attribute)).join(", ")})`;
   }
   return `${condition.attribute} ${operator} ${builderLiteral(condition.value, attribute)}`;

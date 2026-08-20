@@ -1,7 +1,5 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { ProductOptionValue } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 
@@ -9,16 +7,11 @@ import { CatalogType } from "./CatalogType.js";
  * Option value view - resolves ProductOptionValue domain interface
  * Accepts option value ID, loads data lazily via loaders
  */
-export class OptionValueResolver extends CatalogType<
-  string,
-  ProductOptionValue
-> {
+export class OptionValueResolver extends CatalogType<string, ProductOptionValue> {
   async $preload() {
     const value = await this.$ctx.loaders.optionValue.load(this.$props);
     if (!value) {
-      throw new PreloadNotFoundError(
-        `OptionValue with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`OptionValue with ID ${this.$props} not found`);
     }
     return value;
   }
@@ -32,9 +25,7 @@ export class OptionValueResolver extends CatalogType<
   }
 
   async name() {
-    const translation = await this.$ctx.loaders.optionValueTranslation.load(
-      this.$props
-    );
+    const translation = await this.$ctx.loaders.optionValueTranslation.load(this.$props);
     if (translation?.name) return translation.name;
     return (await this.$get("slug")) ?? "";
   }
@@ -62,9 +53,7 @@ export class OptionValueResolver extends CatalogType<
       swatchType: swatch.swatchType,
       colorOne: swatch.colorOne,
       colorTwo: swatch.colorTwo,
-      file: swatch.imageId
-        ? { __typename: "File" as const, id: swatch.imageId }
-        : null,
+      file: swatch.imageId ? { __typename: "File" as const, id: swatch.imageId } : null,
       metadata: swatch.metadata,
     };
   }

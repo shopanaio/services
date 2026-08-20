@@ -1,7 +1,4 @@
-import type {
-  ApiDiscount,
-  ApiDiscountUpdateInput,
-} from "@/graphql/types";
+import type { ApiDiscount, ApiDiscountUpdateInput } from "@/graphql/types";
 import { DiscountBuyerContextType } from "@/graphql/types";
 
 export interface DiscountCustomerEditorRow {
@@ -56,9 +53,7 @@ export function createDiscountEligibilityChannelsFormValues(
         customersCount: null,
       })) ?? [],
     channels: CHANNELS.map((channel) => {
-      const current = discount.channels.find(
-        (item) => item.code === channel.code,
-      );
+      const current = discount.channels.find((item) => item.code === channel.code);
       return {
         ...channel,
         enabled: Boolean(current),

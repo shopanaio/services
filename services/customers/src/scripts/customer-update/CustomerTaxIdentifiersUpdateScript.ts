@@ -22,7 +22,7 @@ export class CustomerTaxIdentifiersUpdateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: CustomerTaxIdentifiersUpdateParams
+    params: CustomerTaxIdentifiersUpdateParams,
   ): Promise<CustomerSectionResult> {
     const errors = await this.validate(params.customerId, params.operations);
     if (errors.length > 0) return sectionErrors(errors);
@@ -38,7 +38,7 @@ export class CustomerTaxIdentifiersUpdateScript extends BaseScript<
     for (const input of params.operations.update) {
       await this.repository.taxIdentifier.update(
         input.taxIdentifierId,
-        input.operations as unknown as CustomerTaxIdentifierPatch
+        input.operations as unknown as CustomerTaxIdentifierPatch,
       );
     }
     for (const id of params.operations.deleteIds) {
@@ -47,11 +47,7 @@ export class CustomerTaxIdentifiersUpdateScript extends BaseScript<
 
     const changed = hasChanges(params.operations);
     if (changed) {
-      await this.invalidateDynamicSegments(
-        params.customerId,
-        ["taxIdentifier"],
-        "taxIdentifier",
-      );
+      await this.invalidateDynamicSegments(params.customerId, ["taxIdentifier"], "taxIdentifier");
     }
     return sectionSuccess(changed);
   }
@@ -62,7 +58,7 @@ export class CustomerTaxIdentifiersUpdateScript extends BaseScript<
 
   private async validate(
     customerId: string,
-    operations: CustomerTaxIdentifiersUpdateOperation["params"]
+    operations: CustomerTaxIdentifiersUpdateOperation["params"],
   ) {
     const errors: Array<{ message: string; code: string; field?: string[] }> = [];
     const updateIds = operations.update.map((item) => item.taxIdentifierId);
@@ -95,7 +91,7 @@ export class CustomerTaxIdentifiersUpdateScript extends BaseScript<
         input.taxIdentifierId,
         customerId,
         ["update", String(index), "taxIdentifierId"],
-        errors
+        errors,
       );
       for (const field of ["identifierType", "value", "status"] as const) {
         const value = input.operations[field];
@@ -103,9 +99,7 @@ export class CustomerTaxIdentifiersUpdateScript extends BaseScript<
           value !== undefined &&
           (value === null || (typeof value === "string" && value.trim().length === 0))
         ) {
-          errors.push(
-            invalidValue(["update", String(index), "operations", field])
-          );
+          errors.push(invalidValue(["update", String(index), "operations", field]));
         }
       }
       if (
@@ -113,14 +107,20 @@ export class CustomerTaxIdentifiersUpdateScript extends BaseScript<
         input.operations.value.trim().length > 0 &&
         normalizeTaxIdentifier(input.operations.value).length === 0
       ) {
-        errors.push(
-          invalidValue(["update", String(index), "operations", "value"])
-        );
+        errors.push(invalidValue(["update", String(index), "operations", "value"]));
       }
-      validateCountry(input.operations.countryCode, ["update", String(index), "operations", "countryCode"], errors);
+      validateCountry(
+        input.operations.countryCode,
+        ["update", String(index), "operations", "countryCode"],
+        errors,
+      );
       validateDateRange(
-        input.operations.validFrom === undefined ? byId.get(input.taxIdentifierId)?.validFrom : input.operations.validFrom,
-        input.operations.validTo === undefined ? byId.get(input.taxIdentifierId)?.validTo : input.operations.validTo,
+        input.operations.validFrom === undefined
+          ? byId.get(input.taxIdentifierId)?.validFrom
+          : input.operations.validFrom,
+        input.operations.validTo === undefined
+          ? byId.get(input.taxIdentifierId)?.validTo
+          : input.operations.validTo,
         ["update", String(index), "operations"],
         errors,
       );
@@ -133,13 +133,7 @@ export class CustomerTaxIdentifiersUpdateScript extends BaseScript<
       }
     }
     for (const [index, id] of operations.deleteIds.entries()) {
-      validateOwned(
-        byId,
-        id,
-        customerId,
-        ["deleteIds", String(index)],
-        errors
-      );
+      validateOwned(byId, id, customerId, ["deleteIds", String(index)], errors);
       if (updateIds.includes(id)) {
         errors.push({
           message: "Tax identifier cannot be updated and deleted together",
@@ -154,12 +148,15 @@ export class CustomerTaxIdentifiersUpdateScript extends BaseScript<
     const keys = new Set<string>();
     for (const [index, input] of operations.create.entries()) {
       const key = taxIdentifierKey(input.identifierType, input.countryCode, input.value);
-      if (keys.has(key) || await this.repository.taxIdentifier.findDuplicate({
-        customerId,
-        identifierType: input.identifierType,
-        countryCode: input.countryCode,
-        value: input.value,
-      })) {
+      if (
+        keys.has(key) ||
+        (await this.repository.taxIdentifier.findDuplicate({
+          customerId,
+          identifierType: input.identifierType,
+          countryCode: input.countryCode,
+          value: input.value,
+        }))
+      ) {
         errors.push(duplicateTaxIdentifier(["create", String(index), "value"]));
       }
       keys.add(key);
@@ -168,24 +165,23 @@ export class CustomerTaxIdentifiersUpdateScript extends BaseScript<
       const current = byId.get(input.taxIdentifierId);
       if (!current || current.customerId !== customerId) continue;
       const identifierType = input.operations.identifierType ?? current.identifierType;
-      const countryCode = input.operations.countryCode === undefined
-        ? current.countryCode
-        : input.operations.countryCode;
+      const countryCode =
+        input.operations.countryCode === undefined
+          ? current.countryCode
+          : input.operations.countryCode;
       const value = input.operations.value ?? current.value;
       const key = taxIdentifierKey(identifierType, countryCode, value);
-      if (keys.has(key) || await this.repository.taxIdentifier.findDuplicate({
-        customerId,
-        identifierType,
-        countryCode,
-        value,
-        exceptId: input.taxIdentifierId,
-      })) {
-        errors.push(duplicateTaxIdentifier([
-          "update",
-          String(index),
-          "operations",
-          "value",
-        ]));
+      if (
+        keys.has(key) ||
+        (await this.repository.taxIdentifier.findDuplicate({
+          customerId,
+          identifierType,
+          countryCode,
+          value,
+          exceptId: input.taxIdentifierId,
+        }))
+      ) {
+        errors.push(duplicateTaxIdentifier(["update", String(index), "operations", "value"]));
       }
       keys.add(key);
     }
@@ -198,7 +194,7 @@ function validateOwned(
   id: string,
   customerId: string,
   field: string[],
-  errors: Array<{ message: string; code: string; field?: string[] }>
+  errors: Array<{ message: string; code: string; field?: string[] }>,
 ) {
   const row = byId.get(id);
   if (!row || row.customerId !== customerId) {
@@ -220,7 +216,11 @@ function validateCountry(
   errors: Array<{ message: string; code: string; field?: string[] }>,
 ) {
   if (value != null && !/^[A-Za-z]{2}$/u.test(value.trim())) {
-    errors.push({ message: "Country code must use ISO alpha-2 format", code: "INVALID_COUNTRY_CODE", field });
+    errors.push({
+      message: "Country code must use ISO alpha-2 format",
+      code: "INVALID_COUNTRY_CODE",
+      field,
+    });
   }
 }
 
@@ -231,7 +231,11 @@ function validateDateRange(
   errors: Array<{ message: string; code: string; field?: string[] }>,
 ) {
   if (validFrom && validTo && validTo < validFrom) {
-    errors.push({ message: "validTo must not precede validFrom", code: "INVALID_DATE_RANGE", field });
+    errors.push({
+      message: "validTo must not precede validFrom",
+      code: "INVALID_DATE_RANGE",
+      field,
+    });
   }
 }
 
@@ -243,16 +247,21 @@ function addDuplicateIds(
 ) {
   const seen = new Set<string>();
   values.forEach((value, index) => {
-    if (seen.has(value)) errors.push({
-      message: "Tax identifier ID cannot appear more than once",
-      code: "DUPLICATE_ID",
-      field: [...field, String(index), ...(childField ? [childField] : [])],
-    });
+    if (seen.has(value))
+      errors.push({
+        message: "Tax identifier ID cannot appear more than once",
+        code: "DUPLICATE_ID",
+        field: [...field, String(index), ...(childField ? [childField] : [])],
+      });
     seen.add(value);
   });
 }
 
-function taxIdentifierKey(identifierType: string, countryCode: string | null | undefined, value: string) {
+function taxIdentifierKey(
+  identifierType: string,
+  countryCode: string | null | undefined,
+  value: string,
+) {
   return `${identifierType.trim()}\u0000${countryCode?.trim().toUpperCase() ?? ""}\u0000${normalizeTaxIdentifier(value)}`;
 }
 
@@ -264,12 +273,8 @@ function duplicateTaxIdentifier(field: string[]) {
   };
 }
 
-function hasChanges(
-  operations: CustomerTaxIdentifiersUpdateOperation["params"]
-) {
+function hasChanges(operations: CustomerTaxIdentifiersUpdateOperation["params"]) {
   return (
-    operations.create.length > 0 ||
-    operations.update.length > 0 ||
-    operations.deleteIds.length > 0
+    operations.create.length > 0 || operations.update.length > 0 || operations.deleteIds.length > 0
   );
 }

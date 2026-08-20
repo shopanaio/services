@@ -13,21 +13,31 @@ extend schema
   )
 
 type Query {
-  """Pricing Admin query namespace."""
+  """
+  Pricing Admin query namespace.
+  """
   pricingQuery: PricingQuery!
 }
 
 type Mutation {
-  """Pricing Admin mutation namespace."""
+  """
+  Pricing Admin mutation namespace.
+  """
   pricingMutation: PricingMutation!
 }
 
-"""Store-scoped pricing reads. The current Store is taken from trusted context."""
+"""
+Store-scoped pricing reads. The current Store is taken from trusted context.
+"""
 type PricingQuery {
-  """Resolve a Pricing-owned Relay node by global ID."""
+  """
+  Resolve a Pricing-owned Relay node by global ID.
+  """
   node(id: ID!): Node
 
-  """Resolve Pricing-owned Relay nodes while preserving input order."""
+  """
+  Resolve Pricing-owned Relay nodes while preserving input order.
+  """
   nodes(ids: [ID!]!): [Node]!
 
   discount(id: ID!): Discount
@@ -82,11 +92,15 @@ type PricingQuery {
   ): DiscountExternalReferenceConnection!
 }
 
-"""Store-scoped pricing commands."""
+"""
+Store-scoped pricing commands.
+"""
 type PricingMutation {
   discountCreate(input: DiscountCreateInput!): DiscountCreatePayload!
 
-  """Unified discount configuration update with optimistic locking."""
+  """
+  Unified discount configuration update with optimistic locking.
+  """
   discountUpdate(
     discountId: ID!
     expectedRevision: Int!

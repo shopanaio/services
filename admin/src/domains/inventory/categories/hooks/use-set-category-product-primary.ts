@@ -2,10 +2,7 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
-import type {
-  ApiCategory,
-  ApiGenericUserError,
-} from "@/graphql/types";
+import type { ApiCategory, ApiGenericUserError } from "@/graphql/types";
 import { ProductCategoryOperationAction } from "@/graphql/types";
 import {
   CATEGORIES_QUERY,
@@ -56,11 +53,7 @@ export function useSetCategoryProductPrimary(): UseSetCategoryProductPrimaryRetu
               },
             ],
           },
-          refetchQueries: [
-            CATEGORY_DETAILS_QUERY,
-            CATEGORY_PRODUCTS_QUERY,
-            CATEGORIES_QUERY,
-          ],
+          refetchQueries: [CATEGORY_DETAILS_QUERY, CATEGORY_PRODUCTS_QUERY, CATEGORIES_QUERY],
           awaitRefetchQueries: true,
         });
         const payload = result.data?.catalogMutation.productUpdate;
@@ -70,8 +63,7 @@ export function useSetCategoryProductPrimary(): UseSetCategoryProductPrimaryRetu
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
         return {
           category: null,
           userErrors: [{ message, code: "UNEXPECTED_ERROR" }],

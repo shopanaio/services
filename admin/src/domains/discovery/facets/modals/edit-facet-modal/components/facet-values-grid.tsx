@@ -96,9 +96,7 @@ interface FacetValueSwatchCellProps {
   onCommit: (valueId: string, swatch: OptionEditorSwatch) => void;
 }
 
-function getSwatchDraft(
-  swatch: OptionEditorSwatch | null | undefined,
-): OptionEditorSwatch {
+function getSwatchDraft(swatch: OptionEditorSwatch | null | undefined): OptionEditorSwatch {
   return swatch ?? { ...DEFAULT_SWATCH };
 }
 
@@ -110,9 +108,7 @@ function FacetValueSwatchCell({
   onCommit,
 }: FacetValueSwatchCellProps) {
   const [open, setOpen] = useState(false);
-  const [draftSwatch, setDraftSwatch] = useState<OptionEditorSwatch>(
-    getSwatchDraft(swatch),
-  );
+  const [draftSwatch, setDraftSwatch] = useState<OptionEditorSwatch>(getSwatchDraft(swatch));
 
   useEffect(() => {
     if (!open) {
@@ -238,9 +234,7 @@ export function FacetValuesGrid({
                   onCommit={onSwatchChange}
                 />
               ) : null}
-              <span data-testid={`facet-values-row-${valueTestId(data.handle)}`}>
-                {data.label}
-              </span>
+              <span data-testid={`facet-values-row-${valueTestId(data.handle)}`}>{data.label}</span>
             </Flex>
           ) : null,
       },
@@ -311,9 +305,7 @@ export function FacetValuesGrid({
                   {
                     key: "delete",
                     label: (
-                      <span
-                        data-testid={`facet-values-action-delete-${valueTestId(data.handle)}`}
-                      >
+                      <span data-testid={`facet-values-action-delete-${valueTestId(data.handle)}`}>
                         Delete
                       </span>
                     ),
@@ -385,11 +377,7 @@ export function FacetValuesGrid({
           </Typography.Text>
           <Flex gap={8} wrap="wrap" justify="end">
             <Tooltip
-              title={
-                addToGroupEnabled
-                  ? undefined
-                  : "Only source values can be added to a group."
-              }
+              title={addToGroupEnabled ? undefined : "Only source values can be added to a group."}
             >
               <Button
                 size="small"

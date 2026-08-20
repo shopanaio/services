@@ -38,14 +38,11 @@ export interface MediaSourceDeleteResult {
   userErrors: UserError[];
 }
 
-abstract class MediaSourceScriptBase<TParams, TResult> extends BaseScript<
-  TParams,
-  TResult
-> {
+abstract class MediaSourceScriptBase<TParams, TResult> extends BaseScript<TParams, TResult> {
   protected async validateFiles(
     mediaFileId: string,
     sourceFileId: string,
-    includeDeletedSource = false
+    includeDeletedSource = false,
   ): Promise<UserError[]> {
     if (mediaFileId === sourceFileId) {
       return [
@@ -77,10 +74,7 @@ export class MediaSourceCreateScript extends MediaSourceScriptBase<
 > {
   @ZodSchema(mediaSourceCreateSchema)
   protected async execute(params: MediaSourceCreateParams): Promise<MediaSourceResult> {
-    const userErrors = await this.validateFiles(
-      params.mediaFileId,
-      params.sourceFileId
-    );
+    const userErrors = await this.validateFiles(params.mediaFileId, params.sourceFileId);
     if (!params.kind.trim()) {
       userErrors.push({ field: ["kind"], code: "REQUIRED", message: "Kind is required" });
     }
@@ -88,7 +82,11 @@ export class MediaSourceCreateScript extends MediaSourceScriptBase<
       userErrors.push({ field: ["format"], code: "REQUIRED", message: "Format is required" });
     }
     if (params.sortOrder !== undefined && params.sortOrder < 0) {
-      userErrors.push({ field: ["sortOrder"], code: "INVALID", message: "Sort order cannot be negative" });
+      userErrors.push({
+        field: ["sortOrder"],
+        code: "INVALID",
+        message: "Sort order cannot be negative",
+      });
     }
     if (userErrors.length > 0) return { source: null, userErrors };
 
@@ -97,20 +95,24 @@ export class MediaSourceCreateScript extends MediaSourceScriptBase<
     const sortOrder = params.sortOrder ?? 0;
     const existing = await this.repository.mediaSource.find(
       params.mediaFileId,
-      params.sourceFileId
+      params.sourceFileId,
     );
     if (existing) {
       return {
         source: null,
         userErrors: [
-          { field: ["sourceFileId"], code: "ALREADY_EXISTS", message: "Prepared source already exists" },
+          {
+            field: ["sourceFileId"],
+            code: "ALREADY_EXISTS",
+            message: "Prepared source already exists",
+          },
         ],
       };
     }
     const occupiedSlot = await this.repository.mediaSource.findBySlot(
       params.mediaFileId,
       kind,
-      sortOrder
+      sortOrder,
     );
     if (occupiedSlot) {
       return {
@@ -155,10 +157,7 @@ export class MediaSourceUpdateScript extends MediaSourceScriptBase<
 > {
   @ZodSchema(mediaSourceUpdateSchema)
   protected async execute(params: MediaSourceUpdateParams): Promise<MediaSourceResult> {
-    const userErrors = await this.validateFiles(
-      params.mediaFileId,
-      params.sourceFileId
-    );
+    const userErrors = await this.validateFiles(params.mediaFileId, params.sourceFileId);
     if (params.kind !== undefined && !params.kind.trim()) {
       userErrors.push({ field: ["kind"], code: "REQUIRED", message: "Kind is required" });
     }
@@ -166,20 +165,22 @@ export class MediaSourceUpdateScript extends MediaSourceScriptBase<
       userErrors.push({ field: ["format"], code: "REQUIRED", message: "Format is required" });
     }
     if (params.sortOrder !== undefined && params.sortOrder < 0) {
-      userErrors.push({ field: ["sortOrder"], code: "INVALID", message: "Sort order cannot be negative" });
+      userErrors.push({
+        field: ["sortOrder"],
+        code: "INVALID",
+        message: "Sort order cannot be negative",
+      });
     }
     if (userErrors.length > 0) return { source: null, userErrors };
 
     const existing = await this.repository.mediaSource.find(
       params.mediaFileId,
-      params.sourceFileId
+      params.sourceFileId,
     );
     if (!existing) {
       return {
         source: null,
-        userErrors: [
-          { code: "NOT_FOUND", message: "Prepared media source not found" },
-        ],
+        userErrors: [{ code: "NOT_FOUND", message: "Prepared media source not found" }],
       };
     }
     const kind = params.kind?.trim().toUpperCase() ?? existing.kind;
@@ -187,7 +188,7 @@ export class MediaSourceUpdateScript extends MediaSourceScriptBase<
     const occupiedSlot = await this.repository.mediaSource.findBySlot(
       params.mediaFileId,
       kind,
-      sortOrder
+      sortOrder,
     );
     if (occupiedSlot && occupiedSlot.sourceFileId !== params.sourceFileId) {
       return {
@@ -206,22 +207,16 @@ export class MediaSourceUpdateScript extends MediaSourceScriptBase<
       params.mediaFileId,
       params.sourceFileId,
       {
-        ...(params.kind !== undefined
-          ? { kind }
-          : {}),
-        ...(params.format !== undefined
-          ? { format: params.format.trim().toUpperCase() }
-          : {}),
+        ...(params.kind !== undefined ? { kind } : {}),
+        ...(params.format !== undefined ? { format: params.format.trim().toUpperCase() } : {}),
         ...(params.sortOrder !== undefined ? { sortOrder: params.sortOrder } : {}),
-      }
+      },
     );
     return source
       ? { source, userErrors: [] }
       : {
           source: null,
-          userErrors: [
-            { code: "NOT_FOUND", message: "Prepared media source not found" },
-          ],
+          userErrors: [{ code: "NOT_FOUND", message: "Prepared media source not found" }],
         };
   }
 
@@ -243,28 +238,20 @@ export class MediaSourceDeleteScript extends MediaSourceScriptBase<
   MediaSourceDeleteResult
 > {
   @ZodSchema(mediaSourceDeleteSchema)
-  protected async execute(
-    params: MediaSourceDeleteParams
-  ): Promise<MediaSourceDeleteResult> {
-    const userErrors = await this.validateFiles(
-      params.mediaFileId,
-      params.sourceFileId,
-      true
-    );
+  protected async execute(params: MediaSourceDeleteParams): Promise<MediaSourceDeleteResult> {
+    const userErrors = await this.validateFiles(params.mediaFileId, params.sourceFileId, true);
     if (userErrors.length > 0) {
       return { deletedSourceFileId: null, userErrors };
     }
     const deleted = await this.repository.mediaSource.delete(
       params.mediaFileId,
-      params.sourceFileId
+      params.sourceFileId,
     );
     return deleted
       ? { deletedSourceFileId: params.sourceFileId, userErrors: [] }
       : {
           deletedSourceFileId: null,
-          userErrors: [
-            { code: "NOT_FOUND", message: "Prepared media source not found" },
-          ],
+          userErrors: [{ code: "NOT_FOUND", message: "Prepared media source not found" }],
         };
   }
 

@@ -25,4 +25,3 @@ class AdminAppNavigationRegistry {
 }
 
 export const adminAppNavigationRegistry = new AdminAppNavigationRegistry();
-

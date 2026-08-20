@@ -14,7 +14,7 @@ export class ListingPrepareIndexActionScript extends BaseScript<
   ListingIndexPreparedSyncAction | ListingIndexPreparedDeleteAction
 > {
   protected async execute(
-    action: ListingIndexQueuedAction
+    action: ListingIndexQueuedAction,
   ): Promise<ListingIndexPreparedSyncAction | ListingIndexPreparedDeleteAction> {
     const issues = validateAction(action);
     if (issues.length > 0) {
@@ -61,9 +61,7 @@ export class ListingPrepareIndexActionScript extends BaseScript<
   }
 }
 
-function validateAction(
-  action: ListingIndexQueuedAction
-): ListingIndexValidationIssue[] {
+function validateAction(action: ListingIndexQueuedAction): ListingIndexValidationIssue[] {
   const issues: ListingIndexValidationIssue[] = [];
   const { meta, storeId } = action.params;
 
@@ -114,7 +112,7 @@ function validateAction(
 
 function validateSyncAction(
   action: Extract<ListingIndexQueuedAction, { type: "syncSellableItem" }>,
-  issues: ListingIndexValidationIssue[]
+  issues: ListingIndexValidationIssue[],
 ): void {
   const { item } = action.params;
   if (item.id.length === 0) {
@@ -131,10 +129,7 @@ function validateSyncAction(
       message: "productRevision must be a non-negative integer",
     });
   }
-  if (
-    !Number.isInteger(action.params.eventSequence) ||
-    action.params.eventSequence <= 0
-  ) {
+  if (!Number.isInteger(action.params.eventSequence) || action.params.eventSequence <= 0) {
     issues.push({
       code: "VALIDATION_FAILED",
       field: ["eventSequence"],
@@ -167,42 +162,28 @@ function validateSyncAction(
     item.variants.map((variant) => variant.id),
     ["item", "variants"],
     "Duplicate variant id",
-    issues
+    issues,
   );
 
   for (const [variantIndex, variant] of item.variants.entries()) {
     validateCurrencies(
       variant.prices.map((price) => price.currencyCode),
       ["item", "variants", String(variantIndex), "prices"],
-      issues
+      issues,
     );
     for (const [facetIndex, facet] of variant.facets.entries()) {
       if (facet.scope !== "variant") {
         issues.push({
           code: "VALIDATION_FAILED",
-          field: [
-            "item",
-            "variants",
-            String(variantIndex),
-            "facets",
-            String(facetIndex),
-            "scope",
-          ],
+          field: ["item", "variants", String(variantIndex), "facets", String(facetIndex), "scope"],
           message: "Variant facets must use scope=variant",
         });
       }
       validateDuplicateValues(
         facet.values.map((value) => value.handle),
-        [
-          "item",
-          "variants",
-          String(variantIndex),
-          "facets",
-          String(facetIndex),
-          "values",
-        ],
+        ["item", "variants", String(variantIndex), "facets", String(facetIndex), "values"],
         "Duplicate variant facet value handle",
-        issues
+        issues,
       );
     }
   }
@@ -210,7 +191,7 @@ function validateSyncAction(
   validateCurrencies(
     item.priceRanges.map((price) => price.currencyCode),
     ["item", "priceRanges"],
-    issues
+    issues,
   );
   for (const [facetIndex, facet] of item.productFacets.entries()) {
     if (facet.scope !== "product") {
@@ -224,14 +205,14 @@ function validateSyncAction(
       facet.values.map((value) => value.handle),
       ["item", "productFacets", String(facetIndex), "values"],
       "Duplicate product facet value handle",
-      issues
+      issues,
     );
   }
 }
 
 function validateDeleteAction(
   action: Extract<ListingIndexQueuedAction, { type: "deleteSellableItem" }>,
-  issues: ListingIndexValidationIssue[]
+  issues: ListingIndexValidationIssue[],
 ): void {
   if (action.params.itemRef.entityType !== "product") {
     issues.push({
@@ -247,10 +228,7 @@ function validateDeleteAction(
       message: "itemRef.id is required",
     });
   }
-  if (
-    !Number.isInteger(action.params.eventSequence) ||
-    action.params.eventSequence <= 0
-  ) {
+  if (!Number.isInteger(action.params.eventSequence) || action.params.eventSequence <= 0) {
     issues.push({
       code: "VALIDATION_FAILED",
       field: ["eventSequence"],
@@ -269,7 +247,7 @@ function validateDeleteAction(
 function validateCurrencies(
   currencies: readonly string[],
   field: string[],
-  issues: ListingIndexValidationIssue[]
+  issues: ListingIndexValidationIssue[],
 ): void {
   validateDuplicateValues(currencies, field, "Duplicate currency", issues);
   for (const [index, currency] of currencies.entries()) {
@@ -287,7 +265,7 @@ function validateDuplicateValues(
   values: readonly string[],
   field: string[],
   message: string,
-  issues: ListingIndexValidationIssue[]
+  issues: ListingIndexValidationIssue[],
 ): void {
   const seen = new Set<string>();
   for (const [index, value] of values.entries()) {

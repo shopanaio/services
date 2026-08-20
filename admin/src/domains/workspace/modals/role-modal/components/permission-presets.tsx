@@ -108,17 +108,13 @@ export const PermissionPresets = ({
               className={cx(
                 styles.presetCard,
                 isSelected && styles.presetCardSelected,
-                disabled && styles.presetCardDisabled
+                disabled && styles.presetCardDisabled,
               )}
               onClick={() => handlePresetChange(preset)}
             >
               <div className={styles.presetHeader}>
-                {preset.icon && (
-                  <span className={styles.presetIcon}>{preset.icon}</span>
-                )}
-                <Typography.Text className={styles.presetLabel}>
-                  {preset.label}
-                </Typography.Text>
+                {preset.icon && <span className={styles.presetIcon}>{preset.icon}</span>}
+                <Typography.Text className={styles.presetLabel}>{preset.label}</Typography.Text>
               </div>
               <Typography.Text className={styles.presetDescription}>
                 {preset.description}

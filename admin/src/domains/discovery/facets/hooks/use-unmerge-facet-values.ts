@@ -26,9 +26,7 @@ export function useUnmergeFacetValues(): UseUnmergeFacetValuesReturn {
   >(FACET_VALUE_UNMERGE_MUTATION);
 
   const unmergeFacetValues = useCallback(
-    async (
-      input: ApiFacetValueUnmergeInput,
-    ): Promise<FacetValueUnmergeMutationResult> => {
+    async (input: ApiFacetValueUnmergeInput): Promise<FacetValueUnmergeMutationResult> => {
       try {
         const result = await unmergeFacetValuesMutation({
           variables: { input },
@@ -43,8 +41,7 @@ export function useUnmergeFacetValues(): UseUnmergeFacetValuesReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
         return {
           sourceValues: [],
           affectedGroupValues: [],

@@ -1,8 +1,5 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  CategoryUpdateSortParams,
-  CategoryUpdateSortResult,
-} from "./dto/index.js";
+import type { CategoryUpdateSortParams, CategoryUpdateSortResult } from "./dto/index.js";
 
 const ALLOWED_SORTS = new Set(["manual", "price", "newest", "name"]);
 const ALLOWED_DIRECTIONS = new Set(["asc", "desc"]);
@@ -11,9 +8,7 @@ export class CategoryUpdateSortScript extends BaseScript<
   CategoryUpdateSortParams,
   CategoryUpdateSortResult
 > {
-  protected async execute(
-    params: CategoryUpdateSortParams
-  ): Promise<CategoryUpdateSortResult> {
+  protected async execute(params: CategoryUpdateSortParams): Promise<CategoryUpdateSortResult> {
     const { id, defaultSort, defaultSortDirection } = params;
 
     const existing = await this.repository.category.findById(id);
@@ -47,7 +42,7 @@ export class CategoryUpdateSortScript extends BaseScript<
     const category = await this.repository.category.updateSortPreferences(
       id,
       defaultSort,
-      defaultSortDirection
+      defaultSortDirection,
     );
 
     return { category: category ?? undefined, userErrors: [] };

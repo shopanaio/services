@@ -1,8 +1,4 @@
-import {
-  GLOBAL_ID_NAMESPACE,
-  GlobalIdEntity,
-  parseGlobalId,
-} from "@shopana/shared-graphql-guid";
+import { GLOBAL_ID_NAMESPACE, GlobalIdEntity, parseGlobalId } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
 import type {
   QueryCategoriesArgs,
@@ -91,12 +87,8 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
   }
 
   async productByHandle(args: QueryProductByHandleArgs) {
-    const product = await this.$ctx.kernel.repository.product.findByHandle(
-      args.handle,
-    );
-    return isPublishedProduct(product)
-      ? this.resolvers.product(product.id)
-      : null;
+    const product = await this.$ctx.kernel.repository.product.findByHandle(args.handle);
+    return isPublishedProduct(product) ? this.resolvers.product(product.id) : null;
   }
 
   async productVariant(args: QueryProductVariantArgs) {
@@ -106,9 +98,7 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
     } catch {
       return null;
     }
-    return (await loadPublishedVariant(this.$ctx, id))
-      ? this.resolvers.productVariant(id)
-      : null;
+    return (await loadPublishedVariant(this.$ctx, id)) ? this.resolvers.productVariant(id) : null;
   }
 
   async category(args: QueryCategoryArgs) {
@@ -119,15 +109,11 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
       return null;
     }
     const category = await this.$ctx.loaders.category.load(id);
-    return category && isPublishedAt(category.publishedAt)
-      ? this.resolvers.category(id)
-      : null;
+    return category && isPublishedAt(category.publishedAt) ? this.resolvers.category(id) : null;
   }
 
   async categoryByHandle(args: QueryCategoryByHandleArgs) {
-    const category = await this.$ctx.kernel.repository.category.findByHandle(
-      args.handle,
-    );
+    const category = await this.$ctx.kernel.repository.category.findByHandle(args.handle);
     return category && isPublishedAt(category.publishedAt)
       ? this.resolvers.category(category.id)
       : null;
@@ -144,20 +130,14 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
     } catch {
       return null;
     }
-    const collection =
-      await this.$ctx.kernel.repository.collection.findVisibleById(id);
-    return collection
-      ? this.resolvers.collection(id)
-      : null;
+    const collection = await this.$ctx.kernel.repository.collection.findVisibleById(id);
+    return collection ? this.resolvers.collection(id) : null;
   }
 
   async collectionByHandle(args: { handle: string }) {
-    const collection =
-      await this.$ctx.kernel.repository.collection.findVisibleByHandle(
-        args.handle,
-      );
-    return collection
-      ? this.resolvers.collection(collection.id)
-      : null;
+    const collection = await this.$ctx.kernel.repository.collection.findVisibleByHandle(
+      args.handle,
+    );
+    return collection ? this.resolvers.collection(collection.id) : null;
   }
 }

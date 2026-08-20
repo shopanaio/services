@@ -31,9 +31,7 @@ export const DIMENSION_UNIT_LABELS: Record<DimensionUnit, string> = {
   [DimensionUnit.Mm]: "mm",
 };
 
-export const getWeightUnitLabel = (
-  unit: string | null | undefined,
-): string => {
+export const getWeightUnitLabel = (unit: string | null | undefined): string => {
   if (!unit) {
     return WEIGHT_UNIT_LABELS[DEFAULT_WEIGHT_UNIT];
   }
@@ -41,9 +39,7 @@ export const getWeightUnitLabel = (
   return WEIGHT_UNIT_LABELS[unit as WeightUnit] ?? unit;
 };
 
-export const getDimensionUnitLabel = (
-  unit: string | null | undefined,
-): string => {
+export const getDimensionUnitLabel = (unit: string | null | undefined): string => {
   if (!unit) {
     return DIMENSION_UNIT_LABELS[DEFAULT_DIMENSION_UNIT];
   }
@@ -52,14 +48,9 @@ export const getDimensionUnitLabel = (
 };
 
 const formatMeasurement = (value: number): string =>
-  Number.isInteger(value)
-    ? String(value)
-    : value.toFixed(2).replace(/\.?0+$/, "");
+  Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, "");
 
-const convertWeightFromGrams = (
-  weightGrams: number,
-  unit: WeightUnit,
-): number => {
+const convertWeightFromGrams = (weightGrams: number, unit: WeightUnit): number => {
   switch (unit) {
     case WeightUnit.Kg:
       return weightGrams / 1000;
@@ -73,10 +64,7 @@ const convertWeightFromGrams = (
   }
 };
 
-const convertDimensionFromMillimeters = (
-  valueMm: number,
-  unit: DimensionUnit,
-): number => {
+const convertDimensionFromMillimeters = (valueMm: number, unit: DimensionUnit): number => {
   switch (unit) {
     case DimensionUnit.Cm:
       return valueMm / 10;
@@ -108,9 +96,7 @@ export const mapApiDimensionsToVariantFields = (
   dimensionUnit: DEFAULT_DIMENSION_UNIT,
 });
 
-export const formatApiWeight = (
-  weight: ApiVariantWeight | null | undefined,
-): string => {
+export const formatApiWeight = (weight: ApiVariantWeight | null | undefined): string => {
   if (!weight) {
     return "-";
   }

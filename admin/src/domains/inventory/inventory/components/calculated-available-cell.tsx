@@ -10,9 +10,7 @@ import { getInventoryVariantCellTestId } from "./test-ids";
  * AG Grid cell renderer for calculated available inventory
  * Uses shared CalculatedAvailableCell component
  */
-export function CalculatedAvailableCell(
-  props: CustomCellRendererProps<InventoryVariantRow>
-) {
+export function CalculatedAvailableCell(props: CustomCellRendererProps<InventoryVariantRow>) {
   const { data } = props;
   const { getFieldEdit } = useInventoryEditStore();
 
@@ -28,14 +26,22 @@ export function CalculatedAvailableCell(
       unavailable={data.unavailable}
       reserved={data.reserved}
       testId={getInventoryVariantCellTestId(data, "available")}
-      onHandEdit={onHandEdit ? {
-        originalValue: onHandEdit.originalValue as number,
-        currentValue: onHandEdit.currentValue as number,
-      } : undefined}
-      unavailableEdit={unavailableEdit ? {
-        originalValue: unavailableEdit.originalValue as number,
-        currentValue: unavailableEdit.currentValue as number,
-      } : undefined}
+      onHandEdit={
+        onHandEdit
+          ? {
+              originalValue: onHandEdit.originalValue as number,
+              currentValue: onHandEdit.currentValue as number,
+            }
+          : undefined
+      }
+      unavailableEdit={
+        unavailableEdit
+          ? {
+              originalValue: unavailableEdit.originalValue as number,
+              currentValue: unavailableEdit.currentValue as number,
+            }
+          : undefined
+      }
     />
   );
 }

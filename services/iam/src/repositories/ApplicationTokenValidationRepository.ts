@@ -1,11 +1,6 @@
 import type { TransactionManager } from "@shopana/shared-kernel";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import {
-  and,
-  eq,
-  gt,
-  isNull,
-} from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import type { Database } from "../infrastructure/db/database.js";
 import { assertApplicationId } from "../auth/AuthScope.js";
 import {
@@ -79,26 +74,21 @@ export class ApplicationTokenValidationRepository extends BaseRepository {
   @ReadOnly()
   async findSigningKey(
     applicationId: string,
-    keyId: string
+    keyId: string,
   ): Promise<ApplicationTokenSigningKeyRecord | null> {
     assertApplicationId(applicationId);
     if (!keyId || keyId.length > 512) return null;
     const [record] = await this.connection
       .select({ id: applicationJwks.id, publicKey: applicationJwks.publicKey })
       .from(applicationJwks)
-      .where(
-        and(
-          eq(applicationJwks.applicationId, applicationId),
-          eq(applicationJwks.id, keyId)
-        )
-      )
+      .where(and(eq(applicationJwks.applicationId, applicationId), eq(applicationJwks.id, keyId)))
       .limit(1);
     return record ?? null;
   }
 
   @ReadOnly()
   async readLiveState(
-    input: ApplicationTokenLiveStateInput
+    input: ApplicationTokenLiveStateInput,
   ): Promise<ApplicationTokenLiveStateRecord> {
     assertApplicationId(input.applicationId);
     const [record] = await this.connection
@@ -114,8 +104,7 @@ export class ApplicationTokenValidationRepository extends BaseRepository {
         clientDisabled: applicationOauthClient.disabled,
         clientDeletedAt: applicationOauthClient.deletedAt,
         clientResource: applicationOauthClient.resourceAudience,
-        clientProtocolPolicyVersion:
-          applicationOauthClient.protocolPolicyVersion,
+        clientProtocolPolicyVersion: applicationOauthClient.protocolPolicyVersion,
         clientGrantTypes: applicationOauthClient.grantTypes,
         clientResponseTypes: applicationOauthClient.responseTypes,
         clientRequirePKCE: applicationOauthClient.requirePKCE,
@@ -126,68 +115,48 @@ export class ApplicationTokenValidationRepository extends BaseRepository {
         tokenFamilyId: applicationOauthRefreshToken.id,
       })
       .from(applicationAuthConfiguration)
-      .innerJoin(
-        application,
-        eq(application.id, applicationAuthConfiguration.applicationId)
-      )
+      .innerJoin(application, eq(application.id, applicationAuthConfiguration.applicationId))
       .innerJoin(organization, eq(organization.id, application.organizationId))
       .leftJoin(
         applicationOauthClient,
         and(
-          eq(
-            applicationOauthClient.applicationId,
-            applicationAuthConfiguration.applicationId
-          ),
-          eq(applicationOauthClient.clientId, input.clientId)
-        )
+          eq(applicationOauthClient.applicationId, applicationAuthConfiguration.applicationId),
+          eq(applicationOauthClient.clientId, input.clientId),
+        ),
       )
       .leftJoin(
         applicationUser,
         and(
-          eq(
-            applicationUser.applicationId,
-            applicationAuthConfiguration.applicationId
-          ),
-          eq(applicationUser.id, input.userId)
-        )
+          eq(applicationUser.applicationId, applicationAuthConfiguration.applicationId),
+          eq(applicationUser.id, input.userId),
+        ),
       )
       .leftJoin(
         applicationSession,
         and(
-          eq(
-            applicationSession.applicationId,
-            applicationAuthConfiguration.applicationId
-          ),
+          eq(applicationSession.applicationId, applicationAuthConfiguration.applicationId),
           eq(applicationSession.id, input.sessionId),
-          eq(applicationSession.userId, input.userId)
-        )
+          eq(applicationSession.userId, input.userId),
+        ),
       )
       .leftJoin(
         applicationOauthRefreshToken,
         and(
           eq(
             applicationOauthRefreshToken.applicationId,
-            applicationAuthConfiguration.applicationId
+            applicationAuthConfiguration.applicationId,
           ),
           eq(applicationOauthRefreshToken.clientId, input.clientId),
           eq(applicationOauthRefreshToken.userId, input.userId),
           eq(applicationOauthRefreshToken.sessionId, input.sessionId),
           input.tokenFamilyId
-            ? eq(
-                applicationOauthRefreshToken.referenceId,
-                input.tokenFamilyId
-              )
+            ? eq(applicationOauthRefreshToken.referenceId, input.tokenFamilyId)
             : eq(applicationOauthRefreshToken.id, ""),
           isNull(applicationOauthRefreshToken.revoked),
-          gt(applicationOauthRefreshToken.expiresAt, input.now)
-        )
+          gt(applicationOauthRefreshToken.expiresAt, input.now),
+        ),
       )
-      .where(
-        eq(
-          applicationAuthConfiguration.applicationId,
-          input.applicationId
-        )
-      )
+      .where(eq(applicationAuthConfiguration.applicationId, input.applicationId))
       .limit(1);
 
     if (!record) {
@@ -207,32 +176,23 @@ export class ApplicationTokenValidationRepository extends BaseRepository {
         record.clientId === input.clientId &&
         record.clientDisabled === false &&
         record.clientDeletedAt === null &&
-        record.clientProtocolPolicyVersion ===
-          APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION &&
+        record.clientProtocolPolicyVersion === APPLICATION_OAUTH_PROTOCOL_POLICY_VERSION &&
         record.clientRequirePKCE === true &&
-        hasExactStringValues(
-          record.clientGrantTypes ?? [],
-          APPLICATION_OAUTH_GRANT_TYPES
-        ) &&
-        hasExactStringValues(
-          record.clientResponseTypes ?? [],
-          APPLICATION_OAUTH_RESPONSE_TYPES
-        ),
+        hasExactStringValues(record.clientGrantTypes ?? [], APPLICATION_OAUTH_GRANT_TYPES) &&
+        hasExactStringValues(record.clientResponseTypes ?? [], APPLICATION_OAUTH_RESPONSE_TYPES),
       clientResource: record.clientResource,
       userExists: record.userId === input.userId,
-      userActive:
-        record.userId === input.userId && record.userStatus === "active",
+      userActive: record.userId === input.userId && record.userStatus === "active",
       sessionExists: record.sessionId === input.sessionId,
       sessionExpiresAt: record.sessionExpiresAt,
-      tokenFamilyActive:
-        input.tokenFamilyId === undefined || record.tokenFamilyId !== null,
+      tokenFamilyActive: input.tokenFamilyId === undefined || record.tokenFamilyId !== null,
     };
   }
 
   @ReadOnly()
   async findRefreshTokenByHash(
     applicationId: string,
-    tokenHash: string
+    tokenHash: string,
   ): Promise<ApplicationRefreshTokenRecord | null> {
     assertApplicationId(applicationId);
     if (!tokenHash || tokenHash.length > 512) return null;
@@ -253,8 +213,8 @@ export class ApplicationTokenValidationRepository extends BaseRepository {
       .where(
         and(
           eq(applicationOauthRefreshToken.applicationId, applicationId),
-          eq(applicationOauthRefreshToken.token, tokenHash)
-        )
+          eq(applicationOauthRefreshToken.token, tokenHash),
+        ),
       )
       .limit(1);
     return record ?? null;
@@ -275,16 +235,13 @@ export class ApplicationTokenValidationRepository extends BaseRepository {
       .set({ revoked: input.revokedAt })
       .where(
         and(
-          eq(
-            applicationOauthRefreshToken.applicationId,
-            input.applicationId
-          ),
+          eq(applicationOauthRefreshToken.applicationId, input.applicationId),
           eq(applicationOauthRefreshToken.clientId, input.clientId),
           eq(applicationOauthRefreshToken.userId, input.userId),
           eq(applicationOauthRefreshToken.sessionId, input.sessionId),
           eq(applicationOauthRefreshToken.referenceId, input.tokenFamilyId),
-          isNull(applicationOauthRefreshToken.revoked)
-        )
+          isNull(applicationOauthRefreshToken.revoked),
+        ),
       )
       .returning({ id: applicationOauthRefreshToken.id });
     return rows.length;
@@ -303,13 +260,10 @@ export class ApplicationTokenValidationRepository extends BaseRepository {
       .set({ revoked: input.revokedAt, sessionId: null })
       .where(
         and(
-          eq(
-            applicationOauthRefreshToken.applicationId,
-            input.applicationId
-          ),
+          eq(applicationOauthRefreshToken.applicationId, input.applicationId),
           eq(applicationOauthRefreshToken.userId, input.userId),
-          eq(applicationOauthRefreshToken.sessionId, input.sessionId)
-        )
+          eq(applicationOauthRefreshToken.sessionId, input.sessionId),
+        ),
       );
     const rows = await this.connection
       .delete(applicationSession)
@@ -317,8 +271,8 @@ export class ApplicationTokenValidationRepository extends BaseRepository {
         and(
           eq(applicationSession.applicationId, input.applicationId),
           eq(applicationSession.userId, input.userId),
-          eq(applicationSession.id, input.sessionId)
-        )
+          eq(applicationSession.id, input.sessionId),
+        ),
       )
       .returning({ id: applicationSession.id });
     return rows.length === 1;

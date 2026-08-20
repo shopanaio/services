@@ -1,17 +1,9 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type {
-  ProductTagAddParams,
-  ProductTagAddResult,
-} from "./dto/index.js";
+import type { ProductTagAddParams, ProductTagAddResult } from "./dto/index.js";
 
-export class ProductTagAddScript extends BaseScript<
-  ProductTagAddParams,
-  ProductTagAddResult
-> {
+export class ProductTagAddScript extends BaseScript<ProductTagAddParams, ProductTagAddResult> {
   @Transactional()
-  protected async execute(
-    params: ProductTagAddParams
-  ): Promise<ProductTagAddResult> {
+  protected async execute(params: ProductTagAddParams): Promise<ProductTagAddResult> {
     const { productId, tagId } = params;
 
     const product = await this.repository.product.findById(productId);
@@ -19,9 +11,7 @@ export class ProductTagAddScript extends BaseScript<
       return {
         tag: undefined,
         affectedProductIds: [],
-        userErrors: [
-          { message: "Product not found", field: ["productId"], code: "NOT_FOUND" },
-        ],
+        userErrors: [{ message: "Product not found", field: ["productId"], code: "NOT_FOUND" }],
       };
     }
 
@@ -30,9 +20,7 @@ export class ProductTagAddScript extends BaseScript<
       return {
         tag: undefined,
         affectedProductIds: [],
-        userErrors: [
-          { message: "Tag not found", field: ["tagId"], code: "NOT_FOUND" },
-        ],
+        userErrors: [{ message: "Tag not found", field: ["tagId"], code: "NOT_FOUND" }],
       };
     }
 

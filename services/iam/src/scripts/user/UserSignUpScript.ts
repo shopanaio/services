@@ -1,14 +1,8 @@
 import { getServiceConfig } from "@shopana/shared-service-config";
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type {
-  UserSignUpParams,
-  UserSignUpResult,
-} from "./dto/UserSignUpDto.js";
+import type { UserSignUpParams, UserSignUpResult } from "./dto/UserSignUpDto.js";
 
-export class UserSignUpScript extends BaseScript<
-  UserSignUpParams,
-  UserSignUpResult
-> {
+export class UserSignUpScript extends BaseScript<UserSignUpParams, UserSignUpResult> {
   @Transactional()
   protected async execute(params: UserSignUpParams): Promise<UserSignUpResult> {
     const { email, password, headers } = params;

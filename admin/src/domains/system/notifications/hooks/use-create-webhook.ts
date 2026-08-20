@@ -2,10 +2,7 @@
 
 import { useMutation } from "@apollo/client/react";
 import type { ApiNotificationWebhookCreateInput } from "@/graphql/types";
-import {
-  NOTIFICATION_WEBHOOK_CREATE_MUTATION,
-  NOTIFICATION_WEBHOOKS_QUERY,
-} from "../graphql";
+import { NOTIFICATION_WEBHOOK_CREATE_MUTATION, NOTIFICATION_WEBHOOKS_QUERY } from "../graphql";
 import type {
   NotificationWebhookCreateMutationData,
   NotificationWebhookCreateMutationVariables,

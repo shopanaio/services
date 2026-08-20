@@ -157,7 +157,7 @@ function validateValues(
   values: ValidatedValueInput[],
   featureArrayIdx: number,
   globalValueIds: Set<string>,
-  errors: UserError[]
+  errors: UserError[],
 ): void {
   const localIndexes = new Set<number>();
   const localSlugs = new Set<string>();

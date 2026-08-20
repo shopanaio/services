@@ -20,10 +20,7 @@ export { ApplicationMutationResolver } from "./admin/ApplicationMutationResolver
 // Type resolvers
 export { UserResolver } from "./admin/UserResolver.js";
 export { OrganizationResolver } from "./admin/OrganizationResolver.js";
-export {
-  MembershipResolver,
-  type MembershipInput,
-} from "./admin/MembershipResolver.js";
+export { MembershipResolver, type MembershipInput } from "./admin/MembershipResolver.js";
 export { MemberResolver, type MemberInput } from "./admin/MemberResolver.js";
 export { RoleResolver, type RoleInput } from "./admin/RoleResolver.js";
 export * from "./admin/ApplicationResolver.js";

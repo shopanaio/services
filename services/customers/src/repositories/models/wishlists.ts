@@ -19,7 +19,9 @@ import { customersSchema } from "./schema.js";
 export const customerWishlist = customersSchema.table(
   "customer_wishlist",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     customerId: uuid("customer_id")
       .notNull()
@@ -51,10 +53,7 @@ export const customerWishlist = customersSchema.table(
       sql`${table.normalizedName} = btrim(${table.normalizedName})
         AND char_length(${table.normalizedName}) BETWEEN 1 AND 512`,
     ),
-    check(
-      "customer_wishlist_updated_at_check",
-      sql`${table.updatedAt} >= ${table.createdAt}`,
-    ),
+    check("customer_wishlist_updated_at_check", sql`${table.updatedAt} >= ${table.createdAt}`),
     uniqueIndex("customer_wishlist_customer_name_unique").on(
       table.customerId,
       table.normalizedName,
@@ -78,7 +77,9 @@ export const customerWishlist = customersSchema.table(
 export const customerWishlistItem = customersSchema.table(
   "customer_wishlist_item",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     wishlistId: uuid("wishlist_id")
       .notNull()
@@ -92,14 +93,8 @@ export const customerWishlistItem = customersSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("customer_wishlist_item_wishlist_product_unique").on(
-      table.wishlistId,
-      table.productId,
-    ),
-    index("customer_wishlist_item_store_product_idx").on(
-      table.storeId,
-      table.productId,
-    ),
+    unique("customer_wishlist_item_wishlist_product_unique").on(table.wishlistId, table.productId),
+    index("customer_wishlist_item_store_product_idx").on(table.storeId, table.productId),
     index("customer_wishlist_item_wishlist_added_idx").on(
       table.wishlistId,
       table.addedAt.desc(),
@@ -111,5 +106,4 @@ export const customerWishlistItem = customersSchema.table(
 export type CustomerWishlist = typeof customerWishlist.$inferSelect;
 export type NewCustomerWishlist = typeof customerWishlist.$inferInsert;
 export type CustomerWishlistItem = typeof customerWishlistItem.$inferSelect;
-export type NewCustomerWishlistItem =
-  typeof customerWishlistItem.$inferInsert;
+export type NewCustomerWishlistItem = typeof customerWishlistItem.$inferInsert;

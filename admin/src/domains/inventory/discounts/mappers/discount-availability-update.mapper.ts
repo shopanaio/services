@@ -1,7 +1,4 @@
-import type {
-  ApiDiscount,
-  ApiDiscountUpdateInput,
-} from "@/graphql/types";
+import type { ApiDiscount, ApiDiscountUpdateInput } from "@/graphql/types";
 import { DiscountClass, DiscountMethod } from "@/graphql/types";
 
 export interface DiscountAvailabilityFormValues {
@@ -49,11 +46,9 @@ export function createDiscountAvailabilityFormValues(
   return {
     appliesOnOneTimePurchase: discount.appliesOnOneTimePurchase,
     appliesOnSubscription: discount.appliesOnSubscription,
-    usageLimit:
-      discount.usageLimit == null ? null : Number(discount.usageLimit),
+    usageLimit: discount.usageLimit == null ? null : Number(discount.usageLimit),
     appliesOncePerCustomer:
-      discount.method === DiscountMethod.Code &&
-      discount.appliesOncePerCustomer,
+      discount.method === DiscountMethod.Code && discount.appliesOncePerCustomer,
     combinesWith,
     startsAt: isoToLocalDateTime(discount.startsAt),
     endsAt: isoToLocalDateTime(discount.endsAt),
@@ -66,10 +61,7 @@ export function validateDiscountAvailabilityForm(
 ): string[] {
   const errors: string[] = [];
 
-  if (
-    !values.appliesOnOneTimePurchase &&
-    !values.appliesOnSubscription
-  ) {
+  if (!values.appliesOnOneTimePurchase && !values.appliesOnSubscription) {
     errors.push("Select at least one purchase mode.");
   }
   if (
@@ -79,15 +71,9 @@ export function validateDiscountAvailabilityForm(
     errors.push("Usage limit must be a positive whole number.");
   }
   const minimumUsageLimit =
-    normalizeCount(discount.reservedUsageCount) +
-    normalizeCount(discount.usageCount);
-  if (
-    values.usageLimit != null &&
-    values.usageLimit < minimumUsageLimit
-  ) {
-    errors.push(
-      `Usage limit cannot be below ${minimumUsageLimit} reserved and consumed uses.`,
-    );
+    normalizeCount(discount.reservedUsageCount) + normalizeCount(discount.usageCount);
+  if (values.usageLimit != null && values.usageLimit < minimumUsageLimit) {
+    errors.push(`Usage limit cannot be below ${minimumUsageLimit} reserved and consumed uses.`);
   }
   if (!values.startsAt || Number.isNaN(new Date(values.startsAt).getTime())) {
     errors.push("Start date is required.");
@@ -116,15 +102,11 @@ export function buildDiscountAvailabilityUpdateInput(
       usage: {
         usageLimit: values.usageLimit,
         appliesOncePerCustomer:
-          discount.method === DiscountMethod.Code
-            ? values.appliesOncePerCustomer
-            : false,
+          discount.method === DiscountMethod.Code ? values.appliesOncePerCustomer : false,
       },
       schedule: {
         startsAt: localDateTimeToIso(values.startsAt),
-        endsAt: values.endsAt
-          ? localDateTimeToIso(values.endsAt)
-          : null,
+        endsAt: values.endsAt ? localDateTimeToIso(values.endsAt) : null,
       },
     },
     combinesWith: values.combinesWith,

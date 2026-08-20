@@ -13,9 +13,7 @@ interface SearchRelayPaginationInput {
   before?: string | null;
 }
 
-function createGlobalIdWhereFieldMapper(
-  entity: GlobalIdType,
-): WhereFieldMapper {
+function createGlobalIdWhereFieldMapper(entity: GlobalIdType): WhereFieldMapper {
   return (value) => {
     if (typeof value !== "string") return value;
 
@@ -27,15 +25,17 @@ function createGlobalIdWhereFieldMapper(
   };
 }
 
-export const decodeSearchSynonymGroupGlobalId =
-  createGlobalIdWhereFieldMapper(GlobalIdEntity.SearchSynonymGroup);
+export const decodeSearchSynonymGroupGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.SearchSynonymGroup,
+);
 
-export const decodeSearchProductBoostGlobalId =
-  createGlobalIdWhereFieldMapper(GlobalIdEntity.SearchProductBoost);
+export const decodeSearchProductBoostGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.SearchProductBoost,
+);
 
-export function normalizeSearchRelayPagination<
-  TInput extends SearchRelayPaginationInput,
->(input: TInput): TInput {
+export function normalizeSearchRelayPagination<TInput extends SearchRelayPaginationInput>(
+  input: TInput,
+): TInput {
   const hasFirst = input.first != null;
   const hasLast = input.last != null;
   const hasAfter = input.after != null;
@@ -45,18 +45,13 @@ export function normalizeSearchRelayPagination<
     throwBadUserInput("Use either first or last, not both", ["first", "last"]);
   }
   if (hasAfter && hasBefore) {
-    throwBadUserInput("Use either after or before, not both", [
-      "after",
-      "before",
-    ]);
+    throwBadUserInput("Use either after or before, not both", ["after", "before"]);
   }
   if (hasAfter && hasLast) {
     throwBadUserInput("after is only valid with forward pagination", ["after"]);
   }
   if (hasBefore && (hasFirst || !hasLast)) {
-    throwBadUserInput("before is only valid with backward pagination", [
-      "before",
-    ]);
+    throwBadUserInput("before is only valid with backward pagination", ["before"]);
   }
 
   if (!hasFirst && !hasLast) {

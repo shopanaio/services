@@ -17,10 +17,7 @@ export interface NotificationDefinitionContract {
  * collection so contracts can be refined independently as producer payloads
  * are formalized.
  */
-const definitionContracts = new Map<
-  NotificationDefinitionKey,
-  NotificationDefinitionContract
->(
+const definitionContracts = new Map<NotificationDefinitionKey, NotificationDefinitionContract>(
   NOTIFICATION_DEFINITION_KEYS.map((key) => [
     key,
     {
@@ -36,7 +33,7 @@ const definitionContracts = new Map<
         },
       ],
     } satisfies NotificationDefinitionContract,
-  ])
+  ]),
 );
 
 const applicationAuthEnvelopeSchema = z.object({
@@ -129,7 +126,7 @@ definitionContracts.set("customer.privacy.request_update", {
 });
 
 export function getDefinitionContract(
-  key: NotificationDefinitionKey
+  key: NotificationDefinitionKey,
 ): NotificationDefinitionContract {
   const contract = definitionContracts.get(key);
   if (!contract) {
@@ -139,7 +136,7 @@ export function getDefinitionContract(
 }
 
 function applicationAuthVariables(
-  credential: Omit<NotificationTemplateVariable, "required">
+  credential: Omit<NotificationTemplateVariable, "required">,
 ): readonly NotificationTemplateVariable[] {
   return [
     {

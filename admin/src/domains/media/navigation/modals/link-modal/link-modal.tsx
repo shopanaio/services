@@ -9,11 +9,7 @@ import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals
 import { Paper } from "@/ui-kit/paper";
 import { navigationEntryOptions } from "../../mocks/navigation";
 import type { NavigationLinkModalPayload } from "../../modals";
-import type {
-  NavigationLinkFormValues,
-  NavigationLinkType,
-  NavigationMenuItem,
-} from "../../types";
+import type { NavigationLinkFormValues, NavigationLinkType, NavigationMenuItem } from "../../types";
 
 const typeLabels: Record<NavigationLinkType, string> = {
   PRODUCT: "Product",
@@ -62,9 +58,7 @@ export function NavigationLinkModal() {
     setValue("slug", "", { shouldDirty: true, shouldValidate: true });
   }, [setValue]);
 
-  const resetButton = isNew ? (
-    <Button onClick={resetSource} icon={<CloseOutlined />} />
-  ) : null;
+  const resetButton = isNew ? <Button onClick={resetSource} icon={<CloseOutlined />} /> : null;
 
   const entryOptions = useMemo(
     () =>
@@ -210,7 +204,9 @@ export function NavigationLinkModal() {
       <div className={styles.content}>
         <Paper>
           <div>
-            <label className={styles.label} htmlFor="link-title">Title *</label>
+            <label className={styles.label} htmlFor="link-title">
+              Title *
+            </label>
             <Controller
               name="title"
               control={control}

@@ -1,9 +1,4 @@
-import {
-  BaseScript,
-  ZodSchema,
-  Transactional,
-  ValidationError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, Transactional, ValidationError } from "../../kernel/BaseScript.js";
 import { AuthorizationError } from "@shopana/shared-kernel";
 import type { Domain } from "../../casbin/CasbinService.js";
 import {
@@ -15,20 +10,14 @@ import {
 /**
  * RoleUpdateScript - Update an existing role's display name, description, or permissions
  */
-export class RoleUpdateScript extends BaseScript<
-  RoleUpdateParams,
-  RoleUpdateResult
-> {
+export class RoleUpdateScript extends BaseScript<RoleUpdateParams, RoleUpdateResult> {
   @Transactional()
   @ZodSchema(roleUpdateInputSchema)
   protected async execute(params: RoleUpdateParams): Promise<RoleUpdateResult> {
     const { organizationId, id, displayName, description, permissions } = params;
 
     // Find the role
-    const existingRole = await this.repository.organization.findRoleById(
-      organizationId,
-      id
-    );
+    const existingRole = await this.repository.organization.findRoleById(organizationId, id);
 
     if (!existingRole) {
       return {
@@ -58,14 +47,10 @@ export class RoleUpdateScript extends BaseScript<
     }
 
     // Update the role metadata
-    const updatedRole = await this.repository.organization.updateRole(
-      organizationId,
-      id,
-      {
-        displayName,
-        description,
-      }
-    );
+    const updatedRole = await this.repository.organization.updateRole(organizationId, id, {
+      displayName,
+      description,
+    });
 
     // Update permissions if provided
     if (permissions) {

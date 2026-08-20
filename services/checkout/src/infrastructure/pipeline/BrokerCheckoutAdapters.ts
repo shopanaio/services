@@ -68,15 +68,10 @@ export class BrokerPricingCheckoutAdapter implements PricingCheckoutPort {
     }
   }
 
-  async finalizeQuote(
-    raw: FinalizePricingQuoteRequest,
-  ): Promise<FinalizePricingQuoteResult> {
+  async finalizeQuote(raw: FinalizePricingQuoteRequest): Promise<FinalizePricingQuoteResult> {
     const request = parseFinalizePricingQuoteRequest(raw);
     try {
-      const result = await this.broker.call(
-        PricingCheckoutActions.finalizeQuote,
-        request,
-      );
+      const result = await this.broker.call(PricingCheckoutActions.finalizeQuote, request);
       return parseFinalizePricingQuoteResult(request, result);
     } catch (cause) {
       throw stageFailure(
@@ -96,10 +91,7 @@ export class BrokerDeliveryCheckoutAdapter implements DeliveryCheckoutPort {
   ): Promise<CalculateDeliveryOptionsResult> {
     const request = parseCalculateDeliveryOptionsRequest(raw);
     try {
-      const result = await this.broker.call(
-        DeliveryCheckoutActions.calculateOptions,
-        request,
-      );
+      const result = await this.broker.call(DeliveryCheckoutActions.calculateOptions, request);
       return parseCalculateDeliveryOptionsResult(request, result);
     } catch (cause) {
       throw stageFailure(
@@ -119,10 +111,7 @@ export class BrokerPaymentsCheckoutAdapter implements PaymentsCheckoutPort {
   ): Promise<GetAvailablePaymentMethodsResult> {
     const request = parseGetAvailablePaymentMethodsRequest(raw);
     try {
-      const result = await this.broker.call(
-        PaymentsCheckoutActions.getAvailableMethods,
-        request,
-      );
+      const result = await this.broker.call(PaymentsCheckoutActions.getAvailableMethods, request);
       return parseGetAvailablePaymentMethodsResult(request, result);
     } catch (cause) {
       throw stageFailure(
@@ -219,9 +208,7 @@ export class BrokerLoyaltyCheckoutAdapter implements LoyaltyCheckoutPort {
   }
 }
 
-export class BrokerCustomersCheckoutEligibilityAdapter
-  implements CheckoutBuyerEligibilityPort
-{
+export class BrokerCustomersCheckoutEligibilityAdapter implements CheckoutBuyerEligibilityPort {
   constructor(private readonly broker: ServiceBroker) {}
 
   async resolve(
@@ -232,10 +219,7 @@ export class BrokerCustomersCheckoutEligibilityAdapter
       result = await this.broker.call<
         Customers.ResolveCheckoutBuyerEligibilityResult,
         Customers.ResolveCheckoutBuyerEligibilityParams
-      >(
-        CustomersCheckoutActions.resolveBuyerEligibility,
-        input,
-      );
+      >(CustomersCheckoutActions.resolveBuyerEligibility, input);
     } catch (cause) {
       throw new CheckoutMutationError(
         "BUYER_ELIGIBILITY_RESOLUTION_FAILED",
@@ -248,11 +232,7 @@ export class BrokerCustomersCheckoutEligibilityAdapter
       throw invalidCustomersEligibilityResponse();
     }
     if (!result.ok) {
-      throw new CheckoutMutationError(
-        result.code,
-        result.message,
-        result.retryable,
-      );
+      throw new CheckoutMutationError(result.code, result.message, result.retryable);
     }
     if (
       result.storeId !== input.storeId ||
@@ -278,40 +258,26 @@ function isCustomersEligibilityResult(
       typeof result.customerId === "string" &&
       typeof result.effectiveAt === "string" &&
       segmentIds.length <= 500 &&
-      segmentIds.every(
-        (id) => typeof id === "string" && id.trim().length > 0,
-      ) &&
+      segmentIds.every((id) => typeof id === "string" && id.trim().length > 0) &&
       new Set(segmentIds).size === segmentIds.length &&
-      segmentIds.every(
-        (id, index) =>
-          index === 0 || segmentIds[index - 1] <= id,
-      ) &&
+      segmentIds.every((id, index) => index === 0 || segmentIds[index - 1] <= id) &&
       typeof result.segmentMembershipRevision === "string" &&
       result.segmentMembershipRevision.length > 0
     );
   }
-  if (
-    result.ok !== false ||
-    typeof result.message !== "string" ||
-    result.message.length === 0
-  ) {
+  if (result.ok !== false || typeof result.message !== "string" || result.message.length === 0) {
     return false;
   }
   if (result.code === "BUYER_ELIGIBILITY_RESOLUTION_FAILED") {
     return result.retryable === true;
   }
-  if (
-    result.code === "CUSTOMER_NOT_FOUND" ||
-    result.code === "BUYER_ELIGIBILITY_LIMIT_EXCEEDED"
-  ) {
+  if (result.code === "CUSTOMER_NOT_FOUND" || result.code === "BUYER_ELIGIBILITY_LIMIT_EXCEEDED") {
     return result.retryable === false;
   }
   return (
     result.code === "CUSTOMER_NOT_ELIGIBLE" &&
     result.retryable === false &&
-    ["DISABLED", "BLOCKED", "MERGED", "REDACTED"].includes(
-      String(result.reason)
-    )
+    ["DISABLED", "BLOCKED", "MERGED", "REDACTED"].includes(String(result.reason))
   );
 }
 
@@ -323,11 +289,7 @@ function invalidCustomersEligibilityResponse(): CheckoutMutationError {
   );
 }
 
-function stageFailure(
-  cause: unknown,
-  code: string,
-  message: string,
-): CheckoutPipelineStageError {
+function stageFailure(cause: unknown, code: string, message: string): CheckoutPipelineStageError {
   if (cause instanceof CheckoutPipelineStageError) return cause;
   return new CheckoutPipelineStageError({
     code,

@@ -1,15 +1,11 @@
 import type { Catalog, Delivery } from "@shopana/broker-types";
 
-export type CalculateDeliveryOptionsParams =
-  Delivery.CalculateCheckoutDeliveryOptionsParams;
-export type CalculateDeliveryOptionsResult =
-  Delivery.CalculateCheckoutDeliveryOptionsResult;
+export type CalculateDeliveryOptionsParams = Delivery.CalculateCheckoutDeliveryOptionsParams;
+export type CalculateDeliveryOptionsResult = Delivery.CalculateCheckoutDeliveryOptionsResult;
 
 /** Delivery-owned application boundary consumed by its broker adapter. */
 export interface DeliveryCheckoutOptionsPort {
-  calculateOptions(
-    params: CalculateDeliveryOptionsParams,
-  ): Promise<CalculateDeliveryOptionsResult>;
+  calculateOptions(params: CalculateDeliveryOptionsParams): Promise<CalculateDeliveryOptionsResult>;
 }
 
 /** Provider-ready physical grouping produced before rate fan-out. */
@@ -19,10 +15,7 @@ export interface DeliveryCheckoutRateGroupPlan {
   lineIds: readonly string[];
   origin: Delivery.DeliveryProviderOrigin;
   destination: Delivery.DeliveryProviderDestination;
-  packages: readonly [
-    Delivery.DeliveryProviderPackage,
-    ...Delivery.DeliveryProviderPackage[],
-  ];
+  packages: readonly [Delivery.DeliveryProviderPackage, ...Delivery.DeliveryProviderPackage[]];
   /** Hash of every provider-visible physical and monetary rating fact. */
   ratedFactsHash: string;
 }
@@ -43,9 +36,7 @@ export interface DeliveryCheckoutRatePlan {
 
 /** Catalog/fulfillment boundary responsible for origins, packages and measurements. */
 export interface DeliveryCheckoutPlanningPort {
-  plan(
-    params: CalculateDeliveryOptionsParams,
-  ): Promise<DeliveryCheckoutRatePlan>;
+  plan(params: CalculateDeliveryOptionsParams): Promise<DeliveryCheckoutRatePlan>;
 }
 
 export interface DeliveryCheckoutFactsPort {

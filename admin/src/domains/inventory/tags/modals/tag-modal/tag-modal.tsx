@@ -10,8 +10,7 @@ import type { ITagModalPayload } from "../../modals";
 export const TagModal = () => {
   const { payload, pop, forcePop } = useModalStackContext();
   const typedPayload = payload as ITagModalPayload;
-  const tagId =
-    typeof typedPayload.entityId === "string" ? typedPayload.entityId : null;
+  const tagId = typeof typedPayload.entityId === "string" ? typedPayload.entityId : null;
   const { tag, loading, error, refetch } = useTag(tagId);
 
   useEffect(() => {

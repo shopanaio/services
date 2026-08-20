@@ -1,13 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  check,
-  foreignKey,
-  index,
-  primaryKey,
-  timestamp,
-  unique,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { check, foreignKey, index, primaryKey, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { discount } from "./discounts.js";
 import {
   discountTargetRoleEnum,
@@ -59,9 +51,7 @@ export const discountTarget = pricingSchema.table(
     role: discountTargetRoleEnum("role").notNull(),
     targetType: discountTargetTypeEnum("target_type").notNull(),
     targetId: uuid("target_id").notNull(),
-    referenceStatus: referenceStatusEnum("reference_status")
-      .notNull()
-      .default("VALID"),
+    referenceStatus: referenceStatusEnum("reference_status").notNull().default("VALID"),
     referenceStatusChangedAt: timestamp("reference_status_changed_at", {
       withTimezone: true,
       mode: "string",
@@ -88,10 +78,7 @@ export const discountTarget = pricingSchema.table(
         discountTargetSelection.targetType,
       ],
     }).onDelete("cascade"),
-    check(
-      "discount_target_specific_type_check",
-      sql`${table.targetType} <> 'ALL_PRODUCTS'`,
-    ),
+    check("discount_target_specific_type_check", sql`${table.targetType} <> 'ALL_PRODUCTS'`),
     check(
       "discount_target_reference_status_check",
       sql`${table.referenceStatus} = 'VALID' OR ${table.referenceStatusChangedAt} IS NOT NULL`,
@@ -104,19 +91,12 @@ export const discountTarget = pricingSchema.table(
       table.role,
     ),
     index("discount_target_stale_idx")
-      .on(
-        table.storeId,
-        table.referenceStatusChangedAt,
-        table.discountId,
-        table.role,
-      )
+      .on(table.storeId, table.referenceStatusChangedAt, table.discountId, table.role)
       .where(sql`${table.referenceStatus} = 'STALE'`),
   ],
 );
 
-export type DiscountTargetSelection =
-  typeof discountTargetSelection.$inferSelect;
-export type NewDiscountTargetSelection =
-  typeof discountTargetSelection.$inferInsert;
+export type DiscountTargetSelection = typeof discountTargetSelection.$inferSelect;
+export type NewDiscountTargetSelection = typeof discountTargetSelection.$inferInsert;
 export type DiscountTarget = typeof discountTarget.$inferSelect;
 export type NewDiscountTarget = typeof discountTarget.$inferInsert;

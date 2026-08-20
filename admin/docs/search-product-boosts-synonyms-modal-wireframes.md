@@ -7,7 +7,8 @@
 - `Product boost` — связывает поисковые фразы с товарами, которые нужно поднимать в выдаче;
 - `Search synonym group` — объединяет равнозначные поисковые формулировки для одной локали.
 
-Модалки должны использовать существующий Admin UI layout `Modal Stack`, работать с текущим GraphQL-контрактом listing/search и одинаково предсказуемо вести себя в create/edit режимах.
+Модалки должны использовать существующий Admin UI layout `Modal Stack`, работать с текущим
+GraphQL-контрактом listing/search и одинаково предсказуемо вести себя в create/edit режимах.
 
 Документ опирается на:
 
@@ -20,16 +21,27 @@
 
 ## Общие UX-принципы
 
-1. Для каждой сущности используется одна форма с режимом `create | edit`, чтобы поля, валидация и API mapping не расходились.
-2. Основная модалка открывается из страницы списка. Клик по строке открывает edit, primary action страницы — create.
-3. Header всегда остаётся видимым. В нём находятся закрытие, заголовок и единственное primary-действие `Create` или `Save`.
-4. Тело скроллится независимо от header. Контент следует стандартной ширине `ModalLayout` (`max-width: 800px`).
-5. Поля сгруппированы в `Paper`-секции. Обязательные настройки видны сразу, без вкладок и скрытых accordion-блоков.
-6. Списки фраз и синонимов редактируются как упорядоченные строки, а не как свободный comma-separated текст. Так проще показать ошибку конкретного элемента и не терять пользовательскую пунктуацию.
-7. `enabled` доступен при создании и редактировании. Значение по умолчанию для новой сущности — `true`, но пользователь видит и контролирует его до сохранения.
-8. Изменение формы вызывает `setDirty(true)`. Закрытие через `×`, `Esc` или возврат по стеку показывает стандартное подтверждение Modal Stack.
-9. Во время submit поля не очищаются и модалка не закрывается. Кнопка показывает loading и блокирует повторную отправку.
-10. API validation errors показываются возле соответствующих полей; общий или сетевой error — в `Alert` над первой секцией. Ошибка не должна уничтожать draft.
+1. Для каждой сущности используется одна форма с режимом `create | edit`, чтобы поля, валидация и
+   API mapping не расходились.
+2. Основная модалка открывается из страницы списка. Клик по строке открывает edit, primary action
+   страницы — create.
+3. Header всегда остаётся видимым. В нём находятся закрытие, заголовок и единственное
+   primary-действие `Create` или `Save`.
+4. Тело скроллится независимо от header. Контент следует стандартной ширине `ModalLayout`
+   (`max-width: 800px`).
+5. Поля сгруппированы в `Paper`-секции. Обязательные настройки видны сразу, без вкладок и скрытых
+   accordion-блоков.
+6. Списки фраз и синонимов редактируются как упорядоченные строки, а не как свободный
+   comma-separated текст. Так проще показать ошибку конкретного элемента и не терять
+   пользовательскую пунктуацию.
+7. `enabled` доступен при создании и редактировании. Значение по умолчанию для новой сущности —
+   `true`, но пользователь видит и контролирует его до сохранения.
+8. Изменение формы вызывает `setDirty(true)`. Закрытие через `×`, `Esc` или возврат по стеку
+   показывает стандартное подтверждение Modal Stack.
+9. Во время submit поля не очищаются и модалка не закрывается. Кнопка показывает loading и блокирует
+   повторную отправку.
+10. API validation errors показываются возле соответствующих полей; общий или сетевой error — в
+    `Alert` над первой секцией. Ошибка не должна уничтожать draft.
 
 ## Modal Stack
 
@@ -67,7 +79,8 @@ search-synonym-group
 }
 ```
 
-`entityId` обязателен только в edit mode. Нельзя передавать весь объект строки как источник истины: данные могли измениться после загрузки списка.
+`entityId` обязателен только в edit mode. Нельзя передавать весь объект строки как источник истины:
+данные могли измениться после загрузки списка.
 
 ### Стек для Product boost
 
@@ -88,14 +101,17 @@ Product boosts page
 }
 ```
 
-После confirm picker закрывается, а родительская форма остаётся открытой и dirty. Отмена picker не меняет draft родительской формы.
+После confirm picker закрывается, а родительская форма остаётся открытой и dirty. Отмена picker не
+меняет draft родительской формы.
 
 ### Открытие с list pages
 
 - Product boosts: primary action `Create product boost`; row click — edit выбранного boost.
 - Synonyms: primary action `Create synonym group`; row click — edit выбранной группы.
-- После успешного сохранения вызывается `payload.onSaved` или refetch соответствующего connection query.
-- Пока edit modal открывается, строковые данные из grid можно использовать только для skeleton title; форма заполняется detail query.
+- После успешного сохранения вызывается `payload.onSaved` или refetch соответствующего connection
+  query.
+- Пока edit modal открывается, строковые данные из grid можно использовать только для skeleton
+  title; форма заполняется detail query.
 
 ## Product Boost Modal
 
@@ -147,13 +163,13 @@ Product boosts page
 
 ### Секции и controls
 
-| Поле | Control | Правило |
-|---|---|---|
-| `name` | `Input`, maxLength 128, character counter near limit | После trim от 1 до 128 Unicode code points. Это внутреннее понятное название, не поисковая фраза. |
-| `locale` | searchable `Select` | Только локали текущего store, для которых search доступен. Показывать label и code. |
-| `enabled` | `Switch` | Default `true`. Disabled boost хранится, но не применяется в storefront search. |
-| `phrases` | ordered repeatable inputs | От 1 до 20. Пустые строки не отправлять; duplicate после normalization должен быть подсвечен. |
-| `products` | AG Grid selected-products table + nested picker | Read model приходит как `Product[]`; при записи mapper отправляет от 1 до 50 уникальных Product global IDs. |
+| Поле       | Control                                              | Правило                                                                                                     |
+| ---------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `name`     | `Input`, maxLength 128, character counter near limit | После trim от 1 до 128 Unicode code points. Это внутреннее понятное название, не поисковая фраза.           |
+| `locale`   | searchable `Select`                                  | Только локали текущего store, для которых search доступен. Показывать label и code.                         |
+| `enabled`  | `Switch`                                             | Default `true`. Disabled boost хранится, но не применяется в storefront search.                             |
+| `phrases`  | ordered repeatable inputs                            | От 1 до 20. Пустые строки не отправлять; duplicate после normalization должен быть подсвечен.               |
+| `products` | AG Grid selected-products table + nested picker      | Read model приходит как `Product[]`; при записи mapper отправляет от 1 до 50 уникальных Product global IDs. |
 
 Кнопка `Create/Save` disabled, если:
 
@@ -163,27 +179,42 @@ Product boosts page
 - форма невалидна;
 - edit form не изменена.
 
-В create mode одна пустая строка phrase добавлена заранее. `Enter` в последней заполненной строке добавляет следующую; `Backspace` в пустой строке удаляет её, если остаётся хотя бы одна строка. Drag-and-drop не требуется: порядок сохраняется сверху вниз и может изменяться кнопками move up/down, доступными с клавиатуры.
+В create mode одна пустая строка phrase добавлена заранее. `Enter` в последней заполненной строке
+добавляет следующую; `Backspace` в пустой строке удаляет её, если остаётся хотя бы одна строка.
+Drag-and-drop не требуется: порядок сохраняется сверху вниз и может изменяться кнопками move
+up/down, доступными с клавиатуры.
 
 ### AG Grid выбранных товаров
 
-Секция `Boosted products` в основной модалке является таблицей и должна использовать существующий Admin UI AG Grid setup (`AgGridReact`, `useAgGridTheme`, зарегистрированные community modules), а не самодельный список строк.
+Секция `Boosted products` в основной модалке является таблицей и должна использовать существующий
+Admin UI AG Grid setup (`AgGridReact`, `useAgGridTheme`, зарегистрированные community modules), а не
+самодельный список строк.
 
 Колонки:
 
-| Column | Содержимое | Поведение |
-|---|---|---|
-| `Product` | thumbnail, title; fallback `Unavailable product` + ID | `flex: 1`, не sortable |
-| `Status` | существующий product status renderer | фиксированная ширина, не sortable |
-| `Actions` | icon/button `Remove` | фиксированная ширина, keyboard accessible |
+| Column    | Содержимое                                            | Поведение                                 |
+| --------- | ----------------------------------------------------- | ----------------------------------------- |
+| `Product` | thumbnail, title; fallback `Unavailable product` + ID | `flex: 1`, не sortable                    |
+| `Status`  | существующий product status renderer                  | фиксированная ширина, не sortable         |
+| `Actions` | icon/button `Remove`                                  | фиксированная ширина, keyboard accessible |
 
-Таблица локальная: в edit mode её `rowData` сразу строится из `SearchProductBoost.products`, полученных тем же detail query. Отдельный запрос в catalog для заполнения таблицы запрещён. Внутри основной modal таблице не нужны pagination, filters, row selection и server-side sorting. Порядок строк соответствует массиву `products`; удаление строки сразу обновляет form field и dirty state.
+Таблица локальная: в edit mode её `rowData` сразу строится из `SearchProductBoost.products`,
+полученных тем же detail query. Отдельный запрос в catalog для заполнения таблицы запрещён. Внутри
+основной modal таблице не нужны pagination, filters, row selection и server-side sorting. Порядок
+строк соответствует массиву `products`; удаление строки сразу обновляет form field и dirty state.
 
-После работы с picker выбранные `IPickableEntity` объединяются с уже загруженными `ApiProduct` по `id`, а порядок восстанавливается по `ids` из `onConfirm`. Для таблицы достаточно полей, возвращаемых boost detail query и picker: `id`, `title`, thumbnail и publish status. GraphQL mapper при submit преобразует актуальный selection в `productIds: products.map(({ id }) => id)`.
+После работы с picker выбранные `IPickableEntity` объединяются с уже загруженными `ApiProduct` по
+`id`, а порядок восстанавливается по `ids` из `onConfirm`. Для таблицы достаточно полей,
+возвращаемых boost detail query и picker: `id`, `title`, thumbnail и publish status. GraphQL mapper
+при submit преобразует актуальный selection в `productIds: products.map(({ id }) => id)`.
 
-Высота ограничивается контентом до разумного максимума, после чего scroll происходит внутри grid. У grid должны быть стабильный `getRowId`, стандартная modal row height и `data-testid="product-boost-selected-products-grid"`. Empty state внутри секции сообщает `No products selected` и оставляет рядом primary contextual action `Select products`.
+Высота ограничивается контентом до разумного максимума, после чего scroll происходит внутри grid. У
+grid должны быть стабильный `getRowId`, стандартная modal row height и
+`data-testid="product-boost-selected-products-grid"`. Empty state внутри секции сообщает
+`No products selected` и оставляет рядом primary contextual action `Select products`.
 
-`Trigger phrases` не являются таблицей: это `react-hook-form` field array с inline validation и keyboard behavior. Поэтому AG Grid для phrases не используется.
+`Trigger phrases` не являются таблицей: это `react-hook-form` field array с inline validation и
+keyboard behavior. Поэтому AG Grid для phrases не используется.
 
 ### Empty и loading states
 
@@ -192,11 +223,16 @@ Edit mode загружает одновременно:
 - `listingQuery.search.productBoost(id)`;
 - `listingQuery.search.settings`.
 
-Товары запрашиваются вложенным полем `productBoost.products` в этом же GraphQL operation. Дополнительный `catalogQuery.products(where: { id: ... })` не нужен.
+Товары запрашиваются вложенным полем `productBoost.products` в этом же GraphQL operation.
+Дополнительный `catalogQuery.products(where: { id: ... })` не нужен.
 
-До завершения detail query показывается skeleton той же структуры. Если boost не найден, показать `Result`/`Alert` с `Product boost not found` и action `Close`; форму не показывать.
+До завершения detail query показывается skeleton той же структуры. Если boost не найден, показать
+`Result`/`Alert` с `Product boost not found` и action `Close`; форму не показывать.
 
-Если Product недоступен для текущего federated read, API определяет поведение поля `productBoost.products`. UI не должен выполнять второй запрос для попытки восстановить отсутствующую сущность. При расхождении `productsCount` и фактически полученных строк показывается общий data warning и Save блокируется, чтобы не превратить сохранение в неявное удаление товара.
+Если Product недоступен для текущего federated read, API определяет поведение поля
+`productBoost.products`. UI не должен выполнять второй запрос для попытки восстановить отсутствующую
+сущность. При расхождении `productsCount` и фактически полученных строк показывается общий data
+warning и Save блокируется, чтобы не превратить сохранение в неявное удаление товара.
 
 ### Product picker wireframe
 
@@ -215,9 +251,13 @@ Edit mode загружает одновременно:
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-Используется существующий `ProductPickerModal`; отдельный picker для search не создаётся. `initialSelection` обязан сохраняться между страницами picker. При достижении 50 выбранных товаров остальные checkbox disabled с объясняющим tooltip.
+Используется существующий `ProductPickerModal`; отдельный picker для search не создаётся.
+`initialSelection` обязан сохраняться между страницами picker. При достижении 50 выбранных товаров
+остальные checkbox disabled с объясняющим tooltip.
 
-Сам существующий `ProductPickerModal` также рендерит каталог через AG Grid. Таким образом, Product Boost flow использует два grid-контекста: локальную таблицу уже выбранных товаров в основной modal и существующую pageable/selectable AG Grid таблицу во вложенном picker.
+Сам существующий `ProductPickerModal` также рендерит каталог через AG Grid. Таким образом, Product
+Boost flow использует два grid-контекста: локальную таблицу уже выбранных товаров в основной modal и
+существующую pageable/selectable AG Grid таблицу во вложенном picker.
 
 ## Search Synonym Group Modal
 
@@ -261,53 +301,68 @@ Edit mode загружает одновременно:
 
 ### Секции и controls
 
-| Поле | Control | Правило |
-|---|---|---|
-| `name` | `Input`, maxLength 128 | После trim от 1 до 128 Unicode code points; служебное название группы. |
-| `locale` | searchable `Select` | Определяет normalization profile и область конфликтов. |
-| `enabled` | `Switch` | Default `true`. Только enabled group claims synonym values. |
-| `values` | editable AG Grid | От 2 до 20 уникальных после normalization значений. Не более 8 searchable tokens в одном value. |
+| Поле      | Control                | Правило                                                                                         |
+| --------- | ---------------------- | ----------------------------------------------------------------------------------------------- |
+| `name`    | `Input`, maxLength 128 | После trim от 1 до 128 Unicode code points; служебное название группы.                          |
+| `locale`  | searchable `Select`    | Определяет normalization profile и область конфликтов.                                          |
+| `enabled` | `Switch`               | Default `true`. Только enabled group claims synonym values.                                     |
+| `values`  | editable AG Grid       | От 2 до 20 уникальных после normalization значений. Не более 8 searchable tokens в одном value. |
 
-В create mode AG Grid сразу содержит две пустые editable строки. Удаление disabled, когда осталось две строки. Preview появляется после двух валидных непустых значений и объясняет симметричность группы; не должно быть UI для directional synonyms, потому что API такой модели не поддерживает.
+В create mode AG Grid сразу содержит две пустые editable строки. Удаление disabled, когда осталось
+две строки. Preview появляется после двух валидных непустых значений и объясняет симметричность
+группы; не должно быть UI для directional synonyms, потому что API такой модели не поддерживает.
 
 ### Editable AG Grid синонимов
 
-Секция `Synonyms` должна использовать AG Grid из Admin UI (`AgGridReact`, `useAgGridTheme`, community modules). Это локальный editable grid без server-side pagination, filters и sorting.
+Секция `Synonyms` должна использовать AG Grid из Admin UI (`AgGridReact`, `useAgGridTheme`,
+community modules). Это локальный editable grid без server-side pagination, filters и sorting.
 
 Колонки:
 
-| Column | Содержимое | Поведение |
-|---|---|---|
-| row drag | drag handle | переставляет значения и обновляет их array order |
-| `#` | позиция `1..n` | вычисляемая, read-only, узкая колонка |
+| Column    | Содержимое         | Поведение                                             |
+| --------- | ------------------ | ----------------------------------------------------- |
+| row drag  | drag handle        | переставляет значения и обновляет их array order      |
+| `#`       | позиция `1..n`     | вычисляемая, read-only, узкая колонка                 |
 | `Synonym` | editable text cell | custom cell editor/renderer с inline validation state |
-| `Actions` | `Remove` | disabled, если в grid осталось две строки |
+| `Actions` | `Remove`           | disabled, если в grid осталось две строки             |
 
-Form draft остаётся источником истины. Для строк используются стабильные локальные UUID, а не array index; `getRowId` возвращает этот UUID. `onCellValueChanged`, `onRowDragEnd`, `Add synonym` и `Remove` синхронно обновляют `react-hook-form` values и dirty state. Перед GraphQL mapping локальные UUID удаляются, а `values` формируется в текущем порядке строк.
+Form draft остаётся источником истины. Для строк используются стабильные локальные UUID, а не array
+index; `getRowId` возвращает этот UUID. `onCellValueChanged`, `onRowDragEnd`, `Add synonym` и
+`Remove` синхронно обновляют `react-hook-form` values и dirty state. Перед GraphQL mapping локальные
+UUID удаляются, а `values` формируется в текущем порядке строк.
 
-Ошибки API вида `values.<index>` отображаются на соответствующей строке и в custom `Synonym` cell renderer. После reorder client validation пересчитывается; API error от предыдущего submit очищается, потому что его index больше не относится к прежней строке.
+Ошибки API вида `values.<index>` отображаются на соответствующей строке и в custom `Synonym` cell
+renderer. После reorder client validation пересчитывается; API error от предыдущего submit
+очищается, потому что его index больше не относится к прежней строке.
 
-Grid имеет `data-testid="synonym-group-values-grid"`, keyboard cell editing, `Enter` для commit и добавления следующей строки из последней заполненной строки, а также ограниченную высоту с внутренним scroll после достижения максимума. Empty state невозможен из-за minimum 2 rows.
+Grid имеет `data-testid="synonym-group-values-grid"`, keyboard cell editing, `Enter` для commit и
+добавления следующей строки из последней заполненной строки, а также ограниченную высоту с
+внутренним scroll после достижения максимума. Empty state невозможен из-за minimum 2 rows.
 
-Если enabled group конфликтует с другой активной группой той же локали, API возвращает `SYNONYM_CONFLICT`. Форма сохраняет введённые значения, секция получает error state, а сообщение объясняет, что хотя бы одно нормализованное значение уже используется. UI не должен автоматически выключать текущую или конфликтующую группу.
+Если enabled group конфликтует с другой активной группой той же локали, API возвращает
+`SYNONYM_CONFLICT`. Форма сохраняет введённые значения, секция получает error state, а сообщение
+объясняет, что хотя бы одно нормализованное значение уже используется. UI не должен автоматически
+выключать текущую или конфликтующую группу.
 
 ## Responsive behavior и accessibility
 
-- На ширине modal content меньше 640 px `Name` и `Locale` становятся вертикальными, остальные секции не меняют порядок.
+- На ширине modal content меньше 640 px `Name` и `Locale` становятся вертикальными, остальные секции
+  не меняют порядок.
 - Header action остаётся видимой; body scroll не двигает close/save.
 - У каждого input есть видимый label, error связан через `aria-describedby`.
 - Повторяющиеся строки имеют accessible names `Trigger phrase 1`, `Synonym 2`.
 - Remove/move actions доступны кнопками, имеют tooltip и не зависят только от drag gesture.
 - После добавления строки focus переходит в новый input; после удаления — в соседнюю строку.
-- После ошибки submit focus переходит к первому ошибочному полю, общий `Alert` использует `role="alert"`.
+- После ошибки submit focus переходит к первому ошибочному полю, общий `Alert` использует
+  `role="alert"`.
 - `Esc` сначала закрывает верхний picker, затем родительскую модалку по правилам dirty confirmation.
 
 ## GraphQL read integration
 
 ### Detail query для edit mode
 
-Один query загружает settings и нужную сущность. Для update optimistic token
-берётся из `productBoost.version` или `synonymGroup.version`:
+Один query загружает settings и нужную сущность. Для update optimistic token берётся из
+`productBoost.version` или `synonymGroup.version`:
 
 ```graphql
 query SearchProductBoostEditor($id: ID!) {
@@ -387,15 +442,18 @@ query SearchConfigurationEditorContext {
 }
 ```
 
-`phrases` и `values` перед заполнением формы сортируются по `position`. Product Boost modal читает выбранные товары напрямую из `ApiSearchProductBoost.products`; отдельного catalog query и API-output view model для них нет. Компоненты получают `ApiSearchProductBoost`, `ApiProduct`, `ApiSearchSynonymGroup` и `ApiSearchSettings` напрямую из `@/graphql/types`.
+`phrases` и `values` перед заполнением формы сортируются по `position`. Product Boost modal читает
+выбранные товары напрямую из `ApiSearchProductBoost.products`; отдельного catalog query и API-output
+view model для них нет. Компоненты получают `ApiSearchProductBoost`, `ApiProduct`,
+`ApiSearchSynonymGroup` и `ApiSearchSettings` напрямую из `@/graphql/types`.
 
 ### Инициализация search settings
 
-`settingsUpdate` инициализирует только store-level settings. Boost/synonym
-mutations не изменяют `SearchSettings.version`; UI по-прежнему блокирует их до
-явной инициализации settings.
+`settingsUpdate` инициализирует только store-level settings. Boost/synonym mutations не изменяют
+`SearchSettings.version`; UI по-прежнему блокирует их до явной инициализации settings.
 
-Модалки не должны изобретать default search settings. Пока Settings page не предоставляет явный initialize flow, modal показывает blocking alert:
+Модалки не должны изобретать default search settings. Пока Settings page не предоставляет явный
+initialize flow, modal показывает blocking alert:
 
 ```text
 Search settings must be configured before boosts or synonyms can be created.
@@ -428,10 +486,9 @@ mutation SearchProductBoostUpdate($input: SearchProductBoostUpdateInput!) {
 }
 ```
 
-`productBoostCreate`, `productBoostUpdate`, `synonymGroupCreate` и
-`synonymGroupUpdate` запускают отдельные workflows. Update передаёт version
-самого редактируемого resource; изменение другого boost или synonym не создаёт
-ложный conflict.
+`productBoostCreate`, `productBoostUpdate`, `synonymGroupCreate` и `synonymGroupUpdate` запускают
+отдельные workflows. Update передаёт version самого редактируемого resource; изменение другого boost
+или synonym не создаёт ложный conflict.
 
 ### Product boost create
 
@@ -464,9 +521,8 @@ mutation SearchProductBoostUpdate($input: SearchProductBoostUpdateInput!) {
 }
 ```
 
-Create требует `clientMutationId`. Update требует `id` и `expectedVersion`
-resource. Оба действия требуют полный набор editable fields; update не является
-patch.
+Create требует `clientMutationId`. Update требует `id` и `expectedVersion` resource. Оба действия
+требуют полный набор editable fields; update не является patch.
 
 ### Synonym group create
 
@@ -499,8 +555,8 @@ patch.
 
 ### Успешный результат
 
-Submit считается успешным, когда `userErrors` пуст и payload содержит созданный
-или обновлённый resource.
+Submit считается успешным, когда `userErrors` пуст и payload содержит созданный или обновлённый
+resource.
 
 После успеха:
 
@@ -515,31 +571,33 @@ Submit считается успешным, когда `userErrors` пуст и 
 
 Клиент повторяет только быстрые детерминированные ограничения:
 
-| Поле | Client validation |
-|---|---|
-| `name` | trim, 1–128 Unicode code points |
-| boost `phrases` | 1–20 непустых значений |
+| Поле                    | Client validation                                           |
+| ----------------------- | ----------------------------------------------------------- |
+| `name`                  | trim, 1–128 Unicode code points                             |
+| boost `phrases`         | 1–20 непустых значений                                      |
 | boost selected products | 1–50 уникальных ID; mapper формирует API field `productIds` |
-| synonym `values` | 2–20 непустых значений |
+| synonym `values`        | 2–20 непустых значений                                      |
 
-Normalization, searchable-token validation, доступность locale, существование products и cross-group conflicts остаются ответственностью API. Клиент не должен реализовывать вторую версию `SearchQueryNormalizer`.
+Normalization, searchable-token validation, доступность locale, существование products и cross-group
+conflicts остаются ответственностью API. Клиент не должен реализовывать вторую версию
+`SearchQueryNormalizer`.
 
 ### Mapping API fields
 
 API может вернуть paths с batch prefix или script prefix. Error mapper нормализует оба варианта:
 
-| API field suffix | Form target |
-|---|---|
-| `name` | `name` |
-| `locale` | `locale` |
-| `enabled` | `enabled` |
-| `phrases` | секция `phrases` |
-| `phrases.<index>` | `phrases[index]` |
-| `productIds` | секция `products` |
+| API field suffix     | Form target                        |
+| -------------------- | ---------------------------------- |
+| `name`               | `name`                             |
+| `locale`             | `locale`                           |
+| `enabled`            | `enabled`                          |
+| `phrases`            | секция `phrases`                   |
+| `phrases.<index>`    | `phrases[index]`                   |
+| `productIds`         | секция `products`                  |
 | `productIds.<index>` | конкретная строка products AG Grid |
-| `values` | секция `values` |
-| `values.<index>` | `values[index]` |
-| `expectedVersion` | global conflict alert |
+| `values`             | секция `values`                    |
+| `values.<index>`     | `values[index]`                    |
+| `expectedVersion`    | global conflict alert              |
 
 Примеры возможных prefix:
 
@@ -552,8 +610,8 @@ input.values.1
 
 ### Concurrency conflict
 
-При `VERSION_CONFLICT` форма не должна автоматически повторять update с новой
-версией: это может перезаписать чужое изменение того же resource.
+При `VERSION_CONFLICT` форма не должна автоматически повторять update с новой версией: это может
+перезаписать чужое изменение того же resource.
 
 Показать blocking alert:
 
@@ -562,9 +620,8 @@ This resource changed after this form was opened.
 [Reload latest data]
 ```
 
-`Reload latest data` повторно загружает detail entity. Если форма dirty, перед
-заменой draft требуется подтверждение. После reload Save снова доступен с новой
-resource version.
+`Reload latest data` повторно загружает detail entity. Если форма dirty, перед заменой draft
+требуется подтверждение. После reload Save снова доступен с новой resource version.
 
 ## Рекомендуемая frontend-структура
 
@@ -605,7 +662,9 @@ admin/src/domains/discovery/search/
   modals.ts
 ```
 
-Hooks владеют Apollo query/mutation, loading/error state и refetch. Mappers преобразуют только form draft в `ApiSearchProductBoostOperationInput` / `ApiSearchSynonymGroupOperationInput` и API errors в form errors. Modal components не читают вложенные GraphQL payload paths напрямую.
+Hooks владеют Apollo query/mutation, loading/error state и refetch. Mappers преобразуют только form
+draft в `ApiSearchProductBoostOperationInput` / `ApiSearchSynonymGroupOperationInput` и API errors в
+form errors. Modal components не читают вложенные GraphQL payload paths напрямую.
 
 ## Acceptance criteria
 
@@ -613,17 +672,23 @@ Hooks владеют Apollo query/mutation, loading/error state и refetch. Mapp
 - Create/edit используют одинаковую форму, но корректные title, submit label и mutation action.
 - Edit всегда загружает detail entity по `entityId`, а не доверяет snapshot grid row.
 - Product picker открывается вторым уровнем Modal Stack и сохраняет selection между страницами.
-- Выбранные товары в основной Product Boost modal отображаются через AG Grid, не через самодельный compact list.
-- Edit modal получает строки этой таблицы из `SearchProductBoost.products` в detail query и не выполняет отдельный catalog products query.
+- Выбранные товары в основной Product Boost modal отображаются через AG Grid, не через самодельный
+  compact list.
+- Edit modal получает строки этой таблицы из `SearchProductBoost.products` в detail query и не
+  выполняет отдельный catalog products query.
 - При submit `productIds` вычисляются из текущего массива выбранных products.
-- Вложенный существующий Product Picker продолжает использовать собственный pageable/selectable AG Grid.
-- Synonym values редактируются в локальном editable AG Grid со стабильными row IDs, reorder и inline errors.
-- Trigger phrases остаются form field array: их wireframe не является таблицей и AG Grid для них не используется.
+- Вложенный существующий Product Picker продолжает использовать собственный pageable/selectable AG
+  Grid.
+- Synonym values редактируются в локальном editable AG Grid со стабильными row IDs, reorder и inline
+  errors.
+- Trigger phrases остаются form field array: их wireframe не является таблицей и AG Grid для них не
+  используется.
 - Boost требует 1–20 phrases и 1–50 products; synonym group — 2–20 values.
 - Порядок phrases/values отображается по API `position` и отправляется порядком массива.
 - Все editable fields отправляются при update.
 - `expectedVersion` берётся из `SearchSettings.version`.
 - Неинициализированные settings дают понятный blocking state, без неявных defaults.
-- Field errors, operation errors, network errors и `VERSION_CONFLICT` имеют отдельные предсказуемые UX states.
+- Field errors, operation errors, network errors и `VERSION_CONFLICT` имеют отдельные предсказуемые
+  UX states.
 - После успеха список обновляется API data, dirty state сбрасывается, modal закрывается.
 - Все controls доступны с клавиатуры, а narrow layout не создаёт горизонтальный scroll формы.

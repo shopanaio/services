@@ -7,10 +7,7 @@ import { orderItems } from "@src/repositories/models/index";
 import { coerceToDate } from "@src/utils/date";
 import { BaseRepository } from "@src/repositories/BaseRepository";
 
-export class OrderLineItemRepository
-  extends BaseRepository
-  implements OrderLineItemsReadPort
-{
+export class OrderLineItemRepository extends BaseRepository implements OrderLineItemsReadPort {
   async findByOrderId(orderId: string): Promise<OrderLineItemReadPortRow[]> {
     const rows = await this.connection
       .select()

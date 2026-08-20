@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { requestFulfillmentBoard } from "../api";
-import type { ApiFulfillmentStageConnection, FulfillmentBoardQueryVariables } from "../graphql/operation-types";
+import type {
+  ApiFulfillmentStageConnection,
+  FulfillmentBoardQueryVariables,
+} from "../graphql/operation-types";
 
 function normalizeError(error: unknown) {
   return error instanceof Error ? error : new Error("Unable to load the fulfillment board.");
@@ -31,7 +34,9 @@ export function useFulfillmentBoard(variables: FulfillmentBoardQueryVariables) {
     }
   }, [variables]);
 
-  useEffect(() => { void refetch(); }, [refetch]);
+  useEffect(() => {
+    void refetch();
+  }, [refetch]);
 
   return {
     connection,

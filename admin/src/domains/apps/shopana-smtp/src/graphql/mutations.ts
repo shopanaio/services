@@ -26,10 +26,7 @@ export const SMTP_CONNECTION_CREATE_MUTATION = gql`
     }
   }
   ${SMTP_CONNECTION_FIELDS}
-` as TypedDocumentNodeLike<
-  SmtpConnectionCreateMutationData,
-  SmtpConnectionCreateMutationVariables
->;
+` as TypedDocumentNodeLike<SmtpConnectionCreateMutationData, SmtpConnectionCreateMutationVariables>;
 
 export const SMTP_CONNECTION_UPDATE_MUTATION = gql`
   mutation SmtpConnectionUpdate($input: SmtpConnectionUpdateInput!) {
@@ -47,10 +44,7 @@ export const SMTP_CONNECTION_UPDATE_MUTATION = gql`
     }
   }
   ${SMTP_CONNECTION_FIELDS}
-` as TypedDocumentNodeLike<
-  SmtpConnectionUpdateMutationData,
-  SmtpConnectionUpdateMutationVariables
->;
+` as TypedDocumentNodeLike<SmtpConnectionUpdateMutationData, SmtpConnectionUpdateMutationVariables>;
 
 export const SMTP_CONNECTION_ACTIVATE_MUTATION = gql`
   mutation SmtpConnectionActivate($input: SmtpConnectionActionInput!) {
@@ -68,10 +62,7 @@ export const SMTP_CONNECTION_ACTIVATE_MUTATION = gql`
     }
   }
   ${SMTP_CONNECTION_FIELDS}
-` as TypedDocumentNodeLike<
-  SmtpConnectionActionMutationData,
-  SmtpConnectionActionMutationVariables
->;
+` as TypedDocumentNodeLike<SmtpConnectionActionMutationData, SmtpConnectionActionMutationVariables>;
 
 export const SMTP_CONNECTION_DISCONNECT_MUTATION = gql`
   mutation SmtpConnectionDisconnect($input: SmtpConnectionActionInput!) {
@@ -89,7 +80,4 @@ export const SMTP_CONNECTION_DISCONNECT_MUTATION = gql`
     }
   }
   ${SMTP_CONNECTION_FIELDS}
-` as TypedDocumentNodeLike<
-  SmtpConnectionActionMutationData,
-  SmtpConnectionActionMutationVariables
->;
+` as TypedDocumentNodeLike<SmtpConnectionActionMutationData, SmtpConnectionActionMutationVariables>;

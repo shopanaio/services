@@ -32,21 +32,19 @@ export class VariantLoader {
 
     this.variantIds = new DataLoader<string, string[]>(async (productIds) => {
       const results = await repository.variant.getIdsByProductIds(productIds);
-      return productIds.map((id) =>
-        results.filter((v) => v.productId === id).map((v) => v.id)
-      );
+      return productIds.map((id) => results.filter((v) => v.productId === id).map((v) => v.id));
     });
 
-    this.variantTranslation = new DataLoader<string, VariantTranslation | null>(async (variantIds) => {
-      const results = await repository.variant.getTranslationsByVariantIds(variantIds);
-      return variantIds.map((id) => results.find((t) => t.variantId === id) ?? null);
-    });
+    this.variantTranslation = new DataLoader<string, VariantTranslation | null>(
+      async (variantIds) => {
+        const results = await repository.variant.getTranslationsByVariantIds(variantIds);
+        return variantIds.map((id) => results.find((t) => t.variantId === id) ?? null);
+      },
+    );
 
     this.variantTranslations = new DataLoader<string, VariantTranslation[]>(async (variantIds) => {
       const results = await repository.variant.getAllTranslationsByVariantIds(variantIds);
-      return variantIds.map((id) =>
-        results.filter((translation) => translation.variantId === id)
-      );
+      return variantIds.map((id) => results.filter((translation) => translation.variantId === id));
     });
 
     this.variantPricing = new DataLoader<string, ItemPricing[]>(async (variantIds) => {
@@ -61,21 +59,19 @@ export class VariantLoader {
 
     this.variantPriceIds = new DataLoader<string, string[]>(async (variantIds) => {
       const results = await repository.variant.getPriceIdsByVariantIds(variantIds);
-      return variantIds.map((id) =>
-        results.filter((p) => p.variantId === id).map((p) => p.id)
-      );
+      return variantIds.map((id) => results.filter((p) => p.variantId === id).map((p) => p.id));
     });
 
     this.variantMedia = new DataLoader<string, VariantMediaWithFile[]>(async (variantIds) => {
       const results = await repository.media.getVariantMediaByVariantIds(variantIds);
-      return variantIds.map((id) =>
-        results.filter((m) => m.variantId === id)
-      );
+      return variantIds.map((id) => results.filter((m) => m.variantId === id));
     });
 
-    this.variantSelectedOptions = new DataLoader<string, ProductOptionVariantLink[]>(async (variantIds) => {
-      const results = await repository.variant.getSelectedOptionsByVariantIds(variantIds);
-      return variantIds.map((id) => results.filter((o) => o.variantId === id));
-    });
+    this.variantSelectedOptions = new DataLoader<string, ProductOptionVariantLink[]>(
+      async (variantIds) => {
+        const results = await repository.variant.getSelectedOptionsByVariantIds(variantIds);
+        return variantIds.map((id) => results.filter((o) => o.variantId === id));
+      },
+    );
   }
 }

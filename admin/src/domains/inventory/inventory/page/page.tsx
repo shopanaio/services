@@ -26,10 +26,7 @@ import type { ModulePageProps } from "@/registry";
 import { useWarehouses } from "@/domains/inventory/warehouse/hooks";
 import { useAgGridTheme, useAgGridRowSelection } from "@/hooks";
 import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
-import type {
-  ApiInventoryItemWhereInput,
-  ApiWarehouseWhereInput,
-} from "@/graphql/types";
+import type { ApiInventoryItemWhereInput, ApiWarehouseWhereInput } from "@/graphql/types";
 import { InventoryItemOrderField } from "@/graphql/types";
 import { filterSchema } from "./filter-schema";
 import {
@@ -64,11 +61,7 @@ import {
 } from "../components";
 import { Dash } from "@/shared/components/editor-grid";
 
-ModuleRegistry.registerModules([
-  AllCommunityModule,
-  RowSelectionModule,
-  GridStateModule,
-]);
+ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule, GridStateModule]);
 
 const useStyles = createStyles(({ token }) => ({
   gridWrapper: {
@@ -106,10 +99,7 @@ const useStyles = createStyles(({ token }) => ({
 
 function toSubmitError(error: unknown): InventorySubmitError {
   return {
-    message:
-      error instanceof Error
-        ? error.message
-        : "Failed to submit inventory changes.",
+    message: error instanceof Error ? error.message : "Failed to submit inventory changes.",
     code: "INVENTORY_SUBMIT_FAILED",
   };
 }
@@ -121,10 +111,7 @@ function getFirstStoredError(
   return submitErrors[0] ?? Object.values(rowErrors).flat()[0] ?? null;
 }
 
-const SkuCellRenderer = ({
-  data,
-  value,
-}: ICellRendererParams<InventoryVariantRow>) => {
+const SkuCellRenderer = ({ data, value }: ICellRendererParams<InventoryVariantRow>) => {
   const { getFieldEdit } = useInventoryEditStore();
 
   if (!data) return null;
@@ -133,17 +120,8 @@ const SkuCellRenderer = ({
 
   if (fieldEdit) {
     const originalValue =
-      fieldEdit.originalValue == null ? (
-        <Dash />
-      ) : (
-        String(fieldEdit.originalValue)
-      );
-    const currentValue =
-      fieldEdit.currentValue == null ? (
-        <Dash />
-      ) : (
-        String(fieldEdit.currentValue)
-      );
+      fieldEdit.originalValue == null ? <Dash /> : String(fieldEdit.originalValue);
+    const currentValue = fieldEdit.currentValue == null ? <Dash /> : String(fieldEdit.currentValue);
 
     return (
       <span>
@@ -196,14 +174,8 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
     status,
   } = useInventoryEditStore();
   const { message } = App.useApp();
-  const {
-    createWarehouseStock,
-    loading: creatingWarehouseStock,
-  } = useCreateWarehouseStock();
-  const {
-    deleteWarehouseStock,
-    loading: deletingWarehouseStock,
-  } = useDeleteWarehouseStock();
+  const { createWarehouseStock, loading: creatingWarehouseStock } = useCreateWarehouseStock();
+  const { deleteWarehouseStock, loading: deletingWarehouseStock } = useDeleteWarehouseStock();
 
   const hasUnsavedChanges = Object.keys(edits).length > 0;
   const canNavigate = !hasUnsavedChanges && status !== "saving";
@@ -299,22 +271,14 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
         }
 
         message.success(
-          createdCount === 1
-            ? "Variant imported."
-            : `${createdCount} variants imported.`,
+          createdCount === 1 ? "Variant imported." : `${createdCount} variants imported.`,
         );
         await refetch();
       } catch (importError) {
         message.error(toSubmitError(importError).message);
       }
     },
-    [
-      activeWarehouseId,
-      createWarehouseStock,
-      creatingWarehouseStock,
-      message,
-      refetch,
-    ],
+    [activeWarehouseId, createWarehouseStock, creatingWarehouseStock, message, refetch],
   );
   const { openPicker: openVariantPicker } = useVariantPicker({
     selectionMode: "multi",
@@ -377,9 +341,7 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
 
       const sku = itemEdits.sku?.currentValue ?? item.sku;
       const onHand = Number(itemEdits.onHand?.currentValue ?? item.onHand);
-      const unavailable = Number(
-        itemEdits.unavailable?.currentValue ?? item.unavailable,
-      );
+      const unavailable = Number(itemEdits.unavailable?.currentValue ?? item.unavailable);
       const available = onHand - unavailable - item.reserved;
 
       return {
@@ -434,12 +396,8 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
       finishSaving();
 
       const firstError =
-        mapping.submitErrors[0] ??
-        Object.values(mapping.rowErrors).flat()[0] ??
-        null;
-      message.error(
-        firstError?.message ?? "Fix inventory errors before saving.",
-      );
+        mapping.submitErrors[0] ?? Object.values(mapping.rowErrors).flat()[0] ?? null;
+      message.error(firstError?.message ?? "Fix inventory errors before saving.");
       return;
     }
 
@@ -566,9 +524,7 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
     }
 
     message.success(
-      deletedCount === 1
-        ? "Inventory item deleted."
-        : `${deletedCount} inventory items deleted.`,
+      deletedCount === 1 ? "Inventory item deleted." : `${deletedCount} inventory items deleted.`,
     );
     deselectAll();
     await refetch();
@@ -591,9 +547,7 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
       if (!data) return;
 
       if (data.readOnly || !canEdit) {
-        message.error(
-          data.readOnlyReason ?? "This inventory row is read-only.",
-        );
+        message.error(data.readOnlyReason ?? "This inventory row is read-only.");
         return;
       }
 
@@ -610,9 +564,7 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
       if (field !== "onHand" && field !== "unavailable") return;
 
       const parsedValue =
-        typeof newValue === "number"
-          ? newValue
-          : Number.parseInt(String(newValue), 10);
+        typeof newValue === "number" ? newValue : Number.parseInt(String(newValue), 10);
 
       if (!Number.isInteger(parsedValue)) {
         message.error("Inventory quantity must be an integer.");
@@ -625,9 +577,7 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
 
       // Get current values (from edits or original server data)
       const currentEdits = edits[data.id];
-      const currentOnHand = Number(
-        currentEdits?.onHand?.currentValue ?? serverItem.onHand,
-      );
+      const currentOnHand = Number(currentEdits?.onHand?.currentValue ?? serverItem.onHand);
       const currentUnavailable = Number(
         currentEdits?.unavailable?.currentValue ?? serverItem.unavailable,
       );
@@ -765,9 +715,7 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
             type="error"
             showIcon
             message={firstStoredError.message}
-            description={
-              rowErrorCount > 0 ? `${rowErrorCount} row error(s)` : undefined
-            }
+            description={rowErrorCount > 0 ? `${rowErrorCount} row error(s)` : undefined}
           />
         ),
       });
@@ -819,12 +767,7 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
       actions={
         <Button
           data-testid="inventory-import-button"
-          disabled={
-            !canEdit ||
-            !activeWarehouseId ||
-            creatingWarehouseStock ||
-            status === "saving"
-          }
+          disabled={!canEdit || !activeWarehouseId || creatingWarehouseStock || status === "saving"}
           icon={<ImportOutlined />}
           loading={creatingWarehouseStock}
           onClick={handleOpenImportPicker}
@@ -835,21 +778,13 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
     >
       <DataLayout.Toolbar
         left={
-          <FilterWidget
-            {...pageConfig.filterWidgetProps}
-            searchPlaceholder="Search inventory..."
-          />
+          <FilterWidget {...pageConfig.filterWidgetProps} searchPlaceholder="Search inventory..." />
         }
       />
 
       <div className={styles.gridContainer}>
         {error ? (
-          <Alert
-            type="error"
-            showIcon
-            message={error.message}
-            style={{ marginBottom: 8 }}
-          />
+          <Alert type="error" showIcon message={error.message} style={{ marginBottom: 8 }} />
         ) : null}
 
         <div className={styles.gridWrapper} data-testid="inventory-table">
@@ -880,10 +815,7 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
           name="inventory"
           total={totalCount}
           rangeStart={pageConfig.getRangeStart(displayData.length)}
-          rangeEnd={Math.min(
-            pageConfig.getRangeEnd(displayData.length),
-            totalCount,
-          )}
+          rangeEnd={Math.min(pageConfig.getRangeEnd(displayData.length), totalCount)}
           pageSize={pageConfig.pageSize}
           pageSizeOptions={pageConfig.pageSizeOptions}
           hasNext={pageInfo?.hasNextPage ?? false}

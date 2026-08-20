@@ -3,9 +3,7 @@ import type {
   SearchProductBoostAggregate,
   SearchSynonymGroupAggregate,
 } from "../../repositories/search/searchRepositoryTypes.js";
-import type {
-  SearchSettings as SearchSettingsModel,
-} from "../../repositories/models/index.js";
+import type { SearchSettings as SearchSettingsModel } from "../../repositories/models/index.js";
 import type {
   SearchOutOfStockPolicy,
   SearchTextField,
@@ -18,13 +16,11 @@ export interface SearchSynonymGroupWriteParams {
   values: readonly string[];
 }
 
-export interface SearchSynonymGroupCreateParams
-  extends SearchSynonymGroupWriteParams {
+export interface SearchSynonymGroupCreateParams extends SearchSynonymGroupWriteParams {
   clientMutationId: string;
 }
 
-export interface SearchSynonymGroupUpdateParams
-  extends SearchSynonymGroupWriteParams {
+export interface SearchSynonymGroupUpdateParams extends SearchSynonymGroupWriteParams {
   groupId: string;
   expectedVersion: number;
 }
@@ -49,13 +45,11 @@ export interface SearchProductBoostWriteParams {
   productIds: readonly string[];
 }
 
-export interface SearchProductBoostCreateParams
-  extends SearchProductBoostWriteParams {
+export interface SearchProductBoostCreateParams extends SearchProductBoostWriteParams {
   clientMutationId: string;
 }
 
-export interface SearchProductBoostUpdateParams
-  extends SearchProductBoostWriteParams {
+export interface SearchProductBoostUpdateParams extends SearchProductBoostWriteParams {
   boostId: string;
   expectedVersion: number;
 }

@@ -1,22 +1,16 @@
 import { sql, type SQL } from "drizzle-orm";
 import type { Selectable } from "../types.js";
-import {
-  ObjectSchema,
-  tablePrefix,
-  type FieldConfig,
-} from "../schema.js";
+import { ObjectSchema, tablePrefix, type FieldConfig } from "../schema.js";
 import type { FieldsDef, OrderDirection, NullsOrder, OrderByItem } from "../types.js";
 import { JoinCollector } from "./join-collector.js";
 import { JoinDepthExceededError, UnknownFieldError } from "../errors.js";
 
-export class OrderBuilder<
-  Fields extends FieldsDef,
-> {
+export class OrderBuilder<Fields extends FieldsDef> {
   constructor(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private readonly schema: ObjectSchema<Selectable, string, Fields, any>,
     private readonly joinCollector: JoinCollector,
-    private readonly maxDepth: number
+    private readonly maxDepth: number,
   ) {}
 
   build(orders: OrderByItem<string>[] | undefined | null): SQL | undefined {
@@ -33,7 +27,7 @@ export class OrderBuilder<
         this.schema,
         0,
         orderItem.direction,
-        orderItem.nulls
+        orderItem.nulls,
       );
       if (resolved) {
         parts.push(resolved);
@@ -48,7 +42,7 @@ export class OrderBuilder<
     schema: ObjectSchema,
     depth: number,
     direction: OrderDirection,
-    nulls?: NullsOrder
+    nulls?: NullsOrder,
   ): SQL | undefined {
     if (parts.length === 0) {
       return undefined;
@@ -80,7 +74,7 @@ export class OrderBuilder<
         fieldConfig.column,
         joinColumn,
         fieldConfig.join.type,
-        fieldConfig.join.composite
+        fieldConfig.join.composite,
       );
 
       return this.resolveOrderField(rest, childSchema, depth + 1, direction, nulls);
@@ -93,7 +87,7 @@ export class OrderBuilder<
     fieldConfig: FieldConfig,
     tableAlias: string,
     direction: OrderDirection,
-    nulls?: NullsOrder
+    nulls?: NullsOrder,
   ): SQL {
     const dirSql = direction === "desc" ? sql`DESC` : sql`ASC`;
     const colSql = sql`${sql.identifier(tableAlias)}.${sql.identifier(fieldConfig.column)} ${dirSql}`;

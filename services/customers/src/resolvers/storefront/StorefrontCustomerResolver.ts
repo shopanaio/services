@@ -13,10 +13,7 @@ import type {
 } from "./generated/types.js";
 import { StorefrontCustomersType } from "./StorefrontCustomersType.js";
 
-export class StorefrontCustomerResolver extends StorefrontCustomersType<
-  string,
-  Customer
-> {
+export class StorefrontCustomerResolver extends StorefrontCustomersType<string, Customer> {
   async $preload(): Promise<Customer> {
     const customer = await this.$ctx.loaders.customer.load(this.$props);
     if (!customer || customer.lifecycleStatus !== "ACTIVE") {
@@ -80,13 +77,7 @@ export class StorefrontCustomerResolver extends StorefrontCustomersType<
   async displayName(): Promise<string> {
     const customer = await this.$preload();
     return (
-      [
-        customer.prefix,
-        customer.firstName,
-        customer.middleName,
-        customer.lastName,
-        customer.suffix,
-      ]
+      [customer.prefix, customer.firstName, customer.middleName, customer.lastName, customer.suffix]
         .map((part) => part?.trim())
         .filter((part): part is string => Boolean(part))
         .join(" ") ||
@@ -99,45 +90,39 @@ export class StorefrontCustomerResolver extends StorefrontCustomersType<
 
   async emailAddress() {
     const customer = await this.$preload();
-    const consent = (await this.$ctx.loaders.consentsByCustomer.load(this.$props))
-      .find((item) => item.channel === "EMAIL");
+    const consent = (await this.$ctx.loaders.consentsByCustomer.load(this.$props)).find(
+      (item) => item.channel === "EMAIL",
+    );
     return customer.email
       ? {
           emailAddress: customer.email,
           verified: customer.emailVerified,
-          marketingConsent: consent
-            ? await this.resolvers.consent(consent.id)
-            : null,
+          marketingConsent: consent ? await this.resolvers.consent(consent.id) : null,
         }
       : null;
   }
 
   async phoneNumber() {
     const customer = await this.$preload();
-    const consent = (await this.$ctx.loaders.consentsByCustomer.load(this.$props))
-      .find((item) => item.channel === "SMS");
+    const consent = (await this.$ctx.loaders.consentsByCustomer.load(this.$props)).find(
+      (item) => item.channel === "SMS",
+    );
     return customer.phoneE164
       ? {
           phoneNumber: customer.phoneE164,
           verified: customer.phoneVerified,
-          marketingConsent: consent
-            ? await this.resolvers.consent(consent.id)
-            : null,
+          marketingConsent: consent ? await this.resolvers.consent(consent.id) : null,
         }
       : null;
   }
 
   async defaultShippingAddress() {
-    const address = await this.$ctx.kernel.repository.address.findDefaultShipping(
-      this.$props
-    );
+    const address = await this.$ctx.kernel.repository.address.findDefaultShipping(this.$props);
     return address ? this.resolvers.address(address.id) : null;
   }
 
   async defaultBillingAddress() {
-    const address = await this.$ctx.kernel.repository.address.findDefaultBilling(
-      this.$props
-    );
+    const address = await this.$ctx.kernel.repository.address.findDefaultBilling(this.$props);
     return address ? this.resolvers.address(address.id) : null;
   }
 
@@ -149,9 +134,7 @@ export class StorefrontCustomerResolver extends StorefrontCustomersType<
       return null;
     }
     const address = await this.$ctx.loaders.address.load(addressId);
-    return address?.customerId === this.$props
-      ? this.resolvers.address(address.id)
-      : null;
+    return address?.customerId === this.$props ? this.resolvers.address(address.id) : null;
   }
 
   addresses(args: CustomerAddressesArgs) {
@@ -188,9 +171,7 @@ export class StorefrontCustomerResolver extends StorefrontCustomersType<
       return null;
     }
     const request = await this.$ctx.loaders.customerDataRequest.load(requestId);
-    return request?.customerId === this.$props
-      ? this.resolvers.dataRequest(request.id)
-      : null;
+    return request?.customerId === this.$props ? this.resolvers.dataRequest(request.id) : null;
   }
 
   dataRequests(args: CustomerDataRequestsArgs) {

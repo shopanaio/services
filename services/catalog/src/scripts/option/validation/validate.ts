@@ -1,10 +1,7 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 import type { Repository } from "../../../repositories/Repository.js";
 import type { OptionSyncParams } from "../dto/index.js";
-import {
-  OptionSyncInputSchema,
-  type ValidatedSyncInput,
-} from "./schema.js";
+import { OptionSyncInputSchema, type ValidatedSyncInput } from "./schema.js";
 import { validateSemantic } from "./semantic.js";
 import { loadDbContext, validateDatabase } from "./database.js";
 
@@ -31,9 +28,7 @@ export async function validateOptionSyncParams(
   const { productId, options } = parseResult.data;
   if (!(await repository.product.exists(productId))) {
     return {
-      userErrors: [
-        { message: "Product not found", field: ["productId"], code: "NOT_FOUND" },
-      ],
+      userErrors: [{ message: "Product not found", field: ["productId"], code: "NOT_FOUND" }],
     };
   }
 
@@ -41,15 +36,15 @@ export async function validateOptionSyncParams(
   const categories = await repository.optionCategory.getByIds(categoryIds);
   if (categories.length !== categoryIds.length) {
     const existingIds = new Set(categories.map((category) => category.id));
-    const optionIndex = options.findIndex(
-      (option) => !existingIds.has(option.categoryId)
-    );
+    const optionIndex = options.findIndex((option) => !existingIds.has(option.categoryId));
     return {
-      userErrors: [{
-        message: "Option category not found",
-        field: ["options", String(optionIndex), "categoryId"],
-        code: "NOT_FOUND",
-      }],
+      userErrors: [
+        {
+          message: "Option category not found",
+          field: ["options", String(optionIndex), "categoryId"],
+          code: "NOT_FOUND",
+        },
+      ],
     };
   }
 

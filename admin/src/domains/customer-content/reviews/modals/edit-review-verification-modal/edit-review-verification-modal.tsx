@@ -12,7 +12,11 @@ import {
   type ReviewVerificationSectionValues,
 } from "../review-modal/schema";
 import { useReviewFormStyles } from "../shared/review-form.styles";
-import { ReviewFormField, ReviewModalFrame, useReviewSectionModal } from "../shared/review-section-modal";
+import {
+  ReviewFormField,
+  ReviewModalFrame,
+  useReviewSectionModal,
+} from "../shared/review-section-modal";
 
 function toLocalDateTime(value?: string | null) {
   if (!value) return "";
@@ -32,7 +36,14 @@ export function EditReviewVerificationModal() {
     defaultValues: { status: ReviewVerificationStatus.Unverified, method: "", verifiedAt: "" },
     mode: "onChange",
   });
-  const { control, handleSubmit, reset, setError, watch, formState: { errors, isDirty, isValid } } = form;
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setError,
+    watch,
+    formState: { errors, isDirty, isValid },
+  } = form;
   const status = watch("status");
 
   useEffect(() => {
@@ -58,7 +69,11 @@ export function EditReviewVerificationModal() {
           verifiedAt: clearsEvidence ? null : new Date(values.verifiedAt).toISOString(),
         },
       },
-      { "verification.status": "status", "verification.method": "method", "verification.verifiedAt": "verifiedAt" },
+      {
+        "verification.status": "status",
+        "verification.method": "method",
+        "verification.verifiedAt": "verifiedAt",
+      },
       setError,
     );
   });
@@ -82,17 +97,49 @@ export function EditReviewVerificationModal() {
           <PaperHeader title="Purchase verification" />
           <Flex vertical gap="middle">
             <ReviewFormField label="Status *" error={errors.status?.message}>
-              <Controller name="status" control={control} render={({ field }) => (
-                <Segmented autoFocus block {...field} options={Object.values(ReviewVerificationStatus).map((value) => ({ value, label: humanizeEnum(value) }))} />
-              )} />
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <Segmented
+                    autoFocus
+                    block
+                    {...field}
+                    options={Object.values(ReviewVerificationStatus).map((value) => ({
+                      value,
+                      label: humanizeEnum(value),
+                    }))}
+                  />
+                )}
+              />
             </ReviewFormField>
             {status !== ReviewVerificationStatus.Unverified ? (
               <div className={styles.fieldGrid}>
                 <ReviewFormField label="Method *" error={errors.method?.message}>
-                  <Controller name="method" control={control} render={({ field }) => <Input {...field} maxLength={64} status={errors.method ? "error" : undefined} />} />
+                  <Controller
+                    name="method"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        maxLength={64}
+                        status={errors.method ? "error" : undefined}
+                      />
+                    )}
+                  />
                 </ReviewFormField>
                 <ReviewFormField label="Verified at *" error={errors.verifiedAt?.message}>
-                  <Controller name="verifiedAt" control={control} render={({ field }) => <Input {...field} type="datetime-local" status={errors.verifiedAt ? "error" : undefined} />} />
+                  <Controller
+                    name="verifiedAt"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        type="datetime-local"
+                        status={errors.verifiedAt ? "error" : undefined}
+                      />
+                    )}
+                  />
                 </ReviewFormField>
               </div>
             ) : null}

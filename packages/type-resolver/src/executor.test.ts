@@ -1,12 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import {
-  Executor,
-  ResolverError,
-  createExecutor,
-  load,
-  loadMany,
-  resolve,
-} from "./executor.js";
+import { Executor, ResolverError, createExecutor, load, loadMany, resolve } from "./executor.js";
 import { BaseType } from "./baseType.js";
 import { PreloadNotFoundError } from "./preloadFailure.js";
 
@@ -56,10 +49,7 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      const instance = new SimpleType(
-        { id: "1", name: "Test", extra: "ignored" },
-        {},
-      );
+      const instance = new SimpleType({ id: "1", name: "Test", extra: "ignored" }, {});
       const result = await executor.load(instance, { fields: ["id", "name"] });
 
       expect(result).toEqual({ id: "1", name: "Test" });
@@ -67,11 +57,7 @@ describe("Executor", () => {
     });
 
     it("resolves nested types via populate", async () => {
-      class ChildType extends BaseType<
-        { id: string },
-        { id: string },
-        unknown
-      > {
+      class ChildType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
           return this.$props.id;
         }
@@ -133,11 +119,7 @@ describe("Executor", () => {
     });
 
     it("passes args to resolver methods", async () => {
-      class ProductType extends BaseType<
-        Record<string, never>,
-        Record<string, never>,
-        unknown
-      > {
+      class ProductType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         variants(args?: { first?: number }) {
           const all = [{ id: "v1" }, { id: "v2" }, { id: "v3" }];
           return args?.first ? all.slice(0, args.first) : all;
@@ -156,19 +138,9 @@ describe("Executor", () => {
     });
 
     it("supports aliases with fieldName", async () => {
-      class ProductType extends BaseType<
-        Record<string, never>,
-        Record<string, never>,
-        unknown
-      > {
+      class ProductType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         variants(args?: { first?: number }) {
-          const all = [
-            { id: "v1" },
-            { id: "v2" },
-            { id: "v3" },
-            { id: "v4" },
-            { id: "v5" },
-          ];
+          const all = [{ id: "v1" }, { id: "v2" }, { id: "v3" }, { id: "v4" }, { id: "v5" }];
           return args?.first ? all.slice(0, args.first) : all;
         }
       }
@@ -187,11 +159,7 @@ describe("Executor", () => {
     });
 
     it("preserves __typename independently of selected fields and aliases", async () => {
-      class PriceRuleType extends BaseType<
-        Record<string, never>,
-        Record<string, never>,
-        unknown
-      > {
+      class PriceRuleType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         readonly __typename = "AdjustmentPriceRule";
 
         id() {
@@ -227,11 +195,7 @@ describe("Executor", () => {
     it("executes resolvers in parallel", async () => {
       const order: string[] = [];
 
-      class ParallelType extends BaseType<
-        Record<string, never>,
-        Record<string, never>,
-        unknown
-      > {
+      class ParallelType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         async a() {
           order.push("a-start");
           await delay(50);
@@ -256,11 +220,7 @@ describe("Executor", () => {
     });
 
     it("handles null values in nested types", async () => {
-      class ParentType extends BaseType<
-        { id: string },
-        { id: string },
-        unknown
-      > {
+      class ParentType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
           return this.$props.id;
         }
@@ -282,11 +242,7 @@ describe("Executor", () => {
     });
 
     it("handles undefined values in nested types", async () => {
-      class ParentType extends BaseType<
-        { id: string },
-        { id: string },
-        unknown
-      > {
+      class ParentType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
           return this.$props.id;
         }
@@ -310,11 +266,7 @@ describe("Executor", () => {
 
   describe("loadMany()", () => {
     it("resolves multiple values", async () => {
-      class SimpleType extends BaseType<
-        { id: string },
-        { id: string },
-        unknown
-      > {
+      class SimpleType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
           return this.$props.id;
         }
@@ -362,21 +314,13 @@ describe("Executor", () => {
         fields: ["id", "title"],
       });
 
-      expect(result).toEqual([
-        { id: "1", title: "Item 1" },
-        null,
-        { id: "3", title: "Item 3" },
-      ]);
+      expect(result).toEqual([{ id: "1", title: "Item 1" }, null, { id: "3", title: "Item 3" }]);
     });
   });
 
   describe("error handling", () => {
     it("throws ResolverError by default", async () => {
-      class ErrorType extends BaseType<
-        Record<string, never>,
-        Record<string, never>,
-        unknown
-      > {
+      class ErrorType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         broken() {
           throw new Error("Something went wrong");
         }
@@ -384,17 +328,13 @@ describe("Executor", () => {
 
       const executor = new Executor();
       const instance = new ErrorType({}, {});
-      await expect(
-        executor.load(instance, { fields: ["broken"] }),
-      ).rejects.toThrow('Failed to resolve field "broken" on ErrorType');
+      await expect(executor.load(instance, { fields: ["broken"] })).rejects.toThrow(
+        'Failed to resolve field "broken" on ErrorType',
+      );
     });
 
     it("returns null on error with onError: null", async () => {
-      class ErrorType extends BaseType<
-        Record<string, never>,
-        Record<string, never>,
-        unknown
-      > {
+      class ErrorType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         working() {
           return "works";
         }
@@ -413,11 +353,7 @@ describe("Executor", () => {
     });
 
     it("returns partial error with onError: partial", async () => {
-      class ErrorType extends BaseType<
-        Record<string, never>,
-        Record<string, never>,
-        unknown
-      > {
+      class ErrorType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         working() {
           return "works";
         }
@@ -479,9 +415,9 @@ describe("Executor", () => {
       }
 
       const executor = createExecutor({ onError: "null" });
-      await expect(
-        executor.load(new ErrorType("1", {}), { fields: ["title"] }),
-      ).rejects.toBe(systemError);
+      await expect(executor.load(new ErrorType("1", {}), { fields: ["title"] })).rejects.toBe(
+        systemError,
+      );
     });
 
     it("wraps a field error after successful preload", async () => {
@@ -518,9 +454,9 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      await expect(
-        executor.load(new ErrorType("1", {}), { fields: ["broken"] }),
-      ).rejects.toThrow('Failed to resolve field "broken" on ErrorType');
+      await expect(executor.load(new ErrorType("1", {}), { fields: ["broken"] })).rejects.toThrow(
+        'Failed to resolve field "broken" on ErrorType',
+      );
     });
   });
 
@@ -575,15 +511,9 @@ describe("BaseType", () => {
   });
 
   it("supports lazy data loading via $preload", async () => {
-    const loadSpy = vi
-      .fn()
-      .mockResolvedValue({ id: "loaded-1", name: "Loaded Product" });
+    const loadSpy = vi.fn().mockResolvedValue({ id: "loaded-1", name: "Loaded Product" });
 
-    class ProductType extends BaseType<
-      string,
-      { id: string; name: string },
-      unknown
-    > {
+    class ProductType extends BaseType<string, { id: string; name: string }, unknown> {
       protected $preload() {
         return loadSpy(this.$props);
       }
@@ -678,11 +608,7 @@ describe("BaseType", () => {
       }
     }
 
-    const result = await SimpleType.loadMany(
-      [{ id: "1" }, { id: "2" }],
-      { fields: ["id"] },
-      {},
-    );
+    const result = await SimpleType.loadMany([{ id: "1" }, { id: "2" }], { fields: ["id"] }, {});
 
     expect(result).toEqual([{ id: "1" }, { id: "2" }]);
   });
@@ -690,11 +616,7 @@ describe("BaseType", () => {
 
 describe("Complex nested resolution", () => {
   it("resolves deeply nested types (3+ levels)", async () => {
-    class Level3Type extends BaseType<
-      { name: string },
-      { name: string },
-      unknown
-    > {
+    class Level3Type extends BaseType<{ name: string }, { name: string }, unknown> {
       name() {
         return this.$props.name;
       }
@@ -761,11 +683,7 @@ describe("Complex nested resolution", () => {
   });
 
   it("resolves arrays at multiple levels", async () => {
-    class ImageType extends BaseType<
-      { url: string },
-      { url: string },
-      unknown
-    > {
+    class ImageType extends BaseType<{ url: string }, { url: string }, unknown> {
       url() {
         return this.$props.url;
       }
@@ -838,11 +756,7 @@ describe("Selective field resolution", () => {
     const nameSpy = vi.fn().mockReturnValue("Test");
     const priceSpy = vi.fn().mockReturnValue(100);
 
-    class ProductType extends BaseType<
-      Record<string, never>,
-      Record<string, never>,
-      unknown
-    > {
+    class ProductType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
       id() {
         return idSpy();
       }
@@ -882,11 +796,7 @@ describe("Alias support with nested types", () => {
       }
     }
 
-    class ProductType extends BaseType<
-      { id: string },
-      { id: string },
-      unknown
-    > {
+    class ProductType extends BaseType<{ id: string }, { id: string }, unknown> {
       id() {
         return this.$props.id;
       }
@@ -894,11 +804,7 @@ describe("Alias support with nested types", () => {
         const count = args?.first || 2;
         return Array.from(
           { length: count },
-          (_, i) =>
-            new VariantType(
-              { id: `v${i + 1}`, sku: `SKU-${i + 1}` },
-              this.$ctx,
-            ),
+          (_, i) => new VariantType({ id: `v${i + 1}`, sku: `SKU-${i + 1}` }, this.$ctx),
         );
       }
     }
@@ -938,11 +844,7 @@ describe("Alias support with nested types", () => {
       }
     }
 
-    class ProductType extends BaseType<
-      Record<string, never>,
-      Record<string, never>,
-      unknown
-    > {
+    class ProductType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
       variants(args?: { first?: number }) {
         const count = args?.first || 10;
         return Array.from(
@@ -986,11 +888,7 @@ describe("Alias support with nested types", () => {
 
 describe("load() and loadMany() functions", () => {
   it("load() works with instance", async () => {
-    class SimpleType extends BaseType<
-      { id: string },
-      { id: string },
-      { test: boolean }
-    > {
+    class SimpleType extends BaseType<{ id: string }, { id: string }, { test: boolean }> {
       id() {
         return this.$props.id;
       }
@@ -1012,10 +910,7 @@ describe("load() and loadMany() functions", () => {
       }
     }
 
-    const instances = [
-      new SimpleType({ id: "1" }, {}),
-      new SimpleType({ id: "2" }, {}),
-    ];
+    const instances = [new SimpleType({ id: "1" }, {}), new SimpleType({ id: "2" }, {})];
     const result = await loadMany(instances, { fields: ["id"] });
 
     expect(result).toEqual([{ id: "1" }, { id: "2" }]);
@@ -1063,10 +958,7 @@ describe("resolve() - universal resolver", () => {
       }
     }
 
-    const instances = [
-      new ItemType({ id: "1" }, {}),
-      new ItemType({ id: "2" }, {}),
-    ];
+    const instances = [new ItemType({ id: "1" }, {}), new ItemType({ id: "2" }, {})];
     const result = await resolve(instances, { fields: ["id"] });
 
     expect(result).toEqual([{ id: "1" }, { id: "2" }]);

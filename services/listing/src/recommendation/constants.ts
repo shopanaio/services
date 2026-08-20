@@ -5,10 +5,7 @@ export const RECOMMENDATION_PLACEMENTS = [
   "FREQUENTLY_BOUGHT_TOGETHER",
 ] as const satisfies readonly RecommendationPlacement[];
 
-export const RECOMMENDATION_FALLBACK_CODES = [
-  "category_popularity",
-  "store_popularity",
-] as const;
+export const RECOMMENDATION_FALLBACK_CODES = ["category_popularity", "store_popularity"] as const;
 
 export const FBT_RULES_V1 = {
   windowDays: 90,
@@ -21,8 +18,7 @@ export const FBT_RULES_V1 = {
 
 export const FBT_ALGORITHM_VERSION = "fbt-rules-v1";
 export const RELATED_MODEL_VERSION = "related-rules-v1";
-export const STOREFRONT_ELIGIBILITY_POLICY_VERSION =
-  "storefront-eligibility-v1";
+export const STOREFRONT_ELIGIBILITY_POLICY_VERSION = "storefront-eligibility-v1";
 export const MAX_MANUAL_ROWS_PER_ANCHOR_PLACEMENT = 5_000;
 export const MAX_RECOMMENDATION_SOURCE_LIMIT = 400;
 export const GLOBAL_RECOMMENDATION_CANDIDATE_LIMIT = 1_700;
@@ -36,12 +32,8 @@ export const RECOMMENDATION_FAN_OUT_PAGE_SIZE = 100;
 export const RECOMMENDATION_HASH_PAGE_SIZE = 500;
 export const RECOMMENDATION_STORE_LANES = 2;
 
-export function recommendationModelVersion(
-  placement: RecommendationPlacement,
-): string {
-  return placement === "PRODUCT_RELATED"
-    ? RELATED_MODEL_VERSION
-    : FBT_ALGORITHM_VERSION;
+export function recommendationModelVersion(placement: RecommendationPlacement): string {
+  return placement === "PRODUCT_RELATED" ? RELATED_MODEL_VERSION : FBT_ALGORITHM_VERSION;
 }
 
 export function recommendationSourceLimit(maximumResults: number): number {

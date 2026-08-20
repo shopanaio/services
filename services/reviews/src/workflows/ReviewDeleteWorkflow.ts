@@ -9,10 +9,7 @@ import {
   WorkflowStep,
 } from "@shopana/shared-kernel";
 import { ReviewDeleteScript } from "../scripts/index.js";
-import type {
-  ReviewDeleteWorkflowInput,
-  ReviewDeleteWorkflowResult,
-} from "./dto/index.js";
+import type { ReviewDeleteWorkflowInput, ReviewDeleteWorkflowResult } from "./dto/index.js";
 import { ReviewsMutationWorkflow } from "./ReviewsMutationWorkflow.js";
 
 @Injectable()
@@ -30,7 +27,12 @@ export class ReviewDeleteWorkflow extends ReviewsMutationWorkflow {
   })
   async run(input: ReviewDeleteWorkflowInput): Promise<ReviewDeleteWorkflowResult> {
     const result = await this.stepDelete(input);
-    if (result.deletedReviewId && result.productId && result.permanent !== undefined && result.userErrors.length === 0) {
+    if (
+      result.deletedReviewId &&
+      result.productId &&
+      result.permanent !== undefined &&
+      result.userErrors.length === 0
+    ) {
       await this.stepRefreshProductReviewSummary({
         context: input.context,
         productId: result.productId,
@@ -49,13 +51,13 @@ export class ReviewDeleteWorkflow extends ReviewsMutationWorkflow {
     return this.kernel.runScript(
       ReviewDeleteScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
   private async workflowEmitEvent(
     input: ReviewDeleteWorkflowInput,
-    deleted: { reviewId: string; productId: string; permanent: boolean }
+    deleted: { reviewId: string; productId: string; permanent: boolean },
   ): Promise<void> {
     const payload: ReviewDeletedEvent["payload"] = {
       ...deleted,
@@ -81,7 +83,7 @@ export class ReviewDeleteWorkflow extends ReviewsMutationWorkflow {
         workflowId: DBOS.workflowID!,
         stepId: "emitReviewDeleted",
         callId: deleted.reviewId,
-      }
+      },
     );
   }
 }

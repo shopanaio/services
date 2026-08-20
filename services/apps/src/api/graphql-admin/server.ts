@@ -1,23 +1,15 @@
 import { ApolloServer } from "@apollo/server";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
-import fastifyApollo, {
-  fastifyApolloDrainPlugin,
-} from "@as-integrations/fastify";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import fastify from "fastify";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gql } from "graphql-tag";
 import type { ServiceBroker } from "@shopana/shared-kernel";
-import {
-  getServiceConfig,
-  isDevelopment,
-} from "@shopana/shared-service-config";
-import {
-  ServiceContext,
-  setContext,
-} from "../../context/index.js";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
+import { ServiceContext, setContext } from "../../context/index.js";
 import type { AppInstallationStore } from "../../control-plane/AppInstallationStore.js";
 import type { AppLifecycleService } from "../../control-plane/AppLifecycleService.js";
 import type { Repository } from "../../repositories/Repository.js";
@@ -38,9 +30,7 @@ export interface ServerConfig {
   isReady: () => boolean;
 }
 
-function getHeaderValue(
-  value: string | string[] | undefined,
-): string | undefined {
+function getHeaderValue(value: string | string[] | undefined): string | undefined {
   const headerValue = Array.isArray(value) ? value[0] : value;
   const trimmed = headerValue?.trim();
   return trimmed || undefined;
@@ -85,9 +75,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "__generated__/filters.graphql",
   ];
   const modules = schemaFiles.map((file) => ({
-    typeDefs: gql(
-      readFileSync(join(directory, "schema", file), "utf-8"),
-    ),
+    typeDefs: gql(readFileSync(join(directory, "schema", file), "utf-8")),
     resolvers,
   }));
 
@@ -95,26 +83,19 @@ export async function startServer(serverConfig: ServerConfig) {
     introspection: true,
     // @ts-expect-error Class-based type-resolver roots are Apollo-compatible at runtime.
     schema: buildSubgraphSchema(modules),
-    plugins: [
-      fastifyApolloDrainPlugin(app),
-      ApolloServerPluginInlineTraceDisabled(),
-    ],
+    plugins: [fastifyApolloDrainPlugin(app), ApolloServerPluginInlineTraceDisabled()],
   });
 
   await apollo.start();
 
   await app.register(async (instance) => {
-    instance.addHook(
-      "preHandler",
-      buildAdminContextMiddleware(serverConfig.broker),
-    );
+    instance.addHook("preHandler", buildAdminContextMiddleware(serverConfig.broker));
 
     await instance.register(fastifyApollo(apollo), {
       path: "/graphql",
       context: async (request): Promise<ServiceContext> => {
         const requestId =
-          getHeaderValue(request.headers["x-idempotency-key"]) ??
-          (request.id as string);
+          getHeaderValue(request.headers["x-idempotency-key"]) ?? (request.id as string);
         const context = new ServiceContext({
           requestId,
           broker: serverConfig.broker,
@@ -144,12 +125,10 @@ export async function startServer(serverConfig: ServerConfig) {
 
   app.get("/healthz", async (_request, reply) => {
     const ready = serverConfig.isReady();
-    return reply
-      .code(ready ? 200 : 503)
-      .send({
-        status: ready ? "ok" : "starting",
-        service: "apps",
-      });
+    return reply.code(ready ? 200 : 503).send({
+      status: ready ? "ok" : "starting",
+      service: "apps",
+    });
   });
 
   await app.listen({

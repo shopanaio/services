@@ -38,7 +38,7 @@ describe("Signature Middleware", () => {
     app.use(
       createSignatureMiddleware({
         publicKey: publicKeyPem,
-      })
+      }),
     );
 
     // Add test endpoint
@@ -54,7 +54,7 @@ describe("Signature Middleware", () => {
     method: string,
     url: string,
     headers: Record<string, string>,
-    options: { includeBody?: boolean } = {}
+    options: { includeBody?: boolean } = {},
   ) {
     const requestToSign = {
       method,
@@ -79,7 +79,7 @@ describe("Signature Middleware", () => {
           created: new Date(),
         },
       },
-      requestToSign
+      requestToSign,
     );
 
     return signedRequest.headers as Record<string, string>;
@@ -91,10 +91,7 @@ describe("Signature Middleware", () => {
       const bodyJson = JSON.stringify(testBody);
 
       // Calculate content-digest for the body
-      const digest = crypto
-        .createHash("sha256")
-        .update(bodyJson)
-        .digest("base64");
+      const digest = crypto.createHash("sha256").update(bodyJson).digest("base64");
       const contentDigest = `sha-256=:${digest}:`;
 
       const headers = await signRequest(
@@ -105,14 +102,10 @@ describe("Signature Middleware", () => {
           "content-digest": contentDigest,
           "content-length": String(bodyJson.length),
         },
-        { includeBody: true }
+        { includeBody: true },
       );
 
-      const response = await request(app)
-        .post("/test")
-        .set(headers)
-        .send(testBody)
-        .expect(200);
+      const response = await request(app).post("/test").set(headers).send(testBody).expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.body).toEqual(testBody);
@@ -135,10 +128,7 @@ describe("Signature Middleware", () => {
 
   describe("Invalid signatures", () => {
     it("should reject request without signature", async () => {
-      await request(app)
-        .post("/test")
-        .send({ test: "data" })
-        .expect(401);
+      await request(app).post("/test").send({ test: "data" }).expect(401);
     });
 
     it("should reject request with missing signature header", async () => {
@@ -165,28 +155,21 @@ describe("Signature Middleware", () => {
       // Tamper with signature
       headers.signature = "woodpecker-ci-extensions=:invalidsignaturebase64:";
 
-      await request(app)
-        .post("/test")
-        .set(headers)
-        .send({ test: "data" })
-        .expect(401);
+      await request(app).post("/test").set(headers).send({ test: "data" }).expect(401);
     });
 
     it("should reject request signed with wrong key", async () => {
       // Generate another key pair
-      const { privateKey: wrongPrivateKey } = crypto.generateKeyPairSync(
-        "ed25519",
-        {
-          publicKeyEncoding: {
-            type: "spki",
-            format: "pem",
-          },
-          privateKeyEncoding: {
-            type: "pkcs8",
-            format: "pem",
-          },
-        }
-      );
+      const { privateKey: wrongPrivateKey } = crypto.generateKeyPairSync("ed25519", {
+        publicKeyEncoding: {
+          type: "spki",
+          format: "pem",
+        },
+        privateKeyEncoding: {
+          type: "pkcs8",
+          format: "pem",
+        },
+      });
 
       const requestToSign = {
         method: "POST",
@@ -205,7 +188,7 @@ describe("Signature Middleware", () => {
             created: new Date(),
           },
         },
-        requestToSign
+        requestToSign,
       );
 
       await request(app)
@@ -220,10 +203,7 @@ describe("Signature Middleware", () => {
       const bodyJson = JSON.stringify(testBody);
 
       // Calculate content-digest for the body
-      const digest = crypto
-        .createHash("sha256")
-        .update(bodyJson)
-        .digest("base64");
+      const digest = crypto.createHash("sha256").update(bodyJson).digest("base64");
       const contentDigest = `sha-256=:${digest}:`;
 
       const headers = await signRequest(
@@ -233,17 +213,13 @@ describe("Signature Middleware", () => {
           "content-type": "application/json",
           "content-digest": contentDigest,
         },
-        { includeBody: true }
+        { includeBody: true },
       );
 
       // Tamper with content-digest header after signing
       headers["content-digest"] = "sha-256=:tampered:";
 
-      await request(app)
-        .post("/test")
-        .set(headers)
-        .send(testBody)
-        .expect(401);
+      await request(app).post("/test").set(headers).send(testBody).expect(401);
     });
   });
 
@@ -272,9 +248,7 @@ describe("Signature Middleware", () => {
       });
 
       // Find signature-input header (might be case-insensitive)
-      const sigInputKey = Object.keys(headers).find(
-        (k) => k.toLowerCase() === "signature-input"
-      );
+      const sigInputKey = Object.keys(headers).find((k) => k.toLowerCase() === "signature-input");
 
       if (!sigInputKey) {
         throw new Error("signature-input header not found");
@@ -282,16 +256,9 @@ describe("Signature Middleware", () => {
 
       // Tamper with signature-input (change algorithm)
       const signatureInput = headers[sigInputKey] as string;
-      headers[sigInputKey] = signatureInput.replace(
-        'alg="ed25519"',
-        'alg="rsa-pss-sha512"'
-      );
+      headers[sigInputKey] = signatureInput.replace('alg="ed25519"', 'alg="rsa-pss-sha512"');
 
-      await request(app)
-        .post("/test")
-        .set(headers)
-        .send({ test: "data" })
-        .expect(401);
+      await request(app).post("/test").set(headers).send({ test: "data" }).expect(401);
     });
   });
 
@@ -323,11 +290,7 @@ describe("Signature Middleware", () => {
           "content-type": "application/json",
         });
 
-        const response = await request(app)
-          .post("/test")
-          .set(headers)
-          .send(testBody)
-          .expect(200);
+        const response = await request(app).post("/test").set(headers).send(testBody).expect(200);
 
         expect(response.body.body.iteration).toBe(i);
       }

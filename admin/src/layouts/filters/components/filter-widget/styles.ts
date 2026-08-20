@@ -1,4 +1,4 @@
-import { createStyles } from 'antd-style';
+import { createStyles } from "antd-style";
 
 export const useStyles = createStyles(({ css, token }) => ({
   widgetContainer: css`
@@ -17,7 +17,7 @@ export const useStyles = createStyles(({ css, token }) => ({
     transition: all 0.2s ease;
     width: 100%;
 
-    &:has(input[data-node-type='ui-filter-search']:focus) {
+    &:has(input[data-node-type="ui-filter-search"]:focus) {
       outline-color: ${token.colorFillSecondary};
       border-color: ${token.colorText};
     }
@@ -102,12 +102,7 @@ export const useStyles = createStyles(({ css, token }) => ({
     display: flex;
     align-items: center;
     transition: all 0.2s ease;
-    background: linear-gradient(
-      to right,
-      transparent 49.5%,
-      var(--bg) 50%,
-      var(--bg) 100%
-    );
+    background: linear-gradient(to right, transparent 49.5%, var(--bg) 50%, var(--bg) 100%);
   `,
 
   filterNodeRight: css`
@@ -162,9 +157,9 @@ export const useStyles = createStyles(({ css, token }) => ({
 }));
 
 export const cardBodyStyle: React.CSSProperties = {
-  boxShadow: 'var(--ant-box-shadow-secondary)',
-  borderRadius: 'var(--ant-border-radius)',
+  boxShadow: "var(--ant-box-shadow-secondary)",
+  borderRadius: "var(--ant-border-radius)",
   padding: 16,
-  maxHeight: 'max(calc(100vh - 300px), 400px)',
-  overflow: 'auto',
+  maxHeight: "max(calc(100vh - 300px), 400px)",
+  overflow: "auto",
 };

@@ -1,7 +1,7 @@
-import { MCPTool } from 'mcp-framework';
-import { z } from 'zod';
-import { resolve } from 'path';
-import { resolveE2eDir } from '../utils/paths.js';
+import { MCPTool } from "mcp-framework";
+import { z } from "zod";
+import { resolve } from "path";
+import { resolveE2eDir } from "../utils/paths.js";
 
 function shellQuote(value: string) {
   return /^[a-zA-Z0-9_./:=+-]+$/.test(value) ? value : `'${value.replace(/'/g, "'\\''")}'`;
@@ -10,11 +10,13 @@ function shellQuote(value: string) {
 const TestToolSchema = z.object({
   testPath: z
     .string()
-    .describe('Specific e2e spec file path for the generated command (e.g., "tests/users-api/sign-in.spec.ts")')
+    .describe(
+      'Specific e2e spec file path for the generated command (e.g., "tests/users-api/sign-in.spec.ts")',
+    ),
 });
 
 class TestTool extends MCPTool<typeof TestToolSchema> {
-  name = 'shopana_get_e2e_test_command';
+  name = "shopana_get_e2e_test_command";
   description = `Return the correct Playwright end-to-end test command and manual run instructions.
 
 This tool does not execute tests. It returns the command to run one specific spec file manually from the e2e/ package.
@@ -50,13 +52,17 @@ Environment variables (already configured in e2e/.env):
       return {
         content: [
           {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: false,
-              error: error.message
-            }, null, 2)
-          }
-        ]
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                success: false,
+                error: error.message,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
     }
 
@@ -67,40 +73,44 @@ Environment variables (already configured in e2e/.env):
     return {
       content: [
         {
-          type: 'text' as const,
-          text: JSON.stringify({
-            success: true,
-            executed: false,
-            command,
-            cwd: e2eDir,
-            env: {
-              NODE_OPTIONS: nodeOptions
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              executed: false,
+              command,
+              cwd: e2eDir,
+              env: {
+                NODE_OPTIONS: nodeOptions,
+              },
+              instructions: [
+                "Do not start, stop, or restart services. The development server is managed separately.",
+                "Run the command from the cwd shown above.",
+                "Run one .spec.ts file at a time. Do not run the full suite or a whole directory.",
+                "If the spec is an admin UI test, run the headedCommand value instead of command.",
+                "If running from a shell that does not already include the NODE_OPTIONS value, prefix the command with the NODE_OPTIONS value shown above.",
+              ],
+              headedCommand,
+              shellCommand: `cd ${shellQuote(e2eDir)} && NODE_OPTIONS=${shellQuote(nodeOptions)} ${command}`,
+              headedShellCommand: `cd ${shellQuote(e2eDir)} && NODE_OPTIONS=${shellQuote(nodeOptions)} ${headedCommand}`,
             },
-            instructions: [
-              'Do not start, stop, or restart services. The development server is managed separately.',
-              'Run the command from the cwd shown above.',
-              'Run one .spec.ts file at a time. Do not run the full suite or a whole directory.',
-              'If the spec is an admin UI test, run the headedCommand value instead of command.',
-              'If running from a shell that does not already include the NODE_OPTIONS value, prefix the command with the NODE_OPTIONS value shown above.'
-            ],
-            headedCommand,
-            shellCommand: `cd ${shellQuote(e2eDir)} && NODE_OPTIONS=${shellQuote(nodeOptions)} ${command}`,
-            headedShellCommand: `cd ${shellQuote(e2eDir)} && NODE_OPTIONS=${shellQuote(nodeOptions)} ${headedCommand}`
-          }, null, 2)
-        }
-      ]
+            null,
+            2,
+          ),
+        },
+      ],
     };
   }
 }
 
 function withTransformTypesNodeOption() {
-  const current = process.env.NODE_OPTIONS ?? '';
+  const current = process.env.NODE_OPTIONS ?? "";
 
-  if (current.split(/\s+/).includes('--experimental-transform-types')) {
+  if (current.split(/\s+/).includes("--experimental-transform-types")) {
     return current;
   }
 
-  return [current, '--experimental-transform-types'].filter(Boolean).join(' ');
+  return [current, "--experimental-transform-types"].filter(Boolean).join(" ");
 }
 
 export default TestTool;

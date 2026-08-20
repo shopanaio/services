@@ -13,7 +13,9 @@ export const moderationSortFieldMapping: SortFieldMapping<ReviewContentOrderFiel
   updatedAt: ReviewContentOrderField.UpdatedAt,
 };
 
-export const buildModerationSearchCondition = (search: string): Partial<ApiReviewContentWhereInput> => ({
+export const buildModerationSearchCondition = (
+  search: string,
+): Partial<ApiReviewContentWhereInput> => ({
   _or: [
     { title: { _containsi: search } },
     { body: { _containsi: search } },
@@ -22,7 +24,14 @@ export const buildModerationSearchCondition = (search: string): Partial<ApiRevie
 });
 
 export function buildModerationQueryVariables(
-  pageConfig: Pick<UsePageConfigReturn<ApiReviewContentWhereInput, ReviewContentOrderField>, "first" | "after" | "last" | "before" | "where" | "orderBy">,
+  pageConfig: Pick<
+    UsePageConfigReturn<ApiReviewContentWhereInput, ReviewContentOrderField>,
+    "first" | "after" | "last" | "before" | "where" | "orderBy"
+  >,
 ): ModerationContentsQueryVariables {
-  return { ...pageConfig, where: pageConfig.where ?? null, orderBy: pageConfig.orderBy as ApiReviewContentOrderByInput[] | undefined };
+  return {
+    ...pageConfig,
+    where: pageConfig.where ?? null,
+    orderBy: pageConfig.orderBy as ApiReviewContentOrderByInput[] | undefined,
+  };
 }

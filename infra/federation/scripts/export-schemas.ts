@@ -10,14 +10,7 @@
  */
 
 import { buildSubgraphSchema, printSubgraphSchema } from "@apollo/subgraph";
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { glob } from "glob";
 import { gql } from "graphql-tag";
 import { join, resolve, dirname } from "path";
@@ -51,10 +44,7 @@ interface SubgraphResult {
   error?: string;
 }
 
-async function findGraphQLFiles(
-  patterns: string[],
-  basePath: string
-): Promise<string[]> {
+async function findGraphQLFiles(patterns: string[], basePath: string): Promise<string[]> {
   const allFiles: string[] = [];
 
   for (const pattern of patterns) {
@@ -74,7 +64,7 @@ async function exportSubgraph(
   serviceName: string,
   servicePath: string,
   schemaType: SchemaType,
-  patterns: string | string[]
+  patterns: string | string[],
 ): Promise<SubgraphResult> {
   const subgraphName = `${serviceName}-${schemaType}`;
   const patternArray = Array.isArray(patterns) ? patterns : [patterns];
@@ -120,10 +110,7 @@ async function exportSubgraph(
   }
 }
 
-async function processService(
-  serviceName: string,
-  servicePath: string
-): Promise<SubgraphResult[]> {
+async function processService(serviceName: string, servicePath: string): Promise<SubgraphResult[]> {
   const configPath = join(servicePath, "build.config.json");
 
   if (!existsSync(configPath)) {
@@ -145,24 +132,12 @@ async function processService(
   const results: SubgraphResult[] = [];
 
   if (config.graphql.admin) {
-    results.push(
-      await exportSubgraph(
-        serviceName,
-        servicePath,
-        "admin",
-        config.graphql.admin
-      )
-    );
+    results.push(await exportSubgraph(serviceName, servicePath, "admin", config.graphql.admin));
   }
 
   if (config.graphql.storefront) {
     results.push(
-      await exportSubgraph(
-        serviceName,
-        servicePath,
-        "storefront",
-        config.graphql.storefront
-      )
+      await exportSubgraph(serviceName, servicePath, "storefront", config.graphql.storefront),
     );
   }
 
@@ -185,16 +160,11 @@ async function main() {
   ]) {
     if (!existsSync(root.path)) continue;
     const entries = readdirSync(root.path, { withFileTypes: true });
-    const serviceDirs = entries
-      .filter((e) => e.isDirectory())
-      .map((e) => e.name);
+    const serviceDirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
 
     for (const serviceName of serviceDirs) {
       const servicePath = join(root.path, serviceName);
-      const serviceResults = await processService(
-        `${root.prefix}${serviceName}`,
-        servicePath,
-      );
+      const serviceResults = await processService(`${root.prefix}${serviceName}`, servicePath);
       allResults.push(...serviceResults);
     }
   }

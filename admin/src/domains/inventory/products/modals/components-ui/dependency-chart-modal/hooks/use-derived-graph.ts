@@ -55,8 +55,9 @@ export const useDerivedGraph = ({
     const actionColor = theme.colorSuccess;
 
     // Helper: flatten all conditions from a rule's condition groups
-    const getAllConditions = (rule: ApiProductComponentDependencyRule): ApiProductComponentCondition[] =>
-      rule.conditionGroups.flatMap((g) => g.conditions);
+    const getAllConditions = (
+      rule: ApiProductComponentDependencyRule,
+    ): ApiProductComponentCondition[] => rule.conditionGroups.flatMap((g) => g.conditions);
 
     // 1. First pass: collect which items/groups are used as sources (conditions) and targets (actions)
     const sourceItemIds = new Set<string>();
@@ -68,10 +69,16 @@ export const useDerivedGraph = ({
 
     rules.forEach((rule) => {
       getAllConditions(rule).forEach((condition) => {
-        if (condition.targetType === ProductComponentDependencyTargetType.Item && condition.targetId) {
+        if (
+          condition.targetType === ProductComponentDependencyTargetType.Item &&
+          condition.targetId
+        ) {
           sourceItemIds.add(condition.targetId);
         }
-        if (condition.targetType === ProductComponentDependencyTargetType.Group && condition.targetId) {
+        if (
+          condition.targetType === ProductComponentDependencyTargetType.Group &&
+          condition.targetId
+        ) {
           sourceGroupIds.add(condition.targetId);
         }
         if (condition.targetType === ProductComponentDependencyTargetType.Configuration) {
@@ -230,7 +237,7 @@ export const useDerivedGraph = ({
       sortMode === "auto"
         ? rules
         : [...rules].sort((a, b) =>
-            sortMode === "desc" ? b.priority - a.priority : a.priority - b.priority
+            sortMode === "desc" ? b.priority - a.priority : a.priority - b.priority,
           );
     sortedRules.forEach((rule) => {
       const ruleNodeId = `rule:${rule.id}`;
@@ -254,7 +261,11 @@ export const useDerivedGraph = ({
 
     // Helper to get source node ID for a condition
     const getConditionSourceNodeId = (condition: ApiProductComponentCondition): string | null => {
-      if (!condition.targetId && condition.targetType !== ProductComponentDependencyTargetType.Configuration) return null;
+      if (
+        !condition.targetId &&
+        condition.targetType !== ProductComponentDependencyTargetType.Configuration
+      )
+        return null;
 
       if (condition.targetType === ProductComponentDependencyTargetType.Item) {
         return duplicatedItemIds.has(condition.targetId!)
@@ -270,7 +281,7 @@ export const useDerivedGraph = ({
     };
 
     // Helper to get target node ID for an action
-    const getActionTargetNodeId = (action: typeof rules[0]["actions"][0]): string | null => {
+    const getActionTargetNodeId = (action: (typeof rules)[0]["actions"][0]): string | null => {
       if (action.targetType === ProductComponentDependencyTargetType.Configuration) {
         return "component:main";
       } else if (action.targetType === ProductComponentDependencyTargetType.Item) {

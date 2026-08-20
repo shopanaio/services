@@ -7,21 +7,27 @@ export interface StorefrontConnectionData {
   totalCount: number;
 }
 
-export abstract class BaseStorefrontConnectionResolver<TInput>
-  extends LoyaltyStorefrontType<TInput, StorefrontConnectionData>
-{
+export abstract class BaseStorefrontConnectionResolver<TInput> extends LoyaltyStorefrontType<
+  TInput,
+  StorefrontConnectionData
+> {
   abstract $preload(): Promise<StorefrontConnectionData>;
   protected abstract createNodeResolver(nodeId: string): unknown | Promise<unknown>;
 
   async edges() {
     const edges = await this.$get("edges");
-    return Promise.all((edges ?? []).map(async (edge) => ({
-      cursor: edge.cursor,
-      node: await this.createNodeResolver(edge.nodeId),
-    })));
+    return Promise.all(
+      (edges ?? []).map(async (edge) => ({
+        cursor: edge.cursor,
+        node: await this.createNodeResolver(edge.nodeId),
+      })),
+    );
   }
 
-  pageInfo() { return this.$get("pageInfo"); }
-  async totalCount() { return (await this.$get("totalCount")) ?? 0; }
+  pageInfo() {
+    return this.$get("pageInfo");
+  }
+  async totalCount() {
+    return (await this.$get("totalCount")) ?? 0;
+  }
 }
-

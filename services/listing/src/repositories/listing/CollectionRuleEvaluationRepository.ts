@@ -1,8 +1,6 @@
 import { sql, type SQL } from "drizzle-orm";
 import { ReadOnly } from "@shopana/shared-kernel";
-import {
-  type CanonicalCollectionRule,
-} from "@shopana/broker-types";
+import { type CanonicalCollectionRule } from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   compileCollectionRules,
@@ -39,9 +37,7 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
         result: plan.matchesNothing ? "empty" : "compiled",
         definitionKind: plan.definitionKey.kind,
         listingRevision:
-          plan.definitionKey.kind === "persisted"
-            ? plan.definitionKey.listingRevision
-            : null,
+          plan.definitionKey.kind === "persisted" ? plan.definitionKey.listingRevision : null,
         ruleCount: input.rules.length,
         fieldCounts: countBy(input.rules.map((rule) => rule.field)),
         operatorCounts: countBy(input.rules.map((rule) => rule.operator)),
@@ -67,9 +63,7 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
     for (const group of plan.productPostingGroups) {
       productParts.push(
         combineBitmaps(
-          group.valueKeys.map((valueKey) =>
-            this.postingBitmap("product", group.field, valueKey)
-          ),
+          group.valueKeys.map((valueKey) => this.postingBitmap("product", group.field, valueKey)),
           group.operator,
         ),
       );
@@ -80,9 +74,7 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
     for (const group of plan.variantPostingGroups) {
       variantParts.push(
         combineBitmaps(
-          group.valueKeys.map((valueKey) =>
-            this.postingBitmap("variant", group.field, valueKey)
-          ),
+          group.valueKeys.map((valueKey) => this.postingBitmap("variant", group.field, valueKey)),
           group.operator,
         ),
       );
@@ -90,15 +82,9 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
     for (const predicate of plan.variantPricePredicates) {
       variantParts.push(this.priceBitmap(predicate));
     }
-    const variantBitmap =
-      variantParts.length > 0 ? combineBitmaps(variantParts, "and") : null;
-    const publishedBitmap = this.universeBitmapSql(
-      input.universe ?? "storefront",
-    );
-    const productBitmap = combineBitmaps(
-      [publishedBitmap, ...productParts],
-      "and",
-    );
+    const variantBitmap = variantParts.length > 0 ? combineBitmaps(variantParts, "and") : null;
+    const publishedBitmap = this.universeBitmapSql(input.universe ?? "storefront");
+    const productBitmap = combineBitmaps([publishedBitmap, ...productParts], "and");
     const membershipBitmap = variantBitmap
       ? sql`(b.product_bitmap & ${this.projectVariants(sql`b.variant_bitmap`)})`
       : sql`b.product_bitmap`;
@@ -111,9 +97,7 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
       WITH bases AS MATERIALIZED (
         SELECT
           (${productBitmap}) AS product_bitmap,
-          ${variantBitmap
-            ? sql`(${variantBitmap})`
-            : sql`NULL::roaringbitmap`} AS variant_bitmap
+          ${variantBitmap ? sql`(${variantBitmap})` : sql`NULL::roaringbitmap`} AS variant_bitmap
       ),
       evaluated AS MATERIALIZED (
         SELECT
@@ -169,11 +153,7 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
       : sql`(${published} | ${this.postingBitmap("product", "status", "draft")})`;
   }
 
-  private postingBitmap(
-    entityType: "product" | "variant",
-    field: string,
-    valueKey: string,
-  ): SQL {
+  private postingBitmap(entityType: "product" | "variant", field: string, valueKey: string): SQL {
     return sql`COALESCE((
       SELECT p.bitmap
       FROM listing.listing_posting_bitmap p
@@ -184,9 +164,7 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
     ), ${emptyBitmapSql()})`;
   }
 
-  private priceBitmap(
-    predicateInput: CollectionPricePredicate,
-  ): SQL {
+  private priceBitmap(predicateInput: CollectionPricePredicate): SQL {
     const predicate = numericPredicate(
       sql`p.price_minor`,
       predicateInput.operator,
@@ -214,9 +192,7 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
     ), ${emptyBitmapSql()})`;
   }
 
-  private createdAtBitmap(
-    predicateInput: CollectionCreatedAtPredicate,
-  ): SQL {
+  private createdAtBitmap(predicateInput: CollectionCreatedAtPredicate): SQL {
     const predicate = timestampPredicate(
       sql`p.product_created_at`,
       predicateInput.operator,
@@ -252,16 +228,14 @@ function emptyBitmapSql(): SQL {
   )`;
 }
 
-function combineBitmaps(
-  parts: readonly SQL[],
-  operator: "and" | "or",
-): SQL {
+function combineBitmaps(parts: readonly SQL[], operator: "and" | "or"): SQL {
   if (parts.length === 0) return emptyBitmapSql();
-  return parts.slice(1).reduce(
-    (left, right) =>
-      operator === "and" ? sql`(${left} & ${right})` : sql`(${left} | ${right})`,
-    parts[0],
-  );
+  return parts
+    .slice(1)
+    .reduce(
+      (left, right) => (operator === "and" ? sql`(${left} & ${right})` : sql`(${left} | ${right})`),
+      parts[0],
+    );
 }
 
 function numericPredicate(
@@ -308,9 +282,7 @@ function timestampPredicate(
   }
 }
 
-function mapRow(
-  row: CollectionRuleBitmapRow | undefined,
-): { bitmap: string; cardinality: number } {
+function mapRow(row: CollectionRuleBitmapRow | undefined): { bitmap: string; cardinality: number } {
   if (!row) throw new Error("Collection rule evaluation returned no row");
   const cardinality = Number(row.cardinality);
   if (!Number.isSafeInteger(cardinality) || cardinality < 0) {

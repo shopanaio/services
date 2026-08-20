@@ -3,11 +3,7 @@
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
 import type { ApiFacetUpdateInput } from "@/graphql/types";
-import {
-  FACET_DETAILS_QUERY,
-  FACET_GRID_QUERY,
-  FACET_UPDATE_MUTATION,
-} from "../graphql";
+import { FACET_DETAILS_QUERY, FACET_GRID_QUERY, FACET_UPDATE_MUTATION } from "../graphql";
 import type {
   FacetMutationResult,
   FacetUpdateMutationData,
@@ -42,8 +38,7 @@ export function useUpdateFacet(): UseUpdateFacetReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
         return {
           facet: null,
           userErrors: [{ message, code: "UNEXPECTED_ERROR" }],

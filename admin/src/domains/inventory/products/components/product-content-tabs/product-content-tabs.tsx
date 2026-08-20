@@ -6,10 +6,7 @@ import { AIButton } from "@/ui-kit/ai-button";
 import { EntityContentTabs } from "@/domains/inventory/components/entity-details-sections";
 import type { ApiProduct } from "@/graphql/types";
 import type { ApiProductContentInput } from "@/graphql/types";
-import {
-  useProductEditDescriptionModal,
-  useProductAIWriterModal,
-} from "../../modals";
+import { useProductEditDescriptionModal, useProductAIWriterModal } from "../../modals";
 import { useUpdateProduct } from "../../hooks";
 
 // ============================================================================
@@ -83,10 +80,7 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
   const handleWriteWithAI = () => {
     openAIWriterModal({
       product,
-      onApply: async (values: {
-        description?: RenderedContent;
-        excerpt?: RenderedContent;
-      }) => {
+      onApply: async (values: { description?: RenderedContent; excerpt?: RenderedContent }) => {
         await saveContent(values);
       },
     });
@@ -109,10 +103,7 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
       description: parseEditorData(product.description?.json),
       excerpt: parseEditorData(product.excerpt?.json),
       product,
-      onSave: async (values: {
-        description: RenderedContent;
-        excerpt: RenderedContent;
-      }) => {
+      onSave: async (values: { description: RenderedContent; excerpt: RenderedContent }) => {
         return saveContent(values);
       },
     });

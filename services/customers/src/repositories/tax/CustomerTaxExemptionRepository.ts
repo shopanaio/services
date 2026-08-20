@@ -1,15 +1,8 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly } from "@shopana/shared-kernel";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  normalizeRelayPagination,
-  type RepositoryConnectionResult,
-} from "../connection.js";
+import { normalizeRelayPagination, type RepositoryConnectionResult } from "../connection.js";
 import {
   decodeCustomerGlobalId,
   decodeCustomerTaxExemptionGlobalId,
@@ -29,14 +22,13 @@ export const customerTaxExemptionRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerTaxExemption", tieBreaker: "id" }
+  { name: "customerTaxExemption", tieBreaker: "id" },
 );
 
-export type CustomerTaxExemptionRelayInput = InferRelayInput<
-  typeof customerTaxExemptionRelayQuery
->;
-export type CustomerTaxExemptionConnectionInput =
-  CustomerTaxExemptionRelayInput & { customerId: string };
+export type CustomerTaxExemptionRelayInput = InferRelayInput<typeof customerTaxExemptionRelayQuery>;
+export type CustomerTaxExemptionConnectionInput = CustomerTaxExemptionRelayInput & {
+  customerId: string;
+};
 export type CustomerTaxExemptionCreateData = Omit<
   NewCustomerTaxExemption,
   "id" | "storeId" | "createdAt" | "updatedAt" | "deletedAt"
@@ -65,8 +57,8 @@ export class CustomerTaxExemptionRepository extends BaseRepository {
         and(
           eq(customerTaxExemption.storeId, this.storeId),
           eq(customerTaxExemption.id, id),
-          isNull(customerTaxExemption.deletedAt)
-        )
+          isNull(customerTaxExemption.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -82,8 +74,8 @@ export class CustomerTaxExemptionRepository extends BaseRepository {
         and(
           eq(customerTaxExemption.storeId, this.storeId),
           inArray(customerTaxExemption.id, [...new Set(ids)]),
-          isNull(customerTaxExemption.deletedAt)
-        )
+          isNull(customerTaxExemption.deletedAt),
+        ),
       );
   }
 
@@ -97,8 +89,8 @@ export class CustomerTaxExemptionRepository extends BaseRepository {
         and(
           eq(customerTaxExemption.storeId, this.storeId),
           inArray(customerTaxExemption.customerId, [...new Set(customerIds)]),
-          isNull(customerTaxExemption.deletedAt)
-        )
+          isNull(customerTaxExemption.deletedAt),
+        ),
       );
   }
 
@@ -120,10 +112,7 @@ export class CustomerTaxExemptionRepository extends BaseRepository {
     return rows[0];
   }
 
-  async update(
-    id: string,
-    patch: CustomerTaxExemptionPatch
-  ): Promise<CustomerTaxExemption | null> {
+  async update(id: string, patch: CustomerTaxExemptionPatch): Promise<CustomerTaxExemption | null> {
     const rows = await this.connection
       .update(customerTaxExemption)
       .set({
@@ -138,8 +127,8 @@ export class CustomerTaxExemptionRepository extends BaseRepository {
         and(
           eq(customerTaxExemption.storeId, this.storeId),
           eq(customerTaxExemption.id, id),
-          isNull(customerTaxExemption.deletedAt)
-        )
+          isNull(customerTaxExemption.deletedAt),
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -154,8 +143,8 @@ export class CustomerTaxExemptionRepository extends BaseRepository {
         and(
           eq(customerTaxExemption.storeId, this.storeId),
           eq(customerTaxExemption.id, id),
-          isNull(customerTaxExemption.deletedAt)
-        )
+          isNull(customerTaxExemption.deletedAt),
+        ),
       )
       .returning({ id: customerTaxExemption.id });
     return rows.length > 0;
@@ -204,7 +193,7 @@ export class CustomerTaxExemptionRepository extends BaseRepository {
 
   @ReadOnly()
   async getConnection(
-    input: CustomerTaxExemptionConnectionInput
+    input: CustomerTaxExemptionConnectionInput,
   ): Promise<RepositoryConnectionResult> {
     const normalized = normalizeRelayPagination(input);
     const { customerId, where, orderBy, ...pagination } = normalized;
@@ -216,9 +205,7 @@ export class CustomerTaxExemptionRepository extends BaseRepository {
         ...(where ? [where] : []),
       ],
     };
-    const effectiveOrder = orderBy ?? [
-      { field: "createdAt", direction: "desc" },
-    ];
+    const effectiveOrder = orderBy ?? [{ field: "createdAt", direction: "desc" }];
     const query: CustomerTaxExemptionRelayInput = {
       ...pagination,
       where: mergedWhere,

@@ -22,7 +22,7 @@ const pricingQuery = createQuery(itemPricing).maxLimit(100).defaultLimit(20);
 
 const pricingPaginationQuery = createCursorQuery(
   createQuery(itemPricing).maxLimit(100).defaultLimit(20).include(["id"]),
-  { tieBreaker: "id" }
+  { tieBreaker: "id" },
 );
 
 const pricingRelayQuery = createRelayQuery(
@@ -30,7 +30,7 @@ const pricingRelayQuery = createRelayQuery(
     .include(["id", "variantId", "currency", "effectiveFrom", "effectiveTo"])
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "itemPricing", tieBreaker: "id" }
+  { name: "itemPricing", tieBreaker: "id" },
 );
 
 export type PricingQueryInput = InferExecuteOptions<typeof pricingQuery>;
@@ -75,10 +75,7 @@ export class PricingRepository extends BaseRepository {
   private buildOverlapWhere(from: Date, to: Date) {
     return {
       effectiveFrom: { _lte: to.toISOString() },
-      _or: [
-        { effectiveTo: { _is: null } },
-        { effectiveTo: { _gte: from.toISOString() } },
-      ],
+      _or: [{ effectiveTo: { _is: null } }, { effectiveTo: { _gte: from.toISOString() } }],
     };
   }
 
@@ -91,7 +88,7 @@ export class PricingRepository extends BaseRepository {
       currency: CurrencyCode;
       amountMinor: number;
       compareAtMinor?: number | null;
-    }
+    },
   ): Promise<ItemPricing> {
     const id = await this.generateUuidV7();
     const now = new Date().toISOString();
@@ -108,10 +105,7 @@ export class PricingRepository extends BaseRepository {
       recordedAt: now,
     };
 
-    const result = await this.connection
-      .insert(itemPricing)
-      .values(newPricing)
-      .returning();
+    const result = await this.connection.insert(itemPricing).values(newPricing).returning();
 
     return result[0];
   }
@@ -123,7 +117,7 @@ export class PricingRepository extends BaseRepository {
       currency: CurrencyCode;
       amountMinor: number;
       compareAtMinor?: number | null;
-    }
+    },
   ): Promise<ItemPricing> {
     const now = new Date().toISOString();
     await this.connection
@@ -134,8 +128,8 @@ export class PricingRepository extends BaseRepository {
           eq(itemPricing.storeId, this.storeId),
           eq(itemPricing.variantId, variantId),
           eq(itemPricing.currency, data.currency),
-          isNull(itemPricing.effectiveTo)
-        )
+          isNull(itemPricing.effectiveTo),
+        ),
       );
 
     const id = await this.generateUuidV7();
@@ -206,8 +200,8 @@ export class PricingRepository extends BaseRepository {
         and(
           eq(variantPricesCurrent.storeId, this.storeId),
           eq(variantPricesCurrent.variantId, input.variantId),
-          eq(variantPricesCurrent.currency, input.currency)
-        )
+          eq(variantPricesCurrent.currency, input.currency),
+        ),
       )
       .limit(1);
 
@@ -230,9 +224,7 @@ export class PricingRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getPriceStatistics(
-    input: GetPriceStatisticsInput
-  ): Promise<PriceHistoryStatistics | null> {
+  async getPriceStatistics(input: GetPriceStatisticsInput): Promise<PriceHistoryStatistics | null> {
     const fromIso = input.from.toISOString();
     const toIso = input.to.toISOString();
 
@@ -249,8 +241,8 @@ export class PricingRepository extends BaseRepository {
           eq(itemPricing.variantId, input.variantId),
           eq(itemPricing.currency, input.currency),
           lte(itemPricing.effectiveFrom, toIso),
-          or(isNull(itemPricing.effectiveTo), gte(itemPricing.effectiveTo, fromIso))
-        )
+          or(isNull(itemPricing.effectiveTo), gte(itemPricing.effectiveTo, fromIso)),
+        ),
       );
 
     if (!result[0] || result[0].minPriceMinor === null) {

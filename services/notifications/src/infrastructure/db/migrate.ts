@@ -2,7 +2,7 @@ import { runner } from "node-pg-migrate";
 
 export async function runMigrations(
   connectionString: string,
-  migrationsFolder: string
+  migrationsFolder: string,
 ): Promise<void> {
   const cleanUrl = connectionString.replace(/[?&]schema=[^&]+/g, "");
   await runner({

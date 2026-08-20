@@ -16,11 +16,13 @@ export class IdempotencyRepository extends BaseRepository {
     const [row] = await this.connection
       .select({ response: idempotency.response })
       .from(idempotency)
-      .where(and(
-        eq(idempotency.storeId, storeId),
-        eq(idempotency.idempotencyKey, idempotencyKey),
-        gt(idempotency.expiresAt, sql`now()`),
-      ))
+      .where(
+        and(
+          eq(idempotency.storeId, storeId),
+          eq(idempotency.idempotencyKey, idempotencyKey),
+          gt(idempotency.expiresAt, sql`now()`),
+        ),
+      )
       .limit(1);
 
     return row?.response ?? null;
@@ -34,15 +36,13 @@ export class IdempotencyRepository extends BaseRepository {
     ttlSeconds?: number;
   }): Promise<void> {
     const ttlSeconds = input.ttlSeconds ?? 24 * 60 * 60;
-    await this.connection
-      .insert(idempotency)
-      .values({
-        storeId: input.storeId,
-        idempotencyKey: input.idempotencyKey,
-        requestHash: input.requestHash,
-        response: input.response,
-        expiresAt: new Date(Date.now() + ttlSeconds * 1_000),
-      });
+    await this.connection.insert(idempotency).values({
+      storeId: input.storeId,
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+      response: input.response,
+      expiresAt: new Date(Date.now() + ttlSeconds * 1_000),
+    });
   }
 
   async cleanupExpired(): Promise<number> {

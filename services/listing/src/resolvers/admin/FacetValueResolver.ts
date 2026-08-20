@@ -1,8 +1,5 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { ListingType } from "./ListingType.js";
 import type { FacetValue } from "../../repositories/models/index.js";
 
@@ -10,9 +7,7 @@ export class FacetValueResolver extends ListingType<string, FacetValue> {
   async $preload() {
     const facetValue = await this.$ctx.loaders.facetValue.load(this.$props);
     if (!facetValue) {
-      throw new PreloadNotFoundError(
-        `FacetValue with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`FacetValue with ID ${this.$props} not found`);
     }
     return facetValue;
   }
@@ -41,21 +36,15 @@ export class FacetValueResolver extends ListingType<string, FacetValue> {
   }
 
   async label() {
-    const translation = await this.$ctx.loaders.facetValueTranslation.load(
-      this.$props
-    );
+    const translation = await this.$ctx.loaders.facetValueTranslation.load(this.$props);
     return translation?.label ?? "";
   }
 
   async sourceValues() {
     const kind = await this.$get("kind");
     if (kind !== "group") return [];
-    const children = await this.$ctx.loaders.facetValueSourceChildren.load(
-      this.$props
-    );
-    return Promise.all(
-      children.map((child) => this.resolvers.facetValue(child.id))
-    );
+    const children = await this.$ctx.loaders.facetValueSourceChildren.load(this.$props);
+    return Promise.all(children.map((child) => this.resolvers.facetValue(child.id)));
   }
 
   async swatch() {

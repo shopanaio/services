@@ -23,13 +23,10 @@ export async function migrateCommand(options: MigrateOptions) {
   if (options.service || options.app) {
     const kind = options.app ? "app" : "service";
     const name = options.app ?? options.service!;
-    const available =
-      kind === "app" ? listMigratableApps() : listMigratableServices();
+    const available = kind === "app" ? listMigratableApps() : listMigratableServices();
 
     if (!available.includes(name)) {
-      console.error(
-        chalk.red(`Unknown ${kind}: ${name}\n`)
-      );
+      console.error(chalk.red(`Unknown ${kind}: ${name}\n`));
       console.log(`Available ${kind}s: ${available.join(", ")}`);
       process.exitCode = 1;
       return;

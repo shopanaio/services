@@ -8,10 +8,13 @@ Product attributes are represented by `ProductFeature` in the Admin API:
 
 - `isGroup: true` means a root-level attribute group.
 - `isGroup: false` means an attribute.
-- `index: [Int!]!` is the tree position. Root rows use `[0]`, `[1]`; child attributes use `[0, 0]`, `[0, 1]`.
-- `values` belongs only to attributes. Groups return an empty `values` array and must not send values in sync input.
+- `index: [Int!]!` is the tree position. Root rows use `[0]`, `[1]`; child attributes use `[0, 0]`,
+  `[0, 1]`.
+- `values` belongs only to attributes. Groups return an empty `values` array and must not send
+  values in sync input.
 
-The Admin product details UI must read attributes from `ApiProduct.features`. The edit modal must save the complete feature tree through `catalogMutation.productFeaturesSync`.
+The Admin product details UI must read attributes from `ApiProduct.features`. The edit modal must
+save the complete feature tree through `catalogMutation.productFeaturesSync`.
 
 ## Baseline
 
@@ -61,7 +64,8 @@ Client validation should catch the same obvious errors before sync:
 - a new feature must not send existing value IDs.
 - an existing feature must not change type between group and attribute.
 
-The client cannot fully validate database ownership, so it must still keep the modal open and show server `userErrors`.
+The client cannot fully validate database ownership, so it must still keep the modal open and show
+server `userErrors`.
 
 ### Frontend State
 
@@ -84,7 +88,8 @@ Current gaps:
 - `EditAttributesModal` initializes rows with `createMockData()`.
 - `IEditAttributesModalPayload` only carries `productId`.
 - save only shows `Product attribute updates are not API-backed yet`.
-- the values column only displays a comma-separated string and does not map edits back to feature values.
+- the values column only displays a comma-separated string and does not map edits back to feature
+  values.
 - there is no active Admin UI e2e coverage for the attributes modal.
 
 ### Existing E2E Coverage
@@ -115,16 +120,19 @@ Follow `knowledge/vault/patterns/admin-graphql-layer.md`.
 Required rules for this work:
 
 - Import generated API types directly from `@/graphql/types` at the usage site.
-- Do not re-export generated API types from module barrels, component barrels, `graphql/index.ts`, `operation-types.ts`, or feature-local `types.ts`.
+- Do not re-export generated API types from module barrels, component barrels, `graphql/index.ts`,
+  `operation-types.ts`, or feature-local `types.ts`.
 - Do not create API output view models for `ProductFeature`.
 - API-backed display components must accept generated API data directly.
 - `AttributesSection` must accept `features: ApiProductFeature[]`, not editor rows.
 - UI-local editor rows are allowed only inside the edit modal boundary.
-- Mappers may convert `ApiProductFeature[]` to modal-local editor rows and editor rows back to `ApiProductFeaturesSyncInput`.
+- Mappers may convert `ApiProductFeature[]` to modal-local editor rows and editor rows back to
+  `ApiProductFeaturesSyncInput`.
 - Mappers must not perform GraphQL calls.
 - Hooks own Apollo calls and normalize returned `userErrors`.
 - Components must not inspect raw payload paths like `data.catalogMutation.productFeaturesSync`.
-- The mutation freshness strategy must be explicit. For this integration, use the modal payload `onSaved` callback to refetch product details.
+- The mutation freshness strategy must be explicit. For this integration, use the modal payload
+  `onSaved` callback to refetch product details.
 - Do not use mocks in new API-backed hooks.
 
 ## Target File Layout
@@ -154,7 +162,9 @@ admin/src/domains/inventory/products/
       components/
 ```
 
-Rename `IAttributeRow` to `AttributeEditorRow` unless the implementation cost is higher than the benefit. Whether renamed or not, the type must remain modal-local and must not be used as the API-backed display prop contract.
+Rename `IAttributeRow` to `AttributeEditorRow` unless the implementation cost is higher than the
+benefit. Whether renamed or not, the type must remain modal-local and must not be used as the
+API-backed display prop contract.
 
 ## GraphQL Changes
 
@@ -180,9 +190,12 @@ fragment ProductFeatureFields on ProductFeature {
 }
 ```
 
-Do not add `parent` or `children` for this first pass. Display and editor state derive hierarchy from `index`.
+Do not add `parent` or `children` for this first pass. Display and editor state derive hierarchy
+from `index`.
 
-`slug` is still required by the current schema and sync input. If the backend removes feature and value slugs before this UI work lands, regenerate types and update this fragment, mapper, validation, and e2e assertions in the same implementation.
+`slug` is still required by the current schema and sync input. If the backend removes feature and
+value slugs before this UI work lands, regenerate types and update this fragment, mapper,
+validation, and e2e assertions in the same implementation.
 
 ### Sync Mutation
 
@@ -213,11 +226,13 @@ mutation ProductFeaturesSync($input: ProductFeaturesSyncInput!) {
 
 Append `${PRODUCT_FEATURE_FRAGMENT}` and `${USER_ERROR_FRAGMENT}` to the document.
 
-Select only the fields needed to refresh the attributes area. Do not request the full product details payload.
+Select only the fields needed to refresh the attributes area. Do not request the full product
+details payload.
 
 ### Operation Types
 
-Update `products/graphql/operation-types.ts` with local operation response and variables types built from generated schema types.
+Update `products/graphql/operation-types.ts` with local operation response and variables types built
+from generated schema types.
 
 Do not re-export generated schema types.
 
@@ -253,7 +268,8 @@ export interface ProductFeaturesSyncMutationVariables {
 }
 ```
 
-Export these local operation types from `products/graphql/index.ts`. This is allowed because they are operation-local types, not generated API type re-exports.
+Export these local operation types from `products/graphql/index.ts`. This is allowed because they
+are operation-local types, not generated API type re-exports.
 
 ## Editor State And Mapper Plan
 
@@ -299,7 +315,8 @@ Rules:
 - Existing values use `id = apiId = value.id`.
 - New values use temporary IDs such as `tmp-value-${crypto.randomUUID()}` and no `apiId`.
 - Sync input sends only `apiId`, never temporary IDs.
-- `apiType` is set for persisted rows and used to detect accidental group/attribute type changes before save.
+- `apiType` is set for persisted rows and used to detect accidental group/attribute type changes
+  before save.
 
 ### API To Editor Rows
 
@@ -320,7 +337,9 @@ Rules:
 - Root features have `index.length === 1`, `parentId: null`, `level: 0`, and `sortIndex: index[0]`.
 - Child attributes have `index.length === 2`, `level: 1`, and `sortIndex: index[1]`.
 - Derive child `parentId` by matching `index.slice(0, -1)` to a group row.
-- If an unexpected child has no matching parent group, keep the row out of the editable save set and expose a modal-level error. Do not silently remap it to root because the next save would change persisted structure.
+- If an unexpected child has no matching parent group, keep the row out of the editable save set and
+  expose a modal-level error. Do not silently remap it to root because the next save would change
+  persisted structure.
 - Groups always get `values: []`.
 - Attribute values are sorted by `value.index`.
 - Values preserve `apiId`.
@@ -344,7 +363,8 @@ Rules:
 - Trim each segment.
 - Drop empty segments created by leading, trailing, or repeated commas.
 - Preserve existing value IDs by exact normalized name match first.
-- For unmatched edited values, preserve the value at the same previous order index to support renames.
+- For unmatched edited values, preserve the value at the same previous order index to support
+  renames.
 - Create temporary IDs for new values.
 - Regenerate `sortIndex` from the parsed order.
 - Regenerate slugs from value names and de-duplicate slugs within the attribute.
@@ -372,7 +392,8 @@ Rules:
 
 - Build a complete snapshot for all rows that are valid editor rows.
 - Root rows are sorted by `sortIndex` and receive indexes `[0]`, `[1]`, `[2]`.
-- Child attributes are sorted by `sortIndex` within their parent group and receive indexes like `[0, 0]`, `[0, 1]`.
+- Child attributes are sorted by `sortIndex` within their parent group and receive indexes like
+  `[0, 0]`, `[0, 1]`.
 - Groups must be root-only.
 - Attributes can be root-level or direct children of a group.
 - Groups send no `values`.
@@ -381,9 +402,12 @@ Rules:
 - Send value `id` only when `value.apiId` is present.
 - Generate feature slugs from row names while schema requires slugs.
 - Generate value slugs from value names while schema requires slugs.
-- Feature slugs must be unique across the product. De-duplicate generated slugs with numeric suffixes.
-- Value slugs must be unique within the attribute. De-duplicate generated slugs with numeric suffixes.
-- The slug generator must never return an empty string. Use a deterministic fallback such as `feature-${position + 1}` or `value-${position + 1}`.
+- Feature slugs must be unique across the product. De-duplicate generated slugs with numeric
+  suffixes.
+- Value slugs must be unique within the attribute. De-duplicate generated slugs with numeric
+  suffixes.
+- The slug generator must never return an empty string. Use a deterministic fallback such as
+  `feature-${position + 1}` or `value-${position + 1}`.
 - Preserve existing feature and value IDs on update.
 - New attributes, groups, and values are created by omitting IDs.
 - Deleted rows and values are omitted from the complete snapshot.
@@ -477,9 +501,7 @@ interface SyncProductFeaturesResult {
 }
 
 interface UseSyncProductFeaturesReturn {
-  syncProductFeatures: (
-    input: ApiProductFeaturesSyncInput,
-  ) => Promise<SyncProductFeaturesResult>;
+  syncProductFeatures: (input: ApiProductFeaturesSyncInput) => Promise<SyncProductFeaturesResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
@@ -488,29 +510,34 @@ interface UseSyncProductFeaturesReturn {
 
 Implementation:
 
-- use `useMutation<ProductFeaturesSyncMutationData, ProductFeaturesSyncMutationVariables>(PRODUCT_FEATURES_SYNC_MUTATION)`;
+- use
+  `useMutation<ProductFeaturesSyncMutationData, ProductFeaturesSyncMutationVariables>(PRODUCT_FEATURES_SYNC_MUTATION)`;
 - unwrap `payload.product`, `payload.features`, and `payload.userErrors`;
-- return `product: null`, `features: []`, and a normalized `UNEXPECTED_ERROR` user error for unexpected exceptions;
+- return `product: null`, `features: []`, and a normalized `UNEXPECTED_ERROR` user error for
+  unexpected exceptions;
 - expose Apollo `loading`, `error`, and `reset`;
 - do not expose raw nested payload paths to components;
 - do not import mocks;
 - do not perform a broad cache write in the first implementation;
 - document that freshness is handled by the modal payload `onSaved` callback.
 
-The hook may optionally accept future options for `refetchQueries` or cache updates, but the first integration should keep refresh behavior explicit through `onSaved`.
+The hook may optionally accept future options for `refetchQueries` or cache updates, but the first
+integration should keep refresh behavior explicit through `onSaved`.
 
 ## UI Integration Plan
 
 ### Product Details Read Path
 
-Change `ProductDetailsCard` so attributes render from `product.features`, not `supplementalData.attributes`.
+Change `ProductDetailsCard` so attributes render from `product.features`, not
+`supplementalData.attributes`.
 
 Required changes:
 
 - update `AttributesSection` props to `features: ApiProductFeature[]`;
 - pass `product.features` to `AttributesSection`;
 - remove `supplementalData.attributes` from `ProductDetailsCard`;
-- remove `attributes` from `ProductDetailsSupplementalData` and `productDetailsMockData` if no remaining product-details consumer needs it;
+- remove `attributes` from `ProductDetailsSupplementalData` and `productDetailsMockData` if no
+  remaining product-details consumer needs it;
 - keep `supplementalData` only for remaining mock-only islands such as reviews and bundles.
 
 `AttributesSection` must not import modal editor row types.
@@ -532,8 +559,10 @@ Display rules:
 - show attribute value names as a comma-separated string;
 - show `--` when an attribute has no values;
 - hide empty group bodies if they have no child attributes;
-- keep the section visible when `features.length === 0` if `actions` exists, so users can create the first attribute;
-- render an empty state for no attributes instead of returning `null` when an edit action is available.
+- keep the section visible when `features.length === 0` if `actions` exists, so users can create the
+  first attribute;
+- render an empty state for no attributes instead of returning `null` when an edit action is
+  available.
 
 ### Modal Payload
 
@@ -556,10 +585,7 @@ interface UseProductModalsOptions {
   onProductRefresh?: () => Promise<unknown>;
 }
 
-export const useProductModals = (
-  product: ApiProduct,
-  options: UseProductModalsOptions = {},
-) => {
+export const useProductModals = (product: ApiProduct, options: UseProductModalsOptions = {}) => {
   // ...
 };
 ```
@@ -576,7 +602,8 @@ const modals = useProductModals(product, { onProductRefresh });
 - `features: product.features`;
 - `onSaved: options.onProductRefresh`.
 
-If changing `useProductModals` creates unnecessary churn, `ProductDetailsCard` may open only the attributes modal directly. Do not omit the refresh callback.
+If changing `useProductModals` creates unnecessary churn, `ProductDetailsCard` may open only the
+attributes modal directly. Do not omit the refresh callback.
 
 ### Edit Attributes Modal
 
@@ -704,15 +731,18 @@ Add stable test IDs needed by the spec:
 
 Recommended scenarios:
 
-- create a product with no features, open details, assert the attributes empty state is visible, add the first standalone attribute, save, reload, assert it is shown;
+- create a product with no features, open details, assert the attributes empty state is visible, add
+  the first standalone attribute, save, reload, assert it is shown;
 - add a group and child attributes, save, reload, assert grouping and values;
 - edit values through the comma-separated editor, save, reload, assert values persist in order;
 - reorder root attributes and child attributes, save, reload, assert ordering;
 - delete an attribute and delete a group, save, reload, assert removed items are gone;
 - submit invalid rows and assert the modal shows errors without closing;
-- edit an existing attribute and value, save, assert feature and value IDs are preserved through an API read.
+- edit an existing attribute and value, save, assert feature and value IDs are preserved through an
+  API read.
 
-Per project instructions, e2e specs should be run one file at a time only when verification is explicitly needed. Do not run `test` or `tsc` for this planning task.
+Per project instructions, e2e specs should be run one file at a time only when verification is
+explicitly needed. Do not run `test` or `tsc` for this planning task.
 
 ## Implementation Phases
 
@@ -780,7 +810,8 @@ Per project instructions, e2e specs should be run one file at a time only when v
 ## Acceptance Criteria
 
 - Product details attributes render from `product.features`.
-- `AttributesSection` accepts generated API data directly and does not import modal editor row types.
+- `AttributesSection` accepts generated API data directly and does not import modal editor row
+  types.
 - Product details still exposes an edit action when a product has no attributes.
 - `ProductDetailsSupplementalData` is no longer used for product attributes.
 - `EditAttributesModal` opens with the current product features from payload.

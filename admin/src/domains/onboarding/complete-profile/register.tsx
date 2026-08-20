@@ -9,7 +9,7 @@ registerModule({
       key: "complete-profile",
       path: "/onboarding/complete-profile",
       component: dynamic(
-        () => import("@/domains/onboarding/complete-profile/complete-profile-page")
+        () => import("@/domains/onboarding/complete-profile/complete-profile-page"),
       ),
     },
   ],

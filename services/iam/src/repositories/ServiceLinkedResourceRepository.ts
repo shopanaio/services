@@ -1,10 +1,7 @@
 import type { TransactionManager } from "@shopana/shared-kernel";
 import { ReadOnly } from "@shopana/shared-kernel";
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import type {
-  LinkedOwnerRef,
-  ProtectedResourceRef,
-} from "@shopana/rbac";
+import type { LinkedOwnerRef, ProtectedResourceRef } from "@shopana/rbac";
 import type { Database } from "../infrastructure/db/database.js";
 import { BaseRepository } from "./BaseRepository.js";
 import {
@@ -16,8 +13,7 @@ import {
 
 export type ServiceLinkedResourceBinding = ServiceLinkedResource;
 
-export interface CreateServiceLinkedResourceBindingInput
-  extends ProtectedResourceRef {
+export interface CreateServiceLinkedResourceBindingInput extends ProtectedResourceRef {
   linkedService: string;
   linkedOwnerType: string;
   linkedOwnerId: string;
@@ -30,9 +26,7 @@ export class ServiceLinkedResourceRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findManagementMode(
-    input: ProtectedResourceRef
-  ): Promise<ResourceManagementMode | null> {
+  async findManagementMode(input: ProtectedResourceRef): Promise<ResourceManagementMode | null> {
     const [record] = await this.connection
       .select({ managementMode: resourceManagement.managementMode })
       .from(resourceManagement)
@@ -40,8 +34,8 @@ export class ServiceLinkedResourceRepository extends BaseRepository {
         and(
           eq(resourceManagement.organizationId, input.organizationId),
           eq(resourceManagement.resourceKind, input.resourceKind),
-          eq(resourceManagement.resourceId, input.resourceId)
-        )
+          eq(resourceManagement.resourceId, input.resourceId),
+        ),
       )
       .limit(1);
     return record?.managementMode ?? null;
@@ -54,8 +48,8 @@ export class ServiceLinkedResourceRepository extends BaseRepository {
         and(
           eq(resourceManagement.organizationId, input.organizationId),
           eq(resourceManagement.resourceKind, input.resourceKind),
-          eq(resourceManagement.resourceId, input.resourceId)
-        )
+          eq(resourceManagement.resourceId, input.resourceId),
+        ),
       )
       .returning({ id: resourceManagement.id });
     return rows.length > 0;
@@ -63,7 +57,7 @@ export class ServiceLinkedResourceRepository extends BaseRepository {
 
   @ReadOnly()
   async findActiveByResource(
-    input: ProtectedResourceRef
+    input: ProtectedResourceRef,
   ): Promise<ServiceLinkedResourceBinding | null> {
     const [record] = await this.connection
       .select()
@@ -73,8 +67,8 @@ export class ServiceLinkedResourceRepository extends BaseRepository {
           eq(serviceLinkedResource.organizationId, input.organizationId),
           eq(serviceLinkedResource.resourceKind, input.resourceKind),
           eq(serviceLinkedResource.resourceId, input.resourceId),
-          isNull(serviceLinkedResource.deletedAt)
-        )
+          isNull(serviceLinkedResource.deletedAt),
+        ),
       )
       .limit(1);
     return record ?? null;
@@ -82,7 +76,7 @@ export class ServiceLinkedResourceRepository extends BaseRepository {
 
   @ReadOnly()
   async findActiveByResources(
-    inputs: readonly ProtectedResourceRef[]
+    inputs: readonly ProtectedResourceRef[],
   ): Promise<ServiceLinkedResourceBinding[]> {
     if (inputs.length === 0) return [];
     const organizationIds = [...new Set(inputs.map((input) => input.organizationId))];
@@ -98,17 +92,15 @@ export class ServiceLinkedResourceRepository extends BaseRepository {
           inArray(serviceLinkedResource.organizationId, organizationIds),
           inArray(serviceLinkedResource.resourceKind, resourceKinds),
           inArray(serviceLinkedResource.resourceId, resourceIds),
-          isNull(serviceLinkedResource.deletedAt)
-        )
+          isNull(serviceLinkedResource.deletedAt),
+        ),
       );
 
     return records.filter((record) => allowed.has(resourceKey(record)));
   }
 
   @ReadOnly()
-  async findActiveLinkedOwner(
-    input: LinkedOwnerRef
-  ): Promise<ServiceLinkedResourceBinding | null> {
+  async findActiveLinkedOwner(input: LinkedOwnerRef): Promise<ServiceLinkedResourceBinding | null> {
     const [record] = await this.connection
       .select()
       .from(serviceLinkedResource)
@@ -120,15 +112,15 @@ export class ServiceLinkedResourceRepository extends BaseRepository {
           eq(serviceLinkedResource.linkedService, input.linkedService),
           eq(serviceLinkedResource.linkedOwnerType, input.linkedOwnerType),
           eq(serviceLinkedResource.linkedOwnerId, input.linkedOwnerId),
-          isNull(serviceLinkedResource.deletedAt)
-        )
+          isNull(serviceLinkedResource.deletedAt),
+        ),
       )
       .limit(1);
     return record ?? null;
   }
 
   async createBinding(
-    input: CreateServiceLinkedResourceBindingInput
+    input: CreateServiceLinkedResourceBindingInput,
   ): Promise<ServiceLinkedResourceBinding> {
     const [record] = await this.connection
       .insert(serviceLinkedResource)
@@ -161,8 +153,8 @@ export class ServiceLinkedResourceRepository extends BaseRepository {
           eq(serviceLinkedResource.linkedService, input.linkedService),
           eq(serviceLinkedResource.linkedOwnerType, input.linkedOwnerType),
           eq(serviceLinkedResource.linkedOwnerId, input.linkedOwnerId),
-          isNull(serviceLinkedResource.deletedAt)
-        )
+          isNull(serviceLinkedResource.deletedAt),
+        ),
       )
       .returning({ id: serviceLinkedResource.id });
 

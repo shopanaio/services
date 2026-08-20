@@ -11,20 +11,18 @@ export type RichTextStorage = {
 };
 
 export function serializeRichTextJson(
-  value: Record<string, unknown> | null | undefined
+  value: Record<string, unknown> | null | undefined,
 ): Record<string, unknown> | null {
   return value ?? null;
 }
 
 export function serializeRichTextJsonText(
-  value: Record<string, unknown> | null | undefined
+  value: Record<string, unknown> | null | undefined,
 ): string | null {
   return value ? JSON.stringify(value) : null;
 }
 
-export function toRichTextStorage(
-  value: RichTextInput | null | undefined
-): RichTextStorage {
+export function toRichTextStorage(value: RichTextInput | null | undefined): RichTextStorage {
   if (!value) {
     return {
       text: null,

@@ -1,7 +1,4 @@
-import {
-  BaseConnectionResolver,
-  type ConnectionData,
-} from "./BaseConnectionResolver.js";
+import { BaseConnectionResolver, type ConnectionData } from "./BaseConnectionResolver.js";
 import { FileAnyResolver } from "../FileResolver.js";
 import type { FileRelayInput } from "../../../repositories/FileRepository.js";
 

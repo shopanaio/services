@@ -63,7 +63,7 @@ export const storeConfiguration = reviewsSchema.table(
   (table) => [
     unique("store_configuration_store_unique").on(table.storeId),
     index("store_configuration_updated_idx").on(table.updatedAt, table.id),
-  ]
+  ],
 );
 
 export const ratingCriterion = reviewsSchema.table(
@@ -74,9 +74,7 @@ export const ratingCriterion = reviewsSchema.table(
     code: varchar("code", { length: 64 }).notNull(),
     defaultTitle: varchar("default_title", { length: 150 }).notNull(),
     defaultDescription: text("default_description"),
-    weight: numeric("weight", { precision: 7, scale: 4, mode: "number" })
-      .notNull()
-      .default(1),
+    weight: numeric("weight", { precision: 7, scale: 4, mode: "number" }).notNull().default(1),
     isRequired: boolean("is_required").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
     appliesToAllProducts: boolean("applies_to_all_products").notNull().default(true),
@@ -96,7 +94,7 @@ export const ratingCriterion = reviewsSchema.table(
     index("rating_criterion_store_active_sort_idx")
       .on(table.storeId, table.isActive, table.sortIndex, table.id)
       .where(sql`${table.deletedAt} IS NULL`),
-  ]
+  ],
 );
 
 export const ratingCriterionTranslation = reviewsSchema.table(
@@ -121,9 +119,9 @@ export const ratingCriterionTranslation = reviewsSchema.table(
     index("rating_criterion_translation_store_locale_idx").on(
       table.storeId,
       table.locale,
-      table.criterionId
+      table.criterionId,
     ),
-  ]
+  ],
 );
 
 export const ratingCriterionAssignment = reviewsSchema.table(
@@ -146,26 +144,22 @@ export const ratingCriterionAssignment = reviewsSchema.table(
     unique("rating_criterion_assignment_unique").on(
       table.criterionId,
       table.targetType,
-      table.targetId
+      table.targetId,
     ),
     index("rating_criterion_assignment_target_idx").on(
       table.storeId,
       table.targetType,
       table.targetId,
-      table.criterionId
+      table.criterionId,
     ),
-  ]
+  ],
 );
 
 export type StoreConfiguration = typeof storeConfiguration.$inferSelect;
 export type NewStoreConfiguration = typeof storeConfiguration.$inferInsert;
 export type RatingCriterion = typeof ratingCriterion.$inferSelect;
 export type NewRatingCriterion = typeof ratingCriterion.$inferInsert;
-export type RatingCriterionTranslation =
-  typeof ratingCriterionTranslation.$inferSelect;
-export type NewRatingCriterionTranslation =
-  typeof ratingCriterionTranslation.$inferInsert;
-export type RatingCriterionAssignment =
-  typeof ratingCriterionAssignment.$inferSelect;
-export type NewRatingCriterionAssignment =
-  typeof ratingCriterionAssignment.$inferInsert;
+export type RatingCriterionTranslation = typeof ratingCriterionTranslation.$inferSelect;
+export type NewRatingCriterionTranslation = typeof ratingCriterionTranslation.$inferInsert;
+export type RatingCriterionAssignment = typeof ratingCriterionAssignment.$inferSelect;
+export type NewRatingCriterionAssignment = typeof ratingCriterionAssignment.$inferInsert;

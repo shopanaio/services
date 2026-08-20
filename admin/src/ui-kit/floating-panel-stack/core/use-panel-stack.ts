@@ -44,14 +44,14 @@ interface UsePanelStackReturn<T = unknown> {
 // ============================================================================
 
 export function usePanelStack<T = unknown>(
-  options: UsePanelStackOptions = {}
+  options: UsePanelStackOptions = {},
 ): UsePanelStackReturn<T> {
   const config = useMemo(
     () => ({
       ...DEFAULT_STACK_CONFIG,
       ...options,
     }),
-    [options.maxVisible, options.animationDuration, options.scaleFactor, options.translateY]
+    [options.maxVisible, options.animationDuration, options.scaleFactor, options.translateY],
   );
 
   const [panels, setPanels] = useState<PanelStackItem<T>[]>([]);
@@ -78,7 +78,8 @@ export function usePanelStack<T = unknown>(
             ...existing,
             type,
             data,
-            animationState: existing.animationState === "exiting" ? "entering" : existing.animationState,
+            animationState:
+              existing.animationState === "exiting" ? "entering" : existing.animationState,
             activatedAt: Date.now(), // Refresh activation time
           };
 
@@ -112,12 +113,12 @@ export function usePanelStack<T = unknown>(
           prev.map((p) =>
             p.id === id && p.animationState === "entering"
               ? { ...p, animationState: "visible" as PanelAnimationState }
-              : p
-          )
+              : p,
+          ),
         );
       }, config.animationDuration);
     },
-    [config.animationDuration]
+    [config.animationDuration],
   );
 
   // Remove a panel with exit animation
@@ -126,8 +127,8 @@ export function usePanelStack<T = unknown>(
       // Start exit animation
       setPanels((prev) =>
         prev.map((p) =>
-          p.id === id ? { ...p, animationState: "exiting" as PanelAnimationState } : p
-        )
+          p.id === id ? { ...p, animationState: "exiting" as PanelAnimationState } : p,
+        ),
       );
 
       // Remove after animation completes
@@ -138,14 +139,14 @@ export function usePanelStack<T = unknown>(
 
       exitTimeoutsRef.current.set(id, timeout);
     },
-    [config.animationDuration]
+    [config.animationDuration],
   );
 
   // Clear all panels
   const clearAll = useCallback(() => {
     // Start exit animation for all panels
     setPanels((prev) =>
-      prev.map((p) => ({ ...p, animationState: "exiting" as PanelAnimationState }))
+      prev.map((p) => ({ ...p, animationState: "exiting" as PanelAnimationState })),
     );
 
     // Remove all after animation
@@ -174,31 +175,28 @@ export function usePanelStack<T = unknown>(
         isVisible,
       };
     },
-    [config.scaleFactor, config.translateY, config.maxVisible]
+    [config.scaleFactor, config.translateY, config.maxVisible],
   );
 
   // Check if panel exists
   const hasPanel = useCallback(
     (id: PanelId) => panels.some((p) => p.id === id && p.animationState !== "exiting"),
-    [panels]
+    [panels],
   );
 
   // Get panel by id
-  const getPanel = useCallback(
-    (id: PanelId) => panels.find((p) => p.id === id),
-    [panels]
-  );
+  const getPanel = useCallback((id: PanelId) => panels.find((p) => p.id === id), [panels]);
 
   // Filter active panels (not exiting)
   const activePanels = useMemo(
     () => panels.filter((p) => p.animationState !== "exiting"),
-    [panels]
+    [panels],
   );
 
   // Sort panels by activation time (most recent first)
   const sortedPanels = useMemo(
     () => [...activePanels].sort((a, b) => b.activatedAt - a.activatedAt),
-    [activePanels]
+    [activePanels],
   );
 
   return {

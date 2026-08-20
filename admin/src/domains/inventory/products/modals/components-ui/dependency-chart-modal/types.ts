@@ -1,10 +1,5 @@
-import {
-  Node,
-  Edge } from "@xyflow/react";
-import type {
-  ApiProductComponentGroup,
-  ApiProductComponentItem,
-} from "@/graphql/types";
+import { Node, Edge } from "@xyflow/react";
+import type { ApiProductComponentGroup, ApiProductComponentItem } from "@/graphql/types";
 import type { ApiProductComponentDependencyRule } from "@/graphql/types";
 
 // ============================================================================
@@ -62,11 +57,7 @@ export interface SelectedComponentNode {
 }
 
 export type SelectedNode =
-  | SelectedRuleNode
-  | SelectedItemNode
-  | SelectedGroupNode
-  | SelectedComponentNode
-  | null;
+  SelectedRuleNode | SelectedItemNode | SelectedGroupNode | SelectedComponentNode | null;
 
 export interface RuleNodeData {
   rule: ApiProductComponentDependencyRule;

@@ -54,7 +54,7 @@ export function useDeleteFiles(): UseDeleteFilesReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

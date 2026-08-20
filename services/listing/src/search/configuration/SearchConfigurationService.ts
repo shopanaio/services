@@ -7,10 +7,7 @@ import type {
   CompiledSearchSynonymGroup,
   CompiledSearchSynonymTrieNode,
 } from "../planner/types.js";
-import {
-  searchProductBoostCacheKey,
-  searchSynonymsCacheKey,
-} from "./cacheKeys.js";
+import { searchProductBoostCacheKey, searchSynonymsCacheKey } from "./cacheKeys.js";
 
 export interface CachedApplicableProductBoost {
   readonly boostId: string;
@@ -38,12 +35,15 @@ export class SearchConfigurationService {
     return this.loadSynonymsConsistently(input, 0);
   }
 
-  private async loadSynonymsConsistently(input: {
-    storeId: string;
-    locale: string;
-    normalizationContractVersion: string;
-    normalizationProfileRevision: string;
-  }, retry: number): Promise<CompiledLocaleSynonyms> {
+  private async loadSynonymsConsistently(
+    input: {
+      storeId: string;
+      locale: string;
+      normalizationContractVersion: string;
+      normalizationProfileRevision: string;
+    },
+    retry: number,
+  ): Promise<CompiledLocaleSynonyms> {
     const key = searchSynonymsCacheKey(input.storeId, input.locale);
     const fingerprint = synonymHeadersFingerprint(
       await this.synonyms.listEnabledHeaders(input.locale),
@@ -52,10 +52,8 @@ export class SearchConfigurationService {
     if (
       cached &&
       cached.resourceFingerprint === fingerprint &&
-      cached.normalizationContractVersion ===
-        input.normalizationContractVersion &&
-      cached.normalizationProfileRevision ===
-        input.normalizationProfileRevision
+      cached.normalizationContractVersion === input.normalizationContractVersion &&
+      cached.normalizationProfileRevision === input.normalizationProfileRevision
     ) {
       return cached;
     }
@@ -86,43 +84,36 @@ export class SearchConfigurationService {
     normalizationProfileRevision: string;
   }): Promise<readonly CachedApplicableProductBoost[]> {
     const headers = await this.boosts.listEnabledHeaders(input.locale);
-    const compiled = await Promise.all(headers.map(async (header) => {
-      const key = searchProductBoostCacheKey(
-        input.storeId,
-        input.locale,
-        header.boostId,
-      );
-      const cached = await this.cache.get<CachedApplicableProductBoost>(key);
-      if (
-        cached &&
-        cached.version === header.version &&
-        cached.normalizationContractVersion ===
-          input.normalizationContractVersion &&
-        cached.normalizationProfileRevision ===
-          input.normalizationProfileRevision
-      ) {
-        return cached;
-      }
+    const compiled = await Promise.all(
+      headers.map(async (header) => {
+        const key = searchProductBoostCacheKey(input.storeId, input.locale, header.boostId);
+        const cached = await this.cache.get<CachedApplicableProductBoost>(key);
+        if (
+          cached &&
+          cached.version === header.version &&
+          cached.normalizationContractVersion === input.normalizationContractVersion &&
+          cached.normalizationProfileRevision === input.normalizationProfileRevision
+        ) {
+          return cached;
+        }
 
-      const aggregate = await this.boosts.findById(header.boostId);
-      if (!aggregate || !aggregate.boost.enabled) return null;
-      const value = compileProductBoost(aggregate);
-      await this.cache.set(key, value);
-      return value;
-    }));
+        const aggregate = await this.boosts.findById(header.boostId);
+        if (!aggregate || !aggregate.boost.enabled) return null;
+        const value = compileProductBoost(aggregate);
+        await this.cache.set(key, value);
+        return value;
+      }),
+    );
 
     return Object.freeze(
       compiled
         .filter((value): value is CachedApplicableProductBoost => value !== null)
-        .filter((value) =>
-          value.normalizationContractVersion ===
-            input.normalizationContractVersion &&
-          value.normalizationProfileRevision ===
-            input.normalizationProfileRevision
+        .filter(
+          (value) =>
+            value.normalizationContractVersion === input.normalizationContractVersion &&
+            value.normalizationProfileRevision === input.normalizationProfileRevision,
         )
-        .filter((value) =>
-          value.normalizedPhrases.includes(input.normalizedPhrase)
-        )
+        .filter((value) => value.normalizedPhrases.includes(input.normalizedPhrase))
         .sort((left, right) => left.boostId.localeCompare(right.boostId)),
     );
   }
@@ -139,13 +130,17 @@ function compileLocaleSynonyms(
   const groups: CompiledSearchSynonymGroup[] = rows.map((aggregate) =>
     Object.freeze({
       groupId: aggregate.group.groupId,
-      values: Object.freeze(aggregate.values.map((value) => Object.freeze({
-        preparedText: value.preparedText,
-        lexemes: Object.freeze(value.preparedText.split(/\s+/u).filter(Boolean)),
-        normalizationContractVersion: value.normalizationContractVersion,
-        normalizationProfileRevision: value.normalizationProfileRevision,
-      }))),
-    })
+      values: Object.freeze(
+        aggregate.values.map((value) =>
+          Object.freeze({
+            preparedText: value.preparedText,
+            lexemes: Object.freeze(value.preparedText.split(/\s+/u).filter(Boolean)),
+            normalizationContractVersion: value.normalizationContractVersion,
+            normalizationProfileRevision: value.normalizationProfileRevision,
+          }),
+        ),
+      ),
+    }),
   );
   groups.sort((left, right) => left.groupId.localeCompare(right.groupId));
   return Object.freeze({
@@ -160,10 +155,7 @@ function compileLocaleSynonyms(
 function synonymHeadersFingerprint(
   headers: readonly { groupId: string; version: number }[],
 ): string {
-  return JSON.stringify(headers.map((header) => [
-    header.groupId,
-    header.version,
-  ]));
+  return JSON.stringify(headers.map((header) => [header.groupId, header.version]));
 }
 
 interface MutableTrieNode {
@@ -200,19 +192,16 @@ function freezeTrie(node: MutableTrieNode): CompiledSearchSynonymTrieNode {
   });
 }
 
-function compileProductBoost(
-  aggregate: SearchProductBoostAggregate,
-): CachedApplicableProductBoost {
+function compileProductBoost(aggregate: SearchProductBoostAggregate): CachedApplicableProductBoost {
   const firstPhrase = aggregate.phrases[0];
   if (!firstPhrase) {
     throw new Error(`Product boost ${aggregate.boost.boostId} has no phrases`);
   }
   if (
-    aggregate.phrases.some((phrase) =>
-      phrase.normalizationContractVersion !==
-        firstPhrase.normalizationContractVersion ||
-      phrase.normalizationProfileRevision !==
-        firstPhrase.normalizationProfileRevision
+    aggregate.phrases.some(
+      (phrase) =>
+        phrase.normalizationContractVersion !== firstPhrase.normalizationContractVersion ||
+        phrase.normalizationProfileRevision !== firstPhrase.normalizationProfileRevision,
     )
   ) {
     throw new Error(

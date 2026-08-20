@@ -26,7 +26,8 @@ export class AccountLoader {
     this.expiringPoints = new DataLoader(async (ids: readonly string[]) => {
       const rows = await repository.balance.listExpiringPointsForAccounts(ids);
       const grouped = new Map<string, typeof rows>();
-      for (const row of rows) grouped.set(row.accountId, [...(grouped.get(row.accountId) ?? []), row]);
+      for (const row of rows)
+        grouped.set(row.accountId, [...(grouped.get(row.accountId) ?? []), row]);
       return ids.map((id) => grouped.get(id) ?? []);
     });
   }

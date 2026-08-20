@@ -62,15 +62,13 @@ describe("createRelayQuery (fluent API)", () => {
     it("throws when both first and last are provided", () => {
       const qb = createProductsPagination();
       expect(() => qb.getSql({ first: 10, last: 5 })).toThrow(
-        "Cannot specify both 'first' and 'last'"
+        "Cannot specify both 'first' and 'last'",
       );
     });
 
     it("throws when neither first nor last is provided", () => {
       const qb = createProductsPagination();
-      expect(() => qb.getSql({})).toThrow(
-        "Either 'first' or 'last' must be provided"
-      );
+      expect(() => qb.getSql({})).toThrow("Either 'first' or 'last' must be provided");
     });
 
     it("throws when first is not positive", () => {
@@ -91,10 +89,10 @@ describe("createRelayQuery (fluent API)", () => {
       });
 
       expect(() => qb.getSql({ first: 101 })).toThrow(
-        "Requested limit 101 exceeds maximum allowed limit 100"
+        "Requested limit 101 exceeds maximum allowed limit 100",
       );
       expect(() => qb.getSql({ last: 101 })).toThrow(
-        "Requested limit 101 exceeds maximum allowed limit 100"
+        "Requested limit 101 exceeds maximum allowed limit 100",
       );
     });
 
@@ -107,7 +105,7 @@ describe("createRelayQuery (fluent API)", () => {
       });
 
       expect(() => qb.getSql({ first: 10, after: wrongTypeCursor })).toThrow(
-        "Expected cursor type 'product', got 'category'"
+        "Expected cursor type 'product', got 'category'",
       );
     });
 
@@ -349,7 +347,10 @@ describe("createRelayQuery (fluent API)", () => {
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        orderBy: [{ field: "handle", direction: "asc" }, { field: "price", direction: "desc" }],
+        orderBy: [
+          { field: "handle", direction: "asc" },
+          { field: "price", direction: "desc" },
+        ],
         select: ["id", "handle", "price"],
       });
 
@@ -533,7 +534,10 @@ describe("createRelayQuery (fluent API)", () => {
       const { sql, meta } = qb.getSql({
         last: 10,
         before: cursor,
-        orderBy: [{ field: "handle", direction: "asc" }, { field: "price", direction: "desc" }],
+        orderBy: [
+          { field: "handle", direction: "asc" },
+          { field: "price", direction: "desc" },
+        ],
         select: ["id", "handle", "price"],
       });
 
@@ -608,7 +612,10 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql, meta } = qb.getSql({
         last: 10,
-        orderBy: [{ field: "handle", direction: "asc" }, { field: "price", direction: "desc" }],
+        orderBy: [
+          { field: "handle", direction: "asc" },
+          { field: "price", direction: "desc" },
+        ],
         select: ["id", "handle", "price"],
       });
 
@@ -800,10 +807,7 @@ describe("createRelayQuery (fluent API)", () => {
           _and: [
             { price: { _gte: 25, _lte: 200 } },
             {
-              _or: [
-                { handle: { _containsi: "premium" } },
-                { handle: { _containsi: "sale" } },
-              ],
+              _or: [{ handle: { _containsi: "premium" } }, { handle: { _containsi: "sale" } }],
             },
           ],
         },
@@ -883,7 +887,10 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql } = qb.getSql({
         first: 10,
-        orderBy: [{ field: "handle", direction: "asc" }, { field: "price", direction: "asc" }],
+        orderBy: [
+          { field: "handle", direction: "asc" },
+          { field: "price", direction: "asc" },
+        ],
         select: ["id", "handle", "price"],
       });
 
@@ -1025,7 +1032,7 @@ describe("createRelayQuery (fluent API)", () => {
           after: cursor,
           orderBy: [{ field: "handle", direction: "asc" }],
           select: ["id"],
-        })
+        }),
       ).toThrow("field mismatch");
     });
 
@@ -1050,7 +1057,7 @@ describe("createRelayQuery (fluent API)", () => {
           after: cursor,
           orderBy: [{ field: "price", direction: "asc" }],
           select: ["id"],
-        })
+        }),
       ).toThrow("direction mismatch");
     });
 
@@ -1076,7 +1083,7 @@ describe("createRelayQuery (fluent API)", () => {
           after: cursor,
           orderBy: [{ field: "price", direction: "desc" }],
           select: ["id"],
-        })
+        }),
       ).toThrow("length mismatch");
     });
   });
@@ -1413,7 +1420,7 @@ describe("cursor encode/decode", () => {
         type: "product",
         filtersHash: "",
         seek: [],
-      })
+      }),
     ).toThrow("Seek values cannot be empty");
   });
 
@@ -1423,7 +1430,7 @@ describe("cursor encode/decode", () => {
         type: "",
         filtersHash: "",
         seek: [{ field: "id", value: "1", direction: "desc" }],
-      })
+      }),
     ).toThrow("Cursor type cannot be empty");
   });
 });

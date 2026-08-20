@@ -42,7 +42,7 @@ export class CustomersBrokerActions extends BrokerActions {
   @ZodSchema(resolveBuyerEligibilityParamsSchema)
   async resolveCheckoutBuyerEligibility(
     params: Customers.ResolveCheckoutBuyerEligibilityParams,
-    callContext: BrokerCallContext
+    callContext: BrokerCallContext,
   ): Promise<Customers.ResolveCheckoutBuyerEligibilityResult> {
     const startedAt = Date.now();
     let result: Customers.ResolveCheckoutBuyerEligibilityResult;
@@ -51,9 +51,7 @@ export class CustomersBrokerActions extends BrokerActions {
       const store = await this.getStore(params.storeId);
       const kernel = Kernel.getInstance();
       const context = new ServiceContext({
-        requestId:
-          callContext.app?.correlationId ??
-          `customers-checkout-eligibility-${Date.now()}`,
+        requestId: callContext.app?.correlationId ?? `customers-checkout-eligibility-${Date.now()}`,
         kernel,
         loaders: new Loader(kernel.repository),
         locale: store.defaultLocale,
@@ -61,7 +59,7 @@ export class CustomersBrokerActions extends BrokerActions {
         store,
       });
       result = await runWithContext(context, () =>
-        kernel.runScript(ResolveCheckoutBuyerEligibilityScript, params)
+        kernel.runScript(ResolveCheckoutBuyerEligibilityScript, params),
       );
     } catch (error) {
       this.logger.error(
@@ -69,7 +67,7 @@ export class CustomersBrokerActions extends BrokerActions {
           action: CustomersCheckoutActionNames.resolveBuyerEligibility,
           errorType: error instanceof Error ? error.name : "UnknownError",
         },
-        "Customer checkout eligibility action failed"
+        "Customer checkout eligibility action failed",
       );
       result = {
         ok: false,
@@ -94,10 +92,7 @@ export class CustomersBrokerActions extends BrokerActions {
     params: Customers.GetCustomerComparisonSelectionParams,
     callContext: BrokerCallContext,
   ): Promise<Customers.GetCustomerComparisonSelectionResult> {
-    if (
-      callContext.caller.kind !== "action" ||
-      callContext.caller.service !== "catalog"
-    ) {
+    if (callContext.caller.kind !== "action" || callContext.caller.service !== "catalog") {
       return {
         ok: false,
         code: "CUSTOMER_COMPARISON_CALLER_FORBIDDEN",
@@ -110,9 +105,7 @@ export class CustomersBrokerActions extends BrokerActions {
       const store = await this.getStore(params.storeId);
       const kernel = Kernel.getInstance();
       const context = new ServiceContext({
-        requestId:
-          callContext.app?.correlationId ??
-          `customers-comparison-selection-${Date.now()}`,
+        requestId: callContext.app?.correlationId ?? `customers-comparison-selection-${Date.now()}`,
         kernel,
         loaders: new Loader(kernel.repository),
         locale: store.defaultLocale,
@@ -120,9 +113,7 @@ export class CustomersBrokerActions extends BrokerActions {
         store,
       });
       return await runWithContext(context, async () => {
-        const customer = await kernel.repository.customer.findById(
-          params.customerId,
-        );
+        const customer = await kernel.repository.customer.findById(params.customerId);
         if (!customer || customer.lifecycleStatus !== "ACTIVE") {
           return {
             ok: false as const,
@@ -131,9 +122,7 @@ export class CustomersBrokerActions extends BrokerActions {
             retryable: false,
           };
         }
-        const selection = await kernel.repository.comparison.getSelection(
-          params.customerId,
-        );
+        const selection = await kernel.repository.comparison.getSelection(params.customerId);
         return {
           ok: true as const,
           revision: selection.revision,
@@ -160,25 +149,40 @@ export class CustomersBrokerActions extends BrokerActions {
     callContext: BrokerCallContext,
   ): Promise<Customers.ValidateLoyaltySegmentReferencesResult> {
     if (callContext.caller.kind !== "action" || callContext.caller.service !== "loyalty") {
-      return { ok: false, code: "CUSTOMERS_LOYALTY_REFERENCE_VALIDATION_FAILED", message: "Only Loyalty may validate loyalty segment references", retryable: false };
+      return {
+        ok: false,
+        code: "CUSTOMERS_LOYALTY_REFERENCE_VALIDATION_FAILED",
+        message: "Only Loyalty may validate loyalty segment references",
+        retryable: false,
+      };
     }
     try {
       const store = await this.getStore(params.storeId);
       const kernel = Kernel.getInstance();
-      return runWithContext(new ServiceContext({
-        requestId: callContext.app?.correlationId ?? `loyalty-segments-${Date.now()}`,
-        kernel,
-        loaders: new Loader(kernel.repository),
-        locale: store.defaultLocale,
-        currency: store.currencyCode,
-        store,
-      }), async () => {
-        const ids = [...new Set(params.segmentIds)];
-        const found = new Set((await kernel.repository.segment.getByIds(ids)).map(({ id }) => id));
-        return { ok: true as const, missingSegmentIds: ids.filter((id) => !found.has(id)) };
-      });
+      return runWithContext(
+        new ServiceContext({
+          requestId: callContext.app?.correlationId ?? `loyalty-segments-${Date.now()}`,
+          kernel,
+          loaders: new Loader(kernel.repository),
+          locale: store.defaultLocale,
+          currency: store.currencyCode,
+          store,
+        }),
+        async () => {
+          const ids = [...new Set(params.segmentIds)];
+          const found = new Set(
+            (await kernel.repository.segment.getByIds(ids)).map(({ id }) => id),
+          );
+          return { ok: true as const, missingSegmentIds: ids.filter((id) => !found.has(id)) };
+        },
+      );
     } catch (error) {
-      return { ok: false, code: "CUSTOMERS_LOYALTY_REFERENCE_VALIDATION_FAILED", message: error instanceof Error ? error.message : "Customer segment validation failed", retryable: true };
+      return {
+        ok: false,
+        code: "CUSTOMERS_LOYALTY_REFERENCE_VALIDATION_FAILED",
+        message: error instanceof Error ? error.message : "Customer segment validation failed",
+        retryable: true,
+      };
     }
   }
 
@@ -192,8 +196,8 @@ export class CustomersBrokerActions extends BrokerActions {
     try {
       const store = await this.getStore(params.storeId);
       const kernel = Kernel.getInstance();
-      const requestId = callContext.app?.correlationId ??
-        `customers-statistics-rebuild-${Date.now()}`;
+      const requestId =
+        callContext.app?.correlationId ?? `customers-statistics-rebuild-${Date.now()}`;
       const context = new ServiceContext({
         requestId,
         kernel,
@@ -207,10 +211,7 @@ export class CustomersBrokerActions extends BrokerActions {
         const customerIds = params.customerId
           ? [params.customerId]
           : await kernel.repository.statistics.projectedCustomerIds();
-        if (
-          params.customerId &&
-          !(await kernel.repository.customer.exists(params.customerId))
-        ) {
+        if (params.customerId && !(await kernel.repository.customer.exists(params.customerId))) {
           return {
             ok: false as const,
             code: "CUSTOMER_NOT_FOUND" as const,
@@ -261,8 +262,8 @@ export class CustomersBrokerActions extends BrokerActions {
     try {
       const store = await this.getStore(params.storeId);
       const kernel = Kernel.getInstance();
-      const requestId = callContext.app?.correlationId ??
-        `customers-dynamic-segment-rebuild-${Date.now()}`;
+      const requestId =
+        callContext.app?.correlationId ?? `customers-dynamic-segment-rebuild-${Date.now()}`;
       const context = new ServiceContext({
         requestId,
         kernel,
@@ -272,10 +273,7 @@ export class CustomersBrokerActions extends BrokerActions {
         store,
       });
       const result = await runWithContext(context, async () => {
-        if (
-          params.customerId &&
-          !(await kernel.repository.customer.exists(params.customerId))
-        ) {
+        if (params.customerId && !(await kernel.repository.customer.exists(params.customerId))) {
           return {
             ok: false as const,
             code: "CUSTOMER_NOT_FOUND" as const,
@@ -367,7 +365,7 @@ export class CustomersBrokerActions extends BrokerActions {
   private async getStore(storeId: string): Promise<ContextStore> {
     const result = await this.broker.call<GetStoreByIdResult, { id: string }>(
       "project.getStoreById",
-      { id: storeId }
+      { id: storeId },
     );
     if (!result.store) {
       throw new Error("Customers store was not found");

@@ -1,7 +1,4 @@
-import {
-  ApolloMutation,
-  ZodResolver,
-} from "@shopana/type-resolver";
+import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import {
   NotificationChannelSetEnabledScript,
   NotificationDefinitionSetEnabledScript,
@@ -56,31 +53,22 @@ export class MutationResolver extends NotificationsType<Record<string, never>> {
   }
 }
 
-export class NotificationsMutationResolver extends NotificationsType<
-  Record<string, never>
-> {
+export class NotificationsMutationResolver extends NotificationsType<Record<string, never>> {
   @ZodResolver(NotificationDefinitionSetEnabledInputSchema())
-  async setDefinitionEnabled(
-    args: NotificationsMutationSetDefinitionEnabledArgs
-  ) {
-    const result = await this.$ctx.kernel.runScript(
-      NotificationDefinitionSetEnabledScript,
-      {
-        key: toDefinitionKey(args.input.key),
-        enabled: args.input.enabled,
-        expectedVersion: args.input.expectedVersion,
-      }
-    );
+  async setDefinitionEnabled(args: NotificationsMutationSetDefinitionEnabledArgs) {
+    const result = await this.$ctx.kernel.runScript(NotificationDefinitionSetEnabledScript, {
+      key: toDefinitionKey(args.input.key),
+      enabled: args.input.enabled,
+      expectedVersion: args.input.expectedVersion,
+    });
     if (result.setting) {
       const key = toDefinitionKey(result.setting.definitionKey);
-      this.$ctx.loaders.definitionSetting
-        .clear(key)
-        .prime(key, result.setting);
+      this.$ctx.loaders.definitionSetting.clear(key).prime(key, result.setting);
     }
     return {
       setting: result.setting
         ? await this.resolvers.notificationDefinitionSetting(
-            toDefinitionKey(result.setting.definitionKey)
+            toDefinitionKey(result.setting.definitionKey),
           )
         : null,
       userErrors: result.userErrors,
@@ -89,26 +77,21 @@ export class NotificationsMutationResolver extends NotificationsType<
 
   @ZodResolver(NotificationChannelSettingInputSchema())
   async setChannelEnabled(args: NotificationsMutationSetChannelEnabledArgs) {
-    const result = await this.$ctx.kernel.runScript(
-      NotificationChannelSetEnabledScript,
-      {
-        key: toDefinitionKey(args.input.key),
-        channel: toDomainChannel(args.input.channel),
-        enabled: args.input.enabled,
-        expectedVersion: args.input.expectedVersion,
-        senderName: optional(args.input.senderName),
-        senderEmail: optional(args.input.senderEmail),
-        replyTo: optional(args.input.replyTo),
-      }
-    );
+    const result = await this.$ctx.kernel.runScript(NotificationChannelSetEnabledScript, {
+      key: toDefinitionKey(args.input.key),
+      channel: toDomainChannel(args.input.channel),
+      enabled: args.input.enabled,
+      expectedVersion: args.input.expectedVersion,
+      senderName: optional(args.input.senderName),
+      senderEmail: optional(args.input.senderEmail),
+      replyTo: optional(args.input.replyTo),
+    });
     if (result.setting) {
       const key = {
         key: toDefinitionKey(result.setting.definitionKey),
         channel: result.setting.channel,
       };
-      this.$ctx.loaders.channelSetting
-        .clear(key)
-        .prime(key, result.setting);
+      this.$ctx.loaders.channelSetting.clear(key).prime(key, result.setting);
     }
     return {
       setting: result.setting
@@ -123,27 +106,22 @@ export class NotificationsMutationResolver extends NotificationsType<
 
   @ZodResolver(NotificationTemplateUpdateInputSchema())
   async updateTemplate(args: NotificationsMutationUpdateTemplateArgs) {
-    const result = await this.$ctx.kernel.runScript(
-      NotificationTemplateUpdateScript,
-      {
-        key: toDefinitionKey(args.input.key),
-        channel: toDomainChannel(args.input.channel),
-        locale: args.input.locale,
-        subjectTemplate: optional(args.input.subjectTemplate),
-        bodyTemplate: args.input.bodyTemplate,
-        plainTextTemplate: optional(args.input.plainTextTemplate),
-        expectedVersion: args.input.expectedVersion,
-      }
-    );
+    const result = await this.$ctx.kernel.runScript(NotificationTemplateUpdateScript, {
+      key: toDefinitionKey(args.input.key),
+      channel: toDomainChannel(args.input.channel),
+      locale: args.input.locale,
+      subjectTemplate: optional(args.input.subjectTemplate),
+      bodyTemplate: args.input.bodyTemplate,
+      plainTextTemplate: optional(args.input.plainTextTemplate),
+      expectedVersion: args.input.expectedVersion,
+    });
     if (result.template) {
       const key = {
         key: result.template.key,
         channel: result.template.channel,
         locale: result.template.locale,
       };
-      this.$ctx.loaders.effectiveTemplate
-        .clear(key)
-        .prime(key, result.template);
+      this.$ctx.loaders.effectiveTemplate.clear(key).prime(key, result.template);
     }
     return {
       template: result.template
@@ -175,9 +153,7 @@ export class NotificationsMutationResolver extends NotificationsType<
   }
 
   @ZodResolver(StaffNotificationRecipientInputSchema())
-  async upsertStaffRecipient(
-    args: NotificationsMutationUpsertStaffRecipientArgs
-  ) {
+  async upsertStaffRecipient(args: NotificationsMutationUpsertStaffRecipientArgs) {
     const result = await this.$ctx.kernel.runScript(StaffRecipientUpsertScript, {
       id: optional(args.input.id),
       userId: optional(args.input.userId),
@@ -189,17 +165,13 @@ export class NotificationsMutationResolver extends NotificationsType<
       eventKeys: args.input.eventKeys.map(toDefinitionKey),
     });
     return {
-      recipient: result.recipient
-        ? await this.resolvers.staffRecipient(result.recipient)
-        : null,
+      recipient: result.recipient ? await this.resolvers.staffRecipient(result.recipient) : null,
       userErrors: result.userErrors,
     };
   }
 
   @ZodResolver(StaffRecipientDeleteInputSchema())
-  async deleteStaffRecipient(
-    args: NotificationsMutationDeleteStaffRecipientArgs
-  ) {
+  async deleteStaffRecipient(args: NotificationsMutationDeleteStaffRecipientArgs) {
     const result = await this.$ctx.kernel.runScript(StaffRecipientDeleteScript, {
       id: args.input.id,
     });
@@ -235,65 +207,46 @@ export class NotificationsMutationResolver extends NotificationsType<
 
   @ZodResolver(NotificationWebhookCreateInputSchema())
   async createWebhook(args: NotificationsMutationCreateWebhookArgs) {
-    const result = await this.$ctx.kernel.runScript(
-      NotificationWebhookCreateScript,
-      {
-        eventType: args.input.eventType,
-        format: toDomainWebhookFormat(args.input.format),
-        url: args.input.url,
-        apiVersion: args.input.apiVersion,
-      }
-    );
+    const result = await this.$ctx.kernel.runScript(NotificationWebhookCreateScript, {
+      eventType: args.input.eventType,
+      format: toDomainWebhookFormat(args.input.format),
+      url: args.input.url,
+      apiVersion: args.input.apiVersion,
+    });
     if (result.webhook) {
-      this.$ctx.loaders.webhook
-        .clear(result.webhook.id)
-        .prime(result.webhook.id, result.webhook);
+      this.$ctx.loaders.webhook.clear(result.webhook.id).prime(result.webhook.id, result.webhook);
     }
     return {
-      webhook: result.webhook
-        ? await this.resolvers.webhook(result.webhook.id)
-        : null,
+      webhook: result.webhook ? await this.resolvers.webhook(result.webhook.id) : null,
       userErrors: result.userErrors,
     };
   }
 
   @ZodResolver(NotificationWebhookUpdateInputSchema())
   async updateWebhook(args: NotificationsMutationUpdateWebhookArgs) {
-    const result = await this.$ctx.kernel.runScript(
-      NotificationWebhookUpdateScript,
-      {
-        id: args.input.id,
-        eventType: optional(args.input.eventType),
-        format: args.input.format
-          ? toDomainWebhookFormat(args.input.format)
-          : undefined,
-        url: optional(args.input.url),
-        apiVersion: optional(args.input.apiVersion),
-        status: args.input.status
-          ? toDomainWebhookStatus(args.input.status)
-          : undefined,
-        expectedVersion: args.input.expectedVersion,
-      }
-    );
+    const result = await this.$ctx.kernel.runScript(NotificationWebhookUpdateScript, {
+      id: args.input.id,
+      eventType: optional(args.input.eventType),
+      format: args.input.format ? toDomainWebhookFormat(args.input.format) : undefined,
+      url: optional(args.input.url),
+      apiVersion: optional(args.input.apiVersion),
+      status: args.input.status ? toDomainWebhookStatus(args.input.status) : undefined,
+      expectedVersion: args.input.expectedVersion,
+    });
     if (result.webhook) {
-      this.$ctx.loaders.webhook
-        .clear(result.webhook.id)
-        .prime(result.webhook.id, result.webhook);
+      this.$ctx.loaders.webhook.clear(result.webhook.id).prime(result.webhook.id, result.webhook);
     }
     return {
-      webhook: result.webhook
-        ? await this.resolvers.webhook(result.webhook.id)
-        : null,
+      webhook: result.webhook ? await this.resolvers.webhook(result.webhook.id) : null,
       userErrors: result.userErrors,
     };
   }
 
   @ZodResolver(NotificationWebhookDeleteInputSchema())
   async deleteWebhook(args: NotificationsMutationDeleteWebhookArgs) {
-    const result = await this.$ctx.kernel.runScript(
-      NotificationWebhookDeleteScript,
-      { id: args.input.id }
-    );
+    const result = await this.$ctx.kernel.runScript(NotificationWebhookDeleteScript, {
+      id: args.input.id,
+    });
     if (result.deletedWebhookId) {
       this.$ctx.loaders.webhook.clear(result.deletedWebhookId);
     }
@@ -304,10 +257,7 @@ export class NotificationsMutationResolver extends NotificationsType<
   }
 
   async revealWebhookSecret() {
-    const result = await this.$ctx.kernel.runScript(
-      NotificationWebhookSecretRevealScript,
-      {}
-    );
+    const result = await this.$ctx.kernel.runScript(NotificationWebhookSecretRevealScript, {});
     return {
       secret: result.secret ?? null,
       userErrors: result.userErrors,

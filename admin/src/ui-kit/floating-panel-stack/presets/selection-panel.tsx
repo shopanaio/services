@@ -70,9 +70,7 @@ export function SelectionPanel({
 
       <Flex align="center" gap="small">
         {actions.map((action) => {
-          const isDisabled =
-            action.disabled ||
-            (action.count !== undefined && action.count === 0);
+          const isDisabled = action.disabled || (action.count !== undefined && action.count === 0);
 
           const button = (
             <Button
@@ -93,10 +91,7 @@ export function SelectionPanel({
 
           if (action.tooltip || action.count === 0) {
             return (
-              <Tooltip
-                key={action.key}
-                title={action.tooltip || "No items match this action"}
-              >
+              <Tooltip key={action.key} title={action.tooltip || "No items match this action"}>
                 {button}
               </Tooltip>
             );

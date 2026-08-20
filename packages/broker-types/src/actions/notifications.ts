@@ -60,13 +60,9 @@ export const NOTIFICATION_DEFINITION_KEYS = [
   "staff.draft_order.new",
 ] as const;
 
-export type NotificationDefinitionKey =
-  (typeof NOTIFICATION_DEFINITION_KEYS)[number];
+export type NotificationDefinitionKey = (typeof NOTIFICATION_DEFINITION_KEYS)[number];
 
-export type NotificationChannel =
-  | "EMAIL"
-  | "SMS"
-  | "WEBHOOK";
+export type NotificationChannel = "EMAIL" | "SMS" | "WEBHOOK";
 
 export type NotificationAudience = "CUSTOMER" | "STAFF";
 export type NotificationPurpose = "BUSINESS" | "TEST";
@@ -90,14 +86,7 @@ export interface NotificationSnapshot<TData = Record<string, unknown>> {
 
 export interface NotificationTemplateVariable {
   path: string;
-  type:
-    | "STRING"
-    | "NUMBER"
-    | "MONEY"
-    | "DATE"
-    | "URL"
-    | "BOOLEAN"
-    | "ARRAY";
+  type: "STRING" | "NUMBER" | "MONEY" | "DATE" | "URL" | "BOOLEAN" | "ARRAY";
   required: boolean;
   description: string;
   children?: readonly NotificationTemplateVariable[];
@@ -206,17 +195,10 @@ export interface WebhookDeliveryInput extends NotificationDeliveryInputBase {
 }
 
 export type NotificationDeliveryInput =
-  | EmailDeliveryInput
-  | SmsDeliveryInput
-  | WebhookDeliveryInput;
+  EmailDeliveryInput | SmsDeliveryInput | WebhookDeliveryInput;
 
 export interface NotificationDeliveryReceipt {
-  state:
-    | "ACCEPTED"
-    | "DELIVERED"
-    | "REJECTED"
-    | "UNKNOWN"
-    | "UNSUPPORTED";
+  state: "ACCEPTED" | "DELIVERED" | "REJECTED" | "UNKNOWN" | "UNSUPPORTED";
   providerCode: string;
   providerMessageId?: string;
   acceptedAt?: string;

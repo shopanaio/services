@@ -2,12 +2,7 @@ import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
 import { ZodError } from "zod";
-import {
-  ConfigSchema,
-  type Config,
-  type GlobalConfig,
-  type ServiceConfig,
-} from "./schema.js";
+import { ConfigSchema, type Config, type GlobalConfig, type ServiceConfig } from "./schema.js";
 
 // Cached configuration
 let cachedConfig: Config | null = null;

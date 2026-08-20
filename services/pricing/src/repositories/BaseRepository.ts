@@ -6,7 +6,7 @@ import type { Database } from "../infrastructure/db/database.js";
 export abstract class BaseRepository {
   constructor(
     protected readonly db: Database,
-    protected readonly txManager: TransactionManager<Database>
+    protected readonly txManager: TransactionManager<Database>,
   ) {}
 
   protected get connection(): Database {
@@ -22,9 +22,7 @@ export abstract class BaseRepository {
   }
 
   protected async generateUuidV7(): Promise<string> {
-    const rows = await this.connection.execute<{ id: string }>(
-      sql`SELECT uuidv7() AS id`
-    );
+    const rows = await this.connection.execute<{ id: string }>(sql`SELECT uuidv7() AS id`);
     const id = rows[0]?.id;
 
     if (!id) {
@@ -49,9 +47,7 @@ export abstract class BaseRepository {
     `);
 
     if (rows.length !== count) {
-      throw new Error(
-        `PostgreSQL uuidv7() returned ${rows.length} ids, expected ${count}`
-      );
+      throw new Error(`PostgreSQL uuidv7() returned ${rows.length} ids, expected ${count}`);
     }
 
     return rows.map((row) => row.id);

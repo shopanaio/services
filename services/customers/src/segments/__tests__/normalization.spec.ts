@@ -15,7 +15,8 @@ describe("customer segment normalization contracts", () => {
       unicodeVersion: "16.0.0",
       unicodeCaseFoldSha256: "97b00ff02d8ab202d343184b422f25c8ea8e0b30db3f9334ed3b2d909a615d02",
       unicodeNormalizationVersion: "16.0.0",
-      unicodeNormalizationSha256: "1abcdeff5f2e65df658b3df6cad760a8b199804fd906562fcb9cfa171ff9eaed",
+      unicodeNormalizationSha256:
+        "1abcdeff5f2e65df658b3df6cad760a8b199804fd906562fcb9cfa171ff9eaed",
     });
     expect(normalizeUnicodeSearchValue("  Ｓｔｒａße\u00A0Σς  ")).toBe("strasse σσ");
   });
@@ -27,12 +28,14 @@ describe("customer segment normalization contracts", () => {
 
   it("canonicalizes locale, address and birthday projection keys", () => {
     expect(normalizePreferredLocale("zh-hant-tw")).toBe("zh-Hant-TW");
-    expect(normalizeAddressKeys({
-      countryCode: "ua",
-      regionCode: "30",
-      city: "  КИЇВ  ",
-      postalCode: " 01 001 ",
-    })).toEqual({
+    expect(
+      normalizeAddressKeys({
+        countryCode: "ua",
+        regionCode: "30",
+        city: "  КИЇВ  ",
+        postalCode: " 01 001 ",
+      }),
+    ).toEqual({
       countryCode: "UA",
       regionKey: "UA-30",
       cityKey: "UA-30::київ",

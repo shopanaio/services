@@ -24,44 +24,24 @@ export const productFeature = catalogSchema.table(
     index: integer("index").array().notNull(), // int[] - tree position: [0], [0, 1], etc.
     isGroup: boolean("is_group").notNull().default(false),
     featured: boolean("featured").notNull().default(false),
-    parentId: uuid("parent_id").references(
-      (): AnyPgColumn => productFeature.id,
-      { onDelete: "cascade" }
-    ),
+    parentId: uuid("parent_id").references((): AnyPgColumn => productFeature.id, {
+      onDelete: "cascade",
+    }),
   },
   (table) => [
-    check(
-      "feature_group_no_parent",
-      sql`${table.isGroup} = false OR ${table.parentId} IS NULL`
-    ),
-    check(
-      "feature_index_not_empty",
-      sql`array_length(${table.index}, 1) > 0`
-    ),
+    check("feature_group_no_parent", sql`${table.isGroup} = false OR ${table.parentId} IS NULL`),
+    check("feature_index_not_empty", sql`array_length(${table.index}, 1) > 0`),
     check(
       "feature_group_root_only",
-      sql`${table.isGroup} = false OR array_length(${table.index}, 1) = 1`
+      sql`${table.isGroup} = false OR array_length(${table.index}, 1) = 1`,
     ),
     index("product_feature_sort_idx").on(table.productId, table.index),
     index("idx_product_feature_product_id").on(table.productId),
-    index("product_feature_children_idx").on(
-      table.productId,
-      table.parentId,
-      table.index
-    ),
-    unique("product_feature_product_id_index_uniq").on(
-      table.productId,
-      table.index
-    ),
-    unique("product_feature_product_id_slug_uniq").on(
-      table.productId,
-      table.slug
-    ),
-    unique("product_feature_product_id_id_uniq").on(
-      table.productId,
-      table.id
-    ),
-  ]
+    index("product_feature_children_idx").on(table.productId, table.parentId, table.index),
+    unique("product_feature_product_id_index_uniq").on(table.productId, table.index),
+    unique("product_feature_product_id_slug_uniq").on(table.productId, table.slug),
+    unique("product_feature_product_id_id_uniq").on(table.productId, table.id),
+  ],
 );
 
 export const productFeatureValue = catalogSchema.table(
@@ -77,19 +57,10 @@ export const productFeatureValue = catalogSchema.table(
   },
   (table) => [
     index("idx_product_feature_value_feature_id").on(table.featureId),
-    unique("product_feature_value_feature_id_index_uniq").on(
-      table.featureId,
-      table.index
-    ),
-    unique("product_feature_value_feature_id_slug_uniq").on(
-      table.featureId,
-      table.slug
-    ),
-    unique("product_feature_value_feature_id_id_uniq").on(
-      table.featureId,
-      table.id
-    ),
-  ]
+    unique("product_feature_value_feature_id_index_uniq").on(table.featureId, table.index),
+    unique("product_feature_value_feature_id_slug_uniq").on(table.featureId, table.slug),
+    unique("product_feature_value_feature_id_id_uniq").on(table.featureId, table.id),
+  ],
 );
 
 export type ProductFeature = typeof productFeature.$inferSelect;

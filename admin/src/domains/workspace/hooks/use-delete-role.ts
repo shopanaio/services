@@ -44,7 +44,7 @@ export function useDeleteRole(): UseDeleteRoleReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

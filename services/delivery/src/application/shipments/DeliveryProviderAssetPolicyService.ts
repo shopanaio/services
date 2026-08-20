@@ -8,7 +8,12 @@ export class DeliveryProviderAssetPolicyService implements DeliveryProviderAsset
   async resolve(input: Parameters<DeliveryProviderAssetPolicyPort["resolve"]>[0]) {
     const account = await this.accounts.getById(input.storeId, input.providerAccountId);
     const capability = account?.capabilityStates.shipmentProvider;
-    if (!account || account.installationId !== input.route.installationId || !capability || capability.status !== "ACTIVE") {
+    if (
+      !account ||
+      account.installationId !== input.route.installationId ||
+      !capability ||
+      capability.status !== "ACTIVE"
+    ) {
       throw new Error("DELIVERY_LABEL_ASSET_POLICY_UNAVAILABLE");
     }
     const policy = {

@@ -54,7 +54,7 @@ const orderQuery = createQuery(orders, {
 describe("Type Inference", () => {
   describe("InferFieldTypes", () => {
     it("should infer types from table columns", () => {
-      type UserTypes = typeof userQuery["__types"];
+      type UserTypes = (typeof userQuery)["__types"];
 
       // Basic field types
       expectTypeOf<UserTypes["id"]>().toEqualTypeOf<string>();
@@ -64,7 +64,7 @@ describe("Type Inference", () => {
     });
 
     it("should infer nested types from joins", () => {
-      type OrderTypes = typeof orderQuery["__types"];
+      type OrderTypes = (typeof orderQuery)["__types"];
 
       // Root fields
       expectTypeOf<OrderTypes["id"]>().toEqualTypeOf<string>();
@@ -87,7 +87,7 @@ describe("Type Inference", () => {
         isVisible: field(categories.is_visible),
       });
 
-      type CatTypes = typeof categoryQuery["__types"];
+      type CatTypes = (typeof categoryQuery)["__types"];
 
       // Keys should be the field key (not column name)
       expectTypeOf<CatTypes["id"]>().toEqualTypeOf<string>();
@@ -98,7 +98,7 @@ describe("Type Inference", () => {
 
   describe("ResolvePathType", () => {
     it("should resolve simple paths", () => {
-      type UserTypes = typeof userQuery["__types"];
+      type UserTypes = (typeof userQuery)["__types"];
 
       type IdType = ResolvePathType<UserTypes, "id">;
       type NameType = ResolvePathType<UserTypes, "name">;
@@ -112,7 +112,7 @@ describe("Type Inference", () => {
 
   describe("InferSelectResultFlat", () => {
     it("should create result type from select paths", () => {
-      type UserTypes = typeof userQuery["__types"];
+      type UserTypes = (typeof userQuery)["__types"];
       type SelectPaths = readonly ["id", "name"];
 
       type Result = InferSelectResultFlat<UserTypes, SelectPaths>;
@@ -163,7 +163,7 @@ const productsView = pgView("products_view").as((qb) =>
         END
       `.as("price_range"),
     })
-    .from(products)
+    .from(products),
 );
 
 // View query with auto-extracted fields
@@ -203,7 +203,7 @@ const productsViewWithJoinQuery = createQuery(productsView, {
 describe("View Type Inference", () => {
   describe("Auto-extracted view fields", () => {
     it("should infer types from view columns", () => {
-      type ViewTypes = typeof productsViewQuery["__types"];
+      type ViewTypes = (typeof productsViewQuery)["__types"];
 
       expectTypeOf<ViewTypes["id"]>().toEqualTypeOf<string>();
       expectTypeOf<ViewTypes["sku"]>().toEqualTypeOf<string>();
@@ -212,7 +212,7 @@ describe("View Type Inference", () => {
     });
 
     it("should infer types from computed/aliased view fields", () => {
-      type ViewTypes = typeof productsViewQuery["__types"];
+      type ViewTypes = (typeof productsViewQuery)["__types"];
 
       // Computed fields should have correct types
       expectTypeOf<ViewTypes["displayName"]>().toEqualTypeOf<string>();
@@ -222,7 +222,7 @@ describe("View Type Inference", () => {
 
   describe("Explicit view fields", () => {
     it("should infer types from explicit field definitions", () => {
-      type ViewTypes = typeof productsViewExplicitQuery["__types"];
+      type ViewTypes = (typeof productsViewExplicitQuery)["__types"];
 
       expectTypeOf<ViewTypes["id"]>().toEqualTypeOf<string>();
       expectTypeOf<ViewTypes["sku"]>().toEqualTypeOf<string>();
@@ -233,7 +233,7 @@ describe("View Type Inference", () => {
 
   describe("View with joins", () => {
     it("should infer types from view fields and joined table fields", () => {
-      type ViewTypes = typeof productsViewWithJoinQuery["__types"];
+      type ViewTypes = (typeof productsViewWithJoinQuery)["__types"];
 
       // Base view fields
       expectTypeOf<ViewTypes["id"]>().toEqualTypeOf<string>();
@@ -244,7 +244,7 @@ describe("View Type Inference", () => {
 
   describe("ResolvePathType with views", () => {
     it("should resolve simple paths from view", () => {
-      type ViewTypes = typeof productsViewQuery["__types"];
+      type ViewTypes = (typeof productsViewQuery)["__types"];
 
       type IdType = ResolvePathType<ViewTypes, "id">;
       type SkuType = ResolvePathType<ViewTypes, "sku">;
@@ -258,7 +258,7 @@ describe("View Type Inference", () => {
 
   describe("InferSelectResultFlat with views", () => {
     it("should create result type from view select paths", () => {
-      type ViewTypes = typeof productsViewQuery["__types"];
+      type ViewTypes = (typeof productsViewQuery)["__types"];
       type SelectPaths = readonly ["id", "sku", "priceRange"];
 
       type Result = InferSelectResultFlat<ViewTypes, SelectPaths>;

@@ -9,13 +9,9 @@ export class ExternalMediaLoader {
   public readonly externalMedia: DataLoader<string, ExternalMedia | null>;
 
   constructor(repository: Repository) {
-    this.externalMedia = new DataLoader<string, ExternalMedia | null>(
-      async (fileIds) => {
-        const map = await repository.externalMedia.findByFileIds(
-          fileIds as string[]
-        );
-        return fileIds.map((id) => map.get(id) ?? null);
-      }
-    );
+    this.externalMedia = new DataLoader<string, ExternalMedia | null>(async (fileIds) => {
+      const map = await repository.externalMedia.findByFileIds(fileIds as string[]);
+      return fileIds.map((id) => map.get(id) ?? null);
+    });
   }
 }

@@ -145,9 +145,7 @@ export const Roles = {
     ],
   },
   store: {
-    viewer: [
-      { resource: "store.profile", action: "read" },
-    ],
+    viewer: [{ resource: "store.profile", action: "read" }],
     manager: [
       { resource: "store.profile", action: "write" },
       { resource: "store.data", action: "write" },

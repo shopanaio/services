@@ -18,10 +18,7 @@ interface ICategoryContentTabsProps {
 // Main Component
 // ============================================================================
 
-export const CategoryContentTabs = ({
-  category,
-  onEdit,
-}: ICategoryContentTabsProps) => {
+export const CategoryContentTabs = ({ category, onEdit }: ICategoryContentTabsProps) => {
   const descriptionHtml = category.description?.html ?? null;
   const excerptHtml = category.excerpt?.html ?? null;
 
@@ -39,8 +36,7 @@ export const CategoryContentTabs = ({
       }}
       excerptEmpty={{
         title: "No excerpt added",
-        description:
-          "Add a short category excerpt for previews, search snippets, and quick scans.",
+        description: "Add a short category excerpt for previews, search snippets, and quick scans.",
       }}
       actions={
         <Flex gap={8}>

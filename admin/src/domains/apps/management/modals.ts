@@ -13,6 +13,4 @@ declare module "@/layouts/modals" {
   }
 }
 
-export const useAppManagementModal = createModalStackHook(
-  APP_MANAGEMENT_MODAL_TYPE,
-);
+export const useAppManagementModal = createModalStackHook(APP_MANAGEMENT_MODAL_TYPE);

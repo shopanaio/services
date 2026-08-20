@@ -12,21 +12,12 @@ export const TagDetailsCard = ({ tag, onRefetch }: TagDetailsCardProps) => {
   const { push: openEditIdentityModal } = useTagEditIdentityModal();
 
   return (
-    <Flex
-      vertical
-      gap={12}
-      style={{ width: "100%" }}
-      data-testid="tag-details-card"
-    >
+    <Flex vertical gap={12} style={{ width: "100%" }} data-testid="tag-details-card">
       <Paper data-testid="tag-header-section">
         <PaperHeader
           title={
             <Flex align="center" gap={8}>
-              <Tag
-                color="processing"
-                icon={<TagOutlined />}
-                data-testid="tag-detail-status"
-              >
+              <Tag color="processing" icon={<TagOutlined />} data-testid="tag-detail-status">
                 Tag
               </Tag>
               <Typography.Text type="secondary">
@@ -40,7 +31,9 @@ export const TagDetailsCard = ({ tag, onRefetch }: TagDetailsCardProps) => {
                 items: [
                   {
                     key: "identity",
-                    label: <span data-testid="tag-header-edit-identity-menu-item">Edit identity</span>,
+                    label: (
+                      <span data-testid="tag-header-edit-identity-menu-item">Edit identity</span>
+                    ),
                     onClick: () =>
                       openEditIdentityModal({
                         tag,
@@ -71,17 +64,8 @@ export const TagDetailsCard = ({ tag, onRefetch }: TagDetailsCardProps) => {
           </Typography.Title>
 
           <Flex align="center" gap={12} wrap="wrap">
-            <CopyableChip
-              label="#"
-              value={tag.handle}
-              data-testid="tag-detail-handle"
-            />
-            <CopyableChip
-              label="ID"
-              value={tag.id}
-              displayValue={tag.id.slice(0, 8)}
-              mono
-            />
+            <CopyableChip label="#" value={tag.handle} data-testid="tag-detail-handle" />
+            <CopyableChip label="ID" value={tag.id} displayValue={tag.id.slice(0, 8)} mono />
           </Flex>
         </Flex>
       </Paper>

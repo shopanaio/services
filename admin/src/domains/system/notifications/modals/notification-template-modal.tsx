@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  Alert,
-  App,
-  Empty,
-  Segmented,
-  Skeleton,
-  Tabs,
-  Tag,
-  Typography,
-} from "antd";
+import { Alert, App, Empty, Segmented, Skeleton, Tabs, Tag, Typography } from "antd";
 import { createStyles } from "antd-style";
 import { useEffect, useMemo, useState } from "react";
 import { LuPlus as PlusOutlined } from "react-icons/lu";
@@ -20,11 +11,7 @@ import {
 } from "@/graphql/types";
 import { useStore } from "@/domains/workspace";
 import { CodeEditor } from "@/domains/system/email-templates/components";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   useNotificationTemplate,
@@ -42,10 +29,7 @@ interface TemplateDraft {
   pointerVersion: number;
 }
 
-const TEMPLATE_CHANNELS = [
-  NotificationChannel.Email,
-  NotificationChannel.Sms,
-] as const;
+const TEMPLATE_CHANNELS = [NotificationChannel.Email, NotificationChannel.Sms] as const;
 
 const useStyles = createStyles(({ css, token }) => ({
   form: {
@@ -163,10 +147,7 @@ const useStyles = createStyles(({ css, token }) => ({
 function flattenVariables(
   variables: ApiNotificationTemplateVariable[],
 ): ApiNotificationTemplateVariable[] {
-  return variables.flatMap((variable) => [
-    variable,
-    ...flattenVariables(variable.children ?? []),
-  ]);
+  return variables.flatMap((variable) => [variable, ...flattenVariables(variable.children ?? [])]);
 }
 
 function toDraft(
@@ -190,11 +171,7 @@ function isSameDraft(left?: TemplateDraft, right?: TemplateDraft) {
   );
 }
 
-function setPreviewValue(
-  target: Record<string, unknown>,
-  path: string,
-  value: unknown,
-) {
+function setPreviewValue(target: Record<string, unknown>, path: string, value: unknown) {
   const parts = path.split(".").filter(Boolean);
   let current = target;
   parts.forEach((part, index) => {
@@ -210,10 +187,7 @@ function setPreviewValue(
   });
 }
 
-function buildPreviewData(
-  variables: ApiNotificationTemplateVariable[],
-  locale: string,
-) {
+function buildPreviewData(variables: ApiNotificationTemplateVariable[], locale: string) {
   const data: Record<string, unknown> = {
     store: {
       id: "00000000-0000-4000-8000-000000000001",
@@ -237,8 +211,7 @@ function buildPreviewData(
         ? 42
         : variable.path.endsWith(".otp")
           ? "123456"
-          : variable.path.split(".").at(-1)?.replaceAll("_", " ") ||
-            "Example";
+          : variable.path.split(".").at(-1)?.replaceAll("_", " ") || "Example";
     setPreviewValue(data, variable.path, value);
   });
 
@@ -250,59 +223,36 @@ export function NotificationTemplateModal() {
   const { message } = App.useApp();
   const store = useStore();
   const { payload, pop, forcePop, setDirty } = useModalStackContext();
-  const {
-    allowedChannels,
-    definitionKey,
-    onSaved,
-    title,
-    variables,
-  } = payload as NotificationTemplateModalPayload;
+  const { allowedChannels, definitionKey, onSaved, title, variables } =
+    payload as NotificationTemplateModalPayload;
   const channels = useMemo(
-    () =>
-      TEMPLATE_CHANNELS.filter((channel) =>
-        allowedChannels.includes(channel),
-      ),
+    () => TEMPLATE_CHANNELS.filter((channel) => allowedChannels.includes(channel)),
     [allowedChannels],
   );
   const [channel, setChannel] = useState<NotificationChannel>(
     channels[0] ?? NotificationChannel.Email,
   );
   const [mode, setMode] = useState<EditorMode>("Edit");
-  const [drafts, setDrafts] = useState<
-    Partial<Record<NotificationChannel, TemplateDraft>>
-  >({});
-  const [baselines, setBaselines] = useState<
-    Partial<Record<NotificationChannel, TemplateDraft>>
-  >({});
+  const [drafts, setDrafts] = useState<Partial<Record<NotificationChannel, TemplateDraft>>>({});
+  const [baselines, setBaselines] = useState<Partial<Record<NotificationChannel, TemplateDraft>>>(
+    {},
+  );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [preview, setPreview] = useState<ApiNotificationPreview | null>(null);
   const locale = store?.defaultLocale ?? "en";
-  const query = useNotificationTemplate(
-    definitionKey,
-    channel,
-    locale,
-    channels.length === 0,
-  );
+  const query = useNotificationTemplate(definitionKey, channel, locale, channels.length === 0);
   const previewMutation = useNotificationTemplatePreview();
   const mutation = useUpdateNotificationTemplate();
 
   useEffect(() => {
-    if (
-      !query.template ||
-      query.template.channel !== channel ||
-      query.template.locale !== locale
-    ) {
+    if (!query.template || query.template.channel !== channel || query.template.locale !== locale) {
       return;
     }
     const next = toDraft(query.template);
     if (!next) return;
 
-    setDrafts((current) =>
-      current[channel] ? current : { ...current, [channel]: next },
-    );
-    setBaselines((current) =>
-      current[channel] ? current : { ...current, [channel]: next },
-    );
+    setDrafts((current) => (current[channel] ? current : { ...current, [channel]: next }));
+    setBaselines((current) => (current[channel] ? current : { ...current, [channel]: next }));
   }, [channel, locale, query.template]);
 
   const dirtyChannels = channels.filter(
@@ -343,9 +293,7 @@ export function NotificationTemplateModal() {
     });
     if (result.userErrors.length > 0) {
       setPreview(null);
-      setValidationError(
-        result.userErrors.map((error) => error.message).join(" "),
-      );
+      setValidationError(result.userErrors.map((error) => error.message).join(" "));
       return;
     }
     setPreview(result.data);
@@ -367,10 +315,7 @@ export function NotificationTemplateModal() {
         );
         return;
       }
-      if (
-        dirtyChannel === NotificationChannel.Email &&
-        !candidate.subject.trim()
-      ) {
+      if (dirtyChannel === NotificationChannel.Email && !candidate.subject.trim()) {
         setChannel(dirtyChannel);
         setMode("Edit");
         setValidationError("Subject is required.");
@@ -381,15 +326,10 @@ export function NotificationTemplateModal() {
         key: definitionKey,
         channel: dirtyChannel,
         locale,
-        subjectTemplate:
-          dirtyChannel === NotificationChannel.Email
-            ? candidate.subject
-            : null,
+        subjectTemplate: dirtyChannel === NotificationChannel.Email ? candidate.subject : null,
         bodyTemplate: candidate.body,
         plainTextTemplate:
-          dirtyChannel === NotificationChannel.Email
-            ? candidate.plainText || null
-            : null,
+          dirtyChannel === NotificationChannel.Email ? candidate.plainText || null : null,
         expectedVersion: candidate.pointerVersion,
       });
 
@@ -415,10 +355,7 @@ export function NotificationTemplateModal() {
     forcePop();
   };
 
-  const flatVariables = useMemo(
-    () => flattenVariables(variables),
-    [variables],
-  );
+  const flatVariables = useMemo(() => flattenVariables(variables), [variables]);
   const channelItems = [
     ...channels.map((candidate) => ({
       key: candidate,
@@ -426,12 +363,7 @@ export function NotificationTemplateModal() {
     })),
     {
       key: "add",
-      label: (
-        <PlusOutlined
-          aria-label="Add notification channel"
-          size={14}
-        />
-      ),
+      label: <PlusOutlined aria-label="Add notification channel" size={14} />,
       disabled: true,
     },
   ];
@@ -459,9 +391,7 @@ export function NotificationTemplateModal() {
       }
     >
       <div className={styles.form}>
-        {errorMessage ? (
-          <Alert message={errorMessage} showIcon type="error" />
-        ) : null}
+        {errorMessage ? <Alert message={errorMessage} showIcon type="error" /> : null}
         {channels.length === 0 ? (
           <Empty
             className={styles.channelUnavailable}
@@ -489,9 +419,7 @@ export function NotificationTemplateModal() {
                   <Skeleton.Input active block />
                 ) : channel === NotificationChannel.Email ? (
                   <>
-                    <Typography.Text className={styles.label}>
-                      Subject
-                    </Typography.Text>
+                    <Typography.Text className={styles.label}>Subject</Typography.Text>
                     <CodeEditor
                       ariaLabel="Email subject"
                       fontSize={13}
@@ -507,9 +435,7 @@ export function NotificationTemplateModal() {
                   </>
                 ) : (
                   <>
-                    <Typography.Text className={styles.label}>
-                      Message
-                    </Typography.Text>
+                    <Typography.Text className={styles.label}>Message</Typography.Text>
                     <CodeEditor
                       ariaLabel="SMS message"
                       fontSize={13}
@@ -521,8 +447,7 @@ export function NotificationTemplateModal() {
                       value={draft?.body ?? ""}
                     />
                     <Typography.Text className={styles.helper}>
-                      Messages longer than 160 GSM-7 characters are sent as
-                      multiple segments.
+                      Messages longer than 160 GSM-7 characters are sent as multiple segments.
                     </Typography.Text>
                   </>
                 )}
@@ -532,28 +457,19 @@ export function NotificationTemplateModal() {
             {channel === NotificationChannel.Email ? (
               <Paper className={styles.editorPaper}>
                 <PaperHeader
-                  actions={
-                    <Tag className={styles.languageBadge}>
-                      HTML + Handlebars
-                    </Tag>
-                  }
+                  actions={<Tag className={styles.languageBadge}>HTML + Handlebars</Tag>}
                   className={styles.editorToolbar}
                   contained
                   title={
                     <Segmented<EditorMode>
-                      onChange={(nextMode) =>
-                        void changeMode(nextMode).catch(() => undefined)
-                      }
+                      onChange={(nextMode) => void changeMode(nextMode).catch(() => undefined)}
                       options={["Edit", "Preview", "Variables"]}
                       size="small"
                       value={mode}
                     />
                   }
                 />
-                <div
-                  className={styles.editorBody}
-                  data-testid="notification-template-body-editor"
-                >
+                <div className={styles.editorBody} data-testid="notification-template-body-editor">
                   {query.loading && !draft ? (
                     <Skeleton active paragraph={{ rows: 12 }} />
                   ) : mode === "Edit" ? (
@@ -572,15 +488,9 @@ export function NotificationTemplateModal() {
                         <Skeleton active paragraph={{ rows: 12 }} />
                       ) : preview ? (
                         <>
-                          <Typography.Title level={5}>
-                            {preview.subject}
-                          </Typography.Title>
+                          <Typography.Title level={5}>{preview.subject}</Typography.Title>
                           {preview.warnings.length > 0 ? (
-                            <Alert
-                              message={preview.warnings.join(" ")}
-                              showIcon
-                              type="warning"
-                            />
+                            <Alert message={preview.warnings.join(" ")} showIcon type="warning" />
                           ) : null}
                           {preview.html ? (
                             <iframe
@@ -590,9 +500,7 @@ export function NotificationTemplateModal() {
                               title="Notification template preview"
                             />
                           ) : (
-                            <pre className={styles.previewText}>
-                              {preview.text}
-                            </pre>
+                            <pre className={styles.previewText}>{preview.text}</pre>
                           )}
                         </>
                       ) : (
@@ -608,10 +516,7 @@ export function NotificationTemplateModal() {
                         />
                       ) : (
                         flatVariables.map((variable) => (
-                          <div
-                            className={styles.variableRow}
-                            key={variable.path}
-                          >
+                          <div className={styles.variableRow} key={variable.path}>
                             <Typography.Text
                               className={styles.variablePath}
                               copyable={{ text: `{{ ${variable.path} }}` }}

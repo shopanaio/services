@@ -5,16 +5,8 @@ import { createStyles } from "antd-style";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { NotificationWebhookFormat } from "@/graphql/types";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
-import {
-  useCreateWebhook,
-  useUpdateWebhook,
-  useWebhooks,
-} from "../hooks";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
+import { useCreateWebhook, useUpdateWebhook, useWebhooks } from "../hooks";
 import type { NotificationWebhookModalPayload } from "../modals";
 
 interface WebhookFormValues {
@@ -113,9 +105,8 @@ export function NotificationWebhookModal() {
   useEffect(() => {
     if (webhook || !webhooksQuery.capabilities) return;
     const defaultVersion =
-      webhooksQuery.capabilities.apiVersions.find(
-        (version) => version.isDefault,
-      ) ?? webhooksQuery.capabilities.apiVersions[0];
+      webhooksQuery.capabilities.apiVersions.find((version) => version.isDefault) ??
+      webhooksQuery.capabilities.apiVersions[0];
     const defaultEvent = webhooksQuery.capabilities.events[0];
     if (defaultEvent) {
       setValue("eventType", defaultEvent.eventType, {
@@ -175,13 +166,8 @@ export function NotificationWebhookModal() {
       label: version.version,
       value: version.version,
     })) ?? [];
-  const errorMessage =
-    submitError ??
-    webhooksQuery.error?.message ??
-    activeMutation.error?.message;
-  const loading =
-    activeMutation.loading ||
-    (webhooksQuery.loading && !webhooksQuery.capabilities);
+  const errorMessage = submitError ?? webhooksQuery.error?.message ?? activeMutation.error?.message;
+  const loading = activeMutation.loading || (webhooksQuery.loading && !webhooksQuery.capabilities);
 
   return (
     <ModalLayout
@@ -205,13 +191,10 @@ export function NotificationWebhookModal() {
       ) : (
         <form className={styles.form} onSubmit={submit}>
           <Typography.Text className={styles.description}>
-            Choose the event and endpoint that should receive signed
-            notifications.
+            Choose the event and endpoint that should receive signed notifications.
           </Typography.Text>
 
-          {errorMessage ? (
-            <Alert message={errorMessage} showIcon type="error" />
-          ) : null}
+          {errorMessage ? <Alert message={errorMessage} showIcon type="error" /> : null}
 
           <div className={styles.grid}>
             <label className={styles.field}>
@@ -231,9 +214,7 @@ export function NotificationWebhookModal() {
                 )}
               />
               {errors.eventType ? (
-                <span className={styles.error}>
-                  {errors.eventType.message}
-                </span>
+                <span className={styles.error}>{errors.eventType.message}</span>
               ) : null}
             </label>
 
@@ -274,9 +255,7 @@ export function NotificationWebhookModal() {
                 />
               )}
             />
-            {errors.url ? (
-              <span className={styles.error}>{errors.url.message}</span>
-            ) : null}
+            {errors.url ? <span className={styles.error}>{errors.url.message}</span> : null}
           </label>
 
           <label className={styles.field}>
@@ -296,9 +275,7 @@ export function NotificationWebhookModal() {
               )}
             />
             {errors.apiVersion ? (
-              <span className={styles.error}>
-                {errors.apiVersion.message}
-              </span>
+              <span className={styles.error}>{errors.apiVersion.message}</span>
             ) : null}
           </label>
 

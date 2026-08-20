@@ -1,10 +1,14 @@
-import { LuArrowDownAZ as SortAscendingOutlined, LuArrowUp as ArrowUpOutlined, LuArrowDown as ArrowDownOutlined } from "react-icons/lu";
-import { Button, Dropdown, Flex, Radio, Typography } from 'antd';
-import { useState } from 'react';
+import {
+  LuArrowDownAZ as SortAscendingOutlined,
+  LuArrowUp as ArrowUpOutlined,
+  LuArrowDown as ArrowDownOutlined,
+} from "react-icons/lu";
+import { Button, Dropdown, Flex, Radio, Typography } from "antd";
+import { useState } from "react";
 
 export enum SortDirection {
-  ASC = 'ASC',
-  DESC = 'DESC',
+  ASC = "ASC",
+  DESC = "DESC",
 }
 
 export interface ISortByValue {
@@ -15,10 +19,10 @@ export interface ISortByValue {
 export const getTableDirection = (key: string, v: ISortByValue) => {
   if (key === v.property) {
     if (v.direction === SortDirection.ASC) {
-      return 'ascend' as const;
+      return "ascend" as const;
     }
     if (v.direction === SortDirection.DESC) {
-      return 'descend' as const;
+      return "descend" as const;
     }
   }
 
@@ -49,15 +53,15 @@ export interface ISortByProps {
 
 export const SortBy = ({
   value = {
-    property: '',
+    property: "",
     direction: SortDirection.ASC,
   },
   options = [],
   onChangeDirection,
   onChangeProperty,
-  label = 'Sort by',
-  ascLabel = 'Asc',
-  descLabel = 'Desc',
+  label = "Sort by",
+  ascLabel = "Asc",
+  descLabel = "Desc",
 }: ISortByProps) => {
   const [open, setOpen] = useState(false);
 
@@ -69,21 +73,18 @@ export const SortBy = ({
     return {
       label: (
         <Flex>
-          <Radio
-            data-testid={`sort-radio-${itemValue}`}
-            checked={itemValue === value.property}
-          />
+          <Radio data-testid={`sort-radio-${itemValue}`} checked={itemValue === value.property} />
           <Typography.Text>{label}</Typography.Text>
         </Flex>
       ),
       key: itemValue,
-      'data-testid': `sort-item-${itemValue}`,
+      "data-testid": `sort-item-${itemValue}`,
       onClick,
     };
   });
 
   const orderItems = [
-    { type: 'divider' as const },
+    { type: "divider" as const },
     {
       onClick: () => onChangeDirection(SortDirection.ASC),
       label: (
@@ -93,8 +94,8 @@ export const SortBy = ({
         </Flex>
       ),
       key: SortDirection.ASC,
-      'data-testid': 'sort-item-asc',
-      'data-selected': value.direction === SortDirection.ASC,
+      "data-testid": "sort-item-asc",
+      "data-selected": value.direction === SortDirection.ASC,
     },
     {
       label: (
@@ -105,15 +106,15 @@ export const SortBy = ({
       ),
       onClick: () => onChangeDirection(SortDirection.DESC),
       key: SortDirection.DESC,
-      'data-testid': 'sort-item-desc',
-      'data-selected': value.direction === SortDirection.DESC,
+      "data-testid": "sort-item-desc",
+      "data-selected": value.direction === SortDirection.DESC,
     },
   ];
 
   return (
     <Dropdown
       disabled={!options.length}
-      trigger={['click']}
+      trigger={["click"]}
       menu={{
         selectable: true,
         selectedKeys: [value.direction],
@@ -123,10 +124,7 @@ export const SortBy = ({
       open={open}
       onOpenChange={setOpen}
     >
-      <Button
-        data-testid="sort-dropdown-button"
-        icon={<SortAscendingOutlined />}
-      >
+      <Button data-testid="sort-dropdown-button" icon={<SortAscendingOutlined />}>
         {label}
       </Button>
     </Dropdown>

@@ -1,4 +1,4 @@
-import { FilterOperator, IFilterOption } from './types';
+import { FilterOperator, IFilterOption } from "./types";
 
 /**
  * Operator presets for different filter types
@@ -14,30 +14,19 @@ export const numberOperators: FilterOperator[] = [
 ];
 
 /** Operators for string fields */
-export const stringOperators: FilterOperator[] = [
-  FilterOperator.ILike,
-];
+export const stringOperators: FilterOperator[] = [FilterOperator.ILike];
 
 /** Operators for date fields */
-export const dateOperators: FilterOperator[] = [
-  FilterOperator.Between,
-];
+export const dateOperators: FilterOperator[] = [FilterOperator.Between];
 
 /** Operators for enum/constant fields */
-export const enumOperators: FilterOperator[] = [
-  FilterOperator.In,
-];
+export const enumOperators: FilterOperator[] = [FilterOperator.In];
 
 /** Operators for boolean fields */
-export const booleanOperators: FilterOperator[] = [
-  FilterOperator.Is,
-  FilterOperator.IsNot,
-];
+export const booleanOperators: FilterOperator[] = [FilterOperator.Is, FilterOperator.IsNot];
 
 /** Operators for relation fields */
-export const relationOperators: FilterOperator[] = [
-  FilterOperator.In,
-];
+export const relationOperators: FilterOperator[] = [FilterOperator.In];
 
 /** Operators for price fields (same as number) */
 export const priceOperators: FilterOperator[] = numberOperators;
@@ -46,22 +35,20 @@ export const priceOperators: FilterOperator[] = numberOperators;
 export const translatableOperators: FilterOperator[] = stringOperators;
 
 /** Operators for locale fields */
-export const localeOperators: FilterOperator[] = [
-  FilterOperator.Is,
-];
+export const localeOperators: FilterOperator[] = [FilterOperator.Is];
 
 /**
  * Boolean filter options
  */
 export const booleanOptions: IFilterOption[] = [
-  { label: 'True', value: true },
-  { label: 'False', value: false },
+  { label: "True", value: true },
+  { label: "False", value: false },
 ];
 
 /**
  * Null filter options
  */
 export const nullOptions: IFilterOption[] = [
-  { label: 'Null', value: null },
-  { label: 'Not Null', value: 'NOT_NULL' },
+  { label: "Null", value: null },
+  { label: "Not Null", value: "NOT_NULL" },
 ];

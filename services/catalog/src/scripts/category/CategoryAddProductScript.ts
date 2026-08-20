@@ -1,16 +1,11 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  CategoryAddProductParams,
-  CategoryAddProductResult,
-} from "./dto/index.js";
+import type { CategoryAddProductParams, CategoryAddProductResult } from "./dto/index.js";
 
 export class CategoryAddProductScript extends BaseScript<
   CategoryAddProductParams,
   CategoryAddProductResult
 > {
-  protected async execute(
-    params: CategoryAddProductParams
-  ): Promise<CategoryAddProductResult> {
+  protected async execute(params: CategoryAddProductParams): Promise<CategoryAddProductResult> {
     const { categoryId, productId } = params;
 
     const category = await this.repository.category.findById(categoryId);
@@ -36,16 +31,11 @@ export class CategoryAddProductScript extends BaseScript<
       return { category, affectedProductIds: [], userErrors: [] };
     }
 
-    const existingLinks =
-      await this.repository.category.getProductCategoryLinks(productId);
+    const existingLinks = await this.repository.category.getProductCategoryLinks(productId);
     const shouldSetPrimary = !existingLinks.some((link) => link.isPrimary);
 
     // Add the first category as primary so product list views can display it.
-    await this.repository.category.addProductToCategory(
-      productId,
-      categoryId,
-      shouldSetPrimary,
-    );
+    await this.repository.category.addProductToCategory(productId, categoryId, shouldSetPrimary);
 
     return { category, affectedProductIds: [productId], userErrors: [] };
   }

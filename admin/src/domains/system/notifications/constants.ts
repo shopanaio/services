@@ -43,8 +43,7 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.gift_card.receipt",
         title: "Gift card receipt",
-        description:
-          "Sent to a customer if they add a recipient to a gift card",
+        description: "Sent to a customer if they add a recipient to a gift card",
       },
     ],
   },
@@ -79,8 +78,7 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.order.payment_receipt",
         title: "Order payment receipt",
-        description:
-          "Sent after a customer is charged using a saved payment method",
+        description: "Sent after a customer is charged using a saved payment method",
       },
       {
         key: "customer.order.refund",
@@ -90,14 +88,12 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.checkout.abandoned",
         title: "Abandoned checkout",
-        description:
-          "Sent when a customer leaves checkout before completing their purchase",
+        description: "Sent when a customer leaves checkout before completing their purchase",
       },
       {
         key: "customer.order.link",
         title: "Order link",
-        description:
-          "Sent when a customer requests a new link from an expired order status page",
+        description: "Sent when a customer requests a new link from an expired order status page",
       },
     ],
   },
@@ -107,26 +103,22 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.payment.error",
         title: "Payment error",
-        description:
-          "Sent when a customer's payment can't be processed during checkout",
+        description: "Sent when a customer's payment can't be processed during checkout",
       },
       {
         key: "customer.payment.pending_error",
         title: "Pending payment error",
-        description:
-          "Sent when a customer's pending payment can't be processed",
+        description: "Sent when a customer's pending payment can't be processed",
       },
       {
         key: "customer.payment.pending_success",
         title: "Pending payment success",
-        description:
-          "Sent when a customer's pending payment is processed successfully",
+        description: "Sent when a customer's pending payment is processed successfully",
       },
       {
         key: "customer.payment.reminder",
         title: "Payment reminder",
-        description:
-          "Sent on or after the due date for an unpaid order",
+        description: "Sent on or after the due date for an unpaid order",
       },
     ],
   },
@@ -142,20 +134,17 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.pos.email_to_customer",
         title: "POS email to customer",
-        description:
-          "Sent when a POS cart is emailed to a customer so it can be completed online",
+        description: "Sent when a POS cart is emailed to a customer so it can be completed online",
       },
       {
         key: "customer.pos.receipt",
         title: "POS and mobile receipt",
-        description:
-          "Sent when a customer places an in-person order and requests a receipt",
+        description: "Sent when a customer places an in-person order and requests a receipt",
       },
       {
         key: "customer.pos.exchange_receipt",
         title: "POS exchange receipt",
-        description:
-          "Sent when a customer completes a POS exchange and requests a receipt",
+        description: "Sent when a customer completes a POS exchange and requests a receipt",
       },
     ],
   },
@@ -165,21 +154,18 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.shipping.updated",
         title: "Shipping update",
-        description:
-          "Sent when you add or update an order tracking number",
+        description: "Sent when you add or update an order tracking number",
       },
       {
         key: "customer.shipping.out_for_delivery",
         title: "Out for delivery",
-        description:
-          "Sent when an order with a tracking number is out for delivery",
+        description: "Sent when an order with a tracking number is out for delivery",
         switchable: true,
       },
       {
         key: "customer.shipping.delivered",
         title: "Delivered",
-        description:
-          "Sent if an order with a tracking number is delivered",
+        description: "Sent if an order with a tracking number is delivered",
         switchable: true,
       },
     ],
@@ -196,14 +182,12 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.return.order_label_created",
         title: "Order-level return label created",
-        description:
-          "Sent when you create a return label from the order page (US only)",
+        description: "Sent when you create a return label from the order page (US only)",
       },
       {
         key: "customer.return.request_received",
         title: "Return request received",
-        description:
-          "Sent when a customer's self-service return request is received",
+        description: "Sent when a customer's self-service return request is received",
       },
       {
         key: "customer.return.request_approved",
@@ -218,8 +202,7 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.change_request.received",
         title: "Request received",
-        description:
-          "Sent when a customer's return or cancellation request is received",
+        description: "Sent when a customer's return or cancellation request is received",
       },
       {
         key: "customer.cancellation_request.declined",
@@ -239,20 +222,17 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.account.welcome",
         title: "Customer account welcome",
-        description:
-          "Sent when a customer completes their account activation",
+        description: "Sent when a customer completes their account activation",
       },
       {
         key: "customer.account.password_reset",
         title: "Customer account password reset",
-        description:
-          "Sent when a customer requests to reset their account password",
+        description: "Sent when a customer requests to reset their account password",
       },
       {
         key: "customer.account.payment_method_add_request",
         title: "Customer payment method add request",
-        description:
-          "Sent when a customer requests to add a new payment method",
+        description: "Sent when a customer requests to add a new payment method",
       },
       {
         key: "customer.b2b.access",
@@ -268,8 +248,7 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.contact",
         title: "Contact customer",
-        description:
-          "Sent when you contact a customer from the orders or customers page",
+        description: "Sent when you contact a customer from the orders or customers page",
       },
       {
         key: "customer.email_change.confirmation",
@@ -284,20 +263,17 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.auth.email_verification",
         title: "Email verification",
-        description:
-          "Sent when a customer needs to verify their email address",
+        description: "Sent when a customer needs to verify their email address",
       },
       {
         key: "customer.auth.login_code",
         title: "Login code / magic link",
-        description:
-          "Sent when a customer requests a one-time login code or magic link",
+        description: "Sent when a customer requests a one-time login code or magic link",
       },
       {
         key: "customer.auth.new_login_alert",
         title: "New login alert",
-        description:
-          "Sent after a sign-in from a new device or location",
+        description: "Sent after a sign-in from a new device or location",
         switchable: true,
       },
       {
@@ -309,8 +285,7 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.auth.account_deletion_confirmation",
         title: "Account deletion confirmation",
-        description:
-          "Sent when a customer requests account deletion so they can confirm it",
+        description: "Sent when a customer requests account deletion so they can confirm it",
       },
     ],
   },
@@ -320,8 +295,7 @@ export const CUSTOMER_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "customer.marketing.confirmation",
         title: "Customer marketing confirmation",
-        description:
-          "Sent to subscribers so they can confirm their email or SMS subscription",
+        description: "Sent to subscribers so they can confirm their email or SMS subscription",
         switchable: true,
       },
     ],
@@ -354,8 +328,7 @@ export const STAFF_NOTIFICATION_SECTIONS: NotificationSectionConfig[] = [
       {
         key: "staff.draft_order.new",
         title: "New draft order",
-        description:
-          "Sent when a customer submits a draft order. Only sent to store owner",
+        description: "Sent when a customer submits a draft order. Only sent to store owner",
         switchable: true,
       },
     ],

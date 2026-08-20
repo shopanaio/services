@@ -1,7 +1,4 @@
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { GraphQLResolveInfo } from "graphql";
 import type { ServiceContext } from "../../../context/types.js";
@@ -42,71 +39,41 @@ export const typeResolvers: Partial<Resolvers> = {
       reference: { id: string },
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
-    ) =>
-      ImageResolver.load(
-        decodeFileId(reference),
-        parseGraphqlInfo(info),
-        ctx,
-      ),
+    ) => ImageResolver.load(decodeFileId(reference), parseGraphqlInfo(info), ctx),
   },
   GenericFile: {
     __resolveReference: (
       reference: { id: string },
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
-    ) =>
-      GenericFileResolver.load(
-        decodeFileId(reference),
-        parseGraphqlInfo(info),
-        ctx,
-      ),
+    ) => GenericFileResolver.load(decodeFileId(reference), parseGraphqlInfo(info), ctx),
   },
   MediaImage: {
     __resolveReference: (
       reference: { id: string },
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
-    ) =>
-      MediaImageResolver.load(
-        decodeFileId(reference),
-        parseGraphqlInfo(info),
-        ctx,
-      ),
+    ) => MediaImageResolver.load(decodeFileId(reference), parseGraphqlInfo(info), ctx),
   },
   Video: {
     __resolveReference: (
       reference: { id: string },
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
-    ) =>
-      VideoResolver.load(
-        decodeFileId(reference),
-        parseGraphqlInfo(info),
-        ctx,
-      ),
+    ) => VideoResolver.load(decodeFileId(reference), parseGraphqlInfo(info), ctx),
   },
   ExternalVideo: {
     __resolveReference: (
       reference: { id: string },
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
-    ) =>
-      ExternalVideoResolver.load(
-        decodeFileId(reference),
-        parseGraphqlInfo(info),
-        ctx,
-      ),
+    ) => ExternalVideoResolver.load(decodeFileId(reference), parseGraphqlInfo(info), ctx),
   },
   Model3d: {
     __resolveReference: (
       reference: { id: string },
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
-    ) =>
-      Model3dResolver.load(
-        decodeFileId(reference),
-        parseGraphqlInfo(info),
-        ctx,
-      ),
+    ) => Model3dResolver.load(decodeFileId(reference), parseGraphqlInfo(info), ctx),
   },
 };

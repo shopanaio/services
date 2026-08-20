@@ -13,8 +13,7 @@ export const PaymentsCheckoutActionNames = {
 } as const;
 
 export const PaymentsCheckoutActions = {
-  getAvailableMethods:
-    `payments.${PaymentsCheckoutActionNames.getAvailableMethods}`,
+  getAvailableMethods: `payments.${PaymentsCheckoutActionNames.getAvailableMethods}`,
 } as const;
 
 /** Capability implemented by installed payment provider Apps. */
@@ -82,14 +81,10 @@ export const PaymentsActionNames = {
 } as const;
 
 export const PaymentsActions = {
-  configureProviderAccount:
-    `payments.${PaymentsActionNames.configureProviderAccount}`,
-  setProviderAccountStatus:
-    `payments.${PaymentsActionNames.setProviderAccountStatus}`,
-  configureMethodCustomization:
-    `payments.${PaymentsActionNames.configureMethodCustomization}`,
-  setMethodCustomizationStatus:
-    `payments.${PaymentsActionNames.setMethodCustomizationStatus}`,
+  configureProviderAccount: `payments.${PaymentsActionNames.configureProviderAccount}`,
+  setProviderAccountStatus: `payments.${PaymentsActionNames.setProviderAccountStatus}`,
+  configureMethodCustomization: `payments.${PaymentsActionNames.configureMethodCustomization}`,
+  setMethodCustomizationStatus: `payments.${PaymentsActionNames.setMethodCustomizationStatus}`,
   createCollection: `payments.${PaymentsActionNames.createCollection}`,
   getCollection: `payments.${PaymentsActionNames.getCollection}`,
   createSession: `payments.${PaymentsActionNames.createSession}`,
@@ -100,8 +95,7 @@ export const PaymentsActions = {
   refund: `payments.${PaymentsActionNames.refund}`,
   reconcile: `payments.${PaymentsActionNames.reconcile}`,
   expire: `payments.${PaymentsActionNames.expire}`,
-  completeProviderOperation:
-    `payments.${PaymentsActionNames.completeProviderOperation}`,
+  completeProviderOperation: `payments.${PaymentsActionNames.completeProviderOperation}`,
   reportProviderEvent: `payments.${PaymentsActionNames.reportProviderEvent}`,
 } as const;
 
@@ -137,8 +131,7 @@ export interface PaymentsCheckoutDeliveryGroupSnapshot {
   selectedOption: PaymentsCheckoutSelectedDeliveryOption | null;
 }
 
-export interface PaymentsCheckoutDeliverySnapshot
-  extends PricingCheckoutStageProvenance {
+export interface PaymentsCheckoutDeliverySnapshot extends PricingCheckoutStageProvenance {
   revision: string;
   basedOnPreliminaryRevision: string;
   destinations: readonly PaymentsCheckoutDestinationSnapshot[];
@@ -175,8 +168,7 @@ export type PaymentsCheckoutMethodSelectionResolution =
       reason: Readonly<{ code: string; message: string }>;
     }>;
 
-export interface PaymentsCheckoutEvaluationContext
-  extends PricingCheckoutEvaluationContext {
+export interface PaymentsCheckoutEvaluationContext extends PricingCheckoutEvaluationContext {
   /** Potential committed version; always the currently committed version + 1. */
   targetCheckoutVersion: number;
 }
@@ -196,8 +188,7 @@ export interface GetCheckoutAvailablePaymentMethodsParams {
   delivery: PaymentsCheckoutDeliverySnapshot;
 }
 
-export interface GetCheckoutAvailablePaymentMethodsResult
-  extends PricingCheckoutStageProvenance {
+export interface GetCheckoutAvailablePaymentMethodsResult extends PricingCheckoutStageProvenance {
   revision: string;
   discoveryRevision: string;
   customizationRevision: string;
@@ -258,12 +249,7 @@ export interface PaymentMethodCustomizationAppManifestCapability {
 // ---------------------------------------------------------------------------
 
 export type PaymentProviderAccountStatus =
-  | "CONFIGURING"
-  | "READY"
-  | "ACTIVE"
-  | "INACTIVE"
-  | "DEGRADED"
-  | "SUSPENDED";
+  "CONFIGURING" | "READY" | "ACTIVE" | "INACTIVE" | "DEGRADED" | "SUSPENDED";
 
 export type PaymentProviderMode = "TEST" | "LIVE";
 export type PaymentCaptureMode = "AUTOMATIC" | "MANUAL";
@@ -359,14 +345,7 @@ export type PaymentCollectionState =
   | "CANCELLED";
 
 export type PaymentOperationType =
-  | "SALE"
-  | "AUTHORIZE"
-  | "CONFIRM"
-  | "CANCEL"
-  | "CAPTURE"
-  | "VOID"
-  | "REFUND"
-  | "RECONCILE";
+  "SALE" | "AUTHORIZE" | "CONFIRM" | "CANCEL" | "CAPTURE" | "VOID" | "REFUND" | "RECONCILE";
 
 export type PaymentOperationState =
   | "REQUESTED"
@@ -398,28 +377,10 @@ export const PaymentSessionTransitions = {
     "EXPIRED",
     "CANCELLED",
   ],
-  REQUIRES_CONFIRMATION: [
-    "PROCESSING",
-    "PENDING",
-    "FAILED",
-    "EXPIRED",
-    "CANCELLED",
-  ],
-  PENDING: [
-    "PROCESSING",
-    "AUTHORIZED",
-    "CAPTURED",
-    "FAILED",
-    "EXPIRED",
-    "CANCELLED",
-  ],
+  REQUIRES_CONFIRMATION: ["PROCESSING", "PENDING", "FAILED", "EXPIRED", "CANCELLED"],
+  PENDING: ["PROCESSING", "AUTHORIZED", "CAPTURED", "FAILED", "EXPIRED", "CANCELLED"],
   AUTHORIZED: ["PARTIALLY_CAPTURED", "CAPTURED", "VOIDED"],
-  PARTIALLY_CAPTURED: [
-    "PARTIALLY_CAPTURED",
-    "CAPTURED",
-    "PARTIALLY_REFUNDED",
-    "REFUNDED",
-  ],
+  PARTIALLY_CAPTURED: ["PARTIALLY_CAPTURED", "CAPTURED", "PARTIALLY_REFUNDED", "REFUNDED"],
   CAPTURED: ["PARTIALLY_REFUNDED", "REFUNDED"],
   PARTIALLY_REFUNDED: ["PARTIALLY_REFUNDED", "REFUNDED"],
   VOIDED: [],
@@ -431,13 +392,7 @@ export const PaymentSessionTransitions = {
 
 export const PaymentOperationTransitions = {
   REQUESTED: ["PROCESSING", "FAILED"],
-  PROCESSING: [
-    "REQUIRES_ACTION",
-    "REQUIRES_CONFIRMATION",
-    "PENDING",
-    "SUCCEEDED",
-    "FAILED",
-  ],
+  PROCESSING: ["REQUIRES_ACTION", "REQUIRES_CONFIRMATION", "PENDING", "SUCCEEDED", "FAILED"],
   REQUIRES_ACTION: [
     "PROCESSING",
     "REQUIRES_CONFIRMATION",
@@ -446,13 +401,7 @@ export const PaymentOperationTransitions = {
     "FAILED",
     "EXPIRED",
   ],
-  REQUIRES_CONFIRMATION: [
-    "PROCESSING",
-    "PENDING",
-    "SUCCEEDED",
-    "FAILED",
-    "EXPIRED",
-  ],
+  REQUIRES_CONFIRMATION: ["PROCESSING", "PENDING", "SUCCEEDED", "FAILED", "EXPIRED"],
   PENDING: ["PROCESSING", "SUCCEEDED", "FAILED", "EXPIRED"],
   SUCCEEDED: [],
   FAILED: [],
@@ -778,8 +727,7 @@ export interface PaymentOperationAcceptedResult {
   duplicate: boolean;
 }
 
-export interface CreatePaymentSessionResult
-  extends PaymentOperationAcceptedResult {}
+export interface CreatePaymentSessionResult extends PaymentOperationAcceptedResult {}
 
 export interface GetPaymentSessionParams {
   storeId: string;
@@ -933,8 +881,7 @@ export interface PaymentProviderOperationRequestBase {
   amount: PricingCheckoutMoney;
 }
 
-export interface PaymentProviderCreatePaymentRequest
-  extends PaymentProviderOperationRequestBase {
+export interface PaymentProviderCreatePaymentRequest extends PaymentProviderOperationRequestBase {
   operation: "CREATE_PAYMENT";
   kind: PaymentSessionKind;
   providerMethodKey: string;
@@ -949,42 +896,45 @@ export interface PaymentProviderCreatePaymentRequest
  * Sent only after Payments has revalidated checkout, quote and inventory.
  * A rejected confirmation must never authorize or capture funds.
  */
-export interface PaymentProviderConfirmRequest
-  extends PaymentProviderOperationRequestBase {
+export interface PaymentProviderConfirmRequest extends PaymentProviderOperationRequestBase {
   operation: "CONFIRM";
   providerReference: string;
   confirmation: ApprovedPaymentSettlementConfirmation;
 }
 
-export interface PaymentProviderCaptureRequest
-  extends PaymentProviderOperationRequestBase {
+export interface PaymentProviderCaptureRequest extends PaymentProviderOperationRequestBase {
   operation: "CAPTURE";
   providerReference: string;
 }
 
-export interface PaymentProviderCancelRequest
-  extends Omit<PaymentProviderOperationRequestBase, "amount"> {
+export interface PaymentProviderCancelRequest extends Omit<
+  PaymentProviderOperationRequestBase,
+  "amount"
+> {
   operation: "CANCEL";
   providerReference: string;
   reason: string | null;
 }
 
-export interface PaymentProviderVoidRequest
-  extends Omit<PaymentProviderOperationRequestBase, "amount"> {
+export interface PaymentProviderVoidRequest extends Omit<
+  PaymentProviderOperationRequestBase,
+  "amount"
+> {
   operation: "VOID";
   providerReference: string;
   reason: string | null;
 }
 
-export interface PaymentProviderRefundRequest
-  extends PaymentProviderOperationRequestBase {
+export interface PaymentProviderRefundRequest extends PaymentProviderOperationRequestBase {
   operation: "REFUND";
   providerReference: string;
   reason: string | null;
 }
 
-export interface PaymentProviderReconcileRequest
-  extends Omit<PaymentProviderOperationRequestBase, "amount"> {
+export interface PaymentProviderReconcileRequest extends Omit<
+  PaymentProviderOperationRequestBase,
+  "amount"
+> {
   operation: "RECONCILE";
   providerReference: string;
 }
@@ -1081,12 +1031,7 @@ export type PaymentProviderReconcileResult =
     >;
 
 export type PaymentDisputeState =
-  | "NEEDS_RESPONSE"
-  | "UNDER_REVIEW"
-  | "WON"
-  | "LOST"
-  | "ACCEPTED"
-  | "CLOSED";
+  "NEEDS_RESPONSE" | "UNDER_REVIEW" | "WON" | "LOST" | "ACCEPTED" | "CLOSED";
 
 export interface PaymentDisputeSnapshot {
   paymentDisputeId: string;
@@ -1131,24 +1076,12 @@ export interface PaymentProviderAppContract {
   createPayment(
     request: PaymentProviderCreatePaymentRequest,
   ): Promise<PaymentProviderOperationResult>;
-  confirmPayment?(
-    request: PaymentProviderConfirmRequest,
-  ): Promise<PaymentProviderOperationResult>;
-  cancel?(
-    request: PaymentProviderCancelRequest,
-  ): Promise<PaymentProviderOperationResult>;
-  capture?(
-    request: PaymentProviderCaptureRequest,
-  ): Promise<PaymentProviderOperationResult>;
-  void?(
-    request: PaymentProviderVoidRequest,
-  ): Promise<PaymentProviderOperationResult>;
-  refund?(
-    request: PaymentProviderRefundRequest,
-  ): Promise<PaymentProviderOperationResult>;
-  reconcile?(
-    request: PaymentProviderReconcileRequest,
-  ): Promise<PaymentProviderReconcileResult>;
+  confirmPayment?(request: PaymentProviderConfirmRequest): Promise<PaymentProviderOperationResult>;
+  cancel?(request: PaymentProviderCancelRequest): Promise<PaymentProviderOperationResult>;
+  capture?(request: PaymentProviderCaptureRequest): Promise<PaymentProviderOperationResult>;
+  void?(request: PaymentProviderVoidRequest): Promise<PaymentProviderOperationResult>;
+  refund?(request: PaymentProviderRefundRequest): Promise<PaymentProviderOperationResult>;
+  reconcile?(request: PaymentProviderReconcileRequest): Promise<PaymentProviderReconcileResult>;
 }
 
 /** Local action mapping paired with the typed provider handler surface. */

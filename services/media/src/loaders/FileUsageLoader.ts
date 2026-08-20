@@ -27,9 +27,7 @@ export class FileUsageLoader {
 
   constructor(repository: Repository) {
     this.usage = new DataLoader<string, FileUsageSummary>(async (fileIds) => {
-      const usageMap = await repository.fileBackRef.getUsageByFileIds(
-        fileIds as string[]
-      );
+      const usageMap = await repository.fileBackRef.getUsageByFileIds(fileIds as string[]);
 
       return fileIds.map((fileId) => {
         const byEntity = usageMap.get(fileId) ?? [];

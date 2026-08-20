@@ -43,20 +43,12 @@ function sortSidebarItems(items: SidebarItem[]): SidebarItem[] {
     .map(({ item }) => item);
 }
 
-function mergeItem(
-  item: SidebarItem,
-  childrenByParentKey: DynamicSidebarChildren,
-): SidebarItem {
-  const staticChildren = item.children?.map((child) =>
-    mergeItem(child, childrenByParentKey),
-  );
+function mergeItem(item: SidebarItem, childrenByParentKey: DynamicSidebarChildren): SidebarItem {
+  const staticChildren = item.children?.map((child) => mergeItem(child, childrenByParentKey));
   const dynamicChildren = childrenByParentKey[item.key]?.map((child) =>
     mergeItem(child, childrenByParentKey),
   );
-  const children = sortSidebarItems([
-    ...(staticChildren ?? []),
-    ...(dynamicChildren ?? []),
-  ]);
+  const children = sortSidebarItems([...(staticChildren ?? []), ...(dynamicChildren ?? [])]);
 
   if (children.length === 0) {
     return item.children ? { ...item, children: undefined } : item;

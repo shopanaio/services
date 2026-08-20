@@ -1,9 +1,5 @@
 // Shared types
-export type {
-  RichTextInput,
-  ProductWithVariants,
-  ProductResultBase,
-} from "./shared.js";
+export type { RichTextInput, ProductWithVariants, ProductResultBase } from "./shared.js";
 
 // Product Create DTOs
 export type {
@@ -17,16 +13,10 @@ export type {
 } from "./ProductCreateDto.js";
 
 // Product Update DTOs
-export type {
-  ProductUpdateParams,
-  ProductUpdateResult,
-} from "./ProductUpdateDto.js";
+export type { ProductUpdateParams, ProductUpdateResult } from "./ProductUpdateDto.js";
 
 // Product Delete DTOs
-export type {
-  ProductDeleteParams,
-  ProductDeleteResult,
-} from "./ProductDeleteDto.js";
+export type { ProductDeleteParams, ProductDeleteResult } from "./ProductDeleteDto.js";
 
 // Product Update Status DTOs
 export type {

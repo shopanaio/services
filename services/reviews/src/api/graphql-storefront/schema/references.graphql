@@ -1,7 +1,9 @@
 extend type Product @key(fields: "id") {
   id: ID! @external
 
-  """Published reviews for this product."""
+  """
+  Published reviews for this product.
+  """
   reviews(
     first: Int
     after: Cursor
@@ -13,10 +15,14 @@ extend type Product @key(fields: "id") {
     sort: ReviewSort = NEWEST
   ): ReviewConnection!
 
-  """Published review aggregates for this product."""
+  """
+  Published review aggregates for this product.
+  """
   reviewSummary: ProductReviewSummary!
 
-  """Rating criteria applicable to this product in display order."""
+  """
+  Rating criteria applicable to this product in display order.
+  """
   reviewRatingCriteria(
     first: Int
     after: Cursor
@@ -24,7 +30,9 @@ extend type Product @key(fields: "id") {
     before: Cursor
   ): ReviewRatingCriterionConnection!
 
-  """Published questions for this product."""
+  """
+  Published questions for this product.
+  """
   questions(
     first: Int
     after: Cursor
@@ -34,7 +42,9 @@ extend type Product @key(fields: "id") {
     sort: ProductQuestionSort = NEWEST
   ): ProductQuestionConnection!
 
-  """Published question and answer aggregates for this product."""
+  """
+  Published question and answer aggregates for this product.
+  """
   questionSummary: ProductQuestionSummary!
 }
 
@@ -81,12 +91,7 @@ extend type Customer @key(fields: "id") {
     sort: ProductQuestionSort = NEWEST
   ): ProductQuestionConnection!
 
-  reviewRequests(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): ReviewRequestConnection!
+  reviewRequests(first: Int, after: Cursor, last: Int, before: Cursor): ReviewRequestConnection!
 }
 
 extend interface Media {

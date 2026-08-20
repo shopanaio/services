@@ -98,12 +98,8 @@ export class MutationResolver extends CustomersType<Record<string, never>> {
   }
 }
 
-export class CustomersMutationResolver extends CustomersType<
-  Record<string, never>
-> {
-  async customerAccountsSettingsUpdate(
-    args: CustomersMutationCustomerAccountsSettingsUpdateArgs,
-  ) {
+export class CustomersMutationResolver extends CustomersType<Record<string, never>> {
+  async customerAccountsSettingsUpdate(args: CustomersMutationCustomerAccountsSettingsUpdateArgs) {
     const store = this.$ctx.store;
     if (!this.$ctx.hasUser) {
       return {
@@ -134,60 +130,52 @@ export class CustomersMutationResolver extends CustomersType<
       return {
         settings: null,
         userErrors: [
-          userError(
-            "INVALID_INPUT",
-            "Authentication methods must be unique",
-            ["input", "enabledMethods"],
-          ),
+          userError("INVALID_INPUT", "Authentication methods must be unique", [
+            "input",
+            "enabledMethods",
+          ]),
         ],
       };
     }
-    if (
-      !Number.isSafeInteger(args.input.expectedRevision) ||
-      args.input.expectedRevision < 1
-    ) {
+    if (!Number.isSafeInteger(args.input.expectedRevision) || args.input.expectedRevision < 1) {
       return {
         settings: null,
         userErrors: [
-          userError(
-            "INVALID_INPUT",
-            "Expected revision must be a positive integer",
-            ["input", "expectedRevision"],
-          ),
+          userError("INVALID_INPUT", "Expected revision must be a positive integer", [
+            "input",
+            "expectedRevision",
+          ]),
         ],
       };
     }
 
-    const configuration =
-      await this.$ctx.kernel.repository.storefrontAuth.findByStoreId(store.id);
+    const configuration = await this.$ctx.kernel.repository.storefrontAuth.findByStoreId(store.id);
     if (!configuration || configuration.organizationId !== store.organizationId) {
       return {
         settings: null,
-        userErrors: [
-          userError("NOT_FOUND", "Customer account settings are not available"),
-        ],
+        userErrors: [userError("NOT_FOUND", "Customer account settings are not available")],
       };
     }
 
-    const result = await this.$ctx.kernel.getServices().broker.call<
-      IAM.ServiceLinkedApplicationAuthSettingsResult,
-      IAM.UpdateServiceLinkedApplicationAuthSettingsParams
-    >("iam.updateServiceLinkedApplicationAuthSettings", {
-      applicationId: configuration.applicationId,
-      organizationId: store.organizationId,
-      userId: this.$ctx.user.id,
-      enabledMethods,
-      expectedRevision: args.input.expectedRevision,
-      linkedOwner: {
-        linkedOwnerType: "store",
-        linkedOwnerId: store.id,
-      },
-    });
+    const result = await this.$ctx.kernel
+      .getServices()
+      .broker.call<
+        IAM.ServiceLinkedApplicationAuthSettingsResult,
+        IAM.UpdateServiceLinkedApplicationAuthSettingsParams
+      >("iam.updateServiceLinkedApplicationAuthSettings", {
+        applicationId: configuration.applicationId,
+        organizationId: store.organizationId,
+        userId: this.$ctx.user.id,
+        enabledMethods,
+        expectedRevision: args.input.expectedRevision,
+        linkedOwner: {
+          linkedOwnerType: "store",
+          linkedOwnerId: store.id,
+        },
+      });
 
     return {
-      settings: result.settings
-        ? toGraphqlCustomerAccountsSettings(result.settings)
-        : null,
+      settings: result.settings ? toGraphqlCustomerAccountsSettings(result.settings) : null,
       userErrors: result.success
         ? []
         : [
@@ -210,23 +198,19 @@ export class CustomersMutationResolver extends CustomersType<
       context: this.mutationWorkflowContext(),
     };
 
-    const result = (await this.$ctx.kernel
-      .getServices()
-      .broker.runWorkflow(
-        "customers.customerCreate",
-        workflowInput,
-        {
-          source: "workflow",
-          workflowId: `customerCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-          stepId: "start",
-        },
-        { adminContext: this.$ctx.adminContext },
-      )) as CustomerCreateWorkflowResult;
+    const result = (await this.$ctx.kernel.getServices().broker.runWorkflow(
+      "customers.customerCreate",
+      workflowInput,
+      {
+        source: "workflow",
+        workflowId: `customerCreate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+        stepId: "start",
+      },
+      { adminContext: this.$ctx.adminContext },
+    )) as CustomerCreateWorkflowResult;
 
     return {
-      customer: result.customer
-        ? new CustomerResolver(result.customer.id, this.$ctx)
-        : null,
+      customer: result.customer ? new CustomerResolver(result.customer.id, this.$ctx) : null,
       userErrors: result.userErrors,
     };
   }
@@ -271,24 +255,20 @@ export class CustomersMutationResolver extends CustomersType<
       context: this.mutationWorkflowContext(),
     };
 
-    const result = (await this.$ctx.kernel
-      .getServices()
-      .broker.runWorkflow(
-        "customers.customerUpdate",
-        workflowInput,
-        {
-          source: "workflow",
-          workflowId: `customerUpdate:${customerId}:${this.$ctx.requestId}`,
-          stepId: "start",
-        },
-        { adminContext: this.$ctx.adminContext },
-      )) as CustomerUpdateWorkflowResult;
+    const result = (await this.$ctx.kernel.getServices().broker.runWorkflow(
+      "customers.customerUpdate",
+      workflowInput,
+      {
+        source: "workflow",
+        workflowId: `customerUpdate:${customerId}:${this.$ctx.requestId}`,
+        stepId: "start",
+      },
+      { adminContext: this.$ctx.adminContext },
+    )) as CustomerUpdateWorkflowResult;
 
     this.$ctx.loaders.customer.clear(customerId);
     return {
-      customer: result.customer
-        ? new CustomerResolver(result.customer.id, this.$ctx)
-        : null,
+      customer: result.customer ? new CustomerResolver(result.customer.id, this.$ctx) : null,
       operationResults: result.operationResults.map((operation) => ({
         type: toGraphqlOperationType(operation.type),
         applied: operation.applied,
@@ -321,26 +301,21 @@ export class CustomersMutationResolver extends CustomersType<
       },
       context: this.mutationWorkflowContext(),
     };
-    const result = (await this.$ctx.kernel
-      .getServices()
-      .broker.runWorkflow(
-        "customers.customerDelete",
-        workflowInput,
-        {
-          source: "workflow",
-          workflowId: `customerDelete:${customerId}:${this.$ctx.requestId}`,
-          stepId: "start",
-        },
-        { adminContext: this.$ctx.adminContext },
-      )) as CustomerDeleteWorkflowResult;
+    const result = (await this.$ctx.kernel.getServices().broker.runWorkflow(
+      "customers.customerDelete",
+      workflowInput,
+      {
+        source: "workflow",
+        workflowId: `customerDelete:${customerId}:${this.$ctx.requestId}`,
+        stepId: "start",
+      },
+      { adminContext: this.$ctx.adminContext },
+    )) as CustomerDeleteWorkflowResult;
 
     this.$ctx.loaders.customer.clear(customerId);
     return {
       deletedCustomerId: result.deletedCustomerId
-        ? encodeGlobalIdByType(
-            result.deletedCustomerId,
-            GlobalIdEntity.Customer
-          )
+        ? encodeGlobalIdByType(result.deletedCustomerId, GlobalIdEntity.Customer)
         : null,
       userErrors: result.userErrors,
     };
@@ -356,22 +331,17 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  private async runEntityWorkflow<TResult>(
-    operation: string,
-    input: unknown
-  ): Promise<TResult> {
-    return (await this.$ctx.kernel
-      .getServices()
-      .broker.runWorkflow(
-        `customers.${operation}`,
-        input,
-        {
-          source: "workflow",
-          workflowId: `${operation}:${this.$ctx.store.id}:${this.$ctx.requestId}`,
-          stepId: "start",
-        },
-        { adminContext: this.$ctx.adminContext },
-      )) as TResult;
+  private async runEntityWorkflow<TResult>(operation: string, input: unknown): Promise<TResult> {
+    return (await this.$ctx.kernel.getServices().broker.runWorkflow(
+      `customers.${operation}`,
+      input,
+      {
+        source: "workflow",
+        workflowId: `${operation}:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+        stepId: "start",
+      },
+      { adminContext: this.$ctx.adminContext },
+    )) as TResult;
   }
 
   @ZodResolver(CustomerGroupCreateInputSchema())
@@ -386,12 +356,10 @@ export class CustomersMutationResolver extends CustomersType<
     };
     const result = await this.runEntityWorkflow<CustomerGroupCreateWorkflowResult>(
       "customerGroupCreate",
-      workflowInput
+      workflowInput,
     );
     return {
-      group: result.group
-        ? new CustomerGroupResolver(result.group.id, this.$ctx)
-        : null,
+      group: result.group ? new CustomerGroupResolver(result.group.id, this.$ctx) : null,
       userErrors: result.userErrors,
     };
   }
@@ -402,11 +370,7 @@ export class CustomersMutationResolver extends CustomersType<
     const raw = args.operations ?? {};
     const operations = {} as CustomerGroupUpdateWorkflowInput["params"]["operations"];
     if (raw.definition) {
-      operations.definition = pickPresent(raw.definition, [
-        "code",
-        "name",
-        "description",
-      ]);
+      operations.definition = pickPresent(raw.definition, ["code", "name", "description"]);
     }
     if (raw.state) {
       operations.state = pickPresent(raw.state, ["isDefault", "isActive"]);
@@ -418,7 +382,7 @@ export class CustomersMutationResolver extends CustomersType<
             input.customerId,
             GlobalIdEntity.Customer,
             ["operations", "memberships", "create", String(index), "customerId"],
-            errors
+            errors,
           );
           return customerId
             ? [
@@ -433,14 +397,8 @@ export class CustomersMutationResolver extends CustomersType<
           const membershipId = decodeIdForUpdate(
             input.membershipId,
             GlobalIdEntity.CustomerGroupMembership,
-            [
-              "operations",
-              "memberships",
-              "update",
-              String(index),
-              "membershipId",
-            ],
-            errors
+            ["operations", "memberships", "update", String(index), "membershipId"],
+            errors,
           );
           return membershipId
             ? [
@@ -455,7 +413,7 @@ export class CustomersMutationResolver extends CustomersType<
           raw.memberships.deleteIds ?? [],
           GlobalIdEntity.CustomerGroupMembership,
           ["operations", "memberships", "deleteIds"],
-          errors
+          errors,
         ),
       };
     }
@@ -471,18 +429,15 @@ export class CustomersMutationResolver extends CustomersType<
       },
       context: this.mutationWorkflowContext(),
     };
-    const result =
-      await this.runEntityWorkflow<CustomerGroupUpdateWorkflowResult>(
-        "customerGroupUpdate",
-        workflowInput
-      );
+    const result = await this.runEntityWorkflow<CustomerGroupUpdateWorkflowResult>(
+      "customerGroupUpdate",
+      workflowInput,
+    );
     this.$ctx.loaders.group.clear(groupId);
     this.$ctx.loaders.groupCustomersCount.clear(groupId);
     if (operations.memberships) this.$ctx.loaders.groupMembership.clearAll();
     return {
-      group: result.group
-        ? new CustomerGroupResolver(result.group.id, this.$ctx)
-        : null,
+      group: result.group ? new CustomerGroupResolver(result.group.id, this.$ctx) : null,
       operationResults: mapOperationResults(result.operationResults),
       userErrors: result.userErrors,
     };
@@ -501,7 +456,7 @@ export class CustomersMutationResolver extends CustomersType<
     };
     const result = await this.runEntityWorkflow<CustomerGroupDeleteWorkflowResult>(
       "customerGroupDelete",
-      workflowInput
+      workflowInput,
     );
     if (result.deletedGroupId) {
       this.$ctx.loaders.group.clear(groupId);
@@ -523,12 +478,10 @@ export class CustomersMutationResolver extends CustomersType<
     };
     const result = await this.runEntityWorkflow<CustomerTagCreateWorkflowResult>(
       "customerTagCreate",
-      workflowInput
+      workflowInput,
     );
     return {
-      tag: result.tag
-        ? new CustomerTagResolver(result.tag.id, this.$ctx)
-        : null,
+      tag: result.tag ? new CustomerTagResolver(result.tag.id, this.$ctx) : null,
       userErrors: result.userErrors,
     };
   }
@@ -547,7 +500,7 @@ export class CustomersMutationResolver extends CustomersType<
             input.customerId,
             GlobalIdEntity.Customer,
             ["operations", "assignments", "create", String(index), "customerId"],
-            errors
+            errors,
           );
           return customerId ? [{ customerId }] : [];
         }),
@@ -555,7 +508,7 @@ export class CustomersMutationResolver extends CustomersType<
           raw.assignments.deleteIds ?? [],
           GlobalIdEntity.CustomerTagAssignment,
           ["operations", "assignments", "deleteIds"],
-          errors
+          errors,
         ),
       };
     }
@@ -569,15 +522,13 @@ export class CustomersMutationResolver extends CustomersType<
     };
     const result = await this.runEntityWorkflow<CustomerTagUpdateWorkflowResult>(
       "customerTagUpdate",
-      workflowInput
+      workflowInput,
     );
     this.$ctx.loaders.tag.clear(tagId);
     this.$ctx.loaders.tagCustomersCount.clear(tagId);
     if (operations.assignments) this.$ctx.loaders.tagAssignment.clearAll();
     return {
-      tag: result.tag
-        ? new CustomerTagResolver(result.tag.id, this.$ctx)
-        : null,
+      tag: result.tag ? new CustomerTagResolver(result.tag.id, this.$ctx) : null,
       operationResults: mapOperationResults(result.operationResults),
       userErrors: result.userErrors,
     };
@@ -596,7 +547,7 @@ export class CustomersMutationResolver extends CustomersType<
     };
     const result = await this.runEntityWorkflow<CustomerTagDeleteWorkflowResult>(
       "customerTagDelete",
-      workflowInput
+      workflowInput,
     );
     if (result.deletedTagId) {
       this.$ctx.loaders.tag.clear(tagId);
@@ -611,9 +562,7 @@ export class CustomersMutationResolver extends CustomersType<
   }
 
   @ZodResolver(CustomerSegmentCreateInputSchema())
-  async customerSegmentCreate(
-    args: CustomersMutationCustomerSegmentCreateArgs
-  ) {
+  async customerSegmentCreate(args: CustomersMutationCustomerSegmentCreateArgs) {
     const workflowInput: CustomerSegmentCreateWorkflowInput = {
       params: {
         ...args.input,
@@ -625,36 +574,24 @@ export class CustomersMutationResolver extends CustomersType<
       },
       context: this.mutationWorkflowContext(),
     };
-    const result =
-      await this.runEntityWorkflow<CustomerSegmentCreateWorkflowResult>(
-        "customerSegmentCreate",
-        workflowInput
-      );
+    const result = await this.runEntityWorkflow<CustomerSegmentCreateWorkflowResult>(
+      "customerSegmentCreate",
+      workflowInput,
+    );
     return {
-      segment: result.segment
-        ? new CustomerSegmentResolver(result.segment.id, this.$ctx)
-        : null,
+      segment: result.segment ? new CustomerSegmentResolver(result.segment.id, this.$ctx) : null,
       userErrors: result.userErrors,
     };
   }
 
-  async customerSegmentUpdate(
-    args: CustomersMutationCustomerSegmentUpdateArgs
-  ) {
-    const segmentId = safeDecodeId(
-      args.segmentId,
-      GlobalIdEntity.CustomerSegment
-    );
+  async customerSegmentUpdate(args: CustomersMutationCustomerSegmentUpdateArgs) {
+    const segmentId = safeDecodeId(args.segmentId, GlobalIdEntity.CustomerSegment);
     const errors = !segmentId ? [invalidIdError(["segmentId"])] : [];
     const raw = args.operations ?? {};
     const operations = {} as CustomerSegmentUpdateWorkflowInput["params"]["operations"];
 
     if (raw.details) {
-      operations.details = pickPresent(raw.details, [
-        "name",
-        "description",
-        "color",
-      ]);
+      operations.details = pickPresent(raw.details, ["name", "description", "color"]);
     }
     if (raw.definition) {
       operations.definition = { query: raw.definition.query };
@@ -662,9 +599,9 @@ export class CustomersMutationResolver extends CustomersType<
     if (raw.state) {
       operations.state = pickPresent(raw.state, ["status"]);
       if (operations.state.status) {
-        operations.state.status = String(
-          operations.state.status
-        ) as NonNullable<typeof operations.state.status>;
+        operations.state.status = String(operations.state.status) as NonNullable<
+          typeof operations.state.status
+        >;
       }
     }
     if (raw.memberships) {
@@ -674,34 +611,24 @@ export class CustomersMutationResolver extends CustomersType<
             input.customerId,
             GlobalIdEntity.Customer,
             ["operations", "memberships", "create", String(index), "customerId"],
-            errors
+            errors,
           );
-          return customerId
-            ? [{ customerId, ...pickPresent(input, ["expiresAt"]) }]
-            : [];
+          return customerId ? [{ customerId, ...pickPresent(input, ["expiresAt"]) }] : [];
         }),
         update: (raw.memberships.update ?? []).flatMap((input, index) => {
           const membershipId = decodeIdForUpdate(
             input.membershipId,
             GlobalIdEntity.CustomerSegmentMembership,
-            [
-              "operations",
-              "memberships",
-              "update",
-              String(index),
-              "membershipId",
-            ],
-            errors
+            ["operations", "memberships", "update", String(index), "membershipId"],
+            errors,
           );
-          return membershipId
-            ? [{ membershipId, ...pickPresent(input, ["expiresAt"]) }]
-            : [];
+          return membershipId ? [{ membershipId, ...pickPresent(input, ["expiresAt"]) }] : [];
         }),
         deleteIds: decodeIdsForUpdate(
           raw.memberships.deleteIds ?? [],
           GlobalIdEntity.CustomerSegmentMembership,
           ["operations", "memberships", "deleteIds"],
-          errors
+          errors,
         ),
       };
       if (raw.memberships.setCustomerIds != null) {
@@ -709,7 +636,7 @@ export class CustomersMutationResolver extends CustomersType<
           raw.memberships.setCustomerIds,
           GlobalIdEntity.Customer,
           ["operations", "memberships", "setCustomerIds"],
-          errors
+          errors,
         );
       }
       operations.memberships = memberships;
@@ -726,31 +653,23 @@ export class CustomersMutationResolver extends CustomersType<
       },
       context: this.mutationWorkflowContext(),
     };
-    const result =
-      await this.runEntityWorkflow<CustomerSegmentUpdateWorkflowResult>(
-        "customerSegmentUpdate",
-        workflowInput
-      );
+    const result = await this.runEntityWorkflow<CustomerSegmentUpdateWorkflowResult>(
+      "customerSegmentUpdate",
+      workflowInput,
+    );
     this.$ctx.loaders.segment.clear(segmentId);
     this.$ctx.loaders.segmentCustomersCount.clear(segmentId);
     if (operations.memberships) this.$ctx.loaders.segmentMembership.clearAll();
     return {
-      segment: result.segment
-        ? new CustomerSegmentResolver(result.segment.id, this.$ctx)
-        : null,
+      segment: result.segment ? new CustomerSegmentResolver(result.segment.id, this.$ctx) : null,
       operationResults: mapOperationResults(result.operationResults),
       userErrors: result.userErrors,
     };
   }
 
   @ZodResolver(CustomerSegmentDeleteInputSchema())
-  async customerSegmentDelete(
-    args: CustomersMutationCustomerSegmentDeleteArgs
-  ) {
-    const segmentId = safeDecodeId(
-      args.input.id,
-      GlobalIdEntity.CustomerSegment
-    );
+  async customerSegmentDelete(args: CustomersMutationCustomerSegmentDeleteArgs) {
+    const segmentId = safeDecodeId(args.input.id, GlobalIdEntity.CustomerSegment);
     if (!segmentId) {
       return invalidDeletePayload("deletedSegmentId");
     }
@@ -762,21 +681,17 @@ export class CustomersMutationResolver extends CustomersType<
       },
       context: this.mutationWorkflowContext(),
     };
-    const result =
-      await this.runEntityWorkflow<CustomerSegmentDeleteWorkflowResult>(
-        "customerSegmentDelete",
-        workflowInput
-      );
+    const result = await this.runEntityWorkflow<CustomerSegmentDeleteWorkflowResult>(
+      "customerSegmentDelete",
+      workflowInput,
+    );
     if (result.deletedSegmentId) {
       this.$ctx.loaders.segment.clear(segmentId);
       this.$ctx.loaders.segmentCustomersCount.clear(segmentId);
     }
     return {
       deletedSegmentId: result.deletedSegmentId
-        ? encodeGlobalIdByType(
-            result.deletedSegmentId,
-            GlobalIdEntity.CustomerSegment
-          )
+        ? encodeGlobalIdByType(result.deletedSegmentId, GlobalIdEntity.CustomerSegment)
         : null,
       userErrors: result.userErrors,
     };
@@ -784,21 +699,11 @@ export class CustomersMutationResolver extends CustomersType<
 
   @ZodResolver(CustomerMergeCreateInputSchema())
   async customerMergeCreate(args: CustomersMutationCustomerMergeCreateArgs) {
-    const sourceCustomerId = safeDecodeId(
-      args.input.sourceCustomerId,
-      GlobalIdEntity.Customer
-    );
-    const targetCustomerId = safeDecodeId(
-      args.input.targetCustomerId,
-      GlobalIdEntity.Customer
-    );
+    const sourceCustomerId = safeDecodeId(args.input.sourceCustomerId, GlobalIdEntity.Customer);
+    const targetCustomerId = safeDecodeId(args.input.targetCustomerId, GlobalIdEntity.Customer);
     const errors = [
-      ...(!sourceCustomerId
-        ? [invalidIdError(["sourceCustomerId"])]
-        : []),
-      ...(!targetCustomerId
-        ? [invalidIdError(["targetCustomerId"])]
-        : []),
+      ...(!sourceCustomerId ? [invalidIdError(["sourceCustomerId"])] : []),
+      ...(!targetCustomerId ? [invalidIdError(["targetCustomerId"])] : []),
     ];
     if (!sourceCustomerId || !targetCustomerId) {
       return { merge: null, userErrors: errors };
@@ -814,12 +719,10 @@ export class CustomersMutationResolver extends CustomersType<
     };
     const result = await this.runEntityWorkflow<CustomerMergeCreateWorkflowResult>(
       "customerMergeCreate",
-      workflowInput
+      workflowInput,
     );
     return {
-      merge: result.merge
-        ? new CustomerMergeResolver(result.merge.id, this.$ctx)
-        : null,
+      merge: result.merge ? new CustomerMergeResolver(result.merge.id, this.$ctx) : null,
       userErrors: result.userErrors,
     };
   }
@@ -840,7 +743,7 @@ export class CustomersMutationResolver extends CustomersType<
         value,
         GlobalIdEntity.Customer,
         ["operations", field],
-        errors
+        errors,
       );
       if (customerId) operations[field] = customerId;
     }
@@ -852,16 +755,13 @@ export class CustomersMutationResolver extends CustomersType<
       params: { id: mergeId, operations },
       context: this.mutationWorkflowContext(),
     };
-    const result =
-      await this.runEntityWorkflow<CustomerMergeUpdateWorkflowResult>(
-        "customerMergeUpdate",
-        workflowInput
-      );
+    const result = await this.runEntityWorkflow<CustomerMergeUpdateWorkflowResult>(
+      "customerMergeUpdate",
+      workflowInput,
+    );
     this.$ctx.loaders.customerMerge.clear(mergeId);
     return {
-      merge: result.merge
-        ? new CustomerMergeResolver(result.merge.id, this.$ctx)
-        : null,
+      merge: result.merge ? new CustomerMergeResolver(result.merge.id, this.$ctx) : null,
       operationResults: mapOperationResults(result.operationResults),
       userErrors: result.userErrors,
     };
@@ -880,7 +780,7 @@ export class CustomersMutationResolver extends CustomersType<
     };
     const result = await this.runEntityWorkflow<CustomerMergeDeleteWorkflowResult>(
       "customerMergeDelete",
-      workflowInput
+      workflowInput,
     );
     if (result.deletedMergeId) {
       this.$ctx.loaders.customerMerge.clear(mergeId);
@@ -894,13 +794,8 @@ export class CustomersMutationResolver extends CustomersType<
   }
 
   @ZodResolver(CustomerDataRequestCreateInputSchema())
-  async customerDataRequestCreate(
-    args: CustomersMutationCustomerDataRequestCreateArgs
-  ) {
-    const customerId = safeDecodeId(
-      args.input.customerId,
-      GlobalIdEntity.Customer
-    );
+  async customerDataRequestCreate(args: CustomersMutationCustomerDataRequestCreateArgs) {
+    const customerId = safeDecodeId(args.input.customerId, GlobalIdEntity.Customer);
     if (!customerId) {
       return invalidCreatePayload("dataRequest", ["customerId"]);
     }
@@ -914,11 +809,10 @@ export class CustomersMutationResolver extends CustomersType<
       },
       context: this.mutationWorkflowContext(),
     };
-    const result =
-      await this.runEntityWorkflow<CustomerDataRequestCreateWorkflowResult>(
-        "customerDataRequestCreate",
-        workflowInput
-      );
+    const result = await this.runEntityWorkflow<CustomerDataRequestCreateWorkflowResult>(
+      "customerDataRequestCreate",
+      workflowInput,
+    );
     return {
       dataRequest: result.dataRequest
         ? new CustomerDataRequestResolver(result.dataRequest.id, this.$ctx)
@@ -927,16 +821,9 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  async customerDataRequestUpdate(
-    args: CustomersMutationCustomerDataRequestUpdateArgs
-  ) {
-    const dataRequestId = safeDecodeId(
-      args.dataRequestId,
-      GlobalIdEntity.CustomerDataRequest
-    );
-    const errors = !dataRequestId
-      ? [invalidIdError(["dataRequestId"])]
-      : [];
+  async customerDataRequestUpdate(args: CustomersMutationCustomerDataRequestUpdateArgs) {
+    const dataRequestId = safeDecodeId(args.dataRequestId, GlobalIdEntity.CustomerDataRequest);
+    const errors = !dataRequestId ? [invalidIdError(["dataRequestId"])] : [];
     const raw = args.operations ?? {};
     const operations = pickPresent(raw, [
       "customerId",
@@ -951,7 +838,7 @@ export class CustomersMutationResolver extends CustomersType<
         operations.customerId,
         GlobalIdEntity.Customer,
         ["operations", "customerId"],
-        errors
+        errors,
       );
       if (customerId) operations.customerId = customerId;
     }
@@ -967,27 +854,20 @@ export class CustomersMutationResolver extends CustomersType<
       });
     }
     if (operations.type) {
-      operations.type = String(
-        operations.type
-      ) as NonNullable<typeof operations.type>;
+      operations.type = String(operations.type) as NonNullable<typeof operations.type>;
     }
     if (!dataRequestId || errors.length > 0) {
-      return invalidUpdatePayload(
-        "dataRequest",
-        "dataRequestUpdate",
-        errors
-      );
+      return invalidUpdatePayload("dataRequest", "dataRequestUpdate", errors);
     }
 
     const workflowInput: CustomerDataRequestUpdateWorkflowInput = {
       params: { id: dataRequestId, operations },
       context: this.mutationWorkflowContext(),
     };
-    const result =
-      await this.runEntityWorkflow<CustomerDataRequestUpdateWorkflowResult>(
-        "customerDataRequestUpdate",
-        workflowInput
-      );
+    const result = await this.runEntityWorkflow<CustomerDataRequestUpdateWorkflowResult>(
+      "customerDataRequestUpdate",
+      workflowInput,
+    );
     this.$ctx.loaders.customerDataRequest.clear(dataRequestId);
     return {
       dataRequest: result.dataRequest
@@ -999,13 +879,8 @@ export class CustomersMutationResolver extends CustomersType<
   }
 
   @ZodResolver(CustomerDataRequestDeleteInputSchema())
-  async customerDataRequestDelete(
-    args: CustomersMutationCustomerDataRequestDeleteArgs
-  ) {
-    const dataRequestId = safeDecodeId(
-      args.input.id,
-      GlobalIdEntity.CustomerDataRequest
-    );
+  async customerDataRequestDelete(args: CustomersMutationCustomerDataRequestDeleteArgs) {
+    const dataRequestId = safeDecodeId(args.input.id, GlobalIdEntity.CustomerDataRequest);
     if (!dataRequestId) {
       return invalidDeletePayload("deletedDataRequestId");
     }
@@ -1014,39 +889,35 @@ export class CustomersMutationResolver extends CustomersType<
       params: { id: dataRequestId },
       context: this.mutationWorkflowContext(),
     };
-    const result =
-      await this.runEntityWorkflow<CustomerDataRequestDeleteWorkflowResult>(
-        "customerDataRequestDelete",
-        workflowInput
-      );
+    const result = await this.runEntityWorkflow<CustomerDataRequestDeleteWorkflowResult>(
+      "customerDataRequestDelete",
+      workflowInput,
+    );
     if (result.deletedDataRequestId) {
       this.$ctx.loaders.customerDataRequest.clear(dataRequestId);
     }
     return {
       deletedDataRequestId: result.deletedDataRequestId
-        ? encodeGlobalIdByType(
-            result.deletedDataRequestId,
-            GlobalIdEntity.CustomerDataRequest
-          )
+        ? encodeGlobalIdByType(result.deletedDataRequestId, GlobalIdEntity.CustomerDataRequest)
         : null,
       userErrors: result.userErrors,
     };
   }
 }
 
-function toGraphqlCustomerAccountsSettings(
-  settings: IAM.ServiceLinkedApplicationAuthSettings,
-) {
+function toGraphqlCustomerAccountsSettings(settings: IAM.ServiceLinkedApplicationAuthSettings) {
   return {
     ...settings,
-    methods: settings.methods.map((method) => ({
-      ...method,
-      method: method.method.toUpperCase(),
-    })).concat({
-      method: "PHONE_OTP",
-      enabled: false,
-      configured: false,
-    }),
+    methods: settings.methods
+      .map((method) => ({
+        ...method,
+        method: method.method.toUpperCase(),
+      }))
+      .concat({
+        method: "PHONE_OTP",
+        enabled: false,
+        configured: false,
+      }),
     providers: settings.providers.map((provider) => ({
       ...provider,
       provider: provider.provider.toUpperCase(),
@@ -1062,10 +933,7 @@ function safeDecodeCustomerId(globalId: string): string | null {
   return safeDecodeId(globalId, GlobalIdEntity.Customer);
 }
 
-function safeDecodeId(
-  globalId: string,
-  entity: GlobalIdEntity
-): string | null {
+function safeDecodeId(globalId: string, entity: GlobalIdEntity): string | null {
   try {
     return decodeGlobalIdByType(globalId, entity);
   } catch {
@@ -1098,7 +966,7 @@ function invalidDeletePayload(field: string) {
 function invalidUpdatePayload(
   field: string,
   type: CustomerUpdateOperationType,
-  errors: Array<{ message: string; code: string; field?: string[] }>
+  errors: Array<{ message: string; code: string; field?: string[] }>,
 ) {
   return {
     [field]: null,
@@ -1114,7 +982,7 @@ function invalidUpdatePayload(
 }
 
 function invalidConsentUpdatePayload(
-  errors: Array<{ message: string; code: string; field?: string[] }>
+  errors: Array<{ message: string; code: string; field?: string[] }>,
 ) {
   return {
     consent: null,
@@ -1135,7 +1003,7 @@ function mapOperationResults(
     type: CustomerUpdateOperationType;
     applied: boolean;
     errors: Array<{ message: string; code?: string; field?: string[] }>;
-  }>
+  }>,
 ) {
   return results.map((result) => ({
     type: toGraphqlOperationType(result.type),
@@ -1148,7 +1016,7 @@ function decodeIdForUpdate(
   globalId: string,
   entity: GlobalIdEntity,
   field: string[],
-  errors: Array<{ message: string; code: string; field: string[] }>
+  errors: Array<{ message: string; code: string; field: string[] }>,
 ): string | null {
   const id = safeDecodeId(globalId, entity);
   if (!id) errors.push(invalidIdError(field));
@@ -1159,23 +1027,15 @@ function decodeIdsForUpdate(
   globalIds: readonly string[],
   entity: GlobalIdEntity,
   field: string[],
-  errors: Array<{ message: string; code: string; field: string[] }>
+  errors: Array<{ message: string; code: string; field: string[] }>,
 ): string[] {
   return globalIds.flatMap((globalId, index) => {
-    const id = decodeIdForUpdate(
-      globalId,
-      entity,
-      [...field, String(index)],
-      errors
-    );
+    const id = decodeIdForUpdate(globalId, entity, [...field, String(index)], errors);
     return id ? [id] : [];
   });
 }
 
-function pickPresent(
-  input: object,
-  fields: readonly string[]
-): Record<string, unknown> {
+function pickPresent(input: object, fields: readonly string[]): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const field of fields) {
     if (hasOwn(input, field)) {

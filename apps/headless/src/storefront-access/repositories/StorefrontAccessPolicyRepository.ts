@@ -5,10 +5,7 @@ import {
   storefrontAccessPolicies,
   storefrontAccessPolicyGrants,
 } from "./models/index.js";
-import type {
-  HeadlessStorefrontScope,
-  StorefrontAccessPolicyRecord,
-} from "./types.js";
+import type { HeadlessStorefrontScope, StorefrontAccessPolicyRecord } from "./types.js";
 
 export class StorefrontAccessPolicyRepository extends BaseRepository {
   create(
@@ -30,20 +27,16 @@ export class StorefrontAccessPolicyRepository extends BaseRepository {
         .returning();
       const policy = rows[0];
       if (!policy) {
-        throw new Error(
-          "Storefront access policy was not returned by PostgreSQL",
-        );
+        throw new Error("Storefront access policy was not returned by PostgreSQL");
       }
       const normalized = normalizePermissions(permissions);
       if (normalized.length > 0) {
-        await this.connection
-          .insert(storefrontAccessPolicyGrants)
-          .values(
-            normalized.map((permission) => ({
-              connectionId,
-              permission,
-            })),
-          );
+        await this.connection.insert(storefrontAccessPolicyGrants).values(
+          normalized.map((permission) => ({
+            connectionId,
+            permission,
+          })),
+        );
       }
       return Object.freeze({
         ...policy,
@@ -69,10 +62,7 @@ export class StorefrontAccessPolicyRepository extends BaseRepository {
       .from(storefrontAccessPolicies)
       .leftJoin(
         storefrontAccessPolicyGrants,
-        eq(
-          storefrontAccessPolicyGrants.connectionId,
-          storefrontAccessPolicies.connectionId,
-        ),
+        eq(storefrontAccessPolicyGrants.connectionId, storefrontAccessPolicies.connectionId),
       )
       .where(
         and(
@@ -93,9 +83,7 @@ export class StorefrontAccessPolicyRepository extends BaseRepository {
       createdAt: first.createdAt,
       updatedAt: first.updatedAt,
       permissions: Object.freeze(
-        rows.flatMap(({ permission }) =>
-          permission === null ? [] : [permission],
-        ),
+        rows.flatMap(({ permission }) => (permission === null ? [] : [permission])),
       ),
     });
   }
@@ -129,19 +117,15 @@ export class StorefrontAccessPolicyRepository extends BaseRepository {
 
       await this.connection
         .delete(storefrontAccessPolicyGrants)
-        .where(
-          eq(storefrontAccessPolicyGrants.connectionId, connectionId),
-        );
+        .where(eq(storefrontAccessPolicyGrants.connectionId, connectionId));
       const normalized = normalizePermissions(permissions);
       if (normalized.length > 0) {
-        await this.connection
-          .insert(storefrontAccessPolicyGrants)
-          .values(
-            normalized.map((permission) => ({
-              connectionId,
-              permission,
-            })),
-          );
+        await this.connection.insert(storefrontAccessPolicyGrants).values(
+          normalized.map((permission) => ({
+            connectionId,
+            permission,
+          })),
+        );
       }
       return Object.freeze({
         ...policy,
@@ -150,10 +134,7 @@ export class StorefrontAccessPolicyRepository extends BaseRepository {
     });
   }
 
-  private policyOwnership(
-    scope: HeadlessStorefrontScope,
-    connectionId: string,
-  ) {
+  private policyOwnership(scope: HeadlessStorefrontScope, connectionId: string) {
     return and(
       eq(storefrontAccessPolicies.connectionId, connectionId),
       eq(storefrontAccessPolicies.organizationId, scope.organizationId),
@@ -182,8 +163,6 @@ export class StorefrontAccessPolicyRepository extends BaseRepository {
   }
 }
 
-function normalizePermissions(
-  permissions: readonly string[],
-): readonly string[] {
+function normalizePermissions(permissions: readonly string[]): readonly string[] {
   return Object.freeze([...new Set(permissions)].sort());
 }

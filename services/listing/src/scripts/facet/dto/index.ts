@@ -1,9 +1,5 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
-import type {
-  Facet,
-  FacetValue,
-  FacetSwatch,
-} from "../../../repositories/models/index.js";
+import type { Facet, FacetValue, FacetSwatch } from "../../../repositories/models/index.js";
 import type { FacetScopeType } from "../../../repositories/facet/facetScopes.js";
 
 export interface FacetCreateSourceInput {

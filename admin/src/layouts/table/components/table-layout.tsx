@@ -1,27 +1,15 @@
-import { createStyles } from 'antd-style';
-import { Flex } from 'antd';
+import { createStyles } from "antd-style";
+import { Flex } from "antd";
 
-import { LayoutSkeleton } from '@/layouts/table/components/skeleton';
-import {
-  ITableLayoutHeaderProps,
-  TableLayoutHeader,
-} from '@/layouts/table/components/header';
-import {
-  DataTable,
-  IDataTableProps,
-} from '@/layouts/table/components/table';
-import {
-  ITablePaginationProps,
-  TablePagination,
-} from '@/layouts/table/components/pagination';
-import {
-  TableBottomBorder,
-  TableTopBorder,
-} from '@/layouts/table/components/table-borders';
+import { LayoutSkeleton } from "@/layouts/table/components/skeleton";
+import { ITableLayoutHeaderProps, TableLayoutHeader } from "@/layouts/table/components/header";
+import { DataTable, IDataTableProps } from "@/layouts/table/components/table";
+import { ITablePaginationProps, TablePagination } from "@/layouts/table/components/pagination";
+import { TableBottomBorder, TableTopBorder } from "@/layouts/table/components/table-borders";
 import {
   ITableNavigationProps,
   TableNavigation,
-} from '@/layouts/table/components/navigation/navigation';
+} from "@/layouts/table/components/navigation/navigation";
 
 const useStyles = createStyles(({ token }) => ({
   wrapper: {
@@ -32,9 +20,9 @@ const useStyles = createStyles(({ token }) => ({
   navigationWrapper: {
     background: token.colorBgLayout,
     margin: `0 -${token.padding}px`,
-    overflow: 'hidden',
+    overflow: "hidden",
     padding: `${token.padding}px 15px 0`,
-    position: 'sticky',
+    position: "sticky",
     top: -4,
     zIndex: 100,
   },
@@ -46,18 +34,18 @@ const useStyles = createStyles(({ token }) => ({
     minHeight: "calc(100vh - 250px)",
   },
   tableWrapper: {
-    boxSizing: 'border-box',
+    boxSizing: "border-box",
     backgroundColor: token.colorBgContainer,
     borderLeft: `1px solid ${token.colorBorder}`,
     borderRight: `1px solid ${token.colorBorder}`,
-    borderBottom: 'none',
-    width: '100%',
+    borderBottom: "none",
+    width: "100%",
     minHeight: "calc(100vh - 300px)",
   },
   paginationWrapper: {
-    position: 'sticky',
+    position: "sticky",
     bottom: 0,
-    overflow: 'hidden',
+    overflow: "hidden",
     padding: `0 ${token.paddingLG}px ${token.padding}px`,
     margin: `0 -${token.paddingLG}px`,
     background: token.colorBgLayout,
@@ -90,13 +78,13 @@ export const TableLayout = <TData extends { id?: string | number }>({
   }
 
   return (
-    <div className={styles.wrapper} data-testid={`${name || 'data'}-layout`}>
+    <div className={styles.wrapper} data-testid={`${name || "data"}-layout`}>
       <TableLayoutHeader {...headerProps} />
       <div className={styles.navigationWrapper}>
         {navigationProps && <TableNavigation {...navigationProps} />}
         <div className={styles.navigationSpacer} />
       </div>
-      <Flex vertical style={{ width: '100%' }}>
+      <Flex vertical style={{ width: "100%" }}>
         <div className={styles.tableContainer}>
           <TableTopBorder />
           <div className={styles.tableWrapper}>

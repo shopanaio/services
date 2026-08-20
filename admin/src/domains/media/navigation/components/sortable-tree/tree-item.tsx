@@ -6,8 +6,7 @@ import { HiChevronDown, HiChevronRight } from "react-icons/hi";
 import { MdClose, MdDragIndicator, MdEdit } from "react-icons/md";
 import { createStyles } from "antd-style";
 
-export interface TreeItemProps
-  extends Omit<HTMLAttributes<HTMLLIElement>, "id" | "content"> {
+export interface TreeItemProps extends Omit<HTMLAttributes<HTMLLIElement>, "id" | "content"> {
   title: string;
   childCount?: number;
   clone?: boolean;
@@ -156,11 +155,7 @@ export const TreeItem = forwardRef<HTMLDivElement, TreeItemProps>(
               icon={collapsed ? <HiChevronRight size={18} /> : <HiChevronDown size={18} />}
             />
           ) : null}
-          <Typography.Text
-            ellipsis
-            className={styles.title}
-            data-testid="tree-item-title"
-          >
+          <Typography.Text ellipsis className={styles.title} data-testid="tree-item-title">
             {title || "Untitled item..."}
           </Typography.Text>
           {!clone && onEdit ? (

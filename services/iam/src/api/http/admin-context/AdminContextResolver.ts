@@ -5,10 +5,7 @@ import {
   type Action,
   type ResourceName,
 } from "@shopana/rbac";
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { Util } from "casbin";
 import type {
   AdminPermission,
@@ -41,11 +38,8 @@ const IMPLIED_ACTIONS = {
 export class AdminContextResolver {
   constructor(private readonly kernel: Kernel) {}
 
-  async resolve(
-    input: AdminContextResolveInput,
-  ): Promise<ResolvedAdminAccessContext | null> {
-    const validated =
-      await this.kernel.repository.user.validateAccessJwt(input.accessToken);
+  async resolve(input: AdminContextResolveInput): Promise<ResolvedAdminAccessContext | null> {
+    const validated = await this.kernel.repository.user.validateAccessJwt(input.accessToken);
     if (!validated) return null;
 
     const user = Object.freeze({
@@ -70,10 +64,7 @@ export class AdminContextResolver {
     let organizationId: string | undefined;
     if (input.organizationId) {
       try {
-        organizationId = decodeGlobalIdByType(
-          input.organizationId,
-          GlobalIdEntity.Organization,
-        );
+        organizationId = decodeGlobalIdByType(input.organizationId, GlobalIdEntity.Organization);
       } catch {
         return null;
       }
@@ -81,16 +72,13 @@ export class AdminContextResolver {
 
     let store: ContextStore | null = null;
     if (input.storeName) {
-      const result = await this.kernel.getServices().broker.call<
-        ProjectStoreResult,
-        { readonly name: string }
-      >("project.getCurrentStore", { name: input.storeName });
+      const result = await this.kernel
+        .getServices()
+        .broker.call<ProjectStoreResult, { readonly name: string }>("project.getCurrentStore", {
+          name: input.storeName,
+        });
       store = result?.store ?? null;
-      if (
-        !store ||
-        (organizationId !== undefined &&
-          organizationId !== store.organizationId)
-      ) {
+      if (!store || (organizationId !== undefined && organizationId !== store.organizationId)) {
         return null;
       }
       organizationId = store.organizationId;
@@ -99,10 +87,7 @@ export class AdminContextResolver {
 
     const member = isSiteAdmin
       ? null
-      : await this.kernel.repository.organization.findMember(
-          organizationId,
-          validated.user.id,
-        );
+      : await this.kernel.repository.organization.findMember(organizationId, validated.user.id);
     if (!isSiteAdmin && !member) return null;
 
     const isOrganizationOwner = member?.isOwner ?? false;
@@ -110,11 +95,7 @@ export class AdminContextResolver {
       isSiteAdmin || isOrganizationOwner
         ? Object.freeze<AdminPermission[]>([])
         : store
-          ? await this.resolvePermissions(
-              organizationId,
-              store.id,
-              validated.user.id,
-            )
+          ? await this.resolvePermissions(organizationId, store.id, validated.user.id)
           : await this.resolveRolePermissions(
               organizationId,
               validated.user.id,
@@ -140,24 +121,11 @@ export class AdminContextResolver {
   ): Promise<readonly AdminPermission[]> {
     const storeDomain = `store:${storeId}` as const;
     const [organizationPermissions, storePermissions] = await Promise.all([
-      this.resolveRolePermissions(
-        organizationId,
-        userId,
-        "org",
-        AllResources,
-      ),
-      this.resolveRolePermissions(
-        organizationId,
-        userId,
-        storeDomain,
-        StoreResources,
-      ),
+      this.resolveRolePermissions(organizationId, userId, "org", AllResources),
+      this.resolveRolePermissions(organizationId, userId, storeDomain, StoreResources),
     ]);
 
-    return Object.freeze([
-      ...organizationPermissions,
-      ...storePermissions,
-    ]);
+    return Object.freeze([...organizationPermissions, ...storePermissions]);
   }
 
   private async resolveRolePermissions(
@@ -166,12 +134,11 @@ export class AdminContextResolver {
     domain: AdminPermission["domain"],
     resources: readonly ResourceName[],
   ): Promise<readonly AdminPermission[]> {
-    const assignment =
-      await this.kernel.repository.organization.findUserRole(
-        organizationId,
-        userId,
-        domain,
-      );
+    const assignment = await this.kernel.repository.organization.findUserRole(
+      organizationId,
+      userId,
+      domain,
+    );
     if (!assignment) return Object.freeze([]);
 
     const role = await this.kernel.repository.organization.findRoleById(
@@ -180,12 +147,11 @@ export class AdminContextResolver {
     );
     if (!role || role.domain !== domain) return Object.freeze([]);
 
-    const policies =
-      await this.kernel.repository.casbin.getPoliciesForRoleInDomain(
-        organizationId,
-        role.name,
-        domain as Domain,
-      );
+    const policies = await this.kernel.repository.casbin.getPoliciesForRoleInDomain(
+      organizationId,
+      role.name,
+      domain as Domain,
+    );
     const permissionKeys = new Set<string>();
 
     for (const [, , resourcePattern, grantedAction] of policies) {

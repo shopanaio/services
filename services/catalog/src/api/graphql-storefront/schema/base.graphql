@@ -1,40 +1,56 @@
-"""Public Catalog entry points for the active storefront context."""
+"""
+Public Catalog entry points for the active storefront context.
+"""
 type Query {
-  """Returns any catalog object by its globally unique Relay ID."""
+  """
+  Returns any catalog object by its globally unique Relay ID.
+  """
   node(id: ID!): Node
 
-  """Returns catalog objects in the same order as the supplied Relay IDs."""
+  """
+  Returns catalog objects in the same order as the supplied Relay IDs.
+  """
   nodes(ids: [ID!]!): [Node]!
 
-  """Returns a published product by its globally unique Relay ID."""
+  """
+  Returns a published product by its globally unique Relay ID.
+  """
   product(id: ID!): Product
 
-  """Returns a published product by its stable storefront handle."""
+  """
+  Returns a published product by its stable storefront handle.
+  """
   productByHandle(handle: String!): Product
 
-  """Returns a published product variant by its globally unique Relay ID."""
+  """
+  Returns a published product variant by its globally unique Relay ID.
+  """
   productVariant(id: ID!): ProductVariant
 
-  """Returns a published category by its globally unique Relay ID."""
+  """
+  Returns a published category by its globally unique Relay ID.
+  """
   category(id: ID!): Category
 
-  """Returns a published category by its stable storefront handle."""
+  """
+  Returns a published category by its stable storefront handle.
+  """
   categoryByHandle(handle: String!): Category
 
-  """Returns published categories using Relay cursor pagination."""
-  categories(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-  ): CategoryConnection!
+  """
+  Returns published categories using Relay cursor pagination.
+  """
+  categories(first: Int, after: Cursor, last: Int, before: Cursor): CategoryConnection!
 
-  """Returns a visible collection by its globally unique Relay ID."""
+  """
+  Returns a visible collection by its globally unique Relay ID.
+  """
   collection(id: ID!): Collection
 
-  """Returns a visible collection by its stable storefront handle."""
+  """
+  Returns a visible collection by its stable storefront handle.
+  """
   collectionByHandle(handle: String!): Collection
-
 }
 
 """

@@ -6,11 +6,7 @@ import { createStyles } from "antd-style";
 import { FacetScopeType, FacetType } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useFacets } from "../hooks";
-import {
-  FACET_UI_MAPPINGS,
-  getFacetScopeLabel,
-  getFacetTypeIcon,
-} from "../mappers";
+import { FACET_UI_MAPPINGS, getFacetScopeLabel, getFacetTypeIcon } from "../mappers";
 import { useFacetScopePickerModal } from "../modals";
 
 const FACET_TYPE_ORDER = [
@@ -99,10 +95,7 @@ export function FacetScopesSettingsPaper() {
   const { push: openFacetScopePicker } = useFacetScopePickerModal();
 
   return (
-    <Paper
-      aria-label="Filters settings section"
-      data-testid="discovery-filters-settings-section"
-    >
+    <Paper aria-label="Filters settings section" data-testid="discovery-filters-settings-section">
       <PaperHeader title="Filters" />
       <Typography.Text type="secondary" className={styles.description}>
         Choose which facets are available in each storefront listing context.
@@ -128,12 +121,9 @@ export function FacetScopesSettingsPaper() {
               data-testid={`discovery-filters-${scope.toLowerCase()}-row`}
             >
               <Flex vertical gap={2}>
-                <Typography.Text strong>
-                  {getFacetScopeLabel(scope)} context
-                </Typography.Text>
+                <Typography.Text strong>{getFacetScopeLabel(scope)} context</Typography.Text>
                 <Typography.Text type="secondary">
-                  {facets.filter((facet) => facet.scopes.includes(scope)).length}{" "}
-                  facets
+                  {facets.filter((facet) => facet.scopes.includes(scope)).length} facets
                 </Typography.Text>
               </Flex>
 
@@ -141,9 +131,7 @@ export function FacetScopesSettingsPaper() {
                 {FACET_TYPE_ORDER.map((facetType) => {
                   const mapping = FACET_UI_MAPPINGS.facetTypes[facetType];
                   const count = facets.filter(
-                    (facet) =>
-                      facet.facetType === facetType &&
-                      facet.scopes.includes(scope),
+                    (facet) => facet.facetType === facetType && facet.scopes.includes(scope),
                   ).length;
                   const isSingleton = SINGLETON_FACET_TYPES.has(facetType);
 

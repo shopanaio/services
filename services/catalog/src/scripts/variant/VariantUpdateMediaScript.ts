@@ -21,9 +21,7 @@ export class VariantUpdateMediaScript extends BaseScript<
   VariantUpdateMediaResult
 > {
   @Transactional()
-  protected async execute(
-    params: VariantUpdateMediaParams
-  ): Promise<VariantUpdateMediaResult> {
+  protected async execute(params: VariantUpdateMediaParams): Promise<VariantUpdateMediaResult> {
     const { variantId, fileIds } = params;
     const uniqueNextFileIds = Array.from(new Set(fileIds));
 
@@ -34,20 +32,16 @@ export class VariantUpdateMediaScript extends BaseScript<
 
     const registeredMedia = await this.repository.media.getProductMediaByFileIds(
       variant.productId,
-      uniqueNextFileIds
+      uniqueNextFileIds,
     );
-    const registeredFileIds = new Set(
-      registeredMedia.map((media) => media.fileId)
-    );
-    const missingFileIds = uniqueNextFileIds.filter(
-      (fileId) => !registeredFileIds.has(fileId)
-    );
+    const registeredFileIds = new Set(registeredMedia.map((media) => media.fileId));
+    const missingFileIds = uniqueNextFileIds.filter((fileId) => !registeredFileIds.has(fileId));
 
     if (missingFileIds.length > 0) {
       return singleError(
         "Variant media must be registered on the product before it can be attached",
         "PRODUCT_MEDIA_NOT_REGISTERED",
-        ["fileIds"]
+        ["fileIds"],
       );
     }
 
@@ -56,9 +50,7 @@ export class VariantUpdateMediaScript extends BaseScript<
 
     const hasChanges =
       previousFileIds.length !== uniqueNextFileIds.length ||
-      previousFileIds.some(
-        (fileId, index) => fileId !== uniqueNextFileIds[index]
-      );
+      previousFileIds.some((fileId, index) => fileId !== uniqueNextFileIds[index]);
 
     if (!hasChanges) {
       this.logger.debug({ variantId }, "No variant media changes detected");
@@ -69,7 +61,7 @@ export class VariantUpdateMediaScript extends BaseScript<
 
     this.logger.info(
       { variantId, productId: variant.productId, fileCount: uniqueNextFileIds.length },
-      "Variant media updated successfully"
+      "Variant media updated successfully",
     );
 
     const changes: MediaChanges = {
@@ -86,8 +78,7 @@ export class VariantUpdateMediaScript extends BaseScript<
         changes: null,
         userErrors: [
           {
-            message:
-              "Variant media must be registered on the product before it can be attached",
+            message: "Variant media must be registered on the product before it can be attached",
             field: ["fileIds"],
             code: "PRODUCT_MEDIA_NOT_REGISTERED",
           },

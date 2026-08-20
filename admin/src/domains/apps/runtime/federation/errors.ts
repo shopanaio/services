@@ -8,4 +8,3 @@ export class AdminAppRemoteLoadError extends Error {
     this.name = "AdminAppRemoteLoadError";
   }
 }
-

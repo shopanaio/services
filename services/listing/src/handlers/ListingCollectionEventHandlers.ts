@@ -15,10 +15,7 @@ import type {
 } from "@shopana/events";
 import type { ListingCollectionProjectionWorkflowInput } from "../workflows/ListingCollectionProjectionWorkflow.js";
 
-type CollectionEvent =
-  | CollectionCreatedEvent
-  | CollectionUpdatedEvent
-  | CollectionDeletedEvent;
+type CollectionEvent = CollectionCreatedEvent | CollectionUpdatedEvent | CollectionDeletedEvent;
 
 @Injectable()
 export class ListingCollectionEventHandlers extends EventHandlers {
@@ -27,23 +24,17 @@ export class ListingCollectionEventHandlers extends EventHandlers {
   }
 
   @EventHandler("collectionCreated", { retry: { maxAttempts: 5 } })
-  handleCreated(params: {
-    event: CollectionCreatedEvent;
-  }): Promise<EventHandlerResponse> {
+  handleCreated(params: { event: CollectionCreatedEvent }): Promise<EventHandlerResponse> {
     return this.enqueue(params.event);
   }
 
   @EventHandler("collectionUpdated", { retry: { maxAttempts: 5 } })
-  handleUpdated(params: {
-    event: CollectionUpdatedEvent;
-  }): Promise<EventHandlerResponse> {
+  handleUpdated(params: { event: CollectionUpdatedEvent }): Promise<EventHandlerResponse> {
     return this.enqueue(params.event);
   }
 
   @EventHandler("collectionDeleted", { retry: { maxAttempts: 5 } })
-  handleDeleted(params: {
-    event: CollectionDeletedEvent;
-  }): Promise<EventHandlerResponse> {
+  handleDeleted(params: { event: CollectionDeletedEvent }): Promise<EventHandlerResponse> {
     return this.enqueue(params.event);
   }
 
@@ -59,10 +50,7 @@ export class ListingCollectionEventHandlers extends EventHandlers {
         },
       };
     }
-    if (
-      !Number.isSafeInteger(event.payload.listingRevision) ||
-      event.payload.listingRevision < 0
-    ) {
+    if (!Number.isSafeInteger(event.payload.listingRevision) || event.payload.listingRevision < 0) {
       return {
         success: false,
         error: {
@@ -89,22 +77,14 @@ export class ListingCollectionEventHandlers extends EventHandlers {
     };
     const workflowName = "listing.syncCollectionProjection";
     try {
-      await this.broker.startWorkflow(
-        workflowName,
-        input,
-        idempotencyContext,
-        {
-          workflowId: buildIdempotencyKey(
-            workflowName,
-            idempotencyContext,
-          ),
-          queueName: "listing_index_actions",
-          enqueueOptions: {
-            queuePartitionKey: `${event.payload.storeId}:collection:${event.payload.collectionId}`,
-          },
-          timeoutMS: 120_000,
+      await this.broker.startWorkflow(workflowName, input, idempotencyContext, {
+        workflowId: buildIdempotencyKey(workflowName, idempotencyContext),
+        queueName: "listing_index_actions",
+        enqueueOptions: {
+          queuePartitionKey: `${event.payload.storeId}:collection:${event.payload.collectionId}`,
         },
-      );
+        timeoutMS: 120_000,
+      });
       this.logger.info(
         {
           operation: "accepted",

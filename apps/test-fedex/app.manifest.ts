@@ -5,8 +5,7 @@ export const testFedexManifest = defineAppManifest({
   code: "test-fedex",
   version: "1.0.0",
   displayName: "FedEx Test",
-  description:
-    "Deterministic FedEx-inspired carrier and shipment simulator for E2E tests.",
+  description: "Deterministic FedEx-inspired carrier and shipment simulator for E2E tests.",
   icon: {
     url: "/app-icons/test-fedex.svg",
     alt: "FedEx Test",

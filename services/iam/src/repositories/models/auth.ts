@@ -1,10 +1,4 @@
-import {
-  text,
-  boolean,
-  timestamp,
-  index,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { text, boolean, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { iamSchema } from "./schema.js";
 
 // ============================================================================
@@ -29,7 +23,7 @@ export const user = iamSchema.table(
   (table) => [
     index("idx_user_email").on(table.email),
     index("idx_user_created_at").on(table.createdAt),
-  ]
+  ],
 );
 
 export type User = typeof user.$inferSelect;
@@ -57,7 +51,7 @@ export const session = iamSchema.table(
     index("idx_session_user_id").on(table.userId),
     uniqueIndex("idx_session_token").on(table.token),
     index("idx_session_expires_at").on(table.expiresAt),
-  ]
+  ],
 );
 
 export type Session = typeof session.$inferSelect;
@@ -89,7 +83,7 @@ export const account = iamSchema.table(
   (table) => [
     index("idx_account_user_id").on(table.userId),
     uniqueIndex("idx_account_provider").on(table.providerId, table.accountId),
-  ]
+  ],
 );
 
 export type Account = typeof account.$inferSelect;
@@ -112,7 +106,7 @@ export const verification = iamSchema.table(
   (table) => [
     index("idx_verification_identifier").on(table.identifier),
     index("idx_verification_expires_at").on(table.expiresAt),
-  ]
+  ],
 );
 
 export type Verification = typeof verification.$inferSelect;
@@ -122,16 +116,13 @@ export type NewVerification = typeof verification.$inferInsert;
 // JWKS table (for JWT plugin key storage)
 // ============================================================================
 
-export const jwks = iamSchema.table(
-  "jwks",
-  {
-    id: text("id").primaryKey(),
-    publicKey: text("public_key").notNull(),
-    privateKey: text("private_key").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }),
-  }
-);
+export const jwks = iamSchema.table("jwks", {
+  id: text("id").primaryKey(),
+  publicKey: text("public_key").notNull(),
+  privateKey: text("private_key").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+});
 
 export type Jwks = typeof jwks.$inferSelect;
 export type NewJwks = typeof jwks.$inferInsert;

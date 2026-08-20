@@ -1,8 +1,7 @@
 import { createHash } from "node:crypto";
 import canonicalize from "canonicalize";
 
-const sha256 = (input: string): string =>
-  createHash("sha256").update(input).digest("hex");
+const sha256 = (input: string): string => createHash("sha256").update(input).digest("hex");
 
 export function canonicalJson(value: unknown): string {
   const result = canonicalize(value);

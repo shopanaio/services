@@ -42,14 +42,11 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
   })
   @Policy<AppLifecycleWorkflowInput>({
     resource: "store.apps",
-    action: (_self, input) =>
-      input.operationType === "UNINSTALL" ? "admin" : "write",
+    action: (_self, input) => (input.operationType === "UNINSTALL" ? "admin" : "write"),
     organizationId: (_self, input) => input.organizationId,
     domain: (_self, input) => `store:${input.storeId}`,
   })
-  async run(
-    input: AppLifecycleWorkflowInput,
-  ): Promise<{ installationId: string; status: string }> {
+  async run(input: AppLifecycleWorkflowInput): Promise<{ installationId: string; status: string }> {
     await this.markRunning(input.operationId);
     try {
       const childWorkflow = await this.dispatchAppLifecycle(input);
@@ -76,24 +73,14 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
   private async dispatchAppLifecycle(
     input: AppLifecycleWorkflowInput,
   ): Promise<PreparedAppWorkflowInvocation | null> {
-    const operation = await this.installations.findOperationById(
-      input.operationId,
-    );
-    const installation = await this.installations.findById(
-      input.installationId,
-    );
-    if (
-      !operation ||
-      !installation ||
-      operation.installationId !== installation.id
-    ) {
+    const operation = await this.installations.findOperationById(input.operationId);
+    const installation = await this.installations.findById(input.installationId);
+    if (!operation || !installation || operation.installationId !== installation.id) {
       throw new Error("App lifecycle workflow input is invalid");
     }
     const runtime = this.runtimes.get(installation.appCode);
     if (!runtime || runtime.status !== "READY") {
-      throw new Error(
-        `App runtime "${installation.appCode}" is not ready`,
-      );
+      throw new Error(`App runtime "${installation.appCode}" is not ready`);
     }
     const manifest = runtime.definition.manifest;
     const contextRef = {
@@ -134,8 +121,7 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
             manifest.code,
             workflow,
             {
-              previousVersion:
-                installation.installedVersion ?? operation.targetVersion,
+              previousVersion: installation.installedVersion ?? operation.targetVersion,
               targetVersion: operation.targetVersion,
               configuration: installation.configuration,
             },
@@ -177,8 +163,7 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
             manifest.code,
             workflow,
             {
-              version:
-                installation.installedVersion ?? operation.targetVersion,
+              version: installation.installedVersion ?? operation.targetVersion,
             },
             contextRef,
             idempotency,
@@ -196,24 +181,15 @@ export class AppInstallationLifecycleWorkflow extends BrokerWorkflows<
     if (!operation) {
       throw new Error(`Lifecycle operation "${operationId}" not found`);
     }
-    const installation = await this.installations.findById(
-      operation.installationId,
-    );
+    const installation = await this.installations.findById(operation.installationId);
     if (!installation) {
-      throw new Error(
-        `App installation "${operation.installationId}" not found`,
-      );
+      throw new Error(`App installation "${operation.installationId}" not found`);
     }
     const runtime = this.runtimes.get(installation.appCode);
     if (!runtime) {
-      throw new Error(
-        `App runtime "${installation.appCode}" is not registered`,
-      );
+      throw new Error(`App runtime "${installation.appCode}" is not registered`);
     }
-    return this.installations.completeOperation(
-      operationId,
-      runtime.definition.manifest,
-    );
+    return this.installations.completeOperation(operationId, runtime.definition.manifest);
   }
 
   @WorkflowStep({ retriesAllowed: false })

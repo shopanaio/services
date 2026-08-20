@@ -77,8 +77,7 @@ export interface CustomerDataRequestCreateWorkflowInput {
   context: CustomerMutationWorkflowContext;
 }
 
-export type CustomerDataRequestCreateWorkflowResult =
-  CustomerDataRequestCreateResult;
+export type CustomerDataRequestCreateWorkflowResult = CustomerDataRequestCreateResult;
 
 export interface CustomerGroupDeleteWorkflowInput {
   params: CustomerGroupDeleteParams;
@@ -113,8 +112,7 @@ export interface CustomerDataRequestDeleteWorkflowInput {
   context: CustomerMutationWorkflowContext;
 }
 
-export type CustomerDataRequestDeleteWorkflowResult =
-  CustomerDataRequestDeleteResult;
+export type CustomerDataRequestDeleteWorkflowResult = CustomerDataRequestDeleteResult;
 
 export interface CustomerDeleteWorkflowInput {
   params: CustomerDeleteParams;

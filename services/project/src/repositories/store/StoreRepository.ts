@@ -106,9 +106,7 @@ export class StoreRepository extends BaseRepository {
       this.connection
         .select({ code: locale.code })
         .from(locale)
-        .where(
-          and(eq(locale.storeId, storeRecord.id), eq(locale.isActive, true)),
-        ),
+        .where(and(eq(locale.storeId, storeRecord.id), eq(locale.isActive, true))),
     ]);
 
     const result: Store = {
@@ -198,15 +196,10 @@ export class StoreRepository extends BaseRepository {
     const conditions = and(
       eq(store.id, id),
       isNull(store.deletedAt),
-      organizationId
-        ? eq(store.organizationId, organizationId)
-        : undefined,
+      organizationId ? eq(store.organizationId, organizationId) : undefined,
     );
 
-    const [result] = await this.connection
-      .select()
-      .from(store)
-      .where(conditions);
+    const [result] = await this.connection.select().from(store).where(conditions);
 
     if (!result) return null;
 
@@ -254,10 +247,7 @@ export class StoreRepository extends BaseRepository {
 
   @ReadOnly()
   async getMany(): Promise<Store[]> {
-    const stores = await this.connection
-      .select()
-      .from(store)
-      .where(isNull(store.deletedAt));
+    const stores = await this.connection.select().from(store).where(isNull(store.deletedAt));
     return Promise.all(stores.map((s) => this.loadIntegrations(s)));
   }
 
@@ -283,7 +273,7 @@ export class StoreRepository extends BaseRepository {
     const stores = rows.slice(0, input.first);
     return {
       stores,
-      nextCursor: hasNextPage ? stores.at(-1)?.storeId ?? null : null,
+      nextCursor: hasNextPage ? (stores.at(-1)?.storeId ?? null) : null,
     };
   }
 
@@ -292,12 +282,7 @@ export class StoreRepository extends BaseRepository {
     const stores = await this.connection
       .select({ id: store.id })
       .from(store)
-      .where(
-        and(
-          eq(store.organizationId, organizationId),
-          isNull(store.deletedAt),
-        ),
-      );
+      .where(and(eq(store.organizationId, organizationId), isNull(store.deletedAt)));
     return stores.map((s) => s.id);
   }
 
@@ -306,12 +291,7 @@ export class StoreRepository extends BaseRepository {
     const stores = await this.connection
       .select()
       .from(store)
-      .where(
-        and(
-          eq(store.organizationId, organizationId),
-          isNull(store.deletedAt),
-        ),
-      );
+      .where(and(eq(store.organizationId, organizationId), isNull(store.deletedAt)));
     return Promise.all(stores.map((s) => this.loadIntegrations(s)));
   }
 
@@ -359,14 +339,11 @@ export class StoreRepository extends BaseRepository {
         ELSE ${store.segmentConfigurationRevision}
       END`;
     }
-    if (data.defaultWeightUnit !== undefined)
-      updateData.defaultWeightUnit = data.defaultWeightUnit;
+    if (data.defaultWeightUnit !== undefined) updateData.defaultWeightUnit = data.defaultWeightUnit;
     if (data.defaultDimensionUnit !== undefined)
       updateData.defaultDimensionUnit = data.defaultDimensionUnit;
-    if (data.unitSystem !== undefined)
-      updateData.unitSystem = data.unitSystem;
-    if (data.defaultLocale !== undefined)
-      updateData.defaultLocale = data.defaultLocale;
+    if (data.unitSystem !== undefined) updateData.unitSystem = data.unitSystem;
+    if (data.defaultLocale !== undefined) updateData.defaultLocale = data.defaultLocale;
     if (data.currencyCode !== undefined) {
       throw new Error("Store accounting currency is immutable");
     }

@@ -63,7 +63,7 @@ export function useGridState(options: UseGridStateOptions): UseGridStateReturn {
         // Storage full or not available
       }
     },
-    [storageKey, getStorage]
+    [storageKey, getStorage],
   );
 
   const clearState = useCallback(() => {

@@ -136,7 +136,7 @@ export class Repository {
     searchSettings: SearchSettingsRepository,
     searchSynonym: SearchSynonymRepository,
     searchProductBoost: SearchProductBoostRepository,
-    txManager: TransactionManager<Database>
+    txManager: TransactionManager<Database>,
   ) {
     this.listingIndexItemState = listingIndexItemState;
     this.listingSearchIndex = listingSearchIndex;
@@ -179,11 +179,9 @@ export class Repository {
   static async create(config: RepositoryConfig): Promise<Repository> {
     const { db, broker } = config;
     const heavyOptionFacetCountsEnabled =
-      config.heavyOptionFacetCountsEnabled ??
-      LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT;
+      config.heavyOptionFacetCountsEnabled ?? LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT;
     const facetCountsProfilingEnabled =
-      config.facetCountsProfilingEnabled ??
-      LISTING_FACET_COUNTS_PROFILING_ENABLED_DEFAULT;
+      config.facetCountsProfilingEnabled ?? LISTING_FACET_COUNTS_PROFILING_ENABLED_DEFAULT;
     const txManager = new TransactionManager(db);
 
     const listingIndexItemState = new ListingIndexItemStateRepository(db, txManager);
@@ -195,64 +193,63 @@ export class Repository {
       txManager,
       searchTextElement,
       searchIdentifier,
-      searchTerm
+      searchTerm,
     );
-    const listingDocIdAllocator = new ListingDocIdAllocatorRepository(
-      db,
-      txManager
-    );
+    const listingDocIdAllocator = new ListingDocIdAllocatorRepository(db, txManager);
     const productListingIndex = new ProductListingIndexRepository(db, txManager);
-    const productListingPriceIndex = new ProductListingPriceIndexRepository(
-      db,
-      txManager
-    );
+    const productListingPriceIndex = new ProductListingPriceIndexRepository(db, txManager);
     const variantListingIndex = new VariantListingIndexRepository(db, txManager);
-    const variantListingPriceIndex = new VariantListingPriceIndexRepository(
+    const variantListingPriceIndex = new VariantListingPriceIndexRepository(db, txManager);
+    const listingPostingBitmap = new ListingPostingBitmapRepository(db, txManager);
+    const listingPostingProductSort = new ListingPostingProductSortRepository(db, txManager);
+    const listingPostingVariantProjectionBlock = new ListingPostingVariantProjectionBlockRepository(
       db,
-      txManager
+      txManager,
     );
-    const listingPostingBitmap = new ListingPostingBitmapRepository(
-      db,
-      txManager
-    );
-    const listingPostingProductSort = new ListingPostingProductSortRepository(
-      db,
-      txManager
-    );
-    const listingPostingVariantProjectionBlock =
-      new ListingPostingVariantProjectionBlockRepository(db, txManager);
     const collectionState = new CollectionStateRepository(db, txManager);
-    const collectionRuleEvaluation = new CollectionRuleEvaluationRepository(
-      db,
-      txManager
-    );
+    const collectionRuleEvaluation = new CollectionRuleEvaluationRepository(db, txManager);
     const facetCandidateClient = new CatalogFacetCandidateClient(broker);
     const facet = new FacetRepository(db, txManager, facetCandidateClient);
     const facetValue = new FacetValueRepository(db, txManager);
     const facetSwatch = new FacetSwatchRepository(db, txManager);
-    const storefrontFacetResolution = new StorefrontFacetResolutionRepository(
-      db,
-      txManager
-    );
+    const storefrontFacetResolution = new StorefrontFacetResolutionRepository(db, txManager);
     const storefrontListingQuery = new StorefrontListingQueryRepository(
       db,
       txManager,
       storefrontFacetResolution,
       heavyOptionFacetCountsEnabled,
-      facetCountsProfilingEnabled
+      facetCountsProfilingEnabled,
     );
-    const storefrontRecommendationQuery = new StorefrontRecommendationQueryRepository(db, txManager);
-    const recommendationPlacementPolicy = new RecommendationPlacementPolicyRepository(db, txManager);
+    const storefrontRecommendationQuery = new StorefrontRecommendationQueryRepository(
+      db,
+      txManager,
+    );
+    const recommendationPlacementPolicy = new RecommendationPlacementPolicyRepository(
+      db,
+      txManager,
+    );
     const manualProductRecommendation = new ManualProductRecommendationRepository(db, txManager);
-    const recommendationIngestionCursor = new RecommendationIngestionCursorRepository(db, txManager);
+    const recommendationIngestionCursor = new RecommendationIngestionCursorRepository(
+      db,
+      txManager,
+    );
     const recommendationOrderFact = new RecommendationOrderFactRepository(db, txManager);
     const recommendationCalculationRun = new RecommendationCalculationRunRepository(db, txManager);
-    const recommendationCalculationAccumulator = new RecommendationCalculationAccumulatorRepository(db, txManager);
-    const recommendationCandidateSource = new RecommendationCandidateSourceRepository(db, txManager);
+    const recommendationCalculationAccumulator = new RecommendationCalculationAccumulatorRepository(
+      db,
+      txManager,
+    );
+    const recommendationCandidateSource = new RecommendationCandidateSourceRepository(
+      db,
+      txManager,
+    );
     const recommendationSnapshot = new RecommendationSnapshotRepository(db, txManager);
     const recommendationMaintenance = new RecommendationMaintenanceRepository(db, txManager);
     const recommendationBuildRequest = new RecommendationBuildRequestRepository(db, txManager);
-    const recommendationAnchorCollector = new RecommendationAnchorCollectorRepository(db, txManager);
+    const recommendationAnchorCollector = new RecommendationAnchorCollectorRepository(
+      db,
+      txManager,
+    );
     const searchSettings = new SearchSettingsRepository(db, txManager);
     const searchSynonym = new SearchSynonymRepository(db, txManager);
     const searchProductBoost = new SearchProductBoostRepository(db, txManager);
@@ -293,13 +290,11 @@ export class Repository {
       searchSettings,
       searchSynonym,
       searchProductBoost,
-      txManager
+      txManager,
     );
   }
 
-  runListingIndexItemTransaction<TResult>(
-    fn: () => Promise<TResult>
-  ): Promise<TResult> {
+  runListingIndexItemTransaction<TResult>(fn: () => Promise<TResult>): Promise<TResult> {
     return this.txManager.run(fn);
   }
 }

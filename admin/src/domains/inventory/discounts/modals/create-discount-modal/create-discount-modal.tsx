@@ -1,35 +1,20 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import {
-  Controller,
-  FormProvider,
-  useForm,
-  useWatch,
-} from "react-hook-form";
+import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, App, Input, Radio, Typography } from "antd";
 import { createStyles } from "antd-style";
 import { LuInfo as InfoOutlined } from "react-icons/lu";
 import { DiscountKind, DiscountMethod } from "@/graphql/types";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { useDefaultCurrency } from "@/domains/workspace/hooks";
 import { Paper } from "@/ui-kit/paper";
 import { useCreateDiscount } from "../../hooks";
-import {
-  buildDiscountCreateInput,
-  mapDiscountUserErrorsToFormErrors,
-} from "../../mappers";
+import { buildDiscountCreateInput, mapDiscountUserErrorsToFormErrors } from "../../mappers";
 import type { ICreateDiscountModalPayload } from "../../modals";
 import { DiscountTypeSelector } from "../select-discount-type-modal";
-import {
-  createDiscountSchema,
-  type CreateDiscountFormValues,
-} from "./schema";
+import { createDiscountSchema, type CreateDiscountFormValues } from "./schema";
 
 const useStyles = createStyles(({ token }) => ({
   container: {
@@ -197,9 +182,7 @@ function SectionHeader({ description, step, title }: SectionHeaderProps) {
         <Typography.Text className={styles.sectionTitle}>
           {step}&nbsp; {title}
         </Typography.Text>
-        <Typography.Text className={styles.sectionDescription}>
-          {description}
-        </Typography.Text>
+        <Typography.Text className={styles.sectionDescription}>{description}</Typography.Text>
       </div>
       <div className={styles.divider} />
     </div>
@@ -258,15 +241,7 @@ export function CreateDiscountModal() {
         forcePop();
       }
     },
-    [
-      createDiscount,
-      defaultCurrency,
-      forcePop,
-      message,
-      onCreated,
-      setDirty,
-      setError,
-    ],
+    [createDiscount, defaultCurrency, forcePop, message, onCreated, setDirty, setError],
   );
 
   return (
@@ -313,9 +288,7 @@ export function CreateDiscountModal() {
               }}
             />
             {errors.kind?.message && (
-              <Typography.Text className={styles.error}>
-                {errors.kind.message}
-              </Typography.Text>
+              <Typography.Text className={styles.error}>{errors.kind.message}</Typography.Text>
             )}
           </Paper>
 
@@ -341,8 +314,7 @@ export function CreateDiscountModal() {
                       data-testid="discount-method-code"
                       className={cx(
                         styles.methodOption,
-                        method === DiscountMethod.Code &&
-                          styles.methodOptionSelected,
+                        method === DiscountMethod.Code && styles.methodOptionSelected,
                       )}
                     >
                       <span className={styles.methodCopy}>
@@ -359,8 +331,7 @@ export function CreateDiscountModal() {
                       data-testid="discount-method-automatic"
                       className={cx(
                         styles.methodOption,
-                        method === DiscountMethod.Automatic &&
-                          styles.methodOptionSelected,
+                        method === DiscountMethod.Automatic && styles.methodOptionSelected,
                       )}
                     >
                       <span className={styles.methodCopy}>
@@ -376,18 +347,14 @@ export function CreateDiscountModal() {
                 )}
               />
               {errors.method?.message && (
-                <Typography.Text className={styles.error}>
-                  {errors.method.message}
-                </Typography.Text>
+                <Typography.Text className={styles.error}>{errors.method.message}</Typography.Text>
               )}
             </div>
 
             {method === DiscountMethod.Automatic && (
               <div className={styles.field}>
                 <div className={styles.labelRow}>
-                  <Typography.Text className={styles.label}>
-                    Title
-                  </Typography.Text>
+                  <Typography.Text className={styles.label}>Title</Typography.Text>
                   <Typography.Text className={styles.hint}>
                     Required for automatic discounts
                   </Typography.Text>
@@ -406,9 +373,7 @@ export function CreateDiscountModal() {
                   )}
                 />
                 {errors.title?.message && (
-                  <Typography.Text className={styles.error}>
-                    {errors.title.message}
-                  </Typography.Text>
+                  <Typography.Text className={styles.error}>{errors.title.message}</Typography.Text>
                 )}
               </div>
             )}

@@ -2,10 +2,7 @@
 
 import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
-import type {
-  ApiCategory,
-  ApiGenericUserError,
-} from "@/graphql/types";
+import type { ApiCategory, ApiGenericUserError } from "@/graphql/types";
 import { ProductCategoryOperationAction } from "@/graphql/types";
 import {
   CATEGORIES_QUERY,
@@ -24,9 +21,7 @@ interface CategoryProductMutationResult {
 }
 
 interface UseMoveCategoryProductReturn {
-  moveCategoryProduct: (
-    input: CategoryProductMoveInput,
-  ) => Promise<CategoryProductMutationResult>;
+  moveCategoryProduct: (input: CategoryProductMoveInput) => Promise<CategoryProductMutationResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
@@ -46,9 +41,7 @@ export function useMoveCategoryProduct(): UseMoveCategoryProductReturn {
   >(PRODUCT_CATEGORY_UPDATE_MUTATION);
 
   const moveCategoryProduct = useCallback(
-    async (
-      input: CategoryProductMoveInput,
-    ): Promise<CategoryProductMutationResult> => {
+    async (input: CategoryProductMoveInput): Promise<CategoryProductMutationResult> => {
       try {
         const result = await moveProductMutation({
           variables: {
@@ -62,11 +55,7 @@ export function useMoveCategoryProduct(): UseMoveCategoryProductReturn {
               },
             ],
           },
-          refetchQueries: [
-            CATEGORY_DETAILS_QUERY,
-            CATEGORY_PRODUCTS_QUERY,
-            CATEGORIES_QUERY,
-          ],
+          refetchQueries: [CATEGORY_DETAILS_QUERY, CATEGORY_PRODUCTS_QUERY, CATEGORIES_QUERY],
           awaitRefetchQueries: true,
         });
         const payload = result.data?.catalogMutation.productUpdate;
@@ -76,8 +65,7 @@ export function useMoveCategoryProduct(): UseMoveCategoryProductReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
         return {
           category: null,
           userErrors: [{ message, code: "UNEXPECTED_ERROR" }],

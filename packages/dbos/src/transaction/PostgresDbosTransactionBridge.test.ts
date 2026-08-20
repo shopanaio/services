@@ -1,8 +1,5 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import type {
-  PostgresDataSource,
-  PostgresTransactionOptions,
-} from "@dbos-inc/postgres-datasource";
+import type { PostgresDataSource, PostgresTransactionOptions } from "@dbos-inc/postgres-datasource";
 import type { TransactionSql } from "postgres";
 import { PostgresDbosTransactionBridge } from "./PostgresDbosTransactionBridge.js";
 
@@ -35,10 +32,7 @@ describe("PostgresDbosTransactionBridge", () => {
 
     const scopedDatabase = { kind: "scoped-database" };
     const createDatabase = jest.fn((_client: TransactionSql) => scopedDatabase);
-    const bridge = new PostgresDbosTransactionBridge(
-      dataSource,
-      createDatabase,
-    );
+    const bridge = new PostgresDbosTransactionBridge(dataSource, createDatabase);
 
     const result = await bridge.runTransaction(
       { name: "writeCatalog", isolationLevel: "SERIALIZABLE" },
@@ -63,16 +57,13 @@ describe("PostgresDbosTransactionBridge", () => {
       get client() {
         return transactionClient;
       },
-      async runTransaction<TResult>(
-        callback: () => Promise<TResult>,
-      ): Promise<TResult> {
+      async runTransaction<TResult>(callback: () => Promise<TResult>): Promise<TResult> {
         return callback();
       },
     } as unknown as PostgresDataSource;
-    const bridge = new PostgresDbosTransactionBridge(
-      dataSource,
-      () => ({ kind: "scoped-database" }),
-    );
+    const bridge = new PostgresDbosTransactionBridge(dataSource, () => ({
+      kind: "scoped-database",
+    }));
 
     await expect(
       bridge.runTransaction({ name: "writeCatalog" }, async () => {

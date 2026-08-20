@@ -15,7 +15,9 @@ import { programs } from "./programs.js";
 export const accounts = loyaltySchema.table(
   "account",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     programId: uuid("program_id").notNull(),
     customerId: uuid("customer_id").notNull(),
@@ -55,16 +57,9 @@ export const accounts = loyaltySchema.table(
       columns: [table.mergedIntoAccountId, table.storeId],
       foreignColumns: [table.id, table.storeId],
     }),
-    unique("loyalty_account_program_customer_unique").on(
-      table.programId,
-      table.customerId,
-    ),
+    unique("loyalty_account_program_customer_unique").on(table.programId, table.customerId),
     unique("loyalty_account_id_store_unique").on(table.id, table.storeId),
-    unique("loyalty_account_id_program_store_unique").on(
-      table.id,
-      table.programId,
-      table.storeId,
-    ),
+    unique("loyalty_account_id_program_store_unique").on(table.id, table.programId, table.storeId),
     index("loyalty_account_store_customer_idx").on(
       table.storeId,
       table.customerId,

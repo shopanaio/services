@@ -123,7 +123,7 @@ const HubNodeComponent = ({ data, selected }: HubNodeProps) => {
         !isEnabled && styles.nodeDisabled,
         selected && styles.nodeSelected,
         isHighlighted && styles.nodeHighlighted,
-        isDimmed && styles.nodeDimmed
+        isDimmed && styles.nodeDimmed,
       )}
     >
       <Handle
@@ -133,7 +133,7 @@ const HubNodeComponent = ({ data, selected }: HubNodeProps) => {
           styles.handle,
           isCondition ? styles.handleCondition : styles.handleAction,
           !isEnabled && styles.handleDisabled,
-          isDimmed && styles.handleDimmed
+          isDimmed && styles.handleDimmed,
         )}
       />
 
@@ -142,7 +142,7 @@ const HubNodeComponent = ({ data, selected }: HubNodeProps) => {
           styles.label,
           isCondition ? styles.labelCondition : styles.labelAction,
           !isEnabled && styles.labelDisabled,
-          isDimmed && styles.labelDimmed
+          isDimmed && styles.labelDimmed,
         )}
       >
         {displayLabel}
@@ -155,7 +155,7 @@ const HubNodeComponent = ({ data, selected }: HubNodeProps) => {
           styles.handle,
           isCondition ? styles.handleCondition : styles.handleAction,
           !isEnabled && styles.handleDisabled,
-          isDimmed && styles.handleDimmed
+          isDimmed && styles.handleDimmed,
         )}
       />
     </div>

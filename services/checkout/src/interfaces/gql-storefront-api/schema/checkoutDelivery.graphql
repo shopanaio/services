@@ -131,8 +131,6 @@ input CheckoutDeliveryRecipientsAddInput {
   """
   checkoutId: ID!
 
-
-
   """
   List of recipients to be added for delivery groups.
   """
@@ -148,8 +146,6 @@ input CheckoutDeliveryRecipientsUpdateInput {
   """
   checkoutId: ID!
 
-
-
   """
   List of updates for recipients.
   """
@@ -164,8 +160,6 @@ input CheckoutDeliveryRecipientsRemoveInput {
   Identifier of the checkout on which the operation is performed.
   """
   checkoutId: ID!
-
-
 
   """
   Identifiers of delivery groups whose recipients should be removed.
@@ -205,8 +199,6 @@ input CheckoutDeliveryAddressesAddInput {
   """
   checkoutId: ID!
 
-
-
   """
   List of delivery addresses to be added.
   """
@@ -237,8 +229,6 @@ input CheckoutDeliveryAddressesUpdateInput {
   """
   checkoutId: ID!
 
-
-
   """
   List of updates for delivery addresses.
   """
@@ -253,8 +243,6 @@ input CheckoutDeliveryAddressesRemoveInput {
   Identifier of the checkout on which the operation is performed.
   """
   checkoutId: ID!
-
-
 
   """
   Identifiers of delivery addresses to be removed.
@@ -272,14 +260,14 @@ input CheckoutDeliveryMethodUpdateInput {
   """
   checkoutId: ID!
 
-
-
   """
   Identifier of the delivery group for which the delivery method is selected.
   """
   deliveryGroupId: ID!
 
-  """Opaque handle returned by the current checkout snapshot."""
+  """
+  Opaque handle returned by the current checkout snapshot.
+  """
   optionHandle: String!
 
   """
@@ -290,7 +278,9 @@ input CheckoutDeliveryMethodUpdateInput {
 }
 
 input CheckoutDeliveryDestinationInput {
-  """Checkout lines assigned to this destination."""
+  """
+  Checkout lines assigned to this destination.
+  """
   checkoutLineIds: [ID!]!
 
   address: CheckoutDeliveryAddressInput!
@@ -304,13 +294,19 @@ identifier belong to data and are validated by the selected delivery option's
 customerInputContract.
 """
 input CheckoutDeliveryAddressInput {
-  """Recipient's first name."""
+  """
+  Recipient's first name.
+  """
   firstName: String
 
-  """Recipient's last name."""
+  """
+  Recipient's last name.
+  """
   lastName: String
 
-  """Company or organization receiving the delivery."""
+  """
+  Company or organization receiving the delivery.
+  """
   company: String
 
   """
@@ -364,19 +360,29 @@ type CheckoutDeliveryAddress {
   """
   id: ID
 
-  """Recipient first name captured with this destination."""
+  """
+  Recipient first name captured with this destination.
+  """
   firstName: String
 
-  """Recipient last name captured with this destination."""
+  """
+  Recipient last name captured with this destination.
+  """
   lastName: String
 
-  """Recipient name formatted for the active storefront locale."""
+  """
+  Recipient name formatted for the active storefront locale.
+  """
   name: String!
 
-  """Company or organization receiving the delivery."""
+  """
+  Company or organization receiving the delivery.
+  """
   company: String
 
-  """Contact phone captured with this destination."""
+  """
+  Contact phone captured with this destination.
+  """
   phone: String
 
   """
@@ -394,7 +400,9 @@ type CheckoutDeliveryAddress {
   """
   city: String
 
-  """Localized country or territory name."""
+  """
+  Localized country or territory name.
+  """
   country: String
 
   """
@@ -402,7 +410,9 @@ type CheckoutDeliveryAddress {
   """
   countryCode: CountryCode
 
-  """Localized region, state, or province name."""
+  """
+  Localized region, state, or province name.
+  """
   province: String
 
   """
@@ -420,9 +430,13 @@ type CheckoutDeliveryAddress {
   """
   data: JSON
 
-  """Address lines formatted for the active storefront locale."""
+  """
+  Address lines formatted for the active storefront locale.
+  """
   formatted: [String!]!
 
-  """Compact city, region, and country representation."""
+  """
+  Compact city, region, and country representation.
+  """
   formattedArea: String
 }

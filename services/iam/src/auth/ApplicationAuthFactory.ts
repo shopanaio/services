@@ -36,17 +36,11 @@ import { assertApplicationId } from "./AuthScope.js";
 
 export interface ApplicationAuthConfigurationSource {
   findActive(
-    applicationId: string
-  ): Promise<
-    (ApplicationAuthConfigurationRecord & { organizationId: string }) | null
-  >;
+    applicationId: string,
+  ): Promise<(ApplicationAuthConfigurationRecord & { organizationId: string }) | null>;
   listOrigins(applicationId: string): Promise<Array<{ origin: string }>>;
-  listConfiguredProviders(
-    applicationId: string
-  ): Promise<ApplicationAuthConfiguredProvider[]>;
-  findDeliveryProfile(
-    applicationId: string
-  ): Promise<ApplicationAuthDeliveryProfile | null>;
+  listConfiguredProviders(applicationId: string): Promise<ApplicationAuthConfiguredProvider[]>;
+  findDeliveryProfile(applicationId: string): Promise<ApplicationAuthDeliveryProfile | null>;
 }
 
 export interface ApplicationAuthInvalidationEvent {
@@ -109,10 +103,7 @@ const DEFAULT_HARD_TTL_MS = 5 * 60_000;
 export class ApplicationAuthFactory {
   private readonly cache = new Map<string, CacheEntry>();
   private readonly applicationGenerations = new Map<string, number>();
-  private readonly pending = new Map<
-    string,
-    Promise<ApplicationAuthFactoryRuntime>
-  >();
+  private readonly pending = new Map<string, Promise<ApplicationAuthFactoryRuntime>>();
   private readonly revisionCheckIntervalMs: number;
   private readonly hardTtlMs: number;
   private readonly maxEntries: number;
@@ -123,7 +114,7 @@ export class ApplicationAuthFactory {
     private readonly keyring: ApplicationAuthKeyring,
     private readonly secrets: ApplicationAuthSecretService,
     private readonly configurations: ApplicationAuthConfigurationSource,
-    private readonly options: ApplicationAuthFactoryOptions = {}
+    private readonly options: ApplicationAuthFactoryOptions = {},
   ) {
     this.revisionCheckIntervalMs =
       options.revisionCheckIntervalMs ?? DEFAULT_REVISION_CHECK_INTERVAL_MS;
@@ -134,14 +125,10 @@ export class ApplicationAuthFactory {
       this.revisionCheckIntervalMs < 1 ||
       this.revisionCheckIntervalMs > DEFAULT_REVISION_CHECK_INTERVAL_MS
     ) {
-      throw new Error(
-        "Application auth revision check interval must be between 1ms and 30s"
-      );
+      throw new Error("Application auth revision check interval must be between 1ms and 30s");
     }
     if (this.hardTtlMs < 1 || this.hardTtlMs > DEFAULT_HARD_TTL_MS) {
-      throw new Error(
-        "Application auth factory hard TTL must be between 1ms and 5 minutes"
-      );
+      throw new Error("Application auth factory hard TTL must be between 1ms and 5 minutes");
     }
     if (!Number.isSafeInteger(this.maxEntries) || this.maxEntries < 1) {
       throw new Error("Application auth factory cache size is invalid");
@@ -150,7 +137,7 @@ export class ApplicationAuthFactory {
 
   async forApplication(
     applicationId: string,
-    requestOptions: ApplicationAuthFactoryRequestOptions = {}
+    requestOptions: ApplicationAuthFactoryRequestOptions = {},
   ): Promise<ApplicationAuthFactoryRuntime> {
     assertApplicationId(applicationId);
     const now = this.now();
@@ -169,11 +156,7 @@ export class ApplicationAuthFactory {
     if (pending) return pending;
 
     const generation = this.currentGeneration(applicationId);
-    const build = this.loadAndBuild(
-      applicationId,
-      cached,
-      generation
-    );
+    const build = this.loadAndBuild(applicationId, cached, generation);
     const rebuild = build.finally(() => {
       if (this.pending.get(applicationId) === rebuild) {
         this.pending.delete(applicationId);
@@ -186,20 +169,15 @@ export class ApplicationAuthFactory {
   invalidate(applicationId: string): void;
   invalidate(event: ApplicationAuthInvalidationEvent): void;
   invalidate(input: string | ApplicationAuthInvalidationEvent): void {
-    const applicationId =
-      typeof input === "string" ? input : input.applicationId;
+    const applicationId = typeof input === "string" ? input : input.applicationId;
     assertApplicationId(applicationId);
     const cached = this.cache.get(applicationId);
-    if (
-      cached &&
-      typeof input !== "string" &&
-      input.revision <= cached.configuration.revision
-    ) {
+    if (cached && typeof input !== "string" && input.revision <= cached.configuration.revision) {
       return;
     }
     this.applicationGenerations.set(
       applicationId,
-      (this.applicationGenerations.get(applicationId) ?? 0) + 1
+      (this.applicationGenerations.get(applicationId) ?? 0) + 1,
     );
     this.cache.delete(applicationId);
     this.pending.delete(applicationId);
@@ -215,7 +193,7 @@ export class ApplicationAuthFactory {
   private async loadAndBuild(
     applicationId: string,
     cached: CacheEntry | undefined,
-    generation: string
+    generation: string,
   ): Promise<ApplicationAuthFactoryRuntime> {
     const configuration = await this.loadRuntimeConfiguration(applicationId);
     this.assertGeneration(applicationId, generation);
@@ -243,9 +221,7 @@ export class ApplicationAuthFactory {
       liveStateInvalidation: this.options.liveStateInvalidation,
       applicationUserLifecycle: this.options.applicationUserLifecycle,
     });
-    const enabledSocialProviders = configuration.providers.map(
-      ({ provider }) => provider
-    );
+    const enabledSocialProviders = configuration.providers.map(({ provider }) => provider);
     const routeManifest = createEffectiveApplicationAuthRouteManifest({
       policy: configuration.policy,
       emailVerificationEnabled:
@@ -265,9 +241,7 @@ export class ApplicationAuthFactory {
       policy: Object.freeze({
         ...configuration.policy,
         socialProviders: Object.freeze(
-          configuration.policy.socialProviders.map((provider) =>
-            Object.freeze({ ...provider })
-          )
+          configuration.policy.socialProviders.map((provider) => Object.freeze({ ...provider })),
         ),
       }),
       branding: Object.freeze({ ...configuration.branding }),
@@ -290,7 +264,7 @@ export class ApplicationAuthFactory {
   }
 
   private async loadRuntimeConfiguration(
-    applicationId: string
+    applicationId: string,
   ): Promise<ApplicationAuthRuntimeConfiguration> {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const initial = await this.configurations.findActive(applicationId);
@@ -321,18 +295,14 @@ export class ApplicationAuthFactory {
         this.configurations.listConfiguredProviders(applicationId),
       ]);
       this.keyring.assertVersionsAvailable(
-        configuredProviders.map(({ secretKeyVersion }) => secretKeyVersion)
+        configuredProviders.map(({ secretKeyVersion }) => secretKeyVersion),
       );
       const providerEntries = configuredProviders.map((configuration) => {
         if (configuration.applicationId !== applicationId) {
           throw new Error("Application auth provider scope mismatch");
         }
-        const provider = parseApplicationAuthProviderName(
-          configuration.provider
-        );
-        const scopes = applicationAuthProviderScopesSchema.parse(
-          configuration.scopes
-        );
+        const provider = parseApplicationAuthProviderName(configuration.provider);
+        const scopes = applicationAuthProviderScopesSchema.parse(configuration.scopes);
         if (new Set(scopes).size !== scopes.length) {
           throw new Error("Application auth provider scopes are duplicated");
         }
@@ -360,10 +330,7 @@ export class ApplicationAuthFactory {
           scopes: Object.freeze([...validated.scopes]),
         });
       });
-      const policy = calculateEffectiveApplicationAuthPolicy(
-        initial,
-        providerEntries
-      );
+      const policy = calculateEffectiveApplicationAuthPolicy(initial, providerEntries);
       const trustedOrigins = origins.map(({ origin }) => {
         const normalized = normalizeApplicationAuthOrigin(origin, {
           allowInsecureLocalhost: process.env.NODE_ENV !== "production",
@@ -377,8 +344,7 @@ export class ApplicationAuthFactory {
         applicationAuthDeliveryProfileSchema.parse({
           transportProfile: deliveryProfile.transportProfile,
           senderIdentity: deliveryProfile.senderIdentity,
-          emailVerificationTemplateId:
-            deliveryProfile.emailVerificationTemplateId,
+          emailVerificationTemplateId: deliveryProfile.emailVerificationTemplateId,
           passwordResetTemplateId: deliveryProfile.passwordResetTemplateId,
           emailOtpSignInTemplateId: deliveryProfile.emailOtpSignInTemplateId,
           updatedBy: deliveryProfile.updatedBy,
@@ -391,16 +357,14 @@ export class ApplicationAuthFactory {
         final.secretKeyVersion !== initial.secretKeyVersion
       ) {
         if (attempt === 0) continue;
-        throw new Error(
-          "Application auth configuration changed while factory was loading"
-        );
+        throw new Error("Application auth configuration changed while factory was loading");
       }
 
       const providers = Object.freeze(
         providerEntries.flatMap((provider) => {
           if (!provider.enabled) return [];
           const providerPolicy = policy.socialProviders.find(
-            (candidate) => candidate.provider === provider.provider
+            (candidate) => candidate.provider === provider.provider,
           );
           if (!providerPolicy?.signInAllowed) return [];
           return [
@@ -412,7 +376,7 @@ export class ApplicationAuthFactory {
               disableSignUp: !providerPolicy.signUpAllowed,
             }),
           ];
-        })
+        }),
       );
 
       return {
@@ -442,7 +406,7 @@ export class ApplicationAuthFactory {
     const configured =
       typeof this.options.publicBaseUrl === "function"
         ? this.options.publicBaseUrl()
-        : this.options.publicBaseUrl ?? process.env.IAM_PUBLIC_BASE_URL;
+        : (this.options.publicBaseUrl ?? process.env.IAM_PUBLIC_BASE_URL);
     if (!configured) {
       throw new Error("IAM_PUBLIC_BASE_URL is required for application auth");
     }
@@ -465,16 +429,12 @@ export class ApplicationAuthFactory {
   }
 
   private currentGeneration(applicationId: string): string {
-    return `${this.generation}:${
-      this.applicationGenerations.get(applicationId) ?? 0
-    }`;
+    return `${this.generation}:${this.applicationGenerations.get(applicationId) ?? 0}`;
   }
 
   private assertGeneration(applicationId: string, expected: string): void {
     if (this.currentGeneration(applicationId) !== expected) {
-      throw new Error(
-        "Application auth factory build was invalidated before completion"
-      );
+      throw new Error("Application auth factory build was invalidated before completion");
     }
   }
 

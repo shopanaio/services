@@ -97,7 +97,7 @@ const optionCategoryWhere = generateWhereInputType(
     includeDescriptions: true,
     fieldTypes: optionCategoryFieldTypes,
     excludeFields: ["storeId"],
-  }
+  },
 );
 
 const optionCategoryOrderBy = generateOrderByInputType(
@@ -107,7 +107,7 @@ const optionCategoryOrderBy = generateOrderByInputType(
     includeDescriptions: true,
     fieldTypes: optionCategoryFieldTypes,
     excludeFields: ["storeId"],
-  }
+  },
 );
 
 const categoryListFieldTypes: Record<string, GraphQLFieldType> = {
@@ -170,26 +170,17 @@ const warehouseOrderBy = generateOrderByInputType(warehouseRelayQuery, "Warehous
 
 const warehouseConnectionInput = generateConnectionInputType("Warehouse");
 
-const warehouseStockWhere = generateWhereInputType(
-  stockRelayQuery,
-  "WarehouseStock",
-  {
-    includeDescriptions: true,
-    excludeFields: ["storeId", "reservedQty", "unavailableQty"],
-  }
-);
+const warehouseStockWhere = generateWhereInputType(stockRelayQuery, "WarehouseStock", {
+  includeDescriptions: true,
+  excludeFields: ["storeId", "reservedQty", "unavailableQty"],
+});
 
-const warehouseStockOrderBy = generateOrderByInputType(
-  stockRelayQuery,
-  "WarehouseStock",
-  {
-    includeDescriptions: true,
-    excludeFields: ["storeId", "reservedQty", "unavailableQty"],
-  }
-);
+const warehouseStockOrderBy = generateOrderByInputType(stockRelayQuery, "WarehouseStock", {
+  includeDescriptions: true,
+  excludeFields: ["storeId", "reservedQty", "unavailableQty"],
+});
 
-const warehouseStockConnectionInput =
-  generateConnectionInputType("WarehouseStock");
+const warehouseStockConnectionInput = generateConnectionInputType("WarehouseStock");
 
 const variantWhere = generateWhereInputType(variantRelayQuery, "Variant", {
   includeDescriptions: true,
@@ -217,7 +208,7 @@ const facetSourceCandidateWhere = generateWhereInputType(
     includeDescriptions: true,
     fieldTypes: facetSourceCandidateFieldTypes,
     excludeFields: ["storeId", "locale"],
-  }
+  },
 );
 
 const facetSourceCandidateOrderBy = generateOrderByInputType(
@@ -227,7 +218,7 @@ const facetSourceCandidateOrderBy = generateOrderByInputType(
     includeDescriptions: true,
     fieldTypes: facetSourceCandidateFieldTypes,
     excludeFields: ["storeId", "locale"],
-  }
+  },
 );
 
 const facetValueCandidateFieldTypes: Record<string, GraphQLFieldType> = {
@@ -245,7 +236,7 @@ const facetValueCandidateWhere = generateWhereInputType(
     includeDescriptions: true,
     fieldTypes: facetValueCandidateFieldTypes,
     excludeFields: ["storeId", "locale", "facetType", "sourceHandle"],
-  }
+  },
 );
 
 const facetValueCandidateOrderBy = generateOrderByInputType(
@@ -255,7 +246,7 @@ const facetValueCandidateOrderBy = generateOrderByInputType(
     includeDescriptions: true,
     fieldTypes: facetValueCandidateFieldTypes,
     excludeFields: ["storeId", "locale", "facetType", "sourceHandle"],
-  }
+  },
 );
 
 const content = `# Auto-generated GraphQL filter types for Catalog service.

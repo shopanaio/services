@@ -9,11 +9,7 @@ export interface NavigationWhereInput {
   updatedAt?: Record<string, unknown>;
 }
 
-export type NavigationOrderField =
-  | "TITLE"
-  | "STATUS"
-  | "CREATED_AT"
-  | "UPDATED_AT";
+export type NavigationOrderField = "TITLE" | "STATUS" | "CREATED_AT" | "UPDATED_AT";
 
 export const navigationSortFieldMapping: SortFieldMapping<NavigationOrderField> = {
   title: "TITLE",
@@ -22,10 +18,6 @@ export const navigationSortFieldMapping: SortFieldMapping<NavigationOrderField> 
   updatedAt: "UPDATED_AT",
 };
 
-export const buildNavigationSearchCondition = (
-  search: string,
-): Partial<NavigationWhereInput> => ({
-  _or: [
-    { title: { _containsi: search } },
-  ],
+export const buildNavigationSearchCondition = (search: string): Partial<NavigationWhereInput> => ({
+  _or: [{ title: { _containsi: search } }],
 });

@@ -45,8 +45,7 @@ export class AuthProvider implements IAuthProvider {
     const ctx = getContext();
 
     // Determine domain: explicit > store from context > default org
-    const domain =
-      params.domain ?? (ctx.hasStore ? `store:${ctx.store.id}` : "org");
+    const domain = params.domain ?? (ctx.hasStore ? `store:${ctx.store.id}` : "org");
 
     return authorizeAdminContext(ctx.adminContext, {
       subject,
@@ -58,12 +57,10 @@ export class AuthProvider implements IAuthProvider {
     });
   }
 
-  async authorizeProtectedResource(
-    params: ProtectedResourceAuthorizeParams
-  ): Promise<boolean> {
+  async authorizeProtectedResource(params: ProtectedResourceAuthorizeParams): Promise<boolean> {
     const result = (await this.services.broker.call(
       "iam.authorizeProtectedResource",
-      params
+      params,
     )) as BrokerAuthorizeResult;
     throwIfBrokerAuthorizeDenied(result);
     return result.allowed;

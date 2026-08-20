@@ -1,16 +1,16 @@
-import { createStyles } from 'antd-style';
+import { createStyles } from "antd-style";
 
 const useTopBorderStyles = createStyles(({ token }) => ({
   outer: {
-    position: 'sticky',
+    position: "sticky",
     top: 64,
     background: token.colorBgLayout,
     zIndex: 100,
     padding: 0,
     marginLeft: 0,
-    width: '100%',
+    width: "100%",
     marginBottom: -token.paddingXS,
-    pointerEvents: 'none',
+    pointerEvents: "none",
   },
   inner: {
     backgroundColor: token.colorBgContainer,
@@ -18,7 +18,7 @@ const useTopBorderStyles = createStyles(({ token }) => ({
     borderTopLeftRadius: token.borderRadius,
     borderTopRightRadius: token.borderRadius,
     border: `1px solid ${token.colorBorder}`,
-    borderBottom: 'none',
+    borderBottom: "none",
   },
 }));
 

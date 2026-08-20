@@ -233,13 +233,25 @@ extend type ListingQuery {
     first: Int = 50
     after: String
   ): ManualProductRecommendationConnection!
-  recommendationSnapshotPreview(input: RecommendationSnapshotPreviewInput!): RecommendationSnapshotPreviewPayload!
+  recommendationSnapshotPreview(
+    input: RecommendationSnapshotPreviewInput!
+  ): RecommendationSnapshotPreviewPayload!
 }
 
 extend type ListingMutation {
-  recommendationPlacementPolicyUpsert(input: RecommendationPlacementPolicyUpsertInput!): RecommendationPlacementPolicyPayload!
-  recommendationPlacementPolicySetEnabled(input: RecommendationPlacementPolicySetEnabledInput!): RecommendationPlacementPolicyPayload!
-  manualProductRecommendationCreate(input: ManualProductRecommendationCreateInput!): ManualProductRecommendationPayload!
-  manualProductRecommendationUpdate(input: ManualProductRecommendationUpdateInput!): ManualProductRecommendationPayload!
-  manualProductRecommendationDelete(input: ManualProductRecommendationDeleteInput!): ManualProductRecommendationDeletePayload!
+  recommendationPlacementPolicyUpsert(
+    input: RecommendationPlacementPolicyUpsertInput!
+  ): RecommendationPlacementPolicyPayload!
+  recommendationPlacementPolicySetEnabled(
+    input: RecommendationPlacementPolicySetEnabledInput!
+  ): RecommendationPlacementPolicyPayload!
+  manualProductRecommendationCreate(
+    input: ManualProductRecommendationCreateInput!
+  ): ManualProductRecommendationPayload!
+  manualProductRecommendationUpdate(
+    input: ManualProductRecommendationUpdateInput!
+  ): ManualProductRecommendationPayload!
+  manualProductRecommendationDelete(
+    input: ManualProductRecommendationDeleteInput!
+  ): ManualProductRecommendationDeletePayload!
 }

@@ -33,10 +33,7 @@ export const product = catalogSchema.table(
     revision: integer("revision").notNull().default(0),
   },
   (table) => [
-    check(
-      "product_published_requires_handle",
-      sql`published_at IS NULL OR handle IS NOT NULL`
-    ),
+    check("product_published_requires_handle", sql`published_at IS NULL OR handle IS NOT NULL`),
     uniqueIndex("product_store_id_handle_key")
       .on(table.storeId, table.handle)
       .where(sql`deleted_at IS NULL AND handle IS NOT NULL`),
@@ -54,7 +51,7 @@ export const product = catalogSchema.table(
       columns: [table.vendorId],
       foreignColumns: [vendor.id],
     }),
-  ]
+  ],
 );
 
 export const variant = catalogSchema.table(
@@ -77,10 +74,7 @@ export const variant = catalogSchema.table(
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
-    check(
-      "variant_handle_required_if_not_default",
-      sql`is_default = true OR length(handle) > 0`
-    ),
+    check("variant_handle_required_if_not_default", sql`is_default = true OR length(handle) > 0`),
     uniqueIndex("variant_product_id_default_key")
       .on(table.productId)
       .where(sql`is_default = true AND deleted_at IS NULL`),
@@ -93,11 +87,7 @@ export const variant = catalogSchema.table(
     uniqueIndex("variant_store_id_external_system_external_id_key")
       .on(table.storeId, table.externalSystem, table.externalId)
       .where(sql`deleted_at IS NULL AND external_id IS NOT NULL`),
-    unique("variant_store_id_product_id_id_unique").on(
-      table.storeId,
-      table.productId,
-      table.id
-    ),
+    unique("variant_store_id_product_id_id_unique").on(table.storeId, table.productId, table.id),
     index("idx_variant_store_id").on(table.storeId),
     index("idx_variant_product_id").on(table.productId),
     index("idx_variant_product_active")
@@ -108,7 +98,7 @@ export const variant = catalogSchema.table(
     index("idx_variant_deleted_at")
       .on(table.deletedAt)
       .where(sql`deleted_at IS NOT NULL`),
-  ]
+  ],
 );
 
 export type Product = typeof product.$inferSelect;

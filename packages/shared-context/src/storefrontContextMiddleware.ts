@@ -25,18 +25,17 @@ export function buildStorefrontContextMiddleware(
   options: StorefrontContextMiddlewareOptions = {},
 ) {
   const verifier = options.verifier ?? new StorefrontContextVerifier();
-  return async function storefrontContextMiddleware(
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ) {
+  return async function storefrontContextMiddleware(request: FastifyRequest, reply: FastifyReply) {
     const raw = request.headers[STOREFRONT_CONTEXT_HEADER];
     if (typeof raw !== "string" || !raw) {
       return reply.status(401).send({
         data: null,
-        errors: [{
-          message: "Verified storefront context is required",
-          extensions: { code: "UNAUTHENTICATED" },
-        }],
+        errors: [
+          {
+            message: "Verified storefront context is required",
+            extensions: { code: "UNAUTHENTICATED" },
+          },
+        ],
       });
     }
     try {
@@ -48,10 +47,12 @@ export function buildStorefrontContextMiddleware(
     } catch {
       return reply.status(401).send({
         data: null,
-        errors: [{
-          message: "Invalid storefront context",
-          extensions: { code: "UNAUTHENTICATED" },
-        }],
+        errors: [
+          {
+            message: "Invalid storefront context",
+            extensions: { code: "UNAUTHENTICATED" },
+          },
+        ],
       });
     }
   };

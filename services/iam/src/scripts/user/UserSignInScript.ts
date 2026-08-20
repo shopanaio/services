@@ -1,13 +1,7 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  UserSignInParams,
-  UserSignInResult,
-} from "./dto/UserSignInDto.js";
+import type { UserSignInParams, UserSignInResult } from "./dto/UserSignInDto.js";
 
-export class UserSignInScript extends BaseScript<
-  UserSignInParams,
-  UserSignInResult
-> {
+export class UserSignInScript extends BaseScript<UserSignInParams, UserSignInResult> {
   protected async execute(params: UserSignInParams): Promise<UserSignInResult> {
     const { email, password, headers } = params;
 

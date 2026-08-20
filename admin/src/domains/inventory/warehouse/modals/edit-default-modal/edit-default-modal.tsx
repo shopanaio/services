@@ -3,11 +3,7 @@
 import { useCallback, useState } from "react";
 import { App, Alert, Checkbox, Typography } from "antd";
 import { createStyles } from "antd-style";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useUpdateWarehouse } from "../../hooks";
 import type { IWarehouseEditDefaultModalPayload } from "../index";
@@ -56,14 +52,7 @@ export function EditDefaultModal() {
       message.success("Default warehouse updated");
       pop();
     }
-  }, [
-    checked,
-    isAlreadyDefault,
-    message,
-    pop,
-    typedPayload,
-    updateWarehouse,
-  ]);
+  }, [checked, isAlreadyDefault, message, pop, typedPayload, updateWarehouse]);
 
   return (
     <ModalLayout

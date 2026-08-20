@@ -34,7 +34,13 @@ interface PolicyDraft {
 
 export type ManualDraftChange =
   | { kind: "create"; value: Omit<ManualDraftRow, "id" | "expectedVersion"> }
-  | { kind: "update"; value: Partial<Omit<ManualDraftRow, "id" | "expectedVersion">> & { id: string; expectedVersion: number } }
+  | {
+      kind: "update";
+      value: Partial<Omit<ManualDraftRow, "id" | "expectedVersion">> & {
+        id: string;
+        expectedVersion: number;
+      };
+    }
   | { kind: "delete"; value: { id: string; expectedVersion: number } };
 
 export interface ManualDraftRow {
@@ -57,7 +63,12 @@ export interface RecommendationSnapshotPreviewParams {
 }
 
 export interface RecommendationPreviewResultValue {
-  candidates: Array<Pick<RankedRecommendationCandidate, "targetProductId" | "rank" | "score" | "primarySource" | "sourceBreakdown">>;
+  candidates: Array<
+    Pick<
+      RankedRecommendationCandidate,
+      "targetProductId" | "rank" | "score" | "primarySource" | "sourceBreakdown"
+    >
+  >;
   excluded: Array<{ targetProductId: string; reason: RecommendationExcludedReason }>;
   asOf: string;
   modelVersion: string;
@@ -74,12 +85,18 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
   RecommendationSnapshotPreviewResult
 > {
   @Transactional()
-  protected async execute(input: RecommendationSnapshotPreviewParams): Promise<RecommendationSnapshotPreviewResult> {
+  protected async execute(
+    input: RecommendationSnapshotPreviewParams,
+  ): Promise<RecommendationSnapshotPreviewResult> {
     if (
       input.manualChanges.length > MAX_RECOMMENDATION_PREVIEW_CHANGES ||
       canonicalByteLength(input) > MAX_RECOMMENDATION_PREVIEW_BYTES
     ) {
-      return { active: null, draft: null, userErrors: [{ message: "Preview input limit exceeded", code: "PREVIEW_LIMIT_EXCEEDED" }] };
+      return {
+        active: null,
+        draft: null,
+        userErrors: [{ message: "Preview input limit exceeded", code: "PREVIEW_LIMIT_EXCEEDED" }],
+      };
     }
     const referencedProductIds = [
       input.anchorProductId,
@@ -91,9 +108,8 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
         return [];
       }),
     ];
-    const ownedProductIds = await this.repository.manualProductRecommendation.findOwnedProductIds(
-      referencedProductIds,
-    );
+    const ownedProductIds =
+      await this.repository.manualProductRecommendation.findOwnedProductIds(referencedProductIds);
     if (referencedProductIds.some((id) => !ownedProductIds.has(id))) {
       return {
         active: null,
@@ -102,40 +118,51 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
       };
     }
     const asOf = await this.repository.recommendationCalculationRun.databaseNow();
-    const persistedPolicy = await this.repository.recommendationPlacementPolicy.findByPlacement(input.placement);
+    const persistedPolicy = await this.repository.recommendationPlacementPolicy.findByPlacement(
+      input.placement,
+    );
     const active = await this.activeResult(input.anchorProductId, input.placement);
     const policyResult = this.resolvePolicy(input, persistedPolicy, asOf);
-    if (policyResult.userErrors.length > 0) return { active, draft: null, userErrors: policyResult.userErrors };
+    if (policyResult.userErrors.length > 0)
+      return { active, draft: null, userErrors: policyResult.userErrors };
     if (!policyResult.policy) return { active, draft: null, userErrors: [] };
     const rows = await this.loadAllManual(input.anchorProductId, input.placement);
     const overlay = this.applyOverlay(input, rows, policyResult.policy.maximumResults, asOf);
-    if (overlay.userErrors.length > 0) return { active, draft: null, userErrors: overlay.userErrors };
+    if (overlay.userErrors.length > 0)
+      return { active, draft: null, userErrors: overlay.userErrors };
     if (overlay.rows.length > MAX_MANUAL_ROWS_PER_ANCHOR_PLACEMENT) {
       return {
         active,
         draft: null,
-        userErrors: [{
-          message: "Manual recommendation row limit reached",
-          code: "MANUAL_ROW_LIMIT_EXCEEDED",
-        }],
+        userErrors: [
+          {
+            message: "Manual recommendation row limit reached",
+            code: "MANUAL_ROW_LIMIT_EXCEEDED",
+          },
+        ],
       };
     }
     const asOfTime = Date.parse(asOf);
-    if (overlay.rows.some((row) =>
-      row.action === "PIN" &&
-      row.enabled &&
-      row.anchorReferenceStatus === "VALID" &&
-      row.targetReferenceStatus === "VALID" &&
-      (row.position ?? 0) > policyResult.policy!.maximumResults &&
-      (row.endsAt === null || Date.parse(row.endsAt) > asOfTime)
-    )) {
+    if (
+      overlay.rows.some(
+        (row) =>
+          row.action === "PIN" &&
+          row.enabled &&
+          row.anchorReferenceStatus === "VALID" &&
+          row.targetReferenceStatus === "VALID" &&
+          (row.position ?? 0) > policyResult.policy!.maximumResults &&
+          (row.endsAt === null || Date.parse(row.endsAt) > asOfTime),
+      )
+    ) {
       return {
         active,
         draft: null,
-        userErrors: [{
-          message: "A current or future PIN exceeds maximumResults",
-          code: "PIN_POSITION_OUT_OF_RANGE",
-        }],
+        userErrors: [
+          {
+            message: "A current or future PIN exceeds maximumResults",
+            code: "PIN_POSITION_OUT_OF_RANGE",
+          },
+        ],
       };
     }
     const scheduleErrors = validateOverlaySchedules(overlay.rows);
@@ -155,13 +182,19 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
             limit,
             diagnostic: true,
           });
-          insufficientSupport.push(
-            ...rows.filter((candidate) => candidate.insufficientSupport),
-          );
+          insufficientSupport.push(...rows.filter((candidate) => candidate.insufficientSupport));
           return rows.filter((candidate) => !candidate.insufficientSupport);
         },
-        loadCategoryPopularity: (limit) => this.repository.recommendationCandidateSource.categoryPopularity({ anchorProductId: input.anchorProductId, limit }),
-        loadStorePopularity: (limit) => this.repository.recommendationCandidateSource.storePopularity({ anchorProductId: input.anchorProductId, limit }),
+        loadCategoryPopularity: (limit) =>
+          this.repository.recommendationCandidateSource.categoryPopularity({
+            anchorProductId: input.anchorProductId,
+            limit,
+          }),
+        loadStorePopularity: (limit) =>
+          this.repository.recommendationCandidateSource.storePopularity({
+            anchorProductId: input.anchorProductId,
+            limit,
+          }),
         eligibility: (ids) => this.repository.recommendationCandidateSource.currentEligibility(ids),
       });
     } catch (error) {
@@ -172,10 +205,12 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
         return {
           active,
           draft: null,
-          userErrors: [{
-            message: "Preview candidate limit exceeded",
-            code: "PREVIEW_LIMIT_EXCEEDED",
-          }],
+          userErrors: [
+            {
+              message: "Preview candidate limit exceeded",
+              code: "PREVIEW_LIMIT_EXCEEDED",
+            },
+          ],
         };
       }
       throw error;
@@ -187,9 +222,8 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
     const diagnosticIds = insufficientSupport
       .map((candidate) => candidate.targetProductId)
       .filter((targetProductId) => !represented.has(targetProductId));
-    const diagnosticEligibility = await this.repository.recommendationCandidateSource.currentEligibility(
-      diagnosticIds,
-    );
+    const diagnosticEligibility =
+      await this.repository.recommendationCandidateSource.currentEligibility(diagnosticIds);
     const manualExclusions = new Set(
       overlay.rows
         .filter((row) => effective(row, asOf) && row.action === "EXCLUDE")
@@ -226,23 +260,29 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
       (persisted && input.policy.expectedVersion !== persisted.version) ||
       (!persisted && input.policy.expectedVersion != null)
     ) {
-      return { policy: null, userErrors: [{ message: "Policy version changed", code: "VERSION_CONFLICT" }] };
+      return {
+        policy: null,
+        userErrors: [{ message: "Policy version changed", code: "VERSION_CONFLICT" }],
+      };
     }
     const userErrors = validatePolicy({ placement: input.placement, ...input.policy });
     return {
-      policy: userErrors.length > 0 ? null : {
-        policyId: persisted?.policyId ?? "00000000-0000-7000-8000-000000000000",
-        storeId: this.context.store.id,
-        placement: input.placement,
-        enabled: input.policy.enabled,
-        strategy: input.policy.strategy,
-        minimumResults: input.policy.minimumResults,
-        maximumResults: input.policy.maximumResults,
-        fallbackChain: input.policy.fallbackChain,
-        version: persisted?.version ?? 0,
-        createdAt: persisted?.createdAt ?? asOf,
-        updatedAt: asOf,
-      },
+      policy:
+        userErrors.length > 0
+          ? null
+          : {
+              policyId: persisted?.policyId ?? "00000000-0000-7000-8000-000000000000",
+              storeId: this.context.store.id,
+              placement: input.placement,
+              enabled: input.policy.enabled,
+              strategy: input.policy.strategy,
+              minimumResults: input.policy.minimumResults,
+              maximumResults: input.policy.maximumResults,
+              fallbackChain: input.policy.fallbackChain,
+              version: persisted?.version ?? 0,
+              createdAt: persisted?.createdAt ?? asOf,
+              updatedAt: asOf,
+            },
       userErrors,
     };
   }
@@ -251,7 +291,12 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
     const rows: ManualProductRecommendation[] = [];
     let afterId: string | undefined;
     do {
-      const page = await this.repository.manualProductRecommendation.listPage({ anchorProductId, placement, afterId, first: 500 });
+      const page = await this.repository.manualProductRecommendation.listPage({
+        anchorProductId,
+        placement,
+        afterId,
+        first: 500,
+      });
       rows.push(...page.rows);
       afterId = page.nextCursor ?? undefined;
     } while (afterId);
@@ -276,7 +321,11 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
       }
       const id = change.value.id;
       if (touched.has(id)) {
-        userErrors.push({ message: "Duplicate draft change", field: ["input", "manualChanges", String(index)], code: "DUPLICATE_DRAFT_CHANGE" });
+        userErrors.push({
+          message: "Duplicate draft change",
+          field: ["input", "manualChanges", String(index)],
+          code: "DUPLICATE_DRAFT_CHANGE",
+        });
         continue;
       }
       touched.add(id);
@@ -286,7 +335,10 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
         continue;
       }
       if (current.version !== change.value.expectedVersion) {
-        userErrors.push({ message: "Manual recommendation version changed", code: "VERSION_CONFLICT" });
+        userErrors.push({
+          message: "Manual recommendation version changed",
+          code: "VERSION_CONFLICT",
+        });
         continue;
       }
       if (change.kind === "delete") {
@@ -300,11 +352,19 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
     return { rows: [...rows.values()], userErrors };
   }
 
-  private async activeResult(anchorProductId: string, placement: RecommendationPlacement): Promise<RecommendationPreviewResultValue | null> {
-    const snapshot = await this.repository.recommendationSnapshot.findActive(anchorProductId, placement);
+  private async activeResult(
+    anchorProductId: string,
+    placement: RecommendationPlacement,
+  ): Promise<RecommendationPreviewResultValue | null> {
+    const snapshot = await this.repository.recommendationSnapshot.findActive(
+      anchorProductId,
+      placement,
+    );
     if (!snapshot) return null;
     const items = await this.repository.recommendationSnapshot.listItems(snapshot.snapshotId);
-    const eligibility = await this.repository.recommendationCandidateSource.currentEligibility(items.map((item) => item.targetProductId));
+    const eligibility = await this.repository.recommendationCandidateSource.currentEligibility(
+      items.map((item) => item.targetProductId),
+    );
     const candidates: RecommendationPreviewResultValue["candidates"] = [];
     const excluded: RecommendationPreviewResultValue["excluded"] = [];
     for (const item of items) {
@@ -315,10 +375,17 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
         candidates.push(toPreviewCandidate(item));
       }
     }
-    return { candidates, excluded, asOf: snapshot.generatedAt, modelVersion: snapshot.modelVersion };
+    return {
+      candidates,
+      excluded,
+      asOf: snapshot.generatedAt,
+      modelVersion: snapshot.modelVersion,
+    };
   }
 
-  protected handleError(error: unknown): never { throw error; }
+  protected handleError(error: unknown): never {
+    throw error;
+  }
 }
 
 function draftRow(
@@ -350,9 +417,13 @@ function draftRow(
 
 function effective(row: ManualProductRecommendation, asOf: string): boolean {
   const value = Date.parse(asOf);
-  return row.enabled && row.anchorReferenceStatus === "VALID" && row.targetReferenceStatus === "VALID" &&
+  return (
+    row.enabled &&
+    row.anchorReferenceStatus === "VALID" &&
+    row.targetReferenceStatus === "VALID" &&
     (row.startsAt === null || Date.parse(row.startsAt) <= value) &&
-    (row.endsAt === null || value < Date.parse(row.endsAt));
+    (row.endsAt === null || value < Date.parse(row.endsAt))
+  );
 }
 
 function toPreviewCandidate(item: RecommendationSnapshotItem) {
@@ -366,10 +437,9 @@ function toPreviewCandidate(item: RecommendationSnapshotItem) {
 }
 
 function validateOverlaySchedules(rows: readonly ManualProductRecommendation[]): UserError[] {
-  const reserving = rows.filter((row) =>
-    row.enabled &&
-    row.anchorReferenceStatus === "VALID" &&
-    row.targetReferenceStatus === "VALID"
+  const reserving = rows.filter(
+    (row) =>
+      row.enabled && row.anchorReferenceStatus === "VALID" && row.targetReferenceStatus === "VALID",
   );
   const groups = new Map<string, ManualProductRecommendation[]>();
   for (const row of reserving) {
@@ -381,18 +451,21 @@ function validateOverlaySchedules(rows: readonly ManualProductRecommendation[]):
     }
   }
   for (const group of groups.values()) {
-    const ordered = [...group].sort((left, right) =>
-      intervalStart(left) - intervalStart(right) ||
-      left.recommendationId.localeCompare(right.recommendationId)
+    const ordered = [...group].sort(
+      (left, right) =>
+        intervalStart(left) - intervalStart(right) ||
+        left.recommendationId.localeCompare(right.recommendationId),
     );
     let previousEnd = Number.NEGATIVE_INFINITY;
     for (const row of ordered) {
       const start = intervalStart(row);
       if (start < previousEnd) {
-        return [{
-          message: "Manual recommendation schedule conflicts with another row",
-          code: "SCHEDULE_CONFLICT",
-        }];
+        return [
+          {
+            message: "Manual recommendation schedule conflicts with another row",
+            code: "SCHEDULE_CONFLICT",
+          },
+        ];
       }
       previousEnd = Math.max(previousEnd, intervalEnd(row));
     }

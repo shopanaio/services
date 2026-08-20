@@ -2,7 +2,8 @@
 
 ## Цель
 
-Добавить в Shopana механизм динамического контента на уровне редактирования продукта и варианта. Мерчант должен иметь возможность вставлять в поля контента токены из данных каталога, например:
+Добавить в Shopana механизм динамического контента на уровне редактирования продукта и варианта.
+Мерчант должен иметь возможность вставлять в поля контента токены из данных каталога, например:
 
 ```text
 Материал: {{ product.feature.material.value }}
@@ -10,34 +11,43 @@
 Вариант: {{ variant.title }}
 ```
 
-Финальный текст не должен вычисляться только на чтении. Он должен материализоваться в базе данных, чтобы:
+Финальный текст не должен вычисляться только на чтении. Он должен материализоваться в базе данных,
+чтобы:
 
 - storefront и Admin API могли читать готовое значение без исполнения шаблона в каждом запросе;
 - поиск, фильтры и внешние индексы получали уже финальный текст;
-- изменения option, feature, variant title и других зависимостей могли переиндексировать затронутые сущности;
+- изменения option, feature, variant title и других зависимостей могли переиндексировать затронутые
+  сущности;
 - ошибки шаблона были видны в Admin до публикации.
 
 ## Контекст текущей модели
 
 В Catalog уже есть разделение между исходными сущностями и материализованными проекциями:
 
-- `product_translation` хранит локализованный `name`, `description_text`, `description_html`, `description_json`, `excerpt_*`.
+- `product_translation` хранит локализованный `name`, `description_text`, `description_html`,
+  `description_json`, `excerpt_*`.
 - `variant_translation` хранит локализованный `title`.
-- `product_option`, `product_option_value`, `product_feature`, `product_feature_value` хранят структурные данные.
+- `product_option`, `product_option_value`, `product_feature`, `product_feature_value` хранят
+  структурные данные.
 - `product_search_index` и `variant_search_index` материализуют поля для поиска и фильтрации.
-- скрипты `SyncProductIndexScript` и `SyncVariantIndexScript` уже пересобирают поисковые проекции после изменений.
+- скрипты `SyncProductIndexScript` и `SyncVariantIndexScript` уже пересобирают поисковые проекции
+  после изменений.
 
-Dynamic Content Engine должен встроиться в этот подход: шаблон редактируется отдельно, а финальные значения записываются в материализованные поля и индексы.
+Dynamic Content Engine должен встроиться в этот подход: шаблон редактируется отдельно, а финальные
+значения записываются в материализованные поля и индексы.
 
 ## Термины
 
-**Template source** - исходный контент из редактора с динамическими токенами. Например rich text JSON с inline-токеном `variant.option.color.name`.
+**Template source** - исходный контент из редактора с динамическими токенами. Например rich text
+JSON с inline-токеном `variant.option.color.name`.
 
 **Token** - разрешенная ссылка на поле из контекста продукта, варианта или связанных данных.
 
-**Render context** - набор данных, доступных шаблону при рендеринге: product, variant, options, features, vendor, price, stock и т.д.
+**Render context** - набор данных, доступных шаблону при рендеринге: product, variant, options,
+features, vendor, price, stock и т.д.
 
-**Materialized content** - финальный `text/html/json`, уже без токенов. Именно это значение читают storefront, Admin preview/listing и поиск.
+**Materialized content** - финальный `text/html/json`, уже без токенов. Именно это значение читают
+storefront, Admin preview/listing и поиск.
 
 **Render scope** - уровень, на котором создается финальный результат:
 
@@ -47,11 +57,15 @@ Dynamic Content Engine должен встроиться в этот подхо�
 ## Архитектурные принципы
 
 1. **Не выполнять произвольный Liquid/JS.** Только whitelist токенов из registry.
-2. **Источник и результат разделены.** Редактор хранит шаблон, витрина и поиск читают материализованный результат.
-3. **HTML всегда экранируется.** Токены подставляют текстовые значения, которые проходят через безопасный renderer.
-4. **Материализация обязательна.** Если шаблон сохранен, engine должен создать или обновить финальную проекцию.
+2. **Источник и результат разделены.** Редактор хранит шаблон, витрина и поиск читают
+   материализованный результат.
+3. **HTML всегда экранируется.** Токены подставляют текстовые значения, которые проходят через
+   безопасный renderer.
+4. **Материализация обязательна.** Если шаблон сохранен, engine должен создать или обновить
+   финальную проекцию.
 5. **Локаль и tenant обязательны.** Все таблицы и запросы включают `store_id` и `locale`.
-6. **Variant-specific данные не смешиваются с product-level полями.** Если поле использует `variant.*`, результат должен иметь `VARIANT` scope.
+6. **Variant-specific данные не смешиваются с product-level полями.** Если поле использует
+   `variant.*`, результат должен иметь `VARIANT` scope.
 
 ## Поддерживаемые поля v1
 
@@ -70,22 +84,23 @@ Dynamic Content Engine должен встроиться в этот подхо�
 
 ## Token Registry
 
-Engine должен иметь централизованный registry, который описывает доступные токены, их типы, scope и зависимости.
+Engine должен иметь централизованный registry, который описывает доступные токены, их типы, scope и
+зависимости.
 
 Примеры v1:
 
-| Token | Scope | Тип | Описание |
-| --- | --- | --- | --- |
-| `product.title` | PRODUCT, VARIANT | string | Локализованное имя продукта |
-| `product.handle` | PRODUCT, VARIANT | string | Handle продукта |
-| `product.vendor.name` | PRODUCT, VARIANT | string | Название vendor |
-| `product.feature.<slug>.name` | PRODUCT, VARIANT | string | Название характеристики |
-| `product.feature.<slug>.value` | PRODUCT, VARIANT | string/list | Значение характеристики |
-| `product.option.<slug>.values` | PRODUCT | list | Все значения option у продукта |
-| `variant.title` | VARIANT | string | Локализованный title варианта |
-| `variant.handle` | VARIANT | string | Handle варианта |
-| `variant.sku` | VARIANT | string | SKU варианта |
-| `variant.option.<slug>.name` | VARIANT | string | Выбранное значение option у варианта |
+| Token                          | Scope            | Тип         | Описание                             |
+| ------------------------------ | ---------------- | ----------- | ------------------------------------ |
+| `product.title`                | PRODUCT, VARIANT | string      | Локализованное имя продукта          |
+| `product.handle`               | PRODUCT, VARIANT | string      | Handle продукта                      |
+| `product.vendor.name`          | PRODUCT, VARIANT | string      | Название vendor                      |
+| `product.feature.<slug>.name`  | PRODUCT, VARIANT | string      | Название характеристики              |
+| `product.feature.<slug>.value` | PRODUCT, VARIANT | string/list | Значение характеристики              |
+| `product.option.<slug>.values` | PRODUCT          | list        | Все значения option у продукта       |
+| `variant.title`                | VARIANT          | string      | Локализованный title варианта        |
+| `variant.handle`               | VARIANT          | string      | Handle варианта                      |
+| `variant.sku`                  | VARIANT          | string      | SKU варианта                         |
+| `variant.option.<slug>.name`   | VARIANT          | string      | Выбранное значение option у варианта |
 
 Registry должен отдавать metadata для Admin UI:
 
@@ -107,7 +122,8 @@ Registry должен отдавать metadata для Admin UI:
 {{ product.option.size.values | join: ", " }}
 ```
 
-Но в rich text editor лучше хранить токены как структурные inline nodes в `json`, а не как сырой текст внутри HTML.
+Но в rich text editor лучше хранить токены как структурные inline nodes в `json`, а не как сырой
+текст внутри HTML.
 
 Пример node:
 
@@ -122,7 +138,8 @@ Registry должен отдавать metadata для Admin UI:
 }
 ```
 
-`text` и `html` могут содержать fallback-сериализацию для совместимости, но canonical source для rich text должен быть `json`.
+`text` и `html` могут содержать fallback-сериализацию для совместимости, но canonical source для
+rich text должен быть `json`.
 
 ## Модель данных
 
@@ -190,7 +207,8 @@ index(store_id, status)
 
 ### `catalog.dynamic_content_dependency`
 
-Для точной invalidation после v1. В первом релизе можно начать с `dependency_keys` и coarse rerender по productId.
+Для точной invalidation после v1. В первом релизе можно начать с `dependency_keys` и coarse rerender
+по productId.
 
 ```text
 store_id uuid not null
@@ -208,7 +226,8 @@ index(store_id, variant_id)
 
 ## Совместимость с текущими таблицами
 
-Для полей, где финальное значение совпадает с текущей canonical таблицей, materializer должен обновлять существующие таблицы:
+Для полей, где финальное значение совпадает с текущей canonical таблицей, materializer должен
+обновлять существующие таблицы:
 
 - `Product.title` -> `product_translation.name`;
 - `Product.description` с `PRODUCT` scope -> `product_translation.description_text/html/json`;
@@ -217,7 +236,8 @@ index(store_id, variant_id)
 
 `dynamic_content_render` остается общей таблицей аудита, статуса, preview и поиска.
 
-Если `Product.description` использует `variant.*`, engine не должен записывать разные variant-specific результаты в один `product_translation.description_*`. Для такого поля:
+Если `Product.description` использует `variant.*`, engine не должен записывать разные
+variant-specific результаты в один `product_translation.description_*`. Для такого поля:
 
 - `dynamic_content_template.render_scope = VARIANT`;
 - создается по одному `dynamic_content_render` на каждый вариант;
@@ -257,7 +277,8 @@ index(store_id, variant_id)
 - vendor;
 - inventory/pricing только через существующие boundaries, если они нужны токенам.
 
-В v1 лучше ограничиться данными Catalog, чтобы не связывать renderer с inventory/pricing broker calls.
+В v1 лучше ограничиться данными Catalog, чтобы не связывать renderer с inventory/pricing broker
+calls.
 
 ### `DynamicContentRenderer`
 
@@ -300,7 +321,9 @@ Renderer не должен обращаться к базе напрямую.
 - `VariantDeleteScript`;
 - `VariantUpdatePricingScript`, если позже будут price tokens.
 
-В v1 допустима coarse invalidation: при изменении продукта, варианта, option или feature пересобрать dynamic content для всего productId. После стабилизации добавить точечный поиск через `dynamic_content_dependency`.
+В v1 допустима coarse invalidation: при изменении продукта, варианта, option или feature пересобрать
+dynamic content для всего productId. После стабилизации добавить точечный поиск через
+`dynamic_content_dependency`.
 
 ## Жизненный цикл сохранения
 
@@ -317,7 +340,8 @@ Renderer не должен обращаться к базе напрямую.
 2. Script вызывает parser и registry validation.
 3. Template сохраняется в `dynamic_content_template`.
 4. Materializer синхронно рендерит текущий owner.
-5. Если `render_scope = VARIANT`, materializer создает render rows для всех активных вариантов продукта.
+5. Если `render_scope = VARIANT`, materializer создает render rows для всех активных вариантов
+   продукта.
 6. Совместимые canonical поля обновляются там, где это возможно.
 7. Search index пересобирается для product/variant.
 8. Mutation payload возвращает `renderStatus` и warnings.
@@ -358,7 +382,8 @@ content_hash text
 - SKU;
 - variant-scoped product content, если оно есть.
 
-В Postgres v1 можно использовать `_containsi`/`ILIKE` на `search_text`. Следующий шаг - `tsvector` или внешний индекс, но внешняя система должна получать только материализованный текст.
+В Postgres v1 можно использовать `_containsi`/`ILIKE` на `search_text`. Следующий шаг - `tsvector`
+или внешний индекс, но внешняя система должна получать только материализованный текст.
 
 ## GraphQL Admin API
 
@@ -401,7 +426,8 @@ input ProductContentInput {
 }
 ```
 
-Если `descriptionTemplate` передан, он имеет приоритет над `description`. Если передан только `description`, поведение остается статическим.
+Если `descriptionTemplate` передан, он имеет приоритет над `description`. Если передан только
+`description`, поведение остается статическим.
 
 Для `Variant.title` нужен отдельный input в variant update/create flow:
 
@@ -503,20 +529,21 @@ type Product {
 - unknown token и invalid scope блокируют сохранение;
 - missing value не блокирует сохранение, если у токена есть fallback;
 - без fallback missing value дает `WARNING` и пустую строку;
-- при internal error render row получает `ERROR`, canonical поле не перезаписывается последним невалидным значением.
+- при internal error render row получает `ERROR`, canonical поле не перезаписывается последним
+  невалидным значением.
 
 ## Invalidation matrix
 
-| Изменение | Что пересобрать |
-| --- | --- |
-| Product title/content | templates owner=`PRODUCT`, productId |
-| Variant title | templates owner=`VARIANT`, variantId; product templates с `VARIANT` scope |
-| Variant selected options | variant render rows для variantId; `variant_search_index` |
-| Option name/value translation | все templates productId, где dependency `option:<slug>` |
-| Feature name/value translation | все templates productId, где dependency `feature:<slug>` |
-| Vendor name | product templates, где dependency `vendor` |
-| Product publish/delete | product/variant render rows и search indexes |
-| Variant create/delete | product templates с `VARIANT` scope для productId |
+| Изменение                      | Что пересобрать                                                           |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| Product title/content          | templates owner=`PRODUCT`, productId                                      |
+| Variant title                  | templates owner=`VARIANT`, variantId; product templates с `VARIANT` scope |
+| Variant selected options       | variant render rows для variantId; `variant_search_index`                 |
+| Option name/value translation  | все templates productId, где dependency `option:<slug>`                   |
+| Feature name/value translation | все templates productId, где dependency `feature:<slug>`                  |
+| Vendor name                    | product templates, где dependency `vendor`                                |
+| Product publish/delete         | product/variant render rows и search indexes                              |
+| Variant create/delete          | product templates с `VARIANT` scope для productId                         |
 
 ## Background rebuild
 
@@ -553,7 +580,8 @@ catalog.dynamicContent.rebuildProject
 
 ### Phase 1 - Storage и parser foundation
 
-- Добавить Drizzle models для `dynamic_content_template`, `dynamic_content_render`, позже `dynamic_content_dependency`.
+- Добавить Drizzle models для `dynamic_content_template`, `dynamic_content_render`, позже
+  `dynamic_content_dependency`.
 - Сгенерировать migration через project tooling, не редактировать changeset вручную.
 - Добавить parser для structured dynamic nodes.
 - Добавить registry с Catalog-only tokens.
@@ -592,7 +620,8 @@ catalog.dynamicContent.rebuildProject
 ### Phase 6 - Storefront behavior
 
 - Убедиться, что storefront читает materialized product fields.
-- Добавить variant-scoped rendered content API, если нужно показывать product description, зависящий от выбранного варианта.
+- Добавить variant-scoped rendered content API, если нужно показывать product description, зависящий
+  от выбранного варианта.
 - Запретить отдачу template source в публичный API без явного admin/debug режима.
 
 ### Phase 7 - Precise invalidation
@@ -603,19 +632,27 @@ catalog.dynamicContent.rebuildProject
 
 ## Риски
 
-- Product-level поле может случайно начать зависеть от variant context. Это нужно явно блокировать или переводить поле в `VARIANT` scope.
-- Fan-out по продукту с большим числом вариантов может быть дорогим. Нужны лимиты и background workflow.
+- Product-level поле может случайно начать зависеть от variant context. Это нужно явно блокировать
+  или переводить поле в `VARIANT` scope.
+- Fan-out по продукту с большим числом вариантов может быть дорогим. Нужны лимиты и background
+  workflow.
 - HTML из шаблона нельзя смешивать с неэкранированными значениями.
-- Search может показывать устаревший текст, если invalidation не сработает. Поэтому render rows должны иметь `status` и `content_hash`.
-- Редактор должен хранить structured tokens, иначе raw `{{ ... }}` в HTML будет трудно безопасно поддерживать.
+- Search может показывать устаревший текст, если invalidation не сработает. Поэтому render rows
+  должны иметь `status` и `content_hash`.
+- Редактор должен хранить structured tokens, иначе raw `{{ ... }}` в HTML будет трудно безопасно
+  поддерживать.
 
 ## Открытые решения
 
-1. Должен ли `Product.description` поддерживать `VARIANT` scope в v1 или только после появления storefront API для selected variant content?
+1. Должен ли `Product.description` поддерживать `VARIANT` scope в v1 или только после появления
+   storefront API для selected variant content?
 2. Нужно ли разрешать tokens из pricing/inventory в v1, или оставить только Catalog-owned данные?
-3. Хранить ли source template для `title` как rich text/text в общей таблице или добавить отдельный `dynamic_text_template` input без rich text?
-4. Должны ли product listing views читать `dynamic_content_render`, или достаточно обновлять `product_translation` для product-level полей?
-5. Нужен ли Postgres `tsvector` сразу, или v1 search может ограничиться `search_text` и последующей интеграцией внешнего индекса?
+3. Хранить ли source template для `title` как rich text/text в общей таблице или добавить отдельный
+   `dynamic_text_template` input без rich text?
+4. Должны ли product listing views читать `dynamic_content_render`, или достаточно обновлять
+   `product_translation` для product-level полей?
+5. Нужен ли Postgres `tsvector` сразу, или v1 search может ограничиться `search_text` и последующей
+   интеграцией внешнего индекса?
 
 ## Рекомендуемый v1
 
@@ -630,4 +667,5 @@ catalog.dynamicContent.rebuildProject
 - coarse invalidation по `productId`;
 - Admin preview и warnings.
 
-`Product.description` с `variant.*` лучше не включать в v1, пока нет явного storefront контракта для variant-scoped rendered content.
+`Product.description` с `variant.*` лучше не включать в v1, пока нет явного storefront контракта для
+variant-scoped rendered content.

@@ -48,21 +48,19 @@ export class SearchTextElementRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getByProductId(
-    productId: string,
-    locale?: string,
-  ): Promise<ProductSearchText[]> {
+  async getByProductId(productId: string, locale?: string): Promise<ProductSearchText[]> {
     if (locale !== undefined) assertNonEmpty(locale, "locale");
-    const scope = locale !== undefined
-      ? and(
-          eq(productSearchText.storeId, this.storeId),
-          eq(productSearchText.productId, productId),
-          eq(productSearchText.locale, locale),
-        )
-      : and(
-          eq(productSearchText.storeId, this.storeId),
-          eq(productSearchText.productId, productId),
-        );
+    const scope =
+      locale !== undefined
+        ? and(
+            eq(productSearchText.storeId, this.storeId),
+            eq(productSearchText.productId, productId),
+            eq(productSearchText.locale, locale),
+          )
+        : and(
+            eq(productSearchText.storeId, this.storeId),
+            eq(productSearchText.productId, productId),
+          );
 
     return this.connection
       .select()
@@ -84,16 +82,17 @@ export class SearchTextElementRepository extends BaseRepository {
     if (productIds.length === 0) return [];
 
     const uniqueProductIds = [...new Set(productIds)];
-    const scope = locale !== undefined
-      ? and(
-          eq(productSearchText.storeId, this.storeId),
-          inArray(productSearchText.productId, uniqueProductIds),
-          eq(productSearchText.locale, locale),
-        )
-      : and(
-          eq(productSearchText.storeId, this.storeId),
-          inArray(productSearchText.productId, uniqueProductIds),
-        );
+    const scope =
+      locale !== undefined
+        ? and(
+            eq(productSearchText.storeId, this.storeId),
+            inArray(productSearchText.productId, uniqueProductIds),
+            eq(productSearchText.locale, locale),
+          )
+        : and(
+            eq(productSearchText.storeId, this.storeId),
+            inArray(productSearchText.productId, uniqueProductIds),
+          );
 
     return this.connection.select().from(productSearchText).where(scope);
   }
@@ -101,12 +100,10 @@ export class SearchTextElementRepository extends BaseRepository {
   @ReadOnly()
   async count(locale?: string): Promise<number> {
     if (locale !== undefined) assertNonEmpty(locale, "locale");
-    const scope = locale !== undefined
-      ? and(
-          eq(productSearchText.storeId, this.storeId),
-          eq(productSearchText.locale, locale),
-        )
-      : eq(productSearchText.storeId, this.storeId);
+    const scope =
+      locale !== undefined
+        ? and(eq(productSearchText.storeId, this.storeId), eq(productSearchText.locale, locale))
+        : eq(productSearchText.storeId, this.storeId);
     const rows = await this.connection
       .select({ value: count() })
       .from(productSearchText)
@@ -115,9 +112,7 @@ export class SearchTextElementRepository extends BaseRepository {
   }
 
   @Transactional()
-  async upsertMany(
-    inputs: readonly SearchTextElementInput[],
-  ): Promise<ProductSearchText[]> {
+  async upsertMany(inputs: readonly SearchTextElementInput[]): Promise<ProductSearchText[]> {
     if (inputs.length === 0) return [];
     assertUnique(
       inputs,
@@ -142,10 +137,8 @@ export class SearchTextElementRepository extends BaseRepository {
           set: {
             productDocId: sql`excluded.product_doc_id`,
             preparedText: sql`excluded.prepared_text`,
-            normalizationContractVersion:
-              sql`excluded.normalization_contract_version`,
-            normalizationProfileRevision:
-              sql`excluded.normalization_profile_revision`,
+            normalizationContractVersion: sql`excluded.normalization_contract_version`,
+            normalizationProfileRevision: sql`excluded.normalization_profile_revision`,
             indexedAt,
           },
         })
@@ -178,25 +171,18 @@ export class SearchTextElementRepository extends BaseRepository {
 
   @Transactional()
   async replaceForProducts(
-    inputsByProductId: ReadonlyMap<
-      string,
-      readonly SearchTextElementInput[]
-    >,
+    inputsByProductId: ReadonlyMap<string, readonly SearchTextElementInput[]>,
   ): Promise<ProductSearchText[]> {
     if (inputsByProductId.size === 0) return [];
     const productIds = [...inputsByProductId.keys()];
-    const inputs = [...inputsByProductId.entries()].flatMap(
-      ([productId, productInputs]) => {
-        for (const input of productInputs) {
-          if (input.productId !== productId) {
-            throw new Error(
-              "Search text element productId must match replace map key",
-            );
-          }
+    const inputs = [...inputsByProductId.entries()].flatMap(([productId, productInputs]) => {
+      for (const input of productInputs) {
+        if (input.productId !== productId) {
+          throw new Error("Search text element productId must match replace map key");
         }
-        return [...productInputs];
-      },
-    );
+      }
+      return [...productInputs];
+    });
     await this.deleteByProductIds(productIds);
     return this.upsertMany(inputs);
   }
@@ -258,31 +244,17 @@ export class SearchTextElementRepository extends BaseRepository {
     assertNonEmpty(locale, "locale");
     const rows = await this.connection
       .delete(productSearchText)
-      .where(
-        and(
-          eq(productSearchText.storeId, this.storeId),
-          eq(productSearchText.locale, locale),
-        ),
-      )
+      .where(and(eq(productSearchText.storeId, this.storeId), eq(productSearchText.locale, locale)))
       .returning({ productId: productSearchText.productId });
     return rows.length;
   }
 
-  private toInsert(
-    input: SearchTextElementInput,
-    indexedAt: string,
-  ): NewProductSearchText {
+  private toInsert(input: SearchTextElementInput, indexedAt: string): NewProductSearchText {
     assertPositiveInteger(input.productDocId, "productDocId");
     assertNonEmpty(input.locale, "locale");
     assertNonEmpty(input.preparedText, "preparedText");
-    assertNonEmpty(
-      input.normalizationContractVersion,
-      "normalizationContractVersion",
-    );
-    assertNonEmpty(
-      input.normalizationProfileRevision,
-      "normalizationProfileRevision",
-    );
+    assertNonEmpty(input.normalizationContractVersion, "normalizationContractVersion");
+    assertNonEmpty(input.normalizationProfileRevision, "normalizationProfileRevision");
     if (!SEARCH_TEXT_FIELDS.has(input.field)) {
       throw new Error(`Unsupported search text field: ${input.field}`);
     }

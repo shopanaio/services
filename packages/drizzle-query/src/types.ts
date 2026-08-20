@@ -146,10 +146,7 @@ export interface DrizzleExecutor {
 /**
  * Helper type to get column from table by name
  */
-export type GetColumn<
-  T extends Table,
-  K extends ColumnNames<T>,
-> = T["_"]["columns"][K];
+export type GetColumn<T extends Table, K extends ColumnNames<T>> = T["_"]["columns"][K];
 
 // =============================================================================
 // FIELD TYPE INFERENCE - Extract column types from Drizzle tables
@@ -176,7 +173,10 @@ export type GetColumn<
  */
 export type InferFieldTypes<
   T extends Selectable,
-  Config extends Record<string, { column: string; join?: { schema: () => SchemaWithTypes<Selectable, unknown> } }>
+  Config extends Record<
+    string,
+    { column: string; join?: { schema: () => SchemaWithTypes<Selectable, unknown> } }
+  >,
 > = {
   [K in keyof Config & string]: Config[K] extends { join: { schema: () => infer S } }
     ? S extends SchemaWithTypes<infer _JoinTable, infer JoinTypes>
@@ -198,16 +198,15 @@ export type SchemaWithTypes<T extends Selectable = Selectable, Types = unknown> 
 /**
  * Resolve type for a nested path like "items.product.name"
  */
-export type ResolvePathType<Types, Path extends string> =
-  Path extends `${infer Head}.${infer Tail}`
-    ? Head extends keyof Types
-      ? Types[Head] extends object
-        ? ResolvePathType<Types[Head], Tail>
-        : unknown
+export type ResolvePathType<Types, Path extends string> = Path extends `${infer Head}.${infer Tail}`
+  ? Head extends keyof Types
+    ? Types[Head] extends object
+      ? ResolvePathType<Types[Head], Tail>
       : unknown
-    : Path extends keyof Types
-      ? Types[Path]
-      : unknown;
+    : unknown
+  : Path extends keyof Types
+    ? Types[Path]
+    : unknown;
 
 /**
  * Build result type from select paths
@@ -218,28 +217,21 @@ export type ResolvePathType<Types, Path extends string> =
  * // → { id: string; "items.product.name": string }
  * ```
  */
-export type InferSelectResult<
-  Types,
-  Select extends readonly string[]
-> = {
+export type InferSelectResult<Types, Select extends readonly string[]> = {
   [K in Select[number]]: ResolvePathType<Types, K>;
 };
 
 /**
  * Get the last segment of a path for use as default alias
  */
-export type LastSegment<Path extends string> =
-  Path extends `${string}.${infer Rest}`
-    ? LastSegment<Rest>
-    : Path;
+export type LastSegment<Path extends string> = Path extends `${string}.${infer Rest}`
+  ? LastSegment<Rest>
+  : Path;
 
 /**
  * Build result type with last segment as key (cleaner output)
  */
-export type InferSelectResultFlat<
-  Types,
-  Select extends readonly string[]
-> = {
+export type InferSelectResultFlat<Types, Select extends readonly string[]> = {
   [K in Select[number] as LastSegment<K>]: ResolvePathType<Types, K>;
 };
 
@@ -328,9 +320,7 @@ export type InferFieldsDef<Config> = {
 /**
  * Extract FieldsDef from an ObjectSchema type
  */
-export type ExtractFields<S> = S extends SchemaWithFields<infer Fields>
-  ? Fields
-  : FieldsDef;
+export type ExtractFields<S> = S extends SchemaWithFields<infer Fields> ? Fields : FieldsDef;
 
 /**
  * Recursively generate all nested paths from a FieldsDef structure.
@@ -351,9 +341,8 @@ export type NestedPaths<T extends FieldsDef, Prefix extends string = ""> = {
       ? K
       : `${Prefix}.${K}`
     : T[K] extends FieldsDef
-      ?
-          | (Prefix extends "" ? K : `${Prefix}.${K}`)
-          | NestedPaths<T[K], Prefix extends "" ? K : `${Prefix}.${K}`>
+      ? | (Prefix extends "" ? K : `${Prefix}.${K}`)
+        | NestedPaths<T[K], Prefix extends "" ? K : `${Prefix}.${K}`>
       : never;
 }[keyof T & string];
 

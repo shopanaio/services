@@ -1,11 +1,7 @@
 import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import type { ContentRestorePatch } from "../../repositories/content/ContentRepository.js";
 import type { ContentItem } from "../../repositories/models/index.js";
-import {
-  conflictError,
-  internalError,
-  notFoundError,
-} from "./StoreConfigurationUpdateScript.js";
+import { conflictError, internalError, notFoundError } from "./StoreConfigurationUpdateScript.js";
 import type {
   ContentRedactParams,
   ContentRedactResult,
@@ -13,10 +9,7 @@ import type {
   ContentRevisionRestoreResult,
 } from "./types.js";
 
-export class ContentRedactScript extends BaseScript<
-  ContentRedactParams,
-  ContentRedactResult
-> {
+export class ContentRedactScript extends BaseScript<ContentRedactParams, ContentRedactResult> {
   @Transactional()
   protected async execute(params: ContentRedactParams): Promise<ContentRedactResult> {
     const current = await this.repository.content.findById(params.contentId);
@@ -26,18 +19,17 @@ export class ContentRedactScript extends BaseScript<
     }
     if (current.redactedAt) {
       return {
-        userErrors: [{
-          message: "Content has already been redacted",
-          code: "ALREADY_REDACTED",
-          field: ["contentId"],
-        }],
+        userErrors: [
+          {
+            message: "Content has already been redacted",
+            code: "ALREADY_REDACTED",
+            field: ["contentId"],
+          },
+        ],
       };
     }
 
-    const updated = await this.repository.content.redact(
-      params.contentId,
-      params.expectedRevision
-    );
+    const updated = await this.repository.content.redact(params.contentId, params.expectedRevision);
     if (updated.status !== "applied") {
       return updated.status === "conflict"
         ? { userErrors: [conflictError("Content", "expectedRevision")] }
@@ -84,7 +76,7 @@ export class ContentRevisionRestoreScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: ContentRevisionRestoreParams
+    params: ContentRevisionRestoreParams,
   ): Promise<ContentRevisionRestoreResult> {
     const current = await this.repository.content.findById(params.contentId);
     if (!current) return { userErrors: [notFoundError("Content", "contentId")] };
@@ -93,15 +85,17 @@ export class ContentRevisionRestoreScript extends BaseScript<
     }
     const revision = await this.repository.moderation.findRevision(
       params.contentId,
-      params.revision
+      params.revision,
     );
     if (!revision) {
       return {
-        userErrors: [{
-          message: "Content revision not found",
-          code: "REVISION_NOT_FOUND",
-          field: ["revision"],
-        }],
+        userErrors: [
+          {
+            message: "Content revision not found",
+            code: "REVISION_NOT_FOUND",
+            field: ["revision"],
+          },
+        ],
       };
     }
     const restored = restorePatch(revision.snapshot);
@@ -110,7 +104,7 @@ export class ContentRevisionRestoreScript extends BaseScript<
     const updated = await this.repository.content.restore(
       params.contentId,
       params.expectedRevision,
-      restored.value
+      restored.value,
     );
     if (updated.status !== "applied") {
       return updated.status === "conflict"
@@ -183,17 +177,24 @@ function restorePatch(snapshot: Record<string, unknown>): {
   const statuses = new Set(["PENDING", "PUBLISHED", "REJECTED"]);
   const valid =
     nullableString(snapshot.title) &&
-    typeof snapshot.body === "string" && snapshot.body.length > 0 &&
-    typeof snapshot.locale === "string" && snapshot.locale.length > 0 && snapshot.locale.length <= 35 &&
-    typeof snapshot.authorType === "string" && authorTypes.has(snapshot.authorType) &&
+    typeof snapshot.body === "string" &&
+    snapshot.body.length > 0 &&
+    typeof snapshot.locale === "string" &&
+    snapshot.locale.length > 0 &&
+    snapshot.locale.length <= 35 &&
+    typeof snapshot.authorType === "string" &&
+    authorTypes.has(snapshot.authorType) &&
     nullableString(snapshot.authorCustomerId) &&
     nullableString(snapshot.authorPrincipalId) &&
-    typeof snapshot.authorDisplayName === "string" && snapshot.authorDisplayName.length > 0 &&
+    typeof snapshot.authorDisplayName === "string" &&
+    snapshot.authorDisplayName.length > 0 &&
     nullableString(snapshot.authorEmail) &&
-    typeof snapshot.sourceChannel === "string" && snapshot.sourceChannel.length > 0 &&
+    typeof snapshot.sourceChannel === "string" &&
+    snapshot.sourceChannel.length > 0 &&
     isRecord(snapshot.sourceMetadata) &&
     nullableString(snapshot.idempotencyKey) &&
-    typeof snapshot.status === "string" && statuses.has(snapshot.status) &&
+    typeof snapshot.status === "string" &&
+    statuses.has(snapshot.status) &&
     nullableString(snapshot.moderationNote) &&
     nullableString(snapshot.moderatedByPrincipalId) &&
     nullableString(snapshot.moderatedAt) &&
@@ -203,11 +204,13 @@ function restorePatch(snapshot: Record<string, unknown>): {
 
   if (!valid) {
     return {
-      errors: [{
-        message: "The stored revision snapshot is invalid",
-        code: "INVALID_REVISION_SNAPSHOT",
-        field: ["revision"],
-      }],
+      errors: [
+        {
+          message: "The stored revision snapshot is invalid",
+          code: "INVALID_REVISION_SNAPSHOT",
+          field: ["revision"],
+        },
+      ],
     };
   }
 

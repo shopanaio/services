@@ -35,4 +35,3 @@ export class CasdoorNodeClient {
     this.invitation = new InvitationModule(this.http);
   }
 }
-

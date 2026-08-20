@@ -3,16 +3,11 @@ import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { ComponentGroup } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 
-export class ProductComponentGroupResolver extends CatalogType<
-  string,
-  ComponentGroup
-> {
+export class ProductComponentGroupResolver extends CatalogType<string, ComponentGroup> {
   async $preload() {
     const group = await this.$ctx.loaders.componentGroup.load(this.$props);
     if (!group) {
-      throw new PreloadNotFoundError(
-        `Product component group with ID ${this.$props} not found`,
-      );
+      throw new PreloadNotFoundError(`Product component group with ID ${this.$props} not found`);
     }
     return group;
   }
@@ -26,8 +21,7 @@ export class ProductComponentGroupResolver extends CatalogType<
   }
 
   async title() {
-    const translation =
-      await this.$ctx.loaders.componentGroupTranslation.load(this.$props);
+    const translation = await this.$ctx.loaders.componentGroupTranslation.load(this.$props);
     return translation?.name ?? "";
   }
 
@@ -40,12 +34,8 @@ export class ProductComponentGroupResolver extends CatalogType<
   }
 
   async items() {
-    const ids = await this.$ctx.loaders.componentItemIdsByGroupId.load(
-      this.$props,
-    );
-    return Promise.all(
-      ids.map((id: string) => this.resolvers.productComponentItem(id)),
-    );
+    const ids = await this.$ctx.loaders.componentItemIdsByGroupId.load(this.$props);
+    return Promise.all(ids.map((id: string) => this.resolvers.productComponentItem(id)));
   }
 
   async createdAt() {

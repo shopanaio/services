@@ -80,13 +80,12 @@ export class InventoryWidgetRepository extends BaseRepository {
   async getWidget(productId: string): Promise<ProductInventoryWidgetData> {
     const alertThreshold = await this.getAlertThreshold(productId);
 
-    const [quantities, availableChange7d, skuStatus, etaAvgDays] =
-      await Promise.all([
-        this.getQuantities(productId),
-        this.getAvailableChange7d(productId),
-        this.getSkuStatus(productId, alertThreshold.minimumStock),
-        this.getBackorderEtaAvgDays(productId),
-      ]);
+    const [quantities, availableChange7d, skuStatus, etaAvgDays] = await Promise.all([
+      this.getQuantities(productId),
+      this.getAvailableChange7d(productId),
+      this.getSkuStatus(productId, alertThreshold.minimumStock),
+      this.getBackorderEtaAvgDays(productId),
+    ]);
 
     const backorderQuantity = Math.max(0, -quantities.availableForSale);
 
@@ -102,9 +101,7 @@ export class InventoryWidgetRepository extends BaseRepository {
     };
   }
 
-  private async getAlertThreshold(
-    productId: string
-  ): Promise<InventoryAlertThreshold> {
+  private async getAlertThreshold(productId: string): Promise<InventoryAlertThreshold> {
     const result = await this.connection
       .select({
         method: productInventorySettings.alertThresholdMethod,
@@ -114,8 +111,8 @@ export class InventoryWidgetRepository extends BaseRepository {
       .where(
         and(
           eq(productInventorySettings.storeId, this.storeId),
-          eq(productInventorySettings.productId, productId)
-        )
+          eq(productInventorySettings.productId, productId),
+        ),
       )
       .limit(1);
 
@@ -146,8 +143,8 @@ export class InventoryWidgetRepository extends BaseRepository {
           eq(warehouseStock.storeId, this.storeId),
           eq(variant.storeId, this.storeId),
           eq(variant.productId, productId),
-          isNull(variant.deletedAt)
-        )
+          isNull(variant.deletedAt),
+        ),
       );
 
     const row = result[0];
@@ -169,9 +166,9 @@ export class InventoryWidgetRepository extends BaseRepository {
           and(
             eq(variant.storeId, this.storeId),
             eq(variant.productId, productId),
-            isNull(variant.deletedAt)
-          )
-        )
+            isNull(variant.deletedAt),
+          ),
+        ),
     );
 
     const result = await this.connection
@@ -183,18 +180,19 @@ export class InventoryWidgetRepository extends BaseRepository {
       .where(
         and(
           eq(stockChanges.storeId, this.storeId),
-          inArray(stockChanges.variantId, this.connection.select({ id: productVariants.id }).from(productVariants)),
+          inArray(
+            stockChanges.variantId,
+            this.connection.select({ id: productVariants.id }).from(productVariants),
+          ),
           eq(stockChanges.applyStatus, "APPLIED"),
-          gte(stockChanges.createdAt, sql`NOW() - INTERVAL '7 days'`)
-        )
+          gte(stockChanges.createdAt, sql`NOW() - INTERVAL '7 days'`),
+        ),
       );
 
     return toNumber(result[0]?.availableChange);
   }
 
-  private async getBackorderEtaAvgDays(
-    productId: string
-  ): Promise<number | null> {
+  private async getBackorderEtaAvgDays(productId: string): Promise<number | null> {
     const productVariants = this.connection.$with("product_variants").as(
       this.connection
         .select({ id: variant.id })
@@ -203,9 +201,9 @@ export class InventoryWidgetRepository extends BaseRepository {
           and(
             eq(variant.storeId, this.storeId),
             eq(variant.productId, productId),
-            isNull(variant.deletedAt)
-          )
-        )
+            isNull(variant.deletedAt),
+          ),
+        ),
     );
 
     // Weighted average ETA: sum(seconds_until_eta * remaining_qty) / sum(remaining_qty) / 86400
@@ -224,8 +222,8 @@ export class InventoryWidgetRepository extends BaseRepository {
           eq(inboundSupply.storeId, this.storeId),
           inArray(inboundSupply.status, ["PLANNED", "IN_TRANSIT"]),
           sql`(${inboundSupply.qtyExpected} - ${inboundSupply.qtyReceived}) > 0`,
-          gte(inboundSupply.expectedAt, sql`NOW()`)
-        )
+          gte(inboundSupply.expectedAt, sql`NOW()`),
+        ),
       );
 
     return toNumberOrNull(result[0]?.etaAvgDays);
@@ -239,7 +237,7 @@ export class InventoryWidgetRepository extends BaseRepository {
    */
   private async getSkuStatus(
     productId: string,
-    lowStockThreshold: number
+    lowStockThreshold: number,
   ): Promise<InventorySkuStatus> {
     // Column references for type safety in raw SQL
     const v = variant;

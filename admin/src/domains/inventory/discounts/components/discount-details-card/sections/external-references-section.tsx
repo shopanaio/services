@@ -16,10 +16,7 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import { DiscountSectionIcon } from "../discount-section-icon";
 import { useDiscountSectionStyles } from "../discount-details-card.styles";
-import {
-  formatDiscountDateTime,
-  formatDiscountEnum,
-} from "../formatters";
+import { formatDiscountDateTime, formatDiscountEnum } from "../formatters";
 
 interface ExternalReferencesSectionProps {
   discount: ApiDiscount;
@@ -33,10 +30,7 @@ const STATUS_COLORS: Record<DiscountExternalSyncStatus, string> = {
   [DiscountExternalSyncStatus.Disabled]: "default",
 };
 
-function getExternalReferenceIcon(
-  system: string,
-  status: DiscountExternalSyncStatus,
-) {
+function getExternalReferenceIcon(system: string, status: DiscountExternalSyncStatus) {
   if (status === DiscountExternalSyncStatus.Failed) {
     return <LuDatabase />;
   }
@@ -51,18 +45,12 @@ function getExternalReferenceIcon(
   return <LuPlug />;
 }
 
-export function ExternalReferencesSection({
-  discount,
-  onEdit,
-}: ExternalReferencesSectionProps) {
+export function ExternalReferencesSection({ discount, onEdit }: ExternalReferencesSectionProps) {
   const { styles, cx } = useDiscountSectionStyles();
   const references = discount.externalReferences.edges.map((edge) => edge.node);
 
   return (
-    <Paper
-      className={styles.section}
-      data-testid="discount-external-references-section"
-    >
+    <Paper className={styles.section} data-testid="discount-external-references-section">
       <PaperHeader
         title="External references"
         className={styles.compactHeader}
@@ -92,8 +80,7 @@ export function ExternalReferencesSection({
               <div
                 className={cx(
                   styles.codeRow,
-                  reference.syncStatus ===
-                    DiscountExternalSyncStatus.Failed &&
+                  reference.syncStatus === DiscountExternalSyncStatus.Failed &&
                     styles.externalRowWarning,
                 )}
                 key={reference.id}
@@ -108,20 +95,16 @@ export function ExternalReferencesSection({
                       shape="square"
                       size={32}
                       tone={
-                        reference.syncStatus ===
-                        DiscountExternalSyncStatus.Failed
+                        reference.syncStatus === DiscountExternalSyncStatus.Failed
                           ? "warning"
-                          : reference.syncStatus ===
-                              DiscountExternalSyncStatus.Disabled
+                          : reference.syncStatus === DiscountExternalSyncStatus.Disabled
                             ? "neutral"
                             : "primary"
                       }
                     />
                     <Flex vertical gap={4} className={styles.externalLink}>
                       <Flex align="center" gap={6} wrap>
-                        <Typography.Text strong>
-                          {reference.externalSystem}
-                        </Typography.Text>
+                        <Typography.Text strong>{reference.externalSystem}</Typography.Text>
                         <Tag color={STATUS_COLORS[reference.syncStatus]}>
                           {formatDiscountEnum(reference.syncStatus)}
                         </Tag>
@@ -143,9 +126,7 @@ export function ExternalReferencesSection({
                           mono
                         />
                       )}
-                      <Typography.Text
-                        type={reference.lastError ? "danger" : "secondary"}
-                      >
+                      <Typography.Text type={reference.lastError ? "danger" : "secondary"}>
                         {reference.lastError
                           ? reference.lastError
                           : reference.lastSyncedAt
@@ -160,8 +141,7 @@ export function ExternalReferencesSection({
           </div>
           {discount.externalReferences.totalCount > references.length && (
             <Typography.Text type="secondary">
-              Showing {references.length} of{" "}
-              {discount.externalReferences.totalCount} references
+              Showing {references.length} of {discount.externalReferences.totalCount} references
             </Typography.Text>
           )}
         </Flex>
@@ -170,8 +150,7 @@ export function ExternalReferencesSection({
           icon={<LuPlug />}
           state={{
             title: "No external references",
-            description:
-              "Connect an external promotion or integration to track synchronization.",
+            description: "Connect an external promotion or integration to track synchronization.",
           }}
         />
       )}

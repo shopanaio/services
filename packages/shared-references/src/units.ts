@@ -56,8 +56,18 @@ export interface DimensionUnitInfo {
 }
 
 export const DIMENSION_UNIT_INFO: Record<DimensionUnit, DimensionUnitInfo> = {
-  [DimensionUnit.mm]: { code: DimensionUnit.mm, name: "Millimeter", symbol: "mm", toMillimeters: 1 },
-  [DimensionUnit.cm]: { code: DimensionUnit.cm, name: "Centimeter", symbol: "cm", toMillimeters: 10 },
+  [DimensionUnit.mm]: {
+    code: DimensionUnit.mm,
+    name: "Millimeter",
+    symbol: "mm",
+    toMillimeters: 1,
+  },
+  [DimensionUnit.cm]: {
+    code: DimensionUnit.cm,
+    name: "Centimeter",
+    symbol: "cm",
+    toMillimeters: 10,
+  },
   [DimensionUnit.m]: { code: DimensionUnit.m, name: "Meter", symbol: "m", toMillimeters: 1000 },
   [DimensionUnit.in]: { code: DimensionUnit.in, name: "Inch", symbol: "in", toMillimeters: 25.4 },
   [DimensionUnit.ft]: { code: DimensionUnit.ft, name: "Foot", symbol: "ft", toMillimeters: 304.8 },

@@ -55,10 +55,7 @@ function canonicalOrder(codePoints: number[]): void {
     const combiningClass = combiningClassOf(codePoints[index]!);
     if (combiningClass === 0) continue;
     let target = index;
-    while (
-      target > 0 &&
-      combiningClassOf(codePoints[target - 1]!) > combiningClass
-    ) target -= 1;
+    while (target > 0 && combiningClassOf(codePoints[target - 1]!) > combiningClass) target -= 1;
     if (target !== index) {
       const [codePoint] = codePoints.splice(index, 1);
       codePoints.splice(target, 0, codePoint!);
@@ -125,7 +122,10 @@ function parseSequenceMap(data: string): ReadonlyMap<number, readonly number[]> 
   if (!data) return result;
   for (const entry of data.split(";")) {
     const [key, sequence] = entry.split(":");
-    result.set(parseInt(key!, 36), sequence!.split(".").map((value) => parseInt(value, 36)));
+    result.set(
+      parseInt(key!, 36),
+      sequence!.split(".").map((value) => parseInt(value, 36)),
+    );
   }
   return result;
 }

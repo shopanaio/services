@@ -6,11 +6,7 @@ import type {
 import type { Repository } from "../repositories/Repository.js";
 
 export class ApplicationLoader {
-  public readonly application: DataLoader<
-    ApplicationKey,
-    ApplicationAdminRecord | null,
-    string
-  >;
+  public readonly application: DataLoader<ApplicationKey, ApplicationAdminRecord | null, string>;
 
   constructor(repository: Repository) {
     this.application = new DataLoader(
@@ -20,16 +16,13 @@ export class ApplicationLoader {
         return keys.map((key) => {
           const record = recordsById.get(key.id);
           if (!record) return null;
-          if (
-            key.organizationId &&
-            record.organizationId !== key.organizationId
-          ) {
+          if (key.organizationId && record.organizationId !== key.organizationId) {
             return null;
           }
           return record;
         });
       },
-      { cacheKeyFn: applicationKeyToString }
+      { cacheKeyFn: applicationKeyToString },
     );
   }
 }

@@ -2,7 +2,13 @@
 
 import type { KeyboardEvent, MouseEvent } from "react";
 import { App, Button, Dropdown, Flex, Tabs, Typography } from "antd";
-import { LuTrash2 as DeleteOutlined, LuPencil as EditOutlined, LuEllipsis as MoreOutlined, LuGitBranch as PartitionOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
+import {
+  LuTrash2 as DeleteOutlined,
+  LuPencil as EditOutlined,
+  LuEllipsis as MoreOutlined,
+  LuGitBranch as PartitionOutlined,
+  LuPlus as PlusOutlined,
+} from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "@/domains/inventory/products/components/edit-action";
 import type { ApiProductComponentConfiguration } from "@/graphql/types";
@@ -35,9 +41,7 @@ interface IComponentsSectionProps {
   onConfigurationChange: (configurationId: string) => void;
   onCreateConfiguration: () => void;
   onEditConfiguration: (configurationId: string) => void;
-  onDeleteConfiguration: (
-    configurationId: string,
-  ) => boolean | void | Promise<boolean | void>;
+  onDeleteConfiguration: (configurationId: string) => boolean | void | Promise<boolean | void>;
   onEditGroups: () => void;
   onEditTemplates: () => void;
   onOpenChart: () => void;
@@ -61,9 +65,7 @@ export const ComponentsSection = ({
   const { modal } = App.useApp();
   const { styles } = useStyles();
 
-  const handleDeleteConfiguration = (
-    configuration: ApiProductComponentConfiguration,
-  ) => {
+  const handleDeleteConfiguration = (configuration: ApiProductComponentConfiguration) => {
     if (configurations.length <= 1) return;
 
     modal.confirm({
@@ -87,18 +89,14 @@ export const ComponentsSection = ({
 
     if (typeof targetKey !== "string") return;
 
-    const configuration = configurations.find(
-      (item) => item.id === targetKey,
-    );
+    const configuration = configurations.find((item) => item.id === targetKey);
 
     if (configuration) {
       handleDeleteConfiguration(configuration);
     }
   };
 
-  const renderConfigurationMenu = (
-    configuration: ApiProductComponentConfiguration,
-  ) => (
+  const renderConfigurationMenu = (configuration: ApiProductComponentConfiguration) => (
     <span
       onClick={(event: MouseEvent<HTMLElement>) => event.stopPropagation()}
       onMouseDown={(event: MouseEvent<HTMLElement>) => event.stopPropagation()}
@@ -164,10 +162,7 @@ export const ComponentsSection = ({
                     testId="product-components-groups-actions-button"
                   />
                 </Flex>
-                <GroupsSection
-                  groups={configuration.groups}
-                  onEdit={onEditGroups}
-                />
+                <GroupsSection groups={configuration.groups} onEdit={onEditGroups} />
               </Flex>
 
               <Flex vertical gap={10}>

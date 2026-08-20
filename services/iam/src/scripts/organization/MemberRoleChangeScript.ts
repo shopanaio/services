@@ -1,9 +1,4 @@
-import {
-  BaseScript,
-  ZodSchema,
-  Transactional,
-  ValidationError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, Transactional, ValidationError } from "../../kernel/BaseScript.js";
 import { AuthorizationError } from "@shopana/shared-kernel";
 import type { Domain } from "../../casbin/CasbinService.js";
 import {
@@ -23,16 +18,11 @@ export class MemberRoleChangeScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(memberRoleChangeInputSchema)
-  protected async execute(
-    params: MemberRoleChangeParams
-  ): Promise<MemberRoleChangeResult> {
+  protected async execute(params: MemberRoleChangeParams): Promise<MemberRoleChangeResult> {
     const { organizationId, userId, domain, role } = params;
 
     // Check if target user is owner - owner's role cannot be changed
-    const isTargetOwner = await this.repository.organization.isOwner(
-      organizationId,
-      userId
-    );
+    const isTargetOwner = await this.repository.organization.isOwner(organizationId, userId);
 
     if (isTargetOwner) {
       return {
@@ -40,8 +30,7 @@ export class MemberRoleChangeScript extends BaseScript<
         userErrors: [
           {
             code: "CANNOT_CHANGE_OWNER_ROLE",
-            message:
-              "Cannot change organization owner's role. Transfer ownership first.",
+            message: "Cannot change organization owner's role. Transfer ownership first.",
             field: ["userId"],
           },
         ],
@@ -49,11 +38,7 @@ export class MemberRoleChangeScript extends BaseScript<
     }
 
     // Find the target role
-    const targetRole = await this.repository.organization.findRole(
-      organizationId,
-      domain,
-      role
-    );
+    const targetRole = await this.repository.organization.findRole(organizationId, domain, role);
 
     if (!targetRole) {
       return {
@@ -72,7 +57,7 @@ export class MemberRoleChangeScript extends BaseScript<
     const existingUserRole = await this.repository.organization.findUserRole(
       organizationId,
       userId,
-      domain
+      domain,
     );
 
     if (!existingUserRole) {
@@ -91,14 +76,11 @@ export class MemberRoleChangeScript extends BaseScript<
     // Get old role name for casbin update
     const oldRole = await this.repository.organization.findRoleById(
       organizationId,
-      existingUserRole.roleId
+      existingUserRole.roleId,
     );
 
     // Update user role in database
-    await this.repository.organization.updateUserRole(
-      existingUserRole.id,
-      targetRole.id
-    );
+    await this.repository.organization.updateUserRole(existingUserRole.id, targetRole.id);
 
     // Update casbin - remove old role and assign new one
     if (oldRole) {

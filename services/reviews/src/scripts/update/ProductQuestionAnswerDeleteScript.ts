@@ -9,10 +9,7 @@ import {
 
 export interface ProductQuestionAnswerDeleteParams {
   productQuestionId: string;
-  operation: Extract<
-    ProductQuestionUpdateOperation,
-    { type: "productQuestionAnswerDelete" }
-  >;
+  operation: Extract<ProductQuestionUpdateOperation, { type: "productQuestionAnswerDelete" }>;
 }
 
 export class ProductQuestionAnswerDeleteScript extends BaseScript<
@@ -20,13 +17,9 @@ export class ProductQuestionAnswerDeleteScript extends BaseScript<
   ReviewSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: ProductQuestionAnswerDeleteParams
-  ): Promise<ReviewSectionResult> {
+  protected async execute(params: ProductQuestionAnswerDeleteParams): Promise<ReviewSectionResult> {
     const input = params.operation.params;
-    const current = await this.repository.productQuestionAnswer.findById(
-      input.answerId
-    );
+    const current = await this.repository.productQuestionAnswer.findById(input.answerId);
     if (!current || current.answer.questionId !== params.productQuestionId) {
       return sectionErrors([
         {

@@ -1,12 +1,5 @@
-import {
-  AuthorizationError,
-  ValidationError,
-  type Authorizable,
-} from "@shopana/shared-kernel";
-import type {
-  SegmentDependency,
-  SegmentDiagnostic,
-} from "@shopana/customer-segment-dsl";
+import { AuthorizationError, ValidationError, type Authorizable } from "@shopana/shared-kernel";
+import type { SegmentDependency, SegmentDiagnostic } from "@shopana/customer-segment-dsl";
 import { getContext } from "../context/index.js";
 import { AuthProvider } from "./Authorizable.js";
 import type { CustomersKernelServices } from "./types.js";
@@ -41,10 +34,7 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
     try {
       return await this.execute(params);
     } catch (error) {
-      if (
-        !(error instanceof ValidationError) &&
-        !(error instanceof AuthorizationError)
-      ) {
+      if (!(error instanceof ValidationError) && !(error instanceof AuthorizationError)) {
         this.logger.error({ error }, `${this.constructor.name} failed`);
       }
       return this.handleError(error);
@@ -69,7 +59,7 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
 
   protected executeScript<P, R>(
     ScriptClass: new (services: CustomersKernelServices) => BaseScript<P, R>,
-    params: P
+    params: P,
   ): Promise<R> {
     return new ScriptClass(this.services).run(params);
   }

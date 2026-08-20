@@ -1,8 +1,4 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
@@ -24,10 +20,7 @@ import {
   type ReviewRequest,
   type ReviewRequestEvent,
 } from "../models/index.js";
-import type {
-  OptimisticMutationResult,
-  RepositoryConnectionResult,
-} from "../types.js";
+import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const reviewRequestRelayQuery = createRelayQuery(
   createQuery(reviewRequest)
@@ -43,7 +36,7 @@ export const reviewRequestRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "reviewRequest", tieBreaker: "id" }
+  { name: "reviewRequest", tieBreaker: "id" },
 );
 
 export const reviewRequestEventRelayQuery = createRelayQuery(
@@ -55,15 +48,11 @@ export const reviewRequestEventRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "reviewRequestEvent", tieBreaker: "id" }
+  { name: "reviewRequestEvent", tieBreaker: "id" },
 );
 
-export type ReviewRequestRelayInput = InferRelayInput<
-  typeof reviewRequestRelayQuery
->;
-export type ReviewRequestEventRelayInput = InferRelayInput<
-  typeof reviewRequestEventRelayQuery
->;
+export type ReviewRequestRelayInput = InferRelayInput<typeof reviewRequestRelayQuery>;
+export type ReviewRequestEventRelayInput = InferRelayInput<typeof reviewRequestEventRelayQuery>;
 export type ReviewRequestPatch = Partial<
   Pick<
     NewReviewRequest,
@@ -89,12 +78,7 @@ export class ReviewRequestRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(reviewRequest)
-      .where(
-        and(
-          eq(reviewRequest.storeId, this.storeId),
-          eq(reviewRequest.id, id)
-        )
-      )
+      .where(and(eq(reviewRequest.storeId, this.storeId), eq(reviewRequest.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -106,10 +90,7 @@ export class ReviewRequestRepository extends BaseRepository {
       .select()
       .from(reviewRequest)
       .where(
-        and(
-          eq(reviewRequest.storeId, this.storeId),
-          inArray(reviewRequest.id, [...new Set(ids)])
-        )
+        and(eq(reviewRequest.storeId, this.storeId), inArray(reviewRequest.id, [...new Set(ids)])),
       );
   }
 
@@ -118,12 +99,7 @@ export class ReviewRequestRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(reviewRequestEvent)
-      .where(
-        and(
-          eq(reviewRequestEvent.storeId, this.storeId),
-          eq(reviewRequestEvent.id, id)
-        )
-      )
+      .where(and(eq(reviewRequestEvent.storeId, this.storeId), eq(reviewRequestEvent.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -137,21 +113,16 @@ export class ReviewRequestRepository extends BaseRepository {
       .where(
         and(
           eq(reviewRequestEvent.storeId, this.storeId),
-          inArray(reviewRequestEvent.id, [...new Set(ids)])
-        )
+          inArray(reviewRequestEvent.id, [...new Set(ids)]),
+        ),
       );
   }
 
   @ReadOnly()
-  async getConnection(
-    args: ReviewRequestRelayInput
-  ): Promise<RepositoryConnectionResult> {
+  async getConnection(args: ReviewRequestRelayInput): Promise<RepositoryConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: ReviewRequestRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, ...(where ? [where] : [])],
     };
     const executeInput: ReviewRequestRelayInput = {
       ...pagination,
@@ -178,7 +149,7 @@ export class ReviewRequestRepository extends BaseRepository {
   @ReadOnly()
   async getEventConnection(
     reviewRequestId: string,
-    args: ReviewRequestEventRelayInput
+    args: ReviewRequestEventRelayInput,
   ): Promise<RepositoryConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: ReviewRequestEventRelayInput["where"] = {
@@ -214,7 +185,7 @@ export class ReviewRequestRepository extends BaseRepository {
 
   @Transactional()
   async create(
-    input: Omit<NewReviewRequest, "id" | "storeId" | "createdAt" | "updatedAt">
+    input: Omit<NewReviewRequest, "id" | "storeId" | "createdAt" | "updatedAt">,
   ): Promise<ReviewRequest> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -236,7 +207,7 @@ export class ReviewRequestRepository extends BaseRepository {
   async update(
     id: string,
     expectedUpdatedAt: string,
-    patch: ReviewRequestPatch
+    patch: ReviewRequestPatch,
   ): Promise<OptimisticMutationResult<ReviewRequest>> {
     const rows = await this.connection
       .update(reviewRequest)
@@ -245,20 +216,18 @@ export class ReviewRequestRepository extends BaseRepository {
         and(
           eq(reviewRequest.storeId, this.storeId),
           eq(reviewRequest.id, id),
-          eq(reviewRequest.updatedAt, expectedUpdatedAt)
-        )
+          eq(reviewRequest.updatedAt, expectedUpdatedAt),
+        ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findById(id);
-    return current
-      ? { status: "conflict", current }
-      : { status: "not_found" };
+    return current ? { status: "conflict", current } : { status: "not_found" };
   }
 
   @Transactional()
   async appendEvent(
-    input: Omit<NewReviewRequestEvent, "id" | "storeId" | "createdAt">
+    input: Omit<NewReviewRequestEvent, "id" | "storeId" | "createdAt">,
   ): Promise<ReviewRequestEvent> {
     const rows = await this.connection
       .insert(reviewRequestEvent)

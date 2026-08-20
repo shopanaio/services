@@ -1,7 +1,4 @@
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { UserError } from "../../kernel/BaseScript.js";
 import type { RatingCriterionUpdateOperation } from "../../workflows/dto/index.js";
 import type { ReviewRatingCriterionUpdateInput } from "./generated/types.js";
@@ -19,7 +16,7 @@ export interface RatingCriterionUpdateMappingResult {
 }
 
 export function mapRatingCriterionUpdateInput(
-  input?: ReviewRatingCriterionUpdateInput | null
+  input?: ReviewRatingCriterionUpdateInput | null,
 ): RatingCriterionUpdateMappingResult {
   const entries: RatingCriterionUpdateMappedEntry[] = [];
 
@@ -29,7 +26,7 @@ export function mapRatingCriterionUpdateInput(
         type: "ratingCriterionDefinitionUpdate",
         params: input.definition,
         meta: { fieldPrefix: ["operations", "definition"] },
-      })
+      }),
     );
   }
   if (input?.applicability) {
@@ -38,7 +35,7 @@ export function mapRatingCriterionUpdateInput(
         type: "ratingCriterionApplicabilityUpdate",
         params: input.applicability,
         meta: { fieldPrefix: ["operations", "applicability"] },
-      })
+      }),
     );
   }
   if (input?.translations != null) {
@@ -47,7 +44,7 @@ export function mapRatingCriterionUpdateInput(
         type: "ratingCriterionTranslationsSync",
         params: { items: input.translations },
         meta: { fieldPrefix: ["operations", "translations"] },
-      })
+      }),
     );
   }
   if (input?.assignments != null) {
@@ -70,9 +67,7 @@ export function mapRatingCriterionUpdateInput(
   }
 
   return {
-    operations: entries.flatMap((entry) =>
-      entry.operation ? [entry.operation] : []
-    ),
+    operations: entries.flatMap((entry) => (entry.operation ? [entry.operation] : [])),
     entries,
     errors: entries.flatMap((entry) => entry.errors),
   };
@@ -82,14 +77,12 @@ function decodeTargetId(
   item: NonNullable<ReviewRatingCriterionUpdateInput["assignments"]>[number],
   index: number,
   fieldPrefix: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): string {
   try {
     return decodeGlobalIdByType(
       item.targetId,
-      item.targetType === "PRODUCT"
-        ? GlobalIdEntity.Product
-        : GlobalIdEntity.Category
+      item.targetType === "PRODUCT" ? GlobalIdEntity.Product : GlobalIdEntity.Category,
     );
   } catch {
     errors.push({
@@ -101,8 +94,6 @@ function decodeTargetId(
   }
 }
 
-function validEntry(
-  operation: RatingCriterionUpdateOperation
-): RatingCriterionUpdateMappedEntry {
+function validEntry(operation: RatingCriterionUpdateOperation): RatingCriterionUpdateMappedEntry {
   return { type: operation.type, operation, errors: [] };
 }

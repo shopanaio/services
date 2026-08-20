@@ -57,67 +57,55 @@ const SESSION_ROUTES: readonly ApplicationAuthRouteManifestEntry[] = [
 ];
 
 /** Paths which must remain denied even though the installed plugins own them. */
-export const APPLICATION_AUTH_FORBIDDEN_ROUTES: readonly ApplicationAuthRouteManifestEntry[] =
-  [
-    exact("GET", "/oauth2/public-client"),
-    exact("POST", "/oauth2/public-client-prelogin"),
-    exact("POST", "/oauth2/register"),
-    exact("POST", "/oauth2/create-client"),
-    exact("GET", "/oauth2/get-client"),
-    exact("GET", "/oauth2/get-clients"),
-    exact("POST", "/oauth2/update-client"),
-    exact("POST", "/oauth2/client/rotate-secret"),
-    exact("POST", "/oauth2/delete-client"),
-    exact("GET", "/oauth2/get-consent"),
-    exact("GET", "/oauth2/get-consents"),
-    exact("POST", "/oauth2/update-consent"),
-    exact("POST", "/oauth2/delete-consent"),
-    exact("POST", "/email-otp/check-verification-otp"),
-    exact("POST", "/email-otp/verify-email"),
-    exact("POST", "/email-otp/request-password-reset"),
-    exact("POST", "/email-otp/reset-password"),
-    exact("POST", "/forget-password/email-otp"),
-    exact("POST", "/email-otp/request-email-change"),
-    exact("POST", "/email-otp/change-email"),
-    exact("POST", "/sign-in/phone-number"),
-    exact("POST", "/phone-number/request-password-reset"),
-    exact("POST", "/phone-number/reset-password"),
-    exact("POST", "/link-social"),
-    exact("GET", "/list-accounts"),
-    exact("POST", "/unlink-account"),
-    exact("GET", "/token"),
-  ];
+export const APPLICATION_AUTH_FORBIDDEN_ROUTES: readonly ApplicationAuthRouteManifestEntry[] = [
+  exact("GET", "/oauth2/public-client"),
+  exact("POST", "/oauth2/public-client-prelogin"),
+  exact("POST", "/oauth2/register"),
+  exact("POST", "/oauth2/create-client"),
+  exact("GET", "/oauth2/get-client"),
+  exact("GET", "/oauth2/get-clients"),
+  exact("POST", "/oauth2/update-client"),
+  exact("POST", "/oauth2/client/rotate-secret"),
+  exact("POST", "/oauth2/delete-client"),
+  exact("GET", "/oauth2/get-consent"),
+  exact("GET", "/oauth2/get-consents"),
+  exact("POST", "/oauth2/update-consent"),
+  exact("POST", "/oauth2/delete-consent"),
+  exact("POST", "/email-otp/check-verification-otp"),
+  exact("POST", "/email-otp/verify-email"),
+  exact("POST", "/email-otp/request-password-reset"),
+  exact("POST", "/email-otp/reset-password"),
+  exact("POST", "/forget-password/email-otp"),
+  exact("POST", "/email-otp/request-email-change"),
+  exact("POST", "/email-otp/change-email"),
+  exact("POST", "/sign-in/phone-number"),
+  exact("POST", "/phone-number/request-password-reset"),
+  exact("POST", "/phone-number/reset-password"),
+  exact("POST", "/link-social"),
+  exact("GET", "/list-accounts"),
+  exact("POST", "/unlink-account"),
+  exact("GET", "/token"),
+];
 
 export function createEffectiveApplicationAuthRouteManifest(input: {
   policy: EffectiveApplicationAuthPolicy;
   emailVerificationEnabled: boolean;
   enabledSocialProviders: readonly ApplicationAuthProviderName[];
 }): EffectiveApplicationAuthRouteManifest {
-  const enabledSocialProviders = input.enabledSocialProviders.map(
-    parseApplicationAuthProviderName
-  );
-  if (
-    new Set(enabledSocialProviders).size !== enabledSocialProviders.length
-  ) {
+  const enabledSocialProviders = input.enabledSocialProviders.map(parseApplicationAuthProviderName);
+  if (new Set(enabledSocialProviders).size !== enabledSocialProviders.length) {
     throw new Error("Enabled application social providers are duplicated");
   }
-  const allowedRoutes = [
-    ...OAUTH_PROTOCOL_ROUTES,
-    ...HOSTED_UI_BASE_ROUTES,
-    ...SESSION_ROUTES,
-  ];
+  const allowedRoutes = [...OAUTH_PROTOCOL_ROUTES, ...HOSTED_UI_BASE_ROUTES, ...SESSION_ROUTES];
 
   if (input.policy.passwordSignInAllowed) {
-    allowedRoutes.push(
-      exact("POST", "/sign-in/email"),
-      exact("POST", "/login/password")
-    );
+    allowedRoutes.push(exact("POST", "/sign-in/email"), exact("POST", "/login/password"));
   }
   if (input.policy.passwordSignUpAllowed) {
     allowedRoutes.push(
       exact("GET", "/signup"),
       exact("POST", "/sign-up/email"),
-      exact("POST", "/signup/password")
+      exact("POST", "/signup/password"),
     );
   }
   if (input.policy.passwordResetAllowed) {
@@ -132,14 +120,14 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
         path: "/reset-password/:token",
         pathKind: "reset-token",
       },
-      exact("POST", "/reset-password")
+      exact("POST", "/reset-password"),
     );
   }
   if (input.emailVerificationEnabled) {
     allowedRoutes.push(
       exact("POST", "/verification/resend"),
       exact("POST", "/send-verification-email"),
-      exact("GET", "/verify-email")
+      exact("GET", "/verify-email"),
     );
   }
   if (input.policy.emailOtpSignInAllowed) {
@@ -149,7 +137,7 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
       exact("GET", "/email-otp/verify"),
       exact("POST", "/email-otp/verify"),
       exact("POST", "/email-otp/send-verification-otp"),
-      exact("POST", "/sign-in/email-otp")
+      exact("POST", "/sign-in/email-otp"),
     );
   }
   if (input.policy.phoneOtpSignInAllowed) {
@@ -159,7 +147,7 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
       exact("GET", "/phone-otp/verify"),
       exact("POST", "/phone-otp/verify"),
       exact("POST", "/phone-number/send-otp"),
-      exact("POST", "/phone-number/verify")
+      exact("POST", "/phone-number/verify"),
     );
   }
   if (enabledSocialProviders.length > 0) {
@@ -176,25 +164,18 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
           method: "POST",
           path: `/callback/${provider}`,
           pathKind: "social-callback",
-        }
+        },
       );
     }
   }
 
   return Object.freeze({
     version: "better-auth-1.6.23+oauth-provider-1.6.23",
-    allowedRoutes: Object.freeze(
-      allowedRoutes.map((route) => Object.freeze({ ...route }))
-    ),
-    allowedSocialProviders: Object.freeze([
-      ...enabledSocialProviders,
-    ]),
+    allowedRoutes: Object.freeze(allowedRoutes.map((route) => Object.freeze({ ...route }))),
+    allowedSocialProviders: Object.freeze([...enabledSocialProviders]),
   });
 }
 
-function exact(
-  method: ApplicationAuthHttpMethod,
-  path: string
-): ApplicationAuthRouteManifestEntry {
+function exact(method: ApplicationAuthHttpMethod, path: string): ApplicationAuthRouteManifestEntry {
   return { method, path, pathKind: "exact" };
 }

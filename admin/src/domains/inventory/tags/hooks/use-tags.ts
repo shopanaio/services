@@ -10,10 +10,7 @@ import type {
 import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { TAGS_QUERY } from "../graphql";
-import type {
-  TagsQueryData,
-  TagsQueryVariables,
-} from "../graphql/operation-types";
+import type { TagsQueryData, TagsQueryVariables } from "../graphql/operation-types";
 
 export interface UseTagsOptions extends RelayCursorPaginationVariables {
   where?: ApiTagWhereInput | null;

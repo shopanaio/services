@@ -1,37 +1,22 @@
 import { and, eq, or, not, type SQL, type Column } from "drizzle-orm";
 import type { Selectable } from "../types.js";
-import {
-  buildOperatorCondition,
-  isFilterObject,
-  validateFilterValue,
-} from "../operators.js";
-import {
-  ObjectSchema,
-  tablePrefix,
-  type FieldConfig,
-  type JoinInfo,
-} from "../schema.js";
+import { buildOperatorCondition, isFilterObject, validateFilterValue } from "../operators.js";
+import { ObjectSchema, tablePrefix, type FieldConfig, type JoinInfo } from "../schema.js";
 import type { FieldsDef, NestedWhereInput } from "../types.js";
 import { JoinCollector } from "./join-collector.js";
-import {
-  InvalidFilterError,
-  JoinDepthExceededError,
-  UnknownFieldError,
-} from "../errors.js";
+import { InvalidFilterError, JoinDepthExceededError, UnknownFieldError } from "../errors.js";
 
 export type WhereResult = {
   sql: SQL | undefined;
   joins: JoinInfo[];
 };
 
-export class WhereBuilder<
-  Fields extends FieldsDef,
-> {
+export class WhereBuilder<Fields extends FieldsDef> {
   constructor(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private readonly schema: ObjectSchema<Selectable, string, Fields, any>,
     private readonly joinCollector: JoinCollector,
-    private readonly maxDepth: number
+    private readonly maxDepth: number,
   ) {}
 
   build(input: NestedWhereInput<Fields> | undefined | null): WhereResult {
@@ -46,13 +31,14 @@ export class WhereBuilder<
     const conditions = this.buildWhereConditions(
       input as NestedWhereInput<FieldsDef>,
       this.schema,
-      0
+      0,
     );
-    const sql = conditions.length === 0
-      ? undefined
-      : conditions.length === 1
-        ? conditions[0]
-        : and(...conditions);
+    const sql =
+      conditions.length === 0
+        ? undefined
+        : conditions.length === 1
+          ? conditions[0]
+          : and(...conditions);
 
     return {
       sql,
@@ -63,7 +49,7 @@ export class WhereBuilder<
   private buildWhereConditions(
     input: NestedWhereInput<FieldsDef>,
     schema: ObjectSchema,
-    depth: number
+    depth: number,
   ): SQL[] {
     if (depth >= this.maxDepth) {
       throw new JoinDepthExceededError(depth, this.maxDepth);
@@ -85,7 +71,7 @@ export class WhereBuilder<
           const nestedConditions = this.buildWhereConditions(
             nested as NestedWhereInput<FieldsDef>,
             schema,
-            depth
+            depth,
           );
           conditions.push(...nestedConditions);
         }
@@ -98,7 +84,7 @@ export class WhereBuilder<
           const nestedConditions = this.buildWhereConditions(
             nested as NestedWhereInput<FieldsDef>,
             schema,
-            depth
+            depth,
           );
           if (nestedConditions.length === 1) {
             orConditions.push(nestedConditions[0]);
@@ -114,11 +100,16 @@ export class WhereBuilder<
         continue;
       }
 
-      if (key === "_not" && rawValue !== null && typeof rawValue === "object" && !Array.isArray(rawValue)) {
+      if (
+        key === "_not" &&
+        rawValue !== null &&
+        typeof rawValue === "object" &&
+        !Array.isArray(rawValue)
+      ) {
         const nestedConditions = this.buildWhereConditions(
           rawValue as NestedWhereInput<FieldsDef>,
           schema,
-          depth
+          depth,
         );
         if (nestedConditions.length === 1) {
           conditions.push(not(nestedConditions[0]));
@@ -139,25 +130,18 @@ export class WhereBuilder<
       }
 
       const aliasedTable = this.joinCollector.requireAliasedTable(tableAlias);
-      const column = this.joinCollector.getAliasedColumn(
-        aliasedTable,
-        fieldConfig.column
-      );
+      const column = this.joinCollector.getAliasedColumn(aliasedTable, fieldConfig.column);
 
       if (fieldConfig.join && this.isNestedObject(rawValue)) {
         const nestedSql = this.buildNestedJoinConditions(
           fieldConfig,
           schema,
           depth,
-          rawValue as NestedWhereInput<FieldsDef>
+          rawValue as NestedWhereInput<FieldsDef>,
         );
         conditions.push(...nestedSql);
       } else {
-        const fieldConditions = this.buildFieldConditions(
-          key,
-          column,
-          rawValue
-        );
+        const fieldConditions = this.buildFieldConditions(key, column, rawValue);
         conditions.push(...fieldConditions);
       }
     }
@@ -169,7 +153,7 @@ export class WhereBuilder<
     fieldConfig: FieldConfig,
     parentSchema: ObjectSchema,
     depth: number,
-    nestedInput: NestedWhereInput<FieldsDef>
+    nestedInput: NestedWhereInput<FieldsDef>,
   ): SQL[] {
     const join = fieldConfig.join!;
     const childSchema = join.schema();
@@ -185,21 +169,13 @@ export class WhereBuilder<
       fieldConfig.column,
       targetColumn,
       join.type,
-      join.composite
+      join.composite,
     );
 
-    return this.buildWhereConditions(
-      nestedInput,
-      childSchema,
-      depth + 1
-    );
+    return this.buildWhereConditions(nestedInput, childSchema, depth + 1);
   }
 
-  private buildFieldConditions(
-    fieldName: string,
-    column: Column,
-    value: unknown
-  ): SQL[] {
+  private buildFieldConditions(fieldName: string, column: Column, value: unknown): SQL[] {
     if (isFilterObject(value)) {
       const conditions: SQL[] = [];
       for (const [opKey, opVal] of Object.entries(value)) {
@@ -209,17 +185,11 @@ export class WhereBuilder<
         }
         const validation = validateFilterValue(opKey, opVal);
         if (!validation.valid) {
-          throw new InvalidFilterError(
-            fieldName,
-            validation.reason ?? "Invalid filter value"
-          );
+          throw new InvalidFilterError(fieldName, validation.reason ?? "Invalid filter value");
         }
         const condition = buildOperatorCondition(column, opKey, opVal);
         if (!condition) {
-          throw new InvalidFilterError(
-            fieldName,
-            `Invalid value for operator "${opKey}"`
-          );
+          throw new InvalidFilterError(fieldName, `Invalid value for operator "${opKey}"`);
         }
         conditions.push(condition);
       }
@@ -231,10 +201,7 @@ export class WhereBuilder<
 
   private isNestedObject(value: unknown): value is Record<string, unknown> {
     return (
-      typeof value === "object" &&
-      value !== null &&
-      !Array.isArray(value) &&
-      !isFilterObject(value)
+      typeof value === "object" && value !== null && !Array.isArray(value) && !isFilterObject(value)
     );
   }
 }

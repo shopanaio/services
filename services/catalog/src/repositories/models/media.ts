@@ -32,31 +32,24 @@ export const productMedia = catalogSchema.table(
     unique("product_media_store_id_product_id_file_id_unique").on(
       table.storeId,
       table.productId,
-      table.fileId
+      table.fileId,
     ),
     unique("product_media_store_id_product_id_id_unique").on(
       table.storeId,
       table.productId,
-      table.id
+      table.id,
     ),
-    unique("product_media_store_id_id_unique").on(
-      table.storeId,
-      table.id
-    ),
+    unique("product_media_store_id_id_unique").on(table.storeId, table.id),
     index("idx_product_media_store").on(table.storeId),
     index("idx_product_media_product").on(table.storeId, table.productId),
     index("idx_product_media_file").on(table.storeId, table.fileId),
-    index("idx_product_media_sort").on(
-      table.storeId,
-      table.productId,
-      table.sortIndex
-    ),
+    index("idx_product_media_sort").on(table.storeId, table.productId, table.sortIndex),
     foreignKey({
       name: "product_media_product_fk",
       columns: [table.productId],
       foreignColumns: [product.id],
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -81,15 +74,8 @@ export const variantMedia = catalogSchema.table(
     index("idx_variant_media_store").on(table.storeId),
     index("idx_variant_media_product").on(table.storeId, table.productId),
     index("idx_variant_media_variant").on(table.storeId, table.variantId),
-    index("idx_variant_media_product_media").on(
-      table.storeId,
-      table.productMediaId
-    ),
-    index("idx_variant_media_sort").on(
-      table.storeId,
-      table.variantId,
-      table.sortIndex
-    ),
+    index("idx_variant_media_product_media").on(table.storeId, table.productMediaId),
+    index("idx_variant_media_sort").on(table.storeId, table.variantId, table.sortIndex),
     foreignKey({
       name: "variant_media_product_media_fk",
       columns: [table.productMediaId],
@@ -100,7 +86,7 @@ export const variantMedia = catalogSchema.table(
       columns: [table.variantId],
       foreignColumns: [variant.id],
     }).onDelete("cascade"),
-  ]
+  ],
 );
 
 export type ProductMedia = typeof productMedia.$inferSelect;

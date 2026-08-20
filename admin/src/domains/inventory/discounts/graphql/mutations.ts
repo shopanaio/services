@@ -1,9 +1,6 @@
 import { gql } from "@apollo/client";
 import { USER_ERROR_FRAGMENT } from "../../graphql/shared-fragments";
-import {
-  DISCOUNT_DETAILS_FRAGMENT,
-  DISCOUNT_LIST_FRAGMENT,
-} from "./fragments";
+import { DISCOUNT_DETAILS_FRAGMENT, DISCOUNT_LIST_FRAGMENT } from "./fragments";
 
 export const DISCOUNT_CREATE_MUTATION = gql`
   mutation DiscountCreate($input: DiscountCreateInput!) {

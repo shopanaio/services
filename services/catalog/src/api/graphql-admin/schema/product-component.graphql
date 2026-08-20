@@ -63,341 +63,547 @@ enum ProductComponentDependencyActionType {
   ADJUST_PRICE
 }
 
-"""Product component configuration associated one-to-one with a Catalog Product."""
+"""
+Product component configuration associated one-to-one with a Catalog Product.
+"""
 type ProductComponent {
-  """Internal component aggregate ID."""
+  """
+  Internal component aggregate ID.
+  """
   id: ID!
 
-  """The product that owns this component configuration."""
+  """
+  The product that owns this component configuration.
+  """
   product: Product!
 
-  """Configurator display style."""
+  """
+  Configurator display style.
+  """
   displayStyle: ProductComponentDisplayStyle!
 
-  """All component configurations associated with this product."""
+  """
+  All component configurations associated with this product.
+  """
   configurations: [ProductComponentConfiguration!]!
 
-  """The date and time when the component data was created."""
+  """
+  The date and time when the component data was created.
+  """
   createdAt: DateTime!
 
-  """The date and time when the component data was last updated."""
+  """
+  The date and time when the component data was last updated.
+  """
   updatedAt: DateTime!
 }
 
 type ProductComponentConfiguration implements Node @key(fields: "id") {
-  """The globally unique ID of the configuration."""
+  """
+  The globally unique ID of the configuration.
+  """
   id: ID!
 
-  """The Catalog Product this configuration belongs to."""
+  """
+  The Catalog Product this configuration belongs to.
+  """
   product: Product!
 
-  """Configuration name."""
+  """
+  Configuration name.
+  """
   name: String!
 
-  """Variants that use this configuration."""
+  """
+  Variants that use this configuration.
+  """
   variants: [Variant!]!
 
-  """Groups in configurator order."""
+  """
+  Groups in configurator order.
+  """
   groups: [ProductComponentGroup!]!
 
-  """Reusable pricing templates."""
+  """
+  Reusable pricing templates.
+  """
   pricingTemplates: [ProductComponentPricingTemplate!]!
 
-  """Dependency rules in priority order."""
+  """
+  Dependency rules in priority order.
+  """
   dependencyRules: [ProductComponentDependencyRule!]!
 
-  """The date and time when the configuration was created."""
+  """
+  The date and time when the configuration was created.
+  """
   createdAt: DateTime!
 
-  """The date and time when the configuration was last updated."""
+  """
+  The date and time when the configuration was last updated.
+  """
   updatedAt: DateTime!
 }
 
 type ProductComponentGroup implements Node @key(fields: "id") {
-  """The globally unique ID of the group."""
+  """
+  The globally unique ID of the group.
+  """
   id: ID!
 
-  """Sort order within the configuration."""
+  """
+  Sort order within the configuration.
+  """
   sortIndex: Int!
 
-  """Display title from current locale."""
+  """
+  Display title from current locale.
+  """
   title: String!
 
-  """Minimum selected items in this group. Null means no minimum."""
+  """
+  Minimum selected items in this group. Null means no minimum.
+  """
   minSelection: Int
 
-  """Maximum selected items in this group. Null means no maximum."""
+  """
+  Maximum selected items in this group. Null means no maximum.
+  """
   maxSelection: Int
 
-  """Items in group order."""
+  """
+  Items in group order.
+  """
   items: [ProductComponentItem!]!
 
-  """The date and time when the group was created."""
+  """
+  The date and time when the group was created.
+  """
   createdAt: DateTime!
 
-  """The date and time when the group was last updated."""
+  """
+  The date and time when the group was last updated.
+  """
   updatedAt: DateTime!
 }
 
 type ProductComponentItem implements Node @key(fields: "id") {
-  """The globally unique ID of the item."""
+  """
+  The globally unique ID of the item.
+  """
   id: ID!
 
-  """The group this item belongs to."""
+  """
+  The group this item belongs to.
+  """
   group: ProductComponentGroup!
 
-  """Whether the item references a product or a concrete variant."""
+  """
+  Whether the item references a product or a concrete variant.
+  """
   itemType: ProductComponentItemType!
 
-  """Sort order within the group."""
+  """
+  Sort order within the group.
+  """
   sortIndex: Int!
 
-  """Referenced product for PRODUCT items."""
+  """
+  Referenced product for PRODUCT items.
+  """
   refProduct: Product
 
-  """Referenced variant for VARIANT items."""
+  """
+  Referenced variant for VARIANT items.
+  """
   refVariant: Variant
 
-  """Featured image override."""
+  """
+  Featured image override.
+  """
   featuredImage: File
 
-  """Minimum selectable quantity."""
+  """
+  Minimum selectable quantity.
+  """
   minQty: Int
 
-  """Maximum selectable quantity. Null means unlimited."""
+  """
+  Maximum selectable quantity. Null means unlimited.
+  """
   maxQty: Int
 
-  """Default quantity."""
+  """
+  Default quantity.
+  """
   defaultQty: Int
 
-  """Inline price rule. Null when pricingTemplate is used."""
+  """
+  Inline price rule. Null when pricingTemplate is used.
+  """
   priceRule: ProductComponentPriceRule
 
-  """Reusable pricing template. Null when inline priceRule is used."""
+  """
+  Reusable pricing template. Null when inline priceRule is used.
+  """
   pricingTemplate: ProductComponentPricingTemplate
 
-  """Allowed option/value selections for PRODUCT items."""
+  """
+  Allowed option/value selections for PRODUCT items.
+  """
   optionSelections: [ProductComponentItemOptionSelection!]!
 
-  """Optional display title override from current locale."""
+  """
+  Optional display title override from current locale.
+  """
   title: String
 
-  """Whether item is visible in the configurator."""
+  """
+  Whether item is visible in the configurator.
+  """
   visible: Boolean!
 
-  """Whether item is selected by default."""
+  """
+  Whether item is selected by default.
+  """
   selected: Boolean!
 
-  """The date and time when the item was created."""
+  """
+  The date and time when the item was created.
+  """
   createdAt: DateTime!
 
-  """The date and time when the item was last updated."""
+  """
+  The date and time when the item was last updated.
+  """
   updatedAt: DateTime!
 }
 
 type ProductComponentItemOptionSelection implements Node @key(fields: "id") {
-  """The globally unique ID of the option selection."""
+  """
+  The globally unique ID of the option selection.
+  """
   id: ID!
 
-  """Referenced product option."""
+  """
+  Referenced product option.
+  """
   option: ProductOption!
 
-  """Parent option for dependent option trees."""
+  """
+  Parent option for dependent option trees.
+  """
   parentOption: ProductOption
 
-  """Allowed values for this option."""
+  """
+  Allowed values for this option.
+  """
   values: [ProductComponentItemOptionValueSelection!]!
 
-  """Sort order within item option selections."""
+  """
+  Sort order within item option selections.
+  """
   sortIndex: Int!
 }
 
 type ProductComponentItemOptionValueSelection implements Node @key(fields: "id") {
-  """The globally unique ID of the option value selection."""
+  """
+  The globally unique ID of the option value selection.
+  """
   id: ID!
 
-  """Referenced product option value. Null when the value is unavailable."""
+  """
+  Referenced product option value. Null when the value is unavailable.
+  """
   optionValue: ProductOptionValue
 
-  """Stable value copy for displaying stale/unavailable values."""
+  """
+  Stable value copy for displaying stale/unavailable values.
+  """
   value: String!
 
-  """Selection status."""
+  """
+  Selection status.
+  """
   status: ProductComponentItemOptionValueSelectionStatus!
 
-  """Sort order within option values."""
+  """
+  Sort order within option values.
+  """
   sortIndex: Int!
 }
 
 interface ProductComponentPriceRule implements Node {
-  """The globally unique ID of the price rule."""
+  """
+  The globally unique ID of the price rule.
+  """
   id: ID!
 
-  """How this rule derives the component item price."""
+  """
+  How this rule derives the component item price.
+  """
   strategy: ProductComponentPriceStrategy!
 }
 
 type ProductComponentBasePriceRule implements Node & ProductComponentPriceRule @key(fields: "id") {
-  """The globally unique ID of the price rule."""
+  """
+  The globally unique ID of the price rule.
+  """
   id: ID!
 
-  """Use the referenced product or variant base price."""
+  """
+  Use the referenced product or variant base price.
+  """
   strategy: ProductComponentPriceStrategy!
 }
 
-type ProductComponentAdjustmentPriceRule implements Node & ProductComponentPriceRule @key(fields: "id") {
-  """The globally unique ID of the price rule."""
+type ProductComponentAdjustmentPriceRule implements Node & ProductComponentPriceRule
+  @key(fields: "id") {
+  """
+  The globally unique ID of the price rule.
+  """
   id: ID!
 
-  """Apply a fixed-amount or percentage adjustment to the base price."""
+  """
+  Apply a fixed-amount or percentage adjustment to the base price.
+  """
   strategy: ProductComponentPriceStrategy!
 
-  """Whether the adjustment decreases or increases the base price."""
+  """
+  Whether the adjustment decreases or increases the base price.
+  """
   operation: PriceAdjustmentOperation!
 
-  """Whether the adjustment uses a percentage or fixed amount."""
+  """
+  Whether the adjustment uses a percentage or fixed amount.
+  """
   valueType: PriceAdjustmentValueType!
 
-  """Currency-specific values for FIXED_AMOUNT adjustments."""
+  """
+  Currency-specific values for FIXED_AMOUNT adjustments.
+  """
   amounts: [ProductComponentPriceRuleAmount!]!
 
-  """Percentage in basis points from 1 to 10000 for PERCENTAGE adjustments."""
+  """
+  Percentage in basis points from 1 to 10000 for PERCENTAGE adjustments.
+  """
   percentageBps: Int
 }
 
-type ProductComponentOverridePriceRule implements Node & ProductComponentPriceRule @key(fields: "id") {
-  """The globally unique ID of the price rule."""
+type ProductComponentOverridePriceRule implements Node & ProductComponentPriceRule
+  @key(fields: "id") {
+  """
+  The globally unique ID of the price rule.
+  """
   id: ID!
 
-  """Replace the base price with a currency-specific absolute price."""
+  """
+  Replace the base price with a currency-specific absolute price.
+  """
   strategy: ProductComponentPriceStrategy!
 
-  """Currency-specific absolute prices."""
+  """
+  Currency-specific absolute prices.
+  """
   amounts: [ProductComponentPriceRuleAmount!]!
 }
 
 type ProductComponentFreePriceRule implements Node & ProductComponentPriceRule @key(fields: "id") {
-  """The globally unique ID of the price rule."""
+  """
+  The globally unique ID of the price rule.
+  """
   id: ID!
 
-  """Set the component item price to zero."""
+  """
+  Set the component item price to zero.
+  """
   strategy: ProductComponentPriceStrategy!
 }
 
 type ProductComponentPriceRuleAmount {
-  """The currency code."""
+  """
+  The currency code.
+  """
   currency: CurrencyCode!
 
-  """Positive amount in minor units."""
+  """
+  Positive amount in minor units.
+  """
   amountMinor: BigInt!
 }
 
 type ProductComponentPricingTemplate implements Node @key(fields: "id") {
-  """The globally unique ID of the pricing template."""
+  """
+  The globally unique ID of the pricing template.
+  """
   id: ID!
 
-  """Template name."""
+  """
+  Template name.
+  """
   name: String!
 
-  """Reusable price rule."""
+  """
+  Reusable price rule.
+  """
   priceRule: ProductComponentPriceRule!
 
-  """Sort order within configuration."""
+  """
+  Sort order within configuration.
+  """
   sortIndex: Int!
 }
 
 type ProductComponentDependencyRule implements Node @key(fields: "id") {
-  """The globally unique ID of the dependency rule."""
+  """
+  The globally unique ID of the dependency rule.
+  """
   id: ID!
 
-  """Rule name."""
+  """
+  Rule name.
+  """
   name: String!
 
-  """Whether the rule is enabled."""
+  """
+  Whether the rule is enabled.
+  """
   enabled: Boolean!
 
-  """Rule priority. Lower values are evaluated first."""
+  """
+  Rule priority. Lower values are evaluated first.
+  """
   priority: Int!
 
-  """How condition groups are combined."""
+  """
+  How condition groups are combined.
+  """
   logicOperator: ProductComponentLogicOperator!
 
-  """Condition groups."""
+  """
+  Condition groups.
+  """
   conditionGroups: [ProductComponentConditionGroup!]!
 
-  """Actions applied when conditions match."""
+  """
+  Actions applied when conditions match.
+  """
   actions: [ProductComponentDependencyAction!]!
 
-  """The date and time when the rule was created."""
+  """
+  The date and time when the rule was created.
+  """
   createdAt: DateTime!
 
-  """The date and time when the rule was last updated."""
+  """
+  The date and time when the rule was last updated.
+  """
   updatedAt: DateTime!
 }
 
 type ProductComponentConditionGroup implements Node @key(fields: "id") {
-  """The globally unique ID of the condition group."""
+  """
+  The globally unique ID of the condition group.
+  """
   id: ID!
 
-  """How conditions are combined."""
+  """
+  How conditions are combined.
+  """
   logicOperator: ProductComponentLogicOperator!
 
-  """Conditions in this group."""
+  """
+  Conditions in this group.
+  """
   conditions: [ProductComponentCondition!]!
 
-  """Sort order within the rule."""
+  """
+  Sort order within the rule.
+  """
   sortIndex: Int!
 }
 
 type ProductComponentCondition implements Node @key(fields: "id") {
-  """The globally unique ID of the condition."""
+  """
+  The globally unique ID of the condition.
+  """
   id: ID!
 
-  """Condition category."""
+  """
+  Condition category.
+  """
   category: ProductComponentConditionCategory!
 
-  """Condition subject."""
+  """
+  Condition subject.
+  """
   subject: ProductComponentConditionSubject!
 
-  """Condition operator."""
+  """
+  Condition operator.
+  """
   operator: ProductComponentConditionOperator!
 
-  """Target type."""
+  """
+  Target type.
+  """
   targetType: ProductComponentDependencyTargetType!
 
-  """Target ID. Points to an item, group, or component configuration."""
+  """
+  Target ID. Points to an item, group, or component configuration.
+  """
   targetId: ID!
 
-  """Numeric value for numeric conditions."""
+  """
+  Numeric value for numeric conditions.
+  """
   value: Int
 
-  """Sort order within the condition group."""
+  """
+  Sort order within the condition group.
+  """
   sortIndex: Int!
 }
 
 type ProductComponentDependencyAction implements Node @key(fields: "id") {
-  """The globally unique ID of the action."""
+  """
+  The globally unique ID of the action.
+  """
   id: ID!
 
-  """Action type."""
+  """
+  Action type.
+  """
   actionType: ProductComponentDependencyActionType!
 
-  """Target type."""
+  """
+  Target type.
+  """
   targetType: ProductComponentDependencyTargetType!
 
-  """Target ID. Points to an item, group, or component configuration."""
+  """
+  Target ID. Points to an item, group, or component configuration.
+  """
   targetId: ID!
 
-  """Required value for SET_REQUIRED."""
+  """
+  Required value for SET_REQUIRED.
+  """
   requiredValue: Boolean
 
-  """Price rule for ADJUST_PRICE."""
+  """
+  Price rule for ADJUST_PRICE.
+  """
   priceRule: ProductComponentPriceRule
 
-  """Whether this action can stack with other matching actions."""
+  """
+  Whether this action can stack with other matching actions.
+  """
   stackable: Boolean!
 
-  """Sort order within the rule."""
+  """
+  Sort order within the rule.
+  """
   sortIndex: Int!
 }
 
@@ -424,7 +630,9 @@ enum ProductComponentOperationAction {
 A single product component operation.
 """
 input ProductComponentOperationInput {
-  """The operation to apply."""
+  """
+  The operation to apply.
+  """
   action: ProductComponentOperationAction!
 
   """
@@ -433,13 +641,19 @@ input ProductComponentOperationInput {
   """
   configurationId: ID
 
-  """Per-request correlation key. Required for CONFIGURATION_CREATE."""
+  """
+  Per-request correlation key. Required for CONFIGURATION_CREATE.
+  """
   clientMutationId: String
 
-  """Updated configurator display style. Used by SETTINGS_UPDATE."""
+  """
+  Updated configurator display style. Used by SETTINGS_UPDATE.
+  """
   displayStyle: ProductComponentDisplayStyle
 
-  """Configuration name. Required for CONFIGURATION_CREATE."""
+  """
+  Configuration name. Required for CONFIGURATION_CREATE.
+  """
   name: String
 
   """
@@ -469,16 +683,22 @@ input ProductComponentGroupSyncItemInput {
   """
   id: ID
 
-  """Localized title for current locale."""
+  """
+  Localized title for current locale.
+  """
   title: String!
 
   minSelection: Int
   maxSelection: Int
 
-  """Sort order within the configuration."""
+  """
+  Sort order within the configuration.
+  """
   sortIndex: Int!
 
-  """Complete list of items inside this group."""
+  """
+  Complete list of items inside this group.
+  """
   items: [ProductComponentItemSyncItemInput!]!
 }
 
@@ -489,108 +709,172 @@ input ProductComponentItemSyncItemInput {
   """
   id: ID
 
-  """Whether the item references a product or a concrete variant."""
+  """
+  Whether the item references a product or a concrete variant.
+  """
   itemType: ProductComponentItemType!
 
-  """Referenced product ID for PRODUCT items."""
+  """
+  Referenced product ID for PRODUCT items.
+  """
   refProductId: ID
 
-  """Referenced variant ID for VARIANT items."""
+  """
+  Referenced variant ID for VARIANT items.
+  """
   refVariantId: ID
 
-  """Featured image override."""
+  """
+  Featured image override.
+  """
   featuredImageId: ID
 
-  """Minimum selectable quantity."""
+  """
+  Minimum selectable quantity.
+  """
   minQty: Int
 
-  """Maximum selectable quantity."""
+  """
+  Maximum selectable quantity.
+  """
   maxQty: Int
 
-  """Default quantity."""
+  """
+  Default quantity.
+  """
   defaultQty: Int
 
-  """Inline price rule. Cannot be used together with pricingTemplateId."""
+  """
+  Inline price rule. Cannot be used together with pricingTemplateId.
+  """
   priceRule: ProductComponentPriceRuleInput
 
-  """Reusable pricing template ID. Cannot be used together with priceRule."""
+  """
+  Reusable pricing template ID. Cannot be used together with priceRule.
+  """
   pricingTemplateId: ID
 
-  """Allowed option/value selections for PRODUCT items."""
+  """
+  Allowed option/value selections for PRODUCT items.
+  """
   optionSelections: [ProductComponentItemOptionSelectionSyncItemInput!]
 
-  """Optional localized title override for current locale."""
+  """
+  Optional localized title override for current locale.
+  """
   title: String
 
-  """Whether item is visible in the configurator."""
+  """
+  Whether item is visible in the configurator.
+  """
   visible: Boolean!
 
-  """Whether item is selected by default."""
+  """
+  Whether item is selected by default.
+  """
   selected: Boolean!
 
-  """Sort order within the group."""
+  """
+  Sort order within the group.
+  """
   sortIndex: Int!
 }
 
 input ProductComponentItemOptionSelectionSyncItemInput {
-  """Existing option selection ID. Null creates a new option selection."""
+  """
+  Existing option selection ID. Null creates a new option selection.
+  """
   id: ID
 
-  """Referenced product option ID."""
+  """
+  Referenced product option ID.
+  """
   optionId: ID!
 
-  """Parent option ID for dependent option trees."""
+  """
+  Parent option ID for dependent option trees.
+  """
   parentOptionId: ID
 
-  """Sort order within option selections."""
+  """
+  Sort order within option selections.
+  """
   sortIndex: Int!
 
-  """Complete list of option value selections."""
+  """
+  Complete list of option value selections.
+  """
   values: [ProductComponentItemOptionValueSelectionSyncItemInput!]!
 }
 
 input ProductComponentItemOptionValueSelectionSyncItemInput {
-  """Existing value selection ID. Null creates a new value selection."""
+  """
+  Existing value selection ID. Null creates a new value selection.
+  """
   id: ID
 
-  """Referenced product option value ID."""
+  """
+  Referenced product option value ID.
+  """
   optionValueId: ID
 
-  """Stable value copy for displaying stale/unavailable values."""
+  """
+  Stable value copy for displaying stale/unavailable values.
+  """
   value: String!
 
-  """Selection status."""
+  """
+  Selection status.
+  """
   status: ProductComponentItemOptionValueSelectionStatus!
 
-  """Sort order within option values."""
+  """
+  Sort order within option values.
+  """
   sortIndex: Int!
 }
 
 input ProductComponentPriceRuleInput {
-  """Existing price rule ID. Null creates a new price rule."""
+  """
+  Existing price rule ID. Null creates a new price rule.
+  """
   id: ID
 
-  """How this rule derives the component item price."""
+  """
+  How this rule derives the component item price.
+  """
   strategy: ProductComponentPriceStrategy!
 
-  """Required for ADJUSTMENT rules."""
+  """
+  Required for ADJUSTMENT rules.
+  """
   operation: PriceAdjustmentOperation
 
-  """Required for ADJUSTMENT rules."""
+  """
+  Required for ADJUSTMENT rules.
+  """
   valueType: PriceAdjustmentValueType
 
-  """Currency-specific values for FIXED_AMOUNT adjustments and OVERRIDE rules."""
+  """
+  Currency-specific values for FIXED_AMOUNT adjustments and OVERRIDE rules.
+  """
   amounts: [ProductComponentPriceRuleAmountInput!]
 
-  """Percentage in basis points from 1 to 10000 for PERCENTAGE adjustments."""
+  """
+  Percentage in basis points from 1 to 10000 for PERCENTAGE adjustments.
+  """
   percentageBps: Int
 }
 
 input ProductComponentPriceRuleAmountInput {
-  """The currency code."""
+  """
+  The currency code.
+  """
   currency: CurrencyCode!
 
-  """Positive amount in minor units."""
+  """
+  Positive amount in minor units.
+  """
   amountMinor: BigInt!
 }
 
@@ -602,13 +886,19 @@ input ProductComponentPricingTemplateSyncItemInput {
   """
   id: ID
 
-  """Template name."""
+  """
+  Template name.
+  """
   name: String!
 
-  """Reusable price rule."""
+  """
+  Reusable price rule.
+  """
   priceRule: ProductComponentPriceRuleInput!
 
-  """Sort order within configuration."""
+  """
+  Sort order within configuration.
+  """
   sortIndex: Int!
 }
 
@@ -620,87 +910,139 @@ input ProductComponentDependencyRuleSyncItemInput {
   """
   id: ID
 
-  """Rule name."""
+  """
+  Rule name.
+  """
   name: String!
 
-  """Whether the rule is enabled."""
+  """
+  Whether the rule is enabled.
+  """
   enabled: Boolean!
 
-  """Rule priority."""
+  """
+  Rule priority.
+  """
   priority: Int!
 
-  """How condition groups are combined."""
+  """
+  How condition groups are combined.
+  """
   logicOperator: ProductComponentLogicOperator!
 
-  """Complete list of condition groups."""
+  """
+  Complete list of condition groups.
+  """
   conditionGroups: [ProductComponentConditionGroupSyncItemInput!]!
 
-  """Complete list of actions."""
+  """
+  Complete list of actions.
+  """
   actions: [ProductComponentDependencyActionSyncItemInput!]!
 }
 
 input ProductComponentConditionGroupSyncItemInput {
-  """Existing condition group ID. Null creates a new group."""
+  """
+  Existing condition group ID. Null creates a new group.
+  """
   id: ID
 
-  """How conditions are combined."""
+  """
+  How conditions are combined.
+  """
   logicOperator: ProductComponentLogicOperator!
 
-  """Sort order within the rule."""
+  """
+  Sort order within the rule.
+  """
   sortIndex: Int!
 
-  """Complete list of conditions."""
+  """
+  Complete list of conditions.
+  """
   conditions: [ProductComponentConditionSyncItemInput!]!
 }
 
 input ProductComponentConditionSyncItemInput {
-  """Existing condition ID. Null creates a new condition."""
+  """
+  Existing condition ID. Null creates a new condition.
+  """
   id: ID
 
-  """Condition category."""
+  """
+  Condition category.
+  """
   category: ProductComponentConditionCategory!
 
-  """Condition subject."""
+  """
+  Condition subject.
+  """
   subject: ProductComponentConditionSubject!
 
-  """Condition operator."""
+  """
+  Condition operator.
+  """
   operator: ProductComponentConditionOperator!
 
-  """Target type."""
+  """
+  Target type.
+  """
   targetType: ProductComponentDependencyTargetType!
 
-  """Target ID. Points to an item, group, or component configuration."""
+  """
+  Target ID. Points to an item, group, or component configuration.
+  """
   targetId: ID!
 
-  """Numeric value for numeric conditions."""
+  """
+  Numeric value for numeric conditions.
+  """
   value: Int
 
-  """Sort order within the condition group."""
+  """
+  Sort order within the condition group.
+  """
   sortIndex: Int!
 }
 
 input ProductComponentDependencyActionSyncItemInput {
-  """Existing action ID. Null creates a new action."""
+  """
+  Existing action ID. Null creates a new action.
+  """
   id: ID
 
-  """Action type."""
+  """
+  Action type.
+  """
   actionType: ProductComponentDependencyActionType!
 
-  """Target type."""
+  """
+  Target type.
+  """
   targetType: ProductComponentDependencyTargetType!
 
-  """Target ID. Points to an item, group, or component configuration."""
+  """
+  Target ID. Points to an item, group, or component configuration.
+  """
   targetId: ID!
 
-  """Required value for SET_REQUIRED."""
+  """
+  Required value for SET_REQUIRED.
+  """
   requiredValue: Boolean
 
-  """Price rule for ADJUST_PRICE."""
+  """
+  Price rule for ADJUST_PRICE.
+  """
   priceRule: ProductComponentPriceRuleInput
 
-  """Whether this action can stack with other matching actions."""
+  """
+  Whether this action can stack with other matching actions.
+  """
   stackable: Boolean!
 
-  """Sort order within the rule."""
+  """
+  Sort order within the rule.
+  """
   sortIndex: Int!
 }

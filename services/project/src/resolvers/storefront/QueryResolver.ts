@@ -18,9 +18,7 @@ export class QueryResolver extends ProjectType<Record<string, never>> {
 
   async localization() {
     const storeId = this.storeId();
-    const item = await this.$ctx.kernel.repository.market.findDefaultActive(
-      storeId,
-    );
+    const item = await this.$ctx.kernel.repository.market.findDefaultActive(storeId);
     if (!item) {
       throw new GraphQLError("The storefront has no active default market", {
         extensions: { code: "STORE_CONFIGURATION_ERROR" },

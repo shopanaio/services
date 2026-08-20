@@ -1,5 +1,10 @@
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import type { OptionUpdateParams, OptionUpdateResult, OptionValuesInput, OptionSwatchInput } from "./dto/index.js";
+import type {
+  OptionUpdateParams,
+  OptionUpdateResult,
+  OptionValuesInput,
+  OptionSwatchInput,
+} from "./dto/index.js";
 import { buildVariantHandlesBatch } from "../variant/helpers/buildVariantHandle.js";
 import { eq, and, inArray } from "drizzle-orm";
 import { productOptionVariantLink, variant } from "../../repositories/models/index.js";
@@ -16,7 +21,9 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
       } catch {
         return {
           option: undefined,
-          userErrors: [{ message: "Option slug format is invalid", field: ["slug"], code: "INVALID_SLUG" }],
+          userErrors: [
+            { message: "Option slug format is invalid", field: ["slug"], code: "INVALID_SLUG" },
+          ],
         };
       }
     }
@@ -35,16 +42,18 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
     if (slug !== undefined && slug !== existingOption.slug) {
       const optionWithSlug = await this.repository.option.findBySlug(
         existingOption.productId,
-        slug
+        slug,
       );
       if (optionWithSlug) {
         return {
           option: undefined,
-          userErrors: [{
-            message: `Option with slug "${slug}" already exists`,
-            field: ["slug"],
-            code: "SLUG_ALREADY_EXISTS",
-          }],
+          userErrors: [
+            {
+              message: `Option with slug "${slug}" already exists`,
+              field: ["slug"],
+              code: "SLUG_ALREADY_EXISTS",
+            },
+          ],
         };
       }
     }
@@ -53,7 +62,9 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
     if (categoryId !== undefined && !(await this.repository.optionCategory.findById(categoryId))) {
       return {
         option: undefined,
-        userErrors: [{ message: "Option category not found", field: ["categoryId"], code: "NOT_FOUND" }],
+        userErrors: [
+          { message: "Option category not found", field: ["categoryId"], code: "NOT_FOUND" },
+        ],
       };
     }
     const updateData: { slug?: string; categoryId?: string; sortIndex?: number } = {};
@@ -77,11 +88,7 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
 
     // 5. Handle values updates
     if (values) {
-      const valueResult = await this.processValuesUpdate(
-        existingOption,
-        existingValues,
-        values
-      );
+      const valueResult = await this.processValuesUpdate(existingOption, existingValues, values);
       const { errors } = valueResult;
       if (errors.length > 0) {
         return { option: undefined, userErrors: errors };
@@ -102,7 +109,7 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
   private async processValuesUpdate(
     option: ProductOption,
     existingValues: ProductOptionValue[],
-    values: OptionValuesInput
+    values: OptionValuesInput,
   ): Promise<{
     errors: UserError[];
   }> {
@@ -116,7 +123,9 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
         const existingValue = existingById.get(valueId);
         if (!existingValue) {
           return {
-            errors: [{ message: "Option value not found", field: ["values", "delete"], code: "NOT_FOUND" }],
+            errors: [
+              { message: "Option value not found", field: ["values", "delete"], code: "NOT_FOUND" },
+            ],
           };
         }
         await this.repository.option.deleteValue(valueId);
@@ -129,7 +138,9 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
         const existingValue = existingById.get(valueUpdate.id);
         if (!existingValue) {
           return {
-            errors: [{ message: "Option value not found", field: ["values", "update"], code: "NOT_FOUND" }],
+            errors: [
+              { message: "Option value not found", field: ["values", "update"], code: "NOT_FOUND" },
+            ],
           };
         }
 
@@ -145,7 +156,13 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
             canonicalSlug = normalizeCollectionRuleHandleV1(valueUpdate.slug);
           } catch {
             return {
-              errors: [{ message: "Option value slug format is invalid", field: ["values", "update"], code: "INVALID_SLUG" }],
+              errors: [
+                {
+                  message: "Option value slug format is invalid",
+                  field: ["values", "update"],
+                  code: "INVALID_SLUG",
+                },
+              ],
             };
           }
           if (canonicalSlug !== existingValue.slug) {
@@ -184,9 +201,8 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
 
     // Create new values
     if (values.create?.length) {
-      let sortIndex = existingValues.length > 0
-        ? Math.max(...existingValues.map((v) => v.sortIndex)) + 1
-        : 0;
+      let sortIndex =
+        existingValues.length > 0 ? Math.max(...existingValues.map((v) => v.sortIndex)) + 1 : 0;
 
       for (const valueInput of values.create) {
         let canonicalSlug: string;
@@ -194,7 +210,13 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
           canonicalSlug = normalizeCollectionRuleHandleV1(valueInput.slug);
         } catch {
           return {
-            errors: [{ message: "Option value slug format is invalid", field: ["values", "create"], code: "INVALID_SLUG" }],
+            errors: [
+              {
+                message: "Option value slug format is invalid",
+                field: ["values", "create"],
+                code: "INVALID_SLUG",
+              },
+            ],
           };
         }
         let swatchId: string | null = null;
@@ -246,8 +268,8 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
       .where(
         and(
           eq(productOptionVariantLink.storeId, storeId),
-          inArray(productOptionVariantLink.optionValueId, valueIds)
-        )
+          inArray(productOptionVariantLink.optionValueId, valueIds),
+        ),
       );
 
     if (affectedLinks.length === 0) {
@@ -257,23 +279,16 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
     const variantIdArray = affectedLinks.map((l) => l.variantId);
 
     // Build new handles for all affected variants
-    const newHandles = await buildVariantHandlesBatch(
-      db,
-      variantIdArray,
-      storeId
-    );
+    const newHandles = await buildVariantHandlesBatch(db, variantIdArray, storeId);
 
     // Update each variant with its new handle
     for (const [variantId, newHandle] of newHandles) {
-      await db
-        .update(variant)
-        .set({ handle: newHandle })
-        .where(eq(variant.id, variantId));
+      await db.update(variant).set({ handle: newHandle }).where(eq(variant.id, variantId));
     }
 
     this.logger.info(
       { valueIds, affectedCount: variantIdArray.length },
-      "Rebuilt variant handles after option value slug change"
+      "Rebuilt variant handles after option value slug change",
     );
   }
 

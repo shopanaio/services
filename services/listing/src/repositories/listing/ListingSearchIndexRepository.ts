@@ -22,8 +22,10 @@ export interface ListingSearchIndexProductWriteModel {
   readonly terms: readonly SearchTermInput[];
 }
 
-export interface ListingSearchIndexIdentifierWriteModel
-  extends Omit<SearchIdentifierInput, "productDocId"> {
+export interface ListingSearchIndexIdentifierWriteModel extends Omit<
+  SearchIdentifierInput,
+  "productDocId"
+> {
   readonly normalizationContractVersion: string;
   readonly normalizationProfileRevision: string;
 }
@@ -88,10 +90,7 @@ export class ListingSearchIndexRepository extends BaseRepository {
       productId,
       allocated.textElements,
     );
-    const identifiers = await this.identifiers.replaceForProduct(
-      productId,
-      allocated.identifiers,
-    );
+    const identifiers = await this.identifiers.replaceForProduct(productId, allocated.identifiers);
     const terms = await this.terms.upsertMany(writeModel.terms);
 
     return { textElements, identifiers, terms };
@@ -99,23 +98,14 @@ export class ListingSearchIndexRepository extends BaseRepository {
 
   @Transactional()
   async replaceForProducts(
-    writeModelsByProductId: ReadonlyMap<
-      string,
-      ListingSearchIndexAllocatedProductWriteModel
-    >,
+    writeModelsByProductId: ReadonlyMap<string, ListingSearchIndexAllocatedProductWriteModel>,
   ): Promise<ListingSearchIndexWriteResult> {
     if (writeModelsByProductId.size === 0) {
       return { textElements: [], identifiers: [], terms: [] };
     }
 
-    const textElementsByProductId = new Map<
-      string,
-      readonly SearchTextElementInput[]
-    >();
-    const identifiersByProductId = new Map<
-      string,
-      readonly SearchIdentifierInput[]
-    >();
+    const textElementsByProductId = new Map<string, readonly SearchTextElementInput[]>();
+    const identifiersByProductId = new Map<string, readonly SearchIdentifierInput[]>();
     const terms: SearchTermInput[] = [];
 
     for (const [productId, allocatedWriteModel] of writeModelsByProductId) {
@@ -127,12 +117,8 @@ export class ListingSearchIndexRepository extends BaseRepository {
       terms.push(...writeModel.terms);
     }
 
-    const textElements = await this.textElements.replaceForProducts(
-      textElementsByProductId,
-    );
-    const identifiers = await this.identifiers.replaceForProducts(
-      identifiersByProductId,
-    );
+    const textElements = await this.textElements.replaceForProducts(textElementsByProductId);
+    const identifiers = await this.identifiers.replaceForProducts(identifiersByProductId);
     const upsertedTerms = await this.terms.upsertMany(terms);
 
     return { textElements, identifiers, terms: upsertedTerms };
@@ -170,16 +156,12 @@ export class ListingSearchIndexRepository extends BaseRepository {
   ): void {
     for (const row of writeModel.textElements) {
       if (row.productId !== productId) {
-        throw new Error(
-          "Search text element productId must match listing write key",
-        );
+        throw new Error("Search text element productId must match listing write key");
       }
     }
     for (const row of writeModel.identifiers) {
       if (row.productId !== productId) {
-        throw new Error(
-          "Search identifier productId must match listing write key",
-        );
+        throw new Error("Search identifier productId must match listing write key");
       }
     }
   }

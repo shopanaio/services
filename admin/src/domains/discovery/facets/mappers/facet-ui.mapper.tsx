@@ -1,5 +1,11 @@
 import type { ReactNode } from "react";
-import { LuCircleCheck as CheckCircleOutlined, LuSquareCheckBig as CheckSquareOutlined, LuMenu as MenuOutlined, LuSlidersHorizontal as SlidersOutlined, LuList as UnorderedListOutlined } from "react-icons/lu";
+import {
+  LuCircleCheck as CheckCircleOutlined,
+  LuSquareCheckBig as CheckSquareOutlined,
+  LuMenu as MenuOutlined,
+  LuSlidersHorizontal as SlidersOutlined,
+  LuList as UnorderedListOutlined,
+} from "react-icons/lu";
 import {
   LuDollarSign,
   LuPackageCheck,
@@ -105,10 +111,7 @@ export function getFacetTypeIcon(facetType: FacetType): ReactNode {
   return FACET_UI_MAPPINGS.facetTypes[facetType].icon;
 }
 
-export function getFacetSourceHandleLabel(
-  facetType: FacetType,
-  handle: string,
-): string | null {
+export function getFacetSourceHandleLabel(facetType: FacetType, handle: string): string | null {
   void handle;
   return FACET_UI_MAPPINGS.facetTypes[facetType].label ?? null;
 }

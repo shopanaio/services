@@ -1,16 +1,10 @@
 export const StorefrontPermissionActions = ["read", "write"] as const;
 
-export type StorefrontPermissionAction =
-  (typeof StorefrontPermissionActions)[number];
+export type StorefrontPermissionAction = (typeof StorefrontPermissionActions)[number];
 
-export const StorefrontPermissionRisks = [
-  "LOW",
-  "MEDIUM",
-  "HIGH",
-] as const;
+export const StorefrontPermissionRisks = ["LOW", "MEDIUM", "HIGH"] as const;
 
-export type StorefrontPermissionRisk =
-  (typeof StorefrontPermissionRisks)[number];
+export type StorefrontPermissionRisk = (typeof StorefrontPermissionRisks)[number];
 
 interface StorefrontPermissionDefinitionInput {
   readonly handle: string;
@@ -36,8 +30,7 @@ export const StorefrontPermissionDefinitions = {
     resource: "inventory",
     action: "read",
     label: "Read inventory",
-    description:
-      "View storefront availability for published products and variants.",
+    description: "View storefront availability for published products and variants.",
     risk: "LOW",
   },
   CHECKOUT_READ: {
@@ -45,8 +38,7 @@ export const StorefrontPermissionDefinitions = {
     resource: "checkout",
     action: "read",
     label: "Read checkouts",
-    description:
-      "View buyer-owned carts and their checkout state.",
+    description: "View buyer-owned carts and their checkout state.",
     risk: "MEDIUM",
   },
   CHECKOUT_WRITE: {
@@ -63,8 +55,7 @@ export const StorefrontPermissionDefinitions = {
     resource: "customer",
     action: "read",
     label: "Read customer",
-    description:
-      "View the authenticated customer's profile, addresses, and marketing preferences.",
+    description: "View the authenticated customer's profile, addresses, and marketing preferences.",
     risk: "HIGH",
   },
   CUSTOMER_WRITE: {
@@ -90,8 +81,7 @@ export const StorefrontPermissionDefinitions = {
     resource: "order",
     action: "read",
     label: "Read orders",
-    description:
-      "View the authenticated customer's order history and order details.",
+    description: "View the authenticated customer's order history and order details.",
     risk: "HIGH",
   },
   ORDER_WRITE: {
@@ -99,8 +89,7 @@ export const StorefrontPermissionDefinitions = {
     resource: "order",
     action: "write",
     label: "Write orders",
-    description:
-      "Create an order from a buyer-owned checkout.",
+    description: "Create an order from a buyer-owned checkout.",
     risk: "HIGH",
   },
   REVIEWS_READ: {
@@ -123,12 +112,10 @@ export const StorefrontPermissionDefinitions = {
   },
 } as const satisfies Record<string, StorefrontPermissionDefinitionInput>;
 
-type StorefrontPermissionDefinitionName =
-  keyof typeof StorefrontPermissionDefinitions;
+type StorefrontPermissionDefinitionName = keyof typeof StorefrontPermissionDefinitions;
 
-export type StorefrontPermission = (typeof StorefrontPermissionDefinitions)[
-  StorefrontPermissionDefinitionName
-]["handle"];
+export type StorefrontPermission =
+  (typeof StorefrontPermissionDefinitions)[StorefrontPermissionDefinitionName]["handle"];
 
 export interface StorefrontPermissionDefinition {
   readonly handle: StorefrontPermission;
@@ -153,9 +140,7 @@ export const STOREFRONT_PERMISSIONS = Object.freeze({
   REVIEWS_WRITE: StorefrontPermissionDefinitions.REVIEWS_WRITE.handle,
 });
 
-export const STOREFRONT_PERMISSION_VALUES = Object.freeze(
-  Object.values(STOREFRONT_PERMISSIONS),
-);
+export const STOREFRONT_PERMISSION_VALUES = Object.freeze(Object.values(STOREFRONT_PERMISSIONS));
 
 export const STOREFRONT_PERMISSION_CATALOG = Object.freeze(
   Object.values(StorefrontPermissionDefinitions),

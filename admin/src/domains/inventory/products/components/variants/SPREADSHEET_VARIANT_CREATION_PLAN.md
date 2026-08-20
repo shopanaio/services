@@ -3,15 +3,13 @@
 ## Approved breaking change
 
 Это утверждённый командой архитекторов breaking change: текущее поле
-`ProductUpdateInput.variants: [VariantUpdateInput!]` должно быть заменено на
-operation-style contract для `CREATE`/`UPDATE`/`DELETE` variant operations.
-Совместимый additive contract с отдельным полем для create не используется в
-этой задаче.
+`ProductUpdateInput.variants: [VariantUpdateInput!]` должно быть заменено на operation-style
+contract для `CREATE`/`UPDATE`/`DELETE` variant operations. Совместимый additive contract с
+отдельным полем для create не используется в этой задаче.
 
-Все существующие frontend/backend callsites, которые отправляют
-`ProductUpdateInput.variants`, должны быть мигрированы на новый operation-style
-contract в рамках этой задачи. Backward compatibility со старым
-`variants: [VariantUpdateInput!]` shape не требуется.
+Все существующие frontend/backend callsites, которые отправляют `ProductUpdateInput.variants`,
+должны быть мигрированы на новый operation-style contract в рамках этой задачи. Backward
+compatibility со старым `variants: [VariantUpdateInput!]` shape не требуется.
 
 ## Цель
 
@@ -23,7 +21,8 @@ contract в рамках этой задачи. Backward compatibility со ст
 - все изменения сохраняются одним нажатием `Save`;
 - `Save` выполняет ровно одну GraphQL mutation: `productUpdate`.
 
-Отдельные frontend-вызовы `variantCreate`, `variantUpdatePricing`, `variantUpdateMedia` и похожие post-create mutations для этого flow не используются.
+Отдельные frontend-вызовы `variantCreate`, `variantUpdatePricing`, `variantUpdateMedia` и похожие
+post-create mutations для этого flow не используются.
 
 ## Обязательные архитектурные решения
 
@@ -31,7 +30,8 @@ contract в рамках этой задачи. Backward compatibility со ст
 2. UI не должен оркестрировать несколько mutations для одного save.
 3. Draft rows живут локально в модалке и не попадают в persisted zustand store.
 4. Backend должен валидировать весь batch до записи, насколько это возможно.
-5. Результат save должен приходить через существующий `ProductUpdatePayload`: `product`, `operationResults`, `userErrors`.
+5. Результат save должен приходить через существующий `ProductUpdatePayload`: `product`,
+   `operationResults`, `userErrors`.
 6. После успешного save UI делает refetch variants и закрывает модалку.
 
 ## Текущее состояние
@@ -40,14 +40,15 @@ contract в рамках этой задачи. Backward compatibility со ст
 - `VariantsEditorGrid` превращает API-варианты в строки и рендерит их через `EditorGrid`.
 - `useVariantsEditorStore` хранит cell edits по `row.id` и настройки колонок.
 - Существующие варианты сохраняются через `productUpdate` и `ProductUpdateInput.variants`.
-- Текущий `ProductUpdateInput.variants` покрывает update существующих вариантов, но не покрывает создание новых вариантов.
-- В API есть отдельный `catalogMutation.variantCreate`, но для spreadsheet-save он не подходит, потому что UI должен отправлять один unified save через `productUpdate`.
+- Текущий `ProductUpdateInput.variants` покрывает update существующих вариантов, но не покрывает
+  создание новых вариантов.
+- В API есть отдельный `catalogMutation.variantCreate`, но для spreadsheet-save он не подходит,
+  потому что UI должен отправлять один unified save через `productUpdate`.
 
 ## Целевой GraphQL contract
 
-Нужно расширить в `ProductUpdateInput` поле `variants`, чтобы один массив
-`VariantOperationInput` поддерживал разные типы операций над variants в одном
-payload.
+Нужно расширить в `ProductUpdateInput` поле `variants`, чтобы один массив `VariantOperationInput`
+поддерживал разные типы операций над variants в одном payload.
 
 Рекомендуемая форма:
 
@@ -94,15 +95,13 @@ input VariantOperationInput {
 
 `productUpdate` должен выполнять `CREATE`/`UPDATE`/`DELETE` variant operations в одном workflow.
 
-Spreadsheet-save должен использовать существующую модель `productUpdate`:
-одна GraphQL mutation, один workflow, результат через `operationResults` и
-`userErrors`. Workflow может сохранять partial-failure поведение текущего
-`ProductUpdateWorkflow`: отдельные операции могут применяться или возвращать
-ошибки независимо.
+Spreadsheet-save должен использовать существующую модель `productUpdate`: одна GraphQL mutation,
+один workflow, результат через `operationResults` и `userErrors`. Workflow может сохранять
+partial-failure поведение текущего `ProductUpdateWorkflow`: отдельные операции могут применяться или
+возвращать ошибки независимо.
 
-Нужно расширить `ProductUpdateWorkflowDto`, потому что текущий workflow contract
-умеет только `variantUpdate`. Для spreadsheet flow DTO должен явно поддерживать
-variant create/delete operations:
+Нужно расширить `ProductUpdateWorkflowDto`, потому что текущий workflow contract умеет только
+`variantUpdate`. Для spreadsheet flow DTO должен явно поддерживать variant create/delete operations:
 
 ```ts
 type ProductUpdateOperation =
@@ -128,8 +127,8 @@ interface VariantDeleteParams {
 }
 ```
 
-`OperationResult` также должен поддерживать `variantCreate`/`variantDelete`
-types и metadata для сопоставления результата с draft row:
+`OperationResult` также должен поддерживать `variantCreate`/`variantDelete` types и metadata для
+сопоставления результата с draft row:
 
 ```ts
 interface OperationResult {
@@ -147,23 +146,23 @@ interface OperationResult {
 }
 ```
 
-Для batch массива `variants` нужна pre-validation фаза внутри
-`productUpdate`, но она не должна менять общую семантику workflow:
+Для batch массива `variants` нужна pre-validation фаза внутри `productUpdate`, но она не должна
+менять общую семантику workflow:
 
 1. До выполнения variant writes декодировать incoming global ids.
 2. Загрузить product state, необходимый для проверки variant batch.
-3. Проверить batch-инварианты, которые нельзя безопасно проверять по одной
-   операции: принадлежность option values продукту, уникальность combinations,
-   capacity, дубликаты внутри request, валидность `clientMutationId`.
-4. Если batch-level validation не проходит, вернуть ошибки в `operationResults`
-   для соответствующих operations.
-5. Если batch-level validation проходит, выполнить operations в текущей
-   `productUpdate` модели и вернуть итог через `ProductUpdatePayload`.
+3. Проверить batch-инварианты, которые нельзя безопасно проверять по одной операции: принадлежность
+   option values продукту, уникальность combinations, capacity, дубликаты внутри request, валидность
+   `clientMutationId`.
+4. Если batch-level validation не проходит, вернуть ошибки в `operationResults` для соответствующих
+   operations.
+5. Если batch-level validation проходит, выполнить operations в текущей `productUpdate` модели и
+   вернуть итог через `ProductUpdatePayload`.
 
-Важно: batch-level validation должна выполняться до любого write-side effect,
-включая optimistic revision increment/acquire. Если batch validation падает,
-`product.revision` не должен измениться. Иначе неуспешная попытка сохранения
-создаст revision conflict для следующего save без реальных изменений данных.
+Важно: batch-level validation должна выполняться до любого write-side effect, включая optimistic
+revision increment/acquire. Если batch validation падает, `product.revision` не должен измениться.
+Иначе неуспешная попытка сохранения создаст revision conflict для следующего save без реальных
+изменений данных.
 
 Порядок обработки:
 
@@ -187,14 +186,15 @@ interface OperationResult {
    - `DELETE` operations содержат только `action` и `variantId`;
    - все option values принадлежат options этого product;
    - каждая `CREATE` operation содержит значение для каждой product option;
-   - общее количество existing variants плюс `CREATE` operations не превышает количество возможных option combinations;
+   - общее количество existing variants плюс `CREATE` operations не превышает количество возможных
+     option combinations;
    - `CREATE` combinations не дублируют existing variants;
    - `CREATE` combinations не дублируют друг друга;
    - `UPDATE` operations с изменением options не создают дубликаты;
    - pricing/media/dimensions inputs валидны;
    - `clientMutationId` уникален внутри request.
-4. Если есть batch-level ошибки, вернуть их через `userErrors` /
-   `operationResults` для соответствующих operations.
+4. Если есть batch-level ошибки, вернуть их через `userErrors` / `operationResults` для
+   соответствующих operations.
 5. Если validation успешна:
    - выполнить optimistic revision acquire / increment;
    - создать новые variants;
@@ -206,23 +206,21 @@ interface OperationResult {
    - отправить нужные domain events.
 6. Вернуть `ProductUpdatePayload`.
 
-Workflow должен явно документировать, какие ошибки считаются batch-level
-validation errors, а какие остаются operation-level errors в существующей
-`operationResults` модели.
+Workflow должен явно документировать, какие ошибки считаются batch-level validation errors, а какие
+остаются operation-level errors в существующей `operationResults` модели.
 
-Атомарность `CREATE` operation: partial. Базовое создание variant и option
-links является основной частью create operation. Pricing/media/weight/dimensions
-применяются после создания как дополнительные части той же operation и могут
-вернуть operation-level errors независимо. Если variant был создан, но часть
-дополнительных полей не применилась, `OperationResult.applied` должен отражать
-partial failure (`false` при наличии errors), а `entityId` должен содержать id
-созданного variant. Это позволяет UI после refetch увидеть созданный variant и
-показать пользователю ошибки по не применённым дополнительным полям, не теряя
-связь с draft row через `clientMutationId`.
+Атомарность `CREATE` operation: partial. Базовое создание variant и option links является основной
+частью create operation. Pricing/media/weight/dimensions применяются после создания как
+дополнительные части той же operation и могут вернуть operation-level errors независимо. Если
+variant был создан, но часть дополнительных полей не применилась, `OperationResult.applied` должен
+отражать partial failure (`false` при наличии errors), а `entityId` должен содержать id созданного
+variant. Это позволяет UI после refetch увидеть созданный variant и показать пользователю ошибки по
+не применённым дополнительным полям, не теряя связь с draft row через `clientMutationId`.
 
 ## Operation results
 
-Для create operations нужен способ сопоставить backend result с draft row. Для этого используется `clientMutationId`.
+Для create operations нужен способ сопоставить backend result с draft row. Для этого используется
+`clientMutationId`.
 
 Рекомендуем расширить `OperationResult` так, чтобы create result мог вернуть:
 
@@ -239,7 +237,7 @@ type OperationResult {
 Минимально достаточно вернуть ошибки с `field`, где путь содержит индекс create operation:
 
 ```ts
-field: ["variants", "0", "options"]
+field: ["variants", "0", "options"];
 ```
 
 Но `clientMutationId` лучше для UI, потому что draft rows имеют временные ids.
@@ -269,7 +267,8 @@ clientMutationId?: string;
 
 ## Draft rows state
 
-Draft rows не должны храниться в `useVariantsEditorStore`, потому что store persisted и отвечает за edits/settings.
+Draft rows не должны храниться в `useVariantsEditorStore`, потому что store persisted и отвечает за
+edits/settings.
 
 Состояние держим локально:
 
@@ -277,17 +276,16 @@ Draft rows не должны храниться в `useVariantsEditorStore`, п�
 - `VariantsEditorGrid` получает `draftRows` и `onDraftRowsChange`;
 - `useVariantsEditorStore` продолжает хранить edits для existing rows и column visibility.
 
-Dirty/save state не должен опираться только на `useVariantsEditorStore.hasChanges()`,
-потому что этот store отражает edits existing rows. Кнопка `Save`, `setDirty`
-и счётчик изменений должны использовать общий editor dirty state:
+Dirty/save state не должен опираться только на `useVariantsEditorStore.hasChanges()`, потому что
+этот store отражает edits existing rows. Кнопка `Save`, `setDirty` и счётчик изменений должны
+использовать общий editor dirty state:
 
 ```ts
 const hasEditorChanges = hasExistingRowChanges || hasDraftRowChanges;
 ```
 
-`hasDraftRowChanges` считается из draft rows / draft row changes в текущем
-editor state. Это не меняет правило выше: draft rows не попадают в persisted
-zustand store.
+`hasDraftRowChanges` считается из draft rows / draft row changes в текущем editor state. Это не
+меняет правило выше: draft rows не попадают в persisted zustand store.
 
 ## Grid behavior
 
@@ -297,7 +295,8 @@ zustand store.
 const rows = [...existingRows, ...draftRows, blankRow];
 ```
 
-`blankRow` показывается только если ещё есть свободные option combinations. Если все возможные комбинации уже заняты existing/draft rows, новая blank row не добавляется.
+`blankRow` показывается только если ещё есть свободные option combinations. Если все возможные
+комбинации уже заняты existing/draft rows, новая blank row не добавляется.
 
 Поведение blank row:
 
@@ -316,17 +315,16 @@ const rows = [...existingRows, ...draftRows, blankRow];
 Перед созданием draft row grid должен проверить capacity:
 
 ```ts
-const maxVariantCount = productOptions.reduce(
-  (count, option) => count * option.values.length,
-  1,
-);
+const maxVariantCount = productOptions.reduce((count, option) => count * option.values.length, 1);
 const usedVariantCount = existingRows.length + draftRows.length;
 const canCreateMoreDrafts = usedVariantCount < maxVariantCount;
 ```
 
-Если `canCreateMoreDrafts === false`, blank row не должна превращаться в draft row. UI может показать короткое сообщение: `All option combinations are already used.`
+Если `canCreateMoreDrafts === false`, blank row не должна превращаться в draft row. UI может
+показать короткое сообщение: `All option combinations are already used.`
 
-Если у продукта нет options или есть option без values, создание дополнительных вариантов через spreadsheet row должно быть заблокировано до настройки options.
+Если у продукта нет options или есть option без values, создание дополнительных вариантов через
+spreadsheet row должно быть заблокировано до настройки options.
 
 ## Option columns
 
@@ -352,9 +350,11 @@ const canCreateMoreDrafts = usedVariantCount < maxVariantCount;
 - required numeric fields валидны;
 - media ids относятся к доступным product media files, если это проверяется на UI.
 
-`buildCombinationKey` из `product-variant-options.mapper.ts` можно использовать для проверки дубликатов.
+`buildCombinationKey` из `product-variant-options.mapper.ts` можно использовать для проверки
+дубликатов.
 
-Backend всё равно повторяет эти проверки. Frontend validation нужна для быстрой обратной связи, а не как источник истины.
+Backend всё равно повторяет эти проверки. Frontend validation нужна для быстрой обратной связи, а не
+как источник истины.
 
 ## Save flow в `EditVariantsModal`
 
@@ -388,7 +388,8 @@ onSave?: (input: {
 
 Шаги:
 
-1. Из existing rows подготовить элементы `variants` с `action: "UPDATE"` через текущую логику `prepareChangedVariantUpdateInputs`.
+1. Из existing rows подготовить элементы `variants` с `action: "UPDATE"` через текущую логику
+   `prepareChangedVariantUpdateInputs`.
 2. Из draft rows подготовить элементы `variants` с `action: "CREATE"`.
 3. Смержить с `additionalOperations`, если они есть.
 4. Вызвать `updateProduct` один раз:
@@ -433,16 +434,15 @@ function draftRowToVariantCreateOperation(
         optionValueId: row.selectedOptionValueIds[option.id],
       })),
     },
-    pricing: row.price != null
-      ? {
-          currency,
-          amountMinor: row.price,
-          compareAtMinor: row.compareAtPrice,
-        }
-      : undefined,
-    media: row.mediaFileIds.length > 0
-      ? { fileIds: row.mediaFileIds }
-      : undefined,
+    pricing:
+      row.price != null
+        ? {
+            currency,
+            amountMinor: row.price,
+            compareAtMinor: row.compareAtPrice,
+          }
+        : undefined,
+    media: row.mediaFileIds.length > 0 ? { fileIds: row.mediaFileIds } : undefined,
     weight: row.weight ?? undefined,
     dimensions: hasCompleteDimensions(row)
       ? {
@@ -472,7 +472,8 @@ Frontend:
 Backend:
 
 - `services/catalog/src/api/graphql-admin/schema/variant.graphql`
-- `services/catalog/src/api/graphql-admin/schema/product.graphql` или файл, где объявлен `ProductUpdateInput`
+- `services/catalog/src/api/graphql-admin/schema/product.graphql` или файл, где объявлен
+  `ProductUpdateInput`
 - `services/catalog/src/resolvers/admin/generated/types.ts` после codegen
 - `services/catalog/src/resolvers/admin/generated/schemas.ts` после codegen
 - `services/catalog/src/resolvers/admin/MutationResolver.ts`
@@ -492,7 +493,8 @@ Backend:
 - нельзя добавить больше вариантов, чем существует уникальных комбинаций option values;
 - когда все option combinations заняты, blank row не создаёт новый draft variant;
 - `Save` отправляет ровно одну `productUpdate` mutation;
-- в payload одной mutation есть массив `variants` с `action: "UPDATE"` для существующих variants и `action: "CREATE"` для новых variants;
+- в payload одной mutation есть массив `variants` с `action: "UPDATE"` для существующих variants и
+  `action: "CREATE"` для новых variants;
 - backend создаёт новые variants, option links и поддерживаемые поля в одном workflow;
 - при backend validation error UI не закрывает модалку и не теряет draft rows;
 - после успешного save модалка закрывается, variants refetch обновляет таблицу товара;
@@ -500,15 +502,15 @@ Backend:
 
 ## Риски и решения
 
-- **Temporary row ids могут конфликтовать с existing variant ids.**
-  Использовать строгие prefixes: `draft:` и `blank:`.
+- **Temporary row ids могут конфликтовать с existing variant ids.** Использовать строгие prefixes:
+  `draft:` и `blank:`.
 
-- **Bulk paste может создать много draft rows.**
-  Добавить лимит или явное validation message, если это станет проблемой.
+- **Bulk paste может создать много draft rows.** Добавить лимит или явное validation message, если
+  это станет проблемой.
 
-- **Batch validation не должна конфликтовать с текущим partial-failure workflow.**
-  Проверки уникальности combinations и capacity должны выполняться до variant
-  writes, но результат всё равно должен возвращаться через `operationResults`.
+- **Batch validation не должна конфликтовать с текущим partial-failure workflow.** Проверки
+  уникальности combinations и capacity должны выполняться до variant writes, но результат всё равно
+  должен возвращаться через `operationResults`.
 
-- **Ошибки backend нужно привязать к draft rows.**
-  Использовать `clientMutationId` в create operations и operation results.
+- **Ошибки backend нужно привязать к draft rows.** Использовать `clientMutationId` в create
+  operations и operation results.

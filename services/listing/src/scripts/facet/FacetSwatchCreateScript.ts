@@ -5,9 +5,7 @@ export class FacetSwatchCreateScript extends BaseScript<
   FacetSwatchCreateParams,
   FacetSwatchResult
 > {
-  protected async execute(
-    params: FacetSwatchCreateParams
-  ): Promise<FacetSwatchResult> {
+  protected async execute(params: FacetSwatchCreateParams): Promise<FacetSwatchResult> {
     const facetSwatch = await this.repository.facetSwatch.create({
       swatchType: params.swatchType,
       colorOne: params.colorOne,

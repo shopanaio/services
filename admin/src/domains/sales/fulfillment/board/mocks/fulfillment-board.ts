@@ -42,7 +42,12 @@ const paymentStatusMap: Record<string, FulfillmentPaymentStatus> = {
 
 const colors = ["blue", "orange", "purple", "green"] as const;
 
-export function mapOrderToFulfillmentTicket(order: ApiOrder, index: number, stageId: string, sortIndex: number): ApiFulfillmentTicket {
+export function mapOrderToFulfillmentTicket(
+  order: ApiOrder,
+  index: number,
+  stageId: string,
+  sortIndex: number,
+): ApiFulfillmentTicket {
   return {
     id: `ticket-${order.id}`,
     version: 1,
@@ -56,13 +61,48 @@ export function mapOrderToFulfillmentTicket(order: ApiOrder, index: number, stag
       number: String(order.orderNumber),
       status: orderStatusMap[order.status] ?? FulfillmentOrderStatus.Active,
       createdAt: order.createdAt,
-      totalAmount: { amount: String(order.paymentSummary.totalAmount), currencyCode: order.currencyCode },
-      customer: order.customer ? { id: order.customer.id, firstName: order.customerDetails.firstName, lastName: order.customerDetails.lastName, email: order.customerDetails.email, phone: order.customerDetails.phone } : null,
-      shippingAddress: order.shippingAddress ? { address1: order.shippingAddress.address1, address2: order.shippingAddress.address2, city: order.shippingAddress.city, countryCode: order.shippingAddress.countryCode } : null,
-      paymentSummary: order.paymentItem ? { status: paymentStatusMap[order.paymentItem.status] ?? FulfillmentPaymentStatus.Pending, methodName: order.paymentItem.method?.name ?? null } : null,
-      fulfillmentSummary: order.fulfillments.map((fulfillment) => ({ id: fulfillment.id, status: statusMap[fulfillment.status] ?? FulfillmentStatus.Pending })),
-      lineItemsSummary: order.orderItems.map((item) => ({ id: item.id, title: item.product.title, thumbnailUrl: item.product.thumbnailUrl, quantity: item.quantity })),
-      tags: order.tags.map((tag, tagIndex) => ({ id: tag.id, name: tag.name, color: tagIndex === 0 ? colors[index % colors.length]! : "default" })),
+      totalAmount: {
+        amount: String(order.paymentSummary.totalAmount),
+        currencyCode: order.currencyCode,
+      },
+      customer: order.customer
+        ? {
+            id: order.customer.id,
+            firstName: order.customerDetails.firstName,
+            lastName: order.customerDetails.lastName,
+            email: order.customerDetails.email,
+            phone: order.customerDetails.phone,
+          }
+        : null,
+      shippingAddress: order.shippingAddress
+        ? {
+            address1: order.shippingAddress.address1,
+            address2: order.shippingAddress.address2,
+            city: order.shippingAddress.city,
+            countryCode: order.shippingAddress.countryCode,
+          }
+        : null,
+      paymentSummary: order.paymentItem
+        ? {
+            status: paymentStatusMap[order.paymentItem.status] ?? FulfillmentPaymentStatus.Pending,
+            methodName: order.paymentItem.method?.name ?? null,
+          }
+        : null,
+      fulfillmentSummary: order.fulfillments.map((fulfillment) => ({
+        id: fulfillment.id,
+        status: statusMap[fulfillment.status] ?? FulfillmentStatus.Pending,
+      })),
+      lineItemsSummary: order.orderItems.map((item) => ({
+        id: item.id,
+        title: item.product.title,
+        thumbnailUrl: item.product.thumbnailUrl,
+        quantity: item.quantity,
+      })),
+      tags: order.tags.map((tag, tagIndex) => ({
+        id: tag.id,
+        name: tag.name,
+        color: tagIndex === 0 ? colors[index % colors.length]! : "default",
+      })),
     },
   };
 }

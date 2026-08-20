@@ -3,15 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AdminAppSdk } from "@shopana/admin-app-sdk";
 import { SMTP_CONNECTION_QUERY } from "../graphql";
-import type {
-  SmtpConnection,
-  SmtpProviderPreset,
-} from "../graphql/operation-types";
+import type { SmtpConnection, SmtpProviderPreset } from "../graphql/operation-types";
 
-export function useSmtpConnection(
-  sdk: AdminAppSdk,
-  connectionId: string,
-) {
+export function useSmtpConnection(sdk: AdminAppSdk, connectionId: string) {
   const [connection, setConnection] = useState<SmtpConnection | null>(null);
   const [presets, setPresets] = useState<SmtpProviderPreset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,11 +21,7 @@ export function useSmtpConnection(
       setConnection(data.smtpAppQuery.smtpConnection);
       setPresets(data.smtpAppQuery.smtpProviderPresets);
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause
-          : new Error("Unable to load SMTP connection."),
-      );
+      setError(cause instanceof Error ? cause : new Error("Unable to load SMTP connection."));
     } finally {
       setLoading(false);
     }

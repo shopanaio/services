@@ -9,10 +9,7 @@ export { FileRestoreScript } from "./FileRestoreScript.js";
 export { FileRestoreManyScript } from "./FileRestoreManyScript.js";
 export { FileClearErrorScript } from "./FileClearErrorScript.js";
 export { ProfileAvatarUploadScript } from "./ProfileAvatarUploadScript.js";
-export {
-  DeleteOwnedFilesScript,
-  UploadGeneratedFileScript,
-} from "./GeneratedFileScripts.js";
+export { DeleteOwnedFilesScript, UploadGeneratedFileScript } from "./GeneratedFileScripts.js";
 
 // DTOs
 export * from "./dto/index.js";

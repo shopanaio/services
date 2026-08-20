@@ -64,9 +64,13 @@ describe("SQL Snapshot Tests", () => {
   describe("Basic SELECT", () => {
     it("should generate SELECT with pagination", () => {
       // Default pagination
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name", "age"],
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name", "age"],
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name",
@@ -81,11 +85,15 @@ describe("SQL Snapshot Tests", () => {
       `);
 
       // Custom limit/offset
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name"],
-        limit: 50,
-        offset: 10,
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name"],
+            limit: 50,
+            offset: 10,
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name"
@@ -103,10 +111,14 @@ describe("SQL Snapshot Tests", () => {
   describe("WHERE clause operators", () => {
     it("should generate comparison operators (_eq, _neq, _gt, _gte, _lt, _lte)", () => {
       // _eq
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name"],
-        where: { name: { _eq: "Alice" } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name"],
+            where: { name: { _eq: "Alice" } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name"
@@ -122,10 +134,14 @@ describe("SQL Snapshot Tests", () => {
       `);
 
       // _neq
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name"],
-        where: { name: { _neq: "Alice" } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name"],
+            where: { name: { _neq: "Alice" } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name"
@@ -141,10 +157,14 @@ describe("SQL Snapshot Tests", () => {
       `);
 
       // _gt, _gte, _lt, _lte
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "age"],
-        where: { age: { _gt: 30 } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "age"],
+            where: { age: { _gt: 30 } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."age" AS "age"
@@ -159,10 +179,14 @@ describe("SQL Snapshot Tests", () => {
         -- Params: [30,20,0]"
       `);
 
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "age"],
-        where: { age: { _gte: 20, _lte: 40 } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "age"],
+            where: { age: { _gte: 20, _lte: 40 } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."age" AS "age"
@@ -182,10 +206,14 @@ describe("SQL Snapshot Tests", () => {
     });
 
     it("should generate array operators (_in, _notIn)", () => {
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name"],
-        where: { name: { _in: ["Alice", "Bob", "Charlie"] } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name"],
+            where: { name: { _in: ["Alice", "Bob", "Charlie"] } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name"
@@ -200,10 +228,14 @@ describe("SQL Snapshot Tests", () => {
         -- Params: ["Alice","Bob","Charlie",20,0]"
       `);
 
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name"],
-        where: { name: { _notIn: ["Alice", "Bob"] } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name"],
+            where: { name: { _notIn: ["Alice", "Bob"] } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name"
@@ -220,10 +252,14 @@ describe("SQL Snapshot Tests", () => {
     });
 
     it("should generate string operators (_startsWith, _containsi, _notContains)", () => {
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name"],
-        where: { name: { _startsWith: "A" } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name"],
+            where: { name: { _startsWith: "A" } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name"
@@ -238,10 +274,14 @@ describe("SQL Snapshot Tests", () => {
         -- Params: ["A%",20,0]"
       `);
 
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name"],
-        where: { name: { _containsi: "alice" } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name"],
+            where: { name: { _containsi: "alice" } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name"
@@ -256,10 +296,14 @@ describe("SQL Snapshot Tests", () => {
         -- Params: ["%alice%",20,0]"
       `);
 
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name"],
-        where: { name: { _notContains: "A", _notContainsi: "test" } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name"],
+            where: { name: { _notContains: "A", _notContainsi: "test" } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name"
@@ -279,10 +323,14 @@ describe("SQL Snapshot Tests", () => {
     });
 
     it("should generate null operators (_is, _isNot)", () => {
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "age"],
-        where: { age: { _is: null } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "age"],
+            where: { age: { _is: null } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."age" AS "age"
@@ -297,10 +345,14 @@ describe("SQL Snapshot Tests", () => {
         -- Params: [20,0]"
       `);
 
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "age"],
-        where: { age: { _isNot: null } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "age"],
+            where: { age: { _isNot: null } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."age" AS "age"
@@ -317,10 +369,14 @@ describe("SQL Snapshot Tests", () => {
     });
 
     it("should generate direct value equality (implicit _eq)", () => {
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name"],
-        where: { name: "Alice" },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name"],
+            where: { name: "Alice" },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name"
@@ -340,15 +396,16 @@ describe("SQL Snapshot Tests", () => {
   describe("Logical operators", () => {
     it("should generate _and and _or conditions", () => {
       // _and
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name", "age"],
-        where: {
-          _and: [
-            { age: { _gte: 20 } },
-            { age: { _lte: 40 } },
-          ],
-        },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name", "age"],
+            where: {
+              _and: [{ age: { _gte: 20 } }, { age: { _lte: 40 } }],
+            },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name",
@@ -368,15 +425,16 @@ describe("SQL Snapshot Tests", () => {
       `);
 
       // _or
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name"],
-        where: {
-          _or: [
-            { name: { _eq: "Alice" } },
-            { name: { _eq: "Bob" } },
-          ],
-        },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name"],
+            where: {
+              _or: [{ name: { _eq: "Alice" } }, { name: { _eq: "Bob" } }],
+            },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name"
@@ -395,14 +453,18 @@ describe("SQL Snapshot Tests", () => {
       `);
 
       // Implicit AND for multiple fields
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name", "age", "isActive"],
-        where: {
-          name: { _eq: "Alice" },
-          age: { _gte: 20 },
-          isActive: { _eq: true },
-        },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name", "age", "isActive"],
+            where: {
+              name: { _eq: "Alice" },
+              age: { _gte: 20 },
+              isActive: { _eq: true },
+            },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name",
@@ -425,20 +487,24 @@ describe("SQL Snapshot Tests", () => {
     });
 
     it("should generate deeply nested logical operators", () => {
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name", "age", "isActive"],
-        where: {
-          _and: [
-            {
-              _or: [
-                { _and: [{ name: { _eq: "Alice" } }, { age: { _eq: 25 } }] },
-                { _and: [{ name: { _eq: "Bob" } }, { age: { _eq: 30 } }] },
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name", "age", "isActive"],
+            where: {
+              _and: [
+                {
+                  _or: [
+                    { _and: [{ name: { _eq: "Alice" } }, { age: { _eq: 25 } }] },
+                    { _and: [{ name: { _eq: "Bob" } }, { age: { _eq: 30 } }] },
+                  ],
+                },
+                { isActive: { _eq: true } },
               ],
             },
-            { isActive: { _eq: true } },
-          ],
-        },
-      }))).toMatchInlineSnapshot(`
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name",
@@ -472,10 +538,14 @@ describe("SQL Snapshot Tests", () => {
   describe("JOIN queries", () => {
     it("should generate all JOIN types (LEFT, INNER, RIGHT, FULL)", () => {
       // LEFT JOIN (default) - join added via nested path
-      expect(toSqlString(productsWithTranslationsQuery.getSql({
-        select: ["id", "handle", "price", "translation.value"],
-        where: { translation: { value: { _containsi: "phone" } } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          productsWithTranslationsQuery.getSql({
+            select: ["id", "handle", "price", "translation.value"],
+            where: { translation: { value: { _containsi: "phone" } } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
           "t0_products"."handle" AS "handle",
@@ -499,10 +569,14 @@ describe("SQL Snapshot Tests", () => {
         handle: field(products.handle),
         translation: field(products.id).innerJoin(translationsQuery, translations.entityId),
       });
-      expect(toSqlString(innerJoinQuery.getSql({
-        select: ["id", "handle", "translation.value"],
-        where: { translation: { value: { _eq: "Test" } } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          innerJoinQuery.getSql({
+            select: ["id", "handle", "translation.value"],
+            where: { translation: { value: { _eq: "Test" } } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
           "t0_products"."handle" AS "handle",
@@ -524,10 +598,14 @@ describe("SQL Snapshot Tests", () => {
         id: field(products.id),
         translation: field(products.id).rightJoin(translationsQuery, translations.entityId),
       });
-      expect(toSqlString(rightJoinQuery.getSql({
-        select: ["id", "translation.value"],
-        where: { translation: { value: { _startsWithi: "" } } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          rightJoinQuery.getSql({
+            select: ["id", "translation.value"],
+            where: { translation: { value: { _startsWithi: "" } } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
           "t1_translations"."value" AS "translation.value"
@@ -548,10 +626,14 @@ describe("SQL Snapshot Tests", () => {
         id: field(products.id),
         translation: field(products.id).fullJoin(translationsQuery, translations.entityId),
       });
-      expect(toSqlString(fullJoinQuery.getSql({
-        select: ["id", "translation.value"],
-        where: { translation: { value: { _startsWithi: "" } } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          fullJoinQuery.getSql({
+            select: ["id", "translation.value"],
+            where: { translation: { value: { _startsWithi: "" } } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
           "t1_translations"."value" AS "translation.value"
@@ -576,9 +658,13 @@ describe("SQL Snapshot Tests", () => {
       });
 
       // Select nested paths - join added automatically
-      expect(toSqlString(multiSelectJoinQuery.getSql({
-        select: ["id", "handle", "translation.value", "translation.searchValue"],
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          multiSelectJoinQuery.getSql({
+            select: ["id", "handle", "translation.value", "translation.searchValue"],
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
           "t0_products"."handle" AS "handle",
@@ -595,10 +681,17 @@ describe("SQL Snapshot Tests", () => {
       `);
 
       // Order by nested paths - join added automatically
-      expect(toSqlString(multiSelectJoinQuery.getSql({
-        select: ["id", "handle"],
-        order: [{ field: "translation.value", direction: "asc" }, { field: "translation.searchValue", direction: "desc" }],
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          multiSelectJoinQuery.getSql({
+            select: ["id", "handle"],
+            order: [
+              { field: "translation.value", direction: "asc" },
+              { field: "translation.searchValue", direction: "desc" },
+            ],
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
           "t0_products"."handle" AS "handle"
@@ -617,9 +710,13 @@ describe("SQL Snapshot Tests", () => {
 
       // No nested path - join field reference still triggers join to allow selection
       // (the join table column is the column specified in the field config)
-      expect(toSqlString(multiSelectJoinQuery.getSql({
-        select: ["id", "handle", "translation"],
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          multiSelectJoinQuery.getSql({
+            select: ["id", "handle", "translation"],
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
           "t0_products"."handle" AS "handle",
@@ -636,12 +733,16 @@ describe("SQL Snapshot Tests", () => {
 
     it("should NOT add join when no nested fields used in where/order/select", () => {
       // Only using fields from main table - no join needed
-      expect(toSqlString(productsWithTranslationsQuery.getSql({
-        select: ["id", "handle", "price"],
-        where: {
-          price: { _gt: 100 },
-        },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          productsWithTranslationsQuery.getSql({
+            select: ["id", "handle", "price"],
+            where: {
+              price: { _gt: 100 },
+            },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
           "t0_products"."handle" AS "handle",
@@ -659,13 +760,17 @@ describe("SQL Snapshot Tests", () => {
     });
 
     it("should generate JOIN combined with regular field filter", () => {
-      expect(toSqlString(productsWithTranslationsQuery.getSql({
-        select: ["id", "handle", "price", "translation.value"],
-        where: {
-          price: { _gt: 100 },
-          translation: { value: { _containsi: "phone" } },
-        },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          productsWithTranslationsQuery.getSql({
+            select: ["id", "handle", "price", "translation.value"],
+            where: {
+              price: { _gt: 100 },
+              translation: { value: { _containsi: "phone" } },
+            },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
           "t0_products"."handle" AS "handle",
@@ -690,17 +795,18 @@ describe("SQL Snapshot Tests", () => {
 
   describe("Complex queries", () => {
     it("should generate query with all components", () => {
-      expect(toSqlString(productsWithTranslationsQuery.getSql({
-        select: ["id", "handle", "price", "translation.value"],
-        where: {
-          _or: [
-            { translation: { value: { _containsi: "phone" } } },
-            { price: { _gt: 1000 } },
-          ],
-        },
-        limit: 50,
-        offset: 25,
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          productsWithTranslationsQuery.getSql({
+            select: ["id", "handle", "price", "translation.value"],
+            where: {
+              _or: [{ translation: { value: { _containsi: "phone" } } }, { price: { _gt: 1000 } }],
+            },
+            limit: 50,
+            offset: 25,
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
           "t0_products"."handle" AS "handle",
@@ -724,10 +830,14 @@ describe("SQL Snapshot Tests", () => {
 
     it("should respect maxLimit config", () => {
       const limitedQuery = usersQuery.maxLimit(10);
-      expect(toSqlString(limitedQuery.getSql({
-        select: ["id", "name"],
-        limit: 10,
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          limitedQuery.getSql({
+            select: ["id", "name"],
+            limit: 10,
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name"
@@ -743,18 +853,24 @@ describe("SQL Snapshot Tests", () => {
 
     it("should throw when limit exceeds maxLimit", () => {
       const limitedQuery = usersQuery.maxLimit(10);
-      expect(() => limitedQuery.getSql({
-        select: ["id", "name"],
-        limit: 1000,
-      })).toThrow("Requested limit 1000 exceeds maximum allowed limit 10");
+      expect(() =>
+        limitedQuery.getSql({
+          select: ["id", "name"],
+          limit: 1000,
+        }),
+      ).toThrow("Requested limit 1000 exceeds maximum allowed limit 10");
     });
 
     it("should handle edge cases (empty where, undefined values)", () => {
       // Empty where
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name", "age"],
-        where: {},
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name", "age"],
+            where: {},
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name",
@@ -769,10 +885,14 @@ describe("SQL Snapshot Tests", () => {
       `);
 
       // Undefined values skipped
-      expect(toSqlString(usersQuery.getSql({
-        select: ["id", "name", "age"],
-        where: { name: undefined, age: { _eq: 25 } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersQuery.getSql({
+            select: ["id", "name", "age"],
+            where: { name: undefined, age: { _eq: 25 } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name",
@@ -792,10 +912,14 @@ describe("SQL Snapshot Tests", () => {
 
   describe("Qualified tables (pgSchema)", () => {
     it("should generate SELECT with schema-qualified table name", () => {
-      expect(toSqlString(eventsQuery.getSql({
-        select: ["id", "eventType", "payload"],
-        where: { eventType: { _eq: "login" } },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          eventsQuery.getSql({
+            select: ["id", "eventType", "payload"],
+            where: { eventType: { _eq: "login" } },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_events"."id" AS "id",
           "t0_events"."event_type" AS "eventType",
@@ -813,12 +937,16 @@ describe("SQL Snapshot Tests", () => {
     });
 
     it("should generate JOIN from public table to qualified table", () => {
-      expect(toSqlString(usersWithEventsQuery.getSql({
-        select: ["id", "name", "events.eventType"],
-        where: {
-          events: { eventType: { _eq: "purchase" } },
-        },
-      }))).toMatchInlineSnapshot(`
+      expect(
+        toSqlString(
+          usersWithEventsQuery.getSql({
+            select: ["id", "name", "events.eventType"],
+            where: {
+              events: { eventType: { _eq: "purchase" } },
+            },
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name",
@@ -837,23 +965,27 @@ describe("SQL Snapshot Tests", () => {
     });
 
     it("should generate complex query with qualified table join", () => {
-      expect(toSqlString(usersWithEventsQuery.getSql({
-        select: ["id", "name", "age", "isActive"],
-        where: {
-          _and: [
-            { isActive: { _eq: true } },
-            { age: { _gte: 18 } },
-            {
-              _or: [
-                { events: { eventType: { _eq: "purchase" } } },
-                { events: { eventType: { _eq: "subscription" } } },
+      expect(
+        toSqlString(
+          usersWithEventsQuery.getSql({
+            select: ["id", "name", "age", "isActive"],
+            where: {
+              _and: [
+                { isActive: { _eq: true } },
+                { age: { _gte: 18 } },
+                {
+                  _or: [
+                    { events: { eventType: { _eq: "purchase" } } },
+                    { events: { eventType: { _eq: "subscription" } } },
+                  ],
+                },
               ],
             },
-          ],
-        },
-        order: [{ field: "events.createdAt", direction: "desc" }],
-        limit: 50,
-      }))).toMatchInlineSnapshot(`
+            order: [{ field: "events.createdAt", direction: "desc" }],
+            limit: 50,
+          }),
+        ),
+      ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
           "t0_users"."name" AS "name",

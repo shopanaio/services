@@ -11,13 +11,19 @@
 Physical dimensions of a variant (stored in millimeters).
 """
 type VariantDimensions {
-  """Width in millimeters."""
+  """
+  Width in millimeters.
+  """
   width: Int!
 
-  """Length in millimeters."""
+  """
+  Length in millimeters.
+  """
   length: Int!
 
-  """Height in millimeters."""
+  """
+  Height in millimeters.
+  """
   height: Int!
 }
 
@@ -25,7 +31,9 @@ type VariantDimensions {
 Physical weight of a variant (stored in grams).
 """
 type VariantWeight {
-  """Weight in grams."""
+  """
+  Weight in grams.
+  """
   value: Int!
 }
 
@@ -33,13 +41,19 @@ type VariantWeight {
 Input for setting dimensions (in millimeters).
 """
 input DimensionsInput {
-  """Width in millimeters."""
+  """
+  Width in millimeters.
+  """
   width: Int!
 
-  """Length in millimeters."""
+  """
+  Length in millimeters.
+  """
   length: Int!
 
-  """Height in millimeters."""
+  """
+  Height in millimeters.
+  """
   height: Int!
 }
 
@@ -47,6 +61,8 @@ input DimensionsInput {
 Input for setting weight (in grams).
 """
 input WeightInput {
-  """Weight in grams."""
+  """
+  Weight in grams.
+  """
   value: Int!
 }

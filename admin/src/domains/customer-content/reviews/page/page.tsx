@@ -2,7 +2,16 @@
 
 import { useCallback, useMemo, useRef } from "react";
 import { Alert, Button, Flex, Tag, Typography } from "antd";
-import { LuCircleCheckBig as CheckCircleFilled, LuThumbsDown as DislikeOutlined, LuFlag as FlagOutlined, LuThumbsUp as LikeOutlined, LuImage as PictureOutlined, LuPlus as PlusOutlined, LuShoppingBag as ShoppingOutlined, LuStar as StarFilled } from "react-icons/lu";
+import {
+  LuCircleCheckBig as CheckCircleFilled,
+  LuThumbsDown as DislikeOutlined,
+  LuFlag as FlagOutlined,
+  LuThumbsUp as LikeOutlined,
+  LuImage as PictureOutlined,
+  LuPlus as PlusOutlined,
+  LuShoppingBag as ShoppingOutlined,
+  LuStar as StarFilled,
+} from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {
@@ -159,7 +168,15 @@ export default function CustomerReviewsPage() {
     buildSearchCondition: buildReviewSearchCondition,
   });
   const variables = useMemo(
-    () => buildReviewsQueryVariables({ first: pageConfig.first, after: pageConfig.after, last: pageConfig.last, before: pageConfig.before, where: pageConfig.where, orderBy: pageConfig.orderBy }),
+    () =>
+      buildReviewsQueryVariables({
+        first: pageConfig.first,
+        after: pageConfig.after,
+        last: pageConfig.last,
+        before: pageConfig.before,
+        where: pageConfig.where,
+        orderBy: pageConfig.orderBy,
+      }),
     [
       pageConfig.first,
       pageConfig.after,
@@ -292,12 +309,7 @@ export default function CustomerReviewsPage() {
         }}
       >
         {error && (
-          <Alert
-            type="error"
-            message={error.message}
-            showIcon
-            style={{ marginBottom: 12 }}
-          />
+          <Alert type="error" message={error.message} showIcon style={{ marginBottom: 12 }} />
         )}
 
         <div style={{ flex: 1 }} data-testid="reviews-table">

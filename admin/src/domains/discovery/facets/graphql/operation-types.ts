@@ -58,14 +58,7 @@ export type FacetValueGridFields = Pick<
 
 export type FacetGridFields = Pick<
   ApiFacet,
-  | "id"
-  | "label"
-  | "slug"
-  | "facetType"
-  | "uiType"
-  | "scopes"
-  | "selectionMode"
-  | "lexoRank"
+  "id" | "label" | "slug" | "facetType" | "uiType" | "scopes" | "selectionMode" | "lexoRank"
 > & {
   sources: Array<Pick<ApiFacetSource, "handle" | "name">>;
   values: FacetValueGridFields[];
@@ -256,10 +249,7 @@ export interface FacetValueDeleteMutationVariables {
 
 export interface FacetValueMergeMutationData {
   listingMutation: {
-    facetValueMerge: Omit<
-      ApiFacetValueMergePayload,
-      "facetValue" | "sourceValues"
-    > & {
+    facetValueMerge: Omit<ApiFacetValueMergePayload, "facetValue" | "sourceValues"> & {
       facetValue: (FacetValueGridFields & { facet: Pick<ApiFacet, "id"> }) | null;
       sourceValues: FacetValueGridFields[];
     };
@@ -272,10 +262,7 @@ export interface FacetValueMergeMutationVariables {
 
 export interface FacetValueUnmergeMutationData {
   listingMutation: {
-    facetValueUnmerge: Omit<
-      ApiFacetValueUnmergePayload,
-      "sourceValues" | "affectedGroupValues"
-    > & {
+    facetValueUnmerge: Omit<ApiFacetValueUnmergePayload, "sourceValues" | "affectedGroupValues"> & {
       sourceValues: FacetValueGridFields[];
       affectedGroupValues: FacetValueGridFields[];
     };
@@ -316,16 +303,12 @@ export interface FacetMutationResult {
 }
 
 export interface FacetValueMutationResult {
-  facetValue:
-    | (FacetValueGridFields & { facet?: Pick<ApiFacet, "id"> | null })
-    | null;
+  facetValue: (FacetValueGridFields & { facet?: Pick<ApiFacet, "id"> | null }) | null;
   userErrors: ApiGenericUserError[];
 }
 
 export interface FacetValueMergeMutationResult {
-  facetValue:
-    | (FacetValueGridFields & { facet?: Pick<ApiFacet, "id"> | null })
-    | null;
+  facetValue: (FacetValueGridFields & { facet?: Pick<ApiFacet, "id"> | null }) | null;
   sourceValues: FacetValueGridFields[];
   userErrors: ApiGenericUserError[];
 }

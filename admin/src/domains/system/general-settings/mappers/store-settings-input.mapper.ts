@@ -9,8 +9,7 @@ import type {
 
 const optionalValue = (value: string) => value.trim() || null;
 
-export const normalizeStorePhoneNumber = (value: string) =>
-  value.trim().replace(/[\s()-]/g, "");
+export const normalizeStorePhoneNumber = (value: string) => value.trim().replace(/[\s()-]/g, "");
 
 export const mapStoreSettingsInput = (
   section: StoreSettingsSection,
@@ -39,9 +38,7 @@ export const mapStoreSettingsInput = (
         addressLine2: optionalValue(values.addressLine2),
         city: optionalValue(values.city),
         administrativeArea:
-          optionalValue(values.administrativeArea) ??
-          store.address?.administrativeArea ??
-          null,
+          optionalValue(values.administrativeArea) ?? store.address?.administrativeArea ?? null,
         postalCode: optionalValue(values.postalCode),
       },
     };
@@ -78,9 +75,7 @@ export const mapStoreDefaultsInput = (
   },
 });
 
-export const mapStoreCurrencyInput = (
-  values: StoreCurrencyFormValues,
-): ApiStoreUpdateInput => ({
+export const mapStoreCurrencyInput = (values: StoreCurrencyFormValues): ApiStoreUpdateInput => ({
   currencySettings: {
     currencyDisplay: values.currencyDisplay,
     currencySign: values.currencySign,

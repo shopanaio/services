@@ -73,10 +73,7 @@ export class FileDeletionStateRepository {
       deletionState: "ACTIVE",
     };
 
-    const result = await this.db
-      .insert(fileDeletionStates)
-      .values(newState)
-      .returning();
+    const result = await this.db.insert(fileDeletionStates).values(newState).returning();
 
     return result[0];
   }
@@ -91,10 +88,7 @@ export class FileDeletionStateRepository {
         deletionState: "SOFT_DELETED",
       })
       .where(
-        and(
-          eq(fileDeletionStates.fileId, fileId),
-          eq(fileDeletionStates.deletionState, "ACTIVE")
-        )
+        and(eq(fileDeletionStates.fileId, fileId), eq(fileDeletionStates.deletionState, "ACTIVE")),
       )
       .returning({ fileId: fileDeletionStates.fileId });
 
@@ -117,8 +111,8 @@ export class FileDeletionStateRepository {
       .where(
         and(
           inArray(fileDeletionStates.fileId, fileIds),
-          eq(fileDeletionStates.deletionState, "ACTIVE")
-        )
+          eq(fileDeletionStates.deletionState, "ACTIVE"),
+        ),
       )
       .returning({ fileId: fileDeletionStates.fileId });
 
@@ -128,9 +122,7 @@ export class FileDeletionStateRepository {
   /**
    * Mark a SOFT_DELETED file as DELETING and return the started_at timestamp
    */
-  async markDeletingReturningStartedAt(
-    fileId: string
-  ): Promise<MarkDeletingResult | null> {
+  async markDeletingReturningStartedAt(fileId: string): Promise<MarkDeletingResult | null> {
     const result = await this.db
       .update(fileDeletionStates)
       .set({
@@ -143,8 +135,8 @@ export class FileDeletionStateRepository {
       .where(
         and(
           eq(fileDeletionStates.fileId, fileId),
-          eq(fileDeletionStates.deletionState, "SOFT_DELETED")
-        )
+          eq(fileDeletionStates.deletionState, "SOFT_DELETED"),
+        ),
       )
       .returning({ startedAt: fileDeletionStates.deletingStartedAt });
 
@@ -158,10 +150,7 @@ export class FileDeletionStateRepository {
   /**
    * Verify DELETING lock with DB-side timestamp comparison
    */
-  async isDeletionLockValid(
-    fileId: string,
-    expectedStartedAt: Date
-  ): Promise<boolean> {
+  async isDeletionLockValid(fileId: string, expectedStartedAt: Date): Promise<boolean> {
     const result = await this.db.execute<{ exists: boolean }>(sql`
       SELECT EXISTS (
         SELECT 1 FROM media.file_deletion_states
@@ -180,7 +169,7 @@ export class FileDeletionStateRepository {
   async markErrorAndRollback(
     fileId: string,
     errorCode: DeletionErrorCode,
-    errorMessage: string
+    errorMessage: string,
   ): Promise<boolean> {
     const result = await this.db
       .update(fileDeletionStates)
@@ -194,8 +183,8 @@ export class FileDeletionStateRepository {
       .where(
         and(
           eq(fileDeletionStates.fileId, fileId),
-          eq(fileDeletionStates.deletionState, "DELETING")
-        )
+          eq(fileDeletionStates.deletionState, "DELETING"),
+        ),
       )
       .returning({ fileId: fileDeletionStates.fileId });
 
@@ -205,9 +194,7 @@ export class FileDeletionStateRepository {
   /**
    * Find SOFT_DELETED files eligible for GC (returns file IDs)
    */
-  async findSoftDeletedForGC(
-    params: FindSoftDeletedForGCParams
-  ): Promise<FileDeletionState[]> {
+  async findSoftDeletedForGC(params: FindSoftDeletedForGCParams): Promise<FileDeletionState[]> {
     return this.db
       .select()
       .from(fileDeletionStates)
@@ -221,10 +208,10 @@ export class FileDeletionStateRepository {
             and(
               eq(fileDeletionStates.deletionErrorCode, "RETRYABLE"),
               isNotNull(fileDeletionStates.failedAt),
-              lt(fileDeletionStates.failedAt, params.errorCooldown.toISOString())
-            )
-          )
-        )
+              lt(fileDeletionStates.failedAt, params.errorCooldown.toISOString()),
+            ),
+          ),
+        ),
       )
       .orderBy(files.deletedAt, fileDeletionStates.fileId)
       .limit(params.limit)
@@ -274,8 +261,8 @@ export class FileDeletionStateRepository {
         and(
           eq(fileDeletionStates.fileId, fileId),
           eq(fileDeletionStates.deletionState, "SOFT_DELETED"),
-          isNotNull(fileDeletionStates.deletionErrorCode)
-        )
+          isNotNull(fileDeletionStates.deletionErrorCode),
+        ),
       )
       .returning({ fileId: fileDeletionStates.fileId });
 
@@ -315,9 +302,7 @@ export class FileDeletionStateRepository {
    * Delete deletion state row (used when file is hard deleted)
    */
   async delete(fileId: string): Promise<void> {
-    await this.db
-      .delete(fileDeletionStates)
-      .where(eq(fileDeletionStates.fileId, fileId));
+    await this.db.delete(fileDeletionStates).where(eq(fileDeletionStates.fileId, fileId));
   }
 
   /**

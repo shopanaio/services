@@ -121,13 +121,10 @@ export class RecommendationAnchorCollectorRepository extends BaseRepository {
   }
 }
 
-function page(
-  rows: Array<{ anchorProductId: string }>,
-  first: number,
-): RecommendationAnchorPage {
+function page(rows: Array<{ anchorProductId: string }>, first: number): RecommendationAnchorPage {
   const values = rows.slice(0, first).map((row) => row.anchorProductId);
   return {
     anchorProductIds: values,
-    nextCursor: rows.length > first ? values.at(-1) ?? null : null,
+    nextCursor: rows.length > first ? (values.at(-1) ?? null) : null,
   };
 }

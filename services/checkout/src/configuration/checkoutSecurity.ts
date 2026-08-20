@@ -1,12 +1,15 @@
 import { getServiceConfig } from "@shopana/shared-service-config";
 import { z } from "zod";
 
-const configurationSchema = z.object({
-  allowed_return_origins: z.array(z.string().url()).max(100).default([]),
-  allowed_deep_link_schemes: z.array(
-    z.string().regex(/^[a-z][a-z0-9+.-]*$/),
-  ).max(50).default([]),
-}).strict();
+const configurationSchema = z
+  .object({
+    allowed_return_origins: z.array(z.string().url()).max(100).default([]),
+    allowed_deep_link_schemes: z
+      .array(z.string().regex(/^[a-z][a-z0-9+.-]*$/))
+      .max(50)
+      .default([]),
+  })
+  .strict();
 
 export function assertAllowedCheckoutReturnUrl(value: string): void {
   const { service } = getServiceConfig("checkout");
@@ -34,4 +37,3 @@ export function assertAllowedCheckoutReturnUrl(value: string): void {
     throw new Error("PLACE_ORDER_RETURN_URL_NOT_ALLOWED");
   }
 }
-

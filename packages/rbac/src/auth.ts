@@ -68,7 +68,7 @@ export class ServiceLinkedResourceAuthorizationError extends Error {
 
   constructor(
     public readonly details: ServiceLinkedAuthorizationDetails,
-    message = "Resource is managed by linked service"
+    message = "Resource is managed by linked service",
   ) {
     super(message);
     this.name = "ServiceLinkedResourceAuthorizationError";
@@ -82,9 +82,7 @@ export class ServiceLinkedResourceAuthorizationError extends Error {
 export interface AuthProvider extends Authorizer {
   /** Current subject (user ID) for authorization checks. */
   subject: string | null;
-  authorizeProtectedResource(
-    params: ProtectedResourceAuthorizeParams
-  ): Promise<boolean>;
+  authorizeProtectedResource(params: ProtectedResourceAuthorizeParams): Promise<boolean>;
 }
 
 /**

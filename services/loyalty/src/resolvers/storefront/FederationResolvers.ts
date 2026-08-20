@@ -3,7 +3,9 @@ import { LoyaltyStorefrontType } from "./LoyaltyStorefrontType.js";
 import { StorefrontPresentationService } from "./StorefrontPresentation.js";
 
 export class CustomerFederationResolver extends LoyaltyStorefrontType<string> {
-  id() { return this.encodeId(this.$props, GlobalIdEntity.Customer); }
+  id() {
+    return this.encodeId(this.$props, GlobalIdEntity.Customer);
+  }
   async loyaltyAccount() {
     this.requireReadPermission();
     const customer = this.$ctx.customer;
@@ -19,7 +21,9 @@ export class CustomerFederationResolver extends LoyaltyStorefrontType<string> {
 }
 
 export class ProductFederationResolver extends LoyaltyStorefrontType<string> {
-  id() { return this.encodeId(this.$props, GlobalIdEntity.Product); }
+  id() {
+    return this.encodeId(this.$props, GlobalIdEntity.Product);
+  }
   loyalty() {
     this.requireReadPermission();
     return new StorefrontPresentationService(this.$ctx).product(this.$props);
@@ -27,7 +31,9 @@ export class ProductFederationResolver extends LoyaltyStorefrontType<string> {
 }
 
 export class ProductVariantFederationResolver extends LoyaltyStorefrontType<string> {
-  id() { return this.encodeId(this.$props, GlobalIdEntity.ProductVariant); }
+  id() {
+    return this.encodeId(this.$props, GlobalIdEntity.ProductVariant);
+  }
   loyalty() {
     this.requireReadPermission();
     return new StorefrontPresentationService(this.$ctx).variant(this.$props);

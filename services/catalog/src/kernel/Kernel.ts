@@ -32,7 +32,7 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
     repository: Repository,
     workflow: WorkflowRegistry,
     cache: Cache,
-    db: Database
+    db: Database,
   ) {
     super(broker, logger, { repository, workflow, cache });
     this.repository = repository;
@@ -45,37 +45,28 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
     broker: ServiceBroker,
     workflow: WorkflowRegistry,
     dbClient: DatabaseClient,
-    databaseConnectionOptions: DatabaseConnectionOptions
+    databaseConnectionOptions: DatabaseConnectionOptions,
   ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
     }
 
     const db = createDatabase(dbClient);
-    const dbosTransactionBridge = createCatalogDbosTransactionBridge(
-      databaseConnectionOptions
-    );
+    const dbosTransactionBridge = createCatalogDbosTransactionBridge(databaseConnectionOptions);
     const repository = await Repository.create({ db, dbosTransactionBridge });
 
     const cache = createCache({
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
     });
 
-    this.instance = new Kernel(
-      broker,
-      consoleLogger,
-      repository,
-      workflow,
-      cache,
-      db
-    );
+    this.instance = new Kernel(broker, consoleLogger, repository, workflow, cache, db);
     return this.instance;
   }
 
   static getInstance(): Kernel {
     if (!this.instance) {
       throw new Error(
-        "Kernel not initialized. Call Kernel.create(broker, workflow, dbClient, databaseConnectionOptions) first."
+        "Kernel not initialized. Call Kernel.create(broker, workflow, dbClient, databaseConnectionOptions) first.",
       );
     }
     return this.instance;
@@ -100,7 +91,7 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
   async runScript<TParams, TResult>(
     ScriptClass: new (services: InventoryKernelServices) => BaseScript<TParams, TResult>,
     params: TParams,
-    context?: RunScriptContext
+    context?: RunScriptContext,
   ): Promise<TResult> {
     const script = new ScriptClass(this.services);
 
@@ -136,9 +127,7 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
         currencyCode: defaultCurrency,
         locales: ctx.locales ?? [defaultLocale],
       },
-      user: ctx.userId
-        ? { id: ctx.userId, name: "workflow-user" }
-        : undefined,
+      user: ctx.userId ? { id: ctx.userId, name: "workflow-user" } : undefined,
     });
   }
 
@@ -155,6 +144,11 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
   }
 }
 
-export type { InventoryKernelServices, ScriptContext, TransactionScript, RunScriptContext } from "./types.js";
+export type {
+  InventoryKernelServices,
+  ScriptContext,
+  TransactionScript,
+  RunScriptContext,
+} from "./types.js";
 export { KernelError } from "./types.js";
 export { BaseScript, type UserError } from "./BaseScript.js";

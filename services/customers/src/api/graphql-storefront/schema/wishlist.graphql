@@ -6,10 +6,14 @@ customer can have multiple wishlists, but exactly one existing wishlist is the
 default. Wishlists are never shared between customers.
 """
 type CustomerWishlist implements Node @key(fields: "id") {
-  """Globally unique CustomerWishlist ID."""
+  """
+  Globally unique CustomerWishlist ID.
+  """
   id: ID!
 
-  """Customer-visible name after surrounding whitespace has been removed."""
+  """
+  Customer-visible name after surrounding whitespace has been removed.
+  """
   name: String!
 
   """
@@ -19,7 +23,9 @@ type CustomerWishlist implements Node @key(fields: "id") {
   """
   isDefault: Boolean!
 
-  """Customer who owns this wishlist."""
+  """
+  Customer who owns this wishlist.
+  """
   customer: Customer!
 
   """
@@ -30,29 +36,47 @@ type CustomerWishlist implements Node @key(fields: "id") {
   entries can be requested in either direction.
   """
   items(
-    """Number of items to return from the start of the selected range."""
+    """
+    Number of items to return from the start of the selected range.
+    """
     first: Int
-    """Return items after this opaque cursor."""
+    """
+    Return items after this opaque cursor.
+    """
     after: Cursor
-    """Number of items to return from the end of the selected range."""
+    """
+    Number of items to return from the end of the selected range.
+    """
     last: Int
-    """Return items before this opaque cursor."""
+    """
+    Return items before this opaque cursor.
+    """
     before: Cursor
   ): CustomerWishlistItemConnection!
 
-  """Date and time when the wishlist was created."""
+  """
+  Date and time when the wishlist was created.
+  """
   createdAt: DateTime!
 
-  """Date and time when the wishlist was last renamed or otherwise updated."""
+  """
+  Date and time when the wishlist was last renamed or otherwise updated.
+  """
   updatedAt: DateTime!
 }
 
-"""One product saved in a customer wishlist."""
+"""
+One product saved in a customer wishlist.
+"""
 type CustomerWishlistItem implements Node @key(fields: "id") {
-  """Globally unique CustomerWishlistItem ID."""
+  """
+  Globally unique CustomerWishlistItem ID.
+  """
   id: ID!
 
-  """Wishlist containing this saved item."""
+  """
+  Wishlist containing this saved item.
+  """
   wishlist: CustomerWishlist!
 
   """
@@ -64,59 +88,95 @@ type CustomerWishlistItem implements Node @key(fields: "id") {
   """
   product: Product
 
-  """Date and time when the product was added to the wishlist."""
+  """
+  Date and time when the product was added to the wishlist.
+  """
   addedAt: DateTime!
 }
 
-"""A Relay connection containing customer wishlists."""
+"""
+A Relay connection containing customer wishlists.
+"""
 type CustomerWishlistConnection implements Connection {
-  """Wishlist edges in deterministic cursor order."""
+  """
+  Wishlist edges in deterministic cursor order.
+  """
   edges: [CustomerWishlistEdge!]!
 
-  """Wishlists contained in the returned page."""
+  """
+  Wishlists contained in the returned page.
+  """
   nodes: [CustomerWishlist!]!
 
-  """Information needed to request adjacent pages."""
+  """
+  Information needed to request adjacent pages.
+  """
   pageInfo: PageInfo!
 
-  """Total number of wishlists owned by the authenticated customer."""
+  """
+  Total number of wishlists owned by the authenticated customer.
+  """
   totalCount: Int!
 }
 
-"""A cursor and the customer wishlist at that cursor."""
+"""
+A cursor and the customer wishlist at that cursor.
+"""
 type CustomerWishlistEdge {
-  """Opaque cursor for this wishlist in the current connection."""
+  """
+  Opaque cursor for this wishlist in the current connection.
+  """
   cursor: Cursor!
 
-  """Wishlist at the end of the edge."""
+  """
+  Wishlist at the end of the edge.
+  """
   node: CustomerWishlist!
 }
 
-"""A Relay connection containing items from one customer wishlist."""
+"""
+A Relay connection containing items from one customer wishlist.
+"""
 type CustomerWishlistItemConnection implements Connection {
-  """Wishlist item edges in deterministic cursor order."""
+  """
+  Wishlist item edges in deterministic cursor order.
+  """
   edges: [CustomerWishlistItemEdge!]!
 
-  """Wishlist items contained in the returned page."""
+  """
+  Wishlist items contained in the returned page.
+  """
   nodes: [CustomerWishlistItem!]!
 
-  """Information needed to request adjacent pages."""
+  """
+  Information needed to request adjacent pages.
+  """
   pageInfo: PageInfo!
 
-  """Total number of products saved in the wishlist."""
+  """
+  Total number of products saved in the wishlist.
+  """
   totalCount: Int!
 }
 
-"""A cursor and the customer wishlist item at that cursor."""
+"""
+A cursor and the customer wishlist item at that cursor.
+"""
 type CustomerWishlistItemEdge {
-  """Opaque cursor for this item in the current connection."""
+  """
+  Opaque cursor for this item in the current connection.
+  """
   cursor: Cursor!
 
-  """Wishlist item at the end of the edge."""
+  """
+  Wishlist item at the end of the edge.
+  """
   node: CustomerWishlistItem!
 }
 
-"""Values used to create a customer wishlist."""
+"""
+Values used to create a customer wishlist.
+"""
 input WishlistCreateInput {
   """
   Customer-visible wishlist name.
@@ -127,13 +187,19 @@ input WishlistCreateInput {
   locale-independent lowercase conversion.
   """
   name: String!
-  """Makes retries return the original result instead of creating a duplicate."""
+  """
+  Makes retries return the original result instead of creating a duplicate.
+  """
   idempotencyKey: String!
 }
 
-"""Values used to rename a customer wishlist."""
+"""
+Values used to rename a customer wishlist.
+"""
 input WishlistUpdateInput {
-  """Global ID of the wishlist to rename."""
+  """
+  Global ID of the wishlist to rename.
+  """
   id: ID!
   """
   New customer-visible wishlist name.
@@ -144,7 +210,9 @@ input WishlistUpdateInput {
   locale-independent lowercase conversion.
   """
   name: String!
-  """Timestamp observed by the client before editing the wishlist."""
+  """
+  Timestamp observed by the client before editing the wishlist.
+  """
   expectedUpdatedAt: DateTime!
   idempotencyKey: String!
 }
@@ -166,34 +234,54 @@ input WishlistProductRemoveInput {
   idempotencyKey: String!
 }
 
-"""Result of creating a customer wishlist."""
+"""
+Result of creating a customer wishlist.
+"""
 type WishlistCreatePayload {
-  """The created wishlist, or null when creation failed."""
+  """
+  The created wishlist, or null when creation failed.
+  """
   wishlist: CustomerWishlist
 
-  """Validation, ownership, and business errors produced by the operation."""
+  """
+  Validation, ownership, and business errors produced by the operation.
+  """
   userErrors: [CustomerUserError!]!
 }
 
-"""Result of renaming a customer wishlist."""
+"""
+Result of renaming a customer wishlist.
+"""
 type WishlistUpdatePayload {
-  """The updated wishlist, or null when the update failed."""
+  """
+  The updated wishlist, or null when the update failed.
+  """
   wishlist: CustomerWishlist
 
-  """Validation, ownership, and business errors produced by the operation."""
+  """
+  Validation, ownership, and business errors produced by the operation.
+  """
   userErrors: [CustomerUserError!]!
 }
 
-"""Result of deleting a non-default customer wishlist."""
+"""
+Result of deleting a non-default customer wishlist.
+"""
 type WishlistDeletePayload {
-  """Global ID of the deleted wishlist, or null when nothing was deleted."""
+  """
+  Global ID of the deleted wishlist, or null when nothing was deleted.
+  """
   deletedWishlistId: ID
 
-  """Validation, ownership, and business errors produced by the operation."""
+  """
+  Validation, ownership, and business errors produced by the operation.
+  """
   userErrors: [CustomerUserError!]!
 }
 
-"""Result of adding a published product to a customer wishlist."""
+"""
+Result of adding a published product to a customer wishlist.
+"""
 type WishlistProductAddPayload {
   """
   The created or previously existing wishlist item, or null when the operation
@@ -208,12 +296,18 @@ type WishlistProductAddPayload {
   userErrors: [CustomerUserError!]!
 }
 
-"""Result of removing a product item from a customer wishlist."""
+"""
+Result of removing a product item from a customer wishlist.
+"""
 type WishlistProductRemovePayload {
-  """Global ID of the removed item, or null when nothing was removed."""
+  """
+  Global ID of the removed item, or null when nothing was removed.
+  """
   deletedWishlistItemId: ID
 
-  """Validation, ownership, and business errors produced by the operation."""
+  """
+  Validation, ownership, and business errors produced by the operation.
+  """
   userErrors: [CustomerUserError!]!
 }
 
@@ -224,6 +318,8 @@ The Customers subgraph stores only the product ID and does not resolve Product
 entities. Published product data is provided by the Catalog subgraph.
 """
 type Product @key(fields: "id", resolvable: false) {
-  """Globally unique Product ID."""
+  """
+  Globally unique Product ID.
+  """
   id: ID!
 }

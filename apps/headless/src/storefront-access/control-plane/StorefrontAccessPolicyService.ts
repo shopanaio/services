@@ -1,7 +1,4 @@
-import {
-  isStorefrontPermission,
-  type StorefrontPermission,
-} from "@shopana/shared-context";
+import { isStorefrontPermission, type StorefrontPermission } from "@shopana/shared-context";
 import type {
   HeadlessStorefrontRepository,
   HeadlessStorefrontScope,
@@ -16,18 +13,11 @@ export class StorefrontAccessPolicyService {
     connectionId: string,
     permissions: readonly StorefrontPermission[],
   ) {
-    return this.repository.accessPolicy.create(
-      scope,
-      connectionId,
-      this.validate(permissions),
-    );
+    return this.repository.accessPolicy.create(scope, connectionId, this.validate(permissions));
   }
 
   get(scope: HeadlessStorefrontScope, connectionId: string) {
-    return this.repository.accessPolicy.findByConnectionId(
-      scope,
-      connectionId,
-    );
+    return this.repository.accessPolicy.findByConnectionId(scope, connectionId);
   }
 
   async replace(
@@ -57,8 +47,6 @@ export class StorefrontAccessPolicyService {
     if (values.some((value) => !isStorefrontPermission(value))) {
       throw new Error("STOREFRONT_PERMISSION_INVALID");
     }
-    return Object.freeze(
-      [...new Set(values)].sort() as StorefrontPermission[],
-    );
+    return Object.freeze([...new Set(values)].sort() as StorefrontPermission[]);
   }
 }

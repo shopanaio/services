@@ -1,10 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import {
-  BrokerWorkflows,
-  Workflow,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { BrokerWorkflows, Workflow, InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 
 export interface FileDeleteCleanupInput {
@@ -72,9 +67,6 @@ export class FileDeleteCleanupWorkflow extends BrokerWorkflows {
 
   private markNeedsAttention(fileId: string, error: unknown): void {
     const message = error instanceof Error ? error.message : String(error);
-    this.logger.error(
-      { fileId, error: message },
-      "File cleanup failed, needs manual attention"
-    );
+    this.logger.error({ fileId, error: message }, "File cleanup failed, needs manual attention");
   }
 }

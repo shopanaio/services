@@ -1,9 +1,4 @@
-import {
-  BaseScript,
-  ZodSchema,
-  Transactional,
-  ValidationError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, Transactional, ValidationError } from "../../kernel/BaseScript.js";
 import { AuthorizationError } from "@shopana/shared-kernel";
 import type { Domain } from "../../casbin/CasbinService.js";
 import {
@@ -24,16 +19,14 @@ export class MemberAccessRemoveScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(memberAccessRemoveInputSchema)
-  protected async execute(
-    params: MemberAccessRemoveParams
-  ): Promise<MemberAccessRemoveResult> {
+  protected async execute(params: MemberAccessRemoveParams): Promise<MemberAccessRemoveResult> {
     const { organizationId, userId, domain } = params;
 
     // Find existing user role in this domain
     const existingUserRole = await this.repository.organization.findUserRole(
       organizationId,
       userId,
-      domain
+      domain,
     );
 
     if (!existingUserRole) {
@@ -52,7 +45,7 @@ export class MemberAccessRemoveScript extends BaseScript<
     // Get role name for casbin removal
     const role = await this.repository.organization.findRoleById(
       organizationId,
-      existingUserRole.roleId
+      existingUserRole.roleId,
     );
 
     // Remove user role from database

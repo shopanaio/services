@@ -42,7 +42,7 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
 
   @Workflow("customerExternalReferenceSync")
   async run(
-    input: CustomerExternalReferenceSyncWorkflowInput
+    input: CustomerExternalReferenceSyncWorkflowInput,
   ): Promise<CustomerExternalReferenceSyncWorkflowResult> {
     const results: CustomerExternalReferenceSyncOperationResult[] = [];
 
@@ -62,7 +62,7 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
   private async runOperation(
     input: CustomerExternalReferenceSyncWorkflowInput,
     operation: CustomerExternalReferenceSyncOperation,
-    index: number
+    index: number,
   ): Promise<CustomerExternalReferenceSyncOperationResult> {
     if (operation.type === "UPSERT") {
       const result = await this.stepUpsert(input, operation);
@@ -77,15 +77,12 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
 
       if (result.outcome === "CREATED") {
         await this.emitCreated(input.context, result.externalReference, index);
-      } else if (
-        result.outcome === "REASSIGNED" &&
-        result.previousCustomerId
-      ) {
+      } else if (result.outcome === "REASSIGNED" && result.previousCustomerId) {
         await this.emitReassigned(
           input.context,
           result.externalReference,
           result.previousCustomerId,
-          index
+          index,
         );
       }
 
@@ -118,11 +115,7 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
       };
     }
 
-    await this.emitDeleted(
-      input.context,
-      result.deletedExternalReference,
-      index
-    );
+    await this.emitDeleted(input.context, result.deletedExternalReference, index);
     return {
       index,
       type: operation.type,
@@ -136,7 +129,7 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
   @WorkflowStep()
   private stepUpsert(
     input: CustomerExternalReferenceSyncWorkflowInput,
-    operation: Extract<CustomerExternalReferenceSyncOperation, { type: "UPSERT" }>
+    operation: Extract<CustomerExternalReferenceSyncOperation, { type: "UPSERT" }>,
   ) {
     return this.kernel.runScript(
       CustomerExternalReferenceUpsertScript,
@@ -148,14 +141,14 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
         metadata: operation.metadata,
         conflictPolicy: operation.conflictPolicy,
       },
-      toScriptContext(input.context)
+      toScriptContext(input.context),
     );
   }
 
   @WorkflowStep()
   private stepDelete(
     input: CustomerExternalReferenceSyncWorkflowInput,
-    operation: Extract<CustomerExternalReferenceSyncOperation, { type: "DELETE" }>
+    operation: Extract<CustomerExternalReferenceSyncOperation, { type: "DELETE" }>,
   ) {
     return this.kernel.runScript(
       CustomerExternalReferenceDeleteScript,
@@ -165,14 +158,14 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
         externalId: operation.externalId,
         ignoreMissing: true,
       },
-      toScriptContext(input.context)
+      toScriptContext(input.context),
     );
   }
 
   private emitCreated(
     context: CustomerExternalReferenceWorkflowContext,
     reference: CustomerExternalReference,
-    operationIndex: number
+    operationIndex: number,
   ): Promise<unknown> {
     const payload: CustomerExternalReferenceCreatedEvent["payload"] = {
       externalReferenceId: reference.id,
@@ -188,7 +181,7 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
       payload,
       reference.id,
       "emitCustomerExternalReferenceCreated",
-      operationIndex
+      operationIndex,
     );
   }
 
@@ -196,7 +189,7 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
     context: CustomerExternalReferenceWorkflowContext,
     reference: CustomerExternalReference,
     previousCustomerId: string,
-    operationIndex: number
+    operationIndex: number,
   ): Promise<unknown> {
     const payload: CustomerExternalReferenceReassignedEvent["payload"] = {
       externalReferenceId: reference.id,
@@ -213,14 +206,14 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
       payload,
       reference.id,
       "emitCustomerExternalReferenceReassigned",
-      operationIndex
+      operationIndex,
     );
   }
 
   private emitDeleted(
     context: CustomerExternalReferenceWorkflowContext,
     reference: CustomerExternalReference,
-    operationIndex: number
+    operationIndex: number,
   ): Promise<unknown> {
     const payload: CustomerExternalReferenceDeletedEvent["payload"] = {
       externalReferenceId: reference.id,
@@ -236,7 +229,7 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
       payload,
       reference.id,
       "emitCustomerExternalReferenceDeleted",
-      operationIndex
+      operationIndex,
     );
   }
 
@@ -246,7 +239,7 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
     payload: unknown,
     referenceId: string,
     stepId: string,
-    operationIndex: number
+    operationIndex: number,
   ): Promise<unknown> {
     return this.broker.runWorkflow(
       "events.emit",
@@ -270,14 +263,12 @@ export class CustomerExternalReferenceSyncWorkflow extends BrokerWorkflows {
         stepId,
         callId: `${operationIndex}:${referenceId}`,
         organizationId: context.organizationId,
-      }
+      },
     );
   }
 }
 
-function toScriptContext(
-  context: CustomerExternalReferenceWorkflowContext
-): RunScriptContext {
+function toScriptContext(context: CustomerExternalReferenceWorkflowContext): RunScriptContext {
   return {
     storeId: context.storeId,
     organizationId: context.organizationId,
@@ -285,9 +276,7 @@ function toScriptContext(
   };
 }
 
-function toSnapshot(
-  reference: CustomerExternalReference
-): CustomerExternalReferenceSnapshot {
+function toSnapshot(reference: CustomerExternalReference): CustomerExternalReferenceSnapshot {
   return {
     id: reference.id,
     storeId: reference.storeId,

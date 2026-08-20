@@ -1,10 +1,5 @@
 export type CheckoutPipelineStage =
-  | "PRICING_PRELIMINARY"
-  | "DELIVERY"
-  | "PRICING_FINAL"
-  | "LOYALTY"
-  | "PAYMENT"
-  | "VALIDATION";
+  "PRICING_PRELIMINARY" | "DELIVERY" | "PRICING_FINAL" | "LOYALTY" | "PAYMENT" | "VALIDATION";
 
 export type CheckoutPipelineStageStatus = "SUCCESS" | "FAILED" | "SKIPPED";
 

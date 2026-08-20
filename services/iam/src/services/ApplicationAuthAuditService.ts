@@ -3,14 +3,9 @@ import type { Logger } from "@shopana/shared-kernel";
 import type { ApplicationAuthProviderName } from "../auth/applicationSocialProviders.js";
 import type { ApplicationAuthSecretService } from "./ApplicationAuthSecretService.js";
 
-export const APPLICATION_AUTH_AUDIT_PORT = Symbol.for(
-  "shopana.iam.application-auth-audit-port"
-);
+export const APPLICATION_AUTH_AUDIT_PORT = Symbol.for("shopana.iam.application-auth-audit-port");
 
-export type ApplicationAuthAuditAction =
-  | "provider_callback"
-  | "account_link"
-  | "account_unlink";
+export type ApplicationAuthAuditAction = "provider_callback" | "account_link" | "account_unlink";
 
 export type ApplicationAuthAuditReasonCategory =
   | "success"
@@ -84,7 +79,7 @@ export class ApplicationAuthAuditService {
     private readonly secrets: ApplicationAuthSecretService,
     private readonly logger: Logger,
     private readonly port?: ApplicationAuthAuditPort,
-    private readonly now: () => Date = () => new Date()
+    private readonly now: () => Date = () => new Date(),
   ) {}
 
   async record(input: RecordApplicationAuthAuditEventInput): Promise<void> {
@@ -102,7 +97,7 @@ export class ApplicationAuthAuditService {
             actorId: this.createOpaqueActorId(
               input.applicationId,
               input.secretKeyVersion,
-              input.actorId
+              input.actorId,
             ),
           }
         : {}),
@@ -128,7 +123,7 @@ export class ApplicationAuthAuditService {
           action: input.action,
           requestId: input.requestId,
         },
-        "Application auth security audit delivery failed"
+        "Application auth security audit delivery failed",
       );
       try {
         await this.port.incrementDeliveryFailure?.({
@@ -141,7 +136,7 @@ export class ApplicationAuthAuditService {
             applicationId: input.applicationId,
             action: input.action,
           },
-          "Application auth audit failure counter update failed"
+          "Application auth audit failure counter update failed",
         );
       }
     }
@@ -150,15 +145,13 @@ export class ApplicationAuthAuditService {
   private createOpaqueActorId(
     applicationId: string,
     secretKeyVersion: number,
-    actorId: string
+    actorId: string,
   ): string {
     const secret = this.secrets.derivePurposeSecret(
       applicationId,
       secretKeyVersion,
-      "security-audit"
+      "security-audit",
     );
-    return createHmac("sha256", secret)
-      .update(actorId, "utf8")
-      .digest("base64url");
+    return createHmac("sha256", secret).update(actorId, "utf8").digest("base64url");
   }
 }

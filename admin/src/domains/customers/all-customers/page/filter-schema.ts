@@ -7,10 +7,7 @@ import {
   priceOperators,
 } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
-import {
-  CustomerLifecycleStatus,
-  CustomerConsentState,
-} from "@/graphql/types";
+import { CustomerLifecycleStatus, CustomerConsentState } from "@/graphql/types";
 
 const countryOptions = allowedCountries.map((countryCode) => ({
   value: countryCode,

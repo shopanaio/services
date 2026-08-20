@@ -32,8 +32,9 @@ export class CheckoutMutationRepository
     anonymized: number;
     purged: number;
   }> {
-    const query = knex.raw(
-      `WITH candidates AS MATERIALIZED (
+    const query = knex
+      .raw(
+        `WITH candidates AS MATERIALIZED (
          SELECT id, store_id, status, expires_at, retention_until
            FROM checkout.checkouts
           WHERE ((status IN ('OPEN', 'READY') AND expires_at <= CURRENT_TIMESTAMP)
@@ -93,13 +94,16 @@ export class CheckoutMutationRepository
          (SELECT count(*)::int FROM expired) AS expired,
          (SELECT count(*)::int FROM anonymized) AS anonymized,
          (SELECT count(*)::int FROM purged) AS purged`,
-      [batchSize],
-    ).toString();
-    const row = await singleOrNull(this.execute.query<{
-      expired: number;
-      anonymized: number;
-      purged: number;
-    }>(rawSql(query)));
+        [batchSize],
+      )
+      .toString();
+    const row = await singleOrNull(
+      this.execute.query<{
+        expired: number;
+        anonymized: number;
+        purged: number;
+      }>(rawSql(query)),
+    );
     return row ?? { expired: 0, anonymized: 0, purged: 0 };
   }
 
@@ -127,8 +131,11 @@ export class CheckoutMutationRepository
       .withSchema("checkout")
       .table("checkout_current_snapshots as snapshots")
       .innerJoin("checkout.checkouts as checkouts", function () {
-        this.on("checkouts.id", "=", "snapshots.checkout_id")
-          .andOn("checkouts.store_id", "=", "snapshots.store_id");
+        this.on("checkouts.id", "=", "snapshots.checkout_id").andOn(
+          "checkouts.store_id",
+          "=",
+          "snapshots.store_id",
+        );
       })
       .select(
         "snapshots.snapshot",
@@ -157,16 +164,18 @@ export class CheckoutMutationRepository
     snapshot: unknown,
     reason: string,
   ): Promise<void> {
-    const query = knex.raw(
-      `INSERT INTO checkout.checkout_snapshot_quarantine
+    const query = knex
+      .raw(
+        `INSERT INTO checkout.checkout_snapshot_quarantine
          (checkout_id, store_id, snapshot, reason, quarantined_at)
        VALUES (?, ?, ?::jsonb, ?, CURRENT_TIMESTAMP)
        ON CONFLICT (store_id, checkout_id) DO UPDATE
          SET snapshot = EXCLUDED.snapshot,
              reason = EXCLUDED.reason,
              quarantined_at = EXCLUDED.quarantined_at`,
-      [input.checkoutId, input.storeId, JSON.stringify(snapshot), reason.slice(0, 16_384)],
-    ).toString();
+        [input.checkoutId, input.storeId, JSON.stringify(snapshot), reason.slice(0, 16_384)],
+      )
+      .toString();
     await this.execute.query(rawSql(query));
   }
 
@@ -175,8 +184,7 @@ export class CheckoutMutationRepository
     draft: CheckoutMutationDraft;
     result: CheckoutRecalculationResult;
   }): Promise<
-    | { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot }
-    | { status: "VERSION_CONFLICT" }
+    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "VERSION_CONFLICT" }
   > {
     const now = new Date().toISOString();
     const retention = checkoutRetentionPolicy();
@@ -186,8 +194,9 @@ export class CheckoutMutationRepository
     ).toISOString();
     const checkout = snapshot(input.draft, input.result, now, now, expiresAt, retentionUntil);
     const projection = canonicalProjection(input.result);
-    const sql = knex.raw(
-      `WITH locked_reservation AS MATERIALIZED (
+    const sql = knex
+      .raw(
+        `WITH locked_reservation AS MATERIALIZED (
          SELECT checkout_id FROM checkout.checkout_create_idempotency
           WHERE store_id = ? AND connection_id = ? AND operation = ?
             AND idempotency_key = ? AND request_hash = ? AND status = 'IN_PROGRESS'
@@ -221,56 +230,55 @@ export class CheckoutMutationRepository
          RETURNING checkout_id
        )
        SELECT ?::jsonb AS snapshot FROM committed_idempotency`,
-      [
-        input.reservation.identity.storeId,
-        input.reservation.identity.connectionId,
-        input.reservation.identity.operation,
-        input.reservation.identity.idempotencyKey,
-        input.reservation.requestHash,
-        input.reservation.leaseToken,
-        input.draft.checkoutId,
-        input.draft.storeId,
-        input.reservation.ownerVisitorId,
-        input.draft.channelCode,
-        input.draft.externalSource,
-        input.draft.externalId,
-        input.draft.customerNote,
-        input.draft.localeCode,
-        input.draft.currencyCode,
-        projection.subtotal,
-        projection.shippingTotal,
-        projection.discountTotal,
-        projection.taxTotal,
-        projection.grandTotal,
-        projection.valid ? "READY" : "OPEN",
-        input.result.resultRevision,
-        projection.valid,
-        JSON.stringify(input.result.issues),
-        expiresAt,
-        retentionUntil,
-        now,
-        now,
-        input.draft.checkoutId,
-        input.draft.checkoutId,
-        input.draft.storeId,
-        JSON.stringify(checkout),
-        now,
-        now,
-        input.draft.checkoutId,
-        now,
-        input.reservation.identity.storeId,
-        input.reservation.identity.connectionId,
-        input.reservation.identity.operation,
-        input.reservation.identity.idempotencyKey,
-        input.reservation.requestHash,
-        input.reservation.leaseToken,
-        JSON.stringify(checkout),
-      ],
-    ).toString();
+        [
+          input.reservation.identity.storeId,
+          input.reservation.identity.connectionId,
+          input.reservation.identity.operation,
+          input.reservation.identity.idempotencyKey,
+          input.reservation.requestHash,
+          input.reservation.leaseToken,
+          input.draft.checkoutId,
+          input.draft.storeId,
+          input.reservation.ownerVisitorId,
+          input.draft.channelCode,
+          input.draft.externalSource,
+          input.draft.externalId,
+          input.draft.customerNote,
+          input.draft.localeCode,
+          input.draft.currencyCode,
+          projection.subtotal,
+          projection.shippingTotal,
+          projection.discountTotal,
+          projection.taxTotal,
+          projection.grandTotal,
+          projection.valid ? "READY" : "OPEN",
+          input.result.resultRevision,
+          projection.valid,
+          JSON.stringify(input.result.issues),
+          expiresAt,
+          retentionUntil,
+          now,
+          now,
+          input.draft.checkoutId,
+          input.draft.checkoutId,
+          input.draft.storeId,
+          JSON.stringify(checkout),
+          now,
+          now,
+          input.draft.checkoutId,
+          now,
+          input.reservation.identity.storeId,
+          input.reservation.identity.connectionId,
+          input.reservation.identity.operation,
+          input.reservation.identity.idempotencyKey,
+          input.reservation.requestHash,
+          input.reservation.leaseToken,
+          JSON.stringify(checkout),
+        ],
+      )
+      .toString();
     const row = await singleOrNull(this.execute.query<SnapshotRow>(rawSql(sql)));
-    return row
-      ? { status: "COMMITTED", checkout: row.snapshot }
-      : { status: "VERSION_CONFLICT" };
+    return row ? { status: "COMMITTED", checkout: row.snapshot } : { status: "VERSION_CONFLICT" };
   }
 
   async commit(input: {
@@ -283,8 +291,7 @@ export class CheckoutMutationRepository
     draft: CheckoutMutationDraft;
     result: CheckoutRecalculationResult;
   }): Promise<
-    | { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot }
-    | { status: "VERSION_CONFLICT" }
+    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "VERSION_CONFLICT" }
   > {
     const now = new Date().toISOString();
     const retention = checkoutRetentionPolicy();
@@ -301,8 +308,9 @@ export class CheckoutMutationRepository
       retentionUntil,
     );
     const projection = canonicalProjection(input.result);
-    const sql = knex.raw(
-      `WITH updated_checkout AS (
+    const sql = knex
+      .raw(
+        `WITH updated_checkout AS (
          UPDATE checkout.checkouts
             SET version = ?, channel_code = ?, external_source = ?, external_id = ?,
                 customer_note = ?, locale_code = ?, currency_code = ?, subtotal = ?,
@@ -329,48 +337,47 @@ export class CheckoutMutationRepository
          RETURNING checkout_id
        )
        SELECT ?::jsonb AS snapshot FROM updated_snapshot`,
-      [
-        input.nextVersion,
-        input.draft.channelCode,
-        input.draft.externalSource,
-        input.draft.externalId,
-        input.draft.customerNote,
-        input.draft.localeCode,
-        input.draft.currencyCode,
-        projection.subtotal,
-        projection.shippingTotal,
-        projection.discountTotal,
-        projection.taxTotal,
-        projection.grandTotal,
-        projection.valid ? "READY" : "OPEN",
-        input.result.resultRevision,
-        projection.valid,
-        JSON.stringify(input.result.issues),
-        expiresAt,
-        retentionUntil,
-        now,
-        input.checkoutId,
-        input.storeId,
-        input.visitorId,
-        input.expectedVersion,
-        input.storeId,
-        input.checkoutId,
-        input.checkoutId,
-        input.storeId,
-        input.expectedVersion,
-        input.nextVersion,
-        JSON.stringify(checkout),
-        now,
-        input.checkoutId,
-        input.storeId,
-        input.expectedVersion,
-        JSON.stringify(checkout),
-      ],
-    ).toString();
+        [
+          input.nextVersion,
+          input.draft.channelCode,
+          input.draft.externalSource,
+          input.draft.externalId,
+          input.draft.customerNote,
+          input.draft.localeCode,
+          input.draft.currencyCode,
+          projection.subtotal,
+          projection.shippingTotal,
+          projection.discountTotal,
+          projection.taxTotal,
+          projection.grandTotal,
+          projection.valid ? "READY" : "OPEN",
+          input.result.resultRevision,
+          projection.valid,
+          JSON.stringify(input.result.issues),
+          expiresAt,
+          retentionUntil,
+          now,
+          input.checkoutId,
+          input.storeId,
+          input.visitorId,
+          input.expectedVersion,
+          input.storeId,
+          input.checkoutId,
+          input.checkoutId,
+          input.storeId,
+          input.expectedVersion,
+          input.nextVersion,
+          JSON.stringify(checkout),
+          now,
+          input.checkoutId,
+          input.storeId,
+          input.expectedVersion,
+          JSON.stringify(checkout),
+        ],
+      )
+      .toString();
     const row = await singleOrNull(this.execute.query<SnapshotRow>(rawSql(sql)));
-    return row
-      ? { status: "COMMITTED", checkout: row.snapshot }
-      : { status: "VERSION_CONFLICT" };
+    return row ? { status: "COMMITTED", checkout: row.snapshot } : { status: "VERSION_CONFLICT" };
   }
 
   commitWithoutRecalculation(input: {
@@ -405,9 +412,8 @@ function snapshot(
     createdAt,
     updatedAt,
     lifecycle: {
-      status: result.validation.status === "SUCCESS" && result.validation.data.valid
-        ? "READY"
-        : "OPEN",
+      status:
+        result.validation.status === "SUCCESS" && result.validation.data.valid ? "READY" : "OPEN",
       expiresAt,
       piiAnonymizedAt: null,
       retentionUntil,
@@ -441,16 +447,17 @@ function canonicalProjection(result: CheckoutRecalculationResult) {
     throw new Error("Only a complete checkout pipeline result can be committed");
   }
   const totals = result.finalPricing.data.totals;
-  const loyalty = result.loyalty.status === "SUCCESS" && result.loyalty.data.status === "QUOTED"
-    ? result.loyalty.data.quote
-    : null;
+  const loyalty =
+    result.loyalty.status === "SUCCESS" && result.loyalty.data.status === "QUOTED"
+      ? result.loyalty.data.quote
+      : null;
   return {
     subtotal: totals.merchandiseSubtotal.amountMinor,
     shippingTotal: totals.deliveryTotal.amountMinor,
     discountTotal: (
       BigInt(totals.merchandiseDiscountTotal.amountMinor) +
-      BigInt(totals.deliveryDiscountTotal.amountMinor)
-      + BigInt(loyalty?.discount.amountMinor ?? "0")
+      BigInt(totals.deliveryDiscountTotal.amountMinor) +
+      BigInt(loyalty?.discount.amountMinor ?? "0")
     ).toString(),
     taxTotal: totals.taxTotal.amountMinor,
     grandTotal: loyalty?.payableAfterLoyalty.amountMinor ?? totals.payableTotal.amountMinor,

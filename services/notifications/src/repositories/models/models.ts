@@ -24,13 +24,9 @@ import {
 } from "./schema.js";
 
 const createdAt = () =>
-  timestamp("created_at", { withTimezone: true, mode: "string" })
-    .notNull()
-    .defaultNow();
+  timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow();
 const updatedAt = () =>
-  timestamp("updated_at", { withTimezone: true, mode: "string" })
-    .notNull()
-    .defaultNow();
+  timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow();
 
 export const notificationDefinitionSettings = notificationsSchema.table(
   "notification_definition_settings",
@@ -43,11 +39,8 @@ export const notificationDefinitionSettings = notificationsSchema.table(
     updatedAt: updatedAt(),
   },
   (table) => [
-    unique("notification_definition_settings_store_key").on(
-      table.storeId,
-      table.definitionKey
-    ),
-  ]
+    unique("notification_definition_settings_store_key").on(table.storeId, table.definitionKey),
+  ],
 );
 
 export const notificationChannelSettings = notificationsSchema.table(
@@ -68,15 +61,17 @@ export const notificationChannelSettings = notificationsSchema.table(
     unique("notification_channel_settings_store_key_channel").on(
       table.storeId,
       table.definitionKey,
-      table.channel
+      table.channel,
     ),
-  ]
+  ],
 );
 
 export const notificationTemplateRevisions = notificationsSchema.table(
   "notification_template_revisions",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     definitionKey: varchar("definition_key", { length: 128 }).notNull(),
     channel: notificationChannelEnum("channel").notNull(),
@@ -86,9 +81,7 @@ export const notificationTemplateRevisions = notificationsSchema.table(
     bodyTemplate: text("body_template").notNull(),
     plainTextTemplate: text("plain_text_template"),
     sourceHash: varchar("source_hash", { length: 64 }).notNull(),
-    validationStatus: templateValidationStatusEnum("validation_status")
-      .notNull()
-      .default("VALID"),
+    validationStatus: templateValidationStatusEnum("validation_status").notNull().default("VALID"),
     createdBy: text("created_by"),
     createdAt: createdAt(),
   },
@@ -98,15 +91,15 @@ export const notificationTemplateRevisions = notificationsSchema.table(
       table.definitionKey,
       table.channel,
       table.locale,
-      table.revision
+      table.revision,
     ),
     index("notification_template_revision_lookup_idx").on(
       table.storeId,
       table.definitionKey,
       table.channel,
-      table.locale
+      table.locale,
     ),
-  ]
+  ],
 );
 
 export const notificationTemplateActiveRevisions = notificationsSchema.table(
@@ -130,15 +123,17 @@ export const notificationTemplateActiveRevisions = notificationsSchema.table(
       table.storeId,
       table.definitionKey,
       table.channel,
-      table.locale
+      table.locale,
     ),
-  ]
+  ],
 );
 
 export const staffNotificationRecipients = notificationsSchema.table(
   "staff_notification_recipients",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     userId: text("user_id"),
     name: varchar("name", { length: 255 }).notNull(),
@@ -146,23 +141,15 @@ export const staffNotificationRecipients = notificationsSchema.table(
     emailHash: varchar("email_hash", { length: 64 }).notNull(),
     locale: varchar("locale", { length: 16 }).notNull().default("en"),
     timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
-    scope: staffRecipientScopeEnum("scope")
-      .notNull()
-      .default("ALL_ORDERS"),
+    scope: staffRecipientScopeEnum("scope").notNull().default("ALL_ORDERS"),
     enabled: boolean("enabled").notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (table) => [
-    unique("staff_notification_recipient_store_email").on(
-      table.storeId,
-      table.emailHash
-    ),
-    index("staff_notification_recipient_store_enabled_idx").on(
-      table.storeId,
-      table.enabled
-    ),
-  ]
+    unique("staff_notification_recipient_store_email").on(table.storeId, table.emailHash),
+    index("staff_notification_recipient_store_enabled_idx").on(table.storeId, table.enabled),
+  ],
 );
 
 export const staffNotificationRecipientEvents = notificationsSchema.table(
@@ -180,20 +167,22 @@ export const staffNotificationRecipientEvents = notificationsSchema.table(
   (table) => [
     unique("staff_notification_recipient_event_identity").on(
       table.recipientId,
-      table.definitionKey
+      table.definitionKey,
     ),
     index("staff_notification_recipient_event_lookup_idx").on(
       table.storeId,
       table.definitionKey,
-      table.enabled
+      table.enabled,
     ),
-  ]
+  ],
 );
 
 export const notificationOccurrences = notificationsSchema.table(
   "notification_occurrences",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     organizationId: uuid("organization_id").notNull(),
     definitionKey: varchar("definition_key", { length: 128 }).notNull(),
@@ -211,9 +200,7 @@ export const notificationOccurrences = notificationsSchema.table(
       withTimezone: true,
       mode: "string",
     }),
-    status: notificationOccurrenceStatusEnum("status")
-      .notNull()
-      .default("PENDING"),
+    status: notificationOccurrenceStatusEnum("status").notNull().default("PENDING"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -221,23 +208,19 @@ export const notificationOccurrences = notificationsSchema.table(
     unique("notification_occurrence_idempotency").on(
       table.storeId,
       table.sourceIdempotencyKey,
-      table.definitionKey
+      table.definitionKey,
     ),
-    index("notification_occurrence_store_created_idx").on(
-      table.storeId,
-      table.createdAt
-    ),
-    index("notification_occurrence_retention_idx").on(
-      table.piiPurgedAt,
-      table.createdAt
-    ),
-  ]
+    index("notification_occurrence_store_created_idx").on(table.storeId, table.createdAt),
+    index("notification_occurrence_retention_idx").on(table.piiPurgedAt, table.createdAt),
+  ],
 );
 
 export const notificationRecipients = notificationsSchema.table(
   "notification_recipients",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     occurrenceId: uuid("occurrence_id")
       .notNull()
@@ -254,21 +237,17 @@ export const notificationRecipients = notificationsSchema.table(
     createdAt: createdAt(),
   },
   (table) => [
-    unique("notification_recipient_occurrence_ref").on(
-      table.occurrenceId,
-      table.recipientRef
-    ),
-    index("notification_recipient_store_occurrence_idx").on(
-      table.storeId,
-      table.occurrenceId
-    ),
-  ]
+    unique("notification_recipient_occurrence_ref").on(table.occurrenceId, table.recipientRef),
+    index("notification_recipient_store_occurrence_idx").on(table.storeId, table.occurrenceId),
+  ],
 );
 
 export const notificationDeliveries = notificationsSchema.table(
   "notification_deliveries",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     occurrenceId: uuid("occurrence_id")
       .notNull()
@@ -277,12 +256,8 @@ export const notificationDeliveries = notificationsSchema.table(
       .notNull()
       .references(() => notificationRecipients.id, { onDelete: "cascade" }),
     channel: notificationChannelEnum("channel").notNull(),
-    purpose: notificationPurposeEnum("purpose")
-      .notNull()
-      .default("BUSINESS"),
-    status: notificationDeliveryStatusEnum("status")
-      .notNull()
-      .default("PENDING"),
+    purpose: notificationPurposeEnum("purpose").notNull().default("BUSINESS"),
+    status: notificationDeliveryStatusEnum("status").notNull().default("PENDING"),
     providerCode: varchar("provider_code", { length: 128 }),
     providerSlotId: uuid("provider_slot_id"),
     providerMessageId: varchar("provider_message_id", { length: 255 }),
@@ -306,21 +281,23 @@ export const notificationDeliveries = notificationsSchema.table(
     unique("notification_delivery_identity").on(
       table.occurrenceId,
       table.recipientId,
-      table.channel
+      table.channel,
     ),
     unique("notification_delivery_idempotency_key").on(table.idempotencyKey),
     index("notification_delivery_operational_idx").on(
       table.storeId,
       table.status,
-      table.nextAttemptAt
+      table.nextAttemptAt,
     ),
-  ]
+  ],
 );
 
 export const notificationDeliveryAttempts = notificationsSchema.table(
   "notification_delivery_attempts",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     deliveryId: uuid("delivery_id")
       .notNull()
@@ -339,34 +316,25 @@ export const notificationDeliveryAttempts = notificationsSchema.table(
       withTimezone: true,
       mode: "string",
     }),
-    status: notificationAttemptStatusEnum("status")
-      .notNull()
-      .default("STARTED"),
+    status: notificationAttemptStatusEnum("status").notNull().default("STARTED"),
     errorKind: varchar("error_kind", { length: 64 }),
     errorCode: varchar("error_code", { length: 128 }),
     providerResponseCode: varchar("provider_response_code", { length: 128 }),
     providerMessageId: varchar("provider_message_id", { length: 255 }),
-    diagnostics: jsonb("diagnostics")
-      .$type<Record<string, unknown>>()
-      .notNull()
-      .default({}),
+    diagnostics: jsonb("diagnostics").$type<Record<string, unknown>>().notNull().default({}),
   },
   (table) => [
-    unique("notification_delivery_attempt_identity").on(
-      table.deliveryId,
-      table.attemptNumber
-    ),
-    index("notification_delivery_attempt_store_delivery_idx").on(
-      table.storeId,
-      table.deliveryId
-    ),
-  ]
+    unique("notification_delivery_attempt_identity").on(table.deliveryId, table.attemptNumber),
+    index("notification_delivery_attempt_store_delivery_idx").on(table.storeId, table.deliveryId),
+  ],
 );
 
 export const webhookSubscriptions = notificationsSchema.table(
   "webhook_subscriptions",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     eventType: varchar("event_type", { length: 128 }).notNull(),
     format: webhookFormatEnum("format").notNull(),
@@ -378,22 +346,17 @@ export const webhookSubscriptions = notificationsSchema.table(
     updatedAt: updatedAt(),
   },
   (table) => [
-    unique("webhook_subscription_store_event_url").on(
-      table.storeId,
-      table.eventType,
-      table.url
-    ),
-    index("webhook_subscription_store_status_idx").on(
-      table.storeId,
-      table.status
-    ),
-  ]
+    unique("webhook_subscription_store_event_url").on(table.storeId, table.eventType, table.url),
+    index("webhook_subscription_store_status_idx").on(table.storeId, table.status),
+  ],
 );
 
 export const webhookStoreSecretVersions = notificationsSchema.table(
   "webhook_store_secret_versions",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     version: integer("version").notNull(),
     secretCiphertext: text("secret_ciphertext").notNull(),
@@ -406,53 +369,35 @@ export const webhookStoreSecretVersions = notificationsSchema.table(
     createdAt: createdAt(),
   },
   (table) => [
-    unique("webhook_store_secret_version_identity").on(
-      table.storeId,
-      table.version
-    ),
-    index("webhook_store_secret_active_idx").on(
-      table.storeId,
-      table.active
-    ),
-  ]
+    unique("webhook_store_secret_version_identity").on(table.storeId, table.version),
+    index("webhook_store_secret_active_idx").on(table.storeId, table.active),
+  ],
 );
 
 export const notificationAuditEvents = notificationsSchema.table(
   "notification_audit_events",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     actorId: text("actor_id"),
     action: varchar("action", { length: 128 }).notNull(),
     entityType: varchar("entity_type", { length: 64 }).notNull(),
     entityId: varchar("entity_id", { length: 255 }).notNull(),
-    payload: jsonb("payload")
-      .$type<Record<string, unknown>>()
-      .notNull()
-      .default({}),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull().default({}),
     createdAt: createdAt(),
   },
-  (table) => [
-    index("notification_audit_store_created_idx").on(
-      table.storeId,
-      table.createdAt
-    ),
-  ]
+  (table) => [index("notification_audit_store_created_idx").on(table.storeId, table.createdAt)],
 );
 
-export type NotificationDefinitionSetting =
-  typeof notificationDefinitionSettings.$inferSelect;
-export type NotificationChannelSetting =
-  typeof notificationChannelSettings.$inferSelect;
-export type NotificationTemplateRevision =
-  typeof notificationTemplateRevisions.$inferSelect;
-export type StaffNotificationRecipient =
-  typeof staffNotificationRecipients.$inferSelect;
+export type NotificationDefinitionSetting = typeof notificationDefinitionSettings.$inferSelect;
+export type NotificationChannelSetting = typeof notificationChannelSettings.$inferSelect;
+export type NotificationTemplateRevision = typeof notificationTemplateRevisions.$inferSelect;
+export type StaffNotificationRecipient = typeof staffNotificationRecipients.$inferSelect;
 export type NotificationOccurrence = typeof notificationOccurrences.$inferSelect;
 export type NotificationRecipient = typeof notificationRecipients.$inferSelect;
 export type NotificationDelivery = typeof notificationDeliveries.$inferSelect;
-export type NotificationDeliveryAttempt =
-  typeof notificationDeliveryAttempts.$inferSelect;
+export type NotificationDeliveryAttempt = typeof notificationDeliveryAttempts.$inferSelect;
 export type WebhookSubscription = typeof webhookSubscriptions.$inferSelect;
-export type WebhookStoreSecretVersion =
-  typeof webhookStoreSecretVersions.$inferSelect;
+export type WebhookStoreSecretVersion = typeof webhookStoreSecretVersions.$inferSelect;

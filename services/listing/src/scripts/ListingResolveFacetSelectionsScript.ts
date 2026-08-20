@@ -25,9 +25,7 @@ export class ListingResolveFacetSelectionsScript extends BaseScript<
   ListingIndexHydratedSyncAction,
   ResolveResult
 > {
-  protected async execute(
-    action: ListingIndexHydratedSyncAction
-  ): Promise<ResolveResult> {
+  protected async execute(action: ListingIndexHydratedSyncAction): Promise<ResolveResult> {
     const refs = collectSourceValueRefs(action.params.item);
     if (refs.length === 0) {
       return {
@@ -36,25 +34,20 @@ export class ListingResolveFacetSelectionsScript extends BaseScript<
       };
     }
 
-    const sourceValues =
-      await this.repository.facetValue.getValidSourceValuesByHandles(
-        refs.map((ref) => ref.sourceValueHandle)
-      );
-    const groupParents =
-      await this.repository.facetValue.getGroupParentsBySourceValueIds(
-        sourceValues.map((value) => value.id)
-      );
-
-    const groupParentById = new Map(
-      groupParents.map((value) => [value.id, value])
+    const sourceValues = await this.repository.facetValue.getValidSourceValuesByHandles(
+      refs.map((ref) => ref.sourceValueHandle),
     );
+    const groupParents = await this.repository.facetValue.getGroupParentsBySourceValueIds(
+      sourceValues.map((value) => value.id),
+    );
+
+    const groupParentById = new Map(groupParents.map((value) => [value.id, value]));
     const sourceValuesByHandle = groupBy(sourceValues, (value) => value.handle);
     const resolved = new Map<string, ResolvedValueRef>();
     const warnings = action.warnings ? [...action.warnings] : [];
 
     for (const ref of refs) {
-      const matchingSourceValues =
-        sourceValuesByHandle.get(ref.sourceValueHandle) ?? [];
+      const matchingSourceValues = sourceValuesByHandle.get(ref.sourceValueHandle) ?? [];
       if (matchingSourceValues.length === 0) {
         warnings.push(buildWarning("LISTING_FACET_VALUE_NOT_CONFIGURED", ref));
         continue;
@@ -66,9 +59,7 @@ export class ListingResolveFacetSelectionsScript extends BaseScript<
       }
 
       const sourceValue = matchingSourceValues[0];
-      const groupParent = sourceValue.parentId
-        ? groupParentById.get(sourceValue.parentId)
-        : null;
+      const groupParent = sourceValue.parentId ? groupParentById.get(sourceValue.parentId) : null;
       if (
         sourceValue.parentId &&
         (!groupParent ||
@@ -129,32 +120,25 @@ export class ListingResolveFacetSelectionsScript extends BaseScript<
         warningCount: action.warnings.length,
         warningCodes: [...new Set(action.warnings.map((warning) => warning.code))],
       },
-      "Listing facet selections were partially resolved"
+      "Listing facet selections were partially resolved",
     );
   }
 }
 
-function collectSourceValueRefs(
-  item: Listing.ListingSellableItemSnapshot
-): SourceValueRef[] {
+function collectSourceValueRefs(item: Listing.ListingSellableItemSnapshot): SourceValueRef[] {
   return uniqueRefs([
     ...item.productFacets.flatMap(facetSelectionRefs),
-    ...item.variants.flatMap((variant) =>
-      variant.facets.flatMap(facetSelectionRefs)
-    ),
+    ...item.variants.flatMap((variant) => variant.facets.flatMap(facetSelectionRefs)),
   ]);
 }
 
-function facetSelectionRefs(
-  selection: Listing.ListingFacetSelectionSnapshot
-): SourceValueRef[] {
+function facetSelectionRefs(selection: Listing.ListingFacetSelectionSnapshot): SourceValueRef[] {
   const facetType = normalizeFacetType(selection.facet.type);
   if (!facetType) {
     return [];
   }
 
-  const sourceHandle =
-    facetType === "TAG" ? "tags" : selection.facet.handle.trim();
+  const sourceHandle = facetType === "TAG" ? "tags" : selection.facet.handle.trim();
   if (!sourceHandle) {
     return [];
   }
@@ -166,11 +150,7 @@ function facetSelectionRefs(
       return {
         facetType,
         sourceHandle,
-        sourceValueHandle: toSourceValueHandle(
-          facetType,
-          sourceHandle,
-          valueHandle
-        ),
+        sourceValueHandle: toSourceValueHandle(facetType, sourceHandle, valueHandle),
       };
     })
     .filter((ref): ref is SourceValueRef => ref !== null);
@@ -178,7 +158,7 @@ function facetSelectionRefs(
 
 function resolveItem(
   item: Listing.ListingSellableItemSnapshot,
-  resolved: ReadonlyMap<string, ResolvedValueRef>
+  resolved: ReadonlyMap<string, ResolvedValueRef>,
 ): Listing.ListingSellableItemSnapshot {
   return {
     ...item,
@@ -192,27 +172,23 @@ function resolveItem(
 
 function resolveSelections(
   selections: readonly Listing.ListingFacetSelectionSnapshot[],
-  resolved: ReadonlyMap<string, ResolvedValueRef>
+  resolved: ReadonlyMap<string, ResolvedValueRef>,
 ): Listing.ListingFacetSelectionSnapshot[] {
   return selections
     .map((selection) => resolveSelection(selection, resolved))
-    .filter(
-      (selection): selection is Listing.ListingFacetSelectionSnapshot =>
-        selection !== null
-    );
+    .filter((selection): selection is Listing.ListingFacetSelectionSnapshot => selection !== null);
 }
 
 function resolveSelection(
   selection: Listing.ListingFacetSelectionSnapshot,
-  resolved: ReadonlyMap<string, ResolvedValueRef>
+  resolved: ReadonlyMap<string, ResolvedValueRef>,
 ): Listing.ListingFacetSelectionSnapshot | null {
   const facetType = normalizeFacetType(selection.facet.type);
   if (!facetType) {
     return selection;
   }
 
-  const sourceHandle =
-    facetType === "TAG" ? "tags" : selection.facet.handle.trim();
+  const sourceHandle = facetType === "TAG" ? "tags" : selection.facet.handle.trim();
   const valuesById = new Map<string, Listing.ListingFacetValueRef>();
   let facetId: string | null = null;
 
@@ -222,12 +198,8 @@ function resolveSelection(
       sourceValueRefKey({
         facetType,
         sourceHandle,
-        sourceValueHandle: toSourceValueHandle(
-          facetType,
-          sourceHandle,
-          valueHandle
-        ),
-      })
+        sourceValueHandle: toSourceValueHandle(facetType, sourceHandle, valueHandle),
+      }),
     );
     if (!item) {
       continue;
@@ -255,9 +227,7 @@ function resolveSelection(
   };
 }
 
-function normalizeFacetType(
-  type: Listing.ListingFacetRef["type"]
-): ListingFacetType | null {
+function normalizeFacetType(type: Listing.ListingFacetRef["type"]): ListingFacetType | null {
   if (type === "tag") return "TAG";
   if (type === "feature") return "FEATURE";
   if (type === "option") return "OPTION";
@@ -267,7 +237,7 @@ function normalizeFacetType(
 function toSourceValueHandle(
   facetType: ListingFacetType,
   sourceHandle: string,
-  valueHandle: string
+  valueHandle: string,
 ): string {
   if (facetType === "TAG") {
     return valueHandle;
@@ -286,10 +256,8 @@ function uniqueRefs(refs: SourceValueRef[]): SourceValueRef[] {
 }
 
 function buildWarning(
-  code:
-    | "LISTING_FACET_VALUE_NOT_CONFIGURED"
-    | "LISTING_FACET_VALUE_AMBIGUOUS",
-  ref: SourceValueRef
+  code: "LISTING_FACET_VALUE_NOT_CONFIGURED" | "LISTING_FACET_VALUE_AMBIGUOUS",
+  ref: SourceValueRef,
 ): Listing.ListingUpdateWarning {
   return {
     code,
@@ -302,14 +270,14 @@ function buildWarning(
 }
 
 function dedupeWarnings(
-  warnings: readonly Listing.ListingUpdateWarning[]
+  warnings: readonly Listing.ListingUpdateWarning[],
 ): Listing.ListingUpdateWarning[] {
   return [
     ...new Map(
       warnings.map((warning) => [
         JSON.stringify([warning.code, warning.field ?? [], warning.message]),
         warning,
-      ])
+      ]),
     ).values(),
   ];
 }

@@ -11,9 +11,7 @@ export type CreateOrderValidated = {
 };
 
 export class OrderDomainValidator {
-  static validateAndNormalizeCreate(
-    input: CreateOrderValidationInput
-  ): CreateOrderValidated {
+  static validateAndNormalizeCreate(input: CreateOrderValidationInput): CreateOrderValidated {
     return {
       storeId: input.storeId,
       currencyCode: input.currencyCode,

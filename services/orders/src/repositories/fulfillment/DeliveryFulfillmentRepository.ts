@@ -2,13 +2,26 @@ import { createHash } from "node:crypto";
 import { and, asc, eq } from "drizzle-orm";
 import type { Delivery, Orders } from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
-import { deliveryFulfillmentSnapshots, deliveryFulfillmentUpdates, type OrderDeliveryFulfillmentPayload } from "../models/index.js";
+import {
+  deliveryFulfillmentSnapshots,
+  deliveryFulfillmentUpdates,
+  type OrderDeliveryFulfillmentPayload,
+} from "../models/index.js";
 
 export class DeliveryFulfillmentRepository extends BaseRepository {
-  async listForOrder(params: Orders.ListOrderDeliveryFulfillmentOrdersParams): Promise<Orders.ListOrderDeliveryFulfillmentOrdersResult> {
-    const rows = await this.connection.select({ payload: deliveryFulfillmentSnapshots.payload }).from(deliveryFulfillmentSnapshots).where(and(
-      eq(deliveryFulfillmentSnapshots.storeId, params.storeId), eq(deliveryFulfillmentSnapshots.orderId, params.orderId),
-    )).orderBy(asc(deliveryFulfillmentSnapshots.createdAt));
+  async listForOrder(
+    params: Orders.ListOrderDeliveryFulfillmentOrdersParams,
+  ): Promise<Orders.ListOrderDeliveryFulfillmentOrdersResult> {
+    const rows = await this.connection
+      .select({ payload: deliveryFulfillmentSnapshots.payload })
+      .from(deliveryFulfillmentSnapshots)
+      .where(
+        and(
+          eq(deliveryFulfillmentSnapshots.storeId, params.storeId),
+          eq(deliveryFulfillmentSnapshots.orderId, params.orderId),
+        ),
+      )
+      .orderBy(asc(deliveryFulfillmentSnapshots.createdAt));
     return { fulfillmentOrders: rows.map(({ payload }) => payload.snapshot) };
   }
 
@@ -27,7 +40,8 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
       const itemByLine = new Map<string, Delivery.DeliveryFulfillmentOrderLineItemSnapshot>();
       for (const item of source.packages.flatMap(({ items }) => items)) {
         const prior = itemByLine.get(item.lineId);
-        if (prior && prior.variantId !== item.variantId) throw new Error("ORDER_FULFILLMENT_LINE_VARIANT_CONFLICT");
+        if (prior && prior.variantId !== item.variantId)
+          throw new Error("ORDER_FULFILLMENT_LINE_VARIANT_CONFLICT");
         const quantity = (prior?.quantity ?? 0) + item.quantity;
         itemByLine.set(item.lineId, {
           fulfillmentOrderLineItemId: item.lineId,
@@ -52,10 +66,17 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
         status: "OPEN",
         requestStatus: "UNSUBMITTED",
         supportedActions: ["CREATE_SHIPMENT", "HOLD", "MOVE", "CLOSE", "MARK_INCOMPLETE"],
-        assignedLocation: { locationId: source.origin.fulfillmentLocationId, management: "MERCHANT", fulfillmentService: null },
+        assignedLocation: {
+          locationId: source.origin.fulfillmentLocationId,
+          management: "MERCHANT",
+          fulfillmentService: null,
+        },
         holds: [],
         deliveryMethod: source.deliveryMethod,
-        lineItems: items as [Delivery.DeliveryFulfillmentOrderLineItemSnapshot, ...Delivery.DeliveryFulfillmentOrderLineItemSnapshot[]],
+        lineItems: items as [
+          Delivery.DeliveryFulfillmentOrderLineItemSnapshot,
+          ...Delivery.DeliveryFulfillmentOrderLineItemSnapshot[],
+        ],
         fulfillAt: null,
         fulfillBy: source.deliveryMethod.estimatedMaxDeliveryAt,
         createdAt: input.createdAt,
@@ -79,24 +100,88 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
     }
   }
 
-  async getShipmentPlan(params: Orders.GetOrderDeliveryShipmentPlanParams): Promise<Orders.GetOrderDeliveryShipmentPlanResult> {
+  async getShipmentPlan(
+    params: Orders.GetOrderDeliveryShipmentPlanParams,
+  ): Promise<Orders.GetOrderDeliveryShipmentPlanResult> {
     const row = await this.getRow(params.storeId, params.fulfillmentOrderId);
     if (!row) throw new Error("FULFILLMENT_ORDER_NOT_FOUND");
     const { snapshot, source } = row.payload;
-    if (snapshot.revision !== params.expectedFulfillmentOrderRevision) return notReady("REVISION_CONFLICT", snapshot, "FULFILLMENT_ORDER_REVISION_CONFLICT", "The fulfillment order changed.");
-    if (snapshot.status === "SCHEDULED") return notReady("SCHEDULED", snapshot, "FULFILLMENT_ORDER_SCHEDULED", "The fulfillment order is scheduled for later.");
-    if (snapshot.status === "ON_HOLD") return notReady("ON_HOLD", snapshot, "FULFILLMENT_ORDER_ON_HOLD", "The fulfillment order is on hold.");
-    if (snapshot.status === "CLOSED" || snapshot.status === "CANCELLED") return notReady("CLOSED", snapshot, "FULFILLMENT_ORDER_CLOSED", "The fulfillment order is closed.");
-    if (snapshot.assignedLocation.management === "FULFILLMENT_SERVICE" && !["ACCEPTED", "CANCELLATION_REJECTED"].includes(snapshot.requestStatus)) {
-      return notReady("FULFILLMENT_REQUEST_NOT_ACCEPTED", snapshot, "FULFILLMENT_REQUEST_NOT_ACCEPTED", "The fulfillment service has not accepted this request.");
+    if (snapshot.revision !== params.expectedFulfillmentOrderRevision)
+      return notReady(
+        "REVISION_CONFLICT",
+        snapshot,
+        "FULFILLMENT_ORDER_REVISION_CONFLICT",
+        "The fulfillment order changed.",
+      );
+    if (snapshot.status === "SCHEDULED")
+      return notReady(
+        "SCHEDULED",
+        snapshot,
+        "FULFILLMENT_ORDER_SCHEDULED",
+        "The fulfillment order is scheduled for later.",
+      );
+    if (snapshot.status === "ON_HOLD")
+      return notReady(
+        "ON_HOLD",
+        snapshot,
+        "FULFILLMENT_ORDER_ON_HOLD",
+        "The fulfillment order is on hold.",
+      );
+    if (snapshot.status === "CLOSED" || snapshot.status === "CANCELLED")
+      return notReady(
+        "CLOSED",
+        snapshot,
+        "FULFILLMENT_ORDER_CLOSED",
+        "The fulfillment order is closed.",
+      );
+    if (
+      snapshot.assignedLocation.management === "FULFILLMENT_SERVICE" &&
+      !["ACCEPTED", "CANCELLATION_REJECTED"].includes(snapshot.requestStatus)
+    ) {
+      return notReady(
+        "FULFILLMENT_REQUEST_NOT_ACCEPTED",
+        snapshot,
+        "FULFILLMENT_REQUEST_NOT_ACCEPTED",
+        "The fulfillment service has not accepted this request.",
+      );
     }
-    const available = new Map(snapshot.lineItems.map((line) => [line.fulfillmentOrderLineItemId, line]));
-    const selected = params.lineItems ?? snapshot.lineItems.filter(({ requiresShipping, remainingQuantity }) => requiresShipping && remainingQuantity > 0).map(({ fulfillmentOrderLineItemId, remainingQuantity }) => ({ fulfillmentOrderLineItemId, quantity: remainingQuantity }));
-    if (selected.length === 0 || selected.some((entry) => {
-      const line = available.get(entry.fulfillmentOrderLineItemId);
-      return !line || !line.requiresShipping || entry.quantity <= 0 || entry.quantity > line.remainingQuantity;
-    })) return notReady("INVALID_LINE_ITEMS", snapshot, "FULFILLMENT_LINE_ITEMS_INVALID", "The requested shipment quantities are unavailable.");
-    const quantityByLine = new Map(selected.map(({ fulfillmentOrderLineItemId, quantity }) => [fulfillmentOrderLineItemId, quantity]));
+    const available = new Map(
+      snapshot.lineItems.map((line) => [line.fulfillmentOrderLineItemId, line]),
+    );
+    const selected =
+      params.lineItems ??
+      snapshot.lineItems
+        .filter(
+          ({ requiresShipping, remainingQuantity }) => requiresShipping && remainingQuantity > 0,
+        )
+        .map(({ fulfillmentOrderLineItemId, remainingQuantity }) => ({
+          fulfillmentOrderLineItemId,
+          quantity: remainingQuantity,
+        }));
+    if (
+      selected.length === 0 ||
+      selected.some((entry) => {
+        const line = available.get(entry.fulfillmentOrderLineItemId);
+        return (
+          !line ||
+          !line.requiresShipping ||
+          entry.quantity <= 0 ||
+          entry.quantity > line.remainingQuantity
+        );
+      })
+    )
+      return notReady(
+        "INVALID_LINE_ITEMS",
+        snapshot,
+        "FULFILLMENT_LINE_ITEMS_INVALID",
+        "The requested shipment quantities are unavailable.",
+      );
+    const quantityByLine = new Map(
+      selected.map(({ fulfillmentOrderLineItemId, quantity }) => [
+        fulfillmentOrderLineItemId,
+        quantity,
+      ]),
+    );
     const packages = source.packages.flatMap((sourcePackage) => {
       const items = sourcePackage.items.flatMap((item) => {
         const remaining = quantityByLine.get(item.lineId) ?? 0;
@@ -107,11 +192,36 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
       });
       if (items.length === 0) return [];
       const weightGrams = items.reduce((sum, item) => sum + item.weightGrams * item.quantity, 0);
-      const amountMinor = items.reduce((sum, item) => sum + BigInt(item.unitDeclaredValue.amountMinor) * BigInt(item.quantity), 0n).toString();
-      return [{ ...sourcePackage, packageId: digest("ofpkg_v1", [sourcePackage.packageId, items]), items, weightGrams, declaredValue: { ...sourcePackage.declaredValue, amountMinor } }];
+      const amountMinor = items
+        .reduce(
+          (sum, item) => sum + BigInt(item.unitDeclaredValue.amountMinor) * BigInt(item.quantity),
+          0n,
+        )
+        .toString();
+      return [
+        {
+          ...sourcePackage,
+          packageId: digest("ofpkg_v1", [sourcePackage.packageId, items]),
+          items,
+          weightGrams,
+          declaredValue: { ...sourcePackage.declaredValue, amountMinor },
+        },
+      ];
     });
-    if ([...quantityByLine.values()].some((quantity) => quantity !== 0)) return notReady("INVALID_LINE_ITEMS", snapshot, "FULFILLMENT_PACKAGE_QUANTITY_INVALID", "The requested quantity cannot be mapped to committed packages.");
-    if (packages.length === 0) return notReady("NO_SHIPPING_REQUIRED", snapshot, "FULFILLMENT_NO_PACKAGES", "No physical package can be produced.");
+    if ([...quantityByLine.values()].some((quantity) => quantity !== 0))
+      return notReady(
+        "INVALID_LINE_ITEMS",
+        snapshot,
+        "FULFILLMENT_PACKAGE_QUANTITY_INVALID",
+        "The requested quantity cannot be mapped to committed packages.",
+      );
+    if (packages.length === 0)
+      return notReady(
+        "NO_SHIPPING_REQUIRED",
+        snapshot,
+        "FULFILLMENT_NO_PACKAGES",
+        "No physical package can be produced.",
+      );
     const planWithoutHash = {
       fulfillmentOrder: snapshot,
       lineItems: selected,
@@ -122,90 +232,203 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
       recipient: source.recipient,
       packages,
     };
-    return { status: "READY", plan: { ...planWithoutHash, lineItems: selected as [Delivery.DeliveryFulfillmentOrderLineItemInput, ...Delivery.DeliveryFulfillmentOrderLineItemInput[]], packages: packages as unknown as [Delivery.DeliveryProviderPackage, ...Delivery.DeliveryProviderPackage[]], planHash: digest("osplan_v1", planWithoutHash) } };
+    return {
+      status: "READY",
+      plan: {
+        ...planWithoutHash,
+        lineItems: selected as [
+          Delivery.DeliveryFulfillmentOrderLineItemInput,
+          ...Delivery.DeliveryFulfillmentOrderLineItemInput[],
+        ],
+        packages: packages as unknown as [
+          Delivery.DeliveryProviderPackage,
+          ...Delivery.DeliveryProviderPackage[],
+        ],
+        planHash: digest("osplan_v1", planWithoutHash),
+      },
+    };
   }
 
-  async applyShipmentUpdate(params: Orders.ApplyOrderDeliveryShipmentUpdateParams): Promise<Orders.ApplyOrderDeliveryShipmentUpdateResult> {
+  async applyShipmentUpdate(
+    params: Orders.ApplyOrderDeliveryShipmentUpdateParams,
+  ): Promise<Orders.ApplyOrderDeliveryShipmentUpdateResult> {
     return this.txManager.run(async () => {
-      const [row] = await this.connection.select().from(deliveryFulfillmentSnapshots).where(and(
-        eq(deliveryFulfillmentSnapshots.storeId, params.storeId), eq(deliveryFulfillmentSnapshots.id, params.update.fulfillmentOrderId),
-      )).limit(1).for("update");
+      const [row] = await this.connection
+        .select()
+        .from(deliveryFulfillmentSnapshots)
+        .where(
+          and(
+            eq(deliveryFulfillmentSnapshots.storeId, params.storeId),
+            eq(deliveryFulfillmentSnapshots.id, params.update.fulfillmentOrderId),
+          ),
+        )
+        .limit(1)
+        .for("update");
       if (!row) throw new Error("FULFILLMENT_ORDER_NOT_FOUND");
       const requestHash = digest("ofupdate_v1", params.update);
-      const [existing] = await this.connection.select().from(deliveryFulfillmentUpdates).where(and(
-        eq(deliveryFulfillmentUpdates.storeId, params.storeId), eq(deliveryFulfillmentUpdates.shipmentId, params.update.shipmentId),
-        eq(deliveryFulfillmentUpdates.shipmentRevision, params.update.shipmentRevision),
-      )).limit(1);
+      const [existing] = await this.connection
+        .select()
+        .from(deliveryFulfillmentUpdates)
+        .where(
+          and(
+            eq(deliveryFulfillmentUpdates.storeId, params.storeId),
+            eq(deliveryFulfillmentUpdates.shipmentId, params.update.shipmentId),
+            eq(deliveryFulfillmentUpdates.shipmentRevision, params.update.shipmentRevision),
+          ),
+        )
+        .limit(1);
       if (existing) {
-        if (existing.requestHash !== requestHash) throw new Error("FULFILLMENT_SHIPMENT_UPDATE_CONFLICT");
+        if (existing.requestHash !== requestHash)
+          throw new Error("FULFILLMENT_SHIPMENT_UPDATE_CONFLICT");
         return { status: "DUPLICATE", fulfillmentOrderRevision: row.revision };
       }
-      if (row.revision !== params.update.expectedFulfillmentOrderRevision) return { status: "REVISION_CONFLICT", fulfillmentOrderRevision: row.revision };
+      if (row.revision !== params.update.expectedFulfillmentOrderRevision)
+        return { status: "REVISION_CONFLICT", fulfillmentOrderRevision: row.revision };
       const payload = row.payload;
       let lineItems = [...payload.snapshot.lineItems];
-      const history = await this.connection.select().from(deliveryFulfillmentUpdates).where(and(
-        eq(deliveryFulfillmentUpdates.storeId, params.storeId), eq(deliveryFulfillmentUpdates.fulfillmentOrderId, row.id),
-      )).orderBy(asc(deliveryFulfillmentUpdates.createdAt), asc(deliveryFulfillmentUpdates.shipmentRevision));
-      if (params.update.state === "SHIPMENT_CREATED") lineItems = allocate(lineItems, params.update.lineItems, -1);
+      const history = await this.connection
+        .select()
+        .from(deliveryFulfillmentUpdates)
+        .where(
+          and(
+            eq(deliveryFulfillmentUpdates.storeId, params.storeId),
+            eq(deliveryFulfillmentUpdates.fulfillmentOrderId, row.id),
+          ),
+        )
+        .orderBy(
+          asc(deliveryFulfillmentUpdates.createdAt),
+          asc(deliveryFulfillmentUpdates.shipmentRevision),
+        );
+      if (params.update.state === "SHIPMENT_CREATED")
+        lineItems = allocate(lineItems, params.update.lineItems, -1);
       if (params.update.state === "CANCELLED") {
         const prior = history.filter(({ shipmentId }) => shipmentId === params.update.shipmentId);
-        if (prior.some(({ state }) => state === "SHIPMENT_CREATED") && !prior.some(({ state }) => state === "CANCELLED")) lineItems = allocate(lineItems, params.update.lineItems, 1);
+        if (
+          prior.some(({ state }) => state === "SHIPMENT_CREATED") &&
+          !prior.some(({ state }) => state === "CANCELLED")
+        )
+          lineItems = allocate(lineItems, params.update.lineItems, 1);
       }
       const nextRevision = row.revision + 1;
       const remaining = lineItems.reduce((sum, line) => sum + line.remainingQuantity, 0);
       const latestState = new Map(history.map(({ shipmentId, state }) => [shipmentId, state]));
       latestState.set(params.update.shipmentId, params.update.state);
-      const activeShipmentIds = new Set(history.filter(({ state }) => state === "SHIPMENT_CREATED").map(({ shipmentId }) => shipmentId));
-      if (params.update.state === "SHIPMENT_CREATED") activeShipmentIds.add(params.update.shipmentId);
-      const allActiveShipmentsDelivered = [...activeShipmentIds].every((shipmentId) => latestState.get(shipmentId) === "DELIVERED" || latestState.get(shipmentId) === "CANCELLED");
-      const status: Delivery.DeliveryFulfillmentOrderStatus = remaining === 0 && allActiveShipmentsDelivered
-        ? "CLOSED"
-        : params.update.state === "DELIVERY_FAILED"
-          ? "INCOMPLETE"
-          : params.update.state === "CANCELLED" && remaining > 0
-            ? "OPEN"
-            : "IN_PROGRESS";
+      const activeShipmentIds = new Set(
+        history
+          .filter(({ state }) => state === "SHIPMENT_CREATED")
+          .map(({ shipmentId }) => shipmentId),
+      );
+      if (params.update.state === "SHIPMENT_CREATED")
+        activeShipmentIds.add(params.update.shipmentId);
+      const allActiveShipmentsDelivered = [...activeShipmentIds].every(
+        (shipmentId) =>
+          latestState.get(shipmentId) === "DELIVERED" ||
+          latestState.get(shipmentId) === "CANCELLED",
+      );
+      const status: Delivery.DeliveryFulfillmentOrderStatus =
+        remaining === 0 && allActiveShipmentsDelivered
+          ? "CLOSED"
+          : params.update.state === "DELIVERY_FAILED"
+            ? "INCOMPLETE"
+            : params.update.state === "CANCELLED" && remaining > 0
+              ? "OPEN"
+              : "IN_PROGRESS";
       const snapshot: Delivery.DeliveryFulfillmentOrderSnapshot = {
         ...payload.snapshot,
         revision: nextRevision,
         status,
         supportedActions: status === "CLOSED" ? [] : payload.snapshot.supportedActions,
-        lineItems: lineItems as [Delivery.DeliveryFulfillmentOrderLineItemSnapshot, ...Delivery.DeliveryFulfillmentOrderLineItemSnapshot[]],
+        lineItems: lineItems as [
+          Delivery.DeliveryFulfillmentOrderLineItemSnapshot,
+          ...Delivery.DeliveryFulfillmentOrderLineItemSnapshot[],
+        ],
         updatedAt: params.update.occurredAt,
       };
-      await this.connection.update(deliveryFulfillmentSnapshots).set({ revision: nextRevision, status, payload: { ...payload, snapshot }, updatedAt: params.update.occurredAt }).where(eq(deliveryFulfillmentSnapshots.id, row.id));
+      await this.connection
+        .update(deliveryFulfillmentSnapshots)
+        .set({
+          revision: nextRevision,
+          status,
+          payload: { ...payload, snapshot },
+          updatedAt: params.update.occurredAt,
+        })
+        .where(eq(deliveryFulfillmentSnapshots.id, row.id));
       await this.connection.insert(deliveryFulfillmentUpdates).values({
-        id: await this.generateUuidV7(), storeId: params.storeId, fulfillmentOrderId: row.id, shipmentId: params.update.shipmentId,
-        shipmentRevision: params.update.shipmentRevision, state: params.update.state, requestHash, payload: params.update,
+        id: await this.generateUuidV7(),
+        storeId: params.storeId,
+        fulfillmentOrderId: row.id,
+        shipmentId: params.update.shipmentId,
+        shipmentRevision: params.update.shipmentRevision,
+        state: params.update.state,
+        requestHash,
+        payload: params.update,
       });
       return { status: "APPLIED", fulfillmentOrderRevision: nextRevision };
     });
   }
 
   private async getRow(storeId: string, fulfillmentOrderId: string) {
-    return (await this.connection.select().from(deliveryFulfillmentSnapshots).where(and(
-      eq(deliveryFulfillmentSnapshots.storeId, storeId), eq(deliveryFulfillmentSnapshots.id, fulfillmentOrderId),
-    )).limit(1))[0] ?? null;
+    return (
+      (
+        await this.connection
+          .select()
+          .from(deliveryFulfillmentSnapshots)
+          .where(
+            and(
+              eq(deliveryFulfillmentSnapshots.storeId, storeId),
+              eq(deliveryFulfillmentSnapshots.id, fulfillmentOrderId),
+            ),
+          )
+          .limit(1)
+      )[0] ?? null
+    );
   }
 
   private async getByOrderGroup(storeId: string, orderId: string, groupId: string) {
-    return (await this.connection.select().from(deliveryFulfillmentSnapshots).where(and(
-      eq(deliveryFulfillmentSnapshots.storeId, storeId), eq(deliveryFulfillmentSnapshots.orderId, orderId), eq(deliveryFulfillmentSnapshots.deliveryGroupId, groupId),
-    )).limit(1))[0] ?? null;
+    return (
+      (
+        await this.connection
+          .select()
+          .from(deliveryFulfillmentSnapshots)
+          .where(
+            and(
+              eq(deliveryFulfillmentSnapshots.storeId, storeId),
+              eq(deliveryFulfillmentSnapshots.orderId, orderId),
+              eq(deliveryFulfillmentSnapshots.deliveryGroupId, groupId),
+            ),
+          )
+          .limit(1)
+      )[0] ?? null
+    );
   }
 }
 
-function allocate(lines: readonly Delivery.DeliveryFulfillmentOrderLineItemSnapshot[], allocations: readonly Delivery.DeliveryFulfillmentOrderLineItemInput[], direction: -1 | 1) {
-  const amounts = new Map(allocations.map(({ fulfillmentOrderLineItemId, quantity }) => [fulfillmentOrderLineItemId, quantity]));
+function allocate(
+  lines: readonly Delivery.DeliveryFulfillmentOrderLineItemSnapshot[],
+  allocations: readonly Delivery.DeliveryFulfillmentOrderLineItemInput[],
+  direction: -1 | 1,
+) {
+  const amounts = new Map(
+    allocations.map(({ fulfillmentOrderLineItemId, quantity }) => [
+      fulfillmentOrderLineItemId,
+      quantity,
+    ]),
+  );
   return lines.map((line) => {
     const quantity = amounts.get(line.fulfillmentOrderLineItemId) ?? 0;
     const remainingQuantity = line.remainingQuantity + direction * quantity;
-    if (remainingQuantity < 0 || remainingQuantity > line.quantity) throw new Error("FULFILLMENT_ALLOCATION_INVALID");
+    if (remainingQuantity < 0 || remainingQuantity > line.quantity)
+      throw new Error("FULFILLMENT_ALLOCATION_INVALID");
     return { ...line, remainingQuantity };
   });
 }
 
-function notReady(reason: Exclude<Delivery.DeliveryShipmentPlanAvailability, { status: "READY" }>["reason"], snapshot: Delivery.DeliveryFulfillmentOrderSnapshot, code: string, message: string): Delivery.DeliveryShipmentPlanAvailability {
+function notReady(
+  reason: Exclude<Delivery.DeliveryShipmentPlanAvailability, { status: "READY" }>["reason"],
+  snapshot: Delivery.DeliveryFulfillmentOrderSnapshot,
+  code: string,
+  message: string,
+): Delivery.DeliveryShipmentPlanAvailability {
   return { status: "NOT_READY", reason, code, message, currentRevision: snapshot.revision };
 }
 

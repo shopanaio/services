@@ -26,10 +26,14 @@ extend type Mutation {
 }
 
 type MediaQuery {
-  """Media delivery settings for the current store."""
+  """
+  Media delivery settings for the current store.
+  """
   mediaSettings: MediaSettings
 
-  """Resolve and inspect the CDN route for a current-store file."""
+  """
+  Resolve and inspect the CDN route for a current-store file.
+  """
   cdnDeliveryPreview(
     fileId: ID!
     configurationId: ID
@@ -37,7 +41,9 @@ type MediaQuery {
     transform: ImageTransformInput
   ): CdnDeliveryPreview!
 
-  """Which transformStrategy/signingMode keys are actually registered and usable."""
+  """
+  Which transformStrategy/signingMode keys are actually registered and usable.
+  """
   cdnAdapterCapabilities: CdnAdapterCapabilities!
 
   """
@@ -77,7 +83,9 @@ type MediaQuery {
     Sort order
     """
     orderBy: [FileOrderByInput!]
-    """Select active media, trash, or both."""
+    """
+    Select active media, trash, or both.
+    """
     state: FileStateScope = ACTIVE
   ): FileConnection!
 }
@@ -101,9 +109,7 @@ type MediaMutation {
   # File mutations
   fileUpload(input: FileUploadMultipartInput!): FileUploadPayload!
   fileUploadFromUrl(input: FileUploadFromUrlInput!): FileUploadPayload!
-  fileCreateExternal(
-    input: FileCreateExternalInput!
-  ): FileCreateExternalPayload!
+  fileCreateExternal(input: FileCreateExternalInput!): FileCreateExternalPayload!
   fileUpdate(input: FileUpdateInput!): FileUpdatePayload!
   fileDelete(input: FileDeleteInput!): FileDeletePayload!
 

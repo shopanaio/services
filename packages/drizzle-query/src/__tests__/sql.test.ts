@@ -1,13 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import "./test/setup.js";
-import {
-  getDb,
-  users,
-  products,
-  translations,
-  events,
-  clearTables,
-} from "./test/setup.js";
+import { getDb, users, products, translations, events, clearTables } from "./test/setup.js";
 import { createQuery, field } from "../index.js";
 
 // Create queries using the shared table definitions from setup.ts
@@ -73,11 +66,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const result = await usersQuery.execute(db as any, {});
 
       expect(result).toHaveLength(3);
-      expect(result.map((u) => u.name).sort()).toEqual([
-        "Alice",
-        "Bob",
-        "Charlie",
-      ]);
+      expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Bob", "Charlie"]);
     });
 
     it("should apply limit and offset", async () => {
@@ -352,7 +341,10 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        order: [{ field: "name", direction: "asc" }, { field: "age", direction: "desc" }],
+        order: [
+          { field: "name", direction: "asc" },
+          { field: "age", direction: "desc" },
+        ],
       });
 
       // Both Alices first, then Bob, then Charlie
@@ -470,7 +462,6 @@ describe("SQL Integration Tests with PGlite", () => {
       ]);
     });
 
-
     it("should apply multiple operators on same field (range query)", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -490,9 +481,7 @@ describe("SQL Integration Tests with PGlite", () => {
       });
 
       expect(result).toHaveLength(2);
-      expect(
-        result.every((u) => (u as Record<string, unknown>).isActive === true)
-      ).toBe(true);
+      expect(result.every((u) => (u as Record<string, unknown>).isActive === true)).toBe(true);
     });
 
     it("should filter boolean field with _eq false", async () => {
@@ -503,9 +492,7 @@ describe("SQL Integration Tests with PGlite", () => {
       });
 
       expect(result).toHaveLength(2);
-      expect(
-        result.every((u) => (u as Record<string, unknown>).isActive === false)
-      ).toBe(true);
+      expect(result.every((u) => (u as Record<string, unknown>).isActive === false)).toBe(true);
     });
 
     it("should handle empty _notIn array gracefully", async () => {
@@ -703,10 +690,7 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
         where: {
-          _or: [
-            { _not: { isActive: { _eq: true } } },
-            { age: { _lt: 26 } },
-          ],
+          _or: [{ _not: { isActive: { _eq: true } } }, { age: { _lt: 26 } }],
         },
       });
 
@@ -764,11 +748,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // Alice (25, active), Eve (28, active), Diana (40, inactive)
       expect(result).toHaveLength(3);
-      expect(result.map((u) => u.name).sort()).toEqual([
-        "Alice",
-        "Diana",
-        "Eve",
-      ]);
+      expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Diana", "Eve"]);
     });
   });
 
@@ -777,9 +757,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
 
       // Insert product WITHOUT translation
-      await db
-        .insert(products)
-        .values({ handle: "orphan-product", price: 500 });
+      await db.insert(products).values({ handle: "orphan-product", price: 500 });
 
       // Insert product WITH translation
       const [productWithTranslation] = await db
@@ -798,10 +776,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // LEFT JOIN should return both products
       expect(result).toHaveLength(2);
-      expect(result.map((p) => p.handle).sort()).toEqual([
-        "orphan-product",
-        "product-with-title",
-      ]);
+      expect(result.map((p) => p.handle).sort()).toEqual(["orphan-product", "product-with-title"]);
     });
 
     it("should filter with INNER JOIN returning only matching records", async () => {
@@ -816,9 +791,7 @@ describe("SQL Integration Tests with PGlite", () => {
       });
 
       // Insert product WITHOUT translation
-      await db
-        .insert(products)
-        .values({ handle: "orphan-product", price: 500 });
+      await db.insert(products).values({ handle: "orphan-product", price: 500 });
 
       // Insert product WITH translation
       const [productWithTranslation] = await db
@@ -967,10 +940,7 @@ describe("SQL Integration Tests with PGlite", () => {
     it("should filter by UUID with _eq", async () => {
       const db = getDb();
 
-      const [user1] = await db
-        .insert(users)
-        .values({ name: "Alice", age: 25 })
-        .returning();
+      const [user1] = await db.insert(users).values({ name: "Alice", age: 25 }).returning();
       await db.insert(users).values({ name: "Bob", age: 30 });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -985,14 +955,8 @@ describe("SQL Integration Tests with PGlite", () => {
     it("should filter by UUID with _in", async () => {
       const db = getDb();
 
-      const [user1] = await db
-        .insert(users)
-        .values({ name: "Alice", age: 25 })
-        .returning();
-      const [user2] = await db
-        .insert(users)
-        .values({ name: "Bob", age: 30 })
-        .returning();
+      const [user1] = await db.insert(users).values({ name: "Alice", age: 25 }).returning();
+      const [user2] = await db.insert(users).values({ name: "Bob", age: 30 }).returning();
       await db.insert(users).values({ name: "Charlie", age: 35 });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1007,10 +971,7 @@ describe("SQL Integration Tests with PGlite", () => {
     it("should filter by UUID with _neq", async () => {
       const db = getDb();
 
-      const [user1] = await db
-        .insert(users)
-        .values({ name: "Alice", age: 25 })
-        .returning();
+      const [user1] = await db.insert(users).values({ name: "Alice", age: 25 }).returning();
       await db.insert(users).values({ name: "Bob", age: 30 });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1173,9 +1134,7 @@ describe("SQL Integration Tests with PGlite", () => {
         handle: string | null;
         price: number | null;
       }>;
-      const orphanRow = rawRows.find(
-        (row) => row.handle === null && row.price === null
-      );
+      const orphanRow = rawRows.find((row) => row.handle === null && row.price === null);
       expect(orphanRow).toBeDefined();
     });
 
@@ -1191,9 +1150,7 @@ describe("SQL Integration Tests with PGlite", () => {
       });
 
       // Insert orphan product (no translation)
-      await db
-        .insert(products)
-        .values({ handle: "orphan-product", price: 500 });
+      await db.insert(products).values({ handle: "orphan-product", price: 500 });
 
       // Insert orphan translation (no matching product)
       await db.insert(translations).values({
@@ -1217,10 +1174,7 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithFullJoinQuery.execute(db as any, {
         where: {
-          _or: [
-            { translation: { value: { _isNot: null } } },
-            { price: { _gte: 0 } },
-          ],
+          _or: [{ translation: { value: { _isNot: null } } }, { price: { _gte: 0 } }],
         },
       });
 
@@ -1231,9 +1185,7 @@ describe("SQL Integration Tests with PGlite", () => {
       }>;
       expect(rawRows.some((row) => row.handle === "orphan-product")).toBe(true);
       expect(rawRows.some((row) => row.handle === "phone")).toBe(true);
-      expect(
-        rawRows.some((row) => row.handle === null && row.price === null)
-      ).toBe(true);
+      expect(rawRows.some((row) => row.handle === null && row.price === null)).toBe(true);
     });
   });
 
@@ -1332,22 +1284,10 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
 
       // Insert products
-      const [p1] = await db
-        .insert(products)
-        .values({ handle: "phone1", price: 999 })
-        .returning();
-      const [p2] = await db
-        .insert(products)
-        .values({ handle: "phone2", price: 899 })
-        .returning();
-      const [p3] = await db
-        .insert(products)
-        .values({ handle: "phone3", price: 799 })
-        .returning();
-      const [p4] = await db
-        .insert(products)
-        .values({ handle: "laptop", price: 1999 })
-        .returning();
+      const [p1] = await db.insert(products).values({ handle: "phone1", price: 999 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "phone2", price: 899 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "phone3", price: 799 }).returning();
+      const [p4] = await db.insert(products).values({ handle: "laptop", price: 1999 }).returning();
 
       // Insert translations
       await db.insert(translations).values([
@@ -1380,18 +1320,9 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
 
       // Insert products
-      const [p1] = await db
-        .insert(products)
-        .values({ handle: "a-phone", price: 999 })
-        .returning();
-      const [p2] = await db
-        .insert(products)
-        .values({ handle: "b-phone", price: 899 })
-        .returning();
-      const [p3] = await db
-        .insert(products)
-        .values({ handle: "c-phone", price: 799 })
-        .returning();
+      const [p1] = await db.insert(products).values({ handle: "a-phone", price: 999 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "b-phone", price: 899 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "c-phone", price: 799 }).returning();
 
       await db.insert(translations).values([
         { entityId: p1.id, field: "title", value: "Phone A" },
@@ -1416,18 +1347,9 @@ describe("SQL Integration Tests with PGlite", () => {
     it("should handle multiple order fields with join and pagination", async () => {
       const db = getDb();
 
-      const [p1] = await db
-        .insert(products)
-        .values({ handle: "phone", price: 999 })
-        .returning();
-      const [p2] = await db
-        .insert(products)
-        .values({ handle: "phone", price: 899 })
-        .returning();
-      const [p3] = await db
-        .insert(products)
-        .values({ handle: "tablet", price: 599 })
-        .returning();
+      const [p1] = await db.insert(products).values({ handle: "phone", price: 999 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "phone", price: 899 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "tablet", price: 599 }).returning();
 
       await db.insert(translations).values([
         { entityId: p1.id, field: "title", value: "Phone Pro" },
@@ -1438,7 +1360,10 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
         where: { price: { _gt: 0 } },
-        order: [{ field: "handle", direction: "asc" }, { field: "price", direction: "desc" }],
+        order: [
+          { field: "handle", direction: "asc" },
+          { field: "price", direction: "desc" },
+        ],
         limit: 10,
       });
 
@@ -1463,7 +1388,7 @@ describe("SQL Integration Tests with PGlite", () => {
         usersQuery.execute(db as any, {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           where: { unknownField: { _eq: "value" } } as any,
-        })
+        }),
       ).rejects.toThrow(/Unknown field "unknownField"/);
     });
 
@@ -1479,7 +1404,7 @@ describe("SQL Integration Tests with PGlite", () => {
         usersQuery.execute(db as any, {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           order: [{ field: "nonExistentField", direction: "asc" }] as any,
-        })
+        }),
       ).rejects.toThrow(/Unknown field "nonExistentField"/);
     });
 
@@ -1534,10 +1459,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
 
       // Insert user first
-      const [user] = await db
-        .insert(users)
-        .values({ name: "Alice", age: 25 })
-        .returning();
+      const [user] = await db.insert(users).values({ name: "Alice", age: 25 }).returning();
 
       // Insert events into analytics.events (qualified table)
       await db.insert(events).values([

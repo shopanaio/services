@@ -4,9 +4,7 @@ import { hashContent } from "@shopana/shared-kernel";
 import type { Kernel } from "../../../kernel/Kernel.js";
 import type { Customer } from "../../../repositories/models/index.js";
 import { CustomerProvisioningError } from "../../../scripts/customer/CustomerProvisionFromIamScript.js";
-import type {
-  CustomerProvisionFromIamWorkflowInput,
-} from "../../../workflows/CustomerProvisionFromIamWorkflow.js";
+import type { CustomerProvisionFromIamWorkflowInput } from "../../../workflows/CustomerProvisionFromIamWorkflow.js";
 
 export interface StorefrontCustomerContextResolveInput {
   readonly accessToken: string;
@@ -26,34 +24,31 @@ export class StorefrontCustomerContextResolver {
   async resolve(
     input: StorefrontCustomerContextResolveInput,
   ): Promise<ResolvedStorefrontCustomerContext | null> {
-    const configuration =
-      await this.kernel.repository.storefrontAuth.findByStoreId(input.storeId);
-    if (
-      !configuration ||
-      configuration.organizationId !== input.organizationId
-    ) {
+    const configuration = await this.kernel.repository.storefrontAuth.findByStoreId(input.storeId);
+    if (!configuration || configuration.organizationId !== input.organizationId) {
       return null;
     }
 
-    const validation = await this.kernel.getServices().broker.call<
-      IAM.ValidateServiceLinkedApplicationTokenResult,
-      IAM.ValidateServiceLinkedApplicationTokenParams
-    >("iam.validateServiceLinkedApplicationToken", {
-      applicationId: configuration.applicationId,
-      organizationId: configuration.organizationId,
-      linkedOwner: {
-        linkedOwnerType: "store",
-        linkedOwnerId: input.storeId,
-      },
-      token: input.accessToken,
-    });
+    const validation = await this.kernel
+      .getServices()
+      .broker.call<
+        IAM.ValidateServiceLinkedApplicationTokenResult,
+        IAM.ValidateServiceLinkedApplicationTokenParams
+      >("iam.validateServiceLinkedApplicationToken", {
+        applicationId: configuration.applicationId,
+        organizationId: configuration.organizationId,
+        linkedOwner: {
+          linkedOwnerType: "store",
+          linkedOwnerId: input.storeId,
+        },
+        token: input.accessToken,
+      });
     if (!validation.active) return null;
 
-    let customer =
-      await this.kernel.repository.customer.findByStoreAndIamPrincipalId(
-        input.storeId,
-        validation.userId,
-      );
+    let customer = await this.kernel.repository.customer.findByStoreAndIamPrincipalId(
+      input.storeId,
+      validation.userId,
+    );
     if (!customer) {
       customer = await this.provisionFromValidatedIdentity({
         input,
@@ -72,9 +67,7 @@ export class StorefrontCustomerContextResolver {
         phone: customer.phoneE164,
         language: customer.preferredLocale,
         isVerified: customer.emailVerified,
-        isBlocked:
-          customer.lifecycleStatus !== "ACTIVE" ||
-          customer.accountStatus !== "REGISTERED",
+        isBlocked: customer.lifecycleStatus !== "ACTIVE" || customer.accountStatus !== "REGISTERED",
         createdAt: customer.createdAt,
         updatedAt: customer.updatedAt,
       }),
@@ -91,18 +84,20 @@ export class StorefrontCustomerContextResolver {
     };
     applicationUserId: string;
   }): Promise<Customer | null> {
-    const identity = await this.kernel.getServices().broker.call<
-      IAM.GetServiceLinkedApplicationUserResult,
-      IAM.GetServiceLinkedApplicationUserParams
-    >("iam.getServiceLinkedApplicationUser", {
-      applicationId: params.configuration.applicationId,
-      organizationId: params.configuration.organizationId,
-      linkedOwner: {
-        linkedOwnerType: "store",
-        linkedOwnerId: params.input.storeId,
-      },
-      userId: params.applicationUserId,
-    });
+    const identity = await this.kernel
+      .getServices()
+      .broker.call<
+        IAM.GetServiceLinkedApplicationUserResult,
+        IAM.GetServiceLinkedApplicationUserParams
+      >("iam.getServiceLinkedApplicationUser", {
+        applicationId: params.configuration.applicationId,
+        organizationId: params.configuration.organizationId,
+        linkedOwner: {
+          linkedOwnerType: "store",
+          linkedOwnerId: params.input.storeId,
+        },
+        userId: params.applicationUserId,
+      });
     if (!identity.found || identity.user.status !== "active") return null;
 
     const workflowInput: CustomerProvisionFromIamWorkflowInput = {
@@ -123,16 +118,14 @@ export class StorefrontCustomerContextResolver {
       },
     };
     try {
-      await this.kernel.getServices().broker.runWorkflow(
-        "customers.customerProvisionFromIam",
-        workflowInput,
-        {
+      await this.kernel
+        .getServices()
+        .broker.runWorkflow("customers.customerProvisionFromIam", workflowInput, {
           source: "content",
           resourceId: `${params.input.storeId}:${identity.user.id}`,
           operation: "customerProvisionFromIamReadRepair",
           contentHash: hashContent(workflowInput.params),
-        },
-      );
+        });
     } catch (error) {
       if (isNonRetryableProvisioningConflict(error)) return null;
       throw error;
@@ -149,11 +142,11 @@ function isNonRetryableProvisioningConflict(error: unknown): boolean {
   if (error instanceof CustomerProvisioningError) return !error.retryable;
   return Boolean(
     error &&
-      typeof error === "object" &&
-      "code" in error &&
-      typeof error.code === "string" &&
-      error.code.startsWith("CUSTOMER_") &&
-      "retryable" in error &&
-      error.retryable === false,
+    typeof error === "object" &&
+    "code" in error &&
+    typeof error.code === "string" &&
+    error.code.startsWith("CUSTOMER_") &&
+    "retryable" in error &&
+    error.retryable === false,
   );
 }

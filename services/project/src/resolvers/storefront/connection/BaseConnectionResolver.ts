@@ -18,9 +18,7 @@ export abstract class BaseConnectionResolver<TArgs = unknown> extends ProjectTyp
 > {
   abstract $preload(): Promise<ConnectionData>;
 
-  protected abstract createNodeResolver(
-    nodeId: string,
-  ): unknown | Promise<unknown>;
+  protected abstract createNodeResolver(nodeId: string): unknown | Promise<unknown>;
 
   async edges() {
     const edgesData = await this.$get("edges");

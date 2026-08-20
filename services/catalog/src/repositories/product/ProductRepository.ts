@@ -42,7 +42,7 @@ export const productRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "product", tieBreaker: "id" }
+  { name: "product", tieBreaker: "id" },
 );
 
 export type ProductQueryInput = InferExecuteOptions<typeof productQuery>;
@@ -79,13 +79,7 @@ export class ProductRepository extends BaseRepository {
     const result = await this.connection
       .select({ id: product.id })
       .from(product)
-      .where(
-        and(
-          eq(product.storeId, this.storeId),
-          eq(product.id, id),
-          isNull(product.deletedAt)
-        )
-      )
+      .where(and(eq(product.storeId, this.storeId), eq(product.id, id), isNull(product.deletedAt)))
       .limit(1);
 
     return result.length > 0;
@@ -95,13 +89,7 @@ export class ProductRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(product)
-      .where(
-        and(
-          eq(product.storeId, this.storeId),
-          eq(product.id, id),
-          isNull(product.deletedAt)
-        )
-      )
+      .where(and(eq(product.storeId, this.storeId), eq(product.id, id), isNull(product.deletedAt)))
       .limit(1);
 
     return result[0] ?? null;
@@ -124,7 +112,7 @@ export class ProductRepository extends BaseRepository {
   }
 
   async create(
-    data: { vendorId?: string | null; publishedAt?: Date | string | null } = {}
+    data: { vendorId?: string | null; publishedAt?: Date | string | null } = {},
   ): Promise<Product> {
     const id = await this.generateUuidV7();
     const now = new Date().toISOString();
@@ -133,16 +121,16 @@ export class ProductRepository extends BaseRepository {
       storeId: this.storeId,
       id,
       vendorId: data.vendorId ?? null,
-      publishedAt: data.publishedAt instanceof Date ? data.publishedAt.toISOString() : data.publishedAt ?? null,
+      publishedAt:
+        data.publishedAt instanceof Date
+          ? data.publishedAt.toISOString()
+          : (data.publishedAt ?? null),
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
     };
 
-    const result = await this.connection
-      .insert(product)
-      .values(newProduct)
-      .returning();
+    const result = await this.connection.insert(product).values(newProduct).returning();
 
     return result[0];
   }
@@ -151,12 +139,7 @@ export class ProductRepository extends BaseRepository {
     await this.connection
       .update(product)
       .set({ updatedAt: new Date().toISOString() })
-      .where(
-        and(
-          eq(product.storeId, this.storeId),
-          eq(product.id, id)
-        )
-      );
+      .where(and(eq(product.storeId, this.storeId), eq(product.id, id)));
   }
 
   async update(
@@ -165,7 +148,7 @@ export class ProductRepository extends BaseRepository {
       handle?: string | null;
       vendorId?: string | null;
       publishedAt?: Date | string | null;
-    }
+    },
   ): Promise<Product | null> {
     const updateData: Partial<NewProduct> = {
       updatedAt: new Date().toISOString(),
@@ -173,17 +156,14 @@ export class ProductRepository extends BaseRepository {
 
     if (data.handle !== undefined) updateData.handle = data.handle;
     if (data.vendorId !== undefined) updateData.vendorId = data.vendorId;
-    if (data.publishedAt !== undefined) updateData.publishedAt = data.publishedAt instanceof Date ? data.publishedAt.toISOString() : data.publishedAt;
+    if (data.publishedAt !== undefined)
+      updateData.publishedAt =
+        data.publishedAt instanceof Date ? data.publishedAt.toISOString() : data.publishedAt;
 
     const result = await this.connection
       .update(product)
       .set(updateData)
-      .where(
-        and(
-          eq(product.storeId, this.storeId),
-          eq(product.id, id)
-        )
-      )
+      .where(and(eq(product.storeId, this.storeId), eq(product.id, id)))
       .returning();
 
     return result[0] ?? null;
@@ -194,13 +174,7 @@ export class ProductRepository extends BaseRepository {
     const result = await this.connection
       .update(product)
       .set({ deletedAt: now, updatedAt: now })
-      .where(
-        and(
-          eq(product.storeId, this.storeId),
-          eq(product.id, id),
-          isNull(product.deletedAt)
-        )
-      )
+      .where(and(eq(product.storeId, this.storeId), eq(product.id, id), isNull(product.deletedAt)))
       .returning({ id: product.id });
 
     return result.length > 0;
@@ -219,13 +193,7 @@ export class ProductRepository extends BaseRepository {
         updatedAt: now,
         revision: sql`${product.revision} + 1`,
       })
-      .where(
-        and(
-          eq(product.storeId, this.storeId),
-          eq(product.id, id),
-          isNull(product.deletedAt)
-        )
-      )
+      .where(and(eq(product.storeId, this.storeId), eq(product.id, id), isNull(product.deletedAt)))
       .returning({
         id: product.id,
         revision: product.revision,
@@ -238,12 +206,7 @@ export class ProductRepository extends BaseRepository {
   async hardDelete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(product)
-      .where(
-        and(
-          eq(product.storeId, this.storeId),
-          eq(product.id, id)
-        )
-      )
+      .where(and(eq(product.storeId, this.storeId), eq(product.id, id)))
       .returning({ id: product.id });
 
     return result.length > 0;
@@ -254,13 +217,7 @@ export class ProductRepository extends BaseRepository {
     const result = await this.connection
       .update(product)
       .set({ publishedAt: now, updatedAt: now })
-      .where(
-        and(
-          eq(product.storeId, this.storeId),
-          eq(product.id, id),
-          isNull(product.deletedAt)
-        )
-      )
+      .where(and(eq(product.storeId, this.storeId), eq(product.id, id), isNull(product.deletedAt)))
       .returning();
 
     return result[0] ?? null;
@@ -270,13 +227,7 @@ export class ProductRepository extends BaseRepository {
     const result = await this.connection
       .update(product)
       .set({ publishedAt: null, updatedAt: new Date().toISOString() })
-      .where(
-        and(
-          eq(product.storeId, this.storeId),
-          eq(product.id, id),
-          isNull(product.deletedAt)
-        )
-      )
+      .where(and(eq(product.storeId, this.storeId), eq(product.id, id), isNull(product.deletedAt)))
       .returning();
 
     return result[0] ?? null;
@@ -288,20 +239,13 @@ export class ProductRepository extends BaseRepository {
     const result = await this.connection
       .select({ count: count() })
       .from(product)
-      .where(
-        and(
-          eq(product.storeId, this.storeId),
-          isNull(product.deletedAt)
-        )
-      );
+      .where(and(eq(product.storeId, this.storeId), isNull(product.deletedAt)));
     return result[0]?.count ?? 0;
   }
 
   async getConnection(args: ProductConnectionInput): Promise<ProductConnectionResult> {
     const { where, orderBy, meta, ...paginationArgs } = args;
-    const categoriesScopeWhere = await this.buildCategoriesScopeWhere(
-      meta?.categoriesScope
-    );
+    const categoriesScopeWhere = await this.buildCategoriesScopeWhere(meta?.categoriesScope);
 
     // Scope list view rows to current tenant, locale, and currency.
     const mergedWhere: ProductRelayInput["where"] = {
@@ -310,10 +254,7 @@ export class ProductRepository extends BaseRepository {
         { deletedAt: { _is: null } },
         { locale: { _eq: this.locale } },
         {
-          _or: [
-            { currency: { _eq: this.currency } },
-            { currency: { _is: null } },
-          ],
+          _or: [{ currency: { _eq: this.currency } }, { currency: { _is: null } }],
         },
         ...(where ? [where] : []),
         ...(categoriesScopeWhere ? [categoriesScopeWhere] : []),
@@ -361,8 +302,8 @@ export class ProductRepository extends BaseRepository {
       .where(
         and(
           eq(productCategory.storeId, this.storeId),
-          inArray(productCategory.categoryId, scope.referenceIds)
-        )
+          inArray(productCategory.categoryId, scope.referenceIds),
+        ),
       );
 
     const productIds = [...new Set(rows.map((row) => row.productId))];
@@ -370,9 +311,7 @@ export class ProductRepository extends BaseRepository {
       return scope.mode === "EXCLUDE" ? undefined : EMPTY_PRODUCT_WHERE;
     }
 
-    return scope.mode === "EXCLUDE"
-      ? { id: { _notIn: productIds } }
-      : { id: { _in: productIds } };
+    return scope.mode === "EXCLUDE" ? { id: { _notIn: productIds } } : { id: { _in: productIds } };
   }
 
   async getMany(input?: ProductQueryInput): Promise<Product[]> {
@@ -413,28 +352,19 @@ export class ProductRepository extends BaseRepository {
         and(
           eq(product.storeId, this.storeId),
           inArray(product.id, [...productIds]),
-          isNull(product.deletedAt)
-        )
+          isNull(product.deletedAt),
+        ),
       );
   }
 
-  async getByIdsIncludingDeleted(
-    productIds: readonly string[]
-  ): Promise<Product[]> {
+  async getByIdsIncludingDeleted(productIds: readonly string[]): Promise<Product[]> {
     return this.connection
       .select()
       .from(product)
-      .where(
-        and(
-          eq(product.storeId, this.storeId),
-          inArray(product.id, [...productIds])
-        )
-      );
+      .where(and(eq(product.storeId, this.storeId), inArray(product.id, [...productIds])));
   }
 
-  async getPriceRangesByProductIds(
-    productIds: readonly string[],
-  ): Promise<ProductPriceRange[]> {
+  async getPriceRangesByProductIds(productIds: readonly string[]): Promise<ProductPriceRange[]> {
     if (productIds.length === 0) return [];
 
     return this.connection
@@ -444,14 +374,12 @@ export class ProductRepository extends BaseRepository {
         and(
           eq(productPriceRange.storeId, this.storeId),
           inArray(productPriceRange.productId, [...productIds]),
-          eq(productPriceRange.currency, this.currency)
-        )
+          eq(productPriceRange.currency, this.currency),
+        ),
       );
   }
 
-  async getTranslationsByProductIds(
-    productIds: readonly string[]
-  ): Promise<ProductTranslation[]> {
+  async getTranslationsByProductIds(productIds: readonly string[]): Promise<ProductTranslation[]> {
     return this.connection
       .select()
       .from(productTranslation)
@@ -459,13 +387,13 @@ export class ProductRepository extends BaseRepository {
         and(
           eq(productTranslation.storeId, this.storeId),
           inArray(productTranslation.productId, [...productIds]),
-          eq(productTranslation.locale, this.locale)
-        )
+          eq(productTranslation.locale, this.locale),
+        ),
       );
   }
 
   async getAllTranslationsByProductIds(
-    productIds: readonly string[]
+    productIds: readonly string[],
   ): Promise<ProductTranslation[]> {
     if (productIds.length === 0) return [];
 
@@ -475,17 +403,14 @@ export class ProductRepository extends BaseRepository {
       .where(
         and(
           eq(productTranslation.storeId, this.storeId),
-          inArray(productTranslation.productId, [...productIds])
-        )
+          inArray(productTranslation.productId, [...productIds]),
+        ),
       )
-      .orderBy(
-        asc(productTranslation.productId),
-        asc(productTranslation.locale)
-      );
+      .orderBy(asc(productTranslation.productId), asc(productTranslation.locale));
   }
 
   async getOptionIdsByProductIds(
-    productIds: readonly string[]
+    productIds: readonly string[],
   ): Promise<Array<{ id: string; productId: string }>> {
     return this.connection
       .select({ id: productOption.id, productId: productOption.productId })
@@ -493,18 +418,14 @@ export class ProductRepository extends BaseRepository {
       .where(
         and(
           eq(productOption.storeId, this.storeId),
-          inArray(productOption.productId, [...productIds])
-        )
+          inArray(productOption.productId, [...productIds]),
+        ),
       )
-      .orderBy(
-        asc(productOption.productId),
-        asc(productOption.sortIndex),
-        asc(productOption.id)
-      );
+      .orderBy(asc(productOption.productId), asc(productOption.sortIndex), asc(productOption.id));
   }
 
   async getFeatureIdsByProductIds(
-    productIds: readonly string[]
+    productIds: readonly string[],
   ): Promise<Array<{ id: string; productId: string }>> {
     return this.connection
       .select({ id: productFeature.id, productId: productFeature.productId })
@@ -512,13 +433,13 @@ export class ProductRepository extends BaseRepository {
       .where(
         and(
           eq(productFeature.storeId, this.storeId),
-          inArray(productFeature.productId, [...productIds])
-        )
+          inArray(productFeature.productId, [...productIds]),
+        ),
       );
   }
 
   async getRootFeatureIdsByProductIds(
-    productIds: readonly string[]
+    productIds: readonly string[],
   ): Promise<Array<{ id: string; productId: string; index: number[] }>> {
     return this.connection
       .select({
@@ -531,8 +452,8 @@ export class ProductRepository extends BaseRepository {
         and(
           eq(productFeature.storeId, this.storeId),
           inArray(productFeature.productId, [...productIds]),
-          isNull(productFeature.parentId)
-        )
+          isNull(productFeature.parentId),
+        ),
       )
       .orderBy(productFeature.index);
   }
@@ -542,10 +463,7 @@ export class ProductRepository extends BaseRepository {
       .select()
       .from(productOption)
       .where(
-        and(
-          eq(productOption.storeId, this.storeId),
-          inArray(productOption.id, [...optionIds])
-        )
+        and(eq(productOption.storeId, this.storeId), inArray(productOption.id, [...optionIds])),
       );
   }
 
@@ -554,10 +472,7 @@ export class ProductRepository extends BaseRepository {
       .select()
       .from(productFeature)
       .where(
-        and(
-          eq(productFeature.storeId, this.storeId),
-          inArray(productFeature.id, [...featureIds])
-        )
+        and(eq(productFeature.storeId, this.storeId), inArray(productFeature.id, [...featureIds])),
       );
   }
 }

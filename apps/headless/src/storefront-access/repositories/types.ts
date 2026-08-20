@@ -9,8 +9,7 @@ export interface HeadlessStorefrontScope {
   readonly storeId: string;
 }
 
-export type HeadlessStorefrontConnectionRecord =
-  Readonly<HeadlessStorefrontConnectionModel>;
+export type HeadlessStorefrontConnectionRecord = Readonly<HeadlessStorefrontConnectionModel>;
 
 export interface StorefrontAccessPolicyRecord {
   readonly connectionId: string;
@@ -22,12 +21,9 @@ export interface StorefrontAccessPolicyRecord {
   readonly updatedAt: string;
 }
 
-export type StorefrontCredentialRecord =
-  Readonly<StorefrontCredentialModel>;
+export type StorefrontCredentialRecord = Readonly<StorefrontCredentialModel>;
 
-export interface StorefrontCredentialResolutionRecord
-  extends StorefrontCredentialRecord {
+export interface StorefrontCredentialResolutionRecord extends StorefrontCredentialRecord {
   readonly installationId: string;
-  readonly connectionStatus:
-    HeadlessStorefrontConnectionModel["status"];
+  readonly connectionStatus: HeadlessStorefrontConnectionModel["status"];
 }

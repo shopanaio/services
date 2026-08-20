@@ -1,17 +1,12 @@
 import type { BetterAuthOptions } from "better-auth";
-import type {
-  FacebookOptions,
-  GoogleOptions,
-} from "better-auth/social-providers";
+import type { FacebookOptions, GoogleOptions } from "better-auth/social-providers";
 import type { ApplicationAuthUiMessageKey } from "../api/http/application-auth/ui/localization.js";
 
 export const APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH = 64;
-export const APPLICATION_AUTH_PROVIDER_ID_PATTERN =
-  /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/u;
+export const APPLICATION_AUTH_PROVIDER_ID_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/u;
 
 export type ApplicationSocialProviderEmailContract =
-  | "verified_required"
-  | "required_but_unverified";
+  "verified_required" | "required_but_unverified";
 
 export interface ApplicationSocialProviderRuntimeOptions {
   clientId: string;
@@ -31,16 +26,14 @@ interface ApplicationSocialProviderDefinitionInput<
   readonly emailContract: ApplicationSocialProviderEmailContract;
   readonly trustedForExplicitLinking: boolean;
   readonly explicitLinkingSecurityRationale?: string;
-  readonly createBetterAuthOptions: (
-    input: ApplicationSocialProviderRuntimeOptions
-  ) => TOptions;
+  readonly createBetterAuthOptions: (input: ApplicationSocialProviderRuntimeOptions) => TOptions;
 }
 
 function defineApplicationSocialProvider<
   const TProvider extends string,
   TOptions extends GoogleOptions | FacebookOptions,
 >(
-  definition: ApplicationSocialProviderDefinitionInput<TProvider, TOptions>
+  definition: ApplicationSocialProviderDefinitionInput<TProvider, TOptions>,
 ): Readonly<ApplicationSocialProviderDefinitionInput<TProvider, TOptions>> {
   if (
     definition.id.length > APPLICATION_AUTH_PROVIDER_ID_MAX_LENGTH ||
@@ -51,19 +44,16 @@ function defineApplicationSocialProvider<
   if (
     definition.approvedScopes.length === 0 ||
     definition.approvedScopes.some((scope) => !scope.trim()) ||
-    new Set(definition.approvedScopes).size !==
-      definition.approvedScopes.length
+    new Set(definition.approvedScopes).size !== definition.approvedScopes.length
   ) {
-    throw new Error(
-      `Application social provider ${definition.id} scopes are invalid`
-    );
+    throw new Error(`Application social provider ${definition.id} scopes are invalid`);
   }
   if (
     definition.trustedForExplicitLinking &&
     !definition.explicitLinkingSecurityRationale?.trim()
   ) {
     throw new Error(
-      `Application social provider ${definition.id} requires an explicit linking security rationale`
+      `Application social provider ${definition.id} requires an explicit linking security rationale`,
     );
   }
   return Object.freeze({
@@ -79,9 +69,7 @@ const google = defineApplicationSocialProvider({
   continueLabelKey: "continueWithGoogle",
   emailContract: "verified_required",
   trustedForExplicitLinking: false,
-  createBetterAuthOptions: (
-    input: ApplicationSocialProviderRuntimeOptions
-  ): GoogleOptions => ({
+  createBetterAuthOptions: (input: ApplicationSocialProviderRuntimeOptions): GoogleOptions => ({
     clientId: input.clientId,
     clientSecret: input.clientSecret,
     scope: [...input.scopes],
@@ -98,9 +86,7 @@ const facebook = defineApplicationSocialProvider({
   trustedForExplicitLinking: true,
   explicitLinkingSecurityRationale:
     "Facebook email is treated as unverified; trust applies only to authenticated explicit linking while implicit linking remains disabled.",
-  createBetterAuthOptions: (
-    input: ApplicationSocialProviderRuntimeOptions
-  ): FacebookOptions => ({
+  createBetterAuthOptions: (input: ApplicationSocialProviderRuntimeOptions): FacebookOptions => ({
     clientId: input.clientId,
     clientSecret: input.clientSecret,
     scope: [...input.scopes],
@@ -119,41 +105,34 @@ const providerDefinitionIds = Object.entries(applicationSocialProviders).map(
       throw new Error("Application social provider catalog key mismatch");
     }
     return definition.id;
-  }
+  },
 );
 if (new Set(providerDefinitionIds).size !== providerDefinitionIds.length) {
   throw new Error("Application social provider catalog contains duplicate IDs");
 }
 
-export const APPLICATION_SOCIAL_PROVIDERS = Object.freeze(
-  applicationSocialProviders
-);
+export const APPLICATION_SOCIAL_PROVIDERS = Object.freeze(applicationSocialProviders);
 
-export type ApplicationAuthProviderName =
-  keyof typeof APPLICATION_SOCIAL_PROVIDERS;
+export type ApplicationAuthProviderName = keyof typeof APPLICATION_SOCIAL_PROVIDERS;
 
 export type ApplicationSocialProviderDefinition =
   (typeof APPLICATION_SOCIAL_PROVIDERS)[ApplicationAuthProviderName];
 
 export const APPLICATION_AUTH_PROVIDER_NAMES = Object.freeze(
-  Object.keys(APPLICATION_SOCIAL_PROVIDERS)
+  Object.keys(APPLICATION_SOCIAL_PROVIDERS),
 ) as readonly ApplicationAuthProviderName[];
 
 const applicationAuthProviderNameSet: ReadonlySet<string> = new Set(
-  APPLICATION_AUTH_PROVIDER_NAMES
+  APPLICATION_AUTH_PROVIDER_NAMES,
 );
 
 export function isApplicationAuthProviderName(
-  value: unknown
+  value: unknown,
 ): value is ApplicationAuthProviderName {
-  return (
-    typeof value === "string" && applicationAuthProviderNameSet.has(value)
-  );
+  return typeof value === "string" && applicationAuthProviderNameSet.has(value);
 }
 
-export function parseApplicationAuthProviderName(
-  value: unknown
-): ApplicationAuthProviderName {
+export function parseApplicationAuthProviderName(value: unknown): ApplicationAuthProviderName {
   if (!isApplicationAuthProviderName(value)) {
     throw new Error("Application social provider is unsupported");
   }
@@ -161,22 +140,18 @@ export function parseApplicationAuthProviderName(
 }
 
 export function getApplicationSocialProviderDefinition(
-  provider: ApplicationAuthProviderName
+  provider: ApplicationAuthProviderName,
 ): ApplicationSocialProviderDefinition {
   return APPLICATION_SOCIAL_PROVIDERS[provider];
 }
 
 export function assertApplicationSocialProviderScopes(
   provider: ApplicationAuthProviderName,
-  scopes: readonly string[]
+  scopes: readonly string[],
 ): void {
-  const approvedScopes = new Set(
-    getApplicationSocialProviderDefinition(provider).approvedScopes
-  );
+  const approvedScopes = new Set(getApplicationSocialProviderDefinition(provider).approvedScopes);
   if (scopes.some((scope) => !approvedScopes.has(scope))) {
-    throw new Error(
-      `Application social provider ${provider} contains an unapproved scope`
-    );
+    throw new Error(`Application social provider ${provider} contains an unapproved scope`);
   }
 }
 

@@ -42,9 +42,7 @@ export class CustomerGroupUpdateScript extends BaseScript<
   CustomerGroupUpdateResult
 > {
   @Transactional()
-  protected async execute(
-    params: CustomerGroupUpdateParams
-  ): Promise<CustomerGroupUpdateResult> {
+  protected async execute(params: CustomerGroupUpdateParams): Promise<CustomerGroupUpdateResult> {
     const current = await this.repository.group.findById(params.id);
     if (!current) return notFound();
     if (current.revision !== params.expectedRevision) return updateConflict();
@@ -94,7 +92,7 @@ export class CustomerGroupUpdateScript extends BaseScript<
         validateExpiry(
           input.expiresAt,
           ["memberships", "create", String(index), "expiresAt"],
-          errors
+          errors,
         );
       }
 
@@ -108,17 +106,8 @@ export class CustomerGroupUpdateScript extends BaseScript<
       const updateIds = new Set<string>();
       for (const [index, input] of memberships.update.entries()) {
         const membership = byMembershipId.get(input.membershipId);
-        if (
-          !membership ||
-          membership.groupId !== params.id ||
-          membership.source !== "MANUAL"
-        ) {
-          errors.push(membershipNotFound([
-            "memberships",
-            "update",
-            String(index),
-            "membershipId",
-          ]));
+        if (!membership || membership.groupId !== params.id || membership.source !== "MANUAL") {
+          errors.push(membershipNotFound(["memberships", "update", String(index), "membershipId"]));
         } else {
           affectedCustomerIds.add(membership.customerId);
         }
@@ -133,20 +122,14 @@ export class CustomerGroupUpdateScript extends BaseScript<
         validateExpiry(
           input.expiresAt,
           ["memberships", "update", String(index), "expiresAt"],
-          errors
+          errors,
         );
       }
       const deleteIds = new Set<string>();
       for (const [index, id] of memberships.deleteIds.entries()) {
         const membership = byMembershipId.get(id);
-        if (
-          !membership ||
-          membership.groupId !== params.id ||
-          membership.source !== "MANUAL"
-        ) {
-          errors.push(
-            membershipNotFound(["memberships", "deleteIds", String(index)])
-          );
+        if (!membership || membership.groupId !== params.id || membership.source !== "MANUAL") {
+          errors.push(membershipNotFound(["memberships", "deleteIds", String(index)]));
         } else {
           affectedCustomerIds.add(membership.customerId);
         }
@@ -180,7 +163,7 @@ export class CustomerGroupUpdateScript extends BaseScript<
       const group = await this.repository.group.update(
         params.id,
         groupPatch(params.operations),
-        params.expectedRevision
+        params.expectedRevision,
       );
       if (!group) return updateConflict();
 
@@ -201,34 +184,24 @@ export class CustomerGroupUpdateScript extends BaseScript<
             customerId: currentMembership.customerId,
             groupId: params.id,
             isPrimary: hasOwn(input, "isPrimary")
-              ? input.isPrimary ?? false
+              ? (input.isPrimary ?? false)
               : currentMembership.isPrimary,
             source: "MANUAL",
             assignedById: this.context.hasUser ? this.currentUser.id : null,
             expiresAt: hasOwn(input, "expiresAt")
-              ? input.expiresAt ?? null
+              ? (input.expiresAt ?? null)
               : currentMembership.expiresAt,
           });
         }
         for (const id of memberships.deleteIds) {
           const membership = byMembershipId.get(id)!;
-          await this.repository.group.deleteMembership(
-            membership.customerId,
-            params.id
-          );
+          await this.repository.group.deleteMembership(membership.customerId, params.id);
         }
       }
 
-      this.logger.info(
-        { groupId: group.id, revision: group.revision },
-        "Customer group updated"
-      );
+      this.logger.info({ groupId: group.id, revision: group.revision }, "Customer group updated");
       for (const customerId of [...affectedCustomerIds].sort()) {
-        await this.invalidateDynamicSegments(
-          customerId,
-          ["group"],
-          `group:${params.id}`,
-        );
+        await this.invalidateDynamicSegments(customerId, ["group"], `group:${params.id}`);
       }
       return {
         group: { id: group.id, revision: group.revision },
@@ -263,23 +236,15 @@ function validateGroup(
     isDefault: boolean;
     isActive: boolean;
   },
-  operations: CustomerGroupUpdateParams["operations"]
+  operations: CustomerGroupUpdateParams["operations"],
 ): UserError[] {
   const errors: UserError[] = [];
   const definition = operations.definition;
   const state = operations.state;
-  const code = definition && hasOwn(definition, "code")
-    ? definition.code
-    : current.code;
-  const name = definition && hasOwn(definition, "name")
-    ? definition.name
-    : current.name;
-  const isDefault = state && hasOwn(state, "isDefault")
-    ? state.isDefault
-    : current.isDefault;
-  const isActive = state && hasOwn(state, "isActive")
-    ? state.isActive
-    : current.isActive;
+  const code = definition && hasOwn(definition, "code") ? definition.code : current.code;
+  const name = definition && hasOwn(definition, "name") ? definition.name : current.name;
+  const isDefault = state && hasOwn(state, "isDefault") ? state.isDefault : current.isDefault;
+  const isActive = state && hasOwn(state, "isActive") ? state.isActive : current.isActive;
   if (!code || !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(code.trim().toLowerCase())) {
     errors.push({
       message: "Group code must contain only lowercase letters, numbers, _ or -",
@@ -334,7 +299,7 @@ function groupPatch(operations: CustomerGroupUpdateParams["operations"]) {
 function validateExpiry(
   expiresAt: string | null | undefined,
   field: string[],
-  errors: UserError[]
+  errors: UserError[],
 ) {
   if (expiresAt == null) return;
   const value = Date.parse(expiresAt);

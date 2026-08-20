@@ -1,20 +1,13 @@
-import {
-  CatalogFacetCandidateActions,
-  type Catalog,
-} from "@shopana/broker-types";
+import { CatalogFacetCandidateActions, type Catalog } from "@shopana/broker-types";
 import type { ServiceBroker } from "@shopana/shared-kernel";
 
 export type FacetSourceCandidateView = Catalog.FacetSourceCandidateView;
 export type FacetValueCandidateType = Catalog.FacetValueCandidateType;
 export type FacetValueCandidateView = Catalog.FacetValueCandidateView;
-export type FacetSourceCandidateRelayInput =
-  Catalog.FacetSourceCandidateRelayInput;
-export type FacetValueCandidateRelayInput =
-  Catalog.FacetValueCandidateRelayInput;
-export type FacetSourceCandidateConnectionResult =
-  Catalog.FacetSourceCandidateConnectionResult;
-export type FacetValueCandidateConnectionResult =
-  Catalog.FacetValueCandidateConnectionResult;
+export type FacetSourceCandidateRelayInput = Catalog.FacetSourceCandidateRelayInput;
+export type FacetValueCandidateRelayInput = Catalog.FacetValueCandidateRelayInput;
+export type FacetSourceCandidateConnectionResult = Catalog.FacetSourceCandidateConnectionResult;
+export type FacetValueCandidateConnectionResult = Catalog.FacetValueCandidateConnectionResult;
 
 export interface FacetValueCandidateArgs extends FacetValueCandidateRelayInput {
   meta: {
@@ -39,7 +32,7 @@ export class CatalogFacetCandidateClient {
     input: {
       relay: FacetSourceCandidateRelayInput;
       excludedSources?: FacetSourceCandidateRef[];
-    }
+    },
   ): Promise<FacetSourceCandidateConnectionResult> {
     return this.broker.call<
       Catalog.FacetSourceCandidateConnectionResult,
@@ -59,7 +52,7 @@ export class CatalogFacetCandidateClient {
       sourceHandles: string[];
       existingSourceValueHandles?: string[];
       relay: FacetValueCandidateRelayInput;
-    }
+    },
   ): Promise<FacetValueCandidateConnectionResult> {
     return this.broker.call<
       Catalog.FacetValueCandidateConnectionResult,
@@ -76,7 +69,7 @@ export class CatalogFacetCandidateClient {
 
   findSourceCandidateByRef(
     context: CatalogFacetCandidateClientContext,
-    input: { facetType: string; handle: string }
+    input: { facetType: string; handle: string },
   ): Promise<FacetSourceCandidateView | null> {
     return this.broker.call<
       Catalog.FacetSourceCandidateView | null,
@@ -95,7 +88,7 @@ export class CatalogFacetCandidateClient {
       candidateType: FacetValueCandidateType;
       sourceHandles: string[];
       handles: string[];
-    }
+    },
   ): Promise<FacetValueCandidateView[]> {
     return this.broker.call<
       Catalog.FacetValueCandidateView[],

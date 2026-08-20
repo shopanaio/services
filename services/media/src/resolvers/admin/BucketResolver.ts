@@ -1,9 +1,6 @@
 import { PreloadNotFoundError, TypePolicy } from "@shopana/type-resolver";
 import { MediaType } from "./MediaType.js";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { Bucket } from "../../repositories/models/index.js";
 
 /**
@@ -18,14 +15,11 @@ import type { Bucket } from "../../repositories/models/index.js";
 })
 export class BucketResolver extends MediaType<string, Bucket> {
   async $preload() {
-    const bucket = await this.$ctx.kernel.repository.bucket.findAccessibleById(
-      this.$props,
-      {
-        storeId: this.$ctx.store.id,
-        organizationId: this.$ctx.store.organizationId,
-        userId: this.$ctx.user.id,
-      }
-    );
+    const bucket = await this.$ctx.kernel.repository.bucket.findAccessibleById(this.$props, {
+      storeId: this.$ctx.store.id,
+      organizationId: this.$ctx.store.organizationId,
+      userId: this.$ctx.user.id,
+    });
     if (!bucket) {
       throw new PreloadNotFoundError(`Bucket not found: ${this.$props}`);
     }

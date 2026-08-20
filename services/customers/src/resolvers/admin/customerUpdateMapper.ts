@@ -43,7 +43,7 @@ export interface CustomerUpdateMappingResult {
 }
 
 export function mapCustomerUpdateInput(
-  input?: CustomerUpdateInput | null
+  input?: CustomerUpdateInput | null,
 ): CustomerUpdateMappingResult {
   const entries: CustomerUpdateMappedEntry[] = [];
 
@@ -62,7 +62,7 @@ export function mapCustomerUpdateInput(
           "gender",
         ]),
         meta: { fieldPrefix: ["operations", "profile"] },
-      })
+      }),
     );
   }
 
@@ -72,7 +72,7 @@ export function mapCustomerUpdateInput(
         type: "contactUpdate",
         params: pickPresent(input.contact, ["email", "phoneE164"]),
         meta: { fieldPrefix: ["operations", "contact"] },
-      })
+      }),
     );
   }
 
@@ -82,7 +82,7 @@ export function mapCustomerUpdateInput(
         type: "companyUpdate",
         params: pickPresent(input.company, ["companyName", "jobTitle"]),
         meta: { fieldPrefix: ["operations", "company"] },
-      })
+      }),
     );
   }
 
@@ -91,16 +91,13 @@ export function mapCustomerUpdateInput(
       validEntry("statusUpdate", {
         type: "statusUpdate",
         params: {
-          status: String(input.status.status) as
-            | "ACTIVE"
-            | "BLOCKED"
-            | "DISABLED",
+          status: String(input.status.status) as "ACTIVE" | "BLOCKED" | "DISABLED",
           ...(hasOwn(input.status, "blockedReason")
             ? { blockedReason: input.status.blockedReason }
             : {}),
         },
         meta: { fieldPrefix: ["operations", "status"] },
-      })
+      }),
     );
   }
 
@@ -110,7 +107,7 @@ export function mapCustomerUpdateInput(
         type: "noteUpdate",
         params: pickPresent(input.note, ["note"]),
         meta: { fieldPrefix: ["operations", "note"] },
-      })
+      }),
     );
   }
 
@@ -120,7 +117,7 @@ export function mapCustomerUpdateInput(
         type: "moderationUpdate",
         params: pickPresent(input.moderation, ["moderationNote"]),
         meta: { fieldPrefix: ["operations", "moderation"] },
-      })
+      }),
     );
   }
 
@@ -139,16 +136,14 @@ export function mapCustomerUpdateInput(
   }
 
   return {
-    operations: entries.flatMap((entry) =>
-      entry.operation ? [entry.operation] : []
-    ),
+    operations: entries.flatMap((entry) => (entry.operation ? [entry.operation] : [])),
     entries,
     errors: entries.flatMap((entry) => entry.errors),
   };
 }
 
 function mapAddresses(
-  input: NonNullable<CustomerUpdateInput["addresses"]>
+  input: NonNullable<CustomerUpdateInput["addresses"]>,
 ): CustomerUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "addresses"];
@@ -158,7 +153,7 @@ function mapAddresses(
       item.addressId,
       GlobalIdEntity.CustomerAddress,
       [...fieldPrefix, "update", String(index), "addressId"],
-      errors
+      errors,
     );
     return addressId
       ? [
@@ -173,7 +168,7 @@ function mapAddresses(
     input.deleteIds ?? [],
     GlobalIdEntity.CustomerAddress,
     [...fieldPrefix, "deleteIds"],
-    errors
+    errors,
   );
   const defaults: {
     defaultShippingAddressId?: string | null;
@@ -186,12 +181,7 @@ function mapAddresses(
   ] as const) {
     if (!hasOwn(input, field)) continue;
     defaults[field] = value
-      ? decodeId(
-          value,
-          GlobalIdEntity.CustomerAddress,
-          [...fieldPrefix, field],
-          errors
-        )
+      ? decodeId(value, GlobalIdEntity.CustomerAddress, [...fieldPrefix, field], errors)
       : null;
   }
 
@@ -203,9 +193,7 @@ function mapAddresses(
   return mappedEntry(operation, errors);
 }
 
-function mapAddressCreate(
-  input: CustomerAddressCreateOperationInput
-): CustomerAddressCreateParams {
+function mapAddressCreate(input: CustomerAddressCreateOperationInput): CustomerAddressCreateParams {
   return {
     ...pickPresent(input, addressCreateOptionalFields),
     address1: input.address1,
@@ -215,7 +203,7 @@ function mapAddressCreate(
 }
 
 function mapConsents(
-  inputs: readonly CustomerConsentUpdateOperationInput[]
+  inputs: readonly CustomerConsentUpdateOperationInput[],
 ): CustomerUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "consents"];
@@ -245,9 +233,7 @@ function mapConsents(
           }
         : {}),
       contactPoint: input.contactPoint,
-      ...(hasOwn(input, "sourceLocationId")
-        ? { sourceLocationId: input.sourceLocationId }
-        : {}),
+      ...(hasOwn(input, "sourceLocationId") ? { sourceLocationId: input.sourceLocationId } : {}),
       ...(hasOwn(input, "evidence") ? { evidence } : {}),
     };
   });
@@ -257,12 +243,12 @@ function mapConsents(
       params: { set },
       meta: { fieldPrefix },
     },
-    errors
+    errors,
   );
 }
 
 function mapTaxIdentifiers(
-  input: NonNullable<CustomerUpdateInput["taxIdentifiers"]>
+  input: NonNullable<CustomerUpdateInput["taxIdentifiers"]>,
 ): CustomerUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "taxIdentifiers"];
@@ -272,7 +258,7 @@ function mapTaxIdentifiers(
       item.taxIdentifierId,
       GlobalIdEntity.CustomerTaxIdentifier,
       [...fieldPrefix, "update", String(index), "taxIdentifierId"],
-      errors
+      errors,
     );
     return taxIdentifierId
       ? [
@@ -287,7 +273,7 @@ function mapTaxIdentifiers(
     input.deleteIds ?? [],
     GlobalIdEntity.CustomerTaxIdentifier,
     [...fieldPrefix, "deleteIds"],
-    errors
+    errors,
   );
   return mappedEntry(
     {
@@ -295,12 +281,12 @@ function mapTaxIdentifiers(
       params: { create, update, deleteIds },
       meta: { fieldPrefix },
     },
-    errors
+    errors,
   );
 }
 
 function mapTaxIdentifierCreate(
-  input: CustomerTaxIdentifierCreateOperationInput
+  input: CustomerTaxIdentifierCreateOperationInput,
 ): CustomerTaxIdentifierCreateParams {
   return {
     ...mapTaxIdentifierPatch(input),
@@ -310,7 +296,7 @@ function mapTaxIdentifierCreate(
 }
 
 function mapTaxIdentifierPatch(
-  input: CustomerTaxIdentifierPatchInput | CustomerTaxIdentifierCreateOperationInput
+  input: CustomerTaxIdentifierPatchInput | CustomerTaxIdentifierCreateOperationInput,
 ): CustomerTaxIdentifierPatchParams {
   const result = pickPresent(input, [
     "identifierType",
@@ -329,16 +315,12 @@ function mapTaxIdentifierPatch(
 }
 
 function mapTaxExemptions(
-  input: NonNullable<CustomerUpdateInput["taxExemptions"]>
+  input: NonNullable<CustomerUpdateInput["taxExemptions"]>,
 ): CustomerUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "taxExemptions"];
   const create = (input.create ?? []).flatMap((item, index) => {
-    const mapped = mapTaxExemptionCreate(
-      item,
-      [...fieldPrefix, "create", String(index)],
-      errors
-    );
+    const mapped = mapTaxExemptionCreate(item, [...fieldPrefix, "create", String(index)], errors);
     return mapped ? [mapped] : [];
   });
   const update = (input.update ?? []).flatMap((item, index) => {
@@ -347,20 +329,16 @@ function mapTaxExemptions(
       item.taxExemptionId,
       GlobalIdEntity.CustomerTaxExemption,
       [...itemPrefix, "taxExemptionId"],
-      errors
+      errors,
     );
-    const operations = mapTaxExemptionPatch(
-      item.operations,
-      [...itemPrefix, "operations"],
-      errors
-    );
+    const operations = mapTaxExemptionPatch(item.operations, [...itemPrefix, "operations"], errors);
     return taxExemptionId ? [{ taxExemptionId, operations }] : [];
   });
   const deleteIds = decodeIds(
     input.deleteIds ?? [],
     GlobalIdEntity.CustomerTaxExemption,
     [...fieldPrefix, "deleteIds"],
-    errors
+    errors,
   );
   return mappedEntry(
     {
@@ -368,14 +346,14 @@ function mapTaxExemptions(
       params: { create, update, deleteIds },
       meta: { fieldPrefix },
     },
-    errors
+    errors,
   );
 }
 
 function mapTaxExemptionCreate(
   input: CustomerTaxExemptionCreateOperationInput,
   fieldPrefix: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): CustomerTaxExemptionCreateParams | undefined {
   const patch = mapTaxExemptionPatch(input, fieldPrefix, errors);
   return { ...patch, code: input.code };
@@ -384,7 +362,7 @@ function mapTaxExemptionCreate(
 function mapTaxExemptionPatch(
   input: CustomerTaxExemptionPatchInput | CustomerTaxExemptionCreateOperationInput,
   fieldPrefix: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): CustomerTaxExemptionPatchParams {
   const result = pickPresent(input, [
     "code",
@@ -405,7 +383,7 @@ function mapTaxExemptionPatch(
           input.certificateFileId,
           GlobalIdEntity.File,
           [...fieldPrefix, "certificateFileId"],
-          errors
+          errors,
         )
       : input.certificateFileId;
   }
@@ -413,7 +391,7 @@ function mapTaxExemptionPatch(
 }
 
 function mapGroups(
-  inputs: readonly CustomerGroupMembershipUpdateOperationInput[]
+  inputs: readonly CustomerGroupMembershipUpdateOperationInput[],
 ): CustomerUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldPrefix = ["operations", "groups"];
@@ -422,18 +400,14 @@ function mapGroups(
       input.groupId,
       GlobalIdEntity.CustomerGroup,
       [...fieldPrefix, "memberships", String(index), "groupId"],
-      errors
+      errors,
     );
     return groupId
       ? [
           {
             groupId,
-            ...(hasOwn(input, "isPrimary")
-              ? { isPrimary: input.isPrimary }
-              : {}),
-            ...(hasOwn(input, "expiresAt")
-              ? { expiresAt: input.expiresAt }
-              : {}),
+            ...(hasOwn(input, "isPrimary") ? { isPrimary: input.isPrimary } : {}),
+            ...(hasOwn(input, "expiresAt") ? { expiresAt: input.expiresAt } : {}),
           },
         ]
       : [];
@@ -444,27 +418,20 @@ function mapGroups(
       params: { memberships },
       meta: { fieldPrefix },
     },
-    errors
+    errors,
   );
 }
 
 function mapIdReplacement(
   type: "tagUpdate" | "segmentUpdate",
-  globalIds: readonly string[]
+  globalIds: readonly string[],
 ): CustomerUpdateMappedEntry {
   const errors: UserError[] = [];
   const fieldName = type === "tagUpdate" ? "tags" : "segments";
   const listName = type === "tagUpdate" ? "tagIds" : "segmentIds";
   const expectedType =
-    type === "tagUpdate"
-      ? GlobalIdEntity.CustomerTag
-      : GlobalIdEntity.CustomerSegment;
-  const ids = decodeIds(
-    globalIds,
-    expectedType,
-    ["operations", fieldName, listName],
-    errors
-  );
+    type === "tagUpdate" ? GlobalIdEntity.CustomerTag : GlobalIdEntity.CustomerSegment;
+  const ids = decodeIds(globalIds, expectedType, ["operations", fieldName, listName], errors);
   const operation: CustomerUpdateOperation =
     type === "tagUpdate"
       ? {
@@ -482,14 +449,14 @@ function mapIdReplacement(
 
 function validEntry(
   type: CustomerUpdateOperation["type"],
-  operation: CustomerUpdateOperation
+  operation: CustomerUpdateOperation,
 ): CustomerUpdateMappedEntry {
   return { type, operation, errors: [] };
 }
 
 function mappedEntry(
   operation: CustomerUpdateOperation,
-  errors: UserError[]
+  errors: UserError[],
 ): CustomerUpdateMappedEntry {
   return {
     type: operation.type,
@@ -502,7 +469,7 @@ function decodeId(
   globalId: string,
   expectedType: GlobalIdType,
   field: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): string | undefined {
   try {
     return decodeGlobalIdByType(globalId, expectedType);
@@ -520,7 +487,7 @@ function decodeIds(
   globalIds: readonly string[],
   expectedType: GlobalIdType,
   field: string[],
-  errors: UserError[]
+  errors: UserError[],
 ): string[] {
   return globalIds.flatMap((globalId, index) => {
     const id = decodeId(globalId, expectedType, [...field, String(index)], errors);
@@ -530,7 +497,7 @@ function decodeIds(
 
 function pickPresent<T extends object, K extends string>(
   input: T,
-  keys: readonly K[]
+  keys: readonly K[],
 ): Record<string, unknown> {
   const source = input as Record<string, unknown>;
   const result: Record<string, unknown> = {};

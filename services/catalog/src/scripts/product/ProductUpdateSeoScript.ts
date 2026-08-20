@@ -6,7 +6,10 @@ import { singleError } from "../types/index.js";
 /**
  * ProductUpdateSeoScript handles product SEO and Open Graph metadata.
  */
-export class ProductUpdateSeoScript extends BaseScript<ProductUpdateSeoParams, ProductUpdateSeoResult> {
+export class ProductUpdateSeoScript extends BaseScript<
+  ProductUpdateSeoParams,
+  ProductUpdateSeoResult
+> {
   protected async execute(params: ProductUpdateSeoParams): Promise<ProductUpdateSeoResult> {
     const { id, title, description, ogTitle, ogDescription, ogImageId } = params;
 
@@ -64,11 +67,13 @@ export class ProductUpdateSeoScript extends BaseScript<ProductUpdateSeoParams, P
         storeId,
         productId: id,
         locale,
-        seoTitle: title !== undefined ? title : existingSeo?.seoTitle ?? null,
-        seoDescription: description !== undefined ? description : existingSeo?.seoDescription ?? null,
-        ogTitle: ogTitle !== undefined ? ogTitle : existingSeo?.ogTitle ?? null,
-        ogDescription: ogDescription !== undefined ? ogDescription : existingSeo?.ogDescription ?? null,
-        ogImageId: ogImageId !== undefined ? ogImageId : existingSeo?.ogImageId ?? null,
+        seoTitle: title !== undefined ? title : (existingSeo?.seoTitle ?? null),
+        seoDescription:
+          description !== undefined ? description : (existingSeo?.seoDescription ?? null),
+        ogTitle: ogTitle !== undefined ? ogTitle : (existingSeo?.ogTitle ?? null),
+        ogDescription:
+          ogDescription !== undefined ? ogDescription : (existingSeo?.ogDescription ?? null),
+        ogImageId: ogImageId !== undefined ? ogImageId : (existingSeo?.ogImageId ?? null),
       });
 
       await this.repository.product.touch(id);

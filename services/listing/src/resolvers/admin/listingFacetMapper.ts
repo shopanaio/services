@@ -3,11 +3,7 @@ import type {
   StorefrontListingFacetResult,
   StorefrontListingRepositoryResult,
 } from "../../repositories/storefront/types.js";
-import {
-  filterSelectionKey,
-  hasSelectedPrice,
-  normalizeListingFilters,
-} from "./listingInput.js";
+import { filterSelectionKey, hasSelectedPrice, normalizeListingFilters } from "./listingInput.js";
 import {
   type ListingFacet,
   type ListingFacetUiType,
@@ -19,7 +15,7 @@ import { toFacetSwatchReference } from "./listingReferences.js";
 
 export function mapListingFacets(
   result: StorefrontListingRepositoryResult,
-  args: ListingQueryArgs
+  args: ListingQueryArgs,
 ): ListingFacet[] {
   const selectedFilters = normalizeListingFilters(args.facets ?? []);
   const selected = new Set(selectedFilters.map((filter) => filterSelectionKey(filter)));
@@ -32,7 +28,7 @@ export function mapListingFacets(
 
 function mapCatalogFacet(
   facet: StorefrontListingFacetResult,
-  selected: ReadonlySet<string>
+  selected: ReadonlySet<string>,
 ): ListingFacet {
   return {
     id: facet.facetSlug,
@@ -60,7 +56,7 @@ function mapCatalogFacet(
 function mapVirtualFacets(
   result: StorefrontListingRepositoryResult,
   selected: ReadonlySet<string>,
-  priceSelected: boolean
+  priceSelected: boolean,
 ): ListingFacet[] {
   const facets: ListingFacet[] = [
     {
@@ -118,7 +114,7 @@ function mapVirtualFacets(
 
 function facetValueInput(
   facetType: FacetRuntimeType,
-  value: ListingFacetValueFilter
+  value: ListingFacetValueFilter,
 ): ListingProductFilter {
   // Returned inputs are intentionally reusable as the next facets[] payload.
   if (facetType === "OPTION") {

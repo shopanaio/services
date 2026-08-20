@@ -5,14 +5,9 @@ import {
   type FileRestoreResult,
 } from "./dto/FileRestoreDto.js";
 
-export class FileRestoreScript extends BaseScript<
-  FileRestoreParams,
-  FileRestoreResult
-> {
+export class FileRestoreScript extends BaseScript<FileRestoreParams, FileRestoreResult> {
   @ZodSchema(fileRestoreSchema)
-  protected async execute(
-    params: FileRestoreParams
-  ): Promise<FileRestoreResult> {
+  protected async execute(params: FileRestoreParams): Promise<FileRestoreResult> {
     const file = await this.findStoreFile(params.id, true);
     if (!file) {
       return { error: "FILE_NOT_FOUND" };

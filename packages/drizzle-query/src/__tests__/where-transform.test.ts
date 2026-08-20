@@ -1,18 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
-import {
-  createCursorQuery,
-  createQuery,
-  createRelayQuery,
-  field,
-} from "../index.js";
+import { createCursorQuery, createQuery, createRelayQuery, field } from "../index.js";
 import { encode } from "../cursor/cursor.js";
 import { hashFilters } from "../cursor/helpers.js";
-import {
-  transformWhereInput,
-  type WhereFieldMapperScope,
-} from "../where-transform.js";
+import { transformWhereInput, type WhereFieldMapperScope } from "../where-transform.js";
 import { categories, products, translations } from "./test/setup.js";
 
 const dialect = new PgDialect();
@@ -21,9 +13,7 @@ function sqlParams(sqlObj: SQL): unknown[] {
   return dialect.sqlToQuery(sqlObj).params;
 }
 
-function mapperScope(
-  scope: Partial<WhereFieldMapperScope>
-): WhereFieldMapperScope {
+function mapperScope(scope: Partial<WhereFieldMapperScope>): WhereFieldMapperScope {
   return {
     mappers: {},
     relations: {},
@@ -40,7 +30,7 @@ describe("transformWhereInput", () => {
         mappers: {
           id: (value) => `db:${String(value)}`,
         },
-      })
+      }),
     );
 
     expect(mapped).toEqual({ id: "db:gid" });
@@ -62,7 +52,7 @@ describe("transformWhereInput", () => {
         mappers: {
           id: (value) => `db:${String(value)}`,
         },
-      })
+      }),
     );
 
     expect(mapped).toEqual({
@@ -80,10 +70,7 @@ describe("transformWhereInput", () => {
       _or: [
         { id: { _eq: "a" } },
         {
-          _and: [
-            { id: { _in: ["b"] } },
-            { _not: { id: { _neq: "c" } } },
-          ],
+          _and: [{ id: { _in: ["b"] } }, { _not: { id: { _neq: "c" } } }],
         },
       ],
     };
@@ -94,17 +81,14 @@ describe("transformWhereInput", () => {
         mappers: {
           id: (value) => `db:${String(value)}`,
         },
-      })
+      }),
     );
 
     expect(mapped).toEqual({
       _or: [
         { id: { _eq: "db:a" } },
         {
-          _and: [
-            { id: { _in: ["db:b"] } },
-            { _not: { id: { _neq: "db:c" } } },
-          ],
+          _and: [{ id: { _in: ["db:b"] } }, { _not: { id: { _neq: "db:c" } } }],
         },
       ],
     });
@@ -134,7 +118,7 @@ describe("transformWhereInput", () => {
         id: { _eq: "product-gid" },
         category: { parentId: { _eq: "category-gid" } },
       },
-      productScope
+      productScope,
     );
 
     expect(mapped).toEqual({
@@ -167,7 +151,7 @@ describe("transformWhereInput", () => {
         category: { id: "category-gid" },
         variant: { id: "variant-gid" },
       },
-      productScope
+      productScope,
     );
 
     expect(mapped).toEqual({
@@ -185,7 +169,7 @@ describe("transformWhereInput", () => {
       where,
       mapperScope({
         mappers: { id: mapper },
-      })
+      }),
     );
 
     expect(mapped).toBe(where);
@@ -206,7 +190,7 @@ describe("transformWhereInput", () => {
       where,
       mapperScope({
         mappers: { id: mapper },
-      })
+      }),
     );
 
     expect(mapped).toEqual({
@@ -220,9 +204,7 @@ describe("transformWhereInput", () => {
   });
 
   it("maps nullish operator values only when the operator is explicit", () => {
-    const mapper = vi.fn((value: unknown) =>
-      value === null ? "mapped-null" : value
-    );
+    const mapper = vi.fn((value: unknown) => (value === null ? "mapped-null" : value));
     const where = {
       id: {
         _eq: "gid",
@@ -239,7 +221,7 @@ describe("transformWhereInput", () => {
             operators: ["_is"],
           },
         },
-      })
+      }),
     );
 
     expect(mapped).toEqual({
@@ -264,7 +246,7 @@ describe("transformWhereInput", () => {
         mappers: {
           id: (value) => `db:${String(value)}`,
         },
-      })
+      }),
     ) as typeof where;
 
     expect(mapped).not.toBe(where);
@@ -276,7 +258,7 @@ describe("transformWhereInput", () => {
         mappers: {
           id: (value) => value,
         },
-      })
+      }),
     );
 
     expect(unchanged).toBe(where);
@@ -300,10 +282,7 @@ describe("where field mapper execution wiring", () => {
     id: field(products.id),
     handle: field(products.handle),
     price: field(products.price),
-    translation: field(products.id).leftJoin(
-      translationsQuery,
-      translations.entityId
-    ),
+    translation: field(products.id).leftJoin(translationsQuery, translations.entityId),
     category: field(products.id).leftJoin(categoriesQuery, categories.id),
   }).mapWhereField("id", (value) => `product:${String(value)}`);
 
@@ -315,25 +294,16 @@ describe("where field mapper execution wiring", () => {
       .mapWhereField("id", (value) => `product:${String(value)}`)
       .defaultWhere({ id: { _eq: "default-gid" } });
 
-    expect(sqlParams(query.getSql({ select: ["id"] }))).toContain(
-      "product:default-gid"
-    );
+    expect(sqlParams(query.getSql({ select: ["id"] }))).toContain("product:default-gid");
     expect(sqlParams(query.getCountSql())).toContain("product:default-gid");
 
     const executeSpy = vi.fn(async () => []);
     await query.execute({ execute: executeSpy }, { where: { id: "exec-gid" } });
-    expect(sqlParams(executeSpy.mock.calls[0][0])).toContain(
-      "product:exec-gid"
-    );
+    expect(sqlParams(executeSpy.mock.calls[0][0])).toContain("product:exec-gid");
 
     const countSpy = vi.fn(async () => [{ count: 1 }]);
-    await query.count(
-      { execute: countSpy },
-      { where: { id: { _eq: "count-gid" } } }
-    );
-    expect(sqlParams(countSpy.mock.calls[0][0])).toContain(
-      "product:count-gid"
-    );
+    await query.count({ execute: countSpy }, { where: { id: { _eq: "count-gid" } } });
+    expect(sqlParams(countSpy.mock.calls[0][0])).toContain("product:count-gid");
   });
 
   it("uses joined builder mapper scope for relation where", () => {
@@ -344,7 +314,7 @@ describe("where field mapper execution wiring", () => {
           translation: { entityId: { _eq: "translation-gid" } },
           category: { id: { _eq: "category-gid" } },
         },
-      })
+      }),
     );
 
     expect(params).toContain("translation:translation-gid");
@@ -378,7 +348,7 @@ describe("where field mapper execution wiring", () => {
         after: cursor,
         select: ["id"],
         where: { id: { _eq: "relay-gid" } },
-      }).sql as SQL
+      }).sql as SQL,
     );
 
     expect(relayParams).toContain("product:relay-gid");
@@ -396,7 +366,7 @@ describe("where field mapper execution wiring", () => {
         direction: "forward",
         select: ["id"],
         where: { id: { _eq: "cursor-gid" } },
-      }).sql as SQL
+      }).sql as SQL,
     );
 
     expect(cursorParams).toContain("product:cursor-gid");

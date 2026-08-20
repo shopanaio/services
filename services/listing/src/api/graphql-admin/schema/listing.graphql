@@ -1,7 +1,9 @@
 # ---- Listing Canonical References ----
 
 extend type Product implements Node & Listing @key(fields: "id", resolvable: false) {
-  """The Product global ID owned by Catalog."""
+  """
+  The Product global ID owned by Catalog.
+  """
   id: ID! @external
 }
 
@@ -29,39 +31,61 @@ enum ListingScopeKind {
 }
 
 input ListingScopeInput {
-  """Scope kind for the listing request."""
+  """
+  Scope kind for the listing request.
+  """
   kind: ListingScopeKind!
 
-  """Category global ID. Required for CATEGORY and forbidden for GLOBAL."""
+  """
+  Category global ID. Required for CATEGORY and forbidden for GLOBAL.
+  """
   categoryId: ID
 
-  """Collection global ID. Required for COLLECTION."""
+  """
+  Collection global ID. Required for COLLECTION.
+  """
   collectionId: ID
 }
 
 input ListingProductFilter {
-  """Filter by indexed product status."""
+  """
+  Filter by indexed product status.
+  """
   statuses: [ListingProductStatus!]
 
-  """Filter on if the listing item is available."""
+  """
+  Filter on if the listing item is available.
+  """
   available: Boolean
 
-  """Filter by product price range."""
+  """
+  Filter by product price range.
+  """
   price: ListingPriceRangeFilter
 
-  """Filter by product vendor."""
+  """
+  Filter by product vendor.
+  """
   productVendor: String
 
-  """Filter by product tag."""
+  """
+  Filter by product tag.
+  """
   tag: String
 
-  """Filter by variant option."""
+  """
+  Filter by variant option.
+  """
   variantOption: ListingVariantOptionFilter
 
-  """Filter by product-level listing facet value."""
+  """
+  Filter by product-level listing facet value.
+  """
   productFacet: ListingFacetValueFilter
 
-  """Filter by variant-level listing facet value."""
+  """
+  Filter by variant-level listing facet value.
+  """
   variantFacet: ListingFacetValueFilter
 }
 
@@ -71,26 +95,38 @@ enum ListingProductStatus {
 }
 
 input ListingPriceRangeFilter {
-  """Minimum price amount in minor units."""
+  """
+  Minimum price amount in minor units.
+  """
   min: BigInt
 
-  """Maximum price amount in minor units."""
+  """
+  Maximum price amount in minor units.
+  """
   max: BigInt
 }
 
 input ListingVariantOptionFilter {
-  """Variant option name."""
+  """
+  Variant option name.
+  """
   name: String!
 
-  """Variant option value."""
+  """
+  Variant option value.
+  """
   value: String!
 }
 
 input ListingFacetValueFilter {
-  """Facet stable identifier."""
+  """
+  Facet stable identifier.
+  """
   facet: String!
 
-  """Facet value stable identifier."""
+  """
+  Facet value stable identifier.
+  """
   value: String!
 }
 
@@ -109,41 +145,63 @@ enum ListingSortDirection {
 }
 
 input ListingOrderByInput {
-  """Sort key for the listing request."""
+  """
+  Sort key for the listing request.
+  """
   by: ListingSortBy!
 
-  """Sort direction. Ignored for MANUAL and RELEVANCE."""
+  """
+  Sort direction. Ignored for MANUAL and RELEVANCE.
+  """
   direction: ListingSortDirection
 }
 
 # ---- Listing Result Types ----
 
 interface Listing implements Node {
-  """The global ID of the catalog listing item."""
+  """
+  The global ID of the catalog listing item.
+  """
   id: ID!
 }
 
-"""A connection to catalog products."""
+"""
+A connection to catalog products.
+"""
 type ListingConnection {
-  """A list of edges."""
+  """
+  A list of edges.
+  """
   edges: [ListingEdge!]!
 
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
 
-  """The total number of matched sellable items."""
+  """
+  The total number of matched sellable items.
+  """
   totalCount: Int!
 
-  """Ordered facet items available for the current listing result."""
+  """
+  Ordered facet items available for the current listing result.
+  """
   facets: [ListingFacet!]!
 }
 
-"""An edge in a Listing connection."""
+"""
+An edge in a Listing connection.
+"""
 type ListingEdge {
-  """The item at the end of the edge."""
+  """
+  The item at the end of the edge.
+  """
   node: Listing!
 
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: String!
 }
 
@@ -154,33 +212,51 @@ enum ListingFacetType {
 }
 
 type ListingFacet {
-  """Stable listing facet ID."""
+  """
+  Stable listing facet ID.
+  """
   id: String!
 
-  """Human-readable facet label."""
+  """
+  Human-readable facet label.
+  """
   label: String!
 
-  """Facet presentation/selection type."""
+  """
+  Facet presentation/selection type.
+  """
   type: ListingFacetType!
 
-  """Facet UI type."""
+  """
+  Facet UI type.
+  """
   uiType: FacetUIType!
 
-  """Ordered values for this facet in listing UI order."""
+  """
+  Ordered values for this facet in listing UI order.
+  """
   values: [ListingFacetValue!]!
 }
 
 type ListingFacetValue {
-  """Stable listing facet value ID."""
+  """
+  Stable listing facet value ID.
+  """
   id: String!
 
-  """Human-readable value label."""
+  """
+  Human-readable value label.
+  """
   label: String!
 
-  """Number of matched sellable items for this value."""
+  """
+  Number of matched sellable items for this value.
+  """
   count: Int!
 
-  """Whether this value was selected in the current request."""
+  """
+  Whether this value was selected in the current request.
+  """
   selected: Boolean!
 
   """
@@ -189,6 +265,8 @@ type ListingFacetValue {
   """
   input: JSON!
 
-  """Swatch metadata for facet values that have one."""
+  """
+  Swatch metadata for facet values that have one.
+  """
   swatch: FacetSwatch
 }

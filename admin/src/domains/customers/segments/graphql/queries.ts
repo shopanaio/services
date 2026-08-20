@@ -1,8 +1,5 @@
 import { gql } from "@apollo/client";
-import {
-  CUSTOMER_SEGMENT_DETAILS_FRAGMENT,
-  CUSTOMER_SEGMENT_LIST_FRAGMENT,
-} from "./fragments";
+import { CUSTOMER_SEGMENT_DETAILS_FRAGMENT, CUSTOMER_SEGMENT_LIST_FRAGMENT } from "./fragments";
 
 export const CUSTOMER_SEGMENTS_QUERY = gql`
   query CustomerSegments(
@@ -56,10 +53,22 @@ export const CUSTOMER_SEGMENT_ATTRIBUTE_CATALOG_QUERY = gql`
   query CustomerSegmentAttributeCatalog {
     customersQuery {
       customerSegmentAttributeCatalog {
-        name presentationKey kind valueType operators enumValues
-        availability unavailabilityReason
+        name
+        presentationKey
+        kind
+        valueType
+        operators
+        enumValues
+        availability
+        unavailabilityReason
         parameters {
-          name presentationKey valueType operators enumValues aggregate nullable
+          name
+          presentationKey
+          valueType
+          operators
+          enumValues
+          aggregate
+          nullable
         }
       }
     }
@@ -70,8 +79,18 @@ export const CUSTOMER_SEGMENT_QUERY_VALIDATE = gql`
   query CustomerSegmentQueryValidate($query: String!) {
     customersQuery {
       customerSegmentQueryValidate(query: $query) {
-        valid canonicalQuery complexity
-        diagnostics { code message severity startOffset endOffset line column }
+        valid
+        canonicalQuery
+        complexity
+        diagnostics {
+          code
+          message
+          severity
+          startOffset
+          endOffset
+          line
+          column
+        }
       }
     }
   }
@@ -81,10 +100,21 @@ export const CUSTOMER_SEGMENT_PREVIEW_QUERY = gql`
   query CustomerSegmentPreview($query: String!, $first: Int!) {
     customersQuery {
       customerSegmentPreview(query: $query, first: $first) {
-        timedOut totalCount
+        timedOut
+        totalCount
         validation {
-          valid canonicalQuery complexity
-          diagnostics { code message severity startOffset endOffset line column }
+          valid
+          canonicalQuery
+          complexity
+          diagnostics {
+            code
+            message
+            severity
+            startOffset
+            endOffset
+            line
+            column
+          }
         }
       }
     }

@@ -97,9 +97,7 @@ export function SortableTree({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  const activeItem = activeId
-    ? flattenedItems.find((item) => item.id === activeId)
-    : null;
+  const activeItem = activeId ? flattenedItems.find((item) => item.id === activeId) : null;
   useEffect(() => {
     return () => {
       document.body.style.cursor = "";
@@ -154,21 +152,14 @@ export function SortableTree({
             indentationWidth={indentationWidth}
             indicator
             collapsed={Boolean(collapsed && children.length)}
-            onCollapse={
-              children.length
-                ? () => onChange(setCollapsed(items, id))
-                : undefined
-            }
+            onCollapse={children.length ? () => onChange(setCollapsed(items, id)) : undefined}
             onRemove={() => onRemove(id)}
             onEdit={() => onEdit({ id, title, children, collapsed, ...item })}
           />
         ))}
         {activeId
           ? createPortal(
-              <DragOverlay
-                dropAnimation={dropAnimation}
-                modifiers={[adjustOverlay]}
-              >
+              <DragOverlay dropAnimation={dropAnimation} modifiers={[adjustOverlay]}>
                 {activeId && activeItem ? (
                   <SortableTreeItem
                     id={activeId}

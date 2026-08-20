@@ -34,7 +34,7 @@ export class AuthorizationError extends Error {
   constructor(
     public readonly errors: UserError[],
     public readonly resource: string,
-    public readonly action: string
+    public readonly action: string,
   ) {
     super(`Access denied: ${resource}:${action}`);
     this.name = "AuthorizationError";
@@ -52,14 +52,12 @@ export class AuthorizationError extends Error {
 export type AuthorizeOptions<
   TParams = unknown,
   TSelf extends object = Authorizable,
-  R extends ResourceName = ResourceName
+  R extends ResourceName = ResourceName,
 > = {
   /** Resource to check authorization for (from @shopana/rbac) */
   resource: R;
   /** Action to check (validated against resource's allowed actions) */
-  action:
-    | ActionsForResource<R>
-    | ((self: TSelf, params: TParams) => ActionsForResource<R>);
+  action: ActionsForResource<R> | ((self: TSelf, params: TParams) => ActionsForResource<R>);
   /**
    * Organization ID for authorization.
    */
@@ -81,14 +79,12 @@ export type AuthorizeOptions<
 
 const POLICY_METADATA_KEY = Symbol("broker:policy");
 const POLICY_WRAPPER_KEY = Symbol("broker:policy-wrapper");
-const WORKFLOW_ADMISSION_ERROR = Symbol.for(
-  "shopana.dbos.workflow-admission-error"
-);
+const WORKFLOW_ADMISSION_ERROR = Symbol.for("shopana.dbos.workflow-admission-error");
 
 type PolicyDecorator = <T>(
   _target: object,
   _propertyKey: string | symbol,
-  descriptor: TypedPropertyDescriptor<T>
+  descriptor: TypedPropertyDescriptor<T>,
 ) => TypedPropertyDescriptor<T>;
 
 /**
@@ -109,43 +105,36 @@ type PolicyDecorator = <T>(
  *   async run(input: AssignRoleInput) { ... }
  * }
  */
-export function Policy<TParams>(
-  options: AuthorizeOptions<TParams>
-): PolicyDecorator;
+export function Policy<TParams>(options: AuthorizeOptions<TParams>): PolicyDecorator;
 export function Policy<TParams, TSelf extends object>(
-  options: AuthorizeOptions<TParams, TSelf>
+  options: AuthorizeOptions<TParams, TSelf>,
 ): PolicyDecorator;
-export function Policy<
-  TParams = unknown,
-  TSelf extends object = Authorizable
->(options: AuthorizeOptions<TParams, TSelf>): PolicyDecorator {
+export function Policy<TParams = unknown, TSelf extends object = Authorizable>(
+  options: AuthorizeOptions<TParams, TSelf>,
+): PolicyDecorator {
   return function <T>(
     target: object,
     propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<T>
+    descriptor: TypedPropertyDescriptor<T>,
   ): TypedPropertyDescriptor<T> {
     const existingPolicies =
-      (Reflect.getOwnMetadata(
-        POLICY_METADATA_KEY,
-        target,
-        propertyKey
-      ) as AuthorizeOptions[]) ?? [];
+      (Reflect.getOwnMetadata(POLICY_METADATA_KEY, target, propertyKey) as AuthorizeOptions[]) ??
+      [];
     Reflect.defineMetadata(
       POLICY_METADATA_KEY,
       [...existingPolicies, options],
       target,
-      propertyKey
+      propertyKey,
     );
 
     if (isWorkflowEntrypoint(target, propertyKey)) {
       throw new Error(
-        "@Workflow/@Saga must be declared above @Policy so recovery authorization runs inside DBOS"
+        "@Workflow/@Saga must be declared above @Policy so recovery authorization runs inside DBOS",
       );
     }
 
     const currentMethod = descriptor.value as
-      | (Function & { [POLICY_WRAPPER_KEY]?: true })
-      | undefined;
+      (Function & { [POLICY_WRAPPER_KEY]?: true }) | undefined;
     if (currentMethod?.[POLICY_WRAPPER_KEY]) {
       return descriptor;
     }
@@ -166,7 +155,7 @@ export function Policy<
             this,
             propertyKey,
             params,
-            args[0] as WorkflowExecutionContext | undefined
+            args[0] as WorkflowExecutionContext | undefined,
           );
         }
       } else {
@@ -185,13 +174,11 @@ export function Policy<
 export async function authorizePolicies<TParams>(
   target: object,
   propertyKey: string | symbol,
-  params: TParams
+  params: TParams,
 ): Promise<void> {
   const provider = (target as Partial<Authorizable>).authProvider;
   if (!provider) {
-    throw new Error(
-      `@Policy requires ${target.constructor.name} to implement Authorizable`
-    );
+    throw new Error(`@Policy requires ${target.constructor.name} to implement Authorizable`);
   }
 
   await evaluatePolicies(
@@ -201,14 +188,11 @@ export async function authorizePolicies<TParams>(
     provider,
     () => ({}),
     (input) => Boolean(input.subject ?? provider.subject),
-    subjectMissingError
+    subjectMissingError,
   );
 }
 
-export function hasPolicies(
-  target: object,
-  propertyKey: string | symbol
-): boolean {
+export function hasPolicies(target: object, propertyKey: string | symbol): boolean {
   return getPolicies(target, propertyKey).length > 0;
 }
 
@@ -220,7 +204,7 @@ export async function authorizePoliciesWithAdminContext<TParams>(
   target: object,
   propertyKey: string | symbol,
   params: TParams,
-  context: BrokerAdminContext
+  context: BrokerAdminContext,
 ): Promise<void> {
   await evaluatePolicies(
     target,
@@ -233,7 +217,7 @@ export async function authorizePoliciesWithAdminContext<TParams>(
       domain: defaultWorkflowDomain(policy.resource, context.store?.id),
     }),
     (input) => Boolean(input.subject),
-    workflowAuthorizationMissingError
+    workflowAuthorizationMissingError,
   );
 }
 
@@ -246,14 +230,14 @@ export async function authorizePoliciesWithIam<TParams>(
   propertyKey: string | symbol,
   params: TParams,
   context: WorkflowExecutionContext,
-  broker: WorkflowPolicyBroker
+  broker: WorkflowPolicyBroker,
 ): Promise<void> {
   const policies = getPolicies<TParams>(target, propertyKey);
   if (policies.length === 0) return;
   const authorization = context.authorization;
   if (!authorization || authorization.kind !== "admin") {
     throw workflowAuthorizationMissingError(
-      resolveAuthorizeParams(target, params, policies[0], {})
+      resolveAuthorizeParams(target, params, policies[0], {}),
     );
   }
   await evaluatePolicies(
@@ -267,7 +251,7 @@ export async function authorizePoliciesWithIam<TParams>(
       domain: defaultWorkflowDomain(policy.resource, authorization.storeId),
     }),
     (input) => Boolean(input.subject),
-    workflowAuthorizationMissingError
+    workflowAuthorizationMissingError,
   );
 }
 
@@ -275,20 +259,18 @@ async function authorizeWorkflowPolicies<TParams>(
   target: object,
   propertyKey: string | symbol,
   params: TParams,
-  context: WorkflowExecutionContext | undefined
+  context: WorkflowExecutionContext | undefined,
 ): Promise<void> {
   const policies = getPolicies<TParams>(target, propertyKey);
   if (policies.length === 0) return;
   if (!context) {
     throw workflowAuthorizationMissingError(
-      resolveAuthorizeParams(target, params, policies[0], {})
+      resolveAuthorizeParams(target, params, policies[0], {}),
     );
   }
   const broker = (target as { broker?: WorkflowPolicyBroker }).broker;
   if (!broker) {
-    throw new Error(
-      `@Policy requires ${target.constructor.name} workflow to expose broker`
-    );
+    throw new Error(`@Policy requires ${target.constructor.name} workflow to expose broker`);
   }
   try {
     await authorizePoliciesWithIam(target, propertyKey, params, context, broker);
@@ -305,22 +287,15 @@ async function evaluatePolicies<TParams>(
   propertyKey: string | symbol,
   params: TParams,
   authorizer: Authorizer,
-  resolveDefaults: (
-    policy: AuthorizeOptions<TParams, object>
-  ) => PolicyAuthorizeDefaults,
+  resolveDefaults: (policy: AuthorizeOptions<TParams, object>) => PolicyAuthorizeDefaults,
   hasSubject: (input: BrokerAuthorizeParams) => boolean,
-  createUnauthenticatedError: (policy: PolicyIdentity) => AuthorizationError
+  createUnauthenticatedError: (policy: PolicyIdentity) => AuthorizationError,
 ): Promise<void> {
   const policies = getPolicies<TParams>(target, propertyKey);
   let firstDenied: AuthorizationError | undefined;
 
   for (const policy of policies) {
-    const input = resolveAuthorizeParams(
-      target,
-      params,
-      policy,
-      resolveDefaults(policy)
-    );
+    const input = resolveAuthorizeParams(target, params, policy, resolveDefaults(policy));
     if (!hasSubject(input)) {
       firstDenied ??= createUnauthenticatedError(input);
       continue;
@@ -336,31 +311,28 @@ async function evaluatePolicies<TParams>(
 class IamWorkflowPolicyAuthorizer implements Authorizer {
   constructor(
     private readonly broker: WorkflowPolicyBroker,
-    private readonly authorization: NonNullable<
-      WorkflowExecutionContext["authorization"]
-    >
+    private readonly authorization: NonNullable<WorkflowExecutionContext["authorization"]>,
   ) {}
 
   async authorize(params: BrokerAuthorizeParams): Promise<boolean> {
     if (!workflowScopeMatches(params, this.authorization)) return false;
-    const result = await this.broker.call<
-      BrokerAuthorizeResult,
-      BrokerAuthorizeParams
-    >("iam.authorize", params);
+    const result = await this.broker.call<BrokerAuthorizeResult, BrokerAuthorizeParams>(
+      "iam.authorize",
+      params,
+    );
     return result.allowed;
   }
 }
 
 function getPolicies<TParams>(
   target: object,
-  propertyKey: string | symbol
+  propertyKey: string | symbol,
 ): AuthorizeOptions<TParams, object>[] {
   return (
-    (Reflect.getMetadata(
-      POLICY_METADATA_KEY,
-      target,
-      propertyKey
-    ) as AuthorizeOptions<TParams, object>[]) ?? []
+    (Reflect.getMetadata(POLICY_METADATA_KEY, target, propertyKey) as AuthorizeOptions<
+      TParams,
+      object
+    >[]) ?? []
   );
 }
 
@@ -368,22 +340,15 @@ function resolveAuthorizeParams<TParams, TSelf extends object>(
   self: TSelf,
   params: TParams,
   options: AuthorizeOptions<TParams, TSelf>,
-  defaults: PolicyAuthorizeDefaults
+  defaults: PolicyAuthorizeDefaults,
 ): BrokerAuthorizeParams {
   const organizationId = resolveValue(options.organizationId, self, params);
-  const organizationName = resolveValue(
-    options.organizationName,
-    self,
-    params
-  );
+  const organizationName = resolveValue(options.organizationName, self, params);
   return {
     resource: options.resource,
     action: resolveValue(options.action, self, params)!,
     organizationId:
-      organizationId ??
-      (organizationName === undefined
-        ? defaults.organizationId
-        : undefined),
+      organizationId ?? (organizationName === undefined ? defaults.organizationId : undefined),
     organizationName,
     domain: resolveValue(options.domain, self, params) ?? defaults.domain,
     subject: resolveValue(options.subject, self, params) ?? defaults.subject,
@@ -393,7 +358,7 @@ function resolveAuthorizeParams<TParams, TSelf extends object>(
 function resolveValue<TSelf, TParams, TValue>(
   value: TValue | ((self: TSelf, params: TParams) => TValue) | undefined,
   self: TSelf,
-  params: TParams
+  params: TParams,
 ): TValue | undefined {
   return typeof value === "function"
     ? (value as (self: TSelf, params: TParams) => TValue)(self, params)
@@ -402,7 +367,7 @@ function resolveValue<TSelf, TParams, TValue>(
 
 function workflowScopeMatches(
   input: BrokerAuthorizeParams,
-  authorization: NonNullable<WorkflowExecutionContext["authorization"]>
+  authorization: NonNullable<WorkflowExecutionContext["authorization"]>,
 ): boolean {
   if (
     input.subject !== authorization.subject ||
@@ -412,18 +377,12 @@ function workflowScopeMatches(
   }
   return (
     input.domain === "org" ||
-    (authorization.storeId !== undefined &&
-      input.domain === `store:${authorization.storeId}`)
+    (authorization.storeId !== undefined && input.domain === `store:${authorization.storeId}`)
   );
 }
 
-function defaultWorkflowDomain(
-  resource: string,
-  storeId?: string
-): string {
-  return resource.startsWith("store.") && storeId
-    ? `store:${storeId}`
-    : "org";
+function defaultWorkflowDomain(resource: string, storeId?: string): string {
+  return resource.startsWith("store.") && storeId ? `store:${storeId}` : "org";
 }
 
 function subjectMissingError(policy: PolicyIdentity): AuthorizationError {
@@ -436,13 +395,11 @@ function subjectMissingError(policy: PolicyIdentity): AuthorizationError {
       },
     ],
     policy.resource,
-    policy.action
+    policy.action,
   );
 }
 
-function workflowAuthorizationMissingError(
-  policy: PolicyIdentity
-): AuthorizationError {
+function workflowAuthorizationMissingError(policy: PolicyIdentity): AuthorizationError {
   return new AuthorizationError(
     [
       {
@@ -452,7 +409,7 @@ function workflowAuthorizationMissingError(
       },
     ],
     policy.resource,
-    policy.action
+    policy.action,
   );
 }
 
@@ -466,7 +423,7 @@ function deniedError(policy: PolicyIdentity): AuthorizationError {
       },
     ],
     policy.resource,
-    policy.action
+    policy.action,
   );
 }
 
@@ -482,10 +439,7 @@ interface PolicyAuthorizeDefaults {
 }
 
 interface WorkflowPolicyBroker {
-  call<TResult = unknown, TParams = unknown>(
-    action: string,
-    params?: TParams
-  ): Promise<TResult>;
+  call<TResult = unknown, TParams = unknown>(action: string, params?: TParams): Promise<TResult>;
 }
 
 async function isWorkflowReplay(): Promise<boolean> {
@@ -495,15 +449,12 @@ async function isWorkflowReplay(): Promise<boolean> {
   return (status?.recoveryAttempts ?? 1) > 1;
 }
 
-function isWorkflowEntrypoint(
-  target: object,
-  propertyKey: string | symbol
-): boolean {
+function isWorkflowEntrypoint(target: object, propertyKey: string | symbol): boolean {
   if (propertyKey !== "run") {
     return false;
   }
   return Boolean(
     Reflect.getOwnMetadata(WORKFLOW_METADATA_KEY, target, propertyKey) ||
-      Reflect.getOwnMetadata(SAGA_DEFINITION_KEY, target.constructor)
+    Reflect.getOwnMetadata(SAGA_DEFINITION_KEY, target.constructor),
   );
 }

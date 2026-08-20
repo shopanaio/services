@@ -23,9 +23,7 @@ export class WishlistProductAddScript extends BaseScript<
   WishlistProductAddParams,
   WishlistProductAddResult
 > {
-  protected async execute(
-    params: WishlistProductAddParams,
-  ): Promise<WishlistProductAddResult> {
+  protected async execute(params: WishlistProductAddParams): Promise<WishlistProductAddResult> {
     if (params.wishlistId) {
       const wishlist = await this.repository.wishlist.findById(
         params.customerId,
@@ -49,13 +47,10 @@ export class WishlistProductAddScript extends BaseScript<
       if (normalized.name === null) {
         throw new Error("Default wishlist name is invalid");
       }
-      const wishlist = await this.repository.wishlist.getOrCreateDefault(
-        params.customerId,
-        {
-          name: normalized.name,
-          normalizedName: normalized.normalizedName,
-        },
-      );
+      const wishlist = await this.repository.wishlist.getOrCreateDefault(params.customerId, {
+        name: normalized.name,
+        normalizedName: normalized.normalizedName,
+      });
       if (!wishlist) return notFound();
       wishlistId = wishlist.id;
     }
@@ -84,8 +79,6 @@ export class WishlistProductAddScript extends BaseScript<
 function notFound(): WishlistProductAddResult {
   return {
     wishlistItem: null,
-    userErrors: [
-      wishlistError("NOT_FOUND", "Wishlist was not found", ["wishlistId"]),
-    ],
+    userErrors: [wishlistError("NOT_FOUND", "Wishlist was not found", ["wishlistId"])],
   };
 }

@@ -1,4 +1,6 @@
-"""A store-scoped native or Commerce Function discount aggregate owned by Pricing."""
+"""
+A store-scoped native or Commerce Function discount aggregate owned by Pricing.
+"""
 type Discount implements Node @key(fields: "id") {
   id: ID!
   method: DiscountMethod!
@@ -9,7 +11,9 @@ type Discount implements Node @key(fields: "id") {
   state: DiscountState!
   effectiveStatus: DiscountEffectiveStatus!
   title: String
-  """First active code, or the oldest code when all codes are disabled."""
+  """
+  First active code, or the oldest code when all codes are disabled.
+  """
   primaryCode: String
   codesCount: Int!
   currency: CurrencyCode!
@@ -35,7 +39,9 @@ type Discount implements Node @key(fields: "id") {
   updatedAt: DateTime!
   archivedAt: DateTime
 
-  """Exactly one rule subtype is present for a complete aggregate."""
+  """
+  Exactly one rule subtype is present for a complete aggregate.
+  """
   rule: DiscountRule
   minimumRequirement: DiscountMinimumRequirement
   targetSelections: [DiscountTargetSelection!]!
@@ -101,17 +107,20 @@ type DiscountFunctionBinding {
   updatedAt: DateTime!
 }
 
-union DiscountRule =
-    DiscountAmountOffRule
-  | DiscountBuyXGetYRule
-  | DiscountFreeShippingRule
+union DiscountRule = DiscountAmountOffRule | DiscountBuyXGetYRule | DiscountFreeShippingRule
 
-"""Percentage or fixed-amount rule used by product and order discounts."""
+"""
+Percentage or fixed-amount rule used by product and order discounts.
+"""
 type DiscountAmountOffRule {
-  """Always DECREASE for a discount."""
+  """
+  Always DECREASE for a discount.
+  """
   operation: PriceAdjustmentOperation!
 
-  """Shared percentage or fixed-amount representation."""
+  """
+  Shared percentage or fixed-amount representation.
+  """
   valueType: PriceAdjustmentValueType!
   percentageBps: Int
   amountMinor: BigInt
@@ -125,13 +134,19 @@ type DiscountBuyXGetYRule {
   requiredSubtotalMinor: BigInt
   benefitQuantity: Int!
 
-  """FREE or an arithmetic price adjustment."""
+  """
+  FREE or an arithmetic price adjustment.
+  """
   benefitStrategy: DiscountBenefitStrategy!
 
-  """DECREASE for ADJUSTMENT; null for FREE."""
+  """
+  DECREASE for ADJUSTMENT; null for FREE.
+  """
   benefitOperation: PriceAdjustmentOperation
 
-  """Required for ADJUSTMENT; null for FREE."""
+  """
+  Required for ADJUSTMENT; null for FREE.
+  """
   benefitValueType: PriceAdjustmentValueType
   benefitPercentageBps: Int
   benefitAmountMinor: BigInt
@@ -154,7 +169,9 @@ type DiscountTargetSelection {
   targets: [DiscountTarget!]!
 }
 
-"""A long-lived cross-service target reference and its reconciliation state."""
+"""
+A long-lived cross-service target reference and its reconciliation state.
+"""
 type DiscountTarget {
   targetId: ID!
   targetType: DiscountTargetType!
@@ -214,14 +231,20 @@ type DiscountEdge {
 }
 
 input DiscountAmountOffRuleInput {
-  """Must be DECREASE."""
+  """
+  Must be DECREASE.
+  """
   operation: PriceAdjustmentOperation!
 
-  """Shared percentage or fixed-amount representation."""
+  """
+  Shared percentage or fixed-amount representation.
+  """
   valueType: PriceAdjustmentValueType!
   percentageBps: Int
   amountMinor: BigInt
-  """Defaults to ACROSS when omitted."""
+  """
+  Defaults to ACROSS when omitted.
+  """
   allocationMethod: DiscountAllocationMethod
   maximumDiscountMinor: BigInt
 }
@@ -232,13 +255,19 @@ input DiscountBuyXGetYRuleInput {
   requiredSubtotalMinor: BigInt
   benefitQuantity: Int!
 
-  """FREE or an arithmetic price adjustment."""
+  """
+  FREE or an arithmetic price adjustment.
+  """
   benefitStrategy: DiscountBenefitStrategy!
 
-  """Must be DECREASE for ADJUSTMENT and null for FREE."""
+  """
+  Must be DECREASE for ADJUSTMENT and null for FREE.
+  """
   benefitOperation: PriceAdjustmentOperation
 
-  """Required for ADJUSTMENT and null for FREE."""
+  """
+  Required for ADJUSTMENT and null for FREE.
+  """
   benefitValueType: PriceAdjustmentValueType
   benefitPercentageBps: Int
   benefitAmountMinor: BigInt
@@ -249,7 +278,9 @@ input DiscountFreeShippingRuleInput {
   maximumShippingPriceMinor: BigInt
 }
 
-"""Exactly one rule field must match the owning discount kind."""
+"""
+Exactly one rule field must match the owning discount kind.
+"""
 input DiscountRuleInput {
   amountOff: DiscountAmountOffRuleInput
   buyXGetY: DiscountBuyXGetYRuleInput
@@ -262,7 +293,9 @@ input DiscountMinimumRequirementInput {
   quantity: Int
 }
 
-"""Wrapper used by updates so a null requirement can explicitly clear it."""
+"""
+Wrapper used by updates so a null requirement can explicitly clear it.
+"""
 input DiscountMinimumRequirementSyncInput {
   requirement: DiscountMinimumRequirementInput
 }
@@ -270,7 +303,9 @@ input DiscountMinimumRequirementSyncInput {
 input DiscountTargetSelectionInput {
   role: DiscountTargetRole!
   targetType: DiscountTargetType!
-  """Must be empty for ALL_PRODUCTS and non-empty for specific target types."""
+  """
+  Must be empty for ALL_PRODUCTS and non-empty for specific target types.
+  """
   targetIds: [ID!]!
 }
 
@@ -301,7 +336,9 @@ input DiscountUsageLimitsInput {
 }
 
 input DiscountCodeCreateOperationInput {
-  """Client-provided correlation key returned in the operation result."""
+  """
+  Client-provided correlation key returned in the operation result.
+  """
   clientMutationId: String
   code: String!
   usageLimit: BigInt
@@ -332,10 +369,14 @@ input DiscountCreateInput {
   method: DiscountMethod!
   calculationStrategy: DiscountCalculationStrategy = NATIVE
   kind: DiscountKind
-  """Required for FUNCTION; derived from kind for NATIVE."""
+  """
+  Required for FUNCTION; derived from kind for NATIVE.
+  """
   discountClass: DiscountClass
   functionBinding: DiscountFunctionBindingInput
-  """Defaults to DRAFT when omitted."""
+  """
+  Defaults to DRAFT when omitted.
+  """
   state: DiscountState
   title: String
   currency: CurrencyCode!
@@ -378,21 +419,31 @@ input DiscountLifecycleUpdateInput {
   state: DiscountState!
 }
 
-"""Discount-level sections executed by the unified discountUpdate workflow."""
+"""
+Discount-level sections executed by the unified discountUpdate workflow.
+"""
 input DiscountUpdateInput {
   definition: DiscountDefinitionUpdateInput
   functionBinding: DiscountFunctionBindingInput
   rule: DiscountRuleInput
   minimumRequirement: DiscountMinimumRequirementSyncInput
-  """Complete qualifier/benefit target replacement when supplied."""
+  """
+  Complete qualifier/benefit target replacement when supplied.
+  """
   targetSelections: [DiscountTargetSelectionInput!]
   eligibility: DiscountBuyerContextInput
   codes: DiscountCodesUpdateInput
-  """Complete tag replacement when supplied. Empty removes every tag."""
+  """
+  Complete tag replacement when supplied. Empty removes every tag.
+  """
   tags: [String!]
-  """Complete channel replacement when supplied. Empty removes every channel."""
+  """
+  Complete channel replacement when supplied. Empty removes every channel.
+  """
   channels: [DiscountChannelInput!]
-  """Complete compatible-class replacement when supplied."""
+  """
+  Complete compatible-class replacement when supplied.
+  """
   combinesWith: [DiscountClass!]
   lifecycle: DiscountLifecycleUpdateInput
   metadata: JSON
@@ -403,7 +454,9 @@ input DiscountDeleteInput {
   expectedRevision: Int!
 }
 
-"""Result of one section in a discount aggregate update."""
+"""
+Result of one section in a discount aggregate update.
+"""
 type DiscountOperationResult {
   type: DiscountOperationType!
   applied: Boolean!

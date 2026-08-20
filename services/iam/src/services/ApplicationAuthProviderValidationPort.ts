@@ -1,7 +1,7 @@
 import type { ApplicationAuthProviderName } from "../auth/applicationSocialProviders.js";
 
 export const APPLICATION_AUTH_PROVIDER_VALIDATION_PORT = Symbol.for(
-  "shopana.iam.application-auth-provider-validation-port"
+  "shopana.iam.application-auth-provider-validation-port",
 );
 
 export interface ApplicationAuthProviderValidationRequest {
@@ -23,7 +23,7 @@ export type ApplicationAuthProviderValidationOutcome =
  */
 export interface ApplicationAuthProviderValidationPort {
   validate(
-    request: ApplicationAuthProviderValidationRequest
+    request: ApplicationAuthProviderValidationRequest,
   ): Promise<ApplicationAuthProviderValidationOutcome>;
 }
 

@@ -4,19 +4,14 @@ import { resolveDeliveryUrl } from "./helpers/storefrontFile.js";
 import { MediaType } from "./MediaType.js";
 import type { StorefrontSourceInput } from "./VideoSourceResolver.js";
 
-export class Model3dSourceResolver extends MediaType<
-  StorefrontSourceInput,
-  File
-> {
+export class Model3dSourceResolver extends MediaType<StorefrontSourceInput, File> {
   async $preload() {
     if (!this.$ctx.storefrontStore) {
       throw new PreloadNotFoundError("Storefront media context is unavailable");
     }
     const file = await this.$ctx.loaders.file.load(this.$props.fileId);
     if (!file) {
-      throw new PreloadNotFoundError(
-        `Storefront media source not found: ${this.$props.fileId}`,
-      );
+      throw new PreloadNotFoundError(`Storefront media source not found: ${this.$props.fileId}`);
     }
     return file;
   }

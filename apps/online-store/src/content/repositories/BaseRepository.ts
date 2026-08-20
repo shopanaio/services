@@ -1,12 +1,5 @@
 import type { TransactionManager } from "@shopana/shared-kernel";
-import {
-  and,
-  eq,
-  exists,
-  isNull,
-  sql,
-  type SQLWrapper,
-} from "drizzle-orm";
+import { and, eq, exists, isNull, sql, type SQLWrapper } from "drizzle-orm";
 import type { OnlineStoreDatabase } from "./database.js";
 import {
   appInstallationsReference,
@@ -28,9 +21,7 @@ export abstract class BaseRepository {
     return this.txManager.getConnection() as OnlineStoreDatabase;
   }
 
-  protected async assertInstallationScope(
-    scope: OnlineStoreScope,
-  ): Promise<void> {
+  protected async assertInstallationScope(scope: OnlineStoreScope): Promise<void> {
     const rows = await this.connection
       .select({ id: appInstallationsReference.id })
       .from(appInstallationsReference)
@@ -62,10 +53,7 @@ export abstract class BaseRepository {
     return and(this.pageScope(scope), eq(pages.id, pageId));
   }
 
-  protected ownedPageExists(
-    scope: OnlineStoreScope,
-    pageId: string | SQLWrapper,
-  ) {
+  protected ownedPageExists(scope: OnlineStoreScope, pageId: string | SQLWrapper) {
     return exists(
       this.connection
         .select({ id: pages.id })
@@ -86,20 +74,12 @@ export abstract class BaseRepository {
     return and(this.menuScope(scope), eq(navigationMenus.id, menuId));
   }
 
-  protected ownedMenuExists(
-    scope: OnlineStoreScope,
-    menuId: string | SQLWrapper,
-  ) {
+  protected ownedMenuExists(scope: OnlineStoreScope, menuId: string | SQLWrapper) {
     return exists(
       this.connection
         .select({ id: navigationMenus.id })
         .from(navigationMenus)
-        .where(
-          and(
-            this.menuScope(scope),
-            sql`${navigationMenus.id} = ${menuId}`,
-          ),
-        ),
+        .where(and(this.menuScope(scope), sql`${navigationMenus.id} = ${menuId}`)),
     );
   }
 
@@ -114,20 +94,12 @@ export abstract class BaseRepository {
     return and(this.itemScope(scope), eq(navigationMenuItems.id, itemId));
   }
 
-  protected ownedItemExists(
-    scope: OnlineStoreScope,
-    itemId: string | SQLWrapper,
-  ) {
+  protected ownedItemExists(scope: OnlineStoreScope, itemId: string | SQLWrapper) {
     return exists(
       this.connection
         .select({ id: navigationMenuItems.id })
         .from(navigationMenuItems)
-        .where(
-          and(
-            this.itemScope(scope),
-            sql`${navigationMenuItems.id} = ${itemId}`,
-          ),
-        ),
+        .where(and(this.itemScope(scope), sql`${navigationMenuItems.id} = ${itemId}`)),
     );
   }
 }

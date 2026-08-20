@@ -42,10 +42,10 @@ export function useProductInventoryWidget({
     loading: isLoading,
     error,
     refetch: refetchInventoryWidget,
-  } = useQuery<
-    ProductInventoryWidgetQueryData,
-    ProductInventoryWidgetQueryVariables
-  >(PRODUCT_INVENTORY_WIDGET_QUERY, queryOptions);
+  } = useQuery<ProductInventoryWidgetQueryData, ProductInventoryWidgetQueryVariables>(
+    PRODUCT_INVENTORY_WIDGET_QUERY,
+    queryOptions,
+  );
 
   const refetch = useCallback(async () => {
     if (!productId || skip) {

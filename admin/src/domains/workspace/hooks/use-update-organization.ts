@@ -45,7 +45,7 @@ export function useUpdateOrganization(): UseUpdateOrganizationReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

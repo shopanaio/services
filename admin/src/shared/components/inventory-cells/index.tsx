@@ -46,10 +46,7 @@ export interface CalculatedAvailableCellProps {
 // Read-only cell showing reserved quantity with tooltip
 // ============================================================================
 
-export const ReservedCell: React.FC<InventoryCellProps> = ({
-  value,
-  testId,
-}) => (
+export const ReservedCell: React.FC<InventoryCellProps> = ({ value, testId }) => (
   <Tooltip title="Managed by order system">
     <div className="ec-cell ec-cell--right" data-testid={testId}>
       {value}

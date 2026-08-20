@@ -16,7 +16,12 @@ import type {
   Selectable,
 } from "../types.js";
 import { QueryBuilder } from "./query-builder.js";
-import type { FieldDefinition, JoinDefinition, FieldBuilder, JoinFieldDefinition } from "./helpers.js";
+import type {
+  FieldDefinition,
+  JoinDefinition,
+  FieldBuilder,
+  JoinFieldDefinition,
+} from "./helpers.js";
 import type {
   FluentFieldsDef,
   ToFieldsDef,
@@ -91,7 +96,7 @@ export class FluentQueryBuilder<
     table: T,
     tableName: string,
     fieldsDef: Fields,
-    config: FluentQueryConfig<InferredFields> = {}
+    config: FluentQueryConfig<InferredFields> = {},
   ) {
     this.table = table;
     this.tableName = tableName;
@@ -108,7 +113,7 @@ export class FluentQueryBuilder<
    * ```
    */
   defaultOrder(
-    order: OrderByItem<NestedPaths<InferredFields>>
+    order: OrderByItem<NestedPaths<InferredFields>>,
   ): FluentQueryBuilder<T, Fields, InferredFields, Types> {
     return new FluentQueryBuilder(this.table, this.tableName, this.fieldsDef, {
       ...this.config,
@@ -125,7 +130,7 @@ export class FluentQueryBuilder<
    * ```
    */
   defaultSelect(
-    fields: NestedPaths<InferredFields>[]
+    fields: NestedPaths<InferredFields>[],
   ): FluentQueryBuilder<T, Fields, InferredFields, Types> {
     return new FluentQueryBuilder(this.table, this.tableName, this.fieldsDef, {
       ...this.config,
@@ -142,7 +147,7 @@ export class FluentQueryBuilder<
    * ```
    */
   include(
-    fields: NestedPaths<InferredFields>[]
+    fields: NestedPaths<InferredFields>[],
   ): FluentQueryBuilder<T, Fields, InferredFields, Types> {
     return new FluentQueryBuilder(this.table, this.tableName, this.fieldsDef, {
       ...this.config,
@@ -159,7 +164,7 @@ export class FluentQueryBuilder<
    * ```
    */
   exclude(
-    fields: NestedPaths<InferredFields>[]
+    fields: NestedPaths<InferredFields>[],
   ): FluentQueryBuilder<T, Fields, InferredFields, Types> {
     return new FluentQueryBuilder(this.table, this.tableName, this.fieldsDef, {
       ...this.config,
@@ -206,7 +211,7 @@ export class FluentQueryBuilder<
    * ```
    */
   defaultWhere(
-    where: NestedWhereInput<InferredFields>
+    where: NestedWhereInput<InferredFields>,
   ): FluentQueryBuilder<T, Fields, InferredFields, Types> {
     return new FluentQueryBuilder(this.table, this.tableName, this.fieldsDef, {
       ...this.config,
@@ -219,7 +224,7 @@ export class FluentQueryBuilder<
    */
   mapWhereField(
     field: LocalLeafPaths<InferredFields>,
-    mapper: WhereFieldMapper | WhereFieldMapperConfig
+    mapper: WhereFieldMapper | WhereFieldMapperConfig,
   ): FluentQueryBuilder<T, Fields, InferredFields, Types> {
     return new FluentQueryBuilder(this.table, this.tableName, this.fieldsDef, {
       ...this.config,
@@ -234,7 +239,7 @@ export class FluentQueryBuilder<
    * Map values for multiple local leaf fields in where filters.
    */
   mapWhereFields(
-    mappers: WhereFieldMappers<InferredFields>
+    mappers: WhereFieldMappers<InferredFields>,
   ): FluentQueryBuilder<T, Fields, InferredFields, Types> {
     return new FluentQueryBuilder(this.table, this.tableName, this.fieldsDef, {
       ...this.config,
@@ -257,10 +262,7 @@ export class FluentQueryBuilder<
    * });
    * ```
    */
-  async execute(
-    db: DrizzleExecutor,
-    options?: ExecuteOptions<InferredFields>
-  ): Promise<Types[]> {
+  async execute(db: DrizzleExecutor, options?: ExecuteOptions<InferredFields>): Promise<Types[]> {
     const resolvedOptions = this.resolveOptions(options);
     const qb = this.getQueryBuilder();
 
@@ -306,10 +308,7 @@ export class FluentQueryBuilder<
    * });
    * ```
    */
-  async count(
-    db: DrizzleExecutor,
-    options?: CountOptions<InferredFields>
-  ): Promise<number> {
+  async count(db: DrizzleExecutor, options?: CountOptions<InferredFields>): Promise<number> {
     const where = options?.where ?? this.config.defaultWhere;
     const mappedWhere = this.mapWhereForExecution(where);
     const qb = this.getQueryBuilder();
@@ -400,7 +399,7 @@ export class FluentQueryBuilder<
    * @internal
    */
   mapWhereForExecution(
-    where: NestedWhereInput<InferredFields> | null | undefined
+    where: NestedWhereInput<InferredFields> | null | undefined,
   ): NestedWhereInput<InferredFields> | null | undefined {
     return transformWhereInput(where, this.getWhereMapperScope());
   }
@@ -420,7 +419,7 @@ export class FluentQueryBuilder<
       }
       this._queryBuilder = new QueryBuilder(
         schema as ObjectSchema<T, string, FieldsDef, Types>,
-        qbConfig
+        qbConfig,
       );
     }
     return this._queryBuilder!;
@@ -468,18 +467,14 @@ export class FluentQueryBuilder<
 
     return {
       mappers: {
-        ...(this.config.whereFieldMappers as Record<
-          string,
-          WhereFieldMapper | WhereFieldMapperConfig
-        > | undefined),
+        ...(this.config.whereFieldMappers as
+          Record<string, WhereFieldMapper | WhereFieldMapperConfig> | undefined),
       },
       relations,
     };
   }
 
-  private resolveOptions(
-    options?: ExecuteOptions<InferredFields>
-  ): {
+  private resolveOptions(options?: ExecuteOptions<InferredFields>): {
     where: Record<string, unknown> | undefined;
     order: OrderByItem<string>[] | undefined;
     select: string[] | undefined;
@@ -524,9 +519,7 @@ export class FluentQueryBuilder<
     }
 
     // Resolve where
-    const where = this.mapWhereForExecution(
-      options?.where ?? this.config.defaultWhere
-    );
+    const where = this.mapWhereForExecution(options?.where ?? this.config.defaultWhere);
 
     return {
       where: where as Record<string, unknown> | undefined,
@@ -608,7 +601,7 @@ function createFieldsFromTable<T extends Table>(table: T): InferFieldsFromTable<
       join: undefined,
       leftJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: Column | SQLAliased
+        joinColumn: Column | SQLAliased,
       ): JoinFieldDefinition<TFields> {
         return {
           column: column.name,
@@ -617,7 +610,7 @@ function createFieldsFromTable<T extends Table>(table: T): InferFieldsFromTable<
       },
       innerJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: Column | SQLAliased
+        joinColumn: Column | SQLAliased,
       ): JoinFieldDefinition<TFields> {
         return {
           column: column.name,
@@ -626,7 +619,7 @@ function createFieldsFromTable<T extends Table>(table: T): InferFieldsFromTable<
       },
       rightJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: Column | SQLAliased
+        joinColumn: Column | SQLAliased,
       ): JoinFieldDefinition<TFields> {
         return {
           column: column.name,
@@ -635,7 +628,7 @@ function createFieldsFromTable<T extends Table>(table: T): InferFieldsFromTable<
       },
       fullJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: Column | SQLAliased
+        joinColumn: Column | SQLAliased,
       ): JoinFieldDefinition<TFields> {
         return {
           column: column.name,
@@ -692,7 +685,7 @@ function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
       join: undefined,
       leftJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: Column | SQLAliased
+        joinColumn: Column | SQLAliased,
       ): JoinFieldDefinition<TFields> {
         return {
           column: columnName,
@@ -701,7 +694,7 @@ function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
       },
       innerJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: Column | SQLAliased
+        joinColumn: Column | SQLAliased,
       ): JoinFieldDefinition<TFields> {
         return {
           column: columnName,
@@ -710,7 +703,7 @@ function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
       },
       rightJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: Column | SQLAliased
+        joinColumn: Column | SQLAliased,
       ): JoinFieldDefinition<TFields> {
         return {
           column: columnName,
@@ -719,7 +712,7 @@ function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
       },
       fullJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: Column | SQLAliased
+        joinColumn: Column | SQLAliased,
       ): JoinFieldDefinition<TFields> {
         return {
           column: columnName,
@@ -781,7 +774,7 @@ function getTableOrViewName(tableOrView: Selectable): string {
  * ```
  */
 export function createQuery<T extends Table>(
-  table: T
+  table: T,
 ): FluentQueryBuilder<T, InferFieldsFromTable<T>, InferFieldsDefFromTable<T>, T["$inferSelect"]>;
 
 /**
@@ -801,7 +794,7 @@ export function createQuery<T extends Table>(
  * ```
  */
 export function createQuery<T extends View>(
-  view: T
+  view: T,
 ): FluentQueryBuilder<T, InferFieldsFromView<T>, InferFieldsDefFromView<T>, T["$inferSelect"]>;
 
 /**
@@ -816,20 +809,14 @@ export function createQuery<T extends View>(
  * });
  * ```
  */
-export function createQuery<
-  T extends Selectable,
-  const Fields extends FluentFieldsDef,
->(
+export function createQuery<T extends Selectable, const Fields extends FluentFieldsDef>(
   table: T,
-  fields: Fields
+  fields: Fields,
 ): FluentQueryBuilder<T, Fields, ToFieldsDef<Fields>, T["$inferSelect"]>;
 
-export function createQuery<
-  T extends Selectable,
-  const Fields extends FluentFieldsDef,
->(
+export function createQuery<T extends Selectable, const Fields extends FluentFieldsDef>(
   table: T,
-  fields?: Fields
+  fields?: Fields,
 ): FluentQueryBuilder<
   T,
   Fields | InferFieldsFromTable<T & Table> | InferFieldsFromView<T & View>,
@@ -852,7 +839,7 @@ export function createQuery<
   return new FluentQueryBuilder(
     table,
     tableName,
-    resolvedFields as Fields | InferFieldsFromTable<T & Table> | InferFieldsFromView<T & View>
+    resolvedFields as Fields | InferFieldsFromTable<T & Table> | InferFieldsFromView<T & View>,
   ) as FluentQueryBuilder<
     T,
     Fields | InferFieldsFromTable<T & Table> | InferFieldsFromView<T & View>,

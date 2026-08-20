@@ -9,12 +9,18 @@ Product options are represented by `ProductOption` in the Admin API:
 - `displayType: OptionDisplayType!` controls how values render in the UI.
 - Supported display types are `BUTTONS`, `DROPDOWN`, and `SWATCH`.
 - `ProductOption.values` contains the selectable values for that option.
-- `ProductOptionSwatch` belongs to option values and is relevant only when the option `displayType` is `SWATCH`.
-- The output API exposes option and value `sortIndex`, and the product details fragments currently select it.
+- `ProductOptionSwatch` belongs to option values and is relevant only when the option `displayType`
+  is `SWATCH`.
+- The output API exposes option and value `sortIndex`, and the product details fragments currently
+  select it.
 - The UI must preserve the rendered order from the returned `options` and `values` arrays.
-- The editor may initialize local `sortIndex` from the returned array order for drag-and-drop stability, then generate contiguous sync `sortIndex` values from the current editor order when saving.
+- The editor may initialize local `sortIndex` from the returned array order for drag-and-drop
+  stability, then generate contiguous sync `sortIndex` values from the current editor order when
+  saving.
 
-The Admin product details UI already reads options from `ApiProduct.options`. The edit modal must stop using mock options and save the complete option snapshot through `catalogMutation.productOptionsSync`.
+The Admin product details UI already reads options from `ApiProduct.options`. The edit modal must
+stop using mock options and save the complete option snapshot through
+`catalogMutation.productOptionsSync`.
 
 ## Baseline
 
@@ -32,7 +38,8 @@ Use `productOptionsSync` for the first Admin options editor integration.
 Reasons:
 
 - the current editor works with a complete list snapshot;
-- the resolver decodes global product, option, option value, and swatch file IDs before calling the script;
+- the resolver decodes global product, option, option value, and swatch file IDs before calling the
+  script;
 - the script applies a complete replacement transaction;
 - options omitted from `input.options` are deleted;
 - values omitted from an option `values` list are deleted;
@@ -69,7 +76,8 @@ Client validation should catch the same obvious errors before sync:
 - existing value IDs must belong to the same option.
 - a new option must not send existing value IDs.
 
-The client cannot fully validate database ownership, so it must still keep the modal open and show server `userErrors`.
+The client cannot fully validate database ownership, so it must still keep the modal open and show
+server `userErrors`.
 
 ### Frontend State
 
@@ -91,15 +99,20 @@ The product module already has generated API types in `admin/src/graphql/types.t
 Current gaps:
 
 - `OptionsSection` renders from `product.options`, but returns `null` when the list is empty.
-- `OptionsSection` imports display metadata from the edit modal constants, which leaks modal-only code into display UI.
-- `ProductDetailsCard` currently renders the options section only for products where `variantsCount > 1`, so adding the first option from an empty product is not exposed.
+- `OptionsSection` imports display metadata from the edit modal constants, which leaks modal-only
+  code into display UI.
+- `ProductDetailsCard` currently renders the options section only for products where
+  `variantsCount > 1`, so adding the first option from an empty product is not exposed.
 - `IEditOptionsModalPayload` only carries optional `productId`.
 - `EditOptionsModal` accepts `initialGroups` and defaults to `MOCK_OPTION_GROUPS`.
 - save only shows `Product option updates are not API-backed yet`.
-- `edit-options-modal.schema.ts` re-exports generated API types and aliases API output types as form state.
-- `useEditOptionsForm` stores editable state as `ApiProductOption` and `ApiProductOptionValue` objects.
+- `edit-options-modal.schema.ts` re-exports generated API types and aliases API output types as form
+  state.
+- `useEditOptionsForm` stores editable state as `ApiProductOption` and `ApiProductOptionValue`
+  objects.
 - new options and values currently use local IDs in the same field that persisted API IDs use.
-- `SwatchPicker` image upload currently creates a data URL and stores it like a `fileId`; this is not valid for the API sync input.
+- `SwatchPicker` image upload currently creates a data URL and stores it like a `fileId`; this is
+  not valid for the API sync input.
 - there is no `useSyncProductOptions` hook.
 - there are no option sync mappers or option-specific `userErrors` mappers.
 - there is no active Admin UI e2e coverage for the options modal.
@@ -142,16 +155,19 @@ Follow `knowledge/vault/patterns/admin-graphql-layer.md`.
 Required rules for this work:
 
 - Import generated API types directly from `@/graphql/types` at the usage site.
-- Do not re-export generated API types from module barrels, component barrels, `graphql/index.ts`, `operation-types.ts`, modal schema files, or feature-local `types.ts`.
+- Do not re-export generated API types from module barrels, component barrels, `graphql/index.ts`,
+  `operation-types.ts`, modal schema files, or feature-local `types.ts`.
 - Do not create API output view models for `ProductOption`.
 - API-backed display components must accept generated API data directly.
 - `OptionsSection` must accept `options: ApiProductOption[]`.
 - UI-local editor groups and values are allowed only inside the edit modal boundary.
-- Mappers may convert `ApiProductOption[]` to modal-local editor groups and editor groups back to `ApiProductOptionsSyncInput`.
+- Mappers may convert `ApiProductOption[]` to modal-local editor groups and editor groups back to
+  `ApiProductOptionsSyncInput`.
 - Mappers must not perform GraphQL calls.
 - Hooks own Apollo calls and normalize returned `userErrors`.
 - Components must not inspect raw payload paths like `data.catalogMutation.productOptionsSync`.
-- The mutation freshness strategy must be explicit. For this integration, use the modal payload `onSaved` callback to refetch product details and variant data.
+- The mutation freshness strategy must be explicit. For this integration, use the modal payload
+  `onSaved` callback to refetch product details and variant data.
 - Do not use mocks in new API-backed hooks.
 
 ## Target File Layout
@@ -187,7 +203,9 @@ admin/src/domains/inventory/products/
       components/
 ```
 
-Replace `IOptionGroup` and `IOptionValue` API aliases with modal-local editor types. Whether the old names are temporarily kept or renamed, they must not be generated API type aliases and must not be used as API-backed display prop contracts.
+Replace `IOptionGroup` and `IOptionValue` API aliases with modal-local editor types. Whether the old
+names are temporarily kept or renamed, they must not be generated API type aliases and must not be
+used as API-backed display prop contracts.
 
 ## GraphQL Changes
 
@@ -227,9 +245,15 @@ fragment ProductOptionFields on ProductOption {
 }
 ```
 
-The schema exposes option and value `sortIndex`, and the current product fragments already select it. Display order must still follow the returned `options` and `values` array order. Editor state should derive contiguous local `sortIndex` values from the returned array positions, not trust sparse or stale backend indexes for drag state. The sync mapper must generate contiguous output `sortIndex` values from the final editor order.
+The schema exposes option and value `sortIndex`, and the current product fragments already select
+it. Display order must still follow the returned `options` and `values` array order. Editor state
+should derive contiguous local `sortIndex` values from the returned array positions, not trust
+sparse or stale backend indexes for drag state. The sync mapper must generate contiguous output
+`sortIndex` values from the final editor order.
 
-`slug` is still required by the current schema and sync input. If the backend removes option and value slugs before this UI work lands, regenerate types and update this fragment, mapper, validation, and e2e assertions in the same implementation.
+`slug` is still required by the current schema and sync input. If the backend removes option and
+value slugs before this UI work lands, regenerate types and update this fragment, mapper,
+validation, and e2e assertions in the same implementation.
 
 ### Sync Mutation
 
@@ -260,11 +284,14 @@ mutation ProductOptionsSync($input: ProductOptionsSyncInput!) {
 
 Append `${PRODUCT_OPTION_FRAGMENT}` and `${USER_ERROR_FRAGMENT}` to the document.
 
-Select only the fields needed to refresh the options area. Do not request the full product details payload or variants in this mutation. Product details and variants freshness must be handled by the modal payload `onSaved` callback.
+Select only the fields needed to refresh the options area. Do not request the full product details
+payload or variants in this mutation. Product details and variants freshness must be handled by the
+modal payload `onSaved` callback.
 
 ### Operation Types
 
-Update `products/graphql/operation-types.ts` with local operation response and variables types built from generated schema types.
+Update `products/graphql/operation-types.ts` with local operation response and variables types built
+from generated schema types.
 
 Do not re-export generated schema types.
 
@@ -300,7 +327,8 @@ export interface ProductOptionsSyncMutationVariables {
 }
 ```
 
-Export these local operation types from `products/graphql/index.ts`. This is allowed because they are operation-local types, not generated API type re-exports.
+Export these local operation types from `products/graphql/index.ts`. This is allowed because they
+are operation-local types, not generated API type re-exports.
 
 ## Editor State And Mapper Plan
 
@@ -351,8 +379,10 @@ Rules:
 - Existing values use `id = apiId = value.id`.
 - New values use temporary IDs such as `tmp-option-value-${crypto.randomUUID()}` and no `apiId`.
 - Sync input sends only `apiId`, never temporary IDs.
-- `apiSwatchId` is optional metadata for local tracking only. Sync input cannot preserve a swatch ID because `ProductOptionSwatchInput` has no `id`.
-- Modal-local types may reference generated enums such as `OptionDisplayType` and `SwatchType`, but must not re-export them.
+- `apiSwatchId` is optional metadata for local tracking only. Sync input cannot preserve a swatch ID
+  because `ProductOptionSwatchInput` has no `id`.
+- Modal-local types may reference generated enums such as `OptionDisplayType` and `SwatchType`, but
+  must not re-export them.
 
 ### API To Editor Groups
 
@@ -371,12 +401,14 @@ Rules:
 - Preserve value order from each option `values` array.
 - Set each option editor `sortIndex` from its current array position.
 - Set each value editor `sortIndex` from its current array position.
-- Preserve API `sortIndex` only as server output data; do not use it as the source of truth for editor ordering.
+- Preserve API `sortIndex` only as server output data; do not use it as the source of truth for
+  editor ordering.
 - Preserve option and value `apiId`.
 - Convert output swatches to editor swatches.
 - For image swatches, use `swatch.file?.id` as `fileId`.
 - Do not create data URL `fileId` values.
-- If the output contains swatches for a non-`SWATCH` display type, keep them out of the save set unless the user changes the option back to `SWATCH`.
+- If the output contains swatches for a non-`SWATCH` display type, keep them out of the save set
+  unless the user changes the option back to `SWATCH`.
 
 ### Editor Groups To Sync Input
 
@@ -400,17 +432,25 @@ buildProductOptionsSyncDraft(input: {
 Rules:
 
 - Build a complete snapshot for all editor groups.
-- Options are sorted by local editor `sortIndex` and receive contiguous sync `sortIndex` values `0`, `1`, `2`.
-- Values are sorted by local editor `sortIndex` within each option and receive contiguous sync `sortIndex` values `0`, `1`, `2`.
+- Options are sorted by local editor `sortIndex` and receive contiguous sync `sortIndex` values `0`,
+  `1`, `2`.
+- Values are sorted by local editor `sortIndex` within each option and receive contiguous sync
+  `sortIndex` values `0`, `1`, `2`.
 - Send option `id` only when `group.apiId` is present.
 - Send value `id` only when `value.apiId` is present.
-- Preserve existing option slugs from API-backed rows unless the user explicitly changes slug editing behavior in the future.
-- Preserve existing value slugs from API-backed rows unless the user explicitly changes slug editing behavior in the future.
-- Generate option slugs from group names only for new groups or existing groups with an empty/missing slug.
-- Generate value slugs from value names only for new values or existing values with an empty/missing slug.
-- Option slugs must be unique across the product. De-duplicate generated slugs with numeric suffixes.
+- Preserve existing option slugs from API-backed rows unless the user explicitly changes slug
+  editing behavior in the future.
+- Preserve existing value slugs from API-backed rows unless the user explicitly changes slug editing
+  behavior in the future.
+- Generate option slugs from group names only for new groups or existing groups with an
+  empty/missing slug.
+- Generate value slugs from value names only for new values or existing values with an empty/missing
+  slug.
+- Option slugs must be unique across the product. De-duplicate generated slugs with numeric
+  suffixes.
 - Value slugs must be unique within the option. De-duplicate generated slugs with numeric suffixes.
-- The slug generator must never return an empty string. Use a deterministic fallback such as `option-${position + 1}` or `value-${position + 1}`.
+- The slug generator must never return an empty string. Use a deterministic fallback such as
+  `option-${position + 1}` or `value-${position + 1}`.
 - Preserve existing option and value IDs on update.
 - New options and values are created by omitting IDs.
 - Deleted options and values are omitted from the complete snapshot.
@@ -431,7 +471,8 @@ optionEditorGroupsToProductOptionsSyncInput(input: {
 
 ### Slug Generation
 
-Use the project's existing `slugify` approach from product create or product features as the base implementation.
+Use the project's existing `slugify` approach from product create or product features as the base
+implementation.
 
 Required helper behavior:
 
@@ -517,9 +558,7 @@ interface SyncProductOptionsResult {
 }
 
 interface UseSyncProductOptionsReturn {
-  syncProductOptions: (
-    input: ApiProductOptionsSyncInput,
-  ) => Promise<SyncProductOptionsResult>;
+  syncProductOptions: (input: ApiProductOptionsSyncInput) => Promise<SyncProductOptionsResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
@@ -528,22 +567,26 @@ interface UseSyncProductOptionsReturn {
 
 Implementation:
 
-- use `useMutation<ProductOptionsSyncMutationData, ProductOptionsSyncMutationVariables>(PRODUCT_OPTIONS_SYNC_MUTATION)`;
+- use
+  `useMutation<ProductOptionsSyncMutationData, ProductOptionsSyncMutationVariables>(PRODUCT_OPTIONS_SYNC_MUTATION)`;
 - unwrap `payload.product`, `payload.options`, and `payload.userErrors`;
-- return `product: null`, `options: []`, and a normalized `UNEXPECTED_ERROR` user error for unexpected exceptions;
+- return `product: null`, `options: []`, and a normalized `UNEXPECTED_ERROR` user error for
+  unexpected exceptions;
 - expose Apollo `loading`, `error`, and `reset`;
 - do not expose raw nested payload paths to components;
 - do not import mocks;
 - do not perform a broad cache write in the first implementation;
 - document that freshness is handled by the modal payload `onSaved` callback.
 
-The hook may optionally accept future options for `refetchQueries` or cache updates, but the first integration should keep refresh behavior explicit through `onSaved`.
+The hook may optionally accept future options for `refetchQueries` or cache updates, but the first
+integration should keep refresh behavior explicit through `onSaved`.
 
 ## UI Integration Plan
 
 ### Product Details Read Path
 
-`ProductDetailsCard` already passes `product.options` to `OptionsSection`. Update the surrounding UI so the API-backed edit path is reachable and not tied to mock state.
+`ProductDetailsCard` already passes `product.options` to `OptionsSection`. Update the surrounding UI
+so the API-backed edit path is reachable and not tied to mock state.
 
 Required changes:
 
@@ -578,7 +621,8 @@ Display rules:
 - show swatch previews only for `displayType === OptionDisplayType.Swatch`;
 - handle `COLOR`, `GRADIENT`, and `IMAGE` swatches;
 - show an empty state for no options instead of returning `null` when an edit action is available;
-- keep the section visible when `options.length === 0` if `actions` exists, so users can create the first option.
+- keep the section visible when `options.length === 0` if `actions` exists, so users can create the
+  first option.
 
 ### Modal Payload
 
@@ -603,15 +647,11 @@ const handleEditOptions = useCallback(() => {
     options: product.options,
     onSaved: options.onProductRefresh,
   });
-}, [
-  product.id,
-  product.options,
-  options.onProductRefresh,
-  openEditOptionsModal,
-]);
+}, [product.id, product.options, options.onProductRefresh, openEditOptionsModal]);
 ```
 
-Do not omit the refresh callback. Option sync can change product options and product variants, so the product details view must be refetched after a successful save.
+Do not omit the refresh callback. Option sync can change product options and product variants, so
+the product details view must be refetched after a successful save.
 
 ### Edit Options Modal
 
@@ -622,7 +662,8 @@ Update `EditOptionsModal`:
 - initialize groups from `payload.options` through `apiProductOptionsToOptionEditorGroups`;
 - remove `MOCK_OPTION_GROUPS` import;
 - remove or stop using the `initialGroups` mock default for app code;
-- replace generated API type aliases in `edit-options-modal.schema.ts` with modal-local editor types or remove the schema file if it no longer owns useful runtime validation;
+- replace generated API type aliases in `edit-options-modal.schema.ts` with modal-local editor types
+  or remove the schema file if it no longer owns useful runtime validation;
 - keep option and value edits in modal-local state;
 - keep `react-hook-form` and `dnd-kit` if they remain compatible with the editor type shape;
 - create temporary IDs for new options and values;
@@ -636,7 +677,8 @@ Update `EditOptionsModal`:
 - call `useSyncProductOptions().syncProductOptions(draft.input)`;
 - disable submit while saving;
 - introduce explicit modal dirty state, because the current options modal does not have one;
-- set dirty state to `true` whenever option, value, display type, swatch, order, add, or delete actions change editor state;
+- set dirty state to `true` whenever option, value, display type, swatch, order, add, or delete
+  actions change editor state;
 - keep dirty state `false` immediately after initialization from `payload.options`;
 - show client validation errors in the modal;
 - show API `userErrors` in the modal;
@@ -751,23 +793,28 @@ Add stable test IDs needed by the spec:
 
 Recommended scenarios:
 
-- create a product with no options, open details, assert the options empty state is visible, add the first option with values, save, reload, assert it is shown;
+- create a product with no options, open details, assert the options empty state is visible, add the
+  first option with values, save, reload, assert it is shown;
 - add a `SWATCH` option with color and gradient values, save, reload, assert swatches render;
 - edit option names, display types, and value names, save, reload, assert changes persist;
 - reorder options and values, save, reload, assert ordering;
 - delete a value and delete an option, save, reload, assert removed items are gone;
 - submit invalid rows and assert the modal shows errors without closing;
-- edit an existing option and value, save, assert option and value IDs are preserved through an API read;
-- change a `SWATCH` option to `DROPDOWN`, save, reload, assert swatches are removed or no longer rendered according to the chosen save behavior.
+- edit an existing option and value, save, assert option and value IDs are preserved through an API
+  read;
+- change a `SWATCH` option to `DROPDOWN`, save, reload, assert swatches are removed or no longer
+  rendered according to the chosen save behavior.
 
-Per project instructions, e2e specs should be run one file at a time only when verification is explicitly needed. Do not run `test` or `tsc` for this planning task.
+Per project instructions, e2e specs should be run one file at a time only when verification is
+explicitly needed. Do not run `test` or `tsc` for this planning task.
 
 ## Implementation Phases
 
 ### Phase 1: GraphQL Operation And Types
 
 - Confirm `ProductOptionFields` has all required fields.
-- Confirm `ProductOptionValueFields` selects enough swatch and file data to preserve existing swatches.
+- Confirm `ProductOptionValueFields` selects enough swatch and file data to preserve existing
+  swatches.
 - Add `PRODUCT_OPTIONS_SYNC_MUTATION`.
 - Add local operation data, payload, product, and variables types.
 - Export operation documents and operation-local types from existing product GraphQL barrels.
@@ -808,8 +855,10 @@ Per project instructions, e2e specs should be run one file at a time only when v
 
 - Use `onSaved` product details refetch for the first implementation.
 - Ensure the refresh also updates variant data affected by option sync.
-- Do not write brittle manual cache updates for the paginated product details or variants queries in this pass.
-- Consider a focused Apollo cache update later only after product details and variants cache behavior is stable.
+- Do not write brittle manual cache updates for the paginated product details or variants queries in
+  this pass.
+- Consider a focused Apollo cache update later only after product details and variants cache
+  behavior is stable.
 
 ### Phase 6: Admin UI E2E Coverage
 
@@ -836,7 +885,8 @@ Per project instructions, e2e specs should be run one file at a time only when v
 - Product details options render from `product.options`.
 - `OptionsSection` accepts generated API data directly and does not import modal editor types.
 - `OptionsSection` no longer imports modal-only constants for display metadata.
-- Product details exposes an option edit action when the options list is empty and options editing is supported.
+- Product details exposes an option edit action when the options list is empty and options editing
+  is supported.
 - `IEditOptionsModalPayload` carries `productId`, `options`, and `onSaved`.
 - `EditOptionsModal` opens with the current product options from payload.
 - `EditOptionsModal` no longer imports `MOCK_OPTION_GROUPS`.

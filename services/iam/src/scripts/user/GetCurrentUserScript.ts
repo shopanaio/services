@@ -1,16 +1,8 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  GetCurrentUserParams,
-  GetCurrentUserResult,
-} from "./dto/GetCurrentUserDto.js";
+import type { GetCurrentUserParams, GetCurrentUserResult } from "./dto/GetCurrentUserDto.js";
 
-export class GetCurrentUserScript extends BaseScript<
-  GetCurrentUserParams,
-  GetCurrentUserResult
-> {
-  protected async execute(
-    params: GetCurrentUserParams
-  ): Promise<GetCurrentUserResult> {
+export class GetCurrentUserScript extends BaseScript<GetCurrentUserParams, GetCurrentUserResult> {
+  protected async execute(params: GetCurrentUserParams): Promise<GetCurrentUserResult> {
     const { accessToken } = params;
 
     const result = await this.repository.user.getCurrentUser(accessToken);

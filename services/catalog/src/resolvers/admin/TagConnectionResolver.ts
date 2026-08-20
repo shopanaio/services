@@ -12,9 +12,7 @@ export type TagConnectionInput = TagRelayInput;
  */
 export class TagConnectionResolver extends BaseConnectionResolver<TagConnectionInput> {
   async $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel
-      .getServices()
-      .repository.tag.getConnection(this.$props);
+    return this.$ctx.kernel.getServices().repository.tag.getConnection(this.$props);
   }
 
   protected createNodeResolver(nodeId: string) {

@@ -11,12 +11,8 @@ export function renderApplicationAuthPage(input: {
   const { runtime } = input;
   const branding = runtime.branding;
   const displayName = branding.displayName ?? "Shopana";
-  const headline = branding.headline
-    ? `<p class="muted">${escapeHtml(branding.headline)}</p>`
-    : "";
-  const logo = branding.logoUrl
-    ? `<img src="${escapeAttribute(branding.logoUrl)}" alt="">`
-    : "";
+  const headline = branding.headline ? `<p class="muted">${escapeHtml(branding.headline)}</p>` : "";
+  const logo = branding.logoUrl ? `<img src="${escapeAttribute(branding.logoUrl)}" alt="">` : "";
   const primary = branding.primaryColor ?? "blue";
   const background = branding.backgroundColor ?? "white";
   const t = createApplicationAuthTranslator(runtime.defaultLocale);
@@ -31,7 +27,7 @@ export function renderApplicationAuthPage(input: {
 export function renderMessage(
   runtime: ApplicationAuthFactoryRuntime,
   kind: "error" | "success",
-  key: ApplicationAuthUiMessageKey
+  key: ApplicationAuthUiMessageKey,
 ): string {
   const t = createApplicationAuthTranslator(runtime.defaultLocale);
   return `<div class="${kind}" role="${kind === "error" ? "alert" : "status"}">${escapeHtml(t(key))}</div>`;

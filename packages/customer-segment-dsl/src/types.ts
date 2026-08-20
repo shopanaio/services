@@ -29,7 +29,11 @@ export type ParsedValue =
   | { readonly kind: "boolean"; readonly value: boolean; readonly range: SegmentSourceRange }
   | { readonly kind: "date"; readonly value: string; readonly range: SegmentSourceRange }
   | { readonly kind: "dateTime"; readonly value: string; readonly range: SegmentSourceRange }
-  | { readonly kind: "namedDate"; readonly value: "today" | "yesterday"; readonly range: SegmentSourceRange }
+  | {
+      readonly kind: "namedDate";
+      readonly value: "today" | "yesterday";
+      readonly range: SegmentSourceRange;
+    }
   | {
       readonly kind: "relativeDate";
       readonly value: string;
@@ -228,15 +232,7 @@ export interface SegmentDefinitionV1 {
 }
 
 export type SegmentValueType =
-  | "String"
-  | "Enum"
-  | "Boolean"
-  | "Integer"
-  | "Decimal"
-  | "Money"
-  | "Date"
-  | "DateTime"
-  | "ID";
+  "String" | "Enum" | "Boolean" | "Integer" | "Decimal" | "Money" | "Date" | "DateTime" | "ID";
 
 export type SegmentTemporalContract = "NONE" | "VALUE" | "SOURCE" | "VALUE_AND_SOURCE";
 export type SegmentAttributeAvailability = "AVAILABLE" | "UNAVAILABLE";

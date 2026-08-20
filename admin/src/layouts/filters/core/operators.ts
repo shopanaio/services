@@ -1,4 +1,4 @@
-import { FilterOperator, IOperatorMeta } from './types';
+import { FilterOperator, IOperatorMeta } from "./types";
 
 /**
  * Operator metadata map
@@ -6,78 +6,78 @@ import { FilterOperator, IOperatorMeta } from './types';
 export const operatorsMeta: Record<FilterOperator, IOperatorMeta> = {
   [FilterOperator.Eq]: {
     value: FilterOperator.Eq,
-    literal: '=',
-    label: 'Is equal to',
+    literal: "=",
+    label: "Is equal to",
   },
   [FilterOperator.NotEq]: {
     value: FilterOperator.NotEq,
-    literal: '!=',
-    label: 'Is not equal to',
+    literal: "!=",
+    label: "Is not equal to",
   },
   [FilterOperator.Gt]: {
     value: FilterOperator.Gt,
-    literal: '>',
-    label: 'Is greater than',
+    literal: ">",
+    label: "Is greater than",
   },
   [FilterOperator.Gte]: {
     value: FilterOperator.Gte,
-    literal: '>=',
-    label: 'Is greater than or equal to',
+    literal: ">=",
+    label: "Is greater than or equal to",
   },
   [FilterOperator.Lt]: {
     value: FilterOperator.Lt,
-    literal: '<',
-    label: 'Is less than',
+    literal: "<",
+    label: "Is less than",
   },
   [FilterOperator.Lte]: {
     value: FilterOperator.Lte,
-    literal: '<=',
-    label: 'Is less than or equal to',
+    literal: "<=",
+    label: "Is less than or equal to",
   },
   [FilterOperator.In]: {
     value: FilterOperator.In,
-    literal: 'in',
-    label: 'Is one of',
+    literal: "in",
+    label: "Is one of",
   },
   [FilterOperator.NotIn]: {
     value: FilterOperator.NotIn,
-    literal: 'not in',
-    label: 'Is not one of',
+    literal: "not in",
+    label: "Is not one of",
   },
   [FilterOperator.Like]: {
     value: FilterOperator.Like,
-    literal: 'matches',
-    label: 'Contains',
+    literal: "matches",
+    label: "Contains",
   },
   [FilterOperator.NotLike]: {
     value: FilterOperator.NotLike,
-    literal: 'not matches',
-    label: 'Does not contain',
+    literal: "not matches",
+    label: "Does not contain",
   },
   [FilterOperator.ILike]: {
     value: FilterOperator.ILike,
-    literal: 'matches',
-    label: 'Contains (case-insensitive)',
+    literal: "matches",
+    label: "Contains (case-insensitive)",
   },
   [FilterOperator.NotILike]: {
     value: FilterOperator.NotILike,
-    literal: 'not matches',
-    label: 'Does not contain (case-insensitive)',
+    literal: "not matches",
+    label: "Does not contain (case-insensitive)",
   },
   [FilterOperator.Is]: {
     value: FilterOperator.Is,
-    literal: 'is',
-    label: 'Is',
+    literal: "is",
+    label: "Is",
   },
   [FilterOperator.IsNot]: {
     value: FilterOperator.IsNot,
-    literal: 'is not',
-    label: 'Is not',
+    literal: "is not",
+    label: "Is not",
   },
   [FilterOperator.Between]: {
     value: FilterOperator.Between,
-    literal: '<>',
-    label: 'Is between',
+    literal: "<>",
+    label: "Is between",
   },
 };
 

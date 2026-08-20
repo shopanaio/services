@@ -2,11 +2,7 @@ import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import { SearchFieldRegistry } from "../../search/planner/SearchFieldRegistry.js";
-import {
-  searchSettings,
-  type NewSearchSettings,
-  type SearchSettings,
-} from "../models/index.js";
+import { searchSettings, type NewSearchSettings, type SearchSettings } from "../models/index.js";
 import {
   assertNonEmpty,
   type SearchSettingsValueInput,
@@ -27,8 +23,7 @@ export type SearchSettingsVersionAcquireResult =
   | { status: "conflict"; currentVersion: number };
 
 export type SearchSettingsValueUpdateResult =
-  | { status: "applied"; value: SearchSettings }
-  | { status: "not_found" };
+  { status: "applied"; value: SearchSettings } | { status: "not_found" };
 
 export class SearchSettingsRepository extends BaseRepository {
   private readonly fields = new SearchFieldRegistry();
@@ -94,9 +89,7 @@ export class SearchSettingsRepository extends BaseRepository {
   }
 
   @Transactional()
-  async update(
-    input: SearchSettingsUpdateInput,
-  ): Promise<SearchSettingsValueUpdateResult> {
+  async update(input: SearchSettingsUpdateInput): Promise<SearchSettingsValueUpdateResult> {
     this.assertValues(input);
 
     const currentRows = await this.connection
@@ -155,9 +148,7 @@ export class SearchSettingsRepository extends BaseRepository {
     return created;
   }
 
-  private assertVersionAcquireInput(
-    input: SearchSettingsVersionAcquireInput,
-  ): void {
+  private assertVersionAcquireInput(input: SearchSettingsVersionAcquireInput): void {
     assertNonEmpty(input.storeId, "storeId");
     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 0) {
       throw new Error("expectedVersion must be a non-negative integer");
@@ -176,9 +167,7 @@ export class SearchSettingsRepository extends BaseRepository {
     for (const [field, weight] of Object.entries(input.fieldWeights)) {
       this.fields.get(field as SearchTextField);
       if (!Number.isFinite(weight) || weight <= 0 || weight > 100) {
-        throw new Error(
-          "fieldWeights must contain finite numbers greater than 0 and at most 100",
-        );
+        throw new Error("fieldWeights must contain finite numbers greater than 0 and at most 100");
       }
     }
     if (!new Set(["SHOW", "HIDE", "PLACE_LAST"]).has(input.outOfStockPolicy)) {

@@ -3,16 +3,11 @@ import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { CustomerConsentEvent } from "../../repositories/models/index.js";
 import { CustomersType } from "./CustomersType.js";
 
-export class CustomerConsentEventResolver extends CustomersType<
-  string,
-  CustomerConsentEvent
-> {
+export class CustomerConsentEventResolver extends CustomersType<string, CustomerConsentEvent> {
   async $preload() {
     const event = await this.$ctx.loaders.consentEvent.load(this.$props);
     if (!event) {
-      throw new PreloadNotFoundError(
-        `Customer consent event with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer consent event with ID ${this.$props} not found`);
     }
     return event;
   }

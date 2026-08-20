@@ -1,19 +1,8 @@
-import {
-  and,
-  asc,
-  eq,
-  getTableColumns,
-  inArray,
-  isNull,
-  notInArray,
-} from "drizzle-orm";
+import { and, asc, eq, getTableColumns, inArray, isNull, notInArray } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  appInstallationScopes,
-  appInstallations,
-} from "../models/index.js";
+import { appInstallationScopes, appInstallations } from "../models/index.js";
 
 export interface AppInstallationScopeRecord {
   readonly id: string;
@@ -24,16 +13,11 @@ export interface AppInstallationScopeRecord {
 }
 
 export class AppInstallationScopeRepository extends BaseRepository {
-  constructor(
-    db: Database,
-    txManager: TransactionManager<Database>,
-  ) {
+  constructor(db: Database, txManager: TransactionManager<Database>) {
     super(db, txManager);
   }
 
-  async listGranted(
-    installationId: string,
-  ): Promise<readonly string[]> {
+  async listGranted(installationId: string): Promise<readonly string[]> {
     const rows = await this.connection
       .select({ scope: appInstallationScopes.scope })
       .from(appInstallationScopes)
@@ -47,19 +31,11 @@ export class AppInstallationScopeRepository extends BaseRepository {
     return Object.freeze(rows.map((row) => row.scope));
   }
 
-  async listGrantedForStore(
-    installationId: string,
-  ): Promise<readonly string[]> {
+  async listGrantedForStore(installationId: string): Promise<readonly string[]> {
     const rows = await this.connection
       .select({ scope: appInstallationScopes.scope })
       .from(appInstallationScopes)
-      .innerJoin(
-        appInstallations,
-        eq(
-          appInstallations.id,
-          appInstallationScopes.installationId,
-        ),
-      )
+      .innerJoin(appInstallations, eq(appInstallations.id, appInstallationScopes.installationId))
       .where(
         and(
           eq(appInstallations.storeId, this.storeId),
@@ -71,31 +47,19 @@ export class AppInstallationScopeRepository extends BaseRepository {
     return Object.freeze(rows.map((row) => row.scope));
   }
 
-  async listByInstallation(
-    installationId: string,
-  ): Promise<AppInstallationScopeRecord[]> {
+  async listByInstallation(installationId: string): Promise<AppInstallationScopeRecord[]> {
     return this.connection
       .select()
       .from(appInstallationScopes)
-      .where(
-        eq(appInstallationScopes.installationId, installationId),
-      )
+      .where(eq(appInstallationScopes.installationId, installationId))
       .orderBy(asc(appInstallationScopes.scope));
   }
 
-  async listByInstallationForStore(
-    installationId: string,
-  ): Promise<AppInstallationScopeRecord[]> {
+  async listByInstallationForStore(installationId: string): Promise<AppInstallationScopeRecord[]> {
     return this.connection
       .select(getTableColumns(appInstallationScopes))
       .from(appInstallationScopes)
-      .innerJoin(
-        appInstallations,
-        eq(
-          appInstallations.id,
-          appInstallationScopes.installationId,
-        ),
-      )
+      .innerJoin(appInstallations, eq(appInstallations.id, appInstallationScopes.installationId))
       .where(
         and(
           eq(appInstallations.storeId, this.storeId),
@@ -112,32 +76,17 @@ export class AppInstallationScopeRepository extends BaseRepository {
     return this.connection
       .select(getTableColumns(appInstallationScopes))
       .from(appInstallationScopes)
-      .innerJoin(
-        appInstallations,
-        eq(
-          appInstallations.id,
-          appInstallationScopes.installationId,
-        ),
-      )
+      .innerJoin(appInstallations, eq(appInstallations.id, appInstallationScopes.installationId))
       .where(
         and(
           eq(appInstallations.storeId, this.storeId),
-          inArray(
-            appInstallationScopes.installationId,
-            [...new Set(installationIds)],
-          ),
+          inArray(appInstallationScopes.installationId, [...new Set(installationIds)]),
         ),
       )
-      .orderBy(
-        asc(appInstallationScopes.installationId),
-        asc(appInstallationScopes.scope),
-      );
+      .orderBy(asc(appInstallationScopes.installationId), asc(appInstallationScopes.scope));
   }
 
-  async replace(
-    installationId: string,
-    scopes: readonly string[],
-  ): Promise<void> {
+  async replace(installationId: string, scopes: readonly string[]): Promise<void> {
     const normalized = [...new Set(scopes)].sort();
     const activeScope = and(
       eq(appInstallationScopes.installationId, installationId),
@@ -149,10 +98,7 @@ export class AppInstallationScopeRepository extends BaseRepository {
       .set({ revokedAt: new Date().toISOString() })
       .where(
         normalized.length > 0
-          ? and(
-              activeScope,
-              notInArray(appInstallationScopes.scope, normalized),
-            )
+          ? and(activeScope, notInArray(appInstallationScopes.scope, normalized))
           : activeScope,
       );
 
@@ -161,10 +107,7 @@ export class AppInstallationScopeRepository extends BaseRepository {
         .insert(appInstallationScopes)
         .values({ installationId, scope, revokedAt: null })
         .onConflictDoUpdate({
-          target: [
-            appInstallationScopes.installationId,
-            appInstallationScopes.scope,
-          ],
+          target: [appInstallationScopes.installationId, appInstallationScopes.scope],
           set: {
             revokedAt: null,
             grantedAt: new Date().toISOString(),

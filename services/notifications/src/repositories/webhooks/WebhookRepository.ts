@@ -3,10 +3,7 @@ import { resolve4, resolve6 } from "node:dns/promises";
 import { isIP } from "node:net";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  webhookStoreSecretVersions,
-  webhookSubscriptions,
-} from "../models/index.js";
+import { webhookStoreSecretVersions, webhookSubscriptions } from "../models/index.js";
 
 export class WebhookRepository extends BaseRepository {
   async list() {
@@ -25,8 +22,8 @@ export class WebhookRepository extends BaseRepository {
         and(
           eq(webhookSubscriptions.storeId, this.storeId),
           eq(webhookSubscriptions.eventType, eventType),
-          eq(webhookSubscriptions.status, "ACTIVE")
-        )
+          eq(webhookSubscriptions.status, "ACTIVE"),
+        ),
       );
   }
 
@@ -34,12 +31,7 @@ export class WebhookRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(webhookSubscriptions)
-      .where(
-        and(
-          eq(webhookSubscriptions.storeId, this.storeId),
-          eq(webhookSubscriptions.id, id)
-        )
-      )
+      .where(and(eq(webhookSubscriptions.storeId, this.storeId), eq(webhookSubscriptions.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -51,8 +43,8 @@ export class WebhookRepository extends BaseRepository {
       .where(
         and(
           eq(webhookSubscriptions.storeId, this.storeId),
-          inArray(webhookSubscriptions.id, [...ids])
-        )
+          inArray(webhookSubscriptions.id, [...ids]),
+        ),
       );
   }
 
@@ -105,8 +97,8 @@ export class WebhookRepository extends BaseRepository {
         and(
           eq(webhookSubscriptions.storeId, this.storeId),
           eq(webhookSubscriptions.id, input.id),
-          eq(webhookSubscriptions.version, input.expectedVersion)
-        )
+          eq(webhookSubscriptions.version, input.expectedVersion),
+        ),
       )
       .returning();
     if (!rows[0]) throw new Error("VERSION_CONFLICT");
@@ -116,12 +108,7 @@ export class WebhookRepository extends BaseRepository {
   async delete(id: string): Promise<boolean> {
     const rows = await this.connection
       .delete(webhookSubscriptions)
-      .where(
-        and(
-          eq(webhookSubscriptions.storeId, this.storeId),
-          eq(webhookSubscriptions.id, id)
-        )
-      )
+      .where(and(eq(webhookSubscriptions.storeId, this.storeId), eq(webhookSubscriptions.id, id)))
       .returning({ id: webhookSubscriptions.id });
     return rows.length === 1;
   }
@@ -138,8 +125,8 @@ export class WebhookRepository extends BaseRepository {
         .where(
           and(
             eq(webhookStoreSecretVersions.storeId, this.storeId),
-            eq(webhookStoreSecretVersions.active, true)
-          )
+            eq(webhookStoreSecretVersions.active, true),
+          ),
         )
         .orderBy(desc(webhookStoreSecretVersions.version))
         .limit(1)
@@ -158,10 +145,7 @@ export class WebhookRepository extends BaseRepository {
     }
   }
 
-  async rotateSecret(
-    createdBy?: string,
-    gracePeriodHours = 24
-  ): Promise<string> {
+  async rotateSecret(createdBy?: string, gracePeriodHours = 24): Promise<string> {
     const versions = await this.connection
       .select()
       .from(webhookStoreSecretVersions)
@@ -174,15 +158,13 @@ export class WebhookRepository extends BaseRepository {
         .update(webhookStoreSecretVersions)
         .set({
           active: false,
-          graceExpiresAt: new Date(
-            now + gracePeriodHours * 60 * 60 * 1_000
-          ).toISOString(),
+          graceExpiresAt: new Date(now + gracePeriodHours * 60 * 60 * 1_000).toISOString(),
         })
         .where(
           and(
             eq(webhookStoreSecretVersions.storeId, this.storeId),
-            eq(webhookStoreSecretVersions.active, true)
-          )
+            eq(webhookStoreSecretVersions.active, true),
+          ),
         );
     }
 
@@ -206,11 +188,7 @@ export class WebhookRepository extends BaseRepository {
       .where(eq(webhookStoreSecretVersions.storeId, this.storeId))
       .orderBy(desc(webhookStoreSecretVersions.version));
     return rows
-      .filter(
-        (row) =>
-          row.active ||
-          (row.graceExpiresAt !== null && row.graceExpiresAt > now)
-      )
+      .filter((row) => row.active || (row.graceExpiresAt !== null && row.graceExpiresAt > now))
       .map((row) => this.protection.decrypt(row.secretCiphertext));
   }
 
@@ -221,8 +199,8 @@ export class WebhookRepository extends BaseRepository {
       .where(
         and(
           eq(webhookStoreSecretVersions.storeId, this.storeId),
-          eq(webhookStoreSecretVersions.active, true)
-        )
+          eq(webhookStoreSecretVersions.active, true),
+        ),
       )
       .orderBy(desc(webhookStoreSecretVersions.version))
       .limit(1);
@@ -231,11 +209,7 @@ export class WebhookRepository extends BaseRepository {
     return this.protection.decrypt(current.secretCiphertext);
   }
 
-  async sign(
-    timestamp: string,
-    deliveryId: string,
-    body: string
-  ): Promise<string> {
+  async sign(timestamp: string, deliveryId: string, body: string): Promise<string> {
     const secret = (await this.getSigningSecrets())[0];
     if (!secret) throw new Error("WEBHOOK_SIGNING_SECRET_NOT_FOUND");
     return createHmac("sha256", secret)
@@ -252,9 +226,7 @@ async function assertWebhookUrl(value: string): Promise<void> {
     url.password ||
     (url.port && url.port !== "443")
   ) {
-    throw new Error(
-      "Webhook URL must be HTTPS without credentials and use port 443"
-    );
+    throw new Error("Webhook URL must be HTTPS without credentials and use port 443");
   }
   const hostname = url.hostname.toLowerCase();
   if (

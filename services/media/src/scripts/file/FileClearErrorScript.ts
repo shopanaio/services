@@ -5,22 +5,15 @@ import {
   type FileClearErrorResult,
 } from "./dto/FileClearErrorDto.js";
 
-export class FileClearErrorScript extends BaseScript<
-  FileClearErrorParams,
-  FileClearErrorResult
-> {
+export class FileClearErrorScript extends BaseScript<FileClearErrorParams, FileClearErrorResult> {
   @ZodSchema(fileClearErrorSchema)
-  protected async execute(
-    params: FileClearErrorParams
-  ): Promise<FileClearErrorResult> {
+  protected async execute(params: FileClearErrorParams): Promise<FileClearErrorResult> {
     const file = await this.findStoreFile(params.id, true);
     if (!file) {
       return { error: "FILE_NOT_FOUND" };
     }
 
-    const deletionState = await this.repository.fileDeletionState.findByFileId(
-      params.id
-    );
+    const deletionState = await this.repository.fileDeletionState.findByFileId(params.id);
     if (!deletionState) {
       return { error: "INVALID_STATE" };
     }
@@ -34,9 +27,7 @@ export class FileClearErrorScript extends BaseScript<
       return { error: "INVALID_STATE" };
     }
 
-    const success = await this.repository.fileDeletionState.clearError(
-      params.id
-    );
+    const success = await this.repository.fileDeletionState.clearError(params.id);
     if (!success) {
       return { error: "INVALID_STATE" };
     }

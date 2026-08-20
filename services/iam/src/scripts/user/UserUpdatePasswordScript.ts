@@ -8,9 +8,7 @@ export class UserUpdatePasswordScript extends BaseScript<
   UserUpdatePasswordParams,
   UserUpdatePasswordResult
 > {
-  protected async execute(
-    _params: UserUpdatePasswordParams
-  ): Promise<UserUpdatePasswordResult> {
+  protected async execute(_params: UserUpdatePasswordParams): Promise<UserUpdatePasswordResult> {
     // TODO: implement
     return {
       success: false,

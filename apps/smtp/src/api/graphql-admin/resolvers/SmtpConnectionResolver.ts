@@ -2,10 +2,7 @@ import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { SmtpConnectionRecord } from "../../../connections/index.js";
 import { SmtpType } from "./SmtpType.js";
 
-export class SmtpConnectionResolver extends SmtpType<
-  string,
-  SmtpConnectionRecord | null
-> {
+export class SmtpConnectionResolver extends SmtpType<string, SmtpConnectionRecord | null> {
   protected $preload() {
     return this.$ctx.connections.findById(this.scope, this.$props);
   }

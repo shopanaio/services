@@ -1,7 +1,4 @@
-import type {
-  ApiSearchSettings,
-  ApiSearchSettingsOperationsInput,
-} from "@/graphql/types";
+import type { ApiSearchSettings, ApiSearchSettingsOperationsInput } from "@/graphql/types";
 import { SearchField, SearchOutOfStockPolicy } from "@/graphql/types";
 import type { SearchSettingsFormValues } from "../page/types";
 
@@ -52,15 +49,12 @@ export const INITIAL_SEARCH_SETTINGS_FORM_VALUES: SearchSettingsFormValues = {
 export function mapSearchSettingsToFormValues(
   settings: ApiSearchSettings,
 ): SearchSettingsFormValues {
-  const configuredFields = new Map(
-    settings.fields.map((item) => [item.field, item.weight]),
-  );
+  const configuredFields = new Map(settings.fields.map((item) => [item.field, item.weight]));
 
   return {
     fields: SEARCH_FIELD_DEFINITIONS.map(({ field, defaultWeight }) => ({
       field,
-      enabled:
-        field === SearchField.ProductTitle || configuredFields.has(field),
+      enabled: field === SearchField.ProductTitle || configuredFields.has(field),
       weight: configuredFields.get(field) ?? defaultWeight,
     })),
     typoToleranceEnabled: settings.typoToleranceEnabled,

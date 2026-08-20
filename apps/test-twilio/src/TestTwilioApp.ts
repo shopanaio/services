@@ -52,27 +52,26 @@ export class TestTwilioApp implements ShopanaApp {
     this.host.broker.register("suspend", () => ({ status: "suspended" }));
     this.host.broker.register("resume", () => ({ status: "active" }));
     this.host.broker.register("health", () => this.health());
-    this.host.broker.register<
-      TestTwilioCapabilitiesRequest | undefined,
-      TestTwilioCapabilities
-    >("getCapabilities", (input) => {
-      const storeId = this.host.executionContext.current().storeId;
-      return {
-        channels: ["SMS"] as const,
-        ...(input?.includeMessages
-          ? {
-              messages: this.messages().filter(
-                (message) =>
-                  message.storeId === storeId &&
-                  (!input.to || message.to === input.to)
-              ),
-            }
-          : {}),
-      };
-    });
+    this.host.broker.register<TestTwilioCapabilitiesRequest | undefined, TestTwilioCapabilities>(
+      "getCapabilities",
+      (input) => {
+        const storeId = this.host.executionContext.current().storeId;
+        return {
+          channels: ["SMS"] as const,
+          ...(input?.includeMessages
+            ? {
+                messages: this.messages().filter(
+                  (message) =>
+                    message.storeId === storeId && (!input.to || message.to === input.to),
+                ),
+              }
+            : {}),
+        };
+      },
+    );
     this.host.broker.register<NotificationDeliveryInput, NotificationDeliveryReceipt>(
       "deliver",
-      (input) => this.deliver(input)
+      (input) => this.deliver(input),
     );
   }
 
@@ -90,9 +89,7 @@ export class TestTwilioApp implements ShopanaApp {
     return [...this.outbox];
   }
 
-  private deliver(
-    input: NotificationDeliveryInput | undefined
-  ): NotificationDeliveryReceipt {
+  private deliver(input: NotificationDeliveryInput | undefined): NotificationDeliveryReceipt {
     if (!input || input.channel !== "SMS") {
       return {
         state: "UNSUPPORTED",

@@ -3,10 +3,7 @@ import type { ProductOptionCategory } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 
 export class OptionCategoryLoader {
-  public readonly optionCategory: DataLoader<
-    string,
-    ProductOptionCategory | null
-  >;
+  public readonly optionCategory: DataLoader<string, ProductOptionCategory | null>;
 
   constructor(repository: Repository) {
     this.optionCategory = new DataLoader(async (ids) => {

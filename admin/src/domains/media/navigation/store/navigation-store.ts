@@ -2,8 +2,7 @@ import { create } from "zustand";
 import { navigationMenusMock } from "../mocks/navigation";
 import type { NavigationMenu, NavigationMenuFormValues } from "../types";
 
-const cloneMenu = (menu: NavigationMenu): NavigationMenu =>
-  structuredClone(menu);
+const cloneMenu = (menu: NavigationMenu): NavigationMenu => structuredClone(menu);
 
 interface NavigationStore {
   menus: NavigationMenu[];

@@ -14,15 +14,14 @@ import {
 import { accounts } from "./accounts.js";
 import { transactions } from "./ledger.js";
 import { earningRules } from "./programs.js";
-import {
-  loyaltyEventEvaluationDecisionEnum,
-  loyaltySchema,
-} from "./schema.js";
+import { loyaltyEventEvaluationDecisionEnum, loyaltySchema } from "./schema.js";
 
 export const eventFacts = loyaltySchema.table(
   "event_fact",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     producer: varchar("producer", { length: 128 }).notNull(),
     externalEventId: varchar("external_event_id", { length: 255 }).notNull(),
@@ -51,12 +50,7 @@ export const eventFacts = loyaltySchema.table(
       table.externalEventId,
     ),
     index("loyalty_event_fact_customer_history_idx")
-      .on(
-        table.storeId,
-        table.customerId,
-        table.occurredAt.desc(),
-        table.id.desc(),
-      )
+      .on(table.storeId, table.customerId, table.occurredAt.desc(), table.id.desc())
       .where(sql`${table.customerId} IS NOT NULL`),
     index("loyalty_event_fact_type_history_idx").on(
       table.storeId,
@@ -84,7 +78,9 @@ export const eventFacts = loyaltySchema.table(
 export const eventEvaluations = loyaltySchema.table(
   "event_evaluation",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     eventFactId: uuid("event_fact_id").notNull(),
     earningRuleId: uuid("earning_rule_id").notNull(),
@@ -139,10 +135,7 @@ export const eventEvaluations = loyaltySchema.table(
       table.evaluatedAt.desc(),
       table.id.desc(),
     ),
-    check(
-      "loyalty_event_evaluation_reason_check",
-      sql`btrim(${table.reasonCode}) <> ''`,
-    ),
+    check("loyalty_event_evaluation_reason_check", sql`btrim(${table.reasonCode}) <> ''`),
     check(
       "loyalty_event_evaluation_award_check",
       sql`(${table.decision} = 'AWARDED' AND (
@@ -171,7 +164,9 @@ export const eventEvaluations = loyaltySchema.table(
 export const earningRuleUsages = loyaltySchema.table(
   "earning_rule_usage",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     earningRuleId: uuid("earning_rule_id").notNull(),
     scopeKey: varchar("scope_key", { length: 255 }).notNull(),
@@ -183,12 +178,8 @@ export const earningRuleUsages = loyaltySchema.table(
       withTimezone: true,
       mode: "string",
     }),
-    occurrenceCount: bigint("occurrence_count", { mode: "bigint" })
-      .notNull()
-      .default(0n),
-    pointsAwarded: bigint("points_awarded", { mode: "bigint" })
-      .notNull()
-      .default(0n),
+    occurrenceCount: bigint("occurrence_count", { mode: "bigint" }).notNull().default(0n),
+    pointsAwarded: bigint("points_awarded", { mode: "bigint" }).notNull().default(0n),
     monetaryAmounts: jsonb("monetary_amounts")
       .$type<Record<string, string>>()
       .notNull()

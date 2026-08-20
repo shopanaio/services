@@ -1,17 +1,11 @@
-import {
-  betterAuth,
-  type Auth as BetterAuthInstance,
-  type BetterAuthOptions,
-} from "better-auth";
+import { betterAuth, type Auth as BetterAuthInstance, type BetterAuthOptions } from "better-auth";
 import { bearer, emailOTP, jwt, phoneNumber } from "better-auth/plugins";
 import { signJWT } from "better-auth/plugins/jwt";
 import { getCurrentAuthContext } from "@better-auth/core/context";
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { createHash, createHmac } from "node:crypto";
 import { getDatabase } from "../infrastructure/db/database.js";
-import type {
-  ApplicationAuthDeliveryProfile,
-} from "../repositories/models/application-auth.js";
+import type { ApplicationAuthDeliveryProfile } from "../repositories/models/application-auth.js";
 import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
 import {
   createApplicationAuthEmailIdempotencyKey,
@@ -118,7 +112,7 @@ export function createApplicationAuth(
     smsDelivery?: ApplicationAuthSmsDeliveryPort;
     liveStateInvalidation?: ApplicationAuthLiveStateInvalidationBus;
     applicationUserLifecycle?: ApplicationUserLifecyclePort;
-  }
+  },
 ) {
   const db = getDatabase();
   const { applicationId } = config;
@@ -132,23 +126,17 @@ export function createApplicationAuth(
     config.policy.passwordSignUpAllowed ||
     config.policy.passwordResetAllowed;
   const emailVerificationEnabled =
-    (config.policy.passwordSignInAllowed ||
-      config.policy.passwordSignUpAllowed) &&
+    (config.policy.passwordSignInAllowed || config.policy.passwordSignUpAllowed) &&
     config.emailVerificationRequired;
-  const delivery = createEmailDeliveryCallbacks(
-    config,
-    security.emailDelivery,
-    {
-      emailVerificationEnabled,
-      passwordResetEnabled: config.policy.passwordResetAllowed,
-      emailOtpEnabled: config.policy.emailOtpSignInAllowed,
-    }
-  );
+  const delivery = createEmailDeliveryCallbacks(config, security.emailDelivery, {
+    emailVerificationEnabled,
+    passwordResetEnabled: config.policy.passwordResetAllowed,
+    emailOtpEnabled: config.policy.emailOtpSignInAllowed,
+  });
   const socialProviders = createSocialProviders(config);
   const trustedProviders = config.providers
-    .filter(({ provider }) =>
-      getApplicationSocialProviderDefinition(provider)
-        .trustedForExplicitLinking
+    .filter(
+      ({ provider }) => getApplicationSocialProviderDefinition(provider).trustedForExplicitLinking,
     )
     .map(({ provider }) => provider);
   const accountLinking = {
@@ -185,7 +173,7 @@ export function createApplicationAuth(
         overrideDefaultEmailVerification: false,
         changeEmail: { enabled: false, verifyCurrentEmail: false },
         sendVerificationOTP: delivery.sendVerificationOTP,
-      })
+      }),
     );
   }
   if (config.policy.phoneOtpSignInAllowed) {
@@ -221,16 +209,13 @@ export function createApplicationAuth(
                   createSyntheticPhoneEmail(
                     applicationId,
                     normalizeApplicationAuthPhoneRecipient(value),
-                    security.secrets.deriveRealmSecret(
-                      applicationId,
-                      config.secretKeyVersion
-                    )
+                    security.secrets.deriveRealmSecret(applicationId, config.secretKeyVersion),
                   ),
                 getTempName: () => "Customer",
               },
             }
           : {}),
-      })
+      }),
     );
   }
   plugins.push(
@@ -242,13 +227,8 @@ export function createApplicationAuth(
         page: `${basePath}/consent`,
         shouldRedirect: () => false,
         consentReferenceId: ({ user, session }) => {
-          if (
-            user.applicationId !== applicationId ||
-            session.applicationId !== applicationId
-          ) {
-            throw new Error(
-              "OAuth token family is outside the application realm"
-            );
+          if (user.applicationId !== applicationId || session.applicationId !== applicationId) {
+            throw new Error("OAuth token family is outside the application realm");
           }
           return applicationId;
         },
@@ -268,7 +248,7 @@ export function createApplicationAuth(
       storeTokens: "hashed",
       clientPrivileges: () => false,
       ...claims,
-    })
+    }),
   );
 
   return betterAuth({
@@ -279,12 +259,9 @@ export function createApplicationAuth(
       {
         keyring: security.keyring,
         liveStateInvalidation: security.liveStateInvalidation,
-      }
+      },
     ),
-    secret: security.secrets.deriveRealmSecret(
-      applicationId,
-      config.secretKeyVersion
-    ),
+    secret: security.secrets.deriveRealmSecret(applicationId, config.secretKeyVersion),
     baseURL: config.publicBaseUrl,
     basePath,
     trustedOrigins: config.trustedOrigins,
@@ -310,8 +287,7 @@ export function createApplicationAuth(
                   data: {
                     ...user,
                     syntheticEmail:
-                      typeof user.email === "string" &&
-                      user.email.endsWith("@phone.invalid"),
+                      typeof user.email === "string" && user.email.endsWith("@phone.invalid"),
                   },
                 }),
               },
@@ -320,10 +296,7 @@ export function createApplicationAuth(
                   await security.applicationUserLifecycle!.projectionChanged({
                     applicationId,
                     organizationId: config.organizationId,
-                    applicationUserId: requireLifecycleUserId(
-                      user.id,
-                      "user",
-                    ),
+                    applicationUserId: requireLifecycleUserId(user.id, "user"),
                     changedFields: [
                       "email",
                       "emailVerified",
@@ -341,10 +314,7 @@ export function createApplicationAuth(
                   await security.applicationUserLifecycle!.deleted({
                     applicationId,
                     organizationId: config.organizationId,
-                    applicationUserId: requireLifecycleUserId(
-                      user.id,
-                      "user",
-                    ),
+                    applicationUserId: requireLifecycleUserId(user.id, "user"),
                     deletedAt: new Date().toISOString(),
                   });
                 },
@@ -356,10 +326,7 @@ export function createApplicationAuth(
                   await security.applicationUserLifecycle!.provisioningRequired({
                     applicationId,
                     organizationId: config.organizationId,
-                    applicationUserId: requireLifecycleUserId(
-                      account.userId,
-                      "account",
-                    ),
+                    applicationUserId: requireLifecycleUserId(account.userId, "account"),
                   });
                 },
               },
@@ -370,10 +337,7 @@ export function createApplicationAuth(
                   await security.applicationUserLifecycle!.provisioningRequired({
                     applicationId,
                     organizationId: config.organizationId,
-                    applicationUserId: requireLifecycleUserId(
-                      session.userId,
-                      "session",
-                    ),
+                    applicationUserId: requireLifecycleUserId(session.userId, "session"),
                   });
                 },
               },
@@ -414,16 +378,13 @@ export function createApplicationAuth(
         expiresIn: config.sessionTtlSeconds,
         updateAge: Math.min(24 * 60 * 60, config.sessionTtlSeconds),
         freshAge: 10 * 60,
-      }
+      },
     ),
     plugins,
   });
 }
 
-function requireLifecycleUserId(
-  value: unknown,
-  model: "user" | "account" | "session",
-): string {
+function requireLifecycleUserId(value: unknown, model: "user" | "account" | "session"): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new Error(`Application auth ${model} lifecycle user is invalid`);
   }
@@ -431,11 +392,8 @@ function requireLifecycleUserId(
 }
 
 function createCommonOptions(
-  scope: AuthAdapterScope
-): Pick<
-  BetterAuthOptions,
-  "user" | "rateLimit" | "experimental" | "logger"
-> {
+  scope: AuthAdapterScope,
+): Pick<BetterAuthOptions, "user" | "rateLimit" | "experimental" | "logger"> {
   return {
     ...(scope.kind === "application" ? { logger: { disabled: true } } : {}),
     user: {
@@ -493,7 +451,7 @@ function createCommonOptions(
 
 function createSessionOptions(
   scope: AuthAdapterScope,
-  overrides?: BetterAuthOptions["session"]
+  overrides?: BetterAuthOptions["session"],
 ): NonNullable<BetterAuthOptions["session"]> {
   const additionalFields = {
     ...overrides?.additionalFields,
@@ -523,16 +481,12 @@ function createJwtPlugin(
         applicationId: string;
         issuer: string;
         audience: string;
-      }
+      },
 ): ReturnType<typeof jwt> {
   const issuer =
-    scope.kind === "application"
-      ? scope.issuer
-      : process.env.JWT_ISSUER || "shopana-iam";
+    scope.kind === "application" ? scope.issuer : process.env.JWT_ISSUER || "shopana-iam";
   const audience =
-    scope.kind === "application"
-      ? scope.audience
-      : process.env.JWT_AUDIENCE || "shopana-api";
+    scope.kind === "application" ? scope.audience : process.env.JWT_AUDIENCE || "shopana-api";
 
   const pluginOptions = {
     jwt: {
@@ -592,10 +546,7 @@ function createJwtPlugin(
           const context = await getCurrentAuthContext();
           return signJWT(context as Parameters<typeof signJWT>[0], {
             options: pluginOptions,
-            payload:
-              typeof payload.azp === "string"
-                ? { ...payload, aud: audience }
-                : payload,
+            payload: typeof payload.azp === "string" ? { ...payload, aud: audience } : payload,
           });
         },
       },
@@ -604,7 +555,7 @@ function createJwtPlugin(
 }
 
 function createSocialProviders(
-  config: ApplicationAuthRuntimeConfiguration
+  config: ApplicationAuthRuntimeConfiguration,
 ): NonNullable<BetterAuthOptions["socialProviders"]> {
   const providers: NonNullable<BetterAuthOptions["socialProviders"]> = {};
   for (const runtime of config.providers) {
@@ -617,7 +568,7 @@ function createSocialProviders(
         clientSecret: runtime.clientSecret,
         scopes: runtime.scopes,
         disableSignUp: runtime.disableSignUp,
-      })
+      }),
     );
   }
   return providers;
@@ -627,13 +578,8 @@ function assertApplicationAccountLinkingPolicy(policy: {
   disableImplicitLinking: boolean;
   trustedProviders: readonly ApplicationAuthProviderName[];
 }): void {
-  if (
-    policy.trustedProviders.length > 0 &&
-    !policy.disableImplicitLinking
-  ) {
-    throw new Error(
-      "Trusted social providers require implicit account linking to remain disabled"
-    );
+  if (policy.trustedProviders.length > 0 && !policy.disableImplicitLinking) {
+    throw new Error("Trusted social providers require implicit account linking to remain disabled");
   }
 }
 
@@ -644,13 +590,13 @@ function createEmailDeliveryCallbacks(
     emailVerificationEnabled: boolean;
     passwordResetEnabled: boolean;
     emailOtpEnabled: boolean;
-  }
+  },
 ) {
   const deliveryRequired = Object.values(enabled).some(Boolean);
   const profile = config.deliveryProfile;
   if (deliveryRequired && (!port || !profile)) {
     throw new Error(
-      "Enabled application email authentication flow has no validated delivery adapter/profile"
+      "Enabled application email authentication flow has no validated delivery adapter/profile",
     );
   }
 
@@ -689,11 +635,7 @@ function createEmailDeliveryCallbacks(
         },
       });
     },
-    sendResetPassword: async (data: {
-      user: { email: string };
-      url: string;
-      token: string;
-    }) => {
+    sendResetPassword: async (data: { user: { email: string }; url: string; token: string }) => {
       if (!enabled.passwordResetEnabled) {
         throw new Error("Password reset delivery is disabled");
       }
@@ -719,11 +661,7 @@ function createEmailDeliveryCallbacks(
     sendVerificationOTP: async (data: {
       email: string;
       otp: string;
-      type:
-        | "sign-in"
-        | "email-verification"
-        | "forget-password"
-        | "change-email";
+      type: "sign-in" | "email-verification" | "forget-password" | "change-email";
     }) => {
       if (!enabled.emailOtpEnabled || data.type !== "sign-in") {
         throw new Error("Unsupported application email OTP purpose");
@@ -755,9 +693,7 @@ function createEmailDeliveryCallbacks(
   };
 }
 
-function assertApplicationRuntimeConfiguration(
-  config: ApplicationAuthRuntimeConfiguration
-): void {
+function assertApplicationRuntimeConfiguration(config: ApplicationAuthRuntimeConfiguration): void {
   if (!config.policy.realmEnabled) {
     throw new Error("Application auth realm is not active");
   }
@@ -767,10 +703,7 @@ function assertApplicationRuntimeConfiguration(
   if (!Number.isSafeInteger(config.revision) || config.revision < 1) {
     throw new Error("Application auth configuration revision is invalid");
   }
-  if (
-    !Number.isSafeInteger(config.secretKeyVersion) ||
-    config.secretKeyVersion < 1
-  ) {
+  if (!Number.isSafeInteger(config.secretKeyVersion) || config.secretKeyVersion < 1) {
     throw new Error("Application auth secret key version is invalid");
   }
   const publicBaseUrl = new URL(config.publicBaseUrl);
@@ -786,11 +719,7 @@ function assertApplicationRuntimeConfiguration(
   }
 }
 
-function createSyntheticPhoneEmail(
-  applicationId: string,
-  phone: string,
-  secret: string
-): string {
+function createSyntheticPhoneEmail(applicationId: string, phone: string, secret: string): string {
   const localPart = createHmac("sha256", secret)
     .update("shopana:iam:phone-identity:v1\0")
     .update(applicationId)

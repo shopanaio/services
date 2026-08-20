@@ -80,15 +80,9 @@ const discountListColumns = {
   searchTags: text("search_tags").notNull(),
   searchChannelCodes: text("search_channel_codes").notNull(),
   searchFeaturedChannelCodes: text("search_featured_channel_codes").notNull(),
-  combinesWithProductDiscounts: boolean(
-    "combines_with_product_discounts",
-  ).notNull(),
-  combinesWithOrderDiscounts: boolean(
-    "combines_with_order_discounts",
-  ).notNull(),
-  combinesWithShippingDiscounts: boolean(
-    "combines_with_shipping_discounts",
-  ).notNull(),
+  combinesWithProductDiscounts: boolean("combines_with_product_discounts").notNull(),
+  combinesWithOrderDiscounts: boolean("combines_with_order_discounts").notNull(),
+  combinesWithShippingDiscounts: boolean("combines_with_shipping_discounts").notNull(),
   createdById: text("created_by_id"),
   createdAt: timestamp("created_at", {
     withTimezone: true,
@@ -117,9 +111,7 @@ export const discountConfigurationView = pricingSchema
     amountOffAmountMinor: bigint("amount_off_amount_minor", {
       mode: "bigint",
     }),
-    amountOffAllocationMethod: discountAllocationMethodEnum(
-      "amount_off_allocation_method",
-    ),
+    amountOffAllocationMethod: discountAllocationMethodEnum("amount_off_allocation_method"),
     maximumDiscountMinor: bigint("maximum_discount_minor", {
       mode: "bigint",
     }),
@@ -138,17 +130,13 @@ export const discountConfigurationView = pricingSchema
     maximumShippingPriceMinor: bigint("maximum_shipping_price_minor", {
       mode: "bigint",
     }),
-    minimumRequirementType: discountRequirementTypeEnum(
-      "minimum_requirement_type",
-    ),
+    minimumRequirementType: discountRequirementTypeEnum("minimum_requirement_type"),
     minimumSubtotalMinor: bigint("minimum_subtotal_minor", {
       mode: "bigint",
     }),
     minimumQuantity: integer("minimum_quantity"),
     buyerContextType: discountBuyerContextTypeEnum("buyer_context_type"),
-    targetSelections: jsonb("target_selections")
-      .$type<DiscountTargetSelectionItem[]>()
-      .notNull(),
+    targetSelections: jsonb("target_selections").$type<DiscountTargetSelectionItem[]>().notNull(),
     eligibleCustomerIds: uuid("eligible_customer_ids").array().notNull(),
     eligibleSegmentIds: uuid("eligible_segment_ids").array().notNull(),
     codes: jsonb("codes").$type<DiscountCodeItem[]>().notNull(),
@@ -208,8 +196,6 @@ export const discountCodeListView = pricingSchema
   .existing();
 
 export type DiscountListView = typeof discountListView.$inferSelect;
-export type DiscountConfigurationView =
-  typeof discountConfigurationView.$inferSelect;
-export type DiscountUsageSummaryView =
-  typeof discountUsageSummaryView.$inferSelect;
+export type DiscountConfigurationView = typeof discountConfigurationView.$inferSelect;
+export type DiscountUsageSummaryView = typeof discountUsageSummaryView.$inferSelect;
 export type DiscountCodeListView = typeof discountCodeListView.$inferSelect;

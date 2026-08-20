@@ -54,7 +54,7 @@ export function useUpdateRole(): UseUpdateRoleReturn {
         userErrors: payload?.userErrors ?? [],
       };
     },
-    [mutate]
+    [mutate],
   );
 
   return {

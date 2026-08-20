@@ -29,10 +29,7 @@ const handlebarsHighlight = ViewPlugin.fromClass(
     }
 
     update(update: ViewUpdate) {
-      this.decorations = handlebarsMatcher.updateDeco(
-        update,
-        this.decorations,
-      );
+      this.decorations = handlebarsMatcher.updateDeco(update, this.decorations);
     }
   },
   {
@@ -131,8 +128,7 @@ export const CodeEditor = ({
         "&": {
           height: "100%",
           color: theme === "dark" ? "#d4d4d4" : token.colorText,
-          backgroundColor:
-            theme === "dark" ? "#1e1e1e" : token.colorBgContainer,
+          backgroundColor: theme === "dark" ? "#1e1e1e" : token.colorBgContainer,
           fontSize: `${fontSize}px`,
         },
         "&.cm-focused": {
@@ -187,16 +183,7 @@ export const CodeEditor = ({
     }
 
     return result;
-  }, [
-    ariaLabel,
-    fontSize,
-    isSingleLine,
-    language,
-    lineNumbers,
-    theme,
-    token,
-    wordWrap,
-  ]);
+  }, [ariaLabel, fontSize, isSingleLine, language, lineNumbers, theme, token, wordWrap]);
 
   const basicSetup: ReactCodeMirrorProps["basicSetup"] = {
     autocompletion: false,

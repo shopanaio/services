@@ -1,17 +1,12 @@
 import { sql, type SQL } from "drizzle-orm";
 import { StorefrontRepositoryValidationError } from "../types.js";
-import type {
-  ListingVariantTermGroup,
-} from "../../../listing/variantTerms/index.js";
+import type { ListingVariantTermGroup } from "../../../listing/variantTerms/index.js";
 import {
   buildAvailabilityVariantTerm,
   encodeListingVariantTerm,
 } from "../../../listing/variantTerms/index.js";
 import { coalesceBitmapSql, emptyRoaringBitmapSql } from "../sqlHelpers.js";
-import {
-  ZERO_UUID,
-  type ListingSqlRequest,
-} from "./compileListingInputSql.js";
+import { ZERO_UUID, type ListingSqlRequest } from "./compileListingInputSql.js";
 import { compileVariantProjectionSql } from "./compileVariantProjectionSql.js";
 
 export function compileInputCte(request: ListingSqlRequest): SQL {
@@ -27,9 +22,8 @@ export function compileInputCte(request: ListingSqlRequest): SQL {
 }
 
 export function compileScopeProductCtes(request: ListingSqlRequest): SQL {
-  const searchCandidates = request.sortKind === "relevance"
-    ? sql`${compileSearchCandidateRowsCte(request)},`
-    : sql``;
+  const searchCandidates =
+    request.sortKind === "relevance" ? sql`${compileSearchCandidateRowsCte(request)},` : sql``;
   return sql`
     ${searchCandidates}
     scope_products AS (
@@ -43,16 +37,13 @@ export function compileProductMatchesBitmapSql(
   options: {
     includeProductStock: boolean;
     includeVariantProjection: boolean;
-  }
+  },
 ): SQL {
   const parts: SQL[] = [compileProductBaseBitmapSql(request)];
 
   if (options.includeVariantProjection && hasVariantPredicate(request)) {
     parts.push(
-      compileProjectedVariantProductsBitmapSql(
-        request,
-        compileVariantCandidatesBitmapSql(request)
-      )
+      compileProjectedVariantProductsBitmapSql(request, compileVariantCandidatesBitmapSql(request)),
     );
   }
   return andBitmapSql(parts);
@@ -60,12 +51,12 @@ export function compileProductMatchesBitmapSql(
 
 export function compileProductBaseBitmapSql(
   request: ListingSqlRequest,
-  options?: { excludeProductFacetId?: string }
+  options?: { excludeProductFacetId?: string },
 ): SQL {
   const parts: SQL[] = [sql`(SELECT bitmap FROM scope_products)`];
   const productFacetBitmap = compileProductFacetGroupsBitmapSql(
     request,
-    options?.excludeProductFacetId
+    options?.excludeProductFacetId,
   );
   const vendorBitmap = compileVendorBitmapSql(request);
   const statusBitmap = compileProductStatusBitmapSql(request);
@@ -75,42 +66,36 @@ export function compileProductBaseBitmapSql(
   return andBitmapSql(parts);
 }
 
-export function compilePricePredicateSql(
-  request: ListingSqlRequest,
-  alias: SQL
-): SQL {
+export function compilePricePredicateSql(request: ListingSqlRequest, alias: SQL): SQL {
   const range = request.request.filterPlan.priceRange;
   if (!range) return sql``;
-  const min = range.minPriceMinor === undefined
-    ? sql``
-    : sql`AND ${alias}.price_minor >= ${range.minPriceMinor}`;
-  const max = range.maxPriceMinor === undefined
-    ? sql``
-    : sql`AND ${alias}.price_minor <= ${range.maxPriceMinor}`;
+  const min =
+    range.minPriceMinor === undefined
+      ? sql``
+      : sql`AND ${alias}.price_minor >= ${range.minPriceMinor}`;
+  const max =
+    range.maxPriceMinor === undefined
+      ? sql``
+      : sql`AND ${alias}.price_minor <= ${range.maxPriceMinor}`;
   return sql`${min} ${max}`;
 }
 
-export function compileOptionVariantPredicateSql(
-  request: ListingSqlRequest,
-  alias: SQL
-): SQL {
+export function compileOptionVariantPredicateSql(request: ListingSqlRequest, alias: SQL): SQL {
   const bitmap = compileVariantTermGroupsBitmapSql(request);
   return bitmap ? sql`AND ${bitmap} @> ${alias}.variant_doc_id` : sql``;
 }
 
 /** Compatibility export: now returns all canonical term groups, not only OPTION. */
-export function compileOptionVariantBitmapSql(
-  request: ListingSqlRequest
-): SQL | null {
+export function compileOptionVariantBitmapSql(request: ListingSqlRequest): SQL | null {
   return compileVariantTermGroupsBitmapSql(request);
 }
 
 export function compileVariantTermGroupsBitmapSql(
   request: ListingSqlRequest,
-  options?: { excludeGroupKey?: string }
+  options?: { excludeGroupKey?: string },
 ): SQL | null {
   const groups = request.request.filterPlan.variantTermGroups.filter(
-    (group) => group.groupKey !== options?.excludeGroupKey
+    (group) => group.groupKey !== options?.excludeGroupKey,
   );
   const policyAvailability = shouldHideOutOfStock(request)
     ? compileVariantTermPostingBitmapSql(
@@ -132,29 +117,22 @@ export function compileVariantCandidatesBitmapSql(
     excludeGroupKey?: string;
     excludePrice?: boolean;
     priceBitmapSql?: SQL;
-  }
+  },
 ): SQL {
   const terms = compileVariantTermGroupsBitmapSql(request, options);
   const collectionVariant =
-    request.input.scope.kind === "collection" &&
-    request.input.scope.variantBitmap
+    request.input.scope.kind === "collection" && request.input.scope.variantBitmap
       ? sql`${request.input.scope.variantBitmap}::roaringbitmap`
       : null;
-  const parts: SQL[] = [
-    collectionVariant ?? compileIndexableUniverseBitmapSql(request),
-  ];
+  const parts: SQL[] = [collectionVariant ?? compileIndexableUniverseBitmapSql(request)];
   if (terms) parts.push(terms);
   if (request.request.filterPlan.priceRange && !options?.excludePrice) {
-    parts.push(
-      options?.priceBitmapSql ?? compilePriceVariantBitmapSql(request)
-    );
+    parts.push(options?.priceBitmapSql ?? compilePriceVariantBitmapSql(request));
   }
   return andBitmapSql(parts);
 }
 
-export function compileVariantCandidateDiagnosticsSql(
-  request: ListingSqlRequest
-): SQL {
+export function compileVariantCandidateDiagnosticsSql(request: ListingSqlRequest): SQL {
   const termCandidates = compileVariantCandidatesBitmapSql(request, {
     excludePrice: true,
   });
@@ -173,7 +151,7 @@ export function compileVariantCandidateDiagnosticsSql(
     : sql`(SELECT bitmap FROM term_candidates)`;
   const projected = compileProjectedVariantProductsBitmapSql(
     request,
-    sql`(SELECT bitmap FROM final_candidates)`
+    sql`(SELECT bitmap FROM final_candidates)`,
   );
   return sql`
     /* listing:variantDiagnostics */
@@ -189,11 +167,13 @@ export function compileVariantCandidateDiagnosticsSql(
       rb_cardinality(
         (SELECT bitmap FROM term_candidates)
       )::int AS "termCandidateCardinality",
-      ${hasNumericCandidates
-        ? sql`rb_cardinality(
+      ${
+        hasNumericCandidates
+          ? sql`rb_cardinality(
             (SELECT bitmap FROM numeric_candidates)
           )::int`
-        : sql`NULL::int`} AS "numericCandidateCardinality",
+          : sql`NULL::int`
+      } AS "numericCandidateCardinality",
       rb_cardinality(
         (SELECT bitmap FROM final_candidates)
       )::int AS "finalVariantCandidateCardinality",
@@ -203,7 +183,7 @@ export function compileVariantCandidateDiagnosticsSql(
 
 export function compileProjectedVariantProductsBitmapSql(
   request: ListingSqlRequest,
-  variantBitmap: SQL
+  variantBitmap: SQL,
 ): SQL {
   return compileVariantProjectionSql({
     projectIdSql: sql`${request.storeId}::uuid`,
@@ -214,8 +194,7 @@ export function compileProjectedVariantProductsBitmapSql(
 export function hasVariantPredicate(request: ListingSqlRequest): boolean {
   const plan = request.request.filterPlan;
   return (
-    (request.input.scope.kind === "collection" &&
-      !!request.input.scope.variantBitmap) ||
+    (request.input.scope.kind === "collection" && !!request.input.scope.variantBitmap) ||
     plan.variantTermGroups.length > 0 ||
     !!plan.priceRange ||
     shouldHideOutOfStock(request)
@@ -230,27 +209,22 @@ export function shouldPlaceOutOfStockLast(request: ListingSqlRequest): boolean {
   return searchOutOfStockPolicy(request) === "PLACE_LAST";
 }
 
-export function shouldUseAvailabilityOrderBucket(
-  request: ListingSqlRequest,
-): boolean {
+export function shouldUseAvailabilityOrderBucket(request: ListingSqlRequest): boolean {
   return !request.searchCandidates || shouldPlaceOutOfStockLast(request);
 }
 
 /** Product availability is ordering/diagnostics only. */
-export function shouldApplyProductStockAtProductLevel(
-  _request: ListingSqlRequest
-): boolean {
+export function shouldApplyProductStockAtProductLevel(_request: ListingSqlRequest): boolean {
   return false;
 }
 
 function searchOutOfStockPolicy(request: ListingSqlRequest) {
-  return request.searchCandidates?.request.configuration.settings
-    .outOfStockPolicy ?? null;
+  return request.searchCandidates?.request.configuration.settings.outOfStockPolicy ?? null;
 }
 
 export function compileVariantTermPostingBitmapSql(
   request: ListingSqlRequest,
-  encodedValueKey: string
+  encodedValueKey: string,
 ): SQL {
   return coalesceBitmapSql(sql`(
     SELECT p.bitmap
@@ -264,7 +238,7 @@ export function compileVariantTermPostingBitmapSql(
 
 function compileVariantTermGroupBitmapSql(
   request: ListingSqlRequest,
-  group: ListingVariantTermGroup
+  group: ListingVariantTermGroup,
 ): SQL {
   if (group.terms.length === 0) return emptyRoaringBitmapSql();
   const encoded = group.terms.map(encodeListingVariantTerm);
@@ -307,15 +281,16 @@ export function compilePriceVariantBitmapSql(request: ListingSqlRequest): SQL {
 
 function compileProductFacetGroupsBitmapSql(
   request: ListingSqlRequest,
-  excludeFacetId?: string
+  excludeFacetId?: string,
 ): SQL | null {
   const groups = request.request.filterPlan.productFacetGroups.filter(
-    (group) => group.facetId !== excludeFacetId
+    (group) => group.facetId !== excludeFacetId,
   );
   if (groups.length === 0) return null;
-  return andBitmapSql(groups.map((group) => {
-    if (group.valueKeys.length === 0) return emptyRoaringBitmapSql();
-    return coalesceBitmapSql(sql`(
+  return andBitmapSql(
+    groups.map((group) => {
+      if (group.valueKeys.length === 0) return emptyRoaringBitmapSql();
+      return coalesceBitmapSql(sql`(
       SELECT rb_or_agg(p.bitmap)
       FROM listing.listing_posting_bitmap p
       WHERE p.store_id = ${request.storeId}::uuid
@@ -323,7 +298,8 @@ function compileProductFacetGroupsBitmapSql(
         AND p.field = 'facet'
         AND p.value_key IN (${joinTextValues(group.valueKeys)})
     )`);
-  }));
+    }),
+  );
 }
 
 function compileVendorBitmapSql(request: ListingSqlRequest): SQL | null {
@@ -339,9 +315,7 @@ function compileVendorBitmapSql(request: ListingSqlRequest): SQL | null {
   )`);
 }
 
-function compileProductStatusBitmapSql(
-  request: ListingSqlRequest,
-): SQL | null {
+function compileProductStatusBitmapSql(request: ListingSqlRequest): SQL | null {
   const statuses = request.request.filterPlan.productStatuses;
   if (statuses.length === 0) return null;
   return coalesceBitmapSql(sql`(
@@ -358,7 +332,7 @@ function compileSearchCandidateRowsCte(request: ListingSqlRequest): SQL {
   const contract = request.searchCandidates;
   if (!contract?.rankedCandidateRelationSql) {
     throw new StorefrontRepositoryValidationError(
-      "Relevance sort requires a ranked search candidate relation"
+      "Relevance sort requires a ranked search candidate relation",
     );
   }
   return sql`
@@ -423,9 +397,7 @@ function compileScopeProductBitmapSql(request: ListingSqlRequest): SQL {
     return emptyRoaringBitmapSql();
   }
 
-  return searchMembership
-    ? sql`(${scopeBitmap} & ${searchMembership})`
-    : scopeBitmap;
+  return searchMembership ? sql`(${scopeBitmap} & ${searchMembership})` : scopeBitmap;
 }
 
 function compileSearchMembershipBitmapSql(request: ListingSqlRequest): SQL {
@@ -453,5 +425,8 @@ function andBitmapSql(parts: readonly SQL[]): SQL {
 }
 
 function joinTextValues(values: readonly string[]): SQL {
-  return sql.join(values.map((value) => sql`${value}`), sql`, `);
+  return sql.join(
+    values.map((value) => sql`${value}`),
+    sql`, `,
+  );
 }

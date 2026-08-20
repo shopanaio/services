@@ -34,16 +34,12 @@ registerModule({
     {
       key: "customer-reviews-list",
       path: "/:orgName/:storeName/customer-content/reviews",
-      component: dynamic(
-        () => import("@/domains/customer-content/reviews/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/customer-content/reviews/page/page")),
     },
     {
       key: "customer-questions-list",
       path: "/:orgName/:storeName/customer-content/questions",
-      component: dynamic(
-        () => import("@/domains/customer-content/questions/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/customer-content/questions/page/page")),
     },
     {
       key: "customer-content-moderation",
@@ -84,9 +80,7 @@ registerModule({
         icon: null,
         order: 11,
       },
-      component: dynamic(
-        () => import("@/domains/inventory/discounts/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/inventory/discounts/page/page")),
     },
     {
       key: "coupons-list",
@@ -97,9 +91,7 @@ registerModule({
         icon: null,
         order: 12,
       },
-      component: dynamic(
-        () => import("@/domains/inventory/coupons/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/inventory/coupons/page/page")),
     },
     {
       key: "campaigns-list",
@@ -110,9 +102,7 @@ registerModule({
         icon: null,
         order: 13,
       },
-      component: dynamic(
-        () => import("@/domains/inventory/campaigns/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/inventory/campaigns/page/page")),
     },
   ],
 });

@@ -68,31 +68,25 @@ export const resolvers = {
   ApplicationAuthTrustedOrigin: ApplicationAuthTrustedOriginResolver,
   ApplicationAuthProviderCallbackUrl: ApplicationAuthProviderCallbackUrlResolver,
   ApplicationAuthProtocolUrls: ApplicationAuthProtocolUrlsResolver,
-  ApplicationAuthEmailDeliveryConfiguration:
-    ApplicationAuthEmailDeliveryConfigurationResolver,
+  ApplicationAuthEmailDeliveryConfiguration: ApplicationAuthEmailDeliveryConfigurationResolver,
   ApplicationAuthUpdatePayload: ApplicationAuthUpdatePayloadResolver,
   ApplicationAuthMethodPayload: ApplicationAuthMethodPayloadResolver,
   ApplicationAuthProvider: ApplicationAuthProviderResolver,
   ApplicationAuthProviderValidation: ApplicationAuthProviderValidationResolver,
   ApplicationAuthProviderPayload: ApplicationAuthProviderPayloadResolver,
-  ApplicationAuthProviderValidationPayload:
-    ApplicationAuthProviderValidationPayloadResolver,
+  ApplicationAuthProviderValidationPayload: ApplicationAuthProviderValidationPayloadResolver,
   ApplicationOAuthClient: ApplicationOAuthClientResolver,
   ApplicationOAuthClientConnection: ApplicationOAuthClientConnectionResolver,
   ApplicationOAuthClientPayload: ApplicationOAuthClientPayloadResolver,
-  ApplicationOAuthClientCreatePayload:
-    ApplicationOAuthClientCreatePayloadResolver,
-  ApplicationOAuthClientSecretRotatePayload:
-    ApplicationOAuthClientSecretRotatePayloadResolver,
+  ApplicationOAuthClientCreatePayload: ApplicationOAuthClientCreatePayloadResolver,
+  ApplicationOAuthClientSecretRotatePayload: ApplicationOAuthClientSecretRotatePayloadResolver,
   ApplicationUser: ApplicationUserResolver,
   ApplicationUserSecurityMetadata: ApplicationUserSecurityMetadataResolver,
   ApplicationUserLinkedAccount: ApplicationUserLinkedAccountResolver,
   ApplicationUserConnection: ApplicationUserConnectionResolver,
   ApplicationUserPayload: ApplicationUserPayloadResolver,
-  ApplicationUserSessionsRevokeAllPayload:
-    ApplicationUserSessionsRevokeAllPayloadResolver,
-  ApplicationUserAccountUnlinkPayload:
-    ApplicationUserAccountUnlinkPayloadResolver,
+  ApplicationUserSessionsRevokeAllPayload: ApplicationUserSessionsRevokeAllPayloadResolver,
+  ApplicationUserAccountUnlinkPayload: ApplicationUserAccountUnlinkPayloadResolver,
 
   // Type resolvers for scalars, interfaces, and federation references
   // (includes Membership with __resolveReference)

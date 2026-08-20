@@ -1,9 +1,6 @@
 import { useCallback } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import {
-  createTemporaryOptionId,
-  createTemporaryOptionValueId,
-} from "../../../mappers";
+import { createTemporaryOptionId, createTemporaryOptionValueId } from "../../../mappers";
 import type { IEditOptionsFormValues } from "../edit-options-modal.schema";
 import type {
   OptionEditorGroup,
@@ -29,18 +26,14 @@ function moveArray<T>(items: T[], oldIndex: number, newIndex: number): T[] {
   return next;
 }
 
-function normalizeValueSortIndexes(
-  values: OptionEditorValue[],
-): OptionEditorValue[] {
+function normalizeValueSortIndexes(values: OptionEditorValue[]): OptionEditorValue[] {
   return values.map((value, index) => ({
     ...value,
     sortIndex: index,
   }));
 }
 
-function normalizeGroupSortIndexes(
-  groups: OptionEditorGroup[],
-): OptionEditorGroup[] {
+function normalizeGroupSortIndexes(groups: OptionEditorGroup[]): OptionEditorGroup[] {
   return groups.map((group, index) => ({
     ...group,
     sortIndex: index,
@@ -48,9 +41,7 @@ function normalizeGroupSortIndexes(
   }));
 }
 
-function createEmptyValue(input: {
-  sortIndex: number;
-}): OptionEditorValue {
+function createEmptyValue(input: { sortIndex: number }): OptionEditorValue {
   return {
     id: createTemporaryOptionValueId(),
     name: "",
@@ -64,12 +55,11 @@ export const useEditOptionsForm = ({
   defaultValues = { groups: [] },
   onChange,
 }: UseEditOptionsFormProps = {}) => {
-  const { control, watch, setValue, getValues } =
-    useForm<IEditOptionsFormValues>({
-      defaultValues: {
-        groups: normalizeGroupSortIndexes(defaultValues.groups),
-      },
-    });
+  const { control, watch, setValue, getValues } = useForm<IEditOptionsFormValues>({
+    defaultValues: {
+      groups: normalizeGroupSortIndexes(defaultValues.groups),
+    },
+  });
 
   const { fields, replace } = useFieldArray({
     control,
@@ -101,10 +91,14 @@ export const useEditOptionsForm = ({
   const handleUpdateGroupCategory = useCallback(
     (groupIndex: number, category: OptionEditorCategory) => {
       const group = getValues(`groups.${groupIndex}`);
-      setValue(`groups.${groupIndex}`, {
-        ...group,
-        category,
-      }, { shouldDirty: true });
+      setValue(
+        `groups.${groupIndex}`,
+        {
+          ...group,
+          category,
+        },
+        { shouldDirty: true },
+      );
       notifyChange();
     },
     [getValues, notifyChange, setValue],
@@ -128,16 +122,8 @@ export const useEditOptionsForm = ({
   );
 
   const handleUpdateValueSwatch = useCallback(
-    (
-      groupIndex: number,
-      valueIndex: number,
-      swatch: OptionEditorSwatch,
-    ) => {
-      setValue(
-        `groups.${groupIndex}.values.${valueIndex}.swatch`,
-        swatch,
-        { shouldDirty: true },
-      );
+    (groupIndex: number, valueIndex: number, swatch: OptionEditorSwatch) => {
+      setValue(`groups.${groupIndex}.values.${valueIndex}.swatch`, swatch, { shouldDirty: true });
       notifyChange();
     },
     [notifyChange, setValue],
@@ -153,11 +139,9 @@ export const useEditOptionsForm = ({
 
       const values = group.values.filter((_, index) => index !== valueIndex);
 
-      setValue(
-        `groups.${groupIndex}.values`,
-        normalizeValueSortIndexes(values),
-        { shouldDirty: true },
-      );
+      setValue(`groups.${groupIndex}.values`, normalizeValueSortIndexes(values), {
+        shouldDirty: true,
+      });
       notifyChange();
     },
     [getValues, notifyChange, setValue],
@@ -181,11 +165,9 @@ export const useEditOptionsForm = ({
 
   const handleReorderValues = useCallback(
     (groupIndex: number, values: OptionEditorValue[]) => {
-      setValue(
-        `groups.${groupIndex}.values`,
-        normalizeValueSortIndexes(values),
-        { shouldDirty: true },
-      );
+      setValue(`groups.${groupIndex}.values`, normalizeValueSortIndexes(values), {
+        shouldDirty: true,
+      });
       notifyChange();
     },
     [notifyChange, setValue],
@@ -199,9 +181,7 @@ export const useEditOptionsForm = ({
       slug: "",
       category: null,
       sortIndex: currentGroups.length,
-      values: [
-        createEmptyValue({ sortIndex: 0 }),
-      ],
+      values: [createEmptyValue({ sortIndex: 0 })],
     };
 
     replaceGroups([...currentGroups, newGroup]);

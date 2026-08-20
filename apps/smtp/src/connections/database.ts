@@ -6,9 +6,7 @@ export type SmtpDatabase = PostgresJsDatabase<typeof schema>;
 
 export function createSmtpDatabase(databaseClient: unknown): SmtpDatabase {
   if (typeof databaseClient !== "function") {
-    throw new TypeError(
-      "SMTP App host.databaseClient must be a postgres.js client",
-    );
+    throw new TypeError("SMTP App host.databaseClient must be a postgres.js client");
   }
   return drizzle(databaseClient as DatabaseClient, { schema });
 }

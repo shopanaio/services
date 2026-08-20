@@ -12,4 +12,3 @@ export class FaceIdModule {
     return this.http.get(ctx, `/api/faceid-signin-begin?${params.toString()}`);
   }
 }
-

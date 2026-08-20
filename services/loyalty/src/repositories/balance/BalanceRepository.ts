@@ -14,10 +14,7 @@ export class BalanceRepository extends BaseRepository {
       .select()
       .from(accountBalances)
       .where(
-        and(
-          eq(accountBalances.storeId, this.storeId),
-          eq(accountBalances.accountId, accountId),
-        ),
+        and(eq(accountBalances.storeId, this.storeId), eq(accountBalances.accountId, accountId)),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -28,10 +25,7 @@ export class BalanceRepository extends BaseRepository {
       .select()
       .from(accountBalances)
       .where(
-        and(
-          eq(accountBalances.storeId, this.storeId),
-          eq(accountBalances.accountId, accountId),
-        ),
+        and(eq(accountBalances.storeId, this.storeId), eq(accountBalances.accountId, accountId)),
       )
       .limit(1)
       .for("update");
@@ -130,10 +124,7 @@ export class BalanceRepository extends BaseRepository {
         updatedAt: new Date().toISOString(),
       })
       .where(
-        and(
-          eq(accountBalances.storeId, this.storeId),
-          eq(accountBalances.accountId, accountId),
-        ),
+        and(eq(accountBalances.storeId, this.storeId), eq(accountBalances.accountId, accountId)),
       )
       .returning();
     return rows[0] ?? null;
@@ -152,15 +143,19 @@ export class BalanceRepository extends BaseRepository {
       .orderBy(asc(accountExpiringPoints.expiresAt), asc(accountExpiringPoints.lotId));
   }
 
-  async listExpiringPointsForAccounts(accountIds: readonly string[]): Promise<AccountExpiringPoint[]> {
+  async listExpiringPointsForAccounts(
+    accountIds: readonly string[],
+  ): Promise<AccountExpiringPoint[]> {
     if (accountIds.length === 0) return [];
     return this.connection
       .select()
       .from(accountExpiringPoints)
-      .where(and(
-        eq(accountExpiringPoints.storeId, this.storeId),
-        inArray(accountExpiringPoints.accountId, [...accountIds]),
-      ))
+      .where(
+        and(
+          eq(accountExpiringPoints.storeId, this.storeId),
+          inArray(accountExpiringPoints.accountId, [...accountIds]),
+        ),
+      )
       .orderBy(
         asc(accountExpiringPoints.accountId),
         asc(accountExpiringPoints.expiresAt),

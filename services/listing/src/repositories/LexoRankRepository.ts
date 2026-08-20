@@ -123,10 +123,7 @@ export class LexoRankRepository<TItem> {
       needNeighborLookup,
     });
 
-    let lexoRank = midpointRank(
-      effectiveRanks.afterRank,
-      effectiveRanks.beforeRank,
-    );
+    let lexoRank = midpointRank(effectiveRanks.afterRank, effectiveRanks.beforeRank);
 
     if (!lexoRank) {
       await this.rebalance(params.scopeId);
@@ -176,17 +173,15 @@ export class LexoRankRepository<TItem> {
     needNeighborLookup: boolean;
   }): Promise<EffectiveRanks> {
     let afterRank = params.afterItem ? this.config.getLexoRank(params.afterItem) : null;
-    let beforeRank = params.beforeItem
-      ? this.config.getLexoRank(params.beforeItem)
-      : null;
+    let beforeRank = params.beforeItem ? this.config.getLexoRank(params.beforeItem) : null;
 
     if (!params.needNeighborLookup) {
       return { afterRank, beforeRank };
     }
 
-    const orderedItems = (
-      await this.config.findOrderedItems(params.scopeId)
-    ).filter((item) => this.config.getItemId(item) !== params.itemId);
+    const orderedItems = (await this.config.findOrderedItems(params.scopeId)).filter(
+      (item) => this.config.getItemId(item) !== params.itemId,
+    );
 
     if (params.beforeItemId && !params.afterItemId) {
       afterRank = this.findPreviousNeighborRank(orderedItems, params.beforeItemId);
@@ -199,26 +194,16 @@ export class LexoRankRepository<TItem> {
     return { afterRank, beforeRank };
   }
 
-  private findPreviousNeighborRank(
-    orderedItems: TItem[],
-    beforeItemId: string,
-  ): string | null {
-    const index = orderedItems.findIndex(
-      (item) => this.config.getItemId(item) === beforeItemId,
-    );
+  private findPreviousNeighborRank(orderedItems: TItem[], beforeItemId: string): string | null {
+    const index = orderedItems.findIndex((item) => this.config.getItemId(item) === beforeItemId);
     if (index <= 0) {
       return null;
     }
     return this.config.getLexoRank(orderedItems[index - 1]);
   }
 
-  private findNextNeighborRank(
-    orderedItems: TItem[],
-    afterItemId: string,
-  ): string | null {
-    const index = orderedItems.findIndex(
-      (item) => this.config.getItemId(item) === afterItemId,
-    );
+  private findNextNeighborRank(orderedItems: TItem[], afterItemId: string): string | null {
+    const index = orderedItems.findIndex((item) => this.config.getItemId(item) === afterItemId);
     if (index < 0 || index >= orderedItems.length - 1) {
       return null;
     }

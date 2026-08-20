@@ -1,6 +1,6 @@
 export function mapById<T extends { id: string }>(
   ids: readonly string[],
-  rows: readonly T[]
+  rows: readonly T[],
 ): Array<T | null> {
   const rowsById = new Map(rows.map((row) => [row.id, row]));
   return ids.map((id) => rowsById.get(id) ?? null);
@@ -9,7 +9,7 @@ export function mapById<T extends { id: string }>(
 export function groupByKey<T>(
   keys: readonly string[],
   rows: readonly T[],
-  getKey: (row: T) => string
+  getKey: (row: T) => string,
 ): T[][] {
   const rowsByKey = new Map<string, T[]>();
   for (const row of rows) {

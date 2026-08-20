@@ -1,8 +1,5 @@
 // Row type discriminator
-export type BulkEditorRowType =
-  | "product"
-  | "variant"
-  | "single-variant-product";
+export type BulkEditorRowType = "product" | "variant" | "single-variant-product";
 
 // Base row interface
 export interface IBulkEditorRow {
@@ -218,11 +215,7 @@ export const ATTRIBUTES_COLUMNS: IBulkEditorColumn[] = [
   },
 ];
 
-export const ALL_COLUMNS = [
-  ...PRODUCT_COLUMNS,
-  ...PRICING_COLUMNS,
-  ...ATTRIBUTES_COLUMNS,
-];
+export const ALL_COLUMNS = [...PRODUCT_COLUMNS, ...PRICING_COLUMNS, ...ATTRIBUTES_COLUMNS];
 
 // Variant field names - used for determining cell editability and display
 export const VARIANT_FIELDS = new Set<keyof IBulkEditorRow>([
@@ -244,15 +237,9 @@ export const VARIANT_FIELDS = new Set<keyof IBulkEditorRow>([
 ]);
 
 // Check if a cell should show dash (not applicable for this row type)
-export function shouldShowDash(
-  rowType: BulkEditorRowType,
-  field: keyof IBulkEditorRow
-): boolean {
+export function shouldShowDash(rowType: BulkEditorRowType, field: keyof IBulkEditorRow): boolean {
   const isVariantField = VARIANT_FIELDS.has(field);
-  return (
-    (rowType === "product" && isVariantField) ||
-    (rowType === "variant" && !isVariantField)
-  );
+  return (rowType === "product" && isVariantField) || (rowType === "variant" && !isVariantField);
 }
 
 // Format price for display
@@ -271,5 +258,5 @@ export const DEFAULT_COLUMN_VISIBILITY: IColumnVisibility = ALL_COLUMNS.reduce(
     ...acc,
     [col.field]: col.defaultVisible,
   }),
-  {} as IColumnVisibility
+  {} as IColumnVisibility,
 );

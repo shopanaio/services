@@ -1,4 +1,4 @@
-import { ComponentType, LazyExoticComponent } from 'react';
+import { ComponentType, LazyExoticComponent } from "react";
 
 /**
  * Base payload interface for all modal stack items
@@ -6,7 +6,7 @@ import { ComponentType, LazyExoticComponent } from 'react';
  */
 export interface IModalStackPayload {
   entityId?: string | number;
-  mode?: 'view' | 'edit' | 'create';
+  mode?: "view" | "edit" | "create";
   [key: string]: unknown;
 }
 
@@ -40,8 +40,7 @@ export interface IModalStackContext<T extends IModalStackPayload = IModalStackPa
  * Modal stack item component type - can be regular or lazy loaded
  */
 export type ModalStackComponent<T extends IModalStackPayload = IModalStackPayload> =
-  | ComponentType<{}>
-  | LazyExoticComponent<ComponentType<{}>>;
+  ComponentType<{}> | LazyExoticComponent<ComponentType<{}>>;
 
 /**
  * Modal stack item definition for registration

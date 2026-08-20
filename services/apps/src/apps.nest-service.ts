@@ -1,14 +1,6 @@
-import {
-  Inject,
-  Injectable,
-  OnModuleDestroy,
-  OnModuleInit,
-} from "@nestjs/common";
+import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { AppsGraphQLIngress } from "@shopana/app-runtime";
-import {
-  InjectBroker,
-  type ServiceBroker,
-} from "@shopana/shared-kernel";
+import { InjectBroker, type ServiceBroker } from "@shopana/shared-kernel";
 import { getServiceConfig } from "@shopana/shared-service-config";
 import { sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";

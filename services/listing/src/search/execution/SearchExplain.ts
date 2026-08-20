@@ -17,10 +17,7 @@ import type {
   PostgresFtsFuzzyExecutionDescription,
 } from "./PostgresFtsQueryCompiler.js";
 import { POSTGRES_TYPO_MAX_VERIFIED_CANDIDATES_PER_TERM } from "./PostgresTypoQueryCompiler.js";
-import type {
-  SearchCandidateContract,
-  SearchExecutionMode,
-} from "./SearchExecutionService.js";
+import type { SearchCandidateContract, SearchExecutionMode } from "./SearchExecutionService.js";
 
 export interface SearchExplainInput {
   readonly query: string;
@@ -28,19 +25,10 @@ export interface SearchExplainInput {
 }
 
 export type SearchExplainLexicalUnitKind =
-  | "TEXT"
-  | "NUMBER"
-  | "CODE"
-  | "FOREIGN"
-  | "MIXED_SCRIPT"
-  | "STOPWORD";
+  "TEXT" | "NUMBER" | "CODE" | "FOREIGN" | "MIXED_SCRIPT" | "STOPWORD";
 
 export type SearchExplainClauseKind =
-  | "FTS_TERMS"
-  | "FTS_PHRASE"
-  | "SYNONYM"
-  | "IDENTIFIER_EXACT"
-  | "IDENTIFIER_PREFIX";
+  "FTS_TERMS" | "FTS_PHRASE" | "SYNONYM" | "IDENTIFIER_EXACT" | "IDENTIFIER_PREFIX";
 
 export type SearchExplainReason =
   | "STOPWORD_REMOVAL"
@@ -129,20 +117,17 @@ export function createSearchExplain(
   }
   const fuzzyAlternatives = verifiedAlternatives(contract.plan);
   const primaryMode = contract.attempt.mode === "PRIMARY";
-  const fuzzyUnits = new Map(
-    (fuzzyExecution?.units ?? []).map((unit) => [unit.unitIndex, unit]),
-  );
+  const fuzzyUnits = new Map((fuzzyExecution?.units ?? []).map((unit) => [unit.unitIndex, unit]));
   const mappedPlanUnits = new Set<number>();
   const units = contract.request.lexicalizedQuery.tokens.map((token) => {
     const planUnit = requiredUnitsBySourceIndex.get(token.sourceIndex) ?? null;
-    const isFirstTokenForPlanUnit = planUnit !== null &&
-      !mappedPlanUnits.has(planUnit.index);
+    const isFirstTokenForPlanUnit = planUnit !== null && !mappedPlanUnits.has(planUnit.index);
     if (planUnit) mappedPlanUnits.add(planUnit.index);
     const typoTerms = new Set(token.typoTerms);
     const typoAlternatives = planUnit
       ? (fuzzyAlternatives.get(planUnit.index) ?? [])
-        .filter((alternative) => typoTerms.has(alternative.inputTerm))
-        .map(mapTypoAlternative)
+          .filter((alternative) => typoTerms.has(alternative.inputTerm))
+          .map(mapTypoAlternative)
       : [];
 
     return Object.freeze({
@@ -159,11 +144,7 @@ export function createSearchExplain(
               ...planUnit.primaryAlternatives.map(mapClause),
               ...planUnit.originalIdentifierAlternatives.map(mapClause),
             ])
-          : freezeArray(
-              (fuzzyUnits.get(planUnit.index)?.clauses ?? []).map(
-                mapFuzzyClause,
-              ),
-            ),
+          : freezeArray((fuzzyUnits.get(planUnit.index)?.clauses ?? []).map(mapFuzzyClause)),
       typoAlternatives: freezeArray(typoAlternatives),
     });
   });
@@ -175,22 +156,20 @@ export function createSearchExplain(
     originalQuery,
     normalizedQuery: contract.request.normalizedQuery.lookupKey,
     locale: contract.request.locale,
-    normalizationContractVersion:
-      contract.request.lexicalizedQuery.normalizationContractVersion,
-    normalizationProfileRevision:
-      contract.request.lexicalizedQuery.profileRevision,
+    normalizationContractVersion: contract.request.lexicalizedQuery.normalizationContractVersion,
+    normalizationProfileRevision: contract.request.lexicalizedQuery.profileRevision,
     units: freezeArray(units),
     wholeQueryClauses: primaryMode
-      ? freezeArray(
-          contract.plan.wholeQueryIdentifierAlternatives.map(mapClause),
-        )
+      ? freezeArray(contract.plan.wholeQueryIdentifierAlternatives.map(mapClause))
       : Object.freeze([]),
     settings: Object.freeze({
       version: settings.version,
       enabledFields: freezeArray(settings.enabledFields),
-      fieldWeights: freezeArray(settings.enabledFields.map((field) =>
-        Object.freeze({ field, weight: settings.fieldWeights[field]! })
-      )),
+      fieldWeights: freezeArray(
+        settings.enabledFields.map((field) =>
+          Object.freeze({ field, weight: settings.fieldWeights[field]! }),
+        ),
+      ),
       typoToleranceEnabled: settings.typoToleranceEnabled,
       outOfStockPolicy: settings.outOfStockPolicy,
     }),
@@ -232,9 +211,7 @@ function mapClause(clause: SearchClause): SearchExplainClause {
     case "identifierExact":
     case "identifierPrefix":
       return Object.freeze({
-        kind: clause.kind === "identifierExact"
-          ? "IDENTIFIER_EXACT"
-          : "IDENTIFIER_PREFIX",
+        kind: clause.kind === "identifierExact" ? "IDENTIFIER_EXACT" : "IDENTIFIER_PREFIX",
         value: clause.value,
         lexemes: Object.freeze([]),
         fields: Object.freeze([]),
@@ -249,9 +226,7 @@ function mapClause(clause: SearchClause): SearchExplainClause {
   }
 }
 
-function mapTypoAlternative(
-  alternative: VerifiedTypoAlternative,
-): SearchExplainTypoAlternative {
+function mapTypoAlternative(alternative: VerifiedTypoAlternative): SearchExplainTypoAlternative {
   return Object.freeze({
     value: alternative.vocabularyTerm,
     lexemes: freezeArray(alternative.ftsLexemes),
@@ -260,9 +235,7 @@ function mapTypoAlternative(
   });
 }
 
-function mapFuzzyClause(
-  clause: PostgresFtsFuzzyClauseDescription,
-): SearchExplainClause {
+function mapFuzzyClause(clause: PostgresFtsFuzzyClauseDescription): SearchExplainClause {
   return Object.freeze({
     kind: "FTS_TERMS",
     value: clause.lexemes.join(" "),
@@ -295,9 +268,7 @@ function mapLexicalUnitKind(
 function verifiedAlternatives(
   plan: SearchQueryPlan | ExpandedFuzzySearchQueryPlan,
 ): ReadonlyMap<number, readonly VerifiedTypoAlternative[]> {
-  return "verifiedAlternativesByUnit" in plan
-    ? plan.verifiedAlternativesByUnit
-    : new Map();
+  return "verifiedAlternativesByUnit" in plan ? plan.verifiedAlternativesByUnit : new Map();
 }
 
 function collectReasons(
@@ -309,20 +280,13 @@ function collectReasons(
   if (units.some((unit) => unit.removedAsStopword)) {
     reasons.push("STOPWORD_REMOVAL");
   }
-  if (
-    contract.attempt.mode === "PRIMARY" &&
-    contract.plan.matchedSynonymGroupIds.length > 0
-  ) {
+  if (contract.attempt.mode === "PRIMARY" && contract.plan.matchedSynonymGroupIds.length > 0) {
     reasons.push("SYNONYM_EXPANSION");
   }
   if (
     contract.attempt.mode === "PRIMARY" &&
-    (
-      contract.plan.wholeQueryIdentifierAlternatives.length > 0 ||
-      contract.plan.requiredUnits.some(
-        (unit) => unit.originalIdentifierAlternatives.length > 0,
-      )
-    )
+    (contract.plan.wholeQueryIdentifierAlternatives.length > 0 ||
+      contract.plan.requiredUnits.some((unit) => unit.originalIdentifierAlternatives.length > 0))
   ) {
     reasons.push("IDENTIFIER_EXPANSION");
   }
@@ -341,18 +305,14 @@ function collectReasons(
   return freezeArray(reasons);
 }
 
-function assertExplainPlanLimits(
-  plan: SearchQueryPlan | ExpandedFuzzySearchQueryPlan,
-): void {
+function assertExplainPlanLimits(plan: SearchQueryPlan | ExpandedFuzzySearchQueryPlan): void {
   if (plan.requiredUnits.length > SEARCH_NORMALIZATION_LIMITS.queryUnits) {
     throw indexUnavailable("Search explain unit limit was exceeded");
   }
   const clauseCount = plan.requiredUnits.reduce(
-    (total, unit) => total +
-      unit.primaryAlternatives.reduce(
-        (subtotal, clause) => subtotal + countClause(clause),
-        0,
-      ) +
+    (total, unit) =>
+      total +
+      unit.primaryAlternatives.reduce((subtotal, clause) => subtotal + countClause(clause), 0) +
       unit.originalIdentifierAlternatives.length +
       (unit.originalTypoAlternative ? 1 : 0),
     0,
@@ -365,8 +325,7 @@ function assertExplainPlanLimits(
   for (const alternatives of typoAlternativesByUnit.values()) {
     if (
       alternatives.length >
-        POSTGRES_TYPO_MAX_VERIFIED_CANDIDATES_PER_TERM *
-          SEARCH_NORMALIZATION_LIMITS.queryUnits
+      POSTGRES_TYPO_MAX_VERIFIED_CANDIDATES_PER_TERM * SEARCH_NORMALIZATION_LIMITS.queryUnits
     ) {
       throw indexUnavailable("Search explain typo alternative limit was exceeded");
     }
@@ -374,8 +333,7 @@ function assertExplainPlanLimits(
   }
   if (
     totalTypoAlternatives >
-      POSTGRES_TYPO_MAX_VERIFIED_CANDIDATES_PER_TERM *
-        SEARCH_NORMALIZATION_LIMITS.queryUnits
+    POSTGRES_TYPO_MAX_VERIFIED_CANDIDATES_PER_TERM * SEARCH_NORMALIZATION_LIMITS.queryUnits
   ) {
     throw indexUnavailable("Search explain typo alternative limit was exceeded");
   }
@@ -383,10 +341,7 @@ function assertExplainPlanLimits(
 
 function countClause(clause: SearchClause): number {
   return clause.kind === "synonym"
-    ? 1 + clause.alternatives.reduce(
-      (total, alternative) => total + countClause(alternative),
-      0,
-    )
+    ? 1 + clause.alternatives.reduce((total, alternative) => total + countClause(alternative), 0)
     : 1;
 }
 

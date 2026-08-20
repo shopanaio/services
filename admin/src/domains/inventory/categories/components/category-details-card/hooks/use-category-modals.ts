@@ -11,10 +11,7 @@ import {
   type ApiProductProductsMetaInput,
 } from "@/graphql/types";
 import { useModalStackContext } from "@/layouts/modals";
-import {
-  useCategoryPicker,
-  useProductPicker,
-} from "@/shared/components/entity-picker-modal";
+import { useCategoryPicker, useProductPicker } from "@/shared/components/entity-picker-modal";
 import {
   useAddCategoryProduct,
   useDeleteCategory,
@@ -30,10 +27,7 @@ import {
   useCategoryListingPreviewModal,
 } from "../../../modals";
 
-export const useCategoryModals = (
-  category: ApiCategory,
-  onRefetch?: () => Promise<unknown>,
-) => {
+export const useCategoryModals = (category: ApiCategory, onRefetch?: () => Promise<unknown>) => {
   const { message } = App.useApp();
   const { forcePop } = useModalStackContext();
   const { push: openEditIdentityModal } = useCategoryEditIdentityModal();
@@ -77,33 +71,18 @@ export const useCategoryModals = (
 
   const changeStatus = useCallback(() => {
     void (async () => {
-      const nextStatus = category.isPublished
-        ? CategoryStatus.Draft
-        : CategoryStatus.Published;
-      const result = await updateCategory(
-        category.id,
-        { status: nextStatus },
-        category.revision,
-      );
+      const nextStatus = category.isPublished ? CategoryStatus.Draft : CategoryStatus.Published;
+      const result = await updateCategory(category.id, { status: nextStatus }, category.revision);
 
       if (result.errors.length > 0) {
         message.error(result.errors[0].message);
         return;
       }
 
-      message.success(
-        category.isPublished ? "Category unpublished" : "Category published",
-      );
+      message.success(category.isPublished ? "Category unpublished" : "Category published");
       await handleSaved();
     })();
-  }, [
-    category.id,
-    category.isPublished,
-    category.revision,
-    handleSaved,
-    message,
-    updateCategory,
-  ]);
+  }, [category.id, category.isPublished, category.revision, handleSaved, message, updateCategory]);
 
   const archive = useCallback(() => {
     void (async () => {
@@ -127,10 +106,7 @@ export const useCategoryModals = (
     () => (category.parent?.id ? [category.parent.id] : []),
     [category.parent?.id],
   );
-  const parentExcludeIds = useMemo(
-    () => [category.id],
-    [category.id],
-  );
+  const parentExcludeIds = useMemo(() => [category.id], [category.id]);
   const subcategoryExcludeIds = useMemo(
     () => [category.id, ...category.children.map((child) => child.id)],
     [category.children, category.id],
@@ -224,14 +200,7 @@ export const useCategoryModals = (
       message.success("Parent cleared");
       await handleSaved();
     })();
-  }, [
-    category.id,
-    category.parent?.id,
-    category.revision,
-    handleSaved,
-    message,
-    updateCategory,
-  ]);
+  }, [category.id, category.parent?.id, category.revision, handleSaved, message, updateCategory]);
 
   const { openPicker: editSubcategories } = useCategoryPicker({
     excludeIds: subcategoryExcludeIds,

@@ -1,8 +1,5 @@
 import type { OutputData } from "@editorjs/editorjs";
-import type {
-  ApiCategoryUpdateInput,
-  ApiRichTextInput,
-} from "@/graphql/types";
+import type { ApiCategoryUpdateInput, ApiRichTextInput } from "@/graphql/types";
 import { renderContent } from "@/ui-kit/editor";
 
 export interface CategoryContentFormValues {
@@ -10,9 +7,7 @@ export interface CategoryContentFormValues {
   excerpt: OutputData | null;
 }
 
-export function toCategoryRichTextInput(
-  value: OutputData | null,
-): ApiRichTextInput | null {
+export function toCategoryRichTextInput(value: OutputData | null): ApiRichTextInput | null {
   if (!value?.blocks?.length) {
     return null;
   }

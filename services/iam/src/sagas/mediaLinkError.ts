@@ -1,10 +1,7 @@
 import type { Media } from "@shopana/broker-types";
 import type { UserError } from "@shopana/shared-kernel";
 
-export function mediaLinkError(
-  result: Media.FileLinkResult,
-  field: string,
-): UserError {
+export function mediaLinkError(result: Media.FileLinkResult, field: string): UserError {
   switch (result.code) {
     case "FILE_NOT_FOUND":
       return {

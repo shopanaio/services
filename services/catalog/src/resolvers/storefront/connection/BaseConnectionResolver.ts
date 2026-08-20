@@ -7,14 +7,10 @@ export interface ConnectionData {
   totalCount: number;
 }
 
-export abstract class BaseConnectionResolver<
-  TInput,
-> extends CatalogType<TInput, ConnectionData> {
+export abstract class BaseConnectionResolver<TInput> extends CatalogType<TInput, ConnectionData> {
   abstract $preload(): Promise<ConnectionData>;
 
-  protected abstract createNodeResolver(
-    nodeId: string,
-  ): unknown | Promise<unknown>;
+  protected abstract createNodeResolver(nodeId: string): unknown | Promise<unknown>;
 
   async edges() {
     const edges = (await this.$get("edges")) ?? [];
@@ -28,9 +24,7 @@ export abstract class BaseConnectionResolver<
 
   async nodes() {
     const edges = (await this.$get("edges")) ?? [];
-    return Promise.all(
-      edges.map((edge) => this.createNodeResolver(edge.nodeId)),
-    );
+    return Promise.all(edges.map((edge) => this.createNodeResolver(edge.nodeId)));
   }
 
   pageInfo() {

@@ -10,16 +10,10 @@ import {
   LuFilePenLine,
   LuTimerOff,
 } from "react-icons/lu";
-import {
-  DiscountEffectiveStatus,
-  DiscountMethod,
-} from "@/graphql/types";
+import { DiscountEffectiveStatus, DiscountMethod } from "@/graphql/types";
 import { formatDiscountEnum } from "./formatters";
 
-const STATUS_PRESENTATION: Record<
-  DiscountEffectiveStatus,
-  { color: string; icon: ReactNode }
-> = {
+const STATUS_PRESENTATION: Record<DiscountEffectiveStatus, { color: string; icon: ReactNode }> = {
   [DiscountEffectiveStatus.Active]: {
     color: "success",
     icon: <LuCircleCheck />,
@@ -66,9 +60,7 @@ export function DiscountStatusTag({
       : method === DiscountMethod.Automatic
         ? "Automatic"
         : null;
-  const label = [methodLabel, formatDiscountEnum(status)]
-    .filter(Boolean)
-    .join(" · ");
+  const label = [methodLabel, formatDiscountEnum(status)].filter(Boolean).join(" · ");
 
   return (
     <Tag

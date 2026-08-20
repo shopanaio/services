@@ -20,10 +20,12 @@ interface ApplicationConnectionGraphqlArgs {
     search?: string | null;
     status?: readonly string[] | null;
   } | null;
-  orderBy?: readonly {
-    field: string;
-    direction: "asc" | "desc";
-  }[] | null;
+  orderBy?:
+    | readonly {
+        field: string;
+        direction: "asc" | "desc";
+      }[]
+    | null;
 }
 
 @TypePolicy<ApplicationConnectionResolver>({
@@ -44,31 +46,26 @@ export class ApplicationConnectionResolver extends BaseConnectionResolver<Applic
         organizationId: this.$props.organizationId,
         applicationsReadAuthorized: true,
       },
-      this.$ctx
+      this.$ctx,
     );
   }
 }
 
 export function mapApplicationConnectionInput(
   organizationId: string,
-  args: ApplicationConnectionGraphqlArgs = {}
+  args: ApplicationConnectionGraphqlArgs = {},
 ): ApplicationConnectionResolverInput {
   const filters: NonNullable<ApplicationRelayInput["where"]>[] = [];
   const search = args.where?.search?.trim();
   if (search) {
     filters.push({
-      _or: [
-        { name: { _containsi: search } },
-        { displayName: { _containsi: search } },
-      ],
+      _or: [{ name: { _containsi: search } }, { displayName: { _containsi: search } }],
     });
   }
   const statuses = [...new Set(args.where?.status ?? [])];
   if (statuses.length === 1) {
     filters.push(
-      statuses[0] === "ARCHIVED"
-        ? { deletedAt: { _isNot: null } }
-        : { deletedAt: { _is: null } }
+      statuses[0] === "ARCHIVED" ? { deletedAt: { _isNot: null } } : { deletedAt: { _is: null } },
     );
   }
 
@@ -88,7 +85,7 @@ export function mapApplicationConnectionInput(
 }
 
 function mapApplicationOrderField(
-  field: string
+  field: string,
 ): "name" | "displayName" | "createdAt" | "updatedAt" {
   switch (field) {
     case "NAME":

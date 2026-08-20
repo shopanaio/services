@@ -13,8 +13,7 @@ export type ReviewCreateParams = ReviewCreateInput;
 export type ProductQuestionCreateParams = ProductQuestionCreateInput;
 export type ReviewRequestCreateParams = ReviewRequestCreateInput;
 export type ModerationCaseCreateParams = ReviewModerationCaseCreateInput;
-export type ContentExternalReferenceCreateParams =
-  ReviewContentExternalReferenceCreateInput;
+export type ContentExternalReferenceCreateParams = ReviewContentExternalReferenceCreateInput;
 
 export interface RatingCriterionCreateResult {
   criterion?: { id: string };

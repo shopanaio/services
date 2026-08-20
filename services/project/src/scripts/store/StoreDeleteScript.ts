@@ -1,23 +1,12 @@
-import {
-  AuthorizationError,
-  hashContent,
-} from "@shopana/shared-kernel";
+import { AuthorizationError, hashContent } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { StoreDeleteParams, StoreDeleteResult } from "./dto/index.js";
 import type { StoreDeleteOutput } from "../../sagas/index.js";
 
-export class StoreDeleteScript extends BaseScript<
-  StoreDeleteParams,
-  StoreDeleteResult
-> {
-  protected async execute(
-    params: StoreDeleteParams
-  ): Promise<StoreDeleteResult> {
+export class StoreDeleteScript extends BaseScript<StoreDeleteParams, StoreDeleteResult> {
+  protected async execute(params: StoreDeleteParams): Promise<StoreDeleteResult> {
     // Check if store exists and belongs to the organization
-    const existingStore = await this.repository.store.findById(
-      params.id,
-      params.organizationId
-    );
+    const existingStore = await this.repository.store.findById(params.id, params.organizationId);
 
     if (!existingStore) {
       return {

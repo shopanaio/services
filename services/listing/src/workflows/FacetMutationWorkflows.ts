@@ -63,16 +63,13 @@ interface FacetMutationWorkflowInput<TParams> {
   operationId: string;
 }
 
-abstract class FacetMutationWorkflowBase<
-  TInput,
-  TOutput,
-> extends BrokerWorkflows<TInput, TOutput> {
+abstract class FacetMutationWorkflowBase<TInput, TOutput> extends BrokerWorkflows<TInput, TOutput> {
   constructor(broker: ServiceBroker) {
     super(broker);
   }
 
   protected async runFacetCreate(
-    input: FacetMutationWorkflowInput<FacetCreateParams>
+    input: FacetMutationWorkflowInput<FacetCreateParams>,
   ): Promise<FacetResult> {
     const result = await this.stepRunFacetCreate(input);
     if (hasUserErrors(result) || !result.facet) return result;
@@ -92,7 +89,7 @@ abstract class FacetMutationWorkflowBase<
   }
 
   protected async runFacetDelete(
-    input: FacetMutationWorkflowInput<FacetDeleteParams>
+    input: FacetMutationWorkflowInput<FacetDeleteParams>,
   ): Promise<FacetDeleteResult> {
     const oldImpact = await this.stepCollectImpact({
       context: input.context,
@@ -112,7 +109,7 @@ abstract class FacetMutationWorkflowBase<
   }
 
   protected async runFacetValueCreate(
-    input: FacetMutationWorkflowInput<FacetValueCreateParams>
+    input: FacetMutationWorkflowInput<FacetValueCreateParams>,
   ): Promise<FacetValueResult> {
     const oldImpact =
       input.params.kind === "group" && (input.params.sourceValueIds?.length ?? 0) > 0
@@ -142,7 +139,7 @@ abstract class FacetMutationWorkflowBase<
   }
 
   protected async runFacetValueUpdate(
-    input: FacetMutationWorkflowInput<FacetValueUpdateParams>
+    input: FacetMutationWorkflowInput<FacetValueUpdateParams>,
   ): Promise<FacetValueResult> {
     const oldImpact =
       input.params.enabled === false
@@ -172,7 +169,7 @@ abstract class FacetMutationWorkflowBase<
   }
 
   protected async runFacetValueDelete(
-    input: FacetMutationWorkflowInput<FacetValueDeleteParams>
+    input: FacetMutationWorkflowInput<FacetValueDeleteParams>,
   ): Promise<FacetValueDeleteResult> {
     const oldImpact = await this.stepCollectImpact({
       context: input.context,
@@ -192,7 +189,7 @@ abstract class FacetMutationWorkflowBase<
   }
 
   protected async runFacetValueMerge(
-    input: FacetMutationWorkflowInput<FacetValueMergeParams>
+    input: FacetMutationWorkflowInput<FacetValueMergeParams>,
   ): Promise<FacetValueMergeResult> {
     const oldImpact = await this.stepCollectImpact({
       context: input.context,
@@ -219,7 +216,7 @@ abstract class FacetMutationWorkflowBase<
   }
 
   protected async runFacetValueUnmerge(
-    input: FacetMutationWorkflowInput<FacetValueUnmergeParams>
+    input: FacetMutationWorkflowInput<FacetValueUnmergeParams>,
   ): Promise<FacetValueUnmergeResult> {
     const oldImpact = await this.stepCollectImpact({
       context: input.context,
@@ -257,84 +254,84 @@ abstract class FacetMutationWorkflowBase<
     return Kernel.getInstance().runScript(
       FacetIndexImpactCollectorScript,
       input.params,
-      buildRunScriptContext(input.context)
+      buildRunScriptContext(input.context),
     );
   }
 
   @WorkflowStep({ name: "runFacetCreate", timeoutMs: 30_000 })
   protected async stepRunFacetCreate(
-    input: FacetMutationWorkflowInput<FacetCreateParams>
+    input: FacetMutationWorkflowInput<FacetCreateParams>,
   ): Promise<FacetResult> {
     return Kernel.getInstance().runScript(
       FacetCreateScript,
       input.params,
-      buildRunScriptContext(input.context)
+      buildRunScriptContext(input.context),
     );
   }
 
   @WorkflowStep({ name: "runFacetDelete", timeoutMs: 30_000 })
   protected async stepRunFacetDelete(
-    input: FacetMutationWorkflowInput<FacetDeleteParams>
+    input: FacetMutationWorkflowInput<FacetDeleteParams>,
   ): Promise<FacetDeleteResult> {
     return Kernel.getInstance().runScript(
       FacetDeleteScript,
       input.params,
-      buildRunScriptContext(input.context)
+      buildRunScriptContext(input.context),
     );
   }
 
   @WorkflowStep({ name: "runFacetValueCreate", timeoutMs: 30_000 })
   protected async stepRunFacetValueCreate(
-    input: FacetMutationWorkflowInput<FacetValueCreateParams>
+    input: FacetMutationWorkflowInput<FacetValueCreateParams>,
   ): Promise<FacetValueResult> {
     return Kernel.getInstance().runScript(
       FacetValueCreateScript,
       input.params,
-      buildRunScriptContext(input.context)
+      buildRunScriptContext(input.context),
     );
   }
 
   @WorkflowStep({ name: "runFacetValueUpdate", timeoutMs: 30_000 })
   protected async stepRunFacetValueUpdate(
-    input: FacetMutationWorkflowInput<FacetValueUpdateParams>
+    input: FacetMutationWorkflowInput<FacetValueUpdateParams>,
   ): Promise<FacetValueResult> {
     return Kernel.getInstance().runScript(
       FacetValueUpdateScript,
       input.params,
-      buildRunScriptContext(input.context)
+      buildRunScriptContext(input.context),
     );
   }
 
   @WorkflowStep({ name: "runFacetValueDelete", timeoutMs: 30_000 })
   protected async stepRunFacetValueDelete(
-    input: FacetMutationWorkflowInput<FacetValueDeleteParams>
+    input: FacetMutationWorkflowInput<FacetValueDeleteParams>,
   ): Promise<FacetValueDeleteResult> {
     return Kernel.getInstance().runScript(
       FacetValueDeleteScript,
       input.params,
-      buildRunScriptContext(input.context)
+      buildRunScriptContext(input.context),
     );
   }
 
   @WorkflowStep({ name: "runFacetValueMerge", timeoutMs: 30_000 })
   protected async stepRunFacetValueMerge(
-    input: FacetMutationWorkflowInput<FacetValueMergeParams>
+    input: FacetMutationWorkflowInput<FacetValueMergeParams>,
   ): Promise<FacetValueMergeResult> {
     return Kernel.getInstance().runScript(
       FacetValueMergeScript,
       input.params,
-      buildRunScriptContext(input.context)
+      buildRunScriptContext(input.context),
     );
   }
 
   @WorkflowStep({ name: "runFacetValueUnmerge", timeoutMs: 30_000 })
   protected async stepRunFacetValueUnmerge(
-    input: FacetMutationWorkflowInput<FacetValueUnmergeParams>
+    input: FacetMutationWorkflowInput<FacetValueUnmergeParams>,
   ): Promise<FacetValueUnmergeResult> {
     return Kernel.getInstance().runScript(
       FacetValueUnmergeScript,
       input.params,
-      buildRunScriptContext(input.context)
+      buildRunScriptContext(input.context),
     );
   }
 
@@ -344,10 +341,7 @@ abstract class FacetMutationWorkflowBase<
     oldImpact: FacetIndexImpactCollectorResult;
     newImpact: FacetIndexImpactCollectorResult;
   }): Promise<string | null> {
-    const refs = [
-      ...params.oldImpact.refs,
-      ...params.newImpact.refs,
-    ];
+    const refs = [...params.oldImpact.refs, ...params.newImpact.refs];
     if (refs.length === 0) {
       return null;
     }
@@ -359,12 +353,7 @@ abstract class FacetMutationWorkflowBase<
       operationId: params.input.operationId,
       oldRefs: params.oldImpact.refs,
       newRefs: params.newImpact.refs,
-      facetIds: [
-        ...new Set([
-          ...params.oldImpact.facetIds,
-          ...params.newImpact.facetIds,
-        ]),
-      ],
+      facetIds: [...new Set([...params.oldImpact.facetIds, ...params.newImpact.facetIds])],
       userId: params.input.context.userId,
     };
     const idempotencyCtx = buildResyncIdempotencyContext(workflowInput);
@@ -372,18 +361,13 @@ abstract class FacetMutationWorkflowBase<
     const workflowId = buildIdempotencyKey(workflowName, idempotencyCtx);
 
     try {
-      const started = await this.broker.startWorkflow(
-        workflowName,
-        workflowInput,
-        idempotencyCtx,
-        {
-          queueName: LISTING_INDEX_ACTIONS_QUEUE,
-          enqueueOptions: {
-            queuePartitionKey: `${workflowInput.storeId}:facet-resync:${workflowInput.operationId}`,
-          },
-          workflowId,
-        }
-      );
+      const started = await this.broker.startWorkflow(workflowName, workflowInput, idempotencyCtx, {
+        queueName: LISTING_INDEX_ACTIONS_QUEUE,
+        enqueueOptions: {
+          queuePartitionKey: `${workflowInput.storeId}:facet-resync:${workflowInput.operationId}`,
+        },
+        workflowId,
+      });
       return started.workflowId;
     } catch (error) {
       if (isDuplicateWorkflowStartError(error, workflowId)) {
@@ -399,7 +383,7 @@ abstract class FacetMutationWorkflowBase<
           reason: workflowInput.reason,
           operationId: workflowInput.operationId,
         },
-        "Failed to start facet affected products resync workflow"
+        "Failed to start facet affected products resync workflow",
       );
       throw error;
     }
@@ -422,9 +406,7 @@ export class FacetCreateWorkflow extends FacetMutationWorkflowBase<
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: FacetMutationWorkflowInput<FacetCreateParams>
-  ): Promise<FacetResult> {
+  async run(input: FacetMutationWorkflowInput<FacetCreateParams>): Promise<FacetResult> {
     return this.runFacetCreate(input);
   }
 }
@@ -445,9 +427,7 @@ export class FacetDeleteWorkflow extends FacetMutationWorkflowBase<
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: FacetMutationWorkflowInput<FacetDeleteParams>
-  ): Promise<FacetDeleteResult> {
+  async run(input: FacetMutationWorkflowInput<FacetDeleteParams>): Promise<FacetDeleteResult> {
     return this.runFacetDelete(input);
   }
 }
@@ -468,9 +448,7 @@ export class FacetValueCreateWorkflow extends FacetMutationWorkflowBase<
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: FacetMutationWorkflowInput<FacetValueCreateParams>
-  ): Promise<FacetValueResult> {
+  async run(input: FacetMutationWorkflowInput<FacetValueCreateParams>): Promise<FacetValueResult> {
     return this.runFacetValueCreate(input);
   }
 }
@@ -491,9 +469,7 @@ export class FacetValueUpdateWorkflow extends FacetMutationWorkflowBase<
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
-  async run(
-    input: FacetMutationWorkflowInput<FacetValueUpdateParams>
-  ): Promise<FacetValueResult> {
+  async run(input: FacetMutationWorkflowInput<FacetValueUpdateParams>): Promise<FacetValueResult> {
     return this.runFacetValueUpdate(input);
   }
 }
@@ -515,7 +491,7 @@ export class FacetValueDeleteWorkflow extends FacetMutationWorkflowBase<
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: FacetMutationWorkflowInput<FacetValueDeleteParams>
+    input: FacetMutationWorkflowInput<FacetValueDeleteParams>,
   ): Promise<FacetValueDeleteResult> {
     return this.runFacetValueDelete(input);
   }
@@ -538,7 +514,7 @@ export class FacetValueMergeWorkflow extends FacetMutationWorkflowBase<
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: FacetMutationWorkflowInput<FacetValueMergeParams>
+    input: FacetMutationWorkflowInput<FacetValueMergeParams>,
   ): Promise<FacetValueMergeResult> {
     return this.runFacetValueMerge(input);
   }
@@ -561,15 +537,13 @@ export class FacetValueUnmergeWorkflow extends FacetMutationWorkflowBase<
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: FacetMutationWorkflowInput<FacetValueUnmergeParams>
+    input: FacetMutationWorkflowInput<FacetValueUnmergeParams>,
   ): Promise<FacetValueUnmergeResult> {
     return this.runFacetValueUnmerge(input);
   }
 }
 
-function buildRunScriptContext(
-  context: FacetMutationWorkflowContext
-): RunScriptContext {
+function buildRunScriptContext(context: FacetMutationWorkflowContext): RunScriptContext {
   return {
     storeId: context.storeId,
     organizationId: context.organizationId,
@@ -581,7 +555,7 @@ function buildRunScriptContext(
 }
 
 function buildResyncIdempotencyContext(
-  input: FacetAffectedProductsResyncWorkflowInput
+  input: FacetAffectedProductsResyncWorkflowInput,
 ): IdempotencyContext {
   return {
     source: "content",

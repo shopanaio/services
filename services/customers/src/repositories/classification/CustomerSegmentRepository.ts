@@ -1,15 +1,8 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  normalizeRelayPagination,
-  type RepositoryConnectionResult,
-} from "../connection.js";
+import { normalizeRelayPagination, type RepositoryConnectionResult } from "../connection.js";
 import {
   decodeCustomerGlobalId,
   decodeCustomerSegmentGlobalId,
@@ -33,7 +26,7 @@ export const customerSegmentRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerSegment", tieBreaker: "id" }
+  { name: "customerSegment", tieBreaker: "id" },
 );
 
 export const customerSegmentMembershipRelayQuery = createRelayQuery(
@@ -46,26 +39,20 @@ export const customerSegmentMembershipRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerSegmentMembership", tieBreaker: "id" }
+  { name: "customerSegmentMembership", tieBreaker: "id" },
 );
 
-export type CustomerSegmentRelayInput = InferRelayInput<
-  typeof customerSegmentRelayQuery
->;
+export type CustomerSegmentRelayInput = InferRelayInput<typeof customerSegmentRelayQuery>;
 export type CustomerSegmentMembershipRelayInput = InferRelayInput<
   typeof customerSegmentMembershipRelayQuery
 >;
-export type CustomerSegmentMembershipConnectionInput =
-  CustomerSegmentMembershipRelayInput & {
-    customerId?: string;
-    segmentId?: string;
-  };
+export type CustomerSegmentMembershipConnectionInput = CustomerSegmentMembershipRelayInput & {
+  customerId?: string;
+  segmentId?: string;
+};
 
 export type CustomerSegmentPatch = Partial<
-  Pick<
-    NewCustomerSegment,
-    "name" | "description" | "color" | "status" | "query" | "definition"
-  >
+  Pick<NewCustomerSegment, "name" | "description" | "color" | "status" | "query" | "definition">
 >;
 
 export interface CustomerSegmentMembershipRelationsPatch {
@@ -91,11 +78,13 @@ export class CustomerSegmentRepository extends BaseRepository {
     return this.connection
       .select()
       .from(customerSegment)
-      .where(and(
-        eq(customerSegment.storeId, this.storeId),
-        eq(customerSegment.type, "DYNAMIC"),
-        isNull(customerSegment.deletedAt),
-      ));
+      .where(
+        and(
+          eq(customerSegment.storeId, this.storeId),
+          eq(customerSegment.type, "DYNAMIC"),
+          isNull(customerSegment.deletedAt),
+        ),
+      );
   }
 
   @ReadOnly()
@@ -107,8 +96,8 @@ export class CustomerSegmentRepository extends BaseRepository {
         and(
           eq(customerSegment.storeId, this.storeId),
           eq(customerSegment.id, id),
-          isNull(customerSegment.deletedAt)
-        )
+          isNull(customerSegment.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -124,8 +113,8 @@ export class CustomerSegmentRepository extends BaseRepository {
         and(
           eq(customerSegment.storeId, this.storeId),
           inArray(customerSegment.id, [...new Set(ids)]),
-          isNull(customerSegment.deletedAt)
-        )
+          isNull(customerSegment.deletedAt),
+        ),
       );
   }
 
@@ -137,17 +126,15 @@ export class CustomerSegmentRepository extends BaseRepository {
       .where(
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
-          eq(customerSegmentMembership.id, id)
-        )
+          eq(customerSegmentMembership.id, id),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
   }
 
   @ReadOnly()
-  async getMembershipsByIds(
-    ids: readonly string[]
-  ): Promise<CustomerSegmentMembership[]> {
+  async getMembershipsByIds(ids: readonly string[]): Promise<CustomerSegmentMembership[]> {
     if (ids.length === 0) return [];
     return this.connection
       .select()
@@ -155,14 +142,14 @@ export class CustomerSegmentRepository extends BaseRepository {
       .where(
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
-          inArray(customerSegmentMembership.id, [...new Set(ids)])
-        )
+          inArray(customerSegmentMembership.id, [...new Set(ids)]),
+        ),
       );
   }
 
   @ReadOnly()
   async getMembershipsByCustomerIds(
-    customerIds: readonly string[]
+    customerIds: readonly string[],
   ): Promise<CustomerSegmentMembership[]> {
     if (customerIds.length === 0) return [];
     return this.connection
@@ -171,15 +158,13 @@ export class CustomerSegmentRepository extends BaseRepository {
       .where(
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
-          inArray(customerSegmentMembership.customerId, [...new Set(customerIds)])
-        )
+          inArray(customerSegmentMembership.customerId, [...new Set(customerIds)]),
+        ),
       );
   }
 
   @ReadOnly()
-  async getManualMembershipsBySegmentId(
-    segmentId: string
-  ): Promise<CustomerSegmentMembership[]> {
+  async getManualMembershipsBySegmentId(segmentId: string): Promise<CustomerSegmentMembership[]> {
     return this.connection
       .select()
       .from(customerSegmentMembership)
@@ -187,15 +172,15 @@ export class CustomerSegmentRepository extends BaseRepository {
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
           eq(customerSegmentMembership.segmentId, segmentId),
-          eq(customerSegmentMembership.source, "MANUAL")
-        )
+          eq(customerSegmentMembership.source, "MANUAL"),
+        ),
       );
   }
 
   @ReadOnly()
   async getMembershipsBySegmentAndCustomerIds(
     segmentId: string,
-    customerIds: readonly string[]
+    customerIds: readonly string[],
   ): Promise<CustomerSegmentMembership[]> {
     if (customerIds.length === 0) return [];
     return this.connection
@@ -205,11 +190,8 @@ export class CustomerSegmentRepository extends BaseRepository {
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
           eq(customerSegmentMembership.segmentId, segmentId),
-          inArray(
-            customerSegmentMembership.customerId,
-            [...new Set(customerIds)]
-          )
-        )
+          inArray(customerSegmentMembership.customerId, [...new Set(customerIds)]),
+        ),
       );
   }
 
@@ -226,10 +208,7 @@ export class CustomerSegmentRepository extends BaseRepository {
           eq(customerSegmentMembership.storeId, this.storeId),
           eq(customerSegmentMembership.source, "RULE"),
           customerIds
-            ? inArray(
-                customerSegmentMembership.customerId,
-                [...new Set(customerIds)],
-              )
+            ? inArray(customerSegmentMembership.customerId, [...new Set(customerIds)])
             : undefined,
         ),
       )
@@ -239,7 +218,7 @@ export class CustomerSegmentRepository extends BaseRepository {
 
   @ReadOnly()
   async countCurrentCustomersBySegmentIds(
-    segmentIds: readonly string[]
+    segmentIds: readonly string[],
   ): Promise<Map<string, number>> {
     if (segmentIds.length === 0) return new Map();
     const rows = await this.connection
@@ -253,8 +232,8 @@ export class CustomerSegmentRepository extends BaseRepository {
         and(
           eq(customer.storeId, customerSegmentMembership.storeId),
           eq(customer.id, customerSegmentMembership.customerId),
-          isNull(customer.deletedAt)
-        )
+          isNull(customer.deletedAt),
+        ),
       )
       .innerJoin(
         customerSegment,
@@ -287,13 +266,10 @@ export class CustomerSegmentRepository extends BaseRepository {
       .where(
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
-          inArray(
-            customerSegmentMembership.segmentId,
-            [...new Set(segmentIds)]
-          ),
+          inArray(customerSegmentMembership.segmentId, [...new Set(segmentIds)]),
           sql`${customerSegmentMembership.evaluatedAt} <= transaction_timestamp()`,
-          sql`(${customerSegmentMembership.expiresAt} IS NULL OR ${customerSegmentMembership.expiresAt} > now())`
-        )
+          sql`(${customerSegmentMembership.expiresAt} IS NULL OR ${customerSegmentMembership.expiresAt} > now())`,
+        ),
       )
       .groupBy(customerSegmentMembership.segmentId);
     return new Map(rows.map((row) => [row.segmentId, row.count]));
@@ -326,8 +302,7 @@ export class CustomerSegmentRepository extends BaseRepository {
         createdById: data.createdById ?? null,
         revision: 1,
         definitionRevision: 1,
-        evaluationGeneration:
-          data.type === "DYNAMIC" && data.status === "ACTIVE" ? 1 : 0,
+        evaluationGeneration: data.type === "DYNAMIC" && data.status === "ACTIVE" ? 1 : 0,
         createdAt: now,
         updatedAt: now,
         deletedAt: null,
@@ -357,9 +332,7 @@ export class CustomerSegmentRepository extends BaseRepository {
       .set({
         ...patch,
         ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
-        ...(merchantRevisionChanged
-          ? { revision: sql`${customerSegment.revision} + 1` }
-          : {}),
+        ...(merchantRevisionChanged ? { revision: sql`${customerSegment.revision} + 1` } : {}),
         ...(definitionChanged
           ? {
               definitionRevision: sql`${customerSegment.definitionRevision} + 1`,
@@ -417,8 +390,8 @@ export class CustomerSegmentRepository extends BaseRepository {
           and(
             eq(customerSegmentMembership.storeId, this.storeId),
             eq(customerSegmentMembership.segmentId, id),
-            eq(customerSegmentMembership.source, "MANUAL")
-          )
+            eq(customerSegmentMembership.source, "MANUAL"),
+          ),
         );
 
       const customerIds = [...new Set(memberships.setCustomerIds)];
@@ -434,7 +407,7 @@ export class CustomerSegmentRepository extends BaseRepository {
             evaluatedAt: now,
             evaluatedDefinitionRevision: null,
             expiresAt: null,
-          }))
+          })),
         );
       }
       return { segment, affectedCustomerIds: [...affectedCustomerIds] };
@@ -463,7 +436,7 @@ export class CustomerSegmentRepository extends BaseRepository {
           evaluatedAt: now,
           evaluatedDefinitionRevision: null,
           expiresAt: input.expiresAt ?? null,
-        }))
+        })),
       );
     }
 
@@ -477,8 +450,8 @@ export class CustomerSegmentRepository extends BaseRepository {
             eq(customerSegmentMembership.storeId, this.storeId),
             eq(customerSegmentMembership.id, input.membershipId),
             eq(customerSegmentMembership.segmentId, id),
-            eq(customerSegmentMembership.source, "MANUAL")
-          )
+            eq(customerSegmentMembership.source, "MANUAL"),
+          ),
         );
     }
 
@@ -490,11 +463,8 @@ export class CustomerSegmentRepository extends BaseRepository {
             eq(customerSegmentMembership.storeId, this.storeId),
             eq(customerSegmentMembership.segmentId, id),
             eq(customerSegmentMembership.source, "MANUAL"),
-            inArray(
-              customerSegmentMembership.id,
-              [...new Set(memberships.deleteIds)]
-            )
-          )
+            inArray(customerSegmentMembership.id, [...new Set(memberships.deleteIds)]),
+          ),
         );
     }
 
@@ -542,7 +512,7 @@ export class CustomerSegmentRepository extends BaseRepository {
     segmentId: string,
     customerIds: readonly string[],
     expectedRevision?: number,
-    source: CustomerSegmentMembership["source"] = "MANUAL"
+    source: CustomerSegmentMembership["source"] = "MANUAL",
   ): Promise<SegmentMembershipMutationResult | null> {
     const segment = await this.bumpRevision(segmentId, expectedRevision, source);
     if (!segment) return null;
@@ -556,54 +526,54 @@ export class CustomerSegmentRepository extends BaseRepository {
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
           eq(customerSegmentMembership.segmentId, segmentId),
-          inArray(customerSegmentMembership.customerId, uniqueIds)
-        )
+          inArray(customerSegmentMembership.customerId, uniqueIds),
+        ),
       );
     const existingCustomerIds = new Set(existing.map((row) => row.customerId));
     const missingCustomerIds = uniqueIds.filter(
-      (customerId) => !existingCustomerIds.has(customerId)
+      (customerId) => !existingCustomerIds.has(customerId),
     );
-    const updated = existing.length > 0
-      ? await this.connection
-        .update(customerSegmentMembership)
-        .set({
-          source,
-          evaluatedAt,
-          evaluatedDefinitionRevision:
-            source === "RULE" ? segment.definitionRevision : null,
-          expiresAt: null,
-        })
-        .where(
-          and(
-            eq(customerSegmentMembership.storeId, this.storeId),
-            eq(customerSegmentMembership.segmentId, segmentId),
-            inArray(
-              customerSegmentMembership.customerId,
-              existing.map((row) => row.customerId)
+    const updated =
+      existing.length > 0
+        ? await this.connection
+            .update(customerSegmentMembership)
+            .set({
+              source,
+              evaluatedAt,
+              evaluatedDefinitionRevision: source === "RULE" ? segment.definitionRevision : null,
+              expiresAt: null,
+            })
+            .where(
+              and(
+                eq(customerSegmentMembership.storeId, this.storeId),
+                eq(customerSegmentMembership.segmentId, segmentId),
+                inArray(
+                  customerSegmentMembership.customerId,
+                  existing.map((row) => row.customerId),
+                ),
+              ),
             )
-          )
-        )
-        .returning()
-      : [];
+            .returning()
+        : [];
     const ids = await this.generateUuidV7s(missingCustomerIds.length);
-    const inserted = missingCustomerIds.length > 0
-      ? await this.connection
-        .insert(customerSegmentMembership)
-        .values(
-          missingCustomerIds.map((customerId, index) => ({
-            id: ids[index],
-            storeId: this.storeId,
-            customerId,
-            segmentId,
-            source,
-            evaluatedAt,
-            evaluatedDefinitionRevision:
-              source === "RULE" ? segment.definitionRevision : null,
-            expiresAt: null,
-          }))
-        )
-        .returning()
-      : [];
+    const inserted =
+      missingCustomerIds.length > 0
+        ? await this.connection
+            .insert(customerSegmentMembership)
+            .values(
+              missingCustomerIds.map((customerId, index) => ({
+                id: ids[index],
+                storeId: this.storeId,
+                customerId,
+                segmentId,
+                source,
+                evaluatedAt,
+                evaluatedDefinitionRevision: source === "RULE" ? segment.definitionRevision : null,
+                expiresAt: null,
+              })),
+            )
+            .returning()
+        : [];
     const memberships = [...updated, ...inserted];
     return { segment, memberships };
   }
@@ -612,7 +582,7 @@ export class CustomerSegmentRepository extends BaseRepository {
   async removeCustomers(
     segmentId: string,
     customerIds: readonly string[],
-    expectedRevision?: number
+    expectedRevision?: number,
   ): Promise<CustomerSegment | null> {
     const segment = await this.bumpRevision(segmentId, expectedRevision);
     if (!segment) return null;
@@ -625,8 +595,8 @@ export class CustomerSegmentRepository extends BaseRepository {
             eq(customerSegmentMembership.storeId, this.storeId),
             eq(customerSegmentMembership.segmentId, segmentId),
             eq(customerSegmentMembership.source, "MANUAL"),
-            inArray(customerSegmentMembership.customerId, uniqueIds)
-          )
+            inArray(customerSegmentMembership.customerId, uniqueIds),
+          ),
         );
     }
     return segment;
@@ -636,7 +606,7 @@ export class CustomerSegmentRepository extends BaseRepository {
   async replaceCustomers(
     segmentId: string,
     customerIds: readonly string[],
-    expectedRevision?: number
+    expectedRevision?: number,
   ): Promise<SegmentMembershipMutationResult | null> {
     const segment = await this.bumpRevision(segmentId, expectedRevision);
     if (!segment) return null;
@@ -646,8 +616,8 @@ export class CustomerSegmentRepository extends BaseRepository {
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
           eq(customerSegmentMembership.segmentId, segmentId),
-          eq(customerSegmentMembership.source, "MANUAL")
-        )
+          eq(customerSegmentMembership.source, "MANUAL"),
+        ),
       );
     const uniqueIds = [...new Set(customerIds)];
     if (uniqueIds.length === 0) return { segment, memberships: [] };
@@ -665,7 +635,7 @@ export class CustomerSegmentRepository extends BaseRepository {
           evaluatedAt,
           evaluatedDefinitionRevision: null,
           expiresAt: null,
-        }))
+        })),
       )
       .returning();
     return { segment, memberships };
@@ -674,7 +644,7 @@ export class CustomerSegmentRepository extends BaseRepository {
   @Transactional()
   async replaceManualMembershipsForCustomer(
     customerId: string,
-    segmentIds: readonly string[]
+    segmentIds: readonly string[],
   ): Promise<CustomerSegmentMembership[]> {
     const previous = await this.connection
       .select({ segmentId: customerSegmentMembership.segmentId })
@@ -683,8 +653,8 @@ export class CustomerSegmentRepository extends BaseRepository {
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
           eq(customerSegmentMembership.customerId, customerId),
-          eq(customerSegmentMembership.source, "MANUAL")
-        )
+          eq(customerSegmentMembership.source, "MANUAL"),
+        ),
       );
     await this.connection
       .delete(customerSegmentMembership)
@@ -692,8 +662,8 @@ export class CustomerSegmentRepository extends BaseRepository {
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
           eq(customerSegmentMembership.customerId, customerId),
-          eq(customerSegmentMembership.source, "MANUAL")
-        )
+          eq(customerSegmentMembership.source, "MANUAL"),
+        ),
       );
 
     const uniqueIds = [...new Set(segmentIds)];
@@ -713,7 +683,7 @@ export class CustomerSegmentRepository extends BaseRepository {
             evaluatedAt,
             evaluatedDefinitionRevision: null,
             expiresAt: null,
-          }))
+          })),
         )
         .returning();
     }
@@ -730,17 +700,15 @@ export class CustomerSegmentRepository extends BaseRepository {
           and(
             eq(customerSegment.storeId, this.storeId),
             inArray(customerSegment.id, affected),
-            isNull(customerSegment.deletedAt)
-          )
+            isNull(customerSegment.deletedAt),
+          ),
         );
     }
     return memberships;
   }
 
   @ReadOnly()
-  async getConnection(
-    input: CustomerSegmentRelayInput
-  ): Promise<RepositoryConnectionResult> {
+  async getConnection(input: CustomerSegmentRelayInput): Promise<RepositoryConnectionResult> {
     const normalized = normalizeRelayPagination(input);
     const { where, orderBy, ...pagination } = normalized;
     const mergedWhere: CustomerSegmentRelayInput["where"] = {
@@ -770,7 +738,7 @@ export class CustomerSegmentRepository extends BaseRepository {
 
   @ReadOnly()
   async getMembershipConnection(
-    input: CustomerSegmentMembershipConnectionInput
+    input: CustomerSegmentMembershipConnectionInput,
   ): Promise<RepositoryConnectionResult> {
     const normalized = normalizeRelayPagination(input);
     const { customerId, segmentId, where, orderBy, ...pagination } = normalized;
@@ -822,7 +790,7 @@ export class CustomerSegmentRepository extends BaseRepository {
   private async bumpRevision(
     segmentId: string,
     expectedRevision?: number,
-    source: CustomerSegmentMembership["source"] = "MANUAL"
+    source: CustomerSegmentMembership["source"] = "MANUAL",
   ): Promise<CustomerSegment | null> {
     const conditions = [
       eq(customerSegment.storeId, this.storeId),

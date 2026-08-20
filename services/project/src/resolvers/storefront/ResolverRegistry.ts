@@ -26,9 +26,7 @@ export class ResolverRegistry {
   }
 
   async marketConnection(input: MarketConnectionInput) {
-    const { MarketConnectionResolver } = await import(
-      "./MarketConnectionResolver.js"
-    );
+    const { MarketConnectionResolver } = await import("./MarketConnectionResolver.js");
     return new MarketConnectionResolver(input, this.ctx);
   }
 

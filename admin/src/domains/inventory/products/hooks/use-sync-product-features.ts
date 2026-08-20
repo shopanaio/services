@@ -21,9 +21,7 @@ interface SyncProductFeaturesResult {
 }
 
 interface UseSyncProductFeaturesReturn {
-  syncProductFeatures: (
-    input: ApiProductFeaturesSyncInput,
-  ) => Promise<SyncProductFeaturesResult>;
+  syncProductFeatures: (input: ApiProductFeaturesSyncInput) => Promise<SyncProductFeaturesResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
@@ -36,9 +34,7 @@ export function useSyncProductFeatures(): UseSyncProductFeaturesReturn {
   >(PRODUCT_UPDATE_MUTATION);
 
   const syncProductFeatures = useCallback(
-    async (
-      input: ApiProductFeaturesSyncInput,
-    ): Promise<SyncProductFeaturesResult> => {
+    async (input: ApiProductFeaturesSyncInput): Promise<SyncProductFeaturesResult> => {
       try {
         const result = await syncProductFeaturesMutation({
           variables: {
@@ -55,8 +51,7 @@ export function useSyncProductFeatures(): UseSyncProductFeaturesReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
 
         return {
           product: null,

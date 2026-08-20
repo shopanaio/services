@@ -28,18 +28,12 @@ export const LoyaltyCheckoutActionNames = {
 } as const;
 
 export const LoyaltyCheckoutActions = {
-  quoteRedemption:
-    `loyalty.${LoyaltyCheckoutActionNames.quoteRedemption}`,
-  reserveRedemption:
-    `loyalty.${LoyaltyCheckoutActionNames.reserveRedemption}`,
-  commitRedemption:
-    `loyalty.${LoyaltyCheckoutActionNames.commitRedemption}`,
-  releaseRedemption:
-    `loyalty.${LoyaltyCheckoutActionNames.releaseRedemption}`,
-  expireRedemptions:
-    `loyalty.${LoyaltyCheckoutActionNames.expireRedemptions}`,
-  reverseRedemption:
-    `loyalty.${LoyaltyCheckoutActionNames.reverseRedemption}`,
+  quoteRedemption: `loyalty.${LoyaltyCheckoutActionNames.quoteRedemption}`,
+  reserveRedemption: `loyalty.${LoyaltyCheckoutActionNames.reserveRedemption}`,
+  commitRedemption: `loyalty.${LoyaltyCheckoutActionNames.commitRedemption}`,
+  releaseRedemption: `loyalty.${LoyaltyCheckoutActionNames.releaseRedemption}`,
+  expireRedemptions: `loyalty.${LoyaltyCheckoutActionNames.expireRedemptions}`,
+  reverseRedemption: `loyalty.${LoyaltyCheckoutActionNames.reverseRedemption}`,
   quoteReward: `loyalty.${LoyaltyCheckoutActionNames.quoteReward}`,
   reserveReward: `loyalty.${LoyaltyCheckoutActionNames.reserveReward}`,
   commitReward: `loyalty.${LoyaltyCheckoutActionNames.commitReward}`,
@@ -51,7 +45,15 @@ export interface LoyaltyRewardQuote {
   entitlementRevision: number;
   accountId: string;
   rewardDefinitionId: string;
-  rewardType: "POINTS" | "VOUCHER" | "FIXED_DISCOUNT" | "PERCENTAGE_DISCOUNT" | "FREE_SHIPPING" | "FREE_PRODUCT" | "MEMBER_BENEFIT" | "MONETARY_CREDIT";
+  rewardType:
+    | "POINTS"
+    | "VOUCHER"
+    | "FIXED_DISCOUNT"
+    | "PERCENTAGE_DISCOUNT"
+    | "FREE_SHIPPING"
+    | "FREE_PRODUCT"
+    | "MEMBER_BENEFIT"
+    | "MONETARY_CREDIT";
   pricingDiscountId: string;
   externalReference: string | null;
   configuration: Readonly<Record<string, unknown>>;
@@ -101,7 +103,11 @@ export interface ReleaseCheckoutLoyaltyRewardParams {
 }
 
 export type TransitionCheckoutLoyaltyRewardResult =
-  | Readonly<{ status: "COMMITTED" | "RELEASED" | "NOOP"; entitlementId: string; entitlementRevision: number }>
+  | Readonly<{
+      status: "COMMITTED" | "RELEASED" | "NOOP";
+      entitlementId: string;
+      entitlementRevision: number;
+    }>
   | Readonly<{ status: "REJECTED"; code: string; message: string; retryable: boolean }>;
 
 export interface LoyaltyCheckoutMoney {
@@ -142,16 +148,14 @@ export interface LoyaltyAccountSnapshot {
   status: "ACTIVE" | "SUSPENDED" | "CLOSED" | "MERGED";
   program: LoyaltyProgramSnapshot;
   balance: LoyaltyAccountBalanceSnapshot;
-  tier:
-    | Readonly<{
-        tierId: string;
-        code: string;
-        name: string;
-        rank: number;
-        effectiveFrom: string;
-        effectiveTo: string | null;
-      }>
-    | null;
+  tier: Readonly<{
+    tierId: string;
+    code: string;
+    name: string;
+    rank: number;
+    effectiveFrom: string;
+    effectiveTo: string | null;
+  }> | null;
   revision: string;
 }
 
@@ -167,10 +171,7 @@ export type GetCustomerLoyaltyAccountResult =
   | Readonly<{ found: true; account: LoyaltyAccountSnapshot }>
   | Readonly<{
       found: false;
-      code:
-        | "PROGRAM_NOT_FOUND"
-        | "ACCOUNT_NOT_FOUND"
-        | "CUSTOMER_NOT_ELIGIBLE";
+      code: "PROGRAM_NOT_FOUND" | "ACCOUNT_NOT_FOUND" | "CUSTOMER_NOT_ELIGIBLE";
       retryable: false;
     }>;
 
@@ -221,9 +222,7 @@ export interface LoyaltyRedemptionQuote {
 }
 
 export type LoyaltyRedemptionIneligibilityCode =
-  | "CHANNEL_NOT_ELIGIBLE"
-  | "REQUIRED_SEGMENT_MISSING"
-  | "EXCLUDED_SEGMENT_MATCHED";
+  "CHANNEL_NOT_ELIGIBLE" | "REQUIRED_SEGMENT_MISSING" | "EXCLUDED_SEGMENT_MATCHED";
 
 export type LoyaltyRedemptionRejectionCode =
   | "CUSTOMER_REQUIRED"
@@ -357,10 +356,7 @@ export type ReleaseCheckoutLoyaltyRedemptionResult =
     }>
   | Readonly<{
       status: "REJECTED";
-      code:
-        | "RESERVATION_NOT_FOUND"
-        | "RESERVATION_COMMITTED"
-        | "IDEMPOTENCY_CONFLICT";
+      code: "RESERVATION_NOT_FOUND" | "RESERVATION_COMMITTED" | "IDEMPOTENCY_CONFLICT";
       message: string;
       retryable: boolean;
     }>;

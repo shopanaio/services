@@ -5,10 +5,7 @@ import { useCallback } from "react";
 import { SIGN_OUT_MUTATION } from "../graphql";
 import { createNetworkError, clearStoredTokens } from "../utils";
 import type { SignOutOptions, SignOutResult } from "../context/types";
-import type {
-  ApiUserSignOutInput,
-  ApiUserSignOutPayload,
-} from "@/graphql/types";
+import type { ApiUserSignOutInput, ApiUserSignOutPayload } from "@/graphql/types";
 
 export interface UseSignOutReturn {
   /** Execute sign-out mutation */
@@ -59,7 +56,7 @@ export function useSignOut(): UseSignOutReturn {
         };
       }
     },
-    [mutate, client]
+    [mutate, client],
   );
 
   return { signOut, loading, error: error ?? null };

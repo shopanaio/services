@@ -37,7 +37,10 @@ export class RewardEntitlementService {
   async issue(input: IssueRewardInput): Promise<RewardEntitlement> {
     return this.repository.runInTransaction(async () => {
       if (input.account.status !== "ACTIVE") {
-        throw new LoyaltyDomainError("ACCOUNT_NOT_ACTIVE", "Rewards can be issued only to an active loyalty account");
+        throw new LoyaltyDomainError(
+          "ACCOUNT_NOT_ACTIVE",
+          "Rewards can be issued only to an active loyalty account",
+        );
       }
       const definition = await this.resolveDefinition(input);
       const version = await this.repository.program.findVersionById(definition.programVersionId);
@@ -54,11 +57,13 @@ export class RewardEntitlementService {
       );
       if (existing) {
         const quantity = input.quantity ?? 1n;
-        if (existing.quantity !== quantity
-          || existing.sourceEventFactId !== (input.sourceEventFactId ?? null)
-          || existing.issuanceTransactionId !== (input.issuanceTransactionId ?? null)
-          || existing.monetaryTransactionId !== (input.monetaryTransactionId ?? null)
-          || existing.externalReference !== (input.externalReference ?? null)) {
+        if (
+          existing.quantity !== quantity ||
+          existing.sourceEventFactId !== (input.sourceEventFactId ?? null) ||
+          existing.issuanceTransactionId !== (input.issuanceTransactionId ?? null) ||
+          existing.monetaryTransactionId !== (input.monetaryTransactionId ?? null) ||
+          existing.externalReference !== (input.externalReference ?? null)
+        ) {
           throw new LoyaltyDomainError(
             "REWARD_IDEMPOTENCY_CONFLICT",
             "Reward idempotency key was reused with different issuance data",
@@ -71,20 +76,32 @@ export class RewardEntitlementService {
       const forAccount = await this.repository.reward.countIssued(definition.id, input.account.id);
       const quantity = input.quantity ?? 1n;
       if (definition.issuanceLimit !== null && total + quantity > definition.issuanceLimit) {
-        throw new LoyaltyDomainError("REWARD_ISSUANCE_LIMIT_REACHED", "Reward issuance limit was reached");
+        throw new LoyaltyDomainError(
+          "REWARD_ISSUANCE_LIMIT_REACHED",
+          "Reward issuance limit was reached",
+        );
       }
-      if (definition.perAccountLimit !== null && forAccount + quantity > definition.perAccountLimit) {
-        throw new LoyaltyDomainError("REWARD_ACCOUNT_LIMIT_REACHED", "Reward per-account limit was reached");
+      if (
+        definition.perAccountLimit !== null &&
+        forAccount + quantity > definition.perAccountLimit
+      ) {
+        throw new LoyaltyDomainError(
+          "REWARD_ACCOUNT_LIMIT_REACHED",
+          "Reward per-account limit was reached",
+        );
       }
-      const validFrom = definition.startsAt && Date.parse(definition.startsAt) > Date.parse(input.occurredAt)
-        ? definition.startsAt
-        : input.occurredAt;
-      const byDays = definition.validityDays === null ? null : addDays(validFrom, definition.validityDays);
-      const validTo = definition.endsAt === null
-        ? byDays
-        : byDays === null || Date.parse(definition.endsAt) < Date.parse(byDays)
-          ? definition.endsAt
-          : byDays;
+      const validFrom =
+        definition.startsAt && Date.parse(definition.startsAt) > Date.parse(input.occurredAt)
+          ? definition.startsAt
+          : input.occurredAt;
+      const byDays =
+        definition.validityDays === null ? null : addDays(validFrom, definition.validityDays);
+      const validTo =
+        definition.endsAt === null
+          ? byDays
+          : byDays === null || Date.parse(definition.endsAt) < Date.parse(byDays)
+            ? definition.endsAt
+            : byDays;
       const entitlement = await this.repository.reward.createEntitlement({
         rewardDefinitionId: definition.id,
         accountId: input.account.id,
@@ -129,7 +146,8 @@ export class RewardEntitlementService {
   }): Promise<RewardEntitlement> {
     return this.repository.runInTransaction(async () => {
       const current = await this.repository.reward.lockEntitlementById(input.entitlementId);
-      if (!current) throw new LoyaltyDomainError("ENTITLEMENT_NOT_FOUND", "Reward entitlement was not found");
+      if (!current)
+        throw new LoyaltyDomainError("ENTITLEMENT_NOT_FOUND", "Reward entitlement was not found");
       const previousEvent = await this.repository.reward.findEntitlementEventByIdempotency(
         current.id,
         input.idempotencyKey,
@@ -144,11 +162,24 @@ export class RewardEntitlementService {
         return current;
       }
       if (input.expectedRevision !== undefined && current.revision !== input.expectedRevision) {
-        throw new LoyaltyDomainError("ENTITLEMENT_CONCURRENT_CHANGE", "Reward entitlement changed concurrently", true);
+        throw new LoyaltyDomainError(
+          "ENTITLEMENT_CONCURRENT_CHANGE",
+          "Reward entitlement changed concurrently",
+          true,
+        );
       }
       const change = this.transitionChange(current, input.transition, input.occurredAt);
-      const updated = await this.repository.reward.updateEntitlementState(current.id, current.revision, change.fields);
-      if (!updated) throw new LoyaltyDomainError("ENTITLEMENT_CONCURRENT_CHANGE", "Reward entitlement changed concurrently", true);
+      const updated = await this.repository.reward.updateEntitlementState(
+        current.id,
+        current.revision,
+        change.fields,
+      );
+      if (!updated)
+        throw new LoyaltyDomainError(
+          "ENTITLEMENT_CONCURRENT_CHANGE",
+          "Reward entitlement changed concurrently",
+          true,
+        );
       await this.repository.reward.appendEntitlementEvent({
         entitlementId: current.id,
         eventType: change.eventType,
@@ -169,12 +200,16 @@ export class RewardEntitlementService {
       const candidates = await this.repository.reward.listExpirationCandidates(at, limit);
       const expired: RewardEntitlement[] = [];
       for (const current of candidates) {
-        const updated = await this.repository.reward.updateEntitlementState(current.id, current.revision, {
-          status: "EXPIRED",
-          reservedForCheckoutId: null,
-          reservedAt: null,
-          expiredAt: at,
-        });
+        const updated = await this.repository.reward.updateEntitlementState(
+          current.id,
+          current.revision,
+          {
+            status: "EXPIRED",
+            reservedForCheckoutId: null,
+            reservedAt: null,
+            expiredAt: at,
+          },
+        );
         if (!updated) continue;
         await this.repository.reward.appendEntitlementEvent({
           entitlementId: current.id,
@@ -205,13 +240,15 @@ export class RewardEntitlementService {
       const policyType = String(benefit.grantPolicy.type ?? "ON_QUALIFICATION");
       if (policyType !== "ON_QUALIFICATION" && policyType !== "ON_EVERY_QUALIFICATION") continue;
       if (input.renewal && policyType !== "ON_EVERY_QUALIFICATION") continue;
-      issued.push(await this.issue({
-        account: input.account,
-        definitionId: benefit.rewardDefinitionId,
-        idempotencyKey: `tier:${input.membershipId}:${benefit.id}`,
-        occurredAt: input.occurredAt,
-        actorType: "SYSTEM",
-      }));
+      issued.push(
+        await this.issue({
+          account: input.account,
+          definitionId: benefit.rewardDefinitionId,
+          idempotencyKey: `tier:${input.membershipId}:${benefit.id}`,
+          occurredAt: input.occurredAt,
+          actorType: "SYSTEM",
+        }),
+      );
     }
     return issued;
   }
@@ -220,20 +257,33 @@ export class RewardEntitlementService {
     const resolved = input.definitionId
       ? await this.repository.reward.lockDefinitionById(input.definitionId)
       : input.programVersionId && input.definitionCode
-        ? await this.repository.reward.findDefinitionByCode(input.programVersionId, input.definitionCode)
+        ? await this.repository.reward.findDefinitionByCode(
+            input.programVersionId,
+            input.definitionCode,
+          )
         : null;
-    const definition = resolved && !input.definitionId
-      ? await this.repository.reward.lockDefinitionById(resolved.id)
-      : resolved;
-    if (!definition) throw new LoyaltyDomainError("REWARD_DEFINITION_NOT_FOUND", "Reward definition was not found");
+    const definition =
+      resolved && !input.definitionId
+        ? await this.repository.reward.lockDefinitionById(resolved.id)
+        : resolved;
+    if (!definition)
+      throw new LoyaltyDomainError(
+        "REWARD_DEFINITION_NOT_FOUND",
+        "Reward definition was not found",
+      );
     return definition;
   }
 
   private assertDefinitionAvailable(definition: RewardDefinition, at: string): void {
     const timestamp = Date.parse(at);
-    if ((definition.startsAt && timestamp < Date.parse(definition.startsAt))
-      || (definition.endsAt && timestamp >= Date.parse(definition.endsAt))) {
-      throw new LoyaltyDomainError("REWARD_DEFINITION_INACTIVE", "Reward definition is not active at the requested time");
+    if (
+      (definition.startsAt && timestamp < Date.parse(definition.startsAt)) ||
+      (definition.endsAt && timestamp >= Date.parse(definition.endsAt))
+    ) {
+      throw new LoyaltyDomainError(
+        "REWARD_DEFINITION_INACTIVE",
+        "Reward definition is not active at the requested time",
+      );
     }
   }
 
@@ -246,18 +296,46 @@ export class RewardEntitlementService {
     fields: Parameters<Repository["reward"]["updateEntitlementState"]>[2];
   } {
     if (transition.type === "RESERVE") {
-      if (current.status !== "ISSUED") throw new LoyaltyDomainError("ENTITLEMENT_NOT_AVAILABLE", "Only an issued reward can be reserved");
-      if (Date.parse(current.validFrom) > Date.parse(at) || (current.validTo && Date.parse(current.validTo) <= Date.parse(at))) {
-        throw new LoyaltyDomainError("ENTITLEMENT_NOT_AVAILABLE", "Reward entitlement is outside its validity window");
+      if (current.status !== "ISSUED")
+        throw new LoyaltyDomainError(
+          "ENTITLEMENT_NOT_AVAILABLE",
+          "Only an issued reward can be reserved",
+        );
+      if (
+        Date.parse(current.validFrom) > Date.parse(at) ||
+        (current.validTo && Date.parse(current.validTo) <= Date.parse(at))
+      ) {
+        throw new LoyaltyDomainError(
+          "ENTITLEMENT_NOT_AVAILABLE",
+          "Reward entitlement is outside its validity window",
+        );
       }
-      return { eventType: "RESERVED", fields: { status: "RESERVED", reservedForCheckoutId: transition.checkoutId, reservedAt: at } };
+      return {
+        eventType: "RESERVED",
+        fields: {
+          status: "RESERVED",
+          reservedForCheckoutId: transition.checkoutId,
+          reservedAt: at,
+        },
+      };
     }
     if (transition.type === "RELEASE") {
-      if (current.status !== "RESERVED") throw new LoyaltyDomainError("ENTITLEMENT_NOT_RESERVED", "Reward entitlement is not reserved");
-      return { eventType: "RELEASED", fields: { status: "ISSUED", reservedForCheckoutId: null, reservedAt: null } };
+      if (current.status !== "RESERVED")
+        throw new LoyaltyDomainError(
+          "ENTITLEMENT_NOT_RESERVED",
+          "Reward entitlement is not reserved",
+        );
+      return {
+        eventType: "RELEASED",
+        fields: { status: "ISSUED", reservedForCheckoutId: null, reservedAt: null },
+      };
     }
     if (transition.type === "REDEEM") {
-      if (current.status !== "RESERVED" && current.status !== "ISSUED") throw new LoyaltyDomainError("ENTITLEMENT_NOT_AVAILABLE", "Reward entitlement cannot be redeemed");
+      if (current.status !== "RESERVED" && current.status !== "ISSUED")
+        throw new LoyaltyDomainError(
+          "ENTITLEMENT_NOT_AVAILABLE",
+          "Reward entitlement cannot be redeemed",
+        );
       return {
         eventType: "REDEEMED",
         fields: {
@@ -271,16 +349,30 @@ export class RewardEntitlementService {
       };
     }
     if (transition.type === "EXPIRE") {
-      if (current.status !== "ISSUED" && current.status !== "RESERVED") throw new LoyaltyDomainError("ENTITLEMENT_NOT_AVAILABLE", "Reward entitlement cannot be expired");
-      return { eventType: "EXPIRED", fields: { status: "EXPIRED", reservedForCheckoutId: null, reservedAt: null, expiredAt: at } };
+      if (current.status !== "ISSUED" && current.status !== "RESERVED")
+        throw new LoyaltyDomainError(
+          "ENTITLEMENT_NOT_AVAILABLE",
+          "Reward entitlement cannot be expired",
+        );
+      return {
+        eventType: "EXPIRED",
+        fields: { status: "EXPIRED", reservedForCheckoutId: null, reservedAt: null, expiredAt: at },
+      };
     }
-    if (current.status === "REDEEMED" || current.status === "EXPIRED" || current.status === "REVOKED") {
+    if (
+      current.status === "REDEEMED" ||
+      current.status === "EXPIRED" ||
+      current.status === "REVOKED"
+    ) {
       throw new LoyaltyDomainError(
         "ENTITLEMENT_TERMINAL",
         "Redeemed, expired, or revoked rewards cannot be revoked",
       );
     }
-    return { eventType: "REVOKED", fields: { status: "REVOKED", reservedForCheckoutId: null, reservedAt: null, revokedAt: at } };
+    return {
+      eventType: "REVOKED",
+      fields: { status: "REVOKED", reservedForCheckoutId: null, reservedAt: null, revokedAt: at },
+    };
   }
 }
 

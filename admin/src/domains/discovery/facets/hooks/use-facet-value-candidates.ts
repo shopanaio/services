@@ -17,8 +17,7 @@ import type {
   FacetValueCandidatesQueryVariables,
 } from "../graphql/operation-types";
 
-export interface UseFacetValueCandidatesOptions
-  extends RelayCursorPaginationVariables {
+export interface UseFacetValueCandidatesOptions extends RelayCursorPaginationVariables {
   where?: ApiFacetValueCandidateWhereInput | null;
   orderBy?: ApiFacetValueCandidateOrderByInput[] | null;
   meta?: ApiFacetValueCandidatesMetaInput | null;

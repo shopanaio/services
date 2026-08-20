@@ -3,12 +3,8 @@
 import { createElement, useMemo } from "react";
 import { LuUsers } from "react-icons/lu";
 import type { ColDef } from "ag-grid-community";
-import {
-  EntityCellRenderer,
-} from "@/shared/components/entity-picker-modal/cell-renderers";
-import {
-  registerEntityPickerConfig,
-} from "@/shared/components/entity-picker-modal/configs";
+import { EntityCellRenderer } from "@/shared/components/entity-picker-modal/cell-renderers";
+import { registerEntityPickerConfig } from "@/shared/components/entity-picker-modal/configs";
 import type {
   IEntityPickerConfig,
   IEntityPickerDataResult,
@@ -33,9 +29,7 @@ export interface CustomerSegmentPickerEntity extends IPickableEntity {
   description: string;
 }
 
-function transformSegment(
-  segment: ApiCustomerSegment,
-): CustomerSegmentPickerEntity {
+function transformSegment(segment: ApiCustomerSegment): CustomerSegmentPickerEntity {
   return {
     id: segment.id,
     title: segment.name,
@@ -55,16 +49,7 @@ function useCustomerSegmentsPickerData(options: {
   orderBy?: object[] | null;
   excludeIds: string[];
 }): IEntityPickerDataResult<CustomerSegmentPickerEntity> {
-  const {
-    pageSize,
-    first,
-    after,
-    last,
-    before,
-    where,
-    orderBy,
-    excludeIds,
-  } = options;
+  const { pageSize, first, after, last, before, where, orderBy, excludeIds } = options;
   const segmentWhere = useMemo<ApiCustomerSegmentWhereInput | null>(() => {
     const conditions: ApiCustomerSegmentWhereInput[] = [];
     if (where) conditions.push(where as ApiCustomerSegmentWhereInput);
@@ -75,19 +60,15 @@ function useCustomerSegmentsPickerData(options: {
     if (conditions.length === 1) return conditions[0]!;
     return { _and: conditions };
   }, [excludeIds, where]);
-  const { segments, totalCount, pageInfo, loading, error } =
-    useCustomerSegments({
-      first,
-      after,
-      last,
-      before,
-      where: segmentWhere,
-      orderBy: orderBy as ApiCustomerSegmentOrderByInput[] | null,
-    });
-  const data = useMemo(
-    () => segments.map(transformSegment),
-    [segments],
-  );
+  const { segments, totalCount, pageInfo, loading, error } = useCustomerSegments({
+    first,
+    after,
+    last,
+    before,
+    where: segmentWhere,
+    orderBy: orderBy as ApiCustomerSegmentOrderByInput[] | null,
+  });
+  const data = useMemo(() => segments.map(transformSegment), [segments]);
 
   return {
     data,

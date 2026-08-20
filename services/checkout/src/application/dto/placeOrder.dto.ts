@@ -1,11 +1,5 @@
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
-import {
-  IsOptional,
-  IsString,
-  Matches,
-  MaxLength,
-  MinLength,
-} from "class-validator";
+import { IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 
 export class PlaceOrderDto {

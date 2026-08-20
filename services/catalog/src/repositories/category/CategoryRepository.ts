@@ -8,10 +8,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  LexoRankRepository,
-  type LexoRankMoveResult,
-} from "../LexoRankRepository.js";
+import { LexoRankRepository, type LexoRankMoveResult } from "../LexoRankRepository.js";
 import {
   category,
   categoryListView,
@@ -30,10 +27,7 @@ import {
 } from "../models/index.js";
 import type { NormalizedCategoryHierarchyScope } from "./CategoryHierarchyScope.js";
 import type { NormalizedCategoryProductsScope } from "./CategoryProductsScope.js";
-import {
-  decodeCategoryGlobalId,
-  decodeProductGlobalId,
-} from "../global-id-where-mappers.js";
+import { decodeCategoryGlobalId, decodeProductGlobalId } from "../global-id-where-mappers.js";
 
 const categoryQuery = createQuery(category).maxLimit(100).defaultLimit(20);
 
@@ -90,18 +84,9 @@ const categoryProductsQuery = createQuery(product, {
   createdAt: field(product.createdAt),
   deletedAt: field(product.deletedAt),
   storeId: field(product.storeId),
-  category: field(product.id).innerJoin(
-    productCategoryQuery,
-    productCategory.productId,
-  ),
-  translation: field(product.id).leftJoin(
-    productTranslationQuery,
-    productTranslation.productId,
-  ),
-  priceRange: field(product.id).leftJoin(
-    priceRangeQuery,
-    productPriceRange.productId,
-  ),
+  category: field(product.id).innerJoin(productCategoryQuery, productCategory.productId),
+  translation: field(product.id).leftJoin(productTranslationQuery, productTranslation.productId),
+  priceRange: field(product.id).leftJoin(priceRangeQuery, productPriceRange.productId),
 });
 
 export const categoryProductsRelayQuery = createRelayQuery(
@@ -113,9 +98,7 @@ export const categoryProductsRelayQuery = createRelayQuery(
   { name: "categoryProduct", tieBreaker: "id" },
 );
 
-export type CategoryProductsRelayInput = InferRelayInput<
-  typeof categoryProductsRelayQuery
->;
+export type CategoryProductsRelayInput = InferRelayInput<typeof categoryProductsRelayQuery>;
 
 export interface CategoryConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -135,9 +118,7 @@ export class CategoryRepository extends BaseRepository {
       findOrderedItems: (categoryId) =>
         categoryId ? this.getOrderedCategoryProducts(categoryId) : Promise.resolve([]),
       findItem: ({ scopeId: categoryId, itemId: productId }) =>
-        categoryId
-          ? this.getProductCategory(categoryId, productId)
-          : Promise.resolve(null),
+        categoryId ? this.getProductCategory(categoryId, productId) : Promise.resolve(null),
       updateRank: ({ scopeId: categoryId, itemId: productId, lexoRank }) =>
         categoryId
           ? this.updateProductCategoryRank(categoryId, productId, lexoRank)
@@ -162,11 +143,7 @@ export class CategoryRepository extends BaseRepository {
       .select({ id: category.id })
       .from(category)
       .where(
-        and(
-          eq(category.storeId, this.storeId),
-          eq(category.id, id),
-          isNull(category.deletedAt),
-        ),
+        and(eq(category.storeId, this.storeId), eq(category.id, id), isNull(category.deletedAt)),
       )
       .limit(1);
 
@@ -178,11 +155,7 @@ export class CategoryRepository extends BaseRepository {
       .select()
       .from(category)
       .where(
-        and(
-          eq(category.storeId, this.storeId),
-          eq(category.id, id),
-          isNull(category.deletedAt),
-        ),
+        and(eq(category.storeId, this.storeId), eq(category.id, id), isNull(category.deletedAt)),
       )
       .limit(1);
 
@@ -205,10 +178,7 @@ export class CategoryRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  async findByHandleExcludingId(
-    handle: string,
-    id: string,
-  ): Promise<Category | null> {
+  async findByHandleExcludingId(handle: string, id: string): Promise<Category | null> {
     const result = await this.connection
       .select()
       .from(category)
@@ -261,10 +231,7 @@ export class CategoryRepository extends BaseRepository {
       deletedAt: null,
     };
 
-    const result = await this.connection
-      .insert(category)
-      .values(newCategory)
-      .returning();
+    const result = await this.connection.insert(category).values(newCategory).returning();
 
     return result[0];
   }
@@ -285,11 +252,8 @@ export class CategoryRepository extends BaseRepository {
     if (data.handle !== undefined) updateData.handle = data.handle;
     if (data.publishedAt !== undefined)
       updateData.publishedAt =
-        data.publishedAt instanceof Date
-          ? data.publishedAt.toISOString()
-          : data.publishedAt;
-    if (data.defaultSort !== undefined)
-      updateData.defaultSort = data.defaultSort;
+        data.publishedAt instanceof Date ? data.publishedAt.toISOString() : data.publishedAt;
+    if (data.defaultSort !== undefined) updateData.defaultSort = data.defaultSort;
     if (data.defaultSortDirection !== undefined)
       updateData.defaultSortDirection = data.defaultSortDirection;
 
@@ -350,11 +314,7 @@ export class CategoryRepository extends BaseRepository {
       .update(category)
       .set({ deletedAt: now, updatedAt: now })
       .where(
-        and(
-          eq(category.storeId, this.storeId),
-          eq(category.id, id),
-          isNull(category.deletedAt),
-        ),
+        and(eq(category.storeId, this.storeId), eq(category.id, id), isNull(category.deletedAt)),
       )
       .returning({ id: category.id });
 
@@ -376,11 +336,7 @@ export class CategoryRepository extends BaseRepository {
       .update(category)
       .set({ publishedAt: now, updatedAt: now })
       .where(
-        and(
-          eq(category.storeId, this.storeId),
-          eq(category.id, id),
-          isNull(category.deletedAt),
-        ),
+        and(eq(category.storeId, this.storeId), eq(category.id, id), isNull(category.deletedAt)),
       )
       .returning();
 
@@ -392,11 +348,7 @@ export class CategoryRepository extends BaseRepository {
       .update(category)
       .set({ publishedAt: null, updatedAt: new Date().toISOString() })
       .where(
-        and(
-          eq(category.storeId, this.storeId),
-          eq(category.id, id),
-          isNull(category.deletedAt),
-        ),
+        and(eq(category.storeId, this.storeId), eq(category.id, id), isNull(category.deletedAt)),
       )
       .returning();
 
@@ -409,9 +361,7 @@ export class CategoryRepository extends BaseRepository {
     const result = await this.connection
       .select({ count: count() })
       .from(category)
-      .where(
-        and(eq(category.storeId, this.storeId), isNull(category.deletedAt)),
-      );
+      .where(and(eq(category.storeId, this.storeId), isNull(category.deletedAt)));
     return result[0]?.count ?? 0;
   }
 
@@ -423,9 +373,7 @@ export class CategoryRepository extends BaseRepository {
     let query = this.connection
       .select()
       .from(category)
-      .where(
-        and(eq(category.storeId, this.storeId), isNull(category.deletedAt)),
-      )
+      .where(and(eq(category.storeId, this.storeId), isNull(category.deletedAt)))
       .orderBy(desc(category.createdAt), desc(category.id));
 
     if (options?.limit) {
@@ -438,16 +386,10 @@ export class CategoryRepository extends BaseRepository {
     return query;
   }
 
-  async getConnection(
-    args: CategoryConnectionInput,
-  ): Promise<CategoryConnectionResult> {
+  async getConnection(args: CategoryConnectionInput): Promise<CategoryConnectionResult> {
     const { where, orderBy, meta, ...paginationArgs } = args;
-    const scopeWhere = await this.buildHierarchyScopeWhere(
-      meta?.hierarchyScope,
-    );
-    const productsScopeWhere = await this.buildProductsScopeWhere(
-      meta?.productsScope,
-    );
+    const scopeWhere = await this.buildHierarchyScopeWhere(meta?.hierarchyScope);
+    const productsScopeWhere = await this.buildProductsScopeWhere(meta?.productsScope);
 
     const mergedWhere: CategoryRelayInput["where"] = {
       _and: [
@@ -506,10 +448,7 @@ export class CategoryRepository extends BaseRepository {
       };
       const includeWhere: CategoryRelayInput["where"] = scope.includeReference
         ? {
-            _or: [
-              { id: { _eq: reference.id } },
-              descendantsWhere,
-            ],
+            _or: [{ id: { _eq: reference.id } }, descendantsWhere],
           }
         : descendantsWhere;
 
@@ -565,11 +504,7 @@ export class CategoryRepository extends BaseRepository {
       .select()
       .from(category)
       .where(
-        and(
-          eq(category.storeId, this.storeId),
-          eq(category.id, id),
-          isNull(category.deletedAt),
-        ),
+        and(eq(category.storeId, this.storeId), eq(category.id, id), isNull(category.deletedAt)),
       )
       .limit(1);
 
@@ -592,9 +527,7 @@ export class CategoryRepository extends BaseRepository {
       );
   }
 
-  async getChildrenByParentIds(
-    parentIds: readonly string[],
-  ): Promise<Category[]> {
+  async getChildrenByParentIds(parentIds: readonly string[]): Promise<Category[]> {
     if (parentIds.length === 0) return [];
     return this.connection
       .select()
@@ -609,9 +542,7 @@ export class CategoryRepository extends BaseRepository {
       .orderBy(asc(category.handle));
   }
 
-  async getAncestorIdsByIds(
-    categoryIds: readonly string[],
-  ): Promise<Map<string, string[]>> {
+  async getAncestorIdsByIds(categoryIds: readonly string[]): Promise<Map<string, string[]>> {
     const categories = await this.getByIds(categoryIds);
     const result = new Map<string, string[]>();
 
@@ -657,9 +588,7 @@ export class CategoryRepository extends BaseRepository {
       );
   }
 
-  async getMediaByCategoryIds(
-    categoryIds: readonly string[],
-  ): Promise<CategoryMedia[]> {
+  async getMediaByCategoryIds(categoryIds: readonly string[]): Promise<CategoryMedia[]> {
     if (categoryIds.length === 0) return [];
     return this.connection
       .select()
@@ -714,9 +643,7 @@ export class CategoryRepository extends BaseRepository {
       );
   }
 
-  async countProductsByCategoryIds(
-    categoryIds: readonly string[],
-  ): Promise<Map<string, number>> {
+  async countProductsByCategoryIds(categoryIds: readonly string[]): Promise<Map<string, number>> {
     if (categoryIds.length === 0) return new Map();
     const rows = await this.connection
       .select({
@@ -735,9 +662,7 @@ export class CategoryRepository extends BaseRepository {
     return new Map(rows.map((row) => [row.categoryId, row.count]));
   }
 
-  async refreshProductsCountByCategoryIds(
-    categoryIds: readonly string[],
-  ): Promise<void> {
+  async refreshProductsCountByCategoryIds(categoryIds: readonly string[]): Promise<void> {
     const uniqueCategoryIds = [...new Set(categoryIds)];
     if (uniqueCategoryIds.length === 0) return;
 
@@ -758,9 +683,7 @@ export class CategoryRepository extends BaseRepository {
       )
       .groupBy(productCategory.categoryId);
 
-    const countByCategoryId = new Map(
-      rows.map((row) => [row.categoryId, row.count]),
-    );
+    const countByCategoryId = new Map(rows.map((row) => [row.categoryId, row.count]));
 
     for (const categoryId of uniqueCategoryIds) {
       await this.connection
@@ -828,10 +751,7 @@ export class CategoryRepository extends BaseRepository {
         .update(productCategory)
         .set({ isPrimary: false })
         .where(
-          and(
-            eq(productCategory.storeId, this.storeId),
-            eq(productCategory.productId, productId),
-          ),
+          and(eq(productCategory.storeId, this.storeId), eq(productCategory.productId, productId)),
         );
 
       const updated = await tx
@@ -850,10 +770,7 @@ export class CategoryRepository extends BaseRepository {
     });
   }
 
-  async getProductCategory(
-    categoryId: string,
-    productId: string,
-  ): Promise<ProductCategory | null> {
+  async getProductCategory(categoryId: string, productId: string): Promise<ProductCategory | null> {
     const rows = await this.connection
       .select()
       .from(productCategory)
@@ -869,17 +786,12 @@ export class CategoryRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async getOrderedCategoryProducts(
-    categoryId: string,
-  ): Promise<ProductCategory[]> {
+  async getOrderedCategoryProducts(categoryId: string): Promise<ProductCategory[]> {
     return this.connection
       .select()
       .from(productCategory)
       .where(
-        and(
-          eq(productCategory.storeId, this.storeId),
-          eq(productCategory.categoryId, categoryId),
-        ),
+        and(eq(productCategory.storeId, this.storeId), eq(productCategory.categoryId, categoryId)),
       )
       .orderBy(asc(productCategory.lexoRank), asc(productCategory.productId));
   }
@@ -891,14 +803,7 @@ export class CategoryRepository extends BaseRepository {
       where?: CategoryProductsRelayInput["where"];
     },
   ): Promise<CategoryProductsConnectionResult> {
-    const {
-      first,
-      after,
-      last,
-      before,
-      orderBy: inputOrderBy,
-      where: userWhere,
-    } = args;
+    const { first, after, last, before, orderBy: inputOrderBy, where: userWhere } = args;
 
     // Build where filter for this category, merging with user's filter
     const baseConditions: Array<Record<string, unknown>> = [
@@ -906,7 +811,6 @@ export class CategoryRepository extends BaseRepository {
       { deletedAt: { _is: null } },
       { category: { categoryId: { _eq: categoryId } } },
     ];
-
 
     const mergedWhere: CategoryProductsRelayInput["where"] = userWhere
       ? { _and: [...baseConditions, userWhere] }
@@ -917,9 +821,7 @@ export class CategoryRepository extends BaseRepository {
 
     if (inputOrderBy && inputOrderBy.length > 0) {
       orderBy = inputOrderBy.map((o) => {
-        const direction = (o.direction?.toLowerCase() ?? "asc") as
-          | "asc"
-          | "desc";
+        const direction = (o.direction?.toLowerCase() ?? "asc") as "asc" | "desc";
         // Map field names to actual database fields
         switch (o.field?.toUpperCase()) {
           case "NAME":
@@ -985,24 +887,18 @@ export class CategoryRepository extends BaseRepository {
     };
   }
 
-
   async getProductIdsByCategoryId(categoryId: string): Promise<string[]> {
     const rows = await this.connection
       .select({ productId: productCategory.productId })
       .from(productCategory)
       .where(
-        and(
-          eq(productCategory.storeId, this.storeId),
-          eq(productCategory.categoryId, categoryId),
-        ),
+        and(eq(productCategory.storeId, this.storeId), eq(productCategory.categoryId, categoryId)),
       );
 
     return rows.map((row) => row.productId);
   }
 
-  async getProductIdsByCategoryIds(
-    categoryIds: readonly string[],
-  ): Promise<Map<string, string[]>> {
+  async getProductIdsByCategoryIds(categoryIds: readonly string[]): Promise<Map<string, string[]>> {
     const result = new Map<string, string[]>();
     for (const categoryId of categoryIds) {
       result.set(categoryId, []);
@@ -1032,10 +928,7 @@ export class CategoryRepository extends BaseRepository {
     return result;
   }
 
-  async removeProductFromCategory(
-    productId: string,
-    categoryId: string,
-  ): Promise<boolean> {
+  async removeProductFromCategory(productId: string, categoryId: string): Promise<boolean> {
     const rows = await this.connection
       .delete(productCategory)
       .where(
@@ -1164,10 +1057,7 @@ export class CategoryRepository extends BaseRepository {
     await this.connection
       .delete(categoryMedia)
       .where(
-        and(
-          eq(categoryMedia.storeId, this.storeId),
-          eq(categoryMedia.categoryId, categoryId),
-        ),
+        and(eq(categoryMedia.storeId, this.storeId), eq(categoryMedia.categoryId, categoryId)),
       );
 
     // Insert new media
@@ -1183,9 +1073,7 @@ export class CategoryRepository extends BaseRepository {
     }
   }
 
-  private async getNextCategoryProductRank(
-    categoryId: string,
-  ): Promise<string> {
+  private async getNextCategoryProductRank(categoryId: string): Promise<string> {
     return this.productCategoryRankRepository.getNextRank(categoryId);
   }
 }

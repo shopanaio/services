@@ -30,27 +30,21 @@ export function internalComparisonError(): CustomerComparisonUserError {
   );
 }
 
-export function validateExpectedRevision(
-  value: number,
-): CustomerComparisonUserError | null {
+export function validateExpectedRevision(value: number): CustomerComparisonUserError | null {
   return Number.isSafeInteger(value) && value >= 0
     ? null
-    : comparisonError(
-        "INVALID_REVISION",
-        "Expected revision must be a non-negative safe integer",
-        ["expectedRevision"],
-      );
+    : comparisonError("INVALID_REVISION", "Expected revision must be a non-negative safe integer", [
+        "expectedRevision",
+      ]);
 }
 
-export function revisionConflict(
-  actualRevision: number,
-): CustomerComparisonUserError {
+export function revisionConflict(actualRevision: number): CustomerComparisonUserError {
   return {
     ...comparisonError(
-    "REVISION_CONFLICT",
-    `Comparison revision changed to ${actualRevision}`,
-    ["expectedRevision"],
-    true,
+      "REVISION_CONFLICT",
+      `Comparison revision changed to ${actualRevision}`,
+      ["expectedRevision"],
+      true,
     ),
     actualRevision,
   };

@@ -29,6 +29,4 @@ declare module "@/layouts/modals" {
 
 export const useTagModal = createModalStackHook(TAG_MODAL_TYPE);
 export const useCreateTagModal = createModalStackHook(TAG_CREATE_MODAL_TYPE);
-export const useTagEditIdentityModal = createModalStackHook(
-  TAG_EDIT_IDENTITY_MODAL_TYPE,
-);
+export const useTagEditIdentityModal = createModalStackHook(TAG_EDIT_IDENTITY_MODAL_TYPE);

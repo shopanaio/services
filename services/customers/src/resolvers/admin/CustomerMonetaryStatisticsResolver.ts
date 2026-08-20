@@ -8,22 +8,17 @@ export class CustomerMonetaryStatisticsResolver extends CustomersType<
   CustomerMonetaryStatistics
 > {
   async $preload() {
-    const statistics = await this.$ctx.loaders.monetaryStatistics.load(
-      this.$props
-    );
+    const statistics = await this.$ctx.loaders.monetaryStatistics.load(this.$props);
     if (!statistics) {
       throw new PreloadNotFoundError(
-        `Customer monetary statistics with ID ${this.$props} not found`
+        `Customer monetary statistics with ID ${this.$props} not found`,
       );
     }
     return statistics;
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.CustomerMonetaryStatistics
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.CustomerMonetaryStatistics);
   }
 
   async customer() {

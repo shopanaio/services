@@ -47,13 +47,6 @@ export const MIGRATION_SERVICE_NAMES = [
   "reviews",
 ] as const;
 
-export const DB_GENERATE_SERVICE_NAMES = [
-  "apps",
-  "events",
-  "iam",
-  "media",
-  "project",
-] as const;
+export const DB_GENERATE_SERVICE_NAMES = ["apps", "events", "iam", "media", "project"] as const;
 
-export const formatServiceNames = (names: readonly string[]): string =>
-  names.join(", ");
+export const formatServiceNames = (names: readonly string[]): string => names.join(", ");

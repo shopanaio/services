@@ -28,8 +28,8 @@ export class ProductListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(productListingIndex.storeId, this.storeId),
-          eq(productListingIndex.productId, productId)
-        )
+          eq(productListingIndex.productId, productId),
+        ),
       )
       .limit(1);
 
@@ -45,8 +45,8 @@ export class ProductListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(productListingIndex.storeId, this.storeId),
-          eq(productListingIndex.productDocId, productDocId)
-        )
+          eq(productListingIndex.productDocId, productDocId),
+        ),
       )
       .limit(1);
 
@@ -61,8 +61,8 @@ export class ProductListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(productListingIndex.storeId, this.storeId),
-          eq(productListingIndex.productId, productId)
-        )
+          eq(productListingIndex.productId, productId),
+        ),
       )
       .limit(1);
 
@@ -70,9 +70,7 @@ export class ProductListingIndexRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findByProductDocId(
-    productDocId: number
-  ): Promise<ProductListingIndex | null> {
+  async findByProductDocId(productDocId: number): Promise<ProductListingIndex | null> {
     assertPositiveDocId(productDocId, "productDocId");
     const rows = await this.connection
       .select()
@@ -80,8 +78,8 @@ export class ProductListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(productListingIndex.storeId, this.storeId),
-          eq(productListingIndex.productDocId, productDocId)
-        )
+          eq(productListingIndex.productDocId, productDocId),
+        ),
       )
       .limit(1);
 
@@ -89,9 +87,7 @@ export class ProductListingIndexRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async getByProductIds(
-    productIds: readonly string[]
-  ): Promise<ProductListingIndex[]> {
+  async getByProductIds(productIds: readonly string[]): Promise<ProductListingIndex[]> {
     if (productIds.length === 0) {
       return [];
     }
@@ -102,15 +98,13 @@ export class ProductListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(productListingIndex.storeId, this.storeId),
-          inArray(productListingIndex.productId, [...new Set(productIds)])
-        )
+          inArray(productListingIndex.productId, [...new Set(productIds)]),
+        ),
       );
   }
 
   @ReadOnly()
-  async getByProductDocIds(
-    productDocIds: readonly number[]
-  ): Promise<ProductListingIndex[]> {
+  async getByProductDocIds(productDocIds: readonly number[]): Promise<ProductListingIndex[]> {
     if (productDocIds.length === 0) {
       return [];
     }
@@ -125,8 +119,8 @@ export class ProductListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(productListingIndex.storeId, this.storeId),
-          inArray(productListingIndex.productDocId, [...new Set(productDocIds)])
-        )
+          inArray(productListingIndex.productDocId, [...new Set(productDocIds)]),
+        ),
       );
   }
 
@@ -157,7 +151,7 @@ export class ProductListingIndexRepository extends BaseRepository {
 
   @Transactional()
   async ensureBootstrapRows(
-    rows: readonly ProductListingIndexBootstrapInput[]
+    rows: readonly ProductListingIndexBootstrapInput[],
   ): Promise<ProductListingIndex[]> {
     if (rows.length === 0) {
       return [];
@@ -215,7 +209,7 @@ export class ProductListingIndexRepository extends BaseRepository {
   }
 
   async upsertMany(
-    rows: readonly ProductListingIndexUpsertInput[]
+    rows: readonly ProductListingIndexUpsertInput[],
   ): Promise<ProductListingIndex[]> {
     if (rows.length === 0) {
       return [];
@@ -257,7 +251,7 @@ export class ProductListingIndexRepository extends BaseRepository {
 
   async update(
     productId: string,
-    patch: ProductListingIndexPatchInput
+    patch: ProductListingIndexPatchInput,
   ): Promise<ProductListingIndex | null> {
     const updateData = this.toPatchRow(patch);
     const rows = await this.connection
@@ -266,8 +260,8 @@ export class ProductListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(productListingIndex.storeId, this.storeId),
-          eq(productListingIndex.productId, productId)
-        )
+          eq(productListingIndex.productId, productId),
+        ),
       )
       .returning();
 
@@ -280,8 +274,8 @@ export class ProductListingIndexRepository extends BaseRepository {
       .where(
         and(
           eq(productListingIndex.storeId, this.storeId),
-          eq(productListingIndex.productId, productId)
-        )
+          eq(productListingIndex.productId, productId),
+        ),
       )
       .returning({ productId: productListingIndex.productId });
 
@@ -300,8 +294,8 @@ export class ProductListingIndexRepository extends BaseRepository {
         .where(
           and(
             eq(productListingIndex.storeId, this.storeId),
-            inArray(productListingIndex.productId, chunk)
-          )
+            inArray(productListingIndex.productId, chunk),
+          ),
         )
         .returning({ productId: productListingIndex.productId });
 
@@ -327,8 +321,8 @@ export class ProductListingIndexRepository extends BaseRepository {
         .where(
           and(
             eq(productListingIndex.storeId, this.storeId),
-            inArray(productListingIndex.productDocId, chunk)
-          )
+            inArray(productListingIndex.productDocId, chunk),
+          ),
         )
         .returning({ productDocId: productListingIndex.productDocId });
 
@@ -338,10 +332,7 @@ export class ProductListingIndexRepository extends BaseRepository {
     return deleted;
   }
 
-  private toInsertRow(
-    row: ProductListingIndexUpsertInput,
-    now: string
-  ): NewProductListingIndex {
+  private toInsertRow(row: ProductListingIndexUpsertInput, now: string): NewProductListingIndex {
     assertPositiveDocId(row.productDocId, "productDocId");
     assertProductEntityType(row.entityType);
     assertListingStatus(row.status);
@@ -366,9 +357,7 @@ export class ProductListingIndexRepository extends BaseRepository {
     };
   }
 
-  private toPatchRow(
-    patch: ProductListingIndexPatchInput
-  ): Partial<NewProductListingIndex> {
+  private toPatchRow(patch: ProductListingIndexPatchInput): Partial<NewProductListingIndex> {
     const updateData: Partial<NewProductListingIndex> = {
       updatedAt: nowIso(),
     };

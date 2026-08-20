@@ -11,9 +11,7 @@ import type {
 } from "../graphql/operation-types";
 
 interface UseCreateFacetValueReturn {
-  createFacetValue: (
-    input: ApiFacetValueCreateInput,
-  ) => Promise<FacetValueMutationResult>;
+  createFacetValue: (input: ApiFacetValueCreateInput) => Promise<FacetValueMutationResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
@@ -26,9 +24,7 @@ export function useCreateFacetValue(): UseCreateFacetValueReturn {
   >(FACET_VALUE_CREATE_MUTATION);
 
   const createFacetValue = useCallback(
-    async (
-      input: ApiFacetValueCreateInput,
-    ): Promise<FacetValueMutationResult> => {
+    async (input: ApiFacetValueCreateInput): Promise<FacetValueMutationResult> => {
       try {
         const result = await createFacetValueMutation({
           variables: { input },
@@ -42,8 +38,7 @@ export function useCreateFacetValue(): UseCreateFacetValueReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
         return {
           facetValue: null,
           userErrors: [{ message, code: "UNEXPECTED_ERROR" }],

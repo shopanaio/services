@@ -34,12 +34,9 @@ export class Loader {
     this.rolePermissions = roleLoader.rolePermissions;
     this.rolesByDomain = roleLoader.rolesByDomain;
     this.application = applicationLoader.application;
-    this.applicationAuthAdmin =
-      applicationAuthAdminLoader.applicationAuthAdmin;
+    this.applicationAuthAdmin = applicationAuthAdminLoader.applicationAuthAdmin;
     this.applicationUser = applicationUserLoader.applicationUser;
-    this.applicationUserSecurity =
-      applicationUserLoader.applicationUserSecurity;
-    this.serviceLinkedResource =
-      serviceLinkedResourceLoader.serviceLinkedResource;
+    this.applicationUserSecurity = applicationUserLoader.applicationUserSecurity;
+    this.serviceLinkedResource = serviceLinkedResourceLoader.serviceLinkedResource;
   }
 }

@@ -1,27 +1,15 @@
 "use client";
 
-import {
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
+import { useCallback, useMemo, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { createStyles } from "antd-style";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
 import { EditorGrid } from "@/shared/components/editor-grid";
-import {
-  DropdownCellRenderer,
-  YES_NO_OPTIONS,
-} from "@/shared/components/editor-grid/cells";
+import { DropdownCellRenderer, YES_NO_OPTIONS } from "@/shared/components/editor-grid/cells";
 import { useTreeTableDragDrop } from "@/hooks";
 import { useComponentItemVariantSettingsModal } from "@/domains/inventory/products/modals";
 
 import "@/shared/components/entity-picker-modal/register";
-import {
-  useProductPicker,
-} from "@/shared/components/entity-picker-modal";
+import { useProductPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
 
 import type { ITableRow } from "../types";
@@ -80,9 +68,7 @@ const useStyles = createStyles(({ token }) => ({
 // Helpers
 // ============================================================================
 
-const isTemplate = (
-  rule: ITableRow["pricingRule"],
-): rule is ApiProductComponentPricingTemplate => {
+const isTemplate = (rule: ITableRow["pricingRule"]): rule is ApiProductComponentPricingTemplate => {
   return !!rule && "priceRule" in rule && "name" in rule;
 };
 
@@ -104,18 +90,12 @@ const groupsToRows = (groups: ApiProductComponentGroup[]): ITableRow[] => {
       sourceGroup: group,
     });
 
-    const sortedItems = [...group.items].sort(
-      (a, b) => a.sortIndex - b.sortIndex
-    );
+    const sortedItems = [...group.items].sort((a, b) => a.sortIndex - b.sortIndex);
     for (const item of sortedItems) {
       rows.push({
         id: item.id,
         type: "item",
-        name:
-          item.title ||
-          item.refProduct?.title ||
-          item.refVariant?.title ||
-          "Unknown",
+        name: item.title || item.refProduct?.title || item.refVariant?.title || "Unknown",
         parentId: group.id,
         sortIndex: item.sortIndex,
         level: 1,
@@ -127,8 +107,7 @@ const groupsToRows = (groups: ApiProductComponentGroup[]): ITableRow[] => {
         minQty: item.minQty,
         maxQty: item.maxQty,
         pricingRule:
-          item.pricingTemplate ??
-          (item.priceRule ? toEditorPriceRule(item.priceRule) : undefined),
+          item.pricingTemplate ?? (item.priceRule ? toEditorPriceRule(item.priceRule) : undefined),
         visible: item.visible ? "yes" : "no",
         selected: item.selected ? "yes" : "no",
         sourceItem: item,
@@ -167,9 +146,7 @@ export const rowsToGroups = (rows: ITableRow[]): ApiProductComponentGroup[] => {
       items: [],
     };
     group.items = itemRows.map((itemRow): ApiProductComponentItem => {
-      const pricingTemplate = isTemplate(itemRow.pricingRule)
-        ? itemRow.pricingRule
-        : null;
+      const pricingTemplate = isTemplate(itemRow.pricingRule) ? itemRow.pricingRule : null;
       const editorPriceRule =
         itemRow.pricingRule && !pricingTemplate
           ? (itemRow.pricingRule as EditorPriceRule)
@@ -198,8 +175,7 @@ export const rowsToGroups = (rows: ITableRow[]): ApiProductComponentGroup[] => {
           ? null
           : toApiPriceRule(
               editorPriceRule,
-              itemRow.sourceItem?.priceRule?.id ??
-                `${itemRow.id}-price-rule`,
+              itemRow.sourceItem?.priceRule?.id ?? `${itemRow.id}-price-rule`,
             ),
         visible: itemRow.visible !== "no",
         selected: itemRow.selected === "yes",
@@ -237,9 +213,7 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
 
     const [addingToGroupId, setAddingToGroupId] = useState<string | null>(null);
     const addingToGroupIdRef = useRef<string | null>(null);
-    const [expandedProducts, setExpandedProducts] = useState<
-      Map<string, ITableRow>
-    >(new Map());
+    const [expandedProducts, setExpandedProducts] = useState<Map<string, ITableRow>>(new Map());
 
     // Use shared drag-drop hook
     const {
@@ -268,7 +242,9 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
     const existingProductIds = useMemo(() => {
       if (!addingToGroupId) return [];
       return allRows
-        .filter((r) => r.parentId === addingToGroupId && r.itemType === ProductComponentItemType.Product)
+        .filter(
+          (r) => r.parentId === addingToGroupId && r.itemType === ProductComponentItemType.Product,
+        )
         .map((r) => r.assignedProduct?.id)
         .filter(Boolean) as string[];
     }, [allRows, addingToGroupId]);
@@ -279,13 +255,9 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
         const groupId = addingToGroupIdRef.current;
         if (!groupId) return;
 
-        const existingItems = allRows.filter(
-          (r) => r.parentId === groupId
-        );
+        const existingItems = allRows.filter((r) => r.parentId === groupId);
         const maxSortIndex =
-          existingItems.length > 0
-            ? Math.max(...existingItems.map((r) => r.sortIndex))
-            : -1;
+          existingItems.length > 0 ? Math.max(...existingItems.map((r) => r.sortIndex)) : -1;
 
         products.forEach((product, index) => {
           const newRow: ITableRow = {
@@ -315,7 +287,7 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
         addingToGroupIdRef.current = null;
         setAddingToGroupId(null);
       },
-      [allRows, addChild, expandGroup]
+      [allRows, addChild, expandGroup],
     );
 
     // Product picker hook
@@ -334,13 +306,13 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
         setAddingToGroupId(groupId);
         openPicker();
       },
-      [openPicker]
+      [openPicker],
     );
 
     const handleAddGroupClick = useCallback(() => {
       const maxRootSortIndex = Math.max(
         -1,
-        ...allRows.filter((r) => r.parentId === null).map((r) => r.sortIndex)
+        ...allRows.filter((r) => r.parentId === null).map((r) => r.sortIndex),
       );
 
       const newGroup: ITableRow = {
@@ -358,46 +330,50 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
     }, [allRows, addGroup]);
 
     // Expose methods via ref
-    useImperativeHandle(ref, () => ({
-      addGroup: handleAddGroupClick,
-      getRows: () => allRows,
-    }), [handleAddGroupClick, allRows]);
+    useImperativeHandle(
+      ref,
+      () => ({
+        addGroup: handleAddGroupClick,
+        getRows: () => allRows,
+      }),
+      [handleAddGroupClick, allRows],
+    );
 
     const handleDuplicateGroup = useCallback(
       (groupId: string) => {
         duplicateGroup(groupId, (_row, isGroup, index) =>
-          isGroup ? `grp-${Date.now()}` : `item-${Date.now()}-${index}`
+          isGroup ? `grp-${Date.now()}` : `item-${Date.now()}-${index}`,
         );
       },
-      [duplicateGroup]
+      [duplicateGroup],
     );
 
     const handleDuplicateItem = useCallback(
       (itemId: string) => {
         duplicateChild(itemId, () => `item-${Date.now()}`);
       },
-      [duplicateChild]
+      [duplicateChild],
     );
 
     const handlePriceRuleChange = useCallback(
       (itemId: string, pricingRule: ITableRow["pricingRule"]) => {
         updateRow(itemId, { pricingRule } as Partial<ITableRow>);
       },
-      [updateRow]
+      [updateRow],
     );
 
     const handleVisibleChange = useCallback(
       (itemId: string, visible: string) => {
         updateRow(itemId, { visible: visible as "yes" | "no" } as Partial<ITableRow>);
       },
-      [updateRow]
+      [updateRow],
     );
 
     const handleSelectedChange = useCallback(
       (itemId: string, selected: string) => {
         updateRow(itemId, { selected: selected as "yes" | "no" } as Partial<ITableRow>);
       },
-      [updateRow]
+      [updateRow],
     );
 
     // ========================================
@@ -409,8 +385,7 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
         if (row.itemType !== ProductComponentItemType.Product || !row.assignedProduct) return;
 
         const assignedProduct = row.assignedProduct;
-        const variantsFromConnection =
-          assignedProduct.variants?.edges?.map((e) => e.node) ?? [];
+        const variantsFromConnection = assignedProduct.variants?.edges?.map((e) => e.node) ?? [];
 
         const editorRule = row.pricingRule
           ? isTemplate(row.pricingRule)
@@ -437,8 +412,8 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
                 typeof v.price?.amountMinor === "bigint"
                   ? Number(v.price.amountMinor)
                   : typeof v.price?.amountMinor === "number"
-                  ? v.price.amountMinor
-                  : 0,
+                    ? v.price.amountMinor
+                    : 0,
               stock: v.inventoryItem?.stock?.[0]?.quantityOnHand ?? 0,
               options: v.selectedOptions?.map((o) => ({
                 optionId: o.optionId,
@@ -452,17 +427,14 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
             values: o.values?.map((v) => v.name) ?? [],
           })),
           showAsVariants: false,
-          onSave: (data: {
-            availableVariantIds: string[] | null;
-            showAsVariants: boolean;
-          }) => {
+          onSave: (data: { availableVariantIds: string[] | null; showAsVariants: boolean }) => {
             updateRow(row.id, {
               excludeAssignedProductVariants: data.availableVariantIds,
             } as Partial<ITableRow>);
           },
         });
       },
-      [openVariantSettingsModal, updateRow]
+      [openVariantSettingsModal, updateRow],
     );
 
     const handleIncludeVariants = useCallback(
@@ -470,41 +442,36 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
         if (row.itemType !== ProductComponentItemType.Product || !row.assignedProduct) return;
 
         const assignedProduct = row.assignedProduct;
-        const variantsFromConnection =
-          assignedProduct.variants?.edges?.map((e) => e.node) ?? [];
+        const variantsFromConnection = assignedProduct.variants?.edges?.map((e) => e.node) ?? [];
         if (variantsFromConnection.length === 0) return;
 
-        setExpandedProducts((prev) =>
-          new Map(prev).set(assignedProduct.id, row)
-        );
+        setExpandedProducts((prev) => new Map(prev).set(assignedProduct.id, row));
 
         setAllRows((prev) => {
           const productIndex = prev.findIndex((r) => r.id === row.id);
           if (productIndex === -1) return prev;
 
-          const variantRows: ITableRow[] = variantsFromConnection.map(
-            (variant, index) => {
-              const sku = variant.inventoryItem?.sku;
+          const variantRows: ITableRow[] = variantsFromConnection.map((variant, index) => {
+            const sku = variant.inventoryItem?.sku;
 
-              return {
-                id: `item-${Date.now()}-${index}`,
-                type: "item" as const,
-                name: variant.title ?? sku ?? "Unknown Variant",
-                parentId: row.parentId,
-                sortIndex: row.sortIndex + index,
-                level: 1,
-                itemType: ProductComponentItemType.Variant,
-                assignedVariant: variant,
-                minQty: row.minQty,
-                maxQty: row.maxQty,
-                pricingRule: row.pricingRule,
-                title: row.title,
-                featuredImage: row.featuredImage,
-                visible: row.visible ?? "yes",
-                selected: row.selected ?? "no",
-              };
-            },
-          );
+            return {
+              id: `item-${Date.now()}-${index}`,
+              type: "item" as const,
+              name: variant.title ?? sku ?? "Unknown Variant",
+              parentId: row.parentId,
+              sortIndex: row.sortIndex + index,
+              level: 1,
+              itemType: ProductComponentItemType.Variant,
+              assignedVariant: variant,
+              minQty: row.minQty,
+              maxQty: row.maxQty,
+              pricingRule: row.pricingRule,
+              title: row.title,
+              featuredImage: row.featuredImage,
+              visible: row.visible ?? "yes",
+              selected: row.selected ?? "no",
+            };
+          });
 
           const newRows = [...prev];
           newRows.splice(productIndex, 1, ...variantRows);
@@ -512,7 +479,7 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
           return newRows.map((r) => {
             if (r.parentId === row.parentId && r.type === "item") {
               const itemsInGroup = newRows.filter(
-                (x) => x.parentId === row.parentId && x.type === "item"
+                (x) => x.parentId === row.parentId && x.type === "item",
               );
               const itemIndex = itemsInGroup.findIndex((x) => x.id === r.id);
               return { ...r, sortIndex: itemIndex };
@@ -521,7 +488,7 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
           });
         });
       },
-      [setAllRows]
+      [setAllRows],
     );
 
     const handleShowAsProduct = useCallback(
@@ -544,7 +511,7 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
           const firstVariantIndex = prev.findIndex(
             (r) =>
               r.itemType === ProductComponentItemType.Variant &&
-              r.assignedVariant?.product?.id === productId
+              r.assignedVariant?.product?.id === productId,
           );
           if (firstVariantIndex === -1) return prev;
 
@@ -553,7 +520,7 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
               !(
                 r.itemType === ProductComponentItemType.Variant &&
                 r.assignedVariant?.product?.id === productId
-              )
+              ),
           );
 
           newRows.splice(firstVariantIndex, 0, {
@@ -564,7 +531,7 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
           return newRows.map((r) => {
             if (r.parentId === storedProduct.parentId && r.type === "item") {
               const itemsInGroup = newRows.filter(
-                (x) => x.parentId === storedProduct.parentId && x.type === "item"
+                (x) => x.parentId === storedProduct.parentId && x.type === "item",
               );
               const itemIndex = itemsInGroup.findIndex((x) => x.id === r.id);
               return { ...r, sortIndex: itemIndex };
@@ -573,7 +540,7 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
           });
         });
       },
-      [expandedProducts, setAllRows]
+      [expandedProducts, setAllRows],
     );
 
     const handleSetFieldValue = useCallback(
@@ -605,7 +572,7 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
           updateRow(rowId, { [field]: newValue } as Partial<ITableRow>);
         }
       },
-      [allRows, updateRow]
+      [allRows, updateRow],
     );
 
     // ========================================
@@ -671,14 +638,11 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
           editable: true,
           valueGetter: (params) => {
             if (!params.data) return null;
-            return params.data.type === "group"
-              ? params.data.minSelection
-              : params.data.minQty;
+            return params.data.type === "group" ? params.data.minSelection : params.data.minQty;
           },
           valueSetter: (params) => {
             if (!params.data) return false;
-            const value =
-              params.newValue === "" ? null : Number(params.newValue);
+            const value = params.newValue === "" ? null : Number(params.newValue);
             if (params.data.type === "group") {
               updateRow(params.data.id, {
                 minSelection: value,
@@ -699,14 +663,11 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
           editable: true,
           valueGetter: (params) => {
             if (!params.data) return null;
-            return params.data.type === "group"
-              ? params.data.maxSelection
-              : params.data.maxQty;
+            return params.data.type === "group" ? params.data.maxSelection : params.data.maxQty;
           },
           valueSetter: (params) => {
             if (!params.data) return false;
-            const value =
-              params.newValue === "" ? null : Number(params.newValue);
+            const value = params.newValue === "" ? null : Number(params.newValue);
             if (params.data.type === "group") {
               updateRow(params.data.id, {
                 maxSelection: value,
@@ -797,7 +758,7 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
         handleEditVariants,
         handleIncludeVariants,
         handleShowAsProduct,
-      ]
+      ],
     );
 
     return (
@@ -819,7 +780,7 @@ export const ComponentGroupsGrid = forwardRef<ComponentGroupsGridHandle, Compone
         />
       </div>
     );
-  }
+  },
 );
 
 ComponentGroupsGrid.displayName = "ComponentGroupsGrid";

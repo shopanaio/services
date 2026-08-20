@@ -1,21 +1,12 @@
 import DataLoader from "dataloader";
-import type {
-  CustomerComparison,
-  CustomerComparisonItem,
-} from "../repositories/models/index.js";
+import type { CustomerComparison, CustomerComparisonItem } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 import { groupByKey, mapById } from "./batch.js";
 
 export class CustomerComparisonLoader {
   readonly comparison: DataLoader<string, CustomerComparison | null>;
-  readonly comparisonByCustomer: DataLoader<
-    string,
-    CustomerComparison | null
-  >;
-  readonly comparisonItem: DataLoader<
-    string,
-    CustomerComparisonItem | null
-  >;
+  readonly comparisonByCustomer: DataLoader<string, CustomerComparison | null>;
+  readonly comparisonItem: DataLoader<string, CustomerComparisonItem | null>;
   readonly comparisonItems: DataLoader<string, CustomerComparisonItem[]>;
 
   constructor(repository: Repository) {
@@ -39,4 +30,3 @@ export class CustomerComparisonLoader {
     );
   }
 }
-

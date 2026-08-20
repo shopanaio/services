@@ -24,10 +24,7 @@ export function calculateSmsSegments(text: string): SmsStatistics {
     return {
       encoding: "GSM_7",
       length: septets,
-      segmentCount: Math.max(
-        1,
-        septets <= 160 ? 1 : Math.ceil(septets / 153)
-      ),
+      segmentCount: Math.max(1, septets <= 160 ? 1 : Math.ceil(septets / 153)),
     };
   }
 

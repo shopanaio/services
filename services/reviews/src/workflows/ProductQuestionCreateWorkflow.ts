@@ -29,7 +29,7 @@ export class ProductQuestionCreateWorkflow extends ReviewsMutationWorkflow {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: ProductQuestionCreateWorkflowInput
+    input: ProductQuestionCreateWorkflowInput,
   ): Promise<ProductQuestionCreateWorkflowResult> {
     const result = await this.stepCreate(input);
     if (result.productQuestion && result.userErrors.length === 0) {
@@ -47,13 +47,13 @@ export class ProductQuestionCreateWorkflow extends ReviewsMutationWorkflow {
     return this.kernel.runScript(
       ProductQuestionCreateScript,
       input.params,
-      this.toScriptContext(input.context)
+      this.toScriptContext(input.context),
     );
   }
 
   private async workflowEmitEvent(
     input: ProductQuestionCreateWorkflowInput,
-    question: { id: string; productId: string }
+    question: { id: string; productId: string },
   ): Promise<void> {
     const payload: ProductQuestionCreatedEvent["payload"] = {
       productQuestionId: question.id,
@@ -80,7 +80,7 @@ export class ProductQuestionCreateWorkflow extends ReviewsMutationWorkflow {
         workflowId: DBOS.workflowID!,
         stepId: "emitProductQuestionCreated",
         callId: question.id,
-      }
+      },
     );
   }
 }

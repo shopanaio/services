@@ -15,14 +15,9 @@ import {
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
-import type {
-  CustomerStatisticsProjectionWorkflowInput,
-} from "../workflows/CustomerStatisticsProjectionWorkflow.js";
+import type { CustomerStatisticsProjectionWorkflowInput } from "../workflows/CustomerStatisticsProjectionWorkflow.js";
 
-type OrderProjectionEvent =
-  | OrderCreatedEvent
-  | OrderCompletedEvent
-  | OrderCancelledEvent;
+type OrderProjectionEvent = OrderCreatedEvent | OrderCompletedEvent | OrderCancelledEvent;
 
 abstract class CustomerStatisticsEventHandlers extends EventHandlers {
   protected constructor(broker: ServiceBroker) {
@@ -30,10 +25,7 @@ abstract class CustomerStatisticsEventHandlers extends EventHandlers {
   }
 
   protected async project(
-    event:
-      | OrderProjectionEvent
-      | CheckoutCustomerActivityRecordedEvent
-      | OrderRefundedEvent,
+    event: OrderProjectionEvent | CheckoutCustomerActivityRecordedEvent | OrderRefundedEvent,
     params: CustomerStatisticsProjectionWorkflowInput["params"],
   ): Promise<EventHandlerResponse<{ customerId: string }>> {
     try {
@@ -90,33 +82,21 @@ export class OrderEventHandlers extends CustomerStatisticsEventHandlers {
   }
 
   @EventHandler("orderCreated", { retry: { maxAttempts: 10 } })
-  handleOrderCreated(params: {
-    event: OrderCreatedEvent;
-    delivery: EventHandlerDelivery;
-  }) {
+  handleOrderCreated(params: { event: OrderCreatedEvent; delivery: EventHandlerDelivery }) {
     return this.projectOrder(params.event, "OPEN");
   }
 
   @EventHandler("orderCompleted", { retry: { maxAttempts: 10 } })
-  handleOrderCompleted(params: {
-    event: OrderCompletedEvent;
-    delivery: EventHandlerDelivery;
-  }) {
+  handleOrderCompleted(params: { event: OrderCompletedEvent; delivery: EventHandlerDelivery }) {
     return this.projectOrder(params.event, "COMPLETED");
   }
 
   @EventHandler("orderCancelled", { retry: { maxAttempts: 10 } })
-  handleOrderCancelled(params: {
-    event: OrderCancelledEvent;
-    delivery: EventHandlerDelivery;
-  }) {
+  handleOrderCancelled(params: { event: OrderCancelledEvent; delivery: EventHandlerDelivery }) {
     return this.projectOrder(params.event, "CANCELLED");
   }
 
-  private projectOrder(
-    event: OrderProjectionEvent,
-    status: "OPEN" | "COMPLETED" | "CANCELLED",
-  ) {
+  private projectOrder(event: OrderProjectionEvent, status: "OPEN" | "COMPLETED" | "CANCELLED") {
     return this.project(event, {
       operation: "ORDER",
       customerId: event.payload.customerId,
@@ -126,10 +106,8 @@ export class OrderEventHandlers extends CustomerStatisticsEventHandlers {
       currencyCode: event.payload.currencyCode,
       totalAmountMinor: event.payload.totalAmountMinor,
       createdAt: event.payload.createdAt,
-      completedAt:
-        event.eventType === "orderCompleted" ? event.payload.completedAt : null,
-      cancelledAt:
-        event.eventType === "orderCancelled" ? event.payload.cancelledAt : null,
+      completedAt: event.eventType === "orderCompleted" ? event.payload.completedAt : null,
+      cancelledAt: event.eventType === "orderCancelled" ? event.payload.cancelledAt : null,
       occurredAt: event.payload.occurredAt,
     });
   }
@@ -166,10 +144,7 @@ export class RefundEventHandlers extends CustomerStatisticsEventHandlers {
   }
 
   @EventHandler("orderRefunded", { retry: { maxAttempts: 10 } })
-  handleOrderRefunded(params: {
-    event: OrderRefundedEvent;
-    delivery: EventHandlerDelivery;
-  }) {
+  handleOrderRefunded(params: { event: OrderRefundedEvent; delivery: EventHandlerDelivery }) {
     const { event } = params;
     return this.project(event, {
       operation: "REFUND",

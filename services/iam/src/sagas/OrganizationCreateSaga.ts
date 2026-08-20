@@ -1,11 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import {
-  BrokerSaga,
-  Saga,
-  SagaStep,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { BrokerSaga, Saga, SagaStep, InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import type { Media } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import { OrganizationCreateScript } from "../scripts/organization/OrganizationCreateScript.js";
@@ -92,22 +86,16 @@ export class OrganizationCreateSaga extends BrokerSaga<
 
   async compensateCreateMediaAssetGroup(organizationId: string): Promise<void> {
     try {
-      await this.broker.call<
-        Media.DeleteAssetGroupResult,
-        Media.DeleteAssetGroupParams
-      >("media.deleteAssetGroup", {
-        ownerType: "organization",
-        ownerId: organizationId,
-      });
-      this.logger.log(
-        { organizationId },
-        "Compensated: deleted media asset group",
+      await this.broker.call<Media.DeleteAssetGroupResult, Media.DeleteAssetGroupParams>(
+        "media.deleteAssetGroup",
+        {
+          ownerType: "organization",
+          ownerId: organizationId,
+        },
       );
+      this.logger.log({ organizationId }, "Compensated: deleted media asset group");
     } catch (error) {
-      this.logger.warn(
-        { organizationId, error },
-        "Failed to compensate media asset group",
-      );
+      this.logger.warn({ organizationId, error }, "Failed to compensate media asset group");
     }
   }
 }

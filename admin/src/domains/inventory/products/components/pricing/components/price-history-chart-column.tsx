@@ -1,10 +1,7 @@
 import { Typography, Flex } from "antd";
 import { PeriodSwitch } from "../../period-switch";
 import { CHART_PERIODS } from "../../../utils/periods";
-import {
-  PriceChart,
-  type PriceChartPoint,
-} from "./price-chart";
+import { PriceChart, type PriceChartPoint } from "./price-chart";
 import { useStyles } from "../pricing-block.styles";
 import type { ApiVariantPriceConnection, CurrencyCode } from "@/graphql/types";
 
@@ -34,18 +31,11 @@ export const PriceHistoryChartColumn = ({
   return (
     <div className={styles.column}>
       <Flex align="center" justify="space-between" style={{ marginBottom: 8 }}>
-        <Typography.Text
-          className={styles.sectionLabel}
-          style={{ marginBottom: 0 }}
-        >
+        <Typography.Text className={styles.sectionLabel} style={{ marginBottom: 0 }}>
           {label}
         </Typography.Text>
 
-        <PeriodSwitch
-          periods={CHART_PERIODS}
-          value={period}
-          onChange={onPeriodChange}
-        />
+        <PeriodSwitch periods={CHART_PERIODS} value={period} onChange={onPeriodChange} />
       </Flex>
 
       <PriceChart

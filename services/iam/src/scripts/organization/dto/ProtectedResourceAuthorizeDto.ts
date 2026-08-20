@@ -28,9 +28,7 @@ export const protectedResourceAuthorizeInputSchema = z
   })
   .strict();
 
-export type ProtectedResourceAuthorizeInput = z.infer<
-  typeof protectedResourceAuthorizeInputSchema
->;
+export type ProtectedResourceAuthorizeInput = z.infer<typeof protectedResourceAuthorizeInputSchema>;
 
 export type { ProtectedResourceAuthorizeParams };
 

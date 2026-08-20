@@ -2,11 +2,7 @@ import { Avatar, Flex, Typography } from "antd";
 import { useUserPopoverStyles } from "../product-info-header.styles";
 import type { IUserPopoverProps } from "../types";
 
-export const UserPopoverContent = ({
-  firstName,
-  lastName,
-  email,
-}: IUserPopoverProps) => {
+export const UserPopoverContent = ({ firstName, lastName, email }: IUserPopoverProps) => {
   const { styles } = useUserPopoverStyles();
 
   return (

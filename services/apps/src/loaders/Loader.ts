@@ -1,8 +1,5 @@
 import DataLoader from "dataloader";
-import type {
-  AppInstallationRecord,
-  AppLifecycleOperationRecord,
-} from "../control-plane/types.js";
+import type { AppInstallationRecord, AppLifecycleOperationRecord } from "../control-plane/types.js";
 import type { AppCapabilityBindingRecord } from "../repositories/capability/AppCapabilityRepository.js";
 import type { AppManifestSnapshotRecord } from "../repositories/manifest/AppManifestSnapshotRepository.js";
 import type { Repository } from "../repositories/Repository.js";
@@ -43,46 +40,25 @@ function createRelationLoader<T>(
  */
 export class Loader {
   readonly installation: DataLoader<string, AppInstallationRecord | null>;
-  readonly installationByAppCode: DataLoader<
-    string,
-    AppInstallationRecord | null
-  >;
-  readonly lifecycleOperation: DataLoader<
-    string,
-    AppLifecycleOperationRecord | null
-  >;
-  readonly manifestSnapshot: DataLoader<
-    string,
-    AppManifestSnapshotRecord | null
-  >;
-  readonly capabilityBinding: DataLoader<
-    string,
-    AppCapabilityBindingRecord | null
-  >;
-  readonly scopesByInstallation: DataLoader<
-    string,
-    readonly AppInstallationScopeRecord[]
-  >;
+  readonly installationByAppCode: DataLoader<string, AppInstallationRecord | null>;
+  readonly lifecycleOperation: DataLoader<string, AppLifecycleOperationRecord | null>;
+  readonly manifestSnapshot: DataLoader<string, AppManifestSnapshotRecord | null>;
+  readonly capabilityBinding: DataLoader<string, AppCapabilityBindingRecord | null>;
+  readonly scopesByInstallation: DataLoader<string, readonly AppInstallationScopeRecord[]>;
   readonly capabilityBindingsByInstallation: DataLoader<
     string,
     readonly AppCapabilityBindingRecord[]
   >;
 
   constructor(repository: Repository) {
-    this.installation = createEntityLoader((ids) =>
-      repository.installation.getByIdsForStore(ids),
+    this.installation = createEntityLoader((ids) => repository.installation.getByIdsForStore(ids));
+    this.installationByAppCode = new DataLoader<string, AppInstallationRecord | null>(
+      async (appCodes) => {
+        const rows = await repository.installation.getNonTerminalByAppCodesForStore(appCodes);
+        const byAppCode = new Map(rows.map((row) => [row.appCode, row]));
+        return appCodes.map((appCode) => byAppCode.get(appCode) ?? null);
+      },
     );
-    this.installationByAppCode = new DataLoader<
-      string,
-      AppInstallationRecord | null
-    >(async (appCodes) => {
-      const rows =
-        await repository.installation.getNonTerminalByAppCodesForStore(
-          appCodes,
-        );
-      const byAppCode = new Map(rows.map((row) => [row.appCode, row]));
-      return appCodes.map((appCode) => byAppCode.get(appCode) ?? null);
-    });
     this.lifecycleOperation = createEntityLoader((ids) =>
       repository.lifecycleOperation.getByIdsForStore(ids),
     );

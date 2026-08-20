@@ -1,17 +1,11 @@
 import { ZodResolver } from "@shopana/type-resolver";
 import { hashContent } from "@shopana/shared-kernel";
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
 import { UserUpdateEmailScript } from "../../scripts/user/UserUpdateEmailScript.js";
 import { UserUpdatePasswordScript } from "../../scripts/user/UserUpdatePasswordScript.js";
-import type {
-  UserUpdateProfileSagaInput,
-  UserUpdateProfileResult,
-} from "../../sagas/index.js";
+import type { UserUpdateProfileSagaInput, UserUpdateProfileResult } from "../../sagas/index.js";
 import type {
   UserUpdateProfileInput,
   UserUpdateEmailInput,
@@ -60,10 +54,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
     if (input.avatarId !== undefined) {
       if (input.avatarId) {
         try {
-          nextAvatarId = decodeGlobalIdByType(
-            input.avatarId,
-            GlobalIdEntity.File
-          );
+          nextAvatarId = decodeGlobalIdByType(input.avatarId, GlobalIdEntity.File);
         } catch {
           nextAvatarId = input.avatarId;
         }
@@ -91,7 +82,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
           userId: currentUser.id,
           input,
         }),
-      }
+      },
     );
 
     const data = result.data;
@@ -210,10 +201,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
     }
 
     // Decode the session ID from global ID
-    const sessionId = decodeGlobalIdByType(
-      input.sessionId,
-      GlobalIdEntity.Session
-    );
+    const sessionId = decodeGlobalIdByType(input.sessionId, GlobalIdEntity.Session);
 
     // Prevent revoking current session
     if (currentUser.sessionId === sessionId) {
@@ -247,10 +235,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       };
     }
 
-    const success = await authSession.revokeSession(
-      currentUser.id,
-      sessionId
-    );
+    const success = await authSession.revokeSession(currentUser.id, sessionId);
 
     return {
       success,
@@ -307,5 +292,4 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       userErrors: [],
     };
   }
-
 }

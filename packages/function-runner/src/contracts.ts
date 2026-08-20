@@ -109,9 +109,7 @@ export interface AppExecutionPlanItem {
     | "DISCOVERY_DEADLINE_EXCEEDED";
 }
 
-export type FunctionExecutionPlanItem =
-  | NativeExecutionPlanItem
-  | AppExecutionPlanItem;
+export type FunctionExecutionPlanItem = NativeExecutionPlanItem | AppExecutionPlanItem;
 
 export interface CommerceFunctionExecutionPlan {
   readonly revision: string;
@@ -134,11 +132,7 @@ export interface FunctionImplementationOutput<TOutput = unknown> {
   readonly data: TOutput;
 }
 
-export type FunctionImplementationStatus =
-  | "SUCCEEDED"
-  | "FAILED"
-  | "TIMED_OUT"
-  | "SKIPPED";
+export type FunctionImplementationStatus = "SUCCEEDED" | "FAILED" | "TIMED_OUT" | "SKIPPED";
 
 export interface FunctionImplementationTrace {
   readonly planIndex: number;

@@ -1,11 +1,5 @@
-import type {
-  AppExecutionContext,
-  AppGraphQLHandlerContext,
-} from "@shopana/app-sdk";
-import {
-  adminContextAllows,
-  type AdminContextClaims,
-} from "@shopana/shared-context";
+import type { AppExecutionContext, AppGraphQLHandlerContext } from "@shopana/app-sdk";
+import { adminContextAllows, type AdminContextClaims } from "@shopana/shared-context";
 import { GraphQLError } from "graphql";
 import {
   SmtpConnectionService,
@@ -50,9 +44,7 @@ export function assertSmtpAdminAccess(
   }
 }
 
-export function createSmtpResolverContext(
-  context: AppGraphQLHandlerContext,
-): SmtpResolverContext {
+export function createSmtpResolverContext(context: AppGraphQLHandlerContext): SmtpResolverContext {
   const repository = SmtpRepository.create(context.host.databaseClient);
   return Object.freeze({
     app: context.app,

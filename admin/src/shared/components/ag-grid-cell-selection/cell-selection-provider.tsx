@@ -19,9 +19,7 @@ const injectGlobalStyles = () => {
 const CellSelectionContext = createContext<ICellSelectionContext | null>(null);
 
 // Store context for direct store access (used by SelectableCell for performance)
-const CellSelectionStoreContext = createContext<CellSelectionStore | null>(
-  null
-);
+const CellSelectionStoreContext = createContext<CellSelectionStore | null>(null);
 
 interface CellSelectionProviderProps<TData = unknown> {
   gridRef: RefObject<AgGridReact<TData> | null>;
@@ -73,9 +71,7 @@ export function CellSelectionProvider<TData = unknown>({
 export const useCellSelectionContext = (): ICellSelectionContext => {
   const ctx = useContext(CellSelectionContext);
   if (!ctx) {
-    throw new Error(
-      "useCellSelectionContext must be used within a CellSelectionProvider"
-    );
+    throw new Error("useCellSelectionContext must be used within a CellSelectionProvider");
   }
   return ctx;
 };
@@ -87,9 +83,7 @@ export const useCellSelectionContext = (): ICellSelectionContext => {
 export const useCellSelectionStore = (): CellSelectionStore => {
   const store = useContext(CellSelectionStoreContext);
   if (!store) {
-    throw new Error(
-      "useCellSelectionStore must be used within a CellSelectionProvider"
-    );
+    throw new Error("useCellSelectionStore must be used within a CellSelectionProvider");
   }
   return store;
 };

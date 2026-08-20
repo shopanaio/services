@@ -66,7 +66,12 @@ export class ProgramRepository extends BaseRepository {
     return this.connection
       .select()
       .from(programVersions)
-      .where(and(eq(programVersions.storeId, this.storeId), inArray(programVersions.programId, [...programIds])))
+      .where(
+        and(
+          eq(programVersions.storeId, this.storeId),
+          inArray(programVersions.programId, [...programIds]),
+        ),
+      )
       .orderBy(asc(programVersions.programId), desc(programVersions.version));
   }
 
@@ -78,21 +83,25 @@ export class ProgramRepository extends BaseRepository {
     return this.connection
       .select()
       .from(programVersions)
-      .where(and(
-        eq(programVersions.storeId, this.storeId),
-        inArray(programVersions.programId, [...programIds]),
-        eq(programVersions.status, "ACTIVE"),
-        lte(programVersions.effectiveFrom, effectiveAt),
-        or(isNull(programVersions.effectiveTo), gt(programVersions.effectiveTo, effectiveAt)),
-      ))
-      .orderBy(asc(programVersions.programId), desc(programVersions.effectiveFrom), desc(programVersions.version));
+      .where(
+        and(
+          eq(programVersions.storeId, this.storeId),
+          inArray(programVersions.programId, [...programIds]),
+          eq(programVersions.status, "ACTIVE"),
+          lte(programVersions.effectiveFrom, effectiveAt),
+          or(isNull(programVersions.effectiveTo), gt(programVersions.effectiveTo, effectiveAt)),
+        ),
+      )
+      .orderBy(
+        asc(programVersions.programId),
+        desc(programVersions.effectiveFrom),
+        desc(programVersions.version),
+      );
   }
 
   async getConnection(input: ProgramConnectionInput): Promise<ProgramConnectionResult> {
     const { where, ...pagination } = input;
-    const clauses: NonNullable<ProgramRelayInput["where"]>[] = [
-      { storeId: { _eq: this.storeId } },
-    ];
+    const clauses: NonNullable<ProgramRelayInput["where"]>[] = [{ storeId: { _eq: this.storeId } }];
     if (where?.ids?.length) clauses.push({ id: { _in: [...where.ids] } });
     if (where?.statuses?.length) clauses.push({ status: { _in: [...where.statuses] } });
     if (where?.isDefault !== undefined) clauses.push({ isDefault: { _eq: where.isDefault } });
@@ -225,12 +234,7 @@ export class ProgramRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(programVersions)
-      .where(
-        and(
-          eq(programVersions.storeId, this.storeId),
-          eq(programVersions.id, id),
-        ),
-      )
+      .where(and(eq(programVersions.storeId, this.storeId), eq(programVersions.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -239,12 +243,7 @@ export class ProgramRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(programVersions)
-      .where(
-        and(
-          eq(programVersions.storeId, this.storeId),
-          eq(programVersions.id, id),
-        ),
-      )
+      .where(and(eq(programVersions.storeId, this.storeId), eq(programVersions.id, id)))
       .limit(1)
       .for("update");
     return rows[0] ?? null;
@@ -291,20 +290,14 @@ export class ProgramRepository extends BaseRepository {
       .select({ version: programVersions.version })
       .from(programVersions)
       .where(
-        and(
-          eq(programVersions.storeId, this.storeId),
-          eq(programVersions.programId, programId),
-        ),
+        and(eq(programVersions.storeId, this.storeId), eq(programVersions.programId, programId)),
       )
       .orderBy(desc(programVersions.version))
       .limit(1);
     return (rows[0]?.version ?? 0) + 1;
   }
 
-  async listScheduledForActivation(
-    effectiveAt: string,
-    limit = 100,
-  ): Promise<ProgramVersion[]> {
+  async listScheduledForActivation(effectiveAt: string, limit = 100): Promise<ProgramVersion[]> {
     return this.connection
       .select()
       .from(programVersions)
@@ -325,17 +318,12 @@ export class ProgramRepository extends BaseRepository {
       .select()
       .from(programVersions)
       .where(
-        and(
-          eq(programVersions.storeId, this.storeId),
-          eq(programVersions.programId, programId),
-        ),
+        and(eq(programVersions.storeId, this.storeId), eq(programVersions.programId, programId)),
       )
       .orderBy(desc(programVersions.version));
   }
 
-  async createVersion(
-    input: CreateProgramVersionInput,
-  ): Promise<ProgramVersion> {
+  async createVersion(input: CreateProgramVersionInput): Promise<ProgramVersion> {
     const rows = await this.connection
       .insert(programVersions)
       .values({ ...input, storeId: this.storeId })
@@ -346,10 +334,7 @@ export class ProgramRepository extends BaseRepository {
   async updateDraftVersion(
     id: string,
     input: Partial<
-      Omit<
-        NewProgramVersion,
-        "id" | "storeId" | "programId" | "version" | "status" | "createdAt"
-      >
+      Omit<NewProgramVersion, "id" | "storeId" | "programId" | "version" | "status" | "createdAt">
     >,
   ): Promise<ProgramVersion | null> {
     const rows = await this.connection
@@ -465,10 +450,7 @@ export class ProgramRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async retireActiveVersion(
-    id: string,
-    effectiveTo: string,
-  ): Promise<ProgramVersion | null> {
+  async retireActiveVersion(id: string, effectiveTo: string): Promise<ProgramVersion | null> {
     const rows = await this.connection
       .update(programVersions)
       .set({
@@ -476,12 +458,14 @@ export class ProgramRepository extends BaseRepository {
         effectiveTo,
         revision: sql`${programVersions.revision} + 1`,
       })
-      .where(and(
-        eq(programVersions.storeId, this.storeId),
-        eq(programVersions.id, id),
-        eq(programVersions.status, "ACTIVE"),
-        sql`${programVersions.effectiveFrom} < ${effectiveTo}`,
-      ))
+      .where(
+        and(
+          eq(programVersions.storeId, this.storeId),
+          eq(programVersions.id, id),
+          eq(programVersions.status, "ACTIVE"),
+          sql`${programVersions.effectiveFrom} < ${effectiveTo}`,
+        ),
+      )
       .returning();
     return rows[0] ?? null;
   }

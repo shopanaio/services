@@ -70,16 +70,10 @@ export function Workflow(
       idempotencyStrategy: options?.idempotencyStrategy,
     };
 
-    Reflect.defineMetadata(
-      WORKFLOW_METADATA_KEY,
-      metadata,
-      target,
-      propertyKey,
-    );
+    Reflect.defineMetadata(WORKFLOW_METADATA_KEY, metadata, target, propertyKey);
 
     // DBOS.workflow expects string, but MethodDecorator provides string | symbol
-    const key =
-      typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
+    const key = typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
     return DBOS.workflow()(target, key, descriptor);
   };
 }
@@ -117,28 +111,23 @@ export function WorkflowStep(options?: WorkflowStepMetadata): MethodDecorator {
     descriptor: PropertyDescriptor,
   ): PropertyDescriptor {
     const originalMethod = descriptor.value as Function;
-    const methodName =
-      typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
+    const methodName = typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
 
     if (options) {
-      Reflect.defineMetadata(
-        WORKFLOW_STEP_METADATA_KEY,
-        options,
-        target,
-        propertyKey,
-      );
+      Reflect.defineMetadata(WORKFLOW_STEP_METADATA_KEY, options, target, propertyKey);
     }
 
-    (descriptor as { value: (...args: unknown[]) => Promise<unknown> }).value =
-      async function (...args: unknown[]) {
-        const workflowId = DBOS.workflowID ?? "unknown";
+    (descriptor as { value: (...args: unknown[]) => Promise<unknown> }).value = async function (
+      ...args: unknown[]
+    ) {
+      const workflowId = DBOS.workflowID ?? "unknown";
 
-        return runStep(
-          (_signal) => originalMethod.apply(this, args),
-          { ...options, methodName },
-          { workflowId },
-        );
-      };
+      return runStep(
+        (_signal) => originalMethod.apply(this, args),
+        { ...options, methodName },
+        { workflowId },
+      );
+    };
 
     return descriptor;
   };

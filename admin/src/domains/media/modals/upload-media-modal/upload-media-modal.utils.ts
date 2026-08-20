@@ -44,15 +44,7 @@ const IMAGE_EXTENSIONS = [
 /**
  * Video file extensions
  */
-const VIDEO_EXTENSIONS = [
-  ".mp4",
-  ".webm",
-  ".ogg",
-  ".mov",
-  ".avi",
-  ".mkv",
-  ".m4v",
-];
+const VIDEO_EXTENSIONS = [".mp4", ".webm", ".ogg", ".mov", ".avi", ".mkv", ".m4v"];
 
 /**
  * Check if a URL is a YouTube video URL
@@ -80,7 +72,7 @@ export function extractYouTubeId(url: string): string | null {
  */
 export function getYouTubeThumbnail(
   videoId: string,
-  quality: "default" | "mq" | "hq" | "sd" | "maxres" = "hq"
+  quality: "default" | "mq" | "hq" | "sd" | "maxres" = "hq",
 ): string {
   const qualityMap = {
     default: "default",
@@ -151,9 +143,7 @@ export async function validateImageUrl(url: string): Promise<boolean> {
 /**
  * Parse a media URL and return structured information
  */
-export async function parseMediaUrl(
-  url: string
-): Promise<ParsedMediaUrl | null> {
+export async function parseMediaUrl(url: string): Promise<ParsedMediaUrl | null> {
   // Trim and validate URL format
   const trimmedUrl = url.trim();
 

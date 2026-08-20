@@ -31,35 +31,22 @@ import { customerTaxIdentifierRelayQuery } from "../src/repositories/tax/Custome
 
 const outputDirectory = "src/api/graphql-admin/schema/__generated__";
 
-function excludedFields(
-  allFields: readonly string[],
-  includedFields: readonly string[]
-): string[] {
+function excludedFields(allFields: readonly string[], includedFields: readonly string[]): string[] {
   const included = new Set(includedFields);
   return allFields.filter((field) => !included.has(field));
 }
 
-function overrideFilterType(
-  source: string,
-  field: string,
-  filterType: string
-): string {
-  return source.replace(
-    new RegExp(`(\\n\\s+${field}: )\\w+Filter`),
-    `$1${filterType}`
-  );
+function overrideFilterType(source: string, field: string, filterType: string): string {
+  return source.replace(new RegExp(`(\\n\\s+${field}: )\\w+Filter`), `$1${filterType}`);
 }
 
 function appendWhereField(
   source: string,
   field: string,
   filterType: string,
-  description: string
+  description: string,
 ): string {
-  return source.replace(
-    /\n}$/,
-    `\n  """${description}"""\n  ${field}: ${filterType}\n}`
-  );
+  return source.replace(/\n}$/, `\n  """${description}"""\n  ${field}: ${filterType}\n}`);
 }
 
 function generateWhere<TQuery extends Parameters<typeof generateGraphQLTypes>[0]>(
@@ -67,7 +54,7 @@ function generateWhere<TQuery extends Parameters<typeof generateGraphQLTypes>[0]
   name: string,
   fields: readonly string[],
   fieldTypes: Record<string, GraphQLFieldType> = {},
-  filterTypes: Record<string, string> = {}
+  filterTypes: Record<string, string> = {},
 ): string {
   const allFields = generateGraphQLTypes(query, name, {
     includeBaseTypes: false,
@@ -88,7 +75,7 @@ function generateWhere<TQuery extends Parameters<typeof generateGraphQLTypes>[0]
 function generateOrder<TQuery extends Parameters<typeof generateGraphQLTypes>[0]>(
   query: TQuery,
   name: string,
-  fields: readonly string[]
+  fields: readonly string[],
 ): string {
   const allFields = generateGraphQLTypes(query, name, {
     includeBaseTypes: false,
@@ -166,19 +153,15 @@ let customerWhere = generateWhere(
     dateOfBirth: "DateFilter",
     emailMarketingState: "CustomerConsentStateFilter",
     totalSpentMinor: "BigIntFilter",
-  }
+  },
 );
 customerWhere = appendWhereField(
   customerWhere,
   "segmentId",
   "IDFilter",
-  "Match customers with a current membership in the selected segment IDs."
+  "Match customers with a current membership in the selected segment IDs.",
 );
-const customerOrder = generateOrder(
-  customerRelayQuery,
-  "Customer",
-  customerOrderFields
-);
+const customerOrder = generateOrder(customerRelayQuery, "Customer", customerOrderFields);
 
 const addressWhereFields = [
   "id",
@@ -217,12 +200,12 @@ const addressWhere = generateWhere(
   "CustomerAddress",
   addressWhereFields,
   { id: "ID" },
-  { validationStatus: "CustomerAddressValidationStatusFilter" }
+  { validationStatus: "CustomerAddressValidationStatusFilter" },
 );
 const addressOrder = generateOrder(
   customerAddressRelayQuery,
   "CustomerAddress",
-  addressOrderFields
+  addressOrderFields,
 );
 
 const taxIdentifierWhereFields = [
@@ -257,12 +240,12 @@ const taxIdentifierWhere = generateWhere(
     status: "CustomerTaxIdentifierStatusFilter",
     validFrom: "DateFilter",
     validTo: "DateFilter",
-  }
+  },
 );
 const taxIdentifierOrder = generateOrder(
   customerTaxIdentifierRelayQuery,
   "CustomerTaxIdentifier",
-  taxIdentifierOrderFields
+  taxIdentifierOrderFields,
 );
 
 const taxExemptionFields = [
@@ -285,19 +268,22 @@ const taxExemptionWhere = generateWhere(
     status: "CustomerTaxExemptionStatusFilter",
     validFrom: "DateFilter",
     validTo: "DateFilter",
-  }
+  },
 );
 const taxExemptionOrder = generateOrder(
   customerTaxExemptionRelayQuery,
   "CustomerTaxExemption",
-  taxExemptionFields
+  taxExemptionFields,
 );
 
-const consentEventOrder = generateOrder(
-  customerConsentEventRelayQuery,
-  "CustomerConsentEvent",
-  ["id", "channel", "newState", "source", "actorType", "occurredAt"]
-);
+const consentEventOrder = generateOrder(customerConsentEventRelayQuery, "CustomerConsentEvent", [
+  "id",
+  "channel",
+  "newState",
+  "source",
+  "actorType",
+  "occurredAt",
+]);
 
 const groupFields = [
   "id",
@@ -309,17 +295,10 @@ const groupFields = [
   "createdAt",
   "updatedAt",
 ] as const;
-const groupWhere = generateWhere(
-  customerGroupRelayQuery,
-  "CustomerGroup",
-  groupFields,
-  { id: "ID" }
-);
-const groupOrder = generateOrder(
-  customerGroupRelayQuery,
-  "CustomerGroup",
-  groupFields
-);
+const groupWhere = generateWhere(customerGroupRelayQuery, "CustomerGroup", groupFields, {
+  id: "ID",
+});
+const groupOrder = generateOrder(customerGroupRelayQuery, "CustomerGroup", groupFields);
 
 const groupMembershipWhereFields = [
   "id",
@@ -342,40 +321,28 @@ const groupMembershipWhere = generateWhere(
   "CustomerGroupMembership",
   groupMembershipWhereFields,
   { id: "ID", customerId: "ID", groupId: "ID" },
-  { source: "CustomerAssignmentSourceFilter" }
+  { source: "CustomerAssignmentSourceFilter" },
 );
 const groupMembershipOrder = generateOrder(
   customerGroupMembershipRelayQuery,
   "CustomerGroupMembership",
-  groupMembershipOrderFields
+  groupMembershipOrderFields,
 );
 
-const tagFields = [
-  "id",
-  "name",
-  "normalizedName",
-  "createdAt",
-  "updatedAt",
-] as const;
-const tagWhere = generateWhere(
-  customerTagRelayQuery,
-  "CustomerTag",
-  tagFields,
-  { id: "ID" }
-);
+const tagFields = ["id", "name", "normalizedName", "createdAt", "updatedAt"] as const;
+const tagWhere = generateWhere(customerTagRelayQuery, "CustomerTag", tagFields, { id: "ID" });
 const tagOrder = generateOrder(customerTagRelayQuery, "CustomerTag", tagFields);
 
 const tagAssignmentWhere = generateWhere(
   customerTagAssignmentRelayQuery,
   "CustomerTagAssignment",
   ["id", "customerId", "tagId", "assignedById", "assignedAt"],
-  { id: "ID", customerId: "ID", tagId: "ID" }
+  { id: "ID", customerId: "ID", tagId: "ID" },
 );
-const tagAssignmentOrder = generateOrder(
-  customerTagAssignmentRelayQuery,
-  "CustomerTagAssignment",
-  ["id", "assignedAt"]
-);
+const tagAssignmentOrder = generateOrder(customerTagAssignmentRelayQuery, "CustomerTagAssignment", [
+  "id",
+  "assignedAt",
+]);
 
 const segmentWhereFields = [
   "id",
@@ -410,12 +377,12 @@ const segmentWhere = generateWhere(
   {
     type: "CustomerSegmentTypeFilter",
     status: "CustomerSegmentStatusFilter",
-  }
+  },
 );
 const segmentOrder = generateOrder(
   customerSegmentRelayQuery,
   "CustomerSegment",
-  segmentOrderFields
+  segmentOrderFields,
 );
 
 const segmentMembershipWhereFields = [
@@ -426,23 +393,18 @@ const segmentMembershipWhereFields = [
   "evaluatedAt",
   "expiresAt",
 ] as const;
-const segmentMembershipOrderFields = [
-  "id",
-  "source",
-  "evaluatedAt",
-  "expiresAt",
-] as const;
+const segmentMembershipOrderFields = ["id", "source", "evaluatedAt", "expiresAt"] as const;
 const segmentMembershipWhere = generateWhere(
   customerSegmentMembershipRelayQuery,
   "CustomerSegmentMembership",
   segmentMembershipWhereFields,
   { id: "ID", customerId: "ID", segmentId: "ID" },
-  { source: "CustomerAssignmentSourceFilter" }
+  { source: "CustomerAssignmentSourceFilter" },
 );
 const segmentMembershipOrder = generateOrder(
   customerSegmentMembershipRelayQuery,
   "CustomerSegmentMembership",
-  segmentMembershipOrderFields
+  segmentMembershipOrderFields,
 );
 
 const monetaryFields = [
@@ -465,12 +427,12 @@ const monetaryWhere = generateWhere(
     totalRefundedMinor: "BigIntFilter",
     netSpentMinor: "BigIntFilter",
     averageOrderValueMinor: "BigIntFilter",
-  }
+  },
 );
 const monetaryOrder = generateOrder(
   customerMonetaryStatisticsRelayQuery,
   "CustomerMonetaryStatistics",
-  monetaryFields
+  monetaryFields,
 );
 
 const mergeWhereFields = [
@@ -500,13 +462,9 @@ const mergeWhere = generateWhere(
   "CustomerMerge",
   mergeWhereFields,
   { id: "ID", sourceCustomerId: "ID", targetCustomerId: "ID" },
-  { status: "CustomerMergeStatusFilter" }
+  { status: "CustomerMergeStatusFilter" },
 );
-const mergeOrder = generateOrder(
-  customerMergeRelayQuery,
-  "CustomerMerge",
-  mergeOrderFields
-);
+const mergeOrder = generateOrder(customerMergeRelayQuery, "CustomerMerge", mergeOrderFields);
 
 const dataRequestWhereFields = [
   "id",
@@ -540,12 +498,12 @@ const dataRequestWhere = generateWhere(
   {
     type: "CustomerDataRequestTypeFilter",
     status: "CustomerDataRequestStatusFilter",
-  }
+  },
 );
 const dataRequestOrder = generateOrder(
   customerDataRequestRelayQuery,
   "CustomerDataRequest",
-  dataRequestOrderFields
+  dataRequestOrderFields,
 );
 
 const baseFilters = `# Auto-generated GraphQL base filter types for Customers service.

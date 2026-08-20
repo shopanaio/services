@@ -1,7 +1,5 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
 import type { RichText } from "./interfaces/index.js";
 import type { Collection } from "../../repositories/models/index.js";
@@ -12,9 +10,7 @@ export class CollectionResolver extends CatalogType<string, Collection> {
   async $preload() {
     const collection = await this.$ctx.loaders.collection.load(this.$props);
     if (!collection) {
-      throw new PreloadNotFoundError(
-        `Collection with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Collection with ID ${this.$props} not found`);
     }
     return collection;
   }
@@ -38,20 +34,24 @@ export class CollectionResolver extends CatalogType<string, Collection> {
 
   async description(): Promise<RichText | null> {
     const translation = await this.$ctx.loaders.collectionTranslation.load(this.$props);
-    return toRichText(translation && {
-      text: translation.descriptionText,
-      html: translation.descriptionHtml,
-      json: translation.descriptionJson,
-    });
+    return toRichText(
+      translation && {
+        text: translation.descriptionText,
+        html: translation.descriptionHtml,
+        json: translation.descriptionJson,
+      },
+    );
   }
 
   async excerpt(): Promise<RichText | null> {
     const translation = await this.$ctx.loaders.collectionTranslation.load(this.$props);
-    return toRichText(translation && {
-      text: translation.excerptText,
-      html: translation.excerptHtml,
-      json: translation.excerptJson,
-    });
+    return toRichText(
+      translation && {
+        text: translation.excerptText,
+        html: translation.excerptHtml,
+        json: translation.excerptJson,
+      },
+    );
   }
 
   async media() {
@@ -120,9 +120,7 @@ export class CollectionResolver extends CatalogType<string, Collection> {
   }
 
   async rules() {
-    const rows = await this.$ctx.kernel.repository.collectionRule.findByCollectionId(
-      this.$props
-    );
+    const rows = await this.$ctx.kernel.repository.collectionRule.findByCollectionId(this.$props);
     const normalized = rows.map((row) => ({
       row,
       rule: normalizeCanonicalCollectionRuleV1({
@@ -133,13 +131,11 @@ export class CollectionResolver extends CatalogType<string, Collection> {
     }));
     const idsByType = {
       category: normalized.flatMap(({ rule }) =>
-        rule.field === "category" ? [...rule.value.ids] : []
+        rule.field === "category" ? [...rule.value.ids] : [],
       ),
-      tag: normalized.flatMap(({ rule }) =>
-        rule.field === "tag" ? [...rule.value.ids] : []
-      ),
+      tag: normalized.flatMap(({ rule }) => (rule.field === "tag" ? [...rule.value.ids] : [])),
       vendor: normalized.flatMap(({ rule }) =>
-        rule.field === "vendor" ? [...rule.value.ids] : []
+        rule.field === "vendor" ? [...rule.value.ids] : [],
       ),
     };
     const [categories, tags, vendors] = await Promise.all([
@@ -154,14 +150,8 @@ export class CollectionResolver extends CatalogType<string, Collection> {
     };
     const result = normalized.map(({ row, rule }) => {
       let referenceStatus = "NOT_APPLICABLE";
-      if (
-        rule.field === "category" ||
-        rule.field === "tag" ||
-        rule.field === "vendor"
-      ) {
-        referenceStatus = rule.value.ids.every((id) =>
-          existingIds[rule.field].has(id)
-        )
+      if (rule.field === "category" || rule.field === "tag" || rule.field === "vendor") {
+        referenceStatus = rule.value.ids.every((id) => existingIds[rule.field].has(id))
           ? "VALID"
           : "STALE";
       }
@@ -176,9 +166,7 @@ export class CollectionResolver extends CatalogType<string, Collection> {
           __typename: "CollectionCategoryRule" as const,
           ...common,
           operator: rule.operator.toUpperCase(),
-          categoryIds: rule.value.ids.map((id) =>
-            this.encodeId(id, GlobalIdEntity.Category)
-          ),
+          categoryIds: rule.value.ids.map((id) => this.encodeId(id, GlobalIdEntity.Category)),
         };
       }
       if (rule.field === "tag") {
@@ -186,18 +174,14 @@ export class CollectionResolver extends CatalogType<string, Collection> {
           __typename: "CollectionTagRule" as const,
           ...common,
           operator: rule.operator.toUpperCase(),
-          tagIds: rule.value.ids.map((id) =>
-            this.encodeId(id, GlobalIdEntity.Tag)
-          ),
+          tagIds: rule.value.ids.map((id) => this.encodeId(id, GlobalIdEntity.Tag)),
         };
       }
       if (rule.field === "vendor") {
         return {
           __typename: "CollectionVendorRule" as const,
           ...common,
-          vendorIds: rule.value.ids.map((id) =>
-            this.encodeId(id, GlobalIdEntity.Vendor)
-          ),
+          vendorIds: rule.value.ids.map((id) => this.encodeId(id, GlobalIdEntity.Vendor)),
         };
       }
       if (rule.field === "feature") {
@@ -256,16 +240,15 @@ export class CollectionResolver extends CatalogType<string, Collection> {
         instant: "instant" in rule.value ? rule.value.instant : "",
       };
     });
-    const staleCount = result.filter(
-      (item) => item.referenceStatus === "STALE",
-    ).length;
+    const staleCount = result.filter((item) => item.referenceStatus === "STALE").length;
     if (staleCount > 0) {
-      this.$ctx.kernel.getServices().logger.warn(
-        { collectionId: this.$props, staleCount },
-        "Collection contains stale rule references",
-      );
+      this.$ctx.kernel
+        .getServices()
+        .logger.warn(
+          { collectionId: this.$props, staleCount },
+          "Collection contains stale rule references",
+        );
     }
     return result;
   }
-
 }

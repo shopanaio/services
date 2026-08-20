@@ -2,20 +2,19 @@
 
 ## Контекст
 
-`services/listing/docs/listing-index-redesign-plan.ru.md` отделяет listing read model от
-full-text search. `product_listing_index` и `variant_listing_index` отвечают за
-scope, filters, facets, counts, pagination и sort.
+`services/listing/docs/listing-index-redesign-plan.ru.md` отделяет listing read model от full-text
+search. `product_listing_index` и `variant_listing_index` отвечают за scope, filters, facets,
+counts, pagination и sort.
 
-Этот документ описывает отдельный BM25 индекс только для поиска по названию
-товара. Индекс не ищет по description, SEO, handle, vendor, tags, features,
-options или другим полям. Текстовый поиск возвращает candidate set и BM25 score,
-а финальная видимость, variant-correct filters, facet counts и business sort
-остаются в listing SQL pipeline.
+Этот документ описывает отдельный BM25 индекс только для поиска по названию товара. Индекс не ищет
+по description, SEO, handle, vendor, tags, features, options или другим полям. Текстовый поиск
+возвращает candidate set и BM25 score, а финальная видимость, variant-correct filters, facet counts
+и business sort остаются в listing SQL pipeline.
 
-Техническая база: ParadeDB `pg_search` extension. На момент проверки
-документации ParadeDB v0.24.1:
+Техническая база: ParadeDB `pg_search` extension. На момент проверки документации ParadeDB v0.24.1:
 
-- extension устанавливается как `pg_search`, требует `shared_preload_libraries = 'pg_search'` и `CREATE EXTENSION pg_search`;
+- extension устанавливается как `pg_search`, требует `shared_preload_libraries = 'pg_search'` и
+  `CREATE EXTENSION pg_search`;
 - индекс создается через `USING bm25 (...) WITH (key_field = '...')`;
 - key field должен быть уникальным, первым полем BM25 index и row identifier;
 - для scoring используется `pdb.score(<key_field>)`;
@@ -35,8 +34,7 @@ options или другим полям. Текстовый поиск возвр
 
 1. Добавить PostgreSQL-native BM25 search без Typesense/Elasticsearch.
 2. Искать только по product title в выбранной locale.
-3. Сохранить разделение: BM25 индекс ищет название, listing index фильтрует и
-   считает фасеты.
+3. Сохранить разделение: BM25 индекс ищет название, listing index фильтрует и считает фасеты.
 4. Поддержать multi-tenant и locale-aware поиск: `store_id` + `locale`.
 5. Возвращать стабильный relevance sort в общем listing contract:
    `in_stock DESC, relevance_score DESC, product_id ASC`.
@@ -52,13 +50,13 @@ options или другим полям. Текстовый поиск возвр
 - Не строить semantic/vector search.
 - Не внедрять Metarank или персонализацию.
 - Не делать cross-service global search.
-- Не смешивать этот индекс со structured listing read model:
-  `listing.product_listing_index` / `listing.variant_listing_index`.
+- Не смешивать этот индекс со structured listing read model: `listing.product_listing_index` /
+  `listing.variant_listing_index`.
 
 ## Расширение и окружение
 
-`pg_search` является инфраструктурной зависимостью PostgreSQL instance, а не
-обычной SQL-only миграцией.
+`pg_search` является инфраструктурной зависимостью PostgreSQL instance, а не обычной SQL-only
+миграцией.
 
 Требования:
 
@@ -72,15 +70,12 @@ CREATE EXTENSION IF NOT EXISTS pg_search;
 
 Deployment rules:
 
-- В локальном docker/dev окружении добавить образ или init step с установленным
-  `pg_search`.
-- В self-hosted/prod окружении extension должен быть установлен до миграций
-  listing service.
-- Миграция listing service может выполнять
-  `CREATE EXTENSION IF NOT EXISTS pg_search`, но не может сама поменять
-  `shared_preload_libraries`.
-- Если extension недоступен, storefront search должен явно падать при старте
-  сервиса или миграции, а не молча переключаться на `ILIKE`.
+- В локальном docker/dev окружении добавить образ или init step с установленным `pg_search`.
+- В self-hosted/prod окружении extension должен быть установлен до миграций listing service.
+- Миграция listing service может выполнять `CREATE EXTENSION IF NOT EXISTS pg_search`, но не может
+  сама поменять `shared_preload_libraries`.
+- Если extension недоступен, storefront search должен явно падать при старте сервиса или миграции, а
+  не молча переключаться на `ILIKE`.
 
 ## Новая схема
 
@@ -88,10 +83,9 @@ Deployment rules:
 
 - `listing.product_title_bm25_search_index`
 
-Одна строка на product + locale. `store_id` хранится как tenant scope column
-для фильтрации и индексов, но не входит в PK/FK, потому что `product_id`
-является глобальным идентификатором product row. Валюта не входит в search
-index: цена и доступность остаются в listing index.
+Одна строка на product + locale. `store_id` хранится как tenant scope column для фильтрации и
+индексов, но не входит в PK/FK, потому что `product_id` является глобальным идентификатором product
+row. Валюта не входит в search index: цена и доступность остаются в listing index.
 
 ```sql
 CREATE TABLE listing.product_title_bm25_search_index (
@@ -121,16 +115,14 @@ CREATE TABLE listing.product_title_bm25_search_index (
 Column semantics:
 
 - `search_id` is the BM25 key field. It must be globally unique and stable for
-  `(product_id, locale)`. Use deterministic UUID or preserve the generated value
-  on upsert.
-- `store_id` comes from indexing snapshot and is used for tenant isolation in
-  queries and ordinary/BM25 indexes. It is not part of the row identity.
-- `status` mirrors product visibility. Soft-deleted products are deleted from the
-  index.
-- `title` comes only from upstream title snapshot data for the same `product_id`,
-  `store_id` and `locale`.
-- Empty or missing title rows should be indexed as `title = ''` only if the
-  locale is enabled for the project. They will not match normal text queries.
+  `(product_id, locale)`. Use deterministic UUID or preserve the generated value on upsert.
+- `store_id` comes from indexing snapshot and is used for tenant isolation in queries and
+  ordinary/BM25 indexes. It is not part of the row identity.
+- `status` mirrors product visibility. Soft-deleted products are deleted from the index.
+- `title` comes only from upstream title snapshot data for the same `product_id`, `store_id` and
+  `locale`.
+- Empty or missing title rows should be indexed as `title = ''` only if the locale is enabled for
+  the project. They will not match normal text queries.
 
 Ordinary indexes:
 
@@ -165,22 +157,21 @@ CREATE INDEX idx_product_title_bm25_search
 Notes:
 
 - `title` is the only searchable text field.
-- `store_id`, `locale`, `status`, `kind` are included so tenant, locale and
-  visibility filters stay inside the BM25 query.
-- Before implementation, verify that the selected `pg_search` version accepts
-  `uuid`, `varchar` and `timestamptz` fields in `USING bm25`. If `uuid` is not
-  accepted as key field, replace `search_id uuid` with `search_key text` and
-  keep it unique. If non-text fields are not accepted for indexed filters, keep
-  only supported fields in BM25 index and apply unsupported filters in the SQL
-  wrapper before joining listing index.
+- `store_id`, `locale`, `status`, `kind` are included so tenant, locale and visibility filters stay
+  inside the BM25 query.
+- Before implementation, verify that the selected `pg_search` version accepts `uuid`, `varchar` and
+  `timestamptz` fields in `USING bm25`. If `uuid` is not accepted as key field, replace
+  `search_id uuid` with `search_key text` and keep it unique. If non-text fields are not accepted
+  for indexed filters, keep only supported fields in BM25 index and apply unsupported filters in the
+  SQL wrapper before joining listing index.
 
 ## Tokenizers и языки
 
 Phase 1:
 
 - использовать default unicode tokenizer для mixed `uk/en/ru`;
-- не включать stemming как обязательный шаг, пока не выбрана стратегия для
-  украинского и русского языков;
+- не включать stemming как обязательный шаг, пока не выбрана стратегия для украинского и русского
+  языков;
 - fuzzy делать только fallback по названию, а не основным запросом.
 
 ## Query flow
@@ -206,9 +197,9 @@ Normalizer:
 
 ### 2. BM25 candidate relation
 
-For relevance sort and exact facet/total semantics, the search relation must
-represent all title matches for the normalized query inside project + locale +
-visibility. It is part of the SQL pipeline, not a TypeScript in-memory list.
+For relevance sort and exact facet/total semantics, the search relation must represent all title
+matches for the normalized query inside project + locale + visibility. It is part of the SQL
+pipeline, not a TypeScript in-memory list.
 
 Baseline exact shape:
 
@@ -225,28 +216,26 @@ WITH search_candidates AS (
 )
 ```
 
-Do not apply a hard top-K `LIMIT` to this relation when it feeds `base_all`,
-facet counts or `totalCount`. A limited candidate relation changes storefront
-semantics: counts would describe only top-K title matches, not the full title
-query result.
+Do not apply a hard top-K `LIMIT` to this relation when it feeds `base_all`, facet counts or
+`totalCount`. A limited candidate relation changes storefront semantics: counts would describe only
+top-K title matches, not the full title query result.
 
 Optional page preselection optimization:
 
-- A separate `page_candidates` CTE may use top-K/top-N only after exact
-  `totalCount` and facet aggregation semantics are preserved.
-- If the implementation deliberately chooses capped search semantics for large
-  catalogs, the cap must become part of the API contract and observability; do
-  not silently mix capped candidates with exact listing counts.
-- Initial implementation should prefer exact semantics, then use
-  `EXPLAIN ANALYZE` to decide whether a page-only top-K optimization is needed.
+- A separate `page_candidates` CTE may use top-K/top-N only after exact `totalCount` and facet
+  aggregation semantics are preserved.
+- If the implementation deliberately chooses capped search semantics for large catalogs, the cap
+  must become part of the API contract and observability; do not silently mix capped candidates with
+  exact listing counts.
+- Initial implementation should prefer exact semantics, then use `EXPLAIN ANALYZE` to decide whether
+  a page-only top-K optimization is needed.
 
-For relevance ordering of page rows, sort after the listing pipeline applies
-scope, visibility, structured filters and availability bucket.
+For relevance ordering of page rows, sort after the listing pipeline applies scope, visibility,
+structured filters and availability bucket.
 
 ### 3. Join with listing pipeline
 
-`search_candidates` becomes an optional candidate set inside the existing listing
-SQL flow:
+`search_candidates` becomes an optional candidate set inside the existing listing SQL flow:
 
 ```sql
 base_all AS (
@@ -269,12 +258,12 @@ When query is empty, omit `search_candidates` and run normal listing.
 Important:
 
 - BM25 narrows the product universe only when `query` is present.
-- Facet aggregation still uses `base_all` after applying search candidate set, so
-  counts reflect the current title query plus scope.
-- Facet isolation works exactly as in the listing index plan; title query is not
-  a facet and is never isolated out.
-- Variant-level filters still use `variant_listing_index` and must remain one
-  grouped predicate over the same variant row.
+- Facet aggregation still uses `base_all` after applying search candidate set, so counts reflect the
+  current title query plus scope.
+- Facet isolation works exactly as in the listing index plan; title query is not a facet and is
+  never isolated out.
+- Variant-level filters still use `variant_listing_index` and must remain one grouped predicate over
+  the same variant row.
 
 ### 4. Sort and cursor rules
 
@@ -288,8 +277,7 @@ If client explicitly selects business sort (`price`, `newest`, `name`, `manual`)
 
 - keep the BM25 candidate set as a filter;
 - sort by the selected listing sort;
-- use `relevance_score DESC` only as optional tie-breaker before
-  `product_id ASC`.
+- use `relevance_score DESC` only as optional tie-breaker before `product_id ASC`.
 
 Example:
 
@@ -300,24 +288,24 @@ ORDER BY in_stock DESC, min_price_minor ASC NULLS LAST, relevance_score DESC, pr
 Cursor pagination:
 
 - Relevance cursor includes `in_stock`, `relevance_score` and `product_id`.
-- Business-sort cursors include the selected listing sort keys, optional
-  `relevance_score` tie-breaker and `product_id`.
-- Cursor filter hash includes normalized `query`, `store_id`, `locale`,
-  `currency`, listing scope, structured filters and selected sort. A cursor from
-  one query/scope/filter set must not be reused for another result set.
-- Do not use offset to derive search depth. Pagination stays keyset/cursor based
-  as in the listing index plan.
+- Business-sort cursors include the selected listing sort keys, optional `relevance_score`
+  tie-breaker and `product_id`.
+- Cursor filter hash includes normalized `query`, `store_id`, `locale`, `currency`, listing scope,
+  structured filters and selected sort. A cursor from one query/scope/filter set must not be reused
+  for another result set.
+- Do not use offset to derive search depth. Pagination stays keyset/cursor based as in the listing
+  index plan.
 
 ## Fuzzy fallback
 
-Primary query should be exact token BM25 over `title`. Fuzzy should run only when
-primary candidate count is too low.
+Primary query should be exact token BM25 over `title`. Fuzzy should run only when primary candidate
+count is too low.
 
 Policy:
 
 1. Run primary title BM25.
-2. If candidate count is `< fuzzyThreshold` and query length is within safe
-   bounds, run fuzzy title query.
+2. If candidate count is `< fuzzyThreshold` and query length is within safe bounds, run fuzzy title
+   query.
 3. Merge candidates with primary candidates, preserving primary rank first.
 
 Example fuzzy CTE:
@@ -337,11 +325,10 @@ fuzzy_candidates AS (
 )
 ```
 
-If fuzzy candidates feed `base_all`, the same exact-vs-capped rule applies as
-for primary candidates: do not silently use a fuzzy top-K relation for
-`totalCount` or facet counts. `fuzzyCandidateLimit` is acceptable only for a
-page-only optimization after exact semantics are preserved, or for an explicit
-capped-search API contract.
+If fuzzy candidates feed `base_all`, the same exact-vs-capped rule applies as for primary
+candidates: do not silently use a fuzzy top-K relation for `totalCount` or facet counts.
+`fuzzyCandidateLimit` is acceptable only for a page-only optimization after exact semantics are
+preserved, or for an explicit capped-search API contract.
 
 Avoid `fuzzy(2)` by default for short queries and non-Latin text until measured.
 
@@ -361,8 +348,7 @@ Add scripts:
 `SyncProductTitleBm25SearchIndexScript`:
 
 1. Normalize product title indexing snapshot by `product_id` and `store_id`.
-2. If product is deleted/missing, delete all locale rows for product in the same
-   `store_id`.
+2. If product is deleted/missing, delete all locale rows for product in the same `store_id`.
 3. Read enabled project locales from the snapshot/project command.
 4. Read title values per enabled locale from snapshot data.
 5. Upsert one row per product/locale with only `title` as searchable text.
@@ -372,13 +358,13 @@ Add scripts:
 `RebuildProductTitleBm25SearchIndexScript`:
 
 1. Supports project-scoped rebuild mode.
-2. Project-scoped rebuild deletes rows by `store_id`, then rebuilds only that
-   project. This mode is used for enabled locale changes.
+2. Project-scoped rebuild deletes rows by `store_id`, then rebuilds only that project. This mode is
+   used for enabled locale changes.
 3. Process products in batches.
 4. Sync title search index for every active and draft product in scope.
 5. Log project count, product count, locale count, skipped rows and duration.
-6. Run `VACUUM ANALYZE listing.product_title_bm25_search_index` after large
-   rebuild if operationally acceptable.
+6. Run `VACUUM ANALYZE listing.product_title_bm25_search_index` after large rebuild if operationally
+   acceptable.
 
 ## Event coverage
 
@@ -443,39 +429,36 @@ Rules:
 1. Add infrastructure documentation/config for `pg_search` in local PostgreSQL.
 2. Add Drizzle model for `product_title_bm25_search_index`.
 3. Add handwritten listing migration
-   `services/listing/migrations/domains/0100_listing_index/0101_listing_index__bm25_search.sql`
-   with `CREATE EXTENSION IF NOT EXISTS pg_search`, table, ordinary indexes and
-   BM25 index. Do not use Drizzle migration generation for listing; keep
-   `shared_preload_libraries = 'pg_search'` in infrastructure config outside
-   SQL migrations.
+   `services/listing/migrations/domains/0100_listing_index/0101_listing_index__bm25_search.sql` with
+   `CREATE EXTENSION IF NOT EXISTS pg_search`, table, ordinary indexes and BM25 index. Do not use
+   Drizzle migration generation for listing; keep `shared_preload_libraries = 'pg_search'` in
+   infrastructure config outside SQL migrations.
 4. Add `ProductTitleBm25SearchIndexRepository`.
 5. Add sync/delete/project-scoped rebuild scripts.
-6. Wire only product lifecycle, publish/unpublish, product translation name and
-   project locale event handlers.
+6. Wire only product lifecycle, publish/unpublish, product translation name and project locale event
+   handlers.
 7. Add `ProductTitleSearchQueryRepository` with raw SQL BM25 CTE methods.
 8. Integrate optional `search_candidates` into `ListingQueryRepository`.
 9. Add storefront GraphQL `query` and `RELEVANCE` sort handling.
-10. Add observability: query text hash, candidate count, result count, duration,
-    fuzzy fallback flag.
+10. Add observability: query text hash, candidate count, result count, duration, fuzzy fallback
+    flag.
 11. Run project-scoped rebuild for locale changes and initial rollout.
 12. Compare `EXPLAIN ANALYZE` for relevance and explicit business sort flows.
 
 ## Acceptance criteria
 
-- Project-scoped rebuild deletes and recreates only rows for the selected
-  `store_id`.
+- Project-scoped rebuild deletes and recreates only rows for the selected `store_id`.
 - Search query with `query` uses BM25 candidate CTE over `title` only.
-- No description, SEO, handle, vendor, tag, feature, option or category text is
-  stored in the BM25 search table.
-- Query results are tenant-isolated by `store_id` and locale-isolated by
-  `locale`.
+- No description, SEO, handle, vendor, tag, feature, option or category text is stored in the BM25
+  search table.
+- Query results are tenant-isolated by `store_id` and locale-isolated by `locale`.
 - Relevance sort is deterministic and availability-first:
   `in_stock DESC, relevance_score DESC, product_id ASC`.
 - Explicit business sorts still work after title search narrows candidates.
-- Cursor pagination for relevance includes `in_stock`, `relevance_score`,
-  `product_id` and a hash of query/scope/filters/currency/locale/sort.
-- Facet counts and `totalCount` reflect the full title query + scope + active
-  filters, not an unannounced top-K subset.
+- Cursor pagination for relevance includes `in_stock`, `relevance_score`, `product_id` and a hash of
+  query/scope/filters/currency/locale/sort.
+- Facet counts and `totalCount` reflect the full title query + scope + active filters, not an
+  unannounced top-K subset.
 - Facet isolation does not remove the title query.
 - Variant-level filters remain variant-correct through `variant_listing_index`.
 - Product price/stock/currency/facet changes do not trigger title BM25 resync.
@@ -487,5 +470,4 @@ Rules:
 - Locale-specific tokenizer/stemmer for title.
 - Synonyms for title queries only.
 - Search query logs and popular title suggestions.
-- Read replica dedicated to search if BM25 workload competes with upstream
-  source write workload.
+- Read replica dedicated to search if BM25 workload competes with upstream source write workload.

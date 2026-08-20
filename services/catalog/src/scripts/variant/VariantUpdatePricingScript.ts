@@ -25,9 +25,7 @@ export class VariantUpdatePricingScript extends BaseScript<
   VariantUpdatePricingParams,
   VariantUpdatePricingResult
 > {
-  protected async execute(
-    params: VariantUpdatePricingParams
-  ): Promise<VariantUpdatePricingResult> {
+  protected async execute(params: VariantUpdatePricingParams): Promise<VariantUpdatePricingResult> {
     const { variantId, currency, amountMinor, compareAtMinor } = params;
 
     // Validate variant exists
@@ -38,23 +36,15 @@ export class VariantUpdatePricingScript extends BaseScript<
 
     // Validate amounts
     if (amountMinor < 0) {
-      return singleError(
-        "Price amount must be a non-negative value",
-        "INVALID_AMOUNT",
-        ["amountMinor"]
-      );
+      return singleError("Price amount must be a non-negative value", "INVALID_AMOUNT", [
+        "amountMinor",
+      ]);
     }
 
-    if (
-      compareAtMinor !== undefined &&
-      compareAtMinor !== null &&
-      compareAtMinor < 0
-    ) {
-      return singleError(
-        "Compare at price must be a non-negative value",
-        "INVALID_COMPARE_AT",
-        ["compareAtMinor"]
-      );
+    if (compareAtMinor !== undefined && compareAtMinor !== null && compareAtMinor < 0) {
+      return singleError("Compare at price must be a non-negative value", "INVALID_COMPARE_AT", [
+        "compareAtMinor",
+      ]);
     }
 
     const typedCurrency = currency as CurrencyCode;
@@ -94,10 +84,7 @@ export class VariantUpdatePricingScript extends BaseScript<
       changes.compareAt = compareAtMinor;
     }
 
-    this.logger.info(
-      { variantId, currency, amountMinor },
-      "Variant pricing updated successfully"
-    );
+    this.logger.info({ variantId, currency, amountMinor }, "Variant pricing updated successfully");
 
     return successResult(price, changes);
   }

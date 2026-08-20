@@ -18,19 +18,17 @@ price virtual facet              -> только in-stock prices
 
 Неявный `in-stock` зашит одновременно в query compilers и physical index:
 
-- `compileFacetCountsQuerySql.ts` пересекает facet scope с
-  `product_listing_index.in_stock = true`;
+- `compileFacetCountsQuerySql.ts` пересекает facet scope с `product_listing_index.in_stock = true`;
 - option signatures строятся только из `variant.inStock = true`;
 - option filter без явного availability использует `plan.inStock ?? true`;
-- `compileFiltersSql.ts` неявно добавляет bitmap in-stock variants при OPTION
-  или PRICE;
-- `variant_listing_price_index` пока разделяет source/runtime contract неявно и
-  runtime paths трактуют priced rows как in-stock-only;
-- matched-price sorting, price range и price-related option counts опираются на
-  этот in-stock-only posting.
+- `compileFiltersSql.ts` неявно добавляет bitmap in-stock variants при OPTION или PRICE;
+- `variant_listing_price_index` пока разделяет source/runtime contract неявно и runtime paths
+  трактуют priced rows как in-stock-only;
+- matched-price sorting, price range и price-related option counts опираются на этот in-stock-only
+  posting.
 
-Изменение должно убрать implicit stock filtering и сделать availability одним
-явным variant-level predicate во всех listing branches.
+Изменение должно убрать implicit stock filtering и сделать availability одним явным variant-level
+predicate во всех listing branches.
 
 ## Архитектурное решение
 
@@ -52,43 +50,42 @@ available = true      -> matching variant.available = true
 available = false     -> matching variant.available = false
 ```
 
-Listing возвращает products, поэтому variant predicate всегда применяется до
-variant-to-product projection.
+Listing возвращает products, поэтому variant predicate всегда применяется до variant-to-product
+projection.
 
-Для запроса `available:false` это означает «существует matching unavailable
-variant», а не «у продукта нет available variants».
+Для запроса `available:false` это означает «существует matching unavailable variant», а не «у
+продукта нет available variants».
 
 Следствия:
 
-- mixed product с available и unavailable variants входит и в `available:true`,
-  и в `available:false`;
+- mixed product с available и unavailable variants входит и в `available:true`, и в
+  `available:false`;
 - buckets `true` и `false` могут пересекаться на уровне products;
 - `trueCount + falseCount` может быть больше числа distinct products;
-- одновременный input `true` и `false` остается validation error, потому что
-  request выбирает один availability mode;
-- published product без индексируемых variants входит в `ALL`, но не входит ни
-  в `true`, ни в `false`.
+- одновременный input `true` и `false` остается validation error, потому что request выбирает один
+  availability mode;
+- published product без индексируемых variants входит в `ALL`, но не входит ни в `true`, ни в
+  `false`.
 
-Если storefront понадобится отдельный фильтр «product полностью out of stock»,
-это другой product-level contract. Его нельзя выражать контекстной заменой
-variant predicate на `product.in_stock = false`.
+Если storefront понадобится отдельный фильтр «product полностью out of stock», это другой
+product-level contract. Его нельзя выражать контекстной заменой variant predicate на
+`product.in_stock = false`.
 
 ### Монотонность conjunctive constraints
 
-При добавлении нового AND-group, сужении PRICE range или переходе из `ALL` в
-explicit availability должен выполняться инвариант:
+При добавлении нового AND-group, сужении PRICE range или переходе из `ALL` в explicit availability
+должен выполняться инвариант:
 
 ```text
 matches(filters AND X) ⊆ matches(filters)
 ```
 
-Поэтому availability нельзя применять к product aggregate без OPTION/PRICE и к
-variant с OPTION/PRICE. Во всех explicit modes должен существовать variant
-witness.
+Поэтому availability нельзя применять к product aggregate без OPTION/PRICE и к variant с
+OPTION/PRICE. Во всех explicit modes должен существовать variant witness.
 
-Это правило не относится к добавлению второго value/ID внутрь уже существующей
-OR-group: расширение `color=red` до `color=red OR blue` или vendor list может
-расширить результат и является ожидаемым поведением.
+Это правило не относится к добавлению второго value/ID внутрь уже существующей OR-group: расширение
+`color=red` до `color=red OR blue` или vendor list может расширить результат и является ожидаемым
+поведением.
 
 ### Канонический query contract
 
@@ -114,28 +111,26 @@ productMatches =
     : productBase
 ```
 
-Page, totalCount, discrete counts, virtual facets и price sort должны выводиться
-из этого контракта, а не собирать собственную availability-семантику.
+Page, totalCount, discrete counts, virtual facets и price sort должны выводиться из этого контракта,
+а не собирать собственную availability-семантику.
 
 ## Цели
 
 После изменения:
 
-1. Listing и facets без `available` работают по всем published products и всем
-   индексируемым variants.
+1. Listing и facets без `available` работают по всем published products и всем индексируемым
+   variants.
 2. `available:true` возвращает products с matching available variant.
 3. `available:false` возвращает products с matching unavailable variant.
 4. OPTION + PRICE + availability применяются к одной variant row.
-5. Добавление нового conjunctive filter group не может расширить result set;
-   расширение OR-group описывается отдельно.
-6. Facet isolation исключает только текущий facet и сохраняет остальные
-   filters.
-7. Metadata никогда не теряет active selected value; несовместимое selected
-   value возвращается с count `0`.
-8. Availability-first product ordering сохраняется и не становится скрытым
-   membership filter.
-9. Page и totalCount имеют одинаковый membership при любом sort, включая
-   products без eligible price.
+5. Добавление нового conjunctive filter group не может расширить result set; расширение OR-group
+   описывается отдельно.
+6. Facet isolation исключает только текущий facet и сохраняет остальные filters.
+7. Metadata никогда не теряет active selected value; несовместимое selected value возвращается с
+   count `0`.
+8. Availability-first product ordering сохраняется и не становится скрытым membership filter.
+9. Page и totalCount имеют одинаковый membership при любом sort, включая products без eligible
+   price.
 10. Все read branches одного request видят один database snapshot.
 
 ## Non-goals
@@ -149,22 +144,19 @@ Page, totalCount, discrete counts, virtual facets и price sort должны в�
 - добавлять Redis/cache для listing query;
 - вводить product-level фильтр «нет ни одного available variant».
 
-Stage/prod данных и пользователей нет. План предполагает изменение текущего
-кода и целевой DB schema без переноса или заполнения исторических index rows.
+Stage/prod данных и пользователей нет. План предполагает изменение текущего кода и целевой DB schema
+без переноса или заполнения исторических index rows.
 
 ## Термины
 
 ### Availability mode
 
 ```ts
-type ListingAvailabilityMode =
-  | "ALL"
-  | "AVAILABLE"
-  | "UNAVAILABLE";
+type ListingAvailabilityMode = "ALL" | "AVAILABLE" | "UNAVAILABLE";
 ```
 
-Маппинг выполняется один раз после normalization direct `available` и virtual
-`IN_STOCK` facet inputs:
+Маппинг выполняется один раз после normalization direct `available` и virtual `IN_STOCK` facet
+inputs:
 
 ```text
 normalized available отсутствует -> ALL
@@ -174,15 +166,13 @@ normalized available = false     -> UNAVAILABLE
 
 `undefined` запрещено заменять на `true` downstream helpers.
 
-Для `IN_STOCK` нет persisted `facet_value`, но существующий публичный path
-через configured `facet.slug` сохраняется как virtual resolution: resolver
-проверяет существование store-scoped `facet` row типа `IN_STOCK` и парсит
-поддерживаемый boolean-like handle в ту же boolean value. У `facet` нет
-`enabled` lifecycle field, поэтому такой check не выдумывается. Direct и facet
-inputs объединяются до вычисления mode; противоречие true/false дает validation
-error. Downstream не различает источник filter. Canonical reusable output
-остается `{ available: true | false }`, поэтому новые clients не зависят от
-aliases.
+Для `IN_STOCK` нет persisted `facet_value`, но существующий публичный path через configured
+`facet.slug` сохраняется как virtual resolution: resolver проверяет существование store-scoped
+`facet` row типа `IN_STOCK` и парсит поддерживаемый boolean-like handle в ту же boolean value. У
+`facet` нет `enabled` lifecycle field, поэтому такой check не выдумывается. Direct и facet inputs
+объединяются до вычисления mode; противоречие true/false дает validation error. Downstream не
+различает источник filter. Canonical reusable output остается `{ available: true | false }`, поэтому
+новые clients не зависят от aliases.
 
 ### Indexable variant
 
@@ -200,11 +190,10 @@ variant.status = active
 - availability candidates;
 - product availability aggregate.
 
-Catalog snapshot содержит только текущие non-deleted variants, и mapper создает
-для них active listing variants. Listing broker contract дополнительно
-разрешает inactive/archived, поэтому write model обязан защищать инвариант и не
-индексировать такие rows. Удаление Catalog variant представлено исчезновением
-из следующего snapshot и stale-variant cleanup.
+Catalog snapshot содержит только текущие non-deleted variants, и mapper создает для них active
+listing variants. Listing broker contract дополнительно разрешает inactive/archived, поэтому write
+model обязан защищать инвариант и не индексировать такие rows. Удаление Catalog variant представлено
+исчезновением из следующего snapshot и stale-variant cleanup.
 
 ### Canonical variant availability
 
@@ -214,32 +203,30 @@ Availability означает upstream sellable-state, включая backorder:
 variant.in_stock = variant.availability.availableForSale
 ```
 
-Physical column продолжает называться `in_stock`, но его contract —
-`availableForSale`, а не `totalQuantity > 0`.
+Physical column продолжает называться `in_stock`, но его contract — `availableForSale`, а не
+`totalQuantity > 0`.
 
-`totalQuantity` не участвует в boolean availability. Для существующего
-non-negative `total_stock` хранится:
+`totalQuantity` не участвует в boolean availability. Для существующего non-negative `total_stock`
+хранится:
 
 ```text
 normalizedTotalStock = max(0, totalQuantity ?? 0)
 ```
 
-Signed inventory quantity, если она понадобится для diagnostics, должна иметь
-отдельное поле. Нельзя писать отрицательное значение в `total_stock` и
-нарушать DB check.
+Signed inventory quantity, если она понадобится для diagnostics, должна иметь отдельное поле. Нельзя
+писать отрицательное значение в `total_stock` и нарушать DB check.
 
 ### Product availability aggregate
 
-`product_listing_index.in_stock` вычисляется только из canonical indexable
-variants:
+`product_listing_index.in_stock` вычисляется только из canonical indexable variants:
 
 ```text
 product.in_stock = any(indexable variant.in_stock = true)
 product.total_stock = sum(indexable variant.normalizedTotalStock)
 ```
 
-Upstream product availability snapshot используется для diagnostics/parity
-warning, но не является независимым source of truth.
+Upstream product availability snapshot используется для diagnostics/parity warning, но не является
+независимым source of truth.
 
 Product aggregate разрешено использовать только для:
 
@@ -247,9 +234,8 @@ Product aggregate разрешено использовать только дл�
 - cursor key;
 - diagnostics и invariant audit.
 
-Он не участвует в membership, metadata или counts. Это особенно важно для
-`UNAVAILABLE`, потому что mixed product может иметь `product.in_stock = true` и
-matching unavailable variant.
+Он не участвует в membership, metadata или counts. Это особенно важно для `UNAVAILABLE`, потому что
+mixed product может иметь `product.in_stock = true` и matching unavailable variant.
 
 ### Availability-first sort
 
@@ -262,28 +248,28 @@ product_listing_index.in_stock DESC
 `listing_posting_product_sort.bool_value` должен быть байт-в-байт равен
 `product_listing_index.in_stock`.
 
-Для mixed product в `available:false` sort key может оставаться `true`: это
-product ordering, а не membership predicate.
+Для mixed product в `available:false` sort key может оставаться `true`: это product ordering, а не
+membership predicate.
 
 ## Целевая семантика
 
 ### Базовая матрица
 
-| Mode | Product base | Variant witness | Price source |
-|---|---|---|---|
-| `ALL` | все published products в scope | не нужен без OPTION/PRICE | все priced active variants |
-| `AVAILABLE` | тот же published product base | существует matching `variant.in_stock = true` | priced matching available variants |
-| `UNAVAILABLE` | тот же published product base | существует matching `variant.in_stock = false` | priced matching unavailable variants |
+| Mode          | Product base                   | Variant witness                                | Price source                         |
+| ------------- | ------------------------------ | ---------------------------------------------- | ------------------------------------ |
+| `ALL`         | все published products в scope | не нужен без OPTION/PRICE                      | все priced active variants           |
+| `AVAILABLE`   | тот же published product base  | существует matching `variant.in_stock = true`  | priced matching available variants   |
+| `UNAVAILABLE` | тот же published product base  | существует matching `variant.in_stock = false` | priced matching unavailable variants |
 
 ### Матрица facet-типов
 
-| Facet | `ALL` | `AVAILABLE` | `UNAVAILABLE` |
-|---|---|---|---|
-| `TAG` | published products; variant witness только при OPTION/PRICE | products с available variant witness | products с unavailable variant witness |
-| `FEATURE` | published products; variant witness только при OPTION/PRICE | products с available variant witness | products с unavailable variant witness |
-| `OPTION` | values/counts по всем active variants | по available matching variants | по unavailable matching variants |
-| `PRICE` | range/filter по всем priced active variants | по priced available variants | по priced unavailable variants |
-| `AVAILABLE` | два isolated counts | собственный filter исключается | собственный filter исключается |
+| Facet       | `ALL`                                                       | `AVAILABLE`                          | `UNAVAILABLE`                          |
+| ----------- | ----------------------------------------------------------- | ------------------------------------ | -------------------------------------- |
+| `TAG`       | published products; variant witness только при OPTION/PRICE | products с available variant witness | products с unavailable variant witness |
+| `FEATURE`   | published products; variant witness только при OPTION/PRICE | products с available variant witness | products с unavailable variant witness |
+| `OPTION`    | values/counts по всем active variants                       | по available matching variants       | по unavailable matching variants       |
+| `PRICE`     | range/filter по всем priced active variants                 | по priced available variants         | по priced unavailable variants         |
+| `AVAILABLE` | два isolated counts                                         | собственный filter исключается       | собственный filter исключается         |
 
 ### Mixed product invariant
 
@@ -308,8 +294,8 @@ color=blue + price=200 + true      -> matches
 color=blue + price=200 + false     -> does not match
 ```
 
-Такой контракт сохраняет same-variant и монотонность: `color=red + false` —
-подмножество `false`, потому что mixed product уже входит в `false`.
+Такой контракт сохраняет same-variant и монотонность: `color=red + false` — подмножество `false`,
+потому что mixed product уже входит в `false`.
 
 ### Facet isolation
 
@@ -326,19 +312,16 @@ count(value X) = distinct products satisfying:
   & availability, если X != AVAILABLE
 ```
 
-Все variant-level predicates в одной count branch применяются к одной variant
-candidate relation до projection.
+Все variant-level predicates в одной count branch применяются к одной variant candidate relation до
+projection.
 
 Правила:
 
 - OR внутри одного facet и AND между разными facets сохраняются;
 - TAG/FEATURE target value применяется на product после variant witness;
-- OPTION target value, остальные OPTION, PRICE и availability совпадают на
-  одном variant;
-- PRICE range исключает активный price filter, но сохраняет OPTION и
-  availability;
-- AVAILABLE facet исключает собственный filter и отдельно считает `true` и
-  `false`;
+- OPTION target value, остальные OPTION, PRICE и availability совпадают на одном variant;
+- PRICE range исключает активный price filter, но сохраняет OPTION и availability;
+- AVAILABLE facet исключает собственный filter и отдельно считает `true` и `false`;
 - counts всегда считают distinct products, а не variants или price rows.
 
 ## Текущее состояние, которое нужно удалить
@@ -357,13 +340,13 @@ scope & published & product.in_stock=true
 OPTION/PRICE exists -> variant.in_stock=true
 ```
 
-Base должен начинаться с `scope & published`. Explicit availability всегда
-добавляется как variant witness.
+Base должен начинаться с `scope & published`. Explicit availability всегда добавляется как variant
+witness.
 
 ### `plan.inStock ?? true`
 
-Выражение должно исчезнуть. Helper получает `ListingAvailabilityMode` и для
-`ALL` не добавляет availability predicate.
+Выражение должно исчезнуть. Helper получает `ListingAvailabilityMode` и для `ALL` не добавляет
+availability predicate.
 
 ### Product stock membership
 
@@ -380,8 +363,8 @@ Base должен начинаться с `scope & published`. Explicit availabi
 
 ### In-stock-only signatures и price posting
 
-Write paths больше не фильтруют signatures или price rows по stock. Stock
-сохраняется как отдельный bucket/predicate.
+Write paths больше не фильтруют signatures или price rows по stock. Stock сохраняется как отдельный
+bucket/predicate.
 
 ## Целевая physical index model
 
@@ -402,8 +385,8 @@ product.in_stock = bool_or(indexable variant.in_stock)
 sort.bool_value = product.in_stock
 ```
 
-Variant status transition в inactive/archived удаляет variant из runtime index
-и всех dependent postings.
+Variant status transition в inactive/archived удаляет variant из runtime index и всех dependent
+postings.
 
 ### Option signature membership
 
@@ -460,8 +443,7 @@ AVAILABLE   -> available_product_bitmap
 UNAVAILABLE -> unavailable_product_bitmap
 ```
 
-Simple, candidate-only, heavy и forced-heavy paths обязаны использовать один
-helper.
+Simple, candidate-only, heavy и forced-heavy paths обязаны использовать один helper.
 
 ### Variant price index
 
@@ -471,8 +453,8 @@ helper.
 одна row на каждый priced active variant + currency
 ```
 
-`priced` означает canonical price с non-null `amountMinor`; builder валидирует
-единственность `(variantId, currency)` до записи.
+`priced` означает canonical price с non-null `amountMinor`; builder валидирует единственность
+`(variantId, currency)` до записи.
 
 Добавить:
 
@@ -480,8 +462,8 @@ helper.
 in_stock boolean NOT NULL
 ```
 
-Значение копируется из canonical `variant_listing_index.in_stock`. Out-of-stock
-row не удаляется только из-за availability.
+Значение копируется из canonical `variant_listing_index.in_stock`. Out-of-stock row не удаляется
+только из-за availability.
 
 Индексы должны поддерживать:
 
@@ -493,27 +475,23 @@ row не удаляется только из-за availability.
 (store_id, currency, product_id, in_stock, price_minor, variant_doc_id)
 ```
 
-Нужны ли все indexes или partial variants, определяется через `EXPLAIN
-ANALYZE`; correctness не зависит от конкретного index set.
+Нужны ли все indexes или partial variants, определяется через `EXPLAIN ANALYZE`; correctness не
+зависит от конкретного index set.
 
-`variant_listing_price_index` является единственным source/runtime price index.
-Runtime filter, range, matched sort и price-related counts читают его с явным
-`has_price = true`, используя partial covering indexes. Отдельный дублирующий
-price posting не создается.
+`variant_listing_price_index` является единственным source/runtime price index. Runtime filter,
+range, matched sort и price-related counts читают его с явным `has_price = true`, используя partial
+covering indexes. Отдельный дублирующий price posting не создается.
 
 ### Product price aggregates и sort rows
 
-All-variant product price aggregate остается полезен только как optimization
-для mode `ALL`. Он не является correctness source и не может сам определять
-membership.
+All-variant product price aggregate остается полезен только как optimization для mode `ALL`. Он не
+является correctness source и не может сам определять membership.
 
-Aggregate пересчитывается из priced indexable variants и хранит
-`min/max`. Price sort key для обоих directions — `min`; `max` используется для
-range/diagnostics.
+Aggregate пересчитывается из priced indexable variants и хранит `min/max`. Price sort key для обоих
+directions — `min`; `max` используется для range/diagnostics.
 
-При explicit availability или OPTION price sort выбирает цену из той же
-matching variant relation. Нельзя сортировать `available:true` по цене
-unavailable variant.
+При explicit availability или OPTION price sort выбирает цену из той же matching variant relation.
+Нельзя сортировать `available:true` по цене unavailable variant.
 
 Sort не меняет membership:
 
@@ -521,13 +499,12 @@ Sort не меняет membership:
 - `NULL` price идет last;
 - `totalCount` остается равен полной пагинации для любого sort.
 
-Поэтому любой price-sort collector сначала идет от `productMatches`, а затем
-делает left lookup matching variant price. Collector, который начинает с price
-rows, запрещен: он теряет products без price.
+Поэтому любой price-sort collector сначала идет от `productMatches`, а затем делает left lookup
+matching variant price. Collector, который начинает с price rows, запрещен: он теряет products без
+price.
 
-Если dynamic left join к matching prices не проходит performance budget,
-добавляются bucket-specific product price aggregates. Это optimization после
-измерений, а не альтернативная семантика.
+Если dynamic left join к matching prices не проходит performance budget, добавляются bucket-specific
+product price aggregates. Это optimization после измерений, а не альтернативная семантика.
 
 ## Изменения write path
 
@@ -537,17 +514,16 @@ rows, запрещен: он теряет products без price.
 2. Вычислить canonical variant availability только из `availableForSale`.
 3. Нормализовать `totalStock` через `max(0, quantity)`.
 4. Вычислить product `inStock/totalStock` из canonical indexable variants.
-5. Пересчитать product price ranges/min sort key из priced indexable variants,
-   не использовать upstream `item.priceRanges` как независимый aggregate.
+5. Пересчитать product price ranges/min sort key из priced indexable variants, не использовать
+   upstream `item.priceRanges` как независимый aggregate.
 6. Использовать то же product `inStock` во всех sort rows.
 7. Строить option signature inputs из всех indexable variants.
 8. Строить runtime price rows из всех priced indexable variants.
 9. Добавить `inStock` в каждую runtime price row.
 10. Сохранить deterministic ordering всех arrays/maps.
 
-Для sellable kind без variants отдельный adapter должен явно создать variant
-witness либо документировать отсутствие availability match. Скрытый fallback к
-product snapshot запрещен.
+Для sellable kind без variants отдельный adapter должен явно создать variant witness либо
+документировать отсутствие availability match. Скрытый fallback к product snapshot запрещен.
 
 ### Single и batch writers
 
@@ -556,11 +532,10 @@ product snapshot запрещен.
 Обязательные свойства:
 
 - single и batch создают одинаковые rows во всех derived tables;
-- replace product/variants/postings/signatures и item-state update выполняются
-  одной item transaction;
-- существующая eventSequence/idempotency классификация не меняет семантику:
-  stale event игнорируется, повтор того же event дает noop, conflict остается
-  ошибкой.
+- replace product/variants/postings/signatures и item-state update выполняются одной item
+  transaction;
+- существующая eventSequence/idempotency классификация не меняет семантику: stale event
+  игнорируется, повтор того же event дает noop, conflict остается ошибкой.
 
 ### `ListingOptionSignatureRepository`
 
@@ -577,8 +552,8 @@ product snapshot запрещен.
 1. Input/output types получают `inStock`.
 2. Insert/upsert пишет `in_stock`.
 3. `ON CONFLICT DO UPDATE` обновляет stock state.
-4. Replace удаляет row только при отсутствии active priced variant/currency, а
-   не при availability=false.
+4. Replace удаляет row только при отсутствии active priced variant/currency, а не при
+   availability=false.
 
 ### Index transitions
 
@@ -596,16 +571,15 @@ variant delete
 product unpublish/delete
 ```
 
-Availability flip при неизменной signature обновляет bucket counters/bitmaps и
-price posting stock state в той же transaction.
+Availability flip при неизменной signature обновляет bucket counters/bitmaps и price posting stock
+state в той же transaction.
 
 ## Изменения read path
 
 ### Нормализация input
 
 1. Normalize direct `available` без потери `false`.
-2. Resolve configured virtual `IN_STOCK` boolean-like handles без создания
-   `facet_value`.
+2. Resolve configured virtual `IN_STOCK` boolean-like handles без создания `facet_value`.
 3. Вернуть validation error при conflicting direct/facet inputs true/false.
 4. Вычислить `ListingAvailabilityMode` один раз после resolution.
 5. Передать mode в каждый SQL compiler и filter hash.
@@ -644,10 +618,9 @@ Page и total строят один `productMatches` bitmap по канонич�
 Collectors отличаются только ordering/pagination:
 
 - product sort collector — non-price sort в `ALL` без variant predicates;
-- variant witness + product sort — non-price sort при explicit availability,
-  OPTION или PRICE;
-- matched variant price collector — любой price sort; он всегда стартует от
-  `productMatches` и left join-ит eligible variant price;
+- variant witness + product sort — non-price sort при explicit availability, OPTION или PRICE;
+- matched variant price collector — любой price sort; он всегда стартует от `productMatches` и left
+  join-ит eligible variant price;
 - relevance collector — membership тот же, relevance только sort key.
 
 `totalCount` — cardinality того же bitmap без sort/pagination.
@@ -660,14 +633,13 @@ totalCount = число distinct products, получаемых полной п�
 
 ### Price sort и cursor
 
-Канонический product price sort key — minimum price среди matching variants.
-Он одинаков для ASC и DESC; direction меняет порядок products, а не способ
-выбора variant. Maximum price используется только как верхняя граница virtual
-PRICE range.
+Канонический product price sort key — minimum price среди matching variants. Он одинаков для ASC и
+DESC; direction меняет порядок products, а не способ выбора variant. Maximum price используется
+только как верхняя граница virtual PRICE range.
 
-Сначала bitmap `productMatches` разворачивается в distinct product ids. Для
-каждого product выполняется `LEFT JOIN LATERAL` к той же variant candidate
-relation и выбирается один matching price row:
+Сначала bitmap `productMatches` разворачивается в distinct product ids. Для каждого product
+выполняется `LEFT JOIN LATERAL` к той же variant candidate relation и выбирается один matching price
+row:
 
 ```text
 candidate order per product:
@@ -675,8 +647,8 @@ candidate order per product:
   variant_doc_id ASC
 ```
 
-Если eligible price отсутствует, outer product row сохраняется, product
-получает `NULL` price/variant key и остается в result.
+Если eligible price отсутствует, outer product row сохраняется, product получает `NULL`
+price/variant key и остается в result.
 
 Финальный tuple:
 
@@ -687,17 +659,15 @@ product_id ASC
 variant_doc_id ASC NULLS LAST
 ```
 
-Cursor и seek повторяют весь tuple. Нельзя использовать только
-`priceMinor/productId/variantDocId` и нельзя подменять product sort key на
-availability matching variant.
+Cursor и seek повторяют весь tuple. Нельзя использовать только `priceMinor/productId/variantDocId` и
+нельзя подменять product sort key на availability matching variant.
 
-Cursor повторяет текущий opaque contract, включает product availability key, а
-filter hash различает `ALL/AVAILABLE/UNAVAILABLE`.
+Cursor повторяет текущий opaque contract, включает product availability key, а filter hash различает
+`ALL/AVAILABLE/UNAVAILABLE`.
 
-Product aggregate price row разрешено использовать как measured fast path
-только если parity test доказывает эквивалентность outer collector, включая
-NULL-last products. Для ALL fast path использует тот же minimum price key в
-обоих directions.
+Product aggregate price row разрешено использовать как measured fast path только если parity test
+доказывает эквивалентность outer collector, включая NULL-last products. Для ALL fast path использует
+тот же minimum price key в обоих directions.
 
 ### Facet metadata
 
@@ -709,12 +679,11 @@ OPTION candidates      -> all-signature product_bitmap в published scope
 selected candidates    -> успешно resolved TAG/FEATURE/OPTION selections
 ```
 
-Virtual IN_STOCK alias полностью поглощается при mode normalization и не
-попадает в discrete metadata union: у него нет `facet_value_id/value_key`.
-PRICE также формируется только собственной virtual branch.
+Virtual IN_STOCK alias полностью поглощается при mode normalization и не попадает в discrete
+metadata union: у него нет `facet_value_id/value_key`. PRICE также формируется только собственной
+virtual branch.
 
-Discovery намеренно stock-neutral. Availability и остальные filters
-применяются в counts.
+Discovery намеренно stock-neutral. Availability и остальные filters применяются в counts.
 
 После merge metadata + counts наружу возвращаются values, для которых:
 
@@ -722,9 +691,9 @@ Discovery намеренно stock-neutral. Availability и остальные f
 count > 0 OR selected = true
 ```
 
-Это suppression rule относится к configured discrete TAG/FEATURE/OPTION
-values. Virtual AVAILABLE всегда возвращает оба boolean values, даже если один
-или оба counts равны нулю; PRICE имеет собственную range shape.
+Это suppression rule относится к configured discrete TAG/FEATURE/OPTION values. Virtual AVAILABLE
+всегда возвращает оба boolean values, даже если один или оба counts равны нулю; PRICE имеет
+собственную range shape.
 
 Это обеспечивает одновременно:
 
@@ -745,10 +714,9 @@ values. Virtual AVAILABLE всегда возвращает оба boolean value
 5. Выполнить projection distinct products.
 6. Пересечь с target product value bitmap.
 
-Product aggregate availability не применяется ни до, ни после projection.
-Если `needsVariantWitness = false`, шаги 4-5 не добавляют constraint: в `ALL`
-без OPTION/PRICE product facet продолжает считать published products без active
-variants.
+Product aggregate availability не применяется ни до, ни после projection. Если
+`needsVariantWitness = false`, шаги 4-5 не добавляют constraint: в `ALL` без OPTION/PRICE product
+facet продолжает считать published products без active variants.
 
 ### Option facet counts
 
@@ -793,9 +761,8 @@ UNAVAILABLE -> vp.in_stock = false
 
 При OPTION range и count используют те же matching variants.
 
-`priceEligibleCount` — count distinct products с хотя бы одной eligible priced
-variant. Он не зависит от active price filter и не равен автоматически
-`result.totalCount`.
+`priceEligibleCount` — count distinct products с хотя бы одной eligible priced variant. Он не
+зависит от active price filter и не равен автоматически `result.totalCount`.
 
 ### Virtual AVAILABLE facet
 
@@ -829,17 +796,16 @@ availabilityFalseCount =
 
 Они считают distinct products и могут пересекаться.
 
-GraphQL schema shape не меняется, но mapper/result types получают второй count
-и второй reusable value.
+GraphQL schema shape не меняется, но mapper/result types получают второй count и второй reusable
+value.
 
 ### Request-level snapshot consistency
 
-Write transaction atomicity недостаточна: пять независимых statements в
-`READ COMMITTED` могут увидеть разные commits.
+Write transaction atomicity недостаточна: пять независимых statements в `READ COMMITTED` могут
+увидеть разные commits.
 
-`getStorefrontListing()` открывает `REPEATABLE READ READ ONLY` transaction до
-`resolveFilterPlan()`. Facet/value resolution, page, total, metadata, counts и
-virtual facets должны видеть один snapshot.
+`getStorefrontListing()` открывает `REPEATABLE READ READ ONLY` transaction до `resolveFilterPlan()`.
+Facet/value resolution, page, total, metadata, counts и virtual facets должны видеть один snapshot.
 
 Pure input normalization, не читающая DB, может выполняться до transaction.
 
@@ -847,19 +813,16 @@ Pure input normalization, не читающая DB, может выполнят�
 
 1. Одна read-only transaction и отдельные compilers внутри нее.
 2. Один SQL statement с несколькими result branches.
-3. Exported snapshot для parallel connections, если измерения докажут
-   необходимость.
+3. Exported snapshot для parallel connections, если измерения докажут необходимость.
 
-Текущий `Promise.all` поверх pool без общего snapshot запрещен. Сохранение
-пяти логических compilers не означает пять независимых snapshots.
+Текущий `Promise.all` поверх pool без общего snapshot запрещен. Сохранение пяти логических compilers
+не означает пять независимых snapshots.
 
 ## Аудит legacy paths
 
-Для каждого repository/helper в `services/listing/src/repositories/storefront/`
-выбрать один исход:
+Для каждого repository/helper в `services/listing/src/repositories/storefront/` выбрать один исход:
 
-1. Production path — перевести на `ListingAvailabilityMode` и canonical variant
-   witness.
+1. Production path — перевести на `ListingAvailabilityMode` и canonical variant witness.
 2. Не используется — удалить repository, dependency и wiring.
 
 Финальный audit:
@@ -882,13 +845,11 @@ rg "in_stock = true|inStock \?\? true|force_zero|inStockVariantBitmap|product.*i
 Обновить текущие Drizzle/schema definitions для чистой базы:
 
 - добавить available/unavailable counters и bitmaps в option signature index;
-- добавить `variant_listing_price_index.in_stock` и необходимые partial
-  covering indexes;
+- добавить `variant_listing_price_index.in_stock` и необходимые partial covering indexes;
 - добавить DB checks для bucket counters/bitmaps.
 
-Store-level state и schema-version columns не добавляются.
-Перенос данных и заполнение существующих rows не выполняются: Listing index не
-содержит persisted product/variant data.
+Store-level state и schema-version columns не добавляются. Перенос данных и заполнение существующих
+rows не выполняются: Listing index не содержит persisted product/variant data.
 
 ## План реализации
 
@@ -996,8 +957,8 @@ P13: available competitor с price 200
 - `services/listing/src/repositories/storefront/sql/compileFacetCountsQuerySql.ts`
 - `services/listing/src/repositories/storefront/sql/compileVirtualFacetsQuerySql.ts`
 - `services/listing/src/repositories/storefront/sql/resultMappers.ts`
-- `packages/shared-kernel/src/TransactionManager.ts` либо listing-local
-  repeatable-read transaction wrapper
+- `packages/shared-kernel/src/TransactionManager.ts` либо listing-local repeatable-read transaction
+  wrapper
 
 ### Index/write
 
@@ -1042,17 +1003,15 @@ Seeder должен:
 - писать product/variant facet postings независимо от availability;
 - поддерживать несколько variants одного product;
 - писать canonical availability в `variant_listing_index.in_stock`;
-- писать `variant_listing_price_index.in_stock` для всех priced active
-  variants;
+- писать `variant_listing_price_index.in_stock` для всех priced active variants;
 - считать total/available/unavailable signature counters;
 - строить all/available/unavailable signature bitmaps;
 - не создавать runtime rows для inactive/archived variants.
 
-Auto-indexing tests проверяют реальный Catalog -> event -> writer path; direct
-seed используется только для детерминированной read-path matrix. Listing broker
-fixture отдельно проверяет defensive handling `inactive/archived`, потому что
-текущий Catalog snapshot представляет live variants как active, а delete — как
-исчезновение variant из следующего snapshot.
+Auto-indexing tests проверяют реальный Catalog -> event -> writer path; direct seed используется
+только для детерминированной read-path matrix. Listing broker fixture отдельно проверяет defensive
+handling `inactive/archived`, потому что текущий Catalog snapshot представляет live variants как
+active, а delete — как исчезновение variant из следующего snapshot.
 
 Perf dataset:
 
@@ -1075,8 +1034,8 @@ Prices и повторяющиеся signatures присутствуют в об
 3. `UNAVAILABLE` содержит products с unavailable witness.
 4. Mixed product входит в оба explicit modes.
 5. Product без active variants входит только в `ALL`.
-6. Новый conjunctive group, tighter PRICE и `ALL -> explicit mode` дают subset
-   предыдущего result; расширение OR-group проверяется отдельно.
+6. Новый conjunctive group, tighter PRICE и `ALL -> explicit mode` дают subset предыдущего result;
+   расширение OR-group проверяется отдельно.
 7. `totalCount` равен полной пагинации для каждого sort.
 8. Cursor нельзя переносить между modes.
 
@@ -1090,8 +1049,8 @@ Prices и повторяющиеся signatures присутствуют в об
 4. Mixed product не теряется в `UNAVAILABLE`.
 5. Selected incompatible value возвращается с count=0.
 6. Unselected zero-count value скрывается.
-7. В ALL без OPTION/PRICE TAG/FEATURE P10 участвуют в metadata/count; explicit
-   availability или другой variant witness исключает P10.
+7. В ALL без OPTION/PRICE TAG/FEATURE P10 участвуют в metadata/count; explicit availability или
+   другой variant witness исключает P10.
 
 ### Option facets
 
@@ -1112,11 +1071,9 @@ Prices и повторяющиеся signatures присутствуют в об
 5. OPTION + PRICE + availability совпадают на одном variant.
 6. Price sort использует price matching bucket, а не другой variant.
 7. Product без eligible price остается в page как NULL-last.
-8. Asc/desc cursor не пропускает и не дублирует products на stock и NULL
-   boundaries.
-9. Для P12/P13 оба directions используют один min key: ASC ставит P12(100)
-   перед P13(200), DESC — P13(200) перед P12(100), игнорируя P12 max=300 как
-   sort key.
+8. Asc/desc cursor не пропускает и не дублирует products на stock и NULL boundaries.
+9. Для P12/P13 оба directions используют один min key: ASC ставит P12(100) перед P13(200), DESC —
+   P13(200) перед P12(100), игнорируя P12 max=300 как sort key.
 
 ### Availability output
 
@@ -1127,13 +1084,12 @@ Prices и повторяющиеся signatures присутствуют в об
 5. True/false counts изолируют собственный filter.
 6. Mixed product входит в оба counts.
 7. Conflicting true/false input возвращает validation error.
-8. Configured IN_STOCK boolean-like input дает тот же mode/result/hash, что и
-   canonical direct `available`; unknown handle дает validation error.
+8. Configured IN_STOCK boolean-like input дает тот же mode/result/hash, что и canonical direct
+   `available`; unknown handle дает validation error.
 
 ### Write transitions
 
-После каждого transition проверить page, metadata, counts, range, sort и оба
-availability counts:
+После каждого transition проверить page, metadata, counts, range, sort и оба availability counts:
 
 ```text
 available <-> unavailable
@@ -1149,13 +1105,13 @@ product publish/unpublish
 
 ### Snapshot consistency
 
-Concurrent stock transition между logical branch starts не может дать response,
-где page/total/facets относятся к разным commits.
+Concurrent stock transition между logical branch starts не может дать response, где
+page/total/facets относятся к разным commits.
 
 ## Performance verification
 
-Перед изменениями сохранить warm baseline текущей реализации. Для 10k dataset
-измерить `ALL`, `AVAILABLE` и `UNAVAILABLE` в сценариях:
+Перед изменениями сохранить warm baseline текущей реализации. Для 10k dataset измерить `ALL`,
+`AVAILABLE` и `UNAVAILABLE` в сценариях:
 
 - no filters;
 - product facets;
@@ -1179,8 +1135,7 @@ Concurrent stock transition между logical branch starts не может д�
 Начальные budgets:
 
 - AVAILABLE median после warmup не хуже baseline более чем на 25%;
-- ALL и UNAVAILABLE не медленнее AVAILABLE более чем в 1.5 раза на одном
-  representative scenario;
+- ALL и UNAVAILABLE не медленнее AVAILABLE более чем в 1.5 раза на одном representative scenario;
 - любое изменение budget требует сохраненного EXPLAIN и явного решения.
 
 ### Write profile
@@ -1192,10 +1147,9 @@ Concurrent stock transition между logical branch starts не может д�
 - price add/delete в обоих availability buckets;
 - bulk load 10k products через обычный single/batch writer.
 
-Availability-only transition обновляет signature bucket counters/bitmaps и
-price posting stock state. Собирать p50/p95 latency, products/sec,
-advisory-lock wait, retries/deadlocks, WAL, время bitmap refresh и размер
-indexes. Budgets фиксируются относительно baseline до изменения.
+Availability-only transition обновляет signature bucket counters/bitmaps и price posting stock
+state. Собирать p50/p95 latency, products/sec, advisory-lock wait, retries/deadlocks, WAL, время
+bitmap refresh и размер indexes. Budgets фиксируются относительно baseline до изменения.
 
 ## Observability
 
@@ -1280,8 +1234,8 @@ sort.bool_value = product.in_stock
 - development/build/codegen/e2e запускать через Shopana CLI/MCP;
 - не запускать `test`, `tsc` напрямую;
 - Playwright запускать по одному spec-файлу;
-- release changeset вручную не редактировать; при необходимости генерировать
-  разрешенной npm-командой.
+- release changeset вручную не редактировать; при необходимости генерировать разрешенной
+  npm-командой.
 
 Порядок:
 
@@ -1299,44 +1253,36 @@ sort.bool_value = product.in_stock
 Работа завершена, когда:
 
 1. Отсутствующий `available` нигде не превращается в `true`.
-2. Direct `available` и configured virtual IN_STOCK aliases нормализуются в
-   один mode; conflicting values отклоняются.
+2. Direct `available` и configured virtual IN_STOCK aliases нормализуются в один mode; conflicting
+   values отклоняются.
 3. Availability всегда применяется к matching active variant до projection.
-4. Mixed product входит и в AVAILABLE, и в UNAVAILABLE без других variant
-   filters.
-5. Добавление нового OPTION/product facet group, tighter PRICE или explicit
-   availability не расширяет result set; добавление value в OR-group может
-   расширять его.
+4. Mixed product входит и в AVAILABLE, и в UNAVAILABLE без других variant filters.
+5. Добавление нового OPTION/product facet group, tighter PRICE или explicit availability не
+   расширяет result set; добавление value в OR-group может расширять его.
 6. OPTION + PRICE + availability используют одну variant row.
 7. Product aggregate stock не участвует в membership/metadata/counts.
 8. Product aggregate, sort bool и canonical variants проходят parity audit.
-9. Backorder availableForSale=true остается available при zero/negative
-   quantity.
-10. Inactive/archived variants отсутствуют во всех runtime postings; Catalog
-    delete очищает stale variant dependencies.
-11. TAG/FEATURE/OPTION/PRICE по умолчанию учитывают оба stock buckets;
-    TAG/FEATURE в ALL без variant filters считают product без active variants.
-12. Metadata сохраняет selected zero-count values и скрывает unselected zero
-    discrete values.
-13. AVAILABLE facet всегда возвращает true/false counts, reusable inputs и
-    selected state, включая zero counts.
-14. Price range/count/sort используют matching availability bucket; ASC и
-    DESC сортируют один canonical minimum matching price key.
+9. Backorder availableForSale=true остается available при zero/negative quantity.
+10. Inactive/archived variants отсутствуют во всех runtime postings; Catalog delete очищает stale
+    variant dependencies.
+11. TAG/FEATURE/OPTION/PRICE по умолчанию учитывают оба stock buckets; TAG/FEATURE в ALL без variant
+    filters считают product без active variants.
+12. Metadata сохраняет selected zero-count values и скрывает unselected zero discrete values.
+13. AVAILABLE facet всегда возвращает true/false counts, reusable inputs и selected state, включая
+    zero counts.
+14. Price range/count/sort используют matching availability bucket; ASC и DESC сортируют один
+    canonical minimum matching price key.
 15. Price sort не меняет membership; NULL prices остаются в page.
-16. Cursor содержит полный nullable sort tuple, а filter hash различает
-    ALL/AVAILABLE/UNAVAILABLE.
+16. Cursor содержит полный nullable sort tuple, а filter hash различает ALL/AVAILABLE/UNAVAILABLE.
 17. Page и totalCount сохраняют parity для всех modes/scopes/sorts.
-18. Signature index содержит total/available/unavailable counters и bitmaps с
-    union invariant.
-19. Variant price posting содержит все priced active variants обоих buckets и
-    canonical stock state.
+18. Signature index содержит total/available/unavailable counters и bitmaps с union invariant.
+19. Variant price posting содержит все priced active variants обоих buckets и canonical stock state.
 20. DB schema создается на clean DB без переноса или заполнения старых rows.
 21. Single и batch writers дают одинаковый normalized index.
 22. Все logical read branches видят один repeatable snapshot.
-23. Direct seed поддерживает mixed multi-variant products и новые persisted
-    bucket/price fields.
+23. Direct seed поддерживает mixed multi-variant products и новые persisted bucket/price fields.
 24. Auto-indexing покрывает availability/status/price/signature transitions.
 25. Candidate/heavy counts сохраняют parity.
-26. Read/write performance matrix укладывается в budgets без N+1, unbounded
-    scans, temp spill и deadlocks.
+26. Read/write performance matrix укладывается в budgets без N+1, unbounded scans, temp spill и
+    deadlocks.
 27. Knowledge base и index contract docs обновлены после успешного audit.

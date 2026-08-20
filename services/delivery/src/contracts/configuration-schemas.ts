@@ -15,7 +15,10 @@ const revisionSchema = z.number().int().safe().nonnegative();
 const timestampSchema = z.string().datetime({ offset: true });
 const moneySchema = z
   .object({
-    amountMinor: z.string().max(128).regex(/^(0|[1-9]\d*)$/),
+    amountMinor: z
+      .string()
+      .max(128)
+      .regex(/^(0|[1-9]\d*)$/),
     currencyCode: z.string().regex(/^[A-Z]{3}$/),
   })
   .strict();
@@ -25,24 +28,24 @@ function unique(values: readonly string[]): boolean {
 }
 
 const DeliveryDefaultProfileAssignmentSchema = z
-    .object({
-      scope: z.literal("ALL_UNASSIGNED"),
-      assignmentSetId: z.null(),
-      assignmentRevision: z.null(),
-      variantCount: z.literal(0),
-      sellingPlanGroupCount: z.literal(0),
-    })
-    .strict();
+  .object({
+    scope: z.literal("ALL_UNASSIGNED"),
+    assignmentSetId: z.null(),
+    assignmentRevision: z.null(),
+    variantCount: z.literal(0),
+    sellingPlanGroupCount: z.literal(0),
+  })
+  .strict();
 
 const DeliveryAssignedProfileAssignmentSchema = z
-    .object({
-      scope: z.literal("ASSIGNED"),
-      assignmentSetId: identifierSchema,
-      assignmentRevision: z.string().trim().min(1).max(512),
-      variantCount: z.number().int().safe().nonnegative(),
-      sellingPlanGroupCount: z.number().int().safe().nonnegative(),
-    })
-    .strict();
+  .object({
+    scope: z.literal("ASSIGNED"),
+    assignmentSetId: identifierSchema,
+    assignmentRevision: z.string().trim().min(1).max(512),
+    variantCount: z.number().int().safe().nonnegative(),
+    sellingPlanGroupCount: z.number().int().safe().nonnegative(),
+  })
+  .strict();
 
 export const DeliveryProfileAssignmentSchema = z
   .discriminatedUnion("scope", [
@@ -50,17 +53,17 @@ export const DeliveryProfileAssignmentSchema = z
     DeliveryAssignedProfileAssignmentSchema,
   ])
   .superRefine((value, context) => {
-  if (
-    value.scope === "ASSIGNED" &&
-    value.variantCount === 0 &&
-    value.sellingPlanGroupCount === 0
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["variantCount"],
-      message: "An assigned profile requires variants or selling plan groups",
-    });
-  }
+    if (
+      value.scope === "ASSIGNED" &&
+      value.variantCount === 0 &&
+      value.sellingPlanGroupCount === 0
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["variantCount"],
+        message: "An assigned profile requires variants or selling plan groups",
+      });
+    }
   });
 
 const normalizedPostalCodeSchema = z
@@ -69,42 +72,43 @@ const normalizedPostalCodeSchema = z
   .max(32)
   .regex(/^[A-Z0-9-]+$/);
 
-export const DeliveryPostalCodeRuleSchema = z.discriminatedUnion("match", [
-  z
-    .object({
-      effect: z.enum(["INCLUDE", "EXCLUDE"]),
-      match: z.literal("EXACT"),
-      value: normalizedPostalCodeSchema,
-    })
-    .strict(),
-  z
-    .object({
-      effect: z.enum(["INCLUDE", "EXCLUDE"]),
-      match: z.literal("PREFIX"),
-      value: normalizedPostalCodeSchema,
-    })
-    .strict(),
-  z
-    .object({
-      effect: z.enum(["INCLUDE", "EXCLUDE"]),
-      match: z.literal("NUMERIC_RANGE"),
-      start: z.string().regex(/^\d{1,16}$/),
-      end: z.string().regex(/^\d{1,16}$/),
-    })
-    .strict(),
-]).superRefine((value, context) => {
-  if (
-    value.match === "NUMERIC_RANGE" &&
-    (value.start.length !== value.end.length ||
-      BigInt(value.end) < BigInt(value.start))
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["end"],
-      message: "Postal numeric range requires equal widths and start <= end",
-    });
-  }
-});
+export const DeliveryPostalCodeRuleSchema = z
+  .discriminatedUnion("match", [
+    z
+      .object({
+        effect: z.enum(["INCLUDE", "EXCLUDE"]),
+        match: z.literal("EXACT"),
+        value: normalizedPostalCodeSchema,
+      })
+      .strict(),
+    z
+      .object({
+        effect: z.enum(["INCLUDE", "EXCLUDE"]),
+        match: z.literal("PREFIX"),
+        value: normalizedPostalCodeSchema,
+      })
+      .strict(),
+    z
+      .object({
+        effect: z.enum(["INCLUDE", "EXCLUDE"]),
+        match: z.literal("NUMERIC_RANGE"),
+        start: z.string().regex(/^\d{1,16}$/),
+        end: z.string().regex(/^\d{1,16}$/),
+      })
+      .strict(),
+  ])
+  .superRefine((value, context) => {
+    if (
+      value.match === "NUMERIC_RANGE" &&
+      (value.start.length !== value.end.length || BigInt(value.end) < BigInt(value.start))
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["end"],
+        message: "Postal numeric range requires equal widths and start <= end",
+      });
+    }
+  });
 
 export const DeliveryPostalCodeRuleSetSchema = z
   .object({
@@ -167,10 +171,7 @@ export const DeliveryZoneSnapshotSchema = z
         message: "A zone must contain at most one territory per country",
       });
     }
-    if (
-      value.territories.filter(({ scope }) => scope === "REST_OF_WORLD").length >
-      1
-    ) {
+    if (value.territories.filter(({ scope }) => scope === "REST_OF_WORLD").length > 1) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["territories"],
@@ -179,50 +180,55 @@ export const DeliveryZoneSnapshotSchema = z
     }
   });
 
-export const DeliveryRateConditionSchema = z.discriminatedUnion("type", [
-  z
-    .object({
-      type: z.literal("CART_SUBTOTAL"),
-      operator: z.enum(["GTE", "LTE"]),
-      amount: moneySchema,
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("PACKAGE_WEIGHT_GRAMS"),
-      operator: z.enum(["GTE", "LTE"]),
-      value: z.number().int().safe().nonnegative(),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("PACKAGE_ITEM_COUNT"),
-      operator: z.enum(["GTE", "LTE"]),
-      value: z.number().int().safe().nonnegative(),
-    })
-    .strict(),
-  z.object({ type: z.literal("CHANNEL"), values: z.array(codeSchema).min(1).max(250) }).strict(),
-  z
-    .object({
-      type: z.literal("CUSTOMER_SEGMENT"),
-      values: z.array(identifierSchema).min(1).max(250),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("PURCHASE_TYPE"),
-      values: z.array(z.enum(["ONE_TIME", "SUBSCRIPTION", "PRE_ORDER"])).min(1).max(3),
-    })
-    .strict(),
-]).superRefine((value, context) => {
-  if ("values" in value && !unique(value.values)) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["values"],
-      message: "Condition values must be unique",
-    });
-  }
-});
+export const DeliveryRateConditionSchema = z
+  .discriminatedUnion("type", [
+    z
+      .object({
+        type: z.literal("CART_SUBTOTAL"),
+        operator: z.enum(["GTE", "LTE"]),
+        amount: moneySchema,
+      })
+      .strict(),
+    z
+      .object({
+        type: z.literal("PACKAGE_WEIGHT_GRAMS"),
+        operator: z.enum(["GTE", "LTE"]),
+        value: z.number().int().safe().nonnegative(),
+      })
+      .strict(),
+    z
+      .object({
+        type: z.literal("PACKAGE_ITEM_COUNT"),
+        operator: z.enum(["GTE", "LTE"]),
+        value: z.number().int().safe().nonnegative(),
+      })
+      .strict(),
+    z.object({ type: z.literal("CHANNEL"), values: z.array(codeSchema).min(1).max(250) }).strict(),
+    z
+      .object({
+        type: z.literal("CUSTOMER_SEGMENT"),
+        values: z.array(identifierSchema).min(1).max(250),
+      })
+      .strict(),
+    z
+      .object({
+        type: z.literal("PURCHASE_TYPE"),
+        values: z
+          .array(z.enum(["ONE_TIME", "SUBSCRIPTION", "PRE_ORDER"]))
+          .min(1)
+          .max(3),
+      })
+      .strict(),
+  ])
+  .superRefine((value, context) => {
+    if ("values" in value && !unique(value.values)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["values"],
+        message: "Condition values must be unique",
+      });
+    }
+  });
 
 export const DeliveryRateFailurePolicySchema = z
   .discriminatedUnion("mode", [
@@ -255,23 +261,13 @@ export const DeliveryMethodDefinitionSnapshotSchema = z
     title: z.string().trim().min(1).max(255),
     description: z.string().trim().min(1).max(2_000).nullable(),
     active: z.boolean(),
-    deliveryMethodType: z.enum([
-      "LOCAL",
-      "NONE",
-      "PICK_UP",
-      "PICKUP_POINT",
-      "RETAIL",
-      "SHIPPING",
-    ]),
+    deliveryMethodType: z.enum(["LOCAL", "NONE", "PICK_UP", "PICKUP_POINT", "RETAIL", "SHIPPING"]),
     rateSource: z.discriminatedUnion("type", [
       z.object({ type: z.literal("MANUAL"), price: moneySchema }).strict(),
       z
         .object({
           type: z.literal("CARRIER_SERVICE"),
-          carrierServiceAccountIds: z
-            .array(identifierSchema)
-            .max(250)
-            .nonempty(),
+          carrierServiceAccountIds: z.array(identifierSchema).max(250).nonempty(),
           allowedServiceCodes: z.array(codeSchema).max(250),
           backupRate: moneySchema.nullable(),
         })
@@ -387,10 +383,7 @@ const deliveryProfileSnapshotBaseShape = {
   storeId: identifierSchema,
   name: z.string().trim().min(1).max(255),
   status: z.enum(["ACTIVE", "INACTIVE"]),
-  locationGroups: z
-    .array(DeliveryLocationGroupSnapshotSchema)
-    .max(250)
-    .nonempty(),
+  locationGroups: z.array(DeliveryLocationGroupSnapshotSchema).max(250).nonempty(),
   failurePolicy: DeliveryRateFailurePolicySchema,
   revision: revisionSchema,
   createdAt: timestampSchema,
@@ -470,14 +463,10 @@ export const DeliveryProfileSnapshotSchema = z
     }
   });
 
-type DeliveryProfileSnapshotValue = z.infer<
-  typeof DeliveryProfileSnapshotSchema
->;
+type DeliveryProfileSnapshotValue = z.infer<typeof DeliveryProfileSnapshotSchema>;
 
 const DeliveryActiveProfileSnapshotSchema = DeliveryProfileSnapshotSchema.refine(
-  (
-    value,
-  ): value is DeliveryProfileSnapshotValue & Readonly<{ status: "ACTIVE" }> =>
+  (value): value is DeliveryProfileSnapshotValue & Readonly<{ status: "ACTIVE" }> =>
     value.status === "ACTIVE",
   {
     path: ["status"],
@@ -490,9 +479,7 @@ export const DeliveryProfileSetSnapshotSchema = z
     organizationId: identifierSchema,
     storeId: identifierSchema,
     currencyCode: z.string().regex(/^[A-Z]{3}$/),
-    assignmentResolution: z.literal(
-      "SELLING_PLAN_THEN_VARIANT_THEN_DEFAULT",
-    ),
+    assignmentResolution: z.literal("SELLING_PLAN_THEN_VARIANT_THEN_DEFAULT"),
     revision: z.string().trim().min(1).max(512),
     profiles: z.array(DeliveryActiveProfileSnapshotSchema).max(250).nonempty(),
   })
@@ -523,10 +510,7 @@ export const DeliveryProfileSetSnapshotSchema = z
       });
     }
     value.profiles.forEach((profile, index) => {
-      if (
-        profile.organizationId !== value.organizationId ||
-        profile.storeId !== value.storeId
-      ) {
+      if (profile.organizationId !== value.organizationId || profile.storeId !== value.storeId) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["profiles", index],
@@ -612,13 +596,7 @@ export const DeliveryEligibilitySnapshotSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    if (
-      !unique(
-        value.methodDefinitions.map(
-          ({ methodDefinitionId }) => methodDefinitionId,
-        ),
-      )
-    ) {
+    if (!unique(value.methodDefinitions.map(({ methodDefinitionId }) => methodDefinitionId))) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["methodDefinitions"],
@@ -636,9 +614,7 @@ export const DeliveryEligibilitySnapshotSchema = z
           condition.type === "CART_SUBTOTAL" ? [condition.amount] : [],
         ),
       ];
-      if (
-        money.some(({ currencyCode }) => currencyCode !== value.currencyCode)
-      ) {
+      if (money.some(({ currencyCode }) => currencyCode !== value.currencyCode)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["methodDefinitions", index],
@@ -648,9 +624,7 @@ export const DeliveryEligibilitySnapshotSchema = z
     });
   });
 
-export function parseDeliveryProfileSnapshot(
-  value: unknown,
-): Delivery.DeliveryProfileSnapshot {
+export function parseDeliveryProfileSnapshot(value: unknown): Delivery.DeliveryProfileSnapshot {
   assertDeliveryContractPayloadSize(
     value,
     "Delivery profile snapshot",
@@ -678,7 +652,5 @@ export function parseDeliveryEligibilitySnapshot(
     "Delivery eligibility snapshot",
     DELIVERY_CONFIGURATION_MAX_PAYLOAD_BYTES,
   );
-  return DeliveryEligibilitySnapshotSchema.parse(
-    value,
-  ) as Delivery.DeliveryEligibilitySnapshot;
+  return DeliveryEligibilitySnapshotSchema.parse(value) as Delivery.DeliveryEligibilitySnapshot;
 }

@@ -1,7 +1,4 @@
-import type {
-  NavigationEntryOption,
-  NavigationMenu,
-} from "../types";
+import type { NavigationEntryOption, NavigationMenu } from "../types";
 
 export const navigationEntryOptions: Record<
   "PRODUCT" | "CATEGORY" | "PAGE",

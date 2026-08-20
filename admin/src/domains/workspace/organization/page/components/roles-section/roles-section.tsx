@@ -22,9 +22,7 @@ export function RolesSection({
               <Typography.Text strong style={{ fontSize: 16 }}>
                 Roles
               </Typography.Text>
-              <Typography.Text type="secondary">
-                Manage roles and their permissions
-              </Typography.Text>
+              <Typography.Text type="secondary">Manage roles and their permissions</Typography.Text>
             </Flex>
           }
         />
@@ -41,17 +39,13 @@ export function RolesSection({
             <Typography.Text strong style={{ fontSize: 16 }}>
               Roles
             </Typography.Text>
-            <Typography.Text type="secondary">
-              Manage roles and their permissions
-            </Typography.Text>
+            <Typography.Text type="secondary">Manage roles and their permissions</Typography.Text>
           </Flex>
         }
         actions={
           <Dropdown
             menu={{
-              items: [
-                { key: "create", label: "Create role", icon: <PlusOutlined /> },
-              ],
+              items: [{ key: "create", label: "Create role", icon: <PlusOutlined /> }],
               onClick: onCreateRole,
             }}
             trigger={["click"]}
@@ -61,10 +55,7 @@ export function RolesSection({
         }
       />
       {roles.length === 0 ? (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="No roles defined"
-        />
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No roles defined" />
       ) : (
         roles.map((role) => (
           <RoleCard

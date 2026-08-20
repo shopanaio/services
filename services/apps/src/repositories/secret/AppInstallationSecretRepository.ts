@@ -1,14 +1,8 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
-import {
-  Transactional,
-  type TransactionManager,
-} from "@shopana/shared-kernel";
+import { Transactional, type TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  appInstallationSecrets,
-  appInstallations,
-} from "../models/index.js";
+import { appInstallationSecrets, appInstallations } from "../models/index.js";
 
 export interface ResolvedInstallationSecret {
   readonly ciphertext: string;
@@ -17,18 +11,12 @@ export interface ResolvedInstallationSecret {
 }
 
 export class AppInstallationSecretRepository extends BaseRepository {
-  constructor(
-    db: Database,
-    txManager: TransactionManager<Database>,
-  ) {
+  constructor(db: Database, txManager: TransactionManager<Database>) {
     super(db, txManager);
   }
 
   @Transactional()
-  async setMany(
-    installationId: string,
-    secrets: Readonly<Record<string, string>>,
-  ): Promise<void> {
+  async setMany(installationId: string, secrets: Readonly<Record<string, string>>): Promise<void> {
     for (const [name, ciphertext] of Object.entries(secrets)) {
       await this.connection
         .insert(appInstallationSecrets)
@@ -39,10 +27,7 @@ export class AppInstallationSecretRepository extends BaseRepository {
           revokedAt: null,
         })
         .onConflictDoUpdate({
-          target: [
-            appInstallationSecrets.installationId,
-            appInstallationSecrets.name,
-          ],
+          target: [appInstallationSecrets.installationId, appInstallationSecrets.name],
           set: {
             ciphertext,
             version: sql`${appInstallationSecrets.version} + 1`,
@@ -65,10 +50,7 @@ export class AppInstallationSecretRepository extends BaseRepository {
         appCode: appInstallations.appCode,
       })
       .from(appInstallationSecrets)
-      .innerJoin(
-        appInstallations,
-        eq(appInstallations.id, appInstallationSecrets.installationId),
-      )
+      .innerJoin(appInstallations, eq(appInstallations.id, appInstallationSecrets.installationId))
       .where(
         and(
           eq(appInstallationSecrets.installationId, installationId),
@@ -82,18 +64,13 @@ export class AppInstallationSecretRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async listActiveNames(
-    installationId: string,
-  ): Promise<readonly string[]> {
+  async listActiveNames(installationId: string): Promise<readonly string[]> {
     const rows = await this.connection
       .select({ name: appInstallationSecrets.name })
       .from(appInstallationSecrets)
       .where(
         and(
-          eq(
-            appInstallationSecrets.installationId,
-            installationId,
-          ),
+          eq(appInstallationSecrets.installationId, installationId),
           isNull(appInstallationSecrets.revokedAt),
         ),
       )
@@ -110,13 +87,9 @@ export class AppInstallationSecretRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(
-            appInstallationSecrets.installationId,
-            installationId,
-          ),
+          eq(appInstallationSecrets.installationId, installationId),
           isNull(appInstallationSecrets.revokedAt),
         ),
       );
   }
-
 }

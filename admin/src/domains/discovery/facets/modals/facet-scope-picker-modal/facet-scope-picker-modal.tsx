@@ -4,20 +4,13 @@ import { useCallback, useMemo, useState } from "react";
 import { App } from "antd";
 import { createStyles } from "antd-style";
 import type { ApiFacetScopesUpdateInput } from "@/graphql/types";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
+import { ModalHeader, ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { EntityPickerContent } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
 import { useUpdateFacetScopes } from "../../hooks";
 import { getFacetScopeLabel } from "../../mappers";
 import type { IFacetScopePickerModalPayload } from "../../modals";
-import {
-  facetPickerConfig,
-  type FacetPickerEntity,
-} from "../../pickers/facet-picker-config";
+import { facetPickerConfig, type FacetPickerEntity } from "../../pickers/facet-picker-config";
 
 const useStyles = createStyles(({ token }) => ({
   content: {
@@ -47,11 +40,7 @@ export function FacetScopePickerModal() {
     () =>
       new Set(
         typedPayload.facets
-          .filter(
-            (facet) =>
-              facet.scopes.length === 1 &&
-              facet.scopes[0] === typedPayload.scope,
-          )
+          .filter((facet) => facet.scopes.length === 1 && facet.scopes[0] === typedPayload.scope)
           .map((facet) => facet.id),
       ),
     [typedPayload.facets, typedPayload.scope],
@@ -59,8 +48,7 @@ export function FacetScopePickerModal() {
   const pickerConfig = useMemo(
     () => ({
       ...facetPickerConfig,
-      isRowSelectionLocked: (facet: FacetPickerEntity) =>
-        lockedFacetIds.has(facet.id),
+      isRowSelectionLocked: (facet: FacetPickerEntity) => lockedFacetIds.has(facet.id),
     }),
     [lockedFacetIds],
   );
@@ -84,12 +72,9 @@ export function FacetScopePickerModal() {
     });
   }, [selectedIds, typedPayload.facets, typedPayload.scope]);
 
-  const handleSelectionChange = useCallback(
-    (ids: string[], _entities: IPickableEntity[]) => {
-      setSelectedIds(ids);
-    },
-    [],
-  );
+  const handleSelectionChange = useCallback((ids: string[], _entities: IPickableEntity[]) => {
+    setSelectedIds(ids);
+  }, []);
 
   const handleSave = useCallback(async () => {
     if (updates.length === 0) return;
@@ -100,17 +85,9 @@ export function FacetScopePickerModal() {
     }
 
     await typedPayload.onSaved?.();
-    message.success(
-      `${getFacetScopeLabel(typedPayload.scope)} facets updated.`,
-    );
+    message.success(`${getFacetScopeLabel(typedPayload.scope)} facets updated.`);
     forcePop();
-  }, [
-    forcePop,
-    message,
-    typedPayload,
-    updateFacetScopes,
-    updates,
-  ]);
+  }, [forcePop, message, typedPayload, updateFacetScopes, updates]);
 
   const scopeLabel = getFacetScopeLabel(typedPayload.scope);
 
@@ -124,8 +101,7 @@ export function FacetScopePickerModal() {
           title={`${scopeLabel} context facets`}
           onClose={forcePop}
           submitButtonProps={{
-            children:
-              updates.length > 0 ? `Save (${updates.length})` : "Save",
+            children: updates.length > 0 ? `Save (${updates.length})` : "Save",
             loading,
             disabled: updates.length === 0,
             onClick: handleSave,

@@ -3,12 +3,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@apollo/client/react";
 import { FILES_QUERY } from "../graphql";
-import type {
-  ApiFile,
-  ApiPageInfo,
-  ApiFileWhereInput,
-  ApiFileOrderByInput,
-} from "@/graphql/types";
+import type { ApiFile, ApiPageInfo, ApiFileWhereInput, ApiFileOrderByInput } from "@/graphql/types";
 import { SortDirection, FileOrderField, FileStateScope } from "@/graphql/types";
 
 interface UseFilesOptions {
@@ -143,15 +138,13 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
     return { _and: conditions };
   }, [search, externalWhere]);
 
-  const { data, loading, error, refetch } =
-    useQuery<FilesQueryResponse>(FILES_QUERY, {
-      variables: { first, last, after, before, where, orderBy, state },
-      skip,
-      fetchPolicy: "cache-and-network",
-    });
+  const { data, loading, error, refetch } = useQuery<FilesQueryResponse>(FILES_QUERY, {
+    variables: { first, last, after, before, where, orderBy, state },
+    skip,
+    fetchPolicy: "cache-and-network",
+  });
 
-  const files =
-    data?.mediaQuery.files.edges.map((edge) => edge.node) ?? [];
+  const files = data?.mediaQuery.files.edges.map((edge) => edge.node) ?? [];
   const pageInfo = data?.mediaQuery.files.pageInfo ?? null;
   const totalCount = data?.mediaQuery.files.totalCount ?? 0;
 

@@ -15,14 +15,17 @@ export class RecommendationMaintenanceOpenScript extends BaseScript<
     if (cursor.status === "BOOTSTRAPPING") {
       return { status: "BOOTSTRAPPING" as const, cutoff: cursor.bootstrapCutoffAt };
     }
-    if (!cursor.lastManualBoundaryAt) throw new Error("Active recommendation maintenance cursor has no boundary");
+    if (!cursor.lastManualBoundaryAt)
+      throw new Error("Active recommendation maintenance cursor has no boundary");
     return {
       status: "ACTIVE" as const,
       fromBoundary: cursor.lastManualBoundaryAt,
       toBoundary: input.toBoundary,
     };
   }
-  protected handleError(error: unknown): never { throw error; }
+  protected handleError(error: unknown): never {
+    throw error;
+  }
 }
 
 export class RecommendationMaintenanceRequestPageScript extends BaseScript<
@@ -33,7 +36,10 @@ export class RecommendationMaintenanceRequestPageScript extends BaseScript<
     toBoundary?: string;
     after?: { anchorProductId: string; placement: RecommendationPlacement };
   },
-  { requests: RecommendationRequestGeneration[]; nextCursor: { anchorProductId: string; placement: RecommendationPlacement } | null }
+  {
+    requests: RecommendationRequestGeneration[];
+    nextCursor: { anchorProductId: string; placement: RecommendationPlacement } | null;
+  }
 > {
   @Transactional()
   protected async execute(input: {
@@ -43,25 +49,33 @@ export class RecommendationMaintenanceRequestPageScript extends BaseScript<
     toBoundary?: string;
     after?: { anchorProductId: string; placement: RecommendationPlacement };
   }) {
-    const page = input.mode === "bootstrap"
-      ? await this.repository.recommendationMaintenance.listBootstrapAnchors({ after: input.after, first: RECOMMENDATION_FAN_OUT_PAGE_SIZE })
-      : await this.repository.recommendationMaintenance.listBoundaries({
-          fromBoundary: input.fromBoundary!,
-          toBoundary: input.toBoundary!,
-          after: input.after,
-          first: RECOMMENDATION_FAN_OUT_PAGE_SIZE,
-        });
+    const page =
+      input.mode === "bootstrap"
+        ? await this.repository.recommendationMaintenance.listBootstrapAnchors({
+            after: input.after,
+            first: RECOMMENDATION_FAN_OUT_PAGE_SIZE,
+          })
+        : await this.repository.recommendationMaintenance.listBoundaries({
+            fromBoundary: input.fromBoundary!,
+            toBoundary: input.toBoundary!,
+            after: input.after,
+            first: RECOMMENDATION_FAN_OUT_PAGE_SIZE,
+          });
     const requests: RecommendationRequestGeneration[] = [];
     for (const row of page.rows) {
-      requests.push(await this.repository.recommendationBuildRequest.request(
-        row.anchorProductId,
-        row.placement,
-        input.triggerKey,
-      ));
+      requests.push(
+        await this.repository.recommendationBuildRequest.request(
+          row.anchorProductId,
+          row.placement,
+          input.triggerKey,
+        ),
+      );
     }
     return { requests, nextCursor: page.nextCursor };
   }
-  protected handleError(error: unknown): never { throw error; }
+  protected handleError(error: unknown): never {
+    throw error;
+  }
 }
 
 export class RecommendationMaintenanceCompleteScript extends BaseScript<
@@ -70,12 +84,25 @@ export class RecommendationMaintenanceCompleteScript extends BaseScript<
   { status: string }
 > {
   @Transactional()
-  protected async execute(input: { mode: "bootstrap"; cutoff: string } | { mode: "interval"; fromBoundary: string; toBoundary: string }) {
+  protected async execute(
+    input:
+      | { mode: "bootstrap"; cutoff: string }
+      | { mode: "interval"; fromBoundary: string; toBoundary: string },
+  ) {
     if (input.mode === "bootstrap") {
-      const activated = await this.repository.recommendationMaintenance.activateBootstrap(input.cutoff);
+      const activated = await this.repository.recommendationMaintenance.activateBootstrap(
+        input.cutoff,
+      );
       return { status: activated ? "ACTIVATED" : "ALREADY_ACTIVE" };
     }
-    return { status: await this.repository.recommendationMaintenance.advance(input.fromBoundary, input.toBoundary) };
+    return {
+      status: await this.repository.recommendationMaintenance.advance(
+        input.fromBoundary,
+        input.toBoundary,
+      ),
+    };
   }
-  protected handleError(error: unknown): never { throw error; }
+  protected handleError(error: unknown): never {
+    throw error;
+  }
 }

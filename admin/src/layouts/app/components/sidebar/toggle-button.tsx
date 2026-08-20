@@ -1,18 +1,21 @@
-import { LuArrowRight as ArrowRightOutlined, LuArrowLeft as ArrowLeftOutlined } from "react-icons/lu";
-import { Button } from 'antd';
-import { createStyles } from 'antd-style';
+import {
+  LuArrowRight as ArrowRightOutlined,
+  LuArrowLeft as ArrowLeftOutlined,
+} from "react-icons/lu";
+import { Button } from "antd";
+import { createStyles } from "antd-style";
 
 const useStyles = createStyles(({ token }) => ({
   trigger: {
     background: token.colorFillTertiary,
     boxShadow: token.boxShadowTertiary,
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     right: -16,
   },
   button: {
     boxShadow: token.boxShadowTertiary,
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     right: -16,
   },
@@ -26,11 +29,7 @@ interface Props {
 export const ToggleButton = ({ isCollapsed, onClick }: Props) => {
   const { styles } = useStyles();
 
-  const icon = isCollapsed ? (
-    <ArrowRightOutlined size={10} />
-  ) : (
-    <ArrowLeftOutlined size={10} />
-  );
+  const icon = isCollapsed ? <ArrowRightOutlined size={10} /> : <ArrowLeftOutlined size={10} />;
 
   return (
     <Button
@@ -38,10 +37,8 @@ export const ToggleButton = ({ isCollapsed, onClick }: Props) => {
       size="middle"
       icon={icon}
       onClick={onClick}
-      aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      data-testid={
-        isCollapsed ? 'expand-sidebar-button' : 'collapse-sidebar-button'
-      }
+      aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      data-testid={isCollapsed ? "expand-sidebar-button" : "collapse-sidebar-button"}
     />
   );
 };

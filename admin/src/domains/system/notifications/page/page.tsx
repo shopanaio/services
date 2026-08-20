@@ -4,18 +4,12 @@ import { Alert, Empty } from "antd";
 import { createStyles } from "antd-style";
 import { useRouter } from "next/navigation";
 import type { ApiAppWhereInput } from "@/graphql/types";
-import {
-  AppRow,
-  AppRowSkeleton,
-} from "@/domains/apps/management/components";
+import { AppRow, AppRowSkeleton } from "@/domains/apps/management/components";
 import { useAppsManagement } from "@/domains/apps/management/hooks";
 import { useAppManagementModal } from "@/domains/apps/management/modals";
 import { DataLayout } from "@/layouts/data";
 import { usePathParams } from "@/registry";
-import {
-  GroupedLinkItem,
-  GroupedLinkItemDivider,
-} from "@/ui-kit/grouped-link-item";
+import { GroupedLinkItem, GroupedLinkItemDivider } from "@/ui-kit/grouped-link-item";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 
 const DELIVERY_APPS_WHERE = {
@@ -117,11 +111,7 @@ export default function NotificationSettingsPage() {
             ariaLabel="Open customer notifications"
             description="Notify customers about order and account events"
             onClick={() =>
-              router.push(
-                resolvePath(
-                  "/:orgName/:storeName/system/notifications/customer",
-                ),
-              )
+              router.push(resolvePath("/:orgName/:storeName/system/notifications/customer"))
             }
             title="Customer notifications"
           />
@@ -130,11 +120,7 @@ export default function NotificationSettingsPage() {
             ariaLabel="Open staff notifications"
             description="Notify staff members about new order events"
             onClick={() =>
-              router.push(
-                resolvePath(
-                  "/:orgName/:storeName/system/notifications/staff",
-                ),
-              )
+              router.push(resolvePath("/:orgName/:storeName/system/notifications/staff"))
             }
             title="Staff notifications"
           />
@@ -145,11 +131,7 @@ export default function NotificationSettingsPage() {
             ariaLabel="Open webhooks"
             description="Send XML or JSON notifications about store events to a URL"
             onClick={() =>
-              router.push(
-                resolvePath(
-                  "/:orgName/:storeName/system/notifications/webhooks",
-                ),
-              )
+              router.push(resolvePath("/:orgName/:storeName/system/notifications/webhooks"))
             }
             title="Webhooks"
           />

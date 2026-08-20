@@ -3,16 +3,11 @@ import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { CustomerAddress } from "../../repositories/models/index.js";
 import { CustomersType } from "./CustomersType.js";
 
-export class CustomerAddressResolver extends CustomersType<
-  string,
-  CustomerAddress
-> {
+export class CustomerAddressResolver extends CustomersType<string, CustomerAddress> {
   async $preload() {
     const address = await this.$ctx.loaders.address.load(this.$props);
     if (!address) {
-      throw new PreloadNotFoundError(
-        `Customer address with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer address with ID ${this.$props} not found`);
     }
     return address;
   }

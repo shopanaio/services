@@ -1,10 +1,7 @@
 import type { TransactionManager } from "@shopana/shared-kernel";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, gt, isNull, ne } from "drizzle-orm";
-import {
-  assertApplicationId,
-  type AuthAdapterScope,
-} from "../../auth/AuthScope.js";
+import { assertApplicationId, type AuthAdapterScope } from "../../auth/AuthScope.js";
 import type { Database } from "../../infrastructure/db/database.js";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -16,12 +13,7 @@ import {
   type ApplicationSession,
   type ApplicationUser,
 } from "../models/application-auth.js";
-import {
-  session,
-  user,
-  type Session,
-  type User,
-} from "../models/auth.js";
+import { session, user, type Session, type User } from "../models/auth.js";
 import { application, organization } from "../models/authorization.js";
 
 export type AuthSession = Session | ApplicationSession;
@@ -40,7 +32,7 @@ export type ValidatedAuthSession =
 export class AuthSessionRepositoryFactory {
   constructor(
     private readonly db: Database,
-    private readonly txManager: TransactionManager<Database>
+    private readonly txManager: TransactionManager<Database>,
   ) {}
 
   forPlatform(): AuthSessionRepository {
@@ -62,7 +54,7 @@ export class AuthSessionRepository extends BaseRepository {
   constructor(
     db: Database,
     txManager: TransactionManager<Database>,
-    private readonly scope: AuthAdapterScope
+    private readonly scope: AuthAdapterScope,
   ) {
     super(db, txManager);
     if (scope.kind === "application") {
@@ -80,17 +72,15 @@ export class AuthSessionRepository extends BaseRepository {
           and(
             eq(applicationSession.applicationId, this.scope.applicationId),
             eq(applicationSession.userId, userId),
-            gt(applicationSession.expiresAt, new Date())
-          )
+            gt(applicationSession.expiresAt, new Date()),
+          ),
         );
     }
 
     return this.connection
       .select()
       .from(session)
-      .where(
-        and(eq(session.userId, userId), gt(session.expiresAt, new Date()))
-      );
+      .where(and(eq(session.userId, userId), gt(session.expiresAt, new Date())));
   }
 
   /**
@@ -99,10 +89,7 @@ export class AuthSessionRepository extends BaseRepository {
    * before the access token expires.
    */
   @ReadOnly()
-  async validate(
-    userId: string,
-    sessionId: string
-  ): Promise<ValidatedAuthSession | null> {
+  async validate(userId: string, sessionId: string): Promise<ValidatedAuthSession | null> {
     if (this.scope.kind === "application") {
       const [result] = await this.connection
         .select({ session: applicationSession, user: applicationUser })
@@ -110,27 +97,15 @@ export class AuthSessionRepository extends BaseRepository {
         .innerJoin(
           applicationUser,
           and(
-            eq(
-              applicationUser.applicationId,
-              applicationSession.applicationId
-            ),
-            eq(applicationUser.id, applicationSession.userId)
-          )
+            eq(applicationUser.applicationId, applicationSession.applicationId),
+            eq(applicationUser.id, applicationSession.userId),
+          ),
         )
-        .innerJoin(
-          application,
-          eq(application.id, applicationSession.applicationId)
-        )
-        .innerJoin(
-          organization,
-          eq(organization.id, application.organizationId)
-        )
+        .innerJoin(application, eq(application.id, applicationSession.applicationId))
+        .innerJoin(organization, eq(organization.id, application.organizationId))
         .innerJoin(
           applicationAuthConfiguration,
-          eq(
-            applicationAuthConfiguration.applicationId,
-            application.id
-          )
+          eq(applicationAuthConfiguration.applicationId, application.id),
         )
         .where(
           and(
@@ -141,14 +116,12 @@ export class AuthSessionRepository extends BaseRepository {
             eq(applicationUser.status, "active"),
             eq(applicationAuthConfiguration.realmEnabled, true),
             isNull(application.deletedAt),
-            isNull(organization.deletedAt)
-          )
+            isNull(organization.deletedAt),
+          ),
         )
         .limit(1);
 
-      return result
-        ? { kind: "application", session: result.session, user: result.user }
-        : null;
+      return result ? { kind: "application", session: result.session, user: result.user } : null;
     }
 
     const [result] = await this.connection
@@ -159,14 +132,12 @@ export class AuthSessionRepository extends BaseRepository {
         and(
           eq(session.id, sessionId),
           eq(session.userId, userId),
-          gt(session.expiresAt, new Date())
-        )
+          gt(session.expiresAt, new Date()),
+        ),
       )
       .limit(1);
 
-    return result
-      ? { kind: "platform", session: result.session, user: result.user }
-      : null;
+    return result ? { kind: "platform", session: result.session, user: result.user } : null;
   }
 
   @Transactional()
@@ -177,26 +148,20 @@ export class AuthSessionRepository extends BaseRepository {
         .delete(applicationOauthAccessToken)
         .where(
           and(
-            eq(
-              applicationOauthAccessToken.applicationId,
-              this.scope.applicationId
-            ),
+            eq(applicationOauthAccessToken.applicationId, this.scope.applicationId),
             eq(applicationOauthAccessToken.userId, userId),
-            eq(applicationOauthAccessToken.sessionId, sessionId)
-          )
+            eq(applicationOauthAccessToken.sessionId, sessionId),
+          ),
         );
       await this.connection
         .update(applicationOauthRefreshToken)
         .set({ revoked: revokedAt, sessionId: null })
         .where(
           and(
-            eq(
-              applicationOauthRefreshToken.applicationId,
-              this.scope.applicationId
-            ),
+            eq(applicationOauthRefreshToken.applicationId, this.scope.applicationId),
             eq(applicationOauthRefreshToken.userId, userId),
-            eq(applicationOauthRefreshToken.sessionId, sessionId)
-          )
+            eq(applicationOauthRefreshToken.sessionId, sessionId),
+          ),
         );
       const rows = await this.connection
         .delete(applicationSession)
@@ -204,8 +169,8 @@ export class AuthSessionRepository extends BaseRepository {
           and(
             eq(applicationSession.applicationId, this.scope.applicationId),
             eq(applicationSession.id, sessionId),
-            eq(applicationSession.userId, userId)
-          )
+            eq(applicationSession.userId, userId),
+          ),
         )
         .returning({ id: applicationSession.id });
 
@@ -214,9 +179,7 @@ export class AuthSessionRepository extends BaseRepository {
 
     const rows = await this.connection
       .delete(session)
-      .where(
-        and(eq(session.id, sessionId), eq(session.userId, userId))
-      )
+      .where(and(eq(session.id, sessionId), eq(session.userId, userId)))
       .returning({ id: session.id });
 
     return rows.length > 0;
@@ -230,32 +193,26 @@ export class AuthSessionRepository extends BaseRepository {
         .delete(applicationOauthAccessToken)
         .where(
           and(
-            eq(
-              applicationOauthAccessToken.applicationId,
-              this.scope.applicationId
-            ),
-            eq(applicationOauthAccessToken.userId, userId)
-          )
+            eq(applicationOauthAccessToken.applicationId, this.scope.applicationId),
+            eq(applicationOauthAccessToken.userId, userId),
+          ),
         );
       await this.connection
         .update(applicationOauthRefreshToken)
         .set({ revoked: revokedAt, sessionId: null })
         .where(
           and(
-            eq(
-              applicationOauthRefreshToken.applicationId,
-              this.scope.applicationId
-            ),
-            eq(applicationOauthRefreshToken.userId, userId)
-          )
+            eq(applicationOauthRefreshToken.applicationId, this.scope.applicationId),
+            eq(applicationOauthRefreshToken.userId, userId),
+          ),
         );
       const rows = await this.connection
         .delete(applicationSession)
         .where(
           and(
             eq(applicationSession.applicationId, this.scope.applicationId),
-            eq(applicationSession.userId, userId)
-          )
+            eq(applicationSession.userId, userId),
+          ),
         )
         .returning({ id: applicationSession.id });
 
@@ -271,36 +228,27 @@ export class AuthSessionRepository extends BaseRepository {
   }
 
   @Transactional()
-  async revokeOtherSessions(
-    userId: string,
-    currentSessionId: string
-  ): Promise<number> {
+  async revokeOtherSessions(userId: string, currentSessionId: string): Promise<number> {
     if (this.scope.kind === "application") {
       const revokedAt = new Date();
       await this.connection
         .delete(applicationOauthAccessToken)
         .where(
           and(
-            eq(
-              applicationOauthAccessToken.applicationId,
-              this.scope.applicationId
-            ),
+            eq(applicationOauthAccessToken.applicationId, this.scope.applicationId),
             eq(applicationOauthAccessToken.userId, userId),
-            ne(applicationOauthAccessToken.sessionId, currentSessionId)
-          )
+            ne(applicationOauthAccessToken.sessionId, currentSessionId),
+          ),
         );
       await this.connection
         .update(applicationOauthRefreshToken)
         .set({ revoked: revokedAt, sessionId: null })
         .where(
           and(
-            eq(
-              applicationOauthRefreshToken.applicationId,
-              this.scope.applicationId
-            ),
+            eq(applicationOauthRefreshToken.applicationId, this.scope.applicationId),
             eq(applicationOauthRefreshToken.userId, userId),
-            ne(applicationOauthRefreshToken.sessionId, currentSessionId)
-          )
+            ne(applicationOauthRefreshToken.sessionId, currentSessionId),
+          ),
         );
       const rows = await this.connection
         .delete(applicationSession)
@@ -308,8 +256,8 @@ export class AuthSessionRepository extends BaseRepository {
           and(
             eq(applicationSession.applicationId, this.scope.applicationId),
             eq(applicationSession.userId, userId),
-            ne(applicationSession.id, currentSessionId)
-          )
+            ne(applicationSession.id, currentSessionId),
+          ),
         )
         .returning({ id: applicationSession.id });
 
@@ -318,12 +266,7 @@ export class AuthSessionRepository extends BaseRepository {
 
     const rows = await this.connection
       .delete(session)
-      .where(
-        and(
-          eq(session.userId, userId),
-          ne(session.id, currentSessionId)
-        )
-      )
+      .where(and(eq(session.userId, userId), ne(session.id, currentSessionId)))
       .returning({ id: session.id });
 
     return rows.length;

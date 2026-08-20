@@ -1,8 +1,4 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional, type TransactionManager } from "@shopana/shared-kernel";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { Database } from "../../infrastructure/db/database.js";
@@ -35,12 +31,10 @@ export const reviewReplyRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "reviewReply", tieBreaker: "id" }
+  { name: "reviewReply", tieBreaker: "id" },
 );
 
-export type ReviewReplyRelayInput = InferRelayInput<
-  typeof reviewReplyRelayQuery
->;
+export type ReviewReplyRelayInput = InferRelayInput<typeof reviewReplyRelayQuery>;
 export type ReviewReplyConnectionInput = ReviewReplyRelayInput & {
   meta?: ContentConnectionMetaInput;
 };
@@ -50,15 +44,13 @@ export interface ReviewReplyAggregate {
   reply: ReviewReply;
 }
 
-export type ReviewReplyPatch = Partial<
-  Pick<NewReviewReply, "isOfficial" | "sortIndex">
->;
+export type ReviewReplyPatch = Partial<Pick<NewReviewReply, "isOfficial" | "sortIndex">>;
 
 export class ReviewReplyRepository extends BaseRepository {
   constructor(
     db: Database,
     txManager: TransactionManager<Database>,
-    private readonly content: ContentRepository
+    private readonly content: ContentRepository,
   ) {
     super(db, txManager);
   }
@@ -73,15 +65,10 @@ export class ReviewReplyRepository extends BaseRepository {
         and(
           eq(contentItem.storeId, reviewReply.storeId),
           eq(contentItem.id, reviewReply.id),
-          isNull(contentItem.deletedAt)
-        )
+          isNull(contentItem.deletedAt),
+        ),
       )
-      .where(
-        and(
-          eq(reviewReply.storeId, this.storeId),
-          eq(reviewReply.id, id)
-        )
-      )
+      .where(and(eq(reviewReply.storeId, this.storeId), eq(reviewReply.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -94,24 +81,14 @@ export class ReviewReplyRepository extends BaseRepository {
       .from(reviewReply)
       .innerJoin(
         contentItem,
-        and(
-          eq(contentItem.storeId, reviewReply.storeId),
-          eq(contentItem.id, reviewReply.id)
-        )
+        and(eq(contentItem.storeId, reviewReply.storeId), eq(contentItem.id, reviewReply.id)),
       )
-      .where(
-        and(
-          eq(reviewReply.storeId, this.storeId),
-          inArray(reviewReply.id, [...new Set(ids)])
-        )
-      )
+      .where(and(eq(reviewReply.storeId, this.storeId), inArray(reviewReply.id, [...new Set(ids)])))
       .then((rows) => rows.map((row) => row.reply));
   }
 
   @ReadOnly()
-  async getConnection(
-    args: ReviewReplyConnectionInput
-  ): Promise<RepositoryConnectionResult> {
+  async getConnection(args: ReviewReplyConnectionInput): Promise<RepositoryConnectionResult> {
     const { where, orderBy, meta, ...pagination } = args;
     const mergedWhere: ReviewReplyRelayInput["where"] = {
       _and: [
@@ -146,15 +123,19 @@ export class ReviewReplyRepository extends BaseRepository {
   async create(input: {
     content: Omit<
       NewContentItem,
-      "id" | "storeId" | "kind" | "revision" | "createdAt" | "updatedAt" | "deletedAt" | "redactedAt"
+      | "id"
+      | "storeId"
+      | "kind"
+      | "revision"
+      | "createdAt"
+      | "updatedAt"
+      | "deletedAt"
+      | "redactedAt"
     >;
     reply: Omit<NewReviewReply, "id" | "contentKind" | "storeId">;
   }): Promise<ReviewReplyAggregate> {
     const id = await this.generateUuidV7();
-    const content = await this.content.create(
-      { ...input.content, kind: "REVIEW_REPLY" },
-      id
-    );
+    const content = await this.content.create({ ...input.content, kind: "REVIEW_REPLY" }, id);
     const rows = await this.connection
       .insert(reviewReply)
       .values({
@@ -170,19 +151,11 @@ export class ReviewReplyRepository extends BaseRepository {
   }
 
   @Transactional()
-  async updateProperties(
-    id: string,
-    patch: ReviewReplyPatch
-  ): Promise<ReviewReply | null> {
+  async updateProperties(id: string, patch: ReviewReplyPatch): Promise<ReviewReply | null> {
     const rows = await this.connection
       .update(reviewReply)
       .set(patch)
-      .where(
-        and(
-          eq(reviewReply.storeId, this.storeId),
-          eq(reviewReply.id, id)
-        )
-      )
+      .where(and(eq(reviewReply.storeId, this.storeId), eq(reviewReply.id, id)))
       .returning();
     return rows[0] ?? null;
   }

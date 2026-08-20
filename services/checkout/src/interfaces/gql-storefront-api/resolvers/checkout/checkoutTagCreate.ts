@@ -15,7 +15,7 @@ import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 export const checkoutTagCreate = async (
   _parent: ApiMutation,
   args: ApiMutationCheckoutTagCreateArgs,
-  ctx: GraphQLContext
+  ctx: GraphQLContext,
 ) => {
   const app = App.getInstance();
   const { checkoutUsecase, logger } = app;

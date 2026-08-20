@@ -40,7 +40,7 @@ export default function SignInPage() {
     if (!result.success) {
       const { generalErrors } = mapGraphQLErrorsToForm<SignInFormValues>(
         result.userErrors,
-        form.setError
+        form.setError,
       );
 
       if (generalErrors.length > 0) {

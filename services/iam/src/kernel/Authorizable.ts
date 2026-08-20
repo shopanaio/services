@@ -1,7 +1,4 @@
-import type {
-  AuthProvider as IAuthProvider,
-  AuthorizeParams,
-} from "@shopana/shared-kernel";
+import type { AuthProvider as IAuthProvider, AuthorizeParams } from "@shopana/shared-kernel";
 import { authorizeAdminContext } from "@shopana/shared-context";
 import {
   ServiceLinkedResourceAuthorizationError,
@@ -22,7 +19,6 @@ import {
  * Gets kernel services from context automatically.
  */
 export class AuthProvider implements IAuthProvider {
-
   private get services(): IamKernelServices {
     return getContext().kernel.getServices();
   }
@@ -53,9 +49,7 @@ export class AuthProvider implements IAuthProvider {
     });
   }
 
-  async authorizeProtectedResource(
-    params: ProtectedResourceAuthorizeParams
-  ): Promise<boolean> {
+  async authorizeProtectedResource(params: ProtectedResourceAuthorizeParams): Promise<boolean> {
     const resource = params.protectedResource;
     if (
       !resource.organizationId.trim() ||
@@ -70,25 +64,18 @@ export class AuthProvider implements IAuthProvider {
     }
 
     const managementMode =
-      await this.services.repository.serviceLinkedResource.findManagementMode(
-        resource
-      );
+      await this.services.repository.serviceLinkedResource.findManagementMode(resource);
     if (!managementMode) return false;
 
     const binding =
-      await this.services.repository.serviceLinkedResource.findActiveByResource(
-        resource
-      );
+      await this.services.repository.serviceLinkedResource.findActiveByResource(resource);
     if (managementMode === "organization") {
       return binding === null;
     }
     if (!binding) return false;
 
     const caller = getContext().brokerCallContext?.caller;
-    if (
-      caller?.service === binding.linkedService &&
-      matchesServiceLinkedOwner(resource, binding)
-    ) {
+    if (caller?.service === binding.linkedService && matchesServiceLinkedOwner(resource, binding)) {
       return true;
     }
 
@@ -101,5 +88,4 @@ export class AuthProvider implements IAuthProvider {
       linkedOwnerId: binding.linkedOwnerId,
     });
   }
-
 }

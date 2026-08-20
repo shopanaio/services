@@ -29,7 +29,9 @@ type ReviewModerationCase implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""Append-only moderation timeline entry."""
+"""
+Append-only moderation timeline entry.
+"""
 type ReviewModerationEvent implements Node @key(fields: "id") {
   id: ID!
   content: ReviewContent!
@@ -46,7 +48,9 @@ type ReviewModerationEvent implements Node @key(fields: "id") {
   createdAt: DateTime!
 }
 
-"""Immutable aggregate snapshot used for audit and restore workflows."""
+"""
+Immutable aggregate snapshot used for audit and restore workflows.
+"""
 type ReviewContentRevision implements Node @key(fields: "id") {
   id: ID!
   content: ReviewContent!
@@ -58,7 +62,9 @@ type ReviewContentRevision implements Node @key(fields: "id") {
   createdAt: DateTime!
 }
 
-"""Immutable automated moderation evidence; it is not the moderation decision."""
+"""
+Immutable automated moderation evidence; it is not the moderation decision.
+"""
 type ReviewModerationSignal implements Node @key(fields: "id") {
   id: ID!
   content: ReviewContent!
@@ -131,7 +137,9 @@ input ReviewContentReportAssignmentInput {
 }
 
 input ReviewContentReportResolutionInput {
-  """Must be ACTIONED or DISMISSED."""
+  """
+  Must be ACTIONED or DISMISSED.
+  """
   status: ReviewContentReportStatus!
   note: String
 }
@@ -157,7 +165,9 @@ input ReviewModerationCaseDetailsInput {
 }
 
 input ReviewModerationCaseResolutionInput {
-  """Must be RESOLVED or CANCELLED."""
+  """
+  Must be RESOLVED or CANCELLED.
+  """
   status: ReviewModerationCaseStatus!
   resolutionCode: String
   resolutionNote: String

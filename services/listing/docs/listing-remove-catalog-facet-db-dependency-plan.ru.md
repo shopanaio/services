@@ -2,35 +2,33 @@
 
 ## Контекст
 
-Сейчас `listing` читает catalog facet tables напрямую, хотя ownership для
-facets находится в `catalog`. Это нарушает service boundary: storefront listing
-read path зависит от physical schema `catalog.facet`, `catalog.facet_value`,
-`catalog.facet_translation` и `catalog.facet_value_translation`.
+Сейчас `listing` читает catalog facet tables напрямую, хотя ownership для facets находится в
+`catalog`. Это нарушает service boundary: storefront listing read path зависит от physical schema
+`catalog.facet`, `catalog.facet_value`, `catalog.facet_translation` и
+`catalog.facet_value_translation`.
 
 Цель этого плана:
 
 - убрать из `listing` любые SQL/Drizzle обращения к `catalog.facet*`;
 - убрать runtime-шаг `facet handle -> facet_id/facet_value_id`;
 - перевести listing facet index на handle-based ключи;
-- возвращать catalog facet данные через supergraph entity references, а не через
-  прямой join к catalog DB.
+- возвращать catalog facet данные через supergraph entity references, а не через прямой join к
+  catalog DB.
 
-Важное проектное ограничение: stage/prod данных и пользователей нет. Поэтому
-эта работа выполняется как breaking refactor, без compatibility layer,
-dual-write, dual-read и SQL backfill для сохранения старого listing index.
-После изменения схемы listing index пересобирается/засеивается заново уже в
+Важное проектное ограничение: stage/prod данных и пользователей нет. Поэтому эта работа выполняется
+как breaking refactor, без compatibility layer, dual-write, dual-read и SQL backfill для сохранения
+старого listing index. После изменения схемы listing index пересобирается/засеивается заново уже в
 новом формате.
 
 Терминология:
 
-- `facetHandle` в этом документе означает публичный handle facet. В текущем
-  catalog коде это поле называется `Facet.slug`.
-- `facetValueHandle` означает root/group `FacetValue.handle`, который
-  уникален внутри `(store_id, facet_id)`.
-- Для текущего формата handle `:` безопасен как delimiter для group values:
-  `Facet.slug` и group `FacetValue.handle` валидируются slug regex без `:`.
-  Source handles для `OPTION`/`FEATURE` могут содержать `:`, но storefront
-  listing должен работать с group/root handles.
+- `facetHandle` в этом документе означает публичный handle facet. В текущем catalog коде это поле
+  называется `Facet.slug`.
+- `facetValueHandle` означает root/group `FacetValue.handle`, который уникален внутри
+  `(store_id, facet_id)`.
+- Для текущего формата handle `:` безопасен как delimiter для group values: `Facet.slug` и group
+  `FacetValue.handle` валидируются slug regex без `:`. Source handles для `OPTION`/`FEATURE` могут
+  содержать `:`, но storefront listing должен работать с group/root handles.
 
 ## Найденные зависимости
 
@@ -42,8 +40,7 @@ dual-write, dual-read и SQL backfill для сохранения старого
 - объявляет `catalogSchema.table("facet_value")`;
 - экспортируется из `services/listing/src/repositories/models/index.ts`.
 
-Эти модели должны быть удалены в рамках этой же работы, а не оставлены как
-fallback.
+Эти модели должны быть удалены в рамках этой же работы, а не оставлены как fallback.
 
 ### Storefront facet resolution repository
 
@@ -54,8 +51,8 @@ fallback.
   - `catalog.facet` по `f.slug = requested.facet_slug`;
   - `catalog.facet_value` по `fv.facet_id = f.id` и `fv.handle = requested.value_handle`;
   - parent group value через self-join `catalog.facet_value`;
-- `getFacetValues()` берет candidate `value_key` из listing index, затем снова
-  join-ит `catalog.facet`/`catalog.facet_value`, чтобы вернуть slug/type/handle.
+- `getFacetValues()` берет candidate `value_key` из listing index, затем снова join-ит
+  `catalog.facet`/`catalog.facet_value`, чтобы вернуть slug/type/handle.
 
 Это основной `handle -> id` слой, который должен исчезнуть.
 
@@ -66,8 +63,8 @@ fallback.
 - CTE `resolved_facets` join-ит `catalog.facet` и `catalog.facet_value`;
 - CTE дополнительно обрабатывает `PRICE` и `IN_STOCK` как catalog facets.
 
-Этот SQL подключается через `compileCoreListingSql()` и используется page,
-total, virtual facets и counts queries.
+Этот SQL подключается через `compileCoreListingSql()` и используется page, total, virtual facets и
+counts queries.
 
 ### Facet metadata query
 
@@ -80,17 +77,16 @@ total, virtual facets и counts queries.
   - `catalog.facet_value_translation`;
 - возвращает labels, ui type, swatch id и order из catalog DB.
 
-Целевое состояние: listing не возвращает эти catalog-owned поля локально.
-Listing возвращает только references, а labels/ui/swatch/id приходят из catalog
-через supergraph.
+Целевое состояние: listing не возвращает эти catalog-owned поля локально. Listing возвращает только
+references, а labels/ui/swatch/id приходят из catalog через supergraph.
 
 ### Facet counts query
 
 `services/listing/src/repositories/storefront/sql/compileFacetCountsQuerySql.ts`
 
 - `compileFacetCountsCtesSql()` всегда включает `compileFacetResolutionSql()`;
-- `compileDiscoveredFacetValueCtesSql()` строит `visible_facet_values` через
-  `catalog.facet` и `catalog.facet_value`;
+- `compileDiscoveredFacetValueCtesSql()` строит `visible_facet_values` через `catalog.facet` и
+  `catalog.facet_value`;
 - option facet count isolation использует `facet_id`.
 
 Целевое состояние: counts работают на `facetHandle`/`valueKey`, без catalog join.
@@ -114,33 +110,30 @@ Listing возвращает только references, а labels/ui/swatch/id п�
 
 `services/listing/src/repositories/storefront/types.ts`
 
-- `StorefrontListingFilterInput.kind = "facet"` сейчас хранит
-  `facetSlug + valueHandles`;
+- `StorefrontListingFilterInput.kind = "facet"` сейчас хранит `facetSlug + valueHandles`;
 - `ResolvedFacetFilterGroup` хранит `facetId + facetType + valueKeys`;
 - `StorefrontListingFacetResult` хранит `facetId/facetSlug/facetLabel/facetType/uiType`;
 - `StorefrontListingFacetValueResult` хранит `facetValueId/valueHandle/valueLabel/swatchId`.
 
 `services/listing/src/resolvers/admin/listingInput.ts`
 
-- нормализует `tag`, `variantOption`, `productFacet`, `variantFacet` в общий
-  `kind: "facet"` без явного product/variant facet scope;
+- нормализует `tag`, `variantOption`, `productFacet`, `variantFacet` в общий `kind: "facet"` без
+  явного product/variant facet scope;
 - последующая product/option маршрутизация зависит от catalog `facet_type`.
 
-Целевое состояние: product/variant scope должен быть известен из input, без
-catalog lookup.
+Целевое состояние: product/variant scope должен быть известен из input, без catalog lookup.
 
 ### Listing DB schema
 
 `services/listing/migrations/domains/0100_listing_index/0100_listing_index__tables.sql`
 
-- `listing.listing_posting_bitmap.value_key` generic и уже может хранить
-  handle-based value key;
+- `listing.listing_posting_bitmap.value_key` generic и уже может хранить handle-based value key;
 - `listing.listing_option_signature_value.facet_id uuid NOT NULL`;
 - индекс `idx_listing_option_signature_value_facet_signature` построен по
   `(store_id, facet_id, signature_key, value_key)`.
 
-Целевое состояние для option signatures: заменить `facet_id` на
-`facet_handle`/`facet_value_handle` и индексировать по handle columns.
+Целевое состояние для option signatures: заменить `facet_id` на `facet_handle`/`facet_value_handle`
+и индексировать по handle columns.
 
 ## Целевой контракт
 
@@ -166,8 +159,8 @@ material:cotton
 - `facetHandle` берется из catalog facet public handle (`Facet.slug` сейчас);
 - `facetValueHandle` берется из root/group `FacetValue.handle`;
 - source child handles не являются storefront listing filter key;
-- если нужно поддержать source child input, этот alias должен резолвиться до
-  group handle до попадания в listing, но не через listing DB join к catalog.
+- если нужно поддержать source child input, этот alias должен резолвиться до group handle до
+  попадания в listing, но не через listing DB join к catalog.
 
 ### Filter input без `handle -> id` resolution
 
@@ -202,16 +195,16 @@ export interface ResolvedFacetFilterGroup {
 }
 ```
 
-`StorefrontFacetResolutionRepository.resolveFilterPlan()` больше не должен
-делать SQL. Он группирует normalized filters и строит `valueKey` напрямую:
+`StorefrontFacetResolutionRepository.resolveFilterPlan()` больше не должен делать SQL. Он группирует
+normalized filters и строит `valueKey` напрямую:
 
 ```ts
 const valueKey = `${facetHandle}:${facetValueHandle}`;
 ```
 
-Unknown facet/value больше не должен валидироваться через catalog DB внутри
-listing. Для несуществующего key listing возвращает пустой результат или нулевой
-count. Форматные ошибки остаются validation errors.
+Unknown facet/value больше не должен валидироваться через catalog DB внутри listing. Для
+несуществующего key listing возвращает пустой результат или нулевой count. Форматные ошибки остаются
+validation errors.
 
 ### Virtual facets
 
@@ -219,20 +212,18 @@ count. Форматные ошибки остаются validation errors.
 
 - Price filter использует `ListingPriceRangeFilter`;
 - availability filter использует `available`;
-- virtual listing facets остаются локальными `ListingFacet`-подобными объектами,
-  потому для них нет catalog `FacetValue` postings.
+- virtual listing facets остаются локальными `ListingFacet`-подобными объектами, потому для них нет
+  catalog `FacetValue` postings.
 
-Если catalog будет иметь facet rows для price/in-stock, listing все равно не
-должен читать их из DB. Связь с ними должна быть отдельным supergraph/UI
-решением, не частью generic facet postings.
+Если catalog будет иметь facet rows для price/in-stock, listing все равно не должен читать их из DB.
+Связь с ними должна быть отдельным supergraph/UI решением, не частью generic facet postings.
 
 ## GraphQL через supergraph
 
 ### Catalog schema
 
-Catalog должен стать federation owner для facet entities по handle-based keys.
-Текущие `Facet` и `FacetValue` уже существуют, но `Facet`/`FacetValue` не
-объявлены как federation entities.
+Catalog должен стать federation owner для facet entities по handle-based keys. Текущие `Facet` и
+`FacetValue` уже существуют, но `Facet`/`FacetValue` не объявлены как federation entities.
 
 Минимальный целевой вариант, совместимый с handle-based listing index:
 
@@ -257,23 +248,19 @@ type FacetValue implements Node @key(fields: "facetHandle handle") {
 }
 ```
 
-Если catalog в рамках этой же работы переименовывает `slug` в `handle`,
-использовать `handle` вместо `slug`, но смысл ключа остается тем же.
+Если catalog в рамках этой же работы переименовывает `slug` в `handle`, использовать `handle` вместо
+`slug`, но смысл ключа остается тем же.
 
 Catalog resolver changes:
 
-- добавить `Facet.__resolveReference` по `{ slug }` внутри текущего project/store
-  context;
+- добавить `Facet.__resolveReference` по `{ slug }` внутри текущего project/store context;
 - добавить `FacetValue.__resolveReference` по `{ facetHandle, handle }`;
-- добавить resolver `FacetValue.facetHandle`, который возвращает handle parent
-  facet;
-- оставить `id` как catalog-owned Global ID (`GlobalIdEntity.Facet` /
-  `GlobalIdEntity.FacetValue`).
+- добавить resolver `FacetValue.facetHandle`, который возвращает handle parent facet;
+- оставить `id` как catalog-owned Global ID (`GlobalIdEntity.Facet` / `GlobalIdEntity.FacetValue`).
 
 ### Listing schema
 
-Listing subgraph должен расширить catalog entities только для возврата
-references:
+Listing subgraph должен расширить catalog entities только для возврата references:
 
 ```graphql
 extend type Facet @key(fields: "slug", resolvable: false) {
@@ -335,13 +322,13 @@ facets {
 }
 ```
 
-Так listing возвращает только entity reference keys, а catalog отдает IDs,
-labels, UI metadata и swatches.
+Так listing возвращает только entity reference keys, а catalog отдает IDs, labels, UI metadata и
+swatches.
 
 ### Federation resolution flow
 
-Listing не должен иметь `Facet.id` или `FacetValue.id`. Он должен вернуть
-достаточный federation reference.
+Listing не должен иметь `Facet.id` или `FacetValue.id`. Он должен вернуть достаточный federation
+reference.
 
 Для facet:
 
@@ -352,8 +339,7 @@ Listing не должен иметь `Facet.id` или `FacetValue.id`. Он д�
 }
 ```
 
-Router передаст этот reference в catalog, если клиент запросил catalog-owned
-fields:
+Router передаст этот reference в catalog, если клиент запросил catalog-owned fields:
 
 ```graphql
 facets {
@@ -384,8 +370,8 @@ WHERE store_id = :storeId
   AND slug = :slug
 ```
 
-Для facet value одного `handle` недостаточно, потому `FacetValue.handle`
-уникален только внутри facet. Listing должен вернуть пару:
+Для facet value одного `handle` недостаточно, потому `FacetValue.handle` уникален только внутри
+facet. Listing должен вернуть пару:
 
 ```ts
 {
@@ -438,8 +424,8 @@ WHERE f.store_id = :storeId
 
 - `Facet` reference key: `slug` или будущий `handle`;
 - `FacetValue` reference key: `facetHandle + handle`;
-- listing result не должен содержать только `valueHandle` без `facetHandle`,
-  потому такой reference нельзя однозначно дорезолвить в catalog.
+- listing result не должен содержать только `valueHandle` без `facetHandle`, потому такой reference
+  нельзя однозначно дорезолвить в catalog.
 
 ## DB migration для handle-based option index
 
@@ -451,8 +437,7 @@ WHERE f.store_id = :storeId
 PRIMARY KEY (store_id, entity_type, field, value_key)
 ```
 
-Ее можно оставить без новых колонок, если `value_key` становится
-`facetHandle:facetValueHandle`.
+Ее можно оставить без новых колонок, если `value_key` становится `facetHandle:facetValueHandle`.
 
 Для replacement scope использовать prefixes:
 
@@ -462,9 +447,9 @@ valueKeyPrefixes = ["color:", "size:", "tag:"]
 
 ### `listing.listing_option_signature_value`
 
-Заменить физическую зависимость от `facet_id` breaking migration-ом. Так как
-данных сохранять не нужно, не добавлять временные nullable columns и не делать
-backfill. Финальная таблица должна хранить handle identity:
+Заменить физическую зависимость от `facet_id` breaking migration-ом. Так как данных сохранять не
+нужно, не добавлять временные nullable columns и не делать backfill. Финальная таблица должна
+хранить handle identity:
 
 ```sql
 DROP INDEX listing.idx_listing_option_signature_value_facet_signature;
@@ -483,11 +468,11 @@ CREATE INDEX idx_listing_option_signature_value_facet_handle_signature
   );
 ```
 
-Можно оставить `value_key` как denormalized composite key, но все places,
-которые сейчас читают или группируют `facet_id`, должны читать `facet_handle`.
+Можно оставить `value_key` как denormalized composite key, но все places, которые сейчас читают или
+группируют `facet_id`, должны читать `facet_handle`.
 
-Старые rows формата `facet_id:facet_value_id` не переносить. После migration
-выполнить rebuild listing index из producer payload в новом формате.
+Старые rows формата `facet_id:facet_value_id` не переносить. После migration выполнить rebuild
+listing index из producer payload в новом формате.
 
 ## SQL/query changes
 
@@ -503,9 +488,8 @@ CREATE INDEX idx_listing_option_signature_value_facet_handle_signature
 - `stock_facet_filter`;
 - `facet_resolution_guard`.
 
-Page/total/facets/counts queries больше не должны иметь `facetErrorCode` /
-`facetErrorValue`. Ошибки формата должны возникать до SQL, в TypeScript
-normalization.
+Page/total/facets/counts queries больше не должны иметь `facetErrorCode` / `facetErrorValue`. Ошибки
+формата должны возникать до SQL, в TypeScript normalization.
 
 ### `compileListingInputSql`
 
@@ -530,19 +514,18 @@ normalization.
 
 ### `compileListingProductMatchesSql`
 
-Product facet groups и variant facet groups должны использовать готовые
-`valueKeys`, как сейчас, но group isolation должен быть по `facetHandle`, а не
-`facetId`.
+Product facet groups и variant facet groups должны использовать готовые `valueKeys`, как сейчас, но
+group isolation должен быть по `facetHandle`, а не `facetId`.
 
 ### `compileFacetsQuerySql`
 
 Заменить catalog metadata CTE на discovered handle rows из listing index:
 
-- product facets: `listing.listing_posting_bitmap`
-  where `entity_type = 'product' and field = 'facet'`;
-- variant facets: `listing.listing_option_signature_value` или variant posting
-  rows, но preferred source для visible option values - option signature table,
-  потому она уже deduplicated by signature/product.
+- product facets: `listing.listing_posting_bitmap` where
+  `entity_type = 'product' and field = 'facet'`;
+- variant facets: `listing.listing_option_signature_value` или variant posting rows, но preferred
+  source для visible option values - option signature table, потому она уже deduplicated by
+  signature/product.
 
 Result rows должны содержать только:
 
@@ -557,12 +540,10 @@ interface FacetMetadataSqlRow {
 
 Ordering:
 
-- без catalog DB listing не может знать `facet.lexo_rank` и
-  `facet_value.sort_index`;
+- без catalog DB listing не может знать `facet.lexo_rank` и `facet_value.sort_index`;
 - сразу использовать deterministic order by `facetHandle ASC, valueHandle ASC`;
-- если catalog order должен сохраняться, нужен event-fed listing projection
-  with `facet_rank` and `value_sort`, но это должна быть listing-owned read
-  model, не direct read из `catalog.facet*`.
+- если catalog order должен сохраняться, нужен event-fed listing projection with `facet_rank` and
+  `value_sort`, но это должна быть listing-owned read model, не direct read из `catalog.facet*`.
 
 ### `compileFacetCountsQuerySql`
 
@@ -583,8 +564,7 @@ value_key
 - option strategy rows and estimates group by `facetHandle`;
 - active option filter value rows use `(facet_handle, value_key)`.
 
-Особенно заменить index-dependent joins к
-`listing.listing_option_signature_value`:
+Особенно заменить index-dependent joins к `listing.listing_option_signature_value`:
 
 ```sql
 -- before
@@ -596,17 +576,16 @@ sv.facet_handle = required.required_facet_handle
 
 ## Producer/indexing changes
 
-Любой producer listing postings должен перестать отправлять
-`facet_id:facet_value_id`.
+Любой producer listing postings должен перестать отправлять `facet_id:facet_value_id`.
 
-Старый producer contract не поддерживать параллельно. Все fixtures, seed scripts
-и будущие sync producers переводятся на handle-based payload одним изменением.
+Старый producer contract не поддерживать параллельно. Все fixtures, seed scripts и будущие sync
+producers переводятся на handle-based payload одним изменением.
 
 Новый payload:
 
 ```ts
-productFacetValueKeys: ["material:cotton", "tag:summer"]
-variantFacetValueKeys: ["color:black", "size:xl"]
+productFacetValueKeys: ["material:cotton", "tag:summer"];
+variantFacetValueKeys: ["color:black", "size:xl"];
 ```
 
 Для `listing_option_signature_value` producer должен также передавать:
@@ -621,11 +600,11 @@ variantFacetValueKeys: ["color:black", "size:xl"]
 
 E2E seed changes:
 
-- `e2e/fixtures/listing/seed.ts` больше не должен строить `facetUuid:valueUuid`
-  через `decodeGlobalId`;
+- `e2e/fixtures/listing/seed.ts` больше не должен строить `facetUuid:valueUuid` через
+  `decodeGlobalId`;
 - `mapFacetValueKeys()` должен строить keys из facet slug + group value handle;
-- `e2e/utils/listingSeed.ts` должен заполнять `facet_handle` и
-  `facet_value_handle`, а не парсить uuid из `valueKey.split(":")[0]`.
+- `e2e/utils/listingSeed.ts` должен заполнять `facet_handle` и `facet_value_handle`, а не парсить
+  uuid из `valueKey.split(":")[0]`.
 
 ## File-level checklist
 
@@ -669,13 +648,13 @@ E2E seed changes:
 - `services/catalog/src/api/graphql-admin/schema/facet.graphql`
   - добавить `@key` для `Facet`;
   - добавить handle-based `@key` для `FacetValue`;
-  - добавить `facetHandle` field на `FacetValue` или использовать nested key,
-    если federation/codegen flow это стабильно поддерживает.
+  - добавить `facetHandle` field на `FacetValue` или использовать nested key, если
+    federation/codegen flow это стабильно поддерживает.
 - `services/catalog/src/api/graphql-admin/resolvers/types.ts`
   - добавить `Facet.__resolveReference`;
   - добавить `FacetValue.__resolveReference`;
-  - при необходимости добавить `FacetSwatch.__resolveReference`, потому listing
-    уже возвращает `FacetSwatch` reference.
+  - при необходимости добавить `FacetSwatch.__resolveReference`, потому listing уже возвращает
+    `FacetSwatch` reference.
 - `services/catalog/src/resolvers/admin/FacetValueResolver.ts`
   - добавить `facetHandle()`.
 
@@ -684,8 +663,7 @@ E2E seed changes:
 - `e2e/fixtures/listing/seed.ts`
   - заменить `mapFacetValueKeys()` на handle-based key builder.
 - `e2e/utils/listingSeed.ts`
-  - заменить `facetIds = valueKey.split(":")[0]` на parsing
-    `facetHandle/facetValueHandle`;
+  - заменить `facetIds = valueKey.split(":")[0]` на parsing `facetHandle/facetValueHandle`;
   - вставлять `facet_handle`/`facet_value_handle`.
 
 ## Acceptance criteria
@@ -696,18 +674,16 @@ E2E seed changes:
   - `catalogFacetRuntime`;
   - `catalogFacetValueRuntime`.
 - Нет compatibility path для старого `facet_id:facet_value_id`.
-- Нет SQL backfill, который читает `catalog.facet*` ради сохранения старого
-  listing index.
+- Нет SQL backfill, который читает `catalog.facet*` ради сохранения старого listing index.
 - `listing` не импортирует Drizzle models из catalog schema.
-- Storefront listing filters не выполняют DB query для
-  `facetHandle -> facet_id`.
-- `listing_option_signature_value` больше не имеет runtime dependency на
-  `facet_id` для query/index path.
+- Storefront listing filters не выполняют DB query для `facetHandle -> facet_id`.
+- `listing_option_signature_value` больше не имеет runtime dependency на `facet_id` для query/index
+  path.
 - Facet counts isolate selected values by `facetHandle`.
-- Listing GraphQL result returns catalog facet/value references; catalog fields
-  resolved by supergraph.
-- Unknown facet handles do not produce catalog DB validation errors from
-  listing; they produce empty matches/counts unless input format is invalid.
+- Listing GraphQL result returns catalog facet/value references; catalog fields resolved by
+  supergraph.
+- Unknown facet handles do not produce catalog DB validation errors from listing; they produce empty
+  matches/counts unless input format is invalid.
 
 ## Риски и решения
 
@@ -718,29 +694,27 @@ E2E seed changes:
 Решения:
 
 1. Сразу deterministic order by `facetHandle`, `facetValueHandle`.
-2. Полный UX: добавить event-fed listing read model только для ordering:
-   `facetHandle`, `valueHandle`, `facetRank`, `valueSort`.
-   Эта projection не должна читать `catalog.facet*` на storefront query path.
+2. Полный UX: добавить event-fed listing read model только для ordering: `facetHandle`,
+   `valueHandle`, `facetRank`, `valueSort`. Эта projection не должна читать `catalog.facet*` на
+   storefront query path.
 
 ### Rename `slug -> handle`
 
-Current code still exposes `Facet.slug`. Если catalog в рамках этой же работы
-переименовывает `slug` в `handle`, использовать `handle` в federation keys.
-Если нет, в target schema оставить `slug`, но в listing domain names
-использовать `facetHandle` как internal neutral name. Compatibility alias для
+Current code still exposes `Facet.slug`. Если catalog в рамках этой же работы переименовывает `slug`
+в `handle`, использовать `handle` в federation keys. Если нет, в target schema оставить `slug`, но в
+listing domain names использовать `facetHandle` как internal neutral name. Compatibility alias для
 обоих имен в listing не нужен.
 
 ### Source child handles
 
-Текущий catalog source handle для `OPTION`/`FEATURE` имеет формат
-`sourceHandle:valueHandle`. Listing target key должен использовать root/group
-value handle. Иначе `value_key = facetHandle:facetValueHandle` станет
-неоднозначным и перестанет соответствовать visible storefront values.
+Текущий catalog source handle для `OPTION`/`FEATURE` имеет формат `sourceHandle:valueHandle`.
+Listing target key должен использовать root/group value handle. Иначе
+`value_key = facetHandle:facetValueHandle` станет неоднозначным и перестанет соответствовать visible
+storefront values.
 
 ### Validation semantics
 
-Сейчас listing может вернуть `UNKNOWN_FACET_VALUE`, потому читает catalog DB.
-После удаления resolution listing не знает, существует ли value globally. Это
-нормально для read index: отсутствующий key дает пустую выдачу. Если нужен
-строгий BAD_USER_INPUT для unknown facet/value, его должен давать catalog/admin
-или отдельный supergraph-level API до вызова listing.
+Сейчас listing может вернуть `UNKNOWN_FACET_VALUE`, потому читает catalog DB. После удаления
+resolution listing не знает, существует ли value globally. Это нормально для read index:
+отсутствующий key дает пустую выдачу. Если нужен строгий BAD_USER_INPUT для unknown facet/value, его
+должен давать catalog/admin или отдельный supergraph-level API до вызова listing.

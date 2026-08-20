@@ -1,8 +1,5 @@
 import type { ReactNode } from "react";
-import type {
-  ApiVariant,
-  ApiPageInfo,
-} from "@/graphql/types";
+import type { ApiVariant, ApiPageInfo } from "@/graphql/types";
 
 // ============================================================================
 // Section Props

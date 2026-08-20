@@ -1,8 +1,13 @@
-import { createStyles } from 'antd-style';
-import { LuChevronDown as DownOutlined, LuCheck as CheckOutlined, LuPencil as EditOutlined, LuTrash2 as DeleteOutlined } from "react-icons/lu";
-import { Button, Dropdown, Flex, Typography, App } from 'antd';
-import type { MenuProps } from 'antd';
-import { ReactNode } from 'react';
+import { createStyles } from "antd-style";
+import {
+  LuChevronDown as DownOutlined,
+  LuCheck as CheckOutlined,
+  LuPencil as EditOutlined,
+  LuTrash2 as DeleteOutlined,
+} from "react-icons/lu";
+import { Button, Dropdown, Flex, Typography, App } from "antd";
+import type { MenuProps } from "antd";
+import { ReactNode } from "react";
 
 const useStyles = createStyles(({ token }) => ({
   button: {
@@ -10,14 +15,14 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-type MenuItem = Required<MenuProps>['items'][number];
+type MenuItem = Required<MenuProps>["items"][number];
 
 export interface IAction {
   key: string;
   label: string;
   icon: ReactNode;
   onClick: () => void;
-  'data-testid'?: string;
+  "data-testid"?: string;
 }
 
 export interface IActionsProps<T = any> {
@@ -45,13 +50,13 @@ export const Actions = <T extends { id?: string | number }>({
   onDelete,
   onArchive,
   onDraft,
-  selectedLabel = '{count} selected',
-  publishLabel = 'Publish',
-  draftLabel = 'Draft',
-  archiveLabel = 'Archive',
-  deleteLabel = 'Delete',
-  deleteConfirmTitle = 'Confirm deletion',
-  deleteConfirmContent = 'Are you sure you want to delete {count} item(s)?',
+  selectedLabel = "{count} selected",
+  publishLabel = "Publish",
+  draftLabel = "Draft",
+  archiveLabel = "Archive",
+  deleteLabel = "Delete",
+  deleteConfirmTitle = "Confirm deletion",
+  deleteConfirmContent = "Are you sure you want to delete {count} item(s)?",
 }: IActionsProps<T>) => {
   const { styles } = useStyles();
   const { modal } = App.useApp();
@@ -61,9 +66,9 @@ export const Actions = <T extends { id?: string | number }>({
   if (onPublish) {
     actions.push({
       icon: <CheckOutlined />,
-      key: 'publish',
+      key: "publish",
       label: publishLabel,
-      'data-testid': 'action-publish',
+      "data-testid": "action-publish",
       onClick: () => {
         onPublish(selectedRows);
         clearSelectedRows();
@@ -74,9 +79,9 @@ export const Actions = <T extends { id?: string | number }>({
   if (onDraft) {
     actions.push({
       icon: <EditOutlined />,
-      key: 'draft',
+      key: "draft",
       label: draftLabel,
-      'data-testid': 'action-draft',
+      "data-testid": "action-draft",
       onClick: () => {
         onDraft(selectedRows);
         clearSelectedRows();
@@ -87,9 +92,9 @@ export const Actions = <T extends { id?: string | number }>({
   if (onArchive) {
     actions.push({
       icon: <DeleteOutlined />,
-      key: 'archive',
+      key: "archive",
       label: archiveLabel,
-      'data-testid': 'action-archive',
+      "data-testid": "action-archive",
       onClick: () => {
         onArchive(selectedRows);
         clearSelectedRows();
@@ -100,15 +105,15 @@ export const Actions = <T extends { id?: string | number }>({
   if (onDelete) {
     actions.push({
       icon: <DeleteOutlined />,
-      key: 'delete',
+      key: "delete",
       label: deleteLabel,
-      'data-testid': 'action-delete',
+      "data-testid": "action-delete",
       onClick: async () => {
         const count = selectedRows.length;
         const confirm = await modal.confirm({
           icon: null,
           title: deleteConfirmTitle,
-          content: deleteConfirmContent.replace('{count}', String(count)),
+          content: deleteConfirmContent.replace("{count}", String(count)),
         });
 
         if (!confirm) {
@@ -131,15 +136,10 @@ export const Actions = <T extends { id?: string | number }>({
   }));
 
   const button = (
-    <Button
-      type="text"
-      size="large"
-      className={styles.button}
-      data-testid="actions-button"
-    >
+    <Button type="text" size="large" className={styles.button} data-testid="actions-button">
       <Flex gap="small" align="center">
         <Typography.Text strong>
-          {selectedLabel.replace('{count}', String(selectedRows.length))}
+          {selectedLabel.replace("{count}", String(selectedRows.length))}
         </Typography.Text>
         <DownOutlined />
       </Flex>
@@ -151,7 +151,7 @@ export const Actions = <T extends { id?: string | number }>({
   }
 
   return (
-    <Dropdown menu={{ items }} trigger={['click']}>
+    <Dropdown menu={{ items }} trigger={["click"]}>
       {button}
     </Dropdown>
   );

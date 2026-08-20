@@ -3,10 +3,7 @@
 import { useState } from "react";
 import { Button, Input, InputNumber, Select, Typography } from "antd";
 import { createStyles } from "antd-style";
-import {
-  SmtpConnectionProvider,
-  SmtpConnectionSecurity,
-} from "@/graphql/types";
+import { SmtpConnectionProvider, SmtpConnectionSecurity } from "@/graphql/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { SmtpProviderPreset } from "../graphql/operation-types";
 
@@ -69,35 +66,25 @@ export function SmtpSettingsForm({
 }: SmtpSettingsFormProps) {
   const { styles, cx } = useStyles();
   const [settings, setSettings] = useState(initialValue);
-  const [initialSettings, setInitialSettings] = useState(() =>
-    JSON.stringify(initialValue),
-  );
+  const [initialSettings, setInitialSettings] = useState(() => JSON.stringify(initialValue));
   const isDirty = JSON.stringify(settings) !== initialSettings;
   const canSubmit = Boolean(
     !disabled &&
-      isDirty &&
-      settings.displayName.trim() &&
-      settings.host.trim() &&
-      settings.port >= 1 &&
-      settings.port <= 65535 &&
-      (settings.provider === SmtpConnectionProvider.Custom ||
-        settings.username?.trim()) &&
-      (!settings.username?.trim() ||
-        hasStoredPassword ||
-        settings.password?.trim()),
+    isDirty &&
+    settings.displayName.trim() &&
+    settings.host.trim() &&
+    settings.port >= 1 &&
+    settings.port <= 65535 &&
+    (settings.provider === SmtpConnectionProvider.Custom || settings.username?.trim()) &&
+    (!settings.username?.trim() || hasStoredPassword || settings.password?.trim()),
   );
 
-  const update = <TKey extends keyof SmtpSettings>(
-    key: TKey,
-    value: SmtpSettings[TKey],
-  ) => {
+  const update = <TKey extends keyof SmtpSettings>(key: TKey, value: SmtpSettings[TKey]) => {
     setSettings((current) => ({ ...current, [key]: value }));
   };
 
   const applyProvider = (provider: SmtpConnectionProvider) => {
-    const preset = presets.find(
-      (candidate) => candidate.provider === provider,
-    );
+    const preset = presets.find((candidate) => candidate.provider === provider);
     setSettings((current) => ({
       ...current,
       provider,
@@ -132,9 +119,7 @@ export function SmtpSettingsForm({
         />
         <div className={styles.fields}>
           <label className={cx(styles.field, styles.fieldFull)}>
-            <Typography.Text className={styles.label}>
-              Connection name
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Connection name</Typography.Text>
             <Input
               disabled={disabled}
               placeholder="Primary transactional email"
@@ -143,9 +128,7 @@ export function SmtpSettingsForm({
             />
           </label>
           <label className={cx(styles.field, styles.fieldFull)}>
-            <Typography.Text className={styles.label}>
-              Provider
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Provider</Typography.Text>
             <Select
               disabled={disabled}
               options={presets.map((preset) => ({
@@ -178,9 +161,7 @@ export function SmtpSettingsForm({
         />
         <div className={styles.fields}>
           <label className={styles.field}>
-            <Typography.Text className={styles.label}>
-              SMTP host
-            </Typography.Text>
+            <Typography.Text className={styles.label}>SMTP host</Typography.Text>
             <Input
               disabled={disabled}
               value={settings.host}
@@ -199,9 +180,7 @@ export function SmtpSettingsForm({
             />
           </label>
           <label className={styles.field}>
-            <Typography.Text className={styles.label}>
-              Security
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Security</Typography.Text>
             <Select
               disabled={disabled}
               options={[
@@ -214,9 +193,7 @@ export function SmtpSettingsForm({
             />
           </label>
           <label className={styles.field}>
-            <Typography.Text className={styles.label}>
-              Username
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Username</Typography.Text>
             <Input
               autoComplete="username"
               disabled={disabled}

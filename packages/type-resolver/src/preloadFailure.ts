@@ -15,10 +15,7 @@ class NonErrorPreloadFailure {
 }
 
 function asObject(error: unknown): object {
-  if (
-    (typeof error === "object" && error !== null) ||
-    typeof error === "function"
-  ) {
+  if ((typeof error === "object" && error !== null) || typeof error === "function") {
     return error;
   }
 
@@ -30,23 +27,15 @@ export function markPreloadFailure(error: unknown): unknown {
   const failure = asObject(error);
 
   if (!preloadFailures.has(failure)) {
-    preloadFailures.set(
-      failure,
-      error instanceof PreloadNotFoundError ? "not-found" : "error"
-    );
+    preloadFailures.set(failure, error instanceof PreloadNotFoundError ? "not-found" : "error");
   }
 
   return failure;
 }
 
 /** Returns how a marked preload failed, or undefined for regular errors. */
-export function getPreloadFailureKind(
-  error: unknown
-): PreloadFailureKind | undefined {
-  if (
-    (typeof error !== "object" || error === null) &&
-    typeof error !== "function"
-  ) {
+export function getPreloadFailureKind(error: unknown): PreloadFailureKind | undefined {
+  if ((typeof error !== "object" || error === null) && typeof error !== "function") {
     return undefined;
   }
 

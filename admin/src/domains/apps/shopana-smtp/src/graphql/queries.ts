@@ -25,10 +25,7 @@ export const SMTP_CONNECTIONS_QUERY = gql`
     }
   }
   ${SMTP_CONNECTION_FIELDS}
-` as TypedDocumentNodeLike<
-  SmtpConnectionsQueryData,
-  SmtpConnectionsQueryVariables
->;
+` as TypedDocumentNodeLike<SmtpConnectionsQueryData, SmtpConnectionsQueryVariables>;
 
 export const SMTP_CONNECTION_QUERY = gql`
   query SmtpConnection($id: ID!) {
@@ -47,7 +44,4 @@ export const SMTP_CONNECTION_QUERY = gql`
     }
   }
   ${SMTP_CONNECTION_FIELDS}
-` as TypedDocumentNodeLike<
-  SmtpConnectionQueryData,
-  SmtpConnectionQueryVariables
->;
+` as TypedDocumentNodeLike<SmtpConnectionQueryData, SmtpConnectionQueryVariables>;

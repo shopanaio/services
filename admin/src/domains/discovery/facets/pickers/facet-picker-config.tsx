@@ -44,26 +44,13 @@ function useFacetPickerData(options: {
   excludeIds: string[];
 }): IEntityPickerDataResult<FacetPickerEntity> {
   const { facets, loading, error } = useFacets();
-  const {
-    filters,
-    search,
-    pageSize,
-    first,
-    after,
-    last,
-    before,
-    excludeIds,
-  } = options;
+  const { filters, search, pageSize, first, after, last, before, excludeIds } = options;
 
   const filteredFacets = useMemo(() => {
     const excluded = new Set(excludeIds);
     const query = search.trim().toLocaleLowerCase();
-    const facetTypeFilter = filters.find(
-      (filter) => filter.payloadKey === "facetType",
-    );
-    const facetTypes = facetTypeFilter
-      ? valuesFromFilter(facetTypeFilter)
-      : [];
+    const facetTypeFilter = filters.find((filter) => filter.payloadKey === "facetType");
+    const facetTypes = facetTypeFilter ? valuesFromFilter(facetTypeFilter) : [];
 
     return facets.filter((facet) => {
       if (excluded.has(facet.id)) return false;
@@ -75,9 +62,7 @@ function useFacetPickerData(options: {
       return (
         facet.label.toLocaleLowerCase().includes(query) ||
         facet.slug.toLocaleLowerCase().includes(query) ||
-        FACET_UI_MAPPINGS.facetTypes[facet.facetType].label
-          .toLocaleLowerCase()
-          .includes(query)
+        FACET_UI_MAPPINGS.facetTypes[facet.facetType].label.toLocaleLowerCase().includes(query)
       );
     });
   }, [excludeIds, facets, filters, search]);
@@ -85,8 +70,7 @@ function useFacetPickerData(options: {
   const total = filteredFacets.length;
   const beforeOffset = parseCursor(before);
   const afterOffset = parseCursor(after);
-  const requestedSize =
-    beforeOffset === null ? first ?? pageSize : last ?? pageSize;
+  const requestedSize = beforeOffset === null ? (first ?? pageSize) : (last ?? pageSize);
   const end =
     beforeOffset === null
       ? Math.min(total, (afterOffset ?? -1) + 1 + requestedSize)
@@ -142,9 +126,7 @@ const facetPickerColumns: ColDef<FacetPickerEntity>[] = [
     headerName: "Available in",
     field: "scopes",
     minWidth: 210,
-    cellRenderer: ({
-      value,
-    }: ICellRendererParams<FacetPickerEntity, FacetScopeType[]>) => (
+    cellRenderer: ({ value }: ICellRendererParams<FacetPickerEntity, FacetScopeType[]>) => (
       <Flex gap={4} wrap>
         {(value ?? []).map((scope) => (
           <Tag key={scope} style={{ marginInlineEnd: 0 }}>

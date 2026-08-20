@@ -48,7 +48,7 @@ export class Repository {
     cdnConfiguration: CdnConfigurationRepository,
     cdnRoutingRule: CdnRoutingRuleRepository,
     mediaSource: MediaSourceRepository,
-    txManager: TransactionManager<Database>
+    txManager: TransactionManager<Database>,
   ) {
     this.assetGroup = assetGroup;
     this.bucket = bucket;
@@ -101,7 +101,7 @@ export class Repository {
       cdnConfiguration,
       cdnRoutingRule,
       mediaSource,
-      txManager
+      txManager,
     );
   }
 }

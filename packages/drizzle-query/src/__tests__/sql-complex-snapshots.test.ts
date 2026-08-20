@@ -164,10 +164,7 @@ const productsWithTranslationsQuery = createQuery(products, {
   stock: field(products.stock),
   isPublished: field(products.isPublished),
   deletedAt: field(products.deletedAt),
-  translation: field(products.id).leftJoin(
-    translationsQuery,
-    translations.entityId
-  ),
+  translation: field(products.id).leftJoin(translationsQuery, translations.entityId),
 });
 
 // Query with camelCase keys: Categories -> Translations
@@ -177,10 +174,7 @@ const categoriesWithTranslationsQuery = createQuery(categories, {
   parentId: field(categories.parentId),
   sortOrder: field(categories.sortOrder),
   isVisible: field(categories.isVisible),
-  translation: field(categories.id).leftJoin(
-    translationsQuery,
-    translations.entityId
-  ),
+  translation: field(categories.id).leftJoin(translationsQuery, translations.entityId),
 });
 
 // Query with multiple joins: Orders -> Users + OrderItems
@@ -203,14 +197,8 @@ const productsFullQuery = createQuery(products, {
   isPublished: field(products.isPublished),
   deletedAt: field(products.deletedAt),
   createdAt: field(products.createdAt),
-  translation: field(products.id).leftJoin(
-    translationsQuery,
-    translations.entityId
-  ),
-  category: field(products.categoryId).innerJoin(
-    categoriesQuery,
-    categories.id
-  ),
+  translation: field(products.id).leftJoin(translationsQuery, translations.entityId),
+  category: field(products.categoryId).innerJoin(categoriesQuery, categories.id),
 });
 
 // Nested Level 2: OrderItems -> Products
@@ -232,10 +220,7 @@ const ordersNestedLevel2Query = createQuery(orders, {
   currency: field(orders.currency),
   createdAt: field(orders.createdAt),
   user: field(orders.userId).leftJoin(usersQuery, users.id),
-  items: field(orders.id).leftJoin(
-    orderItemsWithProductQuery,
-    orderItems.orderId
-  ),
+  items: field(orders.id).leftJoin(orderItemsWithProductQuery, orderItems.orderId),
 });
 
 // Products -> Categories (for nested Level 3)
@@ -257,10 +242,7 @@ const orderItemsWithProductCategoryQuery = createQuery(orderItems, {
   productId: field(orderItems.productId),
   quantity: field(orderItems.quantity),
   unitPrice: field(orderItems.unitPrice),
-  product: field(orderItems.productId).leftJoin(
-    productsWithCategoryQuery,
-    products.id
-  ),
+  product: field(orderItems.productId).leftJoin(productsWithCategoryQuery, products.id),
 });
 
 // Nested Level 3 Query: Orders -> OrderItems -> Products -> Categories
@@ -271,10 +253,7 @@ const ordersNestedLevel3Query = createQuery(orders, {
   totalAmount: field(orders.totalAmount),
   currency: field(orders.currency),
   createdAt: field(orders.createdAt),
-  items: field(orders.id).leftJoin(
-    orderItemsWithProductCategoryQuery,
-    orderItems.orderId
-  ),
+  items: field(orders.id).leftJoin(orderItemsWithProductCategoryQuery, orderItems.orderId),
 });
 
 // Categories -> Translations (for nested Level 4)
@@ -284,10 +263,7 @@ const categoriesWithTranslationsNestedQuery = createQuery(categories, {
   parentId: field(categories.parentId),
   sortOrder: field(categories.sortOrder),
   isVisible: field(categories.isVisible),
-  translation: field(categories.id).leftJoin(
-    translationsQuery,
-    translations.entityId
-  ),
+  translation: field(categories.id).leftJoin(translationsQuery, translations.entityId),
 });
 
 // Products -> Categories -> Translations
@@ -301,7 +277,7 @@ const productsWithCategoryTranslationsQuery = createQuery(products, {
   deletedAt: field(products.deletedAt),
   category: field(products.categoryId).leftJoin(
     categoriesWithTranslationsNestedQuery,
-    categories.id
+    categories.id,
   ),
 });
 
@@ -312,10 +288,7 @@ const orderItemsLevel4Query = createQuery(orderItems, {
   productId: field(orderItems.productId),
   quantity: field(orderItems.quantity),
   unitPrice: field(orderItems.unitPrice),
-  product: field(orderItems.productId).leftJoin(
-    productsWithCategoryTranslationsQuery,
-    products.id
-  ),
+  product: field(orderItems.productId).leftJoin(productsWithCategoryTranslationsQuery, products.id),
 });
 
 // Nested Level 4 Query: Orders -> OrderItems -> Products -> Categories -> Translations
@@ -346,8 +319,8 @@ describe("Complex SQL Snapshot Tests", () => {
               isActive: { _eq: true },
             },
             limit: 50,
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
@@ -384,17 +357,14 @@ describe("Complex SQL Snapshot Tests", () => {
                   ],
                 },
                 {
-                  _and: [
-                    { orders: { status: { _eq: "pending" } } },
-                    { role: { _eq: "vip" } },
-                  ],
+                  _and: [{ orders: { status: { _eq: "pending" } } }, { role: { _eq: "vip" } }],
                 },
               ],
             },
             limit: 100,
             offset: 50,
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
@@ -433,8 +403,8 @@ describe("Complex SQL Snapshot Tests", () => {
               isPublished: { _eq: true },
               deletedAt: { _is: null },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -469,8 +439,8 @@ describe("Complex SQL Snapshot Tests", () => {
               isVisible: { _eq: true },
               parentId: { _isNot: null },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_categories"."id" AS "id",
@@ -504,8 +474,8 @@ describe("Complex SQL Snapshot Tests", () => {
               items: { quantity: { _gte: 5 } },
               status: { _in: ["pending", "processing", "shipped"] },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -542,8 +512,8 @@ describe("Complex SQL Snapshot Tests", () => {
               isPublished: { _eq: true },
               deletedAt: { _is: null },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -577,8 +547,8 @@ describe("Complex SQL Snapshot Tests", () => {
             where: {
               email: { _endsWithi: "@gmail.com" },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
@@ -607,8 +577,8 @@ describe("Complex SQL Snapshot Tests", () => {
               status: { _eq: "pending" },
               items: { product: { sku: { _startsWith: "PHONE-" } } },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -649,8 +619,8 @@ describe("Complex SQL Snapshot Tests", () => {
               ],
             },
             limit: 50,
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -691,8 +661,8 @@ describe("Complex SQL Snapshot Tests", () => {
                 },
               },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -724,10 +694,7 @@ describe("Complex SQL Snapshot Tests", () => {
             where: {
               _or: [
                 {
-                  _and: [
-                    { status: { _eq: "processing" } },
-                    { items: { quantity: { _gte: 5 } } },
-                  ],
+                  _and: [{ status: { _eq: "processing" } }, { items: { quantity: { _gte: 5 } } }],
                 },
                 {
                   _and: [
@@ -752,8 +719,8 @@ describe("Complex SQL Snapshot Tests", () => {
               ],
             },
             limit: 100,
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -803,8 +770,8 @@ describe("Complex SQL Snapshot Tests", () => {
                 },
               },
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -859,8 +826,8 @@ describe("Complex SQL Snapshot Tests", () => {
                 },
               ],
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -896,8 +863,8 @@ describe("Complex SQL Snapshot Tests", () => {
             select: ["id", "status", "totalAmount", "currency"],
             where: { status: { _eq: "completed" } },
             order: [{ field: "totalAmount", direction: "desc" }],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -926,8 +893,8 @@ describe("Complex SQL Snapshot Tests", () => {
               items: { quantity: { _gte: 1 } },
             },
             order: [{ field: "items.quantity", direction: "desc" }],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -959,8 +926,8 @@ describe("Complex SQL Snapshot Tests", () => {
           ordersNestedLevel2Query.getSql({
             where: { items: { product: { isPublished: { _eq: true } } } },
             order: [{ field: "items.product.price", direction: "desc" }],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -992,8 +959,8 @@ describe("Complex SQL Snapshot Tests", () => {
               items: { product: { category: { isVisible: { _eq: true } } } },
             },
             order: [{ field: "items.product.category.slug", direction: "asc" }],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -1030,8 +997,8 @@ describe("Complex SQL Snapshot Tests", () => {
               },
             },
             order: [{ field: "items.product.category.translation.value", direction: "asc" }],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -1071,8 +1038,8 @@ describe("Complex SQL Snapshot Tests", () => {
               { field: "items.quantity", direction: "desc" },
               { field: "totalAmount", direction: "desc" },
             ],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -1113,8 +1080,8 @@ describe("Complex SQL Snapshot Tests", () => {
           ordersNestedLevel2Query.getSql({
             where: { items: { quantity: { _gte: 1 } } },
             select: ["id", "status", "items.quantity", "items.unitPrice"],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -1139,8 +1106,8 @@ describe("Complex SQL Snapshot Tests", () => {
           ordersNestedLevel2Query.getSql({
             where: { items: { product: { isPublished: { _eq: true } } } },
             select: ["id", "items.product.sku", "items.product.price"],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -1172,8 +1139,8 @@ describe("Complex SQL Snapshot Tests", () => {
               "items.product.category.slug",
               "items.product.category.isVisible",
             ],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -1211,8 +1178,8 @@ describe("Complex SQL Snapshot Tests", () => {
               "items.product.category.translation.value",
               "items.product.category.translation.locale",
             ],
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_orders"."id" AS "id",
@@ -1238,18 +1205,15 @@ describe("Complex SQL Snapshot Tests", () => {
 
   describe("Edge cases", () => {
     it("should handle large IN clause", () => {
-      const productSkus = Array.from(
-        { length: 20 },
-        (_, i) => `SKU-${String(i).padStart(4, "0")}`
-      );
+      const productSkus = Array.from({ length: 20 }, (_, i) => `SKU-${String(i).padStart(4, "0")}`);
 
       expect(
         toSqlString(
           productsFullQuery.getSql({
             select: ["id", "sku", "isPublished"],
             where: { sku: { _in: productSkus }, isPublished: { _eq: true } },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -1313,8 +1277,8 @@ describe("Complex SQL Snapshot Tests", () => {
                 { translation: { value: { _containsi: "keyword" } } },
               ],
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -1358,8 +1322,8 @@ describe("Complex SQL Snapshot Tests", () => {
             where: { isPublished: { _eq: true } },
             limit: 1000,
             offset: 99000,
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -1407,10 +1371,7 @@ describe("Complex SQL Snapshot Tests", () => {
                           ],
                         },
                         {
-                          _and: [
-                            { isActive: { _eq: true } },
-                            { name: { _isNot: null } },
-                          ],
+                          _and: [{ isActive: { _eq: true } }, { name: { _isNot: null } }],
                         },
                       ],
                     },
@@ -1418,8 +1379,8 @@ describe("Complex SQL Snapshot Tests", () => {
                 },
               ],
             },
-          })
-        )
+          }),
+        ),
       ).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",

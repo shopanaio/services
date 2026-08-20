@@ -129,8 +129,7 @@ export interface GetServiceLinkedApplicationAuthSettingsParams {
   linkedOwner: ServiceLinkedOwnerInput;
 }
 
-export interface UpdateServiceLinkedApplicationAuthSettingsParams
-  extends GetServiceLinkedApplicationAuthSettingsParams {
+export interface UpdateServiceLinkedApplicationAuthSettingsParams extends GetServiceLinkedApplicationAuthSettingsParams {
   userId: string;
   enabledMethods: ApplicationAuthMethod[];
   expectedRevision: number;
@@ -185,8 +184,7 @@ export type GetServiceLinkedApplicationUserResult =
       found: false;
     };
 
-export interface DeleteServiceLinkedApplicationUserParams
-  extends GetServiceLinkedApplicationUserParams {
+export interface DeleteServiceLinkedApplicationUserParams extends GetServiceLinkedApplicationUserParams {
   requestId: string;
 }
 

@@ -17,9 +17,7 @@ import type { ApplicationAuthAdminAuditReasonCategory } from "../services/Applic
 import { GetCurrentUserScript } from "../scripts/user/GetCurrentUserScript.js";
 import { AuthorizeScript } from "../scripts/organization/AuthorizeScript.js";
 import { BatchAuthorizeScript } from "../scripts/organization/BatchAuthorizeScript.js";
-import {
-  IAM_SERVICE_LINKED_RESOURCE_KIND,
-} from "../service-linked/resources.js";
+import { IAM_SERVICE_LINKED_RESOURCE_KIND } from "../service-linked/resources.js";
 import {
   createApplicationResource,
   normalizeApplicationAuthOrigin,
@@ -79,8 +77,7 @@ const applicationAuthBootstrapInputSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["origin"],
-        message:
-          "Application trusted origin must use HTTPS or loopback HTTP",
+        message: "Application trusted origin must use HTTPS or loopback HTTP",
       });
       return;
     }
@@ -97,17 +94,11 @@ const applicationAuthBootstrapInputSchema = z
       ["postLogoutRedirectUri", value.postLogoutRedirectUri],
     ] as const) {
       const uri = new URL(rawUri);
-      if (
-        uri.origin !== origin.origin ||
-        uri.username ||
-        uri.password ||
-        uri.hash
-      ) {
+      if (uri.origin !== origin.origin || uri.username || uri.password || uri.hash) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: [field],
-          message:
-            "Application OAuth URI must be an exact URL on the application trusted origin",
+          message: "Application OAuth URI must be an exact URL on the application trusted origin",
         });
       }
     }
@@ -145,8 +136,7 @@ const createApplicationInputSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["applicationAuth"],
-        message:
-          "Application auth bootstrap is allowed only for service-linked applications",
+        message: "Application auth bootstrap is allowed only for service-linked applications",
       });
     }
   });
@@ -173,9 +163,7 @@ const updateServiceLinkedApplicationAuthSettingsInputSchema =
   getServiceLinkedApplicationAuthSettingsInputSchema
     .extend({
       userId: z.string().trim().min(1).max(128),
-      enabledMethods: z
-        .array(z.enum(["password", "email_otp", "phone_otp"]))
-        .max(3),
+      enabledMethods: z.array(z.enum(["password", "email_otp", "phone_otp"])).max(3),
       expectedRevision: z.number().int().positive(),
     })
     .strict()
@@ -203,10 +191,9 @@ const getServiceLinkedApplicationUserInputSchema =
     })
     .strict();
 
-const deleteServiceLinkedApplicationUserInputSchema =
-  getServiceLinkedApplicationUserInputSchema
-    .extend({ requestId: z.string().uuid("Invalid privacy request ID") })
-    .strict();
+const deleteServiceLinkedApplicationUserInputSchema = getServiceLinkedApplicationUserInputSchema
+  .extend({ requestId: z.string().uuid("Invalid privacy request ID") })
+  .strict();
 
 type AllocateApplicationIdParams = z.infer<typeof allocateApplicationIdInputSchema>;
 type AllocateApplicationIdResult = {
@@ -403,9 +390,7 @@ export class IamBrokerActions extends BrokerActions {
    */
   @Action("batchAuthorize")
   @ZodSchema(batchAuthorizeInputSchema)
-  async batchAuthorize(
-    params: BatchAuthorizeParams,
-  ): Promise<BatchAuthorizeResult> {
+  async batchAuthorize(params: BatchAuthorizeParams): Promise<BatchAuthorizeResult> {
     return this.kernel.runScript(BatchAuthorizeScript, params);
   }
 
@@ -428,10 +413,7 @@ export class IamBrokerActions extends BrokerActions {
     } catch (error) {
       return {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to allocate application id",
+        error: error instanceof Error ? error.message : "Failed to allocate application id",
       };
     }
   }
@@ -453,12 +435,7 @@ export class IamBrokerActions extends BrokerActions {
       const result = await runWithContext(ctx, () =>
         this.kernel.repository.txManager.run(async () => {
           if (params.managementMode === "service") {
-            if (
-              await this.isExistingServiceLinkedApplication(
-                params,
-                actionContext,
-              )
-            ) {
+            if (await this.isExistingServiceLinkedApplication(params, actionContext)) {
               await this.appendServiceLinkedApplicationCreateAudit(
                 params,
                 ctx.requestId,
@@ -472,28 +449,24 @@ export class IamBrokerActions extends BrokerActions {
             }
           }
 
-          const result =
-            await this.kernel.applicationAuthAdminManagement.createApplication(
-              {
-                organizationId: params.organizationId,
-                name: params.name,
-                displayName: params.displayName,
-                description: params.description,
-              },
-              {
-                id: params.userId,
-                requestId: ctx.requestId,
-              },
-              {
-                applicationId: params.applicationId,
-                authorization:
-                  params.managementMode === "service"
-                    ? "trusted_boundary"
-                    : "admin",
-                managementMode: params.managementMode,
-                applicationAuth: params.applicationAuth,
-              },
-            );
+          const result = await this.kernel.applicationAuthAdminManagement.createApplication(
+            {
+              organizationId: params.organizationId,
+              name: params.name,
+              displayName: params.displayName,
+              description: params.description,
+            },
+            {
+              id: params.userId,
+              requestId: ctx.requestId,
+            },
+            {
+              applicationId: params.applicationId,
+              authorization: params.managementMode === "service" ? "trusted_boundary" : "admin",
+              managementMode: params.managementMode,
+              applicationAuth: params.applicationAuth,
+            },
+          );
 
           if (params.managementMode === "service") {
             if (!params.linkedOwner) {
@@ -545,9 +518,7 @@ export class IamBrokerActions extends BrokerActions {
       return {
         success: false,
         error:
-          effectiveError instanceof Error
-            ? effectiveError.message
-            : "Failed to create application",
+          effectiveError instanceof Error ? effectiveError.message : "Failed to create application",
       };
     }
   }
@@ -592,22 +563,20 @@ export class IamBrokerActions extends BrokerActions {
   ): Promise<boolean> {
     if (!params.linkedOwner) return false;
 
-    const binding =
-      await this.kernel.repository.serviceLinkedResource.findActiveLinkedOwner({
-        organizationId: params.organizationId,
-        resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
-        resourceId: params.applicationId,
-        linkedService: actionContext.caller.service,
-        linkedOwnerType: params.linkedOwner.linkedOwnerType,
-        linkedOwnerId: params.linkedOwner.linkedOwnerId,
-      });
+    const binding = await this.kernel.repository.serviceLinkedResource.findActiveLinkedOwner({
+      organizationId: params.organizationId,
+      resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+      resourceId: params.applicationId,
+      linkedService: actionContext.caller.service,
+      linkedOwnerType: params.linkedOwner.linkedOwnerType,
+      linkedOwnerId: params.linkedOwner.linkedOwnerId,
+    });
     if (!binding) return false;
 
-    const scope =
-      await this.kernel.repository.applicationAuthAdminMutation.findScope(
-        params.organizationId,
-        params.applicationId,
-      );
+    const scope = await this.kernel.repository.applicationAuthAdminMutation.findScope(
+      params.organizationId,
+      params.applicationId,
+    );
     return scope !== null;
   }
 
@@ -619,10 +588,9 @@ export class IamBrokerActions extends BrokerActions {
   ): Promise<ServiceLinkedApplicationAuthSettingsResult> {
     try {
       await this.assertServiceLinkedApplicationOwner(params, actionContext);
-      const [view] =
-        await this.kernel.repository.applicationAuthAdminQuery.getByApplicationKeys(
-          [{ id: params.applicationId, organizationId: params.organizationId }],
-        );
+      const [view] = await this.kernel.repository.applicationAuthAdminQuery.getByApplicationKeys([
+        { id: params.applicationId, organizationId: params.organizationId },
+      ]);
       if (!view) {
         return {
           success: false,
@@ -631,9 +599,7 @@ export class IamBrokerActions extends BrokerActions {
         };
       }
       const phoneOtpConfigured =
-        await this.kernel.applicationAuthAdminManagement.isPhoneOtpConfigured(
-          params.applicationId
-        );
+        await this.kernel.applicationAuthAdminManagement.isPhoneOtpConfigured(params.applicationId);
       return {
         success: true,
         settings: mapServiceLinkedAuthSettings(view, phoneOtpConfigured),
@@ -672,15 +638,12 @@ export class IamBrokerActions extends BrokerActions {
           { authorization: "trusted_boundary" },
         ),
       );
-      const [view] =
-        await this.kernel.repository.applicationAuthAdminQuery.getByApplicationKeys(
-          [{ id: params.applicationId, organizationId: params.organizationId }],
-        );
+      const [view] = await this.kernel.repository.applicationAuthAdminQuery.getByApplicationKeys([
+        { id: params.applicationId, organizationId: params.organizationId },
+      ]);
       if (!view) throw new Error("Application auth settings were not found");
       const phoneOtpConfigured =
-        await this.kernel.applicationAuthAdminManagement.isPhoneOtpConfigured(
-          params.applicationId
-        );
+        await this.kernel.applicationAuthAdminManagement.isPhoneOtpConfigured(params.applicationId);
       return {
         success: true,
         settings: mapServiceLinkedAuthSettings(view, phoneOtpConfigured),
@@ -706,12 +669,11 @@ export class IamBrokerActions extends BrokerActions {
   ): Promise<ValidateServiceLinkedApplicationTokenResult> {
     try {
       await this.assertServiceLinkedApplicationOwner(params, actionContext);
-      const result =
-        await this.kernel.applicationTokenValidation.validateAccessToken({
-          token: params.token,
-          expectedApplicationId: params.applicationId,
-          expectedAudience: createApplicationResource(params.applicationId),
-        });
+      const result = await this.kernel.applicationTokenValidation.validateAccessToken({
+        token: params.token,
+        expectedApplicationId: params.applicationId,
+        expectedAudience: createApplicationResource(params.applicationId),
+      });
       if (!result.active) return { active: false };
       return {
         active: true,
@@ -763,12 +725,11 @@ export class IamBrokerActions extends BrokerActions {
     const requestId = params.requestId;
     try {
       await this.assertServiceLinkedApplicationOwner(params, actionContext);
-      const applicationUsers = this.kernel.repository.applicationUser
-        .forApplication(params.applicationId);
+      const applicationUsers = this.kernel.repository.applicationUser.forApplication(
+        params.applicationId,
+      );
       const deleted = await this.kernel.repository.txManager.run(async () => {
-        const removed = await applicationUsers.removeWithinTransaction(
-          params.userId,
-        );
+        const removed = await applicationUsers.removeWithinTransaction(params.userId);
         await this.kernel.repository.applicationAuthAdminAudit.append({
           recordId: params.requestId,
           schemaVersion: 1,
@@ -809,15 +770,14 @@ export class IamBrokerActions extends BrokerActions {
     params: GetServiceLinkedApplicationAuthSettingsParams,
     actionContext: BrokerCallContext,
   ): Promise<void> {
-    const binding =
-      await this.kernel.repository.serviceLinkedResource.findActiveLinkedOwner({
-        organizationId: params.organizationId,
-        resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
-        resourceId: params.applicationId,
-        linkedService: actionContext.caller.service,
-        linkedOwnerType: params.linkedOwner.linkedOwnerType,
-        linkedOwnerId: params.linkedOwner.linkedOwnerId,
-      });
+    const binding = await this.kernel.repository.serviceLinkedResource.findActiveLinkedOwner({
+      organizationId: params.organizationId,
+      resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
+      resourceId: params.applicationId,
+      linkedService: actionContext.caller.service,
+      linkedOwnerType: params.linkedOwner.linkedOwnerType,
+      linkedOwnerId: params.linkedOwner.linkedOwnerId,
+    });
     if (!binding) {
       throw new Error("Application is not linked to the requested owner");
     }
@@ -844,18 +804,14 @@ export class IamBrokerActions extends BrokerActions {
           linkedOwnerId: params.linkedOwner.linkedOwnerId,
         };
         const binding =
-          await this.kernel.repository.serviceLinkedResource.findActiveLinkedOwner(
-            linkedOwner,
-          );
+          await this.kernel.repository.serviceLinkedResource.findActiveLinkedOwner(linkedOwner);
 
         if (!binding) {
           const applicationExists =
-            await this.kernel.repository.applicationAuthAdminMutation.applicationExists(
-              {
-                applicationId: params.applicationId,
-                organizationId: params.organizationId,
-              },
-            );
+            await this.kernel.repository.applicationAuthAdminMutation.applicationExists({
+              applicationId: params.applicationId,
+              organizationId: params.organizationId,
+            });
           if (!applicationExists) return;
           throw new Error("Application is not linked to the requested owner");
         }
@@ -869,12 +825,10 @@ export class IamBrokerActions extends BrokerActions {
         }
 
         const applicationDeleted =
-          await this.kernel.repository.applicationAuthAdminMutation.deleteServiceLinkedApplication(
-            {
-              applicationId: params.applicationId,
-              organizationId: params.organizationId,
-            },
-          );
+          await this.kernel.repository.applicationAuthAdminMutation.deleteServiceLinkedApplication({
+            applicationId: params.applicationId,
+            organizationId: params.organizationId,
+          });
         if (!applicationDeleted) {
           throw new Error("Service-linked application could not be deleted");
         }
@@ -893,10 +847,7 @@ export class IamBrokerActions extends BrokerActions {
     } catch (error) {
       return {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to delete application",
+        error: error instanceof Error ? error.message : "Failed to delete application",
       };
     }
   }
@@ -934,51 +885,47 @@ function errorCode(error: unknown): string | null {
   return typeof code === "string" ? code : null;
 }
 
-function mapServiceLinkedAuthSettings(view: {
-  configuration: {
-    realmEnabled: boolean;
-    registrationMode: string;
-    revision: number;
-    passwordSignInEnabled: boolean;
-    passwordSignUpEnabled: boolean;
-    passwordResetEnabled: boolean;
-    emailOtpSignInEnabled: boolean;
-    emailOtpSignUpEnabled: boolean;
-    phoneOtpSignInEnabled: boolean;
-    phoneOtpSignUpEnabled: boolean;
-  };
-  deliveryProfile: unknown | null;
-  providers: ReadonlyArray<{
-    provider: "google" | "facebook";
-    enabled: boolean;
-  }>;
-}, phoneOtpConfigured: boolean): ServiceLinkedApplicationAuthSettings {
+function mapServiceLinkedAuthSettings(
+  view: {
+    configuration: {
+      realmEnabled: boolean;
+      registrationMode: string;
+      revision: number;
+      passwordSignInEnabled: boolean;
+      passwordSignUpEnabled: boolean;
+      passwordResetEnabled: boolean;
+      emailOtpSignInEnabled: boolean;
+      emailOtpSignUpEnabled: boolean;
+      phoneOtpSignInEnabled: boolean;
+      phoneOtpSignUpEnabled: boolean;
+    };
+    deliveryProfile: unknown | null;
+    providers: ReadonlyArray<{
+      provider: "google" | "facebook";
+      enabled: boolean;
+    }>;
+  },
+  phoneOtpConfigured: boolean,
+): ServiceLinkedApplicationAuthSettings {
   const { configuration } = view;
   return {
     realmEnabled: configuration.realmEnabled,
-    registrationMode:
-      configuration.registrationMode === "open" ? "open" : "disabled",
+    registrationMode: configuration.registrationMode === "open" ? "open" : "disabled",
     revision: configuration.revision,
     methods: [
       {
         method: "password",
-        enabled:
-          configuration.passwordSignInEnabled ||
-          configuration.passwordSignUpEnabled,
+        enabled: configuration.passwordSignInEnabled || configuration.passwordSignUpEnabled,
         configured: true,
       },
       {
         method: "email_otp",
-        enabled:
-          configuration.emailOtpSignInEnabled ||
-          configuration.emailOtpSignUpEnabled,
+        enabled: configuration.emailOtpSignInEnabled || configuration.emailOtpSignUpEnabled,
         configured: view.deliveryProfile !== null,
       },
       {
         method: "phone_otp",
-        enabled:
-          configuration.phoneOtpSignInEnabled ||
-          configuration.phoneOtpSignUpEnabled,
+        enabled: configuration.phoneOtpSignInEnabled || configuration.phoneOtpSignUpEnabled,
         configured: phoneOtpConfigured,
       },
     ],

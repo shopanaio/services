@@ -20,17 +20,12 @@ export class NotificationChannelSetEnabledScript extends BaseScript<
   NotificationChannelSetEnabledResult
 > {
   @Transactional()
-  protected async execute(
-    params: NotificationChannelSetEnabledParams
-  ) {
+  protected async execute(params: NotificationChannelSetEnabledParams) {
     const definition = this.definitions.get(params.key);
     if (!definition.allowedChannels.includes(params.channel)) {
       throw new Error("CHANNEL_NOT_ALLOWED");
     }
-    if (
-      params.channel !== "EMAIL" &&
-      (params.senderEmail || params.senderName || params.replyTo)
-    ) {
+    if (params.channel !== "EMAIL" && (params.senderEmail || params.senderName || params.replyTo)) {
       throw new Error("SENDER_SETTINGS_REQUIRE_EMAIL_CHANNEL");
     }
     if (params.senderEmail) {
@@ -43,15 +38,14 @@ export class NotificationChannelSetEnabledScript extends BaseScript<
         replyTo: params.replyTo,
       });
     }
-    const setting =
-      await this.repository.settings.setChannelEnabled(params);
+    const setting = await this.repository.settings.setChannelEnabled(params);
     await recordAdminAudit(
       this.repository,
       this.context.user.id,
       "channel.setting.updated",
       "definition",
       params.key,
-      { channel: params.channel, enabled: params.enabled }
+      { channel: params.channel, enabled: params.enabled },
     );
     return { setting, userErrors: [] };
   }

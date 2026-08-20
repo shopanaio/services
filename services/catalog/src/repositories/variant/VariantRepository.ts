@@ -7,15 +7,7 @@ import {
   type InferRelayInput,
   type PageInfo,
 } from "@shopana/drizzle-query";
-import {
-  and,
-  asc,
-  eq,
-  inArray,
-  isNotNull,
-  isNull,
-  lte,
-} from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, lte } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   itemPricing,
@@ -32,16 +24,13 @@ import {
   type Variant,
   type VariantTranslation,
 } from "../models/index.js";
-import {
-  decodeProductGlobalId,
-  decodeVariantGlobalId,
-} from "../global-id-where-mappers.js";
+import { decodeProductGlobalId, decodeVariantGlobalId } from "../global-id-where-mappers.js";
 
 const variantQuery = createQuery(variant).maxLimit(100).defaultLimit(20);
 
 const variantPaginationQuery = createCursorQuery(
   createQuery(variant).maxLimit(100).defaultLimit(20).include(["id"]),
-  { tieBreaker: "id" }
+  { tieBreaker: "id" },
 );
 
 export const variantRelayQuery = createRelayQuery(
@@ -53,7 +42,7 @@ export const variantRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "variant", tieBreaker: "id" }
+  { name: "variant", tieBreaker: "id" },
 );
 
 export const warehouseAssignableVariantRelayQuery = createRelayQuery(
@@ -65,13 +54,11 @@ export const warehouseAssignableVariantRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "variant", tieBreaker: "id" }
+  { name: "variant", tieBreaker: "id" },
 );
 
 export type VariantQueryInput = InferExecuteOptions<typeof variantQuery>;
-export type VariantCursorInput = InferCursorInput<
-  typeof variantPaginationQuery
->;
+export type VariantCursorInput = InferCursorInput<typeof variantPaginationQuery>;
 export type VariantRelayInput = InferRelayInput<typeof variantRelayQuery>;
 export type WarehouseAssignableVariantRelayInput = InferRelayInput<
   typeof warehouseAssignableVariantRelayQuery
@@ -100,13 +87,7 @@ export class VariantRepository extends BaseRepository {
     const result = await this.connection
       .select({ id: variant.id })
       .from(variant)
-      .where(
-        and(
-          eq(variant.storeId, this.storeId),
-          eq(variant.id, id),
-          isNull(variant.deletedAt)
-        )
-      )
+      .where(and(eq(variant.storeId, this.storeId), eq(variant.id, id), isNull(variant.deletedAt)))
       .limit(1);
 
     return result.length > 0;
@@ -116,13 +97,7 @@ export class VariantRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(variant)
-      .where(
-        and(
-          eq(variant.storeId, this.storeId),
-          eq(variant.id, id),
-          isNull(variant.deletedAt)
-        )
-      )
+      .where(and(eq(variant.storeId, this.storeId), eq(variant.id, id), isNull(variant.deletedAt)))
       .limit(1);
 
     return result[0] ?? null;
@@ -133,11 +108,7 @@ export class VariantRepository extends BaseRepository {
       .select()
       .from(variant)
       .where(
-        and(
-          eq(variant.storeId, this.storeId),
-          eq(variant.sku, sku),
-          isNull(variant.deletedAt)
-        )
+        and(eq(variant.storeId, this.storeId), eq(variant.sku, sku), isNull(variant.deletedAt)),
       )
       .limit(1);
 
@@ -152,8 +123,8 @@ export class VariantRepository extends BaseRepository {
         and(
           eq(variant.storeId, this.storeId),
           eq(variant.productId, productId),
-          isNull(variant.deletedAt)
-        )
+          isNull(variant.deletedAt),
+        ),
       );
 
     return result;
@@ -167,7 +138,7 @@ export class VariantRepository extends BaseRepository {
       sku?: string | null;
       externalSystem?: string | null;
       externalId?: string | null;
-    }
+    },
   ): Promise<Variant> {
     const id = await this.generateUuidV7();
     const now = new Date().toISOString();
@@ -186,10 +157,7 @@ export class VariantRepository extends BaseRepository {
       deletedAt: null,
     };
 
-    const result = await this.connection
-      .insert(variant)
-      .values(newVariant)
-      .returning();
+    const result = await this.connection.insert(variant).values(newVariant).returning();
 
     return result[0];
   }
@@ -201,7 +169,7 @@ export class VariantRepository extends BaseRepository {
       handle?: string;
       externalSystem?: string | null;
       externalId?: string | null;
-    }
+    },
   ): Promise<Variant | null> {
     const updateData: Partial<NewVariant> = {
       updatedAt: new Date().toISOString(),
@@ -209,8 +177,7 @@ export class VariantRepository extends BaseRepository {
 
     if (data.sku !== undefined) updateData.sku = data.sku;
     if (data.handle !== undefined) updateData.handle = data.handle;
-    if (data.externalSystem !== undefined)
-      updateData.externalSystem = data.externalSystem;
+    if (data.externalSystem !== undefined) updateData.externalSystem = data.externalSystem;
     if (data.externalId !== undefined) updateData.externalId = data.externalId;
 
     const result = await this.connection
@@ -227,13 +194,7 @@ export class VariantRepository extends BaseRepository {
     const result = await this.connection
       .update(variant)
       .set({ deletedAt: now, updatedAt: now })
-      .where(
-        and(
-          eq(variant.storeId, this.storeId),
-          eq(variant.id, id),
-          isNull(variant.deletedAt)
-        )
-      )
+      .where(and(eq(variant.storeId, this.storeId), eq(variant.id, id), isNull(variant.deletedAt)))
       .returning({ id: variant.id });
 
     return result.length > 0;
@@ -274,9 +235,7 @@ export class VariantRepository extends BaseRepository {
     return results[0] ?? null;
   }
 
-  async getConnection(
-    args: VariantRelayInput
-  ): Promise<VariantConnectionResult> {
+  async getConnection(args: VariantRelayInput): Promise<VariantConnectionResult> {
     const { where, orderBy, ...paginationArgs } = args;
 
     const mergedWhere: VariantRelayInput["where"] = {
@@ -313,7 +272,7 @@ export class VariantRepository extends BaseRepository {
 
   async getByProductId(
     productId: string,
-    input?: Omit<VariantQueryInput, "where">
+    input?: Omit<VariantQueryInput, "where">,
   ): Promise<Variant[]> {
     return variantQuery.execute(this.connection, {
       ...input,
@@ -325,10 +284,7 @@ export class VariantRepository extends BaseRepository {
     });
   }
 
-  async getIdsByProductId(
-    productId: string,
-    args: VariantCursorInput
-  ): Promise<string[]> {
+  async getIdsByProductId(productId: string, args: VariantCursorInput): Promise<string[]> {
     const result = await variantPaginationQuery.execute(this.connection, {
       ...args,
       where: {
@@ -344,7 +300,7 @@ export class VariantRepository extends BaseRepository {
 
   async getConnectionByProductId(
     productId: string,
-    args: VariantRelayInput
+    args: VariantRelayInput,
   ): Promise<VariantConnectionResult> {
     const { where, orderBy, ...paginationArgs } = args;
 
@@ -383,11 +339,10 @@ export class VariantRepository extends BaseRepository {
 
   async getWarehouseAssignableConnection(
     warehouseId: string,
-    args: WarehouseAssignableVariantRelayInput
+    args: WarehouseAssignableVariantRelayInput,
   ): Promise<VariantConnectionResult> {
     const { where, orderBy } = args;
-    const assignableWhere =
-      where as WarehouseAssignableVariantRelayInput["where"];
+    const assignableWhere = where as WarehouseAssignableVariantRelayInput["where"];
 
     const mergedWhere: WarehouseAssignableVariantRelayInput["where"] = {
       _and: [
@@ -406,18 +361,14 @@ export class VariantRepository extends BaseRepository {
       last: args.last,
       before: args.before,
       where: mergedWhere,
-      orderBy:
-        (orderBy as WarehouseAssignableVariantRelayInput["orderBy"]) ?? [
-          { field: "createdAt", direction: "desc" },
-          { field: "id", direction: "desc" },
-        ],
+      orderBy: (orderBy as WarehouseAssignableVariantRelayInput["orderBy"]) ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
     };
 
     const [result, totalCount] = await Promise.all([
-      warehouseAssignableVariantRelayQuery.execute(
-        this.connection,
-        executeInput
-      ),
+      warehouseAssignableVariantRelayQuery.execute(this.connection, executeInput),
       warehouseAssignableVariantRelayQuery.count(this.connection, {
         where: mergedWhere,
       }),
@@ -443,8 +394,8 @@ export class VariantRepository extends BaseRepository {
         and(
           eq(variant.storeId, this.storeId),
           inArray(variant.id, [...variantIds]),
-          isNull(variant.deletedAt)
-        )
+          isNull(variant.deletedAt),
+        ),
       );
   }
 
@@ -462,10 +413,7 @@ export class VariantRepository extends BaseRepository {
       .from(variant)
       .innerJoin(
         product,
-        and(
-          eq(product.storeId, variant.storeId),
-          eq(product.id, variant.productId),
-        ),
+        and(eq(product.storeId, variant.storeId), eq(product.id, variant.productId)),
       )
       .leftJoin(
         productCategory,
@@ -493,7 +441,7 @@ export class VariantRepository extends BaseRepository {
   }
 
   async getIdsByProductIds(
-    productIds: readonly string[]
+    productIds: readonly string[],
   ): Promise<Array<{ id: string; productId: string }>> {
     return this.connection
       .select({ id: variant.id, productId: variant.productId })
@@ -502,14 +450,12 @@ export class VariantRepository extends BaseRepository {
         and(
           eq(variant.storeId, this.storeId),
           inArray(variant.productId, [...productIds]),
-          isNull(variant.deletedAt)
-        )
+          isNull(variant.deletedAt),
+        ),
       );
   }
 
-  async getTranslationsByVariantIds(
-    variantIds: readonly string[]
-  ): Promise<VariantTranslation[]> {
+  async getTranslationsByVariantIds(variantIds: readonly string[]): Promise<VariantTranslation[]> {
     return this.connection
       .select()
       .from(variantTranslation)
@@ -517,13 +463,13 @@ export class VariantRepository extends BaseRepository {
         and(
           eq(variantTranslation.storeId, this.storeId),
           inArray(variantTranslation.variantId, [...variantIds]),
-          eq(variantTranslation.locale, this.locale)
-        )
+          eq(variantTranslation.locale, this.locale),
+        ),
       );
   }
 
   async getAllTranslationsByVariantIds(
-    variantIds: readonly string[]
+    variantIds: readonly string[],
   ): Promise<VariantTranslation[]> {
     if (variantIds.length === 0) return [];
 
@@ -533,14 +479,12 @@ export class VariantRepository extends BaseRepository {
       .where(
         and(
           eq(variantTranslation.storeId, this.storeId),
-          inArray(variantTranslation.variantId, [...variantIds])
-        )
+          inArray(variantTranslation.variantId, [...variantIds]),
+        ),
       );
   }
 
-  async getActivePricingByVariantIds(
-    variantIds: readonly string[]
-  ): Promise<ItemPricing[]> {
+  async getActivePricingByVariantIds(variantIds: readonly string[]): Promise<ItemPricing[]> {
     return this.connection
       .select()
       .from(itemPricing)
@@ -548,8 +492,8 @@ export class VariantRepository extends BaseRepository {
         and(
           eq(itemPricing.storeId, this.storeId),
           inArray(itemPricing.variantId, [...variantIds]),
-          isNull(itemPricing.effectiveTo)
-        )
+          isNull(itemPricing.effectiveTo),
+        ),
       );
   }
 
@@ -557,30 +501,22 @@ export class VariantRepository extends BaseRepository {
     return this.connection
       .select()
       .from(itemPricing)
-      .where(
-        and(
-          eq(itemPricing.storeId, this.storeId),
-          inArray(itemPricing.id, [...priceIds])
-        )
-      );
+      .where(and(eq(itemPricing.storeId, this.storeId), inArray(itemPricing.id, [...priceIds])));
   }
 
   async getPriceIdsByVariantIds(
-    variantIds: readonly string[]
+    variantIds: readonly string[],
   ): Promise<Array<{ id: string; variantId: string }>> {
     return this.connection
       .select({ id: itemPricing.id, variantId: itemPricing.variantId })
       .from(itemPricing)
       .where(
-        and(
-          eq(itemPricing.storeId, this.storeId),
-          inArray(itemPricing.variantId, [...variantIds])
-        )
+        and(eq(itemPricing.storeId, this.storeId), inArray(itemPricing.variantId, [...variantIds])),
       );
   }
 
   async getSelectedOptionsByVariantIds(
-    variantIds: readonly string[]
+    variantIds: readonly string[],
   ): Promise<ProductOptionVariantLink[]> {
     return this.connection
       .select({
@@ -594,20 +530,19 @@ export class VariantRepository extends BaseRepository {
         productOption,
         and(
           eq(productOptionVariantLink.storeId, productOption.storeId),
-          eq(productOptionVariantLink.optionId, productOption.id)
-        )
+          eq(productOptionVariantLink.optionId, productOption.id),
+        ),
       )
       .where(
         and(
           eq(productOptionVariantLink.storeId, this.storeId),
-          inArray(productOptionVariantLink.variantId, [...variantIds])
-        )
+          inArray(productOptionVariantLink.variantId, [...variantIds]),
+        ),
       )
       .orderBy(
         asc(productOptionVariantLink.variantId),
         asc(productOption.sortIndex),
-        asc(productOption.id)
+        asc(productOption.id),
       );
   }
-
 }

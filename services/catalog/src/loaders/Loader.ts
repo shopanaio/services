@@ -205,8 +205,7 @@ export class Loader {
     this.categoryAncestorIds = categoryLoader.categoryAncestorIds;
     this.categoryProductsCount = categoryLoader.categoryProductsCount;
     this.productCategoryIds = categoryLoader.productCategoryIds;
-    this.productCategoryLinksByProductId =
-      categoryLoader.productCategoryLinksByProductId;
+    this.productCategoryLinksByProductId = categoryLoader.productCategoryLinksByProductId;
 
     // Tag
     this.tag = tagLoader.tag;
@@ -255,22 +254,17 @@ export class Loader {
     this.component = componentLoader.component;
     this.componentByProductId = componentLoader.componentByProductId;
     this.componentConfiguration = componentLoader.configuration;
-    this.componentConfigurationIdsByComponentId =
-      componentLoader.configurationIdsByComponentId;
-    this.componentConfigurationVariantIds =
-      componentLoader.configurationVariantIds;
-    this.componentConfigurationIdByVariantId =
-      componentLoader.configurationIdByVariantId;
+    this.componentConfigurationIdsByComponentId = componentLoader.configurationIdsByComponentId;
+    this.componentConfigurationVariantIds = componentLoader.configurationVariantIds;
+    this.componentConfigurationIdByVariantId = componentLoader.configurationIdByVariantId;
     this.componentGroup = componentLoader.group;
-    this.componentGroupIdsByConfigurationId =
-      componentLoader.groupIdsByConfigurationId;
+    this.componentGroupIdsByConfigurationId = componentLoader.groupIdsByConfigurationId;
     this.componentGroupTranslation = componentLoader.groupTranslation;
     this.componentItem = componentLoader.item;
     this.componentItemIdsByGroupId = componentLoader.itemIdsByGroupId;
     this.componentItemTranslation = componentLoader.itemTranslation;
     this.componentOptionSelection = componentLoader.optionSelection;
-    this.componentOptionSelectionIdsByItemId =
-      componentLoader.optionSelectionIdsByItemId;
+    this.componentOptionSelectionIdsByItemId = componentLoader.optionSelectionIdsByItemId;
     this.componentOptionValueSelection = componentLoader.optionValueSelection;
     this.componentOptionValueSelectionIdsBySelectionId =
       componentLoader.optionValueSelectionIdsBySelectionId;
@@ -284,14 +278,11 @@ export class Loader {
     this.componentDependencyRuleIdsByConfigurationId =
       componentLoader.dependencyRuleIdsByConfigurationId;
     this.componentConditionGroup = componentLoader.conditionGroup;
-    this.componentConditionGroupIdsByRuleId =
-      componentLoader.conditionGroupIdsByRuleId;
+    this.componentConditionGroupIdsByRuleId = componentLoader.conditionGroupIdsByRuleId;
     this.componentCondition = componentLoader.condition;
-    this.componentConditionIdsByGroupId =
-      componentLoader.conditionIdsByGroupId;
+    this.componentConditionIdsByGroupId = componentLoader.conditionIdsByGroupId;
     this.componentDependencyAction = componentLoader.dependencyAction;
-    this.componentDependencyActionIdsByRuleId =
-      componentLoader.dependencyActionIdsByRuleId;
+    this.componentDependencyActionIdsByRuleId = componentLoader.dependencyActionIdsByRuleId;
 
     this.comparisonProfile = comparisonLoader.profile;
     this.localizedComparisonProfile = comparisonLoader.localizedProfile;

@@ -49,16 +49,11 @@ const tagColors = [
 
 export const tagStatuses: ITagListItem["status"][] = ["active", "inactive"];
 
-export const mockTagsList: ITagListItem[] = Array.from(
-  { length: 20 },
-  (_, i) => ({
-    id: `tag-${i + 1}`,
-    name: tagNames[i % tagNames.length],
-    slug: tagNames[i % tagNames.length]
-      .toLowerCase()
-      .replace(/[&\s]+/g, "-"),
-    status: tagStatuses[i % 7 === 0 ? 1 : 0],
-    productsCount: Math.floor(Math.random() * 150),
-    color: tagColors[i % tagColors.length],
-  })
-);
+export const mockTagsList: ITagListItem[] = Array.from({ length: 20 }, (_, i) => ({
+  id: `tag-${i + 1}`,
+  name: tagNames[i % tagNames.length],
+  slug: tagNames[i % tagNames.length].toLowerCase().replace(/[&\s]+/g, "-"),
+  status: tagStatuses[i % 7 === 0 ? 1 : 0],
+  productsCount: Math.floor(Math.random() * 150),
+  color: tagColors[i % tagColors.length],
+}));

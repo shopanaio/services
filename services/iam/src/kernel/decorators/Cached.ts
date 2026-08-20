@@ -20,13 +20,13 @@ export function Cached<TParams>(options: CachedOptions<TParams>) {
   return function <TResult>(
     _target: unknown,
     _propertyKey: string,
-    descriptor: TypedPropertyDescriptor<(params: TParams) => Promise<TResult>>
+    descriptor: TypedPropertyDescriptor<(params: TParams) => Promise<TResult>>,
   ) {
     const originalMethod = descriptor.value!;
 
     descriptor.value = async function (
       this: BaseScript<TParams, TResult>,
-      params: TParams
+      params: TParams,
     ): Promise<TResult> {
       const keyValue = options.keyFrom(params);
       const hash = createHash("sha256").update(keyValue).digest("hex");

@@ -1,8 +1,5 @@
 import { pgSchema } from "drizzle-orm/pg-core";
-import {
-  CURRENCY_CODES,
-  LOCALE_CODES,
-} from "@shopana/shared-references";
+import { CURRENCY_CODES, LOCALE_CODES } from "@shopana/shared-references";
 
 export const listingSchema = pgSchema("listing");
 

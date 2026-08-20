@@ -1,11 +1,5 @@
-import type {
-  AppExecutionContext,
-  AppGraphQLHandlerContext,
-} from "@shopana/app-sdk";
-import {
-  adminContextAllows,
-  type AdminContextClaims,
-} from "@shopana/shared-context";
+import type { AppExecutionContext, AppGraphQLHandlerContext } from "@shopana/app-sdk";
+import { adminContextAllows, type AdminContextClaims } from "@shopana/shared-context";
 import { GraphQLError } from "graphql";
 import { OnlineStoreRepository } from "../../../content/repositories/index.js";
 import { OnlineStoreLoader } from "../loaders/index.js";
@@ -63,10 +57,14 @@ export function createOnlineStoreResolverContext(
   return Object.freeze({
     app: context.app,
     repository,
-    loaders: new OnlineStoreLoader(repository, {
-      installationId: context.app.installationId,
-      storeId: context.app.storeId,
-    }, locale),
+    loaders: new OnlineStoreLoader(
+      repository,
+      {
+        installationId: context.app.installationId,
+        storeId: context.app.storeId,
+      },
+      locale,
+    ),
     locale,
   });
 }

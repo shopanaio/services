@@ -24,9 +24,7 @@ export class CustomerComparisonCategoryClearScript extends BaseScript<
     const revisionError = validateExpectedRevision(params.expectedRevision);
     if (revisionError) return failed(revisionError);
 
-    const selection = await this.repository.comparison.getSelection(
-      params.customerId,
-    );
+    const selection = await this.repository.comparison.getSelection(params.customerId);
     const catalog = await resolveCatalogComparisonVariants(this.services, {
       storeId: this.context.store.id,
       categoryId: params.categoryId,
@@ -49,12 +47,7 @@ export class CustomerComparisonCategoryClearScript extends BaseScript<
       case "conflict":
         return failed(revisionConflict(result.actualRevision));
       case "customer_not_found":
-        return failed(
-          comparisonError(
-            "CUSTOMER_NOT_FOUND",
-            "Customer was not found",
-          ),
-        );
+        return failed(comparisonError("CUSTOMER_NOT_FOUND", "Customer was not found"));
     }
   }
 
@@ -63,9 +56,6 @@ export class CustomerComparisonCategoryClearScript extends BaseScript<
   }
 }
 
-function failed(
-  userError: ReturnType<typeof comparisonError>,
-): CustomerComparisonMutationResult {
+function failed(userError: ReturnType<typeof comparisonError>): CustomerComparisonMutationResult {
   return { customerId: null, revision: null, userErrors: [userError] };
 }
-

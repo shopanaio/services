@@ -8,11 +8,7 @@ export type {
   RequestContext,
 } from "./types/api.js";
 export type { CasdoorNodeClientConfig } from "./types/config.js";
-export {
-  CasdoorApiError,
-  CasdoorHttpError,
-  CasdoorInvalidResponseError,
-} from "./http/errors.js";
+export { CasdoorApiError, CasdoorHttpError, CasdoorInvalidResponseError } from "./http/errors.js";
 export { ctxFromHeaders, applySetCookieHeader } from "./adapters/node.js";
 
 // Re-export types from casdoor-nodejs-sdk

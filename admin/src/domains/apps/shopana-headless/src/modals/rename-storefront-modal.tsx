@@ -5,10 +5,7 @@ import { Button, Input, Typography } from "antd";
 import type { AdminAppModalProps } from "@shopana/admin-app-sdk";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useHeadlessStorefrontActions } from "../hooks";
-import type {
-  RenameStorefrontModalPayload,
-  RenameStorefrontModalResult,
-} from ".";
+import type { RenameStorefrontModalPayload, RenameStorefrontModalResult } from ".";
 
 export default function RenameStorefrontModal({
   sdk,

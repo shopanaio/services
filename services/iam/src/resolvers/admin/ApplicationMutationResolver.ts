@@ -103,9 +103,7 @@ class ApplicationMutationBoundaryAuthorizationError extends ApplicationAuthAdmin
 }
 
 /** Application realm management mutation namespace. */
-export class ApplicationMutationResolver extends IAMType<
-  Record<string, never>
-> {
+export class ApplicationMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(ApplicationCreateInputSchema())
   async applicationCreate(args: { input: ApplicationCreateInput }) {
     try {
@@ -116,7 +114,7 @@ export class ApplicationMutationResolver extends IAMType<
           displayName: args.input.displayName,
           description: args.input.description ?? undefined,
         },
-        this.adminActor()
+        this.adminActor(),
       );
       this.clearApplication(result.organizationId, result.applicationId);
       return {
@@ -124,34 +122,28 @@ export class ApplicationMutationResolver extends IAMType<
         userErrors: [],
       };
     } catch (error) {
-      return this.failure("application", error, rejection(
-        "application_create",
+      return this.failure(
         "application",
-        args.input
-      ));
+        error,
+        rejection("application_create", "application", args.input),
+      );
     }
   }
 
   @ZodResolver(ApplicationUpdateInputSchema())
   async applicationUpdate(args: { input: ApplicationUpdateInput }) {
     try {
-      await this.assertApplicationAdminMutable(
-        args.input,
-        APPLICATIONS_RESOURCE
-      );
+      await this.assertApplicationAdminMutable(args.input, APPLICATIONS_RESOURCE);
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.updateApplication(
         {
           organizationId: decodeOrganizationId(args.input.organizationId),
           applicationId: decodeApplicationId(args.input.applicationId),
           name: args.input.name ?? undefined,
           displayName: args.input.displayName ?? undefined,
-          description:
-            args.input.description === undefined
-              ? undefined
-              : args.input.description,
+          description: args.input.description === undefined ? undefined : args.input.description,
           expectedRevision: args.input.expectedRevision,
         },
-        this.adminActor()
+        this.adminActor(),
       );
       this.clearApplication(result.organizationId, result.applicationId);
       return {
@@ -159,29 +151,25 @@ export class ApplicationMutationResolver extends IAMType<
         userErrors: [],
       };
     } catch (error) {
-      return this.failure("application", error, rejection(
-        "application_update",
+      return this.failure(
         "application",
-        args.input
-      ));
+        error,
+        rejection("application_update", "application", args.input),
+      );
     }
   }
 
   @ZodResolver(ApplicationArchiveInputSchema())
   async applicationArchive(args: { input: ApplicationArchiveInput }) {
     try {
-      await this.assertApplicationAdminMutable(
-        args.input,
-        APPLICATIONS_RESOURCE,
-        "admin"
-      );
+      await this.assertApplicationAdminMutable(args.input, APPLICATIONS_RESOURCE, "admin");
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.archiveApplication(
         {
           organizationId: decodeOrganizationId(args.input.organizationId),
           applicationId: decodeApplicationId(args.input.applicationId),
           expectedRevision: args.input.expectedRevision,
         },
-        this.adminActor()
+        this.adminActor(),
       );
       this.clearApplication(result.organizationId, result.applicationId);
       return {
@@ -189,11 +177,11 @@ export class ApplicationMutationResolver extends IAMType<
         userErrors: [],
       };
     } catch (error) {
-      return this.failure("application", error, rejection(
-        "application_archive",
+      return this.failure(
         "application",
-        args.input
-      ));
+        error,
+        rejection("application_archive", "application", args.input),
+      );
     }
   }
 
@@ -207,8 +195,7 @@ export class ApplicationMutationResolver extends IAMType<
           organizationId: decodeOrganizationId(input.organizationId),
           applicationId: decodeApplicationId(input.applicationId),
           registrationMode: enumLower(input.registrationMode),
-          emailVerificationRequired:
-            input.emailVerificationRequired ?? undefined,
+          emailVerificationRequired: input.emailVerificationRequired ?? undefined,
           accessTokenTtlSeconds: input.accessTokenTtlSeconds ?? undefined,
           idTokenTtlSeconds: input.idTokenTtlSeconds ?? undefined,
           refreshTokenTtlSeconds: input.refreshTokenTtlSeconds ?? undefined,
@@ -216,17 +203,10 @@ export class ApplicationMutationResolver extends IAMType<
           branding: input.branding
             ? {
                 displayName:
-                  input.branding.displayName === undefined
-                    ? undefined
-                    : input.branding.displayName,
+                  input.branding.displayName === undefined ? undefined : input.branding.displayName,
                 headline:
-                  input.branding.headline === undefined
-                    ? undefined
-                    : input.branding.headline,
-                logoUrl:
-                  input.branding.logoUrl === undefined
-                    ? undefined
-                    : input.branding.logoUrl,
+                  input.branding.headline === undefined ? undefined : input.branding.headline,
+                logoUrl: input.branding.logoUrl === undefined ? undefined : input.branding.logoUrl,
                 primaryColor:
                   input.branding.primaryColor === null
                     ? null
@@ -237,15 +217,12 @@ export class ApplicationMutationResolver extends IAMType<
                     : enumLower(input.branding.backgroundColor),
               }
             : undefined,
-          defaultLocale:
-            input.defaultLocale == null
-              ? undefined
-              : (input.defaultLocale as "en"),
+          defaultLocale: input.defaultLocale == null ? undefined : (input.defaultLocale as "en"),
           trustedOrigins: input.trustedOrigins ?? undefined,
           emailDelivery: input.emailDelivery ?? undefined,
           expectedRevision: input.expectedRevision,
         },
-        this.adminActor()
+        this.adminActor(),
       );
       this.clearApplication(result.organizationId, result.applicationId);
       return {
@@ -253,24 +230,18 @@ export class ApplicationMutationResolver extends IAMType<
         userErrors: [],
       };
     } catch (error) {
-      return this.failure("configuration", error, rejection(
-        "auth_configuration_update",
-        "auth_configuration",
-        args.input
-      ));
+      return this.failure(
+        "configuration",
+        error,
+        rejection("auth_configuration_update", "auth_configuration", args.input),
+      );
     }
   }
 
   @ZodResolver(ApplicationAuthRealmEnabledSetInputSchema())
-  async applicationAuthRealmEnabledSet(args: {
-    input: ApplicationAuthRealmEnabledSetInput;
-  }) {
+  async applicationAuthRealmEnabledSet(args: { input: ApplicationAuthRealmEnabledSetInput }) {
     try {
-      await this.assertApplicationAdminMutable(
-        args.input,
-        AUTH_RESOURCE,
-        "admin"
-      );
+      await this.assertApplicationAdminMutable(args.input, AUTH_RESOURCE, "admin");
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.setRealmEnabled(
         {
           organizationId: decodeOrganizationId(args.input.organizationId),
@@ -278,7 +249,7 @@ export class ApplicationMutationResolver extends IAMType<
           enabled: args.input.enabled,
           expectedRevision: args.input.expectedRevision,
         },
-        this.adminActor()
+        this.adminActor(),
       );
       this.clearApplication(result.organizationId, result.applicationId);
       return {
@@ -286,18 +257,16 @@ export class ApplicationMutationResolver extends IAMType<
         userErrors: [],
       };
     } catch (error) {
-      return this.failure("configuration", error, rejection(
-        "auth_realm_enabled_set",
-        "auth_configuration",
-        args.input
-      ));
+      return this.failure(
+        "configuration",
+        error,
+        rejection("auth_realm_enabled_set", "auth_configuration", args.input),
+      );
     }
   }
 
   @ZodResolver(ApplicationAuthMethodUpdateInputSchema())
-  async applicationAuthMethodUpdate(args: {
-    input: ApplicationAuthMethodUpdateInput;
-  }) {
+  async applicationAuthMethodUpdate(args: { input: ApplicationAuthMethodUpdateInput }) {
     try {
       await this.assertApplicationAdminMutable(args.input, AUTH_RESOURCE);
       const input = args.input;
@@ -305,15 +274,13 @@ export class ApplicationMutationResolver extends IAMType<
         {
           organizationId: decodeOrganizationId(input.organizationId),
           applicationId: decodeApplicationId(input.applicationId),
-          methodId: enumLower(String(input.methodId)) as
-            | "password"
-            | "email_otp",
+          methodId: enumLower(String(input.methodId)) as "password" | "email_otp",
           enabledCapabilities: input.enabledCapabilities.map((capability) =>
-            enumLower(capability)
+            enumLower(capability),
           ) as ("sign_in" | "sign_up" | "password_reset")[],
           expectedRevision: input.expectedRevision,
         },
-        this.adminActor()
+        this.adminActor(),
       );
       this.clearApplication(result.organizationId, result.applicationId);
       const configuration = this.authResolver(result);
@@ -322,25 +289,21 @@ export class ApplicationMutationResolver extends IAMType<
         userErrors: [],
       };
     } catch (error) {
-      return this.failure("authMethod", error, rejection(
-        "auth_method_update",
-        "auth_method",
-        args.input
-      ));
+      return this.failure(
+        "authMethod",
+        error,
+        rejection("auth_method_update", "auth_method", args.input),
+      );
     }
   }
 
   @ZodResolver(ApplicationAuthProviderConfigureInputSchema())
-  async applicationAuthProviderConfigure(args: {
-    input: ApplicationAuthProviderConfigureInput;
-  }) {
+  async applicationAuthProviderConfigure(args: { input: ApplicationAuthProviderConfigureInput }) {
     return this.providerMutation(args.input, "configure");
   }
 
   @ZodResolver(ApplicationAuthProviderUpdateInputSchema())
-  async applicationAuthProviderUpdate(args: {
-    input: ApplicationAuthProviderUpdateInput;
-  }) {
+  async applicationAuthProviderUpdate(args: { input: ApplicationAuthProviderUpdateInput }) {
     return this.providerMutation(args.input, "update");
   }
 
@@ -359,15 +322,9 @@ export class ApplicationMutationResolver extends IAMType<
   }
 
   @ZodResolver(ApplicationAuthProviderValidateInputSchema())
-  async applicationAuthProviderValidate(args: {
-    input: ApplicationAuthProviderValidateInput;
-  }) {
+  async applicationAuthProviderValidate(args: { input: ApplicationAuthProviderValidateInput }) {
     try {
-      await this.assertApplicationAdminMutable(
-        args.input,
-        PROVIDERS_RESOURCE,
-        "admin"
-      );
+      await this.assertApplicationAdminMutable(args.input, PROVIDERS_RESOURCE, "admin");
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.validateProvider(
         {
           organizationId: decodeOrganizationId(args.input.organizationId),
@@ -375,33 +332,25 @@ export class ApplicationMutationResolver extends IAMType<
           provider: enumLower(args.input.provider),
           expectedRevision: args.input.expectedRevision,
         },
-        this.adminActor()
+        this.adminActor(),
       );
       return {
-        validation: new ApplicationAuthProviderValidationResolver(
-          result,
-          this.$ctx
-        ),
+        validation: new ApplicationAuthProviderValidationResolver(result, this.$ctx),
         userErrors: [],
       };
     } catch (error) {
-      return this.failure("validation", error, rejection(
-        "provider_validate",
-        "provider",
-        args.input
-      ));
+      return this.failure(
+        "validation",
+        error,
+        rejection("provider_validate", "provider", args.input),
+      );
     }
   }
 
   @ZodResolver(ApplicationOAuthClientCreateInputSchema())
-  async applicationOAuthClientCreate(args: {
-    input: ApplicationOAuthClientCreateInput;
-  }) {
+  async applicationOAuthClientCreate(args: { input: ApplicationOAuthClientCreateInput }) {
     try {
-      await this.assertApplicationAdminMutable(
-        args.input,
-        OAUTH_CLIENT_RESOURCE
-      );
+      await this.assertApplicationAdminMutable(args.input, OAUTH_CLIENT_RESOURCE);
       const input = args.input;
       const result = await this.$ctx.kernel.applicationOAuthClientManagement.create(
         {
@@ -415,7 +364,7 @@ export class ApplicationMutationResolver extends IAMType<
           skipConsent: input.skipConsent ?? undefined,
           enableEndSession: input.enableEndSession ?? undefined,
         },
-        this.adminActor()
+        this.adminActor(),
       );
       return {
         client: new ApplicationOAuthClientResolver(result.client, this.$ctx),
@@ -424,25 +373,20 @@ export class ApplicationMutationResolver extends IAMType<
       };
     } catch (error) {
       return {
-        ...(await this.failure("client", error, rejection(
-          "oauth_client_create",
-          "oauth_client",
-          args.input
-        ))),
+        ...(await this.failure(
+          "client",
+          error,
+          rejection("oauth_client_create", "oauth_client", args.input),
+        )),
         clientSecret: null,
       };
     }
   }
 
   @ZodResolver(ApplicationOAuthClientUpdateInputSchema())
-  async applicationOAuthClientUpdate(args: {
-    input: ApplicationOAuthClientUpdateInput;
-  }) {
+  async applicationOAuthClientUpdate(args: { input: ApplicationOAuthClientUpdateInput }) {
     try {
-      await this.assertApplicationAdminMutable(
-        args.input,
-        OAUTH_CLIENT_RESOURCE
-      );
+      await this.assertApplicationAdminMutable(args.input, OAUTH_CLIENT_RESOURCE);
       const input = args.input;
       const client = await this.$ctx.kernel.applicationOAuthClientManagement.update(
         {
@@ -456,25 +400,23 @@ export class ApplicationMutationResolver extends IAMType<
           enableEndSession: input.enableEndSession ?? undefined,
           expectedRevision: input.expectedRevision,
         },
-        this.adminActor()
+        this.adminActor(),
       );
       return {
         client: new ApplicationOAuthClientResolver(client, this.$ctx),
         userErrors: [],
       };
     } catch (error) {
-      return this.failure("client", error, rejection(
-        "oauth_client_update",
-        "oauth_client",
-        args.input
-      ));
+      return this.failure(
+        "client",
+        error,
+        rejection("oauth_client_update", "oauth_client", args.input),
+      );
     }
   }
 
   @ZodResolver(ApplicationOAuthClientEnabledSetInputSchema())
-  async applicationOAuthClientEnabledSet(args: {
-    input: ApplicationOAuthClientEnabledSetInput;
-  }) {
+  async applicationOAuthClientEnabledSet(args: { input: ApplicationOAuthClientEnabledSetInput }) {
     return this.oauthClientStateMutation(args.input, "enabled");
   }
 
@@ -490,15 +432,11 @@ export class ApplicationMutationResolver extends IAMType<
     input: ApplicationOAuthClientSecretRotateInput;
   }) {
     try {
-      await this.assertApplicationAdminMutable(
-        args.input,
-        OAUTH_CLIENT_RESOURCE,
-        "admin"
-      );
+      await this.assertApplicationAdminMutable(args.input, OAUTH_CLIENT_RESOURCE, "admin");
       const input = decodeOAuthClientRevisionInput(args.input);
       const result = await this.$ctx.kernel.applicationOAuthClientManagement.rotateSecret(
         input,
-        this.adminActor()
+        this.adminActor(),
       );
       return {
         client: new ApplicationOAuthClientResolver(result.client, this.$ctx),
@@ -507,40 +445,34 @@ export class ApplicationMutationResolver extends IAMType<
       };
     } catch (error) {
       return {
-        ...(await this.failure("client", error, rejection(
-          "oauth_client_secret_rotate",
-          "oauth_client",
-          args.input
-        ))),
+        ...(await this.failure(
+          "client",
+          error,
+          rejection("oauth_client_secret_rotate", "oauth_client", args.input),
+        )),
         clientSecret: null,
       };
     }
   }
 
   @ZodResolver(ApplicationOAuthClientArchiveInputSchema())
-  async applicationOAuthClientArchive(args: {
-    input: ApplicationOAuthClientArchiveInput;
-  }) {
+  async applicationOAuthClientArchive(args: { input: ApplicationOAuthClientArchiveInput }) {
     try {
-      await this.assertApplicationAdminMutable(
-        args.input,
-        OAUTH_CLIENT_RESOURCE,
-        "admin"
-      );
+      await this.assertApplicationAdminMutable(args.input, OAUTH_CLIENT_RESOURCE, "admin");
       const client = await this.$ctx.kernel.applicationOAuthClientManagement.archive(
         decodeOAuthClientRevisionInput(args.input),
-        this.adminActor()
+        this.adminActor(),
       );
       return {
         client: new ApplicationOAuthClientResolver(client, this.$ctx),
         userErrors: [],
       };
     } catch (error) {
-      return this.failure("client", error, rejection(
-        "oauth_client_archive",
-        "oauth_client",
-        args.input
-      ));
+      return this.failure(
+        "client",
+        error,
+        rejection("oauth_client_archive", "oauth_client", args.input),
+      );
     }
   }
 
@@ -555,19 +487,13 @@ export class ApplicationMutationResolver extends IAMType<
   }
 
   @ZodResolver(ApplicationUserSessionsRevokeAllInputSchema())
-  async applicationUserSessionsRevokeAll(args: {
-    input: ApplicationUserSessionsRevokeAllInput;
-  }) {
+  async applicationUserSessionsRevokeAll(args: { input: ApplicationUserSessionsRevokeAllInput }) {
     try {
-      await this.assertApplicationAdminMutable(
-        args.input,
-        USERS_RESOURCE,
-        "admin"
-      );
+      await this.assertApplicationAdminMutable(args.input, USERS_RESOURCE, "admin");
       const ids = decodeUserInput(args.input);
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.revokeAllUserSessions(
         ids,
-        this.adminActor()
+        this.adminActor(),
       );
       this.clearApplicationUser(ids);
       return {
@@ -577,50 +503,44 @@ export class ApplicationMutationResolver extends IAMType<
       };
     } catch (error) {
       return {
-        ...(await this.failure("user", error, rejection(
-          "application_user_sessions_revoke_all",
-          "application_user",
-          args.input
-        ))),
+        ...(await this.failure(
+          "user",
+          error,
+          rejection("application_user_sessions_revoke_all", "application_user", args.input),
+        )),
         revokedCount: 0,
       };
     }
   }
 
   @ZodResolver(ApplicationUserAccountUnlinkInputSchema())
-  async applicationUserAccountUnlink(args: {
-    input: ApplicationUserAccountUnlinkInput;
-  }) {
+  async applicationUserAccountUnlink(args: { input: ApplicationUserAccountUnlinkInput }) {
     try {
-      await this.assertApplicationAdminMutable(
-        args.input,
-        USERS_RESOURCE,
-        "admin"
-      );
+      await this.assertApplicationAdminMutable(args.input, USERS_RESOURCE, "admin");
       const ids = {
         ...decodeUserInput(args.input),
         accountId: decodeLinkedAccountId(args.input.accountId),
       };
       const result = await this.$ctx.kernel.applicationAuthAdminManagement.unlinkUserAccount(
         ids,
-        this.adminActor()
+        this.adminActor(),
       );
       this.clearApplicationUser(ids);
       return {
         user: this.userResolver(ids),
         unlinkedAccountId: encodeGlobalIdByType(
           result.unlinkedAccountId,
-          GlobalIdEntity.ApplicationUserLinkedAccount
+          GlobalIdEntity.ApplicationUserLinkedAccount,
         ),
         userErrors: [],
       };
     } catch (error) {
       return {
-        ...(await this.failure("user", error, rejection(
-          "application_user_account_unlink",
-          "linked_account",
-          args.input
-        ))),
+        ...(await this.failure(
+          "user",
+          error,
+          rejection("application_user_account_unlink", "linked_account", args.input),
+        )),
         unlinkedAccountId: null,
       };
     }
@@ -632,13 +552,13 @@ export class ApplicationMutationResolver extends IAMType<
       | ApplicationAuthProviderUpdateInput
       | ApplicationAuthProviderCredentialsRotateInput
       | ApplicationAuthProviderCredentialsDeleteInput,
-    operation: "configure" | "update" | "rotate" | "delete"
+    operation: "configure" | "update" | "rotate" | "delete",
   ) {
     try {
       await this.assertApplicationAdminMutable(
         input,
         PROVIDERS_RESOURCE,
-        operation === "update" ? "write" : "admin"
+        operation === "update" ? "write" : "admin",
       );
       const base = {
         organizationId: decodeOrganizationId(input.organizationId),
@@ -652,44 +572,32 @@ export class ApplicationMutationResolver extends IAMType<
           ? await management.configureProvider(
               {
                 ...base,
-                clientId: (input as ApplicationAuthProviderConfigureInput)
-                  .clientId,
-                clientSecret: (input as ApplicationAuthProviderConfigureInput)
-                  .clientSecret,
+                clientId: (input as ApplicationAuthProviderConfigureInput).clientId,
+                clientSecret: (input as ApplicationAuthProviderConfigureInput).clientSecret,
                 scopes: (input as ApplicationAuthProviderConfigureInput).scopes,
               },
-              this.adminActor()
+              this.adminActor(),
             )
           : operation === "update"
             ? await management.updateProvider(
                 {
                   ...base,
-                  enabled:
-                    (input as ApplicationAuthProviderUpdateInput).enabled ??
-                    undefined,
-                  scopes:
-                    (input as ApplicationAuthProviderUpdateInput).scopes ??
-                    undefined,
+                  enabled: (input as ApplicationAuthProviderUpdateInput).enabled ?? undefined,
+                  scopes: (input as ApplicationAuthProviderUpdateInput).scopes ?? undefined,
                 },
-                this.adminActor()
+                this.adminActor(),
               )
             : operation === "rotate"
               ? await management.rotateProviderCredentials(
                   {
                     ...base,
-                    clientId: (
-                      input as ApplicationAuthProviderCredentialsRotateInput
-                    ).clientId,
-                    clientSecret: (
-                      input as ApplicationAuthProviderCredentialsRotateInput
-                    ).clientSecret,
+                    clientId: (input as ApplicationAuthProviderCredentialsRotateInput).clientId,
+                    clientSecret: (input as ApplicationAuthProviderCredentialsRotateInput)
+                      .clientSecret,
                   },
-                  this.adminActor()
+                  this.adminActor(),
                 )
-              : await management.deleteProviderCredentials(
-                  base,
-                  this.adminActor()
-                );
+              : await management.deleteProviderCredentials(base, this.adminActor());
       this.clearApplication(result.organizationId, result.applicationId);
       const configuration = this.authResolver(result);
       return {
@@ -705,25 +613,19 @@ export class ApplicationMutationResolver extends IAMType<
             : operation === "rotate"
               ? "provider_credentials_rotate"
               : "provider_credentials_delete";
-      return this.failure(
-        "provider",
-        error,
-        rejection(action, "provider", input)
-      );
+      return this.failure("provider", error, rejection(action, "provider", input));
     }
   }
 
   private async oauthClientStateMutation(
-    input:
-      | ApplicationOAuthClientEnabledSetInput
-      | ApplicationOAuthClientSkipConsentSetInput,
-    operation: "enabled" | "skipConsent"
+    input: ApplicationOAuthClientEnabledSetInput | ApplicationOAuthClientSkipConsentSetInput,
+    operation: "enabled" | "skipConsent",
   ) {
     try {
       await this.assertApplicationAdminMutable(
         input,
         OAUTH_CLIENT_RESOURCE,
-        operation === "enabled" ? "write" : "admin"
+        operation === "enabled" ? "write" : "admin",
       );
       const base = decodeOAuthClientRevisionInput(input);
       const management = this.$ctx.kernel.applicationOAuthClientManagement;
@@ -732,19 +634,16 @@ export class ApplicationMutationResolver extends IAMType<
           ? await management.setEnabled(
               {
                 ...base,
-                enabled: (input as ApplicationOAuthClientEnabledSetInput)
-                  .enabled,
+                enabled: (input as ApplicationOAuthClientEnabledSetInput).enabled,
               },
-              this.adminActor()
+              this.adminActor(),
             )
           : await management.setSkipConsent(
               {
                 ...base,
-                skipConsent: (
-                  input as ApplicationOAuthClientSkipConsentSetInput
-                ).skipConsent,
+                skipConsent: (input as ApplicationOAuthClientSkipConsentSetInput).skipConsent,
               },
-              this.adminActor()
+              this.adminActor(),
             );
       return {
         client: new ApplicationOAuthClientResolver(client, this.$ctx),
@@ -755,19 +654,17 @@ export class ApplicationMutationResolver extends IAMType<
         "client",
         error,
         rejection(
-          operation === "enabled"
-            ? "oauth_client_enabled_set"
-            : "oauth_client_skip_consent_set",
+          operation === "enabled" ? "oauth_client_enabled_set" : "oauth_client_skip_consent_set",
           "oauth_client",
-          input
-        )
+          input,
+        ),
       );
     }
   }
 
   private async userStatusMutation(
     input: ApplicationUserStatusSetInput,
-    status: "active" | "blocked"
+    status: "active" | "blocked",
   ) {
     try {
       await this.assertApplicationAdminMutable(input, USERS_RESOURCE);
@@ -775,7 +672,7 @@ export class ApplicationMutationResolver extends IAMType<
       await this.$ctx.kernel.applicationAuthAdminManagement.setUserStatus(
         ids,
         status,
-        this.adminActor()
+        this.adminActor(),
       );
       this.clearApplicationUser(ids);
       return {
@@ -787,45 +684,33 @@ export class ApplicationMutationResolver extends IAMType<
         "user",
         error,
         rejection(
-          status === "blocked"
-            ? "application_user_block"
-            : "application_user_unblock",
+          status === "blocked" ? "application_user_block" : "application_user_unblock",
           "application_user",
-          input
-        )
+          input,
+        ),
       );
     }
   }
 
-  private applicationResolver(input: {
-    organizationId: string;
-    applicationId: string;
-  }) {
+  private applicationResolver(input: { organizationId: string; applicationId: string }) {
     return new ApplicationResolver(
       {
         id: input.applicationId,
         organizationId: input.organizationId,
         applicationsReadAuthorized: true,
       },
-      this.$ctx
+      this.$ctx,
     );
   }
 
-  private authResolver(input: {
-    organizationId: string;
-    applicationId: string;
-  }) {
+  private authResolver(input: { organizationId: string; applicationId: string }) {
     return new ApplicationAuthConfigurationResolver(input, this.$ctx);
   }
 
-  private userResolver(input: {
-    organizationId: string;
-    applicationId: string;
-    userId: string;
-  }) {
+  private userResolver(input: { organizationId: string; applicationId: string; userId: string }) {
     return new ApplicationUserResolver(
       { ...input, applicationUsersReadAuthorized: true },
-      this.$ctx
+      this.$ctx,
     );
   }
 
@@ -859,7 +744,7 @@ export class ApplicationMutationResolver extends IAMType<
       applicationId: string;
     },
     resource: ApplicationProtectedResource,
-    action: ApplicationProtectedAction = "write"
+    action: ApplicationProtectedAction = "write",
   ): Promise<void> {
     const organizationId = decodeOrganizationId(input.organizationId);
     const applicationId = decodeApplicationId(input.applicationId);
@@ -884,16 +769,17 @@ export class ApplicationMutationResolver extends IAMType<
     resourceKind: IAM_SERVICE_LINKED_RESOURCE_KIND.application,
     resourceId: decodeApplicationId(input.applicationId),
   }))
-  private async assertApplicationProtectedResource(
-    _input: { organizationId: string; applicationId: string }
-  ): Promise<void> {
+  private async assertApplicationProtectedResource(_input: {
+    organizationId: string;
+    applicationId: string;
+  }): Promise<void> {
     // Enforcement is provided by @ProtectedResource.
   }
 
   private async failure<TField extends string>(
     field: TField,
     error: unknown,
-    audit?: GraphqlRejectionAudit
+    audit?: GraphqlRejectionAudit,
   ): Promise<Record<TField, null> & { userErrors: UserError[] }> {
     let effectiveError = error;
     if (
@@ -905,7 +791,7 @@ export class ApplicationMutationResolver extends IAMType<
       try {
         await this.$ctx.kernel.applicationAuthAdminManagement.recordRejectedGraphqlMutation(
           rejectionAuditRecord(audit, error),
-          this.adminActor()
+          this.adminActor(),
         );
       } catch (auditError) {
         effectiveError = auditError;
@@ -920,10 +806,12 @@ export class ApplicationMutationResolver extends IAMType<
         : effectiveError.code === "INTERNAL_ERROR" ||
           effectiveError.code === "OAUTH_CLIENT_INTERNAL_ERROR";
     if (internal) {
-      this.$ctx.kernel.getServices().logger.error(
-        { requestId: this.$ctx.requestId },
-        "Application Admin GraphQL mutation failed"
-      );
+      this.$ctx.kernel
+        .getServices()
+        .logger.error(
+          { requestId: this.$ctx.requestId },
+          "Application Admin GraphQL mutation failed",
+        );
     }
     return {
       [field]: null,
@@ -940,26 +828,16 @@ function decodeApplicationId(value: string): string {
   return decodeMutationGlobalId(value, GlobalIdEntity.Application);
 }
 
-function decodeUserInput(input: {
-  organizationId: string;
-  applicationId: string;
-  userId: string;
-}) {
+function decodeUserInput(input: { organizationId: string; applicationId: string; userId: string }) {
   return {
     organizationId: decodeOrganizationId(input.organizationId),
     applicationId: decodeApplicationId(input.applicationId),
-    userId: decodeMutationGlobalId(
-      input.userId,
-      GlobalIdEntity.ApplicationUser
-    ),
+    userId: decodeMutationGlobalId(input.userId, GlobalIdEntity.ApplicationUser),
   };
 }
 
 function decodeLinkedAccountId(value: string): string {
-  return decodeMutationGlobalId(
-    value,
-    GlobalIdEntity.ApplicationUserLinkedAccount
-  );
+  return decodeMutationGlobalId(value, GlobalIdEntity.ApplicationUserLinkedAccount);
 }
 
 function decodeMutationGlobalId(value: string, type: GlobalIdEntity): string {
@@ -987,7 +865,7 @@ function decodeOAuthClientRevisionInput(input: {
 function rejection(
   action: ApplicationAuthAdminAuditAction,
   targetType: GraphqlRejectionAudit["targetType"],
-  input: object
+  input: object,
 ): GraphqlRejectionAudit {
   return {
     action,
@@ -1001,15 +879,15 @@ function rejectionAuditRecord(
   error:
     | ApplicationMutationGraphqlInputError
     | ServiceLinkedResourceAuthorizationError
-    | ApplicationMutationBoundaryAuthorizationError
+    | ApplicationMutationBoundaryAuthorizationError,
 ) {
   const organizationId = tryDecodeAuditGlobalId(
     audit.input.organizationId,
-    GlobalIdEntity.Organization
+    GlobalIdEntity.Organization,
   );
   const applicationId = tryDecodeAuditGlobalId(
     audit.input.applicationId,
-    GlobalIdEntity.Application
+    GlobalIdEntity.Application,
   );
   const authorizationFailure =
     error instanceof ServiceLinkedResourceAuthorizationError ||
@@ -1020,9 +898,7 @@ function rejectionAuditRecord(
     organizationId,
     applicationId,
     targetId: auditTargetId(audit),
-    ...(authorizationFailure
-      ? { reasonCategory: "authorization" as const }
-      : {}),
+    ...(authorizationFailure ? { reasonCategory: "authorization" as const } : {}),
     ...(error instanceof ServiceLinkedResourceAuthorizationError
       ? {
           safeDiff: {
@@ -1036,10 +912,7 @@ function rejectionAuditRecord(
   };
 }
 
-function tryDecodeAuditGlobalId(
-  value: unknown,
-  type: GlobalIdEntity
-): string | null {
+function tryDecodeAuditGlobalId(value: unknown, type: GlobalIdEntity): string | null {
   if (typeof value !== "string") return null;
   try {
     return decodeGlobalIdByType(value, type);
@@ -1051,26 +924,16 @@ function tryDecodeAuditGlobalId(
 function auditTargetId(audit: GraphqlRejectionAudit): string | undefined {
   if (audit.targetType === "application") {
     return (
-      tryDecodeAuditGlobalId(
-        audit.input.applicationId,
-        GlobalIdEntity.Application
-      ) ?? undefined
+      tryDecodeAuditGlobalId(audit.input.applicationId, GlobalIdEntity.Application) ?? undefined
     );
   }
   if (audit.targetType === "application_user") {
-    return (
-      tryDecodeAuditGlobalId(
-        audit.input.userId,
-        GlobalIdEntity.ApplicationUser
-      ) ?? undefined
-    );
+    return tryDecodeAuditGlobalId(audit.input.userId, GlobalIdEntity.ApplicationUser) ?? undefined;
   }
   if (audit.targetType === "linked_account") {
     return (
-      tryDecodeAuditGlobalId(
-        audit.input.accountId,
-        GlobalIdEntity.ApplicationUserLinkedAccount
-      ) ?? undefined
+      tryDecodeAuditGlobalId(audit.input.accountId, GlobalIdEntity.ApplicationUserLinkedAccount) ??
+      undefined
     );
   }
   const candidate =
@@ -1086,9 +949,7 @@ function auditTargetId(audit: GraphqlRejectionAudit): string | undefined {
 }
 
 function enumLower<T extends string>(value: T): Lowercase<T>;
-function enumLower<T extends string>(
-  value: T | null | undefined
-): Lowercase<T> | undefined;
+function enumLower<T extends string>(value: T | null | undefined): Lowercase<T> | undefined;
 function enumLower<T extends string>(value: T | null | undefined) {
   return value == null ? undefined : value.toLowerCase();
 }
@@ -1106,8 +967,7 @@ function mapManagementUserError(error: unknown): UserError {
     error instanceof ApplicationOAuthClientManagementError
   ) {
     const internal =
-      error.code === "INTERNAL_ERROR" ||
-      error.code === "OAUTH_CLIENT_INTERNAL_ERROR";
+      error.code === "INTERNAL_ERROR" || error.code === "OAUTH_CLIENT_INTERNAL_ERROR";
     return {
       code: internal ? "INTERNAL_ERROR" : error.code,
       message: internal ? "Application realm operation failed" : error.message,

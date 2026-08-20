@@ -8,12 +8,7 @@ import type { BrokerCallContext } from "@shopana/shared-kernel";
 import type { PaymentProviderCompletionContext } from "./actions.js";
 
 type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | readonly JsonValue[]
-  | { readonly [key: string]: JsonValue };
+  null | boolean | number | string | readonly JsonValue[] | { readonly [key: string]: JsonValue };
 
 const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
   z.union([
@@ -62,21 +57,25 @@ export const PaymentFailureSchema = z
 
 export const PaymentSettlementConfirmationSchema = z
   .discriminatedUnion("decision", [
-    z.object({
-      decision: z.literal("APPROVED"),
-      confirmationId: identifierSchema,
-      confirmedAt: timestampSchema,
-      expiresAt: timestampSchema,
-      checkoutVersion: z.number().int().safe().nonnegative(),
-      finalQuoteRevision: identifierSchema,
-      inventoryReservationRevision: identifierSchema.nullable(),
-    }).strict(),
-    z.object({
-      decision: z.literal("REJECTED"),
-      confirmationId: identifierSchema,
-      confirmedAt: timestampSchema,
-      failure: PaymentFailureSchema,
-    }).strict(),
+    z
+      .object({
+        decision: z.literal("APPROVED"),
+        confirmationId: identifierSchema,
+        confirmedAt: timestampSchema,
+        expiresAt: timestampSchema,
+        checkoutVersion: z.number().int().safe().nonnegative(),
+        finalQuoteRevision: identifierSchema,
+        inventoryReservationRevision: identifierSchema.nullable(),
+      })
+      .strict(),
+    z
+      .object({
+        decision: z.literal("REJECTED"),
+        confirmationId: identifierSchema,
+        confirmedAt: timestampSchema,
+        failure: PaymentFailureSchema,
+      })
+      .strict(),
   ])
   .superRefine((confirmation, context) => {
     if (
@@ -516,10 +515,7 @@ export const PaymentProviderReconcileResultSchema = z
         message: "VOIDED requires the uncaptured authorization to be fully released",
       });
     }
-    if (
-      result.state === "PARTIALLY_REFUNDED" &&
-      !(refunded > 0n && refunded < captured)
-    ) {
+    if (result.state === "PARTIALLY_REFUNDED" && !(refunded > 0n && refunded < captured)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["state"],
@@ -639,10 +635,7 @@ export interface ProviderCompletionBoundaryExpectation {
   route: Payments.PaymentProviderRouteSnapshot;
   session: Pick<
     Payments.PaymentSessionSnapshot,
-    | "paymentSessionId"
-    | "organizationId"
-    | "storeId"
-    | "providerReference"
+    "paymentSessionId" | "organizationId" | "storeId" | "providerReference"
   >;
   operation: Pick<
     Payments.PaymentOperationSnapshot,
@@ -654,12 +647,7 @@ export interface ProviderEventBoundaryExpectation {
   context: PaymentProviderCompletionContext;
   account: Pick<
     Payments.PaymentProviderAccountSnapshot,
-    | "providerAccountId"
-    | "installationId"
-    | "appCode"
-    | "appVersion"
-    | "organizationId"
-    | "storeId"
+    "providerAccountId" | "installationId" | "appCode" | "appVersion" | "organizationId" | "storeId"
   >;
 }
 
@@ -797,9 +785,15 @@ function assertRouteIdentity(
   context: PaymentProviderCompletionContext,
   route: Payments.PaymentProviderRouteSnapshot,
 ): void {
-  assertBoundary(context.installationId === route.installationId, "App installation does not own the route");
+  assertBoundary(
+    context.installationId === route.installationId,
+    "App installation does not own the route",
+  );
   assertBoundary(context.appCode === route.appCode, "App code does not match the route");
-  assertBoundary(context.appVersion === route.appVersion, "App version does not match the pinned route");
+  assertBoundary(
+    context.appVersion === route.appVersion,
+    "App version does not match the pinned route",
+  );
   assertBoundary(
     route.protocolVersion === PAYMENTS_PROVIDER_PROTOCOL_VERSION,
     "Provider route protocol version is unsupported",
@@ -822,7 +816,10 @@ function assertTenantIdentity(
   context: PaymentProviderCompletionContext,
   target: Readonly<{ organizationId: string; storeId: string }>,
 ): void {
-  assertBoundary(context.organizationId === target.organizationId, "Organization boundary mismatch");
+  assertBoundary(
+    context.organizationId === target.organizationId,
+    "Organization boundary mismatch",
+  );
   assertBoundary(context.storeId === target.storeId, "Store boundary mismatch");
 }
 

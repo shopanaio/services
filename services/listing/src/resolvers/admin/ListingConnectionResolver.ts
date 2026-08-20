@@ -4,22 +4,13 @@ import type {
 } from "../../repositories/storefront/types.js";
 import { StorefrontRepositoryValidationError } from "../../repositories/storefront/types.js";
 import { decodeListingCursor } from "../../repositories/storefront/cursor.js";
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { CanonicalCollectionRule } from "@shopana/broker-types";
 import { ListingType } from "./ListingType.js";
-import {
-  type ListingFacet,
-  type ListingQueryArgs,
-} from "./ListingQueryTypes.js";
+import { type ListingFacet, type ListingQueryArgs } from "./ListingQueryTypes.js";
 import { mapListingFacets } from "./listingFacetMapper.js";
 import { toListingNodeReference } from "./listingReferences.js";
-import {
-  throwGraphqlListingError,
-  toStorefrontListingInput,
-} from "./listingInput.js";
+import { throwGraphqlListingError, toStorefrontListingInput } from "./listingInput.js";
 
 export class ListingConnectionResolver extends ListingType<
   ListingQueryArgs,
@@ -54,8 +45,8 @@ export class ListingConnectionResolver extends ListingType<
         });
         this.repositoryInput = repositoryInput;
       }
-      const result = await services.repository.storefrontListingQuery
-        .getStorefrontListing(repositoryInput);
+      const result =
+        await services.repository.storefrontListingQuery.getStorefrontListing(repositoryInput);
       for (const userError of result.userErrors) {
         this.$ctx.addGraphqlError(userError);
       }
@@ -116,7 +107,7 @@ export class ListingConnectionResolver extends ListingType<
           unavailableCount: unavailableCount ?? 0,
           userErrors: [],
         },
-        this.$props
+        this.$props,
       );
     } catch (error) {
       this.logListingError(error, "Listing facets mapping failed");
@@ -140,21 +131,15 @@ export class ListingConnectionResolver extends ListingType<
     }
   }
 
-  private async resolveCollectionScope(
-    args: ListingQueryArgs,
-  ): Promise<ListingQueryArgs> {
+  private async resolveCollectionScope(args: ListingQueryArgs): Promise<ListingQueryArgs> {
     if (args.resolvedScope || args.scope?.kind !== "COLLECTION") return args;
     if (!args.scope.collectionId) {
       throw new StorefrontRepositoryValidationError(
         "COLLECTION listing scope requires collectionId",
       );
     }
-    const collectionId = decodeGlobalIdByType(
-      args.scope.collectionId,
-      GlobalIdEntity.Collection,
-    );
-    const state =
-      await this.$ctx.kernel.repository.collectionState.findState(collectionId);
+    const collectionId = decodeGlobalIdByType(args.scope.collectionId, GlobalIdEntity.Collection);
+    const state = await this.$ctx.kernel.repository.collectionState.findState(collectionId);
     if (!state) {
       throw new StorefrontRepositoryValidationError(
         "Collection index is not ready",
@@ -162,10 +147,7 @@ export class ListingConnectionResolver extends ListingType<
         "COLLECTION_INDEX_NOT_READY",
       );
     }
-    const currency =
-      args.currency?.trim() ||
-      this.$ctx.currency ||
-      this.$ctx.store.currencyCode;
+    const currency = args.currency?.trim() || this.$ctx.currency || this.$ctx.store.currencyCode;
     const evaluated =
       state.collectionType === "rule"
         ? await this.$ctx.kernel.repository.collectionRuleEvaluation.evaluate({
@@ -181,29 +163,26 @@ export class ListingConnectionResolver extends ListingType<
         : null;
     const productBitmap =
       evaluated?.productBitmap ??
-      await this.$ctx.kernel.repository.collectionRuleEvaluation
-        .getManualMembership(collectionId, "admin");
+      (await this.$ctx.kernel.repository.collectionRuleEvaluation.getManualMembership(
+        collectionId,
+        "admin",
+      ));
     return {
       ...args,
       orderBy:
         args.orderBy ??
         (args.query?.trim()
           ? { by: "RELEVANCE" }
-          : collectionDefaultOrderBy(
-              state.defaultSort,
-              state.defaultSortDirection,
-            )),
+          : collectionDefaultOrderBy(state.defaultSort, state.defaultSortDirection)),
       resolvedScope: {
         kind: "collection",
         collectionId,
         listingRevision: state.listingRevision,
         rulesHash: state.rulesHash,
         productBitmap,
-        membershipBitmap:
-          evaluated?.membershipBitmap ?? productBitmap,
+        membershipBitmap: evaluated?.membershipBitmap ?? productBitmap,
         variantBitmap: evaluated?.variantBitmap ?? undefined,
-        manualSortScopeId:
-          state.collectionType === "manual" ? collectionId : undefined,
+        manualSortScopeId: state.collectionType === "manual" ? collectionId : undefined,
       },
     };
   }
@@ -217,15 +196,12 @@ export class ListingConnectionResolver extends ListingType<
         locale: this.$ctx.locale || this.$ctx.store.defaultLocale,
         currency: this.$ctx.currency || this.$ctx.store.currencyCode,
       },
-      message
+      message,
     );
   }
 }
 
-function collectionDefaultOrderBy(
-  sort: string,
-  direction: string,
-): ListingQueryArgs["orderBy"] {
+function collectionDefaultOrderBy(sort: string, direction: string): ListingQueryArgs["orderBy"] {
   switch (sort) {
     case "manual":
       return { by: "MANUAL" };

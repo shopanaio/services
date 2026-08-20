@@ -9,9 +9,7 @@ export class PageResolver extends OnlineStoreType<string, PageRecord> {
   async $preload() {
     const page = await this.$ctx.loaders.page.load(this.$props);
     if (!page) {
-      throw new PreloadNotFoundError(
-        `Online Store page with ID ${this.$props} not found`,
-      );
+      throw new PreloadNotFoundError(`Online Store page with ID ${this.$props} not found`);
     }
     return page;
   }
@@ -25,16 +23,12 @@ export class PageResolver extends OnlineStoreType<string, PageRecord> {
   }
 
   async title() {
-    const translation = await this.$ctx.loaders.pageTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.pageTranslation.load(this.$props);
     return translation?.title ?? "";
   }
 
   async body() {
-    const translation = await this.$ctx.loaders.pageTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.pageTranslation.load(this.$props);
     if (!translation) return null;
     if (
       translation.bodyText === null &&
@@ -51,9 +45,7 @@ export class PageResolver extends OnlineStoreType<string, PageRecord> {
   }
 
   async seo() {
-    const translation = await this.$ctx.loaders.pageTranslation.load(
-      this.$props,
-    );
+    const translation = await this.$ctx.loaders.pageTranslation.load(this.$props);
     if (!translation) return null;
     if (
       translation.seoTitle === null &&

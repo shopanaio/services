@@ -67,8 +67,7 @@ export function useUpdateProduct(): UseUpdateProductReturn {
           }),
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
         const userErrors = [{ message, code: "UNEXPECTED_ERROR" }];
 
         return {

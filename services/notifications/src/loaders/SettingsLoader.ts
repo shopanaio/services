@@ -1,7 +1,4 @@
-import type {
-  NotificationChannel,
-  NotificationDefinitionKey,
-} from "@shopana/broker-types";
+import type { NotificationChannel, NotificationDefinitionKey } from "@shopana/broker-types";
 import DataLoader from "dataloader";
 import type { Repository } from "../repositories/Repository.js";
 import type { SettingsRepository } from "../repositories/settings/SettingsRepository.js";
@@ -11,9 +8,7 @@ export interface NotificationChannelSettingKey {
   channel: NotificationChannel;
 }
 
-export function notificationChannelSettingKey(
-  key: NotificationChannelSettingKey
-): string {
+export function notificationChannelSettingKey(key: NotificationChannelSettingKey): string {
   return JSON.stringify([key.key, key.channel]);
 }
 
@@ -24,8 +19,7 @@ export class SettingsLoader {
   >;
   public readonly channelSetting: DataLoader<
     NotificationChannelSettingKey,
-    | Awaited<ReturnType<SettingsRepository["getChannelSetting"]>>
-    | null,
+    Awaited<ReturnType<SettingsRepository["getChannelSetting"]>> | null,
     string
   >;
 
@@ -35,16 +29,13 @@ export class SettingsLoader {
       Awaited<ReturnType<SettingsRepository["getDefinitionSetting"]>> | null
     >(async (keys) => {
       const settings = await repository.settings.getDefinitionSettings(keys);
-      const settingsByKey = new Map(
-        settings.map((setting) => [setting.definitionKey, setting])
-      );
+      const settingsByKey = new Map(settings.map((setting) => [setting.definitionKey, setting]));
       return keys.map((key) => settingsByKey.get(key) ?? null);
     });
 
     this.channelSetting = new DataLoader<
       NotificationChannelSettingKey,
-      | Awaited<ReturnType<SettingsRepository["getChannelSetting"]>>
-      | null,
+      Awaited<ReturnType<SettingsRepository["getChannelSetting"]>> | null,
       string
     >(
       async (keys) => {
@@ -56,13 +47,11 @@ export class SettingsLoader {
               channel: setting.channel,
             }),
             setting,
-          ])
+          ]),
         );
-        return keys.map(
-          (key) => settingsByKey.get(notificationChannelSettingKey(key)) ?? null
-        );
+        return keys.map((key) => settingsByKey.get(notificationChannelSettingKey(key)) ?? null);
       },
-      { cacheKeyFn: notificationChannelSettingKey }
+      { cacheKeyFn: notificationChannelSettingKey },
     );
   }
 }

@@ -21,7 +21,9 @@ type CustomerAddress implements Node {
   regionName: String
   regionCode: String
   postalCode: String
-  """Uppercase ISO 3166-1 alpha-2 code."""
+  """
+  Uppercase ISO 3166-1 alpha-2 code.
+  """
   countryCode: String!
   isDefaultShipping: Boolean!
   isDefaultBilling: Boolean!
@@ -61,15 +63,21 @@ input CustomerAddressPatchInput {
   regionCode: String
   postalCode: String
   countryCode: String
-  """Set or clear this address as the customer's shipping default."""
+  """
+  Set or clear this address as the customer's shipping default.
+  """
   isDefaultShipping: Boolean
-  """Set or clear this address as the customer's billing default."""
+  """
+  Set or clear this address as the customer's billing default.
+  """
   isDefaultBilling: Boolean
   latitude: Float
   longitude: Float
 }
 
-"""Address values used inside the unified customerUpdate workflow."""
+"""
+Address values used inside the unified customerUpdate workflow.
+"""
 input CustomerAddressCreateOperationInput {
   label: String
   prefix: String
@@ -97,13 +105,19 @@ input CustomerAddressUpdateOperationInput {
   operations: CustomerAddressPatchInput!
 }
 
-"""Batched address changes scoped to the customer being updated."""
+"""
+Batched address changes scoped to the customer being updated.
+"""
 input CustomerAddressesUpdateInput {
   create: [CustomerAddressCreateOperationInput!]
   update: [CustomerAddressUpdateOperationInput!]
   deleteIds: [ID!]
-  """Existing address ID to make the default. Explicit null clears the default."""
+  """
+  Existing address ID to make the default. Explicit null clears the default.
+  """
   defaultShippingAddressId: ID
-  """Existing address ID to make the default. Explicit null clears the default."""
+  """
+  Existing address ID to make the default. Explicit null clears the default.
+  """
   defaultBillingAddressId: ID
 }

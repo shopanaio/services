@@ -198,8 +198,7 @@ export abstract class BetterAuthUserRepository<TUser extends AuthUser> {
       return {
         success: false,
         user: null,
-        error:
-          error instanceof Error ? error.message : "Session validation failed",
+        error: error instanceof Error ? error.message : "Session validation failed",
       };
     }
   }
@@ -250,9 +249,7 @@ export abstract class BetterAuthUserRepository<TUser extends AuthUser> {
     }
   }
 
-  private async verifyJwtToken(
-    token: string
-  ): Promise<GetCurrentUserResult<TUser>> {
+  private async verifyJwtToken(token: string): Promise<GetCurrentUserResult<TUser>> {
     const parseResult = await this.parseJwt(token);
     if (!parseResult.success || !parseResult.payload?.sub) {
       return {

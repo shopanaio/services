@@ -1,7 +1,4 @@
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { hashContent } from "@shopana/shared-kernel";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import type {
@@ -169,10 +166,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
   async customerAddressUpdate(args: MutationCustomerAddressUpdateArgs) {
     const preflight = this.mutationPreflight(args.input.idempotencyKey);
     if ("userErrors" in preflight) return failedAddressPayload(preflight.userErrors);
-    const addressId = safeDecode(
-      args.input.addressId,
-      GlobalIdEntity.CustomerAddress,
-    );
+    const addressId = safeDecode(args.input.addressId, GlobalIdEntity.CustomerAddress);
     if (!addressId) return failedAddressPayload([invalidId(["addressId"])]);
     const input: StorefrontCustomerAddressUpdateWorkflowInput = {
       params: {
@@ -212,10 +206,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
         userErrors: preflight.userErrors,
       };
     }
-    const addressId = safeDecode(
-      args.input.addressId,
-      GlobalIdEntity.CustomerAddress,
-    );
+    const addressId = safeDecode(args.input.addressId, GlobalIdEntity.CustomerAddress);
     if (!addressId) {
       return {
         deletedAddressId: null,
@@ -251,9 +242,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
   }
 
   @ZodResolver(CustomerAddressDefaultSetInputSchema())
-  async customerAddressDefaultSet(
-    args: MutationCustomerAddressDefaultSetArgs,
-  ) {
+  async customerAddressDefaultSet(args: MutationCustomerAddressDefaultSetArgs) {
     const preflight = this.mutationPreflight(args.input.idempotencyKey);
     if ("userErrors" in preflight) {
       return { customer: null, userErrors: preflight.userErrors };
@@ -267,8 +256,8 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     const input: StorefrontCustomerAddressDefaultSetWorkflowInput = {
       params: {
         addressId,
-        defaults:
-          args.input.defaults as StorefrontCustomerAddressDefaultSetWorkflowInput["params"]["defaults"],
+        defaults: args.input
+          .defaults as StorefrontCustomerAddressDefaultSetWorkflowInput["params"]["defaults"],
         expectedRevision: args.input.expectedRevision,
       },
       context: preflight.context,
@@ -288,9 +277,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
   }
 
   @ZodResolver(CustomerMarketingConsentUpdateInputSchema())
-  async customerMarketingConsentUpdate(
-    args: MutationCustomerMarketingConsentUpdateArgs,
-  ) {
+  async customerMarketingConsentUpdate(args: MutationCustomerMarketingConsentUpdateArgs) {
     const preflight = this.mutationPreflight(args.input.idempotencyKey);
     if ("userErrors" in preflight) {
       return {
@@ -301,10 +288,10 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     }
     const input: StorefrontCustomerMarketingConsentUpdateWorkflowInput = {
       params: {
-        channel:
-          args.input.channel as StorefrontCustomerMarketingConsentUpdateWorkflowInput["params"]["channel"],
-        state:
-          args.input.state as StorefrontCustomerMarketingConsentUpdateWorkflowInput["params"]["state"],
+        channel: args.input
+          .channel as StorefrontCustomerMarketingConsentUpdateWorkflowInput["params"]["channel"],
+        state: args.input
+          .state as StorefrontCustomerMarketingConsentUpdateWorkflowInput["params"]["state"],
         expectedRevision: args.input.expectedRevision,
         idempotencyKey: preflight.idempotencyKey,
       },
@@ -345,10 +332,9 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     }
     const input: StorefrontCustomerDataRequestCreateWorkflowInput = {
       params: {
-        type:
-          args.input.type as StorefrontCustomerDataRequestCreateWorkflowInput["params"]["type"],
-        correctionDetails:
-          args.input.correctionDetails as StorefrontCustomerDataRequestCreateWorkflowInput["params"]["correctionDetails"],
+        type: args.input.type as StorefrontCustomerDataRequestCreateWorkflowInput["params"]["type"],
+        correctionDetails: args.input
+          .correctionDetails as StorefrontCustomerDataRequestCreateWorkflowInput["params"]["correctionDetails"],
         idempotencyKey: preflight.idempotencyKey,
       },
       context: preflight.context,
@@ -375,10 +361,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     if ("userErrors" in preflight) {
       return { dataRequest: null, userErrors: preflight.userErrors };
     }
-    const dataRequestId = safeDecode(
-      args.input.dataRequestId,
-      GlobalIdEntity.CustomerDataRequest,
-    );
+    const dataRequestId = safeDecode(args.input.dataRequestId, GlobalIdEntity.CustomerDataRequest);
     if (!dataRequestId) {
       return { dataRequest: null, userErrors: [invalidId(["dataRequestId"])] };
     }
@@ -404,9 +387,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
   }
 
   @ZodResolver(CustomerTaxIdentifierCreateInputSchema())
-  async customerTaxIdentifierCreate(
-    args: MutationCustomerTaxIdentifierCreateArgs,
-  ) {
+  async customerTaxIdentifierCreate(args: MutationCustomerTaxIdentifierCreateArgs) {
     const preflight = this.mutationPreflight(args.input.idempotencyKey);
     if ("userErrors" in preflight) return failedTaxPayload(preflight.userErrors);
     const input: StorefrontCustomerTaxIdentifierCreateWorkflowInput = {
@@ -437,9 +418,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
   }
 
   @ZodResolver(CustomerTaxIdentifierUpdateInputSchema())
-  async customerTaxIdentifierUpdate(
-    args: MutationCustomerTaxIdentifierUpdateArgs,
-  ) {
+  async customerTaxIdentifierUpdate(args: MutationCustomerTaxIdentifierUpdateArgs) {
     const preflight = this.mutationPreflight(args.input.idempotencyKey);
     if ("userErrors" in preflight) return failedTaxPayload(preflight.userErrors);
     const taxIdentifierId = safeDecode(
@@ -478,9 +457,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
   }
 
   @ZodResolver(CustomerTaxIdentifierDeleteInputSchema())
-  async customerTaxIdentifierDelete(
-    args: MutationCustomerTaxIdentifierDeleteArgs,
-  ) {
+  async customerTaxIdentifierDelete(args: MutationCustomerTaxIdentifierDeleteArgs) {
     const preflight = this.mutationPreflight(args.input.idempotencyKey);
     if ("userErrors" in preflight) {
       return {
@@ -521,10 +498,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     this.clearTaxLoaders(preflight.context.customerId);
     return {
       deletedTaxIdentifierId: result.value.deletedTaxIdentifierId
-        ? this.encodeId(
-            result.value.deletedTaxIdentifierId,
-            GlobalIdEntity.CustomerTaxIdentifier,
-          )
+        ? this.encodeId(result.value.deletedTaxIdentifierId, GlobalIdEntity.CustomerTaxIdentifier)
         : null,
       customer: result.value.customer
         ? await this.resolvers.customer(result.value.customer.id)
@@ -567,10 +541,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     if ("userErrors" in preflight) {
       return { wishlist: null, userErrors: preflight.userErrors };
     }
-    const wishlistId = safeDecode(
-      args.input.id,
-      GlobalIdEntity.CustomerWishlist,
-    );
+    const wishlistId = safeDecode(args.input.id, GlobalIdEntity.CustomerWishlist);
     if (!wishlistId) {
       return {
         wishlist: null,
@@ -606,10 +577,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     if ("userErrors" in preflight) {
       return { deletedWishlistId: null, userErrors: preflight.userErrors };
     }
-    const wishlistId = safeDecode(
-      args.input.id,
-      GlobalIdEntity.CustomerWishlist,
-    );
+    const wishlistId = safeDecode(args.input.id, GlobalIdEntity.CustomerWishlist);
     if (!wishlistId) {
       return {
         deletedWishlistId: null,
@@ -636,10 +604,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     }
     return {
       deletedWishlistId: result.value.deletedWishlistId
-        ? this.encodeId(
-            result.value.deletedWishlistId,
-            GlobalIdEntity.CustomerWishlist,
-          )
+        ? this.encodeId(result.value.deletedWishlistId, GlobalIdEntity.CustomerWishlist)
         : null,
       userErrors: result.value.userErrors,
     };
@@ -654,14 +619,13 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     const productId = safeDecode(args.input.productId, GlobalIdEntity.Product);
     const rawWishlistId = args.input.wishlistId;
     const hasWishlistId = rawWishlistId != null;
-    const wishlistId = rawWishlistId != null
-      ? safeDecode(rawWishlistId, GlobalIdEntity.CustomerWishlist)
-      : undefined;
+    const wishlistId =
+      rawWishlistId != null
+        ? safeDecode(rawWishlistId, GlobalIdEntity.CustomerWishlist)
+        : undefined;
     const idErrors = [
       ...(!productId ? [invalidId(["productId"])] : []),
-      ...(hasWishlistId && !wishlistId
-        ? [invalidId(["wishlistId"])]
-        : []),
+      ...(hasWishlistId && !wishlistId ? [invalidId(["wishlistId"])] : []),
     ];
     if (!productId || idErrors.length > 0) {
       return { wishlistItem: null, userErrors: idErrors };
@@ -696,10 +660,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
         userErrors: preflight.userErrors,
       };
     }
-    const itemId = safeDecode(
-      args.input.itemId,
-      GlobalIdEntity.CustomerWishlistItem,
-    );
+    const itemId = safeDecode(args.input.itemId, GlobalIdEntity.CustomerWishlistItem);
     if (!itemId) {
       return {
         deletedWishlistItemId: null,
@@ -726,19 +687,14 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     }
     return {
       deletedWishlistItemId: result.value.deletedWishlistItemId
-        ? this.encodeId(
-            result.value.deletedWishlistItemId,
-            GlobalIdEntity.CustomerWishlistItem,
-          )
+        ? this.encodeId(result.value.deletedWishlistItemId, GlobalIdEntity.CustomerWishlistItem)
         : null,
       userErrors: result.value.userErrors,
     };
   }
 
   @ZodResolver(CustomerComparisonVariantAddInputSchema())
-  async customerComparisonVariantAdd(
-    args: MutationCustomerComparisonVariantAddArgs,
-  ) {
+  async customerComparisonVariantAdd(args: MutationCustomerComparisonVariantAddArgs) {
     const preflight = this.mutationPreflight(args.input.idempotencyKey);
     if ("userErrors" in preflight) {
       return {
@@ -747,10 +703,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
         userErrors: preflight.userErrors,
       };
     }
-    const variantId = safeDecode(
-      args.input.variantId,
-      GlobalIdEntity.ProductVariant,
-    );
+    const variantId = safeDecode(args.input.variantId, GlobalIdEntity.ProductVariant);
     if (!variantId) {
       return {
         customer: null,
@@ -772,9 +725,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
   }
 
   @ZodResolver(CustomerComparisonVariantRemoveInputSchema())
-  async customerComparisonVariantRemove(
-    args: MutationCustomerComparisonVariantRemoveArgs,
-  ) {
+  async customerComparisonVariantRemove(args: MutationCustomerComparisonVariantRemoveArgs) {
     const preflight = this.mutationPreflight(args.input.idempotencyKey);
     if ("userErrors" in preflight) {
       return {
@@ -783,10 +734,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
         userErrors: preflight.userErrors,
       };
     }
-    const variantId = safeDecode(
-      args.input.variantId,
-      GlobalIdEntity.ProductVariant,
-    );
+    const variantId = safeDecode(args.input.variantId, GlobalIdEntity.ProductVariant);
     if (!variantId) {
       return {
         customer: null,
@@ -808,9 +756,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
   }
 
   @ZodResolver(CustomerComparisonCategoryClearInputSchema())
-  async customerComparisonCategoryClear(
-    args: MutationCustomerComparisonCategoryClearArgs,
-  ) {
+  async customerComparisonCategoryClear(args: MutationCustomerComparisonCategoryClearArgs) {
     const preflight = this.mutationPreflight(args.input.idempotencyKey);
     if ("userErrors" in preflight) {
       return {
@@ -819,10 +765,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
         userErrors: preflight.userErrors,
       };
     }
-    const categoryId = safeDecode(
-      args.input.categoryId,
-      GlobalIdEntity.Category,
-    );
+    const categoryId = safeDecode(args.input.categoryId, GlobalIdEntity.Category);
     if (!categoryId) {
       return {
         customer: null,
@@ -893,17 +836,11 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     const customerId = this.$ctx.customer?.id;
     if (!customerId) {
       return {
-        userErrors: [
-          userError("UNAUTHENTICATED", "Customer authentication is required"),
-        ],
+        userErrors: [userError("UNAUTHENTICATED", "Customer authentication is required")],
       };
     }
     const normalizedKey = idempotencyKey.trim();
-    if (
-      !normalizedKey ||
-      normalizedKey.length > 256 ||
-      !/^[\x21-\x7e]+$/.test(normalizedKey)
-    ) {
+    if (!normalizedKey || normalizedKey.length > 256 || !/^[\x21-\x7e]+$/.test(normalizedKey)) {
       return {
         userErrors: [
           userError(
@@ -971,22 +908,18 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     idempotencyKey: string,
     input: TInput,
     unavailableMessage: string,
-  ): Promise<
-    | { ok: true; value: TResult }
-    | { ok: false; userErrors: StorefrontUserError[] }
-  > {
+  ): Promise<{ ok: true; value: TResult } | { ok: false; userErrors: StorefrontUserError[] }> {
     const customerId = this.$ctx.customer!.id;
     try {
-      const value = await this.$ctx.kernel.getServices().broker.runWorkflow<
-        TResult,
-        TInput
-      >(`customers.${operation}`, input, {
-        source: "client",
-        clientKey: `${customerId}:${idempotencyKey}`,
-        organizationId: this.$ctx.store.organizationId,
-        apiKeyId: this.$ctx.storefrontAccess!.credentialId,
-        requestHash: semanticRequestHash(input),
-      });
+      const value = await this.$ctx.kernel
+        .getServices()
+        .broker.runWorkflow<TResult, TInput>(`customers.${operation}`, input, {
+          source: "client",
+          clientKey: `${customerId}:${idempotencyKey}`,
+          organizationId: this.$ctx.store.organizationId,
+          apiKeyId: this.$ctx.storefrontAccess!.credentialId,
+          requestHash: semanticRequestHash(input),
+        });
       return { ok: true, value };
     } catch (error) {
       if (isIdempotencyConflict(error)) {
@@ -1003,14 +936,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
       }
       return {
         ok: false,
-        userErrors: [
-          userError(
-            "WORKFLOW_UNAVAILABLE",
-            unavailableMessage,
-            undefined,
-            true,
-          ),
-        ],
+        userErrors: [userError("WORKFLOW_UNAVAILABLE", unavailableMessage, undefined, true)],
       };
     }
   }
@@ -1025,11 +951,7 @@ function semanticRequestHash<TInput>(input: TInput): string {
 }
 
 function isIdempotencyConflict(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    "code" in error &&
-    error.code === "IDEMPOTENCY_CONFLICT"
-  );
+  return error instanceof Error && "code" in error && error.code === "IDEMPOTENCY_CONFLICT";
 }
 
 function mapAddressInput(input: CustomerAddressInput) {

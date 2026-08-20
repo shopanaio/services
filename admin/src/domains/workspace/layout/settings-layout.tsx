@@ -33,11 +33,7 @@ export interface ISettingsLayoutProps {
 // Component
 // ============================================================================
 
-export const SettingsLayout = ({
-  children,
-  className,
-  name,
-}: ISettingsLayoutProps) => {
+export const SettingsLayout = ({ children, className, name }: ISettingsLayoutProps) => {
   const { styles, cx } = useStyles();
 
   return (

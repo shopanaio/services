@@ -29,36 +29,38 @@ export type ManagementAppListItem = Pick<
   | "capabilities"
   | "graphql"
 > & {
-  installation: Pick<
-    ApiAppInstallation,
-    | "id"
-    | "status"
-    | "installedVersion"
-    | "targetVersion"
-    | "healthStatus"
-    | "installedAt"
-    | "suspendedAt"
-    | "updatedAt"
-    | "lastError"
-  > & {
-    lifecycleOperations: {
-      totalCount: number;
-      edges: Array<{
-        node: Pick<
-          ApiAppLifecycleOperation,
-          | "id"
-          | "type"
-          | "status"
-          | "targetVersion"
-          | "actorType"
-          | "startedAt"
-          | "completedAt"
-          | "createdAt"
-          | "error"
-        >;
-      }>;
-    };
-  } | null;
+  installation:
+    | (Pick<
+        ApiAppInstallation,
+        | "id"
+        | "status"
+        | "installedVersion"
+        | "targetVersion"
+        | "healthStatus"
+        | "installedAt"
+        | "suspendedAt"
+        | "updatedAt"
+        | "lastError"
+      > & {
+        lifecycleOperations: {
+          totalCount: number;
+          edges: Array<{
+            node: Pick<
+              ApiAppLifecycleOperation,
+              | "id"
+              | "type"
+              | "status"
+              | "targetVersion"
+              | "actorType"
+              | "startedAt"
+              | "completedAt"
+              | "createdAt"
+              | "error"
+            >;
+          }>;
+        };
+      })
+    | null;
 };
 
 export interface AppsManagementQueryData {

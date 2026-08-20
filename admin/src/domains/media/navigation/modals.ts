@@ -1,9 +1,6 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
-import type {
-  NavigationLinkFormValues,
-  NavigationMenuItem,
-} from "./types";
+import type { NavigationLinkFormValues, NavigationMenuItem } from "./types";
 
 export const NAVIGATION_MENU_MODAL_TYPE = "navigation-menu";
 export const NAVIGATION_LINK_MODAL_TYPE = "navigation-link";
@@ -24,9 +21,5 @@ declare module "@/layouts/modals" {
   }
 }
 
-export const useNavigationMenuModal = createModalStackHook(
-  NAVIGATION_MENU_MODAL_TYPE,
-);
-export const useNavigationLinkModal = createModalStackHook(
-  NAVIGATION_LINK_MODAL_TYPE,
-);
+export const useNavigationMenuModal = createModalStackHook(NAVIGATION_MENU_MODAL_TYPE);
+export const useNavigationLinkModal = createModalStackHook(NAVIGATION_LINK_MODAL_TYPE);

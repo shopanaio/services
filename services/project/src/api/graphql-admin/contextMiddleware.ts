@@ -46,10 +46,7 @@ export function buildAdminContextMiddleware() {
     requireStore: false,
   });
 
-  return async function adminContextMiddleware(
-    request: FastifyRequest,
-    reply: FastifyReply
-  ) {
+  return async function adminContextMiddleware(request: FastifyRequest, reply: FastifyReply) {
     if (shouldSkipAuth(request)) return;
 
     await middleware(request, reply);

@@ -27,8 +27,8 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
       .where(
         and(
           eq(listingPostingVariantProjectionBlock.storeId, this.storeId),
-          eq(listingPostingVariantProjectionBlock.blockId, blockId)
-        )
+          eq(listingPostingVariantProjectionBlock.blockId, blockId),
+        ),
       )
       .limit(1);
 
@@ -36,9 +36,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
   }
 
   @ReadOnly()
-  async findByBlockId(
-    blockId: number
-  ): Promise<ListingPostingVariantProjectionBlock | null> {
+  async findByBlockId(blockId: number): Promise<ListingPostingVariantProjectionBlock | null> {
     this.assertBlockId(blockId);
     const rows = await this.connection
       .select()
@@ -46,8 +44,8 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
       .where(
         and(
           eq(listingPostingVariantProjectionBlock.storeId, this.storeId),
-          eq(listingPostingVariantProjectionBlock.blockId, blockId)
-        )
+          eq(listingPostingVariantProjectionBlock.blockId, blockId),
+        ),
       )
       .limit(1);
 
@@ -56,7 +54,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
 
   @ReadOnly()
   async getByBlockIds(
-    blockIds: readonly number[]
+    blockIds: readonly number[],
   ): Promise<ListingPostingVariantProjectionBlock[]> {
     if (blockIds.length === 0) {
       return [];
@@ -72,17 +70,15 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
       .where(
         and(
           eq(listingPostingVariantProjectionBlock.storeId, this.storeId),
-          inArray(listingPostingVariantProjectionBlock.blockId, [
-            ...new Set(blockIds),
-          ])
-        )
+          inArray(listingPostingVariantProjectionBlock.blockId, [...new Set(blockIds)]),
+        ),
       );
   }
 
   @ReadOnly()
   async getBlocksForVariantDocIds(
     variantDocIds: readonly number[],
-    blockSize = DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE
+    blockSize = DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE,
   ): Promise<ListingPostingVariantProjectionBlock[]> {
     const blockIds = this.getBlockIdsForVariantDocIds(variantDocIds, blockSize);
     return this.getByBlockIds(blockIds);
@@ -98,15 +94,13 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
     return rows[0]?.value ?? 0;
   }
 
-  async upsertBlock(
-    row: ProjectionBlockRowInput
-  ): Promise<ListingPostingVariantProjectionBlock> {
+  async upsertBlock(row: ProjectionBlockRowInput): Promise<ListingPostingVariantProjectionBlock> {
     const rows = await this.upsertBlocks([row]);
     return rows[0];
   }
 
   async upsertBlocks(
-    rows: readonly ProjectionBlockRowInput[]
+    rows: readonly ProjectionBlockRowInput[],
   ): Promise<ListingPostingVariantProjectionBlock[]> {
     if (rows.length === 0) {
       return [];
@@ -145,7 +139,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
 
   @Transactional()
   async replaceBlocks(
-    rows: readonly ProjectionBlockRowInput[]
+    rows: readonly ProjectionBlockRowInput[],
   ): Promise<ListingPostingVariantProjectionBlock[]> {
     await this.deleteAllForCurrentProject();
     return this.upsertBlocks(rows);
@@ -158,8 +152,8 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
       .where(
         and(
           eq(listingPostingVariantProjectionBlock.storeId, this.storeId),
-          eq(listingPostingVariantProjectionBlock.blockId, blockId)
-        )
+          eq(listingPostingVariantProjectionBlock.blockId, blockId),
+        ),
       )
       .returning({ blockId: listingPostingVariantProjectionBlock.blockId });
 
@@ -182,8 +176,8 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
         .where(
           and(
             eq(listingPostingVariantProjectionBlock.storeId, this.storeId),
-            inArray(listingPostingVariantProjectionBlock.blockId, chunk)
-          )
+            inArray(listingPostingVariantProjectionBlock.blockId, chunk),
+          ),
         )
         .returning({ blockId: listingPostingVariantProjectionBlock.blockId });
 
@@ -204,7 +198,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
 
   getBlockIdsForVariantDocIds(
     variantDocIds: readonly number[],
-    blockSize = DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE
+    blockSize = DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE,
   ): number[] {
     this.assertBlockSize(blockSize);
     if (variantDocIds.length === 0) {
@@ -222,7 +216,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
   @Transactional()
   async refreshBlocksForVariantDocIds(
     variantDocIds: readonly number[],
-    blockSize = DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE
+    blockSize = DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE,
   ): Promise<ListingPostingVariantProjectionBlock[]> {
     const blockIds = this.getBlockIdsForVariantDocIds(variantDocIds, blockSize);
     if (blockIds.length === 0) {
@@ -243,7 +237,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
   @Transactional()
   async refreshBlocksForProductDocIds(
     productDocIds: readonly number[],
-    blockSize = DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE
+    blockSize = DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE,
   ): Promise<ListingPostingVariantProjectionBlock[]> {
     if (productDocIds.length === 0) {
       return [];
@@ -259,19 +253,19 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
-          inArray(variantListingIndex.productDocId, [...new Set(productDocIds)])
-        )
+          inArray(variantListingIndex.productDocId, [...new Set(productDocIds)]),
+        ),
       );
 
     return this.refreshBlocksForVariantDocIds(
       rows.map((row) => row.variantDocId),
-      blockSize
+      blockSize,
     );
   }
 
   @Transactional()
   async rebuildProjectBlocks(
-    blockSize = DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE
+    blockSize = DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE,
   ): Promise<ListingPostingVariantProjectionBlock[]> {
     this.assertBlockSize(blockSize);
     await this.deleteAllForCurrentProject();
@@ -283,21 +277,20 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
 
     return this.refreshBlocksForVariantDocIds(
       rows.map((row) => row.variantDocId),
-      blockSize
+      blockSize,
     );
   }
 
   private async refreshBlock(
     blockId: number,
-    blockSize: number
+    blockSize: number,
   ): Promise<ListingPostingVariantProjectionBlock | null> {
     this.assertBlockId(blockId);
     this.assertBlockSize(blockSize);
     const variantDocFrom = blockId * blockSize + 1;
     const variantDocTo = variantDocFrom + blockSize;
 
-    const rows =
-      await this.connection.execute<ListingPostingVariantProjectionBlock>(sql`
+    const rows = await this.connection.execute<ListingPostingVariantProjectionBlock>(sql`
         WITH variants AS (
           SELECT
             variant_doc_id,
@@ -360,9 +353,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
     return row;
   }
 
-  private toInsertRow(
-    row: ProjectionBlockRowInput
-  ): NewListingPostingVariantProjectionBlock {
+  private toInsertRow(row: ProjectionBlockRowInput): NewListingPostingVariantProjectionBlock {
     this.validateProjectionRow(row);
     const variantBitmapSql = sql`${row.variantBitmap}::roaringbitmap`;
     const productBitmapSql = sql`${row.productBitmap}::roaringbitmap`;

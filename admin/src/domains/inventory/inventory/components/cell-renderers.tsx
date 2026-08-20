@@ -21,19 +21,13 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-export const ProductCellRenderer = (
-  props: CustomCellRendererProps<InventoryVariantRow>
-) => {
+export const ProductCellRenderer = (props: CustomCellRendererProps<InventoryVariantRow>) => {
   const { styles } = useStyles();
   const { data } = props;
   if (!data) return null;
 
   return (
-    <Flex
-      align="center"
-      gap="small"
-      data-testid={getInventoryVariantCellTestId(data, "product")}
-    >
+    <Flex align="center" gap="small" data-testid={getInventoryVariantCellTestId(data, "product")}>
       <TableCoverImage
         src={data.imageUrl}
         alt={data.productTitle}
@@ -62,9 +56,7 @@ export const ProductCellRenderer = (
   );
 };
 
-export const ReservedCellRenderer = (
-  props: CustomCellRendererProps<InventoryVariantRow>
-) => {
+export const ReservedCellRenderer = (props: CustomCellRendererProps<InventoryVariantRow>) => {
   const { data, value } = props;
   return (
     <ReservedCell
@@ -74,10 +66,10 @@ export const ReservedCellRenderer = (
   );
 };
 
-export const OnHandCellRenderer = (
-  props: CustomCellRendererProps<InventoryVariantRow>
-) => <EditableNumberCell {...props} field="onHand" />;
+export const OnHandCellRenderer = (props: CustomCellRendererProps<InventoryVariantRow>) => (
+  <EditableNumberCell {...props} field="onHand" />
+);
 
-export const UnavailableCellRenderer = (
-  props: CustomCellRendererProps<InventoryVariantRow>
-) => <EditableNumberCell {...props} field="unavailable" />;
+export const UnavailableCellRenderer = (props: CustomCellRendererProps<InventoryVariantRow>) => (
+  <EditableNumberCell {...props} field="unavailable" />
+);

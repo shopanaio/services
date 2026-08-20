@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useCallback } from "react";
-import { LuCircleCheckBig as CheckCircleFilled, LuCircleMinus as MinusCircleOutlined } from "react-icons/lu";
+import {
+  LuCircleCheckBig as CheckCircleFilled,
+  LuCircleMinus as MinusCircleOutlined,
+} from "react-icons/lu";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -106,7 +109,7 @@ export const PermissionMatrix = ({
         id: resource.name,
         resource,
         category,
-      }))
+      })),
     );
   }, [categories]);
 
@@ -114,7 +117,7 @@ export const PermissionMatrix = ({
     (resource: string): Action | null => {
       return permissions.find((p) => p.resource === resource)?.action ?? null;
     },
-    [permissions]
+    [permissions],
   );
 
   const handlePermissionChange = useCallback(
@@ -125,11 +128,11 @@ export const PermissionMatrix = ({
       const newAction = currentAction === action ? null : action;
 
       const newPermissions = permissions.map((p) =>
-        p.resource === resource ? { ...p, action: newAction } : p
+        p.resource === resource ? { ...p, action: newAction } : p,
       );
       onChange(newPermissions);
     },
-    [disabled, getPermissionForResource, permissions, onChange]
+    [disabled, getPermissionForResource, permissions, onChange],
   );
 
   const getLevelColor = useCallback(
@@ -143,7 +146,7 @@ export const PermissionMatrix = ({
           return theme.colorError;
       }
     },
-    [theme]
+    [theme],
   );
 
   const ResourceCellRenderer = useCallback(
@@ -151,16 +154,14 @@ export const PermissionMatrix = ({
       const { resource } = params.data!;
       return (
         <div className={styles.resourceCell}>
-          <div className={styles.resourceLabel}>
-            {resource.displayName ?? resource.name}
-          </div>
+          <div className={styles.resourceLabel}>{resource.displayName ?? resource.name}</div>
           <div className={styles.resourceDescription}>
             {resource.description ?? resource.displayName ?? resource.name}
           </div>
         </div>
       );
     },
-    [styles]
+    [styles],
   );
 
   const createLevelCellRenderer = useCallback(
@@ -176,7 +177,7 @@ export const PermissionMatrix = ({
             className={cx(
               styles.levelButton,
               isActive ? styles.levelButtonActive : styles.levelButtonInactive,
-              disabled && styles.levelButtonDisabled
+              disabled && styles.levelButtonDisabled,
             )}
             style={isActive ? { background: bgColor } : undefined}
             onClick={() => handlePermissionChange(resourceName, level.action)}
@@ -191,14 +192,7 @@ export const PermissionMatrix = ({
       };
       return LevelCellRenderer;
     },
-    [
-      cx,
-      disabled,
-      getLevelColor,
-      getPermissionForResource,
-      handlePermissionChange,
-      styles,
-    ]
+    [cx, disabled, getLevelColor, getPermissionForResource, handlePermissionChange, styles],
   );
 
   const columnDefs = useMemo((): ColDef<RowData>[] => {
@@ -228,7 +222,7 @@ export const PermissionMatrix = ({
       sortable: false,
       suppressMovable: true,
     }),
-    []
+    [],
   );
 
   return (

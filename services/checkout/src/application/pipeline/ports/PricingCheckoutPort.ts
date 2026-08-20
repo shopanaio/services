@@ -17,7 +17,5 @@ export interface PricingCheckoutPort {
   ): Promise<CalculatePreliminaryPricingResult>;
 
   // TODO(checkout-pipeline): implement final pricing after delivery selection.
-  finalizeQuote(
-    request: FinalizePricingQuoteRequest,
-  ): Promise<FinalizePricingQuoteResult>;
+  finalizeQuote(request: FinalizePricingQuoteRequest): Promise<FinalizePricingQuoteResult>;
 }

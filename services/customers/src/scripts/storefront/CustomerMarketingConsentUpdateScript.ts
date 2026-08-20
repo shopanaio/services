@@ -1,8 +1,5 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type {
-  Customer,
-  CustomerConsent,
-} from "../../repositories/models/index.js";
+import type { Customer, CustomerConsent } from "../../repositories/models/index.js";
 import {
   failedCustomerMutation,
   internalStorefrontError,
@@ -12,14 +9,8 @@ import {
   type StorefrontCustomerMutationResult,
 } from "./types.js";
 
-export type StorefrontMarketingConsentChannel =
-  | "EMAIL"
-  | "SMS"
-  | "WHATSAPP"
-  | "PUSH";
-export type StorefrontMarketingConsentTargetState =
-  | "SUBSCRIBED"
-  | "UNSUBSCRIBED";
+export type StorefrontMarketingConsentChannel = "EMAIL" | "SMS" | "WHATSAPP" | "PUSH";
+export type StorefrontMarketingConsentTargetState = "SUBSCRIBED" | "UNSUBSCRIBED";
 
 export interface StorefrontCustomerMarketingConsentUpdateParams {
   customerId: string;
@@ -30,8 +21,7 @@ export interface StorefrontCustomerMarketingConsentUpdateParams {
   requestId: string;
 }
 
-export interface StorefrontCustomerMarketingConsentUpdateResult
-  extends StorefrontCustomerMutationResult {
+export interface StorefrontCustomerMarketingConsentUpdateResult extends StorefrontCustomerMutationResult {
   marketingConsent: { id: string } | null;
 }
 
@@ -41,33 +31,26 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: StorefrontCustomerMarketingConsentUpdateParams
+    params: StorefrontCustomerMarketingConsentUpdateParams,
   ): Promise<StorefrontCustomerMarketingConsentUpdateResult> {
     const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
     if (revisionError) return failed(revisionError);
     if (!isChannel(params.channel)) {
-      return failed(
-        storefrontError("INVALID_CHANNEL", "Unknown marketing channel", ["channel"])
-      );
+      return failed(storefrontError("INVALID_CHANNEL", "Unknown marketing channel", ["channel"]));
     }
     if (!isTargetState(params.state)) {
-      return failed(
-        storefrontError("INVALID_STATE", "Unknown marketing consent state", ["state"])
-      );
+      return failed(storefrontError("INVALID_STATE", "Unknown marketing consent state", ["state"]));
     }
 
     const customer = await this.repository.customer.findById(params.customerId);
     if (!customer || customer.lifecycleStatus !== "ACTIVE") {
       return failed(
-        storefrontError(
-          "CUSTOMER_UNAVAILABLE",
-          "Customer is not available for storefront writes"
-        )
+        storefrontError("CUSTOMER_UNAVAILABLE", "Customer is not available for storefront writes"),
       );
     }
     const current = await this.repository.consent.findByCustomerAndChannel(
       params.customerId,
-      params.channel
+      params.channel,
     );
     const contactPoint = resolveContactPoint(customer, current, params.channel);
     if (!contactPoint) {
@@ -75,14 +58,14 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
         storefrontError(
           "CONTACT_POINT_UNAVAILABLE",
           "This marketing channel has no contact point",
-          ["channel"]
-        )
+          ["channel"],
+        ),
       );
     }
 
     const acquired = await this.repository.customer.acquireActiveRevision(
       params.customerId,
-      params.expectedRevision
+      params.expectedRevision,
     );
     if (acquired.status !== "acquired") {
       return failed(revisionAcquireError(acquired));
@@ -93,9 +76,7 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
       channel: params.channel,
       state: params.state,
       optInLevel:
-        params.state === "SUBSCRIBED"
-          ? "SINGLE_OPT_IN"
-          : current?.optInLevel ?? "UNKNOWN",
+        params.state === "SUBSCRIBED" ? "SINGLE_OPT_IN" : (current?.optInLevel ?? "UNKNOWN"),
       contactPoint,
       source: "storefront",
       actorType: "customer",
@@ -107,11 +88,7 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
         targetState: params.state,
       },
     });
-    await this.invalidateDynamicSegments(
-      params.customerId,
-      ["consent"],
-      "storefrontConsent",
-    );
+    await this.invalidateDynamicSegments(params.customerId, ["consent"], "storefrontConsent");
 
     return {
       marketingConsent: { id: result.consent.id },
@@ -124,9 +101,7 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
     };
   }
 
-  protected handleError(
-    _error: unknown
-  ): StorefrontCustomerMarketingConsentUpdateResult {
+  protected handleError(_error: unknown): StorefrontCustomerMarketingConsentUpdateResult {
     return failed(internalStorefrontError());
   }
 }
@@ -134,7 +109,7 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
 function resolveContactPoint(
   customer: Customer,
   current: CustomerConsent | null,
-  channel: StorefrontMarketingConsentChannel
+  channel: StorefrontMarketingConsentChannel,
 ): string | null {
   switch (channel) {
     case "EMAIL":
@@ -151,9 +126,7 @@ function isChannel(value: string): value is StorefrontMarketingConsentChannel {
   return ["EMAIL", "SMS", "WHATSAPP", "PUSH"].includes(value);
 }
 
-function isTargetState(
-  value: string
-): value is StorefrontMarketingConsentTargetState {
+function isTargetState(value: string): value is StorefrontMarketingConsentTargetState {
   return ["SUBSCRIBED", "UNSUBSCRIBED"].includes(value);
 }
 

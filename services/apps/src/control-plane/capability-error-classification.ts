@@ -1,7 +1,5 @@
 import { AuthorizationError } from "@shopana/shared-kernel";
-import {
-  AppOutboundAuthorizationError,
-} from "../runtime/AppOutboundAuthorizationError.js";
+import { AppOutboundAuthorizationError } from "../runtime/AppOutboundAuthorizationError.js";
 import { AppRuntimeInvocationError } from "../runtime/AppRuntimeInvocationError.js";
 
 export type CapabilityErrorClassification =
@@ -30,9 +28,7 @@ export interface CapabilityErrorDescriptor {
 
 export class CommerceFunctionOutputError extends Error {
   constructor(
-    readonly code:
-      | "FUNCTION_OUTPUT_JSON_VALUE_REQUIRED"
-      | "FUNCTION_OUTPUT_SIZE_LIMIT",
+    readonly code: "FUNCTION_OUTPUT_JSON_VALUE_REQUIRED" | "FUNCTION_OUTPUT_SIZE_LIMIT",
     cause?: unknown,
   ) {
     super("Commerce Function output failed platform validation", {
@@ -80,9 +76,7 @@ export class CapabilityInvocationError extends Error {
   }
 }
 
-export function capabilityErrorDescriptor(
-  error: unknown,
-): CapabilityErrorDescriptor {
+export function capabilityErrorDescriptor(error: unknown): CapabilityErrorDescriptor {
   if (error instanceof CommerceFunctionOutputError) {
     return error.code === "FUNCTION_OUTPUT_SIZE_LIMIT"
       ? {
@@ -124,21 +118,12 @@ export function capabilityErrorDescriptor(
   };
 }
 
-function hasAuthorizationError(
-  error: unknown,
-  depth = 0,
-): boolean {
+function hasAuthorizationError(error: unknown, depth = 0): boolean {
   if (depth > 8 || !error || typeof error !== "object") {
     return false;
   }
-  if (
-    error instanceof AuthorizationError ||
-    error instanceof AppOutboundAuthorizationError
-  ) {
+  if (error instanceof AuthorizationError || error instanceof AppOutboundAuthorizationError) {
     return true;
   }
-  return hasAuthorizationError(
-    (error as { cause?: unknown }).cause,
-    depth + 1,
-  );
+  return hasAuthorizationError((error as { cause?: unknown }).cause, depth + 1);
 }

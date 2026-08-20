@@ -1,7 +1,7 @@
-import { createStyles } from 'antd-style';
+import { createStyles } from "antd-style";
 import { LuSearch as SearchOutlined, LuSettings as SettingOutlined } from "react-icons/lu";
-import { Button, Dropdown, Flex, Input, Radio, Space, Typography } from 'antd';
-import { useState } from 'react';
+import { Button, Dropdown, Flex, Input, Radio, Space, Typography } from "antd";
+import { useState } from "react";
 
 const useStyles = createStyles({
   input: {
@@ -29,7 +29,7 @@ export const Search = ({
   property,
   onChangeProperty,
   onChangeSearchValue,
-  placeholder = 'Search...',
+  placeholder = "Search...",
 }: ISearchProps) => {
   const { styles } = useStyles();
   const [open, setOpen] = useState(false);
@@ -42,7 +42,7 @@ export const Search = ({
       </Flex>
     ),
     key: itemValue,
-    'data-testid': `menu-item-${itemValue}`,
+    "data-testid": `menu-item-${itemValue}`,
     onClick: () => onChangeProperty?.(itemValue),
   }));
 
@@ -61,14 +61,11 @@ export const Search = ({
           disabled={!options.length}
           open={open}
           onOpenChange={setOpen}
-          trigger={['click']}
-          menu={{ items, className: 'search-dropdown-menu' }}
+          trigger={["click"]}
+          menu={{ items, className: "search-dropdown-menu" }}
           placement="bottomRight"
         >
-          <Button
-            icon={<SettingOutlined />}
-            data-testid="search-dropdown-button"
-          />
+          <Button icon={<SettingOutlined />} data-testid="search-dropdown-button" />
         </Dropdown>
       )}
     </Space.Compact>

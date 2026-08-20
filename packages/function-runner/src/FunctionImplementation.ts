@@ -35,12 +35,8 @@ export interface FunctionExecutionSkipped {
 }
 
 export type FunctionExecutionOutcome =
-  | FunctionExecutionSuccess
-  | FunctionExecutionFailure
-  | FunctionExecutionSkipped;
+  FunctionExecutionSuccess | FunctionExecutionFailure | FunctionExecutionSkipped;
 
 export interface FunctionImplementationExecutor {
-  execute<TInput>(
-    context: FunctionExecutionContext<TInput>,
-  ): Promise<FunctionExecutionOutcome>;
+  execute<TInput>(context: FunctionExecutionContext<TInput>): Promise<FunctionExecutionOutcome>;
 }

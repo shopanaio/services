@@ -5,11 +5,7 @@ import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AgGridReact } from "ag-grid-react";
 import type { CustomCellRendererProps } from "ag-grid-react";
-import {
-  AllCommunityModule,
-  type ColDef,
-  ModuleRegistry,
-} from "ag-grid-community";
+import { AllCommunityModule, type ColDef, ModuleRegistry } from "ag-grid-community";
 import {
   Alert,
   App,
@@ -23,14 +19,14 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { LuArrowDown as ArrowDownOutlined, LuArrowUp as ArrowUpOutlined, LuTrash2 as DeleteOutlined, LuPlus as PlusOutlined } from "react-icons/lu";
-import { createStyles } from "antd-style";
 import {
-  ModalHeader,
-  ModalLayout,
-  useModalStack,
-  useModalStackContext,
-} from "@/layouts/modals";
+  LuArrowDown as ArrowDownOutlined,
+  LuArrowUp as ArrowUpOutlined,
+  LuTrash2 as DeleteOutlined,
+  LuPlus as PlusOutlined,
+} from "react-icons/lu";
+import { createStyles } from "antd-style";
+import { ModalHeader, ModalLayout, useModalStack, useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useAgGridTheme } from "@/hooks";
 import { useStore } from "@/domains/workspace";
@@ -45,21 +41,14 @@ import {
   useProductBoost,
   useUpdateProductBoost,
 } from "../hooks";
-import {
-  buildProductBoostCreateInput,
-  buildProductBoostUpdateInput,
-} from "../mappers";
-import {
-  productBoostFormSchema,
-  type ProductBoostFormValues,
-} from "./schema";
+import { buildProductBoostCreateInput, buildProductBoostUpdateInput } from "../mappers";
+import { productBoostFormSchema, type ProductBoostFormValues } from "./schema";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-type SelectedProduct = Omit<
-  ProductBoostFormValues["products"][number],
-  "media"
-> & { media?: ApiProduct["media"] };
+type SelectedProduct = Omit<ProductBoostFormValues["products"][number], "media"> & {
+  media?: ApiProduct["media"];
+};
 
 const useStyles = createStyles(({ token }) => ({
   fields: {
@@ -92,8 +81,8 @@ const defaultValues: ProductBoostFormValues = {
 function getProductImage(product: SelectedProduct): string | null {
   if (product.image !== undefined) return product.image ?? null;
   return (
-    [...(product.media ?? [])]
-      .sort((left, right) => left.sortIndex - right.sortIndex)[0]?.file.url ?? null
+    [...(product.media ?? [])].sort((left, right) => left.sortIndex - right.sortIndex)[0]?.file
+      .url ?? null
   );
 }
 
@@ -112,13 +101,23 @@ function ProductCell({
     <Flex align="center" gap={8} style={{ minWidth: 0 }}>
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt="" width={32} height={32} style={{ objectFit: "cover", borderRadius: 4 }} />
+        <img
+          src={image}
+          alt=""
+          width={32}
+          height={32}
+          style={{ objectFit: "cover", borderRadius: 4 }}
+        />
       ) : null}
       <Flex vertical style={{ minWidth: 0 }}>
         <Typography.Text ellipsis={{ tooltip: data.title ?? data.id }}>
           {data.title || `Unavailable product · ${data.id}`}
         </Typography.Text>
-        {error ? <Typography.Text type="danger" style={{ fontSize: 10 }}>{error}</Typography.Text> : null}
+        {error ? (
+          <Typography.Text type="danger" style={{ fontSize: 10 }}>
+            {error}
+          </Typography.Text>
+        ) : null}
       </Flex>
     </Flex>
   );
@@ -181,9 +180,8 @@ export function ProductBoostModal() {
   const loadError = isEdit ? detailQuery.error : contextQuery.error;
   const hasProductDataMismatch = Boolean(
     isEdit &&
-      detailQuery.productBoost &&
-      detailQuery.productBoost.productsCount !==
-        detailQuery.productBoost.products.length,
+    detailQuery.productBoost &&
+    detailQuery.productBoost.productsCount !== detailQuery.productBoost.products.length,
   );
 
   const localeOptions = useMemo(
@@ -313,11 +311,12 @@ export function ProductBoostModal() {
       setGlobalErrors([]);
       setVersionConflict(false);
       const current = detailQuery.productBoost;
-      const result = isEdit && current
-        ? await updateProductBoost(
-          buildProductBoostUpdateInput(values, current.id, current.version),
-        )
-        : await createProductBoost(buildProductBoostCreateInput(values));
+      const result =
+        isEdit && current
+          ? await updateProductBoost(
+              buildProductBoostUpdateInput(values, current.id, current.version),
+            )
+          : await createProductBoost(buildProductBoostCreateInput(values));
 
       if (!result.productBoost || result.userErrors.length > 0) {
         if (hasVersionConflict(result.userErrors)) setVersionConflict(true);
@@ -382,7 +381,15 @@ export function ProductBoostModal() {
     setDirty(false);
     message.success("Product boost deleted");
     forcePop();
-  }, [deleteProductBoost, detailQuery.productBoost, forcePop, message, modal, setDirty, typedPayload]);
+  }, [
+    deleteProductBoost,
+    detailQuery.productBoost,
+    forcePop,
+    message,
+    modal,
+    setDirty,
+    typedPayload,
+  ]);
 
   const title = isEdit ? "Edit product boost" : "New product boost";
   const submitLabel = isEdit ? "Save" : "Create";
@@ -399,7 +406,13 @@ export function ProductBoostModal() {
     return (
       <ModalLayout
         name="product-boost"
-        header={<ModalHeader title={title} onClose={pop} submitButtonProps={{ disabled: true, children: submitLabel }} />}
+        header={
+          <ModalHeader
+            title={title}
+            onClose={pop}
+            submitButtonProps={{ disabled: true, children: submitLabel }}
+          />
+        }
       >
         <Skeleton active paragraph={{ rows: 12 }} />
       </ModalLayout>
@@ -408,8 +421,16 @@ export function ProductBoostModal() {
 
   if (isEdit && !detailQuery.productBoost) {
     return (
-      <ModalLayout name="product-boost" headerProps={{ title, onClose: pop, submitButtonProps: null }}>
-        <Alert type="error" showIcon message="Product boost not found" action={<Button onClick={pop}>Close</Button>} />
+      <ModalLayout
+        name="product-boost"
+        headerProps={{ title, onClose: pop, submitButtonProps: null }}
+      >
+        <Alert
+          type="error"
+          showIcon
+          message="Product boost not found"
+          action={<Button onClick={pop}>Close</Button>}
+        />
       </ModalLayout>
     );
   }
@@ -428,12 +449,32 @@ export function ProductBoostModal() {
             disabled: submitDisabled,
             onClick: handleSubmit(onSubmit),
           }}
-          extra={isEdit ? <Button danger size="small" loading={deleting} data-testid="product-boost-delete-button" onClick={handleDelete}>Delete</Button> : null}
+          extra={
+            isEdit ? (
+              <Button
+                danger
+                size="small"
+                loading={deleting}
+                data-testid="product-boost-delete-button"
+                onClick={handleDelete}
+              >
+                Delete
+              </Button>
+            ) : null
+          }
         />
       }
     >
       {loadError ? <Alert role="alert" type="error" showIcon message={loadError.message} /> : null}
-      {globalErrors.length ? <Alert role="alert" type="error" showIcon message="Could not save product boost" description={globalErrors.join(" ")} /> : null}
+      {globalErrors.length ? (
+        <Alert
+          role="alert"
+          type="error"
+          showIcon
+          message="Could not save product boost"
+          description={globalErrors.join(" ")}
+        />
+      ) : null}
       {versionConflict ? (
         <Alert
           role="alert"
@@ -449,37 +490,104 @@ export function ProductBoostModal() {
           type="warning"
           showIcon
           message="Search settings must be configured before boosts or synonyms can be created."
-          action={<Button onClick={() => window.location.assign(window.location.pathname.replace(/\/search\/product-boosts$/, "/search/settings"))}>Open search settings</Button>}
+          action={
+            <Button
+              onClick={() =>
+                window.location.assign(
+                  window.location.pathname.replace(/\/search\/product-boosts$/, "/search/settings"),
+                )
+              }
+            >
+              Open search settings
+            </Button>
+          }
         />
       ) : null}
       {hasProductDataMismatch ? (
-        <Alert role="alert" type="warning" showIcon message="Some boosted products are unavailable. Saving is disabled to prevent accidental removal." />
+        <Alert
+          role="alert"
+          type="warning"
+          showIcon
+          message="Some boosted products are unavailable. Saving is disabled to prevent accidental removal."
+        />
       ) : null}
 
       <Paper>
         <PaperHeader title="General" />
         <div className={styles.fields}>
           <div>
-            <label className={styles.label} htmlFor="product-boost-name">Name *</label>
-            <Controller name="name" control={control} render={({ field }) => <Input {...field} id="product-boost-name" maxLength={128} showCount status={errors.name ? "error" : undefined} aria-describedby={errors.name ? "product-boost-name-error" : undefined} />} />
-            {errors.name ? <div id="product-boost-name-error" className={styles.error}>{errors.name.message}</div> : null}
+            <label className={styles.label} htmlFor="product-boost-name">
+              Name *
+            </label>
+            <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="product-boost-name"
+                  maxLength={128}
+                  showCount
+                  status={errors.name ? "error" : undefined}
+                  aria-describedby={errors.name ? "product-boost-name-error" : undefined}
+                />
+              )}
+            />
+            {errors.name ? (
+              <div id="product-boost-name-error" className={styles.error}>
+                {errors.name.message}
+              </div>
+            ) : null}
           </div>
           <div>
-            <label className={styles.label} htmlFor="product-boost-locale">Locale *</label>
-            <Controller name="locale" control={control} render={({ field }) => <Select {...field} id="product-boost-locale" showSearch optionFilterProp="label" options={localeOptions} style={{ width: "100%" }} status={errors.locale ? "error" : undefined} />} />
+            <label className={styles.label} htmlFor="product-boost-locale">
+              Locale *
+            </label>
+            <Controller
+              name="locale"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  id="product-boost-locale"
+                  showSearch
+                  optionFilterProp="label"
+                  options={localeOptions}
+                  style={{ width: "100%" }}
+                  status={errors.locale ? "error" : undefined}
+                />
+              )}
+            />
             {errors.locale ? <div className={styles.error}>{errors.locale.message}</div> : null}
           </div>
         </div>
         <Flex align="center" gap={10} style={{ marginTop: 16 }}>
-          <Controller name="enabled" control={control} render={({ field }) => <Switch checked={field.value} onChange={field.onChange} aria-label="Enabled" />} />
-          <div><Typography.Text strong>Enabled</Typography.Text><br /><Typography.Text type="secondary">Apply this boost in storefront search</Typography.Text></div>
+          <Controller
+            name="enabled"
+            control={control}
+            render={({ field }) => (
+              <Switch checked={field.value} onChange={field.onChange} aria-label="Enabled" />
+            )}
+          />
+          <div>
+            <Typography.Text strong>Enabled</Typography.Text>
+            <br />
+            <Typography.Text type="secondary">
+              Apply this boost in storefront search
+            </Typography.Text>
+          </div>
         </Flex>
         {errors.enabled ? <div className={styles.error}>{errors.enabled.message}</div> : null}
       </Paper>
 
       <Paper>
-        <PaperHeader title="Trigger phrases" actions={<Typography.Text type="secondary">{phrases.fields.length} / 20</Typography.Text>} />
-        <Typography.Paragraph className={styles.sectionHelp}>Search queries that activate this boost.</Typography.Paragraph>
+        <PaperHeader
+          title="Trigger phrases"
+          actions={<Typography.Text type="secondary">{phrases.fields.length} / 20</Typography.Text>}
+        />
+        <Typography.Paragraph className={styles.sectionHelp}>
+          Search queries that activate this boost.
+        </Typography.Paragraph>
         <Flex vertical gap={8}>
           {phrases.fields.map((field, index) => (
             <div className={styles.phraseRow} key={field.id}>
@@ -491,35 +599,94 @@ export function ProductBoostModal() {
                   render={({ field: inputField }) => (
                     <Input
                       {...inputField}
-                      ref={(element) => { inputField.ref(element); phraseInputRefs.current[index] = element?.input ?? null; }}
+                      ref={(element) => {
+                        inputField.ref(element);
+                        phraseInputRefs.current[index] = element?.input ?? null;
+                      }}
                       aria-label={`Trigger phrase ${index + 1}`}
                       status={errors.phrases?.[index]?.value ? "error" : undefined}
                       onKeyDown={(event) => {
-                        if (event.key === "Enter" && index === phrases.fields.length - 1 && inputField.value.trim()) { event.preventDefault(); appendPhrase(); }
-                        if (event.key === "Backspace" && !inputField.value && phrases.fields.length > 1) { event.preventDefault(); phrases.remove(index); }
+                        if (
+                          event.key === "Enter" &&
+                          index === phrases.fields.length - 1 &&
+                          inputField.value.trim()
+                        ) {
+                          event.preventDefault();
+                          appendPhrase();
+                        }
+                        if (
+                          event.key === "Backspace" &&
+                          !inputField.value &&
+                          phrases.fields.length > 1
+                        ) {
+                          event.preventDefault();
+                          phrases.remove(index);
+                        }
                       }}
                     />
                   )}
                 />
-                {errors.phrases?.[index]?.value ? <div className={styles.error}>{errors.phrases[index]?.value?.message}</div> : null}
+                {errors.phrases?.[index]?.value ? (
+                  <div className={styles.error}>{errors.phrases[index]?.value?.message}</div>
+                ) : null}
               </div>
               <Flex>
-                <Button type="text" size="small" icon={<ArrowUpOutlined />} aria-label={`Move trigger phrase ${index + 1} up`} disabled={index === 0} onClick={() => phrases.move(index, index - 1)} />
-                <Button type="text" size="small" icon={<ArrowDownOutlined />} aria-label={`Move trigger phrase ${index + 1} down`} disabled={index === phrases.fields.length - 1} onClick={() => phrases.move(index, index + 1)} />
-                <Button type="text" danger size="small" icon={<DeleteOutlined />} aria-label={`Remove trigger phrase ${index + 1}`} disabled={phrases.fields.length === 1} onClick={() => phrases.remove(index)} />
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<ArrowUpOutlined />}
+                  aria-label={`Move trigger phrase ${index + 1} up`}
+                  disabled={index === 0}
+                  onClick={() => phrases.move(index, index - 1)}
+                />
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<ArrowDownOutlined />}
+                  aria-label={`Move trigger phrase ${index + 1} down`}
+                  disabled={index === phrases.fields.length - 1}
+                  onClick={() => phrases.move(index, index + 1)}
+                />
+                <Button
+                  type="text"
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  aria-label={`Remove trigger phrase ${index + 1}`}
+                  disabled={phrases.fields.length === 1}
+                  onClick={() => phrases.remove(index)}
+                />
               </Flex>
             </div>
           ))}
         </Flex>
-        <Button type="link" icon={<PlusOutlined />} onClick={appendPhrase} disabled={phrases.fields.length >= 20}>Add phrase</Button>
-        {typeof errors.phrases?.message === "string" ? <div className={styles.error}>{errors.phrases.message}</div> : null}
+        <Button
+          type="link"
+          icon={<PlusOutlined />}
+          onClick={appendPhrase}
+          disabled={phrases.fields.length >= 20}
+        >
+          Add phrase
+        </Button>
+        {typeof errors.phrases?.message === "string" ? (
+          <div className={styles.error}>{errors.phrases.message}</div>
+        ) : null}
       </Paper>
 
       <Paper>
-        <PaperHeader title="Boosted products" actions={<Typography.Text type="secondary">{products.length} / 50</Typography.Text>} />
-        <Typography.Paragraph className={styles.sectionHelp}>Products shown higher for matching queries.</Typography.Paragraph>
+        <PaperHeader
+          title="Boosted products"
+          actions={<Typography.Text type="secondary">{products.length} / 50</Typography.Text>}
+        />
+        <Typography.Paragraph className={styles.sectionHelp}>
+          Products shown higher for matching queries.
+        </Typography.Paragraph>
         {products.length ? (
-          <div className={styles.grid} style={{ height: Math.min(280, 40 + products.length * 48) }} data-testid="product-boost-selected-products-grid">
+          <div
+            className={styles.grid}
+            style={{ height: Math.min(280, 40 + products.length * 48) }}
+            data-testid="product-boost-selected-products-grid"
+          >
             <AgGridReact<SelectedProduct>
               theme={agGridTheme}
               rowData={products}
@@ -532,9 +699,15 @@ export function ProductBoostModal() {
               defaultColDef={{ resizable: false }}
             />
           </div>
-        ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No products selected" />}
-        <Button type="link" icon={<PlusOutlined />} onClick={openProductPicker}>Select products</Button>
-        {typeof errors.products?.message === "string" ? <div className={styles.error}>{errors.products.message}</div> : null}
+        ) : (
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No products selected" />
+        )}
+        <Button type="link" icon={<PlusOutlined />} onClick={openProductPicker}>
+          Select products
+        </Button>
+        {typeof errors.products?.message === "string" ? (
+          <div className={styles.error}>{errors.products.message}</div>
+        ) : null}
       </Paper>
     </ModalLayout>
   );

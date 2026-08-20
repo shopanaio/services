@@ -66,10 +66,10 @@ export class CatalogBrokerActions extends BrokerActions {
   }
 
   private async getStoreContext(storeId: string): Promise<ContextStore | null> {
-    const result = await this.broker.call<
-      GetStoreByIdResult,
-      { id: string }
-    >("project.getStoreById", { id: storeId });
+    const result = await this.broker.call<GetStoreByIdResult, { id: string }>(
+      "project.getStoreById",
+      { id: storeId },
+    );
 
     return result.store;
   }
@@ -88,7 +88,7 @@ export class CatalogBrokerActions extends BrokerActions {
   }
 
   private validateQueryInput(
-    params: Catalog.CatalogQueryParams
+    params: Catalog.CatalogQueryParams,
   ): Catalog.CatalogQueryResult | null {
     if (!params.storeId?.trim()) {
       return {
@@ -111,8 +111,7 @@ export class CatalogBrokerActions extends BrokerActions {
 
     const hasFields = Boolean(productsSelection.fields?.length);
     const hasPopulate = Boolean(
-      productsSelection.populate &&
-        Object.keys(productsSelection.populate).length > 0
+      productsSelection.populate && Object.keys(productsSelection.populate).length > 0,
     );
 
     if (!hasFields && !hasPopulate) {
@@ -128,9 +127,7 @@ export class CatalogBrokerActions extends BrokerActions {
   }
 
   @Action("query")
-  async query(
-    params: Catalog.CatalogQueryParams
-  ): Promise<Catalog.CatalogQueryResult> {
+  async query(params: Catalog.CatalogQueryParams): Promise<Catalog.CatalogQueryResult> {
     const validationError = this.validateQueryInput(params);
     if (validationError) return validationError;
 
@@ -151,11 +148,7 @@ export class CatalogBrokerActions extends BrokerActions {
         const root = await ServiceQueryResolver.load<
           typeof ServiceQueryResolver,
           Catalog.CatalogQueryData
-        >(
-          {},
-          params.selection as unknown as QueryArgs,
-          ctx
-        );
+        >({}, params.selection as unknown as QueryArgs, ctx);
 
         return {
           ok: true,
@@ -166,10 +159,7 @@ export class CatalogBrokerActions extends BrokerActions {
       return {
         ok: false,
         code: "CATALOG_PRODUCT_READ_QUERY_FAILED",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Failed to resolve product snapshots",
+        message: error instanceof Error ? error.message : "Failed to resolve product snapshots",
         retryable: true,
       };
     }
@@ -180,10 +170,7 @@ export class CatalogBrokerActions extends BrokerActions {
     params: Catalog.ResolveCustomerComparisonVariantsParams,
     callContext: BrokerCallContext,
   ): Promise<Catalog.ResolveCustomerComparisonVariantsResult> {
-    if (
-      callContext.caller.kind !== "action" ||
-      callContext.caller.service !== "customers"
-    ) {
+    if (callContext.caller.kind !== "action" || callContext.caller.service !== "customers") {
       return {
         ok: false,
         code: "CATALOG_COMPARISON_CALLER_FORBIDDEN",
@@ -220,10 +207,7 @@ export class CatalogBrokerActions extends BrokerActions {
             params.variantIds,
           );
         const variants = params.categoryId
-          ? candidates.filter(
-              (candidate) =>
-                candidate.primaryCategoryId === params.categoryId,
-            )
+          ? candidates.filter((candidate) => candidate.primaryCategoryId === params.categoryId)
           : candidates;
         return { ok: true as const, variants };
       });
@@ -243,7 +227,12 @@ export class CatalogBrokerActions extends BrokerActions {
     callContext: BrokerCallContext,
   ): Promise<Catalog.ValidateLoyaltyCatalogReferencesResult> {
     if (callContext.caller.kind !== "action" || callContext.caller.service !== "loyalty") {
-      return { ok: false, code: "CATALOG_LOYALTY_REFERENCE_VALIDATION_FAILED", message: "Only Loyalty may validate loyalty catalog references", retryable: false };
+      return {
+        ok: false,
+        code: "CATALOG_LOYALTY_REFERENCE_VALIDATION_FAILED",
+        message: "Only Loyalty may validate loyalty catalog references",
+        retryable: false,
+      };
     }
     try {
       const store = await this.getStoreContext(params.storeId);
@@ -253,19 +242,42 @@ export class CatalogBrokerActions extends BrokerActions {
         for (const reference of params.references) {
           const ids = [...new Set(reference.ids)];
           const present = new Set<string>();
-          if (reference.type === "PRODUCT") for (const id of ids) { if (await this.kernel.repository.product.exists(id)) present.add(id); }
-          else if (reference.type === "VARIANT") for (const id of ids) { if (await this.kernel.repository.variant.exists(id)) present.add(id); }
-          else if (reference.type === "CATEGORY") for (const id of ids) { if (await this.kernel.repository.category.exists(id)) present.add(id); }
-          else if (reference.type === "TAG") for (const id of ids) { if (await this.kernel.repository.tag.exists(id)) present.add(id); }
-          else if (reference.type === "FEATURE") for (const id of ids) { if (await this.kernel.repository.feature.findById(id)) present.add(id); }
-          else for (const row of await this.kernel.repository.option.getValuesByIds(ids)) present.add(row.id);
+          if (reference.type === "PRODUCT")
+            for (const id of ids) {
+              if (await this.kernel.repository.product.exists(id)) present.add(id);
+            }
+          else if (reference.type === "VARIANT")
+            for (const id of ids) {
+              if (await this.kernel.repository.variant.exists(id)) present.add(id);
+            }
+          else if (reference.type === "CATEGORY")
+            for (const id of ids) {
+              if (await this.kernel.repository.category.exists(id)) present.add(id);
+            }
+          else if (reference.type === "TAG")
+            for (const id of ids) {
+              if (await this.kernel.repository.tag.exists(id)) present.add(id);
+            }
+          else if (reference.type === "FEATURE")
+            for (const id of ids) {
+              if (await this.kernel.repository.feature.findById(id)) present.add(id);
+            }
+          else
+            for (const row of await this.kernel.repository.option.getValuesByIds(ids))
+              present.add(row.id);
           const missingIds = ids.filter((id) => !present.has(id));
           if (missingIds.length > 0) missing.push({ type: reference.type, ids: missingIds });
         }
         return { ok: true as const, missing };
       });
     } catch (error) {
-      return { ok: false, code: "CATALOG_LOYALTY_REFERENCE_VALIDATION_FAILED", message: error instanceof Error ? error.message : "Catalog loyalty reference validation failed", retryable: true };
+      return {
+        ok: false,
+        code: "CATALOG_LOYALTY_REFERENCE_VALIDATION_FAILED",
+        message:
+          error instanceof Error ? error.message : "Catalog loyalty reference validation failed",
+        retryable: true,
+      };
     }
   }
 
@@ -273,7 +285,7 @@ export class CatalogBrokerActions extends BrokerActions {
   @Action(CatalogCheckoutActionNames.resolveMerchandise)
   @ZodSchema(resolveCheckoutMerchandiseParamsSchema)
   async resolveCheckoutMerchandise(
-    params: Catalog.ResolveCheckoutMerchandiseParams
+    params: Catalog.ResolveCheckoutMerchandiseParams,
   ): Promise<Catalog.ResolveCheckoutMerchandiseResult> {
     try {
       let store: ContextStore | null;
@@ -285,19 +297,26 @@ export class CatalogBrokerActions extends BrokerActions {
           cause,
         );
       }
-      if (!store) return { ok: false, code: "CATALOG_STORE_NOT_FOUND", message: `Store with id "${params.storeId}" not found`, retryable: false };
+      if (!store)
+        return {
+          ok: false,
+          code: "CATALOG_STORE_NOT_FOUND",
+          message: `Store with id "${params.storeId}" not found`,
+          retryable: false,
+        };
       const ctx = this.createServiceContext(store);
-      return await runWithContext(ctx, () => new CheckoutMerchandiseService(new CheckoutMerchandiseRepository(this.kernel.db)).resolve(params, store));
+      return await runWithContext(ctx, () =>
+        new CheckoutMerchandiseService(new CheckoutMerchandiseRepository(this.kernel.db)).resolve(
+          params,
+          store,
+        ),
+      );
     } catch (error) {
       this.logger.error(
         {
           error,
-          errorCode:
-            error instanceof CheckoutMerchandiseError ? error.code : "UNKNOWN",
-          retryable:
-            error instanceof CheckoutMerchandiseError
-              ? error.retryable
-              : false,
+          errorCode: error instanceof CheckoutMerchandiseError ? error.code : "UNKNOWN",
+          retryable: error instanceof CheckoutMerchandiseError ? error.retryable : false,
           storeId: params.storeId,
         },
         "Checkout merchandise resolution failed",
@@ -313,20 +332,36 @@ export class CatalogBrokerActions extends BrokerActions {
   ): Promise<Catalog.ResolveCheckoutDeliveryFactsResult> {
     try {
       const store = await this.getStoreContext(params.storeId);
-      if (!store) return { ok: false, code: "CATALOG_STORE_NOT_FOUND", message: `Store with id "${params.storeId}" not found`, retryable: false };
-      return await runWithContext(this.createServiceContext(store), () => new CheckoutDeliveryFactsService(this.kernel.db).resolve(params));
+      if (!store)
+        return {
+          ok: false,
+          code: "CATALOG_STORE_NOT_FOUND",
+          message: `Store with id "${params.storeId}" not found`,
+          retryable: false,
+        };
+      return await runWithContext(this.createServiceContext(store), () =>
+        new CheckoutDeliveryFactsService(this.kernel.db).resolve(params),
+      );
     } catch (error) {
-      this.logger.error({ err: error, storeId: params.storeId }, "Catalog checkout delivery facts failed");
-      return { ok: false, code: "CHECKOUT_DELIVERY_FACTS_RESOLUTION_FAILED", message: "Catalog delivery facts could not be resolved.", retryable: true };
+      this.logger.error(
+        { err: error, storeId: params.storeId },
+        "Catalog checkout delivery facts failed",
+      );
+      return {
+        ok: false,
+        code: "CHECKOUT_DELIVERY_FACTS_RESOLUTION_FAILED",
+        message: "Catalog delivery facts could not be resolved.",
+        retryable: true,
+      };
     }
   }
 
   @Action("findListingFacetAffectedProducts")
   async findListingFacetAffectedProducts(
-    params: Catalog.FindListingFacetAffectedProductsParams
+    params: Catalog.FindListingFacetAffectedProductsParams,
   ): Promise<Catalog.FindListingFacetAffectedProductsResult> {
     return this.kernel.repository.listingFacetAffectedProduct.findListingFacetAffectedProducts(
-      params
+      params,
     );
   }
 
@@ -335,10 +370,7 @@ export class CatalogBrokerActions extends BrokerActions {
     params: GetCollectionListingSnapshotParams,
     callContext: BrokerCallContext,
   ): Promise<GetCollectionListingSnapshotResult> {
-    if (
-      callContext.caller.kind !== "action" ||
-      callContext.caller.service !== "listing"
-    ) {
+    if (callContext.caller.kind !== "action" || callContext.caller.service !== "listing") {
       return {
         ok: false,
         code: "NOT_FOUND",
@@ -366,10 +398,9 @@ export class CatalogBrokerActions extends BrokerActions {
         };
       }
       return await runWithContext(this.createServiceContext(store), async () => {
-        const collection =
-          await this.kernel.repository.collection.findByIdIncludingDeleted(
-            params.collectionId,
-          );
+        const collection = await this.kernel.repository.collection.findByIdIncludingDeleted(
+          params.collectionId,
+        );
         if (!collection || collection.storeId !== params.storeId) {
           return {
             ok: false as const,
@@ -379,10 +410,7 @@ export class CatalogBrokerActions extends BrokerActions {
           };
         }
         if (collection.deletedAt) {
-          const withoutHash: Omit<
-            CatalogCollectionListingTombstone,
-            "payloadHash"
-          > = {
+          const withoutHash: Omit<CatalogCollectionListingTombstone, "payloadHash"> = {
             snapshotVersion: COLLECTION_LISTING_CONTRACT_VERSION,
             state: "deleted",
             id: collection.id,
@@ -398,10 +426,9 @@ export class CatalogBrokerActions extends BrokerActions {
             },
           };
         }
-        const ruleRows =
-          await this.kernel.repository.collectionRule.findByCollectionId(
-            collection.id,
-          );
+        const ruleRows = await this.kernel.repository.collectionRule.findByCollectionId(
+          collection.id,
+        );
         const rules =
           collection.type === "rule"
             ? normalizeCanonicalCollectionRulesV1(
@@ -413,32 +440,21 @@ export class CatalogBrokerActions extends BrokerActions {
               )
             : [];
         const rulesHash = hashCanonicalCollectionRulesV1(rules);
-        const withoutHash: Omit<
-          CatalogCollectionListingSnapshot,
-          "payloadHash"
-        > = {
+        const withoutHash: Omit<CatalogCollectionListingSnapshot, "payloadHash"> = {
           snapshotVersion: COLLECTION_LISTING_CONTRACT_VERSION,
           state: "live",
           id: collection.id,
           storeId: collection.storeId,
           listingRevision: collection.listingRevision,
           type: collection.type as "manual" | "rule",
-          defaultSort: collection.defaultSort as
-            | "manual"
-            | "price"
-            | "newest"
-            | "name",
-          defaultSortDirection: collection.defaultSortDirection as
-            | "asc"
-            | "desc",
+          defaultSort: collection.defaultSort as "manual" | "price" | "newest" | "name",
+          defaultSortDirection: collection.defaultSortDirection as "asc" | "desc",
           publishedAt: toCanonicalInstant(collection.publishedAt),
           effectiveFrom: toCanonicalInstant(collection.effectiveFrom),
           effectiveTo: toCanonicalInstant(collection.effectiveTo),
           rules,
           rulesHash,
-          listingUpdatedAt: new Date(
-            collection.listingUpdatedAt,
-          ).toISOString(),
+          listingUpdatedAt: new Date(collection.listingUpdatedAt).toISOString(),
         };
         return {
           ok: true as const,
@@ -449,17 +465,11 @@ export class CatalogBrokerActions extends BrokerActions {
         };
       });
     } catch (error) {
-      const invalid =
-        error instanceof Error &&
-        error.name === "CollectionContractValidationError";
+      const invalid = error instanceof Error && error.name === "CollectionContractValidationError";
       return {
         ok: false,
-        code: invalid
-          ? "COLLECTION_SNAPSHOT_INVALID"
-          : "COLLECTION_SNAPSHOT_UNAVAILABLE",
-        message: invalid
-          ? error.message
-          : "Collection snapshot is temporarily unavailable",
+        code: invalid ? "COLLECTION_SNAPSHOT_INVALID" : "COLLECTION_SNAPSHOT_UNAVAILABLE",
+        message: invalid ? error.message : "Collection snapshot is temporarily unavailable",
         retryable: !invalid,
       };
     }

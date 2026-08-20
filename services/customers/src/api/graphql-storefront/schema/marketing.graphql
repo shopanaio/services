@@ -19,7 +19,9 @@ enum CustomerMarketingConsentOptInLevel {
   CONFIRMED_OPT_IN
 }
 
-"""Current customer-selectable consent for one marketing channel."""
+"""
+Current customer-selectable consent for one marketing channel.
+"""
 type CustomerMarketingConsent {
   channel: CustomerMarketingConsentChannel!
   state: CustomerMarketingConsentState!
@@ -29,14 +31,18 @@ type CustomerMarketingConsent {
   updatedAt: DateTime!
 }
 
-"""The authenticated customer's email projection."""
+"""
+The authenticated customer's email projection.
+"""
 type CustomerEmailAddress {
   emailAddress: Email!
   verified: Boolean!
   marketingConsent: CustomerMarketingConsent
 }
 
-"""The authenticated customer's phone projection."""
+"""
+The authenticated customer's phone projection.
+"""
 type CustomerPhoneNumber {
   phoneNumber: String!
   verified: Boolean!

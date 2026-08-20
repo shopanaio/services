@@ -18,7 +18,7 @@ export class QuestionSubscriptionUpdateScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(
-    params: QuestionSubscriptionUpdateParams
+    params: QuestionSubscriptionUpdateParams,
   ): Promise<QuestionSubscriptionUpdateResult> {
     const input = params.operations ?? {};
     const patch: QuestionSubscriptionPatch = {};
@@ -50,7 +50,7 @@ export class QuestionSubscriptionUpdateScript extends BaseScript<
       const updated = await this.repository.questionSubscription.update(
         params.subscriptionId,
         params.expectedUpdatedAt,
-        patch
+        patch,
       );
       if (updated.status === "applied") {
         return {
@@ -67,11 +67,13 @@ export class QuestionSubscriptionUpdateScript extends BaseScript<
     } catch (error) {
       if (isUniqueViolation(error, "question_subscription_unique")) {
         return {
-          userErrors: [{
-            message: "A subscription for this channel already exists",
-            code: "DUPLICATE_SUBSCRIPTION",
-            field: ["operations", "channel"],
-          }],
+          userErrors: [
+            {
+              message: "A subscription for this channel already exists",
+              code: "DUPLICATE_SUBSCRIPTION",
+              field: ["operations", "channel"],
+            },
+          ],
         };
       }
       throw error;

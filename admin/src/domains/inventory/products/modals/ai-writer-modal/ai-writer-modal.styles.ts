@@ -53,12 +53,10 @@ export const useStyles = createStyles(({ token }) => ({
     height: 44,
     fontSize: 15,
     fontWeight: 500,
-    background:
-      "linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #e879f9 100%)",
+    background: "linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #e879f9 100%)",
     border: "none",
     "&:hover": {
-      background:
-        "linear-gradient(135deg, #7c3aed 0%, #c026d3 50%, #d946ef 100%)",
+      background: "linear-gradient(135deg, #7c3aed 0%, #c026d3 50%, #d946ef 100%)",
     },
   },
   resultSection: {

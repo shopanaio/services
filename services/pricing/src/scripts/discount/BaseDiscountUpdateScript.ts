@@ -5,11 +5,7 @@ import {
   type UserError,
 } from "../../kernel/BaseScript.js";
 import type { DiscountAggregate } from "../../repositories/DiscountRepository.js";
-import {
-  internalSectionError,
-  sectionErrors,
-  type DiscountSectionResult,
-} from "./types.js";
+import { internalSectionError, sectionErrors, type DiscountSectionResult } from "./types.js";
 import { validateDiscountAggregate } from "./validation.js";
 
 export interface BaseDiscountUpdateParams {
@@ -45,13 +41,9 @@ export abstract class BaseDiscountUpdateScript<
 
   @Transactional()
   protected async execute(params: TParams): Promise<DiscountSectionResult> {
-    const aggregate = await this.repository.discount.findAggregateById(
-      params.discountId,
-    );
+    const aggregate = await this.repository.discount.findAggregateById(params.discountId);
     if (!aggregate) {
-      return sectionErrors([
-        { message: "Discount not found", code: "NOT_FOUND" },
-      ]);
+      return sectionErrors([{ message: "Discount not found", code: "NOT_FOUND" }]);
     }
 
     if (aggregate.discount.state === "ARCHIVED" && !this.allowArchived) {
@@ -66,9 +58,7 @@ export abstract class BaseDiscountUpdateScript<
     const result = await this.update(aggregate, params);
     if (result.userErrors.length > 0 || !result.changed) return result;
 
-    const updated = await this.repository.discount.findAggregateById(
-      params.discountId,
-    );
+    const updated = await this.repository.discount.findAggregateById(params.discountId);
     if (!updated) throw new Error("Discount disappeared during update");
 
     const aggregateErrors = validateDiscountAggregate(updated);

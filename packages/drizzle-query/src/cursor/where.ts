@@ -21,7 +21,11 @@ function getComparisonOperator(forward: boolean, order: OrderDirection): Compari
   return order === "desc" ? "_gt" : "_lt";
 }
 
-function setPathCondition(target: Record<string, unknown>, path: string, filter: CursorFilterOperators): void {
+function setPathCondition(
+  target: Record<string, unknown>,
+  path: string,
+  filter: CursorFilterOperators,
+): void {
   const segments = path.split(".").filter(Boolean);
   if (segments.length === 0) {
     return;
@@ -47,7 +51,7 @@ function setPathCondition(target: Record<string, unknown>, path: string, filter:
 export function buildCursorWhereInput<F extends FieldsDef = FieldsDef>(
   params: CursorParams,
   forward: boolean,
-  seekTransforms?: SeekTransforms
+  seekTransforms?: SeekTransforms,
 ): NestedWhereInput<F> {
   if (!params.seek.length) {
     return {} as NestedWhereInput<F>;

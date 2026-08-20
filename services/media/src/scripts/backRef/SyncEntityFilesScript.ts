@@ -1,8 +1,5 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type {
-  SyncEntityFilesParams,
-  SyncEntityFilesResult,
-} from "./dto/index.js";
+import type { SyncEntityFilesParams, SyncEntityFilesResult } from "./dto/index.js";
 
 const DEFAULT_ROLE = "gallery";
 
@@ -15,9 +12,7 @@ export class SyncEntityFilesScript extends BaseScript<
   SyncEntityFilesResult
 > {
   @Transactional()
-  protected async execute(
-    params: SyncEntityFilesParams
-  ): Promise<SyncEntityFilesResult> {
+  protected async execute(params: SyncEntityFilesParams): Promise<SyncEntityFilesResult> {
     const { entityRef, owner, fileIds, role = DEFAULT_ROLE } = params;
 
     // 1. Clear all existing back-refs for this entity
@@ -31,7 +26,7 @@ export class SyncEntityFilesScript extends BaseScript<
     if (fileIds.length === 0) {
       this.logger.info(
         { entityRef, unlinkedCount },
-        "syncEntityFiles: cleared refs, no files to link"
+        "syncEntityFiles: cleared refs, no files to link",
       );
       return { unlinkedCount, linkedCount: 0, skippedCount: 0 };
     }
@@ -53,7 +48,7 @@ export class SyncEntityFilesScript extends BaseScript<
 
     this.logger.info(
       { entityRef, unlinkedCount, linkedCount, skippedCount },
-      "syncEntityFiles: completed"
+      "syncEntityFiles: completed",
     );
 
     return { unlinkedCount, linkedCount, skippedCount };

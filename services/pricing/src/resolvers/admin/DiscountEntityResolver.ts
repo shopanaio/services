@@ -1,7 +1,4 @@
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
 import type {
   DiscountCodeListView,
@@ -14,16 +11,11 @@ import { PricingType } from "./PricingType.js";
 import { customerReference, toGraphqlBigInt } from "./references.js";
 
 @SubgraphReference()
-export class DiscountCodeResolver extends PricingType<
-  string,
-  DiscountCodeListView
-> {
+export class DiscountCodeResolver extends PricingType<string, DiscountCodeListView> {
   async $preload() {
     const code = await this.$ctx.loaders.discountCode.load(this.$props);
     if (!code) {
-      throw new PreloadNotFoundError(
-        `Discount code with ID ${this.$props} not found`,
-      );
+      throw new PreloadNotFoundError(`Discount code with ID ${this.$props} not found`);
     }
     return code;
   }
@@ -34,12 +26,16 @@ export class DiscountCodeResolver extends PricingType<
   async discount() {
     return this.resolvers.discount(await this.$get("discountId"));
   }
-  code() { return this.$get("code"); }
+  code() {
+    return this.$get("code");
+  }
   async normalizedCode() {
     const normalized = await this.$get("normalizedCode");
     return normalized ?? (await this.$get("code")).trim().toUpperCase();
   }
-  status() { return this.$get("status"); }
+  status() {
+    return this.$get("status");
+  }
   async usageLimit() {
     return toGraphqlBigInt(await this.$get("usageLimit"));
   }
@@ -58,10 +54,18 @@ export class DiscountCodeResolver extends PricingType<
   async remainingCount() {
     return toGraphqlBigInt(await this.$get("remainingCount"));
   }
-  metadata() { return this.$get("metadata"); }
-  createdAt() { return this.$get("createdAt"); }
-  updatedAt() { return this.$get("updatedAt"); }
-  disabledAt() { return this.$get("disabledAt"); }
+  metadata() {
+    return this.$get("metadata");
+  }
+  createdAt() {
+    return this.$get("createdAt");
+  }
+  updatedAt() {
+    return this.$get("updatedAt");
+  }
+  disabledAt() {
+    return this.$get("disabledAt");
+  }
 }
 
 @SubgraphReference()
@@ -70,21 +74,15 @@ export class DiscountUsageReservationResolver extends PricingType<
   DiscountUsageReservation
 > {
   async $preload() {
-    const reservation =
-      await this.$ctx.loaders.discountUsageReservation.load(this.$props);
+    const reservation = await this.$ctx.loaders.discountUsageReservation.load(this.$props);
     if (!reservation) {
-      throw new PreloadNotFoundError(
-        `Discount usage reservation with ID ${this.$props} not found`,
-      );
+      throw new PreloadNotFoundError(`Discount usage reservation with ID ${this.$props} not found`);
     }
     return reservation;
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.DiscountUsageReservation,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.DiscountUsageReservation);
   }
   async discount() {
     return this.resolvers.discount(await this.$get("discountId"));
@@ -95,42 +93,47 @@ export class DiscountUsageReservationResolver extends PricingType<
   }
   async customerId() {
     const customerId = await this.$get("customerId");
-    return customerId
-      ? encodeGlobalIdByType(customerId, GlobalIdEntity.Customer)
-      : null;
+    return customerId ? encodeGlobalIdByType(customerId, GlobalIdEntity.Customer) : null;
   }
   async customer() {
     const customerId = await this.$get("customerId");
     return customerId ? customerReference(customerId) : null;
   }
   async checkoutId() {
-    return encodeGlobalIdByType(
-      await this.$get("checkoutId"),
-      GlobalIdEntity.Checkout,
-    );
+    return encodeGlobalIdByType(await this.$get("checkoutId"), GlobalIdEntity.Checkout);
   }
-  idempotencyKey() { return this.$get("idempotencyKey"); }
-  status() { return this.$get("status"); }
-  expiresAt() { return this.$get("expiresAt"); }
-  committedAt() { return this.$get("committedAt"); }
-  closedAt() { return this.$get("closedAt"); }
-  metadata() { return this.$get("metadata"); }
-  createdAt() { return this.$get("createdAt"); }
-  updatedAt() { return this.$get("updatedAt"); }
+  idempotencyKey() {
+    return this.$get("idempotencyKey");
+  }
+  status() {
+    return this.$get("status");
+  }
+  expiresAt() {
+    return this.$get("expiresAt");
+  }
+  committedAt() {
+    return this.$get("committedAt");
+  }
+  closedAt() {
+    return this.$get("closedAt");
+  }
+  metadata() {
+    return this.$get("metadata");
+  }
+  createdAt() {
+    return this.$get("createdAt");
+  }
+  updatedAt() {
+    return this.$get("updatedAt");
+  }
 }
 
 @SubgraphReference()
-export class DiscountRedemptionResolver extends PricingType<
-  string,
-  DiscountRedemption
-> {
+export class DiscountRedemptionResolver extends PricingType<string, DiscountRedemption> {
   async $preload() {
-    const redemption =
-      await this.$ctx.loaders.discountRedemption.load(this.$props);
+    const redemption = await this.$ctx.loaders.discountRedemption.load(this.$props);
     if (!redemption) {
-      throw new PreloadNotFoundError(
-        `Discount redemption with ID ${this.$props} not found`,
-      );
+      throw new PreloadNotFoundError(`Discount redemption with ID ${this.$props} not found`);
     }
     return redemption;
   }
@@ -147,55 +150,62 @@ export class DiscountRedemptionResolver extends PricingType<
   }
   async reservation() {
     const reservationId = await this.$get("reservationId");
-    return reservationId
-      ? this.resolvers.discountUsageReservation(reservationId)
-      : null;
+    return reservationId ? this.resolvers.discountUsageReservation(reservationId) : null;
   }
   async customerId() {
     const customerId = await this.$get("customerId");
-    return customerId
-      ? encodeGlobalIdByType(customerId, GlobalIdEntity.Customer)
-      : null;
+    return customerId ? encodeGlobalIdByType(customerId, GlobalIdEntity.Customer) : null;
   }
   async customer() {
     const customerId = await this.$get("customerId");
     return customerId ? customerReference(customerId) : null;
   }
   async checkoutId() {
-    return encodeGlobalIdByType(
-      await this.$get("checkoutId"),
-      GlobalIdEntity.Checkout,
-    );
+    return encodeGlobalIdByType(await this.$get("checkoutId"), GlobalIdEntity.Checkout);
   }
   async orderId() {
-    return encodeGlobalIdByType(
-      await this.$get("orderId"),
-      GlobalIdEntity.Order,
-    );
+    return encodeGlobalIdByType(await this.$get("orderId"), GlobalIdEntity.Order);
   }
-  idempotencyKey() { return this.$get("idempotencyKey"); }
-  status() { return this.$get("status"); }
-  discountClass() { return this.$get("discountClass"); }
-  configurationRevision() { return this.$get("configurationRevision"); }
-  currency() { return this.$get("currency"); }
+  idempotencyKey() {
+    return this.$get("idempotencyKey");
+  }
+  status() {
+    return this.$get("status");
+  }
+  discountClass() {
+    return this.$get("discountClass");
+  }
+  configurationRevision() {
+    return this.$get("configurationRevision");
+  }
+  currency() {
+    return this.$get("currency");
+  }
   async amountMinor() {
     return toGraphqlBigInt(await this.$get("amountMinor"));
   }
-  committedAt() { return this.$get("committedAt"); }
-  reversedAt() { return this.$get("reversedAt"); }
-  reversalReason() { return this.$get("reversalReason"); }
-  metadata() { return this.$get("metadata"); }
-  createdAt() { return this.$get("createdAt"); }
+  committedAt() {
+    return this.$get("committedAt");
+  }
+  reversedAt() {
+    return this.$get("reversedAt");
+  }
+  reversalReason() {
+    return this.$get("reversalReason");
+  }
+  metadata() {
+    return this.$get("metadata");
+  }
+  createdAt() {
+    return this.$get("createdAt");
+  }
 
   async allocations() {
-    const rows =
-      await this.$ctx.loaders.discountRedemptionAllocations.load(this.$props);
+    const rows = await this.$ctx.loaders.discountRedemptionAllocations.load(this.$props);
     for (const row of rows) {
       this.$ctx.loaders.discountRedemptionAllocation.prime(row.id, row);
     }
-    return rows.map(
-      (row) => new DiscountRedemptionAllocationResolver(row.id, this.$ctx),
-    );
+    return rows.map((row) => new DiscountRedemptionAllocationResolver(row.id, this.$ctx));
   }
 }
 
@@ -205,8 +215,7 @@ export class DiscountRedemptionAllocationResolver extends PricingType<
   DiscountRedemptionAllocation
 > {
   async $preload() {
-    const allocation =
-      await this.$ctx.loaders.discountRedemptionAllocation.load(this.$props);
+    const allocation = await this.$ctx.loaders.discountRedemptionAllocation.load(this.$props);
     if (!allocation) {
       throw new PreloadNotFoundError(
         `Discount redemption allocation with ID ${this.$props} not found`,
@@ -216,15 +225,14 @@ export class DiscountRedemptionAllocationResolver extends PricingType<
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.DiscountRedemptionAllocation,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.DiscountRedemptionAllocation);
   }
   async redemption() {
     return this.resolvers.discountRedemption(await this.$get("redemptionId"));
   }
-  targetType() { return this.$get("targetType"); }
+  targetType() {
+    return this.$get("targetType");
+  }
   async targetId() {
     const [targetId, targetType] = await Promise.all([
       this.$get("targetId"),
@@ -235,12 +243,18 @@ export class DiscountRedemptionAllocationResolver extends PricingType<
       ? encodeGlobalIdByType(targetId, GlobalIdEntity.OrderLine)
       : targetId;
   }
-  quantity() { return this.$get("quantity"); }
+  quantity() {
+    return this.$get("quantity");
+  }
   async amountMinor() {
     return toGraphqlBigInt(await this.$get("amountMinor"));
   }
-  metadata() { return this.$get("metadata"); }
-  createdAt() { return this.$get("createdAt"); }
+  metadata() {
+    return this.$get("metadata");
+  }
+  createdAt() {
+    return this.$get("createdAt");
+  }
 }
 
 @SubgraphReference()
@@ -249,8 +263,7 @@ export class DiscountExternalReferenceResolver extends PricingType<
   DiscountExternalReference
 > {
   async $preload() {
-    const reference =
-      await this.$ctx.loaders.discountExternalReference.load(this.$props);
+    const reference = await this.$ctx.loaders.discountExternalReference.load(this.$props);
     if (!reference) {
       throw new PreloadNotFoundError(
         `Discount external reference with ID ${this.$props} not found`,
@@ -260,26 +273,51 @@ export class DiscountExternalReferenceResolver extends PricingType<
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.DiscountExternalReference,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.DiscountExternalReference);
   }
   async discount() {
     return this.resolvers.discount(await this.$get("discountId"));
   }
-  externalSystem() { return this.$get("externalSystem"); }
-  externalType() { return this.$get("externalType"); }
-  externalId() { return this.$get("externalId"); }
-  externalUrl() { return this.$get("externalUrl"); }
-  direction() { return this.$get("direction"); }
-  syncStatus() { return this.$get("syncStatus"); }
-  etag() { return this.$get("etag"); }
-  contentChecksum() { return this.$get("contentChecksum"); }
-  lastSyncedAt() { return this.$get("lastSyncedAt"); }
-  lastError() { return this.$get("lastError"); }
-  metadata() { return this.$get("metadata"); }
-  createdAt() { return this.$get("createdAt"); }
-  updatedAt() { return this.$get("updatedAt"); }
-  deletedAt() { return this.$get("deletedAt"); }
+  externalSystem() {
+    return this.$get("externalSystem");
+  }
+  externalType() {
+    return this.$get("externalType");
+  }
+  externalId() {
+    return this.$get("externalId");
+  }
+  externalUrl() {
+    return this.$get("externalUrl");
+  }
+  direction() {
+    return this.$get("direction");
+  }
+  syncStatus() {
+    return this.$get("syncStatus");
+  }
+  etag() {
+    return this.$get("etag");
+  }
+  contentChecksum() {
+    return this.$get("contentChecksum");
+  }
+  lastSyncedAt() {
+    return this.$get("lastSyncedAt");
+  }
+  lastError() {
+    return this.$get("lastError");
+  }
+  metadata() {
+    return this.$get("metadata");
+  }
+  createdAt() {
+    return this.$get("createdAt");
+  }
+  updatedAt() {
+    return this.$get("updatedAt");
+  }
+  deletedAt() {
+    return this.$get("deletedAt");
+  }
 }

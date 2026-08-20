@@ -5,11 +5,7 @@ import { useForm, Controller } from "react-hook-form";
 import { Input, Typography, App } from "antd";
 import { createStyles } from "antd-style";
 import { LuCheck as CheckOutlined, LuX as CloseOutlined } from "react-icons/lu";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useUpdatePassword } from "../../hooks";
 
@@ -130,9 +126,7 @@ export const ChangePasswordModal = () => {
         <PaperHeader title="Password" />
         <form>
           <div className={styles.formItem}>
-            <Typography.Text className={styles.label}>
-              Current Password
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Current Password</Typography.Text>
             <Controller
               name="currentPassword"
               control={control}
@@ -154,9 +148,7 @@ export const ChangePasswordModal = () => {
           </div>
 
           <div className={styles.formItem}>
-            <Typography.Text className={styles.label}>
-              New Password
-            </Typography.Text>
+            <Typography.Text className={styles.label}>New Password</Typography.Text>
             <Controller
               name="newPassword"
               control={control}
@@ -185,16 +177,13 @@ export const ChangePasswordModal = () => {
           </div>
 
           <div className={styles.formItemLast}>
-            <Typography.Text className={styles.label}>
-              Confirm New Password
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Confirm New Password</Typography.Text>
             <Controller
               name="confirmPassword"
               control={control}
               rules={{
                 required: "Please confirm your password",
-                validate: (value) =>
-                  value === newPassword || "Passwords do not match",
+                validate: (value) => value === newPassword || "Passwords do not match",
               }}
               render={({ field }) => (
                 <Input.Password

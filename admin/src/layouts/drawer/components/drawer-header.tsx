@@ -1,14 +1,14 @@
-import { createStyles } from 'antd-style';
-import { MdArrowBack } from 'react-icons/md';
-import { Badge, Button, ButtonProps, Flex, Typography } from 'antd';
-import { ReactNode } from 'react';
+import { createStyles } from "antd-style";
+import { MdArrowBack } from "react-icons/md";
+import { Badge, Button, ButtonProps, Flex, Typography } from "antd";
+import { ReactNode } from "react";
 
 const useStyles = createStyles(({ token }) => ({
   header: {
-    display: 'flex',
+    display: "flex",
     padding: `${token.padding}px ${token.paddingLG}px`,
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    justifyContent: "space-between",
+    alignItems: "center",
     background: token.colorBgLayout,
   },
   title: {
@@ -39,8 +39,8 @@ export const DrawerHeader = ({
   onSubmitAndExit,
   extra = null,
   badgeCount = 0,
-  saveLabel = 'Save',
-  saveAndExitLabel = 'Save and exit',
+  saveLabel = "Save",
+  saveAndExitLabel = "Save and exit",
 }: IDrawerHeaderProps) => {
   const { styles } = useStyles();
 
@@ -50,7 +50,7 @@ export const DrawerHeader = ({
         <Button
           icon={<MdArrowBack />}
           onClick={onClose}
-          data-testid={`close-${name ? `${name}-` : ''}drawer-button`}
+          data-testid={`close-${name ? `${name}-` : ""}drawer-button`}
         />
         <Badge
           data-testid="page-title-wrapper"
@@ -60,11 +60,7 @@ export const DrawerHeader = ({
           overflowCount={9999}
           offset={[badgeCount > 9 ? 6 : 0, 5]}
         >
-          <Typography.Title
-            level={4}
-            className={styles.title}
-            ellipsis={{ rows: 1 }}
-          >
+          <Typography.Title level={4} className={styles.title} ellipsis={{ rows: 1 }}>
             {title}
           </Typography.Title>
         </Badge>
@@ -78,13 +74,13 @@ export const DrawerHeader = ({
                 loading={submitButtonProps?.loading}
                 disabled={submitButtonProps?.disabled}
                 onClick={onSubmitAndExit}
-                data-testid={`submit-and-exit-${name ? `${name}-` : ''}button`}
+                data-testid={`submit-and-exit-${name ? `${name}-` : ""}button`}
               >
                 {saveAndExitLabel}
               </Button>
             )}
             <Button
-              data-testid={`submit-${name ? `${name}-` : ''}form-button`}
+              data-testid={`submit-${name ? `${name}-` : ""}form-button`}
               type="primary"
               children={saveLabel}
               {...submitButtonProps}

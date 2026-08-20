@@ -28,6 +28,4 @@ export interface CookieJarLike {
 }
 
 export type CookieStrategy =
-  | { mode: "forward" }
-  | { mode: "jar"; getJar: (ctx: RequestContext) => CookieJarLike };
-
+  { mode: "forward" } | { mode: "jar"; getJar: (ctx: RequestContext) => CookieJarLike };

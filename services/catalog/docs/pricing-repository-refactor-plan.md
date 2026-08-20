@@ -2,7 +2,8 @@
 
 ## Overview
 
-Refactor `PricingRepository.ts` to use `createRelayQuery` from `@shopana/drizzle-query` instead of manual cursor pagination implementation.
+Refactor `PricingRepository.ts` to use `createRelayQuery` from `@shopana/drizzle-query` instead of
+manual cursor pagination implementation.
 
 ## Current Issues
 
@@ -29,8 +30,8 @@ const pricingRelayQuery = createRelayQuery(
     .defaultLimit(20),
   {
     name: "itemPricing",
-    tieBreaker: "id"
-  }
+    tieBreaker: "id",
+  },
 );
 
 export type PricingRelayInput = InferRelayInput<typeof pricingRelayQuery>;
@@ -39,6 +40,7 @@ export type PricingRelayInput = InferRelayInput<typeof pricingRelayQuery>;
 ### Step 2: Replace `getPriceHistory` with RelayQuery
 
 **Before:**
+
 ```typescript
 async getPriceHistory(input: GetPriceHistoryInput): Promise<ItemPricing[]> {
   const cursorId = this.decodeCursor(input.after);
@@ -47,6 +49,7 @@ async getPriceHistory(input: GetPriceHistoryInput): Promise<ItemPricing[]> {
 ```
 
 **After:**
+
 ```typescript
 async getPriceHistory(input: GetPriceHistoryInput) {
   return pricingRelayQuery.execute(this.connection, {

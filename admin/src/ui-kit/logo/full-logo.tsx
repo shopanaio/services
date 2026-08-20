@@ -1,6 +1,6 @@
 interface IProps {
   noText?: boolean;
-  theme?: 'dark' | 'light';
+  theme?: "dark" | "light";
   size: number;
   gradient?: boolean;
 }
@@ -12,16 +12,12 @@ const getLogoWidth = (size: number) => {
   return Math.round(size * (X / Y));
 };
 
-export const FullLogo = ({
-  noText = false,
-  theme = 'light',
-  size,
-}: IProps) => {
+export const FullLogo = ({ noText = false, theme = "light", size }: IProps) => {
   const noTextWidth = size * 1.15;
   const width = noText ? noTextWidth : getLogoWidth(size);
   const height = size;
 
-  const textColor = theme === 'light' ? 'var(--ant-color-text)' : 'var(--ant-color-bg-layout)';
+  const textColor = theme === "light" ? "var(--ant-color-text)" : "var(--ant-color-bg-layout)";
 
   const renderText = () => {
     return (
@@ -60,7 +56,7 @@ export const FullLogo = ({
 
   return (
     <svg
-      data-testid={noText ? 'short-logo' : 'full-logo'}
+      data-testid={noText ? "short-logo" : "full-logo"}
       width={width}
       height={height}
       viewBox={`0 0 ${noText ? Y * 1.15 : X} ${Y}`}

@@ -214,7 +214,6 @@ type CatalogQuery {
     """
     orderBy: [TagOrderByInput!]
   ): TagConnection!
-
 }
 
 """
@@ -305,31 +304,57 @@ type InventoryQuery {
 }
 
 input WarehouseAssignableVariantWhereInput {
-  """Logical AND of multiple conditions"""
+  """
+  Logical AND of multiple conditions
+  """
   _and: [WarehouseAssignableVariantWhereInput!]
-  """Logical OR of multiple conditions"""
+  """
+  Logical OR of multiple conditions
+  """
   _or: [WarehouseAssignableVariantWhereInput!]
-  """Negate the condition"""
+  """
+  Negate the condition
+  """
   _not: WarehouseAssignableVariantWhereInput
-  """Filter by variant ID"""
+  """
+  Filter by variant ID
+  """
   id: IDFilter
-  """Filter by product ID"""
+  """
+  Filter by product ID
+  """
   productId: IDFilter
-  """Filter by product name in the current locale"""
+  """
+  Filter by product name in the current locale
+  """
   productName: StringFilter
-  """Filter by variant SKU"""
+  """
+  Filter by variant SKU
+  """
   sku: StringFilter
-  """Filter by default variant flag"""
+  """
+  Filter by default variant flag
+  """
   isDefault: BooleanFilter
-  """Filter by variant handle"""
+  """
+  Filter by variant handle
+  """
   handle: StringFilter
-  """Filter by external system"""
+  """
+  Filter by external system
+  """
   externalSystem: StringFilter
-  """Filter by external ID"""
+  """
+  Filter by external ID
+  """
   externalId: StringFilter
-  """Filter by creation date"""
+  """
+  Filter by creation date
+  """
   createdAt: DateTimeFilter
-  """Filter by update date"""
+  """
+  Filter by update date
+  """
   updatedAt: DateTimeFilter
 }
 
@@ -397,11 +422,17 @@ type CatalogMutation {
   Supports product, component, and variant updates in a single request.
   """
   productUpdate(
-    """The product ID to update."""
+    """
+    The product ID to update.
+    """
     productId: ID!
-    """Expected revision for optimistic locking. If provided, fails if product was modified."""
+    """
+    Expected revision for optimistic locking. If provided, fails if product was modified.
+    """
     expectedRevision: Int
-    """Product-level operations."""
+    """
+    Product-level operations.
+    """
     operations: ProductUpdateInput
   ): ProductUpdatePayload!
 
@@ -482,7 +513,9 @@ type CatalogMutation {
   """
   collectionRebalance(input: CollectionRebalanceInput!): CollectionRebalancePayload!
 
-  """Remove every product from a MANUAL collection."""
+  """
+  Remove every product from a MANUAL collection.
+  """
   collectionClearProducts(input: CollectionClearProductsInput!): CollectionClearProductsPayload!
 
   """
@@ -491,7 +524,9 @@ type CatalogMutation {
   This is a mutation because evaluation executes a non-cacheable cross-service
   workflow. It does not persist or modify collection state.
   """
-  collectionRulesPreviewCount(input: CollectionRulesPreviewCountInput!): CollectionRulesPreviewCountPayload!
+  collectionRulesPreviewCount(
+    input: CollectionRulesPreviewCountInput!
+  ): CollectionRulesPreviewCountPayload!
 
   # Tag mutations
 
@@ -516,5 +551,4 @@ type CatalogMutation {
   Requires X-Idempotency-Key header.
   """
   productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
-
 }

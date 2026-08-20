@@ -67,8 +67,10 @@ function scriptContext(context: RecommendationWorkflowContext): RunScriptContext
   };
 }
 
-abstract class RecommendationWorkflowBase<TInput = unknown, TOutput = unknown>
-  extends BrokerWorkflows<TInput, TOutput> {
+abstract class RecommendationWorkflowBase<
+  TInput = unknown,
+  TOutput = unknown,
+> extends BrokerWorkflows<TInput, TOutput> {
   protected readonly logger = new Logger("RecommendationWorkflows");
 
   constructor(broker: ServiceBroker) {
@@ -87,18 +89,13 @@ abstract class RecommendationWorkflowBase<TInput = unknown, TOutput = unknown>
     });
     const workflowId = buildIdempotencyKey("listing.recommendationSnapshotBuild", idempotency);
     try {
-      await this.broker.startWorkflow(
-        "listing.recommendationSnapshotBuild",
-        input,
-        idempotency,
-        {
-          workflowId,
-          queueName: RECOMMENDATION_SNAPSHOT_QUEUE,
-          enqueueOptions: {
-            queuePartitionKey: `${context.storeId}:${buildLane(request.anchorProductId, request.placement)}`,
-          },
+      await this.broker.startWorkflow("listing.recommendationSnapshotBuild", input, idempotency, {
+        workflowId,
+        queueName: RECOMMENDATION_SNAPSHOT_QUEUE,
+        enqueueOptions: {
+          queuePartitionKey: `${context.storeId}:${buildLane(request.anchorProductId, request.placement)}`,
         },
-      );
+      });
     } catch (error) {
       if (!isDuplicateWorkflowStartError(error, workflowId)) throw error;
     }
@@ -115,7 +112,9 @@ export class RecommendationSnapshotBuildWorkflow extends RecommendationWorkflowB
   RecommendationSnapshotBuildInput,
   { status: "activated" | "stale" | "disabled" }
 > {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("recommendationSnapshotBuild")
   async run(input: RecommendationSnapshotBuildInput) {
@@ -128,42 +127,57 @@ export class RecommendationSnapshotBuildWorkflow extends RecommendationWorkflowB
       if (activated.status === "stale" && activated.rebuildRequest) {
         await this.startBuild(input.context, activated.rebuildRequest);
       }
-      this.logger.log({
-        storeId: input.context.storeId,
-        anchorProductId: input.request.anchorProductId,
-        placement: input.request.placement,
-        snapshotId: created.snapshotId,
-        status: activated.status,
-      }, "Recommendation snapshot build completed");
-      return { status: activated.status === "applied" ? "activated" as const : "stale" as const };
+      this.logger.log(
+        {
+          storeId: input.context.storeId,
+          anchorProductId: input.request.anchorProductId,
+          placement: input.request.placement,
+          snapshotId: created.snapshotId,
+          status: activated.status,
+        },
+        "Recommendation snapshot build completed",
+      );
+      return {
+        status: activated.status === "applied" ? ("activated" as const) : ("stale" as const),
+      };
     } catch (error) {
       const failed = await this.fail(input.context, created.snapshotId, failureCode(error));
       if (failed.rebuildRequest) {
         await this.startBuild(input.context, failed.rebuildRequest);
       }
-      this.logger.error({
-        error,
-        storeId: input.context.storeId,
-        anchorProductId: input.request.anchorProductId,
-        placement: input.request.placement,
-        snapshotId: created.snapshotId,
-        failureCode: failureCode(error),
-      }, "Recommendation snapshot build failed");
+      this.logger.error(
+        {
+          error,
+          storeId: input.context.storeId,
+          anchorProductId: input.request.anchorProductId,
+          placement: input.request.placement,
+          snapshotId: created.snapshotId,
+          failureCode: failureCode(error),
+        },
+        "Recommendation snapshot build failed",
+      );
       throw error;
     }
   }
 
   @WorkflowStep({ retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 } })
   private createSnapshot(input: RecommendationSnapshotBuildInput) {
-    return Kernel.getInstance().runScript(RecommendationSnapshotCreateScript, {
-      anchorProductId: input.request.anchorProductId,
-      placement: input.request.placement,
-      requestedGeneration: input.request.generation,
-      triggerKey: input.request.triggerKey,
-    }, scriptContext(input.context));
+    return Kernel.getInstance().runScript(
+      RecommendationSnapshotCreateScript,
+      {
+        anchorProductId: input.request.anchorProductId,
+        placement: input.request.placement,
+        requestedGeneration: input.request.generation,
+        triggerKey: input.request.triggerKey,
+      },
+      scriptContext(input.context),
+    );
   }
 
-  @WorkflowStep({ timeoutMs: 60_000, retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 } })
+  @WorkflowStep({
+    timeoutMs: 60_000,
+    retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
+  })
   private populateSnapshot(context: RecommendationWorkflowContext, snapshotId: string) {
     return Kernel.getInstance().runScript(
       RecommendationSnapshotPopulateScript,
@@ -173,7 +187,11 @@ export class RecommendationSnapshotBuildWorkflow extends RecommendationWorkflowB
   }
 
   @WorkflowStep()
-  private transition(context: RecommendationWorkflowContext, snapshotId: string, transition: "READY") {
+  private transition(
+    context: RecommendationWorkflowContext,
+    snapshotId: string,
+    transition: "READY",
+  ) {
     return Kernel.getInstance().runScript(
       RecommendationSnapshotTransitionScript,
       { snapshotId, transition },
@@ -191,7 +209,11 @@ export class RecommendationSnapshotBuildWorkflow extends RecommendationWorkflowB
   }
 
   @WorkflowStep()
-  private fail(context: RecommendationWorkflowContext, snapshotId: string, failureCodeValue: string) {
+  private fail(
+    context: RecommendationWorkflowContext,
+    snapshotId: string,
+    failureCodeValue: string,
+  ) {
     return Kernel.getInstance().runScript(
       RecommendationSnapshotTransitionScript,
       { snapshotId, transition: "FAILED", failureCode: failureCodeValue },
@@ -214,7 +236,9 @@ export class RecommendationSnapshotFanOutWorkflow extends RecommendationWorkflow
   RecommendationFanOutInput,
   { requested: number }
 > {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("recommendationSnapshotFanOut")
   async run(input: RecommendationFanOutInput): Promise<{ requested: number }> {
@@ -226,25 +250,35 @@ export class RecommendationSnapshotFanOutWorkflow extends RecommendationWorkflow
       requested += page.requests.length;
       afterProductId = page.nextCursor ?? undefined;
     } while (afterProductId);
-    this.logger.log({
-      storeId: input.context.storeId,
-      placement: input.placement,
-      requested,
-      triggerKey: input.triggerKey,
-    }, "Recommendation snapshot fan-out completed");
+    this.logger.log(
+      {
+        storeId: input.context.storeId,
+        placement: input.placement,
+        requested,
+        triggerKey: input.triggerKey,
+      },
+      "Recommendation snapshot fan-out completed",
+    );
     return { requested };
   }
 
-  @WorkflowStep({ timeoutMs: 30_000, retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 } })
+  @WorkflowStep({
+    timeoutMs: 30_000,
+    retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
+  })
   private page(input: RecommendationFanOutInput, afterProductId?: string) {
-    return Kernel.getInstance().runScript(RecommendationFanOutPageScript, {
-      placement: input.placement,
-      triggerKey: input.triggerKey,
-      calculationRunId: input.calculationRunId,
-      includePopularityPolicies: input.includePopularityPolicies,
-      requiredFallbackCode: input.requiredFallbackCode,
-      afterProductId,
-    }, scriptContext(input.context));
+    return Kernel.getInstance().runScript(
+      RecommendationFanOutPageScript,
+      {
+        placement: input.placement,
+        triggerKey: input.triggerKey,
+        calculationRunId: input.calculationRunId,
+        includePopularityPolicies: input.includePopularityPolicies,
+        requiredFallbackCode: input.requiredFallbackCode,
+        afterProductId,
+      },
+      scriptContext(input.context),
+    );
   }
 }
 
@@ -258,7 +292,9 @@ export class RecommendationCalculationRunWorkflow extends RecommendationWorkflow
   RecommendationCalculationInput,
   { runId: string | null }
 > {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("recommendationCalculationRun")
   async run(input: RecommendationCalculationInput): Promise<{ runId: string | null }> {
@@ -274,13 +310,16 @@ export class RecommendationCalculationRunWorkflow extends RecommendationWorkflow
       for (const placement of ["PRODUCT_RELATED", "FREQUENTLY_BOUGHT_TOGETHER"] as const) {
         await this.startFanOut(input.context, placement, created.run.runId);
       }
-      this.logger.log({
-        storeId: input.context.storeId,
-        runId: created.run.runId,
-        modelVersion: created.run.algorithmVersion,
-        productCount: compute.counts?.productCount,
-        pairCount: compute.counts?.pairCount,
-      }, "Recommendation calculation run activated");
+      this.logger.log(
+        {
+          storeId: input.context.storeId,
+          runId: created.run.runId,
+          modelVersion: created.run.algorithmVersion,
+          productCount: compute.counts?.productCount,
+          pairCount: compute.counts?.pairCount,
+        },
+        "Recommendation calculation run activated",
+      );
       return { runId: created.run.runId };
     } catch (error) {
       await this.runTransition(
@@ -292,24 +331,38 @@ export class RecommendationCalculationRunWorkflow extends RecommendationWorkflow
           ? "INVALID_CALCULATION_RESULT"
           : "CALCULATION_FAILED",
       );
-      this.logger.error({
-        error,
-        storeId: input.context.storeId,
-        runId: created.run.runId,
-        modelVersion: created.run.algorithmVersion,
-      }, "Recommendation calculation run failed");
+      this.logger.error(
+        {
+          error,
+          storeId: input.context.storeId,
+          runId: created.run.runId,
+          modelVersion: created.run.algorithmVersion,
+        },
+        "Recommendation calculation run failed",
+      );
       throw error;
     }
   }
 
   @WorkflowStep()
   private createRun(context: RecommendationWorkflowContext) {
-    return Kernel.getInstance().runScript(RecommendationCalculationRunCreateScript, {}, scriptContext(context));
+    return Kernel.getInstance().runScript(
+      RecommendationCalculationRunCreateScript,
+      {},
+      scriptContext(context),
+    );
   }
 
-  @WorkflowStep({ timeoutMs: 60_000, retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 } })
+  @WorkflowStep({
+    timeoutMs: 60_000,
+    retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
+  })
   private compute(context: RecommendationWorkflowContext, runId: string) {
-    return Kernel.getInstance().runScript(RecommendationCalculationRunComputeScript, { runId }, scriptContext(context));
+    return Kernel.getInstance().runScript(
+      RecommendationCalculationRunComputeScript,
+      { runId },
+      scriptContext(context),
+    );
   }
 
   @WorkflowStep()
@@ -340,10 +393,18 @@ export class RecommendationCalculationRunWorkflow extends RecommendationWorkflow
       calculationRunId: runId,
       includePopularityPolicies: true,
     };
-    const idempotency = buildContext("recommendationCalculationFanOut", context, { placement, runId });
+    const idempotency = buildContext("recommendationCalculationFanOut", context, {
+      placement,
+      runId,
+    });
     const workflowId = buildIdempotencyKey("listing.recommendationSnapshotFanOut", idempotency);
     try {
-      await this.broker.startWorkflow("listing.recommendationSnapshotFanOut", payload, idempotency, { workflowId });
+      await this.broker.startWorkflow(
+        "listing.recommendationSnapshotFanOut",
+        payload,
+        idempotency,
+        { workflowId },
+      );
     } catch (error) {
       if (!isDuplicateWorkflowStartError(error, workflowId)) throw error;
     }
@@ -355,7 +416,9 @@ export class RecommendationCalculationTriggerWorkflow extends RecommendationWork
   RecommendationCalculationInput,
   { started: boolean }
 > {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("recommendationCalculationTrigger")
   async run(input: RecommendationCalculationInput): Promise<{ started: boolean }> {
@@ -366,7 +429,9 @@ export class RecommendationCalculationTriggerWorkflow extends RecommendationWork
     });
     const workflowId = buildIdempotencyKey("listing.recommendationCalculationRun", idempotency);
     try {
-      await this.broker.startWorkflow("listing.recommendationCalculationRun", input, idempotency, { workflowId });
+      await this.broker.startWorkflow("listing.recommendationCalculationRun", input, idempotency, {
+        workflowId,
+      });
     } catch (error) {
       if (!isDuplicateWorkflowStartError(error, workflowId)) throw error;
     }
@@ -375,7 +440,11 @@ export class RecommendationCalculationTriggerWorkflow extends RecommendationWork
 
   @WorkflowStep()
   private shouldRun(context: RecommendationWorkflowContext) {
-    return Kernel.getInstance().runScript(RecommendationCalculationShouldRunScript, {}, scriptContext(context));
+    return Kernel.getInstance().runScript(
+      RecommendationCalculationShouldRunScript,
+      {},
+      scriptContext(context),
+    );
   }
 }
 
@@ -389,7 +458,9 @@ export class RecommendationOrderFactIngestWorkflow extends RecommendationWorkflo
   RecommendationOrderIngestInput,
   { status: "inserted" | "duplicate"; ingestionPosition: string }
 > {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("recommendationOrderFactIngest")
   async run(input: RecommendationOrderIngestInput) {
@@ -406,26 +477,59 @@ export class RecommendationOrderFactIngestWorkflow extends RecommendationWorkflo
   }
 }
 
-type PolicyUpsertInput = { context: RecommendationWorkflowContext; params: RecommendationPolicyUpsertParams };
-type PolicyEnabledInput = { context: RecommendationWorkflowContext; params: { placement: RecommendationPlacement; enabled: boolean; expectedVersion: number } };
-type ManualCreateInput = { context: RecommendationWorkflowContext; params: ManualRecommendationCreateParams };
-type ManualUpdateInput = { context: RecommendationWorkflowContext; params: ManualRecommendationUpdateParams };
-type ManualDeleteInput = { context: RecommendationWorkflowContext; params: { id: string; expectedVersion: number } };
+type PolicyUpsertInput = {
+  context: RecommendationWorkflowContext;
+  params: RecommendationPolicyUpsertParams;
+};
+type PolicyEnabledInput = {
+  context: RecommendationWorkflowContext;
+  params: { placement: RecommendationPlacement; enabled: boolean; expectedVersion: number };
+};
+type ManualCreateInput = {
+  context: RecommendationWorkflowContext;
+  params: ManualRecommendationCreateParams;
+};
+type ManualUpdateInput = {
+  context: RecommendationWorkflowContext;
+  params: ManualRecommendationUpdateParams;
+};
+type ManualDeleteInput = {
+  context: RecommendationWorkflowContext;
+  params: { id: string; expectedVersion: number };
+};
 
-abstract class RecommendationMutationWorkflowBase<TInput, TOutput>
-  extends RecommendationWorkflowBase<TInput, TOutput> {
+abstract class RecommendationMutationWorkflowBase<
+  TInput,
+  TOutput,
+> extends RecommendationWorkflowBase<TInput, TOutput> {
   @WorkflowStep()
-  protected async startPolicyFanOut(context: RecommendationWorkflowContext, placement: RecommendationPlacement, triggerKey: string) {
+  protected async startPolicyFanOut(
+    context: RecommendationWorkflowContext,
+    placement: RecommendationPlacement,
+    triggerKey: string,
+  ) {
     const input: RecommendationFanOutInput = { context, placement, triggerKey };
-    const idempotency = buildContext("recommendationPolicyFanOut", context, { placement, triggerKey });
+    const idempotency = buildContext("recommendationPolicyFanOut", context, {
+      placement,
+      triggerKey,
+    });
     const workflowId = buildIdempotencyKey("listing.recommendationSnapshotFanOut", idempotency);
-    try { await this.broker.startWorkflow("listing.recommendationSnapshotFanOut", input, idempotency, { workflowId }); }
-    catch (error) { if (!isDuplicateWorkflowStartError(error, workflowId)) throw error; }
+    try {
+      await this.broker.startWorkflow("listing.recommendationSnapshotFanOut", input, idempotency, {
+        workflowId,
+      });
+    } catch (error) {
+      if (!isDuplicateWorkflowStartError(error, workflowId)) throw error;
+    }
   }
 
   @WorkflowStep()
-  protected async startManualBuild(context: RecommendationWorkflowContext, result: ManualRecommendationResult) {
-    if (!result.anchorProductId || !result.placement || !result.generation || !result.triggerKey) return;
+  protected async startManualBuild(
+    context: RecommendationWorkflowContext,
+    result: ManualRecommendationResult,
+  ) {
+    if (!result.anchorProductId || !result.placement || !result.generation || !result.triggerKey)
+      return;
     await this.startBuild(context, {
       requestId: `${result.anchorProductId}:${result.placement}`,
       anchorProductId: result.anchorProductId,
@@ -437,90 +541,177 @@ abstract class RecommendationMutationWorkflowBase<TInput, TOutput>
 }
 
 @Injectable()
-export class RecommendationPolicyUpsertWorkflow
-  extends RecommendationMutationWorkflowBase<PolicyUpsertInput, RecommendationPolicyResult> {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+export class RecommendationPolicyUpsertWorkflow extends RecommendationMutationWorkflowBase<
+  PolicyUpsertInput,
+  RecommendationPolicyResult
+> {
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("recommendationPolicyUpsert")
-  @Policy<PolicyUpsertInput>({ resource: "store.data", action: "write", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
+  @Policy<PolicyUpsertInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_s, i) => i.context.organizationId,
+    domain: (_s, i) => `store:${i.context.storeId}`,
+  })
   async run(input: PolicyUpsertInput): Promise<RecommendationPolicyResult> {
     const result = await this.policyUpsertStep(input);
     if (result.policy && result.generationTrigger) {
-      await this.startPolicyFanOut(input.context, result.policy.placement, result.generationTrigger);
+      await this.startPolicyFanOut(
+        input.context,
+        result.policy.placement,
+        result.generationTrigger,
+      );
     }
     return result;
   }
 
-  @WorkflowStep() private policyUpsertStep(input: PolicyUpsertInput) { return Kernel.getInstance().runScript(RecommendationPlacementPolicyUpsertScript, input.params, scriptContext(input.context)); }
+  @WorkflowStep() private policyUpsertStep(input: PolicyUpsertInput) {
+    return Kernel.getInstance().runScript(
+      RecommendationPlacementPolicyUpsertScript,
+      input.params,
+      scriptContext(input.context),
+    );
+  }
 }
 
 @Injectable()
-export class RecommendationPolicySetEnabledWorkflow
-  extends RecommendationMutationWorkflowBase<PolicyEnabledInput, RecommendationPolicyResult> {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+export class RecommendationPolicySetEnabledWorkflow extends RecommendationMutationWorkflowBase<
+  PolicyEnabledInput,
+  RecommendationPolicyResult
+> {
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("recommendationPolicySetEnabled")
-  @Policy<PolicyEnabledInput>({ resource: "store.data", action: "admin", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
+  @Policy<PolicyEnabledInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_s, i) => i.context.organizationId,
+    domain: (_s, i) => `store:${i.context.storeId}`,
+  })
   async run(input: PolicyEnabledInput): Promise<RecommendationPolicyResult> {
     const result = await this.policyEnabledStep(input);
     if (result.policy?.enabled && result.generationTrigger) {
-      await this.startPolicyFanOut(input.context, result.policy.placement, result.generationTrigger);
+      await this.startPolicyFanOut(
+        input.context,
+        result.policy.placement,
+        result.generationTrigger,
+      );
     }
     return result;
   }
 
-  @WorkflowStep() private policyEnabledStep(input: PolicyEnabledInput) { return Kernel.getInstance().runScript(RecommendationPlacementPolicySetEnabledScript, input.params, scriptContext(input.context)); }
+  @WorkflowStep() private policyEnabledStep(input: PolicyEnabledInput) {
+    return Kernel.getInstance().runScript(
+      RecommendationPlacementPolicySetEnabledScript,
+      input.params,
+      scriptContext(input.context),
+    );
+  }
 }
 
 @Injectable()
-export class ManualRecommendationCreateWorkflow
-  extends RecommendationMutationWorkflowBase<ManualCreateInput, ManualRecommendationResult> {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+export class ManualRecommendationCreateWorkflow extends RecommendationMutationWorkflowBase<
+  ManualCreateInput,
+  ManualRecommendationResult
+> {
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("manualRecommendationCreate")
-  @Policy<ManualCreateInput>({ resource: "store.data", action: "write", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
+  @Policy<ManualCreateInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_s, i) => i.context.organizationId,
+    domain: (_s, i) => `store:${i.context.storeId}`,
+  })
   async run(input: ManualCreateInput): Promise<ManualRecommendationResult> {
     const result = await this.manualCreateStep(input);
     await this.startManualBuild(input.context, result);
     return result;
   }
 
-  @WorkflowStep() private manualCreateStep(input: ManualCreateInput) { return Kernel.getInstance().runScript(ManualProductRecommendationCreateScript, input.params, scriptContext(input.context)); }
+  @WorkflowStep() private manualCreateStep(input: ManualCreateInput) {
+    return Kernel.getInstance().runScript(
+      ManualProductRecommendationCreateScript,
+      input.params,
+      scriptContext(input.context),
+    );
+  }
 }
 
 @Injectable()
-export class ManualRecommendationUpdateWorkflow
-  extends RecommendationMutationWorkflowBase<ManualUpdateInput, ManualRecommendationResult> {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+export class ManualRecommendationUpdateWorkflow extends RecommendationMutationWorkflowBase<
+  ManualUpdateInput,
+  ManualRecommendationResult
+> {
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("manualRecommendationUpdate")
-  @Policy<ManualUpdateInput>({ resource: "store.data", action: "write", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
+  @Policy<ManualUpdateInput>({
+    resource: "store.data",
+    action: "write",
+    organizationId: (_s, i) => i.context.organizationId,
+    domain: (_s, i) => `store:${i.context.storeId}`,
+  })
   async run(input: ManualUpdateInput): Promise<ManualRecommendationResult> {
     const result = await this.manualUpdateStep(input);
     await this.startManualBuild(input.context, result);
     return result;
   }
 
-  @WorkflowStep() private manualUpdateStep(input: ManualUpdateInput) { return Kernel.getInstance().runScript(ManualProductRecommendationUpdateScript, input.params, scriptContext(input.context)); }
+  @WorkflowStep() private manualUpdateStep(input: ManualUpdateInput) {
+    return Kernel.getInstance().runScript(
+      ManualProductRecommendationUpdateScript,
+      input.params,
+      scriptContext(input.context),
+    );
+  }
 }
 
 @Injectable()
-export class ManualRecommendationDeleteWorkflow
-  extends RecommendationMutationWorkflowBase<ManualDeleteInput, ManualRecommendationResult> {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+export class ManualRecommendationDeleteWorkflow extends RecommendationMutationWorkflowBase<
+  ManualDeleteInput,
+  ManualRecommendationResult
+> {
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("manualRecommendationDelete")
-  @Policy<ManualDeleteInput>({ resource: "store.data", action: "admin", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
+  @Policy<ManualDeleteInput>({
+    resource: "store.data",
+    action: "admin",
+    organizationId: (_s, i) => i.context.organizationId,
+    domain: (_s, i) => `store:${i.context.storeId}`,
+  })
   async run(input: ManualDeleteInput): Promise<ManualRecommendationResult> {
     const result = await this.manualDeleteStep(input);
     await this.startManualBuild(input.context, result);
     return result;
   }
 
-  @WorkflowStep() private manualDeleteStep(input: ManualDeleteInput) { return Kernel.getInstance().runScript(ManualProductRecommendationDeleteScript, input.params, scriptContext(input.context)); }
+  @WorkflowStep() private manualDeleteStep(input: ManualDeleteInput) {
+    return Kernel.getInstance().runScript(
+      ManualProductRecommendationDeleteScript,
+      input.params,
+      scriptContext(input.context),
+    );
+  }
 }
 
-function buildContext(operation: string, context: RecommendationWorkflowContext, payload: unknown): IdempotencyContext {
+function buildContext(
+  operation: string,
+  context: RecommendationWorkflowContext,
+  payload: unknown,
+): IdempotencyContext {
   return {
     source: "content",
     organizationId: context.organizationId,
@@ -537,7 +728,12 @@ function buildLane(anchorProductId: string, placement: RecommendationPlacement):
 
 function failureCode(error: unknown): string {
   const candidate = error as { code?: string };
-  return ["STALE_INPUT", "UNSUPPORTED_MODEL_VERSION", "CANDIDATE_LIMIT_EXCEEDED", "INVALID_SNAPSHOT_CONTENT"].includes(candidate.code ?? "")
+  return [
+    "STALE_INPUT",
+    "UNSUPPORTED_MODEL_VERSION",
+    "CANDIDATE_LIMIT_EXCEEDED",
+    "INVALID_SNAPSHOT_CONTENT",
+  ].includes(candidate.code ?? "")
     ? candidate.code!
     : "SNAPSHOT_BUILD_FAILED";
 }
@@ -552,7 +748,9 @@ export class RecommendationReferenceStateSyncWorkflow extends RecommendationWork
   RecommendationReferenceStateSyncInput,
   { requested: number }
 > {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("recommendationReferenceStateSync")
   async run(input: RecommendationReferenceStateSyncInput): Promise<{ requested: number }> {
@@ -564,8 +762,10 @@ export class RecommendationReferenceStateSyncWorkflow extends RecommendationWork
       input.plan.oldState.available !== input.plan.newState.available;
     if (eligibilityChanged) requested += await this.processAffected(input, "reverse");
     if (categoryChanged(input.plan)) requested += await this.processAffected(input, "category");
-    const becameEligible = (!input.plan.oldState.published || !input.plan.oldState.available) &&
-      input.plan.newState.published && input.plan.newState.available;
+    const becameEligible =
+      (!input.plan.oldState.published || !input.plan.oldState.available) &&
+      input.plan.newState.published &&
+      input.plan.newState.available;
     if (becameEligible) {
       for (const placement of ["PRODUCT_RELATED", "FREQUENTLY_BOUGHT_TOGETHER"] as const) {
         await this.startLifecycleFanOut(input, placement);
@@ -574,7 +774,10 @@ export class RecommendationReferenceStateSyncWorkflow extends RecommendationWork
     return { requested };
   }
 
-  private async processAffected(input: RecommendationReferenceStateSyncInput, mode: "reverse" | "category") {
+  private async processAffected(
+    input: RecommendationReferenceStateSyncInput,
+    mode: "reverse" | "category",
+  ) {
     let afterProductId: string | undefined;
     let requested = 0;
     do {
@@ -625,12 +828,19 @@ export class RecommendationReferenceStateSyncWorkflow extends RecommendationWork
       placement,
     });
     const workflowId = buildIdempotencyKey("listing.recommendationSnapshotFanOut", idempotency);
-    try { await this.broker.startWorkflow("listing.recommendationSnapshotFanOut", fanOut, idempotency, { workflowId }); }
-    catch (error) { if (!isDuplicateWorkflowStartError(error, workflowId)) throw error; }
+    try {
+      await this.broker.startWorkflow("listing.recommendationSnapshotFanOut", fanOut, idempotency, {
+        workflowId,
+      });
+    } catch (error) {
+      if (!isDuplicateWorkflowStartError(error, workflowId)) throw error;
+    }
   }
 }
 
-function categoryChanged(plan: import("../scripts/ListingWriteIndexActionScript.js").RecommendationLifecyclePlan): boolean {
+function categoryChanged(
+  plan: import("../scripts/ListingWriteIndexActionScript.js").RecommendationLifecyclePlan,
+): boolean {
   return plan.oldState.categoryIds.join("\0") !== plan.newState.categoryIds.join("\0");
 }
 
@@ -649,10 +859,14 @@ export class RecommendationManualBootstrapWorkflow extends RecommendationWorkflo
   RecommendationManualBootstrapInput,
   { requested: number; status: string }
 > {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("recommendationManualBootstrap")
-  async run(input: RecommendationManualBootstrapInput): Promise<{ requested: number; status: string }> {
+  async run(
+    input: RecommendationManualBootstrapInput,
+  ): Promise<{ requested: number; status: string }> {
     const triggerKey = `schedule-bootstrap:${input.cutoff}`;
     let after: { anchorProductId: string; placement: RecommendationPlacement } | undefined;
     let requested = 0;
@@ -694,10 +908,14 @@ export class RecommendationManualScheduleWorkflow extends RecommendationWorkflow
   RecommendationManualScheduleInput,
   { requested: number; status: string }
 > {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("recommendationManualSchedule")
-  async run(input: RecommendationManualScheduleInput): Promise<{ requested: number; status: string }> {
+  async run(
+    input: RecommendationManualScheduleInput,
+  ): Promise<{ requested: number; status: string }> {
     let state = await this.open(input);
     if (state.status === "BOOTSTRAPPING") {
       await this.startBootstrap(input.context, state.cutoff);
@@ -753,12 +971,9 @@ export class RecommendationManualScheduleWorkflow extends RecommendationWorkflow
     const idempotency = buildContext("recommendationManualBootstrap", context, { cutoff });
     const workflowId = buildIdempotencyKey("listing.recommendationManualBootstrap", idempotency);
     try {
-      await this.broker.startWorkflow(
-        "listing.recommendationManualBootstrap",
-        input,
-        idempotency,
-        { workflowId },
-      );
+      await this.broker.startWorkflow("listing.recommendationManualBootstrap", input, idempotency, {
+        workflowId,
+      });
     } catch (error) {
       if (!isDuplicateWorkflowStartError(error, workflowId)) throw error;
     }
@@ -769,7 +984,11 @@ export class RecommendationManualScheduleWorkflow extends RecommendationWorkflow
     context: RecommendationWorkflowContext,
     params: Parameters<RecommendationMaintenanceRequestPageScript["run"]>[0],
   ) {
-    return Kernel.getInstance().runScript(RecommendationMaintenanceRequestPageScript, params, scriptContext(context));
+    return Kernel.getInstance().runScript(
+      RecommendationMaintenanceRequestPageScript,
+      params,
+      scriptContext(context),
+    );
   }
 
   @WorkflowStep()
@@ -777,7 +996,11 @@ export class RecommendationManualScheduleWorkflow extends RecommendationWorkflow
     context: RecommendationWorkflowContext,
     params: Parameters<RecommendationMaintenanceCompleteScript["run"]>[0],
   ) {
-    return Kernel.getInstance().runScript(RecommendationMaintenanceCompleteScript, params, scriptContext(context));
+    return Kernel.getInstance().runScript(
+      RecommendationMaintenanceCompleteScript,
+      params,
+      scriptContext(context),
+    );
   }
 }
 
@@ -791,7 +1014,9 @@ export class RecommendationGlobalTriggerWorkflow extends RecommendationWorkflowB
   RecommendationGlobalTriggerInput,
   { stores: number }
 > {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+  constructor(@InjectBroker("listing") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Workflow("recommendationGlobalTrigger")
   async run(input: RecommendationGlobalTriggerInput): Promise<{ stores: number }> {
@@ -826,13 +1051,17 @@ export class RecommendationGlobalTriggerWorkflow extends RecommendationWorkflowB
       organizationId: store.organizationId,
       requestId: `recommendation-${input.kind}:${input.bucket}`,
     };
-    const workflowName = input.kind === "calculation"
-      ? "listing.recommendationCalculationTrigger"
-      : "listing.recommendationManualSchedule";
-    const workflowInput = input.kind === "calculation"
-      ? { context, bucket: input.bucket }
-      : { context, toBoundary: input.bucket };
-    const idempotency = buildContext(`recommendation-${input.kind}`, context, { bucket: input.bucket });
+    const workflowName =
+      input.kind === "calculation"
+        ? "listing.recommendationCalculationTrigger"
+        : "listing.recommendationManualSchedule";
+    const workflowInput =
+      input.kind === "calculation"
+        ? { context, bucket: input.bucket }
+        : { context, toBoundary: input.bucket };
+    const idempotency = buildContext(`recommendation-${input.kind}`, context, {
+      bucket: input.bucket,
+    });
     const workflowId = buildIdempotencyKey(workflowName, idempotency);
     try {
       await this.broker.startWorkflow(workflowName, workflowInput, idempotency, { workflowId });

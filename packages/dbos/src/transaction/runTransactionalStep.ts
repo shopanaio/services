@@ -16,10 +16,7 @@ export interface RunTransactionalStepOptions<TDatabase> {
   readonly name?: string;
   readonly isolationLevel?: PostgresTransactionOptions["isolationLevel"];
   readonly txManager: () => TransactionManagerLike<TDatabase>;
-  readonly bridge: () => DbosTransactionBridge<
-    TDatabase,
-    PostgresTransactionOptions
-  >;
+  readonly bridge: () => DbosTransactionBridge<TDatabase, PostgresTransactionOptions>;
 }
 
 /**

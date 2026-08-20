@@ -19,9 +19,7 @@ const authorizationRequestSchema = z
 export const batchAuthorizeInputSchema = z
   .object({
     organizationId: z.string().uuid("Invalid organization ID"),
-    requests: z
-      .array(authorizationRequestSchema)
-      .min(1, "At least one request is required"),
+    requests: z.array(authorizationRequestSchema).min(1, "At least one request is required"),
   })
   .strict();
 

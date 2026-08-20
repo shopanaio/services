@@ -45,14 +45,13 @@ export class CatalogEventHandlers extends EventHandlers {
   }
 
   private async getStoreContext(storeId: string): Promise<ContextStore> {
-    const result = await this.broker.call<
-      GetStoreByIdResult,
-      { id: string }
-    >("project.getStoreById", { id: storeId });
+    const result = await this.broker.call<GetStoreByIdResult, { id: string }>(
+      "project.getStoreById",
+      { id: storeId },
+    );
 
     if (!result.store) {
-      const message =
-        result.userErrors[0]?.message ?? `Store with id "${storeId}" not found`;
+      const message = result.userErrors[0]?.message ?? `Store with id "${storeId}" not found`;
       throw new Error(message);
     }
 
@@ -65,7 +64,7 @@ export class CatalogEventHandlers extends EventHandlers {
   }): Promise<EventHandlerResponse> {
     this.logger.debug(
       { eventId: params.event.eventId, productId: params.event.payload.productId },
-      "Received productCreated event"
+      "Received productCreated event",
     );
 
     try {
@@ -74,7 +73,7 @@ export class CatalogEventHandlers extends EventHandlers {
       return this.handleSingleError(
         error,
         "Failed to handle productCreated event",
-        params.event.payload.productId
+        params.event.payload.productId,
       );
     }
   }
@@ -89,7 +88,7 @@ export class CatalogEventHandlers extends EventHandlers {
         eventCount: params.events.length,
         productIds: params.payloads.map((payload) => payload.productId),
       },
-      "Received productCreated event batch"
+      "Received productCreated event batch",
     );
 
     const result: BatchProcessingResult = { failedEventIds: [], errors: [] };
@@ -103,7 +102,7 @@ export class CatalogEventHandlers extends EventHandlers {
   }): Promise<EventHandlerResponse> {
     this.logger.debug(
       { eventId: params.event.eventId, productId: params.event.payload.productId },
-      "Received productDeleted event"
+      "Received productDeleted event",
     );
 
     const errors: string[] = [];
@@ -130,7 +129,7 @@ export class CatalogEventHandlers extends EventHandlers {
       return this.handleSingleError(
         error,
         "Failed to handle productDeleted event",
-        params.event.payload.productId
+        params.event.payload.productId,
       );
     }
   }
@@ -145,7 +144,7 @@ export class CatalogEventHandlers extends EventHandlers {
         eventCount: params.events.length,
         productIds: params.payloads.map((payload) => payload.productId),
       },
-      "Received productDeleted event batch"
+      "Received productDeleted event batch",
     );
 
     const result = await this.deleteProductEventBatch(params.events);
@@ -159,7 +158,7 @@ export class CatalogEventHandlers extends EventHandlers {
   }): Promise<EventHandlerResponse> {
     this.logger.debug(
       { eventId: params.event.eventId, productId: params.event.payload.productId },
-      "Received productUpdated event"
+      "Received productUpdated event",
     );
 
     const errors: string[] = [];
@@ -178,7 +177,7 @@ export class CatalogEventHandlers extends EventHandlers {
       return this.handleSingleError(
         error,
         "Failed to handle productUpdated event",
-        params.event.payload.productId
+        params.event.payload.productId,
       );
     }
   }
@@ -193,7 +192,7 @@ export class CatalogEventHandlers extends EventHandlers {
         eventCount: params.events.length,
         productIds: params.payloads.map((payload) => payload.productId),
       },
-      "Received productUpdated event batch"
+      "Received productUpdated event batch",
     );
 
     const result = await this.processProductUpdatedEvents(params.events);
@@ -201,11 +200,14 @@ export class CatalogEventHandlers extends EventHandlers {
   }
 
   private async processProductUpdatedEvents(
-    events: readonly ProductUpdatedEvent[]
+    events: readonly ProductUpdatedEvent[],
   ): Promise<BatchProcessingResult> {
     const result: BatchProcessingResult = { failedEventIds: [], errors: [] };
 
-    for (const storeEvents of groupEventsByStore(events, (event) => event.payload.storeId).values()) {
+    for (const storeEvents of groupEventsByStore(
+      events,
+      (event) => event.payload.storeId,
+    ).values()) {
       const firstEvent = storeEvents[0];
       if (!firstEvent) continue;
 
@@ -225,11 +227,14 @@ export class CatalogEventHandlers extends EventHandlers {
   }
 
   private async deleteProductEventBatch(
-    events: readonly ProductDeletedEvent[]
+    events: readonly ProductDeletedEvent[],
   ): Promise<BatchProcessingResult> {
     const result: BatchProcessingResult = { failedEventIds: [], errors: [] };
 
-    for (const storeEvents of groupEventsByStore(events, (event) => event.payload.storeId).values()) {
+    for (const storeEvents of groupEventsByStore(
+      events,
+      (event) => event.payload.storeId,
+    ).values()) {
       const firstEvent = storeEvents[0];
       if (!firstEvent) continue;
 
@@ -276,7 +281,7 @@ export class CatalogEventHandlers extends EventHandlers {
         defaultCurrency: params.store.currencyCode,
         locales: [...params.store.locales],
         currencies: [params.store.currencyCode],
-      }
+      },
     );
 
     if (!result.success) {
@@ -290,24 +295,18 @@ export class CatalogEventHandlers extends EventHandlers {
   }): Promise<EventHandlerResponse> {
     const { fileId } = params.event.payload;
 
-    this.logger.debug(
-      { eventId: params.event.eventId, fileId },
-      "Received fileHardDeleted event"
-    );
+    this.logger.debug({ eventId: params.event.eventId, fileId }, "Received fileHardDeleted event");
 
     try {
       const result = await this.kernel.runScript(FileHardDeletedScript, { fileId });
       this.logger.log(
         { fileId, deletedProductMediaCount: result.deletedProductMediaCount },
-        "Cleaned up product media registry for hard-deleted file"
+        "Cleaned up product media registry for hard-deleted file",
       );
       return { success: true };
     } catch (error) {
       const message = errorMessage(error);
-      this.logger.error(
-        { fileId, error: message },
-        "Failed to clean up product media registry"
-      );
+      this.logger.error({ fileId, error: message }, "Failed to clean up product media registry");
       return { success: false, error: { message, retryable: true } };
     }
   }
@@ -315,7 +314,7 @@ export class CatalogEventHandlers extends EventHandlers {
   private handleSingleError(
     error: unknown,
     logMessage: string,
-    subjectId: string
+    subjectId: string,
   ): EventHandlerResponse {
     const message = errorMessage(error);
     this.logger.error({ error: message, subjectId }, logMessage);
@@ -324,7 +323,7 @@ export class CatalogEventHandlers extends EventHandlers {
 
   private toBatchResponse(
     result: BatchProcessingResult,
-    fallbackMessage: string
+    fallbackMessage: string,
   ): EventBatchHandlerResponse {
     const normalized = dedupeBatchResult(result);
     if (normalized.failedEventIds.length === 0) {
@@ -341,10 +340,7 @@ export class CatalogEventHandlers extends EventHandlers {
     };
   }
 
-  private logBatchFailures(
-    result: BatchProcessingResult,
-    message: string
-  ): void {
+  private logBatchFailures(result: BatchProcessingResult, message: string): void {
     if (result.failedEventIds.length === 0) return;
 
     this.logger.error(
@@ -352,14 +348,14 @@ export class CatalogEventHandlers extends EventHandlers {
         failedEventIds: unique(result.failedEventIds),
         errors: unique(result.errors),
       },
-      message
+      message,
     );
   }
 }
 
 function groupEventsByStore<TEvent extends DomainEvent>(
   events: readonly TEvent[],
-  storeIdOf: (event: TEvent) => string
+  storeIdOf: (event: TEvent) => string,
 ): Map<string, TEvent[]> {
   const groups = new Map<string, TEvent[]>();
 
@@ -376,7 +372,7 @@ function groupEventsByStore<TEvent extends DomainEvent>(
 function markFailed(
   result: BatchProcessingResult,
   events: readonly DomainEvent[],
-  error: unknown
+  error: unknown,
 ): void {
   result.failedEventIds.push(...events.map((event) => event.eventId));
   result.errors.push(errorMessage(error));

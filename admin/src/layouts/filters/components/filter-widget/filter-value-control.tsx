@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { DatePicker, Input, InputNumber, Select, SelectProps, Tag, Tooltip } from 'antd';
-import type { Dayjs } from 'dayjs';
+import { DatePicker, Input, InputNumber, Select, SelectProps, Tag, Tooltip } from "antd";
+import type { Dayjs } from "dayjs";
 import { LuX as CloseOutlined } from "react-icons/lu";
-import { FilterType, FilterOperator, IFilterSchema, IFilterValue } from '../../core/types';
-import { isMultipleValueOperator } from '../../core/operators';
-import { RelationControl } from '../relation-control';
+import { FilterType, FilterOperator, IFilterSchema, IFilterValue } from "../../core/types";
+import { isMultipleValueOperator } from "../../core/operators";
+import { RelationControl } from "../relation-control";
 
 const cropString = (str: string, maxLength: number) => {
   if (str.length <= maxLength) return str;
-  return str.slice(0, maxLength) + '...';
+  return str.slice(0, maxLength) + "...";
 };
 
 export const getUiFilterSelectProps = (
@@ -17,18 +17,16 @@ export const getUiFilterSelectProps = (
   { closable: closableProp = true }: { closable?: boolean } = {},
 ) => {
   return {
-    variant: 'borderless',
+    variant: "borderless",
     suffixIcon: null,
     maxTagCount: 1,
     autoFocus: true,
-    mode: 'multiple',
+    mode: "multiple",
     showSearch: false,
     dropdownStyle: {
       minWidth: 200,
     },
-    style: value?.length
-      ? { width: 'fit-content' }
-      : { width: '100%', minWidth: 80 },
+    style: value?.length ? { width: "fit-content" } : { width: "100%", minWidth: 80 },
 
     tagRender: ({
       label,
@@ -40,25 +38,20 @@ export const getUiFilterSelectProps = (
       closable: boolean;
     }) => {
       return (
-        <Tooltip
-          title={label}
-          mouseEnterDelay={0.5}
-          placement="topLeft"
-          arrow={false}
-        >
+        <Tooltip title={label} mouseEnterDelay={0.5} placement="topLeft" arrow={false}>
           <Tag
             onClose={onClose}
             closable={closable && closableProp}
-            closeIcon={<CloseOutlined style={{ color: 'white' }} />}
+            closeIcon={<CloseOutlined style={{ color: "white" }} />}
             style={{
-              display: 'flex',
-              alignItems: 'center',
+              display: "flex",
+              alignItems: "center",
               gap: 4,
-              margin: '0 2px',
+              margin: "0 2px",
               fontSize: 14,
-              backgroundColor: 'var(--ant-color-text)',
-              color: 'var(--ant-color-bg-container)',
-              borderColor: 'var(--ant-color-text)',
+              backgroundColor: "var(--ant-color-text)",
+              color: "var(--ant-color-bg-container)",
+              borderColor: "var(--ant-color-text)",
             }}
           >
             {cropString(label, 14)}
@@ -90,9 +83,10 @@ export const FilterValueControl = ({
   // Date type
   if (type === FilterType.Date || type === FilterType.DateRange) {
     if (operator === FilterOperator.Between) {
-      const rangeValue = Array.isArray(value) && value.length === 2
-        ? value as [Dayjs | null, Dayjs | null]
-        : [null, null] as [Dayjs | null, Dayjs | null];
+      const rangeValue =
+        Array.isArray(value) && value.length === 2
+          ? (value as [Dayjs | null, Dayjs | null])
+          : ([null, null] as [Dayjs | null, Dayjs | null]);
 
       return (
         <DatePicker.RangePicker
@@ -167,12 +161,12 @@ export const FilterValueControl = ({
     return (
       <Select
         options={[
-          { label: 'True', value: 'true' },
-          { label: 'False', value: 'false' },
+          { label: "True", value: "true" },
+          { label: "False", value: "false" },
         ]}
         placeholder="Select..."
         value={boolValue.map((v) => String(v))}
-        onChange={(v) => onChange(v.map((s: string) => s === 'true'))}
+        onChange={(v) => onChange(v.map((s: string) => s === "true"))}
         maxCount={1}
         {...getUiFilterSelectProps(boolValue)}
       />

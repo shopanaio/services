@@ -17,7 +17,7 @@ export interface RelayPaginationInput {
 }
 
 export function normalizeRelayPagination<TInput extends RelayPaginationInput>(
-  input: TInput
+  input: TInput,
 ): TInput {
   const normalized = { ...input };
 

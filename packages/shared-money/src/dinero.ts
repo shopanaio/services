@@ -22,8 +22,7 @@ const bigintCalculator = {
 const makeDinero = Core.createDinero<bigint>({
   calculator: bigintCalculator,
   onCreate: ({ amount, scale }) => {
-    if (typeof amount !== "bigint")
-      throw new Error("Money amount must be a bigint (minor units).");
+    if (typeof amount !== "bigint") throw new Error("Money amount must be a bigint (minor units).");
     if (scale !== undefined && typeof scale !== "bigint")
       throw new Error("Money scale must be a bigint when provided.");
   },
@@ -39,13 +38,8 @@ const makeDinero = Core.createDinero<bigint>({
  * const usdBigint = currencyToBigint(usdNumber); // Currency<bigint>
  * ```
  */
-function currencyToBigint(
-  cur: CurrencyType<number> | MoneyCurrency,
-): MoneyCurrency {
-  if (
-    (cur as MoneyCurrency).exponent &&
-    typeof (cur as MoneyCurrency).exponent === "bigint"
-  ) {
+function currencyToBigint(cur: CurrencyType<number> | MoneyCurrency): MoneyCurrency {
+  if ((cur as MoneyCurrency).exponent && typeof (cur as MoneyCurrency).exponent === "bigint") {
     return cur as MoneyCurrency;
   }
   const base = Array.isArray(cur.base)
@@ -71,16 +65,12 @@ function currencyToBigint(
  * ```
  */
 function toBigintScaledAmount(
-  factor:
-    | number
-    | bigint
-    | { amount: number | bigint; scale?: number | bigint },
+  factor: number | bigint | { amount: number | bigint; scale?: number | bigint },
 ): bigint | { amount: bigint; scale?: bigint } {
   if (typeof factor === "bigint") return factor;
   if (typeof factor === "number") return BigInt(factor);
   return {
-    amount:
-      typeof factor.amount === "bigint" ? factor.amount : BigInt(factor.amount),
+    amount: typeof factor.amount === "bigint" ? factor.amount : BigInt(factor.amount),
     scale:
       factor.scale === undefined
         ? undefined
@@ -135,15 +125,9 @@ export class Money {
    * const price = Money.fromMinor(199n, "USD");
    * ```
    */
-  static fromMinor(
-    amountMinor: bigint,
-    currencyCode: string = "USD",
-    scale?: bigint,
-  ): Money {
+  static fromMinor(amountMinor: bigint, currencyCode: string = "USD", scale?: bigint): Money {
     const code = currencyCode.toUpperCase();
-    const currencyNumber = (Currencies as Record<string, CurrencyType<number>>)[
-      code
-    ];
+    const currencyNumber = (Currencies as Record<string, CurrencyType<number>>)[code];
     if (!currencyNumber) {
       throw new Error(`Unsupported currency code: ${currencyCode}`);
     }
@@ -201,9 +185,7 @@ export class Money {
    * Restores Money from snapshot.
    * Supports both old BigInt Dinero snapshot and new JSON-safe MoneySnapshot.
    */
-  static fromJSON(
-    snapshot: MoneySnapshot | Core.DineroSnapshot<bigint>,
-  ): Money {
+  static fromJSON(snapshot: MoneySnapshot | Core.DineroSnapshot<bigint>): Money {
     const s: any = snapshot as any;
     // New format: strings
     if (typeof s.amount === "string") {
@@ -272,12 +254,7 @@ export class Money {
    * a.multiply({ amount: 15, scale: 2 }).amountMinor() // *1.5 → 150n
    * ```
    */
-  multiply(
-    factor:
-      | number
-      | bigint
-      | { amount: number | bigint; scale?: number | bigint },
-  ): Money {
+  multiply(factor: number | bigint | { amount: number | bigint; scale?: number | bigint }): Money {
     return new Money(mulFn(this.value, toBigintScaledAmount(factor)));
   }
 
@@ -348,11 +325,7 @@ export class Money {
   toRoundedUnit(roundingMode: Core.DivideOperation = Core.halfEven): string {
     const snap = this.value.toJSON();
 
-    const rounded = transformScaleFn(
-      this.value,
-      snap.currency.exponent,
-      roundingMode,
-    );
+    const rounded = transformScaleFn(this.value, snap.currency.exponent, roundingMode);
 
     return toDecimalFn(rounded) as string;
   }
@@ -370,11 +343,7 @@ export class Money {
    */
   toFloat(): number {
     const snap = this.value.toJSON();
-    const scaled = transformScaleFn(
-      this.value,
-      snap.currency.exponent,
-      Core.halfEven,
-    );
+    const scaled = transformScaleFn(this.value, snap.currency.exponent, Core.halfEven);
     const decimal = toDecimalFn(scaled) as string;
     return Number.parseFloat(decimal);
   }

@@ -1,31 +1,12 @@
 "use client";
 
-import {
-  App,
-  Button,
-  Divider,
-  Dropdown,
-  Flex,
-  Segmented,
-  Switch,
-  Tag,
-  Typography,
-} from "antd";
-import {
-  LuArchive,
-  LuCirclePause,
-  LuCirclePlay,
-  LuEllipsis,
-  LuPencil,
-} from "react-icons/lu";
+import { App, Button, Divider, Dropdown, Flex, Segmented, Switch, Tag, Typography } from "antd";
+import { LuArchive, LuCirclePause, LuCirclePlay, LuEllipsis, LuPencil } from "react-icons/lu";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { DiscountStatusTag } from "../discount-status-tag";
-import {
-  DiscountEffectiveStatus,
-  DiscountState,
-} from "@/graphql/types";
+import { DiscountEffectiveStatus, DiscountState } from "@/graphql/types";
 import { useUpdateDiscount } from "../../../hooks";
 import { useDiscountSummaryStyles } from "../discount-details-card.styles";
 import {
@@ -66,9 +47,7 @@ export function DiscountSummarySection({
   const title = discount.title ?? discount.primaryCode ?? "Untitled discount";
   const isArchived = discount.state === DiscountState.Archived;
   const nextState =
-    discount.state === DiscountState.Active
-      ? DiscountState.Paused
-      : DiscountState.Active;
+    discount.state === DiscountState.Active ? DiscountState.Paused : DiscountState.Active;
   const statusActionLabel =
     nextState === DiscountState.Active ? "Activate discount" : "Pause discount";
 
@@ -93,30 +72,21 @@ export function DiscountSummarySection({
         return;
       }
 
-      message.success(
-        state === DiscountState.Active
-          ? "Discount activated"
-          : "Discount paused",
-      );
+      message.success(state === DiscountState.Active ? "Discount activated" : "Discount paused");
       await onRefresh?.();
     })();
   };
-  const redemptionAmounts = discount.redemptions.edges.map(
-    ({ node }) => Number(node.amountMinor),
-  ).filter(
-    (amount) => Number.isFinite(amount),
-  );
+  const redemptionAmounts = discount.redemptions.edges
+    .map(({ node }) => Number(node.amountMinor))
+    .filter((amount) => Number.isFinite(amount));
   const averageAmount =
     redemptionAmounts.length > 0
       ? Math.round(
-          redemptionAmounts.reduce((sum, value) => sum + value, 0) /
-            redemptionAmounts.length,
+          redemptionAmounts.reduce((sum, value) => sum + value, 0) / redemptionAmounts.length,
         )
       : null;
   const discountedSales =
-    averageAmount == null
-      ? null
-      : averageAmount * discount.redemptions.totalCount;
+    averageAmount == null ? null : averageAmount * discount.redemptions.totalCount;
   const averageDiscount = (() => {
     const rule = discount.rule;
     if (!rule) return "—";
@@ -127,18 +97,13 @@ export function DiscountSummarySection({
       return formatDiscountMoney(rule.amountMinor, currency);
     }
     if (rule.__typename === "DiscountFreeShippingRule") {
-      return averageAmount == null
-        ? "—"
-        : formatDiscountMoney(averageAmount, currency);
+      return averageAmount == null ? "—" : formatDiscountMoney(averageAmount, currency);
     }
     return "—";
   })();
   const statusTitle = (
     <Flex align="center" gap={8} wrap>
-      <DiscountStatusTag
-        status={discount.effectiveStatus}
-        className={styles.statusTag}
-      />
+      <DiscountStatusTag status={discount.effectiveStatus} className={styles.statusTag} />
       <Typography.Text type="secondary" className={styles.metaText}>
         {discount.effectiveStatus === DiscountEffectiveStatus.Draft
           ? `Created ${formatDiscountDate(discount.createdAt)}`
@@ -164,8 +129,7 @@ export function DiscountSummarySection({
                           key: "edit-general-settings",
                           label: "Edit general settings",
                           icon: <LuPencil />,
-                          "data-testid":
-                            "discount-edit-general-settings-menu-item",
+                          "data-testid": "discount-edit-general-settings-menu-item",
                           onClick: onEdit,
                         },
                       ]
@@ -176,8 +140,7 @@ export function DiscountSummarySection({
                           key: "edit-value-targets",
                           label: "Edit value, targets & requirements",
                           icon: <LuPencil />,
-                          "data-testid":
-                            "discount-edit-value-targets-menu-item",
+                          "data-testid": "discount-edit-value-targets-menu-item",
                           onClick: onEditValueTargets,
                         },
                       ]
@@ -185,12 +148,7 @@ export function DiscountSummarySection({
                   {
                     key: "change-status",
                     label: statusActionLabel,
-                    icon:
-                      nextState === DiscountState.Active ? (
-                        <LuCirclePlay />
-                      ) : (
-                        <LuCirclePause />
-                      ),
+                    icon: nextState === DiscountState.Active ? <LuCirclePlay /> : <LuCirclePause />,
                     disabled: statusUpdating,
                     "data-testid": "discount-change-status-menu-item",
                     onClick: () => updateStatus(nextState),
@@ -229,10 +187,7 @@ export function DiscountSummarySection({
           {title}
         </Typography.Title>
         <Flex align="center" gap={8} className={styles.chips}>
-          <IdentityChip
-            label="Method"
-            value={formatDiscountMethod(discount.method)}
-          />
+          <IdentityChip label="Method" value={formatDiscountMethod(discount.method)} />
           <IdentityChip label="Type" value={formatDiscountKind(discount.kind)} />
           <CopyableChip
             label="ID"
@@ -246,12 +201,7 @@ export function DiscountSummarySection({
 
       <Divider className={styles.divider} />
 
-      <Flex
-        align="center"
-        justify="space-between"
-        gap={12}
-        className={styles.summaryControls}
-      >
+      <Flex align="center" justify="space-between" gap={12} className={styles.summaryControls}>
         <Segmented
           size="small"
           value="7 days"
@@ -265,14 +215,8 @@ export function DiscountSummarySection({
       </Flex>
 
       <div className={styles.kpiGrid}>
-        <KPITile
-          label="Orders"
-          value={formatDiscountCount(discount.redemptions.totalCount)}
-        />
-        <KPITile
-          label="Uses"
-          value={formatDiscountCount(discount.usage.consumedCount)}
-        />
+        <KPITile label="Orders" value={formatDiscountCount(discount.redemptions.totalCount)} />
+        <KPITile label="Uses" value={formatDiscountCount(discount.usage.consumedCount)} />
         <KPITile
           label="Discounted sales"
           value={
@@ -285,10 +229,7 @@ export function DiscountSummarySection({
                 }).format(discountedSales / 100)
           }
         />
-        <KPITile
-          label="Avg. discount"
-          value={averageDiscount}
-        />
+        <KPITile label="Avg. discount" value={averageDiscount} />
       </div>
     </Paper>
   );

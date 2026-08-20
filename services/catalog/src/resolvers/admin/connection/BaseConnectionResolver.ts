@@ -63,7 +63,7 @@ export abstract class BaseConnectionResolver<TArgs = unknown> extends CatalogTyp
       (edgesData ?? []).map(async (edge) => ({
         cursor: edge.cursor,
         node: await this.createNodeResolver(edge.nodeId),
-      }))
+      })),
     );
   }
 

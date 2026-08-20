@@ -1,31 +1,21 @@
-import {
-  uuid,
-  text,
-  timestamp,
-  integer,
-  jsonb,
-  boolean,
-  index,
-} from "drizzle-orm/pg-core";
+import { uuid, text, timestamp, integer, jsonb, boolean, index } from "drizzle-orm/pg-core";
 import { catalogSchema } from "./schema";
 import { bulkEditJob } from "./bulkEditJobs";
 
-export const bulkEditItemStatusEnum = catalogSchema.enum(
-  "bulk_edit_item_status",
-  [
-    "PENDING",
-    "RUNNING",
-    "SUCCEEDED",
-    "FAILED",
-    "CANCELLED",
-    "SUPERSEDED",
-  ]
-);
+export const bulkEditItemStatusEnum = catalogSchema.enum("bulk_edit_item_status", [
+  "PENDING",
+  "RUNNING",
+  "SUCCEEDED",
+  "FAILED",
+  "CANCELLED",
+  "SUPERSEDED",
+]);
 
-export const bulkEditCancelReasonEnum = catalogSchema.enum(
-  "bulk_edit_cancel_reason",
-  ["USER", "SUPERSEDED", "SYSTEM"]
-);
+export const bulkEditCancelReasonEnum = catalogSchema.enum("bulk_edit_cancel_reason", [
+  "USER",
+  "SUPERSEDED",
+  "SYSTEM",
+]);
 
 export const bulkEditItem = catalogSchema.table(
   "bulk_edit_item",
@@ -54,15 +44,11 @@ export const bulkEditItem = catalogSchema.table(
     index("bulk_edit_item_store_product_status_idx").on(
       table.storeId,
       table.productId,
-      table.status
+      table.status,
     ),
-    index("bulk_edit_item_job_chunk_op_idx").on(
-      table.jobId,
-      table.chunkIndex,
-      table.opIndex
-    ),
+    index("bulk_edit_item_job_chunk_op_idx").on(table.jobId, table.chunkIndex, table.opIndex),
     index("bulk_edit_item_job_status_idx").on(table.jobId, table.status),
-  ]
+  ],
 );
 
 export type BulkEditItem = typeof bulkEditItem.$inferSelect;

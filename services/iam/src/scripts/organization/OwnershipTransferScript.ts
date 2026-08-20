@@ -1,9 +1,4 @@
-import {
-  BaseScript,
-  ZodSchema,
-  Transactional,
-  ValidationError,
-} from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, Transactional, ValidationError } from "../../kernel/BaseScript.js";
 import { AuthorizationError } from "@shopana/shared-kernel";
 import {
   ownershipTransferInputSchema,
@@ -23,17 +18,12 @@ export class OwnershipTransferScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(ownershipTransferInputSchema)
-  protected async execute(
-    params: OwnershipTransferParams
-  ): Promise<OwnershipTransferResult> {
+  protected async execute(params: OwnershipTransferParams): Promise<OwnershipTransferResult> {
     const { organizationId, newOwnerId } = params;
     const currentUserId = this.currentUser.id;
 
     // Check if current user is owner
-    const isOwner = await this.repository.organization.isOwner(
-      organizationId,
-      currentUserId
-    );
+    const isOwner = await this.repository.organization.isOwner(organizationId, currentUserId);
 
     if (!isOwner) {
       return {
@@ -52,7 +42,7 @@ export class OwnershipTransferScript extends BaseScript<
     const newOwnerRole = await this.repository.organization.findUserRole(
       organizationId,
       newOwnerId,
-      "org"
+      "org",
     );
 
     if (!newOwnerRole) {
@@ -69,11 +59,7 @@ export class OwnershipTransferScript extends BaseScript<
     }
 
     // Get role details to check if admin
-    const roleRecord = await this.repository.organization.findRole(
-      organizationId,
-      "org",
-      "admin"
-    );
+    const roleRecord = await this.repository.organization.findRole(organizationId, "org", "admin");
 
     if (!roleRecord || newOwnerRole.roleId !== roleRecord.id) {
       return {
@@ -89,10 +75,7 @@ export class OwnershipTransferScript extends BaseScript<
     }
 
     // Transfer ownership
-    const result = await this.repository.organization.transferOwnership(
-      organizationId,
-      newOwnerId
-    );
+    const result = await this.repository.organization.transferOwnership(organizationId, newOwnerId);
 
     if (!result.success) {
       return {

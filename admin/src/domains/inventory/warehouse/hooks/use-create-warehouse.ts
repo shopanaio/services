@@ -9,10 +9,7 @@ import type {
   WarehouseCreateMutationVariables,
   WarehousesQueryVariables,
 } from "../graphql";
-import {
-  mapCreateWarehouseFormToInput,
-  type CreateWarehouseInput,
-} from "../mappers";
+import { mapCreateWarehouseFormToInput, type CreateWarehouseInput } from "../mappers";
 
 export type { CreateWarehouseInput };
 
@@ -82,8 +79,7 @@ export function useCreateWarehouse(): UseCreateWarehouseReturn {
           userErrors: [],
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
 
         return {
           warehouse: null,

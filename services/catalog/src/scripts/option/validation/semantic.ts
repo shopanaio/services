@@ -62,7 +62,7 @@ function validateValues(
   values: ValidatedValueInput[],
   optionArrayIdx: number,
   globalValueIds: Set<string>,
-  errors: UserError[]
+  errors: UserError[],
 ): void {
   const localSlugs = new Set<string>();
   const localIndexes = new Set<number>();

@@ -7,13 +7,9 @@ import type { ExternalMedia } from "../../repositories/models/index.js";
  */
 export class ExternalDataResolver extends MediaType<string, ExternalMedia> {
   async $preload() {
-    const externalMedia = await this.$ctx.loaders.externalMedia.load(
-      this.$props
-    );
+    const externalMedia = await this.$ctx.loaders.externalMedia.load(this.$props);
     if (!externalMedia) {
-      throw new PreloadNotFoundError(
-        `External media not found for file: ${this.$props}`
-      );
+      throw new PreloadNotFoundError(`External media not found for file: ${this.$props}`);
     }
     return externalMedia;
   }

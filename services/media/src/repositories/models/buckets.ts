@@ -1,12 +1,4 @@
-import {
-  uuid,
-  varchar,
-  text,
-  timestamp,
-  integer,
-  index,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { uuid, varchar, text, timestamp, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { mediaSchema } from "./schema";
 
@@ -34,7 +26,7 @@ export const buckets = mediaSchema.table(
     index("idx_buckets_status")
       .on(table.status)
       .where(sql`deleted_at IS NULL`),
-  ]
+  ],
 );
 
 export type Bucket = typeof buckets.$inferSelect;

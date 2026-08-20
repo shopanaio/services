@@ -16,23 +16,18 @@ import { compileEligibleFacetIdsSql } from "../../facet/facetScopes.js";
 
 const PRODUCT_FACET_VARIANT_BASE_KEY = "__product_facet_variant_base__";
 
-export function compileFacetsWithCountsQuerySql(
-  request: ListingSqlRequest
-): SQL {
+export function compileFacetsWithCountsQuerySql(request: ListingSqlRequest): SQL {
   const selectedValues = [
-    ...request.request.filterPlan.productFacetGroups.flatMap((group) =>
-      group.valueKeys
-    ),
-    ...request.request.filterPlan.optionFacetGroups.flatMap((group) =>
-      group.valueKeys
-    ),
+    ...request.request.filterPlan.productFacetGroups.flatMap((group) => group.valueKeys),
+    ...request.request.filterPlan.optionFacetGroups.flatMap((group) => group.valueKeys),
   ];
-  const selectedValuesCte = selectedValues.length > 0
-    ? sql`SELECT value_key FROM (VALUES ${sql.join(
-        [...new Set(selectedValues)].sort().map((value) => sql`(${value}::text)`),
-        sql`, `
-      )}) AS selected(value_key)`
-    : sql`SELECT NULL::text AS value_key WHERE false`;
+  const selectedValuesCte =
+    selectedValues.length > 0
+      ? sql`SELECT value_key FROM (VALUES ${sql.join(
+          [...new Set(selectedValues)].sort().map((value) => sql`(${value}::text)`),
+          sql`, `,
+        )}) AS selected(value_key)`
+      : sql`SELECT NULL::text AS value_key WHERE false`;
   const sharedPriceBitmap = request.request.filterPlan.priceRange
     ? sql`(SELECT bitmap FROM price_variant_candidates)`
     : undefined;
@@ -42,10 +37,7 @@ export function compileFacetsWithCountsQuerySql(
         SELECT ${compilePriceVariantBitmapSql(request)} AS bitmap
       )`
     : sql``;
-  const optionFacetBasesCte = compileOptionFacetBasesCte(
-    request,
-    sharedPriceBitmap
-  );
+  const optionFacetBasesCte = compileOptionFacetBasesCte(request, sharedPriceBitmap);
   const productFacetBasesCte = compileProductFacetBasesCte(request);
   const productFacetProjectionInput = hasVariantPredicate(request)
     ? sql`
@@ -379,12 +371,10 @@ export function compileFacetsWithCountsQuerySql(
 
 function compileOptionFacetBasesCte(
   request: ListingSqlRequest,
-  sharedPriceBitmap: SQL | undefined
+  sharedPriceBitmap: SQL | undefined,
 ): SQL {
   const facetIds = [
-    ...new Set(
-      request.request.filterPlan.optionFacetGroups.map((group) => group.facetId)
-    ),
+    ...new Set(request.request.filterPlan.optionFacetGroups.map((group) => group.facetId)),
   ].sort();
   if (facetIds.length === 0) {
     return sql`,
@@ -393,14 +383,16 @@ function compileOptionFacetBasesCte(
         WHERE false
       )`;
   }
-  const rows = facetIds.map((facetId) => sql`
+  const rows = facetIds.map(
+    (facetId) => sql`
     SELECT
       ${facetId}::text AS facet_id,
       ${compileVariantCandidatesBitmapSql(request, {
         excludeGroupKey: `option:${facetId}`,
         priceBitmapSql: sharedPriceBitmap,
       })} AS bitmap
-  `);
+  `,
+  );
   return sql`,
     option_facet_bases AS MATERIALIZED (
       ${sql.join(rows, sql` UNION ALL `)}
@@ -409,9 +401,7 @@ function compileOptionFacetBasesCte(
 
 function compileProductFacetBasesCte(request: ListingSqlRequest): SQL {
   const facetIds = [
-    ...new Set(
-      request.request.filterPlan.productFacetGroups.map((group) => group.facetId)
-    ),
+    ...new Set(request.request.filterPlan.productFacetGroups.map((group) => group.facetId)),
   ].sort();
   if (facetIds.length === 0) {
     return sql`,
@@ -420,13 +410,15 @@ function compileProductFacetBasesCte(request: ListingSqlRequest): SQL {
         WHERE false
       )`;
   }
-  const rows = facetIds.map((facetId) => sql`
+  const rows = facetIds.map(
+    (facetId) => sql`
     SELECT
       ${facetId}::text AS facet_id,
       ${compileProductBaseBitmapSql(request, {
         excludeProductFacetId: facetId,
       })} AS bitmap
-  `);
+  `,
+  );
   return sql`,
     product_facet_bases AS MATERIALIZED (
       ${sql.join(rows, sql` UNION ALL `)}

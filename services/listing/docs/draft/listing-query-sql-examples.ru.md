@@ -6,12 +6,10 @@
 - `services/listing/docs/listing-index-db-schema.ru.md`
 - `services/listing/docs/listing-posting-list-search-engine-index.ru.md`
 
-Цель - зафиксировать типовые SQL shapes для storefront listing после перехода
-на PostgreSQL roaring posting index. Старый row-based подход с
-`listing_posting_bitmap.product_id`, `variant_id`, `facet_id` и
-`facet_value_id` больше не используется: `listing.listing_posting_bitmap`
-хранит compressed `roaringbitmap` rows keyed by
-`store_id + entity_type + field + value_key`.
+Цель - зафиксировать типовые SQL shapes для storefront listing после перехода на PostgreSQL roaring
+posting index. Старый row-based подход с `listing_posting_bitmap.product_id`, `variant_id`,
+`facet_id` и `facet_value_id` больше не используется: `listing.listing_posting_bitmap` хранит
+compressed `roaringbitmap` rows keyed by `store_id + entity_type + field + value_key`.
 
 ## Общие правила
 
@@ -23,22 +21,21 @@
 - `:first` - page size;
 - `:firstPlusOne` - `:first + 1` для cursor pagination без `totalCount`;
 - `:zeroManualScopeId` - zero UUID для sort rows без manual scope;
-- `:...ValueKey` для facet postings уже normalized как
-  `<facet_id>:<facet_value_id>`;
+- `:...ValueKey` для facet postings уже normalized как `<facet_id>:<facet_value_id>`;
 - cursor pagination добавляет keyset predicates по тем же sort keys;
 - storefront query всегда работает только внутри одного `store_id`;
 - raw source handles на read path не используются;
-- `price` и `in_stock` являются virtual facets и не представлены generic
-  rows в `listing.listing_posting_bitmap`;
-- page collector возвращает `product_doc_id`, `product_id` и sort keys, а
-  hydration карточек товара выполняется отдельным batch pipeline.
-- для краткости SQL snippets предполагают, что referenced posting rows
-  существуют. Реальный query builder должен трактовать missing value posting
-  как empty bitmap: внутри OR-группы он просто не добавляет matches, а весь
-  required filter group становится empty только когда missing/empty все
+- `price` и `in_stock` являются virtual facets и не представлены generic rows в
+  `listing.listing_posting_bitmap`;
+- page collector возвращает `product_doc_id`, `product_id` и sort keys, а hydration карточек товара
+  выполняется отдельным batch pipeline.
+- для краткости SQL snippets предполагают, что referenced posting rows существуют. Реальный query
+  builder должен трактовать missing value posting как empty bitmap: внутри OR-группы он просто не
+  добавляет matches, а весь required filter group становится empty только когда missing/empty все
   выбранные values этой группы.
 
-Runtime code использует `pg_roaringbitmap` напрямую. Без промежуточных project-owned функций поверх extension API.
+Runtime code использует `pg_roaringbitmap` напрямую. Без промежуточных project-owned функций поверх
+extension API.
 
 ```sql
 rb_build_agg(doc_id int) -> roaringbitmap
@@ -52,18 +49,15 @@ bitmap roaringbitmap @> doc_id int -> boolean
 rb_iterate(bitmap roaringbitmap) -> setof int
 ```
 
-Для projection variant bitmap -> product bitmap ниже используется query-builder
-macro:
+Для projection variant bitmap -> product bitmap ниже используется query-builder macro:
 
-- `project_variant_bitmap_to_products(variant_bitmap)` - generated projection
-  block из `listing.listing_posting_variant_storeion_block`, который
-  возвращает product bitmap. Для узких sets допустим fallback через
-  `rb_iterate` + `variant_listing_index`, но broad option filters
+- `project_variant_bitmap_to_products(variant_bitmap)` - generated projection block из
+  `listing.listing_posting_variant_storeion_block`, который возвращает product bitmap. Для узких
+  sets допустим fallback через `rb_iterate` + `variant_listing_index`, но broad option filters
   должны использовать projection blocks.
 
-Этот macro не является DDL-именем функции. Implementation должен inline-ить SQL
-projection block в generated query; не создавать helper function без отдельного
-schema decision.
+Этот macro не является DDL-именем функции. Implementation должен inline-ить SQL projection block в
+generated query; не создавать helper function без отдельного schema decision.
 
 Условный inline shape для macro:
 
@@ -161,9 +155,8 @@ FROM brand_filter
 CROSS JOIN material_filter;
 ```
 
-Global published scope может быть отдельным product posting row, если sync
-pipeline поддерживает такой physical index. Если такого row нет, query builder
-строит bitmap из `product_listing_index`:
+Global published scope может быть отдельным product posting row, если sync pipeline поддерживает
+такой physical index. Если такого row нет, query builder строит bitmap из `product_listing_index`:
 
 ```sql
 SELECT rb_build_agg(pli.product_doc_id) AS product_bitmap
@@ -183,9 +176,9 @@ WHERE vp.store_id = :storeId
   AND vp.price_minor <= :maxPriceMinor;
 ```
 
-Option-only filtering still needs in-stock semantics. Because `in_stock` is a
-virtual facet and not a default posting row, build the in-stock variant bitmap
-from `variant_listing_index` unless a future controlled physical index is added:
+Option-only filtering still needs in-stock semantics. Because `in_stock` is a virtual facet and not
+a default posting row, build the in-stock variant bitmap from `variant_listing_index` unless a
+future controlled physical index is added:
 
 ```sql
 SELECT rb_build_agg(vli.variant_doc_id) AS variant_bitmap
@@ -196,9 +189,8 @@ WHERE vli.store_id = :storeId
 
 ## 1. Category scope + vendor filter + newest sort
 
-Самый дешевый category PLP path: category scope и vendor filter уже являются
-product bitmaps. Page collector сканирует physical sort rows и проверяет
-membership через оператор `@>`.
+Самый дешевый category PLP path: category scope и vendor filter уже являются product bitmaps. Page
+collector сканирует physical sort rows и проверяет membership через оператор `@>`.
 
 ```sql
 WITH category_scope AS (
@@ -245,15 +237,14 @@ ORDER BY
 LIMIT :first;
 ```
 
-`category_scope` должен содержать только published product docs for storefront
-visibility. Если sync хранит draft rows в scope bitmap, query обязан
-дополнительно AND-ить published/global visibility bitmap.
+`category_scope` должен содержать только published product docs for storefront visibility. Если sync
+хранит draft rows в scope bitmap, query обязан дополнительно AND-ить published/global visibility
+bitmap.
 
 ## 2. Manual collection + product facet filter + manual sort
 
-Manual order хранится как derived sort rows в
-`listing.listing_posting_product_sort`. Product facet filter работает bitmap
-операцией, а не `EXISTS` по row postings.
+Manual order хранится как derived sort rows в `listing.listing_posting_product_sort`. Product facet
+filter работает bitmap операцией, а не `EXISTS` по row postings.
 
 ```sql
 WITH collection_scope AS (
@@ -305,8 +296,8 @@ LIMIT :first;
 
 ## 3. Global listing + several product facets + created sort
 
-Global catalog scope широкий. Если отдельного `all_products/published`
-posting row нет, bitmap строится из `product_listing_index`.
+Global catalog scope широкий. Если отдельного `all_products/published` posting row нет, bitmap
+строится из `product_listing_index`.
 
 ```sql
 WITH global_scope AS (
@@ -371,9 +362,8 @@ FROM matches;
 
 ## 4. Category scope + option filters + newest sort
 
-Option filters должны совпасть на одном in-stock variant. Поэтому OR внутри
-option facet строится на variant bitmaps, а AND между option facets выполняется
-до projection в product docs.
+Option filters должны совпасть на одном in-stock variant. Поэтому OR внутри option facet строится на
+variant bitmaps, а AND между option facets выполняется до projection в product docs.
 
 ```sql
 WITH category_scope AS (
@@ -449,16 +439,14 @@ ORDER BY
 LIMIT :first;
 ```
 
-Variant option posting rows do not replace the virtual `in_stock` predicate.
-When no price filter is active, query builder must add the in-stock variant
-bitmap before projection.
+Variant option posting rows do not replace the virtual `in_stock` predicate. When no price filter is
+active, query builder must add the in-stock variant bitmap before projection.
 
 ## 5. Product filters + product aggregate price sort
 
-Когда нет active option filters и нет price range predicate, `price_asc` /
-`price_desc` могут читать derived product aggregate sort rows. Это ordered
-access path, а не source of truth; source/debug layer остается в
-`product_listing_price_index`.
+Когда нет active option filters и нет price range predicate, `price_asc` / `price_desc` могут читать
+derived product aggregate sort rows. Это ordered access path, а не source of truth; source/debug
+layer остается в `product_listing_price_index`.
 
 ```sql
 WITH category_scope AS (
@@ -503,24 +491,23 @@ ORDER BY
 LIMIT :first;
 ```
 
-Если активен price range или option filter, price sort должен перейти на
-matched variant price collector из следующего раздела.
+Если активен price range или option filter, price sort должен перейти на matched variant price
+collector из следующего раздела.
 
 ## 6. Option filters + price range + matched price ascending sort
 
-Это основной same-variant path: option bitmaps и price bitmap пересекаются на
-`variant_doc_id`, затем результат project-ится в product docs. Page collector
-сканирует `listing_posting_variant_price` в price order и дедуплицирует product
-без смены leading order на `product_id`.
+Это основной same-variant path: option bitmaps и price bitmap пересекаются на `variant_doc_id`,
+затем результат project-ится в product docs. Page collector сканирует
+`listing_posting_variant_price` в price order и дедуплицирует product без смены leading order на
+`product_id`.
 
-SQL ниже показывает correctness/reference shape: он выбирает lowest matching
-variant per product через anti-join и сохраняет итоговый order by price. Для
-runtime hot path, особенно когда у товаров много matching variants, preferred
-strategy - читать `listing_posting_variant_price` ordered chunks по нужному
-price index, проверять membership bitmaps, дедуплицировать `product_id` в
-application layer и продолжать overfetch, пока не набран `:firstPlusOne`.
-Anti-join shape допустим для узких фильтров, diagnostics и fallback, но не
-должен быть единственным planned implementation для high-duplication products.
+SQL ниже показывает correctness/reference shape: он выбирает lowest matching variant per product
+через anti-join и сохраняет итоговый order by price. Для runtime hot path, особенно когда у товаров
+много matching variants, preferred strategy - читать `listing_posting_variant_price` ordered chunks
+по нужному price index, проверять membership bitmaps, дедуплицировать `product_id` в application
+layer и продолжать overfetch, пока не набран `:firstPlusOne`. Anti-join shape допустим для узких
+фильтров, diagnostics и fallback, но не должен быть единственным planned implementation для
+high-duplication products.
 
 ```sql
 WITH base_scope AS (
@@ -623,17 +610,15 @@ SELECT
 FROM page_products pp;
 ```
 
-Для `price_desc` collector использует `idx_listing_posting_variant_price_desc`,
-выбирает highest matching variant per product и меняет order direction на
-`price_minor DESC`. Chunked application dedupe остается preferred hot-path
-strategy для high-duplication products; SQL anti-join остается reference/fallback
-shape.
+Для `price_desc` collector использует `idx_listing_posting_variant_price_desc`, выбирает highest
+matching variant per product и меняет order direction на `price_minor DESC`. Chunked application
+dedupe остается preferred hot-path strategy для high-duplication products; SQL anti-join остается
+reference/fallback shape.
 
 ## 7. Name sort + product and option filters
 
-Locale-dependent name sort должен идти через derived `product_sort` rows
-(`sort_kind = 'name'`), а не через ad hoc join к `product_translation` в hot
-path.
+Locale-dependent name sort должен идти через derived `product_sort` rows (`sort_kind = 'name'`), а
+не через ad hoc join к `product_translation` в hot path.
 
 ```sql
 WITH global_scope AS (
@@ -703,9 +688,8 @@ LIMIT :first;
 
 ## 8. Rule collection + product filters + price descending sort
 
-Rule collection compiler должен перевести rules в bitmap inputs: scope
-bitmaps, product facet bitmaps, vendor bitmaps и, если есть variant rules,
-variant bitmaps before projection.
+Rule collection compiler должен перевести rules в bitmap inputs: scope bitmaps, product facet
+bitmaps, vendor bitmaps и, если есть variant rules, variant bitmaps before projection.
 
 ```sql
 WITH rule_scope AS (
@@ -763,17 +747,15 @@ ORDER BY
 LIMIT :first;
 ```
 
-Product scalar rules that are not represented by posting rows can either use a
-dedicated physical posting field or build a temporary product bitmap from
-`product_listing_index` with `rb_build_agg(product_doc_id)`. Do not
-reintroduce raw handle arrays into listing read path.
+Product scalar rules that are not represented by posting rows can either use a dedicated physical
+posting field or build a temporary product bitmap from `product_listing_index` with
+`rb_build_agg(product_doc_id)`. Do not reintroduce raw handle arrays into listing read path.
 
 ## 9. Search candidates + structured filters + relevance sort
 
-BM25 search is a separate candidate source. It returns product candidates for
-one project/locale/query; listing engine intersects that candidate bitmap with
-structured filters. Relevance sort remains dynamic and reads score from search
-candidate relation.
+BM25 search is a separate candidate source. It returns product candidates for one
+project/locale/query; listing engine intersects that candidate bitmap with structured filters.
+Relevance sort remains dynamic and reads score from search candidate relation.
 
 ```sql
 WITH search_candidates AS (
@@ -850,15 +832,13 @@ ORDER BY
 LIMIT :first;
 ```
 
-Candidate relation must represent all BM25 matches for exact `totalCount` and
-facet counts. Do not feed only top-K search hits into `search_scope` when
-response includes totals or facets.
+Candidate relation must represent all BM25 matches for exact `totalCount` and facet counts. Do not
+feed only top-K search hits into `search_scope` when response includes totals or facets.
 
 ## 10. Cursor page ids without totalCount
 
-Если client не запрашивает `totalCount`, page query читает `:firstPlusOne`
-rows. `hasNextPage` определяется application layer по лишней строке. Bitmap
-cardinality не вызывается.
+Если client не запрашивает `totalCount`, page query читает `:firstPlusOne` rows. `hasNextPage`
+определяется application layer по лишней строке. Bitmap cardinality не вызывается.
 
 ```sql
 WITH matches AS (
@@ -905,16 +885,16 @@ ORDER BY
 LIMIT :firstPlusOne;
 ```
 
-Важно: seek predicate выше намеренно показывает только общий shape. Его нельзя
-копировать в production для nullable sort keys. Production query builder должен
-генерировать NULLS LAST aware predicate для каждого nullable key и покрывать
-курсоры cases, где `published_at IS NULL` и/или fallback key is NULL.
+Важно: seek predicate выше намеренно показывает только общий shape. Его нельзя копировать в
+production для nullable sort keys. Production query builder должен генерировать NULLS LAST aware
+predicate для каждого nullable key и покрывать курсоры cases, где `published_at IS NULL` и/или
+fallback key is NULL.
 
 ## 11. Product facet counts as separate query
 
-Facet counts считаются по product cardinality и full filtered scope, не по
-текущей странице. Isolation rule: для counts конкретного `facet_id` исключаем
-только active filters этого же `facet_id`, но сохраняем остальные filters.
+Facet counts считаются по product cardinality и full filtered scope, не по текущей странице.
+Isolation rule: для counts конкретного `facet_id` исключаем только active filters этого же
+`facet_id`, но сохраняем остальные filters.
 
 Пример считает два product-level facets: brand и material.
 
@@ -985,14 +965,13 @@ SELECT
     AS material_counts;
 ```
 
-Aggregation repository должен ограничивать `*_values` configured storefront
-facet values. Не нужно сканировать все posting rows с `field = 'facet'`.
+Aggregation repository должен ограничивать `*_values` configured storefront facet values. Не нужно
+сканировать все posting rows с `field = 'facet'`.
 
 ## 12. Full listing page: page ids + totalCount + isolated facet counts
 
-Тяжелая форма объединяет page, totalCount и counts. Для production допускается
-разделить ее на несколько SQL statements, если planner хуже оптимизирует
-monolithic CTE.
+Тяжелая форма объединяет page, totalCount и counts. Для production допускается разделить ее на
+несколько SQL statements, если planner хуже оптимизирует monolithic CTE.
 
 ```sql
 WITH base_scope AS (
@@ -1095,10 +1074,9 @@ SELECT
 - totalCount считается по product bitmap;
 - option counts требуют variant-level isolation и projection в product bitmap.
 
-`page_products` ниже повторяет correctness/reference anti-join shape из раздела
-6. Production collector может заменить этот CTE на ordered chunk scan +
-application dedupe, сохранив те же `variant_matches`, `product_matches`, order
-keys и cursor semantics.
+`page_products` ниже повторяет correctness/reference anti-join shape из раздела 6. Production
+collector может заменить этот CTE на ordered chunk scan + application dedupe, сохранив те же
+`variant_matches`, `product_matches`, order keys и cursor semantics.
 
 ```sql
 WITH base_scope AS (
@@ -1225,39 +1203,34 @@ SELECT
     AS color_counts;
 ```
 
-Important nuance for option counts: `color_counts` excludes active color
-filter, but keeps size and price. If product-level filters exist, intersect
-the projected option value products with the product-level base that includes
-those product filters.
+Important nuance for option counts: `color_counts` excludes active color filter, but keeps size and
+price. If product-level filters exist, intersect the projected option value products with the
+product-level base that includes those product filters.
 
 ## Практические правила выбора query shape
 
 - Для category/collection/global scope сначала получить product bitmap.
-- Для product-level facets использовать product posting rows:
-  `entity_type = 'product'`, `field = 'facet'`.
-- Для vendor использовать explicit product posting row:
-  `entity_type = 'product'`, `field = 'vendor'`.
-- Для option facets использовать variant posting rows:
-  `entity_type = 'variant'`, `field = 'facet'`.
+- Для product-level facets использовать product posting rows: `entity_type = 'product'`,
+  `field = 'facet'`.
+- Для vendor использовать explicit product posting row: `entity_type = 'product'`,
+  `field = 'vendor'`.
+- Для option facets использовать variant posting rows: `entity_type = 'variant'`, `field = 'facet'`.
 - OR внутри одного facet выполняется до AND с другими filters.
-- AND между option facets выполняется на `variant_doc_id` до projection, чтобы
-  сохранить same-variant semantics.
-- Price range строится из `listing_posting_variant_price`; generic
-  `field = 'price'` posting row не создается.
-- Если активны option или price predicates и sort идет по price, использовать
-  matched variant price collector. Preferred hot path для high-duplication
-  products - ordered chunk scan по `listing_posting_variant_price` с application
-  dedupe; SQL anti-join использовать как correctness/reference или fallback
-  shape.
-- Для `newest`, `created`, `name`, `manual` и product aggregate price sort
-  использовать `listing_posting_product_sort`.
-- Если client не запрашивает `totalCount`, page query не должен вызывать
-  `rb_cardinality` для полного matches bitmap.
+- AND между option facets выполняется на `variant_doc_id` до projection, чтобы сохранить
+  same-variant semantics.
+- Price range строится из `listing_posting_variant_price`; generic `field = 'price'` posting row не
+  создается.
+- Если активны option или price predicates и sort идет по price, использовать matched variant price
+  collector. Preferred hot path для high-duplication products - ordered chunk scan по
+  `listing_posting_variant_price` с application dedupe; SQL anti-join использовать как
+  correctness/reference или fallback shape.
+- Для `newest`, `created`, `name`, `manual` и product aggregate price sort использовать
+  `listing_posting_product_sort`.
+- Если client не запрашивает `totalCount`, page query не должен вызывать `rb_cardinality` для
+  полного matches bitmap.
 - Facet counts считать отдельным SQL statement, когда это помогает planner-у.
-- Counts всегда считаются по full filtered scope и product cardinality, а не
-  по page ids.
-- Broad variant projection должна идти через projection blocks; не разворачивать
-  все matching variants через `rb_iterate` на hot path.
-- Missing posting row для одного selected value означает empty bitmap только
-  для этого value. Query builder может short-circuit request до page collector,
-  когда required OR-группа целиком empty.
+- Counts всегда считаются по full filtered scope и product cardinality, а не по page ids.
+- Broad variant projection должна идти через projection blocks; не разворачивать все matching
+  variants через `rb_iterate` на hot path.
+- Missing posting row для одного selected value означает empty bitmap только для этого value. Query
+  builder может short-circuit request до page collector, когда required OR-группа целиком empty.

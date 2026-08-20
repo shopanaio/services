@@ -1,14 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import {
-  InjectBroker,
-  ServiceBroker,
-  Workflow,
-} from "@shopana/shared-kernel";
+import { InjectBroker, ServiceBroker, Workflow } from "@shopana/shared-kernel";
 import { MaterializationWorkflowBase } from "./MaterializationWorkflowBase.js";
-import type {
-  EnqueueWorkflowInput,
-  MaterializationWorkflowResult,
-} from "./types.js";
+import type { EnqueueWorkflowInput, MaterializationWorkflowResult } from "./types.js";
 
 @Injectable()
 export class NotificationEnqueueWorkflow extends MaterializationWorkflowBase {
@@ -17,9 +10,7 @@ export class NotificationEnqueueWorkflow extends MaterializationWorkflowBase {
   }
 
   @Workflow("enqueue", { idempotencyStrategy: "client" })
-  async run(
-    input: EnqueueWorkflowInput
-  ): Promise<MaterializationWorkflowResult> {
+  async run(input: EnqueueWorkflowInput): Promise<MaterializationWorkflowResult> {
     const store = readStoreSnapshot(input.data);
     if (store.id !== input.storeId) {
       throw new Error("NOTIFICATION_STORE_SNAPSHOT_MISMATCH");
@@ -42,9 +33,7 @@ export class NotificationEnqueueWorkflow extends MaterializationWorkflowBase {
       },
     });
     const result: MaterializationWorkflowResult = {
-      occurrenceIds: materialized.occurrenceId
-        ? [materialized.occurrenceId]
-        : [],
+      occurrenceIds: materialized.occurrenceId ? [materialized.occurrenceId] : [],
       deliveryIds: materialized.deliveryIds,
       skipped: materialized.skippedReason
         ? [{ key: input.key, reason: materialized.skippedReason }]
@@ -65,9 +54,7 @@ function readStoreSnapshot(data: Record<string, unknown>) {
     typeof store.displayName !== "string" ||
     typeof store.defaultLocale !== "string" ||
     typeof store.timezone !== "string" ||
-    (store.email !== undefined &&
-      store.email !== null &&
-      typeof store.email !== "string")
+    (store.email !== undefined && store.email !== null && typeof store.email !== "string")
   ) {
     throw new Error("NOTIFICATION_DATA_STORE_REQUIRED");
   }

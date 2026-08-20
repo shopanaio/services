@@ -389,7 +389,9 @@ describe("validateDomainPermissions", () => {
       it("should accept multiple actions", () => {
         const result = validateDomainPermissions({
           domain: "org",
-          permissions: [{ resource: "org.members", actions: ["read", "invite", "update", "remove"] }],
+          permissions: [
+            { resource: "org.members", actions: ["read", "invite", "update", "remove"] },
+          ],
         });
         expect(result.success).toBe(true);
       });

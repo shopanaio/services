@@ -13,21 +13,14 @@ interface IOptionsSectionProps {
   actions?: ReactNode;
 }
 
-const SwatchPreview = ({
-  swatch,
-}: {
-  swatch: ApiProductOptionSwatch | null | undefined;
-}) => {
+const SwatchPreview = ({ swatch }: { swatch: ApiProductOptionSwatch | null | undefined }) => {
   const { styles } = useOptionsStyles();
 
   if (!swatch) return null;
 
   if (swatch.swatchType === SwatchType.Color) {
     return (
-      <span
-        className={styles.swatchPreview}
-        style={{ background: swatch.colorOne ?? undefined }}
-      />
+      <span className={styles.swatchPreview} style={{ background: swatch.colorOne ?? undefined }} />
     );
   }
 
@@ -74,37 +67,33 @@ export const OptionsSection = ({ options, actions }: IOptionsSectionProps) => {
       <Flex vertical gap={12}>
         {options.length > 0 ? (
           options.map((option) => (
-              <div key={option.id} className={styles.optionGroup}>
-                <Flex align="center" gap={6} className={styles.optionHeader}>
-                  <TagsOutlined />
-                  <Typography.Text strong className={styles.optionTitle}>
-                    {option.name}
-                  </Typography.Text>
-                  <Typography.Text type="secondary" className={styles.styleTag}>
-                    {option.category.name}
-                  </Typography.Text>
-                </Flex>
-                <Flex gap={4} wrap="wrap">
-                  {option.values?.map((value) => (
-                    <Tag
-                      key={value.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                      }}
-                      icon={
-                        value.swatch ? (
-                          <SwatchPreview swatch={value.swatch} />
-                        ) : null
-                      }
-                    >
-                      {value.name}
-                    </Tag>
-                  ))}
-                </Flex>
-              </div>
-            ))
+            <div key={option.id} className={styles.optionGroup}>
+              <Flex align="center" gap={6} className={styles.optionHeader}>
+                <TagsOutlined />
+                <Typography.Text strong className={styles.optionTitle}>
+                  {option.name}
+                </Typography.Text>
+                <Typography.Text type="secondary" className={styles.styleTag}>
+                  {option.category.name}
+                </Typography.Text>
+              </Flex>
+              <Flex gap={4} wrap="wrap">
+                {option.values?.map((value) => (
+                  <Tag
+                    key={value.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                    icon={value.swatch ? <SwatchPreview swatch={value.swatch} /> : null}
+                  >
+                    {value.name}
+                  </Tag>
+                ))}
+              </Flex>
+            </div>
+          ))
         ) : (
           <div data-testid="product-options-empty-state">
             <EntityDetailsEmptyState

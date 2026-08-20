@@ -41,7 +41,7 @@ export class NameResolver {
    */
   async resolveOrganizationId(
     name: string,
-    loader: (name: string) => Promise<string | null>
+    loader: (name: string) => Promise<string | null>,
   ): Promise<string | null> {
     const cacheKey = this.orgCacheKey(name);
 

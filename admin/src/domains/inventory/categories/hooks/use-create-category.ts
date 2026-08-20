@@ -3,10 +3,7 @@
 import { useMutation } from "@apollo/client/react";
 import { useCallback } from "react";
 import type { ApiCategory, ApiGenericUserError } from "@/graphql/types";
-import {
-  prepareCategoryPayload,
-  type CreateCategoryInput,
-} from "../mappers";
+import { prepareCategoryPayload, type CreateCategoryInput } from "../mappers";
 import { CATEGORY_CREATE_MUTATION } from "../graphql";
 import type {
   CategoryCreateMutationData,
@@ -21,9 +18,7 @@ interface CreateCategoryResult {
 }
 
 interface UseCreateCategoryReturn {
-  createCategory: (
-    input: CreateCategoryInput,
-  ) => Promise<CreateCategoryResult>;
+  createCategory: (input: CreateCategoryInput) => Promise<CreateCategoryResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
@@ -46,8 +41,7 @@ export function useCreateCategory(): UseCreateCategoryReturn {
           },
         });
 
-        const createPayload =
-          createResult.data?.catalogMutation.categoryCreate;
+        const createPayload = createResult.data?.catalogMutation.categoryCreate;
 
         if (createPayload?.userErrors && createPayload.userErrors.length > 0) {
           return {
@@ -61,8 +55,7 @@ export function useCreateCategory(): UseCreateCategoryReturn {
           userErrors: [],
         };
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "An unexpected error occurred";
+        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
 
         return {
           category: null,

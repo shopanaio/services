@@ -29,7 +29,7 @@ const ELK_OPTIONS = {
  */
 const reorderRuleNodesByPriority = (
   nodes: ChartNode[],
-  nodePositions: Map<string, { x: number; y: number }>
+  nodePositions: Map<string, { x: number; y: number }>,
 ): void => {
   const ruleNodeIds = nodes.filter((n) => n.type === "rule").map((n) => n.id);
 
@@ -59,7 +59,11 @@ interface UseColumnLayoutOptions {
   sortMode: RuleSortMode;
 }
 
-export const useColumnLayout = ({ nodes, edges, sortMode }: UseColumnLayoutOptions): ChartNode[] => {
+export const useColumnLayout = ({
+  nodes,
+  edges,
+  sortMode,
+}: UseColumnLayoutOptions): ChartNode[] => {
   const [positionedNodes, setLayoutedNodes] = useState<ChartNode[]>([]);
 
   useEffect(() => {
@@ -74,12 +78,16 @@ export const useColumnLayout = ({ nodes, edges, sortMode }: UseColumnLayoutOptio
       // Source items connect to condition hubs
       const isSourceToConditionHub =
         edge.target.startsWith("hub:cond:") &&
-        (edge.source.startsWith("item:") || edge.source.startsWith("group:") || edge.source.startsWith("component:"));
+        (edge.source.startsWith("item:") ||
+          edge.source.startsWith("group:") ||
+          edge.source.startsWith("component:"));
 
       // Target items receive from action hubs
       const isActionHubToTarget =
         edge.source.startsWith("hub:action:") &&
-        (edge.target.startsWith("item:") || edge.target.startsWith("group:") || edge.target.startsWith("component:"));
+        (edge.target.startsWith("item:") ||
+          edge.target.startsWith("group:") ||
+          edge.target.startsWith("component:"));
 
       if (isSourceToConditionHub) {
         sourceNodeIds.add(edge.source);

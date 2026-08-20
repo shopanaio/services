@@ -1,9 +1,6 @@
 import type { Catalog } from "@shopana/broker-types";
 import { contentRevision } from "./canonicalJson.js";
-import type {
-  CheckoutCatalogRow,
-  ResolvedCheckoutMerchandiseEntry,
-} from "./contracts.js";
+import type { CheckoutCatalogRow, ResolvedCheckoutMerchandiseEntry } from "./contracts.js";
 
 export function aggregateResolvedDemand(
   entries: readonly ResolvedCheckoutMerchandiseEntry[],
@@ -25,16 +22,13 @@ export function buildCheckoutAvailability(
   const sellable = Math.max(
     0,
     row.stocks.reduce(
-      (sum, stock) =>
-        sum + stock.quantityOnHand - stock.reservedQty - stock.unavailableQty,
+      (sum, stock) => sum + stock.quantityOnHand - stock.reservedQty - stock.unavailableQty,
       0,
     ),
   );
   const tracked = row.inventory?.trackInventory ?? false;
-  const continueSellingWhenOutOfStock =
-    row.inventory?.continueSellingWhenOutOfStock ?? false;
-  const available =
-    !tracked || continueSellingWhenOutOfStock || sellable >= aggregateDemand;
+  const continueSellingWhenOutOfStock = row.inventory?.continueSellingWhenOutOfStock ?? false;
+  const available = !tracked || continueSellingWhenOutOfStock || sellable >= aggregateDemand;
   const unavailabilityReason = available
     ? null
     : sellable === 0

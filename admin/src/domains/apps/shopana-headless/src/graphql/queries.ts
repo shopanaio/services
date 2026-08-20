@@ -26,10 +26,7 @@ export const HEADLESS_STOREFRONTS_QUERY = gql`
     }
   }
   ${HEADLESS_STOREFRONT_FIELDS}
-` as TypedDocumentNodeLike<
-  HeadlessStorefrontsQueryData,
-  HeadlessStorefrontsQueryVariables
->;
+` as TypedDocumentNodeLike<HeadlessStorefrontsQueryData, HeadlessStorefrontsQueryVariables>;
 
 export const HEADLESS_STOREFRONT_QUERY = gql`
   query HeadlessStorefront($id: ID!) {
@@ -48,7 +45,4 @@ export const HEADLESS_STOREFRONT_QUERY = gql`
     }
   }
   ${HEADLESS_STOREFRONT_FIELDS}
-` as TypedDocumentNodeLike<
-  HeadlessStorefrontQueryData,
-  HeadlessStorefrontQueryVariables
->;
+` as TypedDocumentNodeLike<HeadlessStorefrontQueryData, HeadlessStorefrontQueryVariables>;

@@ -154,11 +154,9 @@ const updateApplicationSchema = scopeSchema
       value.name !== undefined ||
       value.displayName !== undefined ||
       value.description !== undefined,
-    { message: "At least one application field must be changed" }
+    { message: "At least one application field must be changed" },
   );
-const revisionedScopeSchema = scopeSchema
-  .extend({ expectedRevision: revisionSchema })
-  .strict();
+const revisionedScopeSchema = scopeSchema.extend({ expectedRevision: revisionSchema }).strict();
 const authBrandingPatchSchema = z
   .object({
     displayName: z.string().trim().min(1).max(80).nullable().optional(),
@@ -170,10 +168,7 @@ const authBrandingPatchSchema = z
       .refine((value) => new URL(value).protocol === "https:")
       .nullable()
       .optional(),
-    primaryColor: z
-      .enum(["blue", "indigo", "violet", "emerald"])
-      .nullable()
-      .optional(),
+    primaryColor: z.enum(["blue", "indigo", "violet", "emerald"]).nullable().optional(),
     backgroundColor: z.enum(["white", "slate"]).nullable().optional(),
   })
   .strict();
@@ -206,18 +201,8 @@ const authUpdateSchema = scopeSchema
     emailVerificationRequired: z.boolean().optional(),
     accessTokenTtlSeconds: z.number().int().min(300).max(1800).optional(),
     idTokenTtlSeconds: z.number().int().min(300).max(3600).optional(),
-    refreshTokenTtlSeconds: z
-      .number()
-      .int()
-      .min(86400)
-      .max(2592000)
-      .optional(),
-    sessionTtlSeconds: z
-      .number()
-      .int()
-      .min(86400)
-      .max(2592000)
-      .optional(),
+    refreshTokenTtlSeconds: z.number().int().min(86400).max(2592000).optional(),
+    sessionTtlSeconds: z.number().int().min(86400).max(2592000).optional(),
     branding: authBrandingPatchSchema.optional(),
     defaultLocale: z.literal("en").optional(),
     trustedOrigins: z.array(z.string().min(1).max(2048)).max(100).optional(),
@@ -237,32 +222,24 @@ const authUpdateSchema = scopeSchema
       value.defaultLocale !== undefined ||
       value.trustedOrigins !== undefined ||
       value.emailDelivery !== undefined,
-    { message: "At least one application auth field must be changed" }
+    { message: "At least one application auth field must be changed" },
   );
 const realmEnabledSchema = revisionedScopeSchema.extend({ enabled: z.boolean() }).strict();
 const methodSchema = revisionedScopeSchema
   .extend({
     methodId: z.enum(["password", "email_otp", "phone_otp"]),
-    enabledCapabilities: z
-      .array(z.enum(["sign_in", "sign_up", "password_reset"]))
-      .max(3),
+    enabledCapabilities: z.array(z.enum(["sign_in", "sign_up", "password_reset"])).max(3),
   })
   .strict()
   .superRefine((value, context) => {
-    if (
-      new Set(value.enabledCapabilities).size !==
-      value.enabledCapabilities.length
-    ) {
+    if (new Set(value.enabledCapabilities).size !== value.enabledCapabilities.length) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["enabledCapabilities"],
         message: "Authentication method capabilities must be unique",
       });
     }
-    if (
-      value.methodId !== "password" &&
-      value.enabledCapabilities.includes("password_reset")
-    ) {
+    if (value.methodId !== "password" && value.enabledCapabilities.includes("password_reset")) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["enabledCapabilities"],
@@ -272,9 +249,7 @@ const methodSchema = revisionedScopeSchema
   });
 const replaceAuthMethodsSchema = revisionedScopeSchema
   .extend({
-    enabledMethods: z
-      .array(z.enum(["password", "email_otp", "phone_otp"]))
-      .max(3),
+    enabledMethods: z.array(z.enum(["password", "email_otp", "phone_otp"])).max(3),
   })
   .strict()
   .superRefine((value, context) => {
@@ -311,12 +286,8 @@ const providerRotateSchema = providerSchema
     clientSecret: z.string().min(1).max(8192),
   })
   .strict();
-const userSchema = scopeSchema
-  .extend({ userId: z.string().min(1).max(512) })
-  .strict();
-const unlinkSchema = userSchema
-  .extend({ accountId: z.string().min(1).max(512) })
-  .strict();
+const userSchema = scopeSchema.extend({ userId: z.string().min(1).max(512) }).strict();
+const unlinkSchema = userSchema.extend({ accountId: z.string().min(1).max(512) }).strict();
 
 interface ExistingWriteExecution<TResult> {
   result: TResult;
@@ -344,7 +315,7 @@ interface ExistingWriteInput<TResult> {
   skipAuthorization?: boolean;
   execute(
     scope: ApplicationAuthAdminMutationScope,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ExistingWriteExecution<TResult>>;
 }
 
@@ -365,16 +336,14 @@ export class ApplicationAuthAdminManagementService {
     options: {
       now?: () => Date;
       applicationUserLifecycle?: ApplicationUserLifecyclePort;
-    } = {}
+    } = {},
   ) {
     this.now = options.now ?? (() => new Date());
     this.applicationUserLifecycle = options.applicationUserLifecycle;
   }
 
   isPhoneOtpConfigured(applicationId: string): Promise<boolean> {
-    return this.smsProviderAvailability.isConfiguredForApplication(
-      applicationId
-    );
+    return this.smsProviderAvailability.isConfiguredForApplication(applicationId);
   }
 
   /** Audit a GraphQL-boundary rejection that cannot safely enter a domain method. */
@@ -388,7 +357,7 @@ export class ApplicationAuthAdminManagementService {
       reasonCategory?: ApplicationAuthAdminAuditReasonCategory;
       safeDiff?: ApplicationRealmAdminAuditSafeDiff;
     },
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<void> {
     return this.appendAudit({
       actor,
@@ -417,10 +386,9 @@ export class ApplicationAuthAdminManagementService {
         defaultLocale: "en";
         emailVerificationRequired: boolean;
       };
-    } = {}
+    } = {},
   ): Promise<ApplicationMutationResult> {
-    const applicationId =
-      options.applicationId ?? (await this.repository.allocateApplicationId());
+    const applicationId = options.applicationId ?? (await this.repository.allocateApplicationId());
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       createApplicationSchema,
       input,
@@ -429,7 +397,7 @@ export class ApplicationAuthAdminManagementService {
         action: "application_create",
         targetType: "application",
         applicationId,
-      }
+      },
     );
     const safeDiff = freezeDiff({
       changedFields: ["name", "displayName", "description"],
@@ -442,7 +410,7 @@ export class ApplicationAuthAdminManagementService {
             value.organizationId,
             trustedActor,
             APPLICATIONS_RESOURCE,
-            "write"
+            "write",
           );
         }
         const created = await this.repository.createApplication({
@@ -498,7 +466,7 @@ export class ApplicationAuthAdminManagementService {
 
   async updateApplication(
     input: z.input<typeof updateApplicationSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationMutationResult> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       updateApplicationSchema,
@@ -507,7 +475,7 @@ export class ApplicationAuthAdminManagementService {
       {
         action: "application_update",
         targetType: "application",
-      }
+      },
     );
     const changedFields = [
       ...(value.name !== undefined ? ["name"] : []),
@@ -532,12 +500,8 @@ export class ApplicationAuthAdminManagementService {
           expectedRevision: value.expectedRevision,
           patch: {
             ...(value.name !== undefined ? { name: value.name } : {}),
-            ...(value.displayName !== undefined
-              ? { displayName: value.displayName }
-              : {}),
-            ...(value.description !== undefined
-              ? { description: value.description }
-              : {}),
+            ...(value.displayName !== undefined ? { displayName: value.displayName } : {}),
+            ...(value.description !== undefined ? { description: value.description } : {}),
           },
         });
         if (revision === null) throw revisionConflict();
@@ -555,7 +519,7 @@ export class ApplicationAuthAdminManagementService {
 
   async archiveApplication(
     input: z.input<typeof revisionedScopeSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationMutationResult> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       revisionedScopeSchema,
@@ -564,7 +528,7 @@ export class ApplicationAuthAdminManagementService {
       {
         action: "application_archive",
         targetType: "application",
-      }
+      },
     );
     const result = await this.executeExisting({
       actor: trustedActor,
@@ -600,7 +564,7 @@ export class ApplicationAuthAdminManagementService {
 
   async updateAuth(
     input: z.input<typeof authUpdateSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationMutationResult> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       authUpdateSchema,
@@ -609,7 +573,7 @@ export class ApplicationAuthAdminManagementService {
       {
         action: "auth_configuration_update",
         targetType: "auth_configuration",
-      }
+      },
     );
     const changedFields = authChangedFields(value);
     const result = await this.executeExisting({
@@ -623,9 +587,7 @@ export class ApplicationAuthAdminManagementService {
       targetId: value.applicationId,
       failureSafeDiff: {
         changedFields,
-        ...(value.trustedOrigins
-          ? { trustedOriginCount: value.trustedOrigins.length }
-          : {}),
+        ...(value.trustedOrigins ? { trustedOriginCount: value.trustedOrigins.length } : {}),
       },
       execute: async (scope, currentActor) => {
         this.assertRevision(scope, value.expectedRevision);
@@ -635,18 +597,16 @@ export class ApplicationAuthAdminManagementService {
         const trustedOrigins = value.trustedOrigins
           ? normalizeOrigins(value.trustedOrigins)
           : undefined;
-        const deliveryConfigured =
-          scope.deliveryConfigured || value.emailDelivery !== undefined;
+        const deliveryConfigured = scope.deliveryConfigured || value.emailDelivery !== undefined;
         const emailVerificationRequired =
-          value.emailVerificationRequired ??
-          scope.configuration.emailVerificationRequired;
+          value.emailVerificationRequired ?? scope.configuration.emailVerificationRequired;
         if (
           !deliveryConfigured &&
           emailVerificationRequired &&
           scope.configuration.passwordSignUpEnabled
         ) {
           throw invalidRealmState(
-            "Verified password sign-up requires email delivery configuration"
+            "Verified password sign-up requires email delivery configuration",
           );
         }
         const patch: Partial<ApplicationAuthMutableConfiguration> = {
@@ -669,9 +629,7 @@ export class ApplicationAuthAdminManagementService {
             ? { sessionTtlSeconds: value.sessionTtlSeconds }
             : {}),
           ...(branding !== undefined ? { brandingJson: branding } : {}),
-          ...(value.defaultLocale !== undefined
-            ? { defaultLocale: value.defaultLocale }
-            : {}),
+          ...(value.defaultLocale !== undefined ? { defaultLocale: value.defaultLocale } : {}),
         };
         const updated = await this.repository.updateAuth({
           applicationId: scope.applicationId,
@@ -691,9 +649,7 @@ export class ApplicationAuthAdminManagementService {
           targetId: scope.applicationId,
           safeDiff: {
             changedFields,
-            ...(trustedOrigins
-              ? { trustedOriginCount: trustedOrigins.length }
-              : {}),
+            ...(trustedOrigins ? { trustedOriginCount: trustedOrigins.length } : {}),
           },
         };
       },
@@ -704,7 +660,7 @@ export class ApplicationAuthAdminManagementService {
 
   async setRealmEnabled(
     input: z.input<typeof realmEnabledSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationMutationResult> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       realmEnabledSchema,
@@ -713,7 +669,7 @@ export class ApplicationAuthAdminManagementService {
       {
         action: "auth_realm_enabled_set",
         targetType: "auth_configuration",
-      }
+      },
     );
     const result = await this.executeExisting({
       actor: trustedActor,
@@ -750,7 +706,7 @@ export class ApplicationAuthAdminManagementService {
 
   async updateAuthMethod(
     input: z.input<typeof methodSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationMutationResult & { methodId: "password" | "email_otp" | "phone_otp" }> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       methodSchema,
@@ -759,7 +715,7 @@ export class ApplicationAuthAdminManagementService {
       {
         action: "auth_method_update",
         targetType: "auth_method",
-      }
+      },
     );
     const capabilities = [...new Set(value.enabledCapabilities)];
     const result = await this.executeExisting({
@@ -781,19 +737,14 @@ export class ApplicationAuthAdminManagementService {
           value.methodId === "email_otp"
             ? capabilities.length > 0
             : capabilities.includes("password_reset") ||
-              (capabilities.includes("sign_up") &&
-                scope.configuration.emailVerificationRequired);
+              (capabilities.includes("sign_up") && scope.configuration.emailVerificationRequired);
         if (needsEmailDelivery && !scope.deliveryConfigured) {
-          throw invalidRealmState(
-            "Authentication method requires email delivery configuration"
-          );
+          throw invalidRealmState("Authentication method requires email delivery configuration");
         }
         if (
           value.methodId === "phone_otp" &&
           capabilities.length > 0 &&
-          !(await this.smsProviderAvailability.isConfiguredForApplication(
-            scope.applicationId
-          ))
+          !(await this.smsProviderAvailability.isConfiguredForApplication(scope.applicationId))
         ) {
           throw invalidRealmState("Phone OTP requires an active SMS provider");
         }
@@ -818,7 +769,7 @@ export class ApplicationAuthAdminManagementService {
         ) {
           throw new ApplicationAuthAdminManagementError(
             "The last available sign-in method cannot be disabled",
-            "LAST_LOGIN_METHOD"
+            "LAST_LOGIN_METHOD",
           );
         }
         const updated = await this.repository.updateAuthMethod({
@@ -849,7 +800,7 @@ export class ApplicationAuthAdminManagementService {
   async replaceAuthMethods(
     input: z.input<typeof replaceAuthMethodsSchema>,
     actor: ApplicationAuthAdminActor,
-    options: { authorization?: CreateApplicationAuthorizationMode } = {}
+    options: { authorization?: CreateApplicationAuthorizationMode } = {},
   ): Promise<ApplicationMutationResult> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       replaceAuthMethodsSchema,
@@ -858,7 +809,7 @@ export class ApplicationAuthAdminManagementService {
       {
         action: "auth_method_update",
         targetType: "auth_configuration",
-      }
+      },
     );
     const enabledMethods = [...new Set(value.enabledMethods)];
     const result = await this.executeExisting({
@@ -875,18 +826,15 @@ export class ApplicationAuthAdminManagementService {
         this.assertRevision(scope, value.expectedRevision);
         const requiresDelivery =
           enabledMethods.includes("email_otp") ||
-          (enabledMethods.includes("password") &&
-            scope.configuration.emailVerificationRequired);
+          (enabledMethods.includes("password") && scope.configuration.emailVerificationRequired);
         if (requiresDelivery && !scope.deliveryConfigured) {
           throw invalidRealmState(
-            "Enabled authentication methods require email delivery configuration"
+            "Enabled authentication methods require email delivery configuration",
           );
         }
         if (
           enabledMethods.includes("phone_otp") &&
-          !(await this.smsProviderAvailability.isConfiguredForApplication(
-            scope.applicationId
-          ))
+          !(await this.smsProviderAvailability.isConfiguredForApplication(scope.applicationId))
         ) {
           throw invalidRealmState("Phone OTP requires an active SMS provider");
         }
@@ -911,13 +859,13 @@ export class ApplicationAuthAdminManagementService {
 
   async configureProvider(
     input: z.input<typeof providerConfigureSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationMutationResult & { provider: ApplicationAuthProviderName }> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       providerConfigureSchema,
       input,
       actor,
-      { action: "provider_configure", targetType: "provider" }
+      { action: "provider_configure", targetType: "provider" },
     );
     return this.executeProviderWrite({
       value,
@@ -939,7 +887,7 @@ export class ApplicationAuthAdminManagementService {
         if (configured === "already_configured") {
           throw new ApplicationAuthAdminManagementError(
             "Application auth provider is already configured",
-            "PROVIDER_ALREADY_CONFIGURED"
+            "PROVIDER_ALREADY_CONFIGURED",
           );
         }
         if (!configured) throw revisionConflict();
@@ -949,13 +897,13 @@ export class ApplicationAuthAdminManagementService {
 
   async updateProvider(
     input: z.input<typeof providerUpdateSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationMutationResult & { provider: ApplicationAuthProviderName }> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       providerUpdateSchema,
       input,
       actor,
-      { action: "provider_update", targetType: "provider" }
+      { action: "provider_update", targetType: "provider" },
     );
     return this.executeProviderWrite({
       value,
@@ -978,14 +926,11 @@ export class ApplicationAuthAdminManagementService {
           !scope.configuration.passwordSignInEnabled &&
           !scope.configuration.emailOtpSignInEnabled &&
           !scope.configuration.phoneOtpSignInEnabled &&
-          !(await this.repository.hasEnabledProvider(
-            scope.applicationId,
-            value.provider
-          ))
+          !(await this.repository.hasEnabledProvider(scope.applicationId, value.provider))
         ) {
           throw new ApplicationAuthAdminManagementError(
             "The last available sign-in method cannot be disabled",
-            "LAST_LOGIN_METHOD"
+            "LAST_LOGIN_METHOD",
           );
         }
         const updated = await this.repository.updateProvider({
@@ -1001,13 +946,13 @@ export class ApplicationAuthAdminManagementService {
 
   async rotateProviderCredentials(
     input: z.input<typeof providerRotateSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationMutationResult & { provider: ApplicationAuthProviderName }> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       providerRotateSchema,
       input,
       actor,
-      { action: "provider_credentials_rotate", targetType: "provider" }
+      { action: "provider_credentials_rotate", targetType: "provider" },
     );
     return this.executeProviderWrite({
       value,
@@ -1032,13 +977,13 @@ export class ApplicationAuthAdminManagementService {
 
   async deleteProviderCredentials(
     input: z.input<typeof providerSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationMutationResult & { provider: ApplicationAuthProviderName }> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       providerSchema,
       input,
       actor,
-      { action: "provider_credentials_delete", targetType: "provider" }
+      { action: "provider_credentials_delete", targetType: "provider" },
     );
     return this.executeProviderWrite({
       value,
@@ -1060,7 +1005,7 @@ export class ApplicationAuthAdminManagementService {
         if (status === "enabled") {
           throw new ApplicationAuthAdminManagementError(
             "Disable the provider before deleting credentials",
-            "PROVIDER_MUST_BE_DISABLED"
+            "PROVIDER_MUST_BE_DISABLED",
           );
         }
         if (status === "conflict") throw revisionConflict();
@@ -1070,13 +1015,13 @@ export class ApplicationAuthAdminManagementService {
 
   async validateProvider(
     input: z.input<typeof providerSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationAuthProviderValidationResult> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       providerSchema,
       input,
       actor,
-      { action: "provider_validate", targetType: "provider" }
+      { action: "provider_validate", targetType: "provider" },
     );
     const checkedAt = this.now();
     return this.executeExisting({
@@ -1110,8 +1055,7 @@ export class ApplicationAuthAdminManagementService {
           result: {
             provider: parseApplicationAuthProviderName(value.provider),
             status: validation.status,
-            reasonCode:
-              validation.status === "valid" ? null : validation.reasonCode,
+            reasonCode: validation.status === "valid" ? null : validation.reasonCode,
             revision: prepared.revision,
             checkedAt,
           },
@@ -1125,7 +1069,7 @@ export class ApplicationAuthAdminManagementService {
   async setUserStatus(
     input: z.input<typeof userSchema>,
     status: "active" | "blocked",
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationUser> {
     const auditAction =
       status === "blocked" ? "application_user_block" : "application_user_unblock";
@@ -1133,7 +1077,7 @@ export class ApplicationAuthAdminManagementService {
       userSchema,
       input,
       actor,
-      { action: auditAction, targetType: "application_user" }
+      { action: auditAction, targetType: "application_user" },
     );
     let previousStatus: "active" | "blocked" | undefined;
     const result = await this.executeExisting({
@@ -1176,7 +1120,7 @@ export class ApplicationAuthAdminManagementService {
 
   async revokeAllUserSessions(
     input: z.input<typeof userSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationUserSessionsRevokeAllResult> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       userSchema,
@@ -1185,7 +1129,7 @@ export class ApplicationAuthAdminManagementService {
       {
         action: "application_user_sessions_revoke_all",
         targetType: "application_user",
-      }
+      },
     );
     const result = await this.executeExisting({
       actor: trustedActor,
@@ -1216,7 +1160,7 @@ export class ApplicationAuthAdminManagementService {
 
   async unlinkUserAccount(
     input: z.input<typeof unlinkSchema>,
-    actor: ApplicationAuthAdminActor
+    actor: ApplicationAuthAdminActor,
   ): Promise<ApplicationUserAccountUnlinkResult> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       unlinkSchema,
@@ -1225,7 +1169,7 @@ export class ApplicationAuthAdminManagementService {
       {
         action: "application_user_account_unlink",
         targetType: "linked_account",
-      }
+      },
     );
     const result = await this.executeExisting({
       actor: trustedActor,
@@ -1239,21 +1183,18 @@ export class ApplicationAuthAdminManagementService {
       failureSafeDiff: { changedFields: ["linkedAccount"] },
       execute: async (scope) => {
         const repository = this.users.forApplication(scope.applicationId);
-        const unlink = await repository.unlinkAdminAccount(
-          value.userId,
-          value.accountId
-        );
+        const unlink = await repository.unlinkAdminAccount(value.userId, value.accountId);
         if (unlink.status === "user_not_found") throw userNotFound();
         if (unlink.status === "account_not_found") {
           throw new ApplicationAuthAdminManagementError(
             "Application user account was not found",
-            "APPLICATION_USER_ACCOUNT_NOT_FOUND"
+            "APPLICATION_USER_ACCOUNT_NOT_FOUND",
           );
         }
         if (unlink.status === "last_login_method") {
           throw new ApplicationAuthAdminManagementError(
             "The last available login method cannot be unlinked",
-            "LAST_LOGIN_METHOD"
+            "LAST_LOGIN_METHOD",
           );
         }
         const user = await repository.find(value.userId);
@@ -1269,12 +1210,14 @@ export class ApplicationAuthAdminManagementService {
     return result;
   }
 
-  private async executeProviderWrite<TValue extends {
-    organizationId: string;
-    applicationId: string;
-    provider: "google" | "facebook";
-    expectedRevision: number;
-  }>(input: {
+  private async executeProviderWrite<
+    TValue extends {
+      organizationId: string;
+      applicationId: string;
+      provider: "google" | "facebook";
+      expectedRevision: number;
+    },
+  >(input: {
     value: TValue;
     actor: ApplicationAuthAdminActor;
     action: ApplicationAuthAdminAuditAction;
@@ -1282,7 +1225,7 @@ export class ApplicationAuthAdminManagementService {
     safeDiff: ApplicationRealmAdminAuditSafeDiff;
     execute(
       scope: ApplicationAuthAdminMutationScope,
-      actor: ApplicationAuthAdminActor
+      actor: ApplicationAuthAdminActor,
     ): Promise<void>;
   }): Promise<ApplicationMutationResult & { provider: ApplicationAuthProviderName }> {
     const value = input.value;
@@ -1314,9 +1257,7 @@ export class ApplicationAuthAdminManagementService {
     return result;
   }
 
-  private async executeExisting<TResult>(
-    input: ExistingWriteInput<TResult>
-  ): Promise<TResult> {
+  private async executeExisting<TResult>(input: ExistingWriteInput<TResult>): Promise<TResult> {
     try {
       const execution = await this.transactions.run(async () => {
         if (!input.skipAuthorization) {
@@ -1324,13 +1265,13 @@ export class ApplicationAuthAdminManagementService {
             input.organizationId,
             input.actor,
             input.resource,
-            input.permission
+            input.permission,
           );
         }
         const scope = await this.requireScope(
           input.organizationId,
           input.applicationId,
-          input.includeArchived
+          input.includeArchived,
         );
         const result = await input.execute(scope, input.actor);
         await this.appendAudit({
@@ -1371,7 +1312,7 @@ export class ApplicationAuthAdminManagementService {
       action: ApplicationAuthAdminAuditAction;
       targetType: ApplicationAuthAdminAuditTargetType;
       applicationId?: string;
-    }
+    },
   ): Promise<{ value: z.infer<TSchema>; actor: ApplicationAuthAdminActor }> {
     try {
       return {
@@ -1418,9 +1359,7 @@ export class ApplicationAuthAdminManagementService {
           action: input.action,
           outcome: input.outcome,
           reasonCategory: input.reasonCategory,
-          actorType: actorId
-            ? (input.actor.type ?? "platform_admin")
-            : "anonymous",
+          actorType: actorId ? (input.actor.type ?? "platform_admin") : "anonymous",
           actorId,
           organizationId: input.organizationId,
           applicationId: input.applicationId,
@@ -1428,18 +1367,18 @@ export class ApplicationAuthAdminManagementService {
           ...(input.targetId ? { targetId: input.targetId } : {}),
           requestId: requestIdForAudit(input.actor.requestId),
           safeDiff: freezeDiff(input.safeDiff),
-        })
+        }),
       );
     } catch {
       throw new ApplicationAuthAdminManagementError(
         "Administrative audit is unavailable",
-        "ADMIN_AUDIT_UNAVAILABLE"
+        "ADMIN_AUDIT_UNAVAILABLE",
       );
     }
   }
 
   private appendFailureAudit(
-    input: Omit<Parameters<ApplicationAuthAdminManagementService["appendAudit"]>[0], "outcome">
+    input: Omit<Parameters<ApplicationAuthAdminManagementService["appendAudit"]>[0], "outcome">,
   ): Promise<void> {
     return this.appendAudit({ ...input, outcome: "failure" });
   }
@@ -1448,7 +1387,7 @@ export class ApplicationAuthAdminManagementService {
     organizationId: string,
     actor: ApplicationAuthAdminActor,
     resource: string,
-    action: "write" | "admin"
+    action: "write" | "admin",
   ): Promise<void> {
     const allowed = await this.authorizer.authorize({
       subject: actor.id,
@@ -1460,7 +1399,7 @@ export class ApplicationAuthAdminManagementService {
     if (!allowed) {
       throw new ApplicationAuthAdminManagementError(
         "Application realm operation is not permitted",
-        "FORBIDDEN"
+        "FORBIDDEN",
       );
     }
   }
@@ -1468,7 +1407,7 @@ export class ApplicationAuthAdminManagementService {
   private async requireScope(
     organizationId: string,
     applicationId: string,
-    includeArchived = false
+    includeArchived = false,
   ): Promise<ApplicationAuthAdminMutationScope> {
     const scope = await this.repository.findScope(organizationId, applicationId, {
       includeArchived,
@@ -1476,24 +1415,19 @@ export class ApplicationAuthAdminManagementService {
     if (!scope) {
       throw new ApplicationAuthAdminManagementError(
         "Application was not found",
-        "APPLICATION_NOT_FOUND"
+        "APPLICATION_NOT_FOUND",
       );
     }
     return scope;
   }
 
-  private assertRevision(
-    scope: ApplicationAuthAdminMutationScope,
-    expectedRevision: number
-  ): void {
+  private assertRevision(scope: ApplicationAuthAdminMutationScope, expectedRevision: number): void {
     if (scope.configuration.revision !== expectedRevision) {
       throw revisionConflict();
     }
   }
 
-  private async assertRealmCanBeEnabled(
-    scope: ApplicationAuthAdminMutationScope
-  ): Promise<void> {
+  private async assertRealmCanBeEnabled(scope: ApplicationAuthAdminMutationScope): Promise<void> {
     const configuration = scope.configuration;
     const hasEnabledSignIn =
       configuration.passwordSignInEnabled ||
@@ -1502,27 +1436,23 @@ export class ApplicationAuthAdminManagementService {
       (await this.repository.hasEnabledProvider(scope.applicationId));
     if (!hasEnabledSignIn) {
       throw invalidRealmState(
-        "At least one configured sign-in method is required before enabling the realm"
+        "At least one configured sign-in method is required before enabling the realm",
       );
     }
     const needsDelivery =
       configuration.emailOtpSignInEnabled ||
       configuration.emailOtpSignUpEnabled ||
       configuration.passwordResetEnabled ||
-      ((configuration.passwordSignInEnabled ||
-        configuration.passwordSignUpEnabled) &&
+      ((configuration.passwordSignInEnabled || configuration.passwordSignUpEnabled) &&
         configuration.emailVerificationRequired);
     if (needsDelivery && !scope.deliveryConfigured) {
       throw invalidRealmState(
-        "Enabled authentication methods require email delivery configuration"
+        "Enabled authentication methods require email delivery configuration",
       );
     }
   }
 
-  private parse<TSchema extends z.ZodTypeAny>(
-    schema: TSchema,
-    input: unknown
-  ): z.infer<TSchema> {
+  private parse<TSchema extends z.ZodTypeAny>(schema: TSchema, input: unknown): z.infer<TSchema> {
     try {
       return schema.parse(input);
     } catch (error) {
@@ -1535,17 +1465,14 @@ export class ApplicationAuthAdminManagementService {
     if (!result.success) {
       throw new ApplicationAuthAdminManagementError(
         "Authenticated platform administrator is required",
-        "UNAUTHENTICATED"
+        "UNAUTHENTICATED",
       );
     }
     return result.data;
   }
 }
 
-function mergeBranding(
-  current: object,
-  patch: z.infer<typeof authBrandingPatchSchema>
-) {
+function mergeBranding(current: object, patch: z.infer<typeof authBrandingPatchSchema>) {
   const result: Record<string, unknown> = { ...current };
   for (const [key, value] of Object.entries(patch)) {
     if (value === null) delete result[key];
@@ -1561,8 +1488,8 @@ function normalizeOrigins(values: readonly string[]): string[] {
         values.map((origin) =>
           normalizeApplicationAuthOrigin(origin, {
             allowInsecureLocalhost: true,
-          })
-        )
+          }),
+        ),
       ),
     ].sort();
   } catch {
@@ -1581,7 +1508,7 @@ function safeUuid(value: unknown): string | null {
 
 function safeTargetId(
   input: Record<string, unknown>,
-  targetType: ApplicationAuthAdminAuditTargetType
+  targetType: ApplicationAuthAdminAuditTargetType,
 ): string | undefined {
   const candidate =
     targetType === "provider"
@@ -1594,11 +1521,7 @@ function safeTargetId(
             ? input.userId
             : input.applicationId;
   if (typeof candidate !== "string" || candidate.length > 512) return undefined;
-  if (
-    targetType === "provider" &&
-    candidate !== "google" &&
-    candidate !== "facebook"
-  ) {
+  if (targetType === "provider" && candidate !== "google" && candidate !== "facebook") {
     return undefined;
   }
   if (
@@ -1622,9 +1545,7 @@ function requestIdForAudit(requestId: string): string {
   return result.success ? result.data : "unknown";
 }
 
-function authChangedFields(
-  input: Record<string, unknown>
-): ApplicationRealmChangedField[] {
+function authChangedFields(input: Record<string, unknown>): ApplicationRealmChangedField[] {
   return [
     "registrationMode",
     "emailVerificationRequired",
@@ -1640,19 +1561,15 @@ function authChangedFields(
 }
 
 function freezeDiff(
-  diff: ApplicationRealmAdminAuditSafeDiff
+  diff: ApplicationRealmAdminAuditSafeDiff,
 ): Readonly<ApplicationRealmAdminAuditSafeDiff> {
   return Object.freeze({
     ...diff,
-    ...(diff.changedFields
-      ? { changedFields: Object.freeze([...diff.changedFields]) }
-      : {}),
+    ...(diff.changedFields ? { changedFields: Object.freeze([...diff.changedFields]) } : {}),
     ...(diff.enabledCapabilities
       ? { enabledCapabilities: Object.freeze([...diff.enabledCapabilities]) }
       : {}),
-    ...(diff.enabledMethods
-      ? { enabledMethods: Object.freeze([...diff.enabledMethods]) }
-      : {}),
+    ...(diff.enabledMethods ? { enabledMethods: Object.freeze([...diff.enabledMethods]) } : {}),
   });
 }
 
@@ -1660,36 +1577,32 @@ function invalidInput(message: string): ApplicationAuthAdminManagementError {
   return new ApplicationAuthAdminManagementError(message, "INVALID_INPUT");
 }
 
-function invalidRealmState(
-  message: string
-): ApplicationAuthAdminManagementError {
+function invalidRealmState(message: string): ApplicationAuthAdminManagementError {
   return new ApplicationAuthAdminManagementError(message, "INVALID_REALM_STATE");
 }
 
 function revisionConflict(): ApplicationAuthAdminManagementError {
   return new ApplicationAuthAdminManagementError(
     "Application revision conflict",
-    "REVISION_CONFLICT"
+    "REVISION_CONFLICT",
   );
 }
 
 function providerNotConfigured(): ApplicationAuthAdminManagementError {
   return new ApplicationAuthAdminManagementError(
     "Application auth provider is not configured",
-    "PROVIDER_NOT_CONFIGURED"
+    "PROVIDER_NOT_CONFIGURED",
   );
 }
 
 function userNotFound(): ApplicationAuthAdminManagementError {
   return new ApplicationAuthAdminManagementError(
     "Application user was not found",
-    "APPLICATION_USER_NOT_FOUND"
+    "APPLICATION_USER_NOT_FOUND",
   );
 }
 
-function normalizeManagementError(
-  error: unknown
-): ApplicationAuthAdminManagementError {
+function normalizeManagementError(error: unknown): ApplicationAuthAdminManagementError {
   if (error instanceof ApplicationAuthAdminManagementError) return error;
   if (error instanceof ZodError) {
     return new ApplicationAuthAdminManagementError(
@@ -1701,18 +1614,18 @@ function normalizeManagementError(
           code: issue.code,
           message: issue.message,
         })),
-      }
+      },
     );
   }
   if (hasErrorCode(error, "23505")) {
     return new ApplicationAuthAdminManagementError(
       "An application with this name already exists",
-      "DUPLICATE_VALUE"
+      "DUPLICATE_VALUE",
     );
   }
   return new ApplicationAuthAdminManagementError(
     "Application realm operation failed",
-    "INTERNAL_ERROR"
+    "INTERNAL_ERROR",
   );
 }
 
@@ -1728,7 +1641,7 @@ function hasErrorCode(error: unknown, expectedCode: string): boolean {
 }
 
 function auditReason(
-  error: ApplicationAuthAdminManagementError
+  error: ApplicationAuthAdminManagementError,
 ): ApplicationAuthAdminAuditReasonCategory {
   switch (error.code) {
     case "UNAUTHENTICATED":

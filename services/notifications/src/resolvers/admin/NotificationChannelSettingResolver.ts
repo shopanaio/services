@@ -1,7 +1,4 @@
-import type {
-  NotificationChannel,
-  NotificationDefinitionKey,
-} from "@shopana/broker-types";
+import type { NotificationChannel, NotificationDefinitionKey } from "@shopana/broker-types";
 import type { TemplateDefinitionRegistry } from "../../infrastructure/templates/TemplateDefinitionRegistry.js";
 import type { SettingsRepository } from "../../repositories/settings/SettingsRepository.js";
 import { NotificationsType } from "./NotificationsType.js";
@@ -14,9 +11,7 @@ interface NotificationChannelSettingInput {
 
 type NotificationChannelSettingData = {
   definition: ReturnType<TemplateDefinitionRegistry["get"]>;
-  setting:
-    | Awaited<ReturnType<SettingsRepository["getChannelSetting"]>>
-    | null;
+  setting: Awaited<ReturnType<SettingsRepository["getChannelSetting"]>> | null;
 };
 
 export class NotificationChannelSettingResolver extends NotificationsType<
@@ -42,10 +37,7 @@ export class NotificationChannelSettingResolver extends NotificationsType<
       this.$get("definition"),
       this.$get("setting"),
     ]);
-    return (
-      setting?.enabled ??
-      definition.defaultChannels.includes(this.$props.channel)
-    );
+    return setting?.enabled ?? definition.defaultChannels.includes(this.$props.channel);
   }
 
   async senderName() {

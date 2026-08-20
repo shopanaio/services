@@ -17,10 +17,7 @@ export async function loadStorefrontFile(
   }
 
   const file = await ctx.loaders.file.load(fileId);
-  if (
-    !file ||
-    !acceptedMediaTypes.includes(file.mediaType as FileMediaType)
-  ) {
+  if (!file || !acceptedMediaTypes.includes(file.mediaType as FileMediaType)) {
     throw new PreloadNotFoundError(`Storefront media not found: ${fileId}`);
   }
   return file;
@@ -31,10 +28,7 @@ export async function resolveDeliveryUrl(
   file: File,
   transform?: ImageTransformOptions | null,
 ): Promise<string> {
-  const delivery = await new CdnDeliveryService(ctx.kernel.repository).resolve(
-    file,
-    { transform },
-  );
+  const delivery = await new CdnDeliveryService(ctx.kernel.repository).resolve(file, { transform });
   return delivery.url;
 }
 

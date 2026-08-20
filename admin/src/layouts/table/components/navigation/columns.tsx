@@ -1,7 +1,7 @@
-import { createStyles } from 'antd-style';
+import { createStyles } from "antd-style";
 import { LuSettings as SettingOutlined } from "react-icons/lu";
-import { Button, Checkbox, Dropdown, Flex, Typography, theme } from 'antd';
-import { ReactElement, cloneElement, CSSProperties } from 'react';
+import { Button, Checkbox, Dropdown, Flex, Typography, theme } from "antd";
+import { ReactElement, cloneElement, CSSProperties } from "react";
 
 const useStyles = createStyles(({ token }) => ({
   paper: {
@@ -37,55 +37,57 @@ export const Columns = ({
   value = [],
   options = [],
   onChange: onChangeProp,
-  title = 'Columns',
+  title = "Columns",
 }: IColumnsProps) => {
   const { styles } = useStyles();
   const { token } = theme.useToken();
 
-  const items = options.map(({ label, value: itemValue, disabled }) => {
-    const current = value.find((v) => v.value === itemValue);
-    if (!current) {
-      return null;
-    }
-
-    const onClick = () => {
-      if (disabled) {
-        return;
+  const items = options
+    .map(({ label, value: itemValue, disabled }) => {
+      const current = value.find((v) => v.value === itemValue);
+      if (!current) {
+        return null;
       }
 
-      onChangeProp(
-        value.map((v) =>
-          itemValue === v.value
-            ? {
-                ...v,
-                active: !v.active,
-              }
-            : v,
-        ),
-      );
-    };
+      const onClick = () => {
+        if (disabled) {
+          return;
+        }
 
-    return {
-      label: (
-        <Flex gap="small">
-          <Checkbox
-            data-testid={`columns-checkbox-${itemValue}`}
-            checked={current.active}
-            disabled={disabled}
-          />
-          <Typography.Text>{label}</Typography.Text>
-        </Flex>
-      ),
-      key: itemValue,
-      onClick,
-      'data-testid': `columns-item-${itemValue}`,
-    };
-  }).filter(Boolean);
+        onChangeProp(
+          value.map((v) =>
+            itemValue === v.value
+              ? {
+                  ...v,
+                  active: !v.active,
+                }
+              : v,
+          ),
+        );
+      };
+
+      return {
+        label: (
+          <Flex gap="small">
+            <Checkbox
+              data-testid={`columns-checkbox-${itemValue}`}
+              checked={current.active}
+              disabled={disabled}
+            />
+            <Typography.Text>{label}</Typography.Text>
+          </Flex>
+        ),
+        key: itemValue,
+        onClick,
+        "data-testid": `columns-item-${itemValue}`,
+      };
+    })
+    .filter(Boolean);
 
   return (
     <Dropdown
       disabled={!value.length}
-      trigger={['click']}
+      trigger={["click"]}
       menu={{
         items,
         style: { minWidth: 250 },
@@ -101,7 +103,7 @@ export const Columns = ({
             </Typography.Text>
           </Flex>
           {cloneElement(menu as ReactElement<{ style?: CSSProperties }>, {
-            style: { boxShadow: 'none' },
+            style: { boxShadow: "none" },
           })}
         </div>
       )}

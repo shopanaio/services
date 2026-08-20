@@ -71,10 +71,7 @@ export const ATTRIBUTES_COLUMNS: IVariantColumn[] = [
 ];
 
 // Combined for backwards compatibility
-export const VARIANT_COLUMNS: IVariantColumn[] = [
-  ...PRICING_COLUMNS,
-  ...ATTRIBUTES_COLUMNS,
-];
+export const VARIANT_COLUMNS: IVariantColumn[] = [...PRICING_COLUMNS, ...ATTRIBUTES_COLUMNS];
 
 // ============================================================================
 // Option Columns Generator

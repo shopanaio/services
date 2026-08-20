@@ -5,9 +5,7 @@ export interface TagFormError {
   message: string;
 }
 
-export function mapTagUserErrorsToFormErrors(
-  errors: ApiGenericUserError[],
-): TagFormError[] {
+export function mapTagUserErrorsToFormErrors(errors: ApiGenericUserError[]): TagFormError[] {
   return errors.map((error) => ({
     field: error.field?.[0] ?? null,
     message: error.message,

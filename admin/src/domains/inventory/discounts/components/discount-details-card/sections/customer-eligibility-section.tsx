@@ -1,17 +1,9 @@
 "use client";
 
 import { Button, Dropdown, Flex, Tag, Typography } from "antd";
-import {
-  LuEllipsis,
-  LuUsers,
-  LuUserRoundCheck,
-  LuTriangleAlert,
-} from "react-icons/lu";
+import { LuEllipsis, LuUsers, LuUserRoundCheck, LuTriangleAlert } from "react-icons/lu";
 import type { ApiDiscount } from "@/graphql/types";
-import {
-  DiscountBuyerContextType,
-  DiscountReferenceStatus,
-} from "@/graphql/types";
+import { DiscountBuyerContextType, DiscountReferenceStatus } from "@/graphql/types";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
@@ -23,19 +15,14 @@ interface CustomerEligibilitySectionProps {
   onEdit?: () => void;
 }
 
-export function CustomerEligibilitySection({
-  discount,
-  onEdit,
-}: CustomerEligibilitySectionProps) {
+export function CustomerEligibilitySection({ discount, onEdit }: CustomerEligibilitySectionProps) {
   const { styles } = useDiscountSectionStyles();
   const context = discount.buyerContext ?? null;
   const staleCount = context
-    ? context.customers.filter(
-        (item) => item.referenceStatus === DiscountReferenceStatus.Stale,
-      ).length +
-      context.segments.filter(
-        (item) => item.referenceStatus === DiscountReferenceStatus.Stale,
-      ).length
+    ? context.customers.filter((item) => item.referenceStatus === DiscountReferenceStatus.Stale)
+        .length +
+      context.segments.filter((item) => item.referenceStatus === DiscountReferenceStatus.Stale)
+        .length
     : 0;
 
   const renderContent = () => {
@@ -45,8 +32,7 @@ export function CustomerEligibilitySection({
           icon={<LuUsers />}
           state={{
             title: "Customer eligibility is not configured",
-            description:
-              "Configure who can use this discount before activating the draft.",
+            description: "Configure who can use this discount before activating the draft.",
           }}
         />
       );
@@ -57,14 +43,9 @@ export function CustomerEligibilitySection({
         <div className={styles.entityRow}>
           <Flex align="center" justify="space-between" gap={12}>
             <Flex align="center" gap={10}>
-              <DiscountSectionIcon
-                icon={<LuUserRoundCheck />}
-                size={36}
-              />
+              <DiscountSectionIcon icon={<LuUserRoundCheck />} size={36} />
               <Flex vertical>
-                <Typography.Text strong>
-                  Available to all customers
-                </Typography.Text>
+                <Typography.Text strong>Available to all customers</Typography.Text>
                 <Typography.Text type="secondary">
                   No customers or segments restrict this discount.
                 </Typography.Text>
@@ -76,10 +57,7 @@ export function CustomerEligibilitySection({
       );
     }
 
-    if (
-      context.type === DiscountBuyerContextType.Customers &&
-      context.customers.length > 0
-    ) {
+    if (context.type === DiscountBuyerContextType.Customers && context.customers.length > 0) {
       return (
         <div className={styles.entityList}>
           {context.customers.map((item) => (
@@ -95,9 +73,7 @@ export function CustomerEligibilitySection({
                       )
                     }
                     tone={
-                      item.referenceStatus === DiscountReferenceStatus.Stale
-                        ? "warning"
-                        : "primary"
+                      item.referenceStatus === DiscountReferenceStatus.Stale ? "warning" : "primary"
                     }
                     size={36}
                   />
@@ -106,8 +82,7 @@ export function CustomerEligibilitySection({
                       {item.customer?.displayName ?? "Unresolved customer"}
                     </Typography.Text>
                     <Typography.Text type="secondary">
-                      {item.customer?.email ??
-                        "The customer reference could not be resolved."}
+                      {item.customer?.email ?? "The customer reference could not be resolved."}
                     </Typography.Text>
                   </Flex>
                 </Flex>
@@ -127,10 +102,7 @@ export function CustomerEligibilitySection({
       );
     }
 
-    if (
-      context.type === DiscountBuyerContextType.Segments &&
-      context.segments.length > 0
-    ) {
+    if (context.type === DiscountBuyerContextType.Segments && context.segments.length > 0) {
       return (
         <div className={styles.entityList}>
           {context.segments.map((item, index) => (
@@ -146,16 +118,12 @@ export function CustomerEligibilitySection({
                       )
                     }
                     tone={
-                      item.referenceStatus === DiscountReferenceStatus.Stale
-                        ? "warning"
-                        : "primary"
+                      item.referenceStatus === DiscountReferenceStatus.Stale ? "warning" : "primary"
                     }
                     size={36}
                   />
                   <Flex vertical>
-                    <Typography.Text strong>
-                      Customer segment {index + 1}
-                    </Typography.Text>
+                    <Typography.Text strong>Customer segment {index + 1}</Typography.Text>
                     <Typography.Text type="secondary">
                       Segment identity from Customers
                     </Typography.Text>
@@ -182,18 +150,14 @@ export function CustomerEligibilitySection({
         icon={<LuUsers />}
         state={{
           title: "No eligible customers selected",
-          description:
-            "Choose customers or customer segments that can use this discount.",
+          description: "Choose customers or customer segments that can use this discount.",
         }}
       />
     );
   };
 
   return (
-    <Paper
-      className={styles.section}
-      data-testid="discount-customer-eligibility-section"
-    >
+    <Paper className={styles.section} data-testid="discount-customer-eligibility-section">
       <PaperHeader
         title="Customer eligibility"
         className={styles.compactHeader}
@@ -223,16 +187,10 @@ export function CustomerEligibilitySection({
         }
       />
       {staleCount > 0 && (
-        <Flex
-          align="flex-start"
-          gap={8}
-          className={styles.warningBox}
-          style={{ marginBottom: 8 }}
-        >
+        <Flex align="flex-start" gap={8} className={styles.warningBox} style={{ marginBottom: 8 }}>
           <LuTriangleAlert />
           <Typography.Text>
-            {staleCount} eligibility reference{staleCount === 1 ? "" : "s"}{" "}
-            could not be resolved.
+            {staleCount} eligibility reference{staleCount === 1 ? "" : "s"} could not be resolved.
           </Typography.Text>
         </Flex>
       )}

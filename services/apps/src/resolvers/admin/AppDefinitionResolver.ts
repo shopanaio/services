@@ -1,8 +1,5 @@
 import type { ShopanaAppDefinition } from "@shopana/app-sdk";
-import {
-  PreloadNotFoundError,
-  TypePolicy,
-} from "@shopana/type-resolver";
+import { PreloadNotFoundError, TypePolicy } from "@shopana/type-resolver";
 import { AppsType } from "./AppsType.js";
 
 @TypePolicy<AppDefinitionResolver>({
@@ -11,16 +8,11 @@ import { AppsType } from "./AppsType.js";
   organizationId: (resolver) => resolver.$ctx.store.organizationId,
   domain: (resolver) => `store:${resolver.$ctx.store.id}`,
 })
-export class AppDefinitionResolver extends AppsType<
-  string,
-  ShopanaAppDefinition
-> {
+export class AppDefinitionResolver extends AppsType<string, ShopanaAppDefinition> {
   $preload(): ShopanaAppDefinition {
     const runtime = this.$ctx.runtimes.get(this.$props);
     if (!runtime) {
-      throw new PreloadNotFoundError(
-        `App definition "${this.$props}" not found`,
-      );
+      throw new PreloadNotFoundError(`App definition "${this.$props}" not found`);
     }
     return runtime.definition;
   }
@@ -73,9 +65,7 @@ export class AppDefinitionResolver extends AppsType<
       ? await this.$ctx.loaders.scopesByInstallation.load(installation.id)
       : [];
     const granted = new Set(
-      grantedScopes
-        .filter((scope) => scope.revokedAt === null)
-        .map((scope) => scope.scope),
+      grantedScopes.filter((scope) => scope.revokedAt === null).map((scope) => scope.scope),
     );
 
     return definition.manifest.permissions.map((scope) => ({
@@ -88,11 +78,8 @@ export class AppDefinitionResolver extends AppsType<
     const { capabilities } = (await this.$data).manifest;
     return capabilities.map((capability) => ({
       key: capability.key,
-      assignmentMode:
-        (capability.assignmentMode ?? "store").toUpperCase(),
-      operations: Object.entries(capability.operations).map(
-        ([name, action]) => ({ name, action }),
-      ),
+      assignmentMode: (capability.assignmentMode ?? "store").toUpperCase(),
+      operations: Object.entries(capability.operations).map(([name, action]) => ({ name, action })),
     }));
   }
 
@@ -101,16 +88,11 @@ export class AppDefinitionResolver extends AppsType<
   }
 
   async installed() {
-    return Boolean(
-      await this.$ctx.loaders.installationByAppCode.load(this.$props),
-    );
+    return Boolean(await this.$ctx.loaders.installationByAppCode.load(this.$props));
   }
 
   async installation() {
-    const installation =
-      await this.$ctx.loaders.installationByAppCode.load(this.$props);
-    return installation
-      ? this.resolvers.appInstallation(installation.id)
-      : null;
+    const installation = await this.$ctx.loaders.installationByAppCode.load(this.$props);
+    return installation ? this.resolvers.appInstallation(installation.id) : null;
   }
 }

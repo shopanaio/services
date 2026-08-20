@@ -9,9 +9,7 @@ export const ownershipTransferInputSchema = z.object({
   newOwnerId: z.string().min(1, "New owner ID is required"),
 });
 
-export type OwnershipTransferInput = z.infer<
-  typeof ownershipTransferInputSchema
->;
+export type OwnershipTransferInput = z.infer<typeof ownershipTransferInputSchema>;
 
 /**
  * Script params

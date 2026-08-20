@@ -6,7 +6,9 @@ type ReviewRatingBreakdown {
   rating5Count: Int!
 }
 
-"""Read-only projection over currently published, non-deleted product reviews."""
+"""
+Read-only projection over currently published, non-deleted product reviews.
+"""
 type ProductReviewSummary {
   product: Product!
   reviewCount: Int!
@@ -29,7 +31,9 @@ type ProductRatingCriterionSummary {
   updatedAt: DateTime!
 }
 
-"""Read-only projection over currently published product questions and answers."""
+"""
+Read-only projection over currently published product questions and answers.
+"""
 type ProductQuestionSummary {
   product: Product!
   questionCount: Int!

@@ -21,11 +21,8 @@ export const storefrontAuthConfiguration = customersSchema.table(
       .defaultNow(),
   },
   (table) => [
-    uniqueIndex("storefront_auth_configuration_application_unique").on(
-      table.applicationId,
-    ),
+    uniqueIndex("storefront_auth_configuration_application_unique").on(table.applicationId),
   ],
 );
 
-export type StorefrontAuthConfiguration =
-  typeof storefrontAuthConfiguration.$inferSelect;
+export type StorefrontAuthConfiguration = typeof storefrontAuthConfiguration.$inferSelect;

@@ -48,8 +48,7 @@ export class UserUpdateProfileSaga extends BrokerSaga<
   async run(input: UserUpdateProfileSagaInput): Promise<UserUpdateProfileResult> {
     const { previousAvatarId, nextAvatarId, ...updateParams } = input;
     const { userId } = updateParams;
-    const avatarChanged =
-      nextAvatarId !== undefined && previousAvatarId !== nextAvatarId;
+    const avatarChanged = nextAvatarId !== undefined && previousAvatarId !== nextAvatarId;
     let nextAvatarLinked = false;
 
     if (avatarChanged && nextAvatarId) {
@@ -89,10 +88,7 @@ export class UserUpdateProfileSaga extends BrokerSaga<
   @SagaStep({
     retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
   })
-  private async linkAvatarBackRef(
-    userId: string,
-    fileId: string,
-  ): Promise<Media.FileLinkResult> {
+  private async linkAvatarBackRef(userId: string, fileId: string): Promise<Media.FileLinkResult> {
     const result = await this.linkAvatarMediaReference(userId, fileId);
     if (result.code === "LINK_FAILED") {
       throw new RetryableError("Unable to attach avatar media file");
@@ -100,27 +96,18 @@ export class UserUpdateProfileSaga extends BrokerSaga<
     return result;
   }
 
-  private async compensateLinkAvatarBackRef(
-    userId: string,
-    fileId: string,
-  ): Promise<void> {
+  private async compensateLinkAvatarBackRef(userId: string, fileId: string): Promise<void> {
     await this.unlinkAvatarMediaReference(userId, fileId);
   }
 
   @SagaStep({
     retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
   })
-  private async cleanupAvatarBackRef(
-    userId: string,
-    fileId: string,
-  ): Promise<void> {
+  private async cleanupAvatarBackRef(userId: string, fileId: string): Promise<void> {
     await this.unlinkAvatarMediaReference(userId, fileId);
   }
 
-  private async compensateCleanupAvatarBackRef(
-    userId: string,
-    fileId: string,
-  ): Promise<void> {
+  private async compensateCleanupAvatarBackRef(userId: string, fileId: string): Promise<void> {
     const result = await this.linkAvatarMediaReference(userId, fileId);
     if (!result.success) {
       throw new RetryableError("Unable to restore avatar media reference");
@@ -128,40 +115,13 @@ export class UserUpdateProfileSaga extends BrokerSaga<
   }
 
   @SagaStep()
-  private async unlinkAvatarBackRef(
-    userId: string,
-    fileId: string,
-  ): Promise<void> {
+  private async unlinkAvatarBackRef(userId: string, fileId: string): Promise<void> {
     await this.unlinkAvatarMediaReference(userId, fileId);
   }
 
-  private async unlinkAvatarMediaReference(
-    userId: string,
-    fileId: string,
-  ): Promise<void> {
-    const result = await this.broker.call<
-      Media.FileUnlinkResult,
-      Media.FileUnlinkParams
-    >("media.fileUnlink", {
-      fileId,
-      entityRef: {
-        service: "iam",
-        entityType: "user",
-        entityId: userId,
-      },
-      role: "avatar",
-    });
-    if (!result.success) {
-      throw new RetryableError("Unable to detach avatar media file");
-    }
-  }
-
-  private linkAvatarMediaReference(
-    userId: string,
-    fileId: string,
-  ): Promise<Media.FileLinkResult> {
-    return this.broker.call<Media.FileLinkResult, Media.FileLinkParams>(
-      "media.fileLink",
+  private async unlinkAvatarMediaReference(userId: string, fileId: string): Promise<void> {
+    const result = await this.broker.call<Media.FileUnlinkResult, Media.FileUnlinkParams>(
+      "media.fileUnlink",
       {
         fileId,
         entityRef: {
@@ -169,9 +129,24 @@ export class UserUpdateProfileSaga extends BrokerSaga<
           entityType: "user",
           entityId: userId,
         },
-        owner: { type: "user_profile", id: userId },
         role: "avatar",
       },
     );
+    if (!result.success) {
+      throw new RetryableError("Unable to detach avatar media file");
+    }
+  }
+
+  private linkAvatarMediaReference(userId: string, fileId: string): Promise<Media.FileLinkResult> {
+    return this.broker.call<Media.FileLinkResult, Media.FileLinkParams>("media.fileLink", {
+      fileId,
+      entityRef: {
+        service: "iam",
+        entityType: "user",
+        entityId: userId,
+      },
+      owner: { type: "user_profile", id: userId },
+      role: "avatar",
+    });
   }
 }

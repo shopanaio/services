@@ -19,21 +19,17 @@ export class ReviewReplyCreateScript extends BaseScript<
   ReviewSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: ReviewReplyCreateParams
-  ): Promise<ReviewSectionResult> {
+  protected async execute(params: ReviewReplyCreateParams): Promise<ReviewSectionResult> {
     const review = await this.repository.review.findById(params.reviewId);
     if (!review) {
-      return sectionErrors([
-        { message: "Review not found", code: "NOT_FOUND" },
-      ]);
+      return sectionErrors([{ message: "Review not found", code: "NOT_FOUND" }]);
     }
 
     const input = params.operation.params;
     const mapped = mapContentCreate(
       input.content,
       "REVIEW_REPLY",
-      this.context.hasUser ? this.context.user.id : undefined
+      this.context.hasUser ? this.context.user.id : undefined,
     );
     const errors = [...mapped.errors];
     if (input.sortIndex != null && input.sortIndex < 0) {

@@ -1,7 +1,4 @@
-import {
-  CURRENCY_INFO,
-  type CurrencyCode,
-} from "@shopana/shared-references";
+import { CURRENCY_INFO, type CurrencyCode } from "@shopana/shared-references";
 import { GraphQLError } from "graphql";
 
 export interface StorefrontMoney {
@@ -19,10 +16,7 @@ export function currencyDecimalPlaces(currency: string): number {
   return info.decimalPlaces;
 }
 
-export function minorUnitsToMoney(
-  amountMinor: number,
-  currency: string
-): StorefrontMoney {
+export function minorUnitsToMoney(amountMinor: number, currency: string): StorefrontMoney {
   if (!Number.isSafeInteger(amountMinor) || amountMinor < 0) {
     throw new GraphQLError("Listing returned an invalid monetary amount", {
       extensions: { code: "INTERNAL_SERVER_ERROR" },

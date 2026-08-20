@@ -27,13 +27,11 @@ export function Cache<TResolver>(options: CacheOptions<TResolver>) {
   return function <TResult>(
     _target: unknown,
     _propertyKey: string,
-    descriptor: TypedPropertyDescriptor<() => Promise<TResult>>
+    descriptor: TypedPropertyDescriptor<() => Promise<TResult>>,
   ) {
     const originalMethod = descriptor.value!;
 
-    descriptor.value = async function (
-      this: TResolver & HasGetCache
-    ): Promise<TResult> {
+    descriptor.value = async function (this: TResolver & HasGetCache): Promise<TResult> {
       const cache = this.getCache();
       const cacheKey = `${options.cacheName}:${options.key(this)}`;
 

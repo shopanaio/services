@@ -10,21 +10,19 @@ export class AssetGroupDeleteScript extends BaseScript<
   AssetGroupDeleteResult
 > {
   @ZodSchema(assetGroupDeleteSchema)
-  protected async execute(
-    params: AssetGroupDeleteParams
-  ): Promise<AssetGroupDeleteResult> {
+  protected async execute(params: AssetGroupDeleteParams): Promise<AssetGroupDeleteResult> {
     this.logger.info({ params }, "AssetGroupDeleteScript: starting");
 
     // Find the asset group
     const assetGroup = await this.repository.assetGroup.findByOwner(
       params.ownerType,
-      params.ownerId
+      params.ownerId,
     );
 
     if (!assetGroup) {
       this.logger.info(
         { params },
-        "AssetGroupDeleteScript: asset group not found, nothing to delete"
+        "AssetGroupDeleteScript: asset group not found, nothing to delete",
       );
       return {
         deletedAssetGroupId: null,
@@ -37,7 +35,7 @@ export class AssetGroupDeleteScript extends BaseScript<
 
     this.logger.info(
       { assetGroupId: assetGroup.id },
-      "AssetGroupDeleteScript: completed successfully"
+      "AssetGroupDeleteScript: completed successfully",
     );
 
     return {
@@ -49,9 +47,7 @@ export class AssetGroupDeleteScript extends BaseScript<
   protected handleError(_error: unknown): AssetGroupDeleteResult {
     return {
       deletedAssetGroupId: null,
-      userErrors: [
-        { message: "Failed to delete asset group", code: "INTERNAL_ERROR" },
-      ],
+      userErrors: [{ message: "Failed to delete asset group", code: "INTERNAL_ERROR" }],
     };
   }
 }

@@ -32,10 +32,7 @@ type ContentVoteConnectionInput = ContentVoteRelayInput & {
 export class ContentVoteConnectionResolver extends BaseConnectionResolver<ContentVoteConnectionInput> {
   $preload(): Promise<ConnectionData> {
     const { contentId, ...args } = this.$props;
-    return this.$ctx.kernel.repository.engagement.getVoteConnection(
-      contentId,
-      args
-    );
+    return this.$ctx.kernel.repository.engagement.getVoteConnection(contentId, args);
   }
 
   protected createNodeResolver(nodeId: string) {
@@ -50,10 +47,7 @@ export type ContentReportConnectionInput = ContentReportRelayInput & {
 export class ContentReportConnectionResolver extends BaseConnectionResolver<ContentReportConnectionInput> {
   $preload(): Promise<ConnectionData> {
     const { contentId, ...args } = this.$props;
-    return this.$ctx.kernel.repository.engagement.getReportConnection(
-      args,
-      contentId
-    );
+    return this.$ctx.kernel.repository.engagement.getReportConnection(args, contentId);
   }
 
   protected createNodeResolver(nodeId: string) {
@@ -68,10 +62,7 @@ export type ModerationCaseConnectionInput = ModerationCaseRelayInput & {
 export class ModerationCaseConnectionResolver extends BaseConnectionResolver<ModerationCaseConnectionInput> {
   $preload(): Promise<ConnectionData> {
     const { contentId, ...args } = this.$props;
-    return this.$ctx.kernel.repository.moderation.getCaseConnection(
-      args,
-      contentId
-    );
+    return this.$ctx.kernel.repository.moderation.getCaseConnection(args, contentId);
   }
 
   protected createNodeResolver(nodeId: string) {
@@ -86,10 +77,7 @@ type ModerationEventConnectionInput = ModerationEventRelayInput & {
 export class ModerationEventConnectionResolver extends BaseConnectionResolver<ModerationEventConnectionInput> {
   $preload(): Promise<ConnectionData> {
     const { contentId, ...args } = this.$props;
-    return this.$ctx.kernel.repository.moderation.getEventConnection(
-      contentId,
-      args
-    );
+    return this.$ctx.kernel.repository.moderation.getEventConnection(contentId, args);
   }
 
   protected createNodeResolver(nodeId: string) {
@@ -104,10 +92,7 @@ type ContentRevisionConnectionInput = ContentRevisionRelayInput & {
 export class ContentRevisionConnectionResolver extends BaseConnectionResolver<ContentRevisionConnectionInput> {
   $preload(): Promise<ConnectionData> {
     const { contentId, ...args } = this.$props;
-    return this.$ctx.kernel.repository.moderation.getRevisionConnection(
-      contentId,
-      args
-    );
+    return this.$ctx.kernel.repository.moderation.getRevisionConnection(contentId, args);
   }
 
   protected createNodeResolver(nodeId: string) {
@@ -122,10 +107,7 @@ type ModerationSignalConnectionInput = ModerationSignalRelayInput & {
 export class ModerationSignalConnectionResolver extends BaseConnectionResolver<ModerationSignalConnectionInput> {
   $preload(): Promise<ConnectionData> {
     const { contentId, ...args } = this.$props;
-    return this.$ctx.kernel.repository.moderation.getSignalConnection(
-      contentId,
-      args
-    );
+    return this.$ctx.kernel.repository.moderation.getSignalConnection(contentId, args);
   }
 
   protected createNodeResolver(nodeId: string) {
@@ -133,16 +115,14 @@ export class ModerationSignalConnectionResolver extends BaseConnectionResolver<M
   }
 }
 
-export type ContentExternalReferenceConnectionInput =
-  ContentExternalReferenceRelayInput & { contentId?: string };
+export type ContentExternalReferenceConnectionInput = ContentExternalReferenceRelayInput & {
+  contentId?: string;
+};
 
 export class ContentExternalReferenceConnectionResolver extends BaseConnectionResolver<ContentExternalReferenceConnectionInput> {
   $preload(): Promise<ConnectionData> {
     const { contentId, ...args } = this.$props;
-    return this.$ctx.kernel.repository.externalReference.getConnection(
-      args,
-      contentId
-    );
+    return this.$ctx.kernel.repository.externalReference.getConnection(args, contentId);
   }
 
   protected createNodeResolver(nodeId: string) {

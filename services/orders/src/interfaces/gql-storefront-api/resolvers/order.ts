@@ -5,23 +5,13 @@ import {
   // Field resolvers
   customerOrders,
 } from "./order/index";
-import {
-  requireStorefrontPermission,
-  STOREFRONT_PERMISSIONS,
-} from "@shopana/shared-context";
+import { requireStorefrontPermission, STOREFRONT_PERMISSIONS } from "@shopana/shared-context";
 import type { GraphQLContext } from "../context";
 
 const orderResolvers = {
   Query: {
-    orderQuery: (
-      _parent: unknown,
-      _args: unknown,
-      context: GraphQLContext,
-    ) => {
-      requireStorefrontPermission(
-        context.storefrontAccess,
-        STOREFRONT_PERMISSIONS.ORDER_READ,
-      );
+    orderQuery: (_parent: unknown, _args: unknown, context: GraphQLContext) => {
+      requireStorefrontPermission(context.storefrontAccess, STOREFRONT_PERMISSIONS.ORDER_READ);
       return {};
     },
   },

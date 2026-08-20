@@ -1,24 +1,13 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  normalizeRelayPagination,
-  type RepositoryConnectionResult,
-} from "../connection.js";
+import { normalizeRelayPagination, type RepositoryConnectionResult } from "../connection.js";
 import {
   decodeCustomerAddressGlobalId,
   decodeCustomerGlobalId,
 } from "../global-id-where-mappers.js";
-import {
-  customerAddress,
-  type CustomerAddress,
-  type NewCustomerAddress,
-} from "../models/index.js";
+import { customerAddress, type CustomerAddress, type NewCustomerAddress } from "../models/index.js";
 import { normalizeAddressKeys } from "../../segments/normalization.js";
 
 export const customerAddressRelayQuery = createRelayQuery(
@@ -30,12 +19,10 @@ export const customerAddressRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerAddress", tieBreaker: "id" }
+  { name: "customerAddress", tieBreaker: "id" },
 );
 
-export type CustomerAddressRelayInput = InferRelayInput<
-  typeof customerAddressRelayQuery
->;
+export type CustomerAddressRelayInput = InferRelayInput<typeof customerAddressRelayQuery>;
 export type CustomerAddressConnectionInput = CustomerAddressRelayInput & {
   customerId: string;
 };
@@ -61,24 +48,24 @@ export type CustomerAddressCreateData = Omit<
 export type CustomerAddressPatch = Partial<
   Omit<
     Pick<
-    NewCustomerAddress,
-    | "label"
-    | "prefix"
-    | "firstName"
-    | "middleName"
-    | "lastName"
-    | "suffix"
-    | "companyName"
-    | "phoneE164"
-    | "address1"
-    | "address2"
-    | "city"
-    | "regionName"
-    | "regionCode"
-    | "postalCode"
-    | "countryCode"
-    | "validationStatus"
-    | "validatedAt"
+      NewCustomerAddress,
+      | "label"
+      | "prefix"
+      | "firstName"
+      | "middleName"
+      | "lastName"
+      | "suffix"
+      | "companyName"
+      | "phoneE164"
+      | "address1"
+      | "address2"
+      | "city"
+      | "regionName"
+      | "regionCode"
+      | "postalCode"
+      | "countryCode"
+      | "validationStatus"
+      | "validatedAt"
     >,
     "latitude" | "longitude"
   > & {
@@ -97,8 +84,8 @@ export class CustomerAddressRepository extends BaseRepository {
         and(
           eq(customerAddress.storeId, this.storeId),
           eq(customerAddress.id, id),
-          isNull(customerAddress.deletedAt)
-        )
+          isNull(customerAddress.deletedAt),
+        ),
       )
       .limit(1);
     return rows.length > 0;
@@ -113,18 +100,15 @@ export class CustomerAddressRepository extends BaseRepository {
         and(
           eq(customerAddress.storeId, this.storeId),
           eq(customerAddress.id, id),
-          isNull(customerAddress.deletedAt)
-        )
+          isNull(customerAddress.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
   }
 
   @ReadOnly()
-  async findOwnedById(
-    customerId: string,
-    id: string
-  ): Promise<CustomerAddress | null> {
+  async findOwnedById(customerId: string, id: string): Promise<CustomerAddress | null> {
     const rows = await this.connection
       .select()
       .from(customerAddress)
@@ -133,8 +117,8 @@ export class CustomerAddressRepository extends BaseRepository {
           eq(customerAddress.storeId, this.storeId),
           eq(customerAddress.customerId, customerId),
           eq(customerAddress.id, id),
-          isNull(customerAddress.deletedAt)
-        )
+          isNull(customerAddress.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -150,8 +134,8 @@ export class CustomerAddressRepository extends BaseRepository {
         and(
           eq(customerAddress.storeId, this.storeId),
           inArray(customerAddress.id, [...new Set(ids)]),
-          isNull(customerAddress.deletedAt)
-        )
+          isNull(customerAddress.deletedAt),
+        ),
       );
   }
 
@@ -165,8 +149,8 @@ export class CustomerAddressRepository extends BaseRepository {
         and(
           eq(customerAddress.storeId, this.storeId),
           inArray(customerAddress.customerId, [...new Set(customerIds)]),
-          isNull(customerAddress.deletedAt)
-        )
+          isNull(customerAddress.deletedAt),
+        ),
       );
   }
 
@@ -201,24 +185,19 @@ export class CustomerAddressRepository extends BaseRepository {
       updatedAt: now,
       deletedAt: null,
     };
-    const rows = await this.connection
-      .insert(customerAddress)
-      .values(row)
-      .returning();
+    const rows = await this.connection.insert(customerAddress).values(row).returning();
     return rows[0];
   }
 
   async update(id: string, patch: CustomerAddressPatch): Promise<CustomerAddress | null> {
     const current = await this.findById(id);
-    return current
-      ? this.updateOwned(current.customerId, id, patch)
-      : null;
+    return current ? this.updateOwned(current.customerId, id, patch) : null;
   }
 
   async updateOwned(
     customerId: string,
     id: string,
-    patch: CustomerAddressPatch
+    patch: CustomerAddressPatch,
   ): Promise<CustomerAddress | null> {
     const { latitude, longitude, countryCode, ...fields } = patch;
     const current = await this.findOwnedById(customerId, id);
@@ -234,12 +213,8 @@ export class CustomerAddressRepository extends BaseRepository {
       .set({
         ...fields,
         ...normalized,
-        ...(latitude !== undefined
-          ? { latitude: normalizeCoordinate(latitude) }
-          : {}),
-        ...(longitude !== undefined
-          ? { longitude: normalizeCoordinate(longitude) }
-          : {}),
+        ...(latitude !== undefined ? { latitude: normalizeCoordinate(latitude) } : {}),
+        ...(longitude !== undefined ? { longitude: normalizeCoordinate(longitude) } : {}),
         updatedAt: new Date().toISOString(),
       })
       .where(
@@ -247,8 +222,8 @@ export class CustomerAddressRepository extends BaseRepository {
           eq(customerAddress.storeId, this.storeId),
           eq(customerAddress.customerId, customerId),
           eq(customerAddress.id, id),
-          isNull(customerAddress.deletedAt)
-        )
+          isNull(customerAddress.deletedAt),
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -256,9 +231,7 @@ export class CustomerAddressRepository extends BaseRepository {
 
   async softDelete(id: string): Promise<boolean> {
     const current = await this.findById(id);
-    return current
-      ? this.softDeleteOwned(current.customerId, id)
-      : false;
+    return current ? this.softDeleteOwned(current.customerId, id) : false;
   }
 
   async softDeleteOwned(customerId: string, id: string): Promise<boolean> {
@@ -276,17 +249,14 @@ export class CustomerAddressRepository extends BaseRepository {
           eq(customerAddress.storeId, this.storeId),
           eq(customerAddress.customerId, customerId),
           eq(customerAddress.id, id),
-          isNull(customerAddress.deletedAt)
-        )
+          isNull(customerAddress.deletedAt),
+        ),
       )
       .returning({ id: customerAddress.id });
     return rows.length > 0;
   }
 
-  async redactForCustomer(
-    customerId: string,
-    redactedAt: string,
-  ): Promise<number> {
+  async redactForCustomer(customerId: string, redactedAt: string): Promise<number> {
     const rows = await this.connection
       .update(customerAddress)
       .set({
@@ -318,10 +288,7 @@ export class CustomerAddressRepository extends BaseRepository {
         deletedAt: redactedAt,
       })
       .where(
-        and(
-          eq(customerAddress.storeId, this.storeId),
-          eq(customerAddress.customerId, customerId),
-        ),
+        and(eq(customerAddress.storeId, this.storeId), eq(customerAddress.customerId, customerId)),
       )
       .returning({ id: customerAddress.id });
     return rows.length;
@@ -330,12 +297,11 @@ export class CustomerAddressRepository extends BaseRepository {
   @Transactional()
   async setDefaults(
     customerId: string,
-    input: { shippingAddressId?: string | null; billingAddressId?: string | null }
+    input: { shippingAddressId?: string | null; billingAddressId?: string | null },
   ): Promise<boolean> {
-    const requestedIds = [
-      input.shippingAddressId,
-      input.billingAddressId,
-    ].filter((id): id is string => Boolean(id));
+    const requestedIds = [input.shippingAddressId, input.billingAddressId].filter(
+      (id): id is string => Boolean(id),
+    );
     if (requestedIds.length > 0) {
       const existing = await this.connection
         .select({ id: customerAddress.id })
@@ -345,36 +311,26 @@ export class CustomerAddressRepository extends BaseRepository {
             eq(customerAddress.storeId, this.storeId),
             eq(customerAddress.customerId, customerId),
             inArray(customerAddress.id, [...new Set(requestedIds)]),
-            isNull(customerAddress.deletedAt)
-          )
+            isNull(customerAddress.deletedAt),
+          ),
         );
       if (existing.length !== new Set(requestedIds).size) return false;
     }
     await this.clearDefaults(customerId, { shipping: true, billing: true });
 
     if (input.shippingAddressId) {
-      const updated = await this.setDefault(
-        customerId,
-        input.shippingAddressId,
-        "shipping"
-      );
+      const updated = await this.setDefault(customerId, input.shippingAddressId, "shipping");
       if (!updated) return false;
     }
     if (input.billingAddressId) {
-      const updated = await this.setDefault(
-        customerId,
-        input.billingAddressId,
-        "billing"
-      );
+      const updated = await this.setDefault(customerId, input.billingAddressId, "billing");
       if (!updated) return false;
     }
     return true;
   }
 
   @ReadOnly()
-  async getConnection(
-    input: CustomerAddressConnectionInput
-  ): Promise<RepositoryConnectionResult> {
+  async getConnection(input: CustomerAddressConnectionInput): Promise<RepositoryConnectionResult> {
     const normalized = normalizeRelayPagination(input);
     const { customerId, where, orderBy, ...pagination } = normalized;
     const mergedWhere: CustomerAddressRelayInput["where"] = {
@@ -413,7 +369,7 @@ export class CustomerAddressRepository extends BaseRepository {
 
   private async findDefault(
     customerId: string,
-    kind: "shipping" | "billing"
+    kind: "shipping" | "billing",
   ): Promise<CustomerAddress | null> {
     const rows = await this.connection
       .select()
@@ -425,8 +381,8 @@ export class CustomerAddressRepository extends BaseRepository {
           kind === "shipping"
             ? eq(customerAddress.isDefaultShipping, true)
             : eq(customerAddress.isDefaultBilling, true),
-          isNull(customerAddress.deletedAt)
-        )
+          isNull(customerAddress.deletedAt),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -434,7 +390,7 @@ export class CustomerAddressRepository extends BaseRepository {
 
   private async clearDefaults(
     customerId: string,
-    input: { shipping: boolean; billing: boolean }
+    input: { shipping: boolean; billing: boolean },
   ): Promise<void> {
     if (!input.shipping && !input.billing) return;
     await this.connection
@@ -448,22 +404,20 @@ export class CustomerAddressRepository extends BaseRepository {
         and(
           eq(customerAddress.storeId, this.storeId),
           eq(customerAddress.customerId, customerId),
-          isNull(customerAddress.deletedAt)
-        )
+          isNull(customerAddress.deletedAt),
+        ),
       );
   }
 
   private async setDefault(
     customerId: string,
     addressId: string,
-    kind: "shipping" | "billing"
+    kind: "shipping" | "billing",
   ): Promise<boolean> {
     const rows = await this.connection
       .update(customerAddress)
       .set({
-        ...(kind === "shipping"
-          ? { isDefaultShipping: true }
-          : { isDefaultBilling: true }),
+        ...(kind === "shipping" ? { isDefaultShipping: true } : { isDefaultBilling: true }),
         updatedAt: new Date().toISOString(),
       })
       .where(
@@ -471,8 +425,8 @@ export class CustomerAddressRepository extends BaseRepository {
           eq(customerAddress.storeId, this.storeId),
           eq(customerAddress.customerId, customerId),
           eq(customerAddress.id, addressId),
-          isNull(customerAddress.deletedAt)
-        )
+          isNull(customerAddress.deletedAt),
+        ),
       )
       .returning({ id: customerAddress.id });
     return rows.length > 0;

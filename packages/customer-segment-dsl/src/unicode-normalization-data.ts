@@ -2,7 +2,8 @@
 
 export const UNICODE_NORMALIZATION_VERSION = "16.0.0";
 
-export const UNICODE_NORMALIZATION_SHA256 = "1abcdeff5f2e65df658b3df6cad760a8b199804fd906562fcb9cfa171ff9eaed";
+export const UNICODE_NORMALIZATION_SHA256 =
+  "1abcdeff5f2e65df658b3df6cad760a8b199804fd906562fcb9cfa171ff9eaed";
 
 export const UNICODE_CANONICAL_DECOMPOSITION_DATA = [
   "5c:1t.lc;5d:1t.ld;5e:1t.le;5f:1t.lf;5g:1t.lk;5h:1t.lm;5j:1v.mf;5k:1x.lc;5l:1x.ld;5m:1x.le;5n:1x.lk;5o:21.lc;",
@@ -921,4 +922,3 @@ export const UNICODE_COMPOSITION_DATA = [
   "1iuw.1iun:1iuy;1iux.1iun:1iuz;1jjp.1jjk:1jjs;1xr2.1xr2:1xr5;1xr2.1xr3:1xr7;1xr2.1xr4:1xr9;1xr2.1xrd:1xr6;",
   "1xr5.1xr3:1xra;1xr5.1xr4:1xrc;1xr6.1xr3:1xrb;1xrd.1xr3:1xr8;206b.206f:206h;206f.206f:206g;206h.206f:206i",
 ].join("");
-

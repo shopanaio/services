@@ -10,17 +10,11 @@ import {
   productFilterTransformers,
   productSortFieldMapping,
 } from "@/domains/inventory/products/page/page-config";
-import {
-  getProductThumbnailFile,
-} from "@/domains/inventory/products/utils/api-product-display";
+import { getProductThumbnailFile } from "@/domains/inventory/products/utils/api-product-display";
 import { getProductStatus } from "@/domains/inventory/products/utils/product-status";
 import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
-import type {
-  IEntityPickerConfig,
-  IEntityPickerDataResult,
-  IPickableEntity,
-} from "../types";
+import type { IEntityPickerConfig, IEntityPickerDataResult, IPickableEntity } from "../types";
 import type {
   ApiProduct,
   ApiProductOrderByInput,
@@ -53,17 +47,7 @@ function useProductsPickerData(options: {
   excludeIds: string[];
   queryMeta?: unknown;
 }): IEntityPickerDataResult<ProductPickerEntity> {
-  const {
-    pageSize,
-    first,
-    after,
-    last,
-    before,
-    where,
-    orderBy,
-    excludeIds,
-    queryMeta,
-  } = options;
+  const { pageSize, first, after, last, before, where, orderBy, excludeIds, queryMeta } = options;
   const productsWhere = useMemo<ApiProductWhereInput | null>(() => {
     const conditions: ApiProductWhereInput[] = [];
 
@@ -90,10 +74,7 @@ function useProductsPickerData(options: {
     meta: queryMeta as ApiProductProductsMetaInput | null | undefined,
   });
 
-  const data = useMemo(
-    () => products.map(transformProduct),
-    [products],
-  );
+  const data = useMemo(() => products.map(transformProduct), [products]);
 
   return {
     data,

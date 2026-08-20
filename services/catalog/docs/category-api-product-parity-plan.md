@@ -2,55 +2,71 @@
 
 ## Цель
 
-Довести API категорий в Catalog до такого же уровня готовности к интеграции и архитектурной согласованности, как текущий Product API.
+Довести API категорий в Catalog до такого же уровня готовности к интеграции и архитектурной
+согласованности, как текущий Product API.
 
-Это one-commit cutover plan. Изменение выполняется атомарно одним backend cutover без периода обратной совместимости:
+Это one-commit cutover plan. Изменение выполняется атомарно одним backend cutover без периода
+обратной совместимости:
 
 - Не поддерживать старую форму `categoryUpdate(input: CategoryUpdateInput!)`.
 - Не оставлять временные code paths, которые принимают старый и новый контракты одновременно.
-- Все GraphQL schema changes, resolvers, scripts, workflows, repositories, generated artifacts и API consumers внутри repo обновляются в одном change set.
-- После cutover публичный контракт считается новым контрактом. Старые queries/mutations могут ломаться и должны быть переписаны в этом же коммите.
+- Все GraphQL schema changes, resolvers, scripts, workflows, repositories, generated artifacts и API
+  consumers внутри repo обновляются в одном change set.
+- После cutover публичный контракт считается новым контрактом. Старые queries/mutations могут
+  ломаться и должны быть переписаны в этом же коммите.
 
 Целевой API должен поддерживать:
 
-- API-backed flow для списка категорий, деталей, создания, обновления, удаления, иерархии, медиа, SEO и category-centric управления продуктами.
+- API-backed flow для списка категорий, деталей, создания, обновления, удаления, иерархии, медиа,
+  SEO и category-centric управления продуктами.
 - Primary category как явный read-side API-контракт. Write path для установки/смены `isPrimary`
   остается out of scope follow-up.
-- Product-style архитектуру мутаций: GraphQL namespace, global IDs, generated schemas, scripts, workflow orchestration для сложных обновлений, `userErrors` и предсказуемые payloads для refresh/cache.
+- Product-style архитектуру мутаций: GraphQL namespace, global IDs, generated schemas, scripts,
+  workflow orchestration для сложных обновлений, `userErrors` и предсказуемые payloads для
+  refresh/cache.
 
 ## Текущее Состояние
 
 На backend уже есть полезные category primitives:
 
 - `catalogQuery.category(id)` и `catalogQuery.categories(...)`.
-- `Category` поля для handle, publication state, translated name/content, hierarchy, media, SEO, products и `productsCount`.
+- `Category` поля для handle, publication state, translated name/content, hierarchy, media, SEO,
+  products и `productsCount`.
 - `catalogMutation.categoryCreate`, `categoryUpdate`, `categoryMove`, `categoryDelete`.
-- Product-in-category операции: `categoryAddProduct`, `categoryMoveProduct`, `categoryRebalance` и `categoryUpdateSort`.
-- Repository methods для product-category links, category product connection, media replacement, translations и SEO.
+- Product-in-category операции: `categoryAddProduct`, `categoryMoveProduct`, `categoryRebalance` и
+  `categoryUpdateSort`.
+- Repository methods для product-category links, category product connection, media replacement,
+  translations и SEO.
 
 Важные пробелы:
 
 - `catalogQuery.categories` принимает только pagination arguments. Нет generated `where` и `orderBy`
   от `@shopana/drizzle-query`.
-- Category connection pagination не является полноценной Relay pagination. Сейчас фактически поддерживается только первая forward page, а `hasPreviousPage` всегда `false`.
+- Category connection pagination не является полноценной Relay pagination. Сейчас фактически
+  поддерживается только первая forward page, а `hasPreviousPage` всегда `false`.
 - Product category assignment неполный. Есть `categoryAddProduct`, но нет remove.
-- Primary category существует как `product_category.isPrimary`, но не экспонируется как стабильный API-контракт.
+- Primary category существует как `product_category.isPrimary`, но не экспонируется как стабильный
+  API-контракт.
 - `Product.categories: [Category!]!` теряет metadata связи, например `isPrimary` и manual rank.
-- Resolver `categoryUpdate` принимает `defaultSort/defaultSortDirection`, но `CategoryUpdateInput` в schema эти поля не экспонирует. Публичный контракт сейчас использует `categoryUpdateSort`.
-- Category update монолитный по сравнению с product update workflow architecture. Нет optimistic locking, operation results и partial update operation model.
+- Resolver `categoryUpdate` принимает `defaultSort/defaultSortDirection`, но `CategoryUpdateInput` в
+  schema эти поля не экспонирует. Публичный контракт сейчас использует `categoryUpdateSort`.
+- Category update монолитный по сравнению с product update workflow architecture. Нет optimistic
+  locking, operation results и partial update operation model.
 
 ## Архитектурные Правила
 
 Следовать тем же backend и GraphQL правилам, которые используются для продуктов:
 
 - Использовать namespaces `catalogQuery` и `catalogMutation`.
-- Принимать и возвращать GraphQL global IDs на границе schema. Декодировать в UUID только в resolvers/scripts.
+- Принимать и возвращать GraphQL global IDs на границе schema. Декодировать в UUID только в
+  resolvers/scripts.
 - Заменять legacy GraphQL contracts напрямую.
 - Каждая mutation возвращает `userErrors`.
 - Сложные multi-field updates проходят через workflow с operation-level results.
 - Простые create/delete операции могут оставаться script-backed.
 - Scripts содержат business logic и возвращают `{ result/category/product?, changes?, userErrors }`.
-- Repositories остаются multi-tenant через текущий context и используют transaction-aware connection.
+- Repositories остаются multi-tenant через текущий context и используют transaction-aware
+  connection.
 
 ## Целевой Backend Contract
 
@@ -104,16 +120,16 @@ ALTER TABLE catalog.category
 ```
 
 Каждый category update workflow должен использовать product-style optimistic locking через revision
-compare-and-swap и product-style partial-apply семантику. Для requested sections наружу
-возвращается один public `OperationResult` с `type: CATEGORY_UPDATE`; no-op updates возвращают
+compare-and-swap и product-style partial-apply семантику. Для requested sections наружу возвращается
+один public `OperationResult` с `type: CATEGORY_UPDATE`; no-op updates возвращают
 `operationResults: []`, как `productUpdate`.
 
 ### Product Category Relationship Metadata
 
 Новый product-facing контракт для category assignment должен быть явным и metadata-aware. Поле
-`Product.categories` полностью удаляется в этом cutover и не остается ни compatibility
-requirement, ни convenience display field. Все in-repo consumers должны перейти на
-`Product.primaryCategory` и `Product.categoryAssignments`.
+`Product.categories` полностью удаляется в этом cutover и не остается ни compatibility requirement,
+ни convenience display field. Все in-repo consumers должны перейти на `Product.primaryCategory` и
+`Product.categoryAssignments`.
 
 ```graphql
 type ProductCategoryAssignment {
@@ -152,8 +168,8 @@ CREATE UNIQUE INDEX product_category_one_primary_per_product_idx
 ```
 
 Migration note: current model already has a partial unique index named
-`idx_product_category_primary` on `product_category(product_id) WHERE is_primary = true`.
-The migration must replace that existing index instead of adding a second overlapping constraint:
+`idx_product_category_primary` on `product_category(product_id) WHERE is_primary = true`. The
+migration must replace that existing index instead of adding a second overlapping constraint:
 
 ## Целевой Query Contract
 
@@ -231,8 +247,8 @@ Implementation notes:
 - Filtering/sorting по translated category name не входит в обязательный table-based cutover и может
   быть добавлен отдельно только через generated drizzle-query schema для query builder, который
   корректно моделирует join без дублирования category rows.
-- ID values in generated `IDFilter` fields, включая `id` и `parentId`, нужно декодировать из
-  global category IDs перед repository access.
+- ID values in generated `IDFilter` fields, включая `id` и `parentId`, нужно декодировать из global
+  category IDs перед repository access.
 - `deletedAt` намеренно отсутствует в public generated `CategoryWhereInput` / `CategoryOrderField`,
   хотя `categoryRelayQuery` может включать его как internal field для repository-owned soft-delete
   filter.
@@ -241,7 +257,8 @@ Implementation notes:
 
 ### Category Details
 
-Существующего `catalogQuery.category(id)` достаточно как root field. Backend должен экспонировать поля, необходимые для category details:
+Существующего `catalogQuery.category(id)` достаточно как root field. Backend должен экспонировать
+поля, необходимые для category details:
 
 - identity: `id`, `handle`, `revision`;
 - publication: `isPublished`, `publishedAt`, `deletedAt`;
@@ -298,7 +315,8 @@ Required fixes:
 
 ### Unified Category Update
 
-Заменить текущую публичную `categoryUpdate` mutation на product-style update contract. Не добавлять `categoryUpdateV2` и не поддерживать старый `categoryUpdate(input: CategoryUpdateInput!)`.
+Заменить текущую публичную `categoryUpdate` mutation на product-style update contract. Не добавлять
+`categoryUpdateV2` и не поддерживать старый `categoryUpdate(input: CategoryUpdateInput!)`.
 
 Итоговая schema:
 
@@ -362,8 +380,7 @@ Workflow behavior:
   `operations` object без requested sections должен копировать текущее no-op поведение
   `ProductUpdateWorkflow`: выполнить revision compare-and-swap, инкрементить `revision` при
   successful CAS, не выполнять section scripts, вернуть updated category payload,
-  `operationResults: []`, `userErrors: []`, не эмитить
-  `productUpdated`/`categoryUpdated`.
+  `operationResults: []`, `userErrors: []`, не эмитить `productUpdated`/`categoryUpdated`.
 - Захватить category revision через compare-and-swap до применения update sections.
 - Копировать product-style partial-apply behavior: если одна requested section вернула
   validation/business errors, ранее успешно примененные sections не откатываются, `revision`
@@ -378,13 +395,13 @@ Workflow behavior:
 - Для sections, которые успешно применились и меняют product-index-affecting category data, после
   successful script/workflow step эмитить `productUpdated` fan-out для affected products тем же
   путем, что `ProductUpdateWorkflow`.
-- `categoryUpdated` не является обязательным indexing contract для этого cutover; если он остается для
-  category-domain consumers, эмитить его только для успешно примененных category changes.
+- `categoryUpdated` не является обязательным indexing contract для этого cutover; если он остается
+  для category-domain consumers, эмитить его только для успешно примененных category changes.
 - Возвращать updated category resolver после successful CAS, даже если часть requested sections
   вернула validation/business errors.
-- If any requested section returns validation/business errors, keep already applied section writes and
-  the acquired revision, return one `CATEGORY_UPDATE` with `applied: false`, duplicate errors into
-  aggregate `userErrors`, and emit events only for sections that actually produced changes.
+- If any requested section returns validation/business errors, keep already applied section writes
+  and the acquired revision, return one `CATEGORY_UPDATE` with `applied: false`, duplicate errors
+  into aggregate `userErrors`, and emit events only for sections that actually produced changes.
 
 Suggested workflow DTO:
 
@@ -434,9 +451,8 @@ UUID as `CategoryUpdateWorkflowInput.categoryId`.
 Operation result semantics:
 
 - `operations` в GraphQL contract nullable, как в `productUpdate`. Missing, `null` или empty object
-  является no-op update: после successful revision check workflow возвращает
-  updated category payload с новой revision, `operationResults: []`, `userErrors: []` и не эмитит
-  events.
+  является no-op update: после successful revision check workflow возвращает updated category
+  payload с новой revision, `operationResults: []`, `userErrors: []` и не эмитит events.
 - Если `operations` передан, содержит хотя бы один requested section и прошел revision check,
   workflow возвращает ровно один `CATEGORY_UPDATE` result.
 - `CATEGORY_UPDATE.applied` равен `true`, только если все requested sections применились успешно.
@@ -461,7 +477,10 @@ Hierarchy must-fix: before wiring hierarchy into unified `categoryUpdate`, fix
 `inventory.category`. Unified hierarchy update must not ship while descendant path updates point at
 the wrong schema.
 
-Cutover requirement: do not leave the old monolithic `CategoryUpdateScript` as the public mutation path. It may be reused internally only if wrapped behind section-specific internal scripts and the exposed workflow behavior matches the single `CATEGORY_UPDATE` operation-result contract in the same commit.
+Cutover requirement: do not leave the old monolithic `CategoryUpdateScript` as the public mutation
+path. It may be reused internally only if wrapped behind section-specific internal scripts and the
+exposed workflow behavior matches the single `CATEGORY_UPDATE` operation-result contract in the same
+commit.
 
 ### Category Product Management From Category Details
 
@@ -493,7 +512,9 @@ Keep existing category-centric operations only as part of the final post-cutover
 
 Implementation notes:
 
-- Если удаляемая category была primary для product, clear primary или deterministic fallback допустимы только если product-level contract явно этого требует. Предпочтительно вернуть validation error, если не добавлен `allowPrimaryFallback`.
+- Если удаляемая category была primary для product, clear primary или deterministic fallback
+  допустимы только если product-level contract явно этого требует. Предпочтительно вернуть
+  validation error, если не добавлен `allowPrimaryFallback`.
 
 ## Repository Plan
 
@@ -518,8 +539,8 @@ Required capabilities:
 
 Concrete integration instructions:
 
-1. Add root query builders near the existing category product relay query. `categoryRelayQuery`
-   must be built from the `category` table, matching the product repository pattern:
+1. Add root query builders near the existing category product relay query. `categoryRelayQuery` must
+   be built from the `category` table, matching the product repository pattern:
 
 ```ts
 const categoryQuery = createQuery(category).maxLimit(100).defaultLimit(20);
@@ -533,9 +554,10 @@ export type CategoryQueryInput = InferExecuteOptions<typeof categoryQuery>;
 export type CategoryRelayInput = InferRelayInput<typeof categoryRelayQuery>;
 ```
 
-2. Replace `CategoryRepository.getConnection` manual cursor construction with `categoryRelayQuery.execute`.
-   Do not create cursors with `Buffer.from(category.id)`. Cursors, `hasNextPage`, `hasPreviousPage`,
-   `startCursor` and `endCursor` must come from drizzle-query relay result.
+2. Replace `CategoryRepository.getConnection` manual cursor construction with
+   `categoryRelayQuery.execute`. Do not create cursors with `Buffer.from(category.id)`. Cursors,
+   `hasNextPage`, `hasPreviousPage`, `startCursor` and `endCursor` must come from drizzle-query
+   relay result.
 
 ```ts
 async getConnection(args: CategoryRelayInput): Promise<CategoryConnectionResult> {
@@ -614,11 +636,7 @@ Do not use the existing unfiltered `count()` method for connection `totalCount`.
    `ProductRepository.getConnection`:
 
 ```ts
-_and: [
-  { storeId: { _eq: this.storeId } },
-  { deletedAt: { _is: null } },
-  ...(where ? [where] : []),
-]
+_and: [{ storeId: { _eq: this.storeId } }, { deletedAt: { _is: null } }, ...(where ? [where] : [])];
 ```
 
 7. Preserve the existing connection resolver contract:
@@ -638,15 +656,15 @@ getProductCategoryLinksByProductIds(productIds: readonly string[]): Promise<Prod
 removeProductFromCategory(productId: string, categoryId: string): Promise<boolean>;
 ```
 
-Validation belongs in scripts. Repositories не должны silently invent fallback primary category behavior.
-Public `isPrimary` write helpers, including `setProductPrimaryCategory` or `primaryCategoryId`
-inputs, are out of scope for this cutover and should be planned as a follow-up.
+Validation belongs in scripts. Repositories не должны silently invent fallback primary category
+behavior. Public `isPrimary` write helpers, including `setProductPrimaryCategory` or
+`primaryCategoryId` inputs, are out of scope for this cutover and should be planned as a follow-up.
 
 ### Category Product Connection
 
-`CategoryProductEdge` остается стандартным Relay edge с `node` и `cursor`.
-Metadata строки `product_category`, такая как `isPrimary` и `lexoRank`, не экспонируется на
-`CategoryProductEdge`. Product-facing metadata доступна через `Product.categoryAssignments`.
+`CategoryProductEdge` остается стандартным Relay edge с `node` и `cursor`. Metadata строки
+`product_category`, такая как `isPrimary` и `lexoRank`, не экспонируется на `CategoryProductEdge`.
+Product-facing metadata доступна через `Product.categoryAssignments`.
 
 Repository result для `getCategoryProductsConnection` должен оставаться compatible с текущим
 connection resolver contract:
@@ -679,7 +697,8 @@ interface CategoryProductsConnectionResult {
 
 ### Product Resolver
 
-- Update or remove `categories()` in the same cutover. New integrations must use `primaryCategory()` and `categoryAssignments()` for assignment metadata.
+- Update or remove `categories()` in the same cutover. New integrations must use `primaryCategory()`
+  and `categoryAssignments()` for assignment metadata.
 - Добавить `primaryCategory()`.
 - Добавить `categoryAssignments()`.
 - Использовать DataLoader для category links, чтобы избежать N+1 queries.
@@ -694,7 +713,8 @@ interface CategoryProductsConnectionResult {
 
 ## Event And Search Index Plan
 
-Product category changes должны обновлять product search indexes, потому что category handles входят в product search index.
+Product category changes должны обновлять product search indexes, потому что category handles входят
+в product search index.
 
 Required event behavior:
 
@@ -703,7 +723,8 @@ Required event behavior:
 - Category product add/remove/reorder эмитит `productUpdated` для каждого affected product после
   successful category/category-link write.
 - Category handle/name/status/hierarchy changes эмитят `productUpdated` fan-out для продуктов в
-  category, если category handles, searchable category labels, visibility или hierarchy denormalized.
+  category, если category handles, searchable category labels, visibility или hierarchy
+  denormalized.
 
 Final implementation:
 
@@ -719,8 +740,8 @@ Final implementation:
 После backend schema changes:
 
 - Regenerate catalog GraphQL schema artifacts.
-- Regenerate `@shopana/drizzle-query` generated GraphQL schema artifacts for the new category
-  relay query. Category query filters/order inputs are owned by generated schema files only.
+- Regenerate `@shopana/drizzle-query` generated GraphQL schema artifacts for the new category relay
+  query. Category query filters/order inputs are owned by generated schema files only.
 - Regenerate resolver generated types.
 - Regenerate Zod schemas generated from GraphQL inputs.
 - Проверить, что публичная schema содержит новые fields, inputs и payloads.
@@ -728,7 +749,8 @@ Final implementation:
 
 ## One-Commit Cutover Work Plan
 
-Все пункты ниже входят в один commit. Нельзя merge/deploy частичный state, где schema уже изменилась, но resolvers/scripts/codegen/admin queries еще старые.
+Все пункты ниже входят в один commit. Нельзя merge/deploy частичный state, где schema уже
+изменилась, но resolvers/scripts/codegen/admin queries еще старые.
 
 ### 1. Schema Cutover
 
@@ -746,16 +768,14 @@ entity-specific файлы:
     формы `categoryUpdate(input: ...)`.
 - `src/api/graphql-admin/schema/category.graphql`:
   - добавить `Category.revision: Int!`;
-  - не добавлять manual category list filter/order types;
-    `CategoryWhereInput`, `CategoryOrderField` и `CategoryOrderByInput` генерируются только через
-    `@shopana/drizzle-query`;
+  - не добавлять manual category list filter/order types; `CategoryWhereInput`, `CategoryOrderField`
+    и `CategoryOrderByInput` генерируются только через `@shopana/drizzle-query`;
   - заменить старый `CategoryUpdateInput` с embedded `id` на section-based input без `id`;
   - добавить `CategoryContentInput`, `CategoryMediaInput`, `CategoryHierarchyInput`,
     `CategorySortInput`, `CategoryStatus`;
   - расширить общий `OperationType` значением `CATEGORY_UPDATE` вместо добавления отдельного
     category-specific operation result type;
-  - расширить `CategoryUpdatePayload` полем
-    `operationResults: [OperationResult!]!`;
+  - расширить `CategoryUpdatePayload` полем `operationResults: [OperationResult!]!`;
   - добавить `CategoryRemoveProductInput`, `CategoryRemoveProductPayload`;
   - оставить `CategoryProductEdge` в форме `{ node: Product!, cursor: String! }` без
     product-category metadata fields.
@@ -779,7 +799,8 @@ Schema-level acceptance criteria:
 - Product-facing category assignment metadata доступна только через `primaryCategory` и
   `categoryAssignments`; `Product.categories` отсутствует в финальной schema.
 - После schema changes regenerate шаг из пункта 5 обязан удалить старые generated references:
-  `CatalogMutationCategoryUpdateArgs.input`, старый `CategoryUpdateInput.id` и старый Zod schema shape.
+  `CatalogMutationCategoryUpdateArgs.input`, старый `CategoryUpdateInput.id` и старый Zod schema
+  shape.
 
 ### 2. Migration And Repository Cutover
 
@@ -796,14 +817,14 @@ Model changes:
   - не оставлять одновременно старый product-only primary index и новый tenant-scoped index.
 - Не добавлять `category_list` или supporting aggregate views для category list в этом cutover.
   Category list query должна работать от таблицы `catalog.category`, как product list.
-- `CategoryRepository` должен соответствовать repository KB pattern: использовать
-  transaction-aware `this.connection`, всегда применять `storeId`/`storeId` scoping, и
-  предпочтительно перейти на `extends BaseRepository`, чтобы не дублировать context/connection
-  plumbing вручную.
+- `CategoryRepository` должен соответствовать repository KB pattern: использовать transaction-aware
+  `this.connection`, всегда применять `storeId`/`storeId` scoping, и предпочтительно перейти на
+  `extends BaseRepository`, чтобы не дублировать context/connection plumbing вручную.
 
 Migration SQL acceptance criteria:
 
-- Migration содержит `ALTER TABLE "catalog"."category" ADD COLUMN "revision" integer NOT NULL DEFAULT 0`.
+- Migration содержит
+  `ALTER TABLE "catalog"."category" ADD COLUMN "revision" integer NOT NULL DEFAULT 0`.
 - Migration не создает `catalog.category_list` или supporting aggregate view(s) для category list.
 - Migration явно удаляет или переименовывает `idx_product_category_primary` до создания финального
   tenant-scoped index:
@@ -839,9 +860,8 @@ export const categoryRelayQuery = createRelayQuery(
 
 - `CategoryRepository.getConnection(args)` должен:
   - принимать `first/after/last/before`, `where`, `orderBy`;
-  - merge-ить repository-owned filters:
-    `{ storeId: { _eq: this.storeId } }` и default `{ deletedAt: { _is: null } }` всегда, как
-    `ProductRepository.getConnection`;
+  - merge-ить repository-owned filters: `{ storeId: { _eq: this.storeId } }` и default
+    `{ deletedAt: { _is: null } }` всегда, как `ProductRepository.getConnection`;
   - использовать `categoryRelayQuery.execute(this.connection, executeInput)`;
   - считать `totalCount` через `categoryRelayQuery.count(this.connection, { where: mergedWhere })`;
   - возвращать только `{ edges: [{ cursor, nodeId }], pageInfo, totalCount }`, чтобы сохранить
@@ -912,8 +932,8 @@ Repository cutover acceptance criteria:
   pageInfo.
 - `CategoryProductConnectionResolver` can keep using the base `{ cursor, node }` edge shape.
 - `CategoryRepository.move()` updates descendants in `catalog.category`.
-- Drizzle model, migration SQL and runtime repository fields agree on final names for
-  `revision` and primary-category unique index.
+- Drizzle model, migration SQL and runtime repository fields agree on final names for `revision` and
+  primary-category unique index.
 
 ### 3. Script And Workflow Cutover
 
@@ -994,8 +1014,8 @@ Unified category update workflow behavior:
 
 - Resolver maps internal result type `"categoryUpdate"` to GraphQL enum `CATEGORY_UPDATE`.
 - `CATEGORY_UPDATE.applied` is `true` only when every requested section succeeds.
-- Any validation/business error from any requested section makes the public `CATEGORY_UPDATE`
-  result `applied: false`, but does not roll back already applied sections or the revision bump.
+- Any validation/business error from any requested section makes the public `CATEGORY_UPDATE` result
+  `applied: false`, but does not roll back already applied sections or the revision bump.
 - Script split is internal. Do not expose one public `operationResults` item per section.
 
 Partial-apply implementation requirement:
@@ -1004,17 +1024,19 @@ Partial-apply implementation requirement:
   - `CategoryUpdateWorkflow.run()` acquires revision first through a project-scoped CAS step;
   - for no-op updates, it returns the updated `{ id, revision }`, `operationResults: []` and
     `userErrors: []` without running section scripts;
-  - for requested sections, it runs only the relevant section scripts/steps in a deterministic order;
+  - for requested sections, it runs only the relevant section scripts/steps in a deterministic
+    order;
   - each section script uses transaction-aware repositories and may be independently transactional;
-  - section scripts return `{ changes?, userErrors }` and do not throw for business validation errors;
+  - section scripts return `{ changes?, userErrors }` and do not throw for business validation
+    errors;
   - workflow aggregates all section errors into one public `CATEGORY_UPDATE` result and aggregate
     `userErrors`;
   - workflow emits follow-up events only for sections that produced changes.
 - A plain `return { userErrors }` from a section after earlier sections wrote data is allowed and is
   part of the product-style partial-apply contract. It must not be interpreted as rollback.
 - Independent workflow steps for CAS and individual sections are allowed. Their observable behavior
-  must match `ProductUpdateWorkflow`: CAS failure is an early failure with no public operation result;
-  section failure is a partial update with one public `CATEGORY_UPDATE` result.
+  must match `ProductUpdateWorkflow`: CAS failure is an early failure with no public operation
+  result; section failure is a partial update with one public `CATEGORY_UPDATE` result.
 - Match the current `ProductUpdateWorkflow.run()` payload behavior: once revision acquisition
   succeeds, the workflow returns `{ id, revision }` in the entity payload even when one or more
   operation results have `applied: false`; resolver code maps that payload to the entity resolver
@@ -1093,7 +1115,8 @@ Stable user error contract:
   - `INVALID_SORT`;
   - `INTERNAL_ERROR`.
 - Field paths must point to public GraphQL input shape, for example
-  `["operations", "hierarchy", "parentId"]` or `["input", "productIds", "2"]`, not internal DTO names.
+  `["operations", "hierarchy", "parentId"]` or `["input", "productIds", "2"]`, not internal DTO
+  names.
 - Do not throw for user/business validation. Return `userErrors`.
 - Throw only for unexpected system failures.
 
@@ -1156,16 +1179,15 @@ Global ID boundary rules:
   - `categoryUpdate.operations.hierarchy.parentId`;
   - `categoryUpdate.operations.media.fileIds`;
   - `categoryUpdate.operations.seo.ogImageId`;
-  - `categoryAddProduct`, `categoryMoveProduct`, `categoryRemoveProduct`,
-    `categoryRebalance`.
+  - `categoryAddProduct`, `categoryMoveProduct`, `categoryRemoveProduct`, `categoryRebalance`.
 - Encode all entity IDs returned by resolvers at GraphQL boundary:
   - `Category.id` as `GlobalIdEntity.Category`;
   - `Product.id` as `GlobalIdEntity.Product`;
   - media `File.id` references as `GlobalIdEntity.File`, unless the existing federation File
     reference contract explicitly requires a raw UUID.
 - Invalid user-provided IDs should be returned as `userErrors` for mutations with field paths that
-  match public input. Query fields may return `null` for invalid `id`, matching current
-  nullable root query behavior.
+  match public input. Query fields may return `null` for invalid `id`, matching current nullable
+  root query behavior.
 
 Query resolver cutover:
 
@@ -1194,9 +1216,9 @@ Mutation resolver cutover:
   - map GraphQL enum `CategoryStatus` to internal `"published" | "draft"`;
   - call broker workflow `catalog.categoryUpdate`;
   - map internal operation result `"categoryUpdate"` to GraphQL enum `CATEGORY_UPDATE`;
-  - return `category: new CategoryResolver(result.category.id, this.$ctx)` whenever workflow
-    returns a category payload, including no-op updates and partial-apply section failures after
-    successful CAS;
+  - return `category: new CategoryResolver(result.category.id, this.$ctx)` whenever workflow returns
+    a category payload, including no-op updates and partial-apply section failures after successful
+    CAS;
   - return `category: null` only for early workflow failures before revision acquisition completes,
     such as `NOT_FOUND` or `REVISION_CONFLICT`.
 - `categoryRemoveProduct`:
@@ -1256,8 +1278,8 @@ productCategoryLinksByProductIds(productIds: readonly string[]): Promise<Product
   - `categoryId`;
   - `isPrimary`;
   - `lexoRank`.
-- Batch function calls one repository method for all product IDs and groups results by input
-  product ID.
+- Batch function calls one repository method for all product IDs and groups results by input product
+  ID.
 - Register the loader in `src/loaders/Loader.ts`.
 - `Product.primaryCategory` and `Product.categoryAssignments` must use the metadata-aware loader.
 - Keep existing `category`, `categoryTranslation`, `categoryMedia`, `categorySeo`,
@@ -1349,7 +1371,8 @@ Generated `filters.graphql` must contain `CategoryWhereInput`, `CategoryOrderFie
    the project-approved filter generation command after `categoryRelayQuery` is exported. Do not
    hand-edit generated filter files.
 
-3. После schema/model/resolver source changes запустить project-approved codegen для catalog service:
+3. После schema/model/resolver source changes запустить project-approved codegen для catalog
+   service:
 
 ```sh
 yarn shopana codegen --service catalog
@@ -1461,9 +1484,10 @@ rg -U 'enum CategoryOrderField \{[^}]*deletedAt' services/catalog/src/api/graphq
 
 The old/deprecated category update checks above must return no matches. The category query input
 check must show exactly one generated schema owner for each public category query type, with no
-manual definitions. The generated `CategoryWhereInput` / `CategoryOrderField` `deletedAt` checks must
-return no matches; `deletedAt` remains repository-owned for category list. Other generated inputs in
-the same file, such as `CategoryProductWhereInput`, may still expose their own `deletedAt` filters.
+manual definitions. The generated `CategoryWhereInput` / `CategoryOrderField` `deletedAt` checks
+must return no matches; `deletedAt` remains repository-owned for category list. Other generated
+inputs in the same file, such as `CategoryProductWhereInput`, may still expose their own `deletedAt`
+filters.
 
 In-repo GraphQL consumer cutover:
 
@@ -1493,9 +1517,9 @@ Federation/schema acceptance criteria:
   - `categoryUpdateV2`;
   - deprecated compatibility aliases for category update;
   - `Product.categories`.
-- Federation composition must include new `Product` fields without ownership conflicts. Since catalog
-  owns `Product`, these fields should be defined in catalog's product schema, not as extension fields
-  from another service.
+- Federation composition must include new `Product` fields without ownership conflicts. Since
+  catalog owns `Product`, these fields should be defined in catalog's product schema, not as
+  extension fields from another service.
 
 Generated artifacts cutover acceptance criteria:
 
@@ -1523,8 +1547,8 @@ Files to update:
 - `services/catalog/src/scripts/category/CategoryRemoveProductScript.ts`;
 - `services/catalog/src/scripts/search-index/SyncProductIndexScript.ts` only if product/category
   index payload shape changes;
-- `services/catalog/src/handlers/index.ts` only if existing `productUpdated` handler payload handling
-  needs category delta support;
+- `services/catalog/src/handlers/index.ts` only if existing `productUpdated` handler payload
+  handling needs category delta support;
 - repository methods for affected product discovery from category/category links.
 
 Category update event contract:
@@ -1541,16 +1565,16 @@ Category update event contract:
   - `status` if product search or product visibility depends on category publication;
   - hierarchy if product search stores category path/breadcrumbs.
 - Empty update and revision conflict must not emit `productUpdated`. A section validation failure
-  emits no event for the failed section, but does not suppress events for other sections that already
-  applied and produced category changes.
-- For each affected product, the emitted `productUpdated` payload should include the current category
-  delta under `ProductFieldChanges.categories`; `SyncProductIndexScript` reads committed
+  emits no event for the failed section, but does not suppress events for other sections that
+  already applied and produced category changes.
+- For each affected product, the emitted `productUpdated` payload should include the current
+  category delta under `ProductFieldChanges.categories`; `SyncProductIndexScript` reads committed
   `product_category` and category rows, so the event does not need to carry full denormalized search
   state.
-- Category-driven `productUpdated` events do not imply a product-row optimistic-lock update. Unless a
-  category/product-link script explicitly updates the product row, emit the affected product's current
-  `product.revision` value without incrementing it. The event is a reindex/cache refresh signal for
-  product-facing category data, not a product content revision acquisition.
+- Category-driven `productUpdated` events do not imply a product-row optimistic-lock update. Unless
+  a category/product-link script explicitly updates the product row, emit the affected product's
+  current `product.revision` value without incrementing it. The event is a reindex/cache refresh
+  signal for product-facing category data, not a product content revision acquisition.
 - If `categoryUpdated` is kept for category-domain consumers, it is optional, emitted only after
   commit, and must not replace `productUpdated` for product search freshness.
 
@@ -1570,12 +1594,12 @@ interface ProductCategoryFieldChanges {
 }
 ```
 
-- `categoryIds` contains raw UUIDs of categories whose link or category fields caused the refresh. It
-  is optional diagnostic/routing metadata only; consumers must not treat it as the full assigned
+- `categoryIds` contains raw UUIDs of categories whose link or category fields caused the refresh.
+  It is optional diagnostic/routing metadata only; consumers must not treat it as the full assigned
   category set.
 - `reason: "assignment"` is used for add/remove link writes.
-- `reason: "categoryFields"` is used when category fields such as handle/name/status/hierarchy changed
-  and assigned products need refresh.
+- `reason: "categoryFields"` is used when category fields such as handle/name/status/hierarchy
+  changed and assigned products need refresh.
 - `reason: "rank"` is used for reorder/rebalance only if rank/order affects indexed data, cache keys
   or product-facing category documents.
 - Emit payloads like:
@@ -1597,7 +1621,8 @@ interface ProductCategoryFieldChanges {
 
 - Do not put category handles, category names, breadcrumbs, primary flags, ranks or denormalized
   search documents into the event payload. `CatalogEventHandlers.handleProductUpdated` already
-  re-runs `SyncProductIndexScript` by `productId`, and that script reads committed category/link rows.
+  re-runs `SyncProductIndexScript` by `productId`, and that script reads committed category/link
+  rows.
 
 Category-centric product management events/indexing:
 
@@ -1634,8 +1659,9 @@ After-commit scheduling rules:
 - `productUpdated` emission happens after successful commit of the write transaction.
 - If a workflow owns the write, schedule follow-up event/index work in a later workflow step after
   the relevant section step/script returns applied changes.
-- If a script is resolver-backed and transactional, do not emit from inside the transactional script.
-  Return affected IDs to resolver/service layer and schedule follow-up work after script success.
+- If a script is resolver-backed and transactional, do not emit from inside the transactional
+  script. Return affected IDs to resolver/service layer and schedule follow-up work after script
+  success.
 - Follow-up index sync failures should be retryable and must not roll back the already committed
   category/category-link write. Use existing `productUpdated` handler retry behavior or a retryable
   workflow step.
@@ -1658,8 +1684,8 @@ Search-index acceptance criteria:
   `ProductFieldChanges.categories` with the same `ProductCategoryFieldChanges` shape.
 - Category-driven `productUpdated` payloads include `product.categories.changed: true` and a stable
   `reason`; they use the current product revision unless the product row was intentionally updated.
-- The final implementation has one documented path for category-link index refresh:
-  `productUpdated` fan-out. Direct `SyncProductIndexScript` scheduling is not part of the final
+- The final implementation has one documented path for category-link index refresh: `productUpdated`
+  fan-out. Direct `SyncProductIndexScript` scheduling is not part of the final
   category/category-link write path.
 
 ### 7. Verification
@@ -1681,9 +1707,9 @@ Manual/API verification checklist:
 - Verify revision conflict returns `REVISION_CONFLICT`.
 - Verify validation failure in one category update section copies `ProductUpdateWorkflow`
   partial-apply behavior: successful CAS increments `revision` once, earlier successful sections and
-  their emitted events are retained, failed section errors are returned in one `CATEGORY_UPDATE` with
-  `applied: false`, aggregate `userErrors` contains the same errors, updated category payload is
-  returned, and no event is emitted for the failed section itself.
+  their emitted events are retained, failed section errors are returned in one `CATEGORY_UPDATE`
+  with `applied: false`, aggregate `userErrors` contains the same errors, updated category payload
+  is returned, and no event is emitted for the failed section itself.
 - Move category through unified hierarchy update and verify descendant `path`/`depth` updates happen
   in `catalog.category`.
 - Remove product from category and verify `primaryCategory` and `categoryAssignments`; verify
@@ -1701,7 +1727,8 @@ Manual/API verification checklist:
   `Product.primaryCategory` / `Product.categoryAssignments.isPrimary`, сохранение существующих
   `isPrimary` rows и validation при удалении primary assignment. Public API для установки/смены
   primary category должен быть отдельным follow-up.
-- Category media back-reference sync нужен только если media service already tracks product media back-references with the same ownership semantics.
+- Category media back-reference sync нужен только если media service already tracks product media
+  back-references with the same ownership semantics.
 - Category name filtering/sorting по translations не входит в обязательный table-based cutover. Если
   он добавляется позже, он должен быть представлен generated drizzle-query schema and must not
   introduce a dedicated category list view or break cursor pagination by duplicating category rows.
@@ -1753,13 +1780,12 @@ Manual/API verification checklist:
 7. Обновить generated artifacts:
    - сгенерировать drizzle-query GraphQL filter/order inputs;
    - сгенерировать resolver types, Zod schemas, exported subgraph schema и composed schema;
-   - удалить все stale references на старый `categoryUpdate(input: ...)`,
-     `CategoryUpdateInput.id` и `Product.categories`.
+   - удалить все stale references на старый `categoryUpdate(input: ...)`, `CategoryUpdateInput.id` и
+     `Product.categories`.
 
 8. Обновить in-repo API consumers:
    - переписать admin/backend GraphQL documents на новый `categoryUpdate` contract;
-   - заменить usage `Product.categories` на `primaryCategory` /
-     `categoryAssignments`;
+   - заменить usage `Product.categories` на `primaryCategory` / `categoryAssignments`;
    - обновить cache/refetch paths для category mutations и product-category changes.
 
 9. Выполнить финальную ручную проверку:

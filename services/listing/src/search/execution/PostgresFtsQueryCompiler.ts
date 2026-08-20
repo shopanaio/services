@@ -133,9 +133,7 @@ export class PostgresFtsQueryCompiler {
     });
   }
 
-  describeFuzzyExecution(
-    plan: ExpandedFuzzySearchQueryPlan,
-  ): PostgresFtsFuzzyExecutionDescription {
+  describeFuzzyExecution(plan: ExpandedFuzzySearchQueryPlan): PostgresFtsFuzzyExecutionDescription {
     validateFuzzyPlan(plan, this.fields);
     if (!hasCompleteFuzzyPlan(plan)) {
       return Object.freeze({
@@ -146,24 +144,28 @@ export class PostgresFtsQueryCompiler {
 
     return Object.freeze({
       executed: true,
-      units: Object.freeze(plan.requiredUnits.map((unit) =>
-        Object.freeze({
-          unitIndex: unit.index,
-          clauses: Object.freeze(buildFuzzyCombinations(
-            unit,
-            plan.verifiedAlternativesByUnit.get(unit.index) ?? [],
-          ).map((combination) => {
-            const lexemes = combination.alternatives.flatMap(
-              (alternative) => alternative.ftsLexemes,
-            );
-            return Object.freeze({
-              lexemes: Object.freeze(lexemes),
-              fields: Object.freeze([...combination.fields]),
-              requireSameElement: combination.requireSameElement,
-            });
-          })),
-        })
-      )),
+      units: Object.freeze(
+        plan.requiredUnits.map((unit) =>
+          Object.freeze({
+            unitIndex: unit.index,
+            clauses: Object.freeze(
+              buildFuzzyCombinations(
+                unit,
+                plan.verifiedAlternativesByUnit.get(unit.index) ?? [],
+              ).map((combination) => {
+                const lexemes = combination.alternatives.flatMap(
+                  (alternative) => alternative.ftsLexemes,
+                );
+                return Object.freeze({
+                  lexemes: Object.freeze(lexemes),
+                  fields: Object.freeze([...combination.fields]),
+                  requireSameElement: combination.requireSameElement,
+                });
+              }),
+            ),
+          }),
+        ),
+      ),
     });
   }
 }
@@ -251,13 +253,9 @@ function compileCandidateRelation(
   includeRank: boolean,
 ): SQL {
   const semanticRelation = compileSemanticRelation(plan, context, includeRank);
-  const wholeIdentifierRelation = compileWholeIdentifierRelation(
-    plan,
-    context,
-    includeRank,
-  );
+  const wholeIdentifierRelation = compileWholeIdentifierRelation(plan, context, includeRank);
   return wholeIdentifierRelation
-      ? sql`
+    ? sql`
           SELECT
             candidates.store_id,
             candidates.product_doc_id,
@@ -276,7 +274,7 @@ function compileCandidateRelation(
             candidates.product_doc_id,
             candidates.product_id
         `
-      : semanticRelation;
+    : semanticRelation;
 }
 
 function compileSemanticRelation(
@@ -285,7 +283,7 @@ function compileSemanticRelation(
   includeRank: boolean,
 ): SQL {
   const unitRelations = plan.requiredUnits.map((unit) =>
-    compileUnitRelation(unit, context, includeRank)
+    compileUnitRelation(unit, context, includeRank),
   );
   const aliases = unitRelations.map((_, index) => `search_unit_${index}`);
   const firstAlias = sql.identifier(aliases[0]!);
@@ -326,10 +324,10 @@ function compileUnitRelation(
 ): SQL {
   const alternatives = [
     ...unit.primaryAlternatives.flatMap((clause) =>
-      compileClauseRelations(clause, context, includeRank)
+      compileClauseRelations(clause, context, includeRank),
     ),
     ...unit.originalIdentifierAlternatives.flatMap((clause) =>
-      compileClauseRelations(clause, context, includeRank)
+      compileClauseRelations(clause, context, includeRank),
     ),
   ];
   if (alternatives.length === 0) {
@@ -359,7 +357,7 @@ function compileWholeIdentifierRelation(
   includeRank: boolean,
 ): SQL | null {
   const alternatives = plan.wholeQueryIdentifierAlternatives.flatMap((clause) =>
-    compileClauseRelations(clause, context, includeRank)
+    compileClauseRelations(clause, context, includeRank),
   );
   if (alternatives.length === 0) return null;
   return sql`
@@ -396,7 +394,7 @@ function compileClauseRelations(
       return [compileTextClause(clause, context, true, includeRank)];
     case "synonym":
       return clause.alternatives.flatMap((alternative) =>
-        compileClauseRelations(alternative, context, includeRank)
+        compileClauseRelations(alternative, context, includeRank),
       );
     case "identifierExact":
       return [compileIdentifierClause(clause.value, context, false)];
@@ -418,7 +416,7 @@ function compileFuzzyCandidateRelation(
       plan.verifiedAlternativesByUnit.get(unit.index) ?? [],
       context,
       includeRank,
-    )
+    ),
   );
   const aliases = unitRelations.map((_, index) => `fuzzy_unit_${index}`);
   const firstAlias = sql.identifier(aliases[0]!);
@@ -466,29 +464,20 @@ function compileFuzzyUnitRelation(
     return compileEmptyUnitRelation();
   }
   const relations = combinations.map((combination) => {
-    const lexemes = combination.alternatives.flatMap(
-      (alternative) => alternative.ftsLexemes,
-    );
+    const lexemes = combination.alternatives.flatMap((alternative) => alternative.ftsLexemes);
     const clause = Object.freeze({
       kind: "ftsTerms" as const,
       text: lexemes.join(" "),
       lexemes: Object.freeze(lexemes),
       fields: combination.fields,
     });
-    const relation = compileTextClause(
-      clause,
-      context,
-      false,
-      includeRank,
-    );
+    const relation = compileTextClause(clause, context, false, includeRank);
     const totalEditDistance = combination.alternatives.reduce(
       (total, alternative) => total + alternative.editDistance,
       0,
     );
     const minimumSimilarity = Math.min(
-      ...combination.alternatives.map(
-        (alternative) => alternative.trigramSimilarity,
-      ),
+      ...combination.alternatives.map((alternative) => alternative.trigramSimilarity),
     );
     return sql`
       SELECT
@@ -559,12 +548,16 @@ function buildFuzzyCombinations(
     }
     combinations.splice(0, combinations.length, ...next);
   }
-  return Object.freeze(combinations.map((values) => Object.freeze({
-    alternatives: Object.freeze(values),
-    fields: typoClause.fields,
-    requireSameElement:
-      typoClause.requireSameElement || values.some((value) => value.ftsLexemes.length > 1),
-  })));
+  return Object.freeze(
+    combinations.map((values) =>
+      Object.freeze({
+        alternatives: Object.freeze(values),
+        fields: typoClause.fields,
+        requireSameElement:
+          typoClause.requireSameElement || values.some((value) => value.ftsLexemes.length > 1),
+      }),
+    ),
+  );
 }
 
 function hasCompleteTypoAlternatives(
@@ -574,18 +567,14 @@ function hasCompleteTypoAlternatives(
   const typoClause = unit.originalTypoAlternative;
   if (!typoClause || typoClause.kind !== "typoTerms") return false;
   const inputTerms = new Set(
-    (alternativesByUnit.get(unit.index) ?? []).map(
-      (alternative) => alternative.inputTerm,
-    ),
+    (alternativesByUnit.get(unit.index) ?? []).map((alternative) => alternative.inputTerm),
   );
   return typoClause.terms.every((term) => inputTerms.has(term));
 }
 
-function hasCompleteFuzzyPlan(
-  plan: ExpandedFuzzySearchQueryPlan,
-): boolean {
+function hasCompleteFuzzyPlan(plan: ExpandedFuzzySearchQueryPlan): boolean {
   return plan.requiredUnits.every((unit) =>
-    hasCompleteTypoAlternatives(unit, plan.verifiedAlternativesByUnit)
+    hasCompleteTypoAlternatives(unit, plan.verifiedAlternativesByUnit),
   );
 }
 
@@ -632,7 +621,10 @@ function compileTextClause(
   const query = phrase
     ? sql`phraseto_tsquery('pg_catalog.simple'::regconfig, ${clause.text})`
     : sql`plainto_tsquery('pg_catalog.simple'::regconfig, ${clause.text})`;
-  const fieldValues = sql.join(fields.map((field) => sql`${field}`), sql`, `);
+  const fieldValues = sql.join(
+    fields.map((field) => sql`${field}`),
+    sql`, `,
+  );
   const rank = includeRank
     ? sql`(
         ts_rank_cd(element.search_vector, ${query})::double precision
@@ -721,19 +713,16 @@ function validateCommonContext(
     throw indexUnavailable("Search compiler requires tenant and locale");
   }
   if (
-    plan.applicableBoostProductIds.some((productId) =>
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
-        productId,
-      )
+    plan.applicableBoostProductIds.some(
+      (productId) =>
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(productId),
     )
   ) {
     throw indexUnavailable("Search plan contains an invalid boost product ID");
   }
   if (
-    context.normalizationContractVersion !==
-      plan.normalizationContractVersion ||
-    context.normalizationProfileRevision !==
-      plan.normalizationProfileRevision
+    context.normalizationContractVersion !== plan.normalizationContractVersion ||
+    context.normalizationProfileRevision !== plan.normalizationProfileRevision
   ) {
     throw indexUnavailable(
       "Search plan normalization profile does not match the active index profile",
@@ -748,10 +737,7 @@ function validateCommonContext(
   }
 }
 
-function validateFuzzyPlan(
-  plan: ExpandedFuzzySearchQueryPlan,
-  fields: SearchFieldRegistry,
-): void {
+function validateFuzzyPlan(plan: ExpandedFuzzySearchQueryPlan, fields: SearchFieldRegistry): void {
   if (plan.requiredUnits.length === 0) {
     throw indexUnavailable("FUZZY search plan has no required units");
   }
@@ -775,14 +761,12 @@ function validateFuzzyPlan(
     for (const field of typoClause.fields) {
       fields.get(field);
       if (!enabled.has(field)) {
-        throw indexUnavailable(
-          `Typo clause uses a disabled search field: ${field}`,
-        );
+        throw indexUnavailable(`Typo clause uses a disabled search field: ${field}`);
       }
     }
     const alternatives = plan.verifiedAlternativesByUnit.get(unit.index) ?? [];
-    const candidateCounts = typoClause.terms.map((term) =>
-      alternatives.filter((alternative) => alternative.inputTerm === term).length
+    const candidateCounts = typoClause.terms.map(
+      (term) => alternatives.filter((alternative) => alternative.inputTerm === term).length,
     );
     const unitCombinationCount = candidateCounts.reduce(
       (count, candidateCount) => count * candidateCount,
@@ -798,10 +782,7 @@ function validateFuzzyPlan(
   });
 }
 
-function validatePrimaryPlan(
-  plan: SearchQueryPlan,
-  fields: SearchFieldRegistry,
-): void {
+function validatePrimaryPlan(plan: SearchQueryPlan, fields: SearchFieldRegistry): void {
   const enabled = new Set(plan.enabledFields);
   const validateClause = (clause: SearchClause): void => {
     switch (clause.kind) {
@@ -817,9 +798,7 @@ function validatePrimaryPlan(
         for (const field of clause.fields) {
           fields.get(field);
           if (!enabled.has(field)) {
-            throw indexUnavailable(
-              `FTS clause uses a disabled search field: ${field}`,
-            );
+            throw indexUnavailable(`FTS clause uses a disabled search field: ${field}`);
           }
         }
         return;

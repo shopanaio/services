@@ -1,15 +1,15 @@
-import { existsSync, readFileSync } from 'fs';
-import { dirname, join } from 'path';
+import { existsSync, readFileSync } from "fs";
+import { dirname, join } from "path";
 
 function hasWorkspacePackageJson(dir: string) {
-  const packageJsonPath = join(dir, 'package.json');
+  const packageJsonPath = join(dir, "package.json");
 
   if (!existsSync(packageJsonPath)) {
     return false;
   }
 
   try {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
     return Boolean(packageJson.workspaces);
   } catch {
     return false;
@@ -40,9 +40,9 @@ export function resolveRepoRoot(workingDir?: string) {
 
 export function resolveE2eDir(workingDir?: string) {
   const repoRoot = resolveRepoRoot(workingDir);
-  const e2eDir = join(repoRoot, 'e2e');
+  const e2eDir = join(repoRoot, "e2e");
 
-  if (!existsSync(join(e2eDir, 'playwright.config.ts'))) {
+  if (!existsSync(join(e2eDir, "playwright.config.ts"))) {
     throw new Error(`Playwright config not found in ${e2eDir}`);
   }
 

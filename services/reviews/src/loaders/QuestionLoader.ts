@@ -8,14 +8,8 @@ import type { Repository } from "../repositories/Repository.js";
 
 export class QuestionLoader {
   public readonly productQuestion: DataLoader<string, ProductQuestion | null>;
-  public readonly productQuestionAnswer: DataLoader<
-    string,
-    QuestionAnswer | null
-  >;
-  public readonly questionSubscription: DataLoader<
-    string,
-    QuestionSubscription | null
-  >;
+  public readonly productQuestionAnswer: DataLoader<string, QuestionAnswer | null>;
+  public readonly questionSubscription: DataLoader<string, QuestionSubscription | null>;
 
   constructor(repository: Repository) {
     this.productQuestion = new DataLoader(async (ids) => {

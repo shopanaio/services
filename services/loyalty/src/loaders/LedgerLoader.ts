@@ -24,7 +24,8 @@ export class LedgerLoader {
     this.entriesByTransaction = new DataLoader(async (ids: readonly string[]) => {
       const rows = await repository.ledger.listEntriesForTransactions(ids);
       const grouped = new Map<string, typeof rows>();
-      for (const row of rows) grouped.set(row.transactionId, [...(grouped.get(row.transactionId) ?? []), row]);
+      for (const row of rows)
+        grouped.set(row.transactionId, [...(grouped.get(row.transactionId) ?? []), row]);
       return ids.map((id) => grouped.get(id) ?? []);
     });
     this.pointLot = new DataLoader(async (ids: readonly string[]) => {
@@ -46,7 +47,8 @@ export class LedgerLoader {
     this.allocationsByTransaction = new DataLoader(async (ids: readonly string[]) => {
       const rows = await repository.ledger.listLotAllocationsForTransactions(ids);
       const grouped = new Map<string, typeof rows>();
-      for (const row of rows) grouped.set(row.transactionId, [...(grouped.get(row.transactionId) ?? []), row]);
+      for (const row of rows)
+        grouped.set(row.transactionId, [...(grouped.get(row.transactionId) ?? []), row]);
       return ids.map((id) => grouped.get(id) ?? []);
     });
   }

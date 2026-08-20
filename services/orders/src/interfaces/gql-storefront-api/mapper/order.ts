@@ -15,23 +15,16 @@ import {
 import type { OrderReadView } from "@src/application/read/orderReadRepository";
 import { moneyToApi } from "@src/interfaces/gql-storefront-api/mapper/money";
 import { mapOrderLineReadToApi } from "@src/interfaces/gql-storefront-api/mapper/orderLine";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@src/interfaces/gql-storefront-api/idCodec";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@src/interfaces/gql-storefront-api/idCodec";
 
 /**
  * Maps Order read-model snapshot to GraphQL ApiOrder type.
  */
 export function mapOrderReadToApi(read: OrderReadView): ApiOrder {
   if (!Object.values(ApiOrderStatus).includes(read.status as ApiOrderStatus)) {
-    console.warn(
-      `Invalid order status "${read.status}" for order ${read.id}, defaulting to DRAFT`
-    );
+    console.warn(`Invalid order status "${read.status}" for order ${read.id}, defaulting to DRAFT`);
 
-    throw new Error(
-      `Invalid order status "${read.status}" for order ${read.id}`
-    );
+    throw new Error(`Invalid order status "${read.status}" for order ${read.id}`);
   }
 
   const lines = read.lineItems.map(mapOrderLineReadToApi);
@@ -54,21 +47,17 @@ export function mapOrderReadToApi(read: OrderReadView): ApiOrder {
       read.fulfillmentStatus,
       "fulfillment status",
     )!,
-    deliveryStatus: enumValue(
-      ApiOrderDeliveryStatus,
-      read.deliveryStatus,
-      "delivery status",
-    )!,
+    deliveryStatus: enumValue(ApiOrderDeliveryStatus, read.deliveryStatus, "delivery status")!,
     channelCode: read.salesChannel,
     localeCode: enumValue(ApiLocaleCode, read.localeCode, "locale code"),
     currencyCode: enumValue(ApiCurrencyCode, read.currencyCode, "currency code")!,
     customerIdentity: {
       __typename: "OrderCustomerIdentity",
       customer: read.customerId
-        ? {
+        ? ({
             __typename: "Customer",
             id: encodeGlobalIdByType(read.customerId, GlobalIdEntity.Customer),
-          } as ApiCustomer
+          } as ApiCustomer)
         : null,
       email: read.customerEmail,
       phone: read.customerPhoneE164,
@@ -100,10 +89,13 @@ export function mapOrderReadToApi(read: OrderReadView): ApiOrder {
     deliveryGroups: read.deliveryGroups.map((group) => {
       const address = group.addressId ? read.deliveryAddresses.get(group.addressId) : null;
       const recipient = group.recipientId ? read.recipients.get(group.recipientId) : null;
-      const method = read.deliveryMethods.get(group.id)?.find((candidate) =>
-        candidate.code === group.selectedDeliveryMethodCode
-        && candidate.provider === group.selectedDeliveryMethodProvider,
-      );
+      const method = read.deliveryMethods
+        .get(group.id)
+        ?.find(
+          (candidate) =>
+            candidate.code === group.selectedDeliveryMethodCode &&
+            candidate.provider === group.selectedDeliveryMethodProvider,
+        );
       return {
         __typename: "OrderDeliveryGroup" as const,
         id: encodeGlobalIdByType(group.id, GlobalIdEntity.OrderDeliveryGroup),
@@ -203,9 +195,10 @@ export function mapOrderReadToApi(read: OrderReadView): ApiOrder {
 
 function mapPaymentMethod(read: OrderReadView): ApiOrderPaymentMethod | null {
   if (!read.selectedPaymentMethod) return null;
-  const method = read.paymentMethods.find((candidate) =>
-    candidate.code === read.selectedPaymentMethod?.code
-    && candidate.provider === read.selectedPaymentMethod.provider,
+  const method = read.paymentMethods.find(
+    (candidate) =>
+      candidate.code === read.selectedPaymentMethod?.code &&
+      candidate.provider === read.selectedPaymentMethod.provider,
   );
   if (!method) return null;
   return {

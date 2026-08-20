@@ -55,9 +55,7 @@ describe("Admin Context authorization", () => {
       action: "read",
     } as const;
 
-    expect(
-      authorizeAdminContext(context, { ...base, subject: "user-2" }),
-    ).toBe(false);
+    expect(authorizeAdminContext(context, { ...base, subject: "user-2" })).toBe(false);
     expect(
       authorizeAdminContext(context, {
         ...base,

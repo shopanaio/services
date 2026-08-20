@@ -1,7 +1,5 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { ItemPricing } from "../../repositories/models/index.js";
 import type { CurrencyCode } from "./interfaces/index.js";
 import { CatalogType } from "./CatalogType.js";
@@ -10,10 +8,7 @@ import { CatalogType } from "./CatalogType.js";
  * VariantPrice view - resolves price record
  * Accepts price ID, loads data lazily via loaders
  */
-export class VariantPriceResolver extends CatalogType<
-  string,
-  ItemPricing
-> {
+export class VariantPriceResolver extends CatalogType<string, ItemPricing> {
   async $preload() {
     const price = await this.$ctx.loaders.variantPriceById.load(this.$props);
     if (!price) {

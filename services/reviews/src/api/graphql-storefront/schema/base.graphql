@@ -1,20 +1,32 @@
 type Query {
-  """Storefront capabilities and limits for reviews and product questions."""
+  """
+  Storefront capabilities and limits for reviews and product questions.
+  """
   reviewStoreConfiguration: ReviewStoreConfiguration
 
-  """Returns a review visible in the current storefront context."""
+  """
+  Returns a review visible in the current storefront context.
+  """
   review(id: ID!): Review
 
-  """Returns a product question visible in the current storefront context."""
+  """
+  Returns a product question visible in the current storefront context.
+  """
   productQuestion(id: ID!): ProductQuestion
 
-  """Returns a published review reply by its global ID."""
+  """
+  Returns a published review reply by its global ID.
+  """
   reviewReply(id: ID!): ReviewReply
 
-  """Returns a published product-question answer by its global ID."""
+  """
+  Returns a published product-question answer by its global ID.
+  """
   productQuestionAnswer(id: ID!): ProductQuestionAnswer
 
-  """Returns a review request owned by the authenticated customer."""
+  """
+  Returns a review request owned by the authenticated customer.
+  """
   reviewRequest(id: ID!): ReviewRequest
 }
 
@@ -28,10 +40,14 @@ type Mutation {
   """
   reviewCreate(input: ReviewCreateInput!): ReviewCreatePayload!
 
-  """Updates a review owned by the authenticated customer within its edit window."""
+  """
+  Updates a review owned by the authenticated customer within its edit window.
+  """
   reviewUpdate(input: ReviewUpdateInput!): ReviewUpdatePayload!
 
-  """Deletes a review owned by the authenticated customer within its edit window."""
+  """
+  Deletes a review owned by the authenticated customer within its edit window.
+  """
   reviewDelete(input: ReviewContentDeleteInput!): ReviewDeletePayload!
 
   """
@@ -40,19 +56,17 @@ type Mutation {
   The authenticated customer is resolved from trusted request context. Guest
   submission is available only when enabled by reviewStoreConfiguration.
   """
-  productQuestionCreate(
-    input: ProductQuestionCreateInput!
-  ): ProductQuestionCreatePayload!
+  productQuestionCreate(input: ProductQuestionCreateInput!): ProductQuestionCreatePayload!
 
-  """Updates a product question owned by the authenticated customer."""
-  productQuestionUpdate(
-    input: ProductQuestionUpdateInput!
-  ): ProductQuestionUpdatePayload!
+  """
+  Updates a product question owned by the authenticated customer.
+  """
+  productQuestionUpdate(input: ProductQuestionUpdateInput!): ProductQuestionUpdatePayload!
 
-  """Deletes a product question owned by the authenticated customer."""
-  productQuestionDelete(
-    input: ReviewContentDeleteInput!
-  ): ProductQuestionDeletePayload!
+  """
+  Deletes a product question owned by the authenticated customer.
+  """
+  productQuestionDelete(input: ReviewContentDeleteInput!): ProductQuestionDeletePayload!
 
   """
   Adds a customer answer to an existing product question.
@@ -64,17 +78,21 @@ type Mutation {
     input: ProductQuestionAnswerCreateInput!
   ): ProductQuestionAnswerCreatePayload!
 
-  """Updates a question answer owned by the authenticated customer."""
+  """
+  Updates a question answer owned by the authenticated customer.
+  """
   productQuestionAnswerUpdate(
     input: ProductQuestionAnswerUpdateInput!
   ): ProductQuestionAnswerUpdatePayload!
 
-  """Deletes a question answer owned by the authenticated customer."""
-  productQuestionAnswerDelete(
-    input: ReviewContentDeleteInput!
-  ): ProductQuestionAnswerDeletePayload!
+  """
+  Deletes a question answer owned by the authenticated customer.
+  """
+  productQuestionAnswerDelete(input: ReviewContentDeleteInput!): ProductQuestionAnswerDeletePayload!
 
-  """Creates, updates, pauses, or removes the viewer's question subscription."""
+  """
+  Creates, updates, pauses, or removes the viewer's question subscription.
+  """
   productQuestionSubscriptionSet(
     input: ProductQuestionSubscriptionSetInput!
   ): ProductQuestionSubscriptionSetPayload!
@@ -86,14 +104,12 @@ type Mutation {
   previous vote. Customer or anonymous visitor identity is resolved from
   trusted storefront request context.
   """
-  reviewContentVoteSet(
-    input: ReviewContentVoteSetInput!
-  ): ReviewContentVoteSetPayload!
+  reviewContentVoteSet(input: ReviewContentVoteSetInput!): ReviewContentVoteSetPayload!
 
-  """Removes the current viewer's LIKE or DISLIKE vote."""
-  reviewContentVoteRemove(
-    input: ReviewContentVoteRemoveInput!
-  ): ReviewContentVoteRemovePayload!
+  """
+  Removes the current viewer's LIKE or DISLIKE vote.
+  """
+  reviewContentVoteRemove(input: ReviewContentVoteRemoveInput!): ReviewContentVoteRemovePayload!
 
   """
   Reports storefront review content for moderation.

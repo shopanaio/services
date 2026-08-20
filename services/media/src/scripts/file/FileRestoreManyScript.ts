@@ -11,9 +11,7 @@ export class FileRestoreManyScript extends BaseScript<
   FileRestoreManyResult
 > {
   @ZodSchema(fileRestoreManySchema)
-  protected async execute(
-    params: FileRestoreManyParams
-  ): Promise<FileRestoreManyResult> {
+  protected async execute(params: FileRestoreManyParams): Promise<FileRestoreManyResult> {
     const { ids } = params;
 
     const restoredIds: string[] = [];

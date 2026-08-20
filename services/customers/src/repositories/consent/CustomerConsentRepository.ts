@@ -1,15 +1,8 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
+import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
 import { and, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  normalizeRelayPagination,
-  type RepositoryConnectionResult,
-} from "../connection.js";
+import { normalizeRelayPagination, type RepositoryConnectionResult } from "../connection.js";
 import {
   decodeCustomerConsentEventGlobalId,
   decodeCustomerConsentGlobalId,
@@ -34,14 +27,13 @@ export const customerConsentEventRelayQuery = createRelayQuery(
     })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "customerConsentEvent", tieBreaker: "id" }
+  { name: "customerConsentEvent", tieBreaker: "id" },
 );
 
-export type CustomerConsentEventRelayInput = InferRelayInput<
-  typeof customerConsentEventRelayQuery
->;
-export type CustomerConsentEventConnectionInput =
-  CustomerConsentEventRelayInput & { consentId: string };
+export type CustomerConsentEventRelayInput = InferRelayInput<typeof customerConsentEventRelayQuery>;
+export type CustomerConsentEventConnectionInput = CustomerConsentEventRelayInput & {
+  consentId: string;
+};
 
 export interface CustomerConsentSetData {
   customerId: string;
@@ -105,12 +97,7 @@ export class CustomerConsentRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(customerConsent)
-      .where(
-        and(
-          eq(customerConsent.storeId, this.storeId),
-          eq(customerConsent.id, id)
-        )
-      )
+      .where(and(eq(customerConsent.storeId, this.storeId), eq(customerConsent.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -118,7 +105,7 @@ export class CustomerConsentRepository extends BaseRepository {
   @ReadOnly()
   async findByCustomerAndChannel(
     customerId: string,
-    channel: CustomerConsent["channel"]
+    channel: CustomerConsent["channel"],
   ): Promise<CustomerConsent | null> {
     const rows = await this.connection
       .select()
@@ -127,8 +114,8 @@ export class CustomerConsentRepository extends BaseRepository {
         and(
           eq(customerConsent.storeId, this.storeId),
           eq(customerConsent.customerId, customerId),
-          eq(customerConsent.channel, channel)
-        )
+          eq(customerConsent.channel, channel),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -142,8 +129,8 @@ export class CustomerConsentRepository extends BaseRepository {
       .where(
         and(
           eq(customerConsentEvent.storeId, this.storeId),
-          eq(customerConsentEvent.consentId, consentId)
-        )
+          eq(customerConsentEvent.consentId, consentId),
+        ),
       )
       .limit(1);
     return rows.length > 0;
@@ -158,8 +145,8 @@ export class CustomerConsentRepository extends BaseRepository {
       .where(
         and(
           eq(customerConsent.storeId, this.storeId),
-          inArray(customerConsent.id, [...new Set(ids)])
-        )
+          inArray(customerConsent.id, [...new Set(ids)]),
+        ),
       );
   }
 
@@ -172,8 +159,8 @@ export class CustomerConsentRepository extends BaseRepository {
       .where(
         and(
           eq(customerConsent.storeId, this.storeId),
-          inArray(customerConsent.customerId, [...new Set(customerIds)])
-        )
+          inArray(customerConsent.customerId, [...new Set(customerIds)]),
+        ),
       );
   }
 
@@ -182,12 +169,7 @@ export class CustomerConsentRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(customerConsentEvent)
-      .where(
-        and(
-          eq(customerConsentEvent.storeId, this.storeId),
-          eq(customerConsentEvent.id, id)
-        )
-      )
+      .where(and(eq(customerConsentEvent.storeId, this.storeId), eq(customerConsentEvent.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -201,17 +183,15 @@ export class CustomerConsentRepository extends BaseRepository {
       .where(
         and(
           eq(customerConsentEvent.storeId, this.storeId),
-          inArray(customerConsentEvent.id, [...new Set(ids)])
-        )
+          inArray(customerConsentEvent.id, [...new Set(ids)]),
+        ),
       );
   }
 
   @Transactional()
   async set(data: CustomerConsentSetData): Promise<CustomerConsentSetResult> {
     if (data.idempotencyKey) {
-      const existingEvent = await this.findEventByIdempotencyKey(
-        data.idempotencyKey
-      );
+      const existingEvent = await this.findEventByIdempotencyKey(data.idempotencyKey);
       if (existingEvent) {
         const consent = await this.findById(existingEvent.consentId);
         if (!consent) {
@@ -221,10 +201,7 @@ export class CustomerConsentRepository extends BaseRepository {
       }
     }
 
-    const current = await this.findByCustomerAndChannel(
-      data.customerId,
-      data.channel
-    );
+    const current = await this.findByCustomerAndChannel(data.customerId, data.channel);
     if (current && data.createOnly) {
       throw new CustomerConsentAlreadyExistsError();
     }
@@ -249,30 +226,22 @@ export class CustomerConsentRepository extends BaseRepository {
     };
     const consentRows = current
       ? await this.connection
-        .update(customerConsent)
-        .set({
-          state: consentRow.state,
-          optInLevel: consentRow.optInLevel,
-          contactPoint: consentRow.contactPoint,
-          source: consentRow.source,
-          sourceLocationId: consentRow.sourceLocationId,
-          sourceIp: consentRow.sourceIp,
-          userAgent: consentRow.userAgent,
-          consentedAt: consentRow.consentedAt,
-          withdrawnAt: consentRow.withdrawnAt,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(customerConsent.storeId, this.storeId),
-            eq(customerConsent.id, current.id)
-          )
-        )
-        .returning()
-      : await this.connection
-        .insert(customerConsent)
-        .values(consentRow)
-        .returning();
+          .update(customerConsent)
+          .set({
+            state: consentRow.state,
+            optInLevel: consentRow.optInLevel,
+            contactPoint: consentRow.contactPoint,
+            source: consentRow.source,
+            sourceLocationId: consentRow.sourceLocationId,
+            sourceIp: consentRow.sourceIp,
+            userAgent: consentRow.userAgent,
+            consentedAt: consentRow.consentedAt,
+            withdrawnAt: consentRow.withdrawnAt,
+            updatedAt: now,
+          })
+          .where(and(eq(customerConsent.storeId, this.storeId), eq(customerConsent.id, current.id)))
+          .returning()
+      : await this.connection.insert(customerConsent).values(consentRow).returning();
     const consent = consentRows[0];
 
     const eventRow: NewCustomerConsentEvent = {
@@ -304,13 +273,9 @@ export class CustomerConsentRepository extends BaseRepository {
   }
 
   @Transactional()
-  async update(
-    data: CustomerConsentUpdateData
-  ): Promise<CustomerConsentUpdateResult | null> {
+  async update(data: CustomerConsentUpdateData): Promise<CustomerConsentUpdateResult | null> {
     if (data.idempotencyKey) {
-      const existingEvent = await this.findEventByIdempotencyKey(
-        data.idempotencyKey
-      );
+      const existingEvent = await this.findEventByIdempotencyKey(data.idempotencyKey);
       if (existingEvent) {
         const consent = await this.findById(existingEvent.consentId);
         if (!consent) {
@@ -343,12 +308,7 @@ export class CustomerConsentRepository extends BaseRepository {
         withdrawnAt: timestamps.withdrawnAt,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(customerConsent.storeId, this.storeId),
-          eq(customerConsent.id, data.id)
-        )
-      )
+      .where(and(eq(customerConsent.storeId, this.storeId), eq(customerConsent.id, data.id)))
       .returning();
     const consent = consentRows[0];
     if (!consent) return null;
@@ -389,12 +349,7 @@ export class CustomerConsentRepository extends BaseRepository {
   async delete(id: string): Promise<CustomerConsentDeleteResult | null> {
     const rows = await this.connection
       .delete(customerConsent)
-      .where(
-        and(
-          eq(customerConsent.storeId, this.storeId),
-          eq(customerConsent.id, id)
-        )
-      )
+      .where(and(eq(customerConsent.storeId, this.storeId), eq(customerConsent.id, id)))
       .returning({
         id: customerConsent.id,
         customerId: customerConsent.customerId,
@@ -402,18 +357,12 @@ export class CustomerConsentRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async redactForCustomer(
-    customerId: string,
-    redactedAt: string,
-  ): Promise<number> {
+  async redactForCustomer(customerId: string, redactedAt: string): Promise<number> {
     const current = await this.connection
       .select()
       .from(customerConsent)
       .where(
-        and(
-          eq(customerConsent.storeId, this.storeId),
-          eq(customerConsent.customerId, customerId),
-        ),
+        and(eq(customerConsent.storeId, this.storeId), eq(customerConsent.customerId, customerId)),
       );
 
     await this.connection
@@ -451,12 +400,7 @@ export class CustomerConsentRepository extends BaseRepository {
           withdrawnAt: redactedAt,
           updatedAt: redactedAt,
         })
-        .where(
-          and(
-            eq(customerConsent.storeId, this.storeId),
-            eq(customerConsent.id, consent.id),
-          ),
-        );
+        .where(and(eq(customerConsent.storeId, this.storeId), eq(customerConsent.id, consent.id)));
       await this.connection.insert(customerConsentEvent).values({
         id: await this.generateUuidV7(),
         storeId: this.storeId,
@@ -484,7 +428,7 @@ export class CustomerConsentRepository extends BaseRepository {
 
   @ReadOnly()
   async getEventConnection(
-    input: CustomerConsentEventConnectionInput
+    input: CustomerConsentEventConnectionInput,
   ): Promise<RepositoryConnectionResult> {
     const normalized = normalizeRelayPagination(input);
     const { consentId, where, orderBy, ...pagination } = normalized;
@@ -495,9 +439,7 @@ export class CustomerConsentRepository extends BaseRepository {
         ...(where ? [where] : []),
       ],
     };
-    const effectiveOrder = orderBy ?? [
-      { field: "occurredAt", direction: "asc" },
-    ];
+    const effectiveOrder = orderBy ?? [{ field: "occurredAt", direction: "asc" }];
     const query: CustomerConsentEventRelayInput = {
       ...pagination,
       where: mergedWhere,
@@ -523,7 +465,7 @@ export class CustomerConsentRepository extends BaseRepository {
   }
 
   private async findEventByIdempotencyKey(
-    idempotencyKey: string
+    idempotencyKey: string,
   ): Promise<CustomerConsentEvent | null> {
     const rows = await this.connection
       .select()
@@ -531,8 +473,8 @@ export class CustomerConsentRepository extends BaseRepository {
       .where(
         and(
           eq(customerConsentEvent.storeId, this.storeId),
-          eq(customerConsentEvent.idempotencyKey, idempotencyKey)
-        )
+          eq(customerConsentEvent.idempotencyKey, idempotencyKey),
+        ),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -542,7 +484,7 @@ export class CustomerConsentRepository extends BaseRepository {
 function consentTimestamps(
   state: CustomerConsent["state"],
   current: CustomerConsent | null,
-  now: string
+  now: string,
 ): Pick<CustomerConsent, "consentedAt" | "withdrawnAt"> {
   if (state === "SUBSCRIBED") {
     return { consentedAt: now, withdrawnAt: null };

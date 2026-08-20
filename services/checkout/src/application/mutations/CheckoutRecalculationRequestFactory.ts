@@ -31,8 +31,7 @@ export const defaultCheckoutMutationRuntimePolicy: CheckoutMutationRuntimePolicy
 export class CheckoutRecalculationRequestFactory {
   constructor(
     private readonly eligibility: CheckoutBuyerEligibilityPort,
-    private readonly runtime: CheckoutMutationRuntimePolicy =
-      defaultCheckoutMutationRuntimePolicy,
+    private readonly runtime: CheckoutMutationRuntimePolicy = defaultCheckoutMutationRuntimePolicy,
   ) {}
 
   async create(input: {
@@ -102,10 +101,7 @@ export class CheckoutRecalculationRequestFactory {
       }),
       deadlineAt,
     );
-    if (
-      eligibility.customerId !== identity.customerId ||
-      eligibility.effectiveAt !== effectiveAt
-    ) {
+    if (eligibility.customerId !== identity.customerId || eligibility.effectiveAt !== effectiveAt) {
       throw new CheckoutMutationError(
         "BUYER_ELIGIBILITY_RESPONSE_INVALID",
         "Buyer eligibility response did not match the checkout request.",

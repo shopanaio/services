@@ -20,8 +20,8 @@ export class CostRepository extends BaseRepository {
         and(
           eq(variantCostsCurrent.storeId, this.storeId),
           eq(variantCostsCurrent.variantId, input.variantId),
-          eq(variantCostsCurrent.currency, input.currency)
-        )
+          eq(variantCostsCurrent.currency, input.currency),
+        ),
       )
       .limit(1);
 
@@ -41,8 +41,8 @@ export class CostRepository extends BaseRepository {
           eq(productVariantCostHistory.storeId, this.storeId),
           eq(productVariantCostHistory.variantId, variantId),
           eq(productVariantCostHistory.currency, currency),
-          isNull(productVariantCostHistory.effectiveTo)
-        )
+          isNull(productVariantCostHistory.effectiveTo),
+        ),
       );
   }
 
@@ -55,7 +55,7 @@ export class CostRepository extends BaseRepository {
     data: {
       currency: CurrencyCode;
       unitCostMinor: number;
-    }
+    },
   ): Promise<ProductVariantCostHistory> {
     const id = await this.generateUuidV7();
     const now = new Date().toISOString();
@@ -87,7 +87,7 @@ export class CostRepository extends BaseRepository {
     data: {
       currency: CurrencyCode;
       unitCostMinor: number;
-    }
+    },
   ): Promise<ProductVariantCostHistory> {
     // Close current cost for this variant + currency
     await this.closeCurrent(variantId, data.currency);
@@ -100,7 +100,7 @@ export class CostRepository extends BaseRepository {
    * Get active costs for multiple variants (batch loader)
    */
   async getActiveCostsByVariantIds(
-    variantIds: readonly string[]
+    variantIds: readonly string[],
   ): Promise<ProductVariantCostHistory[]> {
     if (variantIds.length === 0) return [];
 
@@ -111,8 +111,8 @@ export class CostRepository extends BaseRepository {
         and(
           eq(productVariantCostHistory.storeId, this.storeId),
           inArray(productVariantCostHistory.variantId, [...variantIds]),
-          isNull(productVariantCostHistory.effectiveTo)
-        )
+          isNull(productVariantCostHistory.effectiveTo),
+        ),
       );
   }
 }

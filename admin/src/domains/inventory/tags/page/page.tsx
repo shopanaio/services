@@ -1,21 +1,10 @@
 "use client";
 
 import { useMemo, useRef, useCallback } from "react";
-import {
-  Alert,
-  Button,
-  Flex,
-  Tag,
-  Typography,
-} from "antd";
+import { Alert, Button, Flex, Tag, Typography } from "antd";
 import { LuPlus as PlusOutlined, LuTag as TagOutlined } from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
-import {
-  ColDef,
-  ModuleRegistry,
-  AllCommunityModule,
-  GridStateModule,
-} from "ag-grid-community";
+import { ColDef, ModuleRegistry, AllCommunityModule, GridStateModule } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
@@ -35,21 +24,14 @@ import {
 import { useTags } from "../hooks";
 import { useCreateTagModal, useTagModal } from "../modals";
 
-ModuleRegistry.registerModules([
-  AllCommunityModule,
-  GridStateModule,
-]);
+ModuleRegistry.registerModules([AllCommunityModule, GridStateModule]);
 
 const TagCellRenderer = (props: CustomCellRendererProps<ApiTag>) => {
   const { data } = props;
   if (!data) return null;
 
   return (
-    <Flex
-      align="center"
-      gap="small"
-      data-testid={`tags-table-tag-cell-${data.handle}`}
-    >
+    <Flex align="center" gap="small" data-testid={`tags-table-tag-cell-${data.handle}`}>
       <Tag icon={<TagOutlined />} color="processing">
         {data.name}
       </Tag>
@@ -58,18 +40,12 @@ const TagCellRenderer = (props: CustomCellRendererProps<ApiTag>) => {
   );
 };
 
-const ProductsCountCellRenderer = (
-  props: CustomCellRendererProps<ApiTag, number>,
-) => {
+const ProductsCountCellRenderer = (props: CustomCellRendererProps<ApiTag, number>) => {
   const value = props.value ?? 0;
 
   return (
     <Typography.Text
-      data-testid={
-        props.data
-          ? `tags-table-products-cell-${props.data.handle}`
-          : undefined
-      }
+      data-testid={props.data ? `tags-table-products-cell-${props.data.handle}` : undefined}
     >
       {value} {value === 1 ? "product" : "products"}
     </Typography.Text>
@@ -179,12 +155,7 @@ export default function TagsPage() {
       }
     >
       <DataLayout.Toolbar
-        left={
-          <FilterWidget
-            {...pageConfig.filterWidgetProps}
-            searchPlaceholder="Search tags..."
-          />
-        }
+        left={<FilterWidget {...pageConfig.filterWidgetProps} searchPlaceholder="Search tags..." />}
       />
 
       <div
@@ -197,12 +168,7 @@ export default function TagsPage() {
         }}
       >
         {error && (
-          <Alert
-            type="error"
-            message={error.message}
-            showIcon
-            style={{ marginBottom: 12 }}
-          />
+          <Alert type="error" message={error.message} showIcon style={{ marginBottom: 12 }} />
         )}
 
         <div style={{ flex: 1 }} data-testid="tags-table">

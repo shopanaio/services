@@ -27,25 +27,21 @@ import { tiers } from "./tiers.js";
 import { monetaryTransactions } from "./wallets.js";
 
 const createdAt = () =>
-  timestamp("created_at", { withTimezone: true, mode: "string" })
-    .notNull()
-    .defaultNow();
+  timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow();
 
 export const rewardDefinitions = loyaltySchema.table(
   "reward_definition",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     programVersionId: uuid("program_version_id").notNull(),
     code: varchar("code", { length: 64 }).notNull(),
     name: varchar("name", { length: 160 }).notNull(),
     rewardType: rewardTypeEnum("reward_type").notNull(),
-    configurationSchemaVersion: integer("configuration_schema_version")
-      .notNull()
-      .default(1),
-    configuration: jsonb("configuration")
-      .$type<Record<string, unknown>>()
-      .notNull(),
+    configurationSchemaVersion: integer("configuration_schema_version").notNull().default(1),
+    configuration: jsonb("configuration").$type<Record<string, unknown>>().notNull(),
     validityDays: integer("validity_days"),
     startsAt: timestamp("starts_at", {
       withTimezone: true,
@@ -65,10 +61,7 @@ export const rewardDefinitions = loyaltySchema.table(
       columns: [table.programVersionId],
       foreignColumns: [programVersions.id],
     }),
-    unique("loyalty_reward_definition_version_code_unique").on(
-      table.programVersionId,
-      table.code,
-    ),
+    unique("loyalty_reward_definition_version_code_unique").on(table.programVersionId, table.code),
     index("loyalty_reward_definition_type_idx").on(
       table.storeId,
       table.programVersionId,
@@ -76,14 +69,8 @@ export const rewardDefinitions = loyaltySchema.table(
       table.code,
       table.id,
     ),
-    check(
-      "loyalty_reward_definition_code_check",
-      sql`${table.code} ~ '^[a-z][a-z0-9_-]{1,63}$'`,
-    ),
-    check(
-      "loyalty_reward_definition_name_check",
-      sql`btrim(${table.name}) <> ''`,
-    ),
+    check("loyalty_reward_definition_code_check", sql`${table.code} ~ '^[a-z][a-z0-9_-]{1,63}$'`),
+    check("loyalty_reward_definition_name_check", sql`btrim(${table.name}) <> ''`),
     check(
       "loyalty_reward_definition_configuration_check",
       sql`${table.configurationSchemaVersion} > 0
@@ -108,20 +95,18 @@ export const rewardDefinitions = loyaltySchema.table(
 export const rewardEntitlements = loyaltySchema.table(
   "reward_entitlement",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     rewardDefinitionId: uuid("reward_definition_id").notNull(),
     accountId: uuid("account_id").notNull(),
     sourceEventFactId: uuid("source_event_fact_id"),
     issuanceTransactionId: uuid("issuance_transaction_id"),
     monetaryTransactionId: uuid("monetary_transaction_id"),
-    status: rewardEntitlementStatusEnum("status")
-      .notNull()
-      .default("ISSUED"),
+    status: rewardEntitlementStatusEnum("status").notNull().default("ISSUED"),
     idempotencyKey: varchar("idempotency_key", { length: 255 }).notNull(),
-    configurationSchemaVersion: integer("configuration_schema_version")
-      .notNull()
-      .default(1),
+    configurationSchemaVersion: integer("configuration_schema_version").notNull().default(1),
     configurationSnapshot: jsonb("configuration_snapshot")
       .$type<Record<string, unknown>>()
       .notNull(),
@@ -216,18 +201,12 @@ export const rewardEntitlements = loyaltySchema.table(
       sql`${table.configurationSchemaVersion} > 0
         AND jsonb_typeof(${table.configurationSnapshot}) = 'object'`,
     ),
-    check(
-      "loyalty_reward_entitlement_quantity_check",
-      sql`${table.quantity} > 0`,
-    ),
+    check("loyalty_reward_entitlement_quantity_check", sql`${table.quantity} > 0`),
     check(
       "loyalty_reward_entitlement_validity_check",
       sql`${table.validTo} IS NULL OR ${table.validTo} > ${table.validFrom}`,
     ),
-    check(
-      "loyalty_reward_entitlement_revision_check",
-      sql`${table.revision} > 0`,
-    ),
+    check("loyalty_reward_entitlement_revision_check", sql`${table.revision} > 0`),
     check(
       "loyalty_reward_entitlement_state_check",
       sql`(${table.status} = 'ISSUED' AND ${table.reservedAt} IS NULL
@@ -254,7 +233,9 @@ export const rewardEntitlements = loyaltySchema.table(
 export const rewardEntitlementEvents = loyaltySchema.table(
   "reward_entitlement_event",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     entitlementId: uuid("entitlement_id").notNull(),
     eventType: rewardEntitlementEventTypeEnum("event_type").notNull(),
@@ -308,13 +289,13 @@ export const rewardEntitlementEvents = loyaltySchema.table(
 export const tierRewardBenefits = loyaltySchema.table(
   "tier_reward_benefit",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     tierId: uuid("tier_id").notNull(),
     rewardDefinitionId: uuid("reward_definition_id").notNull(),
-    grantPolicySchemaVersion: integer("grant_policy_schema_version")
-      .notNull()
-      .default(1),
+    grantPolicySchemaVersion: integer("grant_policy_schema_version").notNull().default(1),
     grantPolicy: jsonb("grant_policy")
       .$type<Record<string, unknown>>()
       .notNull()
@@ -332,10 +313,7 @@ export const tierRewardBenefits = loyaltySchema.table(
       columns: [table.rewardDefinitionId],
       foreignColumns: [rewardDefinitions.id],
     }),
-    unique("loyalty_tier_reward_benefit_unique").on(
-      table.tierId,
-      table.rewardDefinitionId,
-    ),
+    unique("loyalty_tier_reward_benefit_unique").on(table.tierId, table.rewardDefinitionId),
     check(
       "loyalty_tier_reward_benefit_policy_check",
       sql`${table.grantPolicySchemaVersion} > 0

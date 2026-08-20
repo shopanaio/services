@@ -1,7 +1,4 @@
-import {
-  UseCase,
-  type UseCaseDependencies,
-} from "@src/application/usecases/useCase";
+import { UseCase, type UseCaseDependencies } from "@src/application/usecases/useCase";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
 import { Money } from "@shopana/shared-money";
 import { deserializeCheckout, type CheckoutDto } from "@shopana/checkout-sdk";
@@ -28,7 +25,9 @@ function toMoney(value: { amountMinor(): bigint; currency(): { code: string } })
 /**
  * Converts a Money | number union from checkout to the shared-money equivalent.
  */
-function toMoneyOrNumber(value: number | { amountMinor(): bigint; currency(): { code: string } }): number | Money {
+function toMoneyOrNumber(
+  value: number | { amountMinor(): bigint; currency(): { code: string } },
+): number | Money {
   if (typeof value === "number") return value;
   return toMoney(value);
 }
@@ -57,10 +56,7 @@ export interface CreateOrderFromCheckoutPlacementInput {
   deliveryCommitments: readonly Delivery.DeliveryCommittedGroupSnapshot[];
 }
 
-export class CreateOrderUseCase extends UseCase<
-  CreateOrderFromCheckoutPlacementInput,
-  string
-> {
+export class CreateOrderUseCase extends UseCase<CreateOrderFromCheckoutPlacementInput, string> {
   constructor(deps: CreateOrderUseCaseDependencies) {
     super(deps);
     this.repository = deps.repository;
@@ -68,9 +64,7 @@ export class CreateOrderUseCase extends UseCase<
 
   private readonly repository: Repository;
 
-  async execute(
-    input: CreateOrderFromCheckoutPlacementInput,
-  ): Promise<string> {
+  async execute(input: CreateOrderFromCheckoutPlacementInput): Promise<string> {
     const checkout = deserializeCheckout(input.checkout);
     if (checkout.id !== input.checkoutId || checkout.storeId !== input.storeId) {
       throw new Error("Checkout placement snapshot does not belong to the requested store");
@@ -87,10 +81,7 @@ export class CreateOrderUseCase extends UseCase<
   ): Promise<string> {
     const id = input.orderId;
 
-    const idemHit = await this.repository.idempotency.get(
-      input.storeId,
-      input.idempotencyKey,
-    );
+    const idemHit = await this.repository.idempotency.get(input.storeId, input.idempotencyKey);
     if (idemHit?.id) {
       if (idemHit.id !== id) {
         throw new Error("Order placement idempotency key belongs to another order");
@@ -112,12 +103,7 @@ export class CreateOrderUseCase extends UseCase<
     // Flatten hierarchical lines (parent + children) into a flat array
     const orderLines = this.flattenCheckoutLines(checkoutAggregate.lines);
 
-    const relations = this.buildRelations(
-      id,
-      input.storeId,
-      checkoutAggregate,
-      input.payment,
-    );
+    const relations = this.buildRelations(id, input.storeId, checkoutAggregate, input.payment);
 
     const appliedDiscounts: OrderCreateData["appliedDiscounts"] =
       checkoutAggregate.appliedPromoCodes.map((p) => ({
@@ -183,14 +169,19 @@ export class CreateOrderUseCase extends UseCase<
       }
       seenGroups.add(commitment.groupId);
       const expected = new Set(group.checkoutLines.map((line) => line.id));
-      if (commitment.lineIds.length !== expected.size || commitment.lineIds.some((lineId) => !expected.has(lineId))) {
+      if (
+        commitment.lineIds.length !== expected.size ||
+        commitment.lineIds.some((lineId) => !expected.has(lineId))
+      ) {
         throw new Error("ORDER_DELIVERY_COMMITMENT_LINES_INVALID");
       }
       for (const lineId of commitment.lineIds) {
         if (seenLines.has(lineId)) throw new Error("ORDER_DELIVERY_COMMITMENT_LINE_DUPLICATE");
         seenLines.add(lineId);
       }
-      const packageLines = new Set(commitment.packages.flatMap((item) => item.items.map((line) => line.lineId)));
+      const packageLines = new Set(
+        commitment.packages.flatMap((item) => item.items.map((line) => line.lineId)),
+      );
       if ([...packageLines].some((lineId) => !expected.has(lineId))) {
         throw new Error("ORDER_DELIVERY_COMMITMENT_PACKAGE_LINES_INVALID");
       }
@@ -198,10 +189,18 @@ export class CreateOrderUseCase extends UseCase<
       const packagedQuantities = new Map<string, number>();
       for (const item of commitment.packages.flatMap(({ items }) => items)) {
         const checkoutLine = checkoutLines.get(item.lineId);
-        if (!checkoutLine || checkoutLine.purchasableId !== item.variantId) throw new Error("ORDER_DELIVERY_COMMITMENT_PACKAGE_ITEM_INVALID");
-        packagedQuantities.set(item.lineId, (packagedQuantities.get(item.lineId) ?? 0) + item.quantity);
+        if (!checkoutLine || checkoutLine.purchasableId !== item.variantId)
+          throw new Error("ORDER_DELIVERY_COMMITMENT_PACKAGE_ITEM_INVALID");
+        packagedQuantities.set(
+          item.lineId,
+          (packagedQuantities.get(item.lineId) ?? 0) + item.quantity,
+        );
       }
-      if ([...packagedQuantities].some(([lineId, quantity]) => quantity > checkoutLines.get(lineId)!.quantity)) {
+      if (
+        [...packagedQuantities].some(
+          ([lineId, quantity]) => quantity > checkoutLines.get(lineId)!.quantity,
+        )
+      ) {
         throw new Error("ORDER_DELIVERY_COMMITMENT_PACKAGE_QUANTITY_INVALID");
       }
     }
@@ -224,7 +223,7 @@ export class CreateOrderUseCase extends UseCase<
     | "selectedPaymentMethod"
   > {
     const deliveryGroups = checkoutAggregate.deliveryGroups.filter(
-      (group) => group.deliveryAddress
+      (group) => group.deliveryAddress,
     );
 
     const contact = {
@@ -315,18 +314,18 @@ export class CreateOrderUseCase extends UseCase<
       deliveryMethods,
       selectedDeliveryMethods,
       paymentMethods: payment
-        ? [{
-            code: payment.code,
-            provider: payment.provider,
-            title: payment.title,
-            flow: payment.flow,
-            providerData: {},
-            customerInput: payment.customerInput,
-          }]
+        ? [
+            {
+              code: payment.code,
+              provider: payment.provider,
+              title: payment.title,
+              flow: payment.flow,
+              providerData: {},
+              customerInput: payment.customerInput,
+            },
+          ]
         : [],
-      selectedPaymentMethod: payment
-        ? { code: payment.code, provider: payment.provider }
-        : null,
+      selectedPaymentMethod: payment ? { code: payment.code, provider: payment.provider } : null,
     };
   }
 
@@ -342,8 +341,7 @@ export class CreateOrderUseCase extends UseCase<
     const snapshot: CheckoutSnapshot = {
       checkoutId: aggregate.id,
       storeId,
-      currencyCode:
-        aggregate.currencyCode ?? aggregate.cost.totalAmount.currency().code,
+      currencyCode: aggregate.currencyCode ?? aggregate.cost.totalAmount.currency().code,
       externalSource: aggregate.externalSource ?? null,
       externalId: aggregate.externalId ?? null,
       capturedAt: new Date(),
@@ -459,8 +457,7 @@ export class CreateOrderUseCase extends UseCase<
       totalAfterAllDiscounts += afterAllDiscounts;
     }
     if (
-      totalAfterProductDiscounts.toString() !==
-        snapshot.eligibleAmountAfterProductDiscountsMinor ||
+      totalAfterProductDiscounts.toString() !== snapshot.eligibleAmountAfterProductDiscountsMinor ||
       totalAfterAllDiscounts.toString() !== snapshot.eligibleAmountAfterAllDiscountsMinor
     ) {
       throw new Error("Order loyalty reward total does not match its lines");
@@ -468,16 +465,17 @@ export class CreateOrderUseCase extends UseCase<
   }
 
   private flattenCheckoutAggregateLines(lines: Checkout["lines"]): Checkout["lines"] {
-    return lines.flatMap((line) => [line, ...this.flattenCheckoutAggregateLines(line.children ?? [])]);
+    return lines.flatMap((line) => [
+      line,
+      ...this.flattenCheckoutAggregateLines(line.children ?? []),
+    ]);
   }
 
   /**
    * Flattens hierarchical checkout lines (parent + children) into a flat array for order lines.
    * Parent lines are included first, followed by their children with parentLineId set.
    */
-  private flattenCheckoutLines(
-    lines: Checkout["lines"],
-  ): OrderCreateData["lines"][number][] {
+  private flattenCheckoutLines(lines: Checkout["lines"]): OrderCreateData["lines"][number][] {
     const result: OrderCreateData["lines"][number][] = [];
 
     for (const line of lines) {
@@ -488,7 +486,9 @@ export class CreateOrderUseCase extends UseCase<
         unit: {
           id: line.purchasableId,
           price: toMoney(line.cost.unitPrice),
-          compareAtPrice: line.cost.compareAtUnitPrice ? toMoney(line.cost.compareAtUnitPrice) : null,
+          compareAtPrice: line.cost.compareAtUnitPrice
+            ? toMoney(line.cost.compareAtUnitPrice)
+            : null,
           title: line.title,
           sku: line.sku ?? null,
           imageUrl: line.imageSrc ?? null,

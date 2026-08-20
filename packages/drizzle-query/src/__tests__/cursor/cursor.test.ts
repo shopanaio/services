@@ -155,7 +155,7 @@ describe("cursor encode/decode", () => {
     it("throws on malformed cursor params", () => {
       const malformed = Buffer.from(
         JSON.stringify({ type: "", filtersHash: "", seek: [] }),
-        "utf-8"
+        "utf-8",
       ).toString("base64url");
       expect(() => decode(malformed)).toThrow(InvalidCursorError);
     });
@@ -166,9 +166,7 @@ describe("cursor encode/decode", () => {
       const params: CursorParams = {
         type: "category",
         filtersHash: "test-hash",
-        seek: [
-          { field: "id", value: "abc+def/ghi=jkl", direction: "desc" },
-        ],
+        seek: [{ field: "id", value: "abc+def/ghi=jkl", direction: "desc" }],
       };
 
       const encoded = encode(params);
@@ -197,7 +195,7 @@ describe("validateCursorParams", () => {
           type: "",
           filtersHash: "",
           seek: [{ field: "id", value: "1", direction: "asc" }],
-        })
+        }),
       ).toThrow("type cannot be empty");
     });
 
@@ -207,7 +205,7 @@ describe("validateCursorParams", () => {
           type: "   ",
           filtersHash: "",
           seek: [{ field: "id", value: "1", direction: "asc" }],
-        })
+        }),
       ).toThrow("type cannot be empty");
     });
   });
@@ -219,7 +217,7 @@ describe("validateCursorParams", () => {
           type: "test",
           filtersHash: 123 as unknown as string,
           seek: [{ field: "id", value: "1", direction: "asc" }],
-        })
+        }),
       ).toThrow("Filters hash must be a string");
     });
 
@@ -229,7 +227,7 @@ describe("validateCursorParams", () => {
           type: "test",
           filtersHash: "",
           seek: [{ field: "id", value: "1", direction: "asc" }],
-        })
+        }),
       ).not.toThrow();
     });
   });
@@ -241,7 +239,7 @@ describe("validateCursorParams", () => {
           type: "test",
           filtersHash: "",
           seek: [],
-        })
+        }),
       ).toThrow("Seek values cannot be empty");
     });
 
@@ -251,7 +249,7 @@ describe("validateCursorParams", () => {
           type: "test",
           filtersHash: "",
           seek: "not an array" as unknown as [],
-        })
+        }),
       ).toThrow("Seek values cannot be empty");
     });
 
@@ -261,7 +259,7 @@ describe("validateCursorParams", () => {
           type: "test",
           filtersHash: "",
           seek: [{ field: "", value: "1", direction: "asc" }],
-        })
+        }),
       ).toThrow("Field cannot be empty at index 0");
     });
 
@@ -271,7 +269,7 @@ describe("validateCursorParams", () => {
           type: "test",
           filtersHash: "",
           seek: [{ field: "   ", value: "1", direction: "asc" }],
-        })
+        }),
       ).toThrow("Field cannot be empty at index 0");
     });
 
@@ -281,7 +279,7 @@ describe("validateCursorParams", () => {
           type: "test",
           filtersHash: "",
           seek: [{ field: "id", value: "1", direction: "invalid" as "asc" }],
-        })
+        }),
       ).toThrow("Invalid direction 'invalid'");
     });
 
@@ -294,7 +292,7 @@ describe("validateCursorParams", () => {
             { field: "valid", value: "1", direction: "asc" },
             { field: "", value: "2", direction: "desc" },
           ],
-        })
+        }),
       ).toThrow("Field cannot be empty at index 1");
     });
   });
@@ -309,7 +307,7 @@ describe("validateCursorParams", () => {
             { field: "name", value: "test", direction: "asc" },
             { field: "id", value: "123", direction: "desc" },
           ],
-        })
+        }),
       ).not.toThrow();
     });
   });

@@ -15,12 +15,7 @@ export type GraphqlFilterTransformer<TWhereInput extends object> = (
   gqlOperator: string,
 ) => Partial<TWhereInput> | null | undefined;
 
-const stringOperators = new Set<string>([
-  "_eq",
-  "_neq",
-  "_contains",
-  "_containsi",
-]);
+const stringOperators = new Set<string>(["_eq", "_neq", "_contains", "_containsi"]);
 
 const intOperators = new Set<string>(["_eq", "_gt", "_gte", "_lt", "_lte"]);
 const booleanOperators = new Set<string>(["_eq", "_neq"]);
@@ -82,10 +77,7 @@ function buildGraphqlStringFilter(
   return { [gqlOperator]: String(value) } as GraphqlStringFilter;
 }
 
-function buildGraphqlIntFilter(
-  filter: IFilterValue,
-  gqlOperator: string,
-): GraphqlIntFilter | null {
+function buildGraphqlIntFilter(filter: IFilterValue, gqlOperator: string): GraphqlIntFilter | null {
   if (!intOperators.has(gqlOperator)) {
     return null;
   }
@@ -122,9 +114,7 @@ function buildGraphqlBooleanFilter(
   return { [gqlOperator]: value } as GraphqlBooleanFilter;
 }
 
-function buildGraphqlDateTimeRangeFilter(
-  filter: IFilterValue,
-): GraphqlDateTimeFilter | null {
+function buildGraphqlDateTimeRangeFilter(filter: IFilterValue): GraphqlDateTimeFilter | null {
   if (filter.operator !== FilterOperator.Between) {
     return null;
   }
@@ -146,9 +136,9 @@ function buildGraphqlDateTimeRangeFilter(
   return Object.keys(condition).length > 0 ? condition : null;
 }
 
-export function createGraphqlStringFilterTransformer<
-  TWhereInput extends object,
->(fieldName: string): GraphqlFilterTransformer<TWhereInput> {
+export function createGraphqlStringFilterTransformer<TWhereInput extends object>(
+  fieldName: string,
+): GraphqlFilterTransformer<TWhereInput> {
   return (filter, gqlOperator) => {
     const condition = buildGraphqlStringFilter(filter, gqlOperator);
     return condition ? ({ [fieldName]: condition } as Partial<TWhereInput>) : null;
@@ -164,18 +154,18 @@ export function createGraphqlIntFilterTransformer<TWhereInput extends object>(
   };
 }
 
-export function createGraphqlBooleanFilterTransformer<
-  TWhereInput extends object,
->(fieldName: string): GraphqlFilterTransformer<TWhereInput> {
+export function createGraphqlBooleanFilterTransformer<TWhereInput extends object>(
+  fieldName: string,
+): GraphqlFilterTransformer<TWhereInput> {
   return (filter, gqlOperator) => {
     const condition = buildGraphqlBooleanFilter(filter, gqlOperator);
     return condition ? ({ [fieldName]: condition } as Partial<TWhereInput>) : null;
   };
 }
 
-export function createGraphqlDateTimeRangeFilterTransformer<
-  TWhereInput extends object,
->(fieldName: string): GraphqlFilterTransformer<TWhereInput> {
+export function createGraphqlDateTimeRangeFilterTransformer<TWhereInput extends object>(
+  fieldName: string,
+): GraphqlFilterTransformer<TWhereInput> {
   return (filter) => {
     const condition = buildGraphqlDateTimeRangeFilter(filter);
     return condition ? ({ [fieldName]: condition } as Partial<TWhereInput>) : null;

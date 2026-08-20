@@ -69,10 +69,7 @@ const REQUIREMENTS: Requirement[] = [
  * Password strength indicator component.
  * Shows a progress bar and optional requirements list.
  */
-export function PasswordStrength({
-  password,
-  showRequirements = true,
-}: PasswordStrengthProps) {
+export function PasswordStrength({ password, showRequirements = true }: PasswordStrengthProps) {
   const { styles } = useStyles();
 
   const { score, requirements } = useMemo(() => {
@@ -126,9 +123,7 @@ export function PasswordStrength({
               ) : (
                 <CloseOutlined className={styles.iconUnmet} />
               )}
-              <Typography.Text
-                className={req.met ? styles.textMet : styles.textUnmet}
-              >
+              <Typography.Text className={req.met ? styles.textMet : styles.textUnmet}>
                 {req.label}
               </Typography.Text>
             </li>

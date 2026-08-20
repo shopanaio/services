@@ -1,10 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import {
-  BrokerWorkflows,
-  Workflow,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { BrokerWorkflows, Workflow, InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import pMap from "p-map";
 import { Kernel } from "../kernel/Kernel.js";
@@ -61,9 +56,7 @@ export class FileGarbageCollectorWorkflow extends BrokerWorkflows {
       }
     }
     if (totalStuck > 0) {
-      this.logger.warn(
-        `Reset ${totalStuck} stuck DELETING files (marked as RETRYABLE)`
-      );
+      this.logger.warn(`Reset ${totalStuck} stuck DELETING files (marked as RETRYABLE)`);
     }
 
     // Phase 2: Pick SOFT_DELETED files for hard delete
@@ -86,35 +79,29 @@ export class FileGarbageCollectorWorkflow extends BrokerWorkflows {
             await this.startHardDeleteWorkflow(deletionState.fileId);
           } catch (error) {
             this.logger.error(
-              `Failed to start hard delete workflow for fileId=${deletionState.fileId}: ${error}`
+              `Failed to start hard delete workflow for fileId=${deletionState.fileId}: ${error}`,
             );
           }
         },
-        { concurrency: PARALLEL_WORKFLOWS, stopOnError: false }
+        { concurrency: PARALLEL_WORKFLOWS, stopOnError: false },
       );
 
       batchesProcessed++;
     }
 
     if (batchesProcessed === MAX_GC_BATCHES) {
-      this.logger.log(
-        `GC hit max batches limit (${MAX_GC_BATCHES}), will continue next run`
-      );
+      this.logger.log(`GC hit max batches limit (${MAX_GC_BATCHES}), will continue next run`);
     }
 
     return { stuckReset: totalStuck, batchesProcessed };
   }
 
   private async startHardDeleteWorkflow(fileId: string): Promise<void> {
-    await this.broker.runWorkflow(
-      "media.fileHardDelete",
-      fileId,
-      {
-        source: "workflow",
-        workflowId: DBOS.workflowID!,
-        stepId: "hardDelete",
-        callId: fileId,
-      }
-    );
+    await this.broker.runWorkflow("media.fileHardDelete", fileId, {
+      source: "workflow",
+      workflowId: DBOS.workflowID!,
+      stepId: "hardDelete",
+      callId: fileId,
+    });
   }
 }

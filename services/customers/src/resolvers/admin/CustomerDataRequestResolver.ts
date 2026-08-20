@@ -3,18 +3,11 @@ import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { CustomerDataRequest } from "../../repositories/models/index.js";
 import { CustomersType } from "./CustomersType.js";
 
-export class CustomerDataRequestResolver extends CustomersType<
-  string,
-  CustomerDataRequest
-> {
+export class CustomerDataRequestResolver extends CustomersType<string, CustomerDataRequest> {
   async $preload() {
-    const request = await this.$ctx.loaders.customerDataRequest.load(
-      this.$props
-    );
+    const request = await this.$ctx.loaders.customerDataRequest.load(this.$props);
     if (!request) {
-      throw new PreloadNotFoundError(
-        `Customer data request with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`Customer data request with ID ${this.$props} not found`);
     }
     return request;
   }

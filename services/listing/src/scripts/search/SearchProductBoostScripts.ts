@@ -21,13 +21,15 @@ export class SearchProductBoostCreateScript extends BaseScript<
   protected async execute(
     params: SearchProductBoostCreateParams,
   ): Promise<SearchProductBoostResult> {
-    if (!await this.repository.searchSettings.find()) {
+    if (!(await this.repository.searchSettings.find())) {
       return {
-        userErrors: [{
-          message: "Search settings are not initialized",
-          field: ["input"],
-          code: "SETTINGS_NOT_INITIALIZED",
-        }],
+        userErrors: [
+          {
+            message: "Search settings are not initialized",
+            field: ["input"],
+            code: "SETTINGS_NOT_INITIALIZED",
+          },
+        ],
       };
     }
     const storeId = this.context.store.id;
@@ -52,13 +54,7 @@ export class SearchProductBoostCreateScript extends BaseScript<
     });
     return {
       productBoost,
-      cacheKeys: [
-        searchProductBoostCacheKey(
-          storeId,
-          locale,
-          productBoost.boost.boostId,
-        ),
-      ],
+      cacheKeys: [searchProductBoostCacheKey(storeId, locale, productBoost.boost.boostId)],
       userErrors: [],
     };
   }
@@ -77,7 +73,11 @@ export class SearchProductBoostUpdateScript extends BaseScript<
   ): Promise<SearchProductBoostResult> {
     const current = await this.repository.searchProductBoost.findById(params.boostId);
     if (!current) {
-      return { userErrors: [{ message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" }] };
+      return {
+        userErrors: [
+          { message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" },
+        ],
+      };
     }
     const storeId = this.context.store.id;
     const locale = normalizeSearchLocale(params.locale);
@@ -102,21 +102,27 @@ export class SearchProductBoostUpdateScript extends BaseScript<
       productIds: params.productIds,
     });
     if (result.status === "not_found") {
-      return { userErrors: [{ message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" }] };
+      return {
+        userErrors: [
+          { message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" },
+        ],
+      };
     }
     if (result.status === "conflict") {
       return {
-        userErrors: [{
-          message: `Product boost version conflict; current version is ${result.currentVersion}`,
-          field: ["input", "expectedVersion"],
-          code: "VERSION_CONFLICT",
-        }],
+        userErrors: [
+          {
+            message: `Product boost version conflict; current version is ${result.currentVersion}`,
+            field: ["input", "expectedVersion"],
+            code: "VERSION_CONFLICT",
+          },
+        ],
       };
     }
     return {
       productBoost: result.value,
       cacheKeys: [current.boost.locale, locale].map((value) =>
-        searchProductBoostCacheKey(storeId, value, params.boostId)
+        searchProductBoostCacheKey(storeId, value, params.boostId),
       ),
       userErrors: [],
     };
@@ -136,33 +142,39 @@ export class SearchProductBoostDeleteScript extends BaseScript<
   ): Promise<SearchProductBoostResult> {
     const current = await this.repository.searchProductBoost.findById(params.boostId);
     if (!current) {
-      return { userErrors: [{ message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" }] };
+      return {
+        userErrors: [
+          { message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" },
+        ],
+      };
     }
     const result = await this.repository.searchProductBoost.delete({
       boostId: params.boostId,
       expectedVersion: params.expectedVersion,
     });
     if (result.status === "not_found") {
-      return { userErrors: [{ message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" }] };
+      return {
+        userErrors: [
+          { message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" },
+        ],
+      };
     }
     if (result.status === "conflict") {
       return {
-        userErrors: [{
-          message: `Product boost version conflict; current version is ${result.currentVersion}`,
-          field: ["input", "expectedVersion"],
-          code: "VERSION_CONFLICT",
-        }],
+        userErrors: [
+          {
+            message: `Product boost version conflict; current version is ${result.currentVersion}`,
+            field: ["input", "expectedVersion"],
+            code: "VERSION_CONFLICT",
+          },
+        ],
       };
     }
     return {
       productBoost: result.value,
       deletedProductBoostId: params.boostId,
       cacheKeys: [
-        searchProductBoostCacheKey(
-          this.context.store.id,
-          current.boost.locale,
-          params.boostId,
-        ),
+        searchProductBoostCacheKey(this.context.store.id, current.boost.locale, params.boostId),
       ],
       userErrors: [],
     };

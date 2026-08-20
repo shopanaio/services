@@ -35,12 +35,9 @@ export function UserMenu() {
 
   const userName = user?.firstName
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
-    : user?.email ?? "User";
+    : (user?.email ?? "User");
   const userEmail = user?.email ?? "";
-  const initials =
-    user?.firstName?.[0]?.toUpperCase() ??
-    user?.email?.[0]?.toUpperCase() ??
-    "U";
+  const initials = user?.firstName?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? "U";
 
   const items: MenuProps["items"] = [
     {
@@ -49,9 +46,7 @@ export function UserMenu() {
       label: (
         <Flex vertical>
           <Typography.Text strong>{userName}</Typography.Text>
-          <Typography.Text className={styles.userEmail}>
-            {userEmail}
-          </Typography.Text>
+          <Typography.Text className={styles.userEmail}>{userEmail}</Typography.Text>
         </Flex>
       ),
     },

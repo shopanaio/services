@@ -3,11 +3,7 @@
 import { useEffect } from "react";
 import { Flex, Spin } from "antd";
 import { LuLoaderCircle as LoadingOutlined } from "react-icons/lu";
-import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { useProductPricingWidget } from "../../hooks";
 import type { Period } from "../../utils/periods";
 import { ChangeLogSection } from "./components/change-log-section";
@@ -35,9 +31,7 @@ export const PriceHistoryModal = () => {
   // Extract pricing data from widget response
   const currentPrice = data?.currentPrice ?? null;
   const currency =
-    data?.currentPrice?.currency ??
-    data?.currentCostPrice?.currency ??
-    data?.statistics.currency;
+    data?.currentPrice?.currency ?? data?.currentCostPrice?.currency ?? data?.statistics.currency;
   const history = data?.history ?? {
     __typename: "VariantPriceConnection" as const,
     edges: [],

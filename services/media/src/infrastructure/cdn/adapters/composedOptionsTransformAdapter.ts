@@ -19,13 +19,8 @@ const NORMALIZED_FIELDS = [
   "scale",
 ] as const;
 
-export function composedOptionsTransformAdapter(
-  context: CdnAdapterContext
-): string {
-  const transformConfig = context.configuration.transformConfig as Record<
-    string,
-    unknown
-  >;
+export function composedOptionsTransformAdapter(context: CdnAdapterContext): string {
+  const transformConfig = context.configuration.transformConfig as Record<string, unknown>;
   const compose = transformConfig.compose as ComposeConfig;
 
   const pairs = NORMALIZED_FIELDS.map((field) => {

@@ -22,7 +22,7 @@ export class Repository {
   private constructor(
     db: Database,
     txManager: TransactionManager<Database>,
-    protection: DataProtectionService
+    protection: DataProtectionService,
   ) {
     this.txManager = txManager;
     this.settings = new SettingsRepository(db, txManager, protection);
@@ -34,14 +34,7 @@ export class Repository {
     this.audit = new AuditRepository(db, txManager, protection);
   }
 
-  static create(input: {
-    db: Database;
-    protection: DataProtectionService;
-  }): Repository {
-    return new Repository(
-      input.db,
-      new TransactionManager(input.db),
-      input.protection
-    );
+  static create(input: { db: Database; protection: DataProtectionService }): Repository {
+    return new Repository(input.db, new TransactionManager(input.db), input.protection);
   }
 }

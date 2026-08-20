@@ -3,13 +3,14 @@
 import { useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Upload, Typography, Button, Input, Flex, App, Spin } from "antd";
-import { LuUpload as UploadOutlined, LuUsers as TeamOutlined, LuTriangleAlert as WarningOutlined, LuLoaderCircle as LoadingOutlined } from "react-icons/lu";
-import { createStyles } from "antd-style";
 import {
-  useModalStackContext,
-  ModalLayout,
-  ModalHeader,
-} from "@/layouts/modals";
+  LuUpload as UploadOutlined,
+  LuUsers as TeamOutlined,
+  LuTriangleAlert as WarningOutlined,
+  LuLoaderCircle as LoadingOutlined,
+} from "react-icons/lu";
+import { createStyles } from "antd-style";
+import { useModalStackContext, ModalLayout, ModalHeader } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { ImageCropModal } from "@/ui-kit/image-crop";
 import { useAvatarUpload } from "@/domains/media/hooks/use-avatar-upload";
@@ -157,7 +158,7 @@ export const EditOrganizationModal = () => {
         });
       }
     },
-    [uploadAvatar, typedPayload.organizationId, apolloClient, setValue]
+    [uploadAvatar, typedPayload.organizationId, apolloClient, setValue],
   );
 
   const handleCancelCrop = useCallback(() => {
@@ -175,7 +176,7 @@ export const EditOrganizationModal = () => {
       message.success("Organization updated successfully");
       pop();
     },
-    [typedPayload, message, pop]
+    [typedPayload, message, pop],
   );
 
   return (
@@ -203,11 +204,7 @@ export const EditOrganizationModal = () => {
                 <Spin indicator={<LoadingOutlined />} />
               </div>
             ) : logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="Organization logo"
-                className={styles.avatarImage}
-              />
+              <img src={logoUrl} alt="Organization logo" className={styles.avatarImage} />
             ) : (
               <div className={styles.avatarPlaceholder}>
                 <TeamOutlined />
@@ -246,9 +243,7 @@ export const EditOrganizationModal = () => {
         <PaperHeader title="Organization Details" />
         <form className={styles.formSection}>
           <div className={styles.formItem}>
-            <Typography.Text className={styles.label}>
-              Display Name
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Display Name</Typography.Text>
             <Controller
               name="displayName"
               control={control}
@@ -272,16 +267,12 @@ export const EditOrganizationModal = () => {
               )}
             />
             {errors.displayName && (
-              <Typography.Text type="danger">
-                {errors.displayName.message}
-              </Typography.Text>
+              <Typography.Text type="danger">{errors.displayName.message}</Typography.Text>
             )}
           </div>
 
           <div className={styles.formItem}>
-            <Typography.Text className={styles.label}>
-              Organization Slug
-            </Typography.Text>
+            <Typography.Text className={styles.label}>Organization Slug</Typography.Text>
             <Controller
               name="slug"
               control={control}
@@ -310,9 +301,7 @@ export const EditOrganizationModal = () => {
               )}
             />
             {errors.slug ? (
-              <Typography.Text type="danger">
-                {errors.slug.message}
-              </Typography.Text>
+              <Typography.Text type="danger">{errors.slug.message}</Typography.Text>
             ) : (
               <div className={styles.warning}>
                 <WarningOutlined />

@@ -11,10 +11,7 @@ import {
 
 export interface ProductQuestionAnswerCreateParams {
   productQuestionId: string;
-  operation: Extract<
-    ProductQuestionUpdateOperation,
-    { type: "productQuestionAnswerCreate" }
-  >;
+  operation: Extract<ProductQuestionUpdateOperation, { type: "productQuestionAnswerCreate" }>;
 }
 
 export class ProductQuestionAnswerCreateScript extends BaseScript<
@@ -22,23 +19,17 @@ export class ProductQuestionAnswerCreateScript extends BaseScript<
   ReviewSectionResult
 > {
   @Transactional()
-  protected async execute(
-    params: ProductQuestionAnswerCreateParams
-  ): Promise<ReviewSectionResult> {
-    const question = await this.repository.productQuestion.findById(
-      params.productQuestionId
-    );
+  protected async execute(params: ProductQuestionAnswerCreateParams): Promise<ReviewSectionResult> {
+    const question = await this.repository.productQuestion.findById(params.productQuestionId);
     if (!question) {
-      return sectionErrors([
-        { message: "Product question not found", code: "NOT_FOUND" },
-      ]);
+      return sectionErrors([{ message: "Product question not found", code: "NOT_FOUND" }]);
     }
 
     const input = params.operation.params;
     const mapped = mapContentCreate(
       input.content,
       "QUESTION_ANSWER",
-      this.context.hasUser ? this.context.user.id : undefined
+      this.context.hasUser ? this.context.user.id : undefined,
     );
     const errors = [...mapped.errors];
     if (input.sortIndex != null && input.sortIndex < 0) {

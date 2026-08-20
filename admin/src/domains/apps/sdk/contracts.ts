@@ -1,9 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
-import type {
-  ColDef,
-  GetRowIdParams,
-  GridOptions,
-} from "ag-grid-community";
+import type { ColDef, GetRowIdParams, GridOptions } from "ag-grid-community";
 
 export const ADMIN_APP_SDK_VERSION = "1.0.0";
 

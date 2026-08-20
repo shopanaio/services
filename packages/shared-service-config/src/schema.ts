@@ -39,10 +39,7 @@ export const WorkflowsConfigSchema = z.object({
   schema: z.string().optional(), // PostgreSQL schema for DBOS system tables (default: "dbos")
 });
 
-export const PortsConfigSchema = z.record(
-  z.string(),
-  z.number().int().positive()
-);
+export const PortsConfigSchema = z.record(z.string(), z.number().int().positive());
 
 export const SecretsConfigSchema = z.record(z.string(), z.string());
 

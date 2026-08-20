@@ -19,11 +19,7 @@ import {
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget, useFilters } from "@/layouts/filters";
 import { useAgGridTheme } from "@/hooks";
-import {
-  FacetNameCell,
-  FacetTreeActionsCell,
-  FacetValuesCell,
-} from "../components";
+import { FacetNameCell, FacetTreeActionsCell, FacetValuesCell } from "../components";
 import { useDeleteFacet, useFacets, useMoveFacet } from "../hooks";
 import {
   apiFacetsToFacetGridRows,
@@ -35,11 +31,7 @@ import { useCreateFacetModal, useEditFacetModal } from "../modals";
 import { filterSchema } from "./filter-schema";
 import { filterFacetGridRows } from "./page-config";
 
-ModuleRegistry.registerModules([
-  AllCommunityModule,
-  GridStateModule,
-  RowDragModule,
-]);
+ModuleRegistry.registerModules([AllCommunityModule, GridStateModule, RowDragModule]);
 
 const useStyles = createStyles(({ token }) => ({
   gridContainer: {
@@ -100,10 +92,7 @@ function shouldIgnoreRowClick(event: CellClickedEvent<FacetGridRow>): boolean {
 }
 
 function areRowIdsSame(left: FacetGridRow[], right: FacetGridRow[]): boolean {
-  return (
-    left.length === right.length &&
-    left.every((row, index) => row.id === right[index]?.id)
-  );
+  return left.length === right.length && left.every((row, index) => row.id === right[index]?.id);
 }
 
 function formatFacetMetaValue(value: string | undefined): string {
@@ -123,7 +112,11 @@ export default function FacetsPage() {
   const gridRef = useRef<AgGridReact<FacetGridRow>>(null);
   const { message, modal } = App.useApp();
   const [searchValue, setSearchValue] = useState("");
-  const { widgetProps, filters, reset: resetFilters } = useFilters({
+  const {
+    widgetProps,
+    filters,
+    reset: resetFilters,
+  } = useFilters({
     schema: filterSchema,
   });
 
@@ -132,9 +125,7 @@ export default function FacetsPage() {
   const { moveFacet } = useMoveFacet();
   const { push: openCreateFacetModal } = useCreateFacetModal();
   const { push: openEditFacetModal } = useEditFacetModal();
-  const [optimisticRows, setOptimisticRows] = useState<FacetGridRow[] | null>(
-    null,
-  );
+  const [optimisticRows, setOptimisticRows] = useState<FacetGridRow[] | null>(null);
 
   const baseRows = useMemo(() => apiFacetsToFacetGridRows(facets), [facets]);
   const filteredRows = useMemo(
@@ -151,10 +142,7 @@ export default function FacetsPage() {
     await refetch();
   }, [refetch]);
 
-  const getRowId = useCallback(
-    (params: GetRowIdParams<FacetGridRow>) => params.data.id,
-    [],
-  );
+  const getRowId = useCallback((params: GetRowIdParams<FacetGridRow>) => params.data.id, []);
   const getRowClass = useCallback(() => "row-group", []);
 
   const handleRowEdit = useCallback(
@@ -211,12 +199,7 @@ export default function FacetsPage() {
         },
       });
     },
-    [
-      deleteFacet,
-      message,
-      modal,
-      refetchAndReset,
-    ],
+    [deleteFacet, message, modal, refetchAndReset],
   );
 
   const handleCellClicked = useCallback(
@@ -309,16 +292,10 @@ export default function FacetsPage() {
         headerName: "Available in",
         minWidth: 200,
         valueGetter: ({ data }) => data?.scopes ?? [],
-        cellRenderer: ({
-          value,
-        }: ICellRendererParams<FacetGridRow, FacetGridRow["scopes"]>) => (
+        cellRenderer: ({ value }: ICellRendererParams<FacetGridRow, FacetGridRow["scopes"]>) => (
           <Flex gap={4} wrap>
             {(value ?? []).map((scope) => (
-              <Tag
-                key={scope}
-                variant="filled"
-                className={styles.metaTag}
-              >
+              <Tag key={scope} variant="filled" className={styles.metaTag}>
                 {getFacetScopeLabel(scope)}
               </Tag>
             ))}
@@ -398,10 +375,7 @@ export default function FacetsPage() {
       <DataLayout.Toolbar
         left={
           <Flex align="center" gap="small" style={{ width: "100%" }}>
-            <FilterWidget
-              {...filterWidgetProps}
-              searchPlaceholder="Search filters and values..."
-            />
+            <FilterWidget {...filterWidgetProps} searchPlaceholder="Search filters and values..." />
             <Button
               disabled={!hasActiveFilters}
               onClick={() => {

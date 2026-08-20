@@ -18,7 +18,7 @@ export interface DbValidationContext {
 export async function loadDbContext(
   repository: OptionRepository,
   productId: string,
-  options: ValidatedOptionInput[]
+  options: ValidatedOptionInput[],
 ): Promise<DbValidationContext> {
   const optionIds = options.flatMap((o) => (o.id ? [o.id] : []));
   const existing = await repository.findByIds(productId, optionIds);
@@ -30,9 +30,7 @@ export async function loadDbContext(
 
   return {
     existingById: new Map(existing.map((o) => [o.id, { id: o.id, productId: o.productId }])),
-    valueIdsByOptionId: new Map(
-      Array.from(valueIdMap.entries()).map(([k, v]) => [k, new Set(v)])
-    ),
+    valueIdsByOptionId: new Map(Array.from(valueIdMap.entries()).map(([k, v]) => [k, new Set(v)])),
   };
 }
 
@@ -44,7 +42,7 @@ export async function loadDbContext(
  */
 export function validateDatabase(
   options: ValidatedOptionInput[],
-  ctx: DbValidationContext
+  ctx: DbValidationContext,
 ): UserError[] {
   const errors: UserError[] = [];
 

@@ -17,9 +17,7 @@ export class CustomerDataRequestArtifactScript extends BaseScript<
   protected async execute(
     params: CustomerDataRequestArtifactParams,
   ): Promise<CustomerDataRequestArtifactResult> {
-    const request = await this.repository.lifecycle.findDataRequestById(
-      params.dataRequestId,
-    );
+    const request = await this.repository.lifecycle.findDataRequestById(params.dataRequestId);
     if (
       !request ||
       request.status !== "PROCESSING" ||
@@ -28,10 +26,7 @@ export class CustomerDataRequestArtifactScript extends BaseScript<
       throw new Error("Customer data request is not ready for an artifact");
     }
     const generatedAt = new Date().toISOString();
-    const snapshot = await this.repository.privacy.getSnapshot(
-      request.customerId,
-      generatedAt,
-    );
+    const snapshot = await this.repository.privacy.getSnapshot(request.customerId, generatedAt);
     if (!snapshot) throw new Error("Customer privacy snapshot was not found");
     const envelope =
       request.type === "EXPORT"
@@ -81,13 +76,9 @@ export class CustomerDataRequestNotificationSnapshotScript extends BaseScript<
   protected async execute(
     params: CustomerDataRequestNotificationSnapshotParams,
   ): Promise<CustomerDataRequestNotificationSnapshotResult> {
-    const request = await this.repository.lifecycle.findDataRequestById(
-      params.dataRequestId,
-    );
+    const request = await this.repository.lifecycle.findDataRequestById(params.dataRequestId);
     if (!request) throw new Error("Customer data request was not found");
-    const customer = await this.repository.customer.findByIdIncludingDeleted(
-      request.customerId,
-    );
+    const customer = await this.repository.customer.findByIdIncludingDeleted(request.customerId);
     const name = customer
       ? [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim()
       : "";
@@ -97,18 +88,14 @@ export class CustomerDataRequestNotificationSnapshotScript extends BaseScript<
             customerId: customer.id,
             ...(customer.email ? { email: customer.email } : {}),
             ...(customer.phoneE164 ? { phone: customer.phoneE164 } : {}),
-            ...(customer.preferredLocale
-              ? { locale: customer.preferredLocale }
-              : {}),
+            ...(customer.preferredLocale ? { locale: customer.preferredLocale } : {}),
             ...(name ? { name } : {}),
           }
         : null;
     return { customerId: request.customerId, type: request.type, recipient };
   }
 
-  protected handleError(
-    error: unknown,
-  ): CustomerDataRequestNotificationSnapshotResult {
+  protected handleError(error: unknown): CustomerDataRequestNotificationSnapshotResult {
     throw error;
   }
 }
@@ -129,18 +116,13 @@ export class CustomerDataRequestIamLinkScript extends BaseScript<
   protected async execute(
     params: CustomerDataRequestIamLinkParams,
   ): Promise<CustomerDataRequestIamLinkResult> {
-    const request = await this.repository.lifecycle.findDataRequestById(
-      params.dataRequestId,
-    );
+    const request = await this.repository.lifecycle.findDataRequestById(params.dataRequestId);
     if (!request || request.type !== "ERASURE") {
       throw new Error("Customer erasure request was not found");
     }
-    const customer = await this.repository.customer.findByIdIncludingDeleted(
-      request.customerId,
-    );
+    const customer = await this.repository.customer.findByIdIncludingDeleted(request.customerId);
     if (!customer?.iamPrincipalId) return null;
-    const configuration =
-      await this.repository.storefrontAuth.findByStoreId(this.context.store.id);
+    const configuration = await this.repository.storefrontAuth.findByStoreId(this.context.store.id);
     if (!configuration) {
       throw new Error("Storefront IAM application configuration was not found");
     }

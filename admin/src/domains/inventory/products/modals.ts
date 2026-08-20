@@ -1,7 +1,7 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
-import type { OutputData } from '@editorjs/editorjs';
-import type { RenderedContent } from '@/ui-kit/editor/renderers';
+import type { OutputData } from "@editorjs/editorjs";
+import type { RenderedContent } from "@/ui-kit/editor/renderers";
 import type {
   ApiFile,
   ApiGenericUserError,
@@ -18,7 +18,7 @@ import type {
   ApiVariant,
   CurrencyCode,
 } from "@/graphql/types";
-import type { VariantColumnField } from './components/variants/config/types';
+import type { VariantColumnField } from "./components/variants/config/types";
 import type { VariantEditorSaveRow } from "./mappers/product-variant-editor.mapper";
 import type { ComponentPriceType } from "@/domains/inventory/products/components/product-details-card/components-ui/types";
 
@@ -26,26 +26,28 @@ import type { ComponentPriceType } from "@/domains/inventory/products/components
 // Modal Types
 // ============================================================================
 
-export const PRODUCT_MODAL_TYPE = 'product';
-export const PRODUCT_CREATE_MODAL_TYPE = 'product-create';
-export const PRODUCT_EDIT_TITLE_MODAL_TYPE = 'product-edit-title';
-export const PRODUCT_EDIT_DESCRIPTION_MODAL_TYPE = 'product-edit-description';
-export const PRODUCT_AI_WRITER_MODAL_TYPE = 'product-ai-writer';
-export const PRODUCT_PRICE_HISTORY_MODAL_TYPE = 'product-price-history';
-export const PRODUCT_EDIT_VARIANT_PRICING_MODAL_TYPE = 'product-edit-variant-pricing';
-export const PRODUCT_EDIT_MEDIA_MODAL_TYPE = 'product-edit-media';
-export const PRODUCT_EDIT_OPTIONS_MODAL_TYPE = 'product-edit-options';
-export const PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE = 'product-edit-attributes';
-export const PRODUCT_EDIT_SEO_MODAL_TYPE = 'product-edit-seo';
-export const PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE = 'product-edit-variant-shipping';
-export const PRODUCT_EDIT_VARIANTS_MODAL_TYPE = 'product-edit-variants';
-export const PRODUCT_EDIT_TAGS_MODAL_TYPE = 'product-edit-tags';
-export const BULK_EDITOR_MODAL_TYPE = 'bulk-editor';
-export const PRODUCT_COMPONENT_EDIT_GROUPS_MODAL_TYPE = 'product-component-edit-groups';
-export const PRODUCT_COMPONENT_EDIT_CONFIGURATION_MODAL_TYPE = 'product-component-edit-configuration';
-export const PRODUCT_COMPONENT_EDIT_TEMPLATES_MODAL_TYPE = 'product-component-edit-templates';
-export const PRODUCT_COMPONENT_ITEM_VARIANT_SETTINGS_MODAL_TYPE = 'product-component-item-variant-settings';
-export const PRODUCT_DEPENDENCY_CHART_MODAL_TYPE = 'product-dependency-chart';
+export const PRODUCT_MODAL_TYPE = "product";
+export const PRODUCT_CREATE_MODAL_TYPE = "product-create";
+export const PRODUCT_EDIT_TITLE_MODAL_TYPE = "product-edit-title";
+export const PRODUCT_EDIT_DESCRIPTION_MODAL_TYPE = "product-edit-description";
+export const PRODUCT_AI_WRITER_MODAL_TYPE = "product-ai-writer";
+export const PRODUCT_PRICE_HISTORY_MODAL_TYPE = "product-price-history";
+export const PRODUCT_EDIT_VARIANT_PRICING_MODAL_TYPE = "product-edit-variant-pricing";
+export const PRODUCT_EDIT_MEDIA_MODAL_TYPE = "product-edit-media";
+export const PRODUCT_EDIT_OPTIONS_MODAL_TYPE = "product-edit-options";
+export const PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE = "product-edit-attributes";
+export const PRODUCT_EDIT_SEO_MODAL_TYPE = "product-edit-seo";
+export const PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE = "product-edit-variant-shipping";
+export const PRODUCT_EDIT_VARIANTS_MODAL_TYPE = "product-edit-variants";
+export const PRODUCT_EDIT_TAGS_MODAL_TYPE = "product-edit-tags";
+export const BULK_EDITOR_MODAL_TYPE = "bulk-editor";
+export const PRODUCT_COMPONENT_EDIT_GROUPS_MODAL_TYPE = "product-component-edit-groups";
+export const PRODUCT_COMPONENT_EDIT_CONFIGURATION_MODAL_TYPE =
+  "product-component-edit-configuration";
+export const PRODUCT_COMPONENT_EDIT_TEMPLATES_MODAL_TYPE = "product-component-edit-templates";
+export const PRODUCT_COMPONENT_ITEM_VARIANT_SETTINGS_MODAL_TYPE =
+  "product-component-item-variant-settings";
+export const PRODUCT_DEPENDENCY_CHART_MODAL_TYPE = "product-dependency-chart";
 
 // ============================================================================
 // Payload Interfaces
@@ -53,7 +55,7 @@ export const PRODUCT_DEPENDENCY_CHART_MODAL_TYPE = 'product-dependency-chart';
 
 export interface IProductModalPayload extends IModalStackPayload {
   entityId: string;
-  mode?: 'view' | 'edit';
+  mode?: "view" | "edit";
 }
 
 export interface IProductCreateModalPayload extends IModalStackPayload {
@@ -71,18 +73,18 @@ export interface IProductEditDescriptionModalPayload extends IModalStackPayload 
   description: OutputData | null;
   excerpt: OutputData | null;
   product?: ApiProduct;
-  onSave?: (values: { description: RenderedContent; excerpt: RenderedContent }) => boolean | void | Promise<boolean | void>;
+  onSave?: (values: {
+    description: RenderedContent;
+    excerpt: RenderedContent;
+  }) => boolean | void | Promise<boolean | void>;
 }
 
-export type AIGenerateTarget = 'description' | 'excerpt' | 'both';
-export type AITone = 'professional' | 'casual' | 'luxury' | 'friendly';
+export type AIGenerateTarget = "description" | "excerpt" | "both";
+export type AITone = "professional" | "casual" | "luxury" | "friendly";
 
 export interface IProductAIWriterModalPayload extends IModalStackPayload {
   product: ApiProduct;
-  onApply?: (values: {
-    description?: RenderedContent;
-    excerpt?: RenderedContent;
-  }) => void;
+  onApply?: (values: { description?: RenderedContent; excerpt?: RenderedContent }) => void;
 }
 
 export interface IProductPriceHistoryModalPayload extends IModalStackPayload {
@@ -107,12 +109,14 @@ export interface IEditVariantPricingModalPayload extends IModalStackPayload {
     costPrice?: number | null;
     options?: IVariantPricingOption[];
   }>;
-  onSave?: (variants: Array<{
-    id: string;
-    price: number | null;
-    compareAtPrice: number | null;
-    costPrice: number | null;
-  }>) => void;
+  onSave?: (
+    variants: Array<{
+      id: string;
+      price: number | null;
+      compareAtPrice: number | null;
+      costPrice: number | null;
+    }>,
+  ) => void;
 }
 
 export interface IEditMediaModalPayload extends IModalStackPayload {
@@ -184,15 +188,17 @@ export interface IEditVariantShippingModalPayload extends IModalStackPayload {
     dimensionUnit?: string;
     options?: IVariantPricingOption[];
   }>;
-  onSave?: (variants: Array<{
-    id: string;
-    weight: number | null;
-    weightUnit: string;
-    length: number | null;
-    width: number | null;
-    height: number | null;
-    dimensionUnit: string;
-  }>) => void;
+  onSave?: (
+    variants: Array<{
+      id: string;
+      weight: number | null;
+      weightUnit: string;
+      length: number | null;
+      width: number | null;
+      height: number | null;
+      dimensionUnit: string;
+    }>,
+  ) => void;
 }
 
 // Re-export for convenience
@@ -251,9 +257,7 @@ export interface IEditTagsModalPayload extends IModalStackPayload {
   productId?: string;
   selectedTagIds?: string[];
   availableTags?: ApiTag[];
-  onSave?: (data: {
-    tagIds: string[];
-  }) => void;
+  onSave?: (data: { tagIds: string[] }) => void;
   onCreateTag?: (name: string) => Promise<ApiTag>;
 }
 
@@ -264,43 +268,31 @@ export interface IBulkEditorModalPayload extends IModalStackPayload {
 export interface IComponentEditGroupsModalPayload extends IModalStackPayload {
   groups: ApiProductComponentGroup[];
   pricingTemplates: ApiProductComponentPricingTemplate[];
-  onSave?: (groups: ApiProductComponentGroup[]) =>
-    | boolean
-    | void
-    | Promise<boolean | void>;
+  onSave?: (groups: ApiProductComponentGroup[]) => boolean | void | Promise<boolean | void>;
 }
 
-export interface IComponentEditConfigurationModalPayload
-  extends IModalStackPayload {
+export interface IComponentEditConfigurationModalPayload extends IModalStackPayload {
   title: string;
   modalTitle?: string;
   submitLabel?: string;
-  onSave?: (data: { title: string }) =>
-    | boolean
-    | void
-    | Promise<boolean | void>;
+  onSave?: (data: { title: string }) => boolean | void | Promise<boolean | void>;
 }
 
 export interface IComponentEditTemplatesModalPayload extends IModalStackPayload {
   pricingTemplates: ApiProductComponentPricingTemplate[];
-  onSave?: (data: { pricingTemplates: ApiProductComponentPricingTemplate[] }) =>
-    | boolean
-    | void
-    | Promise<boolean | void>;
+  onSave?: (data: {
+    pricingTemplates: ApiProductComponentPricingTemplate[];
+  }) => boolean | void | Promise<boolean | void>;
 }
 
 export interface IDependencyChartModalPayload extends IModalStackPayload {
   groups: ApiProductComponentGroup[];
   rules: ApiProductComponentDependencyRule[];
   selectedRuleId?: string;
-  onSave?: (rules: ApiProductComponentDependencyRule[]) =>
-    | boolean
-    | void
-    | Promise<boolean | void>;
+  onSave?: (rules: ApiProductComponentDependencyRule[]) => boolean | void | Promise<boolean | void>;
 }
 
-export interface IComponentItemVariantSettingsModalPayload
-  extends IModalStackPayload {
+export interface IComponentItemVariantSettingsModalPayload extends IModalStackPayload {
   itemId: string;
   productId: string;
   productTitle: string;
@@ -325,18 +317,14 @@ export interface IComponentItemVariantSettingsModalPayload
     values: string[];
   }>;
   showAsVariants?: boolean;
-  onSave?: (data: {
-    availableVariantIds: string[] | null;
-    showAsVariants: boolean;
-  }) => void;
+  onSave?: (data: { availableVariantIds: string[] | null; showAsVariants: boolean }) => void;
 }
-
 
 // ============================================================================
 // Module Augmentation for Type Safety
 // ============================================================================
 
-declare module '@/layouts/modals' {
+declare module "@/layouts/modals" {
   interface ModalStackPayloads {
     [PRODUCT_MODAL_TYPE]: IProductModalPayload;
     [PRODUCT_CREATE_MODAL_TYPE]: IProductCreateModalPayload;
@@ -407,7 +395,9 @@ export const useProductEditTitleModal = createModalStackHook(PRODUCT_EDIT_TITLE_
  * push({ description: null, excerpt: null, onSave: saveContent });
  * ```
  */
-export const useProductEditDescriptionModal = createModalStackHook(PRODUCT_EDIT_DESCRIPTION_MODAL_TYPE);
+export const useProductEditDescriptionModal = createModalStackHook(
+  PRODUCT_EDIT_DESCRIPTION_MODAL_TYPE,
+);
 
 /**
  * Hook to open AI writer modal for generating product content
@@ -440,7 +430,9 @@ export const useProductPriceHistoryModal = createModalStackHook(PRODUCT_PRICE_HI
  * push({ variants: [...], onSave: saveVariantPricing });
  * ```
  */
-export const useEditVariantPricingModal = createModalStackHook(PRODUCT_EDIT_VARIANT_PRICING_MODAL_TYPE);
+export const useEditVariantPricingModal = createModalStackHook(
+  PRODUCT_EDIT_VARIANT_PRICING_MODAL_TYPE,
+);
 
 /**
  * Hook to open edit media modal
@@ -502,7 +494,9 @@ export const useEditSeoModal = createModalStackHook(PRODUCT_EDIT_SEO_MODAL_TYPE)
  * push({ variants: [...], onSave: saveVariantShipping });
  * ```
  */
-export const useEditVariantShippingModal = createModalStackHook(PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE);
+export const useEditVariantShippingModal = createModalStackHook(
+  PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE,
+);
 
 /**
  * Hook to open unified edit variants modal with tabs
@@ -530,7 +524,6 @@ export const useEditVariantsModal = createModalStackHook(PRODUCT_EDIT_VARIANTS_M
  */
 export const useEditTagsModal = createModalStackHook(PRODUCT_EDIT_TAGS_MODAL_TYPE);
 
-
 /**
  * Hook to open bulk editor modal
  *
@@ -554,6 +547,4 @@ export const useEditComponentTemplatesModal = createModalStackHook(
 export const useComponentItemVariantSettingsModal = createModalStackHook(
   PRODUCT_COMPONENT_ITEM_VARIANT_SETTINGS_MODAL_TYPE,
 );
-export const useDependencyChartModal = createModalStackHook(
-  PRODUCT_DEPENDENCY_CHART_MODAL_TYPE,
-);
+export const useDependencyChartModal = createModalStackHook(PRODUCT_DEPENDENCY_CHART_MODAL_TYPE);

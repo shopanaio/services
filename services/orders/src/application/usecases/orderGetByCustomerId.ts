@@ -25,10 +25,7 @@ export interface GetUserOrdersUseCaseDependencies {
  * Used primarily in storefront API for customer order history
  */
 export class GetUserOrdersUseCase extends UseCase<GetUserOrdersUseCaseInput, any[]> {
-  constructor(
-    deps: GetUserOrdersUseCaseDependencies,
-    baseDeps?: any
-  ) {
+  constructor(deps: GetUserOrdersUseCaseDependencies, baseDeps?: any) {
     super(baseDeps);
     this.orderReadRepository = deps.orderReadRepository;
   }
@@ -53,24 +50,30 @@ export class GetUserOrdersUseCase extends UseCase<GetUserOrdersUseCaseInput, any
       if (context.user && !context.customer && context.user.id !== userId) {
         // If not in customer context but user context, check if user can access this userId
         // This would depend on your user permission system
-        this.logger.warn({
-          requestingUserId: context.user.id,
-          targetUserId: userId,
-          storeId: context.store.id
-        }, "User attempting to access orders for different user");
+        this.logger.warn(
+          {
+            requestingUserId: context.user.id,
+            targetUserId: userId,
+            storeId: context.store.id,
+          },
+          "User attempting to access orders for different user",
+        );
       }
 
       // Validate pagination limits
       const safeLimit = Math.min(Math.max(limit, 1), 100); // Between 1 and 100
       const safeOffset = Math.max(offset, 0);
 
-      this.logger.info({
-        userId,
-        storeId: context.store.id,
-        limit: safeLimit,
-        offset: safeOffset,
-        statusFilter: status
-      }, "Fetching user orders");
+      this.logger.info(
+        {
+          userId,
+          storeId: context.store.id,
+          limit: safeLimit,
+          offset: safeOffset,
+          statusFilter: status,
+        },
+        "Fetching user orders",
+      );
 
       // TODO: Implement repository method for user order retrieval
       // For now, return empty result
@@ -86,30 +89,36 @@ export class GetUserOrdersUseCase extends UseCase<GetUserOrdersUseCaseInput, any
 
       const orders: any[] = [];
 
-      this.logger.debug({
-        userId,
-        storeId: context.store.id,
-        foundOrdersCount: orders.length
-      }, "Retrieved user orders");
+      this.logger.debug(
+        {
+          userId,
+          storeId: context.store.id,
+          foundOrdersCount: orders.length,
+        },
+        "Retrieved user orders",
+      );
 
       return orders;
-
     } catch (error) {
-      this.logger.error({
-        error,
-        userId,
-        storeId: context.store.id
-      }, "Failed to fetch user orders");
+      this.logger.error(
+        {
+          error,
+          userId,
+          storeId: context.store.id,
+        },
+        "Failed to fetch user orders",
+      );
 
       // Re-throw known errors as-is
-      if (error instanceof Error && error.message === "Forbidden: Cannot access orders for other users") {
+      if (
+        error instanceof Error &&
+        error.message === "Forbidden: Cannot access orders for other users"
+      ) {
         throw error;
       }
 
       throw new Error(
-        `Failed to fetch user orders: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        `Failed to fetch user orders: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
   }

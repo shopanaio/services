@@ -1,8 +1,4 @@
-import {
-  ScriptDefinition,
-  WorkflowScript,
-  ScriptContext,
-} from "src/service/interface";
+import { ScriptDefinition, WorkflowScript, ScriptContext } from "src/service/interface";
 
 export function defineScript(def: ScriptDefinition): WorkflowScript {
   return {

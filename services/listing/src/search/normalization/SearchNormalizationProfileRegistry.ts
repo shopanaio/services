@@ -6,14 +6,8 @@ import {
   type Stemmer,
 } from "natural/lib/natural/stemmers/index.js";
 import { normalizationFailure } from "../errors.js";
-import {
-  getSearchStopwords,
-  SEARCH_STOPWORDS_VERSION,
-} from "./stopwords.js";
-import type {
-  SearchNormalizationProfileMetadata,
-  SearchLocale,
-} from "./types.js";
+import { getSearchStopwords, SEARCH_STOPWORDS_VERSION } from "./stopwords.js";
+import type { SearchNormalizationProfileMetadata, SearchLocale } from "./types.js";
 
 export const SEARCH_NORMALIZATION_CONTRACT_VERSION = "1";
 export const SEARCH_NORMALIZATION_POLICY_VERSION = "2026-07-12.1";
@@ -33,10 +27,7 @@ const STEMMERS: Readonly<Record<string, Stemmer>> = {
 };
 
 export class SearchNormalizationProfileRegistry {
-  private readonly profiles = new Map<
-    SearchLocale,
-    SearchNormalizationProfile
-  >();
+  private readonly profiles = new Map<SearchLocale, SearchNormalizationProfile>();
 
   resolve(locale: string): SearchNormalizationProfile {
     let normalizedLocale: SearchLocale;
@@ -45,10 +36,7 @@ export class SearchNormalizationProfileRegistry {
       normalizedLocale = Intl.getCanonicalLocales(candidate)[0];
       if (!normalizedLocale) throw new Error("Locale is empty");
     } catch (error) {
-      throw normalizationFailure(
-        `Invalid search normalization locale: ${locale}`,
-        error,
-      );
+      throw normalizationFailure(`Invalid search normalization locale: ${locale}`, error);
     }
 
     const cached = this.profiles.get(normalizedLocale);
@@ -64,9 +52,7 @@ export class SearchNormalizationProfileRegistry {
           granularity: "word",
         }),
         stopwords: getSearchStopwords(normalizedLocale),
-        stem: stemmer
-          ? (token: string) => stemmer.stem(token)
-          : (token: string) => token,
+        stem: stemmer ? (token: string) => stemmer.stem(token) : (token: string) => token,
       });
       this.profiles.set(normalizedLocale, profile);
       return profile;
@@ -77,12 +63,9 @@ export class SearchNormalizationProfileRegistry {
       );
     }
   }
-
 }
 
-function buildMetadata(
-  locale: SearchLocale,
-): SearchNormalizationProfileMetadata {
+function buildMetadata(locale: SearchLocale): SearchNormalizationProfileMetadata {
   const nodeVersion = process.versions.node ?? "unknown";
   const icuVersion = process.versions.icu ?? "unknown";
   const unicodeVersion = process.versions.unicode ?? "unknown";

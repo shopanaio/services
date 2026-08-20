@@ -35,15 +35,12 @@ abstract class SearchResourceMutationWorkflow extends BrokerWorkflows {
   }
 
   protected async invalidateCaches(keys: readonly string[] | undefined): Promise<void> {
-    await Promise.allSettled(
-      [...new Set(keys ?? [])].map((key) => this.kernel.cache.del(key)),
-    );
+    await Promise.allSettled([...new Set(keys ?? [])].map((key) => this.kernel.cache.del(key)));
   }
 }
 
 @Injectable()
-export class SearchSynonymGroupCreateWorkflow
-  extends SearchResourceMutationWorkflow {
+export class SearchSynonymGroupCreateWorkflow extends SearchResourceMutationWorkflow {
   constructor(@InjectBroker("listing") broker: ServiceBroker) {
     super(broker);
   }
@@ -79,8 +76,7 @@ export class SearchSynonymGroupCreateWorkflow
 }
 
 @Injectable()
-export class SearchSynonymGroupUpdateWorkflow
-  extends SearchResourceMutationWorkflow {
+export class SearchSynonymGroupUpdateWorkflow extends SearchResourceMutationWorkflow {
   constructor(@InjectBroker("listing") broker: ServiceBroker) {
     super(broker);
   }
@@ -116,8 +112,7 @@ export class SearchSynonymGroupUpdateWorkflow
 }
 
 @Injectable()
-export class SearchProductBoostCreateWorkflow
-  extends SearchResourceMutationWorkflow {
+export class SearchProductBoostCreateWorkflow extends SearchResourceMutationWorkflow {
   constructor(@InjectBroker("listing") broker: ServiceBroker) {
     super(broker);
   }
@@ -153,8 +148,7 @@ export class SearchProductBoostCreateWorkflow
 }
 
 @Injectable()
-export class SearchProductBoostUpdateWorkflow
-  extends SearchResourceMutationWorkflow {
+export class SearchProductBoostUpdateWorkflow extends SearchResourceMutationWorkflow {
   constructor(@InjectBroker("listing") broker: ServiceBroker) {
     super(broker);
   }
@@ -190,8 +184,7 @@ export class SearchProductBoostUpdateWorkflow
 }
 
 @Injectable()
-export class SearchSynonymGroupDeleteWorkflow
-  extends SearchResourceMutationWorkflow {
+export class SearchSynonymGroupDeleteWorkflow extends SearchResourceMutationWorkflow {
   constructor(@InjectBroker("listing") broker: ServiceBroker) {
     super(broker);
   }
@@ -227,8 +220,7 @@ export class SearchSynonymGroupDeleteWorkflow
 }
 
 @Injectable()
-export class SearchProductBoostDeleteWorkflow
-  extends SearchResourceMutationWorkflow {
+export class SearchProductBoostDeleteWorkflow extends SearchResourceMutationWorkflow {
   constructor(@InjectBroker("listing") broker: ServiceBroker) {
     super(broker);
   }
@@ -263,9 +255,7 @@ export class SearchProductBoostDeleteWorkflow
   }
 }
 
-function toRunScriptContext(
-  context: SearchSettingsWorkflowContext,
-): RunScriptContext {
+function toRunScriptContext(context: SearchSettingsWorkflowContext): RunScriptContext {
   return {
     storeId: context.storeId,
     organizationId: context.organizationId,

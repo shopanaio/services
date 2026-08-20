@@ -1,12 +1,5 @@
-import {
-  FacetSelectionMode,
-  FilterPresentation,
-  FilterType,
-} from "./generated/types.js";
-import type {
-  FilterResolverInput,
-  FilterValueResolverInput,
-} from "./FilterModels.js";
+import { FacetSelectionMode, FilterPresentation, FilterType } from "./generated/types.js";
+import type { FilterResolverInput, FilterValueResolverInput } from "./FilterModels.js";
 import { ListingType } from "./ListingType.js";
 
 export class FilterResolver extends ListingType<FilterResolverInput> {
@@ -24,10 +17,7 @@ export class FilterResolver extends ListingType<FilterResolverInput> {
   label() {
     switch (this.$props.kind) {
       case "facet":
-        return (
-          this.$props.facet.facetLabel ??
-          labelFromHandle(this.$props.facet.facetSlug)
-        );
+        return this.$props.facet.facetLabel ?? labelFromHandle(this.$props.facet.facetSlug);
       case "availability":
         return "Availability";
       case "price":
@@ -57,11 +47,9 @@ export class FilterResolver extends ListingType<FilterResolverInput> {
       this.$props.facet.values
         .map((value) => value.swatchId)
         .filter((id): id is string => !!id)
-        .map((id) => this.$ctx.loaders.facetSwatch.load(id))
+        .map((id) => this.$ctx.loaders.facetSwatch.load(id)),
     );
-    return swatches.some(
-      (swatch) => swatch && isStorefrontSwatchType(swatch.swatchType)
-    )
+    return swatches.some((swatch) => swatch && isStorefrontSwatchType(swatch.swatchType))
       ? FilterPresentation.Swatch
       : FilterPresentation.Text;
   }

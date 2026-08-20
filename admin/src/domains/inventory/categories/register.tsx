@@ -19,9 +19,7 @@ registerModule({
         icon: null,
         order: 1,
       },
-      component: dynamic(
-        () => import("@/domains/inventory/products/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/inventory/products/page/page")),
     },
     {
       key: "categories-list",
@@ -31,9 +29,7 @@ registerModule({
         icon: null,
         order: 2,
       },
-      component: dynamic(
-        () => import("@/domains/inventory/categories/page/page")
-      ),
+      component: dynamic(() => import("@/domains/inventory/categories/page/page")),
     },
     {
       key: "tags-list",
@@ -43,9 +39,7 @@ registerModule({
         icon: null,
         order: 3,
       },
-      component: dynamic(
-        () => import("@/domains/inventory/tags/page/page"),
-      ),
+      component: dynamic(() => import("@/domains/inventory/tags/page/page")),
     },
   ],
 });

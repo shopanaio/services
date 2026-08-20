@@ -11,7 +11,9 @@ enum CustomerTaxExemptionStatus {
   REVOKED
 }
 
-"""A customer-provided tax identifier whose status is controlled by Shopana."""
+"""
+A customer-provided tax identifier whose status is controlled by Shopana.
+"""
 type CustomerTaxIdentifier implements Node @key(fields: "id") {
   id: ID!
   identifierType: String!
@@ -38,7 +40,9 @@ type CustomerTaxIdentifierEdge {
   node: CustomerTaxIdentifier!
 }
 
-"""A merchant-approved tax exemption. Customers cannot grant exemptions."""
+"""
+A merchant-approved tax exemption. Customers cannot grant exemptions.
+"""
 type CustomerTaxExemption implements Node @key(fields: "id") {
   id: ID!
   code: String!

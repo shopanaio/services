@@ -20,9 +20,7 @@ import type {
 } from "@shopana/shared-kernel";
 import { AppContextRunner } from "./AppContextRunner.js";
 import { assertAppOutboundContractAllowed } from "./AppManifestContracts.js";
-import {
-  AppOutboundAuthorizationError,
-} from "./AppOutboundAuthorizationError.js";
+import { AppOutboundAuthorizationError } from "./AppOutboundAuthorizationError.js";
 import { AppWorkflowActivation } from "./AppWorkflowActivation.js";
 
 interface CreateAppBrokerInput {
@@ -57,9 +55,7 @@ export class AppBrokerFacadeFactory {
     const qualifyLocal = (name: string): string => {
       const localName = name.trim();
       if (!localName || localName.includes(".")) {
-        throw new Error(
-          `App "${input.appCode}" contract must be a non-empty local name`,
-        );
+        throw new Error(`App "${input.appCode}" contract must be a non-empty local name`);
       }
       return `apps.${input.appCode}.${localName}`;
     };
@@ -79,9 +75,7 @@ export class AppBrokerFacadeFactory {
       return context;
     };
 
-    const toDurableContextRef = (
-      context: Readonly<AppExecutionContext>,
-    ): AppDurableContextRef =>
+    const toDurableContextRef = (context: Readonly<AppExecutionContext>): AppDurableContextRef =>
       Object.freeze({
         schemaVersion: 1,
         appCode: context.appCode,
@@ -115,9 +109,7 @@ export class AppBrokerFacadeFactory {
         installations: input.installations,
         contextRunner: input.contextRunner,
       });
-      input.broker
-        .getWorkflowRegistry()
-        .register(qualifiedName, activation);
+      input.broker.getWorkflowRegistry().register(qualifiedName, activation);
       registration.workflows.add(qualifiedName);
     };
 
@@ -145,10 +137,7 @@ export class AppBrokerFacadeFactory {
                 `App action "${qualifiedName}" received context for "${context.app.appCode}"`,
               );
             }
-            return input.contextRunner.run(
-              context.app,
-              () => handler(params, context),
-            );
+            return input.contextRunner.run(context.app, () => handler(params, context));
           },
           metadata,
         );
@@ -165,11 +154,7 @@ export class AppBrokerFacadeFactory {
         params?: TParams,
       ): Promise<TResult> => {
         const context = currentContext();
-        assertAppOutboundContractAllowed(
-          input.manifest,
-          qualifiedAction,
-          context.grantedScopes,
-        );
+        assertAppOutboundContractAllowed(input.manifest, qualifiedAction, context.grantedScopes);
         if (
           context.executionKind === "COMMERCE_FUNCTION" &&
           input.broker.getActionMetadata(qualifiedAction)?.readOnly !== true
@@ -178,16 +163,9 @@ export class AppBrokerFacadeFactory {
             `Commerce Function cannot call mutating or unclassified action "${qualifiedAction}"`,
           );
         }
-        return input.broker.callAsApp<TResult, TParams>(
-          qualifiedAction,
-          params,
-          context,
-        );
+        return input.broker.callAsApp<TResult, TParams>(qualifiedAction, params, context);
       },
-      runWorkflow: <
-        TResult = unknown,
-        TParams = unknown,
-      >(
+      runWorkflow: <TResult = unknown, TParams = unknown>(
         qualifiedWorkflow: string,
         params: TParams,
         idempotency: AppIdempotencyContext,
@@ -199,19 +177,12 @@ export class AppBrokerFacadeFactory {
             `Commerce Function cannot start workflow "${qualifiedWorkflow}"`,
           );
         }
-        assertAppOutboundContractAllowed(
-          input.manifest,
-          qualifiedWorkflow,
-          context.grantedScopes,
-        );
+        assertAppOutboundContractAllowed(input.manifest, qualifiedWorkflow, context.grantedScopes);
         const invocation: AppWorkflowInvocation<TParams> = Object.freeze({
           context: toDurableContextRef(context),
           input: params,
         });
-        return input.broker.runWorkflow<
-          TResult,
-          AppWorkflowInvocation<TParams>
-        >(
+        return input.broker.runWorkflow<TResult, AppWorkflowInvocation<TParams>>(
           qualifiedWorkflow,
           invocation,
           idempotency as IdempotencyContext,

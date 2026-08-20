@@ -13,16 +13,14 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import {
-  appInstallationsReference,
-  localeCodeEnum,
-  onlineStoreSchema,
-} from "./schema.js";
+import { appInstallationsReference, localeCodeEnum, onlineStoreSchema } from "./schema.js";
 
 export const navigationMenus = onlineStoreSchema.table(
   "navigation_menus",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     installationId: uuid("installation_id")
       .notNull()
       .references(() => appInstallationsReference.id),
@@ -48,14 +46,8 @@ export const navigationMenus = onlineStoreSchema.table(
     }),
   },
   (table) => [
-    check(
-      "navigation_menus_handle_not_empty_check",
-      sql`btrim(${table.handle}) <> ''`,
-    ),
-    check(
-      "navigation_menus_name_not_empty_check",
-      sql`btrim(${table.name}) <> ''`,
-    ),
+    check("navigation_menus_handle_not_empty_check", sql`btrim(${table.handle}) <> ''`),
+    check("navigation_menus_name_not_empty_check", sql`btrim(${table.name}) <> ''`),
     check("navigation_menus_revision_check", sql`${table.revision} >= 0`),
     uniqueIndex("navigation_menus_installation_handle_key")
       .on(table.installationId, table.handle)
@@ -70,7 +62,9 @@ export const navigationMenus = onlineStoreSchema.table(
 export const navigationMenuItems = onlineStoreSchema.table(
   "navigation_menu_items",
   {
-    id: uuid("id").primaryKey().default(sql`uuidv7()`),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     menuId: uuid("menu_id")
       .notNull()
       .references(() => navigationMenus.id, { onDelete: "cascade" }),
@@ -107,14 +101,8 @@ export const navigationMenuItems = onlineStoreSchema.table(
       "navigation_menu_items_parent_not_self_check",
       sql`${table.parentId} IS NULL OR ${table.parentId} <> ${table.id}`,
     ),
-    check(
-      "navigation_menu_items_handle_not_empty_check",
-      sql`btrim(${table.handle}) <> ''`,
-    ),
-    check(
-      "navigation_menu_items_lexo_rank_not_empty_check",
-      sql`btrim(${table.lexoRank}) <> ''`,
-    ),
+    check("navigation_menu_items_handle_not_empty_check", sql`btrim(${table.handle}) <> ''`),
+    check("navigation_menu_items_lexo_rank_not_empty_check", sql`btrim(${table.lexoRank}) <> ''`),
     check(
       "navigation_menu_items_target_type_check",
       sql`${table.targetType} ~ '^[A-Z][A-Z0-9_]*$'`,
@@ -145,11 +133,7 @@ export const navigationMenuItems = onlineStoreSchema.table(
     uniqueIndex("navigation_menu_items_parent_handle_key")
       .on(table.menuId, table.parentId, table.handle)
       .where(sql`${table.parentId} IS NOT NULL`),
-    index("navigation_menu_items_target_idx").on(
-      table.storeId,
-      table.targetType,
-      table.targetId,
-    ),
+    index("navigation_menu_items_target_idx").on(table.storeId, table.targetType, table.targetId),
   ],
 );
 
@@ -169,19 +153,14 @@ export const navigationMenuItemTranslations = onlineStoreSchema.table(
       "navigation_menu_item_translations_label_not_empty_check",
       sql`btrim(${table.label}) <> ''`,
     ),
-    index("navigation_menu_item_translations_store_locale_idx").on(
-      table.storeId,
-      table.locale,
-    ),
+    index("navigation_menu_item_translations_store_locale_idx").on(table.storeId, table.locale),
   ],
 );
 
 export type NavigationMenuModel = typeof navigationMenus.$inferSelect;
 export type NewNavigationMenuModel = typeof navigationMenus.$inferInsert;
 export type NavigationMenuItemModel = typeof navigationMenuItems.$inferSelect;
-export type NewNavigationMenuItemModel =
-  typeof navigationMenuItems.$inferInsert;
-export type NavigationMenuItemTranslationModel =
-  typeof navigationMenuItemTranslations.$inferSelect;
+export type NewNavigationMenuItemModel = typeof navigationMenuItems.$inferInsert;
+export type NavigationMenuItemTranslationModel = typeof navigationMenuItemTranslations.$inferSelect;
 export type NewNavigationMenuItemTranslationModel =
   typeof navigationMenuItemTranslations.$inferInsert;

@@ -1,4 +1,6 @@
-"""A report submitted against storefront content."""
+"""
+A report submitted against storefront content.
+"""
 type ReviewContentReport implements Node @key(fields: "id") {
   id: ID!
   content: ReviewContent!
@@ -11,7 +13,9 @@ type ReviewContentReport implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""A moderation case associated with content owned by the current customer."""
+"""
+A moderation case associated with content owned by the current customer.
+"""
 type ReviewModerationCase implements Node @key(fields: "id") {
   id: ID!
   content: ReviewContent!
@@ -25,7 +29,9 @@ type ReviewModerationCase implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""An append-only public lifecycle event for moderated content."""
+"""
+An append-only public lifecycle event for moderated content.
+"""
 type ReviewModerationEvent implements Node @key(fields: "id") {
   id: ID!
   content: ReviewContent!
@@ -38,7 +44,9 @@ type ReviewModerationEvent implements Node @key(fields: "id") {
   createdAt: DateTime!
 }
 
-"""A revision of content owned by the current customer."""
+"""
+A revision of content owned by the current customer.
+"""
 type ReviewContentRevision implements Node @key(fields: "id") {
   id: ID!
   content: ReviewContent!
@@ -47,7 +55,9 @@ type ReviewContentRevision implements Node @key(fields: "id") {
   createdAt: DateTime!
 }
 
-"""Automated moderation evidence associated with customer-owned content."""
+"""
+Automated moderation evidence associated with customer-owned content.
+"""
 type ReviewModerationSignal implements Node @key(fields: "id") {
   id: ID!
   content: ReviewContent!
@@ -119,9 +129,13 @@ type ReviewModerationSignalEdge {
   node: ReviewModerationSignal!
 }
 
-"""Input for reporting storefront review content to moderation."""
+"""
+Input for reporting storefront review content to moderation.
+"""
 input ReviewContentReportCreateInput {
-  """Review, reply, product question, or question answer being reported."""
+  """
+  Review, reply, product question, or question answer being reported.
+  """
   contentId: ID!
   reason: ReviewContentReportReason!
   """
@@ -131,9 +145,13 @@ input ReviewContentReportCreateInput {
   details: String
 }
 
-"""Result of submitting a storefront content report."""
+"""
+Result of submitting a storefront content report.
+"""
 type ReviewContentReportCreatePayload {
-  """Reported content with refreshed viewer engagement."""
+  """
+  Reported content with refreshed viewer engagement.
+  """
   content: ReviewContent
   """
   The viewer's active report. An existing active report is returned when the

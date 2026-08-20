@@ -1,7 +1,4 @@
-import {
-  createMinorUnitPriceTransformer,
-  createRelationInTransformer,
-} from "@/hooks";
+import { createMinorUnitPriceTransformer, createRelationInTransformer } from "@/hooks";
 import type {
   FilterTransformer,
   OrderByInput,
@@ -10,11 +7,7 @@ import type {
 } from "@/hooks";
 
 type ProductLikeCommonOrderField =
-  | "Name"
-  | "MinPriceMinor"
-  | "MaxPriceMinor"
-  | "PrimaryCategoryName"
-  | "BrandName";
+  "Name" | "MinPriceMinor" | "MaxPriceMinor" | "PrimaryCategoryName" | "BrandName";
 
 export type ProductLikeOrderFieldEnum = {
   Name: string;
@@ -43,16 +36,14 @@ export function buildProductLikeSearchCondition<TWhereInput extends object>(
   return { name: { _containsi: search } } as unknown as Partial<TWhereInput>;
 }
 
-export function createProductLikeFilterTransformers<
-  TWhereInput extends object,
->(): Record<string, FilterTransformer<TWhereInput>> {
+export function createProductLikeFilterTransformers<TWhereInput extends object>(): Record<
+  string,
+  FilterTransformer<TWhereInput>
+> {
   return {
-    primaryCategoryId:
-      createRelationInTransformer<TWhereInput>("primaryCategoryId"),
-    minPriceMinor:
-      createMinorUnitPriceTransformer<TWhereInput>("minPriceMinor"),
-    maxPriceMinor:
-      createMinorUnitPriceTransformer<TWhereInput>("maxPriceMinor"),
+    primaryCategoryId: createRelationInTransformer<TWhereInput>("primaryCategoryId"),
+    minPriceMinor: createMinorUnitPriceTransformer<TWhereInput>("minPriceMinor"),
+    maxPriceMinor: createMinorUnitPriceTransformer<TWhereInput>("maxPriceMinor"),
     vendorId: createRelationInTransformer<TWhereInput>("vendorId"),
   };
 }
@@ -89,16 +80,9 @@ export function toProductLikeQueryVariables<
     "first" | "after" | "last" | "before" | "where" | "orderBy"
   >,
 ): TVariables {
-  return buildProductLikeQueryVariables<
-    TVariables,
-    TWhereInput,
-    TOrderField,
-    TOrderByInput
-  >({
+  return buildProductLikeQueryVariables<TVariables, TWhereInput, TOrderField, TOrderByInput>({
     ...pageConfig,
     where: pageConfig.where as TWhereInput | undefined,
-    orderBy: pageConfig.orderBy as
-      | OrderByInput<TOrderField>[]
-      | undefined,
+    orderBy: pageConfig.orderBy as OrderByInput<TOrderField>[] | undefined,
   });
 }

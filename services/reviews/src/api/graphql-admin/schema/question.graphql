@@ -24,11 +24,31 @@ type ProductQuestion implements Node & ReviewContent @key(fields: "id") {
   publications: [ReviewContentPublication!]!
   votes(first: Int, after: String, last: Int, before: String): ReviewContentVoteConnection!
   reports(first: Int, after: String, last: Int, before: String): ReviewContentReportConnection!
-  moderationCases(first: Int, after: String, last: Int, before: String): ReviewModerationCaseConnection!
-  moderationEvents(first: Int, after: String, last: Int, before: String): ReviewModerationEventConnection!
+  moderationCases(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationCaseConnection!
+  moderationEvents(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationEventConnection!
   revisions(first: Int, after: String, last: Int, before: String): ReviewContentRevisionConnection!
-  moderationSignals(first: Int, after: String, last: Int, before: String): ReviewModerationSignalConnection!
-  externalReferences(first: Int, after: String, last: Int, before: String): ReviewContentExternalReferenceConnection!
+  moderationSignals(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationSignalConnection!
+  externalReferences(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewContentExternalReferenceConnection!
 
   product: Product!
   variant: Variant
@@ -42,7 +62,12 @@ type ProductQuestion implements Node & ReviewContent @key(fields: "id") {
     orderBy: [ProductQuestionAnswerOrderByInput!]
     meta: ReviewContentConnectionMetaInput
   ): ProductQuestionAnswerConnection!
-  subscriptions(first: Int, after: String, last: Int, before: String): ProductQuestionSubscriptionConnection!
+  subscriptions(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ProductQuestionSubscriptionConnection!
 }
 
 type ProductQuestionAnswer implements Node & ReviewContent @key(fields: "id") {
@@ -71,11 +96,31 @@ type ProductQuestionAnswer implements Node & ReviewContent @key(fields: "id") {
   publications: [ReviewContentPublication!]!
   votes(first: Int, after: String, last: Int, before: String): ReviewContentVoteConnection!
   reports(first: Int, after: String, last: Int, before: String): ReviewContentReportConnection!
-  moderationCases(first: Int, after: String, last: Int, before: String): ReviewModerationCaseConnection!
-  moderationEvents(first: Int, after: String, last: Int, before: String): ReviewModerationEventConnection!
+  moderationCases(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationCaseConnection!
+  moderationEvents(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationEventConnection!
   revisions(first: Int, after: String, last: Int, before: String): ReviewContentRevisionConnection!
-  moderationSignals(first: Int, after: String, last: Int, before: String): ReviewModerationSignalConnection!
-  externalReferences(first: Int, after: String, last: Int, before: String): ReviewContentExternalReferenceConnection!
+  moderationSignals(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewModerationSignalConnection!
+  externalReferences(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewContentExternalReferenceConnection!
 
   question: ProductQuestion!
   isOfficial: Boolean!
@@ -140,15 +185,21 @@ input ProductQuestionSubjectUpdateInput {
 }
 
 input ProductQuestionUpdateInput {
-  """Text, author, source, moderation, translations, and publications."""
+  """
+  Text, author, source, moderation, translations, and publications.
+  """
   content: ReviewContentUpdateInput
   subject: ProductQuestionSubjectUpdateInput
-  """Create, update, or delete answers owned by this question."""
+  """
+  Create, update, or delete answers owned by this question.
+  """
   answers: ProductQuestionAnswersUpdateInput
 }
 
 input ProductQuestionAnswerCreateOperationInput {
-  """Client-provided correlation key returned in the operation result."""
+  """
+  Client-provided correlation key returned in the operation result.
+  """
   clientMutationId: String
   content: ReviewContentCreateInput!
   isOfficial: Boolean
@@ -163,7 +214,9 @@ input ProductQuestionAnswerPropertiesUpdateInput {
 }
 
 input ProductQuestionAnswerUpdateInput {
-  """Text, author, source, moderation, translations, and publications."""
+  """
+  Text, author, source, moderation, translations, and publications.
+  """
   content: ReviewContentUpdateInput
   properties: ProductQuestionAnswerPropertiesUpdateInput
 }
@@ -177,7 +230,9 @@ input ProductQuestionAnswerUpdateOperationInput {
 input ProductQuestionAnswerDeleteOperationInput {
   answerId: ID!
   expectedRevision: Int!
-  """Hard deletion is reserved for explicit privacy or retention workflows."""
+  """
+  Hard deletion is reserved for explicit privacy or retention workflows.
+  """
   permanent: Boolean = false
 }
 

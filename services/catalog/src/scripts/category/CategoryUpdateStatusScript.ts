@@ -1,7 +1,5 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type {
-  CategoryUpdateSectionResult,
-} from "../../workflows/dto/CategoryUpdateWorkflowDto.js";
+import type { CategoryUpdateSectionResult } from "../../workflows/dto/CategoryUpdateWorkflowDto.js";
 
 export interface CategoryUpdateStatusParams {
   categoryId: string;

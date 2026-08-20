@@ -71,10 +71,7 @@ type ListingCatalogHydrationResult =
       result: Listing.ListingUpdateResult;
     };
 
-abstract class ListingIndexWorkflowBase<
-  TInput,
-  TOutput,
-> extends BrokerWorkflows<TInput, TOutput> {
+abstract class ListingIndexWorkflowBase<TInput, TOutput> extends BrokerWorkflows<TInput, TOutput> {
   @WorkflowStep({
     name: "prepareListingSyncIndexAction",
     timeoutMs: 30_000,
@@ -85,14 +82,14 @@ abstract class ListingIndexWorkflowBase<
     },
   })
   protected async stepPrepareSyncIndexAction(
-    action: ListingIndexHydratedSyncAction
+    action: ListingIndexHydratedSyncAction,
   ): Promise<ListingIndexPreparedSyncAction> {
     const kernel = Kernel.getInstance();
 
     return kernel.runScript(
       ListingPrepareIndexActionScript,
       action,
-      buildRunScriptContext(action)
+      buildRunScriptContext(action),
     ) as Promise<ListingIndexPreparedSyncAction>;
   }
 
@@ -106,13 +103,13 @@ abstract class ListingIndexWorkflowBase<
     },
   })
   protected async stepResolveFacetSelections(
-    action: ListingIndexHydratedSyncAction
+    action: ListingIndexHydratedSyncAction,
   ): Promise<ListingIndexHydratedSyncAction> {
     const kernel = Kernel.getInstance();
     const result = await kernel.runScript(
       ListingResolveFacetSelectionsScript,
       action,
-      buildRunScriptContext(action)
+      buildRunScriptContext(action),
     );
 
     return result.action;
@@ -128,14 +125,14 @@ abstract class ListingIndexWorkflowBase<
     },
   })
   protected async stepPrepareDeleteIndexAction(
-    action: ListingIndexQueuedDeleteAction
+    action: ListingIndexQueuedDeleteAction,
   ): Promise<ListingIndexPreparedDeleteAction> {
     const kernel = Kernel.getInstance();
 
     return kernel.runScript(
       ListingPrepareIndexActionScript,
       action,
-      buildRunScriptContext(action)
+      buildRunScriptContext(action),
     ) as Promise<ListingIndexPreparedDeleteAction>;
   }
 
@@ -156,7 +153,7 @@ abstract class ListingIndexWorkflowBase<
     return kernel.runScript(
       ListingBuildSyncWriteModelScript,
       input,
-      buildRunScriptContext(input.action)
+      buildRunScriptContext(input.action),
     );
   }
 
@@ -177,14 +174,14 @@ abstract class ListingIndexWorkflowBase<
         }
       | {
           action: ListingPreparedDeleteAction;
-        }
+        },
   ): Promise<ListingFacetReferenceSyncPlan> {
     const kernel = Kernel.getInstance();
 
     return kernel.runScript(
       ListingBuildFacetReferenceSyncPlanScript,
       input,
-      buildRunScriptContext(input.action)
+      buildRunScriptContext(input.action),
     );
   }
 
@@ -198,14 +195,14 @@ abstract class ListingIndexWorkflowBase<
     },
   })
   protected async stepWriteSyncIndexAction(
-    input: ListingPreparedSyncWriteAction
+    input: ListingPreparedSyncWriteAction,
   ): Promise<ListingWriteIndexActionResult> {
     const kernel = Kernel.getInstance();
 
     return kernel.runScript(
       ListingWriteIndexActionScript,
       input,
-      buildRunScriptContext(input.action)
+      buildRunScriptContext(input.action),
     );
   }
 
@@ -225,16 +222,15 @@ abstract class ListingIndexWorkflowBase<
       refs: input.plan.refs,
       checkValues: true,
     };
-    const idempotencyCtx =
-      buildFacetReferenceStateSyncWorkflowIdempotencyContext({
-        organizationId: input.plan.organizationId,
-        productId: input.plan.productId,
-        reason: input.plan.reason,
-        eventSequence: input.plan.eventSequence,
-        operationId: input.plan.operationId,
-        actionType: input.plan.actionType,
-        refsHash: input.plan.refsHash,
-      });
+    const idempotencyCtx = buildFacetReferenceStateSyncWorkflowIdempotencyContext({
+      organizationId: input.plan.organizationId,
+      productId: input.plan.productId,
+      reason: input.plan.reason,
+      eventSequence: input.plan.eventSequence,
+      operationId: input.plan.operationId,
+      actionType: input.plan.actionType,
+      refsHash: input.plan.refsHash,
+    });
     const workflowId = buildFacetReferenceStateSyncWorkflowId({
       idempotencyCtx,
     });
@@ -254,7 +250,7 @@ abstract class ListingIndexWorkflowBase<
           },
           timeoutMS: 120_000,
           workflowId,
-        }
+        },
       );
       return started.workflowId;
     } catch (error) {
@@ -273,7 +269,7 @@ abstract class ListingIndexWorkflowBase<
           eventSequence: input.plan.eventSequence,
           reason: input.plan.reason,
         },
-        "Failed to start facet reference state sync workflow"
+        "Failed to start facet reference state sync workflow",
       );
       throw error;
     }
@@ -288,10 +284,11 @@ abstract class ListingIndexWorkflowBase<
       organizationId: plan.organizationId,
       requestId: plan.operationId,
     };
-    const workflowInput: import("./RecommendationWorkflows.js").RecommendationReferenceStateSyncInput = {
-      context,
-      plan,
-    };
+    const workflowInput: import("./RecommendationWorkflows.js").RecommendationReferenceStateSyncInput =
+      {
+        context,
+        plan,
+      };
     const idempotencyCtx = {
       source: "content" as const,
       organizationId: plan.organizationId,
@@ -333,14 +330,14 @@ abstract class ListingIndexWorkflowBase<
     },
   })
   protected async stepWriteDeleteIndexAction(
-    input: ListingPreparedDeleteWriteAction
+    input: ListingPreparedDeleteWriteAction,
   ): Promise<ListingWriteIndexActionResult> {
     const kernel = Kernel.getInstance();
 
     return kernel.runScript(
       ListingWriteIndexActionScript,
       input,
-      buildRunScriptContext(input.action)
+      buildRunScriptContext(input.action),
     );
   }
 }
@@ -355,9 +352,7 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
   }
 
   @Workflow("syncSellableItemIndex")
-  async run(
-    action: ListingIndexQueuedSyncAction
-  ): Promise<Listing.ListingUpdateResult> {
+  async run(action: ListingIndexQueuedSyncAction): Promise<Listing.ListingUpdateResult> {
     const hydration = await this.stepFetchCatalogListingSnapshot(action);
 
     if (hydration.kind === "missing") {
@@ -402,39 +397,32 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
     },
   })
   private async stepFetchCatalogListingSnapshot(
-    action: ListingIndexQueuedSyncAction
+    action: ListingIndexQueuedSyncAction,
   ): Promise<ListingCatalogHydrationResult> {
     const [queryResult, storeResult] = await Promise.all([
-      this.broker.call<Catalog.CatalogQueryResult, Catalog.CatalogQueryParams>(
-        "catalog.query",
-        {
-          storeId: action.params.storeId,
-          selection: buildProductSnapshotSelection(action.params.itemRef.id),
-        }
-      ),
-      this.broker.call<GetStoreByIdResult, { id: string }>(
-        "project.getStoreById",
-        { id: action.params.storeId }
-      ),
+      this.broker.call<Catalog.CatalogQueryResult, Catalog.CatalogQueryParams>("catalog.query", {
+        storeId: action.params.storeId,
+        selection: buildProductSnapshotSelection(action.params.itemRef.id),
+      }),
+      this.broker.call<GetStoreByIdResult, { id: string }>("project.getStoreById", {
+        id: action.params.storeId,
+      }),
     ]);
 
     if (!storeResult.store) {
       const message =
-        storeResult.userErrors[0]?.message ??
-        `Store with id "${action.params.storeId}" not found`;
+        storeResult.userErrors[0]?.message ?? `Store with id "${action.params.storeId}" not found`;
       throw new Error(message);
     }
 
     if (!queryResult.ok) {
       if (queryResult.retryable) {
         throw new RetryableError(
-          `Catalog product query failed: ${queryResult.code}: ${queryResult.message}`
+          `Catalog product query failed: ${queryResult.code}: ${queryResult.message}`,
         );
       }
 
-      throw new Error(
-        `Catalog product query failed: ${queryResult.code}: ${queryResult.message}`
-      );
+      throw new Error(`Catalog product query failed: ${queryResult.code}: ${queryResult.message}`);
     }
 
     const product = queryResult.data.products?.edges?.[0]?.node;
@@ -506,9 +494,7 @@ export class ListingDeleteSellableItemIndexWorkflow extends ListingIndexWorkflow
   }
 
   @Workflow("deleteSellableItemIndex")
-  async run(
-    action: ListingIndexQueuedDeleteAction
-  ): Promise<Listing.ListingUpdateResult> {
+  async run(action: ListingIndexQueuedDeleteAction): Promise<Listing.ListingUpdateResult> {
     const prepared = await this.stepPrepareDeleteIndexAction(action);
 
     if (prepared.kind === "final") {
@@ -536,11 +522,10 @@ function buildRunScriptContext(
     | ListingIndexHydratedSyncAction
     | ListingIndexQueuedDeleteAction
     | ListingPreparedSyncAction
-    | ListingPreparedDeleteAction
+    | ListingPreparedDeleteAction,
 ): RunScriptContext {
   const params = action.params;
-  const content =
-    action.type === "syncSellableItem" ? action.params.item.content : null;
+  const content = action.type === "syncSellableItem" ? action.params.item.content : null;
 
   return {
     storeId: params.storeId,

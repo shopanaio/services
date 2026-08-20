@@ -1,10 +1,10 @@
 import { and, eq, inArray } from "drizzle-orm";
-import type { NotificationDefinitionKey, NotificationRecipientSnapshot } from "@shopana/broker-types";
+import type {
+  NotificationDefinitionKey,
+  NotificationRecipientSnapshot,
+} from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  staffNotificationRecipientEvents,
-  staffNotificationRecipients,
-} from "../models/index.js";
+import { staffNotificationRecipientEvents, staffNotificationRecipients } from "../models/index.js";
 
 export interface StaffRecipientView {
   id: string;
@@ -35,10 +35,10 @@ export class StaffRepository extends BaseRepository {
           eq(staffNotificationRecipientEvents.storeId, this.storeId),
           inArray(
             staffNotificationRecipientEvents.recipientId,
-            recipients.map((recipient) => recipient.id)
+            recipients.map((recipient) => recipient.id),
           ),
-          eq(staffNotificationRecipientEvents.enabled, true)
-        )
+          eq(staffNotificationRecipientEvents.enabled, true),
+        ),
       );
     return recipients.map((recipient) => ({
       id: recipient.id,
@@ -86,8 +86,8 @@ export class StaffRepository extends BaseRepository {
         .where(
           and(
             eq(staffNotificationRecipients.storeId, this.storeId),
-            eq(staffNotificationRecipients.id, id)
-          )
+            eq(staffNotificationRecipients.id, id),
+          ),
         )
         .returning({ id: staffNotificationRecipients.id });
       if (!rows[0]) throw new Error("STAFF_RECIPIENT_NOT_FOUND");
@@ -103,8 +103,8 @@ export class StaffRepository extends BaseRepository {
       .where(
         and(
           eq(staffNotificationRecipientEvents.storeId, this.storeId),
-          eq(staffNotificationRecipientEvents.recipientId, id)
-        )
+          eq(staffNotificationRecipientEvents.recipientId, id),
+        ),
       );
     if (input.eventKeys.length > 0) {
       await this.connection.insert(staffNotificationRecipientEvents).values(
@@ -113,7 +113,7 @@ export class StaffRepository extends BaseRepository {
           recipientId: id!,
           definitionKey,
           enabled: true,
-        }))
+        })),
       );
     }
     return (await this.list()).find((recipient) => recipient.id === id)!;
@@ -125,25 +125,22 @@ export class StaffRepository extends BaseRepository {
       .where(
         and(
           eq(staffNotificationRecipients.storeId, this.storeId),
-          eq(staffNotificationRecipients.id, id)
-        )
+          eq(staffNotificationRecipients.id, id),
+        ),
       )
       .returning({ id: staffNotificationRecipients.id });
     return rows.length === 1;
   }
 
   async resolveRecipients(
-    key: NotificationDefinitionKey
+    key: NotificationDefinitionKey,
   ): Promise<NotificationRecipientSnapshot[]> {
     const rows = await this.connection
       .select({ recipient: staffNotificationRecipients })
       .from(staffNotificationRecipients)
       .innerJoin(
         staffNotificationRecipientEvents,
-        eq(
-          staffNotificationRecipientEvents.recipientId,
-          staffNotificationRecipients.id
-        )
+        eq(staffNotificationRecipientEvents.recipientId, staffNotificationRecipients.id),
       )
       .where(
         and(
@@ -151,8 +148,8 @@ export class StaffRepository extends BaseRepository {
           eq(staffNotificationRecipients.enabled, true),
           eq(staffNotificationRecipientEvents.storeId, this.storeId),
           eq(staffNotificationRecipientEvents.definitionKey, key),
-          eq(staffNotificationRecipientEvents.enabled, true)
-        )
+          eq(staffNotificationRecipientEvents.enabled, true),
+        ),
       );
     return rows.map(({ recipient }) => ({
       recipientId: recipient.id,
@@ -162,5 +159,4 @@ export class StaffRepository extends BaseRepository {
       locale: recipient.locale,
     }));
   }
-
 }

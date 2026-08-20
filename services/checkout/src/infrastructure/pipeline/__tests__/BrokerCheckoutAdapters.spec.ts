@@ -65,10 +65,7 @@ describe("checkout broker adapters", () => {
       finalQuote: fixture.finalQuote,
       payableAmount: fixture.finalQuote.totals.payableTotal,
       loyaltyRedemption: null,
-      delivery: toCheckoutPaymentDeliverySnapshot(
-        fixture.delivery,
-        fixture.preliminary,
-      ),
+      delivery: toCheckoutPaymentDeliverySnapshot(fixture.delivery, fixture.preliminary),
     });
 
     expect(call.mock.calls.map(([action]) => action)).toEqual([
@@ -91,18 +88,15 @@ describe("checkout broker adapters", () => {
       segmentIds: ["segment-1"],
       segmentMembershipRevision: "segments-v1",
     }));
-    const adapter = new BrokerCustomersCheckoutEligibilityAdapter(
-      { call } as unknown as ServiceBroker,
-    );
+    const adapter = new BrokerCustomersCheckoutEligibilityAdapter({
+      call,
+    } as unknown as ServiceBroker);
 
     await expect(adapter.resolve(input)).resolves.toMatchObject({
       segmentIds: ["segment-1"],
       segmentMembershipRevision: "segments-v1",
     });
-    expect(call).toHaveBeenCalledWith(
-      CustomersCheckoutActions.resolveBuyerEligibility,
-      input,
-    );
+    expect(call).toHaveBeenCalledWith(CustomersCheckoutActions.resolveBuyerEligibility, input);
   });
 
   it.each([
@@ -117,9 +111,9 @@ describe("checkout broker adapters", () => {
       message: "Customer eligibility failed.",
       retryable: false as const,
     }));
-    const adapter = new BrokerCustomersCheckoutEligibilityAdapter(
-      { call } as unknown as ServiceBroker,
-    );
+    const adapter = new BrokerCustomersCheckoutEligibilityAdapter({
+      call,
+    } as unknown as ServiceBroker);
 
     await expect(
       adapter.resolve({

@@ -20,12 +20,10 @@ export const optionCategoryRelayQuery = createRelayQuery(
     .mapWhereFields({ id: decodeOptionCategoryGlobalId })
     .maxLimit(100)
     .defaultLimit(20),
-  { name: "optionCategory", tieBreaker: "id" }
+  { name: "optionCategory", tieBreaker: "id" },
 );
 
-export type OptionCategoryRelayInput = InferRelayInput<
-  typeof optionCategoryRelayQuery
->;
+export type OptionCategoryRelayInput = InferRelayInput<typeof optionCategoryRelayQuery>;
 
 export interface OptionCategoryConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -38,12 +36,7 @@ export class OptionCategoryRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(productOptionCategory)
-      .where(
-        and(
-          eq(productOptionCategory.storeId, this.storeId),
-          eq(productOptionCategory.id, id)
-        )
-      )
+      .where(and(eq(productOptionCategory.storeId, this.storeId), eq(productOptionCategory.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -53,10 +46,7 @@ export class OptionCategoryRepository extends BaseRepository {
       .select()
       .from(productOptionCategory)
       .where(
-        and(
-          eq(productOptionCategory.storeId, this.storeId),
-          eq(productOptionCategory.slug, slug)
-        )
+        and(eq(productOptionCategory.storeId, this.storeId), eq(productOptionCategory.slug, slug)),
       )
       .limit(1);
     return rows[0] ?? null;
@@ -72,16 +62,13 @@ export class OptionCategoryRepository extends BaseRepository {
       createdAt: now,
       updatedAt: now,
     };
-    const rows = await this.connection
-      .insert(productOptionCategory)
-      .values(entity)
-      .returning();
+    const rows = await this.connection.insert(productOptionCategory).values(entity).returning();
     return rows[0];
   }
 
   async update(
     id: string,
-    data: { name?: string; slug?: string }
+    data: { name?: string; slug?: string },
   ): Promise<ProductOptionCategory | null> {
     const update: Partial<NewProductOptionCategory> = {
       updatedAt: new Date().toISOString(),
@@ -91,12 +78,7 @@ export class OptionCategoryRepository extends BaseRepository {
     const rows = await this.connection
       .update(productOptionCategory)
       .set(update)
-      .where(
-        and(
-          eq(productOptionCategory.storeId, this.storeId),
-          eq(productOptionCategory.id, id)
-        )
-      )
+      .where(and(eq(productOptionCategory.storeId, this.storeId), eq(productOptionCategory.id, id)))
       .returning();
     return rows[0] ?? null;
   }
@@ -104,12 +86,7 @@ export class OptionCategoryRepository extends BaseRepository {
   async delete(id: string): Promise<boolean> {
     const rows = await this.connection
       .delete(productOptionCategory)
-      .where(
-        and(
-          eq(productOptionCategory.storeId, this.storeId),
-          eq(productOptionCategory.id, id)
-        )
-      )
+      .where(and(eq(productOptionCategory.storeId, this.storeId), eq(productOptionCategory.id, id)))
       .returning({ id: productOptionCategory.id });
     return rows.length > 0;
   }
@@ -118,12 +95,7 @@ export class OptionCategoryRepository extends BaseRepository {
     const rows = await this.connection
       .select({ id: productOption.id })
       .from(productOption)
-      .where(
-        and(
-          eq(productOption.storeId, this.storeId),
-          eq(productOption.categoryId, id)
-        )
-      )
+      .where(and(eq(productOption.storeId, this.storeId), eq(productOption.categoryId, id)))
       .limit(1);
     return rows.length > 0;
   }
@@ -136,20 +108,15 @@ export class OptionCategoryRepository extends BaseRepository {
       .where(
         and(
           eq(productOptionCategory.storeId, this.storeId),
-          inArray(productOptionCategory.id, [...ids])
-        )
+          inArray(productOptionCategory.id, [...ids]),
+        ),
       );
   }
 
-  async getConnection(
-    args: OptionCategoryRelayInput
-  ): Promise<OptionCategoryConnectionResult> {
+  async getConnection(args: OptionCategoryRelayInput): Promise<OptionCategoryConnectionResult> {
     const { where, orderBy, ...pagination } = args;
     const mergedWhere: OptionCategoryRelayInput["where"] = {
-      _and: [
-        { storeId: { _eq: this.storeId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ storeId: { _eq: this.storeId } }, ...(where ? [where] : [])],
     };
     const input: OptionCategoryRelayInput = {
       ...pagination,

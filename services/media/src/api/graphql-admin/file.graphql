@@ -84,7 +84,9 @@ enum FileStateScope {
   ALL
 }
 
-"""How the image is resized to fit the requested box."""
+"""
+How the image is resized to fit the requested box.
+"""
 enum ImageFitMode {
   COVER
   CONTAIN
@@ -93,7 +95,9 @@ enum ImageFitMode {
   OUTSIDE
 }
 
-"""Anchor used when FIT_MODE crops or pads the image."""
+"""
+Anchor used when FIT_MODE crops or pads the image.
+"""
 enum ImageGravity {
   CENTER
   TOP
@@ -122,7 +126,9 @@ input ImageTransformInput {
   preferredContentType: ImageContentType
   scale: Int = 1
 
-  """Output quality, 1-100. Bounded by the selected CdnConfiguration's minQuality/maxQuality when configured."""
+  """
+  Output quality, 1-100. Bounded by the selected CdnConfiguration's minQuality/maxQuality when configured.
+  """
   quality: Int
 }
 
@@ -200,7 +206,9 @@ type File implements Node @key(fields: "id") {
   """
   url(transform: ImageTransformInput, country: String): String!
 
-  """Canonical provider URL before CDN routing and transforms."""
+  """
+  Canonical provider URL before CDN routing and transforms.
+  """
   originUrl: String!
 
   """

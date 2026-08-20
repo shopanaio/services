@@ -1,11 +1,5 @@
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
-import {
-  PreloadNotFoundError,
-  SubgraphReference,
-  TypePolicy,
-} from "@shopana/type-resolver";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import { PreloadNotFoundError, SubgraphReference, TypePolicy } from "@shopana/type-resolver";
 import type { AppLifecycleOperationRecord } from "../../control-plane/types.js";
 import { AppsType } from "./AppsType.js";
 
@@ -17,26 +11,17 @@ import { AppsType } from "./AppsType.js";
   domain: (resolver) => `store:${resolver.$ctx.store.id}`,
   onDeny: "null",
 })
-export class AppLifecycleOperationResolver extends AppsType<
-  string,
-  AppLifecycleOperationRecord
-> {
+export class AppLifecycleOperationResolver extends AppsType<string, AppLifecycleOperationRecord> {
   async $preload(): Promise<AppLifecycleOperationRecord> {
-    const operation =
-      await this.$ctx.loaders.lifecycleOperation.load(this.$props);
+    const operation = await this.$ctx.loaders.lifecycleOperation.load(this.$props);
     if (!operation) {
-      throw new PreloadNotFoundError(
-        `App lifecycle operation "${this.$props}" not found`,
-      );
+      throw new PreloadNotFoundError(`App lifecycle operation "${this.$props}" not found`);
     }
     return operation;
   }
 
   id() {
-    return this.encodeId(
-      this.$props,
-      GlobalIdEntity.AppLifecycleOperation,
-    );
+    return this.encodeId(this.$props, GlobalIdEntity.AppLifecycleOperation);
   }
 
   async installation() {
@@ -77,10 +62,7 @@ export class AppLifecycleOperationResolver extends AppsType<
   }
 
   async error() {
-    const [code, message] = await Promise.all([
-      this.$get("errorCode"),
-      this.$get("errorMessage"),
-    ]);
+    const [code, message] = await Promise.all([this.$get("errorCode"), this.$get("errorMessage")]);
     return message === null
       ? null
       : {

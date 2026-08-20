@@ -19,9 +19,7 @@ describe("discount usage grouping", () => {
   });
 
   it("keeps unlimited usage as a commit-only group", () => {
-    const groups = groupUsageRequirements([
-      requirement("application-a", false),
-    ]);
+    const groups = groupUsageRequirements([requirement("application-a", false)]);
 
     expect(groups).toEqual([
       expect.objectContaining({

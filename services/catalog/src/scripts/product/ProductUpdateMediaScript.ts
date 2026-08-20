@@ -14,15 +14,13 @@ export class ProductUpdateMediaScript extends BaseScript<
   ProductUpdateMediaParams,
   ProductUpdateMediaResult
 > {
-  protected async execute(
-    params: ProductUpdateMediaParams
-  ): Promise<ProductUpdateMediaResult> {
+  protected async execute(params: ProductUpdateMediaParams): Promise<ProductUpdateMediaResult> {
     return this.updateProductMediaRegistry(params);
   }
 
   @Transactional()
   private async updateProductMediaRegistry(
-    params: ProductUpdateMediaParams
+    params: ProductUpdateMediaParams,
   ): Promise<ProductUpdateMediaResult> {
     const { id, fileIds } = params;
 
@@ -46,10 +44,7 @@ export class ProductUpdateMediaScript extends BaseScript<
       };
     }
 
-    const nextMedia = await this.repository.media.setProductMedia(
-      id,
-      uniqueFileIds
-    );
+    const nextMedia = await this.repository.media.setProductMedia(id, uniqueFileIds);
     const nextFileIds = nextMedia.map((media) => media.fileId);
 
     await this.repository.product.touch(id);
@@ -63,7 +58,7 @@ export class ProductUpdateMediaScript extends BaseScript<
 
     this.logger.info(
       { productId: id, fileCount: nextFileIds.length },
-      "Product media registry updated"
+      "Product media registry updated",
     );
 
     return {
@@ -80,5 +75,4 @@ export class ProductUpdateMediaScript extends BaseScript<
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }
-
 }

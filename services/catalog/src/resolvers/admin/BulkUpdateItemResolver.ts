@@ -1,7 +1,5 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import {
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { BulkEditItem } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 
@@ -11,17 +9,12 @@ const OP_TYPE_MAP: Record<string, string> = {
   productTagUpdate: "PRODUCT_TAG_UPDATE",
   productComponentSettingsUpdate: "PRODUCT_COMPONENT_SETTINGS_UPDATE",
   productComponentRemove: "PRODUCT_COMPONENT_REMOVE",
-  productComponentConfigurationCreate:
-    "PRODUCT_COMPONENT_CONFIGURATION_CREATE",
-  productComponentConfigurationUpdate:
-    "PRODUCT_COMPONENT_CONFIGURATION_UPDATE",
-  productComponentConfigurationDelete:
-    "PRODUCT_COMPONENT_CONFIGURATION_DELETE",
+  productComponentConfigurationCreate: "PRODUCT_COMPONENT_CONFIGURATION_CREATE",
+  productComponentConfigurationUpdate: "PRODUCT_COMPONENT_CONFIGURATION_UPDATE",
+  productComponentConfigurationDelete: "PRODUCT_COMPONENT_CONFIGURATION_DELETE",
   productComponentGroupsSync: "PRODUCT_COMPONENT_GROUPS_SYNC",
-  productComponentPricingTemplatesSync:
-    "PRODUCT_COMPONENT_PRICING_TEMPLATES_SYNC",
-  productComponentDependencyRulesSync:
-    "PRODUCT_COMPONENT_DEPENDENCY_RULES_SYNC",
+  productComponentPricingTemplatesSync: "PRODUCT_COMPONENT_PRICING_TEMPLATES_SYNC",
+  productComponentDependencyRulesSync: "PRODUCT_COMPONENT_DEPENDENCY_RULES_SYNC",
   productSetStatus: "PRODUCT_SET_STATUS",
   variantSetSku: "VARIANT_SET_SKU",
   variantSetPricing: "VARIANT_SET_PRICING",
@@ -38,9 +31,7 @@ export class BulkUpdateItemResolver extends CatalogType<string, BulkEditItem> {
   async $preload() {
     const item = await this.$ctx.loaders.bulkEditItem.load(this.$props);
     if (!item) {
-      throw new PreloadNotFoundError(
-        `BulkEditItem with ID ${this.$props} not found`
-      );
+      throw new PreloadNotFoundError(`BulkEditItem with ID ${this.$props} not found`);
     }
     return item;
   }
@@ -79,9 +70,11 @@ export class BulkUpdateItemResolver extends CatalogType<string, BulkEditItem> {
   }
 
   async errors() {
-    const raw = (await this.$get("errors")) as
-      | Array<{ message: string; code?: string; field?: string[] }>
-      | null;
+    const raw = (await this.$get("errors")) as Array<{
+      message: string;
+      code?: string;
+      field?: string[];
+    }> | null;
 
     if (!raw || raw.length === 0) return [];
 

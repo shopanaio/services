@@ -14,34 +14,19 @@ export abstract class BaseRepository {
     return this.txManager.getConnection() as HeadlessDatabase;
   }
 
-  protected connectionOwnership(
-    scope: HeadlessStorefrontScope,
-    connectionId: string,
-  ) {
-    return and(
-      eq(headlessStorefrontConnections.id, connectionId),
-      this.connectionScope(scope),
-    );
+  protected connectionOwnership(scope: HeadlessStorefrontScope, connectionId: string) {
+    return and(eq(headlessStorefrontConnections.id, connectionId), this.connectionScope(scope));
   }
 
   protected connectionScope(scope: HeadlessStorefrontScope) {
     return and(
-      eq(
-        headlessStorefrontConnections.installationId,
-        scope.installationId,
-      ),
-      eq(
-        headlessStorefrontConnections.organizationId,
-        scope.organizationId,
-      ),
+      eq(headlessStorefrontConnections.installationId, scope.installationId),
+      eq(headlessStorefrontConnections.organizationId, scope.organizationId),
       eq(headlessStorefrontConnections.storeId, scope.storeId),
     );
   }
 
-  protected ownedConnectionExists(
-    scope: HeadlessStorefrontScope,
-    connectionId: string,
-  ) {
+  protected ownedConnectionExists(scope: HeadlessStorefrontScope, connectionId: string) {
     return exists(
       this.connection
         .select({ id: headlessStorefrontConnections.id })

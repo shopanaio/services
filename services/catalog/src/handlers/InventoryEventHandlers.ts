@@ -1,10 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import {
-  EventHandler,
-  EventHandlers,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { EventHandler, EventHandlers, InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import type { EventHandlerResponse } from "@shopana/events";
 
 /**
@@ -36,11 +31,10 @@ export class InventoryEventHandlers extends EventHandlers {
       };
     };
   }): Promise<EventHandlerResponse> {
-    const { variantId, warehouseId, previousLevel, newLevel, movementType } =
-      params.event.payload;
+    const { variantId, warehouseId, previousLevel, newLevel, movementType } = params.event.payload;
 
     this.logger.debug(
-      `Received stockLevelChanged event: eventId=${params.event.eventId}, variantId=${variantId}, warehouseId=${warehouseId}, ${previousLevel} -> ${newLevel}`
+      `Received stockLevelChanged event: eventId=${params.event.eventId}, variantId=${variantId}, warehouseId=${warehouseId}, ${previousLevel} -> ${newLevel}`,
     );
 
     // TODO: Implement low-stock alerts

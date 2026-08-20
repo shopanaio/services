@@ -1,11 +1,5 @@
-import type {
-  AppGraphQLHandlerContext,
-  AppExecutionContext,
-} from "@shopana/app-sdk";
-import {
-  adminContextAllows,
-  type AdminContextClaims,
-} from "@shopana/shared-context";
+import type { AppGraphQLHandlerContext, AppExecutionContext } from "@shopana/app-sdk";
+import { adminContextAllows, type AdminContextClaims } from "@shopana/shared-context";
 import { GraphQLError } from "graphql";
 import { HeadlessStorefrontRepository } from "../../../storefront-access/repositories/index.js";
 import {
@@ -57,9 +51,7 @@ export function assertHeadlessAdminAccess(
 export function createHeadlessResolverContext(
   context: AppGraphQLHandlerContext,
 ): HeadlessResolverContext {
-  const repository = HeadlessStorefrontRepository.create(
-    context.host.databaseClient,
-  );
+  const repository = HeadlessStorefrontRepository.create(context.host.databaseClient);
   const credentials = new StorefrontCredentialService(
     repository,
     StorefrontCredentialCrypto.fromEnvironment(),
