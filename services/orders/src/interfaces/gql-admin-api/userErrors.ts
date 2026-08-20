@@ -20,6 +20,13 @@ const stableCodes = new Set([
   "ORDER_LINE_ALREADY_FULFILLED",
   "ORDER_TOTAL_INVALID",
   "ORDER_CURRENCY_MISMATCH",
+  "ORDER_PLACEMENT_NOT_FOUND",
+  "ORDER_PLACEMENT_CONTRACT_UNSUPPORTED",
+  "ORDER_PLACEMENT_SNAPSHOT_HASH_MISMATCH",
+  "ORDER_PLACEMENT_ALREADY_CONFIRMED",
+  "ORDER_PLACEMENT_ALREADY_FAILED",
+  "ORDER_PLACEMENT_EVIDENCE_INVALID",
+  "ORDER_PLACEMENT_IDEMPOTENCY_CONFLICT",
   "ORDER_EDIT_ALREADY_ACTIVE",
   "ORDER_EDIT_EXPIRED",
   "ORDER_EDIT_STALE",
@@ -44,13 +51,15 @@ const stableCodes = new Set([
 export function toOrderUserErrors(error: unknown, fallbackCode: string): OrderUserError[] {
   if (error instanceof z.ZodError) {
     return error.issues.map((issue) => ({
-      field: issue.path.map(String),
+      field: ["input", ...issue.path.map(String)],
       message: issue.message,
       code: "ORDER_INPUT_INVALID",
       retryable: false,
       currentVersion: null,
     }));
   }
+  const structured = structuredErrors(error);
+  if (structured.length > 0) return structured;
   const message = error instanceof Error ? error.message : fallbackCode;
   const code = normalizeCode(message, fallbackCode);
   const currentVersion = /current(?:Version)?[=: ]+(\d+)/i.exec(message)?.[1];
@@ -77,7 +86,46 @@ function normalizeCode(message: string, fallback: string): string {
 
 function safeMessage(code: string, original: string): string {
   if (code === "PERMISSION_DENIED") return "You do not have permission to perform this action.";
-  if (code.endsWith("_FAILED") && original !== code)
-    return "The order command could not be completed.";
-  return original;
+  if (code === "ORDER_NOT_FOUND") return "The order was not found.";
+  if (code === "ORDER_VERSION_CONFLICT") return "The order changed after it was loaded.";
+  if (code === "ORDER_IDEMPOTENCY_CONFLICT")
+    return "The idempotency key was already used with different input.";
+  if (code.endsWith("_FAILED") && original === code) return "The order command could not be completed.";
+  return stableCodes.has(code) ? humanizeCode(code) : "The order command could not be completed.";
+}
+
+function structuredErrors(error: unknown): OrderUserError[] {
+  if (!error || typeof error !== "object") return [];
+  const record = error as Record<string, unknown>;
+  const candidates = Array.isArray(record.userErrors)
+    ? record.userErrors
+    : Array.isArray(record.errors)
+      ? record.errors
+      : [];
+  return candidates.flatMap((candidate) => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const item = candidate as Record<string, unknown>;
+    const code = normalizeCode(String(item.code ?? item.message ?? ""), "ORDER_COMMAND_FAILED");
+    const path = Array.isArray(item.field) ? item.field.map(String) : null;
+    return [
+      {
+        field: path ? (path[0] === "input" ? path : ["input", ...path]) : null,
+        message: safeMessage(code, String(item.message ?? code)),
+        code,
+        retryable: item.retryable === true,
+        currentVersion:
+          typeof item.currentVersion === "number" ? item.currentVersion : null,
+      },
+    ];
+  });
+}
+
+function humanizeCode(code: string): string {
+  const value = code
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" ");
+  return value ? `${value[0]!.toUpperCase()}${value.slice(1)}.` : "The order command failed.";
 }

@@ -12,11 +12,15 @@ export class Loader {
       const byId = new Map(rows.map((row) => [String(row.id), row]));
       return ids.map((id) => byId.get(id) ?? null);
     });
-    this.operation = new DataLoader(async (ids) =>
-      Promise.all(ids.map((id) => repository.adminRead.operation(storeId, id))),
-    );
-    this.editSession = new DataLoader(async (ids) =>
-      Promise.all(ids.map((id) => repository.adminRead.editSession(storeId, id))),
-    );
+    this.operation = new DataLoader(async (ids) => {
+      const rows = await repository.adminRead.operations(storeId, ids);
+      const byId = new Map(rows.map((row) => [String(row.id), row]));
+      return ids.map((id) => byId.get(id) ?? null);
+    });
+    this.editSession = new DataLoader(async (ids) => {
+      const rows = await repository.adminRead.editSessions(storeId, ids);
+      const byId = new Map(rows.map((row) => [String(row.id), row]));
+      return ids.map((id) => byId.get(id) ?? null);
+    });
   }
 }

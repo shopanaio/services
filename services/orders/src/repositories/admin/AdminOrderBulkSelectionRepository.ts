@@ -13,7 +13,7 @@ export class AdminOrderBulkSelectionRepository extends BaseRepository {
     storeId: string,
     selection: AdminOrderBulkSelection,
   ): Promise<readonly AdminOrderBulkTarget[]> {
-    const where = selection.predicate ? compilePredicate(selection.predicate) : null;
+    const where = selection.predicate ? compileAdminOrderPredicate(selection.predicate) : null;
     return this.connection.execute<AdminOrderBulkTarget>(sql`
       SELECT current_order.id, current_order.version,
         COALESCE(array_agg(tag.tag ORDER BY tag.tag) FILTER (WHERE tag.tag IS NOT NULL), '{}') AS tags
@@ -31,10 +31,10 @@ export class AdminOrderBulkSelectionRepository extends BaseRepository {
   }
 }
 
-function compilePredicate(predicate: AdminOrderBulkPredicate): SQL {
+export function compileAdminOrderPredicate(predicate: AdminOrderBulkPredicate): SQL {
   if (predicate.kind === "and" || predicate.kind === "or") {
     const separator = predicate.kind === "and" ? sql` AND ` : sql` OR `;
-    return sql`(${sql.join(predicate.predicates.map(compilePredicate), separator)})`;
+    return sql`(${sql.join(predicate.predicates.map(compileAdminOrderPredicate), separator)})`;
   }
   if (predicate.kind === "boolean") {
     if (predicate.field === "archived") {
@@ -133,9 +133,15 @@ function directField(
     case "externalId":
       return { expression: sql`current_order.external_id`, type: "text" };
     case "sourceCode":
-      return { expression: sql`current_order.external_source`, type: "text" };
+      return {
+        expression: sql`COALESCE(current_order.external_source, current_order.sales_channel)`,
+        type: "text",
+      };
     case "totalAmount":
-      return { expression: sql`current_order.total_amount`, type: "numeric" };
+      return {
+        expression: adminOrderTotalMajorExpression(),
+        type: "numeric",
+      };
     case "currencyCode":
       return { expression: sql`current_order.currency_code`, type: "text" };
     case "createdAt":
@@ -147,6 +153,20 @@ function directField(
     default:
       return null;
   }
+}
+
+export function adminOrderTotalMajorExpression(): SQL {
+  return sql`current_order.total_amount::numeric / CASE
+    WHEN current_order.currency_code = ANY(ARRAY[
+      'BIF', 'CLP', 'DJF', 'GNF', 'ISK', 'JPY', 'KMF', 'KRW', 'PYG', 'RWF',
+      'UGX', 'UYI', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'
+    ]) THEN 1
+    WHEN current_order.currency_code = ANY(ARRAY[
+      'BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND'
+    ]) THEN 1000
+    WHEN current_order.currency_code = ANY(ARRAY['CLF', 'UYW']) THEN 10000
+    ELSE 100
+  END`;
 }
 
 type RelatedTable =

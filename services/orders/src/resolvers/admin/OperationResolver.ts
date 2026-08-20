@@ -1,5 +1,5 @@
 import { GLOBAL_ID_NAMESPACE, GlobalIdEntity, composeGlobalId } from "@shopana/shared-graphql-guid";
-import { TypePolicy } from "@shopana/type-resolver";
+import { PreloadNotFoundError, TypePolicy } from "@shopana/type-resolver";
 import { OrderResolver } from "./OrderResolver.js";
 import { OrdersType } from "./OrdersType.js";
 import { nullableString, numberValue, stringValue, type Row } from "./values.js";
@@ -13,7 +13,8 @@ import { nullableString, numberValue, stringValue, type Row } from "./values.js"
 export class OrderOperationResolver extends OrdersType<string, Row> {
   protected async $preload(): Promise<Row> {
     const operation = await this.$ctx.loaders.operation.load(this.$props);
-    if (!operation) throw new Error("ORDER_OPERATION_NOT_FOUND");
+    if (!operation)
+      throw new PreloadNotFoundError(`Order operation with ID ${this.$props} not found`);
     return operation;
   }
   id() {
@@ -52,7 +53,10 @@ export class OrderOperationResolver extends OrdersType<string, Row> {
     return nullableString(await this.$data, "failureCode");
   }
   async failureMessage() {
-    return nullableString(await this.$data, "failureMessage");
+    const row = await this.$data;
+    return nullableString(row, "failureMessage")
+      ? safeOperationFailureMessage(nullableString(row, "failureCode"))
+      : null;
   }
   async retryable() {
     const status = stringValue(await this.$data, "status");
@@ -68,4 +72,15 @@ export class OrderOperationResolver extends OrdersType<string, Row> {
   async completedAt() {
     return nullableString(await this.$data, "completedAt");
   }
+}
+
+function safeOperationFailureMessage(code: string | null): string {
+  if (!code) return "The order operation could not be completed.";
+  if (/TIMEOUT|UNAVAILABLE|TEMPORAR/.test(code)) {
+    return "The provider is temporarily unavailable. Retry the operation later.";
+  }
+  if (code.includes("VERSION_CONFLICT")) {
+    return "The order changed while the operation was running.";
+  }
+  return "The order operation could not be completed.";
 }

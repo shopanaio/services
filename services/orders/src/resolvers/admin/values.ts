@@ -6,6 +6,7 @@ import {
   parseGlobalId,
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
+import { Money } from "@shopana/shared-money";
 
 export type Row = Record<string, unknown>;
 
@@ -41,10 +42,8 @@ export function rowValue(row: Row, camel: string): Row | null {
 
 export function money(amountMinor: unknown, currencyCode: string) {
   const minor = BigInt(String(amountMinor ?? 0));
-  const negative = minor < 0n;
-  const digits = (negative ? -minor : minor).toString().padStart(3, "0");
   return {
-    amount: `${negative ? "-" : ""}${digits.slice(0, -2)}.${digits.slice(-2)}`,
+    amount: Money.fromMinor(minor, currencyCode).toRoundedUnit(),
     currencyCode,
   };
 }
@@ -63,12 +62,14 @@ const fieldTypes: Readonly<Record<string, GlobalIdType>> = {
   transactionId: GlobalIdEntity.OrderPaymentTransaction,
   parentTransactionId: GlobalIdEntity.OrderPaymentTransaction,
   fulfillmentOrderId: GlobalIdEntity.FulfillmentOrder,
+  fulfillmentOrderLineId: GlobalIdEntity.FulfillmentOrderLine,
   fulfillmentId: GlobalIdEntity.Fulfillment,
   holdId: GlobalIdEntity.FulfillmentHold,
   shipmentId: GlobalIdEntity.Shipment,
   returnId: GlobalIdEntity.OrderReturn,
   exchangeId: GlobalIdEntity.OrderExchange,
   integrationLinkId: GlobalIdEntity.OrderIntegrationLink,
+  installationId: GlobalIdEntity.AppInstallation,
   operationId: GlobalIdEntity.OrderOperation,
   customerId: GlobalIdEntity.Customer,
   productId: GlobalIdEntity.Product,

@@ -14,6 +14,12 @@ import {
   type GraphQLSchema,
 } from "graphql";
 import { gql } from "graphql-tag";
+import { adminOrderCommandNames } from "../../../domain/admin/AdminOrderCommandContracts.js";
+import { OrderEditSessionResolver } from "../../../resolvers/admin/EditSessionResolver.js";
+import { OrdersMutationResolver } from "../../../resolvers/admin/MutationResolver.js";
+import { OrderOperationResolver } from "../../../resolvers/admin/OperationResolver.js";
+import { OrderResolver } from "../../../resolvers/admin/OrderResolver.js";
+import * as generatedSchemas from "../schemas.js";
 
 const schemaDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(schemaDirectory, "../../../../../..");
@@ -216,6 +222,36 @@ describe("Orders Admin GraphQL contract", () => {
       "shipmentMarkDelivered",
     ];
     expect(requiredMappings.filter((operation) => !operations.has(operation))).toEqual([]);
+  });
+
+  test("binds every command to a resolver and its generated boundary schema", () => {
+    const namespace = schema.getType("OrdersMutation");
+    expect(isObjectType(namespace)).toBe(true);
+    if (!isObjectType(namespace)) return;
+
+    expect(Object.keys(namespace.getFields()).sort()).toEqual([...adminOrderCommandNames].sort());
+    for (const command of adminOrderCommandNames) {
+      const schemaFactory = `Api${command[0]?.toUpperCase()}${command.slice(1)}InputSchema`;
+      expect(typeof OrdersMutationResolver.prototype[command]).toBe("function");
+      expect(typeof (generatedSchemas as Record<string, unknown>)[schemaFactory]).toBe("function");
+    }
+  });
+
+  test("implements every aggregate, edit-session, and operation field", () => {
+    const implementations = [
+      ["Order", OrderResolver.prototype],
+      ["OrderEditSession", OrderEditSessionResolver.prototype],
+      ["OrderOperation", OrderOperationResolver.prototype],
+    ] as const;
+
+    for (const [typeName, prototype] of implementations) {
+      const type = schema.getType(typeName);
+      expect(isObjectType(type)).toBe(true);
+      if (!isObjectType(type)) continue;
+      for (const field of Object.keys(type.getFields())) {
+        expect(typeof (prototype as unknown as Record<string, unknown>)[field]).toBe("function");
+      }
+    }
   });
 
   test("keeps filter enum types closed and documented", () => {

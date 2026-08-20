@@ -90,7 +90,7 @@ export function parseAdminOrderBulkSelection(
   const predicate =
     selection.where === undefined || selection.where === null
       ? null
-      : parseWhere(asRecord(selection.where));
+      : parseAdminOrderWhere(asRecord(selection.where));
 
   if ((!ids || ids.length === 0) && !predicate) {
     throw new Error("ORDER_BULK_SELECTION_REQUIRED");
@@ -98,7 +98,9 @@ export function parseAdminOrderBulkSelection(
   return { ids, excludedIds, predicate };
 }
 
-function parseWhere(where: Readonly<Record<string, unknown>>): AdminOrderBulkPredicate {
+export function parseAdminOrderWhere(
+  where: Readonly<Record<string, unknown>>,
+): AdminOrderBulkPredicate {
   const predicates: AdminOrderBulkPredicate[] = [];
   for (const [field, rawValue] of Object.entries(where)) {
     if (rawValue === undefined || rawValue === null) continue;
@@ -108,7 +110,7 @@ function parseWhere(where: Readonly<Record<string, unknown>>): AdminOrderBulkPre
       }
       predicates.push({
         kind: field,
-        predicates: rawValue.map((value) => parseWhere(asRecord(value))),
+        predicates: rawValue.map((value) => parseAdminOrderWhere(asRecord(value))),
       });
       continue;
     }

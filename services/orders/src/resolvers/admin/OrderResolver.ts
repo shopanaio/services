@@ -1,12 +1,11 @@
-import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
-import { TypePolicy } from "@shopana/type-resolver";
+import { GlobalIdEntity, parseGlobalId } from "@shopana/shared-graphql-guid";
+import { PreloadNotFoundError, SubgraphReference, TypePolicy } from "@shopana/type-resolver";
 import { OrdersType } from "./OrdersType.js";
 import {
   mapDiscount,
   mapFulfillmentOrder,
   mapLine,
   mapPayment,
-  mapSimpleEntity,
   mapTaxLine,
 } from "./entityMappers.js";
 import {
@@ -27,10 +26,13 @@ import {
   organizationId: (resolver) => resolver.$ctx.store.organizationId,
   domain: (resolver) => `store:${resolver.$ctx.store.id}`,
 })
+@SubgraphReference()
 export class OrderResolver extends OrdersType<string, Row> {
+  private sensitiveAccess?: Promise<boolean>;
+
   protected async $preload(): Promise<Row> {
     const row = await this.$ctx.loaders.order.load(this.$props);
-    if (!row) throw new Error("ORDER_NOT_FOUND");
+    if (!row) throw new PreloadNotFoundError(`Order with ID ${this.$props} not found`);
     return row;
   }
 
@@ -68,8 +70,19 @@ export class OrderResolver extends OrdersType<string, Row> {
 
   async availableActions() {
     const row = await this.$data;
+    const authorization = {
+      organizationId: this.$ctx.store.organizationId,
+      domain: `store:${this.$ctx.store.id}`,
+      resource: "store.data",
+    } as const;
+    const [canWrite, canAdmin] = await Promise.all([
+      this.authProvider.authorize({ ...authorization, action: "write" }),
+      this.canReadSensitiveData(),
+    ]);
+    if (!canWrite) return [];
+
     const status = stringValue(row, "status");
-    const actions =
+    const actions: string[] =
       status === "DRAFT"
         ? ["UPDATE_DETAILS", "EDIT_LINES", "COMPLETE_DRAFT"]
         : status === "OPEN"
@@ -78,15 +91,55 @@ export class OrderResolver extends OrdersType<string, Row> {
               "EDIT_LINES",
               "CANCEL",
               "CLOSE",
-              "RECORD_MANUAL_PAYMENT",
-              "CREATE_FULFILLMENT",
-              "CREATE_RETURN",
-              "CREATE_EXCHANGE",
-              "REQUEST_INTEGRATION_SYNC",
             ]
           : status === "CLOSED"
             ? ["REOPEN"]
             : [];
+
+    if (status === "OPEN" && canAdmin) {
+      const paymentStatus = stringValue(row, "paymentStatus");
+      const lines = await this.lines();
+      const hasFulfillableLines = lines.some((line) => line.fulfillableQuantity > 0);
+      const hasReturnableLines = lines.some((line) => line.returnableQuantity > 0);
+      const placement = rowValue(row, "checkoutPlacement");
+      const placementReady = !placement || stringValue(placement, "status") === "CONFIRMED";
+      const selectedPaymentMethod =
+        rowsValue(row, "paymentMethods").find((method) => value(method, "isSelected") === true) ??
+        rowsValue(row, "paymentMethods")[0];
+      const paymentCapabilities = stringArray(
+        value(rowValue(selectedPaymentMethod ?? {}, "providerData") ?? {}, "capabilities"),
+      );
+      const supportsPayment = (capability: string) =>
+        paymentCapabilities.length === 0 || paymentCapabilities.includes(capability);
+      const supportsFulfillment = rowsValue(row, "fulfillmentOrders").some((item) => {
+        const providerSnapshot = rowValue(item, "providerSnapshot") ?? {};
+        const snapshot = rowValue(providerSnapshot, "snapshot") ?? providerSnapshot;
+        const capabilities = stringArray(value(snapshot, "supportedActions"));
+        return capabilities.length === 0 ||
+          capabilities.some((action) => action === "CREATE_SHIPMENT" || action === "FULFILL");
+      });
+      if (["PENDING", "PARTIALLY_PAID"].includes(paymentStatus)) {
+        actions.push("RECORD_MANUAL_PAYMENT");
+      }
+      if (paymentStatus === "AUTHORIZED" && supportsPayment("CAPTURE")) {
+        actions.push("CAPTURE_PAYMENT");
+      }
+      if (paymentStatus === "AUTHORIZED" && supportsPayment("VOID")) actions.push("VOID_PAYMENT");
+      if (
+        ["PAID", "PARTIALLY_REFUNDED"].includes(paymentStatus) &&
+        supportsPayment("REFUND")
+      ) {
+        actions.push("REFUND");
+      }
+      if (paymentStatus === "FAILED" && supportsPayment("RETRY")) actions.push("RETRY_PAYMENT");
+      if (hasFulfillableLines && placementReady && supportsFulfillment) {
+        actions.push("CREATE_FULFILLMENT");
+      }
+      if (hasReturnableLines) actions.push("CREATE_RETURN", "CREATE_EXCHANGE");
+      if (rowsValue(row, "integrationLinks").length > 0) {
+        actions.push("REQUEST_INTEGRATION_SYNC");
+      }
+    }
     actions.push(value(row, "archivedAt") ? "UNARCHIVE" : "ARCHIVE");
     return actions;
   }
@@ -103,7 +156,25 @@ export class OrderResolver extends OrdersType<string, Row> {
   }
 
   async checkoutPlacement() {
-    return null;
+    const placement = rowValue(await this.$data, "checkoutPlacement");
+    if (!placement) return null;
+    return {
+      placementId: encodeId(
+        stringValue(placement, "placementId"),
+        GlobalIdEntity.CheckoutPlacement,
+      ),
+      checkoutId: encodeId(stringValue(placement, "checkoutId"), GlobalIdEntity.Checkout),
+      checkoutVersion: numberValue(placement, "checkoutVersion"),
+      resultRevision: stringValue(placement, "resultRevision"),
+      finalQuoteRevision: stringValue(placement, "finalQuoteRevision"),
+      paymentMethodsRevision: stringValue(placement, "paymentMethodsRevision"),
+      deliveryRevision: stringValue(placement, "deliveryRevision"),
+      contractVersion: numberValue(placement, "contractVersion", 1),
+      snapshotHash: stringValue(placement, "snapshotHash"),
+      status: stringValue(placement, "status"),
+      confirmedAt: nullableString(placement, "confirmedAt"),
+      failedAt: nullableString(placement, "failedAt"),
+    };
   }
 
   async customer() {
@@ -113,8 +184,15 @@ export class OrderResolver extends OrdersType<string, Row> {
 
   async customerSnapshot() {
     const row = await this.$data;
+    const shippingAddress = rowsValue(row, "addresses").find(
+      (address) => stringValue(address, "type") === "SHIPPING",
+    );
     return new OrderCustomerSnapshotResolver(
-      { contact: rowValue(row, "contact") ?? {}, customerId: nullableString(row, "customerId") },
+      {
+        contact: rowValue(row, "contact") ?? {},
+        customerId: nullableString(row, "customerId"),
+        countryCode: shippingAddress ? nullableString(shippingAddress, "countryCode") : null,
+      },
       this.$ctx,
     );
   }
@@ -164,7 +242,23 @@ export class OrderResolver extends OrdersType<string, Row> {
   async lines() {
     const row = await this.$data;
     const currency = stringValue(row, "currencyCode");
-    return rowsValue(row, "lines").map((line) => mapLine(line, currency));
+    const fulfilled = quantityByLine(rowsValue(row, "fulfillmentLines"), "orderLineId", "quantity");
+    const returned = quantityByLine(rowsValue(row, "returnLines"), "orderLineId", "receivedQuantity");
+    return rowsValue(row, "lines").map((line) => {
+      const mapped = mapLine(line, currency);
+      const fulfilledQuantity = fulfilled.get(stringValue(line, "id")) ?? 0;
+      const returnedQuantity = returned.get(stringValue(line, "id")) ?? 0;
+      return {
+        ...mapped,
+        fulfilledQuantity,
+        returnedQuantity,
+        fulfillableQuantity: Math.max(
+          0,
+          mapped.quantity - mapped.cancelledQuantity - fulfilledQuantity,
+        ),
+        returnableQuantity: Math.max(0, fulfilledQuantity - returnedQuantity),
+      };
+    });
   }
 
   async discounts() {
@@ -182,7 +276,60 @@ export class OrderResolver extends OrdersType<string, Row> {
   }
 
   async deliveryGroups() {
-    return [];
+    const order = await this.$data;
+    const lines = new Map(
+      (await this.lines()).map((line) => [decodeGlobalId(line.id), line] as const),
+    );
+    const links = rowsValue(order, "deliveryGroupLines");
+    const methods = rowsValue(order, "deliveryMethods");
+    const addresses = rowsValue(order, "addresses");
+    const recipients = rowsValue(order, "recipients");
+    const currency = stringValue(order, "currencyCode");
+    return rowsValue(order, "deliveryGroups").map((group) => {
+      const groupId = stringValue(group, "id");
+      const addressId = nullableString(group, "addressId");
+      const recipientId = nullableString(group, "recipientId");
+      const recipient = recipientId
+        ? recipients.find((item) => stringValue(item, "id") === recipientId)
+        : undefined;
+      const selected = methods.find(
+        (method) =>
+          stringValue(method, "deliveryGroupId") === groupId && value(method, "isSelected") === true,
+      );
+      return {
+        id: encodeId(groupId, GlobalIdEntity.OrderDeliveryGroup),
+        lines: links
+          .filter((link) => stringValue(link, "deliveryGroupId") === groupId)
+          .map((link) => lines.get(stringValue(link, "orderLineId")))
+          .filter((line) => line !== undefined),
+        address: addressId
+          ? new OrderAddressResolver(
+              {
+                ...(recipient ?? {}),
+                ...(addresses.find((address) => stringValue(address, "id") === addressId) ?? {}),
+              },
+              this.$ctx,
+            )
+          : null,
+        recipient: recipientId
+          ? new OrderContactResolver(recipient ?? {}, this.$ctx)
+          : null,
+        selectedMethod: selected
+          ? {
+              code: stringValue(selected, "code"),
+              title: nullableString(selected, "title") ?? stringValue(selected, "code"),
+              providerCode: stringValue(selected, "provider"),
+              type: stringValue(selected, "type"),
+              paymentModel: nullableString(selected, "paymentModel"),
+              amount: money(value(selected, "quotedAmount"), currency),
+              customerInput: rowValue(selected, "customerInputSnapshot") ?? {},
+              providerSnapshot: rowValue(selected, "providerData") ?? {},
+            }
+          : null,
+        createdAt: stringValue(group, "createdAt"),
+        updatedAt: stringValue(group, "updatedAt"),
+      };
+    });
   }
   async payment() {
     const row = await this.$data;
@@ -190,38 +337,249 @@ export class OrderResolver extends OrdersType<string, Row> {
   }
   async fulfillmentOrders() {
     const row = await this.$data;
-    return rowsValue(row, "fulfillmentOrders").map((item) => mapFulfillmentOrder(item, this.id()));
+    const canAdmin = await this.canReadSensitiveData();
+    const placement = rowValue(row, "checkoutPlacement");
+    const placementReady = !placement || stringValue(placement, "status") === "CONFIRMED";
+    const orderLines = lineMap(await this.lines());
+    const allocations = rowsValue(row, "fulfillmentOrderLines");
+    const fulfilled = quantityByLine(rowsValue(row, "fulfillmentLines"), "orderLineId", "quantity");
+    const holds = rowsValue(row, "fulfillmentHolds");
+    return rowsValue(row, "fulfillmentOrders").map((item) => {
+      const id = stringValue(item, "id");
+      const mapped = mapFulfillmentOrder(item, this.id());
+      return {
+        ...mapped,
+        supportedActions: canAdmin
+          ? mapped.supportedActions.filter(
+              (action) =>
+                placementReady || !["CREATE_SHIPMENT", "FULFILL", "SUBMIT"].includes(action),
+            )
+          : [],
+        deliveryGroup: {
+          id: encodeId(stringValue(item, "deliveryGroupId"), GlobalIdEntity.OrderDeliveryGroup),
+        },
+        lines: allocations
+          .filter((allocation) => stringValue(allocation, "fulfillmentOrderId") === id)
+          .map((allocation) => {
+            const lineId = stringValue(allocation, "orderLineId");
+            const quantity = numberValue(allocation, "quantity");
+            const fulfilledQuantity = Math.min(quantity, fulfilled.get(lineId) ?? 0);
+            return {
+              id: encodeId(`${id}:${lineId}`, GlobalIdEntity.FulfillmentOrderLine),
+              orderLine: orderLines.get(lineId),
+              quantity,
+              remainingQuantity: Math.max(0, quantity - fulfilledQuantity),
+              fulfilledQuantity,
+            };
+          }),
+        holds: holds
+          .filter((hold) => stringValue(hold, "fulfillmentOrderId") === id)
+          .map((hold) => ({
+            id: encodeId(stringValue(hold, "id"), GlobalIdEntity.FulfillmentHold),
+            reasonCode: stringValue(hold, "reasonCode"),
+            note: nullableString(hold, "reason"),
+            heldBy: actorValue(hold, "createdBy"),
+            createdAt: stringValue(hold, "createdAt"),
+            releasedAt: nullableString(hold, "releasedAt"),
+          })),
+      };
+    });
   }
   async fulfillments() {
-    return rowsValue(await this.$data, "fulfillments").map((item) =>
-      mapSimpleEntity(item, GlobalIdEntity.Fulfillment),
+    const row = await this.$data;
+    const orderLines = lineMap(await this.lines());
+    const fulfillmentOrders = new Map(
+      (await this.fulfillmentOrders()).map((item) => [decodeGlobalId(item.id), item] as const),
     );
+    const allocations = rowsValue(row, "fulfillmentLines");
+    const shipments = rowsValue(row, "shipments");
+    return rowsValue(row, "fulfillments").map((item) => {
+      const id = stringValue(item, "id");
+      return {
+        id: encodeId(id, GlobalIdEntity.Fulfillment),
+        version: 1,
+        order: new OrderResolver(this.$props, this.$ctx),
+        fulfillmentOrder: fulfillmentOrders.get(stringValue(item, "fulfillmentOrderId")),
+        status: stringValue(item, "status"),
+        locationId:
+          encodeOptionalReference(nullableString(item, "locationId"), "Location") ??
+          encodeOptionalReference(id, "Location"),
+        lines: allocations
+          .filter((allocation) => stringValue(allocation, "fulfillmentId") === id)
+          .map((allocation) => ({
+            orderLine: orderLines.get(stringValue(allocation, "orderLineId")),
+            quantity: numberValue(allocation, "quantity"),
+          })),
+        shipments: shipments
+          .filter((shipment) => stringValue(shipment, "fulfillmentId") === id)
+          .map((shipment) =>
+            this.mapShipment(
+              shipment,
+              item,
+              orderLines,
+              fulfillmentOrders.get(stringValue(item, "fulfillmentOrderId")),
+            ),
+          ),
+        notifyCustomer: value(item, "notifyCustomer") === true,
+        createdAt: stringValue(item, "createdAt"),
+        updatedAt: stringValue(item, "updatedAt"),
+      };
+    });
   }
   async shipments() {
-    return rowsValue(await this.$data, "shipments").map((item) =>
-      mapSimpleEntity(item, GlobalIdEntity.Shipment),
+    const row = await this.$data;
+    const fulfillmentById = new Map(
+      rowsValue(row, "fulfillments").map((item) => [stringValue(item, "id"), item] as const),
+    );
+    const fulfillmentOrders = new Map(
+      (await this.fulfillmentOrders()).map((item) => [decodeGlobalId(item.id), item] as const),
+    );
+    const orderLines = lineMap(await this.lines());
+    return rowsValue(row, "shipments").map((shipment) =>
+      this.mapShipment(
+        shipment,
+        fulfillmentById.get(stringValue(shipment, "fulfillmentId")) ?? {},
+        orderLines,
+        fulfillmentOrders.get(
+          stringValue(
+            fulfillmentById.get(stringValue(shipment, "fulfillmentId")) ?? {},
+            "fulfillmentOrderId",
+          ),
+        ),
+      ),
     );
   }
   async returns(args: { first?: number; after?: string }) {
-    return simpleConnection(
-      rowsValue(await this.$data, "returns"),
-      GlobalIdEntity.OrderReturn,
-      args.first,
-    );
+    const order = await this.$data;
+    const lines = lineMap(await this.lines());
+    const returnLines = rowsValue(order, "returnLines");
+    const nodes = rowsValue(order, "returns").map((item) => {
+      const id = stringValue(item, "id");
+      return {
+        id: encodeId(id, GlobalIdEntity.OrderReturn),
+        version: numberValue(item, "version", 1),
+        order: new OrderResolver(this.$props, this.$ctx),
+        status: stringValue(item, "status"),
+        lines: returnLines
+          .filter((line) => stringValue(line, "returnRequestId") === id)
+          .map((line) => ({
+            orderLine: lines.get(stringValue(line, "orderLineId")),
+            quantity: numberValue(line, "requestedQuantity"),
+            receivedQuantity: numberValue(line, "receivedQuantity"),
+            restockableQuantity: numberValue(line, "restockableQuantity"),
+            damagedQuantity: numberValue(line, "damagedQuantity"),
+            reasonCode: stringValue(line, "reason"),
+            note: nullableString(line, "note"),
+          })),
+        returnShipment: null,
+        customerNote: nullableString(item, "customerNote"),
+        staffNote: nullableString(item, "merchantNote"),
+        requestedAt: stringValue(item, "requestedAt"),
+        approvedAt:
+          stringValue(item, "status") === "APPROVED" ? nullableString(item, "resolvedAt") : null,
+        receivedAt:
+          stringValue(item, "status") === "RECEIVED" ? nullableString(item, "resolvedAt") : null,
+        completedAt:
+          stringValue(item, "status") === "COMPLETED" ? nullableString(item, "resolvedAt") : null,
+        createdAt: stringValue(item, "createdAt"),
+        updatedAt: stringValue(item, "updatedAt"),
+      };
+    });
+    return simpleConnection(nodes, args.first, args.after);
   }
   async exchanges(args: { first?: number; after?: string }) {
-    return simpleConnection(
-      rowsValue(await this.$data, "exchanges"),
-      GlobalIdEntity.OrderExchange,
-      args.first,
-    );
+    const order = await this.$data;
+    const lines = lineMap(await this.lines());
+    const returnLines = rowsValue(order, "returnLines");
+    const inbound = rowsValue(order, "exchangeInboundLines");
+    const outbound = rowsValue(order, "exchangeOutboundLines");
+    const nodes = rowsValue(order, "exchanges").map((item) => {
+      const id = stringValue(item, "id");
+      return {
+        id: encodeId(id, GlobalIdEntity.OrderExchange),
+        version: numberValue(item, "version", 1),
+        order: new OrderResolver(this.$props, this.$ctx),
+        status: stringValue(item, "status"),
+        inboundLines: inbound
+          .filter((line) => stringValue(line, "exchangeId") === id)
+          .map((allocation) => {
+            const line = returnLines.find(
+              (candidate) =>
+                stringValue(candidate, "id") === stringValue(allocation, "returnRequestLineId"),
+            );
+            return {
+              orderLine: line ? lines.get(stringValue(line, "orderLineId")) : null,
+              quantity: numberValue(allocation, "quantity"),
+              receivedQuantity: line ? numberValue(line, "receivedQuantity") : 0,
+              restockableQuantity: line ? numberValue(line, "restockableQuantity") : 0,
+              damagedQuantity: line ? numberValue(line, "damagedQuantity") : 0,
+              reasonCode: line ? stringValue(line, "reason") : "OTHER",
+              note: line ? nullableString(line, "note") : null,
+            };
+          }),
+        outboundLines: outbound
+          .filter((line) => stringValue(line, "exchangeId") === id)
+          .map((line) =>
+            mapLine(
+              {
+                ...line,
+                purchasableSnapshot: rowValue(line, "snapshot") ?? {},
+                subtotalAmount: value(line, "totalAmount"),
+                discountAmount: 0,
+                taxAmount: 0,
+                dutyAmount: 0,
+              },
+              stringValue(item, "currencyCode"),
+            ),
+          ),
+        balance: money(value(item, "balanceAmount"), stringValue(item, "currencyCode")),
+        createdAt: stringValue(item, "createdAt"),
+        updatedAt: stringValue(item, "updatedAt"),
+      };
+    });
+    return simpleConnection(nodes, args.first, args.after);
   }
   async refunds(args: { first?: number; after?: string }) {
-    return simpleConnection(
-      rowsValue(await this.$data, "refunds"),
-      GlobalIdEntity.OrderRefund,
-      args.first,
-    );
+    const order = await this.$data;
+    const lines = lineMap(await this.lines());
+    const refundLines = rowsValue(order, "refundLines");
+    const allocations = rowsValue(order, "refundTransactionAllocations");
+    const transactions = rowsValue(order, "paymentTransactions");
+    const nodes = rowsValue(order, "refunds").map((item) => {
+      const id = stringValue(item, "id");
+      return {
+        id: encodeId(id, GlobalIdEntity.OrderRefund),
+        version: 1,
+        order: new OrderResolver(this.$props, this.$ctx),
+        status: stringValue(item, "status"),
+        amount: money(value(item, "totalAmount"), stringValue(item, "currencyCode")),
+        reasonCode: nullableString(item, "reason") ?? "OTHER",
+        note: nullableString(item, "note"),
+        lines: refundLines
+          .filter((line) => stringValue(line, "refundId") === id)
+          .map((line) => ({
+            orderLine: lines.get(stringValue(line, "orderLineId")) ?? null,
+            quantity: numberValue(line, "quantity"),
+            amount: money(value(line, "totalAmount"), stringValue(item, "currencyCode")),
+          })),
+        transactions: allocations
+          .filter((allocation) => stringValue(allocation, "refundId") === id)
+          .map((allocation) =>
+            transactions.find(
+              (transaction) =>
+                stringValue(transaction, "id") === stringValue(allocation, "transactionId"),
+            ),
+          )
+          .filter((transaction) => transaction !== undefined)
+          .map((transaction) =>
+            mapPayment({ ...order, paymentTransactions: [transaction] }, stringValue(item, "currencyCode"))
+              .transactions[0],
+          ),
+        createdAt: stringValue(item, "createdAt"),
+        processedAt: nullableString(item, "processedAt"),
+      };
+    });
+    return simpleConnection(nodes, args.first, args.after);
   }
 
   activity(args: { first?: number; after?: string }) {
@@ -229,17 +587,39 @@ export class OrderResolver extends OrdersType<string, Row> {
   }
 
   async integrationLinks() {
-    return rowsValue(await this.$data, "integrationLinks").map((item) =>
-      mapSimpleEntity(item, GlobalIdEntity.OrderIntegrationLink),
-    );
+    return rowsValue(await this.$data, "integrationLinks").map((item) => ({
+      id: encodeId(stringValue(item, "id"), GlobalIdEntity.OrderIntegrationLink),
+      kind: stringValue(item, "kind"),
+      appCode: stringValue(item, "appCode"),
+      installationId: encodeId(
+        stringValue(item, "appInstallationId"),
+        GlobalIdEntity.AppInstallation,
+      ),
+      direction: stringValue(item, "direction"),
+      externalId: nullableString(item, "externalId"),
+      externalUrl: nullableString(item, "externalUrl"),
+      status: stringValue(item, "status"),
+      lastExportedOrderVersion:
+        value(item, "lastExportedOrderVersion") == null
+          ? null
+          : numberValue(item, "lastExportedOrderVersion"),
+      lastImportedExternalVersion: nullableString(item, "lastImportedExternalVersion"),
+      lastSyncedAt: nullableString(item, "lastSyncedAt"),
+      lastErrorCode: nullableString(item, "lastErrorCode"),
+      lastErrorMessage: nullableString(item, "lastErrorMessage"),
+      createdAt: stringValue(item, "createdAt"),
+      updatedAt: stringValue(item, "updatedAt"),
+    }));
   }
   async tags() {
     return (value(await this.$data, "tags") as unknown[] | undefined)?.map(String) ?? [];
   }
   async adminNote() {
+    if (!(await this.canReadSensitiveData())) return null;
     return nullableString(await this.$data, "adminNote");
   }
   async customerNote() {
+    if (!(await this.canReadSensitiveData())) return null;
     return nullableString(rowValue(await this.$data, "contact") ?? {}, "customerNote");
   }
   async customFields() {
@@ -268,10 +648,132 @@ export class OrderResolver extends OrdersType<string, Row> {
   }
 
   private async address(type: string) {
-    const address = rowsValue(await this.$data, "addresses").find(
+    const order = await this.$data;
+    const address = rowsValue(order, "addresses").find(
       (item) => stringValue(item, "type") === type,
     );
-    return address ? new OrderAddressResolver(address, this.$ctx) : null;
+    if (!address) return null;
+    const group = rowsValue(order, "deliveryGroups").find(
+      (item) => stringValue(item, "addressId") === stringValue(address, "id"),
+    );
+    const recipient = group
+      ? rowsValue(order, "recipients").find(
+          (item) => stringValue(item, "id") === stringValue(group, "recipientId"),
+        )
+      : undefined;
+    return new OrderAddressResolver(
+      { ...(recipient ?? rowValue(order, "contact") ?? {}), ...address },
+      this.$ctx,
+    );
+  }
+
+  private canReadSensitiveData(): Promise<boolean> {
+    this.sensitiveAccess ??= this.authProvider.authorize({
+      organizationId: this.$ctx.store.organizationId,
+      domain: `store:${this.$ctx.store.id}`,
+      resource: "store.data",
+      action: "admin",
+    });
+    return this.sensitiveAccess;
+  }
+
+  private async mapShipment(
+    shipment: Row,
+    fulfillment: Row,
+    orderLines: Map<string, Awaited<ReturnType<OrderResolver["lines"]>>[number]>,
+    fulfillmentOrder?: Awaited<ReturnType<OrderResolver["fulfillmentOrders"]>>[number],
+  ) {
+    if (!fulfillmentOrder) {
+      throw new PreloadNotFoundError("Fulfillment order for shipment was not found");
+    }
+    const row = await this.$data;
+    const shipmentId = stringValue(shipment, "id");
+    const fulfillmentId = stringValue(shipment, "fulfillmentId");
+    const fulfillmentLines = rowsValue(row, "fulfillmentLines");
+    const packages = rowsValue(row, "shipmentPackages");
+    const packageLines = rowsValue(row, "shipmentPackageLines");
+    return {
+      id: encodeId(shipmentId, GlobalIdEntity.Shipment),
+      version: 1,
+      order: new OrderResolver(this.$props, this.$ctx),
+      fulfillment: {
+        id: encodeId(fulfillmentId, GlobalIdEntity.Fulfillment),
+        version: 1,
+        order: new OrderResolver(this.$props, this.$ctx),
+        fulfillmentOrder,
+        status: stringValue(fulfillment, "status", "PENDING"),
+        locationId:
+          encodeOptionalReference(nullableString(fulfillment, "locationId"), "Location") ??
+          encodeOptionalReference(fulfillmentId, "Location"),
+        lines: fulfillmentLines
+          .filter((line) => stringValue(line, "fulfillmentId") === fulfillmentId)
+          .map((line) => ({
+            orderLine: orderLines.get(stringValue(line, "orderLineId")),
+            quantity: numberValue(line, "quantity"),
+          })),
+        shipments: [],
+        notifyCustomer: false,
+        createdAt: stringValue(fulfillment, "createdAt", stringValue(shipment, "createdAt")),
+        updatedAt: stringValue(fulfillment, "updatedAt", stringValue(shipment, "updatedAt")),
+      },
+      status: stringValue(shipment, "status"),
+      providerCode: nullableString(shipment, "carrierCode"),
+      providerReference: nullableString(shipment, "externalId"),
+      serviceCode: nullableString(shipment, "serviceCode"),
+      tracking: rowsValue(row, "shipmentTrackingNumbers")
+        .filter((tracking) => stringValue(tracking, "shipmentId") === shipmentId)
+        .map((tracking) => ({
+          number: stringValue(tracking, "number"),
+          url: nullableString(tracking, "url"),
+          company: nullableString(tracking, "company"),
+        })),
+      packages: packages
+        .filter((item) => stringValue(item, "shipmentId") === shipmentId)
+        .map((item) => {
+          const packageId = stringValue(item, "id");
+          const weightValue = nullableString(item, "weightValue");
+          const length = nullableString(item, "lengthValue");
+          return {
+            id: encodeId(packageId, GlobalIdEntity.ShipmentPackage),
+            weight: weightValue
+              ? { value: Number(weightValue), unit: stringValue(item, "weightUnit") }
+              : null,
+            dimensions: length
+              ? {
+                  length: Number(length),
+                  width: numberValue(item, "widthValue"),
+                  height: numberValue(item, "heightValue"),
+                  unit: stringValue(item, "dimensionsUnit"),
+                }
+              : null,
+            declaredValue:
+              value(item, "declaredValueAmount") == null
+                ? null
+                : money(value(item, "declaredValueAmount"), stringValue(item, "currencyCode")),
+            items: packageLines
+              .filter((line) => stringValue(line, "packageId") === packageId)
+              .map((line) => ({
+                orderLine: orderLines.get(stringValue(line, "orderLineId")),
+                quantity: numberValue(line, "quantity"),
+              })),
+          };
+        }),
+      events: rowsValue(row, "shipmentTrackingEvents")
+        .filter((event) => stringValue(event, "shipmentId") === shipmentId)
+        .map((event) => ({
+          id: encodeId(stringValue(event, "id"), GlobalIdEntity.ShipmentEvent),
+          status: stringValue(event, "status"),
+          message: nullableString(event, "message"),
+          location: nullableString(event, "location"),
+          happenedAt: stringValue(event, "happenedAt"),
+          recordedAt: stringValue(event, "recordedAt"),
+        })),
+      shippedAt: nullableString(shipment, "shippedAt"),
+      estimatedDeliveryAt: nullableString(shipment, "estimatedDeliveryAt"),
+      deliveredAt: nullableString(shipment, "deliveredAt"),
+      createdAt: stringValue(shipment, "createdAt"),
+      updatedAt: stringValue(shipment, "updatedAt"),
+    };
   }
 }
 
@@ -286,7 +788,7 @@ class OrderContactResolver extends OrdersType<Row> {
     return nullableString(this.$props, "email");
   }
   phone() {
-    return nullableString(this.$props, "phoneE164");
+    return nullableString(this.$props, "phoneE164") ?? nullableString(this.$props, "phone");
   }
   firstName() {
     return nullableString(this.$props, "firstName");
@@ -319,13 +821,13 @@ class OrderAddressResolver extends OrdersType<Row> {
     return encodeId(stringValue(this.$props, "id"), GlobalIdEntity.OrderAddress);
   }
   firstName() {
-    return null;
+    return nullableString(this.$props, "firstName");
   }
   middleName() {
-    return null;
+    return nullableString(this.$props, "middleName");
   }
   lastName() {
-    return null;
+    return nullableString(this.$props, "lastName");
   }
   company() {
     return nullableString(this.$props, "company");
@@ -349,10 +851,10 @@ class OrderAddressResolver extends OrdersType<Row> {
     return nullableString(this.$props, "countryCode");
   }
   email() {
-    return null;
+    return nullableString(this.$props, "email");
   }
   phone() {
-    return null;
+    return nullableString(this.$props, "phone") ?? nullableString(this.$props, "phoneE164");
   }
   data() {
     return rowValue(this.$props, "metadata") ?? {};
@@ -371,6 +873,7 @@ class OrderAddressResolver extends OrdersType<Row> {
 class OrderCustomerSnapshotResolver extends OrdersType<{
   contact: Row;
   customerId: string | null;
+  countryCode: string | null;
 }> {
   customerId() {
     return encodeId(this.$props.customerId, GlobalIdEntity.Customer);
@@ -379,7 +882,10 @@ class OrderCustomerSnapshotResolver extends OrdersType<{
     return nullableString(this.$props.contact, "email");
   }
   phone() {
-    return nullableString(this.$props.contact, "phoneE164");
+    return (
+      nullableString(this.$props.contact, "phoneE164") ??
+      nullableString(this.$props.contact, "phone")
+    );
   }
   firstName() {
     return nullableString(this.$props.contact, "firstName");
@@ -394,7 +900,7 @@ class OrderCustomerSnapshotResolver extends OrdersType<{
     return nullableString(this.$props.contact, "company");
   }
   countryCode() {
-    return nullableString(this.$props.contact, "countryCode");
+    return this.$props.countryCode;
   }
 }
 
@@ -403,29 +909,33 @@ class OrderActivityConnectionResolver extends OrdersType<{
   first?: number;
   after?: string;
 }> {
+  private result?: ReturnType<OrderActivityConnectionResolver["connection"]>;
+
+  private load() {
+    this.result ??= this.connection();
+    return this.result;
+  }
+
   private async connection() {
-    const after = this.$props.after
-      ? Number(Buffer.from(this.$props.after, "base64url").toString("utf8"))
-      : 0;
-    const rows = await this.$ctx.repository.adminRead.activity(
-      this.$ctx.store.id,
-      this.$props.orderId,
-      after,
-      this.$props.first ?? 50,
-    );
+    const after = decodeActivityCursor(this.$props.after);
+    const pageSize = Math.min(Math.max(this.$props.first ?? 50, 1), 250);
+    const [page, totalCount] = await Promise.all([
+      this.$ctx.repository.adminRead.activity(
+        this.$ctx.store.id,
+        this.$props.orderId,
+        after,
+        pageSize + 1,
+      ),
+      this.$ctx.repository.adminRead.activityCount(this.$ctx.store.id, this.$props.orderId),
+    ]);
+    const rows = page.slice(0, pageSize);
     const nodes = rows.map((row) => ({
       id: encodeId(stringValue(row, "id"), GlobalIdEntity.OrderActivity),
       sequence: stringValue(row, "sequence"),
       type: stringValue(row, "activityType"),
       visibility: stringValue(row, "visibility"),
       message: nullableString(row, "message"),
-      actor: {
-        type: stringValue(row, "actorType"),
-        id: nullableString(row, "actorId"),
-        displayName: null,
-        user: null,
-        apiKey: null,
-      },
+      actor: actorValue(row, "actor"),
       data: rowValue(row, "payload") ?? {},
       happenedAt: stringValue(row, "happenedAt"),
       recordedAt: stringValue(row, "recordedAt"),
@@ -438,45 +948,110 @@ class OrderActivityConnectionResolver extends OrdersType<{
       nodes,
       edges,
       pageInfo: {
-        hasNextPage: rows.length === (this.$props.first ?? 50),
+        hasNextPage: page.length > pageSize,
         hasPreviousPage: after > 0,
         startCursor: edges[0]?.cursor ?? null,
         endCursor: edges.at(-1)?.cursor ?? null,
       },
-      totalCount: nodes.length,
+      totalCount,
     };
   }
   async edges() {
-    return (await this.connection()).edges;
+    return (await this.load()).edges;
   }
   async nodes() {
-    return (await this.connection()).nodes;
+    return (await this.load()).nodes;
   }
   async pageInfo() {
-    return (await this.connection()).pageInfo;
+    return (await this.load()).pageInfo;
   }
   async totalCount() {
-    return (await this.connection()).totalCount;
+    return (await this.load()).totalCount;
   }
 }
 
-function simpleConnection(rows: Row[], type: GlobalIdEntity, first = 20) {
-  const nodes = rows
-    .slice(0, Math.min(Math.max(first, 1), 100))
-    .map((row) => mapSimpleEntity(row, type));
+function decodeActivityCursor(cursor?: string): number {
+  if (!cursor) return 0;
+  const value = Number(Buffer.from(cursor, "base64url").toString("utf8"));
+  if (!Number.isSafeInteger(value) || value < 0) throw new Error("ORDER_CURSOR_INVALID");
+  return value;
+}
+
+function simpleConnection<T extends { id: string | null }>(
+  rows: T[],
+  first = 20,
+  after?: string,
+) {
+  const offset = decodeOffset(after);
+  const nodes = rows.slice(offset, offset + Math.min(Math.max(first, 1), 100));
   const edges = nodes.map((node, index) => ({
     node,
-    cursor: Buffer.from(String(index), "utf8").toString("base64url"),
+    cursor: Buffer.from(String(offset + index + 1), "utf8").toString("base64url"),
   }));
   return {
     nodes,
     edges,
     totalCount: rows.length,
     pageInfo: {
-      hasNextPage: rows.length > nodes.length,
-      hasPreviousPage: false,
+      hasNextPage: rows.length > offset + nodes.length,
+      hasPreviousPage: offset > 0,
       startCursor: edges[0]?.cursor ?? null,
       endCursor: edges.at(-1)?.cursor ?? null,
     },
+  };
+}
+
+function decodeOffset(cursor?: string): number {
+  if (!cursor) return 0;
+  const value = Number(Buffer.from(cursor, "base64url").toString("utf8"));
+  if (!Number.isInteger(value) || value < 0) throw new Error("ORDER_CURSOR_INVALID");
+  return value;
+}
+
+function lineMap(lines: Awaited<ReturnType<OrderResolver["lines"]>>) {
+  return new Map(lines.map((line) => [decodeGlobalId(line.id), line] as const));
+}
+
+function quantityByLine(rows: Row[], idField: string, quantityField: string): Map<string, number> {
+  const result = new Map<string, number>();
+  for (const row of rows) {
+    const id = stringValue(row, idField);
+    result.set(id, (result.get(id) ?? 0) + numberValue(row, quantityField));
+  }
+  return result;
+}
+
+function stringArray(input: unknown): string[] {
+  return Array.isArray(input) ? input.map(String) : [];
+}
+
+function decodeGlobalId(id: string | null): string {
+  if (!id) return "";
+  return parseGlobalId(id).id;
+}
+
+function encodeOptionalReference(id: string | null, type: string): string | null {
+  return id ? Buffer.from(`gid://shopana/${type}/${id}`, "utf8").toString("base64") : null;
+}
+
+function actorValue(row: Row, prefix: string) {
+  const storedType = stringValue(row, `${prefix}Type`, "SYSTEM");
+  const type = storedType === "STAFF" ? "USER" : storedType;
+  const rawId = nullableString(row, `${prefix}Id`);
+  const entity =
+    type === "API_KEY"
+      ? GlobalIdEntity.ApiKey
+      : type === "CUSTOMER"
+        ? GlobalIdEntity.Customer
+        : type === "APP"
+          ? GlobalIdEntity.AppInstallation
+          : GlobalIdEntity.User;
+  const id = rawId ? encodeId(rawId, entity) : null;
+  return {
+    type,
+    id,
+    displayName: null,
+    user: type === "USER" && id ? { __typename: "User", id } : null,
+    apiKey: type === "API_KEY" && id ? { __typename: "ApiKey", id } : null,
   };
 }

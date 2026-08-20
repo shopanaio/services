@@ -1,18 +1,19 @@
-import { ApolloMutation, TypePolicy } from "@shopana/type-resolver";
-import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import { ApolloMutation, TypePolicy, ZodResolver } from "@shopana/type-resolver";
+import { GlobalIdEntity, parseGlobalId } from "@shopana/shared-graphql-guid";
+import type { ZodTypeAny } from "zod";
 import type {
   AdminOrderCommandName,
   AdminOrderCommandResult,
 } from "../../domain/admin/AdminOrderCommandContracts.js";
 import * as generatedSchemas from "../../interfaces/gql-admin-api/schemas.js";
+import type { ApiOrdersMutationResolvers } from "../../interfaces/gql-admin-api/types.js";
 import { toOrderUserErrors } from "../../interfaces/gql-admin-api/userErrors.js";
 import { adminOrderCommandNames } from "../../domain/admin/AdminOrderCommandContracts.js";
 import { OrderEditSessionResolver } from "./EditSessionResolver.js";
-import { mapFulfillmentOrder, mapLine } from "./entityMappers.js";
 import { OrderOperationResolver } from "./OperationResolver.js";
 import { OrderResolver } from "./OrderResolver.js";
 import { OrdersType } from "./OrdersType.js";
-import { decodeCommandInput, encodeId, rowsValue, stringValue, type Row } from "./values.js";
+import { decodeCommandInput, encodeId, stringValue, type Row } from "./values.js";
 
 @ApolloMutation
 export class MutationResolver extends OrdersType<Record<string, never>> {
@@ -21,6 +22,7 @@ export class MutationResolver extends OrdersType<Record<string, never>> {
   }
 }
 
+@OrderMutationBoundaries()
 @TypePolicy<OrdersMutationResolver>({
   resource: "store.data",
   action: "write",
@@ -203,8 +205,7 @@ export class OrdersMutationResolver extends OrdersType<Record<string, never>> {
   private async execute(command: AdminOrderCommandName, rawInput: unknown) {
     const fallbackCode = `${command.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase()}_FAILED`;
     try {
-      const parsed = parseBoundaryInput(command, rawInput);
-      const input = decodeCommandInput(command, parsed);
+      const input = decodeCommandInput(command, rawInput);
       const result = await this.$ctx.broker.call<AdminOrderCommandResult, Record<string, unknown>>(
         `order.${command}`,
         input,
@@ -223,6 +224,9 @@ export class OrdersMutationResolver extends OrdersType<Record<string, never>> {
   ) {
     if (result.orderId) this.$ctx.loaders.order.clear(result.orderId);
     if (result.operationId) this.$ctx.loaders.operation.clear(result.operationId);
+    if (result.resourceId && command.startsWith("orderEdit")) {
+      this.$ctx.loaders.editSession.clear(result.resourceId);
+    }
     const order =
       result.orderId && !result.deleted ? new OrderResolver(result.orderId, this.$ctx) : null;
     const resource = result.resourceId;
@@ -240,47 +244,66 @@ export class OrdersMutationResolver extends OrdersType<Record<string, never>> {
     }
     if (result.operationId)
       return { ...base, operation: new OrderOperationResolver(result.operationId, this.$ctx) };
-    if (command === "orderCommentAdd") return { ...base, activity: null };
-    const detail = result.orderId ? await this.$ctx.loaders.order.load(result.orderId) : null;
+    if (command === "orderCommentAdd") {
+      const activity =
+        result.orderId && resource
+          ? await this.$ctx.repository.adminRead.activityEntry(
+              this.$ctx.store.id,
+              result.orderId,
+              resource,
+            )
+          : null;
+      return { ...base, activity: activity ? mapActivity(activity) : null };
+    }
     if (command.startsWith("orderEdit"))
       return { ...base, edit: resource ? new OrderEditSessionResolver(resource, this.$ctx) : null };
     if (command.startsWith("orderLine")) {
-      const row = findResource(detail, "lines", resource);
+      const row = order ? (await order.lines()).find((line) => decodeId(line.id) === resource) : null;
       return {
         ...base,
-        line: row && detail ? mapLine(row, stringValue(detail, "currencyCode")) : null,
+        line: row ?? null,
       };
     }
     if (command.startsWith("fulfillmentOrder")) {
-      const row = findResource(detail, "fulfillmentOrders", resource);
+      const row = order
+        ? (await order.fulfillmentOrders()).find((item) => decodeId(item.id) === resource)
+        : null;
       return {
         ...base,
-        fulfillmentOrder:
-          row && result.orderId
-            ? mapFulfillmentOrder(row, encodeId(result.orderId, GlobalIdEntity.Order)!)
-            : null,
+        fulfillmentOrder: row ?? null,
       };
     }
-    if (command === "fulfillmentCreate")
+    if (command === "fulfillmentCreate") {
+      const fulfillment = order
+        ? (await order.fulfillments()).find((item) => decodeId(item.id) === resource)
+        : null;
       return {
         ...base,
-        fulfillment: resource ? { id: encodeId(resource, GlobalIdEntity.Fulfillment) } : null,
+        fulfillment: fulfillment ?? null,
       };
-    if (command.startsWith("shipment"))
+    }
+    if (command.startsWith("shipment")) {
+      const shipments = order ? await Promise.all(await order.shipments()) : [];
+      const shipment = shipments.find((item) => decodeId(item.id) === resource) ?? null;
       return {
         ...base,
-        shipment: resource ? { id: encodeId(resource, GlobalIdEntity.Shipment) } : null,
+        shipment,
       };
-    if (command.startsWith("orderReturn"))
+    }
+    if (command.startsWith("orderReturn")) {
+      const connection = order ? await order.returns({ first: 100 }) : null;
       return {
         ...base,
-        return: resource ? { id: encodeId(resource, GlobalIdEntity.OrderReturn) } : null,
+        return: connection?.nodes.find((item) => decodeId(item.id) === resource) ?? null,
       };
-    if (command.startsWith("orderExchange"))
+    }
+    if (command.startsWith("orderExchange")) {
+      const connection = order ? await order.exchanges({ first: 100 }) : null;
       return {
         ...base,
-        exchange: resource ? { id: encodeId(resource, GlobalIdEntity.OrderExchange) } : null,
+        exchange: connection?.nodes.find((item) => decodeId(item.id) === resource) ?? null,
       };
+    }
     return {
       ...base,
       clientMutationId: typeof input.clientMutationId === "string" ? input.clientMutationId : null,
@@ -288,14 +311,79 @@ export class OrdersMutationResolver extends OrdersType<Record<string, never>> {
   }
 }
 
-type CommandArgs = { input: unknown };
+type ResolverArgs<T> = T extends (...args: infer TArgs) => unknown
+  ? TArgs[1]
+  : T extends { resolve: infer TResolve }
+    ? ResolverArgs<TResolve>
+    : never;
 
-function parseBoundaryInput(command: AdminOrderCommandName, input: unknown): unknown {
-  const exportName = `${command[0]!.toUpperCase()}${command.slice(1)}InputSchema`;
+type CommandArgs = ResolverArgs<
+  NonNullable<
+    ApiOrdersMutationResolvers[Exclude<keyof ApiOrdersMutationResolvers, "__isTypeOf">]
+  >
+>;
+
+function boundarySchema(command: AdminOrderCommandName): ZodTypeAny {
+  // GraphQL codegen is configured with `typesPrefix: "Api"`, therefore validation
+  // schema factories are prefixed as well (for example ApiOrderCreateInputSchema).
+  const exportName = `Api${command[0]!.toUpperCase()}${command.slice(1)}InputSchema`;
   const factory = (generatedSchemas as Record<string, unknown>)[exportName];
   if (typeof factory !== "function")
     throw new Error(`Missing GraphQL boundary schema ${exportName}`);
-  return (factory as () => { parse(value: unknown): unknown })().parse(input);
+  return (factory as () => ZodTypeAny)();
+}
+
+function OrderMutationBoundaries(): ClassDecorator {
+  return (target) => {
+    const prototype = target.prototype as Record<string, unknown>;
+    for (const command of adminOrderCommandNames) {
+      const descriptor = Object.getOwnPropertyDescriptor(prototype, command);
+      if (!descriptor || typeof descriptor.value !== "function") {
+        throw new Error(`Missing Orders mutation resolver ${command}`);
+      }
+      ZodResolver(boundarySchema(command))(prototype, command, descriptor);
+      const validated = descriptor.value as (
+        this: OrdersMutationResolver,
+        args: CommandArgs,
+      ) => unknown;
+      descriptor.value = async function (this: OrdersMutationResolver, args: CommandArgs) {
+        const result = await validated.call(this, args);
+        if (!isLibraryValidationFailure(result)) return result;
+        return emptyPayload(
+          command,
+          result.userErrors.map((error) => ({
+            field: error.field
+              ? error.field[0] === "input"
+                ? error.field
+                : ["input", ...error.field]
+              : ["input"],
+            message: error.message,
+            code: "ORDER_INPUT_INVALID",
+            retryable: false,
+            currentVersion: null,
+          })),
+        );
+      };
+      Object.defineProperty(prototype, command, descriptor);
+    }
+  };
+}
+
+function isLibraryValidationFailure(
+  value: unknown,
+): value is { userErrors: Array<{ code: string; message: string; field: string[] | null }> } {
+  if (!value || typeof value !== "object") return false;
+  const errors = (value as { userErrors?: unknown }).userErrors;
+  return (
+    Array.isArray(errors) &&
+    errors.length > 0 &&
+    errors.every(
+      (error) =>
+        Boolean(error) &&
+        typeof error === "object" &&
+        !("retryable" in (error as Record<string, unknown>)),
+    )
+  );
 }
 
 function emptyPayload(command: AdminOrderCommandName, userErrors: unknown[]) {
@@ -337,12 +425,50 @@ const operationCommands = new Set(
   ),
 );
 
-function findResource(detail: Row | null, field: string, resourceId: string | null): Row | null {
-  return detail && resourceId
-    ? (rowsValue(detail, field).find((row) => stringValue(row, "id") === resourceId) ?? null)
-    : null;
-}
-
 function encodeResource(command: AdminOrderCommandName, id: string): string | null {
   return encodeId(id, command === "orderDelete" ? GlobalIdEntity.Order : GlobalIdEntity.OrderLine);
+}
+
+function decodeId(id: string | null): string | null {
+  if (!id) return null;
+  try {
+    return parseGlobalId(id).id;
+  } catch {
+    return null;
+  }
+}
+
+function mapActivity(row: Row) {
+  const storedActorType = stringValue(row, "actorType", "SYSTEM");
+  const actorType = storedActorType === "STAFF" ? "USER" : storedActorType;
+  const actorId = row.actorId == null ? null : String(row.actorId);
+  const actorEntity =
+    actorType === "API_KEY"
+      ? GlobalIdEntity.ApiKey
+      : actorType === "CUSTOMER"
+        ? GlobalIdEntity.Customer
+        : actorType === "APP"
+          ? GlobalIdEntity.AppInstallation
+          : GlobalIdEntity.User;
+  const globalActorId = actorId ? encodeId(actorId, actorEntity) : null;
+  return {
+    id: encodeId(stringValue(row, "id"), GlobalIdEntity.OrderActivity),
+    sequence: stringValue(row, "sequence"),
+    type: stringValue(row, "activityType"),
+    visibility: stringValue(row, "visibility"),
+    message: stringValue(row, "message") || null,
+    actor: {
+      type: actorType,
+      id: globalActorId,
+      displayName: null,
+      user: actorType === "USER" && globalActorId ? { __typename: "User", id: globalActorId } : null,
+      apiKey:
+        actorType === "API_KEY" && globalActorId
+          ? { __typename: "ApiKey", id: globalActorId }
+          : null,
+    },
+    data: row.payload ?? {},
+    happenedAt: stringValue(row, "happenedAt"),
+    recordedAt: stringValue(row, "recordedAt"),
+  };
 }

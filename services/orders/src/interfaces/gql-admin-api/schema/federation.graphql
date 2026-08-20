@@ -39,7 +39,7 @@ extend type Customer @key(fields: "id", resolvable: false) {
 # Federated Checkout reference for placement provenance. Checkout does not yet
 # expose an Admin read surface, so the current contract exposes only its ID and
 # the immutable OrderCheckoutPlacement projection.
-extend type Checkout @key(fields: "id") {
+extend type Checkout @key(fields: "id", resolvable: false) {
   """
   Federated Checkout ID.
   """

@@ -1,5 +1,11 @@
 import { GlobalIdEntity, decodeGlobalIdByType } from "@shopana/shared-graphql-guid";
 import { ApolloQuery, TypePolicy } from "@shopana/type-resolver";
+import type {
+  ApiOrdersQueryOrderArgs,
+  ApiOrdersQueryOrderByNumberArgs,
+  ApiOrdersQueryOrderEditSessionArgs,
+  ApiOrdersQueryOrderOperationArgs,
+} from "../../interfaces/gql-admin-api/types.js";
 import { OrderConnectionResolver, type OrderConnectionInput } from "./ConnectionResolvers.js";
 import { OrderEditSessionResolver } from "./EditSessionResolver.js";
 import { OrderOperationResolver } from "./OperationResolver.js";
@@ -20,24 +26,27 @@ export class QueryResolver extends OrdersType<Record<string, never>> {
   domain: (resolver) => `store:${resolver.$ctx.store.id}`,
 })
 export class OrdersQueryResolver extends OrdersType<Record<string, never>> {
-  async order(args: { id: string }) {
+  async order(args: ApiOrdersQueryOrderArgs) {
     const id = safeDecode(args.id, GlobalIdEntity.Order);
     if (!id || !(await this.$ctx.loaders.order.load(id))) return null;
     return new OrderResolver(id, this.$ctx);
   }
-  async orderByNumber(args: { number: string }) {
-    const row = await this.$ctx.repository.adminRead.findByNumber(this.$ctx.store.id, args.number);
+  async orderByNumber(args: ApiOrdersQueryOrderByNumberArgs) {
+    const row = await this.$ctx.repository.adminRead.findByNumber(
+      this.$ctx.store.id,
+      String(args.number),
+    );
     return row ? new OrderResolver(String(row.id), this.$ctx) : null;
   }
   orders(args: OrderConnectionInput) {
     return new OrderConnectionResolver(args, this.$ctx);
   }
-  async orderEditSession(args: { id: string }) {
+  async orderEditSession(args: ApiOrdersQueryOrderEditSessionArgs) {
     const id = safeDecode(args.id, GlobalIdEntity.OrderEditSession);
     if (!id || !(await this.$ctx.loaders.editSession.load(id))) return null;
     return new OrderEditSessionResolver(id, this.$ctx);
   }
-  async orderOperation(args: { id: string }) {
+  async orderOperation(args: ApiOrdersQueryOrderOperationArgs) {
     const id = safeDecode(args.id, GlobalIdEntity.OrderOperation);
     if (!id || !(await this.$ctx.loaders.operation.load(id))) return null;
     return new OrderOperationResolver(id, this.$ctx);

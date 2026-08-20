@@ -162,6 +162,9 @@ export function mapPayment(order: Row, currencyCode: string) {
 }
 
 export function mapFulfillmentOrder(row: Row, orderId: string) {
+  const providerSnapshot = rowValue(row, "providerSnapshot") ?? {};
+  const snapshot = rowValue(providerSnapshot, "snapshot") ?? providerSnapshot;
+  const assignedLocation = rowValue(snapshot, "assignedLocation") ?? {};
   return {
     id: encodeId(stringValue(row, "id"), GlobalIdEntity.FulfillmentOrder),
     version: numberValue(row, "version", 1),
@@ -175,11 +178,13 @@ export function mapFulfillmentOrder(row: Row, orderId: string) {
     assignedLocationId:
       encodeOptionalTarget(nullableString(row, "assignedLocationId"), "Location") ??
       composeFallback("Location", stringValue(row, "id")),
-    assignedService: null,
+    assignedService: value(assignedLocation, "fulfillmentService") ?? null,
     holds: [],
     fulfillAt: nullableString(row, "scheduledAt"),
     fulfillBy: nullableString(row, "scheduledAt"),
-    supportedActions: fulfillmentActions(stringValue(row, "status")),
+    supportedActions:
+      (value(snapshot, "supportedActions") as unknown[] | undefined)?.map(String) ??
+      fulfillmentActions(stringValue(row, "status")),
     createdAt: stringValue(row, "createdAt"),
     updatedAt: stringValue(row, "updatedAt"),
   };
