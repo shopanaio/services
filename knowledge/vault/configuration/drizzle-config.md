@@ -215,12 +215,30 @@ migration generation for these services. Add a handwritten SQL migration in
 the owning domain folder with a globally unique basename. Catalog additionally
 requires updating its model-derived inventory under `services/catalog/docs/`.
 
-### Migration Key Constraint Rule
+### Tenant-Safe Aggregate Key Constraint Rule
 
-`store_id` is a tenant scope column only. Migration SQL must not include
-`store_id` in primary keys or foreign keys. Keep primary keys and foreign keys
-based on stable entity identifiers, and use separate indexes or unique
-constraints for tenant-scoped lookups when needed.
+Every table that belongs to a store-scoped aggregate must contain a non-null
+`store_id`. Foreign keys between store-scoped aggregate entities must include
+`store_id` on both sides of the constraint:
+
+```sql
+FOREIGN KEY (store_id, parent_id)
+  REFERENCES parent_entities (store_id, id)
+```
+
+The referenced table must expose a matching `UNIQUE (store_id, id)` constraint
+when `(store_id, id)` is not its primary key. This makes a cross-store reference
+invalid at the database level instead of relying only on repository filtering.
+
+Aggregate roots must reference their owning store through `store_id` when the
+store table is available in the same database boundary. Global,
+organization-scoped, and system entities that do not belong to a store-scoped
+aggregate are exempt.
+
+Stable entity identifiers may remain the primary keys; `store_id` does not have
+to be part of a primary key. Keep tenant-scoped indexes and business unique
+constraints in addition to these foreign keys where query or domain invariants
+require them.
 
 ### UUID Version Rule
 
