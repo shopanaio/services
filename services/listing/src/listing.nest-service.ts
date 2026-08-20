@@ -17,6 +17,7 @@ import type { FastifyInstance } from "fastify";
 import { startServer } from "./api/graphql-admin/server.js";
 import { startStorefrontServer } from "./api/graphql-storefront/server.js";
 import { Kernel } from "./kernel/Kernel.js";
+import { RecommendationScheduler } from "./scheduled/RecommendationScheduler.js";
 
 const { service } = getServiceConfig("listing");
 
@@ -30,7 +31,8 @@ export class ListingNestService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectBroker("listing") private readonly broker: ServiceBroker,
     @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
-    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
+    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient,
+    private readonly recommendationScheduler: RecommendationScheduler,
   ) {}
 
   async onModuleInit() {
@@ -38,6 +40,7 @@ export class ListingNestService implements OnModuleInit, OnModuleDestroy {
 
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
     this.logger.debug("Kernel created");
+    this.recommendationScheduler.start();
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
@@ -53,6 +56,7 @@ export class ListingNestService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    this.recommendationScheduler.stop();
     if (this.graphqlServer) {
       await this.graphqlServer.close();
     }

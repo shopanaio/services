@@ -14,14 +14,42 @@ import type {
   VariantListingPriceRowInput,
 } from "../repositories/listing/listingRepositoryTypes.js";
 import { encodeListingVariantTerm } from "../listing/variantTerms/index.js";
+import { canonicalByteLength } from "../recommendation/canonical.js";
+import {
+  MAX_LIFECYCLE_PLAN_BYTES,
+  MAX_PRODUCT_CATEGORY_MEMBERSHIPS,
+} from "../recommendation/constants.js";
+import { RecommendationIntegrityError } from "../recommendation/errors.js";
+
+export interface RecommendationLifecycleState {
+  published: boolean;
+  available: boolean;
+  categoryIds: string[];
+}
+
+export interface RecommendationLifecyclePlan {
+  version: 1;
+  organizationId: string;
+  storeId: string;
+  productId: string;
+  eventSequence: number;
+  operationId: string;
+  oldState: RecommendationLifecycleState;
+  newState: RecommendationLifecycleState;
+}
+
+export interface ListingWriteIndexActionResult {
+  result: Listing.ListingUpdateResult;
+  recommendationPlan: RecommendationLifecyclePlan | null;
+}
 
 export class ListingWriteIndexActionScript extends BaseScript<
   ListingPreparedSyncWriteAction | ListingPreparedDeleteWriteAction,
-  Listing.ListingUpdateResult
+  ListingWriteIndexActionResult
 > {
   protected async execute(
     input: ListingPreparedSyncWriteAction | ListingPreparedDeleteWriteAction
-  ): Promise<Listing.ListingUpdateResult> {
+  ): Promise<ListingWriteIndexActionResult> {
     return this.repository.runListingIndexItemTransaction(async () => {
       const action = input.action;
       const statePayloadHash = this.getStatePayloadHash(input);
@@ -30,7 +58,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
       );
 
       if (current && action.eventSequence < current.eventSequence) {
-        return this.buildResult(action, "ignored_stale");
+        return { result: this.buildResult(action, "ignored_stale"), recommendationPlan: null };
       }
 
       if (current && action.eventSequence === current.eventSequence) {
@@ -46,7 +74,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
         }
 
         if (statePayloadHash === current.payloadHash) {
-          return this.buildResult(action, "noop");
+          return { result: this.buildResult(action, "noop"), recommendationPlan: null };
         }
 
         if (!("syncWriteModel" in input)) {
@@ -62,23 +90,77 @@ export class ListingWriteIndexActionScript extends BaseScript<
       }
 
       if ("syncWriteModel" in input) {
+        const recommendationPlan = await this.buildRecommendationLifecyclePlan(input);
         await this.applySync(input.action, input.syncWriteModel.writeModelJson);
         await this.upsertLatestState(
           input.action,
           "indexed",
           statePayloadHash
         );
-        return this.buildResult(input.action, "applied");
+        return { result: this.buildResult(input.action, "applied"), recommendationPlan };
       }
 
+      const recommendationPlan = await this.buildRecommendationLifecyclePlan(input);
       await this.applyDelete(input.action);
       await this.upsertLatestState(input.action, "deleted", statePayloadHash);
-      return this.buildResult(input.action, "applied");
+      return { result: this.buildResult(input.action, "applied"), recommendationPlan };
     });
   }
 
   protected handleError(error: unknown): never {
     throw error;
+  }
+
+  private async buildRecommendationLifecyclePlan(
+    input: ListingPreparedSyncWriteAction | ListingPreparedDeleteWriteAction,
+  ): Promise<RecommendationLifecyclePlan> {
+    const productId = input.action.itemKey.itemId;
+    const current = await this.repository.productListingIndex.findByProductId(productId);
+    const currentCategories = current
+      ? (await this.repository.listingPostingBitmap.getMembershipKeys({
+          entityType: "product",
+          docId: current.productDocId,
+          field: "category",
+        })).map((row) => row.valueKey)
+      : [];
+    const currentSorts = current
+      ? await this.repository.listingPostingProductSort.getByProductDocId(current.productDocId)
+      : [];
+    const oldState: RecommendationLifecycleState = {
+      published: current?.status === "published",
+      available: currentSorts.some((row) => row.sortKind === "availability" && row.boolValue === true),
+      categoryIds: normalizeCategoryIds(currentCategories),
+    };
+    const newState: RecommendationLifecycleState = "syncWriteModel" in input
+      ? {
+          published: input.syncWriteModel.writeModelJson.product.status === "published",
+          available: input.syncWriteModel.writeModelJson.productSortRows.some(
+            (row) => row.sortKind === "availability" && row.boolValue === true,
+          ),
+          categoryIds: normalizeCategoryIds(input.syncWriteModel.writeModelJson.productPostingValueKeys.category),
+        }
+      : { published: false, available: false, categoryIds: [] };
+    const plan: RecommendationLifecyclePlan = {
+      version: 1,
+      organizationId: input.action.organizationId,
+      storeId: input.action.itemKey.storeId,
+      productId,
+      eventSequence: input.action.eventSequence,
+      operationId: input.action.params.meta.operationId,
+      oldState,
+      newState,
+    };
+    if (
+      oldState.categoryIds.length > MAX_PRODUCT_CATEGORY_MEMBERSHIPS ||
+      newState.categoryIds.length > MAX_PRODUCT_CATEGORY_MEMBERSHIPS ||
+      canonicalByteLength(plan) > MAX_LIFECYCLE_PLAN_BYTES
+    ) {
+      throw new RecommendationIntegrityError(
+        "LIFECYCLE_PLAN_LIMIT_EXCEEDED",
+        "Recommendation lifecycle plan exceeds its versioned limit",
+      );
+    }
+    return plan;
   }
 
   private async applySync(
@@ -348,4 +430,8 @@ export class ListingWriteIndexActionScript extends BaseScript<
       ? input.syncWriteModel.writeModelHash
       : input.action.payloadHash;
   }
+}
+
+function normalizeCategoryIds(values: readonly string[]): string[] {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
 }

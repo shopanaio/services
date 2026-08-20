@@ -7,6 +7,15 @@ export type { EntityRef, UserError, AssetOwnerType } from "../shared.js";
 
 // Apps service actions
 export * as Apps from "./apps.js";
+export * as Project from "./project.js";
+export {
+  ProjectRecommendationActionNames,
+} from "./project.js";
+export type {
+  ActiveStoreWorkflowContext,
+  ListActiveStoresParams,
+  ListActiveStoresResult,
+} from "./project.js";
 export type {
   AppInstallationStatus,
   AppLifecycleAcceptedResult,

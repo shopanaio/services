@@ -3,3 +3,5 @@ export * from "./cursor.js";
 export * from "./sqlHelpers.js";
 export * from "./StorefrontFacetResolutionRepository.js";
 export * from "./StorefrontListingQueryRepository.js";
+export * from "./StorefrontRecommendationQueryRepository.js";
+export * from "./recommendationCursor.js";

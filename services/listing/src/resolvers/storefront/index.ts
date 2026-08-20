@@ -4,6 +4,7 @@ export { QueryResolver } from "./QueryResolver.js";
 export { MutationResolver } from "./MutationResolver.js";
 export { CategoryResolver } from "./CategoryResolver.js";
 export { ProductConnectionResolver } from "./ProductConnectionResolver.js";
+export { ProductRecommendationConnectionResolver } from "./ProductRecommendationConnectionResolver.js";
 export { FilterResolver } from "./FilterResolver.js";
 export { FilterValueResolver } from "./FilterValueResolver.js";
 export { FilterPriceRangeResolver } from "./FilterPriceRangeResolver.js";

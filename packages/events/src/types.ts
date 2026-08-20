@@ -748,6 +748,42 @@ export interface OrderRefundedEvent
     }
   > {}
 
+/**
+ * Orders-owned, self-contained confirmed-sale fact used by Listing
+ * recommendations. Duplicate product lines are allowed at the transport
+ * boundary, but producers must keep both line and aggregate quantities inside
+ * signed PostgreSQL integer bounds.
+ */
+export interface OrderSaleCommittedEvent
+  extends DomainEvent<
+    "orderSaleCommitted",
+    {
+      schemaVersion: 1;
+      orderId: string;
+      storeId: string;
+      orderRevision: number;
+      committedAt: string;
+      lines: readonly {
+        productId: string;
+        quantity: number;
+      }[];
+    }
+  > {}
+
+/** A complete reversal of the effective confirmed sale generation. */
+export interface OrderSaleReversedEvent
+  extends DomainEvent<
+    "orderSaleReversed",
+    {
+      schemaVersion: 1;
+      orderId: string;
+      storeId: string;
+      orderRevision: number;
+      committedAt: string;
+      reversedAt: string;
+    }
+  > {}
+
 export interface CheckoutCustomerActivityRecordedEvent
   extends DomainEvent<
     "checkoutCustomerActivityRecorded",
@@ -1003,6 +1039,8 @@ export type ShopanaEvent =
   | OrderCompletedEvent
   | OrderCancelledEvent
   | OrderRefundedEvent
+  | OrderSaleCommittedEvent
+  | OrderSaleReversedEvent
   | CheckoutCustomerActivityRecordedEvent
   | CustomerStatisticsUpdatedEvent
   | CustomerLifecycleJobDispatchedEvent

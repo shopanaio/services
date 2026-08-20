@@ -1,0 +1,245 @@
+enum RecommendationPlacement {
+  PRODUCT_RELATED
+  FREQUENTLY_BOUGHT_TOGETHER
+}
+
+enum RecommendationStrategy {
+  CURATED_ONLY
+  CURATED_FIRST
+  BLENDED
+  AUTOMATED_ONLY
+}
+
+enum ManualRecommendationAction {
+  PIN
+  BOOST
+  EXCLUDE
+}
+
+enum RecommendationReferenceStatus {
+  VALID
+  STALE
+}
+
+enum ProductRecommendationSource {
+  MANUAL
+  FREQUENTLY_BOUGHT_TOGETHER
+  CONTENT_SIMILARITY
+  POPULARITY
+  FALLBACK
+}
+
+type RecommendationPlacementPolicy implements Node {
+  id: ID!
+  placement: RecommendationPlacement!
+  enabled: Boolean!
+  strategy: RecommendationStrategy!
+  minimumResults: Int!
+  maximumResults: Int!
+  fallbackChain: [String!]!
+  version: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ManualProductRecommendation implements Node {
+  id: ID!
+  anchorProduct: Product!
+  targetProduct: Product!
+  placement: RecommendationPlacement!
+  action: ManualRecommendationAction!
+  position: Int
+  boost: String
+  enabled: Boolean!
+  startsAt: DateTime
+  endsAt: DateTime
+  anchorReferenceStatus: RecommendationReferenceStatus!
+  targetReferenceStatus: RecommendationReferenceStatus!
+  version: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ManualProductRecommendationEdge {
+  cursor: String!
+  node: ManualProductRecommendation!
+}
+
+type ManualProductRecommendationConnection {
+  edges: [ManualProductRecommendationEdge!]!
+  nodes: [ManualProductRecommendation!]!
+  pageInfo: PageInfo!
+}
+
+input RecommendationPlacementPolicyUpsertInput {
+  placement: RecommendationPlacement!
+  strategy: RecommendationStrategy!
+  minimumResults: Int!
+  maximumResults: Int!
+  fallbackChain: [String!]!
+  expectedVersion: Int
+}
+
+input RecommendationPlacementPolicySetEnabledInput {
+  placement: RecommendationPlacement!
+  enabled: Boolean!
+  expectedVersion: Int!
+}
+
+type RecommendationPlacementPolicyPayload {
+  policy: RecommendationPlacementPolicy
+  userErrors: [UserError!]!
+}
+
+input ManualProductRecommendationCreateInput {
+  anchorProductId: ID!
+  targetProductId: ID!
+  placement: RecommendationPlacement!
+  action: ManualRecommendationAction!
+  position: Int
+  boost: String
+  enabled: Boolean!
+  startsAt: DateTime
+  endsAt: DateTime
+}
+
+input ManualProductRecommendationUpdateInput {
+  id: ID!
+  expectedVersion: Int!
+  targetProductId: ID
+  action: ManualRecommendationAction
+  position: Int
+  boost: String
+  enabled: Boolean
+  startsAt: DateTime
+  endsAt: DateTime
+}
+
+input ManualProductRecommendationDeleteInput {
+  id: ID!
+  expectedVersion: Int!
+}
+
+type ManualProductRecommendationPayload {
+  recommendation: ManualProductRecommendation
+  userErrors: [UserError!]!
+}
+
+type ManualProductRecommendationDeletePayload {
+  deletedId: ID
+  userErrors: [UserError!]!
+}
+
+input RecommendationPlacementPolicyDraftInput {
+  expectedVersion: Int
+  enabled: Boolean!
+  strategy: RecommendationStrategy!
+  minimumResults: Int!
+  maximumResults: Int!
+  fallbackChain: [String!]!
+}
+
+input ManualRecommendationDraftCreateInput {
+  targetProductId: ID!
+  action: ManualRecommendationAction!
+  position: Int
+  boost: String
+  enabled: Boolean!
+  startsAt: DateTime
+  endsAt: DateTime
+}
+
+input ManualRecommendationDraftUpdateInput {
+  id: ID!
+  expectedVersion: Int!
+  targetProductId: ID
+  action: ManualRecommendationAction
+  position: Int
+  boost: String
+  enabled: Boolean
+  startsAt: DateTime
+  endsAt: DateTime
+}
+
+input ManualRecommendationDraftDeleteInput {
+  id: ID!
+  expectedVersion: Int!
+}
+
+input ManualRecommendationDraftChangeInput {
+  create: ManualRecommendationDraftCreateInput
+  update: ManualRecommendationDraftUpdateInput
+  delete: ManualRecommendationDraftDeleteInput
+}
+
+input RecommendationSnapshotPreviewInput {
+  anchorProductId: ID!
+  placement: RecommendationPlacement!
+  policy: RecommendationPlacementPolicyDraftInput
+  manualChanges: [ManualRecommendationDraftChangeInput!]!
+}
+
+enum RecommendationPreviewExcludedReason {
+  STALE
+  UNPUBLISHED
+  UNAVAILABLE
+  EXCLUDED
+  INSUFFICIENT_SUPPORT
+  LIMIT_EXCEEDED
+}
+
+type RecommendationPreviewSourceBreakdown {
+  manualAction: ManualRecommendationAction
+  manualPosition: Int
+  manualBoost: String
+  fbtRunId: ID
+  fbtSourceScore: String
+  categoryPopularityScore: String
+  storePopularityScore: String
+}
+
+type RecommendationPreviewCandidate {
+  product: Product!
+  rank: Int!
+  score: String!
+  source: ProductRecommendationSource!
+  sourceBreakdown: RecommendationPreviewSourceBreakdown!
+}
+
+type RecommendationPreviewExcludedCandidate {
+  product: Product!
+  reason: RecommendationPreviewExcludedReason!
+}
+
+type RecommendationPreviewResult {
+  candidates: [RecommendationPreviewCandidate!]!
+  excluded: [RecommendationPreviewExcludedCandidate!]!
+  asOf: DateTime!
+  modelVersion: String!
+}
+
+type RecommendationSnapshotPreviewPayload {
+  active: RecommendationPreviewResult
+  draft: RecommendationPreviewResult
+  userErrors: [UserError!]!
+}
+
+extend type ListingQuery {
+  recommendationPlacementPolicy(placement: RecommendationPlacement!): RecommendationPlacementPolicy
+  recommendationPlacementPolicies: [RecommendationPlacementPolicy!]!
+  manualProductRecommendations(
+    anchorProductId: ID!
+    placement: RecommendationPlacement!
+    first: Int = 50
+    after: String
+  ): ManualProductRecommendationConnection!
+  recommendationSnapshotPreview(input: RecommendationSnapshotPreviewInput!): RecommendationSnapshotPreviewPayload!
+}
+
+extend type ListingMutation {
+  recommendationPlacementPolicyUpsert(input: RecommendationPlacementPolicyUpsertInput!): RecommendationPlacementPolicyPayload!
+  recommendationPlacementPolicySetEnabled(input: RecommendationPlacementPolicySetEnabledInput!): RecommendationPlacementPolicyPayload!
+  manualProductRecommendationCreate(input: ManualProductRecommendationCreateInput!): ManualProductRecommendationPayload!
+  manualProductRecommendationUpdate(input: ManualProductRecommendationUpdateInput!): ManualProductRecommendationPayload!
+  manualProductRecommendationDelete(input: ManualProductRecommendationDeleteInput!): ManualProductRecommendationDeletePayload!
+}

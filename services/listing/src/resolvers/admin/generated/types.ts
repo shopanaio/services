@@ -1032,6 +1032,11 @@ export type ListingMutation = {
   facetValueUnmerge: FacetValueUnmergePayload;
   /** Update an existing facet value. */
   facetValueUpdate: FacetValueUpdatePayload;
+  manualProductRecommendationCreate: ManualProductRecommendationPayload;
+  manualProductRecommendationDelete: ManualProductRecommendationDeletePayload;
+  manualProductRecommendationUpdate: ManualProductRecommendationPayload;
+  recommendationPlacementPolicySetEnabled: RecommendationPlacementPolicyPayload;
+  recommendationPlacementPolicyUpsert: RecommendationPlacementPolicyPayload;
   /** Search configuration mutation namespace. */
   search: ListingSearchMutation;
 };
@@ -1106,6 +1111,31 @@ export type ListingMutationFacetValueUpdateArgs = {
   input: FacetValueUpdateInput;
 };
 
+
+export type ListingMutationManualProductRecommendationCreateArgs = {
+  input: ManualProductRecommendationCreateInput;
+};
+
+
+export type ListingMutationManualProductRecommendationDeleteArgs = {
+  input: ManualProductRecommendationDeleteInput;
+};
+
+
+export type ListingMutationManualProductRecommendationUpdateArgs = {
+  input: ManualProductRecommendationUpdateInput;
+};
+
+
+export type ListingMutationRecommendationPlacementPolicySetEnabledArgs = {
+  input: RecommendationPlacementPolicySetEnabledInput;
+};
+
+
+export type ListingMutationRecommendationPlacementPolicyUpsertArgs = {
+  input: RecommendationPlacementPolicyUpsertInput;
+};
+
 export type ListingOrderByInput = {
   /** Sort key for the listing request. */
   by: ListingSortBy;
@@ -1170,10 +1200,14 @@ export type ListingQuery = {
    * subgraphs through federation.
    */
   listing: ListingConnection;
+  manualProductRecommendations: ManualProductRecommendationConnection;
   /** Get a node by its global ID. */
   node: Maybe<Node>;
   /** Get multiple nodes by their global IDs. */
   nodes: Array<Maybe<Node>>;
+  recommendationPlacementPolicies: Array<RecommendationPlacementPolicy>;
+  recommendationPlacementPolicy: Maybe<RecommendationPlacementPolicy>;
+  recommendationSnapshotPreview: RecommendationSnapshotPreviewPayload;
   /** Search configuration and diagnostics namespace. */
   search: ListingSearchQuery;
 };
@@ -1234,6 +1268,14 @@ export type ListingQueryListingArgs = {
 };
 
 
+export type ListingQueryManualProductRecommendationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  anchorProductId: Scalars['ID']['input'];
+  first?: InputMaybe<Scalars['Int']['input']>;
+  placement: RecommendationPlacement;
+};
+
+
 export type ListingQueryNodeArgs = {
   id: Scalars['ID']['input'];
 };
@@ -1241,6 +1283,16 @@ export type ListingQueryNodeArgs = {
 
 export type ListingQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
+};
+
+
+export type ListingQueryRecommendationPlacementPolicyArgs = {
+  placement: RecommendationPlacement;
+};
+
+
+export type ListingQueryRecommendationSnapshotPreviewArgs = {
+  input: RecommendationSnapshotPreviewInput;
 };
 
 export type ListingScopeInput = {
@@ -1652,6 +1704,118 @@ export enum LocaleCode {
   Zu = 'zu'
 }
 
+export type ManualProductRecommendation = Node & {
+  __typename?: 'ManualProductRecommendation';
+  action: ManualRecommendationAction;
+  anchorProduct: Product;
+  anchorReferenceStatus: RecommendationReferenceStatus;
+  boost: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  enabled: Scalars['Boolean']['output'];
+  endsAt: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  placement: RecommendationPlacement;
+  position: Maybe<Scalars['Int']['output']>;
+  startsAt: Maybe<Scalars['DateTime']['output']>;
+  targetProduct: Product;
+  targetReferenceStatus: RecommendationReferenceStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  version: Scalars['Int']['output'];
+};
+
+export type ManualProductRecommendationConnection = {
+  __typename?: 'ManualProductRecommendationConnection';
+  edges: Array<ManualProductRecommendationEdge>;
+  nodes: Array<ManualProductRecommendation>;
+  pageInfo: PageInfo;
+};
+
+export type ManualProductRecommendationCreateInput = {
+  action: ManualRecommendationAction;
+  anchorProductId: Scalars['ID']['input'];
+  boost?: InputMaybe<Scalars['String']['input']>;
+  enabled: Scalars['Boolean']['input'];
+  endsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  placement: RecommendationPlacement;
+  position?: InputMaybe<Scalars['Int']['input']>;
+  startsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  targetProductId: Scalars['ID']['input'];
+};
+
+export type ManualProductRecommendationDeleteInput = {
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
+
+export type ManualProductRecommendationDeletePayload = {
+  __typename?: 'ManualProductRecommendationDeletePayload';
+  deletedId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<UserError>;
+};
+
+export type ManualProductRecommendationEdge = {
+  __typename?: 'ManualProductRecommendationEdge';
+  cursor: Scalars['String']['output'];
+  node: ManualProductRecommendation;
+};
+
+export type ManualProductRecommendationPayload = {
+  __typename?: 'ManualProductRecommendationPayload';
+  recommendation: Maybe<ManualProductRecommendation>;
+  userErrors: Array<UserError>;
+};
+
+export type ManualProductRecommendationUpdateInput = {
+  action?: InputMaybe<ManualRecommendationAction>;
+  boost?: InputMaybe<Scalars['String']['input']>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  endsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  position?: InputMaybe<Scalars['Int']['input']>;
+  startsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  targetProductId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export enum ManualRecommendationAction {
+  Boost = 'BOOST',
+  Exclude = 'EXCLUDE',
+  Pin = 'PIN'
+}
+
+export type ManualRecommendationDraftChangeInput = {
+  create?: InputMaybe<ManualRecommendationDraftCreateInput>;
+  delete?: InputMaybe<ManualRecommendationDraftDeleteInput>;
+  update?: InputMaybe<ManualRecommendationDraftUpdateInput>;
+};
+
+export type ManualRecommendationDraftCreateInput = {
+  action: ManualRecommendationAction;
+  boost?: InputMaybe<Scalars['String']['input']>;
+  enabled: Scalars['Boolean']['input'];
+  endsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
+  startsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  targetProductId: Scalars['ID']['input'];
+};
+
+export type ManualRecommendationDraftDeleteInput = {
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
+
+export type ManualRecommendationDraftUpdateInput = {
+  action?: InputMaybe<ManualRecommendationAction>;
+  boost?: InputMaybe<Scalars['String']['input']>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  endsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  position?: InputMaybe<Scalars['Int']['input']>;
+  startsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  targetProductId?: InputMaybe<Scalars['ID']['input']>;
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   /** Listing mutation namespace. */
@@ -1699,11 +1863,137 @@ export type Product = Listing & Node & {
   id: Scalars['ID']['output'];
 };
 
+export enum ProductRecommendationSource {
+  ContentSimilarity = 'CONTENT_SIMILARITY',
+  Fallback = 'FALLBACK',
+  FrequentlyBoughtTogether = 'FREQUENTLY_BOUGHT_TOGETHER',
+  Manual = 'MANUAL',
+  Popularity = 'POPULARITY'
+}
+
 export type Query = {
   __typename?: 'Query';
   /** Listing query namespace. */
   listingQuery: ListingQuery;
 };
+
+export enum RecommendationPlacement {
+  FrequentlyBoughtTogether = 'FREQUENTLY_BOUGHT_TOGETHER',
+  ProductRelated = 'PRODUCT_RELATED'
+}
+
+export type RecommendationPlacementPolicy = Node & {
+  __typename?: 'RecommendationPlacementPolicy';
+  createdAt: Scalars['DateTime']['output'];
+  enabled: Scalars['Boolean']['output'];
+  fallbackChain: Array<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  maximumResults: Scalars['Int']['output'];
+  minimumResults: Scalars['Int']['output'];
+  placement: RecommendationPlacement;
+  strategy: RecommendationStrategy;
+  updatedAt: Scalars['DateTime']['output'];
+  version: Scalars['Int']['output'];
+};
+
+export type RecommendationPlacementPolicyDraftInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion?: InputMaybe<Scalars['Int']['input']>;
+  fallbackChain: Array<Scalars['String']['input']>;
+  maximumResults: Scalars['Int']['input'];
+  minimumResults: Scalars['Int']['input'];
+  strategy: RecommendationStrategy;
+};
+
+export type RecommendationPlacementPolicyPayload = {
+  __typename?: 'RecommendationPlacementPolicyPayload';
+  policy: Maybe<RecommendationPlacementPolicy>;
+  userErrors: Array<UserError>;
+};
+
+export type RecommendationPlacementPolicySetEnabledInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  placement: RecommendationPlacement;
+};
+
+export type RecommendationPlacementPolicyUpsertInput = {
+  expectedVersion?: InputMaybe<Scalars['Int']['input']>;
+  fallbackChain: Array<Scalars['String']['input']>;
+  maximumResults: Scalars['Int']['input'];
+  minimumResults: Scalars['Int']['input'];
+  placement: RecommendationPlacement;
+  strategy: RecommendationStrategy;
+};
+
+export type RecommendationPreviewCandidate = {
+  __typename?: 'RecommendationPreviewCandidate';
+  product: Product;
+  rank: Scalars['Int']['output'];
+  score: Scalars['String']['output'];
+  source: ProductRecommendationSource;
+  sourceBreakdown: RecommendationPreviewSourceBreakdown;
+};
+
+export type RecommendationPreviewExcludedCandidate = {
+  __typename?: 'RecommendationPreviewExcludedCandidate';
+  product: Product;
+  reason: RecommendationPreviewExcludedReason;
+};
+
+export enum RecommendationPreviewExcludedReason {
+  Excluded = 'EXCLUDED',
+  InsufficientSupport = 'INSUFFICIENT_SUPPORT',
+  LimitExceeded = 'LIMIT_EXCEEDED',
+  Stale = 'STALE',
+  Unavailable = 'UNAVAILABLE',
+  Unpublished = 'UNPUBLISHED'
+}
+
+export type RecommendationPreviewResult = {
+  __typename?: 'RecommendationPreviewResult';
+  asOf: Scalars['DateTime']['output'];
+  candidates: Array<RecommendationPreviewCandidate>;
+  excluded: Array<RecommendationPreviewExcludedCandidate>;
+  modelVersion: Scalars['String']['output'];
+};
+
+export type RecommendationPreviewSourceBreakdown = {
+  __typename?: 'RecommendationPreviewSourceBreakdown';
+  categoryPopularityScore: Maybe<Scalars['String']['output']>;
+  fbtRunId: Maybe<Scalars['ID']['output']>;
+  fbtSourceScore: Maybe<Scalars['String']['output']>;
+  manualAction: Maybe<ManualRecommendationAction>;
+  manualBoost: Maybe<Scalars['String']['output']>;
+  manualPosition: Maybe<Scalars['Int']['output']>;
+  storePopularityScore: Maybe<Scalars['String']['output']>;
+};
+
+export enum RecommendationReferenceStatus {
+  Stale = 'STALE',
+  Valid = 'VALID'
+}
+
+export type RecommendationSnapshotPreviewInput = {
+  anchorProductId: Scalars['ID']['input'];
+  manualChanges: Array<ManualRecommendationDraftChangeInput>;
+  placement: RecommendationPlacement;
+  policy?: InputMaybe<RecommendationPlacementPolicyDraftInput>;
+};
+
+export type RecommendationSnapshotPreviewPayload = {
+  __typename?: 'RecommendationSnapshotPreviewPayload';
+  active: Maybe<RecommendationPreviewResult>;
+  draft: Maybe<RecommendationPreviewResult>;
+  userErrors: Array<UserError>;
+};
+
+export enum RecommendationStrategy {
+  AutomatedOnly = 'AUTOMATED_ONLY',
+  Blended = 'BLENDED',
+  CuratedFirst = 'CURATED_FIRST',
+  CuratedOnly = 'CURATED_ONLY'
+}
 
 export type SearchConfigurationDeleteInput = {
   expectedVersion: Scalars['Int']['input'];
@@ -2259,7 +2549,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
   Listing: ( Product );
-  Node: ( Facet ) | ( FacetSwatch ) | ( FacetValue ) | ( Product );
+  Node: ( Facet ) | ( FacetSwatch ) | ( FacetValue ) | ( ManualProductRecommendation ) | ( Product ) | ( RecommendationPlacementPolicy );
   UserError: ( GenericUserError );
 }>;
 
@@ -2345,12 +2635,12 @@ export type ResolversTypes = ResolversObject<{
   ListingFacetType: ListingFacetType;
   ListingFacetValue: ResolverTypeWrapper<ListingFacetValue>;
   ListingFacetValueFilter: ListingFacetValueFilter;
-  ListingMutation: ResolverTypeWrapper<ListingMutation>;
+  ListingMutation: ResolverTypeWrapper<Omit<ListingMutation, 'manualProductRecommendationCreate' | 'manualProductRecommendationDelete' | 'manualProductRecommendationUpdate' | 'recommendationPlacementPolicySetEnabled' | 'recommendationPlacementPolicyUpsert'> & { manualProductRecommendationCreate: ResolversTypes['ManualProductRecommendationPayload'], manualProductRecommendationDelete: ResolversTypes['ManualProductRecommendationDeletePayload'], manualProductRecommendationUpdate: ResolversTypes['ManualProductRecommendationPayload'], recommendationPlacementPolicySetEnabled: ResolversTypes['RecommendationPlacementPolicyPayload'], recommendationPlacementPolicyUpsert: ResolversTypes['RecommendationPlacementPolicyPayload'] }>;
   ListingOrderByInput: ListingOrderByInput;
   ListingPriceRangeFilter: ListingPriceRangeFilter;
   ListingProductFilter: ListingProductFilter;
   ListingProductStatus: ListingProductStatus;
-  ListingQuery: ResolverTypeWrapper<Omit<ListingQuery, 'listing' | 'node' | 'nodes'> & { listing: ResolversTypes['ListingConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
+  ListingQuery: ResolverTypeWrapper<Omit<ListingQuery, 'listing' | 'node' | 'nodes' | 'recommendationPlacementPolicies' | 'recommendationPlacementPolicy' | 'recommendationSnapshotPreview'> & { listing: ResolversTypes['ListingConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>>, recommendationPlacementPolicies: Array<ResolversTypes['RecommendationPlacementPolicy']>, recommendationPlacementPolicy?: Maybe<ResolversTypes['RecommendationPlacementPolicy']>, recommendationSnapshotPreview: ResolversTypes['RecommendationSnapshotPreviewPayload'] }>;
   ListingScopeInput: ListingScopeInput;
   ListingScopeKind: ListingScopeKind;
   ListingSearchMutation: ResolverTypeWrapper<ListingSearchMutation>;
@@ -2359,13 +2649,42 @@ export type ResolversTypes = ResolversObject<{
   ListingSortDirection: ListingSortDirection;
   ListingVariantOptionFilter: ListingVariantOptionFilter;
   LocaleCode: LocaleCode;
+  ManualProductRecommendation: ResolverTypeWrapper<ManualProductRecommendation>;
+  ManualProductRecommendationConnection: ResolverTypeWrapper<ManualProductRecommendationConnection>;
+  ManualProductRecommendationCreateInput: ManualProductRecommendationCreateInput;
+  ManualProductRecommendationDeleteInput: ManualProductRecommendationDeleteInput;
+  ManualProductRecommendationDeletePayload: ResolverTypeWrapper<Omit<ManualProductRecommendationDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  ManualProductRecommendationEdge: ResolverTypeWrapper<ManualProductRecommendationEdge>;
+  ManualProductRecommendationPayload: ResolverTypeWrapper<Omit<ManualProductRecommendationPayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  ManualProductRecommendationUpdateInput: ManualProductRecommendationUpdateInput;
+  ManualRecommendationAction: ManualRecommendationAction;
+  ManualRecommendationDraftChangeInput: ManualRecommendationDraftChangeInput;
+  ManualRecommendationDraftCreateInput: ManualRecommendationDraftCreateInput;
+  ManualRecommendationDraftDeleteInput: ManualRecommendationDraftDeleteInput;
+  ManualRecommendationDraftUpdateInput: ManualRecommendationDraftUpdateInput;
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
   PriceAdjustmentOperation: PriceAdjustmentOperation;
   PriceAdjustmentValueType: PriceAdjustmentValueType;
   Product: ResolverTypeWrapper<Product>;
+  ProductRecommendationSource: ProductRecommendationSource;
   Query: ResolverTypeWrapper<{}>;
+  RecommendationPlacement: RecommendationPlacement;
+  RecommendationPlacementPolicy: ResolverTypeWrapper<RecommendationPlacementPolicy>;
+  RecommendationPlacementPolicyDraftInput: RecommendationPlacementPolicyDraftInput;
+  RecommendationPlacementPolicyPayload: ResolverTypeWrapper<Omit<RecommendationPlacementPolicyPayload, 'policy' | 'userErrors'> & { policy?: Maybe<ResolversTypes['RecommendationPlacementPolicy']>, userErrors: Array<ResolversTypes['UserError']> }>;
+  RecommendationPlacementPolicySetEnabledInput: RecommendationPlacementPolicySetEnabledInput;
+  RecommendationPlacementPolicyUpsertInput: RecommendationPlacementPolicyUpsertInput;
+  RecommendationPreviewCandidate: ResolverTypeWrapper<RecommendationPreviewCandidate>;
+  RecommendationPreviewExcludedCandidate: ResolverTypeWrapper<RecommendationPreviewExcludedCandidate>;
+  RecommendationPreviewExcludedReason: RecommendationPreviewExcludedReason;
+  RecommendationPreviewResult: ResolverTypeWrapper<RecommendationPreviewResult>;
+  RecommendationPreviewSourceBreakdown: ResolverTypeWrapper<RecommendationPreviewSourceBreakdown>;
+  RecommendationReferenceStatus: RecommendationReferenceStatus;
+  RecommendationSnapshotPreviewInput: RecommendationSnapshotPreviewInput;
+  RecommendationSnapshotPreviewPayload: ResolverTypeWrapper<Omit<RecommendationSnapshotPreviewPayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  RecommendationStrategy: RecommendationStrategy;
   SearchConfigurationDeleteInput: SearchConfigurationDeleteInput;
   SearchExecutionMode: SearchExecutionMode;
   SearchExplain: ResolverTypeWrapper<SearchExplain>;
@@ -2486,20 +2805,43 @@ export type ResolversParentTypes = ResolversObject<{
   ListingFacet: ListingFacet;
   ListingFacetValue: ListingFacetValue;
   ListingFacetValueFilter: ListingFacetValueFilter;
-  ListingMutation: ListingMutation;
+  ListingMutation: Omit<ListingMutation, 'manualProductRecommendationCreate' | 'manualProductRecommendationDelete' | 'manualProductRecommendationUpdate' | 'recommendationPlacementPolicySetEnabled' | 'recommendationPlacementPolicyUpsert'> & { manualProductRecommendationCreate: ResolversParentTypes['ManualProductRecommendationPayload'], manualProductRecommendationDelete: ResolversParentTypes['ManualProductRecommendationDeletePayload'], manualProductRecommendationUpdate: ResolversParentTypes['ManualProductRecommendationPayload'], recommendationPlacementPolicySetEnabled: ResolversParentTypes['RecommendationPlacementPolicyPayload'], recommendationPlacementPolicyUpsert: ResolversParentTypes['RecommendationPlacementPolicyPayload'] };
   ListingOrderByInput: ListingOrderByInput;
   ListingPriceRangeFilter: ListingPriceRangeFilter;
   ListingProductFilter: ListingProductFilter;
-  ListingQuery: Omit<ListingQuery, 'listing' | 'node' | 'nodes'> & { listing: ResolversParentTypes['ListingConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
+  ListingQuery: Omit<ListingQuery, 'listing' | 'node' | 'nodes' | 'recommendationPlacementPolicies' | 'recommendationPlacementPolicy' | 'recommendationSnapshotPreview'> & { listing: ResolversParentTypes['ListingConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>>, recommendationPlacementPolicies: Array<ResolversParentTypes['RecommendationPlacementPolicy']>, recommendationPlacementPolicy?: Maybe<ResolversParentTypes['RecommendationPlacementPolicy']>, recommendationSnapshotPreview: ResolversParentTypes['RecommendationSnapshotPreviewPayload'] };
   ListingScopeInput: ListingScopeInput;
   ListingSearchMutation: ListingSearchMutation;
   ListingSearchQuery: ListingSearchQuery;
   ListingVariantOptionFilter: ListingVariantOptionFilter;
+  ManualProductRecommendation: ManualProductRecommendation;
+  ManualProductRecommendationConnection: ManualProductRecommendationConnection;
+  ManualProductRecommendationCreateInput: ManualProductRecommendationCreateInput;
+  ManualProductRecommendationDeleteInput: ManualProductRecommendationDeleteInput;
+  ManualProductRecommendationDeletePayload: Omit<ManualProductRecommendationDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  ManualProductRecommendationEdge: ManualProductRecommendationEdge;
+  ManualProductRecommendationPayload: Omit<ManualProductRecommendationPayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  ManualProductRecommendationUpdateInput: ManualProductRecommendationUpdateInput;
+  ManualRecommendationDraftChangeInput: ManualRecommendationDraftChangeInput;
+  ManualRecommendationDraftCreateInput: ManualRecommendationDraftCreateInput;
+  ManualRecommendationDraftDeleteInput: ManualRecommendationDraftDeleteInput;
+  ManualRecommendationDraftUpdateInput: ManualRecommendationDraftUpdateInput;
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   PageInfo: PageInfo;
   Product: Product;
   Query: {};
+  RecommendationPlacementPolicy: RecommendationPlacementPolicy;
+  RecommendationPlacementPolicyDraftInput: RecommendationPlacementPolicyDraftInput;
+  RecommendationPlacementPolicyPayload: Omit<RecommendationPlacementPolicyPayload, 'policy' | 'userErrors'> & { policy?: Maybe<ResolversParentTypes['RecommendationPlacementPolicy']>, userErrors: Array<ResolversParentTypes['UserError']> };
+  RecommendationPlacementPolicySetEnabledInput: RecommendationPlacementPolicySetEnabledInput;
+  RecommendationPlacementPolicyUpsertInput: RecommendationPlacementPolicyUpsertInput;
+  RecommendationPreviewCandidate: RecommendationPreviewCandidate;
+  RecommendationPreviewExcludedCandidate: RecommendationPreviewExcludedCandidate;
+  RecommendationPreviewResult: RecommendationPreviewResult;
+  RecommendationPreviewSourceBreakdown: RecommendationPreviewSourceBreakdown;
+  RecommendationSnapshotPreviewInput: RecommendationSnapshotPreviewInput;
+  RecommendationSnapshotPreviewPayload: Omit<RecommendationSnapshotPreviewPayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   SearchConfigurationDeleteInput: SearchConfigurationDeleteInput;
   SearchExplain: SearchExplain;
   SearchExplainClause: SearchExplainClause;
@@ -2802,6 +3144,11 @@ export type ListingMutationResolvers<ContextType = ServiceContext, ParentType ex
   facetValueMerge?: Resolver<ResolversTypes['FacetValueMergePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetValueMergeArgs, 'input'>>;
   facetValueUnmerge?: Resolver<ResolversTypes['FacetValueUnmergePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetValueUnmergeArgs, 'input'>>;
   facetValueUpdate?: Resolver<ResolversTypes['FacetValueUpdatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetValueUpdateArgs, 'input'>>;
+  manualProductRecommendationCreate?: Resolver<ResolversTypes['ManualProductRecommendationPayload'], ParentType, ContextType, RequireFields<ListingMutationManualProductRecommendationCreateArgs, 'input'>>;
+  manualProductRecommendationDelete?: Resolver<ResolversTypes['ManualProductRecommendationDeletePayload'], ParentType, ContextType, RequireFields<ListingMutationManualProductRecommendationDeleteArgs, 'input'>>;
+  manualProductRecommendationUpdate?: Resolver<ResolversTypes['ManualProductRecommendationPayload'], ParentType, ContextType, RequireFields<ListingMutationManualProductRecommendationUpdateArgs, 'input'>>;
+  recommendationPlacementPolicySetEnabled?: Resolver<ResolversTypes['RecommendationPlacementPolicyPayload'], ParentType, ContextType, RequireFields<ListingMutationRecommendationPlacementPolicySetEnabledArgs, 'input'>>;
+  recommendationPlacementPolicyUpsert?: Resolver<ResolversTypes['RecommendationPlacementPolicyPayload'], ParentType, ContextType, RequireFields<ListingMutationRecommendationPlacementPolicyUpsertArgs, 'input'>>;
   search?: Resolver<ResolversTypes['ListingSearchMutation'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -2816,8 +3163,12 @@ export type ListingQueryResolvers<ContextType = ServiceContext, ParentType exten
   facetValues?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType, RequireFields<ListingQueryFacetValuesArgs, 'facetId'>>;
   facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
   listing?: Resolver<ResolversTypes['ListingConnection'], ParentType, ContextType, Partial<ListingQueryListingArgs>>;
+  manualProductRecommendations?: Resolver<ResolversTypes['ManualProductRecommendationConnection'], ParentType, ContextType, RequireFields<ListingQueryManualProductRecommendationsArgs, 'anchorProductId' | 'first' | 'placement'>>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<ListingQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<ListingQueryNodesArgs, 'ids'>>;
+  recommendationPlacementPolicies?: Resolver<Array<ResolversTypes['RecommendationPlacementPolicy']>, ParentType, ContextType>;
+  recommendationPlacementPolicy?: Resolver<Maybe<ResolversTypes['RecommendationPlacementPolicy']>, ParentType, ContextType, RequireFields<ListingQueryRecommendationPlacementPolicyArgs, 'placement'>>;
+  recommendationSnapshotPreview?: Resolver<ResolversTypes['RecommendationSnapshotPreviewPayload'], ParentType, ContextType, RequireFields<ListingQueryRecommendationSnapshotPreviewArgs, 'input'>>;
   search?: Resolver<ResolversTypes['ListingSearchQuery'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -2843,12 +3194,56 @@ export type ListingSearchQueryResolvers<ContextType = ServiceContext, ParentType
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ManualProductRecommendationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ManualProductRecommendation'] = ResolversParentTypes['ManualProductRecommendation']> = ResolversObject<{
+  action?: Resolver<ResolversTypes['ManualRecommendationAction'], ParentType, ContextType>;
+  anchorProduct?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
+  anchorReferenceStatus?: Resolver<ResolversTypes['RecommendationReferenceStatus'], ParentType, ContextType>;
+  boost?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  endsAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  placement?: Resolver<ResolversTypes['RecommendationPlacement'], ParentType, ContextType>;
+  position?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  startsAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  targetProduct?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
+  targetReferenceStatus?: Resolver<ResolversTypes['RecommendationReferenceStatus'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ManualProductRecommendationConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ManualProductRecommendationConnection'] = ResolversParentTypes['ManualProductRecommendationConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['ManualProductRecommendationEdge']>, ParentType, ContextType>;
+  nodes?: Resolver<Array<ResolversTypes['ManualProductRecommendation']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ManualProductRecommendationDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ManualProductRecommendationDeletePayload'] = ResolversParentTypes['ManualProductRecommendationDeletePayload']> = ResolversObject<{
+  deletedId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ManualProductRecommendationEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ManualProductRecommendationEdge'] = ResolversParentTypes['ManualProductRecommendationEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['ManualProductRecommendation'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ManualProductRecommendationPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ManualProductRecommendationPayload'] = ResolversParentTypes['ManualProductRecommendationPayload']> = ResolversObject<{
+  recommendation?: Resolver<Maybe<ResolversTypes['ManualProductRecommendation']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type MutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
   listingMutation?: Resolver<ResolversTypes['ListingMutation'], ParentType, ContextType>;
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Facet' | 'FacetSwatch' | 'FacetValue' | 'Product', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Facet' | 'FacetSwatch' | 'FacetValue' | 'ManualProductRecommendation' | 'Product' | 'RecommendationPlacementPolicy', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -2868,6 +3263,67 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
 
 export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   listingQuery?: Resolver<ResolversTypes['ListingQuery'], ParentType, ContextType>;
+}>;
+
+export type RecommendationPlacementPolicyResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RecommendationPlacementPolicy'] = ResolversParentTypes['RecommendationPlacementPolicy']> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  fallbackChain?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  maximumResults?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  minimumResults?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  placement?: Resolver<ResolversTypes['RecommendationPlacement'], ParentType, ContextType>;
+  strategy?: Resolver<ResolversTypes['RecommendationStrategy'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RecommendationPlacementPolicyPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RecommendationPlacementPolicyPayload'] = ResolversParentTypes['RecommendationPlacementPolicyPayload']> = ResolversObject<{
+  policy?: Resolver<Maybe<ResolversTypes['RecommendationPlacementPolicy']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RecommendationPreviewCandidateResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RecommendationPreviewCandidate'] = ResolversParentTypes['RecommendationPreviewCandidate']> = ResolversObject<{
+  product?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
+  rank?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  score?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  source?: Resolver<ResolversTypes['ProductRecommendationSource'], ParentType, ContextType>;
+  sourceBreakdown?: Resolver<ResolversTypes['RecommendationPreviewSourceBreakdown'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RecommendationPreviewExcludedCandidateResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RecommendationPreviewExcludedCandidate'] = ResolversParentTypes['RecommendationPreviewExcludedCandidate']> = ResolversObject<{
+  product?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
+  reason?: Resolver<ResolversTypes['RecommendationPreviewExcludedReason'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RecommendationPreviewResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RecommendationPreviewResult'] = ResolversParentTypes['RecommendationPreviewResult']> = ResolversObject<{
+  asOf?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  candidates?: Resolver<Array<ResolversTypes['RecommendationPreviewCandidate']>, ParentType, ContextType>;
+  excluded?: Resolver<Array<ResolversTypes['RecommendationPreviewExcludedCandidate']>, ParentType, ContextType>;
+  modelVersion?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RecommendationPreviewSourceBreakdownResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RecommendationPreviewSourceBreakdown'] = ResolversParentTypes['RecommendationPreviewSourceBreakdown']> = ResolversObject<{
+  categoryPopularityScore?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  fbtRunId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  fbtSourceScore?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  manualAction?: Resolver<Maybe<ResolversTypes['ManualRecommendationAction']>, ParentType, ContextType>;
+  manualBoost?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  manualPosition?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  storePopularityScore?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RecommendationSnapshotPreviewPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RecommendationSnapshotPreviewPayload'] = ResolversParentTypes['RecommendationSnapshotPreviewPayload']> = ResolversObject<{
+  active?: Resolver<Maybe<ResolversTypes['RecommendationPreviewResult']>, ParentType, ContextType>;
+  draft?: Resolver<Maybe<ResolversTypes['RecommendationPreviewResult']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type SearchExplainResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchExplain'] = ResolversParentTypes['SearchExplain']> = ResolversObject<{
@@ -3093,11 +3549,23 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ListingQuery?: ListingQueryResolvers<ContextType>;
   ListingSearchMutation?: ListingSearchMutationResolvers<ContextType>;
   ListingSearchQuery?: ListingSearchQueryResolvers<ContextType>;
+  ManualProductRecommendation?: ManualProductRecommendationResolvers<ContextType>;
+  ManualProductRecommendationConnection?: ManualProductRecommendationConnectionResolvers<ContextType>;
+  ManualProductRecommendationDeletePayload?: ManualProductRecommendationDeletePayloadResolvers<ContextType>;
+  ManualProductRecommendationEdge?: ManualProductRecommendationEdgeResolvers<ContextType>;
+  ManualProductRecommendationPayload?: ManualProductRecommendationPayloadResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Node?: NodeResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
   Product?: ProductResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  RecommendationPlacementPolicy?: RecommendationPlacementPolicyResolvers<ContextType>;
+  RecommendationPlacementPolicyPayload?: RecommendationPlacementPolicyPayloadResolvers<ContextType>;
+  RecommendationPreviewCandidate?: RecommendationPreviewCandidateResolvers<ContextType>;
+  RecommendationPreviewExcludedCandidate?: RecommendationPreviewExcludedCandidateResolvers<ContextType>;
+  RecommendationPreviewResult?: RecommendationPreviewResultResolvers<ContextType>;
+  RecommendationPreviewSourceBreakdown?: RecommendationPreviewSourceBreakdownResolvers<ContextType>;
+  RecommendationSnapshotPreviewPayload?: RecommendationSnapshotPreviewPayloadResolvers<ContextType>;
   SearchExplain?: SearchExplainResolvers<ContextType>;
   SearchExplainClause?: SearchExplainClauseResolvers<ContextType>;
   SearchExplainFieldWeight?: SearchExplainFieldWeightResolvers<ContextType>;

@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import type { PageInfo } from "@shopana/drizzle-query";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
@@ -48,6 +48,11 @@ export interface StoreConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
   pageInfo: PageInfo;
   totalCount: number;
+}
+
+export interface ActiveStorePage {
+  stores: Array<{ storeId: string; organizationId: string }>;
+  nextCursor: string | null;
 }
 
 export interface CreateStoreData {
@@ -254,6 +259,32 @@ export class StoreRepository extends BaseRepository {
       .from(store)
       .where(isNull(store.deletedAt));
     return Promise.all(stores.map((s) => this.loadIntegrations(s)));
+  }
+
+  @ReadOnly()
+  async listActiveWorkflowContexts(input: {
+    afterStoreId?: string;
+    first: number;
+  }): Promise<ActiveStorePage> {
+    const rows = await this.connection
+      .select({ storeId: store.id, organizationId: store.organizationId })
+      .from(store)
+      .where(
+        and(
+          eq(store.status, "active"),
+          isNull(store.deletedAt),
+          input.afterStoreId ? gt(store.id, input.afterStoreId) : undefined,
+        ),
+      )
+      .orderBy(asc(store.id))
+      .limit(input.first + 1);
+
+    const hasNextPage = rows.length > input.first;
+    const stores = rows.slice(0, input.first);
+    return {
+      stores,
+      nextCursor: hasNextPage ? stores.at(-1)?.storeId ?? null : null,
+    };
   }
 
   @ReadOnly()

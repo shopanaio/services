@@ -157,17 +157,25 @@ type CatalogQuery {
   category(id: ID!): Category
 
   """
-  Get a collection by ID
+  Get a collection by global ID.
+
+  Admin access includes drafts, scheduled collections, and inactive collections.
   """
   collection(id: ID!): Collection
 
   """
-  Get a collection by its handle
+  Get a collection by its normalized store-local handle.
+
+  Admin access includes drafts, scheduled collections, and inactive collections.
   """
   collectionByHandle(handle: String!): Collection
 
   """
-  Get collections with Relay-style pagination
+  Get collections with Relay-style pagination.
+
+  Candidate picker data for collection rules is intentionally loaded through
+  dedicated queries: categories, tags, and vendors from Catalog; feature and
+  option values from Listing facet-value candidates.
   """
   collections(first: Int, after: String, last: Int, before: String): CollectionConnection!
 
@@ -429,44 +437,60 @@ type CatalogMutation {
   categoryDelete(input: CategoryDeleteInput!): CategoryDeletePayload!
 
   """
-  Create a new collection
+  Create a collection.
+
+  RULE collections are created as drafts, then receive their initial rules
+  through collectionUpdateRules using the returned revision.
   """
   collectionCreate(input: CollectionCreateInput!): CollectionCreatePayload!
 
   """
-  Update an existing collection
+  Update collection content, publication, schedule, media, SEO, or default sort.
+
+  This mutation does not change collection type, RULE membership, or MANUAL
+  product membership.
   """
   collectionUpdate(input: CollectionUpdateInput!): CollectionUpdatePayload!
 
   """
-  Delete a collection
+  Soft-delete a collection using optimistic locking.
   """
   collectionDelete(input: CollectionDeleteInput!): CollectionDeletePayload!
 
   """
-  Add products to a collection
+  Add products to a MANUAL collection.
   """
   collectionAddProducts(input: CollectionAddProductsInput!): CollectionAddProductsPayload!
 
   """
-  Remove products from a collection
+  Remove products from a MANUAL collection.
   """
   collectionRemoveProducts(input: CollectionRemoveProductsInput!): CollectionRemoveProductsPayload!
 
   """
-  Move a product within a collection
+  Reorder one product within a MANUAL collection.
   """
   collectionMoveProduct(input: CollectionMoveProductInput!): CollectionMoveProductPayload!
 
   """
-  Update collection rules for automatic product inclusion
+  Atomically replace the complete, AND-combined rule set of a RULE collection.
   """
   collectionUpdateRules(input: CollectionUpdateRulesInput!): CollectionUpdateRulesPayload!
 
+  """
+  Repair MANUAL collection rank spacing without changing visible product order.
+  """
   collectionRebalance(input: CollectionRebalanceInput!): CollectionRebalancePayload!
 
+  """Remove every product from a MANUAL collection."""
   collectionClearProducts(input: CollectionClearProductsInput!): CollectionClearProductsPayload!
 
+  """
+  Validate and count a transient rule set against the current Listing index.
+
+  This is a mutation because evaluation executes a non-cacheable cross-service
+  workflow. It does not persist or modify collection state.
+  """
   collectionRulesPreviewCount(input: CollectionRulesPreviewCountInput!): CollectionRulesPreviewCountPayload!
 
   # Tag mutations

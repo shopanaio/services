@@ -57,6 +57,16 @@ async function bootstrap() {
           onConflict: 'update_if_latest_version',
         },
         {
+          name: 'recommendation_snapshot_build',
+          partitionQueue: true,
+          concurrency: 1,
+          workerConcurrency: parsePositiveInteger(
+            process.env.RECOMMENDATION_SNAPSHOT_WORKER_CONCURRENCY,
+            20,
+          ),
+          onConflict: 'update_if_latest_version',
+        },
+        {
           name: 'customer_statistics_projection',
           partitionQueue: true,
           concurrency: 4,

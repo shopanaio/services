@@ -17,7 +17,21 @@ import {
 import {
   StorefrontFacetResolutionRepository,
   StorefrontListingQueryRepository,
+  StorefrontRecommendationQueryRepository,
 } from "./storefront/index.js";
+import {
+  ManualProductRecommendationRepository,
+  RecommendationAnchorCollectorRepository,
+  RecommendationBuildRequestRepository,
+  RecommendationCalculationAccumulatorRepository,
+  RecommendationCalculationRunRepository,
+  RecommendationCandidateSourceRepository,
+  RecommendationIngestionCursorRepository,
+  RecommendationMaintenanceRepository,
+  RecommendationOrderFactRepository,
+  RecommendationPlacementPolicyRepository,
+  RecommendationSnapshotRepository,
+} from "./recommendation/index.js";
 import { FacetRepository } from "./facet/FacetRepository.js";
 import { FacetValueRepository } from "./facet/FacetValueRepository.js";
 import { FacetSwatchRepository } from "./facet/FacetSwatchRepository.js";
@@ -62,6 +76,18 @@ export class Repository {
   public readonly facetSwatch: FacetSwatchRepository;
   public readonly storefrontFacetResolution: StorefrontFacetResolutionRepository;
   public readonly storefrontListingQuery: StorefrontListingQueryRepository;
+  public readonly storefrontRecommendationQuery: StorefrontRecommendationQueryRepository;
+  public readonly recommendationPlacementPolicy: RecommendationPlacementPolicyRepository;
+  public readonly manualProductRecommendation: ManualProductRecommendationRepository;
+  public readonly recommendationIngestionCursor: RecommendationIngestionCursorRepository;
+  public readonly recommendationOrderFact: RecommendationOrderFactRepository;
+  public readonly recommendationCalculationRun: RecommendationCalculationRunRepository;
+  public readonly recommendationCalculationAccumulator: RecommendationCalculationAccumulatorRepository;
+  public readonly recommendationCandidateSource: RecommendationCandidateSourceRepository;
+  public readonly recommendationSnapshot: RecommendationSnapshotRepository;
+  public readonly recommendationMaintenance: RecommendationMaintenanceRepository;
+  public readonly recommendationBuildRequest: RecommendationBuildRequestRepository;
+  public readonly recommendationAnchorCollector: RecommendationAnchorCollectorRepository;
   public readonly searchTextElement: SearchTextElementRepository;
   public readonly searchIdentifier: SearchIdentifierRepository;
   public readonly searchTerm: SearchTermRepository;
@@ -92,6 +118,18 @@ export class Repository {
     facetSwatch: FacetSwatchRepository,
     storefrontFacetResolution: StorefrontFacetResolutionRepository,
     storefrontListingQuery: StorefrontListingQueryRepository,
+    storefrontRecommendationQuery: StorefrontRecommendationQueryRepository,
+    recommendationPlacementPolicy: RecommendationPlacementPolicyRepository,
+    manualProductRecommendation: ManualProductRecommendationRepository,
+    recommendationIngestionCursor: RecommendationIngestionCursorRepository,
+    recommendationOrderFact: RecommendationOrderFactRepository,
+    recommendationCalculationRun: RecommendationCalculationRunRepository,
+    recommendationCalculationAccumulator: RecommendationCalculationAccumulatorRepository,
+    recommendationCandidateSource: RecommendationCandidateSourceRepository,
+    recommendationSnapshot: RecommendationSnapshotRepository,
+    recommendationMaintenance: RecommendationMaintenanceRepository,
+    recommendationBuildRequest: RecommendationBuildRequestRepository,
+    recommendationAnchorCollector: RecommendationAnchorCollectorRepository,
     searchTextElement: SearchTextElementRepository,
     searchIdentifier: SearchIdentifierRepository,
     searchTerm: SearchTermRepository,
@@ -117,6 +155,18 @@ export class Repository {
     this.facetSwatch = facetSwatch;
     this.storefrontFacetResolution = storefrontFacetResolution;
     this.storefrontListingQuery = storefrontListingQuery;
+    this.storefrontRecommendationQuery = storefrontRecommendationQuery;
+    this.recommendationPlacementPolicy = recommendationPlacementPolicy;
+    this.manualProductRecommendation = manualProductRecommendation;
+    this.recommendationIngestionCursor = recommendationIngestionCursor;
+    this.recommendationOrderFact = recommendationOrderFact;
+    this.recommendationCalculationRun = recommendationCalculationRun;
+    this.recommendationCalculationAccumulator = recommendationCalculationAccumulator;
+    this.recommendationCandidateSource = recommendationCandidateSource;
+    this.recommendationSnapshot = recommendationSnapshot;
+    this.recommendationMaintenance = recommendationMaintenance;
+    this.recommendationBuildRequest = recommendationBuildRequest;
+    this.recommendationAnchorCollector = recommendationAnchorCollector;
     this.searchTextElement = searchTextElement;
     this.searchIdentifier = searchIdentifier;
     this.searchTerm = searchTerm;
@@ -191,6 +241,18 @@ export class Repository {
       heavyOptionFacetCountsEnabled,
       facetCountsProfilingEnabled
     );
+    const storefrontRecommendationQuery = new StorefrontRecommendationQueryRepository(db, txManager);
+    const recommendationPlacementPolicy = new RecommendationPlacementPolicyRepository(db, txManager);
+    const manualProductRecommendation = new ManualProductRecommendationRepository(db, txManager);
+    const recommendationIngestionCursor = new RecommendationIngestionCursorRepository(db, txManager);
+    const recommendationOrderFact = new RecommendationOrderFactRepository(db, txManager);
+    const recommendationCalculationRun = new RecommendationCalculationRunRepository(db, txManager);
+    const recommendationCalculationAccumulator = new RecommendationCalculationAccumulatorRepository(db, txManager);
+    const recommendationCandidateSource = new RecommendationCandidateSourceRepository(db, txManager);
+    const recommendationSnapshot = new RecommendationSnapshotRepository(db, txManager);
+    const recommendationMaintenance = new RecommendationMaintenanceRepository(db, txManager);
+    const recommendationBuildRequest = new RecommendationBuildRequestRepository(db, txManager);
+    const recommendationAnchorCollector = new RecommendationAnchorCollectorRepository(db, txManager);
     const searchSettings = new SearchSettingsRepository(db, txManager);
     const searchSynonym = new SearchSynonymRepository(db, txManager);
     const searchProductBoost = new SearchProductBoostRepository(db, txManager);
@@ -213,6 +275,18 @@ export class Repository {
       facetSwatch,
       storefrontFacetResolution,
       storefrontListingQuery,
+      storefrontRecommendationQuery,
+      recommendationPlacementPolicy,
+      manualProductRecommendation,
+      recommendationIngestionCursor,
+      recommendationOrderFact,
+      recommendationCalculationRun,
+      recommendationCalculationAccumulator,
+      recommendationCandidateSource,
+      recommendationSnapshot,
+      recommendationMaintenance,
+      recommendationBuildRequest,
+      recommendationAnchorCollector,
       searchTextElement,
       searchIdentifier,
       searchTerm,

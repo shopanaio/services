@@ -5,6 +5,7 @@ import type {
   FilterValueResolverInput,
 } from "./FilterModels.js";
 import type { ProductConnectionInput } from "./ListingQueryTypes.js";
+import type { ProductRecommendationConnectionInput } from "./ProductRecommendationConnectionResolver.js";
 
 const registries = new WeakMap<ServiceContext, ResolverRegistry>();
 
@@ -35,6 +36,13 @@ export class ResolverRegistry {
       "./ProductConnectionResolver.js"
     );
     return new ProductConnectionResolver(input, this.ctx);
+  }
+
+  async productRecommendationConnection(input: ProductRecommendationConnectionInput) {
+    const { ProductRecommendationConnectionResolver } = await import(
+      "./ProductRecommendationConnectionResolver.js"
+    );
+    return new ProductRecommendationConnectionResolver(input, this.ctx);
   }
 
   async filter(input: FilterResolverInput) {

@@ -4,6 +4,7 @@ import { ListingProductBatchEventHandlers } from "./handlers/ListingProductBatch
 import { ListingProductEventHandlers } from "./handlers/ListingProductEventHandlers.js";
 import { ListingStoreEventHandlers } from "./handlers/ListingStoreEventHandlers.js";
 import { ListingCollectionEventHandlers } from "./handlers/ListingCollectionEventHandlers.js";
+import { RecommendationOrderEventHandlers } from "./handlers/RecommendationOrderEventHandlers.js";
 import { ListingNestService } from "./listing.nest-service.js";
 import { ListingBatchProductIndexWorkflow } from "./workflows/ListingBatchProductIndexWorkflow.js";
 import {
@@ -32,6 +33,18 @@ import {
 } from "./workflows/SearchResourceMutationWorkflows.js";
 import { ListingCollectionProjectionWorkflow } from "./workflows/ListingCollectionProjectionWorkflow.js";
 import { ListingBrokerActions } from "./actions/index.js";
+import {
+  RecommendationCalculationRunWorkflow,
+  RecommendationCalculationTriggerWorkflow,
+  RecommendationMutationWorkflow,
+  RecommendationGlobalTriggerWorkflow,
+  RecommendationManualScheduleWorkflow,
+  RecommendationReferenceStateSyncWorkflow,
+  RecommendationOrderFactIngestWorkflow,
+  RecommendationSnapshotBuildWorkflow,
+  RecommendationSnapshotFanOutWorkflow,
+} from "./workflows/RecommendationWorkflows.js";
+import { RecommendationScheduler } from "./scheduled/RecommendationScheduler.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "listing" })],
@@ -41,6 +54,7 @@ import { ListingBrokerActions } from "./actions/index.js";
     ListingProductBatchEventHandlers,
     ListingStoreEventHandlers,
     ListingCollectionEventHandlers,
+    RecommendationOrderEventHandlers,
     ListingBatchProductIndexWorkflow,
     ListingSyncSellableItemIndexWorkflow,
     ListingDeleteSellableItemIndexWorkflow,
@@ -62,6 +76,16 @@ import { ListingBrokerActions } from "./actions/index.js";
     SearchProductBoostCreateWorkflow,
     SearchProductBoostUpdateWorkflow,
     SearchProductBoostDeleteWorkflow,
+    RecommendationOrderFactIngestWorkflow,
+    RecommendationCalculationRunWorkflow,
+    RecommendationCalculationTriggerWorkflow,
+    RecommendationSnapshotBuildWorkflow,
+    RecommendationSnapshotFanOutWorkflow,
+    RecommendationMutationWorkflow,
+    RecommendationManualScheduleWorkflow,
+    RecommendationGlobalTriggerWorkflow,
+    RecommendationReferenceStateSyncWorkflow,
+    RecommendationScheduler,
   ],
 })
 export class ListingModule {}

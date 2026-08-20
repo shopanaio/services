@@ -76,6 +76,25 @@ export class MutationResolver extends ListingType<Record<string, never>> {
 }
 
 export class ListingMutationResolver extends ListingType<Record<string, never>> {
+  async recommendationPlacementPolicyUpsert(args: Parameters<import("./RecommendationResolvers.js").RecommendationMutationResolver["policyUpsert"]>[0]) {
+    return (await this.resolvers.recommendationMutation()).policyUpsert(args);
+  }
+
+  async recommendationPlacementPolicySetEnabled(args: Parameters<import("./RecommendationResolvers.js").RecommendationMutationResolver["policySetEnabled"]>[0]) {
+    return (await this.resolvers.recommendationMutation()).policySetEnabled(args);
+  }
+
+  async manualProductRecommendationCreate(args: Parameters<import("./RecommendationResolvers.js").RecommendationMutationResolver["manualCreate"]>[0]) {
+    return (await this.resolvers.recommendationMutation()).manualCreate(args);
+  }
+
+  async manualProductRecommendationUpdate(args: Parameters<import("./RecommendationResolvers.js").RecommendationMutationResolver["manualUpdate"]>[0]) {
+    return (await this.resolvers.recommendationMutation()).manualUpdate(args);
+  }
+
+  async manualProductRecommendationDelete(args: Parameters<import("./RecommendationResolvers.js").RecommendationMutationResolver["manualDelete"]>[0]) {
+    return (await this.resolvers.recommendationMutation()).manualDelete(args);
+  }
   async search() {
     return this.resolvers.listingSearchMutation();
   }

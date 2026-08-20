@@ -11,6 +11,7 @@ import { FacetResolver } from "../../../resolvers/storefront/FacetResolver.js";
 import { FacetSwatchResolver } from "../../../resolvers/storefront/FacetSwatchResolver.js";
 import { FacetValueResolver } from "../../../resolvers/storefront/FacetValueResolver.js";
 import { ProductConnectionResolver } from "../../../resolvers/storefront/ProductConnectionResolver.js";
+import { ProductRecommendationConnectionResolver } from "../../../resolvers/storefront/ProductRecommendationConnectionResolver.js";
 import type {
   Resolvers,
   ResolversTypes,
@@ -27,13 +28,38 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
   },
 
   Connection: {
-    __resolveType: (value) =>
-      value instanceof ProductConnectionResolver ? "ProductConnection" : null,
+    __resolveType: (value) => {
+      if (value instanceof ProductConnectionResolver) return "ProductConnection";
+      if (value instanceof ProductRecommendationConnectionResolver) {
+        return "ProductRecommendationConnection";
+      }
+      return null;
+    },
   },
 
   Product: {
     __resolveReference: (reference) =>
       reference as unknown as ResolversTypes["Product"],
+    relatedProducts: (
+      reference: { id: string },
+      args: { first?: number | null; after?: string | null },
+      ctx: ServiceContext,
+    ) => new ProductRecommendationConnectionResolver({
+      anchorProductId: decodeGlobalIdByType(reference.id, GlobalIdEntity.Product),
+      placement: "PRODUCT_RELATED",
+      first: args.first ?? 12,
+      after: args.after ?? null,
+    }, ctx),
+    frequentlyBoughtTogether: (
+      reference: { id: string },
+      args: { first?: number | null; after?: string | null },
+      ctx: ServiceContext,
+    ) => new ProductRecommendationConnectionResolver({
+      anchorProductId: decodeGlobalIdByType(reference.id, GlobalIdEntity.Product),
+      placement: "FREQUENTLY_BOUGHT_TOGETHER",
+      first: args.first ?? 3,
+      after: args.after ?? null,
+    }, ctx),
   },
 
   Category: {

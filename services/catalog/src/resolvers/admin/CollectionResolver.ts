@@ -165,13 +165,95 @@ export class CollectionResolver extends CatalogType<string, Collection> {
           ? "VALID"
           : "STALE";
       }
-      return {
+      const common = {
         id: row.id,
-        field: row.field.toUpperCase(),
-        operator: row.operator.toUpperCase(),
-        value: row.value,
+        field: rule.field.toUpperCase(),
         sortIndex: row.sortIndex,
         referenceStatus,
+      };
+      if (rule.field === "category") {
+        return {
+          __typename: "CollectionCategoryRule" as const,
+          ...common,
+          operator: rule.operator.toUpperCase(),
+          categoryIds: rule.value.ids.map((id) =>
+            this.encodeId(id, GlobalIdEntity.Category)
+          ),
+        };
+      }
+      if (rule.field === "tag") {
+        return {
+          __typename: "CollectionTagRule" as const,
+          ...common,
+          operator: rule.operator.toUpperCase(),
+          tagIds: rule.value.ids.map((id) =>
+            this.encodeId(id, GlobalIdEntity.Tag)
+          ),
+        };
+      }
+      if (rule.field === "vendor") {
+        return {
+          __typename: "CollectionVendorRule" as const,
+          ...common,
+          vendorIds: rule.value.ids.map((id) =>
+            this.encodeId(id, GlobalIdEntity.Vendor)
+          ),
+        };
+      }
+      if (rule.field === "feature") {
+        return {
+          __typename: "CollectionFeatureRule" as const,
+          ...common,
+          operator: rule.operator.toUpperCase(),
+          values: rule.value.values,
+        };
+      }
+      if (rule.field === "option") {
+        return {
+          __typename: "CollectionOptionRule" as const,
+          ...common,
+          operator: rule.operator.toUpperCase(),
+          values: rule.value.values,
+        };
+      }
+      if (rule.field === "price") {
+        if (rule.operator === "between") {
+          return {
+            __typename: "CollectionPriceRangeRule" as const,
+            ...common,
+            currencyCode: rule.value.currencyCode,
+            minAmountMinor: rule.value.minAmountMinor,
+            maxAmountMinor: rule.value.maxAmountMinor,
+          };
+        }
+        return {
+          __typename: "CollectionPriceComparisonRule" as const,
+          ...common,
+          operator: rule.operator.toUpperCase(),
+          currencyCode: rule.value.currencyCode,
+          amountMinor: rule.value.amountMinor,
+        };
+      }
+      if (rule.field === "in_stock") {
+        return {
+          __typename: "CollectionInStockRule" as const,
+          ...common,
+          value: rule.value.value,
+        };
+      }
+      if (rule.operator === "between") {
+        return {
+          __typename: "CollectionCreatedAtRangeRule" as const,
+          ...common,
+          from: rule.value.from,
+          to: rule.value.to,
+        };
+      }
+      return {
+        __typename: "CollectionCreatedAtComparisonRule" as const,
+        ...common,
+        operator: rule.operator.toUpperCase(),
+        instant: rule.value.instant,
       };
     });
     const staleCount = result.filter(

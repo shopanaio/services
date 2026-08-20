@@ -14,6 +14,12 @@ import {
   type GetStoreByIdParams,
   type GetStoreByIdResult,
 } from "../scripts/index.js";
+import {
+  ProjectRecommendationActionNames,
+  type ListActiveStoresParams,
+  type ListActiveStoresResult,
+} from "@shopana/broker-types";
+import type { BrokerCallContext } from "@shopana/shared-kernel";
 
 /**
  * Project broker actions registered with @Action decorator.
@@ -46,5 +52,22 @@ export class ProjectBrokerActions extends BrokerActions {
   @Action("getStoreById")
   async getStoreById(params: GetStoreByIdParams): Promise<GetStoreByIdResult> {
     return this.kernel.runScript(GetStoreByIdScript, params);
+  }
+
+  @Action(ProjectRecommendationActionNames.listActiveStores, {
+    readOnly: true,
+    timeoutMs: 5_000,
+  })
+  async listActiveStores(
+    params: ListActiveStoresParams,
+    ctx: BrokerCallContext,
+  ): Promise<ListActiveStoresResult> {
+    if (ctx.caller.service !== "listing") {
+      throw new Error("PROJECT_ACTIVE_STORE_ENUMERATION_FORBIDDEN");
+    }
+    if (!Number.isSafeInteger(params.first) || params.first < 1 || params.first > 500) {
+      throw new Error("PROJECT_ACTIVE_STORE_PAGE_SIZE_INVALID");
+    }
+    return this.kernel.repository.store.listActiveWorkflowContexts(params);
   }
 }

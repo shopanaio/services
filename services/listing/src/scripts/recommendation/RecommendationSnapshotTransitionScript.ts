@@ -1,0 +1,72 @@
+import { Transactional } from "../../kernel/BaseScript.js";
+import { BaseScript } from "../../kernel/BaseScript.js";
+import { manualConfigurationHash } from "../../recommendation/manualConfigurationHash.js";
+import { recommendationModelVersion } from "../../recommendation/constants.js";
+import type { RecommendationBuildInputs } from "../../repositories/recommendation/types.js";
+
+export type RecommendationSnapshotTransitionParams =
+  | { snapshotId: string; transition: "READY" }
+  | { snapshotId: string; transition: "ACTIVE" }
+  | { snapshotId: string; transition: "FAILED"; failureCode: string };
+
+export class RecommendationSnapshotTransitionScript extends BaseScript<
+  RecommendationSnapshotTransitionParams,
+  { status: "applied" | "stale" }
+> {
+  @Transactional()
+  protected async execute(input: RecommendationSnapshotTransitionParams) {
+    if (input.transition === "READY") {
+      await this.repository.recommendationSnapshot.markReady(input.snapshotId);
+      return { status: "applied" as const };
+    }
+    if (input.transition === "FAILED") {
+      await this.repository.recommendationSnapshot.markFailed(input.snapshotId, input.failureCode);
+      return { status: "applied" as const };
+    }
+    const snapshot = await this.repository.recommendationSnapshot.findById(input.snapshotId);
+    if (!snapshot) return { status: "stale" as const };
+    const locks = await this.repository.recommendationSnapshot.lockActivationLineage({
+      snapshotId: snapshot.snapshotId,
+      anchorProductId: snapshot.anchorProductId,
+      placement: snapshot.placement,
+      calculationRunId: snapshot.calculationRunId,
+    });
+    const fixed = snapshot.sourceWatermarks as unknown as RecommendationBuildInputs;
+    const items = await this.repository.recommendationSnapshot.listItems(snapshot.snapshotId);
+    const eligible = await this.repository.recommendationCandidateSource.eligibleTargetIds(
+      items.map((item) => item.targetProductId),
+    );
+    const currentHash = await manualConfigurationHash({
+      repository: this.repository.manualProductRecommendation,
+      anchorProductId: snapshot.anchorProductId,
+      placement: snapshot.placement,
+      asOf: locks.activationAsOf,
+    });
+    const valid = locks.snapshot?.status === "READY" &&
+      locks.policy?.enabled === true &&
+      locks.policy.policyId === snapshot.policyId &&
+      locks.policy.version === snapshot.policyVersion &&
+      locks.request?.generation.toString() === fixed.requestedGeneration &&
+      locks.request.triggerKey === fixed.triggerKey &&
+      snapshot.modelVersion === recommendationModelVersion(snapshot.placement) &&
+      items.length === snapshot.itemCount &&
+      items.length <= (locks.policy?.maximumResults ?? -1) &&
+      items.every((item, index) =>
+        item.rank === index + 1 &&
+        item.targetProductId !== snapshot.anchorProductId &&
+        eligible.has(item.targetProductId)
+      ) &&
+      currentHash === fixed.manualConfigurationHash &&
+      (snapshot.calculationRunId === null || locks.run?.status === "ACTIVE");
+    if (!valid) {
+      await this.repository.recommendationSnapshot.markFailed(snapshot.snapshotId, "STALE_INPUT");
+      return { status: "stale" as const };
+    }
+    await this.repository.recommendationSnapshot.activate(snapshot.snapshotId);
+    return { status: "applied" as const };
+  }
+
+  protected handleError(error: unknown): never {
+    throw error;
+  }
+}

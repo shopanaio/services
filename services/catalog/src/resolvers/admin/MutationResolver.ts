@@ -149,6 +149,7 @@ import type {
   WarehouseUpdateInput,
   WarehouseDeleteInput,
   RichTextInput,
+  CollectionRuleInput,
 } from "./generated/types.js";
 import {
   CategoryCreateInputSchema,
@@ -1150,12 +1151,12 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   async collectionCreate(args: {
     input: {
       clientMutationId: string;
-      handle?: string | null;
+      handle: string;
       type: "MANUAL" | "RULE";
       name: string;
       description?: { text?: string | null; html?: string | null; json?: unknown | null } | null;
       excerpt?: { text?: string | null; html?: string | null; json?: unknown | null } | null;
-      media?: Array<{ fileId: string; sortIndex?: number | null }> | null;
+      media?: Array<{ fileId: string }> | null;
       seo?: {
         seoTitle?: string | null;
         seoDescription?: string | null;
@@ -1238,7 +1239,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       name?: string | null;
       description?: { text?: string | null; html?: string | null; json?: unknown | null } | null;
       excerpt?: { text?: string | null; html?: string | null; json?: unknown | null } | null;
-      media?: Array<{ fileId: string; sortIndex?: number | null }> | null;
+      media?: Array<{ fileId: string }> | null;
       seo?: {
         seoTitle?: string | null;
         seoDescription?: string | null;
@@ -1498,7 +1499,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       clientMutationId: string;
       collectionId: string;
       expectedRevision: number;
-      rules: Array<{ field: string; operator: string; value: unknown }>;
+      rules: CollectionRuleInput[];
     };
   }) {
     const collectionId = safeDecodeGlobalId(
@@ -1581,7 +1582,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionRulesPreviewCount(args: {
     input: {
-      rules: Array<{ field: string; operator: string; value: unknown }>;
+      rules: CollectionRuleInput[];
     };
   }) {
     const normalized = await this.normalizeCollectionRules(args.input.rules);
@@ -1783,35 +1784,147 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   private async normalizeCollectionRules(
-    inputs: readonly { field: string; operator: string; value: unknown }[]
+    inputs: readonly CollectionRuleInput[]
   ): Promise<{ rules: CanonicalCollectionRule[]; userErrors: UserError[] }> {
     const prepared: unknown[] = [];
     try {
-      for (const input of inputs) {
-        const field = input.field.toLowerCase();
-        const operator = input.operator.toLowerCase();
-        if (
-          field === "category" ||
-          field === "tag" ||
-          field === "vendor"
-        ) {
-          const value = input.value as { ids?: unknown };
-          if (!value || !Array.isArray(value.ids)) {
-            throw new Error(`${field} rule value must contain an ids array`);
-          }
-          const entityType =
-            field === "category"
-              ? GlobalIdEntity.Category
-              : field === "tag"
-                ? GlobalIdEntity.Tag
-                : GlobalIdEntity.Vendor;
-          const ids = value.ids.map((id) =>
-            decodeGlobalIdByType(String(id), entityType)
-          );
-          prepared.push({ field, operator, value: { ids } });
-        } else {
-          prepared.push({ field, operator, value: input.value });
+      for (const [index, input] of inputs.entries()) {
+        const branches = [
+          ["category", input.category],
+          ["tag", input.tag],
+          ["vendor", input.vendor],
+          ["feature", input.feature],
+          ["option", input.option],
+          ["priceComparison", input.priceComparison],
+          ["priceRange", input.priceRange],
+          ["inStock", input.inStock],
+          ["createdAtComparison", input.createdAtComparison],
+          ["createdAtRange", input.createdAtRange],
+        ] as const;
+        const selected = branches.filter(([, value]) => value != null);
+        if (selected.length !== 1) {
+          return {
+            rules: [],
+            userErrors: [{
+              message: "Exactly one typed rule field must be provided",
+              field: ["input", "rules", String(index)],
+              code: "INVALID_RULE",
+            }],
+          };
         }
+
+        if (input.category) {
+          prepared.push({
+            field: "category",
+            operator: input.category.operator.toLowerCase(),
+            value: {
+              ids: input.category.categoryIds.map((id) =>
+                decodeGlobalIdByType(id, GlobalIdEntity.Category)
+              ),
+            },
+          });
+          continue;
+        }
+        if (input.tag) {
+          prepared.push({
+            field: "tag",
+            operator: input.tag.operator.toLowerCase(),
+            value: {
+              ids: input.tag.tagIds.map((id) =>
+                decodeGlobalIdByType(id, GlobalIdEntity.Tag)
+              ),
+            },
+          });
+          continue;
+        }
+        if (input.vendor) {
+          prepared.push({
+            field: "vendor",
+            operator: "in",
+            value: {
+              ids: input.vendor.vendorIds.map((id) =>
+                decodeGlobalIdByType(id, GlobalIdEntity.Vendor)
+              ),
+            },
+          });
+          continue;
+        }
+        if (input.feature) {
+          prepared.push({
+            field: "feature",
+            operator: input.feature.operator.toLowerCase(),
+            value: {
+              values: input.feature.values.map((item) => ({
+                sourceHandle: item.sourceHandle,
+                valueHandle: item.valueHandle,
+              })),
+            },
+          });
+          continue;
+        }
+        if (input.option) {
+          prepared.push({
+            field: "option",
+            operator: input.option.operator.toLowerCase(),
+            value: {
+              values: input.option.values.map((item) => ({
+                sourceHandle: item.sourceHandle,
+                valueHandle: item.valueHandle,
+              })),
+            },
+          });
+          continue;
+        }
+        if (input.priceComparison) {
+          prepared.push({
+            field: "price",
+            operator: input.priceComparison.operator.toLowerCase(),
+            value: {
+              currencyCode: input.priceComparison.currencyCode,
+              amountMinor: input.priceComparison.amountMinor,
+            },
+          });
+          continue;
+        }
+        if (input.priceRange) {
+          prepared.push({
+            field: "price",
+            operator: "between",
+            value: {
+              currencyCode: input.priceRange.currencyCode,
+              minAmountMinor: input.priceRange.minAmountMinor,
+              maxAmountMinor: input.priceRange.maxAmountMinor,
+            },
+          });
+          continue;
+        }
+        if (input.inStock) {
+          prepared.push({
+            field: "in_stock",
+            operator: "eq",
+            value: { value: input.inStock.value },
+          });
+          continue;
+        }
+        if (input.createdAtComparison) {
+          prepared.push({
+            field: "created_at",
+            operator: input.createdAtComparison.operator.toLowerCase(),
+            value: { instant: input.createdAtComparison.instant },
+          });
+          continue;
+        }
+        if (!input.createdAtRange) {
+          throw new Error("Typed collection rule branch was not resolved");
+        }
+        prepared.push({
+          field: "created_at",
+          operator: "between",
+          value: {
+            from: input.createdAtRange.from,
+            to: input.createdAtRange.to,
+          },
+        });
       }
       const rules = normalizeCanonicalCollectionRulesV1(prepared);
       const idsByType = {

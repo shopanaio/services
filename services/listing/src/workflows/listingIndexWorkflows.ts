@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
+  buildIdempotencyKey,
   DBOS,
   InjectBroker,
   RetryableError,
@@ -19,7 +20,11 @@ import {
 import { ListingBuildSyncWriteModelScript } from "../scripts/ListingBuildSyncWriteModelScript.js";
 import { ListingPrepareIndexActionScript } from "../scripts/ListingPrepareIndexActionScript.js";
 import { ListingResolveFacetSelectionsScript } from "../scripts/ListingResolveFacetSelectionsScript.js";
-import { ListingWriteIndexActionScript } from "../scripts/ListingWriteIndexActionScript.js";
+import {
+  ListingWriteIndexActionScript,
+  type ListingWriteIndexActionResult,
+  type RecommendationLifecyclePlan,
+} from "../scripts/ListingWriteIndexActionScript.js";
 import { mapCatalogProductToListingSnapshot } from "./catalogListingSnapshotMapper.js";
 import { buildProductSnapshotSelection } from "./catalogProductSnapshotSelection.js";
 import {
@@ -194,7 +199,7 @@ abstract class ListingIndexWorkflowBase<
   })
   protected async stepWriteSyncIndexAction(
     input: ListingPreparedSyncWriteAction
-  ): Promise<Listing.ListingUpdateResult> {
+  ): Promise<ListingWriteIndexActionResult> {
     const kernel = Kernel.getInstance();
 
     return kernel.runScript(
@@ -274,6 +279,50 @@ abstract class ListingIndexWorkflowBase<
     }
   }
 
+  protected async stepStartRecommendationReferenceStateSync(
+    plan: RecommendationLifecyclePlan | null,
+  ): Promise<string | null> {
+    if (!plan) return null;
+    const context = {
+      storeId: plan.storeId,
+      organizationId: plan.organizationId,
+      requestId: plan.operationId,
+    };
+    const workflowInput: import("./RecommendationWorkflows.js").RecommendationReferenceStateSyncInput = {
+      context,
+      plan,
+    };
+    const idempotencyCtx = {
+      source: "content" as const,
+      organizationId: plan.organizationId,
+      resourceId: plan.productId,
+      operation: "listing.recommendationReferenceStateSync",
+      contentHash: `${plan.eventSequence}:${plan.operationId}`,
+    };
+    const workflowId = buildIdempotencyKey(
+      "listing.recommendationReferenceStateSync",
+      idempotencyCtx,
+    );
+    try {
+      const started = await this.broker.startWorkflow(
+        "listing.recommendationReferenceStateSync",
+        workflowInput,
+        idempotencyCtx,
+        {
+          workflowId,
+          queueName: LISTING_INDEX_ACTIONS_QUEUE,
+          enqueueOptions: {
+            queuePartitionKey: `${plan.storeId}:product:${plan.productId}`,
+          },
+        },
+      );
+      return started.workflowId;
+    } catch (error) {
+      if (isDuplicateWorkflowStartError(error, workflowId)) return workflowId;
+      throw error;
+    }
+  }
+
   @WorkflowStep({
     name: "writeListingDeleteIndexAction",
     timeoutMs: 120_000,
@@ -285,7 +334,7 @@ abstract class ListingIndexWorkflowBase<
   })
   protected async stepWriteDeleteIndexAction(
     input: ListingPreparedDeleteWriteAction
-  ): Promise<Listing.ListingUpdateResult> {
+  ): Promise<ListingWriteIndexActionResult> {
     const kernel = Kernel.getInstance();
 
     return kernel.runScript(
@@ -330,16 +379,17 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
       syncWriteModel,
     });
 
-    const result = await this.stepWriteSyncIndexAction({
+    const write = await this.stepWriteSyncIndexAction({
       action: prepared.action,
       syncWriteModel,
     });
     await this.stepStartFacetReferenceStateSync({
-      result,
+      result: write.result,
       plan: facetReferenceSyncPlan,
     });
+    await this.stepStartRecommendationReferenceStateSync(write.recommendationPlan);
 
-    return result;
+    return write.result;
   }
 
   @WorkflowStep({
@@ -468,15 +518,16 @@ export class ListingDeleteSellableItemIndexWorkflow extends ListingIndexWorkflow
     const facetReferenceSyncPlan = await this.stepBuildFacetReferenceSyncPlan({
       action: prepared.action,
     });
-    const result = await this.stepWriteDeleteIndexAction({
+    const write = await this.stepWriteDeleteIndexAction({
       action: prepared.action,
     });
     await this.stepStartFacetReferenceStateSync({
-      result,
+      result: write.result,
       plan: facetReferenceSyncPlan,
     });
+    await this.stepStartRecommendationReferenceStateSync(write.recommendationPlan);
 
-    return result;
+    return write.result;
   }
 }
 

@@ -43,6 +43,16 @@ export class ResolverRegistry {
     return new ListingSearchMutationResolver({}, this.ctx);
   }
 
+  async recommendationQuery() {
+    const { RecommendationQueryResolver } = await import("./RecommendationResolvers.js");
+    return new RecommendationQueryResolver({}, this.ctx);
+  }
+
+  async recommendationMutation() {
+    const { RecommendationMutationResolver } = await import("./RecommendationResolvers.js");
+    return new RecommendationMutationResolver({}, this.ctx);
+  }
+
   async searchSynonymGroupConnection(
     input: SearchSynonymGroupConnectionInput,
   ) {

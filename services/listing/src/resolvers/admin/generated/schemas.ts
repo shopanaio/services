@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetScopeType, FacetScopesUpdateInput, FacetScopesUpdateItemInput, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, ListingFacetType, ListingFacetValueFilter, ListingOrderByInput, ListingPriceRangeFilter, ListingProductFilter, ListingProductStatus, ListingScopeInput, ListingScopeKind, ListingSortBy, ListingSortDirection, ListingVariantOptionFilter, LocaleCode, PriceAdjustmentOperation, PriceAdjustmentValueType, SearchConfigurationDeleteInput, SearchExecutionMode, SearchExplainClauseKind, SearchExplainReason, SearchField, SearchFieldConfigurationInput, SearchLexicalUnitKind, SearchOutOfStockPolicy, SearchProductBoostCreateInput, SearchProductBoostOrderByInput, SearchProductBoostOrderField, SearchProductBoostUpdateInput, SearchProductBoostWhereInput, SearchProductBoostsMetaInput, SearchSettingsOperationType, SearchSettingsOperationsInput, SearchSettingsValuesInput, SearchSynonymGroupCreateInput, SearchSynonymGroupOrderByInput, SearchSynonymGroupOrderField, SearchSynonymGroupUpdateInput, SearchSynonymGroupWhereInput, SortDirection, StringFilter, SwatchType, WeightUnit } from './types.js'
+import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetScopeType, FacetScopesUpdateInput, FacetScopesUpdateItemInput, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, ListingFacetType, ListingFacetValueFilter, ListingOrderByInput, ListingPriceRangeFilter, ListingProductFilter, ListingProductStatus, ListingScopeInput, ListingScopeKind, ListingSortBy, ListingSortDirection, ListingVariantOptionFilter, LocaleCode, ManualProductRecommendationCreateInput, ManualProductRecommendationDeleteInput, ManualProductRecommendationUpdateInput, ManualRecommendationAction, ManualRecommendationDraftChangeInput, ManualRecommendationDraftCreateInput, ManualRecommendationDraftDeleteInput, ManualRecommendationDraftUpdateInput, PriceAdjustmentOperation, PriceAdjustmentValueType, ProductRecommendationSource, RecommendationPlacement, RecommendationPlacementPolicyDraftInput, RecommendationPlacementPolicySetEnabledInput, RecommendationPlacementPolicyUpsertInput, RecommendationPreviewExcludedReason, RecommendationReferenceStatus, RecommendationSnapshotPreviewInput, RecommendationStrategy, SearchConfigurationDeleteInput, SearchExecutionMode, SearchExplainClauseKind, SearchExplainReason, SearchField, SearchFieldConfigurationInput, SearchLexicalUnitKind, SearchOutOfStockPolicy, SearchProductBoostCreateInput, SearchProductBoostOrderByInput, SearchProductBoostOrderField, SearchProductBoostUpdateInput, SearchProductBoostWhereInput, SearchProductBoostsMetaInput, SearchSettingsOperationType, SearchSettingsOperationsInput, SearchSettingsValuesInput, SearchSynonymGroupCreateInput, SearchSynonymGroupOrderByInput, SearchSynonymGroupOrderField, SearchSynonymGroupUpdateInput, SearchSynonymGroupWhereInput, SortDirection, StringFilter, SwatchType, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -43,9 +43,21 @@ export const ListingSortDirectionSchema = z.nativeEnum(ListingSortDirection);
 
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
 
+export const ManualRecommendationActionSchema = z.nativeEnum(ManualRecommendationAction);
+
 export const PriceAdjustmentOperationSchema = z.nativeEnum(PriceAdjustmentOperation);
 
 export const PriceAdjustmentValueTypeSchema = z.nativeEnum(PriceAdjustmentValueType);
+
+export const ProductRecommendationSourceSchema = z.nativeEnum(ProductRecommendationSource);
+
+export const RecommendationPlacementSchema = z.nativeEnum(RecommendationPlacement);
+
+export const RecommendationPreviewExcludedReasonSchema = z.nativeEnum(RecommendationPreviewExcludedReason);
+
+export const RecommendationReferenceStatusSchema = z.nativeEnum(RecommendationReferenceStatus);
+
+export const RecommendationStrategySchema = z.nativeEnum(RecommendationStrategy);
 
 export const SearchExecutionModeSchema = z.nativeEnum(SearchExecutionMode);
 
@@ -377,6 +389,121 @@ export function ListingVariantOptionFilterSchema(): z.ZodObject<Properties<Listi
   return z.object({
     name: z.string(),
     value: z.string()
+  })
+}
+
+export function ManualProductRecommendationCreateInputSchema(): z.ZodObject<Properties<ManualProductRecommendationCreateInput>> {
+  return z.object({
+    action: ManualRecommendationActionSchema,
+    anchorProductId: z.string(),
+    boost: z.string().nullish(),
+    enabled: z.boolean(),
+    endsAt: z.string().nullish(),
+    placement: RecommendationPlacementSchema,
+    position: z.number().nullish(),
+    startsAt: z.string().nullish(),
+    targetProductId: z.string()
+  })
+}
+
+export function ManualProductRecommendationDeleteInputSchema(): z.ZodObject<Properties<ManualProductRecommendationDeleteInput>> {
+  return z.object({
+    expectedVersion: z.number(),
+    id: z.string()
+  })
+}
+
+export function ManualProductRecommendationUpdateInputSchema(): z.ZodObject<Properties<ManualProductRecommendationUpdateInput>> {
+  return z.object({
+    action: ManualRecommendationActionSchema.nullish(),
+    boost: z.string().nullish(),
+    enabled: z.boolean().nullish(),
+    endsAt: z.string().nullish(),
+    expectedVersion: z.number(),
+    id: z.string(),
+    position: z.number().nullish(),
+    startsAt: z.string().nullish(),
+    targetProductId: z.string().nullish()
+  })
+}
+
+export function ManualRecommendationDraftChangeInputSchema(): z.ZodObject<Properties<ManualRecommendationDraftChangeInput>> {
+  return z.object({
+    create: z.lazy(() => ManualRecommendationDraftCreateInputSchema().nullish()),
+    delete: z.lazy(() => ManualRecommendationDraftDeleteInputSchema().nullish()),
+    update: z.lazy(() => ManualRecommendationDraftUpdateInputSchema().nullish())
+  })
+}
+
+export function ManualRecommendationDraftCreateInputSchema(): z.ZodObject<Properties<ManualRecommendationDraftCreateInput>> {
+  return z.object({
+    action: ManualRecommendationActionSchema,
+    boost: z.string().nullish(),
+    enabled: z.boolean(),
+    endsAt: z.string().nullish(),
+    position: z.number().nullish(),
+    startsAt: z.string().nullish(),
+    targetProductId: z.string()
+  })
+}
+
+export function ManualRecommendationDraftDeleteInputSchema(): z.ZodObject<Properties<ManualRecommendationDraftDeleteInput>> {
+  return z.object({
+    expectedVersion: z.number(),
+    id: z.string()
+  })
+}
+
+export function ManualRecommendationDraftUpdateInputSchema(): z.ZodObject<Properties<ManualRecommendationDraftUpdateInput>> {
+  return z.object({
+    action: ManualRecommendationActionSchema.nullish(),
+    boost: z.string().nullish(),
+    enabled: z.boolean().nullish(),
+    endsAt: z.string().nullish(),
+    expectedVersion: z.number(),
+    id: z.string(),
+    position: z.number().nullish(),
+    startsAt: z.string().nullish(),
+    targetProductId: z.string().nullish()
+  })
+}
+
+export function RecommendationPlacementPolicyDraftInputSchema(): z.ZodObject<Properties<RecommendationPlacementPolicyDraftInput>> {
+  return z.object({
+    enabled: z.boolean(),
+    expectedVersion: z.number().nullish(),
+    fallbackChain: z.array(z.string()),
+    maximumResults: z.number(),
+    minimumResults: z.number(),
+    strategy: RecommendationStrategySchema
+  })
+}
+
+export function RecommendationPlacementPolicySetEnabledInputSchema(): z.ZodObject<Properties<RecommendationPlacementPolicySetEnabledInput>> {
+  return z.object({
+    enabled: z.boolean(),
+    expectedVersion: z.number(),
+    placement: RecommendationPlacementSchema
+  })
+}
+
+export function RecommendationPlacementPolicyUpsertInputSchema(): z.ZodObject<Properties<RecommendationPlacementPolicyUpsertInput>> {
+  return z.object({
+    expectedVersion: z.number().nullish(),
+    fallbackChain: z.array(z.string()),
+    maximumResults: z.number(),
+    minimumResults: z.number(),
+    placement: RecommendationPlacementSchema,
+    strategy: RecommendationStrategySchema
+  })
+}
+
+export function RecommendationSnapshotPreviewInputSchema(): z.ZodObject<Properties<RecommendationSnapshotPreviewInput>> {
+  return z.object({
+    anchorProductId: z.string(),
+    manualChanges: z.array(z.lazy(() => ManualRecommendationDraftChangeInputSchema())),
+    placement: RecommendationPlacementSchema,
+    policy: z.lazy(() => RecommendationPlacementPolicyDraftInputSchema().nullish())
   })
 }
 

@@ -1,62 +1,275 @@
+"""
+A merchandised group of products.
+
+MANUAL collections contain an explicitly ordered product set. RULE collections
+derive their product set from `rules`. The collection type is immutable after
+creation; create a new collection when a different membership model is needed.
+
+Collection content, SEO, publication, schedule, and default listing sort are
+managed independently from RULE membership. Every successful mutation that
+changes the collection increments `revision`.
+"""
 type Collection implements Node @key(fields: "id") {
+  """The globally unique collection ID."""
   id: ID!
-  handle: String
+
+  """Unique, normalized storefront handle within the current store."""
+  handle: String!
+
+  """Immutable collection membership model."""
   type: CollectionType!
+
+  """Localized display name for the request locale."""
   name: String!
+
+  """Localized long-form collection description."""
   description: RichText
+
+  """Localized short collection summary."""
   excerpt: RichText
+
+  """Collection media in storefront display order."""
   media: [CollectionMediaItem!]!
+
+  """Localized search-engine and social-sharing metadata."""
   seo: Seo
+
+  """
+  Default product ordering used when a listing request does not provide an
+  explicit order. RULE collections cannot use MANUAL.
+  """
   defaultSort: ProductSortBy!
+
+  """
+  Direction for `defaultSort`. MANUAL is always ascending and NEWEST is always
+  descending; PRICE and NAME support both directions.
+  """
   defaultSortDirection: SortDirection!
+
+  """Inclusive start of the collection activity window."""
   activeFrom: DateTime
+
+  """Exclusive end of the collection activity window."""
   activeTo: DateTime
+
+  """
+  Whether the current time is inside the configured activity window. This field
+  does not imply publication; use `isPublished` as well when determining Admin
+  status.
+  """
   isActive: Boolean!
+
+  """Publication timestamp, or null while the collection is a draft."""
   publishedAt: DateTime
+
+  """Whether `publishedAt` is present and not in the future."""
   isPublished: Boolean!
+
+  """Creation timestamp."""
   createdAt: DateTime!
+
+  """Timestamp of the most recent collection change."""
   updatedAt: DateTime!
+
+  """
+  Optimistic-lock revision. Pass the latest value as `expectedRevision` to every
+  mutation that changes an existing collection.
+  """
   revision: Int!
+
+  """Internal revision used to coordinate the Catalog and Listing projections."""
   listingRevision: Int! @inaccessible
+
+  """
+  Complete ordered rule set for a RULE collection. The list is empty for MANUAL
+  collections and may be empty for draft RULE collections.
+
+  Top-level rules are always combined with logical AND. IN means that any value
+  inside one rule may match; ALL means that every value inside that one rule must
+  match. Rule order is presentation-only and does not change matching semantics.
+  """
   rules: [CollectionRule!]!
 }
 
+"""How products become members of a collection."""
 enum CollectionType {
+  """Products are explicitly added, removed, and ordered by an administrator."""
   MANUAL
+
+  """Products are derived from an AND-combined rule set."""
   RULE
 }
 
-type CollectionRule {
+# ---- Rule output contract -------------------------------------------------
+
+"""
+Common fields implemented by every concrete collection rule.
+
+Use `field` as the discriminator and select the corresponding concrete type with
+an inline fragment. Concrete rule types expose only operators and values valid
+for that field; rule values are never returned as untyped JSON.
+"""
+interface CollectionRule {
+  """
+  Persistence ID of the current rule row. `collectionUpdateRules` replaces the
+  complete rule set, so this ID must not be used as a durable client-side draft
+  identifier across saves.
+  """
   id: ID!
+
+  """Rule field discriminator."""
   field: CollectionRuleField!
-  operator: CollectionRuleOperator!
-  value: JSON!
+
+  """
+  Zero-based presentation position. Rules are evaluated with AND regardless of
+  this value.
+  """
   sortIndex: Int!
+
+  """
+  Aggregate status of external references used by this rule. VALID means every
+  referenced entity currently exists; STALE means at least one no longer exists;
+  NOT_APPLICABLE is used by rules without entity-ID references.
+  """
   referenceStatus: CollectionRuleReferenceStatus!
 }
 
-enum CollectionRuleReferenceStatus {
-  VALID
-  STALE
-  NOT_APPLICABLE
-}
-
-type CollectionMediaItem {
-  file: File!
+"""Category membership rule."""
+type CollectionCategoryRule implements CollectionRule {
+  id: ID!
+  field: CollectionRuleField!
   sortIndex: Int!
+  referenceStatus: CollectionRuleReferenceStatus!
+  operator: CollectionSetRuleOperator!
+
+  """
+  Category global IDs. Resolve display names through `catalogQuery.nodes` or
+  `catalogQuery.categories`; the rule contract intentionally does not duplicate
+  candidate labels.
+  """
+  categoryIds: [ID!]!
 }
 
-type CollectionConnection {
-  edges: [CollectionEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
+"""Tag membership rule."""
+type CollectionTagRule implements CollectionRule {
+  id: ID!
+  field: CollectionRuleField!
+  sortIndex: Int!
+  referenceStatus: CollectionRuleReferenceStatus!
+  operator: CollectionSetRuleOperator!
+
+  """
+  Tag global IDs. Resolve picker labels through `catalogQuery.tags` and persisted
+  values through `catalogQuery.nodes`.
+  """
+  tagIds: [ID!]!
 }
 
-type CollectionEdge {
-  node: Collection!
-  cursor: String!
+"""Vendor membership rule. Vendor rules always use IN semantics."""
+type CollectionVendorRule implements CollectionRule {
+  id: ID!
+  field: CollectionRuleField!
+  sortIndex: Int!
+  referenceStatus: CollectionRuleReferenceStatus!
+
+  """
+  Vendor global IDs. Resolve picker labels through `catalogQuery.vendors` and
+  persisted values through `catalogQuery.nodes`.
+  """
+  vendorIds: [ID!]!
 }
 
+"""Product-feature value rule."""
+type CollectionFeatureRule implements CollectionRule {
+  id: ID!
+  field: CollectionRuleField!
+  sortIndex: Int!
+  referenceStatus: CollectionRuleReferenceStatus!
+  operator: CollectionSetRuleOperator!
+
+  """
+  Stable source/value handle pairs. Candidate labels are loaded separately with
+  `listingQuery.facetValueCandidates(candidateType: FEATURE)`.
+  """
+  values: [CollectionAttributeRuleValue!]!
+}
+
+"""Variant-option value rule."""
+type CollectionOptionRule implements CollectionRule {
+  id: ID!
+  field: CollectionRuleField!
+  sortIndex: Int!
+  referenceStatus: CollectionRuleReferenceStatus!
+  operator: CollectionSetRuleOperator!
+
+  """
+  Stable source/value handle pairs. Candidate labels are loaded separately with
+  `listingQuery.facetValueCandidates(candidateType: OPTION)`.
+  """
+  values: [CollectionAttributeRuleValue!]!
+}
+
+"""Single-bound price comparison rule."""
+type CollectionPriceComparisonRule implements CollectionRule {
+  id: ID!
+  field: CollectionRuleField!
+  sortIndex: Int!
+  referenceStatus: CollectionRuleReferenceStatus!
+  operator: CollectionComparisonRuleOperator!
+  currencyCode: CurrencyCode!
+  amountMinor: BigInt!
+}
+
+"""Inclusive price-range rule."""
+type CollectionPriceRangeRule implements CollectionRule {
+  id: ID!
+  field: CollectionRuleField!
+  sortIndex: Int!
+  referenceStatus: CollectionRuleReferenceStatus!
+  currencyCode: CurrencyCode!
+  minAmountMinor: BigInt!
+  maxAmountMinor: BigInt!
+}
+
+"""Variant availability rule. Equality is implicit."""
+type CollectionInStockRule implements CollectionRule {
+  id: ID!
+  field: CollectionRuleField!
+  sortIndex: Int!
+  referenceStatus: CollectionRuleReferenceStatus!
+  value: Boolean!
+}
+
+"""Single-instant product creation-time comparison rule."""
+type CollectionCreatedAtComparisonRule implements CollectionRule {
+  id: ID!
+  field: CollectionRuleField!
+  sortIndex: Int!
+  referenceStatus: CollectionRuleReferenceStatus!
+  operator: CollectionComparisonRuleOperator!
+  instant: DateTime!
+}
+
+"""Inclusive product creation-time range rule."""
+type CollectionCreatedAtRangeRule implements CollectionRule {
+  id: ID!
+  field: CollectionRuleField!
+  sortIndex: Int!
+  referenceStatus: CollectionRuleReferenceStatus!
+  from: DateTime!
+  to: DateTime!
+}
+
+"""Stable feature or option source/value handle pair."""
+type CollectionAttributeRuleValue {
+  """Feature or option handle."""
+  sourceHandle: String!
+
+  """Feature-value or option-value handle within `sourceHandle`."""
+  valueHandle: String!
+}
+
+"""Field used to discriminate concrete CollectionRule implementations."""
 enum CollectionRuleField {
   CATEGORY
   TAG
@@ -68,39 +281,188 @@ enum CollectionRuleField {
   CREATED_AT
 }
 
-enum CollectionRuleOperator {
+"""Set-membership operator used by category, tag, feature, and option rules."""
+enum CollectionSetRuleOperator {
+  """At least one selected value must match."""
   IN
+
+  """Every selected value must match."""
   ALL
+}
+
+"""Single-bound comparison operator used by price and creation-time rules."""
+enum CollectionComparisonRuleOperator {
   EQ
   GT
   GTE
   LT
   LTE
-  BETWEEN
 }
 
+"""Validity of entity-ID references stored by a rule."""
+enum CollectionRuleReferenceStatus {
+  """Every referenced entity currently exists."""
+  VALID
+
+  """At least one referenced entity no longer exists."""
+  STALE
+
+  """The rule uses scalar values or stable handles rather than entity IDs."""
+  NOT_APPLICABLE
+}
+
+# ---- Rule input contract --------------------------------------------------
+
+"""
+One typed collection rule.
+
+Exactly one field must be provided. GraphQL 16 has no input unions, so this
+mutual-exclusion constraint is enforced by the mutation validator. The selected
+field determines the output rule type:
+
+- `category` -> CollectionCategoryRule
+- `tag` -> CollectionTagRule
+- `vendor` -> CollectionVendorRule
+- `feature` -> CollectionFeatureRule
+- `option` -> CollectionOptionRule
+- `priceComparison` -> CollectionPriceComparisonRule
+- `priceRange` -> CollectionPriceRangeRule
+- `inStock` -> CollectionInStockRule
+- `createdAtComparison` -> CollectionCreatedAtComparisonRule
+- `createdAtRange` -> CollectionCreatedAtRangeRule
+"""
 input CollectionRuleInput {
-  field: CollectionRuleField!
-  operator: CollectionRuleOperator!
-  value: JSON!
+  category: CollectionCategoryRuleInput
+  tag: CollectionTagRuleInput
+  vendor: CollectionVendorRuleInput
+  feature: CollectionFeatureRuleInput
+  option: CollectionOptionRuleInput
+  priceComparison: CollectionPriceComparisonRuleInput
+  priceRange: CollectionPriceRangeRuleInput
+  inStock: CollectionInStockRuleInput
+  createdAtComparison: CollectionCreatedAtComparisonRuleInput
+  createdAtRange: CollectionCreatedAtRangeRuleInput
 }
 
+input CollectionCategoryRuleInput {
+  operator: CollectionSetRuleOperator!
+  categoryIds: [ID!]!
+}
+
+input CollectionTagRuleInput {
+  operator: CollectionSetRuleOperator!
+  tagIds: [ID!]!
+}
+
+"""Vendor rules use IN semantics; every listed vendor is an alternative."""
+input CollectionVendorRuleInput {
+  vendorIds: [ID!]!
+}
+
+input CollectionFeatureRuleInput {
+  operator: CollectionSetRuleOperator!
+  values: [CollectionAttributeRuleValueInput!]!
+}
+
+input CollectionOptionRuleInput {
+  operator: CollectionSetRuleOperator!
+  values: [CollectionAttributeRuleValueInput!]!
+}
+
+input CollectionAttributeRuleValueInput {
+  sourceHandle: String!
+  valueHandle: String!
+}
+
+input CollectionPriceComparisonRuleInput {
+  operator: CollectionComparisonRuleOperator!
+  currencyCode: CurrencyCode!
+  amountMinor: BigInt!
+}
+
+"""Inclusive range. `minAmountMinor` must not exceed `maxAmountMinor`."""
+input CollectionPriceRangeRuleInput {
+  currencyCode: CurrencyCode!
+  minAmountMinor: BigInt!
+  maxAmountMinor: BigInt!
+}
+
+"""Equality is implicit: true matches available variants, false unavailable ones."""
+input CollectionInStockRuleInput {
+  value: Boolean!
+}
+
+input CollectionCreatedAtComparisonRuleInput {
+  operator: CollectionComparisonRuleOperator!
+  instant: DateTime!
+}
+
+"""Inclusive range. `from` must not be later than `to`."""
+input CollectionCreatedAtRangeRuleInput {
+  from: DateTime!
+  to: DateTime!
+}
+
+# ---- Collection queries ---------------------------------------------------
+
+"""Relay connection for collections."""
+type CollectionConnection {
+  edges: [CollectionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CollectionEdge {
+  node: Collection!
+  cursor: String!
+}
+
+"""A media reference and its zero-based display position."""
+type CollectionMediaItem {
+  file: File!
+  sortIndex: Int!
+}
+
+# ---- Collection mutation inputs -----------------------------------------
+
+"""
+Creates a draft or published collection.
+
+RULE collections must first be created as drafts because rule persistence uses
+the revision-protected `collectionUpdateRules` mutation. After rules are saved,
+publish the collection with `collectionUpdate` and its latest revision.
+"""
 input CollectionCreateInput {
+  """Caller-generated idempotency key. Reuse only when retrying the same input."""
   clientMutationId: String!
-  handle: String
+  handle: String!
   type: CollectionType!
   name: String!
   description: RichTextInput
   excerpt: RichTextInput
+
+  """Complete media replacement in display order."""
   media: [CollectionMediaInput!]
+
   seo: SeoInput
   defaultSort: ProductSortBy
   defaultSortDirection: SortDirection
   activeFrom: DateTime
   activeTo: DateTime
+
+  """
+  Publish immediately. Must be false or omitted for RULE collections because a
+  published RULE collection must already contain at least one rule.
+  """
   publish: Boolean
 }
 
+"""
+Updates collection settings without changing its immutable type or rule set.
+
+Omitted fields remain unchanged. Null clears nullable content, SEO, or schedule
+fields where supported. Pass an empty `media` list to remove all media.
+"""
 input CollectionUpdateInput {
   clientMutationId: String!
   id: ID!
@@ -118,9 +480,12 @@ input CollectionUpdateInput {
   publish: Boolean
 }
 
+"""
+One media reference. Array order in CollectionCreateInput.media or
+CollectionUpdateInput.media determines the persisted display order.
+"""
 input CollectionMediaInput {
   fileId: ID!
-  sortIndex: Int
 }
 
 input CollectionDeleteInput {
@@ -129,6 +494,7 @@ input CollectionDeleteInput {
   expectedRevision: Int!
 }
 
+"""Adds products to a MANUAL collection. Duplicate memberships are ignored."""
 input CollectionAddProductsInput {
   clientMutationId: String!
   collectionId: ID!
@@ -136,6 +502,7 @@ input CollectionAddProductsInput {
   productIds: [ID!]!
 }
 
+"""Removes products from a MANUAL collection."""
 input CollectionRemoveProductsInput {
   clientMutationId: String!
   collectionId: ID!
@@ -143,6 +510,10 @@ input CollectionRemoveProductsInput {
   productIds: [ID!]!
 }
 
+"""
+Moves one product in a MANUAL collection. Provide at most one anchor. Omitting
+both anchors moves the product to the end.
+"""
 input CollectionMoveProductInput {
   clientMutationId: String!
   collectionId: ID!
@@ -152,6 +523,15 @@ input CollectionMoveProductInput {
   beforeProductId: ID
 }
 
+"""
+Atomically replaces the complete rule set of a RULE collection.
+
+Input array order becomes `sortIndex`; all top-level rules are combined with
+logical AND. The mutation supports at most 32 rules, at most 100 values in one
+feature or option rule, at most 256 set values across all rules, and a canonical
+serialized size of 64 KiB. A published RULE collection cannot be saved with an
+empty rule list.
+"""
 input CollectionUpdateRulesInput {
   clientMutationId: String!
   collectionId: ID!
@@ -159,21 +539,30 @@ input CollectionUpdateRulesInput {
   rules: [CollectionRuleInput!]!
 }
 
+"""
+Validates a transient rule set and computes its match count against the Listing
+index without changing collection state. Candidate labels must be loaded through
+their dedicated Catalog or Listing queries before building this input.
+"""
 input CollectionRulesPreviewCountInput {
   rules: [CollectionRuleInput!]!
 }
 
+"""Repairs rank spacing in a MANUAL collection without changing visible order."""
 input CollectionRebalanceInput {
   clientMutationId: String!
   collectionId: ID!
   expectedRevision: Int!
 }
 
+"""Removes every product from a MANUAL collection."""
 input CollectionClearProductsInput {
   clientMutationId: String!
   collectionId: ID!
   expectedRevision: Int!
 }
+
+# ---- Collection mutation payloads ---------------------------------------
 
 type CollectionCreatePayload {
   collection: Collection
@@ -220,9 +609,16 @@ type CollectionClearProductsPayload {
   userErrors: [GenericUserError!]!
 }
 
+"""Result of validating and evaluating a transient rule set."""
 type CollectionRulesPreviewCountPayload {
+  """Matched product count, or null when validation or evaluation failed."""
   count: Int
+
+  """Canonical hash of the validated rule set."""
   rulesHash: String
+
+  """Listing-index observation time used for this count."""
   indexObservedAt: DateTime
+
   userErrors: [GenericUserError!]!
 }
