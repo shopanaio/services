@@ -1,9 +1,20 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion, @typescript-eslint/array-type */
 import type { APIRequestContext } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { composeGlobalId, parseGlobalId } from '@utils/globalid';
 import postgres from 'postgres';
+import { installMailpitSmtp } from '@utils/mailpit';
 import { HeadlessTestKit, requiredCredentials } from '../headless-admin-api/headless-test-kit';
+import {
+  CustomersStorefrontTestKit,
+  type StorefrontCustomer,
+  type StorefrontRealm,
+} from '../customers-storefront-api/customers-storefront-test-kit';
+import {
+  LoyaltyStorefrontTestKit,
+  type LoyaltyFixture,
+} from '../loyality-storefront-api/loyalty-storefront-test-kit';
 
 export type Api = ApiFixtures['api'];
 export type GraphQLResponse<T> = {
@@ -275,11 +286,19 @@ const DATABASE_URL =
   process.env.DATABASE_URL ??
   'postgresql://postgres:postgres@localhost:15432/portal';
 
+const ACTION_PROXY_URL =
+  process.env.TEST_ACTION_PROXY_URL ??
+  `http://127.0.0.1:${process.env.TEST_ACTION_PROXY_PORT ?? '15000'}`;
+
 export class CheckoutStorefrontTestKit {
   readonly sql = postgres(DATABASE_URL, { max: 1 });
   readonly headless: HeadlessTestKit;
   token = '';
   visitorId = `visitor-${crypto.randomUUID()}`;
+  customerAccessToken = '';
+  customer: StorefrontCustomer | null = null;
+  private customerKit: CustomersStorefrontTestKit | null = null;
+  private loyaltyKit: LoyaltyStorefrontTestKit | null = null;
 
   constructor(
     readonly api: Api,
@@ -296,6 +315,7 @@ export class CheckoutStorefrontTestKit {
     await this.headless.install();
     const created = await this.headless.create('Checkout storefront e2e', crypto.randomUUID(), [
       'storefront.catalog.read',
+      'storefront.customer.read',
       'storefront.checkout.read',
       'storefront.checkout.write',
       'storefront.order.write',
@@ -306,7 +326,12 @@ export class CheckoutStorefrontTestKit {
   }
 
   async close(): Promise<void> {
-    await Promise.all([this.sql.end(), this.headless.close()]);
+    await Promise.all([
+      this.sql.end(),
+      this.headless.close(),
+      this.customerKit?.close() ?? Promise.resolve(),
+      this.loyaltyKit?.close() ?? Promise.resolve(),
+    ]);
   }
 
   async graphql<T>(
@@ -319,12 +344,272 @@ export class CheckoutStorefrontTestKit {
         'content-type': 'application/json',
         'x-shopana-storefront-access-token': options.token ?? this.token,
         'x-shopana-storefront-visitor-id': options.visitorId ?? this.visitorId,
+        ...(this.customerAccessToken
+          ? { authorization: `Bearer ${this.customerAccessToken}` }
+          : {}),
         ...options.headers,
       },
       data: { query, variables },
     });
     expect(response.status(), await response.text()).toBeLessThan(500);
     return response.json() as Promise<GraphQLResponse<T>>;
+  }
+
+  async setupCustomer(): Promise<StorefrontCustomer> {
+    if (this.customer) return this.customer;
+    await installMailpitSmtp(this.api);
+    const customerKit = new CustomersStorefrontTestKit(this.api, this.request);
+    let realm: StorefrontRealm | null = null;
+    await expect
+      .poll(async () => {
+        const [row] = await this.sql<Omit<StorefrontRealm, 'storeGlobalId' | 'storeName'>[]>`
+          select storefront.application_id as "applicationId",
+                 client.client_id as "clientId",
+                 storefront.organization_id as "organizationId",
+                 configuration.resource,
+                 storefront.store_id as "storeId",
+                 client.redirect_uris[1] as "redirectUri",
+                 origin.origin
+          from customers.storefront_auth_configuration storefront
+          join iam.application_auth_configuration configuration
+            on configuration.application_id = storefront.application_id
+          join iam.application_auth_origin origin
+            on origin.application_id = storefront.application_id
+          join iam.application_oauth_client client
+            on client.application_id = storefront.application_id
+           and client.disabled = false and client.deleted_at is null
+          where storefront.store_id = ${this.storeId}
+          limit 1
+        `;
+        realm = row
+          ? {
+              ...row,
+              storeGlobalId: this.api.session.project.id,
+              storeName: this.api.session.project.name,
+            }
+          : null;
+        return realm;
+      })
+      .not.toBeNull();
+    customerKit.realm = realm!;
+    await customerKit.enablePasswordAuthentication();
+    const email = `checkout-${crypto.randomUUID()}@playwright.dev`;
+    const signup = await customerKit.signUpWithPassword(email);
+    expect(signup.ok(), await signup.text()).toBe(true);
+    await customerKit.verifyEmail(email);
+    customerKit.accessToken = await customerKit.issueCustomerAccessToken(email);
+    customerKit.customer = await customerKit.waitForCustomer(email);
+    this.customerKit = customerKit;
+    this.customerAccessToken = customerKit.accessToken;
+    this.customer = customerKit.customer;
+    return this.customer;
+  }
+
+  async fundLoyalty(
+    points = '1000',
+    versionOverrides: Record<string, unknown> = {},
+  ): Promise<{
+    fixture: LoyaltyFixture;
+    balanceRevision: number;
+  }> {
+    const customer = await this.setupCustomer();
+    const loyalty = new LoyaltyStorefrontTestKit(this.api, this.request);
+    loyalty.realm = this.customerKit!.realm;
+    loyalty.customer = customer;
+    loyalty.accessToken = this.customerAccessToken;
+    loyalty.channelToken = this.token;
+    const fixture = await loyalty.createActiveAccount(versionOverrides);
+    const adjusted = await loyalty.adjustPoints(fixture.account, 'CREDIT', points);
+    this.loyaltyKit = loyalty;
+    return { fixture, balanceRevision: adjusted.account.balance.revision };
+  }
+
+  async seedLoyaltyReward(
+    fixture: LoyaltyFixture,
+    rewardType: string,
+    configuration: Record<string, unknown>,
+    overrides: Record<string, unknown> = {},
+  ): Promise<{ id: string; rawId: string; definitionId: string }> {
+    if (!this.loyaltyKit) throw new Error('fundLoyalty must be called before seedLoyaltyReward');
+    return this.loyaltyKit.seedAvailableReward(fixture, rewardType, configuration, overrides);
+  }
+
+  async loyaltyBalance(accountId: string): Promise<{
+    availablePoints: string;
+    reservedPoints: string;
+  }> {
+    const [row] = await this.sql<{ availablePoints: string; reservedPoints: string }[]>`
+      select available_points as "availablePoints", reserved_points as "reservedPoints"
+      from loyalty.account_balance where account_id = ${this.rawId(accountId)}
+    `;
+    expect(row).toBeTruthy();
+    return row!;
+  }
+
+  get storeId(): string {
+    return this.rawId(this.api.session.project.id);
+  }
+
+  get organizationId(): string {
+    const id = this.api.session.organizationId;
+    if (!id) throw new Error('Checkout test session has no organization');
+    return this.rawId(id);
+  }
+
+  async callAction<T>(action: string, params: Record<string, unknown>): Promise<T> {
+    const response = await this.request.post(`${ACTION_PROXY_URL}/__test/actions/call`, {
+      data: { action, params },
+    });
+    expect(response.ok(), await response.text()).toBe(true);
+    const body = (await response.json()) as
+      { ok: true; result: T } | { ok: false; error: { code: string; message: string } };
+    expect(body.ok).toBe(true);
+    if (!body.ok) throw new Error(`${body.error.code}: ${body.error.message}`);
+    return body.result;
+  }
+
+  async withActionFault<T>(action: string, run: () => Promise<T>): Promise<T> {
+    const payload = { action, storeId: this.storeId };
+    const enabled = await this.request.post(`${ACTION_PROXY_URL}/__test/actions/fault`, {
+      data: payload,
+    });
+    expect(enabled.ok(), await enabled.text()).toBe(true);
+    try {
+      return await run();
+    } finally {
+      const restored = await this.request.post(`${ACTION_PROXY_URL}/__test/actions/restore`, {
+        data: payload,
+      });
+      expect(restored.ok(), await restored.text()).toBe(true);
+    }
+  }
+
+  async installApp(appCode: 'test-stripe' | 'test-fedex'): Promise<string> {
+    const { data } = await this.api.admin.mutation('apps-admin-api/AppInstall', {
+      variables: {
+        input: { appCode, clientMutationId: crypto.randomUUID() },
+      },
+    });
+    const payload = data.appsMutation.appInstall;
+    expect(payload.userErrors).toEqual([]);
+    expect(payload.installation).not.toBeNull();
+    const installationId = this.rawId(payload.installation!.id);
+    await expect
+      .poll(async () => {
+        const [row] = await this.sql<{ status: string }[]>`
+          select status from apps.app_installations where id = ${installationId}
+        `;
+        return row?.status;
+      })
+      .toBe('ACTIVE');
+    return installationId;
+  }
+
+  async configurePaymentProvider(
+    enabledMethodKeys: string[] = ['card', 'card-3ds', 'bank-transfer', 'declined-card'],
+  ): Promise<{ installationId: string; providerAccountId: string }> {
+    const installationId = await this.installApp('test-stripe');
+    const configured = await this.callAction<{
+      providerAccountId: string;
+      workflowId: string;
+    }>('payments.configurePaymentProviderAccount', {
+      organizationId: this.organizationId,
+      storeId: this.storeId,
+      installationId,
+      mode: 'TEST',
+      captureMode: 'AUTOMATIC',
+      enabledMethodKeys,
+      idempotencyKey: crypto.randomUUID(),
+      correlationId: crypto.randomUUID(),
+    });
+    await expect
+      .poll(async () => {
+        const [row] = await this.sql<{ status: string }[]>`
+          select status from payments.provider_account
+          where id = ${configured.providerAccountId}
+        `;
+        return row?.status;
+      })
+      .toBe('READY');
+    await this.sql`
+      update payments.provider_account set status = 'ACTIVE', updated_at = now()
+      where id = ${configured.providerAccountId}
+    `;
+    return { installationId, providerAccountId: configured.providerAccountId };
+  }
+
+  async setPaymentProviderStatus(
+    providerAccountId: string,
+    status: 'ACTIVE' | 'INACTIVE',
+  ): Promise<void> {
+    const rows = await this.sql`
+      update payments.provider_account set status = ${status}, updated_at = now()
+      where store_id = ${this.storeId} and id = ${providerAccountId}
+      returning id
+    `;
+    expect(rows).toHaveLength(1);
+  }
+
+  async createDiscount(
+    options: {
+      kind?: 'AMOUNT_OFF_PRODUCTS' | 'AMOUNT_OFF_ORDER';
+      method?: 'AUTOMATIC' | 'CODE';
+      amountMinor?: string;
+      percentageBps?: number;
+      code?: string;
+      state?: 'ACTIVE' | 'DRAFT' | 'PAUSED';
+      minimumSubtotalMinor?: string;
+      usageLimit?: string;
+      title?: string;
+    } = {},
+  ): Promise<string> {
+    const kind = options.kind ?? 'AMOUNT_OFF_ORDER';
+    const method = options.method ?? 'AUTOMATIC';
+    const { data } = await this.api.admin.mutation('pricing-admin-api/DiscountCreate', {
+      variables: {
+        input: {
+          method,
+          kind,
+          state: options.state ?? 'ACTIVE',
+          title: options.title ?? `Checkout discount ${crypto.randomUUID().slice(0, 8)}`,
+          currency: 'USD',
+          schedule: { startsAt: new Date(Date.now() - 60_000).toISOString() },
+          usage: { usageLimit: options.usageLimit ?? null, appliesOncePerCustomer: false },
+          purchaseModes: { appliesOnOneTimePurchase: true, appliesOnSubscription: false },
+          rule: {
+            amountOff: {
+              operation: 'DECREASE',
+              allocationMethod: 'ACROSS',
+              valueType: options.percentageBps === undefined ? 'FIXED_AMOUNT' : 'PERCENTAGE',
+              amountMinor:
+                options.percentageBps === undefined ? (options.amountMinor ?? '100') : null,
+              percentageBps: options.percentageBps ?? null,
+            },
+          },
+          minimumRequirement:
+            options.minimumSubtotalMinor === undefined
+              ? null
+              : {
+                  requirementType: 'SUBTOTAL',
+                  subtotalMinor: options.minimumSubtotalMinor,
+                },
+          ...(kind === 'AMOUNT_OFF_PRODUCTS'
+            ? {
+                targetSelections: [{ role: 'BENEFIT', targetType: 'ALL_PRODUCTS', targetIds: [] }],
+              }
+            : {}),
+          ...(method === 'CODE'
+            ? {
+                codes: [{ code: options.code ?? 'SAVE100', clientMutationId: crypto.randomUUID() }],
+              }
+            : {}),
+        },
+      },
+    });
+    const payload = data.pricingMutation.discountCreate;
+    expect(payload.userErrors).toEqual([]);
+    expect(payload.discount).not.toBeNull();
+    return payload.discount!.id;
   }
 
   async create(
@@ -454,8 +739,22 @@ export class CheckoutStorefrontTestKit {
     return row as Record<string, unknown>;
   }
 
+  async persistedSnapshot(id: string): Promise<Record<string, unknown>> {
+    const [row] = await this.sql<{ snapshot: Record<string, unknown> }[]>`
+      select snapshot from checkout.checkout_current_snapshots
+      where checkout_id = ${this.rawId(id)}
+    `;
+    expect(row).toBeTruthy();
+    return row!.snapshot;
+  }
+
   async variant(
-    options: { price?: number; title?: string; status?: 'DRAFT' | 'PUBLISHED' } = {},
+    options: {
+      price?: number;
+      title?: string;
+      status?: 'DRAFT' | 'PUBLISHED';
+      requiresShipping?: boolean;
+    } = {},
   ): Promise<string> {
     const product = await this.api.admin.product.createWithOptions({
       title: options.title ?? `Checkout product ${crypto.randomUUID().slice(0, 8)}`,
@@ -466,7 +765,201 @@ export class CheckoutStorefrontTestKit {
     });
     const variant = product.variants.edges[0]?.node;
     expect(variant).toBeTruthy();
+    if (options.requiresShipping) {
+      expect(variant!.inventoryItem?.id).toBeTruthy();
+      const { data } = await this.api.admin.mutation('inventory-api/VariantSetStock', {
+        variables: {
+          input: {
+            id: variant!.inventoryItem!.id,
+            requiresShipping: true,
+            trackInventory: false,
+          },
+        },
+      });
+      expect(data.inventoryMutation.inventoryItemUpdate.userErrors).toEqual([]);
+    }
     return variant!.id;
+  }
+
+  async configureDelivery(
+    options: {
+      carrier?: boolean;
+      methodTypes?: Array<'SHIPPING' | 'PICK_UP' | 'PICKUP_POINT' | 'LOCAL' | 'RETAIL'>;
+      failureMode?: 'OMIT_PROVIDER_RATES' | 'FAIL_GROUP';
+    } = {},
+  ): Promise<{ warehouseId: string; providerAccountId: string | null }> {
+    const { data } = await this.api.admin.mutation('inventory-api/WarehouseCreate', {
+      variables: {
+        input: {
+          code: `checkout-${crypto.randomUUID().slice(0, 8)}`,
+          name: 'Checkout fulfillment location',
+          isDefault: true,
+        },
+      },
+    });
+    const warehouse = data.inventoryMutation.warehouseCreate.warehouse;
+    expect(data.inventoryMutation.warehouseCreate.userErrors).toEqual([]);
+    expect(warehouse).not.toBeNull();
+    const warehouseId = this.rawId(warehouse!.id);
+    await this.sql`
+      update catalog.warehouses set country_code = 'UA', province_code = '30',
+        province_name = 'Kyiv', city = 'Kyiv', postal_code = '01001',
+        address_line_1 = '1 Test Street', updated_at = now()
+      where id = ${warehouseId}
+    `;
+
+    let providerAccountId: string | null = null;
+    if (options.carrier) {
+      const installationId = await this.installApp('test-fedex');
+      const configured = await this.callAction<{ providerAccountId: string }>(
+        'delivery.configureDeliveryProviderAccount',
+        {
+          organizationId: this.organizationId,
+          storeId: this.storeId,
+          installationId,
+          enabledCapabilities: ['delivery.carrier-service'],
+          mode: 'TEST',
+          idempotencyKey: crypto.randomUUID(),
+          correlationId: crypto.randomUUID(),
+        },
+      );
+      providerAccountId = configured.providerAccountId;
+      await expect
+        .poll(async () => {
+          const [row] = await this.sql<{ snapshot: Record<string, unknown> }[]>`
+            select snapshot from delivery.provider_accounts where id = ${providerAccountId}
+          `;
+          return row?.snapshot ?? null;
+        })
+        .not.toBeNull();
+      await this.sql`
+        update delivery.provider_accounts
+        set account_revision = account_revision + 1,
+            snapshot = jsonb_set(
+              jsonb_set(snapshot, '{revision}', '2'::jsonb),
+              '{capabilityStates,carrierService,status}', '"ACTIVE"'::jsonb
+            ),
+            updated_at = now()
+        where id = ${providerAccountId}
+      `;
+    }
+
+    const now = new Date().toISOString();
+    const profileId = crypto.randomUUID();
+    const methodTypes = options.methodTypes ?? ['SHIPPING'];
+    const methods: Array<Record<string, unknown>> = methodTypes.map(
+      (deliveryMethodType, index) => ({
+        methodDefinitionId: crypto.randomUUID(),
+        code: `manual-${deliveryMethodType.toLowerCase()}-${index}`,
+        title: `Test ${deliveryMethodType.toLowerCase()}`,
+        description: null,
+        active: true,
+        deliveryMethodType,
+        rateSource: {
+          type: 'MANUAL' as const,
+          price: { amountMinor: String(500 + index * 100), currencyCode: 'USD' },
+        },
+        conditions: { match: 'ALL' as const, conditions: [] },
+        metadata: null,
+        revision: 1,
+      }),
+    );
+    if (providerAccountId) {
+      methods.push({
+        methodDefinitionId: crypto.randomUUID(),
+        code: 'test-fedex',
+        title: 'FedEx Test',
+        description: null,
+        active: true,
+        deliveryMethodType: 'SHIPPING',
+        rateSource: {
+          type: 'CARRIER_SERVICE',
+          carrierServiceAccountIds: [providerAccountId],
+          allowedServiceCodes: [],
+          backupRate: null,
+        },
+        conditions: { match: 'ALL' as const, conditions: [] },
+        metadata: null,
+        revision: 1,
+      });
+    }
+    const profileSet = {
+      organizationId: this.organizationId,
+      storeId: this.storeId,
+      currencyCode: 'USD',
+      assignmentResolution: 'SELLING_PLAN_THEN_VARIANT_THEN_DEFAULT',
+      revision: `delivery-profile-${crypto.randomUUID()}`,
+      profiles: [
+        {
+          profileId,
+          organizationId: this.organizationId,
+          storeId: this.storeId,
+          name: 'Checkout default delivery profile',
+          status: 'ACTIVE',
+          isDefault: true,
+          assignment: {
+            scope: 'ALL_UNASSIGNED',
+            assignmentSetId: null,
+            assignmentRevision: null,
+            variantCount: 0,
+            sellingPlanGroupCount: 0,
+          },
+          locationGroups: [
+            {
+              locationGroupId: crypto.randomUUID(),
+              name: 'Default locations',
+              sender: {
+                firstName: 'Shopana',
+                middleName: null,
+                lastName: 'Test',
+                company: null,
+                email: null,
+                phone: '+380501234567',
+              },
+              fulfillmentLocationIds: [warehouseId],
+              zones: [
+                {
+                  zone: {
+                    zoneId: crypto.randomUUID(),
+                    name: 'Ukraine',
+                    priority: 0,
+                    territories: [
+                      {
+                        scope: 'COUNTRY',
+                        countryCode: 'UA',
+                        provinceCodes: [],
+                        postalCodeRuleSet: {
+                          schemaVersion: 1,
+                          normalization: 'UPPERCASE_REMOVE_ASCII_WHITESPACE',
+                          rules: [],
+                        },
+                      },
+                    ],
+                    revision: 1,
+                  },
+                  methods,
+                },
+              ],
+              revision: 1,
+            },
+          ],
+          failurePolicy: { mode: options.failureMode ?? 'OMIT_PROVIDER_RATES' },
+          revision: 1,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    };
+    const activated = await this.callAction<{ status: string }>(
+      'delivery.activateDeliveryProfileSet',
+      {
+        profileSet,
+        expectedProfileSetRevision: null,
+        memberships: [],
+      },
+    );
+    expect(activated.status).toBe('SAVED');
+    return { warehouseId, providerAccountId };
   }
 }
 

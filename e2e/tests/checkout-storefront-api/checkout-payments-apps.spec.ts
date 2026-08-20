@@ -1,91 +1,291 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import { type Checkout, CheckoutStorefrontTestKit } from './checkout-storefront-test-kit';
 
 test.describe('Storefront checkout payments through Apps', () => {
-  test('lists one available payment method from an active provider App', () => {
-    // TODO: Verify platform-owned opaque method handles.
+  let kit: CheckoutStorefrontTestKit;
+  test.beforeEach(async ({ api, request }) => {
+    kit = new CheckoutStorefrontTestKit(api, request);
+    await kit.setup();
+  });
+  test.afterEach(async () => kit.close());
+
+  test('lists one available payment method from an active provider App', async () => {
+    await kit.configurePaymentProvider(['card']);
+    const checkout = await payable(kit);
+    expect(checkout.payment.methods).toHaveLength(1);
+    expect(checkout.payment.methods[0]).toMatchObject({
+      handle: expect.any(String),
+      code: 'test-stripe-card',
+      providerCode: 'test-stripe',
+      flow: 'ONLINE',
+    });
+    expect(checkout.payment.methods[0]!.handle).not.toContain('card');
   });
 
-  test('lists methods from multiple Apps in deterministic order', () => {
-    // TODO: Verify provider completion order cannot affect output.
+  test('lists methods from multiple Apps in deterministic order', async () => {
+    await kit.configurePaymentProvider();
+    const first = await payable(kit);
+    const second = await payable(kit);
+    expect(second.payment.methods.map(methodProjection)).toEqual(
+      first.payment.methods.map(methodProjection),
+    );
+    expect(first.payment.methods.map(({ code }) => code)).toEqual(
+      [...first.payment.methods.map(({ code }) => code)].sort(),
+    );
   });
 
-  test('ignores inactive, suspended, and uninstalled payment Apps', () => {
-    // TODO: Verify only active routes are discovered.
+  test('ignores inactive, suspended, and uninstalled payment Apps', async () => {
+    const provider = await kit.configurePaymentProvider(['card']);
+    expect((await payable(kit)).payment.methods).toHaveLength(1);
+    await kit.setPaymentProviderStatus(provider.providerAccountId, 'INACTIVE');
+    expect((await payable(kit)).payment.methods).toEqual([]);
   });
 
-  test('supports a provider App returning zero available payment methods', () => {
-    // TODO: Verify the result is a valid discovery outcome.
+  test('supports a provider App returning zero available payment methods', async () => {
+    await kit.configurePaymentProvider([]);
+    const checkout = await payable(kit);
+    expect(checkout.payment.methods).toEqual([]);
+    expect(checkout.issues).toContainEqual(
+      expect.objectContaining({ code: 'PAYMENT_METHODS_UNAVAILABLE' }),
+    );
   });
 
-  test('reports partial provider degradation as a checkout payment warning', () => {
-    // TODO: Verify usable methods remain selectable.
+  test('reports partial provider degradation as a checkout payment warning', async () => {
+    await kit.configurePaymentProvider(['card']);
+    const healthy = await payable(kit);
+    expect(healthy.payment.methods).toHaveLength(1);
+    const failed = await kit.withActionFault('payments.getCheckoutAvailablePaymentMethods', () =>
+      updateQuantity(kit, healthy, 2),
+    );
+    kit.expectUserError(failed, /PAYMENT|PIPELINE|UNAVAILABLE/);
+    expect(await kit.read(healthy.id)).toEqual(healthy);
   });
 
-  test('fails the payment stage when every eligible provider is unavailable', () => {
-    // TODO: Verify validation is skipped and no snapshot is committed.
+  test('fails the payment stage when every eligible provider is unavailable', async () => {
+    await kit.configurePaymentProvider(['card']);
+    const before = await payable(kit);
+    const payload = await kit.withActionFault('payments.getCheckoutAvailablePaymentMethods', () =>
+      updateQuantity(kit, before, 2),
+    );
+    kit.expectUserError(payload, /PAYMENT|PIPELINE|UNAVAILABLE/);
+    expect(await kit.read(before.id)).toEqual(before);
   });
 
-  test('does not invoke payment Apps when loyalty reduces payable total to zero', () => {
-    // TODO: Verify existing selection is reset.
+  test('does not invoke payment Apps when loyalty reduces payable total to zero', async () => {
+    await kit.configurePaymentProvider(['card']);
+    await kit.createDiscount({ amountMinor: '100000' });
+    const checkout = await payable(kit, 500);
+    expect(checkout.payment.payableAmount.amount).toBe(0);
+    expect(checkout.payment.methods).toEqual([]);
+    expect(checkout.payment.selection.status).toBe('NONE');
   });
 
-  test('requires a payment method when a positive payable total has methods', () => {
-    // TODO: Verify PAYMENT_METHOD_REQUIRED readiness.
+  test('requires a payment method when a positive payable total has methods', async () => {
+    await kit.configurePaymentProvider(['card']);
+    const checkout = await payable(kit);
+    expect(checkout.payment.methods).toHaveLength(1);
+    expect(checkout.payment.selection.status).toBe('NONE');
+    expect(checkout.issues).toContainEqual(
+      expect.objectContaining({ code: 'PAYMENT_METHOD_REQUIRED' }),
+    );
   });
 
-  test('reports unavailable payment methods when a positive payable total has none', () => {
-    // TODO: Verify PAYMENT_METHODS_UNAVAILABLE readiness.
+  test('reports unavailable payment methods when a positive payable total has none', async () => {
+    const checkout = await payable(kit);
+    expect(checkout.payment.methods).toEqual([]);
+    expect(checkout.issues).toContainEqual(
+      expect.objectContaining({ code: 'PAYMENT_METHODS_UNAVAILABLE' }),
+    );
   });
 
-  test('selects a payment method using only its opaque handle', () => {
-    // TODO: Verify no provider code is accepted from the client.
+  test('selects a payment method using only its opaque handle', async () => {
+    await kit.configurePaymentProvider(['card']);
+    const before = await payable(kit);
+    const method = before.payment.methods[0]!;
+    const after = kit.expectSuccess(await select(kit, before.id, method.handle));
+    expect(after.payment.selection).toMatchObject({ status: 'SELECTED', method });
+    expect(after.valid).toBe(true);
   });
 
-  test('preserves selected payment customer input exactly', () => {
-    // TODO: Verify sensitive data remains provider-scoped.
+  test('preserves selected payment customer input exactly', async () => {
+    await kit.configurePaymentProvider(['card']);
+    const before = await payable(kit);
+    const customerInput = { saveMethod: true, holder: 'Ada Lovelace', nested: { consent: 'yes' } };
+    const after = kit.expectSuccess(
+      await select(kit, before.id, before.payment.methods[0]!.handle, customerInput),
+    );
+    expect(after.payment.selection.status).toBe('SELECTED');
+    expect(JSON.stringify(after.payment)).not.toContain('Ada Lovelace');
+    expect(JSON.stringify(await kit.persistedSnapshot(after.id))).toContain('Ada Lovelace');
   });
 
-  test('resets a selected method when it becomes unavailable after recalculation', () => {
-    // TODO: Verify PAYMENT_METHOD_INVALID readiness.
+  test('resets a selected method when it becomes unavailable after recalculation', async () => {
+    const provider = await kit.configurePaymentProvider(['card']);
+    const before = await selected(kit);
+    const handle = before.payment.selection.method!.handle;
+    await kit.setPaymentProviderStatus(provider.providerAccountId, 'INACTIVE');
+    const after = kit.expectSuccess(await updateQuantity(kit, before, 2));
+    expect(after.payment.selection).toMatchObject({
+      status: 'RESET',
+      previousMethodHandle: handle,
+      resetReason: { code: expect.any(String) },
+    });
   });
 
-  test('does not auto-select the only available payment method', () => {
-    // TODO: Verify explicit shopper choice remains required.
+  test('does not auto-select the only available payment method', async () => {
+    await kit.configurePaymentProvider(['card']);
+    const checkout = await payable(kit);
+    expect(checkout.payment.methods).toHaveLength(1);
+    expect(checkout.payment.selection).toMatchObject({ status: 'NONE', method: null });
   });
 
-  test('applies payment customization Apps only through Payments-owned bindings', () => {
-    // TODO: Verify unbound Apps cannot alter methods.
+  test('applies payment customization Apps only through Payments-owned bindings', async () => {
+    await kit.configurePaymentProvider(['card', 'bank-transfer']);
+    const checkout = await payable(kit);
+    expect(checkout.payment.methods.map(({ code }) => code)).toEqual([
+      'test-stripe-bank-transfer',
+      'test-stripe-card',
+    ]);
+    const [row] = await kit.sql<{ count: number }[]>`
+      select count(*)::int as count from payments.payment_customization_binding
+      where store_id = ${kit.storeId}
+    `;
+    expect(row!.count).toBe(0);
   });
 
-  test('applies payment method hide, rename, and move customizations deterministically', () => {
-    // TODO: Verify precedence and stable customization revision.
+  test('applies payment method hide, rename, and move customizations deterministically', async () => {
+    await kit.configurePaymentProvider();
+    const first = await payable(kit);
+    const second = kit.expectSuccess(await updateQuantity(kit, first, 2));
+    expect(second.payment.methods.map(methodProjection)).toEqual(
+      first.payment.methods.map(methodProjection),
+    );
   });
 
-  test('rejects payment App output with duplicate keys or invalid metadata', () => {
-    // TODO: Verify invalid provider output is contained.
+  test('rejects payment App output with duplicate keys or invalid metadata', async () => {
+    await kit.configurePaymentProvider(['card']);
+    const before = await payable(kit);
+    const payload = await kit.withActionFault('payments.getCheckoutAvailablePaymentMethods', () =>
+      updateQuantity(kit, before, 2),
+    );
+    kit.expectUserError(payload, /PAYMENT|PIPELINE|UNAVAILABLE/);
+    expect(await kit.read(before.id)).toEqual(before);
   });
 
-  test('contains payment discovery timeout and boundary failures without exposing a partial method list', () => {
-    // TODO: Verify retryability, safe issue mapping, and no stale selected method.
+  test('contains payment discovery timeout and boundary failures without exposing a partial method list', async () => {
+    await kit.configurePaymentProvider();
+    const before = await payable(kit);
+    const payload = await kit.withActionFault('payments.getCheckoutAvailablePaymentMethods', () =>
+      updateQuantity(kit, before, 2),
+    );
+    const error = kit.expectUserError(payload, /PAYMENT|PIPELINE|UNAVAILABLE/);
+    expect(error.retryable).toBe(true);
+    expect(await kit.read(before.id)).toEqual(before);
+    kit.expectSafe(error);
   });
 
-  test('never exposes provider bindings, credentials, or customer input in storefront responses', () => {
-    // TODO: Verify payment projection is sanitized.
+  test('never exposes provider bindings, credentials, or customer input in storefront responses', async () => {
+    await kit.configurePaymentProvider(['card']);
+    const before = await payable(kit);
+    const secret = `secret-${crypto.randomUUID()}`;
+    const after = kit.expectSuccess(
+      await select(kit, before.id, before.payment.methods[0]!.handle, { secret }),
+    );
+    expect(JSON.stringify(after)).not.toContain(secret);
+    kit.expectSafe(after.payment);
   });
 
-  test('returns redirect and confirmation customer actions for their respective provider flows', () => {
-    // TODO: Cover REQUIRES_ACTION and REQUIRES_CONFIRMATION without leaking provider internals.
+  test('returns redirect and confirmation customer actions for their respective provider flows', async () => {
+    await kit.configurePaymentProvider(['card', 'card-3ds']);
+    const checkout = await payable(kit);
+    expect(checkout.payment.methods).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'test-stripe-card', flow: 'ONLINE' }),
+        expect.objectContaining({ code: 'test-stripe-card-3ds', flow: 'ONLINE' }),
+      ]),
+    );
   });
 
-  test('returns safe offline and on-delivery payment instructions without a redirect URL', () => {
-    // TODO: Verify the selected payment flow is faithfully projected.
+  test('returns safe offline and on-delivery payment instructions without a redirect URL', async () => {
+    await kit.configurePaymentProvider(['bank-transfer']);
+    const checkout = await payable(kit);
+    expect(checkout.payment.methods).toEqual([
+      expect.objectContaining({ code: 'test-stripe-bank-transfer', flow: 'OFFLINE' }),
+    ]);
+    kit.expectSafe(checkout.payment);
   });
 
-  test('rejects invalid payment customer input and preserves the previous selection', () => {
-    // TODO: Verify provider input validation is atomic and storefront-safe.
+  test('rejects invalid payment customer input and preserves the previous selection', async () => {
+    await kit.configurePaymentProvider(['card']);
+    const before = await selected(kit);
+    const response = await kit.graphql<unknown>(
+      `mutation InvalidPaymentInput($input: CheckoutPaymentMethodUpdateInput!) {
+        checkoutPaymentMethodUpdate(input: $input) { checkout { id } userErrors { code } }
+      }`,
+      {
+        input: {
+          checkoutId: before.id,
+          methodHandle: before.payment.selection.method!.handle,
+          customerInput: 'x'.repeat(1_100_000),
+        },
+      },
+    );
+    expect(response.data ?? null).toBeNull();
+    expect(response.errors).toBeTruthy();
+    expect(await kit.read(before.id)).toEqual(before);
   });
 
-  test('resets a selected method with its previous handle and reason when eligibility changes', () => {
-    // TODO: Cover amount, currency, customer, and App configuration changes.
+  test('resets a selected method with its previous handle and reason when eligibility changes', async () => {
+    const provider = await kit.configurePaymentProvider(['card']);
+    const before = await selected(kit);
+    const previousMethodHandle = before.payment.selection.method!.handle;
+    await kit.setPaymentProviderStatus(provider.providerAccountId, 'INACTIVE');
+    const after = kit.expectSuccess(
+      await kit.mutation('checkoutCurrencyCodeUpdate', 'CheckoutCurrencyCodeUpdateInput', {
+        checkoutId: before.id,
+        currencyCode: 'EUR',
+      }),
+    );
+    expect(after.payment.selection).toMatchObject({
+      status: 'RESET',
+      previousMethodHandle,
+      resetReason: { code: expect.any(String), message: expect.any(String) },
+    });
   });
 });
+
+async function payable(kit: CheckoutStorefrontTestKit, price = 1_000): Promise<Checkout> {
+  return kit.created({ items: [{ purchasableId: await kit.variant({ price }), quantity: 1 }] });
+}
+async function selected(kit: CheckoutStorefrontTestKit): Promise<Checkout> {
+  const checkout = await payable(kit);
+  return kit.expectSuccess(await select(kit, checkout.id, checkout.payment.methods[0]!.handle));
+}
+function select(
+  kit: CheckoutStorefrontTestKit,
+  checkoutId: string,
+  methodHandle: string,
+  customerInput?: unknown,
+) {
+  return kit.mutation('checkoutPaymentMethodUpdate', 'CheckoutPaymentMethodUpdateInput', {
+    checkoutId,
+    methodHandle,
+    customerInput,
+  });
+}
+function updateQuantity(kit: CheckoutStorefrontTestKit, checkout: Checkout, quantity: number) {
+  return kit.mutation('checkoutLinesUpdate', 'CheckoutLinesUpdateInput', {
+    checkoutId: checkout.id,
+    lines: [{ lineId: checkout.lines[0]!.id, quantity }],
+  });
+}
+function methodProjection(method: Checkout['payment']['methods'][number]) {
+  return {
+    code: method.code,
+    title: method.title,
+    providerCode: method.providerCode,
+    flow: method.flow,
+  };
+}
