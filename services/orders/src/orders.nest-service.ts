@@ -4,6 +4,7 @@ import "reflect-metadata";
 import { App } from "./ioc/container";
 import { startServer } from "./interfaces/server/server";
 import { v7 as uuidv7 } from "uuid";
+import { createHash } from "node:crypto";
 import { Repository } from "./repositories/Repository.js";
 import {
   OrderCheckoutActionNames,
@@ -36,6 +37,12 @@ import {
   createOrderFromCheckoutPlacementV1Schema,
   getOrderCheckoutPlacementV1Schema,
 } from "./domain/placement/OrderPlacementContracts.js";
+import {
+  adminOrderCommandNames,
+  parseAdminOrderPublicInput,
+  type AdminOrderCommandInput,
+  type AdminOrderCommandResult,
+} from "./domain/admin/AdminOrderCommandContracts.js";
 
 @Injectable()
 export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
@@ -51,6 +58,47 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.app = App.create(this.repository);
+
+    for (const command of adminOrderCommandNames) {
+      this.broker.register(
+        command,
+        async (
+          params: Readonly<Record<string, unknown>> | undefined,
+          context: BrokerCallContext,
+        ): Promise<AdminOrderCommandResult> => {
+          const admin = context.adminContext;
+          if (!admin?.organizationId || !admin.store) {
+            throw new Error("ORDER_ADMIN_CONTEXT_REQUIRED");
+          }
+          if (admin.store.organizationId !== admin.organizationId) {
+            throw new Error("ORDER_ADMIN_TENANT_CONTEXT_INVALID");
+          }
+          const input = parseAdminOrderPublicInput(command, requireParams(params));
+          const workflowInput: AdminOrderCommandInput = {
+            context: {
+              organizationId: admin.organizationId,
+              storeId: admin.store.id,
+              actor: { type: "STAFF", id: admin.user.id },
+              correlationId: uuidv7(),
+            },
+            input,
+          };
+          const clientKey = String(input.idempotencyKey);
+          return this.broker.runWorkflow(
+            `order.${command}`,
+            workflowInput,
+            {
+              source: "client",
+              clientKey,
+              organizationId: admin.organizationId,
+              apiKeyId: admin.user.id,
+              requestHash: createHash("sha256").update(JSON.stringify(input)).digest("hex"),
+            },
+            { adminContext: admin },
+          );
+        },
+      );
+    }
 
     this.broker.register(
       OrderCheckoutActionNames.createFromPlacement,

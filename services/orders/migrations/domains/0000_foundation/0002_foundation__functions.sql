@@ -15,6 +15,10 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $function$
 BEGIN
+  IF TG_OP = 'DELETE'
+     AND current_setting('orders.allow_draft_delete', true) = 'on' THEN
+    RETURN OLD;
+  END IF;
   RAISE EXCEPTION '% is append-only; % is not allowed', TG_TABLE_NAME, TG_OP
     USING ERRCODE = '55000';
 END;

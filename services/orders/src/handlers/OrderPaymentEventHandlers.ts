@@ -740,10 +740,10 @@ async function projectPaymentStatus(
   `);
   if (projected.length === 0) return;
   const currentRows = await repository.db.execute<{
-    revision: number;
+    version: number;
     paymentStatus: string;
   }>(sql`
-    SELECT "revision", "payment_status" AS "paymentStatus"
+    SELECT "version", "payment_status" AS "paymentStatus"
       FROM "orders"."orders"
      WHERE "store_id" = ${event.storeId}::uuid
        AND "id" = ${event.orderId}::uuid
@@ -752,24 +752,24 @@ async function projectPaymentStatus(
   const current = currentRows[0];
   if (!current) throw new Error("ORDER_NOT_FOUND");
   if (current.paymentStatus === paymentStatus) return;
-  const revision = current.revision + 1;
+  const version = current.version + 1;
   await repository.db.execute(sql`
     UPDATE "orders"."orders"
        SET "payment_status" = ${paymentStatus}::"orders"."order_payment_status",
-           "revision" = ${revision},
+           "version" = ${version},
            "updated_at" = GREATEST("updated_at", ${event.occurredAt}::timestamptz)
      WHERE "store_id" = ${event.storeId}::uuid
        AND "id" = ${event.orderId}::uuid
   `);
   await repository.db.execute(sql`
     INSERT INTO "orders"."order_revisions" (
-      "store_id", "order_id", "revision", "status", "payment_status",
+      "store_id", "order_id", "version", "status", "payment_status",
       "fulfillment_status", "delivery_status", "return_status", "currency_code",
       "subtotal_amount", "discount_amount", "shipping_amount", "tax_amount",
       "duty_amount", "adjustment_amount", "total_amount", "snapshot", "reason",
       "created_by_type", "created_at"
     )
-    SELECT "store_id", "id", "revision", "status", "payment_status",
+    SELECT "store_id", "id", "version", "status", "payment_status",
            "fulfillment_status", "delivery_status", "return_status", "currency_code",
            "subtotal_amount", "discount_amount", "shipping_amount", "tax_amount",
            "duty_amount", "adjustment_amount", "total_amount",
@@ -785,11 +785,11 @@ async function projectPaymentStatus(
   `);
   await repository.db.execute(sql`
     INSERT INTO "orders"."order_status_history" (
-      "store_id", "order_id", "order_revision", "order_status", "payment_status",
+      "store_id", "order_id", "order_version", "order_status", "payment_status",
       "fulfillment_status", "delivery_status", "return_status", "reason_code",
       "actor_type", "metadata", "happened_at"
     )
-    SELECT "store_id", "id", "revision", "status", "payment_status",
+    SELECT "store_id", "id", "version", "status", "payment_status",
            "fulfillment_status", "delivery_status", "return_status",
            ${eventType}, 'SYSTEM',
            jsonb_build_object('paymentCollectionId', ${event.paymentCollectionId}),
@@ -800,13 +800,22 @@ async function projectPaymentStatus(
   `);
   await repository.db.execute(sql`
     INSERT INTO "orders"."order_events" (
-      "store_id", "order_id", "event_type", "aggregate_revision", "actor_type",
+      "store_id", "order_id", "event_type", "order_version", "actor_type",
       "correlation_id", "idempotency_key", "payload", "happened_at"
     ) VALUES (
       ${event.storeId}::uuid, ${event.orderId}::uuid,
-      ${eventType}, ${revision}, 'SYSTEM',
+      ${eventType}, ${version}, 'SYSTEM',
       ${uuidOrNull(correlationId)}::uuid, ${eventId}, ${JSON.stringify(event)}::jsonb,
       ${event.occurredAt}::timestamptz
+    )
+  `);
+  await repository.db.execute(sql`
+    INSERT INTO "orders"."order_activity" (
+      "store_id", "order_id", "order_version", "activity_type", "visibility",
+      "actor_type", "payload", "happened_at"
+    ) VALUES (
+      ${event.storeId}::uuid, ${event.orderId}::uuid, ${version}, ${eventType},
+      'INTERNAL', 'SYSTEM', ${JSON.stringify(event)}::jsonb, ${event.occurredAt}::timestamptz
     )
   `);
 }

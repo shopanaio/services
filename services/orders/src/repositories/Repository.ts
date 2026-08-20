@@ -9,6 +9,8 @@ import { OrderReadRepository } from "./order/OrderReadRepository.js";
 import { OrderRepository } from "./order/OrderRepository.js";
 import { DeliveryFulfillmentRepository } from "./fulfillment/DeliveryFulfillmentRepository.js";
 import { OrderCheckoutPlacementRepository } from "./placement/OrderCheckoutPlacementRepository.js";
+import { AdminOrderCommandRepository } from "./admin/AdminOrderCommandRepository.js";
+import { AdminOrderReadRepository } from "./admin/AdminOrderReadRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -26,6 +28,8 @@ export class Repository {
   readonly pii: OrdersPiiRepository;
   readonly fulfillment: DeliveryFulfillmentRepository;
   readonly checkoutPlacement: OrderCheckoutPlacementRepository;
+  readonly adminCommand: AdminOrderCommandRepository;
+  readonly adminRead: AdminOrderReadRepository;
   readonly txManager: TransactionManager<Database>;
   readonly dbosTransactionBridge: DbosTransactionBridge<Database, PostgresTransactionOptions>;
 
@@ -38,6 +42,8 @@ export class Repository {
     pii: OrdersPiiRepository,
     fulfillment: DeliveryFulfillmentRepository,
     checkoutPlacement: OrderCheckoutPlacementRepository,
+    adminCommand: AdminOrderCommandRepository,
+    adminRead: AdminOrderReadRepository,
     txManager: TransactionManager<Database>,
     dbosTransactionBridge: DbosTransactionBridge<Database, PostgresTransactionOptions>,
   ) {
@@ -49,6 +55,8 @@ export class Repository {
     this.pii = pii;
     this.fulfillment = fulfillment;
     this.checkoutPlacement = checkoutPlacement;
+    this.adminCommand = adminCommand;
+    this.adminRead = adminRead;
     this.txManager = txManager;
     this.dbosTransactionBridge = dbosTransactionBridge;
   }
@@ -64,6 +72,8 @@ export class Repository {
     const order = new OrderRepository(db, txManager, orderNumber, pii, idempotency);
     const fulfillment = new DeliveryFulfillmentRepository(db, txManager);
     const checkoutPlacement = new OrderCheckoutPlacementRepository(db, txManager, orderNumber);
+    const adminCommand = new AdminOrderCommandRepository(db, txManager, orderNumber);
+    const adminRead = new AdminOrderReadRepository(db, txManager);
 
     return new Repository(
       order,
@@ -74,6 +84,8 @@ export class Repository {
       pii,
       fulfillment,
       checkoutPlacement,
+      adminCommand,
+      adminRead,
       txManager,
       dbosTransactionBridge,
     );

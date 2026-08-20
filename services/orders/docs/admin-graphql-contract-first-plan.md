@@ -3238,36 +3238,68 @@ side effects — через отдельные idempotent workflow steps. Обы
 
 Порядок vertical slices:
 
-1. DBOS workflow execution foundation для всех commands: `ServiceBroker` entrypoints, canonical
-   `order.*` names, root workflow preflight Policies, durable `WorkflowExecutionContext`, recovery
-   re-authorization, trusted caller/App context checks, canonical order repositories, row-version
-   concurrency и idempotency.
-2. Versioned broker-types и runtime Zod schemas для Checkout placement create/confirm/cancel/get.
-   Tenant fields в DTO являются routing claims; handler отдельно проверяет caller service и resource
-   ownership.
-3. Order creation transactional step: snapshot validation, normalized state, audit/idempotency
-   records, initial fulfillment holds, replay и post-commit DBOS delivery без локальной queue.
-4. Интегрировать существующий `checkout.placeOrder` и `monitorPlacedPayment` с placement handshake;
-   выполнить аудит всех Checkout repository writes в `PlaceOrderWorkflow`,
-   `MonitorPlacedPaymentWorkflow` и maintenance flows и перевести их с `@WorkflowStep()` на
-   `@TransactionalStep()` через Checkout DBOS transaction bridge. External broker/provider calls
-   остаются отдельными `@WorkflowStep()`.
-5. Реализовать Checkout ↔ Orders reconciler и post-commit compensation rules.
-6. Draft create/update/line mutations/complete/delete.
-7. Core reads, list/filter/sort и activity.
-8. Simple order updates, customer/tags/note/comment/archive.
-9. Staged placed-order edit.
-10. Payment event ingestion/state update + manual/capture/void/refund/retry workflows; все event и
-    callback boundaries имеют versioned runtime Zod validation до запуска workflow.
-11. Fulfillment orders + merchant-managed fulfillment.
-12. 3PL fulfillment service capability.
-13. Shipment provider integration/tracking/reconciliation.
-14. Cancellation saga.
-15. Returns/exchanges/refunds orchestration.
-16. CRM integration через DBOS workflows и reconciliation.
-17. Bulk coordinator + per-order child workflows: отдельная aggregate transaction/version/audit,
-    уникальный workflow `callId`, явные partial results и отсутствие automatic retry domain
-    conflicts.
+1. [x] DBOS workflow execution foundation для всех commands: `ServiceBroker` entrypoints, canonical
+       `order.*` names, root workflow preflight Policies, durable `WorkflowExecutionContext`,
+       recovery re-authorization, trusted caller/App context checks, canonical order repositories,
+       row-version concurrency и idempotency.
+2. [x] Versioned broker-types и runtime Zod schemas для Checkout placement
+       create/confirm/cancel/get. Tenant fields в DTO являются routing claims; handler отдельно
+       проверяет caller service и resource ownership.
+3. [x] Order creation transactional step: snapshot validation, normalized state, audit/idempotency
+       records, initial fulfillment holds, replay и post-commit DBOS delivery без локальной queue.
+4. [x] Интегрировать существующий `checkout.placeOrder` и `monitorPlacedPayment` с placement
+       handshake; выполнить аудит всех Checkout repository writes в `PlaceOrderWorkflow`,
+       `MonitorPlacedPaymentWorkflow` и maintenance flows и перевести их с `@WorkflowStep()` на
+       `@TransactionalStep()` через Checkout DBOS transaction bridge. External broker/provider calls
+       остаются отдельными `@WorkflowStep()`.
+5. [x] Реализовать Checkout ↔ Orders reconciler и post-commit compensation rules.
+6. [x] Draft create/update/line mutations/complete/delete.
+7. [x] Core reads, list/filter/sort и activity.
+8. [x] Simple order updates, customer/tags/note/comment/archive.
+9. [x] Staged placed-order edit.
+10. [x] Payment event ingestion/state update + manual/capture/void/refund/retry workflows; все event
+        и callback boundaries имеют versioned runtime Zod validation до запуска workflow.
+11. [x] Fulfillment orders + merchant-managed fulfillment.
+12. [x] 3PL fulfillment service capability.
+13. [x] Shipment provider integration/tracking/reconciliation.
+14. [x] Cancellation saga.
+15. [x] Returns/exchanges/refunds orchestration.
+16. [x] CRM integration через DBOS workflows и reconciliation.
+17. [x] Bulk coordinator + per-order child workflows: отдельная aggregate transaction/version/audit,
+        уникальный workflow `callId`, явные partial results и отсутствие automatic retry domain
+        conflicts.
+
+#### Implementation record Этапа 3 (2026-08-20)
+
+- все 57 state-changing Admin operations имеют отдельный canonical `order.*` DBOS workflow,
+  `ServiceBroker` entrypoint, root `@Policy`, durable tenant/actor context, client idempotency и
+  recovery re-authorization; публичный DTO не принимает tenant identifiers;
+- общая command repository выполняет optimistic version checks, domain mutations, idempotency replay
+  и resulting-version audit/revision/status-history/activity в одной transaction;
+- draft lifecycle, simple updates, staged edit, merchant fulfillment, shipments, returns и exchanges
+  реализованы как локальные transactional slices; permanent delete разрешён только для `DRAFT` через
+  узкую PostgreSQL function с очисткой зависимых draft/audit facts;
+- payment/delivery/3PL/CRM side effects выполняются отдельными checkpointed workflow steps; attempts
+  сохраняются append-only, terminal operation/domain transition фиксируется отдельным transactional
+  step, а payment/provider callbacks проходят versioned Zod boundary;
+- cancellation собирает shipment, 3PL, inventory и payment compensation steps до atomic terminal
+  cancellation; return receive может оркестрировать refund;
+- bulk coordinator материализует tenant-scoped selection и запускает отдельный child `order.*`
+  workflow на каждый order с уникальным `callId`; domain conflicts записываются как partial attempts
+  и не получают automatic coordinator retry;
+- Admin read repository читает current projections напрямую и поддерживает detail, keyset list,
+  filter/sort, activity и operation polling без event replay;
+- Checkout placement readiness использует только V1 create/confirm/cancel/get actions; maintenance
+  workflow выполняет reconciliation/recovery/compensation, а локальные writes placement flows
+  изолированы `@TransactionalStep()`;
+- payment projection приведена к canonical physical contract `version`/`order_version` и пишет
+  соответствующий activity fact;
+- подготовлены contract/gate artifacts для workflow coverage, tenant boundary, input validation,
+  idempotency/version conflicts, atomic audit и recovery; согласно правилу плана suites не
+  запускались;
+- разрешённый production build `shopana build -s orders checkout --parallel` проходит formatting,
+  lint, packages build, type checking и production build; migrations и Admin SDL копируются в
+  `dist`.
 
 Gate каждого slice: operation зарегистрирована как `order.*` DBOS workflow и запускается через
 `ServiceBroker`; root/internal/App authorization boundary проверена; отсутствуют raw

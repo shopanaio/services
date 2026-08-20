@@ -1,11 +1,15 @@
 import { DBOS, type ServiceBroker } from "@shopana/shared-kernel";
 import { rawSql } from "@event-driven-io/dumbo";
 import { dumboPool } from "../../infrastructure/db/dumbo.js";
+import { OrderCheckoutActions } from "@shopana/broker-types";
 
 const criticalActions = [
   "project.getStoreById",
   "order.generateOrderId",
-  "order.createOrderFromCheckoutPlacement",
+  OrderCheckoutActions.createFromPlacement,
+  OrderCheckoutActions.confirmPlacement,
+  OrderCheckoutActions.cancelPlacement,
+  OrderCheckoutActions.getPlacement,
   "inventory.reserveCheckoutInventory",
   "inventory.releaseCheckoutInventory",
   "pricing.reserveCheckoutDiscountUsage",

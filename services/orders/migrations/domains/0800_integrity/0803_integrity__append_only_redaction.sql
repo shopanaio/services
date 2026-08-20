@@ -30,6 +30,47 @@ BEGIN
 END;
 $function$;
 
+CREATE FUNCTION "orders"."delete_draft_order"(p_store_id uuid, p_order_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_status "orders"."order_status";
+BEGIN
+  SELECT "status" INTO v_status
+    FROM "orders"."orders"
+   WHERE "store_id" = p_store_id AND "id" = p_order_id
+   FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Order % was not found', p_order_id USING ERRCODE = 'P0002';
+  END IF;
+  IF v_status <> 'DRAFT' THEN
+    RAISE EXCEPTION 'Only draft orders can be permanently deleted' USING ERRCODE = '55000';
+  END IF;
+
+  PERFORM set_config('orders.allow_draft_delete', 'on', true);
+  DELETE FROM "orders"."order_activity"
+   WHERE "store_id" = p_store_id AND "order_id" = p_order_id;
+  DELETE FROM "orders"."order_status_history"
+   WHERE "store_id" = p_store_id AND "order_id" = p_order_id;
+  DELETE FROM "orders"."order_events"
+   WHERE "store_id" = p_store_id AND "order_id" = p_order_id;
+  DELETE FROM "orders"."order_revisions"
+   WHERE "store_id" = p_store_id AND "order_id" = p_order_id;
+  DELETE FROM "orders"."order_admin_notes"
+   WHERE "store_id" = p_store_id AND "order_id" = p_order_id;
+  DELETE FROM "orders"."order_tags"
+   WHERE "store_id" = p_store_id AND "order_id" = p_order_id;
+  DELETE FROM "orders"."order_contacts"
+   WHERE "store_id" = p_store_id AND "order_id" = p_order_id;
+  DELETE FROM "orders"."order_lines"
+   WHERE "store_id" = p_store_id AND "order_id" = p_order_id;
+  DELETE FROM "orders"."orders"
+   WHERE "store_id" = p_store_id AND "id" = p_order_id;
+END;
+$function$;
+
 CREATE TRIGGER "order_payment_transactions_protect_finalized"
 BEFORE UPDATE OR DELETE ON "orders"."order_payment_transactions"
 FOR EACH ROW EXECUTE FUNCTION "orders"."protect_finalized_payment_transaction"();
