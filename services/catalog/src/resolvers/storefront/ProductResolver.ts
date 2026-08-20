@@ -18,6 +18,8 @@ import { inventoryState, isPublishedAt, isPublishedProduct } from "./helpers.js"
 import { mediaReference } from "./MediaConnectionResolver.js";
 import { minorUnitsToMoney } from "./money.js";
 import { emptySeo } from "./SeoResolver.js";
+import { ProductComparisonService } from "../../application/comparison/ProductComparisonService.js";
+import { ProductComparisonResolver } from "./ProductComparisonResolvers.js";
 
 @SubgraphReference()
 export class ProductResolver extends CatalogType<string, Product> {
@@ -197,6 +199,11 @@ export class ProductResolver extends CatalogType<string, Product> {
     return quantities.length === 0
       ? null
       : quantities.reduce((sum, value) => sum + value, 0);
+  }
+
+  async comparison() {
+    const matrix = await new ProductComparisonService(this.$ctx).forProduct(this.$props);
+    return matrix ? new ProductComparisonResolver(matrix, this.$ctx) : null;
   }
 
   publishedAt() {

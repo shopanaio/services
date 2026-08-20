@@ -1,27 +1,29 @@
-import { MCPTool } from 'mcp-framework';
-import { z } from 'zod';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { join } from 'path';
+import { MCPTool } from "mcp-framework";
+import { z } from "zod";
+import { exec } from "child_process";
+import { promisify } from "util";
+import { join } from "path";
 
 const execAsync = promisify(exec);
 
 const AdminToolSchema = z.object({
   action: z
-    .enum(['codegen', 'build', 'lint'])
-    .describe('Admin frontend action. codegen runs GraphQL Code Generator. build runs Next.js production build. lint runs ESLint.'),
+    .enum(["codegen", "build", "lint"])
+    .describe(
+      "Admin frontend action. codegen runs GraphQL Code Generator. build runs Prettier check, Oxlint, and the Next.js production build. lint runs Prettier check and Oxlint.",
+    ),
   workingDir: z
     .string()
     .optional()
-    .describe('Shopana services repository root (defaults to current directory)'),
+    .describe("Shopana services repository root (defaults to current directory)"),
   adminDir: z
     .string()
     .optional()
-    .describe('Admin frontend directory (defaults to <workingDir>/admin)')
+    .describe("Admin frontend directory (defaults to <workingDir>/admin)"),
 });
 
 class AdminTool extends MCPTool<typeof AdminToolSchema> {
-  name = 'shopana_admin';
+  name = "shopana_admin";
   description = `Run Admin frontend maintenance commands.
 
 The Admin frontend lives in the separate admin/ package and is not a backend service.
@@ -30,7 +32,7 @@ Use this tool for Admin GraphQL codegen, production build verification, and lint
 Important:
 - Admin codegen: { "action": "codegen" } runs npm run codegen in admin/
 - Admin build: { "action": "build" } runs npm run build in admin/
-- Admin lint: { "action": "lint" } runs npm run lint in admin/
+- Admin lint: { "action": "lint" } runs Prettier check and Oxlint via npm run lint in admin/
 
 Examples:
 - Generate Admin GraphQL types: { "action": "codegen" }
@@ -41,11 +43,11 @@ Examples:
 
   async execute(input: z.infer<typeof AdminToolSchema>) {
     const workingDir = input.workingDir || process.cwd();
-    const adminDir = input.adminDir || join(workingDir, 'admin');
+    const adminDir = input.adminDir || join(workingDir, "admin");
     const commands = {
-      codegen: 'npm run codegen',
-      build: 'npm run build',
-      lint: 'npm run lint'
+      codegen: "npm run codegen",
+      build: "npm run build",
+      lint: "npm run lint",
     } as const;
     const command = commands[input.action];
 
@@ -53,40 +55,48 @@ Examples:
       const { stdout, stderr } = await execAsync(command, {
         cwd: adminDir,
         timeout: 300000,
-        maxBuffer: 10 * 1024 * 1024
+        maxBuffer: 10 * 1024 * 1024,
       });
 
       return {
         content: [
           {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: true,
-              action: input.action,
-              command,
-              cwd: adminDir,
-              output: stdout,
-              warnings: stderr || undefined
-            }, null, 2)
-          }
-        ]
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                success: true,
+                action: input.action,
+                command,
+                cwd: adminDir,
+                output: stdout,
+                warnings: stderr || undefined,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
     } catch (error: any) {
       return {
         content: [
           {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: false,
-              action: input.action,
-              command,
-              cwd: adminDir,
-              error: error.message,
-              stdout: error.stdout,
-              stderr: error.stderr
-            }, null, 2)
-          }
-        ]
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                success: false,
+                action: input.action,
+                command,
+                cwd: adminDir,
+                error: error.message,
+                stdout: error.stdout,
+                stderr: error.stderr,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
     }
   }

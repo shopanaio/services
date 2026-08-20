@@ -142,7 +142,7 @@ export class CollectionMutationWorkflow extends BrokerWorkflows<
     const collectionId =
       "deletedCollectionId" in result
         ? result.deletedCollectionId
-        : result.collection?.id;
+        : "collection" in result ? result.collection?.id : undefined;
     if (result.syncOperationId && collectionId) {
       await this.startProductSync({
         operationId: result.syncOperationId,
@@ -195,7 +195,7 @@ export class CollectionMutationWorkflow extends BrokerWorkflows<
               deletedAt: input.result.deletedAt,
             }
           : null
-        : input.result.collection
+        : "collection" in input.result && input.result.collection
           ? {
               collectionId: input.result.collection.id,
               revision: input.result.collection.revision,
@@ -308,7 +308,7 @@ export class CollectionProductSyncWorkflow extends BrokerWorkflows<
         productIds: page.productIds,
       });
       emittedCount += page.productIds.length;
-      this.logger.info(
+      Kernel.getInstance().getServices().logger.info(
         {
           reason: "collection",
           status: "progress",

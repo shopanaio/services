@@ -448,7 +448,7 @@ export class VariantRepository extends BaseRepository {
       );
   }
 
-  async getPublishedComparisonVariants(
+  async getStorefrontVisibleComparisonVariants(
     variantIds: readonly string[],
   ): Promise<PublishedComparisonVariant[]> {
     if (variantIds.length === 0) return [];
@@ -485,6 +485,11 @@ export class VariantRepository extends BaseRepository {
           lte(product.publishedAt, now),
         ),
       );
+  }
+
+  /** @deprecated Use the shared storefront visibility read. */
+  getPublishedComparisonVariants(variantIds: readonly string[]) {
+    return this.getStorefrontVisibleComparisonVariants(variantIds);
   }
 
   async getIdsByProductIds(

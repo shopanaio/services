@@ -175,4 +175,16 @@ export class CategoryResolver extends CatalogType<string, Category> {
       ...args,
     });
   }
+
+  async directComparisonProfile() {
+    const profileId = await this.$ctx.loaders.directComparisonProfileByCategory.load(this.$props);
+    return profileId ? this.resolvers.comparisonProfile(profileId) : null;
+  }
+
+  async effectiveComparisonProfile() {
+    const effective = await this.$ctx.loaders.effectiveComparisonProfileByCategory.load(this.$props);
+    return effective?.profileId && effective.enabled
+      ? this.resolvers.comparisonProfile(effective.profileId)
+      : null;
+  }
 }

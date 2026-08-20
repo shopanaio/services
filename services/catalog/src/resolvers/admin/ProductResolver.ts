@@ -219,6 +219,17 @@ export class ProductResolver extends CatalogType<string, Product> {
       ? this.resolvers.productComponent(component.id)
       : null;
   }
+
+  async effectiveComparisonProfile() {
+    const effective = await this.$ctx.loaders.effectiveComparisonProfileByProduct.load(this.$props);
+    return effective?.profileId && effective.enabled
+      ? this.resolvers.comparisonProfile(effective.profileId)
+      : null;
+  }
+
+  comparisonConfiguration() {
+    return this.resolvers.productComparisonConfiguration(this.$props);
+  }
 }
 
 /**

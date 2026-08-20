@@ -167,6 +167,27 @@ import {
   WarehouseDeleteInputSchema,
 } from "./generated/schemas.js";
 import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema.js";
+import {
+  CategoryComparisonProfileSetScript,
+  ComparisonProfileCreateScript,
+  ComparisonProfileDeleteScript,
+  ComparisonProfileUpdateScript,
+  ProductComparisonConfigurationSyncScript,
+} from "../../scripts/comparison/index.js";
+import type {
+  CategoryComparisonProfileSetInput,
+  ComparisonProfileCreateInput,
+  ComparisonProfileDeleteInput,
+  ComparisonProfileUpdateInput,
+  ProductComparisonConfigurationSyncInput,
+} from "./generated/types.js";
+import {
+  CategoryComparisonProfileSetInputSchema,
+  ComparisonProfileCreateInputSchema,
+  ComparisonProfileDeleteInputSchema,
+  ComparisonProfileUpdateInputSchema,
+  ProductComparisonConfigurationSyncInputSchema,
+} from "./generated/schemas.js";
 
 /**
  * Root Mutation resolver for Catalog Service.
@@ -193,6 +214,47 @@ export class MutationResolver extends CatalogType<Record<string, never>> {
  * Does NOT contain inventory mutations (warehouse, stock, dimensions, cost).
  */
 export class CatalogMutationResolver extends CatalogType<Record<string, never>> {
+  @ZodResolver(ComparisonProfileCreateInputSchema())
+  async comparisonProfileCreate(args: { input: ComparisonProfileCreateInput }) {
+    const decoded = decodeComparisonProfileInput(args.input);
+    if (decoded.userErrors.length) return { profile: null, userErrors: decoded.userErrors };
+    const result = await this.$ctx.kernel.runScript(ComparisonProfileCreateScript, { input: decoded.input! });
+    return { profile: result.profile ? await this.resolvers.comparisonProfile(result.profile.id) : null, userErrors: result.userErrors };
+  }
+
+  @ZodResolver(ComparisonProfileUpdateInputSchema())
+  async comparisonProfileUpdate(args: { input: ComparisonProfileUpdateInput }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.ComparisonProfile);
+    const decoded = decodeComparisonProfileInput(args.input);
+    if (!id || decoded.userErrors.length) return { profile: null, userErrors: [...(!id ? [{ message: "Invalid comparison profile ID", field: ["id"], code: "INVALID_ID" }] : []), ...decoded.userErrors] };
+    const result = await this.$ctx.kernel.runScript(ComparisonProfileUpdateScript, { id, expectedRevision: args.input.expectedRevision, input: decoded.input! });
+    return { profile: result.profile ? await this.resolvers.comparisonProfile(result.profile.id) : null, userErrors: result.userErrors };
+  }
+
+  @ZodResolver(ComparisonProfileDeleteInputSchema())
+  async comparisonProfileDelete(args: { input: ComparisonProfileDeleteInput }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.ComparisonProfile);
+    if (!id) return { deletedComparisonProfileId: null, userErrors: [{ message: "Invalid comparison profile ID", field: ["id"], code: "INVALID_ID" }] };
+    const result = await this.$ctx.kernel.runScript(ComparisonProfileDeleteScript, { id });
+    return { deletedComparisonProfileId: result.deletedProfileId ? encodeGlobalIdByType(result.deletedProfileId, GlobalIdEntity.ComparisonProfile) : null, userErrors: result.userErrors };
+  }
+
+  @ZodResolver(CategoryComparisonProfileSetInputSchema())
+  async categoryComparisonProfileSet(args: { input: CategoryComparisonProfileSetInput }) {
+    const categoryId = safeDecodeGlobalId(args.input.categoryId, GlobalIdEntity.Category);
+    const profileId = args.input.profileId ? safeDecodeGlobalId(args.input.profileId, GlobalIdEntity.ComparisonProfile) : null;
+    if (!categoryId || (args.input.profileId && !profileId)) return { category: null, effectiveComparisonProfile: null, userErrors: [{ message: "Invalid ID", code: "INVALID_ID" }] };
+    const result = await this.$ctx.kernel.runScript(CategoryComparisonProfileSetScript, { categoryId, profileId });
+    return { category: result.categoryId ? await this.resolvers.category(result.categoryId) : null, effectiveComparisonProfile: result.effectiveProfile ? await this.resolvers.comparisonProfile(result.effectiveProfile.id) : null, userErrors: result.userErrors };
+  }
+
+  @ZodResolver(ProductComparisonConfigurationSyncInputSchema())
+  async productComparisonConfigurationSync(args: { input: ProductComparisonConfigurationSyncInput }) {
+    const decoded = decodeConfigurationInput(args.input);
+    if (decoded.userErrors.length) return { configuration: null, userErrors: decoded.userErrors };
+    const result = await this.$ctx.kernel.runScript(ProductComparisonConfigurationSyncScript, decoded.params!);
+    return { configuration: result.product ? await this.resolvers.productComparisonConfiguration(result.product.id) : null, userErrors: result.userErrors };
+  }
   @ZodResolver(WarehouseCreateInputSchema())
   async warehouseCreate(args: { input: WarehouseCreateInput }) {
     const { input } = args;
@@ -3785,4 +3847,46 @@ function hasProductUpdateFields(
     operations.status !== undefined ||
     operations.media !== undefined
   );
+}
+
+function decodeComparisonProfileInput(input: ComparisonProfileCreateInput | ComparisonProfileUpdateInput): { input?: any; userErrors: UserError[] } {
+  const userErrors: UserError[] = [];
+  const groups = input.groups.map((group, gi) => {
+    const groupId = group.id ? safeDecodeGlobalId(group.id, GlobalIdEntity.ComparisonGroup) : undefined;
+    if (group.id && !groupId) userErrors.push({ message: "Invalid comparison group ID", field: ["groups", String(gi), "id"], code: "INVALID_ID" });
+    return { ...group, id: groupId, fields: group.fields.map((field, fi) => {
+      const fieldId = field.id ? safeDecodeGlobalId(field.id, GlobalIdEntity.ComparisonField) : undefined;
+      if (field.id && !fieldId) userErrors.push({ message: "Invalid comparison field ID", field: ["groups", String(gi), "fields", String(fi), "id"], code: "INVALID_ID" });
+      return { ...field, id: fieldId, description: field.description ?? null, canonicalUnit: field.canonicalUnit ?? null, options: field.options.map((option, oi) => {
+        const optionId = option.id ? safeDecodeGlobalId(option.id, GlobalIdEntity.ComparisonFieldOption) : undefined;
+        if (option.id && !optionId) userErrors.push({ message: "Invalid comparison field option ID", field: ["groups", String(gi), "fields", String(fi), "options", String(oi), "id"], code: "INVALID_ID" });
+        return { ...option, id: optionId };
+      }) };
+    }) };
+  });
+  return { input: { handle: input.handle, enabled: input.enabled ?? true, name: input.name, missingLabel: input.missingLabel, notApplicableLabel: input.notApplicableLabel, unavailableLabel: input.unavailableLabel, groups }, userErrors };
+}
+
+function decodeConfigurationInput(input: ProductComparisonConfigurationSyncInput): { params?: any; userErrors: UserError[] } {
+  const userErrors: UserError[] = [];
+  const productId = safeDecodeGlobalId(input.productId, GlobalIdEntity.Product);
+  const profileId = safeDecodeGlobalId(input.profileId, GlobalIdEntity.ComparisonProfile);
+  if (!productId) userErrors.push({ message: "Invalid product ID", field: ["productId"], code: "INVALID_ID" });
+  if (!profileId) userErrors.push({ message: "Invalid comparison profile ID", field: ["profileId"], code: "INVALID_ID" });
+  const mappings = input.mappings.map((mapping, index) => {
+    const fieldId = safeDecodeGlobalId(mapping.fieldId, GlobalIdEntity.ComparisonField);
+    if (!fieldId) userErrors.push({ message: "Invalid comparison field ID", field: ["mappings", String(index), "fieldId"], code: "INVALID_ID" });
+    const feature = mapping.feature ? { featureId: safeDecodeGlobalId(mapping.feature.featureId, GlobalIdEntity.Feature), values: mapping.feature.values.map((value, vi) => ({ valueId: safeDecodeGlobalId(value.valueId, GlobalIdEntity.FeatureValue), normalized: decodeNormalized(value.value, ["mappings", String(index), "feature", "values", String(vi)], userErrors) })) } : undefined;
+    const option = mapping.option ? { optionId: safeDecodeGlobalId(mapping.option.optionId, GlobalIdEntity.Option), values: mapping.option.values.map((value, vi) => ({ valueId: safeDecodeGlobalId(value.valueId, GlobalIdEntity.OptionValue), normalized: decodeNormalized(value.value, ["mappings", String(index), "option", "values", String(vi)], userErrors) })) } : undefined;
+    if (feature && (!feature.featureId || feature.values.some((value) => !value.valueId))) userErrors.push({ message: "Invalid feature ID", field: ["mappings", String(index), "feature"], code: "INVALID_ID" });
+    if (option && (!option.optionId || option.values.some((value) => !value.valueId))) userErrors.push({ message: "Invalid option ID", field: ["mappings", String(index), "option"], code: "INVALID_ID" });
+    return { fieldId: fieldId!, feature: feature ? { ...feature, featureId: feature.featureId!, values: feature.values.map((value) => ({ ...value, valueId: value.valueId! })) } : undefined, option: option ? { ...option, optionId: option.optionId!, values: option.values.map((value) => ({ ...value, valueId: value.valueId! })) } : undefined, notApplicable: mapping.notApplicable ? { reason: mapping.notApplicable.reason ?? null } : undefined };
+  });
+  return { params: { productId: productId!, profileId: profileId!, expectedProductRevision: input.expectedProductRevision, mappings }, userErrors };
+}
+
+function decodeNormalized(value: any, path: string[], userErrors: UserError[]) {
+  const fieldOptionId = value.fieldOptionId ? safeDecodeGlobalId(value.fieldOptionId, GlobalIdEntity.ComparisonFieldOption) : null;
+  if (value.fieldOptionId && !fieldOptionId) userErrors.push({ message: "Invalid comparison field option ID", field: [...path, "value", "fieldOptionId"], code: "INVALID_ID" });
+  return { booleanValue: value.booleanValue ?? null, decimalValue: value.decimalValue ?? null, integerValue: value.integerValue ?? null, textValue: value.textValue ?? null, fieldOptionId };
 }

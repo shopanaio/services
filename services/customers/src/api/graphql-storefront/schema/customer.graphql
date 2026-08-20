@@ -143,4 +143,6 @@ type CustomerUserError implements DisplayableError {
   message: String!
   code: String!
   retryable: Boolean!
+  """Current comparison revision when code is REVISION_CONFLICT."""
+  actualRevision: Int
 }

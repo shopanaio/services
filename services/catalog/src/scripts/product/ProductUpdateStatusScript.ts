@@ -27,6 +27,14 @@ export class ProductUpdateStatusScript extends BaseScript<ProductUpdateStatusPar
       };
     }
 
+    if (status === "published") {
+      const effective = (await this.repository.comparisonRead.getEffectiveProfilesByProductIds([id]))[0];
+      const configured = await this.repository.comparisonRead.productConfigurationProfileIds(id);
+      if (configured.some((profileId) => profileId !== effective?.profileId)) {
+        return singleError("Product comparison configuration does not match its effective profile", "COMPARISON_EFFECTIVE_PROFILE_MISMATCH", ["status"]);
+      }
+    }
+
     // 4. Apply status change
     let product;
     if (status === "published") {

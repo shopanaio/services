@@ -66,6 +66,9 @@ type Category implements Node @key(fields: "id") {
 
   """The total number of products in this category."""
   productsCount: Int!
+
+  directComparisonProfile: ComparisonProfile
+  effectiveComparisonProfile: ComparisonProfile
 }
 
 """

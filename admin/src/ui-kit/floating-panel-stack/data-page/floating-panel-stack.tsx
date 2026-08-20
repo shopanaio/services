@@ -125,7 +125,7 @@ export function FloatingPanelStack({ panels }: FloatingPanelStackProps) {
   const prevPanelIdsRef = useRef<Set<PanelId>>(new Set());
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- mounting state for portal
+    // oxlint-disable-next-line react/set-state-in-effect -- mounting state for portal
     setMounted(true);
   }, []);
 
@@ -133,7 +133,7 @@ export function FloatingPanelStack({ panels }: FloatingPanelStackProps) {
   useEffect(() => {
     const currentIds = new Set(panels.map((p) => p.type === "custom" ? p.id : p.type));
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing props to state is a valid pattern
+    // oxlint-disable-next-line react/set-state-in-effect -- syncing props to state is a valid pattern
     setInternalPanels((prev) => {
       const result: InternalPanel[] = [];
 

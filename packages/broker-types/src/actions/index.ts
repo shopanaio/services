@@ -194,6 +194,7 @@ export {
   CatalogLoyaltyActionNames,
   CatalogLoyaltyActions,
 } from "./catalog.js";
+export type { CatalogProductCollectionSnapshot } from "./catalog.js";
 
 // Pricing service actions
 export * as Pricing from "./pricing.js";

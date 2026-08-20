@@ -1,0 +1,78 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "eslint",
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "node",
+    "promise"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "env": {
+    "es6": true,
+    "node": true
+  },
+  "settings": {
+    "next": {
+      "rootDir": "admin/"
+    }
+  },
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/generated/**",
+    "**/__generated__/**",
+    "admin/.next/**",
+    "admin/.next-e2e-*/**",
+    "admin/out/**",
+    "admin/next-env.d.ts"
+  ],
+  "overrides": [
+    {
+      "files": ["admin/**/*.{js,jsx,ts,tsx,mjs,cjs}"],
+      "plugins": [
+        "eslint",
+        "typescript",
+        "unicorn",
+        "oxc",
+        "import",
+        "node",
+        "promise",
+        "react",
+        "jsx-a11y",
+        "nextjs"
+      ],
+      "env": {
+        "browser": true,
+        "es6": true,
+        "node": true
+      },
+      "rules": {
+        "nextjs/no-img-element": "off",
+        "react/react-in-jsx-scope": "off",
+        "react/preserve-manual-memoization": "off",
+        "react/rules-of-hooks": "error",
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@shopana/admin-app-sdk"],
+                "allowTypeImports": true,
+                "message": "The internal Admin Apps SDK alias is compile-time only. Use import type."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

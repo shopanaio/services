@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "yarn lint && next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "yarn --cwd .. lint:admin",
+    "format": "yarn --cwd .. format:admin",
+    "format:check": "yarn --cwd .. format:check:admin",
     "codegen": "graphql-codegen --config codegen.ts",
     "test": "vitest",
     "test:run": "vitest run"
@@ -74,8 +76,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.0.6",
     "graphql": "^16.9.0",
     "typescript": "^5",
     "vitest": "^4.0.17"

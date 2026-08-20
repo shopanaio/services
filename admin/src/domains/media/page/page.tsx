@@ -485,7 +485,7 @@ export default function MediaPage() {
     const result: PanelConfig[] = [];
 
     if (selectedIds.length > 0) {
-      // eslint-disable-next-line react-hooks/refs -- deselectAll is called on click, not during render
+      // oxlint-disable-next-line react/refs -- deselectAll is called on click, not during render
       result.push({
         type: "selection",
         count: selectedIds.length,

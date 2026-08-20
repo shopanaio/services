@@ -32,6 +32,7 @@ export const comparisonProfile = catalogSchema.table(
     id: uuid("id").primaryKey(),
     handle: varchar("handle", { length: 255 }).notNull(),
     enabled: boolean("enabled").notNull().default(true),
+    revision: integer("revision").notNull().default(0),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "string",
@@ -54,6 +55,7 @@ export const comparisonProfile = catalogSchema.table(
       table.storeId,
       table.enabled,
     ),
+    index("idx_comparison_profile_id_revision").on(table.id, table.revision),
   ],
 );
 
@@ -94,6 +96,10 @@ export const comparisonGroup = catalogSchema.table(
       table.id,
     ),
     index("idx_comparison_group_store_id").on(table.storeId),
+    index("idx_comparison_group_store_profile").on(
+      table.storeId,
+      table.profileId,
+    ),
     index("idx_comparison_group_profile_sort").on(
       table.profileId,
       table.sortIndex,
@@ -236,12 +242,23 @@ export const comparisonProfileTranslation = catalogSchema.table(
       .references(() => comparisonProfile.id, { onDelete: "cascade" }),
     locale: localeCodeEnum("locale").notNull(),
     name: text("name").notNull(),
+    missingLabel: text("missing_label").notNull().default("—"),
+    notApplicableLabel: text("not_applicable_label").notNull().default("N/A"),
+    unavailableLabel: text("unavailable_label")
+      .notNull()
+      .default("Unavailable"),
   },
   (table) => [
     primaryKey({ columns: [table.profileId, table.locale] }),
     index("idx_comparison_profile_translation_store_locale").on(
       table.storeId,
       table.locale,
+    ),
+    check(
+      "comparison_profile_translation_labels_shape_check",
+      sql`length(btrim(${table.missingLabel})) > 0
+        AND length(btrim(${table.notApplicableLabel})) > 0
+        AND length(btrim(${table.unavailableLabel})) > 0`,
     ),
   ],
 );
@@ -323,6 +340,14 @@ export const categoryComparisonProfile = catalogSchema.table(
   },
   (table) => [
     index("idx_category_comparison_profile_store_id").on(table.storeId),
+    index("idx_category_comparison_profile_store_category").on(
+      table.storeId,
+      table.categoryId,
+    ),
+    index("idx_category_comparison_profile_store_profile").on(
+      table.storeId,
+      table.profileId,
+    ),
     index("idx_category_comparison_profile_profile_id").on(table.profileId),
   ],
 );
@@ -368,6 +393,11 @@ export const comparisonFeatureBinding = catalogSchema.table(
       table.fieldId,
     ),
     index("idx_comparison_feature_binding_store_id").on(table.storeId),
+    index("idx_comparison_feature_binding_store_product_field").on(
+      table.storeId,
+      table.productId,
+      table.fieldId,
+    ),
     index("idx_comparison_feature_binding_profile_field").on(
       table.profileId,
       table.fieldId,
@@ -421,6 +451,11 @@ export const comparisonOptionBinding = catalogSchema.table(
       table.fieldId,
     ),
     index("idx_comparison_option_binding_store_id").on(table.storeId),
+    index("idx_comparison_option_binding_store_product_field").on(
+      table.storeId,
+      table.productId,
+      table.fieldId,
+    ),
     index("idx_comparison_option_binding_profile_field").on(
       table.profileId,
       table.fieldId,
@@ -463,6 +498,11 @@ export const comparisonFieldNotApplicable = catalogSchema.table(
       sql`${table.reason} IS NULL OR length(btrim(${table.reason})) > 0`,
     ),
     index("idx_comparison_field_not_applicable_store_id").on(table.storeId),
+    index("idx_comparison_field_not_applicable_store_product_field").on(
+      table.storeId,
+      table.productId,
+      table.fieldId,
+    ),
     index("idx_comparison_field_not_applicable_profile_field").on(
       table.profileId,
       table.fieldId,
@@ -572,6 +612,10 @@ export const comparisonFeatureValueBinding = catalogSchema.table(
       table.featureId,
     ),
     index("idx_comparison_feature_value_binding_field_id").on(table.fieldId),
+    index("idx_comparison_feature_value_binding_store_field").on(
+      table.storeId,
+      table.fieldId,
+    ),
     index("idx_comparison_feature_value_binding_field_option_id").on(
       table.fieldOptionId,
     ),
@@ -680,6 +724,10 @@ export const comparisonOptionValueBinding = catalogSchema.table(
     index("idx_comparison_option_value_binding_store_id").on(table.storeId),
     index("idx_comparison_option_value_binding_option_id").on(table.optionId),
     index("idx_comparison_option_value_binding_field_id").on(table.fieldId),
+    index("idx_comparison_option_value_binding_store_field").on(
+      table.storeId,
+      table.fieldId,
+    ),
     index("idx_comparison_option_value_binding_field_option_id").on(
       table.fieldOptionId,
     ),

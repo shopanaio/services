@@ -56,6 +56,12 @@ export class CategoryMoveScript extends BaseScript<
       }
     }
 
+    const direct = (await this.repository.comparisonRead.getDirectProfilesByCategoryIds([id]))[0]?.profileId ?? null;
+    const inherited = newParentId ? (await this.repository.comparisonRead.getEffectiveProfilesByCategoryIds([newParentId]))[0]?.profileId ?? null : null;
+    if (await this.repository.comparisonRead.categoryAssignmentHasConflicts(id, direct ?? inherited)) {
+      return { category: undefined, userErrors: [{ message: "Category hierarchy change conflicts with product comparison mappings", field: ["newParentId"], code: "COMPARISON_CATEGORY_PROFILE_CONFLICT" }] };
+    }
+
     // 4. Move category
     const category = await this.repository.category.move(id, newParentId ?? null);
 

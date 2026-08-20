@@ -216,7 +216,7 @@ export class CatalogBrokerActions extends BrokerActions {
           };
         }
         const candidates =
-          await this.kernel.repository.variant.getPublishedComparisonVariants(
+          await this.kernel.repository.variant.getStorefrontVisibleComparisonVariants(
             params.variantIds,
           );
         const variants = params.categoryId

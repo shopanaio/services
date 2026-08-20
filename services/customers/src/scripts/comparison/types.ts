@@ -3,6 +3,7 @@ import type { UserError } from "../../kernel/BaseScript.js";
 export interface CustomerComparisonUserError extends UserError {
   code: string;
   retryable: boolean;
+  actualRevision?: number;
 }
 
 export interface CustomerComparisonMutationResult {
@@ -44,11 +45,13 @@ export function validateExpectedRevision(
 export function revisionConflict(
   actualRevision: number,
 ): CustomerComparisonUserError {
-  return comparisonError(
+  return {
+    ...comparisonError(
     "REVISION_CONFLICT",
     `Comparison revision changed to ${actualRevision}`,
     ["expectedRevision"],
     true,
-  );
+    ),
+    actualRevision,
+  };
 }
-

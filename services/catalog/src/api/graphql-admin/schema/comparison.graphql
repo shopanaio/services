@@ -1,0 +1,110 @@
+extend type CatalogQuery {
+  comparisonProfile(id: ID!): ComparisonProfile
+  comparisonProfiles(first: Int, after: String, last: Int, before: String, where: ComparisonProfileWhereInput, orderBy: [ComparisonProfileOrderByInput!]): ComparisonProfileConnection!
+  productComparisonConfiguration(productId: ID!): ProductComparisonConfiguration!
+}
+
+extend type CatalogMutation {
+  comparisonProfileCreate(input: ComparisonProfileCreateInput!): ComparisonProfilePayload!
+  comparisonProfileUpdate(input: ComparisonProfileUpdateInput!): ComparisonProfilePayload!
+  comparisonProfileDelete(input: ComparisonProfileDeleteInput!): ComparisonProfileDeletePayload!
+  categoryComparisonProfileSet(input: CategoryComparisonProfileSetInput!): CategoryComparisonProfilePayload!
+  productComparisonConfigurationSync(input: ProductComparisonConfigurationSyncInput!): ProductComparisonConfigurationPayload!
+}
+
+type ComparisonProfile implements Node @key(fields: "id") {
+  id: ID!
+  handle: String!
+  enabled: Boolean!
+  revision: Int!
+  name: String!
+  missingLabel: String!
+  notApplicableLabel: String!
+  unavailableLabel: String!
+  groups: [ComparisonGroup!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ComparisonGroup implements Node @key(fields: "id") {
+  id: ID!
+  handle: String!
+  name: String!
+  sortIndex: Int!
+  fields: [ComparisonField!]!
+}
+
+type ComparisonField implements Node @key(fields: "id") {
+  id: ID!
+  handle: String!
+  name: String!
+  description: String
+  valueType: ComparisonValueType!
+  cardinality: ComparisonCardinality!
+  canonicalUnit: String
+  sortIndex: Int!
+  featured: Boolean!
+  options: [ComparisonFieldOption!]!
+}
+
+type ComparisonFieldOption implements Node @key(fields: "id") {
+  id: ID!
+  handle: String!
+  name: String!
+  sortIndex: Int!
+}
+
+enum ComparisonValueType { BOOLEAN DECIMAL ENUM INTEGER TEXT }
+enum ComparisonCardinality { SINGLE MULTIPLE }
+enum ProductComparisonCompatibilityStatus { FULL NO_PROFILE PROFILE_DISABLED INCOMPATIBLE }
+enum ProductComparisonSourceKind { FEATURE OPTION NOT_APPLICABLE MISSING }
+
+type ProductComparisonConfiguration {
+  product: Product!
+  effectiveProfile: ComparisonProfile
+  compatibilityStatus: ProductComparisonCompatibilityStatus!
+  entries: [ProductComparisonConfigurationEntry!]!
+  unmappedFeatures: [ProductFeature!]!
+  unmappedOptions: [ProductOption!]!
+}
+
+type ProductComparisonConfigurationEntry {
+  field: ComparisonField!
+  sourceKind: ProductComparisonSourceKind!
+  feature: ProductFeature
+  option: ProductOption
+  featureValues: [ProductComparisonNormalizedFeatureValue!]!
+  optionValues: [ProductComparisonNormalizedOptionValue!]!
+  notApplicableReason: String
+}
+
+type ProductComparisonNormalizedFeatureValue { value: ProductFeatureValue! booleanValue: Boolean decimalValue: String integerValue: BigInt textValue: String fieldOption: ComparisonFieldOption }
+type ProductComparisonNormalizedOptionValue { value: ProductOptionValue! booleanValue: Boolean decimalValue: String integerValue: BigInt textValue: String fieldOption: ComparisonFieldOption }
+
+input ComparisonProfileWhereInput { handle: String enabled: Boolean }
+enum ComparisonProfileOrderField { HANDLE CREATED_AT UPDATED_AT }
+input ComparisonProfileOrderByInput { field: ComparisonProfileOrderField! direction: SortDirection! }
+type ComparisonProfileEdge { cursor: String! node: ComparisonProfile! }
+type ComparisonProfileConnection { edges: [ComparisonProfileEdge!]! nodes: [ComparisonProfile!]! pageInfo: PageInfo! totalCount: Int! }
+
+input ComparisonProfileCreateInput { handle: String! enabled: Boolean = true name: String! missingLabel: String! notApplicableLabel: String! unavailableLabel: String! groups: [ComparisonGroupInput!]! }
+input ComparisonProfileUpdateInput { id: ID! expectedRevision: Int! handle: String! enabled: Boolean! name: String! missingLabel: String! notApplicableLabel: String! unavailableLabel: String! groups: [ComparisonGroupInput!]! }
+input ComparisonGroupInput { id: ID handle: String! name: String! sortIndex: Int! fields: [ComparisonFieldInput!]! }
+input ComparisonFieldInput { id: ID handle: String! name: String! description: String valueType: ComparisonValueType! cardinality: ComparisonCardinality! canonicalUnit: String sortIndex: Int! featured: Boolean = false options: [ComparisonFieldOptionInput!]! }
+input ComparisonFieldOptionInput { id: ID handle: String! name: String! sortIndex: Int! }
+input ComparisonProfileDeleteInput { id: ID! }
+input CategoryComparisonProfileSetInput { categoryId: ID! profileId: ID }
+
+input ProductComparisonConfigurationSyncInput { productId: ID! expectedProductRevision: Int! profileId: ID! mappings: [ProductComparisonFieldMappingInput!]! }
+input ProductComparisonFieldMappingInput { fieldId: ID! feature: ProductComparisonFeatureMappingInput option: ProductComparisonOptionMappingInput notApplicable: ProductComparisonNotApplicableInput }
+input ProductComparisonFeatureMappingInput { featureId: ID! values: [ProductComparisonFeatureValueMappingInput!]! }
+input ProductComparisonOptionMappingInput { optionId: ID! values: [ProductComparisonOptionValueMappingInput!]! }
+input ProductComparisonNotApplicableInput { reason: String }
+input ProductComparisonFeatureValueMappingInput { valueId: ID! value: ProductComparisonNormalizedValueInput! }
+input ProductComparisonOptionValueMappingInput { valueId: ID! value: ProductComparisonNormalizedValueInput! }
+input ProductComparisonNormalizedValueInput { booleanValue: Boolean decimalValue: String integerValue: BigInt textValue: String fieldOptionId: ID }
+
+type ComparisonProfilePayload { profile: ComparisonProfile userErrors: [GenericUserError!]! }
+type ComparisonProfileDeletePayload { deletedComparisonProfileId: ID userErrors: [GenericUserError!]! }
+type CategoryComparisonProfilePayload { category: Category effectiveComparisonProfile: ComparisonProfile userErrors: [GenericUserError!]! }
+type ProductComparisonConfigurationPayload { configuration: ProductComparisonConfiguration userErrors: [GenericUserError!]! }

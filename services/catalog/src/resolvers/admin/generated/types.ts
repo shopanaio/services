@@ -154,6 +154,7 @@ export type BulkUpdateUserError = UserError & {
 
 export type CatalogMutation = {
   __typename?: 'CatalogMutation';
+  categoryComparisonProfileSet: CategoryComparisonProfilePayload;
   /** Create a new category */
   categoryCreate: CategoryCreatePayload;
   /** Delete a category */
@@ -199,11 +200,15 @@ export type CatalogMutation = {
   collectionUpdate: CollectionUpdatePayload;
   /** Atomically replace the complete, AND-combined rule set of a RULE collection. */
   collectionUpdateRules: CollectionUpdateRulesPayload;
+  comparisonProfileCreate: ComparisonProfilePayload;
+  comparisonProfileDelete: ComparisonProfileDeletePayload;
+  comparisonProfileUpdate: ComparisonProfilePayload;
   /**
    * Start async bulk update.
    * Requires X-Idempotency-Key header.
    */
   productBulkUpdate: ProductBulkUpdatePayload;
+  productComparisonConfigurationSync: ProductComparisonConfigurationPayload;
   /** Create a new product */
   productCreate: ProductCreatePayload;
   /** Delete an existing product */
@@ -224,6 +229,11 @@ export type CatalogMutation = {
   tagUpdate: TagUpdatePayload;
   /** Create a new vendor */
   vendorCreate: VendorCreatePayload;
+};
+
+
+export type CatalogMutationCategoryComparisonProfileSetArgs = {
+  input: CategoryComparisonProfileSetInput;
 };
 
 
@@ -304,8 +314,28 @@ export type CatalogMutationCollectionUpdateRulesArgs = {
 };
 
 
+export type CatalogMutationComparisonProfileCreateArgs = {
+  input: ComparisonProfileCreateInput;
+};
+
+
+export type CatalogMutationComparisonProfileDeleteArgs = {
+  input: ComparisonProfileDeleteInput;
+};
+
+
+export type CatalogMutationComparisonProfileUpdateArgs = {
+  input: ComparisonProfileUpdateInput;
+};
+
+
 export type CatalogMutationProductBulkUpdateArgs = {
   input: ProductBulkUpdateInput;
+};
+
+
+export type CatalogMutationProductComparisonConfigurationSyncArgs = {
+  input: ProductComparisonConfigurationSyncInput;
 };
 
 
@@ -386,6 +416,8 @@ export type CatalogQuery = {
    * option values from Listing facet-value candidates.
    */
   collections: CollectionConnection;
+  comparisonProfile: Maybe<ComparisonProfile>;
+  comparisonProfiles: ComparisonProfileConnection;
   /** Get a node by its global ID */
   node: Maybe<Node>;
   /** Get multiple nodes by their global IDs */
@@ -399,6 +431,7 @@ export type CatalogQuery = {
    * Defaults to active jobs when statusFilter is omitted.
    */
   productBulkUpdateJobs: ProductBulkUpdateJobConnection;
+  productComparisonConfiguration: ProductComparisonConfiguration;
   productOptionCategories: ProductOptionCategoryConnection;
   productOptionCategory: Maybe<ProductOptionCategory>;
   /** Get products with Relay-style pagination */
@@ -452,6 +485,21 @@ export type CatalogQueryCollectionsArgs = {
 };
 
 
+export type CatalogQueryComparisonProfileArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryComparisonProfilesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ComparisonProfileOrderByInput>>;
+  where?: InputMaybe<ComparisonProfileWhereInput>;
+};
+
+
 export type CatalogQueryNodeArgs = {
   id: Scalars['ID']['input'];
 };
@@ -476,6 +524,11 @@ export type CatalogQueryProductBulkUpdateJobsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   statusFilter?: InputMaybe<Array<BulkUpdateJobStatus>>;
+};
+
+
+export type CatalogQueryProductComparisonConfigurationArgs = {
+  productId: Scalars['ID']['input'];
 };
 
 
@@ -568,6 +621,8 @@ export type Category = Node & {
   depth: Scalars['Int']['output'];
   /** The category description. */
   description: Maybe<RichText>;
+  directComparisonProfile: Maybe<ComparisonProfile>;
+  effectiveComparisonProfile: Maybe<ComparisonProfile>;
   /** Short category excerpt. */
   excerpt: Maybe<RichText>;
   /** The URL-friendly handle for the category. */
@@ -599,6 +654,18 @@ export type Category = Node & {
 export type CategoryCategoriesMetaInput = {
   hierarchyScope?: InputMaybe<CategoryHierarchyScopeInput>;
   productsScope?: InputMaybe<CategoryProductsScopeInput>;
+};
+
+export type CategoryComparisonProfilePayload = {
+  __typename?: 'CategoryComparisonProfilePayload';
+  category: Maybe<Category>;
+  effectiveComparisonProfile: Maybe<ComparisonProfile>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CategoryComparisonProfileSetInput = {
+  categoryId: Scalars['ID']['input'];
+  profileId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 /** A connection to a list of Category items. */
@@ -1460,6 +1527,161 @@ export type CollectionVendorRule = CollectionRule & {
 export type CollectionVendorRuleInput = {
   vendorIds: Array<Scalars['ID']['input']>;
 };
+
+export enum ComparisonCardinality {
+  Multiple = 'MULTIPLE',
+  Single = 'SINGLE'
+}
+
+export type ComparisonField = Node & {
+  __typename?: 'ComparisonField';
+  canonicalUnit: Maybe<Scalars['String']['output']>;
+  cardinality: ComparisonCardinality;
+  description: Maybe<Scalars['String']['output']>;
+  featured: Scalars['Boolean']['output'];
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  options: Array<ComparisonFieldOption>;
+  sortIndex: Scalars['Int']['output'];
+  valueType: ComparisonValueType;
+};
+
+export type ComparisonFieldInput = {
+  canonicalUnit?: InputMaybe<Scalars['String']['input']>;
+  cardinality: ComparisonCardinality;
+  description?: InputMaybe<Scalars['String']['input']>;
+  featured?: InputMaybe<Scalars['Boolean']['input']>;
+  handle: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['ID']['input']>;
+  name: Scalars['String']['input'];
+  options: Array<ComparisonFieldOptionInput>;
+  sortIndex: Scalars['Int']['input'];
+  valueType: ComparisonValueType;
+};
+
+export type ComparisonFieldOption = Node & {
+  __typename?: 'ComparisonFieldOption';
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type ComparisonFieldOptionInput = {
+  handle: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['ID']['input']>;
+  name: Scalars['String']['input'];
+  sortIndex: Scalars['Int']['input'];
+};
+
+export type ComparisonGroup = Node & {
+  __typename?: 'ComparisonGroup';
+  fields: Array<ComparisonField>;
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type ComparisonGroupInput = {
+  fields: Array<ComparisonFieldInput>;
+  handle: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['ID']['input']>;
+  name: Scalars['String']['input'];
+  sortIndex: Scalars['Int']['input'];
+};
+
+export type ComparisonProfile = Node & {
+  __typename?: 'ComparisonProfile';
+  createdAt: Scalars['DateTime']['output'];
+  enabled: Scalars['Boolean']['output'];
+  groups: Array<ComparisonGroup>;
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  missingLabel: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  notApplicableLabel: Scalars['String']['output'];
+  revision: Scalars['Int']['output'];
+  unavailableLabel: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ComparisonProfileConnection = {
+  __typename?: 'ComparisonProfileConnection';
+  edges: Array<ComparisonProfileEdge>;
+  nodes: Array<ComparisonProfile>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ComparisonProfileCreateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  groups: Array<ComparisonGroupInput>;
+  handle: Scalars['String']['input'];
+  missingLabel: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  notApplicableLabel: Scalars['String']['input'];
+  unavailableLabel: Scalars['String']['input'];
+};
+
+export type ComparisonProfileDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ComparisonProfileDeletePayload = {
+  __typename?: 'ComparisonProfileDeletePayload';
+  deletedComparisonProfileId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type ComparisonProfileEdge = {
+  __typename?: 'ComparisonProfileEdge';
+  cursor: Scalars['String']['output'];
+  node: ComparisonProfile;
+};
+
+export type ComparisonProfileOrderByInput = {
+  direction: SortDirection;
+  field: ComparisonProfileOrderField;
+};
+
+export enum ComparisonProfileOrderField {
+  CreatedAt = 'CREATED_AT',
+  Handle = 'HANDLE',
+  UpdatedAt = 'UPDATED_AT'
+}
+
+export type ComparisonProfilePayload = {
+  __typename?: 'ComparisonProfilePayload';
+  profile: Maybe<ComparisonProfile>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type ComparisonProfileUpdateInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  groups: Array<ComparisonGroupInput>;
+  handle: Scalars['String']['input'];
+  id: Scalars['ID']['input'];
+  missingLabel: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  notApplicableLabel: Scalars['String']['input'];
+  unavailableLabel: Scalars['String']['input'];
+};
+
+export type ComparisonProfileWhereInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  handle?: InputMaybe<Scalars['String']['input']>;
+};
+
+export enum ComparisonValueType {
+  Boolean = 'BOOLEAN',
+  Decimal = 'DECIMAL',
+  Enum = 'ENUM',
+  Integer = 'INTEGER',
+  Text = 'TEXT'
+}
 
 /** Currency codes according to ISO 4217 */
 export enum CurrencyCode {
@@ -2689,12 +2911,14 @@ export type Product = Node & {
   __typename?: 'Product';
   /** Category assignments with relationship metadata. */
   categoryAssignments: Array<ProductCategoryAssignment>;
+  comparisonConfiguration: ProductComparisonConfiguration;
   /** The date and time when the product was created. */
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the product was deleted (soft delete). */
   deletedAt: Maybe<Scalars['DateTime']['output']>;
   /** Product description. */
   description: Maybe<RichText>;
+  effectiveComparisonProfile: Maybe<ComparisonProfile>;
   /** Short excerpt. */
   excerpt: Maybe<RichText>;
   /** The features of this product. */
@@ -2843,6 +3067,113 @@ export type ProductCategoryOperationInput = {
   /** The category to update for the product. */
   categoryId: Scalars['ID']['input'];
 };
+
+export enum ProductComparisonCompatibilityStatus {
+  Full = 'FULL',
+  Incompatible = 'INCOMPATIBLE',
+  NoProfile = 'NO_PROFILE',
+  ProfileDisabled = 'PROFILE_DISABLED'
+}
+
+export type ProductComparisonConfiguration = {
+  __typename?: 'ProductComparisonConfiguration';
+  compatibilityStatus: ProductComparisonCompatibilityStatus;
+  effectiveProfile: Maybe<ComparisonProfile>;
+  entries: Array<ProductComparisonConfigurationEntry>;
+  product: Product;
+  unmappedFeatures: Array<ProductFeature>;
+  unmappedOptions: Array<ProductOption>;
+};
+
+export type ProductComparisonConfigurationEntry = {
+  __typename?: 'ProductComparisonConfigurationEntry';
+  feature: Maybe<ProductFeature>;
+  featureValues: Array<ProductComparisonNormalizedFeatureValue>;
+  field: ComparisonField;
+  notApplicableReason: Maybe<Scalars['String']['output']>;
+  option: Maybe<ProductOption>;
+  optionValues: Array<ProductComparisonNormalizedOptionValue>;
+  sourceKind: ProductComparisonSourceKind;
+};
+
+export type ProductComparisonConfigurationPayload = {
+  __typename?: 'ProductComparisonConfigurationPayload';
+  configuration: Maybe<ProductComparisonConfiguration>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type ProductComparisonConfigurationSyncInput = {
+  expectedProductRevision: Scalars['Int']['input'];
+  mappings: Array<ProductComparisonFieldMappingInput>;
+  productId: Scalars['ID']['input'];
+  profileId: Scalars['ID']['input'];
+};
+
+export type ProductComparisonFeatureMappingInput = {
+  featureId: Scalars['ID']['input'];
+  values: Array<ProductComparisonFeatureValueMappingInput>;
+};
+
+export type ProductComparisonFeatureValueMappingInput = {
+  value: ProductComparisonNormalizedValueInput;
+  valueId: Scalars['ID']['input'];
+};
+
+export type ProductComparisonFieldMappingInput = {
+  feature?: InputMaybe<ProductComparisonFeatureMappingInput>;
+  fieldId: Scalars['ID']['input'];
+  notApplicable?: InputMaybe<ProductComparisonNotApplicableInput>;
+  option?: InputMaybe<ProductComparisonOptionMappingInput>;
+};
+
+export type ProductComparisonNormalizedFeatureValue = {
+  __typename?: 'ProductComparisonNormalizedFeatureValue';
+  booleanValue: Maybe<Scalars['Boolean']['output']>;
+  decimalValue: Maybe<Scalars['String']['output']>;
+  fieldOption: Maybe<ComparisonFieldOption>;
+  integerValue: Maybe<Scalars['BigInt']['output']>;
+  textValue: Maybe<Scalars['String']['output']>;
+  value: ProductFeatureValue;
+};
+
+export type ProductComparisonNormalizedOptionValue = {
+  __typename?: 'ProductComparisonNormalizedOptionValue';
+  booleanValue: Maybe<Scalars['Boolean']['output']>;
+  decimalValue: Maybe<Scalars['String']['output']>;
+  fieldOption: Maybe<ComparisonFieldOption>;
+  integerValue: Maybe<Scalars['BigInt']['output']>;
+  textValue: Maybe<Scalars['String']['output']>;
+  value: ProductOptionValue;
+};
+
+export type ProductComparisonNormalizedValueInput = {
+  booleanValue?: InputMaybe<Scalars['Boolean']['input']>;
+  decimalValue?: InputMaybe<Scalars['String']['input']>;
+  fieldOptionId?: InputMaybe<Scalars['ID']['input']>;
+  integerValue?: InputMaybe<Scalars['BigInt']['input']>;
+  textValue?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ProductComparisonNotApplicableInput = {
+  reason?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ProductComparisonOptionMappingInput = {
+  optionId: Scalars['ID']['input'];
+  values: Array<ProductComparisonOptionValueMappingInput>;
+};
+
+export type ProductComparisonOptionValueMappingInput = {
+  value: ProductComparisonNormalizedValueInput;
+  valueId: Scalars['ID']['input'];
+};
+
+export enum ProductComparisonSourceKind {
+  Feature = 'FEATURE',
+  Missing = 'MISSING',
+  NotApplicable = 'NOT_APPLICABLE',
+  Option = 'OPTION'
+}
 
 /** Product component configuration associated one-to-one with a Catalog Product. */
 export type ProductComponent = {
@@ -5577,7 +5908,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
   CollectionRule: ( CollectionCategoryRule ) | ( CollectionCreatedAtComparisonRule ) | ( CollectionCreatedAtRangeRule ) | ( CollectionFeatureRule ) | ( CollectionInStockRule ) | ( CollectionOptionRule ) | ( CollectionPriceComparisonRule ) | ( CollectionPriceRangeRule ) | ( CollectionTagRule ) | ( CollectionVendorRule );
-  Node: ( Category ) | ( Omit<Collection, 'media' | 'rules'> & { media: Array<_RefType['CollectionMediaItem']>, rules: Array<_RefType['CollectionRule']> } ) | ( Omit<InventoryItem, 'variant'> & { variant: _RefType['Variant'] } ) | ( Omit<Product, 'categoryAssignments' | 'productComponent' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, productComponent?: Maybe<_RefType['ProductComponent']>, variants: _RefType['VariantConnection'] } ) | ( ProductComponentAdjustmentPriceRule ) | ( ProductComponentBasePriceRule ) | ( ProductComponentCondition ) | ( ProductComponentConditionGroup ) | ( Omit<ProductComponentConfiguration, 'dependencyRules' | 'groups' | 'pricingTemplates' | 'product' | 'variants'> & { dependencyRules: Array<_RefType['ProductComponentDependencyRule']>, groups: Array<_RefType['ProductComponentGroup']>, pricingTemplates: Array<_RefType['ProductComponentPricingTemplate']>, product: _RefType['Product'], variants: Array<_RefType['Variant']> } ) | ( Omit<ProductComponentDependencyAction, 'priceRule'> & { priceRule?: Maybe<_RefType['ProductComponentPriceRule']> } ) | ( Omit<ProductComponentDependencyRule, 'actions'> & { actions: Array<_RefType['ProductComponentDependencyAction']> } ) | ( ProductComponentFreePriceRule ) | ( Omit<ProductComponentGroup, 'items'> & { items: Array<_RefType['ProductComponentItem']> } ) | ( Omit<ProductComponentItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: _RefType['ProductComponentGroup'], priceRule?: Maybe<_RefType['ProductComponentPriceRule']>, pricingTemplate?: Maybe<_RefType['ProductComponentPricingTemplate']>, refProduct?: Maybe<_RefType['Product']>, refVariant?: Maybe<_RefType['Variant']> } ) | ( ProductComponentItemOptionSelection ) | ( ProductComponentItemOptionValueSelection ) | ( ProductComponentOverridePriceRule ) | ( Omit<ProductComponentPricingTemplate, 'priceRule'> & { priceRule: _RefType['ProductComponentPriceRule'] } ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionCategory ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Omit<Variant, 'dimensions' | 'product' | 'productComponentConfiguration'> & { dimensions?: Maybe<_RefType['VariantDimensions']>, product: _RefType['Product'], productComponentConfiguration?: Maybe<_RefType['ProductComponentConfiguration']> } ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor ) | ( Warehouse ) | ( Omit<WarehouseStock, 'variant'> & { variant: _RefType['Variant'] } );
+  Node: ( Category ) | ( Omit<Collection, 'media' | 'rules'> & { media: Array<_RefType['CollectionMediaItem']>, rules: Array<_RefType['CollectionRule']> } ) | ( ComparisonField ) | ( ComparisonFieldOption ) | ( ComparisonGroup ) | ( ComparisonProfile ) | ( Omit<InventoryItem, 'variant'> & { variant: _RefType['Variant'] } ) | ( Omit<Product, 'categoryAssignments' | 'comparisonConfiguration' | 'productComponent' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, comparisonConfiguration: _RefType['ProductComparisonConfiguration'], productComponent?: Maybe<_RefType['ProductComponent']>, variants: _RefType['VariantConnection'] } ) | ( ProductComponentAdjustmentPriceRule ) | ( ProductComponentBasePriceRule ) | ( ProductComponentCondition ) | ( ProductComponentConditionGroup ) | ( Omit<ProductComponentConfiguration, 'dependencyRules' | 'groups' | 'pricingTemplates' | 'product' | 'variants'> & { dependencyRules: Array<_RefType['ProductComponentDependencyRule']>, groups: Array<_RefType['ProductComponentGroup']>, pricingTemplates: Array<_RefType['ProductComponentPricingTemplate']>, product: _RefType['Product'], variants: Array<_RefType['Variant']> } ) | ( Omit<ProductComponentDependencyAction, 'priceRule'> & { priceRule?: Maybe<_RefType['ProductComponentPriceRule']> } ) | ( Omit<ProductComponentDependencyRule, 'actions'> & { actions: Array<_RefType['ProductComponentDependencyAction']> } ) | ( ProductComponentFreePriceRule ) | ( Omit<ProductComponentGroup, 'items'> & { items: Array<_RefType['ProductComponentItem']> } ) | ( Omit<ProductComponentItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: _RefType['ProductComponentGroup'], priceRule?: Maybe<_RefType['ProductComponentPriceRule']>, pricingTemplate?: Maybe<_RefType['ProductComponentPricingTemplate']>, refProduct?: Maybe<_RefType['Product']>, refVariant?: Maybe<_RefType['Variant']> } ) | ( ProductComponentItemOptionSelection ) | ( ProductComponentItemOptionValueSelection ) | ( ProductComponentOverridePriceRule ) | ( Omit<ProductComponentPricingTemplate, 'priceRule'> & { priceRule: _RefType['ProductComponentPriceRule'] } ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionCategory ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Omit<Variant, 'dimensions' | 'product' | 'productComponentConfiguration'> & { dimensions?: Maybe<_RefType['VariantDimensions']>, product: _RefType['Product'], productComponentConfiguration?: Maybe<_RefType['ProductComponentConfiguration']> } ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor ) | ( Warehouse ) | ( Omit<WarehouseStock, 'variant'> & { variant: _RefType['Variant'] } );
   ProductComponentPriceRule: ( ProductComponentAdjustmentPriceRule ) | ( ProductComponentBasePriceRule ) | ( ProductComponentFreePriceRule ) | ( ProductComponentOverridePriceRule );
   UserError: ( BulkUpdateUserError ) | ( GenericUserError );
 }>;
@@ -5599,10 +5930,12 @@ export type ResolversTypes = ResolversObject<{
   BulkUpdateJobStatus: BulkUpdateJobStatus;
   BulkUpdateOpType: BulkUpdateOpType;
   BulkUpdateUserError: ResolverTypeWrapper<BulkUpdateUserError>;
-  CatalogMutation: ResolverTypeWrapper<Omit<CatalogMutation, 'collectionAddProducts' | 'collectionClearProducts' | 'collectionCreate' | 'collectionMoveProduct' | 'collectionRebalance' | 'collectionRemoveProducts' | 'collectionUpdate' | 'collectionUpdateRules' | 'productCreate' | 'productUpdate'> & { collectionAddProducts: ResolversTypes['CollectionAddProductsPayload'], collectionClearProducts: ResolversTypes['CollectionClearProductsPayload'], collectionCreate: ResolversTypes['CollectionCreatePayload'], collectionMoveProduct: ResolversTypes['CollectionMoveProductPayload'], collectionRebalance: ResolversTypes['CollectionRebalancePayload'], collectionRemoveProducts: ResolversTypes['CollectionRemoveProductsPayload'], collectionUpdate: ResolversTypes['CollectionUpdatePayload'], collectionUpdateRules: ResolversTypes['CollectionUpdateRulesPayload'], productCreate: ResolversTypes['ProductCreatePayload'], productUpdate: ResolversTypes['ProductUpdatePayload'] }>;
-  CatalogQuery: ResolverTypeWrapper<Omit<CatalogQuery, 'collection' | 'collectionByHandle' | 'collections' | 'node' | 'nodes' | 'product' | 'products' | 'variant' | 'variants'> & { collection?: Maybe<ResolversTypes['Collection']>, collectionByHandle?: Maybe<ResolversTypes['Collection']>, collections: ResolversTypes['CollectionConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>>, product?: Maybe<ResolversTypes['Product']>, products: ResolversTypes['ProductConnection'], variant?: Maybe<ResolversTypes['Variant']>, variants: ResolversTypes['VariantConnection'] }>;
+  CatalogMutation: ResolverTypeWrapper<Omit<CatalogMutation, 'collectionAddProducts' | 'collectionClearProducts' | 'collectionCreate' | 'collectionMoveProduct' | 'collectionRebalance' | 'collectionRemoveProducts' | 'collectionUpdate' | 'collectionUpdateRules' | 'productComparisonConfigurationSync' | 'productCreate' | 'productUpdate'> & { collectionAddProducts: ResolversTypes['CollectionAddProductsPayload'], collectionClearProducts: ResolversTypes['CollectionClearProductsPayload'], collectionCreate: ResolversTypes['CollectionCreatePayload'], collectionMoveProduct: ResolversTypes['CollectionMoveProductPayload'], collectionRebalance: ResolversTypes['CollectionRebalancePayload'], collectionRemoveProducts: ResolversTypes['CollectionRemoveProductsPayload'], collectionUpdate: ResolversTypes['CollectionUpdatePayload'], collectionUpdateRules: ResolversTypes['CollectionUpdateRulesPayload'], productComparisonConfigurationSync: ResolversTypes['ProductComparisonConfigurationPayload'], productCreate: ResolversTypes['ProductCreatePayload'], productUpdate: ResolversTypes['ProductUpdatePayload'] }>;
+  CatalogQuery: ResolverTypeWrapper<Omit<CatalogQuery, 'collection' | 'collectionByHandle' | 'collections' | 'node' | 'nodes' | 'product' | 'productComparisonConfiguration' | 'products' | 'variant' | 'variants'> & { collection?: Maybe<ResolversTypes['Collection']>, collectionByHandle?: Maybe<ResolversTypes['Collection']>, collections: ResolversTypes['CollectionConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>>, product?: Maybe<ResolversTypes['Product']>, productComparisonConfiguration: ResolversTypes['ProductComparisonConfiguration'], products: ResolversTypes['ProductConnection'], variant?: Maybe<ResolversTypes['Variant']>, variants: ResolversTypes['VariantConnection'] }>;
   Category: ResolverTypeWrapper<Category>;
   CategoryCategoriesMetaInput: CategoryCategoriesMetaInput;
+  CategoryComparisonProfilePayload: ResolverTypeWrapper<CategoryComparisonProfilePayload>;
+  CategoryComparisonProfileSetInput: CategoryComparisonProfileSetInput;
   CategoryConnection: ResolverTypeWrapper<CategoryConnection>;
   CategoryContentInput: CategoryContentInput;
   CategoryCreateInput: CategoryCreateInput;
@@ -5682,6 +6015,25 @@ export type ResolversTypes = ResolversObject<{
   CollectionUpdateRulesPayload: ResolverTypeWrapper<Omit<CollectionUpdateRulesPayload, 'collection'> & { collection?: Maybe<ResolversTypes['Collection']> }>;
   CollectionVendorRule: ResolverTypeWrapper<CollectionVendorRule>;
   CollectionVendorRuleInput: CollectionVendorRuleInput;
+  ComparisonCardinality: ComparisonCardinality;
+  ComparisonField: ResolverTypeWrapper<ComparisonField>;
+  ComparisonFieldInput: ComparisonFieldInput;
+  ComparisonFieldOption: ResolverTypeWrapper<ComparisonFieldOption>;
+  ComparisonFieldOptionInput: ComparisonFieldOptionInput;
+  ComparisonGroup: ResolverTypeWrapper<ComparisonGroup>;
+  ComparisonGroupInput: ComparisonGroupInput;
+  ComparisonProfile: ResolverTypeWrapper<ComparisonProfile>;
+  ComparisonProfileConnection: ResolverTypeWrapper<ComparisonProfileConnection>;
+  ComparisonProfileCreateInput: ComparisonProfileCreateInput;
+  ComparisonProfileDeleteInput: ComparisonProfileDeleteInput;
+  ComparisonProfileDeletePayload: ResolverTypeWrapper<ComparisonProfileDeletePayload>;
+  ComparisonProfileEdge: ResolverTypeWrapper<ComparisonProfileEdge>;
+  ComparisonProfileOrderByInput: ComparisonProfileOrderByInput;
+  ComparisonProfileOrderField: ComparisonProfileOrderField;
+  ComparisonProfilePayload: ResolverTypeWrapper<ComparisonProfilePayload>;
+  ComparisonProfileUpdateInput: ComparisonProfileUpdateInput;
+  ComparisonProfileWhereInput: ComparisonProfileWhereInput;
+  ComparisonValueType: ComparisonValueType;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
@@ -5732,7 +6084,7 @@ export type ResolversTypes = ResolversObject<{
   PriceAdjustmentValueType: PriceAdjustmentValueType;
   PricingWidgetInput: PricingWidgetInput;
   PricingWidgetPayload: ResolverTypeWrapper<PricingWidgetPayload>;
-  Product: ResolverTypeWrapper<Omit<Product, 'categoryAssignments' | 'productComponent' | 'variants'> & { categoryAssignments: Array<ResolversTypes['ProductCategoryAssignment']>, productComponent?: Maybe<ResolversTypes['ProductComponent']>, variants: ResolversTypes['VariantConnection'] }>;
+  Product: ResolverTypeWrapper<Omit<Product, 'categoryAssignments' | 'comparisonConfiguration' | 'productComponent' | 'variants'> & { categoryAssignments: Array<ResolversTypes['ProductCategoryAssignment']>, comparisonConfiguration: ResolversTypes['ProductComparisonConfiguration'], productComponent?: Maybe<ResolversTypes['ProductComponent']>, variants: ResolversTypes['VariantConnection'] }>;
   ProductBulkUpdateInput: ProductBulkUpdateInput;
   ProductBulkUpdateItem: ProductBulkUpdateItem;
   ProductBulkUpdateJob: ResolverTypeWrapper<ProductBulkUpdateJob>;
@@ -5743,6 +6095,21 @@ export type ResolversTypes = ResolversObject<{
   ProductCategoryAssignment: ResolverTypeWrapper<ProductCategoryAssignment>;
   ProductCategoryOperationAction: ProductCategoryOperationAction;
   ProductCategoryOperationInput: ProductCategoryOperationInput;
+  ProductComparisonCompatibilityStatus: ProductComparisonCompatibilityStatus;
+  ProductComparisonConfiguration: ResolverTypeWrapper<Omit<ProductComparisonConfiguration, 'product'> & { product: ResolversTypes['Product'] }>;
+  ProductComparisonConfigurationEntry: ResolverTypeWrapper<ProductComparisonConfigurationEntry>;
+  ProductComparisonConfigurationPayload: ResolverTypeWrapper<Omit<ProductComparisonConfigurationPayload, 'configuration'> & { configuration?: Maybe<ResolversTypes['ProductComparisonConfiguration']> }>;
+  ProductComparisonConfigurationSyncInput: ProductComparisonConfigurationSyncInput;
+  ProductComparisonFeatureMappingInput: ProductComparisonFeatureMappingInput;
+  ProductComparisonFeatureValueMappingInput: ProductComparisonFeatureValueMappingInput;
+  ProductComparisonFieldMappingInput: ProductComparisonFieldMappingInput;
+  ProductComparisonNormalizedFeatureValue: ResolverTypeWrapper<ProductComparisonNormalizedFeatureValue>;
+  ProductComparisonNormalizedOptionValue: ResolverTypeWrapper<ProductComparisonNormalizedOptionValue>;
+  ProductComparisonNormalizedValueInput: ProductComparisonNormalizedValueInput;
+  ProductComparisonNotApplicableInput: ProductComparisonNotApplicableInput;
+  ProductComparisonOptionMappingInput: ProductComparisonOptionMappingInput;
+  ProductComparisonOptionValueMappingInput: ProductComparisonOptionValueMappingInput;
+  ProductComparisonSourceKind: ProductComparisonSourceKind;
   ProductComponent: ResolverTypeWrapper<Omit<ProductComponent, 'configurations' | 'product'> & { configurations: Array<ResolversTypes['ProductComponentConfiguration']>, product: ResolversTypes['Product'] }>;
   ProductComponentAdjustmentPriceRule: ResolverTypeWrapper<ProductComponentAdjustmentPriceRule>;
   ProductComponentBasePriceRule: ResolverTypeWrapper<ProductComponentBasePriceRule>;
@@ -5971,10 +6338,12 @@ export type ResolversParentTypes = ResolversObject<{
   String: Scalars['String']['output'];
   BulkUpdateJobProgress: BulkUpdateJobProgress;
   BulkUpdateUserError: BulkUpdateUserError;
-  CatalogMutation: Omit<CatalogMutation, 'collectionAddProducts' | 'collectionClearProducts' | 'collectionCreate' | 'collectionMoveProduct' | 'collectionRebalance' | 'collectionRemoveProducts' | 'collectionUpdate' | 'collectionUpdateRules' | 'productCreate' | 'productUpdate'> & { collectionAddProducts: ResolversParentTypes['CollectionAddProductsPayload'], collectionClearProducts: ResolversParentTypes['CollectionClearProductsPayload'], collectionCreate: ResolversParentTypes['CollectionCreatePayload'], collectionMoveProduct: ResolversParentTypes['CollectionMoveProductPayload'], collectionRebalance: ResolversParentTypes['CollectionRebalancePayload'], collectionRemoveProducts: ResolversParentTypes['CollectionRemoveProductsPayload'], collectionUpdate: ResolversParentTypes['CollectionUpdatePayload'], collectionUpdateRules: ResolversParentTypes['CollectionUpdateRulesPayload'], productCreate: ResolversParentTypes['ProductCreatePayload'], productUpdate: ResolversParentTypes['ProductUpdatePayload'] };
-  CatalogQuery: Omit<CatalogQuery, 'collection' | 'collectionByHandle' | 'collections' | 'node' | 'nodes' | 'product' | 'products' | 'variant' | 'variants'> & { collection?: Maybe<ResolversParentTypes['Collection']>, collectionByHandle?: Maybe<ResolversParentTypes['Collection']>, collections: ResolversParentTypes['CollectionConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>>, product?: Maybe<ResolversParentTypes['Product']>, products: ResolversParentTypes['ProductConnection'], variant?: Maybe<ResolversParentTypes['Variant']>, variants: ResolversParentTypes['VariantConnection'] };
+  CatalogMutation: Omit<CatalogMutation, 'collectionAddProducts' | 'collectionClearProducts' | 'collectionCreate' | 'collectionMoveProduct' | 'collectionRebalance' | 'collectionRemoveProducts' | 'collectionUpdate' | 'collectionUpdateRules' | 'productComparisonConfigurationSync' | 'productCreate' | 'productUpdate'> & { collectionAddProducts: ResolversParentTypes['CollectionAddProductsPayload'], collectionClearProducts: ResolversParentTypes['CollectionClearProductsPayload'], collectionCreate: ResolversParentTypes['CollectionCreatePayload'], collectionMoveProduct: ResolversParentTypes['CollectionMoveProductPayload'], collectionRebalance: ResolversParentTypes['CollectionRebalancePayload'], collectionRemoveProducts: ResolversParentTypes['CollectionRemoveProductsPayload'], collectionUpdate: ResolversParentTypes['CollectionUpdatePayload'], collectionUpdateRules: ResolversParentTypes['CollectionUpdateRulesPayload'], productComparisonConfigurationSync: ResolversParentTypes['ProductComparisonConfigurationPayload'], productCreate: ResolversParentTypes['ProductCreatePayload'], productUpdate: ResolversParentTypes['ProductUpdatePayload'] };
+  CatalogQuery: Omit<CatalogQuery, 'collection' | 'collectionByHandle' | 'collections' | 'node' | 'nodes' | 'product' | 'productComparisonConfiguration' | 'products' | 'variant' | 'variants'> & { collection?: Maybe<ResolversParentTypes['Collection']>, collectionByHandle?: Maybe<ResolversParentTypes['Collection']>, collections: ResolversParentTypes['CollectionConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>>, product?: Maybe<ResolversParentTypes['Product']>, productComparisonConfiguration: ResolversParentTypes['ProductComparisonConfiguration'], products: ResolversParentTypes['ProductConnection'], variant?: Maybe<ResolversParentTypes['Variant']>, variants: ResolversParentTypes['VariantConnection'] };
   Category: Category;
   CategoryCategoriesMetaInput: CategoryCategoriesMetaInput;
+  CategoryComparisonProfilePayload: CategoryComparisonProfilePayload;
+  CategoryComparisonProfileSetInput: CategoryComparisonProfileSetInput;
   CategoryConnection: CategoryConnection;
   CategoryContentInput: CategoryContentInput;
   CategoryCreateInput: CategoryCreateInput;
@@ -6045,6 +6414,22 @@ export type ResolversParentTypes = ResolversObject<{
   CollectionUpdateRulesPayload: Omit<CollectionUpdateRulesPayload, 'collection'> & { collection?: Maybe<ResolversParentTypes['Collection']> };
   CollectionVendorRule: CollectionVendorRule;
   CollectionVendorRuleInput: CollectionVendorRuleInput;
+  ComparisonField: ComparisonField;
+  ComparisonFieldInput: ComparisonFieldInput;
+  ComparisonFieldOption: ComparisonFieldOption;
+  ComparisonFieldOptionInput: ComparisonFieldOptionInput;
+  ComparisonGroup: ComparisonGroup;
+  ComparisonGroupInput: ComparisonGroupInput;
+  ComparisonProfile: ComparisonProfile;
+  ComparisonProfileConnection: ComparisonProfileConnection;
+  ComparisonProfileCreateInput: ComparisonProfileCreateInput;
+  ComparisonProfileDeleteInput: ComparisonProfileDeleteInput;
+  ComparisonProfileDeletePayload: ComparisonProfileDeletePayload;
+  ComparisonProfileEdge: ComparisonProfileEdge;
+  ComparisonProfileOrderByInput: ComparisonProfileOrderByInput;
+  ComparisonProfilePayload: ComparisonProfilePayload;
+  ComparisonProfileUpdateInput: ComparisonProfileUpdateInput;
+  ComparisonProfileWhereInput: ComparisonProfileWhereInput;
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
   DimensionsInput: DimensionsInput;
@@ -6085,7 +6470,7 @@ export type ResolversParentTypes = ResolversObject<{
   PageInfo: PageInfo;
   PricingWidgetInput: PricingWidgetInput;
   PricingWidgetPayload: PricingWidgetPayload;
-  Product: Omit<Product, 'categoryAssignments' | 'productComponent' | 'variants'> & { categoryAssignments: Array<ResolversParentTypes['ProductCategoryAssignment']>, productComponent?: Maybe<ResolversParentTypes['ProductComponent']>, variants: ResolversParentTypes['VariantConnection'] };
+  Product: Omit<Product, 'categoryAssignments' | 'comparisonConfiguration' | 'productComponent' | 'variants'> & { categoryAssignments: Array<ResolversParentTypes['ProductCategoryAssignment']>, comparisonConfiguration: ResolversParentTypes['ProductComparisonConfiguration'], productComponent?: Maybe<ResolversParentTypes['ProductComponent']>, variants: ResolversParentTypes['VariantConnection'] };
   ProductBulkUpdateInput: ProductBulkUpdateInput;
   ProductBulkUpdateItem: ProductBulkUpdateItem;
   ProductBulkUpdateJob: ProductBulkUpdateJob;
@@ -6095,6 +6480,19 @@ export type ResolversParentTypes = ResolversObject<{
   ProductCategoriesScopeInput: ProductCategoriesScopeInput;
   ProductCategoryAssignment: ProductCategoryAssignment;
   ProductCategoryOperationInput: ProductCategoryOperationInput;
+  ProductComparisonConfiguration: Omit<ProductComparisonConfiguration, 'product'> & { product: ResolversParentTypes['Product'] };
+  ProductComparisonConfigurationEntry: ProductComparisonConfigurationEntry;
+  ProductComparisonConfigurationPayload: Omit<ProductComparisonConfigurationPayload, 'configuration'> & { configuration?: Maybe<ResolversParentTypes['ProductComparisonConfiguration']> };
+  ProductComparisonConfigurationSyncInput: ProductComparisonConfigurationSyncInput;
+  ProductComparisonFeatureMappingInput: ProductComparisonFeatureMappingInput;
+  ProductComparisonFeatureValueMappingInput: ProductComparisonFeatureValueMappingInput;
+  ProductComparisonFieldMappingInput: ProductComparisonFieldMappingInput;
+  ProductComparisonNormalizedFeatureValue: ProductComparisonNormalizedFeatureValue;
+  ProductComparisonNormalizedOptionValue: ProductComparisonNormalizedOptionValue;
+  ProductComparisonNormalizedValueInput: ProductComparisonNormalizedValueInput;
+  ProductComparisonNotApplicableInput: ProductComparisonNotApplicableInput;
+  ProductComparisonOptionMappingInput: ProductComparisonOptionMappingInput;
+  ProductComparisonOptionValueMappingInput: ProductComparisonOptionValueMappingInput;
   ProductComponent: Omit<ProductComponent, 'configurations' | 'product'> & { configurations: Array<ResolversParentTypes['ProductComponentConfiguration']>, product: ResolversParentTypes['Product'] };
   ProductComponentAdjustmentPriceRule: ProductComponentAdjustmentPriceRule;
   ProductComponentBasePriceRule: ProductComponentBasePriceRule;
@@ -6337,6 +6735,7 @@ export type BulkUpdateUserErrorResolvers<ContextType = ServiceContext, ParentTyp
 }>;
 
 export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogMutation'] = ResolversParentTypes['CatalogMutation']> = ResolversObject<{
+  categoryComparisonProfileSet?: Resolver<ResolversTypes['CategoryComparisonProfilePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryComparisonProfileSetArgs, 'input'>>;
   categoryCreate?: Resolver<ResolversTypes['CategoryCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryCreateArgs, 'input'>>;
   categoryDelete?: Resolver<ResolversTypes['CategoryDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryDeleteArgs, 'input'>>;
   categoryMove?: Resolver<ResolversTypes['CategoryMovePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryMoveArgs, 'input'>>;
@@ -6352,7 +6751,11 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
   collectionRulesPreviewCount?: Resolver<ResolversTypes['CollectionRulesPreviewCountPayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionRulesPreviewCountArgs, 'input'>>;
   collectionUpdate?: Resolver<ResolversTypes['CollectionUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionUpdateArgs, 'input'>>;
   collectionUpdateRules?: Resolver<ResolversTypes['CollectionUpdateRulesPayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionUpdateRulesArgs, 'input'>>;
+  comparisonProfileCreate?: Resolver<ResolversTypes['ComparisonProfilePayload'], ParentType, ContextType, RequireFields<CatalogMutationComparisonProfileCreateArgs, 'input'>>;
+  comparisonProfileDelete?: Resolver<ResolversTypes['ComparisonProfileDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationComparisonProfileDeleteArgs, 'input'>>;
+  comparisonProfileUpdate?: Resolver<ResolversTypes['ComparisonProfilePayload'], ParentType, ContextType, RequireFields<CatalogMutationComparisonProfileUpdateArgs, 'input'>>;
   productBulkUpdate?: Resolver<ResolversTypes['ProductBulkUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductBulkUpdateArgs, 'input'>>;
+  productComparisonConfigurationSync?: Resolver<ResolversTypes['ProductComparisonConfigurationPayload'], ParentType, ContextType, RequireFields<CatalogMutationProductComparisonConfigurationSyncArgs, 'input'>>;
   productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductCreateArgs, 'input'>>;
   productDelete?: Resolver<ResolversTypes['ProductDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductDeleteArgs, 'input'>>;
   productOptionCategoryCreate?: Resolver<ResolversTypes['ProductOptionCategoryCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductOptionCategoryCreateArgs, 'input'>>;
@@ -6372,11 +6775,14 @@ export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType exten
   collection?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType, RequireFields<CatalogQueryCollectionArgs, 'id'>>;
   collectionByHandle?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType, RequireFields<CatalogQueryCollectionByHandleArgs, 'handle'>>;
   collections?: Resolver<ResolversTypes['CollectionConnection'], ParentType, ContextType, Partial<CatalogQueryCollectionsArgs>>;
+  comparisonProfile?: Resolver<Maybe<ResolversTypes['ComparisonProfile']>, ParentType, ContextType, RequireFields<CatalogQueryComparisonProfileArgs, 'id'>>;
+  comparisonProfiles?: Resolver<ResolversTypes['ComparisonProfileConnection'], ParentType, ContextType, Partial<CatalogQueryComparisonProfilesArgs>>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<CatalogQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<CatalogQueryNodesArgs, 'ids'>>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<CatalogQueryProductArgs, 'id'>>;
   productBulkUpdateJob?: Resolver<Maybe<ResolversTypes['ProductBulkUpdateJob']>, ParentType, ContextType, RequireFields<CatalogQueryProductBulkUpdateJobArgs, 'jobId'>>;
   productBulkUpdateJobs?: Resolver<ResolversTypes['ProductBulkUpdateJobConnection'], ParentType, ContextType, Partial<CatalogQueryProductBulkUpdateJobsArgs>>;
+  productComparisonConfiguration?: Resolver<ResolversTypes['ProductComparisonConfiguration'], ParentType, ContextType, RequireFields<CatalogQueryProductComparisonConfigurationArgs, 'productId'>>;
   productOptionCategories?: Resolver<ResolversTypes['ProductOptionCategoryConnection'], ParentType, ContextType, Partial<CatalogQueryProductOptionCategoriesArgs>>;
   productOptionCategory?: Resolver<Maybe<ResolversTypes['ProductOptionCategory']>, ParentType, ContextType, RequireFields<CatalogQueryProductOptionCategoryArgs, 'id'>>;
   products?: Resolver<ResolversTypes['ProductConnection'], ParentType, ContextType, Partial<CatalogQueryProductsArgs>>;
@@ -6399,6 +6805,8 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   depth?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
+  directComparisonProfile?: Resolver<Maybe<ResolversTypes['ComparisonProfile']>, ParentType, ContextType>;
+  effectiveComparisonProfile?: Resolver<Maybe<ResolversTypes['ComparisonProfile']>, ParentType, ContextType>;
   excerpt?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -6412,6 +6820,13 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   seo?: Resolver<Maybe<ResolversTypes['Seo']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryComparisonProfilePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryComparisonProfilePayload'] = ResolversParentTypes['CategoryComparisonProfilePayload']> = ResolversObject<{
+  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
+  effectiveComparisonProfile?: Resolver<Maybe<ResolversTypes['ComparisonProfile']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -6685,6 +7100,82 @@ export type CollectionVendorRuleResolvers<ContextType = ServiceContext, ParentTy
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ComparisonFieldResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ComparisonField'] = ResolversParentTypes['ComparisonField']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ComparisonField']>, { __typename: 'ComparisonField' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  canonicalUnit?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  cardinality?: Resolver<ResolversTypes['ComparisonCardinality'], ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  featured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  options?: Resolver<Array<ResolversTypes['ComparisonFieldOption']>, ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  valueType?: Resolver<ResolversTypes['ComparisonValueType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ComparisonFieldOptionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ComparisonFieldOption'] = ResolversParentTypes['ComparisonFieldOption']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ComparisonFieldOption']>, { __typename: 'ComparisonFieldOption' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ComparisonGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ComparisonGroup'] = ResolversParentTypes['ComparisonGroup']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ComparisonGroup']>, { __typename: 'ComparisonGroup' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  fields?: Resolver<Array<ResolversTypes['ComparisonField']>, ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ComparisonProfileResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ComparisonProfile'] = ResolversParentTypes['ComparisonProfile']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ComparisonProfile']>, { __typename: 'ComparisonProfile' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  groups?: Resolver<Array<ResolversTypes['ComparisonGroup']>, ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  missingLabel?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  notApplicableLabel?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  unavailableLabel?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ComparisonProfileConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ComparisonProfileConnection'] = ResolversParentTypes['ComparisonProfileConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['ComparisonProfileEdge']>, ParentType, ContextType>;
+  nodes?: Resolver<Array<ResolversTypes['ComparisonProfile']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ComparisonProfileDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ComparisonProfileDeletePayload'] = ResolversParentTypes['ComparisonProfileDeletePayload']> = ResolversObject<{
+  deletedComparisonProfileId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ComparisonProfileEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ComparisonProfileEdge'] = ResolversParentTypes['ComparisonProfileEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['ComparisonProfile'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ComparisonProfilePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ComparisonProfilePayload'] = ResolversParentTypes['ComparisonProfilePayload']> = ResolversObject<{
+  profile?: Resolver<Maybe<ResolversTypes['ComparisonProfile']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
 }
@@ -6808,7 +7299,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Category' | 'Collection' | 'InventoryItem' | 'Product' | 'ProductComponentAdjustmentPriceRule' | 'ProductComponentBasePriceRule' | 'ProductComponentCondition' | 'ProductComponentConditionGroup' | 'ProductComponentConfiguration' | 'ProductComponentDependencyAction' | 'ProductComponentDependencyRule' | 'ProductComponentFreePriceRule' | 'ProductComponentGroup' | 'ProductComponentItem' | 'ProductComponentItemOptionSelection' | 'ProductComponentItemOptionValueSelection' | 'ProductComponentOverridePriceRule' | 'ProductComponentPricingTemplate' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionCategory' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Vendor' | 'Warehouse' | 'WarehouseStock', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Category' | 'Collection' | 'ComparisonField' | 'ComparisonFieldOption' | 'ComparisonGroup' | 'ComparisonProfile' | 'InventoryItem' | 'Product' | 'ProductComponentAdjustmentPriceRule' | 'ProductComponentBasePriceRule' | 'ProductComponentCondition' | 'ProductComponentConditionGroup' | 'ProductComponentConfiguration' | 'ProductComponentDependencyAction' | 'ProductComponentDependencyRule' | 'ProductComponentFreePriceRule' | 'ProductComponentGroup' | 'ProductComponentItem' | 'ProductComponentItemOptionSelection' | 'ProductComponentItemOptionValueSelection' | 'ProductComponentOverridePriceRule' | 'ProductComponentPricingTemplate' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionCategory' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Vendor' | 'Warehouse' | 'WarehouseStock', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -6840,9 +7331,11 @@ export type PricingWidgetPayloadResolvers<ContextType = ServiceContext, ParentTy
 export type ProductResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Product'] = ResolversParentTypes['Product']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Product']>, { __typename: 'Product' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   categoryAssignments?: Resolver<Array<ResolversTypes['ProductCategoryAssignment']>, ParentType, ContextType>;
+  comparisonConfiguration?: Resolver<ResolversTypes['ProductComparisonConfiguration'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
+  effectiveComparisonProfile?: Resolver<Maybe<ResolversTypes['ComparisonProfile']>, ParentType, ContextType>;
   excerpt?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
   features?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -6899,6 +7392,53 @@ export type ProductBulkUpdatePayloadResolvers<ContextType = ServiceContext, Pare
 export type ProductCategoryAssignmentResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductCategoryAssignment'] = ResolversParentTypes['ProductCategoryAssignment']> = ResolversObject<{
   category?: Resolver<ResolversTypes['Category'], ParentType, ContextType>;
   isPrimary?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonConfigurationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonConfiguration'] = ResolversParentTypes['ProductComparisonConfiguration']> = ResolversObject<{
+  compatibilityStatus?: Resolver<ResolversTypes['ProductComparisonCompatibilityStatus'], ParentType, ContextType>;
+  effectiveProfile?: Resolver<Maybe<ResolversTypes['ComparisonProfile']>, ParentType, ContextType>;
+  entries?: Resolver<Array<ResolversTypes['ProductComparisonConfigurationEntry']>, ParentType, ContextType>;
+  product?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
+  unmappedFeatures?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
+  unmappedOptions?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonConfigurationEntryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonConfigurationEntry'] = ResolversParentTypes['ProductComparisonConfigurationEntry']> = ResolversObject<{
+  feature?: Resolver<Maybe<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
+  featureValues?: Resolver<Array<ResolversTypes['ProductComparisonNormalizedFeatureValue']>, ParentType, ContextType>;
+  field?: Resolver<ResolversTypes['ComparisonField'], ParentType, ContextType>;
+  notApplicableReason?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  option?: Resolver<Maybe<ResolversTypes['ProductOption']>, ParentType, ContextType>;
+  optionValues?: Resolver<Array<ResolversTypes['ProductComparisonNormalizedOptionValue']>, ParentType, ContextType>;
+  sourceKind?: Resolver<ResolversTypes['ProductComparisonSourceKind'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonConfigurationPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonConfigurationPayload'] = ResolversParentTypes['ProductComparisonConfigurationPayload']> = ResolversObject<{
+  configuration?: Resolver<Maybe<ResolversTypes['ProductComparisonConfiguration']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonNormalizedFeatureValueResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonNormalizedFeatureValue'] = ResolversParentTypes['ProductComparisonNormalizedFeatureValue']> = ResolversObject<{
+  booleanValue?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  decimalValue?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  fieldOption?: Resolver<Maybe<ResolversTypes['ComparisonFieldOption']>, ParentType, ContextType>;
+  integerValue?: Resolver<Maybe<ResolversTypes['BigInt']>, ParentType, ContextType>;
+  textValue?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  value?: Resolver<ResolversTypes['ProductFeatureValue'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonNormalizedOptionValueResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonNormalizedOptionValue'] = ResolversParentTypes['ProductComparisonNormalizedOptionValue']> = ResolversObject<{
+  booleanValue?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  decimalValue?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  fieldOption?: Resolver<Maybe<ResolversTypes['ComparisonFieldOption']>, ParentType, ContextType>;
+  integerValue?: Resolver<Maybe<ResolversTypes['BigInt']>, ParentType, ContextType>;
+  textValue?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  value?: Resolver<ResolversTypes['ProductOptionValue'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -7650,6 +8190,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CatalogMutation?: CatalogMutationResolvers<ContextType>;
   CatalogQuery?: CatalogQueryResolvers<ContextType>;
   Category?: CategoryResolvers<ContextType>;
+  CategoryComparisonProfilePayload?: CategoryComparisonProfilePayloadResolvers<ContextType>;
   CategoryConnection?: CategoryConnectionResolvers<ContextType>;
   CategoryCreatePayload?: CategoryCreatePayloadResolvers<ContextType>;
   CategoryDeletePayload?: CategoryDeletePayloadResolvers<ContextType>;
@@ -7684,6 +8225,14 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CollectionUpdatePayload?: CollectionUpdatePayloadResolvers<ContextType>;
   CollectionUpdateRulesPayload?: CollectionUpdateRulesPayloadResolvers<ContextType>;
   CollectionVendorRule?: CollectionVendorRuleResolvers<ContextType>;
+  ComparisonField?: ComparisonFieldResolvers<ContextType>;
+  ComparisonFieldOption?: ComparisonFieldOptionResolvers<ContextType>;
+  ComparisonGroup?: ComparisonGroupResolvers<ContextType>;
+  ComparisonProfile?: ComparisonProfileResolvers<ContextType>;
+  ComparisonProfileConnection?: ComparisonProfileConnectionResolvers<ContextType>;
+  ComparisonProfileDeletePayload?: ComparisonProfileDeletePayloadResolvers<ContextType>;
+  ComparisonProfileEdge?: ComparisonProfileEdgeResolvers<ContextType>;
+  ComparisonProfilePayload?: ComparisonProfilePayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Email?: GraphQLScalarType;
   File?: FileResolvers<ContextType>;
@@ -7711,6 +8260,11 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductBulkUpdateJobEdge?: ProductBulkUpdateJobEdgeResolvers<ContextType>;
   ProductBulkUpdatePayload?: ProductBulkUpdatePayloadResolvers<ContextType>;
   ProductCategoryAssignment?: ProductCategoryAssignmentResolvers<ContextType>;
+  ProductComparisonConfiguration?: ProductComparisonConfigurationResolvers<ContextType>;
+  ProductComparisonConfigurationEntry?: ProductComparisonConfigurationEntryResolvers<ContextType>;
+  ProductComparisonConfigurationPayload?: ProductComparisonConfigurationPayloadResolvers<ContextType>;
+  ProductComparisonNormalizedFeatureValue?: ProductComparisonNormalizedFeatureValueResolvers<ContextType>;
+  ProductComparisonNormalizedOptionValue?: ProductComparisonNormalizedOptionValueResolvers<ContextType>;
   ProductComponent?: ProductComponentResolvers<ContextType>;
   ProductComponentAdjustmentPriceRule?: ProductComponentAdjustmentPriceRuleResolvers<ContextType>;
   ProductComponentBasePriceRule?: ProductComponentBasePriceRuleResolvers<ContextType>;

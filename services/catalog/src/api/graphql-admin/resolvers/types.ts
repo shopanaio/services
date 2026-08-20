@@ -43,6 +43,7 @@ import {
   ProductComponentDependencyActionResolver,
   ProductComponentDependencyRuleResolver,
 } from "../../../resolvers/admin/ProductComponentDependencyRuleResolver.js";
+import { ComparisonProfileResolver, ComparisonGroupResolver, ComparisonFieldResolver, ComparisonFieldOptionResolver } from "../../../resolvers/admin/ComparisonProfileResolver.js";
 
 /**
  * Type resolvers for interfaces and scalars.
@@ -53,6 +54,10 @@ export const typeResolvers: Partial<Resolvers> = {
     __resolveType: async (obj: unknown) => {
       const record = obj as Record<string, unknown>;
       if (obj instanceof ProductResolver) return "Product";
+      if (obj instanceof ComparisonProfileResolver) return "ComparisonProfile";
+      if (obj instanceof ComparisonGroupResolver) return "ComparisonGroup";
+      if (obj instanceof ComparisonFieldResolver) return "ComparisonField";
+      if (obj instanceof ComparisonFieldOptionResolver) return "ComparisonFieldOption";
       if (obj instanceof OptionCategoryResolver) return "ProductOptionCategory";
       if (obj instanceof ProductComponentConfigurationResolver)
         return "ProductComponentConfiguration";
@@ -164,6 +169,11 @@ export const typeResolvers: Partial<Resolvers> = {
       return ProductReferenceResolver.load(productId, fieldInfo, ctx);
     },
   },
+
+  ComparisonProfile: comparisonReference(GlobalIdEntity.ComparisonProfile, async (id, ctx) => new ComparisonProfileResolver(id, ctx)) as any,
+  ComparisonGroup: comparisonReference(GlobalIdEntity.ComparisonGroup, async (id, ctx) => { const row = await ctx.loaders.comparisonGroup.load(id); return row ? new ComparisonGroupResolver(row, ctx) : null; }) as any,
+  ComparisonField: comparisonReference(GlobalIdEntity.ComparisonField, async (id, ctx) => { const row = await ctx.loaders.comparisonField.load(id); return row ? new ComparisonFieldResolver(row, ctx) : null; }) as any,
+  ComparisonFieldOption: comparisonReference(GlobalIdEntity.ComparisonFieldOption, async (id, ctx) => { const row = await ctx.loaders.comparisonFieldOption.load(id); if (!row) return null; const field = await ctx.loaders.comparisonField.load(row.fieldId); return field ? new ComparisonFieldOptionResolver({ row, profileId: field.profileId }, ctx) : null; }) as any,
 
   Variant: {
     __resolveReference: async (
@@ -594,3 +604,13 @@ export const typeResolvers: Partial<Resolvers> = {
     },
   },
 };
+
+function comparisonReference(
+  entity: GlobalIdEntity,
+  load: (id: string, ctx: ServiceContext) => Promise<unknown>,
+) {
+  return {
+    __resolveReference: (reference: { id: string }, ctx: ServiceContext) =>
+      load(decodeGlobalIdByType(reference.id, entity), ctx),
+  };
+}

@@ -77,6 +77,12 @@ export class CategoryUpdateHierarchyScript extends BaseScript<
       }
     }
 
+    const direct = (await this.repository.comparisonRead.getDirectProfilesByCategoryIds([params.categoryId]))[0]?.profileId ?? null;
+    const inherited = parentId ? (await this.repository.comparisonRead.getEffectiveProfilesByCategoryIds([parentId]))[0]?.profileId ?? null : null;
+    if (await this.repository.comparisonRead.categoryAssignmentHasConflicts(params.categoryId, direct ?? inherited)) {
+      return { category: undefined, userErrors: [{ message: "Category hierarchy change conflicts with product comparison mappings", field: ["operations", "hierarchy", "parentId"], code: "COMPARISON_CATEGORY_PROFILE_CONFLICT" }] };
+    }
+
     const category = await this.repository.category.move(
       params.categoryId,
       parentId,

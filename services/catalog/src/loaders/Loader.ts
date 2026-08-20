@@ -14,6 +14,7 @@ import { WarehouseLoader } from "./WarehouseLoader.js";
 import { InventoryItemLoader } from "./InventoryItemLoader.js";
 import { StockLoader } from "./StockLoader.js";
 import { ComponentLoader } from "./ComponentLoader.js";
+import { ComparisonLoader } from "./ComparisonLoader.js";
 
 export class Loader {
   // Product
@@ -131,6 +132,20 @@ export class Loader {
   public readonly componentDependencyAction;
   public readonly componentDependencyActionIdsByRuleId;
 
+  // Product comparison
+  public readonly comparisonProfile;
+  public readonly localizedComparisonProfile;
+  public readonly comparisonGroupsByProfile;
+  public readonly comparisonFieldsByProfile;
+  public readonly comparisonOptionsByField;
+  public readonly directComparisonProfileByCategory;
+  public readonly effectiveComparisonProfileByCategory;
+  public readonly effectiveComparisonProfileByProduct;
+  public readonly comparisonConfigurationByProduct;
+  public readonly comparisonGroup;
+  public readonly comparisonField;
+  public readonly comparisonFieldOption;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: DataLoader<any, any>;
 
@@ -149,6 +164,7 @@ export class Loader {
     const inventoryItemLoader = new InventoryItemLoader(repository);
     const stockLoader = new StockLoader(repository);
     const componentLoader = new ComponentLoader(repository);
+    const comparisonLoader = new ComparisonLoader(repository);
 
     // Product
     this.product = productLoader.product;
@@ -276,5 +292,18 @@ export class Loader {
     this.componentDependencyAction = componentLoader.dependencyAction;
     this.componentDependencyActionIdsByRuleId =
       componentLoader.dependencyActionIdsByRuleId;
+
+    this.comparisonProfile = comparisonLoader.profile;
+    this.localizedComparisonProfile = comparisonLoader.localizedProfile;
+    this.comparisonGroupsByProfile = comparisonLoader.groupsByProfile;
+    this.comparisonFieldsByProfile = comparisonLoader.fieldsByProfile;
+    this.comparisonOptionsByField = comparisonLoader.optionsByField;
+    this.directComparisonProfileByCategory = comparisonLoader.directProfileByCategory;
+    this.effectiveComparisonProfileByCategory = comparisonLoader.effectiveProfileByCategory;
+    this.effectiveComparisonProfileByProduct = comparisonLoader.effectiveProfileByProduct;
+    this.comparisonConfigurationByProduct = comparisonLoader.configurationByProduct;
+    this.comparisonGroup = comparisonLoader.group;
+    this.comparisonField = comparisonLoader.field;
+    this.comparisonFieldOption = comparisonLoader.fieldOption;
   }
 }

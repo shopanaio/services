@@ -1,15 +1,10 @@
 import chalk from "chalk";
 import ora from "ora";
 import { execa } from "execa";
+import { relative } from "node:path";
 import { findRootDir } from "../utils.js";
-import {
-  buildServices,
-  printSummary,
-} from "../scripts/build-services.js";
-import {
-  discoverProjectUnits,
-  type ProjectUnit,
-} from "../project-units.js";
+import { buildServices, printSummary } from "../scripts/build-services.js";
+import { discoverProjectUnits, type ProjectUnit } from "../project-units.js";
 
 interface BuildOptions {
   service?: string[];
@@ -17,7 +12,54 @@ interface BuildOptions {
   parallel?: boolean;
 }
 
-async function typeCheckService(serviceName: string, servicePath: string): Promise<{ name: string; success: boolean; errors?: string }> {
+async function checkFormatting(paths: string[], rootDir: string): Promise<boolean> {
+  const spinner = ora(`Checking formatting for ${paths.length} project path(s)...`).start();
+
+  try {
+    await execa(
+      "yarn",
+      ["prettier", "--config", ".prettierrc.json", "--ignore-unknown", "--check", ...paths],
+      {
+        cwd: rootDir,
+        stdio: "pipe",
+      },
+    );
+    spinner.succeed("Formatting check passed");
+    return true;
+  } catch (error: any) {
+    spinner.fail("Formatting check failed");
+    const output = error.stdout || error.stderr || error.message;
+    if (output) {
+      console.error(chalk.gray(output));
+    }
+    return false;
+  }
+}
+
+async function lint(paths: string[], rootDir: string): Promise<boolean> {
+  const spinner = ora(`Linting ${paths.length} project path(s)...`).start();
+
+  try {
+    await execa("yarn", ["oxlint", ...paths], {
+      cwd: rootDir,
+      stdio: "pipe",
+    });
+    spinner.succeed("Lint passed");
+    return true;
+  } catch (error: any) {
+    spinner.fail("Lint failed");
+    const output = error.stdout || error.stderr || error.message;
+    if (output) {
+      console.error(chalk.gray(output));
+    }
+    return false;
+  }
+}
+
+async function typeCheckService(
+  serviceName: string,
+  servicePath: string,
+): Promise<{ name: string; success: boolean; errors?: string }> {
   try {
     await execa("npx", ["tsc", "--noEmit"], {
       cwd: servicePath,
@@ -34,10 +76,10 @@ async function typeCheck(unitsToCheck: ProjectUnit[]): Promise<boolean> {
   const spinner = ora(`Type checking ${unitsToCheck.length} project unit(s)...`).start();
 
   const results = await Promise.all(
-    unitsToCheck.map((unit) => typeCheckService(unit.name, unit.path))
+    unitsToCheck.map((unit) => typeCheckService(unit.name, unit.path)),
   );
 
-  const failed = results.filter(r => !r.success);
+  const failed = results.filter((r) => !r.success);
 
   if (failed.length === 0) {
     spinner.succeed("Type check passed");
@@ -71,25 +113,29 @@ export async function buildCommand(options: BuildOptions) {
       console.error(chalk.gray(`   Available: ${allNames.join(", ")}`));
       process.exit(1);
     }
-    unitsToProcess = allUnits.filter((unit) =>
-      options.service!.includes(unit.name),
-    );
+    unitsToProcess = allUnits.filter((unit) => options.service!.includes(unit.name));
 
     // apps-service statically imports every bundled App definition.
-    if (
-      unitsToProcess.some(
-        (unit) => unit.kind === "service" && unit.name === "apps",
-      )
-    ) {
-      const selectedNames = new Set(
-        unitsToProcess.map((unit) => `${unit.kind}:${unit.name}`),
-      );
+    if (unitsToProcess.some((unit) => unit.kind === "service" && unit.name === "apps")) {
+      const selectedNames = new Set(unitsToProcess.map((unit) => `${unit.kind}:${unit.name}`));
       for (const app of allUnits.filter((unit) => unit.kind === "app")) {
         if (!selectedNames.has(`app:${app.name}`)) {
           unitsToProcess.push(app);
         }
       }
     }
+  }
+
+  const projectPaths = options.packages
+    ? ["packages"]
+    : ["packages", ...unitsToProcess.map((unit) => relative(rootDir, unit.path))];
+  const formattingPassed = await checkFormatting(projectPaths, rootDir);
+  if (!formattingPassed) {
+    process.exit(1);
+  }
+  const lintPassed = await lint(projectPaths, rootDir);
+  if (!lintPassed) {
+    process.exit(1);
   }
 
   // Packages must exist before Apps and services resolve workspace declarations.
@@ -118,15 +164,11 @@ export async function buildCommand(options: BuildOptions) {
     },
     {
       label: "services",
-      units: unitsToProcess.filter(
-        (unit) => unit.kind === "service" && unit.name !== "bootstrap",
-      ),
+      units: unitsToProcess.filter((unit) => unit.kind === "service" && unit.name !== "bootstrap"),
     },
     {
       label: "bootstrap",
-      units: unitsToProcess.filter(
-        (unit) => unit.kind === "service" && unit.name === "bootstrap",
-      ),
+      units: unitsToProcess.filter((unit) => unit.kind === "service" && unit.name === "bootstrap"),
     },
   ];
 

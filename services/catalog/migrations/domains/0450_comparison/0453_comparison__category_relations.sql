@@ -19,5 +19,11 @@ CREATE TABLE "catalog"."category_comparison_profile" (
 CREATE INDEX "idx_category_comparison_profile_store_id"
   ON "catalog"."category_comparison_profile" ("store_id");
 
+CREATE INDEX "idx_category_comparison_profile_store_category"
+  ON "catalog"."category_comparison_profile" ("store_id", "category_id");
+
+CREATE INDEX "idx_category_comparison_profile_store_profile"
+  ON "catalog"."category_comparison_profile" ("store_id", "profile_id");
+
 CREATE INDEX "idx_category_comparison_profile_profile_id"
   ON "catalog"."category_comparison_profile" ("profile_id");

@@ -5,12 +5,21 @@ CREATE TABLE "catalog"."comparison_profile_translation" (
   "profile_id" uuid NOT NULL,
   "locale" "catalog"."locale_code" NOT NULL,
   "name" text NOT NULL,
+  "missing_label" text NOT NULL DEFAULT '—',
+  "not_applicable_label" text NOT NULL DEFAULT 'N/A',
+  "unavailable_label" text NOT NULL DEFAULT 'Unavailable',
   CONSTRAINT "comparison_profile_translation_pkey"
     PRIMARY KEY ("profile_id", "locale"),
   CONSTRAINT "comparison_profile_translation_profile_id_fk"
     FOREIGN KEY ("profile_id")
     REFERENCES "catalog"."comparison_profile" ("id")
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT "comparison_profile_translation_labels_shape_check"
+    CHECK (
+      length(btrim("missing_label")) > 0
+      AND length(btrim("not_applicable_label")) > 0
+      AND length(btrim("unavailable_label")) > 0
+    )
 );
 
 CREATE INDEX "idx_comparison_profile_translation_store_locale"

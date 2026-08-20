@@ -121,11 +121,38 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Get a node by ID (for Relay compatibility).
    */
   async node(args: { id: string }) {
+    for (const [entity, loader] of [
+      [GlobalIdEntity.ComparisonProfile, async (id: string) => (await this.$ctx.loaders.comparisonProfile.load(id)) ? this.resolvers.comparisonProfile(id) : null],
+      [GlobalIdEntity.ComparisonGroup, async (id: string) => { const row = await this.$ctx.loaders.comparisonGroup.load(id); if (!row) return null; const { ComparisonGroupResolver } = await import("./ComparisonProfileResolver.js"); return new ComparisonGroupResolver(row, this.$ctx); }],
+      [GlobalIdEntity.ComparisonField, async (id: string) => { const row = await this.$ctx.loaders.comparisonField.load(id); if (!row) return null; const { ComparisonFieldResolver } = await import("./ComparisonProfileResolver.js"); return new ComparisonFieldResolver(row, this.$ctx); }],
+      [GlobalIdEntity.ComparisonFieldOption, async (id: string) => { const row = await this.$ctx.loaders.comparisonFieldOption.load(id); if (!row) return null; const field = await this.$ctx.loaders.comparisonField.load(row.fieldId); if (!field) return null; const { ComparisonFieldOptionResolver } = await import("./ComparisonProfileResolver.js"); return new ComparisonFieldOptionResolver({ row, profileId: field.profileId }, this.$ctx); }],
+    ] as const) {
+      const id = this.safeDecodeId(args.id, entity);
+      if (id) return loader(id);
+    }
     const productId = this.safeDecodeId(args.id, GlobalIdEntity.Product);
     if (!productId) return null;
     const product = await this.$ctx.loaders.product.load(productId);
     if (!product) return null;
     return this.resolvers.product(productId);
+  }
+
+  async comparisonProfile(args: { id: string }) {
+    const id = this.safeDecodeId(args.id, GlobalIdEntity.ComparisonProfile);
+    if (!id || !(await this.$ctx.loaders.comparisonProfile.load(id))) return null;
+    return this.resolvers.comparisonProfile(id);
+  }
+
+  comparisonProfiles(args: Record<string, unknown>) {
+    return this.resolvers.comparisonProfileConnection(args);
+  }
+
+  async productComparisonConfiguration(args: { productId: string }) {
+    const id = this.safeDecodeId(args.productId, GlobalIdEntity.Product);
+    if (!id || !(await this.$ctx.loaders.product.load(id))) {
+      throw new GraphQLError("Product not found", { extensions: { code: "INVALID_ID" } });
+    }
+    return this.resolvers.productComparisonConfiguration(id);
   }
 
   /**

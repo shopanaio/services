@@ -27,10 +27,10 @@ program.name("shopana").description("Shopana development CLI").version("0.1.0");
 // Build commands
 program
   .command("build")
-  .description("Build packages and services")
+  .description("Check formatting, lint, type-check, and build packages and services")
   .option(
     "-s, --service <services...>",
-    `Build specific service(s) or App(s). Available: ${buildServiceNames}`
+    `Build specific service(s) or App(s). Available: ${buildServiceNames}`,
   )
   .option("-p, --packages", "Build only packages")
   .option("--parallel", "Build services in parallel")
@@ -133,7 +133,7 @@ if (!process.argv.slice(2).length) {
   ╚════██║██╔══██║██║   ██║██╔═══╝ ██╔══██║██║╚██╗██║██╔══██║
   ███████║██║  ██║╚██████╔╝██║     ██║  ██║██║ ╚████║██║  ██║
   ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝
-  `)
+  `),
   );
   program.help();
 }

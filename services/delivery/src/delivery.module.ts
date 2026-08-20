@@ -98,14 +98,29 @@ import { DeliveryShipmentOutboxWorkflow } from './workflows/DeliveryShipmentOutb
         apps,
       }),
     },
-    DeliveryCheckoutActions,
+    {
+      provide: DeliveryCheckoutActions,
+      inject: [getBrokerToken('delivery'), DeliveryCheckoutService, DeliverySelectionCommitService],
+      useFactory: (broker: ServiceBroker, checkout: DeliveryCheckoutService, commitments: DeliverySelectionCommitService) =>
+        new DeliveryCheckoutActions(broker, checkout, commitments),
+    },
     {
       provide: DeliveryProviderAccountService,
       inject: [Repository, DELIVERY_PROVIDER_APPS],
       useFactory: (repository: Repository, apps: BrokerDeliveryProviderAppsAdapter) => new DeliveryProviderAccountService(repository, apps),
     },
-    DeliveryProviderAccountActions,
-    DeliveryConfigurationActions,
+    {
+      provide: DeliveryProviderAccountActions,
+      inject: [getBrokerToken('delivery'), DeliveryProviderAccountService, Repository],
+      useFactory: (broker: ServiceBroker, accounts: DeliveryProviderAccountService, repository: Repository) =>
+        new DeliveryProviderAccountActions(broker, accounts, repository),
+    },
+    {
+      provide: DeliveryConfigurationActions,
+      inject: [getBrokerToken('delivery'), Repository],
+      useFactory: (broker: ServiceBroker, repository: Repository) =>
+        new DeliveryConfigurationActions(broker, repository),
+    },
     DeliveryExpiryCleanup,
     DeliveryShipmentActions,
     CreateDeliveryShipmentWorkflow,

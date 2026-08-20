@@ -1,0 +1,17 @@
+**/node_modules/**
+**/dist/**
+**/build/**
+**/coverage/**
+**/generated/**
+**/__generated__/**
+**/*.tsbuildinfo
+.yarn/**
+admin/.next/**
+admin/.next-e2e-*/**
+admin/out/**
+admin/next-env.d.ts
+infra/federation/schema/**
+**/supergraph-*.graphql
+**/supergraph.graphql
+yarn.lock
+admin/yarn.lock

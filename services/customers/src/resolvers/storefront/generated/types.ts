@@ -1269,6 +1269,8 @@ export type CustomerUpdatePayload = {
 /** A customer-facing validation, ownership, dependency, or business error. */
 export type CustomerUserError = DisplayableError & {
   __typename?: 'CustomerUserError';
+  /** Current comparison revision when code is REVISION_CONFLICT. */
+  actualRevision: Maybe<Scalars['Int']['output']>;
   code: Scalars['String']['output'];
   field: Maybe<Array<Scalars['String']['output']>>;
   message: Scalars['String']['output'];
@@ -2590,6 +2592,7 @@ export type CustomerUpdatePayloadResolvers<ContextType = ServiceContext, ParentT
 }>;
 
 export type CustomerUserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerUserError'] = ResolversParentTypes['CustomerUserError']> = ResolversObject<{
+  actualRevision?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   field?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

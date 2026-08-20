@@ -138,6 +138,7 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
           };
         }
 
+        let canonicalValueSlug = valueUpdate.slug;
         if (valueUpdate.slug !== undefined) {
           let canonicalSlug: string;
           try {
@@ -164,18 +165,18 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
               ],
             };
           }
-          valueUpdate.slug = canonicalSlug;
+          canonicalValueSlug = canonicalSlug;
         }
 
         if (valueUpdate.slug !== undefined || valueUpdate.name !== undefined) {
           await this.repository.feature.updateValue(feature.id, valueUpdate.id, {
-            slug: valueUpdate.slug,
+            slug: canonicalValueSlug,
           });
         }
 
-        if (valueUpdate.slug !== undefined && valueUpdate.slug !== existingValue.slug) {
+        if (canonicalValueSlug !== undefined && canonicalValueSlug !== existingValue.slug) {
           occupiedSlugs.delete(existingValue.slug);
-          occupiedSlugs.add(valueUpdate.slug);
+          occupiedSlugs.add(canonicalValueSlug);
         }
 
         if (valueUpdate.name !== undefined) {

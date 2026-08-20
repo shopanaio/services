@@ -31,6 +31,8 @@ import { WarehouseRepository } from "./warehouse/WarehouseRepository.js";
 import { InventoryItemRepository } from "./inventory-item/InventoryItemRepository.js";
 import { InventoryWidgetRepository } from "./inventory-widget/InventoryWidgetRepository.js";
 import { ComponentRepository } from "./component/ComponentRepository.js";
+import { ComparisonRepository } from "./comparison/ComparisonRepository.js";
+import { ComparisonReadRepository } from "./comparison/ComparisonReadRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -71,6 +73,8 @@ export class Repository {
   public readonly stock: StockRepository;
   public readonly warehouse: WarehouseRepository;
   public readonly component: ComponentRepository;
+  public readonly comparison: ComparisonRepository;
+  public readonly comparisonRead: ComparisonReadRepository;
   public readonly txManager: TransactionManager<Database>;
   public readonly dbosTransactionBridge: DbosTransactionBridge<
     Database,
@@ -113,6 +117,8 @@ export class Repository {
     stock: StockRepository,
     warehouse: WarehouseRepository,
     component: ComponentRepository,
+    comparison: ComparisonRepository,
+    comparisonRead: ComparisonReadRepository,
     txManager: TransactionManager<Database>,
     dbosTransactionBridge: DbosTransactionBridge<
       Database,
@@ -146,6 +152,8 @@ export class Repository {
     this.stock = stock;
     this.warehouse = warehouse;
     this.component = component;
+    this.comparison = comparison;
+    this.comparisonRead = comparisonRead;
     this.txManager = txManager;
     this.dbosTransactionBridge = dbosTransactionBridge;
   }
@@ -190,6 +198,8 @@ export class Repository {
     const stock = new StockRepository(db, txManager);
     const warehouse = new WarehouseRepository(db, txManager);
     const component = new ComponentRepository(db, txManager);
+    const comparison = new ComparisonRepository(db, txManager);
+    const comparisonRead = new ComparisonReadRepository(db, txManager);
 
     return new Repository(
       product,
@@ -219,6 +229,8 @@ export class Repository {
       stock,
       warehouse,
       component,
+      comparison,
+      comparisonRead,
       txManager,
       dbosTransactionBridge
     );

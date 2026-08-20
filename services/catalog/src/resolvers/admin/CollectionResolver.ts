@@ -253,7 +253,7 @@ export class CollectionResolver extends CatalogType<string, Collection> {
         __typename: "CollectionCreatedAtComparisonRule" as const,
         ...common,
         operator: rule.operator.toUpperCase(),
-        instant: rule.value.instant,
+        instant: "instant" in rule.value ? rule.value.instant : "",
       };
     });
     const staleCount = result.filter(

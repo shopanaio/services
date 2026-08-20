@@ -25,6 +25,9 @@ CREATE TABLE "catalog"."comparison_field_not_applicable" (
 CREATE INDEX "idx_comparison_field_not_applicable_store_id"
   ON "catalog"."comparison_field_not_applicable" ("store_id");
 
+CREATE INDEX "idx_comparison_field_not_applicable_store_product_field"
+  ON "catalog"."comparison_field_not_applicable" ("store_id", "product_id", "field_id");
+
 CREATE INDEX "idx_comparison_field_not_applicable_profile_field"
   ON "catalog"."comparison_field_not_applicable" ("profile_id", "field_id");
 
@@ -53,6 +56,9 @@ CREATE TABLE "catalog"."comparison_feature_binding" (
 
 CREATE INDEX "idx_comparison_feature_binding_store_id"
   ON "catalog"."comparison_feature_binding" ("store_id");
+
+CREATE INDEX "idx_comparison_feature_binding_store_product_field"
+  ON "catalog"."comparison_feature_binding" ("store_id", "product_id", "field_id");
 
 CREATE INDEX "idx_comparison_feature_binding_profile_field"
   ON "catalog"."comparison_feature_binding" ("profile_id", "field_id");
@@ -139,6 +145,9 @@ CREATE INDEX "idx_comparison_feature_value_binding_feature_id"
 CREATE INDEX "idx_comparison_feature_value_binding_field_id"
   ON "catalog"."comparison_feature_value_binding" ("field_id");
 
+CREATE INDEX "idx_comparison_feature_value_binding_store_field"
+  ON "catalog"."comparison_feature_value_binding" ("store_id", "field_id");
+
 CREATE INDEX "idx_comparison_feature_value_binding_field_option_id"
   ON "catalog"."comparison_feature_value_binding" ("field_option_id");
 
@@ -167,6 +176,9 @@ CREATE TABLE "catalog"."comparison_option_binding" (
 
 CREATE INDEX "idx_comparison_option_binding_store_id"
   ON "catalog"."comparison_option_binding" ("store_id");
+
+CREATE INDEX "idx_comparison_option_binding_store_product_field"
+  ON "catalog"."comparison_option_binding" ("store_id", "product_id", "field_id");
 
 CREATE INDEX "idx_comparison_option_binding_profile_field"
   ON "catalog"."comparison_option_binding" ("profile_id", "field_id");
@@ -252,6 +264,9 @@ CREATE INDEX "idx_comparison_option_value_binding_option_id"
 
 CREATE INDEX "idx_comparison_option_value_binding_field_id"
   ON "catalog"."comparison_option_value_binding" ("field_id");
+
+CREATE INDEX "idx_comparison_option_value_binding_store_field"
+  ON "catalog"."comparison_option_value_binding" ("store_id", "field_id");
 
 CREATE INDEX "idx_comparison_option_value_binding_field_option_id"
   ON "catalog"."comparison_option_value_binding" ("field_option_id");

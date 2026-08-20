@@ -316,6 +316,21 @@ export class ResolverRegistry {
     return new PricingWidgetResolver(input, this.ctx);
   }
 
+  async comparisonProfile(id: string) {
+    const { ComparisonProfileResolver } = await import("./ComparisonProfileResolver.js");
+    return new ComparisonProfileResolver(id, this.ctx);
+  }
+
+  async comparisonProfileConnection(input: Record<string, unknown>) {
+    const { ComparisonProfileConnectionResolver } = await import("./ComparisonProfileResolver.js");
+    return new ComparisonProfileConnectionResolver(input, this.ctx);
+  }
+
+  async productComparisonConfiguration(productId: string) {
+    const { ProductComparisonConfigurationResolver } = await import("./ProductComparisonConfigurationResolver.js");
+    return new ProductComparisonConfigurationResolver(productId, this.ctx);
+  }
+
   async catalogQuery() {
     const { CatalogQueryResolver } = await import("./QueryResolver.js");
     return new CatalogQueryResolver({}, this.ctx);

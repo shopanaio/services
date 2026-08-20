@@ -197,6 +197,9 @@ type Product implements Node @key(fields: "id") {
 
   """Product component data, or null when this product has no component configuration."""
   productComponent: ProductComponent
+
+  effectiveComparisonProfile: ComparisonProfile
+  comparisonConfiguration: ProductComparisonConfiguration!
 }
 
 """

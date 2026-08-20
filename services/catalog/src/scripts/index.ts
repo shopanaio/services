@@ -35,3 +35,6 @@ export * from './warehouse/index.js';
 
 // Stock scripts
 export * from './stock/index.js';
+
+// Product comparison scripts
+export * from './comparison/index.js';

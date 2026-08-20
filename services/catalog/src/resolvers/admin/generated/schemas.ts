@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, CategoryCategoriesMetaInput, CategoryContentInput, CategoryCreateInput, CategoryDeleteInput, CategoryHierarchyInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryMoveInput, CategoryOrderByInput, CategoryOrderField, CategoryProductsScopeInput, CategoryRebalanceInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAddProductsInput, CollectionAttributeRuleValueInput, CollectionCategoryRuleInput, CollectionClearProductsInput, CollectionComparisonRuleOperator, CollectionCreateInput, CollectionCreatedAtComparisonRuleInput, CollectionCreatedAtRangeRuleInput, CollectionDeleteInput, CollectionFeatureRuleInput, CollectionInStockRuleInput, CollectionMediaInput, CollectionMoveProductInput, CollectionOptionRuleInput, CollectionPriceComparisonRuleInput, CollectionPriceRangeRuleInput, CollectionRebalanceInput, CollectionRemoveProductsInput, CollectionRuleField, CollectionRuleInput, CollectionRuleReferenceStatus, CollectionRulesPreviewCountInput, CollectionSetRuleOperator, CollectionTagRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, CollectionVendorRuleInput, CurrencyCode, DateTimeFilter, DimensionUnit, DimensionsInput, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateWhereInput, FloatFilter, IdFilter, IntFilter, InventoryItemCostInput, InventoryItemInput, InventoryItemInventoryItemsMetaInput, InventoryItemOrderByInput, InventoryItemOrderField, InventoryItemStockInput, InventoryItemUpdateInput, InventoryItemWarehouseScopeInput, InventoryItemWarehouseScopeMode, InventoryItemWhereInput, LocaleCode, OperationType, PriceAdjustmentOperation, PriceAdjustmentValueType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductCategoriesScopeInput, ProductCategoryOperationAction, ProductCategoryOperationInput, ProductComponentConditionCategory, ProductComponentConditionGroupSyncItemInput, ProductComponentConditionOperator, ProductComponentConditionSubject, ProductComponentConditionSyncItemInput, ProductComponentDependencyActionSyncItemInput, ProductComponentDependencyActionType, ProductComponentDependencyRuleSyncItemInput, ProductComponentDependencyTargetType, ProductComponentDisplayStyle, ProductComponentGroupSyncItemInput, ProductComponentItemOptionSelectionSyncItemInput, ProductComponentItemOptionValueSelectionStatus, ProductComponentItemOptionValueSelectionSyncItemInput, ProductComponentItemSyncItemInput, ProductComponentItemType, ProductComponentLogicOperator, ProductComponentOperationAction, ProductComponentOperationInput, ProductComponentPriceRuleAmountInput, ProductComponentPriceRuleInput, ProductComponentPriceStrategy, ProductComponentPricingTemplateSyncItemInput, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCategoryCreateInput, ProductOptionCategoryDeleteInput, ProductOptionCategoryOrderByInput, ProductOptionCategoryOrderField, ProductOptionCategoryUpdateInput, ProductOptionCategoryWhereInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductOrderField, ProductProductsMetaInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductTagOperationAction, ProductTagOperationInput, ProductUpdateInput, ProductWhereInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagOrderByInput, TagOrderField, TagUpdateInput, TagWhereInput, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOperationAction, VariantOperationInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, VendorCreateInput, VendorOrderByInput, VendorOrderField, VendorWhereInput, WarehouseAssignableVariantOrderByInput, WarehouseAssignableVariantOrderField, WarehouseAssignableVariantWhereInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockCreateInput, WarehouseStockCreateItemInput, WarehouseStockDeleteInput, WarehouseStockDeleteItemInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
+import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, CategoryCategoriesMetaInput, CategoryComparisonProfileSetInput, CategoryContentInput, CategoryCreateInput, CategoryDeleteInput, CategoryHierarchyInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryMoveInput, CategoryOrderByInput, CategoryOrderField, CategoryProductsScopeInput, CategoryRebalanceInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAddProductsInput, CollectionAttributeRuleValueInput, CollectionCategoryRuleInput, CollectionClearProductsInput, CollectionComparisonRuleOperator, CollectionCreateInput, CollectionCreatedAtComparisonRuleInput, CollectionCreatedAtRangeRuleInput, CollectionDeleteInput, CollectionFeatureRuleInput, CollectionInStockRuleInput, CollectionMediaInput, CollectionMoveProductInput, CollectionOptionRuleInput, CollectionPriceComparisonRuleInput, CollectionPriceRangeRuleInput, CollectionRebalanceInput, CollectionRemoveProductsInput, CollectionRuleField, CollectionRuleInput, CollectionRuleReferenceStatus, CollectionRulesPreviewCountInput, CollectionSetRuleOperator, CollectionTagRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, CollectionVendorRuleInput, ComparisonCardinality, ComparisonFieldInput, ComparisonFieldOptionInput, ComparisonGroupInput, ComparisonProfileCreateInput, ComparisonProfileDeleteInput, ComparisonProfileOrderByInput, ComparisonProfileOrderField, ComparisonProfileUpdateInput, ComparisonProfileWhereInput, ComparisonValueType, CurrencyCode, DateTimeFilter, DimensionUnit, DimensionsInput, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateWhereInput, FloatFilter, IdFilter, IntFilter, InventoryItemCostInput, InventoryItemInput, InventoryItemInventoryItemsMetaInput, InventoryItemOrderByInput, InventoryItemOrderField, InventoryItemStockInput, InventoryItemUpdateInput, InventoryItemWarehouseScopeInput, InventoryItemWarehouseScopeMode, InventoryItemWhereInput, LocaleCode, OperationType, PriceAdjustmentOperation, PriceAdjustmentValueType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductCategoriesScopeInput, ProductCategoryOperationAction, ProductCategoryOperationInput, ProductComparisonCompatibilityStatus, ProductComparisonConfigurationSyncInput, ProductComparisonFeatureMappingInput, ProductComparisonFeatureValueMappingInput, ProductComparisonFieldMappingInput, ProductComparisonNormalizedValueInput, ProductComparisonNotApplicableInput, ProductComparisonOptionMappingInput, ProductComparisonOptionValueMappingInput, ProductComparisonSourceKind, ProductComponentConditionCategory, ProductComponentConditionGroupSyncItemInput, ProductComponentConditionOperator, ProductComponentConditionSubject, ProductComponentConditionSyncItemInput, ProductComponentDependencyActionSyncItemInput, ProductComponentDependencyActionType, ProductComponentDependencyRuleSyncItemInput, ProductComponentDependencyTargetType, ProductComponentDisplayStyle, ProductComponentGroupSyncItemInput, ProductComponentItemOptionSelectionSyncItemInput, ProductComponentItemOptionValueSelectionStatus, ProductComponentItemOptionValueSelectionSyncItemInput, ProductComponentItemSyncItemInput, ProductComponentItemType, ProductComponentLogicOperator, ProductComponentOperationAction, ProductComponentOperationInput, ProductComponentPriceRuleAmountInput, ProductComponentPriceRuleInput, ProductComponentPriceStrategy, ProductComponentPricingTemplateSyncItemInput, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCategoryCreateInput, ProductOptionCategoryDeleteInput, ProductOptionCategoryOrderByInput, ProductOptionCategoryOrderField, ProductOptionCategoryUpdateInput, ProductOptionCategoryWhereInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductOrderField, ProductProductsMetaInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductTagOperationAction, ProductTagOperationInput, ProductUpdateInput, ProductWhereInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagOrderByInput, TagOrderField, TagUpdateInput, TagWhereInput, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOperationAction, VariantOperationInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, VendorCreateInput, VendorOrderByInput, VendorOrderField, VendorWhereInput, WarehouseAssignableVariantOrderByInput, WarehouseAssignableVariantOrderField, WarehouseAssignableVariantWhereInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockCreateInput, WarehouseStockCreateItemInput, WarehouseStockDeleteInput, WarehouseStockDeleteItemInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -37,6 +37,12 @@ export const CollectionSetRuleOperatorSchema = z.nativeEnum(CollectionSetRuleOpe
 
 export const CollectionTypeSchema = z.nativeEnum(CollectionType);
 
+export const ComparisonCardinalitySchema = z.nativeEnum(ComparisonCardinality);
+
+export const ComparisonProfileOrderFieldSchema = z.nativeEnum(ComparisonProfileOrderField);
+
+export const ComparisonValueTypeSchema = z.nativeEnum(ComparisonValueType);
+
 export const CurrencyCodeSchema = z.nativeEnum(CurrencyCode);
 
 export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
@@ -58,6 +64,10 @@ export const PriceAdjustmentOperationSchema = z.nativeEnum(PriceAdjustmentOperat
 export const PriceAdjustmentValueTypeSchema = z.nativeEnum(PriceAdjustmentValueType);
 
 export const ProductCategoryOperationActionSchema = z.nativeEnum(ProductCategoryOperationAction);
+
+export const ProductComparisonCompatibilityStatusSchema = z.nativeEnum(ProductComparisonCompatibilityStatus);
+
+export const ProductComparisonSourceKindSchema = z.nativeEnum(ProductComparisonSourceKind);
 
 export const ProductComponentConditionCategorySchema = z.nativeEnum(ProductComponentConditionCategory);
 
@@ -128,6 +138,13 @@ export function CategoryCategoriesMetaInputSchema(): z.ZodObject<Properties<Cate
   return z.object({
     hierarchyScope: z.lazy(() => CategoryHierarchyScopeInputSchema().nullish()),
     productsScope: z.lazy(() => CategoryProductsScopeInputSchema().nullish())
+  })
+}
+
+export function CategoryComparisonProfileSetInputSchema(): z.ZodObject<Properties<CategoryComparisonProfileSetInput>> {
+  return z.object({
+    categoryId: z.string(),
+    profileId: z.string().nullish()
   })
 }
 
@@ -450,6 +467,86 @@ export function CollectionVendorRuleInputSchema(): z.ZodObject<Properties<Collec
   })
 }
 
+export function ComparisonFieldInputSchema(): z.ZodObject<Properties<ComparisonFieldInput>> {
+  return z.object({
+    canonicalUnit: z.string().nullish(),
+    cardinality: ComparisonCardinalitySchema,
+    description: z.string().nullish(),
+    featured: z.boolean().default(false).nullish(),
+    handle: z.string(),
+    id: z.string().nullish(),
+    name: z.string(),
+    options: z.array(z.lazy(() => ComparisonFieldOptionInputSchema())),
+    sortIndex: z.number(),
+    valueType: ComparisonValueTypeSchema
+  })
+}
+
+export function ComparisonFieldOptionInputSchema(): z.ZodObject<Properties<ComparisonFieldOptionInput>> {
+  return z.object({
+    handle: z.string(),
+    id: z.string().nullish(),
+    name: z.string(),
+    sortIndex: z.number()
+  })
+}
+
+export function ComparisonGroupInputSchema(): z.ZodObject<Properties<ComparisonGroupInput>> {
+  return z.object({
+    fields: z.array(z.lazy(() => ComparisonFieldInputSchema())),
+    handle: z.string(),
+    id: z.string().nullish(),
+    name: z.string(),
+    sortIndex: z.number()
+  })
+}
+
+export function ComparisonProfileCreateInputSchema(): z.ZodObject<Properties<ComparisonProfileCreateInput>> {
+  return z.object({
+    enabled: z.boolean().default(true).nullish(),
+    groups: z.array(z.lazy(() => ComparisonGroupInputSchema())),
+    handle: z.string(),
+    missingLabel: z.string(),
+    name: z.string(),
+    notApplicableLabel: z.string(),
+    unavailableLabel: z.string()
+  })
+}
+
+export function ComparisonProfileDeleteInputSchema(): z.ZodObject<Properties<ComparisonProfileDeleteInput>> {
+  return z.object({
+    id: z.string()
+  })
+}
+
+export function ComparisonProfileOrderByInputSchema(): z.ZodObject<Properties<ComparisonProfileOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: ComparisonProfileOrderFieldSchema
+  })
+}
+
+export function ComparisonProfileUpdateInputSchema(): z.ZodObject<Properties<ComparisonProfileUpdateInput>> {
+  return z.object({
+    enabled: z.boolean(),
+    expectedRevision: z.number(),
+    groups: z.array(z.lazy(() => ComparisonGroupInputSchema())),
+    handle: z.string(),
+    id: z.string(),
+    missingLabel: z.string(),
+    name: z.string(),
+    notApplicableLabel: z.string(),
+    unavailableLabel: z.string()
+  })
+}
+
+export function ComparisonProfileWhereInputSchema(): z.ZodObject<Properties<ComparisonProfileWhereInput>> {
+  return z.object({
+    enabled: z.boolean().nullish(),
+    handle: z.string().nullish()
+  })
+}
+
 export function DateTimeFilterSchema(): z.ZodObject<Properties<DateTimeFilter>> {
   return z.object({
     _between: z.array(z.string()).nullish(),
@@ -668,6 +765,68 @@ export function ProductCategoryOperationInputSchema(): z.ZodObject<Properties<Pr
     afterProductId: z.string().nullish(),
     beforeProductId: z.string().nullish(),
     categoryId: z.string()
+  })
+}
+
+export function ProductComparisonConfigurationSyncInputSchema(): z.ZodObject<Properties<ProductComparisonConfigurationSyncInput>> {
+  return z.object({
+    expectedProductRevision: z.number(),
+    mappings: z.array(z.lazy(() => ProductComparisonFieldMappingInputSchema())),
+    productId: z.string(),
+    profileId: z.string()
+  })
+}
+
+export function ProductComparisonFeatureMappingInputSchema(): z.ZodObject<Properties<ProductComparisonFeatureMappingInput>> {
+  return z.object({
+    featureId: z.string(),
+    values: z.array(z.lazy(() => ProductComparisonFeatureValueMappingInputSchema()))
+  })
+}
+
+export function ProductComparisonFeatureValueMappingInputSchema(): z.ZodObject<Properties<ProductComparisonFeatureValueMappingInput>> {
+  return z.object({
+    value: z.lazy(() => ProductComparisonNormalizedValueInputSchema()),
+    valueId: z.string()
+  })
+}
+
+export function ProductComparisonFieldMappingInputSchema(): z.ZodObject<Properties<ProductComparisonFieldMappingInput>> {
+  return z.object({
+    feature: z.lazy(() => ProductComparisonFeatureMappingInputSchema().nullish()),
+    fieldId: z.string(),
+    notApplicable: z.lazy(() => ProductComparisonNotApplicableInputSchema().nullish()),
+    option: z.lazy(() => ProductComparisonOptionMappingInputSchema().nullish())
+  })
+}
+
+export function ProductComparisonNormalizedValueInputSchema(): z.ZodObject<Properties<ProductComparisonNormalizedValueInput>> {
+  return z.object({
+    booleanValue: z.boolean().nullish(),
+    decimalValue: z.string().nullish(),
+    fieldOptionId: z.string().nullish(),
+    integerValue: z.string().nullish(),
+    textValue: z.string().nullish()
+  })
+}
+
+export function ProductComparisonNotApplicableInputSchema(): z.ZodObject<Properties<ProductComparisonNotApplicableInput>> {
+  return z.object({
+    reason: z.string().nullish()
+  })
+}
+
+export function ProductComparisonOptionMappingInputSchema(): z.ZodObject<Properties<ProductComparisonOptionMappingInput>> {
+  return z.object({
+    optionId: z.string(),
+    values: z.array(z.lazy(() => ProductComparisonOptionValueMappingInputSchema()))
+  })
+}
+
+export function ProductComparisonOptionValueMappingInputSchema(): z.ZodObject<Properties<ProductComparisonOptionValueMappingInput>> {
+  return z.object({
+    value: z.lazy(() => ProductComparisonNormalizedValueInputSchema()),
+    valueId: z.string()
   })
 }
 

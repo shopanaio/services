@@ -16,7 +16,7 @@ export type CollectionProductSyncReason =
   | "rebalance"
   | "clear";
 
-export interface CollectionSyncConsistencyIssue {
+export interface CollectionSyncConsistencyIssue extends Record<string, unknown> {
   code:
     | "INVALID_RECEIPT_HASH"
     | "PENDING_WITHOUT_ITEMS"

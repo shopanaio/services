@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 import type { Category } from "../../repositories/models/index.js";
 
@@ -17,6 +17,7 @@ export class CategorySetProductPrimaryScript extends BaseScript<
   CategorySetProductPrimaryParams,
   CategorySetProductPrimaryResult
 > {
+  @Transactional()
   protected async execute(
     params: CategorySetProductPrimaryParams,
   ): Promise<CategorySetProductPrimaryResult> {
@@ -48,6 +49,12 @@ export class CategorySetProductPrimaryScript extends BaseScript<
           },
         ],
       };
+    }
+
+    const futureProfile = (await this.repository.comparisonRead.getEffectiveProfilesByCategoryIds([params.categoryId]))[0]?.profileId ?? null;
+    const configuredProfiles = await this.repository.comparisonRead.productConfigurationProfileIds(params.productId);
+    if (configuredProfiles.some((profileId) => profileId !== futureProfile)) {
+      return { category: undefined, affectedProductIds: [], userErrors: [{ message: "Primary category change conflicts with comparison configuration", field: ["input", "categoryId"], code: "COMPARISON_EFFECTIVE_PROFILE_MISMATCH" }] };
     }
 
     const link = await this.repository.category.setProductPrimaryCategory(
