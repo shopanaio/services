@@ -75,7 +75,7 @@ test.describe('Storefront checkout lines and merchandise', () => {
         },
       ],
     ]) {
-      kit.expectUserError(await add(kit, before.id, lines), /QUANTITY|COMPONENT|LINE/);
+      kit.expectUserError(await add(kit, before.id, lines), 'BAD_USER_INPUT');
       expect(await kit.read(before.id)).toEqual(before);
     }
   });
@@ -105,24 +105,30 @@ test.describe('Storefront checkout lines and merchandise', () => {
     expect(after.lines.map(({ id }) => id)).toEqual([before.lines[1]!.id]);
     kit.expectUserError(
       await update(kit, after.id, [{ lineId: after.lines[0]!.id, quantity: -1 }]),
-      /QUANTITY/,
+      'BAD_USER_INPUT',
     );
     expect(await kit.read(after.id)).toEqual(after);
   });
 
   test('rejects duplicate and unknown line IDs in a batch without committing a partial mutation', async () => {
     const before = await twoLines(kit);
-    for (const lines of [
+    for (const [lines, expectedCode] of [
       [
-        { lineId: before.lines[0]!.id, quantity: 2 },
-        { lineId: before.lines[0]!.id, quantity: 3 },
+        [
+          { lineId: before.lines[0]!.id, quantity: 2 },
+          { lineId: before.lines[0]!.id, quantity: 3 },
+        ],
+        'CHECKOUT_BATCH_DUPLICATE_ID',
       ],
       [
-        { lineId: before.lines[0]!.id, quantity: 2 },
-        { lineId: kit.id('CheckoutLine'), quantity: 3 },
+        [
+          { lineId: before.lines[0]!.id, quantity: 2 },
+          { lineId: kit.id('CheckoutLine'), quantity: 3 },
+        ],
+        'CHECKOUT_LINE_NOT_FOUND',
       ],
-    ]) {
-      kit.expectUserError(await update(kit, before.id, lines), /DUPLICATE|LINE|NOT_FOUND/);
+    ] as const) {
+      kit.expectUserError(await update(kit, before.id, [...lines]), expectedCode);
       expect(await kit.read(before.id)).toEqual(before);
     }
   });
@@ -178,11 +184,21 @@ test.describe('Storefront checkout lines and merchandise', () => {
 
   test('rejects replacement with an unknown line or non-positive quantity', async () => {
     const before = await twoLines(kit);
-    for (const replacement of [
-      { lineId: kit.id('CheckoutLine'), purchasableId: before.lines[1]!.purchasableId },
-      { lineId: before.lines[0]!.id, purchasableId: before.lines[1]!.purchasableId, quantity: 0 },
-    ]) {
-      kit.expectUserError(await replace(kit, before.id, [replacement]), /LINE|QUANTITY/);
+    for (const [replacement, expectedCode] of [
+      [
+        { lineId: kit.id('CheckoutLine'), purchasableId: before.lines[1]!.purchasableId },
+        'CHECKOUT_LINE_NOT_FOUND',
+      ],
+      [
+        {
+          lineId: before.lines[0]!.id,
+          purchasableId: before.lines[1]!.purchasableId,
+          quantity: 0,
+        },
+        'BAD_USER_INPUT',
+      ],
+    ] as const) {
+      kit.expectUserError(await replace(kit, before.id, [replacement]), expectedCode);
       expect(await kit.read(before.id)).toEqual(before);
     }
   });
@@ -254,7 +270,7 @@ test.describe('Storefront checkout lines and merchandise', () => {
         ],
       },
     ]);
-    kit.expectUserError(payload, /COMPONENT|MERCHANDISE/);
+    kit.expectUserError(payload, 'CHECKOUT_PRELIMINARY_PRICING_UNAVAILABLE');
     expect(await kit.read(before.id)).toEqual(before);
   });
 
@@ -284,12 +300,15 @@ test.describe('Storefront checkout lines and merchandise', () => {
   test('rejects wrong-type, duplicate, and foreign IDs when deleting lines', async () => {
     const before = await twoLines(kit);
     const foreign = await twoLines(kit);
-    for (const ids of [
-      [kit.id('ProductVariant')],
-      [foreign.lines[0]!.id],
-      [before.lines[0]!.id, before.lines[0]!.id],
-    ]) {
-      kit.expectUserError(await remove(kit, before.id, ids), /GLOBAL_ID|DUPLICATE|LINE|NOT_FOUND/);
+    for (const [ids, expectedCode] of [
+      [[kit.id('ProductVariant')], 'BAD_USER_INPUT'],
+      [[foreign.lines[0]!.id], 'CHECKOUT_LINE_NOT_FOUND'],
+      [
+        [before.lines[0]!.id, before.lines[0]!.id],
+        'CHECKOUT_BATCH_DUPLICATE_ID',
+      ],
+    ] as const) {
+      kit.expectUserError(await remove(kit, before.id, [...ids]), expectedCode);
       expect(await kit.read(before.id)).toEqual(before);
     }
   });

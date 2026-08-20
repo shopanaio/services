@@ -30,7 +30,7 @@ test.describe('Storefront checkout validation and concurrency', () => {
     const payload = await kit.withActionFault('pricing.calculateCheckoutPreliminaryQuote', () =>
       quantity(kit, before, 2),
     );
-    kit.expectUserError(payload, /PRICING|PIPELINE|UNAVAILABLE/);
+    kit.expectUserError(payload, 'CHECKOUT_PRELIMINARY_PRICING_UNAVAILABLE');
     expect(await kit.read(before.id)).toEqual(before);
   });
 
@@ -39,20 +39,20 @@ test.describe('Storefront checkout validation and concurrency', () => {
     const payload = await kit.withActionFault('delivery.calculateCheckoutDeliveryOptions', () =>
       quantity(kit, before, 2),
     );
-    kit.expectUserError(payload, /DELIVERY|PIPELINE|UNAVAILABLE/);
+    kit.expectUserError(payload, 'CHECKOUT_DELIVERY_UNAVAILABLE');
     expect(await kit.read(before.id)).toEqual(before);
   });
 
   test('fails each required pipeline stage and skips every downstream stage', async () => {
     const stages = [
-      'pricing.calculateCheckoutPreliminaryQuote',
-      'delivery.calculateCheckoutDeliveryOptions',
-      'pricing.finalizeCheckoutPricingQuote',
-      'payments.getCheckoutAvailablePaymentMethods',
-    ];
-    for (const [index, action] of stages.entries()) {
+      ['pricing.calculateCheckoutPreliminaryQuote', 'CHECKOUT_PRELIMINARY_PRICING_UNAVAILABLE'],
+      ['delivery.calculateCheckoutDeliveryOptions', 'CHECKOUT_DELIVERY_UNAVAILABLE'],
+      ['pricing.finalizeCheckoutPricingQuote', 'CHECKOUT_FINAL_PRICING_UNAVAILABLE'],
+      ['payments.getCheckoutAvailablePaymentMethods', 'CHECKOUT_PAYMENT_METHODS_UNAVAILABLE'],
+    ] as const;
+    for (const [index, [action, expectedCode]] of stages.entries()) {
       const before = await lineCheckout(kit);
-      const downstream = stages.slice(index + 1);
+      const downstream = stages.slice(index + 1).map(([candidate]) => candidate);
       const payload = await kit.withActionOverrides(
         [
           { action, mode: 'THROW' },
@@ -65,7 +65,7 @@ test.describe('Storefront checkout validation and concurrency', () => {
           return result;
         },
       );
-      const error = kit.expectUserError(payload, 'CHECKOUT_PIPELINE_FAILED');
+      const error = kit.expectUserError(payload, expectedCode);
       expect(error.retryable).toBe(true);
       expect(await kit.read(before.id)).toEqual(before);
     }
@@ -77,7 +77,7 @@ test.describe('Storefront checkout validation and concurrency', () => {
       [{ action: 'pricing.finalizeCheckoutPricingQuote', mode: 'RETURN', result: {} }],
       () => quantity(kit, before, 2),
     );
-    kit.expectUserError(payload, 'CHECKOUT_PIPELINE_FAILED');
+    kit.expectUserError(payload, 'CHECKOUT_FINAL_PRICING_UNAVAILABLE');
     expect(await kit.read(before.id)).toEqual(before);
   });
 
@@ -108,7 +108,7 @@ test.describe('Storefront checkout validation and concurrency', () => {
         email: 'buyer@example.test',
       }),
     );
-    kit.expectUserError(payload, 'CHECKOUT_PIPELINE_FAILED');
+    kit.expectUserError(payload, 'BUYER_ELIGIBILITY_RESOLUTION_FAILED');
     expect(await kit.read(before.id)).toEqual(before);
   });
 
@@ -133,18 +133,29 @@ test.describe('Storefront checkout validation and concurrency', () => {
     const results = await Promise.all([quantity(kit, before, 2), quantity(kit, before, 3)]);
     expect(results.filter(({ checkout }) => checkout !== null)).toHaveLength(1);
     const failure = results.find(({ checkout }) => checkout === null)!;
-    expect(failure.userErrors).toContainEqual(expect.objectContaining({ retryable: true }));
+    expect(failure.userErrors).toEqual([
+      expect.objectContaining({ code: 'CHECKOUT_VERSION_CONFLICT', retryable: true }),
+    ]);
   });
 
   test('does not automatically replay a conflicting checkout mutation', async () => {
     const before = await lineCheckout(kit);
+    const version = Number((await kit.persisted(before.id)).version);
     const results = await Promise.all([quantity(kit, before, 2), quantity(kit, before, 3)]);
-    const committed = results.find(({ checkout }) => checkout)?.checkout!;
+    const successes = results.filter(({ checkout }) => checkout !== null);
+    const failures = results.filter(({ checkout }) => checkout === null);
+    expect(successes).toHaveLength(1);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]!.userErrors).toEqual([
+      expect.objectContaining({ code: 'CHECKOUT_VERSION_CONFLICT', retryable: true }),
+    ]);
+    const committed = successes[0]!.checkout!;
     expect((await kit.read(before.id))!.lines[0]!.quantity).toBe(committed.lines[0]!.quantity);
     expect([2, 3]).toContain(committed.lines[0]!.quantity);
+    expect(Number((await kit.persisted(before.id)).version)).toBe(version + 1);
   });
 
-  test('increments the checkout result revision exactly once for each required mutation', async () => {
+  test('increments the checkout result revision exactly once for a line quantity mutation', async () => {
     const before = await lineCheckout(kit);
     const version = Number((await kit.persisted(before.id)).version);
     const after = kit.expectSuccess(await quantity(kit, before, 2));
@@ -175,15 +186,22 @@ test.describe('Storefront checkout validation and concurrency', () => {
     await lifecycle(kit, before.id, 'EXPIRED', new Date(Date.now() - 1_000).toISOString());
     const read = await kit.read(before.id);
     expect(read?.status).toBe('EXPIRED');
-    kit.expectUserError(await quantity(kit, read!, 2), /EXPIRED|CHECKOUT/);
+    kit.expectUserError(await quantity(kit, read!, 2), 'CHECKOUT_VERSION_CONFLICT');
   });
 
-  test('rejects every checkout mutation after the checkout is placed or expired', async () => {
+  test('rejects recalculating and metadata mutations after the checkout is placed or expired', async () => {
     for (const status of ['PLACED', 'EXPIRED'] as const) {
       const before = await lineCheckout(kit);
       await lifecycle(kit, before.id, status);
       const immutable = await kit.read(before.id);
-      kit.expectUserError(await quantity(kit, immutable!, 2), new RegExp(`${status}|CHECKOUT`));
+      kit.expectUserError(await quantity(kit, immutable!, 2), 'CHECKOUT_VERSION_CONFLICT');
+      kit.expectUserError(
+        await kit.mutation('checkoutCustomerNoteUpdate', 'CheckoutCustomerNoteUpdateInput', {
+          checkoutId: immutable!.id,
+          note: 'Must not be committed',
+        }),
+        'CHECKOUT_VERSION_CONFLICT',
+      );
       expect(await kit.read(before.id)).toEqual(immutable);
     }
   });
@@ -193,7 +211,7 @@ test.describe('Storefront checkout validation and concurrency', () => {
     await lifecycle(kit, before.id, 'ABANDONED');
     const abandoned = await kit.read(before.id);
     expect(abandoned?.status).toBe('ABANDONED');
-    kit.expectUserError(await quantity(kit, abandoned!, 2), /ABANDONED|CHECKOUT/);
+    kit.expectUserError(await quantity(kit, abandoned!, 2), 'CHECKOUT_VERSION_CONFLICT');
   });
 
   test('does not allow cross-store checkout reads or mutations', async () => {
@@ -203,10 +221,10 @@ test.describe('Storefront checkout validation and concurrency', () => {
     const options = { token: second.initialStorefrontCredentials!.publicAccessToken };
     expect(await kit.read(checkout.id, options)).toBeNull();
     const payload = await quantity(kit, checkout, 2, options);
-    kit.expectUserError(payload, /CHECKOUT|NOT_FOUND|AUTHORIZATION/);
+    kit.expectUserError(payload, 'CHECKOUT_NOT_FOUND');
   });
 
-  test('does not allow a different visitor or storefront connection to mutate any checkout resource', async () => {
+  test('does not allow a different visitor or storefront connection to mutate checkout lines or metadata', async () => {
     const checkout = await lineCheckout(kit);
     for (const options of [
       { visitorId: `visitor-${crypto.randomUUID()}` },
@@ -217,13 +235,22 @@ test.describe('Storefront checkout validation and concurrency', () => {
     ]) {
       kit.expectUserError(
         await quantity(kit, checkout, 2, options),
-        /CHECKOUT|NOT_FOUND|AUTHORIZATION/,
+        'CHECKOUT_NOT_FOUND',
+      );
+      kit.expectUserError(
+        await kit.mutation(
+          'checkoutCustomerNoteUpdate',
+          'CheckoutCustomerNoteUpdateInput',
+          { checkoutId: checkout.id, note: 'Unauthorized change' },
+          options,
+        ),
+        'CHECKOUT_NOT_FOUND',
       );
       expect(await kit.read(checkout.id)).toEqual(checkout);
     }
   });
 
-  test('preserves the prior snapshot for malformed global IDs, handles, codes, and JSON input', async () => {
+  test('preserves the prior snapshot for a malformed checkout line global ID', async () => {
     const checkout = await lineCheckout(kit);
     const response = await kit.graphql<unknown>(
       `mutation Malformed($input: CheckoutLinesUpdateInput!) {
@@ -252,7 +279,7 @@ test.describe('Storefront checkout validation and concurrency', () => {
   test('returns only customer-safe public errors for invalid mutations', async () => {
     const checkout = await lineCheckout(kit);
     const payload = await quantity(kit, checkout, -1);
-    const error = kit.expectUserError(payload, /QUANTITY|LINE/);
+    const error = kit.expectUserError(payload, 'BAD_USER_INPUT');
     kit.expectSafe(error);
     expect(JSON.stringify(error)).not.toMatch(/postgres|node_modules|stack|select\s/iu);
   });

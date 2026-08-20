@@ -62,13 +62,22 @@ test.describe('Storefront checkout pricing and promotions', () => {
       code: 'INELIGIBLE',
       minimumSubtotalMinor: '1000',
     });
-    const before = await priced(kit, [500]);
-    for (const code of ['UNKNOWN', 'DISABLED', 'INELIGIBLE']) {
+    for (const [code, expectedIssueCode] of [
+      ['UNKNOWN', 'DISCOUNT_CODE_REJECTED_NOT_FOUND'],
+      ['DISABLED', 'DISCOUNT_CODE_REJECTED_DISABLED'],
+      ['INELIGIBLE', 'DISCOUNT_CODE_REJECTED_MINIMUM_REQUIREMENT_NOT_MET'],
+    ] as const) {
+      const before = await priced(kit, [500]);
       const after = kit.expectSuccess(await promo(kit, 'checkoutPromoCodeAdd', before.id, code));
       expect(after.appliedPromoCodes.map(({ code: value }) => value)).toContain(code);
-      expect(
-        after.issues.some(({ severity }) => severity === 'WARNING') || after.valid === false,
-      ).toBe(true);
+      expect(after.issues).toContainEqual(
+        expect.objectContaining({
+          code: expectedIssueCode,
+          severity: 'WARNING',
+          effect: 'CONTINUE',
+          field: expect.arrayContaining(['cartIntent', 'discountCodes']),
+        }),
+      );
     }
   });
 
@@ -138,7 +147,7 @@ test.describe('Storefront checkout pricing and promotions', () => {
           lines: [{ lineId: before.lines[0]!.id, quantity: 2 }],
         }),
     );
-    kit.expectUserError(payload, /PRICING|PIPELINE|UNAVAILABLE/);
+    kit.expectUserError(payload, 'CHECKOUT_FINAL_PRICING_UNAVAILABLE');
     expect(await kit.read(before.id)).toEqual(before);
   });
 
@@ -172,7 +181,7 @@ test.describe('Storefront checkout pricing and promotions', () => {
         currencyCode: 'EUR',
       }),
     );
-    kit.expectUserError(payload, /PRICING|PIPELINE|UNAVAILABLE/);
+    kit.expectUserError(payload, 'CHECKOUT_PRELIMINARY_PRICING_UNAVAILABLE');
     expect(await kit.read(before.id)).toEqual(before);
   });
 
@@ -204,12 +213,27 @@ test.describe('Storefront checkout pricing and promotions', () => {
   test('recalculates pricing after buyer eligibility context changes', async () => {
     await kit.createDiscount({ amountMinor: '100' });
     const before = await priced(kit, [1_000]);
-    const after = kit.expectSuccess(
-      await kit.mutation('checkoutCustomerIdentityUpdate', 'CheckoutCustomerIdentityUpdateInput', {
-        checkoutId: before.id,
-        email: 'eligible@example.test',
-        countryCode: 'UA',
-      }),
+    const after = await kit.withActionOverrides(
+      [
+        { action: 'pricing.calculateCheckoutPreliminaryQuote', mode: 'PASS' },
+        { action: 'pricing.finalizeCheckoutPricingQuote', mode: 'PASS' },
+      ],
+      async () => {
+        const result = kit.expectSuccess(
+          await kit.mutation(
+            'checkoutCustomerIdentityUpdate',
+            'CheckoutCustomerIdentityUpdateInput',
+            {
+              checkoutId: before.id,
+              email: 'eligible@example.test',
+              countryCode: 'UA',
+            },
+          ),
+        );
+        expect(await kit.actionCalls('pricing.calculateCheckoutPreliminaryQuote')).toBe(1);
+        expect(await kit.actionCalls('pricing.finalizeCheckoutPricingQuote')).toBe(1);
+        return result;
+      },
     );
     expectRevisionAdvanced(before, after);
     expect(after.cost.totalDiscountAmount.amount).toBe(before.cost.totalDiscountAmount.amount);

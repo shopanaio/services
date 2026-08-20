@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { type Checkout, CheckoutStorefrontTestKit } from './checkout-storefront-test-kit';
+import {
+  type Checkout,
+  type CheckoutUserError,
+  CheckoutStorefrontTestKit,
+} from './checkout-storefront-test-kit';
 
 test.describe('Storefront checkout delivery', () => {
   let kit: CheckoutStorefrontTestKit;
@@ -11,7 +15,7 @@ test.describe('Storefront checkout delivery', () => {
   });
   test.afterEach(async () => kit.close());
 
-  test('keeps a digital-only checkout ready without delivery groups', async () => {
+  test('keeps a digital-only checkout free of delivery groups and delivery issues', async () => {
     const checkout = await kit.created({
       items: [{ purchasableId: await kit.variant(), quantity: 1 }],
     });
@@ -57,14 +61,17 @@ test.describe('Storefront checkout delivery', () => {
   test('rejects unknown and duplicate root lines in delivery destinations', async () => {
     await kit.configureDelivery();
     const checkout = await physical(kit);
-    for (const checkoutLineIds of [
-      [kit.id('CheckoutLine')],
-      [checkout.lines[0]!.id, checkout.lines[0]!.id],
-    ]) {
+    for (const [checkoutLineIds, expectedCode] of [
+      [[kit.id('CheckoutLine')], 'CHECKOUT_DELIVERY_LINE_INVALID'],
+      [
+        [checkout.lines[0]!.id, checkout.lines[0]!.id],
+        'CHECKOUT_DELIVERY_LINE_ALREADY_ASSIGNED',
+      ],
+    ] as const) {
       const payload = await addresses(kit, 'checkoutDeliveryAddressesAdd', checkout.id, {
-        addresses: [{ checkoutLineIds, address: address() }],
+        addresses: [{ checkoutLineIds: [...checkoutLineIds], address: address() }],
       });
-      kit.expectUserError(payload, /DELIVERY|LINE|DESTINATION|DUPLICATE/);
+      kit.expectUserError(payload, expectedCode);
       expect(await kit.read(checkout.id)).toEqual(checkout);
     }
   });
@@ -136,11 +143,11 @@ test.describe('Storefront checkout delivery', () => {
         { addressId, address: address('Other') },
       ],
     });
-    kit.expectUserError(duplicate, /DUPLICATE|DELIVERY|ADDRESS/);
+    kit.expectUserError(duplicate, 'CHECKOUT_BATCH_DUPLICATE_ID');
     const unknown = await recipients(kit, 'checkoutDeliveryRecipientsUpdate', checkout.id, {
       updates: [{ deliveryGroupId: kit.id('CheckoutDeliveryGroup'), recipient: recipient() }],
     });
-    kit.expectUserError(unknown, /DELIVERY|GROUP|NOT_FOUND/);
+    kit.expectUserError(unknown, 'CHECKOUT_DELIVERY_GROUP_NOT_FOUND');
     expect(await kit.read(checkout.id)).toEqual(checkout);
   });
 
@@ -187,15 +194,20 @@ test.describe('Storefront checkout delivery', () => {
     expect(JSON.stringify(await kit.persistedSnapshot(after.id))).toContain('kyiv-42');
   });
 
-  test('rejects an unknown or stale delivery option handle', async () => {
+  test('resets an unknown or stale delivery option handle with a canonical reason', async () => {
     await kit.configureDelivery();
     const checkout = await addDestination(kit, await physical(kit));
     for (const handle of [
       'unknown-handle',
       `${checkout.deliveryGroups[0]!.options[0]!.handle}-stale`,
     ]) {
-      kit.expectUserError(await select(kit, checkout, handle), /DELIVERY|OPTION|HANDLE/);
-      expect(await kit.read(checkout.id)).toEqual(checkout);
+      const after = kit.expectSuccess(await select(kit, checkout, handle));
+      expect(after.deliveryGroups[0]!.selection).toMatchObject({
+        status: 'RESET',
+        previousOptionHandle: handle,
+        resetReason: { code: 'DELIVERY_OPTION_CHANGED' },
+      });
+      expect(after.resultRevision).not.toBe(checkout.resultRevision);
     }
   });
 
@@ -233,21 +245,30 @@ test.describe('Storefront checkout delivery', () => {
       expect.objectContaining({ carrierCode: null, deliveryMethodType: 'SHIPPING' }),
     ]);
     expect(after.issues).toContainEqual(
-      expect.objectContaining({ code: expect.stringMatching(/DELIVERY|CARRIER/), retryable: true }),
+      expect.objectContaining({ code: 'DELIVERY_PROVIDER_UNAVAILABLE', retryable: true }),
     );
   });
 
   test('recalculates delivery options when line quantity changes', async () => {
     await kit.configureDelivery();
     const before = await addDestination(kit, await physical(kit));
-    const after = kit.expectSuccess(
-      await kit.mutation('checkoutLinesUpdate', 'CheckoutLinesUpdateInput', {
-        checkoutId: before.id,
-        lines: [{ lineId: before.lines[0]!.id, quantity: 2 }],
-      }),
+    const beforeHandle = before.deliveryGroups[0]!.options[0]!.handle;
+    const after = await kit.withActionOverrides(
+      [{ action: 'delivery.calculateCheckoutDeliveryOptions', mode: 'PASS' }],
+      async () => {
+        const result = kit.expectSuccess(
+          await kit.mutation('checkoutLinesUpdate', 'CheckoutLinesUpdateInput', {
+            checkoutId: before.id,
+            lines: [{ lineId: before.lines[0]!.id, quantity: 2 }],
+          }),
+        );
+        expect(await kit.actionCalls('delivery.calculateCheckoutDeliveryOptions')).toBe(1);
+        return result;
+      },
     );
     expect(after.resultRevision).not.toBe(before.resultRevision);
     expect(after.deliveryGroups[0]!.options).not.toEqual([]);
+    expect(after.deliveryGroups[0]!.options[0]!.handle).not.toBe(beforeHandle);
   });
 
   test('partitions a mixed digital and physical multi-shipping cart into complete delivery groups', async () => {
@@ -294,7 +315,7 @@ test.describe('Storefront checkout delivery', () => {
     expect(after.deliveryGroups[0]!.selection).toMatchObject({
       status: 'RESET',
       previousOptionHandle,
-      resetReason: { code: expect.any(String) },
+      resetReason: { code: 'DELIVERY_OPTION_CHANGED' },
     });
   });
 
@@ -322,15 +343,15 @@ test.describe('Storefront checkout delivery', () => {
     await kit.configureDelivery();
     const checkout = await addDestination(kit, await physical(kit));
     const foreign = await addDestination(kit, await physical(kit));
-    for (const addressId of [
-      'bad-id',
-      kit.id('ProductVariant'),
-      foreign.deliveryGroups[0]!.deliveryAddress!.id!,
-    ]) {
+    for (const [addressId, expectedCode] of [
+      ['bad-id', 'BAD_USER_INPUT'],
+      [kit.id('ProductVariant'), 'BAD_USER_INPUT'],
+      [foreign.deliveryGroups[0]!.deliveryAddress!.id!, 'CHECKOUT_DELIVERY_ADDRESS_NOT_FOUND'],
+    ] as const) {
       const payload = await addresses(kit, 'checkoutDeliveryAddressesRemove', checkout.id, {
         addressIds: [addressId],
       });
-      kit.expectUserError(payload, /GLOBAL_ID|DELIVERY|ADDRESS|NOT_FOUND/);
+      kit.expectUserError(payload, expectedCode);
       expect(await kit.read(checkout.id)).toEqual(checkout);
     }
   });
@@ -346,12 +367,47 @@ test.describe('Storefront checkout delivery', () => {
 
   test('requires a recipient phone when the selected delivery option demands one', async () => {
     await kit.configureDelivery({ carrier: true, methodTypes: [] });
-    const checkout = await addDestination(kit, await physical(kit));
+    await kit.configurePaymentProvider(['card']);
+    const physicalCheckout = await physical(kit);
+    const checkout = kit.expectSuccess(
+      await addresses(kit, 'checkoutDeliveryAddressesAdd', physicalCheckout.id, {
+        addresses: [
+          {
+            checkoutLineIds: [physicalCheckout.lines[0]!.id],
+            address: address('1 Test Street', 'Kyiv', 'UA', null),
+          },
+        ],
+      }),
+    );
     const option = checkout.deliveryGroups[0]!.options.find(({ phoneRequired }) => phoneRequired)!;
     expect(option).toBeTruthy();
     const selected = kit.expectSuccess(await select(kit, checkout, option.handle));
-    expect(selected.deliveryGroups[0]!.recipient?.phone ?? null).toBeNull();
-    expect(selected.valid).toBe(false);
+    const ready = kit.expectSuccess(
+      await kit.mutation('checkoutPaymentMethodUpdate', 'CheckoutPaymentMethodUpdateInput', {
+        checkoutId: selected.id,
+        methodHandle: selected.payment.methods[0]!.handle,
+      }),
+    );
+    expect(ready).toMatchObject({ valid: true, status: 'READY' });
+    const response = await kit.graphql<{
+      placeOrder: { orderId: string | null; userErrors: CheckoutUserError[] };
+    }>(
+      `mutation PlaceOrder($input: PlaceOrderInput!) {
+        placeOrder(input: $input) { orderId userErrors { field message code retryable } }
+      }`,
+      {
+        input: {
+          checkoutId: ready.id,
+          expectedResultRevision: ready.resultRevision,
+          idempotencyKey: crypto.randomUUID(),
+        },
+      },
+    );
+    expect(response.errors).toBeUndefined();
+    expect(response.data!.placeOrder.orderId).toBeNull();
+    expect(response.data!.placeOrder.userErrors).toEqual([
+      expect.objectContaining({ code: 'DELIVERY_RECIPIENT_PHONE_REQUIRED', retryable: false }),
+    ]);
   });
 
   test('projects every delivery method type with its canonical type', async () => {
@@ -372,7 +428,12 @@ async function physical(kit: CheckoutStorefrontTestKit, count = 1): Promise<Chec
   );
   return kit.created({ items: variants.map((purchasableId) => ({ purchasableId, quantity: 1 })) });
 }
-function address(address1 = '1 Test Street', city = 'Kyiv', countryCode = 'UA') {
+function address(
+  address1 = '1 Test Street',
+  city = 'Kyiv',
+  countryCode = 'UA',
+  phone: string | null = '+380501234567',
+) {
   return {
     firstName: 'Ada',
     lastName: 'Lovelace',
@@ -381,7 +442,7 @@ function address(address1 = '1 Test Street', city = 'Kyiv', countryCode = 'UA') 
     countryCode,
     provinceCode: '30',
     zip: '01001',
-    phone: '+380501234567',
+    phone,
   };
 }
 function recipient(firstName = 'Ada') {

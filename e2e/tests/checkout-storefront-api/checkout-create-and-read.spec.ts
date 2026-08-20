@@ -90,7 +90,7 @@ test.describe('Storefront checkout creation and reads', () => {
     const payload = await kit.create({
       items: [{ purchasableId: kit.id('Product'), quantity: 1 }],
     });
-    kit.expectUserError(payload, /PURCHASABLE|GLOBAL_ID|MERCHANDISE/);
+    kit.expectUserError(payload, 'BAD_USER_INPUT');
   });
 
   test('rejects an invalid purchase configuration', async () => {

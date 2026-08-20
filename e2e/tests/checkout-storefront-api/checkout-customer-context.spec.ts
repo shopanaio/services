@@ -125,7 +125,7 @@ test.describe('Storefront checkout customer and context', () => {
       'CheckoutCurrencyCodeUpdateInput',
       { checkoutId: before.id, currencyCode: 'GBP' },
     );
-    kit.expectUserError(payload, /CURRENCY/);
+    kit.expectUserError(payload, 'CHECKOUT_PRELIMINARY_PRICING_UNAVAILABLE');
     expect(await kit.read(before.id)).toEqual(before);
   });
 

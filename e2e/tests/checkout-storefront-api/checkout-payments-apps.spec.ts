@@ -64,7 +64,7 @@ test.describe('Storefront checkout payments through Apps', () => {
     const payload = await kit.withActionFault('payments.getCheckoutAvailablePaymentMethods', () =>
       updateQuantity(kit, before, 2),
     );
-    kit.expectUserError(payload, /PAYMENT|PIPELINE|UNAVAILABLE/);
+    kit.expectUserError(payload, 'CHECKOUT_PAYMENT_METHODS_UNAVAILABLE');
     expect(await kit.read(before.id)).toEqual(before);
   });
 
@@ -128,7 +128,7 @@ test.describe('Storefront checkout payments through Apps', () => {
     expect(after.payment.selection).toMatchObject({
       status: 'RESET',
       previousMethodHandle: handle,
-      resetReason: { code: expect.any(String) },
+      resetReason: { code: 'PAYMENT_METHOD_UNAVAILABLE' },
     });
   });
 
@@ -146,7 +146,7 @@ test.describe('Storefront checkout payments through Apps', () => {
       [{ action: 'apps.executeCapability', mode: 'RETURN', result: {} }],
       () => updateQuantity(kit, before, 2),
     );
-    kit.expectUserError(payload, /PAYMENT|PIPELINE|UNAVAILABLE/);
+    kit.expectUserError(payload, 'CHECKOUT_PAYMENT_METHODS_UNAVAILABLE');
     expect(await kit.read(before.id)).toEqual(before);
   });
 
@@ -156,7 +156,7 @@ test.describe('Storefront checkout payments through Apps', () => {
     const payload = await kit.withActionFault('apps.executeCapability', () =>
       updateQuantity(kit, before, 2),
     );
-    const error = kit.expectUserError(payload, /PAYMENT|PIPELINE|UNAVAILABLE/);
+    const error = kit.expectUserError(payload, 'CHECKOUT_PAYMENT_METHODS_UNAVAILABLE');
     expect(error.retryable).toBe(true);
     expect(await kit.read(before.id)).toEqual(before);
     kit.expectSafe(error);
@@ -171,6 +171,21 @@ test.describe('Storefront checkout payments through Apps', () => {
     );
     expect(JSON.stringify(after)).not.toContain(secret);
     kit.expectSafe(after.payment);
+    for (const forbiddenField of ['providerAccountId', 'credentials', 'customerInput']) {
+      const response = await kit.graphql<unknown>(
+        `query ForbiddenPaymentField($id: ID!) {
+          checkout(id: $id) { payment { methods { ${forbiddenField} } } }
+        }`,
+        { id: after.id },
+      );
+      expect(response.data ?? null).toBeNull();
+      expect(response.errors).toEqual([
+        expect.objectContaining({
+          message: expect.stringContaining(`Cannot query field "${forbiddenField}"`),
+          extensions: expect.objectContaining({ code: 'GRAPHQL_VALIDATION_FAILED' }),
+        }),
+      ]);
+    }
   });
 
   test('returns a safe offline payment method without provider internals', async () => {
@@ -216,7 +231,7 @@ test.describe('Storefront checkout payments through Apps', () => {
     expect(after.payment.selection).toMatchObject({
       status: 'RESET',
       previousMethodHandle,
-      resetReason: { code: expect.any(String), message: expect.any(String) },
+      resetReason: { code: 'PAYMENT_METHOD_UNAVAILABLE', message: expect.any(String) },
     });
   });
 });

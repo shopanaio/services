@@ -730,12 +730,12 @@ export class CheckoutStorefrontTestKit {
 
   expectUserError(
     payload: { checkout: Checkout | null; userErrors: CheckoutUserError[] },
-    code: string | RegExp,
+    code: string,
   ): CheckoutUserError {
     expect(payload.checkout).toBeNull();
     expect(payload.userErrors).toHaveLength(1);
     expect(payload.userErrors[0]).toMatchObject({
-      code: typeof code === 'string' ? code : expect.stringMatching(code),
+      code,
       message: expect.any(String),
       retryable: expect.any(Boolean),
     });

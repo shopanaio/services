@@ -158,7 +158,7 @@ test.describe('Storefront checkout loyalty', () => {
 
     expect(result.orderId).toBeNull();
     expect(result.userErrors).toContainEqual(
-      expect.objectContaining({ code: expect.stringMatching(/LOYALTY|EXPIRED|DEADLINE/) }),
+      expect.objectContaining({ code: 'LOYALTY_QUOTE_EXPIRED', retryable: false }),
     );
     expect(await kit.loyaltyBalance(fixture.account.id)).toMatchObject({
       availablePoints: '500',
@@ -173,7 +173,7 @@ test.describe('Storefront checkout loyalty', () => {
       [{ action: 'loyalty.quoteCheckoutLoyaltyRedemption', mode: 'RETURN', result: {} }],
       () => redeem(kit, checkout.id, { requestedPoints: '100', programId: fixture.program.id }),
     );
-    kit.expectUserError(payload, /LOYALTY|PIPELINE|UNAVAILABLE/);
+    kit.expectUserError(payload, 'CHECKOUT_PIPELINE_BOUNDARY_VIOLATION');
     expect(await kit.read(checkout.id)).toEqual(checkout);
   });
 
@@ -212,7 +212,10 @@ test.describe('Storefront checkout loyalty', () => {
 
     expect(result.orderId).toBeNull();
     expect(result.userErrors).toContainEqual(
-      expect.objectContaining({ code: expect.stringMatching(/ORDER|PLACEMENT|UNAVAILABLE/) }),
+      expect.objectContaining({
+        code: 'Scoped e2e fault for order.createOrderFromCheckoutPlacement',
+        retryable: false,
+      }),
     );
     expect(await kit.loyaltyBalance(fixture.account.id)).toMatchObject({
       availablePoints: '1000',
@@ -247,7 +250,7 @@ test.describe('Storefront checkout loyalty', () => {
       requestedPoints: '100',
       programId: fixture.program.id,
     });
-    kit.expectUserError(payload, /CHECKOUT|OWNER|NOT_FOUND|AUTHORIZATION/);
+    kit.expectUserError(payload, 'LOYALTY_CUSTOMER_MISMATCH');
   });
 
   test('revokes anonymous access to a customer-owned checkout after sign-out', async () => {

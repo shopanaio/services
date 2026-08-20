@@ -69,7 +69,7 @@ test.describe('Storefront checkout tags', () => {
         { purchasableId: second, quantity: 1, tagSlug: 'primary' },
       ],
     });
-    kit.expectUserError(payload, /TAG.*UNIQUE|UNIQUE.*TAG/);
+    kit.expectUserError(payload, 'CHECKOUT_TAG_UNIQUENESS_CONFLICT');
   });
 
   test('rejects making a tag unique while assigned to multiple lines', async () => {
@@ -86,15 +86,18 @@ test.describe('Storefront checkout tags', () => {
       tagId: checkout.tags[0]!.id,
       unique: true,
     });
-    kit.expectUserError(payload, /TAG.*UNIQUE|UNIQUE.*TAG/);
+    kit.expectUserError(payload, 'CHECKOUT_TAG_UNIQUENESS_CONFLICT');
     expect(await kit.read(checkout.id)).toEqual(checkout);
   });
 
   test('rejects duplicate or invalid tag slugs', async () => {
     const checkout = await kit.created({ tags: [{ slug: 'gift', unique: false }] });
-    for (const slug of ['gift', 'not valid!']) {
+    for (const [slug, expectedCode] of [
+      ['gift', 'CHECKOUT_TAG_ALREADY_EXISTS'],
+      ['not valid!', 'BAD_USER_INPUT'],
+    ] as const) {
       const payload = await createTag(kit, checkout.id, slug, false);
-      kit.expectUserError(payload, /TAG/);
+      kit.expectUserError(payload, expectedCode);
       expect(await kit.read(checkout.id)).toEqual(checkout);
     }
   });
@@ -105,14 +108,14 @@ test.describe('Storefront checkout tags', () => {
       await kit.create({
         items: [{ purchasableId: variant, quantity: 1, tagSlug: 'missing' }],
       }),
-      /TAG/,
+      'CHECKOUT_TAG_NOT_FOUND',
     );
     const checkout = await kit.created();
     const payload = await kit.mutation('checkoutLinesAdd', 'CheckoutLinesAddInput', {
       checkoutId: checkout.id,
       lines: [{ purchasableId: variant, quantity: 1, tagSlug: 'missing' }],
     });
-    kit.expectUserError(payload, /TAG/);
+    kit.expectUserError(payload, 'CHECKOUT_TAG_NOT_FOUND');
     expect(await kit.read(checkout.id)).toEqual(checkout);
   });
 

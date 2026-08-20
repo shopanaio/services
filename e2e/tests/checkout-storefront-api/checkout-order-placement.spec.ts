@@ -100,7 +100,7 @@ test.describe('Storefront checkout order placement and payment', () => {
     const result = await place(kit, checkout);
     expect(result.orderId).toBeNull();
     expect(result.userErrors).toContainEqual(
-      expect.objectContaining({ code: expect.stringMatching(/CHECKOUT|READY|INVALID|CART/) }),
+      expect.objectContaining({ code: 'CHECKOUT_OPEN', retryable: true }),
     );
     expect(await kit.read(checkout.id)).toEqual(checkout);
   });
@@ -110,7 +110,7 @@ test.describe('Storefront checkout order placement and payment', () => {
     const result = await place(kit, checkout, { expectedResultRevision: crypto.randomUUID() });
     expect(result.orderId).toBeNull();
     expect(result.userErrors).toContainEqual(
-      expect.objectContaining({ code: expect.stringMatching(/REVISION|MISMATCH|CHECKOUT/) }),
+      expect.objectContaining({ code: 'CHECKOUT_PLACEMENT_SNAPSHOT_STALE', retryable: true }),
     );
     expect((await kit.read(checkout.id))?.status).toBe('READY');
   });
@@ -314,7 +314,7 @@ test.describe('Storefront checkout order placement and payment', () => {
     ]) {
       const result = await place(kit, checkout, { returnUrl });
       expect(result.userErrors).toContainEqual(
-        expect.objectContaining({ code: expect.stringMatching(/RETURN_URL|INVALID/) }),
+        expect.objectContaining({ code: 'PLACE_ORDER_RETURN_URL_INVALID', retryable: false }),
       );
     }
     const [row] = await kit.sql<{ count: number }[]>`
@@ -331,19 +331,19 @@ test.describe('Storefront checkout order placement and payment', () => {
     });
     const result = await place(kit, checkout);
     expect(result.userErrors).toContainEqual(
-      expect.objectContaining({ code: expect.stringMatching(/EXPIRED|DEADLINE|CHECKOUT/) }),
+      expect.objectContaining({ code: 'CHECKOUT_EXPIRED', retryable: true }),
     );
     expect(result.orderId).toBeNull();
   });
 
-  test('rejects an organization that does not own the checkout store before claiming placement', async () => {
+  test('rejects a storefront connection that does not own the checkout before claiming placement', async () => {
     const checkout = await readyWithoutPayment(kit);
     const second = await kit.headless.create('Foreign placement connection');
     const result = await place(kit, checkout, {
       token: second.initialStorefrontCredentials!.publicAccessToken,
     });
     expect(result.userErrors).toContainEqual(
-      expect.objectContaining({ code: expect.stringMatching(/CHECKOUT|NOT_FOUND|AUTHORIZATION/) }),
+      expect.objectContaining({ code: 'CHECKOUT_NOT_FOUND', retryable: false }),
     );
     expect(result.placementId).toBeNull();
   });
@@ -354,7 +354,7 @@ test.describe('Storefront checkout order placement and payment', () => {
     expect((await kit.read(checkout.id))?.status).toBe('PLACED');
     const second = await place(kit, checkout, { idempotencyKey: crypto.randomUUID() });
     expect(second.userErrors).toContainEqual(
-      expect.objectContaining({ code: expect.stringMatching(/ALREADY_PLACED|PLACED|CHECKOUT/) }),
+      expect.objectContaining({ code: 'CHECKOUT_ALREADY_PLACED', retryable: false }),
     );
     expect(second.orderId).toBeNull();
     expect(first.orderId).not.toBeNull();
@@ -369,7 +369,7 @@ test.describe('Storefront checkout order placement and payment', () => {
       idempotencyKey: crypto.randomUUID(),
     });
     expect(unauthorized.userErrors).toContainEqual(
-      expect.objectContaining({ code: expect.any(String) }),
+      expect.objectContaining({ code: 'CHECKOUT_NOT_FOUND', retryable: false }),
     );
     expect(await placement(kit, placed.placementId!, { visitorId })).toBeNull();
   });
@@ -386,7 +386,7 @@ test.describe('Storefront checkout order placement and payment', () => {
         note: 'too late',
       },
     );
-    kit.expectUserError(mutation, /PLACEMENT|CLAIMED|CHECKOUT/);
+    kit.expectUserError(mutation, 'CHECKOUT_VERSION_CONFLICT');
   });
 
   test('commits every selected multi-shipping delivery group into the created order', async () => {
