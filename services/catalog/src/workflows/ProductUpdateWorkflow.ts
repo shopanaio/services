@@ -1210,9 +1210,10 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     };
     return {
       result: operationResult,
-      changes: operationResult.applied
-        ? { productId: operation.params.productId, component: { changed: true } }
-        : { productId: operation.params.productId },
+      changes:
+        operationResult.applied && result.changed
+          ? { productId: operation.params.productId, component: { changed: true } }
+          : { productId: operation.params.productId },
     };
   }
 

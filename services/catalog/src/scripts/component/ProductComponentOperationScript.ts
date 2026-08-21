@@ -24,6 +24,7 @@ export type ProductComponentWorkflowOperation = Extract<
 
 export interface ProductComponentOperationResult {
   entityId?: string;
+  changed: boolean;
   userErrors: UserError[];
 }
 
@@ -41,6 +42,10 @@ export class ProductComponentOperationScript extends BaseScript<
     }
 
     if (operation.type === "productComponentSettingsUpdate") {
+      const existing = await this.repository.component.getByProductId(operation.params.productId);
+      if (existing?.displayStyle === operation.params.displayStyle) {
+        return { changed: false, userErrors: [] };
+      }
       const component = await this.repository.component.upsertSettings(
         operation.params.productId,
         operation.params.displayStyle,
@@ -49,12 +54,12 @@ export class ProductComponentOperationScript extends BaseScript<
         { productId: operation.params.productId, componentId: component.id },
         "Product component settings updated",
       );
-      return { userErrors: [] };
+      return { changed: true, userErrors: [] };
     }
 
     if (operation.type === "productComponentRemove") {
-      await this.repository.component.removeByProductId(operation.params.productId);
-      return { userErrors: [] };
+      const changed = await this.repository.component.removeByProductId(operation.params.productId);
+      return { changed, userErrors: [] };
     }
 
     if (operation.type === "productComponentConfigurationCreate") {
@@ -62,14 +67,14 @@ export class ProductComponentOperationScript extends BaseScript<
         operation.params.productId,
         operation.params.name,
       );
-      return { entityId: configuration.id, userErrors: [] };
+      return { entityId: configuration.id, changed: true, userErrors: [] };
     }
 
     const ownershipError = await this.validateConfigurationOwnership(
       operation.params.productId,
       operation.params.configurationId,
     );
-    if (ownershipError) return { userErrors: [ownershipError] };
+    if (ownershipError) return { changed: false, userErrors: [ownershipError] };
 
     if (operation.type === "productComponentConfigurationUpdate") {
       const configuration = await this.repository.component.updateConfiguration(
@@ -77,7 +82,7 @@ export class ProductComponentOperationScript extends BaseScript<
         operation.params.name,
       );
       return configuration
-        ? { entityId: configuration.id, userErrors: [] }
+        ? { entityId: configuration.id, changed: true, userErrors: [] }
         : this.error("Product component configuration not found", ["configurationId"], "NOT_FOUND");
     }
 
@@ -85,6 +90,7 @@ export class ProductComponentOperationScript extends BaseScript<
       await this.repository.component.deleteConfiguration(operation.params.configurationId);
       return {
         entityId: operation.params.configurationId,
+        changed: true,
         userErrors: [],
       };
     }
@@ -95,9 +101,7 @@ export class ProductComponentOperationScript extends BaseScript<
         : operation.type === "productComponentPricingTemplatesSync"
           ? await this.validatePricingTemplates(operation.params)
           : await this.validateDependencyRules(operation.params);
-    if (validationErrors.length > 0) {
-      return { userErrors: validationErrors };
-    }
+    if (validationErrors.length > 0) return { changed: false, userErrors: validationErrors };
 
     if (operation.type === "productComponentGroupsSync") {
       await this.repository.component.syncGroups(operation.params, this.getLocale());
@@ -109,6 +113,7 @@ export class ProductComponentOperationScript extends BaseScript<
 
     return {
       entityId: operation.params.configurationId,
+      changed: true,
       userErrors: [],
     };
   }
@@ -497,11 +502,12 @@ export class ProductComponentOperationScript extends BaseScript<
   }
 
   private error(message: string, field: string[], code: string): ProductComponentOperationResult {
-    return { userErrors: [{ message, field, code }] };
+    return { changed: false, userErrors: [{ message, field, code }] };
   }
 
   protected handleError(_error: unknown): ProductComponentOperationResult {
     return {
+      changed: false,
       userErrors: [
         {
           message: "Failed to update product component",
