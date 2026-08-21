@@ -23,7 +23,13 @@ Workflows are durable functions that survive crashes and resume from the last ch
 Abstract base class for simple durable workflows:
 
 ```typescript
-import { BaseWorkflow, Workflow, WorkflowStep, WorkflowRegistry } from "@shopana/dbos";
+import {
+  BaseWorkflow,
+  SideEffectStep,
+  Workflow,
+  WorkflowStep,
+  WorkflowRegistry,
+} from "@shopana/dbos";
 
 @Injectable()
 class StoreCreateWorkflow extends BaseWorkflow<StoreCreateInput, StoreCreateOutput> {
@@ -53,7 +59,7 @@ class StoreCreateWorkflow extends BaseWorkflow<StoreCreateInput, StoreCreateOutp
     await this.storeService.create(storeId, input);
   }
 
-  @WorkflowStep({ retriesAllowed: false })  // Fire-and-forget
+  @SideEffectStep({ retriesAllowed: false })  // Fire-and-forget external effect
   private async sendWelcomeEmail(email: string): Promise<void> {
     await this.emailService.send(email, "welcome");
   }
@@ -124,7 +130,7 @@ interface WorkflowStepOptions {
 ### Retry Configuration
 
 ```typescript
-@WorkflowStep({
+@SideEffectStep({
   retry: {
     maxAttempts: 5,        // Total attempts (1 = no retry)
     intervalSeconds: 2,    // Initial delay between retries
@@ -139,7 +145,7 @@ private async callExternalApi(): Promise<Response> {
 ### Timeout Configuration
 
 ```typescript
-@WorkflowStep({ timeoutMs: 60_000 })  // 60 second timeout
+@SideEffectStep({ timeoutMs: 60_000 })  // 60 second timeout
 private async longRunningOperation(): Promise<void> {
   // Access abort signal
   const signal = getSignal();
@@ -150,12 +156,25 @@ private async longRunningOperation(): Promise<void> {
 ### Fire-and-Forget Steps
 
 ```typescript
-@WorkflowStep({ retriesAllowed: false })
+@SideEffectStep({ retriesAllowed: false })
 private async sendNotification(): Promise<void> {
   // Non-critical: failure doesn't affect workflow
   await this.notificationService.send(message);
 }
 ```
+
+## @SideEffectStep Decorator
+
+`@SideEffectStep()` is a semantic specialization of `@WorkflowStep()` for direct external I/O:
+broker calls, HTTP APIs, S3, email, and webhooks. It is a real durable DBOS step and supports the
+same retry and timeout options. Use it only after the required local transactional steps commit.
+
+## @ChildWorkflowStep Decorator
+
+`@ChildWorkflowStep()` marks a method that starts a child workflow or saga. It stores semantic
+metadata only: it does not wrap the method and does not create a DBOS step. Call the method directly
+from the parent workflow body and provide deterministic `parentWorkflowId`, `stepId`, and `callId`.
+Never combine it with `@WorkflowStep()`, `@SideEffectStep()`, or `@TransactionalStep()`.
 
 ## Workflow Execution Flow
 
@@ -235,6 +254,7 @@ private async generateId(): Promise<string> {
 ```typescript
 import {
   BaseWorkflow,
+  SideEffectStep,
   Workflow,
   WorkflowStep,
   WorkflowRegistry,
@@ -281,7 +301,7 @@ export class FileProcessWorkflow extends BaseWorkflow<FileProcessInput, FileProc
     return { thumbnailUrl, metadata };
   }
 
-  @WorkflowStep({ timeoutMs: 60_000 })
+  @SideEffectStep({ timeoutMs: 60_000 })
   private async downloadFile(fileId: string): Promise<Buffer> {
     try {
       return await this.storage.download(fileId);
@@ -298,7 +318,7 @@ export class FileProcessWorkflow extends BaseWorkflow<FileProcessInput, FileProc
     return this.processor.extractMetadata(file);
   }
 
-  @WorkflowStep({
+  @SideEffectStep({
     retry: { maxAttempts: 3, intervalSeconds: 5, backoffRate: 2 }
   })
   private async generateThumbnail(file: Buffer, fileId: string): Promise<string> {
@@ -306,7 +326,7 @@ export class FileProcessWorkflow extends BaseWorkflow<FileProcessInput, FileProc
     return this.storage.upload(`thumbnails/${fileId}`, thumbnail);
   }
 
-  @WorkflowStep({ retriesAllowed: false })
+  @SideEffectStep({ retriesAllowed: false })
   private async notifyUser(userId: string, thumbnailUrl: string): Promise<void> {
     await this.notifications.send(userId, {
       type: "FILE_PROCESSED",
@@ -321,7 +341,7 @@ export class FileProcessWorkflow extends BaseWorkflow<FileProcessInput, FileProc
 Use `BrokerWorkflows` from `@shopana/shared-kernel` for broker integration:
 
 ```typescript
-import { BrokerWorkflows, Workflow, WorkflowStep, InjectBroker } from "@shopana/shared-kernel";
+import { BrokerWorkflows, InjectBroker, SideEffectStep, Workflow } from "@shopana/shared-kernel";
 
 @Injectable()
 class FileCleanupWorkflow extends BrokerWorkflows<string, CleanupResult> {
@@ -336,12 +356,12 @@ class FileCleanupWorkflow extends BrokerWorkflows<string, CleanupResult> {
     return { cleaned: true };
   }
 
-  @WorkflowStep()
+  @SideEffectStep()
   private async deleteFile(fileId: string) {
     await this.broker.call("storage.deleteFile", { fileId });
   }
 
-  @WorkflowStep({ retriesAllowed: false })
+  @SideEffectStep({ retriesAllowed: false })
   private async notifyCleanup(fileId: string) {
     await this.broker.call("notifications.send", { type: "file_cleaned", fileId });
   }

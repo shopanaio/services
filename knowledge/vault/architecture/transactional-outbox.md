@@ -28,7 +28,7 @@ The pattern is implemented through `ServiceBroker`:
 - place every atomic database mutation in an `@TransactionalStep()` called
   directly from the workflow or saga body;
 - perform broker calls and all other external side effects only after the
-  transactional step commits, in separate `@WorkflowStep()` or `@SagaStep()`
+  transactional step commits, in separate `@SideEffectStep()` or `@SagaStep()`
   calls.
 
 DBOS persists workflow progress and completed step results. This durable state
@@ -68,7 +68,7 @@ private async commitOrderCreated(input: Input): Promise<OrderCreated> {
   return this.repository.createOrderAndEvent(input);
 }
 
-@WorkflowStep()
+@SideEffectStep()
 private async deliverOrderCreated(event: OrderCreated): Promise<void> {
   await this.broker.call("events.publish", event);
 }

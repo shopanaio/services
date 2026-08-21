@@ -22,7 +22,7 @@ result checkpoint stored in `dbos.transaction_completion`.
 
 - Call a transactional step directly from a DBOS workflow body.
 - Perform database work only. External APIs, brokers, S3, email and webhooks
-  belong in separate `@WorkflowStep()` calls.
+  belong in separate `@SideEffectStep()` calls.
 - Let errors escape the callback. Returning a failure value would commit the
   transaction and checkpoint it as success.
 - Do not wrap a transactional step in `DBOS.runStep()`.

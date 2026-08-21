@@ -29,8 +29,14 @@ export {
 export {
   Workflow,
   WorkflowStep,
+  SideEffectStep,
+  ChildWorkflowStep,
   WORKFLOW_METADATA_KEY,
   WORKFLOW_STEP_METADATA_KEY,
+  SIDE_EFFECT_STEP_METADATA_KEY,
+  CHILD_WORKFLOW_STEP_METADATA_KEY,
   type WorkflowMetadata,
   type WorkflowStepMetadata,
+  type SideEffectStepMetadata,
+  type ChildWorkflowStepMetadata,
 } from "@shopana/dbos";

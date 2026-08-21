@@ -164,11 +164,13 @@ Workflow body должен быть replay-safe. Генерация ID, врем
 - transactional step атомарно коммитит local domain writes и DBOS checkpoint, содержит только
   local database work и выпускает exception наружу;
 - direct broker calls, S3, HTTP, email и прочие external side effects выполняются в отдельных
-  `@WorkflowStep()` только после local commit; каждый вызов имеет стабильный idempotency context,
+  `@SideEffectStep()` только после local commit; это настоящий durable DBOS step с retry/timeout,
+  и каждый вызов имеет стабильный idempotency context,
   если это поддерживает target;
-- `broker.runWorkflow()` и `broker.runSaga()` нельзя вызывать из `@WorkflowStep()` или
-  `@TransactionalStep()`; child workflow/saga запускается непосредственно из workflow body после
-  завершения нужного step со стабильными `parentWorkflowId`, `stepId` и `callId`;
+- `broker.runWorkflow()` и `broker.runSaga()` нельзя вызывать из `@WorkflowStep()`,
+  `@SideEffectStep()` или `@TransactionalStep()`; метод запуска child workflow/saga помечается
+  metadata-only декоратором `@ChildWorkflowStep()` и вызывается непосредственно из workflow body
+  после завершения нужного step со стабильными `parentWorkflowId`, `stepId` и `callId`;
 - retry policy применяется только к transient errors и ограничена backoff/attempts; business,
   validation и timeout errors не retry-ятся как transient; критичные ошибки delivery нельзя
   логировать и проглатывать;
@@ -276,38 +278,42 @@ Infrastructure exception не маскируется под `userErrors`: он �
 Предпочтительный путь соответствует `ProductUpdateWorkflow`:
 
 ```ts
-await this.broker.runWorkflow(
-  "events.emit",
-  {
-    eventType: "exampleUpdated",
-    payload: {
-      exampleId: input.exampleId,
-      storeId: input.context.storeId,
-      reasons: getExampleUpdatedReasons(changes),
+@ChildWorkflowStep()
+private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> {
+  await this.broker.runWorkflow(
+    "events.emit",
+    {
+      eventType: "exampleUpdated",
+      payload: {
+        exampleId: input.exampleId,
+        storeId: input.context.storeId,
+        reasons: getExampleUpdatedReasons(changes),
+      },
+      context: {
+        organizationId: input.context.organizationId,
+        userId: input.context.userId,
+      },
+      subject: { type: "example", id: input.exampleId },
+      actor: input.context.userId
+        ? { type: "user", id: input.context.userId }
+        : undefined,
+      emitKey: `example:${input.exampleId}`,
     },
-    context: {
-      organizationId: input.context.organizationId,
-      userId: input.context.userId,
+    {
+      source: "workflow",
+      workflowId: DBOS.workflowID!,
+      stepId: "emitExampleUpdated",
+      callId: input.exampleId,
     },
-    subject: { type: "example", id: input.exampleId },
-    actor: input.context.userId
-      ? { type: "user", id: input.context.userId }
-      : undefined,
-    emitKey: `example:${input.exampleId}`,
-  },
-  {
-    source: "workflow",
-    workflowId: DBOS.workflowID!,
-    stepId: "emitExampleUpdated",
-    callId: input.exampleId,
-  },
-);
+  );
+}
 ```
 
 Требования к событию:
 
-- emit запускается как durable child workflow непосредственно из parent workflow body, после
-  завершения соответствующих transactional steps;
+- метод emit помечается `@ChildWorkflowStep()`, который хранит только semantic metadata и не
+  создаёт DBOS step; метод вызывается непосредственно из parent workflow body после завершения
+  соответствующих transactional steps;
 - idempotency context выводится из parent `DBOS.workflowID`, стабильного `stepId` и `callId`;
 - событие содержит tenant/store context, aggregate ID, actor и subject;
 - payload содержит только контрактно необходимые change hints/reasons или partial deltas;
@@ -330,7 +336,7 @@ await this.broker.runWorkflow(
 - `<aggregate>Create`, который пишет напрямую, не запускает durable workflow или не публикует
   `<aggregate>Created` после commit;
 - DB write в обычном `@WorkflowStep()`;
-- `broker.runWorkflow()` или `broker.runSaga()` внутри `@WorkflowStep()` или
+- `broker.runWorkflow()` или `broker.runSaga()` внутри `@WorkflowStep()`, `@SideEffectStep()` или
   `@TransactionalStep()`;
 - broker/event emit внутри `@TransactionalStep()`;
 - event emit после возврата из недолговечного resolver без durable parent workflow;
@@ -354,7 +360,8 @@ await this.broker.runWorkflow(
 5. Каждая database operation выполняется в `@TransactionalStep()`.
 6. Aggregate-wide инварианты проверены до несовместимых writes.
 7. `operationResults` сохраняют порядок input и точные GraphQL error paths.
-8. External calls отсутствуют внутри transactional steps.
+8. Direct external calls находятся в `@SideEffectStep()`, а child workflows/sagas помечены
+   `@ChildWorkflowStep()` и запускаются из workflow body; внутри transactional steps их нет.
 9. `<aggregate>Updated` или `<aggregate>Created` публикуется durable после commit и только при
    фактическом изменении или создании.
 10. Повторный request или workflow replay не дублирует writes и события.

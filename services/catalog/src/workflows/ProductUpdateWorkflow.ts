@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
+  ChildWorkflowStep,
   Workflow,
   WorkflowStep,
   InjectBroker,
@@ -1357,6 +1358,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   /**
    * Notify media service about product media references collected during update.
    */
+  @ChildWorkflowStep()
   private async workflowNotifyProductMediaBackRefs(
     input: ProductUpdateWorkflowInput,
     changes: ProductChanges,
@@ -1400,6 +1402,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   /**
    * Emit productUpdated event with update reasons.
    */
+  @ChildWorkflowStep()
   private async workflowEmitEvent(
     input: ProductUpdateWorkflowInput,
     changes: ProductChanges,
