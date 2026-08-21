@@ -149,6 +149,37 @@ Workflow body должен быть replay-safe. Генерация ID, врем
 недетерминированные действия выполняются внутри durable step, чтобы replay получил сохранённый
 результат.
 
+### Критерии качества workflow
+
+- workflow имеет единственный broker-registered `@Workflow` entry point и детерминированный
+  idempotency context с tenant scope; повтор одного логического request не создаёт второй набор
+  изменений;
+- body replay-safe: порядок, ветвления и аргументы steps зависят только от input и сохранённых
+  step results; ID, время, random и другие nondeterministic values создаются только в durable step;
+- все значимые этапы имеют отдельную durable step boundary, а database writes выполняются только
+  в `@TransactionalStep()`;
+- transactional step атомарно коммитит local domain writes и DBOS checkpoint, содержит только
+  local database work и выпускает exception наружу;
+- broker calls, S3, HTTP, email и прочие external side effects выполняются в отдельных durable
+  steps только после local commit; каждый вызов имеет стабильный idempotency context
+  (`parentWorkflowId`, `stepId`, `callId`);
+- `broker.runWorkflow()` и `broker.runSaga()` нельзя вызывать из `@WorkflowStep()` или
+  `@TransactionalStep()`; child workflow/saga запускается непосредственно из workflow body после
+  завершения нужного step;
+- retry policy применяется только к transient errors и ограничена backoff/attempts; business,
+  validation и timeout errors не retry-ятся как transient; критичные ошибки delivery нельзя
+  логировать и проглатывать;
+- до первого write step проверены auth/tenant scope, ownership и aggregate-wide invariants;
+- contract явно определяет atomicity: partial apply допустим только для независимых operations;
+  распределённые изменения с необходимой отменой реализуются durable saga с compensation;
+- `operationResults` и errors стабильны: сохраняют порядок input, machine-readable code и исходный
+  GraphQL field path;
+- event публикуется отдельным durable delivery step только после фактического commit, включает
+  tenant, actor и subject и не отправляется для no-op или полностью неуспешного request;
+- в workflow и его write path отсутствуют CAS/optimistic-lock preconditions;
+- workflow ID, step ID, aggregate ID и tenant доступны в logs/traces; изменения кода не должны
+  менять смысл уже сохранённых steps при replay существующих executions.
+
 ## Сквозной запрет CAS
 
 Compare-and-swap (CAS) и optimistic locking полностью запрещены на write path независимо от того,
