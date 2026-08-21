@@ -35,7 +35,11 @@ export {
   type BrokerAuthorizeResult,
 } from "./broker/BrokerAuthorizeResult";
 export { EventHandlers } from "./broker/EventHandlers";
-export { BrokerWorkflows } from "./broker/BrokerWorkflows";
+export {
+  BrokerWorkflows,
+  type ContextualWorkflowInput,
+  type DurableWorkflowContext,
+} from "./broker/BrokerWorkflows";
 export { BrokerCoreModule, type BrokerCoreModuleOptions } from "./broker/BrokerCoreModule";
 export { BrokerModule, type BrokerFeatureOptions } from "./broker/BrokerModule";
 export { SERVICE_BROKER, SERVICE_NAME, InjectBroker, getBrokerToken } from "./broker/tokens";

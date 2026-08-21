@@ -105,6 +105,15 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
   }
 
   /**
+   * Establish the service AsyncLocalStorage context from durable workflow input.
+   * Workflows call this at their entrypoint so replay never relies on an HTTP
+   * request context.
+   */
+  runWithWorkflowContext<T>(context: RunScriptContext, work: () => Promise<T>): Promise<T> {
+    return runWithContext(this.buildServiceContext(context), work);
+  }
+
+  /**
    * Build minimal ServiceContext from RunScriptContext.
    * Used when running scripts from workflows where AsyncLocalStorage is not available.
    */

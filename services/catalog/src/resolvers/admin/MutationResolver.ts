@@ -853,6 +853,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         storeId: this.$ctx.store.id,
         userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
         locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
+        requestId: this.$ctx.requestId,
       },
     };
 
@@ -1008,6 +1009,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         storeId: this.$ctx.store.id,
         userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
         locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
+        requestId: this.$ctx.requestId,
       },
     };
 
@@ -1976,6 +1978,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       storeId: this.$ctx.store.id,
       userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
       locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
+      requestId: this.$ctx.requestId,
     };
 
     // Map products with transformed operations

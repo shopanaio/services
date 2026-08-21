@@ -2,6 +2,7 @@ import type { UserError } from "../../scripts/types/ScriptResult.js";
 import type { RichTextInput } from "../../scripts/product/dto/shared.js";
 import type { OptionSyncItemInput } from "../../scripts/option/dto/index.js";
 import type { FeatureSyncItemInput } from "../../scripts/feature/dto/index.js";
+import type { DurableWorkflowContext } from "@shopana/shared-kernel";
 
 export type { RichTextInput };
 
@@ -17,11 +18,12 @@ export interface ProductUpdateWorkflowInput {
 /**
  * Context for workflow execution.
  */
-export interface WorkflowContext {
-  organizationId: string;
-  storeId: string;
-  userId?: string;
-  locale: string;
+export interface WorkflowContext extends DurableWorkflowContext {
+  readonly organizationId: string;
+  readonly storeId: string;
+  readonly locale: string;
+  readonly requestId: string;
+  readonly userId?: string;
 }
 
 /**

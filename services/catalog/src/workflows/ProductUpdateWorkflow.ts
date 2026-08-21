@@ -104,7 +104,10 @@ type BatchOptionsStepResult = DurableStepResult<
  * are exposed as variant-level operations because they are keyed by variantId.
  */
 @Injectable()
-export class ProductUpdateWorkflow extends BrokerWorkflows {
+export class ProductUpdateWorkflow extends BrokerWorkflows<
+  ProductUpdateWorkflowInput,
+  ProductUpdateWorkflowResult
+> {
   constructor(@InjectBroker("catalog") broker: ServiceBroker) {
     super(broker);
   }
@@ -121,6 +124,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       storeId: ctx.storeId,
       organizationId: ctx.organizationId,
       locale: ctx.locale,
+      requestId: ctx.requestId,
       userId: ctx.userId,
     };
   }
@@ -137,11 +141,18 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(input: ProductUpdateWorkflowInput): Promise<ProductUpdateWorkflowResult> {
+    const scriptCtx = this.toScriptContext(this.workflowContext(input));
+    return this.kernel.runWithWorkflowContext(scriptCtx, () => this.execute(input, scriptCtx));
+  }
+
+  private async execute(
+    input: ProductUpdateWorkflowInput,
+    scriptCtx: RunScriptContext,
+  ): Promise<ProductUpdateWorkflowResult> {
     const results: OperationResult[] = [];
     const changes: ProductChanges = { productId: input.productId };
     const hasVariantOperations = input.operations.some((op) => isVariantOperation(op));
 
-    const scriptCtx = this.toScriptContext(input.context);
     const productExists = await this.stepProductExists(input.productId, scriptCtx);
     if (!productExists) {
       return {
