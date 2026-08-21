@@ -40,6 +40,12 @@ export {
   type ContextualWorkflowInput,
   type DurableWorkflowContext,
 } from "./broker/BrokerWorkflows";
+export {
+  AggregateUpdateWorkflow,
+  type AggregateOperationPlanItem,
+  type AggregateOperationRef,
+  type AggregatePrevalidation,
+} from "./workflows/AggregateUpdateWorkflow";
 export { BrokerCoreModule, type BrokerCoreModuleOptions } from "./broker/BrokerCoreModule";
 export { BrokerModule, type BrokerFeatureOptions } from "./broker/BrokerModule";
 export { SERVICE_BROKER, SERVICE_NAME, InjectBroker, getBrokerToken } from "./broker/tokens";

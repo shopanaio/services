@@ -151,6 +151,78 @@ Workflow body должен быть replay-safe. Генерация ID, врем
 недетерминированные действия выполняются внутри durable step, чтобы replay получил сохранённый
 результат.
 
+### Базовый контракт AggregateUpdateWorkflow
+
+Все новые Admin update-workflows с массивом operations обязаны наследовать `AggregateUpdateWorkflow`
+из `@shopana/shared-kernel`:
+
+```ts
+import {
+  AggregateUpdateWorkflow,
+  type AggregateOperationPlanItem,
+  type AggregateOperationRef,
+  type AggregatePrevalidation,
+} from "@shopana/shared-kernel";
+
+class ExampleUpdateWorkflow extends AggregateUpdateWorkflow<
+  ExampleUpdateInput,
+  ExampleOperation,
+  OperationResult,
+  ExampleChanges,
+  ExampleUpdateResult
+> {
+  @Workflow("exampleUpdate")
+  async run(input: ExampleUpdateInput): Promise<ExampleUpdateResult> {
+    return this.executeAggregateUpdate(input);
+  }
+
+  // Реализации domain-specific hooks приведены ниже.
+}
+```
+
+Базовый класс не заменяет `@Workflow`, `@Policy` или service-local `@TransactionalStep()`: они
+остаются на concrete workflow. Он фиксирует общий lifecycle:
+
+```text
+prevalidateAggregate
+  -> planOperations
+  -> applyPlanItem для каждого plan item в input order
+  -> merge checkpointed changes
+  -> successResult (event только при actual changes)
+```
+
+Concrete workflow обязан реализовать следующие hooks:
+
+| Hook                                                   | Назначение и ограничения                                                                                                                                                                                                     |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `operations(input)`                                    | Возвращает immutable ordered список internal operations. Позиция элемента в этом списке — его публичная identity.                                                                                                            |
+| `prevalidateAggregate(input)`                          | Выполняет durable prevalidation через `@WorkflowStep()` и `kernel.runScript()`: tenant/ownership, aggregate-wide invariants, взаимные зависимости operations. До первого write.                                              |
+| `planOperations(refs)`                                 | Возвращает execution plan. Каждый index input обязан присутствовать ровно один раз и в исходном порядке. Batch допускается только как группа **непрерывных** positions.                                                      |
+| `applyPlanItem(input, item)`                           | Запускает только local `@TransactionalStep()` methods и возвращает `Map<position, DurableStepResult>`. Map обязан содержать один результат для каждой позиции group; результат нельзя сопоставлять по порядку ответа script. |
+| `mergeChanges` / `initialChanges` / `hasActualChanges` | Восстанавливают event change hints исключительно из checkpointed step results. `null` changes означает no-op.                                                                                                                |
+| `prevalidationFailure`                                 | Формирует ordered failure results без writes.                                                                                                                                                                                |
+| `successResult`                                        | Формирует payload и после всех commits запускает child workflow/saga для event или external delivery.                                                                                                                        |
+
+`AggregateUpdateWorkflow` проверяет plan и результаты runtime-инвариантами: все позиции должны быть
+покрыты ровно один раз, batch positions должны быть непрерывны, и handler обязан вернуть outcome для
+каждой позиции. Поэтому запрещены `results.push(...)`, индексное сопоставление batch-ответов и
+отложенное выполнение operation вне её plan group.
+
+#### Partial apply и atomicity
+
+Partial apply допустим только между независимыми public operations. Каждая operation или явно
+объявленная dependent batch group должна иметь один transactional apply boundary. Внутри apply:
+
+- business validation выполняется до первого write (предпочтительно в `prevalidateAggregate`);
+- successful result возвращается только после всех связанных local writes;
+- если после первого write обнаружена ошибка, она не превращается в `applied: false`: exception
+  выходит из `@TransactionalStep()`, чтобы DBOS откатил transaction и checkpoint;
+- handler не вызывает broker, HTTP, storage или другой service.
+
+Если swap или иной algorithm требует перестановки database writes, он моделируется contiguous batch
+group. Внутренний порядок SQL может отличаться от input только внутри этой группы, но
+`OperationResult` и ошибки всегда возвращаются по исходной `position`.
+
 ### Критерии качества workflow
 
 - workflow имеет единственный broker-registered `@Workflow` entry point и детерминированный
@@ -370,6 +442,8 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
 12. Любое исключение из unified mutation rule документировано как отдельное архитектурное решение.
 13. На write path нет CAS columns, predicates, tokens, stale-object conflicts или client retry
     protocol.
+14. Новый workflow с operations наследует `AggregateUpdateWorkflow`; plan покрывает каждую input
+    position ровно один раз, а batch outcomes сопоставлены по position, не по порядку ответа script.
 
 ## Связанные документы
 
